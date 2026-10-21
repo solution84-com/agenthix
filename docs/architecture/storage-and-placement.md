@@ -1,0 +1,271 @@
+# Storage and Placement
+
+Whose storage exists, where it lives on disk, which Execution Site holds it, and how a run is sent to the
+site that holds the storage it works in.
+
+```mermaid
+flowchart LR
+    subgraph HQ ["hq — knows where storage is"]
+        PRJ["Project.executionSiteId"]
+        USP["UserStoragePlacement"]
+        WP["WorkspacePlacement"]
+    end
+    subgraph SB ["Execution Site B"]
+        P2["projects/ for the projects placed here"]
+    end
+    subgraph SA ["Execution Site A — holds the bytes"]
+        DB[("site database: Workspace, RepoAttachment")]
+        subgraph DISK ["SITE_ROOT"]
+            P1["projects/ one folder per project"]
+            U1["users/ one folder per person"]
+            H1["homes/ (harness homes)"]
+        end
+    end
+    PRJ -->|"this project is on site A"| P1
+    PRJ -->|"that project is on site B"| P2
+    USP -->|"this person's storage is on site A"| U1
+    WP -->|"this workspace is on site A"| DB
+    HQ -->|"location.* requests over the control channel"| SA
+```
+
+**Storage belongs to a project or to a person, and to nothing else.** hq never touches it: the files, and
+the rows that describe workspaces in them, live on the Execution Site that holds them. hq keeps only an
+index of *which* site holds each owner's storage, and asks that site for everything else.
+
+---
+
+## The words used here
+
+- A **storage boundary** (often just *boundary*) is one owner's storage: a project's, or one person's own.
+  Products, programmes, teams and agents own no storage
+  ([ADR-0061](../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md),
+  [ADR-0072](../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md)). Its two kinds
+  are `WorkspaceOwnerType` `project` and `user` (`core/src/protocol/siteData.ts`).
+- A **location** is one place inside a boundary that a run works in: the owner's `files/` folder, one of
+  its workspaces, or a task's folder. It is a `LocationRef`, `{ ownerType, ownerId, workspaceId?, taskId? }`
+  (`core/src/storage/locationRef.ts`). The path is always derived from those ids and never stored
+  ([ADR-0039](../adr/adr-0039-files-and-workspaces.md)).
+- A **workspace** is a named folder inside a boundary, with a `Workspace` row in the site's database. It is
+  not necessarily a git repository; one can be attached (below).
+
+---
+
+## On the site's disk
+
+Everything is keyed by immutable ids, so renaming anything never moves a file. The only code that knows
+this layout is `site/src/server/storage/paths.ts`; hq names a location by its ids and lets the site turn it
+into a path.
+
+```
+<SITE_ROOT>/
+├── projects/<project id>/
+│   ├── files/                 the project's own documents; a run with no workspace works here
+│   │   ├── AGENTS.md          the place's instructions, put into every run's prompt
+│   │   └── .agents/           skills for every agent, and one agent's own instructions and skills
+│   ├── workspaces/<id>/       one folder per workspace
+│   ├── knowledge/             what is known in the project: topic files and an INDEX.md
+│   ├── artefacts/             throwaway things agents made in conversations, one file each
+│   ├── tasks/<task id>/       a task's working folder
+│   └── members/<person id>/   one member's area in the project, holding their agenda.md
+├── users/<person id>/
+│   ├── files/                 the person's own files, and their agenda.md
+│   ├── workspaces/<id>/
+│   ├── knowledge/
+│   ├── artefacts/
+│   └── tasks/<task id>/       a task's folder in the person's personal project
+└── homes/                     harness homes, beside storage and never inside it
+    ├── users/<person id>/personal/
+    ├── users/<person id>/<project id>/
+    └── projects/<project id>/
+```
+
+`SITE_ROOT` defaults to `./site` under the site's working directory (`site/src/agents/agentDiskPaths.ts`).
+
+**Harness homes are not storage.** A harness home holds one runner's private runtime state in one boundary:
+the harness's session files and login. A project's storage is mounted by every container in the project,
+so a home inside it would be readable by all of them; homes therefore sit in `homes/`, grouped by person, so
+removing a person removes one folder (`site/src/agents/runtime/harnessHomes.ts`). Runners and containers
+are in [container-runtime.md](container-runtime.md).
+
+**What lives in hq instead.** An agent's definition and its packages, what an agent remembers (memory items, in
+three scopes: [ADR-0058](../adr/adr-0058-memory-of-a-person-is-held-by-hq-in-two-layers.md)), the words of a
+conversation ([conversation-layer.md](conversation-layer.md#the-record)), task attachments
+uploaded by people and agent images are hq's own (`HQ_STORAGE_ROOT`, `hq/src/server/hqStoragePaths.ts`).
+None of them is on a site.
+
+---
+
+## Which site holds what
+
+hq's database holds three placement records, each written once. **Nothing moves storage between sites**:
+there is no code that changes a placement and carries the files with it, so a different site for an
+existing owner would be new work.
+
+| Owner | Record in hq | Set when |
+|---|---|---|
+| A project | `Project.executionSiteId` | The project is created; whoever creates it picks the site (the `createProject` action, `hq/src/projects/actions.ts`) |
+| A person | `UserStoragePlacement` | The first time that person's storage is needed. Today always the default site |
+| A workspace | `WorkspacePlacement` | The workspace is created, on its owner's site (`hq/src/storage/workspaceService.ts`) |
+
+The site's own database holds the `Workspace` and `RepoAttachment` rows (`site/schema.prisma`), served to
+hq through `site/src/server/storage/workspaceRows.ts`. `WorkspacePlacement` is hq's index into those rows,
+written only by hq, so there is one writer and nothing to keep in step.
+
+The **default site** is the one that comes with hq ([control-channel.md](control-channel.md#how-a-site-takes-part)).
+It is where a person's own storage goes (`hq/src/sites/localSite.ts`). With no default site connected, anything that needs one fails with
+"No Execution Site is connected" (`hq/src/sites/noExecutionSite.ts`).
+
+---
+
+## Placing a run
+
+**A run executes on the site that holds its primary location**
+([ADR-0056](../adr/adr-0056-a-run-is-placed-on-the-site-holding-its-storage.md)). An agent has no site of
+its own: its package travels to wherever the run is placed, and the storage never travels.
+
+```mermaid
+flowchart TD
+    R["A run to dispatch"] --> L["resolvePrimaryLocation(session)"]
+    L -->|"task"| T["the project, its task folder"]
+    L -->|"session names a workspace"| W["that workspace"]
+    L -->|"otherwise"| F["the person's own files/"]
+    T --> S["resolveExecutionSiteId"]
+    W --> S
+    F --> S
+    S -->|"workspace"| WP2["WorkspacePlacement"]
+    S -->|"project"| P2["Project.executionSiteId"]
+    S -->|"person"| U2["UserStoragePlacement"]
+```
+
+- **A personal project** (a person's own "My tasks") has no storage of its own: its tasks resolve to
+  `tasks/<task id>` inside the person's own storage, so their runs go to the site holding that storage and
+  run as the person ([identity-and-trust.md](identity-and-trust.md#the-runner-claim)).
+- **The primary location** comes from `resolvePrimaryLocation` (`hq/src/storage/primaryLocationService.ts`;
+  the site has an identical copy, `site/src/server/storage/primaryLocationService.ts`, held equal by a test).
+- **The site** comes from `resolveExecutionSiteId` (`hq/src/server/identity/capabilityService.ts`), which
+  calls `resolveStorageSite` (`hq/src/storage/storageSite.ts`). Dispatch and the signed run capability use
+  the same call, so the site a run is sent to and the site its capability names cannot disagree.
+- **When that site is down**, a task waits for it and starts when it reconnects
+  ([control-channel.md](control-channel.md#dispatch-how-work-reaches-a-site)); a chat, or a brief to a worker there, fails with an
+  explicit error naming the site, and the conversation itself stays readable and can be written in. Work is never moved to another site.
+
+---
+
+## hq reading and writing files
+
+hq has no path to a site's disk. Everything goes through `location.*` methods
+(`core/src/protocol/locationFiles.ts`):
+
+| Method | Transport | Used for |
+|---|---|---|
+| `location.listFiles`, `location.statFile` | control channel | The storage pages, file browsers |
+| `location.readFile` | content transport | Showing a file |
+| `location.listArtefacts`, `location.listKnowledge` | control channel | The Artefacts and Knowledge tools |
+| `location.readArtefact`, `location.readKnowledge` | content transport | Opening an artefact or a knowledge topic |
+| `location.seedFiles`, `location.ensureDir` | control channel | hq creating a project's starting files and folders |
+| `location.remove` | control channel | Deleting a project's storage after the project is deleted |
+
+- **hq checks the person; the site checks the path.** Before any of these, hq checks that the person may
+  reach that boundary (`assertLocationAccess`, `hq/src/storage/locationAccess.ts`): a person's own storage
+  is theirs alone, and a project's is open to its members. The site checks only that the path stays inside
+  the location, with links resolved on both sides (`site/src/server/storage/locationContainment.ts`). In
+  `artefacts/` and `knowledge/`, which hq addresses by the owner rather than by a location, it refuses every
+  link, and a folder that has itself been replaced by one. It has no notion of who is asking: it has no
+  users.
+- hq's callers are `hq/src/storage/locationFileStore.ts` and `ownerFolderStore.ts`, and the queries in
+  `hq/src/storage/queries.ts` and `ownerFolderQueries.ts`. A file larger than 1 MB is described rather than
+  sent (`hq/src/storage/fileContentService.ts`).
+- **People do not write into a site's storage through hq.** A person's upload to a task is stored by hq
+  (`uploadTaskAttachment`). Agents write their own files in their container. How files are shared and
+  served is [the file-sharing concept](../concepts/file-sharing/file-sharing.md).
+
+---
+
+## How a run sees storage
+
+A run's container mounts **one whole boundary**, at a path that mirrors the site's disk without the site
+root: `/projects/<project id>` or `/users/<person id>`
+([ADR-0079](../adr/adr-0079-access-to-a-boundary-is-access-to-all-of-it.md);
+`resolveBoundaryMount`, `site/src/agents/runtime/locationResolver.ts`). Everything inside it comes with that
+one mount: files, knowledge, artefacts, every workspace, and a project's tasks and members folders. A
+workspace created while the container runs appears in it at once.
+
+**What keeps a run out of other storage** is that nothing else is mounted. The site builds the container's
+one storage mount from the run's primary location alone, and the container is keyed on that boundary, so a
+run in project A gets a container that has project A's folder and nothing else from `SITE_ROOT`. A person
+chatting in a project gets the project's folder, not their own `/users/` folder; their own storage is
+reached only by a chat that works in it. The runner decides only which harness home comes with it
+([container-runtime.md](container-runtime.md#containers)).
+
+- **The working folder** is a path inside that mount: `tasks/<id>` for a task, `workspaces/<id>` for a
+  workspace, otherwise `files/` (`resolvePrimaryContainerDir`).
+- **Read-only or writable**: the mount is writable when the run's permissions allow `write_file`,
+  `edit_file` or `bash` (`runHasWriteTools`, `site/src/agents/runtime/toolPermissions.ts`), and read-only
+  otherwise (`containerPrep.ts`).
+- **The working folder is a starting point, not a limit.** Nothing confines a run's writes to it: within
+  its mount a run can write anywhere its tools allow. The gate's path rule protects only the harness home
+  and `/proc` ([tools/tool-control.md](tools/tool-control.md#the-harness-path-rule)).
+- **Access to a boundary is access to all of it.** There is no way to keep agents out of one workspace of a
+  project. A workspace's `allowedTools` is a guardrail on which tools a run there may use, not an access
+  rule. To keep something from agents, put it in a project they are not added to, or in personal storage.
+
+---
+
+## Git repositories
+
+A repository is **attached** to a location: to a workspace, or to an owner's `files/` folder. The
+attachment is a `RepoAttachment` row on the site holding the repository's GitHub address; the checkout is
+the folder itself.
+
+- **All git runs on the site**, never in hq: connecting a repository (push an existing folder up, or pull a
+  repository into an empty one) is `repo.connect`, and its state is `repo.state` (`core/src/protocol/repoWork.ts`;
+  `site/src/server/storage/repoWorkMethods.ts`, `site/src/storage/repoOps.ts`). The credential arrives with
+  the call and is passed to git through `GIT_ASKPASS`, never written to `.git/config`.
+- **hq holds the GitHub App** and mints a short-lived token scoped to one repository for each use
+  (`hq/src/github/githubApp.ts`). Only a project admin may attach or detach a project's repository.
+- **An agent pushes and pulls** through a git credential helper in its container; how its token is checked
+  and minted is in [identity-and-trust.md](identity-and-trust.md#git). A run may use an attachment only if
+  its own boundary owns it ([ADR-0060](../adr/adr-0060-authority-comes-from-the-boundary.md)).
+
+---
+
+## When owners go away
+
+- **A project is deleted**: hq sends `location.remove` for the whole project folder after the deletion
+  commits (`hq/src/projects/projectStorageRemoval.ts`). If the site is down the folder stays and the failure
+  is logged.
+- **A person leaves a project or the organisation**: hq sends a membership-ending instruction, held until
+  acknowledged (`core/src/protocol/membership.ts`). Leaving a project goes to the site holding the project's
+  storage and every site that ran one of the person's conversations in it; leaving the organisation goes to
+  every site that is not revoked, since that is the only set that cannot miss one
+  (`hq/src/sites/membershipEnding.ts`). The site closes that person's
+  conversations, removes their containers and deletes their harness homes
+  (`site/src/server/runtime/membershipEnding.ts`). Their member folder and stored transcripts stay.
+- **A person is erased** ([ADR-0100](../adr/adr-0100-leaving-deactivates-erasing-is-separate.md)): hq asks
+  each site to delete their own conversations by id (`session.deleteMany` with `ids`), never by person, so a
+  project's task sessions filed under them stay; and sends `location.remove` for their own storage
+  (`hq/src/settings/erasePerson.ts`). If the site holding their files is down the folder stays and the
+  failure is logged.
+- **A workspace is deleted**: its row and placement go; its folder stays on disk.
+
+---
+
+## What must not break
+
+- **hq never reads or writes a site's disk**, and never assumes it shares a filesystem with one.
+- **Paths are derived from ids, on the site.** Never store a path, and never key a folder by a name.
+- **A container mounts exactly one boundary.** Mounting two would let a run in one owner's storage reach
+  another's.
+- **Harness homes stay outside storage.** Moving one inside a project would expose one person's sessions
+  to every container in the project.
+- **Placement is decided once, by the same function for dispatch and capability.**
+
+## Decisions behind this
+
+[ADR-0039](../adr/adr-0039-files-and-workspaces.md) (ids, derived paths) ·
+[ADR-0056](../adr/adr-0056-a-run-is-placed-on-the-site-holding-its-storage.md) (placement; supersedes
+ADR-0047) · [ADR-0058](../adr/adr-0058-memory-of-a-person-is-held-by-hq-in-two-layers.md) ·
+[ADR-0060](../adr/adr-0060-authority-comes-from-the-boundary.md) ·
+[ADR-0061](../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md) ·
+[ADR-0074](../adr/adr-0074-a-container-is-keyed-on-its-boundary-and-its-runner.md) ·
+[ADR-0079](../adr/adr-0079-access-to-a-boundary-is-access-to-all-of-it.md)

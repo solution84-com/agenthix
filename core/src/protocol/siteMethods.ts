@@ -1,0 +1,158 @@
+/**
+ * The site connection's messages, each with its shape: every method hq calls on a site's control channel with its
+ * params and result (`SiteMethods`), every stream it opens on the content transport with its params
+ * (`SiteContentMethods`), and every event a site sends (`SiteEvents`). hq's callers and the site's handlers are typed
+ * against these maps, so a method one side sends and the other does not serve, or a shape the two read differently,
+ * fails the typecheck rather than the wire. The snapshot (core/snapshot/site.json) records them.
+ *
+ * The site's own requests of hq are not channel methods: a run's tools reach hq's data API (`HQ_DATA_PATH`,
+ * `HqDataRequest`) and its capability is renewed over HTTP (`HQ_CAPABILITY_RENEW_PATH`, `CapabilityRenewRequest`).
+ */
+import type { SiteDescribeResult } from './channelMessages.js'
+import { SITE_DATA_METHODS } from './siteData.js'
+import type {
+  RepoAttachmentRow, RepoAttachmentSummaryRow, RepoAttachmentTarget, WorkspaceCapsRow, WorkspaceListByOwnerSelect,
+  WorkspaceNameRow, WorkspaceOwnerType, WorkspaceRow,
+} from './siteData.js'
+import { RUNTIME_METHODS } from './runtimeData.js'
+import type { AgentPromptPreviewResult, RunCancelParams, RunDispatchPayload, RunDispatchResult, RunRow, SessionRow, SessionSeed } from './runtimeData.js'
+import type {
+  AgentHandleParams, AgentPromptPreviewParams, ApprovedResult, ByIdParams, ByRunIdParams, CountResult, DeletedCountResult,
+  DeletedResult, OkResult, RemovedResult, RunApproveParams, RunRejectParams, SessionDeleteManyParams, SessionRenameParams,
+  UpdatedResult,
+} from './runtimeParams.js'
+import type { RunListFilter, RunListPageParams, RunListPageResult, RunStatsResult } from './runList.js'
+import type { ActiveRunsParams, ActiveRunsResult } from './activeRuns.js'
+import type { RunUsageParams, RunUsageResult } from './runUsage.js'
+import type { ToolCallRow, TranscriptListParams, TranscriptRow } from './transcript.js'
+import { MEMBERSHIP_METHODS } from './membership.js'
+import type { MemberLeftProjectParams, MembershipAck, PersonLeftOrganisationParams, ProjectDeletedParams } from './membership.js'
+import { PACKAGE_METHODS } from './packages.js'
+import type { PackageRef, PackagesMissingParams, PackagesMissingResult } from './packages.js'
+import { LOCATION_FILE_METHODS } from './locationFiles.js'
+import type {
+  LocationEnsureDirParams, LocationEnsureDirResult, LocationListArtefactsParams, LocationListArtefactsResult,
+  LocationListFilesParams, LocationListFilesResult, LocationListKnowledgeParams, LocationListKnowledgeResult,
+  LocationReadArtefactParams, LocationReadFileParams, LocationReadKnowledgeParams, LocationRemoveParams,
+  LocationRemoveResult, LocationSearchKnowledgeParams, LocationSearchKnowledgeResult, LocationSeedFilesParams,
+  LocationSeedFilesResult, LocationStatFileParams, LocationStatFileResult,
+} from './locationFiles.js'
+import { REPO_WORK_METHODS } from './repoWork.js'
+import type { RepoConnectParams, RepoConnectResult, RepoStateParams, RepoStateResult } from './repoWork.js'
+import { PREVIEW_METHODS } from './preview.js'
+import type { PreviewConnectParams, PreviewStartParams, PreviewStartResult, PreviewStopParams, PreviewStopResult } from './preview.js'
+import { SITE_DIAGNOSTICS_METHODS } from './siteDiagnostics.js'
+import type { SiteReadLogsParams, SiteReadLogsResult } from './siteDiagnostics.js'
+import { SITE_RESTORE_METHODS } from './siteRestore.js'
+import type { SiteRestoreReport } from './siteRestore.js'
+import { SITE_HQ_ADDRESS_METHOD } from './hqAddress.js'
+import type { SiteHqAddressParams, SiteHqAddressResult } from './hqAddress.js'
+import { CLAUDE_LOGIN_METHODS } from './claudeLogin.js'
+import type {
+  ClaudeLoginCancelParams, ClaudeLoginCancelResult, ClaudeLoginFinishParams, ClaudeLoginFinishResult,
+  ClaudeLoginStartParams, ClaudeLoginStartResult,
+} from './claudeLogin.js'
+import type { SiteHealth } from './siteHealth.js'
+
+/** A method that takes nothing: hq sends `{}`. */
+type NoParams = Record<string, never>
+
+/** hq → site on the control channel: each method's params and its result. */
+export type SiteMethods = {
+  'site.describe': { params: NoParams; result: SiteDescribeResult }
+  [SITE_HQ_ADDRESS_METHOD]: { params: SiteHqAddressParams; result: SiteHqAddressResult }
+
+  [SITE_DATA_METHODS.workspaceGet]: { params: ByIdParams; result: WorkspaceRow | null }
+  /** Ordered by creation, oldest first. */
+  [SITE_DATA_METHODS.workspaceList]: { params: NoParams; result: WorkspaceRow[] }
+  /** The rows' shape follows `select`: whole rows without it, `WorkspaceCapsRow`s for `caps`, `WorkspaceNameRow`s for `names`. */
+  [SITE_DATA_METHODS.workspaceListByOwner]: {
+    params: { ownerType: WorkspaceOwnerType; ownerId: string; select?: WorkspaceListByOwnerSelect }
+    result: WorkspaceRow[] | WorkspaceCapsRow[] | WorkspaceNameRow[]
+  }
+  [SITE_DATA_METHODS.workspaceListByIds]: { params: { ids: string[]; select: 'caps' }; result: WorkspaceCapsRow[] }
+  [SITE_DATA_METHODS.workspaceCreate]: { params: { name: string; ownerType: WorkspaceOwnerType; ownerId: string }; result: WorkspaceRow }
+  [SITE_DATA_METHODS.workspaceSetAllowedTools]: { params: { id: string; allowedTools: string[] | null }; result: OkResult }
+  [SITE_DATA_METHODS.workspaceDelete]: { params: ByIdParams; result: OkResult }
+  [SITE_DATA_METHODS.repoGetForTarget]: { params: RepoAttachmentTarget; result: RepoAttachmentRow | null }
+  [SITE_DATA_METHODS.repoFindByUrl]: { params: { repoUrl: string }; result: RepoAttachmentRow | null }
+  [SITE_DATA_METHODS.repoList]: { params: NoParams; result: RepoAttachmentSummaryRow[] }
+  [SITE_DATA_METHODS.repoCreate]: {
+    params: { ownerType: WorkspaceOwnerType; ownerId: string; workspaceId: string | null; repoUrl: string }
+    result: RepoAttachmentRow
+  }
+  [SITE_DATA_METHODS.repoDelete]: { params: ByIdParams; result: OkResult }
+
+  [RUNTIME_METHODS.sessionCreate]: { params: SessionSeed; result: OkResult }
+  [RUNTIME_METHODS.sessionGet]: { params: ByIdParams; result: SessionRow | null }
+  [RUNTIME_METHODS.sessionRename]: { params: SessionRenameParams; result: UpdatedResult }
+  [RUNTIME_METHODS.sessionArchive]: { params: ByIdParams; result: UpdatedResult }
+  [RUNTIME_METHODS.sessionDelete]: { params: ByIdParams; result: DeletedResult }
+  [RUNTIME_METHODS.sessionDeleteMany]: { params: SessionDeleteManyParams; result: DeletedCountResult }
+  [RUNTIME_METHODS.sessionClearRuns]: { params: ByIdParams; result: DeletedCountResult }
+  [RUNTIME_METHODS.runGet]: { params: ByIdParams; result: RunRow | null }
+  [RUNTIME_METHODS.runList]: { params: RunListFilter; result: RunRow[] }
+  [RUNTIME_METHODS.runListPage]: { params: RunListPageParams; result: RunListPageResult }
+  /** `limit` is accepted and ignored, so one `RunListFilter` serves `run.list` and this. */
+  [RUNTIME_METHODS.runCount]: { params: RunListFilter; result: CountResult }
+  [RUNTIME_METHODS.runStats]: { params: NoParams; result: RunStatsResult }
+  [RUNTIME_METHODS.runListActive]: { params: ActiveRunsParams; result: ActiveRunsResult }
+  [RUNTIME_METHODS.runUsage]: { params: RunUsageParams; result: RunUsageResult }
+  [RUNTIME_METHODS.transcriptList]: { params: TranscriptListParams; result: TranscriptRow[] }
+  [RUNTIME_METHODS.toolCallList]: { params: ByRunIdParams; result: ToolCallRow[] }
+  [RUNTIME_METHODS.runDispatch]: { params: RunDispatchPayload; result: RunDispatchResult }
+  [RUNTIME_METHODS.runCancel]: { params: RunCancelParams; result: OkResult }
+  [RUNTIME_METHODS.runApprove]: { params: RunApproveParams; result: ApprovedResult }
+  [RUNTIME_METHODS.runReject]: { params: RunRejectParams; result: OkResult }
+  [RUNTIME_METHODS.agentStop]: { params: AgentHandleParams; result: OkResult }
+  [RUNTIME_METHODS.agentRemoveDirectory]: { params: AgentHandleParams; result: RemovedResult }
+  [RUNTIME_METHODS.agentPromptPreview]: { params: AgentPromptPreviewParams; result: AgentPromptPreviewResult }
+
+  [MEMBERSHIP_METHODS.memberLeftProject]: { params: MemberLeftProjectParams; result: MembershipAck }
+  [MEMBERSHIP_METHODS.personLeftOrganisation]: { params: PersonLeftOrganisationParams; result: MembershipAck }
+  [MEMBERSHIP_METHODS.projectDeleted]: { params: ProjectDeletedParams; result: MembershipAck }
+
+  [PACKAGE_METHODS.missing]: { params: PackagesMissingParams; result: PackagesMissingResult }
+
+  [LOCATION_FILE_METHODS.listFiles]: { params: LocationListFilesParams; result: LocationListFilesResult }
+  [LOCATION_FILE_METHODS.statFile]: { params: LocationStatFileParams; result: LocationStatFileResult }
+  [LOCATION_FILE_METHODS.seedFiles]: { params: LocationSeedFilesParams; result: LocationSeedFilesResult }
+  [LOCATION_FILE_METHODS.ensureDir]: { params: LocationEnsureDirParams; result: LocationEnsureDirResult }
+  [LOCATION_FILE_METHODS.removeLocation]: { params: LocationRemoveParams; result: LocationRemoveResult }
+  [LOCATION_FILE_METHODS.listArtefacts]: { params: LocationListArtefactsParams; result: LocationListArtefactsResult }
+  [LOCATION_FILE_METHODS.listKnowledge]: { params: LocationListKnowledgeParams; result: LocationListKnowledgeResult }
+  [LOCATION_FILE_METHODS.searchKnowledge]: { params: LocationSearchKnowledgeParams; result: LocationSearchKnowledgeResult }
+
+  [REPO_WORK_METHODS.connect]: { params: RepoConnectParams; result: RepoConnectResult }
+  [REPO_WORK_METHODS.state]: { params: RepoStateParams; result: RepoStateResult }
+
+  [PREVIEW_METHODS.start]: { params: PreviewStartParams; result: PreviewStartResult }
+  [PREVIEW_METHODS.stop]: { params: PreviewStopParams; result: PreviewStopResult }
+
+  [SITE_DIAGNOSTICS_METHODS.readLogs]: { params: SiteReadLogsParams; result: SiteReadLogsResult }
+  [SITE_DIAGNOSTICS_METHODS.healthNow]: { params: NoParams; result: SiteHealth }
+  [SITE_RESTORE_METHODS.report]: { params: NoParams; result: SiteRestoreReport }
+
+  [CLAUDE_LOGIN_METHODS.start]: { params: ClaudeLoginStartParams; result: ClaudeLoginStartResult }
+  [CLAUDE_LOGIN_METHODS.finish]: { params: ClaudeLoginFinishParams; result: ClaudeLoginFinishResult }
+  [CLAUDE_LOGIN_METHODS.cancel]: { params: ClaudeLoginCancelParams; result: ClaudeLoginCancelResult }
+}
+
+export type SiteMethodName = keyof SiteMethods
+export type SiteMethodParams<M extends SiteMethodName> = SiteMethods[M]['params']
+export type SiteMethodResult<M extends SiteMethodName> = SiteMethods[M]['result']
+
+/**
+ * hq → site on the content transport: each stream's opening params. What crosses after the opening is bytes, in
+ * whichever direction the method says (a package's content to the site; a file's to hq; a preview's both ways).
+ */
+export type SiteContentMethods = {
+  [PACKAGE_METHODS.put]: { params: { ref: PackageRef } }
+  [LOCATION_FILE_METHODS.readFile]: { params: LocationReadFileParams }
+  [LOCATION_FILE_METHODS.readArtefact]: { params: LocationReadArtefactParams }
+  [LOCATION_FILE_METHODS.readKnowledge]: { params: LocationReadKnowledgeParams }
+  [PREVIEW_METHODS.connect]: { params: PreviewConnectParams }
+}
+
+export type SiteContentMethodName = keyof SiteContentMethods
+export type SiteContentParams<M extends SiteContentMethodName> = SiteContentMethods[M]['params']

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Permissions today · side by side</title>
+<style>
+  :root, :root[data-theme="light"] { --s0:#f6f6f9; --s1:#ffffff; --border:#dcdce6; --t1:#17171f; --t2:#55556b; --t3:#8a8aa0; --accent:#6366f1; }
+  :root[data-theme="dark"] { --s0:#0a0a0f; --s1:#12121a; --border:#2e2e45; --t1:#e8e8f0; --t2:#9090a8; --t3:#606078; --accent:#818cf8; }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1800px; margin:0 auto; padding:24px; }
+  h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .lede { color:var(--t2); margin:4px 0 20px; max-width:860px; }
+  .cols { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:20px; align-items:start; }
+  .col { background:var(--s1); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  .col h2 { font-size:15px; margin:0; padding:12px 14px 2px; }
+  .col .where { color:var(--t3); font-size:12px; padding:0 14px 8px; }
+  .col dl { margin:0; padding:8px 14px 12px; border-top:1px solid var(--border); display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:13px; }
+  .col dt { color:var(--t3); } .col dd { margin:0; }
+  .col img { display:block; width:100%; border-top:1px solid var(--border); }
+  @media (max-width: 900px) { .cols { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="board">
+  <h1>Permissions today — side by side</h1>
+  <p class="lede">Screenshots of the app as it is now, for AgentX. The organisation's level sets each tool to Always, Ask or Never. A project and a person can only switch tools off, or not; they cannot say Ask.</p>
+  <div class="cols">
+    <div class="col">
+      <h2>Organisation</h2>
+      <div class="where">Organisation › Agents › AgentX › Settings › Edit</div>
+      <dl>
+        <dt>Stored</dt><dd>Always / Ask / Never per tool, Bash command patterns, autonomy, model</dd>
+        <dt>Tools shown</dt><dd>Grouped, with plain names and presets</dd>
+      </dl>
+      <img src="/files/today-perm-org.png" alt="The organisation's settings editor">
+    </div>
+    <div class="col">
+      <h2>Project</h2>
+      <div class="where">Website Redesign › Agents › AgentX › In this project</div>
+      <dl>
+        <dt>Stored</dt><dd>Tool ceiling (a list of tool names), autonomy, model</dd>
+        <dt>Tools shown</dt><dd>One checkbox per tool, by its code name, ungrouped</dd>
+      </dl>
+      <img src="/files/today-perm-project.png" alt="The project's narrowing editor">
+    </div>
+    <div class="col">
+      <h2>Person (you)</h2>
+      <div class="where">Agents › AgentX › Your settings</div>
+      <dl>
+        <dt>Stored</dt><dd>Tool ceiling (a list of tool names), autonomy, model</dd>
+        <dt>Tools shown</dt><dd>None: an empty text box to type tool names into</dd>
+      </dl>
+      <img src="/files/today-perm-person.png" alt="Your own narrowing editor">
+    </div>
+  </div>
+</div>
+<script src="/files/boards.js"></script>
+</body>
+</html>

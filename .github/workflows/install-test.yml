@@ -1,0 +1,56 @@
+name: Install test
+
+# Part of the release bar: the product tested in the shape it is installed in, on a fresh runner, when a release
+# branch is pushed and before the tag. scripts/install-test/run.sh builds every image at `dev`, starts the host
+# service under a namespace of its own, runs `agenthix install` at the runner's network address over plain http, and
+# walks through HQ in a real browser against a stand-in model, so no real model is called and nothing is published.
+on:
+  push:
+    branches: ['release/**']
+  workflow_dispatch:
+
+concurrency:
+  group: install-test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  install:
+    name: "Installed at a network address over plain http"
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    env:
+      WASP_TELEMETRY_DISABLE: '1'
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install core and the browser
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          # Only Playwright is needed from hq here; its images are built from the repository by Docker.
+          (cd hq && npm install --no-audit --no-fund)
+          (cd hq && npx playwright install --with-deps chromium)
+
+      - name: The stand-in model's own tests
+        run: node --test scripts/install-test/__tests__/stand-in-model.test.mjs
+
+      - name: Build, install and walk through
+        env:
+          INSTALL_TEST_LOGS: ${{ runner.temp }}/install-test
+        run: bash scripts/install-test/run.sh
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: install-test-logs
+          path: ${{ runner.temp }}/install-test
+          if-no-files-found: ignore
+          retention-days: 14

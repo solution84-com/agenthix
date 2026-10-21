@@ -1,0 +1,35 @@
+# ⚠️ The front door for this whole machine — see compose.yml before using.
+# Add another application with one line per domain:
+#   wiki.example.com {
+#       reverse_proxy wiki:3000
+#   }
+# and join that application's container to the `agenthix-edge` network.
+
+{$HQ_DOMAIN} {
+	reverse_proxy hq-web:4100
+}
+
+# Uploaded files' own host (adr-0114), set as FILES_ORIGIN=https://<this name> in
+# hq/compose.env too. hq-web answers only uploaded files on it. Unset, this
+# block answers only a placeholder name nothing resolves, and HQ offers uploads
+# as downloads only.
+{$FILES_DOMAIN:files-off.localhost} {
+	reverse_proxy hq-web:4100
+}
+
+# Live previews (adr-0071), when PREVIEW_DOMAIN is set in front-door/.env and in
+# hq/compose.env: every p-<id>.<preview domain> goes to hq-web, which forwards
+# it to hq-server. Unset, this block answers only a placeholder name nothing
+# resolves, and previews stay off.
+#
+# A wildcard certificate cannot be had with the HTTP check the block above uses:
+# it needs a DNS-provider challenge, which means a Caddy built with your DNS
+# provider's plugin (caddy:2-alpine has none) and that provider's API token.
+# With one, uncomment and fill in the tls block, e.g. for Cloudflare:
+#   tls {
+#       dns cloudflare {env.DNS_API_TOKEN}
+#   }
+# Without one, Caddy keeps retrying the certificate and previews do not load.
+*.{$PREVIEW_DOMAIN:previews-off.localhost} {
+	reverse_proxy hq-web:4100
+}

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Chat — personal space · living design</title>
+<style>
+  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --s3:#e6e6ee; --hover:#ebebf3;
+    --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0;
+    --accent:#6366f1; --accent-h:#4f46e5; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --danger:#dc2626;
+    --ok-line:#05966955; --warn-line:#b4530955;
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --s3:#242436; --hover:#2a2a40;
+    --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078;
+    --accent:#6366f1; --accent-h:#818cf8; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --ok-line:#34d39955; --warn-line:#fbbf2455;
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:760px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .pill.live { color:var(--ok); border-color:var(--ok-line); }
+  .theme { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-left:8px; vertical-align:middle; }
+  .theme button { border:0; background:var(--s1); color:var(--t2); font:inherit; font-size:13px; padding:4px 12px; cursor:pointer; }
+  .theme button.on { background:var(--accent); color:var(--on-accent); }
+  .boards { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  .boards a { color:var(--t2); text-decoration:none; font-size:13px; padding:4px 10px; border-radius:6px; border:1px solid var(--border-subtle); background:var(--s1); }
+  .boards a.on { color:var(--t1); border-color:var(--accent); background:var(--accent-sub); }
+  .boards span { font-size:13px; padding:4px 10px; color:var(--t3); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:28px 0 10px; }
+
+  .frame { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .desk { display:grid; grid-template-columns:220px 1fr 300px; height:780px; }
+  .nav { background:var(--s0); border-right:1px solid var(--border-subtle); padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .logo { font-weight:600; font-size:15px; padding:4px 8px 14px; display:flex; gap:8px; align-items:center; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; color:var(--t2); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+  .nav a.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .nav .sec { font-size:12px; color:var(--t3); padding:14px 8px 4px; display:flex; justify-content:space-between; }
+  .sq { width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:8px; }
+  .nav .n { font-size:12px; color:var(--warn); }
+  .pi { display:flex; align-items:center; gap:8px; }
+  .ava { width:20px; height:20px; flex:none; color:#fff; font-size:9px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+  .ava.proj, .ava.bd { border-radius:5px; }
+  .ava.agent { border-radius:50%; }
+  .nav .drag { color:var(--t3); font-size:11px; letter-spacing:-2px; }
+  .tact { display:flex; justify-content:space-between; align-items:center; }
+  .mini { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:1px 7px; color:var(--t1); background:var(--s1); margin-left:4px; }
+  .mini.stop { color:var(--danger); }
+  .nav .me { margin-top:auto; border-top:1px solid var(--border-subtle); padding:12px 8px 0; font-size:13px; color:var(--t2); }
+
+  .desk > * { min-height:0; }
+  .centre { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; background:var(--s1); }
+  .crumb { padding:14px 32px 0; font-size:13px; color:var(--t3); }
+  .crumb a { color:var(--accent); text-decoration:none; }
+  .phead { padding:6px 32px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border-subtle); }
+  .picon { width:36px; height:36px; border-radius:8px; background:#8b5cf6; flex:none; }
+  .phead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .phead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .phead .pin { margin-left:auto; color:var(--accent); display:inline-flex; padding:6px; border-radius:6px; background:var(--accent-sub); }
+  .runrow { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:4px 0 6px; }
+  .rb { font-size:13px; line-height:18px; text-align:center; padding:6px 0; border:1px solid var(--border); border-radius:8px; color:var(--t1); background:var(--s1); }
+  .rb.stop { color:var(--danger); }
+  .tgrp { font-size:12px; color:var(--t3); font-weight:500; margin:10px 0 0; }
+  .tgrp:first-of-type { margin-top:0; }
+  .listwrap { flex:1; min-height:0; overflow:hidden; padding:14px 32px; }
+  .listtools { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .listtools h3 { font-size:15px; line-height:22px; margin:0; font-weight:600; flex:1; }
+  .search { border:1px solid var(--border); border-radius:6px; padding:5px 10px; color:var(--t3); font-size:13px; width:200px; background:var(--s1); }
+  .btn { border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:13px; color:var(--t1); background:var(--s1); white-space:nowrap; }
+  .grp { font-size:12px; color:var(--t3); font-weight:500; margin:12px 0 2px; }
+  .row { display:flex; gap:12px; padding:8px 10px; border-radius:8px; align-items:center; }
+  .row.sel { background:var(--s2); }
+  .av { width:32px; height:32px; border-radius:50%; flex:none; color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+  .av.sm { width:24px; height:24px; font-size:10px; }
+  .row .body { min-width:0; flex:1; }
+  .row .ttl { font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .who { color:var(--t2); font-size:13px; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .meta { color:var(--t3); font-size:12px; white-space:nowrap; text-align:right; }
+  .working { color:var(--ok); }
+  .composer { flex:none;  margin:0 32px 20px; border:1px solid var(--accent); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:center; background:var(--s1); }
+  .composer .ph { flex:1; color:var(--t3); font-size:15px; }
+  .chip { font-size:12px; color:var(--t2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; display:inline-flex; align-items:center; gap:6px; }
+  .send { width:30px; height:30px; border-radius:8px; background:var(--accent); flex:none; }
+
+  .right { background:var(--s1); border-left:1px solid var(--border-subtle); padding:0; display:flex; flex-direction:column; overflow:hidden; }
+  .right .card { border:none; border-radius:0; background:transparent; padding:14px 16px; }
+  .right .card + .card { border-top:1px solid var(--border-subtle); }
+  .right .card h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); }
+  .card { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; background:var(--s1); }
+  .card h4 { margin:0 0 8px; font-size:13px; line-height:18px; color:var(--t2); font-weight:500; }
+  .kv { display:grid; grid-template-columns:96px 1fr; gap:4px 8px; font-size:13px; line-height:18px; }
+  .kv b { font-weight:400; color:var(--t3); }
+  .tool { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; border-top:1px solid var(--border-subtle); }
+  .tool:first-of-type { border-top:none; }
+  .tool .n { color:var(--t3); font-size:12px; }
+  .tool .n.need { color:var(--warn); }
+  .tool .n.on { color:var(--ok); }
+
+  .phones { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:340px; height:700px; min-height:0; border:1px solid var(--border); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; background:var(--s1); position:relative; }
+  .mhead { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-subtle); }
+  .back { color:var(--accent); font-size:20px; line-height:20px; }
+  .mhead .t { font-weight:600; flex:1; }
+  .mbtn { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:3px 8px; color:var(--t2); }
+  .mlist { flex:1; min-height:0; overflow:hidden; padding:4px 12px; }
+  .mfilter { padding:8px 12px 0; display:flex; gap:8px; }
+  .mcomp { margin:10px 12px 16px; border:1px solid var(--accent); border-radius:12px; padding:12px; color:var(--t3); font-size:15px; display:flex; justify-content:space-between; align-items:center; }
+  .scrim { position:absolute; inset:0; background:#0000004d; }
+  .sheet { position:absolute; left:0; right:0; bottom:0; height:78%; background:var(--s1); border-radius:18px 18px 0 0; padding:10px 16px; border-top:1px solid var(--border); }
+  .grab { width:40px; height:4px; border-radius:2px; background:var(--s3); margin:0 auto 12px; }
+  .tabs { display:flex; gap:20px; border-bottom:1px solid var(--border-subtle); margin:8px 0 6px; font-size:14px; }
+  .tabs span { padding:6px 0; color:var(--t2); }
+  .tabs span.on { color:var(--accent); border-bottom:2px solid var(--accent); }
+
+  .notes { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .note { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); }
+  .note h3 { margin:0 0 8px; font-size:15px; line-height:22px; }
+  .note ul, .note ol { margin:0; padding-left:18px; color:var(--t2); }
+  .note li { margin-bottom:6px; }
+  .note li b { color:var(--t1); font-weight:500; }
+  .note.open { border-color:var(--warn-line); }
+  .note.agreed { border-color:var(--ok-line); }
+  details { margin-top:16px; color:var(--t2); }
+  details img { max-width:100%; border-radius:8px; border:1px solid var(--border-subtle); margin-top:8px; }
+  table.map { border-collapse:collapse; font-size:13px; width:100%; }
+  table.map td, table.map th { border-bottom:1px solid var(--border-subtle); padding:6px 8px; text-align:left; vertical-align:top; }
+  table.map th { color:var(--t3); font-weight:500; }
+  .fctl { position:static; display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--s1); }
+  .fctl span { width:30px; height:26px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border-subtle); }
+  .fctl span:first-child { border-left:none; }
+  .fctl span.on { background:var(--accent-sub); }
+  .fctl i { display:flex; gap:2px; height:12px; }
+  .fctl i u { display:block; border-radius:1px; background:var(--t3); }
+  .work { display:grid; grid-template-rows:auto 1fr; min-width:0; min-height:0; }
+  .wbar { display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px 32px; border-bottom:1px solid var(--border-subtle); background:var(--s1); }
+  .crumb2 { font-size:13px; color:var(--t3); } .crumb2 a { color:var(--accent); text-decoration:none; }
+  .panes { display:grid; min-height:0; }
+  .panes > * { min-height:0; }
+  .tops { margin-left:auto; display:flex; gap:4px; }
+  .topb { position:relative; width:30px; height:30px; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); }
+  .topb.on { background:var(--accent-sub); color:var(--accent); }
+  .topb b { position:absolute; top:-3px; right:-5px; background:var(--danger); color:#fff; font-size:10px; line-height:14px; min-width:14px; text-align:center; border-radius:7px; padding:0 3px; font-weight:600; }
+  .topb b.g { background:var(--ok); }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="boardhead">
+    <div>
+      <h1>Chat — personal space</h1>
+      <p>The person's own space: today's personal project ("My tasks") and today's global chat become one place. A person comes here to <b>talk to any agent about anything not tied to a project</b>, to <b>pick up those conversations</b>, and to <b>see their own tasks and files</b>.</p>
+    </div>
+    <div style="white-space:nowrap">
+      <span class="pill live">Agreed 2026-10-06 · living design</span>
+    </div>
+  </div>
+
+  <div class="label">Desktop · 1440 wide · the conversations list</div>
+  <div class="frame"><div class="desk" style="grid-template-columns:220px 1fr">
+      <nav class="nav">
+        <div class="logo"><i></i>Agenthix<span class="tops"><span class="topb bellb" title="Notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>3</b></span><span class="topb runsb" title="Runs"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><b class="g">3</b></span></span></div>
+        <a>Home</a>
+        <a class="on">Chat</a>
+        <a>Projects</a>
+        <a>Agents</a>
+        <a>Tasks <span class="n">2 need you</span></a>
+        <div class="sec"><span style="display:inline-flex;gap:6px;align-items:center"><svg class="pinic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>Pinned</span><span>edit</span></div>
+        <a><span class="pi"><span class="ava proj" style="background:#8b5cf6">A</span>Agenthix</span><span class="drag">⋮⋮</span></a>
+        <a><span class="pi"><span class="ava agent" style="background:#6366f1">PM</span>Project manager</span></a>
+        <a><span class="pi"><span class="ava bd" style="background:#0ea5e9"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="2.4"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/></svg></span>Release board</span></a>
+        <a><span class="pi"><span class="ava proj" style="background:#f59e0b">M</span>Marketing Website</span></a>
+        <div class="me" style="display:flex;flex-direction:column;gap:2px;padding-top:8px"><a style="padding:6px 0">Organisation</a><a style="padding:6px 0">Settings</a><span style="padding-top:4px">Avery</span></div>
+      </nav>
+
+      <div class="work">
+        <div class="wbar"><div class="crumb2">Chat</div><div class="fctl" title="Layout"><span><i><u style="width:14px"></u></i></span><span class="on"><i><u style="width:10px"></u><u style="width:5px;background:var(--accent)"></u></i></span><span><i><u style="width:5px"></u><u style="width:10px;background:var(--accent)"></u></i></span><span><i><u style="width:14px;background:var(--accent)"></u></i></span></div></div>
+        <div class="panes" style="grid-template-columns:1fr 300px">
+      <main class="centre">
+        <div class="phead" style="padding-top:14px">
+          <div class="picon" style="display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;background:#64748b">H</div>
+          <div>
+            <h2>Chat</h2>
+            <div class="sub">Your personal space — private to you</div>
+          </div>
+        </div>
+
+        <div class="listwrap">
+          <div class="listtools">
+            <h3>Your conversations</h3>
+            <span class="chip">All agents ▾</span>
+            <div class="search">Search conversations</div>
+            <div class="btn">New conversation</div>
+          </div>
+
+          <div class="grp">Today</div>
+          <div class="row sel"><span class="av" style="background:#7c3aed">RS</span><div class="body"><div class="ttl">Competitor analysis</div><div class="who">Research agent · Pricing and positioning of three competitors…</div></div><div class="meta">11:02</div></div>
+          <div class="row"><span class="av" style="background:#0d9488">FI</span><div class="body"><div class="ttl">September expenses</div><div class="who">Finance agent · Reconciled 42 transactions; two need you…</div></div><div class="meta"><span class="working">● Working</span><br>9:40</div></div>
+          <div class="grp">Yesterday</div>
+          <div class="row"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Draft for the board meeting</div><div class="who">Project manager · Outline, risks, and a one-page summary…</div></div><div class="meta">17:05</div></div>
+          <div class="row"><span class="av" style="background:#ea580c">DO</span><div class="body"><div class="ttl">Set up my dev machine</div><div class="who">DevOps · Scripts saved to your personal files…</div></div><div class="meta">10:12</div></div>
+          <div class="grp">Last 7 days</div>
+          <div class="row"><span class="av" style="background:#db2777">WR</span><div class="body"><div class="ttl">Blog post ideas</div><div class="who">Writer · Five angles on conversation-first tools…</div></div><div class="meta">2 Oct</div></div>
+        </div>
+
+        <div class="composer">
+          <div class="ph">Ask any agent…</div>
+          <span class="chip"><span class="av sm" style="background:#7c3aed">RS</span>Research agent ▾</span>
+          <span class="send"></span>
+        </div>
+      </main>
+
+      <aside class="right">
+        <div class="card">
+          <h4>Your space</h4>
+          <div class="kv">
+            <b>Who sees it</b><span>Only you</span>
+            <b>Agents</b><span>Any in the organisation</span>
+            <b>Site</b><span>Development</span>
+            <b>Files</b><span>Your personal files</span>
+          </div>
+        </div>
+        <div class="card">
+          <h4>Tools</h4>
+        <div class="tgrp">Work</div>
+        <div class="tool" style="border-top:none"><span>Tasks</span><span class="n need">1 needs you · 5</span></div>
+        <div class="tool"><span>Boards</span><span class="n ">1</span></div>
+        <div class="tgrp">Agents at work</div>
+        <div class="tool" style="border-top:none"><span>Runs</span><span class="n on">1 running</span></div>
+        <div class="tool"><span>Automation</span><span class="n on">On</span></div>
+        <div class="runrow"><span class="rb">▶&nbsp; Run all</span><span class="rb stop">■&nbsp; Stop all</span></div>
+        <div class="tgrp">Files and code</div>
+        <div class="tool" style="border-top:none"><span>Files</span><span class="n ">›</span></div>
+        <div class="tool"><span>Workspaces</span><span class="n ">1</span></div>
+        </div>
+      </aside>
+        </div>
+      </div>
+  </div></div>
+  <p style="color:var(--t2);max-width:900px">Opening a conversation uses the agreed <a href="/files/project-conversation.html" style="color:var(--accent)">Project — Conversation</a> design unchanged — the bar with the breadcrumb (Chat / Competitor analysis) and the four layouts, the tools beside it.</p>
+
+  <div class="label">Mobile · 375 wide</div>
+  <div class="phones">
+    <div class="phone">
+      <div class="mhead"><span class="back" style="font-size:16px">☰</span><span class="t">Chat</span><span class="mbtn">Space</span></div>
+      <div class="mfilter"><span class="chip">All agents ▾</span><span class="chip">Search</span></div>
+      <div class="mlist">
+        <div class="grp">Today</div>
+        <div class="row sel"><span class="av" style="background:#7c3aed">RS</span><div class="body"><div class="ttl">Competitor analysis</div><div class="who">Research agent · Pricing…</div></div><div class="meta">11:02</div></div>
+        <div class="row"><span class="av" style="background:#0d9488">FI</span><div class="body"><div class="ttl">September expenses</div><div class="who">Finance agent · Reconciled…</div></div><div class="meta"><span class="working">●</span> 9:40</div></div>
+        <div class="grp">Yesterday</div>
+        <div class="row"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Draft for the board meeting</div><div class="who">Project manager · Outline…</div></div><div class="meta">17:05</div></div>
+        <div class="row"><span class="av" style="background:#ea580c">DO</span><div class="body"><div class="ttl">Set up my dev machine</div><div class="who">DevOps · Scripts saved…</div></div><div class="meta">10:12</div></div>
+      </div>
+      <div class="mcomp"><span>Ask any agent…</span><span class="send" style="width:24px;height:24px"></span></div>
+    </div>
+    <div style="max-width:380px;color:var(--t2)">
+      <p>Chat is top level, so its header opens the drawer (☰) rather than going back. <b style="color:var(--t1)">Space</b> opens the full-screen page with the facts and tools, as Project does in a project.</p>
+    </div>
+  </div>
+
+  <div class="label">Where we are</div>
+  <div class="notes">
+    <div class="note agreed">
+      <h3>Agreed</h3>
+      <ul>
+        <li><b>Same bar and four layouts as the conversation</b>: breadcrumb and layout control above both panes (Conversation, Side by side, Tool focus, Tool only); here "Conversation" means the list.</li>
+        <li><b>"Chat" is the person's personal space</b>: today's personal project and today's global chat are one place. "My tasks" leaves the sidebar — its tasks are the Tasks tool here.</li>
+        <li><b>Same design as a project</b>: conversations list, conversation, tools beside it, four layouts.</li>
+        <li><b>Any agent in the organisation</b> can be talked to here; a project's conversations stay with that project's agents.</li>
+        <li><b>Files are the person's own storage</b> — the same storage personal tasks and today's chats already use — on <b>one site</b>, fixed the first time it is used, shown as Site like a project's; hidden until the storage has a site.</li>
+        <li><b>Tools:</b> Tasks, Boards · Runs, Automation, with Run all / Stop all · Files, Workspaces (a person can own workspaces). No Agents, People or Settings.</li>
+        <li><b>Questions spanning projects are not possible yet</b>: projects can sit on different sites. Future work, with delivering knowledge across sites.</li>
+        <li><b>Project conversations do not appear here</b>; they live in their project.</li>
+      </ul>
+    </div>
+    <div class="note open">
+      <h3>Open — answer by number</h3>
+      <ol><li>None — agreed.</li></ol>
+    </div>
+    <div class="note">
+      <h3>Changes on this board</h3>
+      <ul>
+        <li>2026-10-06 — Site hidden until the person's storage has one; board agreed.</li>
+        <li>2026-10-06 — Workspaces added; Run all / Stop all kept; Site shown (a person's storage sits on one site).</li>
+        <li>2026-10-06 — bar with breadcrumb and the four layouts added, matching the conversation view.</li>
+        <li>2026-10-06 — first draft: Chat becomes the personal space; owner confirmed the storage is the same.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+  (function () {
+    var root = document.documentElement;
+    var saved = null;
+    try { saved = localStorage.getItem('board-theme'); } catch (e) {}
+    function set(t) {
+      root.setAttribute('data-theme', t);
+      document.querySelectorAll('.theme button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+      try { localStorage.setItem('board-theme', t); } catch (e) {}
+    }
+    set(saved === 'dark' ? 'dark' : 'light');
+    document.querySelectorAll('.theme button').forEach(function (b) { b.addEventListener('click', function () { set(b.dataset.t); }); });
+  })();
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

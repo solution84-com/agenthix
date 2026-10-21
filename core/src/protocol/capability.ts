@@ -1,0 +1,193 @@
+/**
+ * HQ-issued token contracts (hq/site split spec §2, §2a, §2b).
+ * hq signs these as JWTs (RS256, key served at HQ_JWKS_PATH); site verifies
+ * locally. TTLs are the ADR-0040 decision. Pure types — the jose implementation
+ * lives per-app (hq signs, site verifies).
+ */
+
+import type { RunStartedBy } from './runtimeData.js'
+import type { JsonValue } from '../client/json.js'
+
+export const IDENTITY_TOKEN_TTL_SECONDS = 60 * 60      // 1 hour  (ADR-0040)
+export const CAPABILITY_TTL_SECONDS = 15 * 60          // 15 min  (ADR-0040)
+export const CAPABILITY_RENEWAL_FRACTION = 0.8         // renew at 80% of TTL (spec §2a)
+export const HQ_TOKEN_ISSUER = 'agenthix-hq'
+export const HQ_JWKS_PATH = '/.well-known/jwks.json'
+/** hq's control-plane data endpoint (spec §7.2) — a run acts through this,
+ *  presenting a capability minted here as X-Run-Capability. */
+export const HQ_DATA_PATH = '/api/v1/data'
+/** hq's capability renewal endpoint (§2a) — a site presents its machine
+ *  credential (Authorization + X-Site-Id) plus the still-valid capability
+ *  (in the body, see CapabilityRenewRequest) and receives a fresh one. */
+export const HQ_CAPABILITY_RENEW_PATH = '/api/v1/capabilities/renew'
+
+/** Three-state permission model (moved here from hq's runtime — shared with site once the execution-runtime extraction lands). */
+export type ToolPermissionState = 'always' | 'ask' | 'never'
+
+export interface ToolPermission {
+  name: string
+  state: ToolPermissionState
+  [key: string]: string  // index signature — JSON-serializable (SuperJSONObject compat)
+}
+
+export interface BashPatternPermission {
+  pattern: string
+  state: ToolPermissionState
+  [key: string]: string  // index signature — JSON-serializable (SuperJSONObject compat)
+}
+
+/** Identity token payload (§2). Standard JWT claims (iss/sub/iat/exp) ride alongside. */
+export interface IdentityTokenClaims {
+  tokenType: 'identity'
+  role: 'ADMIN' | 'MEMBER'
+  orgId: string | null
+}
+
+/**
+ * When a person is asked about a tool set to Ask, for every run of an agent:
+ * - `deferred`: the run carries on, and lists every Ask for a person to approve at the end;
+ * - `immediate`: the run stops at the first Ask and asks a person at once;
+ * - `bypassed`: every tool runs, tools set to Never included, and no one is asked.
+ * Listed from the loosest to the strictest.
+ */
+export const APPROVALS = ['bypassed', 'deferred', 'immediate'] as const
+export type Approval = typeof APPROVALS[number]
+
+export function isApproval(value: unknown): value is Approval {
+  return typeof value === 'string' && (APPROVALS as readonly string[]).includes(value)
+}
+
+/** Effective permissions, pre-resolved by hq at mint time (§2a) — site never combines these itself. */
+export interface CapabilityEffectivePermissions {
+  bypassed: boolean                           // the run's effective approval is 'bypassed'
+  allowedTools: ToolPermission[]              // every level's, strictest winning; [] when bypassed
+  allowedBashPatterns: BashPatternPermission[]
+  neverTools: string[]                        // enforced even when approval is bypassed
+}
+
+/** Wire body for POST HQ_CAPABILITY_RENEW_PATH — the capability JWT to renew. */
+export interface CapabilityRenewRequest {
+  capability: string
+}
+
+/** hq's answer to a renewal: the fresh capability and when it expires, in epoch milliseconds. */
+export type CapabilityRenewResult = { capability: string; expiresAt: number }
+
+/**
+ * A site's request of hq's data API (`HQ_DATA_PATH`), made for a run with its capability: one of the run's tools,
+ * named by `operation`. `args` is the tool's input and the answer's `result` its output, so both are JSON by design;
+ * hq validates `args` against the operation's own schema. A refusal answers `{ error }` with an HTTP error status.
+ */
+export type HqDataRequest = { operation: string; args: JsonValue }
+export type HqDataResponse = { result: JsonValue } | { error: string }
+
+/**
+ * Who a run is for (person-scoped execution spec §1): the person whose
+ * conversation it is, or the project itself for a run with nobody behind it (a
+ * task).
+ *
+ * It records who is running and grants nothing: authority stays with the
+ * storage boundary the run is for (ADR-0060). What it decides is whose private
+ * harness state sits beside the run, so it comes from hq's signed capability
+ * and never from the unsigned dispatch payload.
+ */
+export type CapabilityRunner =
+  | { kind: 'person'; userId: string }
+  | { kind: 'project'; projectId: string }
+
+/**
+ * Reads a runner off a verified token's payload, or null when it is absent or
+ * malformed. The signature proves hq wrote the claim; this proves it has the
+ * shape the rest of the site relies on.
+ */
+export function parseCapabilityRunner(value: unknown): CapabilityRunner | null {
+  if (typeof value !== 'object' || value === null) return null
+  const v = value as Record<string, unknown>
+  const nonEmpty = (s: unknown): s is string => typeof s === 'string' && s.length > 0
+  if (v.kind === 'person' && nonEmpty(v.userId)) return { kind: 'person', userId: v.userId }
+  if (v.kind === 'project' && nonEmpty(v.projectId)) return { kind: 'project', projectId: v.projectId }
+  return null
+}
+
+export function sameRunner(a: CapabilityRunner, b: CapabilityRunner): boolean {
+  switch (a.kind) {
+    case 'person': return b.kind === 'person' && b.userId === a.userId
+    case 'project': return b.kind === 'project' && b.projectId === a.projectId
+  }
+}
+
+/**
+ * Whether a runner may run in a storage boundary — one rule, applied by hq
+ * before it signs and by the site before it launches. Returns why not, or null
+ * when it may.
+ *
+ * - Every run has a storage boundary.
+ * - A person's own storage has one possible runner: that person.
+ * - A chat is always its invoking person's (`invokerUserId`, the capability's
+ *   `userId`), wherever it runs.
+ * - Anything else in a project — a task — runs as that project.
+ */
+export function runnerBoundaryMismatch(args: {
+  runner: CapabilityRunner
+  storage: { ownerType: 'project' | 'user'; ownerId: string } | null
+  sessionType: string
+  invokerUserId: string
+}): string | null {
+  const { runner, storage, sessionType, invokerUserId } = args
+  if (!storage) return 'a run needs a storage boundary'
+  if (sessionType === 'chat' && (runner.kind !== 'person' || runner.userId !== invokerUserId)) {
+    return 'a chat must run for the person who invoked it'
+  }
+  if (storage.ownerType === 'user') {
+    return runner.kind === 'person' && runner.userId === storage.ownerId
+      ? null
+      : "only the owner of a person's own storage can run in it"
+  }
+  if (runner.kind === 'project') {
+    return runner.projectId === storage.ownerId ? null : 'the project runner names a different project'
+  }
+  return sessionType === 'chat' ? null : 'only a chat runs for a person inside a project'
+}
+
+/**
+ * Reads the run's person off a verified token's payload (`onBehalfOfUserId`),
+ * or null when it is absent or malformed. Null means nobody started the run
+ * (or hq minted the token before the claim existed), never a person's start.
+ */
+export function parseCapabilityOnBehalfOf(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+/** Capability payload (§2a claim shape). exp is the JWT `exp` claim. */
+export interface CapabilityClaims {
+  tokenType: 'capability'
+  userId: string
+  /** Who the run is for — see `CapabilityRunner`. */
+  runner: CapabilityRunner
+  /**
+   * What started the run — a person, a boundary's pulse, or a task's schedule
+   * (adr-0087). Signed so hq can read it inside a tool call: what a run may do
+   * (set a schedule, the starting value `run_task` passes on) depends on it.
+   * hq reads it only from tokens it minted; a missing value is never a person.
+   */
+  startedBy: RunStartedBy
+  /**
+   * The person the run's work is for, when a person started it inside a task:
+   * the sender of a message into the task's session, or whoever started the
+   * task run. A task the run creates is on their behalf (adr-0089). It says who
+   * the work is for and authorises nothing (ADR-0060); hq still checks that
+   * person's access wherever it is used. Absent for a plain chat (its person
+   * is its owner) and for a run nobody started (its task's person).
+   */
+  onBehalfOfUserId?: string
+  agentId: string
+  sessionId: string
+  projectId: string | null    // null = personal/global chat (§1a)
+  workspaceId: string | null  // primary location's workspace; null = an owner's files/ home
+  taskId: string | null       // null = open-ended chat
+  /** Invoking person's role for chat-minted capabilities; null for task
+   *  mints — the absence IS the unattended rule (spec §H2): no role, no org authority. */
+  role: 'ADMIN' | 'MEMBER' | null
+  siteId: string              // the site holding the workspace (logical ref, §2b)
+  permissions: CapabilityEffectivePermissions
+}

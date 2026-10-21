@@ -1,0 +1,90 @@
+import { describe, it, expect } from 'vitest'
+import { diskNearlyFull, machineMemoryNearlyFull, parseSiteHealth, type SiteHealth } from '../siteHealth.js'
+
+const GIB = 1024 ** 3
+
+const report: SiteHealth = {
+  takenAt: '2026-10-09T10:00:00.000Z',
+  runs: { running: 1, maxAtOnce: 5 },
+  disk: { freeBytes: 182 * GIB, totalBytes: 500 * GIB },
+  docker: { running: true, version: '27.3.1' },
+  agentImage: { name: 'agenthix-agent', present: true, version: '0.4.0' },
+  ceilings: null,
+  memoryNearlyFull: false,
+}
+
+describe('parseSiteHealth @SC-757', () => {
+  it('keeps a well-formed report as it is', () => {
+    expect(parseSiteHealth(JSON.parse(JSON.stringify(report)))).toEqual(report)
+  })
+
+  it('refuses what is not a report', () => {
+    expect(parseSiteHealth(null)).toBeNull()
+    expect(parseSiteHealth({ ...report, runs: { running: -1, maxAtOnce: 5 } })).toBeNull()
+    expect(parseSiteHealth({ ...report, runs: { running: 1.5, maxAtOnce: 5 } })).toBeNull()
+    expect(parseSiteHealth({ ...report, takenAt: 'yesterday' })).toBeNull()
+    expect(parseSiteHealth({ ...report, docker: { running: 'yes', version: null } })).toBeNull()
+    expect(parseSiteHealth({ ...report, agentImage: { name: '', present: true, version: null } })).toBeNull()
+  })
+
+  it('drops a disk it cannot trust rather than the whole report', () => {
+    expect(parseSiteHealth({ ...report, disk: { freeBytes: 10, totalBytes: 5 } })?.disk).toBeNull()
+    expect(parseSiteHealth({ ...report, disk: 'full' })?.disk).toBeNull()
+  })
+
+  it('clips text a site sends', () => {
+    const long = 'x'.repeat(1000)
+    expect(parseSiteHealth({ ...report, docker: { running: true, version: long } })?.docker.version).toHaveLength(200)
+  })
+})
+
+describe('the effective ceilings a site reports', () => {
+  const machine = { memoryBytesPerContainer: 8 * GIB, cpusPerContainer: 2, processesPerContainer: 4096, containersAtOnce: 5 }
+  const ceilings = { ...machine, memoryBytesPerContainer: 4 * GIB }
+
+  it('keeps the ceilings, and what they were before hq narrowed them', () => {
+    expect(parseSiteHealth({ ...report, ceilings: { ceilings, machine } })?.ceilings).toEqual({ ceilings, machine })
+  })
+
+  it('drops ceilings it cannot trust rather than the whole report', () => {
+    expect(parseSiteHealth({ ...report, ceilings: { ceilings: { ...machine, containersAtOnce: 9 }, machine } })?.ceilings).toBeNull()
+    expect(parseSiteHealth({ ...report, ceilings: 'all of it' })?.ceilings).toBeNull()
+  })
+
+  it('carries ceilings only — never the machine figures they came with', () => {
+    const extra = { ...machine, memoryUsedBytes: 3 * GIB, dockerVersion: '29.0.0' }
+    expect(parseSiteHealth({ ...report, ceilings: { ceilings, machine: extra, resources: { cpuLoad: 2 } } })?.ceilings).toEqual({ ceilings, machine })
+  })
+})
+
+describe('diskNearlyFull @SC-757', () => {
+  it('is under 10 GiB free on a large disk', () => {
+    expect(diskNearlyFull({ freeBytes: 9 * GIB, totalBytes: 500 * GIB })).toBe(true)
+    expect(diskNearlyFull({ freeBytes: 11 * GIB, totalBytes: 500 * GIB })).toBe(false)
+  })
+
+  it('is under a tenth free on a disk smaller than 100 GiB', () => {
+    expect(diskNearlyFull({ freeBytes: 4 * GIB, totalBytes: 50 * GIB })).toBe(true)
+    expect(diskNearlyFull({ freeBytes: 6 * GIB, totalBytes: 50 * GIB })).toBe(false)
+  })
+
+  it('says nothing about a disk it does not know', () => {
+    expect(diskNearlyFull(null)).toBe(false)
+  })
+})
+
+describe('the memory condition', () => {
+  it('is under 1.5 GiB available on a large machine, under a tenth on a small one', () => {
+    expect(machineMemoryNearlyFull({ availableBytes: 1 * GIB, totalBytes: 64 * GIB })).toBe(true)
+    expect(machineMemoryNearlyFull({ availableBytes: 2 * GIB, totalBytes: 64 * GIB })).toBe(false)
+    expect(machineMemoryNearlyFull({ availableBytes: 0.7 * GIB, totalBytes: 8 * GIB })).toBe(true)
+    expect(machineMemoryNearlyFull({ availableBytes: 0.9 * GIB, totalBytes: 8 * GIB })).toBe(false)
+  })
+
+  it('travels as a condition the report must carry', () => {
+    expect(parseSiteHealth({ ...report, memoryNearlyFull: true })?.memoryNearlyFull).toBe(true)
+    const { memoryNearlyFull: _m, ...without } = report
+    expect(parseSiteHealth(without)).toBeNull()
+    expect(parseSiteHealth({ ...report, memoryNearlyFull: 'yes' })).toBeNull()
+  })
+})

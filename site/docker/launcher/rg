@@ -1,0 +1,9 @@
+#!/bin/sh
+# The `rg` on the image's PATH, ahead of the real one in /usr/bin. OpenCode's
+# grep and glob, and Claude Code's Grep and Glob when USE_BUILTIN_RIPGREP=0,
+# start `rg` from the PATH with the harness's own environment; this runs it
+# through agenthix-contain, so a folder swapped for a link after the gate's
+# check leads into a sandbox that cannot reach the harness home, other
+# processes' /proc entries or the harness's secrets. Arguments, output and
+# exit status are the real rg's own.
+exec /usr/local/lib/agenthix/bin/agenthix-contain /usr/bin/rg "$@"

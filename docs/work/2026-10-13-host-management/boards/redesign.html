@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Host management · The redesign</title>
+<link rel="stylesheet" href="board.css">
+<style>
+  /* The redesign's mockups: drawn in the boards' page tokens, so the Light/Dark switch turns them too. */
+  .rd .app { display:flex; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg-primary); font-size:12px; margin:8px 0 4px; }
+  .rd .nav3 { width:150px; flex:none; border-right:1px solid var(--border); background:var(--bg-secondary); display:flex; flex-direction:column; min-height:360px; }
+  .rd .nav3 .top { padding:10px 8px 6px; border-bottom:1px solid var(--border); }
+  .rd .nav3 .mid { flex:1; overflow:hidden; padding:6px 8px; position:relative; }
+  .rd .nav3 .bot { padding:6px 8px 8px; border-top:1px solid var(--border); background:var(--bg-tertiary); }
+  .rd .nav3 .i { padding:4px 8px; border-radius:6px; color:var(--text-secondary); }
+  .rd .nav3 .i.on { background:var(--selected-bg); color:var(--text-primary); font-weight:600; }
+  .rd .nav3 .lbl { font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--text-tertiary); margin:2px 0 5px 2px; }
+  .rd .nav3 .find { border:1px solid var(--border); border-radius:6px; padding:3px 7px; font-size:11px; color:var(--text-tertiary); margin-bottom:6px; }
+  .rd .nav3 .more { font-size:10.5px; color:var(--text-tertiary); text-align:center; position:absolute; bottom:4px; left:0; right:0; }
+  .rd .nav3 .me { margin-top:6px; padding:5px 8px; border-top:1px solid var(--border); font-size:11.5px; color:var(--text-secondary); }
+  .rd .dot { display:inline-block; width:7px; height:7px; border-radius:4px; margin-right:6px; background:var(--text-tertiary); vertical-align:1px; }
+  .rd .dot.ok { background:var(--success); } .rd .dot.warn { background:var(--warning); }
+  .rd .main { flex:1; padding:12px 14px; min-width:0; }
+  .rd .main h5 { margin:0; font-size:15px; }
+  .rd .lede { color:var(--text-secondary); font-size:11.5px; margin:2px 0 10px; }
+  .rd .link { color:var(--accent); text-decoration:none; }
+  .rd .bar { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap; }
+  .rd .btns { display:flex; gap:5px; flex-wrap:wrap; margin:0 0 10px; }
+  .rd .btn { display:inline-block; border:1px solid var(--border); border-radius:7px; padding:3px 9px; font-size:11.5px; background:var(--bg-tertiary); white-space:nowrap; }
+  .rd .btn.p { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .rd .btn.d { color:var(--error); border-color:var(--error); background:transparent; }
+  .rd .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .rd .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }
+  .rd .tile { border:1px solid var(--border); border-radius:9px; padding:8px 10px; background:var(--bg-secondary); }
+  .rd .tile.click:hover { border-color:var(--accent); cursor:pointer; }
+  .rd .tile .t { font-weight:600; display:flex; justify-content:space-between; gap:6px; }
+  .rd .tile .s { color:var(--text-secondary); font-size:11px; margin-top:2px; }
+  .rd .pill { font-size:10px; padding:0 6px; border-radius:8px; border:1px solid currentColor; font-weight:500; }
+  .rd .ok { color:var(--success); } .rd .warn { color:var(--warning); }
+  .rd .rowi { display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border); border-radius:8px; padding:7px 10px; margin:5px 0; gap:8px; }
+  .rd .rowi .t { font-weight:600; } .rd .rowi .s { color:var(--text-secondary); font-size:11px; }
+  .rd .kv { display:grid; grid-template-columns:90px 1fr; gap:3px 10px; font-size:12px; } .rd .kv span:nth-child(odd) { color:var(--text-secondary); }
+  .rd .group { margin:12px 0 6px; font-weight:600; color:var(--text-secondary); font-size:11.5px; }
+  .rd .hub { border:2px solid var(--accent); }
+  .rd .spokes { margin:0 0 0 22px; padding:12px 0 0 18px; border-left:2px solid var(--border); }
+  .rd .spokes .tile { position:relative; margin-bottom:8px; }
+  .rd .spokes .tile::before { content:""; position:absolute; left:-20px; top:16px; width:18px; border-top:2px solid var(--border); }
+  .rd .panel { width:300px; flex:none; border-left:2px solid var(--border); padding:12px 14px; background:var(--bg-secondary); }
+  .rd .panel h6 { margin:0 0 8px; font-size:13px; display:flex; justify-content:space-between; align-items:center; }
+  .rd .under { opacity:.55; }
+  .rd .note { font-size:12.5px; color:var(--text-secondary); margin:6px 0 0; }
+  .rd .p { border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin:18px 0; background:var(--bg-secondary); }
+  .rd .p > h3 { margin:0 0 4px; font-size:16px; text-transform:none; letter-spacing:0; color:var(--text-primary); }
+  .rd .p > .what { font-size:13.5px; margin:0 0 8px; }
+  .rd .num { display:inline-block; min-width:22px; height:22px; line-height:22px; text-align:center; border-radius:11px; background:var(--accent); color:#fff; font-size:12px; font-weight:700; margin-right:6px; }
+  .rd .whyb { border-left:3px solid var(--accent); padding:6px 12px; margin-top:10px; }
+  .rd .whyb h6 { margin:0 0 4px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-secondary); }
+  .rd .whyb p { font-size:13px; margin:5px 0; }
+  .rd .whyb .cost { color:var(--text-secondary); font-size:12.5px; }
+  .rd .built { font-size:12.5px; color:var(--text-secondary); border-top:1px dashed var(--border); margin-top:10px; padding-top:6px; }
+  .rd .map { display:grid; grid-template-columns:270px 1fr; gap:4px 12px; font-size:12.5px; } .rd .map span:nth-child(odd) { color:var(--text-secondary); }
+  @media (max-width:900px){ .rd .app { flex-direction:column; } .rd .nav3 { width:auto; min-height:0; } .rd .panel { width:auto; border-left:0; border-top:2px solid var(--border); } .rd .grid { grid-template-columns:1fr; } .rd .map { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="bd-wrap">
+<nav class="bd-nav">
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Start</span><em>3</em></button><div class="bd-gl">
+    <a href="index.html#ui-scope">What these boards cover</a>
+    <a href="index.html#tones">The look</a>
+    <a href="index.html#ui-defaults">Defaults in the design</a>
+  </div></div>
+  <div class="bd-g open"><button type="button" class="bd-gh"><i>›</i><span>The redesign</span><em>2</em></button><div class="bd-gl">
+    <a href="redesign.html#rd-pages" class="bd-on">Pages for HQ and the sites</a>
+    <a href="maintenance.html#rd-maintenance">Plan maintenance</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Fleet Console · frame</span><em>4</em></button><div class="bd-gl">
+    <a href="frame.html#hm-site">The console site</a>
+    <a href="frame.html#hm-fleet-1">The shell · superseded</a>
+    <a href="frame.html#hm-access-1">Opening the Fleet Console</a>
+    <a href="frame.html#hm-fleet-account">Your account</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Fleet</span><em>1</em></button><div class="bd-gl">
+    <a href="fleet.html#hm-fleet-2">Fleet — overview and site cards · superseded</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Sites</span><em>8</em></button><div class="bd-gl">
+    <a href="sites.html#hm-fleet-3">A site's page · superseded</a>
+    <a href="sites.html#hm-fleet-5">Add a site</a>
+    <a href="sites.html#hm-fleet-4">Editing capacity; protections as a fact · superseded in part</a>
+    <a href="sites.html#hm-fleet-7">Disconnecting a machine</a>
+    <a href="sites.html#hm-fleet-8">A Cloud site and its machine, before and after signing in to Cloud</a>
+    <a href="sites.html#hm-access-5">Cloud in the Fleet Console</a>
+    <a href="sites.html#hm-fleet-10">Connecting the organisation to Agenthix Cloud</a>
+    <a href="sites.html#hm-ops-10">Moving a site · superseded in part</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>HQ's site</span><em>4</em></button><div class="bd-gl">
+    <a href="hq-site.html#hm-ops-1">HQ's site · superseded</a>
+    <a href="hq-site.html#hm-ops-5">hq's address and the front door</a>
+    <a href="hq-site.html#hm-ops-4">Moving hq · superseded in part</a>
+    <a href="hq-site.html#hm-ops-8">Suspend, resume and erase · superseded in part</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Scheduled</span><em>2</em></button><div class="bd-gl">
+    <a href="scheduled.html#hm-ops-6">Scheduled · superseded</a>
+    <a href="scheduled.html#hm-ops-7">An upgrade, running and rolled back</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Backups</span><em>4</em></button><div class="bd-gl">
+    <a href="backups.html#hm-ops-9">Backups — the journeys</a>
+    <a href="backups.html#hm-fleet-9">The backup location: shown here, set on the machine</a>
+    <a href="backups.html#hm-ops-2">Backups · superseded in part</a>
+    <a href="backups.html#hm-ops-3">Exporting a backup</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Activity</span><em>1</em></button><div class="bd-gl">
+    <a href="activity.html#hm-access-6">Notices: exports, erases and remote sessions · superseded in part</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Fleet admins</span><em>2</em></button><div class="bd-gl">
+    <a href="fleet-admins.html#hm-access-2">The fleet admin role</a>
+    <a href="fleet-admins.html#hm-access-3">Signing in, and fleet admins</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Remote access</span><em>1</em></button><div class="bd-gl">
+    <a href="remote-access.html#hm-access-4">Remote access</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>HQ · Execution Sites</span><em>6</em></button><div class="bd-gl">
+    <a href="hq.html#hq-sites-1">Where work runs — the list · superseded in part</a>
+    <a href="hq.html#hq-sites-2">A site's status</a>
+    <a href="hq.html#hq-sites-6">The built-in site, when it is not connected</a>
+    <a href="hq.html#hq-sites-7">Scheduled changes, as members see them · superseded in part</a>
+    <a href="hq.html#hq-sites-8">After hq moves, and uploads on a bare network address</a>
+    <a href="hq.html#hq-sites-9">The fleet admin role, as hq shows it</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>CLI</span><em>8</em></button><div class="bd-gl">
+    <a href="cli.html#cli-1">Installing Agenthix on a machine</a>
+    <a href="cli.html#cli-2">agenthix status — the hq and the site on a machine</a>
+    <a href="cli.html#cli-3">The machine's way into hq</a>
+    <a href="cli.html#cli-4">The Fleet Console from the command line</a>
+    <a href="cli.html#cli-5">The site on a machine</a>
+    <a href="cli.html#cli-6">Warnings that ask before acting</a>
+    <a href="cli.html#cli-7">agenthix help — every command</a>
+    <a href="cli.html#cli-8">Backups: the backup location and restoring</a>
+  </div></div>
+  <div class="bd-th"><button type="button" data-t="l">Light</button><button type="button" data-t="d">Dark</button></div>
+</nav>
+<main class="bd-main">
+<section id="rd-pages" class="bd-page it rd" style="display:block">
+<h2>The redesign — pages for HQ and the sites, and doing things where you look</h2>
+<p class="subtitle">Agreed with the owner on 2026-10-16, after reviewing the built Fleet Console live, and built that day. It replaces the earlier boards for the shell, Fleet, a site's page, HQ's site, Scheduled and the notices, each marked as superseded where it stands. Spec §6, §7; ADR-0120. Maintenance has its own board, <a href="maintenance.html#rd-maintenance">Plan maintenance</a>.</p>
+<h3>What this is</h3>
+<div class="ctx"><ul><li>Ten decisions, each with what it is, then why. The mockups follow the Light/Dark switch.</li><li>Where the build left something out, the decision says so under <i>Left out when built</i>.</li></ul></div>
+<h3>Before</h3>
+<div class="ctx"><ul><li>Notices sat in a list under the bell that could not be scrolled, opened or dismissed one by one; Activity mixed them with the record.</li><li>Only a card's title was a link.</li><li>Scheduling or backing up meant Fleet → the machine → a menu, three levels deep; the Scheduled and Backups pages only listed.</li><li>One page mixed HQ, its site and its machine; a site and its machine had two names, so a move read <i>office-server · on new-server</i>.</li></ul></div>
+
+<div class="p"><h3><span class="num">1</span>HQ has its own page; a site and its machine are one thing, named after the machine</h3>
+  <p class="what">A machine runs one site, so the Fleet Console shows them as one thing with the <b>machine's name</b> — "office-server", tagged <i>Site</i>. When a site moves or is restored onto another machine, it takes that machine's name: "office-server on new-server" can no longer happen. Its page has the site first, then the machine below. <b>HQ is separate</b>: its own page and its own place at the top of the menu, apart from the sites.</p>
+  <div class="app">
+    <div class="nav3"><div class="top"><div class="i">Dashboard</div><div class="i"><span class="dot ok"></span>HQ</div></div><div class="mid"><div class="lbl">Sites</div><div class="find">Find a site</div><div class="i"><span class="dot ok"></span>hq-box</div><div class="i on"><span class="dot ok"></span>office-server</div><div class="i"><span class="dot warn"></span>lab-01</div><div class="i"><span class="dot ok"></span>lab-02</div><div class="i"><span class="dot ok"></span>lab-03</div><div class="more">⋮ scrolls</div></div><div class="bot"><div class="i">Maintenance</div><div class="i">Backups</div><div class="i">Activity</div><div class="i">Fleet admins</div><div class="i">Help</div><div class="me">Sam Rivera ▾</div></div></div>
+    <div class="main">
+      <h5>office-server <span class="pill">Site</span> <span class="pill ok">Healthy</span></h5><div class="lede">Up 3 days · connected since 1 Oct</div>
+      <div class="btns"><span class="btn">Plan maintenance…</span><span class="btn">Back up now</span><span class="btn">Logs</span><span class="btn">Notify…</span><span class="btn d">Disconnect…</span></div>
+      <div class="grid">
+        <div class="tile"><div class="t">Runs</div><div class="kv"><span>Now</span><span>2 of 4 at once</span><span>Each run</span><span>4 GB · 2 processors</span></div></div>
+        <div class="tile"><div class="t">Version</div><div class="kv"><span>Running</span><span>0.2.0</span><span>Planned</span><span>0.3.0 on Sat 02:00</span></div></div>
+        <div class="tile"><div class="t">Backups</div><div class="kv"><span>Last</span><span>last night 02:00</span><span>Kept</span><span>in the backup location</span></div></div>
+      </div>
+      <div class="group">The machine</div>
+      <div class="grid">
+        <div class="tile"><div class="t">Health <span class="pill ok">Fine</span></div><div class="kv"><span>Disk</span><span>38% · 120 GB free</span><span>Memory</span><span>9 of 16 GB</span></div></div>
+        <div class="tile"><div class="t">Protections <span class="pill ok">In place</span></div><div class="s">Agents can't reach this machine, its other containers or the metadata address.</div></div>
+        <div class="tile"><div class="t">System</div><div class="kv"><span>OS</span><span>Ubuntu 24.04</span><span>Docker</span><span>27.3</span></div></div>
+        <div class="tile"><div class="t">Notify</div><div class="s">Fleet admins are notified if it stops answering.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="app">
+    <div class="nav3"><div class="top"><div class="i">Dashboard</div><div class="i on"><span class="dot ok"></span>HQ</div></div><div class="mid"><div class="lbl">Sites</div><div class="find">Find a site</div><div class="i"><span class="dot ok"></span>hq-box</div><div class="i"><span class="dot ok"></span>office-server</div><div class="i"><span class="dot warn"></span>lab-01</div><div class="i"><span class="dot ok"></span>lab-02</div><div class="i"><span class="dot ok"></span>lab-03</div><div class="more">⋮ scrolls</div></div><div class="bot"><div class="i">Maintenance</div><div class="i">Backups</div><div class="i">Activity</div><div class="i">Fleet admins</div><div class="i">Help</div><div class="me">Sam Rivera ▾</div></div></div>
+    <div class="main">
+      <h5>Acme Robotics' HQ <span class="pill ok">Healthy</span></h5><div class="lede">Healthy — people can sign in · up 21 days · on hq-box, with this Fleet Console</div>
+      <div class="btns"><span class="btn">Open HQ ↗</span><span class="btn">Plan maintenance…</span><span class="btn">Back up now</span><span class="btn">Logs</span><span class="btn d">Erase…</span></div>
+      <div class="grid">
+        <div class="tile"><div class="t">How people reach it <span class="link">Change</span></div><div class="kv"><span>Address</span><span>https://hq.acme.example</span><span>Front door</span><span>your own web server</span></div></div>
+        <div class="tile"><div class="t">Who depends on it</div><div class="kv"><span>Sites</span><span>4 of 4 connected</span></div></div>
+        <div class="tile"><div class="t">Version</div><div class="kv"><span>Running</span><span>0.2.0</span><span>Planned</span><span>none</span></div></div>
+        <div class="tile"><div class="t">Backups <span class="pill warn">On this machine only</span></div><div class="kv"><span>Last</span><span>today 02:00 · passed</span><span>Next</span><span>tonight 02:00</span></div><div class="s">If hq-box is lost, so are its backups. Set a backup location, or export a copy.</div></div>
+        <div class="tile"><div class="t">Agents run here too</div><div class="s">HQ's own site: 0 of 5 runs · <span class="link">Open hq-box's site ›</span></div></div>
+        <div class="tile"><div class="t">Agenthix Cloud <span class="pill">only with Cloud</span></div><div class="s">Connected as Acme Robotics.</div></div>
+      </div>
+      <div class="group">The machine HQ runs on — hq-box</div>
+      <div class="grid">
+        <div class="tile"><div class="t">Health <span class="pill ok">Fine</span></div><div class="kv"><span>Disk</span><span>12% · 880 GB free</span><span>Memory</span><span>2.6 of 7.7 GB</span></div></div>
+        <div class="tile"><div class="t">Protections <span class="pill ok">In place</span></div><div class="s">Agents can't reach this machine, its other containers or the metadata address.</div></div>
+        <div class="tile"><div class="t">System</div><div class="s">Linux arm64 · Docker 27.3.1 · host service 0.2.0 · up 21 days</div></div>
+      </div>
+      <p class="note"><b>When HQ is suspended or erased</b> the page leads with that instead: what is kept, <b>Resume HQ</b> (or, if it gets no answer, <code>agenthix hq resume</code> on hq-box), and during the 30 days after an erase, <code>agenthix hq restore</code> on hq-box.</p>
+    </div>
+  </div>
+  <div class="tile" style="margin-top:10px"><div class="t">Everything the earlier HQ's site page showed — kept, moved, or left out</div>
+    <div class="map" style="margin-top:6px">
+      <span>Health sentence, address, uptime, version</span><span><b>Kept</b> — header, <i>How people reach it</i>, <i>Version</i></span>
+      <span>Front door</span><span><b>Kept as one line</b>; the instructions move to the address page (<i>Change</i>), where you act on them</span>
+      <span>Uploaded files (separate host or downloads)</span><span><b>Moved</b> to the address page — it only matters when choosing the address</span>
+      <span>Planned upgrade, planned maintenance</span><span><b>Kept</b> in <i>Version</i>; the full list is Maintenance</span>
+      <span>Backups: last, result, nightly time, the warning</span><span><b>Kept</b>; the backup location command is in Help, since it is run on the machine, not here</span>
+      <span>Exports made</span><span><b>Left out</b> here — on HQ's backups page</span>
+      <span>Fleet admin role and its recovery command</span><span><b>Left out.</b> The command is for when <i>nobody</i> holds the role — and then nobody can sign in to read it. It is in Help (<i>When nobody can sign in</i>) and in the refusal on removing the last fleet admin</span>
+      <span>Automatic fixes</span><span><b>Left out</b> until the machine reports a maintenance window</span>
+      <span>Default site: runs, capacity, Edit</span><span><b>Moved</b> — one line here, in full on hq-box's site page</span>
+      <span>CPU load</span><span><b>Left out</b> — a one-minute snapshot nobody acts on; disk and memory are what fill up</span>
+      <span>Protections "checked 39 seconds ago"</span><span><b>Left out</b> — the pill says it; a problem would say when</span>
+      <span>Host service version and connected time, "Fleet Console runs here"</span><span><b>One line</b> in <i>System</i>; "with this Fleet Console" is in the header</span>
+      <span>Notify (always on, locked)</span><span><b>Left out</b> here — it can't be changed for HQ's machine, so it is a fact on the site pages only</span>
+      <span>Suspend</span><span><b>Moved</b> into <i>Plan maintenance</i></span>
+      <span>Suspended and erased states, resume and restore</span><span><b>Kept</b>, replacing the top while it lasts</span>
+      <span><i>New:</i> sites connected</span><span><b>Added</b> — whether HQ is doing its job for the sites</span>
+    </div></div>
+  <div class="whyb"><h6>Why the HQ page shows its machine</h6>
+    <p><b>Someone looking at HQ wants to know two things:</b> can people use it (health, address, version, backups) — and if not, why. The "why" is usually the machine: a full disk or no memory takes HQ down. So the machine sits below HQ, on the same page, as it does below a site.</p>
+    <p><b>HQ's own site is only a line here, with a link</b> — runs and capacity are about agents, not about HQ, so they live on the site's page under Sites. That keeps the HQ page about HQ, which was the point of separating it.</p>
+  </div>
+  <div class="whyb"><h6>Why</h6>
+    <p><b>One name for one thing.</b> People never have to hold two names for what is, to them, one box doing one job. Following the machine's name means the name is what they see on the hardware, in its terminal and in its status — and a move can't leave a misleading name behind.</p>
+    <p><b>HQ is different in kind</b> — what people sign in to, with an address, a front door and the power to suspend or erase everything — so it gets its own page and the top of the menu. That removes the mix the old page had (HQ, site and machine at once).</p>
+    <p><b>The site comes first, the machine below</b>, because most visits are about whether agents can run; the hardware is the cause you look into next, on the same page.</p>
+    <p class="cost">Consequence: a site's name changes when it moves or is restored (HQ's projects then show the new name). Before the first release this is a straight change, nothing to convert.</p></div>
+  <p class="built"><b>Left out when built:</b> a site's <i>Projects here</i> (the Fleet Console has no list of a site's projects) and HQ's data size under <i>Who depends on it</i> (no figure reports it). The <i>Logs</i> button opens a page that says it comes later.</p>
+</div>
+
+<div class="p"><h3><span class="num">2</span>Every action is a button on the thing's page — never in a menu</h3>
+  <p class="what">The header of each page lists everything you can do to that thing as buttons (see the mockups in 1). No "more" menu, no action reachable only from somewhere else. Maintenance on a thing is one button, <i>Plan maintenance…</i>, which opens the panel with that thing chosen (<a href="maintenance.html#rd-maintenance">Plan maintenance</a>).</p>
+  <div class="whyb"><h6>Why</h6>
+    <p><b>People recognise what they can see; they don't remember what is hidden</b> (recognition over recall). A hidden menu three levels deep is a recall problem: you had to know the action existed and where.</p>
+    <p><b>The header answers "what can I do here?" in one glance</b>: the buttons are the whole list. Four to six buttons can be read at once.</p>
+    <p class="cost">Cost: a header gets busy when a thing has many actions — which is why proposal 1 keeps each page to one thing.</p></div>
+</div>
+
+<div class="p"><h3><span class="num">3</span>A whole card is the link</h3>
+  <p class="what">Anywhere a card shows a thing, pressing anywhere on it opens that thing's page. It highlights on hover and on keyboard focus. There are no other links inside a card.</p>
+  <div class="cards" style="max-width:520px">
+    <div class="tile click"><div class="t">office-server <span class="pill ok">Healthy</span></div><div class="s">Site · 2 of 4 runs</div></div>
+    <div class="tile click"><div class="t">lab-01 <span class="pill warn">Disk 91%</span></div><div class="s">Site · 0 of 6 runs</div></div>
+  </div>
+  <div class="whyb"><h6>Why</h6>
+    <p><b>A card looks like one object, so people press it like one.</b> When only the title is a link, the card promises a click and the pointer finds none.</p>
+    <p><b>A bigger target is faster and surer to hit</b> (Fitts's law), with a mouse and on a phone.</p>
+    <p><b>Nothing competes for the click.</b> With no links inside, there is one obvious thing the card does.</p>
+    <p class="cost">Cost: a card can't hold a second action — fine, its job is to take you to the thing, where every action is. A row that has its own buttons (<i>Back up now</i> on Backups) keeps them beside the link, outside it.</p></div>
+</div>
+
+<div class="p"><h3><span class="num">4</span>Two pages named after jobs — Maintenance and Backups — and each can start its job</h3>
+  <p class="what"><b>Maintenance</b> lists what is planned and when, with <b>+ Plan maintenance</b>. <b>Backups</b> lists HQ and every site with <b>Back up now</b> and <b>Export…</b> on each row, and <b>Restore a lost site…</b>. Each opens the same form as the button on the thing's own page.</p>
+  <div class="app">
+    <div class="nav3"><div class="top"><div class="i">Dashboard</div><div class="i"><span class="dot ok"></span>HQ</div></div><div class="mid"><div class="lbl">Sites</div><div class="find">Find a site</div><div class="i"><span class="dot ok"></span>hq-box</div><div class="i"><span class="dot ok"></span>office-server</div><div class="i"><span class="dot warn"></span>lab-01</div><div class="i"><span class="dot ok"></span>lab-02</div><div class="i"><span class="dot ok"></span>lab-03</div><div class="more">⋮ scrolls</div></div><div class="bot"><div class="i on">Maintenance</div><div class="i">Backups</div><div class="i">Activity</div><div class="i">Fleet admins</div><div class="i">Help</div><div class="me">Sam Rivera ▾</div></div></div>
+    <div class="main">
+      <div class="bar"><div><h5>Maintenance</h5><div class="lede">Upgrades, moves and other work on HQ and the sites: what is planned, and when members are told</div></div><div class="btns"><span class="btn p">+ Plan maintenance</span></div></div>
+      <div class="group">Planned · 2</div>
+      <div class="rowi"><div><div class="t">Upgrade office-server to 0.3.0</div><div class="s">Sat 02:00 · members told from now · by Sam Rivera</div></div><div class="btns" style="margin:0"><span class="btn">Change time</span><span class="btn">Cancel</span></div></div>
+      <div class="rowi"><div><div class="t">Change lab-01's capacity: 6 at once</div><div class="s">Sun 03:00 · by Sam Rivera</div></div><div class="btns" style="margin:0"><span class="btn">Change time</span><span class="btn">Cancel</span></div></div>
+      <div class="group">Done recently · last 30 days</div>
+      <div class="rowi"><div><div class="t">Change lab-02's capacity: 2 at once</div><div class="s">yesterday 19:40 · by Sam Rivera · done</div></div></div>
+    </div>
+  </div>
+  <div class="app">
+    <div class="nav3"><div class="top"><div class="i">Dashboard</div><div class="i"><span class="dot ok"></span>HQ</div></div><div class="mid"><div class="lbl">Sites</div><div class="find">Find a site</div><div class="i"><span class="dot ok"></span>hq-box</div><div class="i"><span class="dot ok"></span>office-server</div><div class="i"><span class="dot warn"></span>lab-01</div><div class="i"><span class="dot ok"></span>lab-02</div><div class="i"><span class="dot ok"></span>lab-03</div><div class="more">⋮ scrolls</div></div><div class="bot"><div class="i">Maintenance</div><div class="i on">Backups</div><div class="i">Activity</div><div class="i">Fleet admins</div><div class="i">Help</div><div class="me">Sam Rivera ▾</div></div></div>
+    <div class="main">
+      <div class="bar"><div><h5>Backups</h5><div class="lede">Every night at each machine's 02:00. 2 of 5 keep their backups on their own machine only.</div></div><div class="btns"><span class="btn">Restore a lost site…</span></div></div>
+      <div class="rowi"><div><div class="t">HQ</div><div class="s">today 02:00 · on hq-box only · holds HQ and its own site</div></div><div class="btns" style="margin:0"><span class="btn">Back up now</span><span class="btn">Export…</span></div></div>
+      <div class="rowi"><div><div class="t">office-server</div><div class="s">last night 02:00 · in the backup location</div></div><div class="btns" style="margin:0"><span class="btn">Back up now</span><span class="btn">Export…</span></div></div>
+    </div>
+  </div>
+  <div class="whyb"><h6>Why</h6>
+    <p><b>People start in two ways, and both should work.</b> From the thing — "this site needs more runs" — its page has the button. From the job — "what's planned this weekend?", "is everything backed up?" — the job's page has the list <i>and</i> the button. Before, the job pages only listed, so starting from the job was a dead end.</p>
+    <p><b>A page should be able to do what its name says.</b> On a page called Scheduled, the first thing people tried was to schedule something.</p>
+    <p><b>One form, two doors.</b> Both buttons open the same form, so it is learned once and behaves the same wherever you start.</p>
+    <p class="cost">Cost: two entry points to keep in step — one shared form keeps them the same.</p></div>
+</div>
+
+<div class="p"><h3><span class="num">5</span>Call it "Maintenance", not "Scheduled"</h3>
+  <p class="what">The page covers work done now, work planned for later, and work done recently, on HQ and every site.</p>
+  <div class="whyb"><h6>Why</h6>
+    <p><b>Name the job, not the timing.</b> People decide <i>what</i> to do first and <i>when</i> second. "Scheduled" only covers later, so work done now had nowhere to show.</p>
+    <p><b>"Change" was tried next and was the wrong word</b>: what a fleet admin does here is maintenance — upgrading, moving, giving a site room, suspending. Members read the same word: <i>Scheduled maintenance</i>.</p>
+    <p><b>It is also where to look when something went wrong</b> — "what was done?" is the first question after a problem.</p></div>
+</div>
+
+<div class="p"><h3><span class="num">6</span>Dashboard — the first page; the fleet is one view on it</h3>
+  <p class="what">Called <b>Dashboard</b>, not Fleet: it is the overview of everything. What needs you on top. Then the <b>fleet view</b> — HQ as the hub with its sites drawn hanging from it, so it reads as "HQ has these sites" — and the totals. Each card opens its own page.</p>
+  <div class="app">
+    <div class="nav3"><div class="top"><div class="i on">Dashboard</div><div class="i"><span class="dot ok"></span>HQ</div></div><div class="mid"><div class="lbl">Sites</div><div class="find">Find a site</div><div class="i"><span class="dot ok"></span>hq-box</div><div class="i"><span class="dot ok"></span>office-server</div><div class="i"><span class="dot warn"></span>lab-01</div><div class="i"><span class="dot ok"></span>lab-02</div><div class="i"><span class="dot ok"></span>lab-03</div><div class="more">⋮ scrolls</div></div><div class="bot"><div class="i">Maintenance</div><div class="i">Backups</div><div class="i">Activity</div><div class="i">Fleet admins</div><div class="i">Help</div><div class="me">Sam Rivera ▾</div></div></div>
+    <div class="main">
+      <div class="bar"><div><h5>Dashboard</h5><div class="lede">Acme Robotics · HQ and 5 sites · 1 needs you</div></div><div class="btns"><span class="btn p">+ Add a site</span></div></div>
+      <div class="rowi" style="border-color:var(--warning)"><div><div class="t">lab-01 — disk 91% full</div><div class="s">Free space, or the site stops taking runs</div></div><span class="btn">Open lab-01</span></div>
+      <div class="group">The fleet</div>
+      <div class="tile click hub"><div class="t">Acme Robotics' HQ <span class="pill ok">Healthy</span></div>
+        <div class="s">https://hq.acme.example · on hq-box · 5 of 5 sites connected · last backup today 02:00 · version 0.2.0</div></div>
+      <div class="spokes">
+        <div class="tile click"><div class="t">hq-box <span class="pill ok">Healthy</span></div><div class="s">HQ's site · 0 of 5 runs · disk 12%</div></div>
+        <div class="tile click"><div class="t">office-server <span class="pill ok">Healthy</span></div><div class="s">Site · 2 of 4 runs · disk 38% · upgrade 0.3.0 Sat 02:00</div></div>
+        <div class="tile click"><div class="t">lab-01 <span class="pill warn">Disk 91%</span></div><div class="s">Site · 0 of 6 runs · not backed up for 3 days</div></div>
+      </div>
+      <div class="cards" style="margin-top:6px">
+        <div class="tile"><div class="t">Agents running</div><div class="s">2 of 15</div></div>
+        <div class="tile"><div class="t">Next maintenance</div><div class="s">Sat 02:00 · upgrade office-server</div></div>
+        <div class="tile"><div class="t">Backups</div><div class="s">3 of 5 kept off their machine</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="whyb"><h6>Why</h6>
+    <p><b>"Dashboard" says what the page is</b> — the overview you open first — without a term to learn. "Fleet" becomes the name of one view on it (HQ and its sites), so the word keeps a single meaning.</p>
+    <p><b>The picture is the model.</b> Sites belong to HQ — they take their work from it and stop when it stops. Drawing them hanging from HQ teaches that without words, and shows at once what a problem with HQ affects.</p>
+    <p><b>One glance answers "is everything fine?"</b> — the problems first, then every thing with its state, then the fleet's totals. A dashboard is the page people return to; the other pages are where they go to act.</p>
+    <p><b>Cards still open their page</b> (proposal 3), so the dashboard is also the way in.</p>
+    <p class="cost">Cost: with many sites the picture gets long — past twenty, the sites become a compact list under HQ, with a search. Machines that left the fleet are listed after the totals, under <i>Left the fleet</i>, until a fleet admin removes them.</p></div>
+</div>
+
+<div class="p"><h3><span class="num">7</span>The menu in three parts: Dashboard and HQ on top, the sites in the middle (scrolls), the jobs pinned at the bottom</h3>
+  <p class="what"><b>Top, fixed:</b> Dashboard, HQ. <b>Middle, scrolls, no limit:</b> <i>Sites</i> — a <i>Find a site</i> field, then every site with a dot for its state, its state in words beside the dot for screen readers and on hover. <b>Bottom, always visible:</b> Maintenance, Backups, Activity, Fleet admins, Remote access (only with Cloud), Help, and you. HQ is not above the sites as a parent, and no page shows a trail like "Fleet › HQ › office-server": HQ and each site are reached from the menu or the dashboard.</p>
+  <div class="whyb"><h6>Why</h6>
+    <p><b>HQ and sites are different kinds of thing</b>, so they sit apart: HQ is one and always there, so it is fixed at the top; sites are many, so they get the part that scrolls.</p>
+    <p><b>The sites can grow without pushing the jobs out of reach.</b> However many there are, Maintenance and Backups are in the same place on every page — people find them by position, without looking.</p>
+    <p><b>Every site is one click from anywhere</b>, and its dot shows a problem even while you are on another page.</p>
+    <p><b>Sites keep a steady order</b> (HQ's site first, then by name), so a site is always where you last saw it; problems show by their dot, not by jumping to the top.</p>
+    <p class="cost">Cost: on a short screen the middle is small — the bottom stays one compact block, and <i>Find a site</i> gets you there by typing.</p></div>
+</div>
+
+<div class="p"><h3><span class="num">8</span>HQ's own site is a site like the others, named after HQ's machine</h3>
+  <p class="what">"hq-box", tagged <i>HQ's site</i>: first among the sites in the menu and on the dashboard, with its own site page. HQ's page has one line about it with a link. The machine shows on both pages, since both run on it. It offers only a change of capacity in <i>Plan maintenance</i>: it upgrades and moves with HQ.</p>
+  <div class="whyb"><h6>Why</h6>
+    <p><b>One answer to "where do agents run?"</b> — every site under HQ, its own included, so nobody learns an exception or looks in two places.</p></div>
+</div>
+
+<div class="p"><h3><span class="num">9</span>Help — the guide inside the Fleet Console, and a link from each section</h3>
+  <p class="what"><b>Help</b> at the foot of the menu opens the user guide's pages for running Agenthix, with every command explained where it is used. Each section on a page has a small <b>How this works</b> link to its part of the guide. Screens show a command only when you must run it now; the rest live in the guide.</p>
+  <div class="app">
+    <div class="nav3"><div class="top"><div class="i">Dashboard</div><div class="i"><span class="dot ok"></span>HQ</div></div><div class="mid"><div class="lbl">Sites</div><div class="find">Find a site</div><div class="i"><span class="dot ok"></span>hq-box</div><div class="i"><span class="dot ok"></span>office-server</div><div class="i"><span class="dot warn"></span>lab-01</div><div class="i"><span class="dot ok"></span>lab-02</div><div class="i"><span class="dot ok"></span>lab-03</div><div class="more">⋮ scrolls</div></div><div class="bot"><div class="i">Maintenance</div><div class="i">Backups</div><div class="i">Activity</div><div class="i">Fleet admins</div><div class="i on">Help</div><div class="me">Sam Rivera ▾</div></div></div>
+    <div class="main">
+      <h5>Help</h5><div class="lede">Running Agenthix — from the user guide, kept with this Fleet Console so it opens without the internet</div>
+      <div class="cards">
+        <div class="tile click"><div class="t">Run it on a server</div><div class="s">What runs on each machine, who looks after it, and why</div></div>
+        <div class="tile click"><div class="t">You've just become a fleet admin</div><div class="s">What you look after, and your first visit</div></div>
+        <div class="tile click"><div class="t">HQ, sites and fleet admins</div><div class="s">Naming, being told, the role</div></div>
+        <div class="tile click"><div class="t">Backups and restoring</div><div class="s">Nightly, location, export, a lost site</div></div>
+        <div class="tile click"><div class="t">Maintenance and upgrades</div><div class="s">Now or later, what members see</div></div>
+        <div class="tile click"><div class="t">Add, move or remove a site</div><div class="s">Codes, fingerprints, what moves</div></div>
+        <div class="tile click"><div class="t">When nobody can sign in</div><div class="s">The role back, from HQ's machine</div></div>
+        <div class="tile click"><div class="t">Address and front door</div><div class="s">Domains, HTTPS, your own web server</div></div>
+        <div class="tile click"><div class="t">Commands on a machine</div><div class="s">Every <code>agenthix …</code> command</div></div>
+      </div>
+      <div class="tile" style="margin-top:10px"><div class="t">Backups <span class="link" style="font-weight:400;font-size:11px">How this works ›</span></div><div class="s">…each section on every page carries its link like this</div></div>
+    </div>
+  </div>
+  <div class="whyb"><h6>Why</h6>
+    <p><b>Many new ideas, met rarely.</b> A fleet admin opens the Fleet Console now and then, often under pressure. Help that is one click away, in the words of the screen, saves them leaving to search.</p>
+    <p><b>Help at the point of need.</b> A link beside the section you're puzzling over beats a manual you have to navigate; the menu entry is for reading ahead.</p>
+    <p><b>Screens stay short.</b> Commands and explanations move to the guide, so pages show the state and the action — which is what makes them quick to read.</p>
+    <p><b>Kept with the Fleet Console, not on a website</b>: it is reached on the machine alone, may have no internet, and lets nothing in from elsewhere; the guide is built into it, the same version as the screens, and drawn as text, never as HTML.</p>
+    <p class="cost">Cost: the guide's running pages are written for each idea the screens use. HQ has no Help yet — the same entry there would be consistent.</p></div>
+</div>
+
+<div class="p"><h3><span class="num">10</span>Notices in a panel beside the menu; Activity is the record</h3>
+  <p class="what">The bell opens the notices in a <b>panel pinned beside the menu</b>, as in HQ, over the page. <i>Dismiss all</i> is at the top; each notice opens what it is about — a site, HQ, a move's outcome, Fleet admins — and has its own <i>Dismiss</i> beside it. <b>Activity</b> is only the record of what fleet admins and machines did, newest first, kept in HQ for a year: filtered by who, what it was done to and its kind, with nothing on it to dismiss or change.</p>
+  <div class="app">
+    <div class="nav3"><div class="top"><div class="i">Dashboard</div><div class="i"><span class="dot ok"></span>HQ</div></div><div class="mid"><div class="lbl">Sites</div><div class="find">Find a site</div><div class="i"><span class="dot ok"></span>hq-box</div><div class="i"><span class="dot ok"></span>office-server</div><div class="i"><span class="dot warn"></span>lab-01</div><div class="i"><span class="dot warn"></span>lab-03</div><div class="more">⋮ scrolls</div></div><div class="bot"><div class="i">Maintenance</div><div class="i">Backups</div><div class="i on">Activity</div><div class="i">Fleet admins</div><div class="i">Help</div><div class="me">Sam Rivera ▾</div></div></div>
+    <div class="panel">
+      <h6><span>Notices · 3</span><span class="btn">✕</span></h6>
+      <div class="btns"><span class="btn">Dismiss all</span></div>
+      <div class="rowi"><div><div class="t">Not heard from lab-03 since 09:14</div><div class="s">today 09:24 · opens lab-03</div></div><span class="btn">Dismiss</span></div>
+      <div class="rowi"><div><div class="t">Sam Rivera exported a backup of office-server</div><div class="s">yesterday 18:02 · opens office-server</div></div><span class="btn">Dismiss</span></div>
+      <div class="rowi"><div><div class="t">lab-02 moved to lab-04</div><div class="s">Mon 21:40 · opens the move's outcome</div></div><span class="btn">Dismiss</span></div>
+    </div>
+    <div class="main under">
+      <h5>Activity</h5><div class="lede">Everything done here and at the command line, and who did it, newest first. Kept in HQ for a year; nobody can edit it.</div>
+      <div class="btns"><span class="btn">Who: everyone ▾</span><span class="btn">Done to: anything ▾</span><span class="btn">Kind: all ▾</span></div>
+      <div class="rowi"><div><div class="t">Sam Rivera planned maintenance on office-server: upgrade to 0.3.0</div><div class="s">today 10:02</div></div></div>
+      <div class="rowi"><div><div class="t">Sam Rivera exported a backup of office-server</div><div class="s">yesterday 18:02</div></div></div>
+    </div>
+  </div>
+  <div class="whyb"><h6>Why</h6>
+    <p><b>A notice asks for something; the record says what happened.</b> Mixing them made Activity look like an inbox with a log in it, and gave a log <i>Dismiss</i> buttons.</p>
+    <p><b>Beside the menu, the panel never runs off the screen</b>: it scrolls its own list, however many notices there are, and <i>Dismiss all</i> stays in reach at its top.</p>
+    <p><b>A notice is about something</b>, so pressing it goes there; dismissing it is a separate button, so one never happens by mistake for the other.</p></div>
+</div>
+</section>
+</main>
+</div>
+<script src="boards.js"></script>
+</body>
+</html>

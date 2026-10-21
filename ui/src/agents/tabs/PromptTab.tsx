@@ -1,0 +1,234 @@
+import { useState, useCallback, useEffect } from 'react'
+import type { ReactNode } from 'react'
+import { Loader2 } from 'lucide-react'
+import type { AgentDetail } from '../types'
+import {
+  PROMPT_SECTION_KEY,
+  EDITABLE_SECTION_FILES,
+  type PromptSection,
+  type PromptSectionKey,
+} from '../promptSections'
+
+export type PromptMode = 'chat' | 'task'
+
+export interface PromptTabQueries {
+  getAgentPromptPreview: (input: { agentId: string; mode: PromptMode }) => Promise<{ sections: PromptSection[] }>
+}
+
+export interface PromptTabActions {
+  updateAgentFile: (input: { agentId: string; filename: string; content: string }) => Promise<unknown>
+}
+
+export interface PromptTabSlots {
+  renderEditor: (props: {
+    value: string
+    onChange: (next: string) => void
+    placeholder?: string
+  }) => ReactNode
+  renderMarkdown: (props: { content: string; className?: string }) => ReactNode
+}
+
+export interface PromptTabProps {
+  agent: AgentDetail
+  queries: PromptTabQueries
+  actions: PromptTabActions
+  slots: PromptTabSlots
+}
+
+const MODE_LABELS: Record<PromptMode, string> = {
+  chat:      'Chat',
+  task:      'Task',
+}
+
+const MODE_DESCRIPTIONS: Record<PromptMode, string> = {
+  chat:      'Sent when a user opens a chat session with this agent.',
+  task:      'Sent when the agent is executing an assigned task.',
+}
+
+const SECTION_ICONS: Partial<Record<PromptSectionKey, string>> = {
+  [PROMPT_SECTION_KEY.IDENTITY]:         '👤',
+  [PROMPT_SECTION_KEY.ORG]:              '🏢',
+  [PROMPT_SECTION_KEY.INSTRUCTIONS]:     '📋',
+  [PROMPT_SECTION_KEY.MEMORY]:           '🧠',
+  [PROMPT_SECTION_KEY.AGENDA]:           '📅',
+  [PROMPT_SECTION_KEY.EXECUTION]:        '⚙️',
+  [PROMPT_SECTION_KEY.PROJECT]:          '📁',
+  [PROMPT_SECTION_KEY.BOARD]:            '📋',
+  [PROMPT_SECTION_KEY.TASK_DETAIL]:      '✅',
+}
+
+export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
+  const [mode, setMode] = useState<PromptMode>('chat')
+
+  const [preview, setPreview] = useState<{ sections: PromptSection[] } | null>(null)
+  const refetchPreview = useCallback(async () => {
+    const r = await queries.getAgentPromptPreview({ agentId: agent.id, mode })
+    setPreview(r)
+  }, [queries, agent.id, mode])
+  useEffect(() => { void refetchPreview() }, [refetchPreview])
+
+  const [editingKey, setEditingKey]   = useState<PromptSectionKey | null>(null)
+  const [editContent, setEditContent] = useState('')
+  const [saving, setSaving]           = useState(false)
+  const [saveError, setSaveError]     = useState<string | null>(null)
+
+  const startEdit = useCallback((section: PromptSection) => {
+    if (editingKey) return
+    setEditingKey(section.key)
+    setEditContent(section.content)
+  }, [editingKey])
+
+  const cancelEdit = useCallback(() => {
+    setEditingKey(null)
+    setEditContent('')
+    setSaveError(null)
+  }, [])
+
+  const saveEdit = useCallback(async () => {
+    if (!editingKey) return
+    const filename = EDITABLE_SECTION_FILES[editingKey]
+    if (!filename) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await actions.updateAgentFile({ agentId: agent.id, filename, content: editContent })
+      await refetchPreview()
+      setEditingKey(null)
+      setEditContent('')
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }, [editingKey, editContent, agent.id, actions, refetchPreview])
+
+  // Reset editing state when switching modes
+  const handleModeChange = (next: PromptMode) => {
+    cancelEdit()
+    setMode(next)
+  }
+
+  const sections = (preview?.sections ?? []) as PromptSection[]
+
+  return (
+    <div className="space-y-4">
+
+      {/* Mode switcher */}
+      <div className="flex items-center gap-1 bg-surface-1 border border-border-subtle rounded-xl p-1 w-fit">
+        {(['chat', 'task'] as PromptMode[]).map((m) => (
+          <button
+            key={m}
+            onClick={() => handleModeChange(m)}
+            className={`px-4 py-1.5 rounded-lg text-small font-medium transition-colors cursor-pointer ${
+              mode === m
+                ? 'bg-accent text-on-accent'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            {MODE_LABELS[m]}
+          </button>
+        ))}
+      </div>
+
+      {/* Mode description */}
+      <p className="text-micro text-text-muted -mt-1">{MODE_DESCRIPTIONS[mode]}</p>
+
+      <p className="text-micro text-text-muted -mt-2">
+        A saved section takes effect at the agent&apos;s next run.
+      </p>
+
+      {/* Prompt content */}
+      <div className="rounded-2xl bg-surface-1 border border-border-subtle overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border-subtle">
+          <span className="text-micro font-medium uppercase tracking-wide text-text-muted/70">System Prompt</span>
+          <span className="text-micro text-text-muted/70">Tap editable sections to update them</span>
+        </div>
+
+        {!preview ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-5 h-5 text-text-muted/70 animate-spin" />
+          </div>
+
+        ) : (
+          <div className="divide-y divide-border-subtle">
+            {sections.map((section) => {
+              const isEditing  = editingKey === section.key
+              const isEditable = section.editable
+              return (
+                <div
+                  key={section.key}
+                  onClick={() => isEditable && !editingKey ? startEdit(section) : undefined}
+                  className={`px-4 py-3.5 transition-colors ${
+                    isEditable && !editingKey
+                      ? 'cursor-pointer hover:bg-surface-hover group'
+                      : isEditing
+                        ? 'bg-accent/[0.05] cursor-default'
+                        : 'cursor-default'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-small">{SECTION_ICONS[section.key] ?? '▪'}</span>
+                    <span className="text-micro font-medium uppercase tracking-wide text-text-muted/70 group-hover:text-text-muted transition-colors">
+                      {section.label}
+                    </span>
+                    {!isEditable && (
+                      <span className="ml-auto text-micro font-medium uppercase tracking-wide text-text-muted/50">
+                        auto · read-only
+                      </span>
+                    )}
+                    {isEditable && !isEditing && !editingKey && (
+                      <span className="ml-auto text-micro text-text-muted/70 group-hover:text-accent/60 transition-colors flex items-center gap-1 font-semibold">
+                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        tap to edit
+                      </span>
+                    )}
+                  </div>
+
+                  {!isEditing && (
+                    section.content
+                      ? slots.renderMarkdown({ content: section.content, className: 'text-text-secondary text-micro' })
+                      : <span className="text-text-muted/70 italic text-small">Empty — tap to add content</span>
+                  )}
+
+                  {isEditing && (
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <div className="mt-1">
+                        {slots.renderEditor({
+                          value: editContent,
+                          onChange: setEditContent,
+                          placeholder: 'Empty — write something…',
+                        })}
+                      </div>
+                      {saveError && (
+                        <p className="text-micro text-danger mt-1">{saveError}</p>
+                      )}
+                      <div className="flex justify-end gap-2 mt-2">
+                        <button
+                          onClick={cancelEdit}
+                          className="px-3 py-1.5 rounded-lg text-small font-medium bg-surface-2 border border-border text-text-muted hover:text-text-secondary cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={saveEdit}
+                          disabled={saving}
+                          className="px-3 py-1.5 rounded-lg text-small font-medium bg-accent text-on-accent cursor-pointer disabled:opacity-50"
+                        >
+                          {saving ? 'Saving…' : 'Save'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+    </div>
+  )
+}

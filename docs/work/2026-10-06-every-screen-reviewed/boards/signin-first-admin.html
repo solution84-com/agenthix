@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Setting up a fresh HQ · living design</title>
+<style>
+  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --s3:#e6e6ee; --hover:#ebebf3;
+    --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0;
+    --accent:#6366f1; --accent-h:#4f46e5; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --danger:#dc2626;
+    --ok-line:#05966955; --warn-line:#b4530955;
+    --term-bg:#101018; --term-fg:#d8d8e4; --term-dim:#8a8aa0; --term-ok:#34d399;
+    --scrim:#0000004d; --cover-ink:#ffffff; --cover-shade:linear-gradient(transparent 35%, #0f0f1acc);
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --s3:#242436; --hover:#2a2a40;
+    --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078;
+    --accent:#6366f1; --accent-h:#818cf8; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --ok-line:#34d39955; --warn-line:#fbbf2455;
+    --term-bg:#05050a; --term-fg:#e8e8f0; --term-dim:#606078; --term-ok:#34d399;
+    --scrim:#00000080; --cover-ink:#ffffff; --cover-shade:linear-gradient(transparent 35%, #000000d0);
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:820px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:28px 0 10px; }
+  .h-sec { font-size:18px; line-height:26px; font-weight:600; margin:40px 0 4px; }
+  .h-sec + p { color:var(--t2); margin:0 0 8px; max-width:900px; }
+  .cap { font-size:12px; line-height:16px; color:var(--t3); margin-top:8px; }
+  .cap code, .tl code, td code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .mutt { color:var(--t3); } .okt { color:var(--ok); } .warnt { color:var(--warn); }
+  .frame { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+
+  /* app shell (for frames after sign-in) */
+  .desk { display:grid; grid-template-columns:220px 1fr; min-height:620px; }
+  .nav { background:var(--s0); border-right:1px solid var(--border-subtle); padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .logo { font-weight:600; font-size:15px; padding:4px 8px 14px; display:flex; gap:8px; align-items:center; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; color:var(--t2); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+  .nav a.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .nav .sec { font-size:12px; color:var(--t3); padding:14px 8px 4px; display:flex; justify-content:space-between; }
+  .nav .me { margin-top:auto; border-top:1px solid var(--border-subtle); padding-top:8px; display:flex; flex-direction:column; gap:2px; }
+  .work { display:grid; grid-template-rows:auto 1fr; min-width:0; background:var(--s1); }
+  .wbar { display:flex; align-items:center; padding:8px 16px 8px 32px; border-bottom:1px solid var(--border-subtle); font-size:13px; color:var(--t3); min-height:41px; }
+  .page { padding:24px 40px; }
+  .composer { border:1px solid var(--border); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:center; background:var(--s1); }
+  .composer.focus { border-color:var(--accent); }
+  .composer .ph { flex:1; color:var(--t3); font-size:15px; }
+  .chip { font-size:12px; color:var(--t2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .send { width:30px; height:30px; border-radius:8px; background:var(--accent); flex:none; }
+  .bp { font-size:13px; border-radius:6px; padding:5px 12px; border:1px solid var(--border); background:var(--s1); color:var(--t1); white-space:nowrap; display:inline-flex; align-items:center; gap:6px; }
+  .bp.pri { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .bp.wide { width:100%; justify-content:center; padding:9px 12px; font-size:14px; font-weight:500; }
+  .lk { color:var(--accent); text-decoration:none; }
+  .av { width:32px; height:32px; border-radius:50%; flex:none; color:#fff; font-size:12px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+  .av.sm { width:22px; height:22px; font-size:10px; }
+  .av.sq { border-radius:8px; }
+
+  /* the sign-in surface */
+  .auth { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); height:680px; }
+  .auth.short { height:560px; }
+  .cover { position:relative; background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 45%,#0ea5e9 100%); overflow:hidden; }
+  .cover::after { content:''; position:absolute; inset:0; background:var(--cover-shade); }
+  .cover .id { position:absolute; left:40px; right:40px; bottom:36px; z-index:1; color:var(--cover-ink); }
+  .cover .pic { width:72px; height:72px; border-radius:18px; background:#ffffff; color:#6366f1; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:700; box-shadow:0 6px 20px #0003; margin-bottom:14px; }
+  .cover .nm { font-size:28px; line-height:36px; font-weight:700; }
+  .cover .hd { font-size:13px; opacity:.85; }
+  .cover .vs { font-size:15px; line-height:24px; margin-top:10px; max-width:440px; opacity:.95; }
+  .cover.plain { background:linear-gradient(135deg,#334155,#475569); }
+  .side { display:flex; flex-direction:column; justify-content:center; padding:24px 44px 48px; background:var(--s1); position:relative; }
+  .side .inner { width:100%; max-width:380px; margin:0 auto; }
+  .side h2 { font-size:24px; line-height:32px; margin:0 0 4px; font-weight:600; }
+  .side .lead { color:var(--t2); margin:0 0 20px; }
+  .fl { font-size:13px; color:var(--t2); font-weight:500; margin:14px 0 6px; display:flex; justify-content:space-between; }
+  .fl span { font-weight:400; color:var(--t3); }
+  .fld { border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:14px; background:var(--s1); color:var(--t1); }
+  .fld.ph { color:var(--t3); } .fld.on { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-sub); }
+  .fld.mono { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:13px; }
+  .hint { font-size:12px; line-height:16px; color:var(--t3); margin-top:5px; }
+  .row2 { display:flex; justify-content:space-between; align-items:center; margin:14px 0 18px; font-size:13px; color:var(--t2); }
+  .cb { display:inline-flex; gap:8px; align-items:center; } .cb i { width:15px; height:15px; border-radius:4px; border:1px solid var(--border); display:inline-block; } .cb i.on { background:var(--accent); border-color:var(--accent); }
+  .foot { position:absolute; left:0; right:0; bottom:16px; text-align:center; font-size:12px; color:var(--t3); }
+  .steps { display:flex; gap:6px; margin-bottom:22px; } .steps i { flex:1; height:3px; border-radius:2px; background:var(--s3); } .steps i.on { background:var(--accent); }
+  .stepn { font-size:12px; color:var(--t3); font-weight:500; margin-bottom:4px; }
+  .who { display:flex; gap:10px; align-items:center; padding:10px 12px; border:1px solid var(--border-subtle); border-radius:10px; margin-bottom:6px; font-size:13px; color:var(--t2); }
+  .who b { color:var(--t1); font-weight:500; }
+  .state { display:flex; gap:10px; align-items:flex-start; font-size:13px; line-height:18px; padding:10px 12px; border:1px solid var(--border-subtle); border-radius:10px; margin-top:12px; color:var(--t2); }
+  .state b { color:var(--t1); font-weight:500; }
+  .state.ok { border-color:var(--ok-line); } .state.warn { border-color:var(--warn-line); }
+  .dot { width:8px; height:8px; border-radius:50%; flex:none; margin-top:5px; background:var(--t3); }
+  .dot.ok { background:var(--ok); } .dot.warn { background:var(--warn); }
+  .choice { border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-top:10px; }
+  .choice.sel { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .choice b { font-weight:600; } .choice .d { font-size:13px; color:var(--t2); margin-top:2px; }
+  .skip { text-align:center; margin-top:14px; font-size:13px; }
+  .upl { display:flex; gap:14px; align-items:center; }
+  .upl .p { width:56px; height:56px; border-radius:14px; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; color:var(--t3); font-size:22px; }
+
+  /* preview card in setup */
+  .prev { border:1px solid var(--border); border-radius:12px; overflow:hidden; width:300px; background:var(--s1); }
+  .prev .c { height:90px; background:linear-gradient(135deg,#6366f1,#8b5cf6 45%,#0ea5e9); position:relative; }
+  .prev .p { position:absolute; left:14px; bottom:-20px; width:44px; height:44px; border-radius:11px; background:#ffffff; color:#6366f1; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:20px; box-shadow:0 2px 8px #0003; }
+  .prev .b { padding:26px 14px 14px; font-size:13px; } .prev .b b { font-size:16px; }
+  .prev .f { margin-top:10px; display:flex; flex-direction:column; gap:6px; } .prev .f i { display:block; height:22px; border:1px solid var(--border-subtle); border-radius:6px; } .prev .f i.btn { background:var(--accent); border-color:var(--accent); }
+
+  /* phone */
+  .phones { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:340px; height:700px; border:1px solid var(--border); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; background:var(--s1); position:relative; flex:none; }
+  .phone .cover { height:170px; flex:none; }
+  .phone .cover .id { left:20px; right:20px; bottom:16px; display:flex; gap:12px; align-items:center; }
+  .phone .cover .pic { width:52px; height:52px; font-size:22px; border-radius:13px; margin:0; }
+  .phone .cover .nm { font-size:20px; line-height:26px; }
+  .pbody { padding:20px 20px; flex:1; overflow:hidden; position:relative; }
+  .pbody h2 { font-size:20px; line-height:28px; margin:0 0 4px; font-weight:600; }
+  .pbody .lead { color:var(--t2); margin:0 0 6px; font-size:14px; }
+  .mhead { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-subtle); }
+  .mhead .t { font-weight:600; flex:1; }
+  .pnote { max-width:380px; color:var(--t2); font-size:14px; }
+  .pnote b { color:var(--t1); font-weight:500; }
+
+  /* today mini screens */
+  .todays { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+  .tcard { border:1px solid var(--border-subtle); border-radius:12px; background:var(--s0); padding:14px; display:flex; flex-direction:column; align-items:center; min-height:300px; }
+  .tcard .tt { font-size:12px; font-weight:500; color:var(--t3); align-self:flex-start; margin-bottom:10px; text-transform:uppercase; letter-spacing:.04em; }
+  .tbox { width:100%; max-width:260px; background:var(--s1); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:0 10px 30px #0000001a; font-size:12px; line-height:16px; }
+  .tbox .lg { text-align:center; font-weight:700; font-size:14px; } .tbox .sub { text-align:center; color:var(--t2); margin:4px 0 10px; font-size:11px; }
+  .tbox .f { border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--t3); margin-top:4px; font-size:11px; }
+  .tbox .lb { color:var(--t3); margin-top:8px; font-size:11px; }
+  .tbox .b { background:var(--accent); color:var(--on-accent); border-radius:6px; text-align:center; padding:6px; margin-top:10px; font-weight:600; font-size:11px; }
+  .tbox .ok { border:1px solid var(--ok-line); color:var(--ok); border-radius:6px; padding:4px 8px; font-size:11px; }
+  .tbox .rl { display:inline-block; border:1px solid var(--warn-line); color:var(--warn); border-radius:999px; padding:1px 8px; margin-top:6px; font-size:11px; }
+  .tbelow { font-size:11px; color:var(--t3); margin-top:10px; text-align:center; }
+  .pips { display:flex; gap:4px; width:100%; max-width:260px; margin-bottom:8px; } .pips i { flex:1; height:2px; background:var(--s3); } .pips i.on { background:var(--accent); } .pips i.done { background:var(--ok); }
+
+  /* flow map */
+  .map { border:1px solid var(--border); border-radius:12px; background:var(--s1); padding:18px 20px; }
+  .lane { display:grid; grid-template-columns:170px 1fr; gap:14px; align-items:center; padding:12px 0; border-top:1px solid var(--border-subtle); }
+  .lane:first-child { border-top:none; }
+  .lane .who2 { font-weight:600; font-size:14px; } .lane .who2 div { font-weight:400; font-size:12px; color:var(--t3); line-height:16px; margin-top:2px; }
+  .flow { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+  .st { border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:13px; line-height:17px; background:var(--s1); max-width:200px; }
+  .st small { display:block; font-size:11px; color:var(--t3); line-height:14px; }
+  .st.opt { border-style:dashed; }
+  .st.end { border-color:var(--accent); background:var(--accent-sub); font-weight:500; }
+  .ar { color:var(--t3); font-size:14px; }
+  .legend { display:flex; gap:16px; font-size:12px; color:var(--t3); margin-top:10px; } .legend span { display:inline-flex; gap:6px; align-items:center; }
+  .legend i { width:22px; height:12px; border:1px solid var(--border); border-radius:3px; display:inline-block; } .legend i.d { border-style:dashed; } .legend i.e { border-color:var(--accent); background:var(--accent-sub); }
+
+  /* options */
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .optc { border:1px solid var(--border); border-radius:12px; padding:16px; background:var(--s1); }
+  .optc.rec { border-color:var(--accent); }
+  .optc h4 { margin:0 0 4px; font-size:15px; } .optc .o { font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.04em; text-transform:uppercase; }
+  .optc p { color:var(--t2); margin:6px 0; font-size:13px; }
+  .mini { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; margin-top:10px; background:var(--s1); font-size:13px; }
+  .mini .h { font-weight:600; margin-bottom:6px; }
+  .linkbox { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; border:1px solid var(--border); border-radius:6px; padding:6px 8px; color:var(--t2); background:var(--s2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* edge cards */
+  .edges { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+  .edge { border:1px solid var(--border); border-radius:12px; background:var(--s1); overflow:hidden; }
+  .edge .c { height:56px; background:linear-gradient(135deg,#6366f1,#8b5cf6 45%,#0ea5e9); position:relative; }
+  .edge .c .p { position:absolute; left:14px; bottom:-16px; width:36px; height:36px; border-radius:9px; background:#ffffff; color:#6366f1; display:flex; align-items:center; justify-content:center; font-weight:700; box-shadow:0 2px 8px #0003; }
+  .edge .b { padding:24px 14px 14px; font-size:13px; color:var(--t2); } .edge .b b { color:var(--t1); font-size:14px; display:block; margin-bottom:4px; }
+  .edge .acts { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+  .edge .when { font-size:11px; color:var(--t3); text-transform:uppercase; letter-spacing:.04em; font-weight:500; margin-bottom:4px; }
+
+  /* tables, notes */
+  .wtable { width:100%; border-collapse:collapse; font-size:14px; background:var(--s1); border:1px solid var(--border); border-radius:12px; }
+  .wtable th { text-align:left; font-size:12px; font-weight:500; color:var(--t3); padding:8px 12px; border-bottom:1px solid var(--border-subtle); }
+  .wtable td { padding:8px 12px; border-top:1px solid var(--border-subtle); vertical-align:top; }
+  .wtable td.p { font-size:12px; color:var(--t3); }
+  .notes { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:16px; }
+  .note { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); }
+  .note h3 { margin:0 0 8px; font-size:15px; line-height:22px; }
+  .note ul, .note ol { margin:0; padding-left:18px; color:var(--t2); }
+  .note li { margin-bottom:8px; }
+  .note li b { color:var(--t1); font-weight:500; }
+  .note.open { border-color:var(--warn-line); }
+  .note.agreed { border-color:var(--ok-line); }
+  .gaps { columns:2; column-gap:28px; color:var(--t2); padding-left:18px; margin:0; }
+  .gaps li { margin-bottom:8px; break-inside:avoid; } .gaps li b { color:var(--t1); font-weight:500; }
+
+  /* conversation (first conversation frame) */
+  .col { max-width:680px; margin:0 auto; }
+  .turn { margin-bottom:20px; font-size:15px; line-height:24px; }
+  .turn .h { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--t3); margin-bottom:6px; }
+  .turn .h b { color:var(--t1); font-weight:600; }
+  .turn.you { text-align:right; } .turn.you .txt { background:var(--s2); border-radius:12px; padding:10px 14px; display:inline-block; text-align:left; }
+  .turn .txt p { margin:0 0 8px; } .turn .txt ul { margin:0 0 8px; padding-left:20px; }
+  .sugg { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:14px; }
+  .sugg span { font-size:13px; border:1px solid var(--border); border-radius:999px; padding:6px 12px; color:var(--t1); background:var(--s1); }
+  .sig { display:flex; gap:8px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
+  .sig .bp { color:var(--t2); }
+  .orow { display:flex; align-items:center; gap:12px; padding:10px 8px; border-bottom:1px solid var(--border-subtle); }
+  .orow .t { font-weight:500; } .orow .l { font-size:13px; color:var(--t2); }
+  .orow .f { margin-left:auto; font-size:13px; color:var(--t3); white-space:nowrap; }
+
+  /* before / after */
+  .ba { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; align-items:start; }
+  .ba.one { grid-template-columns:minmax(0,1fr); }
+  @media (max-width:900px) { .ba { grid-template-columns:minmax(0,1fr); } }
+  .bigtag { display:inline-flex; align-items:center; gap:8px; font-size:14px; line-height:20px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:5px 14px; border-radius:6px; margin-bottom:8px; }
+  .bigtag.before { background:var(--s3); color:var(--t1); }
+  .bigtag.after { background:var(--accent); color:var(--on-accent); }
+  .bigtag.new { background:var(--accent-sub); color:var(--accent); border:1px dashed var(--accent); }
+  .bigtag small { font-size:12px; font-weight:500; letter-spacing:0; text-transform:none; opacity:.85; }
+  .fit { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .fit > .in { width:900px; }
+  .fit .num { min-width:30px; height:30px; border-radius:15px; font-size:16px; }
+  .feat { margin-top:36px; padding-top:20px; border-top:1px solid var(--border); }
+  .feat > h2 { font-size:18px; line-height:26px; margin:0 0 4px; font-weight:600; }
+  .feat > p { color:var(--t2); margin:0 0 14px; max-width:900px; }
+  .num { display:inline-flex; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:var(--t1); color:var(--s1); font-size:12px; font-weight:700; align-items:center; justify-content:center; flex:none; vertical-align:middle; letter-spacing:0; text-transform:none; }
+  .facts3 { font-size:13px; color:var(--t2); margin-top:10px; padding-left:18px; }
+  .facts3 li { margin-bottom:5px; } .facts3 b { color:var(--t1); font-weight:500; }
+  .facts3 code, .why code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .why { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); margin-top:14px; }
+  .why h3 { margin:0 0 8px; font-size:15px; }
+  .why ul { margin:0; padding-left:18px; color:var(--t2); } .why li { margin-bottom:6px; } .why li b { color:var(--t1); font-weight:500; }
+  .nothing { border:1px dashed var(--border); border-radius:12px; padding:28px; text-align:center; color:var(--t3); background:var(--s0); }
+  .nothing b { display:block; color:var(--t2); font-size:15px; margin-bottom:4px; }
+
+  /* today's screens, drawn as the app does them */
+  .oldpg { background:var(--s0); height:620px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; position:relative; }
+  .oldpg.tall { height:760px; }
+  .oldcard { width:448px; background:var(--s1); border:1px solid var(--border); border-radius:16px; padding:32px 36px; box-shadow:0 24px 48px #00000026; }
+  .oldlogo { text-align:center; font-weight:700; font-size:20px; display:flex; gap:8px; justify-content:center; align-items:center; }
+  .oldsub { text-align:center; color:var(--t2); font-size:13px; margin:8px 0 18px; }
+  .oldh { font-size:18px; font-weight:600; text-align:center; margin:4px 0 6px; }
+  .olderr { color:var(--danger); font-size:13px; margin-top:8px; }
+  .waspErr { border:1px solid var(--danger); color:var(--danger); border-radius:8px; padding:8px 12px; font-size:13px; margin:6px 0 4px; }
+  .verified { border:1px solid var(--ok-line); color:var(--ok); border-radius:8px; padding:6px 10px; font-size:13px; display:flex; justify-content:space-between; }
+  .verified span:last-child { color:var(--t3); }
+  .rolechip { display:inline-flex; gap:6px; align-items:center; color:var(--warn); border:1px solid var(--warn-line); border-radius:999px; padding:2px 10px; font-size:12px; font-weight:600; margin-top:10px; }
+  .oldbelow { font-size:12px; color:var(--t3); margin-top:16px; }
+  .oldpips { display:flex; gap:6px; width:576px; margin-bottom:28px; } .oldpips i { flex:1; height:2px; border-radius:1px; background:var(--s3); } .oldpips i.on { background:var(--accent); } .oldpips i.done { background:var(--ok); }
+  .oldicon { width:64px; height:64px; border-radius:16px; background:var(--accent); color:var(--on-accent); display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 14px; }
+  .oldicon.ok { background:var(--ok); }
+  .banner { padding:10px 32px; border-bottom:1px solid var(--warn-line); color:var(--warn); font-size:14px; background:var(--s1); }
+  .banner u { font-weight:500; }
+  .signal { font-size:13px; border:1px solid var(--border-subtle); border-radius:999px; padding:4px 12px; color:var(--t2); }
+  .annot { position:absolute; display:flex; gap:6px; align-items:center; }
+
+  /* bootstrap step strips */
+  .strip { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; }
+  @media (max-width:1100px) { .strip { grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); } }
+  .sf { border:1px solid var(--border); border-radius:12px; background:var(--s1); padding:12px 14px; display:flex; flex-direction:column; gap:8px; font-size:13px; line-height:19px; color:var(--t2); min-width:0; }
+  .sf.wide { grid-column:span 2; }
+  @media (max-width:900px) { .sf.wide { grid-column:auto; } }
+  .sf .hd { display:flex; gap:8px; align-items:center; color:var(--t1); font-weight:600; font-size:14px; }
+  .sf b { color:var(--t1); font-weight:500; }
+  .sf .code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; line-height:16px; color:var(--t3); border-top:1px dashed var(--border-subtle); padding-top:8px; margin-top:auto; overflow-wrap:anywhere; }
+  .sf .code code, .sf code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; background:var(--s2); border-radius:4px; padding:1px 4px; color:var(--t2); }
+  .sf.stale code.st2 { text-decoration:line-through; }
+  .prob { display:inline-block; align-self:flex-start; font-size:11px; line-height:15px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--warn); border:1px solid var(--warn-line); border-radius:999px; padding:1px 8px; }
+  .prob + span { color:var(--t2); }
+  .pr { display:flex; flex-direction:column; gap:4px; }
+  .pr span { font-size:12px; line-height:17px; }
+  .term { background:var(--term-bg); color:var(--term-fg); border-radius:8px; padding:10px 12px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; line-height:17px; border:1px solid var(--border); overflow-wrap:anywhere; }
+  .term .d { color:var(--term-dim); } .term .g { color:var(--term-ok); }
+  .mf { border:1px solid var(--border-subtle); border-radius:8px; background:var(--s0); padding:8px 10px; font-size:12px; line-height:17px; }
+  .mf .fld { padding:4px 8px; font-size:12px; margin-top:4px; }
+  .pipsm { display:flex; gap:4px; } .pipsm i { flex:1; height:3px; border-radius:2px; background:var(--accent); }
+
+  /* vertical bootstrap steps */
+  .grp { margin:26px 0 10px; }
+  .vs { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; border:1px solid var(--border); border-radius:12px; background:var(--s1); padding:16px 20px; margin-bottom:10px; }
+  .vs.considered { opacity:.75; border-style:dashed; grid-template-columns:minmax(0,1fr); }
+  .vs h3 { margin:0 0 8px; font-size:16px; line-height:24px; display:flex; gap:10px; align-items:center; }
+  .vs .vb p { margin:0 0 8px; color:var(--t2); } .vs .vb b { color:var(--t1); font-weight:500; }
+  .vs code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .vs .code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; line-height:18px; color:var(--t3); border-top:1px dashed var(--border-subtle); padding-top:8px; margin:8px 0; overflow-wrap:anywhere; }
+  .vs .pr { margin-top:8px; flex-direction:row; align-items:center; gap:10px; } .vs .pr span:last-child { font-size:13px; }
+  .vs .vp.none { display:none; }
+  .vs .vp .term { font-size:13px; line-height:21px; padding:14px 16px; }
+  .vs .vp .mf { font-size:14px; line-height:21px; padding:14px 16px; max-width:420px; }
+  .vs .vp .mf .fld { padding:8px 12px; font-size:14px; }
+  @media (max-width:900px) { .vs { grid-template-columns:minmax(0,1fr); } .vs .pr { flex-direction:column; align-items:flex-start; gap:4px; } }
+  .prev .b .hd { font-size:11px; color:var(--t3); margin-top:-2px; }
+  .prev .pw { text-align:center; font-size:10px; color:var(--t3); padding:6px 0 8px; }
+  /* API keys as a compact list (139) */
+  .kr { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; border-top:1px solid var(--border-subtle); font-size:14px; line-height:20px; }
+  .kr:first-child { border-top:none; }
+  .kr .nm { color:var(--t1); } .kr .nm small { font-size:12px; color:var(--t3); margin-left:6px; }
+  .kr .ac { font-size:13px; white-space:nowrap; color:var(--t3); }
+  .kr.open { display:block; padding:0 0 12px; }
+  .kr.open .kh { display:flex; align-items:center; justify-content:space-between; min-height:44px; }
+  .kr.open .kd { font-size:13px; line-height:18px; color:var(--t2); margin-bottom:8px; }
+  .kr.open .acts { display:flex; gap:8px; margin-top:10px; }
+  .kr code, .kd code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .kg { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); padding:14px 0 6px; border-top:1px solid var(--border-subtle); }
+  .kstep .choice .d.line { margin:2px 0 8px; }
+  .ksite { display:flex; gap:8px; align-items:center; font-size:13px; color:var(--t2); margin-top:14px; }
+  .ksite .dot { margin-top:0; }
+  .kstep .btns { display:flex; gap:8px; margin-top:16px; }
+  /* API keys behind one menu (139) */
+  .pop { position:absolute; left:0; top:calc(100% + 6px); z-index:5; width:340px; background:var(--s1); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px var(--scrim); padding:4px 0; font-size:14px; }
+  .pop .it { padding:8px 14px; line-height:20px; color:var(--t1); } .pop .it small { font-size:12px; color:var(--t3); margin-left:6px; }
+  .pop .it.hl { background:var(--hover); }
+  .pop .gl { font-size:11px; line-height:16px; color:var(--t3); padding:8px 14px 4px; border-top:1px solid var(--border-subtle); margin-top:4px; }
+  .scrim { position:absolute; inset:0; background:var(--scrim); z-index:6; display:flex; align-items:center; justify-content:center; }
+  .scrim.sheet { align-items:flex-end; }
+  .dlg { background:var(--s1); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 36px var(--scrim); padding:20px; width:400px; max-width:calc(100% - 32px); }
+  .scrim.sheet .dlg { width:100%; max-width:none; border-radius:16px 16px 0 0; border-width:1px 0 0; }
+  .dlg h3 { margin:0 0 4px; font-size:16px; line-height:24px; font-weight:600; }
+  .dlg .d { font-size:13px; line-height:18px; color:var(--t2); margin-bottom:10px; }
+  .dlg .acts { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="boardhead">
+    <div>
+      <h1>Setting up a fresh HQ</h1>
+      <p>The first person on a fresh HQ, from the setup code to a working first conversation. Four steps — You, Your organisation, Model access, Review — then Home with the built-in agent. Today's Welcome and Done go; HQ's own site is checked along the way, not made a step.</p>
+    </div>
+    <div style="white-space:nowrap"><span class="pill">Draft for review · 2026-10-10</span></div>
+  </div>
+  <div id="main"></div>
+
+  <div class="label">Questions</div>
+  <div class="notes">
+    <div class="note open"><h3>Open</h3><ul><li>Nothing open.</li></ul></div>
+        <div class="note agreed"><h3>Agreed</h3><ul><li>139: Model access is one 'Add model access' menu — a Claude subscription (yours) or an API key for Anthropic or an OpenCode provider (the organisation's); the step lists what's set, each with Remove; optional, but the step asks for at least one and Continue reads 'Skip for now' until then. Recommend: yes.</li><li>140: HQ's site status moves to the review as 'Where agents run'; on step 3 it shows only as a warning when the site isn't connected.</li><li>Setup carries our brand — the Agenthix mark and name at the top of each step, no 'Powered by'; the organisation's own pages keep 'Powered by'.</li><li>141: Each model-access option says which models it gives access to, never a runtime; a key is used by whichever runtime can use it.</li><li>135: Setup is two columns — form left, the sign-in page's preview right; the sign-in page itself is one column (134).</li><li>75: The Claude login made in setup is the admin's own (adr-0105: a run uses the login of the person it is for, after its project's own); the development switch that shared a subscription goes.</li><li>76: Model access is an optional step in setup; skipped, Home says agents can't answer yet and links to the fix.</li><li>77: While Jump back in is empty, Home shows ready-made suggestions sent to the built-in agent; suggestions at each stage of a person's experience come later.</li><li>74: Setup is You · Your organisation · Model access, then the first conversation; Welcome and Done go (owner, 2026-10-11). Inviting people, projects and other sites wait.</li><li>109: One command, <code>./agenthix install</code>: asks the address and whether to run agents on this machine, makes every secret, writes both env files paired, builds and starts HQ and its site, prints the first-admin link</li><li>108: the first admin gets in by a one-time link HQ generates while it has no users, printed at startup from <code>HQ_URL</code>, valid 24 hours, reissued on restart or by command</li></ul><h3 style="margin-top:14px">Kept from agreed boards</h3><ul><li>HQ comes with its own site, named HQ (Execution Sites)</li><li>Home is personal: greeting, message box, what waits, Jump back in (§8)</li><li>The built-in agent is Agenthix, "Helps you use the product" (Agents)</li></ul></div>
+    <div class="note"><h3>Log</h3><ul><li>2026-10-11: owner decided setup carries our brand — the Agenthix mark and name at the top of the form column on every setup screen (desktop and phone), no "Powered by"; the organisation's own sign-in preview keeps "Powered by Agenthix".</li><li>2026-10-11: owner — people care whether they need a key, not about runtimes. 141 reworded; the menu, set lists, phone, Organisation › Settings and review lines now name models ("Claude models", "GPT models") and the group label reads "Other providers".</li><li>2026-10-11: the older step 3 frame in the model-access section and the phone frames of steps 1–3 now draw the agreed design (Add model access, no HQ's-site line, "of 4"); no superseded design is shown as current.</li><li>2026-10-11: owner agreed 139 and 140; both moved to Agreed. HQ's site line is off step 3 (shown only as a warning when it is not connected); added the review step with "Where agents run" and the model access it lists; setup is now four steps and the indicators read "of 4".</li><li>2026-10-11: owner agreed 141 — each item in the Add model access menu, and each set item, carries one line saying what it gives access to (menu, phone sheet, set list, Organisation › Settings).</li><li>2026-10-11: owner — the subscription is one more option. 139 redrawn: one "Add model access" menu holding the Claude subscription, an Anthropic key and the OpenCode providers; the step lists what is set with whose it is; Continue reads Skip for now until something is set. The previous drawing is kept, greyed, as superseded.</li><li>2026-10-11: owner preferred no provider list on the page — 139 redrawn as one "Add an API key" menu with a dialog for the key (at rest, menu open, provider chosen, keys set, phone sheet, Organisation › Settings); the compact list is kept below, greyed, as not chosen.</li><li>2026-10-11: added Model access — API keys as a compact list (open question 139): setup step 3 at rest, with one row open, and with two keys set, a phone frame, and the same list in Organisation › Settings.</li><li>2026-10-11: owner decided 135 — setup stays two columns because its second column is a live preview of the sign-in page. All three setup screens (the first account, Your organisation, Model access) now draw the form on the left and the preview or side explanation on the right; step 2's preview is drawn in layout A (134) and a phone frame for step 2 puts the preview below the form.</li><li>2026-10-11: owner agreed 75, 76 and 77; moved from Open to Agreed.</li><li>2026-10-11: owner agreed 74 (setup is You · Your organisation · Model access, then the first conversation); moved from Open to Agreed.</li><li>2026-10-11: 109 agreed (one command installs everything).</li><li>2026-10-11: 108 agreed. Added Proposed — one command installs everything (open question 109): the owner asked for fewer keys and less setup, automated as far as possible.</li><li>2026-10-11: added Bootstrap: how the first admin gets in — today's six steps read from the code, and a one-time link proposed (open question 108).</li><li>2026-10-10: split from the single "Sign-in and onboarding" board into a Today board and feature boards, each Before / After / Why (owner's request).</li><li>2026-10-10: first draft from hq's auth, onboarding, model-access and setup code, and the agreed Organisation, People, Settings and Execution Sites boards.</li></ul></div>
+  </div>
+</div>
+<script>
+// Shared drawing helpers for the signin-* boards. Each returns an HTML string.
+const S = (() => {
+  const n = (k) => `<span class="num">${k}</span>`
+  const f = (label, val, cls = '', aside = '') => `<div class="fl">${label}${aside ? `<span>${aside}</span>` : ''}</div><div class="fld ${cls}">${val}</div>`
+  const fit = (html) => `<div class="fit"><div class="in">${html}</div></div>`
+  const tag = (kind, text, small = '') => `<div class="bigtag ${kind}">${text}${small ? ` <small>${small}</small>` : ''}</div>`
+  const before = (html, small = '') => `<div>${tag('before', 'Before — today', small)}${fit(html)}</div>`
+  const after = (html, small = '') => `<div>${tag('after', 'After — proposed', small)}${fit(html)}</div>`
+  const nothing = (what) => `<div>${tag('new', 'New — nothing today')}<div class="nothing"><b>Nothing today</b>${what}</div></div>`
+  const noScreen = (what) => `<div>${tag('before', 'Before — today', 'no screen')}<div class="nothing"><b>No screen</b>${what}</div></div>`
+  const ba = (b, a) => `<div class="ba">${b}${a}</div>`
+
+  // ── today ────────────────────────────────────────────────
+  const oldLogo = `<div class="oldlogo"><span style="color:var(--accent)">⬡</span>Agenthix</div>`
+  const oldPage = (card, below = '', tall = false) => `<div class="oldpg ${tall ? 'tall' : ''}"><div class="oldcard">${card}</div>${below}</div>`
+  const todayLogin = (err = '') => oldPage(`${n(1)} ${oldLogo}<div class="oldsub">Sign in to your agent gateway</div>
+      <div class="oldh">Log in to your account</div>${err}
+      ${f('Username', '&nbsp;')}${f('Password', '&nbsp;')}
+      <div style="margin-top:18px"><span class="bp pri wide">Log in</span></div>
+      <div class="row2" style="margin:12px 0 0"><span class="cb"><i></i>Remember me ${n(2)}</span><span class="mutt" style="font-size:12px">no "Forgot password" ${n(18)}</span></div>`,
+    `<div class="oldbelow">${n(3)} Invite only · Contact your admin for access</div>`)
+  const todaySetupKey = (err = '') => oldPage(`${n(6)} ${oldLogo}<div class="oldsub">Set up this hq</div>
+      ${f('First-admin key', 'Paste the first-admin key (SITE_ADMIN_KEY)', 'ph')}${err}
+      <div style="margin-top:18px"><span class="bp pri wide">Continue →</span></div>`,
+    `<div class="oldbelow">${n(5)} Reached from /login, which forwards here while HQ has no people</div>`)
+  const todayAccount = (isKey) => oldPage(`${n(isKey ? 7 : 15)} ${oldLogo}<div class="oldsub">${isKey ? 'Set up this hq' : 'Accept your invite'}</div>
+      <div class="verified"><span>✓ Invite code verified</span><span>Change</span></div>
+      <div class="rolechip">● Joining as ${isKey ? 'Admin' : 'Member'}</div>
+      ${isKey ? '' : '<div class="mutt" style="font-size:12px;margin-top:6px">Invited by <b style="color:var(--t2)">Avery</b> · Expires in <b style="color:var(--t2)">6 days</b></div>'}
+      ${f('Username', 'Choose a username', 'ph')}${f('Password', 'Choose a password', 'ph')}
+      <div style="margin-top:18px"><span class="bp pri wide">Create account →</span></div>`, '', true)
+  const todayInviteCode = (err = '') => oldPage(`${n(14)} ${oldLogo}<div class="oldsub">Accept your invite</div>
+      ${f('Invite code', 'Paste your invite code', 'ph')}${err}
+      <div style="margin-top:18px"><span class="bp pri wide">Continue →</span></div>`,
+    `<div class="oldbelow">/accept-invite without a code; a link fills it in and checks it at once</div>`)
+  const oldWizard = (step, card) => `<div class="oldpg tall" style="background:var(--s1)"><div class="oldpips">${[0, 1, 2].map((i) => `<i class="${i < step ? 'done' : i === step ? 'on' : ''}"></i>`).join('')}</div><div class="oldcard" style="width:576px">${card}</div></div>`
+  const todayWelcome = () => oldWizard(0, `${n(8)}<div style="text-align:center"><div class="oldicon">⬡</div><div style="font-size:24px;font-weight:600">agenthix</div><div class="mutt">Your autonomous workforce</div>
+      <div style="font-size:18px;font-weight:600;margin-top:20px">Welcome, admin</div><div style="color:var(--t2)">Let's set up your organisation. This takes about a minute.</div>
+      <div style="margin-top:20px"><span class="bp pri wide">Get started →</span></div><div class="mutt" style="font-size:13px;margin-top:10px">I'll set up later</div></div>`)
+  const todayOrg = () => oldWizard(1, `${n(9)}<div style="font-size:13px;color:var(--accent)">Organisation</div><div style="font-size:18px;font-weight:600">Name your organisation</div><div class="mutt" style="font-size:13px">This is how your team identifies this workspace.</div>
+      ${f('Organisation name', 'My Organisation')}${f('Vision', 'e.g. A world where work is effortless', 'ph', 'Optional')}${f('Mission', 'e.g. We help teams scale with intelligent agents', 'ph', 'Optional')}
+      <div style="display:flex;gap:8px;margin-top:18px"><span class="bp">← Back</span><span class="bp pri wide" style="flex:1">Continue →</span></div>`)
+  const todayDone = () => oldWizard(2, `${n(10)}<div style="text-align:center"><div class="oldicon ok">✓</div><div style="font-size:18px;font-weight:600">You're all set</div><div class="mutt">Acme Corp is ready to go.</div>
+      <div style="text-align:left;margin:18px 0 10px;color:var(--t2)"><span class="okt">✓</span> Organisation created — Acme Corp</div>
+      <div class="mutt" style="font-size:13px">Connect an Execution Site and add agents whenever you are ready — none of it is needed to look around. ${n(13)}</div>
+      <div style="margin-top:18px"><span class="bp wide" style="background:var(--ok);border-color:var(--ok);color:var(--on-accent)">Go to dashboard →</span></div></div>`)
+
+  // the shell
+  const nav = (on, who = 'Avery', pins = '') => `<nav class="nav"><div class="logo"><i></i>Agenthix</div>
+    ${['Home', 'Chat', 'Projects', 'Agents', 'Tasks'].map((x) => `<a class="${x === on ? 'on' : ''}">${x}</a>`).join('')}
+    <div class="sec"><span>Pinned</span><span>edit</span></div>${pins || '<a style="color:var(--t3);font-size:13px">Nothing pinned</a>'}
+    <div class="me"><a>Organisation</a><a>Settings</a><a><span style="display:inline-flex;gap:8px;align-items:center"><span class="av sm" style="background:#0ea5e9">${who[0]}</span>${who}</span></a></div></nav>`
+  const todayHome = (admin) => `<div class="desk" style="grid-template-columns:220px 1fr;min-height:680px">${nav('Home', admin ? 'avery' : 'dana')}<div class="work" style="grid-template-rows:auto auto 1fr"><div class="wbar">Home</div>
+      ${admin ? `<div class="banner">${n(12)} Tasks and project runs can't start: this organisation has no API key or subscription set. <u>Set an API key</u></div>` : '<div></div>'}
+      <div class="page" style="padding-top:80px"><div class="col" style="text-align:center">${n(admin ? 11 : 16)}
+        <div style="font-size:28px;line-height:36px;font-weight:600">Good afternoon, ${admin ? 'avery' : 'dana'}</div><div style="font-size:18px;color:var(--t2);margin-top:4px">What would you like to work on?</div>
+        <div class="composer focus" style="margin-top:22px;text-align:left"><span class="chip">Kernel ▾</span><span class="ph">Ask any agent…</span><span class="send"></span></div>
+        <div class="sig"><span class="signal">Nothing needs you</span><span class="signal">Nothing running</span><span class="signal">Nothing coming up today</span></div>
+        <div class="cap" style="margin-top:28px">No Jump back in: there is no conversation yet. ${admin ? 'The first message to Kernel fails: no model access.' : 'Nothing names the projects the invitation added, and the first message fails if the organisation has no API key.'}</div>
+      </div></div></div></div>`
+  const todaySettingsSignIn = () => `<div class="desk" style="grid-template-columns:220px 1fr;min-height:680px">${nav('', 'dana')}<div class="work"><div class="wbar">Settings</div>
+      <div class="page"><div style="max-width:640px">${n(19)}<div style="font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--t3);margin:8px 0 6px">Sign-in</div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border-subtle)"><span><b style="font-weight:500">Password</b> <span class="mutt">Set</span></span><span class="lk">Change</span></div>
+        <div style="border:1px solid var(--border);border-radius:12px;padding:16px">${f('Current password', '••••••••')}${f('New password', '', 'ph')}${f('New password again', '', 'ph')}<div style="margin-top:12px"><span class="bp pri">Change password</span></div></div>
+        <div style="margin-top:14px"><span class="bp">Sign out</span></div>
+        <p class="cap" style="margin-top:20px">Only for someone who is signed in and knows their current password. Nothing exists for someone who has forgotten it ${n(18)}, and an admin cannot reset another person's.</p></div></div></div></div>`
+
+  // ── proposed ─────────────────────────────────────────────
+  const hero = (o = {}) => `<div class="cover ${o.plain ? 'plain' : ''}"><div class="id"><div class="pic">${o.pic ?? 'A'}</div><div><div class="nm">${o.name ?? 'Acme Corp'}</div>${o.handle === false ? '' : `<div class="hd">${o.handle ?? '@acmecorp'}</div>`}${o.vision === false ? '' : `<div class="vs">${o.vision ?? 'Software that helps small shops sell online.'}</div>`}</div></div></div>`
+  const powered = `<div class="foot">Powered by Agenthix</div>`
+  const auth = (left, right) => `<div class="auth">${left}<div class="side"><div class="inner">${right}</div>${powered}</div></div>`
+  const steps = (k) => `<div class="steps">${[1, 2, 3, 4].map((i) => `<i class="${i <= k ? 'on' : ''}"></i>`).join('')}</div><div class="stepn">Step ${k} of 4</div>`
+  const siteOk = `<div class="state ok"><span class="dot ok"></span><div><b>HQ's site is running</b> — Docker ready. Agents will run on this machine.</div></div>`
+  const signinForm = (err = '') => `<h2>Sign in</h2><p class="lead">to Acme Corp's HQ</p>${err}
+    ${f('Username', 'dana', 'on')}${f('Password', '••••••••••')}
+    <div class="row2"><span class="cb"><i class="on"></i>Remember my username</span><span class="lk">Forgot your password?</span></div>
+    <span class="bp pri wide">Sign in</span>
+    <div class="hint" style="text-align:center;margin-top:16px">New here? Ask an admin of Acme Corp for an invitation.</div>`
+  const newSignin = () => auth(hero(), signinForm())
+  const setupLeft = (title, body, pic = '⬡') => `<div class="cover plain"><div class="id"><div class="pic" style="color:#475569">${pic}</div><div class="nm">${title}</div><div class="vs">${body}</div></div></div>`
+  const s1 = () => `${steps(1)}<h2>Set up Agenthix for your organisation</h2><p class="lead">You're the first person here, so you'll be its admin.</p>
+    ${f('Setup code', 'k7Q2-…-9fXa', 'mono on', 'from your install')}
+    <div class="hint">Printed when HQ first started, and in its settings file. It works once, until the first account exists.</div>
+    ${f('Your name', 'Avery Chen')}${f('Username', 'avery', '', 'how you sign in · @avery')}${f('Password', '••••••••••', '', 'at least 8 characters')}
+    <div style="margin-top:18px"><span class="bp pri wide">Continue</span></div>`
+  const brand = `<div style="position:absolute;top:20px;left:44px;display:flex;gap:8px;align-items:center;font-weight:600;font-size:15px;line-height:20px"><span style="color:var(--accent);font-size:20px;line-height:1">⬡</span>Agenthix</div>`
+  const authR = (right, form) => `<div class="auth" style="grid-template-columns:minmax(0,1fr) minmax(0,1.05fr)"><div class="side" style="padding-top:68px">${brand}<div class="inner">${form}</div></div>${right}</div>`
+  const setup1 = () => authR(setupLeft('A fresh HQ', 'Four short steps: you, your organisation, how agents reach a model, and a last look. Then you start talking to Agenthix, the built-in agent, which helps with the rest.'), s1())
+  const s2 = () => `${steps(2)}<h2>Your organisation</h2><p class="lead">What your people see when they sign in.</p>
+    ${f('Name', 'Acme Corp', 'on')}
+    <div class="fl">Picture<span>optional</span></div><div class="upl"><span class="p">＋</span><span style="font-size:13px;color:var(--t2)">Upload a logo or picture<br><span class="mutt">Its initial on a colour until then</span></span></div>
+    <div class="hint" style="margin-top:12px">Cover, vision, mission and @handle can be added later on the Organisation page.</div>
+    <div style="display:flex;gap:8px;margin-top:20px"><span class="bp">Back</span><span class="bp pri wide" style="flex:1">Continue</span></div>`
+  const prevCard = `<div class="prev"><div class="c"><span class="p" style="left:14px">A</span></div><div class="b"><b>Acme Corp</b><div class="hd">@acmecorp</div><div class="mutt" style="margin-top:6px">Sign in to Acme Corp's HQ</div><div class="f"><i></i><i></i><i class="btn"></i></div></div><div class="pw">Powered by Agenthix</div></div>`
+  const prevPanel = `<div style="background:var(--s0);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-left:1px solid var(--border-subtle)"><div class="mutt" style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:500">Your sign-in page</div>${prevCard}<div class="mutt" style="font-size:12px">Updates as you type</div></div>`
+  const setup2 = () => authR(prevPanel, s2())
+  const s3 = () => `${steps(3)}<h2>How agents reach a model</h2><p class="lead">Agents need a model login to answer. You can change this any time.</p>
+    <div class="choice sel"><b>Sign in with Claude</b> <span class="mutt" style="font-size:12px">· recommended</span><div class="d">Use your own Claude subscription for your own conversations. It stays yours when others join.</div>
+      <div class="row2" style="margin:10px 0 8px"><span class="cb"><i class="on"></i>This subscription is mine, and it is used only for my own runs</span></div><span class="bp pri">Sign in with Claude ↗</span></div>
+    <div class="choice"><b>Use an API key</b><div class="d">The organisation's key, for everyone's runs and for tasks. Anthropic, OpenAI or a compatible endpoint.</div></div>
+    ${siteOk}
+    <div class="skip"><span class="lk">Later</span> <span class="mutt">— agents can't answer until one is set</span></div>`
+  const setup3 = () => authR(setupLeft('Acme Corp', 'Almost there. After this you land on Home, with Agenthix ready to talk.', 'A'), s3())
+  const homeFirst = () => `<div class="desk" style="grid-template-columns:220px 1fr;min-height:680px">${nav('Home')}<div class="work"><div class="wbar">Home</div><div class="page" style="padding-top:80px"><div class="col" style="text-align:center">
+      <div style="font-size:28px;line-height:36px;font-weight:600">Good afternoon, Avery</div><div style="font-size:18px;color:var(--t2);margin-top:4px">What would you like to work on?</div>
+      <div class="composer focus" style="margin-top:22px;text-align:left"><span class="chip"><span class="av sm sq" style="background:#6366f1;width:18px;height:18px">⬡</span>Agenthix ▾</span><span class="ph">Ask Agenthix anything…</span><span class="send"></span></div>
+      <div class="sugg"><span>What can you do?</span><span>Set up my first project</span><span>Invite my team</span><span>Build a team of agents for marketing</span></div>
+      <div class="cap" style="margin-top:22px">Suggestions sit where Jump back in will be, until there is a conversation to jump back to. Each sends that message to Agenthix.</div>
+    </div></div></div></div>`
+  const firstConvo = () => `<div class="desk" style="grid-template-columns:220px 1fr;min-height:680px">${nav('Chat')}<div class="work"><div class="wbar">Chat / Set up my first project</div><div class="page"><div class="col">
+      <div class="turn you"><div class="txt">Set up my first project</div></div>
+      <div class="turn"><div class="h"><span class="av sm sq" style="background:#6366f1">⬡</span><b>Agenthix</b> 14:02</div><div class="txt"><p>Happy to. What is the project about, and who will work on it? With a sentence or two I'll create it, add the agents it needs, and set up its task board for you to approve.</p><p>A few other things you may want soon, whenever you like:</p><ul><li>Invite your team from <span class="lk">Organisation › People</span></li><li>Add a cover and your mission on <span class="lk">Organisation</span></li></ul></div></div>
+      <div class="composer focus" style="margin-top:16px"><span class="ph">Message Agenthix…</span><span class="send"></span></div></div></div></div></div>`
+  const inviteForm = () => `<div class="who"><span class="av" style="background:#0ea5e9">H</span><div><b>Avery</b> invited you to join <b>Acme Corp</b> as a Member, and to <b>Website Redesign</b> and <b>Merchant app</b>.<div class="mutt" style="font-size:12px">Invitation for "Dana — design" · open until 16 Oct</div></div></div>
+    <h2 style="margin-top:18px">Create your account</h2>
+    ${f('Your name', 'Dana Ruiz', 'on', 'shown on your work')}${f('Username', 'dana', '', 'how you sign in · @dana')}${f('Password', '••••••••••', '', 'at least 8 characters')}
+    <div style="margin-top:18px"><span class="bp pri wide">Join Acme Corp</span></div>
+    <div class="hint" style="text-align:center;margin-top:12px">Already have an account here? <span class="lk">Sign in</span></div>`
+  const newInvite = () => auth(hero(), inviteForm())
+  const landPins = `<a class="on"><span style="display:inline-flex;gap:8px;align-items:center"><span class="av sm sq" style="background:#a21caf;width:20px;height:20px;font-size:9px">W</span>Website Redesign</span></a><a><span style="display:inline-flex;gap:8px;align-items:center"><span class="av sm sq" style="background:#f59e0b;width:20px;height:20px;font-size:9px">M</span>Merchant app</span></a>`
+  const land = () => `<div class="desk" style="grid-template-columns:220px 1fr;min-height:680px">${nav('', 'Dana', landPins)}<div class="work"><div class="wbar">Projects / Website Redesign</div>
+    <div class="page"><div style="display:flex;gap:14px;align-items:center;border-bottom:1px solid var(--border-subtle);padding-bottom:14px"><span class="av sq" style="background:#a21caf;width:40px;height:40px">W</span><div><div style="font-size:18px;font-weight:600">Website Redesign</div><div class="mutt" style="font-size:13px">Redesign the company website with new branding · you joined as a Member just now</div></div></div>
+      <div style="max-width:720px;margin:32px auto 0">
+        <div style="font-size:15px;font-weight:600">Welcome, Dana</div><div style="color:var(--t2);font-size:14px;margin:2px 0 14px">Start a conversation with one of this project's agents, or look around its tools.</div>
+        <div class="composer focus"><span class="chip"><span class="av sm" style="background:#6366f1;width:18px;height:18px;font-size:8px">PM</span>Project manager ▾</span><span class="ph">Message Project manager…</span><span class="send"></span></div>
+        <div class="sugg" style="justify-content:flex-start"><span>What is this project about?</span><span>What needs doing this week?</span><span>What can I help with?</span></div>
+        <div style="margin-top:24px;font-size:12px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;font-weight:500">Also here</div>
+        <div class="orow"><span class="av sm sq" style="background:#f59e0b">M</span><div><div class="t">Merchant app</div><div class="l">The other project you were invited to · pinned for you</div></div></div>
+      </div></div></div></div>`
+  const memberModel = () => `<h2>Talk to agents</h2><p class="lead">Acme Corp has no shared model access for your own conversations. Sign in with your Claude subscription to talk to agents in your Chat.</p>
+    <div class="choice sel"><b>Sign in with Claude</b><div class="d">Used only for your own runs.</div><div class="row2" style="margin:10px 0 8px"><span class="cb"><i class="on"></i>This subscription is mine</span></div><span class="bp pri">Sign in with Claude ↗</span></div>
+    <div class="skip"><span class="lk">Later</span> <span class="mutt">— in Settings › Your model logins</span></div>`
+  const forgot = () => `<h2>Forgot your password?</h2><p class="lead">HQ doesn't keep email addresses, so it can't send you a link.</p>
+    <div class="state"><span class="dot"></span><div><b>Ask an admin of Acme Corp</b> for a reset link. Avery and Sam can make one in Organisation › People.</div></div>
+    <div class="hint" style="margin-top:14px">If you're the only admin and can't sign in, whoever runs HQ's machine can make a link with a command. <span class="lk">How</span></div>
+    <div style="margin-top:20px"><span class="bp wide">Back to sign in</span></div>`
+  const resetForm = () => `<div class="who"><span class="av" style="background:#0ea5e9">D</span><div><b>Dana Ruiz</b> · @dana<div class="mutt" style="font-size:12px">Reset link from Avery · works until tomorrow 14:02</div></div></div>
+    <h2 style="margin-top:16px">Choose a new password</h2>${f('New password', '••••••••••', 'on')}${f('Again', '••••••••••')}
+    <div class="hint">Your sign-ins on other browsers and your phone end.</div><div style="margin-top:18px"><span class="bp pri wide">Set password and sign in</span></div>`
+  const phone = (title, body) => `<div class="phone"><div class="mhead"><span class="t">${title}</span></div><div class="pbody">${body}</div></div>`
+  const phoneAuth = (h, body) => `<div class="phone">${h}<div class="pbody">${body}</div></div>`
+  const oldPhone = (card) => `<div class="phone" style="background:var(--s0)"><div class="pbody" style="display:flex;align-items:center"><div class="oldcard" style="width:100%;padding:22px">${card}</div></div></div>`
+  const edge = (when, title, body, acts, warn = false) => `<div class="edge" ${warn ? 'style="border-color:var(--warn-line)"' : ''}><div class="c"><span class="p">A</span></div><div class="b"><div class="when">${when}</div><b>${title}</b>${body}<div class="acts">${acts}</div></div></div>`
+
+  return { n, f, fit, tag, before, after, nothing, noScreen, ba, oldLogo, oldPage, todayLogin, todaySetupKey, todayAccount, todayInviteCode, todayWelcome, todayOrg, todayDone, nav, todayHome, todaySettingsSignIn,
+    hero, auth, authR, brand, prevCard, steps, signinForm, newSignin, setupLeft, s1, setup1, s2, setup2, s3, setup3, homeFirst, firstConvo, inviteForm, newInvite, land, memberModel, forgot, resetForm, phone, phoneAuth, oldPhone, edge }
+})()
+// Scale each drawn frame (900 wide) to its column.
+function fitFrames() {
+  document.querySelectorAll('.fit').forEach((el) => { const inner = el.firstElementChild; if (inner) inner.style.zoom = String(el.clientWidth / 900) })
+}
+window.addEventListener('resize', fitFrames)
+window.addEventListener('load', fitFrames)
+if (window.ResizeObserver) new ResizeObserver(() => fitFrames()).observe(document.documentElement)
+const sec = (title, p, inner) => `<div class="feat"><h2>${title}</h2>${p ? `<p>${p}</p>` : ''}${inner}</div>`
+const facts = (items) => `<ul class="facts3">${items.map((x) => `<li>${x}</li>`).join('')}</ul>`
+const why = (items, title = 'Why') => `<div class="why"><h3>${title}</h3><ul>${items.map((x) => `<li>${x}</li>`).join('')}</ul></div>`
+const col = (...parts) => `<div>${parts.join('')}</div>`
+
+document.getElementById('main').innerHTML = (() => {
+
+const gap = '<div style="height:12px"></div>'
+const BRAND = '<span style="color:var(--accent);font-size:18px;line-height:1">⬡</span> Agenthix'
+const later = `<table class="wtable">
+  <tr><th style="width:28%">Later step</th><th style="width:34%">Where it lives</th><th>What reminds them</th></tr>
+  <tr><td>Cover, vision, mission, @handle</td><td>Organisation — <b>Edit</b>, <b>Change cover</b></td><td>Nothing; the sign-in page shows a plain cover until then</td></tr>
+  <tr><td>Invite people</td><td>Organisation › People › <b>＋ Invite</b></td><td>Agenthix offers it in the first conversation</td></tr>
+  <tr><td>Your own model login (Claude subscription)</td><td>Settings › Your model logins</td><td>A line under Home's message box until one exists, if the organisation provides none</td></tr>
+  <tr><td>The organisation's model access, API keys, voice</td><td>Organisation › Settings</td><td>Needs attention (admins), replacing today's banner</td></tr>
+  <tr><td>HQ's own site, and other sites</td><td>Organisation › Infrastructure › Execution Sites</td><td>Needs attention, and a notification when HQ's site is not running</td></tr>
+  <tr><td>GitHub</td><td>Organisation › Settings (accounts) · Infrastructure (the GitHub App)</td><td>When an agent first needs it</td></tr>
+  <tr><td>A first project</td><td>Projects › <b>＋ New project</b>, or ask Agenthix</td><td>One of the first conversation's suggestions</td></tr>
+  <tr><td>More agents, a team</td><td>Organisation › Agents · Library</td><td>Agenthix offers it in the first conversation</td></tr>
+  <tr><td>Your picture, time zone, phone</td><td>Settings › Profile · Devices and connections</td><td>Nothing</td></tr></table>`
+
+const P = (what) => `<div class="pr"><span class="prob">Problem</span><span>${what}</span></div>`
+const sf = (n, title, body, o = {}) => `<section class="vs"><div class="vt"><h3>${S.n(n)} ${title}</h3><div class="vb">${body}</div>${o.code ? `<div class="code">${o.code}</div>` : ''}${o.problem ? P(o.problem) : ''}</div>${o.pic ? `<div class="vp">${o.pic}</div>` : '<div class="vp none"></div>'}</section>`
+const grp = (kind, title, small) => `<div class="grp">${S.tag(kind, title, small)}</div>`
+const term = (html) => `<div class="term">${html}</div>`
+const mf = (html) => `<div class="mf">${html}</div>`
+const bootstrapSec = sec('Bootstrap: how the first admin gets in', 'The step before "You": installing, and how the very first person proves they own this HQ. Today six secrets are made by hand and a fixed key is kept for ever; proposed, one command installs everything and HQ hands over a one-time link.',
+  grp('before', 'Today', 'six steps, read from the code')
+  + sf(1, 'Install: make the secrets by hand', `<p>A Docker install: copy two example files (<code>hq/compose.env</code>, <code>site/compose.env</code>), make <b>five secrets by hand</b> with <code>openssl</code>, plus the site's own SECRETS_MASTER_KEY. The pairing secret is pasted, identical, into both files. Then two <code>docker compose … up -d --build</code> commands. No installer script; <code>scripts/dev/pair.sh</code> pairs in development only.</p>
+      <p>HQ <b>refuses to start without SITE_ADMIN_KEY</b>, now and after setup. The example value <code>changeme</code> is refused with a warning.</p>`,
+    { code: 'architecture/deployment.md (hq and site settings tables) · hq/compose.env.example (local: hq/.env.server.example) · server/envValidation.ts: "SITE_ADMIN_KEY (always required)" · auth/adminKey.ts: placeholderAdminKeyWarning',
+      problem: 'six secrets made and copied by hand across two files; the first-admin key is required for ever',
+      pic: term('<span class="d"># hq/compose.env</span><br>HQ_DB_PASSWORD=<span class="d">…</span><br>SITE_ADMIN_KEY=<span class="d">…</span> <span class="d"># openssl rand -hex 16</span><br>JWT_SECRET=<span class="d">…</span><br>SECRETS_MASTER_KEY=<span class="d">…</span><br>HQ_PAIRING_SECRET=<span class="d">…</span><br><br><span class="d"># site/compose.env</span><br>SECRETS_MASTER_KEY=<span class="d">… (its own)</span><br>HQ_PAIRING_SECRET=<span class="d">… (the same, pasted)</span>') })
+  + sf(2, 'Start HQ, open its address', `<p>The sign-in page opens first, asks <code>GET /api/auth/bootstrap-status</code> (true while there are no users) and forwards to <b>/accept-invite</b>.</p>`,
+    { code: 'auth/pages/LoginPage.tsx → navigate("/accept-invite") · auth/api.ts bootstrapStatusHandler: user.count() === 0' })
+  + sf(3, 'Paste the key', `<p>They copy the key from the settings file. <code>POST /api/auth/validate-invite</code> compares it in constant time and only while no user exists. The address then becomes <code>/accept-invite/&lt;the key&gt;</code>.</p>`,
+    { code: 'auth/pages/AcceptInvitePage.tsx · inviteService.validateToken · adminKey.matchesAdminKey (sha-256 + timingSafeEqual)',
+      problem: 'finding the file, pasting a secret; the key sits in the address bar and history',
+      pic: mf('<b>First-admin key</b><div class="fld ph">Paste the first-admin key (SITE_ADMIN_KEY)</div><div class="bp pri wide" style="margin-top:10px">Continue →</div>') })
+  + sf(4, 'Username and password', `<p><code>POST /api/auth/accept-invite</code> creates the user as ADMIN in one transaction under an advisory lock, and their personal project. The page then logs them in and goes to <b>/</b>.</p>`,
+    { code: 'inviteService.acceptFirstAdmin: pg_advisory_xact_lock("first-admin-signup"), user.count() > 0 → 410',
+      pic: mf('<span class="rolechip" style="margin:0 0 4px">Joining as Admin</span><div class="fld ph">Username</div><div class="fld ph">Password</div><div class="bp pri wide" style="margin-top:10px">Create account →</div>') })
+  + sf(5, 'What comes next', `<p>Home sends an admin who has not finished onboarding to <b>/onboard</b>: Welcome → Name your organisation → Done → Go to dashboard. The conversation with the built-in agent comes after.</p>`,
+    { code: 'home/pages/HomePage.tsx: isAdmin && !onboardingComplete → /onboard · onboarding/pages/OnboardingPage.tsx: welcome, org, done',
+      pic: mf('<div class="pipsm"><i></i><i></i><i></i></div><div style="margin-top:8px"><b>Welcome</b> → <b>Name your organisation</b> → <b>Done</b></div>') })
+  + sf(6, 'After setup', `<p>The key stays in the file. Using it answers <b>410 "Bootstrap key no longer valid"</b>. HQ still will not start without it, and Settings still lists it as always required.</p>
+      <p>The example file's comment calls it a "bootstrap invite code and admin UI login". <span class="warnt">Stale:</span> nothing uses it to log in.</p>`,
+    { code: 'inviteService: "Bootstrap key no longer valid" · settings/queries.ts: required "always" · compose.env.example and .env.server.example comment',
+      problem: 'lingers in configuration; never expires; no way back in if the only admin is locked out',
+      pic: term('<span class="d"># SITE_ADMIN_KEY — bootstrap invite code and admin UI login. Generate: openssl rand -hex 16</span><br>SITE_ADMIN_KEY=<span class="d">…</span><br><br><span class="warnt">↑ stale comment: nothing logs in with it</span>') })
+
+  + grp('after', 'Proposed — one command installs everything', 'option A, recommended')
+  + sf(1, 'One command, two questions', `<p>From the repository, with only Docker installed: <code>./agenthix install</code>. It asks <b>where people will open Agenthix</b> and <b>whether to run agents on this machine too</b>.</p>`,
+    { pic: term('<span class="d">$</span> ./agenthix install<br>Where will people open Agenthix? [http://localhost:4100]: https://hq.example.com<br>Run agents on this machine too? [Y/n]: y<br><span class="g">✓</span> Made the secrets and wrote hq/compose.env and site/compose.env<br>&nbsp;&nbsp;Keep a copy of both files — without them, saved keys and logins can\'t be read.<br><span class="g">✓</span> Built and started HQ and its site (this takes a few minutes the first time)<br><span class="g">✓</span> HQ and its site are paired<br><br>Open this link to set up Agenthix (valid 24 hours):<br><span class="g">https://hq.example.com/accept-invite/7f3k…</span>') })
+  + sf(2, 'It makes every secret', `<p>Secrets are generated inside a container, so no <code>openssl</code> on the machine. It writes <b>both settings files</b> with the pairing secret already the same in both, and <b>never prints a secret</b>.</p>`)
+  + sf(3, 'It builds and starts both', `<p>HQ and its site are built and started; it waits until HQ answers and the site is connected.</p>`)
+  + sf(4, 'It prints the first-admin link', `<p>The one-time link from 108, built from the address given in step 1.</p>`)
+  + sf(5, 'They open it', `<p>The agreed setup steps: <b>You</b> · <b>Your organisation</b> · <b>Model access</b>.</p>`)
+  + sf(6, 'Safe to run again', `<p>Existing values are <b>never replaced</b>, as <code>pair.sh</code> does today. A further site on another machine still uses <code>agenthix-site register &lt;hq-url&gt;</code>, unchanged.</p>`)
+  + `<section class="vs considered"><div class="vt"><h3><span class="pill">Considered</span> Option B: HQ keeps its own secrets</h3><div class="vb"><p>HQ makes its secrets on first start and keeps them in a data volume; its site reads the pairing secret from a shared volume. Then just <code>docker compose up</code>.</p><p>But it moves secrets out of the settings files into volumes, needs HQ and its site in one compose project, and backing up means finding a volume. <b>Rejected for now in favour of A.</b></p></div></div></section>`
+
+  + grp('after', 'The first-admin link', 'agreed, 108 · five steps')
+  + sf(1, 'Install: set nothing', `<p>The installer sets <b>nothing</b> for the first admin. <code>SITE_ADMIN_KEY</code> is gone from the settings, from the start check and from the Settings list.</p>`)
+  + sf(2, 'HQ prints a link', `<p>HQ starts with no users. It makes a <b>one-time key</b>, stores only its <b>hash</b> with a <b>24-hour expiry</b>, and prints the link in its log, built from <code>HQ_URL</code> (not the browser's address).</p>`,
+    { pic: term('<span class="d">$ docker compose logs hq</span><br>No admin yet. Open this link to set up Agenthix (valid 24 hours):<br><span class="g">https://hq.example.com/accept-invite/7f3k…</span>') })
+  + sf(3, 'A fresh link when needed', `<p>Each start with no users makes a <b>fresh key</b>; the old one stops working. To get one without restarting, run the command shown. Same family as the password-recovery command planned, which brings back a locked-out last admin.</p>`,
+    { pic: term('<span class="d">$</span> docker compose exec hq npm run invite-admin<br><span class="g">https://hq.example.com/accept-invite/b92q…</span>') })
+  + sf(4, 'Open the link', `<p>The same /accept-invite page with the key already filled in: <b>no code field</b>. Same checks, same advisory lock, same single transaction.</p>`,
+    { pic: mf('<b>Set up this HQ</b><div class="fld ph">Username</div><div class="fld ph">Password</div><div class="bp pri wide" style="margin-top:10px">Create account →</div>') })
+  + sf(5, 'Then the agreed steps', `<p><b>You</b> · <b>Your organisation</b> · <b>Model access</b> · <b>Review</b>, as drawn below.</p>`,
+    { pic: mf('<div class="pipsm"><i></i><i></i><i></i><i></i></div>') })
+  + why(['<b>One command and two questions</b>, instead of two files and six secrets.', '<b>The pairing secret is generated once and written to both sides</b>, so nobody copies it.', '<b>The person is never shown a secret</b>, only the link.', '<b>Nothing to invent or keep</b>: no secret to make, store or copy by hand.', '<b>Nothing lingers in the configuration</b> after setup; HQ starts without it.', '<b>The link is handed over, not built</b>: no key to paste, and it uses the address HQ is meant to be reached at.', '<b>It expires</b> after 24 hours, and only its hash is stored.', '<b>Restarting, or one command, gives a new one</b>; the old one stops.', '<b>The same command family recovers a locked-out admin</b>.']))
+
+// ── API keys as a compact list (139) ───────────────────────
+const KEY_ROWS = [['anthropic', 'Anthropic (Claude)', ''], ['openrouter', 'OpenRouter', 'many models, free ones included'], ['openai', 'OpenAI', ''], ['gemini', 'Google Gemini', ''], ['own', 'Your own endpoint', 'OpenAI-compatible']]
+const keyRow = ([id, name, note], st) => {
+  const label = `<span class="nm">${name}${note ? `<small>${note}</small>` : ''}</span>`
+  if (st === 'open') return `<div class="kr open"><div class="kh">${label}<span class="ac">Add key</span></div><div class="kd">Used by agents on OpenCode whose model starts <code>openai/</code>.</div><div class="fld on mono">sk-…</div><div class="acts"><span class="bp pri">Save</span><span class="bp">Cancel</span></div></div>`
+  if (st === 'set') return `<div class="kr">${label}<span class="ac"><span class="okt">✓ Key set</span> · <span class="lk">Remove</span></span></div>`
+  return `<div class="kr">${label}<span class="ac"><span class="lk">Add key</span></span></div>`
+}
+const keyList = (st = {}) => {
+  const r = (i) => keyRow(KEY_ROWS[i], st[KEY_ROWS[i][0]])
+  return r(0) + '<div class="kg">Other providers, on OpenCode</div>' + [1, 2, 3, 4].map(r).join('')
+}
+const keyLine = `<div class="d line">Claude models run on your Claude login or an Anthropic key; other providers' models run through OpenCode on their key.</div>`
+const keyStep = (st) => `<div class="kstep"><div class="steps">${[1, 2, 3, 4].map((i) => `<i class="${i <= 3 ? 'on' : ''}"></i>`).join('')}</div><div class="stepn">Step 3 of 4 · How agents reach a model</div>
+  <h2>How agents reach a model</h2><p class="lead" style="margin-bottom:6px">Agents need a model to answer. You can change this any time.</p>
+  <div class="choice sel"><b>Sign in with Claude</b> <span class="mutt" style="font-size:12px">· recommended</span><div class="d"><span class="okt">✓ Signed in with Claude</span> — yours, used for your own runs. <span class="lk">Sign in again</span> · <span class="lk">Remove</span></div></div>
+  <div class="choice"><b>Use an API key</b>${keyLine}${keyList(st)}</div>
+  <div class="ksite"><span class="dot ok"></span><span><b style="font-weight:500;color:var(--t1)">HQ's site is running</b> — Docker ready.</span></div>
+  <div class="btns"><span class="bp">Back</span><span class="bp pri wide" style="flex:1">Continue</span></div></div>`
+const keyPreview = `<div style="background:var(--s0);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-left:1px solid var(--border-subtle)"><div class="mutt" style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:500">Your sign-in page</div><div class="fld ph" style="width:300px;height:300px;border-style:dashed;display:flex;align-items:center;justify-content:center;text-align:center">Sign-in page preview<br>(placeholder)</div></div>`
+const keyFrame = (st) => `<div class="auth" id="keyframe" style="grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);height:880px"><div class="side" style="padding:24px 36px 40px"><div class="inner" style="max-width:480px">${keyStep(st)}</div><div class="foot">Powered by Agenthix</div></div>${keyPreview}</div>`
+const keyShot = (title, small, st) => `<div style="margin-top:20px">${S.tag('after', title, small)}${S.fit(keyFrame(st))}</div>`
+const keySettings = `<div class="desk" style="grid-template-columns:200px 1fr;min-height:620px">${S.nav('')}<div class="work"><div class="wbar">Organisation › Settings › Model access</div><div class="page" style="padding:20px 32px"><div style="max-width:540px"><div style="font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--t3);margin:0 0 6px">Model access</div>
+  <div class="choice" style="margin-top:0"><b>API keys</b>${keyLine}${keyList({ openai: 'set' })}</div></div></div></div></div>`
+const oldKeysSec = `<div style="max-width:640px;opacity:.55;filter:grayscale(1)">` + sec('API keys as a compact list', S.tag('before', 'Not chosen — owner: too much at once') + ' One row per provider; Add key opens only that row.',
+  keyShot('(a) At rest', 'every row collapsed', {})
+  + keyShot('(b) One row open', 'OpenAI; the others stay collapsed', { openai: 'open' })
+  + keyShot('(c) Two keys set', 'OpenAI and Google Gemini', { openai: 'set', gemini: 'set' })
+  + `<div style="display:grid;grid-template-columns:340px minmax(0,1fr);gap:24px;align-items:start;margin-top:28px"><div>${S.tag('after', 'Phone', 'frame of (a)')}${S.phone(BRAND, keyStep({})).replace('class="phone"', 'class="phone" style="height:auto"')}</div><div>${S.tag('after', 'Organisation › Settings — the same list', 'same rows, one component')}${S.fit(keySettings)}</div></div>`
+  + why(['<b>Five providers, five lines</b>: nothing to read until the person wants one, and the step stays on one screen.', '<b>Add key opens only that row</b>, so the key field sits next to the name of the provider it belongs to.', '<b>Setup and Organisation › Settings use the same rows</b>, so a key added in one place reads the same in the other.'])) + '</div>'
+
+// ── API keys behind one menu (139) ─────────────────────────
+const PROV = { anthropic: ['Anthropic (Claude)', ''], openrouter: ['OpenRouter', 'many models, free ones included'], openai: ['OpenAI', ''], gemini: ['Google Gemini', ''], own: ['Your own endpoint', 'OpenAI-compatible'] }
+const menuPop = (set = []) => {
+  const it = (id) => `<div class="it ${id === 'openai' ? 'hl' : ''}">${PROV[id][0]}${PROV[id][1] ? `<small>${PROV[id][1]}</small>` : ''}</div>`
+  const left = Object.keys(PROV).filter((id) => !set.includes(id))
+  return `<div class="pop">${left.includes('anthropic') ? it('anthropic') : ''}${left.some((id) => id !== 'anthropic') ? '<div class="gl">Other providers run through OpenCode</div>' : ''}${left.filter((id) => id !== 'anthropic').map(it).join('')}</div>`
+}
+const keyDialog = (sheet) => `<div class="scrim ${sheet ? 'sheet' : ''}"><div class="dlg"><h3>OpenAI API key</h3><div class="d">Used by agents whose model starts <code>openai/</code>.</div><div class="fld on mono">sk-…</div><div class="acts"><span class="bp">Cancel</span><span class="bp pri">Save</span></div></div></div>`
+const setList = (set) => set.length ? `<div style="margin:8px 0">${set.map((id) => `<div class="kr"><span><span class="okt">✓</span> ${PROV[id][0]} key</span><span class="ac"><span class="lk">Remove</span></span></div>`).join('')}</div>` : ''
+const apiCard = (o = {}) => `<div class="choice"><b>Use an API key</b><div class="d">The organisation's key, for everyone's runs and for tasks.</div>${setList(o.set || [])}
+  <div style="position:relative;display:inline-block;margin-top:10px"><span class="bp">Add an API key ▾</span>${o.menu ? menuPop(o.set) : ''}</div></div>`
+const keyStep2 = (o) => `<div class="kstep"><div class="steps">${[1, 2, 3, 4].map((i) => `<i class="${i <= 3 ? 'on' : ''}"></i>`).join('')}</div><div class="stepn">Step 3 of 4 · How agents reach a model</div>
+  <h2>How agents reach a model</h2><p class="lead" style="margin-bottom:6px">Agents need a model to answer. You can change this any time.</p>
+  <div class="choice sel"><b>Sign in with Claude</b> <span class="mutt" style="font-size:12px">· recommended</span><div class="d"><span class="okt">✓ Signed in with Claude</span> — yours, used for your own runs. <span class="lk">Sign in again</span> · <span class="lk">Remove</span></div></div>
+  ${apiCard(o)}
+  <div class="ksite"><span class="dot ok"></span><span><b style="font-weight:500;color:var(--t1)">HQ's site is running</b> — Docker ready.</span></div>
+  <div class="btns"><span class="bp">Back</span><span class="bp pri wide" style="flex:1">Continue</span></div></div>`
+const keyFrame2 = (o) => `<div class="auth" id="keyframe2" style="position:relative;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);height:720px"><div class="side" style="padding:24px 36px 40px"><div class="inner" style="max-width:480px">${keyStep2(o)}</div><div class="foot">Powered by Agenthix</div></div>${keyPreview}${o.dialog ? keyDialog(false) : ''}</div>`
+const keyShot2 = (title, small, o) => `<div style="margin-top:20px">${S.tag('after', title, small)}${S.fit(keyFrame2(o))}</div>`
+const phone2 = (o) => S.phone(BRAND, keyStep2(o) + (o.dialog ? keyDialog(true) : '')).replace('class="phone"', 'class="phone" style="height:640px"')
+const keySettings2 = `<div class="desk" style="grid-template-columns:200px 1fr;min-height:520px">${S.nav('')}<div class="work"><div class="wbar">Organisation › Settings › Model access</div><div class="page" style="padding:20px 32px"><div style="max-width:540px"><div style="font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--t3);margin:0 0 6px">Model access</div>${apiCard({ set: ['openai', 'gemini'] })}</div></div></div></div>`
+const menuKeysSec = `<div style="max-width:640px;opacity:.55;filter:grayscale(1)">` + sec('API keys behind one menu', S.tag('before', 'Superseded — owner: the subscription is one more option') + ' One menu for API keys; the Claude subscription stayed its own card.',
+  keyShot2('(a) At rest', 'one line and one button', {})
+  + keyShot2('(b) The menu open', 'a popover under the button', { menu: true })
+  + keyShot2('(c) A provider chosen', 'a dialog over the page, nothing moves', { dialog: true })
+  + keyShot2('(d) Keys set', 'only what is set, then the button', { set: ['openai', 'gemini'] })
+  + `<div style="display:grid;grid-template-columns:340px 340px minmax(0,1fr);gap:24px;align-items:start;margin-top:28px"><div>${S.tag('after', 'Phone (a)')}${phone2({})}</div><div>${S.tag('after', 'Phone (c)', 'bottom sheet')}${phone2({ dialog: true })}</div><div>${S.tag('after', 'Organisation › Settings — the same button and list')}${S.fit(keySettings2)}</div></div>`
+  + why(['<b>One button instead of five providers</b>: setup shows nothing the person has not asked for.', '<b>The key is entered in a small dialog</b>, so the card never grows while it is typed.', '<b>The card lists only the keys set</b>, each with Remove; setup and Organisation › Settings use the same card.'])) + '</div>'
+
+// ── Model access: one menu, the subscription is one more option (139) ──
+const OTHERS = { openrouter: ['OpenRouter', 'Many models, free ones included'], openai: ['OpenAI', 'GPT models'], gemini: ['Google Gemini', 'Gemini models'], own: ['Your own endpoint', 'Any OpenAI-compatible server'] }
+const DESC = { sub: 'Claude models, on your Claude account · yours, for your own runs', anthropic: 'Claude models', openrouter: OTHERS.openrouter[1], openai: OTHERS.openai[1], gemini: OTHERS.gemini[1], own: OTHERS.own[1] }
+const menuItems = (set = [], hl = 'sub') => {
+  const it = (id, name, t3, rec) => `<div class="it ${id === hl ? 'hl' : ''}">${name}${t3 ? `<small>${t3}</small>` : ''}${rec ? ' <span class="pill" style="margin-left:6px">recommended</span>' : ''}</div>`
+  const top = (set.includes('sub') ? '' : it('sub', 'Claude subscription', DESC.sub, true)) + (set.includes('anthropic') ? '' : `${set.includes('sub') ? '' : '<div style="border-top:1px solid var(--border-subtle);margin:4px 0"></div>'}${it('anthropic', 'Anthropic API key', DESC.anthropic)}`)
+  const rest = Object.keys(OTHERS).filter((id) => !set.includes(id))
+  return top + (rest.length ? '<div class="gl">Other providers</div>' + rest.map((id) => it(id, OTHERS[id][0], OTHERS[id][1])).join('') : '')
+}
+const LBL = { sub: 'Claude subscription — yours', anthropic: 'Anthropic API key — the organisation\'s', openrouter: 'OpenRouter key — the organisation\'s', openai: 'OpenAI key — the organisation\'s', gemini: 'Google Gemini key — the organisation\'s', own: 'Your own endpoint key — the organisation\'s' }
+const accList = (set) => set.length ? `<div style="margin:6px 0 4px">${set.map((id) => `<div class="kr"><span><span class="okt">✓</span> ${LBL[id]} <small class="mutt" style="font-size:12px">· ${DESC[id]}</small></span><span class="ac"><span class="lk">Remove</span></span></div>`).join('')}</div>` : ''
+const addBtn = (o) => `<div style="position:relative;display:inline-block;margin-top:8px"><span class="bp ${(o.set || []).length ? '' : 'pri'}">Add model access ▾</span>${o.menu ? `<div class="pop" style="width:400px">${menuItems((o.set || []).concat(o.hide || []))}</div>` : ''}</div>`
+const subDialog = (sheet) => `<div class="scrim ${sheet ? 'sheet' : ''}"><div class="dlg"><h3>Sign in with Claude</h3><div class="d">Use your own Claude subscription for your own conversations. It stays yours when others join.</div><div class="row2" style="margin:10px 0 4px"><span class="cb"><i class="on"></i>This subscription is mine, and it is used only for my own runs</span></div><div class="acts"><span class="bp">Cancel</span><span class="bp pri">Sign in with Claude ↗</span></div></div></div>`
+const keyStep3 = (o) => `<div class="kstep"><div class="steps">${[1, 2, 3, 4].map((i) => `<i class="${i <= 3 ? 'on' : ''}"></i>`).join('')}</div><div class="stepn">Step 3 of 4 · How agents reach a model</div>
+  <h2>How agents reach a model</h2><p class="lead" style="margin-bottom:8px">Agents need a model to answer. Add at least one — you can change this any time.</p>
+  ${accList(o.set || [])}${addBtn(o)}
+  ${o.warn ? `<div class="state warn" style="margin-top:20px"><span class="dot warn"></span><div>HQ's site isn't connected, so Sign in with Claude won't work until it is. <span class="lk">Check again</span></div></div>` : ''}
+  <div class="btns" style="margin-top:${o.warn ? 16 : 28}px"><span class="bp">Back</span><span class="bp ${(o.set || []).length ? 'pri' : ''} wide" style="flex:1">${(o.set || []).length ? 'Continue' : 'Skip for now'}</span></div></div>`
+const reviewStep = () => `<div class="kstep"><div class="steps">${[1, 2, 3, 4].map(() => '<i class="on"></i>').join('')}</div><div class="stepn">Step 4 of 4 · Review</div>
+  <h2>Review</h2><p class="lead" style="margin-bottom:6px">Check everything before you start.</p>
+  ${[['You', 'Avery Chen · @avery', true], ['Your organisation', 'Acme Corp', true]].map(([t, v, e]) => `<div class="kg" style="padding-top:12px">${t}</div><div class="kr"><span>${v}</span>${e ? '<span class="ac"><span class="lk">Edit</span></span>' : ''}</div>`).join('')}
+  <div class="kg" style="padding-top:12px;display:flex;justify-content:space-between"><span>Model access</span><span class="lk" style="text-transform:none;letter-spacing:0;font-size:13px;font-weight:400">Edit</span></div>
+  ${['sub', 'openai'].map((id) => `<div class="kr" style="min-height:auto;padding:6px 0;display:block"><span class="okt">✓</span> ${LBL[id]}<div class="mutt" style="font-size:12px;margin-left:18px">${DESC[id]}</div></div>`).join('')}
+  <div class="kg" style="padding-top:12px">Where agents run</div><div class="kr"><span><span class="dot ok" style="display:inline-block;margin:0 8px 1px 0"></span>HQ's site, running on this machine</span></div>
+  <div class="btns" style="margin-top:20px"><span class="bp">Back</span><span class="bp pri wide" style="flex:1">Finish setup</span></div></div>`
+const dlgFor = (o, sheet) => o.dialog === 'sub' ? subDialog(sheet) : o.dialog === 'key' ? keyDialog(sheet) : o.sheetMenu ? `<div class="scrim sheet"><div class="dlg pop" style="position:static;width:100%;max-width:none;border-radius:16px 16px 0 0;border-width:1px 0 0;padding:8px 0 16px">${menuItems(o.set || [])}</div></div>` : ''
+const keyFrame3 = (o) => `<div class="auth" id="keyframe3" style="position:relative;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);height:720px"><div class="side" style="padding:68px 36px 40px">${S.brand}<div class="inner" style="max-width:480px">${o.review ? reviewStep() : keyStep3(o)}</div></div>${keyPreview}${o.dialog ? dlgFor(o, false) : ''}</div>`
+const keyShot3 = (title, small, o) => `<div style="margin-top:20px">${S.tag('after', title, small)}${S.fit(keyFrame3(o))}</div>`
+const phone3 = (o) => S.phone(BRAND, keyStep3(o) + dlgFor(o, true)).replace('class="phone"', 'class="phone" style="height:600px"')
+const keySettings3 = `<div class="desk" style="grid-template-columns:200px 1fr;min-height:600px">${S.nav('')}<div class="work"><div class="wbar">Organisation › Settings › Model access</div><div class="page" style="padding:20px 32px"><div style="max-width:540px"><div style="font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--t3);margin:0 0 6px">Model access</div><div class="hint" style="margin:0 0 6px">The organisation's keys, for everyone's runs and for tasks.</div>${accList(['openai', 'gemini'])}${addBtn({ set: ['openai', 'gemini'], hide: ['sub'], menu: true })}</div></div></div></div>`
+const accessSec = sec('Model access — one menu, the subscription is one more option (proposed)', 'Setup step 3 in the two-column layout, form left and a sign-in preview right. One button adds model access; what is set is listed with whose it is and Remove. Optional, but the step asks for at least one. Each frame is a 900px-wide desktop screen, 720px tall.',
+  keyShot3('(a) At rest', 'one button; Continue reads Skip for now', {})
+  + keyShot3('(b) The menu open', 'one menu, the subscription first', { menu: true })
+  + keyShot3('(c) Claude subscription chosen', 'a dialog with the existing sign-in flow', { dialog: 'sub' })
+  + keyShot3('(c) An API key chosen', 'a small key dialog', { dialog: 'key' })
+  + keyShot3('(d) Access set', 'what is set, then the button; Continue', { set: ['sub', 'openai'] })
+  + `<div style="max-width:620px">${keyShot3('Step 3 when HQ\'s site isn\'t connected', 'a warning, only then', { warn: true })}</div>`
+  + `<div style="max-width:620px">${keyShot3('Step 4 · Review', 'where agents run has no Edit', { review: true })}</div>`
+  + `<div style="display:grid;grid-template-columns:340px 340px 340px;gap:24px;align-items:start;margin-top:28px;overflow-x:auto"><div>${S.tag('after', 'Phone (a)')}${phone3({})}</div><div>${S.tag('after', 'Phone (b)', 'bottom sheet')}${phone3({ sheetMenu: true })}</div><div>${S.tag('after', 'Phone (d)')}${phone3({ set: ['sub', 'openai'] })}</div></div>`
+  + `<div style="margin-top:28px;max-width:900px">${S.tag('after', 'Organisation › Settings — the same list and button', 'the organisation\'s keys')}${S.fit(keySettings3)}<div class="cap">A person's own Claude subscription lives in Settings › Your model logins.</div></div>`
+  + why(['<b>The subscription is one option among the others</b>: one button, one menu, one list.', '<b>Optional, but asked for</b>: Continue reads Skip for now until something is set.', '<b>Each line says whose it is</b>: the subscription is the person\'s, keys are the organisation\'s.']))
+
+return accessSec + menuKeysSec + oldKeysSec + bootstrapSec + sec('1 · Getting in: the setup code and the first account', `${S.n(5)} ${S.n(6)} ${S.n(7)} — one screen instead of two; the person gives their name too (79, on Accepting an invitation).`,
+    S.ba(col(S.tag('before', 'Before — today', 'two screens'), S.fit(S.todaySetupKey()), gap, S.fit(S.todayAccount(true))), S.after(S.setup1(), 'step 1 of 4'))
+    + facts(['<b>Today:</b> the key is <code>SITE_ADMIN_KEY</code> in the install\'s settings, compared in constant time; the example value is refused; it stops working once anyone exists but stays required (<code>hq/src/auth/adminKey.ts</code>, <code>inviteService.ts</code>).',
+      '<b>Today:</b> the account form is the invitation\'s, so it says "Invite code verified" and shows the role in the warning colour.',
+      '<b>Direction:</b> a one-time setup code printed at first start replaces the standing key. The screen reads "setup code from your install" either way.'])
+    + why(['<b>Fewer screens</b>: the code and the account on one.', '<b>Says what is happening</b> — "you\'ll be its admin" — instead of reusing the invitation\'s words.', '<b>A name, not only a login name</b>, so the person shows as "Avery Chen" on their work.']))
+  + sec('2 · The organisation', `${S.n(8)} ${S.n(9)} — Welcome goes; the organisation step gains a picture and shows the sign-in page it makes.`,
+    S.ba(col(S.tag('before', 'Before — today', 'two screens'), S.fit(S.todayWelcome()), gap, S.fit(S.todayOrg())), S.after(S.setup2(), 'step 2 of 4'))
+    + facts(['<b>Today:</b> the organisation already exists, made at first start as "My Organisation" (<code>org/ensureDefaultOrg.ts</code>); this step renames it.',
+      '<b>Bug:</b> Home sends <i>any</i> admin who has not finished setup to /onboard (<code>home/pages/HomePage.tsx</code>), so an admin invited later is asked to rename the organisation. Proposed: setup runs once, for the first person; later admins accept an invitation like anyone else.'])
+    + why(['<b>Welcome said nothing the first screen cannot</b>: one step less.', '<b>The organisation\'s identity starts here</b>, and the person sees what their people will see at sign-in.', '<b>Vision and mission wait</b>: they are not needed to start, and they live on the Organisation page.', '<b>Setup is once per HQ</b>, not once per admin.']))
+  + sec('3 · Model access, and HQ\'s own site', `${S.n(10)} ${S.n(13)} — Done goes; the step that makes agents answer takes its place.`,
+    S.ba(S.before(S.todayDone()), S.after(S.authR(S.setupLeft('Acme Corp', 'Almost there. After this you land on Home, with Agenthix ready to talk.', 'A'), keyStep3({})), 'step 3 of 4'))
+    + facts(['<b>Today:</b> no step gives model access; Done says "Connect an Execution Site" though HQ\'s site is already connected.',
+      '<b>Today:</b> a Claude subscription set on the organisation is used only while the organisation has one person (<code>model-access/modelCredential.ts</code>). Stored as the admin\'s own, it keeps working when others join (75).',
+      '<b>Today:</b> Sign in with Claude runs on a site. If HQ\'s site is not connected, it cannot work; setup never checks. Proposed: one line here, and the fault on When something is not right.'])
+    + why(['<b>The first conversation works</b>: without model access no agent answers.', '<b>No trap when people join</b>: the login is the admin\'s own.', '<b>HQ\'s site is seen, not configured</b>: it comes with HQ, so it is a line, not a step.', '<b>Nothing stops the admin</b>: Later is there (76).']))
+  + sec('4 · The first Home, and the first conversation', `${S.n(11)} ${S.n(12)} — the built-in agent, Agenthix, offers the next steps.`,
+    S.ba(S.before(S.todayHome(true)), col(S.tag('after', 'After — proposed', 'Home, then the conversation a suggestion starts'), S.fit(S.homeFirst()), gap, S.fit(S.firstConvo())))
+    + facts(['<b>Today:</b> the built-in agent is "Kernel" in the code (<code>server/setup.ts</code>); the agreed Agents board calls it Agenthix. Its instructions say onboarding is not its job; they change to cover this.',
+      '<b>Today:</b> the banner is global and says "Set an API key" to an owner who uses subscriptions (<code>shared/components/ModelAccessBanner.tsx</code>). Proposed: a Needs attention item for admins, and one line under Home\'s message box for anyone who cannot talk to agents.',
+      '<b>Dead code:</b> the built-in agent\'s <code>complete_org_setup</code> dismisses an "org setup" notification that nothing raises (<code>server/controlplane/orgOps.ts</code>).'])
+    + why(['<b>An empty Home gives a newcomer nothing to do</b>; suggestions give them a first sentence (77).', '<b>The rest of setup is a conversation</b>: Agenthix offers inviting people, a project and a team, and links to where each lives.', '<b>No global banner</b>, as agreed for the shell.']))
+  + sec('Phone', '', S.ba(col(S.tag('before', 'Before — today'), `<div class="phones">${S.oldPhone(`${S.oldLogo}<div class="oldsub">Set up this hq</div>${S.f('First-admin key', 'Paste the first-admin key (SITE_ADMIN_KEY)', 'ph')}<div style="margin-top:16px"><span class="bp pri wide">Continue →</span></div>`)}</div>`),
+      col(S.tag('after', 'After — proposed'), `<div class="phones">${S.phone(BRAND, S.s1().replace('Set up Agenthix for your organisation', 'Set up your HQ'))}${S.phone(BRAND, keyStep3({}))}${S.phone(BRAND, S.s2() + '<div class="mutt" style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:500;margin:18px 0 8px">Your sign-in page</div>' + S.prevCard).replace('class="phone"', 'class="phone" style="height:auto;min-height:700px"')}</div><p class="cap">On the phone the preview goes below the form (135).</p>`)))
+  + sec('Skipped now, done later — where each step lives', '', later)
+
+})()
+fitFrames()
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

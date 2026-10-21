@@ -1,0 +1,237 @@
+/* ──────────────────────────────────────────────
+   @agenthix/ui — Design System Theme Tokens
+   Tailwind v4 @theme block — import this file after
+   @import "tailwindcss" in each app's root CSS.
+
+   RULES:
+   - Never hardcode hex colors in component files.
+   - Web: use Tailwind token utilities (bg-accent, text-accent, etc.)
+     or CSS custom properties (var(--color-accent)) in inline styles.
+   - Mobile: use Colors from useColors() / ThemeContext — never hardcode.
+   - When tokens change here, update mobile/src/theme.ts in the same commit.
+   ────────────────────────────────────────────── */
+@theme {
+  --color-surface-0: #0a0a0f;
+  --color-surface-1: #12121a;
+  --color-surface-2: #1a1a26;
+  --color-surface-3: #242436;
+  --color-surface-hover: #2a2a40;
+  --color-border: #2e2e45;
+  --color-border-subtle: #1e1e30;
+  /* The outline of a chosen option among several */
+  --color-border-strong: #3a3a55;
+  --color-text-primary: #e8e8f0;
+  --color-text-secondary: #9090a8;
+  --color-text-muted: #606078;
+  --color-accent: #6366f1;
+  --color-accent-hover: #818cf8;
+  --color-accent-subtle: #6366f11a;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-danger-hover: #ef4444;
+  --color-on-accent: #ffffff;
+  --color-scrim: rgb(0 0 0 / 0.6);
+
+  /* A neutral chip (a plain fact, such as Self-hosted), a chosen menu item, and a card that stands on the page */
+  --color-chip: #242436;
+  --color-selected: #6366f11a;
+  --color-card: #12121a;
+  /* The frame around a portal's pages: its sidebar, and the wash and glow behind a page's title */
+  --color-frame-sidebar: #12121a;
+  --color-frame-wash: #0a0a0f;
+  --color-frame-glow: transparent;
+  /* The primary button's fill, from one stop to the other, and its shadow */
+  --color-primary-from: #6366f1;
+  --color-primary-to: #6366f1;
+  --color-primary-shadow: transparent;
+  /* The portal's mark and a person's initials: each a gradient between two stops */
+  --color-mark-from: #6366f1;
+  --color-mark-to: #818cf8;
+  --color-avatar-from: #6366f1;
+  --color-avatar-to: #818cf8;
+
+  /* Shared by every portal (U3): Cloud's badge, and Cloud's sunrise behind its own name */
+  --color-cloud: #93c5fd;
+  --color-cloud-subtle: #1e3a8a66;
+  --color-sunrise-from: #1e3a8a;
+  --color-sunrise-via: #5b21b6;
+  --color-sunrise-to: #9d174d;
+  --color-on-sunrise: #ffffff;
+  /* A terminal: commands and their output, shown as a machine prints them */
+  --color-terminal: #1e293b;
+  --color-terminal-text: #f1f5f9;
+
+  /* Buttons (primitives/Button.tsx): what differs between portals. These values, from hq's own tokens, draw hq's
+     buttons as they have always been: a transparent ring is no outline, and the primary has no image (below). */
+  --color-button-secondary: var(--color-surface-2);
+  --color-button-danger: var(--color-danger);
+  --color-button-danger-hover: var(--color-danger-hover);
+  --color-button-danger-text: var(--color-on-accent);
+  --color-button-danger-ring: transparent;
+  --color-button-primary-ring: transparent;
+  --radius-button: 0.5rem;
+  --font-weight-button: 500;
+
+  --shadow-pop: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-primary: 0 8px 22px -10px var(--color-primary-shadow);
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Type scale: size / line height. Weight is set where the role is used (see DESIGN-SYSTEM.md). */
+  --text-display: 28px;
+  --text-display--line-height: 36px;
+  --text-h1: 24px;
+  --text-h1--line-height: 32px;
+  --text-h2: 18px;
+  --text-h2--line-height: 26px;
+  --text-h3: 15px;
+  --text-h3--line-height: 22px;
+  --text-body: 14px;
+  --text-body--line-height: 21px;
+  --text-reading: 15px;
+  --text-reading--line-height: 24px;
+  --text-small: 13px;
+  --text-small--line-height: 18px;
+  --text-micro: 12px;
+  --text-micro--line-height: 16px;
+}
+
+/* Not a Tailwind token: the primary button's background image, drawn over its accent fill. None in hq. */
+:root {
+  --button-primary-image: none;
+}
+
+/* ── Light theme ─────────────────────────────────
+   The default: the light values apply unless <html> carries
+   data-theme="dark". data-theme="light" selects them explicitly.
+   Accent is the same in both themes (indigo #6366f1).
+   ─────────────────────────────────────────────── */
+:root[data-theme="light"],
+:root:not([data-theme]) {
+  --color-surface-0: #f6f6f9;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f0f0f5;
+  --color-surface-3: #e6e6ee;
+  --color-surface-hover: #ebebf3;
+  --color-border: #dcdce6;
+  --color-border-subtle: #e9e9f0;
+  --color-border-strong: #c8c8d6;
+  --color-text-primary: #17171f;
+  --color-text-secondary: #55556b;
+  --color-text-muted: #8a8aa0;
+  --color-accent-hover: #4f46e5;
+  --color-accent-subtle: #6366f114;
+  --color-success: #059669;
+  --color-warning: #b45309;
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-scrim: rgb(23 23 31 / 0.45);
+  --color-chip: #e6e6ee;
+  --color-selected: #6366f114;
+  --color-card: #ffffff;
+  --color-frame-sidebar: #ffffff;
+  --color-frame-wash: #f6f6f9;
+  --color-primary-from: #6366f1;
+  --color-primary-to: #6366f1;
+  --color-cloud: #1d4ed8;
+  --color-cloud-subtle: #dbeafe;
+  --color-sunrise-from: #2f6fed;
+  --color-sunrise-via: #8b5cf6;
+  --color-sunrise-to: #f472b6;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* ── The Fleet Console · graphite ─────────────────
+   Selected by data-portal="fleet-console" on <html>, beside data-theme;
+   hq carries no data-portal and keeps the values above. The same token
+   names, the Fleet Console's values: cool slate surfaces in Cloud's layout
+   (a light sidebar, a soft page with a glow behind the title, roomy cards)
+   and one slate primary button per screen. The state colours, Cloud's
+   badge and sunrise, the terminal and the scrim are shared, so they are
+   not repeated here. Fonts are bundled with the app (@fontsource-variable),
+   whose families carry the "Variable" suffix.
+   ─────────────────────────────────────────────── */
+:root[data-portal="fleet-console"] {
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* One slate primary per screen, a gradient; the rest quiet outlines, a destructive one in the danger colour */
+  --button-primary-image: linear-gradient(92deg, var(--color-primary-from), var(--color-primary-to));
+  --color-button-primary-ring: var(--color-primary-to);
+  --color-button-secondary: var(--color-surface-1);
+  --color-button-danger: var(--color-surface-1);
+  --color-button-danger-hover: color-mix(in srgb, var(--color-danger) 7%, var(--color-surface-1));
+  --color-button-danger-text: var(--color-danger);
+  --color-button-danger-ring: color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+  --radius-button: 9px;
+  --font-weight-button: 600;
+}
+
+:root[data-portal="fleet-console"]:not([data-theme="dark"]) {
+  --color-surface-0: #f5f7fa;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #eef1f5;
+  --color-surface-3: #e2e7ee;
+  --color-surface-hover: #eef1f5;
+  --color-border: #d9e0e8;
+  --color-border-subtle: #e6ebf1;
+  --color-border-strong: #cbd5e1;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-muted: #8b93a1;
+  --color-accent: #334155;
+  --color-accent-hover: #1e293b;
+  --color-accent-subtle: #3341551a;
+  --color-on-accent: #ffffff;
+  --color-chip: #33415514;
+  --color-selected: #33415514;
+  --color-card: #ffffffeb;
+  --color-frame-sidebar: #fbfcfd;
+  --color-frame-wash: #eef2f7;
+  --color-frame-glow: #94a3b84d;
+  --color-primary-from: #334155;
+  --color-primary-to: #1e293b;
+  --color-primary-shadow: #1e293b66;
+  --color-mark-from: #334155;
+  --color-mark-to: #64748b;
+  --color-avatar-from: #475569;
+  --color-avatar-to: #94a3b8;
+  --shadow-pop: 0 16px 36px -14px #1e293b40;
+}
+
+:root[data-portal="fleet-console"][data-theme="dark"] {
+  --color-surface-0: #0b0d10;
+  --color-surface-1: #14171c;
+  --color-surface-2: #1b1f26;
+  --color-surface-3: #252a33;
+  --color-surface-hover: #1b1f26;
+  --color-border: #2a313c;
+  --color-border-subtle: #1f252e;
+  --color-border-strong: #475569;
+  --color-text-primary: #e6e8ec;
+  --color-text-secondary: #9aa1ad;
+  --color-text-muted: #6b7280;
+  --color-accent: #cbd5e1;
+  --color-accent-hover: #e2e8f0;
+  --color-accent-subtle: #cbd5e11a;
+  --color-on-accent: #0f172a;
+  --color-chip: #cbd5e114;
+  --color-selected: #cbd5e114;
+  --color-card: #14171ceb;
+  --color-frame-sidebar: #0f1216;
+  --color-frame-wash: #12161c;
+  --color-frame-glow: #64748b33;
+  --color-primary-from: #e2e8f0;
+  --color-primary-to: #94a3b8;
+  --color-primary-shadow: #00000099;
+  --color-mark-from: #94a3b8;
+  --color-mark-to: #e2e8f0;
+  --color-avatar-from: #64748b;
+  --color-avatar-to: #cbd5e1;
+  --shadow-pop: 0 16px 36px -12px #000000b3;
+}

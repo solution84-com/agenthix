@@ -1,0 +1,18 @@
+{
+  // Type-checks the guide's helpers and recipes (`npm run typecheck:guide`), which `npm run typecheck` does not reach.
+  // The Fleet Console's recipes import console-web's own response types, so this needs console-web installed.
+  "compilerOptions": {
+    "target": "es2023",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["./*.ts"]
+}

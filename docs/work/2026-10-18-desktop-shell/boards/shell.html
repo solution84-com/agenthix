@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desktop shell</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#16181d;--muted:#667085;--line:#e4e7ec;--soft:#f2f4f7;--accent:#3b5bdb;--accent-soft:#e8edff;--warn:#b54708;--warn-soft:#fff4e5;--ok:#067647;--ok-soft:#e7f6ec;--nav:#fbfbfc}
+[data-theme=dark]{--bg:#0f1115;--panel:#171a21;--ink:#e7e9ee;--muted:#98a2b3;--line:#2a2f3a;--soft:#1f232c;--accent:#7c95ff;--accent-soft:#232a45;--warn:#f79009;--warn-soft:#33240f;--ok:#47cd89;--ok-soft:#11291c;--nav:#14171d}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;background:var(--bg);color:var(--ink)}
+.board{display:flex;min-height:100vh}
+.menu{width:230px;flex:none;border-right:1px solid var(--line);background:var(--panel);padding:16px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.menu h1{font-size:14px;margin:0 0 4px}.menu .sub{color:var(--muted);font-size:12px;margin-bottom:14px}
+.menu details{margin-bottom:8px}.menu summary{cursor:pointer;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:4px}
+.menu a{display:block;padding:5px 8px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:13px}.menu a:hover{background:var(--soft)}
+.theme{display:flex;gap:4px;margin:10px 0 16px}.theme button{flex:1;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:6px;padding:4px;cursor:pointer;font-size:12px}
+.theme button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.main{flex:1;padding:24px 28px;max-width:1500px}
+section{margin-bottom:44px}h2{font-size:20px;margin:0 0 4px}h3{font-size:15px;margin:18px 0 8px}.lede{color:var(--muted);margin:0 0 14px;max-width:900px}
+/* the mock browser */
+.browser{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.chrome{height:28px;background:var(--soft);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:0 10px}.chrome i{width:9px;height:9px;border-radius:50%;background:var(--line);display:inline-block}
+.chrome span{margin-left:10px;font-size:11px;color:var(--muted)}
+.app{display:flex;height:620px;font-size:12.5px}
+.nav{width:200px;flex:none;background:var(--nav);border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column}
+.nav .logo{font-weight:700;padding:4px 8px 12px;display:flex;justify-content:space-between}.nav .logo small{color:var(--muted);font-weight:400}
+.nav a{display:flex;justify-content:space-between;padding:6px 8px;border-radius:6px;color:var(--ink);text-decoration:none}.nav a.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav .grp{font-size:10.5px;text-transform:uppercase;color:var(--muted);padding:12px 8px 4px;letter-spacing:.04em}.nav .foot{margin-top:auto;border-top:1px solid var(--line);padding-top:6px}
+.badge{font-size:10.5px;color:var(--warn)}
+.canvas{flex:1;min-width:0;display:flex;flex-direction:column}
+.bar{height:34px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 14px;color:var(--muted)}.bar b{color:var(--ink);font-weight:500}
+.body{flex:1;overflow:hidden;padding:16px 20px;display:flex;gap:14px}
+.col{flex:1;min-width:0}
+.card{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--panel)}
+.muted{color:var(--muted)}.tiny{font-size:11px}
+.row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px}.row.on{background:var(--accent-soft)}
+.av{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.av.g{background:#12b76a}.av.o{background:#f79009}
+.tools{width:260px;flex:none;border-left:1px solid var(--line);padding:12px 14px;background:var(--panel)}
+.tools h4{margin:10px 0 4px;font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.04em}
+.dock{width:380px;flex:none;border-left:1px solid var(--line);display:flex;flex-direction:column;background:var(--panel)}
+.dock .head{border-bottom:1px solid var(--line);padding:8px 12px;display:flex;align-items:center;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--muted);background:var(--soft)}
+.chip.place{color:var(--accent);border-color:var(--accent-soft);background:var(--accent-soft)}
+.msgs{flex:1;padding:12px;overflow:hidden;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:88%;padding:8px 10px;border-radius:10px;background:var(--soft)}.msg.me{align-self:flex-end;background:var(--accent);color:#fff}
+.work{border:1px dashed var(--line);border-radius:8px;padding:8px 10px;font-size:11.5px}
+.compose{border-top:1px solid var(--line);padding:10px 12px}.box{border:1px solid var(--line);border-radius:10px;padding:9px 10px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.btn{border:1px solid var(--line);border-radius:6px;padding:3px 8px;background:var(--panel);font-size:11.5px;color:var(--ink)}.btn.p{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pop{position:absolute;top:40px;left:12px;right:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:6px;z-index:2}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 6px 6px 0;margin:10px 0;max-width:900px}
+.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:var(--panel);max-width:1000px}
+.q h4{margin:0 0 6px;font-size:14px}.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.opt{border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer;background:var(--soft);font-size:13px}.opt.rec{border-color:var(--accent)}.opt.selected{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rec-label{font-size:11px;color:var(--accent);font-weight:600}
+table{border-collapse:collapse;width:100%;max-width:1000px}td,th{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}th{font-size:12px;color:var(--muted);font-weight:600}
+ul.tight{margin:6px 0;padding-left:18px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 12px;font-size:12px;color:var(--muted)}.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+</style>
+</head>
+<body>
+<div class="board">
+<nav class="menu">
+  <h1>Desktop shell</h1>
+  <div class="sub">One persistent conversation</div>
+  <div class="theme"><button class="on" onclick="setTheme('light',this)">Light</button><button onclick="setTheme('dark',this)">Dark</button></div>
+  <details open><summary>This board (7)</summary>
+    <a href="#today">1 · Today's shell</a>
+    <a href="#proposed">2 · Proposed shell</a>
+    <a href="#flow-task">3 · Conversation → task</a>
+    <a href="#flow-project">4 · Project → its conversations</a>
+    <a href="#flow-return">5 · Back to an earlier conversation</a>
+    <a href="#expanded">5b · Expanded, then going somewhere</a><a href="#narrow">6 · Narrower windows</a><a href="#questions">7 · Questions (answered)</a>
+  </details>
+  <details><summary>Record (2)</summary>
+    <a href="#needs">What it takes</a><a href="#agreed">Agreed</a>
+    <a href="#changes">Changes</a>
+  </details>
+</nav>
+
+<main class="main">
+
+<section id="today">
+  <h2>1 · Today's shell (the chat-first redesign)</h2>
+  <p class="lede">Every place is its own screen: <b>Chat</b> (your space) or a <b>project</b>. The main pane is that place's conversation list, or one conversation that replaces it; the right pane is the <b>Tools panel</b> (tasks, boards, timeline, runs, settings). There is no docked conversation, so leaving a place leaves its conversation.</p>
+  <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /projects/AGX/t/8f2c</span></div>
+  <div class="app">
+    <div class="nav">
+      <div class="logo">Agenthix <small>🔔 ⚡</small></div>
+      <a href="#">Home</a><a href="#">Chat</a><a href="#">Projects</a><a href="#">Agents</a><a href="#">Tasks <span class="badge">3 need you</span></a>
+      <div class="grp">Pinned</div><a href="#" class="on">Agenthix</a><a href="#">Website</a>
+      <div class="foot"><a href="#">Organisation</a><a href="#">Settings</a></div>
+    </div>
+    <div class="canvas">
+      <div class="bar"><span>Projects / Agenthix / <b>Release checklist</b></span><span>▣ ◧ ◨ ▢ layout</span></div>
+      <div class="body" style="padding:0">
+        <div class="col" style="padding:16px 20px">
+          <div class="muted tiny">Kernel · in Agenthix</div>
+          <div style="max-width:560px;margin:10px auto;display:flex;flex-direction:column;gap:10px">
+            <div class="msg me">What's left before release?</div>
+            <div class="msg">Three tasks are open on the Release board; AGX-41 is blocked on the images.</div>
+            <div class="work">Work under way · reading the Release board</div>
+          </div>
+          <div class="box" style="max-width:560px;margin:180px auto 0">Talk about this project… <span class="btn p">Send</span></div>
+        </div>
+        <div class="tools"><b>Tools</b>
+          <h4>About this project</h4><div class="muted tiny">Lead · Site · Default agent</div>
+          <h4>Work</h4><div>Tasks</div><div>Boards</div><div>Timeline</div>
+          <h4>Agents at work</h4><div>Runs</div><div>Automation</div>
+          <h4></h4><div>Settings</div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <div class="note warn"><b>Where it hurts on desktop:</b> going to <i>Tasks</i>, <i>Settings</i>, another project or Home drops the conversation; every place repeats its own list; a task or board can only be seen through the narrow Tools panel. The reason was that a conversation had to live in one storage boundary. The coordinator now commissions work across boundaries, so the conversation no longer has to own the screen.</div>
+</section>
+
+<section id="proposed">
+  <h2>2 · Proposed shell: the canvas for work, one conversation docked</h2>
+  <p class="lede">The <b>main canvas</b> shows the platform's existing views — Home, a project, a board, a task, settings — at full width. On the right, a <b>docked conversation</b> shows <b>only the conversation you have open</b>, with its place on a chip. Moving around the canvas never changes it. The full <b>Chat</b> view stays the one place to find conversations.</p>
+  <div class="legend"><span style="--c:var(--accent-soft)">changes</span><span style="--c:var(--soft)">reused as it is</span></div>
+  <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /projects/AGX?tool=boards&amp;board=release</span></div>
+  <div class="app">
+    <div class="nav">
+      <div class="logo">Agenthix <small>🔔 ⚡</small></div>
+      <a href="#">Home</a><a href="#">Chat</a><a href="#">Projects</a><a href="#">Agents</a><a href="#">Tasks <span class="badge">3 need you</span></a>
+      <div class="grp">Pinned</div><a href="#" class="on">Agenthix</a><a href="#">Website</a>
+      <div class="foot"><a href="#">Organisation</a><a href="#">Settings</a></div>
+    </div>
+    <div class="canvas">
+      <div class="bar"><span>Projects / Agenthix / <b>Boards · Release</b></span><span><span class="btn">💬 Talk about Agenthix</span></span></div>
+      <div class="body">
+        <div class="col">
+          <div style="display:flex;gap:6px;margin-bottom:12px"><span class="chip">Overview</span><span class="chip">Conversations</span><span class="chip">Tasks</span><span class="chip place">Boards</span><span class="chip">Timeline</span><span class="chip">Runs</span><span class="chip">Automation</span><span class="chip">Settings</span></div>
+          <div style="display:flex;gap:10px">
+            <div class="col"><div class="muted tiny" style="margin-bottom:6px">TO DO</div><div class="card">AGX-44 · Write release notes</div><div class="card">AGX-45 · Tag v1.0</div></div>
+            <div class="col"><div class="muted tiny" style="margin-bottom:6px">IN PROGRESS</div><div class="card">AGX-41 · Publish signed images <div class="tiny" style="color:var(--warn)">blocked</div></div></div>
+            <div class="col"><div class="muted tiny" style="margin-bottom:6px">DONE</div><div class="card">AGX-39 · Host management</div></div>
+          </div>
+          <div class="muted tiny" style="margin-top:10px">The project's tools fill the canvas, as tabs — today's Tools panel content, given the room.</div>
+        </div>
+      </div>
+    </div>
+    <div class="dock" style="position:relative">
+      <div class="head"><span class="av">K</span><div style="flex:1;min-width:0"><b>Release checklist</b><div><span class="chip place">◆ Agenthix</span></div></div><span class="btn" title="Recent conversations">🕘</span><span class="btn" title="New conversation">＋</span><span class="btn" title="Expand">⤢</span><span class="btn" title="Collapse">›</span></div>
+      <div class="msgs">
+        <div class="msg me">What's left before release?</div>
+        <div class="msg">Three tasks are open on the Release board. <u style="color:var(--accent)">AGX-41</u> is blocked on the images.</div>
+        <div class="work">Work under way · reading the Release board · <u>Stop</u></div>
+        <div class="msg me">Draft the release notes from what's done.</div>
+      </div>
+      <div class="compose"><div class="box">Reply in Release checklist… <span class="btn p">Send</span></div></div>
+    </div>
+  </div></div>
+  <table style="margin-top:14px">
+    <tr><th style="width:24%">Part</th><th>What it is</th><th style="width:22%">Built from</th></tr>
+    <tr><td>Left nav</td><td>Unchanged: Home, Chat, Projects, Agents, Tasks, Pinned, Organisation, Settings.</td><td>AppSidebar, as it is</td></tr>
+    <tr><td>Canvas</td><td>Any existing view at full width. A project shows its tools as tabs (Overview, <b>Conversations</b>, Tasks, Boards, Timeline, Runs, Automation, Settings) instead of in a side panel. <b>Conversations</b> is today's project conversation list, as it is; choosing one opens it in the dock.</td><td>PlaceOverview, the tool views and the project's conversation list (NewConversationsList), moved; ScreenBar</td></tr>
+    <tr><td>Docked conversation</td><td>One conversation: title, a <b>place chip</b> (Your space / a project / a task), recent 🕘 (a history icon), new ＋, expand ⤢, collapse ›; messages, the work line, the message box.</td><td>ConversationThread, WorkBar, MessageBox</td></tr>
+    <tr><td>Chat (full view)</td><td>All your conversations across places, with a place filter beside today's agent filter and search. Choosing one puts it in the dock.</td><td>NewConversationsList, given a place filter</td></tr>
+    <tr><td>Collapsed dock</td><td>A slim rail: the agent's avatar, a dot while work is under way, a count of approvals waiting. Click or <kbd>⌘J</kbd> opens it.</td><td>Shell-only</td></tr>
+  </table>
+  <h3>Collapsed, and starting from Home</h3>
+  <div class="grid2">
+    <div><div class="muted tiny" style="margin-bottom:6px">COLLAPSED (›) — the work gets the width; the rail keeps the conversation in reach</div>
+      <div class="browser"><div class="app" style="height:300px">
+        <div class="nav" style="width:64px;padding:10px 6px"><div class="logo" style="padding:4px">A</div><a href="#">⌂</a><a href="#">💬</a><a href="#" class="on">▦</a><a href="#">☺</a><a href="#">✓</a></div>
+        <div class="canvas"><div class="bar"><span>Projects / Agenthix / <b>Timeline</b></span><span class="btn">💬 Talk about Agenthix</span></div><div class="body"><div class="col"><div style="display:flex;gap:6px;margin-bottom:10px"><span class="chip">Overview</span><span class="chip">Conversations</span><span class="chip">Tasks</span><span class="chip">Boards</span><span class="chip place">Timeline</span></div><div class="card" style="height:150px" class="muted">Timeline, full width</div></div></div></div>
+        <div style="width:44px;border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:10px;background:var(--panel)"><span class="btn" title="Open (⌘J)">‹</span><span class="av" style="position:relative">K<span style="position:absolute;right:-2px;top:-2px;width:8px;height:8px;border-radius:50%;background:var(--ok);border:2px solid var(--panel)"></span></span><span style="font-size:10px;background:var(--warn);color:#fff;border-radius:999px;padding:0 5px">1</span></div>
+      </div></div>
+      <div class="tiny muted" style="margin-top:6px">Green dot: work under way. The number: approvals waiting. Click, or ⌘J, opens it again.</div></div>
+    <div><div class="muted tiny" style="margin-bottom:6px">HOME — its box starts a conversation in your space, and it opens in the dock</div>
+      <div class="browser"><div class="app" style="height:300px">
+        <div class="nav" style="width:64px;padding:10px 6px"><div class="logo" style="padding:4px">A</div><a href="#" class="on">⌂</a><a href="#">💬</a><a href="#">▦</a><a href="#">☺</a><a href="#">✓</a></div>
+        <div class="canvas"><div class="body" style="flex-direction:column;align-items:center;justify-content:center"><b style="font-size:15px">What would you like to work on?</b><div class="box" style="width:80%;margin-top:10px">Plan my week… <span class="btn p">Send</span></div><div class="muted tiny" style="margin-top:12px">Jump back in · Nothing needs you</div></div></div>
+        <div class="dock" style="width:210px"><div class="head"><span class="av">K</span><div style="flex:1"><b>Plan my week</b><div><span class="chip place">◇ Your space</span></div></div></div><div class="msgs"><div class="msg me">Plan my week</div><div class="work">Work under way</div></div></div>
+      </div></div>
+      <div class="tiny muted" style="margin-top:6px">Home stays Home; the new conversation takes the dock. Sending from Home is choosing a new conversation, so it replaces the open one — still only by you.</div></div>
+  </div>
+</section>
+
+<section id="flow-task">
+  <h2>3 · Conversation → task</h2>
+  <p class="lede">A task or board named in the conversation opens in the canvas. The conversation stays where it is, so you read the task and keep talking.</p>
+  <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /tasks/AGX-41</span></div>
+  <div class="app" style="height:420px">
+    <div class="nav" style="width:64px;padding:10px 6px"><div class="logo" style="padding:4px">A</div><a href="#">⌂</a><a href="#">💬</a><a href="#">▦</a><a href="#">☺</a><a href="#" class="on">✓</a></div>
+    <div class="canvas"><div class="bar"><span>Tasks / <b>AGX-41</b></span></div>
+      <div class="body"><div class="col"><h3 style="margin-top:0">Publish signed images</h3><div class="muted">Agenthix · Release board · In progress · <span style="color:var(--warn)">Blocked</span></div><div class="card" style="margin-top:10px">Description, checklist, activity — the existing task page, unchanged.</div><div class="card">Task conversation (the team's) — stays on the task page, as today.</div></div></div></div>
+    <div class="dock"><div class="head"><span class="av">K</span><div style="flex:1"><b>Release checklist</b><div><span class="chip place">◆ Agenthix</span></div></div><span class="btn">🕘</span><span class="btn">＋</span></div>
+      <div class="msgs"><div class="msg">…<u style="color:var(--accent)">AGX-41</u> is blocked on the images.</div><div class="tiny muted" style="text-align:center">↑ clicked — opened in the canvas</div></div>
+      <div class="compose"><div class="box">Reply… <span class="btn p">Send</span></div></div></div>
+  </div></div>
+  <div class="note">A task's own conversation (the team's, on the task page) stays on the task page. The dock is <i>your</i> conversation. Two conversations on one screen is worth watching in testing — see <a href="#needs">What it takes</a>.</div>
+</section>
+
+<section id="flow-project">
+  <h2>4 · Project → its conversations, and a new one</h2>
+  <div class="note warn"><b>Superseded (walkthrough 2):</b> a new conversation is now a draft in the dock, chosen from the list of places, with Cancel — see <a href="new-conversation.html">new-conversation.html</a>. This section is kept as drawn.</div>
+  <p class="lede">On a project, <b>💬 Talk about Agenthix</b> in the bar starts a new conversation in that project and puts it in the dock. The ＋ in the dock does the same. <b>A new conversation asks for nothing:</b> two chips above the message box are already filled in — the <b>place</b> (the one you're looking at) and the <b>agent</b> (that place's default: the project's default agent, or your primary agent in your space) — so you write and send. Either chip can be changed before the first message; changing the place resets the agent to that place's default if the one chosen can't work there. The coordinator brings in other agents as the work needs, so the agent chosen is who leads, not the only one who can help.</p>
+  <div class="grid2">
+    <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>Step 1 · press ＋ — ready to write, nothing to pick</span></div>
+      <div class="app" style="height:300px"><div class="canvas"><div class="body"><div class="col muted">Agenthix · Boards</div></div></div>
+      <div class="dock" style="position:relative;width:360px"><div class="head"><b style="flex:1">New conversation</b><span class="btn">✕</span></div>
+        <div class="msgs"><div class="muted tiny" style="margin-top:auto">Place and agent are already filled in. Write and send.</div></div>
+        <div class="compose"><div style="display:flex;gap:6px;margin-bottom:6px"><span class="chip place">◆ Agenthix ▾</span><span class="chip"><span class="av" style="width:14px;height:14px;font-size:8px">K</span> Kernel ▾</span></div><div class="box">Talk about this project… <span class="btn p">Send</span></div></div></div></div></div>
+    <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>Only if you want another place · tap the place chip</span></div>
+      <div class="app" style="height:300px"><div class="canvas"><div class="body"><div class="col muted">Agenthix · Boards</div></div></div>
+      <div class="dock" style="position:relative;width:360px"><div class="head"><b style="flex:1">New conversation</b><span class="btn">✕</span></div>
+        <div class="msgs"></div>
+        <div style="position:absolute;left:12px;right:12px;bottom:96px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:6px;z-index:2">
+          <div class="row on"><span class="chip place">◆</span> Agenthix <span class="muted tiny" style="margin-left:auto">you're here</span></div><div class="row"><span class="chip">◇</span> Your space</div><div class="row"><span class="chip">◆</span> Website</div><div class="row muted tiny">Other projects…</div></div>
+        <div class="compose"><div style="display:flex;gap:6px;margin-bottom:6px"><span class="chip place" style="outline:2px solid var(--accent)">◆ Agenthix ▴</span><span class="chip"><span class="av" style="width:14px;height:14px;font-size:8px">K</span> Kernel ▾</span></div><div class="box">Talk about this project… <span class="btn p">Send</span></div></div></div></div></div>
+  </div>
+  <h3>The project's Conversations tab</h3>
+  <p class="lede">Your conversations in this project — today's project list, moved into a tab. Choosing one opens it in the dock; the canvas stays on the tab. Writing in the box at the bottom starts a new one here, as today.</p>
+  <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /projects/AGX?tool=conversations</span></div>
+  <div class="app" style="height:380px">
+    <div class="nav" style="width:64px;padding:10px 6px"><div class="logo" style="padding:4px">A</div><a href="#">⌂</a><a href="#">💬</a><a href="#" class="on">▦</a><a href="#">☺</a><a href="#">✓</a></div>
+    <div class="canvas"><div class="bar"><span>Projects / Agenthix / <b>Conversations</b></span><span class="btn">💬 Talk about Agenthix</span></div>
+      <div class="body"><div class="col">
+        <div style="display:flex;gap:6px;margin-bottom:10px"><span class="chip">Overview</span><span class="chip place">Conversations</span><span class="chip">Tasks</span><span class="chip">Boards</span><span class="chip">Timeline</span><span class="chip">Runs</span><span class="chip">Automation</span><span class="chip">Settings</span></div>
+        <div style="display:flex;gap:6px;margin-bottom:8px"><span class="chip">All agents ▾</span><span class="chip">Search conversations</span></div>
+        <div class="muted tiny">Today</div>
+        <div class="row on"><span class="av">K</span><div style="flex:1">Release checklist<div class="tiny muted">Kernel · Draft the release notes from what's done.</div></div><span class="tiny muted">now</span></div>
+        <div class="row"><span class="av o">R</span><div style="flex:1">Image signing<div class="tiny muted">Rook · Signed with cosign, keyless.</div></div><span class="tiny muted">11:02</span></div>
+        <div class="muted tiny">Last 7 days</div>
+        <div class="row"><span class="av">K</span><div style="flex:1">Launch scope<div class="tiny muted">Kernel · Agreed: MVP scope as listed.</div></div><span class="tiny muted">Tue</span></div>
+        <div class="box" style="margin-top:14px">Talk about this project… <span class="btn p">Send</span></div>
+      </div></div></div>
+    <div class="dock" style="width:320px"><div class="head"><span class="av">K</span><div style="flex:1"><b>Release checklist</b><div><span class="chip place">◆ Agenthix</span></div></div><span class="btn">🕘</span><span class="btn">＋</span></div>
+      <div class="msgs"><div class="msg me">Draft the release notes from what's done.</div><div class="work">Work under way · reading done tasks</div></div>
+      <div class="compose"><div class="box">Reply… <span class="btn p">Send</span></div></div></div>
+  </div></div>
+</section>
+
+<section id="flow-return">
+  <h2>5 · Back to an earlier conversation</h2>
+  <p class="lede">🕘 (history) in the dock shows your <b>recent</b> conversations — a short flat list, never a tree — and <b>All conversations</b>, which opens the full Chat view in the canvas.</p>
+  <div class="grid2">
+    <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>🕘 recent conversations</span></div>
+      <div class="app" style="height:330px"><div class="canvas"><div class="body"><div class="col muted">(whatever you were looking at)</div></div></div>
+      <div class="dock" style="position:relative;width:360px"><div class="head"><b style="flex:1">Release checklist</b><span class="btn">🕘</span></div>
+        <div class="pop"><div class="muted tiny" style="padding:4px 8px">Recent</div>
+          <div class="row on"><span class="av">K</span><div><b>Release checklist</b><div class="tiny"><span class="chip place">◆ Agenthix</span> now</div></div></div>
+          <div class="row"><span class="av g">S</span><div>Pricing page copy<div class="tiny"><span class="chip">◆ Website</span> 2h</div></div></div>
+          <div class="row"><span class="av">K</span><div>Plan my week<div class="tiny"><span class="chip">◇ Your space</span> yesterday</div></div></div>
+          <div class="row" style="border-top:1px solid var(--line);margin-top:4px;color:var(--accent)">All conversations →</div></div>
+        <div class="msgs"></div></div></div></div>
+    <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /chat</span></div>
+      <div class="app" style="height:330px"><div class="canvas"><div class="bar"><b>Chat</b></div><div class="body"><div class="col">
+        <div style="display:flex;gap:6px;margin-bottom:8px"><span class="chip">All places ▾</span><span class="chip">All agents ▾</span><span class="chip">Search…</span></div>
+        <div class="muted tiny">Today</div><div class="row on"><span class="av">K</span> Release checklist <span class="chip place" style="margin-left:auto">◆ Agenthix</span></div><div class="row"><span class="av g">S</span> Pricing page copy <span class="chip" style="margin-left:auto">◆ Website</span></div><div class="muted tiny">Yesterday</div><div class="row"><span class="av">K</span> Plan my week <span class="chip" style="margin-left:auto">◇ Your space</span></div>
+      </div></div></div>
+      <div class="dock" style="width:300px"><div class="head"><b>Release checklist</b></div><div class="msgs"><div class="msg">…</div></div></div></div></div>
+  </div>
+</section>
+
+
+<section id="expanded">
+  <h2>Expanded: for reading and writing, and it gives way when you go somewhere</h2>
+  <p class="lede">⤢ widens the conversation over the canvas — the left nav stays. <b>Expanded is a reading state, not a place:</b> the moment you go anywhere — the nav, a pin, a task or board named in the conversation, the history list's <i>All conversations</i> — the conversation drops back to its docked width and the canvas shows where you went. Nothing is ever hidden behind it.</p>
+  <div class="grid2">
+    <div><div class="muted tiny" style="margin-bottom:6px">EXPANDED — you click AGX-41 in the conversation…</div>
+      <div class="browser"><div class="app" style="height:320px">
+        <div class="nav" style="width:64px;padding:10px 6px"><div class="logo" style="padding:4px">A</div><a href="#">⌂</a><a href="#">💬</a><a href="#" class="on">▦</a><a href="#">☺</a><a href="#">✓</a></div>
+        <div class="dock" style="flex:1;width:auto"><div class="head"><span class="av">K</span><b style="flex:1">Release checklist <span class="chip place">◆ Agenthix</span></b><span class="btn">🕘</span><span class="btn">＋</span><span class="btn" title="Back to docked">⤡</span></div>
+          <div class="msgs" style="max-width:560px;margin:0 auto;width:100%"><div class="msg me">What's left before release?</div><div class="msg">Three tasks are open. <u style="color:var(--accent);font-weight:600">AGX-41</u> is blocked on the images.</div></div>
+          <div class="compose"><div class="box" style="max-width:560px;margin:0 auto">Reply… <span class="btn p">Send</span></div></div></div>
+      </div></div></div>
+    <div><div class="muted tiny" style="margin-bottom:6px">…the task opens in the canvas, and the conversation is docked again</div>
+      <div class="browser"><div class="app" style="height:320px">
+        <div class="nav" style="width:64px;padding:10px 6px"><div class="logo" style="padding:4px">A</div><a href="#">⌂</a><a href="#">💬</a><a href="#">▦</a><a href="#">☺</a><a href="#" class="on">✓</a></div>
+        <div class="canvas"><div class="bar"><span>Tasks / <b>AGX-41</b></span></div><div class="body"><div class="col"><b>Publish signed images</b><div class="card" style="margin-top:8px">The task page.</div></div></div></div>
+        <div class="dock" style="width:230px"><div class="head"><span class="av">K</span><b style="flex:1">Release checklist</b><span class="btn">⤢</span></div><div class="msgs"><div class="msg">… <u style="color:var(--accent)">AGX-41</u> …</div></div><div class="compose"><div class="box">Reply…</div></div></div>
+      </div></div></div>
+  </div>
+  <div class="note">The same rule on medium windows, where the conversation already slides over the canvas: going somewhere slides it away, and the pill or › brings it back. On narrow windows, a link in the conversation opens the work full screen, and the pill returns you to the conversation.</div>
+</section>
+
+<section id="narrow">
+  <h2>6 · Narrower windows: the same conversation, shown differently</h2>
+  <p class="lede">One rule at every width: <b>you have one open conversation and it never closes by itself.</b> What changes with width is only whether it sits <i>beside</i> the work or <i>over</i> it. Resizing a window moves between these without losing anything — the same conversation, scroll position and unsent text.</p>
+  <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">
+    <div style="flex:1;min-width:420px"><div class="label muted tiny" style="margin-bottom:6px">WIDE (≥ 1280) — side by side, as above</div>
+      <div class="browser"><div class="app" style="height:300px"><div class="nav" style="width:120px">Nav</div><div class="canvas"><div class="body"><div class="col muted">Canvas</div></div></div><div class="dock" style="width:150px"><div class="head"><b>Conversation</b></div><div class="msgs"></div></div></div></div></div>
+    <div style="flex:1;min-width:360px"><div class="label muted tiny" style="margin-bottom:6px">MEDIUM (768–1279) — nav collapses to icons; the dock slides over the canvas</div>
+      <div class="browser"><div class="app" style="height:300px;position:relative"><div class="nav" style="width:44px;padding:8px 4px">⌂<br>💬<br>▦</div><div class="canvas"><div class="body"><div class="col muted">Canvas, full width while the dock is closed</div></div></div>
+        <div class="dock" style="position:absolute;right:0;top:0;bottom:0;width:62%;box-shadow:-8px 0 24px rgba(0,0,0,.12)"><div class="head"><b style="flex:1">Release checklist</b><span class="btn">›</span></div><div class="msgs"><div class="msg">…</div></div><div class="compose"><div class="box">Reply…</div></div></div></div></div></div>
+    <div style="width:220px"><div class="label muted tiny" style="margin-bottom:6px">NARROW (&lt; 768) — one at a time</div>
+      <div class="browser" style="width:220px"><div class="app" style="height:400px;flex-direction:column;font-size:11.5px">
+        <div class="bar" style="height:30px"><span>☰</span><b>Agenthix · Boards</b><span>🔔</span></div>
+        <div style="flex:1;padding:10px" class="muted">Canvas: the board</div>
+        <div style="margin:8px;border:1px solid var(--line);border-radius:999px;padding:6px 10px;display:flex;gap:6px;align-items:center;background:var(--panel);box-shadow:0 4px 14px rgba(0,0,0,.12)"><span class="av">K</span><b style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Release checklist</b><span style="width:7px;height:7px;border-radius:50%;background:var(--ok)"></span></div>
+      </div></div>
+      <div class="tiny muted" style="margin-top:6px">The conversation pill sits above the bottom edge on every screen; tap it and the conversation fills the screen, ‹ back returns to the work.</div></div>
+  </div>
+  <div class="note"><b>Is it still "conversation first" on a phone?</b> Where you start, yes: Home's box is at the bottom and starts a conversation, which opens full screen, as today. What changes is that going to a board or a task no longer leaves the conversation — it waits in the pill. So the phone gets the same model as desktop, not a separate one.</div>
+</section>
+
+<section id="questions">
+  <h2>7 · Questions — all answered</h2>
+  <p class="lede">The issue's five and two more, each answered on 2026-10-17. The <a href="#agreed">Agreed</a> list is the record.</p>
+
+  <div class="q"><h4>1. How is the open conversation shown and switched, without a second chat tree?</h4>
+    <div class="muted">A title and place chip in the dock's head; 🕘 opens a short recent list and <i>All conversations</i> (the full Chat view).</div>
+    <div class="opts" data-q="1"><div class="opt rec selected" data-choice="q1-recent" onclick="pick(this)">🕘 recent list + All conversations <span class="rec-label">agreed</span></div><div class="opt" data-choice="q1-chatonly" onclick="pick(this)">Only via the Chat page</div><div class="opt" data-choice="q1-tabs" onclick="pick(this)">Tabs of open conversations in the dock</div></div>
+    <div class="tiny muted" style="margin-top:6px">Why: switching is frequent, so one click from anywhere; the list is flat and short, so it doesn't become a navigation tree. Tabs grow into exactly that.</div></div>
+
+  <div class="q"><h4>2. On a project: a new-conversation shortcut, a list shortcut, or both?</h4>
+    <div class="opts"><div class="opt rec selected" data-choice="q2-both" onclick="pick(this)">Both — 💬 in the bar, and a Conversations tab <span class="rec-label">agreed · owner's suggestion</span></div><div class="opt" data-choice="q2-new" onclick="pick(this)">New only</div></div>
+    <div class="tiny muted" style="margin-top:6px">Why: the tab is today's project list, moved — nothing new to build, and it's where people look for a project's conversations. The Chat page keeps the place filter for everything across places; both open into the same dock, so there is still one open conversation.</div></div>
+
+  <div class="q"><h4>3. What happens to the open conversation when you move between projects or to settings?</h4>
+    <div class="opts"><div class="opt rec selected" data-choice="q3-stays" onclick="pick(this)">It stays; its chip shows where it lives <span class="rec-label">agreed</span></div><div class="opt" data-choice="q3-switch" onclick="pick(this)">It switches to that project's last conversation</div><div class="opt" data-choice="q3-ask" onclick="pick(this)">It stays, with a nudge to start one here</div></div>
+    <div class="tiny muted" style="margin-top:6px">Why: the issue rules out automatic context switches; the chip makes a mismatch visible, and the bar's 💬 shortcut is the explicit way to start one about the place you're on.</div></div>
+
+  <div class="q"><h4>4. How do the dock and the Chat page share selection, and what does collapse do?</h4>
+    <div class="opts"><div class="opt rec selected" data-choice="q4-one" onclick="pick(this)">One selection; collapse keeps it, rail shows activity <span class="rec-label">agreed</span></div><div class="opt" data-choice="q4-separate" onclick="pick(this)">Chat page opens conversations in the canvas, separate from the dock</div></div>
+    <div class="tiny muted" style="margin-top:6px">Why: one "open conversation" per person is the simplest model — choosing in Chat opens it in the dock, the URL carries it (<code>?c=</code>) so reload and back work, and a collapsed dock still shows work under way and approvals waiting.</div></div>
+
+  <div class="q"><h4>5. Is a focused project mode needed?</h4>
+    <div class="opts"><div class="opt rec selected" data-choice="q5-expand" onclick="pick(this)">No mode — ⤢ expands, › collapses; expanded gives way when you go somewhere; test first <span class="rec-label">agreed</span></div><div class="opt" data-choice="q5-mode" onclick="pick(this)">Yes, a focused project mode</div></div>
+    <div class="tiny muted" style="margin-top:6px">Why: expand and collapse cover "conversation only" and "work only" with no new mode; the issue makes the mode optional, so it waits for testing.</div></div>
+
+  <div class="q"><h4>6. (New) Today's Tools panel on a project — tabs in the canvas, or keep the panel?</h4>
+    <div class="opts"><div class="opt rec selected" data-choice="q6-tabs" onclick="pick(this)">Tabs in the canvas <span class="rec-label">agreed</span></div><div class="opt" data-choice="q6-panel" onclick="pick(this)">Keep the Tools panel beside the canvas</div></div>
+    <div class="tiny muted" style="margin-top:6px">Why: with the dock on the right, a second right-hand panel leaves the work squeezed between two panels; tabs give boards and timelines the full width. Same views, moved — shell-only.</div></div>
+
+  <div class="q"><h4>7. (New) On narrower windows — one model at every width, or a separate conversation-first phone layout?</h4>
+    <div class="opts"><div class="opt rec selected" data-choice="q7-one" onclick="pick(this)">One model: beside on wide, over on medium, a pill on narrow <span class="rec-label">agreed</span></div><div class="opt" data-choice="q7-phone" onclick="pick(this)">Keep today's place screens on phones</div></div>
+    <div class="tiny muted" style="margin-top:6px">Why: two models mean two sets of behaviour to learn and to build, and resizing a desktop window would jump between them. One rule — the open conversation never closes — holds everywhere; only its position changes. The phone app (Flutter) is separate and unaffected.</div></div>
+</section>
+
+<section id="needs">
+  <h2>What it takes: shell changes, and the gaps outside this issue</h2>
+  <table>
+    <tr><th style="width:30%">Shell-only (in scope)</th><th>From</th></tr>
+    <tr><td>The dock: header with place chip, 🕘, ＋, ⤢/⤡, ›; the collapsed rail; ⌘J</td><td>ConversationThread, WorkBar, MessageBox inside a new shell region in AppShell</td></tr>
+    <tr><td>One open conversation in the address (<code>?c=</code>), kept across navigation and reload</td><td>Shell state; today's thread pages become the dock's content</td></tr>
+    <tr><td>Project tabs in the canvas, Conversations among them</td><td>PlaceOverview, the tool views and NewConversationsList, moved out of the Tools panel; the Tools panel and LayoutControl retired</td></tr>
+    <tr><td>💬 Talk about &lt;project&gt; in the bar; ＋ with the place shown before writing</td><td>NewConversationBox, given a place picker built from places the person can already start in</td></tr>
+    <tr><td>Links in a conversation open in the canvas, and an expanded dock gives way</td><td>Existing routes; shell behaviour</td></tr>
+    <tr><td>Medium: dock slides over; narrow: the pill</td><td>Shell layout at the existing breakpoints</td></tr>
+  </table>
+  <h3>Possible gaps — to check, and if real, a separate decision</h3>
+  <ul class="tight">
+    <li><b>One list across places</b> for the Chat page and the 🕘 recent list: today each place lists its own conversations (Home's <i>Jump back in</i> already reads across them, so this may be there already).</li>
+    <li><b>Starting a conversation in a chosen place from anywhere</b>: today a conversation is started on its place's screen; the ＋ picker needs the same from the dock.</li>
+    <li><b>A task's own conversation</b> stays on the task page; the dock is yours. Two conversations on one screen is worth a look in testing.</li>
+  </ul>
+</section>
+
+<section id="agreed"><h2>Agreed</h2><ul class="tight">
+<li><b>The open conversation always stays</b>, wherever you go on desktop: other projects, Tasks, Settings, Home. Nothing switches it but you (owner, 2026-10-17).</li>
+<li><b>A reply keeps streaming, and voice keeps going, wherever you navigate.</b> The dock sits in the shell above the routes, so its subscription and the streaming reply stay mounted while the canvas changes; expand, collapse, slide-over and pill move it, never remount it. A reload rejoins with the running reply replayed, as the thread does today. Voice already carries on across pages through the shell's voice bar (owner, 2026-10-17).</li>
+<li><b>A new conversation asks for nothing</b>: place and agent are chips already filled in (the place you're on; its default agent, or your primary agent), changeable before the first message (owner, 2026-10-17).</li>
+<li><b>No focus mode.</b> ⤢ expands the conversation for reading and writing; going anywhere drops it back to docked, so it never hides where you went. › collapses it (owner, 2026-10-17).</li>
+<li><b>A project's tools are tabs across the canvas</b> — Overview · Conversations · Tasks · Boards · Timeline · Runs · Automation · Settings — the same views, given the full width. The Tools panel and the four-way layout control go; the dock's expand and collapse cover them (owner, 2026-10-17).</li>
+<li><b>One open conversation, always in the dock</b>: the Chat page and a project's Conversations tab both open into it, never into the canvas; it is in the address (<code>?c=</code>) so reload, back and links keep it; collapsing keeps it, the rail showing work under way and approvals waiting. People always know where the conversation is (owner, 2026-10-17).</li>
+<li><b>Switching is a history icon</b> (🕘) in the dock: your recent conversations, each with its place chip, and <i>All conversations</i> for the Chat page. No tabs (owner, 2026-10-17).</li>
+<li><b>One model at every width</b>: beside the work when wide, over it when medium, a pill when narrow; resizing never loses the conversation (owner, 2026-10-17: "it's consistent").</li>
+<li><b>A project's conversations are a Conversations tab</b> in its canvas, and 💬 in the bar starts a new one (owner, 2026-10-17).</li>
+</ul></section>
+<section id="changes"><h2>Changes</h2><ul class="tight"><li>2026-10-17 — streaming and voice continue across navigation (owner).</li><li>2026-10-17 — new conversation: place and agent as filled-in chips, agreed (owner); section 4 redrawn as step 1 and the optional place picker opening from its chip.</li><li>2026-10-17 — visuals brought in line with everything agreed: collapsed rail and Home drawn, questions closed.</li><li>2026-10-17 — no focus mode (owner); every question answered; what it takes listed.</li><li>2026-10-17 — expanded gives way on navigation (owner asked what happens; section 5b).</li><li>2026-10-17 — project tools as tabs; the Tools panel and layout control go (owner).</li><li>2026-10-17 — one shared selection, always in the dock (owner).</li><li>2026-10-17 — recent conversations behind a history icon (owner).</li><li>2026-10-17 — one model at every width (owner).</li><li>2026-10-17 — the open conversation always stays (owner); narrower windows drawn (section 6, question 7).</li><li>2026-10-17 — a project's conversations are a <b>Conversations</b> tab in its canvas (owner); question 2 becomes "both".</li><li>2026-10-17 — board started from the design review and today's shell (the every-screen-reviewed unit, as built).</li></ul></section>
+</main>
+</div>
+<script>
+function setTheme(t,b){document.documentElement.dataset.theme=t;document.querySelectorAll('.theme button').forEach(x=>x.classList.toggle('on',x===b))}
+function pick(el){el.parentElement.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');if(window.toggleSelect){try{toggleSelect(el)}catch(e){}}}
+</script>
+</body>
+</html>

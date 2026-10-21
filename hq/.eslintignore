@@ -1,0 +1,5 @@
+.wasp/
+node_modules/
+dist/
+build/
+**/*.pb

@@ -1,0 +1,17 @@
+#!/bin/sh
+# The `git` on the image's PATH, ahead of the real one in /usr/bin. Claude
+# Code and OpenCode start `git` from the PATH with their own permissions, in a
+# project folder an agent can write, and a repository's settings can name
+# programs git runs: hooks, core.fsmonitor, filter and diff drivers. So every
+# git runs through agenthix-contain, and whatever a repository names runs with
+# an agent command's reach, never the harness home, other processes or the
+# harness's secrets.
+#
+# A harness's git, started from outside any sandbox, where / can be listed,
+# also runs no hook and no file-system monitor: settings given with -c outrank
+# every configuration file. An agent's own git is already inside its sandbox,
+# where listing / is refused, and keeps the repository's hooks.
+if /bin/ls / >/dev/null 2>&1; then
+  exec /usr/local/lib/agenthix/bin/agenthix-contain /usr/bin/git -c core.hooksPath=/dev/null -c core.fsmonitor=false "$@"
+fi
+exec /usr/local/lib/agenthix/bin/agenthix-contain /usr/bin/git "$@"

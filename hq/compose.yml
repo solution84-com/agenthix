@@ -1,0 +1,80 @@
+# hq — the control plane: its web container, server and database (ADR-0067).
+#   docker compose -f hq/compose.yml --env-file hq/compose.env up -d --build
+# Publishes one plain-HTTP port. HTTPS is the machine's front door — yours,
+# or the optional one in front-door/.
+name: agenthix-hq
+
+services:
+  hq-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: agenthix
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${HQ_DB_PASSWORD:?Set HQ_DB_PASSWORD in hq/compose.env}
+    volumes:
+      - hq_db:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  hq-server:
+    build:
+      context: ..
+      dockerfile: hq/docker/Dockerfile
+      target: server
+    image: agenthix-hq-server
+    env_file: compose.env
+    environment:
+      PORT: "4101"
+      DATABASE_URL: postgresql://postgres:${HQ_DB_PASSWORD}@hq-db:5432/agenthix
+      WASP_SERVER_URL: ${HQ_URL:?Set HQ_URL in hq/compose.env}
+      WASP_WEB_CLIENT_URL: ${HQ_URL}
+      HQ_STORAGE_ROOT: /hq-storage
+      HQ_TRUSTED_PROXIES: ${HQ_TRUSTED_PROXIES:-1}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in hq/compose.env}
+      SECRETS_MASTER_KEY: ${SECRETS_MASTER_KEY:?Set SECRETS_MASTER_KEY in hq/compose.env (openssl rand -base64 32)}
+      HQ_PAIRING_SECRET: ${HQ_PAIRING_SECRET:-}
+      # Development-only; blanked so a stray line in compose.env cannot reach the container.
+      HQ_DEV_SHARED_SUBSCRIPTION: ""
+    volumes:
+      - hq_storage:/hq-storage
+    networks: [internal]
+    depends_on:
+      hq-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  hq-web:
+    build:
+      context: ..
+      dockerfile: hq/docker/Dockerfile
+      target: web
+    image: agenthix-hq-web
+    environment:
+      # Set into the browser app when hq-web starts (adr-0111).
+      HQ_URL: ${HQ_URL}
+      HQ_TRUSTED_PROXIES: ${HQ_TRUSTED_PROXIES:-1}
+      # Which hosts are previews, forwarded whole to hq-server (adr-0071).
+      PREVIEW_DOMAIN: ${PREVIEW_DOMAIN:-}
+      # Uploaded files' own origin, whose host it answers with files alone (adr-0114).
+      FILES_ORIGIN: ${FILES_ORIGIN:-}
+    ports:
+      - "${HQ_BIND:-127.0.0.1}:${HQ_PORT:-4100}:4100"
+    networks: [internal, edge]
+    depends_on: [hq-server]
+    restart: unless-stopped
+
+networks:
+  internal: {}
+  # A front door on this machine — ours in front-door/, or your own — joins
+  # this network to reach hq-web by name.
+  edge:
+    name: agenthix-edge
+
+volumes:
+  hq_db:
+  hq_storage:

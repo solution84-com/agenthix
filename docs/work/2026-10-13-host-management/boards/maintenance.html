@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Host management · Plan maintenance</title>
+<link rel="stylesheet" href="board.css">
+<style>
+  /* Plan maintenance: drawn in the boards' page tokens, so the Light/Dark switch turns it too. */
+  .mt .page { display:flex; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg-primary); font-size:12px; margin:10px 0; }
+  .mt .page .under { flex:1; padding:12px 14px; opacity:.55; min-width:0; }
+  .mt .page h5 { margin:0; font-size:15px; }
+  .mt .lede { color:var(--text-secondary); font-size:11.5px; margin:2px 0 10px; }
+  .mt .row { border:1px solid var(--border); border-radius:8px; padding:7px 10px; margin:5px 0; }
+  .mt .row .t { font-weight:600; } .mt .row .s { color:var(--text-secondary); font-size:11px; }
+  .mt .btn { display:inline-block; border:1px solid var(--border); border-radius:7px; padding:3px 9px; font-size:11.5px; background:var(--bg-tertiary); white-space:nowrap; }
+  .mt .btn.p { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .mt .btn.d { color:var(--error); border-color:var(--error); background:transparent; }
+  .mt .sheet { width:360px; flex:none; border-left:2px solid var(--border); padding:14px 16px; background:var(--bg-secondary); }
+  .mt .sheet h6 { margin:0 0 10px; font-size:15px; display:flex; justify-content:space-between; align-items:center; }
+  .mt .lab { font-size:11px; font-weight:600; color:var(--text-secondary); margin:10px 0 3px; }
+  .mt .dd { border:1px solid var(--border); border-radius:7px; padding:5px 9px; display:flex; justify-content:space-between; background:var(--bg-primary); }
+  .mt .menu { border:1px solid var(--border); border-radius:7px; margin-top:2px; background:var(--bg-primary); }
+  .mt .menu div { padding:5px 9px; border-bottom:1px solid var(--border); } .mt .menu div:last-child { border:0; } .mt .menu .s { color:var(--text-secondary); font-size:11px; }
+  .mt .seg { display:flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; } .mt .seg span { flex:1; text-align:center; padding:5px; } .mt .seg .on { background:var(--selected-bg); font-weight:600; }
+  .mt .hint { font-size:11px; color:var(--text-secondary); margin-top:3px; }
+  .mt .field { border:1px solid var(--border); border-radius:6px; padding:3px 8px; margin:3px 0; color:var(--text-secondary); }
+  .mt .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .mt .whyb { border-left:3px solid var(--accent); padding:6px 12px; margin-top:10px; }
+  .mt .whyb h6 { margin:0 0 4px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-secondary); }
+  .mt .whyb p { font-size:13px; margin:5px 0; }
+  @media (max-width:900px){ .mt .page { flex-direction:column; } .mt .sheet { width:auto; border-left:0; border-top:2px solid var(--border); } }
+</style>
+</head>
+<body>
+<div class="bd-wrap">
+<nav class="bd-nav">
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Start</span><em>3</em></button><div class="bd-gl">
+    <a href="index.html#ui-scope">What these boards cover</a>
+    <a href="index.html#tones">The look</a>
+    <a href="index.html#ui-defaults">Defaults in the design</a>
+  </div></div>
+  <div class="bd-g open"><button type="button" class="bd-gh"><i>›</i><span>The redesign</span><em>2</em></button><div class="bd-gl">
+    <a href="redesign.html#rd-pages">Pages for HQ and the sites</a>
+    <a href="maintenance.html#rd-maintenance" class="bd-on">Plan maintenance</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Fleet Console · frame</span><em>4</em></button><div class="bd-gl">
+    <a href="frame.html#hm-site">The console site</a>
+    <a href="frame.html#hm-fleet-1">The shell · superseded</a>
+    <a href="frame.html#hm-access-1">Opening the Fleet Console</a>
+    <a href="frame.html#hm-fleet-account">Your account</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Fleet</span><em>1</em></button><div class="bd-gl">
+    <a href="fleet.html#hm-fleet-2">Fleet — overview and site cards · superseded</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Sites</span><em>8</em></button><div class="bd-gl">
+    <a href="sites.html#hm-fleet-3">A site's page · superseded</a>
+    <a href="sites.html#hm-fleet-5">Add a site</a>
+    <a href="sites.html#hm-fleet-4">Editing capacity; protections as a fact · superseded in part</a>
+    <a href="sites.html#hm-fleet-7">Disconnecting a machine</a>
+    <a href="sites.html#hm-fleet-8">A Cloud site and its machine, before and after signing in to Cloud</a>
+    <a href="sites.html#hm-access-5">Cloud in the Fleet Console</a>
+    <a href="sites.html#hm-fleet-10">Connecting the organisation to Agenthix Cloud</a>
+    <a href="sites.html#hm-ops-10">Moving a site · superseded in part</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>HQ's site</span><em>4</em></button><div class="bd-gl">
+    <a href="hq-site.html#hm-ops-1">HQ's site · superseded</a>
+    <a href="hq-site.html#hm-ops-5">hq's address and the front door</a>
+    <a href="hq-site.html#hm-ops-4">Moving hq · superseded in part</a>
+    <a href="hq-site.html#hm-ops-8">Suspend, resume and erase · superseded in part</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Scheduled</span><em>2</em></button><div class="bd-gl">
+    <a href="scheduled.html#hm-ops-6">Scheduled · superseded</a>
+    <a href="scheduled.html#hm-ops-7">An upgrade, running and rolled back</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Backups</span><em>4</em></button><div class="bd-gl">
+    <a href="backups.html#hm-ops-9">Backups — the journeys</a>
+    <a href="backups.html#hm-fleet-9">The backup location: shown here, set on the machine</a>
+    <a href="backups.html#hm-ops-2">Backups · superseded in part</a>
+    <a href="backups.html#hm-ops-3">Exporting a backup</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Activity</span><em>1</em></button><div class="bd-gl">
+    <a href="activity.html#hm-access-6">Notices: exports, erases and remote sessions · superseded in part</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Fleet admins</span><em>2</em></button><div class="bd-gl">
+    <a href="fleet-admins.html#hm-access-2">The fleet admin role</a>
+    <a href="fleet-admins.html#hm-access-3">Signing in, and fleet admins</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Remote access</span><em>1</em></button><div class="bd-gl">
+    <a href="remote-access.html#hm-access-4">Remote access</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>HQ · Execution Sites</span><em>6</em></button><div class="bd-gl">
+    <a href="hq.html#hq-sites-1">Where work runs — the list · superseded in part</a>
+    <a href="hq.html#hq-sites-2">A site's status</a>
+    <a href="hq.html#hq-sites-6">The built-in site, when it is not connected</a>
+    <a href="hq.html#hq-sites-7">Scheduled changes, as members see them · superseded in part</a>
+    <a href="hq.html#hq-sites-8">After hq moves, and uploads on a bare network address</a>
+    <a href="hq.html#hq-sites-9">The fleet admin role, as hq shows it</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>CLI</span><em>8</em></button><div class="bd-gl">
+    <a href="cli.html#cli-1">Installing Agenthix on a machine</a>
+    <a href="cli.html#cli-2">agenthix status — the hq and the site on a machine</a>
+    <a href="cli.html#cli-3">The machine's way into hq</a>
+    <a href="cli.html#cli-4">The Fleet Console from the command line</a>
+    <a href="cli.html#cli-5">The site on a machine</a>
+    <a href="cli.html#cli-6">Warnings that ask before acting</a>
+    <a href="cli.html#cli-7">agenthix help — every command</a>
+    <a href="cli.html#cli-8">Backups: the backup location and restoring</a>
+  </div></div>
+  <div class="bd-th"><button type="button" data-t="l">Light</button><button type="button" data-t="d">Dark</button></div>
+</nav>
+<main class="bd-main">
+<section id="rd-maintenance" class="bd-page it mt" style="display:block">
+<h2>Plan maintenance — one panel, everything visible, nothing starts over</h2>
+<p class="subtitle">Agreed with the owner on 2026-10-16, after trying the first build live, and built that day. It replaces the earlier <a href="scheduled.html#hm-ops-6">Scheduled</a> board and each action's <i>Now, or schedule for later?</i>, marked as superseded where they stand. Spec §14, §15; the redesign's pages are on <a href="redesign.html#rd-pages">The redesign</a>.</p>
+<h3>What this is</h3>
+<div class="ctx"><ul><li><b>Maintenance</b> is the work done to HQ or a site: an upgrade, a change of capacity, a move, a suspend — now, or at a time members are told of.</li><li><b>Plan maintenance</b> opens as a panel beside the page you are on, like the notices panel, so the list — or the site — stays in view. <b>Which</b> and <b>What</b> are drop-downs, always there and always changeable; the chosen kind's fields appear below; <b>When</b> is a clear choice of two, saying what members will see; one button whose words follow When.</li><li>It opens from <i>+ Plan maintenance</i> on the Maintenance page, and from the one <i>Plan maintenance…</i> button on HQ's page and on each site's page. Erase stays its own button on HQ's page.</li></ul></div>
+<h3>Before</h3>
+<div class="ctx"><ul><li>First, each change was its own action on the machine's page, three levels deep, and the Scheduled tab only listed what was planned.</li><li>Then a <i>Make a change</i> page of its own: 1 Which → 2 What → 3 the form, ending in a small <i>Now / At a time…</i>. Pressing <i>Change…</i> on a step started over, so the person lost their place; from a site's page, <i>Change capacity…</i> and <i>Upgrade…</i> each opened it with a different thing preselected, and once there you could not switch between them. The button's words changed with each form.</li></ul></div>
+
+<h3>After — Plan maintenance from the Maintenance page</h3>
+<div class="page">
+  <div class="under"><h5>Maintenance</h5><div class="lede">Upgrades, moves and other work on HQ and the sites: what is planned, and when members are told</div><div class="row"><div class="t">Upgrade office-server to 0.3.0</div><div class="s">Sat 02:00 · members told from now</div></div></div>
+  <div class="sheet">
+    <h6>Plan maintenance <span class="btn">✕</span></h6>
+    <div class="lab">Which</div><div class="dd"><span><b>lab-01</b> · Site</span><span>▾</span></div>
+    <div class="lab">What</div><div class="dd"><span><b>Change capacity</b></span><span>▾</span></div>
+    <div class="menu"><div><b>Upgrade</b><div class="s">To a newer version, backed up first and rolled back if it does not come up healthy.</div></div><div><b>Change capacity</b><div class="s">What each agent run gets, and how many run at once.</div></div><div><b>Move</b><div class="s">To another machine, with everything it holds.</div></div></div>
+    <div class="hint">The What list, opened: changing it swaps the fields below and keeps Which.</div>
+    <div class="lab">Each run gets at most</div>
+    <div class="grid2"><div class="field">Memory 2 GB</div><div class="field">Processors 2</div><div class="field">Processes 4096</div><div class="field">Runs at once 1</div></div>
+    <div class="lab">When</div>
+    <div class="seg"><span class="on">Now</span><span>At a time…</span></div>
+    <div class="hint">Now: new runs get these limits at once; runs already going keep theirs.</div>
+    <div style="margin-top:12px"><span class="btn p">Do it now</span></div>
+  </div>
+</div>
+
+<h3>After — from a site's page</h3>
+<div class="page">
+  <div class="under"><h5>lab-01 · Site</h5><div class="lede">Healthy · connected since 1 Oct</div><div style="display:flex;gap:5px;flex-wrap:wrap"><span class="btn">Plan maintenance…</span><span class="btn">Back up now</span><span class="btn">Logs</span><span class="btn">Notify…</span><span class="btn d">Disconnect…</span></div></div>
+  <div class="sheet">
+    <h6>Plan maintenance <span class="btn">✕</span></h6>
+    <div class="lab">Which</div><div class="dd"><span><b>lab-01</b> · Site</span><span>▾</span></div>
+    <div class="lab">What</div><div class="dd"><span style="color:var(--text-secondary)">Choose what to do</span><span>▾</span></div>
+    <div class="hint">From a site's page, Which is that site; What is yours to choose.</div>
+  </div>
+</div>
+
+<h3>After — at a time</h3>
+<div class="page">
+  <div class="under"><h5>HQ</h5><div class="lede">Healthy — people can sign in · up 21 days · on hq-box, with this Fleet Console</div></div>
+  <div class="sheet">
+    <h6>Plan maintenance <span class="btn">✕</span></h6>
+    <div class="lab">Which</div><div class="dd"><span><b>HQ</b> · HQ</span><span>▾</span></div>
+    <div class="lab">What</div><div class="dd"><span><b>Upgrade</b></span><span>▾</span></div>
+    <div class="lab">Upgrade to version</div><div class="field">0.3.0</div><div class="hint">The machine checks it is published and newer than what runs.</div>
+    <div class="lab">When</div>
+    <div class="seg"><span>Now</span><span class="on">At a time…</span></div>
+    <div class="field">Sat 18 Oct · 02:00</div>
+    <div class="hint">Members whose work it affects see a notice from now; a few minutes before, runs pause after their step.</div>
+    <div style="margin-top:12px"><span class="btn p">Schedule for Sat 02:00</span></div>
+  </div>
+</div>
+<div class="ctx"><ul><li><b>What each thing offers:</b> HQ — Upgrade, Change capacity, Move, Suspend; a site — Upgrade, Change capacity, Move; HQ's own site — Change capacity only, since it upgrades and moves with HQ. Choosing a thing that does not offer the chosen kind clears What and says why (<i>"hq-box upgrades with HQ: choose HQ for that."</i>).</li><li><b>A thing that cannot take work now</b> — not answering, in a move, or HQ suspended — says why in its hint.</li><li><b>The button</b> reads <i>Do it now</i>, or <i>Schedule for</i> the day and time; it is in the danger style for Suspend. The machine's answer — working, done, scheduled, refused — shows in the panel.</li><li><b>A move</b> started in the panel is followed on its own page, and a move's notice opens its outcome.</li></ul></div>
+
+<div class="whyb"><h6>Why</h6>
+  <p><b>Nothing starts over.</b> Every choice stays on screen and can be changed in place; changing What keeps Which, and changing Which keeps What when the new one allows it. There are no steps, so there is no place to lose. What was typed is kept while the panel is open; closing it forgets it.</p>
+  <p><b>A drop-down shows the current choice and the others at once</b> — you always see where you are and what else you could pick.</p>
+  <p><b>The page you came from stays visible</b> beside the panel, so you can check what is already planned, or the site's figures, while deciding. Closing it leaves you exactly where you were.</p>
+  <p><b>One door from a site:</b> a single <i>Plan maintenance…</i> button that knows which site, instead of a button per change that each pre-chooses a different thing.</p>
+  <p><b>When says what members will see</b>, and the button says what will happen: <i>Do it now</i> or <i>Schedule for Sat 02:00</i> — the same words for every kind of maintenance.</p>
+</div>
+</section>
+</main>
+</div>
+<script src="boards.js"></script>
+</body>
+</html>

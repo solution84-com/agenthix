@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Sign-in and onboarding — today, numbered · living design</title>
+<style>
+  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --s3:#e6e6ee; --hover:#ebebf3;
+    --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0;
+    --accent:#6366f1; --accent-h:#4f46e5; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --danger:#dc2626;
+    --ok-line:#05966955; --warn-line:#b4530955;
+    --scrim:#0000004d; --cover-ink:#ffffff; --cover-shade:linear-gradient(transparent 35%, #0f0f1acc);
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --s3:#242436; --hover:#2a2a40;
+    --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078;
+    --accent:#6366f1; --accent-h:#818cf8; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --ok-line:#34d39955; --warn-line:#fbbf2455;
+    --scrim:#00000080; --cover-ink:#ffffff; --cover-shade:linear-gradient(transparent 35%, #000000d0);
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:820px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:28px 0 10px; }
+  .h-sec { font-size:18px; line-height:26px; font-weight:600; margin:40px 0 4px; }
+  .h-sec + p { color:var(--t2); margin:0 0 8px; max-width:900px; }
+  .cap { font-size:12px; line-height:16px; color:var(--t3); margin-top:8px; }
+  .cap code, .tl code, td code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .mutt { color:var(--t3); } .okt { color:var(--ok); } .warnt { color:var(--warn); }
+  .frame { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+
+  /* app shell (for frames after sign-in) */
+  .desk { display:grid; grid-template-columns:220px 1fr; min-height:620px; }
+  .nav { background:var(--s0); border-right:1px solid var(--border-subtle); padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .logo { font-weight:600; font-size:15px; padding:4px 8px 14px; display:flex; gap:8px; align-items:center; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; color:var(--t2); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+  .nav a.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .nav .sec { font-size:12px; color:var(--t3); padding:14px 8px 4px; display:flex; justify-content:space-between; }
+  .nav .me { margin-top:auto; border-top:1px solid var(--border-subtle); padding-top:8px; display:flex; flex-direction:column; gap:2px; }
+  .work { display:grid; grid-template-rows:auto 1fr; min-width:0; background:var(--s1); }
+  .wbar { display:flex; align-items:center; padding:8px 16px 8px 32px; border-bottom:1px solid var(--border-subtle); font-size:13px; color:var(--t3); min-height:41px; }
+  .page { padding:24px 40px; }
+  .composer { border:1px solid var(--border); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:center; background:var(--s1); }
+  .composer.focus { border-color:var(--accent); }
+  .composer .ph { flex:1; color:var(--t3); font-size:15px; }
+  .chip { font-size:12px; color:var(--t2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .send { width:30px; height:30px; border-radius:8px; background:var(--accent); flex:none; }
+  .bp { font-size:13px; border-radius:6px; padding:5px 12px; border:1px solid var(--border); background:var(--s1); color:var(--t1); white-space:nowrap; display:inline-flex; align-items:center; gap:6px; }
+  .bp.pri { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .bp.wide { width:100%; justify-content:center; padding:9px 12px; font-size:14px; font-weight:500; }
+  .lk { color:var(--accent); text-decoration:none; }
+  .av { width:32px; height:32px; border-radius:50%; flex:none; color:#fff; font-size:12px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+  .av.sm { width:22px; height:22px; font-size:10px; }
+  .av.sq { border-radius:8px; }
+
+  /* the sign-in surface */
+  .auth { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); height:680px; }
+  .auth.short { height:560px; }
+  .cover { position:relative; background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 45%,#0ea5e9 100%); overflow:hidden; }
+  .cover::after { content:''; position:absolute; inset:0; background:var(--cover-shade); }
+  .cover .id { position:absolute; left:40px; right:40px; bottom:36px; z-index:1; color:var(--cover-ink); }
+  .cover .pic { width:72px; height:72px; border-radius:18px; background:#ffffff; color:#6366f1; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:700; box-shadow:0 6px 20px #0003; margin-bottom:14px; }
+  .cover .nm { font-size:28px; line-height:36px; font-weight:700; }
+  .cover .hd { font-size:13px; opacity:.85; }
+  .cover .vs { font-size:15px; line-height:24px; margin-top:10px; max-width:440px; opacity:.95; }
+  .cover.plain { background:linear-gradient(135deg,#334155,#475569); }
+  .side { display:flex; flex-direction:column; justify-content:center; padding:24px 44px 48px; background:var(--s1); position:relative; }
+  .side .inner { width:100%; max-width:380px; margin:0 auto; }
+  .side h2 { font-size:24px; line-height:32px; margin:0 0 4px; font-weight:600; }
+  .side .lead { color:var(--t2); margin:0 0 20px; }
+  .fl { font-size:13px; color:var(--t2); font-weight:500; margin:14px 0 6px; display:flex; justify-content:space-between; }
+  .fl span { font-weight:400; color:var(--t3); }
+  .fld { border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:14px; background:var(--s1); color:var(--t1); }
+  .fld.ph { color:var(--t3); } .fld.on { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-sub); }
+  .fld.mono { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:13px; }
+  .hint { font-size:12px; line-height:16px; color:var(--t3); margin-top:5px; }
+  .row2 { display:flex; justify-content:space-between; align-items:center; margin:14px 0 18px; font-size:13px; color:var(--t2); }
+  .cb { display:inline-flex; gap:8px; align-items:center; } .cb i { width:15px; height:15px; border-radius:4px; border:1px solid var(--border); display:inline-block; } .cb i.on { background:var(--accent); border-color:var(--accent); }
+  .foot { position:absolute; left:0; right:0; bottom:16px; text-align:center; font-size:12px; color:var(--t3); }
+  .steps { display:flex; gap:6px; margin-bottom:22px; } .steps i { flex:1; height:3px; border-radius:2px; background:var(--s3); } .steps i.on { background:var(--accent); }
+  .stepn { font-size:12px; color:var(--t3); font-weight:500; margin-bottom:4px; }
+  .who { display:flex; gap:10px; align-items:center; padding:10px 12px; border:1px solid var(--border-subtle); border-radius:10px; margin-bottom:6px; font-size:13px; color:var(--t2); }
+  .who b { color:var(--t1); font-weight:500; }
+  .state { display:flex; gap:10px; align-items:flex-start; font-size:13px; line-height:18px; padding:10px 12px; border:1px solid var(--border-subtle); border-radius:10px; margin-top:12px; color:var(--t2); }
+  .state b { color:var(--t1); font-weight:500; }
+  .state.ok { border-color:var(--ok-line); } .state.warn { border-color:var(--warn-line); }
+  .dot { width:8px; height:8px; border-radius:50%; flex:none; margin-top:5px; background:var(--t3); }
+  .dot.ok { background:var(--ok); } .dot.warn { background:var(--warn); }
+  .choice { border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-top:10px; }
+  .choice.sel { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .choice b { font-weight:600; } .choice .d { font-size:13px; color:var(--t2); margin-top:2px; }
+  .skip { text-align:center; margin-top:14px; font-size:13px; }
+  .upl { display:flex; gap:14px; align-items:center; }
+  .upl .p { width:56px; height:56px; border-radius:14px; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; color:var(--t3); font-size:22px; }
+
+  /* preview card in setup */
+  .prev { border:1px solid var(--border); border-radius:12px; overflow:hidden; width:300px; background:var(--s1); }
+  .prev .c { height:90px; background:linear-gradient(135deg,#6366f1,#8b5cf6 45%,#0ea5e9); position:relative; }
+  .prev .p { position:absolute; left:14px; bottom:-20px; width:44px; height:44px; border-radius:11px; background:#ffffff; color:#6366f1; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:20px; box-shadow:0 2px 8px #0003; }
+  .prev .b { padding:26px 14px 14px; font-size:13px; } .prev .b b { font-size:16px; }
+  .prev .f { margin-top:10px; display:flex; flex-direction:column; gap:6px; } .prev .f i { display:block; height:22px; border:1px solid var(--border-subtle); border-radius:6px; } .prev .f i.btn { background:var(--accent); border-color:var(--accent); }
+
+  /* phone */
+  .phones { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:340px; height:700px; border:1px solid var(--border); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; background:var(--s1); position:relative; flex:none; }
+  .phone .cover { height:170px; flex:none; }
+  .phone .cover .id { left:20px; right:20px; bottom:16px; display:flex; gap:12px; align-items:center; }
+  .phone .cover .pic { width:52px; height:52px; font-size:22px; border-radius:13px; margin:0; }
+  .phone .cover .nm { font-size:20px; line-height:26px; }
+  .pbody { padding:20px 20px; flex:1; overflow:hidden; position:relative; }
+  .pbody h2 { font-size:20px; line-height:28px; margin:0 0 4px; font-weight:600; }
+  .pbody .lead { color:var(--t2); margin:0 0 6px; font-size:14px; }
+  .mhead { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-subtle); }
+  .mhead .t { font-weight:600; flex:1; }
+  .pnote { max-width:380px; color:var(--t2); font-size:14px; }
+  .pnote b { color:var(--t1); font-weight:500; }
+
+  /* today mini screens */
+  .todays { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+  .tcard { border:1px solid var(--border-subtle); border-radius:12px; background:var(--s0); padding:14px; display:flex; flex-direction:column; align-items:center; min-height:300px; }
+  .tcard .tt { font-size:12px; font-weight:500; color:var(--t3); align-self:flex-start; margin-bottom:10px; text-transform:uppercase; letter-spacing:.04em; }
+  .tbox { width:100%; max-width:260px; background:var(--s1); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:0 10px 30px #0000001a; font-size:12px; line-height:16px; }
+  .tbox .lg { text-align:center; font-weight:700; font-size:14px; } .tbox .sub { text-align:center; color:var(--t2); margin:4px 0 10px; font-size:11px; }
+  .tbox .f { border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--t3); margin-top:4px; font-size:11px; }
+  .tbox .lb { color:var(--t3); margin-top:8px; font-size:11px; }
+  .tbox .b { background:var(--accent); color:var(--on-accent); border-radius:6px; text-align:center; padding:6px; margin-top:10px; font-weight:600; font-size:11px; }
+  .tbox .ok { border:1px solid var(--ok-line); color:var(--ok); border-radius:6px; padding:4px 8px; font-size:11px; }
+  .tbox .rl { display:inline-block; border:1px solid var(--warn-line); color:var(--warn); border-radius:999px; padding:1px 8px; margin-top:6px; font-size:11px; }
+  .tbelow { font-size:11px; color:var(--t3); margin-top:10px; text-align:center; }
+  .pips { display:flex; gap:4px; width:100%; max-width:260px; margin-bottom:8px; } .pips i { flex:1; height:2px; background:var(--s3); } .pips i.on { background:var(--accent); } .pips i.done { background:var(--ok); }
+
+  /* flow map */
+  .map { border:1px solid var(--border); border-radius:12px; background:var(--s1); padding:18px 20px; }
+  .lane { display:grid; grid-template-columns:170px 1fr; gap:14px; align-items:center; padding:12px 0; border-top:1px solid var(--border-subtle); }
+  .lane:first-child { border-top:none; }
+  .lane .who2 { font-weight:600; font-size:14px; } .lane .who2 div { font-weight:400; font-size:12px; color:var(--t3); line-height:16px; margin-top:2px; }
+  .flow { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+  .st { border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:13px; line-height:17px; background:var(--s1); max-width:200px; }
+  .st small { display:block; font-size:11px; color:var(--t3); line-height:14px; }
+  .st.opt { border-style:dashed; }
+  .st.end { border-color:var(--accent); background:var(--accent-sub); font-weight:500; }
+  .ar { color:var(--t3); font-size:14px; }
+  .legend { display:flex; gap:16px; font-size:12px; color:var(--t3); margin-top:10px; } .legend span { display:inline-flex; gap:6px; align-items:center; }
+  .legend i { width:22px; height:12px; border:1px solid var(--border); border-radius:3px; display:inline-block; } .legend i.d { border-style:dashed; } .legend i.e { border-color:var(--accent); background:var(--accent-sub); }
+
+  /* options */
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .optc { border:1px solid var(--border); border-radius:12px; padding:16px; background:var(--s1); }
+  .optc.rec { border-color:var(--accent); }
+  .optc h4 { margin:0 0 4px; font-size:15px; } .optc .o { font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.04em; text-transform:uppercase; }
+  .optc p { color:var(--t2); margin:6px 0; font-size:13px; }
+  .mini { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; margin-top:10px; background:var(--s1); font-size:13px; }
+  .mini .h { font-weight:600; margin-bottom:6px; }
+  .linkbox { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; border:1px solid var(--border); border-radius:6px; padding:6px 8px; color:var(--t2); background:var(--s2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* edge cards */
+  .edges { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+  .edge { border:1px solid var(--border); border-radius:12px; background:var(--s1); overflow:hidden; }
+  .edge .c { height:56px; background:linear-gradient(135deg,#6366f1,#8b5cf6 45%,#0ea5e9); position:relative; }
+  .edge .c .p { position:absolute; left:14px; bottom:-16px; width:36px; height:36px; border-radius:9px; background:#ffffff; color:#6366f1; display:flex; align-items:center; justify-content:center; font-weight:700; box-shadow:0 2px 8px #0003; }
+  .edge .b { padding:24px 14px 14px; font-size:13px; color:var(--t2); } .edge .b b { color:var(--t1); font-size:14px; display:block; margin-bottom:4px; }
+  .edge .acts { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+  .edge .when { font-size:11px; color:var(--t3); text-transform:uppercase; letter-spacing:.04em; font-weight:500; margin-bottom:4px; }
+
+  /* tables, notes */
+  .wtable { width:100%; border-collapse:collapse; font-size:14px; background:var(--s1); border:1px solid var(--border); border-radius:12px; }
+  .wtable th { text-align:left; font-size:12px; font-weight:500; color:var(--t3); padding:8px 12px; border-bottom:1px solid var(--border-subtle); }
+  .wtable td { padding:8px 12px; border-top:1px solid var(--border-subtle); vertical-align:top; }
+  .wtable td.p { font-size:12px; color:var(--t3); }
+  .notes { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:16px; }
+  .note { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); }
+  .note h3 { margin:0 0 8px; font-size:15px; line-height:22px; }
+  .note ul, .note ol { margin:0; padding-left:18px; color:var(--t2); }
+  .note li { margin-bottom:8px; }
+  .note li b { color:var(--t1); font-weight:500; }
+  .note.open { border-color:var(--warn-line); }
+  .note.agreed { border-color:var(--ok-line); }
+  .gaps { columns:2; column-gap:28px; color:var(--t2); padding-left:18px; margin:0; }
+  .gaps li { margin-bottom:8px; break-inside:avoid; } .gaps li b { color:var(--t1); font-weight:500; }
+
+  /* conversation (first conversation frame) */
+  .col { max-width:680px; margin:0 auto; }
+  .turn { margin-bottom:20px; font-size:15px; line-height:24px; }
+  .turn .h { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--t3); margin-bottom:6px; }
+  .turn .h b { color:var(--t1); font-weight:600; }
+  .turn.you { text-align:right; } .turn.you .txt { background:var(--s2); border-radius:12px; padding:10px 14px; display:inline-block; text-align:left; }
+  .turn .txt p { margin:0 0 8px; } .turn .txt ul { margin:0 0 8px; padding-left:20px; }
+  .sugg { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:14px; }
+  .sugg span { font-size:13px; border:1px solid var(--border); border-radius:999px; padding:6px 12px; color:var(--t1); background:var(--s1); }
+  .sig { display:flex; gap:8px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
+  .sig .bp { color:var(--t2); }
+  .orow { display:flex; align-items:center; gap:12px; padding:10px 8px; border-bottom:1px solid var(--border-subtle); }
+  .orow .t { font-weight:500; } .orow .l { font-size:13px; color:var(--t2); }
+  .orow .f { margin-left:auto; font-size:13px; color:var(--t3); white-space:nowrap; }
+
+  /* before / after */
+  .ba { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; align-items:start; }
+  .ba.one { grid-template-columns:minmax(0,1fr); }
+  @media (max-width:900px) { .ba { grid-template-columns:minmax(0,1fr); } }
+  .bigtag { display:inline-flex; align-items:center; gap:8px; font-size:14px; line-height:20px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:5px 14px; border-radius:6px; margin-bottom:8px; }
+  .bigtag.before { background:var(--s3); color:var(--t1); }
+  .bigtag.after { background:var(--accent); color:var(--on-accent); }
+  .bigtag.new { background:var(--accent-sub); color:var(--accent); border:1px dashed var(--accent); }
+  .bigtag small { font-size:12px; font-weight:500; letter-spacing:0; text-transform:none; opacity:.85; }
+  .fit { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .fit > .in { width:900px; }
+  .fit .num { min-width:30px; height:30px; border-radius:15px; font-size:16px; }
+  .feat { margin-top:36px; padding-top:20px; border-top:1px solid var(--border); }
+  .feat > h2 { font-size:18px; line-height:26px; margin:0 0 4px; font-weight:600; }
+  .feat > p { color:var(--t2); margin:0 0 14px; max-width:900px; }
+  .num { display:inline-flex; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:var(--t1); color:var(--s1); font-size:12px; font-weight:700; align-items:center; justify-content:center; flex:none; vertical-align:middle; letter-spacing:0; text-transform:none; }
+  .facts3 { font-size:13px; color:var(--t2); margin-top:10px; padding-left:18px; }
+  .facts3 li { margin-bottom:5px; } .facts3 b { color:var(--t1); font-weight:500; }
+  .facts3 code, .why code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .why { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); margin-top:14px; }
+  .why h3 { margin:0 0 8px; font-size:15px; }
+  .why ul { margin:0; padding-left:18px; color:var(--t2); } .why li { margin-bottom:6px; } .why li b { color:var(--t1); font-weight:500; }
+  .nothing { border:1px dashed var(--border); border-radius:12px; padding:28px; text-align:center; color:var(--t3); background:var(--s0); }
+  .nothing b { display:block; color:var(--t2); font-size:15px; margin-bottom:4px; }
+
+  /* today's screens, drawn as the app does them */
+  .oldpg { background:var(--s0); height:620px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; position:relative; }
+  .oldpg.tall { height:760px; }
+  .oldcard { width:448px; background:var(--s1); border:1px solid var(--border); border-radius:16px; padding:32px 36px; box-shadow:0 24px 48px #00000026; }
+  .oldlogo { text-align:center; font-weight:700; font-size:20px; display:flex; gap:8px; justify-content:center; align-items:center; }
+  .oldsub { text-align:center; color:var(--t2); font-size:13px; margin:8px 0 18px; }
+  .oldh { font-size:18px; font-weight:600; text-align:center; margin:4px 0 6px; }
+  .olderr { color:var(--danger); font-size:13px; margin-top:8px; }
+  .waspErr { border:1px solid var(--danger); color:var(--danger); border-radius:8px; padding:8px 12px; font-size:13px; margin:6px 0 4px; }
+  .verified { border:1px solid var(--ok-line); color:var(--ok); border-radius:8px; padding:6px 10px; font-size:13px; display:flex; justify-content:space-between; }
+  .verified span:last-child { color:var(--t3); }
+  .rolechip { display:inline-flex; gap:6px; align-items:center; color:var(--warn); border:1px solid var(--warn-line); border-radius:999px; padding:2px 10px; font-size:12px; font-weight:600; margin-top:10px; }
+  .oldbelow { font-size:12px; color:var(--t3); margin-top:16px; }
+  .oldpips { display:flex; gap:6px; width:576px; margin-bottom:28px; } .oldpips i { flex:1; height:2px; border-radius:1px; background:var(--s3); } .oldpips i.on { background:var(--accent); } .oldpips i.done { background:var(--ok); }
+  .oldicon { width:64px; height:64px; border-radius:16px; background:var(--accent); color:var(--on-accent); display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 14px; }
+  .oldicon.ok { background:var(--ok); }
+  .banner { padding:10px 32px; border-bottom:1px solid var(--warn-line); color:var(--warn); font-size:14px; background:var(--s1); }
+  .banner u { font-weight:500; }
+  .signal { font-size:13px; border:1px solid var(--border-subtle); border-radius:999px; padding:4px 12px; color:var(--t2); }
+  .annot { position:absolute; display:flex; gap:6px; align-items:center; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="boardhead">
+    <div>
+      <h1>Sign-in and onboarding — today, numbered</h1>
+      <p>What the app does now, and nothing proposed. Every element has a number; the same number marks it on the feature board that covers it, where its Before, After and Why are.</p>
+    </div>
+    <div style="white-space:nowrap"><span class="pill">Draft for review · 2026-10-10</span></div>
+  </div>
+  <div id="main"></div>
+
+  <div class="label">Questions</div>
+  <div class="notes">
+    <div class="note open"><h3>Open questions — answer by number</h3><ul><li class="mutt">None here: each question sits on its feature board (70 on The four ways in, 71–72 Signing in, 73 A forgotten password, 74–77 Setting up a fresh HQ, 78–80 Accepting an invitation).</li></ul></div>
+    <div class="note agreed"><h3>Agreed</h3><ul><li class="mutt">Nothing yet.</li></ul></div>
+    <div class="note"><h3>Log</h3><ul><li>2026-10-10: split from the single "Sign-in and onboarding" board into a Today board and feature boards, each Before / After / Why (owner's request).</li><li>2026-10-10: first draft from hq's auth, onboarding, model-access and setup code, and the agreed Organisation, People, Settings and Execution Sites boards.</li></ul></div>
+  </div>
+</div>
+<script>
+// Shared drawing helpers for the signin-* boards. Each returns an HTML string.
+const S = (() => {
+  const n = (k) => `<span class="num">${k}</span>`
+  const f = (label, val, cls = '', aside = '') => `<div class="fl">${label}${aside ? `<span>${aside}</span>` : ''}</div><div class="fld ${cls}">${val}</div>`
+  const fit = (html) => `<div class="fit"><div class="in">${html}</div></div>`
+  const tag = (kind, text, small = '') => `<div class="bigtag ${kind}">${text}${small ? ` <small>${small}</small>` : ''}</div>`
+  const before = (html, small = '') => `<div>${tag('before', 'Before — today', small)}${fit(html)}</div>`
+  const after = (html, small = '') => `<div>${tag('after', 'After — proposed', small)}${fit(html)}</div>`
+  const nothing = (what) => `<div>${tag('new', 'New — nothing today')}<div class="nothing"><b>Nothing today</b>${what}</div></div>`
+  const noScreen = (what) => `<div>${tag('before', 'Before — today', 'no screen')}<div class="nothing"><b>No screen</b>${what}</div></div>`
+  const ba = (b, a) => `<div class="ba">${b}${a}</div>`
+
+  // ── today ────────────────────────────────────────────────
+  const oldLogo = `<div class="oldlogo"><span style="color:var(--accent)">⬡</span>Agenthix</div>`
+  const oldPage = (card, below = '', tall = false) => `<div class="oldpg ${tall ? 'tall' : ''}"><div class="oldcard">${card}</div>${below}</div>`
+  const todayLogin = (err = '') => oldPage(`${n(1)} ${oldLogo}<div class="oldsub">Sign in to your agent gateway</div>
+      <div class="oldh">Log in to your account</div>${err}
+      ${f('Username', '&nbsp;')}${f('Password', '&nbsp;')}
+      <div style="margin-top:18px"><span class="bp pri wide">Log in</span></div>
+      <div class="row2" style="margin:12px 0 0"><span class="cb"><i></i>Remember me ${n(2)}</span><span class="mutt" style="font-size:12px">no "Forgot password" ${n(18)}</span></div>`,
+    `<div class="oldbelow">${n(3)} Invite only · Contact your admin for access</div>`)
+  const todaySetupKey = (err = '') => oldPage(`${n(6)} ${oldLogo}<div class="oldsub">Set up this hq</div>
+      ${f('First-admin key', 'Paste the first-admin key (SITE_ADMIN_KEY)', 'ph')}${err}
+      <div style="margin-top:18px"><span class="bp pri wide">Continue →</span></div>`,
+    `<div class="oldbelow">${n(5)} Reached from /login, which forwards here while HQ has no people</div>`)
+  const todayAccount = (isKey) => oldPage(`${n(isKey ? 7 : 15)} ${oldLogo}<div class="oldsub">${isKey ? 'Set up this hq' : 'Accept your invite'}</div>
+      <div class="verified"><span>✓ Invite code verified</span><span>Change</span></div>
+      <div class="rolechip">● Joining as ${isKey ? 'Admin' : 'Member'}</div>
+      ${isKey ? '' : '<div class="mutt" style="font-size:12px;margin-top:6px">Invited by <b style="color:var(--t2)">Avery</b> · Expires in <b style="color:var(--t2)">6 days</b></div>'}
+      ${f('Username', 'Choose a username', 'ph')}${f('Password', 'Choose a password', 'ph')}
+      <div style="margin-top:18px"><span class="bp pri wide">Create account →</span></div>`, '', true)
+  const todayInviteCode = (err = '') => oldPage(`${n(14)} ${oldLogo}<div class="oldsub">Accept your invite</div>
+      ${f('Invite code', 'Paste your invite code', 'ph')}${err}
+      <div style="margin-top:18px"><span class="bp pri wide">Continue →</span></div>`,
+    `<div class="oldbelow">/accept-invite without a code; a link fills it in and checks it at once</div>`)
+  const oldWizard = (step, card) => `<div class="oldpg tall" style="background:var(--s1)"><div class="oldpips">${[0, 1, 2].map((i) => `<i class="${i < step ? 'done' : i === step ? 'on' : ''}"></i>`).join('')}</div><div class="oldcard" style="width:576px">${card}</div></div>`
+  const todayWelcome = () => oldWizard(0, `${n(8)}<div style="text-align:center"><div class="oldicon">⬡</div><div style="font-size:24px;font-weight:600">agenthix</div><div class="mutt">Your autonomous workforce</div>
+      <div style="font-size:18px;font-weight:600;margin-top:20px">Welcome, admin</div><div style="color:var(--t2)">Let's set up your organisation. This takes about a minute.</div>
+      <div style="margin-top:20px"><span class="bp pri wide">Get started →</span></div><div class="mutt" style="font-size:13px;margin-top:10px">I'll set up later</div></div>`)
+  const todayOrg = () => oldWizard(1, `${n(9)}<div style="font-size:13px;color:var(--accent)">Organisation</div><div style="font-size:18px;font-weight:600">Name your organisation</div><div class="mutt" style="font-size:13px">This is how your team identifies this workspace.</div>
+      ${f('Organisation name', 'My Organisation')}${f('Vision', 'e.g. A world where work is effortless', 'ph', 'Optional')}${f('Mission', 'e.g. We help teams scale with intelligent agents', 'ph', 'Optional')}
+      <div style="display:flex;gap:8px;margin-top:18px"><span class="bp">← Back</span><span class="bp pri wide" style="flex:1">Continue →</span></div>`)
+  const todayDone = () => oldWizard(2, `${n(10)}<div style="text-align:center"><div class="oldicon ok">✓</div><div style="font-size:18px;font-weight:600">You're all set</div><div class="mutt">Acme Corp is ready to go.</div>
+      <div style="text-align:left;margin:18px 0 10px;color:var(--t2)"><span class="okt">✓</span> Organisation created — Acme Corp</div>
+      <div class="mutt" style="font-size:13px">Connect an Execution Site and add agents whenever you are ready — none of it is needed to look around. ${n(13)}</div>
+      <div style="margin-top:18px"><span class="bp wide" style="background:var(--ok);border-color:var(--ok);color:var(--on-accent)">Go to dashboard →</span></div></div>`)
+
+  // the shell
+  const nav = (on, who = 'Avery', pins = '') => `<nav class="nav"><div class="logo"><i></i>Agenthix</div>
+    ${['Home', 'Chat', 'Projects', 'Agents', 'Tasks'].map((x) => `<a class="${x === on ? 'on' : ''}">${x}</a>`).join('')}
+    <div class="sec"><span>Pinned</span><span>edit</span></div>${pins || '<a style="color:var(--t3);font-size:13px">Nothing pinned</a>'}
+    <div class="me"><a>Organisation</a><a>Settings</a><a><span style="display:inline-flex;gap:8px;align-items:center"><span class="av sm" style="background:#0ea5e9">${who[0]}</span>${who}</span></a></div></nav>`
+  const todayHome = (admin) => `<div class="desk" style="grid-template-columns:220px 1fr;min-height:680px">${nav('Home', admin ? 'avery' : 'dana')}<div class="work" style="grid-template-rows:auto auto 1fr"><div class="wbar">Home</div>
+      ${admin ? `<div class="banner">${n(12)} Tasks and project runs can't start: this organisation has no API key or subscription set. <u>Set an API key</u></div>` : '<div></div>'}
+      <div class="page" style="padding-top:80px"><div class="col" style="text-align:center">${n(admin ? 11 : 16)}
+        <div style="font-size:28px;line-height:36px;font-weight:600">Good afternoon, ${admin ? 'avery' : 'dana'}</div><div style="font-size:18px;color:var(--t2);margin-top:4px">What would you like to work on?</div>
+        <div class="composer focus" style="margin-top:22px;text-align:left"><span class="chip">Kernel ▾</span><span class="ph">Ask any agent…</span><span class="send"></span></div>
+        <div class="sig"><span class="signal">Nothing needs you</span><span class="signal">Nothing running</span><span class="signal">Nothing coming up today</span></div>
+        <div class="cap" style="margin-top:28px">No Jump back in: there is no conversation yet. ${admin ? 'The first message to Kernel fails: no model access.' : 'Nothing names the projects the invitation added, and the first message fails if the organisation has no API key.'}</div>
+      </div></div></div></div>`
+  const todaySettingsSignIn = () => `<div class="desk" style="grid-template-columns:220px 1fr;min-height:680px">${nav('', 'dana')}<div class="work"><div class="wbar">Settings</div>
+      <div class="page"><div style="max-width:640px">${n(19)}<div style="font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--t3);margin:8px 0 6px">Sign-in</div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border-subtle)"><span><b style="font-weight:500">Password</b> <span class="mutt">Set</span></span><span class="lk">Change</span></div>
+        <div style="border:1px solid var(--border);border-radius:12px;padding:16px">${f('Current password', '••••••••')}${f('New password', '', 'ph')}${f('New password again', '', 'ph')}<div style="margin-top:12px"><span class="bp pri">Change password</span></div></div>
+        <div style="margin-top:14px"><span class="bp">Sign out</span></div>
+        <p class="cap" style="margin-top:20px">Only for someone who is signed in and knows their current password. Nothing exists for someone who has forgotten it ${n(18)}, and an admin cannot reset another person's.</p></div></div></div></div>`
+
+  // ── proposed ─────────────────────────────────────────────
+  const hero = (o = {}) => `<div class="cover ${o.plain ? 'plain' : ''}"><div class="id"><div class="pic">${o.pic ?? 'A'}</div><div><div class="nm">${o.name ?? 'Acme Corp'}</div>${o.handle === false ? '' : `<div class="hd">${o.handle ?? '@acmecorp'}</div>`}${o.vision === false ? '' : `<div class="vs">${o.vision ?? 'Software that helps small shops sell online.'}</div>`}</div></div></div>`
+  const powered = `<div class="foot">Powered by Agenthix</div>`
+  const auth = (left, right) => `<div class="auth">${left}<div class="side"><div class="inner">${right}</div>${powered}</div></div>`
+  const steps = (k) => `<div class="steps">${[1, 2, 3].map((i) => `<i class="${i <= k ? 'on' : ''}"></i>`).join('')}</div><div class="stepn">Step ${k} of 3</div>`
+  const siteOk = `<div class="state ok"><span class="dot ok"></span><div><b>HQ's site is running</b> — Docker ready. Agents will run on this machine.</div></div>`
+  const signinForm = (err = '') => `<h2>Sign in</h2><p class="lead">to Acme Corp's HQ</p>${err}
+    ${f('Username', 'dana', 'on')}${f('Password', '••••••••••')}
+    <div class="row2"><span class="cb"><i class="on"></i>Remember my username</span><span class="lk">Forgot your password?</span></div>
+    <span class="bp pri wide">Sign in</span>
+    <div class="hint" style="text-align:center;margin-top:16px">New here? Ask an admin of Acme Corp for an invitation.</div>`
+  const newSignin = () => auth(hero(), signinForm())
+  const setupLeft = (title, body, pic = '⬡') => `<div class="cover plain"><div class="id"><div class="pic" style="color:#475569">${pic}</div><div class="nm">${title}</div><div class="vs">${body}</div></div></div>`
+  const s1 = () => `${steps(1)}<h2>Set up Agenthix for your organisation</h2><p class="lead">You're the first person here, so you'll be its admin.</p>
+    ${f('Setup code', 'k7Q2-…-9fXa', 'mono on', 'from your install')}
+    <div class="hint">Printed when HQ first started, and in its settings file. It works once, until the first account exists.</div>
+    ${f('Your name', 'Avery Chen')}${f('Username', 'avery', '', 'how you sign in · @avery')}${f('Password', '••••••••••', '', 'at least 8 characters')}
+    <div style="margin-top:18px"><span class="bp pri wide">Continue</span></div>`
+  const setup1 = () => auth(setupLeft('A fresh HQ', 'Three short steps: you, your organisation, and how agents reach a model. Then you start talking to Agenthix, the built-in agent, which helps with the rest.'), s1())
+  const s2 = () => `${steps(2)}<h2>Your organisation</h2><p class="lead">What your people see when they sign in.</p>
+    ${f('Name', 'Acme Corp', 'on')}
+    <div class="fl">Picture<span>optional</span></div><div class="upl"><span class="p">＋</span><span style="font-size:13px;color:var(--t2)">Upload a logo or picture<br><span class="mutt">Its initial on a colour until then</span></span></div>
+    <div class="hint" style="margin-top:12px">Cover, vision, mission and @handle can be added later on the Organisation page.</div>
+    <div style="display:flex;gap:8px;margin-top:20px"><span class="bp">Back</span><span class="bp pri wide" style="flex:1">Continue</span></div>`
+  const setup2 = () => `<div class="auth"><div style="background:var(--s0);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-right:1px solid var(--border-subtle)"><div class="mutt" style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:500">Your sign-in page</div>
+    <div class="prev"><div class="c"><span class="p">A</span></div><div class="b"><b>Acme Corp</b><div class="mutt">Sign in to Acme Corp's HQ</div><div class="f"><i></i><i></i><i class="btn"></i></div></div></div>
+    <div class="mutt" style="font-size:12px">Updates as you type</div></div><div class="side"><div class="inner">${s2()}</div>${powered}</div></div>`
+  const s3 = () => `${steps(3)}<h2>How agents reach a model</h2><p class="lead">Agents need a model login to answer. You can change this any time.</p>
+    <div class="choice sel"><b>Sign in with Claude</b> <span class="mutt" style="font-size:12px">· recommended</span><div class="d">Use your own Claude subscription for your own conversations. It stays yours when others join.</div>
+      <div class="row2" style="margin:10px 0 8px"><span class="cb"><i class="on"></i>This subscription is mine, and it is used only for my own runs</span></div><span class="bp pri">Sign in with Claude ↗</span></div>
+    <div class="choice"><b>Use an API key</b><div class="d">The organisation's key, for everyone's runs and for tasks. Anthropic, OpenAI or a compatible endpoint.</div></div>
+    ${siteOk}
+    <div class="skip"><span class="lk">Later</span> <span class="mutt">— agents can't answer until one is set</span></div>`
+  const setup3 = () => auth(setupLeft('Acme Corp', 'Almost there. After this you land on Home, with Agenthix ready to talk.', 'A'), s3())
+  const homeFirst = () => `<div class="desk" style="grid-template-columns:220px 1fr;min-height:680px">${nav('Home')}<div class="work"><div class="wbar">Home</div><div class="page" style="padding-top:80px"><div class="col" style="text-align:center">
+      <div style="font-size:28px;line-height:36px;font-weight:600">Good afternoon, Avery</div><div style="font-size:18px;color:var(--t2);margin-top:4px">What would you like to work on?</div>
+      <div class="composer focus" style="margin-top:22px;text-align:left"><span class="chip"><span class="av sm sq" style="background:#6366f1;width:18px;height:18px">⬡</span>Agenthix ▾</span><span class="ph">Ask Agenthix anything…</span><span class="send"></span></div>
+      <div class="sugg"><span>What can you do?</span><span>Set up my first project</span><span>Invite my team</span><span>Build a team of agents for marketing</span></div>
+      <div class="cap" style="margin-top:22px">Suggestions sit where Jump back in will be, until there is a conversation to jump back to. Each sends that message to Agenthix.</div>
+    </div></div></div></div>`
+  const firstConvo = () => `<div class="desk" style="grid-template-columns:220px 1fr;min-height:680px">${nav('Chat')}<div class="work"><div class="wbar">Chat / Set up my first project</div><div class="page"><div class="col">
+      <div class="turn you"><div class="txt">Set up my first project</div></div>
+      <div class="turn"><div class="h"><span class="av sm sq" style="background:#6366f1">⬡</span><b>Agenthix</b> 14:02</div><div class="txt"><p>Happy to. What is the project about, and who will work on it? With a sentence or two I'll create it, add the agents it needs, and set up its task board for you to approve.</p><p>A few other things you may want soon, whenever you like:</p><ul><li>Invite your team from <span class="lk">Organisation › People</span></li><li>Add a cover and your mission on <span class="lk">Organisation</span></li></ul></div></div>
+      <div class="composer focus" style="margin-top:16px"><span class="ph">Message Agenthix…</span><span class="send"></span></div></div></div></div></div>`
+  const inviteForm = () => `<div class="who"><span class="av" style="background:#0ea5e9">H</span><div><b>Avery</b> invited you to join <b>Acme Corp</b> as a Member, and to <b>Website Redesign</b> and <b>Merchant app</b>.<div class="mutt" style="font-size:12px">Invitation for "Dana — design" · open until 16 Oct</div></div></div>
+    <h2 style="margin-top:18px">Create your account</h2>
+    ${f('Your name', 'Dana Ruiz', 'on', 'shown on your work')}${f('Username', 'dana', '', 'how you sign in · @dana')}${f('Password', '••••••••••', '', 'at least 8 characters')}
+    <div style="margin-top:18px"><span class="bp pri wide">Join Acme Corp</span></div>
+    <div class="hint" style="text-align:center;margin-top:12px">Already have an account here? <span class="lk">Sign in</span></div>`
+  const newInvite = () => auth(hero(), inviteForm())
+  const landPins = `<a class="on"><span style="display:inline-flex;gap:8px;align-items:center"><span class="av sm sq" style="background:#a21caf;width:20px;height:20px;font-size:9px">W</span>Website Redesign</span></a><a><span style="display:inline-flex;gap:8px;align-items:center"><span class="av sm sq" style="background:#f59e0b;width:20px;height:20px;font-size:9px">M</span>Merchant app</span></a>`
+  const land = () => `<div class="desk" style="grid-template-columns:220px 1fr;min-height:680px">${nav('', 'Dana', landPins)}<div class="work"><div class="wbar">Projects / Website Redesign</div>
+    <div class="page"><div style="display:flex;gap:14px;align-items:center;border-bottom:1px solid var(--border-subtle);padding-bottom:14px"><span class="av sq" style="background:#a21caf;width:40px;height:40px">W</span><div><div style="font-size:18px;font-weight:600">Website Redesign</div><div class="mutt" style="font-size:13px">Redesign the company website with new branding · you joined as a Member just now</div></div></div>
+      <div style="max-width:720px;margin:32px auto 0">
+        <div style="font-size:15px;font-weight:600">Welcome, Dana</div><div style="color:var(--t2);font-size:14px;margin:2px 0 14px">Start a conversation with one of this project's agents, or look around its tools.</div>
+        <div class="composer focus"><span class="chip"><span class="av sm" style="background:#6366f1;width:18px;height:18px;font-size:8px">PM</span>Project manager ▾</span><span class="ph">Message Project manager…</span><span class="send"></span></div>
+        <div class="sugg" style="justify-content:flex-start"><span>What is this project about?</span><span>What needs doing this week?</span><span>What can I help with?</span></div>
+        <div style="margin-top:24px;font-size:12px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;font-weight:500">Also here</div>
+        <div class="orow"><span class="av sm sq" style="background:#f59e0b">M</span><div><div class="t">Merchant app</div><div class="l">The other project you were invited to · pinned for you</div></div></div>
+      </div></div></div></div>`
+  const memberModel = () => `<h2>Talk to agents</h2><p class="lead">Acme Corp has no shared model access for your own conversations. Sign in with your Claude subscription to talk to agents in your Chat.</p>
+    <div class="choice sel"><b>Sign in with Claude</b><div class="d">Used only for your own runs.</div><div class="row2" style="margin:10px 0 8px"><span class="cb"><i class="on"></i>This subscription is mine</span></div><span class="bp pri">Sign in with Claude ↗</span></div>
+    <div class="skip"><span class="lk">Later</span> <span class="mutt">— in Settings › Your model logins</span></div>`
+  const forgot = () => `<h2>Forgot your password?</h2><p class="lead">HQ doesn't keep email addresses, so it can't send you a link.</p>
+    <div class="state"><span class="dot"></span><div><b>Ask an admin of Acme Corp</b> for a reset link. Avery and Sam can make one in Organisation › People.</div></div>
+    <div class="hint" style="margin-top:14px">If you're the only admin and can't sign in, whoever runs HQ's machine can make a link with a command. <span class="lk">How</span></div>
+    <div style="margin-top:20px"><span class="bp wide">Back to sign in</span></div>`
+  const resetForm = () => `<div class="who"><span class="av" style="background:#0ea5e9">D</span><div><b>Dana Ruiz</b> · @dana<div class="mutt" style="font-size:12px">Reset link from Avery · works until tomorrow 14:02</div></div></div>
+    <h2 style="margin-top:16px">Choose a new password</h2>${f('New password', '••••••••••', 'on')}${f('Again', '••••••••••')}
+    <div class="hint">Your sign-ins on other browsers and your phone end.</div><div style="margin-top:18px"><span class="bp pri wide">Set password and sign in</span></div>`
+  const phone = (title, body) => `<div class="phone"><div class="mhead"><span class="t">${title}</span></div><div class="pbody">${body}</div></div>`
+  const phoneAuth = (h, body) => `<div class="phone">${h}<div class="pbody">${body}</div></div>`
+  const oldPhone = (card) => `<div class="phone" style="background:var(--s0)"><div class="pbody" style="display:flex;align-items:center"><div class="oldcard" style="width:100%;padding:22px">${card}</div></div></div>`
+  const edge = (when, title, body, acts, warn = false) => `<div class="edge" ${warn ? 'style="border-color:var(--warn-line)"' : ''}><div class="c"><span class="p">A</span></div><div class="b"><div class="when">${when}</div><b>${title}</b>${body}<div class="acts">${acts}</div></div></div>`
+
+  return { n, f, fit, tag, before, after, nothing, noScreen, ba, oldLogo, oldPage, todayLogin, todaySetupKey, todayAccount, todayInviteCode, todayWelcome, todayOrg, todayDone, nav, todayHome, todaySettingsSignIn,
+    hero, auth, steps, signinForm, newSignin, setupLeft, s1, setup1, s2, setup2, s3, setup3, homeFirst, firstConvo, inviteForm, newInvite, land, memberModel, forgot, resetForm, phone, phoneAuth, oldPhone, edge }
+})()
+// Scale each drawn frame (900 wide) to its column.
+function fitFrames() {
+  document.querySelectorAll('.fit').forEach((el) => { const inner = el.firstElementChild; if (inner) inner.style.zoom = String(el.clientWidth / 900) })
+}
+window.addEventListener('resize', fitFrames)
+window.addEventListener('load', fitFrames)
+if (window.ResizeObserver) new ResizeObserver(() => fitFrames()).observe(document.documentElement)
+const sec = (title, p, inner) => `<div class="feat"><h2>${title}</h2>${p ? `<p>${p}</p>` : ''}${inner}</div>`
+const facts = (items) => `<ul class="facts3">${items.map((x) => `<li>${x}</li>`).join('')}</ul>`
+const why = (items, title = 'Why') => `<div class="why"><h3>${title}</h3><ul>${items.map((x) => `<li>${x}</li>`).join('')}</ul></div>`
+const col = (...parts) => `<div>${parts.join('')}</div>`
+
+document.getElementById('main').innerHTML = (() => {
+
+const B = { map: 'The four ways in', sign: 'Signing in', admin: 'Setting up a fresh HQ', inv: 'Accepting an invitation', pw: 'A forgotten password', prob: 'When something is not right' }
+const shot = (nums, title, board, html) => `<div><div class="label" style="margin-top:6px">${nums} · ${title} <span style="text-transform:none;letter-spacing:0;color:var(--accent)">→ ${board}</span></div>${S.fit(html)}</div>`
+const grid = (...items) => `<div class="ba" style="margin-bottom:18px">${items.join('')}</div>`
+const rows = [
+  [1, 'The sign-in page', '/login: "Agenthix · Sign in to your agent gateway", the framework\'s "Log in to your account", Username, Password, Log in. A card on the grey page; no organisation shown.', 'auth/pages/LoginPage.tsx', B.sign],
+  [2, 'Remember me', 'Keeps only the username in this browser.', 'LoginPage.tsx', B.sign],
+  [3, '"Invite only"', '"Invite only · Contact your admin for access" under the card.', 'LoginPage.tsx', B.sign],
+  [4, 'After signing in', 'Always Home (the framework\'s default), whatever address the person first opened.', 'main.wasp.ts', B.sign],
+  [5, 'Fresh HQ forward', 'While HQ has no people, /login forwards to /accept-invite.', 'LoginPage.tsx · api.ts', B.admin],
+  [6, 'First-admin key', '"Set up this hq", a field for the key from the install\'s settings (SITE_ADMIN_KEY). The example value is refused. The key stays required after use.', 'AcceptInvitePage.tsx · adminKey.ts', B.admin],
+  [7, 'The first admin\'s account', '"Invite code verified", "Joining as Admin" in the warning colour, username, password, Create account. No name asked.', 'AcceptInvitePage.tsx · inviteService.ts', B.admin],
+  [8, 'Setup: Welcome', '"agenthix · Your autonomous workforce · Welcome, admin", Get started / I\'ll set up later. Shown to any admin who has not finished it, including an admin invited later.', 'onboarding/pages/steps/WelcomeStep.tsx · home/pages/HomePage.tsx', B.admin],
+  [9, 'Setup: Organisation', 'Renames the organisation made at first start ("My Organisation"): name, vision, mission. No picture or cover.', 'OrgStep.tsx · org/ensureDefaultOrg.ts', B.admin],
+  [10, 'Setup: Done', '"You\'re all set", "Connect an Execution Site and add agents whenever you are ready", Go to dashboard → (Home).', 'DoneStep.tsx', B.admin],
+  [11, 'Home after setup', 'Greeting, message box with the built-in agent ("Kernel"), three signals, no Jump back in. The first message fails without model access.', 'home/pages/HomePage.tsx', B.admin],
+  [12, 'Model access banner', 'Across every screen, for admins: "Tasks and project runs can\'t start: … no API key or subscription set. Set an API key".', 'shared/components/ModelAccessBanner.tsx', B.admin],
+  [13, 'HQ\'s own site', 'Connected by a shared secret at start. Setup never checks it; without it nothing runs and Sign in with Claude fails.', 'server/setup.ts · sites/defaultSite.ts', B.admin],
+  [14, 'Invitation code entry', '/accept-invite without a code: "Accept your invite", Invite code, Continue.', 'AcceptInvitePage.tsx', B.inv],
+  [15, 'The invitation form', 'Code verified, role badge, invited by, expiry, username, password. No organisation, no projects named, no name asked.', 'AcceptInvitePage.tsx · inviteService.ts', B.inv],
+  [16, 'A new member\'s Home', 'The same Home. Nothing names the projects the invitation added; the first message fails if the organisation has no API key.', 'HomePage.tsx · model-access/modelCredential.ts', B.inv],
+  [17, 'The invitation link', 'Built from the address the admin\'s browser used, which may be localhost.', 'org/pages/people/peopleFormat.ts', B.inv],
+  [18, 'No password recovery', 'No "Forgot password", no reset by an admin, no email stored (blocks release).', '—', B.pw],
+  [19, 'Changing your password', 'Settings › Sign-in: current password, the new one twice; other sign-ins end.', 'settings/pages/SignInSection.tsx · auth/changePassword.ts', B.pw],
+  [20, 'Invitation code errors', 'Red text under the field: "Invalid code", "Invite expired", "Invite already used", "Invite revoked", "Too many failed attempts. Try again in 15 minutes."', 'AcceptInvitePage.tsx · api.ts', B.prob],
+  [21, 'The key after setup', '"Bootstrap key no longer valid".', 'inviteService.ts', B.prob],
+  [22, 'Wrong password', 'The framework\'s "Invalid credentials". No limit on attempts.', 'framework · LoginPage.tsx', B.prob],
+  [23, 'A removed person', '"This account has been removed from the organisation."', 'auth/refuseLogin.ts', B.prob],
+  [24, 'Accepting while signed in', 'Silently replaces the session.', 'AcceptInvitePage.tsx', B.prob],
+  [25, 'Sign up', 'The framework\'s sign-up route is refused for everyone: "Sign-up is by invitation only."', 'auth/refuseSignup.ts', B.map],
+]
+const table = `<table class="wtable"><tr><th style="width:44px">#</th><th style="width:18%">Element</th><th>What it does today</th><th style="width:22%">Code (hq/src/)</th><th style="width:15%">Board</th></tr>
+  ${rows.map(([k, t, d, c, b]) => `<tr><td>${S.n(k)}</td><td><b style="font-weight:500">${t}</b></td><td>${d}</td><td class="p">${c}</td><td style="color:var(--accent)">${b}</td></tr>`).join('')}</table>`
+return `<p style="color:var(--t2);margin:0 0 6px">Current state only. Each drawing is the app as it is now; the label names the board that covers it.</p>
+  ${grid(shot('1 2 3 18', '/login', B.sign, S.todayLogin()), shot('5 6', '/accept-invite on a fresh HQ', B.admin, S.todaySetupKey()))}
+  ${grid(shot('7', 'the first admin\'s account', B.admin, S.todayAccount(true)), shot('8', '/onboard · Welcome', B.admin, S.todayWelcome()))}
+  ${grid(shot('9', '/onboard · Organisation', B.admin, S.todayOrg()), shot('10 13', '/onboard · Done', B.admin, S.todayDone()))}
+  ${grid(shot('11 12', 'Home after setup', B.admin, S.todayHome(true)), shot('14', '/accept-invite without a code', B.inv, S.todayInviteCode()))}
+  ${grid(shot('15', '/accept-invite/:token', B.inv, S.todayAccount(false)), shot('16', 'a new member\'s Home', B.inv, S.todayHome(false)))}
+  ${grid(shot('18 19', 'Settings › Sign-in', B.pw, S.todaySettingsSignIn()), '<div></div>')}
+  <div class="label">Every element, numbered</div>${table}
+  <p class="cap">Also today: a development-only shortcut creates a known admin, and another skips setup (hq/src/server/seed.ts, onboarding/queries.ts). Their values are not shown here.</p>`
+
+})()
+fitFrames()
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

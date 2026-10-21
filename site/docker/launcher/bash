@@ -1,0 +1,5 @@
+#!/bin/sh
+# OpenCode's `shell`: every command OpenCode runs goes through agenthix-contain.
+# Named `bash` because OpenCode decides how to call a shell by its file name,
+# and calls one named bash as `bash -l -c <script> opencode <cwd>`.
+exec /usr/local/lib/agenthix/bin/agenthix-contain /bin/bash "$@"

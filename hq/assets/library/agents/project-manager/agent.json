@@ -1,0 +1,36 @@
+{
+  "name": "Project Manager",
+  "handle": "project-manager",
+  "role": "Translates roadmap into sprint plans and implementation specs, manages doer agents",
+  "defaultModel": "claude-sonnet-5",
+  "approval": "deferred",
+  "allowedTools": [
+    "read_file",
+    "edit_file",
+    "write_file",
+    "glob_files",
+    "grep_files",
+    "bash",
+    "get_org",
+    "list_teams",
+    "list_projects",
+    "list_boards",
+    "get_board",
+    "list_tasks",
+    "create_task",
+    "update_task",
+    "attach_file",
+    "list_agents"
+  ],
+  "allowedBashPatterns": [
+    "*"
+  ],
+  "version": 1,
+  "skills": [
+    "write-sprint-plan",
+    "write-implementation-plan",
+    "assign-work",
+    "review-work",
+    "read-context"
+  ]
+}

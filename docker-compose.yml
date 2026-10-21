@@ -1,0 +1,51 @@
+# Dev databases — native `wasp start` processes on the host connect to these.
+# Run with: docker compose up -d   (this file is the default compose file)
+#
+# The real container images are in hq/compose.yml and site/compose.yml instead
+# (docs/architecture/deployment.md); these are only the databases, published on
+# localhost so host processes can reach them.
+#
+# Ports: hq 4109, site 4209. Each module's .env.server points at its own.
+
+name: agenthix-dev
+
+services:
+  # hq database — the control plane.
+  #
+  # Mounts the site_db_data volume, which is where this data has always lived:
+  # the service was called `site-db` before the module was renamed to hq. The
+  # volume name is deliberately left alone so the existing dev database carries
+  # over; renaming it would silently start hq on an empty database.
+  hq-db:
+    container_name: agenthix-dev-hq-db
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agenthix
+      POSTGRES_PASSWORD: agenthix
+      POSTGRES_DB: agenthix
+    ports:
+      # localhost-only — dev DBs are reached from native processes on this
+      # machine and never need to be visible to anything else on the network.
+      - "127.0.0.1:4109:5432"
+    volumes:
+      - site_db_data:/var/lib/postgresql/data
+
+  # Execution-site database — the new module. Fresh volume; it has no history.
+  site-db:
+    container_name: agenthix-dev-site-db
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agenthix
+      POSTGRES_PASSWORD: agenthix
+      POSTGRES_DB: agenthix_site
+    ports:
+      - "127.0.0.1:4209:5432"
+    volumes:
+      - site_exec_db_data:/var/lib/postgresql/data
+
+# The former auth-db (4129) and the old hq-db (4119) are gone: both served code
+# that moved to another repository on 2026-08-09. Their volumes (auth_db_data,
+# hq_db_data) are no longer declared — remove them by hand to reclaim the disk.
+volumes:
+  site_db_data:
+  site_exec_db_data:

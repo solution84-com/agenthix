@@ -1,0 +1,50 @@
+name: Bug report
+description: Something in Agenthix does not work as it should.
+type: Bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting it. For a question or an idea, use Discussions instead. For a security problem, do not
+        open an issue: report it privately through the Security tab.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen again
+      placeholder: |
+        1. Open …
+        2. Select …
+        3. See …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Agenthix version
+      description: "On the machine running HQ: agenthix status. In HQ: Organisation › Infrastructure › Version."
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: Of the machine running HQ and its site, and of your browser if it is a screen problem.
+      placeholder: Ubuntu 24.04, Docker 27.3 · Chrome 141 on macOS 26
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Organisation › Infrastructure › Logs and diagnostics makes a support bundle with secrets removed, or paste
+        the lines around the problem from `docker compose -f hq/compose.yml --env-file hq/compose.env logs hq-server`
+        and `docker compose -f site/compose.yml --env-file site/compose.env logs site`. Remove anything private first.
+      render: text

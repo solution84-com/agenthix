@@ -1,0 +1,103 @@
+import { useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router'
+import { Plus, Upload } from 'lucide-react'
+import { useQuery, useAction, getOrgAgents, getAgentUsage, createAgent } from 'wasp/client/operations'
+import { CreateAgentModal, BypassedMark } from '@agenthix/ui/agents'
+import { AppLayout } from '../../../shared/layouts/AppLayout'
+import { AuthedAgentAvatar } from '../../../shared/components/AuthedAgentAvatar'
+import { modelsForRuntime } from '../../models'
+import type { AgentCard } from '../../agentPlaceQueries'
+import { approvalLabel } from '../approvalLabel'
+import { costLabel, monthStart } from '../place/usageView'
+import { AgentCover } from '../AgentCover'
+import { ManageGate, useOrgAdminState } from './ManageGate'
+import { useImportAgents } from './useImportAgents'
+
+function UsageCell({ agentId, since }: { agentId: string; since: string }) {
+  const { data } = useQuery(getAgentUsage, { agentId, since })
+  if (!data) return <span className="text-text-muted">…</span>
+  return <span>{data.organisation.runCount === 0 ? 'No usage yet' : `Organisation usage ${costLabel(data.organisation)} this month`}</span>
+}
+
+function AgentRow({ card, since }: { card: AgentCard; since: string }) {
+  const { agent } = card
+  const model = modelsForRuntime(agent.runtime).find(m => m.value === agent.defaultModel)?.label ?? agent.defaultModel
+  return (
+    <div data-testid="manage-agent-row" className="flex items-center gap-3 overflow-hidden rounded-xl border border-border-subtle bg-surface-1 pr-4">
+      <div className="relative hidden h-16 w-28 shrink-0 self-stretch overflow-hidden sm:block"><AgentCover coverUrl={agent.coverUrl} /></div>
+      <div className="py-3 pl-3 sm:pl-0"><AuthedAgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size="md" /></div>
+      <div className="min-w-0 flex-1 py-3">
+        <div className="truncate text-body font-semibold text-text-primary">{agent.name} <span className="font-normal text-text-muted">{agent.role}</span></div>
+        <div className="truncate text-small text-text-muted">
+          {agent.isKernel ? 'Built in — its instructions come with the product' : card.projectCount === 0 ? 'In no project yet' : `Assigned to ${card.projectCount} ${card.projectCount === 1 ? 'project' : 'projects'}`}
+          {' · '}{model}{` · Approval ${approvalLabel(agent.approval)}`}{agent.approval === 'bypassed' && <> <BypassedMark /></>}
+        </div>
+        <div className="truncate text-small text-text-muted"><UsageCell agentId={agent.id} since={since} /></div>
+      </div>
+      <Link to={`/org/agents/${agent.handle}`} className="shrink-0 text-body font-medium text-accent hover:text-accent-hover">Manage</Link>
+    </div>
+  )
+}
+
+function ManageList() {
+  const { data, isLoading, error } = useQuery(getOrgAgents, { filter: 'all' })
+  const create = useAction(createAgent)
+  const { importing, onFiles } = useImportAgents()
+  const [creating, setCreating] = useState(false)
+  const since = useMemo(() => monthStart(new Date()), [])
+  // Needs attention's Review opens the agents with approval Bypassed (every screen reviewed spec §3).
+  const [params, setParams] = useSearchParams()
+  const bypassedOnly = params.get('approval') === 'bypassed'
+  const agents = (data?.agents ?? []).filter(c => !bypassedOnly || c.agent.approval === 'bypassed')
+
+  return (
+    <AppLayout
+      breadcrumbs={[{ label: 'Organisation', href: '/org' }, { label: 'Agents' }]}
+      title="Agents"
+      subtitle="The organisation's agents — admins create and change them"
+      action={
+        <>
+          <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-body text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary">
+            <Upload size={14} />
+            {importing ? 'Importing…' : 'Import'}
+            <input type="file" accept=".zip" multiple onChange={onFiles} className="hidden" disabled={importing} />
+          </label>
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-small font-medium text-on-accent transition-colors hover:bg-accent-hover"
+          >
+            <Plus size={14} /> New agent
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-3 px-4 py-6 lg:px-8">
+        {isLoading && <p className="text-body text-text-muted">Loading…</p>}
+        {error && <p role="alert" className="text-small text-danger">{error.message}</p>}
+        {bypassedOnly && (
+          <p className="flex items-center gap-2 text-small text-text-secondary">
+            Showing the agents with approval Bypassed.
+            <button type="button" className="text-accent hover:text-accent-hover" onClick={() => setParams(prev => { const next = new URLSearchParams(prev); next.delete('approval'); return next }, { replace: true })}>Show all agents</button>
+          </p>
+        )}
+        {data && data.agents.length === 0 && <p className="text-body text-text-muted">No agents yet. Create one with New agent, or Import a ZIP.</p>}
+        {data && data.agents.length > 0 && agents.length === 0 && <p className="text-body text-text-muted">No agent has approval Bypassed.</p>}
+        {agents.map(card => <AgentRow key={card.agent.id} card={card} since={since} />)}
+      </div>
+      <CreateAgentModal
+        open={creating}
+        onClose={() => setCreating(false)}
+        defaultSiteId="site"
+        actions={{ createAgent: ({ name, handle, role, defaultModel, runtime }) => create({ name, handle, role, defaultModel, runtime }) }}
+        onCreated={() => setCreating(false)}
+      />
+    </AppLayout>
+  )
+}
+
+/** Organisation › Agents (spec §3): every agent for the organisation's admins, with New agent and Import. */
+export function AgentsManageListPage() {
+  const state = useOrgAdminState()
+  return <ManageGate state={state}><ManageList /></ManageGate>
+}

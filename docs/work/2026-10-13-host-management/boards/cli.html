@@ -1,0 +1,1795 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Host management · CLI</title>
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+<div class="bd-wrap">
+<nav class="bd-nav">
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Start</span><em>3</em></button><div class="bd-gl">
+    <a href="index.html#ui-scope">What these boards cover</a>
+    <a href="index.html#tones">The look</a>
+    <a href="index.html#ui-defaults">Defaults in the design</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>The redesign</span><em>2</em></button><div class="bd-gl">
+    <a href="redesign.html#rd-pages">Pages for HQ and the sites</a>
+    <a href="maintenance.html#rd-maintenance">Plan maintenance</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Fleet Console · frame</span><em>4</em></button><div class="bd-gl">
+    <a href="frame.html#hm-site">The console site</a>
+    <a href="frame.html#hm-fleet-1">The shell · superseded</a>
+    <a href="frame.html#hm-access-1">Opening the Fleet Console</a>
+    <a href="frame.html#hm-fleet-account">Your account</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Fleet</span><em>1</em></button><div class="bd-gl">
+    <a href="fleet.html#hm-fleet-2">Fleet — overview and site cards · superseded</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Sites</span><em>8</em></button><div class="bd-gl">
+    <a href="sites.html#hm-fleet-3">A site's page · superseded</a>
+    <a href="sites.html#hm-fleet-5">Add a site</a>
+    <a href="sites.html#hm-fleet-4">Editing capacity; protections as a fact · superseded in part</a>
+    <a href="sites.html#hm-fleet-7">Disconnecting a machine</a>
+    <a href="sites.html#hm-fleet-8">A Cloud site and its machine, before and after signing in to Cloud</a>
+    <a href="sites.html#hm-access-5">Cloud in the Fleet Console</a>
+    <a href="sites.html#hm-fleet-10">Connecting the organisation to Agenthix Cloud</a>
+    <a href="sites.html#hm-ops-10">Moving a site · superseded in part</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>HQ's site</span><em>4</em></button><div class="bd-gl">
+    <a href="hq-site.html#hm-ops-1">HQ's site · superseded</a>
+    <a href="hq-site.html#hm-ops-5">hq's address and the front door</a>
+    <a href="hq-site.html#hm-ops-4">Moving hq · superseded in part</a>
+    <a href="hq-site.html#hm-ops-8">Suspend, resume and erase · superseded in part</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Scheduled</span><em>2</em></button><div class="bd-gl">
+    <a href="scheduled.html#hm-ops-6">Scheduled · superseded</a>
+    <a href="scheduled.html#hm-ops-7">An upgrade, running and rolled back</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Backups</span><em>4</em></button><div class="bd-gl">
+    <a href="backups.html#hm-ops-9">Backups — the journeys</a>
+    <a href="backups.html#hm-fleet-9">The backup location: shown here, set on the machine</a>
+    <a href="backups.html#hm-ops-2">Backups · superseded in part</a>
+    <a href="backups.html#hm-ops-3">Exporting a backup</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Activity</span><em>1</em></button><div class="bd-gl">
+    <a href="activity.html#hm-access-6">Notices: exports, erases and remote sessions · superseded in part</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Fleet admins</span><em>2</em></button><div class="bd-gl">
+    <a href="fleet-admins.html#hm-access-2">The fleet admin role</a>
+    <a href="fleet-admins.html#hm-access-3">Signing in, and fleet admins</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Remote access</span><em>1</em></button><div class="bd-gl">
+    <a href="remote-access.html#hm-access-4">Remote access</a>
+  </div></div>
+  <div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>HQ · Execution Sites</span><em>6</em></button><div class="bd-gl">
+    <a href="hq.html#hq-sites-1">Where work runs — the list · superseded in part</a>
+    <a href="hq.html#hq-sites-2">A site's status</a>
+    <a href="hq.html#hq-sites-6">The built-in site, when it is not connected</a>
+    <a href="hq.html#hq-sites-7">Scheduled changes, as members see them · superseded in part</a>
+    <a href="hq.html#hq-sites-8">After hq moves, and uploads on a bare network address</a>
+    <a href="hq.html#hq-sites-9">The fleet admin role, as hq shows it</a>
+  </div></div>
+  <div class="bd-g open"><button type="button" class="bd-gh"><i>›</i><span>CLI</span><em>8</em></button><div class="bd-gl">
+    <a href="cli.html#cli-1" class="bd-on">Installing Agenthix on a machine</a>
+    <a href="cli.html#cli-2">agenthix status — the hq and the site on a machine</a>
+    <a href="cli.html#cli-3">The machine's way into hq</a>
+    <a href="cli.html#cli-4">The Fleet Console from the command line</a>
+    <a href="cli.html#cli-5">The site on a machine</a>
+    <a href="cli.html#cli-6">Warnings that ask before acting</a>
+    <a href="cli.html#cli-7">agenthix help — every command</a>
+    <a href="cli.html#cli-8">Backups: the backup location and restoring</a>
+  </div></div>
+  <div class="bd-th"><button type="button" data-t="l">Light</button><button type="button" data-t="d">Dark</button></div>
+</nav>
+<main class="bd-main">
+<section id="cli-1" class="bd-page it" style="display:block">
+<h2>Installing Agenthix on a machine</h2>
+<p class="subtitle">Spec §6 and §17. One documented <code>docker run</code> starts the host service; <code>agenthix install</code> inside it asks one question (never the state folder), pulls signed images, starts hq, its built-in site and the Fleet Console, prints the command that saves the shortcut for the person to run, and prints one link for the first account, which holds both the organisation admin and fleet admin roles.</p>
+<h3>What this is</h3><div class="ctx"><ul><li>The first thing a machine admin types. No clone of the repository; only Docker.</li><li>The host service runs as a container named <code>host</code>; the CLI ships inside it, so the first <code>install</code> is typed as <code>docker exec -it host agenthix install</code>. The shortcut command it prints turns that into <code>agenthix …</code>; <code>install</code> never writes it itself.</li><li>hq listens on its local port; the CLI says how to put the machine's own web server in front of it, or how to let Agenthix do that (<code>agenthix front-door on</code>, page 6).</li></ul></div>
+<h3>Today</h3><div class="ctx"><p>A clone of the repository and <code>./agenthix install</code>, which builds every image from source and writes two settings files into the clone (<code>cli/lib/install.sh</code>).</p></div>
+<p class="cli-cap" style="color:var(--text-secondary)">How to read the terminals: <b>bold</b> is what the person types; an <u>underlined</u> value is their answer to a question. Colour is used only on the first word of a state (<i>Running</i>, <i>Waiting</i>, <i>Stopped</i>) — that word says the same thing without it.</p>
+<p class="cli-cap"><span class="cli-tag td">Today</span> Clone, then <code>./agenthix install</code>: the two questions, then a build from source that takes several minutes.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">git clone &lt;this repository&gt; agenthix &amp;&amp; cd agenthix</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix install</span>
+Where will people open Agenthix? (HQ_URL) [http://localhost:4100] <span class="t-in">https://hq.acme.example</span>
+Run agents on this machine too? (yes/no) [yes] <span class="t-in">yes</span>
+Settings written: hq/compose.env and site/compose.env.
+Keep a copy of them somewhere safe: without them, the keys and logins
+HQ saves cannot be read.
+Building and starting HQ (the first build takes several minutes)…
+<span class="t-mu"> =&gt; [hq-server builder 1/14] FROM docker.io/library/node:24…</span>
+<span class="t-mu"> …</span>
+Building and starting HQ's site…
+Waiting for HQ to answer and its site to connect…
+HQ and its site are paired.
+
+No admin yet. Open this link to set up Agenthix (valid 24 hours):
+https://hq.acme.example/setup?token=4c1f…</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">git clone &lt;this repository&gt; agenthix &amp;&amp; cd agenthix</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix install</span>
+Where will people open Agenthix? (HQ_URL) [http://localhost:4100] <span class="t-in">https://hq.acme.example</span>
+Run agents on this machine too? (yes/no) [yes] <span class="t-in">yes</span>
+Settings written: hq/compose.env and site/compose.env.
+Keep a copy of them somewhere safe: without them, the keys and logins
+HQ saves cannot be read.
+Building and starting HQ (the first build takes several minutes)…
+<span class="t-mu"> =&gt; [hq-server builder 1/14] FROM docker.io/library/node:24…</span>
+<span class="t-mu"> …</span>
+Building and starting HQ's site…
+Waiting for HQ to answer and its site to connect…
+HQ and its site are paired.
+
+No admin yet. Open this link to set up Agenthix (valid 24 hours):
+https://hq.acme.example/setup?token=4c1f…</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> Step 1 — the one documented command. It starts the host service and returns; nothing is asked yet. The state folder is the one this line names, <code>~/.agenthix</code>; it holds every setting and secret, readable only by the machine admin. <code>install</code> does not ask for it and never moves it.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker run -d --name host --restart unless-stopped \</span>
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v ~/.agenthix:/state \
+    --network host --cap-add NET_ADMIN agenthix/host:0.2.0
+<span class="t-mu">Unable to find image 'agenthix/host:0.2.0' locally</span>
+<span class="t-mu">0.2.0: Pulling from agenthix/host</span>
+<span class="t-mu">Status: Downloaded newer image for agenthix/host:0.2.0</span>
+<span class="t-mu">9b2e41c07a5d…</span></pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker run -d --name host --restart unless-stopped \</span>
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v ~/.agenthix:/state \
+    --network host --cap-add NET_ADMIN agenthix/host:0.2.0
+<span class="t-mu">Unable to find image 'agenthix/host:0.2.0' locally</span>
+<span class="t-mu">0.2.0: Pulling from agenthix/host</span>
+<span class="t-mu">Status: Downloaded newer image for agenthix/host:0.2.0</span>
+<span class="t-mu">9b2e41c07a5d…</span></pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> Step 2 — <code>install</code>: the one question, then the work, one line per step, each ending in a word that says how it went.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker exec -it host agenthix install</span>
+Agenthix 0.2.0 — installing on hq-box.
+One question. Press Enter to take the answer in brackets.
+
+Where will people open HQ, the organisation's own Agenthix?
+Its address, as people will type it in a browser.
+[http://localhost:4100] <span class="t-in">https://hq.acme.example</span>
+
+HQ always comes with a site, hq-box, where agents work; nothing to ask.
+
+Checking the images are signed by Agenthix ........ <span class="t-ok">passes</span>
+Pulling HQ 0.2.0 (3 images, 412 MB) ............... done
+Pulling the site 0.2.0 and the agent image ........ done
+Shutting agents out of this machine ............. done
+Starting HQ ........................................ <span class="t-ok">answers</span>
+Starting the site hq-box (private Docker network) <span class="t-ok">connected to HQ</span>
+Starting the Fleet Console on 127.0.0.1:4300 ........ <span class="t-ok">answers</span>
+
+HQ listens on 127.0.0.1:4100. To serve it at https://hq.acme.example,
+point this machine's web server at 127.0.0.1:4100 (it holds the
+certificate) — the guide's page "Run it on a server" shows how.
+Or let Agenthix take ports 80 and 443 for it: agenthix front-door on</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker exec -it host agenthix install</span>
+Agenthix 0.2.0 — installing on hq-box.
+One question. Press Enter to take the answer in brackets.
+
+Where will people open HQ, the organisation's own Agenthix?
+Its address, as people will type it in a browser.
+[http://localhost:4100] <span class="t-in">https://hq.acme.example</span>
+
+HQ always comes with a site, hq-box, where agents work; nothing to ask.
+
+Checking the images are signed by Agenthix ........ <span class="t-ok">passes</span>
+Pulling HQ 0.2.0 (3 images, 412 MB) ............... done
+Pulling the site 0.2.0 and the agent image ........ done
+Shutting agents out of this machine ............. done
+Starting HQ ........................................ <span class="t-ok">answers</span>
+Starting the site hq-box (private Docker network) <span class="t-ok">connected to HQ</span>
+Starting the Fleet Console on 127.0.0.1:4300 ........ <span class="t-ok">answers</span>
+
+HQ listens on 127.0.0.1:4100. To serve it at https://hq.acme.example,
+point this machine's web server at 127.0.0.1:4100 (it holds the
+certificate) — the guide's page "Run it on a server" shows how.
+Or let Agenthix take ports 80 and 443 for it: agenthix front-door on</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> Step 2, continued — the printed shortcut command, then the one link, for the first account. The shortcut it saves is a two-line script that runs <code>docker exec -it host agenthix "$@"</code>; it holds no logic, version or secret.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre>To type "agenthix status" instead of "docker exec -it host
+agenthix status", save a shortcut. Agenthix does not write into
+this machine's own folders: run ONE of these lines yourself, on
+hq-box, outside this window's container.
+
+  For everyone on hq-box (asks for your password once):
+    printf '#!/bin/sh\nexec docker exec -it host agenthix "$@"\n' | sudo tee /usr/local/bin/agenthix &gt;/dev/null &amp;&amp; sudo chmod 755 /usr/local/bin/agenthix
+
+  Just for you (no password; ~/.local/bin must be on your PATH):
+    printf '#!/bin/sh\nexec docker exec -it host agenthix "$@"\n' &gt; ~/.local/bin/agenthix &amp;&amp; chmod 755 ~/.local/bin/agenthix
+
+Skip it if you like: docker exec -it host agenthix &lt;command&gt;
+works the same.
+
+<span class="t-ok">Installed.</span> HQ runs on hq-box, carried by its site, hq-box.
+
+No one has an account in HQ yet. Open this link to make the first
+one. That account holds both roles: organisation admin in HQ, and
+fleet admin in the Fleet Console. The link works once, for 24 hours:
+  https://hq.acme.example/setup#t=Qm9f2xK7…
+Lost it, or it expired? agenthix hq invite-admin makes a new one.
+
+The Fleet Console looks after the machines. It answers only on
+hq-box itself: open http://127.0.0.1:4300 there and sign in with
+that HQ account. From another computer, open an SSH tunnel first:
+  ssh -L 4300:127.0.0.1:4300 sam@hq-box
+Next time, agenthix status shows how everything on hq-box is doing.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre>To type "agenthix status" instead of "docker exec -it host
+agenthix status", save a shortcut. Agenthix does not write into
+this machine's own folders: run ONE of these lines yourself, on
+hq-box, outside this window's container.
+
+  For everyone on hq-box (asks for your password once):
+    printf '#!/bin/sh\nexec docker exec -it host agenthix "$@"\n' | sudo tee /usr/local/bin/agenthix &gt;/dev/null &amp;&amp; sudo chmod 755 /usr/local/bin/agenthix
+
+  Just for you (no password; ~/.local/bin must be on your PATH):
+    printf '#!/bin/sh\nexec docker exec -it host agenthix "$@"\n' &gt; ~/.local/bin/agenthix &amp;&amp; chmod 755 ~/.local/bin/agenthix
+
+Skip it if you like: docker exec -it host agenthix &lt;command&gt;
+works the same.
+
+<span class="t-ok">Installed.</span> HQ runs on hq-box, carried by its site, hq-box.
+
+No one has an account in HQ yet. Open this link to make the first
+one. That account holds both roles: organisation admin in HQ, and
+fleet admin in the Fleet Console. The link works once, for 24 hours:
+  https://hq.acme.example/setup#t=Qm9f2xK7…
+Lost it, or it expired? agenthix hq invite-admin makes a new one.
+
+The Fleet Console looks after the machines. It answers only on
+hq-box itself: open http://127.0.0.1:4300 there and sign in with
+that HQ account. From another computer, open an SSH tunnel first:
+  ssh -L 4300:127.0.0.1:4300 sam@hq-box
+Next time, agenthix status shows how everything on hq-box is doing.</pre></div></div>
+<h3>When it fails</h3>
+<p class="cli-cap"><span class="cli-tag ">After</span> Docker is not running. The first command is Docker's own, so the words are Docker's; the guide shows this message and says what to do. The shortcut adds nothing, by design, so the same message appears when it is used.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker run -d --name host --restart unless-stopped \</span>
+    -v /var/run/docker.sock:/var/run/docker.sock -v ~/.agenthix:/state \
+    --network host --cap-add NET_ADMIN agenthix/host:0.2.0
+docker: Cannot connect to the Docker daemon at
+unix:///var/run/docker.sock. Is the docker daemon running?
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+Cannot connect to the Docker daemon at unix:///var/run/docker.sock.
+Is the docker daemon running?
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status            <span class="t-mu"># Docker runs, but the host service was never started</span></span>
+Error response from daemon: No such container: host</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker run -d --name host --restart unless-stopped \</span>
+    -v /var/run/docker.sock:/var/run/docker.sock -v ~/.agenthix:/state \
+    --network host --cap-add NET_ADMIN agenthix/host:0.2.0
+docker: Cannot connect to the Docker daemon at
+unix:///var/run/docker.sock. Is the docker daemon running?
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+Cannot connect to the Docker daemon at unix:///var/run/docker.sock.
+Is the docker daemon running?
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status            <span class="t-mu"># Docker runs, but the host service was never started</span></span>
+Error response from daemon: No such container: host</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> A local address. The built-in site reaches hq over a private Docker network, so <code>localhost</code> no longer breaks it; the installer only warns that other computers and machines cannot use that address, and goes on.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker exec -it host agenthix install</span>
+Where will people open HQ, the organisation's own Agenthix?
+[http://localhost:4100] <span class="t-in">http://localhost:4100</span>
+
+<span class="t-wn">Note:</span> people on other computers cannot open http://localhost:4100,
+and sites on other machines cannot reach HQ at it. Change it later
+with agenthix console hq-address (HQ moved) when it has a real
+address. The site on hq-box is not affected: it reaches
+HQ over a private Docker network, never through this address.
+
+Checking the images are signed by Agenthix ........ <span class="t-ok">passes</span>
+<span class="t-mu">…</span></pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker exec -it host agenthix install</span>
+Where will people open HQ, the organisation's own Agenthix?
+[http://localhost:4100] <span class="t-in">http://localhost:4100</span>
+
+<span class="t-wn">Note:</span> people on other computers cannot open http://localhost:4100,
+and sites on other machines cannot reach HQ at it. Change it later
+with agenthix console hq-address (HQ moved) when it has a real
+address. The site on hq-box is not affected: it reaches
+HQ over a private Docker network, never through this address.
+
+Checking the images are signed by Agenthix ........ <span class="t-ok">passes</span>
+<span class="t-mu">…</span></pre></div></div>
+</section>
+<section id="cli-2" class="bd-page it" style="display:block">
+<h2><code>agenthix status</code> — the hq and the site on a machine</h2>
+<p class="subtitle">Spec §9. One site per machine, and on hq's machine hq as well, each in one block: where it runs, its version, and its state as a sentence that ends in what to do next. The site has the machine's name. Never an internal word.</p>
+<h3>What this is</h3><div class="ctx"><ul><li>One command for the whole machine, whatever runs on it: hq, its site, the Fleet Console, the front door. Every machine runs exactly one site, and hq is an add-on that hq's site carries, so there is never a name to type.</li><li>The site takes its machine's name: <i>office-server</i>, not a second name. On hq's machine it is the site that comes with hq.</li><li>hq never stands alone: on hq's machine the site always carries hq and its default site, and is badged <i>hq · site</i>. No machine exists only to store backups.</li><li>Each site backs up on its own every night at 02:00, sealed. Status says when the last backup was made and whether a copy reached the backup location; with none set, it says so and how old the last export is.</li><li>A controller (the Fleet Console or Cloud's controller) may read the same status; it is the only machine command they may ask of hq.</li></ul></div>
+<h3>Today</h3><div class="ctx"><p>Two commands that print internal words. hq's <code>./agenthix status</code> prints the default site's state field (<code>hqMachineCommands.ts</code>); a site's <code>agenthix-site status</code> prints the link's status field and the bare error (<code>agenthix-site.mjs</code>). A site revoked while it was off shows <code>DEGRADED</code> and a 401 for ever.</p></div>
+<p class="cli-cap" style="color:var(--text-secondary)">How to read the terminals: <b>bold</b> is what the person types; an <u>underlined</u> value is their answer to a question. Colour is used only on the first word of a state (<i>Running</i>, <i>Waiting</i>, <i>Stopped</i>) — that word says the same thing without it.</p>
+<p class="cli-cap"><span class="cli-tag td">Today</span> hq's status, then a site's — revoked while it was off, though nothing says so.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix status</span>
+HQ 0.1.0 (commit 6f1951d) at https://hq.acme.example: 3 people; its own
+site notConnected.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker compose -f site/compose.yml --env-file site/compose.env \</span>
+    exec site agenthix-site status
+Site:       Agenthix Site (cm4x0k2a90001s6…)
+HQ:         https://hq.acme.example
+Status:     DEGRADED
+Last error: HQ refused the connection (HTTP 401)</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix status</span>
+HQ 0.1.0 (commit 6f1951d) at https://hq.acme.example: 3 people; its own
+site notConnected.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker compose -f site/compose.yml --env-file site/compose.env \</span>
+    exec site agenthix-site status
+Site:       Agenthix Site (cm4x0k2a90001s6…)
+HQ:         https://hq.acme.example
+Status:     DEGRADED
+Last error: HQ refused the connection (HTTP 401)</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> hq's machine: hq with an upgrade ready, its site, and the Fleet Console with remote access on.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+hq-box · Self-hosted · host service 0.2.0
+
+HQ  https://hq.acme.example  <span class="t-mu">0.2.0</span>
+  <span class="t-ok">Running.</span> 3 people have accounts; 2 agents are working.
+  <span class="t-wn">Upgrade ready:</span> 0.2.1, a fix. It applies by itself in the
+  maintenance window, Sunday 02:00–04:00, after a backup. To apply
+  it sooner: agenthix hq upgrade
+
+Site hq-box  <span class="t-mu">0.2.0</span>  <span class="t-mu">HQ · site</span>
+  <span class="t-ok">Connected</span> to HQ, which this site carries. 2 of 4 agent runs in use.
+  Last backup: 02:00 last night, 1.2 GB, sealed (HQ included).
+  <span class="t-ok">Copied</span> to the backup location /mnt/nas/agenthix at 02:06.
+
+Fleet Console  http://127.0.0.1:4300  <span class="t-mu">0.2.0</span>
+  <span class="t-ok">Running.</span> Looks after 3 machines for Acme Robotics. Signs
+  people in with their HQ accounts; 2 hold the fleet admin role.
+  Connected to Agenthix Cloud as Acme Robotics (changed at this
+  machine only: agenthix cloud connect | disconnect).
+  <span class="t-wn">Remote access is on</span> until 16:40 today (1 h 12 min left);
+  Avery Chen is using it now. To turn it off: agenthix console remote off
+
+Front door  <span class="t-mu">off</span>
+  Your own web server serves https://hq.acme.example.
+
+Protections  <span class="t-mu">always on</span>
+  Agents can't reach this machine, its other containers, or the
+  cloud metadata address.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+hq-box · Self-hosted · host service 0.2.0
+
+HQ  https://hq.acme.example  <span class="t-mu">0.2.0</span>
+  <span class="t-ok">Running.</span> 3 people have accounts; 2 agents are working.
+  <span class="t-wn">Upgrade ready:</span> 0.2.1, a fix. It applies by itself in the
+  maintenance window, Sunday 02:00–04:00, after a backup. To apply
+  it sooner: agenthix hq upgrade
+
+Site hq-box  <span class="t-mu">0.2.0</span>  <span class="t-mu">HQ · site</span>
+  <span class="t-ok">Connected</span> to HQ, which this site carries. 2 of 4 agent runs in use.
+  Last backup: 02:00 last night, 1.2 GB, sealed (HQ included).
+  <span class="t-ok">Copied</span> to the backup location /mnt/nas/agenthix at 02:06.
+
+Fleet Console  http://127.0.0.1:4300  <span class="t-mu">0.2.0</span>
+  <span class="t-ok">Running.</span> Looks after 3 machines for Acme Robotics. Signs
+  people in with their HQ accounts; 2 hold the fleet admin role.
+  Connected to Agenthix Cloud as Acme Robotics (changed at this
+  machine only: agenthix cloud connect | disconnect).
+  <span class="t-wn">Remote access is on</span> until 16:40 today (1 h 12 min left);
+  Avery Chen is using it now. To turn it off: agenthix console remote off
+
+Front door  <span class="t-mu">off</span>
+  Your own web server serves https://hq.acme.example.
+
+Protections  <span class="t-mu">always on</span>
+  Agents can't reach this machine, its other containers, or the
+  cloud metadata address.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> Another machine with its one site: <code>office-server</code> is managed, but hq no longer accepts the site's credential (today's <code>DEGRADED</code> with a 401). The next block is a machine with no backup location set.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix status</span>
+office-server · Self-hosted · host service 0.2.0
+Managed by the Fleet Console on hq-box.
+
+Site office-server  <span class="t-mu">0.2.0</span>
+  <span class="t-dg">Taken out of HQ.</span> HQ at https://hq.acme.example no longer accepts
+  this site's credential: a fleet admin took the site out in the
+  Fleet Console (Avery Chen, today 10:12), or added it again from
+  another code. It runs no agents; its data is kept.
+  To take part again, ask a fleet admin to start it from the Fleet
+  Console (Fleet → office-server). To clear it from this machine:
+  agenthix site erase
+
+<span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix status</span>
+laptop · Self-hosted · host service 0.2.0
+Managed by the Fleet Console on hq-box.
+
+Site laptop  <span class="t-mu">0.2.0</span>
+  <span class="t-ok">Connected</span> to HQ. 0 of 2 agent runs in use.
+  Last backup: 02:00 last night, 0.4 GB, sealed. Kept on this machine only.
+  <span class="t-wn">No backup location is set.</span> If this machine is lost, so is
+  this backup. The last export was 23 days ago. To choose a folder
+  for copies: agenthix backup location &lt;path&gt;</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix status</span>
+office-server · Self-hosted · host service 0.2.0
+Managed by the Fleet Console on hq-box.
+
+Site office-server  <span class="t-mu">0.2.0</span>
+  <span class="t-dg">Taken out of HQ.</span> HQ at https://hq.acme.example no longer accepts
+  this site's credential: a fleet admin took the site out in the
+  Fleet Console (Avery Chen, today 10:12), or added it again from
+  another code. It runs no agents; its data is kept.
+  To take part again, ask a fleet admin to start it from the Fleet
+  Console (Fleet → office-server). To clear it from this machine:
+  agenthix site erase
+
+<span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix status</span>
+laptop · Self-hosted · host service 0.2.0
+Managed by the Fleet Console on hq-box.
+
+Site laptop  <span class="t-mu">0.2.0</span>
+  <span class="t-ok">Connected</span> to HQ. 0 of 2 agent runs in use.
+  Last backup: 02:00 last night, 0.4 GB, sealed. Kept on this machine only.
+  <span class="t-wn">No backup location is set.</span> If this machine is lost, so is
+  this backup. The last export was 23 days ago. To choose a folder
+  for copies: agenthix backup location &lt;path&gt;</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> A machine whose site is mid-move: hq told it a new address, and the new address does not answer yet.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">avery@laptop · Light</span></div><pre><span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix status</span>
+laptop · Self-hosted · host service 0.2.0
+Managed by the Fleet Console on hq-box.
+
+Site laptop  <span class="t-mu">0.2.0</span>
+  <span class="t-wn">Moving.</span> HQ told this site it is moving from
+  http://203.0.113.10:4100 to http://198.51.100.24:4100. The site
+  keeps using the old address until the new one passes the check;
+  it has tried since 09:12 and the new address does not answer yet.
+  If the move has finished, check the new address with a fleet
+  admin, then: agenthix site hq-address http://198.51.100.24:4100</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">avery@laptop · Dark</span></div><pre><span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix status</span>
+laptop · Self-hosted · host service 0.2.0
+Managed by the Fleet Console on hq-box.
+
+Site laptop  <span class="t-mu">0.2.0</span>
+  <span class="t-wn">Moving.</span> HQ told this site it is moving from
+  http://203.0.113.10:4100 to http://198.51.100.24:4100. The site
+  keeps using the old address until the new one passes the check;
+  it has tried since 09:12 and the new address does not answer yet.
+  If the move has finished, check the new address with a fleet
+  admin, then: agenthix site hq-address http://198.51.100.24:4100</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> hq's machine during a move, and after it: hq is read-only, the Fleet Console stays where it runs and follows hq to its new address, and the copy left behind is removed as the move's last step. There is no command for that step.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+hq-box · Self-hosted · host service 0.2.0
+
+HQ  https://hq.acme.example  <span class="t-mu">0.2.0</span>
+  <span class="t-wn">Read-only.</span> HQ is moving to office-server (scheduled for 02:00 today;
+  its backup started at 01:58). People can look but not change
+  anything until the move ends; everyone in HQ was told. HQ starts
+  on office-server by itself once the check there passes.
+
+Fleet Console  http://127.0.0.1:4300  <span class="t-mu">0.2.0</span>
+  <span class="t-ok">Running.</span> It does not move with HQ. It stays on hq-box and
+  reaches HQ at its new address once the check passes; fleet admins
+  carry on at 127.0.0.1:4300 here.
+
+<span class="t-mu">— at 02:19, when it has finished —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+hq-box · Self-hosted · host service 0.2.0
+
+HQ  <span class="t-mu">moved</span>
+  <span class="t-ok">Moved</span> to office-server at 02:19. The copy that was left here was
+  removed as the move's last step, after the new HQ took over. That
+  is not an erase: nothing here is kept or counted down. Nothing to do.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+hq-box · Self-hosted · host service 0.2.0
+
+HQ  https://hq.acme.example  <span class="t-mu">0.2.0</span>
+  <span class="t-wn">Read-only.</span> HQ is moving to office-server (scheduled for 02:00 today;
+  its backup started at 01:58). People can look but not change
+  anything until the move ends; everyone in HQ was told. HQ starts
+  on office-server by itself once the check there passes.
+
+Fleet Console  http://127.0.0.1:4300  <span class="t-mu">0.2.0</span>
+  <span class="t-ok">Running.</span> It does not move with HQ. It stays on hq-box and
+  reaches HQ at its new address once the check passes; fleet admins
+  carry on at 127.0.0.1:4300 here.
+
+<span class="t-mu">— at 02:19, when it has finished —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+hq-box · Self-hosted · host service 0.2.0
+
+HQ  <span class="t-mu">moved</span>
+  <span class="t-ok">Moved</span> to office-server at 02:19. The copy that was left here was
+  removed as the move's last step, after the new HQ took over. That
+  is not an erase: nothing here is kept or counted down. Nothing to do.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> A host service that was offline during a move, and the site that carries hq when hq refuses it: each says why, in hq's own words.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix status</span>
+office-server · Self-hosted · host service 0.2.0
+<span class="t-dg">Not connected to the Fleet Console.</span> HQ at http://203.0.113.10:4100 has not
+answered since 09:12. HQ may have moved while this machine was off.
+If it did, get its new address from a fleet admin and set it:
+  agenthix console hq-address &lt;address&gt;
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+hq-box · Self-hosted · host service 0.2.0
+
+Site hq-box  <span class="t-mu">0.2.0</span>  <span class="t-mu">HQ · site</span>
+  <span class="t-dg">Not connected.</span> HQ refused it: its pairing secret is not the one HQ
+  expects. That is HQ's own reason, passed on as HQ gave it. The site
+  reaches HQ over a private Docker network, so the address is not the
+  cause. Fleet admins can see it in the Fleet Console.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix status</span>
+office-server · Self-hosted · host service 0.2.0
+<span class="t-dg">Not connected to the Fleet Console.</span> HQ at http://203.0.113.10:4100 has not
+answered since 09:12. HQ may have moved while this machine was off.
+If it did, get its new address from a fleet admin and set it:
+  agenthix console hq-address &lt;address&gt;
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+hq-box · Self-hosted · host service 0.2.0
+
+Site hq-box  <span class="t-mu">0.2.0</span>  <span class="t-mu">HQ · site</span>
+  <span class="t-dg">Not connected.</span> HQ refused it: its pairing secret is not the one HQ
+  expects. That is HQ's own reason, passed on as HQ gave it. The site
+  reaches HQ over a private Docker network, so the address is not the
+  cause. Fleet admins can see it in the Fleet Console.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> A laptop with no site yet, then the site started by <code>console connect</code> — and later, when hq does not answer: with why, and a next step. No approval step exists.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">avery@laptop · Light</span></div><pre><span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix status</span>
+laptop · Self-hosted · host service 0.2.0
+Not managed by a Fleet Console, so no site runs here. To add one, a
+fleet admin chooses Add a site in the Fleet Console and gives you a
+code:
+  agenthix console connect &lt;hq address&gt; &lt;code&gt;
+
+<span class="t-mu">— the fleet admin confirmed the name and fingerprint —</span>
+<span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix status</span>
+laptop · Self-hosted · host service 0.2.0
+Managed by the Fleet Console on hq-box.
+
+Site laptop  <span class="t-mu">0.2.0</span>
+  <span class="t-ok">Connected</span> to HQ. It took part at once. 0 of 2 agent runs in use.
+
+<span class="t-mu">— an hour later —</span>
+<span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix status</span>
+<span class="t-mu">…</span>
+Site laptop  <span class="t-mu">0.2.0</span>
+  <span class="t-dg">Not connected.</span> HQ at https://hq.acme.example has not answered for
+  25 minutes: the address resolves, but nothing accepts the
+  connection. HQ may be stopped or moving. Runs here are paused.
+  Check with whoever runs HQ; this site reconnects by itself.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">avery@laptop · Dark</span></div><pre><span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix status</span>
+laptop · Self-hosted · host service 0.2.0
+Not managed by a Fleet Console, so no site runs here. To add one, a
+fleet admin chooses Add a site in the Fleet Console and gives you a
+code:
+  agenthix console connect &lt;hq address&gt; &lt;code&gt;
+
+<span class="t-mu">— the fleet admin confirmed the name and fingerprint —</span>
+<span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix status</span>
+laptop · Self-hosted · host service 0.2.0
+Managed by the Fleet Console on hq-box.
+
+Site laptop  <span class="t-mu">0.2.0</span>
+  <span class="t-ok">Connected</span> to HQ. It took part at once. 0 of 2 agent runs in use.
+
+<span class="t-mu">— an hour later —</span>
+<span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix status</span>
+<span class="t-mu">…</span>
+Site laptop  <span class="t-mu">0.2.0</span>
+  <span class="t-dg">Not connected.</span> HQ at https://hq.acme.example has not answered for
+  25 minutes: the address resolves, but nothing accepts the
+  connection. HQ may be stopped or moving. Runs here are paused.
+  Check with whoever runs HQ; this site reconnects by itself.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> The other reasons the site is not connected, and the upgrade one. Each says what was seen, then what to do.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">avery@laptop · Light</span></div><pre>  <span class="t-dg">Not connected.</span> The address hq.acme.example does not resolve from
+  laptop. Check this machine's network or DNS. If HQ moved, set its
+  new address: agenthix site hq-address &lt;address&gt;
+
+  <span class="t-dg">Not connected.</span> https://hq.acme.example answers, but its certificate
+  is not valid for that name (it is for www.acme.example). Ask whoever
+  runs HQ to fix the certificate; nothing to change here.
+
+  <span class="t-dg">Not connected.</span> HQ needs a newer site: HQ is 0.3.0 and this
+  site is 0.2.0. To upgrade: agenthix site upgrade
+
+  <span class="t-wn">Not running.</span> The site is suspended; nothing is lost.
+  To start it: agenthix site resume</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">avery@laptop · Dark</span></div><pre>  <span class="t-dg">Not connected.</span> The address hq.acme.example does not resolve from
+  laptop. Check this machine's network or DNS. If HQ moved, set its
+  new address: agenthix site hq-address &lt;address&gt;
+
+  <span class="t-dg">Not connected.</span> https://hq.acme.example answers, but its certificate
+  is not valid for that name (it is for www.acme.example). Ask whoever
+  runs HQ to fix the certificate; nothing to change here.
+
+  <span class="t-dg">Not connected.</span> HQ needs a newer site: HQ is 0.3.0 and this
+  site is 0.2.0. To upgrade: agenthix site upgrade
+
+  <span class="t-wn">Not running.</span> The site is suspended; nothing is lost.
+  To start it: agenthix site resume</pre></div></div>
+</section>
+<section id="cli-3" class="bd-page it" style="display:block">
+<h2>The machine's way into hq</h2>
+<p class="subtitle">Spec §9. Four commands that only someone on hq's machine can run: one link for the first account (or an admin invitation when every admin has gone), a one-time link to set a person's password, the fleet admin role given to an account, and a one-time code to move the Fleet Console to another machine. They run in hq through its private control socket; a controller is never offered them.</p>
+<h3>What this is</h3><div class="ctx"><ul><li>The root of trust for hq: whoever can use Docker on hq's machine can always get back in.</li><li>Every use is told to the organisation admins, so it is never silent.</li><li>On a machine with no hq, the commands say where hq runs instead of failing obscurely.</li><li>The first account holds both roles, so there is one link, not two. Fleet admin is a role on an hq account: the person signs in to the Fleet Console with their hq login.</li></ul></div>
+<h3>Today</h3><div class="ctx"><p><code>./agenthix invite-admin</code> and <code>./agenthix reset-password &lt;username&gt;</code> from the clone (<code>hqMachineCommands.ts</code>). The wording is close to right; what changes is the command, the role names and what the person is told about the link.</p></div>
+<p class="cli-cap" style="color:var(--text-secondary)">How to read the terminals: <b>bold</b> is what the person types; an <u>underlined</u> value is their answer to a question. Colour is used only on the first word of a state (<i>Running</i>, <i>Waiting</i>, <i>Stopped</i>) — that word says the same thing without it.</p>
+<p class="cli-cap"><span class="cli-tag td">Today</span> Both today's commands, and the reply to an unknown user name.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix invite-admin</span>
+An admin invitation, recorded as made on HQ's machine (valid 24 hours):
+https://hq.acme.example/invite?token=b81e…
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix reset-password avery</span>
+A one-time link to set avery's password (valid 1 hour):
+https://hq.acme.example/reset-password?token=7d0a…
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix reset-password avry</span>
+No one signs in as 'avry'.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix invite-admin</span>
+An admin invitation, recorded as made on HQ's machine (valid 24 hours):
+https://hq.acme.example/invite?token=b81e…
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix reset-password avery</span>
+A one-time link to set avery's password (valid 1 hour):
+https://hq.acme.example/reset-password?token=7d0a…
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix reset-password avry</span>
+No one signs in as 'avry'.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix hq invite-admin</code> — on a fresh install (the same single link <code>install</code> prints), then when organisation admins still exist (it asks, and they are told). It never makes a separate fleet admin link: the role is given to an account, below.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq invite-admin</span>
+HQ at https://hq.acme.example has no account yet.
+Open this link to make the first one. It will hold both roles,
+organisation admin and fleet admin. It works once, for 24 hours:
+  https://hq.acme.example/setup#t=Qm9f2xK7…
+Any earlier first-account link no longer works.
+
+<span class="t-mu">— months later —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq invite-admin</span>
+Acme Robotics has 2 organisation admins: Sam Rivera, Avery Chen.
+This is for when none of them can sign in. It makes an invitation to
+join as an organisation admin, marked in HQ as made on HQ's machine,
+and every organisation admin is told.
+Make it? [y/N] <span class="t-in">y</span>
+An invitation to join Acme Robotics as an organisation admin.
+It works once, for 24 hours:
+  https://hq.acme.example/invite#t=b81e…
+Sam Rivera and Avery Chen have been told.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq invite-admin</span>
+HQ at https://hq.acme.example has no account yet.
+Open this link to make the first one. It will hold both roles,
+organisation admin and fleet admin. It works once, for 24 hours:
+  https://hq.acme.example/setup#t=Qm9f2xK7…
+Any earlier first-account link no longer works.
+
+<span class="t-mu">— months later —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq invite-admin</span>
+Acme Robotics has 2 organisation admins: Sam Rivera, Avery Chen.
+This is for when none of them can sign in. It makes an invitation to
+join as an organisation admin, marked in HQ as made on HQ's machine,
+and every organisation admin is told.
+Make it? [y/N] <span class="t-in">y</span>
+An invitation to join Acme Robotics as an organisation admin.
+It works once, for 24 hours:
+  https://hq.acme.example/invite#t=b81e…
+Sam Rivera and Avery Chen have been told.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix hq fleet-admin &lt;user&gt;</code> — gives an existing hq account the fleet admin role; the only other way besides a fleet admin doing it in the Fleet Console (<i>Fleet admins</i> tab). It is also how the role comes back when no fleet admin is left. It never makes an account: the person already has one. An organisation admin cannot give it in hq.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq fleet-admin avery</span>
+Give Avery Chen (@avery) the fleet admin role?
+A fleet admin can open the Fleet Console, which looks after every
+machine and site of Acme Robotics. Their HQ password stays theirs.
+Give the role? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Done.</span> Avery Chen is a fleet admin. Sam Rivera and every other
+organisation admin and fleet admin have been told: "Avery Chen was
+given the fleet admin role from HQ's machine."
+
+<span class="t-mu">— later, when no fleet admin is left —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq fleet-admin sam</span>
+Acme Robotics has no fleet admin left. Giving the role to Sam Rivera
+(@sam) lets them open the Fleet Console again.
+Give the role? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Done.</span> Sam Rivera is a fleet admin. Every organisation admin has
+been told.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq fleet-admin avery</span>
+Avery Chen already holds the fleet admin role. Nothing changed.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq fleet-admin avry</span>
+<span class="t-dg">Not found:</span> no one signs in to HQ as "avry". Use the name they type
+at sign-in, which HQ shows on their page under People.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix hq fleet-admin avery</span>
+<span class="t-dg">No HQ here:</span> office-server runs sites only. These commands run on
+HQ's own machine — for https://hq.acme.example, that is hq-box.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq fleet-admin avery</span>
+Give Avery Chen (@avery) the fleet admin role?
+A fleet admin can open the Fleet Console, which looks after every
+machine and site of Acme Robotics. Their HQ password stays theirs.
+Give the role? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Done.</span> Avery Chen is a fleet admin. Sam Rivera and every other
+organisation admin and fleet admin have been told: "Avery Chen was
+given the fleet admin role from HQ's machine."
+
+<span class="t-mu">— later, when no fleet admin is left —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq fleet-admin sam</span>
+Acme Robotics has no fleet admin left. Giving the role to Sam Rivera
+(@sam) lets them open the Fleet Console again.
+Give the role? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Done.</span> Sam Rivera is a fleet admin. Every organisation admin has
+been told.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq fleet-admin avery</span>
+Avery Chen already holds the fleet admin role. Nothing changed.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq fleet-admin avry</span>
+<span class="t-dg">Not found:</span> no one signs in to HQ as "avry". Use the name they type
+at sign-in, which HQ shows on their page under People.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix hq fleet-admin avery</span>
+<span class="t-dg">No HQ here:</span> office-server runs sites only. These commands run on
+HQ's own machine — for https://hq.acme.example, that is hq-box.</pre></div></div><p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix hq console-code</code> — a one-time code to run the Fleet Console on another machine. Used with <code>agenthix console install</code> there (page 4).</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq console-code</span>
+The Fleet Console runs on hq-box. A code lets it run on another
+machine instead, even a fleet admin's own computer, and the one
+here is then retired. It does not move when HQ moves.
+Make a code? [y/N] <span class="t-in">y</span>
+  Code: 4HQW-N7TE-M9S3
+It works once, for 1 hour. On the other machine, with Agenthix's host
+service running there, run:
+  agenthix console install https://hq.acme.example 4HQW-N7TE-M9S3
+Every fleet admin and organisation admin has been told.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix hq console-code</span>
+<span class="t-dg">No HQ here:</span> office-server runs sites only. These commands run on
+HQ's own machine — for https://hq.acme.example, that is hq-box.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq console-code</span>
+The Fleet Console runs on hq-box. A code lets it run on another
+machine instead, even a fleet admin's own computer, and the one
+here is then retired. It does not move when HQ moves.
+Make a code? [y/N] <span class="t-in">y</span>
+  Code: 4HQW-N7TE-M9S3
+It works once, for 1 hour. On the other machine, with Agenthix's host
+service running there, run:
+  agenthix console install https://hq.acme.example 4HQW-N7TE-M9S3
+Every fleet admin and organisation admin has been told.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix hq console-code</span>
+<span class="t-dg">No HQ here:</span> office-server runs sites only. These commands run on
+HQ's own machine — for https://hq.acme.example, that is hq-box.</pre></div></div><p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix hq reset-password &lt;user&gt;</code> — the link, who it is for, and who is told; then a mistyped name, and the command on a machine without hq.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq reset-password avery</span>
+A one-time link for Avery Chen (@avery) to set a new password.
+It works once, for 1 hour:
+  https://hq.acme.example/reset#t=7d0a…
+HQ does not send it: give it to Avery Chen yourself.
+Sam Rivera, the other organisation admin, has been told that a
+password was reset from HQ's machine.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq reset-password avry</span>
+<span class="t-dg">Not found:</span> no one signs in to HQ as "avry". Use the name they type
+at sign-in, which HQ shows on their page under People.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix hq reset-password avery</span>
+<span class="t-dg">No HQ here:</span> office-server runs sites only. These commands run on
+HQ's own machine — for https://hq.acme.example, that is hq-box.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq reset-password avery</span>
+A one-time link for Avery Chen (@avery) to set a new password.
+It works once, for 1 hour:
+  https://hq.acme.example/reset#t=7d0a…
+HQ does not send it: give it to Avery Chen yourself.
+Sam Rivera, the other organisation admin, has been told that a
+password was reset from HQ's machine.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq reset-password avry</span>
+<span class="t-dg">Not found:</span> no one signs in to HQ as "avry". Use the name they type
+at sign-in, which HQ shows on their page under People.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix hq reset-password avery</span>
+<span class="t-dg">No HQ here:</span> office-server runs sites only. These commands run on
+HQ's own machine — for https://hq.acme.example, that is hq-box.</pre></div></div>
+</section>
+<section id="cli-4" class="bd-page it" style="display:block">
+<h2>The Fleet Console from the command line</h2>
+<p class="subtitle">Spec §6 (connecting a machine), §7 and §13. Running the Fleet Console on another machine, the authenticator code, adding a site by a code and a fingerprint both sides compare, leaving, the address to use after hq moved, the Fleet Console's own link to Cloud, and remote access for a time.</p>
+<h3>What this is</h3><div class="ctx"><ul><li>The Fleet Console is a site of its own kind: it dials out to hq like every site, runs no agents, and shows its screen at <code>127.0.0.1</code> of its own machine only. It runs on hq's machine by default and does not move when hq moves; <code>agenthix hq console-code</code> and <code>agenthix console install</code> run it elsewhere.</li><li>It has no accounts of its own. A fleet admin is a role on an hq account, and people sign in with their hq login. The first account, made by the install link, holds the role; <code>agenthix hq fleet-admin</code> (page 3) gives it to others.</li><li>Adding a site needs both sides: a one-time code from a fleet admin (<i>Add a site</i> in the Fleet Console), then the machine admin's command, then the fleet admin confirms the name and fingerprint they see. The site then starts and takes part in hq at once. No organisation admin approves it.</li><li>Remote access is a tunnel through Cloud's relay that is turned on, or extended, only at the Fleet Console's machine — here, or on the Fleet Console's screen opened on that machine or through an SSH tunnel. Anyone can turn it off. Every session is announced. It needs Acme Robotics connected to Agenthix Cloud and at least one fleet admin with an authenticator code.</li><li>The organisation's connection to Agenthix Cloud, held by the Fleet Console, is made and removed only at the Fleet Console's machine: <code>cloud connect</code> and <code>cloud disconnect</code>. It is not a fleet admin's own Cloud sign-in, which they keep under <i>Your account</i>.</li><li>On the machine or over SSH a fleet admin signs in with their hq login. Through remote access they also need an authenticator code from an app; it is set up on the Fleet Console's machine, and a lost phone only stops remote sign-in. <code>agenthix console reset-code &lt;user&gt;</code> resets it there.</li><li>None of these commands exists today: machines are not connected to anything but hq.</li></ul></div>
+<p class="cli-cap" style="color:var(--text-secondary)">How to read the terminals: <b>bold</b> is what the person types; an <u>underlined</u> value is their answer to a question. Colour is used only on the first word of a state (<i>Running</i>, <i>Waiting</i>, <i>Stopped</i>) — that word says the same thing without it.</p>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix console install &lt;hq address&gt; &lt;code&gt;</code> — runs the Fleet Console on this machine instead of hq's, after a machine admin of hq's machine made the code with <code>agenthix hq console-code</code>. The old one is retired; machines pin the new key. The machine may be a fleet admin's own computer.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">avery@laptop · Light</span></div><pre><span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix console install https://hq.acme.example 4HQW-N7TE-M9S3</span>
+Reaching HQ at https://hq.acme.example ... <span class="t-ok">found</span>
+  Acme Robotics. The Fleet Console runs on hq-box today.
+
+This starts the Fleet Console here, on laptop, and retires the one on
+hq-box. Its screen is on 127.0.0.1:4300 of this machine only, and it
+runs no agents. It keeps one connection out to HQ and accepts none.
+Start it here and retire the one on hq-box? [y/N] <span class="t-in">y</span>
+
+Starting the Fleet Console on 127.0.0.1:4300 ........ <span class="t-ok">answers</span>
+Connecting it to HQ ................................ <span class="t-ok">connected</span>
+Machines pin its new key ........................... <span class="t-ok">3 of 3</span>
+<span class="t-ok">Moved.</span> The Fleet Console now runs on laptop. Open
+http://127.0.0.1:4300 here and sign in with your HQ account; you
+need the fleet admin role. To sign in through remote access, set up
+an authenticator code here first: six digits from an app, with ten
+recovery codes shown once.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+<span class="t-mu">…</span>
+Fleet Console
+  Retired here. It runs on laptop now, and fleet admins open it there.
+  To bring it back here: agenthix hq console-code
+
+<span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix console install https://hq.acme.example 4HQW-N7TE-M9S3</span>
+<span class="t-dg">Refused:</span> that code has expired or was already used. Ask a machine
+admin of hq-box for a new one: agenthix hq console-code</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">avery@laptop · Dark</span></div><pre><span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix console install https://hq.acme.example 4HQW-N7TE-M9S3</span>
+Reaching HQ at https://hq.acme.example ... <span class="t-ok">found</span>
+  Acme Robotics. The Fleet Console runs on hq-box today.
+
+This starts the Fleet Console here, on laptop, and retires the one on
+hq-box. Its screen is on 127.0.0.1:4300 of this machine only, and it
+runs no agents. It keeps one connection out to HQ and accepts none.
+Start it here and retire the one on hq-box? [y/N] <span class="t-in">y</span>
+
+Starting the Fleet Console on 127.0.0.1:4300 ........ <span class="t-ok">answers</span>
+Connecting it to HQ ................................ <span class="t-ok">connected</span>
+Machines pin its new key ........................... <span class="t-ok">3 of 3</span>
+<span class="t-ok">Moved.</span> The Fleet Console now runs on laptop. Open
+http://127.0.0.1:4300 here and sign in with your HQ account; you
+need the fleet admin role. To sign in through remote access, set up
+an authenticator code here first: six digits from an app, with ten
+recovery codes shown once.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix status</span>
+<span class="t-mu">…</span>
+Fleet Console
+  Retired here. It runs on laptop now, and fleet admins open it there.
+  To bring it back here: agenthix hq console-code
+
+<span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix console install https://hq.acme.example 4HQW-N7TE-M9S3</span>
+<span class="t-dg">Refused:</span> that code has expired or was already used. Ask a machine
+admin of hq-box for a new one: agenthix hq console-code</pre></div></div><p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix console reset-code &lt;user&gt;</code> — on the Fleet Console's machine, resets a fleet admin's authenticator code. It never touches their password, which belongs to hq (<code>agenthix hq reset-password</code>).</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">avery@laptop · Light</span></div><pre><span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix console reset-code sam</span>
+Sam Rivera (@sam) has an authenticator code for this Fleet Console.
+This resets it and its ten recovery codes; the old ones stop
+working. Their HQ password is not touched. They set a new code up
+here, on laptop, signed in with their HQ login. A lost phone only
+stops remote sign-in: here, the HQ login is enough.
+Every fleet admin is told. Reset it? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Reset.</span> Sam Rivera has no authenticator code now. They cannot sign
+in through remote access until they set a new one on this machine.
+
+<span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix console reset-code morgan</span>
+<span class="t-dg">Not a fleet admin:</span> Morgan Lee (@morgan) does not hold the fleet admin
+role, so there is no code to reset. A fleet admin can give the role
+in the Fleet Console, or on HQ's machine: agenthix hq fleet-admin morgan
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console reset-code sam</span>
+<span class="t-dg">Not here:</span> the Fleet Console runs on laptop. Run this there.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">avery@laptop · Dark</span></div><pre><span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix console reset-code sam</span>
+Sam Rivera (@sam) has an authenticator code for this Fleet Console.
+This resets it and its ten recovery codes; the old ones stop
+working. Their HQ password is not touched. They set a new code up
+here, on laptop, signed in with their HQ login. A lost phone only
+stops remote sign-in: here, the HQ login is enough.
+Every fleet admin is told. Reset it? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Reset.</span> Sam Rivera has no authenticator code now. They cannot sign
+in through remote access until they set a new one on this machine.
+
+<span class="t-pr">avery@laptop:~$</span> <span class="t-cm">agenthix console reset-code morgan</span>
+<span class="t-dg">Not a fleet admin:</span> Morgan Lee (@morgan) does not hold the fleet admin
+role, so there is no code to reset. A fleet admin can give the role
+in the Fleet Console, or on HQ's machine: agenthix hq fleet-admin morgan
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console reset-code sam</span>
+<span class="t-dg">Not here:</span> the Fleet Console runs on laptop. Run this there.</pre></div></div><p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix console connect &lt;address&gt; &lt;code&gt;</code> on the new machine — this is how a site is added. It shows the fingerprint to read out to the fleet admin, who sees the same one in the Fleet Console before confirming; the site, named after the machine, then starts and takes part at once.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console connect https://hq.acme.example 7KQ4-M2XD-46Q3</span>
+Reaching the Fleet Console through https://hq.acme.example ... <span class="t-ok">found</span>
+  Fleet Console on hq-box, for Acme Robotics
+
+The fleet admin who made this code now sees this machine in the
+Fleet Console. Before they confirm, compare these with them — read
+them out on a call or in a message:
+
+  Machine       office-server
+  Fingerprint   5F2A 9C1E 77B0 D4E3
+
+If what they see is different, they must not confirm: press Ctrl-C.
+Waiting for a fleet admin to confirm (the code expires at 14:32) …
+
+<span class="t-ok">Confirmed.</span> office-server is managed by the Fleet Console on hq-box.
+It keeps one connection out to https://hq.acme.example and accepts none.
+The Fleet Console's fingerprint, pinned: 0B6D 41A8 E2F9 3C57
+
+Starting the site office-server ..................... <span class="t-ok">running</span>
+<span class="t-ok">Taking part.</span> The site office-server is registered with HQ and works for
+Acme Robotics now. No one in HQ needs to approve it.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console connect https://hq.acme.example 7KQ4-M2XD-46Q3</span>
+Reaching the Fleet Console through https://hq.acme.example ... <span class="t-ok">found</span>
+  Fleet Console on hq-box, for Acme Robotics
+
+The fleet admin who made this code now sees this machine in the
+Fleet Console. Before they confirm, compare these with them — read
+them out on a call or in a message:
+
+  Machine       office-server
+  Fingerprint   5F2A 9C1E 77B0 D4E3
+
+If what they see is different, they must not confirm: press Ctrl-C.
+Waiting for a fleet admin to confirm (the code expires at 14:32) …
+
+<span class="t-ok">Confirmed.</span> office-server is managed by the Fleet Console on hq-box.
+It keeps one connection out to https://hq.acme.example and accepts none.
+The Fleet Console's fingerprint, pinned: 0B6D 41A8 E2F9 3C57
+
+Starting the site office-server ..................... <span class="t-ok">running</span>
+<span class="t-ok">Taking part.</span> The site office-server is registered with HQ and works for
+Acme Robotics now. No one in HQ needs to approve it.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> When connecting is refused: an expired code, and a machine that already has a controller (one at a time).</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console connect https://hq.acme.example 7KQ4-M2XD-46Q3</span>
+<span class="t-dg">Refused:</span> that code has expired or was already used. Ask a fleet
+admin for a new one: Fleet Console → Fleet → Add a site.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console connect https://hq.acme.example 9TR2-WW4C-D25V</span>
+<span class="t-dg">Refused:</span> office-server is already managed by the Fleet Console on
+hq-box. A machine has one controller at a time. To move it, first:
+  agenthix console disconnect</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console connect https://hq.acme.example 7KQ4-M2XD-46Q3</span>
+<span class="t-dg">Refused:</span> that code has expired or was already used. Ask a fleet
+admin for a new one: Fleet Console → Fleet → Add a site.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console connect https://hq.acme.example 9TR2-WW4C-D25V</span>
+<span class="t-dg">Refused:</span> office-server is already managed by the Fleet Console on
+hq-box. A machine has one controller at a time. To move it, first:
+  agenthix console disconnect</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix console disconnect</code> — effective at once, even when the Fleet Console cannot be reached; hq's own machine refuses it. It says what happens to the site: it stops taking part in hq, and its data is kept.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console disconnect</span>
+office-server will no longer be managed by the Fleet Console on
+hq-box. As it leaves:
+  • its site, office-server, stops taking part in HQ and runs no
+    agents; its data stays on this machine until you erase it
+    (agenthix site erase);
+  • its own backups, and the backup location set for it, stay on
+    this machine.
+Disconnect? [y/N] <span class="t-in">y</span>
+
+<span class="t-ok">Disconnected.</span> This machine dropped its credential and no longer
+answers the Fleet Console. The Fleet Console could not be told just
+now; it will show office-server as disconnected, and HQ will list
+the site as not connected until a fleet admin removes it there.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console disconnect</span>
+<span class="t-dg">Not here:</span> hq-box is where HQ runs, with its site, so it cannot leave.
+To remove everything from this machine: agenthix hq erase</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console disconnect</span>
+office-server will no longer be managed by the Fleet Console on
+hq-box. As it leaves:
+  • its site, office-server, stops taking part in HQ and runs no
+    agents; its data stays on this machine until you erase it
+    (agenthix site erase);
+  • its own backups, and the backup location set for it, stay on
+    this machine.
+Disconnect? [y/N] <span class="t-in">y</span>
+
+<span class="t-ok">Disconnected.</span> This machine dropped its credential and no longer
+answers the Fleet Console. The Fleet Console could not be told just
+now; it will show office-server as disconnected, and HQ will list
+the site as not connected until a fleet admin removes it there.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console disconnect</span>
+<span class="t-dg">Not here:</span> hq-box is where HQ runs, with its site, so it cannot leave.
+To remove everything from this machine: agenthix hq erase</pre></div></div><p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix console hq-address &lt;address&gt;</code> — for a machine that was offline when hq moved. The same challenge–response check as for a site; it passes, or nothing changes.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console hq-address http://198.51.100.24:4100</span>
+This machine reaches HQ at http://203.0.113.10:4100 and has not
+been able to since 09:12.
+Checking http://198.51.100.24:4100 is that same HQ …
+  It proves it holds the record of this machine's credential, and
+  this machine proves it knows the credential. The credential
+  itself never crosses the network.
+The check .......................................... <span class="t-ok">passes</span>
+
+<span class="t-ok">Connected.</span> office-server now reaches HQ at http://198.51.100.24:4100.
+The Fleet Console does not move with HQ. If it runs on this machine,
+it uses the new address now; if it runs elsewhere, it follows by
+itself, or by this command on its own machine.
+The site here was offline too, so it needs the address as well:
+  agenthix site hq-address http://198.51.100.24:4100
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console hq-address http://198.51.100.42:4100</span>
+The check .......................................... <span class="t-dg">fails</span>
+<span class="t-dg">Not changed:</span> that is an Agenthix HQ, but not the one this machine
+belongs to: it could not prove it holds this machine's credential.
+This machine still uses http://203.0.113.10:4100 and told it nothing.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console hq-address http://198.51.100.24:4100</span>
+This machine reaches HQ at http://203.0.113.10:4100 and has not
+been able to since 09:12.
+Checking http://198.51.100.24:4100 is that same HQ …
+  It proves it holds the record of this machine's credential, and
+  this machine proves it knows the credential. The credential
+  itself never crosses the network.
+The check .......................................... <span class="t-ok">passes</span>
+
+<span class="t-ok">Connected.</span> office-server now reaches HQ at http://198.51.100.24:4100.
+The Fleet Console does not move with HQ. If it runs on this machine,
+it uses the new address now; if it runs elsewhere, it follows by
+itself, or by this command on its own machine.
+The site here was offline too, so it needs the address as well:
+  agenthix site hq-address http://198.51.100.24:4100
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console hq-address http://198.51.100.42:4100</span>
+The check .......................................... <span class="t-dg">fails</span>
+<span class="t-dg">Not changed:</span> that is an Agenthix HQ, but not the one this machine
+belongs to: it could not prove it holds this machine's credential.
+This machine still uses http://203.0.113.10:4100 and told it nothing.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix console remote on</code> — what it means, the 2-hour default and 8-hour limit, who needs a code, the announcement; extending it; then turning it off. Turning on or extending happens only at the Fleet Console's machine; turning off works from anywhere.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console remote on</span>
+Remote access lets fleet admins open this Fleet Console from anywhere,
+at an address under Cloud's domain, through Cloud's relay.
+  • Encryption ends here, at the Fleet Console: Cloud passes on what
+    it cannot read.
+  • Cloud controls the domain it answers on, so it could in principle
+    get a certificate for it. That is why remote access is off
+    unless someone at this machine turns it on.
+  • Away from this machine, fleet admins sign in with their HQ login
+    and an authenticator code. Sam Rivera has set one up. Avery Chen
+    has not, and cannot sign in remotely until they do, at this
+    machine.
+  • Only this machine can turn it on or extend it. A session that
+    came in through remote access can only turn it off.
+  • Every fleet admin and organisation admin is told now, and each
+    remote session is announced.
+For how long? Up to 8h [2h] <span class="t-in">2h</span>
+Turn remote access on until 16:40 today? [y/N] <span class="t-in">y</span>
+
+<span class="t-wn">Remote access is on</span> until 16:40 today. It turns itself off then.
+  https://hm-7f3k2q.relay.example.example
+Fleet admins and organisation admins have been told: "Remote access
+to the Fleet Console was turned on at hq-box, until 16:40."
+
+<span class="t-mu">— at 15:28, with 1 h 12 min left —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console remote on</span>
+<span class="t-wn">Remote access is already on</span> until 16:40 today. Avery Chen is using it.
+Extend it, from now? Up to 8h [no] <span class="t-in">4h</span>
+<span class="t-wn">Remote access is on</span> until 19:28 today. Everyone was told.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console remote off</span>
+<span class="t-ok">Remote access is off.</span> 1 remote session was open (Avery Chen); it
+has been closed. Everyone who was told has been told it is off.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console remote on</span>
+Remote access lets fleet admins open this Fleet Console from anywhere,
+at an address under Cloud's domain, through Cloud's relay.
+  • Encryption ends here, at the Fleet Console: Cloud passes on what
+    it cannot read.
+  • Cloud controls the domain it answers on, so it could in principle
+    get a certificate for it. That is why remote access is off
+    unless someone at this machine turns it on.
+  • Away from this machine, fleet admins sign in with their HQ login
+    and an authenticator code. Sam Rivera has set one up. Avery Chen
+    has not, and cannot sign in remotely until they do, at this
+    machine.
+  • Only this machine can turn it on or extend it. A session that
+    came in through remote access can only turn it off.
+  • Every fleet admin and organisation admin is told now, and each
+    remote session is announced.
+For how long? Up to 8h [2h] <span class="t-in">2h</span>
+Turn remote access on until 16:40 today? [y/N] <span class="t-in">y</span>
+
+<span class="t-wn">Remote access is on</span> until 16:40 today. It turns itself off then.
+  https://hm-7f3k2q.relay.example.example
+Fleet admins and organisation admins have been told: "Remote access
+to the Fleet Console was turned on at hq-box, until 16:40."
+
+<span class="t-mu">— at 15:28, with 1 h 12 min left —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console remote on</span>
+<span class="t-wn">Remote access is already on</span> until 16:40 today. Avery Chen is using it.
+Extend it, from now? Up to 8h [no] <span class="t-in">4h</span>
+<span class="t-wn">Remote access is on</span> until 19:28 today. Everyone was told.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console remote off</span>
+<span class="t-ok">Remote access is off.</span> 1 remote session was open (Avery Chen); it
+has been closed. Everyone who was told has been told it is off.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> Where remote access is refused, each with how to fix it: a machine that is not the Fleet Console's; an organisation not connected to Agenthix Cloud; no fleet admin with an authenticator code.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console remote on</span>
+<span class="t-dg">Not here:</span> remote access is turned on at the Fleet Console's machine,
+hq-box. Run this there, over SSH if need be.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console remote on</span>
+<span class="t-dg">Not turned on:</span> remote access goes through Agenthix Cloud's relay, and
+Acme Robotics is not connected to Agenthix Cloud. Connect it here,
+then run this again:
+  agenthix cloud connect
+Without Cloud, use your own tunnel to 127.0.0.1:4300; the guide's
+page "Reach the Fleet Console" shows how.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console remote on</span>
+<span class="t-dg">Not turned on:</span> no fleet admin has an authenticator code yet, so
+nobody could sign in through remote access. A fleet admin sets one
+up on this machine: Fleet Console → Remote access → Authenticator
+code. Then run this again.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix console remote on</span>
+<span class="t-dg">Not here:</span> remote access is turned on at the Fleet Console's machine,
+hq-box. Run this there, over SSH if need be.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console remote on</span>
+<span class="t-dg">Not turned on:</span> remote access goes through Agenthix Cloud's relay, and
+Acme Robotics is not connected to Agenthix Cloud. Connect it here,
+then run this again:
+  agenthix cloud connect
+Without Cloud, use your own tunnel to 127.0.0.1:4300; the guide's
+page "Reach the Fleet Console" shows how.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix console remote on</span>
+<span class="t-dg">Not turned on:</span> no fleet admin has an authenticator code yet, so
+nobody could sign in through remote access. A fleet admin sets one
+up on this machine: Fleet Console → Remote access → Authenticator
+code. Then run this again.</pre></div></div><p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix cloud connect</code> and <code>disconnect</code> — the organisation's connection to Agenthix Cloud, held by the Fleet Console. Only at the Fleet Console's machine. It is not a fleet admin's own Cloud sign-in; that stays under Your account in the Fleet Console.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix cloud connect</span>
+This connects Acme Robotics to Agenthix Cloud. Remote access to the
+Fleet Console then goes through Cloud's relay, and Cloud's own sites
+show in the fleet. It does not sign any fleet admin in to Cloud;
+they do that themselves, and it is not changed.
+Open this on any device and sign in as a fleet admin of Acme Robotics on Agenthix Cloud
+(or register it there first):
+  https://cloud.example/connect
+Enter the code <span class="t-in">QK7T-92MD-V37E</span> (valid until 14:40).
+Waiting for Cloud ...
+<span class="t-ok">Connected.</span> Acme Robotics is connected to Agenthix Cloud.
+Remote access can now be turned on: agenthix console remote on
+
+<span class="t-mu">— later —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix cloud disconnect</span>
+Disconnecting turns remote access off now (1 session is open: Avery
+Chen), and it stays off until Acme Robotics is connected again. The
+fleet stops listing Cloud's sites. Fleet admins' own Cloud sign-ins
+and the sites Cloud runs are not changed.
+Disconnect? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Disconnected.</span> Remote access is off. Everyone who was told has been told.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix cloud connect</span>
+<span class="t-dg">Not here:</span> the connection to Agenthix Cloud is made and removed at the Fleet
+Console's machine, hq-box. Run this there, over SSH if need be.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix cloud connect</span>
+This connects Acme Robotics to Agenthix Cloud. Remote access to the
+Fleet Console then goes through Cloud's relay, and Cloud's own sites
+show in the fleet. It does not sign any fleet admin in to Cloud;
+they do that themselves, and it is not changed.
+Open this on any device and sign in as a fleet admin of Acme Robotics on Agenthix Cloud
+(or register it there first):
+  https://cloud.example/connect
+Enter the code <span class="t-in">QK7T-92MD-V37E</span> (valid until 14:40).
+Waiting for Cloud ...
+<span class="t-ok">Connected.</span> Acme Robotics is connected to Agenthix Cloud.
+Remote access can now be turned on: agenthix console remote on
+
+<span class="t-mu">— later —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix cloud disconnect</span>
+Disconnecting turns remote access off now (1 session is open: Avery
+Chen), and it stays off until Acme Robotics is connected again. The
+fleet stops listing Cloud's sites. Fleet admins' own Cloud sign-ins
+and the sites Cloud runs are not changed.
+Disconnect? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Disconnected.</span> Remote access is off. Everyone who was told has been told.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix cloud connect</span>
+<span class="t-dg">Not here:</span> the connection to Agenthix Cloud is made and removed at the Fleet
+Console's machine, hq-box. Run this there, over SSH if need be.</pre></div></div>
+</section>
+<section id="cli-5" class="bd-page it" style="display:block">
+<h2>The site on a machine</h2>
+<p class="subtitle">Spec §6, §8, §10 and §13. One site per machine, named after it, added from the Fleet Console. What is left on the machine: pointing it at hq's new address, and what each agent may use.</p>
+<h3>What this is</h3><div class="ctx"><ul><li>A machine has at most one site, and it has the machine's name (<i>office-server</i>). <code>agenthix status</code> shows it; there is no name to type in any command.</li><li>There is no <code>site add</code>, <code>site join</code> or <code>site remove</code>. A site is added in the Fleet Console (<i>Add a site</i>): <code>agenthix console connect</code> with the code starts it, and it takes part in hq at once. Leaving is <code>agenthix site erase</code>, which keeps everything for 30 days (next page).</li><li>A site that was offline during a move is pointed at hq's new address with <code>agenthix site hq-address</code>. The check is a mutual challenge–response: the new hq proves it holds the record of this site's credential, the site proves it knows the credential, and the credential never crosses the network.</li><li><code>capacity</code> is the machine's, not hq's: what each agent container may use. hq or a project may narrow it for a run, never raise it. Protections have no setting.</li></ul></div>
+<h3>Today</h3><div class="ctx"><p><code>agenthix-site register &lt;hq-url&gt;</code> inside the site's container after a hand-written compose install. Every site is named <i>Agenthix Site</i>; <code>unregister</code> treats any refusal as "hq could not be reached" (<code>agenthix-site.mjs</code>), which is untrue for hq's own site.</p></div>
+<p class="cli-cap" style="color:var(--text-secondary)">How to read the terminals: <b>bold</b> is what the person types; an <u>underlined</u> value is their answer to a question. Colour is used only on the first word of a state (<i>Running</i>, <i>Waiting</i>, <i>Stopped</i>) — that word says the same thing without it.</p>
+<p class="cli-cap"><span class="cli-tag td">Today</span> Registering a site, and unregistering hq's own site (hq answered, and refused).</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">docker compose -f site/compose.yml --env-file site/compose.env \</span>
+    exec site agenthix-site register https://hq.acme.example
+
+  To connect this site, open:
+    https://hq.acme.example/sites/approve
+  and enter the code:  QJ7M-4PXT-T4F5   (expires 2:32:00 PM)
+
+  Waiting for approval…
+  Registered with https://hq.acme.example.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker compose … exec site agenthix-site unregister</span>
+Unregistered here. HQ could not be reached — an admin can revoke this
+site on the Execution Sites page.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">docker compose -f site/compose.yml --env-file site/compose.env \</span>
+    exec site agenthix-site register https://hq.acme.example
+
+  To connect this site, open:
+    https://hq.acme.example/sites/approve
+  and enter the code:  QJ7M-4PXT-T4F5   (expires 2:32:00 PM)
+
+  Waiting for approval…
+  Registered with https://hq.acme.example.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">docker compose … exec site agenthix-site unregister</span>
+Unregistered here. HQ could not be reached — an admin can revoke this
+site on the Execution Sites page.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> The old way is gone: <code>site add</code> says so and points at the Fleet Console. Adding is <code>console connect</code> with a code (see the Fleet Console page).</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site add --hq https://hq.acme.example</span>
+<span class="t-dg">No such command.</span> A site is not added from the machine any more. A
+fleet admin chooses Add a site in the Fleet Console and gives you a
+code; then run:
+  agenthix console connect &lt;hq address&gt; &lt;code&gt;
+The site takes this machine's name, office-server, and takes part
+in HQ at once. Nothing was installed.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site add --hq https://hq.acme.example</span>
+<span class="t-dg">No such command.</span> A site is not added from the machine any more. A
+fleet admin chooses Add a site in the Fleet Console and gives you a
+code; then run:
+  agenthix console connect &lt;hq address&gt; &lt;code&gt;
+The site takes this machine's name, office-server, and takes part
+in HQ at once. Nothing was installed.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix site hq-address &lt;address&gt;</code> after a move — the check passes, or fails and nothing changes. No site name: there is one.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site hq-address http://198.51.100.24:4100</span>
+The site office-server uses HQ at http://203.0.113.10:4100.
+Checking http://198.51.100.24:4100 is that same HQ …
+  It proves it holds the record of this site's credential, and this
+  site proves it knows the credential. The credential itself never
+  crosses the network.
+The check .......................................... <span class="t-ok">passes</span>
+
+<span class="t-ok">Connected.</span> The site office-server now uses http://198.51.100.24:4100.
+The old address is forgotten.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site hq-address http://198.51.100.42:4100</span>
+Checking http://198.51.100.42:4100 is the same HQ …
+The check .......................................... <span class="t-dg">fails</span>
+
+<span class="t-dg">Not changed:</span> http://198.51.100.42:4100 is an Agenthix HQ, but not
+the one this site belongs to: it could not prove it holds this
+site's credential. The site still uses http://203.0.113.10:4100.
+It learned nothing from this site and took nothing over.
+Check the address with a fleet admin; HQ's Settings page shows the
+address it has now.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site hq-address http://198.51.100.24:4100</span>
+<span class="t-dg">Not changed:</span> nothing answers at http://198.51.100.24:4100. HQ may
+not have finished moving. Try again later.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site hq-address http://198.51.100.24:4100</span>
+The site office-server uses HQ at http://203.0.113.10:4100.
+Checking http://198.51.100.24:4100 is that same HQ …
+  It proves it holds the record of this site's credential, and this
+  site proves it knows the credential. The credential itself never
+  crosses the network.
+The check .......................................... <span class="t-ok">passes</span>
+
+<span class="t-ok">Connected.</span> The site office-server now uses http://198.51.100.24:4100.
+The old address is forgotten.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site hq-address http://198.51.100.42:4100</span>
+Checking http://198.51.100.42:4100 is the same HQ …
+The check .......................................... <span class="t-dg">fails</span>
+
+<span class="t-dg">Not changed:</span> http://198.51.100.42:4100 is an Agenthix HQ, but not
+the one this site belongs to: it could not prove it holds this
+site's credential. The site still uses http://203.0.113.10:4100.
+It learned nothing from this site and took nothing over.
+Check the address with a fleet admin; HQ's Settings page shows the
+address it has now.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site hq-address http://198.51.100.24:4100</span>
+<span class="t-dg">Not changed:</span> nothing answers at http://198.51.100.24:4100. HQ may
+not have finished moving. Try again later.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix capacity</code> — the machine's ceilings, shown and set here. It lives on the machine, not under <code>site</code>.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix capacity</span>
+What each agent run on office-server may use (this machine has
+16 GB of memory and 8 processors):
+  Memory per agent container        4 GB
+  Processors per agent container    2
+  Processes per agent container     512
+  Agent containers at once          4
+HQ and projects may narrow these for a run; a run gets the smaller.
+To change them: agenthix capacity set --memory 6GB --containers 2
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix capacity set --memory 6GB --containers 2</span>
+<span class="t-ok">Changed.</span> New runs get 6 GB and at most 2 containers at once.
+Runs already going keep what they started with. HQ will show the
+new limits on Where work runs.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix capacity set --memory 6GB --containers 6</span>
+<span class="t-dg">Not changed:</span> 6 containers at 6 GB could use 36 GB; this machine
+has 16 GB. Lower either, or keep 4 containers at 4 GB.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix capacity set --protections off</span>
+<span class="t-dg">No such setting.</span> Shutting agents out of this machine is always on.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix capacity</span>
+What each agent run on office-server may use (this machine has
+16 GB of memory and 8 processors):
+  Memory per agent container        4 GB
+  Processors per agent container    2
+  Processes per agent container     512
+  Agent containers at once          4
+HQ and projects may narrow these for a run; a run gets the smaller.
+To change them: agenthix capacity set --memory 6GB --containers 2
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix capacity set --memory 6GB --containers 2</span>
+<span class="t-ok">Changed.</span> New runs get 6 GB and at most 2 containers at once.
+Runs already going keep what they started with. HQ will show the
+new limits on Where work runs.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix capacity set --memory 6GB --containers 6</span>
+<span class="t-dg">Not changed:</span> 6 containers at 6 GB could use 36 GB; this machine
+has 16 GB. Lower either, or keep 4 containers at 4 GB.
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix capacity set --protections off</span>
+<span class="t-dg">No such setting.</span> Shutting agents out of this machine is always on.</pre></div></div>
+</section>
+<section id="cli-6" class="bd-page it" style="display:block">
+<h2>Warnings that ask before acting</h2>
+<p class="subtitle">Spec §6 (the front door) and §15 (erase). Each says what it will do and what it cannot undo, then asks; the front door defaults to no and a script needs an explicit flag, and an erase needs the name typed. Nothing has happened when it stops.</p>
+<h3>What this is</h3><div class="ctx"><ul><li><code>agenthix front-door on</code>: the host service runs its own web front door, holding hq's certificates. It takes ports 80 and 443, so nothing else on the machine can serve web traffic on them. Refused while either port is in use.</li><li>Erase: a final sealed backup, the running data removed, and that backup and its copy in the backup location kept for a 30-day grace period during which a restore brings hq back; then everything is purged. <code>agenthix hq erase</code> erases at once; <code>--on &lt;date&gt;</code> schedules it, and hq shows everyone a countdown. Confirming needs hq's address typed in; the site's name (the machine's) for a site.</li><li><code>agenthix site erase</code> is the only way to remove a site from a machine. It stops taking part in hq and removes the running data, and keeps a final backup 30 days like any erase; <code>site restore</code> brings it back</li><li>Today a front door is started by hand from the repository's optional Caddy setup (<code>front-door/compose.yml</code>), with no check that ports 80 and 443 are free; nothing erases an install.</li></ul></div>
+<p class="cli-cap" style="color:var(--text-secondary)">How to read the terminals: <b>bold</b> is what the person types; an <u>underlined</u> value is their answer to a question. Colour is used only on the first word of a state (<i>Running</i>, <i>Waiting</i>, <i>Stopped</i>) — that word says the same thing without it.</p>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix front-door on</code> — the warning and its default; then from a script without the flag.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix front-door on</span>
+The front door serves HQ at https://hq.acme.example itself, with
+certificates it gets and renews on its own.
+
+<span class="t-wn">It takes ports 80 and 443 on hq-box.</span> While it is on, nothing else
+on this machine can serve web traffic on them: a web server you run
+now or install later will fail to start.
+
+Uploaded files get their own address, files.hq.acme.example. Point its
+DNS name at hq-box too before going on.
+
+Turn the front door on? [y/N] <span class="t-mu">(Enter)</span>
+Left off. Nothing changed.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix front-door on &lt; /dev/null     <span class="t-mu"># from a script</span></span>
+<span class="t-dg">Not on:</span> this needs an answer and there is no one to ask. From a
+script, add --take-ports-80-and-443. Nothing changed.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix front-door on</span>
+The front door serves HQ at https://hq.acme.example itself, with
+certificates it gets and renews on its own.
+
+<span class="t-wn">It takes ports 80 and 443 on hq-box.</span> While it is on, nothing else
+on this machine can serve web traffic on them: a web server you run
+now or install later will fail to start.
+
+Uploaded files get their own address, files.hq.acme.example. Point its
+DNS name at hq-box too before going on.
+
+Turn the front door on? [y/N] <span class="t-mu">(Enter)</span>
+Left off. Nothing changed.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix front-door on &lt; /dev/null     <span class="t-mu"># from a script</span></span>
+<span class="t-dg">Not on:</span> this needs an answer and there is no one to ask. From a
+script, add --take-ports-80-and-443. Nothing changed.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> Refused while a port is in use; then accepted, with the configuration checked and the certificate obtained — or rolled back.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix front-door on</span>
+<span class="t-dg">Refused:</span> something on hq-box is already listening on port 443.
+Stop it first — or keep it, and point it at HQ on 127.0.0.1:4100:
+agenthix front-door prints the steps. Nothing changed.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix front-door on</span>
+<span class="t-mu">… the warning …</span>
+Turn the front door on? [y/N] <span class="t-in">y</span>
+Checking the configuration ......................... <span class="t-ok">passes</span>
+Certificate for hq.acme.example ........................ <span class="t-ok">obtained</span>
+Certificate for files.hq.acme.example .................. <span class="t-dg">fails</span>
+  files.hq.acme.example does not point at hq-box, so no certificate can
+  be obtained for it.
+<span class="t-dg">Rolled back.</span> The front door is off, ports 80 and 443 are free
+again, and HQ is as it was. Point files.hq.acme.example at hq-box, then
+run this again.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix front-door on</span>
+<span class="t-dg">Refused:</span> something on hq-box is already listening on port 443.
+Stop it first — or keep it, and point it at HQ on 127.0.0.1:4100:
+agenthix front-door prints the steps. Nothing changed.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix front-door on</span>
+<span class="t-mu">… the warning …</span>
+Turn the front door on? [y/N] <span class="t-in">y</span>
+Checking the configuration ......................... <span class="t-ok">passes</span>
+Certificate for hq.acme.example ........................ <span class="t-ok">obtained</span>
+Certificate for files.hq.acme.example .................. <span class="t-dg">fails</span>
+  files.hq.acme.example does not point at hq-box, so no certificate can
+  be obtained for it.
+<span class="t-dg">Rolled back.</span> The front door is off, ports 80 and 443 are free
+again, and HQ is as it was. Point files.hq.acme.example at hq-box, then
+run this again.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix hq erase</code> — at once, by default: what goes, what is kept and until when, the people who will not be told, and the address to type. A mistyped address erases nothing.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq erase</span>
+<span class="t-dg">This erases HQ at https://hq.acme.example</span> on hq-box: Acme Robotics'
+people, projects, agents and work, and its own site, hq-box, with it.
+
+First a final sealed backup is taken. It and its copy in the backup
+location (/mnt/nas/agenthix) are kept for 30 days from the erase.
+Until then, agenthix hq restore brings everything back. After that
+it is all purged, the copy in the backup location included, and
+cannot be recovered.
+
+<span class="t-wn">12 people use this HQ. They won't be told unless you give notice.</span>
+Without notice, the first they know is HQ not answering. Fleet
+admins and organisation admins are told either way.
+This erases HQ NOW. To give notice instead, press Ctrl-C and run:
+  agenthix hq erase --on "Fri 16 Oct 18:00"
+
+To confirm, type HQ's address: <span class="t-in">https://hq.acme.example/</span>
+<span class="t-dg">Not erased:</span> that is not HQ's address (it is https://hq.acme.example,
+without the slash). Nothing changed.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq erase</span>
+<span class="t-dg">This erases HQ at https://hq.acme.example</span> on hq-box: Acme Robotics'
+people, projects, agents and work, and its own site, hq-box, with it.
+
+First a final sealed backup is taken. It and its copy in the backup
+location (/mnt/nas/agenthix) are kept for 30 days from the erase.
+Until then, agenthix hq restore brings everything back. After that
+it is all purged, the copy in the backup location included, and
+cannot be recovered.
+
+<span class="t-wn">12 people use this HQ. They won't be told unless you give notice.</span>
+Without notice, the first they know is HQ not answering. Fleet
+admins and organisation admins are told either way.
+This erases HQ NOW. To give notice instead, press Ctrl-C and run:
+  agenthix hq erase --on "Fri 16 Oct 18:00"
+
+To confirm, type HQ's address: <span class="t-in">https://hq.acme.example/</span>
+<span class="t-dg">Not erased:</span> that is not HQ's address (it is https://hq.acme.example,
+without the slash). Nothing changed.</pre></div></div><p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix hq erase --on &lt;date&gt;</code> — scheduled with notice. hq shows everyone a countdown; the 30 days start when it runs.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq erase --on "Fri 16 Oct 18:00"</span>
+<span class="t-dg">This erases HQ at https://hq.acme.example</span> on hq-box: Acme Robotics'
+people, projects, agents and work, and its own site, hq-box, with it.
+
+On Friday 16 October at 18:00 a final sealed backup is taken. It and
+its copy in the backup location (/mnt/nas/agenthix) are kept for 30
+days from then, until 15 November 2026. Until then, agenthix hq
+restore brings everything back. After that it is all purged, the
+copy in the backup location included, and cannot be recovered.
+
+Notice: from now, everyone in HQ sees "This HQ will be erased on Fri
+18:00 by a fleet admin. Export what you need, or ask them to cancel."
+12 people will see it. Fleet admins and organisation admins are told.
+
+To confirm, type HQ's address: <span class="t-in">https://hq.acme.example</span>
+<span class="t-ok">Scheduled.</span> HQ will be erased on Fri 16 Oct at 18:00. The countdown is
+showing. To cancel before then: agenthix schedule cancel 7
+
+<span class="t-mu">— the countdown ends, at 18:00 —</span>
+<span class="t-wn">Erased.</span> The backup is kept until 15 November 2026.
+To bring HQ back before then: agenthix hq restore</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq erase --on "Fri 16 Oct 18:00"</span>
+<span class="t-dg">This erases HQ at https://hq.acme.example</span> on hq-box: Acme Robotics'
+people, projects, agents and work, and its own site, hq-box, with it.
+
+On Friday 16 October at 18:00 a final sealed backup is taken. It and
+its copy in the backup location (/mnt/nas/agenthix) are kept for 30
+days from then, until 15 November 2026. Until then, agenthix hq
+restore brings everything back. After that it is all purged, the
+copy in the backup location included, and cannot be recovered.
+
+Notice: from now, everyone in HQ sees "This HQ will be erased on Fri
+18:00 by a fleet admin. Export what you need, or ask them to cancel."
+12 people will see it. Fleet admins and organisation admins are told.
+
+To confirm, type HQ's address: <span class="t-in">https://hq.acme.example</span>
+<span class="t-ok">Scheduled.</span> HQ will be erased on Fri 16 Oct at 18:00. The countdown is
+showing. To cancel before then: agenthix schedule cancel 7
+
+<span class="t-mu">— the countdown ends, at 18:00 —</span>
+<span class="t-wn">Erased.</span> The backup is kept until 15 November 2026.
+To bring HQ back before then: agenthix hq restore</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> Erase at once, confirmed; then the same hq brought back within its grace period.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq erase</span>
+<span class="t-mu">… the warning …</span>
+This erases HQ NOW. To give notice instead, press Ctrl-C.
+To confirm, type HQ's address: <span class="t-in">https://hq.acme.example</span>
+Taking the final sealed backup ...................... done (1.2 GB)
+Stopping HQ and its site ................. done
+Removing the running data .......................... done
+<span class="t-wn">Erased.</span> The backup is kept until 12 November 2026.
+To bring HQ back before then: agenthix hq restore
+
+<span class="t-mu">— nine days later —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq restore</span>
+HQ at https://hq.acme.example was erased on 13 October 2026. Its final
+backup is kept for 21 more days. Restore it on hq-box? [y/N] <span class="t-in">y</span>
+<span class="t-mu">…</span>
+<span class="t-ok">Restored.</span> HQ answers at https://hq.acme.example. Its sites reconnect
+by themselves.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq erase</span>
+<span class="t-mu">… the warning …</span>
+This erases HQ NOW. To give notice instead, press Ctrl-C.
+To confirm, type HQ's address: <span class="t-in">https://hq.acme.example</span>
+Taking the final sealed backup ...................... done (1.2 GB)
+Stopping HQ and its site ................. done
+Removing the running data .......................... done
+<span class="t-wn">Erased.</span> The backup is kept until 12 November 2026.
+To bring HQ back before then: agenthix hq restore
+
+<span class="t-mu">— nine days later —</span>
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix hq restore</span>
+HQ at https://hq.acme.example was erased on 13 October 2026. Its final
+backup is kept for 21 more days. Restore it on hq-box? [y/N] <span class="t-in">y</span>
+<span class="t-mu">…</span>
+<span class="t-ok">Restored.</span> HQ answers at https://hq.acme.example. Its sites reconnect
+by themselves.</pre></div></div><p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix site erase</code> — at once, with no date; the site is the machine's, so its name is the machine's. It leaves hq and is kept 30 days.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site erase</span>
+This erases the site office-server from office-server now. It stops
+taking part in HQ and runs no agents. Its workspaces and agent
+containers are removed. A final sealed backup is kept for 30 days;
+until then agenthix site restore brings it back, then it is purged.
+An erased site is not announced ahead: HQ says it has gone.
+
+To confirm, type the site's name: <span class="t-in">Office</span>
+<span class="t-dg">Not erased:</span> that is not the site's name. Nothing changed.
+To confirm, type the site's name: <span class="t-in">office-server</span>
+<span class="t-wn">Erased.</span> HQ has been told office-server has gone. The backup is
+kept until 12 November 2026.
+
+<span class="t-mu">— when HQ does not answer —</span>
+<span class="t-wn">Erased here.</span> HQ at https://hq.acme.example did not answer, so it still
+lists office-server as not connected. The Fleet Console will tell HQ,
+or a fleet admin can remove it there. Your backup is kept until
+12 November 2026.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site erase</span>
+This erases the site office-server from office-server now. It stops
+taking part in HQ and runs no agents. Its workspaces and agent
+containers are removed. A final sealed backup is kept for 30 days;
+until then agenthix site restore brings it back, then it is purged.
+An erased site is not announced ahead: HQ says it has gone.
+
+To confirm, type the site's name: <span class="t-in">Office</span>
+<span class="t-dg">Not erased:</span> that is not the site's name. Nothing changed.
+To confirm, type the site's name: <span class="t-in">office-server</span>
+<span class="t-wn">Erased.</span> HQ has been told office-server has gone. The backup is
+kept until 12 November 2026.
+
+<span class="t-mu">— when HQ does not answer —</span>
+<span class="t-wn">Erased here.</span> HQ at https://hq.acme.example did not answer, so it still
+lists office-server as not connected. The Fleet Console will tell HQ,
+or a fleet admin can remove it there. Your backup is kept until
+12 November 2026.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> Bringing the site back within 30 days, and hq's site, which <code>site erase</code> refuses and points to <code>hq erase</code>.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site restore</span>
+The site office-server was erased on 13 October 2026. Its final
+backup is kept for 29 more days. Restore it? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Restored.</span> The site office-server takes part in HQ again.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix site erase</span>
+<span class="t-dg">Not erased:</span> this is HQ's site, and HQ's site cannot lose its default
+site. To erase everything on hq-box, HQ with it: agenthix hq erase
+To stop agents working here, a fleet admin can suspend it in the
+Fleet Console.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix site restore</span>
+The site office-server was erased on 13 October 2026. Its final
+backup is kept for 29 more days. Restore it? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Restored.</span> The site office-server takes part in HQ again.
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix site erase</span>
+<span class="t-dg">Not erased:</span> this is HQ's site, and HQ's site cannot lose its default
+site. To erase everything on hq-box, HQ with it: agenthix hq erase
+To stop agents working here, a fleet admin can suspend it in the
+Fleet Console.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix scheduled</code> — the changes scheduled on this machine, then cancelling one.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix scheduled</span>
+  7   Fri 16 Oct 18:00   Erase HQ               scheduled by Sam Rivera
+  8   Sun 18 Oct 02:00   Upgrade HQ to 0.2.1    maintenance window
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix schedule cancel 7</span>
+<span class="t-ok">Cancelled.</span> HQ will not be erased on Fri 16 Oct. Everyone in HQ who
+saw the countdown has been told.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix scheduled</span>
+  7   Fri 16 Oct 18:00   Erase HQ               scheduled by Sam Rivera
+  8   Sun 18 Oct 02:00   Upgrade HQ to 0.2.1    maintenance window
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix schedule cancel 7</span>
+<span class="t-ok">Cancelled.</span> HQ will not be erased on Fri 16 Oct. Everyone in HQ who
+saw the countdown has been told.</pre></div></div>
+</section>
+<section id="cli-7" class="bd-page it" style="display:block">
+<h2><code>agenthix help</code> — every command</h2>
+<p class="subtitle">Spec §6, §9, §14, §15 and §17. What the CLI prints with no command, or with <code>help</code>: grouped by what it acts on, one line each. Commands the spec does not name are proposed here, and listed under the terminal.</p>
+<h3>Today</h3><div class="ctx"><p><code>./agenthix --help</code> prints the comment at the top of the script: four commands, from a clone.</p></div>
+<p class="cli-cap"><span class="cli-tag td">Today</span> <code>./agenthix --help</code></p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix --help</span>
+agenthix — install HQ and its site with Docker, and the commands that
+need HQ's machine. Run from the root of a clone of this repository:
+
+  ./agenthix install                    asks two questions, makes every
+                                        secret, writes hq/compose.env and
+                                        site/compose.env, builds and
+                                        starts both, and prints the
+                                        first-admin link
+  ./agenthix invite-admin               a fresh first-admin link; …
+  ./agenthix reset-password &lt;username&gt;  a one-time link to set that
+                                        person's password
+  ./agenthix status                     HQ's version and commit, …
+
+Only Docker is needed on the machine. See docs/architecture/deployment.md.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">./agenthix --help</span>
+agenthix — install HQ and its site with Docker, and the commands that
+need HQ's machine. Run from the root of a clone of this repository:
+
+  ./agenthix install                    asks two questions, makes every
+                                        secret, writes hq/compose.env and
+                                        site/compose.env, builds and
+                                        starts both, and prints the
+                                        first-admin link
+  ./agenthix invite-admin               a fresh first-admin link; …
+  ./agenthix reset-password &lt;username&gt;  a one-time link to set that
+                                        person's password
+  ./agenthix status                     HQ's version and commit, …
+
+Only Docker is needed on the machine. See docs/architecture/deployment.md.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix help</code> on hq's machine. <code>agenthix help &lt;command&gt;</code> prints one command's detail. The machine's own commands come first (<code>status</code>, <code>capacity</code>, <code>front-door</code>, <code>scheduled</code>, <code>schedule cancel</code>, <code>backup location</code>, <code>restore</code>), then <code>hq …</code>, <code>site …</code> and <code>console …</code>. One site per machine, so <code>site …</code> takes no name. There are no commands for agent protections: they are always on.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix help</span>
+agenthix 0.2.0 — runs Agenthix on this machine, hq-box.
+Without the shortcut, type: docker exec -it host agenthix &lt;command&gt;
+
+<span class="t-b">This machine</span>
+  install                   Install HQ and its site, or a site
+  status                    The HQ and the site here, and what to do next
+  capacity [set …]          Show or set what each agent may use
+  front-door [on | off]     Show or change the web front door
+  scheduled                 List the scheduled changes
+  schedule cancel &lt;id&gt;      Cancel a scheduled change
+  backup location [&lt;path&gt;] Show or choose the folder for backup copies
+  restore --from &lt;folder or file&gt;
+                            On a new machine, bring back HQ, its site
+                            and the Fleet Console from a backup
+  help [&lt;command&gt;]          This list, or one command in detail
+
+<span class="t-b">HQ</span> (on HQ's machine)
+  hq invite-admin           One link for the first account (both roles),
+                            or an admin invitation when none is left
+  hq fleet-admin &lt;user&gt;     Give an HQ account the fleet admin role
+  hq console-code           A code to run the Fleet Console elsewhere
+  hq reset-password &lt;user&gt;
+                            A one-time link to set a person's password
+  hq upgrade                Upgrade now, after a backup
+  hq logs                   Show recent logs
+  hq backup [export]        Take a sealed backup now, or export one
+  hq restore                Bring HQ back from a backup
+  hq schedule &lt;change&gt; --at &lt;time&gt;
+                            Schedule an upgrade, restore or move
+  hq suspend | resume       Stop it and keep everything; start it again
+  hq erase [--on &lt;date&gt;]    Erase at once, or on a date with notice;
+                            kept 30 days, then purged
+
+<span class="t-b">The site</span> (exactly one per machine; on HQ's machine it carries HQ)
+  site hq-address &lt;address&gt; Point the site at HQ's new address
+  site upgrade | logs | suspend | resume
+                            As for HQ, for the site
+  site schedule &lt;change&gt; --at &lt;time&gt;
+                            Schedule an upgrade, restore or move of the
+                            site
+  site move                 Move the site to a new machine now; prints
+                            the code the new machine connects with
+  site erase | restore      Erase it at once; kept 30 days, then purged
+                            — or bring it back
+
+<span class="t-b">The Fleet Console</span>
+  console install &lt;hq address&gt; &lt;code&gt;
+                            Run the Fleet Console here, not on HQ's
+                            machine (code from hq console-code)
+  console reset-code &lt;user&gt;
+                            Reset a fleet admin's authenticator code
+  console connect &lt;address&gt; &lt;code&gt;
+                            Add this machine as a site by a code
+                            from a fleet admin
+  console disconnect        Stop it looking after this machine, at once
+  console hq-address &lt;address&gt;
+                            Point this machine at HQ's new address
+  console remote on | off   Remote access for a while (Fleet Console's machine)
+
+<span class="t-b">Agenthix Cloud</span> (Fleet Console's machine)
+  cloud connect | disconnect
+                            Connect this organisation to Agenthix Cloud,
+                            or disconnect it</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix help</span>
+agenthix 0.2.0 — runs Agenthix on this machine, hq-box.
+Without the shortcut, type: docker exec -it host agenthix &lt;command&gt;
+
+<span class="t-b">This machine</span>
+  install                   Install HQ and its site, or a site
+  status                    The HQ and the site here, and what to do next
+  capacity [set …]          Show or set what each agent may use
+  front-door [on | off]     Show or change the web front door
+  scheduled                 List the scheduled changes
+  schedule cancel &lt;id&gt;      Cancel a scheduled change
+  backup location [&lt;path&gt;] Show or choose the folder for backup copies
+  restore --from &lt;folder or file&gt;
+                            On a new machine, bring back HQ, its site
+                            and the Fleet Console from a backup
+  help [&lt;command&gt;]          This list, or one command in detail
+
+<span class="t-b">HQ</span> (on HQ's machine)
+  hq invite-admin           One link for the first account (both roles),
+                            or an admin invitation when none is left
+  hq fleet-admin &lt;user&gt;     Give an HQ account the fleet admin role
+  hq console-code           A code to run the Fleet Console elsewhere
+  hq reset-password &lt;user&gt;
+                            A one-time link to set a person's password
+  hq upgrade                Upgrade now, after a backup
+  hq logs                   Show recent logs
+  hq backup [export]        Take a sealed backup now, or export one
+  hq restore                Bring HQ back from a backup
+  hq schedule &lt;change&gt; --at &lt;time&gt;
+                            Schedule an upgrade, restore or move
+  hq suspend | resume       Stop it and keep everything; start it again
+  hq erase [--on &lt;date&gt;]    Erase at once, or on a date with notice;
+                            kept 30 days, then purged
+
+<span class="t-b">The site</span> (exactly one per machine; on HQ's machine it carries HQ)
+  site hq-address &lt;address&gt; Point the site at HQ's new address
+  site upgrade | logs | suspend | resume
+                            As for HQ, for the site
+  site schedule &lt;change&gt; --at &lt;time&gt;
+                            Schedule an upgrade, restore or move of the
+                            site
+  site move                 Move the site to a new machine now; prints
+                            the code the new machine connects with
+  site erase | restore      Erase it at once; kept 30 days, then purged
+                            — or bring it back
+
+<span class="t-b">The Fleet Console</span>
+  console install &lt;hq address&gt; &lt;code&gt;
+                            Run the Fleet Console here, not on HQ's
+                            machine (code from hq console-code)
+  console reset-code &lt;user&gt;
+                            Reset a fleet admin's authenticator code
+  console connect &lt;address&gt; &lt;code&gt;
+                            Add this machine as a site by a code
+                            from a fleet admin
+  console disconnect        Stop it looking after this machine, at once
+  console hq-address &lt;address&gt;
+                            Point this machine at HQ's new address
+  console remote on | off   Remote access for a while (Fleet Console's machine)
+
+<span class="t-b">Agenthix Cloud</span> (Fleet Console's machine)
+  cloud connect | disconnect
+                            Connect this organisation to Agenthix Cloud,
+                            or disconnect it</pre></div></div>
+<h3>Not commands</h3>
+<div class="ctx"><ul><li><b>A separate fleet admin link.</b> The first account holds both roles, and the role is given to accounts with <code>hq fleet-admin</code> or in the Fleet Console.</li><li><b>Choosing the backup location from the Fleet Console.</b> Only <code>backup location</code> on the machine sets it.</li><li><b>Adding or removing a site.</b> No <code>site add</code>, <code>site join</code> or <code>site remove</code>: a site is added in the Fleet Console and started by <code>console connect</code>; it leaves by <code>site erase</code> or by disconnecting the machine.</li><li><b>Removing the old copy after a move.</b> It is the move's last step and happens by itself; there is no command.</li><li><b>A backup of all machines together.</b> None exists: each site backs up on its own, labelled by night.</li><li><b>Agent protections.</b> Always on; nothing to switch.</li></ul></div>
+<h3>Where each command comes from</h3>
+<table class="cli-tb"><tr><th>Command</th><th>Source</th></tr>
+<tr><td><code>install</code>, <code>status</code>, <code>front-door on</code>, <code>hq invite-admin</code>, <code>hq reset-password</code>, <code>hq fleet-admin</code>, <code>hq console-code</code>, <code>console install</code>, <code>console reset-code</code>, <code>console connect</code>, <code>console disconnect</code>, <code>console remote on</code>, <code>console hq-address</code>, <code>site hq-address</code>, <code>hq erase [--on]</code></td><td>Named in the spec (§6, §7, §9, §10, §13, §15)</td></tr>
+<tr><td><code>hq</code> and <code>site</code> verbs <code>logs</code>, <code>upgrade</code>, <code>schedule</code>, <code>backup</code>, <code>restore</code>, <code>suspend</code>, <code>resume</code>, <code>erase</code>, and <code>capacity</code>, <code>scheduled</code></td><td>Proposed here: the spec lists these actions in the closed set (§6) and says a machine admin can schedule changes with the CLI (§14), without naming the commands</td></tr>
+<tr><td><code>front-door off</code>, <code>console remote off</code>, <code>help</code></td><td>Proposed here, to undo or repeat a named command</td></tr>
+<tr><td><code>backup location</code>, <code>restore --from</code>, <code>cloud connect</code>, <code>cloud disconnect</code></td><td>The spec describes what each does (§7, §12) without naming them</td></tr></table>
+</section>
+<section id="cli-8" class="bd-page it" style="display:block">
+<h2>Backups: the backup location and restoring</h2>
+<p class="subtitle">Spec §12. Every site backs up nightly on its own; a backup location is a folder the machine can write to, chosen at the machine. Restoring hq's lost machine is one command on a new machine.</p>
+<h3>What this is</h3><div class="ctx"><ul><li><code>agenthix backup location &lt;path&gt;</code>: choose the folder, as this machine sees it (a network address, a NAS, a synced drive, a mounted bucket). The machine tests a write, shows the key <b>once</b> (or saves it as a file), and the person confirms they stored it. Every fleet admin is told. It is set <b>only here, on the machine</b>: the Fleet Console shows it, and where none is set it shows this command to run on the machine — it has no <i>Choose a folder…</i> button. Agenthix Cloud is not a backup location for a self-hosted organisation.</li><li><code>agenthix restore --from &lt;folder or file&gt;</code>: on hq's new machine after the old one is lost. It brings back hq, its default site and the Fleet Console, from a backup location or an export file, with the key. A lost site on another machine is restored from the Fleet Console (<i>Add a site › Restore from a backup</i>), not here. Restoring the same machine, one night back, is also the Fleet Console's (the site's page › Backups › Restore).</li><li>After any restore, hq and the sites reconcile and hq says plainly what was lost.</li></ul></div><h3>Today</h3><div class="ctx"><p>There is no backup location and no CLI to restore; <code>./agenthix</code> has four commands (page 7).</p></div><p class="cli-cap"><span class="cli-tag ">After</span> <code>backup location</code> on a site: see it, choose a folder, and a folder that fails the write test.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Light</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix backup location</span>
+Backup location for office-server: <span class="t-wn">not set</span>.
+Nightly backups (02:00) are kept on this machine only. The last export
+was 23 days ago. To choose a folder: agenthix backup location &lt;path&gt;
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix backup location /mnt/nas/agenthix</span>
+The folder, as this machine sees it: /mnt/nas/agenthix
+Testing that this machine can write there ........ <span class="t-ok">passes</span>
+
+From tonight, each nightly backup of office-server (its database and
+workspaces) is also written there, sealed. It is sealed with a key shown
+only now. Without it those copies cannot be read, here or on another
+machine.
+  Key: <span class="t-in">9F3K-QX72-M8LD-4RT6-HZ0P-W5VB</span>
+Save it to a file instead? [y/N] <span class="t-in">n</span>
+Have you stored the key? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Set.</span> Every fleet admin has been told: "Sam Rivera chose a backup
+location for office-server."
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix backup location /mnt/nas/agenthix-2</span>
+Testing that this machine can write there ........ <span class="t-dg">fails</span>
+  /mnt/nas/agenthix-2 does not exist on office-server.
+<span class="t-dg">Not set.</span> Nothing changed. Check the folder is mounted, then run this again.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@office-server · Dark</span></div><pre><span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix backup location</span>
+Backup location for office-server: <span class="t-wn">not set</span>.
+Nightly backups (02:00) are kept on this machine only. The last export
+was 23 days ago. To choose a folder: agenthix backup location &lt;path&gt;
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix backup location /mnt/nas/agenthix</span>
+The folder, as this machine sees it: /mnt/nas/agenthix
+Testing that this machine can write there ........ <span class="t-ok">passes</span>
+
+From tonight, each nightly backup of office-server (its database and
+workspaces) is also written there, sealed. It is sealed with a key shown
+only now. Without it those copies cannot be read, here or on another
+machine.
+  Key: <span class="t-in">9F3K-QX72-M8LD-4RT6-HZ0P-W5VB</span>
+Save it to a file instead? [y/N] <span class="t-in">n</span>
+Have you stored the key? [y/N] <span class="t-in">y</span>
+<span class="t-ok">Set.</span> Every fleet admin has been told: "Sam Rivera chose a backup
+location for office-server."
+
+<span class="t-pr">sam@office-server:~$</span> <span class="t-cm">agenthix backup location /mnt/nas/agenthix-2</span>
+Testing that this machine can write there ........ <span class="t-dg">fails</span>
+  /mnt/nas/agenthix-2 does not exist on office-server.
+<span class="t-dg">Not set.</span> Nothing changed. Check the folder is mounted, then run this again.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> On hq's machine the same command also covers hq. The Fleet Console only shows the location; where none is set it shows the command to run here.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Light</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix backup location /mnt/nas/agenthix</span>
+Backup location for hq-box: /mnt/nas/agenthix
+This site carries HQ, so each nightly backup holds HQ too: its database,
+storage folder and secrets, as well as the site's workspaces.
+Testing that this machine can write there ........ <span class="t-ok">passes</span>
+...
+<span class="t-ok">Set.</span> Every fleet admin has been told.
+
+<span class="t-mu">— in the Fleet Console, on hq-box's page —</span>
+Backup location: none set. This is set only on the machine itself,
+so nobody who is not at it can send copies somewhere else. On
+hq-box, run: agenthix backup location &lt;path&gt;</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box · Dark</span></div><pre><span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix backup location /mnt/nas/agenthix</span>
+Backup location for hq-box: /mnt/nas/agenthix
+This site carries HQ, so each nightly backup holds HQ too: its database,
+storage folder and secrets, as well as the site's workspaces.
+Testing that this machine can write there ........ <span class="t-ok">passes</span>
+...
+<span class="t-ok">Set.</span> Every fleet admin has been told.
+
+<span class="t-mu">— in the Fleet Console, on hq-box's page —</span>
+Backup location: none set. This is set only on the machine itself,
+so nobody who is not at it can send copies somewhere else. On
+hq-box, run: agenthix backup location &lt;path&gt;</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> <code>agenthix restore --from</code> — hq's machine is lost; on a new machine, from the backup location.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box-2 · Light</span></div><pre><span class="t-pr">sam@hq-box-2:~$</span> <span class="t-cm">agenthix restore --from /mnt/nas/agenthix</span>
+Looking in /mnt/nas/agenthix ...
+Backups of hq-box (HQ, its site hq-box and the Fleet Console), newest first:
+  1  night of 12 October 2026, 02:00   1.2 GB
+  2  night of 11 October 2026, 02:00   1.2 GB
+Which night? [1] <span class="t-in">1</span>
+The key for these copies: <span class="t-in">9F3K-QX72-M8LD-4RT6-HZ0P-W5VB</span>
+Checking the key ............................. <span class="t-ok">passes</span>
+
+This brings back on hq-box-2: HQ at https://hq.acme.example, its site,
+and the Fleet Console, if it ran there. It does not touch any other
+machine.
+Restore? [y/N] <span class="t-in">y</span>
+...
+<span class="t-ok">Restored.</span> HQ answers on this machine once https://hq.acme.example points
+at it. Other sites reconnect by themselves.
+<span class="t-wn">Files changed after 02:00 on 13 October were lost with the machine.</span>
+HQ will say so on each site as it reconnects, and offers to keep or
+remove any run or workspace it does not recognise.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box-2 · Dark</span></div><pre><span class="t-pr">sam@hq-box-2:~$</span> <span class="t-cm">agenthix restore --from /mnt/nas/agenthix</span>
+Looking in /mnt/nas/agenthix ...
+Backups of hq-box (HQ, its site hq-box and the Fleet Console), newest first:
+  1  night of 12 October 2026, 02:00   1.2 GB
+  2  night of 11 October 2026, 02:00   1.2 GB
+Which night? [1] <span class="t-in">1</span>
+The key for these copies: <span class="t-in">9F3K-QX72-M8LD-4RT6-HZ0P-W5VB</span>
+Checking the key ............................. <span class="t-ok">passes</span>
+
+This brings back on hq-box-2: HQ at https://hq.acme.example, its site,
+and the Fleet Console, if it ran there. It does not touch any other
+machine.
+Restore? [y/N] <span class="t-in">y</span>
+...
+<span class="t-ok">Restored.</span> HQ answers on this machine once https://hq.acme.example points
+at it. Other sites reconnect by themselves.
+<span class="t-wn">Files changed after 02:00 on 13 October were lost with the machine.</span>
+HQ will say so on each site as it reconnects, and offers to keep or
+remove any run or workspace it does not recognise.</pre></div></div>
+<p class="cli-cap"><span class="cli-tag ">After</span> From an export file, and the refusal where hq already runs.</p><div class="cli-pair"><div class="fs hm-l cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box-2 · Light</span></div><pre><span class="t-pr">sam@hq-box-2:~$</span> <span class="t-cm">agenthix restore --from ~/acme-export-2026-10-09.agenthix</span>
+This file is an export taken on 9 October 2026, 15:20. Its key is the
+one shown when it was made.
+The key: <span class="t-in">3C8N-V1ZQ-R7TA-0KDW-PY94-E2MH</span>
+Checking the key ............................. <span class="t-ok">passes</span>
+<span class="t-wn">Four days of work are not in it:</span> anything done in HQ after
+9 October 15:20. Restore? [y/N] <span class="t-in">y</span>
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix restore --from /mnt/nas/agenthix</span>
+<span class="t-dg">Not restored:</span> HQ already runs on hq-box. To bring back an HQ erased
+here within its 30 days: agenthix hq restore. To go back to an earlier
+night, a fleet admin restores it from the site's page in the Fleet
+Console, which backs up the current state first.</pre></div><div class="fs hm-d cli-t"><div class="chrome"><i></i><i></i><i></i><span style="margin-left:8px">sam@hq-box-2 · Dark</span></div><pre><span class="t-pr">sam@hq-box-2:~$</span> <span class="t-cm">agenthix restore --from ~/acme-export-2026-10-09.agenthix</span>
+This file is an export taken on 9 October 2026, 15:20. Its key is the
+one shown when it was made.
+The key: <span class="t-in">3C8N-V1ZQ-R7TA-0KDW-PY94-E2MH</span>
+Checking the key ............................. <span class="t-ok">passes</span>
+<span class="t-wn">Four days of work are not in it:</span> anything done in HQ after
+9 October 15:20. Restore? [y/N] <span class="t-in">y</span>
+
+<span class="t-pr">sam@hq-box:~$</span> <span class="t-cm">agenthix restore --from /mnt/nas/agenthix</span>
+<span class="t-dg">Not restored:</span> HQ already runs on hq-box. To bring back an HQ erased
+here within its 30 days: agenthix hq restore. To go back to an earlier
+night, a fleet admin restores it from the site's page in the Fleet
+Console, which backs up the current state first.</pre></div></div>
+</section>
+</main>
+</div>
+<script src="boards.js"></script>
+</body>
+</html>

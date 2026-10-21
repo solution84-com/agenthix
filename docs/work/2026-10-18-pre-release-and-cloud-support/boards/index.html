@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agenthix Cloud on the platform · boards</title>
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+<div class="bd-wrap">
+<nav class="bd-nav"><div class="bd-title">Agenthix Cloud on the platform<small>Part D · boards</small></div><div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Start</span><em>1</em></button><div class="bd-gl"><a href="index.html">What these boards cover</a></div></div><div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>HQ · signing in</span><em>1</em></button><div class="bd-gl"><a href="sign-in.html">Sign-in and invitation pages</a></div></div><div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>HQ · you</span><em>2</em></button><div class="bd-gl"><a href="settings-sign-in.html">Settings › Sign-in</a><a href="switcher.html">The organisation switcher</a></div></div><div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>HQ · organisation</span><em>1</em></button><div class="bd-gl"><a href="infrastructure.html">Infrastructure and Setup</a></div></div><div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>HQ · Home</span><em>1</em></button><div class="bd-gl"><a href="pledge.html">The Responsible AI Pledge card</a></div></div><div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Fleet Console</span><em>1</em></button><div class="bd-gl"><a href="cloud-section.html">The Cloud section, your account, links out</a></div></div><div class="bd-g"><button type="button" class="bd-gh"><i>›</i><span>Offers to fleet admins</span><em>1</em></button><div class="bd-gl"><a href="offers.html">Where Cloud removes a limit</a></div></div><div class="bd-th"><button type="button" data-t="l">Light</button><button type="button" data-t="d">Dark</button></div></nav>
+<main class="bd-main">
+
+<section class="bd-page" id="cover">
+<h2>What the platform shows of Agenthix Cloud, and the pledge</h2>
+<p class="subtitle">The boards for part D of the design spec (<code>spec.md</code>, beside this folder): every new screen and state, drawn before it is built. Each board shows <b>Today</b>, numbered, then <b>Before</b>, <b>After</b> and <b>Why</b>, then each state as one full-width screen. The switch at the foot of the menu flips every screen between light and dark; the colours are the product's design tokens. A <b>Built from</b> line under each feature names the components and the data it needs, for the lanes that build it.</p>
+
+<h3>The boards</h3>
+<table class="bd-table"><tr><th>Board</th><th>States drawn</th><th>Plan task</th></tr><tr><td><a href="sign-in.html#sign-in">Sign in with Agenthix Cloud — sign-in page</a></td><td>Connected · not connected (greyed, with its reason) · Cloud account linked to nobody here · Cloud not answering</td><td>4.2</td></tr><tr><td><a href="sign-in.html#invitation">Sign in with Agenthix Cloud — invitation page</a></td><td>Connected · not connected · back from Cloud, account made without a password · setup's first step on a fresh HQ</td><td>4.2</td></tr><tr><td><a href="settings-sign-in.html">Settings › Sign-in — the Agenthix account</a></td><td>Linked · not linked · just linked · linked with no HQ password · not connected before asking · after asking</td><td>4.3</td></tr><tr><td><a href="switcher.html#hq-switcher">Organisation switcher — HQ's menu</a></td><td>Closed · not connected · connected, not linked · connected and linked · menu collapsed</td><td>4.3</td></tr><tr><td><a href="switcher.html#fc-switcher">Organisation switcher — the Fleet Console's menu head</a></td><td>Not connected · connected and linked</td><td>4.3</td></tr><tr><td><a href="cloud-section.html#cloud-section">The Cloud section on the Fleet Console's HQ page</a></td><td>Not connected (with and without people who asked) · connecting with the code · waiting for an early-access place · connected · back from Cloud · HQ on Agenthix Cloud · through remote access</td><td>4.5</td></tr><tr><td><a href="cloud-section.html#your-account">Link a Cloud account, only once connected</a></td><td>Organisation not connected · connected</td><td>4.5</td></tr><tr><td><a href="cloud-section.html#links-out">Links out to Cloud, and back</a></td><td>What a link carries, and never carries</td><td>4.5</td></tr><tr><td><a href="offers.html">The three offers to fleet admins</a></td><td>No site available (HQ, for a fleet admin and a member; the Dashboard; dismissed) · backups kept on the machine · domain and HTTPS</td><td>4.4 (HQ), 4.5</td></tr><tr><td><a href="infrastructure.html#infrastructure">Organisation › Infrastructure — where HQ runs</a></td><td>Self-hosted, not connected · self-hosted, connected · on Agenthix Cloud · the HQ page's block</td><td>4.4</td></tr><tr><td><a href="infrastructure.html#setup-review">Setup › Review — one sentence</a></td><td>Before · after</td><td>4.4</td></tr><tr><td><a href="pledge.html">The Responsible AI Pledge card on Home</a></td><td>Until dismissed · dismissed</td><td>4.6</td></tr></table>
+
+<h3>The rule they follow</h3>
+<div class="ctx"><ul>
+<li><b>Members see what Cloud gives them and can ask for it</b>: one account, switching between organisations, an organisation of their own.</li>
+<li><b>Fleet admins also get an offer where Cloud removes a limit they have hit</b> — one dismissible line, gone for good once dismissed.</li>
+<li><b>An HQ that is not connected never calls Cloud</b>, and nothing is offered before Cloud can deliver it. Every state on these boards is read from HQ's own records — whether HQ is connected, whether the person's account is linked, whether HQ's machine is enrolled with Cloud — never by asking Cloud (ADR-0130).</li>
+<li>The public pages (sign-in, invitation) carry no link to Cloud.</li>
+<li>Links out carry only where to return to, the task and the entry point.</li>
+</ul></div>
+
+<h3>Shared parts the boards introduce</h3>
+<table class="bd-table"><tr><th>Part</th><th>Where it lives</th><th>Drawn on</th></tr>
+<tr><td><code>OrgSwitcher</code></td><td><code>@agenthix/ui</code> — drawn by HQ and the Fleet Console</td><td><a href="switcher.html">The organisation switcher</a></td></tr>
+<tr><td><code>CloudOfferLine</code></td><td><code>@agenthix/ui/primitives</code> — drawn by HQ and the Fleet Console</td><td><a href="offers.html">Offers</a></td></tr>
+<tr><td><code>CloudSignInButton</code></td><td><code>hq/src/auth/pages/parts/</code> — HQ only</td><td><a href="sign-in.html">Signing in</a></td></tr>
+<tr><td><code>CloudAccountRow</code></td><td><code>hq/src/settings/pages/</code> — HQ only</td><td><a href="settings-sign-in.html">Settings › Sign-in</a></td></tr>
+<tr><td><code>PledgeCard</code></td><td><code>hq/src/home/components/</code> — HQ only</td><td><a href="pledge.html">The pledge card</a></td></tr>
+<tr><td><code>cloudLinkOut()</code></td><td><code>@agenthix/core</code></td><td><a href="cloud-section.html#links-out">Links out</a></td></tr>
+</table>
+
+<h3>Decided on these boards</h3>
+<table class="bd-table"><tr><th>#</th><th>Decision</th></tr>
+<tr><td>D1</td><td><i>Sign in with Agenthix Cloud</i> sits under the password form, behind an <i>or</i> divider, so the password stays the first way in.</td></tr>
+<tr><td>D2</td><td>A Cloud account that nobody in this HQ has linked cannot sign in; the person is told to sign in with their password and link it in Settings › Sign-in.</td></tr>
+<tr><td>D3</td><td>The switcher is a row under the mark at the top of HQ's menu and under the machine badge in the Fleet Console's; it lists only this organisation, ticked.</td></tr>
+<tr><td>D4</td><td><i>Ask a fleet admin</i> lives in Settings › Sign-in; the switcher points there. The count of people who asked shows in the Fleet Console's Cloud section, only when it is more than none.</td></tr>
+<tr><td>D5</td><td>The Fleet Console's Cloud section loses its command-line sentence; one Connect wording: <i>Connect to Agenthix Cloud ↗ — you approve the connection on Agenthix Cloud, signing in there or making an account</i>.</td></tr>
+<tr><td>D6</td><td>An HQ that Cloud runs shows its connection without Disconnect; it ends only on Cloud.</td></tr>
+<tr><td>D7</td><td>Offers are a dashed line with Cloud's mark, a sentence, one link and ×; dismissal is per person and per offer, kept by HQ, and applies in both portals.</td></tr>
+<tr><td>D8</td><td>The pledge card is last on Home, shown from the first sign-in until dismissed.</td></tr>
+</table>
+
+<h3>Open for the owner — each drawn the conservative way</h3>
+<div class="ctx"><ol>
+<li><b>The early-access state</b> is not in the connection protocol (C1 knows approved, refused and expired). Drawn as a fourth outcome HQ keeps until a place opens.</li>
+<li><b>The invitation's Cloud path</b> makes an account with no password (drawn); or should it still ask for one?</li>
+<li><b>Setup's first step</b> shows the greyed button on a fresh HQ (drawn, as the spec says <i>always</i>); or leave it out until HQ is connected?</li>
+<li><b>Infrastructure's link to the Fleet Console</b>: HQ cannot know the Fleet Console's address, so the line names the place in words and links to the guide.</li>
+<li><b>Links from HQ carry HQ's address as the return place</b>, which says which HQ the person came from.</li>
+<li><b>Offers after connecting</b> stay while the limit lasts; dismissal is per person, not for every fleet admin.</li>
+<li><b>The pledge card's two lines</b> are placeholders to be written with the pledge page.</li>
+<li><b><i>You asked</i></b> is for good, even if HQ later connects and disconnects.</li>
+</ol></div>
+</section>
+
+</main>
+</div>
+<script src="boards.js"></script>
+</body>
+</html>

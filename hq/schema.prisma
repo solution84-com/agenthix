@@ -1,0 +1,2251 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ──────────────────────────────────────────────
+// Core user entity (required by Wasp auth)
+// ──────────────────────────────────────────────
+model User {
+  id            String               @id @default(uuid())
+  settings      UserSettings?
+  sessions      AgentSession[]
+  conversationsOpened Conversation[] @relation("ConversationOpener")
+  projectMemberships ProjectMember[]
+  notifications    Notification[]
+  mobileAuthTokens MobileAuthToken[]
+  deviceSessions   DeviceSession[]
+  cloudAccountLink CloudAccountLink?
+  cloudSignInAsk   CloudSignInAsk?
+  offerDismissals  OfferDismissal[]
+  memoryRecords    MemoryItem[]
+  storagePlacement UserStoragePlacement?
+  personalProject  Project?             @relation("PersonalProject")
+  connections      PersonConnection[]
+  pins             Pin[]
+  leadOf           Project[]            @relation("ProjectLead")
+  boardShowAlso    BoardShowAlso[]
+  teams            TeamPerson[]
+  // The name and picture shown wherever the person is (every screen reviewed
+  // spec §3, People); the login name stays their @handle. Null until set.
+  displayName      String?
+  avatarUrl        String?              // /people/{id}/images/{uuid}.{ext}
+  // Leaving (adr-0100): set by Remove, cleared by Reactivate. A deactivated
+  // person cannot sign in, act or be chosen.
+  deactivatedAt    DateTime?
+  // Who removed them: shown on their page beside when.
+  deactivatedById  String?
+  // Set by Erase, after Remove: their own data is gone and shared work names
+  // them "Former member". Never cleared.
+  erasedAt         DateTime?
+  // The fleet admin role (host-management spec §1, adr-0110): may sign in to
+  // the Fleet Console. Apart from UserSettings.role on purpose: no operation an
+  // organisation admin reaches writes it. Set only by src/fleet/fleetAdminRole.ts,
+  // for a fleet admin over the console link or for hq's machine, and when the
+  // first account is made at install.
+  fleetAdmin       Boolean              @default(false)
+  // When the role was last given, for the Fleet Console's *Your account*. Set by
+  // src/fleet/fleetAdminRole.ts on each grant; an account made holding the role
+  // (the first, at install) has it from when it was made, which the default
+  // records. Read only while fleetAdmin is true.
+  fleetAdminSince  DateTime             @default(now())
+  // When the person dismissed the Responsible AI Pledge card on Home; null while it is still offered.
+  pledgeDismissedAt DateTime?
+  // The newest version of the pledge whose new-version card the person dismissed; null while none was.
+  pledgeVersionDismissed Int?
+}
+
+// ──────────────────────────────────────────────
+// Module 1: Auth & Users
+// ──────────────────────────────────────────────
+model UserSettings {
+  id             String         @id @default(uuid())
+  user           User           @relation(fields: [userId], references: [id])
+  userId         String         @unique
+  role           Role           @default(MEMBER)
+  config         Json           @default("{}")
+  // What a message sent into a conversation whose turn is still running does
+  // (person-scoped execution spec §2): WAIT queues it behind the turn,
+  // INTERRUPT stops the turn and starts the new message.
+  busyConversationMode       BusyConversationMode @default(WAIT)
+  // The agent a new conversation starts with (conversational experience spec,
+  // Who a person talks to); null = the organisation's built-in agent, Kernel.
+  primaryAgentId             String?
+  // The person's IANA timezone (agents act in it when a time carries none). A column, not
+  // `config`: it is read on every scheduling call and validated on the way in.
+  // `timezoneChosen` is true once the person set it themselves, so the browser's own zone
+  // fills it in only while they have not.
+  timezone                   String?
+  timezoneChosen             Boolean @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+enum BusyConversationMode {
+  WAIT
+  INTERRUPT
+}
+
+// ──────────────────────────────────────────────
+// Provider — platform-owned external service credentials + config.
+// Covers voice services (STT, TTS). LLM auth stays as env var / OAuth file
+// until multi-runtime support is designed.
+//
+// service = capability: "stt" | "tts"
+// name    = vendor:     "assemblyai" | "inworld" | "deepgram" | "elevenlabs"
+// config  = service-specific connection params (e.g. AssemblyAI model/VAD params)
+// ──────────────────────────────────────────────
+model Provider {
+  id        String   @id @default(uuid())
+  service   String   // "stt" | "tts"
+  name      String   // "assemblyai" | "inworld" | "deepgram" | "elevenlabs"
+  apiKey    String   // ENCRYPTED at rest (secretCrypto, via providerService)
+  config    Json?
+  isEnabled Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([service, name])
+}
+
+// ──────────────────────────────────────────────
+// GitHub App credential model (ADR-0037 §8) — one org App; per-repo scoped tokens.
+// ──────────────────────────────────────────────
+model GitHubApp {
+  id             String   @id @default(uuid())
+  appId          Int      @unique          // numeric GitHub App id
+  slug           String                    // e.g. agenthix-acme
+  privateKey     String                    // PEM, ENCRYPTED at rest (secretCrypto)
+  webhookSecret  String?                   // ENCRYPTED at rest
+  clientId       String?
+  clientSecret   String?                   // ENCRYPTED at rest
+  createdAt      DateTime @default(now())
+}
+
+model GitHubInstallation {
+  id             String   @id @default(uuid())
+  installationId Int      @unique          // numeric installation id
+  accountLogin   String                    // org/user the App is installed on
+  accountType    String                    // "Organization" | "User"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────
+// Connector — FUTURE: org/product/project-scoped agent integrations.
+// Every stored credential is for connecting to something — GitHub, Stripe,
+// a database, a custom API. Agents request injection via an endpoint; the
+// credential value never enters the LLM context.
+//
+// type = built-in ("github" | "google-drive" | "slack") or "custom"
+// Scope resolution order: project → product → org (most specific wins).
+// Exactly one of orgId/productId/projectId must be set (app-level enforcement).
+//
+// Uncomment and migrate when building the agent connector / secrets feature.
+// ──────────────────────────────────────────────
+// model Connector {
+//   id        String   @id @default(uuid())
+//   orgId     String?
+//   productId String?
+//   projectId String?
+//   agentId   String?  // optional: scope to a specific agent
+//   type      String   // "github" | "google-drive" | "slack" | "custom"
+//   name      String   // display name e.g. "Production GitHub"
+//   label     String   @default("default")  // e.g. "api-key", "base-url"
+//   value     String   // the credential value
+//   isEnabled Boolean  @default(true)
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//
+//   @@unique([orgId, type, name, label])
+//   @@unique([productId, type, name, label])
+//   @@unique([projectId, type, name, label])
+// }
+
+/// The organisation's roles (adr-0102): an Admin runs the organisation; everyone else is a Member.
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+/// A project's roles (adr-0102): Admin runs it, Member works in it, Viewer only reads.
+enum ProjectRole {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum ProjectAccessLevel {
+  OPEN
+  PRIVATE
+}
+
+/// What an invitation is: an ordinary one, or the one-time first-admin link HQ
+/// makes while it has no users (getting-in spec, The first admin).
+enum InviteKind {
+  INVITATION
+  FIRST_ADMIN
+}
+
+// ──────────────────────────────────────────────
+// Invite — single-use tokens for joining the site
+// ──────────────────────────────────────────────
+model Invite {
+  id         String    @id @default(uuid())
+  // SHA-256 of the invite token. The token itself is shown to the admin once, at creation.
+  tokenHash  String    @unique
+  kind       InviteKind @default(INVITATION)
+  role       Role      @default(MEMBER)
+  // Who it is for, shown in the list of invitations.
+  note       String?
+  // Projects the person joins as a Member on accepting.
+  projectIds String[]  @default([])
+  // The admin who made it; null when it was made on HQ's machine (the first-admin
+  // link, or `agenthix invite-admin`).
+  createdBy  String?
+  expiresAt  DateTime?
+  consumedAt DateTime?
+  consumedBy String?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  // A first-admin link Agenthix Cloud asked for: Cloud's random name for the link, never its secret, kept with the
+  // account the link makes (pre-release spec B7). Null for every other invite.
+  linkRef    String?
+}
+
+// ──────────────────────────────────────────────
+// PasswordReset — a one-time link that sets a person's password. HQ keeps
+// no email address, so an admin makes it in the app, or someone who can run
+// commands on HQ's machine makes it there, and sends it themselves.
+// ──────────────────────────────────────────────
+model PasswordReset {
+  id          String    @id @default(uuid())
+  // SHA-256 of the token; the link is shown once, to whoever made it.
+  tokenHash   String    @unique
+  userId      String
+  // The admin who made it; null when it was made on HQ's machine.
+  createdById String?
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ──────────────────────────────────────────────
+// RateLimit — persistent per-IP attempt counter for auth endpoints
+// ──────────────────────────────────────────────
+model RateLimit {
+  ip        String   @id
+  count     Int
+  resetAt   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MobileAuthToken {
+  id        String    @id @default(uuid())
+  /// SHA-256 of the token handed to the person; the token itself is never stored.
+  token     String    @unique @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+/// A sign-in on a phone, told apart from a browser's: Wasp's own Session row (same id) holds the expiry, which
+/// slides forward while the phone is used. No relation to Session, because that model is Wasp's.
+model DeviceSession {
+  sessionId  String   @id
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// "phone" for now; the name of the kind of device that signed in.
+  kind       String   @default("phone")
+  deviceName String
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ──────────────────────────────────────────────
+// Module 2: Agent (schema only in Phase 1)
+// ──────────────────────────────────────────────
+model Agent {
+  id           String         @id @default(uuid())
+  name         String
+  handle       String         @unique
+  role         String?
+  defaultModel String         @default("claude-sonnet-4-6")
+  runtime      String         @default("claude-sdk") // "claude-sdk" | "opencode"
+  isKernel     Boolean        @default(false)
+  projectAssignments ProjectAgent[]
+  sessions     AgentSession[]
+  conversations Conversation[]
+  assignedTasks Task[]
+  taskComments TaskComment[]
+  avatarUrl    String?        // /agents/{id}/images/{uuid}.{ext} — null until first upload
+  coverUrl     String?        // /agents/{id}/images/{uuid}.{ext} — null until first upload
+  allowedTools        Json?  // string[] — SDK tool ceiling per-agent; null = runtime defaults
+  allowedBashPatterns Json?  // string[] — bash command prefixes always approved; null = none
+  /// When a person is asked about a tool set to Ask: "deferred" (carry on, ask at the end), "immediate" (stop and
+  /// ask at once) or "bypassed" (every tool runs, Never included; no one is asked).
+  approval            String @default("deferred")
+  voiceEnabled   Boolean  @default(false)
+  voiceId        String?  // Inworld voice ID e.g. "Ashley"
+  voiceTtsModel  String?  // "inworld-tts-1.5-max" | "inworld-tts-1.5-mini"
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  overrides    AgentOverride[]
+  memoryRecords MemoryItem[]
+  teams        TeamAgent[]
+}
+
+// AgentRouteBinding was removed — routing moves to Mission Control (see ADR 0006)
+
+// ──────────────────────────────────────────────
+// Module 3: Session & Memory (Phase 1 subset)
+// ──────────────────────────────────────────────
+model AgentSession {
+  id         String            @id @default(uuid())
+  sessionKey String            @unique @default(uuid())
+  agent      Agent             @relation(fields: [agentId], references: [id])
+  agentId    String
+  user       User              @relation(fields: [userId], references: [id])
+  userId     String
+  title      String?
+  status     SessionStatus     @default(ACTIVE)
+  sessionType String           @default("chat")
+  model      String?
+  metadata   Json              @default("{}")
+  // Running token totals — incremented per run, used for O(1) cost/env display
+  totalInputTokens      Int @default(0)
+  totalOutputTokens     Int @default(0)
+  totalCacheReadTokens  Int @default(0)
+  totalCacheWriteTokens Int @default(0)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  expiresAt  DateTime?
+  taskId     String?           @unique  // null = conversational; set = task-scoped (ADR-0030)
+  task       Task?             @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  // Primary storage location the run works in (ADR-0039): an owner's files (workspaceId null) or a workspace.
+  primaryOwnerType  WorkspaceOwnerType?
+  primaryOwnerId    String?
+  primaryWorkspaceId String?
+  // Set only when status is CLOSED (person-scoped execution spec §4).
+  closedReason      SessionClosedReason?
+  // The runtime the session was created with — the agent's `runtime` at the
+  // time ("claude-sdk" | "opencode"). A conversation never moves between runtimes.
+  runtime           String?
+  /// A conversation's standing worker in one boundary (workers and results spec): the conversation it serves,
+  /// its boundary being primaryOwnerType/primaryOwnerId, the person it works for being userId. One per
+  /// conversation, boundary and person — in a task's thread each person who briefs a boundary gets their own,
+  /// acting with their own authority and memory; it runs one brief at a time. Null for a chat from before and for
+  /// a task's session.
+  conversationId    String?
+  /// How many times the worker's slot (conversation, boundary, person) was started fresh before this session
+  /// (long conversations spec, Workers and tasks): the slot's worker is its newest; an older one keeps its runs
+  /// and their results, and takes no brief.
+  workerGeneration  Int     @default(0)
+
+  @@unique([conversationId, primaryOwnerType, primaryOwnerId, userId, workerGeneration])
+}
+
+enum SessionStatus {
+  ACTIVE
+  EXPIRED
+  ARCHIVED
+  // The harness's own state for this conversation is gone; the history stays.
+  CLOSED
+}
+
+// Why a session is CLOSED — mirrors core's SESSION_CLOSED_REASONS.
+enum SessionClosedReason {
+  HARNESS_STATE_MISSING
+  LEFT_PROJECT
+  LEFT_ORGANISATION
+  PROJECT_DELETED
+}
+
+// TranscriptEntry, AgentRun, RunStatus, MessageRole and ToolCallLog moved to
+// site's own schema (plan 5d-2 — D3: AgentSession is authored by hq, its
+// runs/transcript/tool-call history lives entirely on site now). Dropped
+// here rather than kept as dead models — schema change (task 10 "shed") and
+// migration 20260816181500_drop_runtime_tables_moved_to_site both applied:
+// the tables were dropped from hq's DB after a verified copy to site.
+
+// ──────────────────────────────────────────────
+// Module: Conversations (conversational experience spec)
+// hq holds the conversation — what was said, and a reference to each piece of
+// work it commissioned; the site holds the work (its runs and transcripts).
+// Free text a person or an agent wrote is ENCRYPTED at rest (secretCrypto):
+// ConversationMessage.body, Operation.title/brief/resultSummary and
+// ConversationSegment.brief/summary. Ids, states and timings stay in the clear.
+// ──────────────────────────────────────────────
+
+/// Where a conversation lives and is listed; decides who may read and speak in
+/// it, and who pays for its turns.
+enum ConversationHome {
+  /// A person's own space (Chat): read by the person who opened it, alone.
+  PERSON
+  /// A project: read by the person who opened it, alone, as today.
+  PROJECT
+  /// A task: the team's — anyone who can see the task reads and speaks.
+  TASK
+}
+
+enum ConversationStatus {
+  ACTIVE
+  /// Hidden, not closed: back to ACTIVE on reopening, or when a completion or an
+  /// approval request arrives in it.
+  ARCHIVED
+  /// Final. Closing declines its waiting approval requests.
+  CLOSED
+}
+
+enum ConversationClosedReason {
+  LEFT_PROJECT
+  LEFT_ORGANISATION
+  PROJECT_DELETED
+  TASK_DELETED
+}
+
+/// One thread. Its agent is fixed for its life in a PERSON or PROJECT home; in
+/// a TASK home it is read from the task, whoever that is now (agentId null).
+model Conversation {
+  id            String               @id @default(uuid())
+  home          ConversationHome
+  /// Set for a PROJECT home, and for a TASK home to the task's project.
+  projectId     String?
+  /// Set for a TASK home: at most one conversation per task.
+  taskId        String?              @unique
+  openedBy      User                 @relation("ConversationOpener", fields: [openedById], references: [id])
+  openedById    String
+  agent         Agent?               @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  agentId       String?
+  status        ConversationStatus   @default(ACTIVE)
+  closedReason  ConversationClosedReason?
+  title         String?
+  /// The talking model and the access it runs on, fixed at the first turn and
+  /// kept for the conversation's life; changed only by the person's say when
+  /// the access stops being usable (model access spec), and the switch recorded
+  /// as a NOTICE message. Null until the first turn resolves them.
+  talkingModel  String?
+  talkingProvider ModelCredentialProvider?
+  /// Whose access pays: 'org' | 'project' | 'user', and which kind of access.
+  accessOwnerType ModelCredentialOwnerType?
+  accessKind    ConversationAccessKind?
+  /// The keys a provider refused while this conversation talked on them, as
+  /// [{ owner, provider }]: never used by it again, neither by a turn falling
+  /// back nor in what its model picker offers (model access spec).
+  refusedAccess Json                 @default("[]")
+  /// The order counter for messages: each new message takes lastSeq + 1.
+  lastSeq       Int                  @default(0)
+  lastMessageAt DateTime             @default(now())
+  /// The one-turn lock (conversation layer spec): the turn that owns inference
+  /// now, and when its lease runs out. Claimed by a conditional update — set
+  /// only where it is null or its lease has expired — so two processes can
+  /// never both hold it.
+  activeTurnId  String?              @unique
+  activeTurnLeaseUntil DateTime?
+  archivedAt    DateTime?
+  /// Kept from archiving when idle (on-screen spec).
+  keep          Boolean              @default(false)
+  /// Who holds voice in it now; null when nobody does.
+  voiceHolderId String?
+  /// What must survive compaction (long conversations spec): kept by the
+  /// coordinator from events, never by a summariser. Shape: protocol.ts LedgerEntry[].
+  ledger        Json                 @default("[]")
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  messages      ConversationMessage[]
+  turns         InferenceTurn[]
+  operations    Operation[]
+  segments      ConversationSegment[]
+  readers       ConversationReader[]
+
+  @@index([openedById, home, status, lastMessageAt])
+  @@index([projectId, openedById, status])
+}
+
+enum ConversationAccessKind {
+  API_KEY
+  /// Sign in with ChatGPT — only once the vendor issues the client id.
+  CHATGPT_PLAN
+}
+
+enum ConversationRole {
+  PERSON
+  AGENT
+  /// Written by hq: an event (a completion, an approval request), a quiet line.
+  PLATFORM
+}
+
+/// What a message is. The body's shape for each kind is in
+/// src/shared/conversations/protocol.ts.
+enum ConversationMessageKind {
+  TEXT
+  OPERATION_STARTED
+  ACTION
+  TASK
+  RESULT
+  APPROVAL_REQUEST
+  APPROVAL_ANSWER
+  SUMMARISED
+  VOICE_STARTED
+  VOICE_ENDED
+  FAILED
+  /// A quiet line from hq: an access switch, a lead taking over a task's thread.
+  NOTICE
+}
+
+/// A person's message sent while a turn runs waits here until a turn takes it.
+enum ConversationQueueState {
+  WAITING
+  TAKEN
+  CANCELLED
+}
+
+/// One thing said, in order. A person's message is admitted with the id the
+/// browser gave it, so sending it twice stores it once.
+model ConversationMessage {
+  id             String               @id @default(uuid())
+  conversation   Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  /// Its place in the conversation: 1, 2, 3 … with no gaps (Conversation.lastSeq).
+  seq            Int
+  /// The id the client gave a person's message, for idempotent admission.
+  clientMessageId String?
+  role           ConversationRole
+  /// The person, for a PERSON message.
+  authorId       String?
+  /// The agent that spoke, for an AGENT message: a task's thread may change lead.
+  agentId        String?
+  kind           ConversationMessageKind
+  /// Encrypted JSON: the kind's body (protocol.ts).
+  body           String
+  spoken         Boolean              @default(false)
+  interrupted    Boolean              @default(false)
+  /// A reply withdrawn because the person's next words joined the message it answered (voice): with nothing heard
+  /// and nothing made, it is never shown and never read by the lead.
+  withdrawn      Boolean              @default(false)
+  /// An encouragement response: a reply that only asked the person to go on, when their words trailed off (voice,
+  /// active listening). Once their next words join their message, it is withdrawn, kept here but never shown.
+  encouragement  Boolean              @default(false)
+  /// The operation it is about, for operation, result and approval kinds.
+  operationId    String?
+  /// The turn that wrote it (AGENT), or that took it (PERSON).
+  turnId         String?
+  /// Set only for a PERSON message that arrived while a turn ran.
+  queueState     ConversationQueueState?
+  /// A PLATFORM card (a completion, an approval request) the lead has still to present: the next report or
+  /// continuation turn takes every one waiting, marking it with its turnId.
+  awaitsTurn     Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+
+  @@unique([conversationId, seq])
+  @@unique([conversationId, clientMessageId])
+  @@index([conversationId, queueState])
+  @@index([conversationId, awaitsTurn])
+  @@index([authorId, createdAt])
+}
+
+enum InferenceTurnState {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum InferenceTurnTrigger {
+  /// Answers a person's message (or several consecutive ones by one author).
+  MESSAGE
+  /// Presents completions and approval requests; speaks, starts no work.
+  REPORT
+  /// The next step of a sequence a person authorised.
+  CONTINUATION
+}
+
+/// One direct-inference turn of the lead.
+model InferenceTurn {
+  id             String               @id @default(uuid())
+  conversation   Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  state          InferenceTurnState   @default(QUEUED)
+  trigger        InferenceTurnTrigger
+  /// The person it acts as: the author it answers, or for a continuation the
+  /// person who authorised it. Null for a report turn, which acts under the
+  /// home's reading authority.
+  actingUserId   String?
+  /// The agent that spoke in it.
+  agentId        String?
+  model          String?
+  provider       ModelCredentialProvider?
+  inputTokens      Int                @default(0)
+  outputTokens     Int                @default(0)
+  cacheReadTokens  Int                @default(0)
+  cacheWriteTokens Int                @default(0)
+  /// What the turn's last model call sent, in tokens (input, cache read and
+  /// cache write): the context's size, which the marks of compaction read.
+  contextTokens  Int                  @default(0)
+  /// Why it failed, in words a person can act on.
+  error          String?
+  /// The model adapter's kind of failure (auth, rate-limit, quota, …): an `auth` failure means the provider
+  /// refused the key, which the conversation then offers to move off.
+  errorKind      String?
+  createdAt      DateTime             @default(now())
+  startedAt      DateTime?
+  firstTokenAt   DateTime?
+  endedAt        DateTime?
+
+  @@index([conversationId, createdAt])
+}
+
+enum OperationKind {
+  WORKER
+  TASK
+  TOOL
+}
+
+enum OperationMode {
+  FOREGROUND
+  BACKGROUND
+}
+
+/// One set of states for every operation (conversation layer spec).
+enum OperationState {
+  WAITING_FOR_APPROVAL
+  SCHEDULED
+  ACCEPTED
+  QUEUED
+  RUNNING
+  UNCERTAIN
+  COMPLETED
+  FAILED
+  CANCELLED
+  DETACHED
+}
+
+/// One piece of work a conversation commissioned: a brief to a worker, a task,
+/// or a tool call that may outlive its turn. Created before the call starts.
+/// hq holds a correlated projection; the owning service holds the authority.
+model Operation {
+  id             String               @id @default(uuid())
+  conversation   Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  /// The turn that started it.
+  turnId         String?
+  kind           OperationKind
+  mode           OperationMode
+  /// True once a foreground call ran past the wait limit and was detached.
+  promoted       Boolean              @default(false)
+  /// The tool it is a call of, and its arguments' idempotency key: the same
+  /// call while this one is pending is this operation.
+  toolName       String
+  idempotencyKey String
+  state          OperationState
+  /// Encrypted: the one line the activity sheet shows, the brief, the result.
+  title          String
+  brief          String?
+  resultSummary  String?
+  error          String?
+  /// The boundary the work is authorised in: 'user' | 'project', and its id.
+  boundaryType   WorkspaceOwnerType?
+  boundaryId     String?
+  /// The person who commissioned it — the author of the message that asked.
+  authorisedById String
+  /// Where the work is: a site and its run, or a task.
+  siteId         String?
+  runId          String?
+  taskId         String?
+  /// What it may continue with when it completes (an authorised sequence);
+  /// null for none. Shape: protocol.ts ContinuationObligation.
+  continuation   Json?
+  /// Encrypted JSON: the arguments of the lead's own call while it waits for approval, run as they are when it
+  /// is approved.
+  args           String?
+  /// The standing worker (AgentSession) a WORKER operation runs on: its briefs run one at a time, oldest first.
+  workerSessionId String?
+  /// Ends without a report turn: the person stopped it, or cut the turn that asked for it. Its card is still written.
+  noReport       Boolean              @default(false)
+  /// When the person saw it ended in the activity sheet; it leaves the sheet then.
+  seenAt         DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  completedAt    DateTime?
+
+  @@unique([conversationId, idempotencyKey])
+  @@index([conversationId, state])
+  @@index([siteId, runId])
+  @@index([workerSessionId, state])
+  @@index([taskId, state])
+}
+
+/// What a run said it achieved (workers and results spec, Results): stated by the run's agent with set_result,
+/// or recorded as not stated when the run ended without it. A task run's latest also goes to Task.result.
+model RunResult {
+  runId     String   @id
+  siteId    String
+  sessionId String
+  taskId    String?
+  /// Plain text, as Task.result is; null when the run ended without stating one.
+  result    String?
+  stated    Boolean
+  createdAt DateTime @default(now())
+
+  @@index([taskId, createdAt])
+}
+
+/// How far one person has read a conversation: a task's thread shows each viewer's unread count on its card.
+model ConversationReader {
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  userId         String
+  lastReadSeq    Int          @default(0)
+  updatedAt      DateTime     @updatedAt
+
+  @@id([conversationId, userId])
+  @@index([userId])
+}
+
+/// One compaction: a span of messages folded into a summary. Written once.
+model ConversationSegment {
+  id             String               @id @default(uuid())
+  conversation   Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  firstSeq       Int
+  lastSeq        Int
+  firstAt        DateTime
+  lastAt         DateTime
+  /// Encrypted: the one-line brief and the full summary.
+  brief          String
+  summary        String
+  /// The ledger as it stood when the segment was written.
+  ledgerHead     Json
+  createdAt      DateTime             @default(now())
+
+  @@index([conversationId, firstSeq])
+}
+
+/// The models a boundary prefers (model access spec, Model selection): set by a
+/// person for their own space ('user'), by a project ('project'), and by the
+/// organisation ('org', ownerId 'org') as the default for both.
+model ModelPolicy {
+  id          String                   @id @default(uuid())
+  ownerType   ModelCredentialOwnerType
+  ownerId     String
+  /// Each a model id as the runtimes name it (`<provider>/<model>` for a
+  /// provider other than Anthropic); null = the layer below's.
+  talking     String?
+  lightWork   String?
+  heavyWork   String?
+  /// string[] of model ids that may be picked at all; null = any.
+  allowed     Json?
+  /// The most expensive model that may be picked; null = no ceiling.
+  ceiling     String?
+  updatedById String?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  @@unique([ownerType, ownerId])
+}
+
+// ──────────────────────────────────────────────
+// Module 6: Projects & Task Management (ADR-0029)
+// ──────────────────────────────────────────────
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// Whether a run of a task is pending or going now (agents own schedule spec §6).
+/// The system alone sets it; a task's own state is its board column. Each run's
+/// outcome is recorded on that run, never here.
+enum TaskRunState {
+  RUN_NONE
+  RUN_QUEUED
+  /// Queued, outside the current round's batch: only with the throttle on.
+  RUN_THROTTLED
+  RUN_ACTIVE
+  RUN_BLOCKED
+  RUN_FAILED
+}
+
+/// What a board is (adr-0097): every project's Project Tasks, a workflow, or a
+/// workflow with sprints. Never changes once made.
+enum BoardKind {
+  PROJECT_TASKS
+  WORKFLOW
+  SPRINTS
+}
+
+enum AuthorType {
+  AGENT
+  USER
+}
+
+// ──────────────────────────────────────────────
+// Site identity — singleton row describing this installation
+// ──────────────────────────────────────────────
+model SiteConfig {
+  id                String   @id @default("singleton")
+  // Stable per-installation identity. Generated once on first SiteConfig
+  // creation, never rotated. Source of truth for HQ's SiteRegistry.siteId.
+  siteId            String   @unique @default(uuid())
+  name              String   @default("Agenthix Site")
+  description       String   @default("")
+  bootstrapRequired Boolean  @default(false)
+  riskRules         Json?    // RiskRule[] — evaluated before built-in defaults; null = defaults only
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────
+// Module 5: Site Secrets
+// One row per secret type — singleton per type.
+// Platform auth secrets only: 'JWT_SIGNING_SECRET' | 'HQ_SIGNING_KEY' | 'CLOUD_CONNECTION_KEY'
+// External service credentials live in Provider.
+// `value` never holds a working secret: the JWT signing secret and
+// HQ_SIGNING_KEY's and CLOUD_CONNECTION_KEY's private keys are ENCRYPTED (secretCrypto). A row of any other
+// type (the retired org-wide 'MCP' key) is ignored.
+// ──────────────────────────────────────────────
+model SiteSecret {
+  id        String   @id @default(uuid())
+  type      String   @unique
+  value     String
+  prefix    String?  // First 20 chars for UI display; null for JWT_SIGNING_SECRET
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────
+// hq's connection to Agenthix Cloud (src/cloud/) — one row while connected, none otherwise.
+// Its key is the SiteSecret 'CLOUD_CONNECTION_KEY'; access tokens are never stored.
+// ──────────────────────────────────────────────
+model CloudConnection {
+  id                  String   @id @default("singleton")
+  cloudOrganisationId String
+  name                String
+  // The RFC 7638 thumbprint of hq's public key: the client id Cloud registered.
+  clientId            String
+  connectedAt         DateTime
+}
+
+// ──────────────────────────────────────────────
+// A person's Agenthix account, linked in Settings › Sign-in (src/cloud/cloudSignIn.ts): the OpenID Connect issuer
+// and subject Cloud names it by, and nothing else of it. Signing in with Cloud finds the person by these.
+// ──────────────────────────────────────────────
+model CloudAccountLink {
+  userId   String   @id
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issuer   String
+  subject  String
+  linkedAt DateTime @default(now())
+
+  @@unique([issuer, subject])
+}
+
+// A person who asked a fleet admin to turn on signing in with an Agenthix account (Settings › Sign-in). Once per
+// person, for good: the row is never reset. The Fleet Console counts them.
+model CloudSignInAsk {
+  userId  String   @id
+  askedAt DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// An offer of Agenthix Cloud a person dismissed ("site", "backups", "address"), per person and per offer, for good.
+model OfferDismissal {
+  userId      String
+  offer       String
+  dismissedAt DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, offer])
+}
+
+// ──────────────────────────────────────────────
+// A person's own connection to hq's /mcp endpoint (adr-0090). It acts as its
+// person, never as more: their reach and role, narrowed by its four permission
+// groups and, unless allProjects, by projectIds. Only the SHA-256 of its token
+// is stored; the token is shown once, when created.
+// ──────────────────────────────────────────────
+model PersonConnection {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  tokenHash      String    @unique
+  /// The token's first characters, to tell connections apart in the list.
+  tokenPrefix    String
+  canRead        Boolean   @default(true)
+  canChangeTasks Boolean   @default(false)
+  canStartWork   Boolean   @default(false)
+  canManage      Boolean   @default(false)
+  /// true: every project its person can reach. false: only projectIds.
+  allProjects    Boolean   @default(true)
+  projectIds     String[]  @default([])
+  expiresAt      DateTime
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+// ──────────────────────────────────────────────
+// Module: Execution Site Registry (site registration spec §3)
+// ──────────────────────────────────────────────
+
+/// A machine registered to run this org's agents (spec §3). One row per site
+/// installation, keyed by that installation's own stable SiteConfig.siteId.
+model ExecutionSite {
+  id     String @id @default(uuid())
+  /// The site's own SiteConfig.siteId — a logical reference into the site's
+  /// database, not a foreign key. Separate databases; see spec §1's Consequence.
+  siteId String @unique
+  label  String
+
+  /// Where the site can be reached, when it can be. Informational in this pass —
+  /// nothing dials into a site (spec §4: site always dials out).
+  siteUrl String?
+
+  /// REGISTERED — redeemed a token, never connected. REVOKED — credential refused.
+  /// ONLINE/OFFLINE arrive with the live control channel (Plan 5, spec §4).
+  /// VERSION_MISMATCH — authenticated, but on a different protocol major; kept
+  /// registered with its credential, and cleared the next time it connects on
+  /// a matching one.
+  status String @default("REGISTERED")
+
+  /// The protocol version this site last presented, whether or not it was
+  /// accepted. Lets the Execution Sites page say which version a site runs
+  /// when a mismatch has suspended it (ADR-0046).
+  protocolVersion String?
+
+  /// SHA-256 of the machine credential. The raw value exists only in the
+  /// registration response; hq cannot recover it. Null for the local
+  /// in-process site, which nothing authenticates into.
+  credentialHash   String?
+  /// First 16 characters, for identifying the credential in the UI without
+  /// revealing it. Null alongside credentialHash.
+  credentialPrefix String?
+
+  /// The site that comes with this hq and connects by configuration (a shared
+  /// secret in both environments) rather than by registering. At most one row;
+  /// it cannot be revoked, left or rotated from hq.
+  isDefault Boolean @default(false)
+
+  registeredAt DateTime  @default(now())
+  lastSeenAt   DateTime?
+  /// hq User.id of the admin who approved this site.
+  createdById  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects              Project[]
+  userStoragePlacements UserStoragePlacement[]
+  heldInstructions      HeldSiteInstruction[]
+  scheduledChanges      ScheduledChange[]
+
+  /// The machine whose host service runs this site, when a fleet admin added
+  /// it in the Fleet Console (host-management spec §6 step 5). Null for the
+  /// default site. Its `siteId` is a placeholder until the site first connects
+  /// with its credential, as the default site's is.
+  relayHostId String?
+  relayHost   RelayHost? @relation(fields: [relayHostId], references: [id], onDelete: SetNull)
+
+  /// The site's last health report (runs now and the most it takes at once,
+  /// disk free, Docker and the agent image), as core's protocol shapes it.
+  health           Json?
+  healthReportedAt DateTime?
+  /// When the site was removed, by whom (an admin's User.id), or null with
+  /// `leftByItself` when the machine left (ADR-0065).
+  revokedAt        DateTime?
+  revokedById      String?
+  leftByItself     Boolean   @default(false)
+
+  /// The credential the site's last restore onto another machine replaced, and when (adr-0119). The old
+  /// machine's copy, presenting it, is told it was replaced instead of being refused without a word.
+  replacedCredentialHash String?
+  replacedAt             DateTime?
+
+  /// Cloud's id of the machine that runs this site, when Agenthix Cloud added it (pre-release spec B6; adr-0115);
+  /// set, the site is Cloud's. A removed row keeps it, so the same machine's site can take back its own id.
+  cloudMachineId String?
+
+  @@index([cloudMachineId])
+}
+
+/// A control-channel instruction a site must receive even if it is offline when
+/// it is sent — today the membership-ending instructions (core's
+/// MEMBERSHIP_METHODS; person-scoped execution spec §4). hq writes the row
+/// before sending, replays every unacknowledged row for a site in `sequence`
+/// order when it reconnects, and sets `acknowledgedAt` when the site's
+/// acknowledgement names this row's id. The site's handlers are idempotent, so
+/// a row sent twice does no harm.
+model HeldSiteInstruction {
+  id             String        @id @default(uuid())
+  /// The site's own SiteConfig.siteId, as ExecutionSite keys it.
+  siteId         String
+  site           ExecutionSite @relation(fields: [siteId], references: [siteId], onDelete: Cascade)
+  /// The channel method, one of core's MEMBERSHIP_METHODS.
+  method         String
+  /// The method's params, `instructionId` included (it is this row's id).
+  params         Json
+  /// Replay order. A database sequence rather than createdAt, which can tie.
+  sequence       Int           @default(autoincrement())
+  createdAt      DateTime      @default(now())
+  /// When the site acknowledged it. A row with this set is never sent again.
+  acknowledgedAt DateTime?
+  /// Delivery attempts so far, and the last failure — for diagnosis only.
+  attempts       Int           @default(0)
+  lastAttemptAt  DateTime?
+  lastError      String?
+
+  @@unique([sequence])
+  @@index([siteId, acknowledgedAt, sequence])
+}
+
+/// A change the host service of a machine scheduled (host-management spec §14),
+/// as hq heard of it: through its control socket for a change on hq's own
+/// machine, or from a site over its channel for a change on that site's
+/// machine. One row per change; a newer notice updates it, an older one is
+/// ignored. hq tells the members whose work it affects, starts no new runs on
+/// what it affects from a few minutes before, and lets them carry on after.
+model ScheduledChange {
+  id                 String         @id @default(uuid())
+  /// Where the notice came from: `hq` (hq's machine, through its control
+  /// socket) or `site:<siteId>`. A site can only ever speak for its own machine.
+  source             String
+  /// The host service's own id for the change, unique on its machine.
+  changeId           String
+  /// The site it affects (ExecutionSite.siteId); null for a change to hq
+  /// itself, which affects every site's runs.
+  siteId             String?
+  site               ExecutionSite? @relation(fields: [siteId], references: [siteId], onDelete: Cascade)
+  /// `upgrade`, `resize`, `restore`, `move`, `erase`, `suspend` or `resume`.
+  kind               String
+  /// When the host service runs it.
+  at                 DateTime
+  /// The host service's state for it (core's ScheduledChangeState), and the
+  /// update the newest notice carried (core's ScheduledChangeUpdate).
+  state              String
+  lastUpdate         String
+  /// Words a person reads: the version, the size, the machine moved to.
+  detail             String?
+  expectedMinutes    Int?
+  /// Why it failed or was missed, in the host service's words.
+  reason             String?
+  machineName        String
+  /// When the newest notice was made, by the host service's clock.
+  sentAt             DateTime
+  /// When hq stopped starting runs on what it affects, and when it let them
+  /// carry on; a hold is in force while the first is set and the second not.
+  pausedAt           DateTime?
+  resumedAt          DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@unique([source, changeId])
+  @@index([siteId])
+}
+
+// ──────────────────────────────────────────────
+// Module 6: Projects & Task Management (ADR-0029)
+// ──────────────────────────────────────────────
+
+enum ProductStatus {
+  active
+  sunset
+}
+
+enum ProgramStatus {
+  planning
+  active
+  archived
+}
+
+model Product {
+  id                    String        @id @default(uuid())
+  name                  String
+  slug                  String        @unique
+  description           String?
+  vision                String?
+  status                ProductStatus @default(active)
+  projects              Project[]
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+}
+
+model Program {
+  id          String        @id @default(uuid())
+  name        String
+  slug        String        @unique
+  description String?
+  status      ProgramStatus @default(planning)
+  projects    Project[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Project {
+  id             String          @id @default(uuid())
+  name           String
+  slug           String?         @unique  // auto-generated from name; null for pre-migration rows
+  key            String          @unique
+  description    String?
+  /// The Execution Site whose disk holds this project's Workspace (spec §3).
+  /// Nullable only for rows created before the registry existed; backfilled to
+  /// the local site on boot (see localSite.ts) and required at creation.
+  executionSiteId String?
+  executionSite   ExecutionSite? @relation(fields: [executionSiteId], references: [id], onDelete: Restrict)
+  productId      String?
+  programId      String?
+  product        Product?        @relation(fields: [productId], references: [id])
+  program        Program?        @relation(fields: [programId], references: [id])
+  defaultAgentId String?
+  accessLevel    ProjectAccessLevel @default(OPEN)
+  /// The project's own run limits, stored as its admin set them; null means the
+  /// org's. The stricter of this and the org's applies at use, so an org that
+  /// tightens below this wins without anything stored being rewritten.
+  runTimeLimitMinutes Int?
+  runTurnLimit        Int?
+  /// Archive its finished tasks after this many days; 0 = never, null = the org's default.
+  archiveFinishedAfterDays Int?
+  /// Set only on a person's personal project, which it marks as one (agents
+  /// own schedule spec §4): one per person, private to them, its one member,
+  /// and its runs act as that person in their own storage. Never changes once
+  /// set. Restrict: removing the person removes this project first
+  /// (settings/actions.ts deleteUser), so it can never outlive them as an
+  /// ordinary project somebody else could be added to.
+  personalOwnerId String?        @unique
+  personalOwner   User?          @relation("PersonalProject", fields: [personalOwnerId], references: [id], onDelete: Restrict)
+  /// The person who leads the project, shown in its facts. A label only: it
+  /// carries no rights of its own; project roles decide what anyone may do.
+  leadUserId      String?
+  lead            User?          @relation("ProjectLead", fields: [leadUserId], references: [id], onDelete: SetNull)
+  boards         Board[]
+  tasks          Task[]
+  members        ProjectMember[]
+  agents         ProjectAgent[]
+  teams          ProjectTeam[]
+  skills         Skill[]
+  automation       ProjectAutomation?
+  automationStarts AutomationStart[]
+  routines         Routine[]
+  milestones       Milestone[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+/// Where a library item came from (every screen reviewed spec §3, Library):
+/// shipped with hq, made in this organisation, or installed from a marketplace.
+/// A built-in item (isSystem, or a PLATFORM skill) reads as BUILT_IN whatever
+/// this column says (library/packages/librarySource.ts).
+enum LibrarySource {
+  BUILT_IN
+  MADE_HERE
+  MARKETPLACE
+}
+
+model BoardTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String   @default("")
+  assetPath   String                      // relative path from root: assets/library/boards/<id>.json (system) or org/boards/<id>.json (org)
+  isSystem    Boolean  @default(false)
+  version     Int      @default(1)
+  /// The library package's record: its source, its version as its publisher
+  /// numbered it, and who published it. `version` above is the seeder's own counter.
+  source         LibrarySource @default(MADE_HERE)
+  packageVersion String        @default("1")
+  publisher      String?
+  boards      Board[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// A board is a lasting workflow (adr-0097): a named set of columns a kind of
+/// work moves through, until it is archived. A task in no column is in the
+/// board's Backlog, its first column.
+model Board {
+  id           String      @id @default(uuid())
+  name         String
+  project      Project     @relation(fields: [projectId], references: [id])
+  projectId    String
+  kind         BoardKind   @default(WORKFLOW)
+  template     BoardTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateId   String?     // source template; null if not from a template or template was deleted
+  /// The working columns, in order. Backlog is not one of them: it is where a task with no column sits.
+  columns      Json        @default("[{\"name\":\"todo\",\"label\":\"To Do\",\"status\":\"TODO\",\"color\":\"#6b7280\",\"order\":0},{\"name\":\"in_progress\",\"label\":\"In Progress\",\"status\":\"IN_PROGRESS\",\"color\":\"#f59e0b\",\"order\":1},{\"name\":\"done\",\"label\":\"Done\",\"status\":\"DONE\",\"color\":\"#10b981\",\"order\":2}]")
+  /// Set while it is archived; never on Project Tasks.
+  archivedAt   DateTime?
+  tasks        Task[]
+  sprints      Sprint[]
+  showAlso     BoardShowAlso[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([projectId, kind])
+}
+
+/// A sprint board's numbered time box (adr-0097). The current sprint is the one
+/// not finished; finishing it records its done tasks in it and starts the next.
+model Sprint {
+  id          String    @id @default(uuid())
+  boardId     String
+  board       Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  /// Stays when the sprint is renamed.
+  number      Int
+  name        String?
+  startDate   DateTime  @db.Date
+  finishDate  DateTime  @db.Date
+  finishedAt  DateTime?
+  tasks       Task[]
+  createdAt   DateTime  @default(now())
+
+  @@unique([boardId, number])
+}
+
+/// Which other boards' backlogs a person shows beside a board's own (adr-0097).
+model BoardShowAlso {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  boardId    String
+  board      Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardIds   String[]
+  updatedAt  DateTime @updatedAt
+
+  @@id([userId, boardId])
+}
+
+/// A dated goal in a project (adr-0098); an epic may belong to one.
+model Milestone {
+  id         String   @id @default(uuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name       String
+  date       DateTime @db.Date
+  epics      Task[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([projectId, date])
+}
+
+/// A project's members are people, and membership decides entitlement: who may
+/// start a run in it and write what it owns (ADR-0062). Binary — every member
+/// can do what that project's agent can do; ADMIN adds administration of the
+/// project itself, never extra run authority.
+model ProjectMember {
+  projectId String
+  userId    String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The role that applies, and the one every access check reads: the higher of
+  /// their own and that of each team they are here through (adr-0103).
+  role      ProjectRole @default(MEMBER)
+  /// Whether they are a member in their own right; false when they are here only
+  /// through teams (ProjectTeam × TeamPerson), and are changed through them.
+  direct    Boolean     @default(true)
+  /// Their own role while a team is also why they are here, so taking the team
+  /// away gives it back; null otherwise (then `role` is their own).
+  ownRole   ProjectRole?
+  createdAt DateTime    @default(now())
+
+  @@id([projectId, userId])
+  @@index([userId])
+}
+
+/// A project's agents are assigned to it: which agents it uses, for assignment
+/// and for its overrides. An assignment grants an agent nothing (ADR-0062) —
+/// an agent carries no authority at all.
+model ProjectAgent {
+  projectId String
+  agentId   String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  /// Whether it was assigned to the project itself; false when it is here only
+  /// through teams (ProjectTeam × TeamAgent), and is changed through them (adr-0103).
+  direct    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@id([projectId, agentId])
+}
+
+model Task {
+  id              String             @id @default(uuid())
+  title           String
+  description     String?
+  project         Project            @relation(fields: [projectId], references: [id])
+  projectId       String
+  number          Int
+  /// Always on exactly one board: Project Tasks when put on no other (adr-0097).
+  board           Board              @relation(fields: [boardId], references: [id])
+  boardId         String
+  /// The board column it is in; null = the board's Backlog.
+  column          String?
+  /// On a sprint board, the sprint it is in; null = in no sprint (in the Backlog,
+  /// or on a board without sprints). A finished sprint keeps its done tasks.
+  sprint          Sprint?            @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  sprintId        String?
+  status          TaskStatus         @default(TODO)
+  assignedAgent   Agent?             @relation(fields: [assignedAgentId], references: [id])
+  assignedAgentId String?
+  priority        TaskPriority       @default(MEDIUM)
+  labels          Json               @default("[]")
+  archived        Boolean            @default(false)
+  /// When it entered a done column (status DONE); null while it is not in one.
+  /// What the finished-task archive sweep measures from (agents-own-schedule spec §3).
+  doneAt          DateTime?
+  runState        TaskRunState       @default(RUN_NONE)
+  runStateReason  String?                           // why the run state is what it is (a failure, what it waits for, what a person must do)
+  /// The run the run state describes: the one dispatched last. A run's end
+  /// settles the run state only while it is still this run, so a late or
+  /// duplicate frame from an earlier run never overwrites a newer one's.
+  runId           String?
+  result          String?
+  applicationData Json?                             // confirmed template selections for kernel execution
+  deferCount      Int                @default(0)    // times routing inference deferred this task (ADR-0031)
+  lastWorkedAt    DateTime?                          // last time a session was opened for this task (ADR-0031)
+  /// Who asked for a run of it to start ('person' | 'pulse' | 'schedule' |
+  /// 'agent'), and then what started the run it was claimed for (adr-0087). On a
+  /// RUN_QUEUED task it means a start was asked for: it starts as soon as its
+  /// agent is free, automation or not. Null on a task queued for the pulse.
+  runStartedBy    String?
+  /// The person the run it was claimed for is on behalf of, when a person
+  /// started it (Run, Run again, Run all, or their connection's run_task); null
+  /// when nobody did, and the run is then on the task's person. Written with
+  /// runStartedBy at every claim; an approval's re-run keeps it.
+  runOnBehalfOfUserId String?
+  /// How many agent runs led to it being queued, recorded each time it becomes
+  /// queued: 0 when a person queued or started it, one more than the run that
+  /// queued it otherwise (adr-0091). Past the boundary's maximum it is not queued.
+  queueDepth      Int                @default(0)
+  /// The person this task's work is done for, who answers its approvals
+  /// (adr-0089). Required: every creation path sets it. Deliberately not a
+  /// relation, so removing the person from the org leaves the id behind and
+  /// the task blocked until a project admin assigns someone else.
+  onBehalfOfUserId  String
+  /// Who last queued it: a person, or an agent during a run (its session — the
+  /// verified capability names the session, not the run). Written on every path
+  /// that sets the task QUEUED. At most one of queuedByUserId and queuedByAgentId
+  /// is set; neither when hq itself re-queued it with no one behind the act. A
+  /// QUEUED task whose last queuer is an agent counts against the boundary's
+  /// queue limit.
+  queuedByUserId    String?
+  queuedByAgentId   String?
+  queuedBySessionId String?
+  /// The person's connection (adr-0090) they queued it through, when they did;
+  /// set only beside queuedByUserId.
+  queuedByConnectionId String?
+  /// The connection its person created it through, when one did (adr-0090).
+  createdByConnectionId String?
+  // Start time (adr-0088): a Run a person asked for later. A task starts at most
+  // once (adr-0092); work that repeats is a routine, below.
+  scheduleAt             DateTime?
+  /// When the scheduler next starts it; null = nothing due. Claimed by compare-and-set.
+  scheduleNextDueAt      DateTime?
+  /// Who set the schedule: always the person — the one who set it, or the one
+  /// whose run the setting agent was in — plus the agent and its session when an
+  /// agent set it. Setting a schedule also makes that person the one the task is
+  /// done on behalf of; this keeps who set it after a later reassignment.
+  scheduleSetByUserId    String?
+  scheduleSetByAgentId   String?
+  scheduleSetBySessionId String?
+  /// The person's connection the schedule was set through, when one was (adr-0090).
+  scheduleSetByConnectionId String?
+  /// The routine that created it as one of its rounds (adr-0092); null once a
+  /// person unlinks it, or the routine is deleted.
+  routine          Routine?           @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  routineId        String?
+  /// A round's time: until then no column queues it; at it, it arrives in its
+  /// column like any task (automation/routineRounds.ts).
+  roundAt          DateTime?
+  // Plan (adr-0098): the dates the work is meant to happen. Apart from the start
+  // time (scheduleAt) and the runs: changing it starts, stops and queues nothing.
+  planStart        DateTime?          @db.Date
+  planFinish       DateTime?          @db.Date
+  /// An epic groups other tasks; it belongs to no epic itself.
+  isEpic           Boolean            @default(false)
+  epic             Task?              @relation("EpicTasks", fields: [epicId], references: [id], onDelete: SetNull)
+  epicId           String?
+  epicTasks        Task[]             @relation("EpicTasks")
+  /// An epic's milestone; only an epic has one.
+  milestone        Milestone?         @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  milestoneId      String?
+  session          AgentSession?                // back-relation to the task's session (ADR-0030)
+  attachments      TaskAttachment[]
+  comments         TaskComment[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([projectId, status])
+  @@index([boardId, column])
+  @@index([sprintId])
+  @@index([epicId])
+  @@index([projectId, runState])
+  @@index([scheduleNextDueAt])
+  @@index([onBehalfOfUserId])
+  @@index([doneAt])
+  @@index([routineId])
+  @@unique([projectId, number])
+}
+
+model TaskAttachment {
+  id            String   @id @default(cuid())
+  taskId        String
+  task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uuid          String   // the directory UUID under tasks/<taskId>/
+  fileName      String
+  mimeType      String?
+  fileSizeBytes Int?
+  label         String?  // e.g. "application", "draft-selections", "confirmed-selections"
+  createdAt     DateTime @default(now())
+}
+
+// ──────────────────────────────────────────────
+// Module: Org
+// Singleton — one record per site instance.
+// ──────────────────────────────────────────────
+/// How much of the organisation's identity the sign-in page shows (getting-in spec, Signing in):
+/// the whole cover with picture, name, handle and vision; the name only; or nothing.
+enum SignInShows {
+  COVER
+  NAME
+  NOTHING
+}
+
+model Org {
+  id        String   @id @default(uuid())
+  name      String
+  /// The organisation's @handle, shown beside its name; null until an admin sets one.
+  handle    String?
+  vision    String   @default("")
+  mission   String   @default("")
+  /// Its picture and cover (every screen reviewed spec §3, Organisation), stored
+  /// as an agent's are: /org/images/{uuid}.{ext}; null until first upload.
+  avatarUrl String?
+  coverUrl  String?
+  /// The agents with approval Bypassed that an admin acknowledged. The Bypassed
+  /// notice returns when an agent not in this list is set to Bypassed.
+  acknowledgedBypassedAgentIds String[] @default([])
+  /// Run limits (agents-own-schedule spec §7): every run is stopped after this
+  /// many minutes, and a run no person started after this many turns. A project
+  /// may only tighten them (Project.runTimeLimitMinutes / runTurnLimit); the
+  /// stricter applies at use. Defaults are core's DEFAULT_RUN_LIMITS.
+  runTimeLimitMinutes Int @default(60)
+  runTurnLimit        Int @default(100)
+  // Automation (adr-0087): each value is where every boundary starts and the furthest it may go.
+  automationAllowed         Boolean @default(true)
+  /// The shortest pulse interval any boundary may choose; never below 5.
+  automationIntervalMinutes Int     @default(30)
+  automationBatchSize       Int     @default(3)
+  automationQueueLimit      Int     @default(20)
+  automationAgentSchedules  Boolean @default(false)
+  /// Whether every boundary must throttle its pulse (adr-0091); off leaves it to each boundary.
+  automationThrottle        Boolean @default(false)
+  /// The deepest chain of agent-queued work any boundary may allow (adr-0091).
+  automationMaxDepth        Int     @default(3)
+  /// Default for every project: archive finished tasks after this many days; null = never.
+  archiveFinishedAfterDays  Int?    @default(1)
+  /// When the first admin finished setup; setup runs once per HQ, for that admin only.
+  setupCompletedAt DateTime?
+  /// How much of the organisation the sign-in page shows to someone not signed in.
+  signInShows      SignInShows @default(COVER)
+  /// Memory recalled by meaning (memory and knowledge spec): the one embedding model every item is embedded with —
+  /// 'local' for the model bundled with hq, or '<provider>/<model>' — and, while a switch re-embeds every item in the
+  /// background, the model being moved to. The probe's two bars; null for the model's calibration.
+  /// Conversations idle this many days are archived (on-screen spec, Archive); a person may keep one out.
+  conversationArchiveAfterDays Int @default(90)
+  memoryEmbeddingModel String  @default("local")
+  memoryEmbeddingNext  String?
+  memoryCertainBar     Float?
+  memoryProbableBar    Float?
+  skills    Skill[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────
+// Module: Skills Library
+// Library = DB-driven browsable pool.
+// Active (runtime-injected) copies live on the filesystem.
+// ──────────────────────────────────────────────
+enum SkillScope {
+  PLATFORM
+  ORG
+  PROJECT
+}
+
+model Skill {
+  id          String     @id @default(cuid())
+  slug        String
+  name        String
+  description String
+  assetPath   String                      // relative path from root: library/skills/<slug> (PLATFORM uses getHqAssetsRoot() — HQ_ASSETS_ROOT, read-only; ORG uses getHqStorageRoot() — HQ_STORAGE_ROOT, hq's own storage)
+  version     Int        @default(1)
+  scope       SkillScope
+  source         LibrarySource @default(MADE_HERE)
+  packageVersion String        @default("1")
+  publisher      String?
+  orgId       String?    // null for PLATFORM; set for ORG
+  org         Org?       @relation(fields: [orgId], references: [id])
+  projects    Project[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([slug, scope, orgId])
+}
+
+// ──────────────────────────────────────────────
+// Module: Workforce Templates
+// The library's ready-made teams (team templates): agents with their boards,
+// never people. Built-in ones are seeded from assets/library/workforce/ on
+// startup; imported ones are kept in hq's storage.
+// ──────────────────────────────────────────────
+model WorkforceTemplate {
+  id          String   @id               // stable slug, e.g. "wft-solo-dev"
+  name        String
+  description String   @default("")
+  tags        String[] @default([])
+  assetPath   String                      // a bundle folder: library/workforce/<id> from assetsRoot (system), or org/teams/<id> from hq storage
+  isSystem    Boolean  @default(false)
+  version     Int      @default(1)
+  source         LibrarySource @default(MADE_HERE)
+  packageVersion String        @default("1")
+  publisher      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────
+// Module: Agent Templates
+// Canonical role definitions seeded from assets/library/agents/.
+// ──────────────────────────────────────────────
+model AgentTemplate {
+  id        String   @id @default(cuid())
+  slug      String   @unique             // directory name, e.g. "wasp-developer"
+  name      String
+  version   Int      @default(1)
+  handle    String                       // suggested default handle
+  assetPath String                       // relative path from assetsRoot: library/agents/<slug> (system), or from hq storage: org/agents/<slug>
+  isSystem  Boolean  @default(true)
+  source         LibrarySource @default(MADE_HERE)
+  packageVersion String        @default("1")
+  publisher      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────
+// Module: Teams
+// ──────────────────────────────────────────────
+/// A group of people and agents with a purpose (Marketing, Support). A team
+/// joins a project as one member, written through to its members (adr-0103):
+/// it owns nothing and grants nothing beyond the memberships it writes.
+model Team {
+  id        String        @id @default(uuid())
+  name      String
+  purpose   String        @default("")
+  /// Its picture and cover, stored as an agent's are: /teams/{id}/images/{uuid}.{ext}.
+  avatarUrl String?
+  coverUrl  String?
+  createdBy String?
+  people    TeamPerson[]
+  agents    TeamAgent[]
+  projects  ProjectTeam[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model TeamPerson {
+  teamId    String
+  userId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([teamId, userId])
+  @@index([userId])
+}
+
+model TeamAgent {
+  teamId    String
+  agentId   String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([teamId, agentId])
+  @@index([agentId])
+}
+
+/// A team that is one member of a project, with one project role (adr-0103).
+/// Its people are written into ProjectMember and its agents into ProjectAgent,
+/// and those rows are what every access check reads. Restrict: a team leaves
+/// its projects (with the choice for its members' open tasks) before it can be
+/// deleted.
+model ProjectTeam {
+  projectId String
+  teamId    String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team      Team        @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  role      ProjectRole @default(MEMBER)
+  addedById String?
+  createdAt DateTime    @default(now())
+
+  @@id([projectId, teamId])
+  @@index([teamId])
+}
+
+model TaskComment {
+  id         String     @id @default(uuid())
+  task       Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId     String
+  authorType AuthorType
+  agentId    String?
+  agent      Agent?     @relation(fields: [agentId], references: [id])
+  userId     String?
+  /// The person's connection a USER comment was written through, when one was (adr-0090).
+  connectionId String?
+  runId      String?
+  content    String
+  createdAt  DateTime   @default(now())
+
+  @@index([taskId, createdAt])
+}
+
+// ──────────────────────────────────────────────
+// Module: Storage — hq-local index and policy over Workspace (ADR-0039)
+// Workspace and RepoAttachment now live in site's database (plan 5c, SC-320) —
+// hq holds only the placement index and access policy below, both keyed by a
+// logical (not FK'd) workspaceId. WorkspaceOwnerType stays here because
+// AgentSession.primaryOwnerType still uses it.
+// ──────────────────────────────────────────────
+
+/// Two things own storage: a person and a project (ADR-0061). A product and a
+/// programme group projects and own nothing — no files, no workspaces, no members.
+enum WorkspaceOwnerType {
+  project
+  user
+}
+
+/// Which Execution Site holds each workspace — hq's placement index (ADR-0042:
+/// "indices, aggregate views"). Written ONLY by hq, at workspace create/delete;
+/// a single writer is what keeps this from being the deleted sync system.
+/// workspaceId is a logical reference — Workspace lives in site's database.
+model WorkspacePlacement {
+  workspaceId String @id
+  siteId      String
+  createdAt   DateTime @default(now())
+
+  @@index([siteId])
+}
+
+/// Which site holds one person's own storage. Written once, the first time that
+/// storage is resolved, and never moved. This is not a home site for the person —
+/// it says where one storage location lives, which is what placing a run needs.
+model UserStoragePlacement {
+  userId    String        @id
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  siteId    String
+  site      ExecutionSite @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  createdAt DateTime      @default(now())
+  @@index([siteId])
+}
+
+// ──────────────────────────────────────────────
+// Module: Logs and diagnostics
+// ──────────────────────────────────────────────
+
+/// An error HQ met or was told of, kept 7 days for Logs and diagnostics
+/// (adr-0106): a run that failed on any site, a site's problem, or HQ's own
+/// failure (GitHub, the scheduler). A run's failure is one row; a site's
+/// condition is one row per stretch it lasts, `lastAt` moving while it does.
+model RecordedError {
+  id            String   @id @default(uuid())
+  /// What failed: the rows of one problem group under one key.
+  groupKey      String
+  /// run | site | github | scheduler | hq
+  origin        String
+  title         String
+  /// What to do about it, in plain words.
+  advice        String
+  /// The error as it was reported, secrets removed. Never message text.
+  detail        String?
+  siteId        String?
+  agentId       String?
+  projectId     String?
+  /// A task run's id and session, for a link to it. Null for a chat run: a
+  /// conversation is its owner's alone (adr-0041).
+  runId         String?
+  sessionId     String?
+  /// One row per occurrence: a run's terminal frame can arrive twice.
+  occurrenceKey String?  @unique
+  firstAt       DateTime @default(now())
+  lastAt        DateTime @default(now())
+
+  @@index([lastAt])
+  @@index([groupKey, lastAt])
+}
+
+// ──────────────────────────────────────────────
+// Module: Notifications
+// ──────────────────────────────────────────────
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // 'org_setup' | 'credential_health' | 'tool_approval' — extensible
+  title       String
+  body        String
+  actionLabel String?
+  actionUrl   String?
+  status      String   @default("unread") // 'unread' | 'read' | 'handled' | 'dismissed'
+  /// What a persistent notification is about (for example a site's id and the
+  /// problem), so raising it again updates the open one and fixing the problem
+  /// clears it. Null for a notification that is not persistent.
+  subjectKey  String?
+  /// False for a persistent notification only its subject being addressed may clear.
+  dismissible Boolean  @default(true)
+  /// The conversation and operation it is about: a completion or an approval
+  /// request notifies as a task run does. Logical references; null otherwise.
+  conversationId String?
+  operationId    String?
+  createdAt   DateTime @default(now())
+
+  @@index([type, subjectKey])
+}
+
+// ──────────────────────────────────────────────
+// Live preview (Phase 8) — an ephemeral, credential-free preview container
+// proxied to a tokened URL. See docs/architecture/sites/site_live_preview.md
+// ──────────────────────────────────────────────
+enum PinKind {
+  PROJECT
+  BOARD
+  AGENT
+}
+
+/// An item a person keeps in their navigation, in the order they chose. Stored
+/// in hq so it follows them to every device. A pin to something they can no
+/// longer see stays, unshown, until they unpin it or regain access.
+model Pin {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      PinKind
+  itemId    String
+  position  Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, kind, itemId])
+  @@index([userId, position])
+}
+
+model PreviewSession {
+  id               String   @id @default(cuid())
+  token            String   @unique
+  agentId          String
+  sessionId        String?
+  /// The site holding the container this preview runs in. A preview is reached
+  /// by opening a stream to this site; it is not a path on any machine hq can
+  /// see, and hq no longer has one.
+  siteId           String
+  /// The site's own id for the preview — what `preview.connect` names.
+  previewId        String
+  command          String
+  // The storage boundary whose working tree the container holds. A preview
+  // serves the run's own location, not the agent's workspace, so the agent no
+  // longer says what is behind the token. Nullable only for rows written
+  // before it did: every row written since carries one, and a requester check
+  // has nothing to check a row without one against.
+  ownerType        WorkspaceOwnerType?
+  ownerId          String?
+  workspaceId      String?
+  taskId           String?
+  /// 'starting' | 'running' | 'stopping' | 'expired'. `stopping` is past its
+  /// expiry with the site's acknowledgement outstanding: it resolves for
+  /// nobody, and the sweep keeps asking until the site answers.
+  status           String   @default("starting")
+  createdAt        DateTime @default(now())
+  lastAccessAt     DateTime @default(now())
+  expiresAt        DateTime
+
+  @@index([status])
+  @@index([agentId])
+}
+
+/// Whose content a package is (ADR-0072).
+enum PackageKind {
+  AGENT
+  ORG
+  PLATFORM
+}
+
+/// One package: an agent's (key = Agent.id), the org's (key = Org.id), or the
+/// platform's (key = "platform"), pointing at its current content. An edit
+/// points it at new content; there is no version number. No foreign key to
+/// the owner: the owner's own deletion removes it.
+model Package {
+  id          String         @id @default(uuid())
+  kind        PackageKind
+  key         String
+  /// The current content's digest — what the next run names and a site caches by.
+  digest      String
+  content     PackageContent @relation(fields: [digest], references: [digest], onDelete: Restrict)
+  /// Who last changed it; null for the platform itself (boot).
+  updatedById String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([kind, key])
+  @@index([digest])
+}
+
+/// Immutable content, keyed by its digest (sha256 over core's
+/// packageDigestInput). Never changed once written. A run started before an
+/// edit is served the content it named, so content no package points at is
+/// kept for a grace period after it was released, then swept.
+model PackageContent {
+  digest        String        @id
+  formatVersion Int
+  createdAt     DateTime      @default(now())
+  /// When a package last stopped pointing at it; null while it has never been released.
+  releasedAt    DateTime?
+  packages      Package[]
+  files         PackageFile[]
+
+  @@index([releasedAt])
+}
+
+model PackageFile {
+  id            String         @id @default(uuid())
+  contentDigest String
+  content       PackageContent @relation(fields: [contentDigest], references: [digest], onDelete: Cascade)
+  path          String
+  bytes         Bytes
+  sha256        String
+
+  @@unique([contentDigest, path])
+}
+
+/// A boundary's hq-held narrowing of an agent: a project's, or a person's own (their Chat).
+/// Every field optional; the row is removed when all are null.
+model AgentOverride {
+  id           String             @id @default(uuid())
+  boundaryType WorkspaceOwnerType
+  boundaryId   String
+  agentId      String
+  agent        Agent              @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  model        String?
+  /// The same shapes as the agent's own: ToolPermission[] and bash pattern permissions. Only stricter than the
+  /// organisation's takes effect; for each tool, pattern and approval the strictest level wins.
+  allowedTools        Json?
+  allowedBashPatterns Json?
+  approval     String?
+  updatedById  String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([boundaryType, boundaryId, agentId])
+}
+
+/// Memory recalled by meaning (memory and knowledge spec, phase 3). Replaces AgentMemoryItem, whose items are not
+/// carried over (clean slate).
+enum MemoryScope {
+  /// The person's own, for any agent.
+  PERSON
+  /// One agent's, about one person.
+  AGENT_PERSON
+  /// One agent's, about one place: the person's own space or a project. Never leaves the place.
+  AGENT_PLACE
+}
+
+enum MemoryItemKind {
+  FACT
+  PREFERENCE
+  DECISION
+  FEEDBACK
+  PROJECT
+}
+
+/// How one item fared in one turn, for the recall measurements and the probe's bars.
+enum MemoryOutcomeKind {
+  /// Put into the turn by the probe (certain).
+  INCLUDED
+  /// Named in the turn's hint line (probable).
+  HINTED
+  /// Read by the lead or a worker with recall.
+  RECALLED
+  /// Included, hinted or recalled, and marked used by the lead.
+  USED
+  /// Included or recalled, and not used.
+  UNUSED
+  /// A correction memory could have prevented, or an item found that the probe scored below the bar.
+  MISSED
+}
+
+/// One thing an agent learned, standing alone. Its key is unique within its scope: writing to a key replaces.
+model MemoryItem {
+  id        String          @id @default(uuid())
+  scope     MemoryScope
+  /// The scope as one value, for the key's uniqueness: `person:<userId>`, `agent-person:<agentId>:<userId>`,
+  /// `agent-place:<agentId>:<user|project>:<placeId>`.
+  scopeKey  String
+  user      User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  agent     Agent?          @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId   String?
+  placeType WorkspaceOwnerType?
+  placeId   String?
+  /// Assigned by hq from the title's slug unless the writer names one.
+  key       String
+  title     String
+  body      String          @db.VarChar(1600)
+  kind      MemoryItemKind
+  tags      String[]        @default([])
+  pinned    Boolean         @default(false)
+  /// Kept and recallable by key or a direct question; not searched by default.
+  archived  Boolean         @default(false)
+  /// The embedding of title, body and tags with `embeddingModel`; searched exactly in hq.
+  embedding Float[]         @default([])
+  embeddingModel String?
+  recallCount Int           @default(0)
+  usedCount  Int            @default(0)
+  lastRecalledAt DateTime?
+  /// The item this one replaced or merged.
+  supersedesId String?
+  writtenByAgentId String?
+  writtenByUserId  String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  outcomes  MemoryOutcome[]
+
+  @@unique([scopeKey, key])
+  @@index([scopeKey, archived])
+  @@index([userId])
+  @@index([agentId, placeType, placeId])
+}
+
+model MemoryOutcome {
+  id        String            @id @default(uuid())
+  item      MemoryItem?       @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  itemId    String?
+  kind      MemoryOutcomeKind
+  conversationId String?
+  turnId    String?
+  runId     String?
+  /// The probe's or the query's similarity, when there was one.
+  similarity Float?
+  createdAt DateTime          @default(now())
+
+  @@index([createdAt])
+  @@index([itemId])
+}
+
+/// A model credential (spec §6.3). Either an API key or a subscription login,
+/// belonging to a boundary — the org, a project or a person — never both in
+/// one row. The value is ENCRYPTED at rest
+/// (secretCrypto), like the GitHub App private key beside it.
+model ModelCredential {
+  id              String              @id @default(uuid())
+  kind            ModelCredentialKind
+  /// Whose credential it is. Existing rows are Anthropic's. A subscription is
+  /// always Anthropic's.
+  provider        ModelCredentialProvider @default(anthropic)
+  /// The endpoint of an openai_compatible provider; null for every other.
+  baseUrl         String?
+  /// 'org' for the org's own subscription (ownerId 'org'), 'project' for a
+  /// project's, 'user' for a person's. The org's API key is not here — it stays
+  /// a Provider row.
+  ownerType       ModelCredentialOwnerType
+  ownerId         String
+  /// Encrypted: an API key, or the Claude Code OAuth credentials document.
+  secret          String
+  /// From claudeAiOauth.expiresAt, kept in the clear so the settings page and
+  /// the refresh path can reason about it without decrypting.
+  expiresAt       DateTime?
+  /// When this person accepted the provider's terms for their own
+  /// subscription. Null for an API key; required before a subscription is used.
+  termsAcceptedAt DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  grants          SubscriptionGrant[]
+
+  @@unique([ownerType, ownerId, provider, kind])
+}
+
+/// One hand-over of a stored subscription login to a run on a site. A site may
+/// report a token the harness refreshed only against a grant hq made to it,
+/// and the report updates the login only while it is still the sign-in that was
+/// handed over (see hq/src/sites/subscriptionGrants.ts).
+model SubscriptionGrant {
+  id           String          @id @default(uuid())
+  credentialId String
+  credential   ModelCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  /// The login's termsAcceptedAt when it was handed over. Set at every sign-in
+  /// and never by a refresh, so it tells one sign-in from the next.
+  signedInAt   DateTime
+  /// The ExecutionSite.siteId the run was dispatched to.
+  siteId       String
+  sessionId    String
+  /// The run's runner claim: 'person' or 'project', and its id.
+  runnerKind   String
+  runnerId     String?
+  createdAt    DateTime        @default(now())
+  /// After this, a report against the grant is refused.
+  expiresAt    DateTime
+
+  @@index([credentialId])
+  @@index([expiresAt])
+}
+
+/// The values are core's CREDENTIAL_PROVIDERS, spelled the same.
+enum ModelCredentialProvider {
+  openrouter
+  openai
+  google
+  anthropic
+  openai_compatible
+}
+
+enum ModelCredentialKind {
+  API_KEY
+  SUBSCRIPTION
+}
+
+enum ModelCredentialOwnerType {
+  org
+  project
+  user
+}
+
+// ──────────────────────────────────────────────
+// Module: Automation (adr-0087, adr-0088)
+// A boundary's pulse and schedules. One scheduler in hq reads these stored due
+// times every minute; nothing about when work starts is held only in memory.
+// ──────────────────────────────────────────────
+
+/// A project's own automation choices, stored as chosen — the org's values
+/// narrow them at use (automation/automationSettings.ts) and are never written
+/// back here. No row = automation off. Also holds the pulse's stored state.
+model ProjectAutomation {
+  projectId           String    @id
+  project             Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  enabled             Boolean   @default(false)
+  /// null = the org's value.
+  intervalMinutes     Int?
+  batchSize           Int?
+  queueLimit          Int?
+  agentSchedules      Boolean   @default(false)
+  /// Start queued tasks only in rounds (adr-0091); the org may require it.
+  throttle            Boolean   @default(false)
+  /// null = the org's value.
+  maxDepth            Int?
+  /// The pulse record whose tasks make up the round in progress; null = no round open.
+  openRoundId         String?
+  lastRoundFinishedAt DateTime?
+  /// When the pulse may next fire; null while a round is open. Claimed by compare-and-set.
+  pulseDueAt          DateTime?
+  updatedById         String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([pulseDueAt])
+}
+
+/// The record of each pulse firing and each scheduled start: which boundary,
+/// when, and which tasks it started with which agents.
+model AutomationStart {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// 'PULSE' | 'SCHEDULE'
+  kind      String
+  firedAt   DateTime @default(now())
+  /// For a scheduled start: the task whose schedule fired.
+  taskId    String?
+  /// [{ taskId, title, agentId, agentHandle, outcome }]
+  started   Json     @default("[]")
+
+  @@index([projectId, firedAt])
+}
+
+// ──────────────────────────────────────────────
+// Routines (adr-0092) — a schedule and a task template that keeps its next
+// round ready as an ordinary task. Evaluated by the one scheduler.
+// ──────────────────────────────────────────────
+
+/// A routine: on a schedule, it keeps exactly one round — a task from its
+/// template — waiting for its next time, and creates the next when that time
+/// comes. It never starts, follows or cleans up a round.
+model Routine {
+  id                    String       @id @default(uuid())
+  projectId             String
+  project               Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // Template. Agent and board are plain ids, read at each round: one deleted
+  // since leaves the round unassigned, or in the backlog.
+  title                 String
+  description           String?
+  priority              TaskPriority @default(MEDIUM)
+  labels                Json         @default("[]")
+  assignedAgentId       String?
+  /// Where a round starts: a board (none = Project Tasks) and a column (none = its Backlog).
+  boardId               String?
+  column                String?
+  // Schedule: a repeat rule (automation/scheduleRule.ts) anchored at scheduleAt,
+  // its wall-clock times read in scheduleTimezone.
+  scheduleAt            DateTime
+  scheduleRule          Json
+  scheduleTimezone      String
+  enabled               Boolean      @default(true)
+  /// Why it is paused when the system paused it (its person lost access); null otherwise.
+  pausedReason          String?
+  /// The waiting round's time; null while paused. Claimed by compare-and-set.
+  nextRoundAt           DateTime?
+  /// The person every round is done on behalf of (adr-0089).
+  onBehalfOfUserId      String
+  /// Who set it up: a person, or an agent in a run (its session) when a person asked.
+  createdByUserId       String?
+  createdByAgentId      String?
+  createdBySessionId    String?
+  createdByConnectionId String?
+  rounds                Task[]
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@index([nextRoundAt])
+  @@index([projectId])
+}
+
+// ──────────────────────────────────────────────
+// Host management (host-management spec §4 C3 and C8, §6, §7): HQ relays
+// sealed envelopes between the Fleet Console and host services and reads none.
+// What it keeps is who may connect — credentials as hashes only — and the
+// record of what fleet admins did.
+// ──────────────────────────────────────────────
+
+/// A machine whose host service a fleet admin accepted into the fleet. Its
+/// public keys are kept so its fingerprint can be checked again; its machine
+/// credential to the host link only as a hash.
+model RelayHost {
+  id                 String    @id @default(uuid())
+  /// SHA-256 over its identity, computed by hq from the keys (never taken from the caller).
+  fingerprint        String    @unique
+  signingKey         String
+  sealingKey         String
+  /// As its host service reported it when it joined.
+  machineName        String
+  /// The Fleet Console's fingerprint it pinned when it joined: the only
+  /// sender hq passes envelopes to it from, and the only recipient it may send to.
+  consoleFingerprint String
+  /// SHA-256 of the machine credential. Null once disconnected: the link is refused from then on.
+  credentialHash     String?   @unique
+  joinedAt           DateTime  @default(now())
+  lastSeenAt         DateTime?
+  disconnectedAt     DateTime?
+  /// When the machine disconnected itself and told hq so with its machine credential
+  /// (spec §6). Counts only from `joinedAt` on: a rejoin starts afresh. Its link is
+  /// refused from then on; it stays listed until a fleet admin removes it.
+  leftAt             DateTime?
+  /// Whether fleet admins are told when it stops answering, as the Fleet Console says
+  /// (`host.silenceFacts`). A notification preference only: it gives no authority.
+  /// Null is yes; hq's own machine is always told about.
+  notifyIfSilent     Boolean?  @default(true)
+  /// When its host service said it stops on purpose, by the Fleet Console's word;
+  /// cleared when it answers again. Its silence then raises no notice.
+  stoppedAt          DateTime?
+  sites              ExecutionSite[]
+}
+
+/// A one-time code a fleet admin made to connect a machine (spec §6). hq is
+/// given only a lookup derived from the code, and keeps only its hash.
+model RelayJoin {
+  id              String   @id @default(uuid())
+  lookupHash      String   @unique
+  /// core's JoinPurpose: add, moveSite, moveHq or restoreSite.
+  purpose         Json
+  expiresAt       DateTime
+  /// OPEN, then CLAIMED once a machine presented the lookup (it works once),
+  /// then ACCEPTED or REFUSED; USED once an accepted restore renewed its site's
+  /// credential; CLOSED when the Fleet Console withdrew it.
+  state           String   @default("OPEN")
+  hostFingerprint String?
+  hostIdentity    Json?
+  machineName     String?
+  binding         String?
+  relayHostId     String?
+  createdAt       DateTime @default(now())
+}
+
+/// The Fleet Console's lasting credential to the console link, from a one-time
+/// code (spec §7). At most one row: a new one retires the one before it, and
+/// while one exists the pairing secret is refused.
+model ConsoleCredential {
+  id             String   @id @default(uuid())
+  credentialHash String   @unique
+  issuedAt       DateTime @default(now())
+}
+
+/// A one-time code made by `console-code` on hq's machine; kept as a hash, one
+/// hour, used once. A new code withdraws any earlier one.
+model ConsoleCode {
+  id        String    @id @default(uuid())
+  codeHash  String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+/// Moving the Fleet Console without breaking any machine's pin (spec §7): the
+/// running Fleet Console opens one with the lookup of a code it made on its own
+/// machine; hq keeps the lookup's hash and never sees the code. OPEN, CLAIMED
+/// once a new Fleet Console presented the lookup (once), ACCEPTED once the running
+/// one answered, SENT once the new one has its credential, DONE once it
+/// acknowledged it, or CLOSED. `certificate` is the running one's
+/// signed handover, which hq hands to every machine as it connects.
+model ConsoleHandover {
+  id             String    @id @default(uuid())
+  lookupHash     String    @unique
+  expiresAt      DateTime
+  state          String    @default("OPEN")
+  oldFingerprint String?
+  newFingerprint String?
+  certificate    Json?
+  /// The new Fleet Console's credential, hashed, from SENT until it acknowledges it (DONE).
+  credentialHash String?   @unique
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+}
+
+/// What a fleet admin did (spec §7, §4), kept in hq. `byUserId` is null for
+/// hq's machine. Not a foreign key: the record outlives an erased person.
+model FleetActivity {
+  id        String   @id @default(uuid())
+  byUserId  String?
+  action    String
+  subject   String
+  at        DateTime
+  announced Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([at])
+}

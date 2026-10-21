@@ -1,0 +1,51 @@
+# Node
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+.vite/
+.turbo/
+.expo/
+.wasp/
+
+# Lockfiles
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lock
+bun.lockb
+Podfile.lock
+
+# Test/coverage
+coverage/
+.pytest_cache/
+__pycache__/
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Worktrees + git
+.worktrees/
+.git/
+
+# Graphify itself
+graphify-out/
+
+# Env / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Generated
+*.min.js
+*.min.css
+*.map
+
+# Logs
+*.log
+

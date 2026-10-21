@@ -1,0 +1,84 @@
+import { useState } from 'react'
+import { Button, HostingBadge, StatePill } from '@agenthix/ui/primitives'
+import { FactCard, FactGroup, KeyValueRow, Notice, PageHeading, Say } from '../../components'
+import { possessive } from '../dashboard/words'
+import type { FleetHost } from '../dashboard/types'
+import { useHost } from '../site/useHost'
+import { CloudOfferLine } from '../../cloud/CloudOfferLine'
+import { LocationCommand, TakeOutcome } from './BackupParts'
+import { useTakeBackup } from './commands'
+import { ExportPanel } from './ExportPanel'
+import { NightsCard } from './NightsCard'
+import { carriesHq, exportWarning, locationCommand, siteBackupWords } from './words'
+
+/**
+ * One thing's backups — a site's, or HQ's with its own site (board *Backups — one site's Backups*, *A site with no
+ * backup location*), and its export; `exporting` opens with the export, as *Export…* on the Backups page asks.
+ */
+export function SiteBackupsPage({ fingerprint, exporting = false, pollMs }: { fingerprint: string; exporting?: boolean; pollMs?: number }) {
+  const state = useHost(fingerprint)
+  const host = state.phase === 'loading' ? null : state.host
+  if (state.phase === 'failed' && !host) {
+    return (
+      <>
+        <PageHeading title={state.missing ? 'Machine not found' : 'The site could not be read'} />
+        <Notice tone="danger" action={state.missing ? undefined : <Button variant="secondary" onClick={state.refresh}>Try again</Button>}>{state.message}</Notice>
+      </>
+    )
+  }
+  if (!host) return null
+  const now = state.phase === 'ready' ? state.readAt : state.phase === 'failed' ? state.readAt ?? new Date() : new Date()
+  return <SiteBackups host={host} now={now} pollMs={pollMs} refresh={state.refresh} failure={state.phase === 'failed' ? state.message : null} exportFirst={exporting} />
+}
+
+function SiteBackups({ host, now, pollMs, refresh, failure, exportFirst }: { host: FleetHost; now: Date; pollMs?: number; refresh: () => void; failure: string | null; exportFirst: boolean }) {
+  const [exporting, setExporting] = useState(exportFirst && host.online)
+  const take = useTakeBackup(host.fingerprint, pollMs, refresh)
+  const w = siteBackupWords(host, now)
+  const hq = carriesHq(host)
+  const title = `${possessive(hq ? 'HQ' : host.machineName)} backups`
+  const warning = exportWarning(host, now)
+  const b = host.figures?.backups
+  return (
+    <>
+      <PageHeading
+        title={title}
+        badges={<><span className="text-small text-text-secondary">{hq ? `HQ and its own site, on ${host.machineName}` : 'Site'}</span><HostingBadge where="self-hosted" /><StatePill tone={w.pill.tone}>{w.pill.label}</StatePill></>}
+        lede={b ? `Each night at ${b.nightlyAt} (${possessive(host.machineName)} own time) it backs up ${w.holds}, sealed. Its key is held by ${possessive(host.machineName)} host service.` : undefined}
+      />
+      {failure && <Notice tone="warning" title="The figures below are not current" action={<Button variant="secondary" onClick={refresh}>Try again</Button>}>{failure}</Notice>}
+      {!host.online && <Notice title={w.last}>{host.machineName} is not answering, so it cannot be asked to back up or export now. It keeps backing up on its own each night.</Notice>}
+
+      {exporting ? (
+        <ExportPanel host={host} now={now} pollMs={pollMs} onClose={() => setExporting(false)} />
+      ) : (
+        <>
+          {warning && <div className="mb-3 max-w-3xl"><Say warn>{warning}</Say></div>}
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <Button variant="secondary" onClick={take.take} disabled={!host.online || take.state.phase === 'working'}>Take a backup now</Button>
+            <Button variant="secondary" onClick={() => { take.reset(); setExporting(true) }} disabled={!host.online || take.state.phase === 'working'}>Export a backup…</Button>
+          </div>
+          {take.state.phase !== 'idle' && <div className="mb-3 max-w-3xl"><TakeOutcome state={take.state} host={host} onDismiss={take.reset} /></div>}
+          <FactGroup tag="Backups" name={host.machineName} aside="each machine backs up on its own">
+            <NightsCard host={host} summary={w.last} schedule={w.schedule} aside={<StatePill tone={w.pill.tone}>{w.pill.label}</StatePill>} />
+            <FactCard title="Backup location" aside={b ? <StatePill tone={b.locationSet ? 'neutral' : 'warning'}>{b.locationSet ? 'Set' : 'Not set'}</StatePill> : undefined}>
+              {!b ? <p className="text-small text-text-secondary">Waiting for its first figures.</p> : b.locationSet ? (
+                <>
+                  <p className="text-small text-text-primary">{w.location}.</p>
+                  <KeyValueRow label="Its key">kept by whoever set the location, not by the machines</KeyValueRow>
+                  <p className="text-small text-text-muted">The folder is shown only on {host.machineName}. To change it, run <code className="font-mono">{locationCommand}</code> there.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-small text-text-primary">Nightly backups stay on this machine until a machine admin sets one.</p>
+                  <LocationCommand machineName={host.machineName} />
+                </>
+              )}
+            </FactCard>
+          </FactGroup>
+          {hq && b && !b.locationSet && <CloudOfferLine offer="backups" from="fleet-console-backups" />}
+        </>
+      )}
+    </>
+  )
+}

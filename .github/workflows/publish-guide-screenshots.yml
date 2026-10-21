@@ -1,0 +1,115 @@
+name: Publish guide screenshots
+
+# Uploads a release's guide screenshots to the website's storage, once per release. Started by hand with a
+# release tag; a dry run (the default) lists what it would upload and writes nothing. The screenshots are the set the
+# release branch captured for the tag's commit (guide-screenshots.yml); the tag itself captures none.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The release tag whose screenshots to publish, for example v1.0.0'
+        required: true
+        type: string
+      dry_run:
+        description: 'List what would be uploaded, and upload nothing'
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: publish-guide-screenshots
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: guide-screenshots
+    permissions:
+      contents: read
+      actions: read
+    env:
+      TAG: ${{ inputs.tag }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      # Held by the environment: the storage's S3-compatible endpoint and bucket (variables), and a write-only
+      # key pair (secrets). The capture run for the tag's commit is looked up here, so nothing else is needed from the
+      # repository.
+      STORAGE_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      STORAGE_BUCKET: ${{ vars.GUIDE_STORAGE_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_EC2_METADATA_DISABLED: 'true'
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+    steps:
+      - name: Refuse anything that is not a release tag
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9][A-Za-z0-9._-]*$ ]]; then
+            echo "::error::'$TAG' is not a release tag (v*)."
+            exit 1
+          fi
+          for name in STORAGE_ENDPOINT STORAGE_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            if [ -z "${!name}" ]; then echo "::error::$name is not set in the repository's secrets and variables."; exit 1; fi
+          done
+
+      - name: Find the release branch's capture run for the tag's commit
+        id: run
+        run: |
+          commit="$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha)" || { echo "::error::The tag '$TAG' does not exist."; exit 1; }
+          # The latest run for that commit on a release branch, as the release's own gate reads it (publish-images.yml).
+          found="$(gh api "repos/$GH_REPO/actions/workflows/guide-screenshots.yml/runs?head_sha=$commit&event=push&per_page=50" \
+            --jq '[.workflow_runs[] | select(.head_branch | startswith("release/"))] | sort_by(.created_at) | last
+                  | if . == null then "" else "\(.id) \(.status):\(.conclusion // "")" end')"
+          if [ -z "$found" ]; then
+            echo "::error::No capture run for '$TAG' ($commit) on a release branch. Push the release branch, let it pass, then publish."
+            exit 1
+          fi
+          run_id="${found%% *}"
+          state="${found#* }"
+          if [ "$state" != completed:success ]; then
+            echo "::error::The release branch's capture run for '$TAG' ($commit) is $state, not passed. Fix what failed on the release branch, delete the tag and tag the same version again on the fixed commit."
+            exit 1
+          fi
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch the run's release set
+        run: |
+          mkdir -p release-set
+          gh run download "${{ steps.run.outputs.run_id }}" --name guide-release-set --dir release-set
+          count="$(find release-set -maxdepth 1 -name '*.png' | wc -l)"
+          if [ "$count" -eq 0 ]; then echo "::error::The run's release set holds no screenshots."; exit 1; fi
+          echo "$count screenshots in the release set."
+
+      - name: Refuse a tag whose folder already holds screenshots
+        run: |
+          # The backticks are JMESPath's literal syntax, not a shell substitution.
+          # shellcheck disable=SC2016
+          found="$(aws s3api list-objects-v2 --endpoint-url "$STORAGE_ENDPOINT" --bucket "$STORAGE_BUCKET" \
+            --prefix "guide/$TAG/" --max-items 1 --query 'length(Contents || `[]`)' --output text)"
+          if [ "$found" != "0" ]; then
+            echo "::error::guide/$TAG/ already holds screenshots. A release's folder is written once. If an attempt whose tag was deleted wrote it, delete the folder with that attempt, then publish again; once a release is out, a fix is a new version."
+            exit 1
+          fi
+
+      - name: Upload (or list, in a dry run)
+        run: |
+          for file in release-set/*.png; do
+            name="$(basename "$file")"
+            destination="guide/$TAG/$name"
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "would upload $name to $destination"
+            else
+              aws s3 cp "$file" "s3://$STORAGE_BUCKET/$destination" --endpoint-url "$STORAGE_ENDPOINT" \
+                --content-type image/png --cache-control "public, max-age=31536000, immutable"
+            fi
+          done
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run: nothing was uploaded. Run again with dry run off to publish." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Uploaded to guide/$TAG/ (served at https://assets.agenthix.com/guide/$TAG/)." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi

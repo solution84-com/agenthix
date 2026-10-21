@@ -1,0 +1,50 @@
+{
+  "name": "@agenthix/core",
+  "version": "0.1.0-alpha.1",
+  "description": "The platform's shared types and protocol definitions: the host protocol, the connection protocol, the client protocol and the contracts between HQ, a site and a host service",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./host-crypto": {
+      "types": "./dist/host/crypto/index.d.ts",
+      "default": "./dist/host/crypto/index.js"
+    },
+    "./cloud-crypto": {
+      "types": "./dist/cloud/crypto/index.d.ts",
+      "default": "./dist/cloud/crypto/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "pretest": "npm run typecheck",
+    "test": "vitest run",
+    "snapshot:update": "PROTOCOL_SNAPSHOT_UPDATE=1 vitest run src/__tests__/protocolSnapshot.test.ts",
+    "check:package": "node scripts/check-package.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/solution84-com/agenthix.git",
+    "directory": "core"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "license": "Elastic-2.0"
+}

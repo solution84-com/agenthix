@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Project — Conversations · living design</title>
+<style>
+  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --s3:#e6e6ee; --hover:#ebebf3;
+    --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0;
+    --accent:#6366f1; --accent-h:#4f46e5; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --danger:#dc2626;
+    --ok-line:#05966955; --warn-line:#b4530955;
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --s3:#242436; --hover:#2a2a40;
+    --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078;
+    --accent:#6366f1; --accent-h:#818cf8; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --ok-line:#34d39955; --warn-line:#fbbf2455;
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:760px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .pill.live { color:var(--ok); border-color:var(--ok-line); }
+  .theme { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-left:8px; vertical-align:middle; }
+  .theme button { border:0; background:var(--s1); color:var(--t2); font:inherit; font-size:13px; padding:4px 12px; cursor:pointer; }
+  .theme button.on { background:var(--accent); color:var(--on-accent); }
+  .boards { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  .boards a { color:var(--t2); text-decoration:none; font-size:13px; padding:4px 10px; border-radius:6px; border:1px solid var(--border-subtle); background:var(--s1); }
+  .boards a.on { color:var(--t1); border-color:var(--accent); background:var(--accent-sub); }
+  .boards span { font-size:13px; padding:4px 10px; color:var(--t3); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:28px 0 10px; }
+
+  .frame { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .desk { display:grid; grid-template-columns:220px 1fr 300px; height:780px; }
+  .nav { background:var(--s0); border-right:1px solid var(--border-subtle); padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .logo { font-weight:600; font-size:15px; padding:4px 8px 14px; display:flex; gap:8px; align-items:center; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; color:var(--t2); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+  .nav a.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .nav .sec { font-size:12px; color:var(--t3); padding:14px 8px 4px; display:flex; justify-content:space-between; }
+  .sq { width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:8px; }
+  .nav .n { font-size:12px; color:var(--warn); }
+  .pi { display:flex; align-items:center; gap:8px; }
+  .ava { width:20px; height:20px; flex:none; color:#fff; font-size:9px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+  .ava.proj, .ava.bd { border-radius:5px; }
+  .ava.agent { border-radius:50%; }
+  .nav .drag { color:var(--t3); font-size:11px; letter-spacing:-2px; }
+  .tact { display:flex; justify-content:space-between; align-items:center; }
+  .mini { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:1px 7px; color:var(--t1); background:var(--s1); margin-left:4px; }
+  .mini.stop { color:var(--danger); }
+  .nav .me { margin-top:auto; border-top:1px solid var(--border-subtle); padding:12px 8px 0; font-size:13px; color:var(--t2); }
+
+  .desk > * { min-height:0; }
+  .centre { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; background:var(--s1); }
+  .crumb { padding:14px 32px 0; font-size:13px; color:var(--t3); }
+  .crumb a { color:var(--accent); text-decoration:none; }
+  .phead { padding:6px 32px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border-subtle); }
+  .picon { width:36px; height:36px; border-radius:8px; background:#8b5cf6; flex:none; }
+  .phead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .phead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .phead .pin { margin-left:auto; color:var(--accent); display:inline-flex; padding:6px; border-radius:6px; background:var(--accent-sub); }
+  .runrow { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:4px 0 6px; }
+  .rb { font-size:13px; line-height:18px; text-align:center; padding:6px 0; border:1px solid var(--border); border-radius:8px; color:var(--t1); background:var(--s1); }
+  .rb.stop { color:var(--danger); }
+  .tgrp { font-size:12px; color:var(--t3); font-weight:500; margin:10px 0 0; }
+  .tgrp:first-of-type { margin-top:0; }
+  .listwrap { flex:1; min-height:0; overflow:hidden; padding:14px 32px; }
+  .listtools { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .listtools h3 { font-size:15px; line-height:22px; margin:0; font-weight:600; flex:1; }
+  .search { border:1px solid var(--border); border-radius:6px; padding:5px 10px; color:var(--t3); font-size:13px; width:200px; background:var(--s1); }
+  .btn { border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:13px; color:var(--t1); background:var(--s1); white-space:nowrap; }
+  .grp { font-size:12px; color:var(--t3); font-weight:500; margin:12px 0 2px; }
+  .row { display:flex; gap:12px; padding:8px 10px; border-radius:8px; align-items:center; }
+  .row.sel { background:var(--s2); }
+  .av { width:32px; height:32px; border-radius:50%; flex:none; color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+  .av.sm { width:24px; height:24px; font-size:10px; }
+  .row .body { min-width:0; flex:1; }
+  .row .ttl { font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .who { color:var(--t2); font-size:13px; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .meta { color:var(--t3); font-size:12px; white-space:nowrap; text-align:right; }
+  .working { color:var(--ok); }
+  .composer { flex:none;  margin:0 32px 20px; border:1px solid var(--accent); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:center; background:var(--s1); }
+  .composer .ph { flex:1; color:var(--t3); font-size:15px; }
+  .chip { font-size:12px; color:var(--t2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; display:inline-flex; align-items:center; gap:6px; }
+  .send { width:30px; height:30px; border-radius:8px; background:var(--accent); flex:none; }
+
+  .right { background:var(--s1); border-left:1px solid var(--border-subtle); padding:0; display:flex; flex-direction:column; overflow:hidden; }
+  .right .card { border:none; border-radius:0; background:transparent; padding:14px 16px; }
+  .right .card + .card { border-top:1px solid var(--border-subtle); }
+  .right .card h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); }
+  .card { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; background:var(--s1); }
+  .card h4 { margin:0 0 8px; font-size:13px; line-height:18px; color:var(--t2); font-weight:500; }
+  .kv { display:grid; grid-template-columns:96px 1fr; gap:4px 8px; font-size:13px; line-height:18px; }
+  .kv b { font-weight:400; color:var(--t3); }
+  .tool { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; border-top:1px solid var(--border-subtle); }
+  .tool:first-of-type { border-top:none; }
+  .tool .n { color:var(--t3); font-size:12px; }
+  .tool .n.need { color:var(--warn); }
+  .tool .n.on { color:var(--ok); }
+
+  .phones { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:340px; height:700px; min-height:0; border:1px solid var(--border); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; background:var(--s1); position:relative; }
+  .mhead { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-subtle); }
+  .back { color:var(--accent); font-size:20px; line-height:20px; }
+  .mhead .t { font-weight:600; flex:1; }
+  .mbtn { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:3px 8px; color:var(--t2); }
+  .mlist { flex:1; min-height:0; overflow:hidden; padding:4px 12px; }
+  .mfilter { padding:8px 12px 0; display:flex; gap:8px; }
+  .mcomp { margin:10px 12px 16px; border:1px solid var(--accent); border-radius:12px; padding:12px; color:var(--t3); font-size:15px; display:flex; justify-content:space-between; align-items:center; }
+  .scrim { position:absolute; inset:0; background:#0000004d; }
+  .sheet { position:absolute; left:0; right:0; bottom:0; height:78%; background:var(--s1); border-radius:18px 18px 0 0; padding:10px 16px; border-top:1px solid var(--border); }
+  .grab { width:40px; height:4px; border-radius:2px; background:var(--s3); margin:0 auto 12px; }
+  .tabs { display:flex; gap:20px; border-bottom:1px solid var(--border-subtle); margin:8px 0 6px; font-size:14px; }
+  .tabs span { padding:6px 0; color:var(--t2); }
+  .tabs span.on { color:var(--accent); border-bottom:2px solid var(--accent); }
+
+  .notes { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .note { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); }
+  .note h3 { margin:0 0 8px; font-size:15px; line-height:22px; }
+  .note ul, .note ol { margin:0; padding-left:18px; color:var(--t2); }
+  .note li { margin-bottom:6px; }
+  .note li b { color:var(--t1); font-weight:500; }
+  .note.open { border-color:var(--warn-line); }
+  .note.agreed { border-color:var(--ok-line); }
+  details { margin-top:16px; color:var(--t2); }
+  details img { max-width:100%; border-radius:8px; border:1px solid var(--border-subtle); margin-top:8px; }
+  table.map { border-collapse:collapse; font-size:13px; width:100%; }
+  table.map td, table.map th { border-bottom:1px solid var(--border-subtle); padding:6px 8px; text-align:left; vertical-align:top; }
+  table.map th { color:var(--t3); font-weight:500; }
+  .fctl { position:static; display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--s1); }
+  .fctl span { width:30px; height:26px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border-subtle); }
+  .fctl span:first-child { border-left:none; }
+  .fctl span.on { background:var(--accent-sub); }
+  .fctl i { display:flex; gap:2px; height:12px; }
+  .fctl i u { display:block; border-radius:1px; background:var(--t3); }
+  .work { display:grid; grid-template-rows:auto 1fr; min-width:0; min-height:0; }
+  .wbar { display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px 32px; border-bottom:1px solid var(--border-subtle); background:var(--s1); }
+  .crumb2 { font-size:13px; color:var(--t3); } .crumb2 a { color:var(--accent); text-decoration:none; }
+  .panes { display:grid; min-height:0; }
+  .panes > * { min-height:0; }
+  .tops { margin-left:auto; display:flex; gap:4px; }
+  .topb { position:relative; width:30px; height:30px; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); }
+  .topb.on { background:var(--accent-sub); color:var(--accent); }
+  .topb b { position:absolute; top:-3px; right:-5px; background:var(--danger); color:#fff; font-size:10px; line-height:14px; min-width:14px; text-align:center; border-radius:7px; padding:0 3px; font-weight:600; }
+  .topb b.g { background:var(--ok); }
+</style>
+</head>
+<body>
+<div class="board">
+
+  <div class="boardhead">
+    <div>
+      <h1>Project — Conversations</h1>
+      <p>The project's landing screen. A person comes here to <b>talk about the project</b>, to <b>pick up a conversation they started</b>, and to <b>check the project's state or open one of its tools</b> without leaving.</p>
+    </div>
+    <div style="white-space:nowrap">
+      <span class="pill live">Agreed 2026-10-06 · living design</span>
+    </div>
+  </div>
+
+
+  <div class="label">Desktop · 1440 wide</div>
+  <div class="frame">
+    <div class="desk" style="grid-template-columns:220px 1fr">
+      <nav class="nav">
+        <div class="logo"><i></i>Agenthix<span class="tops"><span class="topb bellb" title="Notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>3</b></span><span class="topb runsb" title="Runs"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><b class="g">3</b></span></span></div>
+        <a>Home</a>
+        <a>Chat</a>
+        <a>Projects</a>
+        <a>Agents</a>
+        <a>Tasks <span class="n">2 need you</span></a>
+        <div class="sec"><span style="display:inline-flex;gap:6px;align-items:center"><svg class="pinic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>Pinned</span><span>edit</span></div>
+        <a class="on"><span class="pi"><span class="ava proj" style="background:#8b5cf6">A</span>Agenthix</span><span class="drag">⋮⋮</span></a>
+        <a><span class="pi"><span class="ava agent" style="background:#6366f1">PM</span>Project manager</span></a>
+        <a><span class="pi"><span class="ava bd" style="background:#0ea5e9"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="2.4"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/></svg></span>Release board</span></a>
+        <a><span class="pi"><span class="ava proj" style="background:#f59e0b">M</span>Marketing Website</span></a>
+        <div class="me" style="display:flex;flex-direction:column;gap:2px;padding-top:8px"><a style="padding:6px 0">Organisation</a><a style="padding:6px 0">Settings</a><span style="padding-top:4px">Avery</span></div>
+      </nav>
+
+      <div class="work">
+        <div class="wbar"><div class="crumb2"><a href="#">Projects</a> / Agenthix</div><div class="fctl" title="Layout"><span><i><u style="width:14px"></u></i></span><span class="on"><i><u style="width:10px"></u><u style="width:5px;background:var(--accent)"></u></i></span><span><i><u style="width:5px"></u><u style="width:10px;background:var(--accent)"></u></i></span><span><i><u style="width:14px;background:var(--accent)"></u></i></span></div></div>
+        <div class="panes" style="grid-template-columns:1fr 300px">
+      <main class="centre">
+        <div class="phead" style="padding-top:14px">
+          <div class="picon" style="display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600">A</div>
+          <div>
+            <h2>Agenthix ▾</h2>
+            <div class="sub">AI workforce platform for modern teams</div>
+          </div>
+          <span class="pin" title="Pinned — click to unpin"><svg class="pinic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span>
+        </div>
+
+        <div class="listwrap">
+          <div class="listtools">
+            <h3>Your conversations</h3>
+            <span class="chip">All agents ▾</span>
+            <div class="search">Search conversations</div>
+            <div class="btn">New conversation</div>
+          </div>
+
+          <div class="grp">Today</div>
+          <div class="row sel"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Project UX redesign</div><div class="who">Project manager · Rethinking the project experience, conversation first…</div></div><div class="meta">10:24</div></div>
+          <div class="row"><span class="av" style="background:#0d9488">SE</span><div class="body"><div class="ttl">Authentication approach</div><div class="who">Security engineer · Comparing identity provider options…</div></div><div class="meta"><span class="working">● Working</span><br>9:14</div></div>
+          <div class="row"><span class="av" style="background:#ea580c">DO</span><div class="body"><div class="ttl">Deployment issue</div><div class="who">DevOps · Investigating production errors and the site's workers…</div></div><div class="meta">8:02</div></div>
+
+          <div class="grp">Yesterday</div>
+          <div class="row"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Automation UX</div><div class="who">Project manager · Ideas for automated columns and run state…</div></div><div class="meta">16:20</div></div>
+          <div class="row"><span class="av" style="background:#ea580c">DO</span><div class="body"><div class="ttl">Site capacity discussion</div><div class="who">DevOps · Planning resource management and queueing…</div></div><div class="meta">14:11</div></div>
+
+          <div class="grp">Last 7 days</div>
+          <div class="row"><span class="av" style="background:#db2777">FE</span><div class="body"><div class="ttl">Mobile app roadmap</div><div class="who">Frontend · Initial approach and key flows…</div></div><div class="meta">30 Sep</div></div>
+        </div>
+
+        <div class="composer">
+          <div class="ph">Talk about this project…</div>
+          <span class="chip"><span class="av sm" style="background:#6366f1">PM</span>Project manager ▾</span>
+          <span class="send"></span>
+        </div>
+      </main>
+
+      <aside class="right">
+        <div class="card">
+          <h4>About this project</h4>
+          <div class="kv">
+            <b>Lead</b><span>Avery</span>
+            <b>Site</b><span>Development</span>
+            <b>Default agent</b><span>Project manager</span>
+            <b>Product</b><span>Agenthix</span>
+            <b>Access</b><span>Open</span>
+          </div>
+        </div>
+        <div class="card">
+          <h4>Tools</h4>
+        <div class="tgrp">Work</div>
+        <div class="tool" style="border-top:none"><span>Tasks</span><span class="n need">1 needs you · 12</span></div>
+        <div class="tool"><span>Boards</span><span class="n ">3</span></div>
+        <div class="tgrp">Agents at work</div>
+        <div class="tool" style="border-top:none"><span>Runs</span><span class="n on">2 running</span></div>
+        <div class="tool"><span>Automation</span><span class="n on">On</span></div>
+        <div class="runrow"><span class="rb">▶&nbsp; Run all</span><span class="rb stop">■&nbsp; Stop all</span></div>
+        <div class="tgrp">Files and code</div>
+        <div class="tool" style="border-top:none"><span>Files</span><span class="n ">›</span></div>
+        <div class="tool"><span>Workspaces</span><span class="n ">2</span></div>
+        <div class="tgrp">Team</div>
+        <div class="tool" style="border-top:none"><span>Agents</span><span class="n ">8</span></div>
+        <div class="tool"><span>People</span><span class="n ">3</span></div>
+        <div class="tgrp">&nbsp;</div>
+        <div class="tool" style="border-top:none"><span>Settings</span><span class="n ">›</span></div>
+        </div>
+      </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="label">Mobile · 375 wide</div>
+  <div class="phones">
+    <div class="phone">
+      <div class="mhead"><span class="back">‹</span><span class="t">Agenthix</span><span class="mbtn">Project</span></div>
+      <div class="mfilter"><span class="chip">All agents ▾</span><span class="chip">Search</span></div>
+      <div class="mlist">
+        <div class="grp">Today</div>
+        <div class="row sel"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Project UX redesign</div><div class="who">Project manager · Rethinking the…</div></div><div class="meta">10:24</div></div>
+        <div class="row"><span class="av" style="background:#0d9488">SE</span><div class="body"><div class="ttl">Authentication approach</div><div class="who">Security engineer · Compar…</div></div><div class="meta"><span class="working">●</span> 9:14</div></div>
+        <div class="row"><span class="av" style="background:#ea580c">DO</span><div class="body"><div class="ttl">Deployment issue</div><div class="who">DevOps · Investigating…</div></div><div class="meta">8:02</div></div>
+        <div class="grp">Yesterday</div>
+        <div class="row"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Automation UX</div><div class="who">Project manager · Ideas for…</div></div><div class="meta">16:20</div></div>
+        <div class="row"><span class="av" style="background:#ea580c">DO</span><div class="body"><div class="ttl">Site capacity discussion</div><div class="who">DevOps · Planning…</div></div><div class="meta">14:11</div></div>
+      </div>
+      <div class="mcomp"><span>Talk about this project…</span><span class="send" style="width:24px;height:24px"></span></div>
+    </div>
+
+    <div class="phone">
+      <div class="mhead"><span class="back">‹</span><span class="t">Project</span></div>
+      <div class="mlist" style="padding:12px 16px">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px"><div class="picon" style="width:32px;height:32px"></div><div><b>Agenthix</b><div style="color:var(--t2);font-size:13px;line-height:18px">AI workforce platform for modern teams</div></div></div>
+        <div class="kv" style="margin:12px 0 4px">
+          <b>Lead</b><span>Avery</span>
+            <b>Site</b><span>Development</span>
+          <b>Default agent</b><span>Project manager</span>
+          <b>Product</b><span>Agenthix</span>
+          <b>Access</b><span>Open</span>
+        </div>
+        <div class="grp" style="margin-top:16px">Tools</div>
+        <div class="tgrp">Work</div>
+        <div class="tool" style="border-top:none"><span>Tasks</span><span class="n need">1 needs you · 12 ›</span></div>
+        <div class="tool"><span>Boards</span><span class="n ">3 ›</span></div>
+        <div class="tgrp">Agents at work</div>
+        <div class="tool" style="border-top:none"><span>Runs</span><span class="n on">2 running ›</span></div>
+        <div class="tool"><span>Automation</span><span class="n on">On ›</span></div>
+        <div class="runrow"><span class="rb">▶&nbsp; Run all</span><span class="rb stop">■&nbsp; Stop all</span></div>
+        <div class="tgrp">Files and code</div>
+        <div class="tool" style="border-top:none"><span>Files</span><span class="n ">›</span></div>
+        <div class="tool"><span>Workspaces</span><span class="n ">2 ›</span></div>
+        <div class="tgrp">Team</div>
+        <div class="tool" style="border-top:none"><span>Agents</span><span class="n ">8 ›</span></div>
+        <div class="tool"><span>People</span><span class="n ">3 ›</span></div>
+        <div class="tgrp">&nbsp;</div>
+        <div class="tool" style="border-top:none"><span>Settings</span><span class="n ">›</span></div>
+      </div>
+    </div>
+
+    <div style="max-width:380px;color:var(--t2)">
+      <p><b style="color:var(--t1)">‹</b> goes back to the Projects list. <b style="color:var(--t1)">Project</b> opens a full-screen Project page: the facts first, the tools below, no tabs. Its ‹ returns to exactly where the person was. A tool opens as its own full screen from there. Navigation is the drawer, opened from the Projects list or by swiping; no bottom bar.</p>
+    </div>
+  </div>
+
+  <div class="label">Today's project tabs → where they go</div>
+  <div class="card">
+    <table class="map">
+      <tr><th>Tab today</th><th>In this design</th></tr>
+      <tr><td>Overview</td><td>Gone as a page. Description and facts → <b>About this project</b>; Members / Agents tabs → <b>People</b> and <b>Agents</b> tools; "Running now" → <b>Runs</b>; Run All and the backlog → <b>Tasks</b> (open question 3)</td></tr>
+      <tr><td>Tasks</td><td><b>Tasks</b> tool</td></tr>
+      <tr><td>Boards</td><td><b>Boards</b> tool — a project has several boards, so it lists them; each opens full page</td></tr>
+      <tr><td>Files</td><td><b>Files</b> tool</td></tr>
+      <tr><td>GitHub</td><td>Inside <b>Files</b> — it backs up the project's own files to a repository, so it belongs with them</td></tr>
+      <tr><td>Workspaces</td><td><b>Workspaces</b> tool — each workspace shows its own repository</td></tr>
+      <tr><td>Routines</td><td>Inside <b>Automation</b></td></tr>
+      <tr><td>Settings</td><td><b>Settings</b> tool; its automation section moves to Automation</td></tr>
+      <tr><td>—</td><td><b>Runs</b> (today's global Activity panel, per project) and <b>Automation</b> are new here</td></tr>
+    </table>
+  </div>
+
+  <div class="label">Where we are</div>
+  <div class="notes">
+    <div class="note agreed">
+      <h3>Agreed</h3>
+      <ul>
+        <li><b>Same bar and four layouts as the conversation</b>: breadcrumb and layout control above both panes (Conversation, Side by side, Tool focus, Tool only); here "Conversation" means the list.</li>
+        <li><b>Redesign first.</b> A new feature comes in only when the design needs it and it is easy; anything with a large architectural consequence is deferred.</li>
+        <li><b>Conversation first.</b> The project opens on the person's conversations; the composer is always there; tools sit beside it, not in a tab bar.</li>
+        <li><b>Right panel = facts + tools</b>, one surface with sections (no cards), quiet, not a dashboard: lead, site, default agent, product, access. No status.</li>
+        <li><b>Light by default</b>, dark available.</li>
+        <li><b>Each row</b> shows the agent's avatar, the agent's name and the title. Filter by agent.</li>
+        <li><b>Who answers:</b> the project's default agent — usually its project manager — with a picker for another.</li>
+        <li><b>Back to Projects:</b> breadcrumb on desktop, ‹ on mobile, ▾ on the name to switch project.</li>
+        <li><b>Pinned, not recent</b>, with a pin icon: projects, boards and agents in one list the person orders, each shown by its avatar. Inside a project, "Projects" is not highlighted; a pinned project is.</li>
+        <li><b>Tools grouped</b>, most-used first: Work · Agents at work · Files and code · Team · Settings. Same on mobile.</li>
+        <li><b>Runs ≠ Automation.</b> Runs is every run; Automation is the runs the system starts itself, with their controls.</li>
+        <li><b>Backlog</b> is a view inside Tasks — settled with the Tasks board.</li>
+        <li><b>No repository on this screen</b>; one site per project, shown as a fact.</li>
+        <li><b>Mobile project details are a full screen</b>: facts first, tools below, no tabs.</li>
+        <li><b>No topic tags</b> on rows, and no structured items inside conversations for now.</li>
+        <li><b>Private:</b> each member sees only their own conversations (adr-0041, adr-0077).</li>
+      </ul>
+    </div>
+    <div class="note open">
+      <h3>Open — answer by number</h3>
+      <ol>
+        <li>None on this screen. Undecided elsewhere: whether there is ever one organisation-wide agent — not part of this design.</li>
+      </ol>
+      <h3 style="margin-top:14px">New features this screen brings</h3>
+      <ul>
+        <li><b>Project lead</b> — a person, shown only; no rights of its own.</li>
+        <li><b>Stop all for one project</b> — over the existing project run stop; project admins.</li>
+        <li><b>First agent added becomes the default.</b></li>
+        <li><b>Project conversations</b> — chats placed in the project.</li>
+        <li><b>Pins</b> — kept in hq so they follow the person across devices.</li>
+        <li><b>Default avatars</b> for projects (initial on the project colour) and boards (board mark on a colour); agents keep their own. Room for real project and board avatars later.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>Changes on this board</h3>
+      <ul>
+        <li>2026-10-06 — bar with breadcrumb and the four layouts added, matching the conversation view.</li>
+        <li>2026-10-06 — right panel made one surface: facts and tools as sections, no cards or padding.</li>
+        <li>2026-10-06 — pins show each item's avatar (default avatars for projects and boards); no tags; board agreed.</li>
+        <li>2026-10-06 — new features accepted: lead (shown), project Stop all, first agent as default, project conversations, pins. No status. Lead added to the facts.</li>
+        <li>2026-10-06 — owner's answers: breadcrumb back agreed; pins are projects, boards, agents (one ordered list proposed); Run all / Stop all on Agents at work; Activity and Automation stay separate; default agent shown as Project manager; no status or lead; redesign only.</li>
+        <li>2026-10-06 — pin icon; tools grouped and ordered by use.</li>
+        <li>2026-10-06 — mobile: the Project bottom sheet with tabs becomes a full-screen Project page, facts then tools.</li>
+        <li>2026-10-06 — owner's 10 points: light default with a theme switch; Projects no longer highlighted inside a project; avatar, agent and title on each row; agent filter; Pinned replaces recent projects; back to Projects; Automation, People, Settings tools added, Board → Boards; repository removed; site shown as one.</li>
+        <li>2026-10-06 — first draft from the owner's direction and reference images.</li>
+      </ul>
+    </div>
+  </div>
+
+  <details>
+    <summary>Reference images (owner, 2026-10-06)</summary>
+    <img src="/files/project-conversations-desktop.png" alt="Reference: project conversations, desktop">
+    <img src="/files/project-conversations-mobile.png" alt="Reference: project flow, mobile">
+  </details>
+
+</div>
+<script>
+  (function () {
+    var root = document.documentElement;
+    var saved = null;
+    try { saved = localStorage.getItem('board-theme'); } catch (e) {}
+    function set(t) {
+      root.setAttribute('data-theme', t);
+      document.querySelectorAll('.theme button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+      try { localStorage.setItem('board-theme', t); } catch (e) {}
+    }
+    set(saved === 'dark' ? 'dark' : 'light');
+    document.querySelectorAll('.theme button').forEach(function (b) { b.addEventListener('click', function () { set(b.dataset.t); }); });
+  })();
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

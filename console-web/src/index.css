@@ -1,0 +1,21 @@
+@import "tailwindcss";
+/* The shared primitives' classes are emitted only if Tailwind scans them. */
+@source "../../ui/src/primitives";
+@import "@agenthix/ui/theme/tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  font-family: var(--font-sans);
+  background: var(--color-surface-0);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

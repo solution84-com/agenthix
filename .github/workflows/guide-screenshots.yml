@@ -1,0 +1,167 @@
+name: Guide screenshots
+
+# Captures the user guide's screenshots from the sample organisation and compares them with the last release's.
+# Every push to a release branch, so the screenshots are part of the release bar before the tag, and that run keeps
+# the release set that "Publish guide screenshots" uploads for the tag on its commit; the tag captures nothing. Also a
+# run by hand on any branch. main and pull requests do not run it.
+on:
+  push:
+    branches: ['release/**']
+  workflow_dispatch:
+
+concurrency:
+  group: guide-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agenthix
+          POSTGRES_PASSWORD: agenthix
+          POSTGRES_DB: agenthix
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agenthix"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # The guide databases sit on the one Postgres service; with-guide-db.mjs creates and migrates both.
+      GUIDE_HQ_DATABASE_URL: postgresql://agenthix:agenthix@localhost:5432/agenthix_guide
+      GUIDE_SITE_DATABASE_URL: postgresql://agenthix:agenthix@localhost:5432/agenthix_site_guide
+      WASP_TELEMETRY_DISABLE: '1'
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The comparison finds the last release tag from the history.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          # ui's peers (React and its types) are not installed in ui: hq's own copies are linked in after hq's
+          # install, as hq's Dockerfile does, because two copies of @types/react type-check as unrelated types.
+          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd site && npm ci --no-audit --no-fund)
+          (cd hq && npm install --no-audit --no-fund)
+          mkdir -p ui/node_modules/@types
+          for p in react react-dom lucide-react; do rm -rf "ui/node_modules/$p"; ln -sfn "../../hq/node_modules/$p" "ui/node_modules/$p"; done
+          for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../hq/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
+          test -e ui/node_modules/@types/react/index.d.ts
+          # The Fleet Console's screens are captured from their build (hq/e2e/guide/consoleCapture.ts); Vite dedupes React.
+          (cd console-web && npm ci --no-audit --no-fund)
+          cd hq
+          # The Wasp CLI is the version hq pins as a dev dependency, never a global one.
+          npx wasp install
+          npx wasp compile
+          npx playwright install --with-deps chromium
+
+      - name: Create and migrate the guide databases
+        run: node hq/scripts/guide/with-guide-db.mjs true
+
+      - name: Start the site and hq
+        run: |
+          printf 'PORT=4100\nREACT_APP_API_URL=http://localhost:4101\nREACT_APP_CLIENT_URL=http://localhost:4100\n' > hq/.env.client
+          mkdir -p "$RUNNER_TEMP/guide-logs" "$RUNNER_TEMP/guide-site-root" "$RUNNER_TEMP/guide-hq-storage"
+          HQ_PAIRING_SECRET="$(openssl rand -hex 32)"
+          export HQ_PAIRING_SECRET
+          GUIDE_HQ_SECRETS_KEY="$(openssl rand -base64 32)"
+          export GUIDE_HQ_SECRETS_KEY
+          # The seed stores the sample model key encrypted with hq's key, in a later step.
+          echo "::add-mask::$GUIDE_HQ_SECRETS_KEY"
+          echo "GUIDE_HQ_SECRETS_KEY=$GUIDE_HQ_SECRETS_KEY" >> "$GITHUB_ENV"
+          GUIDE_SITE_SECRETS_KEY="$(openssl rand -base64 32)"
+          export GUIDE_SITE_SECRETS_KEY
+          export GUIDE_LOGS="$RUNNER_TEMP/guide-logs"
+          export SITE_ROOT="$RUNNER_TEMP/guide-site-root"
+          export HQ_STORAGE_ROOT="$RUNNER_TEMP/guide-hq-storage"
+          # HQ's machine is named as in the sample, not after the runner.
+          export HQ_MACHINE_NAME=fernhill-hq
+          # Both servers keep running after this step, with the guide databases' addresses in their environment.
+          # The single quotes are deliberate: the variables expand in the inner bash, which has the databases' addresses.
+          # shellcheck disable=SC2016
+          node hq/scripts/guide/with-guide-db.mjs bash -c '
+            (cd site && PORT=4201 HQ_URL=http://localhost:4101 AGENT_CONTAINER_ISOLATION=false \
+              SECRETS_MASTER_KEY="$GUIDE_SITE_SECRETS_KEY" DATABASE_URL="$GUIDE_SITE_DATABASE_URL" \
+              setsid nohup npm run dev > "$GUIDE_LOGS/site.log" 2>&1 < /dev/null &)
+            (cd hq && PORT=4101 WASP_SERVER_URL=http://localhost:4101 WASP_WEB_CLIENT_URL=http://localhost:4100 \
+              SECRETS_MASTER_KEY="$GUIDE_HQ_SECRETS_KEY" \
+              setsid nohup npx wasp start > "$GUIDE_LOGS/hq.log" 2>&1 < /dev/null &)
+          '
+
+      - name: Wait for hq and the site
+        run: |
+          wait_for() {
+            for _ in $(seq 1 120); do
+              if curl -s -o /dev/null "$1"; then echo "$1 is up"; return 0; fi
+              sleep 5
+            done
+            echo "$1 did not come up" >&2
+            return 1
+          }
+          wait_for http://localhost:4101/health
+          wait_for http://localhost:4100/
+          wait_for http://localhost:4201/
+
+      - name: Capture the screenshots
+        working-directory: hq
+        env:
+          SECRETS_MASTER_KEY: ${{ env.GUIDE_HQ_SECRETS_KEY }}
+        run: npm run guide:screenshots
+
+      - name: Compare with the last release
+        if: always()
+        working-directory: hq
+        run: npm run guide:compare
+
+      - name: Show the report on the run's page
+        if: always()
+        run: |
+          if [ -f hq/e2e/guide/.report/summary.md ]; then cat hq/e2e/guide/.report/summary.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Keep the report and the changed screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: guide-report
+          path: hq/e2e/guide/.report
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30
+
+      # The set a tag on this commit publishes: only from a push to a release branch, and only when it all passed.
+      - name: Keep the release set
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/') && success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: guide-release-set
+          path: hq/e2e/guide/.captures
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Keep the logs and traces of a failed run
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: guide-failure-logs
+          path: |
+            ${{ runner.temp }}/guide-logs
+            hq/test-results
+          if-no-files-found: ignore
+          retention-days: 7

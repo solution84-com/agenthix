@@ -1,0 +1,54 @@
+{
+  "name": "@agenthix/ui",
+  "license": "Elastic-2.0",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "description": "Shared React component library for Agenthix HQ.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./theme/tokens.css": "./src/theme/tokens.css",
+    "./primitives": "./src/primitives/index.ts",
+    "./tasks": "./src/tasks/index.ts",
+    "./projects": "./src/projects/index.ts",
+    "./board": "./src/board/index.ts",
+    "./timeline": "./src/timeline/index.ts",
+    "./brand": "./src/brand/index.ts",
+    "./products": "./src/products/index.ts",
+    "./programs": "./src/programs/index.ts",
+    "./agents": "./src/agents/index.ts",
+    "./people": "./src/people/index.ts",
+    "./dashboard": "./src/dashboard/index.ts",
+    "./sessions": "./src/sessions/index.ts"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "socket.io-client": "^4.7.0",
+    "lucide-react": "^1.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@types/react": {
+      "optional": true
+    },
+    "@types/react-dom": {
+      "optional": true
+    },
+    "lucide-react": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@agenthix/core": "file:../core",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3",
+    "typescript": "^5.5.0"
+  }
+}

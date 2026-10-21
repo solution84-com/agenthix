@@ -1,0 +1,5 @@
+#!/bin/sh
+# Claude Code's CLAUDE_CODE_SHELL_PREFIX. Claude Code runs `<prefix> '<command
+# string>'` through its own shell; the string carries Claude's own `cd` and
+# working-folder handling, so it is run whole, contained by agenthix-contain.
+exec /usr/local/lib/agenthix/bin/agenthix-contain /bin/bash -c "$@"

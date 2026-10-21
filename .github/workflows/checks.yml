@@ -1,0 +1,438 @@
+name: Checks
+
+# Typecheck and unit tests for every package on each pull request and each push to main or a release branch, and the
+# two apps' integration suites against a Postgres service. The images are not built here: on a release branch the
+# release's own build does that, for both architectures (release-branch-build.yml), and on main and pull requests the
+# full regression starts them before a unit merges. There is no linter in the repository, so none runs here. A tag is
+# published only once "All checks passed" has passed for the tagged commit (publish-images.yml).
+on:
+  pull_request:
+  push:
+    branches: [main, 'release/**']
+  workflow_dispatch:
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
+
+jobs:
+  changes:
+    # A change that touches only documentation (docs/ outside the guide, and the Markdown notes at the top of the
+    # repository and of each module) builds and tests nothing, so the jobs below are skipped for it. The guide is
+    # not documentation here: the Fleet Console builds its Help from docs/guide/, and hq checks its screenshot names.
+    name: "What changed"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Does anything other than documentation change?
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.sha }}
+        run: |
+          code=true
+          if [ "$EVENT" != workflow_dispatch ] && [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            files="$(git diff --name-only "$BASE" "$HEAD")"
+            printf '%s\n' "$files"
+            other="$(printf '%s\n' "$files" | grep -vE '^$|^[^/]+\.md$|^[^/]+/[^/]+\.md$|^\.github/[^/]+\.md$|^docs/' || true)"
+            guide="$(printf '%s\n' "$files" | grep -E '^docs/guide/' || true)"
+            if [ -n "$files" ] && [ -z "$other" ] && [ -z "$guide" ]; then code=false; fi
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "Anything but documentation changed: $code"
+
+  versions:
+    # The product has one version; a release is refused if the modules disagree, so they are checked on every change.
+    name: "Every module at one version"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/check-versions.mjs
+
+  secure-page:
+    # A browser gives some features (crypto.randomUUID, the clipboard, the microphone) only to a secure page, and HQ
+    # is also opened over plain http at a network address, so browser code reaches them only through a helper.
+    name: "Browser code needs no secure page"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: The check's own tests
+        run: node --test scripts/__tests__/check-secure-page.test.mjs
+      - name: No direct use of a secure-page-only feature
+        run: node scripts/check-secure-page.mjs
+
+  core:
+    name: "Core: typecheck, unit tests and build"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install
+        run: |
+          cd core && npm ci --no-audit --no-fund
+      - name: Typecheck and unit tests
+        run: |
+          cd core && npm test   # runs the typecheck first (pretest)
+      - name: Build
+        run: |
+          cd core && npm run build
+      # As a project outside this repository installs it: plain Node, and TypeScript's Node module rules.
+      - name: Check the package
+        run: |
+          cd core && npm run check:package
+
+  ui:
+    name: "UI: typecheck"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      WASP_TELEMETRY_DISABLE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd hq && npm install --no-audit --no-fund)
+      - name: Link hq's React into ui
+        run: |
+          # ui's peers (React and its types) are not installed in ui: hq's own copies are linked in after hq's
+          # install, as hq's Dockerfile does, because two copies of @types/react type-check as unrelated types.
+          mkdir -p ui/node_modules/@types
+          for p in react react-dom lucide-react; do rm -rf "ui/node_modules/$p"; ln -sfn "../../hq/node_modules/$p" "ui/node_modules/$p"; done
+          for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../hq/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
+          test -e ui/node_modules/@types/react/index.d.ts
+      - name: Typecheck
+        run: |
+          cd ui && npx tsc --noEmit
+
+  hq:
+    name: "hq: typecheck and unit tests"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      WASP_TELEMETRY_DISABLE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd hq && npm install --no-audit --no-fund)
+      - name: Link hq's React into ui
+        run: |
+          # ui's peers (React and its types) are not installed in ui: hq's own copies are linked in after hq's
+          # install, as hq's Dockerfile does, because two copies of @types/react type-check as unrelated types.
+          mkdir -p ui/node_modules/@types
+          for p in react react-dom lucide-react; do rm -rf "ui/node_modules/$p"; ln -sfn "../../hq/node_modules/$p" "ui/node_modules/$p"; done
+          for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../hq/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
+          test -e ui/node_modules/@types/react/index.d.ts
+      - name: Install the Wasp dependencies and compile
+        run: |
+          cd hq
+          # The Wasp CLI is the version hq pins as a dev dependency, never a global one.
+          npx wasp install
+          npx wasp compile
+      - name: Typecheck
+        run: |
+          cd hq && npm run typecheck
+      # The guide's recipes and sample data, which otherwise are type-checked only when the screenshots are taken. The
+      # Fleet Console's recipes import console-web's own types, so console-web is installed first.
+      - name: Typecheck the guide
+        run: |
+          (cd console-web && npm ci --no-audit --no-fund)
+          cd hq && npm run typecheck:guide
+      - name: Unit tests
+        run: |
+          cd hq && npm test
+      - name: hq-web's start-time address step
+        run: |
+          sh hq/docker/test/web-address.test.sh
+
+  host:
+    name: "host: typecheck and unit tests"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          (cd host && npm ci --no-audit --no-fund)
+      - name: Typecheck
+        run: |
+          cd host && npm run typecheck
+      - name: Unit tests
+        run: |
+          cd host && npm test
+      # At the repository's version, as a release tag builds it: a version the image's build would refuse fails here.
+      - name: Build
+        run: |
+          cd host && HOST_SERVICE_VERSION="$(node -p "require('../package.json').version")" npm run build
+      # Each bundle started, as the image starts it: a bundle that type-checks and passes its tests can still fail to load.
+      - name: The bundles load
+        run: |
+          cd host && npm run check:bundles
+
+  console:
+    name: "console: typecheck and unit tests"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          (cd console && npm ci --no-audit --no-fund)
+      - name: Typecheck
+        run: |
+          cd console && npm run typecheck
+      - name: Unit tests
+        run: |
+          cd console && npm test
+      # At the repository's version, as a release tag builds it: a version the image's build would refuse fails here.
+      - name: Build
+        run: |
+          cd console && CONSOLE_VERSION="$(node -p "require('../package.json').version")" npm run build
+
+  console-web:
+    name: "console-web: typecheck, unit tests and build"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd console-web && npm ci --no-audit --no-fund)
+          # ui's peers (React and its types) are not installed in ui: console-web's own copies are linked in, as
+          # the hq job links hq's, so ui's components and console-web type-check against one React.
+          mkdir -p ui/node_modules/@types
+          for p in react react-dom lucide-react; do rm -rf "ui/node_modules/$p"; ln -sfn "../../console-web/node_modules/$p" "ui/node_modules/$p"; done
+          for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../console-web/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
+          test -e ui/node_modules/@types/react/index.d.ts
+      - name: Typecheck
+        run: |
+          cd console-web && npm run typecheck
+      - name: Unit tests
+        run: |
+          cd console-web && npm test
+      - name: Build
+        run: |
+          cd console-web && npm run build
+
+  site:
+    name: "site: typecheck and unit tests"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          (cd site && npm ci --no-audit --no-fund)
+          # The OpenCode plugin is its own package inside site, and site's unit tests import it.
+          (cd site/opencode-plugin && npm ci --no-audit --no-fund)
+      - name: Typecheck
+        run: |
+          (cd site && npm run typecheck)
+          (cd site/opencode-plugin && npm run typecheck)
+      - name: Unit tests
+        run: |
+          cd site && npm test
+
+  site-integration:
+    name: "site: integration tests"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agenthix
+          POSTGRES_PASSWORD: agenthix
+          POSTGRES_DB: agenthix
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agenthix"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # with-test-db.mjs swaps the database name for agenthix_site_test, creates it and applies the migrations.
+      DATABASE_URL: postgresql://agenthix:agenthix@localhost:5432/agenthix
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          (cd site && npm ci --no-audit --no-fund)
+      - name: Integration tests
+        run: |
+          cd site && npm run test:integration
+
+  hq-integration:
+    name: "hq: integration tests"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agenthix
+          POSTGRES_PASSWORD: agenthix
+          POSTGRES_DB: agenthix
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agenthix"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      WASP_TELEMETRY_DISABLE: '1'
+      # with-test-db.mjs makes one agenthix_w<N>_test database per worker from this one's address.
+      DATABASE_URL: postgresql://agenthix:agenthix@localhost:5432/agenthix
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd hq && npm install --no-audit --no-fund)
+      - name: Link hq's React into ui
+        run: |
+          # ui's peers (React and its types) are not installed in ui: hq's own copies are linked in after hq's
+          # install, as hq's Dockerfile does, because two copies of @types/react type-check as unrelated types.
+          mkdir -p ui/node_modules/@types
+          for p in react react-dom lucide-react; do rm -rf "ui/node_modules/$p"; ln -sfn "../../hq/node_modules/$p" "ui/node_modules/$p"; done
+          for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../hq/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
+          test -e ui/node_modules/@types/react/index.d.ts
+      - name: Install the Wasp dependencies and compile
+        run: |
+          cd hq
+          # The Wasp CLI is the version hq pins as a dev dependency, never a global one.
+          npx wasp install
+          npx wasp compile
+      - name: Integration tests
+        run: |
+          # A key only for this run, which the tests use to encrypt stored secrets.
+          SECRETS_MASTER_KEY="$(openssl rand -base64 32)"
+          export SECRETS_MASTER_KEY
+          cd hq && npm run test:integration
+
+  all-passed:
+    # The one check a pull request must pass before it merges, so the rule on main names one job, not each of them.
+    name: "All checks passed"
+    if: always()
+    needs: [changes, versions, secure-page, core, ui, hq, host, console, console-web, site, site-integration, hq-integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Every job passed, or was skipped for a change to documentation alone
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+          CHANGES: ${{ needs.changes.result }}
+          CODE: ${{ needs.changes.outputs.code }}
+        run: |
+          echo "$RESULTS"
+          [ "$CHANGES" = success ] || exit 1
+          for r in $RESULTS; do
+            [ "$r" = success ] && continue
+            [ "$r" = skipped ] && [ "$CODE" = false ] && continue
+            exit 1
+          done

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Tool — Boards · living design</title>
+<style>
+  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --s3:#e6e6ee; --hover:#ebebf3;
+    --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0;
+    --accent:#6366f1; --accent-h:#4f46e5; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --danger:#dc2626;
+    --ok-line:#05966955; --warn-line:#b4530955;
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --s3:#242436; --hover:#2a2a40;
+    --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078;
+    --accent:#6366f1; --accent-h:#818cf8; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --ok-line:#34d39955; --warn-line:#fbbf2455;
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:760px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .pill.live { color:var(--ok); border-color:var(--ok-line); }
+  .theme { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-left:8px; vertical-align:middle; }
+  .theme button { border:0; background:var(--s1); color:var(--t2); font:inherit; font-size:13px; padding:4px 12px; cursor:pointer; }
+  .theme button.on { background:var(--accent); color:var(--on-accent); }
+  .boards { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  .boards a { color:var(--t2); text-decoration:none; font-size:13px; padding:4px 10px; border-radius:6px; border:1px solid var(--border-subtle); background:var(--s1); }
+  .boards a.on { color:var(--t1); border-color:var(--accent); background:var(--accent-sub); }
+  .boards span { font-size:13px; padding:4px 10px; color:var(--t3); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:28px 0 10px; }
+
+  .frame { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .desk { display:grid; grid-template-columns:220px 1fr 300px; height:780px; }
+  .nav { background:var(--s0); border-right:1px solid var(--border-subtle); padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .logo { font-weight:600; font-size:15px; padding:4px 8px 14px; display:flex; gap:8px; align-items:center; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; color:var(--t2); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+  .nav a.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .nav .sec { font-size:12px; color:var(--t3); padding:14px 8px 4px; display:flex; justify-content:space-between; }
+  .sq { width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:8px; }
+  .nav .n { font-size:12px; color:var(--warn); }
+  .pi { display:flex; align-items:center; gap:8px; }
+  .ava { width:20px; height:20px; flex:none; color:#fff; font-size:9px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+  .ava.proj, .ava.bd { border-radius:5px; }
+  .ava.agent { border-radius:50%; }
+  .nav .drag { color:var(--t3); font-size:11px; letter-spacing:-2px; }
+  .tact { display:flex; justify-content:space-between; align-items:center; }
+  .mini { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:1px 7px; color:var(--t1); background:var(--s1); margin-left:4px; }
+  .mini.stop { color:var(--danger); }
+  .nav .me { margin-top:auto; border-top:1px solid var(--border-subtle); padding:12px 8px 0; font-size:13px; color:var(--t2); }
+
+  .desk > * { min-height:0; }
+  .centre { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; background:var(--s1); }
+  .crumb { padding:14px 32px 0; font-size:13px; color:var(--t3); }
+  .crumb a { color:var(--accent); text-decoration:none; }
+  .phead { padding:6px 32px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border-subtle); }
+  .picon { width:36px; height:36px; border-radius:8px; background:#8b5cf6; flex:none; }
+  .phead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .phead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .phead .pin { margin-left:auto; color:var(--accent); display:inline-flex; padding:6px; border-radius:6px; background:var(--accent-sub); }
+  .runrow { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:4px 0 6px; }
+  .rb { font-size:13px; line-height:18px; text-align:center; padding:6px 0; border:1px solid var(--border); border-radius:8px; color:var(--t1); background:var(--s1); }
+  .rb.stop { color:var(--danger); }
+  .tgrp { font-size:12px; color:var(--t3); font-weight:500; margin:10px 0 0; }
+  .tgrp:first-of-type { margin-top:0; }
+  .listwrap { flex:1; min-height:0; overflow:hidden; padding:14px 32px; }
+  .listtools { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .listtools h3 { font-size:15px; line-height:22px; margin:0; font-weight:600; flex:1; }
+  .search { border:1px solid var(--border); border-radius:6px; padding:5px 10px; color:var(--t3); font-size:13px; width:200px; background:var(--s1); }
+  .btn { border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:13px; color:var(--t1); background:var(--s1); white-space:nowrap; }
+  .grp { font-size:12px; color:var(--t3); font-weight:500; margin:12px 0 2px; }
+  .row { display:flex; gap:12px; padding:8px 10px; border-radius:8px; align-items:center; }
+  .row.sel { background:var(--s2); }
+  .av { width:32px; height:32px; border-radius:50%; flex:none; color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+  .av.sm { width:24px; height:24px; font-size:10px; }
+  .row .body { min-width:0; flex:1; }
+  .row .ttl { font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .who { color:var(--t2); font-size:13px; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .meta { color:var(--t3); font-size:12px; white-space:nowrap; text-align:right; }
+  .working { color:var(--ok); }
+  .composer { flex:none;  margin:0 32px 20px; border:1px solid var(--accent); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:center; background:var(--s1); }
+  .composer .ph { flex:1; color:var(--t3); font-size:15px; }
+  .chip { font-size:12px; color:var(--t2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; display:inline-flex; align-items:center; gap:6px; }
+  .send { width:30px; height:30px; border-radius:8px; background:var(--accent); flex:none; }
+
+  .right { background:var(--s1); border-left:1px solid var(--border-subtle); padding:0; display:flex; flex-direction:column; overflow:hidden; }
+  .right .card { border:none; border-radius:0; background:transparent; padding:14px 16px; }
+  .right .card + .card { border-top:1px solid var(--border-subtle); }
+  .right .card h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); }
+  .card { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; background:var(--s1); }
+  .card h4 { margin:0 0 8px; font-size:13px; line-height:18px; color:var(--t2); font-weight:500; }
+  .kv { display:grid; grid-template-columns:96px 1fr; gap:4px 8px; font-size:13px; line-height:18px; }
+  .kv b { font-weight:400; color:var(--t3); }
+  .tool { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; border-top:1px solid var(--border-subtle); }
+  .tool:first-of-type { border-top:none; }
+  .tool .n { color:var(--t3); font-size:12px; }
+  .tool .n.need { color:var(--warn); }
+  .tool .n.on { color:var(--ok); }
+
+  .phones { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:340px; height:700px; min-height:0; border:1px solid var(--border); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; background:var(--s1); position:relative; }
+  .mhead { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-subtle); }
+  .back { color:var(--accent); font-size:20px; line-height:20px; }
+  .mhead .t { font-weight:600; flex:1; }
+  .mbtn { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:3px 8px; color:var(--t2); }
+  .mlist { flex:1; min-height:0; overflow:hidden; padding:4px 12px; }
+  .mfilter { padding:8px 12px 0; display:flex; gap:8px; }
+  .mcomp { margin:10px 12px 16px; border:1px solid var(--accent); border-radius:12px; padding:12px; color:var(--t3); font-size:15px; display:flex; justify-content:space-between; align-items:center; }
+  .scrim { position:absolute; inset:0; background:#0000004d; }
+  .sheet { position:absolute; left:0; right:0; bottom:0; height:78%; background:var(--s1); border-radius:18px 18px 0 0; padding:10px 16px; border-top:1px solid var(--border); }
+  .grab { width:40px; height:4px; border-radius:2px; background:var(--s3); margin:0 auto 12px; }
+  .tabs { display:flex; gap:20px; border-bottom:1px solid var(--border-subtle); margin:8px 0 6px; font-size:14px; }
+  .tabs span { padding:6px 0; color:var(--t2); }
+  .tabs span.on { color:var(--accent); border-bottom:2px solid var(--accent); }
+
+  .notes { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .note { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); }
+  .note h3 { margin:0 0 8px; font-size:15px; line-height:22px; }
+  .note ul, .note ol { margin:0; padding-left:18px; color:var(--t2); }
+  .note li { margin-bottom:6px; }
+  .note li b { color:var(--t1); font-weight:500; }
+  .note.open { border-color:var(--warn-line); }
+  .note.agreed { border-color:var(--ok-line); }
+  details { margin-top:16px; color:var(--t2); }
+  details img { max-width:100%; border-radius:8px; border:1px solid var(--border-subtle); margin-top:8px; }
+  table.map { border-collapse:collapse; font-size:13px; width:100%; }
+  table.map td, table.map th { border-bottom:1px solid var(--border-subtle); padding:6px 8px; text-align:left; vertical-align:top; }
+  table.map th { color:var(--t3); font-weight:500; }
+  .tops { margin-left:auto; display:flex; gap:4px; }
+  .topb { position:relative; width:30px; height:30px; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); }
+  .topb.on { background:var(--accent-sub); color:var(--accent); }
+  .topb b { position:absolute; top:-3px; right:-5px; background:var(--danger); color:#fff; font-size:10px; line-height:14px; min-width:14px; text-align:center; border-radius:7px; padding:0 3px; font-weight:600; }
+  .topb b.g { background:var(--ok); }
+</style>
+<style>
+  .convhead { padding:14px 32px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border-subtle); }
+  .convhead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .convhead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .convhead .more { margin-left:auto; color:var(--t3); }
+  .stream { flex:1; min-height:0; overflow:hidden; padding:20px 32px; }
+  .col { max-width:720px; margin:0 auto; }
+  .turn { margin-bottom:22px; font-size:15px; line-height:24px; }
+  .turn .h { display:flex; align-items:center; gap:8px; font-size:13px; line-height:18px; color:var(--t3); margin-bottom:6px; }
+  .turn .h b { color:var(--t1); font-weight:600; }
+  .you .txt { background:var(--s2); border-radius:12px; padding:10px 14px; display:inline-block; }
+  .agent .txt p { margin:0 0 10px; }
+  .agent .txt ol { margin:0 0 10px; padding-left:22px; }
+  .toolcall { font-size:13px; line-height:18px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:8px; padding:6px 10px; margin:6px 0 10px; display:flex; gap:8px; align-items:center; font-family:'JetBrains Mono', ui-monospace, monospace; }
+  .approval { border:1px solid var(--warn-line); border-radius:10px; padding:10px 14px; margin:8px 0; font-size:14px; line-height:21px; }
+  .approval .acts { margin-top:8px; display:flex; gap:8px; }
+  .bp { font-size:13px; border-radius:6px; padding:4px 12px; border:1px solid var(--border); background:var(--s1); color:var(--t1); }
+  .bp.pri { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .meta2 { font-size:12px; color:var(--t3); }
+  .typing { color:var(--ok); font-size:13px; }
+  .panelhead { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin-bottom:8px; }
+  .panelhead .bk { color:var(--accent); font-weight:400; }
+  .trow { font-size:13px; line-height:18px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .trow .k { color:var(--t3); font-size:12px; }
+  .link { color:var(--accent); font-size:13px; }
+  .lay { display:flex; gap:14px; flex-wrap:wrap; }
+  .lo { width:200px; border:1px solid var(--border-subtle); border-radius:10px; padding:10px; background:var(--s1); }
+  .lo.sel { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .lo .th { display:flex; gap:4px; height:90px; margin-bottom:8px; }
+  .lo .th .n { width:16px; background:var(--s3); border-radius:4px; }
+  .lo .th .c { background:var(--accent-sub); border:1px solid var(--accent); border-radius:4px; }
+  .lo .th .t { background:var(--s2); border:1px solid var(--border); border-radius:4px; }
+  .lo b { font-size:13px; } .lo div.d { font-size:12px; line-height:16px; color:var(--t2); }
+  .fctl { position:static; display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--s1); }
+  .fctl span { width:30px; height:26px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border-subtle); }
+  .fctl span:first-child { border-left:none; }
+  .fctl span.on { background:var(--accent-sub); }
+  .fctl i { display:flex; gap:2px; height:12px; }
+  .fctl i u { display:block; border-radius:1px; background:var(--t3); }
+  .work { display:grid; grid-template-rows:auto 1fr; min-width:0; min-height:0; }
+  .wbar { display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px 32px; border-bottom:1px solid var(--border-subtle); background:var(--s1); }
+  .crumb2 { font-size:13px; color:var(--t3); } .crumb2 a { color:var(--accent); text-decoration:none; }
+  .panes { display:grid; min-height:0; }
+  .panes > * { min-height:0; }
+  .dragedge { position:absolute; left:-3px; top:0; bottom:0; width:6px; cursor:col-resize; background:linear-gradient(var(--accent),var(--accent)) center/2px 48px no-repeat; }
+  .trow.new { border-left:3px solid var(--ok); padding-left:8px; }
+</style>
+<style>
+  .calm { max-width:560px; }
+  .btns { display:flex; gap:8px; }
+  .midbtns { display:flex; gap:8px; margin:16px 0 2px; }
+  .midbtns .bp { display:inline-flex; gap:6px; align-items:center; }
+  .lat { display:grid; grid-template-columns:110px 1fr; gap:10px; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .lat .when { color:var(--t2); font-size:13px; } .lat b { font-weight:500; } .lat .mut { font-size:12px; }
+  .atabs { display:flex; gap:18px; border-bottom:1px solid var(--border-subtle); margin:12px 0 2px; font-size:14px; }
+  .atabs > span { padding:7px 0; color:var(--t2); display:inline-flex; gap:6px; align-items:center; }
+  .atabs > span.on { color:var(--t1); font-weight:500; border-bottom:2px solid var(--accent); }
+  .tb { font-size:11px; line-height:16px; min-width:16px; text-align:center; border-radius:8px; padding:0 5px; background:var(--s2); color:var(--t2); }
+  .tb.w { background:var(--warn); color:#fff; }
+  .panelhead .rl { margin-left:auto; font-weight:400; font-size:13px; color:var(--accent); cursor:pointer; }
+  .astatus2 { padding:10px 12px; border:1px solid var(--ok-line); border-radius:10px; margin:6px 0 4px; }
+  .ast-row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .astatus2 .who { margin-top:2px; }
+  .lk { color:var(--accent); text-decoration:none; cursor:pointer; }
+  .srow { display:grid; grid-template-columns:34px 1fr auto; gap:10px; align-items:center; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .srow b { font-weight:500; }
+  .srow .mut { display:block; font-size:12px; } .srow .nx { font-size:12px; color:var(--t2); white-space:nowrap; } .srow .ic { color:var(--t3); text-align:center; }
+  .csec { margin-top:18px; }
+  .csec h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:0 0 6px; display:flex; justify-content:space-between; }
+  .csec h4 .edit { text-transform:none; letter-spacing:0; color:var(--accent); font-size:13px; }
+  .line { font-size:14px; line-height:21px; padding:5px 0; }
+  .line b { font-weight:500; } .line .ok { color:var(--ok); } .line .w { color:var(--warn); font-weight:600; }
+  .line a { color:var(--accent); margin-left:6px; font-size:13px; }
+  .mut { color:var(--t3); }
+  .rule { font-size:14px; line-height:21px; margin:0 0 8px; color:var(--t1); } .rule b { font-weight:500; }
+  .atool .bp { white-space:nowrap; }
+  .atool { padding:14px 18px !important; overflow:hidden; display:block !important; }
+  .astatus { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--ok-line); border-radius:10px; margin:6px 0 10px; }
+  .ast-t { font-weight:600; font-size:15px; display:flex; align-items:center; gap:8px; }
+  .dot-on { width:9px; height:9px; border-radius:50%; background:var(--ok); }
+  .acounts { display:flex; gap:16px; font-size:13px; color:var(--t2); margin-bottom:6px; flex-wrap:wrap; }
+  .acounts b { color:var(--t1); font-weight:600; } .acounts .w b, .acounts .w { color:var(--warn); }
+  .acols { display:grid; grid-template-columns:1.15fr 1fr; gap:24px; }
+  .asec { margin-top:14px; }
+  .asec h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:0 0 6px; }
+  .arow { display:flex; gap:10px; align-items:center; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .arow .body { flex:1; min-width:0; } .arow .ttl { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .arow .who { font-size:13px; }
+  .ar { font-size:12px; color:var(--t2); white-space:nowrap; } .ar.ok { color:var(--ok); } .ar.warn { color:var(--warn); } .ar.danger { color:var(--danger); }
+  .more { font-size:13px; color:var(--accent); padding-top:6px; }
+  .crow { font-size:13px; padding:7px 0; border-top:1px solid var(--border-subtle); display:flex; gap:4px; color:var(--t2); }
+  .crow b { font-weight:500; color:var(--t1); } .crow span { margin-left:auto; color:var(--t3); }
+  .sub2 { font-size:12px; color:var(--t3); margin:10px 0 2px; }
+  .trow2 { display:flex; justify-content:space-between; align-items:center; font-size:14px; padding:6px 0; border-top:1px solid var(--border-subtle); }
+  .trow2 i, .lrow i { font-style:normal; color:var(--t3); font-size:12px; margin-left:6px; }
+  .tg { width:32px; height:18px; border-radius:9px; background:var(--s3); position:relative; flex:none; }
+  .tg::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--s1); box-shadow:0 1px 2px #0003; }
+  .tg.on { background:var(--accent); } .tg.on::after { left:16px; }
+  .lrow { display:grid; grid-template-columns:1fr auto 84px; gap:8px; align-items:center; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .lrow b { font-weight:500; } .lrow em { font-style:normal; font-size:12px; color:var(--t3); text-align:right; }
+  .nlist .nrow2 { display:flex; justify-content:space-between; font-size:14px; padding:9px 0; border-top:1px solid var(--border-subtle); }
+  .nrow2 .n { color:var(--t3); font-size:12px; }
+</style>
+<style>
+  .ttool { padding:14px 18px !important; overflow:hidden; display:block !important; }
+  .tsearch { display:flex; gap:8px; align-items:center; margin:2px 0 4px; }
+  .tsearch .search { flex:1; width:auto; }
+  .trw { display:grid; grid-template-columns:1fr auto; gap:2px 10px; padding:8px 0; border-top:1px solid var(--border-subtle); align-items:center; }
+  .trw .tt { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .trw .tt .k { color:var(--t3); font-weight:400; font-size:12px; margin-right:6px; }
+  .trw .ts { grid-column:1; font-size:12px; line-height:16px; color:var(--t2); display:flex; gap:6px; align-items:center; white-space:nowrap; overflow:hidden; }
+  .trw .act { grid-row:1 / span 2; grid-column:2; }
+  .trw.sel { background:var(--s2); border-radius:8px; padding-left:8px; padding-right:8px; }
+  .mini-av { width:16px; height:16px; border-radius:50%; color:#fff; font-size:8px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+  .warnt { color:var(--warn); } .okt { color:var(--ok); } .mutt { color:var(--t3); }
+  .pdot { width:7px; height:7px; border-radius:50%; display:inline-block; flex:none; }
+  .p-h { background:var(--danger); } .p-m { background:var(--warn); } .p-l { background:var(--t3); }
+  .tgh { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:16px 0 4px; display:flex; justify-content:space-between; }
+  .tgh .c { letter-spacing:0; text-transform:none; }
+  .wtable { width:100%; border-collapse:collapse; font-size:14px; }
+  .wtable th { text-align:left; font-size:12px; font-weight:500; color:var(--t3); padding:6px 8px; border-bottom:1px solid var(--border-subtle); }
+  .wtable td { padding:8px; border-top:1px solid var(--border-subtle); vertical-align:middle; white-space:nowrap; }
+  .wtable td.ttl { font-weight:500; } .wtable td.ttl .pdot { margin-right:8px; vertical-align:middle; } .wtable td.ttl .k { color:var(--t3); font-weight:400; font-size:12px; margin-right:6px; }
+  .wtable tr.grp td { border-top:none; font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); padding-top:18px; }
+  .wtable .who { display:inline-flex; gap:6px; align-items:center; color:var(--t2); font-size:13px; }
+  .colchip { font-size:12px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:5px; padding:1px 6px; }
+  .fchip { font-size:13px; border:1px solid var(--border); border-radius:6px; padding:4px 10px; color:var(--t2); background:var(--s1); white-space:nowrap; }
+  .detail { display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:28px; }
+  .detail h2 { font-size:18px; line-height:26px; margin:2px 0 4px; font-weight:600; }
+  .needs { border:1px solid var(--warn-line); border-radius:10px; padding:12px 14px; margin:12px 0; }
+  .needs .h { font-weight:600; color:var(--warn); font-size:14px; }
+  .needs p { margin:4px 0 10px; font-size:14px; }
+  .needs .btns { flex-wrap:wrap; } .needs .bp { white-space:nowrap; }
+  .needs code, .tl code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .desc { font-size:14px; line-height:21px; color:var(--t1); margin:10px 0 0; }
+  .tl { margin-top:4px; }
+  .tli { display:grid; grid-template-columns:22px 1fr; gap:10px; padding:9px 0; border-top:1px solid var(--border-subtle); font-size:14px; line-height:21px; }
+  .tli .m { font-size:12px; color:var(--t3); }
+  .tli .ic { width:22px; height:22px; border-radius:50%; background:var(--s2); color:var(--t2); font-size:11px; display:flex; align-items:center; justify-content:center; }
+  .tcomp { border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--t3); font-size:14px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; }
+  .sess { margin-top:16px; }
+  .sesshead { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:14px; margin-bottom:6px; } .sesshead .lk { white-space:nowrap; }
+  .tx { border:1px solid var(--border-subtle); border-radius:10px; padding:10px 14px; font-size:14px; line-height:21px; }
+  .tx.tall { max-height:none; }
+  .txe { font-size:13px; text-align:center; padding:2px 0 6px; }
+  .txd { font-size:12px; color:var(--t3); text-align:center; margin:10px 0 6px; display:flex; gap:10px; align-items:center; }
+  .txd::before, .txd::after { content:''; flex:1; border-top:1px solid var(--border-subtle); }
+  .txm { margin:8px 0; } .txm.ag b { display:block; font-size:13px; }
+  .txm.you { text-align:right; } .txm.you span { display:inline-block; background:var(--s2); border-radius:12px; padding:8px 12px; text-align:left; }
+  .txc { font-size:12px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:8px; padding:4px 10px; margin:6px 0; font-family:'JetBrains Mono', ui-monospace, monospace; }
+  .tx code, .approval code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .facts { font-size:13px; line-height:18px; }
+  .facts .f { padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .facts .f:first-child { border-top:none; }
+  .facts .f b { display:block; font-weight:400; color:var(--t3); font-size:12px; }
+  .addrow { display:flex; gap:8px; align-items:center; border:1px solid var(--accent); border-radius:8px; padding:7px 10px; margin:6px 0 2px; font-size:14px; }
+  .addrow .ph2 { flex:1; color:var(--t1); }
+  .addrow .hint { font-size:12px; color:var(--t3); }
+  .page { padding:24px 40px; overflow:hidden; background:var(--s1); }
+  .page h1x { display:block; }
+  .pagehead { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:6px; }
+  .pagehead h2 { font-size:24px; line-height:32px; margin:0; font-weight:600; }
+  .pagehead .sub { color:var(--t2); font-size:14px; }
+</style>
+<style>
+  .btool { padding:14px 18px !important; overflow:hidden; display:block !important; }
+  .brow { padding:10px 0; border-top:1px solid var(--border-subtle); }
+  .brow .bt { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .brow .bt b { font-size:14px; font-weight:600; }
+  .brow .bt .kind { font-size:11px; color:var(--t3); border:1px solid var(--border-subtle); border-radius:5px; padding:0 6px; margin-left:6px; font-weight:400; }
+  .brow .bs { font-size:12px; color:var(--t2); margin-top:3px; display:flex; gap:10px; flex-wrap:wrap; }
+  .needchip { font-size:12px; font-weight:600; color:var(--warn); border:1px solid var(--warn-line); border-radius:999px; padding:1px 8px; white-space:nowrap; }
+  .bar { display:flex; height:6px; border-radius:3px; overflow:hidden; background:var(--s2); margin-top:7px; }
+  .bar i { display:block; height:100%; }
+  .colh { display:flex; justify-content:space-between; align-items:center; font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:14px 0 4px; }
+  .colh .auto { text-transform:none; letter-spacing:0; font-weight:400; color:var(--ok); }
+  .colh .c { text-transform:none; letter-spacing:0; font-weight:400; }
+  .kan { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(200px,1fr); gap:12px; margin-top:10px; height:520px; overflow:hidden; }
+  .kcol { background:var(--s0); border-radius:10px; padding:8px; display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .kcol .kh { display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600; padding:2px 4px 6px; }
+  .kcol .kh span { font-weight:400; font-size:12px; color:var(--t3); }
+  .kcol .kh .auto { color:var(--ok); }
+  .kcard { background:var(--s1); border:1px solid var(--border-subtle); border-radius:8px; padding:8px 10px; font-size:13px; line-height:18px; }
+  .kcard .k { color:var(--t3); font-size:11px; }
+  .kcard .s { font-size:12px; color:var(--t2); margin-top:4px; display:flex; gap:6px; align-items:center; }
+  .kadd { font-size:12px; color:var(--t3); padding:4px; margin-top:auto; }
+  .bbox { border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px; margin:4px 0 6px; }
+  .bbox .l1 { display:flex; gap:4px 12px; flex-wrap:wrap; font-size:13px; color:var(--t2); }
+  .bbox .l1 b { color:var(--t1); font-weight:600; }
+  .bbox .l2 { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .chips { display:flex; gap:6px; overflow:hidden; margin:6px 0; }
+  .chips span { font-size:12px; border:1px solid var(--border); border-radius:999px; padding:2px 10px; white-space:nowrap; color:var(--t2); }
+  .chips span.on { border-color:var(--accent); color:var(--t1); background:var(--accent-sub); }
+  .field { border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:14px; margin:4px 0 10px; color:var(--t1); }
+  .flab { font-size:12px; color:var(--t3); }
+  .choice3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:4px 0 10px; }
+  .choice3 div { border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:12px; line-height:16px; color:var(--t2); }
+  .choice3 div b { display:block; color:var(--t1); font-weight:500; font-size:13px; }
+  .choice3 div.on { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .model { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .mbox { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; background:var(--s1); }
+  .mbox h3 { margin:0 0 6px; font-size:15px; }
+  .mbox .cols { display:flex; gap:4px; margin:8px 0; }
+  .mbox .cols span { flex:1; font-size:11px; text-align:center; background:var(--s2); border-radius:5px; padding:4px 0; color:var(--t2); }
+  .mbox ul { margin:0; padding-left:18px; color:var(--t2); font-size:13px; }
+  .mbox li { margin-bottom:4px; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="boardhead">
+    <div>
+      <h1>Tool — Boards</h1>
+      <p>A board is a <b>workflow</b>: a lasting set of columns that a kind of work moves through — the project's tasks, its bugs, its launch content. It keeps its name and its backlog for as long as the project uses it. A <b>sprint board</b> adds sprints: time boxes that tasks are planned into, finished one after another, while the board stays. Every project starts with one board, so there is always somewhere for work to go.</p>
+    </div>
+    <div style="white-space:nowrap"><span class="pill">Draft 2026-10-08 · v4</span></div>
+  </div>
+
+  <div class="label">The model — proposed</div>
+  <div class="model">
+    <div class="mbox"><h3>Project Tasks — the default board</h3>
+      <div class="cols"><span>Backlog</span><span>To do</span><span>In progress</span><span>Done</span></div>
+      <ul><li>Made with every project; <b>cannot be deleted or renamed</b></li><li>Its columns are the task's own states, and cannot be changed</li><li><b>Every task lands here unless it is put on another board</b></li><li>No sprints, no columns that start work by themselves</li></ul></div>
+    <div class="mbox"><h3>A workflow board</h3>
+      <div class="cols"><span>Backlog</span><span>Reported</span><span>Fixing</span><span>Fixed</span></div>
+      <ul><li>Any columns, each mapping to To do, In progress or Done</li><li><b>Backlog is its first column</b>: tasks on the board, not started</li><li>A task moves to another board from its ⋯, landing in that board's Backlog</li><li>A column may start work when a task enters it</li><li>Lasts until archived; no completing, no "Bugs 2"</li></ul></div>
+    <div class="mbox"><h3>A sprint board</h3>
+      <div class="cols"><span>Backlog</span><span>To do</span><span>In progress</span><span>Done</span></div>
+      <ul><li>A workflow board with <b>sprints</b>: Sprint 12, 6–20 Oct — renamable</li><li>Backlog holds what is in no sprint; dragging a task out of it puts it in the current sprint</li><li>Finishing a sprint asks where unfinished tasks go — no default</li><li><b>Finish sprint</b>: done tasks stay recorded in it</li><li>Past sprints stay readable</li></ul></div>
+  </div>
+
+  <div class="label">Desktop · Boards beside the conversations — the project's board first; what needs you on each board's first line</div>
+  <div class="frame" id="b1"></div>
+
+  <div class="label">Desktop, side by side · a sprint board opened inside the tool — Backlog as its first column</div>
+  <div class="frame" id="b2"></div>
+
+  <div class="label">Desktop, tool focus · the same board with room — columns side by side</div>
+  <div class="frame" id="b3"></div>
+
+  <div class="label">Desktop · a Backlog showing another board's backlog too — chosen, never by default</div>
+  <div class="frame" id="b6"></div>
+
+  <div class="label">Desktop · Finish sprint, in place</div>
+  <div class="frame" id="b7"></div>
+
+  <div class="label">Desktop · New board, in place</div>
+  <div class="frame" id="b4"></div>
+
+  <div class="label">Phone · Boards, and a board one column at a time</div>
+  <div class="phones" id="b5"></div>
+
+  <div class="label">Today and proposed</div>
+  <div class="note"><table class="map">
+    <tr><th>Part</th><th>Today</th><th>Proposed</th></tr>
+    <tr><td>What a board is</td><td>Short-lived: Active, then Completed; completing it starts "Sprint 2" as a new board in a series</td><td>A lasting workflow. Only a sprint board has a life cycle, and it is its sprints', not the board's</td></tr>
+    <tr><td>A new project</td><td>No board until someone makes one</td><td>Its board, To do · In progress · Done, made with it and never deleted</td></tr>
+    <tr><td>Where a new task goes</td><td>The project backlog (on no board) unless a board is named</td><td>Project Tasks' Backlog, unless another board is named. A task is always on a board</td></tr>
+    <tr><td>Backlogs</td><td>The project's, and each board's own, behind a button</td><td>A Backlog column, first on every board. Tasks › Backlog lists them all, by board</td></tr>
+    <tr><td>Moving a task between boards</td><td>Through the project backlog</td><td>From the task's ⋯ (card or opened task): Move to board, into its Backlog</td></tr>
+    <tr><td>Sprints</td><td>A board with a finish date, rolled over into the next board</td><td>A sprint board's sprints: planned from its backlog, finished in place</td></tr>
+    <tr><td>Completed boards</td><td>Listed under Completed</td><td>Gone. A board no longer used is archived; a sprint board keeps its past sprints</td></tr>
+    <tr><td>Run all</td><td>On every board, and the place's in the tools list</td><td>Decided once the design is settled</td></tr>
+  </table></div>
+
+  <div class="label">Notes</div>
+  <div class="notes">
+    <div class="note agreed"><h3>Agreed</h3><ul>
+      <li><b>The Boards design is agreed</b> (owner, 2026-10-08)</li>
+      <li>Boards is the next design pass (owner, 2026-10-07)</li>
+      <li>A board opens inside the tool, like everything else (owner, 2026-10-08)</li>
+      <li>A board keeps its own backlog: a board is a workflow, and its backlog organises its work (owner, 2026-10-08)</li>
+      <li>A board is a workflow with an identity, not a life cycle; sprints are a kind of board — a sprint board — that tasks are assigned into (owner, 2026-10-08)</li>
+      <li>Every project has a default board, To do · In progress · Done mapping to the task's states, with no workflow of its own; it cannot be deleted. New (owner, 2026-10-08)</li>
+      <li>The default board is <b>Project Tasks</b> and cannot be renamed, so it is never mistaken for another; every task lands on it unless put on another board (owner, 2026-10-08)</li>
+      <li>Backlog is a column — the first on every board. A task moves between boards from its ⋯, landing in the other board's Backlog (owner, 2026-10-08)</li>
+      <li>Finishing a sprint: done tasks stay recorded in it; the next sprint runs the same length (owner, 2026-10-08)</li>
+      <li>Finish sprint and Rename sprint sit in the sprint's box; Run all is not on the board — it stays the place's (owner, 2026-10-08)</li>
+      <li>Decision record written: adr-0097, a board is a lasting workflow (owner, 2026-10-08)</li>
+      <li>A board's columns are called <b>columns</b> everywhere, in the product and in the code, not "stages": three different things stay three words — a board's <b>column</b>, a task's <b>state</b> (To do, In progress, Done), a run's <b>run state</b> (owner, 2026-10-08)</li>
+      <li>A sprint can be renamed; its number stays as a small marker beside the name (owner, 2026-10-08)</li>
+      <li>Where unfinished tasks go is asked when a sprint is finished — next sprint or Backlog — and must be answered; there is no default, for a person or an agent (owner, 2026-10-08)</li>
+      <li>A Backlog shows its own board's tasks always; other boards' backlogs only when chosen with a filter, under their own heading. Tasks › Backlog starts on Project Tasks with the same filter (owner, 2026-10-08)</li>
+    </ul></div>
+    <div class="note open"><h3>Open — answer by number</h3><ol>
+      <li>None — Boards is agreed. Its timeline is designed on its own board, Timeline (new).</li>
+    </ol></div>
+    <div class="note"><h3>Changes on this board</h3><ul>
+      <li>2026-10-08 — owner: "stage" becomes "column".</li>
+      <li>2026-10-08 — owner: finishing a sprint asks where unfinished tasks go, with no default; a Backlog shows other boards' backlogs only when chosen with a filter.</li>
+      <li>2026-10-08 — owner: default board is Project Tasks, not renamable, every task lands on it; Backlog is a column (Review removed from the drawing to show it); moving between boards from a task's ⋯; sprints renamable with the number as a marker; Run all left for later.</li>
+      <li>2026-10-08 — owner: a board is a workflow with an identity; sprints are a board type; every project has an undeletable default board; boards keep their backlog; open inside the tool. Redrawn: the model, the list with the project's board first and "needs you" on the first line, a sprint board with Run all and Finish sprint shown, its backlog for planning, Finish sprint in place.</li>
+      <li>2026-10-07 — first draft from today's Boards tool, board page, board backlog panel and phone view.</li>
+    </ul></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html }
+  const AV = { FD: '#0ea5e9', PM: '#6366f1', CW: '#f59e0b' }
+  const av = (k) => `<span class="mini-av" style="background:${AV[k]}">${k}</span>`
+  const navHtml = () => `
+    <nav class="nav">
+      <div class="logo"><i></i>Agenthix<span class="tops"><span class="topb" title="Notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>3</b></span><span class="topb" title="Runs"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><b class="g">2</b></span></span></div>
+      <a>Home</a><a>Chat</a><a>Projects</a><a>Agents</a><a>Tasks <span class="n">2 need you</span></a>
+      <div class="sec"><span>Pinned</span><span>edit</span></div>
+      <a class="on"><span class="pi"><span class="ava proj" style="background:#8b5cf6">A</span>Agenthix</span></a>
+      <a><span class="pi"><span class="ava bd" style="background:#0ea5e9">P</span>Product</span></a>
+      <a><span class="pi"><span class="ava proj" style="background:#f59e0b">M</span>Marketing Website</span></a>
+      <div class="me" style="display:flex;flex-direction:column;gap:2px;padding-top:8px"><a style="padding:6px 0">Organisation</a><a style="padding:6px 0">Settings</a><span style="padding-top:4px">Avery</span></div>
+    </nav>`
+  const layout = (on) => `<div class="fctl" title="Layout">${[[14,0],[10,5],[5,10],[0,14]].map(([a,b],i)=>`<span class="${i===on?'on':''}"><i>${a?`<u style="width:${a}px"></u>`:''}${b?`<u style="width:${b}px;background:var(--accent)"></u>`:''}</i></span>`).join('')}</div>`
+  const listPane = `
+    <main class="centre">
+      <div class="phead"><span class="picon"></span><div><h2>Agenthix</h2><div class="sub">The product and its website</div></div></div>
+      <div class="listwrap">
+        <div class="listtools"><h3>Your conversations</h3><span class="search">Search conversations</span></div>
+        <div class="grp">Today</div>
+        <div class="row sel"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Plan the pricing page</div><div class="who">Project manager · Drafted three tasks for the new pricing…</div></div><div class="meta">10:24</div></div>
+        <div class="row"><span class="av" style="background:#0ea5e9">FD</span><div class="body"><div class="ttl">Checkout redirect bug</div><div class="who">Frontend dev · Found it — the return URL drops the…</div></div><div class="meta">9:02</div></div>
+      </div>
+      <div class="composer"><div class="ph">Talk about this project…</div><span class="chip">Project manager ▾</span><span class="send"></span></div>
+    </main>`
+  const shell = ({ main, tool, cols, lay }) => `
+    <div class="desk" style="grid-template-columns:220px 1fr">${navHtml()}
+      <div class="work">
+        <div class="wbar"><div class="crumb2"><a href="#">Projects</a> / Agenthix</div>${lay === undefined ? '' : layout(lay)}</div>
+        <div class="panes" style="grid-template-columns:${cols}">${main ?? ''}${tool ? `<aside class="right btool">${tool}</aside>` : ''}</div>
+      </div>
+    </div>`
+  const toolHead = (title, right = '', back = '‹ Tools') => `<div class="panelhead"><span class="bk">${back}</span><span style="margin-left:6px">${title}</span>${right ? `<span class="rl">${right}</span>` : ''}</div>`
+  const C = { back: 'var(--s3)', todo: 'var(--t3)', prog: 'var(--warn)', rev: '#8b5cf6', done: 'var(--ok)' }
+  // A sprint keeps its number; once renamed, its name leads and the number becomes a small marker.
+  const sprintTag = (name, n) => `<span style="display:inline-flex;gap:6px;align-items:center"><span style="font-size:11px;border:1px solid var(--accent);color:var(--accent);border-radius:5px;padding:0 5px">Sprint ${n}</span><b style="color:var(--t1);font-weight:500">${name}</b></span>`
+  const bar = (parts) => `<div class="bar">${parts.map(([n, c]) => `<i style="flex:${n};background:${c}"></i>`).join('')}</div>`
+  const brow = (name, kind, needs, counts, sub) => `<div class="brow"><div class="bt"><span><b>${name}</b>${kind ? `<span class="kind">${kind}</span>` : ''}</span>${needs ? `<span class="needchip">${needs}</span>` : ''}</div>${bar(counts)}<div class="bs">${sub}</div></div>`
+  const boardList = `
+    <div class="midbtns" style="margin:4px 0 8px"><span class="bp">Archived <span class="tb">1</span></span></div>
+    ${brow('Project Tasks', 'Default', '', [[3, C.back], [4, C.todo], [2, C.prog], [9, C.done]], '<span>Backlog 3 · To do 4 · In progress 2 · Done 9</span>')}
+    ${brow('Product', 'Sprints', '1 needs you', [[7, C.back], [3, C.todo], [6, C.prog], [4, C.done]], `${sprintTag('Pricing push', 12)} <span>6–20 Oct · 9 days left</span><span>Backlog 7 · To do 3 · In progress 6 · Done 4</span>`)}
+    ${brow('Bugs', '', '1 needs you', [[5, C.back], [2, C.todo], [1, C.prog], [12, C.done]], '<span>Backlog 5 · Reported 2 · Fixing 1 · Fixed 12</span>')}
+    ${brow('Launch', '', '', [[5, C.todo], [2, C.prog], [7, C.done]], '<span>Ideas 5 · Drafting 2 · Published 7</span>')}`
+  set('b1', shell({ main: listPane, cols: '1fr 360px', lay: 1, tool: toolHead('Boards', '＋ New') + boardList }))
+
+  const box = `<div class="bbox"><div class="l1"><span>${sprintTag('Pricing push', 12)} ▾</span><span>6–20 Oct · 9 days left</span></div>
+      <div class="l2"><span class="bp">Finish sprint</span><span class="bp">Rename sprint</span></div></div>`
+  const tr = (k, t, a, st, cls, p = 'p-m') => `<div class="trw"><div class="tt"><span class="pdot ${p}" style="margin-right:6px"></span><span class="k">${k}</span>${t}</div><span class="act"></span><div class="ts">${a ? av(a) : ''}<span class="${cls}">${st}</span></div></div>`
+  const stacked = `
+    <div class="colh"><span>Backlog</span><span class="c">7 · not in a sprint</span></div>
+    ${tr('WEB-35', 'Docs site dark mode', 'FD', 'Drag up, or ⋯ › Add to sprint', 'mutt')}
+    ${tr('WEB-30', 'Cookie banner wording', 'CW', 'Not started', 'mutt', 'p-h')}
+    <div class="more">5 more</div>
+    <div class="colh"><span>To do</span><span class="c">3 · <span class="auto">starts work</span></span></div>
+    ${tr('WEB-31', 'Pricing table component', 'FD', 'In line', 'mutt', 'p-h')}
+    ${tr('WEB-32', 'Plan comparison copy', 'CW', 'Waiting its turn', 'mutt')}
+    <div class="more">1 more</div>
+    <div class="colh"><span>In progress</span><span class="c">6</span></div>
+    ${tr('WEB-27', 'Fix the checkout redirect', 'FD', 'Needs you · wants to run a command', 'warnt', 'p-h')}
+    ${tr('WEB-26', 'Generate the sitemap', 'FD', 'Running · 12 min', 'okt')}
+    <div class="more">4 more</div>
+    <div class="colh"><span>Done</span><span class="c">4 · <span class="lk" style="font-size:12px">Show</span></span></div>`
+  set('b2', shell({ main: listPane, cols: '1fr 380px', lay: 1, tool: toolHead('Product', '＋ Add task · ⋯', '‹ Boards') + box + stacked }))
+
+  const kc = (k, t, a, st, cls, p = 'p-m') => `<div class="kcard"><span class="pdot ${p}" style="margin-right:6px"></span><span class="k">${k}</span> ${t}<div class="s">${a ? av(a) : ''}<span class="${cls}">${st}</span></div></div>`
+  const kan = `<div class="kan">
+      <div class="kcol" style="background:var(--s2)"><div class="kh">Backlog <span>7 · <span style="border:1px solid var(--accent);color:var(--accent);border-radius:5px;padding:0 5px">+ Bugs</span> ⋯</span></div>${kc('WEB-35', 'Docs site dark mode', 'FD', 'Not started', 'mutt')}${kc('WEB-30', 'Cookie banner wording', 'CW', 'Not started', 'mutt', 'p-h')}<div style="font-size:11px;color:var(--t3);padding:4px 4px 0">FROM BUGS · 5</div>${kc('WEB-41', 'Footer links 404 on /de', 'FD', 'In Bugs · drag here to take it', 'mutt', 'p-h')}${kc('WEB-39', 'Safari date picker', '', 'In Bugs', 'mutt')}<div class="kadd">4 more · ＋ Add a task</div></div>
+      <div class="kcol"><div class="kh">To do <span>3 · <span class="auto">starts work</span> ⋯</span></div>${kc('WEB-31', 'Pricing table component', 'FD', 'In line', 'mutt', 'p-h')}${kc('WEB-32', 'Plan comparison copy', 'CW', 'Waiting its turn', 'mutt')}${kc('WEB-33', 'Pricing FAQ', 'CW', 'Waiting its turn', 'mutt', 'p-l')}<div class="kadd">＋ Add a task</div></div>
+      <div class="kcol"><div class="kh">In progress <span>6 ⋯</span></div>${kc('WEB-27', 'Fix the checkout redirect', 'FD', 'Needs you', 'warnt', 'p-h')}${kc('WEB-26', 'Generate the sitemap', 'FD', 'Running · 12 min', 'okt')}${kc('WEB-24', 'Write the launch email', 'CW', 'Running · 3 min', 'okt', 'p-h')}<div class="kadd">3 more</div></div>
+      <div class="kcol"><div class="kh">Done <span>4 ⋯</span></div>${kc('WEB-21', 'Accessibility audit', 'FD', 'Done Tue', 'mutt', 'p-l')}${kc('WEB-19', 'Blog post: what we shipped', 'CW', 'Done Mon', 'mutt', 'p-l')}<div class="kadd">2 more</div></div>
+    </div>`
+  set('b3', shell({ main: listPane, cols: '300px 1fr', lay: 2, tool: toolHead('Product', '＋ Add task · ⋯', '‹ Boards') + box + kan }))
+
+  set('b6', shell({ main: listPane, cols: '1fr 400px', lay: 1, tool: toolHead('Product', '＋ Add task · ⋯', '‹ Boards') + box + `
+      <div class="colh"><span>Backlog</span><span class="c">7 · <span class="lk" style="font-size:12px">Show also ▾</span></span></div>
+      <div class="card" style="margin:0 0 8px auto;width:240px;box-shadow:0 6px 20px #0000001a">
+        <div style="font-size:12px;color:var(--t3);padding:2px 0 6px">Show in this Backlog</div>
+        <div style="font-size:13px;padding:4px 0">✓ Product <span class="mutt" style="font-size:12px">always</span></div>
+        <div style="font-size:13px;padding:4px 0">☐ Project Tasks <span class="mutt" style="font-size:12px">3</span></div>
+        <div style="font-size:13px;padding:4px 0">☑ Bugs <span class="mutt" style="font-size:12px">5</span></div>
+        <div style="font-size:13px;padding:4px 0">☐ Launch <span class="mutt" style="font-size:12px">0</span></div>
+      </div>
+      ${tr('WEB-35', 'Docs site dark mode', 'FD', 'Not started', 'mutt')}${tr('WEB-30', 'Cookie banner wording', 'CW', 'Not started', 'mutt', 'p-h')}
+      <div class="tgh"><span>From Bugs</span><span class="c">5</span></div>
+      ${tr('WEB-41', 'Footer links 404 on /de', 'FD', 'In Bugs · drag into a column, or ⋯ › Move here', 'mutt', 'p-h')}
+      <p class="rule mut" style="font-size:13px;margin-top:14px">A Backlog shows its own board's tasks, always. Other boards' backlogs show only when chosen, under their own heading, so a task can be taken from one. The choice is remembered per board, per person.</p>` }))
+
+  set('b7', shell({ main: listPane, cols: '1fr 400px', lay: 1, tool: toolHead('Finish Sprint 12', '', '‹ Product') + `
+      <div class="bbox"><div class="l1"><span><b>4 done</b> stay recorded in Sprint 12</span></div></div>
+      <div class="flab" style="margin-top:10px">10 not done go to</div>
+      <div class="choice3" style="grid-template-columns:1fr 1fr"><div><b>The next sprint</b>Sprint 13 starts now, two weeks like this one</div><div><b>The Backlog</b>Plan them again</div></div>
+      <div class="btns"><span class="bp" style="opacity:.5">Finish sprint</span><span class="bp">Cancel</span></div>
+      <p class="mutt" style="font-size:12px;margin-top:6px">Nothing is chosen for you: Finish sprint waits until one is picked. An agent finishing a sprint has to say which as well.</p>
+      <p class="rule mut" style="font-size:13px;margin-top:14px">Past sprints stay under the sprint's ▾ at the top of the board.</p>` }))
+
+  set('b4', shell({ main: listPane, cols: '1fr 380px', lay: 1, tool: toolHead('New board', '', '‹ Boards') + `
+      <div class="flab">Name</div><div class="field">Bugs</div>
+      <div class="flab">Kind</div>
+      <div class="choice3" style="grid-template-columns:1fr 1fr"><div class="on"><b>Workflow</b>Columns tasks move through</div><div><b>Sprints</b>Columns, and two-week sprints planned from its backlog</div></div>
+      <div class="flab">Columns from</div>
+      <div class="choice3"><div class="on"><b>Issues</b>Reported · Fixing · Fixed</div><div><b>Kanban</b>To do · Doing · Done</div><div><b>Your own</b>Start from three, edit after</div></div>
+      <div class="btns"><span class="bp pri">Create</span><span class="bp">Cancel</span></div>` }))
+
+  set('b5', `
+    <div class="phone"><div class="mhead"><span class="back">‹</span><span class="t">Boards</span><span class="mbtn">＋ New</span></div>
+      <div class="mlist" style="padding:4px 16px">${boardList}</div></div>
+    <div class="phone"><div class="mhead"><span class="back">‹</span><span class="t">Product</span><span class="mbtn">⋯</span></div>
+      <div class="mlist" style="padding:4px 16px">${box}<div class="chips"><span>Backlog 7</span><span>To do 3</span><span class="on">In progress 6</span><span>Done 4</span></div>
+        ${tr('WEB-27', 'Fix the checkout redirect', 'FD', 'Needs you', 'warnt', 'p-h')}${tr('WEB-26', 'Generate the sitemap', 'FD', 'Running · 12 min', 'okt')}${tr('WEB-24', 'Write the launch email', 'CW', 'Running · 3 min', 'okt', 'p-h')}</div></div>`)
+})()
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

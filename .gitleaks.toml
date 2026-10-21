@@ -1,0 +1,17 @@
+# gitleaks settings for this repository. The files allowed below hold fake secrets that tests need — a redactor's
+# inputs, a placeholder key, a self-signed certificate for a test host — never a real credential.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures with fake secrets"
+paths = [
+  '''^core/src/logging/__tests__/redact\.test\.ts$''',
+  '''^hq/src/github/__tests__/githubApp\.integration\.test\.ts$''',
+  '''^hq/src/preview/__tests__/previewHost\.test\.ts$''',
+  '''^hq/src/sites/__tests__/siteUpgrade\.test\.ts$''',
+  '''^hq/src/sites/content/__tests__/contentChannelHandshake\.test\.ts$''',
+  '''^hq/src/voice/__tests__/voiceOperations\.integration\.test\.ts$''',
+  '''^site/src/server/modelRelay/__tests__/standinCert\.ts$''',
+  '''^site/src/server/registration/__tests__/pairing\.test\.ts$''',
+]

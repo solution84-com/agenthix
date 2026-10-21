@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Tool — Files · living design</title>
+<style>
+  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --s3:#e6e6ee; --hover:#ebebf3;
+    --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0;
+    --accent:#6366f1; --accent-h:#4f46e5; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --danger:#dc2626;
+    --ok-line:#05966955; --warn-line:#b4530955;
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --s3:#242436; --hover:#2a2a40;
+    --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078;
+    --accent:#6366f1; --accent-h:#818cf8; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --ok-line:#34d39955; --warn-line:#fbbf2455;
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:760px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .pill.live { color:var(--ok); border-color:var(--ok-line); }
+  .theme { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-left:8px; vertical-align:middle; }
+  .theme button { border:0; background:var(--s1); color:var(--t2); font:inherit; font-size:13px; padding:4px 12px; cursor:pointer; }
+  .theme button.on { background:var(--accent); color:var(--on-accent); }
+  .boards { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  .boards a { color:var(--t2); text-decoration:none; font-size:13px; padding:4px 10px; border-radius:6px; border:1px solid var(--border-subtle); background:var(--s1); }
+  .boards a.on { color:var(--t1); border-color:var(--accent); background:var(--accent-sub); }
+  .boards span { font-size:13px; padding:4px 10px; color:var(--t3); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:28px 0 10px; }
+
+  .frame { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .desk { display:grid; grid-template-columns:220px 1fr 300px; height:780px; }
+  .nav { background:var(--s0); border-right:1px solid var(--border-subtle); padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .logo { font-weight:600; font-size:15px; padding:4px 8px 14px; display:flex; gap:8px; align-items:center; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; color:var(--t2); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+  .nav a.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .nav .sec { font-size:12px; color:var(--t3); padding:14px 8px 4px; display:flex; justify-content:space-between; }
+  .sq { width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:8px; }
+  .nav .n { font-size:12px; color:var(--warn); }
+  .pi { display:flex; align-items:center; gap:8px; }
+  .ava { width:20px; height:20px; flex:none; color:#fff; font-size:9px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+  .ava.proj, .ava.bd { border-radius:5px; }
+  .ava.agent { border-radius:50%; }
+  .nav .drag { color:var(--t3); font-size:11px; letter-spacing:-2px; }
+  .tact { display:flex; justify-content:space-between; align-items:center; }
+  .mini { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:1px 7px; color:var(--t1); background:var(--s1); margin-left:4px; }
+  .mini.stop { color:var(--danger); }
+  .nav .me { margin-top:auto; border-top:1px solid var(--border-subtle); padding:12px 8px 0; font-size:13px; color:var(--t2); }
+
+  .desk > * { min-height:0; }
+  .centre { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; background:var(--s1); }
+  .crumb { padding:14px 32px 0; font-size:13px; color:var(--t3); }
+  .crumb a { color:var(--accent); text-decoration:none; }
+  .phead { padding:6px 32px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border-subtle); }
+  .picon { width:36px; height:36px; border-radius:8px; background:#8b5cf6; flex:none; }
+  .phead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .phead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .phead .pin { margin-left:auto; color:var(--accent); display:inline-flex; padding:6px; border-radius:6px; background:var(--accent-sub); }
+  .runrow { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:4px 0 6px; }
+  .rb { font-size:13px; line-height:18px; text-align:center; padding:6px 0; border:1px solid var(--border); border-radius:8px; color:var(--t1); background:var(--s1); }
+  .rb.stop { color:var(--danger); }
+  .tgrp { font-size:12px; color:var(--t3); font-weight:500; margin:10px 0 0; }
+  .tgrp:first-of-type { margin-top:0; }
+  .listwrap { flex:1; min-height:0; overflow:hidden; padding:14px 32px; }
+  .listtools { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .listtools h3 { font-size:15px; line-height:22px; margin:0; font-weight:600; flex:1; }
+  .search { border:1px solid var(--border); border-radius:6px; padding:5px 10px; color:var(--t3); font-size:13px; width:200px; background:var(--s1); }
+  .btn { border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:13px; color:var(--t1); background:var(--s1); white-space:nowrap; }
+  .grp { font-size:12px; color:var(--t3); font-weight:500; margin:12px 0 2px; }
+  .row { display:flex; gap:12px; padding:8px 10px; border-radius:8px; align-items:center; }
+  .row.sel { background:var(--s2); }
+  .av { width:32px; height:32px; border-radius:50%; flex:none; color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+  .av.sm { width:24px; height:24px; font-size:10px; }
+  .row .body { min-width:0; flex:1; }
+  .row .ttl { font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .who { color:var(--t2); font-size:13px; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .meta { color:var(--t3); font-size:12px; white-space:nowrap; text-align:right; }
+  .working { color:var(--ok); }
+  .composer { flex:none;  margin:0 32px 20px; border:1px solid var(--accent); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:center; background:var(--s1); }
+  .composer .ph { flex:1; color:var(--t3); font-size:15px; }
+  .chip { font-size:12px; color:var(--t2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; display:inline-flex; align-items:center; gap:6px; }
+  .send { width:30px; height:30px; border-radius:8px; background:var(--accent); flex:none; }
+
+  .right { background:var(--s1); border-left:1px solid var(--border-subtle); padding:0; display:flex; flex-direction:column; overflow:hidden; }
+  .right .card { border:none; border-radius:0; background:transparent; padding:14px 16px; }
+  .right .card + .card { border-top:1px solid var(--border-subtle); }
+  .right .card h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); }
+  .card { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; background:var(--s1); }
+  .card h4 { margin:0 0 8px; font-size:13px; line-height:18px; color:var(--t2); font-weight:500; }
+  .kv { display:grid; grid-template-columns:96px 1fr; gap:4px 8px; font-size:13px; line-height:18px; }
+  .kv b { font-weight:400; color:var(--t3); }
+  .tool { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; border-top:1px solid var(--border-subtle); }
+  .tool:first-of-type { border-top:none; }
+  .tool .n { color:var(--t3); font-size:12px; }
+  .tool .n.need { color:var(--warn); }
+  .tool .n.on { color:var(--ok); }
+
+  .phones { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:340px; height:700px; min-height:0; border:1px solid var(--border); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; background:var(--s1); position:relative; }
+  .mhead { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-subtle); }
+  .back { color:var(--accent); font-size:20px; line-height:20px; }
+  .mhead .t { font-weight:600; flex:1; }
+  .mbtn { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:3px 8px; color:var(--t2); }
+  .mlist { flex:1; min-height:0; overflow:hidden; padding:4px 12px; }
+  .mfilter { padding:8px 12px 0; display:flex; gap:8px; }
+  .mcomp { margin:10px 12px 16px; border:1px solid var(--accent); border-radius:12px; padding:12px; color:var(--t3); font-size:15px; display:flex; justify-content:space-between; align-items:center; }
+  .scrim { position:absolute; inset:0; background:#0000004d; }
+  .sheet { position:absolute; left:0; right:0; bottom:0; height:78%; background:var(--s1); border-radius:18px 18px 0 0; padding:10px 16px; border-top:1px solid var(--border); }
+  .grab { width:40px; height:4px; border-radius:2px; background:var(--s3); margin:0 auto 12px; }
+  .tabs { display:flex; gap:20px; border-bottom:1px solid var(--border-subtle); margin:8px 0 6px; font-size:14px; }
+  .tabs span { padding:6px 0; color:var(--t2); }
+  .tabs span.on { color:var(--accent); border-bottom:2px solid var(--accent); }
+
+  .notes { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .note { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); }
+  .note h3 { margin:0 0 8px; font-size:15px; line-height:22px; }
+  .note ul, .note ol { margin:0; padding-left:18px; color:var(--t2); }
+  .note li { margin-bottom:6px; }
+  .note li b { color:var(--t1); font-weight:500; }
+  .note.open { border-color:var(--warn-line); }
+  .note.agreed { border-color:var(--ok-line); }
+  details { margin-top:16px; color:var(--t2); }
+  details img { max-width:100%; border-radius:8px; border:1px solid var(--border-subtle); margin-top:8px; }
+  table.map { border-collapse:collapse; font-size:13px; width:100%; }
+  table.map td, table.map th { border-bottom:1px solid var(--border-subtle); padding:6px 8px; text-align:left; vertical-align:top; }
+  table.map th { color:var(--t3); font-weight:500; }
+  .tops { margin-left:auto; display:flex; gap:4px; }
+  .topb { position:relative; width:30px; height:30px; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); }
+  .topb.on { background:var(--accent-sub); color:var(--accent); }
+  .topb b { position:absolute; top:-3px; right:-5px; background:var(--danger); color:#fff; font-size:10px; line-height:14px; min-width:14px; text-align:center; border-radius:7px; padding:0 3px; font-weight:600; }
+  .topb b.g { background:var(--ok); }
+</style>
+<style>
+  .convhead { padding:14px 32px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border-subtle); }
+  .convhead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .convhead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .convhead .more { margin-left:auto; color:var(--t3); }
+  .stream { flex:1; min-height:0; overflow:hidden; padding:20px 32px; }
+  .col { max-width:720px; margin:0 auto; }
+  .turn { margin-bottom:22px; font-size:15px; line-height:24px; }
+  .turn .h { display:flex; align-items:center; gap:8px; font-size:13px; line-height:18px; color:var(--t3); margin-bottom:6px; }
+  .turn .h b { color:var(--t1); font-weight:600; }
+  .you .txt { background:var(--s2); border-radius:12px; padding:10px 14px; display:inline-block; }
+  .agent .txt p { margin:0 0 10px; }
+  .agent .txt ol { margin:0 0 10px; padding-left:22px; }
+  .toolcall { font-size:13px; line-height:18px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:8px; padding:6px 10px; margin:6px 0 10px; display:flex; gap:8px; align-items:center; font-family:'JetBrains Mono', ui-monospace, monospace; }
+  .approval { border:1px solid var(--warn-line); border-radius:10px; padding:10px 14px; margin:8px 0; font-size:14px; line-height:21px; }
+  .approval .acts { margin-top:8px; display:flex; gap:8px; }
+  .bp { font-size:13px; border-radius:6px; padding:4px 12px; border:1px solid var(--border); background:var(--s1); color:var(--t1); }
+  .bp.pri { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .meta2 { font-size:12px; color:var(--t3); }
+  .typing { color:var(--ok); font-size:13px; }
+  .panelhead { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin-bottom:8px; }
+  .panelhead .bk { color:var(--accent); font-weight:400; }
+  .trow { font-size:13px; line-height:18px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .trow .k { color:var(--t3); font-size:12px; }
+  .link { color:var(--accent); font-size:13px; }
+  .lay { display:flex; gap:14px; flex-wrap:wrap; }
+  .lo { width:200px; border:1px solid var(--border-subtle); border-radius:10px; padding:10px; background:var(--s1); }
+  .lo.sel { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .lo .th { display:flex; gap:4px; height:90px; margin-bottom:8px; }
+  .lo .th .n { width:16px; background:var(--s3); border-radius:4px; }
+  .lo .th .c { background:var(--accent-sub); border:1px solid var(--accent); border-radius:4px; }
+  .lo .th .t { background:var(--s2); border:1px solid var(--border); border-radius:4px; }
+  .lo b { font-size:13px; } .lo div.d { font-size:12px; line-height:16px; color:var(--t2); }
+  .fctl { position:static; display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--s1); }
+  .fctl span { width:30px; height:26px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border-subtle); }
+  .fctl span:first-child { border-left:none; }
+  .fctl span.on { background:var(--accent-sub); }
+  .fctl i { display:flex; gap:2px; height:12px; }
+  .fctl i u { display:block; border-radius:1px; background:var(--t3); }
+  .work { display:grid; grid-template-rows:auto 1fr; min-width:0; min-height:0; }
+  .wbar { display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px 32px; border-bottom:1px solid var(--border-subtle); background:var(--s1); }
+  .crumb2 { font-size:13px; color:var(--t3); } .crumb2 a { color:var(--accent); text-decoration:none; }
+  .panes { display:grid; min-height:0; }
+  .panes > * { min-height:0; }
+  .dragedge { position:absolute; left:-3px; top:0; bottom:0; width:6px; cursor:col-resize; background:linear-gradient(var(--accent),var(--accent)) center/2px 48px no-repeat; }
+  .trow.new { border-left:3px solid var(--ok); padding-left:8px; }
+</style>
+<style>
+  .calm { max-width:560px; }
+  .btns { display:flex; gap:8px; }
+  .midbtns { display:flex; gap:8px; margin:16px 0 2px; }
+  .midbtns .bp { display:inline-flex; gap:6px; align-items:center; }
+  .lat { display:grid; grid-template-columns:110px 1fr; gap:10px; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .lat .when { color:var(--t2); font-size:13px; } .lat b { font-weight:500; } .lat .mut { font-size:12px; }
+  .atabs { display:flex; gap:18px; border-bottom:1px solid var(--border-subtle); margin:12px 0 2px; font-size:14px; }
+  .atabs > span { padding:7px 0; color:var(--t2); display:inline-flex; gap:6px; align-items:center; }
+  .atabs > span.on { color:var(--t1); font-weight:500; border-bottom:2px solid var(--accent); }
+  .tb { font-size:11px; line-height:16px; min-width:16px; text-align:center; border-radius:8px; padding:0 5px; background:var(--s2); color:var(--t2); }
+  .tb.w { background:var(--warn); color:#fff; }
+  .panelhead .rl { margin-left:auto; font-weight:400; font-size:13px; color:var(--accent); cursor:pointer; }
+  .astatus2 { padding:10px 12px; border:1px solid var(--ok-line); border-radius:10px; margin:6px 0 4px; }
+  .ast-row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .astatus2 .who { margin-top:2px; }
+  .lk { color:var(--accent); text-decoration:none; cursor:pointer; }
+  .srow { display:grid; grid-template-columns:34px 1fr auto; gap:10px; align-items:center; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .srow b { font-weight:500; }
+  .srow .mut { display:block; font-size:12px; } .srow .nx { font-size:12px; color:var(--t2); white-space:nowrap; } .srow .ic { color:var(--t3); text-align:center; }
+  .csec { margin-top:18px; }
+  .csec h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:0 0 6px; display:flex; justify-content:space-between; }
+  .csec h4 .edit { text-transform:none; letter-spacing:0; color:var(--accent); font-size:13px; }
+  .line { font-size:14px; line-height:21px; padding:5px 0; }
+  .line b { font-weight:500; } .line .ok { color:var(--ok); } .line .w { color:var(--warn); font-weight:600; }
+  .line a { color:var(--accent); margin-left:6px; font-size:13px; }
+  .mut { color:var(--t3); }
+  .rule { font-size:14px; line-height:21px; margin:0 0 8px; color:var(--t1); } .rule b { font-weight:500; }
+  .atool .bp { white-space:nowrap; }
+  .atool { padding:14px 18px !important; overflow:hidden; display:block !important; }
+  .astatus { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--ok-line); border-radius:10px; margin:6px 0 10px; }
+  .ast-t { font-weight:600; font-size:15px; display:flex; align-items:center; gap:8px; }
+  .dot-on { width:9px; height:9px; border-radius:50%; background:var(--ok); }
+  .acounts { display:flex; gap:16px; font-size:13px; color:var(--t2); margin-bottom:6px; flex-wrap:wrap; }
+  .acounts b { color:var(--t1); font-weight:600; } .acounts .w b, .acounts .w { color:var(--warn); }
+  .acols { display:grid; grid-template-columns:1.15fr 1fr; gap:24px; }
+  .asec { margin-top:14px; }
+  .asec h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:0 0 6px; }
+  .arow { display:flex; gap:10px; align-items:center; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .arow .body { flex:1; min-width:0; } .arow .ttl { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .arow .who { font-size:13px; }
+  .ar { font-size:12px; color:var(--t2); white-space:nowrap; } .ar.ok { color:var(--ok); } .ar.warn { color:var(--warn); } .ar.danger { color:var(--danger); }
+  .more { font-size:13px; color:var(--accent); padding-top:6px; }
+  .crow { font-size:13px; padding:7px 0; border-top:1px solid var(--border-subtle); display:flex; gap:4px; color:var(--t2); }
+  .crow b { font-weight:500; color:var(--t1); } .crow span { margin-left:auto; color:var(--t3); }
+  .sub2 { font-size:12px; color:var(--t3); margin:10px 0 2px; }
+  .trow2 { display:flex; justify-content:space-between; align-items:center; font-size:14px; padding:6px 0; border-top:1px solid var(--border-subtle); }
+  .trow2 i, .lrow i { font-style:normal; color:var(--t3); font-size:12px; margin-left:6px; }
+  .tg { width:32px; height:18px; border-radius:9px; background:var(--s3); position:relative; flex:none; }
+  .tg::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--s1); box-shadow:0 1px 2px #0003; }
+  .tg.on { background:var(--accent); } .tg.on::after { left:16px; }
+  .lrow { display:grid; grid-template-columns:1fr auto 84px; gap:8px; align-items:center; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .lrow b { font-weight:500; } .lrow em { font-style:normal; font-size:12px; color:var(--t3); text-align:right; }
+  .nlist .nrow2 { display:flex; justify-content:space-between; font-size:14px; padding:9px 0; border-top:1px solid var(--border-subtle); }
+  .nrow2 .n { color:var(--t3); font-size:12px; }
+</style>
+<style>
+  .ttool { padding:14px 18px !important; overflow:hidden; display:block !important; }
+  .tsearch { display:flex; gap:8px; align-items:center; margin:2px 0 4px; }
+  .tsearch .search { flex:1; width:auto; }
+  .trw { display:grid; grid-template-columns:1fr auto; gap:2px 10px; padding:8px 0; border-top:1px solid var(--border-subtle); align-items:center; }
+  .trw .tt { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .trw .tt .k { color:var(--t3); font-weight:400; font-size:12px; margin-right:6px; }
+  .trw .ts { grid-column:1; font-size:12px; line-height:16px; color:var(--t2); display:flex; gap:6px; align-items:center; white-space:nowrap; overflow:hidden; }
+  .trw .act { grid-row:1 / span 2; grid-column:2; }
+  .trw.sel { background:var(--s2); border-radius:8px; padding-left:8px; padding-right:8px; }
+  .mini-av { width:16px; height:16px; border-radius:50%; color:#fff; font-size:8px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+  .warnt { color:var(--warn); } .okt { color:var(--ok); } .mutt { color:var(--t3); }
+  .pdot { width:7px; height:7px; border-radius:50%; display:inline-block; flex:none; }
+  .p-h { background:var(--danger); } .p-m { background:var(--warn); } .p-l { background:var(--t3); }
+  .tgh { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:16px 0 4px; display:flex; justify-content:space-between; }
+  .tgh .c { letter-spacing:0; text-transform:none; }
+  .wtable { width:100%; border-collapse:collapse; font-size:14px; }
+  .wtable th { text-align:left; font-size:12px; font-weight:500; color:var(--t3); padding:6px 8px; border-bottom:1px solid var(--border-subtle); }
+  .wtable td { padding:8px; border-top:1px solid var(--border-subtle); vertical-align:middle; white-space:nowrap; }
+  .wtable td.ttl { font-weight:500; } .wtable td.ttl .pdot { margin-right:8px; vertical-align:middle; } .wtable td.ttl .k { color:var(--t3); font-weight:400; font-size:12px; margin-right:6px; }
+  .wtable tr.grp td { border-top:none; font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); padding-top:18px; }
+  .wtable .who { display:inline-flex; gap:6px; align-items:center; color:var(--t2); font-size:13px; }
+  .colchip { font-size:12px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:5px; padding:1px 6px; }
+  .fchip { font-size:13px; border:1px solid var(--border); border-radius:6px; padding:4px 10px; color:var(--t2); background:var(--s1); white-space:nowrap; }
+  .detail { display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:28px; }
+  .detail h2 { font-size:18px; line-height:26px; margin:2px 0 4px; font-weight:600; }
+  .needs { border:1px solid var(--warn-line); border-radius:10px; padding:12px 14px; margin:12px 0; }
+  .needs .h { font-weight:600; color:var(--warn); font-size:14px; }
+  .needs p { margin:4px 0 10px; font-size:14px; }
+  .needs .btns { flex-wrap:wrap; } .needs .bp { white-space:nowrap; }
+  .needs code, .tl code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .desc { font-size:14px; line-height:21px; color:var(--t1); margin:10px 0 0; }
+  .tl { margin-top:4px; }
+  .tli { display:grid; grid-template-columns:22px 1fr; gap:10px; padding:9px 0; border-top:1px solid var(--border-subtle); font-size:14px; line-height:21px; }
+  .tli .m { font-size:12px; color:var(--t3); }
+  .tli .ic { width:22px; height:22px; border-radius:50%; background:var(--s2); color:var(--t2); font-size:11px; display:flex; align-items:center; justify-content:center; }
+  .tcomp { border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--t3); font-size:14px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; }
+  .sess { margin-top:16px; }
+  .sesshead { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:14px; margin-bottom:6px; } .sesshead .lk { white-space:nowrap; }
+  .tx { border:1px solid var(--border-subtle); border-radius:10px; padding:10px 14px; font-size:14px; line-height:21px; }
+  .tx.tall { max-height:none; }
+  .txe { font-size:13px; text-align:center; padding:2px 0 6px; }
+  .txd { font-size:12px; color:var(--t3); text-align:center; margin:10px 0 6px; display:flex; gap:10px; align-items:center; }
+  .txd::before, .txd::after { content:''; flex:1; border-top:1px solid var(--border-subtle); }
+  .txm { margin:8px 0; } .txm.ag b { display:block; font-size:13px; }
+  .txm.you { text-align:right; } .txm.you span { display:inline-block; background:var(--s2); border-radius:12px; padding:8px 12px; text-align:left; }
+  .txc { font-size:12px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:8px; padding:4px 10px; margin:6px 0; font-family:'JetBrains Mono', ui-monospace, monospace; }
+  .tx code, .approval code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .facts { font-size:13px; line-height:18px; }
+  .facts .f { padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .facts .f:first-child { border-top:none; }
+  .facts .f b { display:block; font-weight:400; color:var(--t3); font-size:12px; }
+  .addrow { display:flex; gap:8px; align-items:center; border:1px solid var(--accent); border-radius:8px; padding:7px 10px; margin:6px 0 2px; font-size:14px; }
+  .addrow .ph2 { flex:1; color:var(--t1); }
+  .addrow .hint { font-size:12px; color:var(--t3); }
+  .page { padding:24px 40px; overflow:hidden; background:var(--s1); }
+  .page h1x { display:block; }
+  .pagehead { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:6px; }
+  .pagehead h2 { font-size:24px; line-height:32px; margin:0; font-weight:600; }
+  .pagehead .sub { color:var(--t2); font-size:14px; }
+</style>
+<style>
+  .ftool { padding:14px 18px !important; overflow:hidden; display:block !important; }
+  .path { font-size:13px; color:var(--t3); margin:2px 0 6px; display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+  .path a { color:var(--accent); text-decoration:none; }
+  .frow { display:grid; grid-template-columns:20px 1fr auto; gap:2px 10px; padding:7px 0; border-top:1px solid var(--border-subtle); align-items:center; font-size:14px; }
+  .frow .nm { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .frow .nm.dir { font-weight:500; }
+  .frow .fs { grid-column:2; font-size:12px; line-height:16px; color:var(--t2); display:flex; gap:6px; align-items:center; white-space:nowrap; overflow:hidden; }
+  .frow .when { grid-row:1 / span 2; grid-column:3; font-size:12px; color:var(--t3); }
+  .frow .ico { grid-row:1 / span 2; color:var(--t3); display:flex; align-items:center; justify-content:center; }
+  .frow.sel { background:var(--s2); border-radius:8px; padding-left:8px; padding-right:8px; }
+  .backup { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:13px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:10px; padding:8px 12px; margin:4px 0 10px; }
+  .backup b { font-weight:500; color:var(--t1); }
+  .doc { font-size:14px; line-height:22px; }
+  .doc h1 { font-size:18px; line-height:26px; margin:6px 0 8px; font-weight:600; }
+  .doc h2 { font-size:15px; line-height:22px; margin:14px 0 4px; font-weight:600; }
+  .doc p { margin:0 0 8px; } .doc ul { margin:0 0 8px; padding-left:20px; } .doc li { margin-bottom:2px; }
+  .doc code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .fhead { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; color:var(--t3); padding-bottom:8px; border-bottom:1px solid var(--border-subtle); margin-bottom:8px; }
+  .fhead .btns .bp { font-size:12px; padding:3px 10px; }
+  .split2 { display:grid; grid-template-columns:240px minmax(0,1fr); gap:0; border:1px solid var(--border-subtle); border-radius:10px; overflow:hidden; height:600px; }
+  .split2 .tree { background:var(--s1); border-right:1px solid var(--border-subtle); padding:8px; font-size:13px; overflow:hidden; }
+  .split2 .tree div { padding:4px 8px; border-radius:6px; white-space:nowrap; color:var(--t2); }
+  .split2 .tree div.on { background:var(--s3); color:var(--t1); }
+  .split2 .tree div.in { padding-left:24px; }
+  .split2 .view { padding:14px 22px; overflow:hidden; }
+  .ktop { border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px; margin:4px 0 10px; font-size:13px; color:var(--t2); }
+  .krow { padding:9px 0; border-top:1px solid var(--border-subtle); }
+  .krow .kt { font-size:14px; font-weight:500; display:flex; justify-content:space-between; gap:8px; }
+  .krow .kt span { font-size:12px; color:var(--t3); font-weight:400; white-space:nowrap; }
+  .krow .ks { font-size:13px; line-height:19px; color:var(--t2); margin-top:2px; }
+  .fact { display:grid; grid-template-columns:1fr auto; gap:8px; padding:7px 0; border-top:1px solid var(--border-subtle); font-size:14px; line-height:21px; }
+  .fact .src { font-size:12px; color:var(--t3); }
+  .fact .x { color:var(--t3); font-size:12px; white-space:nowrap; align-self:center; }
+  .wcard { border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px; margin:8px 0; }
+  .wcard .wt { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .wcard .wt b { font-size:14px; font-weight:600; }
+  .wcard .wl { font-size:12px; line-height:17px; color:var(--t2); margin-top:3px; display:flex; gap:10px; flex-wrap:wrap; }
+  .wcard .wl code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; }
+  .dotok { width:7px; height:7px; border-radius:50%; background:var(--ok); display:inline-block; margin-right:4px; }
+  .quiet { font-size:12px; color:var(--t3); border-top:1px solid var(--border-subtle); padding-top:8px; margin-top:10px; }
+  .quiet a { color:var(--accent); }
+  .seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; font-size:13px; }
+  .seg span { padding:4px 12px; color:var(--t2); } .seg span.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .field { border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:14px; margin:4px 0 10px; color:var(--t1); }
+  .flab { font-size:12px; color:var(--t3); }
+  .choice { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:4px 0 10px; }
+  .choice div { border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:13px; line-height:18px; color:var(--t2); }
+  .choice div b { display:block; color:var(--t1); font-weight:500; font-size:14px; }
+  .choice div.on { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .toolsgrp { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:14px 0 2px; }
+  .tline { display:grid; grid-template-columns:1fr auto; padding:8px 0; border-top:1px solid var(--border-subtle); font-size:14px; }
+  .tline span.s { font-size:12px; color:var(--t3); }
+  .tline .sub2x { grid-column:1 / span 2; font-size:12px; color:var(--t2); line-height:16px; }
+  .ref { display:inline-flex; gap:6px; align-items:center; font-size:12px; border:1px solid var(--border); border-radius:6px; padding:2px 8px; background:var(--s2); color:var(--t1); font-family:'JetBrains Mono', ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="boardhead">
+    <div>
+      <h1>Tool — Files</h1>
+      <p>The place's documents. A person comes here to <b>read what the agents and people wrote</b> — the roadmap, a spec, a report an agent left — and to <b>point the conversation at a file</b>. Writing still happens in the conversation: "update the roadmap", "put this in specs".</p>
+    </div>
+    <div style="white-space:nowrap"><span class="pill">Draft 2026-10-07</span></div>
+  </div>
+
+  <div class="label">Desktop · The tools list — one group for what the place keeps</div>
+  <div class="frame" id="m0"></div>
+  <div class="label">Desktop · Files beside the conversations — the project's documents, newest first</div>
+  <div class="frame" id="m1"></div>
+  <div class="label">Desktop · Artefacts — the throwaway things agents made in conversations, in a view of their own</div>
+  <div class="frame" id="m1b"></div>
+
+  <div class="label">Desktop · A file, opened inside the tool — read it, mention it in the conversation</div>
+  <div class="frame" id="m2"></div>
+  <div class="label">Desktop · Files in tool focus — folders beside the open file</div>
+  <div class="frame" id="m3"></div>
+  <div class="label">Phone · Files, and a file</div>
+  <div class="phones" id="m10f"></div>
+
+  <div class="label">A place's storage — what the agent can reach, and what the platform does with each folder</div>
+  <div class="note">
+    <p style="margin:0 0 10px;color:var(--t2)">A run's container mounts the place's <b>whole folder</b>, read and write (one mount, adr-0057). The agent's file tools are refused only the harness's own home, where conversation history is kept; everything below is open to it. Its prompt lists each folder with a one-line description.</p>
+    <table class="map">
+      <tr><th>Folder</th><th>The agent is told</th><th>What the platform does with it</th><th>Shown to people</th><th>Proposal</th></tr>
+      <tr><td><code>files/</code></td><td>"files of the project"; a conversation with no workspace works here</td><td>hq creates it with ROADMAP.md and PROJECT.md; lists and reads it for the Files tool. The site puts PROJECT.md in the prompt and gives task runs ROADMAP.md. GitHub backup, if connected</td><td>Files tool</td><td>Keep — the Files view</td></tr>
+      <tr><td><code>files/.agenthix/</code></td><td>Not named</td><td>The project's own instructions and skills for its agents (adr-0072), read by the site at the start of every run</td><td>Agent settings in the project</td><td>Keep writable — agents change them when asked; renamed <code>.agents/</code>, with <code>AGENTS.md</code> at the top of Files</td></tr>
+      <tr><td><code>files/history/</code></td><td>Not named</td><td>hq creates it empty for every project; nothing reads or writes it</td><td>Shows as an empty folder</td><td>Drop — left over</td></tr>
+      <tr><td><code>knowledge/</code></td><td>Keep distilled facts here, with an INDEX.md; readable only in this place</td><td>Nothing: no screen and no hq call reaches it</td><td>No</td><td>Keep — the Knowledge view reads it</td></tr>
+      <tr><td><code>artefacts/</code></td><td>"files you produce for whoever this storage belongs to, each set in its own subdirectory"</td><td>hq can serve one file by its set's id, but nothing ever makes that link</td><td>No</td><td>Keep: one file per item, in the Artefacts view, opened from the reply's link</td></tr>
+      <tr><td><code>workspaces/&lt;id&gt;/</code></td><td>Each by name; a workspace run works there</td><td>hq creates and deletes them, lists their files, connects GitHub, runs previews and GitHub workflows</td><td>Workspaces tool</td><td>Keep — the Workspaces view</td></tr>
+      <tr><td><code>tasks/&lt;id&gt;/</code></td><td>One working folder per task; a task run works there</td><td>Nothing reads it; files a person attaches to a task are kept by hq, not here</td><td>No</td><td>Keep; beside Files, never in it</td></tr>
+      <tr><td><code>members/&lt;person&gt;/</code></td><td>Each member's area: drafts and agenda</td><td>The site reads that person's agenda.md into the prompt</td><td>No</td><td>Keep, not shown in Files</td></tr>
+    </table>
+    <p style="margin:10px 0 0;color:var(--t2)">A person's own storage (Chat) has the same shape without <code>members/</code>; its agenda sits in <code>files/</code>.</p>
+  </div>
+
+  <div class="label">The three views — which is for what</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+    <div class="note"><h3>Files — the documents</h3><ul>
+      <li>The place's own documents: roadmap, specs, notes, what agents wrote for people to read</li>
+      <li><b>One per place</b>, always there, never created or deleted</li>
+      <li>A conversation or a task that names no workspace works here</li>
+      <li>Optionally <b>backed up to GitHub</b></li>
+    </ul></div>
+    <div class="note"><h3>Knowledge — what is known here</h3><ul>
+      <li><b>Broad, filed by topic and tag</b>: how things work, decisions and why, research, who does what</li>
+      <li><b>Agents look things up here</b> when they need to; it is not read on every run — that is AGENTS.md</li>
+      <li>Agents keep it; a person checks it and corrects it</li>
+      <li>Stays in its place: a person's knowledge never reaches a project unless someone copies it there</li>
+    </ul></div>
+    <div class="note"><h3>Workspaces — the codebases</h3><ul>
+      <li><b>One per runnable thing</b>: the website, the API, a docs site</li>
+      <li>Usually a checkout of a <b>GitHub repository</b>; agents build, test and push there</li>
+      <li>Can run a <b>preview</b> to look at what was built</li>
+      <li>Created and deleted on demand; each lives on one site</li>
+    </ul></div>
+  </div>
+
+  <div class="label">What works today, and what this design needs</div>
+  <div class="note"><table class="map">
+    <tr><th>Part</th><th>Today</th><th>Needs</th></tr>
+    <tr><td>Browse Files, open a file</td><td>Works: a folder list and a plain preview; Markdown is not rendered</td><td>Rendered Markdown and images; sorted newest first</td></tr>
+    <tr><td>When a file changed</td><td>The listing has name, kind, size and the time it last changed</td><td>Nothing new</td></tr>
+    <tr><td>Change a file from the screen</td><td>No write path from hq to a site's files, by design</td><td>None — changes go through the conversation</td></tr>
+    <tr><td>Things an agent makes for you (<code>artefacts/</code>)</td><td>Not listed anywhere; nothing links to them</td><td>A listing, and links that open the file viewer</td></tr>
+  </table></div>
+
+  <div class="label">Where today's parts go</div>
+  <div class="note"><table class="map">
+    <tr><th>Today</th><th>In this design</th></tr>
+    <tr><td>Files tool: a two-column explorer in a fixed box, "Start session here", GitHub section below</td><td>A list of files newest first; a file opens inside the tool; wide, folders sit beside the open file. GitHub becomes one line at the top: backed up, or "Back up to GitHub"</td></tr>
+    <tr><td>"Start session here" on Files</td><td>Gone: the conversation beside it already works in Files. "Mention" puts the file into the message you are writing</td></tr>
+    <tr><td>Global Workspaces page and <code>/files/…</code> page</td><td>Not in the navigation already; their links open the tool in its place</td></tr>
+  </table></div>
+
+  <div class="label">Notes</div>
+  <div class="notes">
+    <div class="note agreed"><h3>Agreed</h3><ul>
+      <li>Archiving or pruning old conversations with their artefacts is its own design, not blocking (owner, 2026-10-07)</li>
+      <li><b>The Files view is agreed</b> (owner, 2026-10-07)</li>
+      <li>Files and Workspaces are the next pass, and Knowledge is part of it, one board per view (owner, 2026-10-07)</li>
+      <li>Four tools of their own — Files, Artefacts, Knowledge, Workspaces — under one heading, Files, in the tools list: one step to each, where tabs inside one tool took two (owner, 2026-10-07)</li>
+      <li>A file shows when it last changed, not who changed it. Nothing raised: only if people ask for it (owner, 2026-10-07)</li>
+      <li>No upload: it does not exist today and is not part of this pass. Nothing raised (owner, 2026-10-07)</li>
+      <li>The agents' instructions stay writable by agents: a person asks an agent to change them, as with CLAUDE.md (owner, 2026-10-07)</li>
+      <li>A task's working folder sits beside Files, not in it, so the Files view never shows it (owner, 2026-10-07)</li>
+      <li>Artefacts stay, as their own place: the throwaway things an agent makes in a conversation. One file per item in <code>artefacts/</code>, no set folders; in a view of their own, Artefacts, beside Files; the agent's reply links to one, and the link opens it in the tool's file viewer. Previews are not affected (owner, 2026-10-07)</li>
+      <li>Standard names: <code>AGENTS.md</code> at the top of Files for every agent in the place, taking over from PROJECT.md; <code>.agents/skills/&lt;name&gt;/</code> for skills every agent gets; <code>.agents/agents/&lt;agent&gt;/</code> for one agent's own instructions and skills (owner, 2026-10-07)</li>
+    </ul></div>
+    <div class="note open"><h3>Open — answer by number</h3><ol>
+      <li>None.</li>
+    </ol></div>
+    <div class="note"><h3>Changes on this board</h3><ul>
+      <li>2026-10-07 — owner: Files, Artefacts, Knowledge and Workspaces are tools of their own under a Files heading, not views behind tabs.</li>
+      <li>2026-10-07 — owner: Artefacts is a view of its own, not a group in Files. The tool's views are now Files · Artefacts · Knowledge · Workspaces.</li>
+      <li>2026-10-07 — owner: the folder list beside an open file is white, not grey.</li>
+      <li>2026-10-07 — owner: 'From agents' is now 'Artefacts'; artefacts kept as their own place; the standard names agreed. No open questions.</li>
+      <li>2026-10-07 — owner: instructions stay writable by agents; task folders were never in Files. New questions on keeping a place for agents' output and on standard names (AGENTS.md, .agents/).</li>
+      <li>2026-10-07 — owner: the whole place folder is mounted, so what can the agent reach and what does the platform do with each folder? The storage table now answers that, with a proposal per folder; questions on artefacts, the agent-writable instructions and task folders.</li>
+      <li>2026-10-07 — owner: a file shows when it changed, not who; no upload. Rows now show kind, size and time. Question 1 reworded.</li>
+      <li>2026-10-07 — owner: one tool, three views. Where a place's files are stored added; the questions reworked after the owner's questions on artefacts, who changed a file, and upload.</li>
+      <li>2026-10-07 — owner: one tool at a time — the combined board split into Files, Knowledge and Workspaces.</li>
+      <li>2026-10-07 — first draft from today's Files tool, the storage layout and artefacts.</li>
+    </ul></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html }
+  const AV = { FD: '#0ea5e9', PM: '#6366f1', CW: '#f59e0b' }
+  const av = (k) => `<span class="mini-av" style="background:${AV[k]}">${k}</span>`
+  const I = {
+    file: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+    dir: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"/></svg>',
+    img: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>',
+    gh: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>',
+  }
+  const navHtml = (on = 'proj') => `
+    <nav class="nav">
+      <div class="logo"><i></i>Agenthix<span class="tops"><span class="topb" title="Notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>3</b></span><span class="topb" title="Runs"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><b class="g">2</b></span></span></div>
+      <a>Home</a><a class="${on === 'chat' ? 'on' : ''}">Chat</a><a>Projects</a><a>Agents</a>
+      <a>Tasks <span class="n">2 need you</span></a>
+      <div class="sec"><span>Pinned</span><span>edit</span></div>
+      <a class="${on === 'proj' ? 'on' : ''}"><span class="pi"><span class="ava proj" style="background:#8b5cf6">A</span>Agenthix</span></a>
+      <a><span class="pi"><span class="ava agent" style="background:#6366f1">PM</span>Project manager</span></a>
+      <a><span class="pi"><span class="ava proj" style="background:#f59e0b">M</span>Marketing Website</span></a>
+      <div class="me" style="display:flex;flex-direction:column;gap:2px;padding-top:8px"><a style="padding:6px 0">Organisation</a><a style="padding:6px 0">Settings</a><span style="padding-top:4px">Avery</span></div>
+    </nav>`
+  const layout = (on) => `<div class="fctl" title="Layout">${[[14,0],[10,5],[5,10],[0,14]].map(([a,b],i)=>`<span class="${i===on?'on':''}"><i>${a?`<u style="width:${a}px"></u>`:''}${b?`<u style="width:${b}px;background:var(--accent)"></u>`:''}</i></span>`).join('')}</div>`
+  const listPane = (chat) => `
+    <main class="centre">
+      <div class="phead">${chat ? '<span class="picon" style="background:#64748b"></span><div><h2>Chat</h2><div class="sub">Your own space — private to you</div></div>' : '<span class="picon"></span><div><h2>Agenthix</h2><div class="sub">The product and its website</div></div>'}</div>
+      <div class="listwrap">
+        <div class="listtools"><h3>Your conversations</h3><span class="search">Search conversations</span></div>
+        <div class="grp">Today</div>
+        <div class="row sel"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">${chat ? 'Plan my week' : 'Plan the pricing page'}</div><div class="who">Project manager · ${chat ? 'Three things need you before Friday…' : 'Drafted three tasks for the new pricing…'}</div></div><div class="meta">10:24</div></div>
+        <div class="row"><span class="av" style="background:#0ea5e9">FD</span><div class="body"><div class="ttl">${chat ? 'Try out a static site generator' : 'Checkout redirect bug'}</div><div class="who">Frontend dev · ${chat ? 'Set up a starter in a new workspace…' : 'Found it — the return URL drops the…'}</div></div><div class="meta">9:02</div></div>
+        <div class="grp">Yesterday</div>
+        <div class="row"><span class="av" style="background:#f59e0b">CW</span><div class="body"><div class="ttl">${chat ? 'Rewrite my bio' : 'Homepage headline ideas'}</div><div class="who">Copywriter · Here are five options that lead with…</div></div><div class="meta">Tue</div></div>
+      </div>
+      <div class="composer"><div class="ph">${chat ? 'Ask any agent…' : 'Talk about this project…'}</div><span class="chip">Project manager ▾</span><span class="send"></span></div>
+    </main>`
+  const convoPane = (composer = '<div class="ph">Message Project manager…</div>') => `
+    <main class="centre">
+      <div class="convhead"><span class="av" style="background:#6366f1">PM</span><div><h2>Plan the pricing page</h2><div class="sub">Project manager · today 10:24</div></div></div>
+      <div class="stream"><div class="col">
+        <div class="turn you"><div class="h" style="justify-content:flex-end"><b>You</b> 10:24</div><div style="text-align:right"><div class="txt" style="text-align:left">Break the pricing page into tasks and put them on Sprint 3.</div></div></div>
+        <div class="turn agent"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><b>Project manager</b> 10:25</div>
+          <div class="txt"><p>Done — three tasks on Sprint 3, To do: WEB-31 pricing table, WEB-32 plan comparison copy, WEB-33 FAQ. I also added the pricing page to the roadmap under "This month".</p></div></div>
+      </div></div>
+      <div class="composer" style="flex-wrap:wrap">${composer}<span class="send"></span></div>
+    </main>`
+  const shell = ({ main, tool, cols, lay, crumb, nav = 'proj' }) => `
+    <div class="desk" style="grid-template-columns:220px 1fr">${navHtml(nav)}
+      <div class="work">
+        <div class="wbar"><div class="crumb2">${crumb ?? (nav === 'chat' ? 'Chat' : '<a href="#">Projects</a> / Agenthix')}</div>${lay === undefined ? '' : layout(lay)}</div>
+        <div class="panes" style="grid-template-columns:${cols}">${main ?? ''}${tool ? `<aside class="right ftool">${tool}</aside>` : ''}</div>
+      </div>
+    </div>`
+  const views = (on) => `<div class="atabs" style="margin:2px 0 10px">${[['Files','24'],['Artefacts','9'],['Knowledge','6'],['Workspaces','3']].map(([v,n]) => `<span class="${v===on?'on':''}">${v}</span>`).join('')}</div>`
+  const toolHead = (title, right = '', back = '‹ Tools') => `<div class="panelhead"><span class="bk">${back}</span><span style="margin-left:6px">${title}</span>${right ? `<span class="rl">${right}</span>` : ''}</div>`
+
+  // m0 — the tools list
+  const tl = (n, s, sub = '') => `<div class="tline"><span>${n}</span><span class="s">${s}</span>${sub ? `<span class="sub2x">${sub}</span>` : ''}</div>`
+  set('m0', shell({
+    main: listPane(false), cols: '1fr 340px', lay: 1,
+    tool: `<div class="panelhead"><span>Tools</span></div>
+      <div class="toolsgrp">Work</div>${tl('Tasks', '<span class="warnt">2 need you</span>')}${tl('Boards', '3')}
+      <div class="toolsgrp">Agents at work</div>${tl('Runs', '<span class="okt">2 running</span>')}${tl('Automation', 'On')}
+      <div class="toolsgrp">Files</div>
+      ${tl('Files', '24', 'Roadmap changed 10 min ago')}
+      ${tl('Artefacts', '9', '2 today')}
+      ${tl('Knowledge', '14 topics')}
+      ${tl('Workspaces', '3', 'web · preview running')}
+      <div class="toolsgrp">Project</div>${tl('Agents', '4')}${tl('People', '5')}${tl('Settings', '')}`,
+  }))
+
+  // m1 — Files narrow
+  const fr = (ic, nm, sub, when, dir = false, sel = false) => `<div class="frow${sel ? ' sel' : ''}"><span class="ico">${I[ic]}</span><span class="nm${dir ? ' dir' : ''}">${nm}</span><span class="when">${when}</span><span class="fs">${sub}</span></div>`
+  const backupOk = `<div class="backup"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${I.gh} Backed up to <b>acme/agenthix-docs</b></span><span class="mutt" style="white-space:nowrap">1 h ago</span></div>`
+  const filesRows = `
+    ${fr('file', 'ROADMAP.md', 'Markdown · 2 KB', '10:25')}
+    ${fr('dir', 'specs', '6 files', 'Mon', true)}
+    ${fr('file', 'PROJECT.md', 'Markdown · 1 KB', 'Mon')}
+    ${fr('dir', 'brand', '11 files', 'last week', true)}
+    ${fr('dir', 'meeting-notes', '4 files', 'last week', true)}
+    ${fr('file', 'launch-checklist.md', 'Markdown · 3 KB', 'last week')}
+    <div class="more">18 more</div>`
+  set('m1', shell({
+    main: listPane(false), cols: '1fr 360px', lay: 1,
+    tool: toolHead('Files') + backupOk + `<div class="tsearch"><span class="search">Search files</span></div>` + filesRows,
+  }))
+
+  // m1b — the Artefacts view
+  const artRows = `
+    <div class="tgh"><span>Today</span><span class="c">2</span></div>
+    ${fr('file', 'Checkout redirect — findings.md', 'Markdown · 4 KB', '9:58')}
+    ${fr('img', 'Hero options — three crops.png', 'Image · 1.2 MB', '9:12')}
+    <div class="tgh"><span>This week</span><span class="c">4</span></div>
+    ${fr('file', 'Pricing options compared.pdf', 'PDF · 220 KB', 'Mon')}
+    ${fr('file', 'Competitor pricing — notes.md', 'Markdown · 6 KB', 'Mon')}
+    ${fr('file', 'Launch email — draft 2.md', 'Markdown · 3 KB', 'Sun')}
+    ${fr('file', 'Sitemap check.csv', 'CSV · 18 KB', 'Sun')}
+    <div class="tgh"><span>Older</span><span class="c">3</span></div>
+    ${fr('file', 'The lighthouse keeper.md', 'Markdown · 11 KB', '30 Sep')}
+    <div class="more">2 more</div>`
+  set('m1b', shell({
+    main: listPane(false), cols: '1fr 360px', lay: 1,
+    tool: toolHead('Artefacts') + `<p class="mutt" style="font-size:13px;margin:0 0 6px">The throwaway things agents made in conversations, newest first. Keep one by asking an agent to move it into Files.</p><div class="tsearch"><span class="search">Search artefacts</span></div>` + artRows,
+  }))
+
+  // m2 — a file opened
+  const roadmap = `<div class="doc">
+      <h1>Agenthix — Roadmap</h1>
+      <h2>This month</h2>
+      <ul><li>Pricing page: table, plan comparison, FAQ (WEB-31…33)</li><li>Checkout redirect fixed and checked on a preview (WEB-27)</li><li>Launch email and social posts</li></ul>
+      <h2>Next</h2>
+      <ul><li>Docs site with dark mode</li><li>Move images to the CDN</li></ul>
+      <h2>Later</h2>
+      <ul><li>Accessibility audit</li></ul>
+    </div>`
+  set('m2', shell({
+    main: convoPane(`<div style="flex-basis:100%;margin-bottom:6px"><span class="ref">${I.file} ROADMAP.md ✕</span></div><div class="ph" style="color:var(--t1)">Move the docs site up to this month</div>`),
+    cols: '1fr 420px', lay: 1,
+    crumb: '<a href="#">Projects</a> / <a href="#">Agenthix</a> / Plan the pricing page',
+    tool: toolHead('ROADMAP.md', '⋯', '‹ Files') + `<div class="fhead"><span>Changed today 10:25 · 2 KB</span><span class="btns"><span class="bp pri">Mention</span></span></div>` + roadmap + `<p class="mutt" style="font-size:12px;margin-top:12px">⋯ holds Download and Copy path. "Mention" puts the file into the message you are writing, as above.</p>`,
+  }))
+
+  // m3 — Files wide
+  set('m3', shell({
+    main: listPane(false), cols: '360px 1fr', lay: 2,
+    tool: toolHead('Files') + `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><div class="backup" style="margin:0;flex:1">${I.gh}<span style="flex:1">&nbsp;Backed up to <b>acme/agenthix-docs</b> · 1 h ago</span></div><span class="search" style="width:220px">Search files</span></div>
+      <div class="split2"><div class="tree">
+        <div class="on">ROADMAP.md</div><div>PROJECT.md</div><div>▾ specs</div><div class="in">pricing-page.md</div><div class="in">checkout.md</div><div class="in">docs-site.md</div><div>▸ brand</div><div>▸ meeting-notes</div><div>launch-checklist.md</div>
+      </div><div class="view"><div class="fhead"><span>ROADMAP.md · changed today 10:25</span><span class="btns"><span class="bp pri">Mention</span> <span class="bp">⋯</span></span></div>${roadmap}</div></div>`,
+  }))
+
+  // m4 — Knowledge
+  const kr = (t, s, when) => `<div class="krow"><div class="kt">${t}<span>${when}</span></div><div class="ks">${s}</div></div>`
+  const knowledgeList = (chat) => chat ? '' : `
+    <div class="ktop">Every agent working in Agenthix reads this at the start of each run. Agents keep it; check it, and correct what is wrong.</div>
+    <div class="tsearch"><span class="search">Search knowledge</span></div>
+    <div class="tgh"><span>Topics</span><span class="c">6</span></div>
+    ${kr('Tech stack', 'Next.js 15 on Vercel, Stripe for payments, Postgres on Neon. Tests with Vitest. <b class="okt" style="font-weight:500">New today</b>', '10:31')}
+    ${kr('Conventions', 'pnpm, not npm. Branches named <code>web-NN-short-title</code>. Every page has an English and a German version.', 'Mon')}
+    ${kr('Decisions', 'Annual plans get two months free. No cookie wall: only necessary cookies before consent.', 'Mon')}
+    ${kr('Deployment', 'Preview deploys need approval. Production deploys only from main, by Sam.', 'last week')}
+    ${kr('People and roles', 'Sam owns releases. Avery decides pricing. Mia reviews all copy.', 'last week')}
+    ${kr('Brand', 'Tone: plain and warm. Never "revolutionary". Primary colour indigo.', '2 weeks ago')}`
+  set('m4', shell({
+    main: listPane(false), cols: '1fr 380px', lay: 1,
+    tool: toolHead('Knowledge') + knowledgeList(false),
+  }))
+
+  // m5 — a topic
+  const fc = (t, src) => `<div class="fact"><div>${t}<div class="src">${src}</div></div><span class="x"><span class="lk">Correct</span> · <span class="lk">Forget</span></span></div>`
+  set('m5', shell({
+    main: convoPane(`<div class="ph" style="color:var(--t1)">In Knowledge › Tech stack, "Tests with Vitest" is wrong — we use Playwright for the browser tests and Vitest for the rest.</div>`),
+    cols: '1fr 420px', lay: 1,
+    crumb: '<a href="#">Projects</a> / <a href="#">Agenthix</a> / Plan the pricing page',
+    tool: toolHead('Tech stack', '⋯', '‹ Knowledge') + `<div class="mutt" style="font-size:12px;margin-bottom:6px">Read by every agent in Agenthix · last changed by Frontend dev · 10:31</div>
+      ${fc('Next.js 15, deployed on Vercel', 'Frontend dev · last week')}
+      ${fc('Payments through Stripe Checkout; webhooks at <code>/api/stripe</code>', 'Frontend dev · last week')}
+      ${fc('Postgres on Neon; migrations with Drizzle', 'Frontend dev · Mon')}
+      ${fc('Tests with Vitest', '<span class="okt">New today</span> · Frontend dev, while fixing WEB-27')}
+      <p class="mutt" style="font-size:13px;margin-top:12px">"Correct" and "Forget" write the request into your message, as on the left; the agent changes the topic when it answers. Or just say it in any conversation.</p>`,
+  }))
+
+  // m6 — Workspaces
+  const wc = (name, repo, branch, extra, act, site = 'Office Mac') => `<div class="wcard"><div class="wt"><b>${name}</b>${act}</div><div class="wl">${repo ? `<span>${I.gh} <code>${repo}</code> · ${branch}</span>` : '<span class="mutt">No repository</span>'}${extra}<span class="mutt">${site}</span></div></div>`
+  const wsList = `
+    ${wc('web', 'acme/agenthix-web', 'main', '<span><span class="dotok"></span>Preview running</span><span>Frontend dev · 12 min ago</span>', '<span class="bp">Open preview</span>')}
+    ${wc('api', 'acme/agenthix-api', 'main', '<span>Backend dev · yesterday</span>', '')}
+    ${wc('docs-site', '', '', '<span>Created by Avery · Mon</span>', '<span class="bp">Connect GitHub</span>')}
+    <div class="quiet">1 site isn't answering, so its workspaces aren't shown. <a>Which</a></div>`
+  set('m6', shell({
+    main: listPane(false), cols: '1fr 380px', lay: 1,
+    tool: toolHead('Workspaces', '＋ New') + `<p class="mutt" style="font-size:13px;margin:2px 0 4px">The codebases agents build in. A conversation in Agenthix can work in any of them.</p>` + wsList,
+  }))
+
+  // m7 — a workspace opened
+  const op = (n, st, cls, when) => `<div class="crow"><b>${n}</b>&nbsp;<span class="${cls}" style="margin-left:0">${st}</span><span>${when}</span></div>`
+  set('m7', shell({
+    main: listPane(false), cols: '360px 1fr', lay: 2,
+    tool: toolHead('web', '⋯', '‹ Workspaces') + `
+      <div class="detail"><div>
+        <div class="mutt" style="font-size:12px">Workspace in Agenthix · on Office Mac</div>
+        <h2>web</h2>
+        <div class="desc">${I.gh} <code>acme/agenthix-web</code> · branch <b>main</b> · last pushed by Frontend dev 12 min ago</div>
+        <div class="midbtns"><span class="bp pri">Start a conversation here</span><span class="bp"><span class="dotok"></span>Open preview</span></div>
+        <div class="tgh" style="margin-top:18px"><span>Files</span><span class="c">Browse all ›</span></div>
+        ${fr('dir', 'src', '', '12 min ago', true)}${fr('dir', 'tests', '', '12 min ago', true)}${fr('file', 'package.json', '', 'Mon')}${fr('file', 'README.md', '', 'last week')}
+        <div class="tgh" style="margin-top:18px"><span>GitHub runs</span><span class="c">Run a workflow ▾</span></div>
+        ${op('CI', 'passed', 'okt', '12 min ago')}${op('Deploy preview', 'passed', 'okt', '10:14')}${op('CI', 'failed', 'warnt', '9:40')}
+      </div><div style="padding-top:22px"><div class="facts">
+        <div class="f"><b>Repository</b>acme/agenthix-web</div>
+        <div class="f"><b>Branch</b>main</div>
+        <div class="f"><b>Preview</b><span class="okt">Running</span> · <span class="lk">Stop</span></div>
+        <div class="f"><b>Site</b>Office Mac</div>
+        <div class="f"><b>Tools agents may use</b>All · <span class="lk">Change</span></div>
+        <div class="f"><b>Created</b>by Avery · 2 weeks ago</div>
+      </div></div></div>
+      <p class="mutt" style="font-size:12px;margin-top:10px">⋯ holds Rename, Disconnect GitHub and Delete workspace.</p>`,
+  }))
+
+  // m8 — new workspace
+  set('m8', shell({
+    main: listPane(false), cols: '1fr 380px', lay: 1,
+    tool: toolHead('New workspace', '', '‹ Workspaces') + `
+      <div class="flab">Name</div><div class="field">docs-site</div>
+      <div class="flab">Start from</div>
+      <div class="choice"><div class="on"><b>A GitHub repository</b>Agents check it out and push to it</div><div><b>Empty</b>Connect a repository later</div></div>
+      <div class="field" style="color:var(--t2)">${I.gh} acme/agenthix-docs ▾</div>
+      <div class="flab">Site</div><div class="field" style="color:var(--t2)">Office Mac — where Agenthix's files are ▾</div>
+      <div class="btns"><span class="bp pri">Create</span><span class="bp">Cancel</span></div>
+      <p class="rule mut" style="font-size:13px;margin-top:14px">Or ask in the conversation: "set up a docs site in a new workspace".</p>`,
+  }))
+
+  // m9 — Chat
+  set('m9', shell({
+    nav: 'chat', main: listPane(true), cols: '1fr 380px', lay: 1,
+    tool: toolHead('Knowledge') + `
+      <div class="ktop">What agents know about you. Only you see it; it never reaches a project unless you copy it there.</div>
+      <div class="tgh"><span>About you</span><span class="c">Every agent you talk to</span></div>
+      <div class="fact"><div>Prefers short answers with the decision first</div><span class="x"><span class="lk">Edit</span> · <span class="lk">Delete</span></span></div>
+      <div class="fact"><div>Works from Berlin; meetings only before 16:00</div><span class="x"><span class="lk">Edit</span> · <span class="lk">Delete</span></span></div>
+      <div class="more">＋ Add a note · 4 more</div>
+      <div class="tgh" style="margin-top:18px"><span>Your topics</span><span class="c">3</span></div>
+      ${kr('Writing', 'Bio in third person. British spelling.', 'Mon')}
+      ${kr('Side projects', 'A static site for the photo club, in a workspace "photo-club".', 'last week')}
+      ${kr('Accounts', 'Invoices go to the accountant on the 1st.', '2 weeks ago')}
+      <p class="mutt" style="font-size:12px;margin-top:10px">"About you" is today's Memory from Settings — short notes, edited here directly as they are today. Your topics are your own Knowledge files.</p>`,
+  }))
+
+  // m10 — phones
+  const setPh = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html }
+  setPh('m10f', `    <div class="phone"><div class="mhead"><span class="back">‹</span><span class="t">Files</span><span class="mbtn">⋯</span></div>
+      <div class="mlist" style="padding:4px 16px">${backupOk}<div class="tsearch"><span class="search">Search files</span></div>${filesRows}</div></div>
+    <div class="phone"><div class="mhead"><span class="back">‹</span><span class="t">ROADMAP.md</span><span class="mbtn">Mention</span></div>
+      <div class="mlist" style="padding:8px 16px"><div class="mutt" style="font-size:12px">Changed today 10:25</div>${roadmap}</div></div>`)
+  setPh('m10k', `    <div class="phone"><div class="mhead"><span class="back">‹</span><span class="t">Knowledge</span></div>
+      <div class="mlist" style="padding:4px 16px">${knowledgeList(false)}</div></div>`)
+  setPh('m10w', `    <div class="phone"><div class="mhead"><span class="back">‹</span><span class="t">Workspaces</span><span class="mbtn">＋ New</span></div>
+      <div class="mlist" style="padding:4px 16px">${wsList}</div></div>`)
+})()
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

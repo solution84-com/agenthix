@@ -1,0 +1,42 @@
+{
+  "clock": {
+    "now": "2027-04-12T09:30:00.000Z",
+    "timezone": "Europe/London",
+    "locale": "en-GB"
+  },
+  "password": "FernhillGuide!2026",
+  "people": {
+    "sam": {
+      "username": "sam",
+      "displayName": "Sam Okafor",
+      "role": "ADMIN"
+    },
+    "priya": {
+      "username": "priya",
+      "displayName": "Priya Nair",
+      "role": "MEMBER"
+    },
+    "alex": {
+      "username": "alex",
+      "displayName": "Alex Moreau",
+      "role": "MEMBER"
+    },
+    "jordan": {
+      "username": "jordan",
+      "displayName": "Jordan Lee",
+      "role": "MEMBER"
+    },
+    "kai": {
+      "username": "kai",
+      "displayName": "Kai Tanaka",
+      "role": "MEMBER"
+    }
+  },
+  "invitation": {
+    "token": "FernhillGuideSampleInvitationToken0123456789",
+    "name": "Robin Ellis",
+    "projects": [
+      "RES"
+    ]
+  }
+}

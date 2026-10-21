@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Review — what is built · living board</title>
+<style>
+  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0; --accent:#6366f1; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --ok-line:#05966955; --warn-line:#b4530955;
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078; --accent:#6366f1; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --ok-line:#34d39955; --warn-line:#fbbf2455;
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:760px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .pill.ok { color:var(--ok); border-color:var(--ok-line); }
+  .pill.warn { color:var(--warn); border-color:var(--warn-line); }
+  .theme { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-left:8px; vertical-align:middle; }
+  .theme button { border:0; background:var(--s1); color:var(--t2); font:inherit; font-size:13px; padding:4px 12px; cursor:pointer; }
+  .theme button.on { background:var(--accent); color:var(--on-accent); }
+  .boards { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  .boards a { color:var(--t2); text-decoration:none; font-size:13px; padding:4px 10px; border-radius:6px; border:1px solid var(--border-subtle); background:var(--s1); }
+  .boards a.on { color:var(--t1); border-color:var(--accent); background:var(--accent-sub); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:28px 0 10px; }
+  .card { background:var(--s1); border:1px solid var(--border); border-radius:12px; padding:16px 20px; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .stats .card b { display:block; font-size:18px; line-height:26px; }
+  .stats .card span { color:var(--t2); font-size:13px; }
+  .screen { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:16px; margin-bottom:28px; align-items:start; }
+  .shot { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .shot img { display:block; width:100%; }
+  .shot .cap { display:flex; justify-content:space-between; padding:8px 12px; font-size:13px; color:var(--t2); border-top:1px solid var(--border-subtle); }
+  .shot .cap a { color:var(--accent); text-decoration:none; }
+  .notes h3 { font-size:15px; line-height:22px; margin:0 0 6px; font-weight:600; }
+  .notes ul, .notes ol { margin:6px 0 12px; padding-left:18px; }
+  .notes li { margin:3px 0; color:var(--t2); }
+  .notes li b { color:var(--t1); font-weight:500; }
+  .notes .h { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--t3); margin-top:12px; }
+  .mob { display:grid; grid-template-columns:repeat(3, 240px); gap:16px; }
+  .mob img { width:100%; display:block; }
+  .q { border-left:3px solid var(--accent); padding:10px 14px; background:var(--s1); border-radius:0 8px 8px 0; margin:8px 0; }
+  .q b { color:var(--t1); }
+  .q p { margin:4px 0 0; color:var(--t2); }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:900px) { .screen, .two { grid-template-columns:1fr; } .stats { grid-template-columns:1fr 1fr; } .mob { grid-template-columns:1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="boardhead">
+    <div>
+      <h1>Review — what is built</h1>
+      <p>The running app on <code>feature/every-screen-reviewed</code>, screen by screen, beside the board it was built from.
+        Screenshots taken just now from localhost with the dev login; no page errors on any screen. Click a screenshot to open it full size.</p>
+    </div>
+    <div style="white-space:nowrap">
+      <span class="pill ok">Phases 1–2 built · Automation merged</span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="card"><b>Phase 1 · 15 / 15</b><span>Shell, theme, type scale, pins, panels, server behaviour</span></div>
+    <div class="card"><b>Phase 2 · 10 / 11</b><span>Places, layouts, Chat, Home, Runs. Left: 2.11, the decision record</span></div>
+    <div class="card"><b>Phase 3 · 2 / 2</b><span>Automation tool (merged just now) and content on white</span></div>
+    <div class="card"><b>Tests</b><span>All suites pass on the Automation merge. Cross-app not run while the dev apps hold its ports</span></div>
+  </div>
+
+  <div class="label">1 · Home</div>
+  <div class="screen">
+    <div class="shot"><a href="/files/live-home.png" target="_blank"><img src="/files/live-home.png" alt="Home, live"></a>
+      <div class="cap"><span>Live · desktop</span><a href="/files/home.html">Board →</a></div></div>
+    <div class="notes">
+      <h3>Matches the board</h3>
+      <ul><li>Greeting, focused message box with the agent picker, starts a Chat conversation</li>
+        <li>Signal buttons: needs you · agents at work · coming up today</li>
+        <li>Jump back in with agent and place on each row</li>
+        <li>Navigation grey, content white; bell and Runs beside the logo</li></ul>
+      <div class="h">Known gaps</div>
+      <ul><li>"Coming up today" counts every project but opens Chat's Automation</li>
+        <li>The Runs button counts the organisation; Home counts yours</li></ul>
+    </div>
+  </div>
+
+  <div class="label">2 · A project — conversations list and tools</div>
+  <div class="screen">
+    <div class="shot"><a href="/files/live-project.png" target="_blank"><img src="/files/live-project.png" alt="Project, live"></a>
+      <div class="cap"><span>Live · your stored layout is Tool focus</span><a href="/files/project-conversations.html">Board →</a></div></div>
+    <div class="notes">
+      <h3>Matches the board</h3>
+      <ul><li>Header with avatar, switcher, description and pin</li>
+        <li>Agent filter, search, grouped rows, message box with the agent</li>
+        <li>Tools panel as one surface: facts, then tools grouped Work · Agents at work · Files and code · Team · Settings</li>
+        <li>Run all / Stop all under Automation; layout control top right</li></ul>
+      <div class="h">Worth a look</div>
+      <ul><li><b>Default agent: None</b> on Website Redesign, which has three agents. The rule only applies when the first agent is added, and these were added before it existed (dev data)</li></ul>
+    </div>
+  </div>
+
+  <div class="label">3 · A conversation</div>
+  <div class="screen">
+    <div class="shot"><a href="/files/live-conversation.png" target="_blank"><img src="/files/live-conversation.png" alt="Conversation, live"></a>
+      <div class="cap"><span>Live · Chat › what time is it now</span><a href="/files/project-conversation.html">Board →</a></div></div>
+    <div class="notes">
+      <h3>Matches the board</h3>
+      <ul><li>Replaces the list; title with agent and start time</li>
+        <li>Your messages right-aligned, no avatar; content on white</li>
+        <li>Message box white with a border; model picker a normal control</li></ul>
+      <div class="h">Worth a look</div>
+      <ul><li>The usage line under each reply (tokens, cost, energy) is in the success colour — it reads as a state</li>
+        <li>Copy buttons sit at the far right, away from the message they copy</li></ul>
+    </div>
+  </div>
+
+  <div class="label">4 · Chat — the personal space</div>
+  <div class="screen">
+    <div class="shot"><a href="/files/live-chat.png" target="_blank"><img src="/files/live-chat.png" alt="Chat, live"></a>
+      <div class="cap"><span>Live · desktop</span><a href="/files/chat-personal.html">Board →</a></div></div>
+    <div class="notes">
+      <h3>Matches the board</h3>
+      <ul><li>Same components as a project: list, filter, search, message box with any agent</li>
+        <li>Facts: who sees it, agents, site, files</li>
+        <li>Tools: Tasks (with needs you), Boards, Runs, Automation, Run all / Stop all, Files, Workspaces</li></ul>
+    </div>
+  </div>
+
+  <div class="label">5 · Tool — Automation (new today)</div>
+  <div class="two">
+    <div class="shot"><a href="/files/live-automation.png" target="_blank"><img src="/files/live-automation.png" alt="Automation, live"></a>
+      <div class="cap"><span>Live · Now → [Routines] [Rules] → Later</span><a href="/files/automation.html">Board →</a></div></div>
+    <div class="shot"><a href="/files/live-automation-rules.png" target="_blank"><img src="/files/live-automation-rules.png" alt="Automation rules, live"></a>
+      <div class="cap"><span>Live · Rules view</span><a href="/files/automation.html">Board →</a></div></div>
+  </div>
+  <div class="notes" style="margin:12px 0 28px">
+    <ul><li><b>Matches:</b> status line with Pause; Now; Routines and Rules as buttons; Later. Rules: agents switch, limits with the organisation's maximum, turn limit "runs no person started", run time limit "every run · set in project Settings", then "Columns that start work automatically" last</li>
+      <li><b>Not seen with data:</b> this project has no routines and nothing queued, so Now, Later and the Routines view show their empty states</li>
+      <li><b>Worth a look:</b> the tool's content stops at about 560px wide, leaving a gap on the right in Tool focus</li></ul>
+  </div>
+
+  <div class="label">6 · Runs panel</div>
+  <div class="screen">
+    <div class="shot"><a href="/files/live-runs-panel.png" target="_blank"><img src="/files/live-runs-panel.png" alt="Runs panel, live"></a>
+      <div class="cap"><span>Live · opened from Home</span><a href="/files/home.html">Board →</a></div></div>
+    <div class="notes">
+      <h3>Matches the board</h3>
+      <ul><li>Opens beside the navigation; All of mine · Started by me · On my behalf</li>
+        <li>Each row: agent, task, place, state, who started it</li></ul>
+      <div class="h">Worth a look</div>
+      <ul><li><b>"Waiting for you" and "Needs you" sit under Finished recently.</b> The run did stop, but the task is waiting on you, so it is easy to miss</li></ul>
+    </div>
+  </div>
+
+  <div class="label">7 · Mobile</div>
+  <div class="mob">
+    <div class="shot"><img src="/files/live-home-mobile.png" alt="Home, mobile"><div class="cap"><span>Home</span></div></div>
+    <div class="shot"><img src="/files/live-project-mobile.png" alt="Project, mobile"><div class="cap"><span>Project</span></div></div>
+    <div class="shot"><img src="/files/live-automation-mobile.png" alt="Automation, mobile"><div class="cap"><span>Automation, full screen</span></div></div>
+  </div>
+
+  <div class="label">Questions for you</div>
+  <div class="q"><b>1. Runs waiting on a person</b><p>Give them their own group at the top of the Runs panel ("Waiting for you"), above Running? I'd say yes. Today they're buried under Finished recently.</p></div>
+  <div class="q"><b>2. The usage line under each reply</b><p>Make it muted grey instead of the success colour? I'd say yes. It's information, not a state.</p></div>
+  <div class="q"><b>3. Automation's width</b><p>Let the tool fill the panel in Tool focus and Tool only, or keep it capped for easier reading? I'd keep a cap but put Pause at the panel's edge.</p></div>
+  <div class="q"><b>4. Next design pass</b><p>Tasks (with the backlog as a view), the Runs screen, the other tools, or Sites. I'd take Tasks.</p></div>
+
+  <div class="label">Still open in this unit</div>
+  <div class="card">
+    <ul style="margin:0;padding-left:18px;color:var(--t2)">
+      <li>2.11: the decision record "a conversation belongs to a place". Needs your approval</li>
+      <li>End-of-pass regression including cross-app. Needs your OK to stop the dev apps</li>
+      <li>The branch on GitHub is at the backup from yesterday; Automation isn't pushed</li>
+      <li>Close-out: QA stories and scenarios; issues for the deferred items (chat runs in Runs, personal Runs count, OrgPage split, QA doc references, mobile token copy)</li>
+    </ul>
+  </div>
+</div>
+<script>
+  const root = document.documentElement
+  document.querySelectorAll('.theme button').forEach((b) => b.addEventListener('click', () => {
+    root.dataset.theme = b.dataset.t
+    document.querySelectorAll('.theme button').forEach((x) => x.classList.toggle('on', x === b))
+  }))
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

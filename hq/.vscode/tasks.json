@@ -1,0 +1,139 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    // ─── Conventions ────────────────────────────────────────────────────────
+    // Localhost-only is the default (secure). LAN exposure is opt-in via the
+    // (LAN) variants — required for mobile dev where the phone must reach
+    // site's API across WiFi, or for phone-browser testing of site. Use only
+    // on trusted networks; LAN mode means anyone on the same WiFi can reach
+    // the dev server.
+    //
+    // OAuth providers (Google, Apple) reject mDNS / private-IP redirect URIs,
+    // so any sign-in flow that goes through a provider redirect must use the
+    // localhost mode. Mobile native sign-in is unaffected — it uses URL
+    // schemes, not redirects, and works in LAN mode.
+
+    // ─── Dev: Start (brings up the database first) ──────────────────────────
+    // [dev] Start writes localhost URLs into .env.client / .env.server.
+    // OAuth-compatible (providers accept localhost as redirect URI).
+    // [dev] Start (LAN) writes the mDNS hostname instead — required for
+    // mobile dev where the phone hits site's API across WiFi.
+    // Note: Wasp 0.21's dev server binds to 0.0.0.0 internally regardless;
+    // these tasks differ in the URLs baked into the React bundle, not the
+    // bind address.
+    {
+      "label": "[dev] Start",
+      "type": "shell",
+      "command": "bash scripts/dev/start.sh",
+      "dependsOn": ["[dev] Start DB"],
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "[dev] Start (LAN)",
+      "type": "shell",
+      "command": "bash scripts/dev/start.sh --lan",
+      "dependsOn": ["[dev] Start DB"],
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+
+    // ─── Dev: Database ──────────────────────────────────────────────────────
+    {
+      "label": "[dev] Start DB",
+      "type": "shell",
+      "command": "bash scripts/dev/db.sh start",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "[dev] Migrate DB",
+      "type": "shell",
+      "command": "bash scripts/dev/db.sh migrate",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "[dev] Reset",
+      "type": "shell",
+      "command": "bash scripts/dev/reset.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "[dev] Open Studio",
+      "type": "shell",
+      "command": "bash scripts/dev/db.sh studio",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+
+    // ─── Dev: Build helpers ─────────────────────────────────────────────────
+    {
+      "label": "[dev] Build Agent Image",
+      "type": "shell",
+      "command": "bash scripts/dev/build-agent.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "[dev] Build and Start",
+      "type": "shell",
+      "command": "bash scripts/dev/build-and-start.sh",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+
+    // ─── Docker (containerized deployment) ───────────────────────────────────
+    // The real container images rather than `wasp start` — hq/compose.yml and
+    // site/compose.yml, each with its own .env. An optional shared HTTPS
+    // front door is in front-door/.
+    {
+      "label": "[docker] hq up",
+      "type": "shell",
+      "command": "docker compose -f compose.yml --env-file .env up -d --build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "[docker] site up",
+      "type": "shell",
+      "command": "docker compose -f ../site/compose.yml --env-file ../site/compose.env up -d --build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ]
+}

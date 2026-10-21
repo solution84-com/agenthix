@@ -1,0 +1,216 @@
+name: Release build
+
+# The one definition of what a release builds, called by both places that build one, so the two cannot drift:
+#   - Release branch build (release-branch-build.yml), on every push to a release branch, with publish off: it builds
+#     and proves everything a release ships and publishes nothing;
+#   - Publish release (publish-images.yml), for a version tag, with publish on: the same build, and each image that
+#     started is pushed by digest for that workflow to sign and publish.
+#
+# 1. The version is the repository's own (the root package.json's, which every module's package.json must equal), and
+#    the image names come from the branding module.
+# 2. Every image a machine runs — hq's server and browser app, the site, the agent image, the host service and the
+#    Fleet Console — is built for amd64 and arm64, each on a runner of its own architecture, labelled with its
+#    version, started there and made to answer (scripts/images/start-test.sh). With publish on, only then is it pushed
+#    by digest only, reachable by no version.
+# 3. @agenthix/core is type-checked, built, checked as a project outside this repository installs it, named for its
+#    registry and packed; the packed file is what a release publishes.
+#
+# Nothing here signs: an image's signature names the workflow that signs it, and a host service expects
+# publish-images.yml at the version's tag (host/src/images/published.ts), so signing stays there.
+on:
+  workflow_call:
+    inputs:
+      publish:
+        description: 'Push each image by digest once it has started (a version tag only)'
+        required: true
+        type: boolean
+    outputs:
+      version:
+        description: 'The version built, the repository''s own'
+        value: ${{ jobs.prepare.outputs.version }}
+      registry:
+        description: 'The registry the images are named under'
+        value: ${{ jobs.prepare.outputs.registry }}
+      names:
+        description: 'Each image''s name, by part, as JSON'
+        value: ${{ jobs.prepare.outputs.names }}
+
+jobs:
+  prepare:
+    name: Version and image names
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      registry: ${{ steps.version.outputs.registry }}
+      names: ${{ steps.names.outputs.names }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: The repository's version, which every module carries
+        id: version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          node scripts/check-versions.mjs "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # Registry paths are lower case; the owner's name may not be.
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      - name: Image names, from the branding module
+        id: names
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          cd host && npm ci --no-audit --no-fund
+          # Bundled first, as host's build does: core's built output uses imports Node's own loader refuses.
+          node --input-type=module >> "$GITHUB_OUTPUT" <<'EOF'
+          import { build } from 'esbuild'
+          const out = await build({
+            stdin: { contents: "export { imageName } from '@agenthix/core'", resolveDir: '.' },
+            bundle: true, platform: 'node', format: 'esm', write: false,
+          })
+          const { imageName } = await import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`)
+          const parts = ['hq-server', 'hq-web', 'site-server', 'agent', 'host', 'console']
+          console.log(`names=${JSON.stringify(Object.fromEntries(parts.map(p => [p, imageName(p)])))}`)
+          EOF
+
+  build:
+    name: "Build ${{ matrix.image.part }} (${{ matrix.platform.arch }})"
+    needs: prepare
+    runs-on: ${{ matrix.platform.runner }}
+    timeout-minutes: 120
+    # No permissions of its own: it has what its caller's job grants, which is reading the repository on a release
+    # branch, and also writing packages for a version tag, the only caller that pushes.
+    strategy:
+      # A release stops at the first failure; a release branch reports every image.
+      fail-fast: ${{ inputs.publish }}
+      matrix:
+        image:
+          - { part: hq-server, file: hq/docker/Dockerfile, target: server }
+          - { part: hq-web, file: hq/docker/Dockerfile, target: web }
+          - { part: site-server, file: site/docker/Dockerfile, target: server }
+          - { part: agent, file: site/docker/agent.Dockerfile, target: '' }
+          - { part: host, file: host/docker/Dockerfile, target: host }
+          - { part: console, file: console/docker/Dockerfile, target: console }
+        platform:
+          - { arch: amd64, runner: ubuntu-24.04 }
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    env:
+      IMAGE: ${{ needs.prepare.outputs.registry }}/${{ fromJSON(needs.prepare.outputs.names)[matrix.image.part] }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Nothing is emulated: each runner builds its own architecture, hq's Wasp stage included (hq/docker/Dockerfile).
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      # Built into this runner's Docker first, and started there: an image that does not start and answer is never
+      # pushed.
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.image.file }}
+          target: ${{ matrix.image.target }}
+          platforms: linux/${{ matrix.platform.arch }}
+          build-args: |
+            VERSION=${{ env.VERSION }}
+            COMMIT=${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=${{ fromJSON(needs.prepare.outputs.names)[matrix.image.part] }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=Elastic-2.0
+          provenance: false
+          load: true
+          tags: imgtest/${{ matrix.image.part }}:${{ matrix.platform.arch }}
+      - name: Start it
+        env:
+          PART: ${{ matrix.image.part }}
+          ARCH: ${{ matrix.platform.arch }}
+        run: scripts/images/start-test.sh "$PART" "imgtest/$PART:$ARCH" "$VERSION"
+      - if: inputs.publish
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # The same build again, every layer from the builder's cache: the image pushed is made of the layers that
+      # were started. Pushed by digest only, with no tag: nothing is reachable by its version until the publishing
+      # workflow has made the multi-platform image, and that workflow signs it before it ends.
+      - name: Push by digest
+        id: push
+        if: inputs.publish
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.image.file }}
+          target: ${{ matrix.image.target }}
+          platforms: linux/${{ matrix.platform.arch }}
+          build-args: |
+            VERSION=${{ env.VERSION }}
+            COMMIT=${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=${{ fromJSON(needs.prepare.outputs.names)[matrix.image.part] }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=Elastic-2.0
+          provenance: false
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+      - name: Keep the digest for the publish job
+        if: inputs.publish
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+      - if: inputs.publish
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: digests-${{ matrix.image.part }}-${{ matrix.platform.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  core:
+    name: "Core package: build, check and pack"
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Build and check
+        working-directory: core
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+          npm run check:package
+      # While the repository is private the package goes to GitHub's npm registry, under the repository owner's scope,
+      # which that registry requires; at the first release this is where it moves to the public registry.
+      - name: Name it
+        working-directory: core
+        run: |
+          # Registry scopes are lower case, and this registry's scope is the repository owner.
+          npm pkg set "name=@${GITHUB_REPOSITORY_OWNER,,}/core"
+      # core has no lifecycle scripts, so the packed file is exactly what the registry would receive from the folder.
+      - name: Pack it
+        working-directory: core
+        run: |
+          mkdir -p "$RUNNER_TEMP/core-package"
+          npm pack --pack-destination "$RUNNER_TEMP/core-package"
+          count="$(find "$RUNNER_TEMP/core-package" -maxdepth 1 -name '*.tgz' | wc -l)"
+          test "$count" -eq 1 || { echo "::error::Expected one packed file, found $count."; exit 1; }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: core-package
+          path: ${{ runner.temp }}/core-package/*.tgz
+          if-no-files-found: error
+          retention-days: 7

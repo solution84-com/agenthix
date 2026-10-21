@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Who replied · draft</title>
+<style>  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --s3:#e6e6ee; --hover:#ebebf3;
+    --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0;
+    --accent:#6366f1; --accent-h:#4f46e5; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --danger:#dc2626;
+    --ok-line:#05966955; --warn-line:#b4530955; --danger-line:#dc262655;
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --s3:#242436; --hover:#2a2a40;
+    --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078;
+    --accent:#6366f1; --accent-h:#818cf8; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --ok-line:#34d39955; --warn-line:#fbbf2455; --danger-line:#f8717155;
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:820px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:32px 0 10px; }
+  .h2 { font-size:18px; line-height:26px; font-weight:600; margin:40px 0 4px; }
+  .lead { color:var(--t2); max-width:900px; margin:0 0 6px; }
+  .cap { font-size:12px; line-height:16px; color:var(--t3); margin-top:8px; }
+  .cap code, .mono { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; }
+
+  .frame { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .desk { display:grid; grid-template-columns:220px 1fr; height:820px; }
+  .nav { background:var(--s0); border-right:1px solid var(--border-subtle); padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .logo { font-weight:600; font-size:15px; padding:4px 8px 14px; display:flex; gap:8px; align-items:center; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; color:var(--t2); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+  .nav a.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .nav .sec { font-size:12px; color:var(--t3); padding:14px 8px 4px; }
+  .nav .n { font-size:12px; color:var(--warn); }
+  .pi { display:flex; align-items:center; gap:8px; }
+  .ava { width:20px; height:20px; flex:none; color:#fff; font-size:9px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; border-radius:5px; }
+  .nav .me { margin-top:auto; border-top:1px solid var(--border-subtle); padding:12px 8px 0; font-size:13px; color:var(--t2); }
+  .work2 { display:grid; grid-template-rows:auto 1fr; min-width:0; min-height:0; }
+  .wbar { display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px 32px; border-bottom:1px solid var(--border-subtle); background:var(--s1); }
+  .crumb2 { font-size:13px; color:var(--t3); } .crumb2 a { color:var(--accent); text-decoration:none; }
+  .fctl { display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--s1); }
+  .fctl span { width:30px; height:26px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border-subtle); }
+  .fctl span:first-child { border-left:none; }
+  .fctl span.on { background:var(--accent-sub); }
+  .fctl i { display:flex; gap:2px; height:12px; } .fctl i u { display:block; border-radius:1px; background:var(--t3); }
+  .centre { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; background:var(--s1); }
+
+  .convhead { padding:14px 32px; border-bottom:1px solid var(--border-subtle); }
+  .convhead .in { max-width:720px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+  .convhead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .convhead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .stream { flex:1; min-height:0; overflow:hidden; padding:20px 32px; position:relative; display:flex; flex-direction:column; justify-content:flex-end; }
+  .stream > .col { width:100%; }
+  .col { max-width:720px; margin:0 auto; }
+  .av { width:32px; height:32px; border-radius:50%; flex:none; color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+  .av.sm { width:22px; height:22px; font-size:9px; }
+  .turn { margin-bottom:22px; font-size:15px; line-height:24px; }
+  .turn .h { display:flex; align-items:center; gap:8px; font-size:13px; line-height:18px; color:var(--t3); margin-bottom:6px; }
+  .turn .h b { color:var(--t1); font-weight:600; }
+  .turn.you { display:flex; flex-direction:column; align-items:flex-end; }
+  .turn.you .txt { background:var(--s2); border-radius:12px; padding:10px 14px; max-width:80%; }
+  .agent .txt p { margin:0 0 10px; }
+  .agent .txt h4 { font-size:15px; margin:14px 0 6px; }
+  .agent .txt ol, .agent .txt ul { margin:0 0 10px; padding-left:22px; }
+  .agent .txt pre { background:var(--s2); border-radius:8px; padding:8px 12px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; line-height:18px; margin:0 0 10px; color:var(--t1); }
+  .agent .txt a { color:var(--accent); text-decoration:none; }
+  .composer2 { margin:0 32px 20px; flex:none; }
+  .composer2 .box { max-width:720px; margin:0 auto; border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:var(--s1); }
+  .composer2 .ph { color:var(--t3); font-size:15px; padding:4px 2px 10px; }
+  .composer2 .ph.typed { color:var(--t1); }
+  .bar { display:flex; align-items:center; gap:8px; }
+  .mp { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:3px 8px; color:var(--t1); background:var(--s1); }
+  .chip { font-size:12px; color:var(--t2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; }
+  .sp { margin-left:auto; }
+  .sendb { width:30px; height:30px; border-radius:8px; background:var(--accent); display:inline-block; }
+  .stopb { font-size:13px; border:1px solid var(--border); border-radius:8px; padding:4px 12px; color:var(--t1); background:var(--s1); display:inline-flex; gap:6px; align-items:center; }
+  .stopb i { width:9px; height:9px; background:var(--t1); border-radius:2px; display:inline-block; }
+
+  /* The work line: what the agent did before its reply */
+  .wl { font-size:13px; line-height:20px; color:var(--t2); margin:0 0 10px; }
+  .wl .sum { display:flex; gap:6px; align-items:center; color:var(--t3); }
+  .wl .sum .chev { width:12px; color:var(--t3); }
+  .wl .act { display:flex; gap:8px; align-items:baseline; padding-left:18px; color:var(--t2); }
+  .wl .act .ic { width:12px; flex:none; color:var(--t3); text-align:center; }
+  .wl .act b { color:var(--t1); font-weight:500; }
+  .wl .open { border-left:2px solid var(--border-subtle); margin:4px 0 6px 5px; padding:2px 0 2px 12px; }
+  .wl .step { display:grid; grid-template-columns:86px 1fr auto; gap:8px; color:var(--t2); }
+  .wl .step .k { color:var(--t3); }
+  .wl .step .t { color:var(--t3); font-size:12px; }
+  .wl .thought { font-style:italic; color:var(--t3); margin:2px 0 6px; }
+  .wl a, .lnk { color:var(--accent); text-decoration:none; font-size:13px; }
+  .live { color:var(--t2); }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); margin-right:2px; }
+  .caret { display:inline-block; width:2px; height:17px; background:var(--accent); vertical-align:text-bottom; margin-left:2px; }
+  .foot { display:flex; gap:14px; align-items:center; font-size:12px; color:var(--t3); margin-top:-2px; }
+  .foot .ib { display:inline-flex; align-items:center; gap:4px; padding:2px 6px; border-radius:6px; }
+  .foot .ib.hv { background:var(--hover); color:var(--t1); }
+  .ghost { opacity:.35; }
+
+  .appr { border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin:4px 0 8px; font-size:14px; line-height:21px; }
+  .appr .t { font-weight:600; margin-bottom:4px; }
+  .appr .it { display:flex; gap:10px; align-items:baseline; padding:6px 0; border-top:1px solid var(--border-subtle); }
+  .appr .it:first-of-type { border-top:none; }
+  .appr .it code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); padding:1px 6px; border-radius:4px; color:var(--t1); }
+  .appr .why { color:var(--t2); font-size:13px; }
+  .acts { margin-top:10px; display:flex; gap:8px; align-items:center; }
+  .bp { font-size:13px; border-radius:6px; padding:4px 12px; border:1px solid var(--border); background:var(--s1); color:var(--t1); }
+  .bp.pri { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .quiet { font-size:13px; color:var(--t3); margin:4px 0 14px; display:flex; gap:8px; align-items:center; }
+  .fail { border:1px solid var(--danger-line); border-radius:10px; padding:12px 14px; font-size:14px; line-height:21px; margin:4px 0 6px; }
+  .fail .t { font-weight:600; }
+  .fail .why { color:var(--t2); font-size:13px; }
+  .divider { display:flex; align-items:center; gap:12px; font-size:12px; color:var(--t3); margin:6px 0 20px; }
+  .divider:before, .divider:after { content:''; flex:1; border-top:1px solid var(--border-subtle); }
+  .notice { border:1px solid var(--border); background:var(--s2); border-radius:10px; padding:10px 14px; font-size:13px; line-height:19px; color:var(--t2); margin:0 0 18px; }
+  .notice b { color:var(--t1); font-weight:500; }
+  .queued { opacity:.7; }
+  .qmeta { font-size:12px; color:var(--t3); margin-top:4px; display:flex; gap:10px; }
+  .usage { font-size:12px; color:var(--t3); font-variant-numeric:tabular-nums; }
+  .pop { position:absolute; right:calc(50% - 360px); top:4px; width:300px; border:1px solid var(--border); border-radius:10px; background:var(--s1); box-shadow:0 8px 24px #0000001f; padding:12px 14px; font-size:13px; line-height:19px; z-index:2; }
+  .pop h5 { margin:0 0 8px; font-size:13px; }
+  .kv { display:grid; grid-template-columns:110px 1fr; gap:4px 8px; font-size:13px; line-height:19px; }
+  .kv b { font-weight:400; color:var(--t3); }
+  .jump { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); font-size:12px; border:1px solid var(--border); border-radius:999px; padding:3px 12px; background:var(--s1); color:var(--t2); box-shadow:0 2px 8px #0000001a; }
+
+  /* Today */
+  .today { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+  .tdy { border:1px solid var(--border); border-radius:12px; background:var(--s1); padding:16px 18px; font-size:14px; }
+  .tdy .tm { display:flex; gap:10px; margin-bottom:14px; }
+  .tdy .nm { font-weight:600; font-size:13px; }
+  .tdy .st { font-size:12px; color:var(--t3); font-variant-numeric:tabular-nums; }
+  .tdy .mono { color:var(--t3); }
+  .tdy .grp { font-size:12px; color:var(--t3); border-left:2px solid var(--border-subtle); padding-left:8px; margin:0 0 6px; }
+  .tdy .ub { background:var(--s2); border-radius:14px; padding:8px 12px; display:inline-block; }
+  .num { display:inline-flex; width:18px; height:18px; border-radius:50%; background:var(--t1); color:var(--s1); font-size:10px; font-weight:600; align-items:center; justify-content:center; flex:none; vertical-align:middle; margin-right:4px; }
+  table.inv { border-collapse:collapse; font-size:13px; line-height:19px; width:100%; background:var(--s1); border:1px solid var(--border); border-radius:12px; }
+  table.inv td, table.inv th { border-bottom:1px solid var(--border-subtle); padding:7px 10px; text-align:left; vertical-align:top; }
+  table.inv th { color:var(--t3); font-weight:500; font-size:12px; }
+  table.inv td:first-child { white-space:nowrap; }
+  table.inv .p { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:var(--t3); }
+
+  /* Options */
+  .opts { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .optc { border:1px solid var(--border); border-radius:12px; background:var(--s1); padding:14px 16px; }
+  .optc.rec { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .optc h3 { margin:0 0 2px; font-size:15px; } .optc .s { color:var(--t2); font-size:13px; margin-bottom:12px; }
+  .optc .turn { font-size:14px; line-height:22px; margin-bottom:10px; }
+  .optc ul { margin:10px 0 0; padding-left:18px; color:var(--t2); font-size:13px; }
+  .tag { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); }
+  .set { border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px; font-size:13px; margin-top:8px; }
+  .set .row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .tg { width:30px; height:18px; border-radius:9px; background:var(--s3); position:relative; flex:none; }
+  .tg:after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--s1); }
+  .tg.on { background:var(--accent); } .tg.on:after { left:14px; }
+
+  .phones { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:340px; height:700px; border:1px solid var(--border); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; background:var(--s1); position:relative; }
+  .mhead { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-subtle); }
+  .back { color:var(--accent); font-size:20px; line-height:20px; }
+  .mhead .t { font-weight:600; flex:1; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mbtn { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:3px 8px; color:var(--t2); }
+  .mbody { flex:1; min-height:0; overflow:hidden; padding:12px 14px; position:relative; }
+  .mbody .turn { font-size:15px; line-height:23px; }
+  .mcomp { margin:10px 12px 16px; border:1px solid var(--border); border-radius:12px; padding:12px; color:var(--t3); font-size:15px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .scrim { position:absolute; inset:0; background:#0000004d; }
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:var(--s1); border-radius:18px 18px 0 0; padding:10px 16px 18px; border-top:1px solid var(--border); }
+  .grab { width:40px; height:4px; border-radius:2px; background:var(--s3); margin:0 auto 12px; }
+  .sheet .mi { padding:11px 4px; border-top:1px solid var(--border-subtle); font-size:15px; display:flex; justify-content:space-between; }
+  .sheet .mi:first-of-type { border-top:none; }
+  .sheet .mi span { color:var(--t3); font-size:13px; }
+  .side { max-width:400px; color:var(--t2); font-size:14px; }
+  .side b { color:var(--t1); font-weight:500; }
+
+  .notes { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:16px; }
+  .note { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); }
+  .note h3 { margin:0 0 8px; font-size:15px; line-height:22px; }
+  .note ul, .note ol { margin:0; padding-left:20px; color:var(--t2); }
+  .note li { margin-bottom:8px; }
+  .note li b { color:var(--t1); font-weight:500; }
+  .note.open { border-color:var(--warn-line); }
+  .note.agreed { border-color:var(--ok-line); }
+  details { margin-top:16px; color:var(--t2); }
+  details img { max-width:100%; border-radius:8px; border:1px solid var(--border-subtle); margin-top:8px; }
+
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+  .pair.one { grid-template-columns:1fr; }
+  .cf { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); display:flex; flex-direction:column; }
+  .band { gap:12px; font-size:14px; line-height:20px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
+  .band span { font-weight:500; letter-spacing:0; text-transform:none; font-size:13px; }
+  .band.before { background:var(--s3); color:var(--t1); }
+  .band.after { background:var(--accent); color:var(--on-accent); }
+  .band.new { background:var(--s2); color:var(--t2); border-bottom:1px dashed var(--border); }
+  .cf .convhead { padding:12px 20px; }
+  .cf .stream { padding:14px 20px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; flex:none; }
+  .cf .stream > div { width:100%; }
+  .cf .composer2 { margin:0 20px 16px; }
+  .facts { margin:12px 0 0; padding-left:18px; color:var(--t2); font-size:13px; line-height:19px; }
+  .facts li { margin-bottom:6px; } .facts b { color:var(--t1); font-weight:500; }
+  .facts .p { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:var(--t3); }
+  .bug { display:inline-block; font-size:11px; font-weight:600; border:1px solid var(--danger-line); color:var(--danger); border-radius:4px; padding:0 5px; margin-right:4px; }
+  .whybox { border:1px solid var(--border-subtle); border-radius:10px; background:var(--s1); padding:14px 18px; }
+  .whybox ol { margin:0; padding-left:20px; color:var(--t2); } .whybox li { margin-bottom:6px; } .whybox b { color:var(--t1); font-weight:500; }
+  /* today's look */
+  .tw { font-size:14px; }
+  .tu { display:flex; flex-direction:column; align-items:flex-end; margin-bottom:16px; }
+  .tu .m { font-size:12px; color:var(--t3); margin-bottom:4px; } .tu .m b { font-weight:500; }
+  .tu .b { background:var(--s2); border-radius:16px 4px 16px 16px; padding:9px 14px; font-size:15px; line-height:24px; max-width:72%; }
+  .cp { font-size:11px; color:var(--t3); }
+  .tg2 { font-size:12px; color:var(--t3); border-left:2px solid var(--border-subtle); padding-left:10px; margin:0 0 6px; line-height:20px; }
+  .tg2 .r { display:flex; gap:8px; } .tg2 .r .mono { color:var(--t3); font-size:11px; }
+  .tg2 .it { font-style:italic; }
+  .tr { display:flex; gap:12px; margin-bottom:16px; }
+  .tr .nm { font-weight:600; font-size:13px; display:flex; gap:8px; align-items:center; margin-bottom:4px; }
+  .tr .badge { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:var(--t3); background:var(--s2); border-radius:4px; padding:0 5px; font-weight:400; }
+  .tr .tx { font-size:15px; line-height:24px; }
+  .tr .tx p { margin:0 0 8px; }
+  .tr .st { font-size:12px; color:var(--t3); display:flex; justify-content:space-between; gap:8px; font-variant-numeric:tabular-nums; }
+  .tr .st .mono { font-size:11px; }
+  .tdots { letter-spacing:3px; color:var(--t3); }
+  .tbar { height:2px; background:var(--s3); border-radius:2px; position:relative; overflow:hidden; margin:4px 0 12px; }
+  .tbar:after { content:''; position:absolute; left:20%; width:30%; top:0; bottom:0; background:var(--accent); }
+  .tapp { border:1px solid var(--border); background:var(--accent-sub); border-radius:12px; padding:12px; font-size:13px; margin:4px 0 12px 34px; }
+  .tapp .h { color:var(--accent); font-size:12px; font-weight:500; }
+  .tapp .k { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--t3); margin-top:8px; }
+  .tbtn { display:inline-block; font-size:13px; font-weight:500; border-radius:8px; padding:4px 12px; margin-right:6px; }
+  .tbtn.ok { color:var(--ok); border:1px solid var(--ok-line); } .tbtn.no { color:var(--danger); border:1px solid var(--danger-line); }
+  .tdone { text-align:right; font-size:13px; font-weight:500; margin:0 0 14px; }
+  .tban { margin:0 20px 8px; border:1px solid var(--danger-line); border-radius:8px; padding:8px 12px; font-size:13px; color:var(--danger); display:flex; justify-content:space-between; }
+  .tcomp { margin:0 20px 16px; border:1px solid var(--border); border-radius:12px; padding:8px; }
+  .tcomp .ph { color:var(--t3); font-size:14px; padding:6px 8px 10px; }
+  .tcomp .bar { font-size:12px; color:var(--t3); gap:6px; }
+  .tcomp .stats { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tsend { font-size:13px; font-weight:500; border-radius:8px; padding:5px 12px; background:var(--accent); color:var(--on-accent); }
+  .tstop { font-size:13px; font-weight:500; border-radius:8px; padding:5px 12px; color:var(--danger); border:1px solid var(--danger-line); }
+  .empty { border:1px dashed var(--border); border-radius:12px; color:var(--t3); padding:40px 20px; text-align:center; font-size:14px; background:var(--s1); }
+  .sx { display:grid; grid-template-columns:14px 64px 1fr 40px; gap:6px; color:var(--t2); padding:1px 0; }
+  .sx .mk { color:var(--t3); text-align:center; }
+  .sx .vb { color:var(--t3); }
+  .sx .ob { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sx .tm { color:var(--t3); font-size:12px; text-align:right; }
+  .sx.ch .mk, .sx.ch .vb { color:var(--t1); font-weight:500; }
+  .sx.ch .ob { color:var(--t1); }
+  .sx.thk .ob { font-style:italic; color:var(--t3); white-space:normal; }
+  .sx .lk { color:var(--accent); text-decoration:none; }
+  .sx .cmd { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; }
+  .chev2 { color:var(--t3); }
+  .sub2 { margin:0 0 2px 90px; color:var(--t3); font-size:12px; line-height:18px; }
+  .showall { color:var(--t3); font-size:12px; padding:4px 0 4px 90px; }
+  .showall a { color:var(--accent); }
+  .footwrap { position:relative; }
+  .foot { gap:12px; }
+  .foot .ib.ic { position:relative; color:var(--t3); padding:5px; border-radius:6px; display:inline-flex; }
+  .foot .ib.ic.hv { background:var(--hover); color:var(--t1); }
+  .phone .foot .ib.ic { padding:11px; margin:-6px 0; }
+  .phone .foot .ib.ic svg { width:17px; height:17px; }
+  .tip { position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:var(--t1); color:var(--s1); font-size:12px; line-height:16px; padding:3px 8px; border-radius:6px; white-space:nowrap; z-index:6; }
+  .upop { position:absolute; top:calc(100% + 6px); left:44px; z-index:5; width:290px; border:1px solid var(--border); border-radius:12px; background:var(--s1); box-shadow:0 12px 32px #00000033; padding:10px 14px 12px; font-size:14px; }
+  .upop .uh { display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; font-size:13px; }
+  .upop .ux { color:var(--t3); padding:2px 6px; border-radius:6px; }
+  .upop .ur { display:flex; justify-content:space-between; padding:8px 0; border-top:1px solid var(--border-subtle); }
+  .upop .ur span { color:var(--t3); font-size:13px; }
+  .footwrap.up .upop { top:auto; bottom:calc(100% + 6px); }
+  .upop .un { font-size:11px; color:var(--t3); margin-top:6px; }
+  .boardsrc { font-size:12px; color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="boardhead">
+    <div>
+      <h1>Who replied, and when</h1>
+      <p>Your message and the agent's reply: who answered, with which model, when, and what sits under a reply.</p>
+    </div>
+    <div style="white-space:nowrap"><span class="pill">Draft for review · 2026-10-10</span></div>
+  </div>
+<div class="label">A message and a reply</div><div class="pair"><div class="cf"><div class="band before">Before — today<span>numbers as on Today</span></div><div class="convhead"><div class="in"><span class="av" style="background:#6366f1">PM</span><div><h2>Project UX redesign</h2><div class="sub">Project manager · started today 10:24</div></div></div></div><div class="stream" style="height:520px"><div><div class="tu"><div class="m"><span class="num">1</span><b>You</b> · 10:24 AM</div><div class="b">Turn them into tasks and give the first one to Frontend.</div><div class="cp">⧉ <span class="num">2</span></div></div><div class="tr"><span class="av" style="background:#6366f1">PM</span><div style="flex:1;min-width:0"><div class="nm"><span class="num">13</span>Project manager</div><div class="tx"><p>Done — the three tasks are on the Release board, and AGX-41 is with Frontend.</p></div><div class="st"><span><span class="num">5</span>18.6k in · 169 out · ~$0.013 · 37.5 Wh · 15.0 g CO₂ · <span class="mono">claude-sonnet-5</span> · 10:26 AM</span><span>⧉ <span class="num">2</span></span></div></div></div><div class="tu"><div class="m"><b>You</b> · 10:40 AM</div><div class="b">Which of them is the riskiest?</div><div class="cp">⧉</div></div><div class="tr"><span class="av" style="background:#6366f1">PM</span><div style="flex:1;min-width:0"><div class="nm">Project manager <span class="badge">claude-opus-5</span></div><div class="tx"><p>AGX-42: it touches the run queue.</p></div><div class="st"><span></span><span>⧉</span></div></div></div></div></div><div class="tcomp"><div class="ph">Message Project manager…</div><div class="bar"><span class="mp">Claude Sonnet 5 · $$ ▾</span><span class="stats">97.1k tok · ~$0.122 · 194.1 Wh · 77.6 g CO₂</span><span class="chip">🎙</span><span class="tsend">➤ Send</span></div></div></div><div class="cf"><div class="band after">After — proposed<span>Usage open on the first reply</span></div><div class="convhead"><div class="in"><span class="av" style="background:#6366f1">PM</span><div><h2>Project UX redesign</h2><div class="sub">Project manager · started today 10:24</div></div></div></div><div class="stream" style="height:520px"><div><div class="turn you"><div class="h"><span><b>You</b> · 10:24</span></div><div class="txt">Turn them into tasks and give the first one to Frontend.</div></div><div class="turn agent"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:26</span></div><div class="txt"><p>Done — the three tasks are on the Release board, and AGX-41 is with Frontend.</p></div><div class="footwrap"><div class="foot"><span class="ib ic" role="button" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="ib ic hv" role="button" aria-label="Usage" title="Usage"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-3"/></svg></span><span class="ib ic" role="button" aria-label="Details" title="Details"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></div><div class="upop" role="dialog" aria-label="Usage · this reply"><div class="uh"><b>Usage · this reply</b><span class="ux">✕</span></div><div class="ur">Tokens <span>18.8k</span></div><div class="ur">Estimated cost <span>about $0.013</span></div><div class="ur">Energy <span>about 38 Wh</span></div><div class="ur">CO₂ <span>about 15 g</span></div><div class="un">Energy and CO₂ are a flat estimate per token.</div></div></div></div><div class="divider">Now using Claude Opus 5 · 10:40</div><div class="turn you"><div class="h"><span><b>You</b> · 10:40</span></div><div class="txt">Which of them is the riskiest?</div></div><div class="turn agent"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:40</span></div><div class="txt"><p>AGX-42: it touches the run queue.</p></div><div class="footwrap"><div class="foot"><span class="ib ic" role="button" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="ib ic" role="button" aria-label="Usage" title="Usage"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-3"/></svg></span><span class="ib ic" role="button" aria-label="Details" title="Details"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></div></div></div></div></div><div class="composer2"><div class="box"><div class="ph">Message Project manager…</div><div class="bar"><span class="mp">Claude Sonnet 5 ▾</span><span class="chip">🎙</span><span class="sp"></span><span class="sendb"></span></div></div></div></div></div><ul class="facts"><li><span class="num">1</span> <b>Your message</b>: "You" and the time; on a shared task session, the sender's name. <span class="p">SessionMessages.tsx UserMessage; hq sessions/transcriptAuthors.ts</span></li><li><span class="num">2</span> <b>Copy</b> under every message and every reply, always shown.</li><li><span class="num">13</span> <b>Who replied</b>: avatar and name. <b>The model</b> appears only as an id inside the usage line, or as a badge when a reply has no usage (second reply). <b>The reply's time</b> is only in the usage line; without one it shows on hover only. <span class="p">SessionMessages.tsx AgentMessage, SessionComponents.tsx EntryStats</span></li><li>A <b>change of model</b> in the message box is not marked in the conversation. <span class="p">PanelChatView.tsx handleModelChange</span></li></ul><div class="label">Why</div><div class="whybox"><ol><li><b>The time sits in the reply's header, always</b> ("Project manager · 10:26") — today where it shows depends on whether the reply has usage.</li><li><b>Copy · Usage · Details › stay visible under each reply</b>, as in Claude and ChatGPT, and they work the same on a phone. <b>Usage</b> opens that reply's tokens and estimated cost (<a class="boardsrc" href="conv-usage.html">The usage line</a>); <b>Details ›</b> opens its run (52 on <a class="boardsrc" href="conv-work-line.html">What the agent did</a>).</li><li><b>The agent is who answered; the model is how.</b> An id like <span class="mono">claude-sonnet-5</span> under each reply is jargon. The model is in the message box and in Details.</li><li><b>A model change is marked once</b>, so a change in the answers has a visible reason.</li></ol></div>
+  <div class="label">Where we are</div>
+  <div class="notes">
+    <div class="note open"><h3>Open — answer by number</h3><ol><li style="list-style:none;margin-left:-20px">None open on this board.</li></ol></div>
+    <div class="note agreed"><h3>Agreed</h3><ul><li>58: the model is shown once, where it changes ("Now using Claude Opus 5 · 10:40"), not on each reply (owner, 2026-10-10).</li><li>A dot between name and time: "You · 10:24", "Project manager · 10:26" (owner, 2026-10-10).</li><li>Under each reply, visible, as quiet icons with a tooltip and an accessible label: Copy · Usage · Details (opens the run). Usage opens that reply's usage in a small panel floating above the conversation, anchored to the button and moving nothing — the same content as the phone's sheet; closes on ✕, Escape or a click outside (owner, 2026-10-10).</li></ul></div>
+    <div class="note"><h3>Log</h3><ul><li>2026-10-10 — owner: the three actions under a reply are icons only, quiet, each with a tooltip and an accessible label: Copy, Usage, Details (opens the run).</li><li>2026-10-10 — owner: the Usage popover floats above the conversation, anchored to the Usage button, and moves nothing; the same content as the phone's sheet, with ✕ (also Escape, or a click outside).</li><li>2026-10-10 — owner: 58 agreed (the model shown once, where it changes); the dot between name and time restored on every board; Copy · Usage · Details › visible under each reply, Usage opening that reply's usage.</li><li>2026-10-10 — split from the single conversation board at the owner's request: one board per feature, Before — today / After — proposed / Why.</li></ul></div>
+  </div>
+</div>
+<script>
+  (function () {
+    var root = document.documentElement;
+    var saved = null;
+    try { saved = localStorage.getItem('board-theme'); } catch (e) {}
+    function set(t) {
+      root.setAttribute('data-theme', t);
+      document.querySelectorAll('.theme button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+      try { localStorage.setItem('board-theme', t); } catch (e) {}
+    }
+    set(saved === 'dark' ? 'dark' : 'light');
+    document.querySelectorAll('.theme button').forEach(function (b) { b.addEventListener('click', function () { set(b.dataset.t); }); });
+  })();
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

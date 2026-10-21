@@ -1,0 +1,27 @@
+{
+  "name": "host_service",
+  "private": true,
+  "license": "Elastic-2.0",
+  "version": "0.1.0-alpha.1",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check:bundles": "node scripts/check-bundles.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:container": "vitest run -c vitest.container.config.ts"
+  },
+  "devDependencies": {
+    "@agenthix/core": "file:../core",
+    "@types/node": "^22.20.5",
+    "esbuild": "0.28.2",
+    "typescript": "5.8.2",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=24.14.1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1152.0"
+  }
+}

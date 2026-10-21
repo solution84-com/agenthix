@@ -1,0 +1,88 @@
+# An Execution Site — its server, its database, and the agent image it runs.
+#   docker compose -f site/compose.yml --env-file site/compose.env up -d --build
+# Then register it:  docker compose -f site/compose.yml exec site agenthix-site register <hq-url>
+#
+# The site publishes no port (ADR-0066): it dials hq, and agents reach it over
+# a network of their own. Its data folder is mounted at the same path inside
+# and out, because the Docker it drives resolves agent mounts on the machine.
+name: agenthix-site
+
+services:
+  site-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: agenthix_site
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${SITE_DB_PASSWORD:?Set SITE_DB_PASSWORD in site/compose.env}
+    volumes:
+      - site_db:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  agent-image:
+    # Builds the image every agent container runs; exits at once.
+    build:
+      context: ..
+      dockerfile: site/docker/agent.Dockerfile
+    image: agenthix-agent
+    # Not `<namespace>-agent-…`: that prefix is what the site's orphan sweep removes.
+    container_name: ${SITE_CONTAINER_NAME:-agenthix-site}-image-build
+    entrypoint: ["true"]
+    network_mode: none
+    restart: "no"
+
+  site:
+    build:
+      context: ..
+      dockerfile: site/docker/Dockerfile
+      target: server
+    image: agenthix-site-server
+    container_name: ${SITE_CONTAINER_NAME:-agenthix-site}
+    # An init process as PID 1 (Docker's tini): it passes `docker stop`'s
+    # SIGTERM on to the server, which shuts down cleanly, and it reaps any
+    # process that outlives its parent, which node as PID 1 would not.
+    init: true
+    environment:
+      PORT: "4201"
+      DATABASE_URL: postgresql://postgres:${SITE_DB_PASSWORD}@site-db:5432/agenthix_site
+      SITE_ROOT: ${SITE_ROOT:?Set SITE_ROOT in site/compose.env to an absolute path}
+      SITE_CONTAINER_NAME: ${SITE_CONTAINER_NAME:-agenthix-site}
+      AGENT_CONTAINER_ISOLATION: "true"
+      # Agents are named <namespace>-agent-…, labelled <namespace>.<key>, and grouped
+      # as the project <namespace>-agents: never this one, whose orphans `up
+      # --remove-orphans` removes.
+      HOST_NAMESPACE: ${HOST_NAMESPACE:-agenthix}
+      AGENT_NETWORK_RANGE: ${AGENT_NETWORK_RANGE:-10.213.0.0/16}
+      HQ_URL: ${HQ_URL:-}
+      HQ_PAIRING_SECRET: ${HQ_PAIRING_SECRET:-}
+      SECRETS_MASTER_KEY: ${SECRETS_MASTER_KEY:?Set SECRETS_MASTER_KEY in site/compose.env (openssl rand -base64 32)}
+      AGENT_MAX_CONCURRENT_RUNS: ${AGENT_MAX_CONCURRENT_RUNS:-}
+      AGENT_CONTAINER_MEMORY: ${AGENT_CONTAINER_MEMORY:-}
+      AGENT_CONTAINER_PIDS_LIMIT: ${AGENT_CONTAINER_PIDS_LIMIT:-}
+      AGENT_CONTAINER_CPUS: ${AGENT_CONTAINER_CPUS:-}
+      AGENT_SESSION_IDLE_MINUTES: ${AGENT_SESSION_IDLE_MINUTES:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+    volumes:
+      - ${SITE_ROOT}:${SITE_ROOT}
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [internal]
+    depends_on:
+      site-db:
+        condition: service_healthy
+      agent-image:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+networks:
+  internal: {}
+
+volumes:
+  site_db:

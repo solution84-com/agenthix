@@ -1,0 +1,9 @@
+{
+  // What runs in Node: the Vite and Vitest configs, and the tests (which also have jsdom's DOM).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "vite/client"]
+  },
+  "include": ["vite.config.ts", "vitest.config.ts", "vitest.setup.ts", "src/__tests__"],
+  "exclude": []
+}

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/solution84-com/agenthix/discussions
+    about: Ask a question or share an idea in Discussions.
+  - name: The user guide
+    url: https://agenthix.com/docs
+    about: How to install, use and run Agenthix.

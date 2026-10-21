@@ -1,0 +1,351 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ──────────────────────────────────────────────
+// Execution Site — site-owned models only.
+//
+// This module holds the execution layer. It has no User/Session/Auth tables by
+// design (spec §1): hq is the sole identity issuer, and site verifies hq-issued
+// tokens rather than authenticating anyone itself.
+//
+// The site-owned set is now fully declared: SiteConfig and HqConnection below
+// (the HQ-link mechanism, plan 5b), Workspace and RepoAttachment (storage,
+// plan 5c), and AgentSession/AgentRun/TranscriptEntry/ToolCallLog (the
+// runtime module further down, plan 5d-2) — each arrived alongside the code
+// that reads it, so nothing here sat idle drifting from hq's copy unused.
+//
+// These are the live rows. hq's copy of HqConnection was dropped when the
+// runtime moved here. hq still has a table named SiteConfig, but it is hq's own
+// row rather than a copy of this one: this site's identity (siteId) is read
+// from here and nowhere else.
+// ──────────────────────────────────────────────
+
+model SiteConfig {
+  id                String   @id @default("singleton")
+  // Stable per-installation identity. Generated once on first SiteConfig
+  // creation, never rotated. Source of truth for HQ's ExecutionSite registry.
+  siteId            String   @unique @default(uuid())
+  name              String   @default("Agenthix Site")
+  description       String   @default("")
+  bootstrapRequired Boolean  @default(false)
+  riskRules         Json?    // RiskRule[] — evaluated before built-in defaults; null = defaults only
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model HqConnection {
+  id              String    @id @default("singleton")
+
+  // Not written by pairing — reserved, currently
+  // unused.
+  nonce           String?   @unique
+  nonceExpiresAt  DateTime?
+
+  // Target hq (set once the site is paired — see registration/)
+  hqUrl           String
+
+  // Set once hq grants the registration (registrationService.ts's storeHqLink).
+  // siteId is NOT here — site identity lives on SiteConfig.
+  orgId           String?
+  hqWsUrl         String?
+  // This site's credential to hq, ENCRYPTED at rest (src/server/crypto/secretCrypto.ts,
+  // under this site's SECRETS_MASTER_KEY). Read only through hq/connectionToken.ts;
+  // a value it cannot decrypt is treated as no credential.
+  connectionToken String?
+  protocolVersion Int       @default(1)
+
+  status          String    @default("LINKING")
+  connectedAt     DateTime?
+
+  // Following hq to a new address (host-management spec §13, hq/addressFollow.ts). pairedHqUrl is the HQ_URL
+  // pairing last stored: while HQ_URL is still that, a followed hqUrl is kept across restarts. movingTo is the
+  // address hq said it moves to, not yet proved by the move check; moveProblem the last check's outcome.
+  pairedHqUrl     String?
+  movingTo        String?
+  movingSince     DateTime?
+  moveProblem     String?
+
+  // When hq said a restore of this site onto another machine replaced this copy (adr-0119): the link is REVOKED,
+  // and the site never dials again with the credential the restore replaced.
+  replacedAt      DateTime?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // NOTE: hq's former copy carried `users UserSettings[]`. UserSettings is hq-owned and
+  // never exists here, so the relation is dropped rather than becoming a dangling
+  // foreign key — the cross-app integrity trade-off spec §1's Consequence describes.
+}
+
+// ──────────────────────────────────────────────
+// Module: Runtime — AgentSession, AgentRun, TranscriptEntry, ToolCallLog
+// (moved from hq, plan 5d-2 task 3).
+//
+// Split by author, not by table:
+//   - AgentSession is authored BY HQ. hq mints id/sessionKey/createdAt and
+//     sends them in a SessionSeed (core's runtimeData.ts); site upserts the
+//     row verbatim (D3). So id/sessionKey/createdAt carry no @default here —
+//     the value crossing the wire is the only value that's ever right.
+//   - AgentRun, TranscriptEntry, ToolCallLog are authored BY SITE — the
+//     runtime creates them locally as a run executes — so they keep
+//     @id @default(uuid()) / @default(now()) exactly as hq's copies do.
+//
+// agentId, userId and taskId are hq-issued logical references: ids the other
+// side trusts but this database cannot validate, because Agent/User/Task are
+// hq-only tables with no relation declared here (spec §3's cross-database
+// reference trade-off — same shape as HqConnection's dropped `users` relation
+// above). Relations AMONG these four models are real Prisma relations, kept
+// exactly as hq has them, including their cascades.
+// ──────────────────────────────────────────────
+
+enum SessionStatus {
+  ACTIVE
+  EXPIRED
+  ARCHIVED
+  // The harness's own state for this conversation is gone; the history stays.
+  CLOSED
+}
+
+// Why a session is CLOSED — mirrors core's SESSION_CLOSED_REASONS.
+enum SessionClosedReason {
+  HARNESS_STATE_MISSING
+  LEFT_PROJECT
+  LEFT_ORGANISATION
+  PROJECT_DELETED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Site-only divergence from hq's copies, which store these as comment-vocabulary
+// Strings: after the cut these tables exist only here, so there's no shared-shape
+// reason left to stay stringly typed, and an out-of-vocabulary write failing loud
+// at the database is the point.
+enum ManifestStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  // An unanswered request replaced by something newer in its task or conversation.
+  SUPERSEDED
+}
+
+enum RiskLevel {
+  SAFE
+  LOW
+  MEDIUM
+  HIGH
+  FLAGGED
+}
+
+model AgentSession {
+  id         String            @id
+  sessionKey String            @unique
+  agentId    String
+  userId     String
+  title      String?
+  status     SessionStatus     @default(ACTIVE)
+  sessionType String           @default("chat")
+  model      String?
+  metadata   Json              @default("{}")
+  // Running token totals — incremented per run, used for O(1) cost/env display
+  totalInputTokens      Int @default(0)
+  totalOutputTokens     Int @default(0)
+  totalCacheReadTokens  Int @default(0)
+  totalCacheWriteTokens Int @default(0)
+  entries    TranscriptEntry[]
+  createdAt  DateTime
+  updatedAt  DateTime          @updatedAt
+  expiresAt  DateTime?
+  AgentRun   AgentRun[]
+  taskId     String?           @unique  // null = conversational; set = task-scoped (ADR-0030)
+  // Primary storage location the run works in (ADR-0039): an owner's files (workspaceId null) or a workspace.
+  primaryOwnerType  WorkspaceOwnerType?
+  primaryOwnerId    String?
+  primaryWorkspaceId String?
+  // Set only when status is CLOSED (person-scoped execution spec §4).
+  closedReason      SessionClosedReason?
+  // The runtime the session was created with — the agent's `runtime` at the
+  // time ("claude-sdk" | "opencode"). A conversation never moves between runtimes.
+  runtime           String?
+  // The harness's own id for this conversation's session, where the harness
+  // chooses it rather than taking ours — OpenCode names its sessions itself.
+  // Null for Claude, which files the session under our id, and before the
+  // conversation's first turn has created one.
+  harnessSessionId  String?
+  // The runtime's memory of the conversation as its last run left it (core's ContextUse): tokens now, where it
+  // summarises on its own, the model's window. Read from the runtime, never counted from the transcript.
+  contextUse        Json?
+
+  @@index([agentId])
+  @@index([userId])
+}
+
+model TranscriptEntry {
+  id         String       @id @default(uuid())
+  session    AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId  String
+  role       MessageRole
+  /// The person who sent a USER message (hq's user id; the site holds no identity store). Null on every other row.
+  authorId   String?
+  content    String
+  thought              String? // The internal reasoning process behind the message
+  thinkingDurationMs   Int?    // Total ms spent in thinking phases for this response
+  toolName   String?
+  toolInput  Json?
+  toolOutput Json?
+  /// On a TOOL line: the harness's own id for the call (Claude's tool_use_id, OpenCode's callID), which pairs the line with its ToolCallLog row. Null on every other line, and on a TOOL line written before it was recorded.
+  toolUseId  String?
+  model      String?
+  usage      Json?
+  /// The run that wrote the row; for a USER row, the run its message started. Null on a row written before it was recorded.
+  runId      String?
+  /// Set on a SYSTEM row: what it records (core's TRANSCRIPT_ENTRY_KINDS).
+  kind       TranscriptEntryKind?
+  /// The kind's own fields (core's RunFailedDetail, RunStoppedDetail, ContextSummarisedDetail).
+  detail     Json?
+  /// When it happened: a tool line when its call was made, a thought when it began.
+  createdAt  DateTime     @default(now())
+
+  @@index([sessionId, createdAt])
+  @@index([sessionId, toolUseId])
+  @@index([runId])
+}
+
+enum TranscriptEntryKind {
+  THOUGHT
+  RUN_FAILED
+  RUN_STOPPED
+  APPROVAL_REQUESTED
+  CONTEXT_SUMMARISED
+}
+
+model AgentRun {
+  id        String       @id @default(uuid())
+  agentId   String
+  session   AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
+
+  // Orchestration tracking
+  parentRun   AgentRun?  @relation("SubRuns", fields: [parentRunId], references: [id])
+  parentRunId String?
+  rootRunId   String? // The ID of the primary run that started this delegation chain
+  taskId      String? // null = conversational run, set = task run
+  subRuns     AgentRun[] @relation("SubRuns")
+
+  status     RunStatus @default(PENDING)
+  inputText  String
+  outputText String?
+  thought    String? // The detailed internal reasoning for this specific run
+  metadata   Json? // Flexible metadata for sub-agent types (e.g. search queries, code snippets)
+
+  model         String
+  usage         Json? // { inputTokens, outputTokens, totalTokens }
+  diagnosticLog Json?     @default("[]") // Detailed history of model attempts and errors
+  error         String?
+  startedAt     DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime  @default(now())
+
+  // The digest of each package's content this run loaded (ADR-0072). Org is null
+  // before an org exists.
+  agentPackageDigest     String?
+  orgPackageDigest       String?
+  platformPackageDigest  String?
+
+  // HITL manifest fields
+  manifestStatus     ManifestStatus?
+  pendingManifest    Json?     // ManifestRequest — from pre-flight agent output
+  approvedManifest   Json?     // ApprovedManifest — enforced by PreToolUse during run
+  manifestDecidedById String?  // hq's id of the person who approved or denied the request; null when undecided or no person is known
+  manifestDecidedAt  DateTime? // when the request was approved, denied, or replaced by something newer
+  contextUse         Json?     // the runtime's memory of the conversation as this run left it (core's ContextUse)
+  auditSummary       Json?     // AuditSummary — written at run completion
+
+  toolCallLogs ToolCallLog[]
+
+  @@index([agentId])
+  @@index([sessionId, createdAt])
+  @@index([taskId, createdAt])
+  @@index([parentRunId])
+}
+
+model ToolCallLog {
+  id          String    @id @default(uuid())
+  run         AgentRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  runId       String
+  toolName    String
+  toolInput   Json
+  /// The harness's own id for the call (Claude's tool_use_id, OpenCode's callID), when the gate was given one.
+  toolUseId   String?
+  riskLevel   RiskLevel
+  blocked     Boolean   @default(false)
+  blockReason String?
+  createdAt   DateTime  @default(now())
+
+  @@index([runId])
+}
+
+// ──────────────────────────────────────────────
+// Module: Storage — Workspaces and RepoAttachment (moved from hq, plan 5c).
+// hq KEEPS its own copy of WorkspaceOwnerType — AgentSession.primaryOwnerType
+// still uses it there. The two copies are independent
+// enums that happen to share a name and shape; neither references the other.
+// ──────────────────────────────────────────────
+
+/// Two things own storage: a person and a project (ADR-0061). A product and a
+/// programme group projects and own nothing — no files, no workspaces, no members.
+enum WorkspaceOwnerType {
+  project
+  user
+}
+
+model Workspace {
+  id           String             @id @default(uuid())
+  name         String
+  ownerType    WorkspaceOwnerType
+  ownerId      String
+  /// This installation's own SiteConfig.siteId — self-referential by design: the
+  /// rows live in the database of the site that holds the files. Boot warns if
+  /// any row disagrees (guards a database restored onto the wrong machine).
+  siteId       String
+  allowedTools Json?              // string[] — this workspace's contribution to the run's tool intersection (spec §H6); null = no cap, [] = no tools
+  repo         RepoAttachment?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([ownerType, ownerId])
+}
+
+// GitHub linkage over a storage location: a workspace (workspaceId set) OR an
+// owner's files dir (workspaceId null, identified by ownerType+ownerId). Holds the
+// repo URL; the .git checkout lives in the target dir.
+// One repo per workspace (@unique); one per owner's files enforced in code.
+model RepoAttachment {
+  id          String             @id @default(uuid())
+  ownerType   WorkspaceOwnerType
+  ownerId     String
+  workspaceId String?            @unique
+  workspace   Workspace?         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  repoUrl     String
+  createdAt   DateTime           @default(now())
+
+  @@index([ownerType, ownerId])
+}

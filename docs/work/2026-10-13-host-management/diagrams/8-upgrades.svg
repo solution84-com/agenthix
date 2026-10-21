@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1090 220" width="1090" height="220" role="img" aria-label="Upgrades">
+<title>Upgrades</title>
+<style>
+  svg { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --bg-primary:#f5f5f7; --bg-secondary:#ffffff; --bg-tertiary:#e5e5e7; --border:#c7c7cc; --text-primary:#1d1d1f;
+    --text-secondary:#6e6e73; --text-tertiary:#8e8e93; --accent:#0071e3; --success:#248a3d; --warning:#c46a00; --error:#d70015; }
+  @media (prefers-color-scheme: dark) { svg { --bg-primary:#1d1d1f; --bg-secondary:#2d2d2f; --bg-tertiary:#3d3d3f;
+    --border:#424245; --text-primary:#f5f5f7; --text-secondary:#98989d; --text-tertiary:#636366; --accent:#0a84ff;
+    --success:#30d158; --warning:#ff9f0a; --error:#ff453a; } }
+</style>
+<style>
+  .b { fill:var(--bg-secondary); stroke:var(--border); stroke-width:1.5; }
+  .g { fill:var(--bg-secondary); stroke:var(--success); stroke-width:2; }
+  .o { fill:var(--bg-tertiary); stroke:var(--warning); stroke-width:2; }
+  .r { fill:var(--bg-secondary); stroke:var(--error); stroke-width:2; }
+  .a { fill:var(--bg-secondary); stroke:var(--accent); stroke-width:2; }
+  .t { fill:var(--text-primary); font-size:13.5px; font-weight:700; }
+  .s { fill:var(--text-secondary); font-size:11.5px; }
+  .h { fill:var(--text-secondary); font-size:11.5px; font-weight:700; letter-spacing:.05em; }
+  .ttl { fill:var(--text-primary); font-size:17px; font-weight:700; }
+  .ar { fill:var(--text-secondary); font-size:18px; }
+  .cy { fill:var(--bg-secondary); stroke:var(--success); stroke-width:1.5; }
+  .cn { fill:var(--bg-secondary); stroke:var(--error); stroke-width:1.5; }
+  .ct { fill:var(--text-primary); font-size:12px; }
+  .cx { fill:var(--text-secondary); font-size:12px; text-decoration:line-through; }
+  .th { fill:var(--bg-tertiary); stroke:var(--border); }
+  .td { fill:var(--bg-secondary); stroke:var(--border); }
+</style>
+<rect x="0" y="0" width="1090" height="220" style="fill:var(--bg-primary)"/>
+<text class="ttl" x="20" y="34">Upgrades</text><rect class="b" x="20" y="54" width="150" height="108" rx="9"/><text class="t" x="30" y="76">Published</text><text class="s" x="30" y="94">every image carries</text><text class="s" x="30" y="109">its version and is</text><text class="s" x="30" y="124">signed</text><text class="ar" x="179" y="114">→</text><rect class="o" x="200" y="54" width="150" height="108" rx="9"/><text class="t" x="210" y="76">Signature checked</text><text class="s" x="210" y="94">the host service</text><text class="s" x="210" y="109">refuses an unsigned</text><text class="s" x="210" y="124">image</text><text class="ar" x="359" y="114">→</text><rect class="a" x="380" y="54" width="150" height="108" rx="9"/><text class="t" x="390" y="76">When</text><text class="s" x="390" y="94">fixes: automatically</text><text class="s" x="390" y="109">in the maintenance</text><text class="s" x="390" y="124">window; new</text><text class="s" x="390" y="139">versions: on request</text><text class="ar" x="539" y="114">→</text><rect class="g" x="560" y="54" width="150" height="108" rx="9"/><text class="t" x="570" y="76">Backup first</text><text class="ar" x="719" y="114">→</text><rect class="b" x="740" y="54" width="150" height="108" rx="9"/><text class="t" x="750" y="76">Upgrade</text><text class="s" x="750" y="94">booked with notice</text><text class="ar" x="899" y="114">→</text><rect class="g" x="920" y="54" width="150" height="108" rx="9"/><text class="t" x="930" y="76">Healthy?</text><text class="s" x="930" y="94">yes: done; no: roll</text><text class="s" x="930" y="109">back</text><text class="s" x="20" y="196">Automatic fixes are on by default; a fleet admin (or Cloud, for its machines) sets the window or turns them off.</text>
+</svg>

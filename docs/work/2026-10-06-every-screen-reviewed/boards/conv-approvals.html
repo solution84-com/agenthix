@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Approvals · draft</title>
+<style>  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --s3:#e6e6ee; --hover:#ebebf3;
+    --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0;
+    --accent:#6366f1; --accent-h:#4f46e5; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --danger:#dc2626;
+    --ok-line:#05966955; --warn-line:#b4530955; --danger-line:#dc262655;
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --s3:#242436; --hover:#2a2a40;
+    --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078;
+    --accent:#6366f1; --accent-h:#818cf8; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --ok-line:#34d39955; --warn-line:#fbbf2455; --danger-line:#f8717155;
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:820px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:32px 0 10px; }
+  .h2 { font-size:18px; line-height:26px; font-weight:600; margin:40px 0 4px; }
+  .lead { color:var(--t2); max-width:900px; margin:0 0 6px; }
+  .cap { font-size:12px; line-height:16px; color:var(--t3); margin-top:8px; }
+  .cap code, .mono { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; }
+
+  .frame { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .desk { display:grid; grid-template-columns:220px 1fr; height:820px; }
+  .nav { background:var(--s0); border-right:1px solid var(--border-subtle); padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .logo { font-weight:600; font-size:15px; padding:4px 8px 14px; display:flex; gap:8px; align-items:center; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; color:var(--t2); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+  .nav a.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .nav .sec { font-size:12px; color:var(--t3); padding:14px 8px 4px; }
+  .nav .n { font-size:12px; color:var(--warn); }
+  .pi { display:flex; align-items:center; gap:8px; }
+  .ava { width:20px; height:20px; flex:none; color:#fff; font-size:9px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; border-radius:5px; }
+  .nav .me { margin-top:auto; border-top:1px solid var(--border-subtle); padding:12px 8px 0; font-size:13px; color:var(--t2); }
+  .work2 { display:grid; grid-template-rows:auto 1fr; min-width:0; min-height:0; }
+  .wbar { display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px 32px; border-bottom:1px solid var(--border-subtle); background:var(--s1); }
+  .crumb2 { font-size:13px; color:var(--t3); } .crumb2 a { color:var(--accent); text-decoration:none; }
+  .fctl { display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--s1); }
+  .fctl span { width:30px; height:26px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border-subtle); }
+  .fctl span:first-child { border-left:none; }
+  .fctl span.on { background:var(--accent-sub); }
+  .fctl i { display:flex; gap:2px; height:12px; } .fctl i u { display:block; border-radius:1px; background:var(--t3); }
+  .centre { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; background:var(--s1); }
+
+  .convhead { padding:14px 32px; border-bottom:1px solid var(--border-subtle); }
+  .convhead .in { max-width:720px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+  .convhead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .convhead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .stream { flex:1; min-height:0; overflow:hidden; padding:20px 32px; position:relative; display:flex; flex-direction:column; justify-content:flex-end; }
+  .stream > .col { width:100%; }
+  .col { max-width:720px; margin:0 auto; }
+  .av { width:32px; height:32px; border-radius:50%; flex:none; color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+  .av.sm { width:22px; height:22px; font-size:9px; }
+  .turn { margin-bottom:22px; font-size:15px; line-height:24px; }
+  .turn .h { display:flex; align-items:center; gap:8px; font-size:13px; line-height:18px; color:var(--t3); margin-bottom:6px; }
+  .turn .h b { color:var(--t1); font-weight:600; }
+  .turn.you { display:flex; flex-direction:column; align-items:flex-end; }
+  .turn.you .txt { background:var(--s2); border-radius:12px; padding:10px 14px; max-width:80%; }
+  .agent .txt p { margin:0 0 10px; }
+  .agent .txt h4 { font-size:15px; margin:14px 0 6px; }
+  .agent .txt ol, .agent .txt ul { margin:0 0 10px; padding-left:22px; }
+  .agent .txt pre { background:var(--s2); border-radius:8px; padding:8px 12px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; line-height:18px; margin:0 0 10px; color:var(--t1); }
+  .agent .txt a { color:var(--accent); text-decoration:none; }
+  .composer2 { margin:0 32px 20px; flex:none; }
+  .composer2 .box { max-width:720px; margin:0 auto; border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:var(--s1); }
+  .composer2 .ph { color:var(--t3); font-size:15px; padding:4px 2px 10px; }
+  .composer2 .ph.typed { color:var(--t1); }
+  .bar { display:flex; align-items:center; gap:8px; }
+  .mp { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:3px 8px; color:var(--t1); background:var(--s1); }
+  .chip { font-size:12px; color:var(--t2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; }
+  .sp { margin-left:auto; }
+  .sendb { width:30px; height:30px; border-radius:8px; background:var(--accent); display:inline-block; }
+  .stopb { font-size:13px; border:1px solid var(--border); border-radius:8px; padding:4px 12px; color:var(--t1); background:var(--s1); display:inline-flex; gap:6px; align-items:center; }
+  .stopb i { width:9px; height:9px; background:var(--t1); border-radius:2px; display:inline-block; }
+
+  /* The work line: what the agent did before its reply */
+  .wl { font-size:13px; line-height:20px; color:var(--t2); margin:0 0 10px; }
+  .wl .sum { display:flex; gap:6px; align-items:center; color:var(--t3); }
+  .wl .sum .chev { width:12px; color:var(--t3); }
+  .wl .act { display:flex; gap:8px; align-items:baseline; padding-left:18px; color:var(--t2); }
+  .wl .act .ic { width:12px; flex:none; color:var(--t3); text-align:center; }
+  .wl .act b { color:var(--t1); font-weight:500; }
+  .wl .open { border-left:2px solid var(--border-subtle); margin:4px 0 6px 5px; padding:2px 0 2px 12px; }
+  .wl .step { display:grid; grid-template-columns:86px 1fr auto; gap:8px; color:var(--t2); }
+  .wl .step .k { color:var(--t3); }
+  .wl .step .t { color:var(--t3); font-size:12px; }
+  .wl .thought { font-style:italic; color:var(--t3); margin:2px 0 6px; }
+  .wl a, .lnk { color:var(--accent); text-decoration:none; font-size:13px; }
+  .live { color:var(--t2); }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); margin-right:2px; }
+  .caret { display:inline-block; width:2px; height:17px; background:var(--accent); vertical-align:text-bottom; margin-left:2px; }
+  .foot { display:flex; gap:14px; align-items:center; font-size:12px; color:var(--t3); margin-top:-2px; }
+  .foot .ib { display:inline-flex; align-items:center; gap:4px; padding:2px 6px; border-radius:6px; }
+  .foot .ib.hv { background:var(--hover); color:var(--t1); }
+  .ghost { opacity:.35; }
+
+  .appr { border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin:4px 0 8px; font-size:14px; line-height:21px; }
+  .appr .t { font-weight:600; margin-bottom:4px; }
+  .appr .it { display:flex; gap:10px; align-items:baseline; padding:6px 0; border-top:1px solid var(--border-subtle); }
+  .appr .it:first-of-type { border-top:none; }
+  .appr .it code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); padding:1px 6px; border-radius:4px; color:var(--t1); }
+  .appr .why { color:var(--t2); font-size:13px; }
+  .acts { margin-top:10px; display:flex; gap:8px; align-items:center; }
+  .bp { font-size:13px; border-radius:6px; padding:4px 12px; border:1px solid var(--border); background:var(--s1); color:var(--t1); }
+  .bp.pri { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .quiet { font-size:13px; color:var(--t3); margin:4px 0 14px; display:flex; gap:8px; align-items:center; }
+  .fail { border:1px solid var(--danger-line); border-radius:10px; padding:12px 14px; font-size:14px; line-height:21px; margin:4px 0 6px; }
+  .fail .t { font-weight:600; }
+  .fail .why { color:var(--t2); font-size:13px; }
+  .divider { display:flex; align-items:center; gap:12px; font-size:12px; color:var(--t3); margin:6px 0 20px; }
+  .divider:before, .divider:after { content:''; flex:1; border-top:1px solid var(--border-subtle); }
+  .notice { border:1px solid var(--border); background:var(--s2); border-radius:10px; padding:10px 14px; font-size:13px; line-height:19px; color:var(--t2); margin:0 0 18px; }
+  .notice b { color:var(--t1); font-weight:500; }
+  .queued { opacity:.7; }
+  .qmeta { font-size:12px; color:var(--t3); margin-top:4px; display:flex; gap:10px; }
+  .usage { font-size:12px; color:var(--t3); font-variant-numeric:tabular-nums; }
+  .pop { position:absolute; right:calc(50% - 360px); top:4px; width:300px; border:1px solid var(--border); border-radius:10px; background:var(--s1); box-shadow:0 8px 24px #0000001f; padding:12px 14px; font-size:13px; line-height:19px; z-index:2; }
+  .pop h5 { margin:0 0 8px; font-size:13px; }
+  .kv { display:grid; grid-template-columns:110px 1fr; gap:4px 8px; font-size:13px; line-height:19px; }
+  .kv b { font-weight:400; color:var(--t3); }
+  .jump { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); font-size:12px; border:1px solid var(--border); border-radius:999px; padding:3px 12px; background:var(--s1); color:var(--t2); box-shadow:0 2px 8px #0000001a; }
+
+  /* Today */
+  .today { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+  .tdy { border:1px solid var(--border); border-radius:12px; background:var(--s1); padding:16px 18px; font-size:14px; }
+  .tdy .tm { display:flex; gap:10px; margin-bottom:14px; }
+  .tdy .nm { font-weight:600; font-size:13px; }
+  .tdy .st { font-size:12px; color:var(--t3); font-variant-numeric:tabular-nums; }
+  .tdy .mono { color:var(--t3); }
+  .tdy .grp { font-size:12px; color:var(--t3); border-left:2px solid var(--border-subtle); padding-left:8px; margin:0 0 6px; }
+  .tdy .ub { background:var(--s2); border-radius:14px; padding:8px 12px; display:inline-block; }
+  .num { display:inline-flex; width:18px; height:18px; border-radius:50%; background:var(--t1); color:var(--s1); font-size:10px; font-weight:600; align-items:center; justify-content:center; flex:none; vertical-align:middle; margin-right:4px; }
+  table.inv { border-collapse:collapse; font-size:13px; line-height:19px; width:100%; background:var(--s1); border:1px solid var(--border); border-radius:12px; }
+  table.inv td, table.inv th { border-bottom:1px solid var(--border-subtle); padding:7px 10px; text-align:left; vertical-align:top; }
+  table.inv th { color:var(--t3); font-weight:500; font-size:12px; }
+  table.inv td:first-child { white-space:nowrap; }
+  table.inv .p { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:var(--t3); }
+
+  /* Options */
+  .opts { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .optc { border:1px solid var(--border); border-radius:12px; background:var(--s1); padding:14px 16px; }
+  .optc.rec { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .optc h3 { margin:0 0 2px; font-size:15px; } .optc .s { color:var(--t2); font-size:13px; margin-bottom:12px; }
+  .optc .turn { font-size:14px; line-height:22px; margin-bottom:10px; }
+  .optc ul { margin:10px 0 0; padding-left:18px; color:var(--t2); font-size:13px; }
+  .tag { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); }
+  .set { border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px; font-size:13px; margin-top:8px; }
+  .set .row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .tg { width:30px; height:18px; border-radius:9px; background:var(--s3); position:relative; flex:none; }
+  .tg:after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--s1); }
+  .tg.on { background:var(--accent); } .tg.on:after { left:14px; }
+
+  .phones { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:340px; height:700px; border:1px solid var(--border); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; background:var(--s1); position:relative; }
+  .mhead { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-subtle); }
+  .back { color:var(--accent); font-size:20px; line-height:20px; }
+  .mhead .t { font-weight:600; flex:1; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mbtn { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:3px 8px; color:var(--t2); }
+  .mbody { flex:1; min-height:0; overflow:hidden; padding:12px 14px; position:relative; }
+  .mbody .turn { font-size:15px; line-height:23px; }
+  .mcomp { margin:10px 12px 16px; border:1px solid var(--border); border-radius:12px; padding:12px; color:var(--t3); font-size:15px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .scrim { position:absolute; inset:0; background:#0000004d; }
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:var(--s1); border-radius:18px 18px 0 0; padding:10px 16px 18px; border-top:1px solid var(--border); }
+  .grab { width:40px; height:4px; border-radius:2px; background:var(--s3); margin:0 auto 12px; }
+  .sheet .mi { padding:11px 4px; border-top:1px solid var(--border-subtle); font-size:15px; display:flex; justify-content:space-between; }
+  .sheet .mi:first-of-type { border-top:none; }
+  .sheet .mi span { color:var(--t3); font-size:13px; }
+  .side { max-width:400px; color:var(--t2); font-size:14px; }
+  .side b { color:var(--t1); font-weight:500; }
+
+  .notes { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:16px; }
+  .note { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); }
+  .note h3 { margin:0 0 8px; font-size:15px; line-height:22px; }
+  .note ul, .note ol { margin:0; padding-left:20px; color:var(--t2); }
+  .note li { margin-bottom:8px; }
+  .note li b { color:var(--t1); font-weight:500; }
+  .note.open { border-color:var(--warn-line); }
+  .note.agreed { border-color:var(--ok-line); }
+  details { margin-top:16px; color:var(--t2); }
+  details img { max-width:100%; border-radius:8px; border:1px solid var(--border-subtle); margin-top:8px; }
+
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+  .pair.one { grid-template-columns:1fr; }
+  .cf { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); display:flex; flex-direction:column; }
+  .band { gap:12px; font-size:14px; line-height:20px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
+  .band span { font-weight:500; letter-spacing:0; text-transform:none; font-size:13px; }
+  .band.before { background:var(--s3); color:var(--t1); }
+  .band.after { background:var(--accent); color:var(--on-accent); }
+  .band.new { background:var(--s2); color:var(--t2); border-bottom:1px dashed var(--border); }
+  .cf .convhead { padding:12px 20px; }
+  .cf .stream { padding:14px 20px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; flex:none; }
+  .cf .stream > div { width:100%; }
+  .cf .composer2 { margin:0 20px 16px; }
+  .facts { margin:12px 0 0; padding-left:18px; color:var(--t2); font-size:13px; line-height:19px; }
+  .facts li { margin-bottom:6px; } .facts b { color:var(--t1); font-weight:500; }
+  .facts .p { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:var(--t3); }
+  .bug { display:inline-block; font-size:11px; font-weight:600; border:1px solid var(--danger-line); color:var(--danger); border-radius:4px; padding:0 5px; margin-right:4px; }
+  .whybox { border:1px solid var(--border-subtle); border-radius:10px; background:var(--s1); padding:14px 18px; }
+  .whybox ol { margin:0; padding-left:20px; color:var(--t2); } .whybox li { margin-bottom:6px; } .whybox b { color:var(--t1); font-weight:500; }
+  /* today's look */
+  .tw { font-size:14px; }
+  .tu { display:flex; flex-direction:column; align-items:flex-end; margin-bottom:16px; }
+  .tu .m { font-size:12px; color:var(--t3); margin-bottom:4px; } .tu .m b { font-weight:500; }
+  .tu .b { background:var(--s2); border-radius:16px 4px 16px 16px; padding:9px 14px; font-size:15px; line-height:24px; max-width:72%; }
+  .cp { font-size:11px; color:var(--t3); }
+  .tg2 { font-size:12px; color:var(--t3); border-left:2px solid var(--border-subtle); padding-left:10px; margin:0 0 6px; line-height:20px; }
+  .tg2 .r { display:flex; gap:8px; } .tg2 .r .mono { color:var(--t3); font-size:11px; }
+  .tg2 .it { font-style:italic; }
+  .tr { display:flex; gap:12px; margin-bottom:16px; }
+  .tr .nm { font-weight:600; font-size:13px; display:flex; gap:8px; align-items:center; margin-bottom:4px; }
+  .tr .badge { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:var(--t3); background:var(--s2); border-radius:4px; padding:0 5px; font-weight:400; }
+  .tr .tx { font-size:15px; line-height:24px; }
+  .tr .tx p { margin:0 0 8px; }
+  .tr .st { font-size:12px; color:var(--t3); display:flex; justify-content:space-between; gap:8px; font-variant-numeric:tabular-nums; }
+  .tr .st .mono { font-size:11px; }
+  .tdots { letter-spacing:3px; color:var(--t3); }
+  .tbar { height:2px; background:var(--s3); border-radius:2px; position:relative; overflow:hidden; margin:4px 0 12px; }
+  .tbar:after { content:''; position:absolute; left:20%; width:30%; top:0; bottom:0; background:var(--accent); }
+  .tapp { border:1px solid var(--border); background:var(--accent-sub); border-radius:12px; padding:12px; font-size:13px; margin:4px 0 12px 34px; }
+  .tapp .h { color:var(--accent); font-size:12px; font-weight:500; }
+  .tapp .k { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--t3); margin-top:8px; }
+  .tbtn { display:inline-block; font-size:13px; font-weight:500; border-radius:8px; padding:4px 12px; margin-right:6px; }
+  .tbtn.ok { color:var(--ok); border:1px solid var(--ok-line); } .tbtn.no { color:var(--danger); border:1px solid var(--danger-line); }
+  .tdone { text-align:right; font-size:13px; font-weight:500; margin:0 0 14px; }
+  .tban { margin:0 20px 8px; border:1px solid var(--danger-line); border-radius:8px; padding:8px 12px; font-size:13px; color:var(--danger); display:flex; justify-content:space-between; }
+  .tcomp { margin:0 20px 16px; border:1px solid var(--border); border-radius:12px; padding:8px; }
+  .tcomp .ph { color:var(--t3); font-size:14px; padding:6px 8px 10px; }
+  .tcomp .bar { font-size:12px; color:var(--t3); gap:6px; }
+  .tcomp .stats { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tsend { font-size:13px; font-weight:500; border-radius:8px; padding:5px 12px; background:var(--accent); color:var(--on-accent); }
+  .tstop { font-size:13px; font-weight:500; border-radius:8px; padding:5px 12px; color:var(--danger); border:1px solid var(--danger-line); }
+  .empty { border:1px dashed var(--border); border-radius:12px; color:var(--t3); padding:40px 20px; text-align:center; font-size:14px; background:var(--s1); }
+  .sx { display:grid; grid-template-columns:14px 64px 1fr 40px; gap:6px; color:var(--t2); padding:1px 0; }
+  .sx .mk { color:var(--t3); text-align:center; }
+  .sx .vb { color:var(--t3); }
+  .sx .ob { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sx .tm { color:var(--t3); font-size:12px; text-align:right; }
+  .sx.ch .mk, .sx.ch .vb { color:var(--t1); font-weight:500; }
+  .sx.ch .ob { color:var(--t1); }
+  .sx.thk .ob { font-style:italic; color:var(--t3); white-space:normal; }
+  .sx .lk { color:var(--accent); text-decoration:none; }
+  .sx .cmd { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; }
+  .chev2 { color:var(--t3); }
+  .sub2 { margin:0 0 2px 90px; color:var(--t3); font-size:12px; line-height:18px; }
+  .showall { color:var(--t3); font-size:12px; padding:4px 0 4px 90px; }
+  .showall a { color:var(--accent); }
+  .footwrap { position:relative; }
+  .foot { gap:12px; }
+  .foot .ib.ic { position:relative; color:var(--t3); padding:5px; border-radius:6px; display:inline-flex; }
+  .foot .ib.ic.hv { background:var(--hover); color:var(--t1); }
+  .phone .foot .ib.ic { padding:11px; margin:-6px 0; }
+  .phone .foot .ib.ic svg { width:17px; height:17px; }
+  .tip { position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:var(--t1); color:var(--s1); font-size:12px; line-height:16px; padding:3px 8px; border-radius:6px; white-space:nowrap; z-index:6; }
+  .upop { position:absolute; top:calc(100% + 6px); left:44px; z-index:5; width:290px; border:1px solid var(--border); border-radius:12px; background:var(--s1); box-shadow:0 12px 32px #00000033; padding:10px 14px 12px; font-size:14px; }
+  .upop .uh { display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; font-size:13px; }
+  .upop .ux { color:var(--t3); padding:2px 6px; border-radius:6px; }
+  .upop .ur { display:flex; justify-content:space-between; padding:8px 0; border-top:1px solid var(--border-subtle); }
+  .upop .ur span { color:var(--t3); font-size:13px; }
+  .footwrap.up .upop { top:auto; bottom:calc(100% + 6px); }
+  .upop .un { font-size:11px; color:var(--t3); margin-top:6px; }
+  .boardsrc { font-size:12px; color:var(--accent); }
+  /* receipt of an answer */
+  .rcpt { border:1px solid var(--border); border-radius:10px; padding:10px 14px 10px; margin:4px 0 14px; font-size:14px; line-height:21px; color:var(--t1); }
+  .rcpt.ok { border-left:3px solid var(--accent); }
+  .rcpt .rh { display:flex; gap:8px; align-items:center; font-weight:600; }
+  .rcpt .rh svg { flex:none; color:var(--t3); } .rcpt.ok .rh svg { color:var(--accent); } .rcpt.no .rh svg { color:var(--danger); }
+  .rcpt .rl { color:var(--t2); font-size:13px; line-height:20px; padding-left:26px; }
+  .rcpt .rf { padding-left:26px; display:flex; gap:12px; align-items:baseline; font-size:12px; color:var(--t3); margin-top:6px; }
+  .rcpt .rf a { color:var(--accent); text-decoration:none; margin-left:auto; }
+  .stmp { display:flex; gap:10px; align-items:baseline; border-top:1px solid var(--border); border-bottom:1px solid var(--border); padding:8px 0; margin:4px 0 14px; font-size:13px; line-height:20px; color:var(--t2); }
+  .stmp .sb { flex:none; font-size:11px; line-height:16px; font-weight:700; letter-spacing:.08em; border:1.5px solid currentColor; border-radius:4px; padding:0 6px; color:var(--t3); }
+  .stmp.ok .sb { color:var(--accent); } .stmp.no .sb { color:var(--danger); }
+  .stmp .go { margin-left:auto; color:var(--t3); }
+  .optcol { border:1px solid var(--border-subtle); border-radius:12px; background:var(--s1); padding:14px 16px; }
+  .optcol.rec { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .optcol h3 { margin:0 0 2px; font-size:15px; } .optcol .s { color:var(--t2); font-size:13px; margin-bottom:12px; }
+  .optcol .st3 { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:10px 0 2px; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="boardhead">
+    <div>
+      <h1>Approvals in a conversation</h1>
+      <p>When the agent needs a person's approval to go on: the request, the answer, and a request nobody answered.</p>
+    </div>
+    <div style="white-space:nowrap"><span class="pill">Draft for review · 2026-10-10</span></div>
+  </div>
+<div class="label">An approval asked mid-run — today</div><div class="cf"><div class="band before">Before — today<span>asked, then answered</span></div><div class="convhead"><div class="in"><span class="av" style="background:#6366f1">PM</span><div><h2>Project UX redesign</h2><div class="sub">Project manager · started today 10:24</div></div></div></div><div class="stream" style="height:560px"><div><div class="tu"><div class="m"><b>You</b> · 10:44 AM</div><div class="b">Check the release notes for the new SDK and update our dependency.</div><div class="cp">⧉</div></div><div class="tg2">▸ 2 tool calls ✓</div><div class="tr"><span class="av" style="background:#6366f1">PM</span><div style="flex:1;min-width:0"><div class="nm">Project manager</div><div class="tx"><p>To check the release notes I need to fetch them from the web, and to update the dependency I need to run npm.</p></div><div class="st"><span>24.1k in · 412 out · ~$0.021 · 49.0 Wh · 19.6 g CO₂ · <span class="mono">claude-sonnet-5</span> · 10:31 AM</span><span>⧉</span></div></div></div><div class="tapp"><div class="h"><span class="num">8</span>Agent requests extended access</div><div class="k">Additional tools</div><div class="mono" style="font-size:12px">WebFetch — check the release notes</div><div class="k">Bash prefixes</div><div class="mono" style="font-size:12px">npm install — move the SDK to 0.9.2</div><div style="margin-top:10px"><span class="tbtn ok">✓ Approve</span><span class="tbtn no">✕ Reject</span></div></div><div class="tdone" style="color:var(--ok)"><span class="num">9</span>✓ Manifest approved — agent is running</div></div></div><div class="tcomp"><div class="ph">Message Project manager…</div><div class="bar"><span class="mp">Claude Sonnet 5 · $$ ▾</span><span class="stats">97.1k tok · ~$0.122 · 194.1 Wh · 77.6 g CO₂</span><span class="chip">🎙</span><span class="tsend">➤ Send</span></div></div></div><div class="label">After — the same conversation, in three moments</div><style>.tri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:start}.tri .cf .stream{padding:14px 16px}.tri .cf .composer2{margin:0 16px 16px}.tri .appr .acts{display:flex;gap:8px}.tri .rcpt{margin-bottom:10px}@media(max-width:1100px){.tri{grid-template-columns:1fr}.tri .cf{grid-column:auto!important}}</style><div class="tri"><div class="cf"><div class="band after">1 · Waiting for an answer</div><div class="convhead"><div class="in"><span class="av" style="background:#6366f1">PM</span><div><h2>Project UX redesign</h2><div class="sub">Project manager · started today 10:24</div></div></div></div><div class="stream" style="height:600px"><div><div class="turn you"><div class="h"><span><b>You</b> · 10:44</span></div><div class="txt">Check the release notes for the new SDK and update our dependency.</div></div><div class="turn agent" style="margin-bottom:6px"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:45</span></div><div class="wl"><div class="sum"><span class="chev">▸</span>Read package.json and 2 files · thought for 4s</div></div><div class="appr"><div class="t">Project manager needs your approval to go on</div><div class="it"><b style="font-weight:500">Fetch a web page</b><span class="why">the SDK's release notes</span></div><div class="it"><code>npm install</code><span class="why">to move the SDK to 0.9.2</span></div><div class="acts"><span class="bp pri">Approve</span><span class="bp">Deny</span></div></div></div></div></div><div class="composer2"><div class="box"><div class="ph">Message Project manager…</div><div class="bar"><span class="mp">Claude Sonnet 5 ▾</span><span class="chip">🎙</span><span class="sp"></span><span class="sendb"></span></div></div></div></div><div class="cf"><div class="band after">2 · After Approve</div><div class="convhead"><div class="in"><span class="av" style="background:#6366f1">PM</span><div><h2>Project UX redesign</h2><div class="sub">Project manager · started today 10:24</div></div></div></div><div class="stream" style="height:600px"><div><div class="turn you"><div class="h"><span><b>You</b> · 10:44</span></div><div class="txt">Check the release notes for the new SDK and update our dependency.</div></div><div class="turn agent" style="margin-bottom:6px"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:45</span></div><div class="wl"><div class="sum"><span class="chev">▸</span>Read package.json and 2 files · thought for 4s</div></div><div class="wl ansl"><div class="sum"><span class="chev">▸</span>✓ Approved by Avery · 10:52 · fetch a web page, npm install</div></div></div><div class="turn agent"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:52</span></div><div class="wl"><div class="sum"><span class="chev">▸</span>Read the release notes, changed package.json, ran 1 command · thought for 6s</div></div><div class="txt"><p>Updated. 0.9.2 only fixes streaming retries.</p></div><div class="footwrap"><div class="foot"><span class="ib ic" role="button" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="ib ic" role="button" aria-label="Usage" title="Usage"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-3"/></svg></span><span class="ib ic" role="button" aria-label="Details" title="Details"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></div></div></div></div></div><div class="composer2"><div class="box"><div class="ph">Message Project manager…</div><div class="bar"><span class="mp">Claude Sonnet 5 ▾</span><span class="chip">🎙</span><span class="sp"></span><span class="sendb"></span></div></div></div></div><div class="cf"><div class="band after">3 · After Deny</div><div class="convhead"><div class="in"><span class="av" style="background:#6366f1">PM</span><div><h2>Project UX redesign</h2><div class="sub">Project manager · started today 10:24</div></div></div></div><div class="stream" style="height:600px"><div><div class="turn you"><div class="h"><span><b>You</b> · 10:44</span></div><div class="txt">Check the release notes for the new SDK and update our dependency.</div></div><div class="turn agent" style="margin-bottom:6px"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:45</span></div><div class="wl"><div class="sum"><span class="chev">▸</span>Read package.json and 2 files · thought for 4s</div></div><div class="wl ansl"><div class="sum"><span class="chev">▸</span>✕ Denied by Avery · 10:52 · fetch a web page, npm install</div></div></div><div class="turn agent"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:52</span></div><div class="txt"><p>OK — I haven't changed the dependency. If you want, I can list what changed in 0.9.2 from the changelog in the repository instead.</p></div><div class="footwrap"><div class="foot"><span class="ib ic" role="button" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="ib ic" role="button" aria-label="Usage" title="Usage"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-3"/></svg></span><span class="ib ic" role="button" aria-label="Details" title="Details"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></div></div></div></div></div><div class="composer2"><div class="box"><div class="ph">Message Project manager…</div><div class="bar"><span class="mp">Claude Sonnet 5 ▾</span><span class="chip">🎙</span><span class="sp"></span><span class="sendb"></span></div></div></div></div></div><div class="label">Snapshot 2 opened, and a request nobody answered</div><div class="tri"><div class="cf"><div class="band new">4 · Not answered<span>replaced by a newer message</span></div><div style="padding:14px 16px"><div class="turn you"><div class="h"><span><b>You</b> · 11:03</span></div><div class="txt">Never mind, look at the tests instead.</div></div><div class="turn agent" style="margin-bottom:6px"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:45</span></div><div class="wl"><div class="sum"><span class="chev">▸</span>Read package.json and 2 files · thought for 4s</div></div><div class="wl ansl"><div class="sum"><span class="chev">▸</span>Not answered — replaced by a newer message · 11:03 · fetch a web page, npm install</div></div></div><div class="cap" style="margin:0">The request card is replaced in place by this summary line when a newer message arrives; nothing follows it from this run.</div></div></div><div class="cf" style="grid-column:2 / 4"><div class="band after">2 · After Approve, both runs opened<span>the receipt sits between the two folds</span></div><div style="padding:14px 20px"><div class="turn agent" style="margin-bottom:6px"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:45</span></div><div class="wl"><div class="sum"><span class="chev">▾</span>Read package.json and 2 files · thought for 4s</div><div class="open"><div class="sx thk"><span class="mk"></span><span class="vb">Thought</span><span class="ob">The notes are on the web and the install needs npm; both need approval.</span><span class="tm">10:45</span></div><div class="sx"><span class="mk"></span><span class="vb">Read</span><span class="ob">package.json</span><span class="tm">10:45</span></div><div class="sx"><span class="mk"></span><span class="vb">Read</span><span class="ob">2 files <span class="chev2">›</span></span><span class="tm">10:45</span></div><div class="sx ch"><span class="mk">?</span><span class="vb">Asked</span><span class="ob">for approval</span><span class="tm">10:46</span></div></div></div><div class="wl ansl"><div class="sum"><span class="chev">▾</span>✓ Approved by Avery · 10:52 · fetch a web page, npm install</div></div><div class="appr done"><div class="t">Project manager asked for your approval</div><div class="it"><b style="font-weight:500">Fetch a web page</b><span class="why">the SDK's release notes</span></div><div class="it"><b style="font-weight:500"><code>npm install</code></b><span class="why">to move the SDK to 0.9.2</span></div><div class="st">✓ Approved by Avery · 10:52 · for this run only · <a>View on the run ›</a></div></div></div><div class="turn agent"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:52</span></div><div class="wl"><div class="sum"><span class="chev">▾</span>Read the release notes, changed package.json, ran 1 command · thought for 6s</div><div class="open"><div class="sx ch"><span class="mk">✓</span><span class="vb">Allowed</span><span class="ob">by Avery: fetch the release notes, run npm install</span><span class="tm">10:52</span></div><div class="sx thk"><span class="mk"></span><span class="vb">Thought</span><span class="ob">Read what changed before touching the dependency.</span><span class="tm">10:52</span></div><div class="sx"><span class="mk"></span><span class="vb">Fetched</span><span class="ob">the SDK release notes</span><span class="tm">10:52</span></div><div class="sx ch"><span class="mk">✎</span><span class="vb">Edited</span><span class="ob"><a class="lk">package.json</a></span><span class="tm">10:53</span></div><div class="sx ch"><span class="mk">▷</span><span class="vb">Ran</span><span class="ob"><span class="cmd">npm install</span></span><span class="tm">10:53</span></div></div></div><div class="txt"><p>Updated. 0.9.2 only fixes streaming retries.</p></div><div class="footwrap"><div class="foot"><span class="ib ic" role="button" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="ib ic" role="button" aria-label="Usage" title="Usage"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-3"/></svg></span><span class="ib ic" role="button" aria-label="Details" title="Details"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></div></div></div></div></div></div><div class="label">Many approvals — at most two shown, the rest behind "+ N more"</div><style>.moreRow{text-align:left;font-size:13px;padding:4px 0}.moreRow a{color:var(--t3);text-decoration:none}.allnote{font-size:12px;color:var(--t3);margin-top:6px}.manyg{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}@media(max-width:900px){.manyg{grid-template-columns:1fr}}</style><div class="manyg"><div class="cf"><div class="band new">Request card · 5 items · collapsed</div><div style="padding:14px 16px"><div class="appr"><div class="t">Project manager needs your approval to go on</div><div class="it"><b style="font-weight:500">Fetch a web page</b><span class="why">the SDK's release notes</span></div><div class="it"><b style="font-weight:500"><code>npm install</code></b><span class="why">to move the SDK to 0.9.2</span></div><div class="moreRow"><a>+ 3 more</a></div><div class="acts"><span class="bp pri">Approve</span><span class="bp">Deny</span></div><div class="allnote">Approve allows all 5</div></div></div></div><div class="cf"><div class="band new">Request card · 5 items · expanded</div><div style="padding:14px 16px"><div class="appr"><div class="t">Project manager needs your approval to go on</div><div class="it"><b style="font-weight:500">Fetch a web page</b><span class="why">the SDK's release notes</span></div><div class="it"><b style="font-weight:500"><code>npm install</code></b><span class="why">to move the SDK to 0.9.2</span></div><div class="it"><b style="font-weight:500"><code>npm test</code></b><span class="why">to check nothing broke</span></div><div class="it"><b style="font-weight:500">Edit <code>package.json</code></b><span class="why">to record the new version</span></div><div class="it"><b style="font-weight:500">Read the changelog</b><span class="why">in the repository</span></div><div class="moreRow"><a>Show less</a></div><div class="acts"><span class="bp pri">Approve</span><span class="bp">Deny</span></div><div class="allnote">Approve allows all 5</div></div></div></div><div class="cf"><div class="band new">Answered card, opened · collapsed</div><div style="padding:14px 16px"><div class="wl ansl"><div class="sum"><span class="chev">▾</span>✓ Approved by Avery · 10:52 · fetch a web page, npm install +3</div></div><div class="appr done"><div class="t">Project manager asked for your approval</div><div class="it"><b style="font-weight:500">Fetch a web page</b><span class="why">the SDK's release notes</span></div><div class="it"><b style="font-weight:500"><code>npm install</code></b><span class="why">to move the SDK to 0.9.2</span></div><div class="moreRow"><a>+ 3 more</a></div><div class="st">✓ Approved by Avery · 10:52 · for this run only · <a>View on the run ›</a></div></div></div></div><div class="cf"><div class="band new">Answered card, opened · expanded</div><div style="padding:14px 16px"><div class="wl ansl"><div class="sum"><span class="chev">▾</span>✓ Approved by Avery · 10:52 · fetch a web page, npm install +3</div></div><div class="appr done"><div class="t">Project manager asked for your approval</div><div class="it"><b style="font-weight:500">Fetch a web page</b><span class="why">the SDK's release notes</span></div><div class="it"><b style="font-weight:500"><code>npm install</code></b><span class="why">to move the SDK to 0.9.2</span></div><div class="it"><b style="font-weight:500"><code>npm test</code></b><span class="why">to check nothing broke</span></div><div class="it"><b style="font-weight:500">Edit <code>package.json</code></b><span class="why">to record the new version</span></div><div class="it"><b style="font-weight:500">Read the changelog</b><span class="why">in the repository</span></div><div class="moreRow"><a>Show less</a></div><div class="st">✓ Approved by Avery · 10:52 · for this run only · <a>View on the run ›</a></div></div></div></div></div><div class="label">The record of an answer — A, B, C or D</div><style>.appr.done{border-color:var(--border-subtle);color:var(--t2)}.appr.done .t{color:var(--t2)}.appr.done .st{border-top:1px solid var(--border-subtle);margin-top:6px;padding-top:8px;font-size:13px;color:var(--t3)}.appr.done .st a{color:var(--accent);text-decoration:none}.ansl{margin-bottom:6px}.tri .turn{margin-bottom:18px}.rdiv{margin:8px 0 6px}.rdiv .rtx{display:inline-flex;gap:6px;align-items:center;color:var(--t3);cursor:default}.rdiv .rtx svg{color:var(--t3);flex:none}.rlist{margin:-8px 0 14px;padding:0 0 8px;border-bottom:1px solid var(--border);font-size:13px;line-height:20px;color:var(--t2);text-align:left}.stmp{align-items:center;white-space:nowrap}.stmp .sb,.stmp .sby,.stmp .go{flex:none}.stmp .stx{min-width:0;flex:1 1 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rlist .rfoot{color:var(--t3);font-size:12px;margin-top:4px}.rlist .rfoot a{color:var(--accent)}.grey{opacity:.6}</style><div class="tri grey" style="margin-bottom:20px"><div class="optcol"><h3>A — receipt card · owner: too jarring</h3><div class="s">A compact outlined card.</div><div class="st3">Approved</div><div class="rcpt ok" role="group" aria-label="Approved by Avery · 10:52"><div class="rh"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg><span>Approved by Avery · 10:52</span></div><div class="rl">Fetch the SDK's release notes</div><div class="rl">Run npm install to move the SDK to 0.9.2</div><div class="rf"><span>For this run only</span><a>View on the run ›</a></div></div><div class="st3">Denied</div><div class="rcpt no" role="group" aria-label="Denied by Avery · 10:52"><div class="rh"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m14.5 9.5-5 5"/><path d="m9.5 9.5 5 5"/></svg><span>Denied by Avery · 10:52</span></div><div class="rl">Fetch the SDK's release notes</div><div class="rl">Run npm install to move the SDK to 0.9.2</div><div class="rf"><span>Nothing ran</span><a>View on the run ›</a></div></div></div><div class="optcol"><h3>B — stamped line · owner chose, then preferred the folded card</h3><div class="s">One full-width row between two hairlines.</div><div class="st3">Approved</div><div class="stmp ok"><span class="sb">APPROVED</span><span>by Avery · 10:52 — Run npm install to move the SDK to 0.9.2</span><span class="go">›</span></div><div class="st3">Denied</div><div class="stmp no"><span class="sb">DENIED</span><span>by Avery · 10:52 — Run git push to origin/main</span><span class="go">›</span></div><div class="st3">Not answered</div><div class="stmp na"><span class="sb">NOT ANSWERED</span><span>replaced by a newer message · 11:03 — Run git push to origin/main</span><span class="go">›</span></div></div><div class="optcol"><h3>C — timestamp line · owner: did not like the separator</h3><div class="s">A centred quiet line with hairlines either side.</div><div class="st3">Approved</div><div class="divider rdiv"><span class="rtx"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg><span>Approved by Avery · 10:52</span><span class="chev2">›</span></span></div><div class="st3">Denied</div><div class="divider rdiv"><span class="rtx"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m14.5 9.5-5 5"/><path d="m9.5 9.5 5 5"/></svg><span>Denied by Avery · 10:52</span><span class="chev2">›</span></span></div><div class="st3">Not answered</div><div class="divider rdiv"><span class="rtx"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M9 12h6"/></svg><span>Not answered — replaced by a newer message · 11:03</span><span class="chev2">›</span></span></div></div></div><div class="pair one"><div class="optcol rec"><h3>D — the card, folded once answered (proposed)</h3><div class="s">One summary line in the work line's style; it opens to the same request card in its answered state.</div><div class="st3">Approved · folded</div><div class="wl ansl"><div class="sum"><span class="chev">▸</span>✓ Approved by Avery · 10:52 · fetch a web page, npm install</div></div><div class="st3">Approved · opened</div><div class="wl ansl"><div class="sum"><span class="chev">▾</span>✓ Approved by Avery · 10:52 · fetch a web page, npm install</div></div><div class="appr done"><div class="t">Project manager asked for your approval</div><div class="it"><b style="font-weight:500">Fetch a web page</b><span class="why">the SDK's release notes</span></div><div class="it"><b style="font-weight:500"><code>npm install</code></b><span class="why">to move the SDK to 0.9.2</span></div><div class="st">✓ Approved by Avery · 10:52 · for this run only · <a>View on the run ›</a></div></div><div class="st3">Denied · folded</div><div class="wl ansl"><div class="sum"><span class="chev">▸</span>✕ Denied by Avery · 10:52 · fetch a web page, npm install</div></div><div class="st3">Denied · opened</div><div class="wl ansl"><div class="sum"><span class="chev">▾</span>✕ Denied by Avery · 10:52 · fetch a web page, npm install</div></div><div class="appr done"><div class="t">Project manager asked for your approval</div><div class="it"><b style="font-weight:500">Fetch a web page</b><span class="why">the SDK's release notes</span></div><div class="it"><b style="font-weight:500"><code>npm install</code></b><span class="why">to move the SDK to 0.9.2</span></div><div class="st">✕ Denied by Avery · 10:52 · Nothing ran · <a>View on the run ›</a></div></div><div class="st3">Not answered · folded</div><div class="wl ansl"><div class="sum"><span class="chev">▸</span>Not answered — replaced by a newer message · 11:03 · fetch a web page, npm install</div></div><div class="st3">Not answered · opened</div><div class="wl ansl"><div class="sum"><span class="chev">▾</span>Not answered — replaced by a newer message · 11:03 · fetch a web page, npm install</div></div><div class="appr done"><div class="t">Project manager asked for your approval</div><div class="it"><b style="font-weight:500">Fetch a web page</b><span class="why">the SDK's release notes</span></div><div class="it"><b style="font-weight:500"><code>npm install</code></b><span class="why">to move the SDK to 0.9.2</span></div><div class="st">Not answered — replaced by a newer message · 11:03 · Nothing ran · <a>View on the run ›</a></div></div></div></div><div class="label">On the phone — D</div><div class="phones"><div><div class="band after" style="border-radius:10px;margin-bottom:8px">After — proposed<span>after Approve</span></div><div class="phone" style="height:auto;min-height:420px"><div class="mhead"><span class="back">‹</span><span class="av sm" style="background:#6366f1">PM</span><span class="t">Project UX redesign</span><span class="mbtn">Project</span></div><div class="mbody"><div class="turn you"><div class="h"><span><b>You</b> · 10:44</span></div><div class="txt">Check the release notes for the new SDK and update our dependency.</div></div><div class="turn agent" style="margin-bottom:6px"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:45</span></div><div class="wl"><div class="sum"><span class="chev">▸</span>Read package.json and 2 files · thought for 4s</div></div><div class="wl ansl"><div class="sum"><span class="chev">▸</span>✓ Approved by Avery · 10:52 · fetch a web page, npm install</div></div></div><div class="turn agent"><div class="h"><span class="av sm" style="background:#6366f1">PM</span><span><b>Project manager</b> · 10:52</span></div><div class="wl"><div class="sum"><span class="chev">▸</span>Read the release notes, changed package.json, ran 1 command · thought for 6s</div></div><div class="txt"><p>Updated. 0.9.2 only fixes streaming retries.</p></div><div class="footwrap"><div class="foot"><span class="ib ic" role="button" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><span class="ib ic" role="button" aria-label="Usage" title="Usage"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M8 17v-5"/><path d="M13 17V8"/><path d="M18 17v-3"/></svg></span><span class="ib ic" role="button" aria-label="Details" title="Details"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></div></div></div></div><div class="mcomp"><span>Message Project manager…</span><span>🎙</span></div></div></div></div><div class="cap"><b>D is the proposal</b>: the card the person answered is the record, folded to one summary line like the work line and opened to the same card in its answered state. A, B and C are kept small and greyed.</div><ul class="facts"><li><span class="num">8</span> <b>The request</b>: "Agent requests extended access", then "Additional tools" and "Bash prefixes" with the agent's reason; <b>Approve / Reject</b> tinted green and red; Reject asks an optional reason. A conversation's request carries no summary: the reply above it explains. Restored on reload while it waits. <span class="p">ManifestApprovalBubble.tsx; site server/runtime/deferredManifestReport.ts</span></li><li><span class="num">9</span> <b>Once answered</b>: a line in <i>your</i> column, "Manifest approved — agent is running" or "Manifest rejected — reason", stored as a special message of yours. <span class="p">SessionMessages.tsx UserMessage, __MANIFEST_APPROVED__</span></li><li>The spec says <b>Reject</b> here (§5) and <b>Deny</b> in Notifications and Runs (§6). Under §9 a run never waits: what needs approval is refused and listed, the run ends, and approving starts the next run with that alone allowed.</li></ul><div class="label">Why</div><div class="whybox"><ol><li><b>Plain words</b>: who needs what to go on, each item as what it will do and why — no "manifest", "extended access" or "Bash prefixes".</li><li><b>Approve / Deny</b>, the same words as Notifications and Runs, where the same request also appears.</li><li><b>No state colours</b> on the buttons: Approve is the main action, Deny the other.</li><li><b>The card the person answered is the record</b> — the same thing, folded, so nothing new to learn; it sits in the run's flow like the other folded lines. It is not a message of yours you never wrote. It names who answered: in a shared project conversation that may be another member, or the person from Notifications.</li><li><b>Opened, the card shows what was allowed</b> in plain words, for how long, and a link to the run.</li><li>The request ends a run and the answer starts the next, so the answered card sits between two work lines, in the order it happened.</li><li><b>A request nobody answered says so</b> once a newer message replaced it (§9), instead of vanishing.</li><li><b>"Approving starts the next run"</b> tells the person what Approve does under §9.</li></ol></div>
+  <div class="label">Where we are</div>
+  <div class="notes">
+    <div class="note open"><h3>Open — answer by number</h3><ol><li style="list-style:none;margin-left:-20px">None open on this board.</li></ol></div>
+    <div class="note agreed"><h3>Agreed</h3><ul><li>Deny in a conversation starts a short follow-up run that tells the agent what was denied, so it can say what it will do instead; a task is unchanged (owner, 2026-10-11).</li><li>A list of approvals shows at most two, then "+ N more" that expands and collapses (owner, 2026-10-10). Approve and Deny always cover every item.</li><li>56 (part): the request in plain English — what it will do and why, never "Bash prefixes", "extended access" or "Manifest" — with Approve and Deny as in Notifications (owner, 2026-10-10). The record of the answer is 56b.</li></ul></div>
+    <div class="note"><h3>Log</h3><ul><li>2026-10-11 — owner: Deny in a conversation starts a short follow-up run so the agent says what it will do instead; a task is unchanged. Added to Agreed.</li><li>2026-10-10 — owner agreed 56b ("yes, this is now much better"); moved from Open to Agreed.</li><li>2026-10-10 — owner changed direction again: keep the same request card, in an answered state, folded like the work line's summary; opened it is the same card with a status row instead of the buttons. Drawn everywhere as D; A, B and C greyed; 56b moved back to Open.</li><li>2026-10-10 — owner did not like the separator for the approved or denied state and chose B, the stamped line: it replaces the timestamp line everywhere, opens in place to the list (two, then "+ N more") and "For this run only · View on the run"; A and C greyed; 56b moved to Agreed.</li><li>2026-10-10 — owner: with many approvals, show at most two and a quiet "+ N more" that expands in place and collapses; drawn with five items for the request card and for the opened timestamp line.</li><li>2026-10-10 — owner found the receipt card too jarring after the answer (the jarring part is over once the approval is waiting): the record is redrawn as a timestamp line like the model change, opening in place to what was allowed; A and B greyed, C proposed; 56b moved back to Open.</li><li>2026-10-10 — After redrawn as three snapshots of one conversation (waiting, after Approve, after Deny) plus one opened example: the request card is replaced in place by the receipt, between the run that asked and the run that follows (owner, on how the receipt looks beside the tool calls).</li><li>2026-10-10 — owner answered 56 in part: plain-English request with Approve / Deny agreed; for the record of the answer, "we need a standout design because it's quite important — it's like a permission slip or a receipt." Redrawn as a receipt; two options (A receipt card, B stamped line) drawn in three states; the After frame and the phone use A.</li><li>2026-10-10 — owner chose A (the receipt card) before seeing it: "let's go with A and see what it looks like"; 56b moved from Open to Agreed, to confirm once seen.</li><li>2026-10-10 — split from the single conversation board at the owner's request: one board per feature, Before — today / After — proposed / Why.</li></ul></div>
+  </div>
+</div>
+<script>
+  (function () {
+    var root = document.documentElement;
+    var saved = null;
+    try { saved = localStorage.getItem('board-theme'); } catch (e) {}
+    function set(t) {
+      root.setAttribute('data-theme', t);
+      document.querySelectorAll('.theme button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+      try { localStorage.setItem('board-theme', t); } catch (e) {}
+    }
+    set(saved === 'dark' ? 'dark' : 'light');
+    document.querySelectorAll('.theme button').forEach(function (b) { b.addEventListener('click', function () { set(b.dataset.t); }); });
+  })();
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

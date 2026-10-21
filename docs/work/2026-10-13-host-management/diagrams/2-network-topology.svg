@@ -1,0 +1,73 @@
+<svg viewBox="0 0 1200 690"  xmlns="http://www.w3.org/2000/svg" width="1200" height="690" role="img" aria-label="Network topology">
+<title>Network topology</title>
+<style>
+  svg { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --bg-primary:#f5f5f7; --bg-secondary:#ffffff; --bg-tertiary:#e5e5e7; --border:#c7c7cc; --text-primary:#1d1d1f;
+    --text-secondary:#6e6e73; --text-tertiary:#8e8e93; --accent:#0071e3; --success:#248a3d; --warning:#c46a00; --error:#d70015; }
+  @media (prefers-color-scheme: dark) { svg { --bg-primary:#1d1d1f; --bg-secondary:#2d2d2f; --bg-tertiary:#3d3d3f;
+    --border:#424245; --text-primary:#f5f5f7; --text-secondary:#98989d; --text-tertiary:#636366; --accent:#0a84ff;
+    --success:#30d158; --warning:#ff9f0a; --error:#ff453a; } }
+</style>
+<rect x="0" y="0" width="1200" height="690" style="fill:var(--bg-primary)"/>
+  <defs>
+    <marker id="g1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--success)"/></marker>
+    <marker id="g2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--accent)"/></marker>
+    <linearGradient id="gcloud" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--accent);stop-opacity:.16"/><stop offset="1" style="stop-color:var(--accent);stop-opacity:.04"/></linearGradient>
+  </defs>
+  <style>
+    .gcl { fill:url(#gcloud); stroke:var(--accent); stroke-width:2; stroke-dasharray:8 5; }
+    .gm { fill:var(--bg-secondary); stroke:var(--warning); stroke-width:2; }
+    .gb { fill:var(--bg-primary); stroke:var(--border); stroke-width:1.3; }
+    .ghs { fill:var(--bg-tertiary); stroke:var(--warning); stroke-width:2; }
+    .ghm { fill:var(--bg-primary); stroke:var(--success); stroke-width:2.8; }
+    .gq { fill:var(--bg-primary); stroke:var(--accent); stroke-width:2; }
+    .gnet { fill:var(--bg-tertiary); stroke:none; opacity:.55; }
+    .gt { fill:var(--text-primary); font-size:14.5px; font-weight:700; }
+    .gs { fill:var(--text-secondary); font-size:11.5px; }
+    .gml { fill:var(--warning); font-size:11.5px; font-weight:700; letter-spacing:.04em; }
+    .gcll { fill:var(--accent); font-size:12px; font-weight:700; letter-spacing:.05em; }
+    .gg { stroke:var(--success); stroke-width:2.6; fill:none; }
+    .gbl { stroke:var(--accent); stroke-width:2.2; fill:none; }
+    .glab { font-size:11.5px; font-weight:700; }
+  </style>
+
+  <!-- TIER 1: hosted service -->
+  <rect class="gcl" x="170" y="14" width="860" height="200" rx="44"/>
+  <text class="gcll" x="210" y="44">CLOUD — OUTSIDE THIS REPOSITORY</text>
+  <rect class="gb" x="210" y="64" width="230" height="58" rx="8"/><text class="gt" x="224" y="88">Dashboard and API</text><text class="gs" x="224" y="106">what the Host Manager calls</text>
+  <rect class="gb" x="470" y="64" width="210" height="58" rx="8"/><text class="gt" x="484" y="88">Cloud controller</text><text class="gs" x="484" y="106">runs its own machines</text><rect class="gb" x="470" y="140" width="210" height="52" rx="8"/><text class="gt" x="484" y="162">Relay</text><text class="gs" x="484" y="180">remote access, only while on</text>
+  <rect class="gm" x="740" y="40" width="250" height="158" rx="10"/><text class="gml" x="754" y="60">ITS MACHINES</text>
+  <rect class="ghs" x="756" y="72" width="218" height="44" rx="8"/><text class="gt" x="770" y="99">host service</text>
+  <rect class="gb" x="756" y="130" width="218" height="52" rx="8"/><text class="gt" x="770" y="152">sites, or the org's hq</text><text class="gs" x="770" y="170">run for the organisation</text>
+  <path class="gbl" d="M756,94 L682,94" marker-end="url(#g2)"/>
+
+  <!-- TIER 2: Host Manager -->
+  <rect class="gb" x="30" y="300" width="200" height="58" rx="8"/><text class="gt" x="44" y="324">Fleet admins</text><text class="gs" x="44" y="342">browser</text>
+  <rect class="gm" x="330" y="268" width="540" height="130" rx="12"/>
+  <text class="gml" x="346" y="290">HQ'S MACHINE — RUNS THE HOST MANAGER BY DEFAULT</text>
+  <rect class="ghm" x="350" y="302" width="200" height="62" rx="10"/><text class="gt" x="366" y="328">Host Manager</text><text class="gs" x="366" y="348">listens on 127.0.0.1 only</text><rect class="gq" x="565" y="302" width="120" height="62" rx="8"/><text class="gt" x="579" y="328">hq</text><text class="gs" x="579" y="348">the one port</text><path class="gg" d="M563,333 L552,333" marker-end="url(#g1)"/>
+  <rect class="ghs" x="700" y="302" width="150" height="62" rx="8"/><text class="gt" x="714" y="330">host service</text><text class="gs" x="714" y="348">its own</text>
+  
+  <path class="gg" d="M230,330 L348,330" marker-end="url(#g1)"/><text class="gs" x="236" y="322">on the machine</text><text class="gs" x="236" y="352">or an SSH tunnel</text>
+  <path class="gg" d="M420,302 L420,124" marker-end="url(#g1)"/><path class="gg" d="M550,333 L563,333" marker-end="url(#g1)"/>
+  <text class="glab" x="412" y="250" text-anchor="end" style="fill:var(--success)">with the admin's own sign-in</text>
+  <path class="gg" d="M520,302 L520,194" marker-end="url(#g1)" style="stroke-dasharray:6 5"/><text class="glab" x="528" y="250" style="fill:var(--success)">remote access tunnel — turned on only at this machine</text>
+
+  <!-- network band -->
+  <rect class="gnet" x="20" y="430" width="1160" height="40" rx="8"/>
+  <text class="glab" x="36" y="455" style="fill:var(--success)">the network — each host service dials out to hq's port; nothing comes in</text>
+
+  <!-- TIER 3: org's machines -->
+
+  <rect class="gm" x="450" y="510" width="300" height="150" rx="12"/><text class="gml" x="466" y="532">OFFICE SERVER</text>
+  <rect class="ghs" x="470" y="544" width="260" height="44" rx="8"/><text class="gt" x="484" y="571">host service</text>
+  <rect class="gb" x="470" y="600" width="260" height="44" rx="8"/><text class="gt" x="484" y="627">a site</text>
+
+  <rect class="gm" x="840" y="510" width="300" height="150" rx="12"/><text class="gml" x="856" y="532">A LAPTOP, BEHIND HOME WI-FI</text>
+  <rect class="ghs" x="860" y="544" width="260" height="44" rx="8"/><text class="gt" x="874" y="571">host service</text>
+  <rect class="gb" x="860" y="600" width="260" height="44" rx="8"/><text class="gt" x="874" y="627">a site</text>
+
+    <path class="gg" d="M600,544 L600,490 L615,490 L615,366" marker-end="url(#g1)"/>
+  <path class="gg" d="M990,544 L990,500 L655,500 L655,366" marker-end="url(#g1)"/>
+  
+</svg>

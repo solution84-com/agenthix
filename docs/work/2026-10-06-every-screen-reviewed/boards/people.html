@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>People · living design</title>
+<style>
+  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --s3:#e6e6ee; --hover:#ebebf3;
+    --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0;
+    --accent:#6366f1; --accent-h:#4f46e5; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --danger:#dc2626;
+    --ok-line:#05966955; --warn-line:#b4530955;
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --s3:#242436; --hover:#2a2a40;
+    --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078;
+    --accent:#6366f1; --accent-h:#818cf8; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --ok-line:#34d39955; --warn-line:#fbbf2455;
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:760px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .pill.live { color:var(--ok); border-color:var(--ok-line); }
+  .theme { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-left:8px; vertical-align:middle; }
+  .theme button { border:0; background:var(--s1); color:var(--t2); font:inherit; font-size:13px; padding:4px 12px; cursor:pointer; }
+  .theme button.on { background:var(--accent); color:var(--on-accent); }
+  .boards { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  .boards a { color:var(--t2); text-decoration:none; font-size:13px; padding:4px 10px; border-radius:6px; border:1px solid var(--border-subtle); background:var(--s1); }
+  .boards a.on { color:var(--t1); border-color:var(--accent); background:var(--accent-sub); }
+  .boards span { font-size:13px; padding:4px 10px; color:var(--t3); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:28px 0 10px; }
+
+  .frame { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .desk { display:grid; grid-template-columns:220px 1fr 300px; height:780px; }
+  .nav { background:var(--s0); border-right:1px solid var(--border-subtle); padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .logo { font-weight:600; font-size:15px; padding:4px 8px 14px; display:flex; gap:8px; align-items:center; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; color:var(--t2); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+  .nav a.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .nav .sec { font-size:12px; color:var(--t3); padding:14px 8px 4px; display:flex; justify-content:space-between; }
+  .sq { width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:8px; }
+  .nav .n { font-size:12px; color:var(--warn); }
+  .pi { display:flex; align-items:center; gap:8px; }
+  .ava { width:20px; height:20px; flex:none; color:#fff; font-size:9px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+  .ava.proj, .ava.bd { border-radius:5px; }
+  .ava.agent { border-radius:50%; }
+  .nav .drag { color:var(--t3); font-size:11px; letter-spacing:-2px; }
+  .tact { display:flex; justify-content:space-between; align-items:center; }
+  .mini { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:1px 7px; color:var(--t1); background:var(--s1); margin-left:4px; }
+  .mini.stop { color:var(--danger); }
+  .nav .me { margin-top:auto; border-top:1px solid var(--border-subtle); padding:12px 8px 0; font-size:13px; color:var(--t2); }
+
+  .desk > * { min-height:0; }
+  .centre { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; background:var(--s1); }
+  .crumb { padding:14px 32px 0; font-size:13px; color:var(--t3); }
+  .crumb a { color:var(--accent); text-decoration:none; }
+  .phead { padding:6px 32px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border-subtle); }
+  .picon { width:36px; height:36px; border-radius:8px; background:#8b5cf6; flex:none; }
+  .phead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .phead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .phead .pin { margin-left:auto; color:var(--accent); display:inline-flex; padding:6px; border-radius:6px; background:var(--accent-sub); }
+  .runrow { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:4px 0 6px; }
+  .rb { font-size:13px; line-height:18px; text-align:center; padding:6px 0; border:1px solid var(--border); border-radius:8px; color:var(--t1); background:var(--s1); }
+  .rb.stop { color:var(--danger); }
+  .tgrp { font-size:12px; color:var(--t3); font-weight:500; margin:10px 0 0; }
+  .tgrp:first-of-type { margin-top:0; }
+  .listwrap { flex:1; min-height:0; overflow:hidden; padding:14px 32px; }
+  .listtools { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .listtools h3 { font-size:15px; line-height:22px; margin:0; font-weight:600; flex:1; }
+  .search { border:1px solid var(--border); border-radius:6px; padding:5px 10px; color:var(--t3); font-size:13px; width:200px; background:var(--s1); }
+  .btn { border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:13px; color:var(--t1); background:var(--s1); white-space:nowrap; }
+  .grp { font-size:12px; color:var(--t3); font-weight:500; margin:12px 0 2px; }
+  .row { display:flex; gap:12px; padding:8px 10px; border-radius:8px; align-items:center; }
+  .row.sel { background:var(--s2); }
+  .av { width:32px; height:32px; border-radius:50%; flex:none; color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+  .av.sm { width:24px; height:24px; font-size:10px; }
+  .row .body { min-width:0; flex:1; }
+  .row .ttl { font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .who { color:var(--t2); font-size:13px; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .meta { color:var(--t3); font-size:12px; white-space:nowrap; text-align:right; }
+  .working { color:var(--ok); }
+  .composer { flex:none;  margin:0 32px 20px; border:1px solid var(--accent); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:center; background:var(--s1); }
+  .composer .ph { flex:1; color:var(--t3); font-size:15px; }
+  .chip { font-size:12px; color:var(--t2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; display:inline-flex; align-items:center; gap:6px; }
+  .send { width:30px; height:30px; border-radius:8px; background:var(--accent); flex:none; }
+
+  .right { background:var(--s1); border-left:1px solid var(--border-subtle); padding:0; display:flex; flex-direction:column; overflow:hidden; }
+  .right .card { border:none; border-radius:0; background:transparent; padding:14px 16px; }
+  .right .card + .card { border-top:1px solid var(--border-subtle); }
+  .right .card h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); }
+  .card { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; background:var(--s1); }
+  .card h4 { margin:0 0 8px; font-size:13px; line-height:18px; color:var(--t2); font-weight:500; }
+  .kv { display:grid; grid-template-columns:96px 1fr; gap:4px 8px; font-size:13px; line-height:18px; }
+  .kv b { font-weight:400; color:var(--t3); }
+  .tool { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; border-top:1px solid var(--border-subtle); }
+  .tool:first-of-type { border-top:none; }
+  .tool .n { color:var(--t3); font-size:12px; }
+  .tool .n.need { color:var(--warn); }
+  .tool .n.on { color:var(--ok); }
+
+  .phones { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:340px; height:700px; min-height:0; border:1px solid var(--border); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; background:var(--s1); position:relative; }
+  .mhead { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-subtle); }
+  .back { color:var(--accent); font-size:20px; line-height:20px; }
+  .mhead .t { font-weight:600; flex:1; }
+  .mbtn { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:3px 8px; color:var(--t2); }
+  .mlist { flex:1; min-height:0; overflow:hidden; padding:4px 12px; }
+  .mfilter { padding:8px 12px 0; display:flex; gap:8px; }
+  .mcomp { margin:10px 12px 16px; border:1px solid var(--accent); border-radius:12px; padding:12px; color:var(--t3); font-size:15px; display:flex; justify-content:space-between; align-items:center; }
+  .scrim { position:absolute; inset:0; background:#0000004d; }
+  .sheet { position:absolute; left:0; right:0; bottom:0; height:78%; background:var(--s1); border-radius:18px 18px 0 0; padding:10px 16px; border-top:1px solid var(--border); }
+  .grab { width:40px; height:4px; border-radius:2px; background:var(--s3); margin:0 auto 12px; }
+  .tabs { display:flex; gap:20px; border-bottom:1px solid var(--border-subtle); margin:8px 0 6px; font-size:14px; }
+  .tabs span { padding:6px 0; color:var(--t2); }
+  .tabs span.on { color:var(--accent); border-bottom:2px solid var(--accent); }
+
+  .notes { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .note { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); }
+  .note h3 { margin:0 0 8px; font-size:15px; line-height:22px; }
+  .note ul, .note ol { margin:0; padding-left:18px; color:var(--t2); }
+  .note li { margin-bottom:6px; }
+  .note li b { color:var(--t1); font-weight:500; }
+  .note.open { border-color:var(--warn-line); }
+  .note.agreed { border-color:var(--ok-line); }
+  details { margin-top:16px; color:var(--t2); }
+  details img { max-width:100%; border-radius:8px; border:1px solid var(--border-subtle); margin-top:8px; }
+  table.map { border-collapse:collapse; font-size:13px; width:100%; }
+  table.map td, table.map th { border-bottom:1px solid var(--border-subtle); padding:6px 8px; text-align:left; vertical-align:top; }
+  table.map th { color:var(--t3); font-weight:500; }
+  .tops { margin-left:auto; display:flex; gap:4px; }
+  .topb { position:relative; width:30px; height:30px; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); }
+  .topb.on { background:var(--accent-sub); color:var(--accent); }
+  .topb b { position:absolute; top:-3px; right:-5px; background:var(--danger); color:#fff; font-size:10px; line-height:14px; min-width:14px; text-align:center; border-radius:7px; padding:0 3px; font-weight:600; }
+  .topb b.g { background:var(--ok); }
+</style>
+<style>
+  .convhead { padding:14px 32px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border-subtle); }
+  .convhead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .convhead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .convhead .more { margin-left:auto; color:var(--t3); }
+  .stream { flex:1; min-height:0; overflow:hidden; padding:20px 32px; }
+  .col { max-width:720px; margin:0 auto; }
+  .turn { margin-bottom:22px; font-size:15px; line-height:24px; }
+  .turn .h { display:flex; align-items:center; gap:8px; font-size:13px; line-height:18px; color:var(--t3); margin-bottom:6px; }
+  .turn .h b { color:var(--t1); font-weight:600; }
+  .you .txt { background:var(--s2); border-radius:12px; padding:10px 14px; display:inline-block; }
+  .agent .txt p { margin:0 0 10px; }
+  .agent .txt ol { margin:0 0 10px; padding-left:22px; }
+  .toolcall { font-size:13px; line-height:18px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:8px; padding:6px 10px; margin:6px 0 10px; display:flex; gap:8px; align-items:center; font-family:'JetBrains Mono', ui-monospace, monospace; }
+  .approval { border:1px solid var(--warn-line); border-radius:10px; padding:10px 14px; margin:8px 0; font-size:14px; line-height:21px; }
+  .approval .acts { margin-top:8px; display:flex; gap:8px; }
+  .bp { font-size:13px; border-radius:6px; padding:4px 12px; border:1px solid var(--border); background:var(--s1); color:var(--t1); }
+  .bp.pri { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .meta2 { font-size:12px; color:var(--t3); }
+  .typing { color:var(--ok); font-size:13px; }
+  .panelhead { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin-bottom:8px; }
+  .panelhead .bk { color:var(--accent); font-weight:400; }
+  .trow { font-size:13px; line-height:18px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .trow .k { color:var(--t3); font-size:12px; }
+  .link { color:var(--accent); font-size:13px; }
+  .lay { display:flex; gap:14px; flex-wrap:wrap; }
+  .lo { width:200px; border:1px solid var(--border-subtle); border-radius:10px; padding:10px; background:var(--s1); }
+  .lo.sel { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .lo .th { display:flex; gap:4px; height:90px; margin-bottom:8px; }
+  .lo .th .n { width:16px; background:var(--s3); border-radius:4px; }
+  .lo .th .c { background:var(--accent-sub); border:1px solid var(--accent); border-radius:4px; }
+  .lo .th .t { background:var(--s2); border:1px solid var(--border); border-radius:4px; }
+  .lo b { font-size:13px; } .lo div.d { font-size:12px; line-height:16px; color:var(--t2); }
+  .fctl { position:static; display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--s1); }
+  .fctl span { width:30px; height:26px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border-subtle); }
+  .fctl span:first-child { border-left:none; }
+  .fctl span.on { background:var(--accent-sub); }
+  .fctl i { display:flex; gap:2px; height:12px; }
+  .fctl i u { display:block; border-radius:1px; background:var(--t3); }
+  .work { display:grid; grid-template-rows:auto 1fr; min-width:0; min-height:0; }
+  .wbar { display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px 32px; border-bottom:1px solid var(--border-subtle); background:var(--s1); }
+  .crumb2 { font-size:13px; color:var(--t3); } .crumb2 a { color:var(--accent); text-decoration:none; }
+  .panes { display:grid; min-height:0; }
+  .panes > * { min-height:0; }
+  .dragedge { position:absolute; left:-3px; top:0; bottom:0; width:6px; cursor:col-resize; background:linear-gradient(var(--accent),var(--accent)) center/2px 48px no-repeat; }
+  .trow.new { border-left:3px solid var(--ok); padding-left:8px; }
+</style>
+<style>
+  .calm { max-width:560px; }
+  .btns { display:flex; gap:8px; }
+  .midbtns { display:flex; gap:8px; margin:16px 0 2px; }
+  .midbtns .bp { display:inline-flex; gap:6px; align-items:center; }
+  .lat { display:grid; grid-template-columns:110px 1fr; gap:10px; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .lat .when { color:var(--t2); font-size:13px; } .lat b { font-weight:500; } .lat .mut { font-size:12px; }
+  .atabs { display:flex; gap:18px; border-bottom:1px solid var(--border-subtle); margin:12px 0 2px; font-size:14px; }
+  .atabs > span { padding:7px 0; color:var(--t2); display:inline-flex; gap:6px; align-items:center; }
+  .atabs > span.on { color:var(--t1); font-weight:500; border-bottom:2px solid var(--accent); }
+  .tb { font-size:11px; line-height:16px; min-width:16px; text-align:center; border-radius:8px; padding:0 5px; background:var(--s2); color:var(--t2); }
+  .tb.w { background:var(--warn); color:#fff; }
+  .panelhead .rl { margin-left:auto; font-weight:400; font-size:13px; color:var(--accent); cursor:pointer; }
+  .astatus2 { padding:10px 12px; border:1px solid var(--ok-line); border-radius:10px; margin:6px 0 4px; }
+  .ast-row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .astatus2 .who { margin-top:2px; }
+  .lk { color:var(--accent); text-decoration:none; cursor:pointer; }
+  .srow { display:grid; grid-template-columns:34px 1fr auto; gap:10px; align-items:center; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .srow b { font-weight:500; }
+  .srow .mut { display:block; font-size:12px; } .srow .nx { font-size:12px; color:var(--t2); white-space:nowrap; } .srow .ic { color:var(--t3); text-align:center; }
+  .csec { margin-top:18px; }
+  .csec h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:0 0 6px; display:flex; justify-content:space-between; }
+  .csec h4 .edit { text-transform:none; letter-spacing:0; color:var(--accent); font-size:13px; }
+  .line { font-size:14px; line-height:21px; padding:5px 0; }
+  .line b { font-weight:500; } .line .ok { color:var(--ok); } .line .w { color:var(--warn); font-weight:600; }
+  .line a { color:var(--accent); margin-left:6px; font-size:13px; }
+  .mut { color:var(--t3); }
+  .rule { font-size:14px; line-height:21px; margin:0 0 8px; color:var(--t1); } .rule b { font-weight:500; }
+  .atool .bp { white-space:nowrap; }
+  .atool { padding:14px 18px !important; overflow:hidden; display:block !important; }
+  .astatus { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--ok-line); border-radius:10px; margin:6px 0 10px; }
+  .ast-t { font-weight:600; font-size:15px; display:flex; align-items:center; gap:8px; }
+  .dot-on { width:9px; height:9px; border-radius:50%; background:var(--ok); }
+  .acounts { display:flex; gap:16px; font-size:13px; color:var(--t2); margin-bottom:6px; flex-wrap:wrap; }
+  .acounts b { color:var(--t1); font-weight:600; } .acounts .w b, .acounts .w { color:var(--warn); }
+  .acols { display:grid; grid-template-columns:1.15fr 1fr; gap:24px; }
+  .asec { margin-top:14px; }
+  .asec h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:0 0 6px; }
+  .arow { display:flex; gap:10px; align-items:center; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .arow .body { flex:1; min-width:0; } .arow .ttl { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .arow .who { font-size:13px; }
+  .ar { font-size:12px; color:var(--t2); white-space:nowrap; } .ar.ok { color:var(--ok); } .ar.warn { color:var(--warn); } .ar.danger { color:var(--danger); }
+  .more { font-size:13px; color:var(--accent); padding-top:6px; }
+  .crow { font-size:13px; padding:7px 0; border-top:1px solid var(--border-subtle); display:flex; gap:4px; color:var(--t2); }
+  .crow b { font-weight:500; color:var(--t1); } .crow span { margin-left:auto; color:var(--t3); }
+  .sub2 { font-size:12px; color:var(--t3); margin:10px 0 2px; }
+  .trow2 { display:flex; justify-content:space-between; align-items:center; font-size:14px; padding:6px 0; border-top:1px solid var(--border-subtle); }
+  .trow2 i, .lrow i { font-style:normal; color:var(--t3); font-size:12px; margin-left:6px; }
+  .tg { width:32px; height:18px; border-radius:9px; background:var(--s3); position:relative; flex:none; }
+  .tg::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--s1); box-shadow:0 1px 2px #0003; }
+  .tg.on { background:var(--accent); } .tg.on::after { left:16px; }
+  .lrow { display:grid; grid-template-columns:1fr auto 84px; gap:8px; align-items:center; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .lrow b { font-weight:500; } .lrow em { font-style:normal; font-size:12px; color:var(--t3); text-align:right; }
+  .nlist .nrow2 { display:flex; justify-content:space-between; font-size:14px; padding:9px 0; border-top:1px solid var(--border-subtle); }
+  .nrow2 .n { color:var(--t3); font-size:12px; }
+</style>
+<style>
+  .ttool { padding:14px 18px !important; overflow:hidden; display:block !important; }
+  .tsearch { display:flex; gap:8px; align-items:center; margin:2px 0 4px; }
+  .tsearch .search { flex:1; width:auto; }
+  .trw { display:grid; grid-template-columns:1fr auto; gap:2px 10px; padding:8px 0; border-top:1px solid var(--border-subtle); align-items:center; }
+  .trw .tt { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .trw .tt .k { color:var(--t3); font-weight:400; font-size:12px; margin-right:6px; }
+  .trw .ts { grid-column:1; font-size:12px; line-height:16px; color:var(--t2); display:flex; gap:6px; align-items:center; white-space:nowrap; overflow:hidden; }
+  .trw .act { grid-row:1 / span 2; grid-column:2; }
+  .trw.sel { background:var(--s2); border-radius:8px; padding-left:8px; padding-right:8px; }
+  .mini-av { width:16px; height:16px; border-radius:50%; color:#fff; font-size:8px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+  .warnt { color:var(--warn); } .okt { color:var(--ok); } .mutt { color:var(--t3); }
+  .pdot { width:7px; height:7px; border-radius:50%; display:inline-block; flex:none; }
+  .p-h { background:var(--danger); } .p-m { background:var(--warn); } .p-l { background:var(--t3); }
+  .tgh { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:16px 0 4px; display:flex; justify-content:space-between; }
+  .tgh .c { letter-spacing:0; text-transform:none; }
+  .wtable { width:100%; border-collapse:collapse; font-size:14px; }
+  .wtable th { text-align:left; font-size:12px; font-weight:500; color:var(--t3); padding:6px 8px; border-bottom:1px solid var(--border-subtle); }
+  .wtable td { padding:8px; border-top:1px solid var(--border-subtle); vertical-align:middle; white-space:nowrap; }
+  .wtable td.ttl { font-weight:500; } .wtable td.ttl .pdot { margin-right:8px; vertical-align:middle; } .wtable td.ttl .k { color:var(--t3); font-weight:400; font-size:12px; margin-right:6px; }
+  .wtable tr.grp td { border-top:none; font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); padding-top:18px; }
+  .wtable .who { display:inline-flex; gap:6px; align-items:center; color:var(--t2); font-size:13px; }
+  .colchip { font-size:12px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:5px; padding:1px 6px; }
+  .fchip { font-size:13px; border:1px solid var(--border); border-radius:6px; padding:4px 10px; color:var(--t2); background:var(--s1); white-space:nowrap; }
+  .detail { display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:28px; }
+  .detail h2 { font-size:18px; line-height:26px; margin:2px 0 4px; font-weight:600; }
+  .needs { border:1px solid var(--warn-line); border-radius:10px; padding:12px 14px; margin:12px 0; }
+  .needs .h { font-weight:600; color:var(--warn); font-size:14px; }
+  .needs p { margin:4px 0 10px; font-size:14px; }
+  .needs .btns { flex-wrap:wrap; } .needs .bp { white-space:nowrap; }
+  .needs code, .tl code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .desc { font-size:14px; line-height:21px; color:var(--t1); margin:10px 0 0; }
+  .tl { margin-top:4px; }
+  .tli { display:grid; grid-template-columns:22px 1fr; gap:10px; padding:9px 0; border-top:1px solid var(--border-subtle); font-size:14px; line-height:21px; }
+  .tli .m { font-size:12px; color:var(--t3); }
+  .tli .ic { width:22px; height:22px; border-radius:50%; background:var(--s2); color:var(--t2); font-size:11px; display:flex; align-items:center; justify-content:center; }
+  .tcomp { border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--t3); font-size:14px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; }
+  .sess { margin-top:16px; }
+  .sesshead { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:14px; margin-bottom:6px; } .sesshead .lk { white-space:nowrap; }
+  .tx { border:1px solid var(--border-subtle); border-radius:10px; padding:10px 14px; font-size:14px; line-height:21px; }
+  .tx.tall { max-height:none; }
+  .txe { font-size:13px; text-align:center; padding:2px 0 6px; }
+  .txd { font-size:12px; color:var(--t3); text-align:center; margin:10px 0 6px; display:flex; gap:10px; align-items:center; }
+  .txd::before, .txd::after { content:''; flex:1; border-top:1px solid var(--border-subtle); }
+  .txm { margin:8px 0; } .txm.ag b { display:block; font-size:13px; }
+  .txm.you { text-align:right; } .txm.you span { display:inline-block; background:var(--s2); border-radius:12px; padding:8px 12px; text-align:left; }
+  .txc { font-size:12px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:8px; padding:4px 10px; margin:6px 0; font-family:'JetBrains Mono', ui-monospace, monospace; }
+  .tx code, .approval code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .facts { font-size:13px; line-height:18px; }
+  .facts .f { padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .facts .f:first-child { border-top:none; }
+  .facts .f b { display:block; font-weight:400; color:var(--t3); font-size:12px; }
+  .addrow { display:flex; gap:8px; align-items:center; border:1px solid var(--accent); border-radius:8px; padding:7px 10px; margin:6px 0 2px; font-size:14px; }
+  .addrow .ph2 { flex:1; color:var(--t1); }
+  .addrow .hint { font-size:12px; color:var(--t3); }
+  .page { padding:24px 40px; overflow:hidden; background:var(--s1); }
+  .page h1x { display:block; }
+  .pagehead { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:6px; }
+  .pagehead h2 { font-size:24px; line-height:32px; margin:0; font-weight:600; }
+  .pagehead .sub { color:var(--t2); font-size:14px; }
+</style>
+<style>
+  .btool { padding:14px 18px !important; overflow:hidden; display:block !important; }
+  .brow { padding:10px 0; border-top:1px solid var(--border-subtle); }
+  .brow .bt { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .brow .bt b { font-size:14px; font-weight:600; }
+  .brow .bt .kind { font-size:11px; color:var(--t3); border:1px solid var(--border-subtle); border-radius:5px; padding:0 6px; margin-left:6px; font-weight:400; }
+  .brow .bs { font-size:12px; color:var(--t2); margin-top:3px; display:flex; gap:10px; flex-wrap:wrap; }
+  .needchip { font-size:12px; font-weight:600; color:var(--warn); border:1px solid var(--warn-line); border-radius:999px; padding:1px 8px; white-space:nowrap; }
+  .bar { display:flex; height:6px; border-radius:3px; overflow:hidden; background:var(--s2); margin-top:7px; }
+  .bar i { display:block; height:100%; }
+  .colh { display:flex; justify-content:space-between; align-items:center; font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:14px 0 4px; }
+  .colh .auto { text-transform:none; letter-spacing:0; font-weight:400; color:var(--ok); }
+  .colh .c { text-transform:none; letter-spacing:0; font-weight:400; }
+  .kan { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(200px,1fr); gap:12px; margin-top:10px; height:520px; overflow:hidden; }
+  .kcol { background:var(--s0); border-radius:10px; padding:8px; display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .kcol .kh { display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600; padding:2px 4px 6px; }
+  .kcol .kh span { font-weight:400; font-size:12px; color:var(--t3); }
+  .kcol .kh .auto { color:var(--ok); }
+  .kcard { background:var(--s1); border:1px solid var(--border-subtle); border-radius:8px; padding:8px 10px; font-size:13px; line-height:18px; }
+  .kcard .k { color:var(--t3); font-size:11px; }
+  .kcard .s { font-size:12px; color:var(--t2); margin-top:4px; display:flex; gap:6px; align-items:center; }
+  .kadd { font-size:12px; color:var(--t3); padding:4px; margin-top:auto; }
+  .bbox { border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px; margin:4px 0 6px; }
+  .bbox .l1 { display:flex; gap:4px 12px; flex-wrap:wrap; font-size:13px; color:var(--t2); }
+  .bbox .l1 b { color:var(--t1); font-weight:600; }
+  .bbox .l2 { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .chips { display:flex; gap:6px; overflow:hidden; margin:6px 0; }
+  .chips span { font-size:12px; border:1px solid var(--border); border-radius:999px; padding:2px 10px; white-space:nowrap; color:var(--t2); }
+  .chips span.on { border-color:var(--accent); color:var(--t1); background:var(--accent-sub); }
+  .field { border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:14px; margin:4px 0 10px; color:var(--t1); }
+  .flab { font-size:12px; color:var(--t3); }
+  .choice3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:4px 0 10px; }
+  .choice3 div { border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:12px; line-height:16px; color:var(--t2); }
+  .choice3 div b { display:block; color:var(--t1); font-weight:500; font-size:13px; }
+  .choice3 div.on { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .model { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .mbox { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; background:var(--s1); }
+  .mbox h3 { margin:0 0 6px; font-size:15px; }
+  .mbox .cols { display:flex; gap:4px; margin:8px 0; }
+  .mbox .cols span { flex:1; font-size:11px; text-align:center; background:var(--s2); border-radius:5px; padding:4px 0; color:var(--t2); }
+  .mbox ul { margin:0; padding-left:18px; color:var(--t2); font-size:13px; }
+  .mbox li { margin-bottom:4px; }
+</style>
+<style>
+  .arow2 { display:grid; grid-template-columns:32px 1fr auto; gap:2px 12px; padding:12px 0; border-top:1px solid var(--border-subtle); align-items:start; }
+  .arow2 .big { width:32px; height:32px; border-radius:50%; color:#fff; font-size:12px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; grid-row:1 / span 3; }
+  .arow2 .n1 b { font-size:14px; font-weight:600; }
+  .arow2 .n1 .role { font-size:12px; color:var(--t3); margin-left:6px; }
+  .arow2 .n2 { font-size:13px; color:var(--t2); grid-column:2; }
+  .arow2 .n3 { font-size:12px; color:var(--t3); display:flex; gap:12px; flex-wrap:wrap; grid-column:2; }
+  .arow2 .rt { grid-column:3; grid-row:1; }
+  .okt2 { color:var(--ok); } .idle { color:var(--t3); }
+  .narrow { font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:5px; padding:0 5px; }
+  .sys { font-size:11px; color:var(--t3); border:1px solid var(--border); border-radius:5px; padding:0 5px; margin-left:6px; }
+  .pagebody { padding:16px 32px; overflow:hidden; }
+  .ahead { display:flex; gap:12px; align-items:center; }
+  .ahead .big { width:36px; height:36px; border-radius:50%; color:#fff; font-size:13px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+  .kvl { display:grid; grid-template-columns:120px 1fr; gap:6px 10px; font-size:13px; }
+  .kvl > span:nth-child(odd) { color:var(--t3); }
+  .slink { font-size:13px; color:var(--accent); }
+  .tlist .ti { display:flex; justify-content:space-between; font-size:14px; padding:7px 4px; border-top:1px solid var(--border-subtle); }
+  .tlist .ti span:last-child { color:var(--t3); font-size:12px; }
+  .tlist .tgx { font-size:12px; color:var(--t3); font-weight:500; margin:12px 0 2px; }
+  .opt { border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:13px; margin-bottom:6px; }
+  .opt.on { border-color:var(--accent); background:var(--accent-sub); }
+  .opt small { display:block; color:var(--t3); font-size:12px; }
+  .doc { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; font-size:13px; line-height:20px; color:var(--t2); }
+  .doc h4 { margin:0 0 4px; font-size:13px; color:var(--t1); }
+  .align td:first-child { white-space:nowrap; }
+</style>
+<style>
+  .arow2 .rt { display:flex; gap:6px; align-items:center; }
+  .rolechip { font-size:11px; color:var(--t2); border:1px solid var(--border); border-radius:5px; padding:0 6px; margin-left:6px; font-weight:400; }
+  .rolechip.adm { color:var(--accent); border-color:var(--accent); }
+  .openbar { display:flex; justify-content:space-between; align-items:center; gap:10px; border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px; margin:2px 0 8px; font-size:13px; color:var(--t2); }
+  .openbar b { color:var(--t1); font-weight:500; }
+  .pcard { width:320px; border:1px solid var(--border); border-radius:14px; background:var(--s1); box-shadow:0 8px 24px #0000001f; overflow:hidden; }
+  .pcard .top { height:56px; background:linear-gradient(120deg,#f59e0b,#6366f1); }
+  .pcard .in { padding:0 16px 14px; margin-top:-26px; }
+  .pcard .big { width:52px; height:52px; border-radius:50%; color:#fff; font-size:17px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; border:3px solid var(--s1); }
+  .pcard h3 { margin:6px 0 0; font-size:16px; }
+  .pcard .s { font-size:13px; color:var(--t2); }
+  .pcard .kvl { margin-top:10px; }
+  .stage { display:flex; gap:40px; align-items:flex-start; padding:28px; background:var(--s0); }
+  .stage .ctx { flex:1; max-width:560px; }
+  .grow { display:grid; grid-template-columns:32px 1fr 140px 110px 90px; gap:10px; align-items:center; padding:9px 0; border-top:1px solid var(--border-subtle); font-size:14px; }
+  .grow .big { width:32px; height:32px; border-radius:50%; color:#fff; font-size:12px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+  .grow .nm b { font-weight:600; } .grow .nm div { font-size:12px; color:var(--t3); }
+  .grow .c2 { font-size:13px; color:var(--t2); } .grow .c3 { font-size:12px; color:var(--t3); text-align:right; }
+  .ghead { font-size:12px; color:var(--t3); padding:4px 0; display:grid; grid-template-columns:32px 1fr 140px 110px 90px; gap:10px; }
+  .dd { border:1px solid var(--border); border-radius:6px; padding:2px 8px; font-size:13px; color:var(--t1); background:var(--s1); display:inline-block; }
+  .linkbox { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--t2); background:var(--s2); }
+  .big { border-radius:50%; color:#fff; font-weight:600; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+  .pr { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; padding:10px 0; border-top:1px solid var(--border-subtle); }
+  .pb { min-width:0; }
+  .pn { display:flex; align-items:center; gap:6px; font-size:14px; } .pn b { font-weight:600; }
+  .toolsgrp { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:24px 0 2px; }
+  .tline { display:grid; grid-template-columns:1fr auto; padding:8px 0; font-size:14px; }
+  .tline span.s { font-size:12px; color:var(--t3); }
+  .stack { display:inline-flex; align-items:center; }
+  .stack .big { margin-left:-4px; border:2px solid var(--s1); } .stack .big:first-child { margin-left:0; }
+  .teamrow { display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:14px; }
+  .toolsgrp { border-bottom:1px solid var(--border-subtle); padding-bottom:6px; margin-bottom:4px; }
+  .teamrow .r { display:flex; align-items:center; gap:8px; color:var(--t3); font-size:12px; }
+  .hteam { margin-left:auto; display:flex; gap:14px; align-items:center; font-size:13px; color:var(--t2); }
+  .hteam > span { display:inline-flex; align-items:center; gap:6px; padding:3px 6px; border-radius:8px; }
+  .hteam > span:hover { background:var(--s2); }
+  .factl { display:grid; grid-template-columns:96px 1fr; gap:6px 8px; font-size:13px; }
+  .factl span:nth-child(odd) { color:var(--t3); }
+  .intick { width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; color:var(--ok); font-weight:600; font-size:16px; }
+  .rq { font-size:13px; color:var(--t3); font-weight:400; }
+  .pl { font-size:13px; line-height:19px; color:var(--t2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pa { display:flex; align-items:center; }
+  .pmeta { display:flex; justify-content:space-between; font-size:12px; color:var(--t3); padding:2px 0 8px; }
+  .phd { display:flex; gap:12px; align-items:center; margin:4px 0 6px; }
+  .pfoot { display:flex; flex-direction:column; gap:10px; margin-top:20px; padding-top:12px; border-top:1px solid var(--border-subtle); }
+  .addas { display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--t2); }
+  .seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .seg span { padding:4px 14px; font-size:13px; color:var(--t2); }
+  .seg span.on { background:var(--accent); color:var(--on-accent); }
+  .avs { display:flex; align-items:center; gap:4px; }
+  .joinbar { flex:none; margin:0 32px 20px; border:1px solid var(--border); border-radius:12px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:14px; color:var(--t2); background:var(--s2); }
+</style>
+</head><body>
+<div class="board">
+  <div class="boardhead">
+    <div>
+      <h1>People</h1>
+      <p>The people of a project and of the organisation, drawn the way Agents was: a project's <b>People tool</b> says who takes part here and what waits on them; <b>Organisation › People</b> is where admins invite people, set their roles and remove them; a <b>profile card</b> opens from a person's name or picture anywhere. A person's own Profile is part of the Settings pass.</p>
+    </div>
+    <div style="white-space:nowrap"><span class="pill">Agreed 2026-10-08 · v4</span></div>
+  </div>
+
+  <div class="label">Where it sits — proposed</div>
+  <div class="model">
+    <div class="mbox"><h3>A project's People tool</h3>
+      <div class="cols"><span>Project</span><span>›</span><span>Team</span><span>›</span><span>People</span></div>
+      <ul><li>Every member, their role here, what waits on them here, their tasks done on their behalf</li><li>Add and Remove from this project, roles — for the project's admins and the organisation's</li><li>An open project offers <b>Join</b> to someone not yet in it</li></ul></div>
+    <div class="mbox"><h3>Organisation › People</h3>
+      <div class="cols"><span>Organisation</span><span>›</span><span>People</span></div>
+      <ul><li>Organisation admins only; beside Agents, Products, Programs, Library</li><li>Everyone, their organisation role, their projects; invitations waiting above them</li><li>One person: their role, projects (Add to a project), Remove from the organisation</li><li>Replaces Settings › Users</li></ul></div>
+    <div class="mbox"><h3>A person's profile card</h3>
+      <div class="cols"><span>Anywhere</span><span>›</span><span>name or picture</span></div>
+      <ul><li>The same card agents have, for people: name, picture, organisation role, local time</li><li>The projects you share with them</li><li>Admins: <b>Manage ›</b> to Organisation › People</li></ul></div>
+  </div>
+
+  <div class="label">Agents and people are not tools — two rows after the facts, no heading</div>
+  <div class="frame" id="t1"></div>
+  <div class="label">On a phone — the project page, the same order: facts, People and Agents, tools</div>
+  <div class="phones" id="t3"></div>
+
+  <div class="label">Desktop · People beside the conversations — who takes part here</div>
+  <div class="frame" id="p1"></div>
+
+  <div class="label">Desktop · a person opened inside the tool</div>
+  <div class="frame" id="p2"></div>
+
+  <div class="label">Desktop · Add people, in place — everyone in the organisation, ✓ for those already in the project</div>
+  <div class="frame" id="p3"></div>
+
+  <div class="label">Desktop · Add people, searching "avery" — full name and @handle tell two people apart</div>
+  <div class="frame" id="p3b"></div>
+
+  <div class="label">Desktop · Remove from this project — what happens to their tasks is asked</div>
+  <div class="frame" id="p4"></div>
+
+  <div class="label">Desktop · an open project you have not joined — a preview of the project, then Join</div>
+  <div class="frame" id="p5"></div>
+
+
+  <div class="label">Desktop · Organisation › People — everyone, for admins</div>
+  <div class="frame" id="o1"></div>
+
+  <div class="label">Desktop · Invite someone</div>
+  <div class="frame" id="o3"></div>
+
+  <div class="label">Desktop · one person, under Organisation</div>
+  <div class="frame" id="o2"></div>
+
+  <div class="label">Desktop · when someone leaves — Remove (deactivate), then Reactivate or Erase</div>
+  <div class="frame" id="o4"></div>
+
+  <div class="label">Everywhere · their profile card — a person's name or picture, in a conversation, a task, a run or a tool, opens it</div>
+  <div class="frame"><div class="stage" id="pc"></div></div>
+
+  <div class="label">Phone · People, and a person</div>
+  <div class="phones" id="ph"></div>
+
+  <div class="label">Today and proposed</div>
+  <div class="note"><table class="map">
+    <tr><th>Part</th><th>Today</th><th>Proposed</th></tr>
+    <tr><td>A project's people</td><td>Names with a generic icon, an Admin/Member select and a remove cross shown to everyone; the server refuses non-admins with an error</td><td>Avatar, name, role here, what waits on them here, their tasks; controls shown only to those who may use them</td></tr>
+    <tr><td>Who may change a project's people</td><td>Add and promote: project or organisation admins. Demote and remove: project admins only</td><td>Project admins and organisation admins alike, as for assigning agents (adr-0062 note)</td></tr>
+    <tr><td>Open projects</td><td>Everyone in the organisation counts as a member and may act; the list shows only those added</td><td>Anyone may <b>Join</b> in one step; until then they read but do not act; the list is everyone who can act</td></tr>
+    <tr><td>The organisation's people</td><td>Settings › Users, admins only: a table, role select, hard Remove behind a browser confirm, invitation links in four tabs</td><td>Organisation › People: people and waiting invitations in one list; one person as a page; Remove asks what happens to their work</td></tr>
+    <tr><td>Roles</td><td>Organisation: Admin · Operator · Viewer. Project: Admin · Member</td><td>Words unchanged in the data; shown as Admin · Member · Viewer for the organisation (question 3)</td></tr>
+    <tr><td>Identity</td><td>The login name only; no display name, no picture; Profile shows a user id</td><td>A display name and a picture, as agents have (question 2)</td></tr>
+    <tr><td>Invitations</td><td>A one-time link with a role and a private note</td><td>Same link; the note reads "Who it's for" and shows in the list; projects to join on accepting (question 4)</td></tr>
+    <tr><td>Profile card</td><td>Agents only</td><td>People too, from their name or picture anywhere</td></tr>
+  </table></div>
+
+  <div class="label">Roles — Viewer moves to the project (2026-10-09)</div>
+  <div class="model">
+    <div class="mbox"><h3>Organisation roles</h3>
+      <div class="cols"><span>Admin</span><span>·</span><span>Member</span></div>
+      <ul><li><b>Admin</b> runs the organisation: people, agents, projects, its settings</li><li><b>Member</b> everyone else</li><li>Viewer is no longer an organisation role</li></ul></div>
+    <div class="mbox"><h3>Project roles</h3>
+      <div class="cols"><span>Admin</span><span>·</span><span>Member</span><span>·</span><span>Viewer</span></div>
+      <ul><li><b>Admin</b> runs the project: its people, agents, settings</li><li><b>Member</b> works in it: talks to its agents, starts and changes work, approves</li><li><b>Viewer</b> reads it and changes nothing</li></ul></div>
+    <div class="mbox"><h3>Why</h3>
+      <ul><li>All work is inside a project, so whether someone may work is the project's to say</li><li>Read-only in one project, fully involved in another</li><li>No project Admin who cannot chat because of an organisation role</li></ul></div>
+  </div>
+  <div class="note" style="margin-top:12px"><table class="map">
+    <tr><th>In a project</th><th>Admin</th><th>Member</th><th>Viewer</th></tr>
+    <tr><td>Read its tasks, boards, timeline, files, runs, people, agents</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>Read others' conversations</td><td colspan="3">Never — a conversation's content is its person's (adr-0077); whether one is running is visible to all</td></tr>
+    <tr><td>Talk to its agents · start, stop and run work · create and change tasks, boards, files · approve</td><td>✓</td><td>✓</td><td></td></tr>
+    <tr><td>Comment on a task</td><td>✓</td><td>✓</td><td></td></tr>
+    <tr><td>Its people, agents, permissions here and settings</td><td>✓</td><td></td><td></td></tr>
+    <tr><td>A run on a Viewer's behalf (adr-0101)</td><td colspan="3">None can start — a Viewer starts no run, and a run on someone else's behalf is checked against that person</td></tr>
+  </table></div>
+
+  <div class="label">Notes</div>
+  <div class="notes">
+    <div class="note agreed"><h3>Agreed</h3><ul>
+      <li>Agents and people are not tools: a <b>People</b> row and an <b>Agents</b> row after the place's facts, spaced apart with no heading, before the tools; Settings alone at the foot; the same on desktop and phone (owner, 2026-10-08)</li>
+      <li>An open project you have not joined shows a preview — what it is, its people and agents, how busy it is — and Join; not its conversations or tools (owner, 2026-10-08). Words about a person are gender-neutral (owner, 2026-10-08)</li>
+      <li>When someone leaves: Remove deactivates, Reactivate brings the same account back, Erase deletes their own data and keeps shared work as "Former member"; no automatic erase after a set time (owner, 2026-10-08). Today's delete loses project task runs, which blocks release; an audit log is for later</li>
+      <li>Organisation admins may add, promote, demote and remove people in every project (owner, 2026-10-08)</li>
+      <li>Open projects in this pass: anyone may Join in one step; until then they read but do not act; the member list is the truth. A decision record (owner, 2026-10-08)</li>
+      <li>People get a display name and a picture, as agents do (owner, 2026-10-08)</li>
+      <li>Operator is shown as Member: Admin · Member · Viewer (owner, 2026-10-08)</li>
+      <li>An invitation's description ("Who it's for") shows in the list; projects they join on accepting may be chosen, optional (owner, 2026-10-08)</li>
+      <li>People is the next design pass (owner, 2026-10-08)</li>
+      <li><b>Viewer is a project role, not an organisation one</b>: organisation roles are Admin · Member; project roles are Admin · Member · Viewer. All work is inside a project, so whether someone may work is the project's (owner, 2026-10-09). A decision record replacing adr-0062's roles</li>
+      <li>A project Viewer only reads: everything a member reads, and nothing else — no conversations with its agents, no work started, stopped or changed, no approvals, <b>no comments</b>, nothing of its people, agents or settings (owner, 2026-10-09)</li>
+      <li>Join makes you a Member, as before (adr-0099); a project's admins may make anyone a Viewer. A project that wants newcomers read-only is private, with people added as Viewers (owner, 2026-10-09)</li>
+    </ul></div>
+    <div class="note open"><h3>Open — answer by number</h3><ol>
+      <li>None — this board is agreed.</li>
+    </ol></div>
+    <div class="note"><h3>Changes on this board</h3><ul>
+      <li>2026-10-09 — owner: Viewer moves from the organisation to the project; roles section and three questions added.</li>
+      <li>2026-10-08 — owner: a row with no count (Timeline, Settings) shows › so it reads as tappable.</li>
+      <li>2026-10-08 — owner: one line under each section heading, and one between the facts and People; no lines between rows; sections set apart by space.</li>
+      <li>2026-10-08 — owner: no "Who's here" heading; People then Agents as two rows after the facts. Avatars in the facts or on a heading were tried in chat and rejected (too tall, looked off).</li>
+      <li>2026-10-08 — owner: no "1 needed" on the People row; avatars and a count only.</li>
+      <li>2026-10-08 — owner: agents and people are not tools; chose A (Who's here with the facts) for one look on desktop and phone; B removed.</li>
+      <li>2026-10-08 — owner chose A (preview) for a project not joined; B removed; board agreed.</li>
+      <li>2026-10-08 — owner: Add lists everyone with ✓ for those already here (no separate "Already here"); full names and @handles so two people with one first name are told apart.</li>
+      <li>2026-10-08 — owner: no gendered words; names or "their" instead.</li>
+      <li>2026-10-09 — owner: in the preview, each person and agent shows with their own name beside their picture.</li>
+      <li>2026-10-08 — owner: role badges too loud → "Name · Member" in quiet text.</li>
+      <li>2026-10-08 — owner: the example conversation was broken, the person and Add views messy, the not-joined view looked usable. Conversation fixed; People list, a person and Add redrawn (two lines a row, buttons aligned, Add as at the top); not-joined drawn as A and B.</li>
+      <li>2026-10-08 — owner answered 5 and 6; board agreed; the lost task runs and an audit log raised.</li>
+      <li>2026-10-08 — owner answered 1–4; leaving drawn as Remove (deactivate) · Reactivate · Erase; 6 explained.</li>
+      <li>2026-10-08 — first draft from today's People tool, Settings › Users, invitations and the Agents boards.</li>
+    </ul></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html }
+  const AV = { HT: '#0d9488', HE: '#f59e0b', DA: '#10b981', MI: '#ec4899', SO: '#0ea5e9', RA: '#64748b', JO: '#8b5cf6' }
+  const big = (k, n = 32) => `<span class="big" style="background:${AV[k]};width:${n}px;height:${n}px;font-size:${Math.round(n * 0.36)}px">${k}</span>`
+  const navHtml = (on) => `
+    <nav class="nav">
+      <div class="logo"><i></i>Agenthix<span class="tops"><span class="topb" title="Notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>3</b></span><span class="topb" title="Runs"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><b class="g">2</b></span></span></div>
+      <a>Home</a><a>Chat</a><a>Projects</a><a>Agents</a><a>Tasks <span class="n">2 need you</span></a>
+      <div class="sec"><span>Pinned</span><span>edit</span></div>
+      <a class="${on === 'web' ? 'on' : ''}"><span class="pi"><span class="ava proj" style="background:#8b5cf6">W</span>Website Redesign</span></a>
+      <a><span class="pi"><span class="ava bd" style="background:#0ea5e9">P</span>Product</span></a>
+      <a><span class="pi"><span class="ava agent" style="background:#0ea5e9">FD</span>Frontend dev</span></a>
+      <div class="me" style="display:flex;flex-direction:column;gap:2px;padding-top:8px"><a class="${on === 'org' ? 'on' : ''}" style="padding:6px 0">Organisation</a><a style="padding:6px 0">Settings</a><span style="padding-top:4px">Avery</span></div>
+    </nav>`
+  const layout = (on) => `<div class="fctl" title="Layout">${[[14,0],[10,5],[5,10],[0,14]].map(([a,b],i)=>`<span class="${i===on?'on':''}"><i>${a?`<u style="width:${a}px"></u>`:''}${b?`<u style="width:${b}px;background:var(--accent)"></u>`:''}</i></span>`).join('')}</div>`
+  const listPane = `
+    <main class="centre">
+      <div class="phead"><span class="picon"></span><div><h2>Website Redesign</h2><div class="sub">The new marketing site</div></div></div>
+      <div class="listwrap">
+        <div class="listtools"><h3>Your conversations</h3><span class="search">Search conversations</span></div>
+        <div class="grp">Today</div>
+        <div class="row sel"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Plan the pricing page</div><div class="who">Project manager · Drafted three tasks for the new pricing…</div></div><div class="meta">10:24</div></div>
+        <div class="row"><span class="av" style="background:#0ea5e9">FD</span><div class="body"><div class="ttl">Checkout redirect bug</div><div class="who">Frontend dev · Found it — the return URL drops the…</div></div><div class="meta">9:02</div></div>
+      </div>
+      <div class="composer"><div class="ph">Talk about this project…</div><span class="chip">Project manager ▾</span><span class="send"></span></div>
+    </main>`
+  const shell = ({ main, tool, cols, lay }) => `
+    <div class="desk" style="grid-template-columns:220px 1fr">${navHtml('web')}
+      <div class="work">
+        <div class="wbar"><div class="crumb2"><a href="#">Projects</a> / Website Redesign</div>${lay === undefined ? '' : layout(lay)}</div>
+        <div class="panes" style="grid-template-columns:${cols}">${main ?? ''}${tool ? `<aside class="right btool">${tool}</aside>` : ''}</div>
+      </div>
+    </div>`
+  const toolHead = (title, right = '', back = '‹ Tools') => `<div class="panelhead"><span class="bk">${back}</span><span style="margin-left:6px">${title}</span>${right ? `<span class="rl">${right}</span>` : ''}</div>`
+
+  const prow = (k, name, role, line, right = '') => `<div class="pr">${big(k)}<div class="pb"><div class="pn"><b>${name}</b><span class="rq">· ${role}</span></div><div class="pl">${line}</div></div><div class="pa">${right}</div></div>`
+  const openLine = `<div class="pmeta"><span>Open project · 4 people</span><span class="slink">Settings ›</span></div>`
+  const peopleList = openLine + `
+    ${prow('AC', 'Avery Chen', 'Admin', 'You · project lead')}
+    ${prow('DA', 'Dana Weber', 'Member', '<span class="warnt">Needs Dana · WEB-27 wants to run a command</span>', '<span class="needchip">1</span>')}
+    ${prow('MI', 'Mira Costa', 'Member', '<span class="okt">Talking to Content writer</span>')}
+    ${prow('SO', 'Sol Reyes', 'Member', '<span class="mutt">Last here Mon</span>')}`
+
+  const AGV = { FD: '#0ea5e9', PM: '#6366f1', CW: '#f59e0b', QA: '#10b981' }
+  const abig = (k, n) => `<span class="big" style="background:${AGV[k]};width:${n}px;height:${n}px;font-size:${Math.round(n * 0.36)}px">${k}</span>`
+  const agStack = (n = 24) => `<span class="stack">${['FD', 'PM', 'CW', 'QA'].map((k) => abig(k, n)).join('')}</span>`
+  const ppStack = (n = 24) => `<span class="stack">${['AC', 'DA', 'MI', 'SO'].map((k) => big(k, n)).join('')}</span>`
+  const tl = (n, st) => `<div class="tline"><span>${n}</span><span class="s">${st}</span></div>`
+  const toolsOnly = `<div class="toolsgrp">Work</div>${tl('Tasks', '<span class="warnt">2 need you</span> · 12')}${tl('Boards', '3')}${tl('Timeline', '›')}
+      <div class="toolsgrp">Agents at work</div>${tl('Runs', '<span class="okt">2 running</span>')}${tl('Automation', 'On')}
+      <div class="toolsgrp">Files</div>${tl('Files', '24')}${tl('Artefacts', '9')}${tl('Knowledge', '14 topics')}${tl('Workspaces', '3')}
+      <div style="margin-top:24px">${tl('Settings', '›')}</div>`
+  const facts = `<div class="factl"><span>Lead</span><span>Avery Chen</span><span>Default agent</span><span>Project manager</span><span>Site</span><span>Studio site</span><span>Access</span><span>Open</span></div>`
+  set('t1', shell({ main: listPane, cols: '1fr 340px', lay: 1, tool: `<div class="panelhead"><span>Website Redesign</span></div>
+      ${facts}
+      <div style="border-top:1px solid var(--border-subtle);margin:16px 0 6px"></div>
+      <div class="teamrow"><span>People</span><span class="r">${ppStack()}<span>4 ›</span></span></div>
+      <div class="teamrow"><span>Agents</span><span class="r">${agStack()}<span>4 ›</span></span></div>
+      <div style="height:0"></div>
+      <div style="margin-top:6px"></div>${toolsOnly}
+      <p class="mutt" style="font-size:12px;margin-top:10px">People and Agents sit after the facts with space around them and no heading, before the tools; Settings stands alone at the foot. Tapping a row opens its view in the panel.</p>` }))
+  set('t3', `
+    <div class="phone"><div class="mhead"><span class="back">‹</span><span class="t">Project</span></div>
+      <div class="mlist" style="padding:12px 16px">
+        <div style="display:flex;gap:10px;align-items:center"><span class="picon" style="width:36px;height:36px"></span><div><b>Website Redesign</b><div class="pl">The new marketing site</div></div></div>
+        <div style="margin-top:12px">${facts}</div>
+        <div style="border-top:1px solid var(--border-subtle);margin:16px 0 6px"></div>
+        <div class="teamrow"><span>People</span><span class="r">${ppStack(22)}<span>4 ›</span></span></div>
+        <div class="teamrow"><span>Agents</span><span class="r">${agStack(22)}<span>4 ›</span></span></div>
+        <div style="height:0"></div>
+        <div class="toolsgrp" style="margin-top:16px">Work</div>${tl('Tasks', '<span class="warnt">2 need you</span> · 12 ›')}${tl('Boards', '3 ›')}
+        <div class="toolsgrp">Agents at work</div>${tl('Runs', '<span class="okt">2 running</span> ›')}${tl('Automation', 'On ›')}
+      </div></div>
+    <div class="phone"><div class="mhead"><span class="back">‹</span><span class="t">People</span><span class="mbtn">＋ Add</span></div>
+      <div class="mlist" style="padding:4px 16px">${peopleList}</div></div>`)
+
+  set('p1', shell({ main: listPane, cols: '1fr 380px', lay: 1, tool: toolHead('People', '＋ Add') + peopleList }))
+
+  const personView = `
+    <div class="phd">${big('DA', 44)}<div><div class="pn"><b style="font-size:16px">Dana Weber</b><span class="rq">· Member</span></div><div class="pl">@dana · 16:42 local time</div></div></div>
+    <div class="tgh"><span>Waiting on Dana</span></div>
+    <div class="trw"><div class="tt"><span class="k">WEB-27</span>Fix the checkout redirect</div><span class="act"><span class="bp">Open</span></span><div class="ts"><span class="warnt">Frontend dev wants to run npm run deploy</span></div></div>
+    <div class="tgh"><span>Tasks on Dana's behalf</span><span class="c lk">Open in Tasks</span></div>
+    <div class="pl">To do 2 · In progress 1 · Done 9</div>
+    <div class="tgh"><span>Role</span></div>
+    <div class="kvl" style="align-items:center"><span>Here</span><span><span class="dd">Member ▾</span></span><span>Organisation</span><span>Member · since Sep 2026</span></div>
+    <div class="pfoot"><span class="slink">Manage in Organisation ›</span><span class="slink" style="color:var(--danger)">Remove from this project</span></div>`
+  set('p2', shell({ main: listPane, cols: '1fr 380px', lay: 1, tool: toolHead('', '⋯', '‹ People') + personView }))
+
+  const tick = `<span class="intick" title="In this project">✓</span>`
+  const pick = (k, name, sub, here) => `<div class="pr">${big(k)}<div class="pb"><div class="pn"><b>${name}</b></div><div class="pl mutt">${sub}</div></div><div class="pa">${here ? tick : '<span class="bp">Add</span>'}</div></div>`
+  const addHead = (q) => `
+      <div class="addas"><span>Add as</span><span class="seg"><span class="on">Member</span><span>Admin</span></span></div>
+      <div class="search" style="display:block;width:auto;margin:10px 0 4px;${q ? 'color:var(--t1);border-color:var(--accent)' : ''}">${q || 'Search by name or @handle'}</div>`
+  const addFoot = `<div class="pfoot"><span class="slink">Someone new? Invite them in Organisation ›</span></div>`
+  set('p3', shell({ main: listPane, cols: '1fr 380px', lay: 1, tool: toolHead('Add people', '', '‹ People') + addHead('') + `
+      ${pick('DA', 'Dana Weber', '@dana · Member', true)}
+      ${pick('AC', 'Avery Chen', '@avery · Admin · you', true)}
+      ${pick('AT', 'Avery Tan', '@avery.tan · Member · in 1 project')}
+      ${pick('JO', 'Jo Park', '@jo · Viewer · in 1 project')}
+      ${pick('MI', 'Mira Costa', '@mira · Member', true)}
+      ${pick('RA', 'Ravi Shah', '@ravi · Member · in 2 projects')}
+      ${pick('SO', 'Sol Reyes', '@sol · Member', true)}` + addFoot }))
+  set('p3b', shell({ main: listPane, cols: '1fr 380px', lay: 1, tool: toolHead('Add people', '', '‹ People') + addHead('avery') + `
+      ${pick('AC', 'Avery Chen', '@avery · Admin · you', true)}
+      ${pick('AT', 'Avery Tan', '@avery.tan · Member · in 1 project')}` + addFoot }))
+
+  set('p4', shell({ main: listPane, cols: '1fr 400px', lay: 1, tool: toolHead('Remove Dana from this project', '', '‹ Dana') + `
+      <div class="bbox"><div class="l1"><span><b>3 open tasks</b> here are done on Dana's behalf · 9 done stay as they are</span></div></div>
+      <div class="flab" style="margin-top:10px">Open tasks on Dana's behalf</div>
+      <div class="choice3" style="grid-template-columns:1fr 1fr"><div><b>Done on behalf of</b>Another person here ▾</div><div><b>Leave them waiting</b>They do not run until someone takes them on</div></div>
+      <div class="btns"><span class="bp" style="opacity:.5">Remove</span><span class="bp">Cancel</span></div>
+      <p class="mutt" style="font-size:12px;margin-top:6px">Nothing is chosen for you. Dana's conversations here stay private to Dana. A run in progress finishes first. In an open project, Dana can join again.</p>` }))
+
+  const ava = (ks) => ks.map((k) => big(k, 28)).join('')
+  const previewA = `
+    <div class="desk" style="grid-template-columns:220px 1fr">${navHtml('')}
+      <div class="work">
+        <div class="wbar"><div class="crumb2"><a href="#">Projects</a> / Website Redesign</div></div>
+        <main class="centre" style="overflow:hidden">
+          <div class="phead"><span class="picon"></span><div><h2>Website Redesign</h2><div class="sub">The new marketing site · open project</div></div><span style="margin-left:auto"><span class="bp pri">Join this project</span></span></div>
+          <div class="pagebody" style="max-width:720px">
+            <p class="pl" style="margin:4px 0 0">You are not in this project. Join to talk to its agents, start work and approve. You can leave again at any time.</p>
+            <div class="tgh" style="margin-top:22px"><span>About</span></div>
+            <div class="kvl"><span>Lead</span><span>Avery</span><span>Product</span><span>Marketing</span><span>Site</span><span>Studio site</span><span>Started</span><span>2 Sep 2026</span></div>
+            <div class="tgh" style="margin-top:22px"><span>People</span><span class="c">4</span></div>
+            <div class="avs" style="flex-wrap:wrap;gap:8px 16px">${[['AC', 'Avery Chen'], ['DA', 'Dana Weber'], ['MI', 'Mira Costa'], ['SO', 'Sol Reyes']].map(([k, n]) => `<span style="display:inline-flex;align-items:center;gap:8px">${big(k, 28)}<span class="pl">${n}</span></span>`).join('')}</div>
+            <div class="tgh" style="margin-top:22px"><span>Agents</span><span class="c">4</span></div>
+            <div class="avs" style="flex-wrap:wrap;gap:8px 16px">${[['FD', 'Frontend dev'], ['PM', 'Project manager'], ['CW', 'Content writer'], ['QA', 'QA reviewer']].map(([k, n]) => `<span style="display:inline-flex;align-items:center;gap:8px"><span class="big" style="background:${{ FD: '#0ea5e9', PM: '#6366f1', CW: '#f59e0b', QA: '#10b981' }[k]};width:28px;height:28px;font-size:10px">${k}</span><span class="pl">${n}</span></span>`).join('')}</div>
+            <div class="tgh" style="margin-top:22px"><span>Lately</span></div>
+            <div class="pl">12 open tasks · 2 running now · last run 10 min ago</div>
+          </div>
+        </main>
+      </div>
+    </div>`
+  set('p5', previewA)
+
+  const previewB = shell({ main: `
+    <main class="centre">
+      <div class="phead"><span class="picon"></span><div><h2>Website Redesign</h2><div class="sub">The new marketing site · open project</div></div></div>
+      <div class="listwrap"><div class="pl" style="padding:40px 0;text-align:center">You have no conversations here.<br>Join to talk to this project's agents.</div></div>
+      <div class="joinbar"><span>You are not in this project — you can look around, read-only.</span><span class="bp pri">Join this project</span></div>
+    </main>`, cols: '1fr 380px', lay: 1, tool: toolHead('Tasks', '') + `
+      <div class="trw"><div class="tt"><span class="k">WEB-27</span>Fix the checkout redirect</div><span class="act"></span><div class="ts">In progress · Frontend dev · for Dana</div></div>
+      <div class="trw"><div class="tt"><span class="k">WEB-31</span>Pricing table component</div><span class="act"></span><div class="ts">To do · ▶ tomorrow 09:00</div></div>
+      <div class="trw"><div class="tt"><span class="k">WEB-26</span>Generate the sitemap</div><span class="act"></span><div class="ts">In progress · Project manager</div></div>
+      <p class="mutt" style="font-size:12px;margin-top:10px">Every tool opens, read-only: no Run, no New task, no Approve.</p>` })
+  set('p5b', previewB)
+
+  const oshell = (crumb, html) => `
+    <div class="desk" style="grid-template-columns:220px 1fr">${navHtml('org')}
+      <main class="centre"><div class="crumb"><a href="#">Organisation</a> / <a href="#">People</a>${crumb}</div>${html}</main>
+    </div>`
+  const grow = (k, name, sub, role, projects, joined) => `<div class="grow">${big(k)}<div class="nm"><b>${name}</b><div>${sub}</div></div><span>${role}</span><span class="c2">${projects}</span><span class="c3">${joined}</span></div>`
+  set('o1', oshell('', `
+      <div class="phead"><div><h2>People</h2><div class="sub">Everyone in the organisation — admins invite them and set their roles</div></div><span style="margin-left:auto;display:flex;gap:8px"><span class="search" style="width:220px">Search people</span><span class="bp pri">＋ Invite</span></span></div>
+      <div class="pagebody">
+        <div class="tgh" style="margin-top:4px"><span>Invited · waiting</span><span class="c">1</span></div>
+        <div class="grow"><span class="big" style="background:var(--s3);color:var(--t2)">?</span><div class="nm"><b>Priya — new designer</b><div>Invited by Avery · expires in 5 days</div></div><span>Member</span><span class="c2">Website Redesign</span><span class="c3"><span class="slink">Copy link</span> · <span class="slink" style="color:var(--danger)">Revoke</span></span></div>
+        <div class="tgh" style="margin-top:18px"><span>People</span><span class="c">6</span></div>
+        <div class="ghead"><span></span><span>Name</span><span>Organisation role</span><span>Projects</span><span style="text-align:right">Joined</span></div>
+        ${grow('AV', 'Avery <span class="mutt" style="font-weight:400">· you</span>', '@avery', 'Admin', '5 projects', 'Jun 2026')}
+        ${grow('DA', 'Dana', '@dana', '<span class="dd">Member ▾</span>', '3 projects', 'Sep 2026')}
+        ${grow('MI', 'Mira', '@mira', '<span class="dd">Member ▾</span>', '2 projects', 'Sep 2026')}
+        ${grow('SO', 'Sol', '@sol', '<span class="dd">Member ▾</span>', '1 project', 'Sep 2026')}
+        ${grow('RA', 'Ravi', '@ravi', '<span class="dd">Member ▾</span>', '2 projects', 'Oct 2026')}
+        ${grow('JO', 'Jo', '@jo', '<span class="dd">Viewer ▾</span>', '1 project', 'Oct 2026')}
+        <p class="mutt" style="font-size:12px;margin-top:12px">Used and expired invitations are under "Earlier invitations" at the foot of the list. You cannot change your own role.</p>
+      </div>`))
+
+  set('o3', oshell(' / Invite', `
+      <div class="phead"><div><h2>Invite someone</h2><div class="sub">A link for one person, good for 7 days</div></div></div>
+      <div class="pagebody" style="max-width:560px">
+        <div class="flab">Who it's for</div><div class="field">Priya — new designer</div>
+        <div class="flab">Organisation role</div>
+        <div class="choice3"><div><b>Admin</b>Manages people, agents and the organisation</div><div class="on"><b>Member</b>Works in projects, starts runs, approves</div><div><b>Viewer</b>Reads; never starts runs or approves</div></div>
+        <div class="flab">Projects they join on accepting <span class="mutt">· optional</span></div><div class="field">Website Redesign ×  <span class="mutt">Add a project…</span></div>
+        <div class="btns"><span class="bp pri">Create link</span><span class="bp">Cancel</span></div>
+        <div class="tgh" style="margin-top:20px"><span>Then</span></div>
+        <div class="linkbox">https://hq.example.org/accept-invite/7f3c…e21a</div>
+        <p class="mutt" style="font-size:12px;margin-top:6px">Copy it and send it yourself — Agenthix sends no email. It works once.</p>
+      </div>`))
+
+  set('o2', oshell(' / Dana', `
+      <div class="phead"><span style="display:inline-flex">${big('DA', 48)}</span><div><h2>Dana</h2><div class="sub">@dana · joined 3 Sep 2026 · invited by Avery</div></div><span style="margin-left:auto;display:flex;gap:8px"><span class="bp">⋯</span></span></div>
+      <div class="pagebody" style="display:grid;grid-template-columns:1fr 1fr;gap:0 40px">
+        <div>
+          <div class="tgh"><span>Organisation role</span></div>
+          <div class="choice3"><div><b>Admin</b>Manages people, agents and the organisation</div><div class="on"><b>Member</b>Works in projects, starts runs, approves</div><div><b>Viewer</b>Reads; never starts runs or approves</div></div>
+          <div class="tgh"><span>Profile</span></div>
+          <div class="kvl"><span>Name</span><span style="border-bottom:1px dashed var(--border)">Dana</span><span>Picture</span><span>Initial on a colour · <span class="slink">Change</span></span><span>Local time</span><span>16:42 · Europe/Berlin</span></div>
+        </div>
+        <div>
+          <div class="tgh"><span>Projects</span><span class="c lk">Add to a project</span></div>
+          <div class="trw"><div class="tt">Website Redesign</div><span class="act"><span class="dd">Member ▾</span></span><div class="ts">On Dana's behalf: 3 open · 1 waiting on Dana</div></div>
+          <div class="trw"><div class="tt">Product</div><span class="act"><span class="dd">Admin ▾</span></span><div class="ts">On Dana's behalf: 1 open</div></div>
+          <div class="trw"><div class="tt mutt" style="font-weight:400">and 1 private project you are not in</div><span class="act"></span><div class="ts">Counted, never named</div></div>
+          <p class="mutt" style="font-size:12px;margin-top:18px">⋯ holds <b>Remove from the organisation</b>, drawn below: it deactivates the account and deletes nothing.</p>
+        </div>
+      </div>`))
+
+  set('o4', oshell(' / Dana / Remove', `
+      <div class="phead"><div><h2>Remove Dana from the organisation</h2><div class="sub">Dana can be brought back. Nothing is deleted.</div></div></div>
+      <div class="pagebody" style="display:grid;grid-template-columns:1fr 1fr;gap:0 40px">
+        <div>
+          <div class="tgh"><span>At once</span></div>
+          <div class="line">Sign-in ends, on every device and connection</div>
+          <div class="line">Dana leaves 3 projects; Dana's own model logins stop being used</div>
+          <div class="tgh"><span>Open tasks · 4 done on Dana's behalf</span></div>
+          <div class="choice3" style="grid-template-columns:1fr 1fr"><div><b>Done on behalf of</b>Someone else, per project ▾</div><div><b>Leave them waiting</b>They do not run until someone takes them on</div></div>
+          <div class="tgh"><span>Kept</span></div>
+          <div class="line">Dana's name on tasks, comments, messages and runs — shown as <b>Dana · left</b></div>
+          <div class="line">Dana's private conversations and personal files — still private; no one, admins included, can open them</div>
+          <div class="btns" style="margin-top:14px"><span class="bp" style="opacity:.5">Remove</span><span class="bp">Cancel</span></div>
+        </div>
+        <div>
+          <div class="tgh"><span>Afterwards, on Dana's page</span></div>
+          <div class="bbox"><div class="l1"><span><b>Left 8 Oct 2026</b> · removed by Avery</span></div><div class="l2"><span class="bp">Reactivate</span><span class="bp" style="color:var(--danger)">Erase Dana's data…</span></div></div>
+          <div class="line"><b>Reactivate</b> — the same account comes back with all its history; projects are added again by hand</div>
+          <div class="line"><b>Erase</b> — for a data-protection request, or when the organisation no longer needs it. Deleted: their private conversations, personal project and files, memory, connections, model logins, name and picture. Stays with the projects: tasks, comments and task runs, the name replaced by <b>Former member</b>. Cannot be undone; asks for the person's name to be typed.</div>
+          <p class="mutt" style="font-size:12px;margin-top:10px">People who left are under "Left" at the foot of Organisation › People. They are not counted and not offered in pickers.</p>
+        </div>
+      </div>`))
+
+  set('pc', `
+      <div class="ctx">
+        <div class="turn you"><div class="h"><b>Dana</b> · 10:12</div><div class="txt">Can you check why the checkout redirect drops the return URL?</div></div>
+        <div class="mutt" style="font-size:13px">Clicking <b>Dana</b> or the picture opens a profile card beside it.</div>
+      </div>
+      <div class="pcard"><div class="top"></div><div class="in">${big('DA')}
+        <h3>Dana</h3><div class="s">@dana · Member of the organisation</div>
+        <div class="kvl"><span>Local time</span><span>16:42 · 6 h ahead of you</span><span>You share</span><span>Website Redesign · Product</span><span>Here</span><span>Member · 3 tasks on Dana's behalf</span></div>
+        <div class="btns" style="margin-top:12px"><span class="bp">Show Dana's tasks</span><span class="bp">Manage ›</span></div>
+        <p class="mutt" style="font-size:12px;margin:8px 0 0">Manage shows to organisation admins only.</p>
+      </div></div>`)
+
+  set('ph', `
+    <div class="phone"><div class="mhead"><span class="back">‹</span><span class="t">People</span><span class="mbtn">＋ Add</span></div>
+      <div class="mlist" style="padding:4px 16px">${peopleList}</div></div>
+    <div class="phone"><div class="mhead"><span class="back">‹</span><span class="t">Dana</span><span class="mbtn">⋯</span></div>
+      <div class="mlist" style="padding:4px 16px">${personView}</div></div>`)
+})()
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

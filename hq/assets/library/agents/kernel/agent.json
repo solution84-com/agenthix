@@ -1,0 +1,16 @@
+{
+  "name": "Kernel",
+  "handle": "kernel",
+  "role": "Helps you use the product",
+  "defaultModel": "claude-sonnet-5",
+  "approval": "deferred",
+  "allowedTools": null,
+  "allowedBashPatterns": null,
+  "_note": "The built-in agent is system-managed. Its handle is enforced by the platform regardless of this file; it starts on Deferred approval. This config is documentation only.",
+  "version": 1,
+  "skills": [
+    "orchestrate",
+    "assembly",
+    "planning"
+  ]
+}

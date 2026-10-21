@@ -1,0 +1,16 @@
+{
+  "name": "agenthix-monorepo",
+  "license": "Elastic-2.0",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "description": "Agenthix monorepo — root scripts for orchestrating multi-service dev.",
+  "scripts": {
+    "test:cross-app": "cd tests/cross-app && npm ci --no-audit --no-fund && npx vitest run"
+  },
+  "devDependencies": {
+    "typescript": "~5.9"
+  },
+  "engines": {
+    "node": ">=24.14.1"
+  }
+}

@@ -1,0 +1,17 @@
+**/node_modules
+**/.wasp
+**/.env
+**/.env.*
+**/compose.env
+**/.DS_Store
+.git
+# Only the user guide pages the Fleet Console builds into its Help.
+docs/*
+!docs/guide
+docs/guide/*
+!docs/guide/running-agenthix
+tests
+brand
+assets
+.superpowers
+**/.scratchpad

@@ -1,0 +1,56 @@
+# Wasp generated output
+.wasp/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Local Claude Code overrides and runtime files (not committed — settings.json, agents/, and skills/ are tracked)
+.claude/settings.local.json
+.claude/session-audit.log
+
+# Agent workspaces — symlinks to ~/. and runtime data, not committed
+/.agenthix.dev
+/.agenthix.local
+
+# Symlink to global Claude skills — for local browsing only, not committed
+/.skills
+
+# Runtime skills directory at project root — generated at runtime, not committed
+/skills/
+
+# Local tool output
+/.superpowers/
+
+# Temporary — local-only symlinks and scratch dirs
+/tmp/
+
+# Env files
+.env.server
+.env.client
+.env
+.env.local
+.env.local.lan
+
+# hq's own storage — runtime data (agent avatars and covers), not committed
+/storage/
+
+# Build artifacts
+/dist/
+
+# Playwright (e2e) output
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/
+
+# Node
+node_modules/
+
+# Test coverage
+/coverage/
+tsconfig.wasp.tsbuildinfo
+
+# The user guide's screenshot run (e2e/guide/README.md)
+/e2e/guide/.captures/
+/e2e/guide/.report/

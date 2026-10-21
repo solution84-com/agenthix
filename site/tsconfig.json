@@ -1,0 +1,20 @@
+{
+  // Type-checking only (`npm run typecheck`): esbuild builds the server
+  // (`npm run build`), tsx runs it in development (`npm run dev`), and vitest
+  // runs the tests. A Node server: no DOM, no JSX.
+  "compilerOptions": {
+    "target": "es2023",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2023"],
+    "types": ["node"],
+    "strict": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "allowJs": true,
+    "noEmit": true
+  },
+  "include": ["src"]
+}

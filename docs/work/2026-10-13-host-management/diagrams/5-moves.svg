@@ -1,0 +1,68 @@
+<svg viewBox="0 0 1100 560"  xmlns="http://www.w3.org/2000/svg" width="1100" height="560" role="img" aria-label="Moves: sites and host services follow an hq that moves">
+<title>Moves: sites follow an hq that moves</title>
+<style>
+  svg { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --bg-primary:#f5f5f7; --bg-secondary:#ffffff; --bg-tertiary:#e5e5e7; --border:#c7c7cc; --text-primary:#1d1d1f;
+    --text-secondary:#6e6e73; --text-tertiary:#8e8e93; --accent:#0071e3; --success:#248a3d; --warning:#c46a00; --error:#d70015; }
+  @media (prefers-color-scheme: dark) { svg { --bg-primary:#1d1d1f; --bg-secondary:#2d2d2f; --bg-tertiary:#3d3d3f;
+    --border:#424245; --text-primary:#f5f5f7; --text-secondary:#98989d; --text-tertiary:#636366; --accent:#0a84ff;
+    --success:#30d158; --warning:#ff9f0a; --error:#ff453a; } }
+</style>
+<rect x="0" y="0" width="1100" height="560" style="fill:var(--bg-primary)"/>
+  <defs>
+    <marker id="s1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--accent)"/></marker>
+    <marker id="s2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--success)"/></marker>
+    <marker id="s3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--warning)"/></marker>
+  </defs>
+  <style>
+    .sh { fill:var(--bg-primary); stroke:var(--accent); stroke-width:2.2; }
+    .ss { fill:var(--bg-primary); stroke:var(--border); stroke-width:1.6; }
+    .sm { fill:var(--bg-tertiary); stroke:var(--warning); stroke-width:2; }
+    .sl { stroke:var(--text-tertiary); stroke-width:1.5; stroke-dasharray:4 5; }
+    .st { fill:var(--text-primary); font-size:14px; font-weight:700; }
+    .sx { fill:var(--text-secondary); font-size:11.5px; }
+    .sb { stroke:var(--accent); stroke-width:2.2; fill:none; }
+    .sg { stroke:var(--success); stroke-width:2.4; fill:none; }
+    .so { stroke:var(--warning); stroke-width:2.2; fill:none; }
+    .sn { font-size:11.5px; font-weight:700; }
+    .sc { fill:var(--accent); }
+    .scn { fill:#fff; font-size:11px; font-weight:800; }
+    .sbar { fill:var(--error); fill-opacity:.15; stroke:none; }
+  </style>
+
+  <!-- lifeline heads -->
+  <rect class="sm" x="20" y="16" width="200" height="54" rx="8"/><text class="st" x="34" y="40">Host Manager or Cloud</text><text class="sx" x="34" y="58">runs the move</text>
+  <rect class="sh" x="300" y="16" width="200" height="54" rx="8"/><text class="st" x="314" y="40">Old hq</text><text class="sx" x="314" y="58">http://192.168.1.20:4100</text>
+  <rect class="ss" x="580" y="16" width="200" height="54" rx="8"/><text class="st" x="594" y="40">Site or host service</text><text class="sx" x="594" y="58">on any machine; each the same way</text>
+  <rect class="sh" x="860" y="16" width="220" height="54" rx="8"/><text class="st" x="874" y="40">New hq</text><text class="sx" x="874" y="58">https://hq.example.org</text>
+  <line class="sl" x1="120" y1="70" x2="120" y2="540"/><line class="sl" x1="400" y1="70" x2="400" y2="540"/><line class="sl" x1="680" y1="70" x2="680" y2="540"/><line class="sl" x1="970" y1="70" x2="970" y2="540"/>
+
+  <!-- 1 backup & restore -->
+  <circle class="sc" cx="140" cy="104" r="10"/><text class="scn" x="136" y="108">1</text>
+  <path class="so" d="M120,118 L398,118" marker-end="url(#s3)"/><text class="sx" x="156" y="112">hq goes read-only; take a sealed backup</text>
+  <path class="so" d="M120,146 L968,146" marker-end="url(#s3)"/><text class="sx" x="500" y="140">restore it on the new machine — its database holds every site's credential</text>
+
+  <!-- 2 announce -->
+  <circle class="sc" cx="420" cy="188" r="10"/><text class="scn" x="416" y="192">2</text>
+  <path class="sb" d="M400,204 L678,204" marker-end="url(#s1)"/><text class="sx" x="436" y="198">"I am moving to https://hq.example.org"</text>
+  <text class="sx" x="420" y="224">over the connection it already has</text>
+  <text class="sx" x="690" y="230">keeps both addresses</text>
+
+  <!-- 3 old stops -->
+  <circle class="sc" cx="420" cy="266" r="10"/><text class="scn" x="416" y="270">3</text>
+  <rect class="sbar" x="380" y="282" width="40" height="258"/><text class="sx" x="436" y="280">old hq stops</text>
+
+  <!-- 4 site tries new -->
+  <circle class="sc" cx="700" cy="316" r="10"/><text class="scn" x="696" y="320">4</text>
+  <path class="sb" d="M680,332 L968,332" marker-end="url(#s1)"/><text class="sx" x="716" y="326">challenge–response; nothing secret sent</text>
+
+  <!-- 5 accepted -->
+  <circle class="sc" cx="995" cy="388" r="10"/><text class="scn" x="991" y="392">5</text>
+  <path class="sg" d="M970,388 L682,388" marker-end="url(#s2)"/><text class="sx" x="716" y="382" style="fill:var(--success);font-weight:700">credential accepted — it is the same hq</text>
+
+  <!-- 6 switch -->
+  <circle class="sc" cx="700" cy="428" r="10"/><text class="scn" x="696" y="432">6</text>
+  <text class="sx" x="716" y="432">takes the new address; drops the old</text>
+  <path class="sg" d="M680,470 L968,470" marker-end="url(#s2)"/><text class="sx" x="716" y="464">connected, work resumes</text>
+  <text class="sx" x="690" y="510">no step 5: keeps trying the old</text><text class="sx" x="690" y="526">address; status says so</text>
+</svg>

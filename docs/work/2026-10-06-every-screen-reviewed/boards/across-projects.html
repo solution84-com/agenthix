@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Across projects — boards and workspaces · living design</title>
+<style>
+  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --s3:#e6e6ee; --hover:#ebebf3;
+    --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0;
+    --accent:#6366f1; --accent-h:#4f46e5; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --danger:#dc2626;
+    --ok-line:#05966955; --warn-line:#b4530955;
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --s3:#242436; --hover:#2a2a40;
+    --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078;
+    --accent:#6366f1; --accent-h:#818cf8; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --ok-line:#34d39955; --warn-line:#fbbf2455;
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:760px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .pill.live { color:var(--ok); border-color:var(--ok-line); }
+  .theme { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-left:8px; vertical-align:middle; }
+  .theme button { border:0; background:var(--s1); color:var(--t2); font:inherit; font-size:13px; padding:4px 12px; cursor:pointer; }
+  .theme button.on { background:var(--accent); color:var(--on-accent); }
+  .boards { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  .boards a { color:var(--t2); text-decoration:none; font-size:13px; padding:4px 10px; border-radius:6px; border:1px solid var(--border-subtle); background:var(--s1); }
+  .boards a.on { color:var(--t1); border-color:var(--accent); background:var(--accent-sub); }
+  .boards span { font-size:13px; padding:4px 10px; color:var(--t3); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:28px 0 10px; }
+
+  .frame { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .desk { display:grid; grid-template-columns:220px 1fr 300px; height:780px; }
+  .nav { background:var(--s0); border-right:1px solid var(--border-subtle); padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .logo { font-weight:600; font-size:15px; padding:4px 8px 14px; display:flex; gap:8px; align-items:center; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; color:var(--t2); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+  .nav a.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .nav .sec { font-size:12px; color:var(--t3); padding:14px 8px 4px; display:flex; justify-content:space-between; }
+  .sq { width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:8px; }
+  .nav .n { font-size:12px; color:var(--warn); }
+  .pi { display:flex; align-items:center; gap:8px; }
+  .ava { width:20px; height:20px; flex:none; color:#fff; font-size:9px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+  .ava.proj, .ava.bd { border-radius:5px; }
+  .ava.agent { border-radius:50%; }
+  .nav .drag { color:var(--t3); font-size:11px; letter-spacing:-2px; }
+  .tact { display:flex; justify-content:space-between; align-items:center; }
+  .mini { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:1px 7px; color:var(--t1); background:var(--s1); margin-left:4px; }
+  .mini.stop { color:var(--danger); }
+  .nav .me { margin-top:auto; border-top:1px solid var(--border-subtle); padding:12px 8px 0; font-size:13px; color:var(--t2); }
+
+  .desk > * { min-height:0; }
+  .centre { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; background:var(--s1); }
+  .crumb { padding:14px 32px 0; font-size:13px; color:var(--t3); }
+  .crumb a { color:var(--accent); text-decoration:none; }
+  .phead { padding:6px 32px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border-subtle); }
+  .picon { width:36px; height:36px; border-radius:8px; background:#8b5cf6; flex:none; }
+  .phead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .phead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .phead .pin { margin-left:auto; color:var(--accent); display:inline-flex; padding:6px; border-radius:6px; background:var(--accent-sub); }
+  .runrow { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:4px 0 6px; }
+  .rb { font-size:13px; line-height:18px; text-align:center; padding:6px 0; border:1px solid var(--border); border-radius:8px; color:var(--t1); background:var(--s1); }
+  .rb.stop { color:var(--danger); }
+  .tgrp { font-size:12px; color:var(--t3); font-weight:500; margin:10px 0 0; }
+  .tgrp:first-of-type { margin-top:0; }
+  .listwrap { flex:1; min-height:0; overflow:hidden; padding:14px 32px; }
+  .listtools { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .listtools h3 { font-size:15px; line-height:22px; margin:0; font-weight:600; flex:1; }
+  .search { border:1px solid var(--border); border-radius:6px; padding:5px 10px; color:var(--t3); font-size:13px; width:200px; background:var(--s1); }
+  .btn { border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:13px; color:var(--t1); background:var(--s1); white-space:nowrap; }
+  .grp { font-size:12px; color:var(--t3); font-weight:500; margin:12px 0 2px; }
+  .row { display:flex; gap:12px; padding:8px 10px; border-radius:8px; align-items:center; }
+  .row.sel { background:var(--s2); }
+  .av { width:32px; height:32px; border-radius:50%; flex:none; color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+  .av.sm { width:24px; height:24px; font-size:10px; }
+  .row .body { min-width:0; flex:1; }
+  .row .ttl { font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .who { color:var(--t2); font-size:13px; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .meta { color:var(--t3); font-size:12px; white-space:nowrap; text-align:right; }
+  .working { color:var(--ok); }
+  .composer { flex:none;  margin:0 32px 20px; border:1px solid var(--accent); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:center; background:var(--s1); }
+  .composer .ph { flex:1; color:var(--t3); font-size:15px; }
+  .chip { font-size:12px; color:var(--t2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; display:inline-flex; align-items:center; gap:6px; }
+  .send { width:30px; height:30px; border-radius:8px; background:var(--accent); flex:none; }
+
+  .right { background:var(--s1); border-left:1px solid var(--border-subtle); padding:0; display:flex; flex-direction:column; overflow:hidden; }
+  .right .card { border:none; border-radius:0; background:transparent; padding:14px 16px; }
+  .right .card + .card { border-top:1px solid var(--border-subtle); }
+  .right .card h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); }
+  .card { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; background:var(--s1); }
+  .card h4 { margin:0 0 8px; font-size:13px; line-height:18px; color:var(--t2); font-weight:500; }
+  .kv { display:grid; grid-template-columns:96px 1fr; gap:4px 8px; font-size:13px; line-height:18px; }
+  .kv b { font-weight:400; color:var(--t3); }
+  .tool { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; border-top:1px solid var(--border-subtle); }
+  .tool:first-of-type { border-top:none; }
+  .tool .n { color:var(--t3); font-size:12px; }
+  .tool .n.need { color:var(--warn); }
+  .tool .n.on { color:var(--ok); }
+
+  .phones { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:340px; height:700px; min-height:0; border:1px solid var(--border); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; background:var(--s1); position:relative; }
+  .mhead { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-subtle); }
+  .back { color:var(--accent); font-size:20px; line-height:20px; }
+  .mhead .t { font-weight:600; flex:1; }
+  .mbtn { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:3px 8px; color:var(--t2); }
+  .mlist { flex:1; min-height:0; overflow:hidden; padding:4px 12px; }
+  .mfilter { padding:8px 12px 0; display:flex; gap:8px; }
+  .mcomp { margin:10px 12px 16px; border:1px solid var(--accent); border-radius:12px; padding:12px; color:var(--t3); font-size:15px; display:flex; justify-content:space-between; align-items:center; }
+  .scrim { position:absolute; inset:0; background:#0000004d; }
+  .sheet { position:absolute; left:0; right:0; bottom:0; height:78%; background:var(--s1); border-radius:18px 18px 0 0; padding:10px 16px; border-top:1px solid var(--border); }
+  .grab { width:40px; height:4px; border-radius:2px; background:var(--s3); margin:0 auto 12px; }
+  .tabs { display:flex; gap:20px; border-bottom:1px solid var(--border-subtle); margin:8px 0 6px; font-size:14px; }
+  .tabs span { padding:6px 0; color:var(--t2); }
+  .tabs span.on { color:var(--accent); border-bottom:2px solid var(--accent); }
+
+  .notes { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .note { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); }
+  .note h3 { margin:0 0 8px; font-size:15px; line-height:22px; }
+  .note ul, .note ol { margin:0; padding-left:18px; color:var(--t2); }
+  .note li { margin-bottom:6px; }
+  .note li b { color:var(--t1); font-weight:500; }
+  .note.open { border-color:var(--warn-line); }
+  .note.agreed { border-color:var(--ok-line); }
+  details { margin-top:16px; color:var(--t2); }
+  details img { max-width:100%; border-radius:8px; border:1px solid var(--border-subtle); margin-top:8px; }
+  table.map { border-collapse:collapse; font-size:13px; width:100%; }
+  table.map td, table.map th { border-bottom:1px solid var(--border-subtle); padding:6px 8px; text-align:left; vertical-align:top; }
+  table.map th { color:var(--t3); font-weight:500; }
+  .tops { margin-left:auto; display:flex; gap:4px; }
+  .topb { position:relative; width:30px; height:30px; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); }
+  .topb.on { background:var(--accent-sub); color:var(--accent); }
+  .topb b { position:absolute; top:-3px; right:-5px; background:var(--danger); color:#fff; font-size:10px; line-height:14px; min-width:14px; text-align:center; border-radius:7px; padding:0 3px; font-weight:600; }
+  .topb b.g { background:var(--ok); }
+  .pcards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:16px; }
+  .pcard { border:1px solid var(--border); border-radius:12px; padding:16px; background:var(--s1); display:flex; flex-direction:column; gap:4px; }
+  .pcard .pav { width:40px; height:40px; border-radius:8px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:600; margin-bottom:6px; }
+  .pcard .nm { font-weight:600; } .pcard .ds { color:var(--t2); font-size:13px; } .pcard .now { font-size:13px; color:var(--t2); }
+  .pcard .ft { display:flex; gap:12px; align-items:center; border-top:1px solid var(--border-subtle); margin-top:10px; padding-top:10px; font-size:12px; color:var(--t3); }
+  .pcard .ft a { color:var(--accent); text-decoration:none; } .pcard .ft .go { margin-left:auto; color:var(--accent); font-size:14px; font-weight:500; }
+  .pcard .ft a.lnk { text-decoration:underline; text-decoration-color:var(--border); text-underline-offset:3px; color:var(--t2); }
+  .bp.pri { background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+  .ctl { display:flex; align-items:center; gap:10px; margin-top:18px; }
+  .ctl .grow { flex:1; }
+  .note-new { outline:2px dashed var(--accent); outline-offset:3px; border-radius:8px; }
+  .prow { padding:10px 0; border-bottom:1px solid var(--border-subtle); }
+  .prow .l1 { font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .prow .l2, .prow .l3 { font-size:13px; color:var(--t2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mseg { display:flex; gap:6px; padding:8px 0; }
+  .mseg span { font-size:13px; padding:4px 12px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .mseg span.on { background:var(--accent-sub); border-color:var(--accent); color:var(--t1); }
+</style>
+<style>
+  .convhead { padding:14px 32px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border-subtle); }
+  .convhead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .convhead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .convhead .more { margin-left:auto; color:var(--t3); }
+  .stream { flex:1; min-height:0; overflow:hidden; padding:20px 32px; }
+  .col { max-width:720px; margin:0 auto; }
+  .turn { margin-bottom:22px; font-size:15px; line-height:24px; }
+  .turn .h { display:flex; align-items:center; gap:8px; font-size:13px; line-height:18px; color:var(--t3); margin-bottom:6px; }
+  .turn .h b { color:var(--t1); font-weight:600; }
+  .you .txt { background:var(--s2); border-radius:12px; padding:10px 14px; display:inline-block; }
+  .agent .txt p { margin:0 0 10px; }
+  .agent .txt ol { margin:0 0 10px; padding-left:22px; }
+  .toolcall { font-size:13px; line-height:18px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:8px; padding:6px 10px; margin:6px 0 10px; display:flex; gap:8px; align-items:center; font-family:'JetBrains Mono', ui-monospace, monospace; }
+  .approval { border:1px solid var(--warn-line); border-radius:10px; padding:10px 14px; margin:8px 0; font-size:14px; line-height:21px; }
+  .approval .acts { margin-top:8px; display:flex; gap:8px; }
+  .bp { font-size:13px; border-radius:6px; padding:4px 12px; border:1px solid var(--border); background:var(--s1); color:var(--t1); }
+  .bp.pri { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .meta2 { font-size:12px; color:var(--t3); }
+  .typing { color:var(--ok); font-size:13px; }
+  .panelhead { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin-bottom:8px; }
+  .panelhead .bk { color:var(--accent); font-weight:400; }
+  .trow { font-size:13px; line-height:18px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .trow .k { color:var(--t3); font-size:12px; }
+  .link { color:var(--accent); font-size:13px; }
+  .lay { display:flex; gap:14px; flex-wrap:wrap; }
+  .lo { width:200px; border:1px solid var(--border-subtle); border-radius:10px; padding:10px; background:var(--s1); }
+  .lo.sel { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .lo .th { display:flex; gap:4px; height:90px; margin-bottom:8px; }
+  .lo .th .n { width:16px; background:var(--s3); border-radius:4px; }
+  .lo .th .c { background:var(--accent-sub); border:1px solid var(--accent); border-radius:4px; }
+  .lo .th .t { background:var(--s2); border:1px solid var(--border); border-radius:4px; }
+  .lo b { font-size:13px; } .lo div.d { font-size:12px; line-height:16px; color:var(--t2); }
+  .fctl { position:static; display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--s1); }
+  .fctl span { width:30px; height:26px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border-subtle); }
+  .fctl span:first-child { border-left:none; }
+  .fctl span.on { background:var(--accent-sub); }
+  .fctl i { display:flex; gap:2px; height:12px; }
+  .fctl i u { display:block; border-radius:1px; background:var(--t3); }
+  .work { display:grid; grid-template-rows:auto 1fr; min-width:0; min-height:0; }
+  .wbar { display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px 32px; border-bottom:1px solid var(--border-subtle); background:var(--s1); }
+  .crumb2 { font-size:13px; color:var(--t3); } .crumb2 a { color:var(--accent); text-decoration:none; }
+  .panes { display:grid; min-height:0; }
+  .panes > * { min-height:0; }
+  .dragedge { position:absolute; left:-3px; top:0; bottom:0; width:6px; cursor:col-resize; background:linear-gradient(var(--accent),var(--accent)) center/2px 48px no-repeat; }
+  .trow.new { border-left:3px solid var(--ok); padding-left:8px; }
+</style>
+<style>
+  .calm { max-width:560px; }
+  .btns { display:flex; gap:8px; }
+  .midbtns { display:flex; gap:8px; margin:16px 0 2px; }
+  .midbtns .bp { display:inline-flex; gap:6px; align-items:center; }
+  .lat { display:grid; grid-template-columns:110px 1fr; gap:10px; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .lat .when { color:var(--t2); font-size:13px; } .lat b { font-weight:500; } .lat .mut { font-size:12px; }
+  .atabs { display:flex; gap:18px; border-bottom:1px solid var(--border-subtle); margin:12px 0 2px; font-size:14px; }
+  .atabs > span { padding:7px 0; color:var(--t2); display:inline-flex; gap:6px; align-items:center; }
+  .atabs > span.on { color:var(--t1); font-weight:500; border-bottom:2px solid var(--accent); }
+  .tb { font-size:11px; line-height:16px; min-width:16px; text-align:center; border-radius:8px; padding:0 5px; background:var(--s2); color:var(--t2); }
+  .tb.w { background:var(--warn); color:#fff; }
+  .panelhead .rl { margin-left:auto; font-weight:400; font-size:13px; color:var(--accent); cursor:pointer; }
+  .astatus2 { padding:10px 12px; border:1px solid var(--ok-line); border-radius:10px; margin:6px 0 4px; }
+  .ast-row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .astatus2 .who { margin-top:2px; }
+  .lk { color:var(--accent); text-decoration:none; cursor:pointer; }
+  .srow { display:grid; grid-template-columns:34px 1fr auto; gap:10px; align-items:center; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .srow b { font-weight:500; }
+  .srow .mut { display:block; font-size:12px; } .srow .nx { font-size:12px; color:var(--t2); white-space:nowrap; } .srow .ic { color:var(--t3); text-align:center; }
+  .csec { margin-top:18px; }
+  .csec h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:0 0 6px; display:flex; justify-content:space-between; }
+  .csec h4 .edit { text-transform:none; letter-spacing:0; color:var(--accent); font-size:13px; }
+  .line { font-size:14px; line-height:21px; padding:5px 0; }
+  .line b { font-weight:500; } .line .ok { color:var(--ok); } .line .w { color:var(--warn); font-weight:600; }
+  .line a { color:var(--accent); margin-left:6px; font-size:13px; }
+  .mut { color:var(--t3); }
+  .rule { font-size:14px; line-height:21px; margin:0 0 8px; color:var(--t1); } .rule b { font-weight:500; }
+  .atool .bp { white-space:nowrap; }
+  .atool { padding:14px 18px !important; overflow:hidden; display:block !important; }
+  .astatus { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--ok-line); border-radius:10px; margin:6px 0 10px; }
+  .ast-t { font-weight:600; font-size:15px; display:flex; align-items:center; gap:8px; }
+  .dot-on { width:9px; height:9px; border-radius:50%; background:var(--ok); }
+  .acounts { display:flex; gap:16px; font-size:13px; color:var(--t2); margin-bottom:6px; flex-wrap:wrap; }
+  .acounts b { color:var(--t1); font-weight:600; } .acounts .w b, .acounts .w { color:var(--warn); }
+  .acols { display:grid; grid-template-columns:1.15fr 1fr; gap:24px; }
+  .asec { margin-top:14px; }
+  .asec h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:0 0 6px; }
+  .arow { display:flex; gap:10px; align-items:center; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .arow .body { flex:1; min-width:0; } .arow .ttl { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .arow .who { font-size:13px; }
+  .ar { font-size:12px; color:var(--t2); white-space:nowrap; } .ar.ok { color:var(--ok); } .ar.warn { color:var(--warn); } .ar.danger { color:var(--danger); }
+  .more { font-size:13px; color:var(--accent); padding-top:6px; }
+  .crow { font-size:13px; padding:7px 0; border-top:1px solid var(--border-subtle); display:flex; gap:4px; color:var(--t2); }
+  .crow b { font-weight:500; color:var(--t1); } .crow span { margin-left:auto; color:var(--t3); }
+  .sub2 { font-size:12px; color:var(--t3); margin:10px 0 2px; }
+  .trow2 { display:flex; justify-content:space-between; align-items:center; font-size:14px; padding:6px 0; border-top:1px solid var(--border-subtle); }
+  .trow2 i, .lrow i { font-style:normal; color:var(--t3); font-size:12px; margin-left:6px; }
+  .tg { width:32px; height:18px; border-radius:9px; background:var(--s3); position:relative; flex:none; }
+  .tg::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--s1); box-shadow:0 1px 2px #0003; }
+  .tg.on { background:var(--accent); } .tg.on::after { left:16px; }
+  .lrow { display:grid; grid-template-columns:1fr auto 84px; gap:8px; align-items:center; font-size:14px; padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .lrow b { font-weight:500; } .lrow em { font-style:normal; font-size:12px; color:var(--t3); text-align:right; }
+  .nlist .nrow2 { display:flex; justify-content:space-between; font-size:14px; padding:9px 0; border-top:1px solid var(--border-subtle); }
+  .nrow2 .n { color:var(--t3); font-size:12px; }
+</style>
+<style>
+  .ttool { padding:14px 18px !important; overflow:hidden; display:block !important; }
+  .tsearch { display:flex; gap:8px; align-items:center; margin:2px 0 4px; }
+  .tsearch .search { flex:1; width:auto; }
+  .trw { display:grid; grid-template-columns:1fr auto; gap:2px 10px; padding:8px 0; border-top:1px solid var(--border-subtle); align-items:center; }
+  .trw .tt { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .trw .tt .k { color:var(--t3); font-weight:400; font-size:12px; margin-right:6px; }
+  .trw .ts { grid-column:1; font-size:12px; line-height:16px; color:var(--t2); display:flex; gap:6px; align-items:center; white-space:nowrap; overflow:hidden; }
+  .trw .act { grid-row:1 / span 2; grid-column:2; }
+  .trw.sel { background:var(--s2); border-radius:8px; padding-left:8px; padding-right:8px; }
+  .mini-av { width:16px; height:16px; border-radius:50%; color:#fff; font-size:8px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+  .warnt { color:var(--warn); } .okt { color:var(--ok); } .mutt { color:var(--t3); }
+  .pdot { width:7px; height:7px; border-radius:50%; display:inline-block; flex:none; }
+  .p-h { background:var(--danger); } .p-m { background:var(--warn); } .p-l { background:var(--t3); }
+  .tgh { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:16px 0 4px; display:flex; justify-content:space-between; }
+  .tgh .c { letter-spacing:0; text-transform:none; }
+  .wtable { width:100%; border-collapse:collapse; font-size:14px; }
+  .wtable th { text-align:left; font-size:12px; font-weight:500; color:var(--t3); padding:6px 8px; border-bottom:1px solid var(--border-subtle); }
+  .wtable td { padding:8px; border-top:1px solid var(--border-subtle); vertical-align:middle; white-space:nowrap; }
+  .wtable td.ttl { font-weight:500; } .wtable td.ttl .pdot { margin-right:8px; vertical-align:middle; } .wtable td.ttl .k { color:var(--t3); font-weight:400; font-size:12px; margin-right:6px; }
+  .wtable tr.grp td { border-top:none; font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); padding-top:18px; }
+  .wtable .who { display:inline-flex; gap:6px; align-items:center; color:var(--t2); font-size:13px; }
+  .colchip { font-size:12px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:5px; padding:1px 6px; }
+  .fchip { font-size:13px; border:1px solid var(--border); border-radius:6px; padding:4px 10px; color:var(--t2); background:var(--s1); white-space:nowrap; }
+  .detail { display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:28px; }
+  .detail h2 { font-size:18px; line-height:26px; margin:2px 0 4px; font-weight:600; }
+  .needs { border:1px solid var(--warn-line); border-radius:10px; padding:12px 14px; margin:12px 0; }
+  .needs .h { font-weight:600; color:var(--warn); font-size:14px; }
+  .needs p { margin:4px 0 10px; font-size:14px; }
+  .needs .btns { flex-wrap:wrap; } .needs .bp { white-space:nowrap; }
+  .needs code, .tl code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .desc { font-size:14px; line-height:21px; color:var(--t1); margin:10px 0 0; }
+  .tl { margin-top:4px; }
+  .tli { display:grid; grid-template-columns:22px 1fr; gap:10px; padding:9px 0; border-top:1px solid var(--border-subtle); font-size:14px; line-height:21px; }
+  .tli .m { font-size:12px; color:var(--t3); }
+  .tli .ic { width:22px; height:22px; border-radius:50%; background:var(--s2); color:var(--t2); font-size:11px; display:flex; align-items:center; justify-content:center; }
+  .tcomp { border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--t3); font-size:14px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; }
+  .sess { margin-top:16px; }
+  .sesshead { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:14px; margin-bottom:6px; } .sesshead .lk { white-space:nowrap; }
+  .tx { border:1px solid var(--border-subtle); border-radius:10px; padding:10px 14px; font-size:14px; line-height:21px; }
+  .tx.tall { max-height:none; }
+  .txe { font-size:13px; text-align:center; padding:2px 0 6px; }
+  .txd { font-size:12px; color:var(--t3); text-align:center; margin:10px 0 6px; display:flex; gap:10px; align-items:center; }
+  .txd::before, .txd::after { content:''; flex:1; border-top:1px solid var(--border-subtle); }
+  .txm { margin:8px 0; } .txm.ag b { display:block; font-size:13px; }
+  .txm.you { text-align:right; } .txm.you span { display:inline-block; background:var(--s2); border-radius:12px; padding:8px 12px; text-align:left; }
+  .txc { font-size:12px; color:var(--t2); border:1px solid var(--border-subtle); border-radius:8px; padding:4px 10px; margin:6px 0; font-family:'JetBrains Mono', ui-monospace, monospace; }
+  .tx code, .approval code { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:12px; background:var(--s2); border-radius:4px; padding:1px 5px; }
+  .facts { font-size:13px; line-height:18px; }
+  .facts .f { padding:7px 0; border-top:1px solid var(--border-subtle); }
+  .facts .f:first-child { border-top:none; }
+  .facts .f b { display:block; font-weight:400; color:var(--t3); font-size:12px; }
+  .addrow { display:flex; gap:8px; align-items:center; border:1px solid var(--accent); border-radius:8px; padding:7px 10px; margin:6px 0 2px; font-size:14px; }
+  .addrow .ph2 { flex:1; color:var(--t1); }
+  .addrow .hint { font-size:12px; color:var(--t3); }
+  .page { padding:24px 40px; overflow:hidden; background:var(--s1); }
+  .page h1x { display:block; }
+  .pagehead { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:6px; }
+  .pagehead h2 { font-size:24px; line-height:32px; margin:0; font-weight:600; }
+  .pagehead .sub { color:var(--t2); font-size:14px; }
+</style>
+<style>
+  .cbar { display:inline-flex; width:120px; height:6px; border-radius:3px; overflow:hidden; background:var(--s3); vertical-align:middle; margin-right:8px; }
+  .cbar i { display:block; height:100%; }
+  .cbar .b1 { background:var(--t3); } .cbar .b2 { background:var(--accent); } .cbar .b3 { background:var(--ok); }
+  .badge { font-size:12px; line-height:16px; padding:1px 8px; border-radius:999px; color:var(--warn); border:1px solid var(--warn-line); margin-left:8px; font-weight:500; }
+  .segc { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .segc span { padding:4px 14px; font-size:13px; color:var(--t2); background:var(--s1); border-left:1px solid var(--border); }
+  .segc span:first-child { border-left:0; } .segc span.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .dotp { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .opt { font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.04em; text-transform:uppercase; }
+  .split { display:inline-flex; position:relative; }
+  .split .bp.pri:first-child { border-radius:6px 0 0 6px; } .split .bp.pri.car { border-radius:0 6px 6px 0; border-left:1px solid rgba(255,255,255,.35); padding-left:8px; padding-right:8px; }
+  .pmenu { position:absolute; right:0; top:calc(100% + 6px); width:260px; background:var(--s1); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:6px; z-index:5; text-align:left; }
+  .pmenu div { padding:8px 10px; border-radius:6px; font-size:14px; } .pmenu div small { display:block; color:var(--t3); font-size:12px; line-height:16px; }
+  .pmenu div.hv { background:var(--hover); } .pmenu hr { border:0; border-top:1px solid var(--border-subtle); margin:4px 0; }
+  .form { border:1px solid var(--border); border-radius:12px; padding:20px; background:var(--s1); max-width:460px; margin-top:16px; display:flex; flex-direction:column; gap:12px; }
+  .form label { font-size:12px; font-weight:500; color:var(--t3); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:4px; }
+  .form .in { border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:14px; color:var(--t1); }
+  .form .in.ph { color:var(--t3); }
+  .arrow { color:var(--accent); font-size:13px; font-weight:500; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="boardhead">
+    <div>
+      <h1>Across projects — boards and workspaces</h1>
+      <p>A person comes here to <b>see every board and every workspace in their projects</b>, and to open one. The Projects screen gets three views — <b>Projects · Boards · Workspaces</b> — and the navigation stays as agreed. Opening a board or workspace takes the person into its project with it open in the tool, at its own address.</p>
+    </div>
+    <div style="white-space:nowrap"><span class="pill live">Agreed 2026-10-10</span></div>
+  </div>
+
+  <div class="label">Desktop · Projects — today's cards, with the view switch added (outlined: what is new)</div>
+  <div class="frame" id="b1"></div>
+
+  <div class="label">Desktop · ＋ New project ▾ — the arrow opens New board and New workspace as shortcuts (owner, 2026-10-10)</div>
+  <div class="frame" id="b1m"></div>
+
+  <div class="label">Desktop · New board… from the shortcut — the project first, then the Boards tool's own form; it opens in that project's Boards tool when made</div>
+  <div class="frame" id="b1f"></div>
+
+  <div class="label">A card's "4 boards" opens the Boards view filtered to that project (agreed)</div>
+  <div class="frame" id="b10"></div>
+
+  <div class="label">Desktop · Boards — every board in your projects</div>
+  <div class="frame" id="b2"></div>
+
+  <div class="label">Desktop · Workspaces — every workspace in your projects, and your own in Chat</div>
+  <div class="frame" id="b3"></div>
+
+  <div class="label">Phone · the same three views, as chips under the header</div>
+  <div class="phones" id="b4"></div>
+
+  <div class="label">Agreed and open</div>
+  <div class="notes" style="grid-template-columns:1fr 1fr">
+    <div class="note"><h3>Nothing open</h3><ul><li>Every question answered (owner, 2026-10-10)</li></ul></div>
+    <div class="note"><h3>Agreed</h3><ul>
+      <li>Keep all boards and all workspaces: people need to see theirs across projects (owner, 2026-10-10)</li>
+      <li>A workspace gets its own address in its place; /workspaces/ID forwards there (owner, 2026-10-10)</li>
+      <li>Opening one goes into its project, open in the tool (5); lists hold your projects' boards and workspaces and your Chat ones, archived boards behind Archived, admins the same (6) (owner, 2026-10-10)</li>
+      <li>Where they live: B, the Projects screen (4, owner, 2026-10-10)</li>
+      <li>The view switch is in the address (/projects?view=boards), so Back and saved links return to it (8, owner, 2026-10-10)</li>
+      <li>A card's "N boards" opens the Boards view filtered to that project (10, owner, 2026-10-10)</li>
+      <li>＋ New project ▾ is the screen's: the same on Projects, Boards and Workspaces (11, owner, 2026-10-10)</li>
+      <li>＋ New project ▾: the arrow offers New board and New workspace as shortcuts, so the screen stays clean (9, owner, 2026-10-10)</li>
+    </ul></div>
+  </div>
+  <div class="label">Log</div>
+  <div class="note"><ul>
+    <li>2026-10-10 — AGREED: 10 yes (the card's boards link), 11 the split button on all three views.</li>
+    <li>2026-10-10 — v3: owner agreed 4 and 8; 9 → a split button with New board and New workspace; question 10 drawn to explain it.</li>
+    <li>2026-10-10 — v2: option B drawn in full from today's Projects screen; option A dropped from the board (kept in pre-merge/across-projects.v1.html).</li>
+    <li>2026-10-10 — first draft: option A (navigation) against B (Projects screen).</li>
+  </ul></div>
+</div>
+
+<script>
+(() => {
+  const navHtml = () => `
+    <nav class="nav">
+      <div class="logo"><i></i>Agenthix<span class="tops"><span class="topb"><b>3</b></span><span class="topb"><b class="g">2</b></span></span></div>
+      <a>Home</a><a>Chat</a><a class="on">Projects</a><a>Agents</a>
+      <a>Tasks <span class="n">2 need you</span></a>
+      <div class="sec"><span>Pinned</span><span>edit</span></div>
+      <a><span class="pi"><span class="ava proj" style="background:#a21caf">W</span>Website Redesign</span></a>
+      <div class="me" style="display:flex;flex-direction:column;gap:2px;padding-top:8px"><a style="padding:6px 0">Organisation</a><a style="padding:6px 0">Settings</a><span style="padding-top:4px">Avery</span></div>
+    </nav>`
+  const shell = (crumb, main) => `
+    <div class="desk" style="grid-template-columns:220px 1fr">${navHtml()}
+      <div class="work"><div class="wbar"><div class="crumb2">${crumb}</div></div>
+        <div class="panes" style="grid-template-columns:1fr">${main}</div></div>
+    </div>`
+  const views = ['Projects', 'Boards', 'Workspaces']
+  const newBtn = (open) => `<span class="split note-new"><span class="bp pri">＋ New project</span><span class="bp pri car">▾</span>${open ? `<div class="pmenu">
+      <div>New project</div><hr>
+      <div class="hv">New board…<small>Pick its project, then name it</small></div>
+      <div>New workspace…<small>Pick its place — a project or Chat — then name it</small></div></div>` : ''}</span>`
+  const seg = (on) => `<span class="segc note-new">${views.map((v) => `<span class="${v === on ? 'on' : ''}">${v}</span>`).join('')}</span>`
+  const page = (on, search, right, body, open = false) => `<div class="page">
+      <div class="pagehead"><div><h2>Projects</h2><div class="sub">Your projects, and their boards and workspaces</div></div>${newBtn(open)}</div>
+      <div class="ctl">${seg(on)}<span class="search" style="width:220px">${search}</span><span class="grow"></span>${right}</div>
+      ${body}</div>`
+  const proj = (name, c) => `<span class="who"><span class="ava proj" style="background:${c};width:16px;height:16px;font-size:8px;border-radius:4px">${name[0]}</span>${name}</span>`
+
+  const card = (l, c, nm, ds, now, ft, go = 'Open →') => `<div class="pcard"><span class="pav" style="background:${c}">${l}</span><span class="nm">${nm}</span>${ds ? `<span class="ds">${ds}</span>` : ''}<span class="now">${now}</span><div class="ft">${ft}<span class="go">${go}</span></div></div>`
+  document.getElementById('b1').innerHTML = shell('Projects', page('Projects', 'Search projects', '<span class="fchip">Product ▾</span><span class="fchip">Programme ▾</span>', `<div class="pcards">
+      ${card('W', '#a21caf', 'Website Redesign', 'Redesign the company website with new branding', '<b class="warnt">Needs you</b> · 1 task · 2 running', '<a class="lnk note-new">4 boards</a><span>12 of 50 tasks done</span>')}
+      ${card('M', '#f59e0b', 'Marketing Website', 'Landing pages and launch content', '<b>Quiet</b> · last run yesterday', '<a class="lnk note-new">2 boards</a><span>8 of 20 tasks done</span>')}
+      ${card('A', '#84cc16', 'API Integration', 'Build REST API integrations for external partners', '<b>Quiet</b>', '<span>Open project · not joined</span>', 'Look →')}
+    </div>`))
+
+  document.getElementById('b1m').innerHTML = shell('Projects', page('Projects', 'Search projects', '<span class="fchip">Product ▾</span><span class="fchip">Programme ▾</span>', `<div class="pcards" style="opacity:.55">
+      ${card('W', '#a21caf', 'Website Redesign', 'Redesign the company website with new branding', '<b class="warnt">Needs you</b> · 1 task · 2 running', '<a class="lnk">4 boards</a><span>12 of 50 tasks done</span>')}
+      ${card('M', '#f59e0b', 'Marketing Website', 'Landing pages and launch content', '<b>Quiet</b> · last run yesterday', '<a class="lnk">2 boards</a><span>8 of 20 tasks done</span>')}
+      ${card('A', '#84cc16', 'API Integration', 'Build REST API integrations for external partners', '<b>Quiet</b>', '<span>Open project · not joined</span>', 'Look →')}
+    </div>`, true))
+  document.getElementById('b1f').innerHTML = shell('Projects / New board', `<div class="page"><div class="pagehead"><div><h2>New board</h2><div class="sub">A board belongs to one project</div></div></div>
+    <div class="form">
+      <div><label>Project</label><div class="in">Website Redesign ▾</div><small class="mutt" style="font-size:12px">Only projects where you may add boards</small></div>
+      <div><label>Name</label><div class="in ph">Launch plan</div></div>
+      <div><label>Kind</label><span class="segc"><span class="on">Workflow</span><span>Sprints</span></span></div>
+      <div><label>Columns</label><div class="in">From a template: Design → Build → Review ▾</div></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><span class="bp">Cancel</span><span class="bp pri">Create board</span></div>
+    </div>
+    <p class="mutt" style="font-size:13px;margin-top:12px">New workspace… is the same: its place (a project or Chat) first, then the Workspaces tool's form — a name, then a GitHub repository or empty.</p></div>`)
+  document.getElementById('b10').innerHTML = shell('Projects', `<div class="page" style="display:grid;grid-template-columns:340px 40px 1fr;gap:12px;align-items:start">
+    <div>${card('W', '#a21caf', 'Website Redesign', 'Redesign the company website with new branding', '<b class="warnt">Needs you</b> · 1 task · 2 running', '<a class="lnk note-new">4 boards</a><span>12 of 50 tasks done</span>')}
+      <p class="mutt" style="font-size:13px">"4 boards" is a link.</p></div>
+    <div class="arrow" style="padding-top:150px">tap →</div>
+    <div><div class="ctl" style="margin-top:0">${seg('Boards')}<span class="fchip" style="border-color:var(--accent)">Project: Website Redesign ✕</span></div>
+      <table class="wtable" style="margin-top:12px"><tr><th>Board</th><th>Project</th><th>Sprint</th></tr>
+        <tr><td class="ttl">Project Tasks<span class="badge">1 needs you</span></td><td>${proj('Website Redesign', '#a21caf')}</td><td class="mutt">—</td></tr>
+        <tr><td class="ttl">Product board<span class="badge">2 needs you</span></td><td>${proj('Website Redesign', '#a21caf')}</td><td class="mutt">Sprint 3 · 4 days left</td></tr>
+        <tr><td class="ttl">Content</td><td>${proj('Website Redesign', '#a21caf')}</td><td class="mutt">—</td></tr>
+        <tr><td class="ttl">Archive 2025</td><td>${proj('Website Redesign', '#a21caf')}</td><td class="mutt">—</td></tr>
+      </table>
+      <p class="mutt" style="font-size:13px;margin-top:10px">The Boards view, already filtered to the one project. Without the link, the person taps Open → and then the Boards tool inside the project — which shows the same boards.</p></div></div>`)
+
+  const bar = (a, b, c) => `<span class="cbar"><i class="b1" style="width:${a}%"></i><i class="b2" style="width:${b}%"></i><i class="b3" style="width:${c}%"></i></span>`
+  const bRow = (name, p, pc, br, counts, sprint, needs = 0) => `<tr><td class="ttl">${name}${needs ? `<span class="badge">${needs} needs you</span>` : ''}</td><td>${proj(p, pc)}</td><td>${br}<span class="mutt" style="font-size:13px">${counts}</span></td><td class="mutt" style="font-size:13px">${sprint}</td></tr>`
+  document.getElementById('b2').innerHTML = shell('Projects / Boards', page('Boards', 'Search boards', '<span class="bp">Archived</span><span class="fchip">Project ▾</span>', `
+    <table class="wtable" style="margin-top:12px"><tr><th>Board</th><th>Project</th><th>Backlog · To do · In progress · Done</th><th>Sprint</th></tr>
+      ${bRow('Project Tasks', 'Website Redesign', '#a21caf', bar(30, 20, 50), '6 · 2 · 2 · 10', '—', 1)}
+      ${bRow('Product board', 'Website Redesign', '#a21caf', bar(20, 40, 40), '3 · 4 · 2 · 6', 'Sprint 3 · 4 days left', 2)}
+      ${bRow('Content', 'Website Redesign', '#a21caf', bar(40, 30, 30), '2 · 1 · 1 · 2', '—')}
+      ${bRow('Project Tasks', 'Marketing Website', '#f59e0b', bar(50, 25, 25), '4 · 1 · 1 · 2', '—')}
+      ${bRow('Launch content', 'Marketing Website', '#f59e0b', bar(10, 60, 30), '1 · 4 · 2 · 3', '—')}
+    </table>
+    <p class="mutt" style="font-size:13px;margin-top:12px">Tap a board: Website Redesign opens with the board open in its Boards tool.</p>`))
+
+  const wRow = (name, p, pc, repo, prev, site) => `<tr><td class="ttl">${name}</td><td>${proj(p, pc)}</td><td class="mutt" style="font-size:13px">${repo}</td><td style="font-size:13px">${prev}</td><td class="mutt" style="font-size:13px">${site}</td></tr>`
+  const running = '<span class="okt"><span class="dotp" style="background:var(--ok)"></span>Preview running</span>'
+  document.getElementById('b3').innerHTML = shell('Projects / Workspaces', page('Workspaces', 'Search workspaces', '<span class="fchip">Place ▾</span>', `
+    <table class="wtable" style="margin-top:12px"><tr><th>Workspace</th><th>Place</th><th>Repository</th><th>Preview</th><th>Site</th></tr>
+      ${wRow('website', 'Website Redesign', '#a21caf', 'acme/website', running, 'HQ')}
+      ${wRow('NewWorkspace', 'Website Redesign', '#a21caf', 'No repository', '<span class="mutt">—</span>', 'HQ')}
+      ${wRow('landing-pages', 'Marketing Website', '#f59e0b', 'acme/landing', '<span class="mutt">Not running</span>', 'Build server')}
+      ${wRow('scratch', 'Chat', '#64748b', 'No repository', '<span class="mutt">—</span>', 'HQ')}
+    </table>
+    <p class="mutt" style="font-size:13px;margin-top:12px">1 site isn't answering, so its workspaces aren't shown.</p>`))
+
+  const mseg = (on) => `<div class="mseg">${views.map((v) => `<span class="${v === on ? 'on' : ''}">${v}</span>`).join('')}</div>`
+  const prow = (a, b, c) => `<div class="prow"><div class="l1">${a}</div><div class="l2">${b}</div><div class="l3">${c}</div></div>`
+  const phone = (on, rows, act = '') => `<div class="phone"><div class="mhead"><span class="back">☰</span><span class="t">Projects</span>${act ? `<span class="mbtn">${act}</span>` : ''}</div><div class="mlist" style="padding:4px 16px">${mseg(on)}${rows}</div></div>`
+  document.getElementById('b4').innerHTML =
+    phone('Projects', prow('Website Redesign', '<b class="warnt">Needs you</b> · 1 task · 2 running', '4 boards · 12 of 50 done') + prow('Marketing Website', 'Quiet · last run yesterday', '2 boards · 8 of 20 done') + prow('API Integration', 'Quiet', 'Open project · not joined'), '＋') +
+    phone('Boards', prow('Product board <span class="badge">2 needs you</span>', 'Website Redesign · Sprint 3 · 4 days left', bar(20, 40, 40) + '3 · 4 · 2 · 6') + prow('Project Tasks <span class="badge">1 needs you</span>', 'Website Redesign', bar(30, 20, 50) + '6 · 2 · 2 · 10') + prow('Launch content', 'Marketing Website', bar(10, 60, 30) + '1 · 4 · 2 · 3')) +
+    phone('Workspaces', prow('website', 'Website Redesign · acme/website', '<span class="okt">Preview running</span> · HQ') + prow('landing-pages', 'Marketing Website · acme/landing', 'Not running · Build server') + prow('scratch', 'Chat · No repository', 'HQ'))
+})()
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

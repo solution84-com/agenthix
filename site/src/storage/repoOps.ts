@@ -1,0 +1,127 @@
+/**
+ * Repo ops (ADR-0039) — direction-aware, non-destructive git over a storage dir.
+ * Generalised from the reference branch to operate on any `dir` (a workspace's
+ * dir OR an owner's files dir).
+ *
+ *   initAndPushRepo  — the dir is the source of truth → git init + commit + push UP
+ *   linkAndPullRepo  — the repo is the source of truth → init + fetch + checkout DOWN
+ *                      (requires an empty dir; never `git clone` into an existing dir)
+ *   getContentState  — { isGitRepo, hasFiles } (ignores .git)
+ *
+ * Token injection: withGitAuth writes a temp GIT_ASKPASS script that answers a password
+ * prompt with the token (and a username prompt with a fixed non-secret name). The token
+ * is never embedded in the remote URL or persisted in .git/config (closes SC-259 /
+ * PAT-leak Finding 1).
+ *
+ * Every invocation goes through `./gitRunner.ts` rather than `execFile`, and
+ * every one of them shares ONE deadline for the whole call. Nine commands with
+ * a timeout each would add up past the budget hq is holding; and without a
+ * deadline that is enforced and a kill that is confirmed, a stalled git keeps
+ * writing into a location after the call it belongs to has already failed.
+ * That module's header has the rest.
+ */
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import os from 'node:os'
+import { GitDeadline, runGit } from './gitRunner'
+
+const GIT_IDENTITY = ['-c', 'user.name=Agenthix', '-c', 'user.email=noreply@agenthix.dev']
+
+/** Strip SSH syntax, URL userinfo and trailing `.git` → clean HTTPS URL with no embedded credentials. */
+export const cleanUrl = (repoUrl: string) =>
+  repoUrl
+    .replace(/^git@github\.com:/, 'https://github.com/')
+    .replace(/^(https?:\/\/)[^/]*@/, '$1')
+    .replace(/\.git$/, '')
+
+interface GitAuthEnv {
+  env: NodeJS.ProcessEnv & { GIT_ASKPASS: string; GIT_TERMINAL_PROMPT: string }
+  _cleanup: () => Promise<void>
+}
+
+/**
+ * Build an env that injects `token` into git over HTTPS via GIT_ASKPASS — the token
+ * is never written to .git/config or the remote URL. Caller must `_cleanup()`.
+ */
+export async function withGitAuth(token: string): Promise<GitAuthEnv> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'agenthix-askpass-'))
+  const script = path.join(dir, 'askpass.sh')
+  // The username is not a secret and must not be the token (a proxy or a log may record it);
+  // only a password prompt is answered with the token, and anything else is refused.
+  const body = `#!/bin/sh\ncase "$1" in\n  Username*) echo "x-access-token" ;;\n  Password*) echo "${token}" ;;\n  *) exit 1 ;;\nesac\n`
+  await fs.writeFile(script, body, { mode: 0o700 })
+  return {
+    env: { ...process.env, GIT_ASKPASS: script, GIT_TERMINAL_PROMPT: '0' },
+    _cleanup: () => fs.rm(dir, { recursive: true, force: true }),
+  }
+}
+
+async function listContent(dir: string): Promise<string[]> {
+  const entries = await fs.readdir(dir).catch((err: NodeJS.ErrnoException) => {
+    // Only "it is not there" reads as empty — a location whose disk has not
+    // been provisioned yet is an ordinary state. A directory this process may
+    // NOT read is a refusal: reporting it as empty is how a broken location
+    // passes an emptiness check and gets pulled into, and how a caller is told
+    // a repository has no files when nobody could look.
+    if (err?.code === 'ENOENT') return [] as string[]
+    throw err
+  })
+  return entries.filter(e => e !== '.git')
+}
+
+export async function getContentState(dir: string): Promise<{ isGitRepo: boolean; hasFiles: boolean }> {
+  const isGitRepo = await fs.access(path.join(dir, '.git')).then(() => true).catch(() => false)
+  const content = await listContent(dir)
+  return { isGitRepo, hasFiles: content.length > 0 }
+}
+
+/** Pull an existing repo DOWN into an empty dir. Throws if the dir already has files. */
+export async function linkAndPullRepo(dir: string, repoUrl: string, token: string, deadline: GitDeadline): Promise<void> {
+  await fs.mkdir(dir, { recursive: true })
+  if ((await listContent(dir)).length > 0) {
+    throw new Error('This location already has files — linking would overwrite them. Use Back up / Init to push these up instead, or link into an empty location.')
+  }
+  const url = cleanUrl(repoUrl)
+  await runGit(['-C', dir, 'init', '-q'], { deadline })
+  await runGit(['-C', dir, 'remote', 'add', 'origin', url], { deadline })
+  const auth = await withGitAuth(token)
+  try {
+    await runGit(['-C', dir, 'fetch', 'origin'], { deadline, env: auth.env })
+  } finally {
+    await auth._cleanup()
+  }
+  // Left outside the auth block exactly as it was before this module moved:
+  // `set-head` talks to the remote and so has no credential for a private
+  // repository. That is a real defect, carried unchanged rather than repaired
+  // here, because a fix round is the wrong place to change behaviour nobody
+  // asked about.
+  await runGit(['-C', dir, 'remote', 'set-head', 'origin', '-a'], { deadline })
+  const { stdout } = await runGit(['-C', dir, 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], { deadline })
+  const branch = stdout.trim().replace(/^origin\//, '') || 'main'
+  await runGit(['-C', dir, 'checkout', '-B', branch, `origin/${branch}`], { deadline })
+}
+
+/** Init the dir and push its files UP to an (empty) repo. The dir is the source of truth. */
+export async function initAndPushRepo(dir: string, repoUrl: string, token: string, deadline: GitDeadline): Promise<void> {
+  await fs.mkdir(dir, { recursive: true })
+  const isGitRepo = await fs.access(path.join(dir, '.git')).then(() => true).catch(() => false)
+  if (!isGitRepo) await runGit(['-C', dir, 'init', '-q'], { deadline })
+
+  await runGit(['-C', dir, 'add', '-A'], { deadline })
+  const { stdout: status } = await runGit(['-C', dir, 'status', '--porcelain'], { deadline })
+  const hasHead = await runGit(['-C', dir, 'rev-parse', '--verify', 'HEAD'], { deadline }).then(() => true).catch(() => false)
+  if (status.trim() || !hasHead) {
+    await runGit(['-C', dir, ...GIT_IDENTITY, 'commit', '--allow-empty', '-m', 'Initial commit'], { deadline })
+  }
+  await runGit(['-C', dir, 'branch', '-M', 'main'], { deadline })
+
+  const url = cleanUrl(repoUrl)
+  const hasOrigin = await runGit(['-C', dir, 'remote', 'get-url', 'origin'], { deadline }).then(() => true).catch(() => false)
+  await runGit(['-C', dir, 'remote', hasOrigin ? 'set-url' : 'add', 'origin', url], { deadline })
+  const auth = await withGitAuth(token)
+  try {
+    await runGit(['-C', dir, 'push', '-u', 'origin', 'main'], { deadline, env: auth.env })
+  } finally {
+    await auth._cleanup()
+  }
+}

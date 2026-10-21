@@ -1,0 +1,37 @@
+name: Lint workflows
+
+# actionlint, with shellcheck on every `run:` block, over the workflows. It runs on a pull request or a push to main that
+# touches them. The runner image carries shellcheck.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+concurrency:
+  group: lint-workflows-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
+
+jobs:
+  actionlint:
+    name: "Workflows: actionlint and shellcheck"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install actionlint
+        run: |
+          # The download script is pinned by commit, and installs the release it belongs to.
+          curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash \
+            | bash -s -- 1.7.12 "$RUNNER_TEMP"
+      - name: Lint
+        run: |
+          "$RUNNER_TEMP/actionlint" -color

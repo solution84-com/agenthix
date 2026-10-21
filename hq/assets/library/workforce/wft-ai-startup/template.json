@@ -1,0 +1,44 @@
+{
+  "id": "wft-ai-startup",
+  "name": "AI Startup",
+  "description": "Full development lifecycle — frontend, backend, QA, PM, and docs.",
+  "version": 1,
+  "tags": ["software", "startup", "fullstack"],
+  "teams": [
+    {
+      "name": "Engineering",
+      "purpose": "Build and maintain the product",
+      "agents": ["frontend", "backend", "qa", "docs"]
+    },
+    {
+      "name": "Product",
+      "purpose": "Product strategy, roadmap, and documentation",
+      "agents": ["pm"]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Product Development",
+      "description": "Main product sprint work",
+      "defaultAgentHandle": "pm",
+      "boards": [
+        { "name": "Sprint", "templateId": "sys-tpl-0002-sprint" }
+      ]
+    },
+    {
+      "name": "Documentation",
+      "description": "Docs, guides, and changelogs",
+      "defaultAgentHandle": "docs",
+      "boards": [
+        { "name": "Kanban", "templateId": "sys-tpl-0001-kanban" }
+      ]
+    },
+    {
+      "name": "Internal Ops",
+      "description": "Bugs, incidents, maintenance",
+      "boards": [
+        { "name": "Issues", "templateId": "sys-tpl-0003-issues" }
+      ]
+    }
+  ]
+}

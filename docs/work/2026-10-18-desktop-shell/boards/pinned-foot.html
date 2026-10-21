@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pinned at the foot</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#16181d;--muted:#667085;--line:#e4e7ec;--soft:#f2f4f7;--accent:#3b5bdb;--accent-soft:#e8edff;--ok:#067647;--ok-soft:#e7f6ec;--warn:#b54708;--warn-soft:#fff4e5;--nav:#f7f8fa;--q:#7a2e9a;--q-soft:#f6ecfb;--bad:#b42318;--bad-soft:#fef3f2}
+[data-theme=dark]{--bg:#0b0c10;--panel:#131418;--ink:#e7e9ee;--muted:#8b93a3;--line:#262a33;--soft:#1b1d23;--accent:#7c95ff;--accent-soft:#1f2640;--ok:#47cd89;--ok-soft:#11291c;--warn:#f79009;--warn-soft:#33240f;--nav:#101116;--q:#d6a4f0;--q-soft:#2b1d33;--bad:#f97066;--bad-soft:#3a1714}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;background:var(--bg);color:var(--ink)}
+.board{display:flex;min-height:100vh}
+.menu{width:240px;flex:none;border-right:1px solid var(--line);background:var(--panel);padding:16px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.menu h1{font-size:14px;margin:0 0 4px}.menu .sub{color:var(--muted);font-size:12px;margin-bottom:14px}
+.menu details{margin-bottom:8px}.menu summary{cursor:pointer;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:4px}
+.menu a{display:block;padding:5px 8px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:13px}.menu a:hover{background:var(--soft)}
+.theme{display:flex;gap:4px;margin:10px 0 16px}.theme button{flex:1;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:6px;padding:4px;cursor:pointer;font-size:12px}
+.theme button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.main{flex:1;padding:24px 28px;max-width:1420px;min-width:0}
+section{margin-bottom:52px}h2{font-size:20px;margin:0 0 4px}h3{font-size:15px;margin:18px 0 8px}.lede{color:var(--muted);margin:0 0 14px;max-width:940px}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 6px 6px 0;margin:10px 0;max-width:940px}
+.note.ok{border-left-color:var(--ok);background:var(--ok-soft)}.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}.note.q{border-left-color:var(--q);background:var(--q-soft)}
+.row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:12px;color:var(--muted);margin:6px 2px 0;max-width:250px}
+.cap b{color:var(--ink)}
+/* panel */
+.nav{width:232px;height:520px;flex:none;background:var(--nav);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;padding:10px 8px;font-size:12.5px;position:relative;overflow:hidden}
+.nav.icons{width:60px;align-items:stretch;padding:10px 6px}
+.logo{display:flex;align-items:center;gap:6px;font-weight:700;padding:2px 8px 10px}.logo .ic{color:var(--muted);margin-left:auto;font-weight:400;font-size:11px}
+.it{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;color:var(--ink);white-space:nowrap}
+.icons .it{justify-content:center;padding:6px 0}
+.it .i{width:16px;text-align:center;color:var(--muted);flex:none}
+.it.on{background:var(--accent-soft);color:var(--accent);font-weight:600}.it.on .i{color:var(--accent)}
+.it .c{margin-left:auto;font-size:11px;color:var(--muted)}.it .c.needs{color:var(--warn)}
+.grp{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:9px 8px 3px}
+.place{display:flex;align-items:center;gap:8px;padding:4px 6px 8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.place .nm{font-weight:700;flex:1}.place .pin{color:var(--accent);font-size:12px}.place .bk{color:var(--muted)}
+.av{width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex:none;font-weight:600}
+.av.p1{background:#0e7490}.av.p2{background:#b45309}.av.p3{background:#6d28d9}.av.p4{background:#15803d}.av.p5{background:#be123c}.av.me{background:var(--accent-soft);color:var(--accent);border-radius:50%}
+.scroll{flex:1;overflow:hidden;min-height:0}
+.foot{border-top:1px solid var(--line);padding-top:6px;margin-top:4px}
+.pinrow{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:var(--soft)}
+.pinrow .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.pinrow .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pinrow .tg{color:var(--muted);font-size:11px}
+.pinlist{border-top:1px solid var(--line);padding-top:4px;margin-bottom:4px}
+.pinhead{display:flex;justify-content:space-between;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:3px 8px}
+.pinhead span:last-child{text-transform:none;letter-spacing:0;font-size:11px}
+.me{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;margin-top:4px}
+.me .nm{flex:1}.me .k{color:var(--muted);font-size:12px}
+.pop{position:absolute;left:8px;right:8px;bottom:46px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:4px;z-index:2}
+.pop .it{padding:6px 8px}.pop hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+.pop .who{padding:6px 8px;font-size:11px;color:var(--muted)}
+.mark{outline:2px dashed var(--q);outline-offset:2px;border-radius:7px}
+.x{color:var(--bad)}
+.tip{position:absolute;left:62px;background:var(--ink);color:var(--panel);font-size:11px;padding:3px 7px;border-radius:5px;white-space:nowrap}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;max-width:1100px}
+.opt{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel)}
+.opt.rec{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok)}
+.opt h4{margin:0 0 6px;font-size:14px}.opt .tag{font-size:11px;color:var(--ok);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.opt ul{margin:6px 0 0 18px;padding:0}.opt li{margin:3px 0}
+</style>
+</head>
+<body>
+<div class="board">
+<nav class="menu">
+  <h1>Pinned at the foot</h1>
+  <div class="sub">Desktop shell · the side panel</div>
+  <div class="theme"><button class="on" onclick="setTheme('light',this)">Light</button><button onclick="setTheme('dark',this)">Dark</button></div>
+  <details open><summary>The board</summary>
+    <a href="#today">1 · Today</a>
+    <a href="#after">2 · Pinned as one row</a>
+    <a href="#foot">3 · The rest of the foot</a>
+    <a href="#widths">4 · Icons and phone</a>
+    <a href="#rec">5 · Recommendation</a>
+  </details>
+</nav>
+<main class="main">
+
+<section id="today">
+  <h2>1 · Today: Pinned moves when you use it</h2>
+  <p class="lede">Pinned follows the place's sections. A project has 14, your space 11, an agent 9, so when you tap a pin the
+  panel drills into that place and the list jumps to a new height. The thing you just tapped is no longer under your
+  finger. Many pins also push the sections out of view.</p>
+  <div class="row">
+    <div>
+      <div class="nav">
+        <div class="logo">Agenthix <span class="ic">🔔 ▶</span></div>
+        <div class="place"><span class="bk">‹</span><span class="av p4">Y</span><span class="nm">Your space</span></div>
+        <div class="scroll">
+          <div class="it on"><span class="i">▦</span>Overview</div>
+          <div class="it"><span class="i">💬</span>Conversations<span class="c">4</span></div>
+          <div class="grp">Work</div>
+          <div class="it"><span class="i">☑</span>Tasks<span class="c">12</span></div>
+          <div class="it"><span class="i">▤</span>Boards<span class="c">2</span></div>
+          <div class="grp">Files</div>
+          <div class="it"><span class="i">▢</span>Files</div>
+          <div class="it"><span class="i">◇</span>Artefacts</div>
+          <div class="grp">📌 Pinned</div>
+          <div class="it mark"><span class="av p1">W</span>Website relaunch</div>
+          <div class="it"><span class="av p2">Q</span>Quarterly report</div>
+        </div>
+        <div class="foot">
+          <div class="it"><span class="i">🏢</span>Organisation</div>
+          <div class="it"><span class="i">⚙</span>Settings</div>
+          <div class="it"><span class="i">«</span>Collapse</div>
+          <div class="me"><span class="av me">SA</span><span class="nm">sam</span><span class="k">⇥</span></div>
+        </div>
+      </div>
+      <div class="cap"><b>Before the tap.</b> Website relaunch sits below your space's 11 sections.</div>
+    </div>
+    <div>
+      <div class="nav">
+        <div class="logo">Agenthix <span class="ic">🔔 ▶</span></div>
+        <div class="place"><span class="bk">‹</span><span class="av p1">W</span><span class="nm">Website relaunch</span><span class="pin">📌</span></div>
+        <div class="scroll">
+          <div class="it on"><span class="i">▦</span>Overview</div>
+          <div class="it"><span class="i">💬</span>Conversations<span class="c">7</span></div>
+          <div class="grp">Work</div>
+          <div class="it"><span class="i">☑</span>Tasks<span class="c needs">1 needs you · 9</span></div>
+          <div class="it"><span class="i">▤</span>Boards<span class="c">3</span></div>
+          <div class="it"><span class="i">⇶</span>Timeline</div>
+          <div class="grp">Agents at work</div>
+          <div class="it"><span class="i">▶</span>Runs</div>
+          <div class="it"><span class="i">↻</span>Automation<span class="c">On</span></div>
+          <div class="grp">Files</div>
+          <div class="it"><span class="i">▢</span>Files</div>
+        </div>
+        <div class="foot">
+          <div class="it"><span class="i">🏢</span>Organisation</div>
+          <div class="it"><span class="i">⚙</span>Settings</div>
+          <div class="it"><span class="i">«</span>Collapse</div>
+          <div class="me"><span class="av me">SA</span><span class="nm">sam</span><span class="k">⇥</span></div>
+        </div>
+      </div>
+      <div class="cap"><b>After the tap.</b> The project has more sections, so Pinned is now off the bottom. You have to
+      scroll to find what you tapped.</div>
+    </div>
+  </div>
+</section>
+
+<section id="after">
+  <h2>2 · Pinned as one row at the foot</h2>
+  <p class="lede">Your idea, drawn. Pinned leaves the scrolling list and sits in the foot, so it is always in the same
+  place whatever you are in. Closed, it is one row: the pin you used last. Open, the list grows <b>upward</b> from that
+  row, as tall as it needs, and the foot stays where it is.</p>
+  <div class="row">
+    <div>
+      <div class="nav">
+        <div class="logo">Agenthix <span class="ic">🔔 ▶</span></div>
+        <div class="place"><span class="bk">‹</span><span class="av p1">W</span><span class="nm">Website relaunch</span><span class="pin">📌</span></div>
+        <div class="scroll">
+          <div class="it on"><span class="i">▦</span>Overview</div>
+          <div class="it"><span class="i">💬</span>Conversations<span class="c">7</span></div>
+          <div class="grp">Work</div>
+          <div class="it"><span class="i">☑</span>Tasks<span class="c needs">1 needs you · 9</span></div>
+          <div class="it"><span class="i">▤</span>Boards<span class="c">3</span></div>
+          <div class="it"><span class="i">⇶</span>Timeline</div>
+          <div class="grp">Agents at work</div>
+          <div class="it"><span class="i">▶</span>Runs</div>
+          <div class="it"><span class="i">↻</span>Automation<span class="c">On</span></div>
+          <div class="grp">Files</div>
+          <div class="it"><span class="i">▢</span>Files</div>
+          <div class="it"><span class="i">◇</span>Artefacts</div>
+        </div>
+        <div class="foot">
+          <div class="pinrow mark"><span class="i">📌</span><span class="av p2">Q</span><span class="nm">Quarterly report</span><span class="tg">5 ▴</span></div>
+          <div class="me"><span class="av me">SA</span><span class="nm">sam</span><span class="k">⋯</span></div>
+        </div>
+      </div>
+      <div class="cap"><b>Closed.</b> One row: the pin you used last that isn't where you are now (you're in Website
+      relaunch, so it shows Quarterly report). "5 ▴" opens the list. Tapping the name goes straight there.</div>
+    </div>
+    <div>
+      <div class="nav">
+        <div class="logo">Agenthix <span class="ic">🔔 ▶</span></div>
+        <div class="place"><span class="bk">‹</span><span class="av p1">W</span><span class="nm">Website relaunch</span><span class="pin">📌</span></div>
+        <div class="scroll">
+          <div class="it on"><span class="i">▦</span>Overview</div>
+          <div class="it"><span class="i">💬</span>Conversations<span class="c">7</span></div>
+          <div class="grp">Work</div>
+          <div class="it"><span class="i">☑</span>Tasks<span class="c needs">1 needs you · 9</span></div>
+          <div class="it"><span class="i">▤</span>Boards<span class="c">3</span></div>
+          <div class="it"><span class="i">⇶</span>Timeline</div>
+        </div>
+        <div class="foot">
+          <div class="pinlist">
+            <div class="pinhead"><span>📌 Pinned</span><span>Edit</span></div>
+            <div class="it on"><span class="av p1">W</span>Website relaunch</div>
+            <div class="it"><span class="av p2">Q</span>Quarterly report</div>
+            <div class="it"><span class="av p3">B</span>Brand refresh</div>
+            <div class="it"><span class="av p5">R</span>Research agent</div>
+            <div class="it"><span class="av p4">H</span>Hiring</div>
+          </div>
+          <div class="pinrow"><span class="i">📌</span><span class="nm">Pinned</span><span class="tg">5 ▾</span></div>
+          <div class="me"><span class="av me">SA</span><span class="nm">sam</span><span class="k">⋯</span></div>
+        </div>
+      </div>
+      <div class="cap"><b>Open.</b> The list sits on top of the row, attached to the foot; the sections above give way
+      and scroll. Past about half the panel's height the list scrolls inside itself. Where you are is marked. Choosing
+      one goes there; the list stays open until you close it, and since it no longer moves, what you tapped stays under
+      your finger.</div>
+    </div>
+  </div>
+  <div class="note">Remembered in the browser: whether the list is open, and the pin you used last. No server change.
+  With no pins the row doesn't show; you pin from a place's header, as today.</div>
+</section>
+
+<section id="foot">
+  <h2>3 · The rest of the foot: keep the rows, or one menu?</h2>
+  <p class="lede">Today the foot is four rows: Organisation, Settings, Collapse and you (with sign out). Adding Pinned
+  makes five. The question is whether to fold the others into one menu behind your name.</p>
+  <div class="row">
+    <div>
+      <div class="nav">
+        <div class="logo">Agenthix <span class="ic">🔔 ▶</span></div>
+        <div class="place"><span class="bk">‹</span><span class="av p1">W</span><span class="nm">Website relaunch</span><span class="pin">📌</span></div>
+        <div class="scroll">
+          <div class="it on"><span class="i">▦</span>Overview</div>
+          <div class="it"><span class="i">💬</span>Conversations<span class="c">7</span></div>
+          <div class="grp">Work</div>
+          <div class="it"><span class="i">☑</span>Tasks<span class="c needs">1 needs you · 9</span></div>
+          <div class="it"><span class="i">▤</span>Boards<span class="c">3</span></div>
+          <div class="it"><span class="i">⇶</span>Timeline</div>
+          <div class="grp">Agents at work</div>
+          <div class="it"><span class="i">▶</span>Runs</div>
+        </div>
+        <div class="foot">
+          <div class="pinrow"><span class="i">📌</span><span class="av p2">Q</span><span class="nm">Quarterly report</span><span class="tg">5 ▴</span></div>
+          <div class="it"><span class="i">🏢</span>Organisation</div>
+          <div class="it"><span class="i">⚙</span>Settings</div>
+          <div class="it"><span class="i">«</span>Collapse</div>
+          <div class="me"><span class="av me">SA</span><span class="nm">sam</span><span class="k">⇥</span></div>
+        </div>
+      </div>
+      <div class="cap"><b>A · Keep the rows.</b> Everything one click away, nothing hidden. Five rows (about 170 px) are
+      always taken from the sections.</div>
+    </div>
+    <div>
+      <div class="nav">
+        <div class="logo">Agenthix <span class="ic">🔔 ▶</span></div>
+        <div class="place"><span class="bk">‹</span><span class="av p1">W</span><span class="nm">Website relaunch</span><span class="pin">📌</span></div>
+        <div class="scroll">
+          <div class="it on"><span class="i">▦</span>Overview</div>
+          <div class="it"><span class="i">💬</span>Conversations<span class="c">7</span></div>
+          <div class="grp">Work</div>
+          <div class="it"><span class="i">☑</span>Tasks<span class="c needs">1 needs you · 9</span></div>
+          <div class="it"><span class="i">▤</span>Boards<span class="c">3</span></div>
+          <div class="it"><span class="i">⇶</span>Timeline</div>
+          <div class="grp">Agents at work</div>
+          <div class="it"><span class="i">▶</span>Runs</div>
+          <div class="it"><span class="i">↻</span>Automation<span class="c">On</span></div>
+        </div>
+        <div class="pop">
+          <div class="who">sam · Admin · Fernhill &amp; Co</div>
+          <div class="it"><span class="i">🏢</span>Organisation</div>
+          <div class="it"><span class="i">⚙</span>Settings</div>
+          <hr>
+          <div class="it"><span class="i">⇥</span>Sign out</div>
+        </div>
+        <div class="foot">
+          <div class="pinrow"><span class="i">📌</span><span class="av p2">Q</span><span class="nm">Quarterly report</span><span class="tg">5 ▴</span></div>
+          <div class="me mark"><span class="av me">SA</span><span class="nm">sam</span><span class="k">«</span></div>
+        </div>
+      </div>
+      <div class="cap"><b>B · One menu behind your name.</b> Two rows: Pinned and you. Your name opens Organisation,
+      Settings and Sign out. Collapse stays a button (« on your row), because it's used often.</div>
+    </div>
+  </div>
+</section>
+
+<section id="widths">
+  <h2>4 · Icons and phone</h2>
+  <div class="row">
+    <div>
+      <div class="nav icons">
+        <div class="it" style="font-weight:700">A</div>
+        <div class="it"><span class="i">‹</span></div>
+        <div class="it"><span class="av p1">W</span></div>
+        <div class="scroll">
+          <div class="it on"><span class="i">▦</span></div>
+          <div class="it"><span class="i">💬</span></div>
+          <div class="it"><span class="i">☑</span></div>
+          <div class="it"><span class="i">▤</span></div>
+          <div class="it"><span class="i">⇶</span></div>
+          <div class="it"><span class="i">▶</span></div>
+        </div>
+        <div class="foot">
+          <div class="it" style="position:relative"><span class="av p2">Q</span></div>
+          <div class="it"><span class="av me">SA</span></div>
+          <div class="it"><span class="i">»</span></div>
+        </div>
+      </div>
+      <div class="cap"><b>Icons (1024–1279 px, or collapsed).</b> Pinned is the last pin's avatar; holding over it shows
+      the name, and clicking it goes there. The list opens beside it, to the right. You are your avatar, which opens the
+      same menu.</div>
+    </div>
+    <div>
+      <div class="nav" style="width:250px">
+        <div class="logo">Agenthix <span class="ic">✕</span></div>
+        <div class="place"><span class="bk">‹</span><span class="av p1">W</span><span class="nm">Website relaunch</span><span class="pin">📌</span></div>
+        <div class="scroll">
+          <div class="it on"><span class="i">▦</span>Overview</div>
+          <div class="it"><span class="i">💬</span>Conversations<span class="c">7</span></div>
+          <div class="grp">Work</div>
+          <div class="it"><span class="i">☑</span>Tasks<span class="c needs">1 needs you · 9</span></div>
+          <div class="it"><span class="i">▤</span>Boards<span class="c">3</span></div>
+        </div>
+        <div class="foot">
+          <div class="pinrow"><span class="i">📌</span><span class="av p2">Q</span><span class="nm">Quarterly report</span><span class="tg">5 ▴</span></div>
+          <div class="me"><span class="av me">SA</span><span class="nm">sam</span><span class="k">⋯</span></div>
+        </div>
+      </div>
+      <div class="cap"><b>Phone drawer.</b> The same foot. There is no collapse on a phone, so your row has only the menu.</div>
+    </div>
+  </div>
+  <div class="note">The same foot everywhere the panel shows: inside a place, on the main navigation (Home, Tasks…), and
+  in <i>Go to</i>, so Pinned is always in one spot.</div>
+</section>
+
+<section id="rec">
+  <h2>5 · Recommendation</h2>
+  <div class="opts">
+    <div class="opt rec">
+      <div class="tag">Recommended</div>
+      <h4>Pinned as one row at the foot, and B: one menu behind your name</h4>
+      <ul>
+        <li>Pinned never moves, so tapping it keeps you oriented: the problem you saw.</li>
+        <li>The foot is two rows instead of five, so the place's sections get the room back.</li>
+        <li>Organisation, Settings and Sign out are used rarely; one click into a menu is the usual pattern (Slack,
+        Linear, Notion, GitHub all put them behind you).</li>
+        <li>Collapse stays a one-click button on your row.</li>
+        <li>No server change: open/closed and the last pin are remembered in the browser.</li>
+      </ul>
+    </div>
+    <div class="opt">
+      <h4>A: Pinned at the foot, the other rows kept</h4>
+      <ul>
+        <li>Fixes the moving pins just as well.</li>
+        <li>Costs about 170 px of sections at all times; on a laptop that's 5 sections pushed into scrolling.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note q"><b>Question 1:</b> Pinned as one row at the foot (as drawn in 2), with B: Organisation, Settings
+  and Sign out in a menu behind your name, Collapse kept as a button?</div>
+</section>
+
+</main>
+</div>
+<script>
+function setTheme(t,b){document.documentElement.dataset.theme=t;document.querySelectorAll('.theme button').forEach(x=>x.classList.toggle('on',x===b))}
+</script>
+</body>
+</html>

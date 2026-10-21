@@ -1,0 +1,49 @@
+# ⚠️  THIS BECOMES THE FRONT DOOR FOR YOUR WHOLE MACHINE.  ⚠️
+#
+# It takes ports 80 and 443 and gets HTTPS certificates automatically. Every
+# other web application on this machine then has to route through it. Do NOT
+# use it if the machine already has a front door — Traefik, Caddy, nginx,
+# Nginx Proxy Manager, a Cloudflare Tunnel — point that at hq-web instead
+# (see the deployment guide). It refuses to start if 80 or 443 are taken.
+#
+# Needs: a domain whose DNS points at this machine, and ports 80 and 443
+# reachable from the internet, for the certificate check. Start hq first.
+#   docker compose -f front-door/compose.yml --env-file front-door/.env up -d
+# Then set HQ_TRUSTED_PROXIES=2 in hq/compose.env and restart hq.
+name: agenthix-front-door
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: agenthix-front-door
+    environment:
+      HQ_DOMAIN: ${HQ_DOMAIN:?Set HQ_DOMAIN in front-door/.env}
+      # Uploaded files' own host name, such as files.hq.example.com (adr-0114). Its
+      # DNS points at this machine too; set FILES_ORIGIN=https://<it> in hq/compose.env.
+      FILES_DOMAIN: ${FILES_DOMAIN:-}
+      # Optional: turns on live previews (see Caddyfile). Needs wildcard DNS and a
+      # wildcard certificate, which needs a DNS-provider challenge.
+      PREVIEW_DOMAIN: ${PREVIEW_DOMAIN:-}
+      DNS_API_TOKEN: ${DNS_API_TOKEN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates. Keep this volume: losing it means asking Let's Encrypt
+      # again, which limits repeat requests for one domain to five a week.
+      - front_door_data:/data
+      - front_door_config:/config
+    networks: [edge]
+    restart: unless-stopped
+
+networks:
+  edge:
+    name: agenthix-edge
+    external: true
+
+volumes:
+  front_door_data:
+    name: agenthix-front-door-data
+  front_door_config:
+    name: agenthix-front-door-config

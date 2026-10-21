@@ -1,0 +1,53 @@
+{
+  "id": "sys-tpl-0004-ideation",
+  "version": 1,
+  "name": "Ideation",
+  "description": "Capture, evaluate, and execute on new ideas.",
+  "columns": [
+    {
+      "name": "ideas",
+      "label": "Ideas",
+      "status": "TODO",
+      "color": "#6b7280",
+      "order": 0,
+      "description": "Raw ideas captured for future evaluation.",
+      "hint": "Move here to capture any idea worth considering, no matter how rough."
+    },
+    {
+      "name": "evaluating",
+      "label": "Evaluating",
+      "status": "TODO",
+      "color": "#f59e0b",
+      "order": 1,
+      "description": "Ideas under active assessment for viability and fit.",
+      "hint": "Move here when the idea is being researched, discussed, or prototyped."
+    },
+    {
+      "name": "approved",
+      "label": "Approved",
+      "status": "IN_PROGRESS",
+      "color": "#8b5cf6",
+      "order": 2,
+      "description": "Ideas validated and committed for execution.",
+      "hint": "Move here once the idea has stakeholder buy-in and a clear scope."
+    },
+    {
+      "name": "executing",
+      "label": "Executing",
+      "status": "IN_PROGRESS",
+      "color": "#3b82f6",
+      "order": 3,
+      "description": "Approved ideas actively being built or shipped.",
+      "hint": "Move here when active development or implementation begins."
+    },
+    {
+      "name": "done",
+      "label": "Done",
+      "status": "DONE",
+      "color": "#10b981",
+      "order": 4,
+      "description": "Ideas fully realized and delivered.",
+      "hint": "Move here when the idea has been fully implemented and is live."
+    }
+  ]
+}

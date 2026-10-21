@@ -1,0 +1,20 @@
+/**
+ * The three asks of create_task (workers and results spec, Results): do it now, do it later with no date, or do it
+ * at a time. The lead reads which from the person's words, and asks when they leave it open.
+ */
+export type TaskWhen = { kind: 'now' } | { kind: 'later' } | { kind: 'at'; at: string }
+
+export const WHEN_DESCRIPTION =
+  'When the work happens: "now" queues it for its agent, who starts it when free; "later" leaves it in the backlog ' +
+  'until someone queues it; an ISO 8601 time (2026-10-20T09:00) starts it then — with no offset it is read in the ' +
+  "person's own timezone, or in `timezone`. A time the person says in words (\"tomorrow at 9\") is a time: work it " +
+  'out from the time you are told it is now. If the person did not say when, ask them before calling this.'
+
+export const LATER_LINE = "It's in the backlog until someone queues it."
+
+export function readWhen(value: string): TaskWhen {
+  const v = value.trim()
+  if (v.toLowerCase() === 'now') return { kind: 'now' }
+  if (v.toLowerCase() === 'later') return { kind: 'later' }
+  return { kind: 'at', at: v }
+}

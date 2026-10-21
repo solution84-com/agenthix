@@ -1,0 +1,52 @@
+{
+  "name": "agenthix_site",
+  "private": true,
+  "license": "Elastic-2.0",
+  "version": "0.1.0-alpha.1",
+  "type": "module",
+  "bin": {
+    "agenthix-site": "scripts/agenthix-site.mjs"
+  },
+  "imports": {
+    "#db": "./src/server/db.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false --env-file-if-exists=.env.server src/server/main.ts",
+    "build": "node scripts/build.mjs",
+    "start": "node --enable-source-maps dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "node --env-file-if-exists=.env.server node_modules/prisma/build/index.js migrate dev",
+    "db:deploy": "node --env-file-if-exists=.env.server node_modules/prisma/build/index.js migrate deploy",
+    "db:status": "node --env-file-if-exists=.env.server node_modules/prisma/build/index.js migrate status",
+    "db:studio": "node --env-file-if-exists=.env.server node_modules/prisma/build/index.js studio",
+    "postinstall": "prisma generate",
+    "test": "vitest run",
+    "test:integration": "node scripts/test/with-test-db.mjs npx vitest run -c vitest.integration.config.ts",
+    "test:container": "vitest run -c vitest.container.config.ts",
+    "site": "node scripts/agenthix-site.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.84",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@prisma/client": "5.19.1",
+    "ai": "^6.0.116",
+    "express": "~5.1.0",
+    "jose": "^6.2.2",
+    "prisma": "5.19.1",
+    "ws": "^8.20.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@agenthix/core": "file:../core",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.1",
+    "esbuild": "0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "5.8.2",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=24.14.1"
+  }
+}

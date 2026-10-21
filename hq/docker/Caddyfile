@@ -1,0 +1,55 @@
+# hq-web (ADR-0067): serves the browser app and forwards every server path, every
+# preview host (ADR-0071) and the files host's uploaded files (ADR-0114) to
+# hq-server. The one port hq publishes; HTTPS is the machine's front door's.
+{
+	admin off
+	servers {
+		import /etc/caddy/trusted-proxies.caddy
+	}
+}
+
+:4100 {
+	encode gzip
+
+	# A preview host (adr-0071) is forwarded whole — every path, live reload
+	# included — and hq-server tells it apart by host name. Its placeholder
+	# default is a name nothing resolves, so with PREVIEW_DOMAIN unset no host
+	# matches and previews are off. Nothing of hq is served on a preview host.
+	@preview host *.{$PREVIEW_DOMAIN:previews-off.invalid}
+	handle @preview {
+		reverse_proxy hq-server:4101
+	}
+
+	# The files host (adr-0114) answers uploaded files and nothing else: no app,
+	# no API. FILES_HOST comes from FILES_ORIGIN, or files.localhost when HQ is
+	# on localhost (web-entrypoint.sh); unset, its placeholder matches nothing.
+	@files host {$FILES_HOST:files-off.invalid}
+	handle @files {
+		@upload path_regexp ^/(files/task/[^/]+/[^/]+/.+|(agents|people|teams)/[^/]+/images/[^/]+|org/images/[^/]+)$
+		handle @upload {
+			reverse_proxy hq-server:4101
+		}
+		handle {
+			respond 404
+		}
+	}
+
+	@server path /api /api/* /auth /auth/* /operations/* /socket.io/* /hq-link /hq-content /host-link /console-link /files/task/* /file-link /presets/* /health /mcp /.well-known/*
+	handle @server {
+		reverse_proxy hq-server:4101
+	}
+
+	# Uploaded pictures, which hq-server serves only on the files host, or as
+	# downloads where there is none.
+	@images path_regexp ^/((agents|people|teams)/[^/]+/images/|org/images/)
+	handle @images {
+		reverse_proxy hq-server:4101
+	}
+
+	# Wasp's single-page-app fallback is 200.html; the build has no index.html.
+	handle {
+		root * /srv
+		try_files {path} /200.html
+		file_server
+	}
+}

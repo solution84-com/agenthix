@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desktop shell pages</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#16181d;--muted:#667085;--line:#e4e7ec;--soft:#f2f4f7;--accent:#3b5bdb;--accent-soft:#e8edff;--warn:#b54708;--warn-soft:#fff4e5;--ok:#067647;--ok-soft:#e7f6ec;--nav:#fbfbfc;--q:#7a2e9a;--q-soft:#f6ecfb}
+[data-theme=dark]{--bg:#0f1115;--panel:#171a21;--ink:#e7e9ee;--muted:#98a2b3;--line:#2a2f3a;--soft:#1f232c;--accent:#7c95ff;--accent-soft:#232a45;--warn:#f79009;--warn-soft:#33240f;--ok:#47cd89;--ok-soft:#11291c;--nav:#14171d;--q:#d6a4f0;--q-soft:#2b1d33}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;background:var(--bg);color:var(--ink)}
+.board{display:flex;min-height:100vh}
+.menu{width:240px;flex:none;border-right:1px solid var(--line);background:var(--panel);padding:16px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.menu h1{font-size:14px;margin:0 0 4px}.menu .sub{color:var(--muted);font-size:12px;margin-bottom:14px}
+.menu details{margin-bottom:8px}.menu summary{cursor:pointer;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:4px}
+.menu a{display:flex;justify-content:space-between;padding:5px 8px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:13px}.menu a:hover{background:var(--soft)}
+.menu a .qn{font-size:11px;color:var(--q);font-weight:600}
+.theme{display:flex;gap:4px;margin:10px 0 16px}.theme button{flex:1;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:6px;padding:4px;cursor:pointer;font-size:12px}
+.theme button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.main{flex:1;padding:24px 28px;max-width:1400px;min-width:0}
+section{margin-bottom:52px}h2{font-size:20px;margin:0 0 4px}h3{font-size:15px;margin:18px 0 8px}.lede{color:var(--muted);margin:0 0 14px;max-width:920px}
+.today{font-size:13px;color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin:0 0 12px;max-width:920px}.today b{color:var(--ink)}
+.why{font-size:13px;margin:10px 0 0;max-width:920px}.why b{color:var(--ok)}
+/* mock browser */
+.browser{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.chrome{height:26px;background:var(--soft);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:0 10px}.chrome i{width:9px;height:9px;border-radius:50%;background:var(--line);display:inline-block}
+.chrome span{margin-left:10px;font-size:11px;color:var(--muted)}
+.app{display:flex;height:430px;font-size:12px;position:relative}
+.nav{width:170px;flex:none;background:var(--nav);border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column}
+.nav.icons{width:46px;align-items:center}
+.nav .logo{font-weight:700;padding:4px 8px 10px}
+.nav a{display:flex;justify-content:space-between;padding:5px 8px;border-radius:6px;color:var(--ink);text-decoration:none}.nav a.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav .grp{font-size:10px;text-transform:uppercase;color:var(--muted);padding:10px 8px 3px;letter-spacing:.04em}.nav .foot{margin-top:auto;border-top:1px solid var(--line);padding-top:6px}
+.badge{font-size:10px;color:var(--warn)}
+.canvas{flex:1;min-width:0;display:flex;flex-direction:column}
+.bar{height:32px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:var(--muted)}.bar b{color:var(--ink);font-weight:500}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 10px;flex-wrap:nowrap;overflow:hidden}
+.tabs span{padding:7px 9px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}.tabs span.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.tabs.sub{background:var(--soft);border-bottom:1px solid var(--line)}.tabs.sub span{padding:5px 9px;font-size:11.5px}
+.tabs .new{color:var(--q);font-weight:600}
+.body{flex:1;overflow:hidden;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.card{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--panel)}
+.muted{color:var(--muted)}.tiny{font-size:10.5px}
+.row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px}.row.on{background:var(--accent-soft)}.row .t{flex:1;min-width:0}
+.av{width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:9.5px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.av.g{background:#12b76a}.av.o{background:#f79009}
+.dock{width:300px;flex:none;border-left:1px solid var(--line);display:flex;flex-direction:column;background:var(--panel);position:relative}
+.dock .head{border-bottom:1px solid var(--line);padding:7px 10px;display:flex;align-items:center;gap:6px}.dock .head .ttl{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dock .icons{color:var(--muted);letter-spacing:4px;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;border:1px solid var(--line);border-radius:999px;padding:1px 7px;color:var(--muted);background:var(--soft);white-space:nowrap}
+.chip.place{color:var(--accent);border-color:var(--accent-soft);background:var(--accent-soft)}
+.msgs{flex:1;padding:10px;overflow:hidden;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:88%;padding:7px 9px;border-radius:10px;background:var(--soft)}.msg.me{align-self:flex-end;background:var(--accent);color:#fff}
+.work{border:1px dashed var(--line);border-radius:8px;padding:6px 9px;font-size:11px}
+.compose{border-top:1px solid var(--line);padding:8px 10px}.box{border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.btn{border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:var(--panel);font-size:11px;color:var(--ink);white-space:nowrap}.btn.p{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rail{width:44px;flex:none;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:10px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block}
+.pill{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;box-shadow:0 4px 14px rgba(0,0,0,.14);display:flex;gap:8px;align-items:center;white-space:nowrap}
+.pop{position:absolute;top:34px;left:8px;right:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.16);padding:6px;z-index:2}
+.qmark{display:inline-block;background:var(--q);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:0 6px;margin-left:4px;vertical-align:1px}
+.hl{outline:2px dashed var(--q);outline-offset:-2px;border-radius:6px}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 6px 6px 0;margin:10px 0;max-width:920px}
+.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:1100px){.grid2{grid-template-columns:1fr}}
+.q{border:1px solid var(--q);border-left-width:4px;border-radius:10px;padding:14px 16px;margin:14px 0;background:var(--panel);max-width:1000px}
+.q h4{margin:0 0 6px;font-size:14px}.q h4 .num{color:var(--q)}
+.q .ctx{color:var(--muted);font-size:13px;margin:0 0 6px}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.opt{border:1px solid var(--line);border-radius:8px;padding:8px 11px;cursor:pointer;background:var(--soft);font-size:13px}.opt.rec{border-color:var(--accent)}.opt.selected{background:var(--accent);color:#fff;border-color:var(--accent)}
+.opt b{margin-right:4px}.rec-label{font-size:11px;color:var(--accent);font-weight:600;margin-left:6px}.opt.selected .rec-label{color:#fff}
+table{border-collapse:collapse;width:100%;max-width:1000px}td,th{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}th{font-size:12px;color:var(--muted);font-weight:600}
+ul.tight{margin:6px 0;padding-left:18px}
+.diagram{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-width:920px;font-size:12.5px}
+.diagram > div{padding:12px;border-right:1px solid var(--line)}.diagram > div:last-child{border-right:0}
+</style>
+</head>
+<body>
+<div class="board">
+<nav class="menu">
+  <h1>Desktop shell: every page</h1>
+  <div class="sub">Each page as the agreed spec draws it, with its open questions under it</div>
+  <div class="theme"><button class="on" onclick="setTheme('light',this)">Light</button><button onclick="setTheme('dark',this)">Dark</button></div>
+  <details open><summary>Start</summary>
+    <a href="#read">How to read this</a>
+    <a href="#rule">The ground rule</a>
+    <a href="#frame">0 · The frame on every page</a>
+  </details>
+  <details open><summary>Pages</summary>
+    <a href="#home">1 · Home <span class="qn">Q3</span></a>
+    <a href="#chat">2 · Chat: all conversations <span class="qn">Q3 Q4 Q8</span></a>
+    <a href="#space">3 · Your space <span class="qn">Q1</span></a>
+    <a href="#project">4 · A project <span class="qn">Q2</span></a>
+    <a href="#drill">4b · Left panel drills in</a>
+    <a href="#agent">5 · An agent's page <span class="qn">Q1</span></a>
+    <a href="#task">6 · A task</a>
+    <a href="#other">7 · Everything else</a>
+  </details>
+  <details open><summary>The dock</summary>
+    <a href="#dock">8 · Docked, 🕘 and ＋</a>
+    <a href="#states">9 · Expanded and collapsed</a>
+    <a href="#widths">10 · Medium and narrow</a>
+    <a href="#links">11 · Addresses and links <span class="qn">Q5</span></a>
+  </details>
+  <details open><summary>Questions</summary>
+    <a href="#questions">All open questions (7)</a>
+  </details>
+  <details><summary>Record</summary>
+    <a href="#facts">Found in the code</a>
+    <a href="#changes">Changes</a>
+  </details>
+</nav>
+
+<main class="main">
+
+<section id="read">
+  <h2>How to read this</h2>
+  <p class="lede">Each section is one page of hq as the agreed spec (2026-10-17) draws it. A short <b>Today</b> line says what it is now, the mockup shows the page afterwards, and the open questions that page raises sit right under it. A <span class="qmark">Q1</span> badge and a <span class="hl">&nbsp;dashed outline&nbsp;</span> in a mockup mark the part a question is about. Click an option to note a leaning; answer in the terminal by number. Every question is also listed together under <a href="#questions">All open questions</a>.</p>
+</section>
+
+<section id="rule">
+  <h2>The ground rule (owner, 2026-10-18)</h2>
+  <div class="note"><b>Approved: the layout change and a project's tools as tabs, and nothing else.</b> Tabs only put the existing content inside tabs. No page's content changes, no server API changes, and no component changes, above all the conversation interface (the thread, the message box, the pickers, the work bar), which stays exactly as built. If something can't be done without a change, it's raised with the owner first, one item at a time, with why it's unavoidable. Never folded into the build.</div>
+  <p class="lede">Questions below that would need such a change say so in a <span class="chip" style="color:var(--warn);border-color:var(--warn)">needs your approval</span> tag. Their recommendations are now the option that changes nothing.</p>
+</section>
+
+<section id="frame">
+  <h2>0 · The frame on every page</h2>
+  <p class="lede">Three columns everywhere: the <b>navigation</b> on the left, the <b>canvas</b> for work in the middle, and the <b>dock</b> on the right with the one open conversation. Only the canvas changes as you move around. The dock changes only when you change it.</p>
+  <div class="diagram">
+    <div style="width:150px;background:var(--nav)"><b>Navigation</b><br><span class="muted">Home, Chat, Projects, Agents, Tasks, pinned, Settings</span></div>
+    <div style="flex:1"><b>Canvas</b><br><span class="muted">Whatever page you're on, at full width. Changes on every click.</span></div>
+    <div style="width:220px;background:var(--accent-soft)"><b>Dock</b><br><span class="muted">One conversation, kept in the address as <code>?c=</code>. Stays through every page change.</span></div>
+  </div>
+  <div class="note warn"><b>What it takes (no question, just scope).</b> The pages' content doesn't change. What moves is the frame around it. Today each page carries its own copy of the frame: Home is "frame + Home", a project is "frame + project". Going from one to the other swaps the whole pair, so the old frame is removed and a new, identical one is built. You don't notice, because the frame holds nothing live. A dock in that frame would hold a live conversation: its connection, a reply still streaming in, how far you'd scrolled, a half-written message. Every click would remove it and build it again, so you'd lose the scroll and the draft, and it would reconnect and flicker. So the frame moves out of the pages to one copy above them all, and only the content inside it swaps. <b>This is a layout change only. No page's content changes</b>: every page looks and works exactly as it does now. The pages needn't be edited at all: the piece each page wraps itself in today keeps its name, and instead of drawing a frame it only passes the page's breadcrumbs and bar buttons up to the one frame. The change is in the frame and the app's root; the only page-level screens that change are the places', and those change anyway for the tabs.</div>
+  <div class="diagram" style="margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px">
+    <div style="flex:1"><b style="font-family:inherit">A page file, today and after: unchanged</b><br><span class="muted">&lt;Frame breadcrumbs="Tasks"&gt;<br>&nbsp;&nbsp;…the page's content…<br>&lt;/Frame&gt;</span></div>
+    <div style="flex:1;background:var(--accent-soft)"><b style="font-family:inherit">What &lt;Frame&gt; does</b><br><span class="muted">today: draws nav + bar + content<br>after: passes "Tasks" up to the one frame, draws only the content</span></div>
+  </div>
+  <div class="diagram" style="margin-top:10px">
+    <div style="flex:1"><b>Today</b><br><span class="muted">Home page = [frame + Home]<br>Project page = [frame + Project]<br>→ a click replaces both, frame included</span></div>
+    <div style="flex:1;background:var(--accent-soft)"><b>After</b><br><span class="muted">[frame + dock] stays<br>&nbsp;&nbsp;└ Home ⇄ Project swaps inside it<br>→ a click replaces only the content</span></div>
+  </div>
+</section>
+
+<section id="home">
+  <h2>1 · Home</h2>
+  <div class="today"><b>Today:</b> the box to start something, then <i>Jump back in</i>. Sending opens a conversation page.</div>
+  <p class="lede">Home keeps its box. Sending starts a conversation in your space and opens it in the dock; Home stays in the canvas. <i>Jump back in</i> opens a conversation in the dock too.</p>
+  <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /?c=4a1e</span></div>
+  <div class="app">
+    <div class="nav"><div class="logo">Agenthix</div><a class="on">Home</a><a>Chat</a><a>Projects</a><a>Agents</a><a>Tasks <span class="badge">3</span></a><div class="grp">Pinned</div><a>Agenthix</a><a>Website</a><div class="foot"><a>Settings</a></div></div>
+    <div class="canvas">
+      <div class="bar"><b>Home</b><span></span></div>
+      <div class="body">
+        <div style="font-size:16px;font-weight:600;margin-top:6px">Good morning, Sam</div>
+        <div class="box">What do you want to get done? <span class="btn p">Send</span></div>
+        <div class="tiny muted" style="margin-top:6px">JUMP BACK IN</div>
+        <div class="hl">
+          <div class="row"><span class="av">K</span><span class="t">Release checklist <span class="muted">· Kernel · Agenthix</span></span><span class="muted">2m</span></div>
+          <div class="row"><span class="av g">R</span><span class="t">Trip planning <span class="muted">· Kernel · Your space</span></span><span class="muted">1h</span></div>
+        </div>
+        <span class="qmark" style="align-self:flex-start">Q3</span>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="head"><span class="ttl">Plan the week</span><span class="icons">🕘＋⤢›</span></div>
+      <div style="padding:4px 10px"><span class="chip place">Your space</span></div>
+      <div class="msgs"><div class="msg me">Plan my week around the release</div><div class="msg">Here's a first pass…</div></div>
+      <div class="compose"><div class="box">Reply… <span class="btn p">↑</span></div></div>
+    </div>
+  </div></div>
+  <div class="q" id="q3-home"><h4><span class="num">Q3</span> · see <a href="#q3">Chat page</a></h4><p class="ctx"><i>Jump back in</i> lists only the chats from before the new conversations. Making it list the new ones is the same server change as the Chat page's list across places.</p></div>
+</section>
+
+<section id="chat">
+  <h2>2 · Chat: all conversations</h2>
+  <div class="today"><b>Today:</b> Chat is <i>your space</i>: your conversations outside any project, plus the Tools panel with your space's tools.</div>
+  <p class="lede">Chat becomes the list of <b>all</b> your conversations across every place, with a place filter beside the agent filter and search. Choosing one opens it in the dock. 🕘 in the dock is the short version of this list; its <i>All conversations</i> link opens this page.</p>
+  <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /chat?c=8f2c</span></div>
+  <div class="app">
+    <div class="nav"><div class="logo">Agenthix</div><a>Home</a><a class="on">Chat</a><a>Projects</a><a>Agents</a><a>Tasks <span class="badge">3</span></a><div class="grp">Pinned</div><a>Agenthix</a><div class="foot"><a>Settings</a></div></div>
+    <div class="canvas">
+      <div class="bar"><b>Chat</b><span class="btn">＋ New conversation</span></div>
+      <div class="body">
+        <div style="display:flex;gap:6px"><span class="chip place hl">Place: All ▾ <span class="qmark">Q3</span></span><span class="chip">Agent: All ▾</span><span class="box" style="flex:1;padding:3px 8px">Search…</span></div>
+        <div class="tiny muted">TODAY</div>
+        <div class="row on"><span class="av">K</span><span class="t">Release checklist <span class="chip place">Agenthix</span></span><span class="muted">2m</span></div>
+        <div class="row"><span class="av g">R</span><span class="t">Trip planning <span class="chip place">Your space</span></span><span class="muted">1h</span></div>
+        <div class="row"><span class="av o">S</span><span class="t">Fix the login loop <span class="chip place">Task AGX-212</span></span><span class="muted">3h</span></div>
+        <div class="tiny muted">EARLIER</div>
+        <div class="row hl"><span class="av">K</span><span class="t">Old notes on pricing <span class="chip">from before</span> <span class="qmark">Q4</span></span><span class="muted">Sep</span></div>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="head"><span class="ttl">Release checklist</span><span class="icons">🕘＋⤢›</span></div>
+      <div style="padding:4px 10px"><span class="chip place">Agenthix</span></div>
+      <div class="msgs"><div class="msg me">What's left before we tag?</div><div class="msg">Three items: …</div><div class="work">⚙ Checking the open tasks…</div></div>
+      <div class="compose"><div class="box">Reply… <span class="btn p">↑</span></div></div>
+    </div>
+  </div></div>
+
+  <div class="note" style="border-left-color:var(--ok);background:var(--ok-soft)"><b>Answered (owner, 2026-10-18): Q3 A, no server change.</b> The Chat page keeps your space's list, a project's conversations are its Conversations section, and 🕘 shows recent conversations from the place you're in. The list across places is follow-up issue a follow-up, taken up once this layout is confirmed working.</div>
+  <div class="q" id="q3"><h4><span class="num">Q3</span> · A list across every place: it needs a server change <span class="chip" style="color:var(--warn);border-color:var(--warn)">needs your approval</span></h4>
+    <p class="ctx">The new conversations can only be listed one place at a time today: your space, or one project. The agreed Chat page (every place, with a place filter), 🕘's list across places and Home's <i>Jump back in</i> all need one list across every place you can see. There is no way to do that without one new read query on the server. It reads only what you can already see place by place. Under the ground rule, this needs your yes.</p>
+    <div class="opts">
+      <div class="opt rec" data-choice="q3-b" onclick="pick(this)"><b>A</b> No server change. The Chat page keeps today's list of your space, a project's list is its Conversations tab, and 🕘 shows the current place's recent conversations. A list across places becomes its own issue for later.<span class="rec-label">Recommended under the rule</span></div>
+      <div class="opt" data-choice="q3-a" onclick="pick(this)"><b>B</b> Approve the one new read query, for the Chat page, 🕘 and <i>Jump back in</i>. Lists and the thread stay untouched; only what they're given changes.</div>
+    </div></div>
+
+  <div class="note" style="border-left-color:var(--ok);background:var(--ok-soft)"><b>Answered (owner, 2026-10-18): Q4, remove them.</b> The chats from before are removed with the conversations flag on: not listed, not openable, no <i>Continue in a new conversation</i>; Home shows no <i>Jump back in</i> when there's nothing to list. Done as its own small change, before this layout. Talking to a conversation's worker from its run is a separate feature.</div>
+  <div class="q" id="q4"><h4><span class="num">Q4</span> · The chats from before: where do they open?</h4>
+    <p class="ctx">The lists still show your chats from before the new conversations, marked <i>from before</i>. Today they open read-only on a page of their own, which uses a different view from the new conversations. Showing them in the dock would mean that view being made to fit the dock, which is a component change.</p>
+    <div class="opts">
+      <div class="opt rec" data-choice="q4-b" onclick="pick(this)"><b>A</b> In the canvas, read-only, on their page as today; the dock keeps whatever it had. No change.<span class="rec-label">Recommended under the rule</span></div>
+      <div class="opt" data-choice="q4-a" onclick="pick(this)"><b>B</b> In the dock, read-only. <span class="chip" style="color:var(--warn);border-color:var(--warn)">needs your approval</span> (the older view changes to fit).</div>
+      <div class="opt" data-choice="q4-c" onclick="pick(this)"><b>C</b> Stop listing them. Nothing is released yet, so old chats can go. <span class="chip" style="color:var(--warn);border-color:var(--warn)">needs your approval</span> (the lists change).</div>
+    </div></div>
+
+  <div class="note" style="border-left-color:var(--ok);background:var(--ok-soft)"><b>Answered (owner, 2026-10-18): Q8 B, the place chip as specified.</b> A new conversation shows its place clearly, defaults to the place you're on, and can be changed before the first message. It needs no change inside the box: the box already takes its place (your space or a project) from outside, so the chip sits above it in the dock and hands it the chosen place. The box's own agent picker then lists that place's agents, defaulting to its default agent.</div>
+  <div class="q" id="q8"><h4><span class="num">Q8</span> · Changing the place before the first message <span class="chip" style="color:var(--warn);border-color:var(--warn)">needs your approval</span></h4>
+    <p class="ctx">The spec puts a place chip above the message box of a new conversation, changeable before the first message. The new-conversation box exists and works as is for <i>one</i> place: the place you're on, with its agent picker. Letting you pick a different place from inside it means changing that box.</p>
+    <div class="opts">
+      <div class="opt rec" data-choice="q8-a" onclick="pick(this)"><b>A</b> No change. ＋ and 💬 start a conversation in the place you're on, using the box as it is. To start one elsewhere, go there first. The place shows as a plain label, not a chip you can change.<span class="rec-label">Recommended under the rule</span></div>
+      <div class="opt" data-choice="q8-b" onclick="pick(this)"><b>B</b> Approve the place chip as specified: a change to the new-conversation box.</div>
+    </div></div>
+</section>
+
+<section id="space">
+  <h2>3 · Your space</h2>
+  <div class="today"><b>Today:</b> your space <i>is</i> the Chat page: its conversation list, plus a Tools panel with Tasks, Boards, Runs, Automation, Files, Artefacts, Knowledge, Workspaces and Agents.</div>
+  <p class="lede">Once Chat lists every place, your space's tools need a page of their own. Drawn here as the recommended answer to Q1: your space works like a project, its tools as tabs across the canvas and its conversations as one tab that opens into the dock.</p>
+  <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /space/files?c=8f2c</span></div>
+  <div class="app">
+    <div class="nav"><div class="logo">Agenthix</div><a>Home</a><a>Chat</a><a class="on hl">Your space <span class="qmark">Q1</span></a><a>Projects</a><a>Agents</a><a>Tasks</a><div class="foot"><a>Settings</a></div></div>
+    <div class="canvas">
+      <div class="bar"><b>Your space</b><span class="btn">💬 Talk in your space</span></div>
+      <div class="tabs hl"><span>Overview</span><span>Conversations</span><span>Tasks</span><span>Boards</span><span>Runs</span><span>Automation</span><span class="on">Files</span><span>Agents</span></div>
+      <div class="tabs sub"><span class="on">Files</span><span>Artefacts</span><span>Knowledge</span><span>Workspaces</span></div>
+      <div class="body">
+        <div class="card">📁 notes/ <span class="muted tiny">· 12 files</span></div><div class="card">📄 week-plan.md <span class="muted tiny">· 2h ago</span></div><div class="card">📄 trip.pdf</div>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="head"><span class="ttl">Release checklist</span><span class="icons">🕘＋⤢›</span></div>
+      <div style="padding:4px 10px"><span class="chip place">Agenthix</span></div>
+      <div class="msgs"><div class="msg me">What's left before we tag?</div><div class="msg">Three items: …</div></div>
+      <div class="compose"><div class="box">Reply… <span class="btn p">↑</span></div></div>
+    </div>
+  </div></div>
+  <p class="why"><b>Why:</b> the dock still shows a project's conversation while you look at your own files. The place chip in the dock and the page title in the bar can differ, and that's fine: the conversation stays put.</p>
+
+  <div class="note" style="border-left-color:var(--ok);background:var(--ok-soft)"><b>Answered (owner, 2026-10-18): Q1 A.</b> Your space gets its own place, like a project; agent pages get tabs too.</div>
+  <h3>Your space is already a project, and personal projects are coming</h3>
+  <p class="lede">Behind your space there is already an ordinary project: the person's <b>personal project</b> (named <i>My tasks</i>, key <code>MY…</code>), created with the account, never deletable, with only its owner as a member. Its Tasks, Boards, Runs and Automation are that project's; its Files tools show the person's own storage; its conversations are the person's own. Later work lets a person create <b>more personal projects</b>. So this pass draws your space as <b>the default personal project</b>: the same tabs as a project, and the permanent home that can't be deleted. When more personal projects arrive, each is a project with the same tabs, and nothing here needs redrawing.</p>
+  <table>
+    <tr><th></th><th>Your space (default personal project)</th><th>Another personal project (later)</th><th>A shared project</th></tr>
+    <tr><td>In the navigation</td><td><b>Your space</b>, fixed at the top</td><td>Under Projects, marked <span class="chip">Personal</span></td><td>Under Projects</td></tr>
+    <tr><td>Tabs</td><td>Overview · Conversations · Work · Files · Agents at work</td><td>the same</td><td>the same, plus Members and Settings</td></tr>
+    <tr><td>Delete</td><td>Never</td><td>Yes</td><td>Yes</td></tr>
+  </table>
+  <p class="lede" style="margin-top:8px">Nothing in this unit creates personal projects or changes how your space is stored; the layout only gets ready for them. Whether later personal projects share your space's files or have their own is decided with that work, and only changes what their Files tab shows.</p>
+  <div class="q" id="q1"><h4><span class="num">Q1</span> · Your space and an agent's page: do they follow the project model?</h4>
+    <p class="ctx">Both have a Tools panel and a conversation list today, the same way a project does. The spec retires the Tools panel but only redraws projects. Whatever is chosen here applies to your space (this section) and an agent's page (<a href="#agent">section 5</a>).</p>
+    <div class="opts">
+      <div class="opt rec" data-choice="q1-a" onclick="pick(this)"><b>A</b> Yes. Every place has tabs across the canvas, with Conversations as one tab that opens into the dock. Your space gets its own nav entry; Chat is the list across places.<span class="rec-label">Recommended</span></div>
+      <div class="opt" data-choice="q1-b" onclick="pick(this)"><b>B</b> Your space's tools become tabs on the Chat page, beside an <i>All conversations</i> tab. No separate <i>Your space</i> entry. Agent pages get tabs as in A.</div>
+      <div class="opt" data-choice="q1-c" onclick="pick(this)"><b>C</b> Only projects change; your space and agent pages keep the Tools panel. That leaves two layouts in the product.</div>
+    </div></div>
+</section>
+
+<section id="project">
+  <h2>4 · A project</h2>
+  <div class="today"><b>Today:</b> the project's conversation list (or one conversation) in the main pane, with a Tools panel of four groups beside it and a four-way layout control in the bar.</div>
+  <p class="lede">The spec: tools become tabs across the canvas, <i>Overview · Conversations · Tasks · Boards · Timeline · Runs · Automation · Settings</i>, and the Tools panel and layout control go. The code has six more tools than that list: <b>Files, Artefacts, Knowledge, Workspaces</b> (a Files group), <b>Members</b> (people and agents), and <b>Memory</b> (admins only). That's 14 tabs, so Q2 is how to lay them out. Drawn below as the recommended answer: ten tabs in one row, with Tasks, Boards and Timeline each their own.</p>
+  <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /projects/AGX/tasks?c=8f2c</span></div>
+  <div class="app">
+    <div class="nav"><div class="logo">Agenthix</div><a>Home</a><a>Chat</a><a>Projects</a><a>Agents</a><a>Tasks</a><div class="grp">Pinned</div><a class="on">Agenthix</a><a>Website</a><div class="foot"><a>Settings</a></div></div>
+    <div class="canvas">
+      <div class="bar"><span>Projects / <b>Agenthix</b></span><span class="btn">💬 Talk about Agenthix</span></div>
+      <div class="tabs hl"><span>Overview</span><span>Conversations</span><span class="on">Tasks</span><span>Boards</span><span>Timeline</span><span>Runs</span><span>Automation</span><span>Files</span><span class="new">Members</span><span>Settings</span><span class="qmark" style="align-self:center">Q2</span></div>
+      <div class="body">
+        <div class="card"><b>AGX-212</b> Fix the login loop <span class="chip">In progress</span> <span class="badge">needs you</span></div>
+        <div class="card"><b>AGX-209</b> Release notes draft <span class="chip">Review</span></div>
+        <div class="card"><b>AGX-201</b> Upgrade the pinned harness <span class="chip">To do</span></div>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="head"><span class="ttl">Release checklist</span><span class="icons">🕘＋⤢›</span></div>
+      <div style="padding:4px 10px"><span class="chip place">Agenthix</span></div>
+      <div class="msgs"><div class="msg me">Which of these blocks the tag?</div><div class="msg">AGX-212. <u>Open it</u></div></div>
+      <div class="compose"><div class="box">Reply… <span class="btn p">↑</span></div></div>
+    </div>
+  </div></div>
+  <h3>All 14, and the recommended grouping</h3>
+  <table style="margin-top:6px"><tr><th>#</th><th>Tab</th><th>What it is today</th><th>Recommended</th></tr>
+    <tr><td>1</td><td>Overview</td><td class="muted">the project's facts and counts (top of the Tools panel)</td><td>Own tab</td></tr>
+    <tr><td>2</td><td>Conversations</td><td class="muted">your conversations in this project; one opens in the dock</td><td>Own tab</td></tr>
+    <tr><td>3</td><td>Tasks</td><td class="muted">the project's tasks</td><td>Own tab</td></tr>
+    <tr><td>4</td><td>Boards</td><td class="muted">its boards</td><td>Own tab</td></tr>
+    <tr><td>5</td><td>Timeline</td><td class="muted">what happened, in order</td><td>Own tab</td></tr>
+    <tr><td>6</td><td>Runs</td><td class="muted">agents' runs, live and recent</td><td>Own tab</td></tr>
+    <tr><td>7</td><td>Automation</td><td class="muted">the switch and schedules that start work on their own</td><td>Own tab</td></tr>
+    <tr><td>8</td><td>Files</td><td class="muted">the project's files</td><td>Own tab, holding 9–11 below it</td></tr>
+    <tr><td>9</td><td>Artefacts</td><td class="muted">what agents produced</td><td>Inside <b>Files</b></td></tr>
+    <tr><td>10</td><td>Knowledge</td><td class="muted">documents agents search</td><td>Inside <b>Files</b></td></tr>
+    <tr><td>11</td><td>Workspaces</td><td class="muted">the working copies on the site</td><td>Inside <b>Files</b></td></tr>
+    <tr><td>12</td><td>Members</td><td class="muted">people and agents</td><td>Own tab</td></tr>
+    <tr><td>13</td><td>Settings</td><td class="muted">the project's settings</td><td>Own tab, holding 14 below it</td></tr>
+    <tr><td>14</td><td>Memory</td><td class="muted">what the project's agents remember; admins only</td><td>Inside <b>Settings</b></td></tr>
+  </table>
+  <p class="lede" style="margin-top:8px"><b>Result: 10 tabs in one row</b>: Overview · Conversations · Tasks · Boards · Timeline · Runs · Automation · Files · Members · Settings. A second row appears only under Files (Files · Artefacts · Knowledge · Workspaces) and under Settings for admins (Settings · Memory).</p>
+
+  <div class="note"><b>Owner, 2026-10-18:</b> all 14 are important; no grouping. Two ways to hold them, drawn below.</div>
+  <div class="grid2">
+    <div class="browser"><div class="chrome"><span>1 · Your order; what doesn't fit folds into ⋯</span></div><div class="app" style="height:250px">
+      <div class="canvas"><div class="bar"><span>Projects / <b>Agenthix</b></span></div>
+        <div class="tabs"><span>Overview</span><span>Conversations</span><span class="on">Tasks</span><span>Boards</span><span>Timeline</span><span>Runs</span><span style="color:var(--accent)">⋯ 8</span></div>
+        <div style="position:relative"><div class="pop" style="top:0;left:auto;right:8px;width:200px">
+          <div class="row">Automation</div><div class="row">Files</div><div class="row">Artefacts</div><div class="row">Knowledge</div><div class="row">Workspaces</div><div class="row">Members</div><div class="row">Settings</div><div class="row">Memory</div>
+          <div class="row" style="color:var(--accent);border-top:1px solid var(--line)">Reorder tabs…</div></div></div>
+      </div>
+      <div class="dock" style="width:120px"><div class="head"><span class="ttl">Dock</span></div></div>
+    </div><div class="tiny muted" style="padding:6px 10px">Overview always first. Wider window → more tabs in the row, fewer in ⋯.</div></div>
+    <div class="browser"><div class="chrome"><span>2 · One scrolling row of pills</span></div><div class="app" style="height:250px">
+      <div class="canvas"><div class="bar"><span>Projects / <b>Agenthix</b></span></div>
+        <div style="display:flex;gap:6px;padding:8px 10px;overflow:hidden;white-space:nowrap;border-bottom:1px solid var(--line);position:relative">
+          <span class="chip">Overview</span><span class="chip">Conversations</span><span class="chip place">Tasks</span><span class="chip">Boards</span><span class="chip">Timeline</span><span class="chip">Runs</span><span class="chip">Automation</span><span class="chip">Files</span><span class="chip">Artef…</span>
+          <span style="position:absolute;right:0;top:0;bottom:0;width:40px;background:linear-gradient(90deg,transparent,var(--panel))"></span></div>
+        <div class="body"><div class="card">AGX-212</div></div>
+      </div>
+      <div class="dock" style="width:120px"><div class="head"><span class="ttl">Dock</span></div></div>
+    </div><div class="tiny muted" style="padding:6px 10px">The rest are reached by scrolling the row sideways.</div></div>
+  </div>
+  <h3>3 · No tabs: the breadcrumb is the navigation (owner's option)</h3>
+  <p class="lede">Each part of the breadcrumb opens a list of its siblings. <b>Projects ▾</b> lists the other places, <b>Agenthix ▾</b> lists your projects to switch to, and <b>Tasks ▾</b> lists all 14 sections. A project opens on its <b>Overview</b>, which links to every section with its count. That page exists today (the top of the Tools panel, with counts and "needs you"), so it's reused as is.</p>
+  <div class="grid2">
+    <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /projects/AGX/tasks</span></div><div class="app" style="height:330px">
+      <div class="canvas"><div class="bar"><span>Projects ▾ / Agenthix ▾ / <b style="color:var(--accent)">Tasks ▾</b></span><span class="btn">💬 Talk about Agenthix</span></div>
+        <div style="position:relative"><div class="pop" style="top:0;left:150px;width:210px">
+          <div class="row">Overview</div><div class="row">Conversations</div><div class="row on">Tasks <span class="badge" style="margin-left:auto">1 needs you</span></div><div class="row">Boards <span class="muted" style="margin-left:auto">3</span></div><div class="row">Timeline</div><div class="row">Runs <span class="dot" style="margin-left:auto"></span></div><div class="row">Automation <span class="muted" style="margin-left:auto">On</span></div><div class="row">Files</div><div class="row">Artefacts</div><div class="row">Knowledge</div><div class="row">Workspaces</div><div class="row">Members</div><div class="row">Settings</div><div class="row">Memory</div>
+        </div></div>
+        <div class="body"><div class="card">AGX-212 Fix the login loop</div><div class="card">AGX-209 Release notes draft</div></div>
+      </div>
+      <div class="dock" style="width:120px"><div class="head"><span class="ttl">Dock</span></div></div>
+    </div></div>
+    <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /projects/AGX</span></div><div class="app" style="height:330px">
+      <div class="canvas"><div class="bar"><span>Projects ▾ / <b>Agenthix ▾</b></span><span class="btn">💬 Talk about Agenthix</span></div>
+        <div class="body"><div class="tiny muted">OVERVIEW: the way into every section</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="card">Conversations <span class="muted">· 6</span></div><div class="card">Tasks <span class="badge">· 1 needs you</span></div><div class="card">Boards <span class="muted">· 3</span></div><div class="card">Timeline</div><div class="card">Runs <span class="dot"></span> <span class="muted">· 2</span></div><div class="card">Automation <span class="muted">· On</span></div><div class="card">Files <span class="muted">· 41</span></div><div class="card">Artefacts</div><div class="card">Knowledge</div><div class="card">Workspaces</div><div class="card">Members <span class="muted">· 5</span></div><div class="card">Settings</div>
+          </div></div>
+      </div>
+      <div class="dock" style="width:120px"><div class="head"><span class="ttl">Dock</span></div></div>
+    </div></div>
+  </div>
+  <table style="margin-top:10px"><tr><th></th><th>1 · Tabs, overflow ⋯</th><th>2 · Scrolling pills</th><th>3 · Breadcrumb lists</th></tr>
+    <tr><td>On screen</td><td>A row of tabs</td><td>A row of pills</td><td>Just the breadcrumb: the quietest</td></tr>
+    <tr><td>Tasks → Boards</td><td>1 click (2 if in ⋯)</td><td>1 click, maybe a scroll</td><td>2 clicks (open the list, choose)</td></tr>
+    <tr><td>Switch project</td><td>via the navigation</td><td>via the navigation</td><td>From the breadcrumb, without leaving the section</td></tr>
+    <tr><td>Can a section be missed?</td><td>Those in ⋯, a little</td><td>Those off the edge, yes</td><td>Not on Overview; elsewhere, only until you know ▾ opens a list</td></tr>
+    <tr><td>Same in every place</td><td>Yes</td><td>Yes</td><td>Yes, and in pages that aren't places too (Settings ▾)</td></tr>
+    <tr><td>Change needed</td><td>Tab row; order storage (Q2a)</td><td>Pill row</td><td>The breadcrumb learns to open a list; no storage</td></tr>
+  </table>
+  <div class="note" style="border-left-color:var(--ok);background:var(--ok-soft)"><b>Revised (owner, 2026-10-18): tabs first.</b> This unit builds tabs: <b>option 1, folding into ⋯, with no reordering</b> (Q2a, owner). Option 3 with the drilled-in left panel (below) changes how the whole app is navigated, so it is its own change, after the tabs land, so it can be reverted on its own.</div>
+  <h3 id="drill">3 + the left panel drills into the project (owner's addition)</h3>
+  <p class="lede">With option 3, the left panel follows you in. Opening a project swaps <b>only the top part</b> of the left panel, the main navigation above <i>Pinned</i>, for that project's own. <b>Pinned and the footer stay as they are, always visible</b>. The top part shows the project's name, then all 14 sections with their counts, the one you're on marked. It's the breadcrumb, but always in view. <b>No back button (owner, 2026-10-18):</b> the breadcrumb is the way out. It starts with <b>Home ▾</b>, whose list is the main navigation (Home, Chat, Your space, Projects, Agents, Tasks, Settings), and each later part lists its siblings. The Agenthix name at the top of the panel stays and goes to Home, as it does today. Going anywhere outside the project brings the main navigation back.</p>
+  <div class="grid2">
+    <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /tasks: outside any project, the main navigation</span></div><div class="app" style="height:520px">
+      <div class="nav"><div class="logo">Agenthix</div><a>Home</a><a>Chat</a><a>Your space</a><a>Projects</a><a>Agents</a><a class="on">Tasks <span class="badge">3</span></a><div class="grp">Pinned</div><a>Agenthix</a><a>Website</a><div class="foot"><a>Settings</a></div></div>
+      <div class="canvas"><div class="bar"><b>Tasks ▾</b></div><div class="body"><div class="card">AGX-212 Fix the login loop</div><div class="card">WEB-14 New pricing page</div></div></div>
+      <div class="dock" style="width:110px"><div class="head"><span class="ttl">Dock</span></div></div>
+    </div></div>
+    <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /projects/AGX/tasks: inside the project, its navigation</span></div><div class="app" style="height:520px">
+      <div class="nav" style="padding-top:6px">
+        <div class="logo">Agenthix</div>
+        <div style="display:flex;align-items:center;gap:6px;padding:8px 8px 6px;font-weight:700"><span class="av o">A</span>Agenthix</div>
+        <a>Overview</a><a>Conversations <span class="muted">6</span></a><a class="on">Tasks <span class="badge">1</span></a><a>Boards <span class="muted">3</span></a><a>Timeline</a><a>Runs <span class="dot" style="align-self:center"></span></a><a>Automation <span class="muted">On</span></a><a>Files <span class="muted">41</span></a><a>Artefacts</a><a>Knowledge</a><a>Workspaces</a><a>Members <span class="muted">5</span></a><a>Settings</a><a>Memory</a>
+        <div class="grp">Pinned</div><a class="on" style="background:none">Agenthix</a><a>Website</a><div class="foot"><a>Settings</a></div>
+      </div>
+      <div class="canvas"><div class="bar"><span><span style="color:var(--accent)">Home ▾</span> / Projects ▾ / Agenthix ▾ / <b>Tasks ▾</b></span><span class="btn">💬</span></div><div style="position:relative"><div class="pop" style="top:0;left:8px;width:150px"><div class="row">Home</div><div class="row">Chat</div><div class="row">Your space</div><div class="row on">Projects</div><div class="row">Agents</div><div class="row">Tasks</div><div class="row">Settings</div></div></div><div class="body"><div class="card">AGX-212 Fix the login loop</div><div class="card">AGX-209 Release notes draft</div></div></div>
+      <div class="dock" style="width:110px"><div class="head"><span class="ttl">Dock</span></div></div>
+    </div></div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div class="browser"><div class="chrome"><span>The same in your space and on an agent's page</span></div><div class="app" style="height:440px">
+      <div class="nav" style="padding-top:6px"><div class="logo">Agenthix</div><div style="padding:2px 8px 6px;font-weight:700">Your space</div><a>Overview</a><a class="on">Conversations</a><a>Tasks</a><a>Boards</a><a>Runs</a><a>Automation</a><a>Files</a><a>Artefacts</a><a>Knowledge</a><a>Workspaces</a><a>Agents</a><div class="grp">Pinned</div><a>Agenthix</a><a>Website</a><div class="foot"><a>Settings</a></div></div>
+      <div class="nav" style="padding-top:6px"><div class="logo">Agenthix</div><div style="display:flex;align-items:center;gap:6px;padding:8px 8px 6px;font-weight:700"><span class="av">K</span>Kernel</div><a>Overview</a><a>Conversations</a><a class="on">Now</a><a>Projects</a><a>Runs</a><a>Usage</a><a>Your instructions</a><a>Memory</a><a>Your settings</a><div class="grp">Pinned</div><a>Agenthix</a><a>Website</a><div class="foot"><a>Settings</a></div></div>
+    </div></div>
+    <div class="browser"><div class="chrome"><span>Medium width: the drilled-in panel as icons</span></div><div class="app" style="height:330px">
+      <div class="nav icons" style="gap:2px"><div class="logo">A</div><span class="av o" style="margin:6px 0">A</span><a>◎</a><a>💬</a><a style="background:var(--accent-soft)">☑</a><a>▦</a><a>⏱</a><a>▶</a><a>⚙︎</a><a>📁</a><a>👥</a><div style="border-top:1px solid var(--line);width:28px;margin:6px 0"></div><span class="av o">A</span><span class="av g" style="margin-top:4px">W</span></div>
+      <div class="canvas"><div class="bar"><span>Agenthix ▾ / <b>Tasks ▾</b></span></div><div class="body"><div class="card">AGX-212</div></div></div>
+    </div><div class="tiny muted" style="padding:6px 10px">Names show on hover; the breadcrumb still names where you are.</div></div>
+  </div>
+  <div class="note" style="margin-top:12px"><b>What it means.</b> Only the left panel (part of the frame) changes: inside a place it shows that place's sections; outside it shows today's navigation. The sections are the same 14 views, unchanged. Inside a project, Home, Chat, Tasks and the rest are reached through <b>Home ▾</b> in the breadcrumb, or the Agenthix name for Home. <b>Pinned (owner, 2026-10-18):</b> a pinned project is only a quick way to that place from anywhere; clicking it opens the project, drilled in, as opening it from Projects does. Pinned is always visible: only the part above it changes when you drill in.</div>
+
+  <div class="q" id="q2"><h4><span class="num">Q2</span> · A project has 14 tools, not 8. How do the tabs hold them?</h4>
+    <p class="ctx">The spec's list left out Files, Artefacts, Knowledge, Workspaces, Members and Memory. Fourteen tabs in one row won't fit beside the dock.</p>
+    <div class="opts">
+      <div class="opt rec" data-choice="q2-a" onclick="pick(this)"><b>A</b> Ten tabs in one row, with Tasks, Boards and Timeline each their own tab; only Files (with Artefacts, Knowledge, Workspaces) and Settings (with Memory) have a second row (the table above).<span class="rec-label">Recommended</span></div>
+      <div class="opt" data-choice="q2-b" onclick="pick(this)"><b>B</b> One row of the spec's eight, plus <i>More ▾</i> holding the other six.</div>
+      <div class="opt" data-choice="q2-c" onclick="pick(this)"><b>C</b> One row of all 14, scrolling sideways when it doesn't fit.</div>
+    </div></div>
+</section>
+
+<section id="agent">
+  <h2>5 · An agent's page</h2>
+  <div class="today"><b>Today:</b> <code>/agents/:handle</code> is a place too: your conversations with that agent in the main pane, and a Tools panel with Now, Projects, Runs, Usage, Your instructions, Memory and Your settings.</div>
+  <p class="lede">Drawn as the recommended answer to Q1: the same tabs model. The button in the bar is <b>💬 Talk to Kernel</b>, starting a conversation with this agent in your space, in the dock.</p>
+  <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /agents/kernel/runs?c=8f2c</span></div>
+  <div class="app">
+    <div class="nav"><div class="logo">Agenthix</div><a>Home</a><a>Chat</a><a>Projects</a><a class="on">Agents</a><a>Tasks</a><div class="foot"><a>Settings</a></div></div>
+    <div class="canvas">
+      <div class="bar"><span>Agents / <b>Kernel</b></span><span class="btn">💬 Talk to Kernel</span></div>
+      <div class="tabs hl"><span>Overview</span><span>Conversations</span><span>Now</span><span>Projects</span><span class="on">Runs</span><span>Usage</span><span>About it</span><span class="qmark" style="align-self:center">Q1</span></div>
+      <div class="body">
+        <div class="card"><span class="dot"></span> Running · AGX-212 · 4m</div><div class="card">Done · AGX-209 · 1h</div><div class="card">Done · Website · weekly summary</div>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="head"><span class="ttl">Release checklist</span><span class="icons">🕘＋⤢›</span></div>
+      <div style="padding:4px 10px"><span class="chip place">Agenthix</span></div>
+      <div class="msgs"><div class="msg me">Which of these blocks the tag?</div><div class="msg">AGX-212.</div></div>
+      <div class="compose"><div class="box">Reply… <span class="btn p">↑</span></div></div>
+    </div>
+  </div></div>
+  <p class="why"><b>Why:</b> <i>About it</i> holds Your instructions, Memory and Your settings, the Tools panel's second group, so this page has no second row except under that tab.</p>
+  <div class="q"><h4><span class="num">Q1</span> · see <a href="#q1">Your space</a></h4><p class="ctx">The same question covers this page.</p></div>
+</section>
+
+<section id="task">
+  <h2>6 · A task</h2>
+  <div class="today"><b>Today:</b> the task page, with the task's own team conversation on it.</div>
+  <p class="lede">Unchanged in the canvas. The task's team conversation stays on the task page; the dock is still <i>your</i> conversation. So you can see two conversations at once. No question: the spec marks it to watch in testing.</p>
+  <div class="browser"><div class="chrome"><i></i><i></i><i></i><span>hq · /projects/AGX/tasks/212?c=8f2c</span></div>
+  <div class="app">
+    <div class="nav"><div class="logo">Agenthix</div><a>Home</a><a>Chat</a><a>Projects</a><a>Agents</a><a>Tasks</a><div class="grp">Pinned</div><a class="on">Agenthix</a><div class="foot"><a>Settings</a></div></div>
+    <div class="canvas">
+      <div class="bar"><span>Agenthix / Tasks / <b>AGX-212</b></span><span class="btn">💬 Talk about Agenthix</span></div>
+      <div class="body">
+        <div style="font-size:15px;font-weight:600">Fix the login loop</div>
+        <div class="card"><span class="chip">In progress</span> <span class="muted">· Kernel · due Fri</span></div>
+        <div class="card" style="flex:1"><div class="tiny muted">TASK CONVERSATION (the team's)</div><div class="msg" style="margin-top:6px">Kernel: reproduced on Safari, fixing the redirect.</div><div class="msg me" style="margin-top:6px;margin-left:auto">Sam: also check the cookie domain</div></div>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="head"><span class="ttl">Release checklist</span><span class="icons">🕘＋⤢›</span></div>
+      <div style="padding:4px 10px"><span class="chip place">Agenthix</span></div>
+      <div class="msgs"><div class="msg">AGX-212. <u>Open it</u></div><div class="tiny muted">You opened AGX-212 from here; it's in the canvas.</div></div>
+      <div class="compose"><div class="box">Reply… <span class="btn p">↑</span></div></div>
+    </div>
+  </div></div>
+</section>
+
+<section id="other">
+  <h2>7 · Everything else</h2>
+  <p class="lede">Projects, Agents (list), Tasks (yours), Settings, Organisation, Library and the rest: the page as it is today, full width in the canvas, with the dock beside it. Nothing to decide.</p>
+</section>
+
+<section id="dock">
+  <h2>8 · Docked, 🕘 and ＋</h2>
+  <p class="lede">The dock as the spec agreed it, shown here for reference; there are no open questions on it.</p>
+  <div class="grid2">
+    <div class="browser"><div class="chrome"><span>🕘 recent conversations</span></div><div class="app" style="height:300px">
+      <div class="dock" style="width:100%;border-left:0">
+        <div class="head"><span class="ttl">Release checklist</span><span class="icons">🕘＋⤢›</span></div>
+        <div class="pop">
+          <div class="row on"><span class="t">Release checklist</span><span class="chip place">Agenthix</span></div>
+          <div class="row"><span class="t">Trip planning</span><span class="chip place">Your space</span></div>
+          <div class="row"><span class="t">Fix the login loop</span><span class="chip place">Task AGX-212</span></div>
+          <div class="row" style="color:var(--accent)">All conversations →</div>
+        </div>
+      </div></div></div>
+    <div class="browser"><div class="chrome"><span>＋ new conversation: nothing asked</span></div><div class="app" style="height:300px">
+      <div class="dock" style="width:100%;border-left:0">
+        <div class="head"><span class="ttl">New conversation</span><span class="icons">🕘＋⤢›</span></div>
+        <div class="msgs"><div class="muted" style="margin:auto">Start typing. The chips are already filled in.</div></div>
+        <div class="compose"><div style="display:flex;gap:6px;margin-bottom:6px"><span class="chip place">Agenthix ▾</span><span class="chip">Kernel ▾</span></div><div class="box">Message… <span class="btn p">↑</span></div></div>
+      </div></div></div>
+  </div>
+</section>
+
+<section id="states">
+  <h2>9 · Expanded and collapsed</h2>
+  <div class="grid2">
+    <div class="browser"><div class="chrome"><span>⤢ expanded: left nav stays; going anywhere docks it again</span></div><div class="app" style="height:300px">
+      <div class="nav icons"><div class="logo">A</div><a>⌂</a><a>💬</a><a>▦</a></div>
+      <div class="dock" style="flex:1;width:auto;border-left:0">
+        <div class="head"><span class="ttl">Release checklist</span><span class="chip place">Agenthix</span><span class="icons">🕘＋⤡›</span></div>
+        <div class="msgs"><div class="msg me">What's left before we tag?</div><div class="msg">Three items: …</div></div>
+        <div class="compose"><div class="box">Reply… <span class="btn p">↑</span></div></div>
+      </div></div></div>
+    <div class="browser"><div class="chrome"><span>› collapsed: a rail; click or ⌘J reopens</span></div><div class="app" style="height:300px">
+      <div class="canvas"><div class="bar"><b>Tasks</b></div><div class="body"><div class="card">AGX-212</div><div class="card">AGX-209</div></div></div>
+      <div class="rail"><span class="av">K</span><span class="dot" title="work under way"></span><span class="chip" style="padding:0 5px">2</span><span class="tiny muted">⌘J</span></div>
+    </div></div>
+  </div>
+</section>
+
+<section id="widths">
+  <h2>10 · Medium and narrow</h2>
+  <div class="grid2">
+    <div class="browser"><div class="chrome"><span>medium (768–1279 px): icon nav; dock slides over</span></div><div class="app" style="height:300px">
+      <div class="nav icons"><div class="logo">A</div><a>⌂</a><a>💬</a><a>▦</a></div>
+      <div class="canvas"><div class="bar"><b>Tasks</b></div><div class="body"><div class="card">AGX-212</div></div></div>
+      <div class="dock" style="position:absolute;right:0;top:0;bottom:0;box-shadow:-8px 0 20px rgba(0,0,0,.12)"><div class="head"><span class="ttl">Release checklist</span><span class="icons">🕘＋›</span></div><div class="msgs"><div class="msg">Three items: …</div></div></div>
+    </div></div>
+    <div class="browser" style="max-width:280px"><div class="chrome"><span>narrow: the pill</span></div><div class="app" style="height:300px">
+      <div class="canvas"><div class="bar"><b>☰ Tasks</b></div><div class="body"><div class="card">AGX-212</div><div class="card">AGX-209</div></div></div>
+      <div class="pill"><span class="av">K</span>Release checklist <span class="dot"></span></div>
+    </div></div>
+  </div>
+</section>
+
+<section id="links">
+  <h2>11 · Addresses and links</h2>
+  <p class="lede">The open conversation travels in the address as <code>?c=</code> on whatever page you're on. Today a conversation has addresses of its own: <code>/chat/t/…</code>, <code>/projects/AGX/t/…</code>, and the pages for chats from before. Links that build those are spread around: Home, the lists, notifications and cards in a conversation.</p>
+  <h3>The addresses today</h3>
+  <table>
+    <tr><th>Address (after your hq's domain)</th><th>What it is</th><th>What opens it today</th></tr>
+    <tr><td><code>/chat/t/8f2c…</code></td><td>A conversation in your space</td><td>A row in your space's list; sending from a new-conversation box</td></tr>
+    <tr><td><code>/projects/AGX/t/8f2c…</code></td><td>A conversation in project AGX</td><td>A row in the project's list; sending from its box</td></tr>
+    <tr><td><code>/chat/c/41ab…</code>, <code>/projects/AGX/c/41ab…</code></td><td>A chat from before, read-only</td><td>A <i>from before</i> row; Home's <i>Jump back in</i></td></tr>
+    <tr><td><code>/sessions/41ab…</code></td><td>The same older chat by its bare id</td><td>Older links</td></tr>
+  </table>
+  <p class="lede" style="margin-top:10px">Today, <code>/projects/AGX/t/8f2c</code> shows project AGX's screen with the conversation in the main pane, in place of the list, and the Tools panel beside it. The conversation <i>is</i> the page.</p>
+
+  <h3>After: what a conversation address does to the canvas</h3>
+  <p class="lede">The address now names two things: the canvas (the page) and the dock (<code>?c=</code>). Home with a conversation docked is <code>/?c=8f2c</code>; project AGX's Tasks tab with it docked is <code>/projects/AGX/tasks?c=8f2c</code>. A <code>/t/</code> address names only a conversation, so the shell has to decide what goes in the canvas. Two cases:</p>
+  <table>
+    <tr><th>How you arrive</th><th>Canvas</th><th>Dock</th><th>Address afterwards</th></tr>
+    <tr><td><b>From outside</b>: a pasted link, a bookmark, a link in an email. There is no page you were on.</td><td>The conversation's place: project AGX on its Conversations tab, with this row marked</td><td>8f2c</td><td><code>/projects/AGX/conversations?c=8f2c</code></td></tr>
+    <tr><td><b>From inside hq</b>: clicking a row in a list, or sending from a new-conversation box. You were on a page.</td><td>Q5 below</td><td>8f2c</td><td>depends on Q5</td></tr>
+    <tr><td>Reload or Back</td><td>Whatever the address says</td><td>Whatever <code>?c=</code> says</td><td>unchanged</td></tr>
+  </table>
+  <p class="lede" style="margin-top:10px">Either way, the <code>/t/</code> address is swapped straight away for the <code>?c=</code> form, so Back never lands on it again. The lists and the box keep building <code>/t/</code> links exactly as they do now. Only the shell reads them differently.</p>
+  <div class="grid2">
+    <div class="browser"><div class="chrome"><span>Q5 A: the canvas stays where you were</span></div><div class="app" style="height:230px">
+      <div class="canvas"><div class="bar"><b>Home</b></div><div class="body"><div class="tiny muted">JUMP BACK IN</div><div class="row on"><span class="t">Release checklist (clicked)</span></div><div class="row"><span class="t">Trip planning</span></div></div></div>
+      <div class="dock" style="width:150px"><div class="head"><span class="ttl">Release checklist</span></div><div class="msgs"><div class="msg">Three items…</div></div></div>
+    </div><div class="tiny muted" style="padding:6px 10px">/?c=8f2c</div></div>
+    <div class="browser"><div class="chrome"><span>Q5 B: the canvas goes to the conversation's place</span></div><div class="app" style="height:230px">
+      <div class="canvas"><div class="bar"><span>Projects / <b>Agenthix</b></span></div><div class="tabs"><span>Overview</span><span class="on">Conversations</span><span>Work</span></div><div class="body"><div class="row on"><span class="t">Release checklist</span></div></div></div>
+      <div class="dock" style="width:150px"><div class="head"><span class="ttl">Release checklist</span></div><div class="msgs"><div class="msg">Three items…</div></div></div>
+    </div><div class="tiny muted" style="padding:6px 10px">/projects/AGX/conversations?c=8f2c</div></div>
+  </div>
+
+  <div class="note" style="border-left-color:var(--ok);background:var(--ok-soft)"><b>Answered (owner, 2026-10-18): Q5 A.</b> Inside hq the canvas stays where you were and only the dock changes; a link from outside shows the conversation's place. The <code>/t/</code> addresses are kept, and no list or link changes.</div>
+  <div class="q" id="q5"><h4><span class="num">Q5</span> · Opening a conversation from inside hq: does the canvas stay, or go to its place?</h4>
+    <p class="ctx">The spec says the Chat page and a project's Conversations tab open into the dock and "never into the canvas", and that sending from Home opens it in the dock while Home stays. A keeps that promise everywhere. B is simpler but moves you: clicking a row in Home's <i>Jump back in</i> would take the canvas to that project. Both keep the lists' and the box's links as they are; the difference is in the shell only.</p>
+    <div class="opts">
+      <div class="opt rec" data-choice="q5-stay" onclick="pick(this)"><b>A</b> The canvas stays where you were; only the dock changes. Only a link from outside shows the place.<span class="rec-label">Recommended</span></div>
+      <div class="opt" data-choice="q5-place" onclick="pick(this)"><b>B</b> The canvas always goes to the conversation's place.</div>
+    </div></div>
+
+</section>
+
+<section id="questions">
+  <h2>All open questions</h2>
+  <p class="lede">Answer by number in the terminal. Q1, Q2 and Q5 are layout. Q3, Q4 and Q8 would need a change the ground rule forbids unless you approve it, so each recommends the option that changes nothing. Q6 is housekeeping.</p>
+  <table>
+    <tr><th>#</th><th>Question</th><th>Recommended</th><th>Page</th></tr>
+    <tr><td>Q1</td><td>Your space and an agent's page: their tools as tabs too (the content inside tabs, as for a project)?</td><td><b>Answered: A</b> · every place; your space as the default personal project</td><td><a href="#q1">3</a>, <a href="#agent">5</a></td></tr>
+    <tr><td>Q2</td><td>A project has 14 tools: how do tabs hold them?</td><td><b>Answered:</b> tabs folding into ⋯, no reordering; breadcrumb + drilled-in panel are their own change, later</td><td><a href="#q2">4</a></td></tr>
+    <tr><td>Q3</td><td>A list across places needs a server change</td><td><b>Answered: A</b> · no change; a follow-up</td><td><a href="#q3">2</a>, <a href="#home">1</a></td></tr>
+    <tr><td>Q4</td><td>The chats from before: where do they open?</td><td><b>Answered:</b> removed (own change); talking to a worker is a separate feature</td><td><a href="#q4">2</a></td></tr>
+    <tr><td>Q5</td><td>Opening a conversation from inside hq: does the canvas stay, or go to its place? (The addresses are kept either way.)</td><td><b>Answered: A</b> · canvas stays</td><td><a href="#q5">11</a></td></tr>
+    <tr><td>Q8</td><td>Changing the place before the first message needs a box change</td><td><b>Answered: B</b> · the chip, set from outside the box</td><td><a href="#q8">2</a></td></tr>
+  </table>
+  <div class="note" style="border-left-color:var(--ok);background:var(--ok-soft)"><b>Done: Q6.</b> The issue for a voice call with nothing on screen was already closed as completed at the conversational experience's close-out, with a comment pointing to the voice bar; the owner confirmed it works.</div>
+  <div class="q" id="q6"><h4><span class="num">Q6</span> · A voice call with nothing on screen: close it with the conversational experience?</h4>
+    <p class="ctx">The conversational experience added a voice bar across the top of every page except the call's own conversation, with the agent, mute and End, linking back. That is what was asked for. Your space and the dock don't change it.</p>
+    <div class="opts">
+      <div class="opt rec" data-choice="q6-a" onclick="pick(this)"><b>A</b> Close it at that unit's close-out, once checked on screen.<span class="rec-label">Recommended</span></div>
+      <div class="opt" data-choice="q6-b" onclick="pick(this)"><b>B</b> Keep it open and let this unit close it.</div>
+    </div></div>
+
+</section>
+
+<section id="facts">
+  <h2>Found in the code</h2>
+  <table>
+    <tr><th>Spec says</th><th>The code says</th><th>Effect</th></tr>
+    <tr><td>The dock sits in the shell above the routes</td><td>Each page draws its own shell, about 40 of them</td><td>The shell moves up into the app's root; pages hand it their bar. The main build cost (<a href="#frame">0</a>)</td></tr>
+    <tr><td>Gap: a list across places, "may be there already"</td><td><i>Jump back in</i> reads only the chats from before; the new conversations list one place at a time</td><td>A real gap (Q3)</td></tr>
+    <tr><td>Gap: starting a conversation in a chosen place</td><td>Starting one already takes the place, the project and the agent</td><td>Not a gap; only the chip's list on screen is new</td></tr>
+    <tr><td>Gap: a task's team conversation beside yours</td><td>Already on the task page</td><td>Watch in testing (<a href="#task">6</a>)</td></tr>
+    <tr><td>Project tabs: eight</td><td>Fourteen tools</td><td>Q2</td></tr>
+    <tr><td>Places: your space and projects</td><td>Agent pages are places too</td><td>Q1</td></tr>
+  </table>
+</section>
+
+<section id="changes">
+  <h2>Changes</h2>
+  <p class="muted">2026-10-18 — Q2a answered (owner): tabs that fold into ⋯; no reordering, since the tabs themselves may be replaced.</p>
+  <p class="muted">2026-10-18 — Q2 revised (owner): tabs in this unit; the breadcrumb and drilled-in panel are their own change.</p>
+  <p class="muted">2026-10-18 — Q8 answered B (owner): the place chip, defaulting to the place you're on; set from outside the box.</p>
+  <p class="muted">2026-10-18 — Q4: the chats from before are removed, as their own change (owner); talking to a worker raised as a separate feature.</p>
+  <p class="muted">2026-10-18 — Q3 answered A (owner); follow-up raised.</p>
+  <p class="muted">2026-10-18 — corrected (owner): drilling in swaps only the top part; Pinned and the footer always stay. 4b redrawn.</p>
+  <p class="muted">2026-10-18 — pinned projects open the project, drilled in (owner).</p>
+  <p class="muted">2026-10-18 — 4b: no back button (owner); the breadcrumb starts with Home ▾, listing the main navigation; the name at the top of the panel goes Home.</p>
+  <p class="muted">2026-10-18 — 4b: option 3 with the left panel drilling into a place (owner's addition), drawn for a project, your space, an agent and medium width.</p>
+  <p class="muted">2026-10-18 — Q2 option 3 drawn (owner's idea): no tabs, the breadcrumb's parts open lists, Overview links to every section; the three compared.</p>
+  <p class="muted">2026-10-18 — Q2: owner wants all 14 ungrouped; drew 1 (your order, overflow into ⋯) and 2 (scrolling pills).</p>
+  <p class="muted">2026-10-18 — Q2 redrawn (owner: Tasks, Boards and Timeline stay their own tabs): all 14 listed; 10 tabs, Files and Settings hold the rest.</p>
+  <p class="muted">2026-10-18 — Q1 answered A (owner); your space drawn as the default personal project, ready for more personal projects.</p>
+  <p class="muted">2026-10-18 — Q5 answered A: the canvas stays; addresses kept (owner).</p>
+  <p class="muted">2026-10-18 — section 11: the addresses in full, and Q5 reframed as what the canvas does when a conversation is opened from inside hq.</p>
+  <p class="muted">2026-10-18 — the ground rule (owner): layout and project tabs only; no API or component changes, the conversation interface untouched. Q3–Q5 now recommend the option that changes nothing; Q8 added (the place chip).</p>
+  <p class="muted">2026-10-18 — section 0: a layout change only; page files unchanged.</p>
+  <p class="muted">2026-10-18 — board started: every page per the agreed spec, with the open questions from reading the code.</p>
+</section>
+
+</main>
+</div>
+<script>
+function setTheme(t,b){document.documentElement.dataset.theme=t;document.querySelectorAll('.theme button').forEach(x=>x.classList.toggle('on',x===b))}
+function pick(el){el.parentElement.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected')}
+</script>
+</body>
+</html>

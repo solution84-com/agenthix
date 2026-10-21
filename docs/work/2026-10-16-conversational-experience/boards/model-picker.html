@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model picker</title>
+<style>
+:root[data-theme="light"]{--bg:#f7f7f8;--panel:#fff;--surface:#fff;--surface2:#f2f2f4;--hover:#ececf0;--border:#e2e2e7;--text:#18181b;--muted:#6b6b76;--accent:#5b5bd6;--accent-soft:#ededfc;--good:#2f855a;--chip:#f2f2f4}
+:root[data-theme="dark"]{--bg:#111114;--panel:#18181c;--surface:#1d1d22;--surface2:#24242a;--hover:#2c2c33;--border:#33333b;--text:#ececf1;--muted:#9a9aa6;--accent:#8b8bf5;--accent-soft:#2a2a4a;--good:#68d391;--chip:#26262d}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;background:var(--bg);color:var(--text)}
+.layout{display:flex;min-height:100vh}
+nav.menu{width:230px;flex:none;border-right:1px solid var(--border);background:var(--panel);padding:14px 10px;position:sticky;top:0;height:100vh}
+nav.menu details{margin-bottom:6px}nav.menu summary{cursor:pointer;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:6px}
+nav.menu a{display:block;padding:6px 10px;border-radius:8px;color:var(--text);text-decoration:none}nav.menu a.cur{background:var(--accent-soft);color:var(--accent);font-weight:600}
+main{flex:1;padding:24px 32px 80px;max-width:1280px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px}
+h1{font-size:22px;margin:0}h2{font-size:17px;margin:34px 0 4px}h3{font-size:14px;margin:18px 0 6px}
+.sub{color:var(--muted);margin:2px 0 0}
+.toggle{display:flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}.toggle button{border:0;background:transparent;color:var(--text);padding:6px 14px;cursor:pointer}.toggle button.on{background:var(--accent);color:#fff}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:6px;margin-right:6px}
+.tag.before{background:#fde2e2;color:#9b1c1c}.tag.after{background:#d9f5e3;color:#1e6b3e}
+[data-theme="dark"] .tag.before{background:#4a1d1d;color:#f8b4b4}[data-theme="dark"] .tag.after{background:#1b3d2a;color:#9ae6b4}
+.box{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;margin-top:10px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+ul.tight{margin:6px 0;padding-left:18px}ul.tight li{margin:3px 0}
+.screen{border:1px solid var(--border);border-radius:12px;background:var(--bg);overflow:hidden}
+.bar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--panel)}
+.avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#c084fc);flex:none}
+.name{font-weight:600}.chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border:1px solid var(--border);border-radius:999px;padding:3px 10px;font-size:13px;cursor:pointer}
+.chip.open{outline:2px solid var(--accent);outline-offset:1px}
+.thread{padding:18px 22px;min-height:120px;position:relative}
+.bubble{max-width:62%;padding:9px 13px;border-radius:14px;margin:6px 0}.me{margin-left:auto;background:var(--accent);color:#fff}.it{background:var(--surface2)}
+.quiet{text-align:center;color:var(--muted);font-size:12px;margin:10px 0}
+.composer{margin:0 18px 16px;border:1px solid var(--border);border-radius:14px;padding:10px 14px;color:var(--muted);background:var(--panel)}
+.pop{position:absolute;width:380px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.18);overflow:hidden}
+.search{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border)}
+.search input{flex:1;border:0;background:transparent;color:var(--text);font-size:14px;outline:none}
+.kbd{font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:0 5px}
+.list{max-height:420px;overflow:auto;padding:6px}
+.gh{display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:10px 8px 4px}
+.row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px}.row:hover,.row.hl{background:var(--hover)}
+.row .t{flex:1}.row .m{font-size:12px;color:var(--muted)}.row .p{font-size:12px;color:var(--muted);width:30px;text-align:right}
+.row .ck{width:16px;color:var(--accent);font-weight:700}
+.more{padding:6px 8px 8px 34px;font-size:12.5px;color:var(--accent)}
+.foot{border-top:1px solid var(--border);padding:9px 12px;font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between}
+mark{background:var(--accent-soft);color:inherit;border-radius:3px;padding:0 1px}
+.phone{width:360px;border:1px solid var(--border);border-radius:28px;overflow:hidden;background:var(--bg);margin:0 auto}
+.sheet{background:var(--surface);border-top-left-radius:18px;border-top-right-radius:18px;border:1px solid var(--border);border-bottom:0;margin-top:40px}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--border);margin:8px auto}
+select.native{width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
+.fake-open{border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:12.5px;max-height:190px;overflow:hidden;position:relative}
+.fake-open div{padding:3px 10px}.fake-open:after{content:"… 700 more, in one list";position:absolute;bottom:0;left:0;right:0;padding:6px 10px;background:linear-gradient(transparent,var(--surface) 40%);color:var(--muted)}
+ol.q li{margin:10px 0}.opt{display:inline-block;border:1px solid var(--border);border-radius:8px;padding:4px 10px;margin:4px 6px 0 0;cursor:pointer;background:var(--surface)}
+.opt.rec{border-color:var(--accent)}
+.log{font-size:12.5px;color:var(--muted)}
+.composer2{border:1.5px solid var(--accent);border-radius:16px;padding:10px 12px;background:var(--panel)}
+.ctext{color:var(--muted);padding:2px 4px 10px}
+.crow{display:flex;align-items:center;gap:8px}
+.sel{border:1px solid var(--border);border-radius:9px;padding:5px 10px;background:var(--surface);font-size:13px}
+.pill{background:var(--chip);border:1px solid var(--border);border-radius:999px;padding:5px 12px;font-size:13px}
+.send{margin-left:auto;width:34px;height:34px;border-radius:10px;background:var(--accent);opacity:.55;color:#fff;display:flex;align-items:center;justify-content:center}
+.ghost{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;padding:4px 6px;border-radius:8px}
+.ghost:hover{background:var(--hover)}
+.mk{width:18px;height:18px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex:none}
+.mk.ds{background:#4d6bfe}.mk.an{background:#d97757}.mk.oa{background:#10a37f}
+.hdr{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--panel)}
+.hdr .who{font-weight:600}.hdr .dot{color:var(--muted)}
+.opts3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.optcard{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--surface);cursor:pointer}
+.optcard.rec{border-color:var(--accent)}
+.optcard h4{margin:0 0 8px}
+.small{font-size:12.5px;color:var(--muted)}
+
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="menu">
+  <details open><summary>Phase 1 try · 1</summary><a class="cur" href="#">Model picker</a></details>
+</nav>
+<main>
+<div class="top">
+  <div><h1>Model picker in the conversation</h1>
+  <p class="sub">Your finding from trying phase 1: “we should let the user select the model … there's so much to go through — we need a search field … grouped by provider”. Agreed already: the model can change at any time.</p></div>
+  <div class="toggle"><button class="on" onclick="theme('light',this)">Light</button><button onclick="theme('dark',this)">Dark</button></div>
+</div>
+
+<h2><span class="tag before">Before — today</span>No picker in the conversation; one long list in Settings</h2>
+<div class="box cols">
+  <div>
+    <h3>The conversation</h3>
+    <div class="screen">
+      <div class="bar"><div class="avatar"></div><span class="name">AgentX</span></div>
+      <div class="thread"><div class="bubble me">What's open in Shop?</div><div class="bubble it">Three tasks are open…</div></div>
+      <div class="composer">Message AgentX…</div>
+    </div>
+    <ul class="tight"><li>Nothing says which model is talking, and nothing changes it.</li></ul>
+  </div>
+  <div>
+    <h3>Organisation → Settings → Models</h3>
+    <label class="sub">Model for talking</label>
+    <div class="fake-open">
+      <div>Each agent's own</div><div>Claude Opus 5.5</div><div>Claude Sonnet 5.5</div><div>OpenRouter · 01-ai/yi-large</div><div>OpenRouter · aetherwiing/mn-starcannon-12b</div><div>OpenRouter · agentica-org/deepcoder-14b</div><div>OpenRouter · ai21/jamba-large-1.7</div><div>OpenRouter · aion-labs/aion-1.0</div><div>OpenRouter · alfredpros/codellama-7b</div>
+    </div>
+    <ul class="tight"><li>Every model in the catalogue, about 700, in one list with no search.</li><li>It includes models no key you have can reach.</li></ul>
+  </div>
+</div>
+
+<h2><span class="tag after">After — proposed</span>The model beside the agent's name, searchable, grouped</h2>
+<div class="box">
+  <div class="cols">
+    <div>
+      <h3>1 · Opened — the models your keys reach</h3>
+      <div class="screen" style="position:relative;min-height:600px">
+        <div class="bar"><div class="avatar"></div><span class="name">AgentX</span><span class="chip open">DeepSeek V4.1 Flash ▾</span></div>
+        <div class="thread"><div class="bubble me">What's open in Shop?</div></div>
+        <div class="pop" style="left:60px;top:48px">
+          <div class="search">🔍 <input placeholder="Search models" ><span class="kbd">esc</span></div>
+          <div class="list">
+            <div class="gh"><span>Recent</span></div>
+            <div class="row hl"><span class="ck">✓</span><span class="t">DeepSeek V4.1 Flash</span><span class="m">DeepSeek</span><span class="p">$</span></div>
+            <div class="row"><span class="ck"></span><span class="t">Claude Sonnet 4.6</span><span class="m">Anthropic</span><span class="p">$$</span></div>
+            <div class="gh"><span>Anthropic</span><span>via OpenRouter</span></div>
+            <div class="row"><span class="ck"></span><span class="t">Claude Sonnet 5</span><span class="m">fast</span><span class="p">$$</span></div>
+            <div class="row"><span class="ck"></span><span class="t">Claude Opus 5</span><span class="m">deep</span><span class="p">$$$</span></div>
+            <div class="row"><span class="ck"></span><span class="t">Claude Haiku 4.5</span><span class="m">fast</span><span class="p">$</span></div>
+            <div class="more">Show 9 more Anthropic</div>
+            <div class="gh"><span>DeepSeek</span><span>via OpenRouter</span></div>
+            <div class="row"><span class="ck"></span><span class="t">DeepSeek V4 Pro</span><span class="m"></span><span class="p">$$</span></div>
+            <div class="row"><span class="ck"></span><span class="t">DeepSeek V3.2</span><span class="m"></span><span class="p">$</span></div>
+            <div class="more">Show 11 more DeepSeek</div>
+            <div class="gh"><span>OpenAI</span><span>via OpenRouter</span></div>
+            <div class="row"><span class="ck"></span><span class="t">GPT-5.2</span><span class="m"></span><span class="p">$$</span></div>
+            <div class="more">Show 24 more OpenAI · 41 more makers</div>
+          </div>
+          <div class="foot"><span>Only models your keys reach</span><span style="color:var(--accent)">Manage keys</span></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>2 · Typing “sonn” — every match, still grouped</h3>
+      <div class="screen" style="position:relative;min-height:330px">
+        <div class="bar"><div class="avatar"></div><span class="name">AgentX</span><span class="chip open">DeepSeek V4.1 Flash ▾</span></div>
+        <div class="pop" style="left:60px;top:48px">
+          <div class="search">🔍 <input value="sonn"><span class="kbd">esc</span></div>
+          <div class="list">
+            <div class="gh"><span>Anthropic</span><span>via OpenRouter</span></div>
+            <div class="row hl"><span class="ck"></span><span class="t">Claude <mark>Sonn</mark>et 5</span><span class="p">$$</span></div>
+            <div class="row"><span class="ck"></span><span class="t">Claude <mark>Sonn</mark>et 4.6</span><span class="p">$$</span></div>
+            <div class="row"><span class="ck"></span><span class="t">Claude <mark>Sonn</mark>et 4.5</span><span class="p">$$</span></div>
+            <div class="row"><span class="ck"></span><span class="t">Claude <mark>Sonn</mark>et 4</span><span class="p">$$</span></div>
+          </div>
+          <div class="foot"><span>↑↓ to move · ⏎ to choose</span></div>
+        </div>
+      </div>
+      <h3>3 · After choosing — one quiet line, the conversation goes on</h3>
+      <div class="screen">
+        <div class="bar"><div class="avatar"></div><span class="name">AgentX</span><span class="chip">Claude Sonnet 5 ▾</span></div>
+        <div class="thread"><div class="bubble me">What's open in Shop?</div><div class="bubble it">Three tasks are open…</div>
+        <div class="quiet">Switched to Claude Sonnet 5 · its first reply reads the whole conversation</div></div>
+        <div class="composer">Message AgentX…</div>
+      </div>
+      <h3>On a phone — a sheet from the bottom</h3>
+      <div class="phone">
+        <div class="bar"><div class="avatar"></div><span class="name">AgentX</span><span class="chip open">DeepSeek V4.1 Flash ▾</span></div>
+        <div class="sheet"><div class="grab"></div>
+          <div class="search">🔍 <input placeholder="Search models"></div>
+          <div class="list" style="max-height:230px">
+            <div class="gh"><span>Recent</span></div>
+            <div class="row hl"><span class="ck">✓</span><span class="t">DeepSeek V4.1 Flash</span><span class="p">$</span></div>
+            <div class="gh"><span>Anthropic</span><span>via OpenRouter</span></div>
+            <div class="row"><span class="ck"></span><span class="t">Claude Sonnet 5</span><span class="p">$$</span></div>
+            <div class="row"><span class="ck"></span><span class="t">Claude Opus 5</span><span class="p">$$$</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <h3>Why</h3>
+  <ul class="tight">
+    <li>The model is where you are talking, beside the agent's name, so you can see it and change it without leaving the conversation.</li>
+    <li>Search finds a model by any part of its name. Grouping by who makes it (Anthropic, DeepSeek, OpenAI) matches how people think of models; the key that pays is on the group's right (“via OpenRouter”).</li>
+    <li>Only models one of your keys reaches are listed, within the organisation's allowed list and ceiling — so nothing in it fails when chosen.</li>
+    <li>Each group shows its best-known few and “Show N more”; Recent keeps the two or three you use on top.</li>
+    <li>$ to $$$ is a rough price hint; the switch line says the next reply reads everything again, which is the one cost of switching.</li>
+    <li>The same picker replaces the long list in Settings → Models.</li>
+  </ul>
+</div>
+
+<h2><span class="tag before">Before — today</span>The agent and the model crowd the message box</h2>
+<div class="box">
+  <div class="composer2" style="max-width:560px">
+    <div class="ctext">Ask anything…</div>
+    <div class="crow"><span class="sel">Kernel ⌄</span><span class="pill">DeepSeek V4.1 Flash ⌄</span><span class="send">➤</span></div>
+  </div>
+  <ul class="tight"><li>Two full-size controls sit beside Send, so the box reads as a form, not a place to type.</li>
+  <li>The model's full name takes the most room, and it is the thing changed least.</li></ul>
+</div>
+
+<h2><span class="tag after">After — proposed</span>Where it sits: three ways</h2>
+<div class="box">
+<div class="opts3">
+  <div class="optcard rec" data-choice="q11-a" onclick="pick(this)">
+    <h4>A · Two quiet buttons — chosen</h4>
+    <div class="composer2">
+      <div class="ctext">Ask your agent…</div>
+      <div class="crow"><span class="ghost"><span class="avatar" style="width:18px;height:18px"></span>Kernel ⌄</span><span class="ghost"><span class="mk ds">DS</span>V4.1 Flash ⌄</span><span class="send">➤</span></div>
+    </div>
+    <div class="screen" style="margin-top:10px">
+      <div class="hdr"><span class="avatar" style="width:20px;height:20px"></span><span class="who">Kernel</span><span class="ghost"><span class="mk ds">DS</span>V4.1 Flash ⌄</span></div>
+      <div style="padding:10px"><div class="composer2"><div class="ctext">Reply…</div><div class="crow"><span class="send">➤</span></div></div></div>
+    </div>
+    <p class="small">Two plain-text buttons, no boxes, each with its own picker. Before the first message both sit in the box; after it the agent's name is plain text in the header with the model button beside it, and the box keeps only Send. The agent picker has search too (name, handle, role): primary first, then recent, then the rest.</p>
+  </div>
+  <div class="optcard" data-choice="q11-b" onclick="pick(this)">
+    <h4>B · The model in the header only</h4>
+    <div class="screen">
+      <div class="hdr"><span class="avatar" style="width:20px;height:20px"></span><span class="who">Kernel</span><span class="dot">·</span><span class="ghost"><span class="mk ds">DS</span>V4.1 Flash ⌄</span></div>
+      <div style="padding:10px"><div class="composer2"><div class="ctext">Ask anything…</div><div class="crow"><span class="ghost">Kernel ⌄</span><span class="send">➤</span></div></div></div>
+    </div>
+    <p class="small">The message box keeps only the agent (before the first message). The model is always at the top, beside the agent's name, as the first board drew it.</p>
+  </div>
+  <div class="optcard" data-choice="q11-c" onclick="pick(this)">
+    <h4>C · The maker's mark alone</h4>
+    <div class="composer2">
+      <div class="ctext">Ask anything…</div>
+      <div class="crow"><span class="ghost">Kernel ⌄</span><span class="ghost" title="DeepSeek V4.1 Flash · via OpenRouter"><span class="mk ds">DS</span>⌄</span><span class="send">➤</span></div>
+    </div>
+    <p class="small">Smallest: only the maker's mark, the full name on hover and in the menu. Two models from one maker look the same until opened.</p>
+  </div>
+</div>
+<h3>Short names, wherever it sits</h3>
+<ul class="tight">
+  <li>The maker's mark carries the maker, so the label drops it: <b>V4.1 Flash</b>, <b>Sonnet 5</b>, <b>GPT-5.2</b>. The menu keeps the full name.</li>
+  <li>A model with no mark of its own shows the first two letters of its maker.</li>
+</ul>
+</div>
+
+<h2>Open questions</h2>
+<div class="box">
+<ol class="q">
+  <li><s>Group by maker or key</s> — decided: by maker, “via …” beside the group.</li>
+  <li><s>Price hint</s> — decided: yes.</li>
+  <li><s>Same picker in settings</s> — decided: yes.</li>
+  <li value="11"><b>Where should the agent and model sit?</b><br>
+    <span class="opt rec" data-choice="q11-a" onclick="pick(this)">A · two quiet buttons — decided</span>
+    <span class="opt" data-choice="q11-b" onclick="pick(this)">B · the model in the header only</span>
+    <span class="opt" data-choice="q11-c" onclick="pick(this)">C · the maker's mark alone</span></li>
+</ol>
+</div>
+<p class="log">Change log — 2026-10-16: first draft from the phase 1 try. · Decided: by maker, price hint, one picker. · Added “Where it sits” after the owner saw the box crowded. · A corrected to two separate buttons, and search for agents (the owner, after seeing one combined line).</p>
+</main>
+</div>
+<script>
+function theme(t,b){document.documentElement.dataset.theme=t;document.querySelectorAll('.toggle button').forEach(x=>x.classList.toggle('on',x===b))}
+function pick(el){const q=el.dataset.choice.split('-')[0];document.querySelectorAll('[data-choice^="'+q+'-"]').forEach(x=>x.style.background='');el.style.background='var(--accent-soft)';if(window.companion)companion.send({type:'click',choice:el.dataset.choice,text:el.textContent})}
+</script>
+</body>
+</html>

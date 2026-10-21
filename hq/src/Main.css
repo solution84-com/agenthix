@@ -1,0 +1,117 @@
+/* Inter, loaded here rather than as a <link> in the page head: React renders the head on Wasp 0.25, and a
+   stylesheet link there does not match the prerendered page when it hydrates. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+@source "../../ui/src";
+@import "@agenthix/ui/theme/tokens.css";
+
+/* ──────────────────────────────────────────────
+   Global Resets
+   ────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  font-family: var(--font-sans);
+  background: var(--color-surface-0);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ──────────────────────────────────────────────
+   Wasp Auth Form Overrides
+   Wasp's <LoginForm /> uses CSS modules with !important on every
+   property (to fight Tailwind specificity). We override in two ways:
+   1. Override Wasp's own CSS variables so label/button colors change.
+   2. Use !important on properties Wasp hardcodes (e.g. background-color).
+   ────────────────────────────────────────────── */
+
+/* Override Wasp's auth-styles.css variables to match the active theme */
+:root {
+  --color-brand: var(--color-accent);
+  --color-brandAccent: var(--color-accent-hover);
+  --color-submitButtonText: var(--color-on-accent);
+  --color-gray700: var(--color-border);
+  --color-gray600: var(--color-border);
+  --color-gray500: var(--color-border-subtle);
+  --color-gray400: var(--color-surface-2);
+  --color-formErrorText: var(--color-danger);
+}
+
+/* Inputs — Wasp hardcodes background-color: #f8f4ff !important,
+   so we must fight !important with !important. The getting-in pages' fields
+   (.auth-input) sit on white and keep their own look. */
+input[type="text"]:not(.auth-input),
+input[type="password"]:not(.auth-input),
+input[type="email"]:not(.auth-input) {
+  background-color: var(--color-surface-2) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+  font-family: var(--font-sans) !important;
+  caret-color: var(--color-text-primary) !important;
+}
+
+input[type="text"]:not(.auth-input):focus,
+input[type="password"]:not(.auth-input):focus,
+input[type="email"]:not(.auth-input):focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-subtle) !important;
+}
+
+input::placeholder {
+  color: var(--color-text-muted) !important;
+}
+
+/* ──────────────────────────────────────────────
+   Task Panel Slide-in Animation
+   ────────────────────────────────────────────── */
+@keyframes panelSlideIn {
+  from { transform: translateX(16px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.task-panel-enter {
+  animation: panelSlideIn 180ms ease-out forwards;
+}
+
+/* Labels */
+label {
+  color: var(--color-text-secondary) !important;
+}
+
+/* ──────────────────────────────────────────────
+   Agent loading bar — scanning sweep animation
+   ────────────────────────────────────────────── */
+@keyframes scan {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+.agent-loading-bar {
+  animation: scan 1.6s linear infinite;
+}
+
+/* ──────────────────────────────────────────────
+   TipTap prose editor
+   ────────────────────────────────────────────── */
+.prose-editor p { margin-bottom: 0.625rem; line-height: 1.625; }
+.prose-editor p:last-child { margin-bottom: 0; }
+.prose-editor h2 { font-size: 1rem; font-weight: 700; margin: 1rem 0 0.375rem; color: var(--color-text-primary); }
+.prose-editor h3 { font-size: 0.875rem; font-weight: 600; margin: 0.875rem 0 0.25rem; color: var(--color-text-primary); }
+.prose-editor ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.625rem; }
+.prose-editor ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 0.625rem; }
+.prose-editor li { line-height: 1.625; margin-bottom: 0.125rem; }
+.prose-editor blockquote { border-left: 2px solid var(--color-accent); padding-left: 0.875rem; margin: 0.625rem 0; color: var(--color-text-secondary); font-style: italic; }
+.prose-editor code { background: var(--color-surface-3); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.8em; color: var(--color-accent-hover); }
+.prose-editor pre { background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.75rem 1rem; margin: 0.625rem 0; overflow-x: auto; }
+.prose-editor pre code { background: none; padding: 0; color: var(--color-text-primary); }
+.prose-editor hr { border: none; border-top: 1px solid var(--color-border); margin: 0.875rem 0; }
+.prose-editor strong { font-weight: 600; color: var(--color-text-primary); }
+.prose-editor em { font-style: italic; color: var(--color-text-secondary); }
+.prose-editor p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--color-text-muted); font-style: italic; pointer-events: none; float: left; height: 0; }

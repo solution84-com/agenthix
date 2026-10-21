@@ -1,0 +1,104 @@
+/**
+ * Starting a task's run for a conversation, as the person it answers would press Run (workers and results spec,
+ * Results): the person must work in the task's project, the task must be runnable, and queueing it is held to
+ * the project's queue limit. The run is the person's, at depth 0. Its operation is created before the run is
+ * asked to start, so the run's first event always finds it.
+ */
+import { prisma } from 'wasp/server'
+import type { Agent } from '@prisma/client'
+import { taskRunner } from '../../../agents/TaskRunner'
+import { replaceTaskRequests } from '../../../agents/manifestRequests'
+import { LOST_ACCESS_RUN_REFUSAL } from '../../../agents/taskExecutionReasons'
+import { agentQueuedCount, effectiveForProject } from '../../../automation/automationStore'
+import { notifyBoardsOfTasks } from '../../../projects/boardNotify'
+import { requireProjectEntitlement } from '../../../server/controlplane/authorize'
+import { LOST_ACCESS_REASON, personQueuer } from '../../../projects/taskOnBehalfOf'
+import { askedToStart } from '../../../projects/taskQueueing'
+import type { ContinuationObligation } from '../../../shared/conversations/protocol'
+import type { ToolCallOutcome, TurnCapability } from '../../contract'
+import { settleOperation } from '../../coordinator/mailbox'
+import { createTaskOperation } from './taskOperations'
+
+export const QUEUED_IN_CONVERSATION = 'queued in a conversation'
+
+export const QUEUE_FULL =
+  "Agents in this project already hold as many queued tasks as its queue limit allows, so it was not queued. " +
+  'A person can run it from its board.'
+
+/** Whether a turn may queue more work in the project now. A person on the board is not held to it; a conversation is. */
+export async function queueRefusal(projectId: string): Promise<string | null> {
+  const { queueLimit } = await effectiveForProject(projectId)
+  return (await agentQueuedCount(projectId)) >= queueLimit ? QUEUE_FULL : null
+}
+
+export type RunnableTask = { id: string; projectId: string; title: string; key: string; agent: Agent }
+
+/**
+ * The task, queued for its run as the person's, or why it cannot be. Throws ControlPlaneError when the turn may
+ * not work on it: the person must work in its project, and a turn in a project or a task's thread reaches only
+ * that project, as for every other tool a turn calls.
+ */
+export async function queueAsPerson(capability: TurnCapability & { actingUserId: string }, taskId: string, tool: string): Promise<RunnableTask | { refusal: string }> {
+  const personId = capability.actingUserId
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      id: true, projectId: true, title: true, number: true, boardId: true, runState: true, runStateReason: true,
+      assignedAgent: true, project: { select: { key: true } },
+    },
+  })
+  if (!task) return { refusal: 'There is no such task' }
+  await requireProjectEntitlement({ kind: 'turn', turn: capability }, task.projectId, tool, 'work')
+  const key = `${task.project.key}-${task.number}`
+  if (!task.assignedAgent) return { refusal: `${key} has no agent assigned to do it` }
+  if (!task.boardId) return { refusal: `${key} is on no board, so it cannot run` }
+  if (task.runState === 'RUN_BLOCKED' && task.runStateReason === LOST_ACCESS_REASON) return { refusal: LOST_ACCESS_RUN_REFUSAL }
+  // A run started elsewhere is not this conversation's to follow: its result goes to the task.
+  if (task.runState === 'RUN_ACTIVE') return { refusal: `${key} is already running; its result will be on the task` }
+
+  if (task.runState !== 'RUN_QUEUED' && task.runState !== 'RUN_THROTTLED') {
+    const full = await queueRefusal(task.projectId)
+    if (full) return { refusal: full }
+    const { count } = await prisma.task.updateMany({
+      where: { id: taskId, runState: { in: ['RUN_NONE', 'RUN_FAILED', 'RUN_BLOCKED'] } },
+      data: askedToStart('person', personQueuer(personId), QUEUED_IN_CONVERSATION),
+    })
+    if (count === 0) return { refusal: `A run of ${key} was queued or started by something else first` }
+    await notifyBoardsOfTasks([taskId])
+    // Running again replaces a request the last run left unanswered, as a person's Run does.
+    await replaceTaskRequests(taskId)
+  }
+  return { id: task.id, projectId: task.projectId, title: task.title, key, agent: task.assignedAgent }
+}
+
+/**
+ * Creates the operation for the queued task and asks for its run. A run that cannot start now and is not held
+ * for later ends the operation at once, quietly, and the lead is told why instead.
+ */
+export async function startTaskOperation(input: {
+  capability: TurnCapability & { actingUserId: string }
+  task: RunnableTask
+  toolName: string
+  idempotencyKey: string
+  continuation: ContinuationObligation | null
+  brief?: string | null
+}): Promise<ToolCallOutcome> {
+  const { capability, task, toolName, idempotencyKey, continuation, brief } = input
+  const admitted = await createTaskOperation({
+    capability, toolName, idempotencyKey, continuation, brief,
+    title: `${task.key} ${task.title}`, taskId: task.id, projectId: task.projectId, state: 'QUEUED',
+  })
+  if (admitted.alreadyRunning) return { status: 'accepted', operationId: admitted.operationId }
+  const { operationId } = admitted
+
+  const { outcome, reason } = await taskRunner.runTask(task.id, task.agent, 'person', capability.actingUserId)
+  if (outcome === 'failed') {
+    const after = await prisma.task.findUnique({ where: { id: task.id }, select: { runState: true } })
+    // Held for its site, or for a scheduled change: it starts when that is over, and its operation waits for it.
+    if (after?.runState === 'RUN_QUEUED') return { status: 'accepted', operationId }
+    const why = reason ?? 'its run could not start'
+    await settleOperation(operationId, { state: 'FAILED', error: why, noReport: true })
+    return { status: 'refused', reason: `${task.key} did not start: ${why}` }
+  }
+  return { status: 'accepted', operationId }
+}

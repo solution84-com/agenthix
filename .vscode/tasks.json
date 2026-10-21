@@ -1,0 +1,237 @@
+{
+  "version": "2.0.0",
+  // ───────────────────────────────────────────────────────────────────────────
+  // Tasks for this repo's modules: core, hq, site, ui.
+  //
+  // hq  — the control plane and the whole UI. This is `site` before the
+  //       2026-08-11 rename, so its ports, database and data are unchanged.
+  //       Client 4100, server 4101, dev DB on 4109.
+  // site — the Execution Site: the agent runtime, workspace storage and the
+  //       link to hq. A plain Node server, not a Wasp app: one port, 4201,
+  //       no web client. Dev DB on 4209.
+  //
+  // Tasks for auth, hq-server, hq-client, mobile and product were removed on
+  // 2026-08-11: those modules left this repo in the 2026-08-09 split and now
+  // live in separate repositories, each with
+  // its own workspace and tasks.
+  //
+  // Dev databases run in Docker (docker-compose.yml, project agenthix-dev) and
+  // are published on localhost only. The apps themselves run natively — hq via
+  // `npx wasp start`, which needs a real TTY, and site via `npm run dev` — each in a
+  // dedicated terminal panel rather than one combined pane.
+  // ───────────────────────────────────────────────────────────────────────────
+  "tasks": [
+    // ─── Start everything ────────────────────────────────────────────────────
+    {
+      "label": "[dev] Start All",
+      "detail": "Dev DBs + hq (4100/4101) + site (4201), each in its own terminal",
+      "dependsOn": ["[dev:hq] Start", "[dev:site] Start"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+
+    // ─── hq ──────────────────────────────────────────────────────────────────
+    {
+      "label": "[dev:hq] Start",
+      "detail": "hq — control plane + UI. Client 4100, server 4101.",
+      "type": "shell",
+      "command": "bash scripts/dev/start.sh",
+      "options": { "cwd": "${workspaceFolder}/hq" },
+      "dependsOn": ["[dev:db] Up"],
+      "isBackground": true,
+      "problemMatcher": [],
+      // No `presentation.group`: tasks sharing a group value get split panes,
+      // which makes each app's log too narrow to read. Separate tabs instead.
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "[dev:hq] Start (LAN)",
+      "detail": "Same as above but bound to 0.0.0.0 for device testing. Trusted networks only.",
+      "type": "shell",
+      "command": "bash scripts/dev/start.sh --lan",
+      "options": { "cwd": "${workspaceFolder}/hq" },
+      "dependsOn": ["[dev:db] Up"],
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "[dev:hq] Test",
+      "type": "shell",
+      "command": "npx vitest run",
+      "options": { "cwd": "${workspaceFolder}/hq" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "[dev:hq] Test (integration)",
+      "detail": "Runs against the dedicated agenthix_test database (ADR-0035).",
+      "type": "shell",
+      "command": "npm run test:integration",
+      "options": { "cwd": "${workspaceFolder}/hq" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "[dev:hq] Typecheck",
+      "type": "shell",
+      "command": "npm run typecheck",
+      "options": { "cwd": "${workspaceFolder}/hq" },
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "[dev:hq] DB Migrate",
+      "detail": "Needs an interactive terminal — this is why it is a task, not a script step.",
+      "type": "shell",
+      "command": "npx wasp db migrate-dev",
+      "options": { "cwd": "${workspaceFolder}/hq" },
+      "dependsOn": ["[dev:db] Up"],
+      "problemMatcher": []
+    },
+    {
+      "label": "[dev:hq] DB Studio",
+      "type": "shell",
+      "command": "npx wasp db studio",
+      "options": { "cwd": "${workspaceFolder}/hq" },
+      "dependsOn": ["[dev:db] Up"],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "[dev:hq] Reset",
+      "detail": "Resets hq's database. Destructive — read scripts/dev/reset.sh first.",
+      "type": "shell",
+      "command": "bash scripts/dev/reset.sh",
+      "options": { "cwd": "${workspaceFolder}/hq" },
+      "problemMatcher": []
+    },
+    {
+      "label": "[dev:hq] Build Agent Image",
+      "type": "shell",
+      "command": "bash scripts/dev/build-agent.sh",
+      "options": { "cwd": "${workspaceFolder}/hq" },
+      "problemMatcher": []
+    },
+
+    // ─── site ────────────────────────────────────────────────────────────────
+    {
+      "label": "[dev:site] Start",
+      "detail": "Execution site on 4201, restarting on save. First pairs with hq (scripts/dev/pair.sh).",
+      "type": "shell",
+      "command": "bash ../scripts/dev/pair.sh && npm run dev",
+      "options": { "cwd": "${workspaceFolder}/site" },
+      "dependsOn": ["[dev:db] Up"],
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "[dev:site] Typecheck",
+      "type": "shell",
+      "command": "npm run typecheck",
+      "options": { "cwd": "${workspaceFolder}/site" },
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "[dev:site] DB Migrate",
+      "detail": "prisma migrate dev on site/schema.prisma. Asks for a migration name.",
+      "type": "shell",
+      "command": "npm run db:migrate",
+      "options": { "cwd": "${workspaceFolder}/site" },
+      "dependsOn": ["[dev:db] Up"],
+      "problemMatcher": []
+    },
+    {
+      "label": "[dev:site] DB Studio",
+      "type": "shell",
+      "command": "npm run db:studio",
+      "options": { "cwd": "${workspaceFolder}/site" },
+      "dependsOn": ["[dev:db] Up"],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+
+    // ─── Shared: databases ───────────────────────────────────────────────────
+    {
+      "label": "[dev:db] Up",
+      "detail": "hq-db on 4109, site-db on 4209. Localhost only.",
+      "type": "shell",
+      "command": "docker compose up -d",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "[dev:db] Down",
+      "type": "shell",
+      "command": "docker compose down",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "[dev:db] Logs",
+      "type": "shell",
+      "command": "docker compose logs -f",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "[dev:db] Migrate All",
+      "dependsOn": ["[dev:hq] DB Migrate", "[dev:site] DB Migrate"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+
+    // ─── core / ui ───────────────────────────────────────────────────────────
+    {
+      "label": "[core] Test",
+      "detail": "Runs typecheck first via pretest, so type-level regressions are caught.",
+      "type": "shell",
+      "command": "npm test",
+      "options": { "cwd": "${workspaceFolder}/core" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "[core] Build",
+      "type": "shell",
+      "command": "npm run build",
+      "options": { "cwd": "${workspaceFolder}/core" },
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "[ui] Typecheck",
+      "type": "shell",
+      "command": "npx tsc --noEmit",
+      "options": { "cwd": "${workspaceFolder}/ui" },
+      "problemMatcher": ["$tsc"]
+    },
+
+    // ─── Docker (containerized deployment) ───────────────────────────────────
+    // The real container images rather than `wasp start` — hq/compose.yml and
+    // site/compose.yml, each with its own .env (see hq/compose.env.example,
+    // site/.env.server.example). An optional shared HTTPS front door is in
+    // front-door/.
+    {
+      "label": "[docker] hq up",
+      "type": "shell",
+      "command": "docker compose -f hq/compose.yml --env-file hq/compose.env up -d --build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "[docker] site up",
+      "type": "shell",
+      "command": "docker compose -f site/compose.yml --env-file site/compose.env up -d --build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ]
+}

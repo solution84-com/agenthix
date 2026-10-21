@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 456" width="1000" height="456" role="img" aria-label="Connecting a machine">
+<title>Connecting a machine</title>
+<style>
+  svg { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --bg-primary:#f5f5f7; --bg-secondary:#ffffff; --bg-tertiary:#e5e5e7; --border:#c7c7cc; --text-primary:#1d1d1f;
+    --text-secondary:#6e6e73; --text-tertiary:#8e8e93; --accent:#0071e3; --success:#248a3d; --warning:#c46a00; --error:#d70015; }
+  @media (prefers-color-scheme: dark) { svg { --bg-primary:#1d1d1f; --bg-secondary:#2d2d2f; --bg-tertiary:#3d3d3f;
+    --border:#424245; --text-primary:#f5f5f7; --text-secondary:#98989d; --text-tertiary:#636366; --accent:#0a84ff;
+    --success:#30d158; --warning:#ff9f0a; --error:#ff453a; } }
+</style>
+<style>
+  .b { fill:var(--bg-secondary); stroke:var(--border); stroke-width:1.5; }
+  .g { fill:var(--bg-secondary); stroke:var(--success); stroke-width:2; }
+  .o { fill:var(--bg-tertiary); stroke:var(--warning); stroke-width:2; }
+  .r { fill:var(--bg-secondary); stroke:var(--error); stroke-width:2; }
+  .a { fill:var(--bg-secondary); stroke:var(--accent); stroke-width:2; }
+  .t { fill:var(--text-primary); font-size:13.5px; font-weight:700; }
+  .s { fill:var(--text-secondary); font-size:11.5px; }
+  .h { fill:var(--text-secondary); font-size:11.5px; font-weight:700; letter-spacing:.05em; }
+  .ttl { fill:var(--text-primary); font-size:17px; font-weight:700; }
+  .ar { fill:var(--text-secondary); font-size:18px; }
+  .cy { fill:var(--bg-secondary); stroke:var(--success); stroke-width:1.5; }
+  .cn { fill:var(--bg-secondary); stroke:var(--error); stroke-width:1.5; }
+  .ct { fill:var(--text-primary); font-size:12px; }
+  .cx { fill:var(--text-secondary); font-size:12px; text-decoration:line-through; }
+  .th { fill:var(--bg-tertiary); stroke:var(--border); }
+  .td { fill:var(--bg-secondary); stroke:var(--border); }
+</style>
+<rect x="0" y="0" width="1000" height="456" style="fill:var(--bg-primary)"/>
+<text class="ttl" x="20" y="34">Connecting a machine to the Host Manager</text><text class="h" x="20" y="66">JOINING NEEDS BOTH SIDES</text><rect class="g" x="20" y="78" width="215" height="92" rx="9"/><text class="t" x="30" y="100">Fleet admin</text><text class="s" x="30" y="118">Add a site in the Host</text><text class="s" x="30" y="133">Manager: a one-time code</text><text class="ar" x="244" y="130">→</text><rect class="b" x="269" y="78" width="215" height="92" rx="9"/><text class="t" x="279" y="100">Machine admin</text><text class="s" x="279" y="118">on the new machine: agenthix</text><text class="s" x="279" y="133">manager connect &lt;hq address&gt;</text><text class="s" x="279" y="148">&lt;code&gt;</text><text class="ar" x="493" y="130">→</text><rect class="g" x="518" y="78" width="215" height="92" rx="9"/><text class="t" x="528" y="100">Fleet admin confirms</text><text class="s" x="528" y="118">the machine's name and</text><text class="s" x="528" y="133">fingerprint</text><text class="ar" x="742" y="130">→</text><rect class="o" x="767" y="78" width="215" height="92" rx="9"/><text class="t" x="777" y="100">Connected</text><text class="s" x="777" y="118">both pin each other's</text><text class="s" x="777" y="133">identity; one outward</text><text class="s" x="777" y="148">connection to hq's port;</text><text class="s" x="777" y="163">then its site starts</text><text class="h" x="20" y="214">WHAT A CONTROLLER MAY ASK — A CLOSED LIST</text><rect class="cy" x="20" y="226" width="127.6" height="24" rx="12"/><text class="ct" x="31" y="242">figures and logs</text><rect class="cy" x="155.6" y="226" width="312.4" height="24" rx="12"/><text class="ct" x="166.6" y="242">install · start · stop · remove hq or a site</text><rect class="cy" x="476" y="226" width="220" height="24" rx="12"/><text class="ct" x="487" y="242">upgrade to a published version</text><rect class="cy" x="20" y="258" width="292.59999999999997" height="24" rx="12"/><text class="ct" x="31" y="274">backup · export · store · fetch · restore</text><rect class="cy" x="320.59999999999997" y="258" width="180.39999999999998" height="24" rx="12"/><text class="ct" x="331.59999999999997" y="274">capacity</text><rect class="cy" x="508.99999999999994" y="258" width="167.2" height="24" rx="12"/><text class="ct" x="520" y="274">address and front door</text><rect class="cy" x="684.1999999999999" y="258" width="187" height="24" rx="12"/><text class="ct" x="695.1999999999999" y="274">book or cancel operations</text><rect class="cy" x="20" y="290" width="180.39999999999998" height="24" rx="12"/><text class="ct" x="31" y="306">suspend · resume · erase</text><rect class="cn" x="208.39999999999998" y="290" width="68.19999999999999" height="24" rx="12"/><text class="cx" x="219.39999999999998" y="306">a shell</text><rect class="cn" x="284.59999999999997" y="290" width="140.8" height="24" rx="12"/><text class="cx" x="295.59999999999997" y="306">any Docker command</text><rect class="cn" x="433.4" y="290" width="154" height="24" rx="12"/><text class="cx" x="444.4" y="306">files on the machine</text><text class="h" x="20" y="344">CUTTING THE LINK — FROM EITHER SIDE</text><rect class="o" x="20" y="356" width="300" height="80" rx="9"/><text class="t" x="30" y="378">From the machine</text><text class="s" x="30" y="396">agenthix manager disconnect: at once, even</text><text class="s" x="30" y="411">if the Host Manager is unreachable</text><text class="ar" x="329" y="402">or</text><rect class="g" x="354" y="356" width="300" height="80" rx="9"/><text class="t" x="364" y="378">From the Host Manager</text><text class="s" x="364" y="396">Disconnect</text>
+</svg>

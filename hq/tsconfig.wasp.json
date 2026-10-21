@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2025",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "strict": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "allowJs": true,
+    "noEmit": true,
+    "lib": [
+      "ES2025"
+    ],
+    "types": [
+      "node",
+      "react",
+      "vite/client"
+    ]
+  },
+  "include": [
+    "**/*.wasp.ts",
+    ".wasp/out/types/spec"
+  ]
+}

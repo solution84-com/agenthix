@@ -1,0 +1,216 @@
+---
+name: User Stories — host
+description: Business-level requirements for the host service — what a machine admin, whoever can use Docker on a machine, needs from Agenthix on that machine. Written for business readers.
+updated: 2026-10-21
+---
+
+# User Stories — `host/`
+
+> Business-level requirements for the **machine admin**: whoever looks after a machine Agenthix runs on, by typing `agenthix` commands there. A machine admin is not an account in Agenthix.
+> Audience: business readers — no implementation detail.
+> Written on 2026-10-16 from the finished code at the close of the host management unit. Story ids are shared across every stories file; the next free one is `next-us` in [`hq.md`](hq.md). A retired story or criterion keeps its number. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/host.md`](../scenarios/host.md)), never here.
+
+---
+
+## Installing and knowing how the machine is doing
+
+### US-287 — Install Agenthix on one machine
+
+As a machine admin, I want to install Agenthix with one command and one question, so that HQ, its site and the Fleet Console run on my machine and I can make the first account.
+
+**Acceptance criteria:**
+- AC-287a: I am asked only for HQ's address; HQ, its site and the Fleet Console start, and I get one link for the first account and a shortcut for later commands.
+- AC-287b: an address that cannot work, or a missing piece of the setup, is refused before anything changes, saying what to fix.
+- AC-287c: running it again is safe and changes nothing already set; no secret is printed or readable by anyone but the host service.
+- AC-287d: on a release, only images whose signature checks are fetched and run.
+
+---
+
+### US-288 — Know how my machine is doing from the command line
+
+As a machine admin, I want one command that tells me in plain sentences how HQ and the site are, so that I know what to do next without reading logs.
+
+**Acceptance criteria:**
+- AC-288a: `agenthix status` says how each thing is in a sentence that ends in what to do next, never in internal words, and fits my terminal.
+- AC-288b: the commands I can type are listed, and a mistyped one points me at help.
+
+---
+
+## Keeping the machine safe
+
+### US-289 — Keep agents off my machine
+
+As a machine admin, I want agents kept away from my machine's own services, so that an agent cannot reach what it should not.
+
+**Acceptance criteria:**
+- AC-289a: agents cannot reach the machine's own ports, other containers' published ports or a cloud provider's credentials address, and this has no setting.
+- AC-289b: when the protections cannot hold, I am told why and no agent starts until they do.
+- AC-289c: I set how much each agent may use, within what the machine has.
+
+---
+
+### US-290 — Never lose more than a night's work
+
+As a machine admin, I want my machine backed up every night and the copies kept somewhere else under a key only I hold, so that losing the machine does not lose the data.
+
+**Acceptance criteria:**
+- AC-290a: a sealed backup is taken every night, a missed night is caught up, and I see when the last one was.
+- AC-290b: I choose a backup location; the key is shown once and the copies open only with it; I am told plainly when backups would die with the machine.
+- AC-290c: I can export a backup sealed to a key made for it alone.
+- AC-290d: a fleet admin can take or export a backup, but never choose where sealed data leaves my machine.
+
+---
+
+### US-291 — Bring a lost machine back
+
+As a machine admin, I want to restore HQ or a lost site on a new machine from a backup, so that the organisation carries on after a machine is lost.
+
+**Acceptance criteria:**
+- AC-291a: HQ and its site come back on a new machine from the backup location or an export, with my key, and a wrong key changes nothing.
+- AC-291b: a lost site comes back on a new machine with a fleet admin's code; my key never leaves the machine, and the site starts only once HQ takes it.
+
+---
+
+### US-292 — Upgrade without breaking anything
+
+As a machine admin, I want upgrades checked, backed up and rolled back when they fail, so that an upgrade never leaves HQ or a site broken.
+
+**Acceptance criteria:**
+- AC-292a: an upgrade checks every image's signature, takes a backup, and goes back to the version before by itself if it does not come up healthy, and says so.
+- AC-292b: fixes apply by themselves in a maintenance window I can move or turn off; a new version, or a fix that rolled back, never applies by itself.
+- AC-292c: the host service upgrades itself, putting the old one back if the new one does not answer.
+
+---
+
+### US-293 — Schedule work on my machine
+
+As a machine admin, I want to schedule, move and cancel maintenance with times in plain words, so that it happens when it suits the people who use Agenthix.
+
+**Acceptance criteria:**
+- AC-293a: I schedule, move and cancel with a time as I would type it, and it is said back in words.
+- AC-293b: a change that was missed, failed or can no longer happen ends saying why.
+- AC-293c: HQ and the Fleet Console hear of every change as it is scheduled and as it moves on.
+
+---
+
+### US-294 — Suspend, resume or erase HQ or a site
+
+As a machine admin, I want to stop HQ or a site keeping everything, or erase it with a way back, so that I can pause or retire it without losing data by mistake.
+
+**Acceptance criteria:**
+- AC-294a: suspending stops it and keeps everything, members are told, and resuming starts it again.
+- AC-294b: erasing HQ needs its address typed, takes a final backup kept 30 days, and can be undone within them; with a date, everyone sees a countdown.
+- AC-294c: a site is erased on its own machine with its name typed; HQ's own site goes only with HQ.
+
+---
+
+## Joining the fleet
+
+### US-295 — Let the Fleet Console manage my machine, or stop it
+
+As a machine admin, I want my machine to take commands only from the Fleet Console I approved, and to leave it at once when I choose, so that nobody else — not even HQ — can command my machine.
+
+**Acceptance criteria:**
+- AC-295a: I connect with a code, compare the machine's fingerprint with the fleet admin, and the code never reaches HQ.
+- AC-295b: my machine acts only on commands the Fleet Console signed, from a short list, that HQ cannot read, change or make up.
+- AC-295c: I can disconnect at once, even when nothing answers; HQ is told when it can be, and the site's data stays.
+
+---
+
+### US-296 — Get the fleet back when nobody can sign in
+
+As a machine admin of HQ's machine, I want to give the fleet admin role back, or move the Fleet Console, from the command line, so that the fleet is never left without anyone who can look after it.
+
+**Acceptance criteria:**
+- AC-296a: I give or take away the fleet admin role on an existing HQ account, and make a first-account or admin link, from HQ's machine.
+- AC-296b: I can run the Fleet Console on another machine, or remove one HQ no longer lets in, and every machine follows the one that is current.
+
+---
+
+### US-297 — Serve HQ at the right address
+
+As a machine admin, I want HQ served over HTTPS and its address changed safely, so that people and every machine can always reach it.
+
+**Acceptance criteria:**
+- AC-297a: the host service can serve HQ over HTTPS with its own certificates, warning first that it takes ports 80 and 443, and puts everything back if a certificate cannot be had.
+- AC-297b: changing HQ's address tells every site and machine first, and each switches only once the new address is HQ; if HQ does not answer there, it is put back.
+
+---
+
+### US-298 — Move HQ or a site without running it twice
+
+As a machine admin, I want HQ or a site moved to another machine with everything it holds, so that it never runs on both machines and never on neither for long.
+
+**Acceptance criteria:**
+- AC-298a: a site moves with its credential and workspaces, and comes back on the old machine if the new one does not take over.
+- AC-298b: HQ moves with its site and the Fleet Console, read-only while it moves, and comes back on the old machine if needed, by itself or with one command.
+
+---
+
+## A machine Agenthix Cloud looks after
+
+On a machine Agenthix Cloud runs for an organisation, Agenthix is the machine admin. Everything in this part applies only on a machine enrolled with Cloud, and only to requests from Cloud's pinned identity; a machine an organisation runs itself never enrols and none of it changes what the Fleet Console or the command line may do there.
+
+### US-333 — Enrol a machine with Agenthix Cloud, and keep one controller
+
+As the operator of a machine Agenthix Cloud will run, I want to hand the machine to Cloud with a one-time code, so that Cloud can look after it without any secret kept on the machine and without the Fleet Console and Cloud ever both commanding it.
+
+**Acceptance criteria:**
+- AC-333a: the machine dials Cloud, nothing dials the machine, and a code that is valid once, for at most an hour, read from a file only the machine's root can read, enrols it; any failed join spends the code.
+- AC-333b: after enrolling, the machine reconnects with its own identity and proves nothing until Cloud's first message is fresh and signed by the identity it pinned.
+- AC-333c: a machine with a Fleet Console pinned refuses to enrol, and a machine enrolled with Cloud refuses a Fleet Console.
+- AC-333d: the connection to Cloud keeps working while HQ is down.
+
+---
+
+### US-334 — Let Agenthix Cloud look after the machine
+
+As the operator of a machine Agenthix Cloud runs, I want Cloud to do what a machine admin does there — serve HQ over HTTPS, keep backups off the machine, set the maintenance window, resize the server, add sites and make admin links — and nothing else, so that the machine is looked after without Cloud holding more authority than it needs.
+
+**Acceptance criteria:**
+- AC-334a: Cloud may ask what a Fleet Console may ask and a short list of its own; anything else is refused, and its own operations are refused from everyone but Cloud.
+- AC-334b: Cloud gives the front door a certificate and a files host, and the front door serves them without asking a certificate authority.
+- AC-334c: Cloud points the machine's backups at a store under the machine's own prefix with short-lived credentials, and the machine keeps working when the store refuses to delete an old backup.
+- AC-334d: Cloud sets the maintenance window in a time zone, and resizes the server with agents paused until it says the resize is done.
+- AC-334e: Cloud adds and removes its own sites in HQ, and asks for one-time links to make the first admin, reset an admin's password or invite a new admin, each announced in HQ to the admins and never written to a log.
+
+---
+
+### US-335 — Install and upgrade from published images, pre-releases included
+
+As a machine admin, I want the images HQ and its site run from to be published and signed from a pre-release tag as from a release, so that a pre-release can be installed and checked exactly as a release is, and a machine is never moved to one by itself.
+
+**Acceptance criteria:**
+- AC-335a: the release tag and the pre-release tags `-alpha.N`, `-beta.N` and `-rc.N` publish the images, and each image is checked against the workflow run for its own tag before it is fetched.
+- AC-335b: a machine that pulls private images is given a registry credential in its start-up settings, used for the pull and the signature check and nothing else, and never logged or sent anywhere.
+- AC-335c: an upgrade offers only the newest release, never a pre-release.
+- AC-335d: Agenthix Cloud depends on the same implementation of the host protocol as this repository, published from the same tags.
+
+---
+
+## Sharing the machine, and leaving it (added 2026-10-21)
+
+Written from the finished code at the close of the version baseline unit.
+
+### US-353 — Take Agenthix off a machine completely
+
+As a machine admin, I want one command that takes everything Agenthix put on the machine away, so that the machine is as it was without my hunting for containers, volumes, networks or firewall rules.
+
+**Acceptance criteria:**
+- AC-353a: it is refused, changing nothing and saying what to do first, while HQ or a site is still on the machine, or while anything would be lost that I did not choose to lose.
+- AC-353b: data an erase keeps for 30 days is removed only after I type its address or name, never by a flag, and the backup location's copies are never touched.
+- AC-353c: it lists exactly what goes and what it never touches, asks, removes everything named after the install, and says what it could not remove; afterwards nothing named after the install is left.
+- AC-353d: nothing I put in the state folder myself is touched, and nothing outside it.
+
+---
+
+### US-354 — Find the install's parts, apart from everything else on the machine
+
+As a machine admin, I want every container, volume and network Agenthix makes to be named after the install and grouped by part, and its networks never to take addresses the machine already uses, so that I can tell them apart, act on one part without harming another, and keep my own network working.
+
+**Acceptance criteria:**
+- AC-354a: every name Agenthix makes on the machine follows one pattern from the install's namespace.
+- AC-354b: each part is its own group in Docker, so upgrading or removing one never removes another, and agents keep running through an upgrade of their site.
+- AC-354c: a machine has at most one HQ, whichever host service installed it.
+- AC-354d: the install's networks take addresses from a range of their own and never overlap another network or the machine's own addresses; when none is left, the install says so before it changes anything.
+

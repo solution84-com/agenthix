@@ -1,0 +1,67 @@
+<svg viewBox="0 0 960 520"  xmlns="http://www.w3.org/2000/svg" width="960" height="520" role="img" aria-label="Scheduled changes: who schedules and how hq hears">
+<title>Scheduled changes: who schedules and how hq hears</title>
+<style>
+  svg { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --bg-primary:#f5f5f7; --bg-secondary:#ffffff; --bg-tertiary:#e5e5e7; --border:#c7c7cc; --text-primary:#1d1d1f;
+    --text-secondary:#6e6e73; --text-tertiary:#8e8e93; --accent:#0071e3; --success:#248a3d; --warning:#c46a00; --error:#d70015; }
+  @media (prefers-color-scheme: dark) { svg { --bg-primary:#1d1d1f; --bg-secondary:#2d2d2f; --bg-tertiary:#3d3d3f;
+    --border:#424245; --text-primary:#f5f5f7; --text-secondary:#98989d; --text-tertiary:#636366; --accent:#0a84ff;
+    --success:#30d158; --warning:#ff9f0a; --error:#ff453a; } }
+</style>
+<rect x="0" y="0" width="960" height="520" style="fill:var(--bg-primary)"/>
+  <defs>
+    <marker id="o1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--success)"/></marker>
+    <marker id="o2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--warning)"/></marker>
+    <marker id="o3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--accent)"/></marker>
+  </defs>
+  <style>
+    .ob2 { fill:var(--bg-secondary); stroke:var(--border); stroke-width:1.3; }
+    .om2 { fill:none; stroke:var(--warning); stroke-width:2.2; }
+    .ohs { fill:var(--bg-tertiary); stroke:var(--warning); stroke-width:2.2; }
+    .ohq { fill:var(--bg-primary); stroke:var(--accent); stroke-width:2.2; }
+    .ost { fill:var(--bg-primary); stroke:var(--border); stroke-width:1.6; }
+    .ocl { fill:none; stroke:var(--accent); stroke-width:2; stroke-dasharray:7 4; }
+    .ott { fill:var(--text-primary); font-size:13.5px; font-weight:700; }
+    .oxs { fill:var(--text-secondary); font-size:11px; }
+    .oml2 { fill:var(--warning); font-size:11px; font-weight:700; letter-spacing:.04em; }
+    .ogr { stroke:var(--success); stroke-width:2.2; fill:none; }
+    .oor { stroke:var(--warning); stroke-width:2.2; fill:none; stroke-dasharray:5 4; }
+    .obl { stroke:var(--accent); stroke-width:2.4; fill:none; }
+    .obd { stroke:var(--accent); stroke-width:2; fill:none; stroke-dasharray:6 4; }
+    .olb { fill:var(--text-secondary); font-size:11px; font-weight:600; }
+  </style>
+
+  <!-- sources -->
+  <rect class="ob2" x="20" y="40" width="210" height="56" rx="8"/><text class="ott" x="34" y="64">Fleet admin</text><text class="oxs" x="34" y="82">in the Host Manager — any machine</text>
+  <rect class="ob2" x="20" y="200" width="210" height="56" rx="8"/><text class="ott" x="34" y="224">Machine admin</text><text class="oxs" x="34" y="242">the CLI — this machine</text>
+  <rect class="ocl" x="20" y="380" width="210" height="56" rx="8"/><text class="ott" x="34" y="404">Cloud</text><text class="oxs" x="34" y="422">its own machines only</text>
+
+  <!-- machine with hq -->
+  <rect class="om2" x="300" y="20" width="340" height="210" rx="12"/><text class="oml2" x="316" y="40">HQ'S MACHINE</text>
+  <rect class="ohs" x="320" y="60" width="140" height="80" rx="8"/><text class="ott" x="332" y="84">host service</text><text class="oxs" x="332" y="102">holds the scheduled change,</text><text class="oxs" x="332" y="116">runs it at the time</text>
+  <rect class="ohq" x="480" y="60" width="140" height="80" rx="8"/><text class="ott" x="492" y="84">hq</text><text class="oxs" x="492" y="102">warns, pauses,</text><text class="oxs" x="492" y="116">resumes</text>
+  <path class="oor" d="M460,100 L478,100" marker-end="url(#o2)"/>
+  <text class="olb" x="320" y="168">a change on hq's machine:</text><text class="oxs" x="320" y="184">host service → hq's private control socket</text><text class="oxs" x="320" y="198">(the same local route as recovery)</text>
+
+  <!-- site machine -->
+  <rect class="om2" x="300" y="290" width="340" height="210" rx="12"/><text class="oml2" x="316" y="310">A SITE'S MACHINE</text>
+  <rect class="ohs" x="320" y="330" width="140" height="80" rx="8"/><text class="ott" x="332" y="354">host service</text><text class="oxs" x="332" y="372">holds the scheduled change,</text><text class="oxs" x="332" y="386">runs it at the time</text>
+  <rect class="ost" x="480" y="330" width="140" height="80" rx="8"/><text class="ott" x="492" y="354">site</text><text class="oxs" x="492" y="372">passes the notice</text><text class="oxs" x="492" y="386">up to hq</text>
+  <path class="oor" d="M460,370 L478,370" marker-end="url(#o2)"/>
+  <path class="obl" d="M560,330 L560,142" marker-end="url(#o3)"/><text class="olb" x="568" y="256">its existing</text><text class="olb" x="568" y="270">connection</text>
+  <text class="olb" x="320" y="440">a change on a site's machine (a resize, an upgrade):</text><text class="oxs" x="320" y="456">host service → its site → hq</text>
+
+  <!-- sources to host services -->
+  <path class="ogr" d="M230,68 L318,80" marker-end="url(#o1)"/>
+  <path class="ogr" d="M230,76 L270,76 L270,350 L318,350" marker-end="url(#o1)"/>
+  <path class="ogr" d="M230,228 L280,228 L280,120 L318,120" marker-end="url(#o1)"/>
+  <path class="ogr" d="M230,236 L290,236 L290,380 L318,380" marker-end="url(#o1)"/>
+  <path class="obd" d="M230,408 L250,408 L250,130 L318,130" marker-end="url(#o3)"/>
+  <text class="oxs" x="20" y="456" style="font-style:italic">schedules only on machines it runs</text>
+
+  <!-- hq outputs -->
+  <rect class="ost" x="700" y="40" width="240" height="64" rx="8"/><text class="ott" x="714" y="64">Members</text><text class="oxs" x="714" y="82">a notice from the moment it is scheduled</text><text class="oxs" x="714" y="96">— only those whose work is affected</text>
+  <rect class="ost" x="700" y="140" width="240" height="80" rx="8"/><text class="ott" x="714" y="164">Runs on what is affected</text><text class="oxs" x="714" y="182">no new ones before the time;</text><text class="oxs" x="714" y="196">running agents finish their step,</text><text class="oxs" x="714" y="210">pause, and resume after</text>
+  <path class="obl" d="M620,80 L698,72" marker-end="url(#o3)"/>
+  <path class="obl" d="M620,120 L698,170" marker-end="url(#o3)"/>
+</svg>

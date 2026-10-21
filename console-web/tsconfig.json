@@ -1,0 +1,20 @@
+{
+  // Type-checking only (`npm run typecheck`, which checks this and tsconfig.node.json): Vite builds the app, and
+  // vitest runs the tests. This one is the browser code: DOM types, no Node types.
+  "compilerOptions": {
+    "target": "es2023",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src"],
+  "exclude": ["src/__tests__"]
+}

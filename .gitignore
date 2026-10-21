@@ -1,0 +1,66 @@
+# Brand assets — binary workspace at the root, not source-controlled here.
+# Anchored so it does not swallow source folders named brand (ui/src/brand).
+/brand/
+
+# Local assets — not committed
+/assets
+
+# Claude Code — track skills/agents, ignore local config and logs
+.claude/settings.local.json
+.claude/session-audit.log
+
+# Antigravity — ignore machine-local config and plugins
+.agents/*.local.json
+.agents/local/
+
+
+# Local tool output
+.superpowers/
+
+# Node
+node_modules/
+
+# Env files — never commit any. Only *.example templates are tracked.
+.env
+.env.*
+compose.env
+!*.example
+
+# Wasp
+.wasp/
+
+# Scratch / working notes — local only
+tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git worktrees
+.worktrees/
+
+# IDE
+.vscode/*
+!.vscode/tasks.json
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+# Graphify AI Output — fully ignored (matches graphify author's own .gitignore)
+# Each developer rebuilds locally with `/graphify`; post-commit hook keeps it fresh.
+graphify-out/
+.graphify_*.json
+.graphify_python
+
+
+# Units of work — the framework's layout.
+# execution/ is ephemeral by policy: the phases and the walkthrough, spent once
+# the unit closes. .scratchpad/ is never committed anywhere.
+docs/work/*/execution/
+.scratchpad/
+
+# Local triage copy of open GitHub issues — working notes only
+issues/
+
+# Local secrets (tokens, keys) for running things on this machine; never committed.
+.secrets/

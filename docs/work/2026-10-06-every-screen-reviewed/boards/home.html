@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Home and the app shell · living design</title>
+<style>
+  :root, :root[data-theme="light"] {
+    --s0:#f6f6f9; --s1:#ffffff; --s2:#f0f0f5; --s3:#e6e6ee; --hover:#ebebf3;
+    --border:#dcdce6; --border-subtle:#e9e9f0;
+    --t1:#17171f; --t2:#55556b; --t3:#8a8aa0;
+    --accent:#6366f1; --accent-h:#4f46e5; --accent-sub:#6366f114; --on-accent:#ffffff;
+    --ok:#059669; --warn:#b45309; --danger:#dc2626;
+    --ok-line:#05966955; --warn-line:#b4530955;
+  }
+  :root[data-theme="dark"] {
+    --s0:#0a0a0f; --s1:#12121a; --s2:#1a1a26; --s3:#242436; --hover:#2a2a40;
+    --border:#2e2e45; --border-subtle:#1e1e30;
+    --t1:#e8e8f0; --t2:#9090a8; --t3:#606078;
+    --accent:#6366f1; --accent-h:#818cf8; --accent-sub:#6366f11a; --on-accent:#ffffff;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --ok-line:#34d39955; --warn-line:#fbbf2455;
+  }
+  * { box-sizing:border-box; }
+  html { font-family: Inter, system-ui, -apple-system, sans-serif; }
+  body { margin:0; background:var(--s0); color:var(--t1); font-size:14px; line-height:21px; }
+  .board { max-width:1440px; margin:0 auto; padding:24px; }
+  .boardhead { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:20px; }
+  .boardhead h1 { font-size:24px; line-height:32px; font-weight:600; margin:0; }
+  .boardhead p { color:var(--t2); margin:4px 0 0; max-width:760px; }
+  .pill { display:inline-block; font-size:12px; line-height:16px; font-weight:500; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--t2); }
+  .pill.live { color:var(--ok); border-color:var(--ok-line); }
+  .theme { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-left:8px; vertical-align:middle; }
+  .theme button { border:0; background:var(--s1); color:var(--t2); font:inherit; font-size:13px; padding:4px 12px; cursor:pointer; }
+  .theme button.on { background:var(--accent); color:var(--on-accent); }
+  .boards { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  .boards a { color:var(--t2); text-decoration:none; font-size:13px; padding:4px 10px; border-radius:6px; border:1px solid var(--border-subtle); background:var(--s1); }
+  .boards a.on { color:var(--t1); border-color:var(--accent); background:var(--accent-sub); }
+  .boards span { font-size:13px; padding:4px 10px; color:var(--t3); }
+  .label { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); margin:28px 0 10px; }
+
+  .frame { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--s1); }
+  .desk { display:grid; grid-template-columns:220px 1fr 300px; height:780px; }
+  .nav { background:var(--s0); border-right:1px solid var(--border-subtle); padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .logo { font-weight:600; font-size:15px; padding:4px 8px 14px; display:flex; gap:8px; align-items:center; }
+  .logo i { width:22px; height:22px; border-radius:6px; background:var(--accent); display:inline-block; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; color:var(--t2); text-decoration:none; padding:6px 8px; border-radius:6px; font-size:14px; }
+  .nav a.on { background:var(--accent-sub); color:var(--t1); font-weight:500; }
+  .nav .sec { font-size:12px; color:var(--t3); padding:14px 8px 4px; display:flex; justify-content:space-between; }
+  .sq { width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:8px; }
+  .nav .n { font-size:12px; color:var(--warn); }
+  .pi { display:flex; align-items:center; gap:8px; }
+  .ava { width:20px; height:20px; flex:none; color:#fff; font-size:9px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+  .ava.proj, .ava.bd { border-radius:5px; }
+  .ava.agent { border-radius:50%; }
+  .nav .drag { color:var(--t3); font-size:11px; letter-spacing:-2px; }
+  .tact { display:flex; justify-content:space-between; align-items:center; }
+  .mini { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:1px 7px; color:var(--t1); background:var(--s1); margin-left:4px; }
+  .mini.stop { color:var(--danger); }
+  .nav .me { margin-top:auto; border-top:1px solid var(--border-subtle); padding:12px 8px 0; font-size:13px; color:var(--t2); }
+
+  .desk > * { min-height:0; }
+  .centre { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; background:var(--s1); }
+  .crumb { padding:14px 32px 0; font-size:13px; color:var(--t3); }
+  .crumb a { color:var(--accent); text-decoration:none; }
+  .phead { padding:6px 32px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border-subtle); }
+  .picon { width:36px; height:36px; border-radius:8px; background:#8b5cf6; flex:none; }
+  .phead h2 { font-size:18px; line-height:26px; margin:0; font-weight:600; }
+  .phead .sub { color:var(--t2); font-size:13px; line-height:18px; }
+  .phead .pin { margin-left:auto; color:var(--accent); display:inline-flex; padding:6px; border-radius:6px; background:var(--accent-sub); }
+  .runrow { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:4px 0 6px; }
+  .rb { font-size:13px; line-height:18px; text-align:center; padding:6px 0; border:1px solid var(--border); border-radius:8px; color:var(--t1); background:var(--s1); }
+  .rb.stop { color:var(--danger); }
+  .tgrp { font-size:12px; color:var(--t3); font-weight:500; margin:10px 0 0; }
+  .tgrp:first-of-type { margin-top:0; }
+  .listwrap { flex:1; min-height:0; overflow:hidden; padding:14px 32px; }
+  .listtools { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .listtools h3 { font-size:15px; line-height:22px; margin:0; font-weight:600; flex:1; }
+  .search { border:1px solid var(--border); border-radius:6px; padding:5px 10px; color:var(--t3); font-size:13px; width:200px; background:var(--s1); }
+  .btn { border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:13px; color:var(--t1); background:var(--s1); white-space:nowrap; }
+  .grp { font-size:12px; color:var(--t3); font-weight:500; margin:12px 0 2px; }
+  .row { display:flex; gap:12px; padding:8px 10px; border-radius:8px; align-items:center; }
+  .row.sel { background:var(--s2); }
+  .av { width:32px; height:32px; border-radius:50%; flex:none; color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+  .av.sm { width:24px; height:24px; font-size:10px; }
+  .row .body { min-width:0; flex:1; }
+  .row .ttl { font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .who { color:var(--t2); font-size:13px; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .meta { color:var(--t3); font-size:12px; white-space:nowrap; text-align:right; }
+  .working { color:var(--ok); }
+  .composer { flex:none;  margin:0 32px 20px; border:1px solid var(--accent); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:center; background:var(--s1); }
+  .composer .ph { flex:1; color:var(--t3); font-size:15px; }
+  .chip { font-size:12px; color:var(--t2); border:1px solid var(--border); border-radius:6px; padding:3px 8px; display:inline-flex; align-items:center; gap:6px; }
+  .send { width:30px; height:30px; border-radius:8px; background:var(--accent); flex:none; }
+
+  .right { background:var(--s1); border-left:1px solid var(--border-subtle); padding:0; display:flex; flex-direction:column; overflow:hidden; }
+  .right .card { border:none; border-radius:0; background:transparent; padding:14px 16px; }
+  .right .card + .card { border-top:1px solid var(--border-subtle); }
+  .right .card h4 { font-size:12px; line-height:16px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--t3); }
+  .card { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; background:var(--s1); }
+  .card h4 { margin:0 0 8px; font-size:13px; line-height:18px; color:var(--t2); font-weight:500; }
+  .kv { display:grid; grid-template-columns:96px 1fr; gap:4px 8px; font-size:13px; line-height:18px; }
+  .kv b { font-weight:400; color:var(--t3); }
+  .tool { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; border-top:1px solid var(--border-subtle); }
+  .tool:first-of-type { border-top:none; }
+  .tool .n { color:var(--t3); font-size:12px; }
+  .tool .n.need { color:var(--warn); }
+  .tool .n.on { color:var(--ok); }
+
+  .phones { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .phone { width:340px; height:700px; min-height:0; border:1px solid var(--border); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; background:var(--s1); position:relative; }
+  .mhead { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-subtle); }
+  .back { color:var(--accent); font-size:20px; line-height:20px; }
+  .mhead .t { font-weight:600; flex:1; }
+  .mbtn { font-size:12px; border:1px solid var(--border); border-radius:6px; padding:3px 8px; color:var(--t2); }
+  .mlist { flex:1; min-height:0; overflow:hidden; padding:4px 12px; }
+  .mfilter { padding:8px 12px 0; display:flex; gap:8px; }
+  .mcomp { margin:10px 12px 16px; border:1px solid var(--accent); border-radius:12px; padding:12px; color:var(--t3); font-size:15px; display:flex; justify-content:space-between; align-items:center; }
+  .scrim { position:absolute; inset:0; background:#0000004d; }
+  .sheet { position:absolute; left:0; right:0; bottom:0; height:78%; background:var(--s1); border-radius:18px 18px 0 0; padding:10px 16px; border-top:1px solid var(--border); }
+  .grab { width:40px; height:4px; border-radius:2px; background:var(--s3); margin:0 auto 12px; }
+  .tabs { display:flex; gap:20px; border-bottom:1px solid var(--border-subtle); margin:8px 0 6px; font-size:14px; }
+  .tabs span { padding:6px 0; color:var(--t2); }
+  .tabs span.on { color:var(--accent); border-bottom:2px solid var(--accent); }
+
+  .notes { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .note { border:1px solid var(--border-subtle); border-radius:10px; padding:14px 16px; background:var(--s1); }
+  .note h3 { margin:0 0 8px; font-size:15px; line-height:22px; }
+  .note ul, .note ol { margin:0; padding-left:18px; color:var(--t2); }
+  .note li { margin-bottom:6px; }
+  .note li b { color:var(--t1); font-weight:500; }
+  .note.open { border-color:var(--warn-line); }
+  .note.agreed { border-color:var(--ok-line); }
+  details { margin-top:16px; color:var(--t2); }
+  details img { max-width:100%; border-radius:8px; border:1px solid var(--border-subtle); margin-top:8px; }
+  table.map { border-collapse:collapse; font-size:13px; width:100%; }
+  table.map td, table.map th { border-bottom:1px solid var(--border-subtle); padding:6px 8px; text-align:left; vertical-align:top; }
+  table.map th { color:var(--t3); font-weight:500; }
+  .fctl { position:static; display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--s1); }
+  .fctl span { width:30px; height:26px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border-subtle); }
+  .fctl span:first-child { border-left:none; }
+  .fctl span.on { background:var(--accent-sub); }
+  .fctl i { display:flex; gap:2px; height:12px; }
+  .fctl i u { display:block; border-radius:1px; background:var(--t3); }
+  .work { display:grid; grid-template-rows:auto 1fr; min-width:0; min-height:0; }
+  .wbar { display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px 32px; border-bottom:1px solid var(--border-subtle); background:var(--s1); }
+  .crumb2 { font-size:13px; color:var(--t3); } .crumb2 a { color:var(--accent); text-decoration:none; }
+  .panes { display:grid; min-height:0; }
+  .panes > * { min-height:0; }
+
+  .bell { margin-left:auto; position:relative; color:var(--t2); display:inline-flex; }
+  .bell b { position:absolute; top:-6px; right:-8px; background:var(--danger); color:#fff; font-size:10px; line-height:14px; min-width:14px; text-align:center; border-radius:7px; padding:0 3px; font-weight:600; }
+  .home { display:grid; grid-template-columns:1fr 320px; gap:32px; padding:28px 40px; overflow:hidden; min-height:0; }
+  .greet { font-size:28px; line-height:36px; font-weight:600; margin:0; }
+  .greet-sub { color:var(--t2); margin:2px 0 18px; }
+  .hcomp { border:1px solid var(--accent); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:center; background:var(--s1); margin-bottom:24px; }
+  .hcomp .ph { flex:1; color:var(--t3); font-size:15px; }
+  .hsec h3 { font-size:15px; line-height:22px; margin:0 0 6px; font-weight:600; display:flex; justify-content:space-between; }
+  .hsec h3 a { font-size:13px; font-weight:400; color:var(--accent); text-decoration:none; }
+  .hsec { margin-bottom:22px; }
+  .need { display:flex; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--warn-line); border-radius:10px; margin-bottom:8px; }
+  .need .body { flex:1; min-width:0; } .need .ttl { font-weight:500; } .need .who { color:var(--t2); font-size:13px; line-height:18px; }
+  .where { font-size:12px; color:var(--t3); }
+  .side .item { font-size:13px; line-height:18px; padding:8px 0; border-top:1px solid var(--border-subtle); }
+  .side .item:first-of-type { border-top:none; }
+  .side .item b { font-weight:500; color:var(--t1); }
+  .side .item span { color:var(--t3); }
+  table.map td:first-child { white-space:nowrap; }
+  .bp { font-size:13px; border-radius:6px; padding:4px 12px; border:1px solid var(--border); background:var(--s1); color:var(--t1); white-space:nowrap; }
+  .bp.pri { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .npanel { position:absolute; left:220px; top:0; bottom:0; width:440px; background:var(--s1); border-right:1px solid var(--border); box-shadow:8px 0 24px #00000022; padding:16px; overflow:hidden; }
+  .scrim2 { position:absolute; left:220px; right:0; top:0; bottom:0; background:#0000001f; }
+  .nhead { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .meta2 { font-size:12px; color:var(--t3); }
+  .ngrp { font-size:12px; color:var(--t3); font-weight:500; margin:12px 0 6px; }
+  .nrow { font-size:13px; line-height:18px; padding:8px 0; border-top:1px solid var(--border-subtle); }
+  .nrow b { font-weight:500; } .nrow span { color:var(--t3); }
+  .cards { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; }
+  .cards .card { border:1px solid var(--border-subtle); border-radius:10px; background:var(--s1); padding:12px; cursor:pointer; }
+  .cards .card.selected { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-sub); }
+  .cards .card h4 { margin:8px 0 2px; font-size:13px; } .cards .card p { margin:0; font-size:12px; line-height:16px; color:var(--t2); }
+  .cards .src { font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.04em; }
+  .src.today { color:var(--t3); } .src.ref { color:#7c3aed; } .src.new { color:var(--ok); }
+  .mini2 { height:84px; border-radius:6px; background:var(--s0); border:1px solid var(--border-subtle); padding:8px; overflow:hidden; font-size:11px; line-height:14px; color:var(--t2); }
+  .bars { display:flex; height:8px; border-radius:4px; overflow:hidden; margin:6px 0; }
+  .home1 { overflow:hidden; min-height:0; padding:72px 40px 24px; }
+  .hcol { max-width:720px; margin:0 auto; }
+  .hcomp.big { padding:16px 16px; border-radius:16px; box-shadow:0 4px 16px #6366f11a; margin-bottom:14px; }
+  .chips { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .hchip { font-size:13px; border:1px solid var(--border); border-radius:999px; padding:4px 12px; color:var(--t2); background:var(--s1); text-decoration:none; }
+  .hchip.warn { color:var(--warn); border-color:var(--warn-line); } .hchip.ok { color:var(--ok); border-color:var(--ok-line); }
+  .why { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .why div { border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; background:var(--s1); color:var(--t2); font-size:13px; line-height:19px; }
+  .why b { display:block; color:var(--t1); font-size:14px; margin-bottom:4px; }
+  .rail { background:var(--s0); border-right:1px solid var(--border-subtle); padding:14px 0; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .rlogo { width:24px; height:24px; border-radius:7px; background:var(--accent); margin-bottom:10px; }
+  .ri { width:38px; height:38px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--t2); position:relative; }
+  .ri.on { background:var(--accent-sub); color:var(--accent); }
+  .rbadge { position:absolute; top:3px; right:3px; background:var(--danger); color:#fff; font-size:9px; line-height:13px; min-width:13px; text-align:center; border-radius:7px; padding:0 3px; font-weight:600; }
+  .rsep { width:24px; border-top:1px solid var(--border-subtle); margin:6px 0; }
+  .rpanel { width:480px !important; }
+  .rtabs { display:flex; gap:14px; align-items:center; font-size:13px; color:var(--t2); border-bottom:1px solid var(--border-subtle); padding-bottom:8px; }
+  .rtabs span.on { color:var(--accent); font-weight:500; }
+  .rrow { display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--border-subtle); }
+  .rrow .body { flex:1; min-width:0; } .rrow .ttl { font-weight:500; font-size:14px; }
+  .rrow .who { color:var(--t2); font-size:12px; line-height:16px; }
+  .rmeta { font-size:12px; line-height:16px; color:var(--t2); } .rmeta.ok { color:var(--ok); } .rmeta.warn { color:var(--warn); } .rmeta.danger { color:var(--danger); }
+  .bp.stopb { color:var(--danger); }
+  .tops { margin-left:auto; display:flex; gap:4px; }
+  .topb { position:relative; width:30px; height:30px; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); }
+  .topb.on { background:var(--accent-sub); color:var(--accent); }
+  .topb b { position:absolute; top:-3px; right:-5px; background:var(--danger); color:#fff; font-size:10px; line-height:14px; min-width:14px; text-align:center; border-radius:7px; padding:0 3px; font-weight:600; }
+  .topb b.g { background:var(--ok); }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="boardhead">
+    <div>
+      <h1>Home and the app shell</h1>
+      <p>Where a person lands. They come here to <b>see what needs them</b>, to <b>get back to what they were doing</b>, to <b>start something by asking an agent</b>, and to <b>glance at what agents are doing</b>. This board also settles the shell every screen shares.</p>
+    </div>
+    <div style="white-space:nowrap">
+      <span class="pill live">Agreed 2026-10-06 · living design</span>
+    </div>
+  </div>
+
+  <div class="label">Desktop · 1440 wide</div>
+  <div class="frame"><div class="desk" style="grid-template-columns:220px 1fr">
+      <nav class="nav">
+        <div class="logo"><i></i>Agenthix<span class="tops"><span class="topb bellb" title="Notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>3</b></span><span class="topb runsb" title="Runs"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><b class="g">3</b></span></span></div>
+        <a class="on">Home</a>
+        <a>Chat</a>
+        <a>Projects</a>
+        <a>Agents</a>
+        <a>Tasks <span class="n">2 need you</span></a>
+        <div class="sec"><span style="display:inline-flex;gap:6px;align-items:center"><svg class="pinic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>Pinned</span><span>edit</span></div>
+        <a><span class="pi"><span class="ava proj" style="background:#8b5cf6">A</span>Agenthix</span><span class="drag">⋮⋮</span></a>
+        <a><span class="pi"><span class="ava agent" style="background:#6366f1">PM</span>Project manager</span></a>
+        <a><span class="pi"><span class="ava bd" style="background:#0ea5e9"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="2.4"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/></svg></span>Release board</span></a>
+        <a><span class="pi"><span class="ava proj" style="background:#f59e0b">M</span>Marketing Website</span></a>
+        <div class="me" style="display:flex;flex-direction:column;gap:2px;padding-top:8px"><a style="padding:6px 0">Organisation</a><a style="padding:6px 0">Settings</a><span style="padding-top:4px">Avery</span></div>
+      </nav>
+
+      <main class="home1">
+        <div class="hcol">
+          <h2 class="greet" style="text-align:center">Good afternoon, Avery</h2>
+          <p class="greet-sub" style="text-align:center">What would you like to work on?</p>
+          <div class="hcomp big"><span class="ph">Ask any agent…</span><span class="chip"><span class="av sm" style="background:#7c3aed">RS</span>Research agent ▾</span><span class="chip">🎙</span><span class="send"></span></div>
+          <div class="chips">
+            <a class="hchip warn">● 3 notifications need you</a>
+            <a class="hchip ok">● 3 agents at work</a>
+            <a class="hchip">2 coming up today</a>
+          </div>
+          <div class="hsec" style="margin-top:28px">
+            <h3>Jump back in <a href="#">All conversations</a></h3>
+            <div class="row"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Project UX redesign</div><div class="who">Project manager · <span class="where">Agenthix</span></div></div><div class="meta">10:24</div></div>
+            <div class="row"><span class="av" style="background:#7c3aed">RS</span><div class="body"><div class="ttl">Competitor analysis</div><div class="who">Research agent · <span class="where">Chat</span></div></div><div class="meta">11:02</div></div>
+            <div class="row"><span class="av" style="background:#0d9488">SE</span><div class="body"><div class="ttl">Authentication approach</div><div class="who">Security engineer · <span class="where">Agenthix</span></div></div><div class="meta"><span class="working">● Working</span></div></div>
+            <div class="row"><span class="av" style="background:#f59e0b">MK</span><div class="body"><div class="ttl">Landing page copy</div><div class="who">Marketing agent · <span class="where">Marketing Website</span></div></div><div class="meta">Yesterday</div></div>
+          </div>
+        </div>
+      </main>
+  </div></div>
+  <div class="label">Desktop · the bell opened: what needs you lives in notifications</div>
+  <div class="frame" style="position:relative"><div class="desk" style="grid-template-columns:220px 1fr">
+      <nav class="nav">
+        <div class="logo"><i></i>Agenthix<span class="tops"><span class="topb bellb on" title="Notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>3</b></span><span class="topb runsb" title="Runs"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><b class="g">3</b></span></span></div>
+        <a class="on">Home</a>
+        <a>Chat</a>
+        <a>Projects</a>
+        <a>Agents</a>
+        <a>Tasks <span class="n">2 need you</span></a>
+        <div class="sec"><span style="display:inline-flex;gap:6px;align-items:center"><svg class="pinic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>Pinned</span><span>edit</span></div>
+        <a><span class="pi"><span class="ava proj" style="background:#8b5cf6">A</span>Agenthix</span><span class="drag">⋮⋮</span></a>
+        <a><span class="pi"><span class="ava agent" style="background:#6366f1">PM</span>Project manager</span></a>
+        <a><span class="pi"><span class="ava bd" style="background:#0ea5e9"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="2.4"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/></svg></span>Release board</span></a>
+        <a><span class="pi"><span class="ava proj" style="background:#f59e0b">M</span>Marketing Website</span></a>
+        <div class="me" style="display:flex;flex-direction:column;gap:2px;padding-top:8px"><a style="padding:6px 0">Organisation</a><a style="padding:6px 0">Settings</a><span style="padding-top:4px">Avery</span></div>
+      </nav>
+
+      <main class="home1">
+        <div class="hcol">
+          <h2 class="greet" style="text-align:center">Good afternoon, Avery</h2>
+          <p class="greet-sub" style="text-align:center">What would you like to work on?</p>
+          <div class="hcomp big"><span class="ph">Ask any agent…</span><span class="chip"><span class="av sm" style="background:#7c3aed">RS</span>Research agent ▾</span><span class="chip">🎙</span><span class="send"></span></div>
+          <div class="chips">
+            <a class="hchip warn">● 3 notifications need you</a>
+            <a class="hchip ok">● 3 agents at work</a>
+            <a class="hchip">2 coming up today</a>
+          </div>
+          <div class="hsec" style="margin-top:28px">
+            <h3>Jump back in <a href="#">All conversations</a></h3>
+            <div class="row"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Project UX redesign</div><div class="who">Project manager · <span class="where">Agenthix</span></div></div><div class="meta">10:24</div></div>
+            <div class="row"><span class="av" style="background:#7c3aed">RS</span><div class="body"><div class="ttl">Competitor analysis</div><div class="who">Research agent · <span class="where">Chat</span></div></div><div class="meta">11:02</div></div>
+            <div class="row"><span class="av" style="background:#0d9488">SE</span><div class="body"><div class="ttl">Authentication approach</div><div class="who">Security engineer · <span class="where">Agenthix</span></div></div><div class="meta"><span class="working">● Working</span></div></div>
+            <div class="row"><span class="av" style="background:#f59e0b">MK</span><div class="body"><div class="ttl">Landing page copy</div><div class="who">Marketing agent · <span class="where">Marketing Website</span></div></div><div class="meta">Yesterday</div></div>
+          </div>
+        </div>
+      </main>
+  </div>
+      <div class="scrim2"></div>
+      <div class="npanel">
+        <div class="nhead"><b>Notifications</b><span class="meta2">Mark all read · ✕</span></div>
+        <div class="ngrp">Needs you</div>
+            <div class="need"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Create 3 tasks on Release board</div><div class="who">Project manager asks for approval · <span class="where">Agenthix</span></div></div><span class="bp pri">Approve</span><span class="bp">Review</span></div>
+            <div class="need"><span class="av" style="background:#0d9488">SE</span><div class="body"><div class="ttl">AGX-38 Authentication architecture</div><div class="who">Security engineer is waiting for your answer · <span class="where">Agenthix</span></div></div><span class="bp">Open</span></div>
+            <div class="need"><span class="av" style="background:#64748b">!</span><div class="body"><div class="ttl">The organisation's Claude login expires in 3 days</div><div class="who">Model access · <span class="where">Settings</span></div></div><span class="bp">Renew</span></div>
+        <div class="ngrp">Earlier</div>
+        <div class="nrow"><b>Routine "Weekly report" ran</b><br><span>Marketing Website · Mon 10:00</span></div>
+        <div class="nrow"><b>Your organisation is set up</b><br><span>Settings · 1 Oct</span></div>
+      </div>
+  </div>
+
+
+  <div class="label">Desktop · the Runs panel, opened from Runs in the navigation: glance and stop without leaving the screen</div>
+  <div class="frame" style="position:relative"><div class="desk" style="grid-template-columns:220px 1fr">
+      <nav class="nav">
+        <div class="logo"><i></i>Agenthix<span class="tops"><span class="topb bellb" title="Notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>3</b></span><span class="topb runsb on" title="Runs"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><b class="g">3</b></span></span></div>
+        <a>Home</a>
+        <a>Chat</a>
+        <a>Projects</a>
+        <a>Agents</a>
+        <a>Tasks <span class="n">2 need you</span></a>
+        <div class="sec"><span style="display:inline-flex;gap:6px;align-items:center"><svg class="pinic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>Pinned</span><span>edit</span></div>
+        <a><span class="pi"><span class="ava proj" style="background:#8b5cf6">A</span>Agenthix</span><span class="drag">⋮⋮</span></a>
+        <a><span class="pi"><span class="ava agent" style="background:#6366f1">PM</span>Project manager</span></a>
+        <a><span class="pi"><span class="ava bd" style="background:#0ea5e9"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="2.4"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/></svg></span>Release board</span></a>
+        <a><span class="pi"><span class="ava proj" style="background:#f59e0b">M</span>Marketing Website</span></a>
+        <div class="me" style="display:flex;flex-direction:column;gap:2px;padding-top:8px"><a style="padding:6px 0">Organisation</a><a style="padding:6px 0">Settings</a><span style="padding-top:4px">Avery</span></div>
+      </nav>
+
+      <main class="home1">
+        <div class="hcol">
+          <h2 class="greet" style="text-align:center">Good afternoon, Avery</h2>
+          <p class="greet-sub" style="text-align:center">What would you like to work on?</p>
+          <div class="hcomp big"><span class="ph">Ask any agent…</span><span class="chip"><span class="av sm" style="background:#7c3aed">RS</span>Research agent ▾</span><span class="chip">🎙</span><span class="send"></span></div>
+          <div class="chips">
+            <a class="hchip warn">● 3 notifications need you</a>
+            <a class="hchip ok">● 3 agents at work</a>
+            <a class="hchip">2 coming up today</a>
+          </div>
+          <div class="hsec" style="margin-top:28px">
+            <h3>Jump back in <a href="#">All conversations</a></h3>
+            <div class="row"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Project UX redesign</div><div class="who">Project manager · <span class="where">Agenthix</span></div></div><div class="meta">10:24</div></div>
+            <div class="row"><span class="av" style="background:#7c3aed">RS</span><div class="body"><div class="ttl">Competitor analysis</div><div class="who">Research agent · <span class="where">Chat</span></div></div><div class="meta">11:02</div></div>
+            <div class="row"><span class="av" style="background:#0d9488">SE</span><div class="body"><div class="ttl">Authentication approach</div><div class="who">Security engineer · <span class="where">Agenthix</span></div></div><div class="meta"><span class="working">● Working</span></div></div>
+            <div class="row"><span class="av" style="background:#f59e0b">MK</span><div class="body"><div class="ttl">Landing page copy</div><div class="who">Marketing agent · <span class="where">Marketing Website</span></div></div><div class="meta">Yesterday</div></div>
+          </div>
+        </div>
+      </main>
+  </div>
+      <div class="scrim2"></div>
+      <div class="npanel rpanel">
+        <div class="nhead"><b>Runs</b><span class="meta2">Open Runs screen · ✕</span></div>
+        <div class="rtabs"><span class="on">All of mine</span><span>Started by me</span><span>On my behalf</span></div>
+        <div class="ngrp">Running · 3</div>
+<div class="rrow"><span class="av sm" style="background:#db2777">FE</span><div class="body"><div class="ttl">AGX-26 Implement new header</div><div class="who">Frontend · <span class="where">Agenthix</span></div><div class="rmeta ok">● Running 12 min of 30</div><div class="who">Started by automation · on behalf of Avery</div></div><span class="bp stopb">■ Stop</span></div>
+<div class="rrow"><span class="av sm" style="background:#0891b2">TW</span><div class="body"><div class="ttl">AGX-24 Update documentation</div><div class="who">Tech writer · <span class="where">Agenthix</span></div><div class="rmeta ok">● Running 8 min of 30</div><div class="who">Started by Project manager (agent) · on behalf of Avery</div></div><span class="bp stopb">■ Stop</span></div>
+<div class="rrow"><span class="av sm" style="background:#0d9488">FI</span><div class="body"><div class="ttl">September expenses</div><div class="who">Finance agent · <span class="where">Chat</span></div><div class="rmeta ok">● Running 3 min</div><div class="who">Started by you</div></div><span class="bp stopb">■ Stop</span></div>
+        <div class="ngrp">Queued · 2</div>
+<div class="rrow"><span class="av sm" style="background:#db2777">FE</span><div class="body"><div class="ttl">AGX-29 Fix mobile navigation</div><div class="who">Frontend · <span class="where">Agenthix</span></div><div class="rmeta ">Queued — 2 ahead for this agent</div><div class="who">Started by routine · Daily site audit</div></div><span class="bp">Cancel</span></div>
+<div class="rrow"><span class="av sm" style="background:#65a30d">QA</span><div class="body"><div class="ttl">AGX-27 Write test cases</div><div class="who">QA agent · <span class="where">Agenthix</span></div><div class="rmeta warn">Throttled — next round 14:30</div><div class="who">Started by automation</div></div><span class="bp">Cancel</span></div>
+        <div class="ngrp">Finished recently</div>
+<div class="rrow"><span class="av sm" style="background:#ea580c">DO</span><div class="body"><div class="ttl">AGX-30 Deploy to staging</div><div class="who">DevOps · <span class="where">Agenthix</span></div><div class="rmeta danger">Stopped — reached its 30 min limit · 02:34</div><div class="who">Started by automation</div></div><span class="bp">Open</span></div>
+<div class="rrow"><span class="av sm" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Create 3 tasks</div><div class="who">Project manager · <span class="where">Agenthix</span></div><div class="rmeta ">Done · 10:27</div><div class="who">Started by you</div></div><span class="bp">Open</span></div>
+      </div>
+  </div>
+
+  <div class="label">Desktop · navigation collapsed to a rail: the bell keeps its place and count; its panel opens beside the rail</div>
+  <div class="frame" style="position:relative"><div class="desk" style="grid-template-columns:60px 1fr">
+      <nav class="rail">
+        <span class="rlogo"></span>
+        <span class="ri" title="Notifications"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b class="rbadge">3</b></span>
+        <span class="ri" title="Runs"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><b class="rbadge" style="background:var(--ok)">3</b></span>
+        <span class="rsep"></span>
+        <span class="ri on" title="Home"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg></span><span class="ri" title="Chat"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg></span><span class="ri" title="Projects"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v10H3z"/></svg></span><span class="ri" title="Agents"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01"/></svg></span><span class="ri" title="Tasks"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><b class="rbadge">2</b></span>
+        <span class="rsep"></span>
+        <span class="ri"><span class="ava proj" style="background:#8b5cf6;width:22px;height:22px">A</span></span>
+        <span class="ri"><span class="ava agent" style="background:#6366f1;width:22px;height:22px">PM</span></span>
+        <span class="ri"><span class="ava bd" style="background:#0ea5e9;width:22px;height:22px">▥</span></span>
+        <span class="ri"><span class="ava proj" style="background:#f59e0b;width:22px;height:22px">M</span></span>
+        <span style="flex:1"></span>
+        <span class="ri" title="Expand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+        <span class="ri"><span class="av sm" style="background:#334155">H</span></span>
+      </nav>
+      <main class="home1">
+        <div class="hcol">
+          <h2 class="greet" style="text-align:center">Good afternoon, Avery</h2>
+          <p class="greet-sub" style="text-align:center">What would you like to work on?</p>
+          <div class="hcomp big"><span class="ph">Ask any agent…</span><span class="chip"><span class="av sm" style="background:#7c3aed">RS</span>Research agent ▾</span><span class="chip">🎙</span><span class="send"></span></div>
+          <div class="chips">
+            <a class="hchip warn">● 3 notifications need you</a>
+            <a class="hchip ok">● 3 agents at work</a>
+            <a class="hchip">2 coming up today</a>
+          </div>
+          <div class="hsec" style="margin-top:28px">
+            <h3>Jump back in <a href="#">All conversations</a></h3>
+            <div class="row"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Project UX redesign</div><div class="who">Project manager · <span class="where">Agenthix</span></div></div><div class="meta">10:24</div></div>
+            <div class="row"><span class="av" style="background:#7c3aed">RS</span><div class="body"><div class="ttl">Competitor analysis</div><div class="who">Research agent · <span class="where">Chat</span></div></div><div class="meta">11:02</div></div>
+            <div class="row"><span class="av" style="background:#0d9488">SE</span><div class="body"><div class="ttl">Authentication approach</div><div class="who">Security engineer · <span class="where">Agenthix</span></div></div><div class="meta"><span class="working">● Working</span></div></div>
+            <div class="row"><span class="av" style="background:#f59e0b">MK</span><div class="body"><div class="ttl">Landing page copy</div><div class="who">Marketing agent · <span class="where">Marketing Website</span></div></div><div class="meta">Yesterday</div></div>
+          </div>
+        </div>
+      </main>
+  </div>
+      <div class="scrim2" style="left:60px"></div>
+      <div class="npanel" style="left:60px;width:400px">
+        <div class="nhead"><b>Notifications</b><span class="meta2">Mark all read · ✕</span></div>
+        <div class="ngrp">Needs you</div>
+            <div class="need"><span class="av" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Create 3 tasks on Release board</div><div class="who">Project manager asks for approval · <span class="where">Agenthix</span></div></div><span class="bp pri">Approve</span><span class="bp">Review</span></div>
+            <div class="need"><span class="av" style="background:#0d9488">SE</span><div class="body"><div class="ttl">AGX-38 Authentication architecture</div><div class="who">Security engineer is waiting for your answer · <span class="where">Agenthix</span></div></div><span class="bp">Open</span></div>
+            <div class="need"><span class="av" style="background:#64748b">!</span><div class="body"><div class="ttl">The organisation's Claude login expires in 3 days</div><div class="who">Model access · <span class="where">Settings</span></div></div><span class="bp">Renew</span></div>
+        <div class="ngrp">Earlier</div>
+        <div class="nrow"><b>Routine "Weekly report" ran</b><br><span>Marketing Website · Mon 10:00</span></div>
+        <div class="nrow"><b>Your organisation is set up</b><br><span>Settings · 1 Oct</span></div>
+      </div>
+  </div>
+
+  <div class="label">The proposal — how Home balances what a person wants with what they should see</div>
+  <div class="why">
+    <div><b>1. Talk first</b>The composer is the screen's centre and has focus when Home opens — a person can type the moment they land. It starts a conversation in Chat with the agent they used last.</div>
+    <div><b>2. Signals, not lists</b>What they <i>should</i> know is one line of chips: what needs them, what's running, what's coming up. Each count opens the place to act on it — notifications, Runs, Automation. A list on Home they can't act on only competes with the composer.</div>
+    <div><b>3. Then where they were</b>"Jump back in" is the one list: their last conversations from every project and Chat. Most visits are a return to something already under way.</div>
+  </div>
+  <p style="color:var(--t2);max-width:900px">Everything else in the catalogue has a better home: numbers, cost and top agents on an Insights screen for whoever watches them; running work in Runs, coming up in Automation; pins already in the navigation.</p>
+
+  <div class="label">What Home could show — proposal selected: greeting, ask, jump back in (click to change)</div>
+  <div class="cards" data-multiselect>
+    <div class="card" data-choice="stats" onclick="toggleSelect(this)"><span class="src today">In the app today</span><div class="mini2"><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px"><b style="font-size:16px;color:var(--t1)">8</b><b style="font-size:16px;color:var(--t1)">4</b><span>agents</span><span>projects</span></div></div><h4>Stats</h4><p>Agents, projects, live sessions, open tasks — four numbers.</p></div>
+    <div class="card" data-choice="recent-projects" onclick="toggleSelect(this)"><span class="src today">In the app today</span><div class="mini2">Agenthix<br>Marketing Website<br>Client Portal</div><h4>Recent projects</h4><p>The last projects opened (replaced by Pinned in the new navigation).</p></div>
+    <div class="card" data-choice="task-overview" onclick="toggleSelect(this)"><span class="src today">In the app today</span><div class="mini2"><div class="bars"><span style="flex:4;background:var(--s3)"></span><span style="flex:2;background:var(--ok)"></span><span style="flex:1;background:var(--warn)"></span><span style="flex:3;background:var(--accent)"></span></div>12 open · 2 running · 1 blocked</div><h4>Task overview</h4><p>One bar: idle, running, blocked, done, failed.</p></div>
+    <div class="card" data-choice="runs-overview" onclick="toggleSelect(this)"><span class="src today">In the app today</span><div class="mini2">142 runs · 3 failed · 2 running</div><h4>Runs overview</h4><p>Total, completed, failed, running.</p></div>
+    <div class="card" data-choice="activity-feed" onclick="toggleSelect(this)"><span class="src today">In the app today</span><div class="mini2">09:02 routine started<br>02:34 WEB-30 stopped<br>00:15 WEB-29 queued</div><h4>Recent activity</h4><p>The last 10 events, held in memory (lost on restart).</p></div>
+    <div class="card" data-choice="agent-cost" onclick="toggleSelect(this)"><span class="src today">In the app today</span><div class="mini2">Frontend $4.20<br>Research $2.10<br>DevOps $1.30</div><h4>Agent cost</h4><p>Spend per agent.</p></div>
+    <div class="card" data-choice="financial" onclick="toggleSelect(this)"><span class="src today">In the app today</span><div class="mini2">1.2M tokens<br>~$18.40</div><h4>Financial</h4><p>Total tokens and estimated cost.</p></div>
+    <div class="card" data-choice="top-agents" onclick="toggleSelect(this)"><span class="src today">In the app today</span><div class="mini2">1 Frontend · 42<br>2 Research · 31</div><h4>Top agents</h4><p>Agents ranked by runs.</p></div>
+    <div class="card selected" data-choice="greeting" onclick="toggleSelect(this)"><span class="src ref">Your reference</span><div class="mini2"><b style="font-size:14px;color:var(--t1)">Good afternoon, Avery</b></div><h4>Greeting</h4><p>"Good afternoon, Avery — here's what needs your attention."</p></div>
+    <div class="card" data-choice="create-task" onclick="toggleSelect(this)"><span class="src ref">Your reference</span><div class="mini2"><span style="color:var(--accent)">＋ Create a new task</span><br>Add a task, idea or request</div><h4>Create a new task</h4><p>A card to add a task, idea or request for an agent.</p></div>
+    <div class="card" data-choice="needs-attention" onclick="toggleSelect(this)"><span class="src ref">Your reference</span><div class="mini2">! Workspace boundary decision<br>● Release plan approval</div><h4>Needs your attention</h4><p>Decisions and approvals (now: inside notifications).</p></div>
+    <div class="card selected" data-choice="ask" onclick="toggleSelect(this)"><span class="src ref">Your reference</span><div class="mini2"><span style="border:1px solid var(--accent);border-radius:6px;padding:3px 6px;display:inline-block">Ask any agent…</span></div><h4>Ask any agent</h4><p>The composer that starts a conversation.</p></div>
+    <div class="card selected" data-choice="jump-back" onclick="toggleSelect(this)"><span class="src new">Drawn on this board</span><div class="mini2">PM Project UX redesign<br>RS Competitor analysis</div><h4>Jump back in</h4><p>Recent conversations from every project and Chat.</p></div>
+    <div class="card" data-choice="happening" onclick="toggleSelect(this)"><span class="src new">Drawn on this board</span><div class="mini2">Frontend · AGX-26 · 12 min<br>Tech writer · AGX-24</div><h4>Happening now</h4><p>What agents are running, across projects.</p></div>
+    <div class="card" data-choice="coming-up" onclick="toggleSelect(this)"><span class="src new">Drawn on this board</span><div class="mini2">Daily site audit · 9:00<br>Weekly report · Mon</div><h4>Coming up</h4><p>Routines and start times due soon.</p></div>
+    <div class="card" data-choice="pinned" onclick="toggleSelect(this)"><span class="src new">Possible</span><div class="mini2">A Agenthix · PM Project manager</div><h4>Pinned</h4><p>The person's pins as tiles (already in the navigation).</p></div>
+  </div>
+
+  <div class="label">Mobile · 375 wide</div>
+  <div class="phones">
+    <div class="phone">
+      <div class="mhead"><span class="back" style="font-size:16px">☰</span><span class="t">Agenthix</span><span class="tops" style="margin-left:auto"><span class="topb bellb" title="Notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><b>3</b></span><span class="topb runsb" title="Runs"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><b class="g">3</b></span></span></div>
+      <div class="mlist" style="padding:14px">
+        <div style="font-size:22px;line-height:30px;font-weight:600">Good afternoon, Avery</div>
+        <div class="greet-sub" style="margin-bottom:10px">What would you like to work on?</div>
+        <div class="chips" style="justify-content:flex-start;margin-bottom:16px"><a class="hchip warn">● 3 need you</a><a class="hchip ok">● 3 at work</a></div>
+        <div class="hsec"><h3>Jump back in</h3>
+          <div class="row"><span class="av sm" style="background:#6366f1">PM</span><div class="body"><div class="ttl">Project UX redesign</div><div class="who">Agenthix</div></div></div>
+          <div class="row"><span class="av sm" style="background:#7c3aed">RS</span><div class="body"><div class="ttl">Competitor analysis</div><div class="who">Chat</div></div></div>
+        </div>
+      </div>
+      <div class="mcomp"><span>Ask any agent…</span><span class="send" style="width:24px;height:24px"></span></div>
+    </div>
+    <div style="max-width:380px;color:var(--t2)"><p>Same order as desktop: what needs you, then where you were; the composer at the bottom. Happening now and Coming up are reached from Runs in the drawer.</p></div>
+  </div>
+
+  <div class="label">The app shell — today's pieces and where they go</div>
+  <div class="card">
+    <table class="map">
+      <tr><th>Today</th><th>In this design</th></tr>
+      <tr><td>Top bar breadcrumbs</td><td>The bar at the top of each screen: breadcrumb on the left, the layout control on the right where the screen has tools. No global top bar.</td></tr>
+      <tr><td>Notifications (bell, top bar → right panel)</td><td>Bell beside the logo, with a count, opening a panel over the page. What needs action also leads Home.</td></tr>
+      <tr><td>Chat (icon, top bar → right panel)</td><td><b>Chat</b> in the navigation — the personal space. Conversations open as screens, never in a side panel.</td></tr>
+      <tr><td>Activity (icon with count → right panel) — it lists runs</td><td>Renamed <b>Runs</b>. In the navigation with a live count, opening a <b>Runs panel</b> beside it (glance and stop); a Runs screen for the full list; the Runs tool in each project and in Chat; the organisation-wide Stop all moves to the future Sites view. The dashboard's run-event feed folds in.</td></tr>
+      <tr><td>Voice call controls (chat panel)</td><td>Voice in the conversation's composer.</td></tr>
+      <tr><td>The global right panel</td><td>Gone. The right panel only ever holds a project's or the personal space's facts and tools.</td></tr>
+      <tr><td>Dashboard: stats, cost, financial, top agents</td><td>The future Sites view (organisation-wide), designed later.</td></tr>
+      <tr><td>"My tasks" in the navigation</td><td>Gone — the Tasks tool in Chat.</td></tr>
+    </table>
+  </div>
+
+  <div class="label">Where we are</div>
+  <div class="notes">
+    <div class="note agreed">
+      <h3>Carried from the agreed boards</h3>
+      <ul>
+        <li><b>Navigation:</b> Home, Chat, Projects, Agents, Tasks, Runs; Pinned below; the person and Settings at the foot.</li>
+        <li><b>Light by default</b>, dark available; the agreed type scale.</li>
+        <li><b>Activity is renamed Runs</b> (it lists runs); a Runs screen holds the full list, reached from the panel.</li>
+        <li><b>Home and the Runs panel are personal</b>: what you started or what acts on your behalf. Organisation-wide views — runs by site, the organisation's Stop all, today's dashboard numbers — go to a future <b>Sites</b> view, designed later.</li>
+        <li><b>Navigation</b>: Home · Chat · Projects · Agents · Tasks, then Pins; Organisation and Settings at the foot. Boards and Workspaces leave the navigation (inside project and Chat tools, and pins); Products, Programs and Library move into Organisation, with a product/programme filter on Projects.</li>
+        <li><b>Chat-first Home</b>: composer in the centre with focus, one line of signal chips, Jump back in. Nothing else.</li>
+        <li><b>Tasks waiting for you raise a notification</b> (small, new) — needed now that "needs you" lives in notifications.</li>
+        <li><b>Notifications and Runs stay separate</b>: what needs you vs what is happening.</li>
+        <li><b>Notifications and Runs get the same treatment</b>: two buttons at the top of the navigation, beside the logo, each with its count, each opening its panel beside the navigation. Collapsed: the first two icons under the logo. Mobile: both in the header, top right.</li>
+        <li><b>What needs you lives in notifications</b> — the bell, with its count; Home only says how many and links there.</li>
+      </ul>
+    </div>
+    <div class="note open">
+      <h3>Open — answer by number</h3>
+      <ol>
+        <li>None — agreed.</li>
+      </ol>
+    </div>
+    <div class="note">
+      <h3>Changes on this board</h3>
+      <ul>
+        <li>2026-10-06 — navigation settled; Organisation at the foot; board agreed.</li>
+        <li>2026-10-06 — chat-first Home agreed; waiting tasks raise notifications.</li>
+        <li>2026-10-06 — Home and the Runs panel are personal; organisation-wide views (and the org Stop all, dashboard numbers) go to a future Sites view.</li>
+        <li>2026-10-06 — Notifications and Runs both moved to the top of the navigation as twin buttons with counts.</li>
+        <li>2026-10-06 — Activity renamed Runs everywhere; Runs panel drawn.</li>
+        <li>2026-10-06 — collapsed navigation drawn as an icon rail, with the bell and its panel.</li>
+        <li>2026-10-06 — proposal: Home is chat-first — composer in the centre, a line of signal chips, Jump back in; side column dropped.</li>
+        <li>2026-10-06 — "Needs you" moved into notifications (bell panel drawn); catalogue of what Home could show added.</li><li>2026-10-06 — first draft: Home by intent, and the shell after the conversation-first direction.</li></ul>
+    </div>
+  </div>
+  <details>
+    <summary>Reference images (owner, 2026-10-06)</summary>
+    <img src="/files/home-nav-chat-mobile.png" alt="Reference: mobile home, drawer, chat">
+  </details>
+</div>
+<script>
+  (function () {
+    var root = document.documentElement;
+    var saved = null;
+    try { saved = localStorage.getItem('board-theme'); } catch (e) {}
+    function set(t) {
+      root.setAttribute('data-theme', t);
+      document.querySelectorAll('.theme button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+      try { localStorage.setItem('board-theme', t); } catch (e) {}
+    }
+    set(saved === 'dark' ? 'dark' : 'light');
+    document.querySelectorAll('.theme button').forEach(function (b) { b.addEventListener('click', function () { set(b.dataset.t); }); });
+  })();
+</script>
+<script src="/files/boards.js"></script>
+</body>
+</html>

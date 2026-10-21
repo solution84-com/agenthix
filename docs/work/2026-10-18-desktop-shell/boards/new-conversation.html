@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New conversation draft</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#16181d;--muted:#667085;--line:#e4e7ec;--soft:#f2f4f7;--accent:#3b5bdb;--accent-soft:#e8edff;--ok:#067647;--ok-soft:#e7f6ec;--warn:#b54708;--warn-soft:#fff4e5;--nav:#fbfbfc}
+[data-theme=dark]{--bg:#0b0c10;--panel:#131418;--ink:#e7e9ee;--muted:#8b93a3;--line:#262a33;--soft:#1b1d23;--accent:#7c95ff;--accent-soft:#1f2640;--ok:#47cd89;--ok-soft:#11291c;--warn:#f79009;--warn-soft:#33240f;--nav:#101116}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;background:var(--bg);color:var(--ink)}
+.board{display:flex;min-height:100vh}
+.menu{width:230px;flex:none;border-right:1px solid var(--line);background:var(--panel);padding:16px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.menu h1{font-size:14px;margin:0 0 4px}.menu .sub{color:var(--muted);font-size:12px;margin-bottom:14px}
+.menu summary{cursor:pointer;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:4px}
+.menu a{display:block;padding:5px 8px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:13px}.menu a:hover{background:var(--soft)}
+.theme{display:flex;gap:4px;margin:10px 0 16px}.theme button{flex:1;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:6px;padding:4px;cursor:pointer;font-size:12px}
+.theme button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.main{flex:1;padding:24px 28px;max-width:1300px;min-width:0}
+section{margin-bottom:48px}h2{font-size:20px;margin:0 0 4px}.lede{color:var(--muted);margin:0 0 14px;max-width:880px}
+.stage{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.app{display:flex;height:640px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel);font-size:13px;flex:1;min-width:640px}
+.canvas{flex:1;min-width:0;background:var(--bg);padding:16px;color:var(--muted);opacity:.55}
+.canvas .t{height:10px;background:var(--line);border-radius:4px;margin:10px 0}
+.dock{width:400px;flex:none;border-left:1px solid var(--line);display:flex;flex-direction:column;background:var(--panel)}
+.head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.head .ttl{flex:1;font-weight:600}.head .icons{color:var(--muted);letter-spacing:6px}
+.btn{border:1px solid var(--line);border-radius:6px;padding:3px 10px;background:var(--soft);color:var(--ink);font-size:12px}
+.btn.p{background:var(--accent);border-color:var(--accent);color:#fff}
+.search{margin:12px 14px 6px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.search.typing{color:var(--ink);border-color:var(--accent)}
+.list{flex:1;overflow:hidden;padding:0 8px}
+.grp{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:10px 8px 4px}
+.row{display:flex;gap:10px;align-items:flex-start;padding:8px;border-radius:8px}
+.row .r{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--muted);flex:none;margin-top:2px}
+.row.sel{background:var(--accent-soft)}.row.sel .r{border-color:var(--accent);box-shadow:inset 0 0 0 3px var(--panel);background:var(--accent)}
+.row .n{font-weight:500}.row .d{color:var(--muted);font-size:12px;margin-top:2px}
+.row .tag{margin-left:auto;font-size:11px;color:var(--muted)}
+.av{width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:#fff;flex:none}
+.lead{padding:8px 16px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+.lead b{color:var(--ink);font-weight:500}
+.box{margin:6px 14px 14px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--soft)}
+.box .ph{color:var(--muted)}.box .ph.typed{color:var(--ink)}
+.box .bar{display:flex;align-items:center;gap:12px;margin-top:10px;color:var(--muted);font-size:12px}
+.box .send{margin-left:auto;width:28px;height:28px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;border-radius:999px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}
+.msgs{flex:1;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:85%;padding:8px 11px;border-radius:12px;background:var(--soft)}.msg.me{align-self:flex-end;background:var(--accent);color:#fff}
+.side{width:300px;flex:none;font-size:13px}
+.side h3{font-size:14px;margin:0 0 6px}.side ul{margin:0;padding-left:18px}.side li{margin-bottom:6px}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 6px 6px 0;margin:10px 0;max-width:880px}
+.ok{border-left-color:var(--ok);background:var(--ok-soft)}
+.dialog{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+.dialog .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;width:300px}
+.rel{position:relative}
+</style>
+</head>
+<body>
+<div class="board">
+<nav class="menu">
+  <h1>New conversation</h1>
+  <div class="sub">The draft in the dock</div>
+  <div class="theme"><button onclick="setTheme('light',this)">Light</button><button class="on" onclick="setTheme('dark',this)">Dark</button></div>
+  <details open><summary>States</summary>
+    <a href="#draft">1 · The draft opens</a>
+    <a href="#search">2 · Searching for a place</a>
+    <a href="#choose">3 · Choosing another place</a>
+    <a href="#cancel">4 · Cancel</a>
+    <a href="#sent">5 · After sending</a>
+  </details>
+  <details open><summary>Record</summary>
+    <a href="#decided">Decided so far</a>
+  </details>
+</nav>
+<main class="main">
+
+<section id="draft">
+  <h2>1 · The draft opens (＋ or Talk about Agenthix)</h2>
+  <p class="lede">The dock swaps to a draft; what was open is remembered. The whole area is the list of places you can use, with search at the top. The place you're on is already selected and the message box has focus, so for the usual case you just type and send: no taps.</p>
+  <div class="stage">
+    <div class="app">
+      <div class="canvas"><b style="opacity:1">Agenthix · Tasks</b><div class="t" style="width:60%"></div><div class="t" style="width:80%"></div><div class="t" style="width:40%"></div></div>
+      <div class="dock">
+        <div class="head"><span class="ttl">New conversation</span><span class="btn">Cancel</span></div>
+        <div class="search">🔍 Find a place…</div>
+        <div class="list">
+          <div class="grp">You're here</div>
+          <div class="row sel"><span class="r"></span><span class="av" style="background:#a16207">A</span><div><div class="n">Agenthix</div><div class="d">A project. Works in its files, with its agents. Others in it can see it's running, not what's said.</div></div></div>
+          <div class="row"><span class="r"></span><span class="av" style="background:#4b5563">Y</span><div class="n">Your space</div></div>
+          <div class="grp">Pinned</div>
+          <div class="row"><span class="r"></span><span class="av" style="background:#0e7490">W</span><div class="n">Website relaunch</div></div>
+          <div class="grp">All projects</div>
+          <div class="row"><span class="r"></span><span class="av" style="background:#7c3aed">C</span><div class="n">Customer research</div></div>
+          <div class="row"><span class="r"></span><span class="av" style="background:#be185d">Q</span><div class="n">Quarterly report</div></div>
+          <div class="row"><span class="r"></span><span class="av" style="background:#15803d">W</span><div class="n">Walkthrough</div></div>
+        </div>
+        <div class="lead"><b>Kernel</b> leads it. It can use <b>Agenthix</b>'s files and tools.</div>
+        <div class="box"><div class="ph">Ask any agent…</div><div class="bar"><span>K Kernel ▾</span><span>DS Flash Latest ▾</span><span class="send">➤</span></div></div>
+      </div>
+    </div>
+    <div class="side"><h3>What's on screen</h3><ul>
+      <li><b>Cancel</b> replaces 🕘 ＋ ⤢ › while it's a draft.</li>
+      <li>Only the selected place shows its one-line explanation.</li>
+      <li>The line above the box follows the selection.</li>
+      <li>The agent and model pickers stay in the box, as built.</li>
+      <li>In your space, the explanation reads: <i>"Private to you. Works in your own files."</i></li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="search">
+  <h2>2 · Searching for a place</h2>
+  <p class="lede">Typing in search filters the list; the groups fold into matches. The selection doesn't move until you choose, so search never changes where the conversation goes by itself.</p>
+  <div class="stage">
+    <div class="app">
+      <div class="canvas"><b>Agenthix · Tasks</b><div class="t" style="width:60%"></div><div class="t" style="width:80%"></div></div>
+      <div class="dock">
+        <div class="head"><span class="ttl">New conversation</span><span class="btn">Cancel</span></div>
+        <div class="search typing">🔍 rep<span style="opacity:.6">|</span></div>
+        <div class="list">
+          <div class="grp">Matches</div>
+          <div class="row"><span class="r"></span><span class="av" style="background:#be185d">Q</span><div class="n">Quarterly <u>rep</u>ort</div></div>
+          <div class="grp">Selected</div>
+          <div class="row sel"><span class="r"></span><span class="av" style="background:#a16207">A</span><div class="n">Agenthix</div><span class="tag">you're here</span></div>
+        </div>
+        <div class="lead"><b>Kernel</b> leads it. It can use <b>Agenthix</b>'s files and tools.</div>
+        <div class="box"><div class="ph">Ask any agent…</div><div class="bar"><span>K Kernel ▾</span><span>DS Flash Latest ▾</span><span class="send">➤</span></div></div>
+      </div>
+    </div>
+    <div class="side"><h3>Notes</h3><ul><li>The selected place stays visible under the matches, so you never lose track of it.</li><li>No match: <i>"No place called 'rep…'. You can only start in places you're a member of."</i></li></ul></div>
+  </div>
+</section>
+
+<section id="choose">
+  <h2>3 · Choosing another place</h2>
+  <p class="lede">One click selects it. Its explanation shows, the line above the box updates, and the agent picker switches to that place's agents (its default agent first).</p>
+  <div class="stage">
+    <div class="app">
+      <div class="canvas"><b>Agenthix · Tasks</b><div class="t" style="width:60%"></div><div class="t" style="width:80%"></div></div>
+      <div class="dock">
+        <div class="head"><span class="ttl">New conversation</span><span class="btn">Cancel</span></div>
+        <div class="search">🔍 Find a place…</div>
+        <div class="list">
+          <div class="grp">You're here</div>
+          <div class="row"><span class="r"></span><span class="av" style="background:#a16207">A</span><div class="n">Agenthix</div></div>
+          <div class="row"><span class="r"></span><span class="av" style="background:#4b5563">Y</span><div class="n">Your space</div></div>
+          <div class="grp">Pinned</div>
+          <div class="row sel"><span class="r"></span><span class="av" style="background:#0e7490">W</span><div><div class="n">Website relaunch</div><div class="d">A project. Works in its files, with its agents. Others in it can see it's running, not what's said.</div></div></div>
+          <div class="grp">All projects</div>
+          <div class="row"><span class="r"></span><span class="av" style="background:#7c3aed">C</span><div class="n">Customer research</div></div>
+        </div>
+        <div class="lead"><b>Writer</b> leads it. It can use <b>Website relaunch</b>'s files and tools.</div>
+        <div class="box"><div class="ph">Ask any agent…</div><div class="bar"><span>W Writer ▾</span><span>DS Flash Latest ▾</span><span class="send">➤</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cancel">
+  <h2>4 · Cancel</h2>
+  <p class="lede">Cancel (or Esc) puts back exactly what was open before, scroll and unsent text included. If nothing was open, the dock closes. Anything typed in the draft and not sent is discarded, with no question.</p>
+  <div class="stage">
+    <div class="app" style="min-width:420px;max-width:520px;flex:none">
+      <div class="dock" style="width:100%;border-left:0">
+        <div class="head"><span class="chip">◆ Agenthix</span><span class="ttl"></span><span class="icons">🕘 ＋ ⤢ ›</span></div>
+        <div class="msgs"><div style="font-weight:600">Release checklist</div><div class="msg me">What's left before we tag?</div><div class="msg">Three items: the login loop, the notes draft, and the pinned harness.</div></div>
+        <div class="box"><div class="ph">Reply…</div><div class="bar"><span>K Kernel ▾</span><span class="send">➤</span></div></div>
+      </div>
+    </div>
+    <div class="side"><h3>Back where you were</h3><ul><li>The previous conversation, unchanged.</li><li>The draft leaves nothing behind.</li></ul></div>
+  </div>
+</section>
+
+<section id="sent">
+  <h2>5 · After sending</h2>
+  <p class="lede">The list goes away and the conversation takes the dock, with its place as the chip in the header and the usual buttons back. The conversation you had open before is in 🕘.</p>
+  <div class="stage">
+    <div class="app" style="min-width:420px;max-width:520px;flex:none">
+      <div class="dock" style="width:100%;border-left:0">
+        <div class="head"><span class="chip">◆ Website relaunch</span><span class="ttl"></span><span class="icons">🕘 ＋ ⤢ ›</span></div>
+        <div class="msgs"><div style="font-weight:600">New conversation</div><div class="msg me">Draft the launch announcement</div><div class="msg" style="opacity:.7">Thinking…</div></div>
+        <div class="box"><div class="ph">Reply…</div><div class="bar"><span>W Writer</span><span class="send">➤</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="decided">
+  <h2>Decided so far (owner, 2026-10-18)</h2>
+  <div class="note ok">A new conversation is a <b>draft in the dock</b>, not an overlay, with <b>Cancel</b> back to what was open.</div>
+  <div class="note ok">The draft area is <b>the list of places you can use, with search</b>; the current place is pre-selected so the usual case is zero taps.</div>
+  <div class="note ok">Cancel with unsent text: <b>discard it</b>.</div>
+  <div class="note">Not changed: the box and its agent and model pickers stay as built; no new server read.</div>
+</section>
+
+</main>
+</div>
+<script>
+function setTheme(t,b){document.documentElement.dataset.theme=t;document.querySelectorAll('.theme button').forEach(x=>x.classList.toggle('on',x===b))}
+</script>
+</body>
+</html>
