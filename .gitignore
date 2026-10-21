@@ -61,6 +61,3 @@ docs/work/*/execution/
 
 # Local triage copy of open GitHub issues — working notes only
 issues/
-
-# Local secrets (tokens, keys) for running things on this machine; never committed.
-.secrets/
