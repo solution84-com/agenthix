@@ -1,0 +1,17 @@
+#!/bin/sh
+# Refuses a commit whose message credits an AI assistant as an author: a Co-Authored-By trailer naming one, or a
+# "Generated with" line for one. Commits are authored by people; a person's own Co-authored-by line passes.
+#
+# Override deliberately with: git commit --no-verify
+# Activated per clone by: git config core.hooksPath .githooks
+
+msg_file="$1"
+ai='claude|anthropic|openai|chatgpt|codex|copilot|gemini|cursor(agent)?|devin'
+
+found=$(grep -v '^#' "$msg_file" | grep -inE "^co-authored-by:.*($ai)|generated (with|by) .*($ai)")
+[ -z "$found" ] && exit 0
+
+echo "commit-msg: this message credits an AI assistant, which commits here never do:" >&2
+printf '%s\n' "$found" | sed 's/^/            /' >&2
+echo "            Remove the line and commit again." >&2
+exit 1

@@ -27,6 +27,7 @@ You need Node.js 24 (`.nvmrc`), Docker with Compose v2, and Git.
 ```sh
 git clone https://github.com/solution84-com/agenthix.git
 cd agenthix
+git config core.hooksPath .githooks        # the repository's git hooks (root `npm install` also sets it)
 docker compose up -d                       # the development databases
 cp hq/.env.server.example hq/.env.server
 cp hq/.env.client.example hq/.env.client

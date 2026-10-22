@@ -5,6 +5,7 @@
   "private": true,
   "description": "Agenthix monorepo — root scripts for orchestrating multi-service dev.",
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "test:cross-app": "cd tests/cross-app && npm ci --no-audit --no-fund && npx vitest run"
   },
   "devDependencies": {
