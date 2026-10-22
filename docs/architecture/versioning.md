@@ -34,6 +34,12 @@ general availability. The first public release is `0.1.0`; the cuts before it ar
 `0.1.0-rc.N` (release candidates). Under `0.x` a breaking change moves the minor (`0.2.0`) and a fix the patch; from
 `1.0.0`, a breaking change moves the major, as [Semantic Versioning](https://semver.org) says.
 
+**A published version is never published again**, even when it turns out not to work: someone may already have it,
+and two builds under one name cannot be told apart. The fix takes the next number, `0.1.0-alpha.3` after
+`0.1.0-alpha.2` and `1.0.2` after `1.0.1`. A patch that may be shaky can go out first as a release candidate
+(`1.0.1-rc.1`, `rc.2`, …) and be released as `1.0.1` once it is proved; that is optional. Only a tag whose publishing
+failed before it finished is tagged again under the same version (ADR-0137): nothing complete was published.
+
 - **Every `package.json` carries it**, and its lock file with it: the root's and each module's.
   `scripts/check-versions.mjs` fails when any module disagrees with the root, and *Checks* runs it on every change.
   With a version as its argument (`node scripts/check-versions.mjs 0.1.0-alpha.1`), it also checks that the root

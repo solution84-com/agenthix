@@ -159,6 +159,10 @@ How the maintainers plan, record and land work. Contributors can stop reading he
   5. **If anything fails after the tag is pushed**, the tag and whatever that attempt published are deleted, the fix
      goes on the same release branch, and the same version is tagged again on the fixed commit. A new version number
      is only for a change to something released.
+     - **A version that published is never published again**, even when it turns out not to work: someone may
+       already have it. Its fix takes the next number: `0.1.0-alpha.3` after `0.1.0-alpha.2`, `1.0.2` after `1.0.1`.
+       A patch that may be shaky can go out first as a release candidate (`1.0.1-rc.1`, then `rc.2`) and become
+       final once it is proved; that is optional.
   6. Once published, `main` fast-forwards to the tagged merge commit and the branch is deleted (if `main` moved
      meanwhile, merge it into the release branch and prove it again first). One release branch is open at a time.
 - **Checks on `main`:** a pull request merges only once the *All checks passed* check passes. The owner pushes to
