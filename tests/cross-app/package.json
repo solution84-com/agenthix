@@ -1,7 +1,7 @@
 {
   "name": "agenthix-cross-app-tests",
   "private": true,
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "devDependencies": {
     "@types/node": "^22.0.0",
     "dotenv": "^16.0.0",
