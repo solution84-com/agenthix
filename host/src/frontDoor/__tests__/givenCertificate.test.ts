@@ -8,6 +8,7 @@ import { install } from '../../install/install'
 import { moveHqAddress } from '../../install/hqAddress'
 import { pinCloudController } from '../../link/cloudController'
 import { ownerHandler } from '../../owner/dispatch'
+import { frontDoorFigures } from '../frontDoor'
 import type { CertificateCheck } from '../probes'
 import { madeCertificate } from './madeCertificate'
 
@@ -126,6 +127,21 @@ describe('a front door given a certificate by Agenthix Cloud @SC-1060', () => {
     await moved()
     expect(hqSettings().address).toBe('https://hq.other.example')
     expect(hqSettings().filesOrigin).toBe('https://files.acme.example')
+  })
+
+  it('turns on with a certificate no browser trusts, checked as the one it was given, and reports no renewal problem', async () => {
+    // As the machine's probe does: a browser's check fails what only the proxy in front trusts; the given one is matched.
+    const asked: (string | undefined)[] = []
+    m.ctx.frontDoorProbes = {
+      portInUse: async () => false,
+      certificate: async (_host, expected) => {
+        asked.push(expected)
+        return expected === given.certificate ? { ok: true, expiresAt: '2027-01-10T00:00:00.000Z' } : { ok: false, problem: 'unable to get local issuer certificate' }
+      },
+    }
+    expect(await cloud({ ...given, filesHost: 'files.acme.example' })).toMatchObject({ ok: true, result: { on: true } })
+    expect(await frontDoorFigures(m.ctx)).toEqual({ on: true, certificateExpiresAt: '2027-01-10T00:00:00.000Z', renewalProblem: null })
+    expect(asked.every(e => e === given.certificate)).toBe(true)
   })
 
   it('leaves previews off', async () => {

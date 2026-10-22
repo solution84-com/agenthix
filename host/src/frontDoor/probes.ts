@@ -3,6 +3,7 @@
  * served with on this machine's port 443. The host service runs on the machine's own network, so both are the
  * machine's. Tests stand in fakes.
  */
+import { X509Certificate } from 'node:crypto'
 import net from 'node:net'
 import tls from 'node:tls'
 
@@ -11,8 +12,12 @@ export type CertificateCheck = { ok: true; expiresAt: string } | { ok: false; pr
 export type FrontDoorProbes = {
   /** True when something listens on the port; null when that cannot be told. */
   portInUse: (port: number) => Promise<boolean | null>
-  /** The certificate this machine's port 443 serves for `host`, checked as a browser checks it. */
-  certificate: (host: string) => Promise<CertificateCheck>
+  /**
+   * The certificate this machine's port 443 serves for `host`: checked as a browser checks it, or, when the front door
+   * was given one (`expected`, PEM), checked to be exactly that one. A given certificate may be trusted only by the
+   * proxy in front, as a Cloudflare Origin CA certificate is, so a browser's check would never pass it.
+   */
+  certificate: (host: string, expected?: string) => Promise<CertificateCheck>
 }
 
 function portInUse(port: number): Promise<boolean | null> {
@@ -23,15 +28,26 @@ function portInUse(port: number): Promise<boolean | null> {
   })
 }
 
-function certificate(host: string): Promise<CertificateCheck> {
-  return new Promise(resolve => {
-    const socket = tls.connect({ host: '127.0.0.1', port: 443, servername: host, rejectUnauthorized: true, timeout: 10_000 })
+/** The probe on `port`: the machine's 443, or a test's listener. */
+export function certificateProbe(port = 443): FrontDoorProbes['certificate'] {
+  return (host, expected) => new Promise(resolve => {
+    let want: Buffer | null = null
+    if (expected !== undefined) {
+      try {
+        want = new X509Certificate(expected).raw
+      } catch {
+        resolve({ ok: false, problem: 'the certificate given cannot be read' })
+        return
+      }
+    }
+    const socket = tls.connect({ host: '127.0.0.1', port, servername: host, rejectUnauthorized: want === null, timeout: 10_000 })
     const done = (check: CertificateCheck) => {
       socket.destroy()
       resolve(check)
     }
     socket.once('secureConnect', () => {
       const cert = socket.getPeerCertificate()
+      if (want && !(cert?.raw && want.equals(cert.raw))) return done({ ok: false, problem: 'it is served with another certificate than the one given' })
       const expires = cert?.valid_to ? new Date(cert.valid_to) : null
       done(expires && !Number.isNaN(expires.getTime())
         ? { ok: true, expiresAt: expires.toISOString() }
@@ -42,4 +58,4 @@ function certificate(host: string): Promise<CertificateCheck> {
   })
 }
 
-export const machineProbes: FrontDoorProbes = { portInUse, certificate }
+export const machineProbes: FrontDoorProbes = { portInUse, certificate: certificateProbe() }

@@ -6,6 +6,7 @@
  * echoed in an answer.
  */
 import { X509Certificate, createPrivateKey } from 'node:crypto'
+import fs from 'node:fs'
 import { filesOriginFor } from '../install/address'
 import type { StateFolder } from '../state/folder'
 import { GIVEN_FILES, type FrontDoorSettings } from './config'
@@ -36,6 +37,16 @@ export function givenCertificateProblem(given: GivenCertificate, hosts: string[]
 export function writeGiven(state: StateFolder, given: GivenCertificate): void {
   state.writePrivate([...GIVEN_FILES.certificate], given.certificate)
   state.writePrivate([...GIVEN_FILES.privateKey], given.privateKey)
+}
+
+/** The certificate the front door was given and serves, which its check matches; null when it was given none. */
+export function readGivenCertificate(state: StateFolder): string | null {
+  if (!(state.readJson('front-door', 'settings.json') as FrontDoorSettings | null)?.given) return null
+  try {
+    return fs.readFileSync(state.path(...GIVEN_FILES.certificate), 'utf8')
+  } catch {
+    return null
+  }
 }
 
 /**

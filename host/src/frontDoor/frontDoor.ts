@@ -17,7 +17,7 @@ import {
   caddyfile, FRONT_DOOR_FILES, FRONT_DOOR_IMAGE, frontDoorCompose, frontDoorHosts, frontDoorProject, GIVEN_FILES, hostNameProblem, hostOf,
   type FrontDoorSettings,
 } from './config'
-import { givenCertificateProblem, writeGiven, type GivenCertificate } from './given'
+import { givenCertificateProblem, readGivenCertificate, writeGiven, type GivenCertificate } from './given'
 import { machineProbes, type FrontDoorProbes } from './probes'
 import { installSubnets } from '../compose/subnets'
 
@@ -222,7 +222,7 @@ async function turnOn(ctx: Context, requestedFiles: string | undefined, progress
 
   for (const host of hosts) {
     const cert = await step(progress, `Certificate for ${host}`, async () => {
-      const got = await waitForCertificate(ctx, host)
+      const got = await waitForCertificate(ctx, host, given?.certificate)
       return { value: got, outcome: got.ok ? 'obtained' : 'fails' }
     })
     if (!cert.ok) {
@@ -236,10 +236,10 @@ async function turnOn(ctx: Context, requestedFiles: string | undefined, progress
   return { on: true }
 }
 
-async function waitForCertificate(ctx: Context, host: string) {
+async function waitForCertificate(ctx: Context, host: string, given?: string) {
   const until = ctx.now().getTime() + CERTIFICATE_WAIT_MS
   for (;;) {
-    const got = await probes(ctx).certificate(host)
+    const got = await probes(ctx).certificate(host, given)
     if (got.ok || ctx.now().getTime() >= until) return got
     await ctx.sleep(CERTIFICATE_POLL_MS)
   }
@@ -259,8 +259,9 @@ export async function frontDoorFigures(ctx: Context): Promise<FrontDoorFigures> 
   if (!settings?.on) return { on: false, certificateExpiresAt: null, renewalProblem: null }
   let earliest: string | null = null
   const problems: string[] = []
+  const given = readGivenCertificate(ctx.state) ?? undefined
   for (const host of settings.hosts) {
-    const got = await probes(ctx).certificate(host)
+    const got = await probes(ctx).certificate(host, given)
     if (!got.ok) {
       problems.push(`${host}: ${got.problem}`)
       continue
