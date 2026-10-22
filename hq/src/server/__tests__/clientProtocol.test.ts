@@ -5,7 +5,7 @@ import { clientProtocolGuard, clientProtocolSocketGuard, describeClient, type Ha
 
 type Answer = { status: number | null; headers: Record<string, string>; body: unknown; passed: boolean; locals: Record<string, unknown> }
 
-function request(headers: Record<string, string>): Answer {
+function request(headers: Record<string, string>, at: { method: string; url: string } = { method: 'POST', url: '/operations/get-agents' }): Answer {
   const answer: Answer = { status: null, headers: {}, body: null, passed: false, locals: {} }
   const res = {
     locals: answer.locals,
@@ -14,7 +14,7 @@ function request(headers: Record<string, string>): Answer {
     json(body: unknown) { answer.body = body; return this },
   } as unknown as Response
   const lower = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]))
-  clientProtocolGuard({ method: 'POST', originalUrl: '/operations/get-agents', headers: lower } as Request, res, (() => { answer.passed = true }) as NextFunction)
+  clientProtocolGuard({ method: at.method, originalUrl: at.url, path: at.url.split('?')[0], headers: lower } as Request, res, (() => { answer.passed = true }) as NextFunction)
   return answer
 }
 
@@ -49,6 +49,15 @@ describe('the client protocol over HTTP @SC-1138', () => {
     expect(request({ 'X-Client-Protocol-Version': '3.0', 'User-Agent': 'mobile/9.0.0' })).toMatchObject({
       passed: false, status: 426, headers: { 'X-Client-Protocol-Version': '1.0' }, body: TWO_AHEAD,
     })
+  })
+
+  it("serves public-identity to an app it refuses everywhere else, so the app can name HQ's release and organisation", () => {
+    const tooFar = { 'X-Client-Protocol-Version': '3.0', 'User-Agent': 'mobile/9.0.0' }
+    expect(request(tooFar, { method: 'GET', url: '/api/org/public-identity' })).toMatchObject({ passed: true, status: null })
+    expect(request(tooFar, { method: 'GET', url: '/api/org/public-identity?fresh=1' })).toMatchObject({ passed: true, status: null })
+    expect(request(tooFar, { method: 'POST', url: '/api/org/public-identity' })).toMatchObject({ passed: false, status: 426 })
+    expect(request(tooFar, { method: 'GET', url: '/api/org/public-identity/more' })).toMatchObject({ passed: false, status: 426 })
+    expect(request(tooFar, { method: 'GET', url: '/api/org/identity' })).toMatchObject({ passed: false, status: 426 })
   })
 
   it('refuses a version it cannot read with 426, naming the app as the side to update', () => {

@@ -6,6 +6,10 @@
  * browser, hq's own pages, an app from before the client protocol. Sites, host services and Cloud never state one,
  * so their routes stay on their own protocols.
  *
+ * **One route is never refused:** `GET /api/org/public-identity`, where an app reads hq's release and the organisation's
+ * name before sign-in. It is public, needs no session and holds only what hq's sign-in page shows, and a refused app
+ * needs it most: to say which organisation's HQ is on which release.
+ *
  * `User-Agent` (`mobile/1.2.0`) is only logged, beside the version, and decides nothing: anyone can write it.
  */
 import type { RequestHandler, Response } from 'express'
@@ -52,7 +56,10 @@ export function clientStatedOf(res: Response): ClientStated | undefined {
   return res.locals.client as ClientStated | undefined
 }
 
+const ALWAYS_SERVED = { method: 'GET', path: '/api/org/public-identity' } as const
+
 export const clientProtocolGuard: RequestHandler = (req, res, next) => {
+  if (req.method === ALWAYS_SERVED.method && req.path === ALWAYS_SERVED.path) return next()
   const decision = decideClientProtocol(oneHeader(req.headers[HEADER]))
   const userAgent = userAgentOf(req.headers['user-agent'])
   if (decision.ok) {
