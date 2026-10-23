@@ -29,7 +29,7 @@ There is no `main.wasp.ts`, no `.wasp/` and no `wasp` command here; running one 
 `wasp/*`, and nothing imports from `hq/` — shared types go through `@agenthix/core`.
 
 - `src/server/main.ts` is the entry: it builds the app, runs the site's boot (`src/server/setup.ts`), listens on
-  `PORT` (4201), and shuts down cleanly on `SIGTERM`/`SIGINT` (`src/server/shutdown.ts`).
+  `PORT` (the site's server port, [`docs/architecture/ports.md`](../docs/architecture/ports.md)), and shuts down cleanly on `SIGTERM`/`SIGINT` (`src/server/shutdown.ts`).
 - `src/server/app.ts` is the route table. **A new endpoint is a row there**, its handler typed `ApiHandler`
   (`src/server/http/apiHandler.ts`) with its own authentication. The JSON and form parsers are mounted per route,
   never with `app.use`: the model relay must receive its body unread, because it streams it to the provider.

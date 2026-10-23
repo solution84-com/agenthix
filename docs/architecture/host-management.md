@@ -8,7 +8,7 @@ and [identity-and-trust.md](identity-and-trust.md#machines-and-the-fleet) every 
 
 ```mermaid
 flowchart TB
-    FA["Fleet admin, in a browser on the Fleet Console's machine or through an SSH tunnel"] -->|"127.0.0.1:4300, hq sign-in with the fleet admin role"| HM
+    FA["Fleet admin, in a browser on the Fleet Console's machine or through an SSH tunnel"] -->|"127.0.0.1, its published port, hq sign-in with the fleet admin role"| HM
     MA["Machine admin, on a machine"] -->|"docker exec: the CLI, agenthix …"| HS1
     subgraph M1 ["hq's machine"]
         HM["Fleet Console: the console site"]
@@ -69,6 +69,12 @@ program is `host/src/main.ts`; the CLI is `host/src/cli/main.ts`, with every com
   `host/src/docker/`, with argument lists the host service builds.
 - **Everything it runs is a compose project** it writes from its state folder (`host/src/compose/projects.ts`,
   `console.ts`), from images whose signatures it checked first (below).
+- **It records one installation** in `installation.json` in its state folder (`host/src/state/installation.ts`): the
+  namespace, the two ports the installation publishes (HQ's and the Fleet Console's) and its agents' address range. The
+  ports are chosen at the commands that install the parts, kept from then on, and carried over the host protocol where a
+  move or a restore gives a machine its ports (`install` and a move received carry `hqPort` and `consolePort`, added
+  in host protocol 1.1). One check (`host/src/install/portCheck.ts`) stands before everything that publishes a port;
+  [deployment.md](deployment.md#the-ports-an-installation-publishes) describes it.
 - **Every name it stores comes from the install's recorded namespace** (`host/src/state/namespace.ts`): recorded
   once, `agenthix` today, and from then on the source of every container, compose project, network, volume, label and
   database name, so a later rename of the product breaks no install. What a person reads comes from core's
@@ -111,7 +117,7 @@ the container and puts the old one back if the new one does not answer within 3 
 
 The Fleet Console is a plain Node server (`console/src/`) serving its JSON API and the built screens of `console-web/`.
 
-**It is reached on its machine's `127.0.0.1:4300` only,** bar the one exception on a machine Agenthix Cloud runs
+**It is reached on its machine's `127.0.0.1` only, at the port the installation publishes it on (7801 unless chosen otherwise; [ports.md](ports.md)),** bar the one exception on a machine Agenthix Cloud runs
 ([below](#remote-access-on-a-machine-cloud-runs)). It runs on a Docker network of its own that nothing else
 joins; Docker publishes its port to the machine's loopback only, and it accepts a connection only from that
 network's gateway, read inside its container at start (`console/src/net/containerNetwork.ts`). Every request also
@@ -164,7 +170,7 @@ code's setup on the Fleet Console, a fleet admin's own Cloud sign-in to it, and 
 admins there (`console/src/http/routes/cloud.ts`).
 
 **The host protocol.** Every link between a host service or the Fleet Console and hq (and Cloud's host link) is
-versioned as the host protocol, `HOST_PROTOCOL_VERSION` (`1.0`, `core/src/host/relay.ts`), stated in the
+versioned as the host protocol, `HOST_PROTOCOL_VERSION` (`1.1`, `core/src/host/relay.ts`), stated in the
 `X-Host-Protocol-Version` header when the link is dialled. It follows the same rule as the site protocol
 ([control-channel.md](control-channel.md#protocol-versions)): majors at most one apart work together, and a peer two or
 more apart is answered `426` with the receiver's own version, so each side can say which of the two must upgrade.
@@ -251,9 +257,9 @@ or extend it. On a machine Cloud runs, Cloud's controller turns it on directly, 
 
 1. `remoteAccess.csr`: the Fleet Console makes an ECDSA P-256 key in its state folder and returns a certificate request
    for a name Cloud chooses; the key stays there.
-2. Cloud returns the certificate with `remoteAccess.on`: a port (1024 to 65535, not 4300), the addresses allowed (at
+2. Cloud returns the certificate with `remoteAccess.on`: a port (1024 to 65535, not one the installation already publishes), the addresses allowed (at
    most 20: single IPv4 addresses, or IPv6 /64s), and an end, at most 8 hours away. The host service checks the
-   certificate is for that key and name and good until the end, **publishes the port** beside `127.0.0.1:4300`
+   certificate is for that key and name and good until the end, **publishes the port** beside the Fleet Console's own on `127.0.0.1`
    (`remoteAccess/publish.ts`), and tells the Fleet Console to listen there.
 3. The Fleet Console (`console/src/net/remoteAccess.ts`, `remoteListener.ts`) closes any connection from an address not
    on the list before TLS, ends TLS itself (1.2 or later), and answers only the name. Every session there needs the

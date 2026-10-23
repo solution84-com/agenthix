@@ -42,8 +42,8 @@ cp site/.env.server.example site/.env.server
 Then start the site and HQ, each in its own terminal:
 
 ```sh
-cd site && npm run dev       # the Execution Site, on port 4201
-cd hq && npx wasp start      # HQ, on http://localhost:4100
+cd site && npm run dev       # the Execution Site
+cd hq && npx wasp start      # HQ
 ```
 
 Run Wasp as `npx wasp`, from `hq/`: it is pinned in hq's dependencies, so no global install is needed.

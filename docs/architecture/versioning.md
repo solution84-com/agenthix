@@ -67,7 +67,7 @@ A build made on a machine rather than by the release workflow reports its versio
 | 4 | hq ↔ Agenthix Cloud | `CLOUD_PROTOCOL_VERSION`, `cloud/version.ts` | the header `X-Cloud-Protocol-Version` on every call, in both directions | Cloud, on every call (`checkHqCloudProtocol`); hq, on every answer (`checkCloudAnswerProtocol`, in `hq/src/cloud/cloudClient.ts`) |
 
 `1.0` is the baseline every later version counts from. Today the site protocol is at `1.3`, the client protocol at `1.4`, the
-Cloud protocol at `1.1` (which added [the AI contract](cloud-connection.md#the-ai-contract)) and the host protocol at `1.0`. A protocol is named after the party hq
+Cloud protocol at `1.1` (which added [the AI contract](cloud-connection.md#the-ai-contract)) and the host protocol at `1.1` (which added the ports an installation publishes to the operations that install HQ or receive a move). A protocol is named after the party hq
 or the host service talks to, so each constant is `<PARTY>_PROTOCOL_VERSION` and each header
 `X-<Party>-Protocol-Version`; no name carries the product's. hq's one web server receives both the host protocol and
 the client protocol, which is why they never share a header.

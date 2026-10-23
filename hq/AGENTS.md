@@ -14,7 +14,7 @@ executes nothing itself; the agent runtime lives in `site/`. How the two fit tog
 | Framework | Wasp `0.25.0` | Full-stack TypeScript: React + Node.js + Prisma + PostgreSQL. The CLI is pinned in `package.json`: run it as `npx wasp` |
 | Frontend | React `^19.2.1` + React Router 8 | Vite 8 |
 | Backend | Node.js 24.14.1+ | Managed by Wasp |
-| Database | PostgreSQL 14+ | Prisma; dev instance on port 4109 |
+| Database | PostgreSQL 14+ | Prisma; the dev instance's port is in [`docs/architecture/ports.md`](../docs/architecture/ports.md) |
 | Styling | Tailwind CSS v4 | `@import "tailwindcss"` syntax — no `tailwind.config.js` |
 | Auth | Wasp username + password | Session token in browser storage, sent as `Authorization: Bearer` — no cookie |
 | Real-time | Socket.io | Relays each site's streamed agent output into the browser's session room |

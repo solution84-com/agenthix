@@ -85,7 +85,7 @@ whoever gets into HQ does not get your machines too.
   *sealed*, encrypted so that only that machine can read it: HQ cannot read a command, change it or make one up. A
   machine refuses a command the Fleet Console did not sign, and anything that is not one of its own short list of jobs:
   there is no command that runs a program of someone's choosing, or reads its files.
-- **The Fleet Console is reached only on its own machine.** It answers only at `http://127.0.0.1:4300` there.
+- **The Fleet Console is reached only on its own machine.** It answers only at `http://127.0.0.1:7801` there, or at the other port the machine admin chose.
   `127.0.0.1` is the address a machine uses to reach itself, so nothing on the network can open it. From another
   computer, a fleet admin opens an SSH tunnel to that machine, which needs an account on it.
 - **The fleet admin role is never handed out quietly.** Every time it is given or taken away, HQ tells every fleet
@@ -96,7 +96,7 @@ not open the Fleet Console or make a command a machine would follow.
 
 ## Open the Fleet Console
 
-1. On the machine the Fleet Console runs on, HQ's machine unless it was moved, open `http://127.0.0.1:4300` in a
+1. On the machine the Fleet Console runs on, HQ's machine unless it was moved, open `http://127.0.0.1:7801` in a
    browser. It is not HQ's address: HQ has its own, which people use.
 
    From another computer, you need an account on that machine that can sign in over SSH; the machine admin of HQ's
@@ -104,10 +104,10 @@ not open the Fleet Console or make a command a machine would follow.
    on your own computer:
 
    ```sh
-   ssh -L 4300:127.0.0.1:4300 <you>@<hq machine>
+   ssh -L 7801:127.0.0.1:7801 <you>@<hq machine>
    ```
 
-   The tunnel carries `127.0.0.1:4300` on your computer to the same address on HQ's machine, for as long as the
+   The tunnel carries `127.0.0.1:7801` on your computer to the same address on HQ's machine, for as long as the
    command runs.
 
 2. Sign in with the username and password of an HQ account that holds the fleet admin role.

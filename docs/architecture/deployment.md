@@ -18,7 +18,7 @@ flowchart TB
         HQS["hq-server"]
         HQD[("hq-db")]
         S1["site, site-db, agent containers"]
-        HM["Fleet Console: 127.0.0.1:4300"]
+        HM["Fleet Console: 127.0.0.1, its published port"]
         FD["front door, optional: 80 and 443"]
     end
     subgraph B ["another machine"]
@@ -36,7 +36,7 @@ flowchart TB
 
 | Machine | Runs | Reachable from outside |
 |---|---|---|
-| hq's | the host service; hq (`hq-web`, `hq-server`, `hq-db`); hq's site (`site-server`, `site-db`, agent containers); the Fleet Console; optionally a front door | `hq-web`'s one port, or the front door's 80 and 443 in front of it |
+| hq's | the host service; hq (`hq-web`, `hq-server`, `hq-db`); hq's site (`site-server`, `site-db`, agent containers); the Fleet Console; optionally a front door | `hq-web`'s one published port (7800 unless chosen otherwise), or the front door's 80 and 443 in front of it |
 | Any other | the host service; its site | Nothing |
 
 **Only hq listens on the network.** hq publishes one plain-HTTP port, served by `hq-web`, which serves the browser
@@ -163,8 +163,16 @@ docker exec -it agenthix-host agenthix install
 It then prints a one-line command that saves a two-line shortcut, `/usr/local/bin/agenthix` (or `~/.local/bin`), which
 runs `docker exec -it agenthix-host agenthix "$@"`; without it, the `docker exec` form works the same.
 
-Every name on the machine is `<namespace>-<part>[-<what>]`, from the namespace the host service records at its first
-start (`agenthix` for a new install; `host/src/state/namespace.ts`): the containers `agenthix-host`,
+**An installation** is everything one host service runs on a machine, and it is identified by its **namespace**. The
+host service records it once, at its first start, in `installation.json` in its state folder, from `INSTALL_NAMESPACE` on
+the `docker run` that started it, else the default, `agenthix`. The host service's own container must be named
+`<namespace>-host`; a start where it is not is refused, with nothing recorded, and so is a state folder that records
+another namespace than `INSTALL_NAMESPACE` says. Besides the namespace, `installation.json` holds the two ports the
+installation publishes and its agents' address range ([below](#the-ports-an-installation-publishes)); every container
+the installation runs carries them as labels, which another installation's host service reads before it publishes
+anything (`host/src/state/installation.ts`).
+
+Every name on the machine is `<namespace>-<part>[-<what>]`, from that namespace (`host/src/state/namespace.ts`): the containers `agenthix-host`,
 `agenthix-hq-server`, `agenthix-hq-web`, `agenthix-hq-db`, `agenthix-site-server`, `agenthix-site-db`,
 `agenthix-console` and `agenthix-agent-<id>`; the volumes `agenthix-hq-db-data`, `agenthix-hq-storage`,
 `agenthix-site-db-data`, `agenthix-console-state` and `agenthix-host-figures`; the networks `agenthix-hq-internal`,
@@ -173,13 +181,13 @@ and `agenthix_site`. Volumes and networks are named explicitly, so compose adds 
 `agenthix.<key>`.
 
 **The address ranges an install uses.** Its own networks each take one /24 (256 addresses) from `10.214.0.0/16`,
-and the agents' networks one /29 each from `10.213.0.0/16`; nothing is left to Docker's default pool, which on a
+and its agents' networks one /29 each from the **agent slice** it was given ([below](#the-agent-slice)); nothing is left to Docker's default pool, which on a
 machine with many networks reaches 192.168.0.0/16, where a home or office network usually is, and would cut HQ off
 from a model on another computer there. A network that already exists keeps its subnet whenever its compose file is
 written again; a new one takes the first /24 that no Docker network and none of the machine's own addresses
 overlaps, so two installs on one machine never share one (`host/src/compose/subnets.ts`). When the range has none
-left, install refuses and says to remove the Docker networks no longer needed. The agents' range is fixed, so a
-local network inside `10.213.0.0/16` cannot be reached from the agents; on Docker Desktop the host service sees only
+left, install refuses and says to remove the Docker networks no longer needed. A local network inside `10.213.0.0/16`
+cannot be reached from the agents; on Docker Desktop the host service sees only
 the virtual machine's addresses, not the computer's, so the same holds there for `10.214.0.0/16`.
 
 **One group per part.** Docker Desktop groups containers by their compose project, which is also what the host service
@@ -191,8 +199,64 @@ the site sets. The agents never share the site's group, whose next upgrade would
 group is deleted as one in Docker Desktop, or with `docker compose -p agenthix-agents down`; erasing the site, or HQ
 with it, takes it down too. An agent container holds nothing kept nowhere else, and is made again when needed.
 
-A machine runs one HQ: `install` is refused where Docker already runs an HQ's container that another host service
-started (`hqContainers`, `host/src/docker/docker.ts`).
+### The ports an installation publishes
+
+An installation publishes two ports on the machine, and no more: **HQ's** and **the Fleet Console's**. Both are the
+machine admin's to choose, because they are the only ports of Agenthix that can clash with other software; everything
+inside the containers, and in development, keeps Agenthix's own numbers. [ports.md](ports.md) is the one table of every
+port and address block.
+
+| Port | Default | Chosen with | Changed with |
+|---|---|---|---|
+| HQ's | 7800 | `install --hq-port <port>`, or the port of a plain `http://` address | `agenthix hq address <address>` |
+| The Fleet Console's | 7801, on `127.0.0.1` only | `install --console-port <port>`, `console install --console-port <port>` | `agenthix console port <port>` |
+
+- **Chosen once, then kept.** The port is recorded in `installation.json` at the install and read back by every operation
+  after it; a re-run of `install` changes nothing that is set, and refuses a flag that names another port rather than
+  ignoring it (`host/src/install/ports.ts`). For a machine HQ moves to, or a restore, `console connect` and
+  `restore` take the same two flags.
+- **HQ's address and its port agree.** A plain `http://` address names the port browsers open it on (80 when it names
+  none), and that is HQ's published port; `--hq-port` must agree with it or is refused. An `https://` address says
+  nothing of the port, because a front door or the machine's own web server answers on 443: HQ's port is then
+  `--hq-port`, else what was recorded, else 7800, on `127.0.0.1` for that proxy to reach.
+- **What may be chosen:** a port from 1024 to 32767, below the range operating systems give to outgoing connections,
+  where a listener can lose its port at random; HQ may also take 80 or 443. The two cannot be the same port.
+  (`CHOSEN_PORT_RANGE` and the defaults are in `core/src/ports/ports.ts`.)
+
+**The check.** Before anything is published, and before anything is fetched or written, one check
+(`host/src/install/portCheck.ts`) is asked by every operation that publishes a port: `install`, `restore`,
+`console install`, a move received, `hq address`, `console port`, the front door on 80 and 443, and a remote access
+port. It refuses with every problem at once: a port outside the range; a port this installation already uses for
+another of its parts; a port another installation on the machine holds (read from the `ports` label on its
+containers, running or stopped); and a port held now, found by trying to listen on the address it would be published on
+and, when Docker publishes it for a container, named by that container, else reported as a program outside Docker. A
+port this installation's own containers already hold is not a problem; it is what a re-run finds. A refusal says what
+is wrong, who holds the port, and how to choose another, and ends "Nothing was changed."
+
+**A part kept from starting.** A port can be free at install and taken by the time the machine starts again after a
+reboot, when Docker starts the containers in no particular order. Docker then leaves that part stopped. `agenthix
+status` says so for each part (HQ, the Fleet Console, the front door): which port, who holds it, and what to do; the
+Fleet Console shows the same from the figures the host service sends HQ, and the host service writes it to its log shortly
+after it starts (`host/src/status/portsBlocked.ts`). Free the port, or move the part to another.
+
+### Several installations on one machine
+
+The supported configuration is **one installation on a machine**
+([ADR-0108](../adr/adr-0108-a-machine-carries-at-most-one-hq-and-one-site.md)). More than one runs only for **testing**, where a
+test installation runs beside an installed copy: each starts under a namespace of its own (`INSTALL_NAMESPACE`, and a
+host container named `<namespace>-host`), on ports it chooses, so nothing is shared by name or by port. The check
+above is what keeps them apart: a port another installation's labels list is refused as theirs. The
+`running-locally` skill (`.agents/skills/running-locally/`) shows how to start one.
+
+### The agent slice
+
+An installation with a site gives its agent containers a **slice** of `10.213.0.0/16`: a /20 (4,096 addresses),
+picked once when the site is first installed, as the first slice that overlaps no Docker network, none of the machine's
+own addresses and no slice another installation labels its containers with. It is recorded in `installation.json` and
+read back by every operation after, so an upgrade or a rewritten compose file never picks again. The agents'
+networks are a /29 each inside it, and the firewall rules that stop agents reaching the machine and its network cover
+only that slice, so one installation's rules never reach another's agents (`host/src/compose/agentSlice.ts`). When
+none is left, install refuses and says what to remove. Tests create their networks in `10.211.0.0/16`.
 
 ## Setup happens in hq
 
@@ -220,7 +284,7 @@ hq reads no provider key from its own environment at start. What setup asks and 
 |---|---|---|
 | `http://localhost:…`, or another loopback name | `127.0.0.1`, on the address's port | 1 |
 | `http://` a network address or name | `0.0.0.0`, on the address's port | 1 |
-| `https://…` | `127.0.0.1:4100`, behind a front door | 2 |
+| `https://…` | `127.0.0.1`, on HQ's published port, behind a front door | 2 |
 
 **`HQ_URL` is set when hq-web starts.** The browser app is built once with a placeholder address, and hq-web's start
 script puts `HQ_URL` in its place ([ADR-0111](../adr/adr-0111-hqs-browser-app-takes-its-address-when-it-starts.md)), so
@@ -254,8 +318,8 @@ given, only hq's host is routed and uploads are served as downloads only.
 
 **The machine's own front door.** With an `https://` address and no front door of the host service's, point the
 machine's own web server at hq-web for both hq's host and the files host, passing the `Host` header and WebSocket
-upgrades through. A front door in a container joins the `agenthix-edge` network and reaches `http://agenthix-hq-web:4100`;
-one on the machine reaches `http://127.0.0.1:4100`. For nginx:
+upgrades through. A front door in a container joins the `agenthix-edge` network and reaches `http://agenthix-hq-web:4100` (hq-web's own port inside its container, which never changes);
+one on the machine reaches `http://127.0.0.1:<HQ's published port>`, 7800 unless chosen otherwise. For nginx:
 
 ```nginx
 map $http_upgrade $connection_upgrade {
@@ -271,7 +335,7 @@ server {
     client_max_body_size 50m;   # nginx's default is 1 MB; set it to the largest upload you expect
 
     location / {
-        proxy_pass http://127.0.0.1:4100;
+        proxy_pass http://127.0.0.1:7800;   # HQ's published port
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -296,8 +360,8 @@ an agent's `start_preview` is refused, and the rest of hq is unaffected.
 
 The fleet admins' screens, started by `agenthix install` on hq's machine
 ([host-management.md](host-management.md#the-fleet-console-and-how-hq-relays-it)). It runs on a Docker network of its
-own, `agenthix-console`, which nothing else joins, and **Docker publishes its port to `127.0.0.1:4300` of the
-machine only** (`host/src/compose/console.ts`) — except on a machine Agenthix Cloud runs, where, while Cloud has remote
+own, `agenthix-console`, which nothing else joins, and **Docker publishes its port to `127.0.0.1` of the
+machine only**, 7801 unless the machine admin chose another (`agenthix console port <port>` changes it) (`host/src/compose/console.ts`) — except on a machine Agenthix Cloud runs, where, while Cloud has remote
 access on, the host service publishes one more port (1024 to 65535) for the length of that access, and the Fleet Console
 ends TLS there and answers only the addresses Cloud allows ([host-management.md](host-management.md#remote-access-on-a-machine-cloud-runs)).
 Inside, it accepts a connection from the loopback side only from that network's gateway. On
@@ -305,10 +369,10 @@ Docker Desktop the published port reaches the computer, so a browser there opens
 tunnel:
 
 ```sh
-ssh -L 4300:127.0.0.1:4300 <hq's machine>
+ssh -L 7801:127.0.0.1:7801 <hq's machine>
 ```
 
-then open `http://127.0.0.1:4300` and sign in with an hq account that holds the fleet admin role. It may run on another
+then open `http://127.0.0.1:7801` (or the port chosen) and sign in with an hq account that holds the fleet admin role. It may run on another
 machine instead, even a fleet admin's own computer: `agenthix hq console-code` on hq's machine, then
 `agenthix console install <hq address> <code>` there.
 

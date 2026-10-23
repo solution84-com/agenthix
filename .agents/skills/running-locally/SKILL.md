@@ -50,10 +50,10 @@ first boot, so there is nothing to register or approve. `npm run site -- status`
 
 **A development site cannot be reached by its own agents on a machine where an install's host service runs.** The
 install's agent protections put a firewall table on the machine (nftables, `<namespace>_agents`, so
-`agenthix_agents`; `host/src/protections/rules.ts`) that drops everything sent from the agents' address range,
-`10.213.0.0/16`, to the machine's own addresses — on Docker Desktop, to the computer Docker runs on too. The
+`agenthix_agents`; `host/src/protections/rules.ts`) that drops everything sent from the install's own slice of the agents' address block
+(a `/20` of `10.213.0.0/16`), to the machine's own addresses — on Docker Desktop, to the computer Docker runs on too. The
 development site runs on the machine itself and its agents reach it at `host.docker.internal:4201`, from that same
-range, so every call an agent makes to the site is dropped: its platform tools and git credentials fail. The
+slice when it has no range of its own, so every call an agent makes to the site is dropped: its platform tools and git credentials fail. The
 host service puts the table back within a minute if it is removed, so removing it is no fix.
 
 To develop beside an install, give the development site's agents a range of their own: set
@@ -61,6 +61,32 @@ To develop beside an install, give the development site's agents a range of thei
 install's own `10.214.0.0/16` that no network of yours uses) and restart the site. The install's rules match only
 their own range, so they leave the development site's agents alone, and the install's agents stay protected. The
 other way is to develop on a machine with no install.
+
+## A test installation beside an install
+
+Every port and address block is in [`docs/architecture/ports.md`](../../../docs/architecture/ports.md).
+
+A second installation on the same machine is for testing only: supported installs stay one HQ and one site per
+machine ([ADR-0108](../../../docs/adr/adr-0108-a-machine-carries-at-most-one-hq-and-one-site.md)), and the user
+guide shows only that. A test installation is another host service with its own namespace and state folder, started
+with `INSTALL_NAMESPACE`; its container must be named `<namespace>-host`, or its first start refuses. It publishes
+only ports it is given, picked free and checked against the other installation's, and takes its own slice of the
+agents' address block. The mobile app's test HQ is the example (use a version you have, and a free port for each):
+
+```sh
+docker run -d --name mobiletest-host --restart unless-stopped \
+  -v /var/run/docker.sock:/var/run/docker.sock -v ~/.agenthix-mobiletest:/state \
+  -v mobiletest-host-figures:/run/host-figures -e INSTALL_NAMESPACE=mobiletest \
+  --network host --cap-add NET_ADMIN \
+  --label com.docker.compose.project=mobiletest-host ghcr.io/solution84-com/agenthix-host:<version>
+docker exec -it mobiletest-host agenthix install --address http://<machine's address>:7500 --console-port 7520
+```
+
+The address's port is HQ's (`--hq-port` says the same). Everything it runs is named `mobiletest-…`; its commands are
+run with `docker exec … mobiletest-host agenthix …`, and `agenthix uninstall` inside it removes it. The install test
+(`scripts/install-test/run.sh`) and the host container tests (`npm run test:container` in `host/`) are started the
+same way, each under a namespace of its own and on free ports, so they run beside an install. If the machine's own
+install is the one that must keep running, never run these commands as it: use the namespace's host container.
 
 ## A further site
 

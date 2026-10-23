@@ -134,10 +134,10 @@ On a new machine that runs nothing yet but the host service, the machine admin r
 unchanged.
 
 - **The Fleet Console**, if it ran on HQ's machine, comes back with them: fleet admins carry on at
-  `http://127.0.0.1:4300` on the new machine.
+  `http://127.0.0.1:7801` on the new machine.
 - **If HQ's address is a domain name**, point it at the new machine in DNS. HQ answers there once it does, and the
   other sites and machines reconnect to it by themselves.
-- **If HQ's address is a network address** of the old machine, such as `http://192.168.1.20:4100`, give HQ the new
+- **If HQ's address is a network address** of the old machine, such as `http://192.168.1.20:7800`, give HQ the new
   machine's address with `agenthix hq address <address>`. Every other machine was cut off from HQ meanwhile, so on
   each one, its machine admin then runs `agenthix console hq-address <address>`, then
   `agenthix site hq-address <address>`.
