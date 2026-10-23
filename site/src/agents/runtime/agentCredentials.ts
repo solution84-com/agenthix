@@ -25,7 +25,8 @@
 import { execFile } from 'node:child_process'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import type { CredentialHealthEvent, RunCredential } from '@agenthix/core'
+import type { CredentialHealthEvent } from '@agenthix/core'
+import { isRelayed, type SiteRunCredential } from '../../server/modelRelay/runAccess'
 import { Logger } from '../../server/utils/logger'
 import { hqConnectionManager } from '../../server/hq/hqConnection'
 import { CLAUDE_SDK_RUNTIME } from './types'
@@ -223,7 +224,7 @@ function docker(args: string[]): Promise<{ stdout: string; stderr: string }> {
  * run on any other runtime does not probe at all, so nothing in a normal run arrives here
  * with `null`. It still has to be true.
  */
-function remediation(credential: RunCredential | null, key: ContainerKey): string {
+function remediation(credential: SiteRunCredential | null, key: ContainerKey): string {
   if (credential?.kind === 'subscription') {
     return 'The subscription login this run was given is not usable. Open your own settings, sign in to your subscription again, and run this again.'
   }
@@ -247,7 +248,7 @@ function remediation(credential: RunCredential | null, key: ContainerKey): strin
  * login had been copied into every agent's home; nothing is copied anywhere
  * now, so the accident became a refusal and the gate makes the rule explicit.
  *
- * Within an SDK run, an API key authenticates it on its own and needs no OAuth
+ * Within an SDK run, a relayed provider (an API key, or Agenthix Cloud) authenticates it on its own and needs no OAuth
  * files, so the probe is skipped for that too. Every other case probes: a
  * subscription login is itself an OAuth document, and an SDK run with no
  * credential at all never reaches here — runLaunch.ts fails it first, naming
@@ -264,13 +265,13 @@ export async function checkAgentCredentials(args: {
   home: string
   key: ContainerKey
   containerName: string
-  credential: RunCredential | null
+  credential: SiteRunCredential | null
   agentHandle: string
   runtime: string
 }): Promise<void> {
   const { home, key, containerName, credential, agentHandle, runtime } = args
   if (runtime !== CLAUDE_SDK_RUNTIME) return
-  if (credential?.kind === 'apiKey') return
+  if (isRelayed(credential)) return
 
   const advice = remediation(credential, key)
 

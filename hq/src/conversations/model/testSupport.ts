@@ -3,7 +3,7 @@ import { MockLanguageModelV3, convertArrayToReadableStream } from 'ai/test'
 import { z } from 'zod'
 import type { LeadRequest, ResolvedAccess } from '../contract'
 
-export const anthropicAccess: ResolvedAccess = { provider: 'anthropic', model: 'claude-test', apiKey: 'sk-test', owner: 'user', kind: 'API_KEY' }
+export const anthropicAccess: ResolvedAccess = { providerId: 'p-ant', providerName: 'Anthropic', provider: 'anthropic', model: 'claude-test', apiKey: 'sk-test-fake' }
 
 export function requestFor(overrides: Partial<LeadRequest> = {}): LeadRequest {
   return {

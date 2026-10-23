@@ -30,6 +30,7 @@ import type { BoardColumn, ColumnInput } from './boardColumns'
 import { MEMBERSHIP_METHODS } from '@agenthix/core'
 import type { AddTaskCommentArgs, CreateTaskArgs, MoveTaskToColumnArgs, TaskCommentView, TaskFields } from '@agenthix/core'
 import { taskCommentView, taskFields } from './taskWire'
+import { checkedTaskModel } from '../models-settings/taskModelChoice'
 import { createTaskArgs, requireColumnArg, requireCommentContent } from './taskArgs'
 import { taskRunner } from '../agents/TaskRunner'
 import { replaceTaskRequests } from '../agents/manifestRequests'
@@ -216,7 +217,9 @@ export const createTask: CreateTask<CreateTaskArgs, TaskFields> = async (given, 
     await requireBoardAccess(args.boardId, context.user.id, 'Placing this task on that board')
   }
   if (args.assignedAgentId) await requireAgentOnProject(args.projectId, args.assignedAgentId)
-  return taskFields(await createTaskRecord({ ...args, origin: originByPerson(context.user.id) }))
+  // The model a task names is not part of the mobile app's contract: it is read off the request here.
+  const modelChoice = await checkedTaskModel((given as { modelChoice?: unknown }).modelChoice, { projectId: args.projectId, agentId: args.assignedAgentId, userId: context.user.id })
+  return taskFields(await createTaskRecord({ ...args, modelChoice, origin: originByPerson(context.user.id) }))
 }
 
 export const updateTask: UpdateTask<
@@ -227,6 +230,7 @@ export const updateTask: UpdateTask<
     assignedAgentId?: string | null
     priority?: string
     labels?: string[]
+    modelChoice?: string | null
     status?: string
     result?: string | null
   },
@@ -237,7 +241,11 @@ export const updateTask: UpdateTask<
   const projectId = await requireTaskAccess(args.taskId, context.user.id, 'Changing this task')
   if (args.assignedAgentId) await requireAgentOnProject(projectId, args.assignedAgentId)
   const { taskId, title, description, assignedAgentId, priority, labels, status, result } = args
-  return updateTaskRecord({ taskId, title, description, assignedAgentId, priority, labels, status, result })
+  const modelChoice = args.modelChoice === undefined ? undefined : await checkedTaskModel(args.modelChoice, {
+    projectId, userId: context.user.id,
+    agentId: assignedAgentId ?? (await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgentId: true } }))?.assignedAgentId,
+  })
+  return updateTaskRecord({ taskId, title, description, assignedAgentId, priority, labels, status, result, ...(modelChoice !== undefined ? { modelChoice } : {}) })
 }
 
 export const runTask: RunTask<{ taskId: string }, void> = async ({ taskId }, context) => {

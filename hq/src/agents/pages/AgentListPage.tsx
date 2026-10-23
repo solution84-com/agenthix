@@ -10,7 +10,7 @@ import { EmptyState } from '../../shared/components/ui/EmptyState'
 import { unansweredSitesCopy } from '../../shared/siteSilence'
 import { CHAT_PATH } from '../../chat/chatComposer'
 import { newConversationPath } from '../../conversations/threadPaths'
-import { modelsForRuntime } from '../models'
+import { useAgentModelLine } from '../useAgentModelLine'
 import { agentCardNow, agentCardFacts } from './agentCardView'
 import { AgentCover } from './AgentCover'
 
@@ -27,6 +27,7 @@ export function AgentListPage() {
   const [search, setSearch] = useState('')
   const { data, isLoading, error } = useQuery(getOrgAgents, { filter })
   const at = new Date()
+  const modelLine = useAgentModelLine()
   const navigate = useNavigate()
   // The Agents screen is no place, so a new conversation starts in the person's Chat.
   const newConversation = (agentId: string) => navigate(newConversationPath(CHAT_PATH, agentId))
@@ -76,7 +77,7 @@ export function AgentListPage() {
         <div className="grid grid-cols-1 gap-1 md:grid-cols-2 md:gap-4 lg:grid-cols-3">
           {shown.map((card) => {
             const now = agentCardNow(card.now, card.projectCount, at)
-            const model = modelsForRuntime(card.agent.runtime).find(m => m.value === card.agent.defaultModel)?.label ?? card.agent.defaultModel
+            const model = modelLine(card.agent.id)
             return (
               <PlaceCard
                 key={card.agent.id}

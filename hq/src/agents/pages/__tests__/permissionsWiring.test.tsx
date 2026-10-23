@@ -81,7 +81,7 @@ describe('Permissions here @SC-620', () => {
 })
 
 describe('Permissions on the organisation’s agent page @SC-620', () => {
-  const agent = { id: 'a1', name: 'Frontend dev', approval: 'deferred', allowedTools: null, allowedBashPatterns: null, defaultModel: 'm', runtime: 'claude-sdk' }
+  const agent = { id: 'a1', name: 'Frontend dev', approval: 'deferred', allowedTools: null, allowedBashPatterns: null }
 
   it('shows a summary, opens the full view under Edit, and saves only what changed', async () => {
     ops.reads = { getAgentPermissions: organisation() }

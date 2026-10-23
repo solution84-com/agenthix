@@ -4,8 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { SpeechInputOptions } from '../../voiceClient/speechInput'
 
-const getSpeechToken = vi.fn(async () => ({ provider: 'assemblyai', token: 't', expiresAt: new Date(Date.now() + 600_000).toISOString(), config: {} }))
-vi.mock('wasp/client/operations', () => ({ getSpeechToken: () => getSpeechToken() }))
+const getSpeechToken = vi.fn(async (_args?: { agentId: string }) => ({ provider: 'assemblyai', token: 't', expiresAt: new Date(Date.now() + 600_000).toISOString(), config: {} }))
+vi.mock('wasp/client/operations', () => ({ getSpeechToken: (args?: { agentId: string }) => getSpeechToken(args) }))
 
 const speech = { opts: null as SpeechInputOptions | null, start: vi.fn(async () => undefined), stop: vi.fn(), setMuted: vi.fn(), endTurn: vi.fn() }
 vi.mock('../../voiceClient/speechInput', () => ({
@@ -16,9 +16,9 @@ import { MessageBox } from '../MessageBox'
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers() })
 
-function box() {
+function box(agentId?: string) {
   const onSend = vi.fn(async () => true)
-  render(<MessageBox placeholder="Message Kernel…" running={false} sending={false} onSend={onSend} onStop={vi.fn()} />)
+  render(<MessageBox agentId={agentId} placeholder="Message Kernel…" running={false} sending={false} onSend={onSend} onStop={vi.fn()} />)
   return { onSend, field: screen.getByLabelText('Message Kernel…') as HTMLTextAreaElement }
 }
 
@@ -31,6 +31,21 @@ const partial = (text: string, order: number) => act(() => { speech.opts!.onPart
 const turn = (text: string, order: number) => act(() => { speech.opts!.onTurn(text, order) })
 
 describe('dictating into the box @SC-1003', () => {
+  it('asks for the conversation’s agent’s own speech to text', async () => {
+    box('a1')
+    await dictate()
+    await vi.waitFor(() => expect(speech.opts).not.toBeNull())
+    await speech.opts!.getToken()
+    expect(getSpeechToken).toHaveBeenCalledWith({ agentId: 'a1' })
+  })
+
+  it('asks for the default when the box has no agent', async () => {
+    box()
+    await dictate()
+    await speech.opts!.getToken()
+    expect(getSpeechToken).toHaveBeenCalledWith(undefined)
+  })
+
   it('shows the words as they are heard, as text in the box, and keeps each turn', async () => {
     const { field } = box()
     await dictate()

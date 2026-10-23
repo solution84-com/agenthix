@@ -16,8 +16,10 @@ vi.mock('wasp/server', async () => {
 import { publicOrgIdentityHandler, setSignInShows } from '../publicIdentity'
 import { getOrgIdentity } from '../identity'
 import { BUILD_INFO } from '../../server/buildInfo'
+import { CLIENT_PROTOCOL_VERSION } from '@agenthix/core'
 
-const VERSIONS = { release: BUILD_INFO.version, clientProtocolVersion: '1.0' }
+// The organisation shows only once HQ is set up (an account exists and setup finished).
+const VERSIONS = { release: BUILD_INFO.version, clientProtocolVersion: CLIENT_PROTOCOL_VERSION, claimState: 'set_up' }
 
 const ctx = (user?: { id: string }) => ({ user }) as any
 
@@ -33,7 +35,8 @@ async function read() {
 
 describe('the public read of the organisation @SC-712', () => {
   it('shows the whole cover until an admin chooses less, and is never cached @SC-1140', async () => {
-    await prisma.org.create({ data: { name: 'Acme Corp', handle: 'acmecorp', vision: 'Shops online.', coverUrl: '/org/images/c.png' } })
+    await prisma.org.create({ data: { name: 'Acme Corp', handle: 'acmecorp', vision: 'Shops online.', coverUrl: '/org/images/c.png', setupCompletedAt: new Date() } })
+    await createUserWithRole('MEMBER')
 
     const first = await read()
     expect(first.body).toEqual({

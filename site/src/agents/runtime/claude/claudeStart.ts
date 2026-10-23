@@ -17,6 +17,7 @@ import { HARNESS_SERVER_KEY_ENV } from '@agenthix/core'
 import { getAgentFacingSiteUrl } from '../../../server/siteConfig'
 import { CLAUDE_KEY_PATH } from '../../../server/runtime/claudeKeyTickets'
 import { relayProviderUrl } from '../../../server/modelRelay/relayProviders'
+import { isRelayed } from '../../../server/modelRelay/runAccess'
 import type { RunContext } from '../types'
 import type { StagedTurnSkills } from './claudeSkills'
 
@@ -28,7 +29,7 @@ export type ClaudeStart = {
   execEnv: Record<string, string>
   /**
    * Whether the process's model requests go through the site's model relay:
-   * an API key, in a container (spec §6). The process is given a one-use
+   * an API key or Agenthix Cloud, in a container (spec §6). The process is given a one-use
    * ticket at start (claudeKeyTickets.ts), which its `apiKeyHelper` trades
    * for a relay token; the key itself never enters the container. A
    * subscription is never relayed: Anthropic's terms forbid a relay holding
@@ -49,7 +50,8 @@ export function buildClaudeStart(context: RunContext, skills: StagedTurnSkills |
   const disallowedTools = buildSdkDisallowedTools(context)
   const systemPrompt = context.agent.systemPrompt ?? undefined
   const apiKey = context.credential?.kind === 'apiKey' ? context.credential.apiKey : null
-  const relayed = !!context.containerName && apiKey !== null
+  // An API key or Agenthix Cloud: the relay presents it, so the process holds neither.
+  const relayed = !!context.containerName && isRelayed(context.credential)
   const execEnv = context.containerName ? claudeExecEnv(context, skills, relayed) : {}
 
   const options: Record<string, unknown> = {

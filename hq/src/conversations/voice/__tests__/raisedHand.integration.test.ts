@@ -19,14 +19,11 @@ vi.mock('../../coordinator/scheduler', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../coordinator/scheduler')>()),
   scheduleConversation: vi.fn(),
 }))
-vi.mock('../../access/conversationAccess', () => ({
-  resolveConversationAccess: vi.fn(async () => ({ access: null, problem: null, offer: null })),
-}))
 vi.mock('../../../voice/inworldAdapter', () => ({
   inworldTtsAdapter: { async *synthesizeStream(text: string) { yield { audio: Buffer.from(text) } } },
 }))
 
-import { encryptProviderKey } from '../../../server/providerService'
+import { setUpVoiceProviders } from './voiceFixtures'
 import { claimNextTurn } from '../../coordinator/claim'
 import { continuationCheck } from '../../coordinator/continuationChecks'
 import { scheduleConversation } from '../../coordinator/scheduler'
@@ -35,10 +32,9 @@ import { listeningSession, resetVoiceSessions, turnVoice } from '../registry'
 import { ENDED, endVoice, inviteVoice, startVoice } from '../service'
 
 async function voiced() {
-  await prisma.provider.create({ data: { service: 'stt', name: 'assemblyai', apiKey: encryptProviderKey('stt-key') } })
-  await prisma.provider.create({ data: { service: 'tts', name: 'inworld', apiKey: encryptProviderKey('tts-key') } })
+  await setUpVoiceProviders()
   const person = await createUserWithRole('MEMBER')
-  const agent = await createAgent({ name: 'Kernel', voiceEnabled: true })
+  const agent = await createAgent({ name: 'Kernel' })
   const conversation = await createConversation({ openedById: person.id, agentId: agent.id })
   await startVoice('s1', person.id, conversation.id)
   return { person, conversation }

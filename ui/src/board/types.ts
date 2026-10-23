@@ -129,6 +129,8 @@ export interface BoardRoundLine {
 // The full task form (ui/src/tasks/CreateTaskModal) still speaks of a task's `stage` — its column.
 
 export interface CreateTaskInput {
+  /** A model via a provider the task's runs name (`<providerId>/<model>`); absent follows the agent's default. */
+  modelChoice?: string
   projectId: string
   title: string
   description?: string

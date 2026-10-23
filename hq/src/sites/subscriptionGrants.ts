@@ -1,5 +1,6 @@
 /**
- * Refreshed subscription tokens coming back to hq.
+ * Refreshed subscription tokens coming back to hq. A subscription is a person's own Claude login, stored as an
+ * `AiProvider` they own (models from one place, part 4).
  *
  * The harness refreshes a subscription login's token in place during a run,
  * inside the run's own harness home on the site. hq is the only lasting holder
@@ -51,7 +52,7 @@ export const SUBSCRIPTION_GRANT_TTL_MS = 7 * 24 * 60 * 60 * 1000
 export type GrantTarget = { siteId: string; sessionId: string; runner: CapabilityRunner }
 
 /** The stored sign-in a subscription document came from. */
-export type StoredLogin = { credentialId: string; signedInAt: Date }
+export type StoredLogin = { providerId: string; signedInAt: Date }
 
 /**
  * An opaque name for one sign-in of one stored login, the same for every run
@@ -60,7 +61,7 @@ export type StoredLogin = { credentialId: string; signedInAt: Date }
  */
 export function loginIdOf(login: StoredLogin): string {
   return createHash('sha256')
-    .update(`${login.credentialId}:${login.signedInAt.getTime()}`)
+    .update(`${login.providerId}:${login.signedInAt.getTime()}`)
     .digest('hex')
     .slice(0, 32)
 }
@@ -87,7 +88,7 @@ export async function grantSubscription(
   await prisma.subscriptionGrant.deleteMany({ where: { expiresAt: { lt: now } } })
   const grant = await prisma.subscriptionGrant.create({
     data: {
-      credentialId: login.credentialId,
+      providerId: login.providerId,
       signedInAt: login.signedInAt,
       siteId: target.siteId,
       sessionId: target.sessionId,
@@ -132,7 +133,7 @@ export async function acceptSubscriptionRefresh(
 ): Promise<RefreshOutcome> {
   const grant = await prisma.subscriptionGrant.findUnique({
     where: { id: event.grantId },
-    select: { siteId: true, credentialId: true, signedInAt: true, expiresAt: true },
+    select: { siteId: true, providerId: true, signedInAt: true, expiresAt: true },
   })
   // A grant made to another site answers exactly as a grant that does not
   // exist: a site learns nothing about what hq handed to its siblings.
@@ -141,10 +142,11 @@ export async function acceptSubscriptionRefresh(
   if (!isUsableRefreshedDocument(event.oauthJson, event.expiresAt, now)) return 'not-a-usable-document'
 
   const refreshedExpiresAt = new Date(event.expiresAt)
-  const { count } = await prisma.modelCredential.updateMany({
+  const { count } = await prisma.aiProvider.updateMany({
     where: {
-      id: grant.credentialId,
-      kind: 'SUBSCRIPTION',
+      id: grant.providerId,
+      credentialKind: 'subscription',
+      ownerUserId: { not: null },
       termsAcceptedAt: grant.signedInAt,
       OR: [{ expiresAt: null }, { expiresAt: { lt: refreshedExpiresAt } }],
     },

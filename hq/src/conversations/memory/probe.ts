@@ -11,16 +11,16 @@ import { prisma } from 'wasp/server'
 import { RECALL_TOKEN_BUDGET } from '../../shared/memory/protocol'
 import type { Embedder, MemoryPrincipal, Probe, ProbeResult, RecalledItem } from '../../memory/contract'
 import { reachableTargets } from '../../memory/scopes'
-import { ITEM_SELECT, embedOrNull, embeddingState, recalledItem, type EmbeddingState, type ItemRow } from '../../memory/memoryRows'
+import { ITEM_SELECT, embedOrNull, recalledItem, type ItemRow } from '../../memory/memoryRows'
 import { cosine, itemTokens, RECALL_MIN_SIMILARITY, warmth } from '../../memory/ranking'
 import { embedderFor as defaultEmbedderFor } from '../../memory/embedding/embedders'
+import { LOCAL_MODEL } from '../../memory/embedding/localEmbedder'
 import { currentBars, type Bars } from '../../memory/barTuner'
 import { tiersOf } from './tiers'
 
 export interface ProbeDeps {
   /** The items not archived in the scopes the principal reaches. */
   rows(principal: MemoryPrincipal): Promise<ItemRow[]>
-  state(): Promise<EmbeddingState>
   embedderFor(model: string): Embedder
   bars(): Promise<Bars>
   now(): Date
@@ -48,13 +48,10 @@ function pinnedWithin(rows: readonly ItemRow[]): RecalledItem[] {
 }
 
 async function queryVectors(deps: ProbeDeps, rows: readonly ItemRow[], query: string): Promise<Map<string, number[]>> {
-  const state = await deps.state()
-  const models = [state.current, state.next].filter((m): m is string => !!m && rows.some(r => r.embeddingModel === m))
   const vectors = new Map<string, number[]>()
-  for (const model of models) {
-    const vector = (await embedOrNull(deps.embedderFor(model), [query]))?.[0]
-    if (vector) vectors.set(model, vector)
-  }
+  if (!rows.some(r => r.embeddingModel === LOCAL_MODEL)) return vectors
+  const vector = (await embedOrNull(deps.embedderFor(LOCAL_MODEL), [query]))?.[0]
+  if (vector) vectors.set(LOCAL_MODEL, vector)
   return vectors
 }
 
@@ -93,7 +90,6 @@ export const probe = createProbe({
     if (scopeKeys.length === 0) return []
     return prisma.memoryItem.findMany({ where: { scopeKey: { in: scopeKeys }, archived: false }, select: ITEM_SELECT })
   },
-  state: embeddingState,
   embedderFor: model => defaultEmbedderFor(model),
   bars: currentBars,
   now: () => new Date(),

@@ -254,11 +254,8 @@ export async function deleteProject(
     closedThreads = await closeTaskThreads(tx, { projectId }, 'PROJECT_DELETED')
     await tx.task.deleteMany({ where: { projectId } })
     await tx.board.deleteMany({ where: { projectId } })
-    // `ModelCredential` is keyed by (ownerType, ownerId), not by a Project
-    // relation, so it cascades from nothing — without this the project's
-    // encrypted API key would outlive the project it belonged to, with no
-    // owner and no UI able to reach it.
-    await tx.modelCredential.deleteMany({ where: { ownerType: 'project', ownerId: projectId } })
+    // A project's model list is keyed by its id, not a relation, so it cascades from nothing.
+    await tx.modelList.deleteMany({ where: { owner: 'project', ownerId: projectId } })
     await tx.project.delete({ where: { id: projectId } })
   })
   await declineWaitingInThreads(closedThreads)

@@ -9,7 +9,7 @@ import { HttpError, prisma } from 'wasp/server'
 import type { ConversationSegmentView, GetConversationSegmentArgs, SummariseNowArgs } from '../../shared/conversations/protocol'
 import type { ResolveConversationAccess } from '../contract'
 import { requireConversationReader, requireConversationSpeaker } from '../readingRule'
-import { resolveConversationAccess } from '../access/conversationAccess'
+import { resolveTalkingFor } from '../access/talkingModel'
 import { claimLock, releaseLock, renewLock, TURN_RENEW_MS } from '../coordinator/lock'
 import { scheduleConversation } from '../coordinator/scheduler'
 import { conversationEvents, type ConversationEvents } from '../coordinator/events'
@@ -50,7 +50,7 @@ export interface SummariseNowDeps {
 }
 
 const defaults: SummariseNowDeps = {
-  compactor: defaultCompactor, resolveAccess: resolveConversationAccess, schedule: scheduleConversation, events: conversationEvents,
+  compactor: defaultCompactor, resolveAccess: (ref, userId) => resolveTalkingFor(ref, userId, 'summary'), schedule: scheduleConversation, events: conversationEvents,
 }
 
 /**
@@ -63,12 +63,11 @@ export async function summariseNow(conversationId: string, userId: string, deps:
   const ref = await requireConversationSpeaker(conversationId, userId)
   const row = await prisma.conversation.findUniqueOrThrow({
     where: { id: conversationId },
-    select: { talkingModel: true, talkingProvider: true, accessOwnerType: true },
+    select: { talkingModel: true, talkingProviderId: true },
   })
-  if (!row.talkingModel || !row.talkingProvider) throw new HttpError(409, NOTHING_YET)
-  const fixed = { model: row.talkingModel, provider: row.talkingProvider, owner: row.accessOwnerType ?? undefined }
-  const { access, problem } = await deps.resolveAccess(ref, fixed)
-  if (!access) throw new HttpError(409, problem ?? 'There is no model access to summarise with here.')
+  if (!row.talkingModel || !row.talkingProviderId) throw new HttpError(409, NOTHING_YET)
+  const { access, problem } = await deps.resolveAccess(ref, userId)
+  if (!access) throw new HttpError(409, problem ?? 'There is no model to summarise with here.')
 
   // The lock's holder is this compaction, not a turn: recovery finds no turn for it and only lets the lock go.
   const holder = randomUUID()

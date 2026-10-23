@@ -7,6 +7,7 @@
  * the agent only as descriptions in its prompt.
  */
 import type { CapabilityRunner, RunContextPayload } from '@agenthix/core'
+import type { SiteRunCredential } from '../../server/modelRelay/runAccess'
 import { agentContainerManager } from './AgentContainerManager'
 import type { AgentMounts, ContainerKey, StorageBoundaryKey } from './containerTypes'
 import type { LocationRef } from '../../server/storage/paths'
@@ -85,7 +86,7 @@ export async function prepareAgentContainer(
   /** Where the run works. */
   primaryLoc: LocationRef,
   /** hq's pre-resolved dispatch context — the owner's current name. */
-  ctx: RunContextPayload,
+  ctx: Pick<RunContextPayload, 'mounts'> & { credential: SiteRunCredential | null },
   /** The container this run belongs to, resolved once by the caller
    *  (`resolveContainerKey`) so the key the home is built from and the key the
    *  container is named for are the same object, not two derivations of it. */

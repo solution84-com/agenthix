@@ -49,6 +49,7 @@ export const getAgentOverride: GetAgentOverride<BoundaryArgs, AgentOverrideValue
  * validated before it is stored (validateOverride).
  */
 type SetArgs = BoundaryArgs & {
+  /** Ignored: a boundary no longer overrides an agent's model (models from one place, part 4). */
   model?: string | null
   approval?: string | null
   allowedTools?: { name: string; state: string }[] | null
@@ -59,8 +60,8 @@ export const setAgentOverride: SetAgentOverride<SetArgs, AgentOverrideValues | n
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const boundary = await authorizeBoundary(args, context.user.id, "Changing an agent's overrides", 'write')
   try {
-    const { model, approval, allowedTools, allowedBashPatterns } = args
-    return await writeOverride(boundary, args.agentId, { model, approval, allowedTools, allowedBashPatterns }, context.user.id)
+    const { approval, allowedTools, allowedBashPatterns } = args
+    return await writeOverride(boundary, args.agentId, { approval, allowedTools, allowedBashPatterns }, context.user.id)
   } catch (err) {
     if (err instanceof OverrideValidationError) throw new HttpError(400, err.message)
     throw err

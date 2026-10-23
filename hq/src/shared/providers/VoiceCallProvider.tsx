@@ -25,7 +25,7 @@ export type VoiceCallValue = {
   stopSpeaking: () => boolean
   clearNotice: () => void
   /** Voice may be started soon (its button is under the pointer or focused): its speech token is fetched now. */
-  prepare: () => void
+  prepare: (agentId?: string) => void
   /** How much of a reply's text may show: the part heard so far while it is being spoken, null for all of it. */
   revealLimit: (turnId: string | undefined, text: string) => number | null
   /** The voice runtime while voice is on, for the voice lab to watch; null otherwise. */
@@ -79,7 +79,7 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
       socket: socket as unknown as LooseSocket,
       userId,
       createPlayback: () => createPlayback(),
-      getToken: async () => (await getSpeechToken()) as never,
+      getToken: async (agentId) => (await getSpeechToken(agentId ? { agentId } : undefined)) as never,
       sendMessage: (args) => sendConversationMessage(args),
       mirror: import.meta.env.DEV ? mirrorRuntime : undefined,
     })
@@ -105,7 +105,7 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
     toggleMute: () => session?.toggleMute(),
     stopSpeaking: () => session?.stopSpeaking() ?? false,
     clearNotice: () => session?.clearNotice(),
-    prepare: () => session?.prepare(),
+    prepare: (agentId) => session?.prepare(agentId),
     revealLimit: (turnId, text) => revealLimitOf(voice, turnId, text),
     runtime: () => session?.runtime() ?? null,
   }), [session, voice, path])

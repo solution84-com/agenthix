@@ -70,7 +70,7 @@ describe('erasePerson — what goes @SC-609', () => {
     await prisma.personConnection.create({
       data: { userId: user.id, name: 'Laptop', tokenHash: 'e'.repeat(64), tokenPrefix: 'pc_', expiresAt: new Date(Date.now() + 60_000) },
     })
-    await prisma.modelCredential.create({ data: { kind: 'API_KEY', ownerType: 'user', ownerId: user.id, secret: 'x' } })
+    await prisma.aiProvider.create({ data: { name: 'Your Claude subscription', vendor: 'anthropic', credentialKind: 'subscription', ownerUserId: user.id, secret: 'x' } })
 
     await erasePerson({ userId: user.id, confirm: 'Dana Reyes' }, ctx(admin.id))
 
@@ -81,7 +81,7 @@ describe('erasePerson — what goes @SC-609', () => {
     expect(await prisma.project.findUnique({ where: { id: personal.id } })).toBeNull()
     expect(await prisma.memoryItem.count({ where: { OR: [{ userId: user.id }, { placeId: user.id }] } })).toBe(0)
     expect(await prisma.personConnection.count({ where: { userId: user.id } })).toBe(0)
-    expect(await prisma.modelCredential.count({ where: { ownerId: user.id } })).toBe(0)
+    expect(await prisma.aiProvider.count({ where: { ownerUserId: user.id } })).toBe(0)
     expect(await prisma.auth.count({ where: { userId: user.id } })).toBe(0)
     expect(await prisma.userSettings.count({ where: { userId: user.id } })).toBe(0)
     expect(await personById(user.id)).toMatchObject({ name: FORMER_MEMBER, handle: null, state: 'erased' })

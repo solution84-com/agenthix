@@ -34,7 +34,6 @@ async function seedBundle(slug: string, handle: string) {
       name: 'Wasp Developer',
       handle,
       role: 'Engineer',
-      defaultModel: 'claude-sonnet-4-6',
       approval: 'deferred',
       skills: ['demo-skill'],
     }),
@@ -88,7 +87,7 @@ describe('applyAgentTemplate @SC-186', () => {
   it('fails when the chosen handle already exists, creating no second agent', async () => {
     await seedBundle('wasp-developer', 'wasp-dev')
     // Occupy the handle first.
-    await prisma.agent.create({ data: { name: 'Existing', handle: 'wasp-dev', runtime: 'claude-sdk' } as any })
+    await prisma.agent.create({ data: { name: 'Existing', handle: 'wasp-dev' } as any })
 
     await expect(applyAgentTemplate('wasp-developer', 'wasp-dev', null)).rejects.toThrow(/already exists/)
 

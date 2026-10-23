@@ -62,6 +62,19 @@ describe('the boundary a preview runs in', () => {
       .toMatchObject({ ownerId: project.id, taskId: task.id })
   })
 
+  it("names a personal project's person for its task, and nobody for a chat there or for a shared project's task", async () => {
+    const owner = await createUser()
+    const personal = await createProject({ personalOwnerId: owner.id })
+    const shared = await createProject()
+    const task = await createSession({ userId: owner.id, primaryOwnerType: 'project', primaryOwnerId: personal.id, sessionType: 'task' })
+    const chat = await createSession({ userId: owner.id, primaryOwnerType: 'project', primaryOwnerId: personal.id })
+    const sharedTask = await createSession({ primaryOwnerType: 'project', primaryOwnerId: shared.id, sessionType: 'task' })
+
+    expect((await resolvePreviewBoundary({ agentId: task.agentId, sessionId: task.id })).personalOwnerId).toBe(owner.id)
+    expect((await resolvePreviewBoundary({ agentId: chat.agentId, sessionId: chat.id })).personalOwnerId).toBeUndefined()
+    expect((await resolvePreviewBoundary({ agentId: sharedTask.agentId, sessionId: sharedTask.id })).personalOwnerId).toBeUndefined()
+  })
+
   it("runs a chat with no storage of its own in its person's storage, on the default site", async () => {
     const site = await ensureExecutionSite()
     const session = await createSession()

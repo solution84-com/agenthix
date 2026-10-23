@@ -323,7 +323,7 @@ describe('voice in the conversation', () => {
     h.thread.view = { ...baseView, voice: { available: true, unavailableReason: null, holderId: null, startedAt: null } }
     renderThread()
     fireEvent.click(screen.getByRole('button', { name: 'Start voice' }))
-    expect(start).toHaveBeenCalledWith('c1', { name: 'Kernel', avatarUrl: null })
+    expect(start).toHaveBeenCalledWith('c1', { id: 'a1', name: 'Kernel', avatarUrl: null })
   })
 
   it('shows mute and End beside the pill in voice mode, with the glow behind the thread @SC-994', () => {

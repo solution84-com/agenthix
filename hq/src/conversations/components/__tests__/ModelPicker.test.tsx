@@ -68,6 +68,22 @@ describe('the model picker @SC-953', () => {
     expect(screen.queryByText('Recent')).toBeNull()
   })
 
+  it('shows the provider on every row, and greys out and refuses a provider that is not working', () => {
+    const down: ModelChoices = { current: null, recent: [], models: [
+      c('claude-sonnet-5', 'Claude Sonnet 5', 'Anthropic', 'via Agenthix Cloud'),
+      { ...c('p-ant/claude-sonnet-5', 'Claude Sonnet 5', 'Anthropic', 'via Anthropic'), notWorking: true },
+    ] }
+    const onChange = open({ choices: down, value: '' })
+    const rows = screen.getAllByRole('option')
+    expect(rows[0].textContent).toContain('via Agenthix Cloud')
+    expect(rows[1].textContent).toContain('via Anthropic · not working')
+    expect(rows[1].getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(rows[1])
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.click(rows[0])
+    expect(onChange).toHaveBeenCalledWith('claude-sonnet-5')
+  })
+
   it('shows the access on each row of a model listed twice', () => {
     const twice: ModelChoices = { current: null, recent: [], models: [
       c('claude-sonnet-5', 'Claude Sonnet 5', 'Anthropic', 'via Anthropic'),
@@ -78,7 +94,7 @@ describe('the model picker @SC-953', () => {
     const rows = screen.getAllByRole('option').map(o => o.textContent ?? '')
     expect(rows[0]).toContain('via Anthropic')
     expect(rows[1]).toContain('via OpenRouter')
-    expect(rows[2]).not.toContain('via')
+    expect(rows[2]).toContain('via Anthropic')
   })
 
   it('says when nothing matches', () => {

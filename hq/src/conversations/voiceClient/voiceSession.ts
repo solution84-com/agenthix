@@ -24,6 +24,9 @@ export type { LooseSocket, Reveal, VoiceDeps, VoicePhase, VoiceSnapshot }
 /** The server hears of speech at most this often, to keep the silence rule from ending voice. */
 const ACTIVITY_EVERY_MS = 5_000
 
+/** The reason inside a speech-to-text failure line, without its lead-in and closing full stop. */
+const reasonOf = (message: string) => message.replace(/^Speech to text stopped: /, '').replace(/\.$/, '')
+
 export function createVoiceSession(deps: VoiceDeps) {
   const { userId } = deps
   const now = deps.now ?? deps.clock?.now ?? Date.now
@@ -36,17 +39,18 @@ export function createVoiceSession(deps: VoiceDeps) {
   let stopMirror: (() => void) | null = null
   let lastActivity = 0
   /** A token fetched before the speech connection needs it: the fetch takes seconds, and audio held meanwhile is lag. */
-  let prepared: { at: number; token: Promise<SttToken> } | null = null
-  const prepare = () => {
-    if (prepared && now() - prepared.at < TOKEN_FRESH_MS) return
-    const token = deps.getToken()
+  let prepared: { at: number; agentId: string | undefined; token: Promise<SttToken> } | null = null
+  const prepare = (agentId?: string) => {
+    if (prepared && prepared.agentId === agentId && now() - prepared.at < TOKEN_FRESH_MS) return
+    const token = deps.getToken(agentId)
     token.catch(() => undefined)
-    prepared = { at: now(), token }
+    prepared = { at: now(), agentId, token }
   }
   const getToken = (): Promise<SttToken> => {
     const p = prepared
     prepared = null
-    return p && now() - p.at < TOKEN_FRESH_MS ? p.token.catch(() => deps.getToken()) : deps.getToken()
+    const agentId = snap.agent?.id
+    return p && p.agentId === agentId && now() - p.at < TOKEN_FRESH_MS ? p.token.catch(() => deps.getToken(agentId)) : deps.getToken(agentId)
   }
 
   const set = (patch: Partial<VoiceSnapshot>) => {
@@ -107,7 +111,7 @@ export function createVoiceSession(deps: VoiceDeps) {
       chime: deps.chime ?? (() => playChime()),
       opened: () => { if (runtime === rt && snap.phase === 'starting') set({ phase: 'listening' }) },
       microphoneFailed: (err) => { if (runtime === rt) endFailed(err instanceof Error ? err.message : 'The microphone could not be used.') },
-      sttFailed: (message) => { if (runtime === rt) endFailed(`${message} Voice ended; you can keep typing.`, 'speech-to-text') },
+      sttFailed: (message) => { if (runtime === rt) endFailed(`Voice stopped: ${reasonOf(message)}. You can keep typing.`, 'speech-to-text') },
     })
     runtime = rt
     listen(rt)
@@ -152,7 +156,7 @@ export function createVoiceSession(deps: VoiceDeps) {
       snap = { ...IDLE, conversationId, agent, returnTo, phase: 'starting' }
       listeners.forEach(l => l())
       lastActivity = now()
-      prepare()
+      prepare(agent?.id)
       hq.start(conversationId)
     },
     end() {

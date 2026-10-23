@@ -1,12 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   realBehaviourChanges, resolveAgentSave, AGENT_SAVE_REFUSAL_MESSAGE,
-  resolveVoiceSave, AGENT_VOICE_SAVE_REFUSAL_MESSAGE,
 } from '../agentSaveGate'
 
 const CURRENT = {
-  defaultModel: 'claude-sonnet-4-6',
-  runtime: 'claude-sdk',
   approval: 'deferred',
   allowedTools: [{ name: 'Read', state: 'always' }],
   allowedBashPatterns: null,
@@ -18,8 +15,8 @@ describe('realBehaviourChanges', () => {
   })
 
   it('keeps only the fields whose value actually differs', () => {
-    expect(realBehaviourChanges({ ...CURRENT, defaultModel: 'claude-opus-4-6' }, CURRENT))
-      .toEqual({ defaultModel: 'claude-opus-4-6' })
+    expect(realBehaviourChanges({ ...CURRENT, approval: 'bypassed' }, CURRENT))
+      .toEqual({ approval: 'bypassed' })
   })
 
   it('compares object/array fields by content, not identity — a resubmitted equal array is not a change', () => {
@@ -75,7 +72,6 @@ describe('resolveAgentSave', () => {
 
   it('names the role needed in the refusal', () => {
     expect(AGENT_SAVE_REFUSAL_MESSAGE).toContain('ADMIN')
-    expect(AGENT_VOICE_SAVE_REFUSAL_MESSAGE).toContain('ADMIN')
   })
 
   it('saves the real diff when the caller is an org admin', () => {
@@ -86,20 +82,5 @@ describe('resolveAgentSave', () => {
   it('refuses a real behaviour change from a non-admin, before anything is written', () => {
     expect(resolveAgentSave({ ...CURRENT, approval: 'immediate' }, CURRENT, false))
       .toEqual({ kind: 'refused', message: AGENT_SAVE_REFUSAL_MESSAGE })
-  })
-})
-
-// Unlike behaviour fields, updateAgentVoice has no identity-only subset — every
-// call is an org-admin act (server floor: ADMIN) — so the gate is a plain
-// admin check rather than a diff, but it is the same shape as resolveAgentSave:
-// refuse client-side, before the network call, rather than let the server 403
-// a control the page still renders.
-describe('resolveVoiceSave', () => {
-  it('refuses a non-admin, before anything is written', () => {
-    expect(resolveVoiceSave(false)).toEqual({ kind: 'refused', message: AGENT_VOICE_SAVE_REFUSAL_MESSAGE })
-  })
-
-  it('lets an org admin through', () => {
-    expect(resolveVoiceSave(true)).toEqual({ kind: 'ok' })
   })
 })

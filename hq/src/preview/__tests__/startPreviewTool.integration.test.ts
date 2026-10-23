@@ -107,6 +107,13 @@ describe('start_preview handler @SC-229', () => {
     expect(Object.keys(params).sort()).toEqual(['command', 'location', 'ownerSlug', 'port', 'sessionId'])
   })
 
+  it("names a personal project's person, whose container its task ran in, and only then", async () => {
+    const deps = baseDeps({ resolveTarget: vi.fn(async () => ({ ...TARGET, personalOwnerId: 'u-bo' })) })
+    await runStartPreview({ command: 'npm run dev', port: 5173 }, deps as never)
+    const [, , params] = deps.request.mock.calls[0] as unknown as [string, string, Record<string, unknown>]
+    expect(params.personalOwnerId).toBe('u-bo')
+  })
+
   it('never builds a path on a site\'s disk', async () => {
     // A source scan of this one module, not of its import graph: it catches the
     // thing that actually happens — somebody reaching for the site root again

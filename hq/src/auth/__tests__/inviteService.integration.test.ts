@@ -132,7 +132,7 @@ describe('validateToken @SC-113 @SC-718', () => {
       ],
       people: [{ name: 'Avery Chen', role: 'MEMBER' }],
       morePeople: 0,
-      needsModel: true,
+      needsModel: false,
       expiresAt: invite.expiresAt!.toISOString(),
       org: { shows: 'cover', name: 'Acme Corp', handle: 'acmecorp', vision: 'Shops online.', avatarUrl: null, coverUrl: null },
     })

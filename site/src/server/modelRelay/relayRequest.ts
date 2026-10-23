@@ -4,11 +4,14 @@
  * Pure functions, so each rule is tested on its own.
  */
 import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'node:http'
+import { CLOUD_BILLING_PROFILE_HEADER, CLOUD_CALL_ID_HEADER } from '@agenthix/core'
 import { RELAY_TOKEN_HEADER } from './relayProviders'
 
-/** Never passed upstream: every credential a harness could send, and what only describes the hop to the site. */
+/** Never passed upstream: every credential a harness could send, what only the relay may say, and what only describes the hop to the site. */
 const REQUEST_DROPPED = new Set([
   'authorization', 'x-api-key', 'x-goog-api-key', 'api-key', RELAY_TOKEN_HEADER, 'proxy-authorization', 'cookie',
+  // Only the relay names a call and its billing profile to Agenthix Cloud.
+  CLOUD_CALL_ID_HEADER.toLowerCase(), CLOUD_BILLING_PROFILE_HEADER.toLowerCase(),
   'host', 'forwarded', 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-real-ip',
 ])
 

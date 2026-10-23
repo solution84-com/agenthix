@@ -1,18 +1,18 @@
 /**
- * The embedder for a model setting — `local`, or `<provider>/<model>` — made once and kept, so the local model
- * loads once per process. Tests replace this module with the deterministic fake (test/fakes/embedders.ts).
+ * The embedder: always hq's built-in model, made once and kept, so it loads once per process. A vector written in
+ * any other model is embedded again by the background pass (reembed.ts). Tests replace this module with the
+ * deterministic fake (test/fakes/embedders.ts).
  */
 import type { Embedder } from '../contract'
 import { createLocalEmbedder, LOCAL_MODEL } from './localEmbedder'
-import { createProviderEmbedder } from './providerEmbedder'
 
 const made = new Map<string, Embedder>()
 
-export function embedderFor(model: string): Embedder {
-  let embedder = made.get(model)
+export function embedderFor(_model: string): Embedder {
+  let embedder = made.get(LOCAL_MODEL)
   if (!embedder) {
-    embedder = model === LOCAL_MODEL ? createLocalEmbedder() : createProviderEmbedder(model)
-    made.set(model, embedder)
+    embedder = createLocalEmbedder()
+    made.set(LOCAL_MODEL, embedder)
   }
   return embedder
 }

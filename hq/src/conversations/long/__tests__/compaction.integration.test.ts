@@ -23,7 +23,7 @@ import { createLedger } from '../ledger'
 import { COULD_NOT_SUMMARISE, getConversationSegment, summariseNow } from '../segmentOperations'
 import { openText } from '../../sealing'
 
-const access: ResolvedAccess = { provider: 'anthropic', model: 'tiny-test-model', apiKey: 'k', owner: 'user', kind: 'API_KEY' }
+const access: ResolvedAccess = { providerId: 'p-ant', providerName: 'Anthropic', provider: 'anthropic', model: 'tiny-test-model', apiKey: 'sk-test-fake' }
 const WINDOW = 1_000
 
 function summariser(answers: string[] = []) {
@@ -50,7 +50,7 @@ function setup(answers?: string[]) {
 /** `pairs` exchanges, each a person's message and a reply of about `tokens` tokens. */
 async function conversationWith(pairs: number, tokens = 50) {
   const person = await createUserWithRole('MEMBER')
-  const conversation = await createConversation({ openedById: person.id, talkingModel: access.model, talkingProvider: 'anthropic', accessOwnerType: 'user' })
+  const conversation = await createConversation({ openedById: person.id, talkingModel: access.model, talkingProviderId: access.providerId })
   for (let i = 0; i < pairs; i++) {
     await appendMessage({ conversationId: conversation.id, role: 'PERSON', kind: 'TEXT', body: { text: `Question ${i} ${'q'.repeat(tokens * 4)}` }, authorId: person.id, turnId: `t${i}` })
     await appendMessage({ conversationId: conversation.id, role: 'AGENT', kind: 'TEXT', body: { text: `Answer ${i} ${'a'.repeat(tokens * 4)}` }, turnId: `t${i}` })

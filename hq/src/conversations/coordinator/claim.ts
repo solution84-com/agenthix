@@ -8,7 +8,7 @@
  */
 import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
-import type { AccessOwner, ConversationHomeRef, ModelProvider } from '../contract'
+import type { ConversationHomeRef } from '../contract'
 import type { ContinuationObligation, ConversationMessageView } from '../../shared/conversations/protocol'
 import { appendMessageIn } from '../store/messages'
 import { claimLock, releaseLock } from './lock'
@@ -22,9 +22,7 @@ export const HQ_RESTARTED = 'HQ restarted before this reply finished. Send your 
 
 export interface TurnConversation extends ConversationHomeRef {
   talkingModel: string | null
-  talkingProvider: ModelProvider | null
-  /** Whose access the conversation records: its turns pay with it while it is usable. */
-  accessOwnerType: AccessOwner | null
+  talkingProviderId: string | null
 }
 
 export interface ClaimedTurn {
@@ -135,7 +133,7 @@ export async function claimNextTurn(
       where: { id: conversationId },
       select: {
         id: true, home: true, projectId: true, taskId: true, openedById: true, agentId: true, status: true,
-        talkingModel: true, talkingProvider: true, accessOwnerType: true, activeTurnId: true, activeTurnLeaseUntil: true,
+        talkingModel: true, talkingProviderId: true, activeTurnId: true, activeTurnLeaseUntil: true,
       },
     })
     if (!row || row.status === 'CLOSED') return { claimed: null, abandoned: null }
@@ -175,7 +173,7 @@ export async function claimNextTurn(
         actingUserId,
         agentId,
         model: row.talkingModel,
-        provider: row.talkingProvider,
+        providerId: row.talkingProviderId,
         createdAt: queuedAt,
         startedAt: now,
       },
@@ -201,8 +199,7 @@ export async function claimNextTurn(
         trigger,
         conversation: {
           id: row.id, home: row.home, projectId: row.projectId, taskId: row.taskId, openedById: row.openedById,
-          agentId, talkingModel: row.talkingModel, talkingProvider: row.talkingProvider,
-          accessOwnerType: row.accessOwnerType,
+          agentId, talkingModel: row.talkingModel, talkingProviderId: row.talkingProviderId,
         },
         actingUserId,
         inputIds,

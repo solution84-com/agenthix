@@ -199,18 +199,6 @@ describe('recall by query @SC-988', () => {
     expect((await service.recallByQuery(atAlice, 'weekly release', { includeArchived: true })).items).toHaveLength(1)
     expect(await service.recallByKey(atAlice, ['release-day'])).toHaveLength(1)
   })
-
-  it('searches every item while a switch of model re-embeds, each in the model it was embedded with', async () => {
-    await service.remember(atAlice, input(release))
-    const org = await prisma.org.create({ data: { name: 'Org', memoryEmbeddingNext: 'openai/text-embedding-3-small' } })
-    const providerFake = createFakeEmbedder('openai/text-embedding-3-small')
-    const switching = createMemoryService({ embedderFor: m => (m === 'local' ? embedder : providerFake) })
-    await switching.remember(atAlice, input({ ...coffee, scope: 'AGENT_PERSON' }))
-    expect(await prisma.memoryItem.findFirstOrThrow({ where: { key: 'coffee-order' } })).toMatchObject({ embeddingModel: 'openai/text-embedding-3-small' })
-    expect((await switching.recallByQuery(atAlice, 'when does the team ship the weekly release')).items.map(i => i.key)).toEqual(['release-day'])
-    expect((await switching.recallByQuery(atAlice, 'how does the person take their coffee')).items.map(i => i.key)).toEqual(['coffee-order'])
-    await prisma.org.delete({ where: { id: org.id } })
-  })
 })
 
 describe('pinned and outcomes @SC-989', () => {

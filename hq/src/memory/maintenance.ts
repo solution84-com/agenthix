@@ -12,7 +12,7 @@ const logger = new Logger('Memory')
 
 export const REEMBED_INTERVAL_MS = 60 * 1000
 export const TIDY_INTERVAL_MS = 24 * 60 * 60 * 1000
-/** Batches per tick, so a large switch moves steadily without holding the process. */
+/** Batches per tick, so a large backlog moves steadily without holding the process. */
 const REEMBED_BATCHES_PER_TICK = 20
 
 let timers: NodeJS.Timeout[] = []
@@ -30,8 +30,7 @@ function exclusive(name: string, work: () => Promise<void>): () => void {
 
 async function reembedTick(): Promise<void> {
   for (let i = 0; i < REEMBED_BATCHES_PER_TICK; i++) {
-    const { embedded, switched } = await reembedBatch()
-    if (switched) logger.info('every memory item is embedded with the new model; it is now the organisation\'s')
+    const { embedded } = await reembedBatch()
     if (embedded === 0) return
   }
 }

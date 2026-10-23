@@ -50,9 +50,9 @@ export function CloudGroup({ state, org, hqSite, now }: {
       {state.kind === 'notConnected' && (
         <div className={line}>
           {hqSite ? (
-            <Link to={HQ_PATH} className="font-semibold text-text-primary hover:underline">Connect {named} to {CLOUD} ↗</Link>
+            <Link to={HQ_PATH} className="font-semibold text-text-primary hover:underline">{named} is not connected to {CLOUD}</Link>
           ) : <b className="font-semibold text-text-primary">Not connected to {CLOUD}.</b>}
-          {hqSite && <span>Opens HQ's page, where this is done.</span>}
+          <span>An organisation admin connects it in HQ, under Manage › Providers.</span>
         </div>
       )}
       {state.kind === 'signInNeeded' && <div className={line}>{signInButton('Sign in to Cloud to see the sites Cloud runs for you ↗')}</div>}

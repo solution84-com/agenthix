@@ -18,15 +18,15 @@ import { getCurrentPackage } from '../packageStore'
 
 describe('agent settings', () => {
   it('a settings edit updates the Agent row in place and writes no package', async () => {
-    const agent = await createAgent({ runtime: 'claude-sdk', defaultModel: 'claude-sonnet-5', approval: 'deferred' })
-    await updateAgentSettings(agent.id, { defaultModel: 'claude-opus-4-6', approval: 'immediate' })
+    const agent = await createAgent({ approval: 'deferred' })
+    await updateAgentSettings(agent.id, { approval: 'immediate' })
     const row = await prisma.agent.findUnique({ where: { id: agent.id } })
-    expect(row).toMatchObject({ defaultModel: 'claude-opus-4-6', approval: 'immediate', runtime: 'claude-sdk' })
+    expect(row).toMatchObject({ approval: 'immediate' })
     expect(await prisma.package.count()).toBe(0)
   })
 
   it('refuses an invalid settings edit before writing anything', async () => {
-    const agent = await createAgent({ runtime: 'claude-sdk', defaultModel: 'claude-sonnet-5', approval: 'deferred' })
+    const agent = await createAgent({ approval: 'deferred' })
     await expect(updateAgentSettings(agent.id, { approval: 'yolo' })).rejects.toThrow(/approval/)
     expect((await prisma.agent.findUnique({ where: { id: agent.id } }))?.approval).toBe('deferred')
   })

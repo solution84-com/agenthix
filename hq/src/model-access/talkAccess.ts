@@ -1,39 +1,26 @@
 /**
- * Whether a person can talk to agents in their own Chat (getting-in spec,
- * Skipped steps): for the line under Home's message box and, for admins, the
- * Needs attention item — in place of the global banner, which told every admin
- * about the organisation's credentials whether or not they had their own.
- *
- * A run in a person's own Chat uses their own login or key, then the
- * organisation's (adr-0105), so they can talk when either is there. Read from
- * what is stored each time; nothing is kept.
+ * Whether a person can talk to agents in their own Chat: for the line under Home's message box and, for organisation
+ * admins, the Needs attention item. Asked of the one resolver (models from one place, part 4), as a conversation in
+ * their space would be; nothing is kept.
  */
 import { HttpError, prisma } from 'wasp/server'
-import { computeModelAccessGap } from './modelAccessGap'
 import { roleAtLeast } from '../server/identity/rolePolicy'
+import { resolve } from '../routing/resolver'
 
 export type TalkAccess = {
   canTalk: boolean
-  /** Where the fix is: their own login (Settings › Your model logins), or the organisation's model access, which only an admin sets. */
-  fix: 'own-login' | 'org-access' | null
+  /** Where the fix is: always the organisation's providers and models, which an organisation admin sets. */
+  fix: 'org-access' | null
   isAdmin: boolean
 }
 
 export async function computeTalkAccess(userId: string): Promise<TalkAccess> {
-  const [own, settings] = await Promise.all([
-    prisma.modelCredential.findFirst({
-      where: {
-        ownerType: 'user',
-        ownerId: userId,
-        OR: [{ kind: 'API_KEY' }, { kind: 'SUBSCRIPTION', termsAcceptedAt: { not: null } }],
-      },
-      select: { id: true },
-    }),
+  const [answer, settings] = await Promise.all([
+    resolve({ purpose: 'conversation', place: { kind: 'own', userId }, userId }),
     prisma.userSettings.findUnique({ where: { userId }, select: { role: true } }),
   ])
   const isAdmin = roleAtLeast(settings?.role ?? null, 'ADMIN')
-  if (own || !(await computeModelAccessGap()).missing) return { canTalk: true, fix: null, isAdmin }
-  return { canTalk: false, fix: isAdmin ? 'org-access' : 'own-login', isAdmin }
+  return answer.ok ? { canTalk: true, fix: null, isAdmin } : { canTalk: false, fix: 'org-access', isAdmin }
 }
 
 export const getMyModelAccess = async (_args: void, context: { user?: { id: string } | null }): Promise<TalkAccess> => {

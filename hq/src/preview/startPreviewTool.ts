@@ -151,6 +151,7 @@ export async function runStartPreview(
       sessionId: target.sessionId,
       command: args.command,
       port: args.port,
+      ...(target.personalOwnerId ? { personalOwnerId: target.personalOwnerId } : {}),
     })
     previewId = started.previewId
   } catch (err) {

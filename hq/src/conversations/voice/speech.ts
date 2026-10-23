@@ -1,11 +1,12 @@
 /**
  * Where voice's words and audio go, and where its audio comes from: the conversation's room for who holds voice
- * (everyone reading agrees), the holder's own sockets for everything spoken, and the organisation's text to
- * speech in the agent's voice.
+ * (everyone reading agrees), the holder's own sockets for everything spoken, and the text to speech provider the
+ * resolver gives, in the agent's voice.
  */
-import { prisma } from 'wasp/server'
-import { decryptProviderKey } from '../../server/providerService'
+import { reportCall } from '../../routing/resolver'
 import { inworldTtsAdapter } from '../../voice/inworldAdapter'
+import { failureKind, speechAccess } from '../../voice/speechAccess'
+import type { WordTiming } from '../../voice/ttsAdapter'
 import { conversationEvents, conversationRoom } from '../coordinator/events'
 import { appendMessage } from '../store/messages'
 import { spokenAs } from './phrases'
@@ -28,25 +29,33 @@ export function toSockets(socketIds: Iterable<string>, event: string, payload: u
   for (const id of socketIds) io()?.to(id).emit(event, payload)
 }
 
-export interface AgentVoice { apiKey: string; voiceId: string; model: string }
+export interface AgentVoice { apiKey: string; voiceId: string; model: string; providerId: string }
 
 const DEFAULT_VOICE = 'Ashley'
-const DEFAULT_MODEL = 'inworld-tts-2'
 
-/** The agent's voice on the organisation's text to speech; null when there is none to speak with. */
-export async function agentVoice(agentId: string): Promise<AgentVoice | null> {
-  const [provider, agent] = await Promise.all([
-    prisma.provider.findFirst({ where: { service: 'tts', name: 'inworld', isEnabled: true }, select: { apiKey: true } }),
-    prisma.agent.findUnique({ where: { id: agentId }, select: { voiceEnabled: true, voiceId: true, voiceTtsModel: true } }),
-  ])
-  const apiKey = provider ? decryptProviderKey(provider.apiKey).trim() : ''
-  if (!apiKey || !agent?.voiceEnabled) return null
-  return { apiKey, voiceId: agent.voiceId ?? DEFAULT_VOICE, model: agent.voiceTtsModel ?? DEFAULT_MODEL }
+/** The agent's voice on the text to speech provider the resolver gives it; null, with why, when none works. */
+export async function agentVoice(agentId: string): Promise<{ voice: AgentVoice } | { reason: string }> {
+  const answer = await speechAccess('tts', agentId)
+  if (!answer.ok) return { reason: answer.reason }
+  const { apiKey, voice, model, providerId } = answer.access
+  return { voice: { apiKey, voiceId: voice ?? DEFAULT_VOICE, model, providerId } }
+}
+
+/** Speech from the provider, its outcome reported to the provider's health as it ends. */
+async function* reported(providerId: string, speech: AsyncIterable<{ audio: Buffer; wordTiming?: WordTiming }>) {
+  try {
+    yield* speech
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    reportCall(providerId, failureKind(null, message), message.slice(0, 200))
+    throw err
+  }
+  reportCall(providerId, null)
 }
 
 export function sessionDeps(conversationId: string, voice: AgentVoice): VoiceSessionDeps {
   return {
-    synthesize: (text, signal) => inworldTtsAdapter.synthesizeStream(text, voice, signal),
+    synthesize: (text, signal) => reported(voice.providerId, inworldTtsAdapter.synthesizeStream(text, voice, signal)),
     asEncouragement: text => spokenAs(text, voice),
     toHolder: (event, payload) => {
       const session = voiceSession(conversationId)

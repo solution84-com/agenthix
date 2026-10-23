@@ -6,13 +6,10 @@
  */
 import type { RunRow, RunStatusEvent } from '@agenthix/core'
 import { RESULT_CAP_CHARS, RESULT_TOO_LARGE, type OperationResult } from '../../../shared/conversations/protocol'
-import type { Effort } from '../../../model-policy/workChoice'
 import { cutShort, plainText } from '../../plainText'
 
-/** A brief's model and runtime: chosen as a task's run's are. */
-export { workChoice as workerChoice, type Effort } from '../../../model-policy/workChoice'
-/** What a WORKER operation keeps in `args`: the start_work arguments its dispatch still needs. */
-export type WorkerArgs = { effort?: Effort }
+/** What a WORKER operation keeps in `args`: the start_work arguments it was given. */
+export type WorkerArgs = { effort?: 'light' | 'heavy'; /** The model the person's words named: a picker value (`<providerId>/<model>`). */ model?: string }
 
 /** The summary when a run ended saying nothing at all. */
 export const NO_SUMMARY = 'The work ended without saying what it found.'

@@ -14,29 +14,25 @@ vi.mock(uiLucideReactPath, () => {
   return { Search: icon, ChevronDown: icon, Loader2: icon, Plus: icon, Bot: icon, Check: icon }
 })
 import {
-  ProjectAgentView, ProjectAgentRemove, ProjectAgentAssign, ProjectAgentEdit,
+  ProjectAgentView, ProjectAgentRemove, ProjectAgentAssign,
   type ProjectAgentDetailData, type ProjectAgentRowData,
 } from '@agenthix/ui/agents'
 import { ProjectAgentsList } from '@agenthix/ui/projects'
 
 const NOW = new Date('2026-10-08T12:00:00Z')
 const avatar = (a: { name: string }) => <span>{a.name.slice(0, 2)}</span>
-const label = (id: string) => id
-const facts = { id: 'a1', name: 'Frontend dev', handle: 'frontend-dev', role: 'Builds the site', avatarUrl: null, coverUrl: null, defaultModel: 'sonnet', runtime: 'claude-sdk', approval: 'deferred' }
+const modelLine = (id: string) => `models of ${id}`
+const facts = { id: 'a1', name: 'Frontend dev', handle: 'frontend-dev', role: 'Builds the site', avatarUrl: null, coverUrl: null, approval: 'deferred' }
 const idle = { state: 'idle' as const, lead: null, needsYouCount: 0, runningCount: 0, next: null }
 const counts = { todo: 3, inProgress: 2, done: 14, needsYou: 0, running: 0, total: 19 }
 
 function row(over: Partial<ProjectAgentRowData> = {}): ProjectAgentRowData {
-  return { agent: facts, isDefault: false, now: idle, tasks: counts, model: { own: 'sonnet', here: 'haiku', narrowed: true }, narrowed: true, ...over }
+  return { agent: facts, isDefault: false, now: idle, tasks: counts, narrowed: true, ...over }
 }
 
 function detail(over: Partial<ProjectAgentDetailData> = {}): ProjectAgentDetailData {
   return {
     ...row(), canManage: false, nowItems: [], comingUp: [],
-    inThisProject: {
-      own: { model: 'sonnet', approval: 'deferred', allowedTools: [{ name: 'Bash', state: 'ask' }, { name: 'WebFetch', state: 'always' }] },
-      narrowing: { model: 'haiku', approval: null, allowedTools: [{ name: 'WebFetch', state: 'never' }], allowedBashPatterns: null },
-    },
     recentRuns: { runs: [] }, ...over,
   }
 }
@@ -45,7 +41,7 @@ const noop = () => {}
 function view(d: ProjectAgentDetailData, over: Partial<React.ComponentProps<typeof ProjectAgentView>> = {}) {
   return render(
     <ProjectAgentView
-      detail={d} instructions={null} now={NOW} renderAvatar={avatar} modelLabel={label}
+      detail={d} instructions={null} now={NOW} renderAvatar={avatar}
       onMoreTaskDetails={noop} onBack={noop} onOpenTasks={noop} onOpenRuns={noop} onOpenPlace={noop} onOpenFile={noop} {...over}
     />,
   )
@@ -55,7 +51,7 @@ describe('the list @SC-574', () => {
   const instructionFile = { path: 'AGENTS.md', text: 'Previews only.', modifiedAt: null, tooLarge: false }
   const render1 = (agents: ProjectAgentRowData[], over: Partial<React.ComponentProps<typeof ProjectAgentsList>> = {}) => render(
     <ProjectAgentsList
-      agents={agents} everyAgent={{ file: instructionFile, skills: ['seo-audit'] }} now={NOW} renderAvatar={avatar} modelLabel={label}
+      agents={agents} everyAgent={{ file: instructionFile, skills: ['seo-audit'] }} now={NOW} renderAvatar={avatar} modelLine={modelLine}
       onOpenAgent={noop} onOpenFile={noop} {...over}
     />,
   )
@@ -101,15 +97,12 @@ describe('the list @SC-574', () => {
 })
 
 describe('an agent opened inside the tool @SC-575', () => {
-  it('shows In this project to a member, without Edit, with the model beside the agent’s own', () => {
-    view(detail({ canManage: false }), { onEdit: noop })
-    expect(screen.getByText('In this project')).toBeTruthy()
-    expect(screen.getByText(/its own: sonnet/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
+  it('gives a member no Remove from this project', () => {
+    view(detail({ canManage: false }))
     expect(screen.queryByText('Remove from this project')).toBeNull()
   })
 
-  it('shows Permissions here to every member, after In this project, and scrolls to the part named @SC-620', () => {
+  it('shows Permissions here to every member, and scrolls to the part named @SC-620', () => {
     const scrolled: string[] = []
     const original = Element.prototype.scrollIntoView
     Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this.getAttribute('data-part') ?? this.textContent ?? '') }
@@ -118,18 +111,13 @@ describe('an agent opened inside the tool @SC-575', () => {
     } finally {
       Element.prototype.scrollIntoView = original
     }
-    const html = document.body.innerHTML
-    expect(html.indexOf('In this project')).toBeLessThan(html.indexOf('Permissions here'))
     expect(scrolled).toEqual(['Permissions here'])
   })
 
-  it('gives the project’s admin Edit and Remove from this project', () => {
-    const onEdit = vi.fn()
+  it('gives the project’s admin Remove from this project', () => {
     const onRemove = vi.fn()
-    view(detail({ canManage: true }), { onEdit, onRemove })
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    view(detail({ canManage: true }), { onRemove })
     fireEvent.click(screen.getByText('Remove from this project'))
-    expect(onEdit).toHaveBeenCalled()
     expect(onRemove).toHaveBeenCalled()
   })
 
@@ -269,32 +257,12 @@ describe("Remove the project's default agent @SC-576", () => {
   })
 })
 
-describe('In this project, edited in place @SC-575', () => {
-  it('edits the model only, and saves the permissions the narrowing already holds as they are', async () => {
-    const onSave = vi.fn().mockResolvedValue(undefined)
-    const held = { name: 'WebFetch', state: 'never' as const }
-    render(
-      <ProjectAgentEdit
-        detail={detail({ inThisProject: { own: { model: 'sonnet', approval: 'deferred', allowedTools: null }, narrowing: { model: null, approval: 'immediate', allowedTools: [held], allowedBashPatterns: null } } })}
-        modelOptions={[{ value: 'sonnet', label: 'Sonnet' }, { value: 'haiku', label: 'Haiku' }, { value: 'opus', label: 'Opus', disabledReason: 'costs more' }]}
-        modelLabel={label} onSave={onSave} onCancel={noop}
-      />,
-    )
-    expect(screen.queryByLabelText('Immediate')).toBeNull()
-    expect(screen.queryByLabelText('WebFetch')).toBeNull()
-    fireEvent.click(screen.getByLabelText('Haiku'))
-    expect((screen.getByLabelText(/Opus/) as HTMLInputElement).disabled).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ model: 'haiku', approval: 'immediate', allowedTools: [held], allowedBashPatterns: null }))
-  })
-})
-
 describe('the list among other members @SC-574', () => {
   it('drops ＋ Assign, marks the default agent, and names the teams that bring an agent here', () => {
     render(
       <ProjectAgentsList
         agents={[row({ isDefault: true }), row({ agent: { ...facts, id: 'a2', name: 'Content writer' } })]} everyAgent={null} now={NOW} renderAvatar={avatar}
-        modelLabel={label} onOpenAgent={noop} onOpenFile={noop} onAssign={noop} hideHeader teamsOf={id => (id === 'a2' ? ['Marketing'] : [])}
+        modelLine={modelLine} onOpenAgent={noop} onOpenFile={noop} onAssign={noop} hideHeader teamsOf={id => (id === 'a2' ? ['Marketing'] : [])}
       />,
     )
     expect(screen.queryByRole('button', { name: '＋ Assign' })).toBeNull()

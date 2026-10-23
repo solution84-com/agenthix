@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useQuery, getAiProviders } from 'wasp/client/operations'
 import type { AiProviderSummary } from '@agenthix/core'
-import { Button } from '@agenthix/ui/primitives'
+import { Button, Modal } from '@agenthix/ui/primitives'
 import { AppLayout } from '../../shared/layouts/AppLayout'
+import { CloudConnectPanel } from '../components/CloudConnectPanel'
 import { AddProviderDialog } from '../components/AddProviderDialog'
 import { ImpactDialog } from '../components/ImpactDialog'
 import { ReplaceKeyDialog, RenameDialog } from '../components/KeyAndNameDialogs'
@@ -17,6 +18,8 @@ export function ProvidersPage() {
   const [params] = useSearchParams()
   const linked = params.get('provider')
   const [adding, setAdding] = useState(false)
+  const [cloudOpen, setCloudOpen] = useState(false)
+  const cloudConnected = providers?.some(p => p.vendor === 'cloud' && p.state !== 'disconnected') ?? false
   const [open, setOpen] = useState<Open>(null)
   const chosen = open ? providers?.find(p => p.id === open.id) : undefined
 
@@ -35,7 +38,10 @@ export function ProvidersPage() {
             <h1 className="text-h1 font-semibold text-text-primary">Providers</h1>
             <p className="mt-0.5 text-small text-text-secondary">Where the organisation&rsquo;s models and voice come from, and who bills for them. Which models people get is chosen under Models.</p>
           </div>
-          <Button onClick={() => setAdding(true)}>Add provider</Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setCloudOpen(true)}>{cloudConnected ? 'Agenthix Cloud…' : 'Connect Agenthix Cloud'}</Button>
+            <Button onClick={() => setAdding(true)}>Add provider</Button>
+          </div>
         </div>
 
         {error && <p role="alert" className="mt-6 text-small text-danger">{error.message}</p>}
@@ -50,7 +56,10 @@ export function ProvidersPage() {
         )}
       </div>
 
-      <AddProviderDialog open={adding} onClose={() => setAdding(false)} onAdded={() => undefined} existingVendors={providers?.map(p => p.vendor) ?? []} />
+      <AddProviderDialog open={adding} onClose={() => setAdding(false)} onAdded={() => undefined} existingVendors={providers?.map(p => p.vendor) ?? []} onChooseCloud={() => { setAdding(false); setCloudOpen(true) }} />
+      <Modal open={cloudOpen} onClose={() => setCloudOpen(false)} title="Agenthix Cloud">
+        <CloudConnectPanel allowDisconnect />
+      </Modal>
       {chosen && open?.action === 'replace' && <ReplaceKeyDialog open provider={chosen} onClose={close} />}
       {chosen && open?.action === 'rename' && <RenameDialog open provider={chosen} onClose={close} />}
       {chosen && (open?.action === 'remove' || open?.action === 'revoke') && <ImpactDialog kind={open.action} provider={chosen} onClose={close} />}

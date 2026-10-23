@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { SiteSelector, type SiteOption } from '../primitives'
 import { sanitizeHandle } from './sanitizeHandle'
-import { AGENT_RUNTIMES, modelForRuntimeChange, runtimeLabel } from '@agenthix/core'
-import { ModelSelect } from './ModelSelect'
-import { DEFAULT_AGENT_MODEL, DEFAULT_AGENT_RUNTIME, type CreateAgentActions } from './types'
+import type { CreateAgentActions } from './types'
 
 export interface CreateAgentModalProps {
   open: boolean
@@ -24,8 +22,6 @@ export function CreateAgentModal({
   const [handle, setHandle] = useState('')
   const [handleTouched, setHandleTouched] = useState(false)
   const [role, setRole] = useState('')
-  const [runtime, setRuntime] = useState<string>(DEFAULT_AGENT_RUNTIME)
-  const [defaultModel, setDefaultModel] = useState(DEFAULT_AGENT_MODEL)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -37,8 +33,6 @@ export function CreateAgentModal({
     setHandle('')
     setHandleTouched(false)
     setRole('')
-    setRuntime(DEFAULT_AGENT_RUNTIME)
-    setDefaultModel(DEFAULT_AGENT_MODEL)
     setError(null)
   }
 
@@ -47,12 +41,6 @@ export function CreateAgentModal({
   const handleNameChange = (v: string) => {
     setName(v)
     if (!handleTouched) setHandle(sanitizeHandle(v.replace(/\s+/g, '_')))
-  }
-
-  // The model list follows the runtime, so a model of the other one is replaced by this one's default.
-  const changeRuntime = (next: string) => {
-    setRuntime(next)
-    setDefaultModel(modelForRuntimeChange(next, defaultModel))
   }
 
   const selectClass = 'w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-small text-text-primary outline-none focus:border-accent/50 [color-scheme:dark]'
@@ -69,8 +57,6 @@ export function CreateAgentModal({
         name: name.trim(),
         handle: handle.trim(),
         role: role.trim() || undefined,
-        runtime,
-        defaultModel,
       })
       handleClose()
       onCreated?.(result.id)
@@ -89,7 +75,7 @@ export function CreateAgentModal({
 
         <div className="px-6 py-5 border-b border-border-subtle">
           <div className="text-h3 font-semibold text-text-primary">New Agent</div>
-          <div className="text-small text-text-muted mt-0.5">Define a name, handle, and model</div>
+          <div className="text-small text-text-muted mt-0.5">Define a name and handle. Its models are set afterwards, under Models</div>
         </div>
 
         <div className="p-6 space-y-4">
@@ -140,18 +126,6 @@ export function CreateAgentModal({
               placeholder="e.g. Software Engineer"
               className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-small text-text-primary placeholder:text-text-muted outline-none focus:border-accent/50"
             />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-micro font-medium text-text-muted uppercase tracking-wide">Runtime</label>
-            <select value={runtime} onChange={e => changeRuntime(e.target.value)} className={selectClass}>
-              {AGENT_RUNTIMES.map(r => <option key={r} value={r}>{runtimeLabel(r)}</option>)}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-micro font-medium text-text-muted uppercase tracking-wide">Default Model</label>
-            <ModelSelect runtime={runtime} value={defaultModel} onChange={setDefaultModel} className={selectClass} />
           </div>
 
           {error && <p className="text-small text-danger">{error}</p>}

@@ -13,14 +13,12 @@
 import { coerceToolPermissions, coerceBashPatternPermissions } from '../toolPermissions'
 
 export type AgentBehaviourFields = {
-  defaultModel?: string
-  runtime?: string
   approval?: string
   allowedTools?: unknown
   allowedBashPatterns?: unknown
 }
 
-const BEHAVIOUR_KEYS = ['defaultModel', 'runtime', 'approval', 'allowedTools', 'allowedBashPatterns'] as const
+const BEHAVIOUR_KEYS = ['approval', 'allowedTools', 'allowedBashPatterns'] as const
 
 /**
  * One shape for both sides of the comparison: a legacy `string[]` becomes the
@@ -77,22 +75,4 @@ export function resolveAgentSave(
   const change = realBehaviourChanges(incoming, current)
   if (Object.keys(change).length === 0) return { kind: 'identity-only' }
   return { kind: 'save', change }
-}
-
-export type VoiceSaveDecision = { kind: 'ok' } | { kind: 'refused'; message: string }
-
-export const AGENT_VOICE_SAVE_REFUSAL_MESSAGE =
-  "Changing an agent's voice requires the ADMIN role. Ask an organisation admin to make this change."
-
-/**
- * updateAgentVoice has no identity-only subset like the behaviour fields do —
- * every call is an org-admin act (server floor: ADMIN, agentVoiceActions.ts) —
- * so there is no diff to take, only the admin check. Same shape as
- * resolveAgentSave otherwise: the page reads role fresh at save time and
- * refuses here, before the network call, rather than let the Voice tab's
- * control — which stays visible and usable for reading current settings —
- * round-trip into a 403.
- */
-export function resolveVoiceSave(isOrgAdmin: boolean): VoiceSaveDecision {
-  return isOrgAdmin ? { kind: 'ok' } : { kind: 'refused', message: AGENT_VOICE_SAVE_REFUSAL_MESSAGE }
 }

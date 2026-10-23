@@ -23,6 +23,7 @@ import { sweepExpiredRunTokens } from './runtime/runTokens'
 import { setAfterPackageStored } from '../packages/packageMethods'
 import { schedulePackageEviction } from '../packages/packageEvictionScheduler'
 import { sweepIncomingDir } from '../packages/packageCache'
+import { usageOutbox } from './modelRelay/usageOutbox'
 import { startControlSocket } from './control/controlSocket'
 import { validateEnv } from './validateEnv'
 import { hostFigures } from './host/hostFigures'
@@ -166,6 +167,9 @@ export async function setupServer(): Promise<void> {
     const swept = sweepExpiredRunTokens()
     if (swept > 0) logger.info(`Swept ${swept} expired run token(s).`)
   }, 5 * 60_000).unref()
+
+  // Usage reports an earlier run of the site left waiting for hq go out now (usageOutbox.ts).
+  usageOutbox().start()
 
   // No-op until a credential exists; otherwise dials hq's control channel and
   // reconnects with backoff.

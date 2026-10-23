@@ -1,11 +1,9 @@
 import { HttpError, prisma } from 'wasp/server'
-import type { ForgetMemoryItem, SaveMemoryItem, SetMemoryEmbeddingModel, SetMemoryPinned } from 'wasp/server/operations'
+import type { ForgetMemoryItem, SaveMemoryItem, SetMemoryPinned } from 'wasp/server/operations'
 import {
   MEMORY_MAX_TAGS, type MemoryItemIdArgs, type MemoryItemView, type SaveMemoryItemArgs, type SetMemoryPinnedArgs,
 } from '../../shared/memory/protocol'
-import { isOrgAdmin } from '../../projects/membership'
-import { memoryService, MemoryRefused } from '../memoryService'
-import { switchEmbeddingModel } from '../reembed'
+import { memoryService } from '../memoryService'
 import { KINDS, screenPrincipal, screenTarget, signedIn, specOf, type ScopeSpec } from './access'
 import { VIEW_SELECT, viewsOf } from './views'
 
@@ -56,17 +54,4 @@ export const forgetMemoryItem: ForgetMemoryItem<MemoryItemIdArgs, { ok: boolean 
   if (!item) return { ok: false }
   const { principal, spec } = await ownItem(userId, args.id)
   return { ok: await memoryService.forget(principal, item.key, spec.scope) }
-}
-
-/** An organisation admin's: starts moving every item to another embedding model; the old vectors serve until done. */
-export const setMemoryEmbeddingModel: SetMemoryEmbeddingModel<{ model: string }, { ok: true }> = async (args, context) => {
-  const userId = signedIn(context)
-  if (!(await isOrgAdmin(userId))) throw new HttpError(403, 'Only an organisation admin can change the embedding model')
-  try {
-    await switchEmbeddingModel(args.model.trim())
-  } catch (error) {
-    if (error instanceof MemoryRefused) throw new HttpError(400, error.reason)
-    throw error
-  }
-  return { ok: true }
 }

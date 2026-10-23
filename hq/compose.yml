@@ -38,8 +38,6 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in hq/compose.env}
       SECRETS_MASTER_KEY: ${SECRETS_MASTER_KEY:?Set SECRETS_MASTER_KEY in hq/compose.env (openssl rand -base64 32)}
       HQ_PAIRING_SECRET: ${HQ_PAIRING_SECRET:-}
-      # Development-only; blanked so a stray line in compose.env cannot reach the container.
-      HQ_DEV_SHARED_SUBSCRIPTION: ""
     volumes:
       - hq_storage:/hq-storage
     networks: [internal]

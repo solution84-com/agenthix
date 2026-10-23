@@ -6,7 +6,7 @@ import { useQuery, useAction, getOrgAgents, getAgentUsage, createAgent } from 'w
 import { CreateAgentModal, BypassedMark } from '@agenthix/ui/agents'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { AuthedAgentAvatar } from '../../../shared/components/AuthedAgentAvatar'
-import { modelsForRuntime } from '../../models'
+import { useAgentModelLine } from '../../useAgentModelLine'
 import type { AgentCard } from '../../agentPlaceQueries'
 import { approvalLabel } from '../approvalLabel'
 import { costLabel, monthStart } from '../place/usageView'
@@ -22,7 +22,7 @@ function UsageCell({ agentId, since }: { agentId: string; since: string }) {
 
 function AgentRow({ card, since }: { card: AgentCard; since: string }) {
   const { agent } = card
-  const model = modelsForRuntime(agent.runtime).find(m => m.value === agent.defaultModel)?.label ?? agent.defaultModel
+  const model = useAgentModelLine()(agent.id)
   return (
     <div data-testid="manage-agent-row" className="flex items-center gap-3 overflow-hidden rounded-xl border border-border-subtle bg-surface-1 pr-4">
       <div className="relative hidden h-16 w-28 shrink-0 self-stretch overflow-hidden sm:block"><AgentCover coverUrl={agent.coverUrl} /></div>
@@ -90,7 +90,7 @@ function ManageList() {
         open={creating}
         onClose={() => setCreating(false)}
         defaultSiteId="site"
-        actions={{ createAgent: ({ name, handle, role, defaultModel, runtime }) => create({ name, handle, role, defaultModel, runtime }) }}
+        actions={{ createAgent: ({ name, handle, role }) => create({ name, handle, role }) }}
         onCreated={() => setCreating(false)}
       />
     </AppLayout>

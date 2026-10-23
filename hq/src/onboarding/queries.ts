@@ -2,7 +2,6 @@ import { HttpError, prisma } from 'wasp/server'
 import { personById } from '../server/identity/people'
 import { readPublicOrgIdentity, readOrgCard, type PublicOrgIdentity } from '../org/publicIdentity'
 import { invitedProjects } from '../auth/inviteGlimpse'
-import { computeModelAccessGap } from '../model-access/modelAccessGap'
 import { needsSetup } from '../setup/setupState'
 
 export type OnboardingData = {
@@ -14,7 +13,7 @@ export type OnboardingData = {
   invitedBy: string | null
   /** What the invitation added, in the order named; the first is where they land. */
   projects: { key: string; name: string }[]
-  /** Neither the organisation nor their projects give them model access, so the step is theirs. */
+  /** Always false: models are the organisation admins' to supply (models from one place), never a joiner's step. */
   needsModel: boolean
   /** The first-admin account belongs to setup, never to onboarding. */
   needsSetup: boolean
@@ -30,14 +29,13 @@ export const getOnboardingData = async (_args: void, context: { user?: { id: str
   if (!context.user) throw new HttpError(401)
   const userId = context.user.id
 
-  const [identity, card, person, summary, settings, invite, gap, setup] = await Promise.all([
+  const [identity, card, person, summary, settings, invite, setup] = await Promise.all([
     readPublicOrgIdentity(),
     readOrgCard(),
     prisma.user.findUnique({ where: { id: userId }, select: { displayName: true, avatarUrl: true } }),
     personById(userId),
     prisma.userSettings.findUnique({ where: { userId }, select: { role: true, timezone: true } }),
     prisma.invite.findFirst({ where: { consumedBy: userId, kind: 'INVITATION' }, select: { createdBy: true, projectIds: true } }),
-    computeModelAccessGap(),
     needsSetup(userId),
   ])
   const [inviter, projects] = await Promise.all([
@@ -53,7 +51,7 @@ export const getOnboardingData = async (_args: void, context: { user?: { id: str
     role: settings?.role === 'ADMIN' ? 'ADMIN' : 'MEMBER',
     invitedBy: inviter && inviter.state !== 'erased' ? inviter.name : null,
     projects: named,
-    needsModel: gap.missing,
+    needsModel: false,
     needsSetup: setup,
     landAt: named[0] ? `/projects/${named[0].key}` : '/',
   }

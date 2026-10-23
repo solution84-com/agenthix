@@ -5,7 +5,8 @@
  * behavior — importers (containerPrep.ts, locationResolver.ts, tests) reach for
  * this module directly rather than through AgentContainerManager.ts.
  */
-import type { CapabilityRunner, RunCredential } from '@agenthix/core'
+import type { CapabilityRunner } from '@agenthix/core'
+import type { SiteRunCredential } from '../../server/modelRelay/runAccess'
 
 /**
  * One directory of a boundary's storage, on both sides of the container's bind.
@@ -123,7 +124,7 @@ export interface ContainerContext {
   /** The invoking person, chat sessions only — null/undefined for autonomous or task-scoped runs. */
   invokerUserId?: string | null
   taskId?: string | null
-  credential: RunCredential | null
+  credential: SiteRunCredential | null
 }
 
 /**

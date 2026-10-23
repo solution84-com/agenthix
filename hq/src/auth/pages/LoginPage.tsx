@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { login } from 'wasp/client/auth'
 import { AuthLayout } from './parts/AuthLayout'
-import { Heading, SECONDARY, TEXT_LINK, ProblemScreen } from './parts/authUi'
+import { Heading, SECONDARY, StateLine, TEXT_LINK, ProblemScreen } from './parts/authUi'
 import { SignInForm } from './parts/SignInForm'
 import { CloudSignInOption } from './parts/CloudSignInOption'
 import { usePublicIdentity, type ShownIdentity } from './parts/orgCard'
@@ -54,34 +54,38 @@ function ForgotPassword({ org, onBack }: { org: string | null; onBack: () => voi
   )
 }
 
-function FirstAdminWaiting({ identity }: { identity: ShownIdentity | null }) {
+/** U1: nothing to sign in to and no form; the one person who can act is told the command that unblocks them. */
+function NotSetUpYet({ identity }: { identity: ShownIdentity | null }) {
   return (
     <AuthLayout identity={identity}>
-      <Heading title={`Set up ${BRANDING.displayName}`} lead="This HQ has no admin yet." />
+      <Heading title="This HQ isn't set up yet" lead="Whoever installed it sets it up first, from the link the installer printed." />
       <p className="text-body text-text-secondary">
-        Open the setup link printed in HQ's log, or run <code className="font-mono text-text-primary">./{BRANDING.cliCommand} invite-admin</code> on HQ's machine to print a new one.
+        <b className="font-medium text-text-primary">Installed it yourself?</b> Open that link. Lost it, or it has expired? On the machine HQ runs on, run{' '}
+        <code className="font-mono text-text-primary">{BRANDING.cliCommand} hq invite-admin</code> for a new one.
       </p>
+      <p className="mt-3 text-small text-text-muted">Waiting to join? You'll get an invitation once it's ready.</p>
     </AuthLayout>
+  )
+}
+
+/** U4: the first account exists and setup is not finished; signing in as that account carries setup on. */
+function AlmostReady() {
+  return (
+    <StateLine tone="warn">
+      <b className="font-medium text-text-primary">Almost ready.</b> Setup isn't finished yet. If you made the first account, sign in to carry on where you stopped.
+    </StateLine>
   )
 }
 
 export function LoginPage() {
   const navigate = useNavigate()
   const { identity, loaded } = usePublicIdentity()
-  const [bootstrap, setBootstrap] = useState<boolean | null>(null)
   const [username, setUsername] = useState(rememberedUsername)
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(() => rememberedUsername() !== '')
   const [view, setView] = useState<'sign-in' | 'forgot' | 'removed'>('sign-in')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    fetch('/api/auth/bootstrap-status')
-      .then(r => r.json())
-      .then(data => setBootstrap(!!data.bootstrapRequired))
-      .catch(() => setBootstrap(false))
-  }, [])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -100,9 +104,10 @@ export function LoginPage() {
     }
   }
 
-  if (!loaded || bootstrap === null) return <div className="min-h-screen bg-surface-1" />
+  if (!loaded) return <div className="min-h-screen bg-surface-1" />
   const org = identity?.name ?? null
-  if (bootstrap) return <FirstAdminWaiting identity={identity} />
+  const settingUp = identity?.claimState === 'setting_up'
+  if (identity?.claimState === 'unclaimed') return <NotSetUpYet identity={identity} />
   if (view === 'removed') {
     return (
       <ProblemScreen
@@ -117,6 +122,7 @@ export function LoginPage() {
 
   return (
     <AuthLayout identity={identity}>
+      {settingUp && view === 'sign-in' && <AlmostReady />}
       {view === 'forgot' ? <ForgotPassword org={org} onBack={() => setView('sign-in')} /> : (
         <>
         <SignInForm

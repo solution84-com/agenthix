@@ -1,6 +1,6 @@
 /**
  * hq's connection to Cloud against the real test database: the key kept with hq's encrypted secrets, the record, and
- * who may read, connect and disconnect through the console link — Cloud itself is the stand-in.
+ * who may read the state through the console link, and who connects and disconnects from hq — Cloud itself is the stand-in.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma } from '../../test/db'
@@ -18,6 +18,7 @@ vi.mock('../../fleet/consoleFacts', () => ({
 
 import { cloudConnectionStore, cloudKeyStore } from '../cloudStores'
 import { cloudConnectionKey, cloudConsoleServices, connectByCloud } from '..'
+import { connectHqToCloud, disconnectHqFromCloud, getHqCloudConnection } from '../adminCloud'
 
 const cloud = new CloudStandIn(() => Date.now())
 
@@ -53,43 +54,55 @@ describe("the connection's key and record", () => {
   })
 })
 
-describe('who may connect HQ to Cloud @SC-1090', () => {
+describe('the Fleet Console no longer connects HQ to Cloud @SC-1090', () => {
   const services = cloudConsoleServices()
 
-  it('a fleet admin who is not an organisation admin may read the state, but not connect or disconnect', async () => {
-    const member = await createUserWithRole('MEMBER', { fleetAdmin: true })
-    expect(await services['cloud.state']({ byUserId: member.id })).toEqual({ connection: null, connecting: null, lastAttempt: null, runByCloud: false, problem: null })
-    await expect(services['cloud.connect']({ byUserId: member.id })).rejects.toMatchObject({ code: 'not_allowed' })
-    await expect(services['cloud.disconnect']({ byUserId: member.id })).rejects.toMatchObject({ code: 'not_allowed' })
+  it('a fleet admin may read the state, and connecting and disconnecting are refused with where to do them', async () => {
+    const sam = await createUserWithRole('ADMIN', { fleetAdmin: true })
+    expect(await services['cloud.state']({ byUserId: sam.id })).toEqual({ connection: null, connecting: null, lastAttempt: null, runByCloud: false, problem: null })
+    await expect(services['cloud.connect']({ byUserId: sam.id })).rejects.toMatchObject({ code: 'not_allowed', message: expect.stringContaining('Manage › Providers') })
+    await expect(services['cloud.disconnect']({ byUserId: sam.id })).rejects.toMatchObject({ code: 'not_allowed' })
+    expect(await cloudKeyStore.read()).toBeNull()
     expect(cloud.requests).toEqual([])
   })
 
-  it('an organisation admin who is not a fleet admin may do none of it', async () => {
+  it('a person who is not a fleet admin may not read the state', async () => {
     const admin = await createUserWithRole('ADMIN')
     await expect(services['cloud.state']({ byUserId: admin.id })).rejects.toMatchObject({ code: 'not_allowed' })
-    await expect(services['cloud.connect']({ byUserId: admin.id })).rejects.toMatchObject({ code: 'not_allowed' })
-    const nobody = await createUser()
-    await expect(services['cloud.connect']({ byUserId: nobody.id })).rejects.toMatchObject({ code: 'not_allowed' })
+  })
+})
+
+describe('an organisation admin connects HQ to Cloud from hq @SC-1090', () => {
+  const asUser = (user: { id: string }) => ({ user: { id: user.id } }) as never
+
+  it('a member may do none of it, and Cloud is asked nothing', async () => {
+    const member = await createUserWithRole('MEMBER', { fleetAdmin: true })
+    await expect(getHqCloudConnection(undefined, asUser(member))).rejects.toMatchObject({ statusCode: 403 })
+    await expect(connectHqToCloud(undefined, asUser(member))).rejects.toMatchObject({ statusCode: 403 })
+    await expect(disconnectHqFromCloud(undefined, asUser(member))).rejects.toMatchObject({ statusCode: 403 })
     expect(cloud.requests).toEqual([])
   })
 
-  it('a fleet admin who is also an organisation admin connects, and can drop the request', async () => {
-    const sam = await createUserWithRole('ADMIN', { fleetAdmin: true })
-    const { connecting } = await services['cloud.connect']({ byUserId: sam.id })
+  it('an organisation admin who is not a fleet admin connects, and can drop the request', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    expect(await getHqCloudConnection(undefined, asUser(admin))).toMatchObject({ connection: null, aiAvailable: false })
+    const { connecting } = await connectHqToCloud(undefined, asUser(admin))
     expect(connecting.userCode).toMatch(/^[A-Z]{4}-[A-Z]{4}$/)
-    expect((await services['cloud.state']({ byUserId: sam.id })).connecting).toEqual(connecting)
-    expect(await cloudKeyStore.read()).not.toBeNull()
-    expect(await services['cloud.disconnect']({ byUserId: sam.id })).toEqual({ disconnected: true })
+    expect((await getHqCloudConnection(undefined, asUser(admin))).connecting).toEqual(connecting)
+    expect(await disconnectHqFromCloud(undefined, asUser(admin))).toEqual({ disconnected: true })
     expect(await cloudKeyStore.read()).toBeNull()
   })
 
-  it('Cloud busy is refused as rate limited, saying when to try again', async () => {
-    const sam = await createUserWithRole('ADMIN', { fleetAdmin: true })
+  it('Cloud busy is refused with 429, saying when to try again', async () => {
+    const admin = await createUserWithRole('ADMIN')
     cloud.answerNextWith({ status: 429, body: { error: 'too_many_requests' }, headers: { 'retry-after': '0' } })
-    await expect(services['cloud.connect']({ byUserId: sam.id })).rejects.toMatchObject({
-      code: 'rate_limited', message: 'Agenthix Cloud is busy — try again in 1 minute.',
-    })
-    expect(await services['cloud.state']({ byUserId: sam.id })).toMatchObject({ connection: null, connecting: null })
+    await expect(connectHqToCloud(undefined, asUser(admin))).rejects.toMatchObject({ statusCode: 429, message: 'Agenthix Cloud is busy — try again in 1 minute.' })
+  })
+
+  it('refuses disconnecting on an HQ that Cloud runs', async () => {
+    vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
+    const admin = await createUserWithRole('ADMIN')
+    await expect(disconnectHqFromCloud(undefined, asUser(admin))).rejects.toMatchObject({ statusCode: 409 })
   })
 })
 

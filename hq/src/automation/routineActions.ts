@@ -21,6 +21,7 @@ import {
   pauseRoutine as pause, resumeRoutine as resume, unlinkRound, updateRoutine as update,
 } from './routines'
 import { RoutineError, toPriority, type RoutineScheduleInput, type RoutineTemplateInput } from './routineTemplate'
+import { checkedTaskModel } from '../models-settings/taskModelChoice'
 import { skipWaitingRound, takeWaitingRoundNow } from './routineNextRound'
 
 type Ctx = { user?: { id: string } | null }
@@ -35,13 +36,23 @@ export type RoutineTemplateArgs = {
   boardId?: string | null
   /** A column of the board; null for its Backlog; left out, the board's first column (Project Tasks' Backlog). */
   column?: string | null
+  /** The model each round's run names (`<providerId>/<model>`); null or left out follows the default. */
+  modelChoice?: string | null
 }
 
 function toTemplate(t: RoutineTemplateArgs): RoutineTemplateInput {
   return {
     title: t.title, description: t.description ?? null, priority: toPriority(t.priority), labels: t.labels ?? [],
     assignedAgentId: t.assignedAgentId ?? null, boardId: t.boardId ?? null, column: t.column,
+    ...(t.modelChoice !== undefined ? { modelChoice: t.modelChoice } : {}),
   }
+}
+
+/** The template as given, its model checked for the project, the agent that will run it and the person. */
+async function toCheckedTemplate(t: RoutineTemplateArgs, where: { projectId: string; userId: string; agentId?: string | null }): Promise<RoutineTemplateInput> {
+  const template = toTemplate(t)
+  if (t.modelChoice === undefined) return template
+  return { ...template, modelChoice: await checkedTaskModel(t.modelChoice, { ...where, agentId: template.assignedAgentId ?? where.agentId }) }
 }
 
 async function asHttp<T>(fn: () => Promise<T>): Promise<T> {
@@ -69,7 +80,8 @@ export const createRoutine: CreateRoutine<
   if (!context.user) throw new HttpError(401)
   await requireMayWorkInProject(args.projectId, context.user.id, 'Setting up a routine')
   const userId = context.user.id
-  const routine = await asHttp(() => create(args.projectId, toTemplate(args.template), args.schedule, { kind: 'person', userId }))
+  const template = await asHttp(() => toCheckedTemplate(args.template, { projectId: args.projectId, userId }))
+  const routine = await asHttp(() => create(args.projectId, template, args.schedule, { kind: 'person', userId }))
   return { id: routine.id }
 }
 
@@ -94,8 +106,9 @@ export const updateRoutine: UpdateRoutine<
       throw new HttpError(400, 'That person cannot work in this project')
     }
   }
+  const template = args.template ? await asHttp(() => toCheckedTemplate(args.template!, { projectId: routine.projectId, userId, agentId: routine.assignedAgentId })) : undefined
   await asHttp(() => update(routine.id, {
-    template: args.template ? toTemplate(args.template) : undefined,
+    template,
     schedule: args.schedule,
     onBehalfOfUserId: takingOver ? args.onBehalfOfUserId : undefined,
   }))

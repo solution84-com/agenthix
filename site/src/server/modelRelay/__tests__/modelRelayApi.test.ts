@@ -9,6 +9,7 @@ import type { AddressInfo } from 'node:net'
 import express from 'express'
 import type { ApiKeyRunCredential } from '@agenthix/core'
 import { createModelRelayHandler } from '../modelRelayApi'
+import type { RelayCredential } from '../runAccess'
 import { clearRelayTurn, issueRelayToken, pointRelayToken, resetRelayTokensForTests, revokeRelayToken } from '../relayTokens'
 import { resetGateRunsForTests, stopGateRun } from '../../../agents/runtime/toolGateRuns'
 
@@ -36,8 +37,8 @@ function listen(server: http.Server): Promise<string> {
 }
 
 /** Every relayed provider's upstream is the stand-in, under a path of its own, so the test sees what each would receive. */
-function standinUpstream(credential: ApiKeyRunCredential): string | null {
-  if (credential.provider === 'openai_compatible') return credential.baseUrl ?? null
+function standinUpstream(credential: RelayCredential): string | null {
+  if (credential.kind === 'apiKey' && credential.provider === 'openai_compatible') return credential.baseUrl ?? null
   return `${providerUrl}/${credential.provider}`
 }
 

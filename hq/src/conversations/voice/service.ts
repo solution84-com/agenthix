@@ -18,7 +18,7 @@ import { liveTurn, stopLive } from '../coordinator/liveTurns'
 import { scheduleConversation } from '../coordinator/scheduler'
 import { requestStop } from '../coordinator/turnRecord'
 import { keepHeardText, toMessageView } from '../store/messages'
-import { loadVoiceFacts, inUse, NO_TEXT_TO_SPEECH, voiceRefusal, voiceStartedAt } from './availability'
+import { loadVoiceFacts, inUse, voiceRefusal, voiceStartedAt } from './availability'
 import { clearVoiceHolders, releaseVoice, takeVoice } from './holder'
 import { closeVoiceSession, openVoiceSession, sessionsOfSocket, voiceSession, whenSilent } from './registry'
 import { heardText } from './speechUnits'
@@ -51,14 +51,15 @@ export async function startVoice(socketId: string, userId: string, conversationI
     throw new VoiceRefused(err instanceof HttpError && err.statusCode === 409 ? err.message : 'Conversation not found')
   }
   const row = await prisma.conversation.findUniqueOrThrow({
-    where: { id: ref.id }, select: { id: true, voiceHolderId: true, talkingModel: true, talkingProvider: true },
+    where: { id: ref.id }, select: { id: true, voiceHolderId: true },
   })
-  const { accessProblem } = await accessState(ref, row)
+  const { accessProblem } = await accessState(ref, userId)
   const facts = await loadVoiceFacts({ agentId: ref.agentId, holderId: row.voiceHolderId, speakingRefusal: null, accessProblem })
   const refusal = voiceRefusal(facts, userId)
   if (refusal) throw new VoiceRefused(refusal)
-  const voice = await agentVoice(ref.agentId!)
-  if (!voice) throw new VoiceRefused(NO_TEXT_TO_SPEECH)
+  const spoken = await agentVoice(ref.agentId!)
+  if (!('voice' in spoken)) throw new VoiceRefused(spoken.reason)
+  const voice = spoken.voice
 
   const taken = await takeVoice(ref.id, userId)
   if (!taken.taken) throw new VoiceRefused(inUse((await personName(taken.holderId)) ?? 'Someone else'))

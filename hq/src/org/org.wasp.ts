@@ -42,7 +42,7 @@ export const orgSpec: Spec = [
     api("GET", "/api/org/public-identity", publicOrgIdentityApi, { auth: false }),
     action(setSignInShows, { entities: ["Org", "UserSettings"] }),
     query(getWorkplacePeople, { entities: ["User", "UserSettings", "Invite"] }),
-    query(getOrgSettingsState, { entities: ["Provider", "ModelCredential", "GitHubInstallation", "Org", "SiteConfig"] }),
+    query(getOrgSettingsState, { entities: ["Provider", "AiProvider", "GitHubInstallation", "Org", "SiteConfig"] }),
     query(getTeams, { entities: ["Team", "User"] }),
     query(getTeam, { entities: ["Team", "User", "Project"] }),
     query(getProjectTeams, { entities: ["Team", "ProjectTeam", "ProjectMember", "ProjectAgent"] }),

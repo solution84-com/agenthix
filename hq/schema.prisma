@@ -283,8 +283,6 @@ model Agent {
   name         String
   handle       String         @unique
   role         String?
-  defaultModel String         @default("claude-sonnet-4-6")
-  runtime      String         @default("claude-sdk") // "claude-sdk" | "opencode"
   isKernel     Boolean        @default(false)
   projectAssignments ProjectAgent[]
   sessions     AgentSession[]
@@ -298,9 +296,6 @@ model Agent {
   /// When a person is asked about a tool set to Ask: "deferred" (carry on, ask at the end), "immediate" (stop and
   /// ask at once) or "bypassed" (every tool runs, Never included; no one is asked).
   approval            String @default("deferred")
-  voiceEnabled   Boolean  @default(false)
-  voiceId        String?  // Inworld voice ID e.g. "Ashley"
-  voiceTtsModel  String?  // "inworld-tts-1.5-max" | "inworld-tts-1.5-mini"
   // Its own models and voice (models from one place, part 4); none chosen while there is no row.
   modelChoices AgentModelChoices?
   createdAt    DateTime       @default(now())
@@ -435,19 +430,13 @@ model Conversation {
   status        ConversationStatus   @default(ACTIVE)
   closedReason  ConversationClosedReason?
   title         String?
-  /// The talking model and the access it runs on, fixed at the first turn and
-  /// kept for the conversation's life; changed only by the person's say when
-  /// the access stops being usable (model access spec), and the switch recorded
-  /// as a NOTICE message. Null until the first turn resolves them.
+  /// The model the conversation talks on, a model via a provider (models from one place, part 4): fixed at the first
+  /// turn and kept for the conversation's life; changed only by the person, by picking another or by taking the offer
+  /// made when its provider stops working, each written as a NOTICE message. Null until the first turn resolves it.
+  /// `talkingProviderId` is an AiProvider's id, not a foreign key: a provider removed leaves it naming nothing, and
+  /// the conversation is offered another.
   talkingModel  String?
-  talkingProvider ModelCredentialProvider?
-  /// Whose access pays: 'org' | 'project' | 'user', and which kind of access.
-  accessOwnerType ModelCredentialOwnerType?
-  accessKind    ConversationAccessKind?
-  /// The keys a provider refused while this conversation talked on them, as
-  /// [{ owner, provider }]: never used by it again, neither by a turn falling
-  /// back nor in what its model picker offers (model access spec).
-  refusedAccess Json                 @default("[]")
+  talkingProviderId String?
   /// The order counter for messages: each new message takes lastSeq + 1.
   lastSeq       Int                  @default(0)
   lastMessageAt DateTime             @default(now())
@@ -475,12 +464,6 @@ model Conversation {
 
   @@index([openedById, home, status, lastMessageAt])
   @@index([projectId, openedById, status])
-}
-
-enum ConversationAccessKind {
-  API_KEY
-  /// Sign in with ChatGPT — only once the vendor issues the client id.
-  CHATGPT_PLAN
 }
 
 enum ConversationRole {
@@ -590,7 +573,8 @@ model InferenceTurn {
   /// The agent that spoke in it.
   agentId        String?
   model          String?
-  provider       ModelCredentialProvider?
+  /// The AiProvider the turn talked through; not a foreign key.
+  providerId     String?
   inputTokens      Int                @default(0)
   outputTokens     Int                @default(0)
   cacheReadTokens  Int                @default(0)
@@ -740,26 +724,6 @@ model ConversationSegment {
 /// The models a boundary prefers (model access spec, Model selection): set by a
 /// person for their own space ('user'), by a project ('project'), and by the
 /// organisation ('org', ownerId 'org') as the default for both.
-model ModelPolicy {
-  id          String                   @id @default(uuid())
-  ownerType   ModelCredentialOwnerType
-  ownerId     String
-  /// Each a model id as the runtimes name it (`<provider>/<model>` for a
-  /// provider other than Anthropic); null = the layer below's.
-  talking     String?
-  lightWork   String?
-  heavyWork   String?
-  /// string[] of model ids that may be picked at all; null = any.
-  allowed     Json?
-  /// The most expensive model that may be picked; null = no ceiling.
-  ceiling     String?
-  updatedById String?
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
-
-  @@unique([ownerType, ownerId])
-}
-
 // ──────────────────────────────────────────────
 // Module 6: Projects & Task Management (ADR-0029)
 // ──────────────────────────────────────────────
@@ -1356,6 +1320,9 @@ model Task {
   /// relation, so removing the person from the org leaves the id behind and
   /// the task blocked until a project admin assigns someone else.
   onBehalfOfUserId  String
+  /// The model its runs name (`<providerId>/<model>`), chosen on the task; null follows the assigned agent's default
+  /// worker model, else the organisation's. Checked again when a run starts.
+  modelChoice       String?
   /// Who last queued it: a person, or an agent during a run (its session — the
   /// verified capability names the session, not the run). Written on every path
   /// that sets the task QUEUED. At most one of queuedByUserId and queuedByAgentId
@@ -1482,13 +1449,9 @@ model Org {
   setupCompletedAt DateTime?
   /// How much of the organisation the sign-in page shows to someone not signed in.
   signInShows      SignInShows @default(COVER)
-  /// Memory recalled by meaning (memory and knowledge spec): the one embedding model every item is embedded with —
-  /// 'local' for the model bundled with hq, or '<provider>/<model>' — and, while a switch re-embeds every item in the
-  /// background, the model being moved to. The probe's two bars; null for the model's calibration.
   /// Conversations idle this many days are archived (on-screen spec, Archive); a person may keep one out.
   conversationArchiveAfterDays Int @default(90)
-  memoryEmbeddingModel String  @default("local")
-  memoryEmbeddingNext  String?
+  /// Memory recalled by meaning (memory and knowledge spec): the probe's two bars; null for the model's calibration.
   memoryCertainBar     Float?
   memoryProbableBar    Float?
   /// The IANA time zone the usage report cuts its months in (models from one place, part 5); set during setup.
@@ -1887,7 +1850,6 @@ model AgentOverride {
   boundaryId   String
   agentId      String
   agent        Agent              @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  model        String?
   /// The same shapes as the agent's own: ToolPermission[] and bash pattern permissions. Only stricter than the
   /// organisation's takes effect; for each tool, pattern and approval the strictest level wins.
   allowedTools        Json?
@@ -1997,42 +1959,11 @@ model MemoryOutcome {
 /// belonging to a boundary — the org, a project or a person — never both in
 /// one row. The value is ENCRYPTED at rest
 /// (secretCrypto), like the GitHub App private key beside it.
-model ModelCredential {
-  id              String              @id @default(uuid())
-  kind            ModelCredentialKind
-  /// Whose credential it is. Existing rows are Anthropic's. A subscription is
-  /// always Anthropic's.
-  provider        ModelCredentialProvider @default(anthropic)
-  /// The endpoint of an openai_compatible provider; null for every other.
-  baseUrl         String?
-  /// 'org' for the org's own subscription (ownerId 'org'), 'project' for a
-  /// project's, 'user' for a person's. The org's API key is not here — it stays
-  /// a Provider row.
-  ownerType       ModelCredentialOwnerType
-  ownerId         String
-  /// Encrypted: an API key, or the Claude Code OAuth credentials document.
-  secret          String
-  /// From claudeAiOauth.expiresAt, kept in the clear so the settings page and
-  /// the refresh path can reason about it without decrypting.
-  expiresAt       DateTime?
-  /// When this person accepted the provider's terms for their own
-  /// subscription. Null for an API key; required before a subscription is used.
-  termsAcceptedAt DateTime?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  grants          SubscriptionGrant[]
-
-  @@unique([ownerType, ownerId, provider, kind])
-}
-
-/// One hand-over of a stored subscription login to a run on a site. A site may
-/// report a token the harness refreshed only against a grant hq made to it,
-/// and the report updates the login only while it is still the sign-in that was
-/// handed over (see hq/src/sites/subscriptionGrants.ts).
 model SubscriptionGrant {
   id           String          @id @default(uuid())
-  credentialId String
-  credential   ModelCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  /// The person's own Claude subscription handed over: an AiProvider owned by them.
+  providerId   String
+  provider     AiProvider      @relation(fields: [providerId], references: [id], onDelete: Cascade)
   /// The login's termsAcceptedAt when it was handed over. Set at every sign-in
   /// and never by a refresh, so it tells one sign-in from the next.
   signedInAt   DateTime
@@ -2046,28 +1977,8 @@ model SubscriptionGrant {
   /// After this, a report against the grant is refused.
   expiresAt    DateTime
 
-  @@index([credentialId])
+  @@index([providerId])
   @@index([expiresAt])
-}
-
-/// The values are core's CREDENTIAL_PROVIDERS, spelled the same.
-enum ModelCredentialProvider {
-  openrouter
-  openai
-  google
-  anthropic
-  openai_compatible
-}
-
-enum ModelCredentialKind {
-  API_KEY
-  SUBSCRIPTION
-}
-
-enum ModelCredentialOwnerType {
-  org
-  project
-  user
 }
 
 // ──────────────────────────────────────────────
@@ -2155,6 +2066,8 @@ model Routine {
   nextRoundAt           DateTime?
   /// The person every round is done on behalf of (adr-0089).
   onBehalfOfUserId      String
+  /// The model each round's run names (`<providerId>/<model>`), copied onto the round; null follows the default.
+  modelChoice           String?
   /// Who set it up: a person, or an agent in a run (its session) when a person asked.
   createdByUserId       String?
   createdByAgentId      String?
@@ -2363,6 +2276,7 @@ model AiProvider {
   agentWorkerChoices        AgentModelChoices[] @relation("AgentWorkerModel")
   agentSttChoices           AgentModelChoices[] @relation("AgentStt")
   agentTtsChoices           AgentModelChoices[] @relation("AgentTts")
+  grants                    SubscriptionGrant[]
 
   @@index([ownerUserId])
 }
@@ -2572,4 +2486,33 @@ model CloudUsageCursor {
   cloudOrganisationId String   @id
   cursor              String?
   updatedAt           DateTime @updatedAt
+}
+
+/// An agent's model call as an Execution Site's relay reported it (`POST /api/v1/usage/report`), kept once per call id
+/// until the ledger writes its `UsageEntry` (`ledgeredAt`). A report sent again is acknowledged and not kept twice.
+/// Not foreign keys: the run lives on the site, and a provider removed keeps its reports.
+model RelayUsageReport {
+  callId           String    @id
+  /// The site that reported it, as it authenticated.
+  siteId           String
+  runId            String
+  providerId       String
+  model            String
+  /// When the answer ended, as the site saw it.
+  at               DateTime
+  receivedAt       DateTime  @default(now())
+  /// False when the answer carried no usage the relay could read: the ledger writes it unpriced.
+  hasUsage         Boolean
+  inputTokens      Int       @default(0)
+  outputTokens     Int       @default(0)
+  cacheReadTokens  Int       @default(0)
+  cacheWriteTokens Int       @default(0)
+  /// The upstream HTTP status; 0 when no answer came.
+  upstreamStatus   Int
+  /// core's `UpstreamErrorKind`, when the call failed.
+  errorKind        String?
+  ledgeredAt       DateTime?
+
+  @@index([ledgeredAt, receivedAt])
+  @@index([runId])
 }

@@ -29,9 +29,7 @@ export type {
 } from './permissions/permissionsTypes'
 export type { ToolPermission, ToolPermissionState, BashPatternPermission } from './permissionTypes'
 
-export { VoiceTab } from './tabs/VoiceTab'
 export { matchesVoiceSearch, voiceAccents, voiceGender, type VoiceGender } from './tabs/voiceFilters'
-export type { VoiceTabProps, VoiceTabQueries, VoiceTabActions, VoiceProvider, InworldVoice } from './tabs/VoiceTab'
 
 export { PromptTab } from './tabs/PromptTab'
 export type { PromptTabProps, PromptTabQueries, PromptTabActions, PromptTabSlots, PromptMode } from './tabs/PromptTab'
@@ -51,7 +49,6 @@ export { ProfileCard } from './ProfileCard'
 export type { ProfileCardProps, ProfileCardHereRow } from './ProfileCard'
 export { ProjectAgentView } from './ProjectAgentView'
 export type { ProjectAgentViewProps } from './ProjectAgentView'
-export { ProjectAgentEdit } from './ProjectAgentEdit'
 export { ProjectAgentRemove } from './ProjectAgentRemove'
 export { ProjectAgentAssign } from './ProjectAgentAssign'
 export type { RenderAgentAvatar } from './ProjectAgentParts'

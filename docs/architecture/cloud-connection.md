@@ -10,12 +10,10 @@ A machine that Cloud runs has a separate, older relationship with Cloud, its con
 
 ```mermaid
 sequenceDiagram
-    actor FA as Fleet admin (also an organisation admin)
-    participant HM as Fleet Console
+    actor FA as Organisation admin
     participant HQ as hq
     participant C as Agenthix Cloud
-    FA->>HM: Connect to Cloud, on the Fleet Console's own machine
-    HM->>HQ: cloud.connect over the console link
+    FA->>HQ: Connect Agenthix Cloud, in setup or on Providers
     HQ->>C: /connect/device: hq's public key and address
     C-->>HQ: device code, short code, approval page
     HQ-->>FA: the short code, and the link to the page
@@ -50,18 +48,20 @@ https (plain http only to the machine itself), and hq refuses an approval page t
 
 ## Connecting and disconnecting
 
-- **Only from the Fleet Console's own machine, by a fleet admin who is also an organisation admin**, since the
-  connection is the organisation's. A session that arrived through remote access is refused before hq is asked. The
-  screen is *Connect to Cloud* on HQ's page; the console asks hq through its link (`cloud.state`, `cloud.connect`,
-  `cloud.disconnect`; `console/src/http/routes/cloud.ts`, `hq/src/cloud/index.ts`). From hq's machine,
+- **From hq, by an organisation admin**, since the connection is the organisation's: in setup (step 2, once the
+  account exists) and on *Providers* in the admin area (`hq/src/cloud/adminCloud.ts`: `getHqCloudConnection`,
+  `connectHqToCloud`, `disconnectHqFromCloud`). A connection adds Agenthix Cloud as a provider, which reads *not
+  available yet* until hq's calls to Cloud's models and voice exist; a disconnection leaves it as *disconnected*.
+  The Fleet Console only shows the state (`cloud.state`) and says where to connect; its `cloud.connect` and
+  `cloud.disconnect` methods on the console link are deprecated and refuse. From hq's machine,
   `agenthix cloud connect|disconnect` asks the same of hq over its control socket (`cloud-connection`,
   `hq/src/cloud/machineCommands.ts`), recorded as made by the machine admin.
 - **On a machine Agenthix Cloud runs, Cloud connects hq itself, with no code** (ADR-0135). The host service tells hq
   that Cloud runs its machine (`HQ_RUN_BY_CLOUD`, written into hq's services). Cloud's controller then asks, through
   the host service and hq's control socket, for hq's key and address (`organisation.key`; hq makes the key as for
   *Connect*), registers both for the organisation it runs hq for, and asks hq to connect (`organisation.connect`): hq signs for a token with
-  the key and keeps the connection only once Cloud gives one. The Fleet Console shows *HQ on Agenthix Cloud* and has
-  no *Disconnect* there (hq refuses it too); while not yet connected it offers *Connect* in one line, as the way back.
+  the key and keeps the connection only once Cloud gives one. The Fleet Console shows *HQ on Agenthix Cloud*, and hq
+  refuses *Disconnect* there; while not yet connected, the connection is made in hq as above.
 - **The request waits in hq's memory** for the approval, which Cloud gives at most 30 minutes; hq polls at Cloud's
   interval (5 seconds unless told, and 5 more for each `slow_down`) and the screen reads the state every 3 seconds.
   A restart of hq drops a waiting request, and the admin asks again. Refused, expired and failed requests are shown and
@@ -106,7 +106,7 @@ https (plain http only to the machine itself), and hq refuses an approval page t
   revoking is safe to repeat. **Cloud ending it from its side** is learned from
   `invalid_client`; hq forgets the same way and records the disconnect. Connecting and disconnecting are recorded in hq
   and announced to every admin (`cloud.connected`, `cloud.disconnected`).
-- The approval page shows the short code hq is waiting on. Any fleet admin can see that code while it waits, so the
+- The approval page shows the short code hq is waiting on. Any organisation admin can see that code while it waits, so the
   admin approving must be the one who asked: whoever approves it connects hq to *their* Cloud organisation, and the
   screen then says whose ("Connected as …"), where an organisation admin can disconnect.
 

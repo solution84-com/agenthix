@@ -9,7 +9,7 @@ import { BRANDING } from '@agenthix/core'
 export function AccountStep({ busy, error, onSubmit }: { busy: boolean; error: string; onSubmit: (form: AccountForm) => void }) {
   return (
     <AuthLayout setup side={<FreshHqSide />}>
-      <Steps step={1} />
+      <Steps step={1} total={4} />
       <Heading title={`Set up ${BRANDING.displayName} for your organisation`} lead="You're the first person here, so you'll be its admin." />
       <AccountFields submitLabel="Continue" busyLabel="Creating your account…" busy={busy} error={error} onSubmit={onSubmit} />
       <CloudSignInOption org={null} place="setup" />

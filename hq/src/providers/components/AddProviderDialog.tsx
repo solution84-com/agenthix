@@ -27,13 +27,15 @@ export interface AddProviderFormProps {
   onCancel: () => void
   /** Start at this type's vendors, skipping the choice of type. */
   type?: AiProviderType
+  /** Shows Agenthix Cloud beside the types: it is connected with a code, not keyed, so choosing it leaves this form. */
+  onChooseCloud?: () => void
 }
 
 /**
  * The add-a-provider flow: its type, then its vendor, then the key or address, checked with the vendor before it is
  * saved. It is the whole of the dialog, so setup's models and voice step draws the same form inline.
  */
-export function AddProviderForm({ existingVendors, onAdded, onCancel, type: startType }: AddProviderFormProps) {
+export function AddProviderForm({ existingVendors, onAdded, onCancel, type: startType, onChooseCloud }: AddProviderFormProps) {
   const add = useAction(addAiProvider)
   const [type, setType] = useState<AiProviderType | null>(startType ?? null)
   const [vendor, setVendor] = useState<AiProviderVendor | null>(null)
@@ -71,13 +73,19 @@ export function AddProviderForm({ existingVendors, onAdded, onCancel, type: star
   if (!type) {
     return (
       <div className="space-y-2">
-        <p className="text-small text-text-secondary">What does the provider do?</p>
+        <p className="text-small text-text-secondary">{onChooseCloud ? 'What does the provider do, or is it Agenthix Cloud?' : 'What does the provider do?'}</p>
         {TYPE_CHOICES.map(c => (
           <button key={c.type} type="button" onClick={() => setType(c.type)} className="block w-full rounded-xl border border-border-subtle bg-card p-3 text-left hover:border-accent">
             <span className="block text-body font-semibold text-text-primary">{c.title}</span>
             <span className="block text-small text-text-secondary">{c.line}</span>
           </button>
         ))}
+        {onChooseCloud && (
+          <button type="button" onClick={onChooseCloud} className="block w-full rounded-xl border border-border-subtle bg-card p-3 text-left hover:border-accent">
+            <span className="block text-body font-semibold text-text-primary">Agenthix Cloud</span>
+            <span className="block text-small text-text-secondary">Models and voice, no keys. Billed by Agenthix. You approve it with a short code.</span>
+          </button>
+        )}
         <div className="flex justify-end pt-2"><Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button></div>
       </div>
     )

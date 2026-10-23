@@ -48,7 +48,7 @@ const NO_VOICE: MessageBoxVoice = {
  * voice mode, mute and End stand beside the pill and give way while the person types. The text stays in the box
  * when sending is refused.
  */
-export function MessageBox({ placeholder, running, sending, onSend, onStop, plus, voice = NO_VOICE }: {
+export function MessageBox({ agentId, placeholder, running, sending, onSend, onStop, plus, voice = NO_VOICE }: {
   placeholder: string
   running: boolean
   sending: boolean
@@ -57,13 +57,15 @@ export function MessageBox({ placeholder, running, sending, onSend, onStop, plus
   /** What the plus opens: the model choice. */
   plus?: ReactNode
   voice?: MessageBoxVoice
+  /** The conversation's agent: dictation uses that agent's own speech to text. */
+  agentId?: string
 }) {
   const [text, setText] = useState('')
   const [menu, setMenu] = useState(false)
   const [why, setWhy] = useState(false)
   const menuRoot = useRef<HTMLDivElement>(null)
   const field = useRef<HTMLTextAreaElement>(null)
-  const dictation = useDictation({ text, setText, field })
+  const dictation = useDictation({ text, setText, field, agentId })
   const hasText = text.trim().length > 0
 
   useEffect(() => {

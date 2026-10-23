@@ -34,8 +34,7 @@ const packages: RunPackages = {
 }
 
 /** Every field of the context, including the ones a single run kind never carries. */
-// `modelAccess` (the provider descriptor) is left out until the site's dispatch schema accepts it.
-const fullContext: Required<Omit<RunContextPayload, 'modelAccess'>> = {
+const fullContext: Required<RunContextPayload> = {
   agent,
   chat: { sessionContext: 'Focus on the release.' },
   task: {
@@ -53,6 +52,16 @@ const fullContext: Required<Omit<RunContextPayload, 'modelAccess'>> = {
   riskRules: null,
   credential: { kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-live' },
   fallbackCredentials: [{ kind: 'apiKey', provider: 'openrouter', apiKey: 'sk-or' }],
+  modelAccess: {
+    model: { providerId: 'prov-anthropic', model: 'claude-sonnet-5' },
+    provider: { kind: 'api_key', providerId: 'prov-anthropic', vendor: 'anthropic', apiKey: 'sk-test-fake' },
+    others: [
+      { kind: 'api_key', providerId: 'prov-local', vendor: 'openai_compatible', apiKey: '', baseUrl: 'http://localhost:11434/v1' },
+      { kind: 'cloud', providerId: 'prov-cloud', vendor: 'cloud', api: 'anthropic', baseUrl: 'https://cloud.example/ai/v1/anthropic' },
+      { kind: 'subscription', providerId: 'prov-mine', vendor: 'anthropic', oauthJson: '{}', grantId: 'g1', loginId: 'l1' },
+    ],
+    billingProfileId: 'bp-1',
+  },
   webSearchKey: 'exa-key',
   credentialProblem: 'No credential is configured for this boundary.',
   packages,
@@ -110,6 +119,18 @@ describe('every dispatch kind agrees with the payload core declares', () => {
     if (!result.success) throw new Error(`validator rejects core's full context: ${issues(result)}`)
     expect(result.data.context.credentialProblem).toBe(fullContext.credentialProblem)
     expect(result.data.context.packages.org).toEqual(packages.org)
+    expect(result.data.context.modelAccess).toEqual(fullContext.modelAccess)
+  })
+
+  it('refuses a provider descriptor that does not fit its vendor', () => {
+    const access = fullContext.modelAccess
+    const keyless = { ...access, provider: { kind: 'api_key', providerId: 'p', vendor: 'openai', apiKey: '' } }
+    const addressed = { ...access, provider: { kind: 'api_key', providerId: 'p', vendor: 'openai', apiKey: 'k', baseUrl: 'https://elsewhere.example' } }
+    const unknownKind = { ...access, provider: { kind: 'token', providerId: 'p' } }
+    for (const modelAccess of [keyless, addressed, unknownKind]) {
+      const context = { ...fullContext, modelAccess } as unknown as RunContextPayload
+      expect(runDispatchParams.safeParse(dispatch('chat', context)).success).toBe(false)
+    }
   })
 
   it('still refuses a task dispatch whose task lost a field core requires', () => {

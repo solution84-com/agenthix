@@ -23,6 +23,8 @@ export interface ModelAdapterDeps {
   languageModel?: (access: ResolvedAccess, extras: ModelCallExtras) => LanguageModel
   /** The SDK's own retries of a rate limit or a server error; 2 unless set. */
   maxRetries?: number
+  /** Each call's outcome, for its provider's health (routing/resolver.ts `reportCall`); nothing unless set. */
+  report?: (providerId: string, failure: ModelCallError['kind'] | null) => void
 }
 
 /** What the request's provider needs beyond its SDK's own options: OpenRouter's hints go into the body. */
@@ -84,9 +86,16 @@ export function createModelAdapter(deps: ModelAdapterDeps = {}): ModelAdapter {
         }
       }
       if (finish) yield finish
+      deps.report?.(request.access.providerId, null)
     } catch (error) {
-      throw toModelCallError(error, request.access.provider, request.signal)
+      throw failed(error, request)
     }
+  }
+
+  function failed(error: unknown, request: Omit<LeadRequest, 'tools'>): ModelCallError {
+    const e = toModelCallError(error, request.access.provider, request.signal)
+    deps.report?.(request.access.providerId, e.kind)
+    return e
   }
 
   return {
@@ -94,9 +103,10 @@ export function createModelAdapter(deps: ModelAdapterDeps = {}): ModelAdapter {
     async complete(request): Promise<{ text: string; usage: TurnUsage }> {
       try {
         const result = await generateText(sharedArgs(request))
+        deps.report?.(request.access.providerId, null)
         return { text: result.text, usage: turnUsageOf(result.usage) }
       } catch (error) {
-        throw toModelCallError(error, request.access.provider, request.signal)
+        throw failed(error, request)
       }
     },
   }

@@ -124,7 +124,7 @@ describe('the notification after a report @SC-962', () => {
       async resolveAccess() {
         return reply === null
           ? { access: null, problem: 'There is no model access to talk on here.', offer: null }
-          : { access: { provider: 'anthropic', model: 'claude-sonnet-5', apiKey: 'k', owner: 'user', kind: 'API_KEY' }, problem: null, offer: null }
+          : { access: { providerId: 'p-ant', providerName: 'Anthropic', provider: 'anthropic', model: 'claude-sonnet-5', apiKey: 'sk-test-fake' }, problem: null, offer: null }
       },
       async fixTalkingAccess() { return true },
       async mint({ turnId, actingUserId, trigger }) { return turnCapability({ turnId, actingUserId, trigger }) },

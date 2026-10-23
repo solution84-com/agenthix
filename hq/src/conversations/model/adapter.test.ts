@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { APICallError } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
 import { z } from 'zod'
 import { ModelCallError, type LeadStreamEvent } from '../contract'
@@ -168,5 +169,19 @@ describe('tools @SC-956', () => {
     const tool = model.doStreamCalls[0].tools?.[0]
     expect(tool).toMatchObject({ name: 'find', description: 'Finds' })
     expect(JSON.stringify(tool)).toContain('query')
+  })
+})
+
+describe("each call's outcome, for its provider's health", () => {
+  it('reports a call that worked, and a failure by its kind', async () => {
+    const report = vi.fn()
+    const ok = createModelAdapter({ languageModel: () => streamingModel(textChunks(['Hi'])), report })
+    await collect(ok.stream(requestFor()))
+    expect(report).toHaveBeenCalledWith(anthropicAccess.providerId, null)
+
+    const refused = new MockLanguageModelV3({ doStream: async () => { throw new APICallError({ message: 'invalid x-api-key', url: 'u', requestBodyValues: {}, statusCode: 401 }) } })
+    const failing = createModelAdapter({ languageModel: () => refused, report, maxRetries: 0 })
+    await expect(collect(failing.stream(requestFor()))).rejects.toMatchObject({ kind: 'auth' })
+    expect(report).toHaveBeenLastCalledWith(anthropicAccess.providerId, 'auth')
   })
 })

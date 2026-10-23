@@ -63,6 +63,7 @@ export const getRoutine: GetRoutine<{ routineId: string; rounds?: number }, Rout
     priority: routine.priority,
     labels: labelsOf(routine.labels),
     assignedAgentId: routine.assignedAgentId,
+    modelChoice: routine.modelChoice,
     boardId: routine.boardId,
     column: routine.column,
     scheduleAt: routine.scheduleAt.toISOString(),

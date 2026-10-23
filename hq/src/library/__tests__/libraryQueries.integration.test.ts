@@ -158,7 +158,7 @@ describe('confirmWorkforceTemplate @SC-067', () => {
     await prisma.workforceTemplate.create({
       data: { id: 'wft-solo-dev', name: 'Solo', assetPath: 'library/workforce/wft-solo-dev' } as any,
     })
-    await prisma.agent.create({ data: { name: 'Taken', handle: 'proposed-dev', runtime: 'claude-sdk' } as any })
+    await prisma.agent.create({ data: { name: 'Taken', handle: 'proposed-dev' } as any })
     const admin = await makeAdminAuthed()
     const project = await makeProject()
     const task = await makeTask({ projectId: project.id, column: 'in_review', applicationData: { templateId: 'wft-solo-dev' } })

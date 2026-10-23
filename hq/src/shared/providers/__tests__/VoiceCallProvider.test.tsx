@@ -10,7 +10,8 @@ const socket = {
 }
 vi.mock('wasp/client/webSocket', () => ({ useSocket: () => ({ socket }) }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
-vi.mock('wasp/client/operations', () => ({ getSpeechToken: vi.fn(), sendConversationMessage: vi.fn() }))
+const getSpeechToken = vi.hoisted(() => vi.fn(async (_args?: { agentId: string }) => ({ token: 't' })))
+vi.mock('wasp/client/operations', () => ({ getSpeechToken, sendConversationMessage: vi.fn() }))
 vi.mock('react-router', () => ({ useLocation: () => ({ pathname: h.path, search: '' }) }))
 
 import { CONVERSATION_SOCKET, CONVERSATION_VOICE_SOCKET as V } from '../../conversations/protocol'
@@ -33,6 +34,12 @@ describe('voice for the whole app @SC-1001', () => {
     expect(seen.call!.voice.phase).toBe('starting')
     expect(seen.call!.voice.returnTo).toBe('/chat/c/c1')
     expect(h.emitted).toContainEqual([V.start, { conversationId: 'c1' }])
+  })
+
+  it('asks for the conversation’s agent’s speech to text token', () => {
+    const seen = mount()
+    act(() => seen.call!.start('c1', { id: 'a1', name: 'Kernel', avatarUrl: null }))
+    expect(getSpeechToken).toHaveBeenCalledWith({ agentId: 'a1' })
   })
 
   it('joins the conversation’s room, so the bar on other pages keeps hearing it', () => {

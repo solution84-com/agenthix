@@ -14,7 +14,6 @@ import { handleScheduledChangeEvent } from '../scheduled/scheduledChanges'
 import { isValidAgentHandle } from '../../agents/agentHandle'
 import { applySiteTitle } from '../../sessions/siteSessionTitle'
 import { projectIdOfSession, projectIdOfSessionRow } from '../../sessions/sessionProject'
-import { displaySiteName } from '../../shared/siteName'
 import { forwardRunFrame } from './operationLinesForward'
 import { clientRunEvent } from './clientRunEvents'
 import { RUN_CLIENT_SOCKET, type RunStatusClientEvent } from '../../shared/conversations/runEvents'
@@ -331,7 +330,7 @@ async function handleStatus(siteId: string, e: RunStatusEvent): Promise<void> {
 }
 
 /**
- * Notification type for a dead-grant surface (SC-349, plan 5d-2 task 11) —
+ * Notification type for a person's own Claude login that has expired (SC-349) —
  * distinct from every other type in the table.
  */
 const CREDENTIAL_HEALTH_NOTIFICATION_TYPE = 'credential_health'
@@ -378,21 +377,11 @@ function validateCredentialHealthEvent(
 }
 
 /**
- * Admin-visible surface for a site's `site.credentialHealth` event (SC-349):
- * one Notification per ADMIN-role user, deduped per (siteId, agentHandle,
- * state) per calendar day via a DB read rather than a module Map — a Map
- * would re-notify on every server restart, which a busy dead grant makes a
- * real event, not a hypothetical one. The dedup key rides in `title` (it
- * embeds the site's own label plus the handle and state, all three of which
- * must match for two frames to collide) — imprecise only in the case of two
- * distinct sites sharing an identical label, an org misconfiguration outside
- * this handler's job to prevent.
- *
- * ExecutionSite has no JSON metadata-style field today (schema.prisma) to
- * stamp the latest event onto — adding one is a schema change, out of scope
- * here per plan 5d-2 task 11's own instruction — so that half of the original
- * design is deliberately skipped; the notification is the whole surface for
- * now. See the plan's task 11 report for this call.
+ * A site's `site.credentialHealth` event (SC-349): a run found its Claude login missing or expired. A provider's key
+ * is no longer a site's to report — its health is the provider's, moved by `providers/health.ts` and told to
+ * organisation admins (models from one place, part 1). The only Claude login a run is handed now is a person's own
+ * subscription, so the event is the cue to tell each person whose own login has expired, in hq's own record, and
+ * nobody else; once a day each, deduped by a DB read so a restart does not tell them again.
  */
 async function handleCredentialHealth(siteId: string, e: CredentialHealthEvent): Promise<void> {
   const validated = validateCredentialHealthEvent(e)
@@ -401,39 +390,22 @@ async function handleCredentialHealth(siteId: string, e: CredentialHealthEvent):
     return
   }
   const { agentHandle, state, detail } = validated
-
   logger.warn(`site ${siteId}: credential ${state} for agent ${agentHandle} — ${detail}`)
 
-  const site = await prisma.executionSite.findUnique({ where: { siteId }, select: { label: true, isDefault: true } })
-  const siteName = site ? displaySiteName(site) : siteId
-
-  const title = `Credential ${state} on ${siteName} — @${agentHandle}`
-  const body =
-    `The Claude OAuth credential for @${agentHandle} on "${siteName}" is ${state}. ${detail} ` +
-    `Re-authenticate it on that site (docker run ... claude login) to restore the agent.`
-
-  const existing = await prisma.notification.findFirst({
-    where: { type: CREDENTIAL_HEALTH_NOTIFICATION_TYPE, title, createdAt: { gte: startOfToday() } },
+  const expired = await prisma.aiProvider.findMany({
+    where: { credentialKind: 'subscription', ownerUserId: { not: null }, expiresAt: { lt: new Date() } },
+    select: { ownerUserId: true },
   })
-  if (existing) return
-
-  const admins = await prisma.userSettings.findMany({ where: { role: 'ADMIN' }, select: { userId: true } })
-  await Promise.all(
-    admins.map((admin) =>
-      prisma.notification
-        .create({
-          data: {
-            userId: admin.userId,
-            type: CREDENTIAL_HEALTH_NOTIFICATION_TYPE,
-            title,
-            body,
-            actionLabel: 'View execution sites',
-            actionUrl: '/admin/where-work-runs',
-          },
-        })
-        .catch((err: unknown) =>
-          logger.error(`failed to notify admin ${admin.userId} of credential ${state} on ${siteId}`, err),
-        ),
-    ),
-  )
+  const title = 'Your Claude subscription needs signing in again'
+  const body = 'Its login has expired, so work in your own place cannot use it. Sign in again under Settings.'
+  await Promise.all(expired.map(async ({ ownerUserId }) => {
+    const userId = ownerUserId!
+    const told = await prisma.notification.findFirst({
+      where: { userId, type: CREDENTIAL_HEALTH_NOTIFICATION_TYPE, createdAt: { gte: startOfToday() } }, select: { id: true },
+    })
+    if (told) return
+    await prisma.notification
+      .create({ data: { userId, type: CREDENTIAL_HEALTH_NOTIFICATION_TYPE, title, body, actionLabel: 'Sign in again', actionUrl: '/settings' } })
+      .catch((err: unknown) => logger.error(`failed to tell ${userId} their Claude subscription expired`, err))
+  }))
 }

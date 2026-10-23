@@ -18,10 +18,12 @@ type Token = { token: string; expiresAt: string; config?: SttConfig }
  * box as it is spoken — as ordinary text, corrected in place when the service formats it — for the person to
  * read and send. Nothing is sent by itself.
  */
-export function useDictation({ text, setText, field }: {
+export function useDictation({ text, setText, field, agentId }: {
   text: string
   setText: (text: string) => void
   field: RefObject<HTMLTextAreaElement | null>
+  /** Whose own speech to text to use; none means the organisation's default. */
+  agentId?: string
 }) {
   const [listening, setListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,11 +41,11 @@ export function useDictation({ text, setText, field }: {
   const getToken = useCallback(async (): Promise<Token> => {
     const held = token.current
     if (held && Date.parse(held.expiresAt) - TOKEN_MARGIN_MS > Date.now()) return held
-    fetching.current ??= getSpeechToken()
+    fetching.current ??= getSpeechToken(agentId ? { agentId } : undefined)
       .then((t) => { token.current = t as Token; return t as Token })
       .finally(() => { fetching.current = null })
     return fetching.current
-  }, [])
+  }, [agentId])
 
   const show = useCallback((next: DictationText) => {
     const before = state.current

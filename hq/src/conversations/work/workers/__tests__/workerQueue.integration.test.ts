@@ -8,6 +8,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { CLAUDE_SDK_MODELS } from '@agenthix/core'
 import { prisma } from '../../../../test/db'
 import { createUserWithRole, joinProjectAs } from '../../../../test/factories'
+process.env.SECRETS_MASTER_KEY ??= Buffer.alloc(32, 7).toString('base64')
+import { createProvider, setAgentChoices, setOrgDefaults } from '../../../../routing/__tests__/routingFixtures'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<object>('wasp/server')
@@ -78,15 +80,17 @@ describe("one standing worker's briefs @SC-960", () => {
     expect(opts).toEqual({ hideUserMessage: false, senderId: w.person.id })
   })
 
-  it("run on the boundary's light-work model, or its heavy-work model when the brief says heavy @SC-955", async () => {
-    const [light, heavy] = CLAUDE_SDK_MODELS.map(m => m.value)
-    await prisma.modelPolicy.create({ data: { ownerType: 'project', ownerId: w.project.id, lightWork: light, heavyWork: heavy } })
+  it("run on the agent's default worker model, else the organisation's, whatever effort the brief names @SC-955", async () => {
+    const [orgs, agents] = CLAUDE_SDK_MODELS.map(m => m.value)
+    const anthropic = await createProvider({ vendor: 'anthropic' })
+    await setOrgDefaults({ worker: { providerId: anthropic.id, model: orgs } })
     const a = await brief('Light job')
     await pump(a.workerSessionId!)
     await handleWorkerRunStatus(frame('run-1', 'COMPLETED'), 'site-1', () => {})
+    await setAgentChoices(w.agent.id, { worker: { providerId: anthropic.id, model: agents } })
     const b = await brief('Heavy job', { effort: 'heavy' })
     await pump(b.workerSessionId!)
-    expect(dispatch.dispatchChatRun.mock.calls.map(c => c[3])).toEqual([light, heavy])
+    expect(dispatch.dispatchChatRun.mock.calls.map(c => c[3])).toEqual([orgs, agents])
   })
 
   it('wait while one waits for approval, since an answer continues the same session', async () => {

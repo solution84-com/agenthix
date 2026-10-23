@@ -9,8 +9,8 @@ import { prisma } from 'wasp/server'
 import { WAIT_LIMIT_MS } from '../../shared/conversations/protocol'
 import { Logger } from '../../server/utils/logger'
 import { appendMessage, toMessageView, updateMessage } from '../store/messages'
-import { resolveConversationAccess } from '../access/conversationAccess'
-import { fixTalkingAccess } from '../access/talkingModelSwitch'
+import { fixTalkingAccess, resolveTalking } from '../access/talkingModel'
+import { reportCall } from '../../routing/resolver'
 import { mintTurnCapability } from '../tools/mintTurnCapability'
 import { toolAdapter } from '../tools/toolAdapter'
 import { createModelAdapter } from '../model'
@@ -79,9 +79,9 @@ async function operationLine(operationId: string): Promise<OperationLine | null>
 const TITLE_WAIT_MS = 20_000
 
 export const turnDeps: TurnDeps = {
-  model: createModelAdapter(),
+  model: createModelAdapter({ report: reportCall }),
   tools: toolAdapter,
-  resolveAccess: resolveConversationAccess,
+  resolveAccess: resolveTalking,
   fixTalkingAccess,
   mint: mintTurnCapability,
   context: assembleContext,

@@ -173,7 +173,7 @@ export const getAgentPlace: GetAgentPlace<{ agentId: string }, AgentPlaceView> =
       return {
         project: { id: p.id, key: p.key, name: p.name },
         tasks: workOf(work, agent.id, p.id).counts,
-        modelHere: o?.model ?? null,
+        modelHere: null,
         narrowed: o ? narrowsAnything(overrideFromRow(o)) : false,
       }
     }),

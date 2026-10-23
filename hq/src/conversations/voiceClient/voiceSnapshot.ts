@@ -15,7 +15,7 @@ export type VoicePhase = 'off' | 'starting' | 'listening' | 'thinking' | 'speaki
 
 export type VoiceSnapshot = {
   conversationId: string | null
-  agent: { name: string; avatarUrl: string | null } | null
+  agent: { id?: string; name: string; avatarUrl: string | null } | null
   /** Where the person was when they started: the bar on other pages leads back here. */
   returnTo: string | null
   phase: VoicePhase
@@ -42,7 +42,8 @@ export type VoiceDeps = VoiceOutside & {
   userId: string
   createPlayback: () => Playback
   /** A speech token from hq, for the organisation's speech service. */
-  getToken: () => Promise<SttToken>
+  /** `agentId`: whose own speech to text to use; none means the organisation's default. */
+  getToken: (agentId?: string) => Promise<SttToken>
   sendMessage: (args: SendConversationMessageArgs) => Promise<unknown>
   now?: () => number
   newId?: () => string

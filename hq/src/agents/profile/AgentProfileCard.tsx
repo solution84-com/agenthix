@@ -7,7 +7,7 @@ import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import { useAgentImageUrl } from '../../shared/hooks/useAgentImageUrl'
 import { useIsMobile } from '../../shared/hooks/useIsMobile'
 import { CHAT_PATH } from '../../chat/chatComposer'
-import { modelLabel } from './modelLabel'
+import { useAgentModelLine } from '../useAgentModelLine'
 import { agentAtPart, useCardPlace } from './cardPlace'
 import { newConversationPath } from '../../conversations/threadPaths'
 
@@ -27,6 +27,7 @@ export function AgentProfileCard({ agentId, anchor, onClose }: { agentId: string
   const mobile = useIsMobile()
   const place = useCardPlace()
   const { data } = useQuery(getAgentProfile, { agentId })
+  const modelLine = useAgentModelLine()
   const { data: here } = useQuery(getAgentCardHere, { agentId, projectId: place?.kind === 'project' ? place.projectId : null }, { enabled: !!place })
   const profile = data as Profile | undefined
   const cover = useAgentImageUrl(profile?.agent.coverUrl)
@@ -58,7 +59,7 @@ export function AgentProfileCard({ agentId, anchor, onClose }: { agentId: string
         avatar={<AuthedAgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size="lg" />}
         now={profile.now}
         projectCount={profile.projectCount}
-        modelLabel={modelLabel(agent.defaultModel, agent.runtime)}
+        modelLabel={modelLine(agent.id)}
         at={new Date()}
         anchor={anchor}
         mobile={mobile}

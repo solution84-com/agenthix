@@ -24,8 +24,8 @@ const counts = { todo: 0, inProgress: 0, done: 0, needsYou: 0, running: 0, total
 const person = (userId: string, name: string) => ({ userId, name, handle: name.toLowerCase(), avatarUrl: null, state: 'active' })
 const personRow = (userId: string, name: string, role = 'MEMBER') => ({ person: person(userId, name), role, joinedAt: new Date('2026-10-01'), now: personNow, items: [], tasks: counts, lastActiveAt: null })
 const agentRow = (id: string, name: string, isDefault = false) => ({
-  agent: { id, name, handle: id, role: null, avatarUrl: null, coverUrl: null, defaultModel: 'sonnet', runtime: 'claude-sdk', approval: 'deferred' },
-  isDefault, now: idle, tasks: counts, model: { own: 'sonnet', here: 'sonnet', narrowed: false }, narrowed: false,
+  agent: { id, name, handle: id, role: null, avatarUrl: null, coverUrl: null, approval: 'deferred' },
+  isDefault, now: idle, tasks: counts, narrowed: false,
 })
 
 const results: Record<string, () => unknown> = {
@@ -51,7 +51,7 @@ vi.mock('wasp/client/operations', () => ({
   useQuery: (query: string) => ({ data: results[query]?.(), isLoading: false, error: undefined, refetch: vi.fn() }),
   useAction: () => vi.fn(),
   getProjectPeople: 'getProjectPeople', getProjectAgents: 'getProjectAgents', getPlaceInstructions: 'getPlaceInstructions',
-  getProjectTeams: 'getProjectTeams', setProjectTeamRole: 'setProjectTeamRole',
+  getProjectTeams: 'getProjectTeams', setProjectTeamRole: 'setProjectTeamRole', getAgentModelLines: 'getAgentModelLines',
 }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
 vi.mock('../../../../people/AuthedPersonAvatar', () => ({ personAvatarOf: (p: { name: string }) => <span>{p.name.slice(0, 1)}</span> }))

@@ -6,14 +6,14 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 
 const agent = (id: string, name: string, approval: string) => ({
-  agent: { id, name, handle: id, role: 'Role', avatarUrl: null, coverUrl: null, defaultModel: 'sonnet', runtime: 'claude-sdk', approval, isKernel: false },
+  agent: { id, name, handle: id, role: 'Role', avatarUrl: null, coverUrl: null, approval, isKernel: false },
   now: { state: 'idle', lead: null, needsYouCount: 0, runningCount: 0, next: null }, projectCount: 1, inMyProjects: true, lastWorkedAt: null,
 })
 const CARDS = [agent('rb', 'Release bot', 'bypassed'), agent('fd', 'Frontend dev', 'deferred'), agent('da', 'Data analyst', 'bypassed')]
 vi.mock('wasp/client/operations', () => ({
   useQuery: (query: string) => ({ data: query === 'getOrgAgents' ? { agents: CARDS, canManage: true, unanswered: [] } : undefined, isLoading: false }),
   useAction: () => vi.fn(),
-  getOrgAgents: 'getOrgAgents', getAgentUsage: 'getAgentUsage', createAgent: 'createAgent',
+  getAgentModelLines: 'getAgentModelLines', getOrgAgents: 'getOrgAgents', getAgentUsage: 'getAgentUsage', createAgent: 'createAgent',
 }))
 vi.mock('../../../../shared/layouts/AppLayout', () => ({ AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock('../ManageGate', () => ({ ManageGate: ({ children }: { children: React.ReactNode }) => <>{children}</>, useOrgAdminState: () => 'admin' }))

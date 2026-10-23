@@ -5,21 +5,21 @@ describe('the voice sample phrase @SC-090', () => {
   it('asks the model once and returns the trimmed text', async () => {
     const generateText = vi.fn().mockResolvedValue({ text: '  Good morning, and welcome.  ' })
     const phrase = await generateSamplePhrase('a warm, low voice', 'en', {
-      generateText, apiKey: async () => 'sk-test',
+      generateText, model: async () => ({}) as never,
     })
     expect(phrase).toBe('Good morning, and welcome.')
     expect(generateText).toHaveBeenCalledTimes(1)
   })
 
-  it('refuses with a reason when hq has no model key, rather than returning an empty phrase', async () => {
+  it('refuses with a reason when no model is working, rather than returning an empty phrase', async () => {
     await expect(generateSamplePhrase('a warm, low voice', 'en', {
-      generateText: vi.fn(), apiKey: async () => null,
-    })).rejects.toThrow(/no model key/i)
+      generateText: vi.fn(), model: async () => null,
+    })).rejects.toThrow(/no model is working/i)
   })
 
   it('keeps the phrase to one or two sentences by asking for it in the prompt', async () => {
     const generateText = vi.fn().mockResolvedValue({ text: 'x' })
-    await generateSamplePhrase('a warm, low voice', 'fr', { generateText, apiKey: async () => 'sk-test' })
+    await generateSamplePhrase('a warm, low voice', 'fr', { generateText, model: async () => ({}) as never })
     const prompt = generateText.mock.calls[0][0].prompt as string
     expect(prompt).toContain('"fr"')
     expect(prompt).toContain('a warm, low voice')

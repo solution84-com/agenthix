@@ -8,7 +8,8 @@
  * while one is pending is that one.
  */
 import { Prisma } from '@prisma/client'
-import { prisma } from 'wasp/server'
+import { HttpError, prisma } from 'wasp/server'
+import { placeOfBoundary } from '../../../routing/place'
 import { z } from 'zod'
 import { MESSAGE_MAX_CHARS } from '../../../shared/conversations/protocol'
 import type { ConversationTool, SharedBoundary, ToolCallOutcome, TurnCapability } from '../../contract'
@@ -16,6 +17,8 @@ import { sealJson, sealText } from '../../sealing'
 import { idempotencyKey } from '../../tools/turnTools'
 import { THEN_DESCRIPTION, continuationFor } from '../continuation'
 import { admitToBoundary, admittedBoundaries, placeLine, placesNamed, projectWords, unassignedProjects } from '../boundaries'
+import { describeWorkerModels } from '../../../models-settings/startWorkModels'
+import { MODEL_CHOICE_MAX_CHARS, checkedModelFor } from '../../../models-settings/taskModelChoice'
 import { standingWorker, workerClosedReason } from './standingWorker'
 import { schedulePump } from './queue'
 import type { WorkerArgs } from './runReads'
@@ -28,6 +31,7 @@ const input = z.object({
   title: z.string().min(1).max(TITLE_MAX_CHARS).describe('One line naming the work as the person would say it ("Profile the image pipeline").'),
   brief: z.string().min(1).max(MESSAGE_MAX_CHARS).describe('Everything the work needs to know: what to do, what it is for, what to bring back. It sees nothing of this conversation.'),
   effort: z.enum(['light', 'heavy']).optional().describe('heavy for a large or difficult piece of work; light (the default) otherwise.'),
+  model: z.string().max(MODEL_CHOICE_MAX_CHARS).optional().describe("The model the person's own words name for this work, exactly as one of the values listed in this tool's description. Leave out unless they name one."),
   then: z.string().max(2_000).optional().describe(THEN_DESCRIPTION),
 })
 type Input = z.infer<typeof input>
@@ -36,10 +40,12 @@ type Input = z.infer<typeof input>
 export interface StartWorkPlaces {
   admitted: SharedBoundary[]
   unassigned?: SharedBoundary[]
+  /** The lines listing the models the agent may name, when the person's words name one. */
+  models?: string[]
 }
 
 /** The tool's description, with the places the person and the agent share and those the agent is not on. */
-export function describeStartWork({ admitted, unassigned = [] }: StartWorkPlaces): string {
+export function describeStartWork({ admitted, unassigned = [], models = [] }: StartWorkPlaces): string {
   const line = (b: SharedBoundary) => `- ${b.key}: ${b.type === 'user' ? "the person's own space" : `the ${b.name} project`}`
   const lines = [
     'Do work yourself in the background, in your own working session in one place the person and you share: reading,',
@@ -68,12 +74,13 @@ export function describeStartWork({ admitted, unassigned = [] }: StartWorkPlaces
     'started in each, never one covering both. Start them all together, in one step. Within one place, fold what',
     "it needs into one brief: a place runs one piece of work at a time. When the person's words leave the place",
     'open, ask which before starting.',
+    ...models,
   )
   return lines.join('\n')
 }
 
 async function agentOf(agentId: string) {
-  return prisma.agent.findUnique({ where: { id: agentId }, select: { id: true, name: true, runtime: true } })
+  return prisma.agent.findUnique({ where: { id: agentId }, select: { id: true, name: true } })
 }
 
 /** In a task's thread work on the task is always a run of it (the overview's task-thread rules, 6): run_task. */
@@ -124,7 +131,7 @@ export function createStartWorkTool(deps: StartWorkDeps = { moveOn: schedulePump
         admittedBoundaries(personId, capability.agentId),
         unassignedProjects(personId, capability.agentId),
       ])
-      return describeStartWork({ admitted, unassigned })
+      return describeStartWork({ admitted, unassigned, models: await describeWorkerModels(capability.agentId, personId) })
     },
 
     async run(capability, raw, { signal }): Promise<ToolCallOutcome> {
@@ -153,8 +160,16 @@ export function createStartWorkTool(deps: StartWorkDeps = { moveOn: schedulePump
       const closed = workerClosedReason(worker, boundary.name)
       if (closed) return { status: 'refused', reason: closed }
 
+      let model: string | null
+      try {
+        model = await checkedModelFor(args.model, { place: await placeOfBoundary({ type: boundary.type, id: boundary.id }), agentId: agent.id, userId: personId })
+      } catch (err) {
+        if (err instanceof HttpError) return { status: 'refused', reason: err.message }
+        throw err
+      }
+
       const continuation = continuationFor(capability, args.then)
-      const workerArgs: WorkerArgs = { effort: args.effort ?? 'light' }
+      const workerArgs: WorkerArgs = { effort: args.effort ?? 'light', ...(model ? { model } : {}) }
       let operationId: string
       try {
         const row = await prisma.operation.create({

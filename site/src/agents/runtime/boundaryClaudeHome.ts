@@ -17,7 +17,7 @@
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import type { RunCredential } from '@agenthix/core'
+import type { SiteRunCredential } from '../../server/modelRelay/runAccess'
 import { AGENT_CONTAINER_CLAUDE_HOME } from '../agentDiskPaths'
 import {
   credentialHomeRunCount,
@@ -161,7 +161,7 @@ async function removeCredentialFile(home: string): Promise<void> {
  * when the supplied document carries no parseable `expiresAt`, so a first run
  * is never left with nothing to authenticate with.
  */
-export async function writeRunCredential(home: string, credential: RunCredential | null): Promise<void> {
+export async function writeRunCredential(home: string, credential: SiteRunCredential | null): Promise<void> {
   // One file operation at a time per home: an end-of-run removal already in
   // flight must not land after this run's write (agentCredentials.ts).
   return serialiseCredentialHome(home, async () => {

@@ -1,6 +1,5 @@
 import { Link } from 'react-router'
 import { useQuery, getGithubAppStatus } from 'wasp/client/operations'
-import { ModelPolicyForm } from '../../../model-policy/components/ModelPolicyForm'
 import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
 import { OrgEntryGroup, OrgEntryRow } from '../OrgEntryRow'
 import { SignInPageSetting } from './SignInPageSetting'
@@ -24,15 +23,9 @@ export function OrgSettingsPage() {
       <OrgAdminHeading title="Settings">The organisation's, changed by its admins.</OrgAdminHeading>
       <SignInPageSetting />
       <UploadedFilesSetting />
-      <section className="mt-6" aria-labelledby="org-models">
-        <h2 id="org-models" className="text-h3 font-semibold text-text-primary">Models</h2>
-        <p className="mt-0.5 mb-4 text-small text-text-secondary">Which model talks and which does the work, for everyone who sets none of their own.</p>
-        <ModelPolicyForm scope="org" canEdit />
-      </section>
       <OrgEntryGroup title="Access to models and tools">
-        <OrgEntryRow to="/admin/settings/model-access" title="Model access" line="The organisation's model keys and Claude login, used when a run has none of its own" />
+        <OrgEntryRow to="/admin/settings/model-access" title="Web search" line="The key agents search the web with" />
         <OrgEntryRow to="/admin/settings/github" title="GitHub" line={githubLine(github)} />
-        <OrgEntryRow to="/admin/settings/voice" title="Voice" line="Speech to text and text to speech providers" />
       </OrgEntryGroup>
       <OrgEntryGroup title="Where work runs">
         <OrgEntryRow to="/admin/where-work-runs" title="Where work runs" line="Each site, how it is doing, and what each run gets; your fleet admins look after them" />

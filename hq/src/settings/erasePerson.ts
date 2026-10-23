@@ -147,7 +147,9 @@ export const erasePerson = async (
     prisma.cloudAccountLink.deleteMany({ where: { userId } }),
     prisma.cloudSignInAsk.deleteMany({ where: { userId } }),
     prisma.offerDismissal.deleteMany({ where: { userId } }),
-    prisma.modelCredential.deleteMany({ where: { ownerType: 'user', ownerId: userId } }),
+    // Their own Claude subscription and their list of models go with them.
+    prisma.aiProvider.deleteMany({ where: { ownerUserId: userId } }),
+    prisma.modelList.deleteMany({ where: { owner: 'person', ownerId: userId } }),
     prisma.notification.deleteMany({ where: { userId } }),
     prisma.mobileAuthToken.deleteMany({ where: { userId } }),
     prisma.deviceSession.deleteMany({ where: { userId } }),

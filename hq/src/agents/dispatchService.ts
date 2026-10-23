@@ -40,7 +40,8 @@ import { signCapability } from '../server/identity/tokenService'
 import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
 import { toSeed } from './dispatchPayloads'
 import { requireOpenSession } from '../sessions/closedSession'
-import { runBoundary, getAgentOverride, modelForRun } from './overrides/agentOverrideService'
+import { runBoundary } from './overrides/agentOverrideService'
+import { chooseBoundaryRun, chooseKeptSessionRun } from './runModel'
 import { buildContext, grantTargetOf } from './runContext'
 import { runLimitsFor } from './runLimits/runLimitsService'
 import { briefForTaskRun, withBrief } from '../conversations/taskThread/brief'
@@ -98,7 +99,7 @@ export async function dispatchChatRun(
   // session, so the capability's tool ceiling and this payload's model always
   // agree on which boundary applies.
   const boundary = await runBoundary(session)
-  const override = boundary ? await getAgentOverride(boundary, agent.id) : null
+  const choice = await chooseBoundaryRun(boundary, agent.id, session.taskId ? senderId : session.userId)
 
   // Resolved ahead of the context: a subscription the context hands out is
   // granted to the site and runner the capability names.
@@ -115,19 +116,18 @@ export async function dispatchChatRun(
     // A plain chat is on behalf of its person, the session's owner (runOnBehalfOf.ts).
     personUserId: session.taskId ? senderId : session.userId,
     startedBy: 'person',
-    session,
+    choice,
     grantTo: grantTargetOf(claims),
   })
   const { token: capabilityJwt } = await signCapability(claims)
 
-  // A boundary's model override wins over the session's chosen model (ruling T15).
   const payload: RunDispatchPayload = {
     kind: 'chat',
     startedBy: 'person',
     capabilityJwt,
     session: toSeed(session),
     inputText,
-    model: modelForRun(agent, override?.model, sessionModel),
+    model: choice.model || sessionModel || '',
     hideUserMessage: opts?.hideUserMessage ?? false,
     context,
     runLimits: await runLimitsFor(boundary),
@@ -167,6 +167,7 @@ export async function dispatchTaskRun(
       projectId: true,
       onBehalfOfUserId: true,
       runOnBehalfOfUserId: true,
+      modelChoice: true,
       number: true,
       board: { select: { name: true, columns: true } },
       project: { select: { name: true, slug: true, key: true, personalOwnerId: true, personalSpace: true } },
@@ -236,8 +237,9 @@ export async function dispatchTaskRun(
 
   // The run's model and runtime follow the work models (taskRunModel.ts); a session on another runtime that nothing
   // carries on in is replaced first, and a run that paused for a scheduled change is carried on where it was.
-  const choice = await chooseTaskRun(personalOwnerId ? { type: 'user', id: personalOwnerId } : { type: primaryLoc.ownerType, id: primaryLoc.ownerId }, agent)
-  const { paused } = await readyTaskSession(taskId, agent, choice)
+  const runBoundaryOf = personalOwnerId ? { type: 'user' as const, id: personalOwnerId } : { type: primaryLoc.ownerType, id: primaryLoc.ownerId }
+  const chosen = await chooseTaskRun(runBoundaryOf, agent, runPersonId, task.modelChoice)
+  const { paused } = await readyTaskSession(taskId, chosen)
 
   const agentSession = await prisma.agentSession.upsert({
     where: { taskId },
@@ -258,10 +260,10 @@ export async function dispatchTaskRun(
       title: task.title ?? `Task ${taskId}`,
       status: 'ACTIVE',
       sessionType: 'task',
-      model: choice.model,
+      model: chosen.model,
       // The runtime is recorded once, at creation (adr-0078) — never backfilled
       // by the update above.
-      runtime: choice.runtime,
+      runtime: chosen.runtime,
       agentId: agent.id,
       userId: sessionUserId,
       taskId,
@@ -273,6 +275,11 @@ export async function dispatchTaskRun(
   })
   // Same derivation resolveCapabilityClaims makes against this same agentSession.
   const boundary = await runBoundary(agentSession)
+  // A session kept on another runtime (readyTaskSession) carries on with its own model, and is given its provider.
+  const kept = agentSession.runtime && agentSession.model && agentSession.runtime !== chosen.runtime
+  const choice = kept
+    ? await chooseKeptSessionRun({ agentId: agent.id, boundary: runBoundaryOf, userId: runPersonId, session: { runtime: agentSession.runtime!, model: agentSession.model! } })
+    : chosen
 
   // The admin on a task session's row is bookkeeping. Only a person's start is
   // signed in; a run nobody started is left to the control plane's default, the
@@ -302,7 +309,7 @@ export async function dispatchTaskRun(
         columns: boardColumns,
         comments: await taskCommentsForRun(taskId, agent.id),
       },
-      session: agentSession,
+      choice,
     },
     primaryOwnerSlugValue,
   )
@@ -315,7 +322,7 @@ export async function dispatchTaskRun(
     session: toSeed(agentSession),
     // A run asked for in the task's thread carries the person's ask as its brief.
     inputText: paused ? TASK_CONTINUE_MESSAGE : withBrief(TASK_INPUT_MESSAGE, startedBy === 'person' ? await briefForTaskRun(taskId) : null),
-    model: agentSession.model ?? context.agent.defaultModel,
+    model: choice.model || agentSession.model || '',
     hideUserMessage: false,
     context,
     runLimits: await runLimitsFor(boundary),

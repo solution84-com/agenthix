@@ -1,9 +1,8 @@
 import { useParams } from 'react-router'
 import { useQuery, getProjectByKey, getProjectMembers, getUserSettings } from 'wasp/client/operations'
 import { useAuth } from 'wasp/client/auth'
-import { ModelPolicyForm } from '../../model-policy/components/ModelPolicyForm'
-import { ModelAccessSection } from '../../model-access/pages/ModelAccessSection'
 import { ProjectRunTimeLimit } from '../../automation/pages/ProjectRunTimeLimit'
+import { OwnList } from '../../models-settings/components/OwnList'
 import { ArchiveFinishedSection } from './ArchiveFinishedSection'
 import { AboutSection } from './settings/AboutSection'
 import { AccessSection } from './settings/AccessSection'
@@ -83,22 +82,13 @@ export function ProjectSettingsPage() {
           </Section>
         )}
 
-        {!personal && (
+        {!personal && people.some(m => m.userId === authUser?.id && m.role === 'ADMIN') && (
           <Section title="Models">
-            <p className="text-small text-text-muted">
-              Which models this project's work uses. Where it chooses none, the organisation's applies.
+            <OwnList owner="project" ownerId={proj.id}
+              intro={orgName => `Narrows ${orgName}'s list for everyone working in this project, agents included. It never widens it.`} />
+            <p className="mt-3 text-small text-text-muted">
+              The organisation&apos;s conversation and worker defaults, and each agent&apos;s own, apply here. If one is not allowed here, the next allowed is used.
             </p>
-            <ModelPolicyForm scope="project" projectId={proj.id} canEdit={rights.editOwn} />
-          </Section>
-        )}
-
-        {rights.editOwn && !personal && (
-          <Section title="Model access">
-            <p className="text-small text-text-muted">
-              This project's own API key or Claude login. Every run and task in this project uses it first,
-              before the model access of the person it is for and the organisation's.
-            </p>
-            <ModelAccessSection ownerType="project" ownerId={proj.id} />
           </Section>
         )}
 

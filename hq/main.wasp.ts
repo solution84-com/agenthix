@@ -32,7 +32,7 @@ import { librarySpec } from "./src/library/library.wasp";
 import { memorySpec } from "./src/memory/memory.wasp";
 import { mobileSpec } from "./src/mobile/mobile.wasp";
 import { modelAccessSpec } from "./src/model-access/model-access.wasp";
-import { modelPolicySpec } from "./src/model-policy/model-policy.wasp";
+import { modelsSettingsSpec } from "./src/models-settings/models-settings.wasp";
 import { notificationsSpec } from "./src/notifications/notifications.wasp";
 import { setupSpec } from "./src/setup/setup.wasp";
 import { onboardingSpec } from "./src/onboarding/onboarding.wasp";
@@ -96,7 +96,7 @@ export default app({
     memorySpec,
     mobileSpec,
     modelAccessSpec,
-    modelPolicySpec,
+    modelsSettingsSpec,
     notificationsSpec,
     setupSpec,
     onboardingSpec,

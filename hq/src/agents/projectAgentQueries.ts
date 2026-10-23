@@ -21,15 +21,12 @@ import { readAgentWork, workOf } from './agentWork'
 import { summariseNow, nowItems, comingUp, type AgentNow, type NowItem, type ComingUpItem, type TaskStateCounts } from './agentNow'
 import { recentAgentRuns, inProject, type RecentRuns } from './agentRecentRuns'
 
-export type ModelHere = { own: string; here: string; narrowed: boolean }
-
 export type ProjectAgentRow = {
   agent: AgentFacts
   assignedAt: Date
   isDefault: boolean
   now: AgentNow
   tasks: TaskStateCounts
-  model: ModelHere
   /** Whether this project narrows it at all — model, approval, tools or bash patterns. */
   narrowed: boolean
 }
@@ -46,10 +43,6 @@ export type ProjectAgentView = ProjectAgentRow & {
   canManage: boolean
   nowItems: NowItem[]
   comingUp: ComingUpItem[]
-  inThisProject: {
-    own: { model: string; approval: string; allowedTools: ToolPermission[] | null }
-    narrowing: AgentOverrideValues | null
-  }
   recentRuns: RecentRuns
 }
 
@@ -73,11 +66,6 @@ async function projectHere(projectId: string, userId: string) {
   }
 }
 
-function modelHere(agent: AgentFacts, narrowing: AgentOverrideValues | null): ModelHere {
-  const here = narrowing?.model ?? agent.defaultModel
-  return { own: agent.defaultModel, here, narrowed: here !== agent.defaultModel }
-}
-
 async function rowFor(
   agent: AgentFacts, assignedAt: Date, here: Awaited<ReturnType<typeof projectHere>>,
   work: Awaited<ReturnType<typeof readAgentWork>>, now: Date,
@@ -90,7 +78,6 @@ async function rowFor(
     isDefault: here.defaultAgentId === agent.id,
     now: summariseNow(mine.tasks, mine.routines, now),
     tasks: mine.counts,
-    model: modelHere(agent, narrowing),
     narrowed: narrowsAnything(narrowing),
   }
   return { row, narrowing, mine }
@@ -124,7 +111,7 @@ export const getProjectAgent: GetProjectAgent<{ projectId: string; agentId: stri
   const work = await readAgentWork({ projectIds: [args.projectId], agentIds: [agent.id] })
   work.tasks = await withDisplayReasons(work.tasks)
   const now = new Date()
-  const { row, narrowing, mine } = await rowFor(agent, assignment.createdAt, here, work, now)
+  const { row, mine } = await rowFor(agent, assignment.createdAt, here, work, now)
   const recentRuns = await recentAgentRuns(userId, agent.id, inProject(args.projectId))
   return {
     ...row,
@@ -132,7 +119,6 @@ export const getProjectAgent: GetProjectAgent<{ projectId: string; agentId: stri
     canManage: here.canManage,
     nowItems: nowItems(mine.tasks),
     comingUp: comingUp(mine.tasks, mine.routines, now),
-    inThisProject: { own: { model: agent.defaultModel, approval: agent.approval, allowedTools: (allowedTools ?? null) as ToolPermission[] | null }, narrowing },
     recentRuns,
   }
 }

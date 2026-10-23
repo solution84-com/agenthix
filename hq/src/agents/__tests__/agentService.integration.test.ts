@@ -35,19 +35,14 @@ describe('createAgent @SC-314', () => {
   })
 
   it('puts the settings on the Agent row itself, and none in the content (ADR-0072)', async () => {
-    const agent = await createAgent({ name: 'Scout', handle: 'scout', settings: { ...defaultAgentSettings('claude-opus-4-6'), approval: 'immediate' } })
+    const agent = await createAgent({ name: 'Scout', handle: 'scout', settings: { ...defaultAgentSettings(), approval: 'immediate' } })
 
-    expect(await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).toMatchObject({ defaultModel: 'claude-opus-4-6', approval: 'immediate', runtime: 'claude-sdk' })
+    expect(await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).toMatchObject({ approval: 'immediate' })
     expect(Object.keys((await readAgentContent(agent.id))!).sort()).toEqual(['instructions', 'skillFiles'])
   })
 
-  it('uses the default settings with the given model when none are passed', async () => {
-    const agent = await createAgent({ name: 'Scout', handle: 'scout', defaultModel: 'claude-opus-4-6' })
-    expect(await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).toMatchObject({ defaultModel: 'claude-opus-4-6', approval: 'deferred' })
-  })
-
   it('validates the settings before creating the agent row, leaving nothing behind', async () => {
-    await expect(createAgent({ name: 'Scout', handle: 'scout', settings: { ...defaultAgentSettings(), model: '' } })).rejects.toBeInstanceOf(PackageContentError)
+    await expect(createAgent({ name: 'Scout', handle: 'scout', settings: { ...defaultAgentSettings(), approval: 'yolo' } })).rejects.toBeInstanceOf(PackageContentError)
 
     expect(await prisma.agent.count()).toBe(0)
     expect(await prisma.package.count()).toBe(0)

@@ -20,6 +20,7 @@ export interface AgentSpec {
   name: string
   role: string
   responsibilities: string
+  /** @deprecated Older templates carry it; ignored. The resolver decides the model. */
   defaultModel?: string
   approval?: string
   allowedTools?: Array<{ name: string; state: string }>

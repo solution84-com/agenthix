@@ -1,23 +1,23 @@
 /**
  * A boundary's hq-held narrowing of an agent (adr-0072): a project's, for runs in it, or a person's own, for runs
- * in their Chat. It holds the agent's own shapes — model, approval, a state per tool and bash patterns — and only
- * ever takes away: for each tool, pattern and approval the strictest level wins (permissions/effectivePermissions.ts),
- * and a model must be one the agent's runtime offers at no more than the agent's own model's cost. hq decides what
- * a run may do before it starts.
+ * in their Chat. It holds the agent's own shapes — approval, a state per tool and bash patterns — and only ever
+ * takes away: for each tool, pattern and approval the strictest level wins (permissions/effectivePermissions.ts). hq
+ * decides what a run may do before it starts. Which models may run is the lists' (models from one place, part 4):
+ * a boundary no longer overrides an agent's model, and `model` always reads null.
  */
 import { prisma } from 'wasp/server'
 import { Prisma } from '@prisma/client'
 import {
   isApproval, type AgentConfigPayload, type Approval, type BashPatternPermission, type ToolPermission, type ToolPermissionState,
 } from '@agenthix/core'
-import { isKnownModel, isEqualOrCheaperModel } from '../models'
 import { resolvePrimaryLocation, type SessionLocationFields } from '../../storage/primaryLocationService'
 import { taskRunOwner } from '../../projects/personalProject'
 import { resolveEffectivePermissions, type EffectivePermissions, type OrganisationPermissions } from '../permissions/effectivePermissions'
 
 export type OverrideBoundary = { type: 'project' | 'user'; id: string }
 export type AgentOverrideValues = {
-  model: string | null
+  /** Always null: kept so the screens that read a narrowing keep their shape. */
+  model: null
   approval: Approval | null
   allowedTools: ToolPermission[] | null
   allowedBashPatterns: BashPatternPermission[] | null
@@ -32,32 +32,6 @@ export const MAX_OVERRIDE_PATTERNS = 100
 const MAX_NAME_LENGTH = 200
 const STATES: readonly ToolPermissionState[] = ['always', 'ask', 'never']
 const isState = (v: unknown): v is ToolPermissionState => typeof v === 'string' && (STATES as readonly string[]).includes(v)
-
-export type PackageModel = { defaultModel: string; runtime: string }
-
-/**
- * Why a model override cannot apply to this agent, or null when it can. The
- * model must be one the agent's runtime offers, and equal or cheaper than the
- * agent's own (spec §6.2) on either runtime. Checked again at run time, because
- * a later settings edit can move the agent to a cheaper model or another runtime.
- */
-export function modelOverrideRefusal(agent: PackageModel, model: string): string | null {
-  if (!isKnownModel(agent.runtime, model)) return `'${model}' is not a model this agent's runtime '${agent.runtime}' offers`
-  if (!isEqualOrCheaperModel(agent.runtime, model, agent.defaultModel)) {
-    return `A model override may only choose a model that costs the same as or less than the agent's model '${agent.defaultModel}'`
-  }
-  return null
-}
-
-/**
- * A run's model. A boundary's override wins over a session's chosen model (ruling
- * T15: an override a session choice could defeat would not narrow), and the
- * session's choice wins over the package's model.
- */
-export function modelForRun(agent: PackageModel, override: string | null | undefined, sessionModel?: string | null): string {
-  if (override && modelOverrideRefusal(agent, override) === null) return override
-  return sessionModel || agent.defaultModel
-}
 
 /**
  * The boundary a run acts in (spec §6.3). A task-anchored session acts for the
@@ -108,16 +82,12 @@ function validateEntries<K extends 'name' | 'pattern'>(
 
 export function validateOverride(values: unknown): AgentOverrideValues {
   const v = (values ?? {}) as Record<string, unknown>
-  const model = v.model ?? null
-  if (model !== null && (typeof model !== 'string' || model.trim() === '')) {
-    throw new OverrideValidationError(`'${String(model)}' is not a model`)
-  }
   const approval = v.approval ?? null
   if (approval !== null && !isApproval(approval)) {
     throw new OverrideValidationError(`'${String(approval)}' is not an approval — bypassed, deferred or immediate`)
   }
   return {
-    model: model as string | null,
+    model: null,
     approval: approval as Approval | null,
     allowedTools: validateEntries(v.allowedTools, 'name', 'tools', MAX_OVERRIDE_TOOLS) as ToolPermission[] | null,
     allowedBashPatterns: validateEntries(v.allowedBashPatterns, 'pattern', 'bash patterns', MAX_OVERRIDE_PATTERNS) as BashPatternPermission[] | null,
@@ -125,10 +95,10 @@ export function validateOverride(values: unknown): AgentOverrideValues {
 }
 
 /** A stored narrowing, read back. A malformed stored list reads as none rather than failing a run's start. */
-export function overrideFromRow(row: { model: string | null; approval: string | null; allowedTools: unknown; allowedBashPatterns: unknown }): AgentOverrideValues {
+export function overrideFromRow(row: { approval: string | null; allowedTools: unknown; allowedBashPatterns: unknown }): AgentOverrideValues {
   const safe = <T>(read: () => T): T | null => { try { return read() } catch { return null } }
   return {
-    model: row.model,
+    model: null,
     approval: isApproval(row.approval) ? row.approval : null,
     allowedTools: safe(() => validateEntries(row.allowedTools, 'name', 'tools', Infinity)) as ToolPermission[] | null,
     allowedBashPatterns: safe(() => validateEntries(row.allowedBashPatterns, 'pattern', 'bash patterns', Infinity)) as BashPatternPermission[] | null,
@@ -137,7 +107,7 @@ export function overrideFromRow(row: { model: string | null; approval: string | 
 
 /** Whether a narrowing sets anything at all. */
 export function narrowsAnything(n: AgentOverrideValues | null): boolean {
-  return !!n && (n.model !== null || n.approval !== null || n.allowedTools !== null || n.allowedBashPatterns !== null)
+  return !!n && (n.approval !== null || n.allowedTools !== null || n.allowedBashPatterns !== null)
 }
 
 const where = (boundary: OverrideBoundary, agentId: string) => ({
@@ -160,17 +130,8 @@ export async function setAgentOverride(
     await prisma.agentOverride.deleteMany({ where: where(boundary, agentId) })
     return null
   }
-  if (valid.model !== null) {
-    const agent = await prisma.agent.findUnique({ where: { id: agentId }, select: { defaultModel: true, runtime: true } })
-    // Resubmitting the model already stored is not a new choice: the package's
-    // model may have since become cheaper, and a permissions-only edit must not fail on it.
-    const stored = (await getAgentOverride(boundary, agentId))?.model
-    const refusal = !agent ? 'Agent not found' : stored === valid.model ? null : modelOverrideRefusal(agent, valid.model)
-    if (refusal) throw new OverrideValidationError(refusal)
-  }
   const json = (v: unknown[] | null) => (v === null ? Prisma.JsonNull : (v as Prisma.InputJsonValue))
   const data = {
-    model: valid.model,
     approval: valid.approval,
     allowedTools: json(valid.allowedTools),
     allowedBashPatterns: json(valid.allowedBashPatterns),
@@ -207,7 +168,7 @@ export async function runPermissions(
 }
 
 /**
- * The agent row a run in this boundary is dispatched with: the boundary's model, and the run's effective approval,
+ * The agent row a run in this boundary is dispatched with: the run's effective approval,
  * tools and bash patterns — the same resolution its capability is minted from, so the run's approved tools are
  * built from what this boundary allows.
  */
@@ -218,7 +179,6 @@ export async function applyBoundaryOverride(agent: AgentConfigPayload, boundary:
   const effective = resolveEffectivePermissions(organisationPermissions(agent), override)
   return {
     ...agent,
-    defaultModel: modelForRun(agent, override.model),
     approval: effective.approval,
     allowedTools: effective.allowedTools,
     allowedBashPatterns: effective.allowedBashPatterns,

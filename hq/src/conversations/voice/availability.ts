@@ -2,25 +2,26 @@
  * Whether a person may start voice in a conversation now, and why not (conversational experience spec, Voice ›
  * The message box): they may speak in it, its agent has a voice, the organisation has speech to text and text to
  * speech, a model access serves a reply, and nobody else holds voice in it. The reason is what the greyed button
- * says. Speech providers are the organisation's settings, outside the model policy.
+ * says. Every agent has a voice (models from one place, part 4): speech to text and text to speech are resolved like
+ * a model, and when no provider of a type works the button stays and says voice is down.
  */
 import { prisma } from 'wasp/server'
 import type { ConversationVoiceView } from '../../shared/conversations/voice'
 import { personName } from '../../sessions/transcriptAuthors'
+import { speechAccess, type SpeechKind } from '../../voice/speechAccess'
 
 export interface VoiceFacts {
   /** Why the person may not speak in the conversation now; null when they may. */
   speakingRefusal: string | null
-  agent: { name: string; voiceEnabled: boolean } | null
-  hasSpeechToText: boolean
-  hasTextToSpeech: boolean
+  agent: { name: string } | null
+  /** Why no speech to text / text to speech provider serves this agent now; null when one does. */
+  speechToTextDown: string | null
+  textToSpeechDown: string | null
   /** Why no model access serves a reply here; null when one does. */
   accessProblem: string | null
   holder: { id: string; name: string } | null
 }
 
-export const NO_SPEECH_TO_TEXT = 'Voice needs speech to text, which HQ does not have yet. An admin can add it in Settings › Voice.'
-export const NO_TEXT_TO_SPEECH = 'Voice needs text to speech, which HQ does not have yet. An admin can add it in Settings › Voice.'
 export const NO_AGENT = "This conversation's agent no longer exists."
 
 export function inUse(holderName: string): string {
@@ -31,9 +32,8 @@ export function inUse(holderName: string): string {
 export function voiceRefusal(facts: VoiceFacts, userId: string): string | null {
   if (facts.speakingRefusal) return facts.speakingRefusal
   if (!facts.agent) return NO_AGENT
-  if (!facts.agent.voiceEnabled) return `${facts.agent.name} has no voice yet. An admin can turn it on in the agent's settings.`
-  if (!facts.hasSpeechToText) return NO_SPEECH_TO_TEXT
-  if (!facts.hasTextToSpeech) return NO_TEXT_TO_SPEECH
+  if (facts.speechToTextDown) return facts.speechToTextDown
+  if (facts.textToSpeechDown) return facts.textToSpeechDown
   if (facts.accessProblem) return facts.accessProblem
   if (facts.holder && facts.holder.id !== userId) return inUse(facts.holder.name)
   return null
@@ -49,8 +49,9 @@ export function voiceView(facts: VoiceFacts, userId: string, startedAt: Date | n
   }
 }
 
-async function enabledProvider(service: 'stt' | 'tts', name: string): Promise<boolean> {
-  return (await prisma.provider.count({ where: { service, name, isEnabled: true } })) > 0
+async function downReason(kind: SpeechKind, agentId: string | null): Promise<string | null> {
+  const answer = await speechAccess(kind, agentId)
+  return answer.ok ? null : answer.reason
 }
 
 async function nameOfHolder(userId: string): Promise<string> {
@@ -64,17 +65,17 @@ export async function loadVoiceFacts(input: {
   speakingRefusal: string | null
   accessProblem: string | null
 }): Promise<VoiceFacts> {
-  const [agent, hasSpeechToText, hasTextToSpeech, holderName] = await Promise.all([
-    input.agentId ? prisma.agent.findUnique({ where: { id: input.agentId }, select: { name: true, voiceEnabled: true } }) : null,
-    enabledProvider('stt', 'assemblyai'),
-    enabledProvider('tts', 'inworld'),
+  const [agent, speechToTextDown, textToSpeechDown, holderName] = await Promise.all([
+    input.agentId ? prisma.agent.findUnique({ where: { id: input.agentId }, select: { name: true } }) : null,
+    downReason('stt', input.agentId),
+    downReason('tts', input.agentId),
     input.holderId ? nameOfHolder(input.holderId) : null,
   ])
   return {
     speakingRefusal: input.speakingRefusal,
     agent,
-    hasSpeechToText,
-    hasTextToSpeech,
+    speechToTextDown,
+    textToSpeechDown,
     accessProblem: input.accessProblem,
     holder: input.holderId ? { id: input.holderId, name: holderName! } : null,
   }

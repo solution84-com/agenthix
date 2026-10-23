@@ -54,7 +54,7 @@ describe('importAgentZip @SC-180', () => {
 
     const persisted = await prisma.agent.findUnique({ where: { handle: 'imported-x' } })
     expect(persisted).not.toBeNull()
-    expect(persisted?.defaultModel).toBe('claude-sonnet-4-6')
+    expect(persisted?.approval).toBe('deferred')
 
     const content = await readAgentContent(result.agentId)
     expect(content?.instructions).toBe('# Imported')
@@ -122,13 +122,13 @@ describe('importAgentZip @SC-180', () => {
     expect(dashboardPush.triggerSnapshotPush).not.toHaveBeenCalled()
   })
 
-  it('a new handle starts on the default runtime with the archive\'s own settings', async () => {
+  it('a new handle starts with the archive\'s own settings', async () => {
     const buf = await makeAgentZip({ name: 'N', handle: 'defaults-x', approval: 'immediate', allowedTools: ['Read'] })
 
     const result = await importAgentZip(buf, 'admin-1')
 
     const agent = await prisma.agent.findUniqueOrThrow({ where: { id: result.agentId } })
-    expect(agent).toMatchObject({ runtime: 'claude-sdk', approval: 'immediate' })
+    expect(agent).toMatchObject({ approval: 'immediate' })
     // An archive from before tool states carries plain names; they are read as a tool state.
     expect(agent.allowedTools).toEqual([{ name: 'Read', state: expect.any(String) }])
   })

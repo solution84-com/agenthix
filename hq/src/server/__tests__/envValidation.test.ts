@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { envProblems, sharedSubscriptionSwitchIgnoredError } from '../envValidation'
+import { envProblems } from '../envValidation'
 
 const goodKey = Buffer.alloc(32, 9).toString('base64')
 const good: NodeJS.ProcessEnv = { SECRETS_MASTER_KEY: goodKey }
@@ -43,23 +43,5 @@ describe('envProblems (R-200)', () => {
 
   it('reports an invalid HQ_TRUSTED_PROXIES', () => {
     expect(envProblems({ ...good, HQ_TRUSTED_PROXIES: 'many' }).join('\n')).toContain('HQ_TRUSTED_PROXIES')
-  })
-})
-
-describe('sharedSubscriptionSwitchIgnoredError @SC-704', () => {
-  const on = { HQ_DEV_SHARED_SUBSCRIPTION: 'true' }
-
-  it('says the switch is ignored in production', () => {
-    expect(sharedSubscriptionSwitchIgnoredError({ ...on, NODE_ENV: 'production' })).toContain('is ignored')
-  })
-
-  it('says so when NODE_ENV is unset or unknown, not only in production', () => {
-    expect(sharedSubscriptionSwitchIgnoredError(on)).toContain('unset')
-    expect(sharedSubscriptionSwitchIgnoredError({ ...on, NODE_ENV: 'staging' })).toContain('"staging"')
-  })
-
-  it('is silent in a development build, and when the switch is not set', () => {
-    expect(sharedSubscriptionSwitchIgnoredError({ ...on, NODE_ENV: 'development' })).toBeNull()
-    expect(sharedSubscriptionSwitchIgnoredError({ NODE_ENV: 'production' })).toBeNull()
   })
 })

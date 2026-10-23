@@ -156,8 +156,8 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
               title={voiceRefusal ?? 'Start voice'}
               disabled={sending}
               onClick={() => void talk()}
-              onPointerEnter={voiceRefusal ? undefined : voiceCall.prepare}
-              onFocus={voiceRefusal ? undefined : voiceCall.prepare}
+              onPointerEnter={voiceRefusal ? undefined : () => voiceCall.prepare(agentId || undefined)}
+              onFocus={voiceRefusal ? undefined : () => voiceCall.prepare(agentId || undefined)}
               className={`flex shrink-0 items-center justify-center rounded-lg p-2 disabled:opacity-50 ${voiceRefusal ? 'cursor-not-allowed bg-surface-2 text-text-muted' : 'bg-accent text-on-accent hover:bg-accent-hover'}`}
             >
               <AudioLines size={14} aria-hidden />

@@ -12,9 +12,10 @@ vi.mock('wasp/client/api', () => ({ getSessionId: () => null }))
 
 import { LoginPage, signInMessage } from '../LoginPage'
 
-const identity = (over: Record<string, unknown> = {}) => ({ body: { shows: 'cover', ...ACME, ...over } })
+const identity = (over: Record<string, unknown> = {}) => ({ body: { shows: 'cover', ...ACME, claimState: 'set_up', ...over } })
+const NO_ORG = { shows: 'nothing', name: null, handle: null, vision: null, avatarUrl: null, coverUrl: null }
 const open = async (answers: Parameters<typeof fakeFetch>[0] = {}) => {
-  fakeFetch({ '/api/auth/bootstrap-status': { body: { bootstrapRequired: false } }, '/api/org/public-identity': identity(), ...answers })
+  fakeFetch({ '/api/org/public-identity': identity(), ...answers })
   render(<MemoryRouter initialEntries={['/login']}><Routes><Route path="/login" element={<LoginPage />} /><Route path="/" element={<span>Home</span>} /></Routes></MemoryRouter>)
   await screen.findByRole('heading', { level: 1 })
 }
@@ -100,10 +101,28 @@ describe('Signing in', () => {
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy()
   })
 
-  it("on a fresh HQ points to the setup link instead of a code field @SC-709", async () => {
-    await open({ '/api/auth/bootstrap-status': { body: { bootstrapRequired: true } } })
-    expect(screen.getByText(/setup link printed in HQ's log/)).toBeTruthy()
+  it('on an HQ no one has set up says so, with the command for a new link and no form @SC-709', async () => {
+    await open({ '/api/org/public-identity': identity({ ...NO_ORG, claimState: 'unclaimed' }) })
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("This HQ isn't set up yet")
+    expect(screen.getByText('agenthix hq invite-admin')).toBeTruthy()
     expect(screen.queryByLabelText('Password')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull()
+    expect(screen.queryByText('Acme Corp')).toBeNull()
+  })
+
+  it('while the first account is setting up says almost ready, and still signs in @SC-709', async () => {
+    await open({ '/api/org/public-identity': identity({ ...NO_ORG, claimState: 'setting_up' }) })
+    expect(screen.getByText('Almost ready.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy()
+    expect(screen.queryByText('Acme Corp')).toBeNull()
+  })
+
+  it('says nothing of setup once HQ is set up, or when HQ does not state it', async () => {
+    await open()
+    expect(screen.queryByText('Almost ready.')).toBeNull()
+    cleanup()
+    await open({ '/api/org/public-identity': { body: { shows: 'cover', ...ACME } } })
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy()
   })
 
   it('fills in a remembered username', async () => {
@@ -129,7 +148,6 @@ describe('Sign in with Agenthix Cloud @SC-1109', () => {
     const assign = vi.fn()
     vi.stubGlobal('location', { ...window.location, assign })
     const calls = fakeFetch({
-      '/api/auth/bootstrap-status': { body: { bootstrapRequired: false } },
       '/api/org/public-identity': identity(),
       '/api/auth/cloud/status': { body: { connected: true } },
       '/api/auth/cloud/start': { body: { authorizeUrl, binding: 'b'.repeat(43) } },

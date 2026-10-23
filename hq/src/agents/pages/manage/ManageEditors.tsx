@@ -2,21 +2,16 @@ import {
   useQuery, useAction,
   updateAgent as updateAgentAction, updateAgentSettings, getUserSettings, getAgentPromptPreview, updateAgentFile,
   getAgentSkills, getSkillLibrary, getInstalledSkillVersions, saveAgentSkill, deleteAgentSkill, installSkill,
-  getVoiceServices, listInworldVoices, updateAgentVoice, previewVoice,
 } from 'wasp/client/operations'
-import { runtimeLabel } from '@agenthix/core'
 import {
-  PromptTab, SkillsTab, ConfigurationTab, VoiceTab, type AgentDetail,
+  PromptTab, SkillsTab, ConfigurationTab, type AgentDetail,
 } from '@agenthix/ui/agents'
 import { RichTextEditor } from '../../../shared/components/ui/RichTextEditor'
 import { MarkdownMessage } from '../../../shared/components/MarkdownMessage'
-import { modelsForRuntime } from '../../models'
-import { resolveAgentSave, resolveVoiceSave, type AgentBehaviourFields } from '../agentSaveGate'
+import { AgentModelsSection } from '../../../models-settings/components/AgentModelsSection'
+import { resolveAgentSave, type AgentBehaviourFields } from '../agentSaveGate'
 import { ManageSection } from './ManageSection'
 import { PermissionsSection } from './PermissionsSection'
-
-/** The voice tab needs only whether text to speech is set up, and by which provider: any member may read that. */
-const textToSpeech = async () => (await getVoiceServices()).textToSpeech
 
 const slots = {
   renderEditor: (p: { value: string; onChange: (v: string) => void; placeholder?: string }) => <RichTextEditor {...p} />,
@@ -69,8 +64,6 @@ function SkillsSection({ agent }: { agent: AgentDetail }) {
 
 function SettingsSection({ agent }: { agent: AgentDetail }) {
   const updateSettings = useAction(updateAgentSettings)
-  const updateVoice = useAction(updateAgentVoice)
-  const preview = useAction(previewVoice)
   const updateAgent = useAction(updateAgentAction)
 
   // Read fresh at save time, as the page this came from did, so a save right after opening is never wrongly refused.
@@ -82,44 +75,28 @@ function SettingsSection({ agent }: { agent: AgentDetail }) {
     if (name !== undefined) await updateAgent({ id, name })
     if (decision.kind === 'save') return updateSettings({ agentId: id, ...decision.change } as never)
   }
-  const saveVoice: typeof updateVoice = async (input) => {
-    const settings = await getUserSettings()
-    const decision = resolveVoiceSave(settings.role === 'ADMIN')
-    if (decision.kind === 'refused') throw new Error(decision.message)
-    return updateVoice(input)
-  }
-
-  const model = modelsForRuntime(agent.runtime).find(m => m.value === agent.defaultModel)?.label ?? agent.defaultModel
   return (
     <ManageSection
       title="Settings"
       summary={
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-          <dt className="text-text-muted">Model</dt><dd className="text-text-primary">{model}</dd>
-          <dt className="text-text-muted">Runtime</dt><dd className="text-text-primary">{runtimeLabel(agent.runtime)}</dd>
-          <dt className="text-text-muted">Voice</dt><dd className="text-text-primary">{agent.voiceEnabled ? 'On' : 'Off'}</dd>
-        </dl>
+        <span>@{agent.handle} · Approval {agent.approval}</span>
       }
       editor={
         <div className="space-y-8">
           <ConfigurationTab agent={agent} actions={{ updateAgent: saveAgent as never }} />
-          <VoiceTab
-            agent={{ id: agent.id, voiceEnabled: agent.voiceEnabled, voiceId: agent.voiceId, voiceTtsModel: agent.voiceTtsModel }}
-            queries={{ getVoiceProvider: textToSpeech, listInworldVoices } as never}
-            actions={{ updateAgentVoice: saveVoice as never, previewVoice: preview as never }}
-          />
         </div>
       }
     />
   )
 }
 
-/** Instructions, Skills, Settings and Permissions (spec §3), each its editor behind an Edit. */
+/** Instructions, Skills, Models, Settings and Permissions (spec §3), each its editor behind an Edit. */
 export function ManageEditors({ agent }: { agent: AgentDetail }) {
   return (
     <>
       <InstructionsSection agent={agent} />
       <SkillsSection agent={agent} />
+      <AgentModelsSection agentId={agent.id} agentName={agent.name} />
       <SettingsSection agent={agent} />
       <PermissionsSection agent={agent} />
     </>

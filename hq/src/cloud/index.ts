@@ -8,7 +8,7 @@ import { configuredCloudUrl, parseCloudBaseUrl, type CloudOrganisationConnection
 import { hqAbout } from '../fleet/consoleFacts'
 import { recordActivity } from '../fleet/activity'
 import { ConsoleRefusal, type ConsoleServices } from '../fleet/consoleMethods'
-import { CloudBusyError, CloudCallError, cloudClient } from './cloudClient'
+import { cloudClient } from './cloudClient'
 import { CloudConnection, CloudConnectionError } from './cloudConnection'
 import { cloudConnectionStore, cloudKeyStore } from './cloudStores'
 import { CloudSignIn } from './cloudSignIn'
@@ -20,6 +20,8 @@ import { platformFacts } from './platformFacts'
 import { platformFactsStore } from './platformFactsStore'
 import { PledgeStatuses } from './pledgeStatus'
 import { Logger } from '../server/utils/logger'
+import { setCloudProviderState } from '../providers/health'
+import { supplyCloudProvider } from '../providers/write'
 
 const logger = new Logger('Cloud')
 
@@ -33,9 +35,28 @@ export function runByCloud(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.HQ_RUN_BY_CLOUD === 'true'
 }
 
+const CONNECT_IN_HQ = "Agenthix Cloud is connected and disconnected in HQ, under Manage › Providers, by an organisation admin."
 const BAD_URL = 'CLOUD_URL is not an https address, so HQ does not know where Agenthix Cloud is.'
 
 let instance: CloudConnection | null = null
+
+// The same words as providers/write.ts gives a newly added Agenthix Cloud provider.
+const CLOUD_NOT_AVAILABLE = 'Agenthix Cloud does not offer models and voice to this HQ yet.'
+
+/**
+ * An organisation admin's connection adds Agenthix Cloud as a provider (or brings back one that was disconnected). A
+ * connection Cloud made on a machine it runs, or one made from hq's machine, adds it through its own paths. Never
+ * fails the connection.
+ */
+async function provideCloudAfterConnect(byUserId: string | null): Promise<void> {
+  if (!byUserId) return
+  try {
+    const { provider } = await supplyCloudProvider({ kind: 'organisation_admin', userId: byUserId })
+    if (provider.state === 'disconnected') await setCloudProviderState('not_available', CLOUD_NOT_AVAILABLE)
+  } catch (err) {
+    logger.warn(`Agenthix Cloud not added as a provider: ${err instanceof Error ? err.message : String(err)}`)
+  }
+}
 
 /** The one connection this hq has; null when Cloud's address is not usable. */
 export function cloudConnection(): CloudConnection | null {
@@ -47,8 +68,14 @@ export function cloudConnection(): CloudConnection | null {
     connections: cloudConnectionStore,
     keys: cloudKeyStore,
     about: hqAbout,
-    onConnected: (c, byUserId) => recordActivity({ byUserId, action: 'cloud.connected', subject: c.name, at: new Date(), announce: true }),
-    onDisconnected: (c, byUserId) => recordActivity({ byUserId, action: 'cloud.disconnected', subject: c.name, at: new Date(), announce: true }),
+    onConnected: async (c, byUserId) => {
+      await recordActivity({ byUserId, action: 'cloud.connected', subject: c.name, at: new Date(), announce: true })
+      await provideCloudAfterConnect(byUserId)
+    },
+    onDisconnected: async (c, byUserId) => {
+      await recordActivity({ byUserId, action: 'cloud.disconnected', subject: c.name, at: new Date(), announce: true })
+      await setCloudProviderState('disconnected', 'HQ is not connected to Agenthix Cloud.')
+    },
     onEnding: tellLinkedPeopleSignInEnds,
   })
   return instance
@@ -117,27 +144,6 @@ async function mustBeFleetAdmin(userId: string): Promise<void> {
   }
 }
 
-async function mustBeOrganisationAdmin(userId: string): Promise<void> {
-  const count = await prisma.user.count({ where: { id: userId, fleetAdmin: true, ...ACTIVE, settings: { role: 'ADMIN' } } })
-  if (!count) throw new ConsoleRefusal('not_allowed', 'Only an organisation admin who is also a fleet admin connects HQ to Agenthix Cloud or disconnects it.')
-}
-
-function usable(): CloudConnection {
-  const c = cloudConnection()
-  if (!c) throw new ConsoleRefusal('failed', BAD_URL)
-  return c
-}
-
-async function refusingFailures<T>(work: () => Promise<T>): Promise<T> {
-  try {
-    return await work()
-  } catch (err) {
-    if (err instanceof CloudBusyError) throw new ConsoleRefusal('rate_limited', err.message)
-    if (err instanceof CloudCallError || err instanceof CloudConnectionError) throw new ConsoleRefusal('failed', err.message)
-    throw err
-  }
-}
-
 const facts = platformFacts(platformFactsStore)
 
 export function cloudConsoleServices(): Pick<ConsoleServices, 'cloud.state' | 'cloud.connect' | 'cloud.disconnect' | 'cloud.askCount' | 'cloud.offers' | 'cloud.dismissOffer'> {
@@ -147,15 +153,11 @@ export function cloudConsoleServices(): Pick<ConsoleServices, 'cloud.state' | 'c
       const c = cloudConnection()
       return { ...(c ? await c.state() : { connection: null, connecting: null, lastAttempt: null, problem: null }), runByCloud: runByCloud() }
     },
-    'cloud.connect': async ({ byUserId }) => {
-      await mustBeOrganisationAdmin(byUserId)
-      return { connecting: await refusingFailures(() => usable().connect(byUserId)) }
-    },
-    'cloud.disconnect': async ({ byUserId }) => {
-      await mustBeOrganisationAdmin(byUserId)
-      if (runByCloud()) throw new ConsoleRefusal('not_allowed', 'HQ runs on Agenthix Cloud, so its connection to Cloud stays while Cloud runs it.')
-      return { disconnected: await refusingFailures(() => usable().disconnect(byUserId)) }
-    },
+    // Connecting moved into hq's admin area (adminCloud.ts); the console link's methods stay so an older Fleet Console is answered.
+    /** @deprecated since 1.0; stops working in 3.0. Use Providers in hq's admin area. */
+    'cloud.connect': async () => { throw new ConsoleRefusal('not_allowed', CONNECT_IN_HQ) },
+    /** @deprecated since 1.0; stops working in 3.0. Use Providers in hq's admin area. */
+    'cloud.disconnect': async () => { throw new ConsoleRefusal('not_allowed', CONNECT_IN_HQ) },
     'cloud.askCount': async ({ byUserId }) => {
       await mustBeFleetAdmin(byUserId)
       return { count: await facts.askCount() }

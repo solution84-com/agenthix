@@ -126,11 +126,9 @@ describe('overrides are validated before they are stored @SC-615', () => {
     ['a bash pattern with no pattern', { allowedBashPatterns: [{ state: 'never' }] }, /pattern/],
     ['more tools than the limit', { allowedTools: Array.from({ length: 201 }, (_, i) => ({ name: `t${i}`, state: 'never' })) }, /At most 200/],
     ['more bash patterns than the limit', { allowedBashPatterns: Array.from({ length: 101 }, (_, i) => ({ pattern: `p${i}`, state: 'never' })) }, /At most 100/],
-    ['a model the agent\'s runtime does not offer', { model: 'gpt-9' }, /not a model/],
-    ['a model that costs more than the agent\'s own', { model: 'claude-opus-4-6' }, /same as or less/],
   ])('answers 400 for %s, and stores nothing', async (_name, change, message) => {
     const user = await createUser()
-    const agent = await createAgent({ defaultModel: 'claude-sonnet-4-6', runtime: 'claude-sdk' })
+    const agent = await createAgent()
     const args = { boundaryType: 'user' as const, boundaryId: user.id, agentId: agent.id }
 
     await expect(setAgentOverride({ ...args, ...none, ...change } as any, ctxFor(user)))
@@ -139,13 +137,13 @@ describe('overrides are validated before they are stored @SC-615', () => {
     expect(await prisma.agentOverride.count()).toBe(0)
   })
 
-  it('accepts a model that costs the same or less', async () => {
+  it('ignores a model: a boundary no longer overrides an agent\'s model, and nothing is stored for it', async () => {
     const user = await createUser()
-    const agent = await createAgent({ defaultModel: 'claude-sonnet-4-6', runtime: 'claude-sdk' })
+    const agent = await createAgent()
     const args = { boundaryType: 'user' as const, boundaryId: user.id, agentId: agent.id }
 
-    expect(await setAgentOverride({ ...args, ...none, model: 'claude-haiku-4-5' }, ctxFor(user)))
-      .toEqual({ ...none, model: 'claude-haiku-4-5' })
+    expect(await setAgentOverride({ ...args, ...none, model: 'claude-haiku-4-5' } as never, ctxFor(user))).toBeNull()
+    expect(await prisma.agentOverride.count()).toBe(0)
   })
 })
 

@@ -1,16 +1,16 @@
 /**
- * A task's run follows the work models, against the real database and through the real dispatch: it takes its
- * boundary's light-work model on the runtime that can be given it — OpenCode for a model only an OpenRouter key
- * reaches, though the agent is on the Claude SDK — with the credential for that model. A task's session on another
- * runtime is replaced, unless something in it carries on. Only the site is a fake.
+ * A task's run follows the resolver (models from one place, part 4), against the real database and through the real
+ * dispatch: it takes the default worker model on the runtime that model and its provider follow — OpenCode for a model
+ * via OpenRouter — and is given that provider. A task's session on another runtime is replaced, unless something in
+ * it carries on. Only the site is a fake.
  */
 process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 7).toString('base64')
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
 import { createProject, createSession, createUser, createTestTask } from '../../test/factories'
-import { agentWithContent, apiKeyFor, dispatched, readyToDispatch } from './dispatchFixtures'
-import { orgKey } from '../../model-access/__tests__/runCredentialFixtures'
+import { agentWithContent, dispatched, readyToDispatch } from './dispatchFixtures'
+import { createProvider, setOrgDefaults } from '../../routing/__tests__/routingFixtures'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -41,15 +41,20 @@ async function projectTask() {
   const project = await createProject({ name: 'Walk', key: `WAL${++seq}`, slug: `walk-${seq}` })
   const person = await createUser()
   await prisma.projectMember.create({ data: { projectId: project.id, userId: person.id } })
-  const agent = await agentWithContent({ runtime: 'claude-sdk', defaultModel: 'claude-sonnet-4-6' })
+  const agent = await agentWithContent()
   const task = await createTestTask({
     data: { title: 'Walk the dog', projectId: project.id, number: 2, onBehalfOfUserId: person.id, assignedAgentId: agent.id },
   })
   return { project, person, agent, task }
 }
 
-const orgLightWork = (lightWork: string) =>
-  prisma.modelPolicy.create({ data: { ownerType: 'org', ownerId: 'org', talking: lightWork, lightWork, heavyWork: lightWork } })
+/** The organisation's default worker model, in the runtime's form (`openrouter/…` or a bare Claude id), via a new provider. */
+async function orgWorker(model: string, key = 'sk-test-fake') {
+  const vendor = model.startsWith('openrouter/') ? 'openrouter' as const : 'anthropic' as const
+  const provider = await createProvider({ vendor, key })
+  await setOrgDefaults({ worker: { providerId: provider.id, model: vendor === 'openrouter' ? model.slice('openrouter/'.length) : model } })
+  return provider
+}
 
 /** A session the task already has on the Claude SDK, on the site too, with its newest run as given. */
 async function claudeSession(t: Awaited<ReturnType<typeof projectTask>>, run: Partial<Parameters<typeof siteStore.addRun>[1]> = {}) {
@@ -62,11 +67,10 @@ async function claudeSession(t: Awaited<ReturnType<typeof projectTask>>, run: Pa
   return session
 }
 
-describe("a task's run takes the light-work model @SC-955", () => {
+describe("a task's run takes the default worker model @SC-955", () => {
   it("runs on OpenCode with the organisation's OpenRouter model and key when the agent is on the Claude SDK", async () => {
     const t = await projectTask()
-    await orgLightWork(OPEN_ROUTER)
-    await orgKey('openrouter', 'sk-or')
+    const provider = await orgWorker(OPEN_ROUTER, 'sk-test-or')
 
     await dispatchTaskRun(t.task.id, t.agent, 'person')
 
@@ -75,34 +79,35 @@ describe("a task's run takes the light-work model @SC-955", () => {
     const { payload } = dispatched()
     expect(payload.model).toBe(OPEN_ROUTER)
     expect(payload.session).toMatchObject({ runtime: 'opencode', model: OPEN_ROUTER })
-    expect(payload.context.credential).toMatchObject({ kind: 'apiKey', provider: 'openrouter', apiKey: 'sk-or' })
+    expect(payload.context.credential).toBeNull()
+    expect(payload.context.modelAccess).toMatchObject({ provider: { kind: 'api_key', providerId: provider.id, vendor: 'openrouter', apiKey: 'sk-test-or' } })
     expect(payload.context.credentialProblem).toBeUndefined()
   })
 
-  it("stays on the agent's runtime when it offers the light-work model", async () => {
+  it('runs a Claude model via Anthropic on Claude Code', async () => {
     const t = await projectTask()
-    await orgLightWork(HAIKU)
-    await apiKeyFor('project', t.project.id, 'sk-project')
+    await orgWorker(HAIKU, 'sk-test-ant')
 
     await dispatchTaskRun(t.task.id, t.agent, 'pulse')
 
     expect(await prisma.agentSession.findUniqueOrThrow({ where: { taskId: t.task.id } })).toMatchObject({ runtime: 'claude-sdk', model: HAIKU })
     const { payload } = dispatched()
     expect(payload.model).toBe(HAIKU)
-    expect(payload.context.credential).toMatchObject({ provider: 'anthropic', apiKey: 'sk-project' })
+    expect(payload.context.modelAccess?.provider).toMatchObject({ vendor: 'anthropic', apiKey: 'sk-test-ant' })
   })
 
-  it("is the agent's own model on its own runtime when no policy names one", async () => {
+  it('with no provider, is dispatched with the problem, which the site fails it with', async () => {
     const t = await projectTask()
     await dispatchTaskRun(t.task.id, t.agent, 'schedule')
-    expect(await prisma.agentSession.findUniqueOrThrow({ where: { taskId: t.task.id } })).toMatchObject({ runtime: 'claude-sdk', model: 'claude-sonnet-4-6' })
-    expect(dispatched().payload.model).toBe('claude-sonnet-4-6')
+    const { payload } = dispatched()
+    expect(payload.context.modelAccess).toBeUndefined()
+    expect(payload.context.credentialProblem).toMatch(/No model provider is working/)
   })
 
   it("gives a session it keeps on the same runtime the run's model", async () => {
     const t = await projectTask()
     const old = await claudeSession(t)
-    await orgLightWork(HAIKU)
+    await orgWorker(HAIKU)
 
     await dispatchTaskRun(t.task.id, t.agent, 'person')
 
@@ -115,8 +120,7 @@ describe("a task's session on another runtime @SC-955", () => {
   it('is replaced by one on the runtime the run needs, on the site and in hq', async () => {
     const t = await projectTask()
     const old = await claudeSession(t, { status: 'FAILED' })
-    await orgLightWork(OPEN_ROUTER)
-    await orgKey('openrouter', 'sk-or')
+    await orgWorker(OPEN_ROUTER)
 
     await dispatchTaskRun(t.task.id, t.agent, 'person')
 
@@ -131,7 +135,7 @@ describe("a task's session on another runtime @SC-955", () => {
   it('is kept for the run an approval was given for, which carries on where it asked', async () => {
     const t = await projectTask()
     const old = await claudeSession(t, { manifestStatus: 'APPROVED', pendingManifest: { tools: [{ name: 'Bash', reason: 'list the files' }], bashPatterns: [] } })
-    await orgLightWork(OPEN_ROUTER)
+    await orgWorker(OPEN_ROUTER)
 
     await dispatchTaskRun(t.task.id, t.agent, 'person')
 
@@ -145,7 +149,7 @@ describe("a task's session on another runtime @SC-955", () => {
     const t = await projectTask()
     const old = await claudeSession(t)
     await markTaskConversationPaused(t.task.id)
-    await orgLightWork(OPEN_ROUTER)
+    await orgWorker(OPEN_ROUTER)
 
     await dispatchTaskRun(t.task.id, t.agent, 'pulse')
 

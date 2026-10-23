@@ -8,10 +8,9 @@ import { HttpError, prisma } from 'wasp/server'
 import { requireRole } from '../server/identity/requireRole'
 import { ACTIVE_PERSON, peopleByIds } from '../server/identity/people'
 import type { PersonSummary } from '../server/identity/personSummary'
-import { getOrgModelKeyStatus } from '../server/providerService'
 import { getOrgRunLimits } from '../agents/runLimits/runLimitsService'
 import { loadOrgAutomation } from '../automation/automationStore'
-import { CREDENTIAL_PROVIDERS, PROVIDER_LABELS } from '../shared/modelProviders'
+import { AI_PROVIDER_VENDOR_INFO } from '@agenthix/core'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -47,7 +46,7 @@ export const getWorkplacePeople = async (_args: unknown, context: Ctx): Promise<
 }
 
 export type OrgSettingsState = {
-  /** The providers the organisation has a key or a login for, by name. */
+  /** The organisation's model providers, by name. */
   modelProviders: string[]
   githubAccounts: number
   runLimits: { timeLimitMinutes: number; turnLimit: number }
@@ -58,18 +57,16 @@ export type OrgSettingsState = {
 
 export const getOrgSettingsState = async (_args: unknown, context: Ctx): Promise<OrgSettingsState> => {
   await requireRole(context, 'ADMIN', "Reading the organisation's settings")
-  const [keys, logins, githubAccounts, runLimits, config, automation, voice] = await Promise.all([
-    Promise.all(CREDENTIAL_PROVIDERS.map(async p => ((await getOrgModelKeyStatus(p)).present ? p : null))),
-    prisma.modelCredential.findMany({ where: { ownerType: 'org' }, select: { provider: true } }),
+  const [providers, githubAccounts, runLimits, config, automation, voice] = await Promise.all([
+    prisma.aiProvider.findMany({ where: { ownerUserId: null }, select: { name: true, vendor: true }, orderBy: { createdAt: 'asc' } }),
     prisma.gitHubInstallation.count(),
     getOrgRunLimits(),
     prisma.siteConfig.findFirst({ select: { riskRules: true } }),
     loadOrgAutomation(),
     prisma.provider.count({ where: { service: { in: ['stt', 'tts'] }, isEnabled: true } }),
   ])
-  const have = new Set<string>([...keys.filter((p): p is NonNullable<typeof p> => p !== null), ...logins.map(l => l.provider)])
   return {
-    modelProviders: [...CREDENTIAL_PROVIDERS].sort((a, b) => Number(b === 'anthropic') - Number(a === 'anthropic')).filter(p => have.has(p)).map(p => PROVIDER_LABELS[p]),
+    modelProviders: providers.filter(p => AI_PROVIDER_VENDOR_INFO[p.vendor].types.includes('llm')).map(p => p.name),
     githubAccounts,
     runLimits: { timeLimitMinutes: runLimits.timeLimitMinutes, turnLimit: runLimits.turnLimit },
     riskRules: Array.isArray(config?.riskRules) ? config.riskRules.length : 0,

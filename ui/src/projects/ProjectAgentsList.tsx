@@ -18,7 +18,8 @@ export interface ProjectAgentsListProps {
   everyAgent: { file: InstructionFileData; skills: string[] } | null
   now: Date
   renderAvatar: RenderAgentAvatar
-  modelLabel: (id: string, runtime: string) => string
+  /** The agent's models, as a line a person reads. */
+  modelLine: (agentId: string) => string
   onOpenAgent: (agentId: string) => void
   onOpenFile: (path: string) => void
   /** Absent where the person may not assign agents. */
@@ -54,7 +55,7 @@ function EveryAgentBox({ everyAgent, onOpenFile }: { everyAgent: NonNullable<Pro
  * The Agents tool's list (every screen reviewed spec §3): what every agent here follows, then each agent as it
  * works in this project. The whole row opens the agent; the profile card is for a name or picture elsewhere. An assignment grants an agent nothing (ADR-0062), so this is availability, never entitlement.
  */
-export function ProjectAgentsList({ agents, everyAgent, now, renderAvatar, modelLabel, onOpenAgent, onOpenFile, onAssign, hideHeader, teamsOf }: ProjectAgentsListProps) {
+export function ProjectAgentsList({ agents, everyAgent, now, renderAvatar, modelLine, onOpenAgent, onOpenFile, onAssign, hideHeader, teamsOf }: ProjectAgentsListProps) {
   return (
     <div className="pb-6">
       {!hideHeader && (
@@ -102,8 +103,8 @@ export function ProjectAgentsList({ agents, everyAgent, now, renderAvatar, model
                     <p className="flex flex-wrap gap-x-3 text-small text-text-muted">
                       <span>{tasksLine(row.tasks)}</span>
                       <span>
-                        {modelLabel(row.model.here, row.agent.runtime)}
-                        {row.model.narrowed && <span className="ml-1 rounded-md bg-accent-subtle px-1.5 text-micro font-medium text-accent">narrowed here</span>}
+                        {modelLine(row.agent.id)}
+                        {row.narrowed && <span className="ml-1 rounded-md bg-accent-subtle px-1.5 text-micro font-medium text-accent">narrowed here</span>}
                       </span>
                     </p>
                   </div>

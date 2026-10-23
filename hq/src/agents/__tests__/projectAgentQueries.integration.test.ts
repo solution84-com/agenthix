@@ -26,7 +26,7 @@ async function projectWithAgent(opts: { access?: 'OPEN' | 'PRIVATE' } = {}) {
   const project = await createProject({ accessLevel: opts.access ?? 'OPEN' })
   const member = await createUser()
   await prisma.projectMember.create({ data: { projectId: project.id, userId: member.id, role: 'MEMBER' } })
-  const agent = await createAgent({ defaultModel: 'claude-sonnet-4-6' })
+  const agent = await createAgent()
   await prisma.projectAgent.create({ data: { projectId: project.id, agentId: agent.id } })
   const task = (data: Record<string, unknown>) => createTestTask({
     data: { projectId: project.id, number: ++number, title: `Task ${number}`, assignedAgentId: agent.id, onBehalfOfUserId: member.id, ...data },
@@ -62,13 +62,10 @@ describe("a project's agents @SC-573", () => {
 
   it("shows every member the project's narrowing of an agent", async () => {
     const { project, member, agent } = await projectWithAgent()
-    await prisma.agentOverride.create({ data: { boundaryType: 'project', boundaryId: project.id, agentId: agent.id, model: 'claude-haiku-4-5', approval: 'immediate' } })
+    await prisma.agentOverride.create({ data: { boundaryType: 'project', boundaryId: project.id, agentId: agent.id, approval: 'immediate' } })
 
     const view = await getProjectAgents({ projectId: project.id }, as(member))
-    expect(view.agents[0]).toMatchObject({ narrowed: true, model: { own: 'claude-sonnet-4-6', here: 'claude-haiku-4-5', narrowed: true } })
-
-    const one = await getProjectAgent({ projectId: project.id, agentId: agent.id }, as(member))
-    expect(one.inThisProject).toMatchObject({ own: { model: 'claude-sonnet-4-6' }, narrowing: { model: 'claude-haiku-4-5', approval: 'immediate', allowedTools: null, allowedBashPatterns: null } })
+    expect(view.agents[0]).toMatchObject({ narrowed: true })
   })
 
   it('answers an agent not assigned to the project as not found', async () => {

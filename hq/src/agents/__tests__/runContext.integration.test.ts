@@ -1,9 +1,8 @@
 /**
- * The context a run carries, built against the real database (spec §6, §6.3, ADR-0058, ADR-0060): the agent's
- * settings as the run's boundary overrides them, the mounts of its own owner only, the site's risk rules, the
- * packages, the credential its boundary owns for the runtime and model the site will run, other providers'
- * credentials for fallback models, the org's web-search key for an OpenCode turn, what the agent knows about the
- * person who invoked a chat, and that person's timezone.
+ * The context a run carries, built against the real database (spec §6, ADR-0058; models from one place, part 4): the
+ * agent's settings as the run's boundary overrides them, the mounts of its own owner only, the site's risk rules, the
+ * packages, the model the resolver gives the run with its provider (`modelAccess`), the org's web-search key for an
+ * OpenCode turn, what the agent knows about the person who invoked a chat, and that person's timezone.
  */
 process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 7).toString('base64')
 
@@ -11,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Agent } from '@prisma/client'
 import { prisma } from '../../test/db'
 import { createProject, createUser } from '../../test/factories'
-import { agentWithContent, apiKeyFor, readyToDispatch } from './dispatchFixtures'
+import { agentWithContent, orgModel, readyToDispatch } from './dispatchFixtures'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -32,20 +31,22 @@ beforeEach(async () => {
 
 const own = () => ({ ownerType: 'user' as const, ownerId: person.id })
 const userBoundary = () => ({ type: 'user' as const, id: person.id })
-const opencode = (model = 'openrouter/qwen/qwen3.8-27b:free') =>
-  agentWithContent({ runtime: 'opencode', defaultModel: model })
 
 describe('what a run context carries', () => {
-  it("the agent's settings, its own owner's mounts, the site's risk rules, the packages and its boundary's key", async () => {
+  it("the agent's settings, its own owner's mounts, the site's risk rules, the packages and its model's provider", async () => {
     await prisma.siteConfig.create({ data: { riskRules: [{ pattern: 'x' }] } })
-    await apiKeyFor('user', person.id, 'sk-live')
+    const { provider } = await orgModel('anthropic', 'sk-test-live')
 
     const context = await buildContext(agent, 'chat', own(), userBoundary())
 
     expect(context.mounts).toEqual({ ownerSlugs: { [person.id]: 'personal' } })
     expect(context).not.toHaveProperty('roster')
     expect(context.riskRules).toEqual([{ pattern: 'x' }])
-    expect(context.credential).toEqual({ kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-live' })
+    expect(context.credential).toBeNull()
+    expect(context.modelAccess).toMatchObject({
+      model: { providerId: provider.id, model: 'claude-sonnet-4-6' },
+      provider: { kind: 'api_key', providerId: provider.id, vendor: 'anthropic', apiKey: 'sk-test-live' },
+    })
     expect(context.packages.agent.key).toBe(agent.id)
     expect(context.agent).toEqual({
       id: agent.id, name: 'Atlas', handle: agent.handle, role: agent.role, runtime: 'claude-sdk', approval: 'deferred',
@@ -82,58 +83,29 @@ describe('memory is recalled, never carried whole (memory and knowledge spec) @S
   })
 })
 
-describe('the credential (spec §6.3, ADR-0060)', () => {
-  it("is the one the run's boundary owns, not one chosen by anything about the agent", async () => {
-    const project = await createProject({ name: 'P9' })
-    await apiKeyFor('project', project.id, 'sk-project')
-    await apiKeyFor('user', person.id, 'sk-person')
-    const context = await buildContext(agent, 'chat', { ownerType: 'project', ownerId: project.id }, { type: 'project', id: project.id })
-    expect(context.credential).toMatchObject({ apiKey: 'sk-project' })
-  })
-
+describe("the run's model and provider (models from one place, part 4)", () => {
   it('says why there is none, and carries no reason when there is one', async () => {
     const none = await buildContext(agent, 'chat', own(), userBoundary())
-    expect(none.credential).toBeNull()
+    expect(none.modelAccess).toBeUndefined()
     expect(none.credentialProblem).toEqual(expect.any(String))
 
-    await apiKeyFor('user', person.id, 'sk-live')
+    await orgModel()
     expect('credentialProblem' in (await buildContext(agent, 'chat', own(), userBoundary()))).toBe(false)
   })
 
-  it("is for the agent's own runtime: a model OpenCode cannot place has no credential, and says so", async () => {
-    await apiKeyFor('user', person.id, 'sk-live')
-    const context = await buildContext(await opencode('claude-sonnet-4-6'), 'chat', own(), userBoundary())
-    expect(context.credential).toBeNull()
-    expect(context.credentialProblem).toMatch(/does not name a provider/)
-  })
-
-  it("is for the conversation's own runtime and model, not the agent's current ones", async () => {
-    await apiKeyFor('user', person.id, 'sk-openai', 'openai')
-    const context = await buildContext(agent, 'chat', own(), userBoundary(), { session: { runtime: 'opencode', model: 'openai/gpt-5' } })
-    expect(context.credential).toMatchObject({ provider: 'openai', apiKey: 'sk-openai' })
-  })
-
-  it("falls back to the agent's runtime and model when the session records neither", async () => {
-    await apiKeyFor('user', person.id, 'sk-or', 'openrouter')
-    const context = await buildContext(await opencode(), 'task', own(), userBoundary(), { session: { runtime: null, model: null } })
-    expect(context.credential).toMatchObject({ provider: 'openrouter', apiKey: 'sk-or' })
-  })
-
-  it("carries other providers' credentials for the fallback models, and none when there are none", async () => {
-    await apiKeyFor('user', person.id, 'sk-or', 'openrouter')
-    await apiKeyFor('user', person.id, 'sk-oai', 'openai')
-    const withFallback = await buildContext(await opencode(), 'chat', own(), userBoundary(), { fallbackModels: ['openai/gpt-5'] })
-    expect(withFallback.credential).toMatchObject({ provider: 'openrouter' })
-    expect(withFallback.fallbackCredentials).toEqual([expect.objectContaining({ provider: 'openai', apiKey: 'sk-oai' })])
-    expect('fallbackCredentials' in (await buildContext(await opencode(), 'task', own(), userBoundary()))).toBe(false)
+  it('follows the model and its provider, not the agent: a model via OpenRouter runs on OpenCode', async () => {
+    const { provider, runtimeModel } = await orgModel('openrouter', 'sk-test-or')
+    const context = await buildContext(agent, 'task', own(), userBoundary())
+    expect(context.agent).toMatchObject({ runtime: 'opencode', defaultModel: runtimeModel })
+    expect(context.modelAccess?.provider).toMatchObject({ providerId: provider.id, vendor: 'openrouter', apiKey: 'sk-test-or' })
   })
 })
 
 describe("the org's web-search key", () => {
-  it('rides an OpenCode turn, following the conversation rather than the agent', async () => {
+  it('rides an OpenCode turn, following the model rather than the agent', async () => {
     await setProviderKey(WEB_SEARCH_SERVICE, WEB_SEARCH_PROVIDER, 'exa-key')
-    expect((await buildContext(await opencode(), 'chat', own(), null)).webSearchKey).toBe('exa-key')
-    expect((await buildContext(agent, 'chat', own(), null, { session: { runtime: 'opencode', model: 'openrouter/x' } })).webSearchKey).toBe('exa-key')
+    await orgModel('openrouter')
+    expect((await buildContext(agent, 'chat', own(), null)).webSearchKey).toBe('exa-key')
   })
 
   it("never rides a Claude turn, which searches on Anthropic's own service", async () => {
@@ -142,7 +114,8 @@ describe("the org's web-search key", () => {
   })
 
   it('is absent, not empty, when the org has none', async () => {
-    expect('webSearchKey' in (await buildContext(await opencode(), 'chat', own(), null))).toBe(false)
+    await orgModel('openrouter')
+    expect('webSearchKey' in (await buildContext(agent, 'chat', own(), null))).toBe(false)
   })
 })
 

@@ -61,18 +61,17 @@ describe('non-admins cannot manage members @SC-205', () => {
 describe('environment and version status @SC-092', () => {
   it('getEnvStatus gives an admin labelled sections saying which keys are set', async () => {
     vi.stubEnv('SECRETS_MASTER_KEY', 'set')
-    vi.stubEnv('OPENAI_API_KEY', '')
     vi.stubEnv('WASP_SERVER_URL', 'https://hq.example.com')
     const admin = await createUserWithRole('ADMIN')
 
     const { address, sections } = await getEnvStatus(undefined as any, ctx(admin))
 
     expect(address).toBe('https://hq.example.com')
-    expect(sections.map((s) => s.label)).toEqual(['AI Provider', 'Site Security', 'Database', 'Server', 'Filesystem'])
+    expect(sections.map((s) => s.label)).toEqual(['Site Security', 'Database', 'Server', 'Filesystem'])
     const key = (k: string) => sections.flatMap((s) => s.keys).find((e) => e.key === k)
     expect(key('SECRETS_MASTER_KEY')).toEqual({ key: 'SECRETS_MASTER_KEY', set: true, required: 'always' })
     expect(key('SITE_ADMIN_KEY')).toBeUndefined()
-    expect(key('OPENAI_API_KEY')?.set).toBe(false)
+    expect(key('ANTHROPIC_API_KEY')).toBeUndefined()
     vi.unstubAllEnvs()
   })
 

@@ -19,7 +19,7 @@ export const session = (entries: unknown[], extra: Record<string, unknown> = {})
   id: 's1', agentId: 'agent-1', title: 'Project UX redesign', status: 'ACTIVE', closedReason: null, model: 'claude-sonnet-4-6',
   createdAt: at(24), totalInputTokens: 97_000, totalOutputTokens: 100, totalCacheReadTokens: 0, totalCacheWriteTokens: 0,
   metadata: null, primaryLocation: null,
-  agent: { id: 'agent-1', name: 'Project manager', defaultModel: 'claude-sonnet-4-6', runtime: 'claude-sdk', avatarUrl: null },
+  agent: { id: 'agent-1', name: 'Project manager', avatarUrl: null },
   entries,
   conversation: { replies: 14, failed: 1, latestFailure: null, contextUse: null },
   ...extra,

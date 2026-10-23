@@ -24,7 +24,7 @@ export const getSession: GetSession<GetSessionArgs, any> = async (args, context)
   const session = await context.entities.AgentSession.findUnique({
     where: { id: args.id },
     include: {
-      agent: { select: { id: true, name: true, defaultModel: true, runtime: true, avatarUrl: true, voiceEnabled: true, voiceId: true, voiceTtsModel: true } },
+      agent: { select: { id: true, name: true, avatarUrl: true } },
     },
   })
 
@@ -109,7 +109,7 @@ export const getActivitySession: any = async (args: { sessionId: string }, conte
   const session = await context.entities.AgentSession.findUnique({
     where: { id: args.sessionId },
     include: {
-      agent: { select: { id: true, name: true, runtime: true, avatarUrl: true } },
+      agent: { select: { id: true, name: true, avatarUrl: true } },
       task: { select: { id: true, title: true, number: true, project: { select: { key: true } } } },
     },
   })

@@ -84,8 +84,15 @@ describe('starting and ending voice @SC-995', () => {
     r.receive(V.state, { conversationId: C, holderId: ME, startedAt: 'now' })
     await r.advance(3_000)
     expect(r.session.snapshot().phase).toBe('off')
-    expect(r.session.snapshot().notice).toBe('Speech to text stopped: no token. Voice ended; you can keep typing.')
+    expect(r.session.snapshot().notice).toBe('Voice stopped: no token. You can keep typing.')
     expect(r.emitted.at(-1)).toEqual([V.end, { conversationId: C, failed: 'speech-to-text' }])
+  })
+
+  it('asks for the agent’s own speech to text token', async () => {
+    const getToken = vi.fn(async (_agentId?: string) => ({ token: 't' }))
+    const r = rig({ deps: { getToken } })
+    r.session.start(C, { id: 'a1', name: 'Kernel', avatarUrl: null }, '/chat/c1')
+    expect(getToken).toHaveBeenCalledWith('a1')
   })
 
   it('tells hq when the tab closes', async () => {

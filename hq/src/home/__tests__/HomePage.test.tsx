@@ -126,16 +126,16 @@ describe('Home @SC-509', () => {
     expect(where()).toBe('/')
   })
 
-  it('says under the message box that agents cannot answer yet, linking to the fix for that person @SC-722', () => {
-    data.access = { canTalk: false, fix: 'own-login', isAdmin: false }
+  it('says under the message box that agents cannot answer yet, and who can fix it @SC-722', () => {
+    data.access = { canTalk: false, fix: 'org-access', isAdmin: false }
     renderHome()
-    expect(screen.getByRole('link', { name: 'Settings › Your model logins' }).getAttribute('href')).toBe('/settings')
+    expect(screen.getByTestId('talk-access-line').textContent).toContain('An organisation admin can set one up')
   })
 
-  it('points an admin to the organisation\'s model access @SC-722', () => {
+  it('points an organisation admin to Providers @SC-722', () => {
     data.access = { canTalk: false, fix: 'org-access', isAdmin: true }
     renderHome()
-    expect(screen.getByRole('link', { name: 'Organisation › Settings › Model access' }).getAttribute('href')).toBe('/admin/settings/model-access')
+    expect(screen.getByRole('link', { name: 'Manage organisation › Providers' }).getAttribute('href')).toBe('/admin/providers')
   })
 
   it('says nothing about model access when the person can talk @SC-722', () => {

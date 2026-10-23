@@ -5,6 +5,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../../../test/db'
+import { createProvider, setOrgDefaults } from '../../../../routing/__tests__/routingFixtures'
+
+process.env.SECRETS_MASTER_KEY ??= Buffer.alloc(32, 7).toString('base64')
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<object>('wasp/server')
@@ -116,12 +119,21 @@ describe('a standing worker past the high mark @SC-960', () => {
 })
 
 describe("a brief whose model needs another runtime than the worker's @SC-955", () => {
-  it('runs on a fresh worker of that runtime, its session carrying the model, so an OpenRouter-only organisation can work', async () => {
-    const openRouter = 'openrouter/~deepseek/deepseek-flash-latest'
-    await prisma.agent.update({ where: { id: w.agent.id }, data: { runtime: 'claude-sdk', defaultModel: 'claude-sonnet-4-6' } })
-    await prisma.modelPolicy.create({ data: { ownerType: 'org', ownerId: 'org', lightWork: openRouter } })
+  it('makes a new worker on the runtime the resolved model runs on, not the agent\'s', async () => {
+    const provider = await createProvider({ vendor: 'openrouter' })
+    await setOrgDefaults({ worker: { providerId: provider.id, model: '~deepseek/deepseek-flash-latest' } })
 
     const first = await brief('First')
+    expect(await prisma.agentSession.findUniqueOrThrow({ where: { id: first.workerSessionId! } })).toMatchObject({ runtime: 'opencode' })
+  })
+
+  it('runs on a fresh worker of that runtime, its session carrying the model, so an OpenRouter-only organisation can work', async () => {
+    const openRouter = 'openrouter/~deepseek/deepseek-flash-latest'
+    // The worker is made before any provider is added, so on the runtime a run falls back to; the model the
+    // organisation then sets needs the other.
+    const first = await brief('First')
+    const provider = await createProvider({ vendor: 'openrouter' })
+    await setOrgDefaults({ worker: { providerId: provider.id, model: '~deepseek/deepseek-flash-latest' } })
     const oldWorker = first.workerSessionId!
     expect((await prisma.agentSession.findUniqueOrThrow({ where: { id: oldWorker } })).runtime).toBe('claude-sdk')
     await pump(oldWorker)

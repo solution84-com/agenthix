@@ -176,11 +176,6 @@ export interface SessionAgent {
   name: string
   handle?: string
   avatarUrl: string | null
-  voiceEnabled: boolean
-  runtime?: string
-  defaultModel?: string
-  voiceId?: string | null
-  voiceTtsModel?: string | null
 }
 
 /** Where a session works (ADR-0039 §8) — shown as the chat's context badge. */

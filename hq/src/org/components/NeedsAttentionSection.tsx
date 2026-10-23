@@ -3,11 +3,11 @@ import { Link } from 'react-router'
 import { useQuery, useAction, getNeedsAttention, getMyModelAccess, acknowledgeBypassedAgents, dismissNotification } from 'wasp/client/operations'
 import { OrgGroupHeading } from './orgCardParts'
 
-/** Model access missing is read from what is stored each time, not kept as a notification: it clears the moment it is set. */
+/** No working model is read from what is stored each time, not kept as a notification: it clears the moment it is set. */
 const MODEL_ACCESS_ITEM = {
   key: 'model-access', area: 'infrastructure', type: 'model_access', title: "Agents can't answer yet",
-  body: 'No model access is set up: the organisation has no API key or Claude login, and you have none of your own',
-  actionLabel: 'Set up model access', actionUrl: '/admin/settings/model-access', notificationIds: [] as string[],
+  body: 'No model provider is working: add one, or fix the one there is',
+  actionLabel: 'Open Providers', actionUrl: '/admin/providers', notificationIds: [] as string[],
   dismissible: false, acknowledgeable: false,
 }
 

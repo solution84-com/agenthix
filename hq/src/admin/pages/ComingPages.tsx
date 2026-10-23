@@ -12,6 +12,5 @@ function Coming({ title, line }: { title: string; line: string }) {
   )
 }
 
-export const ModelsComingPage = () => <Coming title="Models" line="Which models the organisation offers, and the lists agents and projects choose from." />
 export const BillingProfilesComingPage = () => <Coming title="Billing profiles" line="Who each project's AI cost belongs to." />
 export const UsageComingPage = () => <Coming title="Usage" line="What the organisation's AI use cost, and who used it." />

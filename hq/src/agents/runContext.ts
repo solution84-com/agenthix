@@ -11,12 +11,12 @@
  */
 import { prisma } from 'wasp/server'
 import type { Agent, AgentSession } from '@prisma/client'
-import type { RunContextPayload, AgentConfigPayload, CapabilityClaims, RunCredential } from '@agenthix/core'
+import type { RunContextPayload, AgentConfigPayload, CapabilityClaims } from '@agenthix/core'
 import { normalizeTimezone, type LocationRef, type RunStartedBy } from '@agenthix/core'
 import { pinnedMemoryForRun } from '../memory/runPinnedMemory'
 import { fetchPrimaryOwnerSlug } from './locationResolver'
-import { resolveRunCredential, type ResolvedCredential, type RunPerson } from '../model-access/modelCredential'
-import { resolveFallbackCredentials } from '../model-access/fallbackCredentials'
+import { runModelAccess } from '../routing/reaching'
+import { chooseBoundaryRun, type RunChoice } from './runModel'
 import { getWebSearchKey } from '../server/providerService'
 import { resolveRunPackages } from '../packages/runPackages'
 import { toAgentConfigPayload } from './dispatchPayloads'
@@ -31,17 +31,13 @@ export function grantTargetOf(claims: Pick<CapabilityClaims, 'siteId' | 'session
   return { siteId: claims.siteId, sessionId: claims.sessionId, runner: claims.runner }
 }
 
-/** A subscription goes only to a dispatched run, which names where it goes (`grantTo`) and so is handed it granted. */
-function dispatchable(credential: ResolvedCredential | null): RunCredential | null {
-  if (!credential || credential.kind === 'apiKey') return credential
-  return 'grantId' in credential ? credential : null
-}
+const NOT_GIVEN = "The run's model provider cannot be given to this run. An organisation admin can check it under Manage organisation › Providers."
 
 /**
  * Pre-resolves everything site needs beyond the capability itself: the
  * agent's config (agentUtils.ts's 11-field select + `isKernel`), SiteConfig.riskRules
  * (sdkToolGate.ts), and the one model
- * credential the run may use (modelCredential.ts). `primaryLoc` decides
+ * model it runs on, with its provider (runModel.ts, routing/reaching.ts). `primaryLoc` decides
  * the one owner slug `mounts.ownerSlugs` carries — a run reaches that owner's
  * storage and no other, so the agent's project memberships are not consulted
  * at all.
@@ -74,8 +70,7 @@ export async function buildContext(
     /**
      * The person the run is on behalf of (adr-0095) — a chat's person, or
      * whoever started a task's run, else the task's person — whose timezone the
-     * agent reads times in and whose own model access the run uses after its
-     * project's (adr-0105). Null or absent for a run with none.
+     * agent reads times in and whose list of models applies. Null or absent for a run with none.
      */
     personUserId?: string | null
     /**
@@ -84,17 +79,10 @@ export async function buildContext(
      */
     startedBy?: RunStartedBy
     /**
-     * The session the run executes in. The site runs a conversation on the
-     * runtime it started with and the session's chosen model (runLaunch.ts),
-     * and the credential must be the provider of THAT model (spec §6).
+     * The model the run takes (runModel.ts), when the caller has resolved it already; resolved here for the run's
+     * boundary and person otherwise.
      */
-    session?: Pick<AgentSession, 'runtime' | 'model'>
-    /**
-     * The models the turn may fall back to. Each one's provider is given its
-     * credential too, so the site's model relay can serve it (spec §6). No
-     * agent names a fallback model yet, so every caller sends none.
-     */
-    fallbackModels?: readonly string[]
+    choice?: RunChoice
     /**
      * Where the run is dispatched — its site, session and runner, from the
      * capability minted for it. A subscription handed to the run is recorded
@@ -107,29 +95,26 @@ export async function buildContext(
 ): Promise<RunContextPayload> {
   const agentConfig: AgentConfigPayload = await applyBoundaryOverride(toAgentConfigPayload(agent), boundary)
 
-  // The same choice the site makes: a conversation keeps the runtime it began on.
-  const session = extras?.session
-  const runtime = session?.runtime ?? agentConfig.runtime
-  const model = session?.model ?? agentConfig.defaultModel
+  const choice = extras?.choice ?? await chooseBoundaryRun(boundary, agent.id, extras?.personUserId ?? null)
+  // The runtime and model follow the resolved model and its provider (models from one place, part 4).
+  agentConfig.runtime = choice.runtime
+  agentConfig.defaultModel = choice.model
+  const runtime = choice.runtime
 
-  // The run's model access follows the person it is on behalf of (adr-0105),
-  // after its project's own. Their login may go only into their own harness
-  // home: the runner the capability names, or — for a caller dispatching
-  // nothing — the owner of a person's own storage, the only one who runs there.
+  // A person's own login goes only into their own harness home: the runner the capability names.
   const runnerPersonId = extras?.grantTo
     ? extras.grantTo.runner.kind === 'person' ? extras.grantTo.runner.userId : null
     : boundary?.type === 'user' ? boundary.id : null
-  const runPerson: RunPerson = { personId: extras?.personUserId ?? null, runnerPersonId }
-  const [primaryOwnerSlugValue, siteConfigRow, { credential, problem }, fallbackCredentials, packages, webSearchKey] = await Promise.all([
+  const [primaryOwnerSlugValue, siteConfigRow, modelAccess, packages, webSearchKey] = await Promise.all([
     precomputedPrimaryOwnerSlug ?? fetchPrimaryOwnerSlug(primaryLoc),
     prisma.siteConfig.findFirst({ select: { riskRules: true } }),
-    resolveRunCredential(boundary, runPerson, runtime, model, extras?.grantTo),
-    resolveFallbackCredentials(boundary, runPerson, runtime, model, extras?.fallbackModels ?? []),
+    choice.resolution ? runModelAccess(choice.resolution, [], extras?.grantTo) : null,
     resolveRunPackages(agent.id),
     // Only OpenCode serves web search through the site; Claude searches on
     // Anthropic's own service, so its runs are never sent the org's Exa key.
     runtime === OPENCODE_RUNTIME ? getWebSearchKey() : null,
   ])
+  const problem = choice.problem ?? (modelAccess ? null : NOT_GIVEN)
 
   const [person, pinnedMemory] = await Promise.all([
     personContext(extras?.personUserId),
@@ -148,9 +133,10 @@ export async function buildContext(
     mounts: { ownerSlugs },
     // A stored JSON column, written only by `updateRiskRules` as a list of rules.
     riskRules: (siteConfigRow?.riskRules ?? null) as RunContextPayload['riskRules'],
-    credential: dispatchable(credential),
-    ...(credential === null && problem ? { credentialProblem: problem } : {}),
-    ...(fallbackCredentials.length > 0 ? { fallbackCredentials } : {}),
+    // The deprecated credential is no longer sent: the site reaches the run's provider through `modelAccess`.
+    credential: null,
+    ...(modelAccess ? { modelAccess } : {}),
+    ...(problem ? { credentialProblem: problem } : {}),
     ...(webSearchKey ? { webSearchKey } : {}),
     packages,
     ...(person ? { person } : {}),

@@ -23,7 +23,7 @@ vi.mock('wasp/client/operations', () => ({
     return actions.get(name)
   },
   pauseRoutine: 'pauseRoutine', resumeRoutine: 'resumeRoutine', deleteRoutine: 'deleteRoutine', unlinkRoutineRound: 'unlinkRoutineRound',
-  runRoutineNow: 'runRoutineNow', skipRoutineRound: 'skipRoutineRound', updateRoutine: 'updateRoutine', getBoards: 'getBoards', getAgents: 'getAgents',
+  runRoutineNow: 'runRoutineNow', skipRoutineRound: 'skipRoutineRound', updateRoutine: 'updateRoutine', getBoards: 'getBoards', getAgents: 'getAgents', getModelPickerChoices: 'getModelPickerChoices',
 }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'admin-1' } }) }))
 vi.mock('../../../shared/hooks/useMayWork', () => ({ useMayWork: () => true }))
@@ -45,7 +45,7 @@ function routine(extra: Partial<Data> = {}): Data {
     id: 'r1', title: 'Daily site audit', rule: { kind: 'weekly', time: '09:00', weekdays: [1, 2, 3, 4, 5] }, timezone: 'Australia/Sydney',
     enabled: true, pausedReason: null, nextRoundAt: at(1), onBehalfOf: { userId: 'avery', username: 'Avery' }, agentName: 'Frontend dev',
     place: 'Release board › To do', canManage: true, lastRounds: ['done', 'failed', 'waiting'],
-    projectId: 'p1', projectKey: 'WEB', isPersonal: false, description: 'Crawl the preview', priority: 'MEDIUM', labels: ['audit'],
+    projectId: 'p1', projectKey: 'WEB', isPersonal: false, modelChoice: null, description: 'Crawl the preview', priority: 'MEDIUM', labels: ['audit'],
     assignedAgentId: 'a1', boardId: 'b1', column: 'todo', scheduleAt: '2026-10-01T09:00:00.000Z', createdBy: 'Avery',
     onBehalfOfHasAccess: true, isProjectAdmin: false, candidates: [],
     rounds: [

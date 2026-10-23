@@ -8,7 +8,7 @@ import { MemoryRouter, Routes, Route, useLocation } from 'react-router'
 let cardHere: unknown = undefined
 let mobile = false
 const profile = {
-  agent: { id: 'a1', name: 'Frontend dev', handle: 'frontend-dev', role: 'Builds the site', avatarUrl: null, coverUrl: null, defaultModel: 'claude-sonnet-4-6', runtime: 'claude-sdk', approval: 'deferred' },
+  agent: { id: 'a1', name: 'Frontend dev', handle: 'frontend-dev', role: 'Builds the site', avatarUrl: null, coverUrl: null, approval: 'deferred' },
   now: { state: 'running', lead: { kind: 'running', taskId: 't', key: 'WEB-26', title: 'Generate the sitemap', projectId: 'p', projectName: 'Web', reason: null, since: new Date(Date.now() - 12 * 60_000).toISOString() }, needsYouCount: 0, runningCount: 1, next: null },
   projectCount: 3,
 }
@@ -16,7 +16,10 @@ const profile = {
 vi.mock('wasp/client/operations', () => ({
   getAgentProfile: { name: 'getAgentProfile' },
   getAgentCardHere: { name: 'getAgentCardHere' },
-  useQuery: (q: { name: string }) => ({ data: q.name === 'getAgentCardHere' ? cardHere : profile }),
+  getAgentModelLines: { name: 'getAgentModelLines' },
+  useQuery: (q: { name: string }) => ({
+    data: q.name === 'getAgentCardHere' ? cardHere : q.name === 'getAgentModelLines' ? { orgDefault: "Fernhill's default", lines: { a1: 'Claude Sonnet 5 · via Anthropic' } } : profile,
+  }),
 }))
 vi.mock('../../../shared/hooks/useIsMobile', () => ({ useIsMobile: () => mobile }))
 vi.mock('../../../shared/hooks/useAgentImageUrl', () => ({ useAgentImageUrl: () => null }))

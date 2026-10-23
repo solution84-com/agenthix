@@ -56,12 +56,9 @@ describe('getOnboardingData @SC-720', () => {
     expect(await getOnboardingData(undefined as any, ctx(dana))).toMatchObject({ projects: [], landAt: '/' })
   })
 
-  it('asks for the model step only while the organisation provides no model access', async () => {
+  it('never asks a joiner for a model step, even while the organisation has no provider', async () => {
     await prisma.org.create({ data: { name: 'Acme Corp' } })
     const dana = await invitedPerson()
-    expect((await getOnboardingData(undefined as any, ctx(dana))).needsModel).toBe(true)
-
-    await prisma.provider.create({ data: { service: 'llm', name: 'anthropic', apiKey: 'x' } })
     expect((await getOnboardingData(undefined as any, ctx(dana))).needsModel).toBe(false)
   })
 

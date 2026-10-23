@@ -70,7 +70,7 @@ describe('platform package', () => {
 })
 
 describe('kernel definition', () => {
-  const kernelRow = () => createAgent({ handle: 'kernel', isKernel: true, approval: 'immediate', defaultModel: 'claude-sonnet-4-6', runtime: 'claude-sdk' })
+  const kernelRow = () => createAgent({ handle: 'kernel', isKernel: true, approval: 'immediate' })
 
   it('writes the kernel\'s content from its asset files, with every kernel skill, as the system', async () => {
     process.env.HQ_ASSETS_ROOT = realAssets
@@ -89,7 +89,7 @@ describe('kernel definition', () => {
     const kernel = await kernelRow()
     await ensureKernelDefinition(kernel)
     const row = await prisma.agent.findUnique({ where: { id: kernel.id } })
-    expect(row).toMatchObject({ approval: 'immediate', defaultModel: 'claude-sonnet-4-6', runtime: 'claude-sdk', allowedTools: kernel.allowedTools })
+    expect(row).toMatchObject({ approval: 'immediate', allowedTools: kernel.allowedTools })
   })
 
   it('never overwrites content a person edited with the assets, nor an approval they chose', async () => {

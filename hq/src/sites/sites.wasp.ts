@@ -6,6 +6,8 @@ import { getScheduledChangeNotices } from "./scheduled/memberNoticeQueries" with
 import { getSiteList, getSiteDetail, getFleetAccess } from "./siteQueries" with { type: "ref" };
 import { siteLeaveHandler as siteLeaveApi } from "./leaveApi" with { type: "ref" };
 import { hostLeaveHandler as hostLeaveApi } from "./machineLeaveApi" with { type: "ref" };
+import { usageReportHandler as usageReportApi } from "./usageReports" with { type: "ref" };
+import { cloudAiTokenHandler as cloudAiTokenApi } from "./cloudAiTokenApi" with { type: "ref" };
 
 export const sitesSpec: Spec = [
     route("ExecutionSitesRoute", "/admin/where-work-runs", page(ExecutionSitesPage, { authRequired: true })),
@@ -19,4 +21,7 @@ export const sitesSpec: Spec = [
     api("POST", "/api/v1/sites/leave", siteLeaveApi, { auth: false, entities: ["ExecutionSite"] }),
     // core's HOST_LEAVE_PATH: a machine that disconnected itself, known by its machine credential (spec §6).
     api("POST", "/api/v1/hosts/leave", hostLeaveApi, { auth: false, entities: ["RelayHost"] }),
+    // core's HQ_USAGE_REPORT_PATH and HQ_CLOUD_AI_TOKEN_PATH: a site's model relay, known by its machine credential.
+    api("POST", "/api/v1/usage/report", usageReportApi, { auth: false, entities: ["ExecutionSite", "RelayUsageReport"] }),
+    api("POST", "/api/v1/cloud/ai-token", cloudAiTokenApi, { auth: false, entities: ["ExecutionSite"] }),
 ];

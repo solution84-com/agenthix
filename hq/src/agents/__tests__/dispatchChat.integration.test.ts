@@ -8,9 +8,9 @@ process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 7).toString('base64')
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
 import { createProject, createSession, createWorkerSession, createUser, createUserWithRole, createTestTask } from '../../test/factories'
-import { agentWithContent, apiKeyFor, dispatched, readyToDispatch } from './dispatchFixtures'
+import { agentWithContent, dispatched, orgModel, readyToDispatch } from './dispatchFixtures'
+import { createSubscription } from '../../routing/__tests__/routingFixtures'
 import { secondSite } from './manifestFixtures'
-import { encryptSecret } from '../../server/crypto/secretCrypto'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -43,6 +43,7 @@ async function chat(sessionData: Record<string, unknown> = {}, agentData: Record
 describe('dispatchChatRun', () => {
   it("dispatches the person's turn to the site holding their storage, with the session's context and no task", async () => {
     const { agent, session, person } = await chat()
+    await orgModel()
 
     expect(await dispatchChatRun(session.id, 'Hello there', agent)).toEqual({ runId: 'run-1' })
 
@@ -62,17 +63,14 @@ describe('dispatchChatRun', () => {
     expect(payload.hideUserMessage).toBe(true)
   })
 
-  it("the session's chosen model wins over the agent's default", async () => {
+  it("sends the resolved model, and the session's own only when nothing resolves", async () => {
     const { agent, session } = await chat()
     await dispatchChatRun(session.id, 'Hi', agent, 'claude-opus-4')
     expect(dispatched().payload.model).toBe('claude-opus-4')
-  })
-
-  it("an override for the run's boundary wins over the session's chosen model (ruling T15)", async () => {
-    const { agent, session, person } = await chat()
-    await prisma.agentOverride.create({ data: { boundaryType: 'user', boundaryId: person.id, agentId: agent.id, model: 'claude-haiku-4-5' } })
-    await dispatchChatRun(session.id, 'Hi', agent, 'claude-sonnet-4-6')
-    expect(dispatched().payload.model).toBe('claude-haiku-4-5')
+    siteStore.reset()
+    await orgModel()
+    await dispatchChatRun(session.id, 'Hi', agent, 'claude-opus-4')
+    expect(dispatched().payload.model).toBe('claude-sonnet-4-6')
   })
 
   it('cuts a title over 500 characters in the session it sends', async () => {
@@ -109,23 +107,23 @@ describe('dispatchChatRun', () => {
     expect(dispatched().claims).toMatchObject({ taskId: task.id, projectId: project.id })
   })
 
-  it("uses the person's own key for a chat in their own storage", async () => {
-    const { agent, session, person } = await chat()
-    await apiKeyFor('user', person.id, 'sk-person')
+  it("is given the organisation's provider of the resolved model", async () => {
+    const { agent, session } = await chat()
+    const { provider } = await orgModel('anthropic', 'sk-test-org')
     await dispatchChatRun(session.id, 'Hi', agent)
-    expect(dispatched().payload.context.credential).toMatchObject({ kind: 'apiKey', apiKey: 'sk-person' })
+    expect(dispatched().payload.context.modelAccess?.provider).toMatchObject({ kind: 'api_key', providerId: provider.id, apiKey: 'sk-test-org' })
   })
 
-  it('grants the person\'s subscription to the site, session and runner the capability names', async () => {
+  it("grants the person's own subscription, when it is their default, to the site, session and runner the capability names", async () => {
     const { agent, session, person } = await chat()
-    const login = await prisma.modelCredential.create({
-      data: { kind: 'SUBSCRIPTION', provider: 'anthropic', ownerType: 'user', ownerId: person.id, secret: encryptSecret('{"claudeAiOauth":{}}'), termsAcceptedAt: new Date() },
-    })
+    await orgModel()
+    const login = await createSubscription(person.id)
+    await prisma.agentModelChoices.create({ data: { agentId: agent.id, workerProviderId: login.id, workerModel: 'claude-sonnet-4-6' } })
 
     await dispatchChatRun(session.id, 'Hi', agent)
 
-    expect(dispatched().payload.context.credential).toMatchObject({ kind: 'subscription' })
-    expect(await prisma.subscriptionGrant.findMany({ where: { credentialId: login.id } })).toEqual([
+    expect(dispatched().payload.context.modelAccess?.provider).toMatchObject({ kind: 'subscription', providerId: login.id })
+    expect(await prisma.subscriptionGrant.findMany({ where: { providerId: login.id } })).toEqual([
       expect.objectContaining({ siteId: site.siteId, sessionId: session.id, runnerKind: 'person', runnerId: person.id }),
     ])
   })

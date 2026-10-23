@@ -9,12 +9,12 @@ import { useQuery, getMyModelAccess } from 'wasp/client/operations'
 export function TalkAccessLine() {
   const { data } = useQuery(getMyModelAccess)
   if (!data || data.canTalk || !data.fix) return null
-  const [where, to] = data.fix === 'org-access'
-    ? ["Organisation › Settings › Model access", '/admin/settings/model-access']
-    : ['Settings › Your model logins', '/settings']
   return (
     <p role="status" className="text-center text-small text-text-muted" data-testid="talk-access-line">
-      Agents can't answer you yet: no model access is set up. <Link to={to} className="font-medium text-accent hover:text-accent-hover">{where}</Link>
+      Agents can't answer you yet: no model is working.{' '}
+      {data.isAdmin
+        ? <Link to="/admin/providers" className="font-medium text-accent hover:text-accent-hover">Manage organisation › Providers</Link>
+        : 'An organisation admin can set one up.'}
     </p>
   )
 }

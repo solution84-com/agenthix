@@ -175,6 +175,19 @@ describe('preview.start', () => {
       expect(runners).toEqual([{ kind: 'project', projectId: 'p1' }])
     })
 
+    it("a task's preview in a person's personal project runs in that person's container, as the task did", async () => {
+      findSession.mockResolvedValue(sessionRow({ sessionType: 'task', taskId: 't1', userId: 'u-bo' }))
+      const { runners, deps } = capture()
+      await previewStart({ ...START, location: { ownerType: 'project', ownerId: 'p1', taskId: 't1' }, personalOwnerId: 'u-bo' }, deps)
+      expect(runners).toEqual([{ kind: 'person', userId: 'u-bo' }])
+    })
+
+    it("a chat's preview stays the chatting person's, whatever personal owner hq names", async () => {
+      const { runners, deps } = capture()
+      await previewStart({ ...START, personalOwnerId: 'u-bo' }, deps)
+      expect(runners).toEqual([{ kind: 'person', userId: 'u-alice' }])
+    })
+
     it('refuses a session this site does not hold, rather than choosing a container', async () => {
       findSession.mockResolvedValue(null)
       const { runners, deps } = capture()

@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
 
 // Provider keys at rest, against the real test database: stored encrypted, read
-// back in the clear, a key in the clear treated as none and removed at boot,
-// and the org's model keys per provider (spec §6).
+// back in the clear, and a key in the clear treated as none and removed at boot.
 
 vi.mock('wasp/server', async () => {
   const { prisma } = await import('../../test/db')
@@ -13,8 +12,7 @@ vi.mock('wasp/server', async () => {
 process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 9).toString('base64')
 
 import {
-  getProviderKey, setProviderKey, looksEncrypted, getLlmApiKey,
-  getOrgModelKey, setOrgModelKey, getWebSearchKey, setWebSearchKey,
+  getProviderKey, setProviderKey, looksEncrypted, getWebSearchKey, setWebSearchKey,
 } from '../providerService'
 import { encryptSecret, decryptSecret } from '../crypto/secretCrypto'
 import { discardPlaintextSecrets } from '../boot/discardPlaintextSecrets'
@@ -34,7 +32,6 @@ describe('providerService — encryption at rest', () => {
     expect(stored).not.toContain('sk-secret')
     expect(looksEncrypted(stored)).toBe(true)
     expect(await getProviderKey('llm', 'anthropic')).toBe('sk-secret')
-    expect(await getLlmApiKey('anthropic')).toBe('sk-secret')
   })
 
   it('treats a row written in the clear as no key, without failing, and a missing row as none', async () => {
@@ -91,46 +88,5 @@ describe('discardPlaintextSecrets — boot pass', () => {
     } finally {
       refusal.mockRestore()
     }
-  })
-})
-
-describe("the org's model keys per provider (spec §6)", () => {
-  it("reads a provider's own row", async () => {
-    await put('llm', 'openrouter', encryptSecret('sk-or-1'))
-    await put('llm', 'openai', encryptSecret('sk-oa'))
-    expect(await getOrgModelKey('openrouter')).toEqual({ apiKey: 'sk-or-1' })
-  })
-
-  it('stores an endpoint without a key as an empty key with its base URL, and reads it back either way', async () => {
-    await setOrgModelKey('openai_compatible', '', 'http://gpu/v1')
-    expect(await row('llm', 'openai_compatible')).toMatchObject({ apiKey: '', config: { baseUrl: 'http://gpu/v1' } })
-    expect(await getOrgModelKey('openai_compatible')).toEqual({ apiKey: '', baseUrl: 'http://gpu/v1' })
-
-    await setOrgModelKey('openai_compatible', 'lan-key', 'http://gpu/v1')
-    const stored = (await row('llm', 'openai_compatible'))!.apiKey
-    expect(stored).not.toContain('lan-key')
-    expect(looksEncrypted(stored)).toBe(true)
-    expect(await getOrgModelKey('openai_compatible')).toEqual({ apiKey: 'lan-key', baseUrl: 'http://gpu/v1' })
-  })
-
-  it('an endpoint with no base URL, or a key in the clear, is not usable; an empty key is no key for any other provider', async () => {
-    await put('llm', 'openai_compatible', '')
-    expect(await getOrgModelKey('openai_compatible')).toBeNull()
-    await prisma.provider.update({ where: { service_name: { service: 'llm', name: 'openai_compatible' } }, data: { apiKey: 'plain', config: { baseUrl: 'http://gpu/v1' } } })
-    expect(await getOrgModelKey('openai_compatible')).toBeNull()
-    await put('llm', 'openai', '')
-    expect(await getOrgModelKey('openai')).toBeNull()
-  })
-
-  it('refuses a base URL for any other provider, and an endpoint without one, storing nothing', async () => {
-    await expect(setOrgModelKey('openai', 'k', 'http://x')).rejects.toThrow()
-    await expect(setOrgModelKey('openai_compatible', 'k')).rejects.toThrow()
-    expect(await prisma.provider.count()).toBe(0)
-  })
-
-  it("stores and reads the org's Exa key as the ('search', 'exa') row", async () => {
-    await setWebSearchKey('exa-1')
-    expect(await row('search', 'exa')).not.toBeNull()
-    expect(await getWebSearchKey()).toBe('exa-1')
   })
 })

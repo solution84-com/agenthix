@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { hqVersions, orgCardOf, parseSignInShows, publicOrgIdentity } from '../publicIdentity'
+import { hqVersions, orgCardOf, parseSignInShows, publicIdentityWhile, publicOrgIdentity } from '../publicIdentity'
 import { BUILD_INFO } from '../../server/buildInfo'
+import { CLIENT_PROTOCOL_VERSION } from '@agenthix/core'
 
 // The organisation before sign-in shows as much as its admin chose (getting-in spec, Signing in).
 
@@ -37,6 +38,20 @@ describe('parseSignInShows @SC-712', () => {
 
 describe('hq\'s versions before sign-in @SC-1140', () => {
   it('states its release, the value its image is labelled with, and the client protocol it speaks', () => {
-    expect(hqVersions()).toEqual({ release: BUILD_INFO.version, clientProtocolVersion: '1.2' })
+    expect(hqVersions()).toEqual({ release: BUILD_INFO.version, clientProtocolVersion: CLIENT_PROTOCOL_VERSION })
+  })
+})
+
+describe('the organisation before setup is finished @SC-709', () => {
+  const shown = publicOrgIdentity({ ...org, signInShows: 'COVER' })
+
+  it('shows nothing of it to a visitor while hq is unclaimed or being set up', () => {
+    for (const claim of ['unclaimed', 'setting_up'] as const) {
+      expect(publicIdentityWhile(claim, shown)).toEqual({ shows: 'nothing', name: null, handle: null, vision: null, avatarUrl: null, coverUrl: null })
+    }
+  })
+
+  it('shows it as its admin chose once hq is set up', () => {
+    expect(publicIdentityWhile('set_up', shown)).toBe(shown)
   })
 })

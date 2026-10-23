@@ -9,7 +9,7 @@ const at = new Date('2026-10-21T09:00:00Z')
 function taskRow(over: Partial<Task> = {}): Task {
   return {
     id: 't1', title: 'Ship it', description: null, projectId: 'p1', number: 7, boardId: 'b1', column: 'todo',
-    sprintId: null, status: 'TODO', assignedAgentId: 'a1', priority: 'HIGH', labels: ['ops'], archived: false,
+    sprintId: null, modelChoice: null, status: 'TODO', assignedAgentId: 'a1', priority: 'HIGH', labels: ['ops'], archived: false,
     doneAt: null, runState: 'RUN_NONE', runStateReason: null, runId: null, result: null,
     applicationData: { template: 'secret' }, deferCount: 0, lastWorkedAt: null, runStartedBy: null,
     runOnBehalfOfUserId: null, queueDepth: 0, onBehalfOfUserId: 'u1', queuedByUserId: null, queuedByAgentId: null,

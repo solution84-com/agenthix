@@ -64,7 +64,7 @@ import { onRunStatus } from '../sites/channel/siteEventHandler'
 import { handleOperationRunStatus } from '../sites/channel/operationLinesForward'
 import { startScheduledChangeSweep } from '../sites/scheduled/scheduledChanges'
 import { trustedProxyCount } from './trustedProxies'
-import { envProblems, sharedSubscriptionSwitchIgnoredError } from './envValidation'
+import { envProblems } from './envValidation'
 import { startFirstAdminAndControlSocket } from '../auth/machine/startOnBoot'
 import { orgImageHandler, teamImageHandler } from '../org/identityImages'
 import { KERNEL_HANDLE, KERNEL_NAME, KERNEL_ROLE } from '../agents/kernelGuards'
@@ -80,9 +80,6 @@ function validateEnv() {
     logger.error('Missing required env vars:\n' + errors.join('\n'))
     process.exit(1)
   }
-
-  const switchError = sharedSubscriptionSwitchIgnoredError()
-  if (switchError) logger.error(`ERROR: ${switchError}`)
 
   logger.info(`Env validation passed.`)
 }

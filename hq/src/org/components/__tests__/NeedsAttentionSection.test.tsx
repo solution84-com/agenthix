@@ -33,7 +33,7 @@ describe('Needs attention @SC-666', () => {
     ops.access = { canTalk: false, fix: 'org-access', isAdmin: true }
     show()
     expect(screen.getByText("Agents can't answer yet")).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Set up model access' }).getAttribute('href')).toBe('/admin/settings/model-access')
+    expect(screen.getByRole('link', { name: 'Open Providers' }).getAttribute('href')).toBe('/admin/providers')
     expect(screen.getByText('Needs attention · 1')).toBeTruthy()
     expect(screen.queryByText('Nothing needs you.')).toBeNull()
   })

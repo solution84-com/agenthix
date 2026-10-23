@@ -18,7 +18,7 @@ const h = vi.hoisted(() => ({
   actions: {} as Record<string, ReturnType<typeof vi.fn>>,
 }))
 vi.mock('wasp/client/operations', () => {
-  const names = ['getAiProviders', 'getAiProviderRecords', 'getAiProviderImpact', 'addAiProvider', 'replaceAiProviderKey', 'renameAiProvider', 'removeAiProvider', 'revokeAiProvider', 'checkAiProviderNow']
+  const names = ['getAiProviders', 'getAiProviderRecords', 'getAiProviderImpact', 'addAiProvider', 'replaceAiProviderKey', 'renameAiProvider', 'removeAiProvider', 'revokeAiProvider', 'checkAiProviderNow', 'getHqCloudConnection', 'connectHqToCloud', 'disconnectHqFromCloud']
   return {
     ...Object.fromEntries(names.map(n => [n, n])),
     useQuery: (op: string) => ({ data: h.data[op], error: undefined }),
@@ -186,5 +186,23 @@ describe('the other dialogs', () => {
     expect(screen.getByText(/Revoke the key at AssemblyAI too: HQ cannot/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Revoke now' }))
     await waitFor(() => expect(act('revokeAiProvider')).toHaveBeenCalledWith({ id: 'p2' }))
+  })
+
+  it('connects Agenthix Cloud from the page, and from the Add provider dialog', () => {
+    h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
+    show()
+    fireEvent.click(screen.getByRole('button', { name: 'Connect Agenthix Cloud' }))
+    expect(screen.getByLabelText('Agenthix Cloud connection')).toBeTruthy()
+    cleanup()
+    h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
+    show()
+    fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Agenthix Cloud\s*Models and voice/ }))
+    expect(screen.getByLabelText('Agenthix Cloud connection')).toBeTruthy()
+  })
+
+  it('reads Agenthix Cloud… once it is connected', () => {
+    show()
+    expect(screen.getByRole('button', { name: 'Agenthix Cloud…' })).toBeTruthy()
   })
 })
