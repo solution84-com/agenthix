@@ -250,7 +250,7 @@ available yet* until hq's calls are built (ADR-0130), and its line on the *Provi
 - [x] 5.1 Connecting to Cloud adds the Agenthix Cloud provider, with no key; disconnecting marks it *disconnected*
 - [x] 5.2 While its calls are not built it reads *not available yet*: its models are never offered or made a default, and nobody is notified
 - [x] 5.3 Its line on the *Providers* page, with *Roll the key now* shown only once the rollover's calls are built
-- [ ] 5.4 `CloudUsageCursor` kept with Cloud's organisation id across a disconnect (the table exists; its use comes with hq's actual-cost calls, after the hosted side is ready)
+- [ ] 5.4 `CloudUsageCursor` kept with Cloud's organisation id across a disconnect (the table exists; its use comes with hq's actual-cost calls, after the hosted side is ready) — **dropped from this unit**: it waits on the hosted side, and is carried by the private follow-up on hq's actual-cost calls
 
 ### Phase 5w — Walkthrough round 1
 **Delivers:** the owner's round-1 findings fixed: setup writes the organisation's defaults, voice is locked to its
@@ -271,16 +271,17 @@ stories and scenarios exist, with their tests tagged.
 **Starts when:** phase 5 is merged, and the owner's walkthrough has passed.
 **Execution plan:** none — lanes. Documentation lanes split by area (Sonnet), each reviewed by the lead.
 
-- [ ] 6.1 Concepts: providers, model choice and lists, voice, billing and the ledger, personal projects, the admin area, setup
-- [ ] 6.2 Architecture: cloud-connection (the AI contract, the rollover, where Cloud is connected), deployment (setup), and the control channel (the provider descriptor, `usage.report`)
-- [ ] 6.3 The user guide: install, finish setup, commands, models, voice, billing, personal projects, and the admin area's pages
-- [ ] 6.4 The four new decision records, ADR-0134 and ADR-0116 amended, and ADR-0127, ADR-0105, ADR-0078, ADR-0122 and ADR-0125 superseded or amended where the work disproved them
-- [ ] 6.5 The QA stories and scenarios for what this unit built, with the tests that cover them tagged
+- [x] 6.1 Concepts: providers, model choice and lists, voice, billing and the ledger, personal projects, the admin area, setup
+- [x] 6.2 Architecture: cloud-connection (the AI contract, the rollover, where Cloud is connected), deployment (setup), and the control channel (the provider descriptor, `usage.report`)
+- [x] 6.3 The user guide: install, finish setup, commands, models, voice, billing, personal projects, and the admin area's pages
+- [x] 6.4 The four new decision records, ADR-0134 and ADR-0116 amended, and ADR-0127, ADR-0105, ADR-0078, ADR-0122 and ADR-0125 superseded or amended where the work disproved them
+- [x] 6.5 The QA stories and scenarios for what this unit built, with the tests that cover them tagged
 
 ## Deviations
 
 | Phase | What changed | Why |
 |---|---|---|
+| Phase 6 | Seven decision records rather than four: the resolver needed its own (adr-0139), so the records it replaces point at something, and the change to adr-0134 became two (adr-0143, the key rollover; adr-0144, connecting Cloud from HQ). adr-0116 is unchanged: adding `usageBilling` to its flag list is using it, not changing it. Fixes found at the close and made in it: a second project with the same initials could not be made (a pre-existing bug, critical); the install test could not finish setup; setup set no default model for an own OpenAI-compatible endpoint; setup's preview panel scrolled away from a long form | Writing the records against the code, the close's triage and browser tests, and the owner's review |
 | Phase 5w | Added after the owner's first walkthrough pass. Voice's speaking model stops being a choice (Inworld TTS 2) and listening narrows to AssemblyAI's three live models; setup writes the defaults the spec already promised; voices are listed from Inworld's Voice API; *Models* and an agent's page are reworked; the admin area moves into the account menu. Voice stays costed at list price, as an estimate. The spec's parts 2, 3, 4 and 5 were corrected in place | The owner's walkthrough: no defaults on a fresh HQ, the voice picker and previews gone, TTS 2 not offered, too much on *Models*, the admin area hard to find; voice depends on TTS 2's emotion directions and on turn timings tuned for Universal-3 Pro |
 | Phase 1 | The contract follows the repository's rules where the spec did not: gateway headers `X-Call-Id` and `X-Billing-Profile-Id` and the error field `cloud_error` (no product name); the site's usage reports and its request for hq's Cloud token are HTTPS calls, not channel frames; the key rollover's call is form-encoded like the other `/connect/*` calls; the price list's version is the OpenCode release; an agent's own models are a 1:1 table `AgentModelChoices`; `Org.timeZone` defaults to UTC. The spec was corrected in place | Found by lane 1 against the code: versioning forbids the product name on the wire, and hq answers no requests on the control channel |
 | Phase 5 | Phase 5's work landed inside phase 3's lanes: connecting Agenthix Cloud from hq adds the provider (3e2), it reads *not available yet* behind `CLOUD_AI_AVAILABLE` (3e2, resolver 3a), and its Providers line shows only *Check now* (2b). Task 5.4 waits for hq's actual-cost calls | Connecting Cloud moved into hq (D36), so the setup lane built the provider entry with it |
@@ -289,3 +290,27 @@ stories and scenarios exist, with their tests tagged.
 | Phase 3 | Setup is split into 3e1 (state and pages, alongside 3a) and 3e2 (steps, after 3a) | 3a removes the old model-access screens that setup's model step wraps, so the steps can only be rebuilt after it |
 | Phase 2 | A personal project's task runs as its person only where the signed capability names that person as the project's personal owner (lane 2e), rather than whenever the runner is the invoker. Personal projects have no picture: `Project` has none, and adding one is not this unit's | Lane 2d found core's runner check refused such tasks; the looser fix would also have let a person runner into a shared project if hq ever minted one |
 | Before phase 2 | Providers moved to organisation admins in hq's admin area (D34); setup stays in hq, and the Fleet Console's first run and the first-run tunnel are removed (D35). Phase 2's lanes and phase 3's setup tasks rewritten; the spec's parts 1 and 2 corrected in place (`spec/bootstrap.md` became `spec/setup.md`) | The owner, before any provider code was written: simpler for a user, since *fleet* means machines and model access belongs with the organisation's admin |
+
+## Closing note — 2026-10-23
+
+**Accepted** by the owner after the first walkthrough round and a review of its fixes on a fresh HQ ("ok you can
+continue with the close").
+
+**Open items** were triaged against the code at head: 24 closed in the unit, with evidence. Four found at the close
+were fixed in it, among them the one critical item, a pre-existing bug that stopped a second project with the same
+initials from being made. Deferred as issues: public `solution84-com/agenthix#5` to `#20` (debt, bugs and chores in
+the code); the maintainers' features are queued privately. **None blocks release.** Task 5.4 is dropped from this
+unit with the reason above.
+
+**QA:** the unit wrote its contract (stories and scenarios for what it built, with the covering tests tagged). No QA
+audit ran at this close, by the owner's decision; the unit's contract entries await the audit before release.
+
+**Decision records:** new adr-0138 to adr-0144; adr-0105 superseded by adr-0139; sections of adr-0078 and adr-0125
+superseded by adr-0139, of adr-0127 by adr-0141 and of adr-0134 by adr-0144; adr-0122 annotated. adr-0116 unchanged.
+
+**Full regression** on the closing branch: typecheck of every module passes; unit suites pass (core 546, host 881,
+console 330, console-web 416, hq 5,044, site 2,268); integration (hq 3,757 with 3 expected failures, site 40), the
+cross-app suite (33) and the version check pass; every image builds and starts. hq's browser tests pass (setup 11;
+chromium and not-secure 60, with 16 skipped for want of data the standard seeds don't make), and the guide's 51
+screenshots were captured. Not run on this machine, because it already runs an installed Agenthix: the install test
+and four of the host's container tests, which refuse by design; they run on the release branch.
