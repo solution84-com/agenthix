@@ -84,8 +84,8 @@ its absence (`node scripts/check-secure-page.mjs` at the repository's root).
 
 `scripts/install-test/run.sh`, at the repository's root, builds every image, installs HQ at this machine's network
 address over plain http under a namespace of its own, and runs `install/walkthrough.spec.ts` against it: the first
-admin made, a message sent to a stand-in model (no real model is called), a conversation opened and the Fleet
-Console opened. It refuses on a machine that already runs an HQ, and removes only what it made. Without it, the
+admin made, a message sent to a stand-in model (no real model is called), the speech providers put in as described
+under the setup spec below, a conversation opened and the Fleet Console opened. It refuses on a machine that already runs an HQ, and removes only what it made. Without it, the
 project skips.
 
 ## The user guide's screenshots
@@ -164,8 +164,9 @@ E2E_FIRST_ADMIN_LINK=http://localhost:4100/invite/<code> npx playwright test e2e
 It takes Your own keys (Agenthix Cloud's card is checked to be disabled with *not available yet*), adds an own
 OpenAI-compatible endpoint at the stand-in model as the model provider, and the two speech providers as described under
 the stand-in above; for those it runs `fixtures/add-provider.mjs`, which needs `DATABASE_URL` and `SECRETS_MASTER_KEY`
-(from the environment, else `.env.server`) to be the HQ's under test. The install walkthrough does the same against the
-install's database: `INSTALL_TEST_DATABASE_URL` and `INSTALL_TEST_SECRETS_MASTER_KEY`.
+(from the environment, else `.env.server`) to be the HQ's under test. The install walkthrough does the same in the
+install's database, from inside its hq-server container (`scripts/install-test/speech-provider.cjs`, fed to `node` there
+by `docker exec`), so the install's database address and secrets key never leave it.
 
 **One honest limitation.** The socket test asserts that a non-owner receives no
 events after subscribing to another person's conversation room. With no reply

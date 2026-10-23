@@ -1,5 +1,9 @@
+import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { test, expect, type Page } from '@playwright/test'
-import { addProvider, answerSpeechProviders } from '../fixtures/voiceProviders'
+import { answerSpeechProviders } from '../fixtures/voiceProviders'
 
 // HQ as installed: every image built here, `agenthix install` at the machine's network address over plain http, and
 // this walkthrough in a real browser. scripts/install-test/run.sh does the rest and runs this as the `install`
@@ -11,11 +15,11 @@ const HQ = process.env.INSTALL_TEST_HQ
 const LINK = process.env.INSTALL_TEST_LINK
 const MODEL = process.env.INSTALL_TEST_MODEL
 const CONSOLE = process.env.INSTALL_TEST_CONSOLE
-// The install's own database, to put the speech providers in (fixtures/add-provider.mjs): setup checks a speech
-// key with its vendor at an address no test can redirect, so the browser's call for it is answered here instead.
-const DATABASE = process.env.INSTALL_TEST_DATABASE_URL
-// The key the install encrypts its secrets with, so a stored key reads back there.
-const MASTER_KEY = process.env.INSTALL_TEST_SECRETS_MASTER_KEY
+// The install's hq-server container. Setup checks a speech key with its vendor at an address no test can redirect,
+// so the browser's call for it is answered here, and the provider put in the install's database from inside that
+// container (scripts/install-test/speech-provider.cjs), where its database address and secrets key already are.
+const HQ_SERVER = process.env.INSTALL_TEST_HQ_SERVER
+const SPEECH_PROVIDER = resolve(dirname(fileURLToPath(import.meta.url)), '../../../scripts/install-test/speech-provider.cjs')
 // What the stand-in answers every chat with (scripts/install-test/stand-in-model.mjs).
 const REPLY = 'The stand-in model answers.'
 const ADMIN = { name: 'Install Test', username: 'install-test-admin', password: 'InstallTest!2026' }
@@ -25,7 +29,7 @@ const onStep = (page: Page, step: string) => page.waitForURL((url) => url.pathna
 test.describe.configure({ mode: 'serial' })
 
 test.describe('HQ installed at a network address over plain http @SC-1149', () => {
-  test.skip(!HQ || !LINK || !MODEL || !CONSOLE, 'run by scripts/install-test/run.sh, which installs HQ first')
+  test.skip(!HQ || !LINK || !MODEL || !CONSOLE || !HQ_SERVER, 'run by scripts/install-test/run.sh, which installs HQ first')
 
   let page: Page
   const errors: string[] = []
@@ -34,9 +38,9 @@ test.describe('HQ installed at a network address over plain http @SC-1149', () =
     page = await browser.newPage({ baseURL: HQ })
     page.on('pageerror', (e) => errors.push(e.message))
     await answerSpeechProviders(page, (vendor) => {
-      if (!DATABASE) throw new Error('INSTALL_TEST_DATABASE_URL is needed: the install’s database, for the speech providers setup requires.')
-      if (!MASTER_KEY) throw new Error('INSTALL_TEST_SECRETS_MASTER_KEY is needed: the key the install encrypts its secrets with.')
-      addProvider(vendor, { ...process.env, DATABASE_URL: DATABASE, SECRETS_MASTER_KEY: MASTER_KEY })
+      execFileSync('docker', ['exec', '-i', HQ_SERVER!, 'node', '-', vendor], {
+        input: readFileSync(SPEECH_PROVIDER), stdio: ['pipe', 'inherit', 'inherit'],
+      })
     })
   })
   test.afterAll(async () => {
