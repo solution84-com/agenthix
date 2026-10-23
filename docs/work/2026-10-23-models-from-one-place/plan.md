@@ -155,23 +155,23 @@ with its migration, committed on the unit's branch. Nothing reads them yet.
 
 They merge in the order 2a, 2c, 2d, 2b.
 
-- [ ] 2.1 `providers/write.ts`: add, replace, rename, remove (refused when it would leave no LLM, STT or TTS provider), revoke. It checks keys with the vendor, encrypts them, records and announces every write, never reads a key back, and accepts only its three named actors
-- [ ] 2.2 Vendor checks that cost nothing, for Anthropic, OpenAI, Google Gemini, OpenRouter, an OpenAI-compatible endpoint, AssemblyAI and Inworld
-- [ ] 2.3 `providers/health.ts`: states S1–S5, the hourly and five-minute checks, and recovery
-- [ ] 2.4 `provider_not_working` for organisation admins: what is down, what depends on it, and what new work moved to
-- [ ] 2.5 The providers' operations for organisation admins: list, add, replace, rename, remove, revoke, check now
-- [ ] 2.6 `agenthix provider add|list|remove` over hq's control socket, and the host command line
-- [ ] 2.7 The hosted service's controller supplies Agenthix Cloud as a provider on a machine it runs
-- [ ] 2.8 Remove `seedLlmApiKey` and reading a key from hq's environment
-- [ ] 2.9 The *Providers* page in the admin area: the list with states, add, replace, rename, remove (showing what it touches), revoke, check now, and a custom endpoint's address always shown
-- [ ] 2.11 The admin area's frame at `/admin`: its own menu, *Back to* the organisation, no docked conversation, and on a phone
-- [ ] 2.12 *Manage* on the organisation's page, the role check on every `/admin` page, and the refusal a member sees
-- [ ] 2.13 Settings, infrastructure, people, invitations, teams and agents' settings move under `/admin`, with redirects from their old addresses
-- [ ] 2.14 The admin area's Overview: what needs an admin, and today's figures
-- [ ] 2.15 Personal projects: several per person, `personalSpace` marking Your space, made by anyone, deleted by their owner, never shared
-- [ ] 2.16 A personal project's own storage on the site that holds the person's storage, with its runs acting as the person
-- [ ] 2.17 Personal projects listed with the other projects, marked *Only you*, and in Your space's overview, the switcher and the place picker
-- [ ] 2.18 Erasing a person deletes every personal project and its storage; the erase dialog says how many
+- [x] 2.1 `providers/write.ts`: add, replace, rename, remove (refused when it would leave no LLM, STT or TTS provider), revoke. It checks keys with the vendor, encrypts them, records and announces every write, never reads a key back, and accepts only its three named actors
+- [x] 2.2 Vendor checks that cost nothing, for Anthropic, OpenAI, Google Gemini, OpenRouter, an OpenAI-compatible endpoint, AssemblyAI and Inworld
+- [x] 2.3 `providers/health.ts`: states S1–S5, the hourly and five-minute checks, and recovery
+- [x] 2.4 `provider_not_working` for organisation admins: what is down, what depends on it, and what new work moved to
+- [x] 2.5 The providers' operations for organisation admins: list, add, replace, rename, remove, revoke, check now
+- [x] 2.6 `agenthix provider add|list|remove` over hq's control socket, and the host command line
+- [x] 2.7 The hosted service's controller supplies Agenthix Cloud as a provider on a machine it runs
+- [x] 2.8 Remove `seedLlmApiKey` and reading a key from hq's environment
+- [x] 2.9 The *Providers* page in the admin area: the list with states, add, replace, rename, remove (showing what it touches), revoke, check now, and a custom endpoint's address always shown
+- [x] 2.11 The admin area's frame at `/admin`: its own menu, *Back to* the organisation, no docked conversation, and on a phone
+- [x] 2.12 *Manage* on the organisation's page, the role check on every `/admin` page, and the refusal a member sees
+- [x] 2.13 Settings, infrastructure, people, invitations, teams and agents' settings move under `/admin`, with redirects from their old addresses
+- [x] 2.14 The admin area's Overview: what needs an admin, and today's figures
+- [x] 2.15 Personal projects: several per person, `personalSpace` marking Your space, made by anyone, deleted by their owner, never shared
+- [x] 2.16 A personal project's own storage on the site that holds the person's storage, with its runs acting as the person
+- [x] 2.17 Personal projects listed with the other projects, marked *Only you*, and in Your space's overview, the switcher and the place picker
+- [x] 2.18 Erasing a person deletes every personal project and its storage; the erase dialog says how many
 
 ### Phase 3 — Routing and bootstrap
 **Delivers:**
@@ -181,36 +181,44 @@ They merge in the order 2a, 2c, 2d, 2b.
 - Setup in hq, with models and voice required.
 
 **Starts when:** phase 2 is merged.
-**Execution plan:** none — lanes. 3a, the resolver and its server callers (Opus), and 3e, setup (Sonnet), run
-first, in parallel. Once 3a merges, these run within three building lanes at a time:
-- 3b, the site and relay (Opus)
-- 3c, model settings and pickers (Sonnet)
-- 3d, voice (Sonnet)
+**Execution plan:** none — lanes.
+- **First, in parallel:**
+  - 3a: the resolver, its server callers, and removing the old deciders, tables and key forms (Opus)
+  - 3e1: setup's state, `public-identity`, resuming, and what hq's address shows (Sonnet), which touches none of
+    3a's files
+- **Once 3a merges,** within three building lanes at a time:
+  - 3b: the site and relay (Opus)
+  - 3c: model settings and pickers (Sonnet)
+  - 3d: voice (Sonnet)
+  - 3e2: setup's steps and connecting Agenthix Cloud from hq (Sonnet). It waits for 3a because 3a removes the old
+    model-access screens that setup's model step wraps.
 
-They merge in the order 3a, 3e, 3b, 3d, 3c.
+They merge in the order 3a, 3e1, 3b, 3d, 3c, 3e2.
 
-- [ ] 3.1 The resolver: model via provider, the two defaults, the agent's own, the person's or task's instruction, lists that only narrow, the runtime that follows the model, and the cost basis
-- [ ] 3.2 Lists with maker and family patterns, *Only these*, and a ban that beats an allow
-- [ ] 3.3 Conversations, titles, summaries and compaction resolve through it
-- [ ] 3.4 Dispatch, task runs, workers and helpers resolve through it
-- [ ] 3.5 A person's own Claude subscription serves Claude models across their own place, and nowhere else
-- [ ] 3.6 A provider that is not working is skipped for new work, and a conversation fixed to it gets the reason and one offer, which resends the message
-- [ ] 3.7 Remove `ModelCredential`, `ModelPolicy`, the five deciders, per-conversation refused keys, the agent's single model and runtime, per-project model overrides, and every key form
-- [ ] 3.8 Memory search always uses the built-in embedding model; remove the provider embedder
-- [ ] 3.9 The site takes a run's provider descriptor; the relay adds the key, reads each answer's usage and upstream status, and sends `usage.report`
-- [ ] 3.10 Claude Code's key helper and a subscription's login file work from the descriptor
-- [ ] 3.11 *Models* in the admin area: the two model defaults, the two voice defaults, and the organisation's list
-- [ ] 3.12 The list editor: patterns, *Only these*, how many models each entry covers, and selecting in bulk
-- [ ] 3.13 An agent's own models, voice and list on its admin page
-- [ ] 3.14 A project's list in its settings, and a person's list and Claude subscription in their settings
-- [ ] 3.15 Every model picker has a search box, shows the model with its provider, and greys out a provider that is not working
-- [ ] 3.16 Voice is chosen per agent: speech to text and text to speech resolve through the resolver, every agent has a voice, and the *Enable voice mode* switch goes
-- [ ] 3.17 The voice sample phrase, the STT token and TTS calls use the resolved provider; the old voice settings page goes
-- [ ] 3.18 hq's setup state (unclaimed, setting up, set up), stated in `public-identity`
-- [ ] 3.19 Setup's steps: you; one choice, Agenthix Cloud or your own keys; for own keys, one model provider, then one speech-to-text and one text-to-speech provider; the organisation with its time zone and default billing profile; the last look
-- [ ] 3.20 Resuming setup at the step it stopped at, after sign-in
-- [ ] 3.21 What hq's address shows before setup is finished: no form without the link, an expired or used link, *almost ready*, and apps' *not set up yet*
-- [ ] 3.22 Connecting Agenthix Cloud from hq, in setup and on *Providers*, by an organisation admin with the device approval, recorded and announced (ADR-0134 amended)
+- [x] 3.1 The resolver: model via provider, the two defaults, the agent's own, the person's or task's instruction, lists that only narrow, the runtime that follows the model, and the cost basis
+- [x] 3.2 Lists with maker and family patterns, *Only these*, and a ban that beats an allow
+- [x] 3.3 Conversations, titles, summaries and compaction resolve through it
+- [x] 3.4 Dispatch, task runs, workers and helpers resolve through it
+- [x] 3.5 A person's own Claude subscription serves Claude models across their own place, and nowhere else
+- [x] 3.6 A provider that is not working is skipped for new work, and a conversation fixed to it gets the reason and one offer, which resends the message
+- [x] 3.7 Remove `ModelCredential`, `ModelPolicy`, the five deciders, per-conversation refused keys, the agent's single model and runtime, per-project model overrides, and every key form
+- [x] 3.8 Memory search always uses the built-in embedding model; remove the provider embedder
+- [x] 3.9 The site takes a run's provider descriptor; the relay adds the key, reads each answer's usage and upstream status, and sends `usage.report`
+- [x] 3.10 Claude Code's key helper and a subscription's login file work from the descriptor
+- [x] 3.11 *Models* in the admin area: the two model defaults, the two voice defaults, and the organisation's list
+- [x] 3.12 The list editor: patterns, *Only these*, how many models each entry covers, and selecting in bulk
+- [x] 3.13 An agent's own models, voice and list on its admin page
+- [x] 3.14 A project's list in its settings, and a person's list and Claude subscription in their settings
+- [x] 3.15 Every model picker has a search box, shows the model with its provider, and greys out a provider that is not working
+- [x] 3.16 Voice is chosen per agent: speech to text and text to speech resolve through the resolver, every agent has a voice, and the *Enable voice mode* switch goes
+- [x] 3.17 The voice sample phrase, the STT token and TTS calls use the resolved provider; the old voice settings page goes
+- [x] 3.18 hq's setup state (unclaimed, setting up, set up), stated in `public-identity`
+- [x] 3.19 Setup's steps: you; one choice, Agenthix Cloud or your own keys; for own keys, one model provider, then one speech-to-text and one text-to-speech provider; the organisation with its time zone and default billing profile; the last look
+- [x] 3.20 Resuming setup at the step it stopped at, after sign-in
+- [x] 3.21 What hq's address shows before setup is finished: no form without the link, an expired or used link, *almost ready*, and apps' *not set up yet*
+- [x] 3.22 Connecting Agenthix Cloud from hq, in setup and on *Providers*, by an organisation admin with the device approval, recorded and announced (ADR-0134 amended)
+- [x] 3.23 Remove what the resolver left unused: `Agent.defaultModel` and `Agent.runtime` (with the agent package format and the client field deprecated first), `sharedSubscriptionSwitch`, and `Org.memoryEmbeddingModel`
+- [x] 3.24 Voice clients pass the agent when asking for a speech-to-text token, and a listening session that drops says so
 
 ### Phase 4 — Billing and costing
 **Delivers:** every call written to the ledger against a billing profile, with prices; billing profiles; the new
@@ -219,18 +227,19 @@ project's billing field; the usage report with its export.
 **Execution plan:** none — lanes. Two lanes, merged in this order: 4a, the ledger and its sources (Opus); then 4b,
 the billing screens (Sonnet), cut from 4a once its operations exist.
 
-- [ ] 4.1 The ledger writer: append-only, one `CALL` row per call id, `ACTUAL` and `CORRECTION` rows pointing at their call
-- [ ] 4.2 hq's own calls write a row per step, failed calls that used tokens included
-- [ ] 4.3 `usage.report` from the relay writes rows, delivered at least once and counted once
-- [ ] 4.4 Claude Code on a person's own subscription writes one *included* row per run
-- [ ] 4.5 Speech to text writes a row at the session's end; text to speech writes the characters sent
-- [ ] 4.6 Prices: the catalogue's version in millionths, voice prices, *unpriced*, and *awaiting actual* for Agenthix Cloud
-- [ ] 4.7 Billing profiles: made, renamed, archived (refused for the default or one in use), one default, and the organisation's time zone
-- [ ] 4.8 A new project gets the default or its creator's pick; a later change is for organisation admins only, from the next call, recorded
-- [ ] 4.9 The view of each call's cost; the report by profile, then project, agent and person; each currency and basis apart; months in the organisation's time zone
-- [ ] 4.10 The streamed CSV export
-- [ ] 4.11 Billing profiles and the usage report in the admin area, and the billing field in the new project form
-- [ ] 4.12 Erasing a person keeps their rows, named *Former member*
+- [x] 4.1 The ledger writer: append-only, one `CALL` row per call id, `ACTUAL` and `CORRECTION` rows pointing at their call
+- [x] 4.2 hq's own calls write a row per step, failed calls that used tokens included
+- [x] 4.3 `usage.report` from the relay writes rows, delivered at least once and counted once
+- [x] 4.4 Claude Code on a person's own subscription writes one *included* row per run
+- [x] 4.5 Speech to text writes a row at the session's end; text to speech writes the characters sent
+- [x] 4.6 Prices: the catalogue's version in millionths, voice prices, *unpriced*, and *awaiting actual* for Agenthix Cloud
+- [x] 4.7 Billing profiles: made, renamed, archived (refused for the default or one in use), one default, and the organisation's time zone
+- [x] 4.8 A new project gets the default or its creator's pick; a later change is for organisation admins only, from the next call, recorded
+- [x] 4.9 The view of each call's cost; the report by profile, then project, agent and person; each currency and basis apart; months in the organisation's time zone
+- [x] 4.10 The streamed CSV export
+- [x] 4.11 Billing profiles and the usage report in the admin area, and the billing field in the new project form
+- [x] 4.12 Erasing a person keeps their rows, named *Former member*
+- [x] 4.13 The cross-app suite sets up a working provider against a fake upstream, so a run's call goes through the relay to a usage report and a ledger row end to end
 
 ### Phase 5 — Agenthix Cloud as a provider
 **Delivers:** Agenthix Cloud in the provider store and the pickers as one provider of all three types, reading *not
@@ -238,10 +247,10 @@ available yet* until hq's calls are built (ADR-0130), and its line on the *Provi
 **Starts when:** phase 4 is merged.
 **Execution plan:** none — lanes. One lane (Sonnet).
 
-- [ ] 5.1 Connecting to Cloud adds the Agenthix Cloud provider, with no key; disconnecting marks it *disconnected*
-- [ ] 5.2 While its calls are not built it reads *not available yet*: its models are never offered or made a default, and nobody is notified
-- [ ] 5.3 Its line on the *Providers* page, with *Roll the key now* shown only once the rollover's calls are built
-- [ ] 5.4 `CloudUsageCursor` kept with Cloud's organisation id across a disconnect
+- [x] 5.1 Connecting to Cloud adds the Agenthix Cloud provider, with no key; disconnecting marks it *disconnected*
+- [x] 5.2 While its calls are not built it reads *not available yet*: its models are never offered or made a default, and nobody is notified
+- [x] 5.3 Its line on the *Providers* page, with *Roll the key now* shown only once the rollover's calls are built
+- [ ] 5.4 `CloudUsageCursor` kept with Cloud's organisation id across a disconnect (the table exists; its use comes with hq's actual-cost calls, after the hosted side is ready)
 
 ### Phase 6 — Documents, decision records, QA contract
 **Delivers:** the documents describe the code as built; the decision records are written and amended; the QA
@@ -260,4 +269,9 @@ stories and scenarios exist, with their tests tagged.
 | Phase | What changed | Why |
 |---|---|---|
 | Phase 1 | The contract follows the repository's rules where the spec did not: gateway headers `X-Call-Id` and `X-Billing-Profile-Id` and the error field `cloud_error` (no product name); the site's usage reports and its request for hq's Cloud token are HTTPS calls, not channel frames; the key rollover's call is form-encoded like the other `/connect/*` calls; the price list's version is the OpenCode release; an agent's own models are a 1:1 table `AgentModelChoices`; `Org.timeZone` defaults to UTC. The spec was corrected in place | Found by lane 1 against the code: versioning forbids the product name on the wire, and hq answers no requests on the control channel |
+| Phase 5 | Phase 5's work landed inside phase 3's lanes: connecting Agenthix Cloud from hq adds the provider (3e2), it reads *not available yet* behind `CLOUD_AI_AVAILABLE` (3e2, resolver 3a), and its Providers line shows only *Check now* (2b). Task 5.4 waits for hq's actual-cost calls | Connecting Cloud moved into hq (D36), so the setup lane built the provider entry with it |
+| Phase 4 | `Project.billingProfileId` stays nullable: a personal project is always costed to the default, so it carries none, and a shared project always gets one when made. Text to speech is one row per call to the speech service (a sentence), not one per reply. A relayed call is always purpose *worker* | The ledger lane (4a) found that a run's report names only the run and nothing marks a reply's end in the speech path, and personal projects never choose a profile |
+| Phase 3 | Lane 3a stopped short of removing `Agent.defaultModel` and `Agent.runtime` (stored package format and client field need a deprecation) and could not wire a model named by an instruction (no field for it). Task 3.23 added; tasks and routines gain an optional model, and `start_work` an optional model argument (lane 3c) | The spec says workers follow the model an instruction names, and the spec's pickers include a task's and a routine's |
+| Phase 3 | Setup is split into 3e1 (state and pages, alongside 3a) and 3e2 (steps, after 3a) | 3a removes the old model-access screens that setup's model step wraps, so the steps can only be rebuilt after it |
+| Phase 2 | A personal project's task runs as its person only where the signed capability names that person as the project's personal owner (lane 2e), rather than whenever the runner is the invoker. Personal projects have no picture: `Project` has none, and adding one is not this unit's | Lane 2d found core's runner check refused such tasks; the looser fix would also have let a person runner into a shared project if hq ever minted one |
 | Before phase 2 | Providers moved to organisation admins in hq's admin area (D34); setup stays in hq, and the Fleet Console's first run and the first-run tunnel are removed (D35). Phase 2's lanes and phase 3's setup tasks rewritten; the spec's parts 1 and 2 corrected in place (`spec/bootstrap.md` became `spec/setup.md`) | The owner, before any provider code was written: simpler for a user, since *fleet* means machines and model access belongs with the organisation's admin |

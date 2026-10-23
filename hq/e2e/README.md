@@ -42,7 +42,7 @@ E2E_CLIENT_URL=http://localhost:4100 E2E_SERVER_URL=http://localhost:4101 npm ru
 | `chatStreaming.spec.ts` | An assistant reply streams over the socket | Yes; needs an agent with a runnable site |
 | `workforceConfirm.spec.ts` | Confirming a workforce proposal returns to `/org` | Yes (`E2E_REVIEW_TASK_ID`) |
 | `sessionPrivacy.spec.ts` | A conversation is readable only by the person who opened it — see below | Seeds its own data |
-| `setup.spec.ts` | First-admin setup — see below | Yes, on a fresh HQ |
+| `setup.spec.ts` | First-admin setup: the account, how agents reach AI (Agenthix Cloud greyed, *not available yet*), a model provider, voice, the organisation with its time zone, the last look — see below | Yes, on a fresh HQ |
 | `notSecure.spec.ts` | At a plain-http network address: voice greyed, a conversation started and a message sent, a link copied — see below | Yes |
 | `install/walkthrough.spec.ts` | HQ as installed, run by `scripts/install-test/run.sh` — see below | On the test's own install |
 
@@ -53,9 +53,17 @@ helpers in `fixtures/auth.ts`; a spec whose data is not there skips rather than
 fails.
 
 No spec calls a real model. `playwright.config.ts` starts a stand-in endpoint on port 4182
-(`scripts/install-test/stand-in-model.mjs`), and the `stand-in` setup project points the organisation's talking
-model at it for the run, signed in as `e2e-admin`; `stand-in-teardown` puts it back. An organisation that already has
-its own endpoint is left as it is.
+(`scripts/install-test/stand-in-model.mjs`), and the `stand-in` setup project, signed in as `e2e-admin`, adds it to the
+organisation's providers (an own OpenAI-compatible endpoint) and makes it the default conversation and worker model for
+the run; `stand-in-teardown` removes it and puts the defaults back. An organisation that already has an own endpoint is
+left as it is.
+
+No spec reaches a vendor either. HQ checks a provider's key with its vendor before it stores it. A model provider is
+added as an own endpoint at the stand-in, which answers the check. The speech vendors (AssemblyAI, Inworld) can only be
+checked at their own address, so the specs and recipes that add them answer the browser's add-provider call themselves
+(a route intercept, `fixtures/voiceProviders.ts`) or leave the form unsaved, and put the provider in the database with an
+obviously fake key (`fixtures/add-provider.mjs`, which reads `DATABASE_URL`, else `.env.server`). Such a provider is dated
+so that HQ never re-checks it with its vendor.
 
 ## At an address that is not secure (the `not-secure` project)
 
@@ -107,7 +115,7 @@ each test on an empty database); only genuine UI behaviour needs **e2e** here.
 |---|---|---|
 | F-005 session delete cancels active runs first | integration | done — `src/sessions/__tests__/deleteTaskSession.integration.test.ts` |
 | F-012 risk-rule auto-rejection enforcement | integration | planned |
-| First-admin setup: invite link → account → organisation → model → review → Home | e2e | `setup.spec.ts` — needs a fresh HQ and its one-time link (`E2E_FIRST_ADMIN_LINK`) |
+| First-admin setup: invite link → account → how agents reach AI → model provider → voice → organisation → review → Home | e2e | `setup.spec.ts` — needs a fresh HQ and its one-time link (`E2E_FIRST_ADMIN_LINK`) |
 | F-003 project / board / task mutations, drag-and-drop | e2e | partly — `projectsBoards.spec.ts`, `taskDelete.spec.ts`; drag-and-drop planned |
 
 ## Conversation privacy (`sessionPrivacy.spec.ts`)
@@ -152,6 +160,12 @@ Without it the spec skips. It makes its own account, so run it before `seed-e2e-
 ```bash
 E2E_FIRST_ADMIN_LINK=http://localhost:4100/invite/<code> npx playwright test e2e/setup.spec.ts
 ```
+
+It takes Your own keys (Agenthix Cloud's card is checked to be disabled with *not available yet*), adds an own
+OpenAI-compatible endpoint at the stand-in model as the model provider, and the two speech providers as described under
+the stand-in above; for those it runs `fixtures/add-provider.mjs`, which needs `DATABASE_URL` and `SECRETS_MASTER_KEY`
+(from the environment, else `.env.server`) to be the HQ's under test. The install walkthrough does the same against the
+install's database: `INSTALL_TEST_DATABASE_URL` and `INSTALL_TEST_SECRETS_MASTER_KEY`.
 
 **One honest limitation.** The socket test asserts that a non-owner receives no
 events after subscribing to another person's conversation room. With no reply

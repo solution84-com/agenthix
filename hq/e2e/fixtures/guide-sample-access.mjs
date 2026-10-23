@@ -1,6 +1,5 @@
-// The sample organisation's model access and one invitation still waiting to be accepted, so the screens show
-// a working organisation and the join page has a link to open. The model key is a placeholder no provider
-// accepts: it is stored encrypted, as hq stores a real one, so the screens read it as set.
+// One invitation still waiting to be accepted, so the join page has a link to open. (The providers are in
+// guide-sample-models.mjs.) `encryptSecret` and `hqMasterKey` are shared with it.
 import { createCipheriv, createHash, randomBytes } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -29,12 +28,7 @@ export function hqMasterKey(hqRoot) {
   return key
 }
 
-export async function seedAccess({ hq, ago, people, projects, hqRoot, sample }) {
-  await hq.provider.deleteMany({ where: { service: 'llm' } })
-  await hq.provider.create({
-    data: { service: 'llm', name: 'openrouter', apiKey: encryptSecret('sk-or-guide-sample-not-a-key', hqMasterKey(hqRoot)) },
-  })
-
+export async function seedAccess({ hq, ago, people, projects, sample }) {
   const { token, name, projects: keys } = sample.invitation
   await hq.invite.create({
     data: {
