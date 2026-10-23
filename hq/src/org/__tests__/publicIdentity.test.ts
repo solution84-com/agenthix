@@ -37,6 +37,6 @@ describe('parseSignInShows @SC-712', () => {
 
 describe('hq\'s versions before sign-in @SC-1140', () => {
   it('states its release, the value its image is labelled with, and the client protocol it speaks', () => {
-    expect(hqVersions()).toEqual({ release: BUILD_INFO.version, clientProtocolVersion: '1.0' })
+    expect(hqVersions()).toEqual({ release: BUILD_INFO.version, clientProtocolVersion: '1.1' })
   })
 })

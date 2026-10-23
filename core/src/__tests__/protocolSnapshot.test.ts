@@ -30,7 +30,7 @@ describe('every connection matches its committed shape snapshot @SC-1133', () =>
         if (UPDATE) return writeSnapshot(now)
         throw new Error(`${connection.name}: no snapshot at core/snapshot/${connection.name}.json; run \`npm run snapshot:update\` in core`)
       }
-      const verdict = judge(before, now, previous)
+      const verdict = judge(before, now, previous, new Set(connection.methodMaps))
       expect(verdict.problems, verdict.problems.join('\n')).toEqual([])
       if (canonical(before) === canonical(now)) return
       if (UPDATE) return writeSnapshot(now)

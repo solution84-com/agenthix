@@ -158,6 +158,25 @@ describe('what a difference requires of the version @SC-1133', () => {
     expect(gone.problems.join()).toMatch(/Owner removed/)
   })
 
+  it('a method added to a method map is an addition; one removed breaks', () => {
+    const map = (methods: string) => snapshotOf({ 'index.ts': `export type Methods = { ${methods} }` })
+    const was = map(`'a.get': { params: { id: string }; result: { ok: boolean } }`)
+    const more = map(`'a.get': { params: { id: string }; result: { ok: boolean } }; 'b.put': { params: { x: number }; result: null }`)
+    const maps = new Set(['Methods'])
+    expect(judge(was, more, null, maps).needed).toBe('minor')
+    expect(judge(was, more).needed).toBe('major')
+    expect(judge(more, was, null, maps).needed).toBe('major')
+  })
+
+  it('a message tagged by several literal values is matched by them, so a change inside it is classed as that', () => {
+    const frames = (extra: string) => snapshotOf({
+      'index.ts': `export type Frame = { type: 'ping' | 'pong' } | { type: 'answer'; payload: { a: string } | { c: boolean }${extra} }`,
+    })
+    const v = judge(frames(''), frames(' | { b: number }'))
+    expect(v.needed).toBe('minor')
+    expect(v.changes.map(c => `${c.at}: ${c.what}`)).toEqual(['Frame<type={"literal":"answer"}>.payload: `{ b }` was added to its values'])
+  })
+
   it('refuses a version that went back', () => {
     const later = withRun(RUN, '1.2')
     expect(judge(later, withRun(RUN, '1.1')).problems.join()).toMatch(/went back from 1\.2 to 1\.1/)

@@ -9,12 +9,15 @@
  *
  * When a major moves and a previous major's code is kept for peers one major behind, its modules go in
  * `previousMajor`, so the test can see a deprecated thing that must by then be gone.
+ *
+ * `methodMaps` names the declarations that map each method or event to its shape: a method added to one is an
+ * addition, which a peer that does not know it answers `unknown_method` or ignores.
  */
 import ts from 'typescript'
 import type { ConnectionSource } from './extract.js'
 import type { Snapshot } from './shape.js'
 
-export type Connection = ConnectionSource & { previousMajor: string[] }
+export type Connection = ConnectionSource & { previousMajor: string[]; methodMaps: string[] }
 
 export const CONNECTIONS: Connection[] = [
   {
@@ -22,12 +25,14 @@ export const CONNECTIONS: Connection[] = [
     modules: ['protocol/index.ts'],
     version: 'protocol/connection.ts#SITE_PROTOCOL_VERSION',
     previousMajor: [],
+    methodMaps: ['SiteMethods', 'SiteContentMethods', 'SiteEvents'],
   },
   {
     name: 'host',
     modules: ['host/index.ts'],
     version: 'host/relay.ts#HOST_PROTOCOL_VERSION',
     previousMajor: [],
+    methodMaps: ['ConsoleLinkMethods'],
   },
   {
     name: 'client',
@@ -35,12 +40,14 @@ export const CONNECTIONS: Connection[] = [
     constants: ['client/mobileApp.ts#MOBILE_HTTP_ROUTES'],
     version: 'client/protocol.ts#CLIENT_PROTOCOL_VERSION',
     previousMajor: [],
+    methodMaps: ['MobileOperations'],
   },
   {
     name: 'cloud',
     modules: ['cloud/index.ts'],
     version: 'cloud/version.ts#CLOUD_PROTOCOL_VERSION',
     previousMajor: [],
+    methodMaps: [],
   },
 ]
 

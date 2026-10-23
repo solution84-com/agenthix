@@ -21,7 +21,12 @@ export type Change = {
   removedMark?: string | null
 }
 
-export function compareSnapshots(before: Snapshot, now: Snapshot): Change[] {
+/**
+ * `methodMaps` names the entries that map each method or event of a connection to its shape (`SiteMethods`,
+ * `ConsoleLinkMethods`): a key added to one is a new method, which a peer that does not know it answers
+ * `unknown_method` or ignores, so it is an addition however its own shape is written.
+ */
+export function compareSnapshots(before: Snapshot, now: Snapshot, methodMaps: ReadonlySet<string> = new Set()): Change[] {
   const changes: Change[] = []
   const renamed = new Map<string, string>()
   const removed = Object.keys(before.types).filter(k => !(k in now.types))
@@ -44,10 +49,10 @@ export function compareSnapshots(before: Snapshot, now: Snapshot): Change[] {
     if (mark !== undefined) changes.push({ at: k, what: 'added already deprecated', level: 'minor', newMark: mark })
   }
 
-  const ctx: Ctx = { changes, renamed, before }
   for (const k of Object.keys(before.types)) {
     const target = k in now.types ? k : renamed.get(k)
     if (!target) continue
+    const ctx: Ctx = { changes, renamed, before, methodMap: methodMaps.has(target) ? target : null }
     const a = before.types[k]
     const b = now.types[target]
     if (canonical(a.params ?? []) !== canonical(b.params ?? [])) {
@@ -59,7 +64,7 @@ export function compareSnapshots(before: Snapshot, now: Snapshot): Change[] {
   return changes
 }
 
-type Ctx = { changes: Change[]; renamed: Map<string, string>; before: Snapshot }
+type Ctx = { changes: Change[]; renamed: Map<string, string>; before: Snapshot; methodMap: string | null }
 
 function entryBody(e: Entry): string {
   return canonical({ params: e.params ?? [], shape: e.shape })
@@ -107,7 +112,9 @@ function fields(ctx: Ctx, at: string, a: FieldsShape, b: FieldsShape): void {
     const where = `${at}.${name}`
     ctx.changes.push(fb.optional
       ? { at: where, what: 'added, optional', level: 'minor' }
-      : { at: where, what: 'added, required', level: 'major' })
+      : at === ctx.methodMap
+        ? { at: where, what: 'added, a new method', level: 'minor' }
+        : { at: where, what: 'added, required', level: 'major' })
     if (fb.deprecated !== undefined) ctx.changes.push({ at: where, what: 'added already deprecated', level: 'minor', newMark: fb.deprecated })
   }
   const ia = a.index
@@ -155,12 +162,17 @@ function keyed(members: Shape[]): Map<string, Shape> {
   return out
 }
 
+/** A tag's value: one literal, or a union of literals (`'ping' | 'pong'`, one message for both). */
+function literalTag(s: Shape): boolean {
+  return 'literal' in s || ('union' in s && s.union.every(m => 'literal' in m))
+}
+
 function discriminant(objects: FieldsShape[]): string | null {
   if (objects.length < 2) return null
   const names = Object.keys(objects[0].fields).sort()
   for (const name of names) {
     const values = objects.map(o => o.fields[name] as Field | undefined)
-    if (values.some(v => !v || v.optional || !('literal' in v.type))) continue
+    if (values.some(v => !v || v.optional || !literalTag(v.type))) continue
     if (new Set(values.map(v => canonical(v!.type))).size === objects.length) return name
   }
   return null

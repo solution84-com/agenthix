@@ -34,7 +34,8 @@ const packages: RunPackages = {
 }
 
 /** Every field of the context, including the ones a single run kind never carries. */
-const fullContext: Required<RunContextPayload> = {
+// `modelAccess` (the provider descriptor) is left out until the site's dispatch schema accepts it.
+const fullContext: Required<Omit<RunContextPayload, 'modelAccess'>> = {
   agent,
   chat: { sessionContext: 'Focus on the release.' },
   task: {
