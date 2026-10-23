@@ -10,6 +10,6 @@ test('new-agent', async ({ page }) => {
       await p.getByPlaceholder('My Assistant').fill('Editor')
       await p.getByPlaceholder('e.g. Software Engineer').fill('Checks tone and style')
     },
-    ready: (p) => expect(p.getByText('Define a name, handle, and model')).toBeVisible(),
+    ready: (p) => expect(p.getByText('Define a name and handle')).toBeVisible(),
   })
 })
