@@ -26,6 +26,10 @@ speak it, and nothing standard checks it.
 
 ## Decision
 
+> ⚠️ **Superseded by adr-0144 — this section's last bullet only.** Cloud is connected and disconnected from HQ by an
+> organisation admin; the Fleet Console only shows the connection. *(annotated 2026-10-23)* The key now also rolls
+> over every 90 days (adr-0143). Everything else here still stands.
+
 **hq makes an Ed25519 key pair and keeps the private key with its encrypted secrets; it never leaves hq.** The
 connection uses established standards, defined in `core/src/cloud/connection.ts`:
 

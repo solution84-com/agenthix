@@ -39,6 +39,9 @@ awake, and puts one item in many homes where hq cannot read it and the person ca
 
 ## Decision
 
+> *(annotated 2026-10-23)* The embedding model is always the small open model bundled with HQ: the option of a
+> provider's embedding model, and the organisation key it read, are gone. The decision otherwise stands.
+
 **Memory stays in hq, as items in three scopes:** the **person's** own, read by every agent working for them; **an
 agent's about the person**, read by that agent alone; and **an agent's about a place**, read in that place only and
 never carried out of it. Each item stands alone and has a key; the agent writes it with `remember`, into any scope

@@ -2,7 +2,7 @@
 name: ADRs
 description: This codebase's architecture decision records — every ADR, its title, and its state.
 created: 2026-08-09
-updated: 2026-10-21
+updated: 2026-10-23
 author: leang
 ---
 
@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0138`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0145`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -209,6 +209,7 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0076](adr-0076-a-conversation-whose-harness-state-is-gone-is-closed.md) | A Conversation Whose Harness State Is Gone Is Closed, Never Silently Restarted | Accepted |
 | [ADR-0077](adr-0077-within-a-boundary-a-running-chat-is-visible-its-content-is-not.md) | Within a Boundary, a Running Chat Is Visible; Its Content Is Not | Accepted |
 | [ADR-0078](adr-0078-a-conversation-keeps-the-runtime-it-started-with.md) | A Conversation Keeps the Runtime It Started With | Accepted |
+| [ADR-0078-s-1](adr-0078-a-conversation-keeps-the-runtime-it-started-with.md#decision) | ↳ An agent's runtime is an editable setting (its Decision, second paragraph) | Superseded by adr-0139 |
 | [ADR-0079](adr-0079-access-to-a-boundary-is-access-to-all-of-it.md) | Access to a Boundary Is Access to All of It; a Workspace's Settings Are a Guardrail | Accepted |
 | [ADR-0080](adr-0080-a-run-never-carries-a-persons-own-connected-accounts.md) | A Run Never Carries a Person's Own Connected Accounts | Accepted |
 | [ADR-0081](adr-0081-a-harness-runs-the-way-its-vendor-intends.md) | A Harness Runs the Way Its Vendor Intends, and Stays Warm While Its Conversations Are Live | Accepted |
@@ -238,7 +239,7 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0102](adr-0102-viewer-is-a-project-role.md) | Viewer Is a Project Role | Accepted |
 | [ADR-0103](adr-0103-a-team-joins-a-project-as-one-member.md) | A Team Joins a Project as One Member | Accepted |
 | [ADR-0104](adr-0104-a-routines-round-starts-at-its-time.md) | A Routine's Round Starts at Its Time | Accepted |
-| [ADR-0105](adr-0105-a-run-uses-the-login-of-the-person-it-is-for.md) | A Run Uses the Login of the Person It Is For | Accepted |
+| [ADR-0105](adr-0105-a-run-uses-the-login-of-the-person-it-is-for.md) | A Run Uses the Login of the Person It Is For | Superseded by adr-0139 |
 | [ADR-0106](adr-0106-each-service-keeps-its-own-logs.md) | Each Service Keeps Its Own Logs | Accepted |
 | [ADR-0107](adr-0107-the-host-service-alone-holds-a-machines-authority.md) | The Host Service Alone Holds a Machine's Authority | Accepted |
 | [ADR-0108](adr-0108-a-machine-carries-at-most-one-hq-and-one-site.md) | A Machine Carries at Most One HQ and One Site | Accepted |
@@ -260,8 +261,10 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0123](adr-0123-a-places-knowledge-reaches-the-lead-only-as-an-excerpt.md) | A Place's Knowledge Reaches the Lead Only as an Excerpt, Never Indexed in hq | Accepted |
 | [ADR-0124](adr-0124-a-long-conversation-is-compacted-into-segments-written-once.md) | A Long Conversation Is Compacted Into Segments Written Once, With a Ledger | Accepted |
 | [ADR-0125](adr-0125-voice-is-a-mode-of-the-conversation.md) | Voice Is a Mode of the Conversation | Accepted |
+| [ADR-0125-s-1](adr-0125-voice-is-a-mode-of-the-conversation.md#decision) | ↳ Speech providers are organisation settings, outside the model policy (its Decision, last sentence) | Superseded by adr-0139 |
 | [ADR-0126](adr-0126-a-tools-kind-decides-whether-it-runs-in-the-foreground.md) | A Tool's Kind Decides Whether It Runs in the Foreground or the Background | Accepted |
 | [ADR-0127](adr-0127-a-conversations-home-decides-who-may-speak-and-who-pays.md) | A Conversation's Home Decides Who May Speak in It and Who Pays | Accepted |
+| [ADR-0127-s-1](adr-0127-a-conversations-home-decides-who-may-speak-and-who-pays.md#decision) | ↳ Who pays: the key order of project, person and organisation (its Decision) | Superseded by adr-0141 |
 | [ADR-0128](adr-0128-the-open-conversation-is-docked-and-navigation-never-closes-it.md) | The Open Conversation Is Docked, and Navigation Never Closes It | Accepted |
 | [ADR-0129](adr-0129-a-places-sections-are-navigated-in-the-left-panel.md) | A Place's Sections Are Navigated in the Left Panel | Accepted |
 | [ADR-0130](adr-0130-cloud-features-are-gated-by-their-own-conditions.md) | Cloud Features Are Gated by Their Own Conditions | Accepted |
@@ -269,6 +272,14 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0132](adr-0132-cloud-may-turn-remote-access-on-for-a-machine-it-runs.md) | Cloud May Turn Remote Access On for a Machine It Runs | Accepted |
 | [ADR-0133](adr-0133-cloud-may-ask-for-admin-links-on-a-machine-it-runs.md) | Cloud May Ask for Admin Links on a Machine It Runs | Accepted |
 | [ADR-0134](adr-0134-an-hq-connects-to-cloud-by-device-approval-and-signed-tokens.md) | An hq Connects to Cloud by Device Approval and Signed Tokens | Accepted |
+| [ADR-0134-s-1](adr-0134-an-hq-connects-to-cloud-by-device-approval-and-signed-tokens.md#decision) | ↳ Only a fleet admin who is also an organisation admin connects, in the Fleet Console (its Decision, last bullet) | Superseded by adr-0144 |
 | [ADR-0135](adr-0135-cloud-connects-an-hq-it-runs-without-a-code.md) | Cloud Connects an hq It Runs Without a Code | Accepted |
 | [ADR-0136](adr-0136-every-connection-restarts-at-1-0-and-peers-one-major-apart-still-talk.md) | Every Connection Restarts at 1.0, and Peers One Major Apart Still Talk | Accepted |
 | [ADR-0137](adr-0137-a-release-is-cut-on-its-own-release-branch.md) | A Release Is Cut on Its Own Release Branch | Accepted |
+| [ADR-0138](adr-0138-providers-are-held-by-hq-and-written-by-three-named-actors.md) | Providers Are Held by HQ and Written by Three Named Actors | Accepted |
+| [ADR-0139](adr-0139-one-resolver-chooses-every-model-and-voice-call.md) | One Resolver Chooses Every Model and Voice Call | Accepted |
+| [ADR-0140](adr-0140-setup-needs-models-and-voice-before-the-organisation.md) | Setup Needs Models and Voice Before the Organisation | Accepted |
+| [ADR-0141](adr-0141-every-call-is-costed-to-a-billing-profile-in-an-append-only-ledger.md) | Every Call Is Costed to a Billing Profile in an Append-Only Ledger | Accepted |
+| [ADR-0142](adr-0142-the-organisations-admin-area-is-separate-from-its-page.md) | The Organisation's Admin Area Is Separate From Its Page | Accepted |
+| [ADR-0143](adr-0143-hqs-cloud-key-rolls-over-without-approval.md) | hq's Cloud Key Rolls Over Without Approval | Accepted |
+| [ADR-0144](adr-0144-agenthix-cloud-is-connected-from-hq-by-an-organisation-admin.md) | Agenthix Cloud Is Connected From HQ by an Organisation Admin | Accepted |

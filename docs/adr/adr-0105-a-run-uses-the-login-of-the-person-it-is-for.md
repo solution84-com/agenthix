@@ -5,7 +5,7 @@ description: A run uses the model access of the person it is for, in a project a
 
 # ADR-0105: A Run Uses the Login of the Person It Is For
 
-**Status:** Accepted
+**Status:** Superseded by adr-0139
 
 ## Context
 

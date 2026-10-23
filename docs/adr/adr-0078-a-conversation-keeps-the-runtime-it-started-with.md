@@ -28,6 +28,10 @@ agent to stay on one runtime.
 
 ## Decision
 
+> ⚠️ **Superseded by adr-0139 — this section's second paragraph only.** An agent's runtime is no longer a setting:
+> it follows the model the resolver chooses. That a conversation, and each worker session, keeps the runtime it
+> started with still stands.
+
 > **The decision holds for every harness session; a conversation whose record is in hq has no runtime.**
 > *(annotated 2026-10-17)* Since adr-0121 the conversation's own turns are direct inference in hq, and their talking
 > model is the person's to change at any time, the switch written into the record. Each worker session keeps the
