@@ -1,6 +1,6 @@
 ---
 name: Providers and their custody
-description: Part 1 of models from one place — at most one key per provider, held by the fleet admin, written through one module by four named actors, never read back.
+description: Part 1 of models from one place — at most one key per provider, managed by organisation admins in hq's admin area, written through one module by three named actors, never read back.
 created: 2026-10-23
 author: leang
 ---
@@ -18,19 +18,29 @@ Part of the [spec](../spec.md). **Status:** high-level design agreed; what happe
   credential (encrypted under `SECRETS_MASTER_KEY`; none for Agenthix Cloud), its state and last check, and an owner:
   the organisation. A Claude subscription is never the organisation's: it belongs to one person, who signs in with it
   in hq for their own place (part 4).
-- **The fleet admin manages providers, in the Fleet Console's *Providers* page**: add (checked with the vendor before
-  it is stored), replace a key (checked before the old one is dropped; nothing else changes), rename, remove (refused
-  only when it would leave no LLM, STT or TTS provider at all), revoke (at once, whatever it breaks). A provider
-  that a default or an agent uses falls to another of its type when removed, and organisation admins are told.
-- **The fleet admin supplies; organisation admins choose.** Which provider listens and speaks is chosen like a model:
-  a default, and an agent's own (part 4).
-- **One write module in hq**, the only holder of keys, with four named actors and nothing else: the first-run session
-  (part 2), a signed-in fleet admin over the console link, the machine admin through hq's control socket
-  (`agenthix provider add|list|remove`), and the hosted service's controller on a machine it runs.
+- **Organisation admins manage providers, on *Providers* in the admin area** (part 3), under *Models and billing*,
+  beside the defaults, the lists, billing profiles and usage. They can:
+  - **add** one, checked with the vendor before it is stored
+  - **replace a key**, checked before the old one is dropped; nothing else changes
+  - **rename** one
+  - **remove** one, refused only when it would leave no LLM, STT or TTS provider at all
+  - **revoke** one, at once, whatever it breaks
+  - **check** one now
+
+  A provider that a default or an agent uses falls to another of its type when it is removed. The confirmation says
+  what falls to what. Everything about models is in one place, for the people who choose them. The fleet admin's job
+  is machines only.
+- **Which provider listens and speaks** is chosen like a model: a default, and an agent's own (part 4).
+- **One write module in hq**, the only holder of keys, with three named actors and nothing else:
+  - an organisation admin, in the admin area or in setup (part 2), Agenthix Cloud included, connected with the
+    device approval
+  - the machine admin, through hq's control socket (`agenthix provider add|list|remove`)
+  - the hosted service's controller, on a machine it runs
 - **No method returns a credential**: reads give name, type, state, the last four characters, what uses it (defaults, agents),
   and this month's cost.
-- **Every write is recorded** with who and when, shown in the Fleet Console's activity and on the provider in hq.
-- **Organisation admins see providers read-only**, managed by the fleet admins, named.
+- **Every write is recorded** with who and when, shown on the provider, and **announced to every organisation
+  admin**. An admin could point a custom endpoint elsewhere to read prompts, so the address of a custom endpoint is
+  always shown on its line.
 - **Removed:** every key form in hq (organisation, project, person), `ModelCredential`, the model and voice rows of
   today's `Provider` table, and the Anthropic key read from hq's environment at boot without being checked.
 
@@ -49,18 +59,17 @@ This covers parts 1, 4 and 6 together.
   message, trimmed, with anything like a key removed), `lastCheckedAt` and `lastWorkedAt`. One module,
   `providers/health.ts`, moves the state, and each change is a provider record.
 - **Where hq learns it:**
-  - **Every failed call:** hq's own calls, and agents' calls through the relay's `usage.report`, which adds the
+  - **Every failed call:** hq's own calls, and agents' calls through the relay's usage reports, which add the
     upstream status.
   - **A check per vendor that costs nothing:** hourly on every provider, every 5 minutes while one is not working,
     and at once after a failed call.
   - **Agenthix Cloud's answers.**
 - **Who is told:**
-  - **Fleet admins:** `provider_not_working`, one per provider, shown in the Fleet Console's notices. It cannot be
-    dismissed and clears once the provider works.
-  - **Organisation admins:** `models_affected`, only when a default, an agent's model or a voice they chose depends
-    on the provider. It says what new work fell to and which fleet admin was told.
+  - **Organisation admins:** `provider_not_working`, one per provider. It says what is down in the vendor's words,
+    what depends on it, and what new work moved to. It links to the provider's line, cannot be dismissed, and
+    clears once the provider works. Fleet admins are not told: providers are not theirs.
   - **Everyone else:** only where they are, in the conversation, the voice button and the pickers, where the
-    provider is greyed out and marked *not working*.
+    provider is greyed out and marked *not working*, with *an organisation admin has been told*.
 
   This replaces `credential_health` for keys. A person's own Claude login still tells that person.
 - **New work goes around it:**
@@ -80,10 +89,10 @@ This covers parts 1, 4 and 6 together.
     `cloud.disconnected`.
   - *Not available* notifies nobody and is never a default.
   - **Its spending limit** is not a provider state. That profile's calls get the limit's own words and reset date,
-    other providers' models stay offered, and organisation admins (not fleet admins) get `cloud_limit_reached`.
+    other providers' models stay offered, and organisation admins get `cloud_limit_reached`.
 
 ## Left to the plan
 
-The provider table's other fields, the console-link methods and control-socket commands with their refusals, how a
-run's container gets the provider through the site relay, and the Fleet Console's *Providers* page in full are settled
-in the implementation plan from what is decided here and in UI flows 4 and 6.
+The provider table's other fields, the control-socket commands with their refusals, how a run's container gets the
+provider through the site relay, and the *Providers* page in full are settled in the implementation plan, from what is
+decided here and in UI flows 4 and 6.

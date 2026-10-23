@@ -17,7 +17,7 @@ Part of the [spec](../spec.md). **Status:** high-level design agreed; no deep di
 - **The way in** is a *Manage* button on the organisation's page, shown only to organisation admins.
 - **A focused frame.** The admin area draws its own menu where the main navigation is, with *Back to* the
   organisation, and no docked conversation. Its menu: Overview; People (people and invitations, teams); Agents;
-  Models and billing (Models, Billing profiles, Usage); Settings; Where work runs.
+  Models and billing (Providers, Models, Billing profiles, Usage); Settings; Where work runs.
 - **Protected twice.** Every `/admin` page checks the role before drawing and shows a member who reaches it who to
   ask; every operation behind it refuses anyone but an organisation admin, as today.
 - **Moves.** Today's organisation settings, infrastructure, people management, teams and agents' settings move under

@@ -36,7 +36,7 @@ Part of the [spec](../spec.md). **Status:** high-level design agreed; personal p
   speech models (AssemblyAI's Universal-Streaming, Inworld's TTS models) and, for speech, its voices. Organisation
   admins choose the default speech to text and text to speech, each a provider with its model (and a voice); an
   agent's definition may override them, so each agent is bound to one of each. Every agent has a voice: the
-  organisation's default is always set, from what onboarding supplied, and *none* is never a choice; the agent's
+  organisation's default is always set, from what setup supplied, and *none* is never a choice; the agent's
   *Enable voice mode* switch goes. There is no picker in a conversation:
   listening streams continuously, and an agent's voice is part of who it is.
 - **The runtime** follows the model and provider: a Claude model on an Anthropic key, a person's own Claude subscription or Agenthix Cloud runs on

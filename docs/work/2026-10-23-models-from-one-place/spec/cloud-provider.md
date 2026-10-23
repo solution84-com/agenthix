@@ -28,7 +28,7 @@ provider says *not available yet* in its own words (ADR-0130).
 - **Costs.** Each call carries the billing profile and call id (behind `usageBilling`); Cloud reports the
   actual cost by call id afterwards (part 5), since answers stream and the cost is known only at their end.
 - **hq's identity key rolls over** automatically every 90 days, registered with the current key, with a short
-  overlap; an admin can roll it at once from the Fleet Console.
+  overlap; an organisation admin can roll it at once from Agenthix Cloud's line on *Providers*.
 - **Off, or disconnected:** no new tokens; conversations on its models are offered another; defaults naming it fall to
   the next allowed.
 - **Reaching the Fleet Console remotely** through the hosted service's relay, for a self-hosted machine connected to
@@ -40,13 +40,13 @@ Typed in `core/src/cloud/ai.ts`, checked by the same parsers on both sides. Thes
 moves from 1.0 to 1.1.
 
 - **Token:** `POST /connect/token` with the scope `ai`, signed as today. It gives an access token of an hour at most,
-  kept in memory. The site relay asks hq for it over the site channel.
+  kept in memory. The site relay asks hq for it over HTTPS (`POST /api/v1/cloud/ai-token`).
 - **Catalogue:** `GET /ai/catalogue`, with `If-None-Match`, at each check-in. It answers
   `{version, currency, models, stt, tts}`, each with prices in millionths: per million tokens, per hour of audio and
   per million characters. TTS entries also carry their voices.
 - **Gateway:** `/ai/v1/anthropic/…` and `/ai/v1/openai/…`, each vendor's own API unchanged, with the token as
-  `Authorization: Bearer` or `x-api-key`. With `usageBilling` on, calls also carry `X-Agenthix-Call-Id` and
-  `X-Agenthix-Billing-Profile`.
+  `Authorization: Bearer` or `x-api-key`. With `usageBilling` on, calls also carry `X-Call-Id` and
+  `X-Billing-Profile-Id`. No header or field carries the product's name (`docs/architecture/versioning.md`).
 - **Voice:** `POST /ai/voice/stt-token` and `/ai/voice/tts-token` answer `{token, url, expiresAt}`, each good for one
   session or one reply.
 - **Actual costs:** `GET /ai/usage?after=<cursor>` (with `usageBilling`) answers `{entries: [{callId, at, amountMicros,
@@ -60,7 +60,7 @@ moves from 1.0 to 1.1.
   - `not_available`: `invalid_scope` at the token, `403` elsewhere. The provider reads *not available yet*, and hq
     asks again at the next check-in.
   - `cap_reached`: `402` with `{scope: organisation | billing_profile, resetsAt}`. Through the gateway it comes inside
-    the vendor's own error shape, with an `agenthix_error` field. It is a refusal of its own (part 5's rule 7), with its
+    the vendor's own error shape, with a `cloud_error` field. It is a refusal of its own (part 5's rule 7), with its
     own words. Otherwise it is handled like any provider that refuses: any allowed model another provider reaches
     stays available.
   - `disconnected`: `invalid_client`, handled as today.
@@ -69,11 +69,12 @@ moves from 1.0 to 1.1.
 
 ## The key rollover
 
-- At a check-in once the key is 90 days old, or from *Roll the key now* in the Fleet Console.
+- At a check-in once the key is 90 days old, or from *Roll the key now* on Agenthix Cloud's line on *Providers*.
 - hq stores the new Ed25519 key, marked *pending*, **before** it asks Cloud. A crash leaves either a pending key to
   register again, or nothing changed.
-- `POST /connect/keys` carries hq's usual assertion signed with the current key, the new public key, and a one-minute
-  proof signed with the new key over the client id and a fresh `jti`. Registering the same key again is answered as
+- `POST /connect/keys`, form-encoded like the other `/connect/*` calls, carries hq's usual assertion signed with the
+  current key, `public_key`, and `proof`: a one-minute JWT signed with the new key over the client id and a fresh
+  `jti`. It answers `{kid, old_key_retires_at}`. Registering the same key again is answered as
   done.
 - From Cloud's answer, hq signs with the new key. Each assertion names its key by `kid`, the RFC 7638 thumbprint. Cloud
   accepts the old key for 24 hours, or for none with `retireOldNow` after a suspected leak, and hq then destroys it.

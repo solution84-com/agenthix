@@ -18,7 +18,7 @@ built in this unit; only reporting usage to Agenthix Cloud waits behind the `usa
   *estimated* on the organisation's own keys (hq's price list times the usage); *included* on a person's own Claude subscription;
   *unpriced* for a model with no known price.
 - **Billing profiles**, organisation admins', in the admin area: made, renamed and archived, never deleted. There is
-  always a default, made in onboarding 2. A new project gets the default and works at once; its creator may pick
+  always a default, made in setup. A new project gets the default and works at once; its creator may pick
   another in the new project form, shown only when there are two or more. Later changes are organisation admins'
   only, from the next call, recorded. A person's own place and hq's own calls use the default.
 - **The usage report**, in the admin area: cost by billing profile, project, agent and person, actual and estimated
@@ -31,7 +31,7 @@ built in this unit; only reporting usage to Agenthix Cloud waits behind the `usa
      may keep its own internal id; hq never needs it.
   4. Each row names its price: the price list's version, or the provider's figure.
   5. A billing profile is archived, never deleted, and its id never reused; it survives backups, restores and moves.
-  6. Rows in UTC; a month cut in the organisation's time zone (`Org.timeZone`, new; set in onboarding 2).
+  6. Rows in UTC; a month cut in the organisation's time zone (`Org.timeZone`, new; set in setup).
   7. A refusal for money (a provider's cap) is its own kind, with its own message.
   8. The contract with Agenthix Cloud in `core/src/cloud/`.
 - **To Agenthix Cloud, behind `usageBilling`:** each call through it carries the billing profile's id and the call id;
@@ -67,14 +67,17 @@ built in this unit; only reporting usage to Agenthix Cloud waits behind the `usa
     used tokens included.
   - **An agent's calls through the site relay:** the relay reads the vendor's own usage from each streamed answer
     without changing it (Anthropic's `message_start` and `message_delta`, the OpenAI and OpenRouter final usage chunk,
-    Gemini's `usageMetadata`). It sends `usage.report` frames over the site channel, delivered at least once and kept
-    on disk until hq acknowledges them. An answer with no usage is written unpriced and logged.
+    Gemini's `usageMetadata`). It sends usage reports to hq over HTTPS (`POST /api/v1/usage/report`, with the site's
+    machine credential; hq answers with the call ids it kept), delivered at least once and kept on disk until hq
+    acknowledges them. hq answers no requests on the control channel, so this is an HTTPS call like the site's other
+    calls to hq. An answer with no usage is written unpriced and logged.
   - **Claude Code on a person's own subscription:** one row per run from the run's report, *included*.
   - **Speech to text:** a row at the voice session's end, its duration capped at the time from the token's issue to the
     session's close.
   - **Text to speech:** hq counts the characters it sent.
 - **The price list:**
-  - **Models on own keys:** today's catalogue in `core`, versioned by the date it was generated, converted to
+  - **Models on own keys:** today's catalogue in `core`, versioned by the OpenCode release it was generated from
+    (`opencode-<version>`), converted to
     millionths of a dollar.
   - **Voice on own keys:** a hand-kept table, `core/src/models/voicePrices.ts`, with its own version.
   - **Through Agenthix Cloud:** written *awaiting actual*, with Cloud's catalogue price shown as a guide. An `ACTUAL`
