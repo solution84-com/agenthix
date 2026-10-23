@@ -40,12 +40,12 @@ repository ([ADR-0061](../../adr/adr-0061-a-product-and-a-programme-group-work-a
 
 ## Setting it up
 
-1. **An administrator registers the GitHub App** under Organisation › Infrastructure › GitHub App
-   (`/org/infrastructure/github-app`, `hq/src/github/pages/GitHubAppPage.tsx`) — one App per HQ, tied to
+1. **An administrator registers the GitHub App** under Manage organisation › Infrastructure › GitHub App
+   (`/admin/infrastructure/github-app`, `hq/src/github/pages/GitHubAppPage.tsx`) — one App per HQ, tied to
    its address. hq sends GitHub an App Manifest, GitHub creates the App and hands its keys back
    (`hq/src/github/githubAppRegistrationAction.ts`, `githubAppApi.ts`); disconnect there removes it. The
-   administrator then installs it on the organisation's accounts under Organisation › Settings › GitHub
-   (`/org/settings/github`, `hq/src/github/pages/GitHubInstallationsPage.tsx`), where Refresh re-reads where
+   administrator then installs it on the organisation's accounts under Manage organisation › Settings › GitHub
+   (`/admin/settings/github`, `hq/src/github/pages/GitHubInstallationsPage.tsx`), where Refresh re-reads where
    it is installed.
 2. **Someone connects a repository to a location.** Who: a **project's administrator** for a project's
    storage, and the **person themselves** for their own (`hq/src/storage/actions.ts`,

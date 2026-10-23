@@ -4,7 +4,7 @@ A person talking with an agent, held in hq: the lead that answers at once, the w
 long conversation stays within a model's window, and voice.
 
 - [conversations.md](./conversations.md): homes, the lead and its workers, a turn, operations and the work bar,
-  approvals, model access, closing and archiving.
+  approvals, the model and who pays, closing and archiving.
 - [long-conversations.md](./long-conversations.md): how the context is assembled, the ledger, compaction in segments,
   and reading the past.
 - [voice.md](./voice.md): voice as a mode of the conversation, dictation, shown parts, approval by voice.

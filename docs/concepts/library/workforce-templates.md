@@ -87,7 +87,6 @@ model WorkforceTemplate {
   "name": "Lead Developer",
   "role": "Technical lead — architecture decisions, code review, unblocks the team",
   "responsibilities": "Own the architecture. Review all PRs...",
-  "defaultModel": "claude-sonnet-5",
   "approval": "deferred",
   "allowedTools": [
     { "name": "read_file", "state": "always" },

@@ -1,6 +1,6 @@
 # Budget
 
-There is no budget system in the code. Nothing allocates, limits or blocks spending: no table holds a budget, no check refuses a run for cost, and no code path handles money an agent spends outside its model calls. What exists is **token counting** and **estimated cost display**. The rest of this page is a design that has not been built.
+There is no budget system in the code. Nothing allocates, limits or blocks spending: no table holds a budget, no check refuses a run for cost, and no code path handles money an agent spends outside its model calls. What exists is **token counting**, **estimated cost display**, and the **ledger**, which records what every call cost and who it belongs to ([billing and the ledger](../billing/billing.md)). The ledger records cost; it never limits it. The rest of this page is a design that has not been built.
 
 ```mermaid
 flowchart LR
@@ -27,8 +27,8 @@ No screen shows a flat-rate cost. Before the dashboard page was removed, it show
 
 ### What to be careful of
 
-- Every cost figure is an estimate at list price, not a bill. Do not build limits on it.
-- Token totals live on a session, not on a project, person or period; there is no per-month or per-project rollup in the schema.
+- Every cost figure on this page is an estimate at list price, not a bill. Do not build limits on it.
+- Token totals live on a session, not on a project, person or period. The per-month and per-project rollup is the ledger's usage report ([billing](../billing/billing.md#the-usage-report)), which reads its own record of calls and not these totals.
 - Rate limiting (`hq/src/server/rateLimit.ts`) is about request volume, not spend.
 
 ## Design intent, not built
@@ -52,7 +52,7 @@ Business spending was designed to be approval-gated: an agent proposes a spend w
 
 **Principles carried over from the old design.** Detailed spend data stays on the site and hq holds summaries and limits, consistent with [ADR-0042](../../adr/adr-0042-hq-is-the-orgs-own.md) and the site holding the runtime data. Every spend has a traceable record. Tokens are counted even when no limit is set.
 
-If this is built, it would add models to `hq/schema.prisma` for limits and rollups, an enforcement check in the dispatch path (`hq/src/agents/dispatchService.ts`, where hq decides whether a task may start), and a new tool for spend requests.
+If this is built, it would add models to `hq/schema.prisma` for limits, an enforcement check in the dispatch path (`hq/src/agents/dispatchService.ts`, where hq decides whether a task may start), and a new tool for spend requests.
 
 ## Where in the code
 
@@ -64,6 +64,7 @@ If this is built, it would add models to `hq/schema.prisma` for limits and rollu
 | Prices | `core/src/models/pricing.ts` |
 | Cost formatting | `hq/src/shared/utils/aiMetrics.ts`, `ui/src/agents/aiMetrics.ts` |
 | Usage and spend by period | `hq/src/agents/agentUsageQueries.ts`, `hq/src/agents/usageTotals.ts`, `hq/src/dashboard/todayNumbers.ts` |
+| What each call cost, by billing profile | `hq/src/billing/` ([billing](../billing/billing.md)) |
 
 ## Decisions behind this
 

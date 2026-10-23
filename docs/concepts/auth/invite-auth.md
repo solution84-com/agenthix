@@ -75,7 +75,8 @@ one withdraws the last, so only the newest link works. Once any user exists it a
 already set up"; past its 24 hours, 410 with how to get a new one. The advisory lock stops two simultaneous
 requests from each creating an admin (`acceptFirstAdmin`, `hq/src/auth/inviteAccept.ts`).
 
-**Setup runs once per hq, for that admin only:** You · Your organisation · Model access, optional · Review. It
+**Setup runs once per hq, for that admin only:** You · How agents reach AI (Agenthix Cloud, or their own model and
+voice providers) · Your organisation · Review, and it cannot finish without working models and voice. It
 is done when they press **Finish** on Review (`completeSetup`; `Org.setupCompletedAt`, `hq/src/setup/setupState.ts`),
 as [setup-flow.md](../setup/setup-flow.md) describes. An admin
 invited later accepts an invitation like anyone else and is never sent through setup.
@@ -84,7 +85,7 @@ invited later accepts an invitation like anyone else and is never sent through s
 
 ### Flow 3 — Admin invites a user
 
-Start: Organisation › People (`/org/people`), **Invite**
+Start: Manage organisation › People (`/admin/people`), **Invite**
 
 ```mermaid
 flowchart TD
@@ -126,7 +127,7 @@ flowchart TD
     S -- yes --> S2["409: sign out and continue, or cancel"]
     S -- no --> I["POST /api/auth/accept-invite: token validated again"]
     I --> L["In one transaction: create User with their name, identity and UserSettings; mark the invite consumed; join and pin the projects it names that still exist"]
-    L --> N["Sign in and go on to onboarding: You, Model access only when needed, a last look; Start working lands in the first project it names, else Home"]
+    L --> N["Sign in and go on to onboarding: You, a last look; Start working lands in the first project it names, else Home"]
 ```
 
 Accepting is refused while the request carries a session (409, `reason: 'signed_in'`): the page asks the person to sign out and
@@ -155,7 +156,7 @@ hq stores no email address, so **recovery goes through someone who can vouch for
 ```mermaid
 flowchart TD
     F["Forgot your password? on the sign-in page: ask an admin"] --> A{"Who makes the link"}
-    A -- "another admin" --> B["Organisation › People › the person › Reset password (createPasswordResetLink)"]
+    A -- "another admin" --> B["Manage organisation › People › the person › Reset password (createPasswordResetLink)"]
     A -- "the only admin is locked out" --> C["agenthix hq reset-password USERNAME on hq's machine; other admins are notified"]
     A -- "no admin can get in" --> D["agenthix hq invite-admin on hq's machine: an admin invitation from HQ's machine; admins are notified"]
     B --> R["A one-time link HQ_URL/reset-password/TOKEN: 1 hour, single use, stored as a hash"]
@@ -171,7 +172,7 @@ flowchart TD
 - **On hq's machine**, `agenthix hq reset-password <username>` makes the same link, recorded as made on hq's
   machine, and every other admin gets a notification (`password_reset_from_hq_machine`).
   `agenthix hq invite-admin` makes the first-admin link while hq has no users, and once it has some, an admin
-  invitation recorded as from hq's machine (`createdBy` null), shown in Organisation › People as "Invited
+  invitation recorded as from hq's machine (`createdBy` null), shown in Manage organisation › People as "Invited
   from HQ's machine" and announced to the admins (`admin_invited_from_hq_machine`). Both reach the running hq
   through its control socket (`hq/src/auth/machine/`), a Unix socket in a folder only hq's own user can open.
 - **The reset page** reads the link (`POST /api/auth/password-reset/read`) and sets the password
@@ -218,7 +219,7 @@ stateDiagram-v2
   are added again by hand; connections are made again.
 - **Erase** (`erasePerson`, `hq/src/settings/erasePerson.ts`), only after Remove and confirmed by typing
   their name or handle, deletes their own data: their conversations and those conversations' runs on each
-  site, their own project and files, what agents remember of them, their connections, model logins, name,
+  site, their own project and files, what agents remember of them, their connections, their Claude subscription, name,
   picture, settings and sign-in identity. Their data is found by what they own — a conversation is its
   person's — never by a column that names them only for bookkeeping, so a project's task runs filed under
   them stay. Tasks, comments and task runs stay with their projects, and the person reads as "Former
@@ -318,8 +319,8 @@ An Execution Site has no users of its own. Browsers only ever talk to hq, and a 
 | `hq/src/auth/actions.ts`, `queries.ts` | `createInvite`, `revokeInvite`, `listInvites` |
 | `hq/src/auth/pages/InvitePage.tsx` | The page every invitation link opens: reads the link, makes the account, signs in, and goes on to setup or onboarding |
 | `hq/src/auth/inviteGlimpse.ts` | The people and projects an invitation page shows beside Join |
-| `hq/src/onboarding/` | Onboarding for every invited person: Join, You, Model access, a last look ([onboarding](../onboarding/onboarding-flow.md)) |
+| `hq/src/onboarding/` | Onboarding for every invited person: Join, You, a last look ([onboarding](../onboarding/onboarding-flow.md)) |
 | `hq/src/auth/pages/LoginPage.tsx` | Says where the setup link is while hq has no users |
 | `hq/src/auth/pages/ResetPasswordPage.tsx` | The reset link's page |
 | `host/` | `agenthix install`, `hq invite-admin`, `hq reset-password`, `status` |
-| `hq/src/org/pages/people/` | Organisation › People: people, invitations, one person, leaving |
+| `hq/src/org/pages/people/` | Manage organisation › People: people, invitations, one person, leaving |

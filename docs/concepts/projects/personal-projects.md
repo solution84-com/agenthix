@@ -27,10 +27,9 @@ boards, tasks and [automation](../tasks/automation.md), shown through the same s
 | Settings | None | Name, description and the automation switch, and Delete. A project has no picture yet |
 
 **Runs act as the person**, in both. A task run in a personal project resolves to the person (`taskRunOwner`,
-`hq/src/projects/personalProject.ts`): the person's credentials, model choices and agent settings apply, and no
-project's authority is used. Only the storage differs, and `taskRunOwner` says which: `storage` is the person's own for
-the space and the project's own for any other personal project. A personal project has no list or billing profile of
-its own: the person's list applies, and its cost goes to the default profile.
+`hq/src/projects/personalProject.ts`): the person's own settings apply (their list of models, their own Claude subscription, their agent
+settings), and no project's authority is used. Only the storage differs, and `taskRunOwner` says which: `storage` is the person's own for
+the space and the project's own for any other personal project. A personal project has no model list or billing profile of its own: the person's [list](../models/lists.md) applies, and its cost goes to the organisation's default [billing profile](../billing/billing.md#billing-profiles). A person's own Claude subscription serves work here and in their space, and nowhere else ([providers](../providers/providers.md#a-persons-own-claude-subscription)).
 
 **Each is created private**, with its owner as its one admin and its **Project Tasks** board, as every project has (the
 `todo`, `in_progress` and `done` columns, and a Backlog), so work can be queued there and a routine's rounds have
@@ -45,7 +44,7 @@ somewhere to land.
 | **Access level, lead, filing** | Cannot be changed, named or filed under a product or programme; a personal project never becomes an organisation project |
 | **Deleting** | The owner deletes a personal project that is not their space; the space is never deleted. Organisation admins delete only organisation projects. Deleting stops its runs, removes its storage and closes its conversations |
 | **Leaving and erasing** | Leaving keeps them all, for Reactivate. Erasing deletes them all, storage included, and the erase dialog says how many there are besides the space ([ADR-0100](../../adr/adr-0100-leaving-deactivates-erasing-is-separate.md)) |
-| **Credentials and overrides** | They take no model credential and no agent overrides of their own; the person's apply |
+| **Keys, lists and overrides** | They take no provider key, no model list, no billing profile and no agent overrides of their own; the person's apply, and the organisation's providers pay |
 | **Boards and conversations** | A task and a board must be in the same project when either is a personal project, so one person's task is never shown on a board others see. A conversation is never moved into or out of one ([ADR-0096](../../adr/adr-0096-a-conversation-belongs-to-a-place.md)) |
 | **Activity** | Making one writes nothing to the organisation's activity feed |
 

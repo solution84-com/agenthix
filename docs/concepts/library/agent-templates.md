@@ -44,7 +44,6 @@ All content (agent config, instructions, skills) is read from the `assetPath` di
 
 ```json
 {
-  "defaultModel": "claude-sonnet-5",
   "approval": "deferred",
   "allowedTools": [
     { "name": "read_file", "state": "always" },

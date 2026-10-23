@@ -14,7 +14,7 @@ ask. There is no `/accept-invite`.
 
 ## The steps
 
-The step is in the address (`/onboarding?step=join|you|model|review`), so a refresh keeps it and Back and Forward
+The step is in the address (`/onboarding?step=join|you|review`), so a refresh keeps it and Back and Forward
 move between steps. The step indicator counts the steps the person has to do; the last look is not counted.
 
 1. **Join**, on `/invite/<code>`. The invitation in words ("Avery invited you to join Acme Corp as a Member, and to
@@ -26,17 +26,17 @@ move between steps. The step indicator counts the steps the person has to do; th
 2. **You**: a picture (uploaded and shown, with Change and Remove) and a time zone filled in from the browser and
    changeable. Beside it, how they will appear to others. These are the same operations Settings › Profile and
    Settings use.
-3. **Model access, only when needed**: shown only when the organisation provides no model access of its own for
-   their conversations. It offers the same **Add model access** menu as setup, with only their own Claude
-   subscription. When the organisation provides access the step is skipped and the indicator counts one fewer.
-4. **A last look**: them, their model access (or "Provided by Acme Corp"), and what they are joining, each but the
-   last with **Edit**, which returns to the last look. **Start working** lands them in the first project the
-   invitation names, with its message box ready and a one-time welcome line, every project the invitation added
+3. **A last look**: them and what they are joining, each with **Edit**, which returns to the last look. **Start
+   working** lands them in the first project the invitation names, with its message box ready and a one-time welcome line, every project the invitation added
    pinned; with no project named, on Home.
 
+Onboarding has no step for models: they are the organisation's, supplied by its admins from setup on
+([providers](../providers/providers.md), [models](../models/models.md)). A person brings no key. If they have a Claude
+subscription of their own, they can sign in with it later in **Settings**, for work in their own place only. If the
+organisation's models stop working, Home says agents cannot answer yet and tells an admin where to fix it.
+
 Onboarding keeps nothing of its own: the person is a member from the moment the account exists, and a person who
-leaves midway simply lands on Home the next time they sign in. Without model access, Home says agents cannot answer
-yet.
+leaves midway simply lands on Home the next time they sign in.
 
 ## Where the code is
 

@@ -47,11 +47,11 @@ turn ends is cut off. Once the run is stopped the token names nothing, whatever 
   and the process, whose turn failed, is replaced at the next turn with a new ticket. An unused ticket
   expires after five minutes.
 
-**Every provider the turn may use has its key.** hq resolves one credential for the turn's model and one
-for each fallback model's provider, by the same rules — the boundary's own, then the org's
-(`hq/src/model-access/fallbackCredentials.ts`) — and the dispatch carries them as a set. The relay
-picks by provider. A provider with nothing configured is left out; its requests are refused, and the turn
-fails only if it needs one.
+**Every provider the turn may use is given to it.** hq's resolver ([model-resolution.md](../model-resolution.md)) chooses
+the run's model and its provider, and the dispatch carries a **provider descriptor** for it and for each other provider a
+helper of the run may be sent to (`hq/src/routing/reaching.ts`, `runModelAccess`), as a set. The relay picks by provider.
+A provider with no descriptor is left out; its requests are refused, and the turn fails only if it needs one. An hq
+that speaks site protocol 1.0 sends `credential` and `fallbackCredentials` instead, which a site still reads.
 
 ## What the relay checks
 
@@ -72,14 +72,17 @@ contacting the provider unless all pass:
    a Linux machine, match the turn's container.
 4. The turn has a credential for the provider (`403`).
 
+The relay does one thing more than forward: it **measures**. See [what the relay reports](#what-the-relay-reports).
+
 A bare `GET` or `HEAD` of a provider's base is answered `200` without any of that and without contacting
 the provider: Claude Code sends one, without its key, to check the address.
 
 ## What the relay sends
 
 - **The upstream is never taken from the request** (`relayProviders.ts`): a built-in provider's is fixed —
-  OpenRouter, OpenAI, Google, Anthropic — and an OpenAI-compatible endpoint's is its credential's base URL,
-  which must be `http:` or `https:` with no user name or password in it. A person's own endpoint is
+  OpenRouter, OpenAI, Google, Anthropic — an OpenAI-compatible endpoint's is its credential's base URL,
+  which must be `http:` or `https:` with no user name or password in it, and Agenthix Cloud's is its gateway's address,
+  over `https:` only, with hq's Cloud access token as the key (asked of hq and kept until a minute before it lapses). A person's own endpoint is
   therefore reached from the site, not the container.
 - **Every credential header is removed** — `authorization`, `x-api-key`, `x-goog-api-key`, `api-key`,
   `x-agenthix-turn`, `proxy-authorization`, `cookie` — along with forwarding and hop-by-hop headers, and the
@@ -91,6 +94,17 @@ the provider: Claude Code sends one, without its key, to check the address.
   minutes. A closed client request aborts the upstream one; an unreachable provider is a `502`.
 - **One line is logged per request**: conversation, run, provider, model, status, bytes and timings —
   never a key, a token or a body.
+
+## What the relay reports
+
+The relay reads the vendor's own usage out of each answer as it passes, without holding or changing it: a streamed answer a
+line at a time, any other answer up to a limit (4 MiB; beyond it the call is reported with no usage). It gives each
+upstream call a call id (a retry reuses it), and writes one report: the call id, the run, the provider, the model, the
+usage or none, the upstream status and the kind of failure (`auth`, `quota`, `rate-limit`, `unavailable`, `invalid`,
+`cap_reached`, `other`). Reports are delivered to hq at least once, as files on the site until hq acknowledges their call
+ids, over the site's own HTTPS call to hq ([control-channel.md](../control-channel.md#the-site-calling-hq)). With the
+`usageBilling` flag on, a call through Agenthix Cloud also carries the call id and the run's billing profile as headers, so
+Cloud can report the actual cost. A container on a person's own Claude subscription is not relayed and so not reported here.
 
 ## Proxies
 
@@ -117,4 +131,6 @@ request (`relayProxy.ts`):
 | `site/src/server/runtime/claudeKeyTickets.ts`, `claudeKeyApi.ts` | Claude's one-use ticket and its trade |
 | `site/src/agents/runtime/claude/claudeStart.ts` | Claude's relay settings and `apiKeyHelper` |
 | `site/src/agents/runtime/opencode/openCodeConfig.ts` | OpenCode's providers, addressed at the relay |
-| `hq/src/model-access/fallbackCredentials.ts` | The fallback providers' credentials |
+| `site/src/server/modelRelay/callMeter.ts`, `usageReader.ts`, `usageOutbox.ts`, `usageReportClient.ts` | Measuring a call, reading its usage, delivering reports to hq |
+| `site/src/server/modelRelay/runAccess.ts`, `cloudToken.ts` | The run's provider descriptors as the site uses them; hq's Cloud token |
+| `hq/src/routing/reaching.ts` | hq's side: the descriptors a run is given |

@@ -25,6 +25,8 @@ stateDiagram-v2
 | `tool_approval` | A run asks for a tool or command it was not allowed | The person the run is on behalf of: whoever started it, or the task's person for a run nobody started ([ADR-0095](../../adr/adr-0095-a-run-is-on-behalf-of-whoever-started-it.md)) |
 | `task_waiting` | A run stopped at its time or turn limit, and its task now needs a person | The person the task is done on behalf of, once while an unread one for the task stands |
 | `credential_health` | A site reports that a model credential has expired or is missing | Every admin, once per site, agent and state per day |
+| `provider_not_working` | A provider's state is not *works* (key refused, out of credit, not answering, disconnected) | Every organisation admin, one per provider, persistent and not dismissible; it clears itself when the provider works again or is replaced or removed ([providers](../providers/providers.md#a-providers-state)) |
+| `provider_changed` | A provider is added, its key replaced, renamed, removed or revoked | Every organisation admin, so a change one makes is seen by the others |
 | `conversation_approval` | Work in a [conversation](../conversations/conversations.md) asks for the person's okay | The conversation's reader (in a task's thread, everyone who has spoken in it and the person the task is for), linked to the conversation, with the request's own line. It clears once the request is answered or stopped |
 | `conversation_result` | Work a conversation started has ended | The same people, with the first line of the agent's reply that presents it (or the result's own line when no reply can run). It is history from the start |
 | Anything else | — | Never needs the person; it is history from the start |
@@ -83,8 +85,8 @@ The panel lists **Needs you** first, then **Earlier**, each newest first.
 
 ## Needs attention
 
-On the Organisation page, an admin's **Needs attention** is one list of what needs them across the workplace and
-the infrastructure, in the order they act: the site and model-access kinds, machines asking to connect, the
+On the admin area's Overview, an admin's **Needs attention** is one list of what needs them across the workplace and
+the infrastructure, in the order they act: the site kinds, a provider that is not working, machines asking to connect, the
 approvals waiting on them gathered as one item, then invitations, proposed teams and the Bypassed agents. Each
 item is the admin's own notification, so handling it in either place clears both. Their own waiting tasks are
 not in it; those are Home's.
@@ -123,7 +125,7 @@ task column of its own.
 | Reading, marking seen, dismissing | `hq/src/notifications/queries.ts`, `actions.ts` |
 | Handling a task's requests; clearing those that stopped waiting | `hq/src/notifications/handled.ts`, `staleRequests.ts` |
 | Persistent notifications: raising, updating, reopening, clearing | `hq/src/notifications/persistent.ts` |
-| Raising them | `hq/src/agents/approvalNotification.ts`, `taskSessionApproval.ts`, `taskWaitingNotification.ts`; `hq/src/sites/channel/siteEventHandler.ts` (model access); `hq/src/sites/siteNotifications.ts`; `hq/src/notifications/adminNotices.ts` (Bypassed, invitations, proposed teams); `hq/src/automation/routineFailing.ts` |
+| Raising them | `hq/src/agents/approvalNotification.ts`, `taskSessionApproval.ts`, `taskWaitingNotification.ts`; `hq/src/sites/channel/siteEventHandler.ts` (a person's expired Claude login); `hq/src/providers/notices.ts` (providers); `hq/src/sites/siteNotifications.ts`; `hq/src/notifications/adminNotices.ts` (Bypassed, invitations, proposed teams); `hq/src/automation/routineFailing.ts` |
 | Needs attention | `hq/src/notifications/needsAttention.ts` |
 | The panel | `hq/src/shared/components/NotificationPanel/` |
 

@@ -23,13 +23,27 @@ sequenceDiagram
     B-->>P: speaks it, and shows the reply's text only as far as it has been heard
 ```
 
-## Setting up, and starting
+## The speech models and the voice
 
-An administrator gives the organisation its speech services (speech to text and text to speech, each with a provider key,
-in **Organisation › Settings › Voice**) and turns **Voice** on for an agent. The voice button in the message box is
-greyed, with the reason on selecting it, when the agent has no voice, the organisation lacks a speech service, no model
-access serves the conversation, or someone else holds voice in it. Anyone who may speak in the conversation may start
-voice.
+Voice is not optional: every organisation has a working speech-to-text and a working text-to-speech
+[provider](../providers/providers.md) from [setup](../setup/setup-flow.md) on, and every agent has a voice. What is
+chosen is narrow on purpose.
+
+| | What it is | Chosen by |
+|---|---|---|
+| **Speaking** | Always **Inworld TTS 2**, the one speech model voice supports, because voice steers its emotion to keep a reply continuous | Nobody; only the voice is chosen |
+| **The voice** | One of the voices in Inworld's own list for the organisation's text-to-speech provider, each with a play button that speaks a short sample phrase in it. The default is Alistair | The organisation (its default), and an agent (its own) |
+| **Listening** | One of AssemblyAI's three live models: **Universal-3 Pro** (32 languages, the most accurate and the default), **Universal-Streaming** (English only) or **Universal-Streaming Multilingual** (6 languages), each shown with its price | The organisation (its default), and an agent (its own) |
+
+The voice and the listening model are set with the other [model choices](../models/models.md): the organisation's on
+**Manage organisation › Models**, an agent's own on its page in the admin area. A voice is chosen by ear in a dialog
+that filters the list (by language, gender and the like) and plays each sample. The sample phrase is written by the
+organisation's default conversation model and costed to the organisation. A voice left as the organisation's follows it.
+
+The voice button in the message box is greyed, with the reason on selecting it, when the person may not speak in the
+conversation, the agent no longer exists, **voice is down** (no speech-to-text or text-to-speech provider works, said as
+an outage and not as a setting, with an organisation admin told), no model serves the conversation, or someone else holds
+voice in it. Anyone who may speak in the conversation may start voice.
 
 **One person holds voice at a time**, recorded on the conversation. Voice starts and ends write a quiet line into the
 thread (*Voice · 10:58*, *Voice ended · 4 min*) that every client reads from the record. In a task's thread, another
@@ -119,4 +133,6 @@ Headphones avoid it.
 | The browser's voice session, echo, utterances, fresh sockets, reveal | `hq/src/conversations/voiceClient/` |
 | Dictation | `hq/src/conversations/hooks/useDictation.ts`, `dictationText.ts` |
 | Shown parts | `hq/src/shared/conversations/shownParts.ts` |
-| The organisation's speech services | `hq/src/voice/` |
+| The speech models, the voice list and sample, the provider's key for a call | `hq/src/voice/` (`voiceModels.ts`, `speechAccess.ts`, `voiceSettingsQueries.ts`, `voicePreviewAction.ts`) |
+| Choosing the voice and the listening model | `hq/src/models-settings/components/VoiceRow.tsx`, `ListeningRow.tsx` |
+| Costing a spoken or heard call | `hq/src/billing/sources/voice.ts` ([billing](../billing/billing.md)) |

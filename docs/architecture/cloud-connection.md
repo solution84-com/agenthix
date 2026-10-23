@@ -1,8 +1,9 @@
 # hq's connection to Agenthix Cloud
 
 How an organisation's hq connects to Agenthix Cloud, the hosted service from the makers of Agenthix, and what the
-connection carries: signing in to hq with an Agenthix account, and an email to members before planned downtime.
-The connection is **optional and outward**: hq works the same without it, hq makes every request, and Cloud never
+connection carries: signing in to hq with an Agenthix account, an email to members before planned downtime, and models
+and voice.
+and, as one more [provider](../concepts/providers/providers.md), models and voice. The connection is **optional and outward**: hq works the same without it, hq makes every request, and Cloud never
 dials hq ([ADR-0042](../adr/adr-0042-hq-is-the-orgs-own.md), [ADR-0134](../adr/adr-0134-an-hq-connects-to-cloud-by-device-approval-and-signed-tokens.md) ·
 [ADR-0135](../adr/adr-0135-cloud-connects-an-hq-it-runs-without-a-code.md)).
 A machine that Cloud runs has a separate, older relationship with Cloud, its controller
@@ -50,7 +51,7 @@ https (plain http only to the machine itself), and hq refuses an approval page t
 
 - **From hq, by an organisation admin**, since the connection is the organisation's: in setup (step 2, once the
   account exists) and on *Providers* in the admin area (`hq/src/cloud/adminCloud.ts`: `getHqCloudConnection`,
-  `connectHqToCloud`, `disconnectHqFromCloud`). A connection adds Agenthix Cloud as a provider, which reads *not
+  `connectHqToCloud`, `disconnectHqFromCloud`). A connection adds Agenthix Cloud as a provider (`supplyCloudProvider`, written by the organisation admin who connected, or by Cloud's controller on a machine it runs), which reads *not
   available yet* until hq's calls to Cloud's models and voice exist; a disconnection leaves it as *disconnected*.
   The Fleet Console only shows the state (`cloud.state`) and says where to connect; its `cloud.connect` and
   `cloud.disconnect` methods on the console link are deprecated and refuse. From hq's machine,
@@ -90,7 +91,7 @@ https (plain http only to the machine itself), and hq refuses an approval page t
   Cloud answers, and the status it goes with, is declared in `core/src/cloud/answers.ts`. An admin
   asking to connect is told *Agenthix Cloud is busy — try again in N minutes*; a request waiting on approval polls
   again once the wait is over.
-- **The protocol has a version, 1.0** (`CLOUD_PROTOCOL_VERSION`, `core/src/cloud/version.ts`), under the rule every
+- **The protocol has a version, 1.1** (`CLOUD_PROTOCOL_VERSION`, `core/src/cloud/version.ts`; 1.0 is the connection, sign-in, pledge and downtime notice, and 1.1 the [AI contract](#the-ai-contract)), under the rule every
   connection follows ([control-channel.md](control-channel.md#protocol-versions)): the two sides work together while their
   majors are at most one apart. Every call hq makes states it in `X-Cloud-Protocol-Version`, with
   `User-Agent: hq/<release>`, and Cloud states its own on every answer. Cloud refuses a call that states no version,
@@ -153,6 +154,77 @@ fits them and Settings shows them their own signature (`core/src/cloud/pledge.ts
 `hq/src/home/pledge.ts`). It posts the link's `sub` with a bearer access token; Cloud answers only for an account linked
 to that hq. HQ keeps the answer an hour, shows it to that person alone, and asks nothing for anyone without a link.
 
+## The AI contract
+
+Agenthix Cloud is one provider of models, speech to text and text to speech, with no key: every call carries a short-lived
+access token that hq signed for with its own key, and the Cloud connection is the whole of the credential. The contract
+both sides build to is declared in `core/src/cloud/ai.ts` and `aiKeys.ts` and added to the protocol at 1.1. **hq's own side of
+these calls is built when the hosted side is ready** (`CLOUD_AI_AVAILABLE` in `hq/src/cloud/adminCloud.ts` is false): until
+then a connected hq shows Agenthix Cloud as *not available yet*, setup's Cloud card cannot be chosen, and a site that asks hq
+for a Cloud token is refused with `not_connected` or `not_available`.
+
+```mermaid
+sequenceDiagram
+    participant HQ as hq
+    participant C as Agenthix Cloud
+    participant S as A site's relay
+    HQ->>C: 1 · C1 token, scope=ai, signed by hq's key
+    C-->>HQ: an access token, an hour at most
+    HQ->>C: 2 · C2 catalogue, If-None-Match, at each check-in
+    C-->>HQ: models, speech models, voices and prices, or 304
+    S->>HQ: 3 · asks for hq's Cloud token (HTTPS, the site's credential)
+    HQ-->>S: the token and when it lapses
+    S->>C: 4 · C3 gateway: the vendor's own API, call id and billing profile
+    HQ->>C: 5 · C4 and C5 voice tokens, one session or one reply
+    HQ->>C: 6 · C6 actual costs, by call id, at each check-in
+    HQ->>C: 7 · C7 billing profile put, when made, renamed or archived
+```
+
+| Call | What it is |
+|---|---|
+| **C1, the token** | `POST /connect/token` as for any call, with `scope=ai`. An `invalid_scope` answer means Cloud does not offer AI to this hq |
+| **C2, the catalogue** | `GET /ai/catalogue` with the bearer token and `If-None-Match`: the models (maker, name, the vendor APIs the gateway speaks them in, context size, prices per million tokens), speech models with their hourly price, and text-to-speech models with their voices and per-million-character price. Pickers offer its models *via Agenthix Cloud* |
+| **C3, the gateway** | `/ai/v1/anthropic/…` and `/ai/v1/openai/…`, each vendor's own API unchanged. With `usageBilling` on, each call also carries `X-Call-Id` and `X-Billing-Profile-Id` |
+| **C4 and C5, voice** | `POST /ai/voice/stt-token` and `/ai/voice/tts-token`: a token good for one listening session or one spoken reply, with where to use it; the browser, or hq, then talks to the speech service itself |
+| **C6, actual costs** | `GET /ai/usage?after=<cursor>`: Cloud's own figure by call id, at most 500 to a page, read at each check-in and when the usage report opens, at most once a minute. An entry for a call hq does not know is logged and kept apart, never dropped |
+| **C7, billing profiles** | `PUT /billing/profiles/:id`: Cloud learns a profile's id and name, and nothing else of the organisation |
+| **C8, the key rollover** | `POST /connect/keys`, [below](#the-key-rolls-over) |
+
+Money is whole millionths of the catalogue's currency, as JSON safe integers. Every JSON answer is camelCase; the
+form-encoded `/connect/*` endpoints keep RFC 6749's names.
+
+**Refusals.** Cloud answers a call it will not serve with one of four, each with its own status: `not_available` (403, or
+`invalid_scope` at C1), `cap_reached` (402, naming whether the organisation's or one billing profile's spending limit and when
+it resets; through the gateway it sits in the vendor's own error shape, in a `cloud_error` field), `disconnected`
+(`invalid_client`, as for every call) and `model_not_offered` (404, after which hq refreshes the catalogue). A spending cap
+is a refusal for money, shown with its own message, and is not a provider failing. Rate limiting (429) and an unsupported
+protocol version (426) are read as for every call.
+
+**The flag.** The call id, the billing profile and the reading of actual costs wait on Cloud's metering and billing, behind
+the `usageBilling` feature flag ([ADR-0116](../adr/adr-0116-a-feature-not-ready-ships-behind-a-flag.md)): on in development and
+tests, off in production. With it off, a call through Cloud is costed from Cloud's catalogue as an estimate. The
+[ledger](model-resolution.md#the-ledger) keeps each figure on its own basis.
+
+### The key rolls over
+
+hq's Ed25519 identity key is replaced automatically every 90 days, or at once when an admin asks, with no one approving it
+at Cloud:
+
+1. hq makes the new key and stores it, marked pending, **before** it asks Cloud, so a crash leaves either a pending key to
+   register again or nothing changed.
+2. It registers the key with `POST /connect/keys`: the usual client assertion signed with the current key, the new public
+   key, and a proof, signed with the new key, that hq holds it. Registering the same key again is answered as done, so an
+   answer lost on the way is safe to ask again.
+3. From Cloud's answer hq signs with the new key. Every assertion names its key in the JWT header's `kid`, the RFC 7638
+   thumbprint of that key; `iss` and `sub` stay the client id, which is the thumbprint of the connection's **first** key
+   for the life of the connection.
+4. Cloud accepts the old key for 24 hours, or not at all after a rollover asked for with `retire_old_now`, which an admin
+   asks after a suspected leak; hq then destroys the old private key.
+
+Cloud away at a rollover leaves the old key in use, and hq tries again at its next check-in; a key never expires by itself.
+`invalid_client` during a rollover is a disconnection. Connecting again still makes a new key and a new client id. The
+contract is declared in `core/src/cloud/aiKeys.ts`; hq's side of the rollover is built with its other calls to Cloud.
+
 ## What the Fleet Console shows
 
 `GET /api/cloud` is hq's `cloud.state`: the connection, a waiting request, how the last one ended, whether Cloud runs
@@ -166,6 +238,8 @@ sign in with Cloud, and which of Cloud's offers the signed-in fleet admin dismis
 | You want | Look in |
 |---|---|
 | The contracts: paths, bounds, parsers for both sides | `core/src/cloud/connection.ts`, `hqAddress.ts`, `answers.ts`, `signIn.ts`, `hqState.ts`, `version.ts` |
+| The AI contract and the key rollover | `core/src/cloud/ai.ts`, `aiKeys.ts` |
+| Connecting from hq, and Cloud as a provider | `hq/src/cloud/adminCloud.ts`, `hq/src/providers/write.ts` (`supplyCloudProvider`) |
 | The fields of Cloud's operations that hq answers, checked the same by the host service and hq | `core/src/host/cloudOperations.ts` (`parseHqCloudRequest`) |
 | Signing, verifying, PKCE | `core/src/cloud/crypto/` (`@agenthix/core/cloud-crypto`) |
 | The protocol's version, and the check each side makes | `core/src/cloud/version.ts` |
@@ -177,11 +251,13 @@ sign in with Cloud, and which of Cloud's offers the signed-in fleet admin dismis
 
 - **hq makes every request.** Nothing dials hq from Cloud.
 - **The connection key never leaves hq**, is never in a log or a request, and is destroyed when the connection ends.
-- **Connecting and disconnecting are done on the Fleet Console's own machine**, never through remote access, or by
-  Cloud on a machine it runs, through the host service; nothing dials hq for it.
+- **Connecting and disconnecting are an organisation admin's, in hq**, or the machine admin's on hq's machine, or Cloud's on a
+  machine it runs, through the host service; the Fleet Console only shows the state, and nothing dials hq for it.
 - **An Agenthix account never makes an hq account**, and never replaces a password.
 - **A sign-in comes back only to the address hq registered**, never to one a request names.
 - **Nothing is asked of Cloud while hq is not connected.**
+- **No key is handed to the organisation for Cloud's AI.** A call carries a token hq signed for, and the site's relay gets that
+  token from hq; hq's private key never leaves hq.
 
 ## Decisions behind this
 

@@ -96,7 +96,7 @@ it nowhere ([ADR-0042](../adr/adr-0042-hq-is-the-orgs-own.md)); the page lists e
 | You want | Look in |
 |---|---|
 | The log format, redaction, rolling and query | `core/src/logging/` |
-| The page's routes and operations | `hq/src/diagnostics/diagnostics.wasp.ts`, `operations.ts`, `logOperations.ts` (`/org/infrastructure/diagnostics`, `…/logs`, `…/bundle`) |
+| The page's routes and operations | `hq/src/diagnostics/diagnostics.wasp.ts`, `operations.ts`, `logOperations.ts` (`/admin/infrastructure/diagnostics`, `…/logs`, `…/bundle`) |
 | The channel contract | `core/src/protocol/siteDiagnostics.ts`, `siteHealth.ts` |
 | The site's side | `site/src/server/hq/diagnosticsMethods.ts`, `siteHealthReport.ts` |
 
