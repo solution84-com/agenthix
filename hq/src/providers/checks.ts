@@ -11,7 +11,11 @@ import type { FailureKind } from './healthRules'
 
 export type CheckTarget = { vendor: Exclude<AiProviderVendor, 'cloud'>; key: string | null; baseUrl: string | null }
 export type CheckResult = { ok: true } | { ok: false; kind: FailureKind; detail: string }
-export type VendorChecks = { check(target: CheckTarget): Promise<CheckResult> }
+export type VendorChecks = {
+  check(target: CheckTarget): Promise<CheckResult>
+  /** The model names an OpenAI-compatible endpoint lists (`data[].id`); none when it lists nothing or cannot be reached. */
+  listModels(target: CheckTarget): Promise<string[]>
+}
 
 const TIMEOUT_MS = 10_000
 
@@ -67,6 +71,13 @@ export function classify(vendor: CheckTarget['vendor'], status: number, body: un
   return { ok: false, kind: 'invalid', detail: detail(`It answered ${status}, not as ${vendor === 'openai_compatible' ? 'an OpenAI-compatible endpoint' : 'expected'}.`) }
 }
 
+/** The ids in an OpenAI-style models answer, `{ data: [{ id }] }`; anything else is none. */
+export function modelIdsOf(body: unknown): string[] {
+  const data = body && typeof body === 'object' ? (body as { data?: unknown }).data : null
+  if (!Array.isArray(data)) return []
+  return data.flatMap(m => (m && typeof m === 'object' && typeof (m as { id?: unknown }).id === 'string' && (m as { id: string }).id ? [(m as { id: string }).id] : []))
+}
+
 export const realVendorChecks: VendorChecks = {
   async check(target) {
     const { url, headers } = probeFor(target)
@@ -79,6 +90,18 @@ export const realVendorChecks: VendorChecks = {
     }
     const body: unknown = await res.json().catch(() => null)
     return classify(target.vendor, res.status, body)
+  },
+
+  async listModels(target) {
+    if (target.vendor !== 'openai_compatible') return []
+    const { url, headers } = probeFor(target)
+    try {
+      const res = await fetch(url, { headers, signal: AbortSignal.timeout(TIMEOUT_MS), redirect: 'error' })
+      if (!res.ok) return []
+      return modelIdsOf(await res.json().catch(() => null))
+    } catch {
+      return []
+    }
   },
 }
 

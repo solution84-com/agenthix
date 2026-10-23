@@ -1,6 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { DEFAULT_LISTENING_MODEL, DEFAULT_VOICE, VOICE_TTS_MODEL } from '../../voice/voiceModels'
-import { proposeDefaults, recommendedModels, type ProviderFact } from '../setupDefaults'
+import { encryptSecret } from '../../server/crypto/secretCrypto'
+import { useVendorChecks } from '../../providers/checks'
+import { useProviderStore } from '../../providers/store'
+import { FakeProviderStore } from '../../providers/__tests__/fakeProviderStore'
+import { FakeVendorChecks } from '../../providers/__tests__/fakeVendorChecks'
+import { firstListedModels, proposeDefaults, recommendedModels, type ProviderFact } from '../setupDefaults'
 
 const p = (id: string, vendor: ProviderFact['vendor'], state: ProviderFact['state'] = 'works'): ProviderFact => ({ id, vendor, state })
 const NONE = { conversation: null, worker: null, stt: null, tts: null }
@@ -55,5 +60,59 @@ describe('the defaults setup proposes @SC-1186', () => {
     expect(got.conversation).toBeNull()
     expect(got.tts).toEqual({ providerId: 'c', model: VOICE_TTS_MODEL, voice: DEFAULT_VOICE })
     expect(got.stt).toEqual({ providerId: 'c', model: DEFAULT_LISTENING_MODEL })
+  })
+})
+
+describe('the defaults setup proposes for an own OpenAI-compatible endpoint', () => {
+  const URL = 'https://llm.example.test/v1'
+  let store: FakeProviderStore
+  let vendor: FakeVendorChecks
+
+  beforeEach(() => {
+    vi.stubEnv('SECRETS_MASTER_KEY', Buffer.alloc(32, 7).toString('base64'))
+    store = new FakeProviderStore()
+    vendor = new FakeVendorChecks()
+    useProviderStore(store)
+    useVendorChecks(vendor)
+  })
+  afterEach(() => {
+    useProviderStore(null)
+    useVendorChecks(null)
+    vi.unstubAllEnvs()
+  })
+
+  const endpoint = (state: ProviderFact['state'] = 'works') => store.create({
+    name: 'Own', vendor: 'openai_compatible', credentialKind: 'api_key', baseUrl: URL, keyHint: 'fake', secret: encryptSecret('sk-test-fake'),
+    state, stateDetail: null, lastCheckedAt: new Date(), lastWorkedAt: new Date(),
+  })
+
+  it('is the first model the endpoint lists, for both conversation and worker', async () => {
+    const row = await endpoint()
+    vendor.lists(URL, ['qwen3-32b', 'llama-4'])
+    const listed = await firstListedModels(await store.list())
+    expect(listed.get(row.id)).toBe('qwen3-32b')
+    expect(vendor.asked).toEqual([])
+    const got = proposeDefaults([p(row.id, 'openai_compatible')], NONE, listed)
+    expect(got.conversation).toEqual({ providerId: row.id, model: 'qwen3-32b' })
+    expect(got.worker).toEqual({ providerId: row.id, model: 'qwen3-32b' })
+  })
+
+  it('is left unset when the endpoint lists nothing or is not working', async () => {
+    await endpoint()
+    expect((await firstListedModels(await store.list())).size).toBe(0)
+    const got = proposeDefaults([p('x', 'openai_compatible')], NONE, new Map())
+    expect(got.conversation).toBeNull()
+    expect(got.worker).toBeNull()
+  })
+
+  it('does not ask an endpoint that is not working', async () => {
+    await endpoint('key_refused')
+    vendor.lists(URL, ['qwen3-32b'])
+    expect((await firstListedModels(await store.list())).size).toBe(0)
+  })
+
+  it('keeps a recommended model over a listed one', () => {
+    const got = proposeDefaults([p('a', 'anthropic')], NONE, new Map([['a', 'other']]))
+    expect(got.conversation?.model).toBe('claude-sonnet-5')
   })
 })

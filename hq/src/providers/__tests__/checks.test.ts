@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { classify, probeFor, realVendorChecks } from '../checks'
+import { classify, modelIdsOf, probeFor, realVendorChecks } from '../checks'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -43,5 +43,25 @@ describe('realVendorChecks @SC-1181', () => {
 
     vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('fetch failed') }))
     expect(await realVendorChecks.check({ vendor: 'openai', key: 'sk-test-fake-0123', baseUrl: null })).toMatchObject({ ok: false, kind: 'unavailable' })
+  })
+})
+
+describe('listModels @SC-1181', () => {
+  const target = { vendor: 'openai_compatible', key: 'sk-test-fake', baseUrl: 'https://llm.example.test/v1' } as const
+
+  it("reads the ids of an OpenAI-style models answer and ignores anything else", async () => {
+    expect(modelIdsOf({ data: [{ id: 'a' }, { id: '' }, { name: 'b' }, 'c', { id: 'd' }] })).toEqual(['a', 'd'])
+    expect(modelIdsOf({ models: [] })).toEqual([])
+    expect(modelIdsOf(null)).toEqual([])
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: [{ id: 'm1' }, { id: 'm2' }] }), { status: 200 })))
+    expect(await realVendorChecks.listModels(target)).toEqual(['m1', 'm2'])
+  })
+
+  it('is none when the endpoint refuses, cannot be reached, or the vendor is not a custom endpoint', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 500 })))
+    expect(await realVendorChecks.listModels(target)).toEqual([])
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('down') }))
+    expect(await realVendorChecks.listModels(target)).toEqual([])
+    expect(await realVendorChecks.listModels({ ...target, vendor: 'openai' })).toEqual([])
   })
 })

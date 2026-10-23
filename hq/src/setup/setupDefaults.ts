@@ -8,6 +8,8 @@ import {
   COST_BAND_MAX_RANKS, providerStateWorks, providerTypesOf,
   type AiProviderState, type AiProviderType, type AiProviderVendor, type ModelViaProvider, type VoiceViaProvider,
 } from '@agenthix/core'
+import { vendorChecks } from '../providers/checks'
+import { providerStore } from '../providers/store'
 import { modelsReachedBy, sameModelKey } from '../routing/modelKeys'
 import { DEFAULT_LISTENING_MODEL, DEFAULT_VOICE, VOICE_TTS_MODEL } from '../voice/voiceModels'
 
@@ -53,15 +55,17 @@ const firstFor = (providers: readonly ProviderFact[], type: AiProviderType) =>
 
 /**
  * What is set stays; what is not is filled from the providers. A model default needs a provider that reaches a
- * recommended model; speech and listening use the first working provider of their type.
+ * recommended model, or, on an OpenAI-compatible endpoint with none, the first model it lists; speech and listening use the first working provider of their type.
  */
-export function proposeDefaults(providers: readonly ProviderFact[], current: Defaults): Defaults {
+export function proposeDefaults(providers: readonly ProviderFact[], current: Defaults, listed: ReadonlyMap<string, string> = new Map()): Defaults {
   const model = (slot: 'conversation' | 'worker'): ModelViaProvider | null => {
     if (current[slot]) return current[slot]
     for (const p of providers) {
       if (!providerStateWorks(p.state) || !providerTypesOf(p.vendor).includes('llm')) continue
       const chosen = recommendedModels(p.vendor)[slot]
       if (chosen) return { providerId: p.id, model: chosen }
+      const first = listed.get(p.id)
+      if (first) return { providerId: p.id, model: first }
     }
     return null
   }
@@ -73,6 +77,22 @@ export function proposeDefaults(providers: readonly ProviderFact[], current: Def
     tts: current.tts ?? (tts ? { providerId: tts.id, model: VOICE_TTS_MODEL, voice: DEFAULT_VOICE } : null),
     stt: current.stt ?? (stt ? { providerId: stt.id, model: DEFAULT_LISTENING_MODEL } : null),
   }
+}
+
+/**
+ * For each working OpenAI-compatible endpoint, the first model it lists: its own catalogue is the only one there is.
+ * An endpoint that lists nothing or cannot be reached is left out, so finishing is never blocked.
+ */
+export async function firstListedModels(providers: readonly ProviderFact[]): Promise<Map<string, string>> {
+  const first = new Map<string, string>()
+  for (const p of providers) {
+    if (p.vendor !== 'openai_compatible' || !providerStateWorks(p.state)) continue
+    const credential = await providerStore().credentialOf(p.id)
+    if (!credential) continue
+    const [model] = await vendorChecks().listModels({ vendor: 'openai_compatible', key: credential.key, baseUrl: credential.baseUrl })
+    if (model) first.set(p.id, model)
+  }
+  return first
 }
 
 export async function currentDefaults(): Promise<{ orgId: string; current: Defaults } | null> {
@@ -99,7 +119,7 @@ export async function currentDefaults(): Promise<{ orgId: string; current: Defau
 export async function writeSetupDefaults(providers: readonly ProviderFact[]): Promise<void> {
   const found = await currentDefaults()
   if (!found) return
-  const next = proposeDefaults(providers, found.current)
+  const next = proposeDefaults(providers, found.current, await firstListedModels(providers))
   const data: Record<string, string | null> = {}
   for (const slot of ['conversation', 'worker'] as const) {
     if (!found.current[slot] && next[slot]) Object.assign(data, { [`default${cap(slot)}ProviderId`]: next[slot]!.providerId, [`default${cap(slot)}Model`]: next[slot]!.model })
