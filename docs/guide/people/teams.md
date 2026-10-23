@@ -11,7 +11,7 @@ A team's real use is joining a project: add it once, with one role, and every pe
 
 ## Make a team
 
-1. From the menu behind your name at the foot of the side bar, select **Organisation**, then the **Teams** card.
+1. From the menu behind your name at the foot of the side bar, select **Overview** under your organisation's name, then the **Teams** card. An organisation admin can also select **Manage**, then **Teams**.
 2. Select **New**.
 3. Give it a **Name** and a **Purpose**: what the team is for.
 4. Select **Create team**. Its own page opens.

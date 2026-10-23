@@ -8,7 +8,7 @@ sidebar:
 The **Library** is a shelf of ready-made things for your organisation to start from. Using one makes your
 organisation's own copy, which you can then change without touching the original.
 
-Open **Organisation** from the menu behind your name at the foot of the side bar, and select its **Library** card. Anyone can look around. Adding things
+Open **Overview** under your organisation's name in the menu behind your name at the foot of the side bar, and select its **Library** card. Anyone can look around. Adding things
 to the organisation, and the buttons at the top, are for administrators: others see the buttons, but only an
 administrator's click goes through.
 

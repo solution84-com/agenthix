@@ -81,13 +81,15 @@ From there a fleet admin adds, moves and restores sites, plans maintenance, and 
 
 The Fleet Console has places for **Agenthix Cloud**, the hosted service from the makers of Agenthix, and for
 **Remote access**: the Fleet Console opened from anywhere for a while, through Cloud, instead of over an SSH tunnel.
-Both need the organisation to be connected to Cloud, which you do with **Connect to Agenthix Cloud** on HQ's page, on
-the Fleet Console's own machine. Until it is connected, each of these places says so and changes nothing:
+Both need the organisation to be connected to Cloud. That connection is the organisation's: an organisation admin
+makes and ends it in HQ, under **Manage › Providers** (see [Providers](../your-tools/providers.md#connect-agenthix-cloud)),
+and the Fleet Console only shows it. Until it is connected, each of these places says so and changes nothing:
 
-- **Dashboard:** a **Cloud** line, **Connect** and the organisation's name **to Cloud**, which opens HQ's page; and a
-  **Remote access** total that reads **Off** and says it needs the organisation connected to Cloud.
-- **HQ** page: a **Cloud connection** section, with **Connection** reading **Not connected**, and **Connect to Agenthix Cloud**.
-  Connecting and disconnecting are done on the Fleet Console's machine only, never through remote access.
+- **Dashboard:** a **Cloud** line reading that the organisation is not connected, which opens HQ's page, and says an
+  organisation admin connects it in HQ; and a **Remote access** total that reads **Off** and says it needs the
+  organisation connected to Cloud.
+- **HQ** page: a **Cloud connection** section, with **Connection** reading **Not connected**, and where to connect it.
+  While a connection waits for approval in HQ, it reads **Waiting for approval in HQ**.
 - **Remote access** page: **Off**, marked **Cannot be turned on yet**, with the reason.
 - **Fleet admins** page: a section for fleet admins on Cloud, which says they are listed once the organisation is
   connected. Cloud's list is only a suggestion: nobody becomes a fleet admin here until a fleet admin here, or a machine

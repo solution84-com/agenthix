@@ -12,8 +12,7 @@ organisation**.
 
 ## What the organisation allows
 
-An organisation administrator opens **Organisation**, then **Settings**, and under **How work runs** selects
-**Automation**. Each value is where every project starts and the most any project can have. Select **Save** when done.
+An organisation administrator opens **Manage**, then **Settings** and **Automation**. Each value is where every project starts and the most any project can have. Select **Save** when done.
 
 | Setting | What it does | Default |
 |---|---|---|
@@ -69,18 +68,18 @@ working unattended can never schedule work, so a schedule can't be used to get a
 
 Separate from automation, every run has a **Time limit (minutes)**, and a run that no person started, such as one
 automation starts, also has a **Turn limit**. A turn is one round trip with the model. An administrator sets both
-under **Organisation › Settings › Runs**, from 1 minute to 24 hours (1440) and from 1 to 1000 turns, and a project
+under **Manage › Settings › Runs**, from 1 minute to 24 hours (1440) and from 1 to 1000 turns, and a project
 may only lower them. A run that reaches a limit stops, and its task says which limit it reached.
 
 ## Stop everything
 
 - **Pause one project's automation.** In its **Automation** tool, select **Pause**. Nothing new starts on its own, work
   already running carries on, and queued tasks stay queued in order.
-- **Pause the whole organisation's.** Turn off **Automation allowed** under **Organisation › Settings ›
+- **Pause the whole organisation's.** Turn off **Automation allowed** under **Manage › Settings ›
   Automation**. No project can turn it back on.
 - **Stop what is running.** In a project, under **Agents at work**, select **Stop all** and confirm **Stop all runs in
   this project?** Every running task stops, and queued tasks leave the queue. Only the project's administrators can
   use it. Your own conversations here stop answering, and other people's are not stopped. In your own **Chat** it
   does the same for your space.
-- **Stop one agent.** On an agent's page in **Organisation › Agents**, the **⋯** menu has **Stop its runs**.
+- **Stop one agent.** On an agent's page in **Manage › Agents**, the **⋯** menu has **Stop its runs**.
 - **Stop one task.** Select **Stop** on the task.

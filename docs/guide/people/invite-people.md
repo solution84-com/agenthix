@@ -9,7 +9,7 @@ Nobody joins an organisation's **HQ** without an invitation. HQ is your organisa
 
 ## Make an invitation
 
-1. From the menu behind your name at the foot of the side bar, select **Organisation**, then the **People** card. The **People** screen lists everyone in the organisation.
+1. From the menu behind your name at the foot of the side bar, select **Manage**, then **People and invitations**. The screen lists everyone in the organisation.
 2. Select **Invite**.
 3. In **Who it's for**, type a name, so you can tell invitations apart. It is optional.
 4. Choose their **Organisation role**:
@@ -38,7 +38,7 @@ What the person sees when they open the link is on [Joining by invitation](../ge
 - **Earlier invitations**, folded at the foot, shows what happened to the others: accepted by someone, expired or revoked.
 - The list under **People** shows each person's role, how many projects they are in, and when they joined. Search by name or @handle.
 
-An invitation that has waited a week gets a notice under **Needs attention** on the **Organisation** page.
+An invitation that has waited a week gets a notice under **Needs attention** on **Manage › Overview**.
 
 ## Change a role afterwards
 

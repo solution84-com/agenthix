@@ -1,8 +1,8 @@
 ---
 title: Voice
-description: Set up speech for the organisation, turn voice on for an agent, and talk to it in a conversation.
+description: Set up speech for the organisation, choose an agent's voice, and talk to it in a conversation.
 sidebar:
-  order: 3
+  order: 5
 ---
 
 This page covers voice in **HQ**, your organisation's home in Agenthix: what an administrator sets up once, and how
@@ -10,29 +10,30 @@ you talk to an agent. Voice is a mode of the conversation you are already in, no
 
 ## Set up speech for the organisation
 
-An administrator gives voice conversations their speech services under **Organisation › Settings › Voice**:
+Voice needs two [providers](providers.md): **AssemblyAI** turns what you say into text, and **Inworld** speaks the
+answer. Setup asks for both (see [Finish setup](../getting-started/finish-setup.md#4-add-your-voice)); an organisation
+admin can add or replace them later under **Manage › Providers**.
 
-1. Under **Speech-to-Text**, **AssemblyAI** turns what you say into text. Under **Text-to-Speech**, **Inworld**
-   speaks the answer.
-2. Beside each, select **Add key**, paste the provider's key and select **Save Key**. Agenthix checks the key
-   before it saves it. A saved key shows its start and **Active**; **Replace key** and **Remove** change it.
-3. Once the AssemblyAI key is saved, adjust **Speech Model** and the other options below it, then select
-   **Save Config**.
+Under **Manage › Models**, **Voice** and **Listening** choose the organisation's voice and the model that hears people:
+see [Models](models.md#the-organisations-defaults). Voice is always Inworld TTS 2, and the voice is chosen by ear from
+Inworld's own list. **Kernel**, the built-in agent, speaks in the voice setup chose.
+
+Every agent has a voice. To give one agent a different voice or listening model, an organisation admin opens its page in
+**Manage › Agents** and changes **Voice** under **Models and voice**; see
+[An agent's own models and voice](models.md#an-agents-own-models-and-voice).
 
 ## Talk to an agent
 
-1. An administrator turns on **Enable voice mode** in the agent's voice settings (**Organisation › Agents**,
-   **Manage**), and chooses its **Voice** and **TTS model**. **Natural (inworld-tts-2)** sounds the most natural and
-   is the default; with it, the agent's short spoken phrases (below) also sound relaxed and low.
-2. In a conversation with that agent, leave the message box empty and select the voice button at its right end. To
+1. In a conversation with any agent, leave the message box empty and select the voice button at its right end. To
    start a new conversation by talking, select the voice button of the empty box that starts one (in Chat, or the
    draft beside the page).
    The conversation stays on screen: your words appear in your own message as you speak, and the agent's reply
    fills in as it is spoken, never ahead of the voice.
 
-The voice button is greyed when voice cannot start, and its tooltip says why: the agent has **Voice** off, the
-organisation has no speech service set up, no model access reaches the conversation, or someone else is already using
-voice in the conversation. Select the greyed button to see the reason written under the box.
+The voice button is greyed when voice cannot start, and its tooltip says why: no speech-to-text or text-to-speech
+provider works for this agent, no model reaches the conversation, the page is not secure (see
+[Install Agenthix](../getting-started/install.md)), or someone else is already using voice in the conversation. Select
+the greyed button to see the reason written under the box.
 
 There is one way of talking: hands-free.
 
@@ -103,5 +104,4 @@ thing appears directly in the reply.
 
 ## Settings
 
-Voice has no settings of your own to choose. The tap, hold and trigger-word modes of earlier versions are gone, and so
-is the **Voice** section of **Settings**: speech is set up by an administrator, and a pause is what ends your turn.
+Voice has no settings of your own to choose: speech is set up by an administrator, and a pause is what ends your turn.

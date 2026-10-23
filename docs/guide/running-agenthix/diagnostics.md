@@ -10,9 +10,9 @@ someone who can help. Only organisation admins can open the page, and its **Heal
 shown only to those who are also fleet admins; anyone else sees **Recent errors** and a note saying so. A fleet admin who is not an
 organisation admin uses the Fleet Console instead.
 
-When something doesn't work, an organisation admin starts at **Organisation › Infrastructure › Logs and diagnostics**
+When something doesn't work, an organisation admin starts at **Manage › Infrastructure › Logs and diagnostics**
 in HQ. It shows what is wrong with **HQ**, your organisation's home in Agenthix, and with each **Execution Site**, the place
-agents run. Open it from **Organisation › Infrastructure**, under **More**.
+agents run. Open it from **Manage › Infrastructure**, under **More**.
 
 ![Logs and diagnostics, with Health now and Recent errors](screenshot:diagnostics)
 

@@ -2,11 +2,12 @@
 title: Your settings
 description: What is yours alone to change in Agenthix, from your timezone to your password.
 sidebar:
-  order: 5
+  order: 7
 ---
 
-**Settings**, in the menu behind your name at the foot of the side bar, is only yours. What belongs to the whole organisation is under
-**Organisation › Settings** and **Organisation › Infrastructure**, for administrators.
+**Your settings**, in the menu behind your name at the foot of the side bar, is only yours. What belongs to the whole
+organisation is under **Manage**, in the same menu, for organisation admins. [The organisation's page and the admin
+area](../people/your-organisation.md) describes both.
 
 ![Settings, with its sections down to Devices and connections](screenshot:settings)
 
@@ -32,16 +33,17 @@ Under **Conversations**, choose what happens when you send a message while an ag
 The agent a new conversation starts with, **Kernel** to begin with. You can still pick another agent before you send the
 first message.
 
-## Models
+## Your Claude subscription
 
-Which model answers you and does your work: **Model for talking**, **Model for light work** and **Model for heavy
-work** (the last two for what an agent starts in the background), **Which models may be picked** and a **Ceiling** on
-cost. Select **Save models**. Where you choose none, the organisation's applies. You can also change a conversation's model from its message box at any time.
+Your own Claude login, used only for work in your own place: your space and your personal projects. **Sign in with
+Claude** to add it, **Sign out** to remove it. See [Models](models.md#your-claude-subscription).
 
-## Your model logins
+## Which models may run for you
 
-Your own Claude login or API keys, used for runs on your behalf. [Models](models.md) explains how they combine with
-a project's and the organisation's.
+A list that narrows the organisation's, everywhere you work: choose **Any model, except these** or **Only these**, and
+add models or patterns. It never widens what the organisation allows. See
+[Which models may run](models.md#which-models-may-run). You can still change a conversation's model from its message
+box at any time.
 
 ## Memory
 
