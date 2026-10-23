@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # The install test: the product tested in the shape it is installed in, since a send that froze over plain http at a
-# network address once passed every test run at localhost. It builds every image at `dev`, starts the host service
-# under a namespace of its own, runs `agenthix install` at this machine's network address over plain http, and
-# walks through HQ in a real browser (hq/e2e/install/): the first admin made, a message sent to a stand-in model
+# network address once passed every test run at localhost. It is a test installation: it builds every image at `dev`,
+# starts a host service of its own, `<namespace>-host` with INSTALL_NAMESPACE set to a namespace it makes up and a
+# state folder of its own, runs `agenthix install` at this machine's network address over plain http on free ports it
+# chooses, and walks through HQ in a real browser (hq/e2e/install/): the first admin made, a message sent to a stand-in model
 # (no real model is called), a conversation opened, the Fleet Console opened. Then it removes only what it made.
 # Setup's speech providers cannot be checked with their vendors from a test: the walkthrough answers that call and
 # puts each provider in the install's database from inside its hq-server container (speech-provider.cjs), so no
@@ -11,20 +12,19 @@
 #   scripts/install-test/run.sh
 #
 # A host service built here (`dev`) is the one kind that runs images built here, so no signature check is bypassed.
-# It refuses, touching nothing, when this machine already runs an HQ (a machine runs one) or when one of its ports
-# is taken. Settings, all optional:
-#   INSTALL_TEST_IP          the network address to install at (found from the machine's own when unset)
-#   INSTALL_TEST_HQ_PORT     HQ's port (4180); the stand-in model takes INSTALL_TEST_MODEL_PORT (4181)
-#   INSTALL_TEST_BUILD=0     use the images already built here instead of building them
+# It runs beside whatever else is installed here: the host service's own check refuses a port or address block
+# another installation holds. It refuses, touching nothing, when a port it was told to use is taken. Settings, all
+# optional:
+#   INSTALL_TEST_IP            the network address to install at (found from the machine's own when unset)
+#   INSTALL_TEST_HQ_PORT       HQ's port; INSTALL_TEST_CONSOLE_PORT the Fleet Console's (on 127.0.0.1);
+#                              INSTALL_TEST_MODEL_PORT the stand-in model's. Each is a free port chosen when unset.
+#   INSTALL_TEST_BUILD=0     use the images already built here instead of building them;
+#   INSTALL_TEST_BUILD=start-test  use the image start test's (imgtest/<part>:dev), as the full regression does
 #   INSTALL_TEST_KEEP=1      leave everything running afterwards, and say how to remove it
 #   INSTALL_TEST_LOGS        where the logs go (a new folder under the system's temporary folder)
-# The Fleet Console's port, 4300 on 127.0.0.1, is fixed by the product, so it must be free too.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-HQ_PORT="${INSTALL_TEST_HQ_PORT:-4180}"
-MODEL_PORT="${INSTALL_TEST_MODEL_PORT:-4181}"
-CONSOLE_PORT=4300
 LOGS="${INSTALL_TEST_LOGS:-$(mktemp -d "${TMPDIR:-/tmp}/install-test-logs.XXXXXX")}"
 mkdir -p "$LOGS"
 
@@ -44,15 +44,23 @@ CLI="$(core 'm.BRANDING.cliCommand')"
 image() { core "m.imageName('$1')"; }
 HOST_IMAGE="$(image host)"
 
+# Free ports it chooses from the range a person may choose from, unless told which to use; each is checked before
+# anything is touched.
+RANGE_FIRST="$(core 'm.CHOSEN_PORT_RANGE.first')"
+RANGE_LAST="$(core 'm.CHOSEN_PORT_RANGE.last')"
+CHOSEN=()
+while IFS= read -r port; do CHOSEN+=("$port"); done < <(node "$ROOT/scripts/install-test/ports.mjs" free 3 "$RANGE_FIRST" "$RANGE_LAST")
+HQ_PORT="${INSTALL_TEST_HQ_PORT:-${CHOSEN[0]}}"
+CONSOLE_PORT="${INSTALL_TEST_CONSOLE_PORT:-${CHOSEN[1]}}"
+MODEL_PORT="${INSTALL_TEST_MODEL_PORT:-${CHOSEN[2]}}"
+
 # A namespace of its own for the run: every name the host service makes starts with it, and nothing else is touched.
 NS="hti$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 8 || true)"
 [[ "$NS" =~ ^hti[a-z0-9]{8}$ ]] || fail "could not make a namespace (got $NS)."
 
 # --- Refuse before touching anything -----------------------------------------------------------------------------
-others="$(docker ps --all --format '{{.Names}} {{.Labels}}' | awk '/\.role=hq/ && /\.managed-by=host/ {print $1}')"
-[ -z "$others" ] || fail "this machine already runs an HQ ($(echo "$others" | tr '\n' ' ')), and a machine runs one. Nothing was touched; run it on a machine without an install."
-taken="$(node "$ROOT/scripts/install-test/ports.mjs" "$HQ_PORT" "$MODEL_PORT" "$CONSOLE_PORT")"
-[ -z "$taken" ] || fail "port $taken is already in use here. Nothing was touched; free it, or choose others with INSTALL_TEST_HQ_PORT and INSTALL_TEST_MODEL_PORT."
+taken="$(node "$ROOT/scripts/install-test/ports.mjs" taken "$HQ_PORT" "$CONSOLE_PORT" "$MODEL_PORT")"
+[ -z "$taken" ] || fail "port $taken is already in use here. Nothing was touched; free it, or choose others with INSTALL_TEST_HQ_PORT, INSTALL_TEST_CONSOLE_PORT and INSTALL_TEST_MODEL_PORT."
 
 if [ -z "${INSTALL_TEST_IP:-}" ]; then
   if command -v ipconfig >/dev/null && [ "$(uname)" = Darwin ]; then
@@ -65,10 +73,17 @@ fi
 case "$INSTALL_TEST_IP" in 127.*) fail "$INSTALL_TEST_IP is this machine only; the test needs its network address." ;; esac
 ADDRESS="http://$INSTALL_TEST_IP:$HQ_PORT"
 MODEL_URL="http://$INSTALL_TEST_IP:$MODEL_PORT/v1"
-echo "Namespace $NS; HQ at $ADDRESS; the stand-in model at $MODEL_URL; logs in $LOGS"
+echo "Namespace $NS; HQ at $ADDRESS; the Fleet Console on 127.0.0.1:$CONSOLE_PORT; the stand-in model at $MODEL_URL; logs in $LOGS"
 
 # --- Every image, at dev ----------------------------------------------------------------------------------------
-if [ "${INSTALL_TEST_BUILD:-1}" != 0 ]; then
+if [ "${INSTALL_TEST_BUILD:-1}" = start-test ]; then
+  # The images the image start test just built (scripts/images/start-test-all.sh), so a regression builds each once.
+  for part in hq-server hq-web site-server agent console host; do
+    docker image inspect "imgtest/$part:dev" >/dev/null 2>&1 \
+      || fail "imgtest/$part:dev is not here: run scripts/images/start-test-all.sh first, or leave INSTALL_TEST_BUILD unset."
+    docker tag "imgtest/$part:dev" "$(image "$part")"
+  done
+elif [ "${INSTALL_TEST_BUILD:-1}" != 0 ]; then
   build() { # <part> <Dockerfile> [target]
     say "Building $(image "$1")"
     docker build -f "$ROOT/$2" ${3:+--target "$3"} -t "$(image "$1")" "$ROOT" >"$LOGS/build-$1.log" 2>&1 \
@@ -118,10 +133,9 @@ trap teardown EXIT
 
 # --- The host service, under the test's namespace ---------------------------------------------------------------
 say 'Starting the host service'
-printf '{"namespace":"%s","recordedAt":"%s"}' "$NS" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$STATE/namespace.json"
 docker run -d --name "$NS-host" \
   -v /var/run/docker.sock:/var/run/docker.sock -v "$STATE:/state" \
-  -v "$NS-host-figures:/run/host-figures" -e TZ=UTC \
+  -v "$NS-host-figures:/run/host-figures" -e TZ=UTC -e INSTALL_NAMESPACE="$NS" \
   --network host --cap-add NET_ADMIN \
   --label "com.docker.compose.project=$NS-host" "$HOST_IMAGE" >/dev/null
 for _ in $(seq 1 60); do
@@ -135,7 +149,7 @@ node "$ROOT/scripts/install-test/stand-in-model.mjs" "$MODEL_PORT" "$LOGS/model.
 MODEL_PID=$!
 
 say "Installing at $ADDRESS"
-docker exec "$NS-host" "$CLI" install --address "$ADDRESS" --yes 2>&1 | tee "$LOGS/install.txt"
+docker exec "$NS-host" "$CLI" install --address "$ADDRESS" --hq-port "$HQ_PORT" --console-port "$CONSOLE_PORT" --yes 2>&1 | tee "$LOGS/install.txt"
 # The install wraps its words at the terminal's width, so the lines are joined before looking.
 tr -s ' \n' ' ' < "$LOGS/install.txt" | grep -q 'Voice and dictation do not work at this address' \
   || fail 'the install did not say that voice and dictation need https or localhost at this address.'

@@ -107,8 +107,7 @@ expected="${VERSION:-$label}"
 case "$PART" in
   host)
     state="$(mktemp -d)"
-    printf '{"namespace":"%s","recordedAt":"%s"}' "$NS" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$state/namespace.json"
-    start "$NS-host" -v "$state:/state" "$IMAGE"
+    start "$NS-host" -e INSTALL_NAMESPACE="$NS" -v "$state:/state" "$IMAGE"
     host_answers() { docker exec "$NS-host" agenthix status | grep -qF "host service $expected"; }
     wait_for "$NS-host" "it answered its version on the owner socket" host_answers
     say "passes: answers on its owner socket as host service $expected"
@@ -116,7 +115,7 @@ case "$PART" in
   console)
     # An address on the container's own loopback, where nothing answers: the console starts and keeps dialling.
     start "$RUN" -e CONSOLE_HQ_ADDRESS=http://127.0.0.1:9 "$IMAGE"
-    console_answers() { fetch_inside "$RUN" http://127.0.0.1:4300/api/status | grep -qF "\"version\":\"$expected\""; }
+    console_answers() { fetch_inside "$RUN" http://127.0.0.1:4301/api/status | grep -qF "\"version\":\"$expected\""; }
     wait_for "$RUN" "it answered its status" console_answers
     say "passes: answers its status as version $expected"
     ;;

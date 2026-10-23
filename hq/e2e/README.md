@@ -10,8 +10,8 @@ The suite runs against an **already-running dev server** — it does not boot on
 
 1. Postgres reachable and `DATABASE_URL` set in `.env.server`.
 2. Dev server up: `./scripts/dev/start.sh` (or `npx wasp start`).
-   - Client (Vite): `http://localhost:4100`
-   - Server (Express): `http://localhost:4101`
+   - Client (Vite) and server (Express) are on the development ports in `core/src/ports/ports.ts`
+     (`scripts/dev/start.sh` prints their addresses; all ports are in [`docs/architecture/ports.md`](../../docs/architecture/ports.md)).
 3. Browsers installed once: `npx playwright install chromium`.
 
 ## Run
@@ -21,10 +21,10 @@ npm run e2e          # headless
 npm run e2e:ui       # Playwright UI mode (watch / debug)
 ```
 
-Override ports if the server runs elsewhere:
+Name the addresses if hq runs elsewhere, for example one started on free ports (the guide's screenshots do this):
 
 ```bash
-E2E_CLIENT_URL=http://localhost:4100 E2E_SERVER_URL=http://localhost:4101 npm run e2e
+E2E_CLIENT_URL=<hq's web address> E2E_SERVER_URL=<hq's server address> npm run e2e
 ```
 
 ## What's covered
@@ -52,7 +52,7 @@ and the auth guard. Every spec that signs in uses the seeded e2e accounts and th
 helpers in `fixtures/auth.ts`; a spec whose data is not there skips rather than
 fails.
 
-No spec calls a real model. `playwright.config.ts` starts a stand-in endpoint on port 4182
+No spec calls a real model. `playwright.config.ts` starts a stand-in endpoint on a free port it chooses when it loads (`E2E_STAND_IN_PORT`)
 (`scripts/install-test/stand-in-model.mjs`), and the `stand-in` setup project, signed in as `e2e-admin`, adds it to the
 organisation's providers (an own OpenAI-compatible endpoint) and makes it the default conversation and worker model for
 the run; `stand-in-teardown` removes it and puts the defaults back. An organisation that already has an own endpoint is
@@ -158,7 +158,7 @@ Setup runs once per HQ, so this spec needs an HQ with no admin yet and that HQ's
 Without it the spec skips. It makes its own account, so run it before `seed-e2e-users.mjs` on that HQ.
 
 ```bash
-E2E_FIRST_ADMIN_LINK=http://localhost:4100/invite/<code> npx playwright test e2e/setup.spec.ts
+E2E_FIRST_ADMIN_LINK=<hq's address>/invite/<code> npx playwright test e2e/setup.spec.ts
 ```
 
 It takes Your own keys (Agenthix Cloud's card is checked to be disabled with *not available yet*), adds an own

@@ -140,29 +140,6 @@ function probePort(port: number, host = '127.0.0.1'): Promise<boolean> {
   })
 }
 
-/**
- * A busy 4100 is a real trap, not just noise: hq's vite auto-increments onto 4101
- * and steals the server port out from under wasp's own node server, so a
- * "readiness" wait against 4101 can end up talking to the wrong process
- * entirely. Refuse to spawn unless the ports the app about to start actually
- * needs are free.
- *
- * Scoped to the caller's own ports, not all four unconditionally: a suite
- * that restarts one app while deliberately leaving the other running (the
- * hq-restart-only reconnect scenario, cross-app suite 01) needs startHq() to
- * judge readiness only by hq's own ports — checking site's too would refuse
- * every such restart on the grounds that site (correctly) still holds them.
- */
-export async function refuseIfBusy(ports: number[], label: string): Promise<void> {
-  const busy = await Promise.all(ports.map((p) => probePort(p)))
-  if (busy.some(Boolean)) {
-    const listed = ports.filter((_, i) => busy[i]).join('/')
-    throw new Error(
-      `${label} port(s) must be free before starting — stop the dev server already using them. (busy: ${listed})`,
-    )
-  }
-}
-
 function tailLog(logPath: string, lines = 40): string {
   try {
     const content = readFileSync(logPath, 'utf8')
@@ -289,7 +266,6 @@ export type StartHqOptions = { pairingSecret?: string }
 export type StartSiteOptions = { pairingSecret?: string; hqUrl?: string }
 
 export async function startHq(options: StartHqOptions = {}): Promise<void> {
-  await refuseIfBusy([PORTS.hqClient, PORTS.hqServer], 'hq')
   hqHandle = spawnApp('hq', HQ_ROOT, {
     HQ_PAIRING_SECRET: options.pairingSecret ?? '',
     HQ_CONSOLE_PAIRING_SECRET: CONSOLE_PAIRING_SECRET,
@@ -303,11 +279,15 @@ export async function startHq(options: StartHqOptions = {}): Promise<void> {
     // .env.server's own values here is not safe under this harness.
     PORT: String(PORTS.hqServer),
     WASP_WEB_CLIENT_URL: `http://localhost:${PORTS.hqClient}`,
+    // The web page's dev server (hq/vite.config.ts) takes its port and its proxy target from these, and the client
+    // bundle its API address from REACT_APP_API_URL.
+    HQ_WEB_PORT: String(PORTS.hqClient),
+    HQ_SERVER_PORT: String(PORTS.hqServer),
+    REACT_APP_API_URL: HQ_URL,
   })
 }
 
 export async function startSite(options: StartSiteOptions = {}): Promise<void> {
-  await refuseIfBusy([PORTS.siteServer], 'site')
   if (options.pairingSecret && !options.hqUrl) {
     throw new Error('startSite: a pairingSecret needs the hqUrl the site should pair with')
   }
@@ -325,7 +305,7 @@ export async function startSite(options: StartSiteOptions = {}): Promise<void> {
       // Pinned explicitly rather than left to site/.env.server: the site binds
       // env.PORT (src/server/main.ts), and the environment wins over the file
       // (node's --env-file), so this is the port it listens on. A run under
-      // Wasp was once observed binding hq's 4101 when PORT was left to merge
+      // Wasp was once observed binding hq's server port when PORT was left to merge
       // order.
       PORT: String(PORTS.siteServer),
       // Only when the loaded environment has no key of its own (env.ts).

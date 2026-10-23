@@ -26,6 +26,7 @@ class FilenameSequencer extends BaseSequencer {
 export default defineConfig({
   test: {
     include: ['**/*.test.ts'],
+    exclude: ['**/node_modules/**', '**/*.unit.test.ts'],
     globalSetup: './globalSetup.ts',
     fileParallelism: false,
     sequence: { concurrent: false, sequencer: FilenameSequencer },

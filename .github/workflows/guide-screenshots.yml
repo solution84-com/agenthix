@@ -74,9 +74,25 @@ jobs:
       - name: Create and migrate the guide databases
         run: node hq/scripts/guide/with-guide-db.mjs true
 
+      # The runner's own free ports, asked of the operating system (bind port 0), as the other test runs do: nothing
+      # here types a port. The later steps and the captures read them from the environment.
+      - name: Choose the ports
+        run: |
+          node -e '
+            const net = require("node:net");
+            const take = () => new Promise((ok) => { const s = net.createServer().listen(0, "127.0.0.1", () => ok(s)); });
+            (async () => {
+              const held = [await take(), await take(), await take()];
+              const [web, server, site] = held.map((s) => s.address().port);
+              held.forEach((s) => s.close());
+              console.log(`HQ_WEB_PORT=${web}\nHQ_SERVER_PORT=${server}\nGUIDE_SITE_PORT=${site}`);
+              console.log(`E2E_CLIENT_URL=http://localhost:${web}\nE2E_SERVER_URL=http://localhost:${server}`);
+            })();
+          ' >> "$GITHUB_ENV"
+
       - name: Start the site and hq
         run: |
-          printf 'PORT=4100\nREACT_APP_API_URL=http://localhost:4101\nREACT_APP_CLIENT_URL=http://localhost:4100\n' > hq/.env.client
+          printf 'PORT=%s\nREACT_APP_API_URL=http://localhost:%s\nREACT_APP_CLIENT_URL=http://localhost:%s\n' "$HQ_WEB_PORT" "$HQ_SERVER_PORT" "$HQ_WEB_PORT" > hq/.env.client
           mkdir -p "$RUNNER_TEMP/guide-logs" "$RUNNER_TEMP/guide-site-root" "$RUNNER_TEMP/guide-hq-storage"
           HQ_PAIRING_SECRET="$(openssl rand -hex 32)"
           export HQ_PAIRING_SECRET
@@ -96,10 +112,10 @@ jobs:
           # The single quotes are deliberate: the variables expand in the inner bash, which has the databases' addresses.
           # shellcheck disable=SC2016
           node hq/scripts/guide/with-guide-db.mjs bash -c '
-            (cd site && PORT=4201 HQ_URL=http://localhost:4101 AGENT_CONTAINER_ISOLATION=false \
+            (cd site && PORT="$GUIDE_SITE_PORT" HQ_URL="http://localhost:$HQ_SERVER_PORT" AGENT_CONTAINER_ISOLATION=false \
               SECRETS_MASTER_KEY="$GUIDE_SITE_SECRETS_KEY" DATABASE_URL="$GUIDE_SITE_DATABASE_URL" \
               setsid nohup npm run dev > "$GUIDE_LOGS/site.log" 2>&1 < /dev/null &)
-            (cd hq && PORT=4101 WASP_SERVER_URL=http://localhost:4101 WASP_WEB_CLIENT_URL=http://localhost:4100 \
+            (cd hq && PORT="$HQ_SERVER_PORT" WASP_SERVER_URL="http://localhost:$HQ_SERVER_PORT" WASP_WEB_CLIENT_URL="http://localhost:$HQ_WEB_PORT" \
               SECRETS_MASTER_KEY="$GUIDE_HQ_SECRETS_KEY" \
               setsid nohup npx wasp start > "$GUIDE_LOGS/hq.log" 2>&1 < /dev/null &)
           '
@@ -114,9 +130,9 @@ jobs:
             echo "$1 did not come up" >&2
             return 1
           }
-          wait_for http://localhost:4101/health
-          wait_for http://localhost:4100/
-          wait_for http://localhost:4201/
+          wait_for "http://localhost:$HQ_SERVER_PORT/health"
+          wait_for "http://localhost:$HQ_WEB_PORT/"
+          wait_for "http://localhost:$GUIDE_SITE_PORT/"
 
       - name: Capture the screenshots
         working-directory: hq
