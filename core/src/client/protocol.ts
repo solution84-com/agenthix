@@ -33,8 +33,8 @@ export type HqVersions = {
 /**
  * hq's claim state, worked out from its data and never stored:
  * - `unclaimed`: no account yet; only the link the installer printed opens setup;
- * - `setting_up`: the first account exists, and setup (its providers, then the organisation) is not finished: only
- *   the first person can sign in, to finish it;
+ * - `setting_up`: the first account exists, and setup (its providers, then the organisation) is not finished: that
+ *   account is the only one, and signs in to finish it;
  * - `set_up`: setup finished; HQ as everyone knows it.
  */
 export const HQ_CLAIM_STATES = ['unclaimed', 'setting_up', 'set_up'] as const
