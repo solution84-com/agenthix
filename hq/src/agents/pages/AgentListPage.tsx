@@ -70,7 +70,7 @@ export function AgentListPage() {
         {isLoading && <p className="text-body text-text-muted">Loading…</p>}
         {error && <p role="alert" className="text-small text-danger">{error.message}</p>}
         {data && data.agents.length === 0 && (
-          <EmptyState icon={Bot} title={filter === 'mine' ? 'No agent is in your projects' : 'No agents yet'} hint={data.canManage ? 'Create one under Organisation › Agents' : 'An organisation admin creates agents'} />
+          <EmptyState icon={Bot} title={filter === 'mine' ? 'No agent is in your projects' : 'No agents yet'} hint={data.canManage ? 'Create one under Manage organisation › Agents' : 'An organisation admin creates agents'} />
         )}
         {data && data.agents.length > 0 && shown.length === 0 && <p className="text-body text-text-muted">No agent matches.</p>}
 

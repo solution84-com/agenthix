@@ -41,7 +41,7 @@ function ForgotPassword({ org, onBack }: { org: string | null; onBack: () => voi
     <>
       <Heading title="Forgot your password?" lead="HQ doesn't keep email addresses, so it can't send you a link." />
       <div className="rounded-xl border border-border-subtle px-3 py-2.5 text-small text-text-secondary">
-        <b className="font-medium text-text-primary">Ask an admin of {org ?? 'your organisation'}</b> for a reset link. They make one in Organisation › People.
+        <b className="font-medium text-text-primary">Ask an admin of {org ?? 'your organisation'}</b> for a reset link. They make one in Manage organisation › People and invitations.
       </div>
       <details className="mt-3.5 text-small text-text-muted">
         <summary className={`cursor-pointer ${TEXT_LINK}`}>If you're the only admin</summary>

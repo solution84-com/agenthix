@@ -47,7 +47,7 @@ function Installations() {
     return (
       <div className="rounded-xl bg-surface-1 border border-border-subtle p-5 text-body text-text-secondary">
         The GitHub App is not registered for this HQ yet. It is registered under{' '}
-        <Link to="/admin/infrastructure/github-app" className="text-accent hover:text-accent-hover">Organisation › Infrastructure › GitHub App</Link>;
+        <Link to="/admin/infrastructure/github-app" className="text-accent hover:text-accent-hover">Manage organisation › Infrastructure › GitHub App</Link>;
         then install it on the organisation's accounts here.
       </div>
     )

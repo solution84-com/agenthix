@@ -8,7 +8,7 @@ import { HttpError, prisma } from 'wasp/server'
 import type { Project } from 'wasp/entities'
 import { createProject as createProjectRecord } from './projectService'
 import { ensureUserStoragePlacement } from '../storage/storageSite'
-import { derivePersonalProjectKey } from './personalProjectKey'
+import { deriveProjectKey } from '../shared/identifiers'
 import { rethrowLocationFileErrorAsHttp } from '../storage/httpErrors'
 
 const MAX_NAME_LENGTH = 120
@@ -30,7 +30,7 @@ export const createPersonalProject: CreatePersonalProject<{ name: string; descri
   if (!site) throw new HttpError(400, 'The site that holds your files is not available')
 
   const existingKeys = (await prisma.project.findMany({ select: { key: true } })).map(p => p.key)
-  const key = derivePersonalProjectKey(name, existingKeys)
+  const key = deriveProjectKey(name, existingKeys)
 
   try {
     return await createProjectRecord({ name, description, key, executionSiteId: site.id, personalOwnerId: userId })

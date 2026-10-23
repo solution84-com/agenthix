@@ -8,7 +8,7 @@ import {
 
 describe('the no-Execution-Site wording', () => {
   it('the error message is exactly the sentence the product owner fixed', () => {
-    expect(NO_EXECUTION_SITE_MESSAGE).toBe('No Execution Site is connected. A fleet admin adds one in the Fleet Console; Organisation › Settings › Where work runs shows how sites are doing.')
+    expect(NO_EXECUTION_SITE_MESSAGE).toBe('No Execution Site is connected. A fleet admin adds one in the Fleet Console; Manage organisation › Where work runs › Sites shows how sites are doing.')
   })
 
   it('the notice is the message\'s first sentence, so the two cannot disagree', () => {

@@ -38,7 +38,7 @@ export function SitesForProjectsPage() {
       )}
       <p className="mt-6 text-small text-text-muted">
         Sites are added, changed and removed by fleet admins in the Fleet Console; how each is doing is under{' '}
-        <Link to="/admin/where-work-runs" className="text-accent hover:text-accent-hover">Organisation › Settings › Where work runs</Link>.
+        <Link to="/admin/where-work-runs" className="text-accent hover:text-accent-hover">Manage organisation › Where work runs › Sites</Link>.
       </p>
     </OrgAdminPage>
   )

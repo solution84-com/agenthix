@@ -39,7 +39,7 @@ export function OrgSettingsPage() {
       </OrgEntryGroup>
       <p className="mt-6 text-small text-text-muted">
         HQ itself, its sites and storage are under{' '}
-        <Link to="/admin/infrastructure" className="text-accent hover:text-accent-hover">Organisation › Infrastructure</Link>, kept apart from these.
+        <Link to="/admin/infrastructure" className="text-accent hover:text-accent-hover">Manage organisation › Infrastructure</Link>, kept apart from these.
       </p>
     </OrgAdminPage>
   )

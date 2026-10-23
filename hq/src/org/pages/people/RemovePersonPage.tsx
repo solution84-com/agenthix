@@ -112,7 +112,7 @@ function RemovePerson({ userId }: { userId: string }) {
             <><b className="font-medium text-text-primary">Reactivate</b>: the same account comes back with all its history; projects are added again by hand</>,
             <><b className="font-medium text-text-primary">Erase</b>: for a data-protection request, or when the organisation no longer needs it. Deleted: private conversations, personal project and files, memory, connections, model logins, name and picture. Stays with the projects: tasks, comments and task runs, the name replaced by <b className="font-medium text-text-primary">Former member</b>. It cannot be undone and asks for the person's name to be typed.</>,
           ]} />
-          <p className="text-small text-text-muted">People who left are under "Left" at the foot of Organisation › People. They are not counted and not offered in pickers.</p>
+          <p className="text-small text-text-muted">People who left are under "Left" at the foot of Manage organisation › People and invitations. They are not counted and not offered in pickers.</p>
         </section>
       </div>
     </AppLayout>

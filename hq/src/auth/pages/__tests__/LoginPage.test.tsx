@@ -95,7 +95,7 @@ describe('Signing in', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Forgot your password?')
     expect(screen.getByText("HQ doesn't keep email addresses, so it can't send you a link.")).toBeTruthy()
     expect(screen.getByText(/Ask an admin of Acme Corp/)).toBeTruthy()
-    expect(screen.getByText(/Organisation › People/)).toBeTruthy()
+    expect(screen.getByText(/Manage organisation › People and invitations/)).toBeTruthy()
     expect(screen.getByText(/agenthix reset-password/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Back to sign in' }))
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy()

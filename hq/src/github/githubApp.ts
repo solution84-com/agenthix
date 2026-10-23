@@ -80,7 +80,7 @@ export async function getApp() {
 export async function getAppPrivateKey(): Promise<string> {
   const app = await getApp()
   const pem = app && decryptStoredSecret(app.privateKey, 'GitHub App private key')
-  if (!pem) throw new Error('No GitHub App is registered. Register it under Organisation › Infrastructure › GitHub App.')
+  if (!pem) throw new Error('No GitHub App is registered. Register it under Manage organisation › Infrastructure › GitHub App.')
   return pem
 }
 
