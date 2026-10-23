@@ -10,7 +10,7 @@ import { createRoutine, makeTaskRoutine, updateRoutine, pauseRoutine, resumeRout
 
 export const automationSpec: Spec = [
     route("ProjectRoutinesRoute", "/projects/:key/routines", page(ProjectRoutinesPage, { authRequired: true })),
-    route("AutomationSettingsRoute", "/org/settings/automation", page(AutomationSettingsPage, { authRequired: true })),
+    route("AutomationSettingsRoute", "/admin/settings/automation", page(AutomationSettingsPage, { authRequired: true })),
     query(getOrgAutomation, { entities: ["Org"] }),
     action(updateOrgAutomation, { entities: ["Org", "ProjectAutomation", "Task"] }),
     query(getProjectAutomation, { entities: ["ProjectAutomation", "AutomationStart", "Task"] }),

@@ -32,8 +32,8 @@ async function withResolvedSessionAvatar(session: unknown): Promise<unknown> {
 async function placePath(place: { ownerType: 'project' | 'user' | null; ownerId: string | null }): Promise<string> {
   if (place.ownerType === 'project' && place.ownerId) {
     try {
-      const project = await getProject({ projectId: place.ownerId } as never) as { key: string; personalOwnerId: string | null }
-      if (!project.personalOwnerId) return `/projects/${project.key}`
+      const project = await getProject({ projectId: place.ownerId } as never) as { key: string; personalSpace: boolean }
+      if (!project.personalSpace) return `/projects/${project.key}`
     } catch { /* fall back to Chat */ }
   }
   return '/chat'

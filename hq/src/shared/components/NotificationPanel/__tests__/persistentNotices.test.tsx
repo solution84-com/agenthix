@@ -24,7 +24,7 @@ import { NotificationPanel } from '../NotificationPanel'
 const at = new Date().toISOString()
 const notice = (over: Record<string, unknown>) => ({
   id: 'n', type: 'site_requests', title: '3 machines are asking to connect', body: 'b', actionLabel: 'Open Execution Sites',
-  actionUrl: '/org/settings/where-work-runs', status: 'read', createdAt: at, task: null, detail: 'Approve or deny them', command: null,
+  actionUrl: '/admin/where-work-runs', status: 'read', createdAt: at, task: null, detail: 'Approve or deny them', command: null,
   dismissible: false, ...over,
 })
 

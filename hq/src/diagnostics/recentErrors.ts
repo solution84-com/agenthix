@@ -98,7 +98,7 @@ export async function readRecentErrors(readerId: string, range: RecentErrorsRang
         agent: last.agentId ? agentBy.get(last.agentId) ?? null : null,
         project,
         runLink: canOpen ? `/runs/${last.runId}?session=${last.sessionId}` : null,
-        siteLink: site ? `/org/settings/where-work-runs/${site.id}` : null,
+        siteLink: site ? `/admin/where-work-runs/${site.id}` : null,
         chatRun: last.origin === 'run' && !last.projectId,
       }
     }),

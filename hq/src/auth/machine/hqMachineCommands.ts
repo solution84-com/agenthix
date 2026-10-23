@@ -27,6 +27,8 @@
  * - `cloud-connection connect|state|disconnect`: the organisation's connection to Cloud, from hq's machine
  *   (cloud/machineCommands.ts).
  * - `fleet-admin-id <username>`: the id of an active fleet admin, for the Fleet Console's `console reset-code`.
+ * - `provider add|list|remove`: the organisation's providers, with the actor *machine* (providers/machineCommands.ts).
+ *   Once Cloud's controller has connected hq on a machine Cloud runs, Agenthix Cloud is supplied as a provider.
  *
  * Each answers its facts as `data` as well as in words, so a caller never has
  * to read them out of the text.
@@ -50,6 +52,7 @@ import { notificationsChanged } from '../../server/personEvents'
 import { isCloudMachineCommand, runCloudMachineCommand } from './cloudMachineCommands'
 import { cloudConnectionCommand } from '../../cloud/machineCommands'
 import { fleetAdminIdCommand } from '../../fleet/machineCommands'
+import { providerCommand, supplyCloudAfterConnect } from '../../providers/machineCommands'
 
 export const MACHINE_RESET_NOTIFICATION = 'password_reset_from_hq_machine'
 export const MACHINE_ADMIN_INVITE_NOTIFICATION = 'admin_invited_from_hq_machine'
@@ -85,7 +88,7 @@ export async function inviteAdminCommand(now = new Date()): Promise<CommandResul
     type: MACHINE_ADMIN_INVITE_NOTIFICATION,
     title: "An admin was invited from HQ's machine",
     body: "Someone with access to HQ's machine made an invitation to join as an admin.",
-    actionUrl: '/org/people?show=invitations',
+    actionUrl: '/admin/people?show=invitations',
   })
   const link = invitationLink(token)
   const data: LinkData = { kind: 'invitation', link, validHours: 24, toldAdmins }
@@ -113,7 +116,7 @@ export async function resetPasswordCommand(username: string | undefined, now = n
     type: MACHINE_RESET_NOTIFICATION,
     title: "A password was reset from HQ's machine",
     body: `Someone with access to HQ's machine made a link to set ${who}'s password.`,
-    actionUrl: `/org/people/${userId}`,
+    actionUrl: `/admin/people/${userId}`,
   })
   const data: LinkData = {
     kind: 'password_reset', link: made.link, validHours: 1, person: { name: person.name, handle: person.handle }, toldAdmins,
@@ -195,7 +198,11 @@ export async function scheduledChangeCommand(json: string | undefined): Promise<
 
 /** The control socket's handler: one command, by name. */
 export async function runHqMachineCommand(command: string, args: string[]): Promise<CommandResult> {
-  if (isCloudMachineCommand(command)) return runCloudMachineCommand(command, args)
+  if (isCloudMachineCommand(command)) {
+    const result = await runCloudMachineCommand(command, args)
+    if (result.ok && command === 'cloud-organisation-connect') await supplyCloudAfterConnect()
+    return result
+  }
   switch (command) {
     case 'invite-admin':
       return inviteAdminCommand()
@@ -221,10 +228,12 @@ export async function runHqMachineCommand(command: string, args: string[]): Prom
       return readOnlyCommand(args)
     case 'transfer-open':
       return transferOpenOnRelay(args)
+    case 'provider':
+      return providerCommand(args)
     default:
       return {
         ok: false,
-        error: `Unknown command '${command}'. Commands: invite-admin, reset-password <username>, status, default-site-cause <cause>, scheduled-change <notice>, fleet-admin [--remove] <username>, console-code, address-move <address>, read-only [on [<machine>] | off], transfer-open <transferId> <from> <to>.`,
+        error: `Unknown command '${command}'. Commands: invite-admin, reset-password <username>, status, default-site-cause <cause>, scheduled-change <notice>, fleet-admin [--remove] <username>, console-code, address-move <address>, read-only [on [<machine>] | off], transfer-open <transferId> <from> <to>, provider add|list|remove.`,
         code: 'unknown',
       }
   }

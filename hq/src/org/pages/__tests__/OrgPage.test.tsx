@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** The Organisation page (every screen reviewed spec §3): an admin sees it in the order they act, a member the identity and the workplace. */
+/** The Organisation page: the identity and the workplace for everyone; an admin also has Manage, and nothing that manages is on the page. */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
@@ -14,11 +14,7 @@ vi.mock('wasp/client/operations', () => ({
 }))
 vi.mock('../../../shared/layouts/AppLayout', () => ({ AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock('../../../shared/components/AuthedImg', () => ({ AuthedImg: () => null }))
-vi.mock('../../components/NeedsAttentionSection', () => ({ NeedsAttentionSection: () => <section>needs attention</section> }))
-vi.mock('../../components/TodaySection', () => ({ TodaySection: () => <section>today</section> }))
-vi.mock('../../components/WhereItRunsSection', () => ({ WhereItRunsSection: () => <section>where it runs</section> }))
 vi.mock('../../components/WorkplaceSection', () => ({ WorkplaceSection: () => <section>the workplace</section> }))
-vi.mock('../../components/SettingsSection', () => ({ SettingsSection: () => <section>settings</section> }))
 vi.mock('../../components/OrgIdentityDialog', () => ({ OrgIdentityDialog: () => null }))
 
 import { OrgPage } from '../OrgPage'
@@ -36,19 +32,20 @@ describe('the Organisation page @SC-661', () => {
     expect(screen.getByText(/Mission: Give every shop/)).toBeTruthy()
   })
 
-  it('shows an admin Needs attention, Today, Where it runs, the workplace and Settings, in that order, and Edit and Change cover', () => {
+  it('shows an admin the identity, the workplace, Edit, Change cover and Manage, and none of what manages', () => {
     show()
-    const order = ['needs attention', 'today', 'where it runs', 'the workplace', 'settings'].map(t => screen.getByText(t))
-    order.slice(1).forEach((el, i) => expect(order[i].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy())
+    expect(screen.getByText('the workplace')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Change cover/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Manage' }).getAttribute('href')).toBe('/admin')
+    for (const gone of ['needs attention', 'today', 'where it runs', 'settings']) expect(screen.queryByText(gone)).toBeNull()
   })
 
-  it('shows a member the identity and the workplace, and nothing to change', () => {
+  it('shows a member the identity and the workplace, and nothing to change or manage', () => {
     ops.role = 'MEMBER'
     show()
     expect(screen.getByText('the workplace')).toBeTruthy()
-    for (const hidden of ['needs attention', 'today', 'where it runs', 'settings']) expect(screen.queryByText(hidden)).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Manage' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
     expect(screen.queryByRole('button', { name: /Change cover/ })).toBeNull()
   })

@@ -36,12 +36,21 @@ export async function seedOrganisation() {
   return { site1 }
 }
 
-/** A person's personal project, with one task, and that person's storage on `siteId`. */
+/** A person's space (their default personal project, whose tasks work in their own storage), with one task, and that person's storage on `siteId`. */
 export async function seedPersonalProject(userId: string, siteRowId: string) {
   await prisma.user.upsert({ where: { id: userId }, create: { id: userId }, update: {} })
   await prisma.userStoragePlacement.upsert({ where: { userId }, create: { userId, siteId: siteRowId }, update: { siteId: siteRowId } })
-  await prisma.project.create({ data: { id: 'p-mine', name: 'Mine', key: 'MINE', personalOwnerId: userId, accessLevel: 'PRIVATE' } })
+  await prisma.project.create({ data: { id: 'p-mine', name: 'Mine', key: 'MINE', personalOwnerId: userId, personalSpace: true, accessLevel: 'PRIVATE' } })
   await createTestTask({ data: { id: 't-mine', title: 't', projectId: 'p-mine', number: 1, onBehalfOfUserId: userId } })
+}
+
+/** Another of a person's personal projects, with storage of its own on `siteId`, and one task. */
+export async function seedSidePersonalProject(userId: string, siteRowId: string) {
+  await prisma.user.upsert({ where: { id: userId }, create: { id: userId }, update: {} })
+  await prisma.project.create({
+    data: { id: 'p-side', name: 'Side', key: 'SIDE', personalOwnerId: userId, accessLevel: 'PRIVATE', executionSiteId: siteRowId },
+  })
+  await createTestTask({ data: { id: 't-side', title: 't', projectId: 'p-side', number: 1, onBehalfOfUserId: userId } })
 }
 
 type Entry = { state: 'always' | 'ask' | 'never' }

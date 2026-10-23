@@ -42,7 +42,7 @@ import { askedToStart } from './taskQueueing'
 import { rethrowLocationFileErrorAsHttp } from '../storage/httpErrors'
 import { findProjectStorageSite, removeProjectStorageOnSite } from './projectStorageRemoval'
 import { stopProjectRuns } from './projectRunStop'
-import { refuseOnPersonalProject } from './personalProject'
+import { refuseOnPersonalProject, requireMayDeleteProject } from './personalProject'
 import { heldInstructionRows, deliverHeldInstructionsTo } from '../sites/heldInstructions'
 import { sitesForProject } from '../sites/membershipEnding'
 import { closeProjectConversations, declineWaitingInProject } from '../conversations/closing'
@@ -141,11 +141,8 @@ export const updateProject: UpdateProject<
 
 export const deleteProject: DeleteProject<{ projectId: string }, any> = async ({ projectId }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
-  // Destroying a boundary is structure, symmetric with creating one (§6.4's
-  // org-admin column), so it takes the org admin rather than the project's.
-  await requireRole(context, 'ADMIN', 'Deleting a project')
-  // It exists for as long as its person does, and goes with them (spec §4).
-  await refuseOnPersonalProject(projectId, 'Deleting')
+  // The org admin for an organisation project; the owner for a personal project, never the space.
+  await requireMayDeleteProject(context, projectId)
   // The site is read off the project's row, so it is asked for first; the
   // folder goes only once the delete has committed, and never fails it.
   const siteId = await findProjectStorageSite(projectId)

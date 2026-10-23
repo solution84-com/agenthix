@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
+import { rootCrumbFor } from '../../admin/adminCrumbs'
+import { teamsBase } from '../../admin/adminPaths'
 import { Plus } from 'lucide-react'
 import { useQuery, getTeams, getUserSettings } from 'wasp/client/operations'
 import { Button } from '@agenthix/ui/primitives'
@@ -10,6 +12,7 @@ import { TeamDialog } from '../components/teams/TeamDialog'
 /** Teams (every screen reviewed spec §3, Organisation): a card for each, with its cover and picture, purpose, faces, mix and where it works. */
 export function TeamsPage() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { data: teams, isLoading } = useQuery(getTeams)
   const { data: me } = useQuery(getUserSettings)
   const [creating, setCreating] = useState(false)
@@ -17,7 +20,7 @@ export function TeamsPage() {
 
   return (
     <AppLayout
-      breadcrumbs={[{ label: 'Organisation', href: '/org' }, { label: 'Teams' }]}
+      breadcrumbs={[rootCrumbFor(pathname), { label: 'Teams' }]}
       title="Teams"
       subtitle="Groups of people and agents with a purpose. A team can join a project as one member"
       action={isAdmin ? <Button leadingIcon={<Plus size={14} />} onClick={() => setCreating(true)}>New</Button> : undefined}
@@ -34,7 +37,7 @@ export function TeamsPage() {
         </div>
         <p className="mt-5 text-small text-text-muted">From the Library, a ready-made team adds its agents (and their boards) as a new team; people are added after.</p>
       </div>
-      <TeamDialog open={creating} onClose={() => setCreating(false)} onSaved={id => navigate(`/org/teams/${id}`)} />
+      <TeamDialog open={creating} onClose={() => setCreating(false)} onSaved={id => navigate(`${teamsBase(pathname)}/${id}`)} />
     </AppLayout>
   )
 }

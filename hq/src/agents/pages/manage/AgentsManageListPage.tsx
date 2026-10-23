@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Link, useSearchParams } from 'react-router'
 import { Plus, Upload } from 'lucide-react'
 import { useQuery, useAction, getOrgAgents, getAgentUsage, createAgent } from 'wasp/client/operations'
@@ -34,7 +35,7 @@ function AgentRow({ card, since }: { card: AgentCard; since: string }) {
         </div>
         <div className="truncate text-small text-text-muted"><UsageCell agentId={agent.id} since={since} /></div>
       </div>
-      <Link to={`/org/agents/${agent.handle}`} className="shrink-0 text-body font-medium text-accent hover:text-accent-hover">Manage</Link>
+      <Link to={`/admin/agents/${agent.handle}`} className="shrink-0 text-body font-medium text-accent hover:text-accent-hover">Manage</Link>
     </div>
   )
 }
@@ -52,7 +53,7 @@ function ManageList() {
 
   return (
     <AppLayout
-      breadcrumbs={[{ label: 'Organisation', href: '/org' }, { label: 'Agents' }]}
+      breadcrumbs={[ADMIN_CRUMB, { label: 'Agents' }]}
       title="Agents"
       subtitle="The organisation's agents — admins create and change them"
       action={

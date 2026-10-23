@@ -9,6 +9,7 @@ import { AboutSection } from './settings/AboutSection'
 import { AccessSection } from './settings/AccessSection'
 import { AgentsSection } from './settings/AgentsSection'
 import { DeleteSection } from './settings/DeleteSection'
+import { PersonalAutomation } from './settings/PersonalAutomation'
 import { FilingSection } from './settings/FilingSection'
 import { Section } from './settings/Part'
 import { WhereItRuns } from './settings/WhereItRuns'
@@ -48,8 +49,8 @@ export function ProjectSettingsPage() {
         )}
         {personal && (
           <p className="text-small text-text-muted">
-            This is your personal project. Only you can see it, and its tasks run as you: in your own
-            files, with your own model access and your own agent settings.
+            Only you see this project. Agents work in it as you, in its own files, with your own model
+            access and your own agent settings.
           </p>
         )}
 
@@ -57,6 +58,12 @@ export function ProjectSettingsPage() {
           <AboutSection project={proj} canEdit={rights.editOwn} personal={personal} />
           {!personal && <FilingSection project={proj} canEdit={rights.editFiling} />}
         </Section>
+
+        {personal && (
+          <Section title="Automation">
+            <PersonalAutomation projectId={proj.id} />
+          </Section>
+        )}
 
         {!personal && (
           <Section title="Access">

@@ -26,13 +26,13 @@ describe('Infrastructure › Logs and diagnostics row @SC-724', () => {
     data.current.getDiagnosticsSummary = { errorsLast24h: 6, sitesWithLogs: 2, sites: 3 }
     render(<MemoryRouter><InfrastructurePage /></MemoryRouter>)
     const row = screen.getByText('Logs and diagnostics').closest('a')
-    expect(row?.getAttribute('href')).toBe('/org/infrastructure/diagnostics')
+    expect(row?.getAttribute('href')).toBe('/admin/infrastructure/diagnostics')
     expect(row?.textContent).toContain('6 errors in the last 24 hours · logs from HQ and 2 sites · support bundle')
   })
 
   it('links the Execution Sites heading to the list of every site @SC-733', () => {
     render(<MemoryRouter><InfrastructurePage /></MemoryRouter>)
-    expect(screen.getByText('All sites').closest('a')?.getAttribute('href')).toBe('/org/settings/where-work-runs')
+    expect(screen.getByText('All sites').closest('a')?.getAttribute('href')).toBe('/admin/where-work-runs')
   })
 
   it('says so when there are no errors', () => {
@@ -47,7 +47,7 @@ describe('Infrastructure › Where HQ runs @SC-1120', () => {
     data.current.getWhereHqRuns = { hosting: 'self', connectedAs: 'Acme Robotics' }
     render(<MemoryRouter><InfrastructurePage /></MemoryRouter>)
     const row = screen.getByText('Where HQ runs').closest('a')
-    expect(row?.getAttribute('href')).toBe('/org/infrastructure/hq')
+    expect(row?.getAttribute('href')).toBe('/admin/infrastructure/hq')
     expect(row?.textContent).toContain('Self-hosted · connected to Agenthix Cloud as Acme Robotics')
   })
 })

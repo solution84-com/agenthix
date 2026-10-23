@@ -27,6 +27,11 @@ export type ProjectFields = {
   archiveFinishedAfterDays: number | null
   /** Set only on a person's personal project: that person. */
   personalOwnerId: string | null
+  /**
+   * Whether this is the person's space (Your space), as against one of their other personal projects. hq always
+   * sets it; optional only so the client protocol gains it as an addition, and absent reads as false.
+   */
+  personalSpace?: boolean
   leadUserId: string | null
   createdAt: Date
   updatedAt: Date

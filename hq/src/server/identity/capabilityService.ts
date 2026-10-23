@@ -6,13 +6,13 @@
  * TTL.
  */
 import { prisma } from 'wasp/server'
-import { sameRunner, type CapabilityClaims, type RunStartedBy } from '@agenthix/core'
+import { sameRunner, type CapabilityClaims, type CapabilityPersonalProject, type RunStartedBy } from '@agenthix/core'
 import { resolvePrimaryLocation, type SessionLocationFields } from '../../storage/primaryLocationService'
 import type { LocationRef } from '@agenthix/core'
 import { resolveStorageSite } from '../../storage/storageSite'
 import * as store from '../../storage/workspaceStore'
 import { runBoundary, runPermissions, type OverrideBoundary } from '../../agents/overrides/agentOverrideService'
-import { isPersonalProject, taskRunOwner } from '../../projects/personalProject'
+import { isSpaceProject, taskRunOwner } from '../../projects/personalProject'
 import { resolveRunner } from './capabilityRunner'
 
 export interface CapabilityAgentFields {
@@ -52,15 +52,19 @@ export async function resolveCapabilityClaims(args: {
 }): Promise<CapabilityClaims> {
   const { agent, session, primaryLoc, taskId, startedBy, onBehalfOfUserId } = args
   const workspaceId = primaryLoc.workspaceId ?? null
-  const runner = resolveRunner(session, primaryLoc)
-
   // ADR-0060: a run acts with the authority of the ONE boundary it is for. The
   // boundary decides both claims below — the project it is confined to, and
   // whether there is a person whose role it may carry at all.
   const boundary = await runBoundary(session)
-  // Before the site is resolved: a location that should not exist is refused
-  // as what it is, not as whatever its lookup happens to fail with.
+  // Before the runner and the site are resolved: a location that should not
+  // exist is refused as what it is, not as whatever its lookup fails with.
   await requireNoPersonalProjectStorage(session, primaryLoc, boundary)
+  const personalProject = await personalProjectOf(primaryLoc)
+  const runner = resolveRunner(
+    session,
+    { ownerType: primaryLoc.ownerType, ownerId: primaryLoc.ownerId, ...(personalProject ? { personalOwnerId: personalProject.personalOwnerId } : {}) },
+    boundary,
+  )
   const siteId = await resolveExecutionSiteId(primaryLoc)
 
   // The project this run acts as: a task's current project, or the project a
@@ -131,6 +135,7 @@ export async function resolveCapabilityClaims(args: {
     tokenType: 'capability',
     userId: session.userId,
     runner,
+    ...(personalProject ? { personalProject } : {}),
     startedBy,
     ...(onBehalfOfUserId ? { onBehalfOfUserId } : {}),
     agentId: agent.id,
@@ -150,28 +155,40 @@ export async function resolveCapabilityClaims(args: {
 }
 
 /**
- * A personal project has no storage of its own (spec §4), so no run may work in
- * it as a `project` location — that would mount it and run as a project. And a
- * task run's location must be the kind its boundary is, and for a person, that
- * person's own: a personal project's task never runs anywhere but its person's
- * storage, and no other task runs in a person's. Checked at every mint and
- * renewal, so a session row that disagrees is refused rather than signed.
+ * Your space has no storage of its own (spec §4), so no run may work in it as a `project` location — that would
+ * mount it and run as a project. And a task run's location must be the one its task is for: the person's own
+ * storage for a task in their space, the project's own for any other task, a personal project included. Checked
+ * at every mint and renewal, so a session row that disagrees is refused rather than signed.
  */
 async function requireNoPersonalProjectStorage(
   session: SessionLocationFields & { id: string },
   primaryLoc: LocationRef,
   boundary: OverrideBoundary | null,
 ): Promise<void> {
-  if (primaryLoc.ownerType === 'project' && (await isPersonalProject(primaryLoc.ownerId))) {
-    throw new Error(`Session ${session.id} works in a personal project's storage, which does not exist`)
+  if (primaryLoc.ownerType === 'project' && (await isSpaceProject(primaryLoc.ownerId))) {
+    throw new Error(`Session ${session.id} works in Your space's storage, which does not exist`)
   }
   if (!session.taskId || !boundary) return
-  if (primaryLoc.ownerType !== boundary.type || (boundary.type === 'user' && primaryLoc.ownerId !== boundary.id)) {
-    throw new Error(`Session ${session.id}'s location does not match its task's boundary`)
+  const owner = await taskRunOwner(session.taskId)
+  if (!owner || primaryLoc.ownerType !== owner.storage.ownerType || primaryLoc.ownerId !== owner.storage.ownerId) {
+    throw new Error(`Session ${session.id}'s location does not match its task's storage`)
   }
 }
 
-/** The personal project a task run in a person's boundary belongs to — only ever that person's own. */
+/**
+ * The personal project whose own storage the run works in, and its person, or null for a person's own storage and
+ * a shared project. Signed into the claim, it is what lets a task there run as its person, at hq and at the site.
+ */
+async function personalProjectOf(primaryLoc: LocationRef): Promise<CapabilityPersonalProject | null> {
+  if (primaryLoc.ownerType !== 'project') return null
+  const project = await prisma.project.findUnique({
+    where: { id: primaryLoc.ownerId }, select: { personalOwnerId: true, personalSpace: true },
+  })
+  if (!project?.personalOwnerId || project.personalSpace) return null
+  return { projectId: primaryLoc.ownerId, personalOwnerId: project.personalOwnerId }
+}
+
+/** The personal project a task run in a person's boundary belongs to — only ever that person's own (any of them). */
 async function personalTaskProject(
   session: SessionLocationFields & { id: string },
   boundary: OverrideBoundary | null,

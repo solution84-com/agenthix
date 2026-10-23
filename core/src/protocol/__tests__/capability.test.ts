@@ -3,6 +3,7 @@ import {
   CAPABILITY_TTL_SECONDS, CAPABILITY_RENEWAL_FRACTION, IDENTITY_TOKEN_TTL_SECONDS,
   HQ_TOKEN_ISSUER, HQ_JWKS_PATH, HQ_DATA_PATH,
   parseCapabilityRunner, sameRunner, runnerBoundaryMismatch, parseCapabilityOnBehalfOf, APPROVALS, isApproval,
+  parseCapabilityPersonalProject, storageWithPersonalOwner, type RunStorage,
   type CapabilityClaims, type CapabilityRunner, type ToolPermission,
 } from '../capability.js'
 
@@ -65,7 +66,7 @@ describe('the runner claim', () => {
     expect(sameRunner(alice, projectX)).toBe(false)
   })
 
-  const fits = (runner: CapabilityRunner, storage: typeof inX | typeof inAlices | null, sessionType: string, invokerUserId = 'alice') =>
+  const fits = (runner: CapabilityRunner, storage: RunStorage | null, sessionType: string, invokerUserId = 'alice') =>
     runnerBoundaryMismatch({ runner, storage, sessionType, invokerUserId }) === null
 
   it('accepts the runner each kind of run is given', () => {
@@ -97,6 +98,53 @@ describe('the runner claim', () => {
   it('refuses a run with no storage boundary', () => {
     expect(fits(alice, null, 'chat')).toBe(false)
     expect(fits(projectX, null, 'task')).toBe(false)
+  })
+  describe("a task in a person's personal project, which has storage of its own", () => {
+    const alicesProject = { ownerType: 'project' as const, ownerId: 'pa', personalOwnerId: 'alice' }
+    const bobsProject = { ownerType: 'project' as const, ownerId: 'pb', personalOwnerId: 'bob' }
+
+    it('runs as the person who owns it', () => {
+      expect(fits(alice, alicesProject, 'task')).toBe(true)
+    })
+
+    it("refuses a person runner in someone else's personal project", () => {
+      expect(fits(alice, bobsProject, 'task')).toBe(false)
+      expect(fits(alice, bobsProject, 'task', 'bob')).toBe(false)
+    })
+
+    it('refuses a person runner in a shared project, even when the person is the invoker', () => {
+      expect(fits(alice, inX, 'task', 'alice')).toBe(false)
+    })
+
+    it('leaves a chat as it was: its invoker, and nobody else', () => {
+      expect(fits(alice, alicesProject, 'chat')).toBe(true)
+      expect(fits({ kind: 'person', userId: 'bob' }, alicesProject, 'chat', 'bob')).toBe(true)
+      expect(fits(alice, alicesProject, 'chat', 'bob')).toBe(false)
+    })
+  })
+})
+
+describe("the personal project claim", () => {
+  const claim = { projectId: 'pa', personalOwnerId: 'alice' }
+
+  it('reads both fields, and refuses anything else', () => {
+    expect(parseCapabilityPersonalProject(claim)).toEqual(claim)
+    expect(parseCapabilityPersonalProject({ ...claim, extra: 1 })).toEqual(claim)
+    for (const junk of [undefined, null, 'pa', {}, { projectId: 'pa' }, { personalOwnerId: 'alice' },
+      { projectId: '', personalOwnerId: 'alice' }, { projectId: 'pa', personalOwnerId: 7 }]) {
+      expect(parseCapabilityPersonalProject(junk)).toBeNull()
+    }
+  })
+
+  it("marks a project's storage with its owner only when the claim names that very project", () => {
+    expect(storageWithPersonalOwner({ ownerType: 'project', ownerId: 'pa' }, claim))
+      .toEqual({ ownerType: 'project', ownerId: 'pa', personalOwnerId: 'alice' })
+    expect(storageWithPersonalOwner({ ownerType: 'project', ownerId: 'px' }, claim))
+      .toEqual({ ownerType: 'project', ownerId: 'px' })
+    expect(storageWithPersonalOwner({ ownerType: 'user', ownerId: 'pa' }, claim))
+      .toEqual({ ownerType: 'user', ownerId: 'pa' })
+    expect(storageWithPersonalOwner({ ownerType: 'project', ownerId: 'pa' }, null))
+      .toEqual({ ownerType: 'project', ownerId: 'pa' })
   })
 })
 

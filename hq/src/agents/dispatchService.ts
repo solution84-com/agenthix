@@ -45,6 +45,7 @@ import { buildContext, grantTargetOf } from './runContext'
 import { runLimitsFor } from './runLimits/runLimitsService'
 import { briefForTaskRun, withBrief } from '../conversations/taskThread/brief'
 import { personMayWorkInProject, OnBehalfOfLostAccessError } from '../projects/taskOnBehalfOf'
+import { placeStorageOf } from '../projects/personalProject'
 import { taskCommentsForRun } from './taskCommentsForRun'
 import { RunPersonLostAccessError } from './taskExecutionReasons'
 import { scheduledChangeHold } from '../sites/scheduled/runHold'
@@ -168,7 +169,7 @@ export async function dispatchTaskRun(
       runOnBehalfOfUserId: true,
       number: true,
       board: { select: { name: true, columns: true } },
-      project: { select: { name: true, slug: true, key: true, personalOwnerId: true } },
+      project: { select: { name: true, slug: true, key: true, personalOwnerId: true, personalSpace: true } },
     },
   })
   if (!task) {
@@ -218,19 +219,15 @@ export async function dispatchTaskRun(
         .join('\n')
     : 'No columns defined'
 
-  // Where the run works decides whose run it is (spec §4, personalProject.ts's
-  // taskRunOwner): a personal project's task works in its person's own storage
-  // and runs as them, with their credentials, overrides and storage; any other
-  // task works in its project's storage and runs as the project. The session
-  // row below records the same location, and `resolveRunner` and `runBoundary`
-  // both derive from it, so nothing downstream can make it a project run.
+  // A personal project's task runs as its person — their credentials, choices and agent settings — and works in
+  // the person's own storage for Your space, in the project's own for any other personal project. Any other
+  // task works in its project's storage and runs as the project. The session row below records the same
+  // location, and `resolveRunner` and `runBoundary` both derive from it and the task, so nothing downstream
+  // can disagree.
   const personalOwnerId = task.project.personalOwnerId
-  const primaryLoc: LocationRef = personalOwnerId
-    ? { ownerType: 'user', ownerId: personalOwnerId, taskId }
-    : { ownerType: 'project', ownerId: task.projectId, taskId }
-  const primaryOwnerSlugValue = personalOwnerId
-    ? ownerSlug('user', personalOwnerId, null)
-    : ownerSlug('project', task.projectId, task.project.slug)
+  const storage = placeStorageOf({ id: task.projectId, personalOwnerId, personalSpace: task.project.personalSpace })
+  const primaryLoc: LocationRef = { ownerType: storage.ownerType, ownerId: storage.ownerId, taskId }
+  const primaryOwnerSlugValue = ownerSlug(storage.ownerType, storage.ownerId, storage.ownerType === 'project' ? task.project.slug : null)
   // A personal task's session is its person's; any other task's names an admin
   // only as bookkeeping (see sessionEntitlement.ts).
   const sessionUserId = personalOwnerId ?? adminUserId
@@ -239,7 +236,7 @@ export async function dispatchTaskRun(
 
   // The run's model and runtime follow the work models (taskRunModel.ts); a session on another runtime that nothing
   // carries on in is replaced first, and a run that paused for a scheduled change is carried on where it was.
-  const choice = await chooseTaskRun({ type: primaryLoc.ownerType, id: primaryLoc.ownerId }, agent)
+  const choice = await chooseTaskRun(personalOwnerId ? { type: 'user', id: personalOwnerId } : { type: primaryLoc.ownerType, id: primaryLoc.ownerId }, agent)
   const { paused } = await readyTaskSession(taskId, agent, choice)
 
   const agentSession = await prisma.agentSession.upsert({

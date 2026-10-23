@@ -30,12 +30,12 @@ afterEach(cleanup)
 
 describe('Organisation › Agents', () => {
   it('lists every agent', () => {
-    show('/org/agents')
+    show('/admin/agents')
     expect(names()).toEqual(['Release bot', 'Frontend dev', 'Data analyst'])
   })
 
   it('shows only the agents with approval Bypassed for ?approval=bypassed, and lets everyone be shown again', () => {
-    show('/org/agents?approval=bypassed')
+    show('/admin/agents?approval=bypassed')
     expect(names()).toEqual(['Release bot', 'Data analyst'])
     expect(screen.getByText('Showing the agents with approval Bypassed.')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Show all agents' }))

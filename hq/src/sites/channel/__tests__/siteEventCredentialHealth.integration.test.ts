@@ -59,7 +59,7 @@ describe('site event intake — site.credentialHealth @SC-343 @SC-349', () => {
     expect(rows[0]).toMatchObject({
       type: 'credential_health',
       title: 'Credential missing on Build box — @bot',
-      actionUrl: '/org/settings/where-work-runs',
+      actionUrl: '/admin/where-work-runs',
     })
     expect(rows[0].body).toContain('no key on file')
   })

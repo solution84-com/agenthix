@@ -117,6 +117,49 @@ export function sameRunner(a: CapabilityRunner, b: CapabilityRunner): boolean {
 }
 
 /**
+ * The storage a run works in: a person's own, or a project's. `personalOwnerId`
+ * is set on a project's storage only when it is a person's personal project,
+ * and only from what hq signed (`CapabilityClaims.personalProject`).
+ */
+export interface RunStorage {
+  ownerType: 'project' | 'user'
+  ownerId: string
+  personalOwnerId?: string
+}
+
+/**
+ * The personal project a run works in, and the person who owns it — signed by
+ * hq so the site can tell a person's personal project from a shared one, which
+ * its own copy of the session cannot.
+ */
+export interface CapabilityPersonalProject {
+  projectId: string
+  personalOwnerId: string
+}
+
+/** Reads the personal project claim off a verified token's payload, or null when it is absent or malformed. */
+export function parseCapabilityPersonalProject(value: unknown): CapabilityPersonalProject | null {
+  if (typeof value !== 'object' || value === null) return null
+  const v = value as Record<string, unknown>
+  const nonEmpty = (s: unknown): s is string => typeof s === 'string' && s.length > 0
+  if (!nonEmpty(v.projectId) || !nonEmpty(v.personalOwnerId)) return null
+  return { projectId: v.projectId, personalOwnerId: v.personalOwnerId }
+}
+
+/**
+ * The storage, marked with its person when the claim names this very project:
+ * a claim for any other project, or for a person's own storage, marks nothing.
+ */
+export function storageWithPersonalOwner(
+  storage: { ownerType: 'project' | 'user'; ownerId: string },
+  personalProject: CapabilityPersonalProject | null,
+): RunStorage {
+  const base: RunStorage = { ownerType: storage.ownerType, ownerId: storage.ownerId }
+  if (!personalProject || storage.ownerType !== 'project' || personalProject.projectId !== storage.ownerId) return base
+  return { ...base, personalOwnerId: personalProject.personalOwnerId }
+}
+
+/**
  * Whether a runner may run in a storage boundary — one rule, applied by hq
  * before it signs and by the site before it launches. Returns why not, or null
  * when it may.
@@ -125,11 +168,14 @@ export function sameRunner(a: CapabilityRunner, b: CapabilityRunner): boolean {
  * - A person's own storage has one possible runner: that person.
  * - A chat is always its invoking person's (`invokerUserId`, the capability's
  *   `userId`), wherever it runs.
- * - Anything else in a project — a task — runs as that project.
+ * - Anything else in a project — a task — runs as that project, except in a
+ *   person's personal project, where it runs as that person and nobody else.
+ *   A person runner is never allowed in a shared project's storage outside a
+ *   chat, so a person's own credentials never reach a shared project's task.
  */
 export function runnerBoundaryMismatch(args: {
   runner: CapabilityRunner
-  storage: { ownerType: 'project' | 'user'; ownerId: string } | null
+  storage: RunStorage | null
   sessionType: string
   invokerUserId: string
 }): string | null {
@@ -146,7 +192,11 @@ export function runnerBoundaryMismatch(args: {
   if (runner.kind === 'project') {
     return runner.projectId === storage.ownerId ? null : 'the project runner names a different project'
   }
-  return sessionType === 'chat' ? null : 'only a chat runs for a person inside a project'
+  if (sessionType === 'chat') return null
+  if (storage.personalOwnerId === undefined) return 'only a chat runs for a person inside a shared project'
+  return runner.userId === storage.personalOwnerId
+    ? null
+    : "only its owner runs a task in a person's personal project"
 }
 
 /**
@@ -164,6 +214,13 @@ export interface CapabilityClaims {
   userId: string
   /** Who the run is for — see `CapabilityRunner`. */
   runner: CapabilityRunner
+  /**
+   * Set when the run works in a person's personal project (not Your space,
+   * which has no storage of its own): that project and its person. The one
+   * thing that lets a task there run as the person; a site that does not know
+   * it refuses such a run, as before.
+   */
+  personalProject?: CapabilityPersonalProject
   /**
    * What started the run — a person, a boundary's pulse, or a task's schedule
    * (adr-0087). Signed so hq can read it inside a tool call: what a run may do

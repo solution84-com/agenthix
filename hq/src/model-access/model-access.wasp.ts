@@ -8,7 +8,7 @@ import { setWebSearchKey, deleteWebSearchKey } from "./webSearchKeyActions" with
 import { startClaudeLogin, completeClaudeLogin, cancelClaudeLogin } from "./claudeLoginActions" with { type: "ref" };
 
 export const modelAccessSpec: Spec = [
-    route("ModelAccessRoute", "/org/settings/model-access", page(ModelAccessPage, { authRequired: true })),
+    route("ModelAccessRoute", "/admin/settings/model-access", page(ModelAccessPage, { authRequired: true })),
     query(getModelCredentialStatus, { entities: ["ModelCredential", "Provider", "User", "UserSettings", "Project", "ProjectMember"] }),
     query(getWebSearchKeyStatus, { entities: ["Provider", "UserSettings"] }),
     query(getMyModelAccess, { entities: ["Provider", "ModelCredential", "User", "UserSettings"] }),

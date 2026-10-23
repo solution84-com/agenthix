@@ -16,7 +16,7 @@ export function projectFields(p: Project): ProjectFields {
     executionSiteId: p.executionSiteId, productId: p.productId, programId: p.programId,
     defaultAgentId: p.defaultAgentId, accessLevel: p.accessLevel, runTimeLimitMinutes: p.runTimeLimitMinutes,
     runTurnLimit: p.runTurnLimit, archiveFinishedAfterDays: p.archiveFinishedAfterDays,
-    personalOwnerId: p.personalOwnerId, leadUserId: p.leadUserId, createdAt: p.createdAt, updatedAt: p.updatedAt,
+    personalOwnerId: p.personalOwnerId, personalSpace: p.personalSpace, leadUserId: p.leadUserId, createdAt: p.createdAt, updatedAt: p.updatedAt,
   }
 }
 

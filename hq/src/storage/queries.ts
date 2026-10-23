@@ -50,11 +50,10 @@ export const getMyStorageQuery = async (_args: unknown, context: Ctx) => {
   const workspaces: WorkspaceRow[] = held.answers.flatMap((a) => a.value.workspaces)
   const attachments: RepoAttachmentSummaryRow[] = held.answers.flatMap((a) => a.value.repos)
   // Only the projects this person is entitled to: an open one, or a private one
-  // they are listed on (spec §6.4). Not their personal project, which owns no
-  // storage — its work is in their own, the "Personal" group (agents own
-  // schedule spec §4).
+  // they are listed on (spec §6.4). Not Your space, which owns no storage — its
+  // work is in their own, the "Personal" group. A personal project of theirs has its own.
   const projects = await prisma.project.findMany({
-    where: { ...entitledProjectsFilter(context.user.id), personalOwnerId: null },
+    where: { ...entitledProjectsFilter(context.user.id), personalSpace: false },
     select: { id: true, name: true, key: true },
   })
   const wsRepo = new Map(attachments.filter(a => a.workspaceId).map(a => [a.workspaceId as string, a.repoUrl]))

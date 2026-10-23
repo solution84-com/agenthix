@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams } from 'react-router'
+import { rootCrumbFor } from '../../admin/adminCrumbs'
+import { teamsBase } from '../../admin/adminPaths'
 import { useQuery, useAction, getTeam, getUserSettings, deleteTeam, uploadTeamImage, removeTeamImage } from 'wasp/client/operations'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { IdentityHero } from '../components/IdentityHero'
@@ -15,6 +17,8 @@ const BUTTON = 'rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-bo
 export function TeamPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const base = teamsBase(pathname)
   const { data: team, error, refetch } = useQuery(getTeam, { id: id! })
   const { data: me } = useQuery(getUserSettings)
   const upload = useAction(uploadTeamImage)
@@ -25,7 +29,7 @@ export function TeamPage() {
   const [problem, setProblem] = useState('')
   const isAdmin = me?.role === 'ADMIN'
 
-  const crumbs = [{ label: 'Organisation', href: '/org' }, { label: 'Teams', href: '/org/teams' }, { label: team?.name ?? '…' }]
+  const crumbs = [rootCrumbFor(pathname), { label: 'Teams', href: base }, { label: team?.name ?? '…' }]
   if (!team) {
     return (
       <AppLayout breadcrumbs={crumbs}>
@@ -37,7 +41,7 @@ export function TeamPage() {
   const askDelete = async () => {
     if (!confirm(`Delete the team ${team.name}? This cannot be undone.`)) return
     setProblem('')
-    try { await remove({ id: team.id }); navigate('/org/teams') } catch (err) { setProblem(err instanceof Error ? err.message : 'Could not delete the team') }
+    try { await remove({ id: team.id }); navigate(base) } catch (err) { setProblem(err instanceof Error ? err.message : 'Could not delete the team') }
   }
 
   return (

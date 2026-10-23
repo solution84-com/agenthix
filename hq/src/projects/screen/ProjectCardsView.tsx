@@ -20,8 +20,10 @@ export interface ProjectRow {
   productId: string | null
   programId: string | null
   executionSiteId: string | null
-  /** Set on a person's own project, which is their Chat. */
+  /** Set on a personal project: the person's own, in the list under *Your personal projects*. */
   personalOwnerId: string | null
+  /** Your space, which is Chat and has its own entry in the navigation. */
+  personalSpace?: boolean
   isMember: boolean
   myRole: 'ADMIN' | 'MEMBER' | 'VIEWER' | null
   boards?: { id: string }[]
@@ -43,11 +45,36 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
   const nowAt = new Date()
 
   const shown = projects.filter(p => {
+    if (p.personalSpace) return false
     if (productId && p.productId !== productId) return false
     if (programId && p.programId !== programId) return false
     if (search.trim() && !`${p.name} ${p.description ?? ''}`.toLowerCase().includes(search.trim().toLowerCase())) return false
     return true
   })
+  const personal = shown.filter(p => p.personalOwnerId)
+  const organisation = shown.filter(p => !p.personalOwnerId)
+  const card = (project: ProjectRow) => (
+    <div key={project.id} className="relative">
+      {project.personalOwnerId && (
+        <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-full bg-surface-3 px-2 py-0.5 text-micro text-text-secondary">Only you</span>
+      )}
+      <ProjectCard
+        as={Link}
+        to={`/projects/${project.key}`}
+        project={{
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          now: project.isMember === false ? { state: 'quiet' as const } : projectCardNow(lineOf.get(project.id), nowAt),
+          notJoined: project.isMember === false,
+          boardCount: project.boards?.length ?? 0,
+          doneTaskCount: project.tasks?.filter(t => t.status === 'DONE').length ?? 0,
+          totalTaskCount: project.tasks?.length ?? 0,
+          onOpenBoards: () => toProjectBoards(project.key),
+        }}
+      />
+    </div>
+  )
   const product = products.find(p => p.id === productId)
   const program = programs.find(p => p.id === programId)
 
@@ -82,30 +109,25 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
 
       {isLoading ? (
         <div className="text-body text-text-muted">Loading...</div>
-      ) : !projects.length ? (
+      ) : !projects.some(p => !p.personalSpace) ? (
         <EmptyState icon={FolderKanban} title="No projects yet" hint="Create your first project to start managing tasks" />
       ) : !shown.length ? (
         <div className="text-body text-text-muted">No projects match the current filters.</div>
       ) : (
-        <div className="grid grid-cols-1 gap-1 md:grid-cols-2 md:gap-4 lg:grid-cols-3">
-          {shown.map(project => (
-            <ProjectCard
-              key={project.id}
-              as={Link}
-              to={`/projects/${project.key}`}
-              project={{
-                id: project.id,
-                name: project.name,
-                description: project.description,
-                now: project.isMember === false ? { state: 'quiet' as const } : projectCardNow(lineOf.get(project.id), nowAt),
-                notJoined: project.isMember === false,
-                boardCount: project.boards?.length ?? 0,
-                doneTaskCount: project.tasks?.filter(t => t.status === 'DONE').length ?? 0,
-                totalTaskCount: project.tasks?.length ?? 0,
-                onOpenBoards: project.personalOwnerId ? undefined : () => toProjectBoards(project.key),
-              }}
-            />
-          ))}
+        <div className="space-y-6">
+          {personal.length > 0 && (
+            <section aria-labelledby="personal-projects-heading">
+              <h2 id="personal-projects-heading" className="text-body font-medium text-text-primary">Your personal projects</h2>
+              <p className="mb-2 text-small text-text-muted">Only you see these.</p>
+              <div className="grid grid-cols-1 gap-1 md:grid-cols-2 md:gap-4 lg:grid-cols-3">{personal.map(card)}</div>
+            </section>
+          )}
+          {organisation.length > 0 && (
+            <section aria-label="Projects">
+              {personal.length > 0 && <h2 className="mb-2 text-body font-medium text-text-primary">Projects</h2>}
+              <div className="grid grid-cols-1 gap-1 md:grid-cols-2 md:gap-4 lg:grid-cols-3">{organisation.map(card)}</div>
+            </section>
+          )}
         </div>
       )}
     </>

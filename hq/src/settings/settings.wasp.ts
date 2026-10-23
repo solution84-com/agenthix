@@ -4,7 +4,7 @@ import { getUserSettings, getSiteConfig, getEnvStatus, getVersionInfo, getOrg, g
 import { updateUserSettings, updateUserRole, updateSiteConfig, updateOrg, refreshGithubInstallations, disconnectGithubApp, updateRiskRules } from "./actions" with { type: "ref" };
 import { syncBrowserTimezone, setMyTimezone } from "./timezoneActions" with { type: "ref" };
 import { removePerson, reactivatePerson } from "./leaving" with { type: "ref" };
-import { erasePerson } from "./erasePerson" with { type: "ref" };
+import { erasePerson, getErasedProjectCount } from "./erasePerson" with { type: "ref" };
 import { setPersonName, uploadPersonPicture, removePersonPicture } from "./personProfileActions" with { type: "ref" };
 import { getOrgPeople, getOrgPerson } from "./orgPeopleQueries" with { type: "ref" };
 import { getFilesPlace } from "./filesPlaceQuery" with { type: "ref" };
@@ -23,6 +23,7 @@ export const settingsSpec: Spec = [
     action(setMyTimezone, { entities: ["UserSettings"] }),
     action(removePerson, { entities: ["User", "UserSettings", "ProjectMember", "Project", "Task", "PersonConnection"] }),
     action(reactivatePerson, { entities: ["User", "UserSettings"] }),
+    query(getErasedProjectCount, { entities: ["Project"] }),
     action(erasePerson, { entities: ["User", "UserSettings", "ProjectMember", "Project", "Task", "PersonConnection", "Invite"] }),
     action(setPersonName, { entities: ["User"] }),
     action(uploadPersonPicture, { entities: ["User"] }),

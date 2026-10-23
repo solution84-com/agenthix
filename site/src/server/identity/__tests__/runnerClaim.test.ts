@@ -51,3 +51,36 @@ describe('the site refuses a capability whose runner is missing or does not fit'
     expect(() => requireRunnerForBoundary({ userId: 'alice' }, null)).toThrow(RunnerClaimError)
   })
 })
+
+describe("a task in a person's personal project runs as that person, and only there", () => {
+  const taskInAlicesProject = { ...chatInProject, taskId: 't2', userId: 'alice', sessionType: 'task' }
+  const alice = { kind: 'person', userId: 'alice' } as const
+  const signedFor = (personalProject: unknown) => ({ userId: 'alice', runner: alice, personalProject })
+
+  it("launches when hq signed the project as that person's personal project", () => {
+    expect(requireRunnerForBoundary(signedFor({ projectId: 'px', personalOwnerId: 'alice' }), taskInAlicesProject))
+      .toEqual(alice)
+  })
+
+  it("refuses it in someone else's personal project", () => {
+    expect(() => requireRunnerForBoundary(signedFor({ projectId: 'px', personalOwnerId: 'bob' }), taskInAlicesProject))
+      .toThrow(RunnerClaimError)
+  })
+
+  it('refuses it when the claim names another project than the one the session works in', () => {
+    expect(() => requireRunnerForBoundary(signedFor({ projectId: 'py', personalOwnerId: 'alice' }), taskInAlicesProject))
+      .toThrow(RunnerClaimError)
+  })
+
+  it('refuses it in a shared project, which carries no claim, or a malformed one', () => {
+    for (const claim of [undefined, null, {}, { projectId: 'px' }, 'alice']) {
+      expect(() => requireRunnerForBoundary(signedFor(claim), taskInAlicesProject)).toThrow(/inside a shared project/)
+    }
+  })
+
+  it('leaves a chat as it was', () => {
+    expect(requireRunnerForBoundary(signedFor({ projectId: 'px', personalOwnerId: 'alice' }), chatInProject)).toEqual(alice)
+    expect(() => requireRunnerForBoundary({ ...signedFor({ projectId: 'px', personalOwnerId: 'alice' }), userId: 'bob' }, chatInProject))
+      .toThrow(RunnerClaimError)
+  })
+})

@@ -45,7 +45,7 @@ describe("reaching a run's site without minting", () => {
   it("places a personal project's task in its person's own storage (agents own schedule spec §4)", async () => {
     const owner = await createUser()
     await prisma.userStoragePlacement.create({ data: { userId: owner.id, siteId: there.id } })
-    const project = await createProject({ name: 'Mine', personalOwnerId: owner.id, executionSiteId: here.id, accessLevel: 'PRIVATE' })
+    const project = await createProject({ name: 'Mine', personalOwnerId: owner.id, personalSpace: true, executionSiteId: here.id, accessLevel: 'PRIVATE' })
     const task = await createTestTask({ data: { title: 'T', projectId: project.id, number: 1, onBehalfOfUserId: owner.id } })
     expect(await resolveSiteIdForTask(task.id)).toBe(there.siteId)
   })

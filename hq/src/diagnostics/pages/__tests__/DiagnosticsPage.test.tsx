@@ -63,10 +63,10 @@ describe('Logs and diagnostics @SC-724', () => {
     answers.current.getDiagnosticsHealth = health
     answers.current.getRecentErrors = { range: '24h', since: now, groups: [] }
     show()
-    expect(screen.getByTestId('layout').getAttribute('data-crumbs')).toBe('Organisation / Infrastructure / Logs and diagnostics')
+    expect(screen.getByTestId('layout').getAttribute('data-crumbs')).toBe('Manage organisation / Infrastructure / Logs and diagnostics')
     const cards = within(screen.getByRole('region', { name: 'Health' })).getAllByRole('link')
     expect(cards.map(c => c.getAttribute('href'))).toEqual([
-      '/org/infrastructure/hq', '/org/settings/where-work-runs/e1', '/org/settings/where-work-runs/e2',
+      '/admin/infrastructure/hq', '/admin/where-work-runs/e1', '/admin/where-work-runs/e2',
     ])
     expect(cards[0].textContent).toContain('Database answering')
     expect(cards[1].textContent).toContain('2 of 4 runs')
@@ -81,14 +81,14 @@ describe('Logs and diagnostics @SC-724', () => {
       range: '24h', since: now,
       groups: [
         group({}),
-        group({ key: 'd', origin: 'site', title: 'Docker is not running on Build server 2', advice: 'Every run there fails.', ongoing: true, runLink: null, siteLink: '/org/settings/where-work-runs/e2', agent: null }),
+        group({ key: 'd', origin: 'site', title: 'Docker is not running on Build server 2', advice: 'Every run there fails.', ongoing: true, runLink: null, siteLink: '/admin/where-work-runs/e2', agent: null }),
         group({ key: 'c', title: 'A chat run ended with an error', count: 1, runLink: null, chatRun: true }),
       ],
     }
     show()
     const errors = within(screen.getByRole('region', { name: 'Recent errors' }))
     expect(errors.getByText('Open the run').getAttribute('href')).toBe('/runs/r1?session=s1')
-    expect(errors.getByText('Open the site').getAttribute('href')).toBe('/org/settings/where-work-runs/e2')
+    expect(errors.getByText('Open the site').getAttribute('href')).toBe('/admin/where-work-runs/e2')
     expect(errors.getAllByText(/They renew it in Settings/).length).toBe(2)
     expect(errors.getAllByText(/3 times/).length).toBe(1)
     expect(errors.getByText(/since /)).toBeTruthy()
@@ -122,7 +122,7 @@ describe('Logs and diagnostics @SC-724', () => {
     answers.current.getDiagnosticsHealth = health
     answers.current.getRecentErrors = { range: '24h', since: now, groups: [] }
     show()
-    expect(screen.getByText('Logs').closest('a')?.getAttribute('href')).toBe('/org/infrastructure/diagnostics/logs')
-    expect(screen.getByText('Download support bundle').closest('a')?.getAttribute('href')).toBe('/org/infrastructure/diagnostics/bundle')
+    expect(screen.getByText('Logs').closest('a')?.getAttribute('href')).toBe('/admin/infrastructure/diagnostics/logs')
+    expect(screen.getByText('Download support bundle').closest('a')?.getAttribute('href')).toBe('/admin/infrastructure/diagnostics/bundle')
   })
 })

@@ -24,7 +24,7 @@ model User {
   offerDismissals  OfferDismissal[]
   memoryRecords    MemoryItem[]
   storagePlacement UserStoragePlacement?
-  personalProject  Project?             @relation("PersonalProject")
+  personalProjects Project[]            @relation("PersonalProject")
   // A person's own Claude subscription, as a provider owned by them (models from one place, part 4).
   ownAiProviders   AiProvider[]         @relation("AiProviderOwner")
   connections      PersonConnection[]
@@ -1131,19 +1131,17 @@ model Project {
   runTurnLimit        Int?
   /// Archive its finished tasks after this many days; 0 = never, null = the org's default.
   archiveFinishedAfterDays Int?
-  /// Set only on a person's personal project, which it marks as one (agents
-  /// own schedule spec §4): one per person, private to them, its one member,
-  /// and its runs act as that person in their own storage. Never changes once
-  /// set. Restrict: removing the person removes this project first
+  /// Set only on a person's personal projects, which it marks as such: private to them, with them as its one
+  /// member, and its runs act as that person. A person has several (models from one place, part 4); the one that
+  /// is `personalSpace` works in their own storage, every other in its own. Never changes once set. Restrict: removing the person removes this project first
   /// (settings/actions.ts deleteUser), so it can never outlive them as an
   /// ordinary project somebody else could be added to.
-  personalOwnerId String?        @unique
+  personalOwnerId String?
   personalOwner   User?          @relation("PersonalProject", fields: [personalOwnerId], references: [id], onDelete: Restrict)
   /// Marks the person's space, the one personal project made with the account and never deleted (models from one
   /// place, part 4). A person may own several personal projects; exactly one is their space, by the partial unique
   /// index `Project_personalSpace_owner_key` the migration adds by hand:
   ///   CREATE UNIQUE INDEX "Project_personalSpace_owner_key" ON "Project"("personalOwnerId") WHERE "personalSpace";
-  /// `personalOwnerId` keeps its own uniqueness until the lane that allows several personal projects removes it.
   personalSpace   Boolean        @default(false)
   /// The billing profile the project's AI cost belongs to (part 5). Required once setup makes the default
   /// profile; nullable until then. Restrict: a profile is archived, never deleted.
@@ -1165,6 +1163,8 @@ model Project {
   milestones       Milestone[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+
+  @@index([personalOwnerId])
 }
 
 /// Where a library item came from (every screen reviewed spec §3, Library):

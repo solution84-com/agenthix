@@ -230,7 +230,7 @@ describe("a routine's run is its person's @SC-702", () => {
 
   it("uses the routine's person's own login in their personal project", async () => {
     const person = await createUserWithRole('MEMBER')
-    const personal = await createProject({ name: 'Mine', key: `ME${++seq}`, personalOwnerId: person.id, accessLevel: 'PRIVATE' })
+    const personal = await createProject({ name: 'Mine', key: `ME${++seq}`, personalOwnerId: person.id, personalSpace: true, accessLevel: 'PRIVATE' })
     await prisma.projectMember.create({ data: { projectId: personal.id, userId: person.id } })
     const agent = await agentWithContent()
     await storeSubscription('user', person.id, 'person-oauth')

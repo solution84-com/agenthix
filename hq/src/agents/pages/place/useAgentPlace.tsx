@@ -48,7 +48,7 @@ function toolGroups(view: AgentPlaceView, userId: string, extra: { usage: string
       ],
       footer: view.canManage ? (
         <p className="mt-4 text-small">
-          <Link to={`/org/agents/${agent.handle}`} className="font-medium text-accent hover:text-accent-hover">Manage ›</Link>
+          <Link to={`/admin/agents/${agent.handle}`} className="font-medium text-accent hover:text-accent-hover">Manage ›</Link>
         </p>
       ) : undefined,
     },

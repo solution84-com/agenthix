@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useQuery, useAction, getOrgPerson, removePerson } from 'wasp/client/operations'
 import { Button } from '@agenthix/ui/primitives'
@@ -23,7 +24,7 @@ function RemovePerson({ userId }: { userId: string }) {
   const [chosen, setChosen] = useState<Record<string, OpenTasksChoice | undefined>>({})
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const crumbs = (last: string) => [{ label: 'Organisation', href: '/org' }, { label: 'People', href: '/org/people' }, { label: last }]
+  const crumbs = (last: string) => [ADMIN_CRUMB, { label: 'People', href: '/admin/people' }, { label: last }]
 
   if (!view) {
     return <AppLayout breadcrumbs={crumbs('Remove')}><div className="px-6 py-16 text-center text-text-muted">{loadError ? loadError.message : 'Loading…'}</div></AppLayout>
@@ -37,7 +38,7 @@ function RemovePerson({ userId }: { userId: string }) {
       <AppLayout breadcrumbs={crumbs(person.name)}>
         <div className="px-6 py-16 text-center text-text-muted">
           {view.isMe ? 'You cannot remove your own account.' : `${person.name} has already left.`}{' '}
-          <Link to={`/org/people/${userId}`} className="text-accent hover:text-accent-hover">Back</Link>
+          <Link to={`/admin/people/${userId}`} className="text-accent hover:text-accent-hover">Back</Link>
         </div>
       </AppLayout>
     )
@@ -49,7 +50,7 @@ function RemovePerson({ userId }: { userId: string }) {
     setError(null)
     try {
       await remove({ userId, openTasks: destinations })
-      navigate(`/org/people/${userId}`)
+      navigate(`/admin/people/${userId}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setBusy(false)
@@ -101,7 +102,7 @@ function RemovePerson({ userId }: { userId: string }) {
           {error && <p role="alert" className="text-body text-danger">{error}</p>}
           <div className="flex items-center gap-3">
             <Button variant="danger" disabled={!destinations || busy} onClick={() => void submit()}>{busy ? 'Removing…' : `Remove ${person.name}`}</Button>
-            <Link to={`/org/people/${userId}`} className="text-body text-text-secondary hover:text-text-primary">Cancel</Link>
+            <Link to={`/admin/people/${userId}`} className="text-body text-text-secondary hover:text-text-primary">Cancel</Link>
             {!destinations && <span className="text-small text-text-muted">Choose for every project first.</span>}
           </div>
         </div>

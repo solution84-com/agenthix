@@ -45,10 +45,14 @@ function isLinkData(data: unknown): data is HqLinkData {
 /**
  * Piped into `node` inside hq-server: it sends one request to the control socket and prints hq's answer as it
  * came, one JSON line. Plain Node, so it needs nothing beside hq. Exit 3 means hq is not answering.
+ *
+ * A command's arguments come from its command line, or, for one that carries a secret, from `PRIVATE_ARGS`, which
+ * `runPrivately` writes into the piped program itself, so the secret is never an argument of any process.
  */
 export const CONTROL_SCRIPT = `
 import net from 'node:net'
-const [command, ...args] = process.argv.slice(2)
+const command = process.argv[2]
+const args = typeof PRIVATE_ARGS !== 'undefined' ? PRIVATE_ARGS : process.argv.slice(3)
 const conn = net.createConnection(process.env.HQ_CONTROL_SOCKET || ${JSON.stringify(HQ_CONTROL_SOCKET)})
 let reply = ''
 conn.setEncoding('utf8')
@@ -64,7 +68,10 @@ export class HqControl {
 
   /** hq's answer, or null when hq does not answer (not running, or still starting). */
   async run(command: string, args: string[] = []): Promise<HqCommandResult | null> {
-    const r = await this.docker.exec(this.container, ['node', '--input-type=module', '-', command, ...args], CONTROL_SCRIPT)
+    return this.answer(await this.docker.exec(this.container, ['node', '--input-type=module', '-', command, ...args], CONTROL_SCRIPT))
+  }
+
+  private answer(r: { code: number; stdout: string }): HqCommandResult | null {
     if (r.code !== 0) return null
     try {
       const value = JSON.parse(r.stdout.trim()) as HqCommandResult
@@ -72,6 +79,27 @@ export class HqControl {
     } catch {
       return null
     }
+  }
+
+  /**
+   * As `run`, with the arguments sent inside the piped program rather than on the command line: for an argument that
+   * is a secret, such as a provider's key, which must not show in the process list or in Docker's record of the exec.
+   */
+  async runPrivately(command: string, args: string[]): Promise<HqCommandResult | null> {
+    return this.answer(await this.docker.exec(this.container, ['node', '--input-type=module', '-', command], `const PRIVATE_ARGS = ${JSON.stringify(args)}\n${CONTROL_SCRIPT}`))
+  }
+
+  /** `provider add`: the key travels as `runPrivately` sends it. An empty key, name or address is none. */
+  async providerAdd(p: { vendor: string; key: string; name?: string; address?: string }): Promise<HqCommandResult | null> {
+    return this.runPrivately('provider', ['add', p.vendor, p.key, p.name ?? '', p.address ?? ''])
+  }
+
+  async providerList(): Promise<HqCommandResult | null> {
+    return this.run('provider', ['list'])
+  }
+
+  async providerRemove(which: string): Promise<HqCommandResult | null> {
+    return this.run('provider', ['remove', which])
   }
 
   async status(): Promise<HqStatusData | null> {

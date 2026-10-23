@@ -61,7 +61,7 @@ vi.mock('../workspaceStore', () => ({
 }))
 vi.mock('../ownerSite', () => ({ resolveOwnerSiteId: vi.fn() }))
 vi.mock('../../sites/localSite', () => ({ resolveDefaultSiteRef: vi.fn(), requireDefaultExecutionSiteId: vi.fn() }))
-vi.mock('../../server/providerService', () => ({ getLlmApiKey: vi.fn(), seedLlmApiKey: vi.fn() }))
+vi.mock('../../server/providerService', () => ({ getLlmApiKey: vi.fn() }))
 vi.mock('../repoWorkStore', () => ({ connectRepoOnSite: vi.fn(), repoStateOnSite: vi.fn() }))
 vi.mock('../github', () => ({
   createGitHubRepo: vi.fn(), generateAndRegisterKey: vi.fn(), revokeGitHubKey: vi.fn(),

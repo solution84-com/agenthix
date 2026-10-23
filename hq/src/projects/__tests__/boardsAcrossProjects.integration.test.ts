@@ -62,8 +62,8 @@ describe('the Boards view @SC-655', () => {
     const shared = await createProject({ name: 'Shared', key: 'SHARED' })
     await joinProjectAs(shared.id, me.id, 'VIEWER')
     await board(shared.id, 'Old', { archivedAt: new Date() })
-    const own = await createProject({ name: 'My tasks', key: 'MYT', personalOwnerId: me.id })
-    const theirs = await createProject({ name: 'My tasks', key: 'THEIRPERSONAL', personalOwnerId: other.id })
+    const own = await createProject({ name: 'My tasks', key: 'MYT', personalOwnerId: me.id, personalSpace: true })
+    const theirs = await createProject({ name: 'My tasks', key: 'THEIRPERSONAL', personalOwnerId: other.id, personalSpace: true })
     await board(own.id, 'Mine alone')
     await board(theirs.id, 'Theirs alone')
 

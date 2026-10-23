@@ -28,6 +28,7 @@ import type { WorkspaceOwnerType } from '@prisma/client'
 import { getWorkspace } from './workspaceStore'
 import { rethrowSiteUnreachableAsHttp } from './httpErrors'
 import { requireMayWorkInProject, requireProjectMember } from '../projects/membership'
+import { isYourSpace } from '../projects/personalProject'
 
 export type LocationAccessRef = {
   ownerType: WorkspaceOwnerType
@@ -45,12 +46,12 @@ export async function assertLocationAccess(loc: LocationAccessRef, userId: strin
   if (ownerType === 'user') {
     if (ownerId !== userId) throw new HttpError(403, 'You can only use your own personal files')
   } else if (ownerType === 'project') {
-    const project = await prisma.project.findUnique({ where: { id: ownerId }, select: { id: true, personalOwnerId: true } })
+    const project = await prisma.project.findUnique({ where: { id: ownerId }, select: { id: true, personalOwnerId: true, personalSpace: true } })
     if (!project) throw new HttpError(404, 'Project not found')
     if (use === 'work') await requireMayWorkInProject(ownerId, userId, "Using this project's storage")
     else await requireProjectMember(ownerId, userId, "Using this project's storage")
-    if (project.personalOwnerId) {
-      throw new HttpError(400, 'A personal project has no storage of its own; its work is in your own files')
+    if (isYourSpace(project)) {
+      throw new HttpError(400, 'Your space has no storage of its own; its work is in your own files')
     }
   } else {
     const _exhaustive: never = ownerType

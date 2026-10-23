@@ -13,7 +13,7 @@ vi.mock('wasp/server', async () => {
 process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 9).toString('base64')
 
 import {
-  getProviderKey, setProviderKey, looksEncrypted, getLlmApiKey, seedLlmApiKey,
+  getProviderKey, setProviderKey, looksEncrypted, getLlmApiKey,
   getOrgModelKey, setOrgModelKey, getWebSearchKey, setWebSearchKey,
 } from '../providerService'
 import { encryptSecret, decryptSecret } from '../crypto/secretCrypto'
@@ -55,26 +55,6 @@ describe('providerService — encryption at rest', () => {
   it('rejects an empty value rather than writing a key that would round-trip wrong', async () => {
     await expect(setProviderKey('llm', 'anthropic', '')).rejects.toThrow()
     expect(await prisma.provider.count()).toBe(0)
-  })
-
-  it('seedLlmApiKey creates an encrypted row when none exists, and never overwrites one', async () => {
-    expect(await seedLlmApiKey('anthropic', 'sk-env')).toBe(true)
-    expect(looksEncrypted((await row('llm', 'anthropic'))!.apiKey)).toBe(true)
-
-    await seedLlmApiKey('anthropic', 'sk-other')
-    expect(await getProviderKey('llm', 'anthropic')).toBe('sk-env')
-  })
-
-  // The seed runs unguarded during boot, so a missing master key must skip it
-  // rather than turn a convenience seed into a boot failure.
-  it('seedLlmApiKey skips rather than throwing when SECRETS_MASTER_KEY is unset', async () => {
-    vi.stubEnv('SECRETS_MASTER_KEY', '')
-    try {
-      expect(await seedLlmApiKey('anthropic', 'sk-env')).toBe(false)
-      expect(await prisma.provider.count()).toBe(0)
-    } finally {
-      vi.unstubAllEnvs()
-    }
   })
 })
 

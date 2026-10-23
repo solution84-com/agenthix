@@ -155,7 +155,7 @@ describe("a personal project's task runs as its person", () => {
   async function personalTask() {
     const owner = await createUserWithRole('MEMBER')
     await prisma.userStoragePlacement.create({ data: { userId: owner.id, siteId: ready.site.id } })
-    const project = await createProject({ name: 'My tasks', key: `MY${++seq}`, personalOwnerId: owner.id, executionSiteId: null, accessLevel: 'PRIVATE' })
+    const project = await createProject({ name: 'My tasks', key: `MY${++seq}`, personalOwnerId: owner.id, personalSpace: true, executionSiteId: null, accessLevel: 'PRIVATE' })
     const agent = await agentWithContent()
     const task = await createTestTask({ data: { title: 'Water the plants', projectId: project.id, number: 3, onBehalfOfUserId: owner.id, assignedAgentId: agent.id } })
     return { owner, project, agent, task }
@@ -188,6 +188,21 @@ describe("a personal project's task runs as its person", () => {
     const { payload } = dispatched()
     expect(payload.context.credential).toMatchObject({ apiKey: 'sk-owner' })
     expect(payload.model).toBe('claude-haiku-4-5')
+  })
+})
+
+describe("another personal project's task runs as its person, in the project's own storage", () => {
+  it('names the project as the storage and the person as the runner and the session', async () => {
+    const owner = await createUserWithRole('MEMBER')
+    const project = await createProject({ name: 'Side', key: `SD${++seq}`, personalOwnerId: owner.id, executionSiteId: ready.site.id, accessLevel: 'PRIVATE' })
+    const agent = await agentWithContent()
+    const task = await createTestTask({ data: { title: 'Sort receipts', projectId: project.id, number: 4, onBehalfOfUserId: owner.id, assignedAgentId: agent.id } })
+    await dispatchTaskRun(task.id, agent, 'person')
+    expect(await prisma.agentSession.findUniqueOrThrow({ where: { taskId: task.id } })).toMatchObject({
+      primaryOwnerType: 'project', primaryOwnerId: project.id, userId: owner.id,
+    })
+    expect(dispatched().claims.runner).toEqual({ kind: 'person', userId: owner.id })
+    expect(dispatched().claims.personalProject).toEqual({ projectId: project.id, personalOwnerId: owner.id })
   })
 })
 

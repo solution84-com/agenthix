@@ -33,7 +33,7 @@ function Row({ row }: { row: OrgPersonRow }) {
     <li className={`relative ${ROW_GRID} rounded-lg px-2 py-3 hover:bg-surface-hover`}>
       <PersonProfileTrigger userId={person.userId}><span className="relative z-10 block"><PersonFace person={person} /></span></PersonProfileTrigger>
       <div className="min-w-0">
-        <Link to={`/org/people/${person.userId}`} className={ROW_BUTTON}>
+        <Link to={`/admin/people/${person.userId}`} className={ROW_BUTTON}>
           <span className="font-medium">{person.name}</span>{row.isMe && <span className="ml-2 text-small font-normal text-text-muted">you</span>}
         </Link>
         <div className="truncate text-small text-text-muted">{person.handle ? `@${person.handle}` : 'Erased'}</div>

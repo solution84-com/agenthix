@@ -136,7 +136,7 @@ describe('getMyStorage @SC-247', () => {
     const listed = await createProject({ accessLevel: 'PRIVATE' })
     await prisma.projectMember.createMany({ data: [open, listed].map(p => ({ projectId: p.id, userId: me.id })) })
     await createProject({ accessLevel: 'PRIVATE' })
-    await createProject({ personalOwnerId: me.id, accessLevel: 'PRIVATE' })
+    await createProject({ personalOwnerId: me.id, personalSpace: true, accessLevel: 'PRIVATE' })
 
     const { groups } = await getMyStorageQuery(undefined, ctx(me))
 

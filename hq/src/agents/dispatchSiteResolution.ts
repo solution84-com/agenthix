@@ -22,17 +22,17 @@ import { taskRunOwner } from '../projects/personalProject'
  * and manifestActions' task-run branch.
  *
  * A task run works in its project's `tasks/{taskId}/` directory (its person's,
- * for a personal project) —
+ * for a task in Your space) —
  * `dispatchTaskRun` builds exactly this location before it mints — so this
  * lands on the site holding that project's storage, and refuses (rather than
  * guessing a site) when the task is gone.
  */
 export async function resolveSiteIdForTask(taskId: string): Promise<string> {
-  // The same location dispatchTaskRun builds: a personal project's task works
-  // in its person's own storage, and lands on the site holding that.
+  // The same location dispatchTaskRun builds: a task in Your space works in its
+  // person's own storage, any other in its project's, and lands on the site holding that.
   const owner = await taskRunOwner(taskId)
   if (!owner) throw new HttpError(400, `Task ${taskId} not found`)
-  return resolveExecutionSiteId({ ownerType: owner.ownerType, ownerId: owner.ownerId, taskId })
+  return resolveExecutionSiteId({ ownerType: owner.storage.ownerType, ownerId: owner.storage.ownerId, taskId })
 }
 
 /**

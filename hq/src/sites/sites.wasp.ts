@@ -8,8 +8,8 @@ import { siteLeaveHandler as siteLeaveApi } from "./leaveApi" with { type: "ref"
 import { hostLeaveHandler as hostLeaveApi } from "./machineLeaveApi" with { type: "ref" };
 
 export const sitesSpec: Spec = [
-    route("ExecutionSitesRoute", "/org/settings/where-work-runs", page(ExecutionSitesPage, { authRequired: true })),
-    route("SiteRoute", "/org/settings/where-work-runs/:executionSiteId", page(SitePage, { authRequired: true })),
+    route("ExecutionSitesRoute", "/admin/where-work-runs", page(ExecutionSitesPage, { authRequired: true })),
+    route("SiteRoute", "/admin/where-work-runs/:executionSiteId", page(SitePage, { authRequired: true })),
     query(getExecutionSites, { entities: ["ExecutionSite"] }),
     query(getSiteList, { entities: ["ExecutionSite", "UserSettings", "Task", "HeldSiteInstruction"] }),
     query(getSiteDetail, { entities: ["ExecutionSite", "UserSettings", "Task", "Project", "HeldSiteInstruction"] }),

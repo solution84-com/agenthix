@@ -1,26 +1,28 @@
 /**
- * A person's personal project (agents own schedule spec §4). It is an ordinary
- * project with one column, `personalOwnerId`, and the rules that column brings:
+ * A person's personal projects (models from one place, part 4). A personal project is an ordinary project with
+ * one column, `personalOwnerId`, and the rules that column brings:
  *
- *  - one per person, created with their account and deleted only when they
- *    are erased (adr-0100);
- *  - private, with exactly one member — its owner, as its admin — who cannot
- *    leave it, add anyone, change its access, file it, or delete it;
- *  - its runs act as that person in their own storage, never as a project
- *    (`runBoundary`, `taskRunLocation`), so it has no project storage, no
- *    project credential and no project overrides of its own.
+ *  - a person has several. One is **Your space**, marked `personalSpace`: made with the account and never
+ *    deleted before they are erased (adr-0100). The others are made by the person and deleted by them;
+ *  - private, with exactly one member — its owner, as its admin — who cannot leave it, add anyone, change its
+ *    access, file it, or become more than a project only they use;
+ *  - its runs act as that person (their credentials, choices and agent settings). Where they work differs: the
+ *    space works in the person's own storage, every other personal project in its own, on the site that holds
+ *    the person's (`taskRunOwner`, `placeStorageOf`).
  *
- * Each rule is enforced by the action that would break it, through
- * `refuseOnPersonalProject` below, and visibility by `isProjectMember` and
- * `entitledProjectsFilter` (membership.ts), which answer for the owner alone.
+ * Each rule is enforced by the action that would break it, through `refuseOnPersonalProject` below, and
+ * visibility by `isProjectMember` and `entitledProjectsFilter` (membership.ts), which answer for the owner alone.
  */
 import { randomInt } from 'node:crypto'
 import type { Prisma } from '@prisma/client'
 import { HttpError, prisma } from 'wasp/server'
 import { projectTasksBoardCreate } from './boardColumns'
+import { requireRole } from '../server/identity/requireRole'
 import { Logger } from '../server/utils/logger'
 
 const logger = new Logger('PersonalProject')
+
+export type StorageOwner = { ownerType: 'project' | 'user'; ownerId: string }
 
 export const PERSONAL_PROJECT_NAME = 'My tasks'
 
@@ -32,6 +34,44 @@ export async function personalOwnerOf(projectId: string): Promise<string | null>
 
 export async function isPersonalProject(projectId: string): Promise<boolean> {
   return (await personalOwnerOf(projectId)) !== null
+}
+
+/** Whether a project is a person's own space: the personal project that works in the person's own storage. */
+export function isYourSpace(project: { personalOwnerId: string | null; personalSpace: boolean }): boolean {
+  return project.personalOwnerId !== null && project.personalSpace
+}
+
+/**
+ * Where a project's files, workspaces and runs live: the person's own storage for their space, the project's
+ * own for every other project, a personal one included.
+ */
+export function placeStorageOf(project: { id: string; personalOwnerId: string | null; personalSpace: boolean }): StorageOwner {
+  return isYourSpace(project) && project.personalOwnerId
+    ? { ownerType: 'user', ownerId: project.personalOwnerId }
+    : { ownerType: 'project', ownerId: project.id }
+}
+
+/** Whether the project is a person's space, by id. */
+export async function isSpaceProject(projectId: string): Promise<boolean> {
+  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { personalOwnerId: true, personalSpace: true } })
+  return project !== null && isYourSpace(project)
+}
+
+/**
+ * Who may delete a project: its owner for a personal project that is not their space, and the organisation's
+ * admin for any other. The space is never deleted; to anyone but its owner a personal project does not exist,
+ * organisation admins included.
+ */
+export async function requireMayDeleteProject(context: { user?: { id: string } | null }, projectId: string): Promise<void> {
+  if (!context.user) throw new HttpError(401, 'Not authenticated')
+  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { personalOwnerId: true, personalSpace: true } })
+  if (!project?.personalOwnerId) {
+    // Destroying a boundary is structure, symmetric with creating one (§6.4's org-admin column).
+    await requireRole(context, 'ADMIN', 'Deleting a project')
+    return
+  }
+  if (project.personalOwnerId !== context.user.id) throw new HttpError(404, 'Project not found')
+  if (project.personalSpace) throw new HttpError(400, 'Your space is not deleted; it stays for as long as you are in the organisation')
 }
 
 /** Refuses an act a personal project does not allow, for everyone — its owner and the org's admins alike. */
@@ -63,31 +103,39 @@ export async function refuseMoveAcrossPersonalEdge(taskId: string, boardId: stri
   if (task) await refuseBoardAcrossPersonalEdge(task.projectId, boardId)
 }
 
-export type TaskRunOwner = { projectId: string; ownerType: 'project' | 'user'; ownerId: string }
+export type TaskRunOwner = {
+  projectId: string
+  /** Whose authority the run carries and whose settings apply: the person for any personal project, else the project. */
+  ownerType: 'project' | 'user'
+  ownerId: string
+  /** Where the run works: the person's own storage for Your space, the project's own for every other project. */
+  storage: StorageOwner
+}
 
 /**
- * Whose storage a task's runs work in, and so whose authority they carry — the
- * one rule every task-run path reads (spec §4): a task in a personal project
- * runs in its person's own storage, as that person; any other task runs in its
- * project's storage, as the project. Null when the task is gone. Read fresh
+ * Whose a task's runs are, and where they work — the one rule every task-run path reads. A task in a personal
+ * project runs as its person, in their own storage for Your space and in the project's own for any other
+ * personal project; any other task runs as its project, in its storage. Null when the task is gone. Read fresh
  * from the task's current project, never from a session row.
  */
 export async function taskRunOwner(taskId: string): Promise<TaskRunOwner | null> {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { projectId: true, project: { select: { personalOwnerId: true } } },
+    select: { projectId: true, project: { select: { personalOwnerId: true, personalSpace: true } } },
   })
   if (!task) return null
-  const person = task.project.personalOwnerId
+  const { personalOwnerId: person, personalSpace } = task.project
+  const storage = placeStorageOf({ id: task.projectId, personalOwnerId: person, personalSpace })
   return person
-    ? { projectId: task.projectId, ownerType: 'user', ownerId: person }
-    : { projectId: task.projectId, ownerType: 'project', ownerId: task.projectId }
+    ? { projectId: task.projectId, ownerType: 'user', ownerId: person, storage }
+    : { projectId: task.projectId, ownerType: 'project', ownerId: task.projectId, storage }
 }
 
 /**
  * The tasks whose runs go to one site — the same answer `taskRunOwner` gives
- * dispatch: a project's tasks on the project's site, a personal project's
- * (which names no site of its own) on the site holding its person's storage.
+ * dispatch: a project's tasks on the project's site (a personal project's too,
+ * which is placed on the site holding its person's storage), Your space's, which names no site of its own,
+ * on the site holding its person's storage.
  * For the sweeps that pick a site's tasks out of the database (reconcile, the
  * reconnect drain), so they never miss a personal project's.
  */
@@ -95,7 +143,7 @@ export function tasksRunOnSite(siteId: string): Prisma.TaskWhereInput {
   return {
     OR: [
       { project: { executionSite: { siteId } } },
-      { project: { personalOwner: { is: { storagePlacement: { is: { site: { siteId } } } } } } },
+      { project: { personalSpace: true, personalOwner: { is: { storagePlacement: { is: { site: { siteId } } } } } } },
     ],
   }
 }
@@ -115,17 +163,18 @@ function isUniqueViolation(err: unknown): boolean {
 export type PersonalProjectRef = { id: string; key: string; name: string }
 
 /**
- * The person's personal project, created if it does not exist yet. Idempotent
- * and safe to race: `personalOwnerId` is unique, so a second creator fails on it
- * and reads back the winner's. A key collision with another project just tries
- * another key.
+ * The person's space, created if it does not exist yet. Idempotent and safe to race: at most one personal
+ * project per person is the space (a partial unique index), so a second creator fails on it and reads back the
+ * winner's. A key collision with another project just tries another key.
  *
- * It names no Execution Site and provisions no files: it has no storage of its
- * own, because its runs work in the person's own storage (spec §4).
+ * It names no Execution Site and provisions no files: it has no storage of its own, because its runs work in the
+ * person's own storage. The projects a person makes themselves are placed and provisioned by
+ * `createPersonalProject` (personalProjectService.ts).
  */
 export async function ensurePersonalProject(userId: string): Promise<PersonalProjectRef> {
   const select = { id: true, key: true, name: true } as const
-  const existing = await prisma.project.findUnique({ where: { personalOwnerId: userId }, select })
+  const where = { personalOwnerId: userId, personalSpace: true }
+  const existing = await prisma.project.findFirst({ where, select })
   if (existing) return existing
 
   for (let attempt = 0; attempt < 40; attempt++) {
@@ -136,6 +185,7 @@ export async function ensurePersonalProject(userId: string): Promise<PersonalPro
           key: candidateKey(attempt),
           accessLevel: 'PRIVATE',
           personalOwnerId: userId,
+          personalSpace: true,
           members: { create: { userId, role: 'ADMIN' } },
           // Its Project Tasks, as every project has (adr-0097).
           boards: { create: projectTasksBoardCreate() },
@@ -144,7 +194,7 @@ export async function ensurePersonalProject(userId: string): Promise<PersonalPro
       })
     } catch (err) {
       if (!isUniqueViolation(err)) throw err
-      const raced = await prisma.project.findUnique({ where: { personalOwnerId: userId }, select })
+      const raced = await prisma.project.findFirst({ where, select })
       if (raced) return raced
     }
   }
@@ -152,14 +202,14 @@ export async function ensurePersonalProject(userId: string): Promise<PersonalPro
 }
 
 /**
- * Every account's personal project, at boot. Only the accounts that have none
+ * Every account's space, at boot. Only the accounts that have none
  * are touched, so it is a no-op once each has one; an erased person's went
  * with their data and is never made again (adr-0100). One account's failure is
  * logged and does not stop the rest; `ensurePersonalProject` runs again the
  * next time that person opens it.
  */
 export async function ensurePersonalProjectsForEveryone(): Promise<void> {
-  const users = await prisma.user.findMany({ where: { personalProject: null, erasedAt: null }, select: { id: true } })
+  const users = await prisma.user.findMany({ where: { personalProjects: { none: { personalSpace: true } }, erasedAt: null }, select: { id: true } })
   for (const { id } of users) {
     try {
       await ensurePersonalProject(id)

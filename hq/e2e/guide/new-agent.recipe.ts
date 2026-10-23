@@ -4,7 +4,7 @@ import { capture } from './capture'
 // screenshot:new-agent — the New Agent dialog under Organisation › Agents, filled in and not saved.
 test('new-agent', async ({ page }) => {
   await capture(page, {
-    path: '/org/agents',
+    path: '/admin/agents',
     before: async (p) => {
       await p.getByRole('button', { name: 'New agent', exact: true }).click()
       await p.getByPlaceholder('My Assistant').fill('Editor')

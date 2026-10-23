@@ -63,7 +63,7 @@ export function projectsOnSite(siteId: string): Prisma.ProjectWhereInput {
   return {
     OR: [
       { executionSite: { siteId } },
-      { personalOwner: { is: { storagePlacement: { is: { site: { siteId } } } } } },
+      { personalSpace: true, personalOwner: { is: { storagePlacement: { is: { site: { siteId } } } } } },
     ],
   }
 }

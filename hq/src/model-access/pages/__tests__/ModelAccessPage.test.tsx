@@ -41,7 +41,7 @@ describe('ModelAccessPage, under Organisation › Settings', () => {
   it('gives an admin the org section and the fall-back order', () => {
     settingsAre({ data: { role: 'ADMIN' } })
     render(<ModelAccessPage />)
-    expect(screen.getByTestId('layout').getAttribute('data-crumbs')).toBe('Organisation / Settings / Model access')
+    expect(screen.getByTestId('layout').getAttribute('data-crumbs')).toBe('Manage organisation / Settings / Model access')
     expect(screen.getByTestId('section').textContent).toBe('org:org')
     expect(screen.getByText(/A run in a project uses\s+the project's own, then the person it is for/)).toBeTruthy()
     expect(screen.getByTestId('web-search')).toBeTruthy()

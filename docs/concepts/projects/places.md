@@ -31,16 +31,26 @@ conversation stays where it was started ([conversations](../conversations/conver
 A task has a third home, its own page, where its thread is shared with the project; a task's session is the agent's
 working record and is shared too ([sessions](../agents/sessions.md#a-tasks-session-is-shared)).
 
-## The person's own space
+## The person's own place
 
-**Your space** is the person's [personal project](personal-projects.md), the default one every person has, together
-with their own storage, shown through the same screens as a project. It has its own entry, fixed at the top of the
-navigation under Chat, and the same sections as a project; Chat is the list of its conversations alone. Its
-conversations are those in no project, in the person's own storage or in their personal project. Its facts say that
-only the person sees it, that any agent can be talked to, which site holds their storage (once it is placed on one),
-and where their files are. It has no Members, Timeline or Settings, because a personal project cannot have them; its
-**Agents** section (any agent in the organisation) is open from its row and from the link in its facts. A link to the
-personal project, or to a conversation in the person's own storage, leads to Your space or Chat.
+A person's own place is **Your space** and every [personal project](personal-projects.md) they make. Only they see
+them, agents work in them as the person, and the person's own Claude subscription serves Claude models there and
+nowhere else.
+
+**Your space** is the person's default personal project, which every person has, together with their own storage,
+shown through the same screens as a project. It has its own entry, fixed at the top of the navigation under Chat, and the same
+sections as a project; Chat is the list of its conversations alone. Its conversations are those in no project, in the
+person's own storage or in their space. Its facts say that only the person sees it, that any agent can be talked to,
+which personal projects they have, which site holds their storage (once it is placed on one), and where their files
+are. It has no Members, Timeline or Settings; its **Agents** section (any agent in the organisation) is open from its
+row and from the link in its facts. A link to the space, or to a conversation in the person's own storage, leads to
+Your space or Chat.
+
+**A personal project** the person made is a place of its own at `/projects/KEY`, marked *Only you* in the Projects page
+under *Your personal projects*, in the project switcher and in the dock's list of places. It has the sections of Your
+space and a Settings, and its own storage, so its Files, Artefacts, Knowledge and Workspaces are its own and not the
+person's. Its conversations are listed in it, and only with the person's own choices (the person's list, not the
+project's).
 
 ## A place's sections are the left panel
 
@@ -54,6 +64,7 @@ Projects, the place's name and the section. The same model serves a project, you
 |---|---|
 | A project | Overview, Conversations, Tasks, Boards, Timeline, Runs, Automation, Files, Artefacts, Knowledge, Workspaces, Members, Settings, Memory (admins only) |
 | Your space | Overview, Conversations, Tasks, Boards, Runs, Automation, Files, Artefacts, Knowledge, Workspaces, Agents |
+| A personal project | The sections of Your space, then Settings |
 | An agent's page | Overview, Conversations, Now, Projects, Runs, Usage, Your instructions, Memory, Your settings |
 
 The section is the address's `?tool=` (none opens Overview), so a link, a reload and Back return to it. On a medium
@@ -114,12 +125,13 @@ Some facts about what a place holds, in a project:
 | The place screens, built once for both kinds | `hq/src/places/` |
 | A project as a place | `hq/src/projects/place/`, `hq/src/projects/pages/ProjectConversationsPage.tsx` |
 | Chat as a place | `hq/src/chat/` |
+| Personal projects: making, deleting, where a run works | `hq/src/projects/personalProject.ts`, `personalProjectActions.ts`, `projectService.ts` ([personal projects](personal-projects.md)) |
 | A conversation's place and a place's conversations | `hq/src/conversations/` ([conversations](../conversations/conversations.md)) |
 | Lead, first agent as default, Stop all | `hq/src/projects/projectLead.ts`, `agentAssignment.ts`, `placeRunStop.ts` |
 | A project's Members view | `hq/src/projects/place/members/`, `hq/src/projects/place/teamRows.tsx` |
 | An agent's instructions in a place | `hq/src/agents/projectAgentQueries.ts`, `hq/src/storage/placeInstructions.ts` |
 | The shell drawn once, and the pages' `AppShell` that publishes to it | `hq/src/shared/layouts/` (`RootShell`, `ShellFrame`, `AppShell`) |
-| The docked conversation, `?c=`, the draft and its list of places | `hq/src/dock/` |
+| The docked conversation, `?c=`, the draft and its list of places (personal projects marked *Only you*) | `hq/src/dock/` (`placeList.ts`) |
 | A place's sections, and the place handed to the shell | `hq/src/places/` (`placeSections.ts`, `placeNav.ts`, `components/PlaceScreen.tsx`) |
 | The drilled-in panel, the main navigation over it, the breadcrumb's lists | `hq/src/shared/components/sidebar/`, `hq/src/shared/layouts/` (`CrumbLists.tsx`) |
 

@@ -55,7 +55,7 @@ describe('which tasks are reconciled', () => {
     const there = await secondSite()
     const owner = await createUser()
     await prisma.userStoragePlacement.create({ data: { userId: owner.id, siteId: here.id } })
-    const personal = await createProject({ name: 'Mine', personalOwnerId: owner.id, executionSiteId: null, accessLevel: 'PRIVATE' })
+    const personal = await createProject({ name: 'Mine', personalOwnerId: owner.id, personalSpace: true, executionSiteId: null, accessLevel: 'PRIVATE' })
     const task = await addTask({ project: personal, agent: await createAgent(), person: owner }, { runState: 'RUN_ACTIVE' })
 
     await reconcileSite(there.siteId, emitStatus)

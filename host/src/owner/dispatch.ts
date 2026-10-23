@@ -13,6 +13,7 @@ import { install } from '../install/install'
 import { machineStatus } from '../status/machineStatus'
 import { parseOwnerRequest, type OwnerRequest } from './requests'
 import { cloudCliOperation } from './cloudCliOps'
+import { providerCliOperation } from './providerCliOps'
 import { Refusal, type HqLinkResult, type OwnerAnswer } from './results'
 import { cmd } from '../cli/words'
 import { frontDoorCheck, frontDoorSettings } from '../frontDoor/frontDoor'
@@ -189,6 +190,8 @@ async function operation(ctx: Context, request: OwnerRequest, progress: (p: Prog
     case 'console.remoteOff':
     case 'console.resetCode':
       return cloudCliOperation(ctx, request)
+    case 'hq.provider':
+      return providerCliOperation(ctx, request)
     case 'machine.status': {
       const door = frontDoorSettings(ctx)
       const status = { ...(await machineStatus(ctx.machine, installed(ctx), ctx.docker, ctx.hqControl)), protections: protectionFigures(ctx.now()), backups: backupsStatus(ctx), scheduled: listScheduled(ctx), upgrades: upgradesStatus(ctx), lifecycle: lifecycleStatus(ctx), management: await linkStatus(ctx) }

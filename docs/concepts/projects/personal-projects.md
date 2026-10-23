@@ -2,68 +2,81 @@
 
 ```mermaid
 flowchart LR
-    U["A person"] -->|"created with the account, one each"| PP["Personal project: My tasks"]
-    PP --> B["Its Project Tasks board"]
-    PP --> R["Routines"]
-    PP --> AU["Automation, the person's own"]
-    PP -->|"a task run is {kind: person}"| RUN["Run as the person: their credentials, agent settings and storage"]
-    OP["An ordinary project"] -->|"a task run is the project"| RUN2["Run as the project: its storage and credential"]
+    U["A person"] -->|"made with the account, one"| SP["Your space: My tasks"]
+    U -->|"made by them, as many as they like"| PP["Personal projects"]
+    SP -->|"a task run is as the person"| OWN["The person's own storage"]
+    PP -->|"a task run is as the person"| ST["The project's own storage, on the site that holds the person's"]
+    OP["An ordinary project"] -->|"a task run is the project"| ST2["The project's storage"]
 ```
 
-Scheduled and repeating work needs somewhere to live for a person, not only for a project, and every task
-belongs to a project. So each person has a **personal project** that always exists, named **My tasks** and shown
-as **Your space**, the person's own [place](places.md), the default personal project. It is an ordinary project with one extra column,
-`Project.personalOwnerId`, and the rules that column brings. It reuses the project's boards, tasks and
-[automation](../tasks/automation.md), shown through the same screens as a project.
+Scheduled and repeating work needs somewhere to live for a person, not only for a project, and every task belongs to
+a project. A person's own place is **Your space** and every **personal project** they make. All of them are ordinary
+projects with one extra column, `Project.personalOwnerId`, and the rules that column brings. They reuse the project's
+boards, tasks and [automation](../tasks/automation.md), shown through the same screens as a project
+([places](places.md)).
 
-## What makes it personal
+## Your space and the others
 
-**Its runs are the person's, not a project's.** A task run in a personal project resolves to the person's own
-boundary (`taskRunOwner`, `hq/src/projects/personalProject.ts`):
+| | Your space | A personal project the person made |
+|---|---|---|
+| How many | One per person, marked `Project.personalSpace`; a partial unique index on `(personalOwnerId) WHERE personalSpace` keeps it one | As many as the person likes |
+| Made by | The account: `ensurePersonalProject` runs when it is created and at boot for any account without one | The person, with *New project* › *Just for you* (`createPersonalProject`) |
+| Name, key | **My tasks**, shown as **Your space**; key `MY` and letters | Their own name; a key made from it, as for any project |
+| Storage | None of its own: the person's own storage, on the site that holds it | Its own (`files/`, `workspaces/`, `knowledge/`, `artefacts/`, `tasks/`), on the site that holds the person's |
+| Deleted | Never, before the person is erased | By its owner, who types its name |
+| Settings | None | Name, description and the automation switch, and Delete. A project has no picture yet |
 
-- the run's runner is the person (`{ kind: 'person' }`), never a project;
-- it works in the person's own storage, on the Execution Site that holds it;
-- it uses that person's model credentials and that person's agent settings (the personal overrides), not a
-  project's;
-- it is visible only to that person.
+**Runs act as the person**, in both. A task run in a personal project resolves to the person (`taskRunOwner`,
+`hq/src/projects/personalProject.ts`): the person's credentials, model choices and agent settings apply, and no
+project's authority is used. Only the storage differs, and `taskRunOwner` says which: `storage` is the person's own for
+the space and the project's own for any other personal project. A personal project has no list or billing profile of
+its own: the person's list applies, and its cost goes to the default profile.
 
-This is the condition that makes unattended work safe in a personal space: it can never act with a project's
-authority.
+**Each is created private**, with its owner as its one admin and its **Project Tasks** board, as every project has (the
+`todo`, `in_progress` and `done` columns, and a Backlog), so work can be queued there and a routine's rounds have
+somewhere to land.
 
-**It is created with the account.** `ensurePersonalProject` runs when an account is created and at boot for
-any account without one, so it is idempotent. It is created **private**, with its owner as its one admin, and
-with its **Project Tasks** board, as every project has (the `todo`, `in_progress` and `done` columns, and a
-Backlog), so work can be queued there and a routine's rounds have somewhere to land. Its key is `MY` and three letters.
-
-## What it hides or refuses
+## What they hide or refuse
 
 | | |
 |---|---|
-| **Who sees it** | Only its owner, while they are in the org. Membership checks answer for the owner alone, whatever the access level or member rows say, so an org admin cannot see it; once the owner has left, not even they |
+| **Who sees them** | Only the owner, while they are in the organisation. Membership checks answer for the owner alone, whatever the access level or member rows say, so an organisation admin sees neither a personal project's contents nor its name; once the owner has left, not even they |
 | **Members** | Exactly one. No one can be added, removed or have their role changed, and the owner cannot leave |
-| **Access level** | Cannot be changed |
-| **Deleting, filing** | It cannot be deleted, nor filed under a product or programme. It stays when its person leaves, for Reactivate, and goes only when they are erased ([ADR-0100](../../adr/adr-0100-leaving-deactivates-erasing-is-separate.md)) |
-| **Storage** | It has no storage of its own: its work is in the person's files, so Your space's Files and Workspaces tabs show the person's own |
-| **Credentials and overrides** | It takes no model credential and no agent overrides of its own; the person's apply |
-| **Boards** | A task and a board must be in the same project when either is a personal project, so one person's task is never shown on a board others see |
+| **Access level, lead, filing** | Cannot be changed, named or filed under a product or programme; a personal project never becomes an organisation project |
+| **Deleting** | The owner deletes a personal project that is not their space; the space is never deleted. Organisation admins delete only organisation projects. Deleting stops its runs, removes its storage and closes its conversations |
+| **Leaving and erasing** | Leaving keeps them all, for Reactivate. Erasing deletes them all, storage included, and the erase dialog says how many there are besides the space ([ADR-0100](../../adr/adr-0100-leaving-deactivates-erasing-is-separate.md)) |
+| **Credentials and overrides** | They take no model credential and no agent overrides of their own; the person's apply |
+| **Boards and conversations** | A task and a board must be in the same project when either is a personal project, so one person's task is never shown on a board others see. A conversation is never moved into or out of one ([ADR-0096](../../adr/adr-0096-a-conversation-belongs-to-a-place.md)) |
+| **Activity** | Making one writes nothing to the organisation's activity feed |
 
-Shown as Your space, it has the **Overview, Conversations, Tasks, Boards, Runs, Automation, Files, Artefacts, Knowledge, Workspaces and Agents** tabs,
-and no Members, Timeline or Settings. Its address, and a link to one of its conversations, lead to Your space or Chat (its list of conversations). Its automation is the person's
-own switch, off by default and bounded by the org like any boundary's. The org's run limits and the archiving of finished
-tasks apply as in any project.
+## Where the code tells them apart
+
+Every reader of `personalOwnerId` was checked. Privacy and membership keep testing `personalOwnerId` (a personal
+project is its owner's alone): `membership.ts`, the refusals in `personalProject.ts`, the people and invitation lists.
+Anything about storage, and the screens that stand for Your space, test `personalSpace`, through `isYourSpace` and
+`placeStorageOf`: the location a run works in and the site it goes to (`taskRunOwner`, `tasksRunOnSite`,
+`dispatchService.ts`, `capabilityService.ts`), the storage a place reads (`locationAccess.ts`, `placeInstructions.ts`,
+the storage listing), a place's active runs and Stop all, the timeline's runs, the cards' last run, and the screens that
+send a person to Chat instead of a project (the project pages, the dock, the breadcrumb's list, notifications).
 
 ## Where in the code
 
 | What | Where |
 |---|---|
-| Creation, the owner rules, which storage a run uses | `hq/src/projects/personalProject.ts`, `personalProjectQueries.ts` |
+| The space, the owner rules, which storage a run uses | `hq/src/projects/personalProject.ts` |
+| Making one | `hq/src/projects/personalProjectActions.ts` (`createPersonalProject`), with `createProject` in `projectService.ts` |
+| Deleting, which takes the owner for a personal project | `hq/src/projects/actions.ts`, `requireMayDeleteProject` |
 | Visibility | `hq/src/projects/membership.ts` (`isProjectMember`, `entitledProjectsFilter`) |
 | Dispatch as the person | `hq/src/agents/dispatchService.ts`, `dispatchSiteResolution.ts` |
+| Erasing | `hq/src/settings/erasePerson.ts`; its dialog is `hq/src/org/pages/people/ErasePersonDialog.tsx` |
+| *New project*, *Your personal projects*, a personal project's Settings | `hq/src/projects/screen/`, `hq/src/projects/pages/` |
 | Shown as Your space and Chat | `hq/src/chat/` |
-| Schema | `hq/schema.prisma`: `Project.personalOwnerId` |
+| Schema | `hq/schema.prisma`: `Project.personalOwnerId`, `Project.personalSpace` |
 
 ## Decisions behind this
 
 [ADR-0087](../../adr/adr-0087-work-starts-on-its-own-only-from-a-boundarys-automation.md) (automation belongs to
-a boundary, which a person's own space is),
-[ADR-0089](../../adr/adr-0089-every-task-runs-on-behalf-of-a-person.md) (every task runs on behalf of a person).
+a boundary, which a person's own place is),
+[ADR-0089](../../adr/adr-0089-every-task-runs-on-behalf-of-a-person.md) (every task runs on behalf of a person),
+[ADR-0096](../../adr/adr-0096-a-conversation-belongs-to-a-place.md) (a conversation belongs to a place),
+[ADR-0100](../../adr/adr-0100-leaving-deactivates-erasing-is-separate.md) (leaving and erasing).

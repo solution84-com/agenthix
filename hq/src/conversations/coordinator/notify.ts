@@ -48,9 +48,9 @@ async function readersOf(conversation: { id: string; home: string; openedById: s
 async function linkOf(conversation: { id: string; home: string; projectId: string | null; taskId: string | null }): Promise<string | null> {
   if (conversation.home === 'PERSON') return threadPath('/chat', conversation.id)
   if (conversation.home === 'PROJECT' && conversation.projectId) {
-    const project = await prisma.project.findUnique({ where: { id: conversation.projectId }, select: { key: true, personalOwnerId: true } })
+    const project = await prisma.project.findUnique({ where: { id: conversation.projectId }, select: { key: true, personalOwnerId: true, personalSpace: true } })
     if (!project) return null
-    return project.personalOwnerId ? threadPath('/chat', conversation.id) : threadPath(`/projects/${project.key}`, conversation.id)
+    return project.personalOwnerId && project.personalSpace ? threadPath('/chat', conversation.id) : threadPath(`/projects/${project.key}`, conversation.id)
   }
   if (conversation.taskId) {
     const task = await prisma.task.findUnique({ where: { id: conversation.taskId }, select: { number: true, project: { select: { key: true } } } })

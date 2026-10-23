@@ -25,7 +25,7 @@ function projectCard(projectId: string, path: string): CardPlace {
   return { kind: 'project', projectId, basePath: path, sessionLocation: { primaryOwnerType: 'project', primaryOwnerId: projectId }, path }
 }
 
-interface ProjectRef { key: string; name: string; personalOwnerId: string | null }
+interface ProjectRef { key: string; name: string; personalSpace?: boolean }
 interface TaskRef { title: string; number: number; project: { key: string } }
 
 export function useDockPlace(view: ConversationView | undefined): DockPlace | null {
@@ -38,7 +38,7 @@ export function useDockPlace(view: ConversationView | undefined): DockPlace | nu
   if (view.home === 'PROJECT') {
     const p: ProjectRef | undefined = project
     if (!p || !projectId) return null
-    if (p.personalOwnerId) return SPACE
+    if (p.personalSpace) return SPACE
     const path = `/projects/${encodeURIComponent(p.key)}`
     return { kind: 'project', label: p.name, href: path, listPath: path, card: projectCard(projectId, path) }
   }

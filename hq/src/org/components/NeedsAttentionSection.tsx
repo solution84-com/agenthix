@@ -7,7 +7,7 @@ import { OrgGroupHeading } from './orgCardParts'
 const MODEL_ACCESS_ITEM = {
   key: 'model-access', area: 'infrastructure', type: 'model_access', title: "Agents can't answer yet",
   body: 'No model access is set up: the organisation has no API key or Claude login, and you have none of your own',
-  actionLabel: 'Set up model access', actionUrl: '/org/settings/model-access', notificationIds: [] as string[],
+  actionLabel: 'Set up model access', actionUrl: '/admin/settings/model-access', notificationIds: [] as string[],
   dismissible: false, acknowledgeable: false,
 }
 

@@ -5,7 +5,7 @@ import { capture } from './capture'
 test('infrastructure', async ({ page }) => {
   await capture(page, {
     height: 1100,
-    path: '/org/infrastructure',
+    path: '/admin/infrastructure',
     ready: (p) => expect(p.getByText('Logs and diagnostics').first()).toBeVisible(),
   })
 })

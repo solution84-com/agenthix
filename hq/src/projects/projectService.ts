@@ -97,6 +97,8 @@ export async function createProject(params: {
    *  the paths with no person behind them — onboarding's seed and the
    *  workforce assembly board — where the org's admin is appointed instead. */
   createdByUserId?: string
+  /** Makes it a personal project of this person (not their space): private, with them as its one member, no slug. */
+  personalOwnerId?: string
 }) {
   if (!params.executionSiteId) {
     throw new HttpError(400, 'Pick an Execution Site to create the project on')
@@ -122,8 +124,10 @@ export async function createProject(params: {
     )
   }
 
-  const slug = deriveSlug(params.name)
-  const existing = await prisma.project.findUnique({ where: { slug } })
+  // A personal project names no slug: a slug taken would tell another person the name was in use.
+  const personalOwnerId = params.personalOwnerId
+  const slug = personalOwnerId ? null : deriveSlug(params.name)
+  const existing = slug ? await prisma.project.findUnique({ where: { slug } }) : null
   if (existing) throw new Error(`A project with slug "${slug}" already exists. Choose a different name.`)
 
   const existingKeys = (await prisma.project.findMany({ select: { key: true } })).map(p => p.key)
@@ -142,9 +146,13 @@ export async function createProject(params: {
   const { name, description, productId, programId, defaultAgentId, executionSiteId } = params
   // Made with its Project Tasks, so work has somewhere to go from the start (adr-0097).
   const project = await prisma.project.create({
-    data: { name, description, productId, programId, defaultAgentId, executionSiteId, slug, key, boards: { create: projectTasksBoardCreate() } },
+    data: {
+      name, description, productId, programId, defaultAgentId, executionSiteId, slug, key,
+      ...(personalOwnerId ? { accessLevel: 'PRIVATE' as const, personalOwnerId } : {}),
+      boards: { create: projectTasksBoardCreate() },
+    },
   })
-  await appointFirstProjectAdmin(project.id, params.createdByUserId)
+  await appointFirstProjectAdmin(project.id, personalOwnerId ?? params.createdByUserId)
   // Provision the project's files/ home with ROADMAP.md bootstrap (ADR-0039 §1 + ADR-0031).
   // Keyed by immutable project id — the files/ dir replaces the old projects/{slug} working dir.
   //
@@ -176,7 +184,8 @@ export async function createProject(params: {
     where: { id: project.id },
     include: { tasks: { select: { status: true } }, agents: { select: { agentId: true } } },
   })
-  recordActivity('project_created', `Project ${fullCreate.name} created`, fullCreate.id, fullCreate.id)
+  // Not for a personal project: the activity feed is the organisation's, and a personal project is nobody else's to see.
+  if (!personalOwnerId) recordActivity('project_created', `Project ${fullCreate.name} created`, fullCreate.id, fullCreate.id)
   triggerSnapshotPush()
 
   return project

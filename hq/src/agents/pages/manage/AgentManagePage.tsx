@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Download } from 'lucide-react'
 import {
@@ -42,7 +43,7 @@ function ManageAgent({ handle }: { handle: string }) {
   const upload = useAction(uploadAgentImage)
   const preset = useAction(applyAgentPreset)
 
-  const crumbs = (last: string) => [{ label: 'Organisation', href: '/org' }, { label: 'Agents', href: '/org/agents' }, { label: last }]
+  const crumbs = (last: string) => [ADMIN_CRUMB, { label: 'Agents', href: '/admin/agents' }, { label: last }]
   if (!agent) {
     const error = stub.error ?? detail.error
     return (
@@ -77,7 +78,7 @@ function ManageAgent({ handle }: { handle: string }) {
             <ManageMenu
               isKernel={agent.isKernel}
               onStop={() => { if (confirm(`Stop every run of ${agent.name}?`)) void stop({ id: agent.id }) }}
-              onDelete={() => { if (confirm(`Delete ${agent.name}? This cannot be undone.`)) void remove({ id: agent.id }).then(() => navigate('/org/agents')) }}
+              onDelete={() => { if (confirm(`Delete ${agent.name}? This cannot be undone.`)) void remove({ id: agent.id }).then(() => navigate('/admin/agents')) }}
             />
           </>
         }

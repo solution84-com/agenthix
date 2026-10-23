@@ -8,8 +8,8 @@ import { startGithubAppRegistration } from "./githubAppRegistrationAction" with 
 import { appManifestNewHandler as githubAppManifestNewApi, appManifestCallbackHandler as githubAppManifestCallbackApi } from "./githubAppApi" with { type: "ref" };
 
 export const githubSpec: Spec = [
-    route("OrgGitHubRoute", "/org/settings/github", page(GitHubInstallationsPage, { authRequired: true })),
-    route("GitHubAppRoute", "/org/infrastructure/github-app", page(GitHubAppPage, { authRequired: true })),
+    route("OrgGitHubRoute", "/admin/settings/github", page(GitHubInstallationsPage, { authRequired: true })),
+    route("GitHubAppRoute", "/admin/infrastructure/github-app", page(GitHubAppPage, { authRequired: true })),
     route("ProjectGitHubRoute", "/projects/:key/github", page(ProjectGitHubPage, { authRequired: true })),
     query(getWorkflows),
     query(getRuns),

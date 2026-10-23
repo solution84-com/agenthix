@@ -9,9 +9,18 @@
  * else's own storage or a project runner for a different project. The rule
  * itself is core's `runnerBoundaryMismatch`, the one hq applies before signing.
  *
+ * Whether the run's project is a person's personal project is a fact this
+ * site's copy of the session does not hold, so it comes from the capability's
+ * signed `personalProject` claim, and counts only when it names the very
+ * project the session works in. Without it a person runner for a task in a
+ * project is refused.
+ *
  * Called at the very start of a run's launch, before any side effect.
  */
-import { parseCapabilityRunner, runnerBoundaryMismatch, type CapabilityRunner } from '@agenthix/core'
+import {
+  parseCapabilityPersonalProject, parseCapabilityRunner, runnerBoundaryMismatch, storageWithPersonalOwner,
+  type CapabilityRunner,
+} from '@agenthix/core'
 import { resolvePrimaryLocation, type SessionLocationFields } from '../storage/primaryLocationService'
 
 export class RunnerClaimError extends Error {
@@ -43,7 +52,7 @@ export function requireRunnerForBoundary(
   const invokerUserId = typeof verified.userId === 'string' ? verified.userId : ''
   const mismatch = runnerBoundaryMismatch({
     runner,
-    storage: { ownerType: storage.ownerType, ownerId: storage.ownerId },
+    storage: storageWithPersonalOwner(storage, parseCapabilityPersonalProject(verified.personalProject)),
     sessionType: session.sessionType,
     invokerUserId,
   })

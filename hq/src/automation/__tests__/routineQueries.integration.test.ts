@@ -154,7 +154,7 @@ describe('getRoutine @SC-684', () => {
 
   it('says when its project is the person\'s own Chat', async () => {
     const dana = await createUser()
-    const chat = await createProject({ personalOwnerId: dana.id })
+    const chat = await createProject({ personalOwnerId: dana.id, personalSpace: true })
     const routine = await routineIn(chat.id, dana.id)
     expect((await getRoutine({ routineId: routine.id }, ctx(dana))).isPersonal).toBe(true)
   })

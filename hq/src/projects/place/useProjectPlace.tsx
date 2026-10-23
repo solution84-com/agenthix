@@ -19,6 +19,8 @@ import { ProjectAutomationTool } from './projectToolViews'
 import { ProjectMemoryTool } from '../../memory/screen/pages/ProjectMemoryTool'
 import { retryUnlessDenied } from './retryUnlessDenied'
 import { runsCount, tasksCount } from './projectPlaceCounts'
+import { ChatAgentsFact } from '../../chat/ChatAgentsFact'
+import { chatLinkedTools } from '../../chat/chatPlace'
 
 /** The project's site, and under it the warning when its machine is nearly out of disk or memory. */
 function SiteFact({ site }: { site: ProjectPlaceData['executionSite'] }) {
@@ -37,7 +39,10 @@ export interface ProjectPlaceData {
   name: string
   key: string
   description: string | null
+  /** Set on a personal project: only its owner uses it, with any agent, as themselves. */
   personalOwnerId: string | null
+  /** Your space, which is shown as Chat rather than as a project. */
+  personalSpace?: boolean
   defaultAgentId: string | null
   accessLevel: 'OPEN' | 'PRIVATE'
   lead: { userId: string; username: string } | null
@@ -56,6 +61,9 @@ const PROJECT_SECTION_ORDER = [
   'tasks', 'boards', 'timeline', 'runs', 'automation', 'files', 'artefacts', 'knowledge', 'workspaces', 'members', 'settings', 'memory',
 ]
 
+/** A personal project's: those of Your space, and Settings. No Members, no Timeline. */
+const PERSONAL_SECTION_ORDER = ['tasks', 'boards', 'runs', 'automation', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'settings']
+
 function projectTools(project: ProjectPlaceData, extra: {
   isProjectAdmin: boolean
   runs: unknown[] | undefined
@@ -70,7 +78,7 @@ function projectTools(project: ProjectPlaceData, extra: {
     tools: [
       { id: 'tasks', label: 'Tasks', count: tasks.count, tone: tasks.needsYou ? 'needs' : undefined, render: () => <ProjectTasksPage /> },
       { id: 'boards', label: 'Boards', count: String(project.boards.length), render: () => <ProjectBoardsPage renderTimeline={b => <BoardTimeline projectId={b.projectId} boardId={b.id} />} /> },
-      { id: 'timeline', label: 'Timeline', render: () => <ProjectTimelineTool projectId={project.id} /> },
+      ...(personal ? [] : [{ id: 'timeline', label: 'Timeline', render: () => <ProjectTimelineTool projectId={project.id} /> }]),
     ],
   }
   const agentsAtWork: PlaceToolGroup = {
@@ -94,9 +102,7 @@ function projectTools(project: ProjectPlaceData, extra: {
     label: null,
     tools: [{ id: 'settings', label: 'Settings', render: () => <ProjectSettingsPage /> }],
   }
-  // A personal project has no storage of its own — its work is in the person's
-  // own files — and one member for good. The Chat place (spec §7) replaces it.
-  if (personal) return [work, agentsAtWork, settings]
+  // A personal project has storage of its own, on the site that holds the person's, and one member for good.
   return [
     work,
     agentsAtWork,
@@ -104,6 +110,7 @@ function projectTools(project: ProjectPlaceData, extra: {
       owner: { ownerType: 'project', ownerId: project.id },
       siteLabel: project.executionSite?.label ?? null,
       counts: extra.filesCounts,
+      personal,
     }),
     settings,
   ]
@@ -127,7 +134,7 @@ export function useProjectPlace(key: string | undefined) {
   // A personal project's conversations are the person's own, with any agent (spec §7).
   const { data: allAgents } = useQuery(getAgents, undefined, { enabled: personal })
   useArtefactLinks()
-  const filesCounts = useFilesToolCounts(project && !personal ? { ownerType: 'project', ownerId: project.id } : undefined)
+  const filesCounts = useFilesToolCounts(project ? { ownerType: 'project', ownerId: project.id } : undefined)
 
   if (!project) return { project, place: undefined, isLoading, error }
 
@@ -149,13 +156,17 @@ export function useProjectPlace(key: string | undefined) {
     description: project.description,
     backHref: '/projects',
     projectId: project.id,
-    sessionLocation: personal ? null : { primaryOwnerType: 'project', primaryOwnerId: project.id },
+    sessionLocation: { primaryOwnerType: 'project', primaryOwnerId: project.id },
     agents,
     defaultAgentId: project.defaultAgentId,
     composerPlaceholder: 'Talk about this project…',
     noAgentsNotice: 'Add an agent to this project to talk to it',
     facts: personal
-      ? [{ label: 'Access', value: 'Only you' }]
+      ? [
+          { label: 'Who sees it', value: 'Only you' },
+          { label: 'Agents', value: <ChatAgentsFact /> },
+          { label: 'Site', value: <SiteFact site={project.executionSite} /> },
+        ]
       : [
           { label: 'Lead', value: project.lead?.username ?? 'None' },
           { label: 'Site', value: <SiteFact site={project.executionSite} /> },
@@ -164,14 +175,14 @@ export function useProjectPlace(key: string | undefined) {
           { label: 'Access', value: project.accessLevel === 'PRIVATE' ? 'Private' : 'Open' },
         ],
     teamRows: personal ? undefined : teamRows(project.id, panelRows as PanelRows | undefined),
-    linkedTools: personal ? undefined : memberAliases(project.id),
+    linkedTools: personal ? chatLinkedTools : memberAliases(project.id),
     toolGroups: projectTools(project, {
       isProjectAdmin,
       runs: runs as unknown[] | undefined,
       automationOn: (automation as { effective?: { enabled: boolean } } | undefined)?.effective?.enabled,
       filesCounts,
     }),
-    sectionOrder: PROJECT_SECTION_ORDER,
+    sectionOrder: personal ? PERSONAL_SECTION_ORDER : PROJECT_SECTION_ORDER,
   }
   return { project, place, isLoading, error }
 }

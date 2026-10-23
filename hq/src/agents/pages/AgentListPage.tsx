@@ -43,7 +43,7 @@ export function AgentListPage() {
       title="Agents"
       subtitle={count === undefined ? undefined : `${count} in the organisation`}
       action={data?.canManage ? (
-        <Link to="/org/agents" className="text-body font-medium text-accent hover:text-accent-hover">Manage agents ›</Link>
+        <Link to="/admin/agents" className="text-body font-medium text-accent hover:text-accent-hover">Manage agents ›</Link>
       ) : undefined}
     >
       <div className="space-y-4 overflow-y-auto px-4 py-6 lg:px-8">

@@ -15,6 +15,7 @@ import { App } from "./src/App" with { type: "ref" };
 import { setupServer } from "./src/server/setup" with { type: "ref" };
 import { middlewareConfig } from "./src/server/middleware" with { type: "ref" };
 import { seed } from "./src/server/seed" with { type: "ref" };
+import { adminSpec } from "./src/admin/admin.wasp";
 import { agentsSpec } from "./src/agents/agents.wasp";
 import { authSpec } from "./src/auth/auth.wasp";
 import { automationSpec } from "./src/automation/automation.wasp";
@@ -40,6 +41,7 @@ import { pinsSpec } from "./src/pins/pins.wasp";
 import { previewSpec } from "./src/preview/preview.wasp";
 import { productsSpec } from "./src/products/products.wasp";
 import { projectsSpec } from "./src/projects/projects.wasp";
+import { providersSpec } from "./src/providers/providers.wasp";
 import { runsSpec } from "./src/runs/runs.wasp";
 import { sessionsSpec } from "./src/sessions/sessions.wasp";
 import { settingsSpec } from "./src/settings/settings.wasp";
@@ -99,10 +101,12 @@ export default app({
     setupSpec,
     onboardingSpec,
     orgSpec,
+    adminSpec,
     pinsSpec,
     previewSpec,
     productsSpec,
     projectsSpec,
+    providersSpec,
     runsSpec,
     sessionsSpec,
     settingsSpec,

@@ -71,6 +71,16 @@ export const ORG_NOTIFICATION_TYPES = {
 export const ROUTINE_FAILING_TYPE = 'routine_failing'
 
 /**
+ * The organisation's providers, to organisation admins only (`providers/notices.ts`; models from one place, part 1):
+ * `notWorking`, persistent and not dismissible, one per provider until it works again; `changed`, every write to a
+ * provider, announced to every organisation admin.
+ */
+export const PROVIDER_NOTIFICATION_TYPES = {
+  notWorking: 'provider_not_working',
+  changed: 'provider_changed',
+} as const
+
+/**
  * Persistent kinds (`persistent.ts`): each stays under Needs you until what it
  * is about is addressed, or until a person dismisses it where its kind allows.
  * A feature that raises one adds its types here.
@@ -78,6 +88,7 @@ export const ROUTINE_FAILING_TYPE = 'routine_failing'
 export const PERSISTENT_TYPES: readonly string[] = [
   ...Object.values(SITE_NOTIFICATION_TYPES), ...Object.values(ORG_NOTIFICATION_TYPES), ROUTINE_FAILING_TYPE,
   RUN_SHORT_NOTIFICATION, SITE_NEARLY_OUT_NOTIFICATION, ...Object.values(FLEET_MACHINE_NOTIFICATION_TYPES),
+  PROVIDER_NOTIFICATION_TYPES.notWorking,
 ]
 
 /**

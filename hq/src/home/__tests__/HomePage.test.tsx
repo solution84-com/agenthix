@@ -135,7 +135,7 @@ describe('Home @SC-509', () => {
   it('points an admin to the organisation\'s model access @SC-722', () => {
     data.access = { canTalk: false, fix: 'org-access', isAdmin: true }
     renderHome()
-    expect(screen.getByRole('link', { name: 'Organisation › Settings › Model access' }).getAttribute('href')).toBe('/org/settings/model-access')
+    expect(screen.getByRole('link', { name: 'Organisation › Settings › Model access' }).getAttribute('href')).toBe('/admin/settings/model-access')
   })
 
   it('says nothing about model access when the person can talk @SC-722', () => {

@@ -13,8 +13,8 @@ export function ProjectConversationsPage() {
   const { search } = useLocation()
   const { project, place, isLoading } = useProjectPlace(key)
   if (!project || !place) return <ProjectPlaceMissing loading={isLoading} />
-  // A personal project is the person's own space; its old links lead there.
-  if (project.personalOwnerId) return <Navigate to={`${SPACE_PATH}${search}`} replace />
+  // Your space is shown as Chat; its old links lead there.
+  if (project.personalSpace) return <Navigate to={`${SPACE_PATH}${search}`} replace />
 
   return (
     <PlaceScreen

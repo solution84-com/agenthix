@@ -8,6 +8,7 @@ import { ProjectAutomationTool } from '../projects/place/projectToolViews'
 import { runsCount, tasksCount } from '../projects/place/projectPlaceCounts'
 import { filesToolGroup } from '../storage/pages/filesToolGroup'
 import type { FilesToolCounts } from '../storage/pages/filesToolCounts'
+import { PersonalProjectsFact } from '../projects/place/PersonalProjectsFact'
 import { ChatAgentsFact } from './ChatAgentsFact'
 import { ChatAgentsTool } from './ChatAgentsTool'
 
@@ -37,6 +38,7 @@ export function chatFacts(site: { id: string; label: string } | null | undefined
   return [
     { label: 'Who sees it', value: 'Only you' },
     { label: 'Agents', value: <ChatAgentsFact /> },
+    { label: 'Personal projects', value: <PersonalProjectsFact /> },
     ...(site ? [{ label: 'Site', value: site.label }] : []),
     { label: 'Files', value: 'Your personal files' },
   ]

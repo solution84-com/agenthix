@@ -4,15 +4,15 @@ import { useQuery, getProjects } from 'wasp/client/operations'
 import { ChevronDown } from 'lucide-react'
 import { PlaceAvatar } from '@agenthix/ui/primitives'
 
-type ProjectRow = { id: string; name: string; key: string; personalOwnerId: string | null }
+type ProjectRow = { id: string; name: string; key: string; personalOwnerId: string | null; personalSpace?: boolean }
 
 /** The project's name with ▾ (spec §4): a list of the person's other projects to switch to. */
 export function ProjectSwitcher({ projectId, name }: { projectId: string; name: string }) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const { data } = useQuery(getProjects, undefined, { enabled: open })
-  // The personal project is the person's own space, reached as Chat.
-  const projects: ProjectRow[] = (data ?? []).filter((p) => !p.personalOwnerId && p.id !== projectId)
+  // Your space is reached as Chat; the person's other personal projects are listed, marked.
+  const projects: ProjectRow[] = (data ?? []).filter((p) => !p.personalSpace && p.id !== projectId)
 
   useEffect(() => {
     if (!open) return
@@ -50,6 +50,7 @@ export function ProjectSwitcher({ projectId, name }: { projectId: string; name: 
             >
               <PlaceAvatar kind="project" id={p.id} name={p.name} size="sm" />
               <span className="truncate">{p.name}</span>
+              {p.personalOwnerId && <span className="ml-auto shrink-0 text-micro text-text-muted">Only you</span>}
             </Link>
           ))}
           <Link to="/projects" role="menuitem" onClick={() => setOpen(false)} className="mt-1 block border-t border-border-subtle px-2 pt-2 pb-1.5 text-small text-accent hover:text-accent-hover">

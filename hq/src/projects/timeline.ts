@@ -16,6 +16,7 @@ import type { BoardKind, TaskPriority, TaskRunState, TaskStatus } from '@prisma/
 import { requireBoardVisible, requireProjectVisible } from './resourceEntitlement'
 import { projectTasksFirst, ensureProjectTasks } from './boardService'
 import { epicSpan } from './planSpan'
+import { placeStorageOf } from './personalProject'
 import { needsYou } from './needsYou'
 import { sprintView, type SprintView } from './boardView'
 import { inRange, knownRange, pageCursorAt, planOverlaps, roundsIn, runSlices, timelineRange, type Range, type RunSlice } from './timelineRange'
@@ -120,7 +121,7 @@ async function knownProjectRange(projectId: string, boardId: string | null, now:
 }
 
 export async function readTimeline(projectId: string, boardId: string | null, range: Range & { capped?: boolean }, now: Date): Promise<Timeline> {
-  const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId }, select: { key: true, personalOwnerId: true } })
+  const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId }, select: { key: true, personalOwnerId: true, personalSpace: true } })
   const projectTasksId = await ensureProjectTasks(projectId)
   const boards = projectTasksFirst(await prisma.board.findMany({
     where: { projectId, ...(boardId ? { id: boardId } : { archivedAt: null }) },
@@ -139,7 +140,7 @@ export async function readTimeline(projectId: string, boardId: string | null, ra
     prisma.routine.findMany({ where: { projectId, enabled: true }, select: { id: true, title: true, boardId: true, scheduleAt: true, scheduleRule: true, scheduleTimezone: true } }),
   ])
 
-  const runs = await readRunSlices(project.personalOwnerId ? { ownerType: 'user', ownerId: project.personalOwnerId } : { ownerType: 'project', ownerId: projectId }, new Set(rows.map(t => t.id)), range, now)
+  const runs = await readRunSlices(placeStorageOf({ id: projectId, ...project }), new Set(rows.map(t => t.id)), range, now)
   const worked = new Set(runs.slices.map(s => s.taskId))
   const key = (n: number) => `${project.key}-${n}`
   const shape = (t: (typeof rows)[number]) => ({

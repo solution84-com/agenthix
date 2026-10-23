@@ -23,8 +23,8 @@ import { Logger } from '../server/utils/logger'
 
 const logger = new Logger('AdminNotices')
 
-export const BYPASSED_REVIEW_URL = '/org/agents?approval=bypassed'
-export const INVITATIONS_URL = '/org/people?show=invitations'
+export const BYPASSED_REVIEW_URL = '/admin/agents?approval=bypassed'
+export const INVITATIONS_URL = '/admin/people?show=invitations'
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 async function orgAdmins(): Promise<string[]> {

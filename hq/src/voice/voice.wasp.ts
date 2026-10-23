@@ -7,7 +7,7 @@ import { previewVoice } from "./voicePreviewAction" with { type: "ref" };
 import { getSpeechToken } from "./speechTokenAction" with { type: "ref" };
 
 export const voiceSpec: Spec = [
-    route("VoiceSettingsRoute", "/org/settings/voice", page(VoiceSettingsPage, { authRequired: true })),
+    route("VoiceSettingsRoute", "/admin/settings/voice", page(VoiceSettingsPage, { authRequired: true })),
     action(saveVoiceProvider, { entities: ["Provider", "UserSettings"] }),
     action(deleteVoiceProvider, { entities: ["Provider", "UserSettings"] }),
     action(updateAgentVoice, { entities: ["Agent"] }),

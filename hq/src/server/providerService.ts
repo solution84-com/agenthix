@@ -1,9 +1,6 @@
 import { prisma } from 'wasp/server'
 import type { CredentialProvider } from '@agenthix/core'
 import { encryptSecret, decryptStoredSecret, looksEncrypted } from './crypto/secretCrypto'
-import { Logger } from './utils/logger'
-
-const logger = new Logger('Providers')
 
 export { looksEncrypted }
 
@@ -83,28 +80,6 @@ export async function setProviderKey(service: string, name: string, value: strin
 
 export async function getLlmApiKey(name: LlmProvider): Promise<string | null> {
   return getProviderKey('llm', name)
-}
-
-// Seed from env var on boot — no-op if the row already exists (never
-// overwrites a key the user configured through the UI).
-//
-// hq refuses to start without SECRETS_MASTER_KEY (envValidation.ts), so the
-// guard below should never fire; it stays so that a seed, which is a
-// convenience, can never become a boot crash if that check is bypassed. The
-// key then stays in the environment and the row is written on the first boot
-// that has a master key. Returns whether it wrote anything, so the caller can
-// say what happened.
-export async function seedLlmApiKey(name: LlmProvider, value: string): Promise<boolean> {
-  const existing = await prisma.provider.findUnique({ where: { service_name: { service: 'llm', name } } })
-  if (existing) return false
-  if (!process.env.SECRETS_MASTER_KEY) {
-    logger.warn(
-      `SECRETS_MASTER_KEY not set — ${name} key left in the environment, not stored; set it and restart to store the key.`,
-    )
-    return false
-  }
-  await setProviderKey('llm', name, value)
-  return true
 }
 
 // ── The org's model credentials, per provider (spec §6) ─────────────────────

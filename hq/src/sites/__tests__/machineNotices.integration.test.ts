@@ -14,7 +14,7 @@ vi.mock('../channel', () => ({ siteChannelRegistry: { revoke: vi.fn() } }))
 vi.mock('../content', () => ({ contentChannelRegistry: { revoke: vi.fn() } }))
 vi.mock('../../agents/TaskRunner', () => import('../../test/fakes/TaskRunner'))
 vi.mock('../../fleet/index', () => ({ relayHub: { revokeHost: vi.fn(() => false) } }))
-vi.mock('../siteNotifications', () => ({ reconcileSiteNotifications: vi.fn(async () => {}), SITES_PAGE_URL: '/org/settings/where-work-runs' }))
+vi.mock('../siteNotifications', () => ({ reconcileSiteNotifications: vi.fn(async () => {}), SITES_PAGE_URL: '/admin/where-work-runs' }))
 
 import { FLEET_MACHINE_NOTIFICATION_TYPES as T } from '../../notifications/notificationKinds'
 import { reconcileMachineNotices, __setMachinePresenceForTests } from '../machineNotices'
@@ -88,7 +88,7 @@ describe('a machine that disconnects itself tells HQ it left (spec §6) @SC-930'
     await reconcileMachineNotices()
     expect(await open(T.left)).toMatchObject([{
       userId: fleetAdmin.id, subjectKey: host.id, title: `${host.machineName} left the fleet`, body: 'Disconnected on the machine itself.',
-      actionLabel: 'Remove it in the Fleet Console', actionUrl: `/org/settings/where-work-runs/${site.id}`, dismissible: false,
+      actionLabel: 'Remove it in the Fleet Console', actionUrl: `/admin/where-work-runs/${site.id}`, dismissible: false,
     }])
     // Not also as not heard from, though its link has been silent for a day.
     expect(await open(T.notHeardFrom)).toEqual([])
@@ -126,7 +126,7 @@ describe('a machine that disconnects itself says so with its machine credential,
     expect(await knownHost(host.fingerprint)).toBeNull()
     await reconcileMachineNotices()
     expect(await open(T.left)).toMatchObject([{
-      userId: fleetAdmin.id, subjectKey: host.id, title: `${host.machineName} left the fleet`, actionUrl: '/org/settings/where-work-runs',
+      userId: fleetAdmin.id, subjectKey: host.id, title: `${host.machineName} left the fleet`, actionUrl: '/admin/where-work-runs',
     }])
     expect((await open(T.notHeardFrom)).map(n => n.subjectKey)).toEqual([other.host.id])
 

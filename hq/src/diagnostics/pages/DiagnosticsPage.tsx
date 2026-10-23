@@ -44,8 +44,8 @@ function DiagnosticsBody() {
 
       <FleetAdminOnly what="Logs and the support bundle">
         <div className="flex flex-wrap gap-2">
-          <Link to="/org/infrastructure/diagnostics/logs" className={BUTTON}>Logs</Link>
-          <Link to="/org/infrastructure/diagnostics/bundle" className={BUTTON}>Download support bundle</Link>
+          <Link to="/admin/infrastructure/diagnostics/logs" className={BUTTON}>Logs</Link>
+          <Link to="/admin/infrastructure/diagnostics/bundle" className={BUTTON}>Download support bundle</Link>
         </div>
       </FleetAdminOnly>
     </div>

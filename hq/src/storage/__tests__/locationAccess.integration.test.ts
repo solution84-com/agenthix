@@ -140,14 +140,21 @@ describe('assertLocationAccess with a workspace', () => {
 describe("a personal project's storage (agents own schedule spec §4)", () => {
   it('is refused as a location to its own owner — it has none; its work is in their own files (400)', async () => {
     const me = await createUser()
-    const mine = await createProject({ personalOwnerId: me.id, accessLevel: 'PRIVATE' })
+    const mine = await createProject({ personalOwnerId: me.id, personalSpace: true, accessLevel: 'PRIVATE' })
     await expect(assertLocationAccess({ ownerType: 'project', ownerId: mine.id }, me.id, 'work')).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it("is its owner's to use when it is another personal project, with storage of its own", async () => {
+    const me = await createUser()
+    const side = await createProject({ personalOwnerId: me.id, accessLevel: 'PRIVATE' })
+    await prisma.projectMember.create({ data: { projectId: side.id, userId: me.id, role: 'ADMIN' } })
+    await expect(assertLocationAccess({ ownerType: 'project', ownerId: side.id }, me.id, 'work')).resolves.toBeUndefined()
   })
 
   it('is refused to anyone else as a non-member first (403), even one listed as its admin', async () => {
     const me = await createUser()
     const other = await createUser()
-    const mine = await createProject({ personalOwnerId: me.id, accessLevel: 'PRIVATE' })
+    const mine = await createProject({ personalOwnerId: me.id, personalSpace: true, accessLevel: 'PRIVATE' })
     await prisma.projectMember.create({ data: { projectId: mine.id, userId: other.id, role: 'ADMIN' } })
     await expect(assertLocationAccess({ ownerType: 'project', ownerId: mine.id }, other.id, 'work')).rejects.toMatchObject({ statusCode: 403 })
   })

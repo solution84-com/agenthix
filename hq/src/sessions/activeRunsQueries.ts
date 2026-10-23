@@ -7,7 +7,7 @@
 import { HttpError } from 'wasp/server'
 import { requireProjectVisible } from '../projects/resourceEntitlement'
 import { resolveActiveRuns, type ActiveRunView } from './activeRuns'
-import { personalOwnerOf } from '../projects/personalProject'
+import { isSpaceProject, personalOwnerOf } from '../projects/personalProject'
 
 type Ctx = { user?: { id: string } }
 
@@ -19,8 +19,7 @@ export const getProjectActiveRuns = async (
   // A private project a caller is not a member of is not found at all (spec
   // §6.4) — same rule as the project overview itself (`getProject`).
   await requireProjectVisible(projectId, context.user.id)
-  // A personal project's runs are in its person's own storage (spec §4), and
-  // only its person gets past the check above.
-  const person = await personalOwnerOf(projectId)
+  // Your space's runs are in its person's own storage (spec §4), and only its person gets past the check above.
+  const person = (await isSpaceProject(projectId)) ? await personalOwnerOf(projectId) : null
   return person ? resolveActiveRuns('user', person) : resolveActiveRuns('project', projectId)
 }

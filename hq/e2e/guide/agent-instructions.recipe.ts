@@ -4,7 +4,7 @@ import { capture } from './capture'
 // screenshot:agent-instructions — Kernel's page under Organisation › Agents, with Instructions open to edit.
 test('agent-instructions', async ({ page }) => {
   await capture(page, {
-    path: '/org/agents/kernel',
+    path: '/admin/agents/kernel',
     before: async (p) => {
       // The section is drawn before the agent's instructions have loaded, and Edit toggles: wait until the section and
       // its button are ready, then open the editor, and open it again only if it did not stay open.

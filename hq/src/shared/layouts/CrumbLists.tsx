@@ -87,7 +87,7 @@ const PLACES: MenuItem[] = [
   { label: 'Agents', href: '/agents' },
 ]
 
-interface ProjectRow { id: string; key: string; name: string; isMember: boolean; personalOwnerId: string | null }
+interface ProjectRow { id: string; key: string; name: string; isMember: boolean; personalSpace?: boolean }
 interface PinRow { kind: string; itemId: string }
 
 /** Your space, then your pinned projects, then the rest A–Z; switching keeps the section shown. */
@@ -95,7 +95,7 @@ function ProjectItems({ nav, onChoose }: { nav: PlaceNav; onChoose: () => void }
   const { data: projectData } = useQuery(getProjects)
   const { data: pinData } = useQuery(getPins)
   const keep = nav.current === 'overview' ? '' : `?tool=${encodeURIComponent(nav.current)}`
-  const projects: ProjectRow[] = (projectData ?? []).filter((p) => p.isMember && !p.personalOwnerId)
+  const projects: ProjectRow[] = (projectData ?? []).filter((p) => p.isMember && !p.personalSpace)
   const byId = new Map(projects.map((p) => [p.id, p]))
   const pinned = ((pinData ?? []) as PinRow[])
     .filter((p) => p.kind === 'PROJECT')

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { countsOnBell, groupNotifications, isPersistent, latestPerTask, needsYou, taskKeyOf, PERSISTENT_TYPES, SITE_NOTIFICATION_TYPES } from '../notificationKinds'
+import { countsOnBell, groupNotifications, isPersistent, latestPerTask, needsYou, taskKeyOf, PERSISTENT_TYPES, PROVIDER_NOTIFICATION_TYPES, SITE_NOTIFICATION_TYPES } from '../notificationKinds'
 import { describeNotification, firstRequest } from '../notificationText'
 
 const n = (type: string, status: string, id = `${type}-${status}`) => ({ id, type, status })
@@ -20,6 +20,11 @@ describe('needsYou @SC-525', () => {
       expect(needsYou(n(type, 'dismissed'))).toBe(false)
     }
   })
+  it("holds a provider that is not working until it works, and leaves a provider's change to Earlier", () => {
+    expect(isPersistent(n(PROVIDER_NOTIFICATION_TYPES.notWorking, 'read'))).toBe(true)
+    expect(needsYou(n(PROVIDER_NOTIFICATION_TYPES.notWorking, 'read'))).toBe(true)
+    expect(needsYou(n(PROVIDER_NOTIFICATION_TYPES.changed, 'unread'))).toBe(false)
+  })
   it('leaves any other kind to Earlier', () => {
     expect(needsYou(n('something_else', 'unread'))).toBe(false)
   })
@@ -37,7 +42,7 @@ describe('groupNotifications @SC-525', () => {
 describe('taskKeyOf', () => {
   it("reads the task's key from its link, and nothing from any other", () => {
     expect(taskKeyOf('/tasks/WEB-27')).toBe('WEB-27')
-    expect(taskKeyOf('/org/settings/where-work-runs')).toBeNull()
+    expect(taskKeyOf('/admin/where-work-runs')).toBeNull()
     expect(taskKeyOf(null)).toBeNull()
   })
 })
@@ -104,7 +109,7 @@ describe('latestPerTask @SC-525', () => {
     expect(superseded.map(k => k.id)).toEqual(['old1', 'wait'])
   })
   it('never drops a notification that is not about a task', () => {
-    const list = [at('a', 'credential_health', '/org/settings/where-work-runs'), at('b', 'credential_health', '/org/settings/where-work-runs')]
+    const list = [at('a', 'credential_health', '/admin/where-work-runs'), at('b', 'credential_health', '/admin/where-work-runs')]
     expect(latestPerTask(list).kept).toHaveLength(2)
   })
 })

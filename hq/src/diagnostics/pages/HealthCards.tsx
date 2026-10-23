@@ -33,7 +33,7 @@ function HqCard({ hq }: { hq: HqHealth }) {
   ]
   return (
     <Card
-      to="/org/infrastructure/hq"
+      to="/admin/infrastructure/hq"
       title="HQ"
       state={`Running since ${dayText(hq.runningSince)} · ${hq.version}`}
       tone={hq.databaseAnswers && (!tick || tick.ok) ? 'ok' : 'attention'}
@@ -73,7 +73,7 @@ export function HealthCards({ data }: { data: DiagnosticsHealth }) {
         return (
           <Card
             key={site.executionSiteId}
-            to={`/org/settings/where-work-runs/${site.executionSiteId}`}
+            to={`/admin/where-work-runs/${site.executionSiteId}`}
             title={site.label}
             state={state}
             tone={tone}

@@ -40,7 +40,7 @@ import { registerRunResourceNotices } from './resources/runResourceNotice'
 
 const logger = new Logger('SiteNotifications')
 
-export const SITES_PAGE_URL = '/org/settings/where-work-runs'
+export const SITES_PAGE_URL = '/admin/where-work-runs'
 
 /** Twice a minute: a request's code or a site's grace runs out at most this long before an admin is told. */
 export const RECONCILE_INTERVAL_MS = 30_000

@@ -192,7 +192,7 @@ describe("a personal project's task session is its person's alone", () => {
     const owner = await createUserWithRole('MEMBER')
     const orgAdmin = await createUserWithRole('ADMIN')
     const agent = await createAgent()
-    const project = await createProject({ accessLevel: 'PRIVATE', personalOwnerId: owner.id })
+    const project = await createProject({ accessLevel: 'PRIVATE', personalOwnerId: owner.id, personalSpace: true })
     // The org admin even holds a member row; it grants nothing on a personal project.
     await prisma.projectMember.create({ data: { projectId: project.id, userId: orgAdmin.id, role: 'ADMIN' } })
     const task = await makeTaskInProject(project.id)

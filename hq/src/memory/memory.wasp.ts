@@ -6,7 +6,7 @@ import { MemorySettingsPage } from "./screen/pages/MemorySettingsPage" with { ty
 
 export const memorySpec: Spec = [
     route("MemoryRoute", "/settings/memory", page(MemoryPage, { authRequired: true })),
-    route("OrgMemorySettingsRoute", "/org/settings/memory", page(MemorySettingsPage, { authRequired: true })),
+    route("OrgMemorySettingsRoute", "/admin/settings/memory", page(MemorySettingsPage, { authRequired: true })),
     query(getMemory, { entities: ["MemoryItem", "Agent", "Project", "User"] }),
     query(getMemoryMeasurements, { entities: ["MemoryOutcome", "MemoryItem", "Org"] }),
     query(getMemoryChoices, { entities: ["Agent", "Project"] }),

@@ -46,7 +46,7 @@ export const SPACE_START: StartPlace = {
   noAgentsNotice: 'Add an agent to the organisation to talk to it',
 }
 
-interface ProjectByKey { id: string; key: string; name: string; personalOwnerId: string | null }
+interface ProjectByKey { id: string; key: string; name: string; personalSpace?: boolean }
 
 /** The place behind a reference, read with the query a project's own screens already use; null while it loads. */
 export function useStartPlace(ref: PlaceRef): StartPlace | null {
@@ -54,8 +54,8 @@ export function useStartPlace(ref: PlaceRef): StartPlace | null {
   const { data, error } = useQuery(getProjectByKey, key ? { key } : undefined, { enabled: !!key })
   if (!key) return SPACE_START
   const project: ProjectByKey | null | undefined = data
-  // A project the person cannot see, or their own personal one, is their space.
-  if (error || project === null || project?.personalOwnerId) return SPACE_START
+  // A project the person cannot see, or their own space, is their space.
+  if (error || project === null || project?.personalSpace) return SPACE_START
   if (!project) return null
   return {
     ref,

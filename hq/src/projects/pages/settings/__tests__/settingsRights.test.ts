@@ -17,10 +17,11 @@ describe("who may change a project's Settings @SC-639", () => {
     expect(who()).toEqual({ editOwn: false, editFiling: false, namesAdmins: true, deleteOffer: 'none' })
   })
 
-  it('leaves a personal project its own fields only', () => {
+  it('leaves a personal project its own fields, and its owner the delete; an organisation admin gets neither filing nor delete', () => {
     expect(who({ personal: true, isProjectAdmin: true, isOrgAdmin: true })).toEqual({
-      editOwn: true, editFiling: false, namesAdmins: false, deleteOffer: 'none',
+      editOwn: true, editFiling: false, namesAdmins: false, deleteOffer: 'delete',
     })
+    expect(who({ personal: true, isOrgAdmin: true }).deleteOffer).toBe('none')
   })
 })
 

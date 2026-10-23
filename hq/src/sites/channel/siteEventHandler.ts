@@ -428,7 +428,7 @@ async function handleCredentialHealth(siteId: string, e: CredentialHealthEvent):
             title,
             body,
             actionLabel: 'View execution sites',
-            actionUrl: '/org/settings/where-work-runs',
+            actionUrl: '/admin/where-work-runs',
           },
         })
         .catch((err: unknown) =>

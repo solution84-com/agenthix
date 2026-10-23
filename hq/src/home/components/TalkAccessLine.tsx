@@ -10,7 +10,7 @@ export function TalkAccessLine() {
   const { data } = useQuery(getMyModelAccess)
   if (!data || data.canTalk || !data.fix) return null
   const [where, to] = data.fix === 'org-access'
-    ? ["Organisation › Settings › Model access", '/org/settings/model-access']
+    ? ["Organisation › Settings › Model access", '/admin/settings/model-access']
     : ['Settings › Your model logins', '/settings']
   return (
     <p role="status" className="text-center text-small text-text-muted" data-testid="talk-access-line">

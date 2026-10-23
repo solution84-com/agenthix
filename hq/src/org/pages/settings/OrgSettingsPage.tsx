@@ -30,23 +30,23 @@ export function OrgSettingsPage() {
         <ModelPolicyForm scope="org" canEdit />
       </section>
       <OrgEntryGroup title="Access to models and tools">
-        <OrgEntryRow to="/org/settings/model-access" title="Model access" line="The organisation's model keys and Claude login, used when a run has none of its own" />
-        <OrgEntryRow to="/org/settings/github" title="GitHub" line={githubLine(github)} />
-        <OrgEntryRow to="/org/settings/voice" title="Voice" line="Speech to text and text to speech providers" />
+        <OrgEntryRow to="/admin/settings/model-access" title="Model access" line="The organisation's model keys and Claude login, used when a run has none of its own" />
+        <OrgEntryRow to="/admin/settings/github" title="GitHub" line={githubLine(github)} />
+        <OrgEntryRow to="/admin/settings/voice" title="Voice" line="Speech to text and text to speech providers" />
       </OrgEntryGroup>
       <OrgEntryGroup title="Where work runs">
-        <OrgEntryRow to="/org/settings/where-work-runs" title="Where work runs" line="Each site, how it is doing, and what each run gets; your fleet admins look after them" />
-        <OrgEntryRow to="/org/settings/sites" title="Sites for projects" line="The Execution Sites new projects can be placed on" />
+        <OrgEntryRow to="/admin/where-work-runs" title="Where work runs" line="Each site, how it is doing, and what each run gets; your fleet admins look after them" />
+        <OrgEntryRow to="/admin/sites-for-projects" title="Sites for projects" line="The Execution Sites new projects can be placed on" />
       </OrgEntryGroup>
       <OrgEntryGroup title="How work runs">
-        <OrgEntryRow to="/org/settings/automation" title="Automation" line="What projects' pulses and schedules may do" />
-        <OrgEntryRow to="/org/settings/runs" title="Runs" line="Run time and turn limits, and archiving finished tasks" />
-        <OrgEntryRow to="/org/settings/memory" title="Memory" line="How well recall works, and the model that reads what agents remember" />
-        <OrgEntryRow to="/org/settings/risk-rules" title="Tool risk rules" line="Patterns that label a command's risk" />
+        <OrgEntryRow to="/admin/settings/automation" title="Automation" line="What projects' pulses and schedules may do" />
+        <OrgEntryRow to="/admin/settings/runs" title="Runs" line="Run time and turn limits, and archiving finished tasks" />
+        <OrgEntryRow to="/admin/settings/memory" title="Memory" line="How well recall works, and the model that reads what agents remember" />
+        <OrgEntryRow to="/admin/settings/risk-rules" title="Tool risk rules" line="Patterns that label a command's risk" />
       </OrgEntryGroup>
       <p className="mt-6 text-small text-text-muted">
         HQ itself, its sites and storage are under{' '}
-        <Link to="/org/infrastructure" className="text-accent hover:text-accent-hover">Organisation › Infrastructure</Link>, kept apart from these.
+        <Link to="/admin/infrastructure" className="text-accent hover:text-accent-hover">Organisation › Infrastructure</Link>, kept apart from these.
       </p>
     </OrgAdminPage>
   )

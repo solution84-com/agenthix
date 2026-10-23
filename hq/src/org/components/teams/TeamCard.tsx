@@ -1,4 +1,5 @@
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
+import { teamsBase } from '../../../admin/adminPaths'
 import type { TeamSummary } from '../../teams/teamQueries'
 import { AuthedImg } from '../../../shared/components/AuthedImg'
 import { AuthedPersonAvatar } from '../../../people/AuthedPersonAvatar'
@@ -11,12 +12,13 @@ const FACES = 5
 
 /** A team on the Teams screen (every screen reviewed spec §3): its cover and picture, purpose, faces, mix and where it works. */
 export function TeamCard({ team }: { team: TeamSummary }) {
+  const { pathname } = useLocation()
   const total = team.people.length + team.agents.length
   const shownPeople = team.people.slice(0, FACES)
   const shownAgents = team.agents.slice(0, FACES - shownPeople.length)
   return (
     <Link
-      to={`/org/teams/${team.id}`}
+      to={`${teamsBase(pathname)}/${team.id}`}
       className="flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-surface-1 transition-colors hover:border-accent"
     >
       <div className="relative h-16 overflow-hidden"><AgentCover coverUrl={team.coverUrl} /></div>

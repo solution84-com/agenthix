@@ -83,13 +83,23 @@ describe("an agent's instructions in a place @SC-577", () => {
 
   it("reads a personal project as its person's own Files", async () => {
     const me = await createUser()
-    const personal = await createProject({ personalOwnerId: me.id, accessLevel: 'PRIVATE' })
+    const personal = await createProject({ personalOwnerId: me.id, personalSpace: true, accessLevel: 'PRIVATE' })
     await prisma.projectMember.create({ data: { projectId: personal.id, userId: me.id, role: 'ADMIN' } })
 
     const view = await getPlaceInstructions({ projectId: personal.id }, as(me))
 
     expect(view.place).toEqual({ kind: 'personal', ownerType: 'user', ownerId: me.id })
     expect(view.forAgent).toBeNull()
+  })
+
+  it("reads another personal project as the project's own Files", async () => {
+    const me = await createUser()
+    const personal = await createProject({ personalOwnerId: me.id, accessLevel: 'PRIVATE' })
+    await prisma.projectMember.create({ data: { projectId: personal.id, userId: me.id, role: 'ADMIN' } })
+
+    const view = await getPlaceInstructions({ projectId: personal.id }, as(me))
+
+    expect(view.place).toEqual({ kind: 'project', ownerType: 'project', ownerId: personal.id })
   })
 
   it("refuses a project to someone not on it, open or private, before the site is asked", async () => {
@@ -102,7 +112,7 @@ describe("an agent's instructions in a place @SC-577", () => {
 
   it("never reads another person's personal project", async () => {
     const owner = await createUser()
-    const personal = await createProject({ personalOwnerId: owner.id, accessLevel: 'PRIVATE' })
+    const personal = await createProject({ personalOwnerId: owner.id, personalSpace: true, accessLevel: 'PRIVATE' })
     const someoneElse = await createUser()
 
     await expect(getPlaceInstructions({ projectId: personal.id }, as(someoneElse))).rejects.toMatchObject({ statusCode: 404 })

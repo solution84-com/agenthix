@@ -50,12 +50,12 @@ describe('a machine not heard from (spec §10) @SC-929', () => {
   })
 
   it('says when, in the reader’s own zone, with what may be wrong and what to do', () => {
-    const n = notHeardFromNotice(host(), at('2026-10-14T21:40:00Z'), at('2026-10-14T21:55:00Z'), 'UTC', '/org/settings/where-work-runs/s1')
+    const n = notHeardFromNotice(host(), at('2026-10-14T21:40:00Z'), at('2026-10-14T21:55:00Z'), 'UTC', '/admin/where-work-runs/s1')
     expect(n).toMatchObject({
       type: 'fleet_machine_not_heard_from', subjectKey: 'h1',
       title: 'Not heard from machine-b since 21:40',
       body: 'It may be switched off, disconnected on the machine, or unable to reach HQ.',
-      actionLabel: 'Open in the Fleet Console', actionUrl: '/org/settings/where-work-runs/s1',
+      actionLabel: 'Open in the Fleet Console', actionUrl: '/admin/where-work-runs/s1',
     })
     expect(notHeardFromNotice(host(), at('2026-10-14T21:40:00Z'), at('2026-10-14T21:55:00Z'), 'Australia/Sydney', '/x').title)
       .toBe('Not heard from machine-b since 08:40')
@@ -71,7 +71,7 @@ describe('a machine that left by itself (spec §6) @SC-930', () => {
   })
 
   it('asks fleet admins to remove it in the Fleet Console', () => {
-    expect(leftNotice(host(), '/org/settings/where-work-runs/s1')).toMatchObject({
+    expect(leftNotice(host(), '/admin/where-work-runs/s1')).toMatchObject({
       type: 'fleet_machine_left', subjectKey: 'h1', title: 'machine-b left the fleet', body: 'Disconnected on the machine itself.',
       actionLabel: 'Remove it in the Fleet Console',
     })

@@ -47,7 +47,7 @@ async function openedProject(project: OpenedRow): Promise<ProjectDetail> {
   })
 }
 
-export const getProjects: GetProjects<void, ProjectListItem[]> = async (_args, context) => {
+export const getProjects: GetProjects<void, Array<ProjectListItem>> = async (_args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const me = context.user.id
   // A private project the caller is not on is not listed at all: not seeing it

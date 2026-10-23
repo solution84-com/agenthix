@@ -87,7 +87,7 @@ vi.mock('wasp/client/operations', () => {
       if (fn === getProjectByKey) return { data: projects[args!.key] }
       if (fn === getProjects) {
         return { data: [
-          { id: 'pp', key: 'ME', name: 'Mine', personalOwnerId: 'u1', isMember: true },
+          { id: 'pp', key: 'ME', name: 'Mine', personalOwnerId: 'u1', personalSpace: true, isMember: true },
           ...Object.values(projects).map((p) => ({ ...p, isMember: true })),
           { id: 'p3', key: 'OPEN', name: 'Not mine', personalOwnerId: null, isMember: false },
         ] }
