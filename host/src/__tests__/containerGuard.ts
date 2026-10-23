@@ -6,13 +6,15 @@
  * not carry that namespace. A machine's real install, whatever its namespace, is then out of a test's reach.
  *
  * Reads (`ps`, `inspect`, `logs`, `volume ls` …) pass whatever they name. A command the guard does not know is refused.
+ *
+ * A test runs beside an installation, so it holds no fixed port: each port it publishes is a free one (`freePorts`)
+ * that it chooses, and passes to the install as `--hq-port` and `--console-port`.
  */
 import { execFileSync, type ExecFileSyncOptions } from 'node:child_process'
 import fs from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
-import { DEFAULT_INSTALL_NAMESPACE } from '@agenthix/core'
-import { Docker, dockerCli } from '../docker/docker'
+import { CHOSEN_PORT_RANGE, DEFAULT_INSTALL_NAMESPACE } from '@agenthix/core'
 import { tableFor } from '../protections/rules'
 import { namesFor, type InstallNames } from '../state/namespace'
 
@@ -39,9 +41,10 @@ export function claimNames(ns: string): InstallNames {
   return names
 }
 
-/** Records `ns` in a state folder before the host service's first start, so it names everything from it. */
+/** Records the installation `ns` in a state folder before the host service's first start, so it names everything from it. */
 export function recordNamespace(stateDir: string, ns: string): void {
-  fs.writeFileSync(path.join(stateDir, 'namespace.json'), JSON.stringify({ namespace: ns, recordedAt: new Date().toISOString() }))
+  const installation = { namespace: ns, ports: { hq: null, console: null }, agentRange: null, recordedAt: new Date().toISOString() }
+  fs.writeFileSync(path.join(stateDir, 'installation.json'), JSON.stringify(installation))
 }
 
 const owned = (ns: string, name: string) => name.startsWith(`${ns}-`)
@@ -214,43 +217,15 @@ function bindable(port: number): Promise<boolean> {
   })
 }
 
-/** Fails before the test touches anything when one of the fixed ports it publishes on is already held here. */
-export async function requireFreePorts(ports: readonly number[]): Promise<void> {
-  const taken = await portsTaken(ports)
-  if (taken.length) {
-    throw new Error(`This test publishes on port ${taken.join(', ')}, which something on this machine already holds. It touched nothing; free the port, or run it on another machine.`)
+/** `count` distinct ports from the range a person may choose, none of them held on this machine now. */
+export async function freePorts(count: number): Promise<number[]> {
+  const chosen: number[] = []
+  for (let tries = 0; chosen.length < count && tries < 200; tries++) {
+    const span = CHOSEN_PORT_RANGE.last - CHOSEN_PORT_RANGE.first + 1
+    const port = CHOSEN_PORT_RANGE.first + Math.floor(Math.random() * span)
+    if (chosen.includes(port) || (await portsTaken([port])).length) continue
+    chosen.push(port)
   }
-}
-
-/**
- * Fails before the test touches anything when the machine already has an HQ, under any namespace: a machine runs
- * one HQ, so the host service refuses to install a second, and the test cannot install its own.
- */
-export async function requireNoHq(): Promise<void> {
-  const hqs = await new Docker(dockerCli).hqContainers()
-  if (hqs.length) {
-    throw new Error(`This test installs an HQ, and this machine already has one (${hqs.join(', ')}); a machine runs one HQ. It touched nothing; run it on a machine without one.`)
-  }
-}
-
-/**
- * Fails before the test touches anything when this machine's firewall already holds another install's agent
- * protections. Every install shuts the same agents' range, so that table refuses an agent network whatever the test's
- * own rules do, and a refusal the test sees would not be known to be its own. Listed from a container on the machine's
- * network, as the host service sees it.
- */
-export function requireNoOtherProtections(docker: GuardedDocker, image: string): void {
-  const listing = docker('run', '--rm', '--network', 'host', '--cap-add', 'NET_ADMIN', '--entrypoint', 'nft', image, 'list', 'tables')
-  const others = otherProtectionTables(listing, docker.namespace)
-  if (others.length) {
-    throw new Error(`This test checks its own agent protections, and this machine's firewall already holds another install's (${others.join(', ')}), which refuses agent networks whatever the test's rules do. It touched nothing; run it on a machine with no other install.`)
-  }
-}
-
-/** The agent protection tables in `nft list tables` other than the namespace's own. */
-export function otherProtectionTables(listing: string, ns: string): string[] {
-  return listing.split('\n').flatMap(line => {
-    const m = /^table inet (\S+_agents)$/.exec(line.trim())
-    return m && m[1] !== tableFor(ns) ? [m[1]!] : []
-  })
+  if (chosen.length < count) throw new Error(`Could not find ${count} free ports on this machine. It touched nothing.`)
+  return chosen
 }

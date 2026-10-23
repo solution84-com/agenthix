@@ -6,7 +6,8 @@ import type { HostRefusal, LogLineFigure } from '@agenthix/core'
 import type { Progress } from '../sockets/lineServer'
 import type { MachineStatus } from '../status/machineStatus'
 import type { HqLinkResult, InstallResult } from '../owner/results'
-import { addressProblem, DEFAULT_ADDRESS, isLocalAddress } from '../install/address'
+import { addressProblem, isLocalAddress } from '../install/address'
+import { defaultAddress } from '../install/ports'
 import type { Command } from './commands'
 import {
   ADDRESS_QUESTION, INVITATION_QUESTION, helpText, installDone, linkMade, localAddressNote, userNotFound,
@@ -89,12 +90,13 @@ async function chooseAddress(io: Io, command: Extract<Command, { kind: 'install'
   if (command.address) return command.address
   io.out(['One question. Press Enter to take the answer in brackets.', '', ...ADDRESS_QUESTION].join('\n'))
   for (;;) {
-    const typed = command.yes ? '' : await io.ask(`[${DEFAULT_ADDRESS}] `)
+    const fallback = defaultAddress(command.hqPort)
+    const typed = command.yes ? '' : await io.ask(`[${fallback}] `)
     if (typed === null) {
       io.err(wrap('Nothing to ask with: run it in a terminal, or give the answer with --address <address>.'))
       return null
     }
-    const address = typed.trim() || DEFAULT_ADDRESS
+    const address = typed.trim() || fallback
     const problem = addressProblem(address)
     if (!problem) return address
     io.err(wrap(`HQ cannot be at ${address}: ${problem}.`))
@@ -117,7 +119,8 @@ async function install(send: Send, io: Io, command: Extract<Command, { kind: 'in
     io.out(wrap(`HQ always comes with a site, ${machine}, where agents work; nothing to ask.`))
   }
   io.out('')
-  const result = await call<InstallResult>(send, io, { op: 'machine.install', address })
+  const ports = { ...(command.hqPort === undefined ? {} : { hqPort: command.hqPort }), ...(command.consolePort === undefined ? {} : { consolePort: command.consolePort }) }
+  const result = await call<InstallResult>(send, io, { op: 'machine.install', address, ...ports })
   io.out('')
   io.out(installDone(result, machine))
   return 0
@@ -256,6 +259,7 @@ export async function runCommand(command: Command, send: Send, io: Io, version: 
       case 'consoleDisconnect':
       case 'consoleInstall':
       case 'consoleRemove':
+      case 'consolePort':
       case 'consoleCode':
       case 'fleetAdmin':
         return await consoleCommand(command, request => call(send, io, request), { ...io, confirm: (q, yes) => confirmOrLeave(io, q, yes) }, now())

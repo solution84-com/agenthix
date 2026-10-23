@@ -1,6 +1,7 @@
 import net from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
-import { claimNames, guardedDocker, otherProtectionTables, portsTaken, refusal, testNamespace } from './containerGuard'
+import { CHOSEN_PORT_RANGE } from '@agenthix/core'
+import { claimNames, freePorts, guardedDocker, portsTaken, refusal, testNamespace } from './containerGuard'
 
 const NS = 'hteprot4242'
 
@@ -107,7 +108,7 @@ describe('docker, as a container test runs it @SC-1165', () => {
   })
 })
 
-describe('a fixed port a container test needs @SC-1165', () => {
+describe('a port a container test checks @SC-1165', () => {
   let server: net.Server | null = null
   afterEach(() => new Promise<void>(resolve => (server ? server.close(() => resolve()) : resolve())))
 
@@ -122,14 +123,14 @@ describe('a fixed port a container test needs @SC-1165', () => {
   })
 })
 
-describe('another install’s agent protections on the machine @SC-1165', () => {
-  it('are the agent tables other than the test’s own, and nothing else in the firewall', () => {
-    const listing = ['table inet agenthix_agents', `table inet ${NS}_agents`, 'table ip nat', 'table ip filter', 'table inet other_agents', ''].join('\n')
-    expect(otherProtectionTables(listing, NS)).toEqual(['agenthix_agents', 'other_agents'])
-    expect(otherProtectionTables(`table inet ${NS}_agents\ntable ip nat\n`, NS)).toEqual([])
-  })
-
-  it('are listed through the guard, from a container that names nothing of the machine’s', () => {
-    expect(refusal(NS, ['run', '--rm', '--network', 'host', '--cap-add', 'NET_ADMIN', '--entrypoint', 'nft', 'agenthix-host', 'list', 'tables'])).toBeNull()
+describe('the free ports a container test chooses @SC-1165', () => {
+  it('are distinct, inside the range a person may choose, and not held', async () => {
+    const ports = await freePorts(3)
+    expect(new Set(ports).size).toBe(3)
+    for (const p of ports) {
+      expect(p).toBeGreaterThanOrEqual(CHOSEN_PORT_RANGE.first)
+      expect(p).toBeLessThanOrEqual(CHOSEN_PORT_RANGE.last)
+    }
+    expect(await portsTaken(ports)).toEqual([])
   })
 })

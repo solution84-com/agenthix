@@ -1,45 +1,7 @@
-import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { StateFolder } from '../folder'
-import { namesFor, recordNamespace } from '../namespace'
+import { describe, expect, it } from 'vitest'
+import { namesFor } from '../namespace'
 
-let dir: string
-let state: StateFolder
-
-beforeEach(() => {
-  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'host-ns-'))
-  state = new StateFolder(path.join(dir, 'state'))
-  state.prepare()
-})
-afterEach(() => fs.rmSync(dir, { recursive: true, force: true }))
-
-describe('the recorded namespace @SC-821', () => {
-  it('is recorded on first start, from the current default, in a private file', () => {
-    expect(recordNamespace(state, 'agenthix', new Date('2026-10-14T00:00:00Z'))).toBe('agenthix')
-    const file = state.path('namespace.json')
-    expect(JSON.parse(fs.readFileSync(file, 'utf8'))).toEqual({ namespace: 'agenthix', recordedAt: '2026-10-14T00:00:00.000Z' })
-    expect(fs.statSync(file).mode & 0o777).toBe(0o600)
-  })
-
-  it('is read back afterwards, whatever the code now calls the product', () => {
-    recordNamespace(state, 'agenthix')
-    expect(recordNamespace(state, 'renamed')).toBe('agenthix')
-  })
-
-  it('is never overwritten when the record is not one the host service reads', () => {
-    fs.writeFileSync(state.path('namespace.json'), JSON.stringify({ namespace: 'Not Valid!' }))
-    expect(() => recordNamespace(state, 'agenthix')).toThrow(/namespace/)
-    expect(JSON.parse(fs.readFileSync(state.path('namespace.json'), 'utf8'))).toEqual({ namespace: 'Not Valid!' })
-  })
-
-  it('refuses a default that is not a usable Docker name', () => {
-    expect(() => recordNamespace(state, 'Bad Name')).toThrow()
-  })
-})
-
-describe('names derived from the namespace @SC-821 @SC-1155', () => {
+describe('names derived from the namespace @SC-821 @SC-1155 @SC-1241', () => {
   it('derives every stored name from the record alone', () => {
     const n = namesFor('acme')
     expect(n.hqProject).toBe('acme-hq')

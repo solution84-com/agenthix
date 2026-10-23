@@ -5,6 +5,7 @@ import { fakeMachine, type FakeMachine } from '../../__tests__/fakeMachine'
 import { cloudOperation } from '../../cloud/dispatch'
 import { CLOUD_ONLY_HANDLERS } from '../../cloud/handlers'
 import { writeAndStartConsole } from '../../install/console'
+import { recordPorts } from '../../state/installation'
 import { pinCloudController } from '../../link/cloudController'
 import { endRemoteAccess, resumeRemoteAccess } from '../handlers'
 import { forgetRemoteAccess, keptRemoteAccess, remoteAccessPort } from '../state'
@@ -33,6 +34,7 @@ async function enrol(machine: FakeMachine): Promise<void> {
 beforeEach(async () => {
   m = fakeMachine()
   await enrol(m)
+  recordPorts(m.ctx.state, { console: 7801 })
   await writeAndStartConsole(m.ctx, {
     version: '0.2.0', images: {}, hqAddress: 'http://127.0.0.1:4100', onHqMachine: true, installedAt: '2026-10-14T09:00:00.000Z',
   }, { pairingSecret: PAIRING })
@@ -89,7 +91,7 @@ describe('remote access, asked by Cloud on a machine it runs @SC-1066', () => {
     expect(await cloudOperation(m.ctx, r)).toEqual({ ok: true, op: 'remoteAccess.on', result: { on: true, until: r.until } })
     const { op: _op, ...request } = r
     expect(sent).toEqual([{ command: 'remote-on', input: request }])
-    expect(composePorts()).toEqual(['127.0.0.1:4300:4300', '8443:8443'])
+    expect(composePorts()).toEqual(['127.0.0.1:7801:4301', '8443:8443'])
     const compose = m.ctx.state.readJson('console', 'compose.json') as { services: { console: { environment: Record<string, string> } } }
     expect(compose.services.console.environment.HQ_CONSOLE_PAIRING_SECRET).toBe(PAIRING)
     expect(keptRemoteAccess(m.ctx)).toEqual({ port: 8443, until: r.until })
@@ -107,13 +109,22 @@ describe('remote access, asked by Cloud on a machine it runs @SC-1066', () => {
   ])('on: refuses %s, and asks nothing of the Fleet Console', async (_what, over) => {
     expect(await cloudOperation(m.ctx, on(over))).toMatchObject({ ok: false, refusal: { code: 'malformed' } })
     expect(sent).toEqual([])
-    expect(composePorts()).toEqual(['127.0.0.1:4300:4300'])
+    expect(composePorts()).toEqual(['127.0.0.1:7801:4301'])
+  })
+
+  it('on: refused, the Fleet Console told nothing, when the port is held on the machine @SC-1244', async () => {
+    m.heldPorts.add(8443)
+    expect(await cloudOperation(m.ctx, on())).toMatchObject({
+      ok: false, refusal: { code: 'conflict', message: "Port 8443, for the Fleet Console's remote access, is held by a program on this machine, not by a container. Ask for remote access on another port. Nothing was changed." },
+    })
+    expect(sent).toEqual([])
+    expect(keptRemoteAccess(m.ctx)).toBeNull()
   })
 
   it('on again while on: replaces all of it, the old port closed', async () => {
     await cloudOperation(m.ctx, on())
     await cloudOperation(m.ctx, on({ port: 9443, allow: ['2001:db8:1:2::/64'] }))
-    expect(composePorts()).toEqual(['127.0.0.1:4300:4300', '9443:9443'])
+    expect(composePorts()).toEqual(['127.0.0.1:7801:4301', '9443:9443'])
     expect((sent[1]!.input as { allow: string[] }).allow).toEqual(['2001:db8:1:2::/64'])
   })
 
@@ -122,7 +133,7 @@ describe('remote access, asked by Cloud on a machine it runs @SC-1066', () => {
     expect(await cloudOperation(m.ctx, on())).toMatchObject({ ok: false, refusal: { code: 'failed', message: expect.stringMatching(/Remote access is off/) } })
     expect(sent.map(s => s.command)).toEqual(['remote-on', 'remote-off'])
     expect(keptRemoteAccess(m.ctx)).toBeNull()
-    expect(composePorts()).toEqual(['127.0.0.1:4300:4300'])
+    expect(composePorts()).toEqual(['127.0.0.1:7801:4301'])
   })
 
   it('off: stops now, the port closed even when the Fleet Console does not answer', async () => {
@@ -130,7 +141,7 @@ describe('remote access, asked by Cloud on a machine it runs @SC-1066', () => {
     delete m.consoleAnswers['remote-off']
     expect(await cloudOperation(m.ctx, { op: 'remoteAccess.off' })).toEqual({ ok: true, op: 'remoteAccess.off', result: { on: false } })
     expect(sent.map(s => s.command)).toEqual(['remote-on', 'remote-off'])
-    expect(composePorts()).toEqual(['127.0.0.1:4300:4300'])
+    expect(composePorts()).toEqual(['127.0.0.1:7801:4301'])
     expect(keptRemoteAccess(m.ctx)).toBeNull()
   })
 
@@ -142,7 +153,7 @@ describe('remote access, asked by Cloud on a machine it runs @SC-1066', () => {
     await m.ctx.sleep(31 * 60_000)
     expect(remoteAccessPort(m.ctx)).toBeNull()
     await endRemoteAccess(m.ctx)
-    expect(composePorts()).toEqual(['127.0.0.1:4300:4300'])
+    expect(composePorts()).toEqual(['127.0.0.1:7801:4301'])
     expect(keptRemoteAccess(m.ctx)).toBeNull()
   })
 
@@ -150,7 +161,7 @@ describe('remote access, asked by Cloud on a machine it runs @SC-1066', () => {
     await cloudOperation(m.ctx, on({ until: inMinutes(30) }))
     await m.ctx.sleep(60 * 60_000)
     resumeRemoteAccess(m.ctx)
-    await vi.waitFor(() => expect(composePorts()).toEqual(['127.0.0.1:4300:4300']))
+    await vi.waitFor(() => expect(composePorts()).toEqual(['127.0.0.1:7801:4301']))
   })
 
   it('authenticator.add: hands the secret over on standard input only, and answers whether it was added', async () => {

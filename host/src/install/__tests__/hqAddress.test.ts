@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MOVE_CHECK_PATH } from '@agenthix/core'
 import { fakeMachine, type FakeMachine } from '../../__tests__/fakeMachine'
 import { installed } from '../../service/context'
+import { recordAgentRange } from '../../state/installation'
 import { pointSite } from '../siteAddress'
 import { moveHqAddress } from '../hqAddress'
 import { install } from '../install'
@@ -37,6 +38,8 @@ async function stand(credentials: string[]) {
 function addedSite() {
   m.ctx.state.writeJson(['site', 'settings.json'], { name: 'office-server', version: '0.2.0', hqUrl: OLD, installedAt: 'x' })
   m.ctx.state.writeJson(['site', 'credential.json'], { credential: CREDENTIAL, madeAt: 'x' })
+  // As the site's first install left it.
+  recordAgentRange(m.ctx.state, '10.213.32.0/20')
 }
 
 const composeEnv = () => (m.ctx.state.readJson('site', 'compose.json') as { services: { site: { environment: Record<string, string> } } }).services.site.environment
@@ -49,6 +52,7 @@ describe('site hq-address @SC-856', () => {
     expect(r).toEqual({ siteName: 'office-server', address: real.address, previous: OLD })
     expect(installed(m.ctx).site?.settings.hqUrl).toBe(real.address)
     expect(composeEnv().HQ_URL).toBe(real.address)
+    expect(composeEnv().AGENT_NETWORK_RANGE).toBe('10.213.32.0/20')
     expect(m.up.has('agenthix-site')).toBe(true)
   })
 
@@ -70,7 +74,7 @@ describe('site hq-address @SC-856', () => {
   })
 
   it("refuses for HQ's own site, which has no address to set", async () => {
-    await install(m.ctx, 'http://localhost:4100', () => {})
+    await install(m.ctx, { address: 'http://localhost:4100' }, () => {})
     const err = await pointSite(m.ctx, 'http://192.168.1.30:4100', () => {}).catch(e => e)
     expect(err.message).toMatch(/^The site here is HQ's own/)
   })
@@ -81,7 +85,7 @@ describe('hq address @SC-855', () => {
   const told = { ok: true, text: 'told', data: { sites: { told: 2, online: 2, of: 3 }, hosts: { told: 1, of: 2 }, console: true } } as const
 
   async function installedHq() {
-    await install(m.ctx, 'http://localhost:4100', () => {})
+    await install(m.ctx, { address: 'http://localhost:4100' }, () => {})
     m.calls.length = 0
   }
 
@@ -97,7 +101,10 @@ describe('hq address @SC-855', () => {
       `Starting HQ at ${NEW}`, 'HQ answers at its new address',
     ])
     const hq = installed(m.ctx).hq!.settings
-    expect(hq).toMatchObject({ address: NEW, bind: '0.0.0.0', port: 4100 })
+    expect(hq).toMatchObject({ address: NEW, bind: '0.0.0.0' })
+    // The port is recorded once, in installation.json, and not again in HQ's settings.
+    expect(hq).not.toHaveProperty('port')
+    expect(installed(m.ctx).hq!.port).toBe(4100)
     const tellAt = m.calls.findIndex(c => c.includes('address-move'))
     const stopAt = m.calls.findIndex(c => c[0] === 'compose' && c.includes('stop'))
     expect(tellAt).toBeGreaterThanOrEqual(0)
@@ -112,6 +119,17 @@ describe('hq address @SC-855', () => {
     expect(installed(m.ctx).hq!.settings.address).toBe('http://localhost:4100')
     const moves = m.calls.filter(c => c.includes('address-move')).map(c => c[c.length - 1])
     expect(moves).toEqual([NEW, 'http://localhost:4100'])
+  })
+
+  it('is refused before HQ is told anything when the new address is on a port another holds @SC-1244', async () => {
+    await installedHq()
+    m.hq['address-move'] = told
+    m.heldPorts.add(7500)
+    const err = await moveHqAddress(m.ctx, 'http://192.168.1.30:7500', () => {}).catch(e => e)
+    expect(err).toMatchObject({ code: 'conflict' })
+    expect(err.message).toBe('Port 7500, for HQ, is held by a program on this machine, not by a container. Give HQ an address on another port. Nothing was changed.')
+    expect(m.calls.some(c => c.includes('address-move'))).toBe(false)
+    expect(installed(m.ctx).hq!.port).toBe(4100)
   })
 
   it('changes nothing when HQ does not answer to tell anyone, or the address is the same', async () => {

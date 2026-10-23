@@ -34,7 +34,7 @@ const FOLDER_NAME = /^[A-Za-z0-9._-]{1,255}$/
  * name it passes to the state folder and fails when one is missing here, or listed here and no longer written.
  */
 export const STATE_FILES: ReadonlySet<string> = new Set([
-  'namespace.json', 'machine.json', 'secrets.json', 'upgrades.json', 'scheduled.json', 'resize.json', 'suspended.json',
+  'installation.json', 'machine.json', 'secrets.json', 'upgrades.json', 'scheduled.json', 'resize.json', 'suspended.json',
 ])
 export const STATE_FOLDERS: ReadonlySet<string> = new Set([
   'site', 'hq', 'console', 'front-door', 'move', 'backups', 'bin', 'keys', 'exports', 'exports-held', 'link', 'launcher',
@@ -117,7 +117,7 @@ const message = (err: unknown) => (err instanceof Error ? err.message : String(e
 /** Whether `dir` is this install's state folder: it records this namespace. */
 function recordsNamespace(dir: string, namespace: string): boolean {
   try {
-    return (JSON.parse(fs.readFileSync(path.join(dir, 'namespace.json'), 'utf8')) as { namespace?: unknown }).namespace === namespace
+    return (JSON.parse(fs.readFileSync(path.join(dir, 'installation.json'), 'utf8')) as { namespace?: unknown }).namespace === namespace
   } catch {
     return false
   }

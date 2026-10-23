@@ -27,23 +27,17 @@ export function isLocalAddress(address: string): boolean {
   return host === 'localhost' || host.endsWith('.localhost') || host === '::1' || /^127\./.test(host)
 }
 
-function defaultPort(url: URL): number {
-  return url.port ? Number(url.port) : url.protocol === 'https:' ? 443 : 80
-}
-
 /**
- * Where hq-web listens, from HQ's address. An https address is served by a front door on this machine, which
- * holds the certificate and reaches hq-web on 127.0.0.1:4100. A plain-http address on this machine stays on it;
- * any other plain-http address is opened to the network on its own port.
+ * Where hq-web is published, from HQ's address; its port is the installation's (`ports.ts`). An https address is
+ * served by a front door on this machine, which reaches hq-web inside Docker, or by a proxy of the machine's own on
+ * 127.0.0.1. A plain-http address on this machine stays on it; any other plain-http address is opened to the network.
  */
-export function listenerFor(address: string): Pick<HqSettings, 'bind' | 'port' | 'trustedProxies'> {
+export function listenerFor(address: string): Pick<HqSettings, 'bind' | 'trustedProxies'> {
   const url = new URL(address)
-  if (url.protocol === 'https:') return { bind: '127.0.0.1', port: 4100, trustedProxies: 2 }
-  if (isLocalAddress(address)) return { bind: '127.0.0.1', port: defaultPort(url), trustedProxies: 1 }
-  return { bind: '0.0.0.0', port: defaultPort(url), trustedProxies: 1 }
+  if (url.protocol === 'https:') return { bind: '127.0.0.1', trustedProxies: 2 }
+  if (isLocalAddress(address)) return { bind: '127.0.0.1', trustedProxies: 1 }
+  return { bind: '0.0.0.0', trustedProxies: 1 }
 }
-
-export const DEFAULT_ADDRESS = 'http://localhost:4100'
 
 /** Whether a host name can have a subdomain anyone can reach: not a network address, a single word or a `.local` name. */
 function hasSubdomains(host: string): boolean {

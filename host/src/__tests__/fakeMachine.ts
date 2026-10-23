@@ -14,6 +14,7 @@ import { machinePathsFrom, type Context } from '../service/context'
 import { fakeBackupIO, type FakeBackupIO } from '../backups/__tests__/fakeBackupIO'
 import { FakeContainers } from '../launcher/__tests__/fakeContainers'
 import type { DockerNetwork } from '../compose/subnets'
+import type { MachineContainer } from '../docker/machineContainers'
 
 export type FakeMachine = {
   ctx: Context
@@ -39,8 +40,10 @@ export type FakeMachine = {
   siteReport: { value: unknown }
   /** The agent containers a site started, by name, in the agents' group: `docker ps` lists them and `docker rm` removes them. */
   agentContainers: string[]
-  /** Every container on the machine, as `docker ps --format '{{.Names}}\t{{.Labels}}'` lists it; none by default. */
-  machineContainers: string[]
+  /** Every other container on the machine, as `docker inspect` reads it for the port check; none by default. */
+  machineContainers: MachineContainer[]
+  /** Ports a program outside Docker holds, as the port check's bind probe finds them; none by default. */
+  heldPorts: Set<number>
   /** The agents' networks, in the same group: `docker network ls` lists them and `docker network rm` removes them. */
   agentNetworks: string[]
   /**
@@ -71,6 +74,8 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'host-machine-'))
   const state = new StateFolder(path.join(dir, 'state'))
   state.prepare()
+  // What the host service records at its first start, before any operation runs.
+  state.writeJson(['installation.json'], { namespace: ns, ports: { hq: null, console: null }, agentRange: null, recordedAt: '2026-10-14T09:00:00.000Z' })
   const calls: string[][] = []
   const up = new Set<string>()
   const missingImages = new Set<string>()
@@ -80,7 +85,8 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
   const agentContainers: string[] = []
   const agentNetworks: string[] = []
   const dockerNetworks: DockerNetwork[] = []
-  const machineContainers: string[] = []
+  const machineContainers: MachineContainer[] = []
+  const heldPorts = new Set<number>()
   const siteReport: FakeMachine['siteReport'] = { value: null }
   const consoleLocalJoin: FakeMachine['consoleLocalJoin'] = { code: null }
   const consoleAnswers: FakeMachine['consoleAnswers'] = {}
@@ -133,7 +139,15 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
       return ok()
     }
     const inAgents = args.includes(`label=com.docker.compose.project=${ns}-agents`)
-    if (args[0] === 'ps') return ok(inAgents ? agentContainers.join('\n') : args.at(-1)?.includes('.Labels') ? machineContainers.join('\n') : '')
+    if (args[0] === 'ps' && args.includes('--quiet') && !inAgents) return ok(machineContainers.map(c => c.name).join('\n'))
+    if (args[0] === 'inspect' && args[1] === '--type') {
+      const wanted = new Set(args.slice(5))
+      return ok(machineContainers.filter(c => wanted.has(c.name)).map(c => [
+        `/${c.name}`, c.labels, c.running,
+        c.running ? Object.fromEntries(c.published.map((p, i) => [`${4000 + i}/tcp`, [{ HostIp: p.ip, HostPort: String(p.port) }]])) : {},
+      ].map(v => JSON.stringify(v)).join('\t')).join('\n'))
+    }
+    if (args[0] === 'ps') return ok(inAgents ? agentContainers.join('\n') : '')
     if (args[0] === 'rm') {
       for (const name of args.slice(2)) drop(agentContainers, name)
       return ok()
@@ -212,6 +226,8 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
       return { send: () => {}, close: () => {} }
     },
     reach: async () => true,
+    // The test runner's own ports would make the check depend on what runs where the tests run.
+    portInUse: async port => heldPorts.has(port),
     // The test runner's own interfaces would make the subnets chosen depend on the machine the tests run on.
     machineAddresses: () => [],
     registryTags: async repository => {
@@ -219,7 +235,7 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
       return tags.get(repository) ?? []
     },
   }
-  return { ctx, calls, dir, hq, up, missingImages, signatures, checked, caddyRefuses, backups, tags, registryDown, agentContainers, agentNetworks, dockerNetworks, machineContainers, siteReport, containers, consoleLocalJoin, consoleAnswers, volumes, images, imagesInUse, dockerFails, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
+  return { ctx, calls, dir, hq, up, missingImages, signatures, checked, caddyRefuses, backups, tags, registryDown, agentContainers, agentNetworks, dockerNetworks, machineContainers, heldPorts, siteReport, containers, consoleLocalJoin, consoleAnswers, volumes, images, imagesInUse, dockerFails, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
 }
 
 /** A digest that stands in for an image's, the same for the same name. */

@@ -10,16 +10,18 @@ import type { InstallSubnets } from '../compose/subnets'
 import type { StateFolder } from '../state/folder'
 import type { InstallNames } from '../state/namespace'
 import type { InstallSecrets } from '../state/secrets'
+import { installationOf } from '../state/installation'
 
 const CREDENTIAL = ['site', 'credential.json']
 
 export function siteComposeProject(
   state: StateFolder, names: InstallNames, site: SiteSettings, secrets: InstallSecrets, paths: MachinePaths, subnets: InstallSubnets,
 ) {
-  if (!site.hqUrl) return defaultSiteProject(names, site, secrets, paths, subnets)
+  const installation = installationOf(state)
+  if (!site.hqUrl) return defaultSiteProject(names, site, secrets, paths, subnets, installation)
   // Without its credential the site starts unconnected rather than with anyone else's.
   const hq = { hqUrl: site.hqUrl, credential: readSiteCredential(state) ?? '', onHqLinkNetwork: false }
-  return siteProject(names, site, secrets, paths, hq, subnets)
+  return siteProject(names, site, secrets, paths, hq, subnets, installation)
 }
 
 export function readSiteCredential(state: StateFolder): string | null {

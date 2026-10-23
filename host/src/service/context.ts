@@ -9,11 +9,12 @@ import type { HqControl } from '../hq/control'
 import type { HqSettings, MachinePaths, SiteSettings } from '../compose/projects'
 import type { StateFolder } from '../state/folder'
 import type { InstallNames } from '../state/namespace'
+import { readInstallation } from '../state/installation'
 import type { Installed } from '../status/machineStatus'
 import type { SignatureCheck } from '../images/signatures'
 import type { Signer } from '../images/published'
 import type { RegistryEnv } from '../images/registryAuth'
-import type { FrontDoorProbes } from '../frontDoor/probes'
+import type { FrontDoorProbes, PortInUse } from '../frontDoor/probes'
 import type { BackupIO } from '../backups/io'
 import type { TagLister } from '../upgrades/versions'
 import type { LinkHandle } from '../link/link'
@@ -42,8 +43,10 @@ export type Context = {
   now: () => Date
   /** How long install waits for HQ to answer, and for its site to connect. */
   waits: { hqMs: number; siteMs: number; pollMs: number }
-  /** What the front door asks of the machine (its ports, its certificates); the machine's own when absent. */
+  /** What the front door asks of the machine (its certificates); the machine's own when absent. */
   frontDoorProbes?: FrontDoorProbes
+  /** Whether a port is held on the machine, for the port check; a bind probe on the machine when absent. */
+  portInUse?: PortInUse
   /** What backing up and restoring asks of Docker and of the folders the machine admin names. */
   backupIO: BackupIO
   /** Lists an image repository's published tags; the registry's own anonymous API when absent. */
@@ -64,8 +67,9 @@ export type StoredSite = SiteSettings & { installedAt: string }
 export function installed(ctx: Context): Installed {
   const hq = ctx.state.readJson('hq', 'settings.json') as StoredHq | null
   const site = ctx.state.readJson('site', 'settings.json') as StoredSite | null
+  const port = hq ? readInstallation(ctx.state)?.ports.hq ?? null : null
   return {
-    hq: hq ? { settings: hq, file: ctx.state.path('hq', 'compose.json'), project: ctx.names.hqProject } : null,
+    hq: hq ? { settings: hq, file: ctx.state.path('hq', 'compose.json'), project: ctx.names.hqProject, port } : null,
     site: site ? { settings: site, file: ctx.state.path('site', 'compose.json'), project: ctx.names.siteProject } : null,
   }
 }

@@ -1,7 +1,8 @@
 /**
  * The host service (host-management spec §6, adr-0107): the one authority over this machine. On start it makes
- * its state folder private, records the install's namespace, and opens its two sockets — the owner socket for
- * the CLI, and the figures socket for the site it runs. It runs until Docker stops its container.
+ * its state folder private, records the installation (its namespace, at the first start), and opens its two
+ * sockets — the owner socket for the CLI, and the figures socket for the site it runs. It runs until Docker stops
+ * its container.
  */
 import { DEFAULT_INSTALL_NAMESPACE } from '@agenthix/core'
 import fs from 'node:fs'
@@ -10,7 +11,7 @@ import { startCloud } from './cloud/start'
 import { cloudOperation } from './cloud/dispatch'
 import { resumeRemoteAccess } from './remoteAccess/handlers'
 import { Docker, DockerStreams, dockerCli, dockerStream } from './docker/docker'
-import { Containers } from './docker/containers'
+import { Containers, containerIdIn } from './docker/containers'
 import { collectFigures } from './figures/figures'
 import { figuresHandler } from './figures/socket'
 import { HqControl } from './hq/control'
@@ -18,7 +19,8 @@ import { ownerHandler } from './owner/dispatch'
 import { installed, machinePathsFrom, type Context } from './service/context'
 import { PRIVATE, SHARED, listen } from './sockets/lineServer'
 import { StateFolder } from './state/folder'
-import { namesFor, recordNamespace } from './state/namespace'
+import { namesFor } from './state/namespace'
+import { readInstallation, startInstallation } from './state/installation'
 import { figuresVolumeWarning } from './figures/mount'
 import { checkSignature, cosignCli } from './images/signatures'
 import { registryEnv } from './images/registryAuth'
@@ -53,6 +55,7 @@ import { deliver, setTransferWire } from './move/wire'
 import { moveEndedHeard, receiveMoves, settleAfterRestart } from './move/receive'
 import { moveCodeAnswered } from './move/code'
 import { sayStopping } from './link/stopping'
+import { reportBlockedAfterStart } from './status/portsBlocked'
 
 function readMountInfo(): string {
   try {
@@ -65,13 +68,23 @@ function readMountInfo(): string {
 async function main(): Promise<void> {
   const state = new StateFolder(STATE_DIR)
   state.prepare()
-  const names = namesFor(recordNamespace(state, DEFAULT_INSTALL_NAMESPACE))
+  const containers = new Containers(dockerCli)
+  // At the first start, recorded only once its own container carries the name it finds itself by (`<namespace>-host`).
+  const installation = await startInstallation(state, {
+    asked: process.env.INSTALL_NAMESPACE,
+    fallback: DEFAULT_INSTALL_NAMESPACE,
+    ownName: async () => {
+      const id = containerIdIn(readMountInfo())
+      return id ? (await containers.inspect(id).catch(() => null))?.name ?? null : null
+    },
+  })
+  const names = namesFor(installation.namespace)
   const docker = new Docker(dockerCli)
   const ctx: Context = {
     state,
     names,
     docker,
-    containers: new Containers(dockerCli),
+    containers,
     hqControl: new HqControl(docker, names.container('hq-server')),
     machine: { name: machineName(state), hostServiceVersion: HOST_SERVICE_VERSION },
     signatures: (ref, signer) => checkSignature(cosignCli, ref, signer, registryEnv(state, process.env)),
@@ -137,7 +150,7 @@ async function main(): Promise<void> {
   const stopLocalConsole = keepLocalConsoleJoined(ctx, 60_000, line => console.warn(line))
   // A machine that disconnected itself while HQ did not answer tells HQ it left once HQ does (spec §6).
   const stopLeaving = startLeavingNotices(state, 60_000, line => console.warn(line))
-  const protections = new AgentProtections(new Firewall(nftCli), machineRules(names.namespace))
+  const protections = new AgentProtections(new Firewall(nftCli), machineRules(names.namespace, () => readInstallation(state)?.agentRange ?? null))
   useProtections(protections)
   const stopProtections = protections.start(undefined, line => console.log(line))
   const owner = await listen(OWNER_SOCKET, PRIVATE, ownerHandler(ctx))
@@ -165,6 +178,8 @@ async function main(): Promise<void> {
     machineStatus(ctx.machine, installed(ctx), docker, ctx.hqControl).catch(() => {})
   }, 60_000)
 
+  // After a reboot, a part whose published port another program took first cannot start: the log says so (Rule 4).
+  const stopBlocked = reportBlockedAfterStart(ctx, line => console.warn(line))
   const stopBackups = startNightlyBackups(ctx)
   const stopHeldExports = startHeldExportSweep(ctx)
   const stopPurge = startBinPurge(ctx, undefined, line => console.warn(line))
@@ -184,6 +199,7 @@ async function main(): Promise<void> {
     stopHeldExports()
     stopPurge()
     clearInterval(relay)
+    stopBlocked()
     stopUpgrades()
     stopScheduler()
     stopProtections()

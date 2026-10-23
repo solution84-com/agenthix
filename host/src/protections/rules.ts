@@ -33,7 +33,7 @@ export const METADATA_ADDRESSES: readonly string[] = [
 export type RuleSet = {
   /** The nftables table, derived from the install's namespace. */
   table: string
-  /** The agents' address range, `AGENT_NETWORK_RANGE`. */
+  /** The installation's agent slice (`compose/agentSlice.ts`), which its site gives as `AGENT_NETWORK_RANGE`. */
   range: { addr: string; len: number }
   /**
    * Further addresses of the machine an agent must not reach: on Docker Desktop, the computer Docker runs on,
@@ -55,7 +55,7 @@ export function parseRange(range: string): RuleSet['range'] {
   const [addr, bits] = range.trim().split('/')
   const len = Number(bits)
   if (!addr || !isIpv4(addr) || !Number.isInteger(len) || len < 8 || len > 29) {
-    throw new Error(`The agents' address range ${range} is not an IPv4 range like 10.213.0.0/16.`)
+    throw new Error(`The agents' address range ${range} is not an IPv4 range like 10.213.0.0/20.`)
   }
   return { addr, len }
 }

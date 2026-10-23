@@ -67,7 +67,7 @@ afterEach(() => m.cleanup())
 
 describe('agenthix uninstall refuses @SC-1159', () => {
   it('while HQ is on the machine, running or suspended, and removes nothing', async () => {
-    await install(m.ctx, ADDRESS, () => {})
+    await install(m.ctx, { address: ADDRESS }, () => {})
     m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
     m.calls.length = 0
     const r = await uninstall()
@@ -106,7 +106,7 @@ describe('agenthix uninstall refuses @SC-1159', () => {
 
 describe('an erased HQ still in the bin @SC-1160', () => {
   beforeEach(async () => {
-    await install(m.ctx, ADDRESS, () => {})
+    await install(m.ctx, { address: ADDRESS }, () => {})
     m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
     expect((await ask({ op: 'erase', target: 'hq', confirmAddress: ADDRESS })).ok).toBe(true)
     m.calls.length = 0

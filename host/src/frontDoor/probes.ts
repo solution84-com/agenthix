@@ -1,7 +1,7 @@
 /**
- * What the front door asks of the machine itself: whether a port is taken, and what certificate a host name is
- * served with on this machine's port 443. The host service runs on the machine's own network, so both are the
- * machine's. Tests stand in fakes.
+ * What the host service asks of the machine itself: whether a port is taken (the port check, `install/portCheck.ts`),
+ * and what certificate a host name is served with on this machine's port 443 (the front door). The host service runs
+ * on the machine's own network, so both are the machine's. Tests stand in fakes.
  */
 import { X509Certificate } from 'node:crypto'
 import net from 'node:net'
@@ -9,9 +9,10 @@ import tls from 'node:tls'
 
 export type CertificateCheck = { ok: true; expiresAt: string } | { ok: false; problem: string }
 
+/** True when something holds `port` on `host`, the address it would be published on; null when that cannot be told. */
+export type PortInUse = (port: number, host: string) => Promise<boolean | null>
+
 export type FrontDoorProbes = {
-  /** True when something listens on the port; null when that cannot be told. */
-  portInUse: (port: number) => Promise<boolean | null>
   /**
    * The certificate this machine's port 443 serves for `host`: checked as a browser checks it, or, when the front door
    * was given one (`expected`, PEM), checked to be exactly that one. A given certificate may be trusted only by the
@@ -20,11 +21,12 @@ export type FrontDoorProbes = {
   certificate: (host: string, expected?: string) => Promise<CertificateCheck>
 }
 
-function portInUse(port: number): Promise<boolean | null> {
+/** A bind probe: listening on the address the port would be published on fails while anything holds it. */
+export const machinePortInUse: PortInUse = (port, host) => {
   return new Promise(resolve => {
     const server = net.createServer()
     server.once('error', (err: NodeJS.ErrnoException) => resolve(err.code === 'EADDRINUSE' ? true : null))
-    server.listen({ port, host: '0.0.0.0', exclusive: true }, () => server.close(() => resolve(false)))
+    server.listen({ port, host, exclusive: true }, () => server.close(() => resolve(false)))
   })
 }
 
@@ -58,4 +60,4 @@ export function certificateProbe(port = 443): FrontDoorProbes['certificate'] {
   })
 }
 
-export const machineProbes: FrontDoorProbes = { portInUse, certificate: certificateProbe() }
+export const machineProbes: FrontDoorProbes = { certificate: certificateProbe() }

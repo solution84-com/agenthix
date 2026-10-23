@@ -17,11 +17,11 @@ beforeEach(async () => {
   busy = new Set()
   certs = new Map()
   progress = []
+  m.ctx.portInUse = async port => busy.has(port)
   m.ctx.frontDoorProbes = {
-    portInUse: async port => busy.has(port),
     certificate: async host => certs.get(host) ?? { ok: false, problem: 'connect ECONNREFUSED 127.0.0.1:443' },
   }
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   m.calls.length = 0
 })
 afterEach(() => m.cleanup())
@@ -70,14 +70,17 @@ describe('agenthix front-door on @SC-857', () => {
     expect(started()).toEqual(['agenthix-hq', 'agenthix-front-door'])
   })
 
-  it('is refused while either port is in use, and nothing changes', async () => {
+  it('is refused while either port is in use, naming who holds it, and nothing changes', async () => {
     busy.add(443)
+    m.machineContainers.push({ name: 'nginx', labels: {}, running: true, published: [{ ip: '0.0.0.0', port: 80 }] })
     const answer = await on()
     expect(answer).toMatchObject({ ok: false, refusal: { code: 'conflict' } })
     expect((answer.refusal as { message: string }).message).toBe(
-      'Refused: something on hq-box is already listening on port 443. Stop it first — or keep it, and point it at HQ on ' +
-      '127.0.0.1:4100: agenthix front-door prints the steps. Nothing changed.')
-    expect(m.calls).toEqual([])
+      'Refused on hq-box: Port 80, for the front door, is held by the container nginx. Port 443, for the front door, is held by a ' +
+      'program on this machine, not by a container. Free them first — or, if it is a web server of your own, keep it and point it ' +
+      'at HQ on 127.0.0.1:7800: agenthix front-door prints the steps. Nothing was changed.')
+    // Only Docker's listing was read.
+    expect(m.calls.filter(c => c[0] !== 'ps' && c[0] !== 'inspect')).toEqual([])
     expect(exists('front-door')).toBe(false)
   })
 
@@ -110,7 +113,7 @@ describe('agenthix front-door on @SC-857', () => {
   it('is refused for an HQ at a plain http address', async () => {
     const other = fakeMachine()
     try {
-      await install(other.ctx, 'http://192.168.1.20:4100', () => {})
+      await install(other.ctx, { address: 'http://192.168.1.20:4100' }, () => {})
       const answer = await ownerHandler(other.ctx)({ op: 'frontDoor.set', on: true, confirmPorts: true }, () => {}) as Record<string, unknown>
       expect((answer.refusal as { message: string }).message).toContain('is plain http')
     } finally {

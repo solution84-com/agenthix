@@ -5,7 +5,7 @@
  */
 import { parseHostCeilings } from './figures.js'
 import type { HostTarget } from './figures.js'
-import type { BackupSource, ChangeRequest, HostRefusal, HostRequest } from './operations.js'
+import type { BackupSource, ChangeRequest, HostRefusal, HostRequest, PublishedPortChoice } from './operations.js'
 import { isFingerprint, type HostIdentity } from './envelope.js'
 import { isTransferId } from './transfer.js'
 import { isExportId } from './exportDownload.js'
@@ -31,6 +31,16 @@ const target = (v: unknown): HostTarget => (v === 'hq' || v === 'site' ? v : fai
 const version = (v: unknown): string => (typeof v === 'string' && isPublishedVersion(v) ? v : fail('version'))
 // `dev` installs the images built on the machine; a host service that is not a development build refuses it there.
 const installVersion = (v: unknown): string => (v === 'dev' ? v : version(v))
+/** A port when given: a whole number from 1 to 65535. The host service checks the range it allows when it uses it. */
+const optPort = (v: unknown, what: string): number | undefined =>
+  v === undefined ? undefined : typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 65535 ? v : fail(what)
+/** The ports a request for hq names, only those given; a request for anything else names none. */
+function ports(r: Record<string, unknown>, forHq: boolean): PublishedPortChoice {
+  if (!forHq) return r.hqPort === undefined && r.consolePort === undefined ? {} : fail("HQ's port")
+  const hqPort = optPort(r.hqPort, "HQ's port")
+  const consolePort = optPort(r.consolePort, "Fleet Console's port")
+  return { ...(hqPort === undefined ? {} : { hqPort }), ...(consolePort === undefined ? {} : { consolePort }) }
+}
 const exportId = (v: unknown): string => (isExportId(v) ? v : fail('export'))
 const time = (v: unknown, what: string): string =>
   typeof v === 'string' && !Number.isNaN(Date.parse(v)) ? v : fail(what)
@@ -82,8 +92,8 @@ function change(r: Record<string, unknown>): ChangeRequest | null {
       const hqAddress = to === 'hq' ? optStr(r.hqAddress, "HQ's address") : r.hqAddress === undefined ? undefined : fail("HQ's address")
       const extra = hqAddress === undefined ? {} : { hqAddress }
       return r.role === 'send'
-        ? { op: 'move', role: 'send', target: to, peer, peerIdentity, peerName, transferId, ...extra }
-        : { op: 'move', role: 'receive', target: to, peer, peerIdentity, peerName, transferId, siteName: str(r.siteName, 'site name'), ...extra }
+        ? { op: 'move', role: 'send', target: to, peer, peerIdentity, peerName, transferId, ...extra, ...ports(r, false) }
+        : { op: 'move', role: 'receive', target: to, peer, peerIdentity, peerName, transferId, siteName: str(r.siteName, 'site name'), ...extra, ...ports(r, to === 'hq') }
     }
     case 'erase':
       return target(r.target) === 'hq'
@@ -113,8 +123,8 @@ function request(r: Record<string, unknown>): HostRequest | null {
     }
     case 'install':
       return target(r.target) === 'hq'
-        ? { op: 'install', target: 'hq', version: installVersion(r.version), address: str(r.address, 'address') }
-        : { op: 'install', target: 'site', version: installVersion(r.version) }
+        ? { op: 'install', target: 'hq', version: installVersion(r.version), address: str(r.address, 'address'), ...ports(r, true) }
+        : { op: 'install', target: 'site', version: installVersion(r.version), ...ports(r, false) }
     case 'start':
     case 'stop':
     case 'remove':

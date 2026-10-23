@@ -30,6 +30,7 @@ import { checkRestorable } from './siteRestore'
 import { readPin } from '../link/pin'
 import { listBackups } from './list'
 import { checkRestoreTarget } from './scheduledRestore'
+import { portFields, type PortChoice } from '../install/ports'
 
 export type BackupMachineRequest =
   | { op: 'backup.status' }
@@ -40,7 +41,8 @@ export type BackupMachineRequest =
   | { op: 'restore.list'; from: string }
   /** With HQ's address and a code from *Restore from a backup…*: also keeps the restore for the connect that follows. */
   | { op: 'restore.check'; from: string; name: string; key: string; address?: string; code?: string }
-  | { op: 'restore.run'; from: string; name: string; key: string }
+  /** `hqPort`, `consolePort`: the ports HQ and its Fleet Console take on this machine, from `restore --hq-port` and `--console-port`. */
+  | ({ op: 'restore.run'; from: string; name: string; key: string } & PortChoice)
 
 export const BACKUP_MACHINE_OPS = [
   'backup.status', 'backup.location', 'backup.locationConfirm', 'backup.saveKey', 'backup.exportNow',
@@ -90,7 +92,11 @@ export function parseBackupMachineRequest(r: Record<string, unknown>): BackupMac
       const name = text(r.name, 255)
       const key = text(r.key, 64)
       if (!from || !name || name.includes('/') || !key) return 'malformed'
-      if (r.op === 'restore.run' || (r.address === undefined && r.code === undefined)) return { op: r.op, from, name, key }
+      if (r.op === 'restore.run') {
+        const ports = portFields(r, ['hqPort', 'consolePort'])
+        return ports ? { op: r.op, from, name, key, ...ports } : 'malformed'
+      }
+      if (r.address === undefined && r.code === undefined) return { op: r.op, from, name, key }
       const address = text(r.address, 512)
       const code = text(r.code, 32)
       return address && code ? { op: r.op, from, name, key, address, code } : 'malformed'
@@ -234,7 +240,7 @@ export async function machineBackupOperation(ctx: Context, request: BackupMachin
     }
     case 'restore.run': {
       const { dir } = await listAt(ctx, request.from)
-      return restoreOnNewMachine(ctx, { kind: 'folder', dir, name: request.name }, request.key, progress) satisfies Promise<RestoreResult>
+      return restoreOnNewMachine(ctx, { kind: 'folder', dir, name: request.name }, request.key, progress, { hqPort: request.hqPort, consolePort: request.consolePort }) satisfies Promise<RestoreResult>
     }
   }
 }

@@ -5,7 +5,7 @@ import { AgentProtections, removeTable } from '../protections'
 import type { RuleSet } from '../rules'
 import { listing } from './nftListing'
 
-const set: RuleSet = { table: 'agenthix_agents', range: { addr: '10.213.0.0', len: 16 }, machineAddresses: [] }
+const set: RuleSet = { table: 'agenthix_agents', range: { addr: '10.213.16.0', len: 20 }, machineAddresses: [] }
 const ok = (stdout = ''): RunResult => ({ code: 0, stdout, stderr: '' })
 
 /** nft with one table: what was applied is what is listed, until something removes it. */
@@ -96,6 +96,43 @@ describe('the agent protections @SC-825', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('the agent protections without an agent slice @SC-1247', () => {
+  it('write nothing while the installation has no site, and say there is nothing to keep out', async () => {
+    const nft = fakeNft()
+    const f = await new AgentProtections(nft.firewall, async () => null, clock).check()
+    expect(f).toEqual({ holding: true, rules: [], checkedAt: '2026-10-14T09:00:00.000Z', problem: null })
+    expect(nft.calls).toEqual([])
+  })
+
+  it('do not hold from the moment a slice is recorded until its rules are in place', async () => {
+    const nft = fakeNft()
+    let source: RuleSet | null = null
+    const p = new AgentProtections(nft.firewall, async () => source, clock)
+    expect((await p.check()).holding).toBe(true)
+    source = set
+    p.rangeChanged()
+    expect(p.figures()).toMatchObject({ holding: false, rules: [] })
+    expect(await p.check()).toMatchObject({ holding: true, rules: ['machine-ports', 'published-ports', 'metadata-address'] })
+    expect(nft.calls.some(c => c[0] === '-f')).toBe(true)
+  })
+
+  it('never keep a check begun before the slice was recorded', async () => {
+    const nft = fakeNft()
+    let release: (v: RuleSet | null) => void = () => {}
+    let first = true
+    const p = new AgentProtections(nft.firewall, () => first
+      ? (first = false, new Promise<RuleSet | null>(r => { release = r }))
+      : Promise.resolve(set), clock)
+    const before = p.check()
+    p.rangeChanged()
+    const after = await p.check()
+    release(null)
+    await before
+    expect(after.rules).toHaveLength(3)
+    expect(p.figures()).toMatchObject({ holding: true, rules: ['machine-ports', 'published-ports', 'metadata-address'] })
   })
 })
 

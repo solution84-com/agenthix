@@ -7,7 +7,7 @@
  */
 import fs from 'node:fs'
 import type { Progress } from '../sockets/lineServer'
-import { composeJson, defaultSiteProject, hqProject, type MachinePaths } from '../compose/projects'
+import { composeJson, defaultSiteProject, hqPortOf, hqProject, type MachinePaths } from '../compose/projects'
 import { checkImages, fetchImages } from '../images/images'
 import { POSTGRES_IMAGE } from '../images/published'
 import { installed, type Context, type StoredHq, type StoredSite } from '../service/context'
@@ -20,6 +20,10 @@ import { checkSameSite, restoreSiteInPlace } from './siteInPlace'
 import { consoleProject } from '../compose/console'
 import { localHqAddress, type StoredConsole } from '../install/console'
 import { installSubnets, type InstallSubnets } from '../compose/subnets'
+import { keepAgentSlice, pickAgentSlice } from '../compose/agentSlice'
+import { installationOf, readInstallation, recordPorts, type Installation } from '../state/installation'
+import { chooseConsolePort, chooseHqPort, type PortChoice } from '../install/ports'
+import { checkPorts, restoredPortAsks } from '../install/portCheck'
 
 /** The note the site reads from its data folder (core's `SiteRestoreReport`). */
 export const RESTORED_NOTE = 'restored.json'
@@ -80,12 +84,15 @@ function fitsHere(ctx: Context, checked: Checked): void {
   }
 }
 
-/** `agenthix restore --from` on a machine where nothing runs yet. */
-export function restoreOnNewMachine(ctx: Context, ref: SourceRef, key: string, progress: (p: Progress) => void): Promise<RestoreResult> {
+/**
+ * `agenthix restore --from` on a machine where nothing runs yet. Its ports are this machine's: chosen here, from
+ * `ports`, what was recorded or the defaults, never from the backup.
+ */
+export function restoreOnNewMachine(ctx: Context, ref: SourceRef, key: string, progress: (p: Progress) => void, ports: PortChoice = {}): Promise<RestoreResult> {
   return exclusive('restore', async () => {
     refuseWhereSomethingRuns(ctx)
     // The CLI checked the key already, and said so; checked again here, before anything changes.
-    return apply(ctx, await openChecked(ctx, ref, key), progress)
+    return apply(ctx, await openChecked(ctx, ref, key), progress, { ports })
   })
 }
 
@@ -108,21 +115,35 @@ export function refuseWhereSomethingRuns(ctx: Context): void {
   }
 }
 
-async function apply(ctx: Context, { header, manifest, records }: Checked, progress: (p: Progress) => void, { inPlace = false } = {}): Promise<RestoreResult> {
+async function apply(
+  ctx: Context, { header, manifest, records }: Checked, progress: (p: Progress) => void, { inPlace = false, ports = {} as PortChoice } = {},
+): Promise<RestoreResult> {
   try {
     if (!manifest.hq) {
       throw new Refusal('conflict', `This is a backup of the site ${manifest.site.name}. It comes back as the same site only with a code from Restore from a backup… in the Fleet Console: ${cmd('restore --from <folder or file> <hq address> <code>')}`)
     }
+    // In place, the ports stay as recorded; on a new machine they are chosen here before anything is fetched.
+    const recorded = readInstallation(ctx.state)?.ports ?? { hq: null, console: null }
+    const chosen = inPlace ? recorded : {
+      hq: chooseHqPort(manifest.hq.address, ports.hqPort, recorded.hq),
+      console: manifest.console ? chooseConsolePort(ports.consolePort, recorded.console) : recorded.console,
+    }
+    await checkPorts(ctx, restoredPortAsks(manifest.hq.address, chosen, !inPlace && !!manifest.console))
     if (ctx.figuresWarning) throw new Refusal('failed', ctx.figuresWarning)
     const paths = await ctx.machinePaths()
     if (!paths) throw new Refusal('failed', 'The host service cannot find its state folder on this machine, so it cannot restore.')
+    const agentSlice = await pickAgentSlice(ctx)
     const pinned = await step(progress, 'Checking the images are signed', () => images(ctx, manifest))
     const { hq, site } = pinned
     // In place, the Fleet Console that runs here is left as it is: it is the fleet's, not HQ's, and it may be the one
     // that asked for this restore. Its keys and the machines it knows come back only on a new machine.
     const fleetConsole = inPlace && ctx.state.readJson('console', 'settings.json') ? null : pinned.console
     await step(progress, 'Stopping HQ and the site', () => stopAll(ctx))
-    const written = await step(progress, 'Writing HQ\'s and the site\'s settings and secrets', async () => writeSettings(ctx, manifest, hq, site, paths, header.takenAt, await installSubnets(ctx)))
+    const written = await step(progress, 'Writing HQ\'s and the site\'s settings and secrets', async () => {
+      keepAgentSlice(ctx.state, agentSlice)
+      const installation = recordPorts(ctx.state, chosen)
+      return writeSettings(ctx, manifest, hq, site, paths, header.takenAt, await installSubnets(ctx), installation)
+    })
     // Compose makes HQ's storage volume (and the databases'), so that it carries the labels `compose down -v`
     // removes by; a volume made by `docker volume create` or by the first mount would be left behind.
     await step(progress, 'Starting the databases', async () => {
@@ -130,7 +151,7 @@ async function apply(ctx: Context, { header, manifest, records }: Checked, progr
       await ctx.backupIO.createProject(written.site.project, written.site.file)
       await ctx.backupIO.startServices(written.hq.project, written.hq.file, ['hq-db'])
       await ctx.backupIO.startServices(written.site.project, written.site.file, ['site-db'])
-      if (fleetConsole) await ctx.backupIO.createProject(ctx.names.consoleProject, writeConsole(ctx, fleetConsole, manifest, hq, await installSubnets(ctx)))
+      if (fleetConsole) await ctx.backupIO.createProject(ctx.names.consoleProject, writeConsole(ctx, fleetConsole, manifest, await installSubnets(ctx)))
     })
     const src = sources(ctx.names, paths)
     ctx.state.folder('site', 'data')
@@ -186,10 +207,12 @@ async function images(ctx: Context, m: Manifest): Promise<{ hq: StoredHq; site: 
 }
 
 /** The Fleet Console beside the restored HQ, at HQ's local listener, admitted by the restored pairing secret. */
-function writeConsole(ctx: Context, fleetConsole: StoredConsole, m: Manifest, hq: StoredHq, subnets: InstallSubnets): string {
-  const settings: StoredConsole = { ...fleetConsole, hqAddress: localHqAddress(hq.port), onHqMachine: true }
+function writeConsole(ctx: Context, fleetConsole: StoredConsole, m: Manifest, subnets: InstallSubnets): string {
+  const installation = installationOf(ctx.state)
+  const settings: StoredConsole = { ...fleetConsole, hqAddress: localHqAddress(hqPortOf(installation)), onHqMachine: true }
   ctx.state.writeJson(['console', 'settings.json'], settings)
-  return ctx.state.writePrivate(['console', 'compose.json'], composeJson(consoleProject(ctx.names, settings, ctx.machine.name, { pairingSecret: m.secrets.consolePairingSecret }, subnets)))
+  const project = consoleProject(ctx.names, settings, ctx.machine.name, { pairingSecret: m.secrets.consolePairingSecret }, subnets, installation)
+  return ctx.state.writePrivate(['console', 'compose.json'], composeJson(project))
 }
 
 async function stopAll(ctx: Context): Promise<void> {
@@ -198,17 +221,19 @@ async function stopAll(ctx: Context): Promise<void> {
   if (here.hq) await ctx.docker.composeStop(here.hq.project, here.hq.file)
 }
 
-function writeSettings(ctx: Context, m: Manifest, hq: StoredHq, site: StoredSite, paths: MachinePaths, takenAt: string, subnets: InstallSubnets) {
+function writeSettings(
+  ctx: Context, m: Manifest, hq: StoredHq, site: StoredSite, paths: MachinePaths, takenAt: string, subnets: InstallSubnets, installation: Installation,
+) {
   ctx.state.writeJson(['secrets.json'], m.secrets)
   ctx.state.writeJson(['hq', 'settings.json'], hq)
   ctx.state.writeJson(['site', 'settings.json'], site)
-  const project = hqProject(ctx.names, hq, m.secrets, ctx.machine.name, subnets)
+  const project = hqProject(ctx.names, hq, m.secrets, ctx.machine.name, subnets, installation)
   // HQ takes back what its sites hold only when it knows it was restored (hq's sites/restoreReconcile.ts). The
   // next install or upgrade writes the project again without it, once the sites have long reconnected.
   const server = project.services['hq-server'] as { environment: Record<string, string> }
   server.environment = { ...server.environment, HQ_RESTORED_FROM: takenAt }
   ctx.state.writePrivate(['hq', 'compose.json'], composeJson(project))
-  ctx.state.writePrivate(['site', 'compose.json'], composeJson(defaultSiteProject(ctx.names, site, m.secrets, paths, subnets)))
+  ctx.state.writePrivate(['site', 'compose.json'], composeJson(defaultSiteProject(ctx.names, site, m.secrets, paths, subnets, installation)))
   const now = installed(ctx)
   return { hq: now.hq!, site: now.site! }
 }

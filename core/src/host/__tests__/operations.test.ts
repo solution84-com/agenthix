@@ -121,6 +121,21 @@ describe('the closed set of host operations', () => {
     expect(parseHostRequest({ ...hqMove, hqAddress: '' })).toMatchObject({ ok: false, refusal: { code: 'malformed' } })
   })
 
+  it("carries the ports chosen for HQ and its Fleet Console on an install of hq and a move of hq received, and nowhere else @SC-1249", () => {
+    const install = { op: 'install', target: 'hq', version: '0.2.0', address: 'https://hq.example.com' }
+    expect(parseHostRequest({ ...install, hqPort: 7500, consolePort: 7501 })).toEqual({ ok: true, request: { ...install, hqPort: 7500, consolePort: 7501 } })
+    expect(parseHostRequest({ ...install, consolePort: 7501 })).toEqual({ ok: true, request: { ...install, consolePort: 7501 } })
+    expect(parseHostRequest(install)).toEqual({ ok: true, request: install })
+    const receive = { ...(examples.move as Record<string, unknown>), role: 'receive', target: 'hq', siteName: 'office' }
+    expect(parseHostRequest({ ...receive, hqPort: 7500 })).toEqual({ ok: true, request: { ...receive, hqPort: 7500 } })
+    for (const r of [
+      { ...install, hqPort: 0 }, { ...install, hqPort: 65536 }, { ...install, hqPort: 7500.5 }, { ...install, consolePort: '7501' },
+      { op: 'install', target: 'site', version: '0.2.0', hqPort: 7500 },
+      { ...receive, target: 'site', consolePort: 7501 },
+      { ...receive, role: 'send', hqPort: 7500 },
+    ]) expect(parseHostRequest(r), JSON.stringify(r)).toMatchObject({ ok: false, refusal: { code: 'malformed' } })
+  })
+
   it('schedules only the changes of spec 14, never another operation', () => {
     for (const op of SCHEDULABLE_OPERATIONS) {
       expect(parseHostRequest({ op: 'schedule', at: '2026-10-15T02:00:00Z', change: examples[op] }).ok, op).toBe(true)

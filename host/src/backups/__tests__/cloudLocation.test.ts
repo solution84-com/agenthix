@@ -33,7 +33,7 @@ beforeEach(async () => {
   s3 = new FakeS3()
   const keys = await generateHostKeys('cloud')
   await pinCloudController(m.ctx.state, { identity: keys.identity as HostIdentity & { role: 'cloud' }, machineId: 'machine-1', pinnedAt: m.ctx.now().toISOString() })
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   m.ctx.backupIO.folder = routedFolder(m.ctx.backupIO.folder, () => openCloudLocation(m.ctx.state, m.ctx.now(), s3.client))
 })
 afterEach(() => m.cleanup())

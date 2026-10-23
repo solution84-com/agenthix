@@ -5,9 +5,11 @@
  * no admin API and no Docker socket.
  */
 import { createHash } from 'node:crypto'
+import { FRONT_DOOR_PORTS } from '@agenthix/core'
 import type { HqSettings, MachinePaths } from '../compose/projects'
 import { HQ_WEB_PORT } from '../compose/projects'
 import type { InstallNames } from '../state/namespace'
+import { installationLabels, type Installation } from '../state/installation'
 
 /**
  * Caddy's official image, not ours to sign, so fixed by the digest of its multi-platform index as hq's database
@@ -71,7 +73,7 @@ export function caddyfile(names: InstallNames, hosts: string[], givenCertificate
 }
 
 /** `givenCertificate`: the certificate's own text, whose change starts the front door again with the new one. */
-export function frontDoorCompose(names: InstallNames, paths: MachinePaths, config: string, givenCertificate?: string) {
+export function frontDoorCompose(names: InstallNames, paths: MachinePaths, config: string, installation: Installation, givenCertificate?: string) {
   const state = paths.state.replace(/\/+$/, '')
   return {
     name: frontDoorProject(names),
@@ -80,7 +82,7 @@ export function frontDoorCompose(names: InstallNames, paths: MachinePaths, confi
         image: FRONT_DOOR_IMAGE,
         pull_policy: 'never',
         container_name: names.container('front-door'),
-        ports: ['80:80', '443:443'],
+        ports: FRONT_DOOR_PORTS.map(p => `${p}:${p}`),
         volumes: [
           `${state}/front-door/Caddyfile:/etc/caddy/Caddyfile:ro`,
           ...(givenCertificate ? [`${state}/front-door/tls:/etc/caddy/tls:ro`] : []),
@@ -93,6 +95,7 @@ export function frontDoorCompose(names: InstallNames, paths: MachinePaths, confi
         labels: {
           [names.label('role')]: 'front-door',
           [names.label('managed-by')]: 'host',
+          ...installationLabels(names, installation),
           // A changed Caddyfile changes the project, so compose starts the front door again with it.
           [names.label('config')]: createHash('sha256').update(config).update(givenCertificate ?? '').digest('hex').slice(0, 16),
         },

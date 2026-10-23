@@ -13,7 +13,7 @@ afterEach(() => {
 
 async function nameWith(namespace: string | null): Promise<string> {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cli-host-'))
-  if (namespace) fs.writeFileSync(path.join(dir, 'namespace.json'), JSON.stringify({ namespace }))
+  if (namespace) fs.writeFileSync(path.join(dir, 'installation.json'), JSON.stringify({ namespace, ports: { hq: null, console: null }, agentRange: null, recordedAt: 'x' }))
   vi.stubEnv('HOST_STATE_DIR', dir)
   vi.resetModules()
   return (await import('../hostContainer')).hostContainer()

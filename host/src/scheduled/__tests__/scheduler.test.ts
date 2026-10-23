@@ -24,7 +24,7 @@ function sentToHq(): ScheduledChangeNotice[] {
 
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
   m.calls.length = 0
 })

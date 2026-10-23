@@ -22,6 +22,9 @@ import { filesOriginKept } from '../frontDoor/given'
 import { addressProblem, listenerFor } from './address'
 import { localHqAddress, consoleHere, writeAndStartConsole } from './console'
 import { installSecrets } from '../state/secrets'
+import { installationOf, recordPorts } from '../state/installation'
+import { chooseHqPort } from './ports'
+import { checkPorts } from './portCheck'
 
 export type HqAddressResult = { address: string; previous: string; told: Told | null }
 
@@ -52,12 +55,18 @@ export async function moveHqAddress(ctx: Context, raw: string, progress: (p: Pro
   if (frontDoorSettings(ctx)?.on) {
     throw new Refusal('conflict', `The front door serves HQ at ${previous}. Turn it off first (${cmd('front-door off')}), change the address, then turn it on again for the new one. Nothing was changed.`)
   }
+  // A plain-http address carries hq's port with it; an https one keeps the port recorded.
+  const was = installationOf(ctx.state).ports.hq
+  const port = chooseHqPort(address, undefined, was)
+  await checkPorts(ctx, [{ port, part: 'hq', bind: listenerFor(address).bind, another: "Give HQ an address on another port." }])
   const paths = await ctx.machinePaths()
   if (!paths) throw new Refusal('failed', 'The host service cannot find its state folder on this machine. Nothing was changed.')
-  return exclusive('move of HQ to a new address', () => run(ctx, hq.settings, address, paths, progress))
+  return exclusive('move of HQ to a new address', () => run(ctx, hq.settings, address, { was, now: port }, paths, progress))
 }
 
-async function run(ctx: Context, before: StoredHq, address: string, paths: { state: string }, progress: (p: Progress) => void): Promise<HqAddressResult> {
+async function run(
+  ctx: Context, before: StoredHq, address: string, port: { was: number | null; now: number }, paths: { state: string }, progress: (p: Progress) => void,
+): Promise<HqAddressResult> {
   const site = installed(ctx).site!.settings
   const told = await step(progress, "Telling HQ's sites and host services the new address", async () => {
     const answer = await ctx.hqControl.run('address-move', [address])
@@ -67,6 +76,7 @@ async function run(ctx: Context, before: StoredHq, address: string, paths: { sta
   }, t => (t ? `${t.sites.told + t.hosts.told} told` : 'done'))
 
   const putBack = async (why: string): Promise<never> => {
+    recordPorts(ctx.state, { hq: port.was })
     await writeProjects(ctx, before, site, paths)
     await startTarget(ctx, 'hq').catch(() => {})
     // HQ at its old address again: those it told stop waiting.
@@ -86,6 +96,7 @@ async function run(ctx: Context, before: StoredHq, address: string, paths: { sta
 
   const moved: StoredHq = { ...before, address, ...listenerFor(address), filesOrigin: filesOriginKept(ctx.state, address) }
   await step(progress, `Starting HQ at ${address}`, async () => {
+    recordPorts(ctx.state, { hq: port.now })
     await writeProjects(ctx, moved, site, paths)
     await startTarget(ctx, 'hq')
   })
@@ -103,13 +114,13 @@ async function run(ctx: Context, before: StoredHq, address: string, paths: { sta
     return putBack(`HQ did not answer at ${address} within ${Math.round(ctx.waits.hqMs / 60_000)} minutes.`)
   }
 
-  if (moved.port !== before.port) await followLocalPort(ctx, moved)
+  if (port.now !== port.was) await followLocalPort(ctx, port.now)
   return { address, previous: before.address, told }
 }
 
 /** This machine's pin and the Fleet Console here reach hq on its local port: they follow it when it moves. */
-async function followLocalPort(ctx: Context, hq: StoredHq): Promise<void> {
-  const local = localHqAddress(hq.port)
+async function followLocalPort(ctx: Context, hqPort: number): Promise<void> {
+  const local = localHqAddress(hqPort)
   const pin = readPin(ctx.state)
   if (pin?.local) {
     writePin(ctx.state, { ...pin, hqAddress: local })

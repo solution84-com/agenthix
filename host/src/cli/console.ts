@@ -1,5 +1,5 @@
 /**
- * `agenthix console connect|disconnect|install|remove` and `agenthix hq console-code|fleet-admin` (host-management spec §6,
+ * `agenthix console connect|disconnect|install|port|remove` and `agenthix hq console-code|fleet-admin` (host-management spec §6,
  * §7, §9). Each asks before it changes anything that cannot simply be taken back, and takes --yes from a script.
  */
 import { normalizeJoinCode } from '@agenthix/core'
@@ -7,6 +7,7 @@ import type { StatusWithBackups } from './statusText'
 import type { Ask } from './backups'
 import type { ConnectResult, DisconnectResult } from '../link/manage'
 import type { ConsoleInstallResult, ConsoleRemoveCheck, ConsoleRemoved } from '../install/console'
+import type { ConsolePortResult } from '../install/consolePort'
 import type { FleetAdminResult, ConsoleCodeResult } from '../owner/consoleOps'
 import type { ManagementStatus } from '../link/status'
 import { addressProblem } from '../install/address'
@@ -16,12 +17,14 @@ import {
 } from './consoleWords'
 import { consoleRemoved, consoleRemoveWarning } from './consoleRemoveWords'
 import { wrap } from './words'
+import { portOptions } from './portOptions'
 
 export type ConsoleCommand =
-  | { kind: 'consoleConnect'; address: string; code: string }
+  | { kind: 'consoleConnect'; address: string; code: string; hqPort?: number; consolePort?: number }
   | { kind: 'consoleDisconnect'; yes: boolean }
-  | { kind: 'consoleInstall'; address: string; code: string; yes: boolean }
+  | { kind: 'consoleInstall'; address: string; code: string; yes: boolean; consolePort?: number }
   | { kind: 'consoleRemove'; yes: boolean }
+  | { kind: 'consolePort'; port: number }
   | { kind: 'consoleCode'; yes: boolean; noMachines?: true }
   | { kind: 'fleetAdmin'; user: string; yes: boolean; remove?: true }
 
@@ -45,12 +48,22 @@ function addressAndCode(verb: string, args: string[]): { address: string; code: 
 export function parseConsole(verb: string | undefined, args: string[]): ConsoleCommand | Usage {
   const { yes, rest } = withYes(args)
   if (verb === 'connect') {
-    const r = addressAndCode('connect', args)
-    return 'kind' in r ? r : { kind: 'consoleConnect', ...r }
+    const ports = portOptions(args, ['--hq-port', '--console-port'])
+    if ('problem' in ports) return { kind: 'usage', message: ports.problem }
+    const r = addressAndCode('connect', ports.rest)
+    return 'kind' in r ? r : { kind: 'consoleConnect', ...r, ...ports.ports }
   }
   if (verb === 'install') {
-    const r = addressAndCode('install', rest)
-    return 'kind' in r ? r : { kind: 'consoleInstall', ...r, yes }
+    const ports = portOptions(rest, ['--console-port'])
+    if ('problem' in ports) return { kind: 'usage', message: ports.problem }
+    const r = addressAndCode('install', ports.rest)
+    return 'kind' in r ? r : { kind: 'consoleInstall', ...r, yes, ...ports.ports }
+  }
+  if (verb === 'port') {
+    const port = args.length === 1 && /^\d{1,5}$/.test(args[0]) ? Number(args[0]) : NaN
+    return Number.isInteger(port) && port >= 1 && port <= 65535
+      ? { kind: 'consolePort', port }
+      : { kind: 'usage', message: 'Give the port to move the Fleet Console to: console port <port>' }
   }
   if (verb === 'remove') return rest.length ? { kind: 'usage', message: 'console remove takes nothing more.' } : { kind: 'consoleRemove', yes }
   if (verb === 'disconnect') return rest.length ? { kind: 'usage', message: 'console disconnect takes nothing more.' } : { kind: 'consoleDisconnect', yes }
@@ -84,7 +97,7 @@ export async function consoleCommand(command: ConsoleCommand, call: Ask, io: Con
   switch (command.kind) {
     case 'consoleConnect': {
       // The waiting and the confirmation are printed as they happen (run.ts); what is left comes after.
-      io.out(connected(await call<ConnectResult>({ op: 'console.connect', address: command.address, code: command.code })))
+      io.out(connected(await call<ConnectResult>({ op: 'console.connect', address: command.address, code: command.code, hqPort: command.hqPort, consolePort: command.consolePort })))
       return 0
     }
     case 'consoleDisconnect': {
@@ -100,9 +113,18 @@ export async function consoleCommand(command: ConsoleCommand, call: Ask, io: Con
     }
     case 'consoleInstall': {
       const status = await call<WithManagement>({ op: 'machine.status' })
-      io.out(consoleInstallWarning(status.machine.name))
+      const here = status.management?.consoleHere?.address
+      io.out(consoleInstallWarning(status.machine.name, command.consolePort ?? (here ? Number(new URL(here).port) : undefined)))
       if (!(await io.confirm('Start it here?', command.yes))) return 1
-      io.out(consoleInstalled(await call<ConsoleInstallResult>({ op: 'console.install', address: command.address, code: command.code })))
+      io.out(consoleInstalled(await call<ConsoleInstallResult>({
+        op: 'console.install', address: command.address, code: command.code,
+        ...(command.consolePort === undefined ? {} : { consolePort: command.consolePort }),
+      })))
+      return 0
+    }
+    case 'consolePort': {
+      const r = await call<ConsolePortResult>({ op: 'console.port', port: command.port })
+      io.out(wrap(`The Fleet Console on ${r.machine} is now at ${r.address}, on this machine only${r.previous ? `, no longer at ${r.previous}` : ''}.`))
       return 0
     }
     case 'consoleRemove': {

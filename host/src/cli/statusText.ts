@@ -4,6 +4,7 @@
  */
 import { movingLines } from './hqAddressWords'
 import type { MachineStatus, PartState } from '../status/machineStatus'
+import type { BlockedPart } from '../status/portsBlocked'
 import type { SiteCause } from '../status/siteControl'
 import { hostContainer } from './hostContainer'
 import type { BackupsStatus } from '../backups/status'
@@ -39,10 +40,11 @@ function notRunning(state: PartState, logs: string): string | null {
   return null
 }
 
-function hqBlock(hq: NonNullable<MachineStatus['hq']>, suspended: boolean): string[] {
+function hqBlock(hq: NonNullable<MachineStatus['hq']>, suspended: boolean, blocked: string | undefined): string[] {
   const lines = [`HQ  ${hq.address}  ${hq.version}`]
   const down = notRunning(hq.containers, 'hq logs')
   if (down && suspended) lines.push(hqSuspendedLine())
+  else if (blocked) lines.push(wrap(blocked, IN))
   else if (down) lines.push(down)
   else if (!hq.answer) {
     lines.push(nextStep(
@@ -172,7 +174,7 @@ function frontDoorBlock(hq: NonNullable<MachineStatus['hq']>, door: MachineStatu
   if (door?.on) {
     return ['Front door  on', wrap(`Serves ${door.hosts.join(' and ')} on ports 80 and 443, with certificates it renews on its own.`, IN)]
   }
-  const at = `${hq.listen.bind === '0.0.0.0' ? "this machine's address" : hq.listen.bind}:${hq.listen.port}`
+  const at = `${hq.listen.bind === '0.0.0.0' ? "this machine's address" : hq.listen.bind}${hq.listen.port === null ? '' : `:${hq.listen.port}`}`
   if (hq.address.startsWith('https://')) {
     return ['Front door  off', wrap(`Your own web server serves ${hq.address}: point it at ${at}.`, IN)]
   }
@@ -181,6 +183,11 @@ function frontDoorBlock(hq: NonNullable<MachineStatus['hq']>, door: MachineStatu
     return ['Front door  off', wrap(`HQ answers only on this machine, at ${hq.address}.`, IN)]
   }
   return ['Front door  off', wrap(`HQ answers on this machine's network at ${hq.address}, in plain http.`, IN)]
+}
+
+/** A part other than HQ that cannot start for a port another holds (Rule 4); nothing when none. */
+function blockedLines(blocked: BlockedPart[], part: 'console' | 'front-door'): string[] {
+  return blocked.filter(b => b.part === part).map(b => wrap(b.text, IN))
 }
 
 /** The agent protections: a fact while they hold, and why not when they do not (spec §8). No setting to offer. */
@@ -212,15 +219,16 @@ export function statusText(s: StatusWithBackups, now = new Date()): string {
     lines.push(by && !by.local
       ? wrap('No site runs here. If its install failed, or a move or a disconnect left this machine empty, a fleet admin adds a site here or tries the install again in the Fleet Console (Fleet → Add a site).')
       : nextStep('Nothing runs here yet. To install HQ and its site on this machine:', cmd('install')))
-    lines.push(...managementLines(s.management, false, false), ...consoleHereLines(s.management, false))
+    lines.push(...managementLines(s.management, false, false), ...consoleHereLines(s.management, false), ...blockedLines(s.blocked ?? [], 'console'))
     return lines.join('\n')
   }
   lines.push(...managementLines(s.management, !!s.hq, !!s.site, !!s.site?.replacedAt))
-  if (s.hq) lines.push(...hqBlock(s.hq, !!s.lifecycle?.suspended.hq), ...upgradeLines(s.upgrades, 'hq', now))
+  const blocked = s.blocked ?? []
+  if (s.hq) lines.push(...hqBlock(s.hq, !!s.lifecycle?.suspended.hq, blocked.find(b => b.part === 'hq')?.text), ...upgradeLines(s.upgrades, 'hq', now))
   if (s.site) lines.push(...siteBlock(s.site, s.lifecycle?.suspended, s.management, !!s.hq), ...upgradeLines(s.upgrades, 'site', now))
   if (s.site && s.backups) lines.push(...backupLines(s.backups, now))
-  lines.push(...consoleHereLines(s.management, !!s.hq))
-  if (s.hq) lines.push(...frontDoorBlock(s.hq, s.frontDoor))
+  lines.push(...consoleHereLines(s.management, !!s.hq), ...blockedLines(blocked, 'console'))
+  if (s.hq) lines.push(...frontDoorBlock(s.hq, s.frontDoor), ...blockedLines(blocked, 'front-door'))
   if (s.site && s.protections) lines.push(...protectionsBlock(s.protections))
   if (s.scheduled) lines.push(...scheduledBlock(s.scheduled, now))
   return lines.join('\n')

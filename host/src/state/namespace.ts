@@ -1,35 +1,13 @@
 /**
- * The install's recorded namespace (host-management spec §17). Recorded once, on the host service's first start,
- * from the branding module's current default; from then on every name the host service creates or looks for on
- * the machine — compose projects, containers, volumes, networks, labels, database names — is derived from the
+ * The names derived from an installation's namespace (host-management spec §17). The namespace itself is recorded once,
+ * at the host service's first start (`installation.ts`); from then on every name the host service creates or looks for
+ * on the machine — compose projects, containers, volumes, networks, labels, database names — is derived from the
  * record, never from the code's branding, so a later rename of the product cannot break an install.
  */
 import type { InstallNamespace } from '@agenthix/core'
-import type { StateFolder } from './folder'
 
-const FILE = 'namespace.json'
 /** Lowercase, as Docker requires of compose project names, and short enough to prefix every other name. */
-const VALID = /^[a-z][a-z0-9-]{0,30}$/
-
-export function recordNamespace(state: StateFolder, current: InstallNamespace, now = new Date()): InstallNamespace {
-  const recorded = state.readJson(FILE)
-  if (recorded !== null) {
-    const ns = (recorded as { namespace?: unknown }).namespace
-    if (typeof ns !== 'string' || !VALID.test(ns)) {
-      throw new Error(`${state.path(FILE)} does not hold a namespace the host service reads; it is left as it is.`)
-    }
-    return ns
-  }
-  if (!VALID.test(current)) throw new Error(`"${current}" cannot be an install's namespace.`)
-  state.writeJson([FILE], { namespace: current, recordedAt: now.toISOString() })
-  return current
-}
-
-/** The namespace recorded in `state`, without recording one; null before the host service has first started. */
-export function recordedNamespace(state: StateFolder): InstallNamespace | null {
-  const ns = (state.readJson(FILE) as { namespace?: unknown } | null)?.namespace
-  return typeof ns === 'string' && VALID.test(ns) ? ns : null
-}
+export const VALID_NAMESPACE = /^[a-z][a-z0-9-]{0,30}$/
 
 export type InstallNames = ReturnType<typeof namesFor>
 

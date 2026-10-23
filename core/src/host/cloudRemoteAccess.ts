@@ -7,11 +7,12 @@
  */
 import type { CloudOnlyRequest } from './cloudOperations.js'
 import { REMOTE_ACCESS_MAX_MS } from './cloud.js'
+import { SERVICE_PORTS } from '../ports/ports.js'
 
 /** At most this many addresses may reach it at once. */
 export const CLOUD_REMOTE_ACCESS_ALLOW_MAX = 20
-/** The Fleet Console's own port on its machine's loopback, which remote access never takes. */
-const CONSOLE_LOCAL_PORT = 4300
+/** The Fleet Console's own ports (its page in dev, its server), which remote access never takes. */
+const CONSOLE_LOCAL_PORTS: readonly number[] = [SERVICE_PORTS.console.web, SERVICE_PORTS.console.server]
 /** A little slack for the two clocks, Cloud's and the machine's, when `until` is checked against the 8 hours. */
 const CLOCK_SLACK_MS = 60_000
 
@@ -83,7 +84,7 @@ export function remoteAccessPortProblem(port: unknown): string | null {
   if (typeof port !== 'number' || !Number.isInteger(port) || port < 1024 || port > 65535) {
     return 'The port must be a whole number from 1024 to 65535; 80 and 443 are never taken.'
   }
-  if (port === CONSOLE_LOCAL_PORT) return `Port ${CONSOLE_LOCAL_PORT} is the Fleet Console's own, on its machine only.`
+  if (CONSOLE_LOCAL_PORTS.includes(port)) return `Port ${port} is the Fleet Console's own, on its machine only.`
   return null
 }
 

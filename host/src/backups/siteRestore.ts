@@ -24,6 +24,7 @@ import { renewAtHq } from './renewal'
 import { exclusive } from './take'
 import { cmd } from '../cli/words'
 import { installSubnets } from '../compose/subnets'
+import { keepAgentSlice, pickAgentSlice } from '../compose/agentSlice'
 
 export type RestoredSite = {
   backupId: string
@@ -82,6 +83,7 @@ export function restoreJoinedSite(ctx: Context, source: JoinedSource, pin: Conso
       if (ctx.figuresWarning) throw new Refusal('failed', ctx.figuresWarning)
       const paths = await ctx.machinePaths()
       if (!paths) throw new Refusal('failed', 'The host service cannot find its state folder on this machine, so it cannot restore.')
+      const agentSlice = await pickAgentSlice(ctx)
       const backupCredential = manifest.siteCredential!
       const renewal = { hqAddress: pin.hqAddress, machineCredential: pin.machineCredential, backupCredential }
 
@@ -97,6 +99,7 @@ export function restoreJoinedSite(ctx: Context, source: JoinedSource, pin: Conso
       }, 'passes')
 
       written = true
+      keepAgentSlice(ctx.state, agentSlice)
       // The site's stored secrets are sealed with its master key: it comes with the site. The rest are this machine's.
       ctx.state.writeJson(['secrets.json'], { ...installSecrets(ctx.state), siteMasterKey: manifest.secrets.siteMasterKey })
       // Named after this machine, as every site is: the lost machine's name goes with it.

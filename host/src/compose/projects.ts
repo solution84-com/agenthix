@@ -7,22 +7,25 @@
  * Written as JSON, which is YAML, so no value needs YAML quoting. Compose still interpolates `$` in every string,
  * so each is escaped as `$$` (`composeJson`).
  */
-import { CLOUD_URL_SETTING } from '@agenthix/core'
+import { CLOUD_URL_SETTING, CONTAINER_DATABASE_PORT, SERVICE_PORTS } from '@agenthix/core'
 import type { InstallNames } from '../state/namespace'
 import type { ImagePins } from '../images/images'
 import { imageRef, POSTGRES_IMAGE, type PublishedPart } from '../images/published'
 import type { InstallSecrets } from '../state/secrets'
 import { cloudSettings, type CloudSettings } from '../config'
 import { ipam, type InstallSubnets } from './subnets'
+import { installationLabels, type Installation } from '../state/installation'
 
 /** Where the host service's state folder is on the machine, which bind mounts must name (the CLI runs inside). */
 export type MachinePaths = { state: string }
 
 export type HqSettings = {
   address: string
-  /** Where hq-web listens on the machine. */
+  /**
+   * The address hq-web is published on, on the machine. Its port is the installation's (`installation.json`), recorded
+   * there alone.
+   */
   bind: string
-  port: number
   /** How many proxies stand in front of hq-web: 1 with nothing in front, 2 behind a front door. */
   trustedProxies: number
   /** Uploaded files' own origin (adr-0114); null where HQ's address can have no subdomain, so uploads are downloads only. */
@@ -46,13 +49,12 @@ export type SiteSettings = {
 /** How a site reaches HQ and proves itself: the address it dials and the credential it presents. */
 export type SiteConnection = { hqUrl: string; credential: string; onHqLinkNetwork: boolean }
 
-const SITE_PORT = 4201
-export const HQ_WEB_PORT = 4100
+const SITE_PORT = SERVICE_PORTS.site.server
+export const HQ_WEB_PORT = SERVICE_PORTS.hq.web
 /** Inside hq-server, where hq's control socket is (hq reads `HQ_CONTROL_SOCKET`). */
 export const HQ_CONTROL_SOCKET = '/tmp/hq-control/control.sock'
 /** Inside the site, where the figures volume is mounted: the same place as in the host service's container. */
 export const SITE_FIGURES_MOUNT = '/run/host-figures'
-export const AGENT_NETWORK_RANGE = '10.213.0.0/16'
 
 export { imageRef }
 
@@ -65,7 +67,7 @@ export const siteDataPath = (paths: MachinePaths) => `${paths.state.replace(/\/+
 /** The address hq's default site dials: hq-web by its container name, over the private network they share. */
 export const defaultSiteHqUrl = (names: InstallNames) => `http://${names.container('hq-web')}:${HQ_WEB_PORT}`
 
-function database(names: InstallNames, role: string, db: string, password: string, volume: string) {
+function database(names: InstallNames, role: string, db: string, password: string, volume: string, installation: Installation) {
   return {
     image: POSTGRES_IMAGE,
     pull_policy: 'never',
@@ -75,34 +77,42 @@ function database(names: InstallNames, role: string, db: string, password: strin
     networks: ['internal'],
     healthcheck: { test: ['CMD-SHELL', 'pg_isready -U postgres'], interval: '5s', timeout: '5s', retries: 10 },
     restart: 'unless-stopped',
-    labels: labels(names, role),
+    labels: labels(names, role, installation),
   }
 }
 
-function labels(names: InstallNames, role: string): Record<string, string> {
-  return { [names.label('role')]: role, [names.label('managed-by')]: 'host' }
+/** Its role, and the installation's published ports and agent range, which another installation's check reads. */
+export function labels(names: InstallNames, role: string, installation: Installation): Record<string, string> {
+  return { [names.label('role')]: role, [names.label('managed-by')]: 'host', ...installationLabels(names, installation) }
+}
+
+/** HQ's published port, which only `installation.json` holds. */
+export function hqPortOf(installation: Installation): number {
+  if (installation.ports.hq === null) throw new Error("HQ's published port is not recorded in installation.json.")
+  return installation.ports.hq
 }
 
 /**
  * `machineName`: this machine's, which HQ names its own site after. A label only. `cloud`: on a machine Agenthix Cloud
  * runs, HQ is told so, and talks to the same Cloud as this host service. `subnets`: each network's, from
  * `chooseSubnets` (compose/subnets.ts), given to every network a project makes rather than one an external.
+ * `installation`: what it publishes hq-web on, and the labels every container carries.
  */
 export function hqProject(
   names: InstallNames, hq: HqSettings, secrets: InstallSecrets, machineName: string, subnets: InstallSubnets,
-  cloud: CloudSettings | null = cloudSettings(),
+  installation: Installation, cloud: CloudSettings | null = cloudSettings(),
 ) {
-  const dbUrl = `postgresql://postgres:${secrets.hqDbPassword}@hq-db:5432/${names.hqDatabase}`
+  const dbUrl = `postgresql://postgres:${secrets.hqDbPassword}@hq-db:${CONTAINER_DATABASE_PORT}/${names.hqDatabase}`
   return {
     name: names.hqProject,
     services: {
-      'hq-db': database(names, 'hq', names.hqDatabase, secrets.hqDbPassword, 'db_data'),
+      'hq-db': database(names, 'hq', names.hqDatabase, secrets.hqDbPassword, 'db_data', installation),
       'hq-server': {
         image: image(hq, 'hq-server'),
         pull_policy: 'never',
         container_name: names.container('hq-server'),
         environment: {
-          PORT: '4101',
+          PORT: String(SERVICE_PORTS.hq.server),
           DATABASE_URL: dbUrl,
           WASP_SERVER_URL: hq.address,
           WASP_WEB_CLIENT_URL: hq.address,
@@ -121,7 +131,7 @@ export function hqProject(
         networks: ['internal'],
         depends_on: { 'hq-db': { condition: 'service_healthy' } },
         restart: 'unless-stopped',
-        labels: labels(names, 'hq'),
+        labels: labels(names, 'hq', installation),
       },
       'hq-web': {
         image: image(hq, 'hq-web'),
@@ -131,11 +141,11 @@ export function hqProject(
         environment: {
           HQ_URL: hq.address, HQ_TRUSTED_PROXIES: String(hq.trustedProxies), PREVIEW_DOMAIN: '', FILES_ORIGIN: hq.filesOrigin ?? '',
         },
-        ports: [`${hq.bind}:${hq.port}:${HQ_WEB_PORT}`],
+        ports: [`${hq.bind}:${hqPortOf(installation)}:${HQ_WEB_PORT}`],
         networks: ['internal', 'edge', 'link'],
         depends_on: ['hq-server'],
         restart: 'unless-stopped',
-        labels: labels(names, 'hq'),
+        labels: labels(names, 'hq', installation),
       },
     },
     networks: {
@@ -148,9 +158,11 @@ export function hqProject(
 }
 
 /** hq's default site, beside hq on the same machine, connected by the pairing secret (adr-0070). */
-export function defaultSiteProject(names: InstallNames, site: SiteSettings, secrets: InstallSecrets, paths: MachinePaths, subnets: InstallSubnets) {
+export function defaultSiteProject(
+  names: InstallNames, site: SiteSettings, secrets: InstallSecrets, paths: MachinePaths, subnets: InstallSubnets, installation: Installation,
+) {
   const hq = { hqUrl: defaultSiteHqUrl(names), credential: secrets.pairingSecret, onHqLinkNetwork: true }
-  return siteProject(names, site, secrets, paths, hq, subnets)
+  return siteProject(names, site, secrets, paths, hq, subnets, installation)
 }
 
 /**
@@ -159,13 +171,16 @@ export function defaultSiteProject(names: InstallNames, site: SiteSettings, secr
  */
 export function siteProject(
   names: InstallNames, site: SiteSettings, secrets: InstallSecrets, paths: MachinePaths, hq: SiteConnection, subnets: InstallSubnets,
+  installation: Installation,
 ) {
+  // Recorded at the site's first install (`agentSlice.ts`): never a default, which another installation's agents may share.
+  if (!installation.agentRange) throw new Error("No agent address range is recorded for this installation, so its site's compose file cannot be written.")
   const root = siteDataPath(paths)
   const internal = { name: names.siteNetwork, ...ipam(subnets, names.siteNetwork) }
   return {
     name: names.siteProject,
     services: {
-      'site-db': database(names, 'site', names.siteDatabase, secrets.siteDbPassword, 'db_data'),
+      'site-db': database(names, 'site', names.siteDatabase, secrets.siteDbPassword, 'db_data', installation),
       site: {
         image: image(site, 'site-server'),
         pull_policy: 'never',
@@ -173,13 +188,13 @@ export function siteProject(
         init: true,
         environment: {
           PORT: String(SITE_PORT),
-          DATABASE_URL: `postgresql://postgres:${secrets.siteDbPassword}@site-db:5432/${names.siteDatabase}`,
+          DATABASE_URL: `postgresql://postgres:${secrets.siteDbPassword}@site-db:${CONTAINER_DATABASE_PORT}/${names.siteDatabase}`,
           SITE_ROOT: root,
           SITE_CONTAINER_NAME: names.siteContainer,
           AGENT_CONTAINER_ISOLATION: 'true',
           // The site names its agents, their labels and their group from it, as this service names everything.
           HOST_NAMESPACE: names.namespace,
-          AGENT_NETWORK_RANGE,
+          AGENT_NETWORK_RANGE: installation.agentRange,
           AGENT_IMAGE: image(site, 'agent'),
           HQ_URL: hq.hqUrl,
           HQ_PAIRING_SECRET: hq.credential,
@@ -196,7 +211,7 @@ export function siteProject(
         networks: hq.onHqLinkNetwork ? ['internal', 'link'] : ['internal'],
         depends_on: { 'site-db': { condition: 'service_healthy' } },
         restart: 'unless-stopped',
-        labels: labels(names, 'site'),
+        labels: labels(names, 'site', installation),
       },
     },
     networks: hq.onHqLinkNetwork ? { internal, link: { name: names.hqLinkNetwork, external: true } } : { internal },

@@ -13,6 +13,7 @@ import { protectionFigures } from '../protections/protections'
 import { frontDoorFigures } from '../frontDoor/frontDoor'
 import { scheduledCount } from '../scheduled/notices'
 import { BackupStore } from '../backups/store'
+import { blockedParts } from '../status/portsBlocked'
 
 /** The machine's ceilings until a machine admin or fleet admin sets them: the site's own defaults today. */
 export const DEFAULT_CEILINGS: HostCeilings = {
@@ -73,7 +74,10 @@ export async function collectFigures(ctx: Context): Promise<HostFigures> {
   const installs: InstallFigures[] = []
   if (hq) {
     const state = partState(await ctx.docker.composePs(hq.project, hq.file), SERVICES.hq)
-    installs.push(installFigure('hq', hq.settings.version, hq.settings.installedAt, state))
+    const figure = installFigure('hq', hq.settings.version, hq.settings.installedAt, state)
+    // What the Fleet Console shows of HQ: why it is not running, when another holds its port.
+    const blocked = state === 'running' ? undefined : (await blockedParts(ctx)).find(b => b.part === 'hq')
+    installs.push(blocked ? { ...figure, problem: blocked.text } : figure)
   }
   if (site) {
     const state = partState(await ctx.docker.composePs(site.project, site.file), SERVICES.site)

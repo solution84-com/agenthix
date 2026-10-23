@@ -12,7 +12,7 @@ import { BackupStore } from '../store'
 let m: FakeMachine
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   fs.mkdirSync(m.backups.onMachine('/mnt/nas/agenthix'), { recursive: true })
 })
 afterEach(() => m.cleanup())
@@ -154,6 +154,16 @@ describe('restoring HQ’s machine on a new one @SC-833', () => {
     expect(fleetConsole.services.console.environment.HQ_CONSOLE_PAIRING_SECRET).toBe(installSecrets(fresh.ctx.state).consolePairingSecret)
     const compose = JSON.parse(fs.readFileSync(fresh.ctx.state.path('hq', 'compose.json'), 'utf8'))
     expect(compose.services['hq-server'].environment.HQ_RESTORED_FROM).toEqual(expect.stringMatching(/^\d{4}-\d\d-\d\dT/))
+  })
+
+  it("is refused before anything is fetched or written when a port it would publish is held on the new machine", async () => {
+    const name = inLocation()[0]
+    fresh.machineContainers.push({ name: 'grafana', labels: {}, running: true, published: [{ ip: '0.0.0.0', port: 7800 }] })
+    expect(await askOn(fresh, { op: 'restore.run', from: '/mnt/nas/agenthix', name, key })).toMatchObject({
+      ok: false, refusal: { code: 'conflict', message: 'Port 7800, for HQ, is held by the container grafana. Choose another with --hq-port. Nothing was changed.' },
+    })
+    expect(fresh.calls.filter(c => c[0] === 'pull' || c[0] === 'compose')).toEqual([])
+    expect(fs.existsSync(fresh.ctx.state.path('hq', 'settings.json'))).toBe(false)
   })
 
   it('refuses where HQ already runs, pointing to the Fleet Console', async () => {

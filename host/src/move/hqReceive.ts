@@ -18,11 +18,14 @@ import { Refusal } from '../owner/results'
 import { hostKeys } from '../identity/identity'
 import type { ConsolePin } from '../link/pin'
 import { localHqAddress, consoleHere } from '../install/console'
+import { refuseUnpublishable } from './ports'
 import { withStore } from '../scheduled/store'
 import { deliverNotices } from '../scheduled/notices'
 import { PeerChannel } from './peer'
 import { readReceive, receiving, writeReceive, type ReceiveRecord } from './record'
 import { clearHq, restoreMovedHq } from './restoreHq'
+import { hqPortOf } from '../compose/projects'
+import { installationOf } from '../state/installation'
 import { takeIn } from './receive'
 import { takeoverDeadlines, timingsOf } from './timings'
 import { report } from './report'
@@ -38,6 +41,7 @@ class Failed extends Error {}
 export async function armHqReceive(ctx: Context, r: ReceiveRequest, pin: ConsolePin): Promise<{ transferId: string }> {
   const here = installed(ctx)
   if (here.hq || here.site || consoleHere(ctx) || pin.local) throw new Refusal('conflict', `${ctx.machine.name} already runs something; HQ moves only to a machine that runs nothing.`)
+  refuseUnpublishable(r)
   const own = await fingerprintOf((await hostKeys(ctx.state)).identity)
   if ((await fingerprintOf(r.peerIdentity)) !== r.peer || r.peer === own) throw new Refusal('malformed', 'The machine HQ comes from is not named as it was pinned.')
   const before = readReceive(ctx.state)
@@ -48,6 +52,7 @@ export async function armHqReceive(ctx: Context, r: ReceiveRequest, pin: Console
     writeReceive(ctx.state, {
       transferId: r.transferId, peer: r.peer, peerIdentity: r.peerIdentity, peerName: r.peerName, siteName: r.siteName,
       phase: 'waiting', armedAt: ctx.now().toISOString(), deadline: null, reason: null, target: 'hq', ...(r.hqAddress ? { hqAddress: r.hqAddress } : {}),
+      ...(r.hqPort !== undefined || r.consolePort !== undefined ? { ports: { hqPort: r.hqPort, consolePort: r.consolePort } } : {}),
     })
   }
   return { transferId: r.transferId }
@@ -80,7 +85,7 @@ export async function runHqReceive(ctx: Context, armed: ReceiveRecord, first: Re
     await report(ctx, armed.transferId, 'restoring')
     const heartbeat = every(t.heartbeatMs, () => void channel.send({ step: 'restoring' }).catch(() => false))
     await channel.send({ step: 'restoring' })
-    const restored = await restoreMovedHq(ctx, file, keys, armed.hqAddress ?? null)
+    const restored = await restoreMovedHq(ctx, file, keys, armed.hqAddress ?? null, armed.ports ?? {})
     save({ hqAddress: restored.address, previousAddress: restored.previousAddress, consoleWithHq: restored.consoleWithHq })
     clearInterval(heartbeat)
     fs.rmSync(file, { force: true })
@@ -95,8 +100,7 @@ export async function runHqReceive(ctx: Context, armed: ReceiveRecord, first: Re
     const abort = await channel.nextStep(ctx.now().getTime(), s => s.step === 'abort')
     if (abort && 'reason' in abort) throw new Failed(abort.reason)
     channel.outlastHq()
-    const hq = installed(ctx).hq!.settings
-    pointPin(ctx, { hqAddress: localHqAddress(hq.port), local: restored.consoleWithHq })
+    pointPin(ctx, { hqAddress: localHqAddress(hqPortOf(installationOf(ctx.state))), local: restored.consoleWithHq })
     // Read-only from the moment hq answers here, and again whenever it starts anew, until the old machine commits.
     readOnlyKept = keepReadOnly(ctx, ctx.machine.name, t.pollMs)
     await startHqAndSite(ctx)

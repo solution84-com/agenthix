@@ -5,28 +5,21 @@
  *
  * Build the host service's image first, at the repository root: `docker build -f host/docker/Dockerfile -t
  * agenthix-host .` (or name another with HOST_IMAGE); the hq-server, hq-web, site-server, agent and console images of a
- * development build must be on the machine. It installs HQ at http://localhost:4130, so that port must be free, and a
- * machine runs one HQ, so there must be none on it already: it checks both before it starts anything and refuses,
- * touching nothing, when either does not hold. Everything it makes carries a namespace of its own for the run, the
- * host service's container being `<namespace>-host`; every docker command goes through the guard
+ * development build must be on the machine. It installs HQ at http://localhost on a free port it chooses, with the
+ * Fleet Console on another, so it runs beside an installation. Everything it makes carries a namespace of its own for
+ * the run, the host service's container being `<namespace>-host`; every docker command goes through the guard
  * (`containerGuard.ts`), and teardown removes only that namespace's.
- *
- * The Fleet Console beside HQ publishes 127.0.0.1:4300, which a development machine may hold already; Docker then
- * refuses that one port, so nothing there is touched. Install stops at that step with HQ and its site running, the
- * console's settings written and its container not started; the test goes on, and checks the console's state is
- * left as it was either way.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { requireFreePorts, requireNoHq, testNamespace } from '../../__tests__/containerGuard'
+import { freePorts, testNamespace } from '../../__tests__/containerGuard'
 import { IMAGE, Machine } from './inPlace'
 
-const HQ_PORT = 4130
+const [HQ_PORT, CONSOLE_PORT] = await freePorts(2)
 
 const NOTES = 'site/data/workspaces/c4-probe/notes.txt'
 
 describe.skipIf(!process.env.HOST_E2E)('HQ and its site restored to an earlier night on HQ’s machine', () => {
   let m: Machine
-  let consoleRan: boolean
   const storage = () => m.names.hqStorageVolume
   const consoleVolume = () => m.names.consoleStateVolume
   const onVolume = (volume: string, script: string) =>
@@ -47,18 +40,10 @@ describe.skipIf(!process.env.HOST_E2E)('HQ and its site restored to an earlier n
   })
 
   beforeAll(async () => {
-    await requireFreePorts([HQ_PORT])
-    await requireNoHq()
     m = new Machine(testNamespace('hqin'), 'c4-hq')
     await m.start()
-    const installed = m.cli('', 'install', '--address', `http://localhost:${HQ_PORT}`, '--yes')
-    consoleRan = installed.code === 0
-    if (!consoleRan) {
-      // Only the Fleet Console's step may fail, when 127.0.0.1:4300 is held on this machine.
-      expect(installed.text).toMatch(/Starting the site c4-hq \(private Docker network\) \.+ connected to HQ/)
-      expect(installed.text).toMatch(/Starting the Fleet Console/)
-      console.warn('The Fleet Console did not start (127.0.0.1:4300 is held here); HQ and its site run, and its state is still checked.')
-    }
+    const installed = m.cli('', 'install', '--address', `http://localhost:${HQ_PORT}`, '--console-port', String(CONSOLE_PORT), '--yes')
+    expect(installed.code, installed.text).toBe(0)
     await m.siteReady()
   }, 20 * 60_000)
 
@@ -96,7 +81,7 @@ describe.skipIf(!process.env.HOST_E2E)('HQ and its site restored to an earlier n
     expect(m.running(m.names.container('hq-web'))).toBe(true)
     await m.siteReady()
     expect(m.cli('', 'status').text).toMatch(/Running\./)
-    expect(m.running(m.names.consoleContainer)).toBe(consoleRan)
+    expect(m.running(m.names.consoleContainer)).toBe(true)
   }, 20 * 60_000)
 
   it('refuses the site alone as a target on HQ’s machine, and changes nothing', () => {

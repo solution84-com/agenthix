@@ -26,7 +26,7 @@ const sentToHq = (): ScheduledChangeNotice[] =>
 beforeEach(async () => {
   m = fakeMachine()
   await m.ctx.sleep(new Date(2026, 8, 30, 12, 0).getTime() - m.ctx.now().getTime())
-  await install(m.ctx, ADDRESS, () => {})
+  await install(m.ctx, { address: ADDRESS }, () => {})
   m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
   await m.ctx.sleep(after(-60).getTime() - m.ctx.now().getTime())
   m.calls.length = 0

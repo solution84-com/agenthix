@@ -24,7 +24,7 @@ describe("uploaded files' own origin, set at install (spec §16) @SC-819", () =>
   it('reaches hq-server and hq-web as FILES_ORIGIN, empty where there is none', async () => {
     for (const [address, origin] of [['https://hq.acme.example', 'https://files.hq.acme.example'], ['http://192.168.1.20:4100', '']]) {
       m = fakeMachine()
-      await install(m.ctx, address, () => {})
+      await install(m.ctx, { address: address }, () => {})
       const hq = JSON.parse(fs.readFileSync(m.ctx.state.path('hq', 'compose.json'), 'utf8'))
       expect(hq.services['hq-server'].environment.FILES_ORIGIN).toBe(origin)
       expect(hq.services['hq-web'].environment.FILES_ORIGIN).toBe(origin)

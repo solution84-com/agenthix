@@ -25,11 +25,11 @@ beforeEach(async () => {
   err = ''
   answers = []
   busy = new Set()
+  m.ctx.portInUse = async port => busy.has(port)
   m.ctx.frontDoorProbes = {
-    portInUse: async port => busy.has(port),
     certificate: async () => ({ ok: true, expiresAt: '2027-01-10T00:00:00.000Z' }),
   }
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
 })
 afterEach(() => m.cleanup())
 
@@ -84,8 +84,8 @@ describe('agenthix front-door @SC-857', () => {
     busy.add(443)
     answers = ['y']
     expect(await cli('front-door', 'on')).toBe(1)
-    expect(flat(err)).toContain('Refused: something on hq-box is already listening on port 443.')
-    expect(flat(err)).toContain('agenthix front-door prints the steps. Nothing changed.')
+    expect(flat(err)).toContain('Refused on hq-box: Port 443, for the front door, is held by a program on this machine, not by a container.')
+    expect(flat(err)).toContain('agenthix front-door prints the steps. Nothing was changed.')
     expect(answers).toEqual(['y'])
     expect(out).not.toContain('It takes ports 80 and 443')
   })
@@ -94,7 +94,7 @@ describe('agenthix front-door @SC-857', () => {
     expect(await cli('front-door')).toBe(0)
     const said = flat(out)
     expect(said).toContain('Front door off')
-    expect(said).toContain("point this machine's web server at 127.0.0.1:4100, for https://hq.acme.example and for https://files.hq.acme.example")
+    expect(said).toContain("point this machine's web server at 127.0.0.1:7800, for https://hq.acme.example and for https://files.hq.acme.example")
     expect(said).toContain('agenthix front-door on')
   })
 

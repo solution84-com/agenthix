@@ -11,6 +11,7 @@ import { setCapacity } from '../figures/capacity'
 import { protectionFigures } from '../protections/protections'
 import { install } from '../install/install'
 import { machineStatus } from '../status/machineStatus'
+import { blockedParts } from '../status/portsBlocked'
 import { parseOwnerRequest, type OwnerRequest } from './requests'
 import { cloudCliOperation } from './cloudCliOps'
 import { providerCliOperation } from './providerCliOps'
@@ -118,7 +119,7 @@ export async function hostOperation(ctx: Context, request: HostRequest, progress
       if (request.version !== ctx.machine.hostServiceVersion) {
         throw new Refusal('conflict', `This host service installs version ${ctx.machine.hostServiceVersion}, not ${request.version}.`)
       }
-      await install(ctx, request.address, progress)
+      await install(ctx, { address: request.address, hqPort: request.hqPort, consolePort: request.consolePort }, progress)
       return { state: 'started' }
     case 'frontDoor.set':
       return frontDoorSet(ctx, request, by, progress)
@@ -168,6 +169,7 @@ async function operation(ctx: Context, request: OwnerRequest, progress: (p: Prog
     case 'console.connect':
     case 'console.disconnect':
     case 'console.install':
+    case 'console.port':
     case 'console.remove':
     case 'hq.consoleCode':
     case 'hq.fleetAdmin':
@@ -194,7 +196,7 @@ async function operation(ctx: Context, request: OwnerRequest, progress: (p: Prog
       return providerCliOperation(ctx, request)
     case 'machine.status': {
       const door = frontDoorSettings(ctx)
-      const status = { ...(await machineStatus(ctx.machine, installed(ctx), ctx.docker, ctx.hqControl)), protections: protectionFigures(ctx.now()), backups: backupsStatus(ctx), scheduled: listScheduled(ctx), upgrades: upgradesStatus(ctx), lifecycle: lifecycleStatus(ctx), management: await linkStatus(ctx) }
+      const status = { ...(await machineStatus(ctx.machine, installed(ctx), ctx.docker, ctx.hqControl)), protections: protectionFigures(ctx.now()), backups: backupsStatus(ctx), scheduled: listScheduled(ctx), upgrades: upgradesStatus(ctx), lifecycle: lifecycleStatus(ctx), management: await linkStatus(ctx), blocked: await blockedParts(ctx) }
       return door ? { ...status, frontDoor: { on: door.on, hosts: door.hosts } } : status
     }
     case 'frontDoor.check':
@@ -204,7 +206,7 @@ async function operation(ctx: Context, request: OwnerRequest, progress: (p: Prog
     case 'host.version':
       return { version: ctx.machine.hostServiceVersion }
     case 'machine.install':
-      return install(ctx, request.address, progress)
+      return install(ctx, { address: request.address, hqPort: request.hqPort, consolePort: request.consolePort }, progress)
     case 'hq.inviteAdmin':
       return hqLink(ctx, 'invite-admin', [])
     case 'erased.restore':

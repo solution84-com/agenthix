@@ -8,9 +8,8 @@
  *
  * The second part, with HOST_E2E=1, backs up a real HQ and its site and restores them on a fresh state folder: it
  * needs the images a development build installs (hq-server, hq-web, site-server and agent, built on the machine).
- * HQ is installed at http://localhost:4131, and the Fleet Console beside it publishes 127.0.0.1:4300, so both ports
- * must be free; and a machine runs one HQ, so there must be none on it already. It checks all three before it starts
- * anything and refuses, touching nothing, when one does not hold.
+ * HQ is installed at http://localhost on a free port the test chooses, and the Fleet Console beside it publishes
+ * 127.0.0.1 on another, so it runs beside an installation.
  *
  * Everything either part makes carries a namespace of its own for the run, recorded in each state folder so the host
  * service names everything from it, and every docker command goes through the guard (`containerGuard.ts`): a real
@@ -23,17 +22,16 @@ import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { CONSOLE_PORT } from '../../compose/console'
 import { DockerStreams, dockerCli, dockerStream } from '../../docker/docker'
 import { POSTGRES_IMAGE } from '../../images/published'
-import { claimNames, guarded, guardedDocker, recordNamespace, requireFreePorts, requireNoHq, testNamespace } from '../../__tests__/containerGuard'
+import { claimNames, guarded, guardedDocker, freePorts, recordNamespace, testNamespace } from '../../__tests__/containerGuard'
 import { eachPart } from '../parts'
 import { holderFrom, newHeader, openBackup, sealBackup, type SealedRecord } from '../seal'
 
 const IMAGE = process.env.HOST_IMAGE || 'agenthix-host'
 const NS = testNamespace('backups')
 const NAMES = claimNames(NS)
-const HQ_PORT = 4131
+const [HQ_PORT, CONSOLE_PORT] = await freePorts(2)
 const HQ_ADDRESS = `http://localhost:${HQ_PORT}`
 const HELPER = `${NS}-helper`
 const DB = `${NS}-db`
@@ -126,11 +124,6 @@ describe.skipIf(!process.env.HOST_E2E)('HQ and its site, backed up and restored 
   }
   const cli = (input: string, ...args: string[]) => docker.with({ input }, 'exec', '-i', NAMES.hostContainer, 'agenthix', ...args)
 
-  beforeAll(async () => {
-    await requireFreePorts([HQ_PORT, CONSOLE_PORT])
-    await requireNoHq()
-  })
-
   afterAll(() => {
     docker.quiet('rm', '-f', NAMES.hostContainer)
     for (const p of projects) docker.quiet('compose', '-p', p, 'down', '-v')
@@ -142,7 +135,7 @@ describe.skipIf(!process.env.HOST_E2E)('HQ and its site, backed up and restored 
     fs.mkdirSync(location())
     run(state1())
     await new Promise(r => setTimeout(r, 3000))
-    cli('', 'install', '--address', HQ_ADDRESS, '--yes')
+    cli('', 'install', '--address', HQ_ADDRESS, '--console-port', String(CONSOLE_PORT), '--yes')
     const set = cli('n\ny\n', 'backup', 'location', location())
     const key = /Key: (\S+)/.exec(set)![1]
     cli('', 'backup')
@@ -154,7 +147,7 @@ describe.skipIf(!process.env.HOST_E2E)('HQ and its site, backed up and restored 
     fs.mkdirSync(state2())
     run(state2())
     await new Promise(r => setTimeout(r, 3000))
-    const restored = cli(`1\n${key}\ny\n`, 'restore', '--from', location())
+    const restored = cli(`1\n${key}\ny\n`, 'restore', '--from', location(), '--console-port', String(CONSOLE_PORT))
     expect(restored).toMatch(/Checking the key \.+ passes/)
     expect(restored).toContain('Restored.')
     expect(cli('', 'status')).toMatch(/Running\./)

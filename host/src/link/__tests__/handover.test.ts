@@ -9,6 +9,7 @@ import { fakeMachine, type FakeMachine } from '../../__tests__/fakeMachine'
 import { hostKeys } from '../../identity/identity'
 import { install } from '../../install/install'
 import { writeAndStartConsole } from '../../install/console'
+import { recordPorts } from '../../state/installation'
 import { envelopeHandler } from '../envelopes'
 import { followHandover, retiredHere, retiringHere } from '../handover'
 import { retireHandedOverConsole } from '../localConsole'
@@ -104,7 +105,7 @@ describe('a handover certificate @SC-854', () => {
 
 describe('on HQ’s machine @SC-854', () => {
   beforeEach(async () => {
-    await install(m.ctx, 'https://hq.acme.example', () => {})
+    await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
     pinTo(old, true)
     m.calls.length = 0
   })
@@ -131,6 +132,7 @@ describe('on HQ’s machine @SC-854', () => {
 
 describe('on a machine other than HQ’s, where the Fleet Console ran @SC-854', () => {
   beforeEach(async () => {
+    recordPorts(m.ctx.state, { console: 7801 })
     await writeAndStartConsole(m.ctx, {
       version: '0.2.0', images: {}, hqAddress: 'https://hq.acme.example', onHqMachine: false, installedAt: '2026-10-14T09:00:00.000Z',
     }, { hqCode: '4HQWN7TEM9S3' })

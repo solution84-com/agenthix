@@ -61,7 +61,7 @@ describe('a scheduled change whose site is gone @SC-841', () => {
 describe('a scheduled change whose HQ is gone @SC-841', () => {
   it('ends as cancelled, with the reason, once HQ is no longer on the machine', async () => {
     m.ctx.state.writeJson(['site', 'settings.json'], null)
-    await install(m.ctx, 'https://hq.acme.example', () => {})
+    await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
     m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
     const change = await scheduleChange(m.ctx, resize, inMinutes(60), machineAdmin)
     for (const part of ['hq', 'site']) fs.rmSync(m.ctx.state.path(part), { recursive: true, force: true })

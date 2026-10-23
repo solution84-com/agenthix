@@ -47,7 +47,7 @@ export async function hqMachines(): Promise<HqTwo> {
   const fresh = fakeMachine()
   old.ctx.machine.name = 'hq-box'
   fresh.ctx.machine.name = 'new-server'
-  await install(old.ctx, OLD, () => {})
+  await install(old.ctx, { address: OLD }, () => {})
   // Installing waited on the old machine's clock; the two keep the same time, as envelopes between them need.
   await fresh.ctx.sleep(old.ctx.now().getTime() - fresh.ctx.now().getTime())
   const fleetConsole = await FakeConsole.make()

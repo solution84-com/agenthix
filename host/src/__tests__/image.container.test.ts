@@ -58,8 +58,8 @@ afterAll(() => {
 })
 
 describe('the host service image', () => {
-  it('keeps the namespace recorded in the state folder before its first start', () => {
-    expect(JSON.parse(fs.readFileSync(path.join(state, 'namespace.json'), 'utf8')).namespace).toBe(NS)
+  it('keeps the installation recorded in the state folder before its first start', () => {
+    expect(JSON.parse(fs.readFileSync(path.join(state, 'installation.json'), 'utf8')).namespace).toBe(NS)
   })
 
   it('keeps the owner socket inside the container, private, and the figures socket in its volume', () => {

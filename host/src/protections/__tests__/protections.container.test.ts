@@ -6,16 +6,17 @@
  *
  * It changes this machine's firewall while it runs: one table of its own, `<namespace>_agents`, removed afterwards. Its
  * namespace is its own for the run, recorded in the state folder, so its containers, network, volume and table are
- * its own, and every docker command goes through the guard (`containerGuard.ts`). It needs ports 18473 and 18474 on
- * the machine for its two stand-ins, and a firewall with no other install's agent protections, which would refuse the
- * probes whatever its own rules do; it refuses to start, touching nothing, without either.
+ * its own, and every docker command goes through the guard (`containerGuard.ts`). Its agent slice is a block of the
+ * tests' range, recorded as a site's first install records one, so an installation's rules on the same machine, which
+ * cover that installation's own slice alone, never refuse its probes. Its two stand-ins publish free ports it chooses.
  */
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { ADDRESS_BLOCKS } from '@agenthix/core'
 import { tableFor } from '../rules'
-import { claimNames, guardedDocker, recordNamespace, requireFreePorts, requireNoOtherProtections, testNamespace } from '../../__tests__/containerGuard'
+import { claimNames, guardedDocker, freePorts, recordNamespace, testNamespace } from '../../__tests__/containerGuard'
 
 const IMAGE = process.env.HOST_IMAGE || 'agenthix-host'
 const NS = testNamespace('prot')
@@ -23,11 +24,10 @@ const NAMES = claimNames(NS)
 const HOST = NAMES.hostContainer
 const VOLUME = NAMES.hostFiguresVolume
 const NET = `${NS}-probe-agents`
-/** A block of the agents' range a site is unlikely to have handed out. */
-const SUBNET = '10.213.250.0/29'
-const GATEWAY = '10.213.250.1'
-const PUBLISHED = 18473
-const MACHINE_PORT = 18474
+/** A block of the tests' range, outside every installation's agent slice: the test's own slice and its one agent network. */
+const SUBNET = `${ADDRESS_BLOCKS.tests.split('.').slice(0, 2).join('.')}.250.0/29`
+const GATEWAY = SUBNET.replace(/0\/29$/, '1')
+const [PUBLISHED, MACHINE_PORT] = await freePorts(2)
 const TABLE = tableFor(NS)
 let state: string
 
@@ -47,11 +47,11 @@ function probe(network: string, url: string): 'reached' | 'refused' {
 }
 
 beforeAll(async () => {
-  await requireFreePorts([PUBLISHED, MACHINE_PORT])
-  requireNoOtherProtections(docker, IMAGE)
   state = fs.mkdtempSync(path.join(os.tmpdir(), 'host-prot-'))
-  // A namespace of its own, so the rules are a table of their own.
+  // A namespace of its own, so the rules are a table of their own; a slice of its own, which they cover.
   recordNamespace(state, NS)
+  const file = path.join(state, 'installation.json')
+  fs.writeFileSync(file, JSON.stringify({ ...JSON.parse(fs.readFileSync(file, 'utf8')), agentRange: SUBNET }))
   docker('volume', 'create', VOLUME)
   docker('network', 'create', '--driver', 'bridge', '--subnet', SUBNET, NET)
   docker('run', '-d', '--name', `${NS}-published`, '-p', `${PUBLISHED}:8080`, '--entrypoint', 'node', IMAGE, '-e', SERVE(8080))

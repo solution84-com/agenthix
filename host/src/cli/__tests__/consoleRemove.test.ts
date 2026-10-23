@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { fakeMachine, type FakeMachine } from '../../__tests__/fakeMachine'
 import { ownerHandler } from '../../owner/dispatch'
 import { writeAndStartConsole } from '../../install/console'
+import { recordPorts } from '../../state/installation'
 import { writePin } from '../../link/pin'
 import { FakeConsole } from '../../link/__tests__/fakeRelay'
 import { parseCommand } from '../commands'
@@ -54,6 +55,7 @@ afterEach(() => m.cleanup())
 
 describe('a Fleet Console on a machine outside the fleet @SC-853', () => {
   beforeEach(async () => {
+    recordPorts(m.ctx.state, { console: 7801 })
     await writeAndStartConsole(m.ctx, {
       version: '0.2.0', images: {}, hqAddress: 'https://hq.acme.example', onHqMachine: false, installedAt: '2026-10-14T09:00:00.000Z',
     }, { hqCode: '4HQWN7TEM9S3' })
