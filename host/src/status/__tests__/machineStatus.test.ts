@@ -45,7 +45,7 @@ function installed(): Installed {
   const siteFile = path.join(dir, 'site.json')
   fs.writeFileSync(siteFile, JSON.stringify({ services: { site: { container_name: 'ns-site' } } }))
   return {
-    hq: { settings: { address: 'https://hq.acme.example', bind: '127.0.0.1', port: 4100, trustedProxies: 1, version: '0.2.0', installedAt: 'x' }, file: path.join(dir, 'hq.json'), project: 'ns-hq' },
+    hq: { settings: { address: 'https://hq.acme.example', bind: '127.0.0.1', trustedProxies: 1, version: '0.2.0', installedAt: 'x' }, file: path.join(dir, 'hq.json'), project: 'ns-hq', port: 7800 },
     site: { settings: { name: 'hq-box', version: '0.2.0', installedAt: 'x' }, file: siteFile, project: 'ns-site' },
   }
 }

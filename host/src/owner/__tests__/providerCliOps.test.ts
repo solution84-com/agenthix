@@ -12,7 +12,7 @@ const ask = (request: unknown) => ownerHandler(m.ctx)(request, () => {})
 
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
 })
 afterEach(() => {
   vi.restoreAllMocks()

@@ -15,11 +15,13 @@ import { parseUninstall, type UninstallCommand } from './uninstall'
 import { parseProvider, type ProviderCommand } from './provider'
 import { normalizeJoinCode } from '@agenthix/core'
 import { addressProblem } from '../install/address'
+import type { PortChoice } from '../install/ports'
+import { portOptions } from './portOptions'
 import { product } from './words'
 
 export type Command =
   | { kind: 'help'; topic?: string }
-  | { kind: 'install'; address?: string; yes: boolean }
+  | ({ kind: 'install'; address?: string; yes: boolean } & PortChoice)
   | { kind: 'status' }
   | { kind: 'inviteAdmin'; yes: boolean }
   | { kind: 'resetPassword'; user: string }
@@ -28,7 +30,7 @@ export type Command =
   | { kind: 'backupNow' }
   | { kind: 'backupExport'; to?: string }
   | { kind: 'backupLocation'; path?: string }
-  | { kind: 'restore'; from: string; address?: string; code?: string }
+  | ({ kind: 'restore'; from: string; address?: string; code?: string } & PortChoice)
   | { kind: 'usage'; message: string }
   | Exclude<CapacityCommand, { kind: 'usage' }>
   | ScheduledCommand
@@ -45,7 +47,7 @@ export type HelpRow = { group: 'machine' | 'hq' | 'site' | 'console' | 'cloud'; 
 
 export const HELP: HelpRow[] = [
   { group: 'machine', usage: 'install', does: 'Install HQ and its site',
-    detail: 'Asks one question, where people will open HQ, then starts HQ and its site on this machine and prints one link for the first account. Running it again starts what is stopped and changes nothing that is set. --address <address> answers the question; --yes takes the answer in brackets.' },
+    detail: 'Asks one question, where people will open HQ, then starts HQ and its site on this machine and prints one link for the first account. Running it again starts what is stopped and changes nothing that is set. --address <address> answers the question; --yes takes the answer in brackets. HQ is published on the port its address names, or --hq-port <port> for an https address (7800 by default), and the Fleet Console on --console-port <port> (7801 by default); each from 1024 to 32767, kept from then on.' },
   { group: 'machine', usage: 'status', does: 'The HQ and the site here, and what to do next',
     detail: 'Every HQ and site on this machine, each in a sentence that ends in what to do next.' },
   { group: 'machine', usage: 'capacity [set …]', does: 'Show or set what each agent may use',
@@ -60,7 +62,7 @@ export const HELP: HelpRow[] = [
   { group: 'machine', usage: 'backup location [<path>]', does: 'Show or choose the folder for backup copies',
     detail: 'Without a path, where copies go. With one — a folder as this machine sees it: a network address, a NAS, a synced drive, a mounted bucket — tests that it can be written, shows the key the copies are sealed to once, and from then on writes each nightly backup there too. It is set only here, on the machine.' },
   { group: 'machine', usage: 'restore --from <folder or file> [<hq address> <code>]', does: 'On a new machine, bring back HQ and its site, or a lost site, from a backup',
-    detail: 'On a machine where nothing runs yet, after a machine was lost: lists the backups in the folder (the backup location) or reads the export file, asks which night and its key, and checks the key. HQ\'s machine comes back, HQ and its site as they were that night; other sites reconnect by themselves. Another site comes back as itself with HQ\'s address and the code a fleet admin gets from Restore from a backup… in the Fleet Console: this machine connects with the code, the fleet admin confirms its fingerprint, and the site is restored here and takes the place of its lost machine, which HQ refuses from then on. The key is typed here and never leaves this machine.' },
+    detail: 'On a machine where nothing runs yet, after a machine was lost: lists the backups in the folder (the backup location) or reads the export file, asks which night and its key, and checks the key. HQ\'s machine comes back, HQ and its site as they were that night; other sites reconnect by themselves. Another site comes back as itself with HQ\'s address and the code a fleet admin gets from Restore from a backup… in the Fleet Console: this machine connects with the code, the fleet admin confirms its fingerprint, and the site is restored here and takes the place of its lost machine, which HQ refuses from then on. The key is typed here and never leaves this machine. HQ and its Fleet Console take this machine\'s ports, --hq-port <port> and --console-port <port> as on install.' },
   { group: 'machine', usage: 'scheduled', does: 'List the scheduled changes',
     detail: "The changes scheduled on this machine, soonest first: each one's number, its time in this machine's time zone, what it does and who scheduled it. HQ tells the people whose work each one affects from the moment it is scheduled; a few minutes before, it starts no new runs on what it affects, and runs going then pause and carry on afterwards. An upgrade, move or erase due while a backup runs — the nightly one is at 02:00 unless set otherwise — waits for it to finish, for up to 30 minutes, and says so." },
   { group: 'machine', usage: 'schedule cancel <id>', does: 'Cancel a scheduled change',
@@ -108,11 +110,14 @@ export const HELP: HelpRow[] = [
     detail: "A code that works once, for an hour, for console install on another machine — even a fleet admin's own computer. The Fleet Console that runs now is then retired. It asks first; --yes answers for a script. " +
       "--no-machines is for when the Fleet Console ran on another machine and that machine is lost: HQ makes the code itself, the new Fleet Console starts with no machines, and every machine — this one too, which leaves the one before — connects to it again with console connect. Never the default." },
   { group: 'console', usage: 'console connect <hq address> <code>', does: "Let the organisation's Fleet Console manage this machine",
-    detail: 'With the code a fleet admin got from Add a site in the Fleet Console. It shows this machine\'s name and fingerprint, which you compare with the fleet admin before they confirm; then this machine pins the Fleet Console\'s identity, keeps one connection out to HQ and accepts none, and the Fleet Console starts its site, which takes part at once. Ctrl-C while it waits stops it, keeping nothing.' },
+    detail: 'With the code a fleet admin got from Add a site in the Fleet Console. It shows this machine\'s name and fingerprint, which you compare with the fleet admin before they confirm; then this machine pins the Fleet Console\'s identity, keeps one connection out to HQ and accepts none, and the Fleet Console starts its site, which takes part at once. Ctrl-C while it waits stops it, keeping nothing. ' +
+      'For a machine HQ moves to: --hq-port <port> and --console-port <port> choose where HQ and its Fleet Console are published here, 7800 and 7801 by default; an http address HQ moves to sets HQ\'s port, and --hq-port must agree with it.' },
   { group: 'console', usage: 'console disconnect', does: 'Stop answering the Fleet Console',
     detail: "At once, even when the Fleet Console cannot be reached: this machine forgets the Fleet Console and its credential, and its site stops taking part in HQ, its data kept. Not on HQ's machine. It asks first; --yes answers for a script." },
   { group: 'console', usage: 'console install <hq address> <code>', does: "Run the Fleet Console on this machine instead of HQ's",
-    detail: "With a code from hq console-code on HQ's machine. Starts the Fleet Console here, on 127.0.0.1:4300 of this machine only; it keeps one connection out to HQ and accepts none, and the one that ran before is retired. It asks first; --yes answers for a script." },
+    detail: "With a code from hq console-code on HQ's machine. Starts the Fleet Console here, on 127.0.0.1 of this machine only; it keeps one connection out to HQ and accepts none, and the one that ran before is retired. It asks first; --yes answers for a script. --console-port <port> chooses its port, 7801 by default." },
+  { group: 'console', usage: 'console port <port>', does: 'Move the Fleet Console here to another port',
+    detail: "Publishes the Fleet Console on another port of this machine's 127.0.0.1, from 1024 to 32767, and keeps it there from then on. It checks first that no other installation and no other program holds that port, and refuses, naming who does, if one does. The Fleet Console starts again on the new port, which takes a few seconds." },
   { group: 'console', usage: 'console remove', does: 'Take away the Fleet Console on this machine, with its keys',
     detail: "For a Fleet Console HQ no longer lets in — retired while this machine was outside the fleet, so nothing removed it by itself (agenthix status says so). It stops and removes it, and deletes its keys, which cannot be brought back; a machine that still answers it connects to another again with console connect. Refused while this machine answers it, and on HQ's machine while it is the fleet's own. It asks first; --yes answers for a script." },
   { group: 'site', usage: 'site hq-address <address>', does: "Point the site at HQ's new address, after a move",
@@ -172,9 +177,13 @@ export function parseCommand(argv: string[]): Command {
   if (!first || first === 'help' || first === '--help' || first === '-h') return { kind: 'help', topic: [second, ...rest].filter(Boolean).join(' ') || undefined }
   if (first === 'install') {
     const yes = flag([second, ...rest].filter((a): a is string => a !== undefined), '--yes')
-    const address = option(yes.rest, '--address')
-    if (address.bad || address.rest.length > 0) return { kind: 'usage', message: 'install takes --address <address> and --yes, nothing else.' }
-    return { kind: 'install', address: address.value, yes: yes.set }
+    const ports = portOptions(yes.rest, ['--hq-port', '--console-port'])
+    if ('problem' in ports) return { kind: 'usage', message: ports.problem }
+    const address = option(ports.rest, '--address')
+    if (address.bad || address.rest.length > 0) {
+      return { kind: 'usage', message: 'install takes --address <address>, --hq-port <port>, --console-port <port> and --yes, nothing else.' }
+    }
+    return { kind: 'install', address: address.value, yes: yes.set, ...ports.ports }
   }
   if (first === 'status' && !second) return { kind: 'status' }
   if (first === 'uninstall') return parseUninstall([second, ...rest].filter((a): a is string => a !== undefined))
@@ -187,11 +196,14 @@ export function parseCommand(argv: string[]): Command {
   if (first === 'front-door') return frontDoor(second, rest)
   if (first === 'backup') return backup([second, ...rest].filter((a): a is string => a !== undefined))
   if (first === 'restore') {
-    const from = option([second, ...rest].filter((a): a is string => a !== undefined), '--from')
+    const ports = portOptions([second, ...rest].filter((a): a is string => a !== undefined), ['--hq-port', '--console-port'])
+    if ('problem' in ports) return { kind: 'usage', message: ports.problem }
+    const from = option(ports.rest, '--from')
     if (from.bad || !from.value || (from.rest.length !== 0 && from.rest.length !== 2)) {
       return { kind: 'usage', message: 'Say where the backup is: restore --from <folder or file>, and for a site other than HQ\'s, HQ\'s address and the code: restore --from <folder or file> <hq address> <code>' }
     }
-    if (!from.rest.length) return { kind: 'restore', from: from.value }
+    if (!from.rest.length) return { kind: 'restore', from: from.value, ...ports.ports }
+    if (Object.keys(ports.ports).length) return { kind: 'usage', message: 'A site publishes no ports: --hq-port and --console-port are for restoring HQ.' }
     const [address, code] = from.rest
     const problem = addressProblem(address)
     if (problem) return { kind: 'usage', message: `HQ cannot be at ${address}: ${problem}.` }

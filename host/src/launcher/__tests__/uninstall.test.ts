@@ -67,8 +67,8 @@ describe('what the helper removes @SC-1162', () => {
     fs.mkdirSync(path.join(parent, '.agenthix', 'backups'), { recursive: true })
     fs.mkdirSync(path.join(parent, '.agenthix', 'site', 'data'), { recursive: true })
     fs.writeFileSync(path.join(parent, '.agenthix', 'site', 'data', 'workspace.txt'), 'work')
-    for (const f of ['namespace.json', 'secrets.json', 'machine.json', 'scheduled.json', `secrets.json.${process.pid}.tmp`]) {
-      fs.writeFileSync(path.join(parent, '.agenthix', f), f === 'namespace.json' ? JSON.stringify({ namespace: 'agenthix' }) : '{}')
+    for (const f of ['installation.json', 'secrets.json', 'machine.json', 'scheduled.json', `secrets.json.${process.pid}.tmp`]) {
+      fs.writeFileSync(path.join(parent, '.agenthix', f), f === 'installation.json' ? JSON.stringify({ namespace: 'agenthix' }) : '{}')
     }
     fs.writeFileSync(path.join(parent, 'beside.txt'), 'the person’s own')
     removed = []
@@ -103,7 +103,7 @@ describe('what the helper removes @SC-1162', () => {
   })
 
   it('leaves a folder that does not record this install’s namespace, and says so', async () => {
-    fs.writeFileSync(path.join(parent, '.agenthix', 'namespace.json'), JSON.stringify({ namespace: 'other' }))
+    fs.writeFileSync(path.join(parent, '.agenthix', 'installation.json'), JSON.stringify({ namespace: 'other' }))
     expect(await runHelper(env)).toEqual(['what is in the state folder .agenthix: it does not record the namespace agenthix, so it was left'])
     expect(fs.existsSync(path.join(parent, '.agenthix'))).toBe(true)
   })

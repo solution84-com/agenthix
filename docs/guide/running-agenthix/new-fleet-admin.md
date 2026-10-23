@@ -30,7 +30,7 @@ organisation admin when you got it.
 ## Reach the Fleet Console
 
 The Fleet Console answers only on the machine it runs on, HQ's machine unless it was moved, at
-`http://127.0.0.1:4300`: `127.0.0.1` is the address a machine uses to reach itself. That is on purpose: nobody can
+`http://127.0.0.1:7801` (the Fleet Console's default port; your machine admin may have chosen another): `127.0.0.1` is the address a machine uses to reach itself. That is on purpose: nobody can
 reach it from the network.
 
 - **If you can sit at HQ's machine**, open that address in its browser.
@@ -38,10 +38,10 @@ reach it from the network.
   can sign in over SSH. Then, on your own computer, open a tunnel and leave it running:
 
   ```sh
-  ssh -L 4300:127.0.0.1:4300 <you>@<hq machine>
+  ssh -L 7801:127.0.0.1:7801 <you>@<hq machine>
   ```
 
-  and open `http://127.0.0.1:4300` in your own browser.
+  and open `http://127.0.0.1:7801` in your own browser.
 
 Sign in with your HQ username and password. If it says *This account isn't a fleet admin*, the role has not reached
 your account yet: ask whoever gave it.

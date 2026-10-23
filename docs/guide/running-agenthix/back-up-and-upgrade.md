@@ -88,7 +88,7 @@ time; **Resume HQ** is then on HQ's page. The same commands exist for a site: `a
 ## Move HQ
 
 Moving HQ to another machine takes HQ and its site with it, and the Fleet Console too when it runs on HQ's machine:
-fleet admins then carry on at `http://127.0.0.1:4300` on the new machine. The new machine joins with a one-time code,
+fleet admins then carry on at `http://127.0.0.1:7801` on the new machine. The new machine joins with a one-time code,
 as a new site's does, and waits for HQ. HQ becomes read-only from the moment the move's backup starts, so nothing is
 lost, and removes its copy on the old machine once it answers on the new one. If it does not answer, HQ starts again
 on the old machine.

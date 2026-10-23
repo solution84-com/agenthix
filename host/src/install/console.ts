@@ -8,7 +8,7 @@ import fs from 'node:fs'
 import { isFingerprint, normalizeJoinCode } from '@agenthix/core'
 import type { Progress } from '../sockets/lineServer'
 import { composeJson } from '../compose/projects'
-import { CONSOLE_ADDRESS, consoleProject, type ConsoleAdmission, type ConsoleSettings } from '../compose/console'
+import { consoleAddress, consoleProject, type ConsoleAdmission, type ConsoleSettings } from '../compose/console'
 import { checkImages, fetchImages, type ImagePins } from '../images/images'
 import { installSecrets } from '../state/secrets'
 import type { Context } from '../service/context'
@@ -20,6 +20,9 @@ import { forgetRetired } from '../link/handover'
 import { readPin } from '../link/pin'
 import { remoteAccessPort } from '../remoteAccess/state'
 import { installSubnets } from '../compose/subnets'
+import { installationOf, readInstallation, recordPorts } from '../state/installation'
+import { chooseConsolePort } from './ports'
+import { checkPorts, CONSOLE_BIND } from './portCheck'
 
 export type StoredConsole = ConsoleSettings
 
@@ -61,10 +64,16 @@ export async function takeConsoleAway(ctx: Context): Promise<void> {
   fs.rmSync(here.file, { force: true })
 }
 
+/** Where a browser on this machine opens the Fleet Console here: the installation's console port. */
+export function consoleAddressHere(ctx: Context): string | null {
+  const port = readInstallation(ctx.state)?.ports.console ?? null
+  return port === null ? null : consoleAddress(port)
+}
+
 /** Writes the Fleet Console's settings and compose file, and starts it. */
 export async function writeAndStartConsole(ctx: Context, settings: StoredConsole, admission: ConsoleAdmission): Promise<void> {
   ctx.state.writeJson(['console', 'settings.json'], settings)
-  const project = consoleProject(ctx.names, settings, ctx.machine.name, admission, await installSubnets(ctx), remoteAccessPort(ctx))
+  const project = consoleProject(ctx.names, settings, ctx.machine.name, admission, await installSubnets(ctx), installationOf(ctx.state), remoteAccessPort(ctx))
   const file = ctx.state.writePrivate(['console', 'compose.json'], composeJson(project))
   await ctx.docker.composeUp(ctx.names.consoleProject, file)
 }
@@ -93,18 +102,24 @@ export type ConsoleInstallResult = {
 }
 
 /** `console install <hq address> <code>`: the Fleet Console on this machine instead of HQ's (spec §7). */
-export async function installConsoleElsewhere(ctx: Context, address: string, rawCode: string, progress: (p: Progress) => void): Promise<ConsoleInstallResult> {
+export async function installConsoleElsewhere(
+  ctx: Context, address: string, rawCode: string, progress: (p: Progress) => void, consolePortAsked?: number,
+): Promise<ConsoleInstallResult> {
   if (consoleHere(ctx)) throw await alreadyHere(ctx)
   const problem = hqAddressProblem(address)
   if (problem) throw new Refusal('malformed', `HQ cannot be reached at ${address}: ${problem}.`)
   const code = normalizeJoinCode(rawCode)
   if (!code) throw new Refusal('malformed', 'That is not a code: a code is twelve letters and digits, as HQ\'s machine printed it.')
+  const port = chooseConsolePort(consolePortAsked, readInstallation(ctx.state)?.ports.console ?? null)
+  await checkPorts(ctx, [{ port, part: 'console', bind: CONSOLE_BIND }])
+  const at = consoleAddress(port)
   const version = ctx.machine.hostServiceVersion
   progress({ event: 'step', step: `Checking the image is signed by ${product}` })
   const { pins, checked } = await checkImages(ctx, [{ part: 'console', version }])
   await fetchImages(ctx, [pins.console!])
   progress({ event: 'stepDone', outcome: checked ? 'passes' : 'not checked: images built here (development build)' })
-  progress({ event: 'step', step: `Starting the Fleet Console on ${CONSOLE_ADDRESS.replace('http://', '')}` })
+  progress({ event: 'step', step: `Starting the Fleet Console on ${at.replace('http://', '')}` })
+  recordPorts(ctx.state, { console: port })
   await writeAndStartConsole(ctx, {
     version, images: { console: pins.console }, hqAddress: address, onHqMachine: false, installedAt: ctx.now().toISOString(),
   }, { hqCode: code })
@@ -120,12 +135,12 @@ export async function installConsoleElsewhere(ctx: Context, address: string, raw
     const t = takeover.state === 'handedOver' ? takeover : null
     progress({ event: 'stepDone', outcome: t ? `${t.repinned} of ${t.hosts}` : 'done' })
   }
-  return { machine: ctx.machine.name, address: CONSOLE_ADDRESS, takeover }
+  return { machine: ctx.machine.name, address: at, takeover }
 }
 
 async function alreadyHere(ctx: Context): Promise<Refusal> {
   const hq = (await consoleHereSays(ctx, 10_000))?.hq ?? null
-  const runs = `The Fleet Console already runs on ${ctx.machine.name}, at ${CONSOLE_ADDRESS}`
+  const runs = `The Fleet Console already runs on ${ctx.machine.name}, at ${consoleAddressHere(ctx) ?? 'its own port'}`
   const away = `take it away first: ${cmd('console remove')}`
   if (hq === 'refused') return new Refusal('already_installed', `${runs}, but HQ refuses to let it in: it may have been retired. Nothing was changed. To install a new one here, ${away}`)
   if (hq === 'connected') return new Refusal('already_installed', `${runs}. Nothing was changed.`)

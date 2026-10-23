@@ -47,7 +47,7 @@ describe('remoteAccess.on, checked @SC-1080', () => {
   })
 
   it('refuses ports 80, 443, the privileged ones and the Fleet Console\'s own', () => {
-    for (const port of [80, 443, 22, 1023, 4300, 0, 70000, 8443.5, '8443']) expect(remoteAccessPortProblem(port)).not.toBeNull()
+    for (const port of [80, 443, 22, 1023, 4300, 4301, 0, 70000, 8443.5, '8443']) expect(remoteAccessPortProblem(port)).not.toBeNull()
     expect(remoteAccessPortProblem(8443)).toBeNull()
   })
 

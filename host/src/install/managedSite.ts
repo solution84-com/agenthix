@@ -16,6 +16,7 @@ import { product } from '../cli/words'
 import type { ConsolePin } from '../link/pin'
 import { makeSiteCredential, siteComposeProject } from './siteCompose'
 import { installSubnets } from '../compose/subnets'
+import { keepAgentSlice, pickAgentSlice } from '../compose/agentSlice'
 
 let busy = false
 
@@ -42,6 +43,7 @@ async function run(ctx: Context, request: { version: string }, pin: ConsolePin, 
   if (ctx.figuresWarning) throw new Refusal('failed', ctx.figuresWarning)
   const paths = await ctx.machinePaths()
   if (!paths) throw new Refusal('failed', 'The host service cannot find its state folder on this machine.')
+  const agentSlice = await pickAgentSlice(ctx)
 
   const kept = here.site?.settings
   const version = kept?.version ?? request.version
@@ -57,6 +59,7 @@ async function run(ctx: Context, request: { version: string }, pin: ConsolePin, 
     hqUrl: pin.hqAddress,
     installedAt: kept?.installedAt ?? ctx.now().toISOString(),
   }
+  keepAgentSlice(ctx.state, agentSlice)
   const { hash } = makeSiteCredential(ctx.state, ctx.now())
   const secrets = installSecrets(ctx.state)
   ctx.state.writeJson(['site', 'settings.json'], site)

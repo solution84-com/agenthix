@@ -19,7 +19,7 @@ const composeVerbs = () => m.calls.filter(c => c[0] === 'compose' && (c.includes
 
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
   const keys = await generateHostKeys('cloud')
   await pinCloudController(m.ctx.state, { identity: keys.identity as HostIdentity & { role: 'cloud' }, machineId: 'machine-1', pinnedAt: new Date().toISOString() })

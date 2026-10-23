@@ -9,6 +9,7 @@
  * own for the run, recorded in the state folder, and every docker command it runs goes through the guard
  * (`containerGuard.ts`). Teardown removes whatever of that namespace a failing run left.
  */
+import { ADDRESS_BLOCKS } from '@agenthix/core'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -24,6 +25,8 @@ const HOST = NAMES.hostContainer
 const HELPER = helperName(NAMES)
 const AGENT = `${NS}-agent-probe`
 const TABLE = tableFor(NS)
+/** The installation's agent slice, from the tests' block: without one the host service writes no rules. */
+const SLICE = `${ADDRESS_BLOCKS.tests.split('.').slice(0, 2).join('.')}.251.0/29`
 const docker = guardedDocker(NS, { timeout: 120_000 })
 const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
 
@@ -39,6 +42,8 @@ describe('agenthix uninstall on a real machine @SC-1163', () => {
   beforeAll(async () => {
     fs.mkdirSync(state)
     recordNamespace(state, NS)
+    const file = path.join(state, 'installation.json')
+    fs.writeFileSync(file, JSON.stringify({ ...JSON.parse(fs.readFileSync(file, 'utf8')), agentRange: SLICE }))
     docker('network', 'create', NAMES.hqLinkNetwork)
     docker('run', '-d', '--name', AGENT, '--label', `com.docker.compose.project=${NAMES.agentsProject}`,
       '--entrypoint', 'node', IMAGE, '-e', 'setInterval(() => {}, 60_000)')

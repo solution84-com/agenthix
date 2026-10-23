@@ -6,7 +6,7 @@ import { ownerHandler, logLines } from '../dispatch'
 let m: FakeMachine
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   m.calls.length = 0
 })
 afterEach(() => m.cleanup())
@@ -56,6 +56,21 @@ describe('the operations this version does @SC-847', () => {
       hq: { address: 'https://hq.acme.example', containers: 'running', answer: { users: 0 } },
       site: { name: 'hq-box', carriesHq: true, containers: 'running', connection: 'connected' },
     })
+  })
+})
+
+describe('an install of hq a controller asks for', () => {
+  it('publishes HQ and its Fleet Console on the ports the request chose', async () => {
+    const empty = fakeMachine()
+    try {
+      const answer = await ownerHandler(empty.ctx)({
+        op: 'install', target: 'hq', version: empty.ctx.machine.hostServiceVersion, address: 'https://hq.acme.example', hqPort: 7500, consolePort: 7501,
+      }, () => {}) as Record<string, unknown>
+      expect(answer).toMatchObject({ ok: true, result: { state: 'started' } })
+      expect(empty.ctx.state.readJson('installation.json')).toMatchObject({ ports: { hq: 7500, console: 7501 } })
+    } finally {
+      empty.cleanup()
+    }
   })
 })
 

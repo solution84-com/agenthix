@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, type Page } from '@playwright/test'
+import { SERVER_URL } from '../fixtures/urls'
 import { sample } from './capture'
 
 // One request to hq's control socket, printed as it answers: plain Node, as the host service's own client is.
@@ -21,7 +22,7 @@ conn.on('end', () => { process.stdout.write(JSON.parse(reply).text ?? '') })
  * installed machine. Each one replaces the last, so every fresh recipe asks for its own.
  */
 export function firstAdminLink(): string {
-  const socket = join(tmpdir(), `agenthix-hq-${process.env.E2E_SERVER_PORT ?? '4101'}`, 'control.sock')
+  const socket = join(tmpdir(), `agenthix-hq-${new URL(SERVER_URL).port}`, 'control.sock')
   const out = execFileSync('node', ['--input-type=module', '-e', ASK], {
     env: { ...process.env, HQ_CONTROL_SOCKET: socket },
     encoding: 'utf8',

@@ -87,7 +87,7 @@ describe('agenthix uninstall', () => {
   })
 
   it('is refused while HQ is here, before asking anything @SC-1159', async () => {
-    await install(m.ctx, ADDRESS, () => {})
+    await install(m.ctx, { address: ADDRESS }, () => {})
     expect(await cli('uninstall', '--yes')).toBe(1)
     expect(flat(err)).toContain(`Not uninstalled: HQ at ${ADDRESS} is on hq-box. Nothing was removed.`)
     expect(asked).toEqual([])
@@ -95,7 +95,7 @@ describe('agenthix uninstall', () => {
 
   describe('after an erase @SC-1160', () => {
     beforeEach(async () => {
-      await install(m.ctx, ADDRESS, () => {})
+      await install(m.ctx, { address: ADDRESS }, () => {})
       answers = [ADDRESS]
       expect(await cli('hq', 'erase')).toBe(0)
       out = ''

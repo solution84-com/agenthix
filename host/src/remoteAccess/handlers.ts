@@ -16,6 +16,7 @@ import { Refusal } from '../owner/results'
 import type { CloudOnlyHandlers } from '../cloud/handlers'
 import type { Context } from '../service/context'
 import { askConsoleRemote } from './consoleRemote'
+import { checkPorts, EVERY_ADDRESS } from '../install/portCheck'
 import { republishConsole } from './publish'
 import { forgetRemoteAccess, keepRemoteAccess, keptRemoteAccess } from './state'
 
@@ -85,6 +86,8 @@ export const remoteAccessHandlers: CloudOnlyHandlers = {
       const checked = checkRemoteAccessOn(r, ctx.now())
       if (!checked.ok) throw new Refusal('malformed', checked.message)
       const { op: _op, ...request } = checked.value
+      // Before the Fleet Console is told anything: a port another holds would only fail once it is republished.
+      await checkPorts(ctx, [{ port: request.port, part: 'remote-access', bind: EVERY_ADDRESS }])
       const answer = await askConsoleRemote(ctx, 'remote-on', request)
       if (answer.on !== true) throw new Refusal('failed', `The Fleet Console on ${ctx.machine.name} did not say remote access is on.`)
       keepRemoteAccess(ctx, { port: request.port, until: request.until })

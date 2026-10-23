@@ -1,7 +1,7 @@
 import { test, expect, request } from '@playwright/test'
+import { SERVER_URL } from './fixtures/urls'
 
 // Server (Express) port — separate from the client. API rungs hit it directly.
-const SERVER_URL = process.env.E2E_SERVER_URL ?? 'http://localhost:4101'
 
 // The canary proves the e2e harness end-to-end without mutating state: two
 // public API rungs and one browser rung exercising the React app + router +

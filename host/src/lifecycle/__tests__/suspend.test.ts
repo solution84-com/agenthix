@@ -21,7 +21,7 @@ const composeVerbs = () => m.calls.filter(c => c[0] === 'compose' && (c.includes
 
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
   m.calls.length = 0
 })
@@ -95,7 +95,7 @@ describe('follow-ups to suspending', () => {
 
   it('clears the suspended record when install starts the projects, so a later suspend is allowed @SC-842', async () => {
     await ask({ op: 'suspend', target: 'hq' })
-    await install(m.ctx, 'https://hq.acme.example', () => {})
+    await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
     expect(suspended(m.ctx)).toEqual({})
     expect(await ask({ op: 'suspend', target: 'hq' })).toMatchObject({ ok: true })
   })

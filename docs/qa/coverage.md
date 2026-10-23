@@ -174,7 +174,7 @@ Owns a machine that runs the organisation's agents (an Execution Site) and joins
 
 ## Fleet admin
 
-A person in HQ who holds the fleet admin role and looks after the machines — HQ and its sites — in the Fleet Console, on HQ's machine at `127.0.0.1:4300`. Written on 2026-10-16 from the finished code at the close of the host management unit ([`stories/console.md`](stories/console.md)).
+A person in HQ who holds the fleet admin role and looks after the machines — HQ and its sites — in the Fleet Console, on HQ's machine at `127.0.0.1` on its published port (7801 unless chosen otherwise). Written on 2026-10-16 from the finished code at the close of the host management unit ([`stories/console.md`](stories/console.md)).
 
 | Journey | Priority | What "works" means | Scenarios | Tests cite | Status |
 |---|---|---|---|---|---|
@@ -214,7 +214,10 @@ Whoever can use Docker on a machine Agenthix runs on, typing `agenthix` commands
 | **MCH-10** Serve HQ over HTTPS, and change its address | Important | The front door warns before taking ports 80 and 443 and rolls back on failure; an address change is followed only once checked. | SC-855, SC-856, SC-857 | 3 of 3 | Covered by a scenario and a test |
 | **MCH-11** Move HQ or a site | Critical | Never on both machines; back on the old one if the new one does not take over; `hq move recover` when needed. | SC-858, SC-859 | 2 of 2 | Covered by a scenario and a test |
 | **MCH-12** Take Agenthix off the machine | Important | Refused while HQ or a site is there; what goes and what never does is listed first; the bin only after its address is typed; nothing named after the install left, and nothing of mine touched. (Added 2026-10-21.) | SC-1159, SC-1160, SC-1161, SC-1162, SC-1163 | 5 of 5 | Covered by a scenario and a test |
-| **MCH-13** Keep the install apart from the rest of the machine | Important | Every name from the install's namespace, one group per part, at most one HQ, and networks that never overlap the machine's own. (Added 2026-10-21.) | SC-1155, SC-1156, SC-1157, SC-1158, SC-1154 | 5 of 5 | Covered by a scenario and a test |
+| **MCH-13** Keep the install apart from the rest of the machine | Important | Every name from the install's namespace, one group per part, and networks that never overlap the machine's own. (Added 2026-10-21; *at most one HQ* retired 2026-10-24 with SC-1157.) | SC-1155, SC-1156, SC-1158, SC-1154 | 4 of 4 | Covered by a scenario and a test |
+| **MCH-14** Choose the ports HQ and the Fleet Console are published on | Critical | Two ports with quiet defaults (7800, 7801) chosen at install, kept through upgrades, changed with one command. (Added 2026-10-24.) | SC-1242, SC-1243, SC-1249 | 3 of 3 | Covered by a scenario and a test |
+| **MCH-15** Be told before a port clash changes anything, and after one stops a part | Critical | One check before anything is published, one refusal ending "Nothing was changed."; a part a taken port blocks is reported. (Added 2026-10-24.) | SC-1244, SC-1245 | 2 of 2 | Covered by a scenario and a test |
+| **MCH-16** Run several installations on one machine, for testing | Important | A namespace of its own, an address slice for its agents and firewall rules for it alone; only a clash is refused. (Added 2026-10-24.) | SC-1241, SC-1246, SC-1247, SC-1248, SC-1253 | 4 of 5 (the install test is a script) | Covered by a scenario and a test |
 
 Some of these scenarios are also asserted by container tests (`npm run test:container` in `host/`), which need Docker and the built image; each scenario has at least one unit test too.
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { namesFor } from '../../state/namespace'
-import { AGENT_NETWORK_RANGE } from '../projects'
+import { ADDRESS_BLOCKS } from '@agenthix/core'
 import {
   chooseSubnets, INSTALL_NETWORK_RANGE, machineAddresses, overlaps, parseNetworkInspect, SubnetsExhausted, type DockerNetwork,
 } from '../subnets'
@@ -22,7 +22,7 @@ describe('the subnets an install’s networks are given @SC-1158', () => {
   })
 
   it('never shares a range with the agents’ networks', () => {
-    expect(overlaps(INSTALL_NETWORK_RANGE, AGENT_NETWORK_RANGE)).toBe(false)
+    expect(overlaps(INSTALL_NETWORK_RANGE, ADDRESS_BLOCKS.agents)).toBe(false)
   })
 
   it('skips a /24 another Docker network or one of the machine’s own addresses overlaps', () => {

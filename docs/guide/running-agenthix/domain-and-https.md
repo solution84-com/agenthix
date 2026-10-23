@@ -10,7 +10,7 @@ how to give HQ an address your people can open, serve it over HTTPS, and change 
 
 **HQ** is your organisation's home in Agenthix; *sites* are the machines where agents run; the Fleet Console is where
 fleet admins look after the machines. [Run it on a server](index.md) explains them. Unless you gave another address
-when you installed, HQ answers only on its own machine, at `http://localhost:4100`. To let your people reach it from
+when you installed, HQ answers only on its own machine, at `http://localhost:7800`. To let your people reach it from
 their own computers, give it a domain and serve it over HTTPS.
 
 ## What a server's address needs
@@ -24,16 +24,20 @@ HQ's address is the one setting asked when Agenthix is installed. It has three j
   address is the safe choice: over plain `http://`, a machine's credential, the secret it proves itself to HQ with,
   would cross the network unencrypted, so a machine refuses plain `http://` to anything but a private network.
 - **It decides how HQ listens on its machine**, which `agenthix front-door` shows:
-  - an `https://` address: HQ listens on `127.0.0.1:4100`, the machine only, and a front door (below) serves it;
+  - an `https://` address: HQ listens on `127.0.0.1:7800`, the machine only, and a front door (below) serves it;
   - a `http://` address on the machine itself, such as `localhost`: HQ listens on the machine only;
-  - any other `http://` address, such as `http://192.168.1.20:4100`: HQ listens on the network, on that port, with
+  - any other `http://` address, such as `http://192.168.1.20:7800`: HQ listens on the network, on that port, with
     no encryption. Use it only on a network you trust, while you try Agenthix out. Voice and dictation do not work
     at such an address: a browser lets a page use the microphone only on `https://`, or at `localhost` on the
     browser's own machine.
 
+The port in these examples is HQ's default, 7800. If you chose another at install
+([Choose the ports](../getting-started/install.md#choose-the-ports)), use yours wherever 7800 appears. A web server
+or front door in front of HQ answers on 443 and passes on to HQ's port.
+
 Uploaded files are served from an address of their own, so that a file can never act as HQ: `files.` followed by
 HQ's host, such as `files.agenthix.example.com`. Point that name at the machine too. An address with no name to put
-`files.` in front of, such as `http://192.168.1.20:4100`, has none, and HQ then offers uploaded files only as
+`files.` in front of, such as `http://192.168.1.20:7800`, has none, and HQ then offers uploaded files only as
 downloads.
 
 Check what HQ has under **Manage › Infrastructure › HQ**, in **Address and environment**. It shows the
@@ -92,7 +96,7 @@ to three minutes for each certificate; if one cannot be had, everything is put b
 
 Point your own web server at HQ. `agenthix front-door`, with nothing after it, prints exactly where:
 
-1. Route HQ's domain, and the uploaded files' `files.` name, to `127.0.0.1:4100`, with a certificate for each.
+1. Route HQ's domain, and the uploaded files' `files.` name, to `127.0.0.1:7800`, with a certificate for each.
 2. Pass on each request's own host name, so HQ can tell HQ's address from the files' address.
 3. Pass WebSocket connections through: browsers, sites and host services hold them open.
 
@@ -100,7 +104,7 @@ For Caddy, the whole configuration is:
 
 ```text
 hq.example.com, files.hq.example.com {
-	reverse_proxy 127.0.0.1:4100
+	reverse_proxy 127.0.0.1:7800
 }
 ```
 

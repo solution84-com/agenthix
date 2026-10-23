@@ -75,7 +75,7 @@ describe('console disconnect @SC-848', () => {
   })
 
   it('is refused on HQ’s machine, which cannot leave', async () => {
-    await install(m.ctx, 'https://hq.acme.example', () => {})
+    await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
     await expect(disconnectConsole(m.ctx)).rejects.toThrow(/Not here: hq-box is where HQ runs, with its site, so it cannot leave\. .*agenthix hq erase/)
   })
 })

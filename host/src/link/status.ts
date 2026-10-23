@@ -6,8 +6,8 @@ import { formatFingerprint } from '@agenthix/core'
 import { installed, type Context } from '../service/context'
 import { readReceive } from '../move/record'
 import { partState, type PartState } from '../status/machineStatus'
-import { consoleHere, consoleHereSays, type HqReach } from '../install/console'
-import { CONSOLE_ADDRESS } from '../compose/console'
+import { consoleAddressHere, consoleHere, consoleHereSays, type HqReach } from '../install/console'
+import { DEFAULT_CONSOLE_ADDRESS } from '../compose/console'
 import { readPin } from './pin'
 import { retiredHere } from './handover'
 import { readMove, type HqMove } from './addressFollow'
@@ -48,7 +48,7 @@ export async function linkStatus(ctx: Context): Promise<ManagementStatus> {
       connected: ctx.link?.connected() ?? false, since: pin.pinnedAt, moving: readMove(ctx.state),
     },
     consoleHere: here && {
-      address: CONSOLE_ADDRESS, version: here.settings.version, onHqMachine: here.settings.onHqMachine,
+      address: consoleAddressHere(ctx) ?? DEFAULT_CONSOLE_ADDRESS, version: here.settings.version, onHqMachine: here.settings.onHqMachine,
       containers: containers as PartState, hq,
     },
     retiredHere: here ? null : retiredHere(ctx.state),

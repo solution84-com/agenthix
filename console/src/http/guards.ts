@@ -14,6 +14,7 @@
  * before TLS; here the Host header must be the name its certificate is for, the origin that name over https, and a
  * session one opened through remote access — and one opened there works nowhere else.
  */
+import { PUBLISHED_DEFAULTS } from '@agenthix/core'
 import type { NextFunction, Request, Response } from 'express'
 import type { RoleCheck } from '../auth/roleCheck'
 import type { Session, Sessions } from '../auth/sessions'
@@ -28,6 +29,8 @@ export const CSRF_HEADER = 'x-csrf-token'
  */
 export type ContainerPeer = { address: string; gateway: string }
 export const CONTAINER_PEER = 'containerPeer'
+/** Kept in the app's `locals`: the port this installation publishes the console on, for the words of a refusal. */
+export const PUBLISHED_PORT = 'publishedPort'
 
 const LOOPBACK_HOST = /^(127\.0\.0\.1|localhost)(:\d{1,5})?$/i
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
@@ -85,7 +88,8 @@ export function loopbackOnly(req: Request, res: Response, next: NextFunction): v
     return
   }
   if (!LOOPBACK_HOST.test(req.headers.host ?? '')) {
-    res.status(421).json({ error: 'wrong_host', message: 'Open the Fleet Console at http://127.0.0.1:4300 on its machine, or through an SSH tunnel.' })
+    const port = (req.app.locals[PUBLISHED_PORT] as number | undefined) ?? PUBLISHED_DEFAULTS.console
+    res.status(421).json({ error: 'wrong_host', message: `Open the Fleet Console at http://127.0.0.1:${port} on its machine, or through an SSH tunnel.` })
     return
   }
   next()

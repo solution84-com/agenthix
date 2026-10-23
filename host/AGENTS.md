@@ -15,6 +15,8 @@ docker run -d --name agenthix-host --restart unless-stopped \
   --label com.docker.compose.project=agenthix-host <host service image>
 ```
 
+A second host service under a namespace of its own (`INSTALL_NAMESPACE`) is for testing only; [`docs/architecture/ports.md`](../docs/architecture/ports.md) says how installations share a machine's ports and address blocks.
+
 The label puts the host service, its launcher and each new version in one group in Docker Desktop (`<namespace>-host`); the launcher carries it over.
 
 `TZ` is the machine's own time zone (`timedatectl show -p Timezone --value` on Linux), since the nightly backups,
@@ -29,7 +31,7 @@ command or container), and, on a machine Agenthix Cloud runs, `CLOUD_URL`, `CLOU
 deletes the file once the code is spent; the code is never logged. On such a machine hq is told so when its services are written (`HQ_RUN_BY_CLOUD`, with
 `CLOUD_URL` so it answers to the same Cloud; `compose/projects.ts`).
 
-The volume's name is `<namespace>-host-figures`, and the namespace a new install records is `agenthix`. Docker
+The volume's name is `<namespace>-host-figures`, and the namespace is the one in the installation's record (`agenthix` unless `INSTALL_NAMESPACE` said otherwise at the host service's first start). Docker
 makes the volume on first run; the site's compose project mounts it read-only and declares it `external`, so
 compose never creates or removes it. Without it the service starts and warns, and install refuses in words.
 
@@ -74,7 +76,7 @@ with the machine credential, carries envelopes (`src/link/link.ts`). Disconnecti
 On HQ's machine, `install` also starts the Fleet Console (`src/install/console.ts`, `src/compose/console.ts`),
 admitted to HQ by `HQ_CONSOLE_PAIRING_SECRET`, set on hq-server too. Like hq-web, it runs on a Docker network —
 its own, `<namespace>-console`, which nothing else joins — and Docker publishes its port to the machine's
-127.0.0.1:4300 only, so on Docker Desktop the computer's browser opens it too. It listens on its address on that
+127.0.0.1 only, on the port its installation chose (7801 by default, `agenthix console port` changes it; [`docs/architecture/ports.md`](../docs/architecture/ports.md)), so on Docker Desktop the computer's browser opens it too. It listens on its address on that
 network and accepts only that network's gateway, through which Docker forwards the published port
 (`CONSOLE_LISTEN_HOST=container`, `console/AGENTS.md`). On HQ's machine it also joins HQ's link network, to dial
 hq-web by its container name as the default site does, and never answers there; its own network's name sorts
@@ -131,7 +133,7 @@ too — and `agenthix status` says where it runs now.
 No Wasp and no framework (ADR-0086's reasons apply): Node's own modules, the `docker` CLI with its compose
 plugin, `@agenthix/core`, and `@aws-sdk/client-s3` for a backup location Cloud sets, all bundled. Nothing here imports from `hq/` or `site/`.
 
-- `src/main.ts` is the service: it makes the state folder private, records the namespace, and opens both sockets.
+- `src/main.ts` is the service: it makes the state folder private, records the installation (`src/state/installation.ts`: namespace, ports, agent slice), and opens both sockets.
 - `src/launcher/main.ts` is the launcher, the image's second entry point (above).
 - `src/cli/main.ts` is the CLI. `src/cli/commands.ts` is its command table, which `help` lists: a new command is
   a row there. The words a person reads are in `src/cli/` (`messages.ts`, `statusText.ts`); HQ is in capitals
@@ -181,6 +183,6 @@ Each container test runs under a namespace of its own (`hte<tag><pid>`, `testNam
 of any host service it starts, and every Docker command it runs goes through a guard
 (`src/__tests__/containerGuard.ts`) that refuses, before running it, one that would create, stop, enter or remove
 anything whose name does not carry that namespace, so a machine's real install is out of a test's reach. A test
-that publishes on a fixed port first checks that it is free, and one that installs an HQ first checks that the
-machine has none, since a machine runs one HQ; both fail before touching anything. So run those (`erase`, `backups`,
-`restoreHqInPlace`) on a machine with no HQ, and port 4300, the Fleet Console's, free for the first two.
+runs beside an installed copy: it holds no fixed port, but chooses free ones (`freePorts`) and passes them to the
+install as `--hq-port` and `--console-port`, and the networks it creates are in the tests' own address block. The ports and
+address blocks are in [`docs/architecture/ports.md`](../docs/architecture/ports.md).

@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { StateFolder } from '../../state/folder'
-import { mountArg, parseInspect, runArgs } from '../../docker/containers'
+import { containerIdIn, mountArg, parseInspect, runArgs } from '../../docker/containers'
 import { hostSpec, readRecord, recordHostContainer, shellCommand } from '../record'
 import { namesFor } from '../../state/namespace'
 import { FakeContainers, NEW_IMAGE, OLD_ID, OLD_IMAGE } from './fakeContainers'
@@ -67,6 +67,23 @@ describe("the host service's recorded settings @SC-838", () => {
       '--network', 'host', '--cap-add', 'NET_ADMIN', '-e', 'TZ=Europe/London',
       '--label', 'com.docker.compose.project=agenthix-host', NEW_IMAGE,
     ])
+  })
+})
+
+describe("a test installation's own namespace @SC-1241 @SC-1248", () => {
+  it('carries INSTALL_NAMESPACE, set on its docker run, to each new version and nowhere else', async () => {
+    const host = docker.byName('agenthix-host')!
+    host.env = [...host.env, 'INSTALL_NAMESPACE=mobiletest']
+    const record = await recordHostContainer(docker, state, now, 'agenthix-host')
+    if ('problem' in record) throw new Error(record.problem)
+    expect(hostSpec(record, NEW_IMAGE, namesFor('mobiletest')).env).toContain('INSTALL_NAMESPACE=mobiletest')
+  })
+
+  it('finds its own container by the id its mount table carries', () => {
+    const id = 'a'.repeat(64)
+    const table = `612 590 0:61 /docker/containers/${id}/hostname /etc/hostname rw,relatime - ext4 /dev/vda1 rw\n`
+    expect(containerIdIn(table)).toBe(id)
+    expect(containerIdIn('25 1 0:23 / /proc rw - proc proc rw\n')).toBeNull()
   })
 })
 

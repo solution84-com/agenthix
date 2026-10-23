@@ -177,6 +177,56 @@ describe('what a difference requires of the version @SC-1133', () => {
     expect(v.changes.map(c => `${c.at}: ${c.what}`)).toEqual(['Frame<type={"literal":"answer"}>.payload: `{ b }` was added to its values'])
   })
 
+  describe('messages that share their tag, told apart by a second field @SC-1249', () => {
+    const requests = (install: string, move: string, extra = '') => snapshotOf({
+      'index.ts': `
+        export type Target = 'hq' | 'site'
+        export type Request =
+          | { op: 'install'; target: 'hq'; address: string${install} }
+          | { op: 'install'; target: 'site' }
+          | { op: 'move'; role: 'send'; target: Target; peer: string }
+          | { op: 'move'; role: 'receive'; target: Target; peer: string; siteName: string${move} }
+          | { op: 'start'; target: Target }${extra}
+      `,
+    })
+    const was = requests('', '')
+
+    it('an optional field added to one of them is an addition to that message', () => {
+      const v = judge(was, requests('; hqPort?: number', '; hqPort?: number'))
+      expect(v.needed).toBe('minor')
+      expect(v.changes.map(c => `${c.at}: ${c.what}`).sort()).toEqual([
+        'Request<op={"literal":"install"},target={"literal":"hq"}>.hqPort: added, optional',
+        'Request<op={"literal":"move"},role={"literal":"receive"}>.hqPort: added, optional',
+      ])
+    })
+
+    it('a required field added to one of them breaks', () => {
+      const v = judge(was, requests('; hqPort: number', ''))
+      expect(v.needed).toBe('major')
+      expect(v.problems.join()).toMatch(/Request<op=\{"literal":"install"\},target=\{"literal":"hq"\}>\.hqPort added, required/)
+    })
+
+    it('one of them removed breaks', () => {
+      const fewer = snapshotOf({
+        'index.ts': `
+          export type Target = 'hq' | 'site'
+          export type Request =
+            | { op: 'install'; target: 'hq'; address: string }
+            | { op: 'move'; role: 'send'; target: Target; peer: string }
+            | { op: 'move'; role: 'receive'; target: Target; peer: string; siteName: string }
+            | { op: 'start'; target: Target }
+        `,
+      })
+      const v = judge(was, fewer)
+      expect(v.needed).toBe('major')
+      expect(v.changes.map(c => c.what).join()).toMatch(/`\{ op, target \}` is no longer one of its values/)
+    })
+
+    it('a new message beside them is an addition', () => {
+      expect(judge(was, requests('', '', `\n          | { op: 'stop'; target: Target }`)).needed).toBe('minor')
+    })
+  })
+
   it('refuses a version that went back', () => {
     const later = withRun(RUN, '1.2')
     expect(judge(later, withRun(RUN, '1.1')).problems.join()).toMatch(/went back from 1\.2 to 1\.1/)

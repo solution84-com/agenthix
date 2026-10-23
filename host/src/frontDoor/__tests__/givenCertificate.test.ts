@@ -25,12 +25,11 @@ beforeEach(async () => {
   m.ctx.sleep = async ms => { skew += ms }
   certs = new Map([['hq.acme.example', { ok: true, expiresAt: '2027-01-10T00:00:00.000Z' }], ['files.acme.example', { ok: true, expiresAt: '2027-01-10T00:00:00.000Z' }]])
   m.ctx.frontDoorProbes = {
-    portInUse: async () => false,
     certificate: async host => certs.get(host) ?? { ok: false, problem: 'connect ECONNREFUSED 127.0.0.1:443' },
   }
   const keys = await generateHostKeys('cloud')
   await pinCloudController(m.ctx.state, { identity: keys.identity as HostIdentity & { role: 'cloud' }, machineId: 'machine-1', pinnedAt: m.ctx.now().toISOString() })
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   m.calls.length = 0
   given = madeCertificate(NAMES)
 })
@@ -133,8 +132,7 @@ describe('a front door given a certificate by Agenthix Cloud @SC-1060', () => {
     // As the machine's probe does: a browser's check fails what only the proxy in front trusts; the given one is matched.
     const asked: (string | undefined)[] = []
     m.ctx.frontDoorProbes = {
-      portInUse: async () => false,
-      certificate: async (_host, expected) => {
+        certificate: async (_host, expected) => {
         asked.push(expected)
         return expected === given.certificate ? { ok: true, expiresAt: '2027-01-10T00:00:00.000Z' } : { ok: false, problem: 'unable to get local issuer certificate' }
       },

@@ -41,7 +41,7 @@ describe('backup.list', () => {
   let m: FakeMachine
   beforeEach(async () => {
     m = fakeMachine()
-    await install(m.ctx, 'https://hq.acme.example', () => {})
+    await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   })
   afterEach(() => m.cleanup())
 
@@ -153,7 +153,7 @@ describe('restoring HQ to an earlier night on its own machine', () => {
   let m: FakeMachine
   beforeEach(async () => {
     m = fakeMachine()
-    await install(m.ctx, 'https://hq.acme.example', () => {})
+    await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   })
   afterEach(() => m.cleanup())
 
@@ -176,7 +176,7 @@ describe('restoring HQ to an earlier night on its own machine', () => {
 describe('the refusal of restore --from where something runs', () => {
   it('names where in the Fleet Console a fleet admin restores an earlier night', async () => {
     const hq = fakeMachine()
-    await install(hq.ctx, 'https://hq.acme.example', () => {})
+    await install(hq.ctx, { address: 'https://hq.acme.example' }, () => {})
     await setLocation(hq)
     expect((await askOn(hq, { op: 'restore.list', from: LOCATION })).refusal.message).toBe(
       'Not restored: HQ already runs on hq-box. To go back to an earlier night, a fleet admin restores it in the Fleet Console, Backups › HQ, Restore… beside the night. It backs up the current state first.')

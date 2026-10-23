@@ -3,7 +3,9 @@ import { METADATA_ADDRESSES, nftScript, parseRange, rulesInPlace, tableFor, type
 import { isDockerDesktop, machineRules, sharesMachineNetwork, type MachineFacts } from '../machine'
 import { listing } from './nftListing'
 
-const set: RuleSet = { table: 'agenthix_agents', range: { addr: '10.213.0.0', len: 16 }, machineAddresses: [] }
+/** The installation's agent slice, as `compose/agentSlice.ts` records it. */
+const SLICE = '10.213.16.0/20'
+const set: RuleSet = { table: 'agenthix_agents', range: { addr: '10.213.16.0', len: 20 }, machineAddresses: [] }
 const desktop: RuleSet = { ...set, machineAddresses: ['192.168.65.254'] }
 
 describe('the rules built @SC-824', () => {
@@ -22,29 +24,29 @@ describe('the rules built @SC-824', () => {
   })
 
   it('shuts the machine’s own ports to the agents’ range', () => {
-    expect(nftScript(set)).toMatch(/chain input \{[^}]*ip saddr 10\.213\.0\.0\/16 drop comment "machine-ports"/)
+    expect(nftScript(set)).toMatch(/chain input \{[^}]*ip saddr 10\.213\.16\.0\/20 drop comment "machine-ports"/)
   })
 
   it('shuts ports other containers publish: any connection Docker redirected', () => {
-    expect(nftScript(set)).toContain('ip saddr 10.213.0.0/16 ct direction original ct status dnat drop comment "published-ports"')
+    expect(nftScript(set)).toContain('ip saddr 10.213.16.0/20 ct direction original ct status dnat drop comment "published-ports"')
   })
 
   it('shuts the cloud providers’ metadata addresses, every one on the list', () => {
     expect(METADATA_ADDRESSES).toEqual(['169.254.169.254', '168.63.129.16', '100.100.100.200'])
     expect(nftScript(set)).toContain(
-      'ip saddr 10.213.0.0/16 ip daddr { 169.254.169.254, 168.63.129.16, 100.100.100.200 } drop comment "metadata-address"',
+      'ip saddr 10.213.16.0/20 ip daddr { 169.254.169.254, 168.63.129.16, 100.100.100.200 } drop comment "metadata-address"',
     )
   })
 
   it('on Docker Desktop also shuts the computer Docker runs on', () => {
-    expect(nftScript(desktop)).toContain('ip saddr 10.213.0.0/16 ip daddr { 192.168.65.254 } drop comment "machine-ports"')
+    expect(nftScript(desktop)).toContain('ip saddr 10.213.16.0/20 ip daddr { 192.168.65.254 } drop comment "machine-ports"')
     expect(nftScript(set).match(/drop comment "machine-ports"/g)).toHaveLength(1)
   })
 
   it('touches nothing but traffic from the agents’ range, so ordinary internet access stays', () => {
     const rules = nftScript(desktop).split('\n').filter(l => /drop/.test(l))
     expect(rules).toHaveLength(4)
-    for (const r of rules) expect(r).toMatch(/^\t\tip saddr 10\.213\.0\.0\/16 /)
+    for (const r of rules) expect(r).toMatch(/^\t\tip saddr 10\.213\.16\.0\/20 /)
   })
 
   it('refuses anything that is not an address, rather than writing it into the firewall', () => {
@@ -102,22 +104,40 @@ describe('this machine @SC-824', () => {
   it('needs the machine’s network: Docker’s bridges are in no container’s', async () => {
     expect(sharesMachineNetwork(['lo', 'eth0'])).toBe(false)
     expect(sharesMachineNetwork(['lo', 'eth0', 'br-1a2b3c'])).toBe(true)
-    const r = await machineRules('agenthix', facts({ interfaces: () => ['lo', 'eth0'] }))()
+    const r = await machineRules('agenthix', () => SLICE, facts({ interfaces: () => ['lo', 'eth0'] }))()
     expect(r).toEqual({ problem: expect.stringContaining('--network host') })
   })
 
-  it('on Linux, is the agents’ range and nothing else', async () => {
-    expect(await machineRules('agenthix', facts())()).toEqual(set)
+  it('on Linux, is the installation’s own agent slice and nothing else @SC-1247', async () => {
+    expect(await machineRules('agenthix', () => SLICE, facts())()).toEqual(set)
+    const script = nftScript(set)
+    expect(script).not.toContain('10.213.0.0/16')
+    expect(script.match(/ip saddr (\S+)/g)!.every(m => m === `ip saddr ${SLICE}`)).toBe(true)
+  })
+
+  it('has no rules while the installation has no agent slice (no site here) @SC-1247', async () => {
+    let asked = 0
+    const rules = machineRules('agenthix', () => null, facts({ interfaces: () => { asked++; return [] } }))
+    expect(await rules()).toBeNull()
+    expect(asked).toBe(0)
+  })
+
+  it('reads the slice at every check, so a slice recorded later is covered at the next @SC-1247', async () => {
+    let range: string | null = null
+    const rules = machineRules('agenthix', () => range, facts())
+    expect(await rules()).toBeNull()
+    range = SLICE
+    expect(await rules()).toEqual(set)
   })
 
   it('on Docker Desktop, adds the computer Docker runs on', async () => {
     expect(isDockerDesktop('6.10.14-linuxkit')).toBe(true)
     const lookup = async (name: string) => (name === 'host.docker.internal' ? ['192.168.65.254'] : ['192.168.65.254', '127.0.0.1'])
-    expect(await machineRules('agenthix', facts({ kernel: () => '6.10.14-linuxkit', lookup }))()).toEqual(desktop)
+    expect(await machineRules('agenthix', () => SLICE, facts({ kernel: () => '6.10.14-linuxkit', lookup }))()).toEqual(desktop)
   })
 
   it('on Docker Desktop, does not hold without that address', async () => {
-    const r = await machineRules('agenthix', facts({ kernel: () => '6.10.14-linuxkit' }))()
+    const r = await machineRules('agenthix', () => SLICE, facts({ kernel: () => '6.10.14-linuxkit' }))()
     expect(r).toEqual({ problem: expect.stringContaining('Docker Desktop') })
   })
 })

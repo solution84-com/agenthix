@@ -8,7 +8,7 @@
 #
 #   - hq/.env.server   — gets a new secret (openssl rand -hex 32) only if it has
 #                        none. An existing value is never replaced.
-#   - site/.env.server — gets that same value, and HQ_URL=http://localhost:4101
+#   - site/.env.server — gets that same value, and HQ_URL=http://localhost:<hq server port>
 #                        if it has no HQ_URL, and its own SECRETS_MASTER_KEY if it
 #                        has none (site/scripts/dev/ensure-secrets-key.sh). Every
 #                        other key is left as it is.
@@ -22,7 +22,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HQ_ENV_FILE="${HQ_ENV_FILE:-$ROOT/hq/.env.server}"
 SITE_ENV_FILE="${SITE_ENV_FILE:-$ROOT/site/.env.server}"
-DEV_HQ_URL="http://localhost:4101"
+eval "$(bash "$ROOT/scripts/dev/ports.sh")"
+DEV_HQ_URL="http://localhost:$HQ_SERVER_PORT"
 MIN_LENGTH=32
 
 # Value of KEY in FILE: last assignment wins, surrounding quotes and whitespace

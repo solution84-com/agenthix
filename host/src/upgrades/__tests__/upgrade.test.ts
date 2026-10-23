@@ -35,7 +35,7 @@ const actions = () => m.calls.filter(c => c[0] === 'compose' || c[0] === 'pull')
 
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   hqStatus = (m.hq.status as unknown as { data: HqStatusData }).data
   m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
   m.calls.length = 0
@@ -52,6 +52,15 @@ describe('an upgrade of HQ and its site @SC-835', () => {
     expect(composeOf('hq')).toContain(pinned('hq-server', '0.2.0'))
     expect(await new BackupStore(m.ctx.state).list()).toEqual([])
     expect(readUpgrades(m.ctx.state).underWay).toBeNull()
+  })
+
+  it("is refused before anything is fetched or stops when another program took HQ's port @SC-1244", async () => {
+    m.heldPorts.add(7800)
+    m.up.delete('agenthix-hq')
+    await expect(upgrade(m.ctx, 'hq', '0.2.1', () => {})).rejects.toThrow(
+      'Port 7800, for HQ, is held by a program on this machine, not by a container. Free it, or move HQ with agenthix hq address <address>. Nothing was changed.')
+    expect(actions()).toEqual([])
+    expect(m.checked).toEqual([])
   })
 
   it('checks, fetches, stops, backs up, then switches to the new pinned images and checks they are healthy', async () => {

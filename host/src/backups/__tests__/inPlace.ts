@@ -10,6 +10,7 @@
  * folder shared from the Mac keeps no file ownership, and the site's data folder must keep it, as it does on Linux:
  * the site starts on a data folder that holds files only when it is the site user's.
  */
+import { ADDRESS_BLOCKS } from '@agenthix/core'
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -22,6 +23,9 @@ import { StateFolder } from '../../state/folder'
 import { installSecrets } from '../../state/secrets'
 import { claimNames, guardedDocker, type GuardedDocker } from '../../__tests__/containerGuard'
 import { machineSubnets } from '../../__tests__/containerSubnets'
+
+/** The agent slice a seeded site's installation records: a /20 of the tests' block, clear of every installation's own. */
+const SLICE = `${ADDRESS_BLOCKS.tests.split('.').slice(0, 2).join('.')}.224.0/20`
 
 export const IMAGE = process.env.HOST_IMAGE || 'agenthix-host'
 
@@ -42,6 +46,8 @@ export class Machine {
   /** docker, refusing anything outside this machine's namespace. */
   readonly docker: GuardedDocker
 
+  private readonly namespace: string
+
   constructor(namespace: string, readonly name: string) {
     this.names = claimNames(namespace)
     this.docker = guardedDocker(namespace)
@@ -49,8 +55,13 @@ export class Machine {
     this.volume = `${namespace}-e2e-state`
     docker('volume', 'create', this.volume)
     this.state = docker('volume', 'inspect', '-f', '{{.Mountpoint}}', this.volume).trim()
-    this.write('namespace.json', JSON.stringify({ namespace, recordedAt: new Date().toISOString() }))
+    this.namespace = namespace
+    this.write('installation.json', this.installationJson(null))
     this.write('machine.json', JSON.stringify({ name }))
+  }
+
+  private installationJson(agentRange: string | null): string {
+    return JSON.stringify({ namespace: this.namespace, ports: { hq: null, console: null }, agentRange, recordedAt: new Date().toISOString() })
   }
 
   async start(): Promise<void> {
@@ -161,12 +172,14 @@ export class Machine {
   /**
    * A site a Fleet Console added, as `installManagedSite` writes it and starts it: named after the machine, its own
    * credential, at the host service's development version. Its HQ is not reachable here, so it runs unconnected,
-   * which a restore in place does not need.
+   * which a restore in place does not need. Its installation records an agent slice, as a site's install does, because
+   * a site's compose file is not written without one.
    */
   seedSite(installedAt: string): void {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'host-in-place-seed-'))
     try {
       const local = new StateFolder(tmp)
+      local.writePrivate(['installation.json'], this.installationJson(SLICE))
       const secrets = this.file('secrets.json')
       if (secrets) local.writePrivate(['secrets.json'], secrets)
       const site: StoredSite = {
@@ -177,7 +190,7 @@ export class Machine {
       const made = installSecrets(local)
       local.writeJson(['site', 'settings.json'], site)
       local.writePrivate(['site', 'compose.json'], composeJson(siteComposeProject(local, this.names, site, made, { state: this.state }, machineSubnets(this.docker, this.names))))
-      for (const rel of ['secrets.json', 'site/credential.json', 'site/settings.json', 'site/compose.json']) {
+      for (const rel of ['installation.json', 'secrets.json', 'site/credential.json', 'site/settings.json', 'site/compose.json']) {
         this.write(rel, fs.readFileSync(path.join(tmp, rel), 'utf8'))
       }
     } finally {

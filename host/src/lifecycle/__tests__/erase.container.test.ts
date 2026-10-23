@@ -2,9 +2,8 @@
  * Erase and restore from the bin against a real Docker (`npm run test:container`, with HOST_E2E=1). Build the host
  * service's image first, at the repository root: `docker build -f host/docker/Dockerfile -t agenthix-host .` (or
  * name another with HOST_IMAGE). Like the backups' end-to-end test it needs the images a development build
- * installs. HQ is installed at http://localhost:4132, and the Fleet Console beside it publishes 127.0.0.1:4300, so
- * both ports must be free; and a machine runs one HQ, so there must be none on it already. It checks all three before
- * it starts anything and refuses, touching nothing, when one does not hold.
+ * installs. HQ is installed at http://localhost on a free port the test chooses, and the Fleet Console beside it
+ * publishes 127.0.0.1 on another, so it runs beside an installation.
  *
  * It installs HQ and its site, suspends and resumes them, erases them at once with a backup location set, checks
  * that nothing of theirs is left running or stored but the bin and the location's copy, brings them back from the
@@ -15,14 +14,13 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { CONSOLE_PORT } from '../../compose/console'
-import { claimNames, guardedDocker, recordNamespace, requireFreePorts, requireNoHq, testNamespace } from '../../__tests__/containerGuard'
+import { afterAll, describe, expect, it } from 'vitest'
+import { claimNames, guardedDocker, freePorts, recordNamespace, testNamespace } from '../../__tests__/containerGuard'
 
 const IMAGE = process.env.HOST_IMAGE || 'agenthix-host'
 const NS = testNamespace('erase')
 const NAMES = claimNames(NS)
-const HQ_PORT = 4132
+const [HQ_PORT, CONSOLE_PORT] = await freePorts(2)
 const HQ_ADDRESS = `http://localhost:${HQ_PORT}`
 const docker = guardedDocker(NS)
 const cli = (input: string, ...args: string[]) => docker.with({ input }, 'exec', '-i', NAMES.hostContainer, 'agenthix', ...args)
@@ -34,11 +32,6 @@ describe.skipIf(!process.env.HOST_E2E)('HQ suspended, resumed, erased and brough
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'host-erase-'))
   const state = path.join(tmp, 'state')
   const location = path.join(tmp, 'nas')
-
-  beforeAll(async () => {
-    await requireFreePorts([HQ_PORT, CONSOLE_PORT])
-    await requireNoHq()
-  })
 
   afterAll(() => {
     docker.quiet('rm', '-f', NAMES.hostContainer)
@@ -55,7 +48,7 @@ describe.skipIf(!process.env.HOST_E2E)('HQ suspended, resumed, erased and brough
     docker('run', '-d', '--name', NAMES.hostContainer, '-v', '/var/run/docker.sock:/var/run/docker.sock', '-v', `${state}:/state`,
       '-v', `${location}:${location}`, '-v', `${NAMES.hostFiguresVolume}:/run/host-figures`, '--network', 'host', IMAGE)
     await new Promise(r => setTimeout(r, 3000))
-    cli('', 'install', '--address', HQ_ADDRESS, '--yes')
+    cli('', 'install', '--address', HQ_ADDRESS, '--console-port', String(CONSOLE_PORT), '--yes')
     cli('n\ny\n', 'backup', 'location', location)
 
     expect(cli('', 'hq', 'suspend')).toContain('Suspended.')

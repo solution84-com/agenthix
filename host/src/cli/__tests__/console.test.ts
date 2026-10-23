@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { fakeMachine, type FakeMachine } from '../../__tests__/fakeMachine'
 import { ownerHandler } from '../../owner/dispatch'
+import { install } from '../../install/install'
 import { EnvelopeReplayGuard, signHandoverCertificate } from '@agenthix/core/host-crypto'
 import type { HandoverCodeAnswer, HostEnvelope } from '@agenthix/core'
 import { readPin, writePin } from '../../link/pin'
@@ -119,6 +120,39 @@ describe('agenthix console connect @SC-845', () => {
     expect(flat(out)).not.toContain('has not started the site here yet')
   })
 
+  it('records the ports HQ and its Fleet Console will publish here, for HQ that moves in @SC-1242', async () => {
+    const relay = new FakeRelay()
+    const fleetConsole = await FakeConsole.make()
+    m.ctx.dial = relay.dial
+    relay.onJoin = async (join, conn) => {
+      await conn.deliver('host.joined', { hostId: 'h1', machineCredential: 'hmc_4f1c2a9e7b3d5e8f0a1b', acceptance: await fleetConsole.acceptance('7KQ4M2XD46Q3', join.identity) })
+    }
+    expect(parseCommand(['console', 'connect', 'https://hq.acme.example', '7KQ4-M2XD-46Q3', '--hq-port', '7500', '--console-port', '7501']))
+      .toEqual({ kind: 'consoleConnect', address: 'https://hq.acme.example', code: '7KQ4-M2XD-46Q3', hqPort: 7500, consolePort: 7501 })
+    expect(await cli('console', 'connect', 'https://hq.acme.example', '7KQ4-M2XD-46Q3', '--hq-port', '7500', '--console-port', '7501')).toBe(0)
+    expect(m.ctx.state.readJson('installation.json')).toMatchObject({ ports: { hq: 7500, console: 7501 } })
+  })
+
+  it('refuses ports it could not publish before reaching HQ, and keeps none when the connect fails @SC-1242 @SC-1244', async () => {
+    const relay = new FakeRelay()
+    m.ctx.dial = relay.dial
+    expect(parseCommand(['console', 'connect', 'https://hq.acme.example', '7KQ4-M2XD-46Q3', '--hq-port'])).toMatchObject({ kind: 'usage' })
+    expect(await cli('console', 'connect', 'https://hq.acme.example', '7KQ4-M2XD-46Q3', '--console-port', '80')).toBe(1)
+    expect(flat(err)).toContain('Port 80 needs extra privileges on Linux.')
+    expect(await cli('console', 'connect', 'https://hq.acme.example', '7KQ4-M2XD-46Q3', '--hq-port', '7500', '--console-port', '7500')).toBe(1)
+    expect(relay.connections).toHaveLength(0)
+    relay.onJoin = (_join, conn) => conn.deliver('host.joinRefused', { reason: 'used' })
+    expect(await cli('console', 'connect', 'https://hq.acme.example', '7KQ4-M2XD-46Q3', '--console-port', '7501')).toBe(1)
+    expect(m.ctx.state.readJson('installation.json')).toMatchObject({ ports: { hq: null, console: null } })
+  })
+
+  it('never moves the ports of HQ that runs here @SC-1242', async () => {
+    await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
+    expect(await cli('console', 'connect', 'https://hq.acme.example', '7KQ4-M2XD-46Q3', '--hq-port', '7600')).toBe(1)
+    expect(flat(err)).toContain('HQ is already published here on port 7800, not 7600.')
+    expect(m.ctx.state.readJson('installation.json')).toMatchObject({ ports: { hq: 7800 } })
+  })
+
   it('says what to do when HQ closes the join before anyone confirmed', async () => {
     const relay = new FakeRelay()
     m.ctx.dial = relay.dial
@@ -199,7 +233,7 @@ describe('agenthix status @SC-853', () => {
     await cli('install', '--address', 'https://hq.acme.example')
     out = ''
     await cli('status')
-    expect(out).toContain('Fleet Console  http://127.0.0.1:4300  0.2.0')
+    expect(out).toContain('Fleet Console  http://127.0.0.1:7801  0.2.0')
     expect(flat(out)).toContain('This machine is not connected to it yet; it keeps trying by itself.')
   })
 })

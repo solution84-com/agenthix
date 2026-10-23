@@ -5,7 +5,8 @@
 import { DEFAULT_INSTALL_NAMESPACE } from '@agenthix/core'
 import { STATE_DIR } from '../config'
 import { StateFolder } from '../state/folder'
-import { namesFor, recordedNamespace } from '../state/namespace'
+import { namesFor } from '../state/namespace'
+import { recordedNamespace } from '../state/installation'
 
 let known: string | null = null
 

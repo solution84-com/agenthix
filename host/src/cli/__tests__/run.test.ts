@@ -34,11 +34,11 @@ describe('agenthix install', () => {
   it('asks its one question, takes the bracketed answer on Enter, and ends with the shortcut and one link @SC-816', async () => {
     answers = ['']
     expect(await cli('install')).toBe(0)
-    expect(asked).toEqual(['[http://localhost:4100] '])
+    expect(asked).toEqual(['[http://localhost:7800] '])
     const said = flat(out)
     expect(said).toContain('Agenthix 0.2.0 — installing on hq-box.')
     expect(said).toContain("Where will people open HQ, the organisation's own Agenthix?")
-    expect(said).toContain('people on other computers cannot open http://localhost:4100')
+    expect(said).toContain('people on other computers cannot open http://localhost:7800')
     expect(said).toContain('HQ always comes with a site, hq-box, where agents work; nothing to ask.')
     expect(out).toMatch(/Starting HQ \.+ answers/)
     expect(out).toMatch(/Starting the site hq-box \(private Docker network\) \.+ connected to HQ/)
@@ -53,7 +53,7 @@ describe('agenthix install', () => {
     expect(await cli('install')).toBe(0)
     expect(asked).toHaveLength(2)
     expect(flat(err)).toContain('HQ cannot be at hq.acme.example: it must start with http:// or https://.')
-    expect(flat(out)).toContain('point this machine\'s web server at 127.0.0.1:4100')
+    expect(flat(out)).toContain('point this machine\'s web server at 127.0.0.1:7800')
   })
 
   it('asks nothing once HQ is installed @SC-816', async () => {

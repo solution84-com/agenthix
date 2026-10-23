@@ -18,7 +18,7 @@ import { FiguresRefresh } from './hosts/figuresRefresh'
 import { Silence } from './hosts/silence'
 import { HqFacts } from './hq/hqFacts'
 import { createApp, type ConsoleContext } from './http/app'
-import { CONTAINER_PEER, type ContainerPeer } from './http/guards'
+import { CONTAINER_PEER, PUBLISHED_PORT, type ContainerPeer } from './http/guards'
 import { CommandRuns } from './http/commandRuns'
 import { Joins } from './join/joins'
 import { Moves } from './move/moves'
@@ -40,6 +40,8 @@ export type ConsoleOptions = {
   hqCode?: string | null
   /** In its container: its address on its own network and that network's gateway, the one peer besides the loopback. */
   containerPeer?: ContainerPeer | null
+  /** The port it is published on, for the words that tell a person where to open it. */
+  publishedPort?: number
 }
 
 export async function createConsole(o: ConsoleOptions): Promise<{ ctx: ConsoleContext; app: http.RequestListener }> {
@@ -73,6 +75,7 @@ export async function createConsole(o: ConsoleOptions): Promise<{ ctx: ConsoleCo
   const app = createApp(ctx)
   // guards.ts reads it from here; without it, only the loopback is let in.
   if (o.containerPeer) app.locals[CONTAINER_PEER] = o.containerPeer
+  if (o.publishedPort !== undefined) app.locals[PUBLISHED_PORT] = o.publishedPort
   return { ctx, app }
 }
 

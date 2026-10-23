@@ -3,7 +3,7 @@
  * restart of the host service in the middle never makes it guess: the old machine never starts its site again once
  * it committed, and the new machine never keeps running a site it was not told is its own.
  */
-import type { HostIdentity } from '@agenthix/core'
+import type { HostIdentity, PublishedPortChoice } from '@agenthix/core'
 import type { StateFolder } from '../state/folder'
 import { installed, type Context } from '../service/context'
 
@@ -15,6 +15,8 @@ export type HqMoveFields = {
   target?: 'hq' | 'site'
   /** The address hq answers at once it runs on the new machine. */
   hqAddress?: string
+  /** On the new machine: the ports the move's request chose for hq and its Fleet Console there. */
+  ports?: PublishedPortChoice
   /** The address it answered at before, to tell those told the new one that it stays. */
   previousAddress?: string
   pinBefore?: PinBefore | null

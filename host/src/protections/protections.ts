@@ -14,8 +14,14 @@ import { RULES, nftScript, rulesInPlace, tableFor, type RuleSet } from './rules'
 
 export const CHECK_INTERVAL_MS = 60_000
 
-/** The rules for this machine, or why they cannot be built. */
-export type RuleSource = () => Promise<RuleSet | { problem: string }>
+/**
+ * The rules for this machine, or why they cannot be built; null while the installation has no agent slice (no site
+ * here), when there are no agents to keep out and no rules are written.
+ */
+export type RuleSource = () => Promise<RuleSet | { problem: string } | null>
+
+/** No site here, so no agents: nothing to keep out, and nothing written to the firewall. */
+const NO_AGENTS: Omit<ProtectionFigures, 'checkedAt'> = { holding: true, rules: [], problem: null }
 
 const NOT_YET: Omit<ProtectionFigures, 'checkedAt'> = {
   holding: false,
@@ -69,6 +75,9 @@ function removeProblem(r: RunResult, table: string): string {
 export class AgentProtections {
   private last: ProtectionFigures | null = null
   private running: Promise<ProtectionFigures> | null = null
+  /** Moves on when the agents' range changes, so a check begun before it cannot leave its result behind. */
+  private generation = 0
+  private runningGeneration = 0
   private removed = false
 
   constructor(
@@ -84,13 +93,26 @@ export class AgentProtections {
 
   /** Checks the rules, applies them whole when any is missing, and checks again. One at a time. */
   check(): Promise<ProtectionFigures> {
-    if (!this.running) {
-      this.running = this.checkOnce().then(f => {
-        this.last = f
+    if (!this.running || this.runningGeneration !== this.generation) {
+      const generation = this.generation
+      const running: Promise<ProtectionFigures> = this.checkOnce().then(f => {
+        if (generation === this.generation) this.last = f
         return f
-      }).finally(() => { this.running = null })
+      }).finally(() => { if (this.running === running) this.running = null })
+      this.running = running
+      this.runningGeneration = generation
     }
     return this.running
+  }
+
+  /**
+   * The installation was given its agents' range: what the last check found no longer says anything, so until the
+   * rules for the range are in place the protections do not hold. Checked again at once.
+   */
+  rangeChanged(): void {
+    this.generation++
+    this.last = null
+    void this.check()
   }
 
   private async inPlace(set: RuleSet): Promise<ProtectionRule[]> {
@@ -113,6 +135,7 @@ export class AgentProtections {
     const checkedAt = () => this.now().toISOString()
     if (this.removed) return { ...REMOVED, checkedAt: checkedAt() }
     const set = await this.rules().catch((err: unknown) => ({ problem: err instanceof Error ? err.message : String(err) }))
+    if (set === null) return { ...NO_AGENTS, checkedAt: checkedAt() }
     if ('problem' in set) return { holding: false, rules: [], checkedAt: checkedAt(), problem: set.problem }
 
     let rules = await this.inPlace(set)
@@ -151,6 +174,11 @@ let current: AgentProtections | null = null
 /** The service's own protections, set once at start (main.ts); the figures read them from here. */
 export function useProtections(p: AgentProtections): void {
   current = p
+}
+
+/** Called once the installation records its agents' range (`compose/agentSlice.ts`). */
+export function agentRangeRecorded(): void {
+  current?.rangeChanged()
 }
 
 export function protectionFigures(now: Date): ProtectionFigures {

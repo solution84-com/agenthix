@@ -31,7 +31,7 @@ async function setLocation(): Promise<void> {
 
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, ADDRESS, () => {})
+  await install(m.ctx, { address: ADDRESS }, () => {})
   m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
   m.agentContainers.push('agenthix-agent-1', 'agenthix-agent-2')
   m.agentNetworks.push('agenthix-agent-1-net', 'agenthix-agent-2-net')
@@ -129,7 +129,7 @@ describe('erasing HQ @SC-843', () => {
   it('is reported by status only while nothing runs on the machine: a new HQ or site here is not what was erased', async () => {
     await ask({ op: 'erase', target: 'hq', confirmAddress: ADDRESS })
     expect(lifecycleStatus(m.ctx).erased).toMatchObject([{ target: 'hq', siteName: 'hq-box' }])
-    await install(m.ctx, 'https://hq2.acme.example', () => {})
+    await install(m.ctx, { address: 'https://hq2.acme.example' }, () => {})
     expect(lifecycleStatus(m.ctx).erased).toEqual([])
     // The bin keeps it for its grace period all the same.
     expect(binEntries(m.ctx)).toHaveLength(1)

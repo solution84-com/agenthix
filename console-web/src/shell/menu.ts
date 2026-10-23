@@ -68,6 +68,6 @@ export function menuHq(fleet: FleetResponse | null): MenuHq {
   const to = host ? HQ_PATH : null
   if (fleet.console.hq !== 'connected') return { to, dot: 'attention', state: 'Not answering' }
   const install = host?.figures?.installs.find(i => i.target === 'hq')
-  if (install && !install.healthy && install.state !== 'starting') return { to, dot: 'attention', state: 'Needs attention' }
+  if (install && !install.healthy && (install.state !== 'starting' || !!install.problem)) return { to, dot: 'attention', state: 'Needs attention' }
   return { to, dot: 'healthy', state: 'Healthy' }
 }

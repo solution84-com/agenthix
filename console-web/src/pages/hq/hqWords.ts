@@ -12,8 +12,11 @@ import { whenIs } from '../dashboard/words'
 export const GRACE_DAYS = 30
 const DAY = 24 * 60 * 60 * 1000
 
-/** Where HQ listens on its own machine, which the machine's own web server points at (spec §6). */
-export const HQ_LISTENS_ON = '127.0.0.1:4100'
+/**
+ * Where HQ listens on its own machine, which the machine's own web server points at (spec §6). The port is the
+ * installation's own and the Fleet Console is not told it, so the words send the reader to where it is shown.
+ */
+export const HQ_LISTENS_ON = `127.0.0.1, on the port that \`${BRANDING.cliCommand} status\` shows`
 
 const dateOf = (iso: string) => {
   const d = new Date(iso)

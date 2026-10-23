@@ -4,6 +4,8 @@
  * configuration is checked before anything changes, its certificates are checked once it runs, and anything that
  * fails puts the machine back as it was.
  */
+import { FRONT_DOOR_PORTS } from '@agenthix/core'
+import { installationOf } from '../state/installation'
 import fs from 'node:fs'
 import type { FrontDoorFigures } from '@agenthix/core'
 import type { Progress } from '../sockets/lineServer'
@@ -20,8 +22,8 @@ import {
 import { givenCertificateProblem, readGivenCertificate, writeGiven, type GivenCertificate } from './given'
 import { machineProbes, type FrontDoorProbes } from './probes'
 import { installSubnets } from '../compose/subnets'
+import { EVERY_ADDRESS, portProblems } from '../install/portCheck'
 
-const PORTS = [80, 443] as const
 /** How long a certificate may take: the certificate authority checks the host name over port 80 first. */
 const CERTIFICATE_WAIT_MS = 3 * 60_000
 const CERTIFICATE_POLL_MS = 5_000
@@ -44,6 +46,8 @@ export type FrontDoorCheck = {
   /** Why the front door cannot serve HQ at its address; null when it can. */
   problem: string | null
   busyPorts: number[]
+  /** Who holds each of them, in the check's words (install/portCheck.ts). */
+  busy: { port: number; what: string }[]
   /** Why turning it on would be refused, in the words the refusal says; null when it would go ahead. */
   refusal: { code: 'not_installed' | 'conflict' | 'malformed'; message: string } | null
 }
@@ -59,14 +63,17 @@ function whyNot(hq: StoredHq | undefined): string | null {
 }
 
 export async function frontDoorCheck(ctx: Context, requestedFiles?: string, given = false): Promise<FrontDoorCheck> {
-  const hq = installed(ctx).hq?.settings
+  const here = installed(ctx).hq
+  const hq = here?.settings
   const on = frontDoorSettings(ctx)?.on === true
-  const busyPorts: number[] = []
-  if (hq && !on) for (const port of PORTS) if ((await probes(ctx).portInUse(port)) !== false) busyPorts.push(port)
+  const busy = hq && !on
+    ? (await portProblems(ctx, FRONT_DOOR_PORTS.map(port => ({ port, part: 'front-door' as const, bind: EVERY_ADDRESS })))).map(p => ({ port: p.port, what: p.what }))
+    : []
+  const busyPorts = busy.map(b => b.port)
   const filesHost = hq ? requestedFiles?.toLowerCase() ?? (given ? keptGivenHost(ctx) : defaultFilesHost(hq)) : null
   const problem = whyNot(hq)
   const check: FrontDoorCheck = {
-    on, address: hq?.address ?? null, listen: hq ? { bind: hq.bind, port: hq.port } : null, filesHost, problem, busyPorts, refusal: null,
+    on, address: hq?.address ?? null, listen: hq && here.port !== null ? { bind: hq.bind, port: here.port } : null, filesHost, problem, busyPorts, busy, refusal: null,
   }
   check.refusal = refusalOf(ctx, check, given)
   return check
@@ -80,12 +87,11 @@ function refusalOf(ctx: Context, c: FrontDoorCheck, given: boolean): FrontDoorCh
   const filesProblem = !c.filesHost ? (given ? null : 'it has none')
     : c.filesHost === hostOf(c.address) ? "it is HQ's own host, and uploaded files need one of their own" : hostNameProblem(c.filesHost)
   if (filesProblem) return { code: 'malformed', message: `Uploaded files cannot be at ${c.filesHost}: ${filesProblem}. Nothing changed.` }
-  if (c.busyPorts.length === 0) return null
-  const ports = c.busyPorts.length === 2 ? 'ports 80 and 443' : `port ${c.busyPorts[0]}`
+  if (c.busy.length === 0) return null
   return {
     code: 'conflict',
-    message: `Refused: something on ${machine} is already listening on ${ports}. Stop it first — or keep it, and ` +
-      `point it at HQ on ${c.listen.bind}:${c.listen.port}: ${cmd('front-door')} prints the steps. Nothing changed.`,
+    message: `Refused on ${machine}: ${c.busy.map(b => b.what).join(' ')} Free ${c.busy.length === 1 ? 'it' : 'them'} first — or, if it is a web ` +
+      `server of your own, keep it and point it at HQ on ${c.listen.bind}:${c.listen.port}: ${cmd('front-door')} prints the steps. Nothing was changed.`,
   }
 }
 
@@ -197,11 +203,11 @@ async function turnOn(ctx: Context, requestedFiles: string | undefined, progress
   if (hqChanged) {
     const next: StoredHq = { ...hq, filesOrigin }
     ctx.state.writeJson(['hq', 'settings.json'], next)
-    ctx.state.writePrivate(['hq', 'compose.json'], composeJson(hqProject(ctx.names, next, installSecrets(ctx.state), ctx.machine.name, await installSubnets(ctx))))
+    ctx.state.writePrivate(['hq', 'compose.json'], composeJson(hqProject(ctx.names, next, installSecrets(ctx.state), ctx.machine.name, await installSubnets(ctx), installationOf(ctx.state))))
   }
   ctx.state.writePrivate(['front-door', 'Caddyfile'], config)
   if (given) writeGiven(ctx.state, given)
-  ctx.state.writePrivate(['front-door', 'compose.json'], composeJson(frontDoorCompose(ctx.names, paths, config, given?.certificate)))
+  ctx.state.writePrivate(['front-door', 'compose.json'], composeJson(frontDoorCompose(ctx.names, paths, config, installationOf(ctx.state), given?.certificate)))
   const settings: FrontDoorSettings = { on: true, hosts, since: ctx.now().toISOString(), ...(given ? { given: { filesOrigin } } : {}) }
   ctx.state.writeJson(['front-door', 'settings.json'], settings)
 

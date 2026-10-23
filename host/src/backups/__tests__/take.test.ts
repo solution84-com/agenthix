@@ -17,7 +17,7 @@ beforeEach(async () => {
   m = fakeMachine()
   // Installed before the nights these tests back up.
   await m.ctx.sleep(new Date(2026, 8, 30, 12, 0).getTime() - m.ctx.now().getTime())
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
 })
 afterEach(() => m.cleanup())
 
@@ -85,7 +85,7 @@ describe('the nightly backup @SC-827', () => {
     const fresh = fakeMachine()
     try {
       await fresh.ctx.sleep(new Date(2026, 9, 20, 9, 0).getTime() - fresh.ctx.now().getTime())
-      await install(fresh.ctx, 'https://hq.acme.example', () => {})
+      await install(fresh.ctx, { address: 'https://hq.acme.example' }, () => {})
       expect(await nightlyTick(fresh.ctx)).toBe(false)
       fresh.ctx.now = () => new Date(2026, 9, 21, 2, 0)
       expect(await nightlyTick(fresh.ctx)).toBe(true)

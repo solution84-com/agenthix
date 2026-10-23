@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0145`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0146`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -283,3 +283,4 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0142](adr-0142-the-organisations-admin-area-is-separate-from-its-page.md) | The Organisation's Admin Area Is Separate From Its Page | Accepted |
 | [ADR-0143](adr-0143-hqs-cloud-key-rolls-over-without-approval.md) | hq's Cloud Key Rolls Over Without Approval | Accepted |
 | [ADR-0144](adr-0144-agenthix-cloud-is-connected-from-hq-by-an-organisation-admin.md) | Agenthix Cloud Is Connected From HQ by an Organisation Admin | Accepted |
+| [ADR-0145](adr-0145-an-installation-owns-its-published-ports-and-address-blocks.md) | An Installation Owns Its Published Ports and Address Blocks | Accepted |

@@ -1,5 +1,5 @@
 /**
- * The Fleet Console's server (host-management spec §7, plan 3.7): on 127.0.0.1:4300 only — in its container, on its
+ * The Fleet Console's server (host-management spec §7, plan 3.7): on 127.0.0.1:4301 only — in its container, on its
  * own network, with the port published to the machine's 127.0.0.1 — dialling out to hq and nothing else. The host
  * service starts it — on hq's machine at install, or elsewhere with `console install`.
  */
@@ -36,7 +36,7 @@ async function main(): Promise<void> {
   link.on('hqAddress', address => follower.take(address))
   const containerPeer = config.containerGateway ? { address: config.listenHost, gateway: config.containerGateway } : null
   const { app, ctx } = await createConsole({
-    state, link, version: config.version, hqCode, containerPeer,
+    state, link, version: config.version, hqCode, containerPeer, publishedPort: config.publishedPort,
     machineName: process.env.CONSOLE_MACHINE_NAME?.trim() || 'this machine',
   })
   const server = await listen(app, config.listenHost, config.port, containerPeer)

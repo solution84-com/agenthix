@@ -19,6 +19,7 @@ import { eachPart, PART, readManifest, sources } from '../backups/parts'
 import { openBackup, WrongKey, type Holder } from '../backups/seal'
 import { compareVersions } from '../backups/restoreSource'
 import { installSubnets } from '../compose/subnets'
+import { keepAgentSlice, pickAgentSlice } from '../compose/agentSlice'
 
 /** This machine's identity sealing key as a backup holder: the old machine re-wrapped the backup to it. */
 export function identityHolder(keys: HostKeys): Holder {
@@ -49,8 +50,10 @@ export async function restoreMovedSite(ctx: Context, file: string, keys: HostKey
     if (!paths) throw new Refusal('failed', 'The host service cannot find its state folder on this machine.')
 
     const manifest = await readManifest(records)
+    const agentSlice = await pickAgentSlice(ctx)
     const { pins } = await checkImages(ctx, [{ part: 'site-server', version: manifest.site.version }, { part: 'agent', version: manifest.site.version }])
     await fetchImages(ctx, [POSTGRES_IMAGE, pins['site-server']!, pins.agent!])
+    keepAgentSlice(ctx.state, agentSlice)
     // The site's stored secrets are sealed with its master key: it comes with the site. The rest are this machine's.
     ctx.state.writeJson(['secrets.json'], { ...installSecrets(ctx.state), siteMasterKey: manifest.secrets.siteMasterKey })
     const site: StoredSite = {

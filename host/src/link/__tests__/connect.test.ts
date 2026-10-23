@@ -134,7 +134,7 @@ describe('the claim "this machine runs HQ" @SC-846', () => {
 
   /** HQ's machine after `hq console-code --no-machines`: its Fleet Console ran elsewhere and is gone. */
   async function hqHere(): Promise<void> {
-    await install(m.ctx, ADDRESS, () => {})
+    await install(m.ctx, { address: ADDRESS }, () => {})
     fs.rmSync(m.ctx.state.path('console'), { recursive: true, force: true })
   }
 

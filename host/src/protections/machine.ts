@@ -7,7 +7,6 @@
 import dns from 'node:dns/promises'
 import fs from 'node:fs'
 import os from 'node:os'
-import { AGENT_NETWORK_RANGE } from '../compose/projects'
 import { isIpv4, parseRange, tableFor } from './rules'
 import type { RuleSource } from './protections'
 
@@ -43,8 +42,14 @@ export function isDockerDesktop(kernel: string): boolean {
   return /linuxkit/i.test(kernel)
 }
 
-export function machineRules(namespace: string, facts: MachineFacts = realMachine): RuleSource {
+/**
+ * `agentRange`: the installation's recorded agent slice, read at every check; null while it has none (no site here),
+ * and then there are no rules to write.
+ */
+export function machineRules(namespace: string, agentRange: () => string | null, facts: MachineFacts = realMachine): RuleSource {
   return async () => {
+    const range = agentRange()
+    if (range === null) return null
     if (!sharesMachineNetwork(facts.interfaces())) {
       return {
         problem: "The host service does not share this machine's network, so its firewall rules would not reach the agents. " +
@@ -59,6 +64,6 @@ export function machineRules(namespace: string, facts: MachineFacts = realMachin
           'so agents could reach it. Restart Docker Desktop, then the host service.',
       }
     }
-    return { table: tableFor(namespace), range: parseRange(AGENT_NETWORK_RANGE), machineAddresses: [...found].sort() }
+    return { table: tableFor(namespace), range: parseRange(range), machineAddresses: [...found].sort() }
   }
 }

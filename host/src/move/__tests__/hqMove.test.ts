@@ -45,7 +45,8 @@ describe('HQ moves to a new machine @SC-859', () => {
     expect(bothRan).toBe(false)
     for (const p of [HQ, SITE, CONSOLE]) expect(two.fresh.up.has(p), p).toBe(true)
     for (const p of [HQ, SITE, CONSOLE]) expect(two.old.up.has(p), p).toBe(false)
-    expect(two.fresh.ctx.state.readJson('hq', 'settings.json')).toMatchObject({ address: NEW, bind: '0.0.0.0', port: 4100 })
+    expect(two.fresh.ctx.state.readJson('hq', 'settings.json')).toMatchObject({ address: NEW, bind: '0.0.0.0' })
+    expect(two.fresh.ctx.state.readJson('installation.json')).toMatchObject({ ports: { hq: 4100, console: 7801 } })
     expect(secrets(two.fresh)).toEqual(before)
     expect(two.fresh.backups.databases.get('agenthix_hq')?.toString()).toBe('the hq rows')
     expect(two.fresh.backups.databases.get('agenthix_site')?.toString()).toBe('the site rows')
@@ -67,6 +68,22 @@ describe('HQ moves to a new machine @SC-859', () => {
     expect(two.said.new.some(c => c[0] === 'scheduled-change' && c[1].includes('"completed"'))).toBe(true)
     expect(reports('old')).toEqual(['started', 'transferring', 'committed'])
     expect(reports('new')).toEqual(expect.arrayContaining(['restoring', 'tookOver']))
+  })
+
+  it('publishes the Fleet Console on the new machine on the port the request chose @SC-1243', async () => {
+    expect(await two.as(two.fresh, { ...(await two.moveRequest('receive')), consolePort: 7600 })).toMatchObject({ ok: true })
+    await two.sendNow()
+    await two.run()
+    await until(() => readReceive(two.fresh.ctx.state)?.phase === 'committed')
+    expect(two.fresh.ctx.state.readJson('installation.json')).toMatchObject({ ports: { hq: 4100, console: 7600 } })
+  })
+
+  it('refuses ports it could not publish before anything arrives @SC-1244', async () => {
+    const receive = await two.moveRequest('receive')
+    for (const ports of [{ consolePort: 80 }, { hqPort: 7600, consolePort: 7600 }]) {
+      expect(await two.as(two.fresh, { ...receive, ...ports }), JSON.stringify(ports)).toMatchObject({ ok: false, refusal: { code: 'malformed' } })
+    }
+    expect(readReceive(two.fresh.ctx.state)).toBeNull()
   })
 
   it('removes nothing on the old machine before HQ answers from the new one', async () => {
@@ -117,6 +134,21 @@ describe('when the new machine does not take over @SC-859', () => {
     // Those told the new address are told HQ stays.
     expect(said('old').at(-1)).toEqual(['address-move', OLD])
     expect(reports('old')).toContain('rolledBack')
+  }, 15_000)
+
+  it('is refused on the new machine, which keeps nothing, when a port HQ or the Fleet Console would publish is held there @SC-1244', async () => {
+    two.fresh.heldPorts.add(7801)
+    await two.arm()
+    await two.sendNow()
+    const moving = two.run()
+    await until(() => readReceive(two.fresh.ctx.state)?.phase === 'failed')
+    expect(JSON.stringify(readReceive(two.fresh.ctx.state))).toContain('Port 7801, for the Fleet Console, is held by a program on this machine, not by a container.')
+    await two.old.ctx.sleep(120_000)
+    await moving
+    expect(bothRan).toBe(false)
+    for (const p of [HQ, SITE, CONSOLE]) expect(two.old.up.has(p), p).toBe(true)
+    expect(two.fresh.up.size).toBe(0)
+    for (const part of ['hq', 'site', 'console']) expect(fs.existsSync(two.fresh.ctx.state.path(part)), part).toBe(false)
   }, 15_000)
 
   it('ends the move before the release with HQ never stopped, only read-only for the while, when a chunk was altered', async () => {

@@ -48,7 +48,7 @@ export function MoveHqForm({ host, hosts, address, console: fleetConsole, onStar
   const start = (e: React.FormEvent) => {
     e.preventDefault()
     const found: typeof errors = {}
-    if (asksAddress && !ADDRESS.test(newAddress.trim())) found.address = 'Give the address as a scheme and a host, perhaps with a port: http://192.168.1.30:4100.'
+    if (asksAddress && !ADDRESS.test(newAddress.trim())) found.address = 'Give the address as a scheme and a host, perhaps with a port: http://192.168.1.30:7800.'
     const t = where === 'machine' ? parseWhen(when, new Date()) : { ok: true as const, at: null }
     if (!t.ok) found.at = t.error
     setErrors(found)
@@ -92,7 +92,7 @@ export function MoveHqForm({ host, hosts, address, console: fleetConsole, onStar
               {address ? <>{ownDomain ? 'People and sites reach HQ at' : 'HQ has no domain of its own: people and sites reach it at'} <span className="font-mono">{address}</span>.</> : 'HQ has not said its address yet.'}
             </p>
             <FormField label="New address" htmlFor="move-hq-address" error={errors.address}>
-              <Input id="move-hq-address" value={newAddress} placeholder="http://192.168.1.30:4100" onChange={e => setNewAddress(e.target.value)} />
+              <Input id="move-hq-address" value={newAddress} placeholder="http://192.168.1.30:7800" onChange={e => setNewAddress(e.target.value)} />
             </FormField>
           </>
         )}

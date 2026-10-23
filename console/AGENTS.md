@@ -47,7 +47,7 @@ Its environment, set by the host service:
 | `CONSOLE_HQ_CODE` | Elsewhere: the one-time code from `agenthix hq console-code`. Only its lookup is presented to hq, once, for a lasting credential. Its first character says its kind: `H` for one hq made (the Fleet Console starts with no machines), anything else for a handover code from the running Fleet Console |
 | `CONSOLE_MACHINE_NAME` | The machine's name, for the words people read |
 | `CONSOLE_STATE_DIR` | The state folder, `/state` by default |
-| `CONSOLE_PORT` | 4300 by default |
+| `CONSOLE_PORT` | The Fleet Console's server port by default, inside its container and in dev ([`docs/architecture/ports.md`](../docs/architecture/ports.md)) |
 | `CONSOLE_LISTEN_HOST` | `127.0.0.1` by default, as in `npm run dev` on a machine. `container` in its container: it listens on its own network's address and accepts that network's gateway (below). Nothing else is accepted |
 | `CLOUD_URL` | Optional: Agenthix Cloud's address, for the links out of the Cloud section. Cloud's own address when it is not set. The connection itself is hq's (`docs/architecture/cloud-connection.md`) |
 | `CONSOLE_WEB_DIR` | The built screens' directory. By default `web/` beside the bundle's folder: `/app/web` in the image, where the build stage copies `console-web/dist`. Without a build there, the server answers the API alone |

@@ -21,12 +21,17 @@ import { filesOriginFor, listenerFor } from '../install/address'
 import { consoleHere } from '../install/console'
 import { identityHolder } from './restoreSite'
 import { installSubnets } from '../compose/subnets'
+import { keepAgentSlice, pickAgentSlice } from '../compose/agentSlice'
+import { readInstallation, recordPorts } from '../state/installation'
+import { chooseConsolePort, chooseHqPort, type PortChoice } from '../install/ports'
+import { checkPorts, restoredPortAsks } from '../install/portCheck'
 
 const SECRETS_BEFORE = ['move', 'secrets-before.json']
 
 export type RestoredHq = { previousAddress: string; address: string; consoleWithHq: boolean }
 
-export async function restoreMovedHq(ctx: Context, file: string, keys: HostKeys, newAddress: string | null): Promise<RestoredHq> {
+/** `ports`: what the move's request chose for this machine; else what this machine recorded, or the defaults. */
+export async function restoreMovedHq(ctx: Context, file: string, keys: HostKeys, newAddress: string | null, ports: PortChoice = {}): Promise<RestoredHq> {
   let opened
   try {
     opened = await openBackup(fs.createReadStream(file) as AsyncIterable<Buffer>, identityHolder(keys))
@@ -48,6 +53,17 @@ export async function restoreMovedHq(ctx: Context, file: string, keys: HostKeys,
 
     const manifest = await readManifest(records)
     if (!manifest.hq) throw new Refusal('conflict', 'The backup that arrived does not hold HQ.')
+    // Ports belong to this machine, not to HQ's data: chosen here, before anything is fetched.
+    const recorded = readInstallation(ctx.state)?.ports ?? { hq: null, console: null }
+    const chosen = {
+      hq: chooseHqPort(newAddress ?? manifest.hq.address, ports.hqPort, recorded.hq),
+      console: manifest.console ? chooseConsolePort(ports.consolePort, recorded.console) : recorded.console,
+    }
+    if (chosen.hq === chosen.console) {
+      throw new Refusal('malformed', `HQ and the Fleet Console cannot both be published on port ${chosen.hq} on ${ctx.machine.name}. Choose another for one of them. Nothing was changed.`)
+    }
+    await checkPorts(ctx, restoredPortAsks(newAddress ?? manifest.hq.address, chosen, !!manifest.console))
+    const agentSlice = await pickAgentSlice(ctx)
     const { hq: restored, site, console: fleetConsole } = await restoreImages(ctx, manifest)
     const address = newAddress ?? restored.address
     const hq: StoredHq = address === restored.address
@@ -55,18 +71,20 @@ export async function restoreMovedHq(ctx: Context, file: string, keys: HostKeys,
       : { ...restored, address, ...listenerFor(address), filesOrigin: filesOriginFor(address) }
 
     const subnets = await installSubnets(ctx)
+    keepAgentSlice(ctx.state, agentSlice)
+    const installation = recordPorts(ctx.state, chosen)
     ctx.state.writeJson(SECRETS_BEFORE, { secrets: ctx.state.readJson('secrets.json') })
     ctx.state.writeJson(['secrets.json'], manifest.secrets)
     ctx.state.writeJson(['hq', 'settings.json'], hq)
     ctx.state.writeJson(['site', 'settings.json'], site)
-    ctx.state.writePrivate(['hq', 'compose.json'], composeJson(hqProject(ctx.names, hq, manifest.secrets, ctx.machine.name, subnets)))
-    ctx.state.writePrivate(['site', 'compose.json'], composeJson(defaultSiteProject(ctx.names, site, manifest.secrets, paths, subnets)))
+    ctx.state.writePrivate(['hq', 'compose.json'], composeJson(hqProject(ctx.names, hq, manifest.secrets, ctx.machine.name, subnets, installation)))
+    ctx.state.writePrivate(['site', 'compose.json'], composeJson(defaultSiteProject(ctx.names, site, manifest.secrets, paths, subnets, installation)))
     const now = installed(ctx)
     await ctx.backupIO.createProject(now.hq!.project, now.hq!.file)
     await ctx.backupIO.createProject(now.site!.project, now.site!.file)
     await ctx.backupIO.startServices(now.hq!.project, now.hq!.file, ['hq-db'])
     await ctx.backupIO.startServices(now.site!.project, now.site!.file, ['site-db'])
-    if (fleetConsole) await ctx.backupIO.createProject(ctx.names.consoleProject, writeRestoredConsole(ctx, fleetConsole, manifest, hq, await installSubnets(ctx)))
+    if (fleetConsole) await ctx.backupIO.createProject(ctx.names.consoleProject, writeRestoredConsole(ctx, fleetConsole, manifest, await installSubnets(ctx)))
     ctx.state.folder('site', 'data')
     const src = sources(ctx.names, paths)
     await eachPart(records, async (name, bytes) => {

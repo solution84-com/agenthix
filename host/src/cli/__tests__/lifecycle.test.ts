@@ -26,7 +26,7 @@ const flat = (s: string) => s.replace(/\s+/g, ' ')
 
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   m.hq.status = { ok: true, text: 'HQ', data: { users: 12, hqSite: { state: 'connected', dockerRunning: true }, address: 'https://hq.acme.example', version: '0.2.0', commit: 'c' } }
   m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
   out = ''

@@ -8,6 +8,7 @@ import type { ExportResult } from '../backups/export'
 import type { LocationPrepared } from '../backups/location'
 import type { RestoreCheckResult, RestoreListResult } from '../backups/operations'
 import type { RestoreResult } from '../backups/restore'
+import type { PortChoice } from '../install/ports'
 import type { Command } from './commands'
 import { clock, dayMonth, fullDate, nightLabel, size, when } from './backupWords'
 import type { StatusWithBackups } from './statusText'
@@ -114,7 +115,7 @@ function listLines(r: RestoreListResult): string[] {
 /** HQ's address and the code from *Restore from a backup…*, for a site other than HQ's (adr-0119). */
 export type RestoreCode = { address: string; code: string }
 
-export async function restoreFrom(call: Ask, io: BackupIo, from: string, join?: RestoreCode): Promise<number> {
+export async function restoreFrom(call: Ask, io: BackupIo, from: string, join?: RestoreCode, ports: PortChoice = {}): Promise<number> {
   const status = await call<StatusWithBackups>({ op: 'machine.status' })
   const machine = status.machine.name
   const isFile = (from.split('/').pop() ?? '').includes('.')
@@ -164,7 +165,7 @@ export async function restoreFrom(call: Ask, io: BackupIo, from: string, join?: 
     return 1
   }
   io.out('')
-  const r = await call<RestoreResult>({ op: 'restore.run', from, name: chosen.name, key })
+  const r = await call<RestoreResult>({ op: 'restore.run', from, name: chosen.name, key, ...ports })
   const taken = new Date(r.takenAt)
   io.out('')
   io.out(wrap(r.hqAddress && !/^https?:\/\/(localhost|127\.)/.test(r.hqAddress)
@@ -184,6 +185,8 @@ export function backupCommand(command: Extract<Command, { kind: 'backupNow' | 'b
     case 'backupLocation':
       return backupLocation(call, io, command.path)
     case 'restore':
-      return restoreFrom(call, io, command.from, command.address && command.code ? { address: command.address, code: command.code } : undefined)
+      return restoreFrom(call, io, command.from, command.address && command.code ? { address: command.address, code: command.code } : undefined, {
+        ...(command.hqPort === undefined ? {} : { hqPort: command.hqPort }), ...(command.consolePort === undefined ? {} : { consolePort: command.consolePort }),
+      })
   }
 }

@@ -6,16 +6,20 @@ import { formatJoinCode, normalizeJoinCode } from '@agenthix/core'
 import type { Progress } from '../sockets/lineServer'
 import { installed, type Context } from '../service/context'
 import { connectConsole, disconnectConsole } from '../link/manage'
-import { installConsoleElsewhere, removeConsoleHere } from '../install/console'
+import { consoleHere, installConsoleElsewhere, removeConsoleHere } from '../install/console'
+import { refuseOtherPort } from '../install/ports'
+import { moveConsolePort } from '../install/consolePort'
 import { handoverCode, consoleRunningHere, type HandoverCode } from '../link/consoleMove'
 import { askHandoverCode } from '../link/askCode'
 import { forgetPin, readPin } from '../link/pin'
 import { hostKeys } from '../identity/identity'
 import { cmd } from '../cli/words'
+import { refuseUnpublishable } from '../move/ports'
+import { installationOf, recordPorts } from '../state/installation'
 import type { MachineRequest } from './requests'
 import { Refusal } from './results'
 
-export type ConsoleRequest = Extract<MachineRequest, { op: 'console.connect' | 'console.disconnect' | 'console.install' | 'console.remove' | 'hq.consoleCode' | 'hq.fleetAdmin' }>
+export type ConsoleRequest = Extract<MachineRequest, { op: 'console.connect' | 'console.disconnect' | 'console.install' | 'console.port' | 'console.remove' | 'hq.consoleCode' | 'hq.fleetAdmin' }>
 
 /**
  * `handover`: the running Fleet Console made the code — here, or on another machine, asked through this machine's
@@ -35,16 +39,39 @@ function hqAddress(ctx: Context): string {
   return hq.settings.address
 }
 
+/**
+ * Ports given at `console connect` are recorded before the machine joins, so a move of HQ armed while it waits finds
+ * them, and put back as they were when it does not join.
+ */
+async function connectWithPorts(ctx: Context, request: Extract<ConsoleRequest, { op: 'console.connect' }>, progress: (p: Progress) => void, closed?: AbortSignal) {
+  const given = { hqPort: request.hqPort, consolePort: request.consolePort }
+  if (given.hqPort === undefined && given.consolePort === undefined) return connectConsole(ctx, request.address, request.code, progress, closed)
+  refuseUnpublishable(given)
+  const before = installationOf(ctx.state).ports
+  // What already runs here keeps its ports: moving one is its own command.
+  if (installed(ctx).hq) refuseOtherPort('hq', given.hqPort, before.hq)
+  if (consoleHere(ctx)) refuseOtherPort('console', given.consolePort, before.console)
+  recordPorts(ctx.state, { ...(given.hqPort === undefined ? {} : { hq: given.hqPort }), ...(given.consolePort === undefined ? {} : { console: given.consolePort }) })
+  try {
+    return await connectConsole(ctx, request.address, request.code, progress, closed)
+  } catch (err) {
+    recordPorts(ctx.state, before)
+    throw err
+  }
+}
+
 const notAnswering = () => new Refusal('failed', `HQ is not answering on this machine yet. See how it is doing: ${cmd('status')}`)
 
 export async function consoleOperation(ctx: Context, request: ConsoleRequest, progress: (p: Progress) => void, closed?: AbortSignal): Promise<unknown> {
   switch (request.op) {
     case 'console.connect':
-      return connectConsole(ctx, request.address, request.code, progress, closed)
+      return connectWithPorts(ctx, request, progress, closed)
     case 'console.disconnect':
       return disconnectConsole(ctx)
     case 'console.install':
-      return installConsoleElsewhere(ctx, request.address, request.code, progress)
+      return installConsoleElsewhere(ctx, request.address, request.code, progress, request.consolePort)
+    case 'console.port':
+      return moveConsolePort(ctx, request.port)
     case 'console.remove':
       return removeConsoleHere(ctx, request.confirmed === true)
     case 'hq.consoleCode': {

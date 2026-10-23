@@ -111,7 +111,7 @@ export class Moves {
     const host = this.deps.hosts.list().find(h => h.hqMachine === true)
     if (!host) throw new MoveError(409, "No machine in this fleet is known here as HQ's: HQ cannot be moved from this Fleet Console.")
     if (asker !== undefined && asker !== host.fingerprint) throw new MoveError(409, "Only HQ's own machine asks to move HQ.")
-    if (hqAddress !== null && !ADDRESS.test(hqAddress)) throw new MoveError(409, "HQ's new address is a scheme and a host, perhaps with a port: http://192.168.1.30:4100.")
+    if (hqAddress !== null && !ADDRESS.test(hqAddress)) throw new MoveError(409, "HQ's new address is a scheme and a host, perhaps with a port: http://192.168.1.30:7800.")
     return this.open(by, host, at, { kind: 'hq', hqAddress })
   }
 

@@ -11,6 +11,7 @@ import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePorts } from './freePorts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -96,11 +97,14 @@ export const CONSOLE_PAIRING_SECRET = 'feed0000'.repeat(8)
 // run's temp dir: by default it sits in a folder named after hq's port, which a developer's hq on the same port uses.
 export const HQ_CONTROL_SOCKET = join(SITE_ROOT_DIR, 'hq-control.sock')
 
-export const PORTS = {
-  hqClient: 4100,
-  hqServer: 4101,
-  siteServer: 4201,
-} as const
+// Three free ports, asked of the operating system once per run: hq's web page, hq's server and the site. Handed to
+// the test-file workers by the environment, as SITE_ROOT_DIR is, so every process names the same ones.
+const [hqClient, hqServer, siteServer] = process.env.CROSSAPP_PORTS
+  ? process.env.CROSSAPP_PORTS.split(',').map(Number)
+  : await freePorts(3)
+process.env.CROSSAPP_PORTS = [hqClient, hqServer, siteServer].join(',')
+
+export const PORTS = { hqClient, hqServer, siteServer } as const
 
 export const HQ_URL = `http://localhost:${PORTS.hqServer}`
 export const SITE_URL = `http://localhost:${PORTS.siteServer}`

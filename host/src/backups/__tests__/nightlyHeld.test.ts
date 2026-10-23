@@ -14,7 +14,7 @@ const at = (d: Date) => {
 beforeEach(async () => {
   m = fakeMachine()
   await m.ctx.sleep(new Date(2026, 8, 30, 12, 0).getTime() - m.ctx.now().getTime())
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
 })
 afterEach(() => m.cleanup())
 

@@ -3,10 +3,11 @@ import { createRequire } from 'node:module'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { SERVICE_PORTS } from '@agenthix/core'
 
 // The Fleet Console's own server serves dist/ in the image (console/src/http/app.ts). In development, `npm run dev`
 // serves the app here and passes /api to that server, as if the page came from it: its guards refuse another origin.
-const CONSOLE = 'http://127.0.0.1:4300'
+const CONSOLE = `http://127.0.0.1:${SERVICE_PORTS.console.server}`
 
 // The bundled fonts' licence (SIL OFL 1.1) travels with them: each copy of the fonts carries its notice.
 function fontLicences(): Plugin {
@@ -35,6 +36,9 @@ export default defineConfig({
   },
   server: {
     host: '127.0.0.1',
+    port: SERVICE_PORTS.console.web,
+    // Refuses when taken rather than moving: the proxy and the console's guards expect this one address.
+    strictPort: true,
     // Help reads the user guide's pages from docs/guide/ at the repository's root.
     fs: { allow: ['..'] },
     proxy: {

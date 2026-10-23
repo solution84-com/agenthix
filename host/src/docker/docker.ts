@@ -7,6 +7,8 @@ import { spawn } from 'node:child_process'
 import { childEnv, type RegistryEnv } from '../images/registryAuth'
 import { parseNetworkInspect, type DockerNetwork } from '../compose/subnets'
 import { DockerRemoval } from './removal'
+import { CONTAINER_FORMAT, parseContainerInspect, type MachineContainer } from './machineContainers'
+import { publishArgs, readPublishProbe } from './publishProbe'
 
 export type RunResult = { code: number; stdout: string; stderr: string }
 
@@ -44,6 +46,8 @@ export type ServiceState = { service: string; state: string; health: string }
 
 /** The few Docker actions the host service takes, each built from its own arguments. */
 export class Docker {
+  private readonly images = new Map<string, string>()
+
   constructor(private readonly run: DockerRunner) {}
 
   private async ok(args: string[], options?: RunOptions): Promise<string> {
@@ -87,10 +91,6 @@ export class Docker {
     if (networks.length) await this.ok(['network', 'rm', ...networks], { timeoutMs: 2 * 60_000 })
   }
 
-  /**
-   * Every container on the machine that is an HQ's, whatever host service started it and under whatever namespace:
-   * one labelled `<namespace>.role=hq` and `<namespace>.managed-by=host`, as every host service labels HQ's parts.
-   */
   /** Every network on the machine, with its IPv4 subnets (compose/subnets.ts). */
   async networks(): Promise<DockerNetwork[]> {
     const names = (await this.ok(['network', 'ls', '--format', '{{.Name}}'], { timeoutMs: 60_000 }))
@@ -100,14 +100,31 @@ export class Docker {
     return parseNetworkInspect(await this.ok(['network', 'inspect', '--format', format, ...names], { timeoutMs: 60_000 }))
   }
 
-  async hqContainers(): Promise<string[]> {
-    const out = await this.ok(['ps', '--all', '--format', '{{.Names}}\t{{.Labels}}'], { timeoutMs: 60_000 })
-    return out.split('\n').flatMap(line => {
-      const [name, labels = ''] = line.trim().split('\t')
-      const set = new Set(labels.split(','))
-      const hq = [...set].some(l => l.endsWith('.role=hq') && set.has(`${l.slice(0, -'.role=hq'.length)}.managed-by=host`))
-      return name && hq ? [name] : []
-    })
+  /**
+   * Every container on the machine, running or not, with its labels and the ports Docker publishes for it now
+   * (`machineContainers.ts`). One that goes between the listing and the inspect is left out.
+   */
+  async machineContainers(): Promise<MachineContainer[]> {
+    const ids = (await this.ok(['ps', '--all', '--quiet', '--no-trunc'], { timeoutMs: 60_000 })).split('\n').map(n => n.trim()).filter(Boolean)
+    if (!ids.length) return []
+    const r = await this.run(['inspect', '--type', 'container', '--format', CONTAINER_FORMAT, ...ids], { timeoutMs: 60_000 })
+    if (r.code !== 0 && !r.stdout.trim()) throw new DockerError(['inspect', '--type', 'container'], r)
+    return parseContainerInspect(r.stdout)
+  }
+
+  /**
+   * Whether Docker can publish `port` on `bind`, tried from a throwaway container of `hostContainer`'s own image
+   * (`publishProbe.ts`): true when Docker says it is held, false when it published, null when Docker could not tell.
+   */
+  async publishProbe(port: number, bind: string, hostContainer: string): Promise<boolean | null> {
+    let image = this.images.get(hostContainer)
+    if (!image) {
+      const r = await this.run(['container', 'inspect', '--format', '{{.Image}}', hostContainer], { timeoutMs: 30_000 })
+      image = r.code === 0 ? r.stdout.trim() : ''
+      if (!image) return null
+      this.images.set(hostContainer, image)
+    }
+    return readPublishProbe(await this.run(publishArgs(image, port, bind), { timeoutMs: 60_000 }))
   }
 
   async composeLogs(project: string, file: string, tail: number, service?: string): Promise<string> {

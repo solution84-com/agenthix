@@ -5,9 +5,9 @@
  */
 import type { Progress } from '../sockets/lineServer'
 import { composeJson, hqProject } from '../compose/projects'
-import { CONSOLE_ADDRESS } from '../compose/console'
+import { consoleAddress } from '../compose/console'
 import { siteComposeProject } from './siteCompose'
-import { startLocalConsole } from './console'
+import { consoleHere, startLocalConsole } from './console'
 import { joinLocalConsole } from '../link/localConsole'
 import { checkImages, fetchImages, type ImagePins } from '../images/images'
 import { POSTGRES_IMAGE } from '../images/published'
@@ -20,6 +20,10 @@ import { addressProblem, listenerFor } from './address'
 import { forgetSuspended } from '../lifecycle/suspend'
 import { cmd, product } from '../cli/words'
 import { installSubnets } from '../compose/subnets'
+import { keepAgentSlice, pickAgentSlice } from '../compose/agentSlice'
+import { choosePorts, refuseOtherPort, type PortChoice } from './ports'
+import { readInstallation, recordPorts } from '../state/installation'
+import { checkPorts, CONSOLE_BIND } from './portCheck'
 
 async function step<T>(progress: (p: Progress) => void, name: string, run: () => Promise<{ value: T; outcome: string }>): Promise<T> {
   progress({ event: 'step', step: name })
@@ -72,17 +76,21 @@ async function getImages(progress: (p: Progress) => void, ctx: Context, hq: Stor
 
 let busy = false
 
-export async function install(ctx: Context, address: string, progress: (p: Progress) => void): Promise<InstallResult> {
+/** What an install is asked: HQ's address, and the ports its machine admin chose, when they chose them. */
+export type InstallAsk = PortChoice & { address: string }
+
+export async function install(ctx: Context, ask: InstallAsk, progress: (p: Progress) => void): Promise<InstallResult> {
   if (busy) throw new Refusal('busy', 'An install is already running on this machine. Wait for it to finish.')
   busy = true
   try {
-    return await run(ctx, address, progress)
+    return await run(ctx, ask, progress)
   } finally {
     busy = false
   }
 }
 
-async function run(ctx: Context, address: string, progress: (p: Progress) => void): Promise<InstallResult> {
+async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => void): Promise<InstallResult> {
+  const { address } = ask
   const problem = addressProblem(address)
   if (problem) throw new Refusal('malformed', `HQ cannot be at ${address}: ${problem}.`)
 
@@ -90,21 +98,25 @@ async function run(ctx: Context, address: string, progress: (p: Progress) => voi
   if (before.hq && before.hq.settings.address !== address) {
     throw new Refusal('already_installed', `HQ is already installed here, at ${before.hq.settings.address}. Nothing was changed.`)
   }
+  // Chosen once, then read back: a re-run asking for other ports is refused rather than ignored.
+  const recorded = readInstallation(ctx.state)?.ports ?? { hq: null, console: null }
+  if (before.hq) refuseOtherPort('hq', ask.hqPort, recorded.hq)
+  if (consoleHere(ctx)) refuseOtherPort('console', ask.consolePort, recorded.console)
+  const ports = choosePorts(address, ask, recorded)
   if (ctx.figuresWarning) throw new Refusal('failed', ctx.figuresWarning)
   const paths = await ctx.machinePaths()
   if (!paths) {
     throw new Refusal('failed', `The host service cannot find its state folder on this machine. Start its container with the folder mounted at /state, as the guide's command does.`)
   }
-  if (!before.hq) {
-    // One HQ to a machine: another host service's HQ would share every name this one gives its own.
-    const others = await ctx.docker.hqContainers()
-    if (others.length) {
-      throw new Refusal('already_installed', `Another HQ runs on this machine (${others.join(', ')}), started by another host service. A machine runs one HQ. Nothing was changed.`)
-    }
-  }
+  // Another installation's HQ may run beside this one; only a port one of them holds is refused (one port plan, Rule 4).
+  await checkPorts(ctx, [
+    { port: ports.hq, part: 'hq', bind: listenerFor(address).bind },
+    { port: ports.console, part: 'console', bind: CONSOLE_BIND },
+  ])
 
   // Before anything is fetched or written: with no address range left, nothing could start.
   const subnets = await installSubnets(ctx)
+  const agentSlice = await pickAgentSlice(ctx)
 
   const at = ctx.now().toISOString()
   const version = ctx.machine.hostServiceVersion
@@ -117,10 +129,12 @@ async function run(ctx: Context, address: string, progress: (p: Progress) => voi
   const site: StoredSite = { ...keptSite, images: images.site }
 
   await step(progress, "Writing HQ's and its site's settings", async () => {
+    keepAgentSlice(ctx.state, agentSlice)
+    const installation = recordPorts(ctx.state, ports)
     const secrets = installSecrets(ctx.state)
     ctx.state.writeJson(['hq', 'settings.json'], hq)
     ctx.state.writeJson(['site', 'settings.json'], site)
-    ctx.state.writePrivate(['hq', 'compose.json'], composeJson(hqProject(ctx.names, hq, secrets, ctx.machine.name, subnets)))
+    ctx.state.writePrivate(['hq', 'compose.json'], composeJson(hqProject(ctx.names, hq, secrets, ctx.machine.name, subnets, installation)))
     ctx.state.writePrivate(['site', 'compose.json'], composeJson(siteComposeProject(ctx.state, ctx.names, site, secrets, paths, subnets)))
     return { value: undefined, outcome: before.hq ? 'kept' : 'done' }
   })
@@ -148,8 +162,8 @@ async function run(ctx: Context, address: string, progress: (p: Progress) => voi
   forgetSuspended(ctx)
 
   // The Fleet Console beside HQ (spec §7), and this machine connected to it like any other.
-  await step(progress, `Starting the Fleet Console on ${CONSOLE_ADDRESS.replace('http://', '')}`, async () => {
-    await startLocalConsole(ctx, hq, images.console)
+  await step(progress, `Starting the Fleet Console on ${consoleAddress(ports.console).replace('http://', '')}`, async () => {
+    await startLocalConsole(ctx, { port: ports.hq, version: hq.version }, images.console)
     return { value: undefined, outcome: 'started' }
   })
   await step(progress, 'Connecting this machine to its Fleet Console', async () => {
@@ -164,7 +178,7 @@ async function run(ctx: Context, address: string, progress: (p: Progress) => voi
   }
   return {
     address: hq.address,
-    listen: { bind: hq.bind, port: hq.port },
+    listen: { bind: hq.bind, port: ports.hq },
     siteName: site.name,
     siteConnected: connected,
     users: status.users,

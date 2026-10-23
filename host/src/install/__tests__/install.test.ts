@@ -12,33 +12,32 @@ beforeEach(() => { m = fakeMachine() })
 afterEach(() => m.cleanup())
 
 const progress: Progress[] = []
-const run = (address = 'https://hq.acme.example') => install(m.ctx, address, p => progress.push(p))
+const run = (address = 'https://hq.acme.example') => install(m.ctx, { address: address }, p => progress.push(p))
 const composeCalls = () => m.calls.filter(c => c[0] === 'compose' && c.includes('up')).map(c => c[c.indexOf('-p') + 1])
 
 describe('install', () => {
-  it('is refused, changing nothing, where Docker already runs an HQ another host service started @SC-816 @SC-1157', async () => {
-    m.machineContainers.push(
-      'agenthix-hq-server\tcom.docker.compose.project=agenthix-hq,agenthix.role=hq,agenthix.managed-by=host',
-      'other-hq-web\tother.managed-by=host,other.role=hq',
-    )
-    const refused = await run().catch((e: unknown) => e)
-    expect(refused).toBeInstanceOf(Refusal)
-    expect(refused).toMatchObject({ code: 'already_installed' })
-    expect((refused as Refusal).message).toBe(
-      'Another HQ runs on this machine (agenthix-hq-server, other-hq-web), started by another host service. ' +
-      'A machine runs one HQ. Nothing was changed.',
-    )
-    expect(composeCalls()).toEqual([])
-    expect(fs.existsSync(m.ctx.state.path('hq', 'settings.json'))).toBe(false)
+  it("goes ahead beside another installation's HQ, which publishes other ports", async () => {
+    m.machineContainers.push({
+      name: 'other-hq-web', labels: { 'other.managed-by': 'host', 'other.role': 'hq', 'other.ports': '7500,7520' },
+      running: true, published: [{ ip: '0.0.0.0', port: 7500 }],
+    })
+    await expect(run()).resolves.toMatchObject({ address: 'https://hq.acme.example' })
   })
 
-  it('takes no other part for an HQ: a site, the Fleet Console or a container that only looks alike @SC-1157', async () => {
-    m.machineContainers.push(
-      'agenthix-site-server\tagenthix.role=site,agenthix.managed-by=host',
-      'agenthix-console\tagenthix.role=console,agenthix.managed-by=host',
-      'someone-else\tacme.role=hq',
+  it("is refused, changing nothing, naming each port another installation or a program holds", async () => {
+    m.machineContainers.push({ name: 'other-hq-web', labels: { 'other.managed-by': 'host', 'other.ports': '7800' }, running: false, published: [] })
+    m.heldPorts.add(7801)
+    const refused = await run().catch((e: unknown) => e)
+    expect(refused).toBeInstanceOf(Refusal)
+    expect(refused).toMatchObject({ code: 'conflict' })
+    expect((refused as Refusal).message).toBe(
+      'Port 7800, for HQ, is held by another installation on this machine, other (its container other-hq-web). Choose another with --hq-port. ' +
+      'Port 7801, for the Fleet Console, is held by a program on this machine, not by a container. Choose another with --console-port. ' +
+      'Nothing was changed.',
     )
-    await expect(run()).resolves.toMatchObject({ address: 'https://hq.acme.example' })
+    expect(m.calls.filter(c => c[0] === 'pull' || c[0] === 'compose')).toEqual([])
+    expect(m.checked).toEqual([])
+    expect(fs.existsSync(m.ctx.state.path('hq', 'settings.json'))).toBe(false)
   })
 
   it('starts hq, then its default site, connected by one pairing secret, and makes the first account’s link @SC-816', async () => {
@@ -65,8 +64,8 @@ describe('install', () => {
     for (const value of Object.values(secrets)) expect(said).not.toContain(value)
   })
 
-  it('serves an https address through the machine’s own front door, on 127.0.0.1:4100 @SC-819', async () => {
-    expect((await run()).listen).toEqual({ bind: '127.0.0.1', port: 4100 })
+  it('serves an https address through the machine’s own front door, on 127.0.0.1:7800 @SC-819', async () => {
+    expect((await run()).listen).toEqual({ bind: '127.0.0.1', port: 7800 })
   })
 
   it('takes the first account’s link from HQ’s data, not from its words @SC-818', async () => {
@@ -147,12 +146,12 @@ describe('install without the figures volume', () => {
 describe('the Fleet Console on HQ’s machine', () => {
   const consoleCompose = () => JSON.parse(fs.readFileSync(m.ctx.state.path('console', 'compose.json'), 'utf8'))
 
-  it('starts beside HQ, published on the machine’s own 127.0.0.1:4300 only, admitted by one pairing secret set in both @SC-816', async () => {
+  it('starts beside HQ, published on the machine’s own 127.0.0.1:7801 only, admitted by one pairing secret set in both @SC-816', async () => {
     await run()
     const hq = JSON.parse(fs.readFileSync(m.ctx.state.path('hq', 'compose.json'), 'utf8'))
     const fleetConsole = consoleCompose().services.console
     expect(fleetConsole.network_mode).toBeUndefined()
-    expect(fleetConsole.ports).toEqual(['127.0.0.1:4300:4300'])
+    expect(fleetConsole.ports).toEqual(['127.0.0.1:7801:4301'])
     expect(fleetConsole.environment.CONSOLE_LISTEN_HOST).toBe('container')
     // Its own network, and HQ's link network to reach hq-web by name, as HQ's default site does.
     expect(fleetConsole.networks).toEqual(['console', 'link'])
@@ -178,8 +177,8 @@ describe('the Fleet Console on HQ’s machine', () => {
       await conn.deliver('host.joined', { hostId: 'hq-host', machineCredential: 'hmc_localmachine0123', acceptance: await fleetConsole.acceptance(code, join.identity) })
     }
     await run()
-    expect(relay.last.url).toBe('ws://127.0.0.1:4100/host-link')
-    expect(readPin(m.ctx.state)).toMatchObject({ consoleFingerprint: fleetConsole.fingerprint, local: true, hqAddress: 'http://127.0.0.1:4100' })
+    expect(relay.last.url).toBe('ws://127.0.0.1:7800/host-link')
+    expect(readPin(m.ctx.state)).toMatchObject({ consoleFingerprint: fleetConsole.fingerprint, local: true, hqAddress: 'http://127.0.0.1:7800' })
     expect(progress).toContainEqual({ event: 'stepDone', outcome: 'connected' })
     expect(m.calls).toContainEqual(['exec', '-i', 'agenthix-console', 'node', '/app/dist/cli.js', 'local-join'])
     expect(JSON.stringify(relay.connections)).not.toContain('9TR2WW4CD25V')

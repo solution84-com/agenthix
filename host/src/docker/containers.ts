@@ -118,6 +118,14 @@ export function parseInspect(raw: unknown): InspectedContainer | null {
   }
 }
 
+/**
+ * This process's own container id, from its mount table: Docker bind-mounts each container's `hostname`, `hosts` and
+ * `resolv.conf` from `<docker root>/containers/<id>/`, whatever its network. Null outside a container.
+ */
+export function containerIdIn(mountinfo: string): string | null {
+  return /\/containers\/([0-9a-f]{64})\/(?:hostname|hosts|resolv\.conf)\b/.exec(mountinfo)?.[1] ?? null
+}
+
 const VERSION_LABEL = 'org.opencontainers.image.version'
 
 export class Containers implements ContainerOps {

@@ -7,6 +7,7 @@ import type { ProtectionFigures, ScheduledChange } from '@agenthix/core'
 import type { Docker, ServiceState } from '../docker/docker'
 import type { HqControl } from '../hq/control'
 import type { HqSettings, SiteSettings } from '../compose/projects'
+import type { BlockedPart } from './portsBlocked'
 import { readSiteReport, siteContainerOf, type SiteCause, type SiteMove, type SiteReport } from './siteControl'
 
 /** How a compose project's containers are: all running, some, none, or not there at all. */
@@ -19,7 +20,8 @@ export type MachineStatus = {
   hq: null | {
     address: string
     version: string
-    listen: { bind: string; port: number }
+    /** `port`: null only when installation.json does not record it. */
+    listen: { bind: string; port: number | null }
     containers: PartState
     /** What hq answered through its control socket; null when it does not answer. */
     answer: null | { users: number; runningAgents: number | null }
@@ -44,6 +46,8 @@ export type MachineStatus = {
   frontDoor?: { on: boolean; hosts: string[] }
   /** The changes scheduled on this machine, soonest first (spec §14); the owner socket adds them. */
   scheduled?: ScheduledChange[]
+  /** Parts that are not running because another holds their published port (`portsBlocked.ts`); the owner socket adds them. */
+  blocked?: BlockedPart[]
 }
 
 export function partState(services: ServiceState[], expected: number): PartState {
@@ -54,7 +58,8 @@ export function partState(services: ServiceState[], expected: number): PartState
 }
 
 export type Installed = {
-  hq: { settings: HqSettings & { installedAt: string }; file: string; project: string } | null
+  /** `port`: hq-web's published port, from `installation.json`; null when it is not recorded. */
+  hq: { settings: HqSettings & { installedAt: string }; file: string; project: string; port: number | null } | null
   site: { settings: SiteSettings & { installedAt: string }; file: string; project: string } | null
 }
 
@@ -73,7 +78,7 @@ export async function machineStatus(
   let hqCause: SiteCause | null = null
   let hqAnswers = false
   if (installed.hq) {
-    const { settings, file, project } = installed.hq
+    const { settings, file, project, port } = installed.hq
     const containers = partState(await docker.composePs(project, file), HQ_SERVICES)
     const answer = containers === 'missing' || containers === 'stopped' ? null : await hqControl.status()
     if (answer) {
@@ -84,7 +89,7 @@ export async function machineStatus(
     out.hq = {
       address: settings.address,
       version: answer?.version && answer.version !== 'dev' ? answer.version : settings.version,
-      listen: { bind: settings.bind, port: settings.port },
+      listen: { bind: settings.bind, port },
       containers,
       answer: answer ? { users: answer.users, runningAgents: answer.runningAgents ?? null } : null,
     }

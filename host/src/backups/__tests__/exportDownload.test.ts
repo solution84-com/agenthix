@@ -11,7 +11,7 @@ import { HELD_EXPORTS, sweepHeldExports } from '../exportDownload'
 let m: FakeMachine
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   // Large enough to take more than one chunk once sealed.
   m.backups.databases.set('agenthix_hq', Buffer.alloc(EXPORT_CHUNK_BYTES + 4096, 3))
 })

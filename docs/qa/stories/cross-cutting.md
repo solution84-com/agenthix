@@ -71,3 +71,17 @@ As a contributor, I want the tests to call no model or voice provider, write not
 - AC-352a: a test that reaches a model or voice provider fails, naming the test and the host.
 - AC-352b: HQ's tests keep their files in a temporary folder of the run's own.
 - AC-352c: the container tests act only on what carries their own namespace, and refuse, touching nothing, on a machine where they cannot run safely.
+
+## Ports for people who build and test Agenthix (added 2026-10-24)
+
+Written from the finished code at the close of the one port plan unit.
+
+### US-368 — Know every port in one place, and run development and tests without clashes
+
+As a contributor, I want every port and address block written once and tests and development servers that never fight each other or an installed copy for one, so that I can run what I am working on beside anything else on my machine.
+
+**Acceptance criteria:**
+- AC-368a: every port and address block comes from one file, and the document that lists them is held equal to it by a test.
+- AC-368b: a development script that would use a taken port refuses, naming the port and its holder.
+- AC-368c: tests that start servers take free ports, and two cross-app runs never share the test databases.
+- AC-368d: the install test installs as a test installation, on free ports, beside whatever is installed.

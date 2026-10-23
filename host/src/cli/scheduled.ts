@@ -82,7 +82,7 @@ export function parseScheduleChange(target: 'hq' | 'site', args: string[]): Sche
       const address = i >= 0 ? at.rest[i + 1] : undefined
       const others = i >= 0 ? [...at.rest.slice(0, i), ...at.rest.slice(i + 2)] : at.rest
       if (!at.at || others.length || (i >= 0 && (!address || address.startsWith('--')))) {
-        return { kind: 'usage', message: `Say when, in this machine's time, and HQ's new address if it changes: ${cmd(`hq schedule move ${AT_EXAMPLE} --address http://192.168.1.30:4100`)}` }
+        return { kind: 'usage', message: `Say when, in this machine's time, and HQ's new address if it changes: ${cmd(`hq schedule move ${AT_EXAMPLE} --address http://192.168.1.30:7800`)}` }
       }
       return { kind: 'moveCode', target: 'hq', at: at.at, ...(address ? { hqAddress: address } : {}) }
     }

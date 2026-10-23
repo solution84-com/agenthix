@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { SERVER_URL } from './urls'
 
 /**
  * Shared browser-auth helpers for specs that need a signed-in user.
@@ -9,7 +10,7 @@ import { expect, type Page } from '@playwright/test'
  * first one's token, and operation calls carry it explicitly.
  */
 
-export const SERVER_URL = process.env.E2E_SERVER_URL ?? 'http://localhost:4101'
+export { SERVER_URL }
 
 export const MEMBER = { username: 'e2e-operator', password: 'E2eOperator!2026' }
 export const ADMIN = { username: 'e2e-admin', password: 'E2eAdmin!2026' }

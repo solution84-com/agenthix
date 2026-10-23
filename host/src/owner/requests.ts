@@ -9,11 +9,13 @@ import type { HostRefusal, HostRequest, HostTarget } from '@agenthix/core'
 import { parseBackupMachineRequest, type BackupMachineRequest } from '../backups/operations'
 import { parseUpgradesRequest, type UpgradesMachineRequest } from '../upgrades/operations'
 import type { CloudCliRequest } from './cloudCliOps'
+import { portFields, type PortChoice } from '../install/ports'
 import { parseProviderCliRequest, type ProviderCliRequest } from './providerCliOps'
 
 export type MachineRequest =
   | { op: 'machine.status' }
-  | { op: 'machine.install'; address: string }
+  /** `hqPort`, `consolePort`: the machine admin's choice, from `install --hq-port` and `--console-port`. */
+  | ({ op: 'machine.install'; address: string } & PortChoice)
   | { op: 'hq.inviteAdmin' }
   | { op: 'hq.resetPassword'; user: string }
   /** What turning the front door on would serve and what stands in its way, read before the person is asked. */
@@ -31,10 +33,13 @@ export type MachineRequest =
   /** The host service's version: how the launcher knows a new host service answers (ADR-0118). */
   | { op: 'host.version' }
   /** Connecting this machine to a Fleet Console, and leaving it (spec §6). Never a controller's to ask. */
-  | { op: 'console.connect'; address: string; code: string }
+  /** The ports: where HQ and its Fleet Console are published here should HQ move in (one port plan, Rule 3). */
+  | { op: 'console.connect'; address: string; code: string; hqPort?: number; consolePort?: number }
   | { op: 'console.disconnect' }
   /** The Fleet Console on this machine instead of HQ's, from a code HQ's machine made (spec §7). */
-  | { op: 'console.install'; address: string; code: string }
+  | { op: 'console.install'; address: string; code: string; consolePort?: number }
+  /** `console port <port>`: the Fleet Console here moved to another port of this machine, after the port check. */
+  | { op: 'console.port'; port: number }
   /** Takes away the Fleet Console here, keys and all; without `confirmed`, which the CLI sets once the person agreed, it only checks. */
   | { op: 'console.remove'; confirmed?: true }
   /**
@@ -130,7 +135,13 @@ export function parseOwnerRequest(data: unknown): ParsedOwnerRequest {
       const address = text(r.address, MAX_ADDRESS)
       const code = text(r.code, MAX_CODE)
       if (!address) return malformed('address')
-      return code ? { ok: true, request: { op: r.op, address, code } } : malformed('code')
+      if (!code) return malformed('code')
+      const ports = portFields(r, r.op === 'console.connect' ? ['hqPort', 'consolePort'] : ['consolePort'])
+      return ports ? { ok: true, request: { op: r.op, address, code, ...ports } } : malformed('port')
+    }
+    case 'console.port': {
+      const ports = portFields({ consolePort: r.port }, ['consolePort'])
+      return ports?.consolePort !== undefined ? { ok: true, request: { op: 'console.port', port: ports.consolePort } } : malformed('port')
     }
     case 'hq.fleetAdmin': {
       const user = text(r.user, MAX_USER)
@@ -150,7 +161,9 @@ export function parseOwnerRequest(data: unknown): ParsedOwnerRequest {
     }
     case 'machine.install': {
       const address = text(r.address, MAX_ADDRESS)
-      return address ? { ok: true, request: { op: 'machine.install', address } } : malformed('address')
+      if (!address) return malformed('address')
+      const ports = portFields(r, ['hqPort', 'consolePort'])
+      return ports ? { ok: true, request: { op: 'machine.install', address, ...ports } } : malformed('port')
     }
     case 'console.hqAddress': {
       const address = text(r.address, MAX_ADDRESS)

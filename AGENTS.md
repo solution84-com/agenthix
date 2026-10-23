@@ -51,7 +51,7 @@ an organisation's data outward.
 Skills committed here, for procedures some tasks need: **`writing-in-public`** (anything others will read),
 **`running-locally`** (start hq and its site, pairing,
 reaching hq from another device) and **`database-migrations`** (schema changes in either app), in
-`.agents/skills/` (the open Agent Skills layout; `.claude/skills` links to it); and **`app-layout`** (hq's app shell), in `hq/.agents/skills/`. Deployment is [`docs/architecture/deployment.md`](docs/architecture/deployment.md).
+`.agents/skills/` (the open Agent Skills layout; `.claude/skills` links to it); and **`app-layout`** (hq's app shell), in `hq/.agents/skills/`. Deployment is [`docs/architecture/deployment.md`](docs/architecture/deployment.md). Every port and address block is in [`docs/architecture/ports.md`](docs/architecture/ports.md), written from `core/src/ports/ports.ts`; a number never goes into code or a document as a new literal.
 
 ## Code conventions
 

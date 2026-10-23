@@ -8,13 +8,13 @@ import { join } from 'node:path'
 import {
   HQ_ROOT,
   HQ_TEST_DATABASE_URL,
-  PORTS,
   SITE_ROOT,
   SITE_ROOT_DIR,
   SITE_TEST_DATABASE_URL,
 } from './harness/env'
 import { hqDb, siteDb, truncateAll, seedBase } from './harness/db'
-import { startHq, startSite, stopAll, waitForHq, waitForSite, markAsProcessOwner, refuseIfBusy } from './harness/apps'
+import { startHq, startSite, stopAll, waitForHq, waitForSite, markAsProcessOwner } from './harness/apps'
+import { acquireRunLock, releaseRunLock } from './harness/runLock'
 
 function runWrapperNoop(cwd: string, env: NodeJS.ProcessEnv): Promise<void> {
   return new Promise((resolvePromise, reject) => {
@@ -42,6 +42,7 @@ function provisionEnv(testDatabaseUrl: string): NodeJS.ProcessEnv {
 async function cleanup(): Promise<void> {
   await stopAll()
   await Promise.all([hqDb.$disconnect(), siteDb.$disconnect()])
+  releaseRunLock()
   // A temp folder left behind never fails a run whose tests passed. A run that reaches an agent's start leaves its
   // harness homes (`.claude`, `.opencode`, `.config/opencode`) here, and a machine whose own tooling puts a
   // deny-delete ACL on such folders refuses their removal.
@@ -57,18 +58,9 @@ export default async function globalSetup() {
   // hook's own comment for why a test-file worker must never arm it.
   markAsProcessOwner()
 
-  // G: refuse to touch anything shared — the provisioning below truncates
-  // BOTH test databases — until every port this tier needs is confirmed
-  // free, checked before step 1 rather than left to startHq()/startSite()'s
-  // own per-app guard down in step 5. A concurrent second run of this suite
-  // would otherwise get all the way through truncating the shared test DBs
-  // out from under a live run before ever reaching its own (correctly
-  // failing) app boot — the guard existed, just too late to prevent the
-  // damage it exists to prevent.
-  await refuseIfBusy(
-    [PORTS.hqClient, PORTS.hqServer, PORTS.siteServer],
-    'cross-app tier (hq + site)',
-  )
+  // Provisioning below truncates BOTH test databases, which every run shares. The ports are free ones chosen for this
+  // run, so a second run would no longer be stopped by a busy port: it is stopped here, before it touches anything.
+  acquireRunLock()
 
   // 1. Provision both test databases (create-if-missing + migrate deploy) by
   // running each app's wrapper with a no-op command — the wrapper does all

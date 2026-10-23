@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fakeMachine, type FakeMachine } from '../../__tests__/fakeMachine'
 import { install } from '../../install/install'
 import { writeAndStartConsole } from '../../install/console'
+import { recordPorts } from '../../state/installation'
 import { forgetRemoteAccess } from '../../remoteAccess/state'
 import { resumeRemoteAccess } from '../../remoteAccess/handlers'
 import { ownerHandler } from '../dispatch'
@@ -17,7 +18,8 @@ const ask = (request: unknown) => ownerHandler(m.ctx)(request, () => {})
 
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
+  recordPorts(m.ctx.state, { console: 7801 })
   await writeAndStartConsole(m.ctx, {
     version: '0.2.0', images: {}, hqAddress: 'http://127.0.0.1:4100', onHqMachine: true, installedAt: '2026-10-14T09:00:00.000Z',
   }, { pairingSecret: 'p'.repeat(64) })

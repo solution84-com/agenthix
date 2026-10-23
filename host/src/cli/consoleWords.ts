@@ -7,7 +7,7 @@ import type { ManagementStatus } from '../link/status'
 import type { ConnectResult, DisconnectResult } from '../link/manage'
 import type { ConsoleCodeResult } from '../owner/consoleOps'
 import type { ConsoleInstallResult } from '../install/console'
-import { CONSOLE_ADDRESS } from '../compose/console'
+import { consoleAddress, DEFAULT_CONSOLE_ADDRESS } from '../compose/console'
 import { cmd, nextStep, product, wrap } from './words'
 import { consoleNotInLines } from './consoleRemoveWords'
 
@@ -78,9 +78,11 @@ export function disconnected(r: DisconnectResult): string {
     (r.hq ? LEFT[r.hq](r.siteName) : ''))
 }
 
-export function consoleInstallWarning(machine: string): string {
+/** `port`: the one asked for, else the one the Fleet Console here already has; without either, the default. */
+export function consoleInstallWarning(machine: string, port?: number): string {
+  const address = port === undefined ? DEFAULT_CONSOLE_ADDRESS : consoleAddress(port)
   return wrap(`This starts the Fleet Console here, on ${machine}, and retires the one that runs now. Its screen is on ` +
-    `${CONSOLE_ADDRESS.replace('http://', '')} of this machine only, and it runs no agents. It keeps one connection out to HQ and accepts none.`)
+    `${address.replace('http://', '')} of this machine only, and it runs no agents. It keeps one connection out to HQ and accepts none.`)
 }
 
 export function consoleInstalled(r: ConsoleInstallResult): string {

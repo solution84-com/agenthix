@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { CLIENT_URL } from './fixtures/urls'
 import { STAND_IN_URL } from './fixtures/standInModel'
 import { answerSpeechProviders } from './fixtures/voiceProviders'
 
@@ -12,7 +13,7 @@ import { answerSpeechProviders } from './fixtures/voiceProviders'
 // ("No admin yet. Open this link", or `agenthix hq invite-admin`). The link works once and nothing in the suite
 // seeds it, so pass it in:
 //
-//   E2E_FIRST_ADMIN_LINK=http://localhost:4100/invite/<code> npx playwright test e2e/setup.spec.ts
+//   E2E_FIRST_ADMIN_LINK=<hq's address>/invite/<code> npx playwright test e2e/setup.spec.ts
 //
 // Without it the suite skips. The tests share one signed-in page and run in order: each starts where the last ended.
 //
@@ -24,7 +25,6 @@ import { answerSpeechProviders } from './fixtures/voiceProviders'
 //    fake key (fixtures/add-provider.mjs, which uses DATABASE_URL, else hq/.env.server).
 
 const LINK = process.env.E2E_FIRST_ADMIN_LINK
-const CLIENT_URL = process.env.E2E_CLIENT_URL ?? 'http://localhost:4100'
 
 const onStep = (page: Page, step: string) => page.waitForURL((url) => url.pathname === '/setup' && url.searchParams.get('step') === step)
 

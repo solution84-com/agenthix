@@ -5,7 +5,7 @@
  */
 import dns from 'node:dns/promises'
 import path from 'node:path'
-import { normalizeJoinCode } from '@agenthix/core'
+import { normalizeJoinCode, PUBLISHED_DEFAULTS, SERVICE_PORTS } from '@agenthix/core'
 import { hqAddressProblem, type ResolveAll } from './hq/addressPolicy'
 import { listenInContainer, readNetworkView, type NetworkView } from './net/containerNetwork'
 
@@ -13,7 +13,7 @@ import { listenInContainer, readNetworkView, type NetworkView } from './net/cont
 export const CONSOLE_LISTEN_HOST = '127.0.0.1'
 /** `CONSOLE_LISTEN_HOST=container`: in its container, on its own network's address (net/containerNetwork.ts). */
 export const IN_CONTAINER = 'container'
-export const CONSOLE_DEFAULT_PORT = 4300
+export const CONSOLE_DEFAULT_PORT: number = SERVICE_PORTS.console.server
 
 export type ConsoleConfig = {
   stateDir: string
@@ -21,6 +21,8 @@ export type ConsoleConfig = {
   /** In its container, its network's gateway: the one peer it accepts besides the loopback. Null outside one. */
   containerGateway: string | null
   port: number
+  /** The port the host service publishes it on, on the machine's loopback: what a person types. Not its own port in the container. */
+  publishedPort: number
   /** hq's address, as the console dials it. */
   hqAddress: string
   /** On hq's machine: the pairing secret set at install (C8). */
@@ -43,6 +45,8 @@ export async function loadConfig(env: NodeJS.ProcessEnv, version: string, source
   if (asked !== IN_CONTAINER) assertLoopbackListen(asked)
   const port = env.CONSOLE_PORT ? Number(env.CONSOLE_PORT) : CONSOLE_DEFAULT_PORT
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new ConfigError(`CONSOLE_PORT is not a port: ${env.CONSOLE_PORT}`)
+  const publishedPort = env.CONSOLE_PUBLISHED_PORT ? Number(env.CONSOLE_PUBLISHED_PORT) : PUBLISHED_DEFAULTS.console
+  if (!Number.isInteger(publishedPort) || publishedPort < 1 || publishedPort > 65535) throw new ConfigError(`CONSOLE_PUBLISHED_PORT is not a port: ${env.CONSOLE_PUBLISHED_PORT}`)
 
   const hqAddress = env.CONSOLE_HQ_ADDRESS?.trim()
   if (!hqAddress) throw new ConfigError("CONSOLE_HQ_ADDRESS is not set: the Fleet Console needs hq's address to dial.")
@@ -69,7 +73,7 @@ export async function loadConfig(env: NodeJS.ProcessEnv, version: string, source
     containerGateway = listen.gateway
   }
 
-  return { stateDir: env.CONSOLE_STATE_DIR?.trim() || '/state', listenHost, containerGateway, port, hqAddress, pairingSecret, hqCode, version }
+  return { stateDir: env.CONSOLE_STATE_DIR?.trim() || '/state', listenHost, containerGateway, port, publishedPort, hqAddress, pairingSecret, hqCode, version }
 }
 
 const resolveAll: ResolveAll = async hostname => (await dns.lookup(hostname, { all: true })).map(r => r.address)

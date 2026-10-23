@@ -26,7 +26,7 @@ const flat = (s: string) => s.replace(/\s+/g, ' ')
 
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   fs.mkdirSync(m.backups.onMachine('/mnt/nas/agenthix'), { recursive: true })
   out = ''
   err = ''

@@ -16,7 +16,8 @@ import { Containers } from '../docker/containers'
 import { DockerRemoval } from '../docker/removal'
 import { ask } from '../sockets/lineServer'
 import { StateFolder } from '../state/folder'
-import { namesFor, recordNamespace } from '../state/namespace'
+import { namesFor } from '../state/namespace'
+import { recordedNamespace } from '../state/installation'
 import { runSwitch } from './swap'
 import { helperName, parseHelperArgs, runHelper, STATE_IN_HELPER } from './uninstall'
 
@@ -34,7 +35,7 @@ async function swap(imageId: string): Promise<number> {
   const containers = new Containers(dockerCli)
   const state = new StateFolder(STATE_DIR)
   // The host service recorded the namespace at its first start; the launcher only reads it.
-  const names = namesFor(recordNamespace(state, DEFAULT_INSTALL_NAMESPACE))
+  const names = namesFor(recordedNamespace(state) ?? DEFAULT_INSTALL_NAMESPACE)
   const ended = await runSwitch({
     containers,
     state,

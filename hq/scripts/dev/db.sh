@@ -8,9 +8,14 @@ cd "$PROJECT_DIR"
 
 case "${1:-}" in
   start)
-    # The dev database is the repository's compose service (hq-db on 127.0.0.1:4109), the one
+    # The dev database is the repository's compose service (hq-db on 127.0.0.1, HQ_DB_PORT), the one
     # DATABASE_URL in .env.server points at. `wasp db start` refuses when DATABASE_URL is set.
-    docker compose -f "$PROJECT_DIR/../docker-compose.yml" up -d hq-db
+    REPO_ROOT="$(dirname "$PROJECT_DIR")"
+    eval "$(bash "$REPO_ROOT/scripts/dev/ports.sh")"
+    source "$REPO_ROOT/scripts/dev/require-free-ports.sh"
+    # Only when the container is not already running: its own port is then rightly taken.
+    if ! docker ps --format '{{.Names}}' | grep -qx agenthix-dev-hq-db; then require_free_ports HQ_DB_PORT; fi
+    HQ_DB_PORT="$HQ_DB_PORT" docker compose -f "$PROJECT_DIR/../docker-compose.yml" up -d hq-db
     ;;
   migrate)
     NODE_OPTIONS='--max-old-space-size=8192' npx wasp db migrate-dev

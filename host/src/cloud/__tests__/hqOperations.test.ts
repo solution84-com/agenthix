@@ -51,7 +51,7 @@ describe('on a machine without HQ @SC-1063', () => {
 
 describe('on the machine that runs HQ @SC-1063', () => {
   beforeEach(async () => {
-    await install(m.ctx, ADDRESS, () => {})
+    await install(m.ctx, { address: ADDRESS }, () => {})
     m.calls.length = 0
   })
 

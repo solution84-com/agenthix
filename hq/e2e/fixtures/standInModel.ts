@@ -9,7 +9,8 @@ import { ADMIN, SERVER_URL } from './auth'
 // calls a real model. The `stand-in` project adds it to the organisation's providers as an OpenAI-compatible endpoint
 // (its check lists /models, which the stand-in answers, so no vendor is reached) and makes it the default conversation
 // and worker model; `stand-in-teardown` removes it and puts the defaults back.
-export const STAND_IN_PORT = 4182
+// A free port, chosen when playwright.config.ts loads and handed on in the environment.
+export const STAND_IN_PORT = Number(process.env.E2E_STAND_IN_PORT)
 export const STAND_IN_URL = `http://127.0.0.1:${STAND_IN_PORT}/v1`
 export const REPLY = 'The stand-in model answers.'
 

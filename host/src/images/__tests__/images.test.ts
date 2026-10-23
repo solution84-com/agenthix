@@ -9,7 +9,7 @@ beforeEach(() => { m = fakeMachine() })
 afterEach(() => m.cleanup())
 
 const progress: Progress[] = []
-const run = () => install(m.ctx, 'https://hq.acme.example', p => progress.push(p))
+const run = () => install(m.ctx, { address: 'https://hq.acme.example' }, p => progress.push(p))
 const pulls = () => m.calls.filter(c => c[0] === 'pull').map(c => c[c.length - 1])
 const REGISTRY = 'ghcr.io/solution84-com'
 const SIGNER = 'https://github.com/solution84-com/agenthix/.github/workflows/publish-images.yml@refs/tags/v0.2.0'

@@ -12,6 +12,7 @@ import { openChecked } from '../backups/restoreSource'
 import { eachPart, PART, sources } from '../backups/parts'
 import type { UnderWay } from './settings'
 import { installSubnets } from '../compose/subnets'
+import { installationOf } from '../state/installation'
 
 /** Writes HQ's and the site's settings and compose projects as given; HQ's only when it is given. */
 export async function writeProjects(ctx: Context, hq: StoredHq | null, site: StoredSite, paths: MachinePaths): Promise<void> {
@@ -19,7 +20,7 @@ export async function writeProjects(ctx: Context, hq: StoredHq | null, site: Sto
   const subnets = await installSubnets(ctx)
   if (hq) {
     ctx.state.writeJson(['hq', 'settings.json'], hq)
-    ctx.state.writePrivate(['hq', 'compose.json'], composeJson(hqProject(ctx.names, hq, secrets, ctx.machine.name, subnets)))
+    ctx.state.writePrivate(['hq', 'compose.json'], composeJson(hqProject(ctx.names, hq, secrets, ctx.machine.name, subnets, installationOf(ctx.state))))
   }
   ctx.state.writeJson(['site', 'settings.json'], site)
   ctx.state.writePrivate(['site', 'compose.json'], composeJson(siteComposeProject(ctx.state, ctx.names, site, secrets, paths, subnets)))

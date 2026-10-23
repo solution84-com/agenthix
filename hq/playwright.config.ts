@@ -2,10 +2,14 @@ import { readFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { defineConfig, devices } from '@playwright/test'
+import { freePort } from './e2e/fixtures/freePort'
+import { CLIENT_URL } from './e2e/fixtures/urls'
 
-// The e2e suite runs against an already-running dev server (see e2e/README.md).
-// Client (Vite) and server (Express) are separate ports in this Wasp app.
-const CLIENT_URL = process.env.E2E_CLIENT_URL ?? 'http://localhost:4100'
+// The e2e suite runs against an already-running hq (see e2e/README.md): E2E_CLIENT_URL and E2E_SERVER_URL name it,
+// and without them it is the dev hq. The one server this file starts is the stand-in model, on a free port chosen
+// when the file loads. Workers load this file again, so the port is put in the environment once and they read it.
+process.env.E2E_STAND_IN_PORT ??= String(await freePort())
+const STAND_IN_PORT = Number(process.env.E2E_STAND_IN_PORT)
 
 // The same app at a made-up name that Chromium resolves to this machine. A browser gives some features
 // (crypto.randomUUID, the clipboard, the microphone) only to a secure page, https or localhost, and HQ is also
@@ -42,9 +46,9 @@ export default defineConfig({
   },
   // The stand-in model the e2e specs talk on (e2e/fixtures/standInModel.ts), so none calls a real one.
   webServer: {
-    command: `node ../scripts/install-test/stand-in-model.mjs 4182 ${path.join(os.tmpdir(), 'hq-e2e-stand-in.log')}`,
-    port: 4182,
-    reuseExistingServer: true,
+    command: `node ../scripts/install-test/stand-in-model.mjs ${STAND_IN_PORT} ${path.join(os.tmpdir(), 'hq-e2e-stand-in.log')}`,
+    port: STAND_IN_PORT,
+    reuseExistingServer: false,
   },
   projects: [
     { name: 'stand-in', testMatch: /fixtures[\\/]standIn\.setup\.ts$/, teardown: 'stand-in-teardown' },

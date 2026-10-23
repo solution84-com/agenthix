@@ -128,6 +128,7 @@ function fields(ctx: Ctx, at: string, a: FieldsShape, b: FieldsShape): void {
 /**
  * Members are matched by value, and object members (the messages of a discriminated union) by the field whose
  * literal value tells them apart, so a field added to one message is classed as that, not as a message replaced.
+ * Messages that share that value (`install` for hq and for a site) are told apart by a second such field.
  */
 function union(ctx: Ctx, at: string, a: Shape[], b: Shape[]): void {
   const ka = keyed(a)
@@ -153,11 +154,11 @@ function union(ctx: Ctx, at: string, a: Shape[], b: Shape[]): void {
 
 function keyed(members: Shape[]): Map<string, Shape> {
   const objects = members.filter((m): m is FieldsShape => 'fields' in m)
-  const tag = discriminant(objects)
+  const keyOf = messageKeys(objects)
   const out = new Map<string, Shape>()
   for (const m of members) {
-    if (tag && 'fields' in m) out.set(`${tag}=${canonical(m.fields[tag].type)}`, m)
-    else out.set(canonical(m), m)
+    const key = 'fields' in m ? keyOf?.get(m) : undefined
+    out.set(key ?? canonical(m), m)
   }
   return out
 }
@@ -167,13 +168,43 @@ function literalTag(s: Shape): boolean {
   return 'literal' in s || ('union' in s && s.union.every(m => 'literal' in m))
 }
 
-function discriminant(objects: FieldsShape[]): string | null {
+/** `name` tags every one of `objects`: present, required and a literal in each. */
+function tagsAll(objects: FieldsShape[], name: string): boolean {
+  return objects.every(o => {
+    const f = o.fields[name] as Field | undefined
+    return !!f && !f.optional && literalTag(f.type)
+  })
+}
+
+function tagValue(o: FieldsShape, name: string): string {
+  return `${name}=${canonical(o.fields[name].type)}`
+}
+
+/**
+ * Each message's key: the value of the one field that tells all of them apart; failing that, the value of a field
+ * every message carries, and, for the messages that share it, the value of a second field that tells those apart.
+ * Null when neither finds a key for every message.
+ */
+function messageKeys(objects: FieldsShape[]): Map<FieldsShape, string> | null {
   if (objects.length < 2) return null
-  const names = Object.keys(objects[0].fields).sort()
-  for (const name of names) {
-    const values = objects.map(o => o.fields[name] as Field | undefined)
-    if (values.some(v => !v || v.optional || !literalTag(v.type))) continue
-    if (new Set(values.map(v => canonical(v!.type))).size === objects.length) return name
+  const names = Object.keys(objects[0].fields).sort().filter(name => tagsAll(objects, name))
+  const single = names.find(name => new Set(objects.map(o => tagValue(o, name))).size === objects.length)
+  if (single) return new Map(objects.map(o => [o, tagValue(o, single)]))
+  for (const first of names) {
+    const groups = new Map<string, FieldsShape[]>()
+    for (const o of objects) groups.set(tagValue(o, first), [...(groups.get(tagValue(o, first)) ?? []), o])
+    const out = new Map<FieldsShape, string>()
+    for (const [value, group] of groups) {
+      if (group.length === 1) {
+        out.set(group[0], value)
+        continue
+      }
+      const second = Object.keys(group[0].fields).sort().find(name =>
+        name !== first && tagsAll(group, name) && new Set(group.map(o => tagValue(o, name))).size === group.length)
+      if (!second) break
+      for (const o of group) out.set(o, `${value},${tagValue(o, second)}`)
+    }
+    if (out.size === objects.length) return out
   }
   return null
 }

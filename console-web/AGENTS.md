@@ -72,7 +72,7 @@ Commands, each in `console-web/` (`core/` must be built first, `cd core && npm r
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Vite on `127.0.0.1`, passing `/api` to the Fleet Console at `127.0.0.1:4300` as if the page came from it |
+| `npm run dev` | Vite on `127.0.0.1`, passing `/api` to the Fleet Console's server on `127.0.0.1` (its port is in [`docs/architecture/ports.md`](../docs/architecture/ports.md)) as if the page came from it |
 | `npm run build` | The static files, in `dist/` |
 | `npm run typecheck` | The browser code (`tsconfig.json`: DOM, no Node types), then the configs and tests (`tsconfig.node.json`) |
 | `npm test` | The unit tests (vitest, jsdom) |

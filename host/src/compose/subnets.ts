@@ -2,7 +2,7 @@
  * The address range each network an install makes is given. Left to itself, Docker takes a network's subnet from
  * its default pool, and once 172.17–31 are used, from 192.168.0.0/20 onwards — where a home or office network
  * usually is, so HQ could no longer reach a model on another computer there. Every network the host service makes
- * is therefore given one /24 from a range of its own, beside the agents' (`AGENT_NETWORK_RANGE`).
+ * is therefore given one /24 from a range of its own, beside the agents' (`agentSlice.ts`).
  *
  * The choice keeps what Docker already has: a network of the install that exists keeps its subnet, so a rewritten
  * compose file (a restart, an upgrade, a front door, the Fleet Console added) never shows compose a changed
@@ -12,10 +12,11 @@
  * second install on the machine skips the first one's networks.
  */
 import { networkInterfaces } from 'node:os'
+import { ADDRESS_BLOCKS } from '@agenthix/core'
 import type { InstallNames } from '../state/namespace'
 import { Refusal } from '../owner/results'
 
-export const INSTALL_NETWORK_RANGE = '10.214.0.0/16'
+export const INSTALL_NETWORK_RANGE = ADDRESS_BLOCKS.installationNetworks
 const BLOCK_BITS = 24
 
 /** The install's networks, in the order the free /24s are handed out. */
@@ -54,23 +55,28 @@ export function overlaps(a: string, b: string): boolean {
   return !!x && !!y && x.base < y.base + size(y) && y.base < x.base + size(x)
 }
 
+const ipv4 = (n: DockerNetwork) => n.subnets.filter(s => parse(s) !== null)
+
+/** Every IPv4 range in use on the machine: Docker's networks' subnets and the machine's own addresses. */
+export function takenRanges(existing: DockerNetwork[], machine: string[]): string[] {
+  return [...existing.flatMap(ipv4), ...machine.filter(s => parse(s) !== null)]
+}
+
 /**
  * `existing`: every Docker network on the machine, with its subnets. `machine`: the machine's own addresses with
  * their prefixes (`machineAddresses`). Throws `SubnetsExhausted`, in words a person reads, when a network has none.
  */
 export function chooseSubnets(names: InstallNames, existing: DockerNetwork[], machine: string[]): InstallSubnets {
-  const range = parse(INSTALL_NETWORK_RANGE) as Block
-  const ipv4 = (n: DockerNetwork) => n.subnets.filter(s => parse(s) !== null)
   const chosen: InstallSubnets = {}
   for (const key of NETWORKS) {
     const kept = ipv4(existing.find(n => n.name === names[key]) ?? { name: '', subnets: [] })[0]
     if (kept) chosen[names[key]] = kept
   }
-  const taken = [...existing.flatMap(ipv4), ...machine.filter(s => parse(s) !== null)]
+  const taken = takenRanges(existing, machine)
   for (const key of NETWORKS) {
     const name = names[key]
     if (chosen[name]) continue
-    const free = findFree(range, [...taken, ...Object.values(chosen)])
+    const free = firstFree(INSTALL_NETWORK_RANGE, BLOCK_BITS, [...taken, ...Object.values(chosen)])
     if (!free) {
       throw new SubnetsExhausted(
         `No address range is left for the network ${name}: other Docker networks or this machine's own addresses use ` +
@@ -83,10 +89,13 @@ export function chooseSubnets(names: InstallNames, existing: DockerNetwork[], ma
   return chosen
 }
 
-function findFree(range: Block, taken: string[]): string | null {
-  const step = 2 ** (32 - BLOCK_BITS)
+/** The first block of `bits` in `within`, in address order, that overlaps none of `taken`; null when none is left. */
+export function firstFree(within: string, bits: number, taken: string[]): string | null {
+  const range = parse(within)
+  if (!range) throw new Error(`${within} is not an IPv4 range.`)
+  const step = 2 ** (32 - bits)
   for (let base = range.base; base < range.base + size(range); base += step) {
-    const candidate = `${toAddress(base)}/${BLOCK_BITS}`
+    const candidate = `${toAddress(base)}/${bits}`
     if (!taken.some(t => overlaps(candidate, t))) return candidate
   }
   return null

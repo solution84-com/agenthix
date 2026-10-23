@@ -27,8 +27,14 @@ export type LogsReadRequest = {
   limit?: number
 }
 
+/**
+ * The ports an installation publishes on its machine, as its machine admin chose them; each absent when not chosen,
+ * for the host service to take what it recorded or its default.
+ */
+export type PublishedPortChoice = { hqPort?: number; consolePort?: number }
+
 export type InstallRequest =
-  | { op: 'install'; target: 'hq'; version: PublishedVersion; address: string }
+  | ({ op: 'install'; target: 'hq'; version: PublishedVersion; address: string } & PublishedPortChoice)
   /** The site is named after its machine, by the host service: no name is asked. */
   | { op: 'install'; target: 'site'; version: PublishedVersion }
 
@@ -72,6 +78,9 @@ export type MoveRequest =
       op: 'move'; role: 'receive'; target: HostTarget; peer: string; peerIdentity: HostIdentity; peerName: string; transferId: string
       siteName: string
       hqAddress?: string
+      /** `target: 'hq'`: the ports hq and its Fleet Console publish on the new machine. */
+      hqPort?: number
+      consolePort?: number
     }
 
 /** Erasing hq needs its address typed in (spec §15); erasing a site is immediate and needs none. */

@@ -65,7 +65,7 @@ describe('a scheduled change and the Fleet Console @SC-839', () => {
 
   it('is sent from HQ’s machine too, beside what HQ hears through its control socket', async () => {
     m.ctx.state.writeJson(['site', 'settings.json'], null)
-    await install(m.ctx, 'https://hq.acme.example', () => {})
+    await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
     m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
     await scheduleChange(m.ctx, resize, inMinutes(60), machineAdmin)
     await tickScheduled(m.ctx)

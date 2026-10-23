@@ -18,7 +18,7 @@ const ask = (r: object) => cloudOperation(m.ctx, r)
 
 beforeEach(async () => {
   m = fakeMachine()
-  await install(m.ctx, 'https://hq.acme.example', () => {})
+  await install(m.ctx, { address: 'https://hq.acme.example' }, () => {})
   m.hq['scheduled-change'] = { ok: true, text: 'Taken.' }
   for (const part of HQ_PARTS) m.tags.set(`solution84-com/agenthix-${part}`, ['latest', '0.2.0', '0.2.1'])
   m.tags.set('solution84-com/agenthix-host', ['0.2.0', '0.2.1'])

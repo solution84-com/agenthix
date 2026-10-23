@@ -10,7 +10,8 @@
 import type { Progress } from '../sockets/lineServer'
 import { installed, type Context } from '../service/context'
 import { Refusal } from '../owner/results'
-import { product } from '../cli/words'
+import { cmd, product } from '../cli/words'
+import { checkPorts } from '../install/portCheck'
 import { checkImages, fetchImages } from '../images/images'
 import { exclusive, exclusiveWhenFree, takeBackup, type OnWait } from '../backups/take'
 import { checkUpgrade, whoText, type Target } from './rules'
@@ -98,6 +99,11 @@ export function upgrade(
 
 async function run(ctx: Context, target: Target, version: string, progress: Report): Promise<UpgradeOutcome> {
   const from = checkUpgrade(ctx, target, version)
+  // Before anything is fetched: HQ started again on a port another program took meanwhile would only fail its health check.
+  const hq = installed(ctx).hq
+  if (target === 'hq' && hq?.port != null) {
+    await checkPorts(ctx, [{ port: hq.port, part: 'hq', bind: hq.settings.bind, another: `Free it, or move HQ with ${cmd('hq address <address>')}.` }])
+  }
   const paths = await ctx.machinePaths()
   if (!paths) throw new Refusal('failed', 'The host service cannot find its state folder on this machine, so it cannot upgrade. Nothing was changed.')
   const parts = PARTS_OF[target]

@@ -3,8 +3,8 @@
  * its own network with its port published to 127.0.0.1, and HQ's link network, where a stand-in for hq-web runs.
  * Build the Fleet Console's image first, at the repository root:
  * `docker build -f console/docker/Dockerfile -t agenthix-console .` (or name another with CONSOLE_IMAGE).
- * It publishes on 127.0.0.1:4398 (CONSOLE_TEST_PORT overrides), so it never meets a Fleet Console on 4300, and
- * refuses to start, touching nothing, when that port is held. Its project, container and networks carry a namespace
+ * It publishes on a free port it chooses on 127.0.0.1 (CONSOLE_TEST_PORT overrides), so it runs beside an installation's
+ * Fleet Console, and refuses to start, touching nothing, when that port is held. Its project, container and networks carry a namespace
  * of its own for the run, and every docker command goes through the guard (`containerGuard.ts`), so it can run
  * beside a real install and touch none of it.
  */
@@ -14,12 +14,12 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { composeJson } from '../projects'
-import { consoleProject } from '../console'
+import { CONSOLE_PORT, consoleProject } from '../console'
 import { machineSubnets } from '../../__tests__/containerSubnets'
-import { claimNames, guardedDocker, requireFreePorts, testNamespace } from '../../__tests__/containerGuard'
+import { claimNames, guardedDocker, freePorts, portsTaken, testNamespace } from '../../__tests__/containerGuard'
 
 const IMAGE = process.env.CONSOLE_IMAGE || 'agenthix-console'
-const PORT = Number(process.env.CONSOLE_TEST_PORT) || 4398
+let PORT = Number(process.env.CONSOLE_TEST_PORT) || 0
 const NS = testNamespace('console')
 const names = claimNames(NS)
 const HQ_WEB = names.container('hq-web')
@@ -54,15 +54,17 @@ const ownAddress = () => {
 }
 
 beforeAll(async () => {
-  await requireFreePorts([PORT])
+  if (PORT === 0) [PORT] = await freePorts(1)
+  else if ((await portsTaken([PORT])).length) throw new Error(`CONSOLE_TEST_PORT ${PORT} is held on this machine. It touched nothing; choose another.`)
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'console-compose-'))
   docker('network', 'create', names.hqLinkNetwork)
   // Answers to hq-web's name on the link network, as hq-web does; the Fleet Console only needs to resolve it to start.
   docker('run', '-d', '--name', HQ_WEB, '--network', names.hqLinkNetwork, '--entrypoint', 'sleep', IMAGE, '600')
   const project = consoleProject(names, {
     version: 'dev', images: { console: IMAGE }, hqAddress: 'http://127.0.0.1:4100', onHqMachine: true, installedAt: new Date().toISOString(),
-  }, 'test-box', { pairingSecret: 'p'.repeat(64) }, machineSubnets(docker, names))
-  project.services.console.ports = [`127.0.0.1:${PORT}:4300`]
+  }, 'test-box', { pairingSecret: 'p'.repeat(64) }, machineSubnets(docker, names), {
+    namespace: names.namespace, ports: { hq: null, console: PORT }, agentRange: null, recordedAt: new Date().toISOString(),
+  })
   file = path.join(dir, 'compose.json')
   fs.writeFileSync(file, composeJson(project))
   compose('up', '-d')
@@ -84,7 +86,7 @@ describe('the Fleet Console on its own network, published to 127.0.0.1 @SC-861',
   it('listens on its own network’s address, taking that network’s gateway as its one peer', () => {
     const inspect = JSON.parse(docker('inspect', names.consoleContainer))[0]
     const own = inspect.NetworkSettings.Networks[names.consoleNetwork]
-    expect(docker('logs', names.consoleContainer)).toContain(`listening on ${own.IPAddress}:4300 in its container, from its network's gateway ${own.Gateway} only`)
+    expect(docker('logs', names.consoleContainer)).toContain(`listening on ${own.IPAddress}:${CONSOLE_PORT} in its container, from its network's gateway ${own.Gateway} only`)
     expect(inspect.HostConfig.NetworkMode).not.toBe('host')
   })
 
@@ -101,19 +103,19 @@ describe('the Fleet Console on its own network, published to 127.0.0.1 @SC-861',
   })
 
   it('is not published on any address of the machine but 127.0.0.1', () => {
-    expect(docker('port', names.consoleContainer, '4300/tcp').trim().split('\n')).toEqual([`127.0.0.1:${PORT}`])
+    expect(docker('port', names.consoleContainer, `${CONSOLE_PORT}/tcp`).trim().split('\n')).toEqual([`127.0.0.1:${PORT}`])
   })
 
   it('answers nothing on HQ’s link network, to hq-web or anything else there', () => {
-    const fromLink = fetchFrom(names.hqLinkNetwork, `http://${names.consoleContainer}:4300/api/status`)
+    const fromLink = fetchFrom(names.hqLinkNetwork, `http://${names.consoleContainer}:${CONSOLE_PORT}/api/status`)
     expect(fromLink).not.toMatch(/HTTP\/1\.1 200/)
     expect(fromLink).toMatch(/refused|timed out|can't connect|bad address|403/i)
-    const toOwn = fetchFrom(names.hqLinkNetwork, `http://${ownAddress()}:4300/api/status`)
+    const toOwn = fetchFrom(names.hqLinkNetwork, `http://${ownAddress()}:${CONSOLE_PORT}/api/status`)
     expect(toOwn).not.toMatch(/HTTP\/1\.1 200/)
   })
 
   it('refuses any other peer on its own network', () => {
-    expect(fetchFrom(names.consoleNetwork, `http://${ownAddress()}:4300/api/status`)).toMatch(/403/)
+    expect(fetchFrom(names.consoleNetwork, `http://${ownAddress()}:${CONSOLE_PORT}/api/status`)).toMatch(/403/)
   })
 
   it('takes a packet only on the network its source is reached through', () => {
