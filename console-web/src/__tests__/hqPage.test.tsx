@@ -56,6 +56,15 @@ beforeEach(() => { sessionStorage.setItem('csrfToken', 'tok') })
 afterEach(() => { cleanup(); forgetHqSuspended(); vi.unstubAllGlobals(); forgetCsrfToken(); sessionStorage.clear(); window.history.replaceState(null, '', '/') })
 
 describe("HQ's page @SC-902", () => {
+  it("says why HQ cannot start when its port is taken, on a machine the organisation runs itself @SC-1245", async () => {
+    const why = 'HQ cannot start: port 7800 is held by another program on this machine. Free it or choose another port with agenthix hq port. Nothing was changed.'
+    const down = host({ figures: figures(hqInstall({ state: 'stopped', healthy: false, problem: why })) })
+    fakeServer(routes({ [`GET /hosts/${FP}`]: { status: 200, body: { host: down } }, 'GET /fleet': { status: 200, body: fleet([down]) } }))
+    render(<HqRoute part={null} />)
+    expect(await screen.findByText(new RegExp(why.slice(0, 40)))).toBeTruthy()
+    expect(screen.getByText('Needs attention')).toBeTruthy()
+  })
+
   it('is only HQ, then the machine it runs on: every action a button in the header', async () => {
     fakeServer(routes())
     render(<HqRoute part={null} />)
@@ -88,7 +97,7 @@ describe("HQ's page @SC-902", () => {
     expect(screen.queryByText(/Checked .* ago/)).toBeNull()
     expect(screen.queryByRole('checkbox')).toBeNull()
     expect(screen.queryByText(/Uploaded files/)).toBeNull()
-    expect(screen.queryByText(/127\.0\.0\.1:4100/)).toBeNull()
+    expect(screen.queryByText(/127\.0\.0\.1/)).toBeNull()
     expect(screen.queryByRole('region', { name: 'The site' })).toBeNull()
     expect(screen.queryByText(/Each run/)).toBeNull()
     expect(screen.queryByText(/Automatic fixes/)).toBeNull()

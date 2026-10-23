@@ -5,7 +5,7 @@
 # of its own, with its port published to the machine's 127.0.0.1 only and CONSOLE_LISTEN_HOST=container, so it
 # listens on its address on that network and accepts a connection only from that network's gateway:
 #   docker network create agenthix-console
-#   docker run -d --network agenthix-console -p 127.0.0.1:4300:4300 -e CONSOLE_LISTEN_HOST=container \
+#   docker run -d --network agenthix-console -p 127.0.0.1:4301:4301 -e CONSOLE_LISTEN_HOST=container \
 #     --sysctl net.ipv4.conf.all.rp_filter=1 -e CONSOLE_HQ_ADDRESS=… agenthix-console
 # Never publish it on another address, and never put another container on its network.
 

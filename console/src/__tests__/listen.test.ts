@@ -14,9 +14,15 @@ describe('the Fleet Console listens on 127.0.0.1 only @SC-861', () => {
     await expect(loadConfig({ ...env, CONSOLE_LISTEN_HOST: '0.0.0.0' }, 'dev')).rejects.toThrow(/only on 127\.0\.0\.1/)
   })
 
-  it('defaults to 127.0.0.1:4300', async () => {
+  it('defaults to 127.0.0.1:4301 @SC-1254', async () => {
     const config = await loadConfig(env, 'dev')
-    expect([config.listenHost, config.port]).toEqual(['127.0.0.1', 4300])
+    expect([config.listenHost, config.port]).toEqual(['127.0.0.1', 4301])
+  })
+
+  it('knows the port it is published on, the default outside an installation @SC-1254', async () => {
+    expect((await loadConfig(env, 'dev')).publishedPort).toBe(7801)
+    expect((await loadConfig({ ...env, CONSOLE_PUBLISHED_PORT: '9123' }, 'dev')).publishedPort).toBe(9123)
+    await expect(loadConfig({ ...env, CONSOLE_PUBLISHED_PORT: 'x' }, 'dev')).rejects.toThrow(/CONSOLE_PUBLISHED_PORT/)
   })
 
   it('will not start a server anywhere else', async () => {
@@ -51,7 +57,7 @@ describe('in its container, it listens on its own network only @SC-861', () => {
 
   it('listens on its address on its own network, with that network’s gateway the one peer besides', async () => {
     const config = await loadConfig(onHqMachine, 'dev', { network: network(), resolve })
-    expect([config.listenHost, config.containerGateway, config.port]).toEqual(['172.28.0.2', '172.28.0.1', 4300])
+    expect([config.listenHost, config.containerGateway, config.port]).toEqual(['172.28.0.2', '172.28.0.1', 4301])
   })
 
   it('does not start when its route out is HQ’s link network', async () => {

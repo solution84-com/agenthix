@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SAM, startHarness, type Harness } from './harness'
-import { CONTAINER_PEER, loopbackOnly, peerAllowed } from '../http/guards'
+import { CONTAINER_PEER, PUBLISHED_PORT, loopbackOnly, peerAllowed } from '../http/guards'
 
 let h: Harness
 beforeEach(async () => { h = await startHarness() })
@@ -95,11 +95,11 @@ describe('who may connect @SC-862', () => {
     expect(peerAllowed({ remoteAddress: undefined, localAddress: undefined }, container)).toBe(false)
   })
 
-  it('answers a peer it refuses with 403, and a gateway with the wrong Host header with 421 naming 127.0.0.1:4300', () => {
-    const run = (remoteAddress: string, host: string) => {
+  it('answers a peer it refuses with 403, and a gateway with the wrong Host header with 421 naming the published port @SC-1254', () => {
+    const run = (remoteAddress: string, host: string, published?: number) => {
       const res = { code: 0, body: {} as Record<string, unknown>, status(c: number) { this.code = c; return this }, json(b: Record<string, unknown>) { this.body = b } }
       let passed = false
-      const req = { socket: { remoteAddress, localAddress: '172.28.0.2' }, headers: { host }, app: { locals: { [CONTAINER_PEER]: container } } }
+      const req = { socket: { remoteAddress, localAddress: '172.28.0.2' }, headers: { host }, app: { locals: { [CONTAINER_PEER]: container, ...(published ? { [PUBLISHED_PORT]: published } : {}) } } }
       loopbackOnly(req as never, res as never, () => { passed = true })
       return { passed, code: res.code, message: res.body.message }
     }
@@ -107,6 +107,7 @@ describe('who may connect @SC-862', () => {
     expect(run('172.28.0.3', '127.0.0.1:4300').code).toBe(403)
     const rebound = run('172.28.0.1', 'evil.example:4300')
     expect(rebound.code).toBe(421)
-    expect(rebound.message).toContain('http://127.0.0.1:4300')
+    expect(rebound.message).toContain('http://127.0.0.1:7801')
+    expect(run('172.28.0.1', 'evil.example:9000', 9000).message).toContain('http://127.0.0.1:9000')
   })
 })

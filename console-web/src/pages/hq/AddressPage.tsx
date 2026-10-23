@@ -96,7 +96,7 @@ export function AddressPage({ fingerprint, pollMs }: { fingerprint: string; poll
 
         <SectionHeading>Front door — what carries web traffic to HQ</SectionHeading>
         <div className="flex flex-col gap-2">
-          {option('own', 'Your own web server', <>HQ listens on <code className="font-mono">{HQ_LISTENS_ON}</code>. Point nginx, Caddy or your tunnel at it, passing WebSocket upgrades.</>)}
+          {option('own', 'Your own web server', <>HQ listens on {HQ_LISTENS_ON}. Point nginx, Caddy or your tunnel at it, passing WebSocket upgrades.</>)}
           {option('service', "The host service's front door", `It takes ports 80 and 443 on ${machine} and gets the certificates for ${hosts} itself.`)}
         </div>
         {bareAddress(address) && <CloudOfferLine offer="address" from="fleet-console-address" />}
@@ -120,7 +120,7 @@ export function AddressPage({ fingerprint, pollMs }: { fingerprint: string; poll
       <Modal open={warning} onClose={() => setWarning(false)} title={`Take ports 80 and 443 on ${machine}?`}>
         <div className="flex flex-col gap-3 text-body text-text-primary">
           <p>This becomes the front door for the whole machine. The host service takes ports 80 and 443, and nothing else on {machine} can serve web traffic on them. Any other web application here would have to go through it.</p>
-          <p>If {machine} already has a web server — nginx, Caddy, Traefik, a tunnel — keep it and point it at <code className="font-mono">{HQ_LISTENS_ON}</code> instead.</p>
+          <p>If {machine} already has a web server — nginx, Caddy, Traefik, a tunnel — keep it and point it at HQ instead: {HQ_LISTENS_ON}.</p>
           <p className="text-small text-text-secondary">It needs {hosts} pointing at {machine}, and ports 80 and 443 reachable from the internet.</p>
         </div>
         <div className="mt-5 flex justify-end gap-2">

@@ -36,7 +36,7 @@ export function needsYou(fleet: FleetResponse, now: Date): NeedsYou[] {
     items.push({ key: 'hq-link', title: 'HQ is not answering', text: `${LINK_WORDS[fleet.console.hq]} The figures below are what was last known.`, to: HQ_PATH, action: 'Open HQ' })
   }
   const hq = hqInstall(hqHost)
-  const hqUnwell = hqHost?.online === true && hq !== undefined && !hq.healthy && hq.state !== 'starting'
+  const hqUnwell = hqHost?.online === true && hq !== undefined && !hq.healthy && (hq.state !== 'starting' || !!hq.problem)
   if (hqUnwell) items.push({ key: 'hq', title: HQ_TITLE[hq.state] ?? 'HQ needs attention', text: hq.problem ?? `HQ is ${hq.state}.`, to: HQ_PATH, action: 'Open HQ' })
   for (const h of steadyOrder(fleet.hosts)) {
     // HQ's own trouble is said once, as HQ's.

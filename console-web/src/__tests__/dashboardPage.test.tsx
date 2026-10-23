@@ -184,6 +184,17 @@ describe('the dashboard', () => {
     expect(screen.getByRole('article', { name: 'laptop' })).toBeTruthy()
   })
 
+  it('an HQ that cannot start because its port is taken needs you, with the reason, though it reads as starting @SC-1245', async () => {
+    const blocked = host('hq-box', {
+      hqMachine: true,
+      figures: figures(30, [{ target: 'hq', version: '0.2.0', state: 'starting', since: NOW.toISOString(), healthy: false, problem: 'HQ cannot start: port 7800 is held by a program on this machine, not by a container.' }]),
+    })
+    fakeServer({ 'GET /fleet': { status: 200, body: fleet([blocked]) } })
+    render(<DashboardPage />)
+    const needs = await screen.findByRole('region', { name: 'Needs you' })
+    expect(within(needs).getByText(/port 7800 is held by a program/)).toBeTruthy()
+  })
+
   it('when the Fleet Console cannot be read, says so and can try again @SC-896', async () => {
     let answer = false
     fakeServer({ 'GET /fleet': () => answer ? { status: 200, body: fleet([hqBox]) } : { status: 500, body: { error: 'failed', message: 'It broke.' } } })
