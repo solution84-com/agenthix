@@ -8,6 +8,7 @@
 import { HttpError, prisma } from 'wasp/server'
 import { providerTypesCovered, providersComplete, type HqClaimState } from '@agenthix/core'
 import { providerStore } from '../providers/store'
+import { writeSetupDefaults } from './setupDefaults'
 
 /** What decides hq's claim state; all of it is read from the data, none of it stored (setup spec, hq's setup state). */
 export type ClaimFacts = { users: number; setupCompletedAt: Date | null }
@@ -51,13 +52,15 @@ export async function needsSetup(userId: string): Promise<boolean> {
 
 /**
  * Records setup as done; only the first admin, and only once. Refused (409) until the providers reach a working LLM,
- * STT and TTS, so a finished setup always has models and voice.
+ * STT and TTS, and it writes the organisation's defaults that are not set yet, so a finished setup always has models and voice.
  */
 export async function finishSetup(userId: string, now = new Date()): Promise<boolean> {
   if (!(await needsSetup(userId))) return false
-  if (!providersComplete(await providerStore().list())) {
+  const providers = await providerStore().list()
+  if (!providersComplete(providers)) {
     throw new HttpError(409, 'Add a model provider and a speech-to-text and a text-to-speech provider that work before finishing setup')
   }
+  await writeSetupDefaults(providers)
   const { count } = await prisma.org.updateMany({ where: { setupCompletedAt: null }, data: { setupCompletedAt: now } })
   return count > 0
 }

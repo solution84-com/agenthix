@@ -1,6 +1,6 @@
 ---
 name: The organisation's admin area
-description: Part 3 of models from one place — Manage organisation, a separate, protected area of hq for organisation admins, reached by Manage on the organisation's page.
+description: Part 3 of models from one place — Manage organisation, a separate, protected area of hq for organisation admins, reached from the account menu or the organisation's page.
 created: 2026-10-23
 author: leang
 ---
@@ -11,10 +11,11 @@ Part of the [spec](../spec.md). **Status:** high-level design agreed; no deep di
 
 ## Settled
 
-- **Two places.** *Organisation*, in the main navigation, is the organisation's own page for every member, admins
-  included: its identity, vision and mission, and the workplace. *Manage organisation*, at `/admin`, is for
-  organisation admins only.
-- **The way in** is a *Manage* button on the organisation's page, shown only to organisation admins.
+- **Two places.** The organisation's own page, `/org`, is for every member, admins included: its identity, vision
+  and mission, and the workplace. *Manage organisation*, at `/admin`, is for organisation admins only.
+- **The way in is the account menu**, grouped by whose each item is: under the organisation's name, *Overview*
+  (its own page) and *Manage* (the admin area, marked *Admin*, shown only to organisation admins); under the
+  person, *Your settings* and *Sign out*. The organisation's page keeps a *Manage* button for admins too.
 - **A focused frame.** The admin area draws its own menu where the main navigation is, with *Back to* the
   organisation, and no docked conversation. Its menu: Overview; People (people and invitations, teams); Agents;
   Models and billing (Providers, Models, Billing profiles, Usage); Settings; Where work runs.

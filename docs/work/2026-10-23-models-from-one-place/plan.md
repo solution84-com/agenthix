@@ -252,6 +252,19 @@ available yet* until hq's calls are built (ADR-0130), and its line on the *Provi
 - [x] 5.3 Its line on the *Providers* page, with *Roll the key now* shown only once the rollover's calls are built
 - [ ] 5.4 `CloudUsageCursor` kept with Cloud's organisation id across a disconnect (the table exists; its use comes with hq's actual-cost calls, after the hosted side is ready)
 
+### Phase 5w — Walkthrough round 1
+**Delivers:** the owner's round-1 findings fixed: setup writes the organisation's defaults, voice is locked to its
+tested pair and chosen by ear, *Models* and an agent's page are reworked, and the admin area is in the account menu.
+**Starts when:** the owner's first walkthrough pass has its findings written down and boards 13 and 14 are settled.
+**Execution plan:** none — lanes. Two lanes after a contract the lead commits first.
+
+- [x] 5w.1 Setup writes the four defaults when it finishes (recommended models, Inworld TTS 2 with Alistair, Universal-3 Pro realtime); the last look shows them, with a preview
+- [x] 5w.2 Speech is locked to Inworld TTS 2, and listening to AssemblyAI's three live models (Universal-3 Pro the default): other speech models refused on save, the fallback reaches only these, TTS 2 on the price list at its list price
+- [x] 5w.3 Voices come from Inworld's Voice API, with gender, age, categories, tags and the accent from the language's region
+- [x] 5w.4 The voice dialog: combined filters, a search inside them, tap to choose and play; on *Models*, an agent's page and setup's voice step
+- [x] 5w.5 *Models* and an agent's page as one short list of settings, with the list editor behind *Edit*
+- [x] 5w.6 The account menu grouped by the organisation and the person, with *Manage* for organisation admins
+
 ### Phase 6 — Documents, decision records, QA contract
 **Delivers:** the documents describe the code as built; the decision records are written and amended; the QA
 stories and scenarios exist, with their tests tagged.
@@ -268,6 +281,7 @@ stories and scenarios exist, with their tests tagged.
 
 | Phase | What changed | Why |
 |---|---|---|
+| Phase 5w | Added after the owner's first walkthrough pass. Voice's speaking model stops being a choice (Inworld TTS 2) and listening narrows to AssemblyAI's three live models; setup writes the defaults the spec already promised; voices are listed from Inworld's Voice API; *Models* and an agent's page are reworked; the admin area moves into the account menu. Voice stays costed at list price, as an estimate. The spec's parts 2, 3, 4 and 5 were corrected in place | The owner's walkthrough: no defaults on a fresh HQ, the voice picker and previews gone, TTS 2 not offered, too much on *Models*, the admin area hard to find; voice depends on TTS 2's emotion directions and on turn timings tuned for Universal-3 Pro |
 | Phase 1 | The contract follows the repository's rules where the spec did not: gateway headers `X-Call-Id` and `X-Billing-Profile-Id` and the error field `cloud_error` (no product name); the site's usage reports and its request for hq's Cloud token are HTTPS calls, not channel frames; the key rollover's call is form-encoded like the other `/connect/*` calls; the price list's version is the OpenCode release; an agent's own models are a 1:1 table `AgentModelChoices`; `Org.timeZone` defaults to UTC. The spec was corrected in place | Found by lane 1 against the code: versioning forbids the product name on the wire, and hq answers no requests on the control channel |
 | Phase 5 | Phase 5's work landed inside phase 3's lanes: connecting Agenthix Cloud from hq adds the provider (3e2), it reads *not available yet* behind `CLOUD_AI_AVAILABLE` (3e2, resolver 3a), and its Providers line shows only *Check now* (2b). Task 5.4 waits for hq's actual-cost calls | Connecting Cloud moved into hq (D36), so the setup lane built the provider entry with it |
 | Phase 4 | `Project.billingProfileId` stays nullable: a personal project is always costed to the default, so it carries none, and a shared project always gets one when made. Text to speech is one row per call to the speech service (a sentence), not one per reply. A relayed call is always purpose *worker* | The ledger lane (4a) found that a run's report names only the run and nothing marks a reply's end in the speech path, and personal projects never choose a profile |

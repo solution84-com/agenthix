@@ -32,10 +32,16 @@ Part of the [spec](../spec.md). **Status:** high-level design agreed; personal p
   such as `anthropic/claude-*` keeps up with new models while everything else stays off, and *Never* still carves
   exceptions out of it; patterns match a model's maker and name, never its provider; and the editor selects in bulk by
   maker, provider or price band, as a one-time selection rather than a rule that moves with prices.
-- **Voice is chosen like a model, per agent rather than per message.** Each STT or TTS provider offers its own
-  speech models (AssemblyAI's Universal-Streaming, Inworld's TTS models) and, for speech, its voices. Organisation
-  admins choose the default speech to text and text to speech, each a provider with its model (and a voice); an
-  agent's definition may override them, so each agent is bound to one of each. Every agent has a voice: the
+- **Voice is chosen per agent rather than per message.** Speech is always Inworld TTS 2, whose emotion directions
+  keep the voice continuous; no other text-to-speech model is offered. Listening is one of AssemblyAI's live models,
+  each shown with its languages and price: Universal-3 Pro (32 languages, most accurate, the default), Universal-Streaming
+  (English only) or Universal-Streaming Multilingual (6 languages). All three work with voice, because hq's own turn
+  decision, not the service, says when someone has finished. Organisation admins choose which provider of each pays,
+  the listening model and the default voice; an agent's definition may override them, so each agent is bound to one
+  of each. Any other speech model is refused when saved, and the resolver's fallback never reaches one. A voice is chosen from the
+  provider's own list (Inworld's Voice API) in one dialog, used on *Models*, an agent's page and setup: language,
+  accent, gender, age, use and tag filters that combine, a search inside what they leave, and tapping a voice
+  chooses it and plays a sample. Every agent has a voice: the
   organisation's default is always set, from what setup supplied, and *none* is never a choice; the agent's
   *Enable voice mode* switch goes. There is no picker in a conversation:
   listening streams continuously, and an agent's voice is part of who it is.

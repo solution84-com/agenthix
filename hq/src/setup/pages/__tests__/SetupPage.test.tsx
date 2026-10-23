@@ -11,6 +11,8 @@ vi.mock('wasp/client/operations', () => ({
   getSetupData: 'getSetupData',
   getWhereHqRuns: 'getWhereHqRuns',
   getSetupResume: 'getSetupResume',
+  getSetupDefaults: 'getSetupDefaults',
+  setModelDefaults: 'setModelDefaults',
   getAiProviders: 'getAiProviders',
   getHqCloudConnection: 'getHqCloudConnection',
   connectHqToCloud: 'connectHqToCloud',
@@ -41,8 +43,17 @@ import { SetupPage } from '../SetupPage'
 
 function Where() { const navigate = useNavigate(); return <><output data-testid="where">{useLocation().pathname}</output><button type="button" onClick={() => navigate(-1)}>browser back</button></> }
 const CLOUD_OFF = { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false }
+const DEFAULTS = {
+  orgName: 'My Organisation', choices: { current: null, recent: [], models: [] },
+  conversation: { providerId: 'anthropic', model: 'claude-sonnet-5', text: 'Claude Sonnet 5 · via Anthropic', notWorking: false },
+  worker: { providerId: 'anthropic', model: 'claude-opus-5', text: 'Claude Opus 5 · via Anthropic', notWorking: false },
+  stt: { providerId: 'assemblyai', model: 'u3-rt-pro', text: 'u3-rt-pro · via AssemblyAI', notWorking: false },
+  tts: { providerId: 'inworld', model: 'inworld-tts-2', voice: 'Alistair', text: 'inworld-tts-2 · Alistair · via Inworld', notWorking: false },
+  stt_options: [{ providerId: 'assemblyai', name: 'AssemblyAI', state: 'works', models: ['u3-rt-pro'] }],
+  tts_options: [{ providerId: 'inworld', name: 'Inworld', state: 'works', models: ['inworld-tts-2'] }],
+}
 const provider = (vendor: string, name: string, types: string[], state = 'works') => ({ id: vendor, vendor, name, types, state })
-const queries = (over: Record<string, unknown> = {}) => { mocks.queries = { getSetupResume: { step: 'choice' }, getAiProviders: [], getHqCloudConnection: CLOUD_OFF, ...over } }
+const queries = (over: Record<string, unknown> = {}) => { mocks.queries = { getSetupResume: { step: 'choice' }, getSetupDefaults: DEFAULTS, getAiProviders: [], getHqCloudConnection: CLOUD_OFF, ...over } }
 const setup = (hqSite: unknown = { state: 'connected', dockerRunning: true }, over: Record<string, unknown> = {}, entry = '/setup?step=organisation&path=keys') => {
   mocks.data = { org: { id: 'o', name: 'My Organisation', handle: null, vision: '', mission: '', avatarUrl: null, coverUrl: null, timeZone: 'Europe/London' }, needsSetup: true, setupComplete: false, isAdmin: true, hqSite, me: { id: 'u1', displayName: 'Dana Ruiz', username: 'dana' }, ...over }
   mocks.data = { ...(mocks.data as object), org: over.org ?? { ...(mocks.data as { org: object }).org, timeZone: 'Europe/London' } }
@@ -114,6 +125,17 @@ describe('Setup @SC-710', () => {
     const footers = screen.getAllByText('Powered by Agenthix')
     expect(footers).toHaveLength(1)
     expect(screen.getByTestId('sign-in-preview').contains(footers[0])).toBe(true)
+  })
+
+  it('shows the four defaults on the last look, each with Change, and Kernel speaking as the voice', () => {
+    setup(undefined, {}, '/setup?step=review&path=keys')
+    const rows = within(screen.getByRole('region', { name: 'Thinking' }))
+    expect(rows.getByText('Claude Sonnet 5 · via Anthropic')).toBeTruthy()
+    expect(screen.getByText('Claude Opus 5 · via Anthropic')).toBeTruthy()
+    expect(screen.getByText(/^Alistair · Inworld TTS 2 · via Inworld/)).toBeTruthy()
+    expect(screen.getByText(/^Universal-3 Pro, 32 languages · via AssemblyAI/)).toBeTruthy()
+    expect(screen.getAllByRole('button', { name: 'Change' }).length + screen.getAllByRole('button', { name: /^Change (conversation|workers)$/ }).length).toBe(4)
+    expect(screen.getByText('Kernel, speaking as Alistair')).toBeTruthy()
   })
 
   it('keeps the review on a refresh, showing what step 2 saved from the server', () => {

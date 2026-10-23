@@ -61,9 +61,10 @@ describe("hq's price lists", () => {
   })
 
   it('prices voice by its own hand-kept list', () => {
-    expect(VOICE_PRICE_REF).toMatch(/^hq:voice-\d{4}-\d{2}-\d{2}$/)
+    expect(VOICE_PRICE_REF).toMatch(/^hq:voice-\d{4}-\d{2}-\d{2}(\.\d+)?$/)
     expect(sttPricePerHourMicros('assemblyai', 'universal-streaming-english')).toBe(150_000n)
-    expect(ttsPricePerMillionCharsMicros('inworld', 'inworld-tts-1.5-max')).toBe(10_000_000n)
+    expect(ttsPricePerMillionCharsMicros('inworld', 'inworld-tts-2')).toBe(25_000_000n)
+    expect(ttsPricePerMillionCharsMicros('inworld', 'inworld-tts-1.5-max')).toBeNull()
     expect(sttPricePerHourMicros('assemblyai', 'unknown')).toBeNull()
   })
 })

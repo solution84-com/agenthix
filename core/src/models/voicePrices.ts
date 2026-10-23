@@ -7,7 +7,7 @@
  */
 import { hqPriceRef, type PriceRef } from '../billing/ledger.js'
 
-export const VOICE_PRICE_LIST_VERSION = 'voice-2026-10-23'
+export const VOICE_PRICE_LIST_VERSION = 'voice-2026-10-23.2'
 export const VOICE_PRICE_REF: PriceRef = hqPriceRef(VOICE_PRICE_LIST_VERSION)
 
 /** Speech to text, per hour of audio streamed, by vendor and speech model. */
@@ -22,8 +22,7 @@ export const STT_PRICES_PER_HOUR_MICROS: Readonly<Record<string, Readonly<Record
 /** Text to speech, per million characters sent, by vendor and speech model. */
 export const TTS_PRICES_PER_MILLION_CHARS_MICROS: Readonly<Record<string, Readonly<Record<string, bigint>>>> = {
   inworld: {
-    'inworld-tts-1.5-mini': 5_000_000n,
-    'inworld-tts-1.5-max': 10_000_000n,
+    'inworld-tts-2': 25_000_000n,
   },
 }
 

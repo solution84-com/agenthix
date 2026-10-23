@@ -30,8 +30,8 @@ describe('priceCall', () => {
   it('prices speech to text per hour of audio and text to speech per character', () => {
     const stt = priceCall({ vendor: 'assemblyai', model: 'u3-rt-pro', purpose: 'stt', basis: 'ESTIMATED', usage: { ...NO_USAGE, audioMs: 3_600_000 } }, { usageBilling: false })
     expect(stt).toEqual({ basis: 'ESTIMATED', amountMicros: 450_000n, currency: 'USD', priceRef: VOICE_PRICE_REF })
-    const tts = priceCall({ vendor: 'inworld', model: 'inworld-tts-1.5-max', purpose: 'tts', basis: 'ESTIMATED', usage: { ...NO_USAGE, characters: 1000 } }, { usageBilling: false })
-    expect(tts.amountMicros).toBe(10_000n)
+    const tts = priceCall({ vendor: 'inworld', model: 'inworld-tts-2', purpose: 'tts', basis: 'ESTIMATED', usage: { ...NO_USAGE, characters: 1000 } }, { usageBilling: false })
+    expect(tts.amountMicros).toBe(25_000n)
   })
 
   describe('through Agenthix Cloud', () => {

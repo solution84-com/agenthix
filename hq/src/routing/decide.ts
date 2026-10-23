@@ -21,6 +21,7 @@ import {
 import { allowedByLists, type AppliedList } from './listMatch'
 import { makerAndName, modelsReachedBy, reaches, runtimeFor, sameModelKey } from './modelKeys'
 import { problemFor } from './problems'
+import { DEFAULT_LISTENING_MODEL, VOICE_TTS_MODEL } from '../voice/voiceModels'
 
 export type RouteProvider = {
   id: string
@@ -59,7 +60,7 @@ const VOICE: Partial<Record<UsagePurpose, AiProviderType>> = { stt: 'stt', tts: 
 
 /** Fallback speech models when voice moves to another provider than the one a choice named. */
 const VOICE_MODEL: Partial<Record<AiProviderVendor, string>> = {
-  assemblyai: 'universal-streaming-english', inworld: 'inworld-tts-1.5-max',
+  assemblyai: DEFAULT_LISTENING_MODEL, inworld: VOICE_TTS_MODEL,
 }
 
 export type Unusable = Extract<ResolveProblemCode, 'model_not_reached' | 'provider_not_working' | 'model_not_allowed' | 'subscription_outside_own_place'>

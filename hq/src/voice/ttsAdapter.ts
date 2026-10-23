@@ -4,12 +4,25 @@ export interface TTSConfig {
   model: string
 }
 
-export interface Voice {
+/** A voice from Inworld's Voice API, with the fields its filters use. */
+// A type, not an interface: an operation's answer must be assignable to Wasp's JSON payload.
+export type Voice = {
   voiceId: string
   displayName: string
   description: string
-  languages: string[]
+  /** BCP-47, such as `en-GB`. */
+  languageCode: string
+  /** The accent in words, from the region of `languageCode`; empty when the code has no region. */
+  accent: string
+  /** `male`, `female` or `neutral`; empty when unspecified. */
+  gender: string
+  /** `young`, `middle_aged` or `elderly`; empty when unspecified. */
+  ageGroup: string
+  /** Use cases, as Inworld names them: `companions`, `healthcare`, ... */
+  categories: string[]
   tags: string[]
+  source: string
+  /** Made in the organisation's own Inworld workspace rather than one of Inworld's. */
   isCustom: boolean
 }
 

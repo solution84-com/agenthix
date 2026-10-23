@@ -33,6 +33,16 @@ describe('speechAccess', () => {
     expect(answer.ok && answer.access.costing).toMatchObject({ projectId: 'proj-1', userId: 'u1', conversationId: 'c1' })
   })
 
+  it('uses the provider the caller names, as it is: the pick goes to the resolver and its key is read', async () => {
+    resolve.mockResolvedValue({ ok: true, resolution: { ...resolved('inworld').resolution, model: { providerId: 'p-named', model: 'inworld-tts-2' } } })
+    credentialOf.mockResolvedValue({ key: 'sk-test-fake', baseUrl: null })
+    const pick = { providerId: 'p-named', model: 'inworld-tts-2' }
+    const answer = await speechAccess('tts', null, { userId: 'u1', pick })
+    expect(resolve).toHaveBeenCalledWith({ purpose: 'tts', place: { kind: 'organisation' }, userId: 'u1', pick })
+    expect(credentialOf).toHaveBeenCalledWith('p-named')
+    expect(answer.ok && answer.access.providerId).toBe('p-named')
+  })
+
   it('says voice is down, and who has been told, when the resolver finds no provider', async () => {
     resolve.mockResolvedValue({ ok: false, problem: { code: 'no_provider' } })
     expect(await speechAccess('stt')).toEqual({

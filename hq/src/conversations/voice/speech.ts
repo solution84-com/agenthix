@@ -4,6 +4,7 @@
  * resolver gives, in the agent's voice.
  */
 import { reportCall } from '../../routing/resolver'
+import { DEFAULT_VOICE } from '../../voice/voiceModels'
 import { inworldTtsAdapter } from '../../voice/inworldAdapter'
 import { failureKind, speechAccess, type SpeechScope } from '../../voice/speechAccess'
 import type { WordTiming } from '../../voice/ttsAdapter'
@@ -35,8 +36,6 @@ export interface AgentVoice {
   /** What its calls are costed to; absent in tests. */
   costed?: VoiceCallAccess
 }
-
-const DEFAULT_VOICE = 'Ashley'
 
 /** The agent's voice on the text to speech provider the resolver gives it; null, with why, when none works. */
 export async function agentVoice(agentId: string, scope?: SpeechScope): Promise<{ voice: AgentVoice } | { reason: string }> {

@@ -31,8 +31,11 @@ when providers became the organisation admin's (part 1). The detail is settled i
      Voice is not optional.
   5. **Your organisation:** name, picture, cover and time zone. The default billing profile is made, named after the
      organisation (part 5).
-  6. **Last look:** where models and voice come from, the default models chosen from what was added, and the first
-     agent, with a voice.
+  6. **Last look:** the organisation's four defaults, chosen by setup from what was added and each changeable here:
+     the conversation and worker models (the provider's recommended ones), the voice (Inworld TTS 2 speaking as
+     Alistair, with a preview) and listening (AssemblyAI's Universal-3 Pro realtime); and the first agent, Kernel,
+     speaking as that voice. Setup writes the defaults when it finishes, so a new organisation never runs on the
+     resolver's last-resort fallback.
 
   One provider of each is enough to finish. More, and any mix with Agenthix Cloud, are added afterwards on
   *Providers* in the admin area. Every provider written in setup goes through the provider store with the actor

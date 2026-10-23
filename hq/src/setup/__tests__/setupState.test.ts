@@ -7,6 +7,7 @@ const db = vi.hoisted(() => ({
   firstAdmin: true,
   role: 'ADMIN',
   updated: 0,
+  written: [] as Record<string, unknown>[],
 }))
 
 vi.mock('wasp/server', async () => {
@@ -19,6 +20,7 @@ vi.mock('wasp/server', async () => {
       org: {
         findFirst: async () => db.org,
         updateMany: async () => { db.updated += 1; return { count: 1 } },
+        update: async (a: { data: Record<string, unknown> }) => { db.written.push(a.data); return {} },
       },
       invite: { findFirst: async () => (db.firstAdmin ? { id: 'i' } : null) },
       userSettings: { findUnique: async () => ({ role: db.role }) },
@@ -70,7 +72,7 @@ describe('finishSetup needs models and voice @SC-710', () => {
   beforeEach(() => {
     store = new FakeProviderStore()
     useProviderStore(store)
-    Object.assign(db, { org: { setupCompletedAt: null }, firstAdmin: true, role: 'ADMIN', updated: 0 })
+    Object.assign(db, { org: { id: 'o1', setupCompletedAt: null }, firstAdmin: true, role: 'ADMIN', updated: 0, written: [] })
   })
   afterEach(() => useProviderStore(null))
 
@@ -86,6 +88,19 @@ describe('finishSetup needs models and voice @SC-710', () => {
     await store.create(provider('inworld'))
     expect(await finishSetup('u1')).toBe(true)
     expect(db.updated).toBe(1)
+  })
+
+  it('writes the four defaults that are not set when it finishes, and keeps one that is', async () => {
+    db.org = { id: 'o1', setupCompletedAt: null, defaultWorkerProviderId: 'x', defaultWorkerModel: 'claude-haiku-4-5' } as typeof db.org
+    const a = await store.create(provider('anthropic'))
+    const s = await store.create(provider('assemblyai'))
+    const i = await store.create(provider('inworld'))
+    await finishSetup('u1')
+    expect(db.written).toEqual([{
+      defaultConversationProviderId: a.id, defaultConversationModel: 'claude-sonnet-5',
+      defaultSttProviderId: s.id, defaultSttModel: 'u3-rt-pro',
+      defaultTtsProviderId: i.id, defaultTtsModel: 'inworld-tts-2', defaultTtsVoice: 'Alistair',
+    }])
   })
 
   it('records setup with Agenthix Cloud alone, which covers all three', async () => {

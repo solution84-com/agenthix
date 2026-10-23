@@ -73,7 +73,7 @@ describe('the stored phrases', () => {
     expect(directed.map(c => c.text)).toEqual(PHRASES)
     expect(asked.every(t => t.startsWith(`${PHRASE_DIRECTION} `))).toBe(true)
     asked.length = 0
-    await collect(synthesize, { ...voice, model: 'inworld-tts-1.5-mini' })
+    await collect(synthesize, { ...voice, model: 'inworld-tts-2' })
     expect(asked.some(t => t.startsWith('['))).toBe(false)
   })
 

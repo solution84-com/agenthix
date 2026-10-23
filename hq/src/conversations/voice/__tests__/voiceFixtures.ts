@@ -12,7 +12,7 @@ export async function setUpVoiceProviders(opts: { stt?: boolean; tts?: boolean }
     data: {
       defaultConversationProviderId: llm.id, defaultConversationModel: 'claude-sonnet-5',
       ...(stt ? { defaultSttProviderId: stt.id, defaultSttModel: 'universal-streaming-english' } : {}),
-      ...(tts ? { defaultTtsProviderId: tts.id, defaultTtsModel: 'inworld-tts-1.5-max', defaultTtsVoice: 'Ashley' } : {}),
+      ...(tts ? { defaultTtsProviderId: tts.id, defaultTtsModel: 'inworld-tts-2', defaultTtsVoice: 'Ashley' } : {}),
     },
   })
   return { llm, stt, tts }

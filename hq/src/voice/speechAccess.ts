@@ -36,7 +36,11 @@ export interface SpeechAccess {
 export type SpeechAnswer = { ok: true; access: SpeechAccess } | { ok: false; reason: string }
 
 /** Whose call it is and where: a conversation's place costs its project's billing profile; none costs the organisation's. */
-export type SpeechScope = { place?: ResolvePlace; userId?: string | null; conversationId?: string | null }
+export type SpeechScope = {
+  place?: ResolvePlace; userId?: string | null; conversationId?: string | null
+  /** A provider named by the caller, used as it is or not at all: a voice list or a preview for the provider on screen. */
+  pick?: { providerId: string; model: string }
+}
 
 /** The provider to use for speech to text or text to speech now; `reason` is what a person reads when there is none. */
 export async function speechAccess(kind: SpeechKind, agentId?: string | null, scope: SpeechScope = {}): Promise<SpeechAnswer> {
@@ -46,6 +50,7 @@ export async function speechAccess(kind: SpeechKind, agentId?: string | null, sc
     ...(agentId ? { agentId } : {}),
     ...(scope.userId ? { userId: scope.userId } : {}),
     ...(scope.conversationId ? { conversationId: scope.conversationId } : {}),
+    ...(scope.pick ? { pick: scope.pick } : {}),
   }
   const answer = await resolve(req)
   if (!answer.ok) return down

@@ -12,6 +12,11 @@ vi.mock('wasp/client/auth', () => ({
   useAuth: () => ({ data: { id: 'u1', identities: { username: { id: 'testuser' } } } }),
   logout: vi.fn(),
 }))
+vi.mock('wasp/client/operations', () => ({
+  useQuery: () => ({ data: undefined }),
+  getOrgIdentity: 'getOrgIdentity',
+  getUserSettings: 'getUserSettings',
+}))
 vi.mock('@agenthix/ui', () => ({ Logomark: () => null, Wordmark: () => null }))
 vi.mock('@agenthix/ui/primitives', () => ({
   PlaceAvatar: ({ id, name }: { id: string; name: string }) => <span data-testid="place-avatar" data-id={id}>{name[0]}</span>,
@@ -23,7 +28,7 @@ vi.mock('../../../pins/components/PinButton', () => ({
 vi.mock('lucide-react', () => {
   const Icon = () => null
   return Object.fromEntries([
-    'AudioLines', 'House', 'MessageSquare', 'UserRound', 'FolderKanban', 'Bot', 'CircleDot', 'Building2', 'Settings', 'ChevronLeft',
+    'AudioLines', 'House', 'MessageSquare', 'UserRound', 'FolderKanban', 'Bot', 'CircleDot', 'Building2', 'Settings', 'ShieldCheck', 'ChevronLeft',
     'LogOut', 'Pin', 'PinOff', 'X', 'LayoutDashboard', 'MessagesSquare', 'SquareCheck', 'Kanban', 'GanttChart', 'Play',
     'Repeat', 'Folder', 'Diamond', 'BookOpen', 'GitBranch', 'Users', 'Brain', 'Activity', 'Gauge', 'ScrollText', 'Circle',
   ].map((n) => [n, Icon]))

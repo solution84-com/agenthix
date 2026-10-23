@@ -141,6 +141,7 @@ export const WASP_QUERIES: readonly string[] = [
   'getSessionPendingManifest',
   'getSetupData',
   'getSetupResume',
+  'getSetupDefaults',
   'getSiteConfig',
   'getSiteDetail',
   'getSiteList',

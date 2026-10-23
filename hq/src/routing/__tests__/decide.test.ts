@@ -15,7 +15,7 @@ const opus = { providerId: 'p-ant', model: 'claude-opus-4-5' }
 function snap(over: Partial<Snapshot> = {}): Snapshot {
   return {
     providers: [anthropic, openrouter, assembly, inworld],
-    org: { ...NONE, conversation: sonnet, worker: opus, stt: { providerId: 'p-aai', model: 'u3-rt-pro' }, tts: { providerId: 'p-iw', model: 'inworld-tts-1.5-max', voice: 'Ashley' } },
+    org: { ...NONE, conversation: sonnet, worker: opus, stt: { providerId: 'p-aai', model: 'u3-rt-pro' }, tts: { providerId: 'p-iw', model: 'inworld-tts-2', voice: 'Ashley' } },
     agent: null, agentName: 'Kernel', lists: [], conversationModel: null, billingProfileId: 'bp-default',
     ...over,
   }
@@ -147,7 +147,7 @@ describe('decide: a person’s own Claude subscription', () => {
 describe('decide: voice', () => {
   it("takes the agent's own, else the organisation's, with its voice", () => {
     const r = ok(decide(req({ purpose: 'tts' }), snap()))
-    expect(r).toMatchObject({ model: { providerId: 'p-iw', model: 'inworld-tts-1.5-max' }, voice: 'Ashley', basis: 'ESTIMATED' })
+    expect(r).toMatchObject({ model: { providerId: 'p-iw', model: 'inworld-tts-2' }, voice: 'Ashley', basis: 'ESTIMATED' })
     const own = ok(decide(req({ purpose: 'stt' }), snap({ agent: { ...NONE, stt: { providerId: 'p-aai', model: 'universal-streaming-multilingual' } } })))
     expect(own).toMatchObject({ from: 'agent', model: { model: 'universal-streaming-multilingual' } })
   })
@@ -157,5 +157,11 @@ describe('decide: voice', () => {
     const r = ok(decide(req({ purpose: 'stt' }), snap({ providers: [{ ...assembly, state: 'unreachable' }, second, inworld] })))
     expect(r.model.providerId).toBe('p-cloud')
     expect(r.fellBack?.reason).toBe('provider_not_working')
+  })
+
+  it('falls back, with no default chosen, to the models voice is built on', () => {
+    const bare = snap({ org: NONE })
+    expect(ok(decide(req({ purpose: 'stt' }), bare)).model).toEqual({ providerId: 'p-aai', model: 'u3-rt-pro' })
+    expect(ok(decide(req({ purpose: 'tts' }), bare)).model).toEqual({ providerId: 'p-iw', model: 'inworld-tts-2' })
   })
 })

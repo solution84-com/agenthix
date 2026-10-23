@@ -11,12 +11,23 @@ import {
 import { choiceValue, parseChoiceValue } from '../conversations/access/talkingModel'
 import { whyUnusable, type RouteProvider, type Snapshot } from '../routing/decide'
 import { modelLabel } from '../routing/modelKeys'
+import { LISTENING_MODELS, VOICE_TTS_MODEL } from '../voice/voiceModels'
 import type { ChoiceView, ModelInput, VoiceInput, VoiceProviderOption } from './types'
 
 export const VOICE_MAX_CHARS = 100
 
+/** Speech is the one model voice is built on; listening is one of the live models, all priced. */
 export function modelsOfVoice(vendor: string, type: 'stt' | 'tts'): string[] {
-  return Object.keys((type === 'stt' ? STT_PRICES_PER_HOUR_MICROS : TTS_PRICES_PER_MILLION_CHARS_MICROS)[vendor] ?? {})
+  if (type === 'tts') return vendor in TTS_PRICES_PER_MILLION_CHARS_MICROS ? [VOICE_TTS_MODEL] : []
+  const live: readonly string[] = LISTENING_MODELS.map(m => m.model)
+  return Object.keys(STT_PRICES_PER_HOUR_MICROS[vendor] ?? {}).filter(m => live.includes(m))
+}
+
+/** What a person reads when a speech model other than the ones voice is built on is sent. */
+function onlyModelsWords(type: 'stt' | 'tts', providerName: string): string {
+  if (type === 'tts') return 'Voice speaks with Inworld TTS 2 only.'
+  const labels = LISTENING_MODELS.map(m => m.label)
+  return `${providerName} listens with ${labels.slice(0, -1).join(', ')} or ${labels[labels.length - 1]}.`
 }
 
 export function voiceOptions(providers: readonly RouteProvider[], type: 'stt' | 'tts'): VoiceProviderOption[] {
@@ -25,12 +36,19 @@ export function voiceOptions(providers: readonly RouteProvider[], type: 'stt' | 
     .map(p => ({ providerId: p.id, name: p.name, state: p.state, models: modelsOfVoice(p.vendor, type) }))
 }
 
+/** A speech model in words: *Inworld TTS 2*, *Universal-3 Pro, 32 languages*; one not known is shown as it is named. */
+export function speechModelLabel(model: string): string {
+  if (model === VOICE_TTS_MODEL) return 'Inworld TTS 2'
+  const listening = LISTENING_MODELS.find(m => m.model === model)
+  return listening ? `${listening.label}, ${listening.languages}` : model
+}
+
 /** A choice in words: `Claude Sonnet 5 · via Anthropic`, or a speech model with its voice. */
 export function viewChoice(choice: (ModelViaProvider & { voice?: string }) | null, snap: Pick<Snapshot, 'providers'>, speech = false): ChoiceView | null {
   if (!choice) return null
   const p = snap.providers.find(x => x.id === choice.providerId)
   if (!p) return null
-  const what = speech ? choice.model : modelLabel(p.vendor, choice.model)
+  const what = speech ? speechModelLabel(choice.model) : modelLabel(p.vendor, choice.model)
   const text = `${what}${choice.voice ? ` · ${choice.voice}` : ''} · via ${p.name}`
   return { ...choice, text, notWorking: !providerStateWorks(p.state) }
 }
@@ -60,7 +78,7 @@ export function checkVoice(input: Exclude<VoiceInput, null>, type: 'stt' | 'tts'
   if (!providerStateWorks(p.state)) throw new HttpError(400, WHY.provider_not_working)
   const known = modelsOfVoice(p.vendor, type)
   const model = typeof input.model === 'string' ? input.model : ''
-  if (known.length > 0 && !known.includes(model)) throw new HttpError(400, `${p.name} has no speech model called "${model}"`)
+  if (known.length > 0 && !known.includes(model)) throw new HttpError(400, onlyModelsWords(type, p.name))
   const voice = type === 'tts' && typeof input.voice === 'string' ? input.voice.trim() : ''
   if (voice.length > VOICE_MAX_CHARS) throw new HttpError(400, 'That voice name is too long')
   void req

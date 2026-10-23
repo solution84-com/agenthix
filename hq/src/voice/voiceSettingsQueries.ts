@@ -1,6 +1,8 @@
 import { HttpError } from 'wasp/server'
 import { getCachedVoices } from './voiceCache'
 import { speechAccess } from './speechAccess'
+import { VOICE_TTS_MODEL } from './voiceModels'
+import type { Voice } from './ttsAdapter'
 import type { VoiceServices } from '../shared/conversations/voice'
 
 /**
@@ -16,19 +18,15 @@ export const getVoiceServices = async (_args: void, context: any): Promise<Voice
   }
 }
 
-type InworldVoice = {
-  voiceId: string
-  displayName: string
-  description: string
-  languages: string[]
-  tags: string[]
-  isCustom: boolean
-}
-
-/** The voices of the text to speech provider the resolver gives (the agent's own when `agentId` is set). */
-export const listInworldVoices = async (args: { agentId?: string } | void, context: any): Promise<InworldVoice[]> => {
+/**
+ * The voices of the text to speech provider named, for any signed-in member: previews are costed to the
+ * organisation, and every agent has a voice. The provider's own key lists them, not whichever provider the
+ * resolver would give.
+ */
+export const listInworldVoices = async (args: { providerId: string }, context: any): Promise<Voice[]> => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
-  const answer = await speechAccess('tts', args?.agentId)
+  if (typeof args?.providerId !== 'string' || !args.providerId) throw new HttpError(400, 'Choose a text to speech provider')
+  const answer = await speechAccess('tts', null, { pick: { providerId: args.providerId, model: VOICE_TTS_MODEL } })
   if (!answer.ok) throw new HttpError(503, answer.reason)
-  return getCachedVoices(answer.access.apiKey)
+  return getCachedVoices(answer.access.providerId, answer.access.apiKey)
 }

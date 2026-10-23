@@ -12,8 +12,8 @@ function cacheDir(): string {
   return getVoiceCacheDir()
 }
 
-function voicesFile(): string {
-  return path.join(cacheDir(), 'voices.json')
+function voicesFile(providerId: string): string {
+  return path.join(cacheDir(), `voices-${providerId.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`)
 }
 
 function voiceDir(voiceId: string): string {
@@ -44,8 +44,9 @@ function isStale(filePath: string, ttlMs: number): boolean {
 
 // ─── Voice list ───────────────────────────────────────────────────────────────
 
-export async function getCachedVoices(apiKey: string): Promise<Voice[]> {
-  const file = voicesFile()
+/** One provider's voices: each provider has its own workspace, and so its own list and custom voices. */
+export async function getCachedVoices(providerId: string, apiKey: string): Promise<Voice[]> {
+  const file = voicesFile(providerId)
 
   if (!isStale(file, VOICES_CHECK_INTERVAL_MS)) {
     return JSON.parse(fs.readFileSync(file, 'utf8')) as Voice[]

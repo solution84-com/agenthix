@@ -79,7 +79,9 @@ built in this unit; only reporting usage to Agenthix Cloud waits behind the `usa
   - **Models on own keys:** today's catalogue in `core`, versioned by the OpenCode release it was generated from
     (`opencode-<version>`), converted to
     millionths of a dollar.
-  - **Voice on own keys:** a hand-kept table, `core/src/models/voicePrices.ts`, with its own version.
+  - **Voice on own keys:** a hand-kept table, `core/src/models/voicePrices.ts`, with its own version, holding each
+    vendor's public list price for the two voice models. It is an estimate, and the usage report says so: an
+    account on a cheaper plan is billed less by the vendor, and no plan is asked for.
   - **Through Agenthix Cloud:** written *awaiting actual*, with Cloud's catalogue price shown as a guide. An `ACTUAL`
     row is appended when Cloud reports the call. With `usageBilling` off, the row is written *estimated* from Cloud's
     catalogue.

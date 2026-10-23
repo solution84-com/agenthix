@@ -5,6 +5,7 @@ import type { HqSiteState } from '../../hqSiteState'
 import { HqSiteWarning } from './HqSiteLine'
 import { AuthedImg } from '../../../shared/components/AuthedImg'
 import { SignInPreview } from './SignInPreview'
+import { DefaultsSection, KernelLine } from './DefaultsSection'
 
 type Props = {
   me: { id: string; displayName: string | null; username: string | null }
@@ -61,6 +62,10 @@ export function ReviewStep({ timeZone, position, aiWords, me, orgName, avatarUrl
         <div className="text-body text-text-primary">{aiWords}</div>
         <div className="text-small text-text-muted">Change providers any time under Manage › Providers.</div>
       </Section>
+      <Section title="Defaults for everyone">
+        <DefaultsSection />
+        <div className="text-small text-text-muted">Change these any time under Manage › Models.</div>
+      </Section>
       <Section title="Your organisation" onEdit={() => onEdit('org')}>
         <div className="mb-2 text-body text-text-primary">{orgName} <span className="text-small text-text-muted">· {timeZone}</span></div>
         <div className="flex items-end gap-4">
@@ -69,7 +74,7 @@ export function ReviewStep({ timeZone, position, aiWords, me, orgName, avatarUrl
         </div>
       </Section>
       <Section title="Your first agent">
-        <div className="text-small text-text-primary">Kernel, with a voice</div>
+        <KernelLine />
       </Section>
       <Section title="Where agents run">
         {hqSite.state === 'connected'

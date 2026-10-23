@@ -10,6 +10,13 @@ vi.mock('wasp/client/auth', () => ({
   logout,
 }))
 
+const me = vi.hoisted(() => ({ role: 'MEMBER' as 'ADMIN' | 'MEMBER' }))
+vi.mock('wasp/client/operations', () => ({
+  useQuery: (q: string) => ({ data: q === 'getOrgIdentity' ? { name: 'Fernhill' } : { role: me.role } }),
+  getOrgIdentity: 'getOrgIdentity',
+  getUserSettings: 'getUserSettings',
+}))
+
 import { SidebarFooter } from '../sidebar/SidebarFooter'
 
 function Where() {
@@ -28,43 +35,53 @@ function renderFoot(props: Partial<React.ComponentProps<typeof SidebarFooter>> =
 const trigger = () => screen.getByRole('button', { name: 'sam, account menu' })
 const menu = () => screen.queryByRole('menu', { name: 'Account' })
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks(); me.role = 'MEMBER' })
 
 describe('the foot: you @SC-1045', () => {
-  it('shows your avatar and name, with the menu closed and no Organisation, Settings or Sign out rows', () => {
+  it('shows your avatar and name, with the menu closed and no Overview, Your settings or Sign out rows', () => {
     renderFoot()
     expect(within(trigger()).getByText('SA')).toBeTruthy()
     expect(within(trigger()).getByText('sam')).toBeTruthy()
     expect(trigger().getAttribute('aria-expanded')).toBe('false')
     expect(menu()).toBeNull()
-    expect(screen.queryByRole('link', { name: 'Organisation' })).toBeNull()
-    expect(screen.queryByRole('link', { name: 'Settings' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Overview' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Your settings' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull()
   })
 
-  it('opens a menu with Organisation, Settings and Sign out, the first focused', () => {
+  it('opens a menu grouped by whose each item is: the organisation’s Overview, then yours, the first focused', () => {
     renderFoot()
     fireEvent.click(trigger())
     const items = within(menu()!).getAllByRole('menuitem')
-    expect(items.map((i) => i.textContent)).toEqual(['Organisation', 'Settings', 'Sign out'])
+    expect(items.map((i) => i.textContent)).toEqual(['Overview', 'Your settings', 'Sign out'])
     expect(items[0].getAttribute('href')).toBe('/org')
     expect(items[1].getAttribute('href')).toBe('/settings')
+    expect(within(menu()!).getByText('Fernhill')).toBeTruthy()
     expect(document.activeElement).toBe(items[0])
     expect(trigger().getAttribute('aria-expanded')).toBe('true')
+  })
+
+  it('offers Manage, marked Admin, to organisation admins only', () => {
+    me.role = 'ADMIN'
+    renderFoot()
+    fireEvent.click(trigger())
+    const items = within(menu()!).getAllByRole('menuitem')
+    expect(items.map((i) => i.textContent)).toEqual(['Overview', 'ManageAdmin', 'Your settings', 'Sign out'])
+    expect(items[1].getAttribute('href')).toBe('/admin')
   })
 
   it('marks the page you are on', () => {
     renderFoot({}, '/settings/profile')
     fireEvent.click(trigger())
-    expect(within(menu()!).getByRole('menuitem', { name: 'Settings' }).getAttribute('aria-current')).toBe('page')
-    expect(within(menu()!).getByRole('menuitem', { name: 'Organisation' }).getAttribute('aria-current')).toBeNull()
+    expect(within(menu()!).getByRole('menuitem', { name: 'Your settings' }).getAttribute('aria-current')).toBe('page')
+    expect(within(menu()!).getByRole('menuitem', { name: 'Overview' }).getAttribute('aria-current')).toBeNull()
   })
 
   it('goes where a link says, closes, and lets a phone drawer close', () => {
     const onNavigate = vi.fn()
     renderFoot({ onNavigate })
     fireEvent.click(trigger())
-    fireEvent.click(within(menu()!).getByRole('menuitem', { name: 'Organisation' }))
+    fireEvent.click(within(menu()!).getByRole('menuitem', { name: 'Overview' }))
     expect(screen.getByTestId('where').textContent).toBe('/org')
     expect(menu()).toBeNull()
     expect(onNavigate).toHaveBeenCalledTimes(1)
@@ -125,7 +142,7 @@ describe('the foot: icon width @SC-1045', () => {
     expect(trigger().getAttribute('title')).toBe('sam')
     expect(screen.queryByText('sam')).toBeNull()
     fireEvent.click(trigger())
-    expect(within(menu()!).getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Organisation', 'Settings', 'Sign out'])
+    expect(within(menu()!).getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Overview', 'Your settings', 'Sign out'])
   })
 })
 

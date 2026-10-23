@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router'
-import { AudioLines, House, MessageSquare, UserRound, FolderKanban, Bot, CircleDot, Building2, Settings } from 'lucide-react'
+import { AudioLines, House, MessageSquare, UserRound, FolderKanban, Bot, CircleDot, Building2, Settings, ShieldCheck } from 'lucide-react'
 import { useShellCounts } from '../../layouts/useShellCounts'
 import { NavItem, type NavIcon } from './NavItem'
 
@@ -32,6 +32,18 @@ const DEV_LINKS: MainLink[] = import.meta.env.DEV
 export const FOOT_LINKS: MainLink[] = [
   { to: '/org', label: 'Organisation', icon: Building2, active: (p) => within(p, '/org') },
   { to: '/settings', label: 'Settings', icon: Settings, active: (p) => within(p, '/settings') },
+]
+
+/**
+ * The account menu, grouped by whose each item is: under the organisation's name its Overview and, for organisation
+ * admins, Manage (the admin area); then the person's own Your settings.
+ */
+export const ORG_MENU_LINKS: (MainLink & { adminOnly?: boolean })[] = [
+  { to: '/org', label: 'Overview', icon: Building2, active: (p) => within(p, '/org') },
+  { to: '/admin', label: 'Manage', icon: ShieldCheck, adminOnly: true, active: (p) => within(p, '/admin') },
+]
+export const PERSON_MENU_LINKS: MainLink[] = [
+  { to: '/settings', label: 'Your settings', icon: Settings, active: (p) => within(p, '/settings') },
 ]
 
 /** The navigation's places, each marked when it is where the person is; Tasks says how many need them. */
