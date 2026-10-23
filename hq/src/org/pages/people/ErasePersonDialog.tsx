@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAction, erasePerson } from 'wasp/client/operations'
+import { useAction, useQuery, erasePerson, getErasedProjectCount } from 'wasp/client/operations'
 import { Modal, Button, Input } from '@agenthix/ui/primitives'
 import { eraseConfirmationMatches } from './peopleFormat'
 
@@ -7,6 +7,8 @@ type Person = { userId: string; name: string; handle: string | null }
 
 export function ErasePersonDialog({ person, open, onClose }: { person: Person; open: boolean; onClose: () => void }) {
   const erase = useAction(erasePerson)
+  const { data: projects } = useQuery(getErasedProjectCount, { userId: person.userId }, { enabled: open })
+  const others = projects?.count ?? 0
   const [typed, setTyped] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -22,7 +24,10 @@ export function ErasePersonDialog({ person, open, onClose }: { person: Person; o
       <div className="space-y-4 text-body text-text-secondary">
         <div>
           <p className="font-medium text-text-primary">Deleted</p>
-          <p>Their private conversations, personal project and files, memory, connections, model logins, name and picture.</p>
+          <p>Their private conversations, space and files, memory, connections, model logins, name and picture.</p>
+          {others > 0 && (
+            <p>{others} other personal {others === 1 ? 'project' : 'projects'} they made, with {others === 1 ? 'its' : 'their'} conversations, tasks and files.</p>
+          )}
         </div>
         <div>
           <p className="font-medium text-text-primary">Stays</p>

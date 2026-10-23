@@ -21,7 +21,7 @@ import { heardText, speechUnits, type SpeechUnit } from './speechUnits'
 import { RaisedHand, type HandTimer } from './hand'
 import { audioMs, PlaybackTimeline, SENTENCES_AHEAD } from './outbound'
 
-export const SPEECH_FAILED = "Voice could not say the rest of this reply, so it is here as text."
+export const SPEECH_FAILED = "Couldn't speak this reply"
 
 export interface VoiceSessionDeps {
   /** One sentence as audio, with its words' timings, as they stream from the speech service. */

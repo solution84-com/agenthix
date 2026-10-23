@@ -10,7 +10,8 @@ import { createAgent, createUserWithRole, ensureExecutionSite } from '../../test
 import { ensureHqSigningKey } from '../../server/identity/signingKeyService'
 import { writePackage } from '../../packages/packageStore'
 import { writeAgentContent } from '../../packages/agentPackageService'
-import { encryptSecret } from '../../server/crypto/secretCrypto'
+import { createProvider, setOrgDefaults } from '../../routing/__tests__/routingFixtures'
+import { modelsReachedBy } from '../../routing/modelKeys'
 import * as siteStore from '../../test/fakes/siteRuntimeStore'
 
 /** The install's own site, current protocol; its signing key; the platform package; and an admin. */
@@ -28,14 +29,16 @@ export async function agentWithContent(data: Record<string, unknown> = {}) {
   return agent
 }
 
-/** An API key held by a project or a person. */
-export function apiKeyFor(
-  ownerType: 'project' | 'user',
-  ownerId: string,
-  apiKey: string,
-  provider: 'anthropic' | 'openai' | 'openrouter' = 'anthropic',
-) {
-  return prisma.modelCredential.create({ data: { kind: 'API_KEY', provider, ownerType, ownerId, secret: encryptSecret(apiKey) } })
+/**
+ * A provider of the organisation's, with an obviously fake key, made its default conversation and worker model: a
+ * Claude model via Anthropic, or the catalogue's first model of another vendor. Returns the provider and the model as
+ * the runtime takes it.
+ */
+export async function orgModel(vendor: 'anthropic' | 'openai' | 'openrouter' = 'anthropic', apiKey = 'sk-test-fake') {
+  const provider = await createProvider({ vendor, key: apiKey })
+  const model = vendor === 'anthropic' ? 'claude-sonnet-4-6' : modelsReachedBy(vendor)[0].model
+  await setOrgDefaults({ conversation: { providerId: provider.id, model }, worker: { providerId: provider.id, model } })
+  return { provider, model, runtimeModel: vendor === 'anthropic' ? model : `${vendor}/${model}` }
 }
 
 /** The one run dispatched since the last reset, with its site and the claims its capability carries. */

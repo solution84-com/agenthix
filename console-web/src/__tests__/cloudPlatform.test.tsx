@@ -54,14 +54,14 @@ describe('links out to Cloud @SC-1119', () => {
 })
 
 describe("the Cloud section on HQ's page @SC-1115", () => {
-  it('not connected: says what Cloud gives, the people who asked, and Connect, with no command to run', async () => {
+  it('not connected: says what Cloud gives, the people who asked, and where to connect (HQ, not here)', async () => {
     fakeServer(signedIn(view(), { 'GET /cloud/asks': { status: 200, body: { count: 3 } } }))
     openAt('/hq')
     const section = await screen.findByRole('region', { name: 'Agenthix Cloud connection' })
     expect(await within(section).findByText(/asked to sign in with Agenthix Cloud/)).toBeTruthy()
     expect(within(section).getByText(/3 people/)).toBeTruthy()
-    expect(within(section).getByRole('button', { name: 'Connect to Agenthix Cloud ↗' })).toBeTruthy()
-    expect(within(section).getByText(/signing in there or making an account/)).toBeTruthy()
+    expect(within(section).getByText(/done in HQ by an organisation admin, under Manage › Providers/)).toBeTruthy()
+    expect(within(section).queryByRole('button', { name: /Connect/ })).toBeNull()
     expect(section.textContent).not.toMatch(/cloud connect/)
   })
 
@@ -69,16 +69,16 @@ describe("the Cloud section on HQ's page @SC-1115", () => {
     fakeServer(signedIn(view(), { 'GET /cloud/asks': { status: 200, body: { count: 0 } } }))
     openAt('/hq')
     const section = await screen.findByRole('region', { name: 'Agenthix Cloud connection' })
-    await waitFor(() => expect(within(section).getByRole('button', { name: 'Connect to Agenthix Cloud ↗' })).toBeTruthy())
+    await waitFor(() => expect(within(section).getByText(/done in HQ by an organisation admin/)).toBeTruthy())
     expect(section.textContent).not.toMatch(/asked to sign in/)
   })
 
-  it('connected: shows the person\'s own Cloud account as not linked, and Disconnect', async () => {
+  it('connected: shows the person\'s own Cloud account as not linked, and no Disconnect here', async () => {
     fakeServer(signedIn(view({ organisation: CONNECTED })))
     openAt('/hq')
     const section = await screen.findByRole('region', { name: 'Agenthix Cloud connection' })
     expect(within(section).getByText(/Not linked/)).toBeTruthy()
-    expect(within(section).getByRole('button', { name: 'Disconnect…' })).toBeTruthy()
+    expect(within(section).queryByRole('button', { name: 'Disconnect…' })).toBeNull()
   })
 
   it('HQ on Agenthix Cloud: the connection is Cloud\'s own, so there is no Disconnect', async () => {
@@ -90,12 +90,13 @@ describe("the Cloud section on HQ's page @SC-1115", () => {
     expect(within(section).getByRole('button', { name: 'Open Agenthix Cloud ↗' })).toBeTruthy()
   })
 
-  it('HQ on Agenthix Cloud, not connected yet: no offer of Cloud, and Connect stays as the way back @SC-1124', async () => {
+  it('HQ on Agenthix Cloud, not connected yet: no offer of Cloud, and it says to connect in HQ @SC-1124', async () => {
     fakeServer(signedIn(view({ runByCloud: true })))
     openAt('/hq')
     const section = await screen.findByRole('region', { name: 'Agenthix Cloud connection' })
     expect(within(section).getByText(/connects HQ as it sets it up/)).toBeTruthy()
-    expect(within(section).getByRole('button', { name: 'Connect to Agenthix Cloud ↗' })).toBeTruthy()
+    expect(within(section).getByText(/connect it in HQ/)).toBeTruthy()
+    expect(within(section).queryByRole('button', { name: /Connect/ })).toBeNull()
   })
 })
 

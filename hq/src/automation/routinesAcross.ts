@@ -7,15 +7,16 @@
 import { HttpError, prisma } from 'wasp/server'
 import type { GetRoutinesAcrossProjects } from 'wasp/server/operations'
 import { entitledProjectsFilter } from '../projects/membership'
+import { isYourSpace } from '../projects/personalProject'
 import type { RoutineAcross } from '../shared/routineTypes'
 import { summarise } from './routineSummary'
 
 export async function readRoutinesAcrossProjects(userId: string): Promise<RoutineAcross[]> {
   const projects = await prisma.project.findMany({
     where: entitledProjectsFilter(userId),
-    select: { id: true, key: true, name: true, personalOwnerId: true },
+    select: { id: true, key: true, name: true, personalOwnerId: true, personalSpace: true },
   })
-  const placeOf = new Map(projects.map(p => [p.id, p.personalOwnerId
+  const placeOf = new Map(projects.map(p => [p.id, isYourSpace(p)
     ? { id: p.id, key: null, name: 'Chat' }
     : { id: p.id, key: p.key, name: p.name }]))
   const routines = await prisma.routine.findMany({

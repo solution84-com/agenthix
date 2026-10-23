@@ -15,8 +15,10 @@ import { App } from "./src/App" with { type: "ref" };
 import { setupServer } from "./src/server/setup" with { type: "ref" };
 import { middlewareConfig } from "./src/server/middleware" with { type: "ref" };
 import { seed } from "./src/server/seed" with { type: "ref" };
+import { adminSpec } from "./src/admin/admin.wasp";
 import { agentsSpec } from "./src/agents/agents.wasp";
 import { authSpec } from "./src/auth/auth.wasp";
+import { billingSpec } from "./src/billing/billing.wasp";
 import { automationSpec } from "./src/automation/automation.wasp";
 import { chatSpec } from "./src/chat/chat.wasp";
 import { cloudSpec } from "./src/cloud/cloud.wasp";
@@ -31,7 +33,7 @@ import { librarySpec } from "./src/library/library.wasp";
 import { memorySpec } from "./src/memory/memory.wasp";
 import { mobileSpec } from "./src/mobile/mobile.wasp";
 import { modelAccessSpec } from "./src/model-access/model-access.wasp";
-import { modelPolicySpec } from "./src/model-policy/model-policy.wasp";
+import { modelsSettingsSpec } from "./src/models-settings/models-settings.wasp";
 import { notificationsSpec } from "./src/notifications/notifications.wasp";
 import { setupSpec } from "./src/setup/setup.wasp";
 import { onboardingSpec } from "./src/onboarding/onboarding.wasp";
@@ -40,6 +42,7 @@ import { pinsSpec } from "./src/pins/pins.wasp";
 import { previewSpec } from "./src/preview/preview.wasp";
 import { productsSpec } from "./src/products/products.wasp";
 import { projectsSpec } from "./src/projects/projects.wasp";
+import { providersSpec } from "./src/providers/providers.wasp";
 import { runsSpec } from "./src/runs/runs.wasp";
 import { sessionsSpec } from "./src/sessions/sessions.wasp";
 import { settingsSpec } from "./src/settings/settings.wasp";
@@ -80,6 +83,7 @@ export default app({
     api("POST", "/api/v1/data", dataApi, { auth: false }),
     agentsSpec,
     authSpec,
+    billingSpec,
     automationSpec,
     chatSpec,
     cloudSpec,
@@ -94,15 +98,17 @@ export default app({
     memorySpec,
     mobileSpec,
     modelAccessSpec,
-    modelPolicySpec,
+    modelsSettingsSpec,
     notificationsSpec,
     setupSpec,
     onboardingSpec,
     orgSpec,
+    adminSpec,
     pinsSpec,
     previewSpec,
     productsSpec,
     projectsSpec,
+    providersSpec,
     runsSpec,
     sessionsSpec,
     settingsSpec,

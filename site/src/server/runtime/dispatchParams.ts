@@ -5,7 +5,7 @@
  */
 import { z } from 'zod'
 import { APPROVALS, CREDENTIAL_PROVIDERS, SESSION_TYPES, WORKSPACE_OWNER_TYPES, PACKAGE_KINDS, PACKAGE_KEY_PATTERN, PACKAGE_DIGEST_PATTERN, RUN_TIME_LIMIT_MINUTES_BOUNDS, RUN_TURN_LIMIT_BOUNDS, TASK_COMMENTS_FOR_RUN_MAX, TASK_COMMENT_TEXT_MAX } from '@agenthix/core'
-import type { RunCancelReason } from '@agenthix/core'
+import type { AiProviderVendor, RunCancelReason } from '@agenthix/core'
 
 export const packageRefParams = z
   .object({
@@ -30,6 +30,50 @@ const apiKeyCredentialParams = z.object({
 const fitsProvider = (c: { kind: string; provider: string; apiKey?: string; baseUrl?: string }) =>
   c.kind !== 'apiKey' || (c.provider === 'openai_compatible' ? !!c.baseUrl : !!c.apiKey && !c.baseUrl)
 const FITS_PROVIDER = { message: 'credential does not fit its provider' }
+
+const providerId = z.string().min(1).max(100)
+const API_KEY_VENDORS = ['anthropic', 'openai', 'google', 'openrouter', 'openai_compatible', 'assemblyai', 'inworld'] as const satisfies readonly Exclude<AiProviderVendor, 'cloud'>[]
+
+// A run's provider descriptor (core's RunProviderDescriptor). A keyless
+// OpenAI-compatible endpoint carries an empty key and names its address; every
+// other API key is a key and names none.
+const providerDescriptorParams = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('api_key'),
+    providerId,
+    vendor: z.enum(API_KEY_VENDORS),
+    apiKey: z.string(),
+    baseUrl: z.string().min(1).optional(),
+  }),
+  z.object({
+    kind: z.literal('subscription'),
+    providerId,
+    vendor: z.literal('anthropic'),
+    oauthJson: z.string().min(1),
+    grantId: z.string().min(1).max(100),
+    loginId: z.string().min(1).max(100),
+  }),
+  z.object({
+    kind: z.literal('cloud'),
+    providerId,
+    vendor: z.literal('cloud'),
+    api: z.enum(['anthropic', 'openai']),
+    baseUrl: z.string().url(),
+  }),
+]).refine(
+  d => d.kind !== 'api_key' || (d.vendor === 'openai_compatible' ? !!d.baseUrl : !!d.apiKey && !d.baseUrl),
+  { message: 'provider descriptor does not fit its vendor' },
+)
+
+// What the run is given to reach its models (core's RunModelAccess). Read in
+// place of `credential` and `fallbackCredentials` when present (runAccess.ts).
+const modelAccessParams = z.object({
+  model: z.object({ providerId, model: z.string().max(300) }),
+  provider: providerDescriptorParams,
+  others: z.array(providerDescriptorParams).max(20).optional(),
+  // Empty while hq has no billing profile yet.
+  billingProfileId: z.string().max(100),
+})
 
 export const agentConfigParams = z
   .object({
@@ -105,6 +149,10 @@ export const runContextParams = z
     // model (spec §6); absent when there are none. The model relay picks a
     // request's key from these and `credential` by provider.
     fallbackCredentials: z.array(apiKeyCredentialParams.refine(fitsProvider, FITS_PROVIDER)).optional(),
+    // The run's providers, from site protocol 1.1 (core's RunModelAccess).
+    modelAccess: modelAccessParams.optional(),
+    // Why hq found nothing the run may use; the run fails with this text.
+    credentialProblem: z.string().min(1).max(2000).optional(),
     // The org's web-search key for this turn; absent when it has none. Carried
     // on the run's context for the `web_search` tool, never put in a container.
     webSearchKey: z.string().min(1).optional(),
@@ -148,7 +196,9 @@ export const runDispatchParams = z
       })
       ,
     inputText: z.string(),
-    model: z.string().min(1),
+    // Empty only when hq found no model the run may use: the run is still
+    // recorded, and fails with hq's `credentialProblem` (runLaunch.ts).
+    model: z.string(),
     hideUserMessage: z.boolean(),
     context: runContextParams,
     // The run's time and turn limits (core's RunLimits).
@@ -168,6 +218,13 @@ export const runDispatchParams = z
   // builds `context.chat` for a chat dispatch (dispatchService.ts's buildContext).
   // Caught here, at the boundary, with a message that names exactly what's missing.
   .superRefine((data, ctx) => {
+    if (!data.model && !data.context.credentialProblem) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['model'],
+        message: 'a run with no model must carry context.credentialProblem, the reason it has none',
+      })
+    }
     if (data.kind === 'chat' && !data.context.chat) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

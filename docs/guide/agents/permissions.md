@@ -51,14 +51,12 @@ It looks like the organisation's, with the organisation's setting beside each li
 stricter one on offer. **The organisation's** preset puts everything back. Select **＋ Block a command here** to stop
 a command in this project. The heading counts what you have narrowed.
 
-The same page has **In this project**, where a project administrator can select **Edit** to give the agent a
-different model here.
-
 ## Your own permissions in Chat
 
 For your own conversations in **Chat**, you can narrow an agent too. Open it from **Agents** and open its **Your
-settings** section. **Your model** picks a model for your runs, and **Your permissions in Chat** works
-as above. Neither affects anyone else.
+settings** section. It shows **Its models**, which the organisation's admins set, and **Your permissions in Chat**,
+which works as above and affects no one else. To narrow which models may run for you, use **Your settings** in the menu
+behind your name: see [Models](../your-tools/models.md#which-models-may-run).
 
 ## Answering an approval
 

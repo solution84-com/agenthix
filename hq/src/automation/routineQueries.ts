@@ -15,6 +15,7 @@ import { labelsOf } from './routineTemplate'
 import { roundState } from './roundState'
 import { roundRunTimes } from './roundRunTimes'
 import { ROUNDS_NEWEST_FIRST, summarise } from './routineSummary'
+import { isYourSpace } from '../projects/personalProject'
 
 /** The most rounds one read returns; Older rounds asks for more, up to this. */
 const MAX_ROUNDS = 200
@@ -30,7 +31,7 @@ export const getRoutine: GetRoutine<{ routineId: string; rounds?: number }, Rout
   if (!context.user) throw new HttpError(401)
   const routine = await prisma.routine.findUnique({
     where: { id: args.routineId },
-    include: { project: { select: { key: true, personalOwnerId: true } } },
+    include: { project: { select: { key: true, personalOwnerId: true, personalSpace: true } } },
   })
   if (!routine) throw new HttpError(404, 'Routine not found')
   await requireProjectMember(routine.projectId, context.user.id, 'Reading this routine')
@@ -57,11 +58,12 @@ export const getRoutine: GetRoutine<{ routineId: string; rounds?: number }, Rout
     ...summary,
     projectId: routine.projectId,
     projectKey: routine.project.key,
-    isPersonal: routine.project.personalOwnerId !== null,
+    isPersonal: isYourSpace(routine.project),
     description: routine.description,
     priority: routine.priority,
     labels: labelsOf(routine.labels),
     assignedAgentId: routine.assignedAgentId,
+    modelChoice: routine.modelChoice,
     boardId: routine.boardId,
     column: routine.column,
     scheduleAt: routine.scheduleAt.toISOString(),

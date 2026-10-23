@@ -27,6 +27,7 @@ import { consoleCommand } from './console'
 import { hqAddressCommand } from './hqAddress'
 import { moveCommand, moveRecoverCommand } from './move'
 import { cloudCommand } from './cloud'
+import { providerCommand, type ProviderAnswer } from './provider'
 import { uninstallCommand } from './uninstall'
 import { joined, joinWaiting } from './consoleWords'
 
@@ -37,6 +38,8 @@ export type Io = {
   err: (text: string) => void
   /** A line from the person; null when there is no one to ask (no terminal, or input closed). */
   ask: (prompt: string) => Promise<string | null>
+  /** As `ask`, not shown as it is typed: for a key. Without it, `ask` stands in (a test, or input piped in). */
+  secret?: (prompt: string) => Promise<string | null>
 }
 
 export type Send = (request: unknown, onProgress: (p: Progress) => void) => Promise<Record<string, unknown>>
@@ -270,6 +273,12 @@ export async function runCommand(command: Command, send: Send, io: Io, version: 
       case 'remoteOff':
       case 'resetCode':
         return await cloudCommand(command, request => call(send, io, request), { ...io, confirm: (q, yes) => confirmOrLeave(io, q, yes) })
+      case 'providerAdd':
+      case 'providerList':
+      case 'providerRemove':
+        return await providerCommand(command, request => call<ProviderAnswer>(send, io, request), {
+          ...io, secret: io.secret ?? io.ask, confirm: (q, yes) => confirmOrLeave(io, q, yes),
+        })
       case 'uninstall':
         return await uninstallCommand(command, request => call(send, io, request), { ...io, confirm: (q, yes) => confirmOrLeave(io, q, yes) })
       case 'logs': {

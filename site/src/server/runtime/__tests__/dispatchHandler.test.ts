@@ -152,6 +152,28 @@ describe('run.dispatch @SC-337', () => {
     expect(mockAgentRunCreate).not.toHaveBeenCalled()
   })
 
+  // hq dispatches a run it found no model for, so the run fails with the reason
+  // and the session is still seeded (runModel.ts, runLaunch.ts).
+  it('takes a run with no model when hq says why it has none', async () => {
+    mockEngineRun.mockReturnValue(new Promise<void>(() => {}))
+    const problem = 'No model provider is working.'
+
+    const result = await handleRunDispatch({
+      ...CHAT_DISPATCH_PARAMS,
+      model: '',
+      context: { ...CONTEXT, credentialProblem: problem },
+    })
+
+    expect(result).toEqual({ runId: 'run-1', sessionId: 'sess-1' })
+    expect(mockAgentSessionUpsert).toHaveBeenCalledTimes(1)
+    expect(mockEngineRun.mock.calls[0][1].dispatchContext.credentialProblem).toBe(problem)
+  })
+
+  it('refuses a run with no model and no reason for it', async () => {
+    await expect(handleRunDispatch({ ...CHAT_DISPATCH_PARAMS, model: '' })).rejects.toThrow(/credentialProblem/)
+    expect(mockAgentRunCreate).not.toHaveBeenCalled()
+  })
+
   // hq's own ChatRunner (dispatchService.ts's buildContext) never dispatches
   // a chat run without context.chat — reaching this state means something is
   // already wrong, so a chat dispatch missing it is refused at the boundary

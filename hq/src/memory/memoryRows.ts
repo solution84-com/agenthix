@@ -1,28 +1,13 @@
 /**
- * What the store reads and writes besides its own rules: the organisation's embedding model, embedding a text with
- * it without letting a failed embed fail the write, and an item row as recall returns it.
+ * What the store reads and writes besides its own rules: embedding a text without letting a failed embed fail the write, and an item row as recall returns it.
  */
 import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
 import type { MemoryItemKindValue, MemoryScopeValue } from '../shared/memory/protocol'
 import type { Embedder, RecalledItem } from './contract'
 import { Logger } from '../server/utils/logger'
-import { LOCAL_MODEL } from './embedding/localEmbedder'
 
 const logger = new Logger('Memory')
-
-/** The organisation's embedding model, and while a switch re-embeds, the model being moved to. */
-export interface EmbeddingState { current: string; next: string | null }
-
-export async function embeddingState(): Promise<EmbeddingState> {
-  const org = await prisma.org.findFirst({ select: { memoryEmbeddingModel: true, memoryEmbeddingNext: true } })
-  return { current: org?.memoryEmbeddingModel ?? LOCAL_MODEL, next: org?.memoryEmbeddingNext ?? null }
-}
-
-/** The model a new vector is made with: the one being moved to, so a switch only ever shrinks what is left. */
-export function writingModel(state: EmbeddingState): string {
-  return state.next ?? state.current
-}
 
 /** Latched so an outage logs once, not once per write; cleared by the next embed that works. */
 let embedFailureWarned = false

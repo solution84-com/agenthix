@@ -13,7 +13,7 @@ vi.mock('wasp/server', async () => {
 })
 vi.mock('../../embedding/embedders', () => import('../../../test/fakes/embedders'))
 
-import { forgetMemoryItem, saveMemoryItem, setMemoryEmbeddingModel, setMemoryPinned } from '../actions'
+import { forgetMemoryItem, saveMemoryItem, setMemoryPinned } from '../actions'
 import { getMemory, getMemoryChoices, getMemoryMeasurements } from '../queries'
 
 const as = (id: string) => ({ user: { id }, entities: {} }) as never
@@ -135,22 +135,8 @@ describe('measurements and the embedding model @SC-991', () => {
     await prisma.org.create({ data: { name: 'Org', memoryCertainBar: 0.7 } })
     expect(await ask(getMemoryMeasurements, admin)).toMatchObject({
       included: 2, hinted: 0, recalled: 0, used: 1, unused: 0, missed: 1,
-      certainBar: 0.7, probableBar: 0.45, embeddingModel: 'local', reembedding: null,
+      certainBar: 0.7, probableBar: 0.45,
     })
     await refused(ask(getMemoryMeasurements, alice), 403)
-  })
-
-  it('shows how far a switch has got', async () => {
-    await ask(saveMemoryItem, alice, { scope: 'PERSON', ...tea })
-    await prisma.org.create({ data: { name: 'Org', memoryEmbeddingNext: 'openai/text-embedding-3-small' } })
-    expect(await ask(getMemoryMeasurements, admin)).toMatchObject({ reembedding: { to: 'openai/text-embedding-3-small', done: 0, total: 1 } })
-  })
-
-  it('only an admin switches the model, and a model it cannot pay for is refused', async () => {
-    await prisma.org.create({ data: { name: 'Org' } })
-    await refused(ask(setMemoryEmbeddingModel, alice, { model: 'local' }), 403)
-    await refused(ask(setMemoryEmbeddingModel, admin, { model: 'not a model' }), 400)
-    await refused(ask(setMemoryEmbeddingModel, admin, { model: 'openai/text-embedding-3-small' }), 400)
-    expect(await ask(setMemoryEmbeddingModel, admin, { model: 'local' })).toEqual({ ok: true })
   })
 })

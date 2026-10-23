@@ -5,7 +5,6 @@ type EnvSection = { label: string; keys: EnvKey[] }
 export const REQUIRED_LABELS: Record<string, string> = {
   always: 'required',
   production: 'required in production',
-  'at-least-one': 'at least one',
   optional: 'optional',
 }
 

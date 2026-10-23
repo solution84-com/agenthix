@@ -192,7 +192,7 @@ describe('the document leaves the home with the run @SC-782', () => {
   })
 })
 
-describe('a subscription hq granted', () => {
+describe('a subscription hq granted @SC-1231', () => {
   const GRANTED = SUBSCRIPTION
 
   beforeEach(() => {
@@ -242,6 +242,31 @@ describe('a subscription hq granted', () => {
     await run({ ...CONTEXT, credential: GRANTED })
 
     expect(logins.join).toHaveBeenCalledTimes(1)
+    expect(logins.leave).toHaveBeenCalledTimes(1)
+  })
+
+  it("writes a person's own subscription that arrives as hq's provider descriptor as the run's login", async () => {
+    locationMock.resolvePrimaryLocation.mockReturnValue({ ownerType: 'user', ownerId: 'u1' })
+    h.resolveAgentContext.mockResolvedValue({ agent: AGENT, session: CHAT_SESSION })
+    vi.mocked(verifyHqToken).mockResolvedValue({
+      sessionId: 'sess-1', agentId: 'agent-1', projectId: null, taskId: null, siteId: 'site-1',
+      userId: 'u1', workspaceId: null, role: null,
+      permissions: { bypassed: true, allowedTools: [], allowedBashPatterns: [], neverTools: [] },
+      exp: Math.floor(Date.now() / 1000) + 900,
+    } as any)
+
+    await run({
+      ...CONTEXT,
+      credential: null,
+      modelAccess: {
+        model: { providerId: 'prov-mine', model: 'claude-x' },
+        provider: { kind: 'subscription', providerId: 'prov-mine', vendor: 'anthropic', oauthJson: ADAS_DOCUMENT, grantId: 'grant-1', loginId: 'login-1' },
+        billingProfileId: 'bp-1',
+      },
+    })
+
+    expect(logins.join).toHaveBeenCalledTimes(1)
+    expect(logins.join.mock.calls[0][1]).toEqual({ ...GRANTED, providerId: 'prov-mine' })
     expect(logins.leave).toHaveBeenCalledTimes(1)
   })
 })

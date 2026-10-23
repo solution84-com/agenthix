@@ -119,7 +119,7 @@ export function MachineFigures({ site }: { site: SiteDetail }) {
   return (
     <Section title="The machine">
       {facts.map((f) => <Fact key={f.label} label={f.label}>{f.text}</Fact>)}
-      <Fact label="Logs"><Link to="/org/infrastructure/diagnostics" className="text-accent hover:text-accent-hover">Logs and diagnostics</Link></Fact>
+      <Fact label="Logs"><Link to="/admin/infrastructure/diagnostics" className="text-accent hover:text-accent-hover">Logs and diagnostics</Link></Fact>
     </Section>
   )
 }

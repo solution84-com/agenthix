@@ -24,8 +24,8 @@ export function ProjectThreadPage() {
   const { data: view } = useQuery(getConversation, { conversationId: conversationId! }, { enabled: !!conversationId && !docked })
   if (docked) return <ProjectPlaceMissing loading />
   if (!project || !place || !conversationId) return <ProjectPlaceMissing loading={isLoading} />
-  // A personal project is the person's own space, shown as Chat.
-  if (project.personalOwnerId) return <Navigate to={threadPath('/chat', conversationId) + search} replace />
+  // Your space is shown as Chat.
+  if (project.personalSpace) return <Navigate to={threadPath('/chat', conversationId) + search} replace />
   const redirect = conversationsPageRedirect(search, place.homePath)
   if (redirect) return <Navigate to={redirect} replace />
 

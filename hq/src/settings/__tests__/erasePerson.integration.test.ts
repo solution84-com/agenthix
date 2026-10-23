@@ -19,7 +19,7 @@ vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRu
 vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/debouncedPush'))
 vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 
-import { erasePerson } from '../erasePerson'
+import { erasePerson, getErasedProjectCount } from '../erasePerson'
 import * as siteStore from '../../test/fakes/siteRuntimeStore'
 import { personById } from '../../server/identity/people'
 import { FORMER_MEMBER } from '../../server/identity/personSummary'
@@ -70,7 +70,7 @@ describe('erasePerson — what goes @SC-609', () => {
     await prisma.personConnection.create({
       data: { userId: user.id, name: 'Laptop', tokenHash: 'e'.repeat(64), tokenPrefix: 'pc_', expiresAt: new Date(Date.now() + 60_000) },
     })
-    await prisma.modelCredential.create({ data: { kind: 'API_KEY', ownerType: 'user', ownerId: user.id, secret: 'x' } })
+    await prisma.aiProvider.create({ data: { name: 'Your Claude subscription', vendor: 'anthropic', credentialKind: 'subscription', ownerUserId: user.id, secret: 'x' } })
 
     await erasePerson({ userId: user.id, confirm: 'Dana Reyes' }, ctx(admin.id))
 
@@ -81,10 +81,36 @@ describe('erasePerson — what goes @SC-609', () => {
     expect(await prisma.project.findUnique({ where: { id: personal.id } })).toBeNull()
     expect(await prisma.memoryItem.count({ where: { OR: [{ userId: user.id }, { placeId: user.id }] } })).toBe(0)
     expect(await prisma.personConnection.count({ where: { userId: user.id } })).toBe(0)
-    expect(await prisma.modelCredential.count({ where: { ownerId: user.id } })).toBe(0)
+    expect(await prisma.aiProvider.count({ where: { ownerUserId: user.id } })).toBe(0)
     expect(await prisma.auth.count({ where: { userId: user.id } })).toBe(0)
     expect(await prisma.userSettings.count({ where: { userId: user.id } })).toBe(0)
     expect(await personById(user.id)).toMatchObject({ name: FORMER_MEMBER, handle: null, state: 'erased' })
+  })
+})
+
+describe('erasePerson — every personal project they made @SC-1063', () => {
+  it('deletes their space and every other personal project with its tasks, memory and files, and counts the others for the dialog', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const { user } = await leftPerson()
+    const space = await createProject({ personalOwnerId: user.id, personalSpace: true, executionSiteId: null })
+    const first = await createProject({ personalOwnerId: user.id })
+    const second = await createProject({ personalOwnerId: user.id })
+    const shared = await createProject()
+    await taskFor(first.id, user.id)
+    const agent = await createAgent()
+    await prisma.memoryItem.create({
+      data: { title: 'Tea', body: 'Likes tea.', kind: 'PREFERENCE', scope: 'AGENT_PLACE', scopeKey: `agent-place:${agent.id}:project:${first.id}`, key: 'tea', agentId: agent.id, placeType: 'project', placeId: first.id },
+    })
+
+    expect(await getErasedProjectCount({ userId: user.id }, ctx(admin.id))).toEqual({ count: 2 })
+    await expect(getErasedProjectCount({ userId: user.id }, ctx(user.id))).rejects.toMatchObject({ statusCode: 403 })
+
+    await erasePerson({ userId: user.id, confirm: 'Dana Reyes' }, ctx(admin.id))
+
+    expect(await prisma.project.count({ where: { id: { in: [space.id, first.id, second.id] } } })).toBe(0)
+    expect(await prisma.project.findUnique({ where: { id: shared.id } })).not.toBeNull()
+    expect(await prisma.task.count({ where: { projectId: first.id } })).toBe(0)
+    expect(await prisma.memoryItem.count({ where: { placeId: first.id } })).toBe(0)
   })
 })
 

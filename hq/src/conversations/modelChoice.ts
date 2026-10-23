@@ -1,57 +1,46 @@
 /**
- * The model picker's server side (model access and policy spec, *The person keeps one knob*): which models a
- * person may pick for a conversation's talking model, and changing it. What is offered is worked out on the
- * server each time, and a pick is checked against it again when it is made, never taken from the client. A model
- * policy's form asks for its choices here too (`policyScope`).
+ * The model picker's server side (models from one place, part 4): which models via a provider a person may pick for a
+ * conversation, and changing it. What is offered is what the resolver would let run for this conversation now —
+ * lists that apply, a person's own place — worked out on the server each time, with a provider that is not working
+ * listed but greyed out (models-settings/offered.ts). A pick is checked against what may run when it is made, never
+ * taken from the client. A choice's `value` is the provider's id and
+ * the model (access/talkingModel.ts `choiceValue`).
  */
 import { HttpError, prisma } from 'wasp/server'
+import type { ModelViaProvider, ResolveRequest } from '@agenthix/core'
 import type { GetModelChoicesArgs, ModelChoice, ModelChoices, SetConversationModelArgs } from '../shared/conversations/protocol'
 import type { ConversationHomeRef } from './contract'
 import { readConversationAs, requireConversationSpeaker } from './readingRule'
 import { agentChoicesFor } from './primaryAgent'
 import { appendMessage } from './store/messages'
 import { conversationEvents } from './coordinator/events'
-import { latestRefusal } from './coordinator/refusal'
-import { offeredModels, policyFormModels, type OfferedModel, type PolicyFormScope } from './access/offeredModels'
-import { requireRole } from '../server/identity/requireRole'
-import { requireProjectMember } from '../projects/membership'
-import { refuseOnPersonalProject } from '../projects/personalProject'
-import { makerOf, priceOf, viaLabel } from './access/modelRoutes'
+import { choiceLabel, choiceValue, parseChoiceValue, talkingRequest } from './access/talkingModel'
+import { choicesFor, resolve } from '../routing/resolver'
+import { offeredFor, toChoice } from '../models-settings/offered'
 
 type Ctx = { user?: { id: string } | null }
 
 const RECENT = 3
 /** How many of the person's latest conversations are looked through for their recent models. */
 const RECENT_LOOKBACK = 30
-const KNOWN_MAKERS = ['Anthropic', 'OpenAI', 'Google', 'DeepSeek']
 const MODEL_MAX_CHARS = 200
 
-function toChoice(m: OfferedModel): ModelChoice {
-  return { value: m.value, label: m.label, maker: makerOf(m.value), via: viaLabel(m.provider), price: priceOf(m.costRank) }
-}
-
-const makerOrder = (maker: string) => {
-  const i = KNOWN_MAKERS.indexOf(maker)
-  return i === -1 ? KNOWN_MAKERS.length : i
-}
-
-/** The best-known makers first, then the rest by name; within a maker, the newest names first. */
-function byMaker(a: ModelChoice, b: ModelChoice): number {
-  return makerOrder(a.maker) - makerOrder(b.maker) || a.maker.localeCompare(b.maker) ||
-    b.label.localeCompare(a.label, undefined, { numeric: true }) || a.via.localeCompare(b.via)
+async function offered(req: ResolveRequest): Promise<{ models: ModelChoice[]; byValue: Map<string, ModelChoice> }> {
+  const { models, byValue } = await offeredFor(req)
+  return { models, byValue }
 }
 
 async function recentModels(userId: string, offered: Map<string, ModelChoice>): Promise<ModelChoice[]> {
   const rows = await prisma.conversation.findMany({
-    where: { openedById: userId, talkingModel: { not: null } },
+    where: { openedById: userId, talkingModel: { not: null }, talkingProviderId: { not: null } },
     orderBy: { lastMessageAt: 'desc' },
-    select: { talkingModel: true },
+    select: { talkingModel: true, talkingProviderId: true },
     take: RECENT_LOOKBACK,
   })
   const recent: ModelChoice[] = []
-  for (const { talkingModel } of rows) {
-    const choice = talkingModel ? offered.get(talkingModel) : undefined
-    if (choice && !recent.includes(choice)) recent.push(choice)
+  for (const { talkingModel, talkingProviderId } of rows) {
+    const choice = talkingModel && talkingProviderId ? offered.get(choiceValue({ providerId: talkingProviderId, model: talkingModel })) : undefined
+    if (choice && !choice.notWorking && !recent.includes(choice)) recent.push(choice)
     if (recent.length === RECENT) break
   }
   return recent
@@ -68,86 +57,66 @@ async function homeBeforeStart(args: GetModelChoicesArgs, userId: string): Promi
   }
 }
 
-/**
- * Who may ask for a policy form's choices: those who may read that policy (modelPolicyOperations.ts), the
- * organisation's an admin's alone, since it reaches through the organisation's keys.
- */
-async function policyFormScope(args: GetModelChoicesArgs, userId: string): Promise<PolicyFormScope> {
-  const doing = 'Choosing models for a model policy'
-  if (args.policyScope === 'org') {
-    await requireRole({ user: { id: userId } }, 'ADMIN', doing)
-    return { type: 'org' }
-  }
-  if (args.policyScope === 'user') return { type: 'user', userId }
-  if (args.policyScope !== 'project' || typeof args.projectId !== 'string') throw new HttpError(400, 'Name a project')
-  await requireProjectMember(args.projectId, userId, doing)
-  await refuseOnPersonalProject(args.projectId, 'A model policy')
-  return { type: 'project', projectId: args.projectId, userId }
-}
-
-async function choicesOf(models: OfferedModel[], userId: string, current: string | null): Promise<ModelChoices> {
-  const choices = models.map(toChoice).sort(byMaker)
-  return { current, recent: await recentModels(userId, new Map(choices.map(c => [c.value, c]))), models: choices }
+async function choicesOf(req: ResolveRequest, userId: string, current: string | null): Promise<ModelChoices> {
+  const { models, byValue } = await offered(req)
+  // What it would talk on when nothing is picked: the agent's default, else the organisation's.
+  const preferred = current ? null : await resolve(req)
+  const fallback = preferred?.ok ? choiceValue(preferred.resolution.model) : null
+  return { current: current ?? fallback, recent: await recentModels(userId, byValue), models }
 }
 
 export const getModelChoices = async (args: GetModelChoicesArgs, context: Ctx): Promise<ModelChoices> => {
   if (!context.user) throw new HttpError(401)
   const userId = context.user.id
-  if (args?.policyScope !== undefined) return choicesOf(await policyFormModels(await policyFormScope(args, userId)), userId, null)
-
-  let ref: ConversationHomeRef
-  let talkingModel: string | null = null
-  if (args?.conversationId !== undefined) {
-    const read = await readConversationAs(args.conversationId, userId)
-    const row = await prisma.conversation.findUniqueOrThrow({ where: { id: read.ref.id }, select: { talkingModel: true } })
-    // Someone who may not speak in it may not change its model either: nothing to pick from. Nor may anyone in a
-    // task's thread, whose model is the project policy's (model access spec).
-    if (read.speakingRefusal || read.ref.home === 'TASK') return { current: row.talkingModel, recent: [], models: [] }
-    ref = read.ref
-    talkingModel = row.talkingModel
-  } else {
-    ref = await homeBeforeStart(args, userId)
+  if (args?.conversationId === undefined) {
+    const ref = await homeBeforeStart(args, userId)
+    return choicesOf(await talkingRequest(ref, userId), userId, null)
   }
-
-  const refused = talkingModel ? await latestRefusal(ref.id) : null
-  const { models, preferred } = await offeredModels(ref, refused)
-  return choicesOf(models, userId, talkingModel ?? preferred)
+  const read = await readConversationAs(args.conversationId, userId)
+  const row = await prisma.conversation.findUniqueOrThrow({ where: { id: read.ref.id }, select: { talkingModel: true, talkingProviderId: true } })
+  const current = row.talkingModel && row.talkingProviderId ? choiceValue({ providerId: row.talkingProviderId, model: row.talkingModel }) : null
+  // Someone who may not speak in it may not change its model either: nothing to pick from. Nor may anyone in a
+  // task's thread, which talks on its agent's default.
+  if (read.speakingRefusal || read.ref.home === 'TASK') return { current, recent: [], models: [] }
+  // A conversation's pick is checked as a pick, not against the model it talks on now.
+  const req = await talkingRequest({ ...read.ref, id: '' }, userId)
+  return choicesOf(req, userId, current)
 }
 
-/** A pick, checked against what this home offers the person now; refused when it is not offered. */
-export async function requireOfferedModel(
-  ref: ConversationHomeRef,
-  model: unknown,
-  refused: Awaited<ReturnType<typeof latestRefusal>> = null,
-): Promise<OfferedModel> {
-  if (typeof model !== 'string' || model === '' || model.length > MODEL_MAX_CHARS) throw new HttpError(400, 'Choose a model')
-  const { models } = await offeredModels(ref, refused)
-  const chosen = models.find(m => m.value === model)
-  if (!chosen) throw new HttpError(400, "That model isn't one the model access and policy here allow")
-  return chosen
+/** A pick, checked against what the resolver lets this conversation run now; refused when it may not. */
+export async function requireOfferedModel(ref: ConversationHomeRef, value: unknown, userId: string): Promise<ModelChoice & { choice: ModelViaProvider }> {
+  const choice = typeof value === 'string' && value.length <= MODEL_MAX_CHARS ? parseChoiceValue(value) : null
+  if (!choice) throw new HttpError(400, 'Choose a model')
+  const req = await talkingRequest({ ...ref, id: '' }, userId)
+  const typed = new Map([[choice.providerId, [choice.model]]])
+  const { snapshot, usable } = await choicesFor(req, typed)
+  const chosen = usable.find(c => c.providerId === choice.providerId && c.model === choice.model)
+  const shown = chosen && toChoice(chosen, snapshot)
+  if (!shown) throw new HttpError(400, "That model isn't one you may use here")
+  return { ...shown, choice }
 }
 
-export const TASK_THREAD_MODEL = "A task's conversation talks on its project's model, set in the project's model policy"
+export const TASK_THREAD_MODEL = "A task's conversation talks on its agent's default model"
 
 export const setConversationModel = async (args: SetConversationModelArgs, context: Ctx): Promise<void> => {
   if (!context.user) throw new HttpError(401)
   const userId = context.user.id
   const ref = await requireConversationSpeaker(args?.conversationId, userId)
   if (ref.home === 'TASK') throw new HttpError(409, TASK_THREAD_MODEL)
-  const row = await prisma.conversation.findUniqueOrThrow({ where: { id: ref.id }, select: { talkingModel: true } })
-  if (row.talkingModel === args.model) return
+  const row = await prisma.conversation.findUniqueOrThrow({ where: { id: ref.id }, select: { talkingModel: true, talkingProviderId: true } })
+  if (row.talkingModel && row.talkingProviderId && choiceValue({ providerId: row.talkingProviderId, model: row.talkingModel }) === args.model) return
 
-  const chosen = await requireOfferedModel(ref, args.model, await latestRefusal(ref.id))
+  const chosen = await requireOfferedModel(ref, args.model, userId)
   // Conditional on the model it was read with, so two changes at once record one. A turn already running keeps
   // the model it started on; the next turn reads this one.
   const { count } = await prisma.conversation.updateMany({
-    where: { id: ref.id, talkingModel: row.talkingModel },
-    data: { talkingModel: chosen.value, talkingProvider: chosen.provider, accessOwnerType: chosen.owner, accessKind: 'API_KEY' },
+    where: { id: ref.id, talkingModel: row.talkingModel, talkingProviderId: row.talkingProviderId },
+    data: { talkingModel: chosen.choice.model, talkingProviderId: chosen.choice.providerId },
   })
   if (count !== 1) throw new HttpError(409, "This conversation's model was changed meanwhile")
 
   const { message } = await appendMessage({
-    conversationId: ref.id, role: 'PLATFORM', kind: 'NOTICE', authorId: userId, body: { text: `Switched to ${chosen.label}` },
+    conversationId: ref.id, role: 'PLATFORM', kind: 'NOTICE', authorId: userId, body: { text: `Switched to ${await choiceLabel(chosen.choice)}` },
   })
   conversationEvents.message(ref.id, message)
 }

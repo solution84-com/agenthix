@@ -76,7 +76,7 @@ describe('scope follows the run\'s own capability, never an argument', () => {
 
 describe("a personal project's task run (agents own schedule spec §4)", () => {
   it("sees its person's own boundary, where it works — never a project's", async () => {
-    const mine = await createProject({ accessLevel: 'PRIVATE', personalOwnerId: alice })
+    const mine = await createProject({ accessLevel: 'PRIVATE', personalOwnerId: alice, personalSpace: true })
     await createTestTask({ data: { id: 't1', title: 't', projectId: mine.id, number: 1, onBehalfOfUserId: alice } })
     mockResolveActiveRuns.mockResolvedValue([])
 

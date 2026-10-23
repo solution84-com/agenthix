@@ -17,7 +17,7 @@ import { HttpError } from 'wasp/server'
 import { ControlPlaneError, type CallerContext } from './types'
 import { resolveActiveRuns, type ActiveRunView } from '../../sessions/activeRuns'
 import { SiteUnreachableError } from '../../storage/workspaceStore'
-import { isPersonalProject } from '../../projects/personalProject'
+import { isSpaceProject } from '../../projects/personalProject'
 import { requireProjectEntitlement } from './authorize'
 import { actingPerson, confinedProjectId, reachesOwnSpace } from './runPerson'
 
@@ -47,9 +47,9 @@ export async function listActiveRunsOp(ctx: CallerContext, _args: unknown): Prom
   }
   const projectId = place
   try {
-    // A personal project's task run names its personal project but works in
-    // its person's own storage (spec §4) — that storage is its boundary.
-    const actsForProject = projectId !== null && !(await isPersonalProject(projectId))
+    // A task run in Your space names it but works in its person's own storage (spec §4) — that storage is its
+    // boundary. Any other personal project has storage of its own.
+    const actsForProject = projectId !== null && !(await isSpaceProject(projectId))
     const runs = actsForProject
       ? await resolveActiveRuns('project', projectId)
       : await resolveActiveRuns('user', userId)

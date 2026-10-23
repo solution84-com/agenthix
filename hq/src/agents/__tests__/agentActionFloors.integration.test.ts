@@ -19,7 +19,6 @@ vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRu
 
 import * as siteStore from '../../test/fakes/siteRuntimeStore'
 import { createAgent as createAgentAction, updateAgent, stopAgent, deleteAgent, uploadAgentImage, applyAgentPreset } from '../actions'
-import { updateAgentVoice } from '../../voice/agentVoiceActions'
 import { contextWithRole, contextWithoutRole, opContext } from './definitionFixtures'
 
 const PNG_DATA_URL =
@@ -32,7 +31,6 @@ const entryPoints: [string, (agentId: string, ctx: any) => Promise<unknown>][] =
   ['deleteAgent', (id, ctx) => deleteAgent({ id }, ctx)],
   ['uploadAgentImage', (id, ctx) => uploadAgentImage({ agentId: id, type: 'avatar', dataUrl: PNG_DATA_URL }, ctx)],
   ['applyAgentPreset', (id, ctx) => applyAgentPreset({ agentId: id, imageType: 'avatar', filename: 'preset.png' }, ctx)],
-  ['updateAgentVoice', (id, ctx) => updateAgentVoice({ agentId: id, voiceEnabled: true }, ctx)],
 ]
 
 async function setup() {
@@ -68,21 +66,5 @@ describe.each(entryPoints)('%s needs the ADMIN role', (_name, call) => {
     const { agent, untouched } = await setup()
     await expect(call(agent.id, opContext(undefined))).rejects.toMatchObject({ statusCode: 401 })
     await untouched()
-  })
-})
-
-describe('updateAgentVoice', () => {
-  it('lets an organisation admin change it, and only the fields sent', async () => {
-    const agent = await createAgent({ voiceEnabled: false, voiceId: 'v1' })
-    const { ctx } = await contextWithRole('ADMIN')
-
-    await updateAgentVoice({ agentId: agent.id, voiceEnabled: true }, ctx)
-
-    expect(await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).toMatchObject({ voiceEnabled: true, voiceId: 'v1' })
-  })
-
-  it('answers 404 for an agent that does not exist', async () => {
-    const { ctx } = await contextWithRole('ADMIN')
-    await expect(updateAgentVoice({ agentId: 'ghost', voiceEnabled: true }, ctx)).rejects.toMatchObject({ statusCode: 404 })
   })
 })

@@ -66,7 +66,8 @@ A build made on a machine rather than by the release workflow reports its versio
 | 3 | the mobile app, and any later app, ↔ hq | `CLIENT_PROTOCOL_VERSION`, `client/protocol.ts` | the header `X-Client-Protocol-Version` on every request; `clientProtocolVersion` in the socket.io handshake's `auth` | hq, on every HTTP request and socket handshake (`hq/src/server/clientProtocol.ts`); hq states its own before sign-in, so the app can apply the rule from its side |
 | 4 | hq ↔ Agenthix Cloud | `CLOUD_PROTOCOL_VERSION`, `cloud/version.ts` | the header `X-Cloud-Protocol-Version` on every call, in both directions | Cloud, on every call (`checkHqCloudProtocol`); hq, on every answer (`checkCloudAnswerProtocol`, in `hq/src/cloud/cloudClient.ts`) |
 
-Every protocol is at `1.0`, the baseline every later version counts from. A protocol is named after the party hq
+`1.0` is the baseline every later version counts from. Today the site protocol is at `1.3`, the client protocol at `1.4`, the
+Cloud protocol at `1.1` (which added [the AI contract](cloud-connection.md#the-ai-contract)) and the host protocol at `1.0`. A protocol is named after the party hq
 or the host service talks to, so each constant is `<PARTY>_PROTOCOL_VERSION` and each header
 `X-<Party>-Protocol-Version`; no name carries the product's. hq's one web server receives both the host protocol and
 the client protocol, which is why they never share a header.
@@ -105,7 +106,7 @@ and never compares versions itself. It answers `ok` with where the peer stands (
 this side may speak, or a refusal: `too_far_apart` (with the side to upgrade), `absent` or `malformed`.
 `protocolRefusalMessage` and `peerRefusalMessage` turn a refusal into the words a person reads.
 
-At `1.0` there is no earlier major, so a peer one major behind cannot exist yet. The code for a previous major is
+At `1.x` there is no earlier major, so a peer one major behind cannot exist yet. The code for a previous major is
 written at a connection's first major change, kept apart from the current code, with a test that runs it.
 
 ### How a refusal looks

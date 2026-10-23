@@ -35,12 +35,13 @@ test.describe('the navigation @SC-011', () => {
     }
     const foot = n.getByTestId('sidebar-foot')
     await expect(foot).toBeVisible()
-    // Organisation, Settings and Sign out are behind your name, not rows of their own.
+    // The organisation's places and yours are behind your name, not rows of their own.
     await expect(n.getByRole('link', { name: 'Organisation' })).toHaveCount(0)
     await foot.getByRole('button', { name: /, account menu$/ }).click()
     const menu = page.getByRole('menu', { name: 'Account' })
-    await expect(menu.getByRole('menuitem', { name: 'Organisation' })).toBeVisible()
-    await expect(menu.getByRole('menuitem', { name: 'Settings' })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Overview' })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: /^Manage/ })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Your settings' })).toBeVisible()
     await expect(menu.getByRole('menuitem', { name: 'Sign out' })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(menu).toHaveCount(0)

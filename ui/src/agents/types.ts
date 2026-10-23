@@ -5,8 +5,6 @@ export interface CreateAgentInput {
   name: string
   handle: string
   role?: string
-  defaultModel?: string
-  runtime?: string
 }
 
 export interface CreateAgentActions {
@@ -77,9 +75,6 @@ export interface AgentDetail {
   sessions: AgentSession[]
   runs: AgentRun[]
   assignedTasks: AgentTask[]
-  voiceEnabled: boolean
-  voiceId: string | null
-  voiceTtsModel: string | null
   avatarUrl?: string | null
   coverUrl?: string | null
 }

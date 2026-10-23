@@ -18,7 +18,7 @@ import { getNotifications } from '../queries'
 
 const ctx = (user?: { id: string }) => ({ user, entities: { Notification: prisma.notification } }) as any
 const TYPE = 'site_upgrade'
-const notice = { type: TYPE, subjectKey: 'site-1', title: 'Old server needs upgrading', body: 'It runs protocol 16.2.', actionUrl: '/org/settings/where-work-runs' }
+const notice = { type: TYPE, subjectKey: 'site-1', title: 'Old server needs upgrading', body: 'It runs protocol 16.2.', actionUrl: '/admin/where-work-runs' }
 const rows = (userId?: string) => prisma.notification.findMany({ where: { type: TYPE, ...(userId ? { userId } : {}) }, orderBy: { createdAt: 'asc' } })
 
 describe('raising a persistent notification @SC-628', () => {

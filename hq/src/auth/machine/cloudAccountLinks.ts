@@ -95,7 +95,7 @@ export async function cloudResetLink(username: string, now = new Date()): Promis
     type: CLOUD_ACCOUNT_LINK_NOTIFICATION,
     title: `${CLOUD} made a link to reset ${person.name}'s password`,
     body: `${CLOUD} made a one-time link to set ${who}'s password.`,
-    actionUrl: `/org/people/${admin.id}`,
+    actionUrl: `/admin/people/${admin.id}`,
   })
   return { link: made.link, expiresAt: made.expiresAt.toISOString() }
 }
@@ -122,7 +122,7 @@ export async function cloudAdminInvite(now = new Date()): Promise<CloudLink> {
     type: CLOUD_ACCOUNT_LINK_NOTIFICATION,
     title: `${CLOUD} made an invitation for a new organisation admin`,
     body: `HQ had no active organisation admin left, so ${CLOUD} made a one-time invitation to join as one.`,
-    actionUrl: '/org/people?show=invitations',
+    actionUrl: '/admin/people?show=invitations',
   })
   return { link: invitationLink(token), expiresAt: expiresAt.toISOString() }
 }

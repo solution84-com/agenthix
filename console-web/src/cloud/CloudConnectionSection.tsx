@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react'
-import type { CloudConnectEnded, CloudConnecting } from '@agenthix/core'
-import { Button } from '@agenthix/ui/primitives'
-import { ConfirmModal, HqLink, KeyValueRow, Notice, Say } from '../components'
+import { useEffect } from 'react'
+import type { CloudConnectEnded } from '@agenthix/core'
+import { KeyValueRow, Notice } from '../components'
 import { spanOf } from '../pages/dashboard/words'
-import { useCloudAsk, useCloudRead } from './api'
+import { useCloudRead } from './api'
 import { cloudConnectionWords } from './CloudHqHero'
-import { CloudAskNotice, CloudMark } from './CloudMark'
-import { AskedLine, CONNECT_HINT, ConnectedFacts, ProtocolProblem, ReadOnly, RunByCloud, WhatCloudGives } from './CloudSectionStates'
+import { CloudMark } from './CloudMark'
+import { AskedLine, ConnectedFacts, ProtocolProblem, RunByCloud, WhatCloudGives } from './CloudSectionStates'
 import { useAskCount, type CloudSectionView } from './platform'
 import { CLOUD } from './words'
 
@@ -15,8 +14,8 @@ export const CONNECTING_POLL_MS = 3000
 
 /**
  * The organisation's connection to Cloud, on HQ's page (board *Connecting the organisation*). It is the
- * organisation's, held by HQ, and made or removed only on the Fleet Console's machine: through remote access the
- * section is read-only and says so. While a connection waits on approval, the page reads it again every few seconds.
+ * organisation's, held by HQ, and made and removed in HQ by an organisation admin: this section only reads it and says
+ * where to do it. While a connection waits on approval in HQ, the page reads it again every few seconds.
  */
 export function CloudConnection({ org }: { org: string | null }) {
   const view = useCloudRead<CloudSectionView>('/cloud')
@@ -29,13 +28,13 @@ export function CloudConnection({ org }: { org: string | null }) {
     return () => clearInterval(timer)
   }, [waiting, reload])
   if (view.phase !== 'ready') return null
-  return <CloudConnectionSection view={view.value} org={org} asked={asked} onChange={reload} />
+  return <CloudConnectionSection view={view.value} org={org} asked={asked} />
 }
 
 const ENDED: Record<CloudConnectEnded, { title: string; text: string }> = {
-  refused: { title: 'Not approved', text: `The connection was refused on ${CLOUD}. Connect again to ask once more.` },
-  expired: { title: 'The code expired', text: `It was not approved on ${CLOUD} in time. Connect again for a new code.` },
-  failed: { title: 'Not connected', text: `${CLOUD} stopped answering before the connection was approved. Try again in a moment.` },
+  refused: { title: 'Not approved', text: `The connection was refused on ${CLOUD}.` },
+  expired: { title: 'The code expired', text: `It was not approved on ${CLOUD} in time.` },
+  failed: { title: 'Not connected', text: `${CLOUD} stopped answering before the connection was approved.` },
 }
 
 function connectionWords(view: CloudSectionView): string {
@@ -45,85 +44,38 @@ function connectionWords(view: CloudSectionView): string {
   return since.startsWith('0 ') ? `${words} · just now` : `${words} · for ${since}`
 }
 
-/** What the admin checks on Cloud's page, and the link to it (board *Connecting the organisation*, *Waiting*). */
-function Waiting({ connecting, remote, busy, onCancel }: { connecting: CloudConnecting; remote: boolean; busy: boolean; onCancel: () => void }) {
+/** Where the connection is made now: in HQ, by an organisation admin. */
+export function ConnectInHq({ named }: { named: string }) {
   return (
-    <div className="mt-2">
-      <p className="text-small text-text-secondary">Approve the connection on {CLOUD}, and check that it shows this code:</p>
-      <p aria-label="Code to check" className="my-2 font-mono text-[1.4rem] font-semibold tracking-[.18em] text-text-primary">{connecting.userCode}</p>
-      {!remote && (
-        <div className="flex flex-wrap items-center gap-2">
-          <HqLink address={connecting.verificationUriComplete}>Approve on {CLOUD} ↗</HqLink>
-          <Button variant="ghost" disabled={busy} onClick={onCancel}>Cancel</Button>
-        </div>
-      )}
-      <p className="mt-2 text-small text-text-secondary">Waiting for approval…</p>
-    </div>
+    <p className="mt-2 text-small text-text-secondary">
+      Connecting {named} to {CLOUD}, and disconnecting it, is done in HQ by an organisation admin, under Manage › Providers.
+    </p>
   )
 }
 
-export function CloudConnectionSection({ view, org, asked = null, initialDialog = false, onChange }: {
-  view: CloudSectionView; org: string | null; asked?: number | null; initialDialog?: boolean; onChange?: () => void
-}) {
-  const action = useCloudAsk()
-  const [confirming, setConfirming] = useState(initialDialog)
+export function CloudConnectionSection({ view, org, asked = null }: { view: CloudSectionView; org: string | null; asked?: number | null }) {
   const named = org ?? 'the organisation'
-  const remote = view.place === 'throughRemoteAccess'
   const connected = view.organisation !== null
   const connecting = view.connecting ?? null
   const ended = !connected && !connecting && view.lastAttempt ? ENDED[view.lastAttempt] : null
-  const send = async (method: 'POST' | 'DELETE') => {
-    const answer = await action.send(method, '/cloud/organisation')
-    if (answer !== null) onChange?.()
-    return answer
-  }
   return (
     <section aria-label={`${CLOUD} connection`} className="mb-4 max-w-3xl rounded-2xl border border-border px-4 py-3.5">
       <div className="mb-2"><CloudMark /></div>
-      <KeyValueRow label="Connection">{connecting ? 'Waiting for approval' : connectionWords(view)}</KeyValueRow>
+      <KeyValueRow label="Connection">{connecting ? 'Waiting for approval in HQ' : connectionWords(view)}</KeyValueRow>
       {view.problem && <ProtocolProblem problem={view.problem} />}
-      {connecting && <Waiting connecting={connecting} remote={remote} busy={action.ask.phase === 'working'} onCancel={() => void send('DELETE')} />}
       {connected && !connecting && (view.runByCloud
         ? <RunByCloud view={view} named={named} />
         : <ConnectedFacts view={view} named={named} />)}
-      {/* A fourth state, waiting for an early-access place, would go here; whether connecting needs one is not decided. */}
       {!connected && !connecting && (view.runByCloud
-        ? <p className="mt-1 text-small text-text-secondary">{CLOUD} connects HQ as it sets it up. If it has not, connect it here.</p>
+        ? <p className="mt-1 text-small text-text-secondary">{CLOUD} connects HQ as it sets it up. If it has not, connect it in HQ.</p>
         : (
           <>
             <WhatCloudGives named={named} />
             <AskedLine count={asked} named={named} />
           </>
         ))}
-      {remote ? (
-        <ReadOnly />
-      ) : connected ? (
-        !view.runByCloud && <Button variant="danger" className="mt-2" onClick={() => { action.reset(); setConfirming(true) }}>Disconnect…</Button>
-      ) : connecting ? null : (
-        <>
-          {ended && <div className="mt-2"><Notice tone="warning" title={ended.title}>{ended.text}</Notice></div>}
-          <Button className="mt-2" disabled={action.ask.phase === 'working'} onClick={() => void send('POST')}>
-            Connect to {CLOUD} ↗
-          </Button>
-          <p className="mt-1 text-micro text-text-muted">{CONNECT_HINT}</p>
-        </>
-      )}
-      <div className="mt-2"><CloudAskNotice ask={confirming ? { phase: 'idle' } : action.ask} /></div>
-      <ConfirmModal
-        open={confirming}
-        title={`Disconnect ${named} from ${CLOUD}?`}
-        confirmLabel="Disconnect"
-        destructive
-        busy={action.ask.phase === 'working'}
-        onCancel={() => setConfirming(false)}
-        onConfirm={() => void send('DELETE').then(() => setConfirming(false))}
-      >
-        <p>Nothing on your own machines changes:</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-text-secondary">
-          <li>Remote access to this Fleet Console is turned off, and cannot be turned on again until you connect.</li>
-          <li>The sites Cloud runs for you leave this fleet.</li>
-        </ul>
-      </ConfirmModal>
+      {ended && <div className="mt-2"><Notice tone="warning" title={ended.title}>{ended.text}</Notice></div>}
+      {!view.runByCloud && <ConnectInHq named={named} />}
     </section>
   )
 }

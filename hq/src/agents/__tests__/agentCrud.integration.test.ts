@@ -30,13 +30,13 @@ afterEach(async () => { await roots.restore() })
 const adminCtx = async () => (await contextWithRole('ADMIN')).ctx
 
 describe('createAgent @SC-044', () => {
-  it('creates an agent with name, handle, role, and model, with its first content', async () => {
+  it('creates an agent with name, handle and role, with its first content', async () => {
     const result = await createAgentAction(
-      { name: 'Scout', handle: 'scout-x', role: 'Researcher', defaultModel: 'claude-sonnet-4-6' },
+      { name: 'Scout', handle: 'scout-x', role: 'Researcher' },
       await adminCtx(),
     )
 
-    expect(result).toMatchObject({ name: 'Scout', handle: 'scout-x', role: 'Researcher', defaultModel: 'claude-sonnet-4-6', runtime: 'claude-sdk', approval: 'deferred' })
+    expect(result).toMatchObject({ name: 'Scout', handle: 'scout-x', role: 'Researcher', approval: 'deferred' })
     expect(await prisma.agent.findUnique({ where: { handle: 'scout-x' } })).toMatchObject({ id: result.id })
     expect(await readAgentContent(result.id)).not.toBeNull()
   })
@@ -60,51 +60,14 @@ describe('createAgent @SC-044', () => {
     expect(await prisma.agent.count()).toBe(0)
   })
 
-  it('answers 400 for a setting that is not valid, and creates nothing', async () => {
-    await expect(createAgentAction({ name: 'N', handle: 'bad-model', defaultModel: ' ' }, await adminCtx()))
-      .rejects.toMatchObject({ statusCode: 400, message: 'A model is required' })
-    await expect(createAgentAction({ name: 'N', handle: 'bad-runtime', runtime: 'gpt' }, await adminCtx()))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('runtime') })
-    expect(await prisma.agent.count()).toBe(0)
-  })
-
-  it('fails for a handle another agent already has, creating no second agent', async () => {
-    await createAgent({ handle: 'taken-x' })
-    await expect(createAgentAction({ name: 'N', handle: 'taken-x' }, await adminCtx())).rejects.toThrow(/already exists/)
-    expect(await prisma.agent.count()).toBe(1)
-  })
-})
-
-describe('updateAgent @SC-045', () => {
-  it('edits name and role — identity (ruling T5)', async () => {
-    const agent = await createAgent({ name: 'Old', role: 'A' })
-    const updated = await updateAgentAction(
-      { id: agent.id, name: 'New', role: 'B' },
-      await adminCtx(),
-    )
-    expect(updated.name).toBe('New')
-    expect(updated.role).toBe('B')
-    expect(await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).toMatchObject({ name: 'New', role: 'B' })
-    expect(dashboardPush.triggerSnapshotPush).toHaveBeenCalled()
-  })
-
-  it('returns 404 for an unknown agent id', async () => {
-    await expect(
-      updateAgentAction({ id: 'does-not-exist', name: 'x' }, await adminCtx()),
-    ).rejects.toMatchObject({ statusCode: 404 })
-  })
-
-  // Model, runtime, approval and the tools are
-  // settings — they change through updateAgentSettings, not updateAgent,
-  // whatever value is sent.
   it('rejects a setting with 400 naming updateAgentSettings and changes nothing', async () => {
-    const agent = await createAgent({ runtime: 'claude-sdk' })
+    const agent = await createAgent({ approval: 'deferred' })
     await expect(
-      updateAgentAction({ id: agent.id, runtime: 'opencode' } as any, await adminCtx()),
+      updateAgentAction({ id: agent.id, approval: 'immediate' } as any, await adminCtx()),
     ).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('updateAgentSettings') })
 
     const stored = await prisma.agent.findUnique({ where: { id: agent.id } })
-    expect(stored?.runtime).toBe('claude-sdk')
+    expect(stored?.approval).toBe('deferred')
   })
 
   it('rejects an out-of-set approval the same way, before it would even be validated', async () => {

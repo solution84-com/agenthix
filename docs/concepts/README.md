@@ -28,8 +28,8 @@ flowchart TD
 
 **The ideas that shape everything else:**
 
-- **Only projects and people own things.** Storage, repositories and credentials belong to a project or to
-  a person. An agent owns nothing and carries no authority; a product or programme only groups projects.
+- **Only projects and people own things.** Storage and repositories belong to a project or to
+  a person; the keys to AI belong to the organisation, held by HQ. An agent owns nothing and carries no authority; a product or programme only groups projects.
 - **People are members; agents are assigned.** Membership of a project decides who may start work there.
   Assigning an agent to a project only makes it available there. A team of people and agents joins a project as
   one member, written through to each of them ([teams](projects/teams.md)).
@@ -60,7 +60,7 @@ The ones every concept document leans on:
 | **Run** | One stretch of an agent's work (the industry's term, as in OpenAI's thread → run → run steps; Claude Code's *query*): from the message, task start or routine that hands the agent work, through everything it does without a person in between, until it hands back. Waiting for approval does not end it ([sessions](agents/sessions.md#a-run)) |
 | **Harness** | The vendor's program that actually drives the model: Claude Code or OpenCode |
 | **Runner** | Whom a run's container is for: a person, or the project itself for a task in a project. A task in a person's personal project runs as that person |
-| **Kernel agent** | `@kernel`, the built-in agent every organisation has; it runs the first setup |
+| **Kernel agent** | `@kernel`, the built-in agent every organisation has; it is waiting on Home when setup finishes |
 | **Automation** | A project's (or a person's personal project's) switch, off by default, that lets work start without a person pressing Run: the pulse and the boundary's schedules ([automation](tasks/automation.md)) |
 | **Pulse** | The part of automation that starts a boundary's queued tasks, one at a time per agent. hq code, not an agent run |
 | **Routine** | A schedule and a task template that keeps its next round ready as a task ([routines](tasks/routines.md)) |
@@ -79,7 +79,7 @@ organisation role grants or withholds work in a project.
 
 | Role | Where it is set | What it allows |
 |---|---|---|
-| Organisation `ADMIN` | `UserSettings.role` | What is organisation-wide: people, agents, Execution Sites, products and programmes, projects, settings, the GitHub App, and the platform tools that change the organisation |
+| Organisation `ADMIN` | `UserSettings.role` | What is organisation-wide: people, agents, providers, model choices and billing profiles, Execution Sites, products and programmes, projects, settings, the GitHub App, and the platform tools that change the organisation |
 | Organisation `MEMBER` (the default) | `UserSettings.role` | Nothing organisation-wide; what they may do in a project is their role there |
 | Project `ADMIN` | `ProjectMember.role` | Everything a Member does, and administer that project: its people, agents, permissions, repositories and settings |
 | Project `MEMBER` | `ProjectMember.role` | Work in the project: talk to its agents, start, stop and change work, comment and approve |
@@ -95,13 +95,14 @@ is for ([ADR-0101](../adr/adr-0101-a-run-is-bounded-by-the-person-it-is-for.md))
 Viewer's behalf. A person's own Chat is theirs to do everything in.
 
 **Where settings live.** Each setting has one owner. **Settings** is only the signed-in person's own — profile,
-appearance, conversations (waiting or interrupting, the primary agent), their models and model logins, memory, their phone and connections, and signing in.
-**Organisation › Settings** is the organisation as a workplace, for its admins: model access, voice providers,
-GitHub on the organisation's accounts, the sites new projects can use, automation, run limits, archiving, tool
-risk rules and what the sign-in page shows. **Organisation › Infrastructure** is what everything runs on — HQ itself, every Execution Site,
-storage, registering the GitHub App, and diagnostics — kept apart from the organisation's settings, for organisation
-admins; a site's figures, versions and logs there are for fleet admins. The machines themselves are looked after in
-the **Fleet Console**, by fleet admins ([the fleet](fleet/fleet.md)).
+appearance, conversations (waiting or interrupting, the primary agent), their own Claude subscription and which models
+may run for them, memory, their phone and connections, and signing in. **Manage organisation**, the
+[admin area](organisation/admin-area.md), is the organisation, for its admins: its people, agents, and the whole of
+AI — [providers](providers/providers.md), [models and lists](models/models.md), [billing profiles and usage](billing/billing.md)
+— beside GitHub on the organisation's accounts, the sites new projects can use, automation, run limits, archiving, tool
+risk rules, what the sign-in page shows, and Infrastructure: what everything runs on — HQ itself, every Execution Site,
+storage, registering the GitHub App, and diagnostics. The machines themselves are looked after in the
+**Fleet Console**, by fleet admins ([the fleet](fleet/fleet.md)).
 
 **Who sees a file.** A file in a project's storage is visible to every member of the project, Viewers
 included (anyone in the organisation may join an open project, but until they do they read none of its files),
@@ -118,6 +119,11 @@ from other people, keep it in your own storage or in a project they are not part
 |---|---|
 | Projects, and what groups them | [projects/](projects/README.md): [project](projects/project.md), [product](projects/product.md), [programme](projects/program.md) |
 | What the Organisation page shows, and to whom | [Organisation](organisation/organisation.md) |
+| What an organisation admin manages, and where | [The admin area](organisation/admin-area.md) |
+| Who the organisation reaches AI through, and who may change it | [Providers](providers/providers.md) |
+| Which model answers, works, listens or speaks, and which may run | [Models](models/models.md), [lists](models/lists.md) |
+| What AI use cost, and whose it is | [Billing and the ledger](billing/billing.md) |
+| How a new HQ is set up | [Setup](setup/setup-flow.md) |
 | Teams, and a team as one member of a project | [Teams](projects/teams.md) |
 | Where files live and who sees them | [Storage and workspaces](workspace/workspace.md), [file sharing](file-sharing/file-sharing.md) |
 | Repositories | [Git access](git/git-access.md) |
@@ -132,16 +138,17 @@ from other people, keep it in your own storage or in a project they are not part
 | The machines it runs on, and who looks after them | [The fleet](fleet/fleet.md) |
 | What an agent knows, and how it is recalled | [Memory](memory/memory.md), [the prompt](agents/prompt_builder.md) |
 | What an agent can do, and approvals | [Skills](skills/skills.md), [tool control and approvals](agents/hitl-and-tool-control.md) |
-| Which harness and model | [Runtimes and models](agents/agent-runtime-model.md) |
+| Which harness runs work | [Runtimes and models](agents/agent-runtime-model.md) |
 | Ready-made agents, boards and teams | [the library](library/library.md) |
 
 ## The folders
 
 | Folder | Holds |
 |---|---|
-| [`agents/`](agents/) | Agents' data model, harness sessions and runs, the prompt, runtimes and models, security, tool approval |
+| [`agents/`](agents/) | Agents' data model, harness sessions and runs, the prompt, runtimes, security, tool approval |
 | [`auth/`](auth/) | Invitations: how a person joins an organisation; connections: a person's own tools reaching hq ([connections](auth/connections.md)) |
 | [`conversations/`](conversations/README.md) | Conversations held in hq: the lead and its workers, turns, operations and approvals, long conversations, voice |
+| [`billing/`](billing/billing.md) | Billing profiles, the ledger of every call's cost and the usage report |
 | [`budget/`](budget/README.md) | Token counting and cost display; a budget design that is not built |
 | [`file-sharing/`](file-sharing/file-sharing.md) | How files and artefacts are served back to people |
 | [`fleet/`](fleet/fleet.md) | The fleet: HQ, its sites and the machines they run on, the host service, the Fleet Console, and the organisation, fleet and machine admins |
@@ -149,10 +156,12 @@ from other people, keep it in your own storage or in a project they are not part
 | [`library/`](library/library.md) | Agent, board, skill and team templates, each one package with its source, version and publisher |
 | [`memory/`](memory/README.md) | What an agent knows, memory recalled by meaning in three scopes, and where each part is held |
 | [`notifications/`](notifications/notifications.md) | What hq tells a person, what needs them, and how a request clears itself |
-| [`organisation/`](organisation/organisation.md) | The Organisation page: its identity, what needs an admin, today, where it runs, the workplace and settings |
+| [`models/`](models/models.md) | Which model answers, works, listens and speaks, and the lists that say which may run |
+| [`organisation/`](organisation/organisation.md) | The Organisation page, and [the admin area](organisation/admin-area.md) |
+| [`providers/`](providers/providers.md) | The services the organisation reaches AI through, and who writes them |
 | [`projects/`](projects/README.md) | Projects, products and programmes; places, where conversations belong ([places](projects/places.md)); each person's personal project ([personal projects](projects/personal-projects.md)) |
 | [`onboarding/`](onboarding/onboarding-flow.md) | Onboarding: every invited person joins the organisation |
-| [`setup/`](setup/setup-flow.md) | Setup: the first admin sets up a fresh HQ, once |
+| [`setup/`](setup/setup-flow.md) | Setup: the first admin sets up a fresh HQ, once, with models and voice |
 | [`skills/`](skills/skills.md) | Skills: where they come from, how a turn receives them, writing one |
 | [`tasks/`](tasks/task.md) | Tasks, boards, delegation, [automation](tasks/automation.md) and [routines](tasks/routines.md) |
 | [`workforce/`](workforce/workforce-templates.md) | Workforce templates as a person meets them: why they exist, applying one, the bundled teams. How they are stored and seeded is [library/workforce-templates.md](library/workforce-templates.md) |

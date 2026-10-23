@@ -9,6 +9,7 @@ import type { HostRefusal, HostRequest, HostTarget } from '@agenthix/core'
 import { parseBackupMachineRequest, type BackupMachineRequest } from '../backups/operations'
 import { parseUpgradesRequest, type UpgradesMachineRequest } from '../upgrades/operations'
 import type { CloudCliRequest } from './cloudCliOps'
+import { parseProviderCliRequest, type ProviderCliRequest } from './providerCliOps'
 
 export type MachineRequest =
   | { op: 'machine.status' }
@@ -21,6 +22,8 @@ export type MachineRequest =
   | UpgradesMachineRequest
   /** `agenthix cloud …`, `console remote off`, `console reset-code` (cloudCliOps.ts). */
   | CloudCliRequest
+  /** `agenthix provider …` (providerCliOps.ts). */
+  | ProviderCliRequest
   /** The changes scheduled on this machine. A controller hears of them by their notices, not by asking. */
   | { op: 'scheduled.list' }
   /** Brings back an erased HQ or site from the bin, within its grace period (spec §15). */
@@ -105,6 +108,10 @@ export function parseOwnerRequest(data: unknown): ParsedOwnerRequest {
       return r.action === 'connect' || r.action === 'state' || r.action === 'disconnect'
         ? { ok: true, request: { op: 'hq.cloudConnection', action: r.action } }
         : malformed('action')
+    case 'hq.provider': {
+      const parsed = parseProviderCliRequest(r)
+      return parsed.ok ? { ok: true, request: parsed.request } : malformed(parsed.field)
+    }
     case 'console.resetCode': {
       const user = text(r.user, MAX_USER)
       return user ? { ok: true, request: { op: 'console.resetCode', user } } : malformed('user name')

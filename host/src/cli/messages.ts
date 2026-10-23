@@ -7,6 +7,7 @@ import type { HqLinkResult, InstallResult } from '../owner/results'
 import { hostContainer } from './hostContainer'
 import { HELP, type HelpRow } from './commands'
 import { CLOUD_HELP } from './cloud'
+import { PROVIDER_HELP } from './provider'
 import { filesOriginFor } from '../install/address'
 import { cmd, nextStep, product, wrap } from './words'
 
@@ -138,7 +139,7 @@ const GROUPS: Record<HelpRow['group'], string> = {
 }
 
 export function helpText(version: string, topic?: string): string {
-  const rows = [...HELP, ...CLOUD_HELP]
+  const rows = [...HELP, ...CLOUD_HELP, ...PROVIDER_HELP]
   if (topic) {
     const row = rows.find(r => r.usage.split(' [')[0].split(' <')[0].split(' --')[0] === topic) ??
       (topic.includes(' ') ? rows.find(r => r.usage.split(' ').slice(0, topic.split(' ').length).join(' ') === topic) : undefined)

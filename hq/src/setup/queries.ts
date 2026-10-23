@@ -1,9 +1,9 @@
 import { HttpError, prisma } from 'wasp/server'
-import { needsSetup } from './setupState'
+import { currentSetupResumeStep, needsSetup, type SetupResumeStep } from './setupState'
 import { hqSiteState, type HqSiteState } from './hqSiteState'
 
 type SetupData = {
-  org: { id: string; name: string; handle: string | null; vision: string; mission: string; avatarUrl: string | null; coverUrl: string | null } | null
+  org: { id: string; name: string; handle: string | null; vision: string; mission: string; avatarUrl: string | null; coverUrl: string | null; timeZone: string } | null
   /** Setup still waits on this person: true only for hq's first admin until they finish it. */
   needsSetup: boolean
   /** The opposite of `needsSetup`, kept for the pages that redirect on it. */
@@ -31,7 +31,7 @@ export const getSetupData = async (_args: void, context: { user?: { id: string }
 
   return {
     org: org
-      ? { id: org.id, name: org.name, handle: org.handle, vision: org.vision, mission: org.mission, avatarUrl: org.avatarUrl, coverUrl: org.coverUrl }
+      ? { id: org.id, name: org.name, handle: org.handle, vision: org.vision, mission: org.mission, avatarUrl: org.avatarUrl, coverUrl: org.coverUrl, timeZone: org.timeZone }
       : null,
     needsSetup: setup,
     setupComplete: !setup,
@@ -39,4 +39,10 @@ export const getSetupData = async (_args: void, context: { user?: { id: string }
     hqSite,
     me: { id: context.user.id, displayName: person?.displayName ?? null, username: person?.auth?.identities[0]?.providerUserId ?? null },
   }
+}
+
+/** The step setup opens at for the first account after sign-in. */
+export const getSetupResume = async (_args: void, context: { user?: { id: string } | null }): Promise<{ step: SetupResumeStep }> => {
+  if (!context.user) throw new HttpError(401)
+  return { step: await currentSetupResumeStep() }
 }

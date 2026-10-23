@@ -10,8 +10,8 @@ import type { ModelErrorKind, ResolvedAccess, TurnUsage } from '../contract'
 export type TurnEnd = 'COMPLETED' | 'FAILED' | 'CANCELLED'
 
 export interface TurnRecord {
-  /** The turn's model, and who pays for the conversation now: the owner of the key a refusal would be about. */
-  setAccess(turnId: string, conversationId: string, access: ResolvedAccess): Promise<void>
+  /** The turn's model and the provider it talks through. */
+  setAccess(turnId: string, access: ResolvedAccess): Promise<void>
   firstToken(turnId: string, at: Date): Promise<void>
   /** Records the end; false when the turn was already ended by someone else (recovery). */
   finish(turnId: string, end: { state: TurnEnd; usage: TurnUsage; contextTokens?: number; error: string | null; errorKind?: ModelErrorKind | null; at: Date }): Promise<boolean>
@@ -20,12 +20,8 @@ export interface TurnRecord {
 }
 
 export const turnRecord: TurnRecord = {
-  async setAccess(turnId, conversationId, access) {
-    await prisma.inferenceTurn.update({ where: { id: turnId }, data: { model: access.model, provider: access.provider } })
-    await prisma.conversation.updateMany({
-      where: { id: conversationId, accessOwnerType: { not: access.owner } },
-      data: { accessOwnerType: access.owner },
-    })
+  async setAccess(turnId, access) {
+    await prisma.inferenceTurn.update({ where: { id: turnId }, data: { model: access.model, providerId: access.providerId } })
   },
 
   async firstToken(turnId, at) {

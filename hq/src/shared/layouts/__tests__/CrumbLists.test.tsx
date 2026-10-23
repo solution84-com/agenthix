@@ -15,7 +15,7 @@ vi.mock('wasp/client/operations', () => ({
           { id: 'p2', key: 'WEB', name: 'Website relaunch', isMember: true, personalOwnerId: null },
           { id: 'p3', key: 'CUS', name: 'Customer research', isMember: true, personalOwnerId: null },
           { id: 'p4', key: 'OUT', name: 'Not mine', isMember: false, personalOwnerId: null },
-          { id: 'p5', key: 'ME', name: 'Personal', isMember: true, personalOwnerId: 'u1' },
+          { id: 'p5', key: 'ME', name: 'Personal', isMember: true, personalOwnerId: 'u1', personalSpace: true },
         ]
       : [{ kind: 'PROJECT', itemId: 'p2' }, { kind: 'BOARD', itemId: 'b1' }],
   }),

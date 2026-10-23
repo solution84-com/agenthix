@@ -29,7 +29,7 @@ const NINE = '2026-10-01T09:00:00Z'
 const NEXT = new Date('2026-10-05T09:00:00Z')
 const AFTER = new Date('2026-10-06T09:00:00Z')
 const TEMPLATE: RoutineTemplate = {
-  title: 'Board review', description: null, priority: 'MEDIUM', labels: [], assignedAgentId: null, boardId: null, column: null,
+  title: 'Board review', description: null, priority: 'MEDIUM', labels: [], assignedAgentId: null, boardId: null, column: null, modelChoice: null,
 }
 const person = (userId: string) => ({ kind: 'person' as const, userId })
 

@@ -12,7 +12,7 @@ function PeopleCard({ isAdmin }: { isAdmin: boolean }) {
   const { data } = useQuery(getWorkplacePeople)
   const waiting = data?.waitingInvitations
   return (
-    <OrgCard title="People" to={isAdmin ? '/org/people' : undefined}>
+    <OrgCard title="People" to={isAdmin ? '/admin/people' : undefined}>
       <BigNumber value={data?.count ?? '–'} label={data?.count === 1 ? 'person' : 'people'} />
       {data && (
         <FaceStack more={data.count - data.faces.length}>
@@ -32,7 +32,7 @@ function AgentsCard() {
   const needs = agents.filter(a => a.now.state === 'needsYou').length
   const running = agents.filter(a => a.now.state === 'running').length
   return (
-    <OrgCard title="Agents" to={data?.canManage ? '/org/agents' : '/agents'}>
+    <OrgCard title="Agents" to={data?.canManage ? '/admin/agents' : '/agents'}>
       <BigNumber value={data ? agents.length : '–'} label={agents.length === 1 ? 'agent' : 'agents'} />
       {data && (
         <CardLine

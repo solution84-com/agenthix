@@ -18,7 +18,7 @@ export function SitePage() {
     <OrgAdminPage
       area="settings"
       title={site?.label ?? 'Site'}
-      trail={[{ label: 'Where work runs', href: '/org/settings/where-work-runs' }]}
+      trail={[{ label: 'Where work runs', href: '/admin/where-work-runs' }]}
       wide
     >
       {site ? <SiteBody site={site} /> : <p className="text-body text-text-muted">{error ? 'This site could not be found.' : 'Loading…'}</p>}

@@ -181,7 +181,7 @@ sequenceDiagram
   sent first, over the content transport (`hq/src/packages/packageDelivery.ts`).
 - **What crosses** (`RunDispatchPayload`, `core/src/protocol/runtimeData.ts`): the kind of run, the signed
   capability, a seed for the site's session row, the input text and model, and a context holding the
-  agent's configuration, the chat or task details, the model credentials for the turn, the run's pinned memory
+  agent's configuration, the chat or task details, the run's providers (`modelAccess`, below), the run's pinned memory
   items (`pinnedMemory`, only while conversations are on), the package digests and the person's timezone. The site stores none of the secrets: the run row keeps
   only the kind. Two fields say how the run is to be held:
   - `startedBy` is what started it: `person`, `pulse` (a boundary's pulse), `schedule` (a task's start time) or
@@ -189,6 +189,15 @@ sequenceDiagram
     read it inside a tool call. Anything that is not `person` is treated as nobody watching.
   - `runLimits` is the time limit, and for a run not started by a person the turn limit, which the site
     enforces ([container-runtime.md](container-runtime.md#limits-and-slots)).
+- **The run's providers** (`modelAccess`, `RunModelAccess`, `core/src/protocol/runProvider.ts`): hq's resolver chose the
+  run's model via a provider ([model-resolution.md](model-resolution.md)), and the dispatch carries a **provider
+  descriptor** for it and for any other provider a helper of the run may be sent to, each once, with the billing profile
+  the run's calls are costed to. A descriptor is one of `api_key` (the provider's id, vendor and key, held for this run
+  only, and the address for a custom endpoint), `subscription` (a person's own Claude login, with a grant id, only for a
+  run that runs as its owner in their own place) or `cloud` (the vendor API Agenthix Cloud's gateway is spoken to in, and
+  its address, with no secret). The site keeps no provider table and learns of a provider only here. `modelAccess` supersedes
+  `credential` and `fallbackCredentials`, which are marked deprecated since 1.1 and kept for an hq that still sends them; a site reads
+  `modelAccess` first when both are there.
 - **Site side**: `handleRunDispatch` in `site/src/server/runtime/dispatchHandler.ts` validates the
   parameters, creates or reuses the session row, creates the run row and starts the engine without waiting
   for it ([container-runtime.md](container-runtime.md) follows the run from there).
@@ -252,7 +261,13 @@ authenticated with the same machine credential:
 |---|---|---|
 | A platform tool's data operation | `callHqData`, `site/src/server/hq/dataClient.ts` | `POST /api/v1/data`, `hq/src/server/controlplane/dataApi.ts` |
 | Renew a run capability | `site/src/server/hq/capabilityRenewClient.ts` | `POST /api/v1/capabilities/renew`, `hq/src/server/identity/identityApi.ts` |
+| Report the usage of the model calls its relay made | `sendUsageReports`, `site/src/server/modelRelay/usageReportClient.ts` | `POST /api/v1/usage/report` (`HQ_USAGE_REPORT_PATH`), `hq/src/sites/usageReports.ts` |
+| Ask for hq's Agenthix Cloud token, for a container's calls through Cloud's gateway | `requestCloudAiToken`, the same file | `POST /api/v1/cloud/ai-token` (`HQ_CLOUD_AI_TOKEN_PATH`), `hq/src/sites/cloudAiTokenApi.ts` |
 | Register, and leave | `site/src/server/control/commands.ts` | `hq/src/sites/deviceApprovalApi.ts`, `leaveApi.ts` |
+
+The usage report is an HTTPS call and not a channel method because a site sends no request on the channel (hq would answer `unknown_method`), and because the
+site must send a report again until hq acknowledges its call ids: it keeps each as a file, sends batches of at most 100,
+and hq counts a call id once ([model-resolution.md](model-resolution.md#the-relay-and-its-usage-reports)).
 
 ---
 
@@ -331,7 +346,7 @@ one not heard from for 10 minutes, one that left by itself — judged from the h
 
 ## Protocol versions
 
-`SITE_PROTOCOL_VERSION` in `core/src/protocol/connection.ts` is `major.minor`, currently `1.0`, the baseline every
+`SITE_PROTOCOL_VERSION` in `core/src/protocol/connection.ts` is `major.minor`, currently `1.3`; `1.0` is the baseline every
 later version counts from. A site states it in the `X-Site-Protocol-Version` header when it dials either channel
 ([ADR-0136](../adr/adr-0136-every-connection-restarts-at-1-0-and-peers-one-major-apart-still-talk.md); [`versioning.md`](versioning.md) has every connection's version and how to
 move one).
@@ -347,7 +362,7 @@ move one).
   version.
 - hq records the version each site presented (`ExecutionSite.protocolVersion`).
 
-At 1.0 there is no earlier major, so a site one major behind is served as it is; the code kept for an older major
+At 1.x there is no earlier major, so a site one major behind is served as it is; the code kept for an older major
 starts at the first major change.
 
 ---

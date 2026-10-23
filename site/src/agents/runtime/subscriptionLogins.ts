@@ -24,6 +24,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { RunCredential, SubscriptionRefreshedEvent } from '@agenthix/core'
+import type { SiteRunCredential } from '../../server/modelRelay/runAccess'
 import { hqConnectionManager } from '../../server/hq/hqConnection'
 import { Logger } from '../../server/utils/logger'
 import { parseCredentialExpiresAt, readCredentialExpiresAt, serialiseCredentialHome } from './agentCredentials'
@@ -70,7 +71,7 @@ let sweeper: ReturnType<typeof setInterval> | null = null
  * Counts a run into the copies of its login, before its credential is written.
  * Null for any credential that is not a subscription.
  */
-export function joinSubscriptionLogin(home: string, credential: RunCredential | null): SubscriptionMembership | null {
+export function joinSubscriptionLogin(home: string, credential: SiteRunCredential | null): SubscriptionMembership | null {
   if (credential?.kind !== 'subscription') return null
   const { grantId, loginId, oauthJson } = credential
   const copies = logins.get(loginId) ?? { homes: new Map(), freshest: null, reportedExpiresAt: 0 }

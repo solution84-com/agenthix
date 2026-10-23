@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
+import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Link, useSearchParams } from 'react-router'
 import { Plus, Upload } from 'lucide-react'
 import { useQuery, useAction, getOrgAgents, getAgentUsage, createAgent } from 'wasp/client/operations'
 import { CreateAgentModal, BypassedMark } from '@agenthix/ui/agents'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { AuthedAgentAvatar } from '../../../shared/components/AuthedAgentAvatar'
-import { modelsForRuntime } from '../../models'
+import { useAgentModelLine } from '../../useAgentModelLine'
 import type { AgentCard } from '../../agentPlaceQueries'
 import { approvalLabel } from '../approvalLabel'
 import { costLabel, monthStart } from '../place/usageView'
@@ -21,7 +22,7 @@ function UsageCell({ agentId, since }: { agentId: string; since: string }) {
 
 function AgentRow({ card, since }: { card: AgentCard; since: string }) {
   const { agent } = card
-  const model = modelsForRuntime(agent.runtime).find(m => m.value === agent.defaultModel)?.label ?? agent.defaultModel
+  const model = useAgentModelLine()(agent.id)
   return (
     <div data-testid="manage-agent-row" className="flex items-center gap-3 overflow-hidden rounded-xl border border-border-subtle bg-surface-1 pr-4">
       <div className="relative hidden h-16 w-28 shrink-0 self-stretch overflow-hidden sm:block"><AgentCover coverUrl={agent.coverUrl} /></div>
@@ -34,7 +35,7 @@ function AgentRow({ card, since }: { card: AgentCard; since: string }) {
         </div>
         <div className="truncate text-small text-text-muted"><UsageCell agentId={agent.id} since={since} /></div>
       </div>
-      <Link to={`/org/agents/${agent.handle}`} className="shrink-0 text-body font-medium text-accent hover:text-accent-hover">Manage</Link>
+      <Link to={`/admin/agents/${agent.handle}`} className="shrink-0 text-body font-medium text-accent hover:text-accent-hover">Manage</Link>
     </div>
   )
 }
@@ -52,7 +53,7 @@ function ManageList() {
 
   return (
     <AppLayout
-      breadcrumbs={[{ label: 'Organisation', href: '/org' }, { label: 'Agents' }]}
+      breadcrumbs={[ADMIN_CRUMB, { label: 'Agents' }]}
       title="Agents"
       subtitle="The organisation's agents — admins create and change them"
       action={
@@ -89,7 +90,7 @@ function ManageList() {
         open={creating}
         onClose={() => setCreating(false)}
         defaultSiteId="site"
-        actions={{ createAgent: ({ name, handle, role, defaultModel, runtime }) => create({ name, handle, role, defaultModel, runtime }) }}
+        actions={{ createAgent: ({ name, handle, role }) => create({ name, handle, role }) }}
         onCreated={() => setCreating(false)}
       />
     </AppLayout>

@@ -2,7 +2,7 @@
 title: Claude Code and other tools
 description: Let a tool outside Agenthix, such as your own Claude Code, work in HQ as you.
 sidebar:
-  order: 2
+  order: 4
 ---
 
 A **connection** lets a tool outside Agenthix, such as your own Claude Code or any other MCP client, work in **HQ**

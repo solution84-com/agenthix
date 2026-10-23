@@ -110,7 +110,7 @@ describe('stopPlaceRuns in a project @SC-503', () => {
 describe('stopPlaceRuns in a personal space @SC-503', () => {
   it("stops the person's own tasks and their conversations outside any project", async () => {
     const me = await createUserWithRole('MEMBER')
-    const personal = await createProject({ accessLevel: 'PRIVATE', personalOwnerId: me.id, executionSiteId: null })
+    const personal = await createProject({ accessLevel: 'PRIVATE', personalOwnerId: me.id, personalSpace: true, executionSiteId: null })
     await prisma.projectMember.create({ data: { projectId: personal.id, userId: me.id, role: 'ADMIN' } })
     const agent = await createAgent()
     const queued = await makeTask(personal.id, { runState: 'RUN_QUEUED', onBehalfOfUserId: me.id })

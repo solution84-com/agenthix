@@ -17,7 +17,9 @@ saves one screenshot. A page in `docs/guide/` shows it with `screenshot:<name>`;
 The sample organisation is Fernhill & Co, loaded by `../fixtures/seed-guide-data.mjs`: five people (Sam Okafor is
 the administrator and the person recipes sign in as unless a page needs another), two teams, three projects
 (`WEB` Website relaunch, `RES` Customer research, `QTR` Quarterly report), four agents, finished and failed runs,
-one run waiting for approval in `WEB`, a routine in `QTR`, and a second site. Nothing in it names the product. Sam is
+one run waiting for approval in `WEB`, a routine in `QTR`, a second site, Sam's own project (`TAX`, Tax return 2026,
+which only Sam sees), four providers (Anthropic, OpenRouter, AssemblyAI, Inworld) with default models chosen, two billing
+profiles and a month of usage. Nothing in it names the product. Sam is
 also a fleet admin, which Logs and diagnostics shows health and the support bundle to. Every date in it follows the
 fixed date in `sample.json`, so two runs draw the same pictures; advance that date (to a Monday in summer time) when
 the real date catches up with the week after it.
@@ -42,9 +44,11 @@ test('notifications-approval', async ({ page }) => {
 - **`ready` is what makes it deterministic.** Wait for the thing the screenshot shows, not for a time. `capture`
   also waits for the network to go quiet, but never relies on it alone.
 - **`as`** signs in as another sample person (`priya`, `alex`, `jordan`, `kai`); `as: null` signs in as nobody.
-- **Fresh recipes run one at a time, in file-name order**, and each builds on the last: `fresh-setup-account`
-  opens a first-admin link that `firstAdminLink()` asks the running HQ for, `fresh-setup-model-access` makes the
-  administrator, and `fresh-setup-review` signs in as them.
+- **Fresh recipes run one at a time, in file-name order**, and each builds on the last, so the names sort in the order
+  of setup's steps: `fresh-setup-account` opens a first-admin link that `firstAdminLink()` asks the running HQ for,
+  `fresh-setup-ai-choice` makes the administrator, and `fresh-setup-ai-model`, `-ai-voice`, `-organisation` and
+  `-review` sign in as them. A key is checked with its vendor when saved, which a recipe must not reach, so the two
+  provider steps leave the form unsaved and put the provider in the database (`../fixtures/add-provider.mjs`).
 - **Never click anything that changes data** in an ordinary recipe. They run in any order, and a second run
   starts from whatever the first left. Open screens, open dialogs, fill fields; do not save.
 - **Text the server writes from its own clock or machine is blanked**: `capture` covers "checked 09:41", "Running

@@ -33,7 +33,7 @@ Read these first; this document does not repeat them:
 
 | Setting | Question it answers | Where it lives |
 |---|---|---|
-| Tool and bash pattern states | What may this agent ever use? | `Agent.allowedTools`, `Agent.allowedBashPatterns` (`hq/schema.prisma`); edited in the Permissions section of the agent's page under Organisation › Agents (`hq/src/agents/pages/manage/PermissionsSection.tsx`, the view in `ui/src/agents/permissions/AgentPermissionsView.tsx`) |
+| Tool and bash pattern states | What may this agent ever use? | `Agent.allowedTools`, `Agent.allowedBashPatterns` (`hq/schema.prisma`); edited in the Permissions section of the agent's page under Manage organisation › Agents (`hq/src/agents/pages/manage/PermissionsSection.tsx`, the view in `ui/src/agents/permissions/AgentPermissionsView.tsx`) |
 | Approval | When an `ask` call comes up, is a person asked at the end, at once, or not at all? | `Agent.approval`: `deferred` (the default: the run carries on and lists every Ask for the end), `immediate` (the run stops at the first Ask and asks at once) or `bypassed` (every tool runs, platform tools and tools set to Never included, and no one is asked) |
 
 A preset fills in only the tools and bash patterns; it never sets approval, so bypassing is chosen on
@@ -191,7 +191,7 @@ the run's tool calls on the Runs screen (`hq/src/runs/components/ToolCalls.tsx`)
 
 Built-in rules match a bash command by substring, highest risk first, for example `rm -rf` and `sudo`
 (`FLAGGED`), `git push` (`HIGH`), `git commit` and `npm install` (`MEDIUM`), `git status` (`SAFE`); the file
-tools have fixed levels. An admin can add rules under Organisation › Settings › Tool risk rules (`updateRiskRules`,
+tools have fixed levels. An admin can add rules under Manage organisation › Settings › Tool risk rules (`updateRiskRules`,
 `hq/src/settings/actions.ts`); they are checked first and the first match wins. The list is in
 `site/src/agents/runtime/riskRating.ts`.
 

@@ -23,7 +23,7 @@ export function LogsPage() {
     <OrgAdminPage
       area="infrastructure"
       title="Logs"
-      trail={[{ label: 'Logs and diagnostics', href: '/org/infrastructure/diagnostics' }]}
+      trail={[{ label: 'Logs and diagnostics', href: '/admin/infrastructure/diagnostics' }]}
       wide
     >
       <OrgAdminHeading title="Logs">Kept on each machine for 7 days. Tokens and secrets are removed before a line is written.</OrgAdminHeading>

@@ -17,7 +17,7 @@ A card marked **Open project · not joined** is a project you may look at but ar
 
 ## Create a project
 
-Only an organisation administrator creates projects. The **New project** button is there for everyone, but only an administrator's works. Select **New project** and follow [Your first task](../getting-started/first-task.md#1-create-a-project). The person who creates it is its first administrator.
+Select **New project**. Everyone can make a personal project, which only they see: see [Personal projects](#personal-projects). Only an organisation administrator makes a project for the organisation, so an administrator is first asked **Just for you** or **For the organisation**; anyone else goes straight to the personal form. For a project of the organisation, follow [Your first task](../getting-started/first-task.md#1-create-a-project). The person who creates it is its first administrator.
 
 If your organisation has more than one Execution Site, the dialog asks which one the project lives on. That choice is fixed once it is made.
 
@@ -36,9 +36,25 @@ Selecting a card opens the project on its **Overview**: its facts (lead, site, d
 | **Files**, **Artefacts**, **Knowledge**, **Workspaces** | See [Files, workspaces and previews](files-and-previews.md) |
 | **Members**, **Settings** | See below. **Memory** is also there for project administrators |
 
-At the foot, under **Pinned**, your name opens a menu with **Organisation**, **Settings** and **Sign out**; **«** beside it narrows the side bar to icons, and **»** widens it again. On a medium window the side bar shows an icon for each section, with its name when you point at it. **Pinned** is then the last pin's picture, with its list opening to the right, and you are your picture, opening the same menu. On a phone, **☰** opens the side bar as a drawer, and the bar at the top names the section you are on; select its name to list the sections. The section is part of the address, so a link, a reload or Back returns you to it.
+At the foot, under **Pinned**, your name opens a menu with your organisation's **Overview** and, for administrators, **Manage**, then **Your settings** and **Sign out**; **«** beside it narrows the side bar to icons, and **»** widens it again. On a medium window the side bar shows an icon for each section, with its name when you point at it. **Pinned** is then the last pin's picture, with its list opening to the right, and you are your picture, opening the same menu. On a phone, **☰** opens the side bar as a drawer, and the bar at the top names the section you are on; select its name to list the sections. The section is part of the address, so a link, a reload or Back returns you to it.
 
 Your own space has the same sections, without **Timeline**, **Members** and **Settings**, and with **Agents**: see [Your space](../getting-started/first-conversation.md#your-space).
+
+## Personal projects
+
+A personal project is a project only you see, for work of your own: a tax return, a side study, anything the
+organisation has no part in.
+
+1. Select **New project**. If you are an organisation administrator, choose **Just for you**.
+2. Give it a **Name** and, if you like, a **Description**. Select **Make it**.
+
+![The New project dialog for a project just for you, with a name and a description](screenshot:personal-project)
+
+You can make as many as you like. **Your space** is the first, made with your account and kept for as long as you are in
+the organisation; the others are yours to delete from their **Settings**. Nobody can be added to a personal project, and
+its **Settings** have no access, members or billing parts. Any agent can work in it, as you: with your own
+agent settings, your Claude subscription if you have one, and your own list of which models may run. It keeps its own
+files, apart from your space's.
 
 ## Roles in a project
 
@@ -90,7 +106,8 @@ Open **Settings**. Each part saves on its own, and people who can't change a par
 | **Who can join** | **Open** or **Private** |
 | **Default agent** | The agent a new conversation here starts with |
 | **Execution Site** | Where it runs. Chosen when the project was made |
-| **Model access** | This project's own API key or Claude login, used first by every run in it. Shown only to project administrators |
+| **Models** | Which models may run in this project: a list that narrows the organisation's, for everyone working here, agents included. See [Which models may run](../your-tools/models.md#which-models-may-run). Shown only to project administrators |
+| **Billing** | **AI cost billed to**, the billing profile this project's AI cost is charged to. Shown when the organisation has more than one. Only an organisation administrator changes it: see [Billing profiles and usage](../your-tools/billing-and-usage.md) |
 | **Run time limit (minutes)** | Stops any run in the project after this long. It can only be tighter than the organisation's limit |
 | **Archive finished tasks after** | How long a finished task stays on the board before it is archived |
 | **Delete** | **Delete project** removes it with all its boards and tasks, permanently. Only an organisation administrator can |

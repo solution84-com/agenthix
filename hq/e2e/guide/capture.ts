@@ -49,6 +49,8 @@ const SERVER_TEXT: [RegExp, string][] = [
   [/last report \d{1,2}:\d{2}/g, 'last report 09:29'],
   [/(Running since) [^·,]*?(?= ·|,|$)/g, '$1 12 Apr'],
   [/\d+(?:\.\d)? (GB|MB) free/g, '48 GB free'],
+  // The Usage page opens on the server's current month, which the browser's fixed date does not reach.
+  [/^(Usage · )?(?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4}$/g, '$1April 2027'],
 ]
 
 const MASK_COLOR = '#d9d9d9'

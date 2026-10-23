@@ -13,8 +13,7 @@ erDiagram
         string name
         string handle UK
         string role
-        string defaultModel
-        string runtime "claude-sdk | opencode"
+        string approval "deferred | immediate | bypassed"
         boolean isKernel
     }
 
@@ -28,7 +27,7 @@ erDiagram
         string closedReason "set only when status is CLOSED"
         string runtime "recorded at creation; never changes"
         string sessionType "chat by default"
-        string model "session-level model override"
+        string model "the model the session runs on"
         string harnessSessionId "site only; OpenCode"
     }
 
@@ -74,15 +73,14 @@ erDiagram
 
 ### Agent
 
-The agent's one current definition, held by hq and edited in place (ADR-0072) — there is no version number and nothing to publish. The record owns the settings that govern how a run executes — which runtime, which default model, which tools and approval — and no other place keeps a copy of them. What the agent reads — its instructions and skills — is its package content, delivered to a site by its content fingerprint (digest); each run records the digest of the content it loaded. A run uses the definition as it was when it started; an edit applies from the next run, and never fails or changes a run already under way. Content is stored immutably by its digest, and content no package points at is removed a day after it was released. Persists across sessions.
+The agent's one current definition, held by hq and edited in place (ADR-0072) — there is no version number and nothing to publish. The record owns the settings that govern how a run executes — which tools and approval — and no other place keeps a copy of them. What the agent reads — its instructions and skills — is its package content, delivered to a site by its content fingerprint (digest); each run records the digest of the content it loaded. A run uses the definition as it was when it started; an edit applies from the next run, and never fails or changes a run already under way. Content is stored immutably by its digest, and content no package points at is removed a day after it was released. Persists across sessions.
 
 Key fields:
-- `runtime` — `"claude-sdk"` or `"opencode"`: which harness runs this agent's conversations ([agent-runtime-model.md](./agent-runtime-model.md), [sites/agent-runtimes.md](../../architecture/sites/agent-runtimes.md)).
-- `defaultModel` — the model a session starts with; a session's own `model` overrides it (in `assembleRunLaunch`, `site/src/agents/runtime/runLaunch.ts`: `session.model ?? agent.defaultModel`).
+- `modelChoices` — the agent's own models and voice, in `AgentModelChoices`: its conversation model, worker model, speech to text, and text to speech with its voice, each a model via a provider, none until an admin chooses one. A choice it does not hold follows the organisation's ([models](../models/models.md)). The agent has no runtime and no default model of its own: the model chosen for a piece of work decides the harness ([agent-runtime-model.md](./agent-runtime-model.md)).
 - `allowedTools`, `allowedBashPatterns`, `approval` — the organisation's permissions: a state per tool, bash patterns, and when a person is asked ([hitl-and-tool-control.md](./hitl-and-tool-control.md)).
-- `isKernel`, and the voice fields (`voiceEnabled`, `voiceId`, `voiceTtsModel`).
+- `isKernel`. Every agent has a voice, chosen with its other model choices ([voice](../conversations/voice.md#the-speech-models-and-the-voice)).
 
-A boundary's narrowing (model, and the same permission shapes as the agent's own — tools, bash patterns, approval) lives in `AgentOverride`, not on the agent (`hq/schema.prisma`, [ADR-0072](../../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md)). A project's are read by every member of the project and changed by its admins; a person's are theirs alone (`hq/src/agents/overrides/overrideOperations.ts`).
+A boundary's narrowing (the same permission shapes as the agent's own — tools, bash patterns, approval; never a model, since which models may run is a [list](../models/lists.md)) lives in `AgentOverride`, not on the agent (`hq/schema.prisma`, [ADR-0072](../../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md)). A project's are read by every member of the project and changed by its admins; a person's are theirs alone (`hq/src/agents/overrides/overrideOperations.ts`).
 
 Every agent is the organisation's, and every member may see what it is doing in the projects they can see, with how many of those it is in (`hq/src/agents/agentPlaceQueries.ts`); "in my projects" means the projects the person is listed on, so an open project they are not listed on does not count. A person's own parts of an agent — their conversations with it, its runs on their behalf, their narrowing of it and their usage — are theirs alone. Its usage for a period is summed on each site (`run.usage`) and shown as the person's (the runs on their behalf), a project's (every run in it, to its members) and the organisation's (every run); one run counts in each, and organisation admins also see the organisation's by project — the projects they can see by name, every private project they are not on summed into one unnamed line, and people's own spaces into another (`hq/src/agents/agentUsageQueries.ts`). Runs carry tokens and the model only, so cost and energy are estimates from the tokens.
 
@@ -92,21 +90,21 @@ An agent has no schedule of its own: nothing on the record wakes it. Work reache
 
 An agent belongs to the organisation and is **in** a project when it is assigned there (`ProjectAgent`): directly, or
 only through a team the project has (`direct` is false then, and it is changed through the team ([ADR-0103](../../adr/adr-0103-a-team-joins-a-project-as-one-member.md))). In a project the agent works
-in the project's storage, and the project's admins may narrow its model and permissions for runs there
+in the project's storage, and the project's admins may narrow its permissions for runs there, and which models may run in the project is the project's [list](../models/lists.md)
 (`AgentOverride`, boundary type project). Three screens show an agent (`hq/src/agents/pages/`):
 
 | Screen | Address | What it holds |
 |---|---|---|
 | Agents | `/agents` | A card for every agent: what it is doing now, how many of the person's visible projects it is in |
-| An agent's place | `/agents/:handle` | Tabs: Overview, Conversations, then At work (Now, Projects, Runs, Usage) and About it, for the person alone (their instructions, their Memory, their settings: their model and permissions in their own space). An organisation admin also sees *Manage* |
-| Organisation › Agents | `/org/agents/:handle` | For organisation admins: its Instructions (with the prompt preview), Skills, Settings and Permissions, the projects it is in, its usage, export, stop and delete |
+| An agent's place | `/agents/:handle` | Tabs: Overview, Conversations, then At work (Now, Projects, Runs, Usage) and About it, for the person alone (their instructions, their Memory, their settings: their permissions in their own space). An organisation admin also sees *Manage* |
+| Manage organisation › Agents | `/admin/agents/:handle` | For organisation admins: its Instructions (with the prompt preview), Skills, Settings and Permissions, its own models and voice and its list of allowed models, the projects it is in, its usage, export, stop and delete |
 
 ### AgentSession
 
 A harness session between a user and an agent, on a site: a task's session, a standing worker of a [conversation](../conversations/conversations.md), or a chat from before the conversations, hidden and closed. Groups all runs that belong to one continuous session. The conversation itself is a `Conversation` row in hq with its messages, turns and operations (`hq/schema.prisma`); a worker's session points back to it. The session ID doubles as the Claude Agent SDK session ID — no separate field needed.
 
 Key fields:
-- `model` — optional per-session model override. Takes precedence over the agent's primary model when set.
+- `model` — the model the session runs on, as the runtime names it, recorded when the session is created.
 - `sessionType` — `"chat"` by default, or `"task"` for a task's session. `taskId` is set (and unique) on a task's session.
 - `conversationId`, `workerGeneration` — set on a standing worker: the conversation it serves, and which fresh start of its slot (conversation, boundary, person) it is. `conversationId` is null on a chat and on a task's session.
 - `primaryOwnerType`, `primaryOwnerId`, `primaryWorkspaceId` — the storage location the run works in ([storage-and-placement.md](../../architecture/storage-and-placement.md)).
@@ -114,7 +112,7 @@ Key fields:
 - `harnessSessionId` — on the site's copy only: the harness's own id for the conversation, where the harness chooses it (OpenCode). Null for Claude.
 - `status` — `ACTIVE`, `EXPIRED`, `ARCHIVED` or `CLOSED`, where `CLOSED` means the conversation cannot continue; `closedReason` says why — its harness state is gone (`HARNESS_STATE_MISSING`), the person left the project or the organisation, or the project was deleted. Set by the site, which owns session status, and replicated to hq (person-scoped execution spec §4, [ADR-0076](../../adr/adr-0076-a-conversation-whose-harness-state-is-gone-is-closed.md)).
 - `closedReason` — set only when `status` is `CLOSED`: `HARNESS_STATE_MISSING`, `LEFT_PROJECT`, `LEFT_ORGANISATION` or `PROJECT_DELETED`.
-- `runtime` — the agent's `runtime` at the moment this session was created (`"claude-sdk"` or `"opencode"`). Recorded once and never changed: a conversation keeps the runtime it started with even if the agent's own runtime setting is edited afterwards ([ADR-0078](../../adr/adr-0078-a-conversation-keeps-the-runtime-it-started-with.md)).
+- `runtime` — the runtime the session was created on, which the model chosen for its first run decided (`"claude-sdk"` or `"opencode"`). Recorded once and never changed: a conversation keeps the runtime it started with even if the models chosen for the agent are changed afterwards ([ADR-0078](../../adr/adr-0078-a-conversation-keeps-the-runtime-it-started-with.md)).
 
 ### AgentRun
 

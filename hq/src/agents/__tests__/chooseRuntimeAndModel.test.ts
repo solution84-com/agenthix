@@ -1,5 +1,5 @@
 /**
- * Task 6.19: the New Agent dialog chooses the runtime, runtimes are shown by
+ * Task 6.19: runtimes are shown by
  * name, the Claude model list is generated from the pinned catalogue, and the
  * OpenCode picker is grouped and priced. ui has no test runner, so its pure
  * logic is tested here.
@@ -10,7 +10,6 @@ import {
   runtimeLabel, costBand, COST_BAND_MARKERS, modelForRuntimeChange, isKnownModel, modelsForRuntime,
 } from '@agenthix/core'
 import { modelOptionLabel, filterModels, groupByProvider } from '@agenthix/ui/agents'
-import { defaultAgentSettings, settingsColumns } from '../../packages/agentPackageService'
 import { DEFAULT_MODEL } from '../models'
 
 
@@ -53,20 +52,7 @@ describe('the generated Claude model list', () => {
   })
 })
 
-describe('choosing a runtime when creating an agent', () => {
-  it('starts on Claude with its default model when no runtime is given', () => {
-    expect(defaultAgentSettings()).toMatchObject({ runtime: 'claude-sdk', model: 'claude-sonnet-5' })
-  })
-
-  it('starts on OpenCode with OpenCode’s default model', () => {
-    expect(defaultAgentSettings(undefined, 'opencode')).toMatchObject({ runtime: 'opencode', model: 'anthropic/claude-sonnet-5' })
-  })
-
-  it('refuses an unknown runtime and an OpenCode model outside its list', () => {
-    expect(() => settingsColumns(defaultAgentSettings(undefined, 'mystery'))).toThrow(/Invalid runtime/)
-    expect(() => settingsColumns(defaultAgentSettings('claude-sonnet-5', 'opencode'))).toThrow(/not a model the opencode runtime offers/)
-  })
-
+describe('the runtime of a model', () => {
   it('resets the model on a runtime change unless the new runtime offers it', () => {
     expect(modelForRuntimeChange('opencode', 'claude-sonnet-5')).toBe('anthropic/claude-sonnet-5')
     expect(modelForRuntimeChange('claude-sdk', 'anthropic/claude-sonnet-5')).toBe('claude-sonnet-5')

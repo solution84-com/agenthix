@@ -50,7 +50,7 @@ export function continuationCheck(conversationId: string, agentId: string | null
 /** A boundary's name in words: "your space", or the project's name. */
 export async function boundaryName(type: 'user' | 'project', id: string): Promise<string> {
   if (type === 'user') return 'your space'
-  const project = await prisma.project.findUnique({ where: { id }, select: { name: true, personalOwnerId: true } })
+  const project = await prisma.project.findUnique({ where: { id }, select: { name: true, personalOwnerId: true, personalSpace: true } })
   if (!project) return 'a project'
-  return project.personalOwnerId ? 'your space' : project.name
+  return project.personalOwnerId && project.personalSpace ? 'your space' : project.name
 }

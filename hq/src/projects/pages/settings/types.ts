@@ -8,6 +8,8 @@ export type SettingsProject = {
   programId: string | null
   accessLevel: 'OPEN' | 'PRIVATE'
   personalOwnerId: string | null
+  /** Your space: it has no Settings of its own, and is never deleted. */
+  personalSpace?: boolean
   defaultAgentId: string | null
   lead: { userId: string; username: string } | null
   executionSite: { id: string; label: string } | null

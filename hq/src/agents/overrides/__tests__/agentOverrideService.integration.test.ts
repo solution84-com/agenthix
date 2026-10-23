@@ -14,10 +14,11 @@ vi.mock('wasp/server', async () => {
 })
 
 import {
-  setAgentOverride, getAgentOverride, applyBoundaryOverride, runBoundary, OverrideValidationError,
+  setAgentOverride, getAgentOverride, applyBoundaryOverride, runBoundary,
 } from '../agentOverrideService'
 
 const none = { model: null, approval: null, allowedTools: null, allowedBashPatterns: null }
+// A boundary no longer overrides an agent's model (models from one place, part 4): `model` always reads null.
 
 async function task(projectId: string) {
   const creator = await createUser()
@@ -25,57 +26,6 @@ async function task(projectId: string) {
 }
 
 describe('setAgentOverride @SC-615', () => {
-  it('refuses a model that costs more than the agent\'s current model, and stores nothing', async () => {
-    const agent = await createAgent({ defaultModel: 'claude-sonnet-4-6', runtime: 'claude-sdk' })
-    const user = await createUser()
-
-    await expect(setAgentOverride({ type: 'project', id: 'p1' }, agent.id, { ...none, model: 'claude-opus-4-6' }, user.id))
-      .rejects.toThrow(OverrideValidationError)
-    expect(await prisma.agentOverride.count()).toBe(0)
-
-    await setAgentOverride({ type: 'project', id: 'p1' }, agent.id, { ...none, model: 'claude-haiku-4-5' }, user.id)
-    expect((await getAgentOverride({ type: 'project', id: 'p1' }, agent.id))?.model).toBe('claude-haiku-4-5')
-  })
-
-  it('lets an approval-only edit resubmit the stored model, even once the agent\'s model became cheaper', async () => {
-    const agent = await createAgent({ defaultModel: 'claude-sonnet-4-6', runtime: 'claude-sdk' })
-    const user = await createUser()
-    await prisma.agentOverride.create({ data: { boundaryType: 'project', boundaryId: 'p1', agentId: agent.id, model: 'claude-opus-4-6' } })
-
-    await setAgentOverride({ type: 'project', id: 'p1' }, agent.id, { ...none, model: 'claude-opus-4-6', approval: 'immediate' }, user.id)
-
-    expect(await getAgentOverride({ type: 'project', id: 'p1' }, agent.id)).toEqual({ ...none, model: 'claude-opus-4-6', approval: 'immediate' })
-  })
-
-  it('still refuses a pricier model that differs from the one stored', async () => {
-    const agent = await createAgent({ defaultModel: 'claude-sonnet-4-6', runtime: 'claude-sdk' })
-    const user = await createUser()
-    await prisma.agentOverride.create({ data: { boundaryType: 'project', boundaryId: 'p1', agentId: agent.id, model: 'claude-haiku-4-5' } })
-
-    await expect(setAgentOverride({ type: 'project', id: 'p1' }, agent.id, { ...none, model: 'claude-opus-4-6' }, user.id))
-      .rejects.toThrow(OverrideValidationError)
-
-    expect((await getAgentOverride({ type: 'project', id: 'p1' }, agent.id))?.model).toBe('claude-haiku-4-5')
-  })
-
-  it('refuses a model on an agent whose runtime offers no such model, and still accepts an approval-only override', async () => {
-    const agent = await createAgent({ defaultModel: 'anthropic/claude-opus-4-8', runtime: 'opencode' })
-    const user = await createUser()
-
-    await expect(setAgentOverride({ type: 'user', id: user.id }, agent.id, { ...none, model: 'claude-haiku-4-5' }, user.id))
-      .rejects.toThrow(/runtime/)
-    expect(await prisma.agentOverride.count()).toBe(0)
-
-    await setAgentOverride({ type: 'user', id: user.id }, agent.id, { ...none, approval: 'immediate' }, user.id)
-    expect(await prisma.agentOverride.count()).toBe(1)
-  })
-
-  it('refuses a model override for an agent that does not exist', async () => {
-    const user = await createUser()
-    await expect(setAgentOverride({ type: 'user', id: user.id }, 'ghost', { ...none, model: 'claude-haiku-4-5' }, user.id))
-      .rejects.toThrow(/Agent not found/)
-  })
-
   it('removes the stored row when every field is cleared', async () => {
     const agent = await createAgent()
     const user = await createUser()
@@ -94,12 +44,12 @@ describe('applyBoundaryOverride @SC-614', () => {
     allowedTools: [{ name: 'read_file', state: 'always' }, { name: 'write_file', state: 'always' }], allowedBashPatterns: null,
   }) as any
 
-  it('applies a boundary\'s model and approval to the dispatched agent config', async () => {
+  it('applies a boundary\'s approval to the dispatched agent config, and never a model', async () => {
     const agent = await createAgent()
-    await prisma.agentOverride.create({ data: { boundaryType: 'project', boundaryId: 'p1', agentId: agent.id, model: 'claude-haiku-4-5', approval: 'immediate' } })
+    await prisma.agentOverride.create({ data: { boundaryType: 'project', boundaryId: 'p1', agentId: agent.id, approval: 'immediate' } })
 
     expect(await applyBoundaryOverride(agentConfig(agent.id), { type: 'project', id: 'p1' }))
-      .toMatchObject({ defaultModel: 'claude-haiku-4-5', approval: 'immediate' })
+      .toMatchObject({ defaultModel: 'claude-opus-4-6', approval: 'immediate' })
   })
 
   it('makes approval only stricter: a project\'s immediate over the organisation\'s deferred, never a bypassed over its immediate', async () => {

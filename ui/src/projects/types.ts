@@ -4,6 +4,8 @@ export interface CreateProjectInput {
   productId?: string
   programId?: string
   key?: string
+  /** Set only by a form that offered a choice of billing profile. */
+  billingProfileId?: string
 }
 
 export interface ProjectActions {

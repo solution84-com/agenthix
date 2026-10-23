@@ -17,9 +17,10 @@ import { reachableTargets, scopeRefusal, scopeTarget, type ScopeTarget } from '.
 import { cleanItem, duplicateAction, embeddingText, itemRefusal, keyFrom } from './items'
 import { cosine, rank } from './ranking'
 import {
-  ITEM_SELECT, embedOrNull, embeddingState, markRecalled, recalledItem, writingModel, type ItemRow,
+  ITEM_SELECT, embedOrNull, markRecalled, recalledItem, type ItemRow,
 } from './memoryRows'
 import { embedderFor as defaultEmbedderFor } from './embedding/embedders'
+import { LOCAL_MODEL } from './embedding/localEmbedder'
 
 /** A call this store will not make, with a reason meant for whoever asked. */
 export class MemoryRefused extends Error {
@@ -64,7 +65,7 @@ export function createMemoryService(deps: MemoryServiceDeps = {}): MemoryService
     if (refusal) return { status: 'refused', reason: refusal }
     const key = keyFrom(input.key?.trim() ? input.key : item.title)
 
-    const model = writingModel(await embeddingState())
+    const model = LOCAL_MODEL
     const vector = (await embedOrNull(embedderFor(model), [embeddingText(item)]))?.[0] ?? null
     const fields = {
       title: item.title, body: item.body, kind: input.kind, tags: item.tags,
@@ -162,19 +163,13 @@ export function createMemoryService(deps: MemoryServiceDeps = {}): MemoryService
     return { items: items.map(i => recalledItem(i.row, { similarity: i.similarity, score: i.score })), cut }
   }
 
-  /**
-   * The query's vector in each model the rows were embedded with: while a switch re-embeds, both the current and
-   * the next, so every item stays searchable. A vector given by the caller is in the current model.
-   */
+  /** The query's vector in the built-in model, which is the one the rows are searched in. A vector given by the caller is in it. */
   async function queryVectorsFor(query: string | number[], rows: ItemRow[]): Promise<Map<string, number[]>> {
-    const state = await embeddingState()
-    if (typeof query !== 'string') return new Map([[state.current, query]])
-    const models = [state.current, state.next].filter((m): m is string => !!m && rows.some(r => r.embeddingModel === m))
+    if (typeof query !== 'string') return new Map([[LOCAL_MODEL, query]])
     const vectors = new Map<string, number[]>()
-    for (const model of models) {
-      const vector = (await embedOrNull(embedderFor(model), [query]))?.[0]
-      if (vector) vectors.set(model, vector)
-    }
+    if (!rows.some(r => r.embeddingModel === LOCAL_MODEL)) return vectors
+    const vector = (await embedOrNull(embedderFor(LOCAL_MODEL), [query]))?.[0]
+    if (vector) vectors.set(LOCAL_MODEL, vector)
     return vectors
   }
 

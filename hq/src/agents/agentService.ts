@@ -32,15 +32,12 @@ export interface CreateAgentParams {
   name: string
   /** Auto-generated from name if omitted */
   handle?: string
-  defaultModel?: string
-  /** The runtime the agent starts on; omitted: Claude. Ignored when `settings` is given. */
-  runtime?: string
   /** Structured identity fields — used by MCP create_agent */
   role?: string
   responsibilities?: string
   /** Content beyond the blank template — templates and imports. */
   initialContent?: Partial<AgentContent>
-  /** The agent's settings, from a template or an archive. Omitted: the defaults, with `defaultModel`. */
+  /** The agent's settings, from a template or an archive. Omitted: the defaults. */
   settings?: AgentSettings
   /** Who wrote the first content; null for a system caller. */
   createdById?: string | null
@@ -67,9 +64,9 @@ export async function createAgent(params: CreateAgentParams) {
   const existing = await prisma.agent.findUnique({ where: { handle } })
   if (existing) throw new Error(`Agent with handle '${handle}' already exists`)
 
-  // Validated before anything touches disk: an invalid setting (e.g. a blank
-  // model) must leave no provisioned workspace behind.
-  const settings = settingsColumns(params.settings ?? defaultAgentSettings(params.defaultModel, params.runtime))
+  // Validated before anything touches disk: an invalid setting (e.g. a bad
+  // approval) must leave no provisioned workspace behind.
+  const settings = settingsColumns(params.settings ?? defaultAgentSettings())
   const content = await initialAgentContent(params)
 
   const agent = await prisma.$transaction(async tx => {

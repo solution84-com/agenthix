@@ -3,7 +3,7 @@
  * (getting-in spec, The first admin). The key is an `Invite` of kind
  * FIRST_ADMIN: only its hash is stored, it lasts 24 hours, and making a new one
  * withdraws the last, so only the newest link works. hq makes one at every start
- * with no users and prints it from hq's own address; `agenthix invite-admin` on
+ * with no users and prints it from hq's own address; `agenthix hq invite-admin` on
  * hq's machine makes one without a restart.
  */
 import { createHash, timingSafeEqual } from 'node:crypto'

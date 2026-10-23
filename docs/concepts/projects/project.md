@@ -99,7 +99,7 @@ Agents are assigned to a project rather than being members: an assignment says w
 ### Agents in a project
 A project's admins assign agents to it, and so may an organisation admin, to any project but a person's own
 (`requireMayAssignAgents`, `hq/src/projects/membership.ts`); assigning reads nothing in the project and shows in
-its Members view. A private project stays private to organisation admins: on Organisation › Agents, a private
+its Members view. A private project stays private to organisation admins: on Manage organisation › Agents, a private
 project the admin is not on is shown only as "A private project" — counted, so they see how many projects an
 agent works in, but with no name, key or narrowing — and its usage is summed with the others like it into one
 line. Assigning from there offers only the projects the admin can see (`getAgentAssignments`,

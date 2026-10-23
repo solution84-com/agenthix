@@ -3,7 +3,7 @@ import { titleFrom, titleRequest } from '../titling'
 
 describe('naming a conversation', () => {
   it('asks the conversation\'s model, with what the person said and the reply, for a short name only', () => {
-    const access = { provider: 'openai', model: 'gpt-5.6-luna', apiKey: 'k', owner: 'user', kind: 'API_KEY' } as never
+    const access = { providerId: 'p-oai', providerName: 'OpenAI', provider: 'openai', model: 'gpt-5.6-luna', apiKey: 'sk-test-fake' } as never
     const request = titleRequest({ access, ask: 'plan the launch', reply: 'Sure.', conversationId: 'c1', signal: new AbortController().signal })
     expect(request.access).toBe(access)
     expect(request.messages).toEqual([{ role: 'user', content: 'The person said: plan the launch\n\nThe reply: Sure.' }])

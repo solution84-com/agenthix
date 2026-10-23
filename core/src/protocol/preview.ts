@@ -70,6 +70,12 @@ export interface PreviewStartParams {
   sessionId: string
   command: string
   port: number
+  /**
+   * For a task in a person's personal project: that person, whose container the task ran in, so the preview runs
+   * there too. Absent for everything else, and from an hq before site protocol 1.3. hq sets it only from the project's
+   * own owner, as it signs a capability's `personalProject` claim.
+   */
+  personalOwnerId?: string
 }
 
 /**

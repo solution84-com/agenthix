@@ -117,7 +117,7 @@ The session exists in hq's database and in the site's (`model AgentSession` in `
 
 ## The runtime is fixed at creation
 
-A session records the agent's `runtime` (`claude-sdk` or `opencode`) when it is created and never changes it, because one harness cannot read another's saved state. Changing the agent's runtime later affects new conversations only ([ADR-0078](../../adr/adr-0078-a-conversation-keeps-the-runtime-it-started-with.md)).
+A session records the `runtime` (`claude-sdk` or `opencode`) it is created on, which follows the model chosen for its first run, and never changes it, because one harness cannot read another's saved state. Choosing other models later affects new sessions only ([ADR-0078](../../adr/adr-0078-a-conversation-keeps-the-runtime-it-started-with.md)).
 
 ## Privacy
 

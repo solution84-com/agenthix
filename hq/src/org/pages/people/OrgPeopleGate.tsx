@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Link } from 'react-router'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { useOrgAdminState } from '../../../agents/pages/manage/ManageGate'
@@ -10,7 +11,7 @@ export function OrgPeopleGate({ children }: { children: ReactNode }) {
   const state = useOrgAdminState()
   if (state === 'admin') return <>{children}</>
   return (
-    <AppLayout breadcrumbs={[{ label: 'Organisation', href: '/org' }, { label: 'People' }]}>
+    <AppLayout breadcrumbs={[ADMIN_CRUMB, { label: 'People' }]}>
       <div className="px-6 py-16 text-center">
         {state === 'loading' ? (
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-accent" />

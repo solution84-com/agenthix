@@ -21,6 +21,7 @@ import { seedRuns } from './guide-sample-runs.mjs'
 import { seedAccess } from './guide-sample-access.mjs'
 import { seedP } from './guide-sample-p.mjs'
 import { seedAutomation } from './guide-sample-automation.mjs'
+import { seedModelsAndBilling } from './guide-sample-models.mjs'
 
 const require = createRequire(import.meta.url)
 const hqRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -71,7 +72,7 @@ if (!defaultSite) {
 // reference User), boards, tasks and comments (Project), and notifications and pins (User).
 await hq.$executeRawUnsafe(`TRUNCATE TABLE "User", "Project", "Product", "Program", "Team", "Invite", "PasswordReset",
   "RateLimit", "RecordedError", "PreviewSession", "HeldSiteInstruction",
-  "WorkspacePlacement", "UserStoragePlacement", "ModelCredential", "GitHubApp", "GitHubInstallation", "MobileAuthToken"
+  "WorkspacePlacement", "UserStoragePlacement", "UsageEntry", "BillingProfile", "GitHubApp", "GitHubInstallation", "MobileAuthToken"
   CASCADE`)
 await hq.agent.deleteMany({ where: { isKernel: false } })
 await hq.skill.deleteMany({ where: { scope: { not: 'PLATFORM' } } })
@@ -79,6 +80,8 @@ await hq.executionSite.deleteMany({ where: { isDefault: false } })
 await site.$executeRawUnsafe('TRUNCATE TABLE "AgentSession", "Workspace", "RepoAttachment" CASCADE')
 
 // ── The organisation ───────────────────────────────────────────────────────────────────────────
+// Setup makes the organisation, so a database that has not been through it has none.
+if ((await hq.org.count()) === 0) await hq.org.create({ data: { name: 'Fernhill & Co' } })
 await hq.org.updateMany({
   data: {
     name: 'Fernhill & Co',
@@ -187,6 +190,10 @@ await createProject('QTR', 'Quarterly report', 'The quarterly report for clients
     { userId: kai.id, role: 'VIEWER' },
     ...[sam, jordan].map((u) => ({ userId: u.id, role: 'ADMIN', direct: false })),
   ])
+// Sam's own project, which only Sam sees: no slug, Sam its one member, and billed to the default profile (none named).
+await createProject('TAX', 'Tax return 2026', 'Receipts, forms and figures for this year\'s tax return.',
+  sam, agents.kernel, [{ userId: sam.id, role: 'ADMIN' }],
+  { accessLevel: 'PRIVATE', personalOwnerId: sam.id, slug: null, createdAt: ago(9 * DAY) })
 await hq.projectTeam.createMany({
   data: [
     { projectId: projects.WEB.id, teamId: teams.studio.id, role: 'MEMBER', addedById: sam.id },
@@ -280,8 +287,9 @@ await seedAutomation({ hq, ago, ahead, NOW, DAY, sample, people, agents, project
 // ── Runs, approvals, chats and notifications (the site's rows, hq's session rows) ────────────────
 await seedRuns({ hq, site, ago, people, agents, projects, tasks, defaultSite, hqRoot })
 
-// ── Model access, and an invitation waiting to be accepted ─────────────────────────────────────
+// ── An invitation waiting to be accepted, and the providers, default models, billing profiles and usage ──
 await seedAccess({ hq, ago, people, projects, hqRoot, sample })
+await seedModelsAndBilling({ hq, hqRoot, sample, people, agents, projects, defaultSite })
 
 // ── Workspaces for the project pages ─────────────────────────────────────────────────────────
 await seedP({ hq, site, ago, projects })

@@ -37,7 +37,7 @@ export function AddTeamScreen({ projectId, onBack }: { projectId: string; onBack
       <SearchField label="Search teams" value={query} onChange={setQuery} className="w-full" />
       {error && <p role="alert" className="text-small text-danger">{error}</p>}
       {!teams ? <p className="text-small text-text-muted">Loading…</p> : candidates.length === 0 ? (
-        <p className="text-small text-text-muted">{teams.length === 0 ? 'The organisation has no teams yet. Admins make them under Organisation › Teams.' : 'No team left to add.'}</p>
+        <p className="text-small text-text-muted">{teams.length === 0 ? 'The organisation has no teams yet. Admins make them under Manage organisation › Teams.' : 'No team left to add.'}</p>
       ) : (
         <ul className="space-y-2">
           {candidates.map(t => (

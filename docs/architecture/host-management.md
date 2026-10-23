@@ -458,7 +458,7 @@ Nothing is ever done to a machine either way.
 ## hq's view of sites
 
 hq shows sites read-only ([ADR-0115](../adr/adr-0115-a-site-takes-part-when-a-fleet-admin-or-cloud-adds-it.md)).
-Organisation admins see **Where work runs** (`/org/settings/where-work-runs`, `hq/src/sites/pages/`): each site's
+Organisation admins see **Where work runs** (`/admin/where-work-runs`, `hq/src/sites/pages/`): each site's
 state in a word and a sentence with its cause, its runs against its capacity, what each run gets, and the next
 scheduled change (`whereWorkRunsWords.ts`). A site's
 figures, versions and logs are for fleet admins only, checked on the server (`assertFleetAdmin`,

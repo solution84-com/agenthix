@@ -40,7 +40,6 @@ function deps(rows: ItemRow[], over: Partial<ProbeDeps> = {}) {
     embedder,
     deps: {
       rows: async () => rows,
-      state: async () => ({ current: 'local', next: null }),
       embedderFor: () => embedder,
       bars: async () => ({ certain: 0.62, probable: 0.45 }),
       now: () => new Date('2026-10-16T00:00:00Z'),
@@ -79,20 +78,6 @@ describe('the probe @SC-989', () => {
     const item = row(0.6)
     const { deps: d } = deps([item], { bars: async () => ({ certain: 0.55, probable: 0.4 }) })
     expect((await createProbe(d)(principal, QUERY)).certain.map(i => i.key)).toEqual([item.key])
-  })
-
-  it('embeds the query once in each model the items use while a switch re-embeds', async () => {
-    const other = createFakeEmbedder('openai/text-embedding-3-small')
-    const local = createFakeEmbedder()
-    const moved = row(0.2, { embeddingModel: 'openai/text-embedding-3-small', embedding: fakeVector(QUERY, 384, 'openai/text-embedding-3-small') })
-    const { deps: d } = deps([row(0.3), moved], {
-      state: async () => ({ current: 'local', next: 'openai/text-embedding-3-small' }),
-      embedderFor: model => (model === 'local' ? local : other),
-    })
-    const found = await createProbe(d)(principal, QUERY)
-    expect(local.calls).toEqual([[QUERY]])
-    expect(other.calls).toEqual([[QUERY]])
-    expect(found.certain.map(i => i.itemId)).toEqual([moved.id])
   })
 
   it('finds nothing, without embedding, when the principal reaches no items or the query is empty', async () => {

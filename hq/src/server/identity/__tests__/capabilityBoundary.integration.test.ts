@@ -2,7 +2,8 @@
  * Who a capability says the run is for, against the real test database: the
  * runner, the role a run may carry (@SC-298, ADR-0060), the project it
  * is scoped to, the site it is placed on (@SC-318), and a personal project's
- * task, which is its person's (agents own schedule spec §4).
+ * task, which is its person's (agents own schedule spec §4), in their own
+ * storage for the space and in the project's own storage for any other.
  */
 process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 7).toString('base64')
 
@@ -21,7 +22,7 @@ vi.mock('../../../storage/workspaceStore', async (importOriginal) => {
 })
 
 import { resolveCapabilityClaims } from '../capabilityService'
-import { agent, chatSession, chatLoc, userFilesLoc, projectTaskLoc, seedOrganisation, seedPersonalProject, site, override } from './capabilityFixtures'
+import { agent, chatSession, chatLoc, userFilesLoc, projectTaskLoc, seedOrganisation, seedPersonalProject, seedSidePersonalProject, site, override } from './capabilityFixtures'
 
 type MintArgs = Parameters<typeof resolveCapabilityClaims>[0]
 const mint = (session: Record<string, unknown>, primaryLoc: LocationRef, taskId: string | null = null) =>
@@ -42,6 +43,7 @@ describe('the runner claim at mint', () => {
   it('a task in a project runs for the project', async () => {
     const claims = await mint({ sessionType: 'task', primaryOwnerType: 'project', primaryOwnerId: 'p1', primaryWorkspaceId: null, taskId: 't1' }, projectTaskLoc, 't1')
     expect(claims.runner).toEqual({ kind: 'project', projectId: 'p1' })
+    expect(claims.personalProject).toBeUndefined()
   })
 
   it("a task in a person's own storage runs for that person, whoever the session names", async () => {
@@ -57,7 +59,7 @@ describe('the runner claim at mint', () => {
     await expect(mint(
       { sessionType: 'task', userId: 'admin-1', primaryOwnerType: 'user', primaryOwnerId: 'u1', primaryWorkspaceId: null, taskId: 't1' },
       { ownerType: 'user', ownerId: 'u1', taskId: 't1' }, 't1',
-    )).rejects.toThrow("does not match its task's boundary")
+    )).rejects.toThrow("does not match its task's storage")
   })
 
   it("refuses to mint a chat in another person's own storage", async () => {
@@ -191,11 +193,11 @@ describe("a personal project's task run is its person's", () => {
     expect(claims.siteId).toBe('site-home')
   })
 
-  it("refuses a session that names the personal project's own storage — it has none to mount", async () => {
+  it("refuses a session that names the space's own storage — it has none to mount", async () => {
     await expect(resolveCapabilityClaims({
       agent, session: { ...personalTask, primaryOwnerType: 'project', primaryOwnerId: 'p-mine' },
       primaryLoc: { ownerType: 'project', ownerId: 'p-mine', taskId: 't-mine' }, taskId: 't-mine', startedBy: 'person',
-    })).rejects.toThrow("personal project's storage")
+    })).rejects.toThrow("Your space's storage")
   })
 
   it("refuses a session in another person's storage", async () => {
@@ -204,13 +206,47 @@ describe("a personal project's task run is its person's", () => {
     await expect(resolveCapabilityClaims({
       agent, session: { ...personalTask, userId: 'u2', primaryOwnerId: 'u2' },
       primaryLoc: { ownerType: 'user', ownerId: 'u2', taskId: 't-mine' }, taskId: 't-mine', startedBy: 'person',
-    })).rejects.toThrow("does not match its task's boundary")
+    })).rejects.toThrow("does not match its task's storage")
   })
 
-  it("refuses a chat bound to a personal project's storage, its owner's included", async () => {
+  it("refuses a chat bound to the space's storage, its owner's included", async () => {
     await expect(resolveCapabilityClaims({
       agent, session: { ...chatSession, primaryOwnerType: 'project', primaryOwnerId: 'p-mine', primaryWorkspaceId: null },
       primaryLoc: { ownerType: 'project', ownerId: 'p-mine' }, taskId: null, startedBy: 'person',
-    })).rejects.toThrow("personal project's storage")
+    })).rejects.toThrow("Your space's storage")
+  })
+})
+
+describe("another personal project's task runs as its person, in the project's own storage", () => {
+  const sideTask = {
+    id: 's-side', sessionType: 'task', userId: 'u1', taskId: 't-side',
+    primaryOwnerType: 'project' as const, primaryOwnerId: 'p-side', primaryWorkspaceId: null,
+  }
+  const sideLoc: LocationRef = { ownerType: 'project', ownerId: 'p-side', taskId: 't-side' }
+
+  beforeEach(async () => {
+    await seedSidePersonalProject('u1', site1.id)
+  })
+
+  it('runs for its person, and signs which person owns the storage so the site lets it', async () => {
+    await role('u1', 'ADMIN')
+    const claims = await resolveCapabilityClaims({ agent, session: sideTask, primaryLoc: sideLoc, taskId: 't-side', startedBy: 'person' })
+    expect(claims).toMatchObject({
+      runner: { kind: 'person', userId: 'u1' },
+      personalProject: { projectId: 'p-side', personalOwnerId: 'u1' },
+      projectId: 'p-side', role: null, userId: 'u1', siteId: 'site-1',
+    })
+  })
+
+  it("marks a chat in it with its person too, and the chat still runs for its invoker", async () => {
+    const claims = await mint({ primaryOwnerType: 'project', primaryOwnerId: 'p-side', primaryWorkspaceId: null }, { ownerType: 'project', ownerId: 'p-side' })
+    expect(claims).toMatchObject({ runner: { kind: 'person', userId: 'u1' }, personalProject: { projectId: 'p-side', personalOwnerId: 'u1' } })
+  })
+
+  it("refuses a session that puts it in the person's own storage instead", async () => {
+    await expect(resolveCapabilityClaims({
+      agent, session: { ...sideTask, primaryOwnerType: 'user', primaryOwnerId: 'u1' },
+      primaryLoc: { ownerType: 'user', ownerId: 'u1', taskId: 't-side' }, taskId: 't-side', startedBy: 'person',
+    })).rejects.toThrow("does not match its task's storage")
   })
 })

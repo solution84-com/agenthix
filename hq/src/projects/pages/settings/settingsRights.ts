@@ -7,11 +7,13 @@ export type DeleteOffer = 'delete' | 'only-org-admin' | 'none'
  * the project's own fields are its admins' (updateProject, setProjectLead,
  * setProjectAccessLevel); filing under a product or programme and deleting are
  * the organisation admins'. A personal project is its person's alone, with none
- * of the shared parts.
+ * of the shared parts, and its owner deletes it.
  */
 export function settingsRights({ personal, isProjectAdmin, isOrgAdmin }: SettingsViewer) {
+  // A personal project is deleted by its owner, who is its one admin; no one else is offered it. Your space is never deleted.
   let deleteOffer: DeleteOffer = 'none'
-  if (!personal) deleteOffer = isOrgAdmin ? 'delete' : isProjectAdmin ? 'only-org-admin' : 'none'
+  if (personal) deleteOffer = isProjectAdmin ? 'delete' : 'none'
+  else deleteOffer = isOrgAdmin ? 'delete' : isProjectAdmin ? 'only-org-admin' : 'none'
   return {
     editOwn: isProjectAdmin,
     editFiling: isOrgAdmin && !personal,

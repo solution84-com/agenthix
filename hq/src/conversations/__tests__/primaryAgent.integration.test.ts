@@ -87,9 +87,9 @@ describe('the agents a conversation may start with @SC-941', () => {
   it('says, for each agent, whether voice can start with it, and why not', async () => {
     await kernel()
     const person = await createUserWithRole('MEMBER')
-    await createAgent({ name: 'Writer', voiceEnabled: true })
+    await createAgent({ name: 'Writer' })
     const choices = await getConversationAgentChoices({ home: 'PERSON' }, ctx(person))
-    expect(choices.find(a => a.name === 'Kernel')?.voiceRefusal).toContain('has no voice yet')
+    expect(choices.find(a => a.name === 'Kernel')?.voiceRefusal).toContain('Voice is down')
     expect(choices.find(a => a.name === 'Writer')?.voiceRefusal).toBeTruthy()
   })
 

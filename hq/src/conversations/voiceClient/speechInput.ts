@@ -11,6 +11,7 @@ import { SPEECH_RATE } from './resample'
 import type { HeardWord } from './stt/echo'
 import { createStreamClock } from './streamClock'
 import type { SpeechTrace } from './speechTiming'
+import { meterConnection, type SpeechReport } from './stt/meter'
 
 export { buildSpeechUrl, readSpeechMessage, type ServiceWord, type SpeechMessage, type SttConfig } from './adapters/assemblyAi'
 
@@ -46,7 +47,9 @@ export function createLoudDetector(onLoud: () => void) {
 const msOf = (chunk: Int16Array) => chunk.length / (SPEECH_RATE / 1000)
 
 export type SpeechInputOptions = {
-  getToken: () => Promise<{ token: string; config?: SttConfig }>
+  getToken: () => Promise<{ token: string; config?: SttConfig; ticket?: string }>
+  /** Told what each connection streamed, once it closes, for the ledger. */
+  report?: SpeechReport
   /** Settings over the organisation's, for this use of speech to text. */
   config?: SttConfig
   /** `words`: each word with when it was spoken, on the clock `now` reads. */
@@ -109,7 +112,7 @@ export function createSpeechInput(opts: SpeechInputOptions): EndableSpeechInput 
 
   const connect = async (tokenAhead?: ReturnType<SpeechInputOptions['getToken']>) => {
     // A token fetched ahead that failed is fetched again, once.
-    const { token, config } = await (tokenAhead?.catch(() => opts.getToken()) ?? opts.getToken())
+    const { token, config, ticket } = await (tokenAhead?.catch(() => opts.getToken()) ?? opts.getToken())
     if (stopped) return
     trace?.mark('token')
     const mine = {}
@@ -117,7 +120,8 @@ export function createSpeechInput(opts: SpeechInputOptions): EndableSpeechInput 
     conn = null
     const orderBase = ORDER_PER_SOCKET * sockets++
     const order = (o: number | null) => (o === null ? null : orderBase + o)
-    const handlers: SpeechToTextHandlers = {
+    const meter = meterConnection(ticket, opts.report)
+    const handlers: SpeechToTextHandlers = meter.handlers({
       onWords(text, words, committed, turn) {
         if (attempt !== mine || muted) return
         if (committed) opts.onTurn(text, order(turn), timed(words))
@@ -135,8 +139,9 @@ export function createSpeechInput(opts: SpeechInputOptions): EndableSpeechInput 
         // Unless the socket was changed for a fresh one meanwhile.
         setTimeout(() => { if (!stopped && attempt === mine) connect(takeAhead()).catch(() => opts.onFail('Speech to text could not be reached.')) }, 500)
       },
-    }
-    const onOpen = (opened: SpeechToTextConnection) => {
+    })
+    const onOpen = (raw: SpeechToTextConnection) => {
+      const opened = meter.connection(raw)
       // Changed for a fresh one, or stopped, while it opened.
       if (attempt !== mine) { opened.close(); return }
       trace?.mark('socket open')

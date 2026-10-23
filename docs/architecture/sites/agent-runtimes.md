@@ -25,13 +25,14 @@ Two implementations
 
 | Runtime name | Class | Harness | Models |
 |---|---|---|---|
-| `claude-sdk` | `ClaudeSDKRuntime` | The `claude` CLI, through the Claude Agent SDK | Anthropic's, on an API key or a Claude subscription |
-| `opencode` | `OpenCodeRuntime` | `opencode serve`, through its HTTP API | Any provider Agenthix offers (OpenRouter, OpenAI, Google, Anthropic, an OpenAI-compatible endpoint), on an API key |
+| `claude-sdk` | `ClaudeSDKRuntime` | The `claude` CLI, through the Claude Agent SDK | Anthropic's on an API key, a person's own Claude subscription, or a Claude model through Agenthix Cloud |
+| `opencode` | `OpenCodeRuntime` | `opencode serve`, through its HTTP API | Any other model of a provider Agenthix offers (OpenRouter, OpenAI, Google, an OpenAI-compatible endpoint, Agenthix Cloud), on an API key |
 
 **Selection** (`selectRuntime.ts`, called from `runLaunch.ts`) is by name. A conversation uses the
-runtime recorded on its session when it was created, whatever the agent is set to now
+runtime recorded on its session when it was created, whatever the models chosen later would give
 ([adr-0078](../../adr/adr-0078-a-conversation-keeps-the-runtime-it-started-with.md)); a session with none
-recorded takes the agent's current runtime. An unknown name fails the run — it
+recorded takes the runtime hq sends with the run, which follows the model hq's resolver chose for it
+([model-resolution.md](../model-resolution.md)). An agent has no runtime of its own. An unknown name fails the run — it
 never falls back to Claude, which would silently change the conversation's harness and billing.
 
 **Each harness runs the way its vendor intends, and stays warm across a conversation's turns**

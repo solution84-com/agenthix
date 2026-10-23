@@ -3,14 +3,13 @@
  * publish step. Its content — instructions.md and its own skills —
  * is its package, stored immutably by digest and delivered to a site by digest;
  * an edit points the package at new content, and a run already started keeps
- * the content it started with. Its settings — model, runtime, tools,
+ * the content it started with. Its settings — tools,
  * bash patterns, approval — are columns on the
  * Agent row and nowhere else: every reader reads the row.
  */
 import { prisma } from 'wasp/server'
 import { Prisma } from '@prisma/client'
 import { isApproval, type ToolPermission, type BashPatternPermission } from '@agenthix/core'
-import { DEFAULT_MODEL, DEFAULT_MODELS, OPENCODE_RUNTIME, AGENT_RUNTIMES, isKnownModel, isAgentRuntime } from '../agents/models'
 import {
   readCurrentFiles, writePackage, PackageContentError,
   type Db, type PackageFileInput, type WriteResult,
@@ -27,16 +26,12 @@ export type AgentContent = {
 
 /** How an agent behaves — the Agent row's own columns, gathered for validation and templates. */
 export type AgentSettings = {
-  model: string
-  runtime: string
   permissions: { tools: ToolPermission[] | null; bashPatterns: BashPatternPermission[] | null }
   approval: string
 }
 
 /** A partial settings edit, named as the Agent row's columns. */
 export type AgentSettingsChange = {
-  defaultModel?: string
-  runtime?: string
   /** Validated with the rest: bypassed, deferred or immediate. */
   approval?: string
   allowedTools?: ToolPermission[] | null
@@ -50,19 +45,15 @@ export class AgentContentMissingError extends Error {
   }
 }
 
-/** A new agent's settings: the runtime's own default model unless one is given. */
-export function defaultAgentSettings(model?: string, runtime: string = 'claude-sdk'): AgentSettings {
+/** A new agent's settings. Its model and runtime are the resolver's to decide (models from one place, part 4). */
+export function defaultAgentSettings(): AgentSettings {
   return {
-    model: model ?? (isAgentRuntime(runtime) ? DEFAULT_MODELS[runtime] : DEFAULT_MODEL),
-    runtime,
     permissions: { tools: null, bashPatterns: null },
     approval: 'deferred',
   }
 }
 
 type SettingsColumns = {
-  defaultModel: string
-  runtime: string
   approval: string
   allowedTools: Prisma.JsonValue | null
   allowedBashPatterns: Prisma.JsonValue | null
@@ -71,8 +62,6 @@ type SettingsColumns = {
 /** The Agent row's settings columns, gathered. */
 export function agentSettingsOf(agent: SettingsColumns): AgentSettings {
   return {
-    model: agent.defaultModel,
-    runtime: agent.runtime,
     approval: agent.approval,
     permissions: {
       tools: (agent.allowedTools ?? null) as ToolPermission[] | null,
@@ -90,8 +79,6 @@ export function mergeInstructions(profile: string | null, responsibilities: stri
 
 export function mergeSettings(current: AgentSettings, change: AgentSettingsChange): AgentSettings {
   return {
-    model: change.defaultModel ?? current.model,
-    runtime: change.runtime ?? current.runtime,
     approval: change.approval ?? current.approval,
     permissions: {
       tools: change.allowedTools !== undefined ? change.allowedTools : current.permissions.tools,
@@ -101,11 +88,6 @@ export function mergeSettings(current: AgentSettings, change: AgentSettingsChang
 }
 
 export function validateAgentSettings(s: AgentSettings): void {
-  if (typeof s.model !== 'string' || s.model.trim() === '') throw new PackageContentError('A model is required')
-  if (!(AGENT_RUNTIMES as readonly string[]).includes(s.runtime)) throw new PackageContentError(`Invalid runtime '${s.runtime}'`)
-  if (s.runtime === OPENCODE_RUNTIME && !isKnownModel(s.runtime, s.model)) {
-    throw new PackageContentError(`'${s.model}' is not a model the opencode runtime offers`)
-  }
   if (!isApproval(s.approval)) throw new PackageContentError(`Invalid approval '${s.approval}' — bypassed, deferred or immediate`)
   if (s.permissions.tools !== null && !Array.isArray(s.permissions.tools)) throw new PackageContentError('The tools must be a list or null')
   if (s.permissions.bashPatterns !== null && !Array.isArray(s.permissions.bashPatterns)) throw new PackageContentError('Bash patterns must be a list or null')
@@ -119,8 +101,6 @@ function json(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
 export function settingsColumns(s: AgentSettings) {
   validateAgentSettings(s)
   return {
-    defaultModel: s.model,
-    runtime: s.runtime,
     approval: s.approval,
     allowedTools: json(s.permissions.tools),
     allowedBashPatterns: json(s.permissions.bashPatterns),

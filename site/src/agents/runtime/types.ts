@@ -7,7 +7,8 @@
  * ask    — visible to Claude; calling it triggers HITL manifest approval.
  * never  — invisible to Claude; removed from SDK context via disallowedTools.
  */
-import type { ApprovedManifest, AuditSummary, PendingManifest, ToolPermissionState, ToolPermission, BashPatternPermission, RunContextPayload, RunCredential, ApiKeyRunCredential, SessionClosedReasonValue, RunLimits, RunStartedBy, TaskCommentForRun, ContextUse } from '@agenthix/core'
+import type { RelayCredential, SiteRunCredential } from '../../server/modelRelay/runAccess'
+import type { ApprovedManifest, AuditSummary, PendingManifest, ToolPermissionState, ToolPermission, BashPatternPermission, RunContextPayload, SessionClosedReasonValue, RunLimits, RunStartedBy, TaskCommentForRun, ContextUse } from '@agenthix/core'
 import type { ResolvedRunPackages } from '../../packages/runPackages'
 import type { BoundaryOverride } from '../../packages/boundaryOverrides'
 export type { ToolPermissionState, ToolPermission, BashPatternPermission }
@@ -88,15 +89,15 @@ export type RunContext = {
   gitCredEnv?: Record<string, string>  // Env for the in-container git credential helper (GIT_CRED_ENDPOINT etc.)
   cwd: string                          // Run working directory — the session's primary location (ADR-0039)
   capability?: import('./capabilityRenewal').CapabilityHolder  // §2a: minted at run start (by hq), renewed in place during long runs
-  /** The one model credential this run may use (RunContextPayload.credential,
-   *  decided by hq from the boundary the run acts for — spec §6.3, ADR-0060):
-   *  an API key, or the subscription login of the person the run acts as.
-   *  Carries its provider and base URL (`core`'s RunCredential). */
-  credential: RunCredential | null
-  /** API keys for the turn's other providers (RunContextPayload.fallbackCredentials),
-   *  one per provider of a fallback model. The model relay serves a request
-   *  with `credential` or one of these, by provider (spec §6). */
-  fallbackCredentials?: ApiKeyRunCredential[]
+  /** The run's own provider, from hq's descriptor (RunContextPayload.modelAccess,
+   *  runAccess.ts): an API key or Agenthix Cloud, which the model relay adds to
+   *  each request, or the subscription login of the person the run acts as. */
+  credential: SiteRunCredential | null
+  /** The turn's other providers (`modelAccess.others`), relayed only. The model
+   *  relay serves a request with `credential` or one of these, by relay path (spec §6). */
+  fallbackCredentials?: RelayCredential[]
+  /** The billing profile every model call of the run is costed to; absent from an hq that sends none. */
+  billingProfileId?: string
   /** The org's web-search (Exa) key for this turn (RunContextPayload.webSearchKey),
    *  absent when the org has none. Held here for the `web_search` platform tool
    *  and never put in a container's environment. */

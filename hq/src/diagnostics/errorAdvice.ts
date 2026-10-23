@@ -15,8 +15,8 @@ export type Advice = { kind: string; title: string; advice: string }
 type RunRule = { kind: string; test: (raw: string, plain: string) => boolean; title: string; advice: string }
 
 const LOGINS = 'Settings › Your model logins'
-const MODEL_ACCESS = 'Organisation › Model access'
-const RUN_SETTINGS = 'Organisation › Settings › Runs'
+const MODEL_ACCESS = 'Manage organisation › Providers'
+const RUN_SETTINGS = 'Manage organisation › Settings › Runs'
 
 const RUN_RULES: RunRule[] = [
   {
@@ -147,7 +147,7 @@ export function siteProblemAdvice(label: string, p: SiteProblem): Advice | null 
 /** A GitHub API call HQ made that GitHub refused. */
 export function githubAdvice(status: number): Advice {
   if (status === 401) {
-    return { kind: 'github-401', title: "GitHub refused HQ's GitHub App", advice: 'Check the GitHub App in Organisation › Infrastructure › GitHub; it may need registering again.' }
+    return { kind: 'github-401', title: "GitHub refused HQ's GitHub App", advice: 'Check the GitHub App in Manage organisation › Infrastructure › GitHub App; it may need registering again.' }
   }
   if (status === 403 || status === 404) {
     return { kind: `github-${status}`, title: 'GitHub refused a request', advice: 'Give the GitHub App access to that repository on GitHub.' }

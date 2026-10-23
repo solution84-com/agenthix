@@ -39,12 +39,12 @@ describe('a turn that answers @SC-947', () => {
     expect(h.logs[0]).toMatch(/queued 500 ms/)
   })
 
-  it('on the first turn fixes the talking model and records the policy notice once, before the reply @SC-951', async () => {
+  it('on the first turn fixes the talking model and records the fallback notice once, before the reply @SC-951', async () => {
     const h = harness(scriptedModel([[{ type: 'text', text: 'Hi' }, { type: 'finish', reason: 'stop', usage: usage(1) }]]))
     h.resolveAccess.mockResolvedValueOnce({ access, problem: null, offer: null, notice: 'Opus is not available here' })
-    await runTurn(h.deps, h.run(claimed({ talkingModel: null, talkingProvider: null })).running)
+    await runTurn(h.deps, h.run(claimed({ talkingModel: null, talkingProviderId: null })).running)
 
-    expect(h.resolveAccess).toHaveBeenCalledWith(expect.objectContaining({ id: 'conv-1' }), null)
+    expect(h.resolveAccess).toHaveBeenCalledWith(expect.objectContaining({ id: 'conv-1' }), 'u1')
     expect(h.fixTalkingAccess).toHaveBeenCalledWith('conv-1', access)
     expect(h.stored.map(m => m.kind)).toEqual(['NOTICE', 'TEXT'])
     expect(h.stored[0]).toMatchObject({ role: 'PLATFORM', body: { text: 'Opus is not available here' } })
@@ -54,23 +54,29 @@ describe('a turn that answers @SC-947', () => {
     const h = harness(scriptedModel([[{ type: 'text', text: 'Hi' }, { type: 'finish', reason: 'stop', usage: usage(1) }]]))
     h.resolveAccess.mockResolvedValueOnce({ access, problem: null, offer: null, notice: 'Opus is not available here' })
     h.fixTalkingAccess.mockResolvedValueOnce(false)
-    await runTurn(h.deps, h.run(claimed({ talkingModel: null, talkingProvider: null })).running)
+    await runTurn(h.deps, h.run(claimed({ talkingModel: null, talkingProviderId: null })).running)
     expect(h.stored.map(m => m.kind)).toEqual(['TEXT'])
   })
 
-  it('on a later turn asks for the access of the model it keeps @SC-951', async () => {
+  it('on a later turn asks for the access of the model it keeps, for the person acting @SC-951', async () => {
     const h = harness(scriptedModel([[{ type: 'finish', reason: 'stop', usage: usage(1) }]]))
     await runTurn(h.deps, h.run().running)
-    expect(h.resolveAccess).toHaveBeenCalledWith(expect.anything(), { model: 'claude-sonnet-5', provider: 'anthropic', owner: 'user' })
+    expect(h.resolveAccess).toHaveBeenCalledWith(expect.objectContaining({ talkingModel: 'claude-sonnet-5', talkingProviderId: 'p-ant' }), 'u1')
     expect(h.fixTalkingAccess).not.toHaveBeenCalled()
   })
 
-  it('records the notice once when the recorded access is gone and it falls back to another payer @SC-951', async () => {
+  it('a later turn records no notice: the model it keeps is never switched by a turn @SC-951', async () => {
     const h = harness(scriptedModel([[{ type: 'text', text: 'Hi' }, { type: 'finish', reason: 'stop', usage: usage(1) }]]))
-    h.resolveAccess.mockResolvedValueOnce({ access, problem: null, offer: null, notice: 'Now on the organisation\'s key' })
+    h.resolveAccess.mockResolvedValueOnce({ access, problem: null, offer: null, notice: 'Something fell back' })
     await runTurn(h.deps, h.run().running)
-    expect(h.stored.map(m => m.kind)).toEqual(['NOTICE', 'TEXT'])
-    expect(h.stored[0]).toMatchObject({ role: 'PLATFORM', body: { text: 'Now on the organisation\'s key' } })
+    expect(h.stored.map(m => m.kind)).toEqual(['TEXT'])
+  })
+
+  it('fails with the problem, writing nothing to the model, when the model it talks on cannot be used @SC-951', async () => {
+    const h = harness(scriptedModel([]))
+    h.resolveAccess.mockResolvedValueOnce({ access: null, problem: "Claude Sonnet 5 · via Anthropic isn't working", offer: { providerId: 'p-or', model: 'x', label: 'X' } })
+    const outcome = await runTurn(h.deps, h.run().running)
+    expect(outcome).toMatchObject({ state: 'FAILED', error: "Claude Sonnet 5 · via Anthropic isn't working" })
   })
 })
 

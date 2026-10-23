@@ -53,11 +53,12 @@ describe('getOrgSettingsState @SC-665', () => {
     await expect(getOrgSettingsState(undefined, ctx(member))).rejects.toMatchObject({ statusCode: 403 })
   })
 
-  it('reads each setting’s state: providers with Anthropic first, GitHub accounts, run limits, risk rules, automation and voice', async () => {
+  it('reads each setting’s state: the model providers, oldest first, GitHub accounts, run limits, risk rules, automation and voice', async () => {
     const admin = await createUserWithRole('ADMIN')
     await prisma.org.create({ data: { name: 'Acme', runTimeLimitMinutes: 30, runTurnLimit: 50 } })
-    await prisma.modelCredential.create({ data: { kind: 'SUBSCRIPTION', provider: 'anthropic', ownerType: 'org', ownerId: 'org', secret: 'x' } })
-    await prisma.provider.create({ data: { service: 'llm', name: 'openrouter', apiKey: 'x' } })
+    await prisma.aiProvider.create({ data: { name: 'Anthropic', vendor: 'anthropic', credentialKind: 'api_key', secret: 'x' } })
+    await prisma.aiProvider.create({ data: { name: 'OpenRouter', vendor: 'openrouter', credentialKind: 'api_key', secret: 'x' } })
+    await prisma.aiProvider.create({ data: { name: 'AssemblyAI', vendor: 'assemblyai', credentialKind: 'api_key', secret: 'x' } })
     await prisma.gitHubInstallation.create({ data: { installationId: 1, accountLogin: 'acme', accountType: 'Organization' } })
     await prisma.siteConfig.create({ data: { riskRules: [{ pattern: 'rm -rf', riskLevel: 'HIGH' }] } })
     await prisma.provider.create({ data: { service: 'stt', name: 'assemblyai', apiKey: 'x', isEnabled: true } })

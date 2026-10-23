@@ -1,15 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2 } from 'lucide-react'
-import { AGENT_RUNTIMES, OPENCODE_RUNTIME, isAgentRuntime, modelForRuntimeChange, runtimeLabel } from '@agenthix/core'
 import type { AgentDetail } from '../types'
-import { ModelSelect } from '../ModelSelect'
 
 export interface ConfigurationTabActions {
   updateAgent: (input: {
     id: string
     name?: string
-    defaultModel?: string
-    runtime?: string
   }) => Promise<unknown>
 }
 
@@ -20,8 +16,6 @@ export interface ConfigurationTabProps {
 
 export function ConfigurationTab({ agent, actions }: ConfigurationTabProps) {
   const [name, setName] = useState(agent.name)
-  const [defaultModel, setDefaultModel] = useState(agent.defaultModel)
-  const [runtime, setRuntime] = useState(agent.runtime)
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,21 +23,14 @@ export function ConfigurationTab({ agent, actions }: ConfigurationTabProps) {
 
   useEffect(() => {
     setName(agent.name)
-    setDefaultModel(agent.defaultModel)
-    setRuntime(agent.runtime)
   }, [agent])
-
-  const changeRuntime = (next: string) => {
-    setRuntime(next)
-    setDefaultModel(modelForRuntimeChange(next, defaultModel))
-  }
 
   const handleSave = useCallback(async () => {
     setSaving(true)
     setError(null)
     setSaved(false)
     try {
-      await actions.updateAgent({ id: agent.id, name, defaultModel, runtime })
+      await actions.updateAgent({ id: agent.id, name })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e: unknown) {
@@ -51,7 +38,7 @@ export function ConfigurationTab({ agent, actions }: ConfigurationTabProps) {
     } finally {
       setSaving(false)
     }
-  }, [agent.id, name, defaultModel, runtime, actions])
+  }, [agent.id, name, actions])
 
   const inputClass = 'w-full bg-surface-1 border border-border-subtle rounded-xl px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent placeholder:text-text-muted/70'
 
@@ -74,26 +61,6 @@ export function ConfigurationTab({ agent, actions }: ConfigurationTabProps) {
         <div className="w-full bg-surface-1 border border-border-subtle rounded-xl px-3 py-2 text-body text-text-muted font-mono">
           @{agent.handle}
         </div>
-      </div>
-
-      {/* Runtime */}
-      <div>
-        <label className="block text-micro font-medium uppercase tracking-wide text-text-muted mb-1.5">Runtime</label>
-        <select value={runtime} onChange={(e) => changeRuntime(e.target.value)} className={inputClass}>
-          {AGENT_RUNTIMES.map(r => <option key={r} value={r}>{runtimeLabel(r)}</option>)}
-          {!isAgentRuntime(runtime) && <option value={runtime}>{runtimeLabel(runtime)}</option>}
-        </select>
-        {runtime === OPENCODE_RUNTIME && (
-          <p className="text-small text-text-muted mt-1.5">
-            Runs models from OpenRouter, OpenAI, Google and Anthropic, or from an OpenAI-compatible endpoint. Each needs its key under Organisation › Settings › Model access.
-          </p>
-        )}
-      </div>
-
-      {/* Default Model */}
-      <div>
-        <label className="block text-micro font-medium uppercase tracking-wide text-text-muted mb-1.5">Default Model</label>
-        <ModelSelect runtime={runtime} value={defaultModel} onChange={setDefaultModel} className={inputClass} />
       </div>
 
       {/* Save */}

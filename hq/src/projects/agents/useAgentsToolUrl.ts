@@ -5,15 +5,14 @@ export type AgentsScreen =
   | { kind: 'list' }
   | { kind: 'assign' }
   | { kind: 'agent'; agentId: string }
-  | { kind: 'edit'; agentId: string }
   | { kind: 'remove'; agentId: string }
 
-/** Where the Agents tool is, read from the address: `?tool=agents&agent=<id>&aview=edit`. `&focus=` names the part of an agent to scroll to. */
+/** Where the Agents tool is, read from the address: `?tool=agents&agent=<id>&aview=remove`. `&focus=` names the part of an agent to scroll to. */
 export function screenOf(params: URLSearchParams): AgentsScreen {
   const agentId = params.get('agent')
   const view = params.get('aview')
   if (!agentId) return view === 'assign' ? { kind: 'assign' } : { kind: 'list' }
-  return view === 'edit' ? { kind: 'edit', agentId } : view === 'remove' ? { kind: 'remove', agentId } : { kind: 'agent', agentId }
+  return view === 'remove' ? { kind: 'remove', agentId } : { kind: 'agent', agentId }
 }
 
 const OWN = ['agent', 'aview', 'focus'] as const
@@ -36,7 +35,6 @@ export function useAgentsToolUrl() {
     toList: useCallback(() => go({}), [go]),
     toAssign: useCallback(() => go({ aview: 'assign' }), [go]),
     toAgent: useCallback((agentId: string) => go({ agent: agentId }), [go]),
-    toEdit: useCallback((agentId: string) => go({ agent: agentId, aview: 'edit' }), [go]),
     toRemove: useCallback((agentId: string) => go({ agent: agentId, aview: 'remove' }), [go]),
   }
 }

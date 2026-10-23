@@ -59,7 +59,7 @@ function deps(requests: LeadRequest[]): TurnDeps {
   return {
     ...turnDeps,
     tools,
-    async resolveAccess() { return { access: { provider: 'anthropic', model: 'claude-sonnet-5', apiKey: 'k', owner: 'user', kind: 'API_KEY' }, problem: null, offer: null } },
+    async resolveAccess() { return { access: { providerId: 'p-ant', providerName: 'Anthropic', provider: 'anthropic', model: 'claude-sonnet-5', apiKey: 'sk-test-fake' }, problem: null, offer: null } },
     async fixTalkingAccess() { return true },
     async titleConversation() {},
     async context() { return { system: [{ text: 'base' }], messages: [{ role: 'user', content: ASK }] } },

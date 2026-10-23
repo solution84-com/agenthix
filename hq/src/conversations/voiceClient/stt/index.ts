@@ -9,7 +9,7 @@ import type { Clock } from '../clock'
 import type { AnyComponent } from '../runtime/types'
 import { echoFilter } from './echoFilter'
 
-export type SttToken = { token: string; config?: SttConfig }
+export type SttToken = { token: string; config?: SttConfig; ticket?: string }
 
 /** The organisation's speech service on one of hq's tokens, with voice's settings over the organisation's. */
 export const assemblyAiService = (t: SttToken) => assemblyAi({ token: t.token, config: { ...t.config, ...VOICE_STT_CONFIG } })

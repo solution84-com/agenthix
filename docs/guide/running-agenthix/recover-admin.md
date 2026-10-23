@@ -18,7 +18,7 @@ Run them in the host service, the small program that runs Agenthix on the machin
 
 ## Someone else forgot their password
 
-If you can still sign in, you don't need a command. Open **Organisation › People**, select the person, then **Reset
+If you can still sign in, you don't need a command. Open **Manage › People and invitations**, select the person, then **Reset
 password** in the **⋯** menu. See [When someone forgets their password or leaves](../people/passwords-and-leaving.md).
 
 ## The only organisation admin forgot their password
@@ -46,7 +46,7 @@ agenthix hq invite-admin
 ```
 
 It prints an invitation link, valid for 24 hours. Open it to create the account, as
-[Joining by invitation](../getting-started/joining-by-invitation.md) describes. Under **Organisation › People**, the new
+[Joining by invitation](../getting-started/joining-by-invitation.md) describes. Under **Manage › People and invitations**, the new
 organisation admin shows as **Invited from HQ's machine**, and any other organisation admins are told.
 
 While HQ has no people at all, `agenthix hq invite-admin` prints the link for the first account, and so does HQ's log

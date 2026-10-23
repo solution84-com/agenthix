@@ -19,7 +19,8 @@ import { createVoiceRuntime } from './runtime/runtime'
 import type { Adapter, VoiceRuntime } from './runtime/types'
 import { semanticsParts } from './semantics'
 import { VOICE_SETTINGS, type VoiceSettings } from './settings'
-import { sttParts, type SttToken } from './stt'
+import { assemblyAiService, sttParts, type SttToken } from './stt'
+import { meteredService, type SpeechReport } from './stt/meter'
 import { utterance } from './stt/utterance'
 import type { VoiceSnapshot } from './voiceSnapshot'
 
@@ -40,6 +41,8 @@ export type VoicePartsDeps = VoiceOutside & {
   socket: LooseSocket
   conversationId: () => string | null
   getToken: () => Promise<SttToken>
+  /** Told what each speech connection streamed, for the ledger. */
+  reportSpeech?: SpeechReport
   set: (patch: Partial<VoiceSnapshot>) => void
   chime: () => void
   speaker: Adapter
@@ -58,7 +61,7 @@ export function createVoiceParts(deps: VoicePartsDeps): VoiceRuntime {
     vad: deps.models?.vad,
     microphone: { open: deps.openMicrophone, media: deps.media, opened: deps.opened, failed: deps.microphoneFailed },
   })
-  const stt = sttParts({ clock: deps.clock, getToken: deps.getToken, service: deps.speechService, failed: deps.sttFailed })
+  const stt = sttParts({ clock: deps.clock, getToken: deps.getToken, service: meteredService(deps.speechService ?? assemblyAiService, deps.reportSpeech), failed: deps.sttFailed })
   const semantics = semanticsParts({ model: deps.models?.turn })
   const orchestration = orchestrationParts({
     socket: deps.socket, conversationId: deps.conversationId, sendNew: deps.sendNew, set: deps.set, chime: deps.chime,

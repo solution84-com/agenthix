@@ -9,6 +9,7 @@ import { LAST_ROUNDS, type RoutineDetail as RoutineDetailData } from '../../shar
 import { useMayWork } from '../../shared/hooks/useMayWork'
 import { RoutineDetail } from './RoutineDetail'
 import { useRoutineFormData } from './routineFormData'
+import { TaskModelField } from '../../models-settings/components/TaskModelField'
 import { routineTemplateArgs } from './routineTemplateArgs'
 
 /** One routine at its own address inside the tool; Older rounds reads more of its rounds. */
@@ -44,6 +45,7 @@ export function NewRoutine({ projectId, onCancel, onCreated, back = 'Routines' }
           boards={boards}
           agents={agents}
           submitLabel="Set up routine"
+          modelField={({ agentId, value, onChange }) => <TaskModelField projectId={projectId} agentId={agentId} value={value} onChange={onChange} />}
           onCancel={onCancel}
           onSubmit={async ({ template, schedule }) => {
             const { id } = await createFn({ projectId, template: routineTemplateArgs(template), schedule: schedule! })

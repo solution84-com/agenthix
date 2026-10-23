@@ -1,76 +1,137 @@
 ---
-title: "Models: the organisation's and your own"
-description: Give agents a model to answer with, and see which one a run uses.
+title: Models and the voice agents use
+description: Choose the models and the voice agents use by default, give an agent its own, and say which models may run.
 sidebar:
-  order: 1
+  order: 2
 ---
 
-Agents answer through a model, and a model needs access: a key from a provider, or a Claude subscription. **HQ**,
-your organisation's home in Agenthix, keeps that access encrypted and never shows a key again once it is saved.
+Every time an agent thinks, speaks or listens, **HQ**, your organisation's home in Agenthix, picks the model or voice
+from one place. This page is how an organisation admin steers that choice, and how everyone else can narrow it for
+themselves. The [providers](providers.md) it draws on are added separately.
 
-Access can be set in three places. A run uses the first one that works for its model.
+## How a choice is made
 
-| Where | Who sets it | Where you find it |
+```mermaid
+flowchart LR
+  A["1. The call: a conversation, a task, voice"] --> B["2. A pick fixed to it"]
+  A --> C["3. The agent's own choice"]
+  C --> D["4. The organisation's default"]
+  B --> E["5. Every list that applies"]
+  C --> E
+  D --> E
+  E --> F["6. A provider that works and reaches the model"]
+```
+
+1. Something needs a model, or a voice: a conversation's reply, a task's run, someone speaking.
+2. A person may have picked a model for a conversation, from the **plus** in its message box, or a task or routine may
+   name one. A pick is used as it is or not at all: HQ never swaps it silently. If it cannot run, the conversation
+   says why and who can fix it.
+3. Otherwise the agent's own choice applies, if an admin gave it one.
+4. Otherwise the organisation's default.
+5. Whatever was chosen must also pass every list that applies: the organisation's, the agent's, the project's and the
+   person's (see [Which models may run](#which-models-may-run)).
+6. A provider that **Works** and reaches the model serves it. If the chosen model's own provider is down, a default
+   moves to the same model through another provider first, then to the next layer, then to any model that may run, and
+   HQ says once what it did not use.
+
+## The organisation's defaults
+
+An organisation admin opens **Manage**, then **Models** under **Models and billing**.
+
+![Models, with the four defaults and which models may run](screenshot:models)
+
+Four settings say what every agent uses unless it has its own. Each row shows the choice in one line, such as a model
+**via Anthropic**, and **Change**.
+
+| Setting | What it chooses |
+|---|---|
+| **Conversation** | Where a new conversation starts |
+| **Workers** | The model for work an agent hands off |
+| **Voice** | The voice agents speak with |
+| **Listening** | The model that hears people |
+
+**Conversation** and **Workers** open one picker, with a search box. A provider that is not working is greyed out, and a
+chosen model whose provider has stopped is marked **not working**.
+
+Voice is **Inworld TTS 2**, the only speech model voice supports. **Voice** opens a list of the provider's voices to
+choose by ear: filter by language, accent, gender, age, use or tag, tap a voice to hear it, then **Use** it. The
+organisation always has a voice, so it can be changed and not cleared. **Listening** is one of AssemblyAI's three live
+models, each shown with its languages and price per hour of audio: **Universal-3 Pro** (32 languages, the most
+accurate), **Universal-Streaming** (English only) and **Universal-Streaming Multilingual** (6 languages).
+
+Setup chooses all four when it finishes (see [Finish setup](../getting-started/finish-setup.md#6-check-everything)).
+
+## An agent's own models and voice
+
+Any default can be set differently for one agent. An organisation admin opens **Manage**, then **Agents**, selects
+**Manage** beside the agent and finds **Models and voice**. It shows the same four rows, each marked as the
+organisation's or the agent's own.
+
+- **Give *agent* its own** on a row opens the picker, and the choice is the agent's from then on.
+- **Follow *organisation*** hands it back: the row follows the organisation's default again, and changes when it does.
+
+A row left as the organisation's changes with the organisation's. Under it, **Which models *agent* may use** is the
+agent's own list, below.
+
+## Which models may run
+
+A list says which models may run. Four places can hold one:
+
+| List | Who sets it | Where |
 |---|---|---|
-| **A project** | Someone who can edit the project's settings | The project's **Settings**, under **Model access** |
-| **A person** | That person | **Settings**, under **Your model logins** |
-| **The organisation** | An organisation administrator | **Organisation › Settings › Model access** |
+| The organisation's | An organisation admin | **Manage › Models**, under **Which models may run** |
+| An agent's | An organisation admin | The agent's page in **Manage › Agents**, under **Models and voice** |
+| A project's | A project admin, in a shared project | The project's **Settings**, under **Models** |
+| A person's | That person | **Settings**, under **Which models may run for you** |
 
-## Which one a run uses
+Every list that applies narrows the set, and none widens it: a model runs only when each of them lets it. A personal
+project has no list of its own; its owner's applies. Most organisations never open the organisation's list: it reads
+**Any model your providers reach**. Select **Edit** to open the editor, where every change is saved at once.
 
-1. A run in a project uses the project's own access first.
-2. Then the access of the person it is for: their own Claude login, then their own API key.
-3. Then the organisation's.
+A list is in one of two modes:
 
-A run in your own **Chat** uses yours, then the organisation's. Where one place holds both a Claude subscription
-and an Anthropic API key, the subscription is used while it works and the key otherwise. Agents that run on
-OpenCode use API keys only.
+- **Any model, except these** (the first choice in the editor): every model may run except what is under **Never**.
+  New models are allowed as they appear.
+- **Only these**: only what is under **Only** may run, and **Never** still removes exceptions from it. New models stay
+  off until a name or a pattern covers them.
 
-**Conversations are different.** What an agent says to you in a conversation is answered by HQ itself, with an API key, and never with a Claude subscription. A personal conversation uses your own key, then the organisation's. A project conversation uses the project's key, then yours, then the organisation's. A task's conversation is the team's, so the project pays: the project's key, then the organisation's. If no key reaches the conversation's model, the conversation says what is missing and where to add it. The work an agent starts from a conversation runs as the rules above say, so a Claude subscription still serves that.
+Under **Only** and **Never** each entry is a model or a pattern, with how many models it covers:
 
-A person's own Claude login is not used for a task's runs in a project, because those runs act as the project.
-Their own API key is. A project's own Claude subscription is used only while the organisation has one person.
+| Entry | Matches |
+|---|---|
+| `anthropic/claude-sonnet-5` | That model |
+| `deepseek/*` | Every model by that maker |
+| `*-pro`, `anthropic/claude-*` | A family: `*` stands for anything |
 
-A Claude subscription is personal: it is your own account, in your name, used through Claude's own runtime. So Agenthix uses it only where the runs are yours alone: the work your agents do in your own space, and a project's tasks while you are the organisation's only person. Once others join, a project needs an API key. See Anthropic's [Consumer Terms of Service](https://www.anthropic.com/legal/consumer-terms) and Claude Code's [legal and compliance page](https://code.claude.com/docs/en/legal-and-compliance).
+Patterns match a model's maker and name, never its provider, so a list keeps up with new models without naming who
+serves them. Case is ignored, and a version written `5.1` is read as `5-1`. A ban beats an allow. Type an entry and
+select **Add**, or **Select in bulk…** to filter the models your providers reach by **Maker**, **Provider** and
+**Price**, search them, and add everything found by name. A bulk selection is made once: if prices change later, the
+list does not.
 
-## Add model access
+## Your Claude subscription
 
-![Model access, with the Add model access menu open](screenshot:model-access)
+A person can sign in with their own Claude account under **Settings**, in **Your Claude subscription**, as a provider
+only they can use. It serves Claude models for work in their own place: **Your space** and their personal projects, and
+nowhere else. It never serves a shared project, and never the replies HQ itself writes in a conversation.
 
-1. Open the place from the table above. On **Model access**, whatever is already set is listed above the menu.
-2. Select **Add model access** and choose one:
+1. Select **Sign in with Claude**, then **Open Claude to sign in**.
+2. Sign in to Claude, copy the code it gives you, paste it into **Code from Claude** and select **Finish**.
 
-   | Choice | What it is |
-   |---|---|
-   | **Claude subscription** | Claude models on a Claude account. Offered for a person and a project, not for the organisation |
-   | **Anthropic API key** | Claude models, for everyone the access covers |
-   | **OpenRouter** | One key that reaches many models, free ones included |
-   | **OpenAI** and **Google Gemini** | GPT and Gemini models |
-   | **Your own endpoint** | Any model server that speaks OpenAI's API |
-
-3. For a key, paste it and select **Save key**. For your own endpoint, enter its **Base URL**, a key only if the
-   server asks for one, and select **Save endpoint**.
-
-For a Claude subscription:
-
-1. Tick the box under **Add a Claude subscription**. On your own login it reads **This subscription is mine, and I
-   understand it will be used only for my own runs.**
-2. Select **Sign in with Claude**, then **Open Claude to sign in**.
-3. Sign in to Claude, copy the code it gives you, paste it into **Code from Claude** and select **Finish**.
-
-## Remove model access
-
-Select **Remove** beside what is set, then **Remove** again to confirm. Runs that used it stop until access is set
-again. A stored Claude subscription may show **Stored but not in use while the organisation has more than one
-person**.
+**Sign out** removes it. A Claude subscription is personal: it is your own account, in your name, used through Claude's
+own runtime. See Anthropic's [Consumer Terms of Service](https://www.anthropic.com/legal/consumer-terms) and Claude
+Code's [legal and compliance page](https://code.claude.com/docs/en/legal-and-compliance). Runs on it cost nothing per
+call, and the [usage report](billing-and-usage.md) lists them as **Included in subscriptions**.
 
 ## Web search for OpenCode agents
 
-On **Organisation › Settings › Model access**, **Web search (Exa)** takes the organisation's Exa key, for agents
-that run on OpenCode. Paste it and select **Save key**; **Remove key** takes it away. Claude models search on
-Anthropic's own service and do not use it.
+An organisation admin opens **Manage**, then **Settings**, and under **Access to models and tools** selects **Web
+search**. **Web search (Exa)** takes the organisation's Exa key, for agents that run on OpenCode. Paste it and select
+**Save key**; **Remove key** takes it away. Claude models search on Anthropic's own service and do not use it.
 
 ## If agents say they can't answer
 
-**Home** shows **Agents can't answer you yet: no model access is set up** when nothing works for you. Its link
-goes to the place that fixes it: **Settings › Your model logins**, or **Organisation › Settings › Model access**.
+**Home** shows **Agents can't answer you yet: no model is working** when nothing works for you. For an organisation
+admin its link goes to **Manage organisation › Providers**; anyone else is told an organisation admin can set one up.
+When one call cannot run, the conversation names what is missing and who adds it: usually a provider to add or fix, a
+default to choose under **Models**, or a list that leaves no model.

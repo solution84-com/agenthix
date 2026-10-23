@@ -1,8 +1,8 @@
 /**
  * The commands about Agenthix Cloud (host-management spec §7, pre-release spec part C): `cloud connect|disconnect`,
  * `console remote on|off`, `console reset-code <user>`, for a machine admin who would rather not, or cannot, open the
- * Fleet Console. Each is refused where it does not belong. Connecting is the same connection the Fleet Console's
- * *Connect* makes, approved on Cloud with the same code. Remote access is turned on only by Cloud, which issues its
+ * Fleet Console. Each is refused where it does not belong. Connecting is the same connection HQ's *Connect to
+ * Agenthix Cloud* makes (Manage organisation › Providers), approved on Cloud with the same code. Remote access is turned on only by Cloud, which issues its
  * certificate (ADR-0132), so `remote on` says where; `off` works at once, whether or not Cloud is reachable.
  */
 import { parseRemoteAccessDuration, type HqCloudState } from '@agenthix/core'
@@ -58,7 +58,7 @@ export function parseCloudConsole(verb: string | undefined, args: string[]): Clo
 
 export const CLOUD_HELP: HelpRow[] = [
   { group: 'cloud', usage: 'cloud connect', does: 'Connect the organisation to Agenthix Cloud',
-    detail: "From HQ's machine, the same connection as Connect to Agenthix Cloud in the Fleet Console: it prints a short code and Cloud's page, waits while an organisation admin approves it there after checking the code matches, and says how it ended. Leaving early is fine: HQ keeps waiting for the approval. On a machine Cloud runs, Cloud connects HQ itself." },
+    detail: "From HQ's machine, the same connection as Connect to Agenthix Cloud in HQ, under Manage organisation › Providers: it prints a short code and Cloud's page, waits while an organisation admin approves it there after checking the code matches, and says how it ended. Leaving early is fine: HQ keeps waiting for the approval. On a machine Cloud runs, Cloud connects HQ itself." },
   { group: 'cloud', usage: 'cloud disconnect [--yes]', does: 'Disconnect the organisation from Agenthix Cloud',
     detail: "From HQ's machine. People who sign in with Agenthix Cloud are told first and sign in with their password from then on; Cloud's sites leave the fleet and remote access turns off. Asks first; --yes answers for a script. Refused on a machine Cloud runs, whose connection is Cloud's." },
   { group: 'console', usage: 'console remote on | off [--for <time>]', does: 'Remote access to the Fleet Console: who turns it on, and off at once',

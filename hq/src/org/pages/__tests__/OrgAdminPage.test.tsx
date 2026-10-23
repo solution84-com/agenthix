@@ -23,10 +23,10 @@ beforeEach(() => { cleanup(); vi.clearAllMocks() })
 describe('Organisation › Settings and › Infrastructure are for organisation admins', () => {
   it('shows an admin the page under its area', () => {
     roleIs('ADMIN')
-    show('infrastructure', 'Connect a site', [{ label: 'Execution Sites', href: '/org/settings/where-work-runs' }])
+    show('infrastructure', 'Connect a site', [{ label: 'Execution Sites', href: '/admin/where-work-runs' }])
     expect(screen.getByText('the page')).toBeTruthy()
     expect(screen.getByTestId('layout').getAttribute('data-crumbs')).toBe(
-      'Organisation(/org) / Infrastructure(/org/infrastructure) / Execution Sites(/org/settings/where-work-runs) / Connect a site',
+      'Manage organisation(/admin) / Infrastructure(/admin/infrastructure) / Execution Sites(/admin/where-work-runs) / Connect a site',
     )
   })
 
@@ -35,7 +35,7 @@ describe('Organisation › Settings and › Infrastructure are for organisation 
     show('infrastructure')
     expect(screen.getByRole('alert').textContent).toContain('Only an organisation admin can see Infrastructure.')
     expect(screen.queryByText('the page')).toBeNull()
-    expect(screen.getByTestId('layout').getAttribute('data-crumbs')).toBe('Organisation(/org) / Infrastructure')
+    expect(screen.getByTestId('layout').getAttribute('data-crumbs')).toBe('Manage organisation(/admin) / Infrastructure')
   })
 
   it("tells a member the organisation's settings are for admins", () => {

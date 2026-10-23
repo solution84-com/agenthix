@@ -83,7 +83,7 @@ Assets that reference other assets by slug need two forms:
 
 **Bundled form** — what travels in an export/import payload. All referenced content is embedded inline so the package is self-contained and portable across orgs and instances.
 
-An agent export from Organisation › Agents is the agent's current definition, as the package of kind agent; importing it there replaces that agent's content and settings in place, keyed by handle, and writes nothing into the library. Importing a package into the Library instead makes a library item (see Packages, below).
+An agent export from Manage organisation › Agents is the agent's current definition, as the package of kind agent; importing it there replaces that agent's content and settings in place, keyed by handle, and writes nothing into the library. Importing a package into the Library instead makes a library item (see Packages, below).
 
 | Type | Bundled form? | Reason |
 |---|---|---|
@@ -102,7 +102,7 @@ beside the kind's own files:
 
 | Kind | Its files |
 |---|---|
-| `agent` | `agent.json`, `instructions.md`, `skills/<slug>/…` — the agent archive Organisation › Agents exports |
+| `agent` | `agent.json`, `instructions.md`, `skills/<slug>/…` — the agent archive Manage organisation › Agents exports |
 | `board` | `board.json`: its name, description and columns |
 | `skill` | `SKILL.md` and the skill's other files; the folder's name is the skill's slug |
 | `team` | `template.json`, `agents/<handle>/agent.json`, `skills/<slug>/SKILL.md` — a team template's bundle |

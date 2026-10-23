@@ -24,7 +24,7 @@ export async function discardPlaintextSecrets(): Promise<number> {
     if (stale.length === 0) return 0
     await prisma.provider.deleteMany({ where: { id: { in: stale.map(row => row.id) } } })
     const which = stale.map(row => `${row.service}/${row.name}`).join(', ')
-    logger.warn(`Removed ${stale.length} provider key(s) stored in the clear (${which}) — enter them again in Settings.`)
+    logger.warn(`Removed ${stale.length} provider key(s) stored in the clear (${which}) — enter them again in Manage organisation › Providers.`)
     return stale.length
   } catch (err) {
     logger.error('Removing provider keys stored in the clear failed — they are still ignored when read', err)

@@ -19,8 +19,9 @@ vi.mock('../../coordinator/scheduler', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../coordinator/scheduler')>()),
   scheduleConversation: vi.fn(),
 }))
-vi.mock('../../access/conversationAccess', () => ({
-  resolveConversationAccess: vi.fn(async () => ({ access: null, problem: null, offer: null })),
+vi.mock('../../access/talkingModel', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../access/talkingModel')>()),
+  resolveTalking: vi.fn(async () => ({ access: null, problem: null, offer: null })),
 }))
 vi.mock('../../../voice/inworldAdapter', () => ({
   inworldTtsAdapter: {
@@ -28,24 +29,21 @@ vi.mock('../../../voice/inworldAdapter', () => ({
   },
 }))
 
-import { encryptProviderKey } from '../../../server/providerService'
-import { resolveConversationAccess } from '../../access/conversationAccess'
+import { setUpVoiceProviders } from './voiceFixtures'
+import { resolveTalking } from '../../access/talkingModel'
 import { getConversation } from '../../conversationQueries'
 import { sendConversationMessage } from '../../sendMessage'
 import { appendMessage } from '../../store/messages'
-import { NO_SPEECH_TO_TEXT } from '../availability'
+import { voiceDownText } from '../../../voice/speechAccess'
 import { clearVoiceHolders, HQ_RESTARTED_VOICE, releaseVoice, takeVoice } from '../holder'
 import { resetVoiceSessions, voiceSession } from '../registry'
 import { ENDED, endVoice, interruptVoice, startVoice, VoiceRefused } from '../service'
 
-async function providers(which: { stt?: boolean; tts?: boolean } = { stt: true, tts: true }) {
-  if (which.stt) await prisma.provider.create({ data: { service: 'stt', name: 'assemblyai', apiKey: encryptProviderKey('stt-key') } })
-  if (which.tts) await prisma.provider.create({ data: { service: 'tts', name: 'inworld', apiKey: encryptProviderKey('tts-key') } })
-}
+const providers = (which: { stt?: boolean; tts?: boolean } = {}) => setUpVoiceProviders(which)
 
 async function voiced() {
   const person = await createUserWithRole('MEMBER')
-  const agent = await createAgent({ name: 'Kernel', voiceEnabled: true })
+  const agent = await createAgent({ name: 'Kernel' })
   const conversation = await createConversation({ openedById: person.id, agentId: agent.id })
   return { person, agent, conversation }
 }
@@ -67,16 +65,32 @@ describe('taking voice @SC-994', () => {
     expect([...voiceSession(conversation.id)!.socketIds]).toEqual(['s1', 's2'])
   })
 
-  it('refuses with the reason the greyed button shows', async () => {
-    await providers({ tts: true })
+  it('refuses with the reason the greyed button shows: voice is down, or the model access has a problem', async () => {
+    await providers({ stt: false })
     const { person, conversation } = await voiced()
-    await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow(new VoiceRefused(NO_SPEECH_TO_TEXT))
-    const mute = await createAgent({ name: 'Quiet', voiceEnabled: false })
-    await prisma.conversation.update({ where: { id: conversation.id }, data: { agentId: mute.id } })
-    await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow('Quiet has no voice yet')
-    vi.mocked(resolveConversationAccess).mockResolvedValueOnce({ access: null, problem: 'Add a model key first.', offer: null })
-    await prisma.conversation.update({ where: { id: conversation.id }, data: { agentId: (await createAgent({ voiceEnabled: true })).id } })
-    await prisma.provider.create({ data: { service: 'stt', name: 'assemblyai', apiKey: encryptProviderKey('k') } })
+    await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow(new VoiceRefused(voiceDownText('stt')))
+    expect(voiceDownText('stt')).toBe("Voice is down: speech to text isn't working. An organisation admin has been told.")
+  })
+
+  it('says text to speech is down when only that is missing', async () => {
+    await providers({ tts: false })
+    const { person, conversation } = await voiced()
+    await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow(new VoiceRefused(voiceDownText('tts')))
+  })
+
+  // Only one provider per vendor, and AssemblyAI is the only speech-to-text vendor with a key today, so a speech
+  // provider that is not working leaves voice down rather than routed around.
+  it('a speech provider that is not working reads as voice being down', async () => {
+    const { stt } = await providers()
+    await prisma.aiProvider.update({ where: { id: stt!.id }, data: { state: 'key_refused' } })
+    const { person, conversation } = await voiced()
+    await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow(new VoiceRefused(voiceDownText('stt')))
+  })
+
+  it('refuses with the model access problem when speech works but no model does', async () => {
+    await providers()
+    const { person, conversation } = await voiced()
+    vi.mocked(resolveTalking).mockResolvedValueOnce({ access: null, problem: 'Add a model key first.', offer: null })
     await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow('Add a model key first.')
   })
 

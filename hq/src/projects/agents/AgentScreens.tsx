@@ -1,16 +1,14 @@
 import { useNavigate } from 'react-router'
 import {
   useQuery, useAction, getProjectAgent, getProjectAgents, getProjectTeams, getPlaceInstructions, getAgents,
-  createTask, setAgentOverride, removeAgentFromProject, addAgentToProject,
+  createTask, removeAgentFromProject, addAgentToProject,
 } from 'wasp/client/operations'
 import {
-  ProjectAgentView, ProjectAgentEdit, ProjectAgentRemove, ProjectAgentAssign,
+  ProjectAgentView, ProjectAgentRemove, ProjectAgentAssign,
   type ProjectAgentDetailData, type ProjectAgentRowData, type PlaceInstructionsData,
 } from '@agenthix/ui/agents'
 import { useMayWork } from '../../shared/hooks/useMayWork'
 import { AgentProfileTrigger } from '../../agents/profile/AgentProfileCard'
-import { modelLabel } from '../../agents/profile/modelLabel'
-import { modelOverrideChoices } from '../../agents/overrides/modelOverrideChoices'
 import { AgentPermissionsHere } from '../../agents/pages/AgentPermissionsHere'
 import { avatarOf } from './avatarOf'
 import { filesAddress, useOpenTool } from './useAgentsToolUrl'
@@ -32,12 +30,11 @@ function useAgentDetail(projectId: string, agentId: string) {
   return { ...q, detail: q.data as ProjectAgentDetailData | undefined }
 }
 
-export function AgentScreen({ projectId, agentId, focus, onBack, onEdit, onRemove, backLabel }: {
+export function AgentScreen({ projectId, agentId, focus, onBack, onRemove, backLabel }: {
   projectId: string
   agentId: string
   focus?: string | null
   onBack: () => void
-  onEdit: () => void
   onRemove: () => void
   backLabel?: string
 }) {
@@ -62,7 +59,6 @@ export function AgentScreen({ projectId, agentId, focus, onBack, onEdit, onRemov
       now={new Date()}
       renderAvatar={avatarOf}
       profileOf={(id, children) => <AgentProfileTrigger agentId={id}>{children}</AgentProfileTrigger>}
-      modelLabel={modelLabel}
       onStartConversation={canStart ? () => navigate(newConversationPath(`/projects/${projectKey}`, agentId)) : undefined}
       onAddTask={canChange ? async title => { await addTask({ projectId, title, assignedAgentId: agentId }) } : undefined}
       onMoreTaskDetails={() => openTool('tasks')}
@@ -80,24 +76,7 @@ export function AgentScreen({ projectId, agentId, focus, onBack, onEdit, onRemov
           title="Permissions here" readOnlyNote="Every member sees these; only this project's admins can change them."
         />
       )}
-      onEdit={onEdit}
       onRemove={onRemove}
-    />
-  )
-}
-
-export function EditScreen({ projectId, agentId, onDone }: { projectId: string; agentId: string; onDone: () => void }) {
-  const save = useAction(setAgentOverride)
-  const { detail, isLoading } = useAgentDetail(projectId, agentId)
-  if (isLoading) return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
-  if (!detail || !detail.canManage) return <Missing onBack={onDone} />
-  return (
-    <ProjectAgentEdit
-      detail={detail}
-      modelOptions={modelOverrideChoices(detail.agent)}
-      modelLabel={modelLabel}
-      onSave={async next => { await save({ boundaryType: 'project', boundaryId: projectId, agentId, ...next }); onDone() }}
-      onCancel={onDone}
     />
   )
 }

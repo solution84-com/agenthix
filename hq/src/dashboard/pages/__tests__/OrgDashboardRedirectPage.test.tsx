@@ -11,10 +11,10 @@ describe('the old Dashboard address @SC-665', () => {
       <MemoryRouter initialEntries={['/org/dashboard']}>
         <Routes>
           <Route path="/org/dashboard" element={<OrgDashboardRedirectPage />} />
-          <Route path="/org" element={<p>the organisation</p>} />
+          <Route path="/admin" element={<p>the admin overview</p>} />
         </Routes>
       </MemoryRouter>,
     )
-    expect(screen.getByText('the organisation')).toBeTruthy()
+    expect(screen.getByText("the admin overview")).toBeTruthy()
   })
 })

@@ -4,6 +4,8 @@
  * conventions.
  */
 import { prisma } from 'wasp/server'
+import { CLAUDE_SDK_RUNTIME } from '@agenthix/core'
+import { DEFAULT_MODEL } from '../../agents/models'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs/promises'
 import nodePath from 'node:path'
@@ -25,7 +27,8 @@ export async function listAgentsOp(_ctx: CallerContext, _args: unknown) {
   return {
     agents: agents.map(a => ({
       agentId: a.id, name: a.name, handle: a.handle,
-      runtime: a.runtime, defaultModel: a.defaultModel, isKernel: a.isKernel,
+      // Deprecated, kept so an older caller still reads: the resolver decides a model and a runtime, not the agent.
+      runtime: CLAUDE_SDK_RUNTIME, defaultModel: DEFAULT_MODEL, isKernel: a.isKernel,
     })),
     source: 'local',
   }

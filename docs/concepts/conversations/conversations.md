@@ -35,13 +35,13 @@ replaced by a fresh session between briefs, never during one ([long conversation
 
 ## Where a conversation lives
 
-A conversation has one **home**, fixed when it starts, which decides who reads it, who speaks in it and who pays:
+A conversation has one **home**, fixed when it starts, which decides who reads it, who speaks in it and which billing profile its cost belongs to:
 
-| Home | Read and spoken in by | Pays | Listed in |
+| Home | Read and spoken in by | Cost belongs to | Listed in |
 |---|---|---|---|
-| **A person's own space** (Chat) | The person who opened it, alone | Their own model access, then the organisation's | Chat |
-| **A project** | The person who opened it, alone (a Viewer of the project who opened one reads it but cannot speak) | The person's access, in the project's order: the project's key, the person's, the organisation's | The project's conversations |
-| **A task** | The team: anyone who can see the task reads it; anyone who works in the project speaks | The project: the project's key, then the organisation's | The task's page, and a mark on the task's card on the board |
+| **A person's own space** (Chat) | The person who opened it, alone | The organisation's default billing profile | Chat |
+| **A project** | The person who opened it, alone (a Viewer of the project who opened one reads it but cannot speak) | The project's billing profile | The project's conversations |
+| **A task** | The team: anyone who can see the task reads it; anyone who works in the project speaks | The project's billing profile | The task's page, and a mark on the task's card on the board |
 
 A personal or project conversation is private to the person who opened it, administrators included
 ([ADR-0041](../../adr/adr-0041-chat-session-privacy.md)); hq decides it from the home before reading anything. It keeps
@@ -177,16 +177,21 @@ for them. The answerer is named on the card. In voice a spoken yes counts only a
 
 ## Which model, and who pays
 
-Turns are direct model calls through one adapter, so a conversation needs a **key** (the organisation's, a project's or
-a person's, for a provider) rather than a harness login. A Claude subscription stays the credential of workers and task
-runs on a site and never pays for a turn. Paying with a person's ChatGPT plan is designed but not built: it waits on a client id from the vendor.
+Turns are direct model calls through one adapter, made by HQ with a key from the organisation's
+[providers](../providers/providers.md): nobody brings a key to a conversation. The organisation's providers pay, and each
+call is costed to the billing profile of the conversation's home ([billing](../billing/billing.md)). A person's own
+Claude subscription stays a credential of work on a site (their space and their personal projects) and never pays for a
+turn. Paying with a person's ChatGPT plan is designed but not built: it waits on a client id from the vendor.
 
-The **talking model** starts from the **model policy** (a rule set by a person for their space, by a project, or by the
-organisation as the default: models for talking, light work and heavy work, an allow-list and a ceiling), and the
-person changes it at any time from the **model picker** in the message box's plus menu. A switch writes a quiet line and
-costs one reply that reads the conversation again. A task's thread has no picker: the project's policy decides. The lead
-names a worker's model for each brief from the policy's tiers. If the access stops being usable (a revoked key), the
-conversation says what is missing and offers the next access.
+The **talking model** is fixed when the first turn is answered, from the agent's own conversation model, else the
+organisation's ([models](../models/models.md)). The person changes it at any time from the **model picker** in the message
+box's plus menu, which lists the models that may run here: the organisation's, the agent's, the project's and the
+person's [lists](../models/lists.md) all narrow it. A switch writes a quiet line and costs one reply that reads the
+conversation again. A task's thread has no picker: it talks on its agent's default model. A conversation is never
+switched silently: if its provider stops working or its model stops being allowed, it says what is missing, offers the
+same model via another provider or the default, and waits for the person to accept. Titles and summaries use the
+conversation's own model; the lead names a worker's model only when the person's instruction does, else the worker model
+of the agent and the organisation applies.
 
 ## Memory
 
@@ -223,7 +228,7 @@ wants seen) as a card in voice and inline otherwise.
 | The coordinator: turns, lock, queue, mailbox | `hq/src/conversations/coordinator/` |
 | Workers, tasks and tool calls as operations | `hq/src/conversations/work/` |
 | A task's thread | `hq/src/conversations/taskThread/` |
-| Model access and the picker | `hq/src/conversations/access/`, `hq/src/model-policy/` |
+| The model a conversation talks on and the picker | `hq/src/conversations/access/`, `modelChoice.ts`; the rule `hq/src/routing/` ([models](../models/models.md)) |
 | Screens | `hq/src/conversations/components/`, `pages/`, `hooks/` |
 | Archive, deleting, closing | `hq/src/conversations/archive/`, `work/deleting.ts`, `closing.ts` |
 

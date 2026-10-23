@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ADMIN_CRUMB } from '../../admin/adminCrumbs'
 import { Link } from 'react-router'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { useOrgAdminState } from '../../agents/pages/manage/ManageGate'
@@ -8,12 +9,12 @@ export type OrgAdminArea = 'settings' | 'infrastructure'
 export const ORG_ADMIN_AREAS: Record<OrgAdminArea, { label: string; href: string; refusal: string }> = {
   settings: {
     label: 'Settings',
-    href: '/org/settings',
+    href: '/admin/settings',
     refusal: "Only an organisation admin can see the organisation's settings.",
   },
   infrastructure: {
     label: 'Infrastructure',
-    href: '/org/infrastructure',
+    href: '/admin/infrastructure',
     refusal: 'Only an organisation admin can see Infrastructure.',
   },
 }
@@ -36,7 +37,7 @@ export function OrgAdminPage({ area, title, trail = [], wide = false, children }
   const state = useOrgAdminState()
   const { label, href, refusal } = ORG_ADMIN_AREAS[area]
   const breadcrumbs = [
-    { label: 'Organisation', href: '/org' },
+    ADMIN_CRUMB,
     title ? { label, href } : { label },
     ...trail,
     ...(title ? [{ label: title }] : []),

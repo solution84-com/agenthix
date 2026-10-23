@@ -6,6 +6,7 @@
 import type { z } from 'zod'
 import type { CapabilityEffectivePermissions } from '@agenthix/core'
 import type { OrgRole } from '../server/identity/rolePolicy'
+import type { CallCosting } from '../billing/types'
 import type {
   ConversationHomeValue,
   ConversationMessageKindValue,
@@ -17,9 +18,8 @@ import type {
 } from '../shared/conversations/protocol'
 
 export type ModelProvider = 'anthropic' | 'openai' | 'google' | 'openrouter' | 'openai_compatible'
-export type AccessOwner = 'org' | 'project' | 'user'
 
-/** The fields of a conversation every part reads to decide who it is for and who pays. */
+/** The fields of a conversation every part reads to decide who it is for. */
 export interface ConversationHomeRef {
   id: string
   home: ConversationHomeValue
@@ -63,45 +63,38 @@ export type UpdateMessage = (
 export type RequireConversationReader = (conversationId: string, userId: string) => Promise<ConversationHomeRef>
 export type RequireConversationSpeaker = (conversationId: string, userId: string) => Promise<ConversationHomeRef>
 
-// ── Access and the model policy (src/conversations/access/) ──
+// ── The model a conversation talks on (src/conversations/access/, on src/routing/) ──
 
+/** A resolved model via a provider, with the key hq's own call presents (routing/reaching.ts). */
 export interface ResolvedAccess {
+  providerId: string
+  /** The provider as it is named now. */
+  providerName: string
+  /** The provider's vendor, which picks the SDK. */
   provider: ModelProvider
+  /** The model as the vendor names it. */
   model: string
   apiKey: string
   /** For an openai_compatible provider. */
   baseUrl?: string
-  owner: AccessOwner
-  kind: 'API_KEY'
+  /** Who each call's cost belongs to and on what basis, from the resolution: the ledger's row (billing/). */
+  costing?: CallCosting
 }
 
+/** What a conversation stopped on is offered instead: one model via a provider, with its one-line label. */
+export interface ModelOffer { providerId: string; model: string; label: string }
+
 /**
- * Which access pays for a conversation's turn, by its home (model access spec): a personal or project
- * conversation on its person's access in today's order, a task's thread on the project's key then the
- * organisation's. With a talking model already fixed, only that model's provider is tried: the recorded owner's
- * key while it is usable, else the home's order. `problem` says what is missing and where to add it, when nothing
- * is usable. `notice` is the line to record once: when choosing the talking model, that the policy's preferred
- * model was not reachable and a later one was chosen; with one fixed, that the recorded key is gone and another
- * payer's is used.
+ * The model a conversation's turn talks on (models from one place, part 4), resolved for the person acting: the
+ * model fixed to it, or with none yet, the agent's default, else the organisation's. A fixed model that cannot be
+ * used now is never switched silently: `access` is null, `problem` says why, and `offer` is the one switch the
+ * person may take (talkingModel.ts). `notice` is the line to record once, when the first turn fixes a model other
+ * than the default it would have had.
  */
 export type ResolveConversationAccess = (
   conversation: ConversationHomeRef,
-  /** `owner`: whose access the conversation records; its turns pay with it while it is usable. */
-  fixed: { model: string; provider: ModelProvider; owner?: AccessOwner } | null,
-) => Promise<{ access: ResolvedAccess | null; problem: string | null; offer: ResolvedAccess | null; notice?: string }>
-
-export interface EffectiveModelPolicy {
-  talking: string
-  lightWork: string
-  heavyWork: string
-  allowed: string[] | null
-  ceiling: string | null
-}
-/** The policy for a boundary, each field from the nearest layer that sets it: the boundary's, then the organisation's, then the agent's default. */
-export type ResolveModelPolicy = (
-  boundary: { type: 'user' | 'project'; id: string },
-  agent: { defaultModel: string; runtime: string },
-) => Promise<EffectiveModelPolicy>
+  actingUserId: string | null,
+) => Promise<{ access: ResolvedAccess | null; problem: string | null; offer: ModelOffer | null; notice?: string }>
 
 // ── The model (src/conversations/model/) ──
 

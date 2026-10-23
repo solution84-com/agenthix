@@ -51,6 +51,7 @@ import { registerPreviewHost } from '../preview/previewHostWiring'
 import { startPreviewSweep } from '../preview/previewSweep'
 import { startScheduler } from '../automation/scheduler'
 import { cloudConnection } from '../cloud'
+import { startProviderHealth } from '../providers/health'
 import { startArchiveSweep } from '../projects/finishedArchive/archiveSweep'
 import { startConversationRecovery } from '../conversations/coordinator/recovery'
 import { startConversationArchiveSweep } from '../conversations/archive/sweep'
@@ -63,11 +64,12 @@ import { onRunStatus } from '../sites/channel/siteEventHandler'
 import { handleOperationRunStatus } from '../sites/channel/operationLinesForward'
 import { startScheduledChangeSweep } from '../sites/scheduled/scheduledChanges'
 import { trustedProxyCount } from './trustedProxies'
-import { envProblems, sharedSubscriptionSwitchIgnoredError } from './envValidation'
+import { envProblems } from './envValidation'
 import { startFirstAdminAndControlSocket } from '../auth/machine/startOnBoot'
 import { orgImageHandler, teamImageHandler } from '../org/identityImages'
 import { KERNEL_HANDLE, KERNEL_NAME, KERNEL_ROLE } from '../agents/kernelGuards'
 import { Logger } from './utils/logger'
+import { startLedger } from '../billing/start'
 import { startDiagnostics, startLogging } from '../diagnostics/startDiagnostics'
 
 const logger = new Logger('startup')
@@ -79,9 +81,6 @@ function validateEnv() {
     logger.error('Missing required env vars:\n' + errors.join('\n'))
     process.exit(1)
   }
-
-  const switchError = sharedSubscriptionSwitchIgnoredError()
-  if (switchError) logger.error(`ERROR: ${switchError}`)
 
   logger.info(`Env validation passed.`)
 }
@@ -234,6 +233,13 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   // Runs held around scheduled changes, by hq's own clock as well as their notices (host-management spec §14).
   startScheduledChangeSweep()
 
+  // Each provider's state, from a check with its vendor that costs nothing: hourly, and every 5 minutes while one is
+  // not working (providers/health.ts). Keys enter only through the provider store, never from hq's environment.
+  startProviderHealth()
+
+  // Every call costed on the ledger: subscription runs as they end, the relay's reports as they wait (billing/).
+  startLedger()
+
   // A connection to Agenthix Cloud checks in at once, then within every hour (cloudConnection.ts).
   void cloudConnection()?.startCheckIns().catch(err => logger.warn(`Could not check in with Agenthix Cloud: ${err instanceof Error ? err.message : err}`))
 
@@ -258,20 +264,6 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
     if (await ensureHqSigningKey()) logger.info(`HQ signing key provisioned.`)
   } catch (err: any) {
     logger.warn(`HQ signing key not provisioned: ${err.message}`)
-  }
-
-  // Seed Anthropic key from env var if present and not yet in DB. The write
-  // encrypts, so it depends on SECRETS_MASTER_KEY — warn-and-continue like
-  // the signing key above rather than failing the whole boot over a seed
-  // that is a convenience, not a requirement.
-  const anthropicEnv = process.env.ANTHROPIC_API_KEY
-  if (anthropicEnv) {
-    try {
-      const { seedLlmApiKey } = await import('../server/providerService')
-      if (await seedLlmApiKey('anthropic', anthropicEnv)) logger.info(`Anthropic key seeded.`)
-    } catch (err: any) {
-      logger.warn(`Anthropic key not seeded: ${err.message}`)
-    }
   }
 
   // Provider keys (LLM + voice) are encrypted at rest. A row still in the

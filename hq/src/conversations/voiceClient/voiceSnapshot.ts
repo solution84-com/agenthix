@@ -6,6 +6,7 @@ import type { Playback, Playhead } from './playback'
 import type { TimedSentence } from './reveal'
 import type { VoiceRuntimeHandle } from './runtime/types'
 import type { SttToken } from './stt'
+import type { SpeechReport } from './stt/meter'
 import type { VoiceOutside } from './voiceParts'
 
 /** A reply held back so its text is shown only as far as it has been heard. */
@@ -15,7 +16,7 @@ export type VoicePhase = 'off' | 'starting' | 'listening' | 'thinking' | 'speaki
 
 export type VoiceSnapshot = {
   conversationId: string | null
-  agent: { name: string; avatarUrl: string | null } | null
+  agent: { id?: string; name: string; avatarUrl: string | null } | null
   /** Where the person was when they started: the bar on other pages leads back here. */
   returnTo: string | null
   phase: VoicePhase
@@ -42,7 +43,10 @@ export type VoiceDeps = VoiceOutside & {
   userId: string
   createPlayback: () => Playback
   /** A speech token from hq, for the organisation's speech service. */
-  getToken: () => Promise<SttToken>
+  /** `agentId`: whose own speech to text to use; none means the organisation's default. `conversationId`: where it is used, so it is costed there. */
+  getToken: (agentId?: string, conversationId?: string) => Promise<SttToken>
+  /** Hands hq what a speech connection streamed, for the ledger. */
+  reportSpeech?: SpeechReport
   sendMessage: (args: SendConversationMessageArgs) => Promise<unknown>
   now?: () => number
   newId?: () => string

@@ -40,20 +40,20 @@ describe('deriveProjectKey', () => {
       expect(deriveProjectKey('Dashboard', ['DAS', 'DASH', 'DASHB'])).toBe('DASHBO')
     })
 
-    it('appends digit suffix when 6-char form still collides', () => {
-      expect(deriveProjectKey('Dashboard', ['DAS', 'DASH', 'DASHB', 'DASHBO'])).toBe('DAS2')
+    it('appends a letter when the 6-char form still collides', () => {
+      expect(deriveProjectKey('Dashboard', ['DAS', 'DASH', 'DASHB', 'DASHBO'])).toBe('DASA')
     })
 
-    it('increments digit suffix until unique', () => {
-      expect(deriveProjectKey('Dashboard', ['DAS', 'DASH', 'DASHB', 'DASHBO', 'DAS2'])).toBe('DAS3')
+    it('moves to the next letter until unique', () => {
+      expect(deriveProjectKey('Dashboard', ['DAS', 'DASH', 'DASHB', 'DASHBO', 'DASA'])).toBe('DASB')
     })
 
     it('pads short single-word names to 3 chars', () => {
       expect(deriveProjectKey('Go', [])).toBe('GOX')
     })
 
-    it('falls back to digit suffix when padded short name collides', () => {
-      expect(deriveProjectKey('Go', ['GOX'])).toBe('GOX2')
+    it('falls back to a letter suffix when padded short name collides', () => {
+      expect(deriveProjectKey('Go', ['GOX'])).toBe('GOXA')
     })
   })
 
@@ -74,8 +74,12 @@ describe('deriveProjectKey', () => {
       expect(deriveProjectKey('A B C D E F G H', [])).toBe('ABCDEF')
     })
 
-    it('appends digit suffix on collision', () => {
-      expect(deriveProjectKey('New Project', ['NP'])).toBe('NP2')
+    it('appends a letter on collision', () => {
+      expect(deriveProjectKey('New Project', ['NP'])).toBe('NPA')
+    })
+
+    it('keeps six letters at most when six initials clash', () => {
+      expect(deriveProjectKey('A B C D E F', ['ABCDEF'])).toBe('ABCDEA')
     })
   })
 
@@ -84,8 +88,15 @@ describe('deriveProjectKey', () => {
       expect(deriveProjectKey('123', [])).toBe('PROJ')
     })
 
-    it('returns PROJ2 when PROJ is taken', () => {
-      expect(deriveProjectKey('123', ['PROJ'])).toBe('PROJ2')
+    it('returns PROJA when PROJ is taken', () => {
+      expect(deriveProjectKey('123', ['PROJ'])).toBe('PROJA')
+    })
+
+    it('always yields two to six letters, however many clash', () => {
+      const keys: string[] = []
+      for (let i = 0; i < 800; i++) keys.push(deriveProjectKey('New Project', keys))
+      expect(new Set(keys).size).toBe(800)
+      for (const k of keys) expect(k).toMatch(/^[A-Z]{2,6}$/)
     })
 
     it('returns PROJ for blank names', () => {

@@ -49,7 +49,7 @@ const session = (extra: Record<string, unknown>) => ({
   id: 's1', agentId: 'agent-1', title: 'Old chat', status: 'ACTIVE', closedReason: null, model: null,
   totalInputTokens: 0, totalOutputTokens: 0, totalCacheReadTokens: 0, totalCacheWriteTokens: 0,
   metadata: null, primaryLocation: null,
-  agent: { id: 'agent-1', name: 'Coder', defaultModel: 'claude-x', runtime: 'claude-sdk', avatarUrl: null },
+  agent: { id: 'agent-1', name: 'Coder', avatarUrl: null },
   entries: [entry('e1', 'USER', 'Please fix the bug'), entry('e2', 'ASSISTANT', 'Fixed it')],
   ...extra,
 })

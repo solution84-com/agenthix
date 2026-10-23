@@ -17,7 +17,7 @@ vi.mock('wasp/server', async () => {
 import { appendMessage } from '../../store/messages'
 import { turnDeps } from '../scheduler'
 
-const access = { provider: 'openai', model: 'gpt-5.6-luna', apiKey: 'k', owner: 'user', kind: 'API_KEY' } as never
+const access = { providerId: 'p-oai', providerName: 'OpenAI', provider: 'openai', model: 'gpt-5.6-luna', apiKey: 'sk-test-fake' } as never
 const usage = { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 }
 
 afterEach(() => vi.restoreAllMocks())

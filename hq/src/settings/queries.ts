@@ -74,7 +74,7 @@ export const getGithubAppStatus = async (_args: unknown, context: { user?: unkno
 type EnvKey = {
   key: string
   set: boolean
-  required: 'always' | 'production' | 'optional' | 'at-least-one'
+  required: 'always' | 'production' | 'optional'
 }
 
 type EnvStatusResult = {
@@ -101,14 +101,6 @@ export const getEnvStatus: GetEnvStatus<void, EnvStatusResult> = async (_args, c
     address: process.env.WASP_SERVER_URL || null,
     files: filesFacts(),
     sections: [
-      {
-        label: 'AI Provider',
-        keys: [
-          { key: 'ANTHROPIC_API_KEY', set: isSet('ANTHROPIC_API_KEY'), required: 'optional' },
-          { key: 'OPENAI_API_KEY',    set: isSet('OPENAI_API_KEY'),    required: 'at-least-one' },
-          { key: 'GEMINI_API_KEY',    set: isSet('GEMINI_API_KEY'),    required: 'at-least-one' },
-        ],
-      },
       {
         label: 'Site Security',
         keys: [

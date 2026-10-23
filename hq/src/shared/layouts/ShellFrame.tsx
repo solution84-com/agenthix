@@ -11,6 +11,9 @@ import { ShellNotices } from './ShellNotices'
 import { VoiceBar } from './VoiceBar'
 import { BRANDING } from '@agenthix/core'
 import type { PlaceNav } from './placeNavTypes'
+import { isAdminPath } from '../../admin/adminPaths'
+import { AdminSidebar } from '../../admin/components/AdminSidebar'
+import { AdminGate } from '../../admin/components/AdminGate'
 
 interface ShellFrameProps {
   children: ReactNode
@@ -44,6 +47,10 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
   const [collapsed, toggleCollapsed] = useNavCollapsed()
   const { open, closeDrawer } = useNavDrawer()
   const { pathname } = useLocation()
+  // The admin area is a second frame: its own menu for the navigation, the page behind a role check, and no docked
+  // conversation. The dock stays mounted, out of sight, so an open conversation survives a visit.
+  const inAdmin = isAdminPath(pathname)
+  const drawn = framed || inAdmin
 
   useEffect(() => {
     closeDrawer()
@@ -51,16 +58,25 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
 
   const tabTitle = documentTitle(breadcrumbs)
   useEffect(() => {
-    if (!framed) return
+    if (!drawn) return
     document.title = tabTitle
     return () => { document.title = documentTitle([]) }
-  }, [framed, tabTitle])
+  }, [drawn, tabTitle])
 
   const mobileTitle = breadcrumbs.length ? breadcrumbs[breadcrumbs.length - 1].label : BRANDING.displayName
 
+  const mainNav = (
+    <AppSidebar
+      collapsed={collapsed || navIcons}
+      onToggleCollapse={navIcons ? undefined : toggleCollapsed}
+      pinned={(s) => <PinnedFoot {...s} />}
+      placeNav={inAdmin ? null : placeNav}
+    />
+  )
+
   return (
-    <div className={framed ? 'flex h-screen w-full bg-surface-0 overflow-hidden max-md:flex-col' : 'contents'}>
-      {framed && open && (
+    <div className={drawn ? 'flex h-screen w-full bg-surface-0 overflow-hidden max-md:flex-col' : 'contents'}>
+      {drawn && open && (
         <div
           data-testid="nav-drawer-backdrop"
           onClick={closeDrawer}
@@ -68,27 +84,20 @@ export function ShellFrame({ children, framed, breadcrumbs, screenBarRight, mobi
         />
       )}
 
-      {framed && (
-        <AppSidebar
-          collapsed={collapsed || navIcons}
-          onToggleCollapse={navIcons ? undefined : toggleCollapsed}
-          pinned={(s) => <PinnedFoot {...s} />}
-          placeNav={placeNav}
-        />
-      )}
+      {drawn && (inAdmin ? <AdminSidebar fallback={mainNav} /> : mainNav)}
 
       <div
         data-testid="shell-screen"
-        className={framed ? `relative flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-surface-1 ${screenHidden ? 'hidden' : 'flex'}` : 'contents'}
+        className={drawn ? `relative flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-surface-1 ${screenHidden && !inAdmin ? 'hidden' : 'flex'}` : 'contents'}
       >
-        {framed && (mobileHeader ?? <MobileHeader title={mobileTitle} />)}
-        {framed && <ScreenBar breadcrumbs={breadcrumbs} right={screenBarRight} placeNav={placeNav} />}
-        {framed && <ShellNotices />}
-        {framed && <VoiceBar />}
-        {children}
-        {framed && <ShellPanelHost />}
+        {drawn && (mobileHeader ?? <MobileHeader title={mobileTitle} />)}
+        {drawn && <ScreenBar breadcrumbs={breadcrumbs} right={screenBarRight} placeNav={placeNav} />}
+        {drawn && <ShellNotices />}
+        {drawn && <VoiceBar />}
+        {inAdmin ? <AdminGate>{children}</AdminGate> : children}
+        {drawn && <ShellPanelHost />}
       </div>
-      {dock}
+      <div className={inAdmin ? 'hidden' : 'contents'}>{dock}</div>
     </div>
   )
 }

@@ -9,6 +9,7 @@ import type { AddressInfo } from 'node:net'
 import express from 'express'
 import type { ApiKeyRunCredential } from '@agenthix/core'
 import { createModelRelayHandler } from '../modelRelayApi'
+import type { RelayCredential } from '../runAccess'
 import { clearRelayTurn, issueRelayToken, pointRelayToken, resetRelayTokensForTests, revokeRelayToken } from '../relayTokens'
 import { resetGateRunsForTests, stopGateRun } from '../../../agents/runtime/toolGateRuns'
 
@@ -36,8 +37,8 @@ function listen(server: http.Server): Promise<string> {
 }
 
 /** Every relayed provider's upstream is the stand-in, under a path of its own, so the test sees what each would receive. */
-function standinUpstream(credential: ApiKeyRunCredential): string | null {
-  if (credential.provider === 'openai_compatible') return credential.baseUrl ?? null
+function standinUpstream(credential: RelayCredential): string | null {
+  if (credential.kind === 'apiKey' && credential.provider === 'openai_compatible') return credential.baseUrl ?? null
   return `${providerUrl}/${credential.provider}`
 }
 
@@ -88,7 +89,7 @@ beforeEach(() => {
 const post = (path: string, headers: Record<string, string>, body = '{"model":"m1","messages":[]}') =>
   fetch(`${relayUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body })
 
-describe('refusals, which never reach the provider', () => {
+describe('refusals, which never reach the provider @SC-1222', () => {
   it('refuses a request with no relay token, or one naming no turn', async () => {
     const attempts: Array<Record<string, string>> = [{}, { 'x-agenthix-turn': 'unknown' }, { 'x-api-key': 'agenthix-key-arrives-with-each-request' }]
     for (const headers of attempts) {
@@ -150,7 +151,7 @@ describe('refusals, which never reach the provider', () => {
   })
 })
 
-describe('what the provider receives', () => {
+describe('what the provider receives @SC-1223', () => {
   it("the request as sent, with only the turn's key in the provider's own header", async () => {
     const res = await post('/anthropic/v1/messages?beta=true', {
       'x-agenthix-turn': token,
@@ -195,7 +196,7 @@ describe('what the provider receives', () => {
   })
 })
 
-describe('what the harness receives', () => {
+describe('what the harness receives @SC-1224', () => {
   it("the provider's status and headers, retry-after included, so its own retry works", async () => {
     answer = (_req, res) => {
       res.writeHead(429, { 'content-type': 'application/json', 'retry-after': '1', 'x-ratelimit-remaining-requests': '0' })
@@ -237,7 +238,7 @@ describe('what the harness receives', () => {
   })
 })
 
-describe('ending a request early', () => {
+describe('ending a request early @SC-1224', () => {
   const streamForever = () => {
     answer = (_req, res) => {
       res.writeHead(200, { 'content-type': 'text/event-stream' })
@@ -266,7 +267,7 @@ describe('ending a request early', () => {
   })
 })
 
-describe('the log', () => {
+describe('the log @SC-1225', () => {
   it('has one line per request naming the conversation, run, provider, model, status, bytes and timings — never a key, token or body', async () => {
     await post('/anthropic/v1/messages', { 'x-agenthix-turn': token }, '{"model":"claude-sonnet-4-6","messages":[{"content":"SECRET-PROMPT"}]}')
     await vi.waitFor(() => expect(logs.length).toBe(1))

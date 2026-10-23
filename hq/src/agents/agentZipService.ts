@@ -29,8 +29,9 @@
  */
 import JSZip from 'jszip'
 import { prisma, HttpError } from 'wasp/server'
-import { isValidPackagePath, PACKAGE_MAX_BYTES, type ToolPermission, type BashPatternPermission } from '@agenthix/core'
+import { CLAUDE_SDK_RUNTIME, isValidPackagePath, PACKAGE_MAX_BYTES, type ToolPermission, type BashPatternPermission } from '@agenthix/core'
 import { createAgent } from './agentService'
+import { DEFAULT_MODEL } from './models'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { INVALID_AGENT_HANDLE_MESSAGE, isValidAgentHandle } from './agentHandle'
 import { coerceToolPermissions, coerceBashPatternPermissions } from './toolPermissions'
@@ -53,7 +54,9 @@ export interface AgentArchiveRecord {
   name: string
   handle: string
   role?: string
+  /** @deprecated Written so an older HQ still imports the archive; ignored on import. The resolver decides the model. */
   defaultModel?: string
+  /** @deprecated Written so an older HQ still imports the archive; ignored on import. The resolver decides the runtime. */
   runtime?: string
   approval?: string
   /** ToolPermission[]; archives from before tool states carry string[] — coerced on import. */
@@ -80,8 +83,8 @@ export async function exportAgentZip(agentId: string): Promise<{ buffer: Buffer;
     name: agent.name,
     handle: agent.handle,
     ...(agent.role ? { role: agent.role } : {}),
-    defaultModel: s.model,
-    runtime: s.runtime,
+    defaultModel: DEFAULT_MODEL,
+    runtime: CLAUDE_SDK_RUNTIME,
     approval: s.approval,
     ...(s.permissions.tools ? { allowedTools: s.permissions.tools } : {}),
     ...(s.permissions.bashPatterns ? { allowedBashPatterns: s.permissions.bashPatterns } : {}),
@@ -231,10 +234,9 @@ export async function parseAgentZip(buffer: Buffer): Promise<ParsedAgentZip> {
 }
 
 function settingsFromRecord(record: AgentArchiveRecord): AgentSettings {
-  const base = defaultAgentSettings(record.defaultModel)
+  const base = defaultAgentSettings()
   return {
     ...base,
-    runtime: record.runtime ?? base.runtime,
     approval: record.approval ?? base.approval,
     permissions: {
       tools: record.allowedTools == null ? null : coerceToolPermissions(record.allowedTools),

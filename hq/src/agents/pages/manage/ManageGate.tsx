@@ -1,16 +1,10 @@
 import type { ReactNode } from 'react'
+import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Link } from 'react-router'
-import { useQuery, getUserSettings } from 'wasp/client/operations'
+import { useOrgAdminState, type OrgAdminState } from '../../../admin/useOrgAdminState'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
 
-export type OrgAdminState = 'loading' | 'admin' | 'refused'
-
-/** Unlike `useIsAdmin`, nothing is shown to anyone until the role is known to be ADMIN. */
-export function useOrgAdminState(): OrgAdminState {
-  const { data, isLoading } = useQuery(getUserSettings)
-  if (isLoading || data === undefined) return 'loading'
-  return data?.role === 'ADMIN' ? 'admin' : 'refused'
-}
+export { useOrgAdminState, type OrgAdminState }
 
 export const MANAGE_REFUSAL = 'Only an organisation admin manages agents. You can use them from Agents.'
 
@@ -18,7 +12,7 @@ export const MANAGE_REFUSAL = 'Only an organisation admin manages agents. You ca
 export function ManageGate({ state, children }: { state: OrgAdminState; children: ReactNode }) {
   if (state === 'admin') return <>{children}</>
   return (
-    <AppLayout breadcrumbs={[{ label: 'Organisation', href: '/org' }, { label: 'Agents' }]}>
+    <AppLayout breadcrumbs={[ADMIN_CRUMB, { label: 'Agents' }]}>
       <div className="px-6 py-16 text-center">
         {state === 'loading' ? (
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-accent" />

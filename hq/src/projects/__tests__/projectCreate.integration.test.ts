@@ -130,6 +130,18 @@ describe('which sites a project may be placed on', () => {
   })
 })
 
+describe('projects whose names give the same initials', () => {
+  it('are all made, each with its own key of two to six letters', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const make = (name: string) =>
+      createProjectRecord({ name, executionSiteId: SITE_ROW_ID, createdByUserId: admin.id })
+    const projects = [await make('New Project'), await make('Next Plan'), await make('Nightly Pipeline')]
+    const keys = projects.map(p => p.key)
+    expect(new Set(keys).size).toBe(3)
+    for (const key of keys) expect(key).toMatch(/^[A-Z]{2,6}$/)
+  })
+})
+
 describe('createProject — accepted fields @SC-017', () => {
   it('persists every field a project may be given, deriving slug and upper-casing the key', async () => {
     const product = await createProduct()

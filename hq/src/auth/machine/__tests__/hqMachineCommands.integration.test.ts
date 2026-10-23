@@ -73,7 +73,7 @@ describe('reset-password @SC-721', () => {
     expect((result as unknown as { data: { link: string } }).data.link).toBe(linkIn((result as { text: string }).text))
     expect(await prisma.passwordReset.findFirstOrThrow()).toMatchObject({ userId: avery.id, createdById: null })
     const notes = await prisma.notification.findMany({ where: { type: MACHINE_RESET_NOTIFICATION } })
-    expect(notes).toEqual([expect.objectContaining({ userId: sam.id, actionUrl: `/org/people/${avery.id}` })])
+    expect(notes).toEqual([expect.objectContaining({ userId: sam.id, actionUrl: `/admin/people/${avery.id}` })])
   })
 
   it('says so for an unknown username or none, making nothing', async () => {

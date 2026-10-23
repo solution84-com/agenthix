@@ -28,6 +28,7 @@ import { resolveRunPackageDirs } from '../../packages/runPackages'
 import { resolveBoundaryOverrideDir, resolveBoundarySharedSkillsDir } from '../../packages/boundaryOverrides'
 import { loadPromptContent } from '../promptContent'
 import { getAgentFacingSiteUrl } from '../../server/siteConfig'
+import { runAccessOf } from '../../server/modelRelay/runAccess'
 import { resolvePrimaryLocation, getLocationCwd } from '../../server/storage/primaryLocationService'
 import { prisma } from '#db'
 import { siteStream } from './SiteStreamEmitter'
@@ -188,7 +189,9 @@ export async function assembleRunLaunch(
   // conversation never moves to the agent's current runtime. A session with
   // none recorded predates that and takes the agent's.
   const runtimeName = session.runtime ?? agent.runtime
-  if (runtimeName === CLAUDE_SDK_RUNTIME && !ctx.credential) {
+  // The run's providers, from hq's descriptor (or an older hq's credential).
+  const access = runAccessOf(ctx)
+  if (runtimeName === CLAUDE_SDK_RUNTIME && !access.credential) {
     const boundaryKind = primaryLoc.ownerType === 'project' ? 'project' : 'person'
     throw new ReadableRunError(
       ctx.credentialProblem ??
@@ -254,7 +257,7 @@ export async function assembleRunLaunch(
   // A granted subscription is counted into its login's copies before the
   // container is prepared, so the write at launch can hand this run the
   // freshest copy on the site and the copy is watched from the start.
-  sink.subscription = joinSubscriptionLogin(claudeHome.serverDir, ctx.credential)
+  sink.subscription = joinSubscriptionLogin(claudeHome.serverDir, access.credential)
 
   // 3e. Prepare the container, which binds the owner's folder once. It must
   // not reveal the site's host layout (E1): every bind destination is the
@@ -264,7 +267,7 @@ export async function assembleRunLaunch(
     { id: session.id, sessionType: session.sessionType, userId: session.userId ?? null },
     effectiveTaskId,
     primaryLoc,
-    ctx,
+    { mounts: ctx.mounts, credential: access.credential },
     containerKey,
   )
   const containerName = containerResult?.containerName ?? null
@@ -383,8 +386,9 @@ export async function assembleRunLaunch(
     // In container mode: container-side path determined in prepareAgentContainer.
     cwd: containerResult?.primaryContainerPath ?? workingTreeDir,
     capability: capabilityHolder,
-    credential: ctx.credential,
-    fallbackCredentials: ctx.fallbackCredentials,
+    credential: access.credential,
+    fallbackCredentials: access.others,
+    ...(access.billingProfileId ? { billingProfileId: access.billingProfileId } : {}),
     webSearchKey: ctx.webSearchKey,
     riskRules: ctx.riskRules,
     packages,

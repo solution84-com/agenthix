@@ -35,7 +35,7 @@ export const conversationsSpec: Spec = [
     action(sendWaitingConversationMessageNow, { entities: ["Conversation", "ConversationMessage", "InferenceTurn"] }),
     action(cancelWaitingConversationMessage, { entities: ["Conversation", "ConversationMessage"] }),
     action(switchConversationAccess, { entities: ["Conversation", "ConversationMessage", "InferenceTurn"] }),
-    query(getModelChoices, { entities: ["Conversation", "ModelPolicy", "ModelCredential", "Provider"] }),
+    query(getModelChoices, { entities: ["Conversation", "AiProvider", "Org", "Agent", "ModelList", "BillingProfile"] }),
     action(setConversationModel, { entities: ["Conversation", "ConversationMessage"] }),
     query(getConversationActivity, { entities: ["Conversation", "Operation"] }),
     query(getOperationResult, { entities: ["Conversation", "Operation"] }),

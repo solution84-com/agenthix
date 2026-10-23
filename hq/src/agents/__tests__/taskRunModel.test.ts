@@ -1,42 +1,10 @@
 /**
- * A task's run follows the work models: its boundary's light-work model on the runtime that can be given it, unless
- * the boundary narrows the agent to a model of its own; and the task's session is kept unless the run needs another
- * runtime and nothing in the session carries on.
+ * A task's session is kept unless the run needs another runtime and nothing in the session carries on. Which model and
+ * runtime a run needs is the resolver's (routing/__tests__/decide.test.ts).
  */
 import { describe, it, expect } from 'vitest'
-import { CLAUDE_SDK_MODELS, type PendingManifest } from '@agenthix/core'
-import { keepsTaskSession, taskRunChoice } from '../taskRunModel'
-
-const [sonnet, haiku] = ['claude-sonnet-4-6', 'claude-haiku-4-5']
-const openRouter = 'openrouter/~deepseek/deepseek-flash-latest'
-const kernel = { defaultModel: sonnet, runtime: 'claude-sdk' }
-const policy = (lightWork: string) => ({ talking: lightWork, lightWork, heavyWork: lightWork, allowed: null, ceiling: null })
-
-describe("a task's run model @SC-955", () => {
-  it('knows the models these tests name', () => {
-    expect(CLAUDE_SDK_MODELS.map(m => m.value)).toEqual(expect.arrayContaining([sonnet, haiku]))
-  })
-
-  it("is the boundary's light-work model on the agent's runtime when it offers it", () => {
-    expect(taskRunChoice(policy(haiku), kernel, null)).toEqual({ model: haiku, runtime: 'claude-sdk' })
-  })
-
-  it("runs on OpenCode when the light-work model is one only OpenCode can be given", () => {
-    expect(taskRunChoice(policy(openRouter), kernel, null)).toEqual({ model: openRouter, runtime: 'opencode' })
-  })
-
-  it("is the agent's own model on its own runtime when no runtime can be given the policy's", () => {
-    expect(taskRunChoice(policy('not-a-model'), kernel, null)).toEqual({ model: sonnet, runtime: 'claude-sdk' })
-  })
-
-  it("keeps a boundary's override of the agent's model, which only narrows", () => {
-    expect(taskRunChoice(policy(openRouter), kernel, haiku)).toEqual({ model: haiku, runtime: 'claude-sdk' })
-  })
-
-  it('ignores an override the agent cannot take', () => {
-    expect(taskRunChoice(policy(openRouter), kernel, 'claude-opus-4-6')).toEqual({ model: openRouter, runtime: 'opencode' })
-  })
-})
+import type { PendingManifest } from '@agenthix/core'
+import { keepsTaskSession } from '../taskRunModel'
 
 describe("a task's session @SC-955", () => {
   const base = { sessionRuntime: 'claude-sdk', neededRuntime: 'opencode', paused: false, newestRun: null }

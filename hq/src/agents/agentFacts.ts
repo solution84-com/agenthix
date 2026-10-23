@@ -1,12 +1,11 @@
 /**
  * The facts every Agents view shows of an agent, read once in one shape: who
- * it is (name, role, handle, avatar and cover) and its own settings (model,
- * runtime, approval). The profile card, the cards on the Agents screen, the
+ * it is (name, role, handle, avatar and cover) and its own settings (approval). The profile card, the cards on the Agents screen, the
  * Agents tool and Organisation › Agents all start from these.
  */
 export const AGENT_FACTS_SELECT = {
   id: true, name: true, handle: true, role: true, avatarUrl: true, coverUrl: true,
-  defaultModel: true, runtime: true, approval: true, isKernel: true,
+  approval: true, isKernel: true,
 } as const
 
 export type AgentFacts = {
@@ -16,8 +15,6 @@ export type AgentFacts = {
   role: string | null
   avatarUrl: string | null
   coverUrl: string | null
-  defaultModel: string
-  runtime: string
   approval: string
   isKernel: boolean
 }

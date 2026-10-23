@@ -9,15 +9,16 @@ import { HttpError, prisma } from 'wasp/server'
 import type { Agent, Prisma } from '@prisma/client'
 import * as dispatchService from '../../../agents/dispatchService'
 import * as siteRuntimeStore from '../../../sessions/siteRuntimeStore'
-import { resolveModelPolicy } from '../../../model-policy/modelPolicyService'
+import { chooseBoundaryRun } from '../../../agents/runModel'
 import { SiteUnreachableError } from '../../../storage/workspaceStore'
 import { SessionClosedError } from '../../../sessions/closedSession'
 import { Logger } from '../../../server/utils/logger'
 import type { OperationStateValue } from '../../../shared/conversations/protocol'
 import { openJson, openText } from '../../sealing'
+import { parseChoiceValue } from '../../access/talkingModel'
 import { settleOperation } from '../../coordinator/mailbox'
 import { applyWorkerFrame } from './frames'
-import { frameOfRun, workerChoice, type WorkerArgs } from './runReads'
+import { frameOfRun, type WorkerArgs } from './runReads'
 import { workerClosedReason } from './standingWorker'
 import { placeTakenBrief } from './freshStart'
 import { briefOpening, withOpening } from './opening'
@@ -75,13 +76,13 @@ async function briefInput(op: { brief: string | null; authorisedById: string; bo
   return withOpening(openText(op.brief ?? ''), opening)
 }
 
-type ChoiceOp = { args: string | null; boundaryType: string | null; boundaryId: string | null }
+type ChoiceOp = { boundaryType: string | null; boundaryId: string | null; authorisedById: string; args?: string | null }
 
-/** The model a brief runs on and the runtime that can be given it, from its boundary's policy and its effort. */
-async function choiceFor(op: ChoiceOp, session: { userId: string }, agent: Agent) {
-  const effort = (op.args ? openJson<WorkerArgs>(op.args).effort : undefined) ?? 'light'
-  const policy = await resolveModelPolicy({ type: op.boundaryType === 'project' ? 'project' : 'user', id: op.boundaryId ?? session.userId }, agent)
-  return workerChoice(policy, effort, agent.runtime)
+/** The model a brief runs on and the runtime that can be given it: work's, in its boundary, for its person. */
+async function choiceFor(op: ChoiceOp, session: { userId: string }, agent: Pick<Agent, 'id'>) {
+  const boundary = { type: op.boundaryType === 'project' ? 'project' as const : 'user' as const, id: op.boundaryId ?? session.userId }
+  const named = op.args ? openJson<WorkerArgs>(op.args).model : undefined
+  return chooseBoundaryRun(boundary, agent.id, op.authorisedById, parseChoiceValue(named))
 }
 
 /** The runtime a taken brief needs, or null when it cannot be read — the brief then runs where it was taken. */

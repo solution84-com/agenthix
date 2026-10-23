@@ -9,7 +9,7 @@ These pages take you from nothing to an agent finishing a task, in order:
 
 1. [How Agenthix works](how-agenthix-works.md): the two parts you install, and how work reaches an agent.
 2. [Install Agenthix](install.md) on your computer or a server.
-3. [Finish setup](finish-setup.md): your account, your organisation and a model.
+3. [Finish setup](finish-setup.md): your account, how agents reach AI models and voice, and your organisation.
 4. [Your first conversation](first-conversation.md) with an agent.
 5. [Your first task](first-task.md): a project, a task, and an agent doing it.
 

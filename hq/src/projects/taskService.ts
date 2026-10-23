@@ -97,6 +97,8 @@ export async function createTask(params: {
   description?: string
   labels?: string[]
   priority?: string
+  /** The model its runs name (`<providerId>/<model>`), already checked; null follows the default. */
+  modelChoice?: string | null
   /** Queue a run of it on creation (it waits for the pulse or a person). */
   queue?: boolean
   /** An agent over its boundary's queue limit: the task lands unqueued even in an auto-queue column. */
@@ -169,6 +171,7 @@ export async function updateTask(params: {
   assignedAgentId?: string | null
   priority?: string
   labels?: string[]
+  modelChoice?: string | null
   status?: string
   /** System use only (a person's Stop, putting a run state back): agents and the person's edit never set it. */
   runState?: TaskRunState

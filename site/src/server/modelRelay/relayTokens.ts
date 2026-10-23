@@ -5,7 +5,7 @@
  *
  * A token is bound to one container and one conversation when it is issued,
  * and names a turn only while one runs: it is pointed at the turn — its run
- * and the API keys of every provider the turn may use — when the turn starts,
+ * and every provider the turn may use — when the turn starts,
  * and at nothing when it ends. So between turns, and once a run is stopped,
  * it opens nothing. OpenCode's plugin is given a new token for every turn
  * (through the turn endpoint); a `claude` process trades its one-use ticket
@@ -16,30 +16,29 @@
  * In memory: a site restart ends every harness that could hold one.
  */
 import { randomBytes } from 'node:crypto'
-import type { ApiKeyRunCredential, CredentialProvider, RunCredential } from '@agenthix/core'
+import type { CredentialProvider } from '@agenthix/core'
 import { gateRunStopped } from '../../agents/runtime/toolGateRuns'
+import type { RelayCredential } from './runAccess'
 
-export type RelayTurn = {
-  containerName: string
-  conversationId: string
+export { turnRelayCredentials as turnModelCredentials } from './runAccess'
+
+type TurnBinding = {
   runId: string
-  credentials: ReadonlyMap<CredentialProvider, ApiKeyRunCredential>
+  credentials: ReadonlyMap<CredentialProvider, RelayCredential>
+  /** The billing profile every call of the run is costed to; null from an hq that sends none. */
+  billingProfileId: string | null
 }
+
+export type RelayTurn = TurnBinding & { containerName: string; conversationId: string }
 
 type Binding = {
   containerName: string
   conversationId: string
-  turn: { runId: string; credentials: ReadonlyMap<CredentialProvider, ApiKeyRunCredential> } | null
+  turn: TurnBinding | null
   inFlight: Set<() => void>
 }
 
 const bindings = new Map<string, Binding>()
-
-/** The API keys a turn's model requests may use, by provider: its own credential's and its fallbacks'. */
-export function turnModelCredentials(turn: { credential: RunCredential | null; fallbackCredentials?: ApiKeyRunCredential[] }): ApiKeyRunCredential[] {
-  const own = turn.credential?.kind === 'apiKey' ? [turn.credential] : []
-  return [...own, ...(turn.fallbackCredentials ?? [])]
-}
 
 export function issueRelayToken(containerName: string, conversationId: string): string {
   const token = randomBytes(32).toString('base64url')
@@ -47,13 +46,13 @@ export function issueRelayToken(containerName: string, conversationId: string): 
   return token
 }
 
-/** The token names this run's turn now, with these providers' keys. The first key given for a provider wins. */
-export function pointRelayToken(token: string, runId: string, credentials: readonly ApiKeyRunCredential[]): void {
+/** The token names this run's turn now, with these providers. The first given for a relay path wins. */
+export function pointRelayToken(token: string, runId: string, credentials: readonly RelayCredential[], billingProfileId: string | null = null): void {
   const binding = bindings.get(token)
   if (!binding) throw new Error('A relay token was pointed at a turn after it was revoked')
-  const byProvider = new Map<CredentialProvider, ApiKeyRunCredential>()
+  const byProvider = new Map<CredentialProvider, RelayCredential>()
   for (const c of credentials) if (!byProvider.has(c.provider)) byProvider.set(c.provider, c)
-  binding.turn = { runId, credentials: byProvider }
+  binding.turn = { runId, credentials: byProvider, billingProfileId }
 }
 
 /** The run's turn is over: the token names nothing, and its requests still running are cut off. Only that run's clear counts. */

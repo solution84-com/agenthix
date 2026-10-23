@@ -6,7 +6,9 @@
  * fails the typecheck rather than the wire. The snapshot (core/snapshot/site.json) records them.
  *
  * The site's own requests of hq are not channel methods: a run's tools reach hq's data API (`HQ_DATA_PATH`,
- * `HqDataRequest`) and its capability is renewed over HTTP (`HQ_CAPABILITY_RENEW_PATH`, `CapabilityRenewRequest`).
+ * `HqDataRequest`), its capability is renewed over HTTP (`HQ_CAPABILITY_RENEW_PATH`, `CapabilityRenewRequest`), and
+ * its model relay reports usage (`HQ_USAGE_REPORT_PATH`) and asks for hq's Cloud access token
+ * (`HQ_CLOUD_AI_TOKEN_PATH`) the same way.
  */
 import type { SiteDescribeResult } from './channelMessages.js'
 import { SITE_DATA_METHODS } from './siteData.js'

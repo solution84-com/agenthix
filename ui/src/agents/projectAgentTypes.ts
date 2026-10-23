@@ -9,8 +9,6 @@ export type AgentFactsData = {
   role: string | null
   avatarUrl: string | null
   coverUrl: string | null
-  defaultModel: string
-  runtime: string
   approval: string
 }
 
@@ -45,7 +43,6 @@ export type ProjectAgentRowData = {
   isDefault: boolean
   now: AgentNowData
   tasks: TaskCountsData
-  model: { own: string; here: string; narrowed: boolean }
   narrowed: boolean
 }
 
@@ -75,10 +72,6 @@ export type ProjectAgentDetailData = ProjectAgentRowData & {
   canManage: boolean
   nowItems: NowItemData[]
   comingUp: ComingUpItemData[]
-  inThisProject: {
-    own: { model: string; approval: string; allowedTools: ToolPermissionData[] | null }
-    narrowing: NarrowingData | null
-  }
   recentRuns: { runs: RecentRunData[] }
 }
 

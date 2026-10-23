@@ -80,7 +80,4 @@ export type MemoryMeasurements = {
   missed: number
   certainBar: number
   probableBar: number
-  embeddingModel: string
-  /** While a switch of embedding model re-embeds: how far it is. */
-  reembedding: { to: string; done: number; total: number } | null
 }

@@ -121,7 +121,7 @@ describe("a site's problem @SC-726", () => {
 
     let [group] = (await readRecentErrors(admin.id, '24h', new Date(start.getTime() + 31_000))).groups
     expect(group).toMatchObject({ origin: 'site', title: 'Docker is not running on Build server 2', count: 1, ongoing: true, firstAt: start })
-    expect(group.siteLink).toMatch(/^\/org\/settings\/where-work-runs\//)
+    expect(group.siteLink).toMatch(/^\/admin\/where-work-runs\//)
 
     const later = new Date(start.getTime() + CONDITION_GAP_MS + 120_000)
     await recordSiteProblems(site, [{ kind: 'dockerDown' }], later)

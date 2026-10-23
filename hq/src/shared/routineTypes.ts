@@ -67,6 +67,8 @@ export type RoutineDetail = RoutineSummary & {
   priority: string
   labels: string[]
   assignedAgentId: string | null
+  /** The model each round's run names (`<providerId>/<model>`); null follows the default. */
+  modelChoice: string | null
   /** null: Project Tasks. */
   boardId: string | null
   /** null: the board's Backlog. */

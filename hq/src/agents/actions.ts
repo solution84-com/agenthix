@@ -34,14 +34,12 @@ export type CreateAgentArgs = {
   name: string
   handle: string
   role?: string
-  defaultModel?: string
-  runtime?: string
 }
 
 /** Identity. Settings go through updateAgentSettings. */
 export type UpdateAgentArgs = { id: string; name?: string; handle?: string; role?: string }
 
-const BEHAVIOUR_FIELDS = ['defaultModel', 'runtime', 'allowedTools', 'allowedBashPatterns', 'approval'] as const
+const BEHAVIOUR_FIELDS = ['allowedTools', 'allowedBashPatterns', 'approval'] as const
 
 type DeleteAgentArgs = { id: string }
 

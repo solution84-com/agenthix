@@ -27,12 +27,12 @@ const space = {
 
 describe('chatFacts @SC-507', () => {
   it('says who sees it, which agents, and the personal files', () => {
-    expect(chatFacts(null).map((f) => f.label)).toEqual(['Who sees it', 'Agents', 'Files'])
+    expect(chatFacts(null).map((f) => f.label)).toEqual(['Who sees it', 'Agents', 'Personal projects', 'Files'])
     expect(chatFacts(null).filter((f) => typeof f.value === 'string').map((f) => f.value)).toEqual(['Only you', 'Your personal files'])
   })
 
   it('shows the Site only once the person’s storage has one', () => {
-    expect(chatFacts({ id: 's1', label: 'Development' }).map((f) => f.label)).toEqual(['Who sees it', 'Agents', 'Site', 'Files'])
+    expect(chatFacts({ id: 's1', label: 'Development' }).map((f) => f.label)).toEqual(['Who sees it', 'Agents', 'Personal projects', 'Site', 'Files'])
     expect(chatFacts({ id: 's1', label: 'Development' }).find((f) => f.label === 'Site')?.value).toBe('Development')
   })
 })

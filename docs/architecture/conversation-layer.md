@@ -40,7 +40,6 @@ hq's database holds the conversation (`hq/schema.prisma`):
 | `Operation` | One piece of work commissioned: kind (`WORKER`, `TASK`, `TOOL`), mode, brief, target boundary, state, result, the site and run or the task that carries it, an idempotency key and what it may continue with |
 | `ConversationSegment` | One compaction, written once |
 | `RunResult` | What one run said it achieved, from `set_result` |
-| `ModelPolicy` | A boundary's model preferences |
 | `AgentSession` (also on the site) | A standing worker, with `conversationId` and a boundary |
 
 **Message text is encrypted at rest** with hq's data key (`hq/src/conversations/sealing.ts`), as the other sealed fields hq
@@ -61,7 +60,7 @@ claim wins (`coordinator/scheduler.ts`).
   lock and, when a turn is running, stores it as waiting. By the sender's `busyConversationMode` it then waits for that
   turn (`WAIT`) or stops it (`INTERRUPT`). Messages are taken in order, and a batch is the oldest and every consecutive
   one by the same author (`coordinator/batch.ts`).
-- **The turn** (`coordinator/turn.ts`) resolves the access that pays, mints its capability, assembles its context, then
+- **The turn** (`coordinator/turn.ts`) resolves the model and provider (the resolver), mints its capability, assembles its context, then
   loops: a model call streams text to the room, the step's tool calls run together through the tool adapter, and the
   results go back, to at most 8 steps; the last is words only. One agent message is committed at the end, with the reply's
   steps. After 4 steps that looked something up, hq starts the rest as work itself and ends the reply with a fixed line
@@ -90,8 +89,10 @@ the turn's own message. The lead sees no override or `AGENTS.md`, which are file
 
 **The model adapter** (`hq/src/conversations/model/`) is the only code that names a provider's SDK. It uses the Vercel AI
 SDK that hq already carried, for Anthropic, OpenAI, Google, OpenRouter and an OpenAI-compatible endpoint, and adds each
-provider's caching hints. Which key pays is decided by the conversation's home (`access/homeAccess.ts`); the talking model
-comes from the effective model policy and the person's picker.
+provider's caching hints. The talking model, its provider and the billing profile its cost belongs to come from the one
+resolver ([model-resolution.md](model-resolution.md)): the model the conversation is fixed to, which began as the agent's
+own conversation model or the organisation's and which the person changes with the picker, narrowed by the lists that
+apply (`access/talkingModel.ts`). The key is the organisation's provider's, read for the turn.
 
 **Tools.** Every tool is defined once, in hq's control-plane registry, behind one permission check. A harness reaches it
 through its site's `/mcp` endpoint; the lead's turn reaches it in process with a **turn capability**, minted per turn for the
@@ -147,10 +148,11 @@ silence rule and the speech in progress are held in the process that has the hol
 (`conversations/voice/registry.ts`) and a restart ends voice with a line saying so.
 See [voice](../concepts/conversations/voice.md).
 
-A voice client calls two operations named for no vendor: `getVoiceServices` says which speech services are set up
-and by which provider, for any member, and `getSpeechToken` gives a short-lived token for the speech-to-text provider
-it names, with that service's settings. The providers' own settings, with their masked keys (`getVoiceProvider`), are
-for admins only.
+A voice client calls two operations named for no vendor: `getVoiceServices` says which speech services the defaults
+resolve to now, for any member (a provider's vendor, nothing secret), and `getSpeechToken` gives a short-lived token for
+the speech-to-text provider the resolver chose for the agent. Speech is always Inworld TTS 2 and listening one of
+AssemblyAI's three live models, chosen with the other model choices; the providers' keys are managed only on Providers in
+the admin area ([model-resolution.md](model-resolution.md)).
 
 ### What a voice client must do
 

@@ -9,9 +9,6 @@ vi.mock('wasp/client/operations', () => ({
   useQuery,
   useAction: (fn: unknown) => fn,
   getUserSettings: 'getUserSettings',
-  getModelCredentialStatus: 'getModelCredentialStatus',
-  setModelCredential: 'setModelCredential',
-  deleteModelCredential: 'deleteModelCredential',
 }))
 vi.mock('../../../shared/layouts/AppLayout', () => ({
   AppLayout: ({ children, breadcrumbs }: { children: React.ReactNode; breadcrumbs: { label: string }[] }) => (
@@ -20,11 +17,6 @@ vi.mock('../../../shared/layouts/AppLayout', () => ({
 }))
 vi.mock('react-router', () => ({ Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a> }))
 vi.mock('../WebSearchKeyBlock', () => ({ WebSearchKeyBlock: () => <div data-testid="web-search" /> }))
-vi.mock('../ModelAccessSection', () => ({
-  ModelAccessSection: (p: { ownerType: string; ownerId: string }) => (
-    <div data-testid="section">{p.ownerType}:{p.ownerId}</div>
-  ),
-}))
 
 import { ModelAccessPage } from '../ModelAccessPage'
 
@@ -37,13 +29,12 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('ModelAccessPage, under Organisation › Settings', () => {
-  it('gives an admin the org section and the fall-back order', () => {
+describe('the web-search page, under Organisation › Settings', () => {
+  it('gives an admin the web-search key, and says where model providers are now', () => {
     settingsAre({ data: { role: 'ADMIN' } })
     render(<ModelAccessPage />)
-    expect(screen.getByTestId('layout').getAttribute('data-crumbs')).toBe('Organisation / Settings / Model access')
-    expect(screen.getByTestId('section').textContent).toBe('org:org')
-    expect(screen.getByText(/A run in a project uses\s+the project's own, then the person it is for/)).toBeTruthy()
+    expect(screen.getByTestId('layout').getAttribute('data-crumbs')).toBe('Manage organisation / Settings / Web search')
+    expect(screen.getByText(/Model and voice providers are under Manage organisation/)).toBeTruthy()
     expect(screen.getByTestId('web-search')).toBeTruthy()
   })
 
@@ -51,7 +42,6 @@ describe('ModelAccessPage, under Organisation › Settings', () => {
     settingsAre({ data: { role: 'MEMBER' } })
     render(<ModelAccessPage />)
     expect(screen.getByText(/Only an organisation admin can see the organisation's settings/)).toBeTruthy()
-    expect(screen.queryByTestId('section')).toBeNull()
     expect(screen.queryByTestId('web-search')).toBeNull()
   })
 
@@ -59,6 +49,6 @@ describe('ModelAccessPage, under Organisation › Settings', () => {
     settingsAre({ isLoading: true })
     render(<ModelAccessPage />)
     expect(screen.queryByText(/Only an organisation admin/)).toBeNull()
-    expect(screen.queryByTestId('section')).toBeNull()
+    expect(screen.queryByTestId('web-search')).toBeNull()
   })
 })

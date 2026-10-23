@@ -94,7 +94,7 @@ export function RepoPanel({ target, repoName }: { target: ExplorerTarget; repoNa
       {stateLoading && <p className="text-small text-text-muted">Reading this location's repository state…</p>}
       {!appRegistered && (
         <div className="rounded-xl bg-warning/[0.06] border border-warning/15 p-4 text-small text-warning/80">
-          No GitHub App connected. Register one under <span className="font-semibold">Organisation › Infrastructure › GitHub App</span> first, then back up or link a repo here.
+          No GitHub App connected. Register one under <span className="font-semibold">Manage organisation › Infrastructure › GitHub App</span> first, then back up or link a repo here.
         </div>
       )}
       {appRegistered && (
@@ -133,7 +133,7 @@ export function RepoPanel({ target, repoName }: { target: ExplorerTarget; repoNa
           </>
         ) : (
           <div className="text-micro text-warning/70">
-            Creating new repos needs the GitHub App installed on an <span className="font-semibold">organization</span> — a personal-account install can only link existing repos. Link one below, or install the App on an org under Organisation › Settings › GitHub.
+            Creating new repos needs the GitHub App installed on an <span className="font-semibold">organization</span> — a personal-account install can only link existing repos. Link one below, or install the App on an org under Manage organisation › Settings › GitHub.
           </div>
         )}
       </div>

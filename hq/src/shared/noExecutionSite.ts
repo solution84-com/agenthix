@@ -7,7 +7,7 @@
  * fails with the message, and a read shows the notice.
  */
 export const NO_EXECUTION_SITE_MESSAGE =
-  'No Execution Site is connected. A fleet admin adds one in the Fleet Console; Organisation › Settings › Where work runs shows how sites are doing.'
+  'No Execution Site is connected. A fleet admin adds one in the Fleet Console; Manage organisation › Where work runs › Sites shows how sites are doing.'
 
 /** The banner a read-only view shows in place of an empty list it cannot explain. */
 export const NO_EXECUTION_SITE_NOTICE = 'No Execution Site is connected'

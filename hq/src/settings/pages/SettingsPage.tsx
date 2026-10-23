@@ -4,9 +4,9 @@ import { useQuery, getUserSettings, getPersonCard } from 'wasp/client/operations
 import { orgRoleLabel } from '@agenthix/ui/people'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { PersonNameAndPicture } from '../../org/pages/people/PersonNameAndPicture'
-import { ModelPolicyForm } from '../../model-policy/components/ModelPolicyForm'
 import { PrimaryAgentSection } from '../../conversations/components/PrimaryAgentSection'
-import { ModelAccessSection } from '../../model-access/pages/ModelAccessSection'
+import { ClaudeSubscriptionSection } from '../../model-access/pages/ClaudeSubscriptionSection'
+import { OwnList } from '../../models-settings/components/OwnList'
 import { AppearanceSection } from './AppearanceSection'
 import { TimezoneSection } from './TimezoneSection'
 import { BusyConversationSection } from './BusyConversationSection'
@@ -58,13 +58,15 @@ export function SettingsPage() {
           <PrimaryAgentSection />
         </SettingsSection>
 
-        <SettingsSection title="Models" description="Which model answers you and does your work. Where you choose none, the organisation's applies.">
-          <ModelPolicyForm scope="user" canEdit />
-        </SettingsSection>
+        {user?.id && (
+          <SettingsSection title="Your Claude subscription" description="Your own Claude login, for work in your space and your personal projects.">
+            <ClaudeSubscriptionSection />
+          </SettingsSection>
+        )}
 
         {user?.id && (
-          <SettingsSection title="Your model logins" description="Runs on your behalf use these, after a project's own in a project, then the organisation's. In a shared project a task's run uses your API key, not your login.">
-            <ModelAccessSection ownerType="user" ownerId={user.id} />
+          <SettingsSection title="Which models may run for you" description="Narrows the organisation's list, everywhere you work.">
+            <OwnList owner="person" ownerId={user.id} intro={orgName => `Only narrows ${orgName}'s list for you; it never widens it.`} />
           </SettingsSection>
         )}
 

@@ -10,7 +10,6 @@ import { consumeRateLimit, isRateLimited, resetRateLimit } from '../server/rateL
 import { hashInviteToken } from './inviteToken'
 import { personById } from '../server/identity/people'
 import { openFirstAdminKey } from './firstAdmin'
-import { computeModelAccessGap } from '../model-access/modelAccessGap'
 import { glimpseOfPeople, invitedProjects, type GlimpsePerson, type InvitedProject } from './inviteGlimpse'
 import { readOrgCard, readPublicOrgIdentity, type PublicOrgIdentity } from '../org/publicIdentity'
 import { BRANDING } from '@agenthix/core'
@@ -122,11 +121,10 @@ export async function validateToken(token: string): Promise<ValidateResult> {
 
   const inviter = invite.createdBy ? await personById(invite.createdBy) : null
   const firstAdmin = invite.kind === 'FIRST_ADMIN'
-  const [projects, org, glimpse, gap] = await Promise.all([
+  const [projects, org, glimpse] = await Promise.all([
     invitedProjects(invite.projectIds),
     readPublicOrgIdentity(),
     firstAdmin ? { people: [], morePeople: 0 } : glimpseOfPeople(),
-    firstAdmin ? { missing: false } : computeModelAccessGap(),
   ])
   return {
     valid: true,
@@ -137,7 +135,8 @@ export async function validateToken(token: string): Promise<ValidateResult> {
     fromHqMachine: invite.kind === 'INVITATION' && invite.createdBy === null,
     projects,
     ...glimpse,
-    needsModel: gap.missing,
+    // Models are the organisation admins' to supply (models from one place): never a step of joining.
+    needsModel: false,
     expiresAt: invite.expiresAt?.toISOString() ?? null,
     org,
   }

@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react'
 import { PersonFace } from '../../../org/pages/people/PersonFace'
-import { ModelAccessRows } from '../../../model-access/pages/ModelAccessRows'
-import { useModelAccess } from '../../../model-access/pages/useModelAccess'
-import { StateLine, Heading, TEXT_LINK } from '../../../auth/pages/parts/authUi'
+import { Heading, TEXT_LINK } from '../../../auth/pages/parts/authUi'
 import { joinNames } from '../../../auth/pages/parts/linkApi'
 import type { OnboardingData } from '../../queries'
 import { AsideLabel, OnboardingFrame, StepButtons } from './OnboardingFrame'
@@ -23,14 +21,12 @@ function Section({ title, onEdit, children }: { title: string; onEdit?: () => vo
 /** A last look: them, their model access, what they are joining — each with Edit — then Start working. */
 export function ReviewStep({ data, onEdit, onBack, onStart, starting }: {
   data: OnboardingData
-  onEdit: (step: 'you' | 'model') => void
+  onEdit: (step: 'you') => void
   onBack: () => void
   onStart: () => void
   starting: boolean
 }) {
   const { me } = data
-  const mine = { ownerType: 'user' as const, ownerId: me.id }
-  const { loaded, set } = useModelAccess(mine, mine)
   const name = me.displayName ?? me.username ?? ''
   const first = data.projects[0]
   const aside = (
@@ -54,14 +50,10 @@ export function ReviewStep({ data, onEdit, onBack, onStart, starting }: {
           </div>
         </div>
       </Section>
-      <Section title="Model access" onEdit={data.needsModel ? () => onEdit('model') : undefined}>
-        {!data.needsModel ? (
-          <div className="text-body text-text-primary"><span className="text-success">✓</span> Provided by {data.orgName}
-            <div className="text-small text-text-muted">Your own conversations use the organisation's access.</div>
-          </div>
-        ) : !loaded ? <div className="text-small text-text-muted">Checking…</div> : set.length === 0 ? (
-          <StateLine tone="warn"><b className="font-medium text-text-primary">Not set</b> — agents can't answer until one is set</StateLine>
-        ) : <ModelAccessRows items={set} />}
+      <Section title="Models">
+        <div className="text-body text-text-primary">Provided by {data.orgName}
+          <div className="text-small text-text-muted">The organisation's admins choose the models everyone uses.</div>
+        </div>
       </Section>
       <Section title="Joining">
         <div className="text-body text-text-primary">{data.role === 'ADMIN' ? 'Admin' : 'Member'} of {data.orgName}

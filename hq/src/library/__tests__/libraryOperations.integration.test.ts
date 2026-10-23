@@ -199,8 +199,8 @@ describe('workforce template queries', () => {
   })
 
   it('getExistingAgentHandles lists every agent handle and refuses an anonymous caller', async () => {
-    await prisma.agent.create({ data: { name: 'A', handle: 'alpha', runtime: 'claude-sdk' } as any })
-    await prisma.agent.create({ data: { name: 'B', handle: 'beta', runtime: 'claude-sdk' } as any })
+    await prisma.agent.create({ data: { name: 'A', handle: 'alpha' } as any })
+    await prisma.agent.create({ data: { name: 'B', handle: 'beta' } as any })
     const handles = await getExistingAgentHandles(undefined, await caller('MEMBER'))
     expect([...handles].sort()).toEqual(['alpha', 'beta'])
     await expect(getExistingAgentHandles(undefined, anon)).rejects.toMatchObject({ statusCode: 401 })
@@ -326,7 +326,7 @@ describe('applyAgentTemplate action @SC-186', () => {
 
   it('maps a handle that already exists to 409 and creates no second agent', async () => {
     await seedAgentBundle('bundle-agent', 'bundle')
-    await prisma.agent.create({ data: { name: 'Existing', handle: 'taken', runtime: 'claude-sdk' } as any })
+    await prisma.agent.create({ data: { name: 'Existing', handle: 'taken' } as any })
     await expect(applyAgentTemplate({ slug: 'bundle-agent', handle: 'taken' }, await caller('ADMIN')))
       .rejects.toMatchObject({ statusCode: 409 })
     expect(await prisma.agent.count()).toBe(1)

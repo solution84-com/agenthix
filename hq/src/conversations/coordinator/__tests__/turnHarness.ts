@@ -20,7 +20,7 @@ import type { ClaimedTurn } from '../claim'
 import type { TurnEnd } from '../turnRecord'
 import { turnCapability } from '../../../server/controlplane/__tests__/turnFixtures'
 
-export const access: ResolvedAccess = { provider: 'anthropic', model: 'claude-sonnet-5', apiKey: 'k', owner: 'user', kind: 'API_KEY' }
+export const access: ResolvedAccess = { providerId: 'p-ant', providerName: 'Anthropic', provider: 'anthropic', model: 'claude-sonnet-5', apiKey: 'sk-test-fake' }
 export const usage = (n: number): TurnUsage => ({ inputTokens: n, outputTokens: n, cacheReadTokens: 0, cacheWriteTokens: 0 })
 
 export type Step = LeadStreamEvent[] | ((request: LeadRequest) => AsyncGenerator<LeadStreamEvent>)
@@ -47,7 +47,7 @@ export function claimed(overrides: Partial<ClaimedTurn['conversation']> = {}): C
     trigger: 'MESSAGE',
     conversation: {
       id: 'conv-1', home: 'PERSON', projectId: null, taskId: null, openedById: 'u1', agentId: 'agent-1',
-      talkingModel: 'claude-sonnet-5', talkingProvider: 'anthropic', accessOwnerType: 'user', ...overrides,
+      talkingModel: 'claude-sonnet-5', talkingProviderId: 'p-ant', ...overrides,
     },
     actingUserId: 'u1',
     inputIds: ['m1'],

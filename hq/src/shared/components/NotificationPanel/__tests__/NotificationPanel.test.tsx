@@ -39,7 +39,7 @@ const approval = {
 }
 const credential = {
   id: 'n2', type: 'credential_health', title: 'Claude sign-in expired on HQ', body: 'Runs on this site stop until it is renewed',
-  actionLabel: 'View execution sites', actionUrl: '/org/settings/where-work-runs', status: 'read', createdAt: at, task: null,
+  actionLabel: 'View execution sites', actionUrl: '/admin/where-work-runs', status: 'read', createdAt: at, task: null,
   detail: 'Runs on this site stop until it is renewed', command: null,
 }
 const handled = {
@@ -138,7 +138,7 @@ describe('the Notifications panel @SC-524 @SC-525 @SC-526 @SC-529', () => {
   it("goes to a notice's page with its one action", () => {
     show([credential])
     fireEvent.click(screen.getByRole('button', { name: 'Renew' }))
-    expect(screen.getByTestId('where').textContent).toBe('/org/settings/where-work-runs')
+    expect(screen.getByTestId('where').textContent).toBe('/admin/where-work-runs')
   })
 
   it('dismisses an earlier item with its ✕, and offers no ✕ on one that needs the person', () => {

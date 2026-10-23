@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Plus } from 'lucide-react'
 import { useQuery, getOrgPeople } from 'wasp/client/operations'
 import { Button, SearchField } from '@agenthix/ui/primitives'
@@ -23,7 +24,7 @@ function OrgPeople() {
 
   return (
     <AppLayout
-      breadcrumbs={[{ label: 'Organisation', href: '/org' }, { label: 'People' }]}
+      breadcrumbs={[ADMIN_CRUMB, { label: 'People' }]}
       title="People"
       subtitle="Everyone in the organisation: admins invite them and set their roles"
       action={<Button leadingIcon={<Plus size={14} />} onClick={() => setInviting(true)}>Invite</Button>}

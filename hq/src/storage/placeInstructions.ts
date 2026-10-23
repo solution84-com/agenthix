@@ -86,9 +86,9 @@ export async function readPlaceInstructions(owner: Owner, agentId: string | null
 export async function placeOwner(projectId: string | null | undefined, userId: string): Promise<PlaceInstructionsView['place']> {
   if (!projectId) return { kind: 'personal', ownerType: 'user', ownerId: userId }
   await requireProjectVisible(projectId, userId)
-  const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId }, select: { personalOwnerId: true } })
-  // Visible means it is the caller's own, for a personal project.
-  if (project.personalOwnerId) return { kind: 'personal', ownerType: 'user', ownerId: project.personalOwnerId }
+  const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId }, select: { personalOwnerId: true, personalSpace: true } })
+  // Visible means it is the caller's own; Your space is their own storage, any other personal project has its own.
+  if (project.personalOwnerId && project.personalSpace) return { kind: 'personal', ownerType: 'user', ownerId: project.personalOwnerId }
   return { kind: 'project', ownerType: 'project', ownerId: projectId }
 }
 

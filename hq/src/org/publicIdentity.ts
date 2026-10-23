@@ -12,11 +12,12 @@ import { HttpError, prisma } from 'wasp/server'
 import type { PublicOrgIdentityApi } from 'wasp/server/api'
 import type { SignInShows } from '@prisma/client'
 import {
-  CLIENT_PROTOCOL_VERSION, type HqVersions, type OrgCard, type PublicIdentityAnswer, type PublicOrgIdentity,
+  CLIENT_PROTOCOL_VERSION, type HqClaimState, type HqVersions, type OrgCard, type PublicIdentityAnswer, type PublicOrgIdentity,
   type SignInShowsChoice,
 } from '@agenthix/core'
 import { BUILD_INFO } from '../server/buildInfo'
 import { requireRole } from '../server/identity/requireRole'
+import { claimState } from '../setup/setupState'
 import { DEFAULT_ORG_NAME } from './ensureDefaultOrg'
 
 /** Declared in core's client protocol, since the mobile app reads them before sign-in. */
@@ -41,6 +42,12 @@ export function publicOrgIdentity(org: OrgRow | null): PublicOrgIdentity {
   return { shows, ...card }
 }
 
+const HIDDEN: PublicOrgIdentity = { shows: 'nothing', name: null, handle: null, vision: null, avatarUrl: null, coverUrl: null }
+
+/** Until setup is finished no organisation is shown to a visitor: there is none yet to show (setup spec, U1 and U4). */
+export const publicIdentityWhile = (claim: HqClaimState, identity: PublicOrgIdentity): PublicOrgIdentity =>
+  claim === 'set_up' ? identity : HIDDEN
+
 const ORG_FIELDS = { name: true, handle: true, vision: true, avatarUrl: true, coverUrl: true, signInShows: true } as const
 
 export async function readOrgCard(): Promise<OrgCard> {
@@ -57,7 +64,8 @@ export const hqVersions = (): HqVersions => ({ release: BUILD_INFO.version, clie
 /** GET /api/org/public-identity — no session needed. An app reads hq's versions here before anyone signs in. */
 export const publicOrgIdentityHandler: PublicOrgIdentityApi = async (_req, res) => {
   res.set('Cache-Control', 'no-store')
-  const answer: PublicIdentityAnswer = { ...(await readPublicOrgIdentity()), ...hqVersions() }
+  const claim = await claimState()
+  const answer: PublicIdentityAnswer = { ...publicIdentityWhile(claim, await readPublicOrgIdentity()), ...hqVersions(), claimState: claim }
   return res.json(answer)
 }
 

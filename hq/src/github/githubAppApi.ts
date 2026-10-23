@@ -22,8 +22,8 @@ function plain(res: Response, status: number, message: string): void {
   res.status(status).type('text/plain').send(message)
 }
 
-const START_AGAIN = 'Start again from Organisation › Infrastructure › GitHub App in hq.'
-const ALREADY_CONNECTED = 'A GitHub App is already connected. Disconnect it under Organisation › Infrastructure › GitHub App, then connect again.'
+const START_AGAIN = 'Start again from Manage organisation › Infrastructure › GitHub App in hq.'
+const ALREADY_CONNECTED = 'A GitHub App is already connected. Disconnect it under Manage organisation › Infrastructure › GitHub App, then connect again.'
 
 export const appManifestNewHandler: GithubAppManifestNewApi = async (req, res) => {
   const state = typeof req.query.state === 'string' ? req.query.state : ''

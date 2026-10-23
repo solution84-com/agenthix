@@ -6,6 +6,8 @@ export interface PlaceRow {
   /** Stable across renders: `space`, or the project's id. */
   id: string
   name: string
+  /** A personal project: marked *Only you* in the list. */
+  onlyYou?: boolean
 }
 
 export interface PlaceGroup {
@@ -13,7 +15,7 @@ export interface PlaceGroup {
   rows: PlaceRow[]
 }
 
-export interface ProjectRow { id: string; key: string; name: string; isMember: boolean; personalOwnerId: string | null }
+export interface ProjectRow { id: string; key: string; name: string; isMember: boolean; personalOwnerId: string | null; personalSpace?: boolean }
 export interface PinRow { kind: string; itemId: string }
 
 export const SPACE_ROW: PlaceRow = { ref: { kind: 'space' }, id: 'space', name: 'Your space' }
@@ -23,11 +25,11 @@ export const PLACE_EXPLANATION = {
   project: "A project. Works in its files, with its agents. Others in it can see it's running, not what's said.",
 } as const
 
-/** The places a conversation can start in: the projects the person is a member of, apart from personal ones. */
+/** The places a conversation can start in: the projects the person is a member of, their personal projects among them; their space is the fixed entry. */
 export function memberProjects(projects: ProjectRow[]): PlaceRow[] {
   return projects
-    .filter((p) => p.isMember && !p.personalOwnerId)
-    .map((p) => ({ ref: { kind: 'project', key: p.key }, id: p.id, name: p.name }))
+    .filter((p) => p.isMember && !p.personalSpace)
+    .map((p) => ({ ref: { kind: 'project', key: p.key }, id: p.id, name: p.name, ...(p.personalOwnerId ? { onlyYou: true } : {}) }))
 }
 
 /**

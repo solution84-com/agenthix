@@ -24,7 +24,9 @@ model User {
   offerDismissals  OfferDismissal[]
   memoryRecords    MemoryItem[]
   storagePlacement UserStoragePlacement?
-  personalProject  Project?             @relation("PersonalProject")
+  personalProjects Project[]            @relation("PersonalProject")
+  // A person's own Claude subscription, as a provider owned by them (models from one place, part 4).
+  ownAiProviders   AiProvider[]         @relation("AiProviderOwner")
   connections      PersonConnection[]
   pins             Pin[]
   leadOf           Project[]            @relation("ProjectLead")
@@ -281,8 +283,6 @@ model Agent {
   name         String
   handle       String         @unique
   role         String?
-  defaultModel String         @default("claude-sonnet-4-6")
-  runtime      String         @default("claude-sdk") // "claude-sdk" | "opencode"
   isKernel     Boolean        @default(false)
   projectAssignments ProjectAgent[]
   sessions     AgentSession[]
@@ -296,9 +296,8 @@ model Agent {
   /// When a person is asked about a tool set to Ask: "deferred" (carry on, ask at the end), "immediate" (stop and
   /// ask at once) or "bypassed" (every tool runs, Never included; no one is asked).
   approval            String @default("deferred")
-  voiceEnabled   Boolean  @default(false)
-  voiceId        String?  // Inworld voice ID e.g. "Ashley"
-  voiceTtsModel  String?  // "inworld-tts-1.5-max" | "inworld-tts-1.5-mini"
+  // Its own models and voice (models from one place, part 4); none chosen while there is no row.
+  modelChoices AgentModelChoices?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   overrides    AgentOverride[]
@@ -431,19 +430,13 @@ model Conversation {
   status        ConversationStatus   @default(ACTIVE)
   closedReason  ConversationClosedReason?
   title         String?
-  /// The talking model and the access it runs on, fixed at the first turn and
-  /// kept for the conversation's life; changed only by the person's say when
-  /// the access stops being usable (model access spec), and the switch recorded
-  /// as a NOTICE message. Null until the first turn resolves them.
+  /// The model the conversation talks on, a model via a provider (models from one place, part 4): fixed at the first
+  /// turn and kept for the conversation's life; changed only by the person, by picking another or by taking the offer
+  /// made when its provider stops working, each written as a NOTICE message. Null until the first turn resolves it.
+  /// `talkingProviderId` is an AiProvider's id, not a foreign key: a provider removed leaves it naming nothing, and
+  /// the conversation is offered another.
   talkingModel  String?
-  talkingProvider ModelCredentialProvider?
-  /// Whose access pays: 'org' | 'project' | 'user', and which kind of access.
-  accessOwnerType ModelCredentialOwnerType?
-  accessKind    ConversationAccessKind?
-  /// The keys a provider refused while this conversation talked on them, as
-  /// [{ owner, provider }]: never used by it again, neither by a turn falling
-  /// back nor in what its model picker offers (model access spec).
-  refusedAccess Json                 @default("[]")
+  talkingProviderId String?
   /// The order counter for messages: each new message takes lastSeq + 1.
   lastSeq       Int                  @default(0)
   lastMessageAt DateTime             @default(now())
@@ -471,12 +464,6 @@ model Conversation {
 
   @@index([openedById, home, status, lastMessageAt])
   @@index([projectId, openedById, status])
-}
-
-enum ConversationAccessKind {
-  API_KEY
-  /// Sign in with ChatGPT — only once the vendor issues the client id.
-  CHATGPT_PLAN
 }
 
 enum ConversationRole {
@@ -586,7 +573,8 @@ model InferenceTurn {
   /// The agent that spoke in it.
   agentId        String?
   model          String?
-  provider       ModelCredentialProvider?
+  /// The AiProvider the turn talked through; not a foreign key.
+  providerId     String?
   inputTokens      Int                @default(0)
   outputTokens     Int                @default(0)
   cacheReadTokens  Int                @default(0)
@@ -736,26 +724,6 @@ model ConversationSegment {
 /// The models a boundary prefers (model access spec, Model selection): set by a
 /// person for their own space ('user'), by a project ('project'), and by the
 /// organisation ('org', ownerId 'org') as the default for both.
-model ModelPolicy {
-  id          String                   @id @default(uuid())
-  ownerType   ModelCredentialOwnerType
-  ownerId     String
-  /// Each a model id as the runtimes name it (`<provider>/<model>` for a
-  /// provider other than Anthropic); null = the layer below's.
-  talking     String?
-  lightWork   String?
-  heavyWork   String?
-  /// string[] of model ids that may be picked at all; null = any.
-  allowed     Json?
-  /// The most expensive model that may be picked; null = no ceiling.
-  ceiling     String?
-  updatedById String?
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
-
-  @@unique([ownerType, ownerId])
-}
-
 // ──────────────────────────────────────────────
 // Module 6: Projects & Task Management (ADR-0029)
 // ──────────────────────────────────────────────
@@ -1127,14 +1095,22 @@ model Project {
   runTurnLimit        Int?
   /// Archive its finished tasks after this many days; 0 = never, null = the org's default.
   archiveFinishedAfterDays Int?
-  /// Set only on a person's personal project, which it marks as one (agents
-  /// own schedule spec §4): one per person, private to them, its one member,
-  /// and its runs act as that person in their own storage. Never changes once
-  /// set. Restrict: removing the person removes this project first
+  /// Set only on a person's personal projects, which it marks as such: private to them, with them as its one
+  /// member, and its runs act as that person. A person has several (models from one place, part 4); the one that
+  /// is `personalSpace` works in their own storage, every other in its own. Never changes once set. Restrict: removing the person removes this project first
   /// (settings/actions.ts deleteUser), so it can never outlive them as an
   /// ordinary project somebody else could be added to.
-  personalOwnerId String?        @unique
+  personalOwnerId String?
   personalOwner   User?          @relation("PersonalProject", fields: [personalOwnerId], references: [id], onDelete: Restrict)
+  /// Marks the person's space, the one personal project made with the account and never deleted (models from one
+  /// place, part 4). A person may own several personal projects; exactly one is their space, by the partial unique
+  /// index `Project_personalSpace_owner_key` the migration adds by hand:
+  ///   CREATE UNIQUE INDEX "Project_personalSpace_owner_key" ON "Project"("personalOwnerId") WHERE "personalSpace";
+  personalSpace   Boolean        @default(false)
+  /// The billing profile the project's AI cost belongs to (part 5). Required once setup makes the default
+  /// profile; nullable until then. Restrict: a profile is archived, never deleted.
+  billingProfileId String?
+  billingProfile   BillingProfile? @relation(fields: [billingProfileId], references: [id], onDelete: Restrict)
   /// The person who leads the project, shown in its facts. A label only: it
   /// carries no rights of its own; project roles decide what anyone may do.
   leadUserId      String?
@@ -1151,6 +1127,8 @@ model Project {
   milestones       Milestone[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+
+  @@index([personalOwnerId])
 }
 
 /// Where a library item came from (every screen reviewed spec §3, Library):
@@ -1342,6 +1320,9 @@ model Task {
   /// relation, so removing the person from the org leaves the id behind and
   /// the task blocked until a project admin assigns someone else.
   onBehalfOfUserId  String
+  /// The model its runs name (`<providerId>/<model>`), chosen on the task; null follows the assigned agent's default
+  /// worker model, else the organisation's. Checked again when a run starts.
+  modelChoice       String?
   /// Who last queued it: a person, or an agent during a run (its session — the
   /// verified capability names the session, not the run). Written on every path
   /// that sets the task QUEUED. At most one of queuedByUserId and queuedByAgentId
@@ -1468,15 +1449,30 @@ model Org {
   setupCompletedAt DateTime?
   /// How much of the organisation the sign-in page shows to someone not signed in.
   signInShows      SignInShows @default(COVER)
-  /// Memory recalled by meaning (memory and knowledge spec): the one embedding model every item is embedded with —
-  /// 'local' for the model bundled with hq, or '<provider>/<model>' — and, while a switch re-embeds every item in the
-  /// background, the model being moved to. The probe's two bars; null for the model's calibration.
   /// Conversations idle this many days are archived (on-screen spec, Archive); a person may keep one out.
   conversationArchiveAfterDays Int @default(90)
-  memoryEmbeddingModel String  @default("local")
-  memoryEmbeddingNext  String?
+  /// Memory recalled by meaning (memory and knowledge spec): the probe's two bars; null for the model's calibration.
   memoryCertainBar     Float?
   memoryProbableBar    Float?
+  /// The IANA time zone the usage report cuts its months in (models from one place, part 5); set during setup.
+  timeZone             String  @default("UTC")
+  /// The organisation's defaults (part 4), each a model via a provider, set by organisation admins: the default
+  /// conversation model, the default worker model, and the default speech to text and text to speech (with the
+  /// voice). An agent may override each. Null until chosen; a provider removed leaves them null, and the resolver
+  /// falls to the next allowed.
+  defaultConversationProviderId String?
+  defaultConversationProvider   AiProvider? @relation("OrgConversationModel", fields: [defaultConversationProviderId], references: [id], onDelete: SetNull)
+  defaultConversationModel      String?
+  defaultWorkerProviderId       String?
+  defaultWorkerProvider         AiProvider? @relation("OrgWorkerModel", fields: [defaultWorkerProviderId], references: [id], onDelete: SetNull)
+  defaultWorkerModel            String?
+  defaultSttProviderId          String?
+  defaultSttProvider            AiProvider? @relation("OrgStt", fields: [defaultSttProviderId], references: [id], onDelete: SetNull)
+  defaultSttModel               String?
+  defaultTtsProviderId          String?
+  defaultTtsProvider            AiProvider? @relation("OrgTts", fields: [defaultTtsProviderId], references: [id], onDelete: SetNull)
+  defaultTtsModel               String?
+  defaultTtsVoice               String?
   skills    Skill[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1854,7 +1850,6 @@ model AgentOverride {
   boundaryId   String
   agentId      String
   agent        Agent              @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  model        String?
   /// The same shapes as the agent's own: ToolPermission[] and bash pattern permissions. Only stricter than the
   /// organisation's takes effect; for each tool, pattern and approval the strictest level wins.
   allowedTools        Json?
@@ -1964,42 +1959,11 @@ model MemoryOutcome {
 /// belonging to a boundary — the org, a project or a person — never both in
 /// one row. The value is ENCRYPTED at rest
 /// (secretCrypto), like the GitHub App private key beside it.
-model ModelCredential {
-  id              String              @id @default(uuid())
-  kind            ModelCredentialKind
-  /// Whose credential it is. Existing rows are Anthropic's. A subscription is
-  /// always Anthropic's.
-  provider        ModelCredentialProvider @default(anthropic)
-  /// The endpoint of an openai_compatible provider; null for every other.
-  baseUrl         String?
-  /// 'org' for the org's own subscription (ownerId 'org'), 'project' for a
-  /// project's, 'user' for a person's. The org's API key is not here — it stays
-  /// a Provider row.
-  ownerType       ModelCredentialOwnerType
-  ownerId         String
-  /// Encrypted: an API key, or the Claude Code OAuth credentials document.
-  secret          String
-  /// From claudeAiOauth.expiresAt, kept in the clear so the settings page and
-  /// the refresh path can reason about it without decrypting.
-  expiresAt       DateTime?
-  /// When this person accepted the provider's terms for their own
-  /// subscription. Null for an API key; required before a subscription is used.
-  termsAcceptedAt DateTime?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  grants          SubscriptionGrant[]
-
-  @@unique([ownerType, ownerId, provider, kind])
-}
-
-/// One hand-over of a stored subscription login to a run on a site. A site may
-/// report a token the harness refreshed only against a grant hq made to it,
-/// and the report updates the login only while it is still the sign-in that was
-/// handed over (see hq/src/sites/subscriptionGrants.ts).
 model SubscriptionGrant {
   id           String          @id @default(uuid())
-  credentialId String
-  credential   ModelCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  /// The person's own Claude subscription handed over: an AiProvider owned by them.
+  providerId   String
+  provider     AiProvider      @relation(fields: [providerId], references: [id], onDelete: Cascade)
   /// The login's termsAcceptedAt when it was handed over. Set at every sign-in
   /// and never by a refresh, so it tells one sign-in from the next.
   signedInAt   DateTime
@@ -2013,28 +1977,8 @@ model SubscriptionGrant {
   /// After this, a report against the grant is refused.
   expiresAt    DateTime
 
-  @@index([credentialId])
+  @@index([providerId])
   @@index([expiresAt])
-}
-
-/// The values are core's CREDENTIAL_PROVIDERS, spelled the same.
-enum ModelCredentialProvider {
-  openrouter
-  openai
-  google
-  anthropic
-  openai_compatible
-}
-
-enum ModelCredentialKind {
-  API_KEY
-  SUBSCRIPTION
-}
-
-enum ModelCredentialOwnerType {
-  org
-  project
-  user
 }
 
 // ──────────────────────────────────────────────
@@ -2122,6 +2066,8 @@ model Routine {
   nextRoundAt           DateTime?
   /// The person every round is done on behalf of (adr-0089).
   onBehalfOfUserId      String
+  /// The model each round's run names (`<providerId>/<model>`), copied onto the round; null follows the default.
+  modelChoice           String?
   /// Who set it up: a person, or an agent in a run (its session) when a person asked.
   createdByUserId       String?
   createdByAgentId      String?
@@ -2248,4 +2194,369 @@ model FleetActivity {
   createdAt DateTime @default(now())
 
   @@index([at])
+}
+
+// ──────────────────────────────────────────────
+// Models from one place: providers, model lists, billing profiles and the ledger.
+// The values of every enum below are spelled as @agenthix/core spells them (providers/, billing/), so nothing maps
+// between the two. A partial index Prisma cannot express is named with its SQL, for the migration to add by hand.
+// ──────────────────────────────────────────────
+
+/// core's AI_PROVIDER_VENDORS. `cloud` is Agenthix Cloud, reached through hq's connection to it with no key.
+enum AiProviderVendor {
+  anthropic
+  openai
+  google
+  openrouter
+  openai_compatible
+  assemblyai
+  inworld
+  cloud
+}
+
+/// core's AI_PROVIDER_CREDENTIAL_KINDS.
+enum AiProviderCredentialKind {
+  api_key
+  subscription
+  none
+}
+
+/// core's AI_PROVIDER_STATES.
+enum AiProviderState {
+  works
+  key_refused
+  out_of_credit
+  unreachable
+  not_available
+  disconnected
+}
+
+/// One service the organisation reaches AI through and is billed by (part 1). Its types (LLM, STT, TTS) follow from
+/// its vendor (core's AI_PROVIDER_VENDOR_INFO). Written only by src/providers/write.ts, its state moved only by
+/// src/providers/health.ts; no read returns `secret`. The organisation holds at most one of each vendor, by the
+/// partial unique index `AiProvider_organisation_vendor_key`; a person at most one of each (their Claude
+/// subscription), by `AiProvider_person_vendor_key`. The migration adds both by hand:
+///   CREATE UNIQUE INDEX "AiProvider_organisation_vendor_key" ON "AiProvider"("vendor") WHERE "ownerUserId" IS NULL;
+///   CREATE UNIQUE INDEX "AiProvider_person_vendor_key" ON "AiProvider"("ownerUserId", "vendor") WHERE "ownerUserId" IS NOT NULL;
+model AiProvider {
+  id              String                   @id @default(uuid())
+  name            String
+  vendor          AiProviderVendor
+  credentialKind  AiProviderCredentialKind
+  /// For `openai_compatible` only: the endpoint.
+  baseUrl         String?
+  /// ENCRYPTED under SECRETS_MASTER_KEY (secretCrypto): an API key, or the Claude Code OAuth credentials document of
+  /// a person's subscription. Null for Agenthix Cloud.
+  secret          String?
+  /// The key's last four characters, kept in the clear for reads. Null when there is no key.
+  keyHint         String?
+  /// Null: the organisation's. Set: one person's own Claude subscription, for their own place only.
+  ownerUserId     String?
+  ownerUser       User?                    @relation("AiProviderOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  /// A subscription's: from claudeAiOauth.expiresAt, and when the person accepted the provider's terms.
+  expiresAt       DateTime?
+  termsAcceptedAt DateTime?
+  state           AiProviderState          @default(works)
+  stateSince      DateTime                 @default(now())
+  /// The vendor's own message when not working, trimmed, with anything like a key removed.
+  stateDetail     String?
+  lastCheckedAt   DateTime?
+  lastWorkedAt    DateTime?
+  /// Failures in a row and when the last was, for `unreachable` (three, at least a minute apart).
+  failuresInRow   Int                      @default(0)
+  lastFailedAt    DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  orgConversationDefaults   Org[]   @relation("OrgConversationModel")
+  orgWorkerDefaults         Org[]   @relation("OrgWorkerModel")
+  orgSttDefaults            Org[]   @relation("OrgStt")
+  orgTtsDefaults            Org[]   @relation("OrgTts")
+  agentConversationChoices  AgentModelChoices[] @relation("AgentConversationModel")
+  agentWorkerChoices        AgentModelChoices[] @relation("AgentWorkerModel")
+  agentSttChoices           AgentModelChoices[] @relation("AgentStt")
+  agentTtsChoices           AgentModelChoices[] @relation("AgentTts")
+  grants                    SubscriptionGrant[]
+
+  @@index([ownerUserId])
+}
+
+/// An agent's own choices (part 4), each a model via a provider, overriding the organisation's defaults: its default
+/// conversation model, its default worker model, and its speech to text and text to speech (with the voice it speaks
+/// in). A null pair is the organisation's. A provider removed leaves its pair's provider null, and the resolver falls
+/// to the next layer. Removed with the agent.
+model AgentModelChoices {
+  agentId                String      @id
+  agent                  Agent       @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  conversationProviderId String?
+  conversationProvider   AiProvider? @relation("AgentConversationModel", fields: [conversationProviderId], references: [id], onDelete: SetNull)
+  conversationModel      String?
+  workerProviderId       String?
+  workerProvider         AiProvider? @relation("AgentWorkerModel", fields: [workerProviderId], references: [id], onDelete: SetNull)
+  workerModel            String?
+  sttProviderId          String?
+  sttProvider            AiProvider? @relation("AgentStt", fields: [sttProviderId], references: [id], onDelete: SetNull)
+  sttModel               String?
+  ttsProviderId          String?
+  ttsProvider            AiProvider? @relation("AgentTts", fields: [ttsProviderId], references: [id], onDelete: SetNull)
+  ttsModel               String?
+  ttsVoice               String?
+  updatedAt              DateTime    @updatedAt
+}
+
+/// core's PROVIDER_RECORD_ACTIONS.
+enum AiProviderRecordAction {
+  added
+  key_replaced
+  renamed
+  removed
+  revoked
+  state_changed
+}
+
+/// core's ProviderRecordActorKind: the three writers, and hq itself for a change of state.
+enum AiProviderRecordActor {
+  organisation_admin
+  machine
+  cloud_controller
+  hq
+}
+
+/// Every provider write and change of state (part 1), shown on the provider in hq's admin area. Not foreign keys: a
+/// record outlives its provider and an erased person.
+model AiProviderRecord {
+  id           String                 @id @default(uuid())
+  providerId   String
+  /// The provider's name when the record was written.
+  providerName String
+  action       AiProviderRecordAction
+  actor        AiProviderRecordActor
+  byUserId     String?
+  /// What changed, in words: the new name, the state moved to.
+  detail       String?
+  at           DateTime               @default(now())
+
+  @@index([providerId, at])
+  @@index([at])
+}
+
+/// core's MODEL_LIST_OWNERS.
+enum ModelListOwner {
+  organisation
+  agent
+  project
+  person
+}
+
+/// core's MODEL_LIST_MODES: `every` model except its `never` entries, or `only_these` allowed.
+enum ModelListMode {
+  every
+  only_these
+}
+
+/// core's MODEL_LIST_EFFECTS.
+enum ModelListEffect {
+  allow
+  never
+}
+
+/// An allow and ban list (part 4), held by the organisation (`ownerId` the Org's id), an agent, a project or a person.
+/// Every list that applies narrows; a ban beats an allow. Not a foreign key: removing the owner removes its list in
+/// the code that removes the owner.
+model ModelList {
+  id          String         @id @default(uuid())
+  owner       ModelListOwner
+  ownerId     String
+  mode        ModelListMode  @default(every)
+  updatedById String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  entries     ModelListEntry[]
+
+  @@unique([owner, ownerId])
+}
+
+/// One entry: a model (`anthropic/claude-sonnet-5`) or a pattern with `*` for a maker or a family.
+model ModelListEntry {
+  id      String          @id @default(uuid())
+  listId  String
+  list    ModelList       @relation(fields: [listId], references: [id], onDelete: Cascade)
+  effect  ModelListEffect
+  pattern String
+
+  @@unique([listId, pattern])
+}
+
+/// What a place's AI cost belongs to (part 5). Archived, never deleted, and its id never reused. Exactly one is the
+/// default, and names are unique among those not archived, by partial unique indexes the migration adds by hand:
+///   CREATE UNIQUE INDEX "BillingProfile_default_key" ON "BillingProfile"("isDefault") WHERE "isDefault";
+///   CREATE UNIQUE INDEX "BillingProfile_name_active_key" ON "BillingProfile"("name") WHERE "archivedAt" IS NULL;
+model BillingProfile {
+  id          String    @id @default(uuid())
+  name        String
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  /// Not a foreign key: the profile outlives an erased person.
+  createdById String?
+  archivedAt  DateTime?
+  projects    Project[]
+  usage       UsageEntry[]
+}
+
+/// core's USAGE_ENTRY_KINDS.
+enum UsageEntryKind {
+  CALL
+  ACTUAL
+  CORRECTION
+}
+
+/// core's USAGE_PURPOSES.
+enum UsagePurpose {
+  conversation
+  worker
+  helper
+  title
+  summary
+  stt
+  tts
+  voice_sample
+}
+
+/// core's COST_BASES.
+enum CostBasis {
+  ACTUAL
+  ESTIMATED
+  INCLUDED
+  UNPRICED
+  AWAITING_ACTUAL
+}
+
+/// The ledger (part 5): one `CALL` row per model, speech-to-text or text-to-speech call, append-only. `ACTUAL` (Agenthix
+/// Cloud's figure) and `CORRECTION` rows point at their call through `refersTo`, the `CALL` row's id, and carry its
+/// call id. A call's cost is its latest row with an amount. The call id is unique among `CALL` rows, so a report that
+/// arrives twice counts once, by a partial unique index the migration adds by hand:
+///   CREATE UNIQUE INDEX "UsageEntry_call_callId_key" ON "UsageEntry"("callId") WHERE "kind" = 'CALL';
+/// Where it came from is kept as plain ids, none a foreign key that cascades, so deleting anything never deletes
+/// cost; an erased person's rows stay and read *Former member*.
+model UsageEntry {
+  id               String         @id @default(uuid())
+  /// When the call ended, UTC.
+  at               DateTime
+  /// When the row was written.
+  recordedAt       DateTime       @default(now())
+  kind             UsageEntryKind
+  callId           String
+  refersTo         String?
+  purpose          UsagePurpose
+  /// Not a foreign key: a provider removed keeps its rows. Its name as it was then.
+  providerId       String
+  providerName     String
+  model            String
+  inputTokens      Int            @default(0)
+  outputTokens     Int            @default(0)
+  cacheReadTokens  Int            @default(0)
+  cacheWriteTokens Int            @default(0)
+  audioMs          Int            @default(0)
+  characters       Int            @default(0)
+  /// Whole millionths of `currency` (ISO 4217). Null while awaiting Cloud's actual cost, and for a call that is
+  /// included or unpriced.
+  amountMicros     BigInt?
+  currency         String?
+  basis            CostBasis
+  /// `hq:<version>`, `cloud-catalogue:<version>` or `cloud-actual`; null when unpriced or included.
+  priceRef         String?
+  billingProfileId String
+  billingProfile   BillingProfile @relation(fields: [billingProfileId], references: [id], onDelete: Restrict)
+  projectId        String?
+  agentId          String?
+  userId           String?
+  conversationId   String?
+  runId            String?
+  turnId           String?
+
+  @@index([at])
+  @@index([billingProfileId, at])
+  @@index([projectId, at])
+  @@index([callId])
+  @@index([refersTo])
+}
+
+// Each call's cost (part 5, R1) is the view "UsageCallCost": the latest row with an amount for each `CALL` row — a
+// `CORRECTION` over an `ACTUAL`, an `ACTUAL` over the call itself — or the call with no amount when none has one.
+// Every report reads it. The migration creates it by hand from hq/src/billing/callCostView.sql; hq reads it with raw SQL.
+
+/// What an agent's run is costed to (part 5, U2 and U3), kept when hq dispatches it, so the relay's usage reports and
+/// a subscription run's own report are written to the run's place and billing profile. Plain ids, none a foreign key.
+model RunCosting {
+  runId            String   @id
+  siteId           String
+  sessionId        String
+  agentId          String
+  userId           String?
+  projectId        String?
+  conversationId   String?
+  billingProfileId String
+  /// The run's own provider and model, as the resolver gave them.
+  providerId       String?
+  model            String?
+  /// The run's own provider is a person's own Claude subscription: not relayed, its run written once, included.
+  subscription     Boolean  @default(false)
+  /// The session's token totals when the run was dispatched: a subscription run's usage is what it added.
+  baseInputTokens      Int @default(0)
+  baseOutputTokens     Int @default(0)
+  baseCacheReadTokens  Int @default(0)
+  baseCacheWriteTokens Int @default(0)
+  dispatchedAt     DateTime @default(now())
+
+  @@index([dispatchedAt])
+}
+
+/// A change of a project's billing profile by an organisation admin (part 5, B3): from the next call, recorded.
+model ProjectBillingChange {
+  id              String   @id @default(uuid())
+  projectId       String
+  fromProfileId   String?
+  toProfileId     String
+  /// Not a foreign key: the record outlives an erased person.
+  changedById     String?
+  changedAt       DateTime @default(now())
+
+  @@index([projectId, changedAt])
+}
+
+/// Where hq has read Agenthix Cloud's actual costs to (C6), kept with Cloud's organisation id rather than the
+/// connection, so reconnecting to the same Cloud organisation catches up from here.
+model CloudUsageCursor {
+  cloudOrganisationId String   @id
+  cursor              String?
+  updatedAt           DateTime @updatedAt
+}
+
+/// An agent's model call as an Execution Site's relay reported it (`POST /api/v1/usage/report`), kept once per call id
+/// until the ledger writes its `UsageEntry` (`ledgeredAt`). A report sent again is acknowledged and not kept twice.
+/// Not foreign keys: the run lives on the site, and a provider removed keeps its reports.
+model RelayUsageReport {
+  callId           String    @id
+  /// The site that reported it, as it authenticated.
+  siteId           String
+  runId            String
+  providerId       String
+  model            String
+  /// When the answer ended, as the site saw it.
+  at               DateTime
+  receivedAt       DateTime  @default(now())
+  /// False when the answer carried no usage the relay could read: the ledger writes it unpriced.
+  hasUsage         Boolean
+  inputTokens      Int       @default(0)
+  outputTokens     Int       @default(0)
+  cacheReadTokens  Int       @default(0)
+  cacheWriteTokens Int       @default(0)
+  /// The upstream HTTP status; 0 when no answer came.
+  upstreamStatus   Int
+  /// core's `UpstreamErrorKind`, when the call failed.
+  errorKind        String?
+  ledgeredAt       DateTime?
+
+  @@index([ledgeredAt, receivedAt])
+  @@index([runId])
 }

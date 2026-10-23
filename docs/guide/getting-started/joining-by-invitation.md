@@ -26,9 +26,8 @@ sent it for a new one. If it says **This invitation link doesn't work**, check y
 A few short steps follow:
 
 1. **You:** add a **Picture** if you like, and check your **Time zone**. Agenthix uses it for times and schedules.
-2. **Talk to agents** appears only if your organisation hasn't set up model access you can use. Add your own
-   **Claude subscription** to talk to agents in your **Chat**, or select **Skip for now** and ask an administrator.
-3. **Check everything before you start**, then select **Start working**.
+2. **Check everything before you start**, then select **Start working**. It lists what you are joining. The models
+   are provided by your organisation, whose admins choose the ones everyone uses, so there is nothing to add.
 
 You land in the first project you were invited to, or on **Home** if there was none.
 

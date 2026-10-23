@@ -16,7 +16,7 @@ import { NeedsAttentionSection } from '../NeedsAttentionSection'
 
 const item = (over: Record<string, unknown>) => ({
   key: 'n1', area: 'workplace', type: 'invitations_unanswered', title: '2 invitations unanswered', body: 'Sent a week ago', actionLabel: 'Resend',
-  actionUrl: '/org/people?show=invitations', notificationIds: ['n1'], dismissible: false, acknowledgeable: false, createdAt: new Date(), ...over,
+  actionUrl: '/admin/people?show=invitations', notificationIds: ['n1'], dismissible: false, acknowledgeable: false, createdAt: new Date(), ...over,
 })
 const show = () => render(<MemoryRouter><NeedsAttentionSection /></MemoryRouter>)
 
@@ -33,7 +33,7 @@ describe('Needs attention @SC-666', () => {
     ops.access = { canTalk: false, fix: 'org-access', isAdmin: true }
     show()
     expect(screen.getByText("Agents can't answer yet")).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Set up model access' }).getAttribute('href')).toBe('/org/settings/model-access')
+    expect(screen.getByRole('link', { name: 'Open Providers' }).getAttribute('href')).toBe('/admin/providers')
     expect(screen.getByText('Needs attention · 1')).toBeTruthy()
     expect(screen.queryByText('Nothing needs you.')).toBeNull()
   })
@@ -47,17 +47,17 @@ describe('Needs attention @SC-666', () => {
     ops.items = [item({})]
     show()
     expect(screen.getByText('2 invitations unanswered')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Resend' }).getAttribute('href')).toBe('/org/people?show=invitations')
+    expect(screen.getByRole('link', { name: 'Resend' }).getAttribute('href')).toBe('/admin/people?show=invitations')
     expect(screen.getByText('Needs attention · 1')).toBeTruthy()
   })
 
   it('gives Bypassed a Review link to the agents and an Acknowledge, and no Dismiss @SC-667', async () => {
     ops.items = [item({
-      key: 'b', type: 'agents_bypassed', title: '2 agents run with approval Bypassed', actionLabel: 'Review', actionUrl: '/org/agents?approval=bypassed',
+      key: 'b', type: 'agents_bypassed', title: '2 agents run with approval Bypassed', actionLabel: 'Review', actionUrl: '/admin/agents?approval=bypassed',
       acknowledgeable: true, dismissible: false,
     })]
     show()
-    expect(screen.getByRole('link', { name: 'Review' }).getAttribute('href')).toBe('/org/agents?approval=bypassed')
+    expect(screen.getByRole('link', { name: 'Review' }).getAttribute('href')).toBe('/admin/agents?approval=bypassed')
     expect(screen.queryByRole('button', { name: 'Dismiss' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Acknowledge' }))
     await waitFor(() => expect(ops.acknowledge).toHaveBeenCalled())

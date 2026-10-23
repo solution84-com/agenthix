@@ -20,7 +20,7 @@ type Refusal = { error: { type: string; message: string } }
 
 const at = (url: string) => new URL(url)
 
-describe('proxyDecision', () => {
+describe('proxyDecision @SC-1227', () => {
   it('reads HTTPS_PROXY for https and HTTP_PROXY for http, lower case first', () => {
     expect(proxyDecision(at('https://api.example.com/v1'), {}).kind).toBe('none')
     const secure = proxyDecision(at('https://api.example.com/v1'), { HTTPS_PROXY: 'http://a:1', https_proxy: 'http://b:2' })
@@ -162,7 +162,7 @@ const freshProxy = (base = proxyUrl) => `${base}/?test=${++sequence}`
 const post = (path: string) =>
   fetch(`${relayUrl}${path}`, { method: 'POST', headers: { 'x-agenthix-turn': token, 'content-type': 'application/json' }, body: '{"model":"m1"}' })
 
-describe('the relay behind a proxy', () => {
+describe('the relay behind a proxy @SC-1227', () => {
   it('reaches an https provider through a CONNECT tunnel, with the key, and keeps the key out of the proxy', async () => {
     env.HTTPS_PROXY = freshProxy()
     const res = await post('/anthropic/v1/messages')

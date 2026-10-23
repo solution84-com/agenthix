@@ -27,7 +27,7 @@ describe('InworldTtsAdapter @SC-129', () => {
       const result = await adapter.synthesize('Hello world', {
         apiKey: 'test-key',
         voiceId: 'Ashley',
-        model: 'inworld-tts-1.5-mini',
+        model: 'inworld-tts-2',
       })
 
       expect(fetchMock).toHaveBeenCalledWith(
@@ -41,7 +41,7 @@ describe('InworldTtsAdapter @SC-129', () => {
           body: JSON.stringify({
             text: 'Hello world',
             voice_id: 'Ashley',
-            model_id: 'inworld-tts-1.5-mini',
+            model_id: 'inworld-tts-2',
             audio_config: { audio_encoding: 'LINEAR16', sample_rate_hertz: 24000 },
           }),
         }),
@@ -58,7 +58,7 @@ describe('InworldTtsAdapter @SC-129', () => {
       const { InworldTtsAdapter } = await import('../inworldAdapter')
       const adapter = new InworldTtsAdapter()
       await expect(
-        adapter.synthesize('Hello', { apiKey: 'bad-key', voiceId: 'Ashley', model: 'inworld-tts-1.5-mini' }),
+        adapter.synthesize('Hello', { apiKey: 'bad-key', voiceId: 'Ashley', model: 'inworld-tts-2' }),
       ).rejects.toThrow('Inworld TTS failed: 401 Unauthorized')
     })
   })
@@ -87,7 +87,7 @@ describe('InworldTtsAdapter @SC-129', () => {
       const adapter = new InworldTtsAdapter()
       const results: Array<{ audio: Buffer; wordTiming?: any }> = []
       for await (const item of adapter.synthesizeStream('Hello.', {
-        apiKey: 'test-key', voiceId: 'Ashley', model: 'inworld-tts-1.5-mini',
+        apiKey: 'test-key', voiceId: 'Ashley', model: 'inworld-tts-2',
       })) {
         results.push(item)
       }
@@ -95,7 +95,7 @@ describe('InworldTtsAdapter @SC-129', () => {
       expect(mockStreamWithTimestamps).toHaveBeenCalledWith(expect.objectContaining({
         text: 'Hello.',
         voice: 'Ashley',
-        model: 'inworld-tts-1.5-mini',
+        model: 'inworld-tts-2',
         encoding: 'PCM',
         sampleRate: 24000,
         timestampType: 'WORD',
@@ -124,7 +124,7 @@ describe('InworldTtsAdapter @SC-129', () => {
       const adapter = new InworldTtsAdapter()
       const results: any[] = []
       for await (const item of adapter.synthesizeStream('Hi.', {
-        apiKey: 'key', voiceId: 'Ashley', model: 'inworld-tts-1.5-mini',
+        apiKey: 'key', voiceId: 'Ashley', model: 'inworld-tts-2',
       }, ac.signal)) {
         results.push(item)
       }
@@ -132,28 +132,55 @@ describe('InworldTtsAdapter @SC-129', () => {
     })
   })
 
-  describe('listVoices', () => {
-    it('GETs voices and maps API fields to Voice shape', async () => {
-      const voicesPayload = {
+  describe('listVoices @SC-1204', () => {
+    it('pages through the Voice API and keeps the fields the filters use', async () => {
+      const first = {
         voices: [{
-          voiceId: 'Ashley', displayName: 'Ashley', description: 'Friendly voice',
-          languages: ['en-US'], tags: ['female'], isCustom: false,
+          voiceId: 'Clive', displayName: 'Clive', description: 'British male', languageCode: 'en-GB', gender: 'male',
+          ageGroup: 'middle_aged', categories: ['companions'], tags: ['calm'], source: 'SYSTEM',
         }],
+        nextPageToken: 'page-2',
       }
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => voicesPayload })
+      const second = {
+        voices: [
+          { voiceId: 'ws__mine', displayName: 'Mine', languageCode: 'es-MX', gender: '', ageGroup: '', categories: [], tags: [], source: 'IVC' },
+          { voiceId: 'Clive', displayName: 'Clive', source: 'SYSTEM' },
+        ],
+        nextPageToken: '',
+      }
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: async () => first })
+        .mockResolvedValueOnce({ ok: true, json: async () => second })
       vi.stubGlobal('fetch', fetchMock)
 
       const { InworldTtsAdapter } = await import('../inworldAdapter')
-      const adapter = new InworldTtsAdapter()
-      const voices = await adapter.listVoices('test-key')
+      const voices = await new InworldTtsAdapter().listVoices('test-key')
 
-      expect(fetchMock).toHaveBeenCalledWith(INWORLD_VOICES_URL, expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'Basic test-key' }),
-      }))
-      expect(voices).toEqual([{
-        voiceId: 'Ashley', displayName: 'Ashley', description: 'Friendly voice',
-        languages: ['en-US'], tags: ['female'], isCustom: false,
-      }])
+      expect(INWORLD_VOICES_URL).toBe('https://api.inworld.ai/voices/v1/voices')
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(fetchMock.mock.calls[0][0]).toBe(`${INWORLD_VOICES_URL}?pageSize=500`)
+      expect(fetchMock.mock.calls[1][0]).toBe(`${INWORLD_VOICES_URL}?pageSize=500&pageToken=page-2`)
+      expect(fetchMock.mock.calls[1][1]).toMatchObject({ headers: { Authorization: 'Basic test-key' } })
+      expect(voices).toEqual([
+        {
+          voiceId: 'Clive', displayName: 'Clive', description: '', languageCode: '', accent: '', gender: '', ageGroup: '',
+          categories: [], tags: [], source: 'SYSTEM', isCustom: false,
+        },
+        {
+          voiceId: 'ws__mine', displayName: 'Mine', description: '', languageCode: 'es-MX', accent: 'Mexican', gender: '', ageGroup: '',
+          categories: [], tags: [], source: 'IVC', isCustom: true,
+        },
+      ])
+    })
+
+    it('reads the accent from the region of the language code', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ voices: [
+        { voiceId: 'a', languageCode: 'en-GB', source: 'SYSTEM' }, { voiceId: 'b', languageCode: 'en-XX', source: 'SYSTEM' }, { voiceId: 'c', languageCode: 'vi', source: 'SYSTEM' },
+      ] }) })
+      vi.stubGlobal('fetch', fetchMock)
+      const { InworldTtsAdapter } = await import('../inworldAdapter')
+      const voices = await new InworldTtsAdapter().listVoices('k')
+      expect(voices.map(v => v.accent)).toEqual(['British', 'XX', ''])
     })
 
     it('throws when listVoices request fails', async () => {

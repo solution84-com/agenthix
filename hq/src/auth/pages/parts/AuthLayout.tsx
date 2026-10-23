@@ -60,7 +60,8 @@ export function PlainSide({ title, children, mark }: { title: string; children?:
  * The shared shape of every way in, in one column: the organisation across the
  * top, the form centred on white under it, "Powered by Agenthix" at the foot.
  * With nothing to show, the form stands alone. A `side` (setup's own panel)
- * keeps the two-column arrangement: the form on the left, the panel on the right (below the form on a phone).
+ * keeps the two-column arrangement: the form on the left, scrolling, and the panel on the right, held in view (below
+ * the form on a phone).
  */
 export function AuthLayout({ identity, side, aside, contained, setup, children }: { identity?: ShownIdentity | null; side?: ReactNode; /** Onboarding: the organisation's cover across the top, then the form with something useful beside it (below it on a phone). */ aside?: ReactNode; /** Setup of a fresh HQ: our mark and name head the form and there is no "Powered by" footer, as the HQ is not yet the organisation's. */ setup?: boolean; /** Drawn inside a frame (setup's preview), not filling the screen. */ contained?: boolean; children: ReactNode }) {
   const hero = heroOf(identity ?? null)
@@ -92,7 +93,8 @@ export function AuthLayout({ identity, side, aside, contained, setup, children }
     return (
       <div className="min-h-screen bg-surface-1 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         <main className="flex min-h-[60vh] flex-col justify-center px-5 py-9 lg:min-h-screen lg:px-11">{form}</main>
-        {side}
+        {/* The panel stays put, centred in the window, while a long form scrolls beside it. */}
+        <div className="lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-hidden">{side}</div>
       </div>
     )
   }

@@ -3,6 +3,7 @@ import { createTask, getBoards } from 'wasp/client/operations'
 import { CreateTaskModal as UICreateTaskModal } from '@agenthix/ui/tasks'
 import type { CreateTaskModalSlotProps } from '@agenthix/ui/board'
 import { useProjectAgents } from '../hooks/useProjectAgents'
+import { TaskModelField } from '../../models-settings/components/TaskModelField'
 
 // Slot wrapper: fetches the project's agents + boards, delegates to @agenthix/ui's presenter.
 export function CreateTaskModal({
@@ -33,6 +34,7 @@ export function CreateTaskModal({
         await createTaskFn({ ...input, column: stage ?? undefined })
       }}
       onCreated={onCreated}
+      modelField={({ agentId, value, onChange }) => <TaskModelField projectId={projectId} agentId={agentId} value={value} onChange={onChange} />}
     />
   )
 }

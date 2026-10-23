@@ -39,7 +39,7 @@ jobs:
           (cd hq && npx playwright install --with-deps chromium)
 
       - name: The stand-in model's own tests
-        run: node --test scripts/install-test/__tests__/stand-in-model.test.mjs
+        run: node --test scripts/install-test/__tests__/
 
       - name: Build, install and walk through
         env:

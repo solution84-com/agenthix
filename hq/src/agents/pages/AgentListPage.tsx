@@ -10,7 +10,7 @@ import { EmptyState } from '../../shared/components/ui/EmptyState'
 import { unansweredSitesCopy } from '../../shared/siteSilence'
 import { CHAT_PATH } from '../../chat/chatComposer'
 import { newConversationPath } from '../../conversations/threadPaths'
-import { modelsForRuntime } from '../models'
+import { useAgentModelLine } from '../useAgentModelLine'
 import { agentCardNow, agentCardFacts } from './agentCardView'
 import { AgentCover } from './AgentCover'
 
@@ -27,6 +27,7 @@ export function AgentListPage() {
   const [search, setSearch] = useState('')
   const { data, isLoading, error } = useQuery(getOrgAgents, { filter })
   const at = new Date()
+  const modelLine = useAgentModelLine()
   const navigate = useNavigate()
   // The Agents screen is no place, so a new conversation starts in the person's Chat.
   const newConversation = (agentId: string) => navigate(newConversationPath(CHAT_PATH, agentId))
@@ -43,7 +44,7 @@ export function AgentListPage() {
       title="Agents"
       subtitle={count === undefined ? undefined : `${count} in the organisation`}
       action={data?.canManage ? (
-        <Link to="/org/agents" className="text-body font-medium text-accent hover:text-accent-hover">Manage agents ›</Link>
+        <Link to="/admin/agents" className="text-body font-medium text-accent hover:text-accent-hover">Manage agents ›</Link>
       ) : undefined}
     >
       <div className="space-y-4 overflow-y-auto px-4 py-6 lg:px-8">
@@ -69,14 +70,14 @@ export function AgentListPage() {
         {isLoading && <p className="text-body text-text-muted">Loading…</p>}
         {error && <p role="alert" className="text-small text-danger">{error.message}</p>}
         {data && data.agents.length === 0 && (
-          <EmptyState icon={Bot} title={filter === 'mine' ? 'No agent is in your projects' : 'No agents yet'} hint={data.canManage ? 'Create one under Organisation › Agents' : 'An organisation admin creates agents'} />
+          <EmptyState icon={Bot} title={filter === 'mine' ? 'No agent is in your projects' : 'No agents yet'} hint={data.canManage ? 'Create one under Manage organisation › Agents' : 'An organisation admin creates agents'} />
         )}
         {data && data.agents.length > 0 && shown.length === 0 && <p className="text-body text-text-muted">No agent matches.</p>}
 
         <div className="grid grid-cols-1 gap-1 md:grid-cols-2 md:gap-4 lg:grid-cols-3">
           {shown.map((card) => {
             const now = agentCardNow(card.now, card.projectCount, at)
-            const model = modelsForRuntime(card.agent.runtime).find(m => m.value === card.agent.defaultModel)?.label ?? card.agent.defaultModel
+            const model = modelLine(card.agent.id)
             return (
               <PlaceCard
                 key={card.agent.id}

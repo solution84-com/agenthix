@@ -1,10 +1,9 @@
 /**
- * Connecting the organisation to Agenthix Cloud from HQ's page: asked of hq over the console link, which holds the
- * connection and decides who may make it; the Fleet Console only passes the fleet admin's ask and shows hq's answer.
+ * The organisation's connection to Agenthix Cloud on HQ's page: read from hq over the console link. Connecting and
+ * disconnecting are done in hq, by an organisation admin, so the Fleet Console offers neither.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { HqCloudState } from '@agenthix/core'
-import { HqCallError } from '../hq/link'
 import { SAM, startHarness, type Harness } from './harness'
 
 let h: Harness
@@ -58,61 +57,12 @@ describe("the organisation's connection to Cloud @SC-1075", () => {
     expect((await h.request('/api/cloud', auth)).status).toBe(502)
   })
 
-  it('Connect asks hq for the fleet admin signed in, and answers the code and the page', async () => {
+  it('no longer offers connecting or disconnecting: hq does, for an organisation admin, and hq is never asked here @SC-1076', async () => {
     const auth = await h.signIn()
-    h.link.handle('cloud.connect', () => ({ connecting: CONNECTING }))
-    const res = await h.request('/api/cloud/organisation', { method: 'POST', body: {}, ...auth })
-    expect(res.status).toBe(200)
-    expect(res.json).toEqual({ connecting: CONNECTING })
-    expect(h.link.callsOf('cloud.connect')).toEqual([{ byUserId: SAM.id }])
-  })
-
-  it('hq\'s refusal is passed on in its words: only an organisation admin may connect', async () => {
-    const auth = await h.signIn()
-    h.link.handle('cloud.connect', () => { throw new HqCallError('not_allowed', 'Only an organisation admin who is also a fleet admin connects HQ to Agenthix Cloud or disconnects it.') })
-    const res = await h.request('/api/cloud/organisation', { method: 'POST', body: {}, ...auth })
-    expect(res.status).toBe(403)
-    expect(res.json.message).toMatch(/Only an organisation admin/)
-  })
-
-  it('Cloud not answering is said as hq said it', async () => {
-    const auth = await h.signIn()
-    h.link.handle('cloud.connect', () => { throw new HqCallError('failed', 'Agenthix Cloud could not be reached. Try again in a moment.') })
-    const res = await h.request('/api/cloud/organisation', { method: 'POST', body: {}, ...auth })
-    expect(res.status).toBe(502)
-    expect(res.json.message).toBe('Agenthix Cloud could not be reached. Try again in a moment.')
-  })
-
-  it('Cloud busy is answered 429, in hq\'s words of when to try again', async () => {
-    const auth = await h.signIn()
-    h.link.handle('cloud.connect', () => { throw new HqCallError('rate_limited', 'Agenthix Cloud is busy — try again in 3 minutes.') })
-    const res = await h.request('/api/cloud/organisation', { method: 'POST', body: {}, ...auth })
-    expect(res.status).toBe(429)
-    expect(res.json).toEqual({ error: 'rate_limited', message: 'Agenthix Cloud is busy — try again in 3 minutes.' })
-  })
-
-  it('Disconnect asks hq; with nothing to end it says it is not connected', async () => {
-    const auth = await h.signIn()
-    let connected = true
-    h.link.handle('cloud.disconnect', () => { const was = connected; connected = false; return { disconnected: was } })
-    expect((await h.request('/api/cloud/organisation', { method: 'DELETE', ...auth })).json).toEqual({ disconnected: true })
-    const again = await h.request('/api/cloud/organisation', { method: 'DELETE', ...auth })
-    expect(again.status).toBe(409)
-    expect(again.json.error).toBe('not_connected')
-    expect(h.link.callsOf('cloud.disconnect')).toEqual([{ byUserId: SAM.id }, { byUserId: SAM.id }])
-  })
-
-  it('an hq older than the connection is said to be older', async () => {
-    const auth = await h.signIn()
-    expect((await h.request('/api/cloud/organisation', { method: 'POST', body: {}, ...auth })).status).toBe(501)
-  })
-
-  it('through remote access, hq is never asked to connect or disconnect', async () => {
-    const auth = { ...(await h.signIn()), headers: { 'x-remote-tunnel': '1' } }
     h.link.handle('cloud.connect', () => ({ connecting: CONNECTING }))
     h.link.handle('cloud.disconnect', () => ({ disconnected: true }))
-    expect((await h.request('/api/cloud/organisation', { method: 'POST', body: {}, ...auth })).status).toBe(403)
-    expect((await h.request('/api/cloud/organisation', { method: 'DELETE', ...auth })).status).toBe(403)
+    expect((await h.request('/api/cloud/organisation', { method: 'POST', body: {}, ...auth })).status).toBe(404)
+    expect((await h.request('/api/cloud/organisation', { method: 'DELETE', ...auth })).status).toBe(404)
     expect(h.link.callsOf('cloud.connect')).toEqual([])
     expect(h.link.callsOf('cloud.disconnect')).toEqual([])
   })

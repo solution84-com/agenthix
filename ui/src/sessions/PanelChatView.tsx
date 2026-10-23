@@ -100,7 +100,7 @@ export function PanelChatView({
 
   const agentName = agentNameProp ?? sessionData?.agent?.name ?? 'Agent'
   const avatarUrl = sessionData?.agent?.avatarUrl
-  const currentModel = sessionData?.model ?? sessionData?.agent?.defaultModel ?? DEFAULT_AGENT_MODEL
+  const currentModel = sessionData?.model ?? DEFAULT_AGENT_MODEL
   const items = useMemo(() => conversationItems(sessionData?.entries ?? []), [sessionData?.entries])
   const record = sessionData?.conversation
   const contextUse = record?.contextUse ?? null

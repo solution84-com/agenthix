@@ -36,8 +36,8 @@ function given(site: SiteDetail, role: 'ADMIN' | 'MEMBER' = 'ADMIN') {
 }
 
 const renderPage = () => render(
-  <MemoryRouter initialEntries={['/org/settings/where-work-runs/row-1']}>
-    <Routes><Route path="/org/settings/where-work-runs/:executionSiteId" element={<SitePage />} /></Routes>
+  <MemoryRouter initialEntries={['/admin/where-work-runs/row-1']}>
+    <Routes><Route path="/admin/where-work-runs/:executionSiteId" element={<SitePage />} /></Routes>
   </MemoryRouter>,
 )
 

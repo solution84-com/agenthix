@@ -1,18 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { modelAccessText } from '../SettingsSection'
 import { tokenCount } from '../TodaySection'
 import { teamMix, worksIn } from '../teams/teamWords'
-
-describe('model access is told by provider, never a runtime', () => {
-  it.each([
-    [[], 'None set'],
-    [['Anthropic'], 'Anthropic'],
-    [['Anthropic', 'OpenRouter'], 'Anthropic +1 more'],
-    [['Anthropic', 'OpenRouter', 'OpenAI'], 'Anthropic +2 more'],
-  ])('%j reads %s', (providers, text) => {
-    expect(modelAccessText(providers)).toBe(text)
-  })
-})
 
 describe('numbers and counts on the Organisation page', () => {
   it('shortens tokens', () => {

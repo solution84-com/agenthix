@@ -17,12 +17,17 @@ import { languageModelFor, type ModelCallExtras } from './providers'
 import { callOptions, messagesOf, systemOf, toolsOf } from './prompt'
 import { breakpointPositions, cacheKeyOf, cacheStyleOf } from './caching'
 import { turnUsageOf } from './usage'
+import { recordHqCall } from '../../billing/sources/hqCalls'
 
 export interface ModelAdapterDeps {
   /** Tests replace this with the SDK's mock models. */
   languageModel?: (access: ResolvedAccess, extras: ModelCallExtras) => LanguageModel
   /** The SDK's own retries of a rate limit or a server error; 2 unless set. */
   maxRetries?: number
+  /** Each call's outcome, for its provider's health (routing/resolver.ts `reportCall`); nothing unless set. */
+  report?: (providerId: string, failure: ModelCallError['kind'] | null) => void
+  /** Each model call's usage, for its ledger row (billing/); the ledger unless set. */
+  record?: (access: ResolvedAccess, usage: TurnUsage) => void
 }
 
 /** What the request's provider needs beyond its SDK's own options: OpenRouter's hints go into the body. */
@@ -51,9 +56,12 @@ function toolChoiceOf(choice: LeadRequest['toolChoice']) {
 
 export function createModelAdapter(deps: ModelAdapterDeps = {}): ModelAdapter {
   const modelOf = deps.languageModel ?? languageModelFor
+  const record = deps.record ?? recordHqCall
 
   function sharedArgs(request: Omit<LeadRequest, 'tools'>) {
     return {
+      // One row per model call, written as each step ends: a call that fails after its step used tokens keeps its row.
+      onStepFinish: (step: { usage: Parameters<typeof turnUsageOf>[0] }) => record(request.access, turnUsageOf(step.usage)),
       model: modelOf(request.access, extrasOf(request)),
       system: systemOf(request),
       messages: messagesOf(request),
@@ -84,9 +92,16 @@ export function createModelAdapter(deps: ModelAdapterDeps = {}): ModelAdapter {
         }
       }
       if (finish) yield finish
+      deps.report?.(request.access.providerId, null)
     } catch (error) {
-      throw toModelCallError(error, request.access.provider, request.signal)
+      throw failed(error, request)
     }
+  }
+
+  function failed(error: unknown, request: Omit<LeadRequest, 'tools'>): ModelCallError {
+    const e = toModelCallError(error, request.access.provider, request.signal)
+    deps.report?.(request.access.providerId, e.kind)
+    return e
   }
 
   return {
@@ -94,9 +109,10 @@ export function createModelAdapter(deps: ModelAdapterDeps = {}): ModelAdapter {
     async complete(request): Promise<{ text: string; usage: TurnUsage }> {
       try {
         const result = await generateText(sharedArgs(request))
+        deps.report?.(request.access.providerId, null)
         return { text: result.text, usage: turnUsageOf(result.usage) }
       } catch (error) {
-        throw toModelCallError(error, request.access.provider, request.signal)
+        throw failed(error, request)
       }
     },
   }

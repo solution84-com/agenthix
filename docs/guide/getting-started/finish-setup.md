@@ -1,12 +1,13 @@
 ---
 title: Finish setup
-description: Create your administrator account, name your organisation and give agents a model to answer with.
+description: Create your administrator account, choose how agents reach AI models and voice, name your organisation and check it all.
 sidebar:
   order: 3
 ---
 
-The link the installer printed opens setup in your browser. It takes four short steps. You'll be your
-organisation's first administrator, and you can change everything here later.
+The link the installer printed opens setup in your browser. You'll be your organisation's first administrator, and you
+can change everything here later. With your own keys setup takes six short steps; with Agenthix Cloud it takes four,
+because Cloud supplies the models and the voice.
 
 ## 1. Create your account
 
@@ -15,47 +16,78 @@ organisation's first administrator, and you can change everything here later.
 Fill in **Your name**, how you're shown on your work; **Username**, how you sign in; and a **Password** of at least
 8 characters. Select **Continue**.
 
-## 2. Name your organisation
+## 2. Choose how agents reach AI
 
-Give **Your organisation** a **Name**. A **Picture** and a **Cover** are optional. The preview beside the form shows
-your sign-in page as your people will see it. Select **Continue**.
+Agents need a model to think with, and a voice to hear and to talk. **HQ**, your organisation's home in Agenthix,
+gets both from *providers*: services such as Anthropic or AssemblyAI that the organisation has an account with.
 
-## 3. Add model access
-
-Agents need a model to answer. Select **Add model access** and choose one:
-
-![Model access, with the Add model access menu open](screenshot:setup-model-access)
+![How will your agents reach AI, with Agenthix Cloud and Your own keys to choose between](screenshot:setup-ai-choice)
 
 | Choice | What it is |
 |---|---|
-| **Claude subscription** | Your own Claude account. Used for your own conversations; a project's tasks use it only through the project's own access: see [Your first task](first-task.md#4-run-it) |
-| **Anthropic API key** | A key for Claude models, which everyone in the organisation can use |
-| **OpenRouter** | One key that reaches many models, free ones included |
-| **OpenAI** or **Google Gemini** | A key for that provider's models |
-| **Your own endpoint** | Any server that answers like OpenAI's API, such as a model you run yourself |
+| **Agenthix Cloud** | Models and voice with no keys, billed by Agenthix each month. You approve the connection with a short code. It reads **Not available yet** until Cloud offers it, and then **Connect** is greyed out |
+| **Your own keys** | You bring an account at a model provider and one at a speech provider. Two more steps |
 
-For a key, paste it and select **Save key**. For a Claude subscription:
+Select **Choose** under **Your own keys**. [Providers](../your-tools/providers.md) explains both, and how to add or
+change them later.
 
-1. Tick **This subscription is mine, and I understand it will be used only for my own runs.**
-2. Select **Sign in with Claude**, then **Open Claude to sign in**.
-3. Sign in to Claude, copy the code it gives you, and paste it into **Code from Claude**.
-4. Select **Finish**.
+## 3. Add your model provider
 
-Signing in with Claude needs the site beside HQ to be connected: if setup says it isn't, wait a moment.
+Pick the provider your agents will think with: **Anthropic**, **OpenAI**, **Google Gemini**, **OpenRouter** (one key
+that reaches many models, free ones included) or **Your own OpenAI-compatible endpoint**, any server that answers like
+OpenAI's API, such as a model you run yourself.
 
-A Claude subscription is personal: it is your own account, in your name, used through Claude's own runtime. So Agenthix uses it only where the runs are yours alone: your own conversations, and a project's tasks while you are the organisation's only person. Once others join, a project needs an API key. See Anthropic's [Consumer Terms of Service](https://www.anthropic.com/legal/consumer-terms) and Claude Code's [legal and compliance page](https://code.claude.com/docs/en/legal-and-compliance).
+![Setup's model provider step, with OpenRouter chosen and its key typed in](screenshot:setup-ai-model)
 
-Then select **Continue**. If you'd rather add one later, select **Skip for now** — but agents can't answer until
-one is set.
+1. Select the provider. For your own endpoint, also enter its **Address**.
+2. Paste its **API key**. **Name** is optional, and is useful beside a second key of the same provider later.
+3. Select **Save**. HQ checks the key with the provider first, and stores it encrypted. It is never shown again, only
+   its last four characters.
 
-## 4. Check everything
+The step then reads **works. Added by you.** and **Continue** appears. You can add more providers later.
 
-![Check everything before you start, with You, Your organisation, Where agents run and Model access](screenshot:setup-review)
+## 4. Add your voice
 
-**Where agents run** should say **HQ's site — running on this machine**: that's the Execution Site the
-installer started beside HQ, named after this machine. If it says the site isn't connected, wait a moment and select **Check again**.
+People talk to agents, and agents talk back. Voice needs one provider for each direction:
 
-Select **Edit** beside anything you want to change, then **Finish**. You land on **Home**.
+![Setup's voice step, with a speech to text and a text to speech provider to add](screenshot:setup-ai-voice)
+
+- **Speech to text**: **AssemblyAI** turns what you say into text.
+- **Text to speech**: **Inworld** speaks the answer.
+
+Choose each, paste its key and select **Save**. Each key is checked with its provider before it is stored.
+[Voice](../your-tools/phone-and-voice.md) explains how people use it.
+
+## 5. Name your organisation
+
+Give **Your organisation** a **Name**. A **Picture** and a **Cover** are optional. Choose its **Time zone**; HQ offers
+your browser's. The preview beside the form shows your sign-in page as your people will see it. A month of
+[usage](../your-tools/billing-and-usage.md) is cut in this time zone. Select **Continue**.
+
+![Setup's organisation step, with the name and time zone filled in](screenshot:setup-organisation)
+
+## 6. Check everything
+
+![Check everything before you start, with You, Models and voice, Defaults for everyone, Your organisation, Your first agent and Where agents run](screenshot:setup-review)
+
+The last look lists what you set, each part with **Edit** to change it, and one more thing setup chooses for you,
+**Defaults for everyone**: four settings that say what every agent uses unless it has its own.
+
+| Default | What setup picks |
+|---|---|
+| **Conversation** | The model a new conversation starts on. Claude Sonnet 5 where your provider reaches it, otherwise a mid-priced model it does |
+| **Workers** | The model for work an agent hands off. Claude Opus 5 where your provider reaches it, otherwise a higher-priced model it does |
+| **Voice** | The voice agents speak with, on Inworld |
+| **Listening** | The AssemblyAI model that hears people |
+
+Select **Change** beside any of them to pick another. [Models](../your-tools/models.md) explains each. **Your first
+agent** is **Kernel**, the built-in agent, speaking in the default voice.
+
+**Where agents run** should say **HQ's site — running on this machine**: that's the Execution Site the installer
+started beside HQ, named after this machine. If it says the site isn't connected, wait a moment and select **Check again**.
+
+Select **Finish**. It is refused, with a note to go back and add a provider that works, until HQ reaches a working
+model, a way of hearing and a way of speaking. You land on **Home**.
 
 ## Next
 

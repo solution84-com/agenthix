@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent, type ReactNode } from 'react'
 import { Button } from '../primitives/Button'
 import { Input } from '../primitives/Input'
 import { Textarea } from '../primitives/Textarea'
@@ -18,6 +18,8 @@ interface BoardOption {
   stages: BoardStage[]
 }
 
+export type ModelFieldSlot = (state: { agentId: string | null; value: string; onChange: (value: string) => void }) => ReactNode
+
 export interface CreateTaskModalProps {
   open: boolean
   onClose: () => void
@@ -30,6 +32,8 @@ export interface CreateTaskModalProps {
   boards: BoardOption[]
   onSubmit: (input: CreateTaskInput) => Promise<void>
   onCreated?: () => void
+  /** The model the task's runs name, when the host offers one. */
+  modelField?: ModelFieldSlot
 }
 
 // ── Status label map ─────────────────────────────────────────────────
@@ -53,6 +57,7 @@ export function CreateTaskModal({
   boards,
   onSubmit,
   onCreated,
+  modelField,
 }: CreateTaskModalProps) {
   const [title, setTitle]           = useState('')
   const [description, setDescription] = useState('')
@@ -60,6 +65,7 @@ export function CreateTaskModal({
   const [boardId, setBoardId]       = useState(defaultBoardId ?? '')
   const [stageName, setStageName]   = useState(defaultStage ?? '')
   const [agentId, setAgentId]       = useState('')
+  const [modelChoice, setModelChoice] = useState('')
   const [saving, setSaving]         = useState(false)
 
   const selectedBoard = boards.find((b) => b.id === boardId) ?? null
@@ -107,6 +113,7 @@ export function CreateTaskModal({
         description: description || undefined,
         priority,
         assignedAgentId: agentId || undefined,
+        ...(modelChoice ? { modelChoice } : {}),
         boardId: boardId || undefined,
         stage: stageName || undefined,
       })
@@ -200,6 +207,8 @@ export function CreateTaskModal({
             ))}
           </NativeSelect>
         </FormField>
+
+        {modelField?.({ agentId: agentId || null, value: modelChoice, onChange: setModelChoice })}
 
         {/* Placement hint */}
         <p className="text-small text-text-muted italic">{buildHint()}</p>

@@ -44,6 +44,8 @@ export function ConversationComposer({ conversationId, view, running, sending, o
         </p>
       )}
       <MessageBox
+        agentId={agent?.id}
+        conversationId={conversationId}
         placeholder={agent ? `Message ${agent.name}…` : 'Write a message…'}
         running={running}
         sending={sending}
@@ -58,8 +60,8 @@ export function ConversationComposer({ conversationId, view, running, sending, o
           inVoice,
           speaker: speakerOf(voice),
           muted: voice.muted,
-          onStart: () => start(conversationId, agent ? { name: agent.name, avatarUrl: agent.avatarUrl } : null),
-          onPrepare: prepare,
+          onStart: () => start(conversationId, agent ? { id: agent.id, name: agent.name, avatarUrl: agent.avatarUrl } : null),
+          onPrepare: () => prepare(agent?.id, conversationId),
           onEnd: end,
           onMute: toggleMute,
           handRaised: inVoice && voice.handRaise ? { agentName: agent?.name, onInvite: invite } : null,

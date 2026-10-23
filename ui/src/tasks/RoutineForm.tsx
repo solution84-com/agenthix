@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   DEFAULT_ROUTINE_SCHEDULE, FIELD_INPUT, RoutineRuleFields, scheduleInputOf, toLocalInput,
   type RoutineScheduleValue, type ScheduleRuleInput,
@@ -22,6 +22,7 @@ export interface RoutineFormValue {
   priority: 'LOW' | 'MEDIUM' | 'HIGH'
   labels: string[]
   assignedAgentId: string | null
+  modelChoice?: string | null
   boardId: string | null
   stage: string | null
   rule: ScheduleRuleInput
@@ -32,7 +33,7 @@ export interface RoutineFormValue {
 export interface RoutineFormSubmit {
   template: {
     title: string; description: string | null; priority: string; labels: string[]
-    assignedAgentId: string | null; boardId: string | null; stage: string | null
+    assignedAgentId: string | null; modelChoice: string | null; boardId: string | null; stage: string | null
   }
   /** Absent when the schedule was left as it was. */
   schedule?: { rule: ScheduleRuleInput; at: string | null; timezone: string }
@@ -47,6 +48,8 @@ export interface RoutineFormProps {
   onCancel: () => void
   /** Editing: what saving does to the round already waiting, e.g. its key. */
   waitingKey?: string | null
+  /** The model each round's run names, when the host offers one. */
+  modelField?: (state: { agentId: string | null; value: string; onChange: (value: string) => void }) => ReactNode
 }
 
 /** Whether a round starts at its time or waits for a person, in words (adr-0104). */
@@ -56,12 +59,13 @@ export function routineStartWords(agentName: string | null): string {
     : 'With no agent, each round waits for a person to start it.'
 }
 
-export function RoutineForm({ initial, boards, agents, submitLabel, onSubmit, onCancel, waitingKey }: RoutineFormProps) {
+export function RoutineForm({ initial, boards, agents, submitLabel, onSubmit, onCancel, waitingKey, modelField }: RoutineFormProps) {
   const [title, setTitle] = useState(initial?.title ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [priority, setPriority] = useState<RoutineFormValue['priority']>(initial?.priority ?? 'MEDIUM')
   const [labels, setLabels] = useState((initial?.labels ?? []).join(', '))
   const [agentId, setAgentId] = useState(initial?.assignedAgentId ?? '')
+  const [modelChoice, setModelChoice] = useState(initial?.modelChoice ?? '')
   const [boardId, setBoardId] = useState(initial?.boardId ?? '')
   const [stage, setStage] = useState(initial?.stage ?? '')
   const [schedule, setSchedule] = useState<RoutineScheduleValue>(
@@ -80,7 +84,7 @@ export function RoutineForm({ initial, boards, agents, submitLabel, onSubmit, on
         template: {
           title, description: description.trim() || null, priority,
           labels: labels.split(',').map(l => l.trim()).filter(Boolean),
-          assignedAgentId: agentId || null, boardId: boardId || null, stage: boardId ? stage || null : null,
+          assignedAgentId: agentId || null, modelChoice: modelChoice || null, boardId: boardId || null, stage: boardId ? stage || null : null,
         },
         ...(scheduleTouched ? { schedule: scheduleInputOf(schedule) } : {}),
       })
@@ -140,6 +144,7 @@ export function RoutineForm({ initial, boards, agents, submitLabel, onSubmit, on
           </label>
         )}
       </div>
+      {modelField?.({ agentId: agentId || null, value: modelChoice, onChange: setModelChoice })}
       <p className="text-micro text-text-muted">{routineStartWords(agents.find(a => a.id === agentId)?.name ?? null)}</p>
       <div className="space-y-1">
         <span className="block">When rounds come</span>

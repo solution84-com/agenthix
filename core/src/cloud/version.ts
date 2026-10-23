@@ -19,7 +19,7 @@
  */
 import { checkProtocolCompatibility, type ProtocolCompatibility } from '../protocol/compatibility.js'
 
-export const CLOUD_PROTOCOL_VERSION = '1.0'
+export const CLOUD_PROTOCOL_VERSION = '1.1'
 export const CLOUD_PROTOCOL_VERSION_HEADER = 'X-Cloud-Protocol-Version'
 /** RFC 9110 §15.5.22, Upgrade Required. */
 export const CLOUD_UPGRADE_REQUIRED_STATUS = 426

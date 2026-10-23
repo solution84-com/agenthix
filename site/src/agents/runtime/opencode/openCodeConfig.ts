@@ -12,7 +12,8 @@
  * OpenAI-compatible endpoint offers, which OpenCode reads only from its
  * configuration.
  */
-import type { CredentialProvider, OpenCodePluginConfig, RunCredential } from '@agenthix/core'
+import type { CredentialProvider, OpenCodePluginConfig } from '@agenthix/core'
+import type { SiteRunCredential } from '../../../server/modelRelay/runAccess'
 import { CREDENTIAL_PROVIDERS, HARNESS_SERVER_KEY_ENV, OPENCODE_PLUGIN_CONFIG_ENV } from '@agenthix/core'
 import { HARNESS_SECRET_ENV, OPENCODE_COMMAND_SHELL, OPENCODE_MODELS_FILE, OPENCODE_PLUGIN_URL } from '../agentImage'
 import { openCodeProviderBaseUrl } from '../../../server/modelRelay/relayProviders'
@@ -152,9 +153,10 @@ export function parseOpenCodeModel(model: string): OpenCodeModel | null {
  * credential must be an API key for the model's own provider (hq resolves one
  * per provider, §6); a subscription is Claude's runtime's alone.
  */
-export function credentialProblem(model: OpenCodeModel, credential: RunCredential | null): string | null {
+export function credentialProblem(model: OpenCodeModel, credential: SiteRunCredential | null): string | null {
   if (!credential) return `No model credential is configured for ${model.provider}. Add an API key for it and run this again.`
-  if (credential.kind !== 'apiKey') return 'A Claude subscription can only be used by the Claude runtime. Add an API key for this provider.'
+  if (credential.kind === 'subscription') return 'A Claude subscription can only be used by the Claude runtime. Add an API key for this provider.'
+  if (credential.kind === 'cloud') return 'This Execution Site cannot run a model through Agenthix Cloud on OpenCode yet.'
   if (credential.provider !== model.provider) {
     return `The run was given a ${credential.provider} credential for a ${model.provider} model.`
   }

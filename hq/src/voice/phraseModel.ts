@@ -7,18 +7,30 @@
  * model credential of its own now, so there is nothing here that needs a
  * container or anyone else's credentials.
  *
- * The org's provider key is hq's own, deliberately: this call is hq asking on
- * its own behalf, for a sample rendered in a settings screen. It is not a run,
- * it acts for no boundary, and it must never reach a person's subscription.
+ * It is hq asking on its own behalf, for a sample rendered in a settings screen,
+ * on the organisation's default conversation model, as the resolver gives it
+ * (models from one place, part 4). It acts for no boundary, and never reaches a
+ * person's subscription.
  */
-import { generateText as defaultGenerateText } from 'ai'
-import { createAnthropic } from '@ai-sdk/anthropic'
-import { getLlmApiKey } from '../server/providerService'
-import { DEFAULT_MODEL } from '../agents/models'
+import { generateText as defaultGenerateText, type LanguageModel } from 'ai'
+import { resolve } from '../routing/resolver'
+import { hqCallAccess } from '../routing/reaching'
+import { languageModelFor } from '../conversations/model/providers'
+import { turnUsageOf } from '../conversations/model/usage'
+import type { ResolvedAccess } from '../conversations/contract'
+import { recordHqCall } from '../billing/sources/hqCalls'
+import { costingOf } from '../billing/costing'
 
 export interface PhraseModelDeps {
   generateText?: typeof defaultGenerateText
-  apiKey?: () => Promise<string | null>
+  model?: () => Promise<LanguageModel | null>
+}
+
+async function samplePhraseAccess(): Promise<ResolvedAccess | null> {
+  const req = { purpose: 'voice_sample' as const, place: { kind: 'organisation' as const } }
+  const answer = await resolve(req)
+  const access = answer.ok ? await hqCallAccess(answer.resolution) : null
+  return access && answer.ok ? { ...access, costing: costingOf(answer.resolution, req) } : null
 }
 
 export async function generateSamplePhrase(
@@ -26,19 +38,20 @@ export async function generateSamplePhrase(
   lang: string,
   deps: PhraseModelDeps = {},
 ): Promise<string> {
-  const apiKey = await (deps.apiKey ?? (() => getLlmApiKey('anthropic')))()
-  if (!apiKey) {
-    throw new Error('Cannot generate a voice sample phrase: hq has no model key configured')
+  const access = deps.model ? null : await samplePhraseAccess()
+  const model = deps.model ? await deps.model() : access ? languageModelFor(access) : null
+  if (!model) {
+    throw new Error('Cannot generate a voice sample phrase: no model is working')
   }
   const generate = deps.generateText ?? defaultGenerateText
-  const anthropic = createAnthropic({ apiKey })
-  const { text } = await generate({
-    model: anthropic(DEFAULT_MODEL),
+  const { text, usage } = await generate({
+    model,
     prompt:
       `Write one short sample phrase (1–2 sentences) in language code "${lang}" for a ` +
       `text-to-speech voice with this description: "${description}". The phrase should ` +
       `naturally showcase this voice's character. Return ONLY the phrase text, nothing else.`,
   })
+  if (access) recordHqCall(access, turnUsageOf(usage))
   return text.trim()
 }
 

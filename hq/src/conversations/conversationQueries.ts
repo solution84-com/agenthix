@@ -17,11 +17,7 @@ import { projectStanding } from '../projects/membership'
 import { CLOSED_WITH_ITS_PROJECT, readConversationAs, requireConversationReader } from './readingRule'
 import { readMessages, readWaitingMessages } from './store/messages'
 import { toAgentView } from './primaryAgent'
-import { resolveConversationAccess } from './access/conversationAccess'
-import { payerLabel } from './access/homeAccess'
-import { latestRefusal } from './coordinator/refusal'
-import { policyModelLabel } from '../model-policy/policyModels'
-import { PROVIDER_LABELS } from '../shared/modelProviders'
+import { choiceValue, resolveTalking } from './access/talkingModel'
 import { loadVoiceFacts, voiceStartedAt, voiceView } from './voice/availability'
 import { peopleOf } from './people'
 
@@ -93,7 +89,7 @@ export async function conversationViewFor(conversationId: string, userId: string
   const { ref, speakingRefusal } = await readConversationAs(conversationId, userId)
   const found = await prisma.conversation.findUniqueOrThrow({ where: { id: ref.id }, include: { agent: AGENT_SELECT } })
   const row: WithAgent = ref.home === 'TASK' ? { ...found, agent: await agentRow(ref.agentId) } : found
-  const access = speakingRefusal === null ? await accessState(ref, row) : { accessProblem: null, accessOffer: null }
+  const access = speakingRefusal === null ? await accessState(ref, userId) : { accessProblem: null, accessOffer: null }
   const [voiceFacts, startedAt, people] = await Promise.all([
     loadVoiceFacts({ agentId: ref.agentId, holderId: row.voiceHolderId, speakingRefusal, accessProblem: access.accessProblem }),
     row.voiceHolderId ? voiceStartedAt(ref.id) : null,
@@ -102,7 +98,7 @@ export async function conversationViewFor(conversationId: string, userId: string
   return {
     ...toSummaryView(row),
     openedById: row.openedById,
-    talkingModel: row.talkingModel,
+    talkingModel: row.talkingModel && row.talkingProviderId ? choiceValue({ providerId: row.talkingProviderId, model: row.talkingModel }) : null,
     activeTurnId: row.activeTurnId,
     waiting: await readWaitingMessages(ref.id),
     ...access,
@@ -114,23 +110,17 @@ export async function conversationViewFor(conversationId: string, userId: string
 }
 
 /**
- * Whether the conversation can be answered now, and what to do if not (model access spec): resolved once per
- * view — for the model it talks on once one is fixed, otherwise as its first turn would, so a person with no
- * key is told before they send. A key the provider refused on the latest turn counts as gone.
+ * Whether the conversation can be answered now, and what to do if not (models from one place, part 1, *When a
+ * provider fails*): resolved once per view — for the model it talks on once one is fixed, otherwise as its first turn
+ * would, so a person is told before they send. A provider that is not working counts as unreachable; the offer is
+ * the one switch the person may take.
  */
 export async function accessState(
   ref: Awaited<ReturnType<typeof readConversationAs>>['ref'],
-  row: Pick<Conversation, 'id' | 'talkingModel' | 'talkingProvider'>,
+  userId: string,
 ): Promise<Pick<ConversationView, 'accessProblem' | 'accessOffer'>> {
-  const fixed = row.talkingModel && row.talkingProvider ? { model: row.talkingModel, provider: row.talkingProvider } : null
-  const refused = fixed ? await latestRefusal(row.id) : null
-  const { problem, offer } = await resolveConversationAccess(ref, fixed, refused)
-  return {
-    accessProblem: problem,
-    accessOffer: offer
-      ? { label: `${policyModelLabel(offer.model)}, on ${payerLabel(offer.owner)} ${PROVIDER_LABELS[offer.provider]} key` }
-      : null,
-  }
+  const { problem, offer } = await resolveTalking(ref, userId)
+  return { accessProblem: problem, accessOffer: offer ? { label: offer.label } : null }
 }
 
 /** A page of the thread, newest first: `beforeSeq` pages back from there. */

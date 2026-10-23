@@ -50,9 +50,9 @@ export const startConversation = async (args: StartConversationArgs, context: Ct
   if (!choices.some(a => a.id === agentId)) throw new HttpError(400, 'That agent cannot be talked to here')
   const projectId = args.home === 'PROJECT' ? args.projectId! : null
   // A model picked before the first message is checked against what the home offers now, as a later change is.
-  const talking = args.model === undefined ? null : await requireOfferedModel(
-    { id: '', home: args.home, projectId, taskId: null, openedById: userId, agentId }, args.model,
-  )
+  const talking = args.model === undefined ? null : (await requireOfferedModel(
+    { id: '', home: args.home, projectId, taskId: null, openedById: userId, agentId }, args.model, userId,
+  )).choice
 
   const { conversationId, message } = await prisma.$transaction(async (tx) => {
     const conversation = await tx.conversation.create({
@@ -61,9 +61,7 @@ export const startConversation = async (args: StartConversationArgs, context: Ct
         projectId,
         openedById: userId,
         agentId,
-        ...(talking && {
-          talkingModel: talking.value, talkingProvider: talking.provider, accessOwnerType: talking.owner, accessKind: 'API_KEY' as const,
-        }),
+        ...(talking && { talkingModel: talking.model, talkingProviderId: talking.providerId }),
       },
       select: { id: true },
     })

@@ -52,31 +52,28 @@ beforeEach(async () => {
   person = await createUserWithRole('MEMBER')
   projectId = (await createProject()).id
   await prisma.projectMember.create({ data: { projectId, userId: person.id, role: 'ADMIN' } })
-  owners = [
-    { ownerType: 'org', ownerId: 'org', caller: () => admin },
-    { ownerType: 'project', ownerId: projectId, caller: () => person },
-    { ownerType: 'user', ownerId: person.id, caller: () => person },
-  ]
+  // A subscription is one person's own (models from one place, part 4): only the caller themselves.
+  owners = [{ ownerType: 'user', ownerId: person.id, caller: () => person }]
 })
 afterEach(() => vi.unstubAllEnvs())
 
 const sent = (method: string) => request.mock.calls.filter((c) => c[1] === method)
 const start = (who: { id: string } | undefined, owner: { ownerType: Owner['ownerType']; ownerId: string }, termsAccepted = true) =>
   startClaudeLogin({ ...owner, termsAccepted }, ctx(who))
-const stored = () => prisma.modelCredential.findMany()
+const stored = () => prisma.aiProvider.findMany()
 
-describe('startClaudeLogin', () => {
+describe('startClaudeLogin @SC-1197', () => {
   it('rejects an unauthenticated caller with 401', async () => {
     await expect(start(undefined, { ownerType: 'user', ownerId: person.id })).rejects.toMatchObject({ statusCode: 401 })
   })
 
-  it.each([0, 1, 2])('without termsAccepted is 400 and the site is not asked (owner %i)', async (i) => {
+  it.each([0])('without termsAccepted is 400 and the site is not asked (owner %i)', async (i) => {
     const { caller, ...owner } = owners[i]
     await expect(start(caller(), owner, false)).rejects.toMatchObject({ statusCode: 400 })
     expect(request).not.toHaveBeenCalled()
   })
 
-  it.each([0, 1, 2])('for a caller who may act for the boundary, asks the default site and returns the link (owner %i)', async (i) => {
+  it.each([0])('for a caller who may act for the boundary, asks the default site and returns the link (owner %i)', async (i) => {
     const { caller, ...owner } = owners[i]
     await expect(start(caller(), owner)).resolves.toEqual({ loginId: 'L1', url: 'https://claude.ai/oauth?x=1' })
     expect(sent(CLAUDE_LOGIN_METHODS.start)[0][0]).toBe(SITE)
@@ -84,8 +81,8 @@ describe('startClaudeLogin', () => {
   })
 
   it.each([
-    ['the org, by a non-admin', () => person, () => ({ ownerType: 'org' as const, ownerId: 'org' })],
-    ['a project, by someone not its admin', () => admin, () => ({ ownerType: 'project' as const, ownerId: projectId })],
+    ['the org, even by an admin', () => admin, () => ({ ownerType: 'org' as const, ownerId: 'org' })],
+    ['a project, even by its admin', () => person, () => ({ ownerType: 'project' as const, ownerId: projectId })],
     ['another person', () => admin, () => ({ ownerType: 'user' as const, ownerId: person.id })],
   ])('is refused (403) for %s, before any site call', async (_what, who, owner) => {
     await expect(start(who(), owner())).rejects.toMatchObject({ statusCode: 403 })
@@ -122,7 +119,7 @@ describe('startClaudeLogin', () => {
   })
 })
 
-describe('completeClaudeLogin', () => {
+describe('completeClaudeLogin @SC-1197', () => {
   it('rejects an unauthenticated caller with 401', async () => {
     await expect(completeClaudeLogin({ loginId: 'L1', code: 'c' }, ctx())).rejects.toMatchObject({ statusCode: 401 })
   })
@@ -133,26 +130,26 @@ describe('completeClaudeLogin', () => {
     expect(sent(CLAUDE_LOGIN_METHODS.finish)).toEqual([])
   })
 
-  it.each([0, 1, 2])("stores an encrypted subscription with the file's expiry and acceptance recorded (owner %i)", async (i) => {
+  it.each([0])("stores an encrypted subscription with the file's expiry and acceptance recorded (owner %i)", async (i) => {
     const { caller, ...owner } = owners[i]
     await start(caller(), owner)
     await expect(completeClaudeLogin({ loginId: 'L1', code: '  abc  ' }, ctx(caller()))).resolves.toEqual({ ok: true })
 
     expect(sent(CLAUDE_LOGIN_METHODS.finish)[0][2]).toEqual({ loginId: 'L1', code: 'abc' })
     const [row] = await stored()
-    expect(row).toMatchObject({ ...owner, provider: 'anthropic', kind: 'SUBSCRIPTION', expiresAt: new Date(expiresAt), termsAcceptedAt: expect.any(Date) })
-    expect(decryptSecret(row.secret)).toBe(oauthJson)
+    expect(row).toMatchObject({ ownerUserId: owner.ownerId, vendor: 'anthropic', credentialKind: 'subscription', expiresAt: new Date(expiresAt), termsAcceptedAt: expect.any(Date) })
+    expect(decryptSecret(row.secret!)).toBe(oauthJson)
   })
 
   it('signing in again replaces the stored login and records the new acceptance', async () => {
-    await prisma.modelCredential.create({
-      data: { ownerType: 'user', ownerId: person.id, kind: 'SUBSCRIPTION', secret: 'old', termsAcceptedAt: new Date('2026-01-01') },
+    await prisma.aiProvider.create({
+      data: { name: 'Your Claude subscription', vendor: 'anthropic', credentialKind: 'subscription', ownerUserId: person.id, secret: 'old', termsAcceptedAt: new Date('2026-01-01') },
     })
     await start(person, { ownerType: 'user', ownerId: person.id })
     await completeClaudeLogin({ loginId: 'L1', code: 'c' }, ctx(person))
     const rows = await stored()
     expect(rows).toHaveLength(1)
-    expect(decryptSecret(rows[0].secret)).toBe(oauthJson)
+    expect(decryptSecret(rows[0].secret!)).toBe(oauthJson)
     expect(rows[0].termsAcceptedAt!.getTime()).toBeGreaterThan(new Date('2026-01-01').getTime())
   })
 
@@ -180,14 +177,6 @@ describe('completeClaudeLogin', () => {
     await expect(completeClaudeLogin({ loginId: 'L1', code: 'c' }, ctx(person))).rejects.toMatchObject({ statusCode: 404 })
   })
 
-  it('a person no longer allowed to act for the boundary is refused and the site is not asked', async () => {
-    await start(person, { ownerType: 'project', ownerId: projectId })
-    await prisma.projectMember.update({ where: { projectId_userId: { projectId, userId: person.id } }, data: { role: 'MEMBER' } })
-    await expect(completeClaudeLogin({ loginId: 'L1', code: 'c' }, ctx(person))).rejects.toMatchObject({ statusCode: 403 })
-    expect(sent(CLAUDE_LOGIN_METHODS.finish)).toEqual([])
-    expect(await stored()).toEqual([])
-  })
-
   it('an implausible document from the site is refused (502) and nothing is stored', async () => {
     await start(person, { ownerType: 'user', ownerId: person.id })
     request.mockResolvedValue({ oauthJson: '{}' })
@@ -205,7 +194,7 @@ describe('completeClaudeLogin', () => {
   })
 })
 
-describe('cancelClaudeLogin', () => {
+describe('cancelClaudeLogin @SC-1197', () => {
   it('rejects an unauthenticated caller with 401', async () => {
     await expect(cancelClaudeLogin({ loginId: 'L1' }, ctx())).rejects.toMatchObject({ statusCode: 401 })
   })
@@ -215,13 +204,6 @@ describe('cancelClaudeLogin', () => {
     await expect(cancelClaudeLogin({ loginId: 'L1' }, ctx(person))).resolves.toEqual({ ok: true })
     expect(sent(CLAUDE_LOGIN_METHODS.cancel)[0].slice(0, 3)).toEqual([SITE, CLAUDE_LOGIN_METHODS.cancel, { loginId: 'L1' }])
     expect(peekLoginOwner('L1', person.id)).toBeNull()
-  })
-
-  it('refuses a person no longer allowed to act for the boundary, leaving the login open', async () => {
-    await start(person, { ownerType: 'project', ownerId: projectId })
-    await prisma.projectMember.update({ where: { projectId_userId: { projectId, userId: person.id } }, data: { role: 'MEMBER' } })
-    await expect(cancelClaudeLogin({ loginId: 'L1' }, ctx(person))).rejects.toMatchObject({ statusCode: 403 })
-    expect(sent(CLAUDE_LOGIN_METHODS.cancel)).toEqual([])
   })
 
   it('is a quiet success for an id hq does not hold for this person', async () => {

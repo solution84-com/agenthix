@@ -157,7 +157,8 @@ docker exec -it agenthix-host agenthix install
 3. starts hq and waits for it, then the site, named after the machine, which dials hq-web over hq's private link
    network;
 4. starts the Fleet Console and connects this machine to it;
-5. prints one link for the first account, which holds the organisation admin and fleet admin roles.
+5. prints one link for the first account, which holds the organisation admin and fleet admin roles. The link opens
+   setup, which happens in hq ([below](#setup-happens-in-hq)).
 
 It then prints a one-line command that saves a two-line shortcut, `/usr/local/bin/agenthix` (or `~/.local/bin`), which
 runs `docker exec -it agenthix-host agenthix "$@"`; without it, the `docker exec` form works the same.
@@ -192,6 +193,24 @@ with it, takes it down too. An agent container holds nothing kept nowhere else, 
 
 A machine runs one HQ: `install` is refused where Docker already runs an HQ's container that another host service
 started (`hqContainers`, `host/src/docker/docker.ts`).
+
+## Setup happens in hq
+
+A new install is **not set up**: hq has no accounts, its sign-in page says so and where the link is. The first admin opens the link `agenthix install` printed (valid 24 hours; `agenthix hq invite-admin` makes
+a new one, which withdraws the last, and hq also prints one in its log at every start without accounts). That makes their
+account and opens **setup in hq**: their name and password, how the organisation reaches AI (Agenthix Cloud, or its own
+model and voice providers with their keys), the organisation's name and time zone, and a last look. It cannot finish
+without a working model provider, speech-to-text provider and text-to-speech provider. hq's state (**not set up**,
+**setting up**, **set up**) is worked out from its data and never stored, and a mobile app reads it before sign-in
+(`claimState`, `core/src/client/protocol.ts`).
+
+The Fleet Console has no first run of its own and is not where setup happens: it is installed with hq, is reached once the
+account exists, and signs in with that account's fleet admin role. Setup asks nothing of the machine's admin beyond the
+link. For a machine with no browser, `agenthix provider add|list|remove` puts the organisation's providers in place from the
+terminal (the key is asked for there, never typed on a command line); setup then finds them, and opens at the first step
+whose need is unmet. Providers are the organisation admin's after that, in the admin area, and not the fleet admin's:
+hq reads no provider key from its own environment at start. What setup asks and writes is
+[setup](../concepts/setup/setup-flow.md).
 
 ## hq's address
 
@@ -328,6 +347,7 @@ use. The defaults have not been measured on a deployment machine.
 | `agenthix status` | Every hq and site on the machine, each in a sentence that ends in what to do next |
 | `agenthix hq logs [<part>]`, `agenthix site logs [<part>]` | Recent log lines of hq-server, hq-web, hq-db, or the site and site-db |
 | `agenthix hq invite-admin` | On a fresh install, a link for the first account; once hq has people, an organisation admin invitation for when none can sign in |
+| `agenthix provider add <vendor>`, `list`, `remove <vendor>` | The organisation's model and voice providers, from hq's machine: the key is asked for at the terminal and sent over hq's control socket, checked with the vendor before it is stored, and recorded as the machine admin's |
 | `agenthix hq reset-password <user>` | A one-time link, valid an hour, to set that person's password |
 | `agenthix hq fleet-admin [--remove] <user>` | Gives that account the fleet admin role, or takes it away; how the role comes back when no fleet admin is left |
 | `agenthix help [<command>]` | Every command, or one in detail (`host/src/cli/commands.ts`) |
@@ -339,7 +359,7 @@ The `hq …` commands reach hq through a Unix socket inside the `hq-server` cont
 Each service keeps its own log, as files that roll each day and at 10 MB, kept for 7 days or 100 MB: hq's in `logs/`
 inside its storage volume, a site's in `logs/` inside its data folder
 ([ADR-0106](../adr/adr-0106-each-service-keeps-its-own-logs.md); [logs-and-diagnostics.md](logs-and-diagnostics.md)).
-Fleet admins also read them in hq, under **Organisation › Infrastructure › Logs and diagnostics**.
+Fleet admins also read them in hq, under **Manage organisation › Infrastructure › Logs and diagnostics**.
 
 ## Upgrading and backing up
 

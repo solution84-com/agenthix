@@ -79,7 +79,7 @@ describe('ExecutionSitesPage — Where work runs, as an admin sees it @SC-637', 
   it('opens the site\'s page, and offers no action on a row', () => {
     given([BUSY])
     renderPage()
-    expect(screen.getByTestId('site-row').getAttribute('href')).toBe('/org/settings/where-work-runs/row-b')
+    expect(screen.getByTestId('site-row').getAttribute('href')).toBe('/admin/where-work-runs/row-b')
     expect(screen.queryByRole('button')).toBeNull()
   })
 

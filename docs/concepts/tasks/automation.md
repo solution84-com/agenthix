@@ -31,7 +31,7 @@ model call and needs no container, and it costs nothing when nothing is queued
 
 ## The switch, and who decides
 
-An org admin sets every value once, in **Organisation › Settings › Automation**. That value is both where every boundary
+An org admin sets every value once, in **Manage organisation › Settings › Automation**. That value is both where every boundary
 starts and the furthest it may go. A project admin, or a person for their own personal project, may move a
 value only in the stricter direction (`hq/src/automation/automationSettings.ts`):
 

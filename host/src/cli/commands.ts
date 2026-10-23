@@ -12,6 +12,7 @@ import { parseHqAddress, type HqAddressCommand } from './hqAddress'
 import { parseHqMove, type MoveCommand } from './move'
 import { parseCloud, parseCloudConsole, type CloudCommand } from './cloud'
 import { parseUninstall, type UninstallCommand } from './uninstall'
+import { parseProvider, type ProviderCommand } from './provider'
 import { normalizeJoinCode } from '@agenthix/core'
 import { addressProblem } from '../install/address'
 import { product } from './words'
@@ -38,6 +39,7 @@ export type Command =
   | MoveCommand
   | CloudCommand
   | UninstallCommand
+  | ProviderCommand
 
 export type HelpRow = { group: 'machine' | 'hq' | 'site' | 'console' | 'cloud'; usage: string; does: string; detail: string }
 
@@ -211,6 +213,7 @@ export function parseCommand(argv: string[]): Command {
   }
   if ((first === 'site' || first === 'console') && second === 'hq-address') return parseHqAddress(first, rest)
   if (first === 'cloud') return parseCloud(second, rest)
+  if (first === 'provider') return parseProvider(second, rest)
   if (first === 'console') return parseCloudConsole(second, rest) ?? parseConsole(second, rest)
   if (first === 'site' && second === 'logs') return logs('site', rest)
   const verb = LIFECYCLE_VERBS.find(v => v === second)

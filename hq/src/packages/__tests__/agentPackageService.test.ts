@@ -7,7 +7,7 @@ import {
 
 const settings = defaultAgentSettings()
 const row = {
-  id: 'a1', defaultModel: 'claude-sonnet-5', runtime: 'claude-sdk', approval: 'deferred',
+  id: 'a1', approval: 'deferred',
   allowedTools: null, allowedBashPatterns: null,
 }
 
@@ -18,24 +18,19 @@ describe('agentPackageService', () => {
   })
 
   it('merges a settings change field by field, keeping null tool ceilings distinct from unset', () => {
-    const next = mergeSettings(settings, { defaultModel: 'claude-opus-4-6', allowedTools: null })
-    expect(next).toEqual({ ...settings, model: 'claude-opus-4-6', permissions: { tools: null, bashPatterns: null } })
+    const next = mergeSettings(settings, { approval: 'immediate', allowedTools: null })
+    expect(next).toEqual({ ...settings, approval: 'immediate', permissions: { tools: null, bashPatterns: null } })
     const tools: ToolPermission[] = [{ name: 'Read', state: 'always' }]
     expect(mergeSettings(settings, { allowedTools: tools }).permissions.tools).toEqual(tools)
   })
 
-  it('refuses an invalid runtime, approval or interval', () => {
-    expect(() => validateAgentSettings({ ...settings, runtime: 'gpt' })).toThrow(/runtime/)
-    expect(() => validateAgentSettings({ ...settings, runtime: 'opencode', model: 'anthropic/claude-sonnet-4-6' })).not.toThrow()
-    expect(() => validateAgentSettings({ ...settings, runtime: 'opencode', model: 'openai_compatible/llama3.1:8b' })).not.toThrow()
-    expect(() => validateAgentSettings({ ...settings, runtime: 'opencode', model: 'claude-sonnet-4-6' })).toThrow(/opencode/)
+  it('refuses an invalid approval', () => {
     expect(() => validateAgentSettings({ ...settings, approval: 'yolo' })).toThrow(/approval/)
-    expect(() => settingsColumns({ ...settings, model: ' ' })).toThrow(/model/)
   })
 
   it('reads settings from the Agent row and writes them back as the same columns', () => {
     expect(agentSettingsOf(row)).toEqual(settings)
-    expect(settingsColumns(agentSettingsOf(row))).toMatchObject({ defaultModel: 'claude-sonnet-5', runtime: 'claude-sdk', approval: 'deferred' })
+    expect(settingsColumns(agentSettingsOf(row))).toMatchObject({ approval: 'deferred' })
   })
 
   it('turns content into files and back — the package holds content only, never settings', () => {

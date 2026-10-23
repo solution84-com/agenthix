@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { Button } from '@agenthix/ui/primitives'
-import { Say } from '../components'
 import { Link } from '../router'
 import { cloudLinkOut } from './linkOut'
 import type { CloudSectionView } from './platform'
@@ -28,8 +27,6 @@ export function AskedLine({ count, named }: { count: number | null; named: strin
     </p>
   )
 }
-
-export const CONNECT_HINT = `You approve the connection on ${CLOUD}, signing in there or making an account.`
 
 /** Why hq's calls to Cloud are refused for the protocol's version; its words name the side that must upgrade. */
 export function ProtocolProblem({ problem }: { problem: string }): ReactNode {
@@ -64,15 +61,5 @@ export function RunByCloud({ view, named }: { view: CloudSectionView; named: str
         <Button variant="secondary" className="mt-2" onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}>Open {CLOUD} ↗</Button>
       )}
     </>
-  )
-}
-
-export function ReadOnly() {
-  return (
-    <div className="mt-2">
-      <Say lead="Connecting and disconnecting happen on the Fleet Console's machine only.">
-        This session came in through remote access, so this section is read-only.
-      </Say>
-    </div>
   )
 }

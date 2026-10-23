@@ -6,7 +6,7 @@ import { ProjectPeopleList } from '@agenthix/ui/people'
 import { ProjectAgentsList } from '@agenthix/ui/projects'
 import type { ProjectAgentRowData, PlaceInstructionsData } from '@agenthix/ui/agents'
 import { MenuButton } from '../../../org/components/menus'
-import { modelLabel } from '../../../agents/profile/modelLabel'
+import { useAgentModelLine } from '../../../agents/useAgentModelLine'
 import { personAvatarOf } from '../../../people/AuthedPersonAvatar'
 import { PersonProfileTrigger } from '../../../people/PersonProfileCard'
 import { avatarOf } from '../../agents/avatarOf'
@@ -25,6 +25,7 @@ const SECTION = 'px-4 pt-4 text-micro font-medium uppercase tracking-wide text-t
 export function MembersListScreen({ projectId, url }: { projectId: string; url: ReturnType<typeof useMembersUrl> }) {
   const { data: me } = useAuth()
   const openTool = useOpenTool()
+  const modelLine = useAgentModelLine()
   const { view, isLoading, error } = useProjectPeopleView(projectId)
   const agentsQ = useQuery(getProjectAgents, { projectId }, { refetchInterval: PEOPLE_REFRESH_MS })
   const { data: instructions } = useQuery(getPlaceInstructions, { projectId })
@@ -110,7 +111,7 @@ export function MembersListScreen({ projectId, url }: { projectId: string; url: 
           <ProjectAgentsList
             hideHeader agents={agents}
             everyAgent={filter === 'agents' ? (instructions as PlaceInstructionsData | undefined)?.everyAgent ?? null : null}
-            now={new Date()} renderAvatar={avatarOf} modelLabel={modelLabel}
+            now={new Date()} renderAvatar={avatarOf} modelLine={modelLine}
             onOpenAgent={url.toAgent} onOpenFile={path => openTool('files', filesAddress(path))} teamsOf={teamsOfAgent}
           />
         </>

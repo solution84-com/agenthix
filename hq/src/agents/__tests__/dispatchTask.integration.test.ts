@@ -9,7 +9,7 @@ process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 7).toString('base64')
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '../../test/db'
 import { createProject, createSession, createUser, createUserWithRole, createTestTask } from '../../test/factories'
-import { agentWithContent, apiKeyFor, dispatched, readyToDispatch } from './dispatchFixtures'
+import { agentWithContent, dispatched, orgModel, readyToDispatch } from './dispatchFixtures'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -49,12 +49,13 @@ async function projectTask(projectData: Record<string, unknown> = {}, taskData: 
 describe('dispatchTaskRun', () => {
   it('opens the task session as the org admin, in the project, and dispatches the task to it', async () => {
     const { project, agent, task } = await projectTask()
+    const { model } = await orgModel()
 
     expect(await dispatchTaskRun(task.id, agent, 'person')).toMatchObject({ runId: 'run-1' })
 
     const session = await prisma.agentSession.findUniqueOrThrow({ where: { taskId: task.id } })
     expect(session).toMatchObject({
-      title: 'Fix the bug', status: 'ACTIVE', sessionType: 'task', model: agent.defaultModel, runtime: agent.runtime,
+      title: 'Fix the bug', status: 'ACTIVE', sessionType: 'task', model, runtime: 'claude-sdk',
       agentId: agent.id, userId: ready.admin.id, metadata: { agentId: agent.id },
       primaryOwnerType: 'project', primaryOwnerId: project.id, primaryWorkspaceId: null,
     })
@@ -100,25 +101,22 @@ describe('dispatchTaskRun', () => {
     expect(await prisma.agentSession.findUniqueOrThrow({ where: { id: old.id } })).toMatchObject({ primaryOwnerType: 'project', primaryOwnerId: project.id })
   })
 
-  it("carries the project's run limits, and its override's model", async () => {
-    const { project, agent, task } = await projectTask({ runTimeLimitMinutes: 20, runTurnLimit: 40 })
-    await prisma.agentOverride.create({ data: { boundaryType: 'project', boundaryId: project.id, agentId: agent.id, model: 'claude-haiku-4-5' } })
+  it("carries the project's run limits, and the resolved model", async () => {
+    const { agent, task } = await projectTask({ runTimeLimitMinutes: 20, runTurnLimit: 40 })
+    await orgModel()
     await dispatchTaskRun(task.id, agent, 'pulse')
     const { payload } = dispatched()
     expect(payload.runLimits).toEqual({ timeLimitMinutes: 20, turnLimit: 40 })
-    expect(payload.model).toBe('claude-haiku-4-5')
+    expect(payload.model).toBe('claude-sonnet-4-6')
   })
 
-  it("uses its person's key, and the project's own before it (adr-0105)", async () => {
-    const { project, person, agent, task } = await projectTask()
-    await apiKeyFor('user', person.id, 'sk-person')
+  it("is given the organisation's provider of its model, never a credential of its own (models from one place)", async () => {
+    const { agent, task } = await projectTask()
+    const { provider } = await orgModel('anthropic', 'sk-test-org')
     await dispatchTaskRun(task.id, agent, 'person')
-    expect(dispatched().payload.context.credential).toMatchObject({ apiKey: 'sk-person' })
-
-    siteStore.reset()
-    await apiKeyFor('project', project.id, 'sk-project')
-    await dispatchTaskRun(task.id, agent, 'person')
-    expect(dispatched().payload.context.credential).toMatchObject({ apiKey: 'sk-project' })
+    const { payload } = dispatched()
+    expect(payload.context.credential).toBeNull()
+    expect(payload.context.modelAccess?.provider).toMatchObject({ providerId: provider.id, apiKey: 'sk-test-org' })
   })
 })
 
@@ -155,7 +153,7 @@ describe("a personal project's task runs as its person", () => {
   async function personalTask() {
     const owner = await createUserWithRole('MEMBER')
     await prisma.userStoragePlacement.create({ data: { userId: owner.id, siteId: ready.site.id } })
-    const project = await createProject({ name: 'My tasks', key: `MY${++seq}`, personalOwnerId: owner.id, executionSiteId: null, accessLevel: 'PRIVATE' })
+    const project = await createProject({ name: 'My tasks', key: `MY${++seq}`, personalOwnerId: owner.id, personalSpace: true, executionSiteId: null, accessLevel: 'PRIVATE' })
     const agent = await agentWithContent()
     const task = await createTestTask({ data: { title: 'Water the plants', projectId: project.id, number: 3, onBehalfOfUserId: owner.id, assignedAgentId: agent.id } })
     return { owner, project, agent, task }
@@ -180,14 +178,29 @@ describe("a personal project's task runs as its person", () => {
     expect(await prisma.agentSession.findUniqueOrThrow({ where: { id: old.id } })).toMatchObject({ userId: owner.id, primaryOwnerType: 'user' })
   })
 
-  it("uses its person's own credential and that person's overrides", async () => {
+  it("is given its model's provider and takes that person's overrides", async () => {
     const { owner, agent, task } = await personalTask()
-    await apiKeyFor('user', owner.id, 'sk-owner')
-    await prisma.agentOverride.create({ data: { boundaryType: 'user', boundaryId: owner.id, agentId: agent.id, model: 'claude-haiku-4-5' } })
+    const { provider } = await orgModel('anthropic', 'sk-test-org')
+    await prisma.agentOverride.create({ data: { boundaryType: 'user', boundaryId: owner.id, agentId: agent.id, approval: 'immediate' } })
     await dispatchTaskRun(task.id, agent, 'schedule')
     const { payload } = dispatched()
-    expect(payload.context.credential).toMatchObject({ apiKey: 'sk-owner' })
-    expect(payload.model).toBe('claude-haiku-4-5')
+    expect(payload.context.modelAccess?.provider).toMatchObject({ providerId: provider.id })
+    expect(payload.context.agent.approval).toBe('immediate')
+  })
+})
+
+describe("another personal project's task runs as its person, in the project's own storage", () => {
+  it('names the project as the storage and the person as the runner and the session', async () => {
+    const owner = await createUserWithRole('MEMBER')
+    const project = await createProject({ name: 'Side', key: `SD${++seq}`, personalOwnerId: owner.id, executionSiteId: ready.site.id, accessLevel: 'PRIVATE' })
+    const agent = await agentWithContent()
+    const task = await createTestTask({ data: { title: 'Sort receipts', projectId: project.id, number: 4, onBehalfOfUserId: owner.id, assignedAgentId: agent.id } })
+    await dispatchTaskRun(task.id, agent, 'person')
+    expect(await prisma.agentSession.findUniqueOrThrow({ where: { taskId: task.id } })).toMatchObject({
+      primaryOwnerType: 'project', primaryOwnerId: project.id, userId: owner.id,
+    })
+    expect(dispatched().claims.runner).toEqual({ kind: 'person', userId: owner.id })
+    expect(dispatched().claims.personalProject).toEqual({ projectId: project.id, personalOwnerId: owner.id })
   })
 })
 

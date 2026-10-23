@@ -11,7 +11,11 @@ export type ShownIdentity = {
   shows?: 'cover' | 'name' | 'nothing'
 }
 
-export type PublicIdentity = ShownIdentity & { shows: 'cover' | 'name' | 'nothing' }
+export type PublicIdentity = ShownIdentity & {
+  shows: 'cover' | 'name' | 'nothing'
+  /** Whether HQ is set up (core's `HqClaimState`); absent from an HQ that does not state it, read as set up. */
+  claimState?: 'unclaimed' | 'setting_up' | 'set_up'
+}
 
 /** The hero an identity makes: none when the admin chose to show nothing, else the cover with whatever else was chosen. */
 export function heroOf(identity: ShownIdentity | null): ShownIdentity | null {

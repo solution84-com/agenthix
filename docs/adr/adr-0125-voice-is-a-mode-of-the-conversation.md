@@ -32,6 +32,10 @@ one later for the talking model only, behind the same contract.
 
 ## Decision
 
+> ⚠️ **Superseded by adr-0139 — this section's last sentence only.** Speech providers are no longer organisation
+> settings outside model choice: the resolver chooses them, per agent with the organisation's defaults, and voice's
+> speaking model is fixed. Voice as a mode of the conversation, and everything else here, still stands.
+
 **Voice is a mode of the conversation**, inside the conversation's own view. **A spoken turn is an ordinary turn:**
 speech to text produces a message, admitted like a typed one under the person's wait-or-interrupt setting; the lead's
 ordinary reply is spoken by text to speech as it streams. One person holds voice in a conversation at a time. **The

@@ -52,8 +52,8 @@ export function LibraryPage() {
           <MenuButton items={[
             { label: 'New board', hint: 'Columns a kind of work moves through', onSelect: () => setCreating('board') },
             { label: 'New skill', hint: 'Know-how to give an agent', onSelect: () => setCreating('skill') },
-            { label: 'New agent…', hint: 'Made in Organisation › Agents', separatorBefore: true, onSelect: () => navigate('/org/agents') },
-            { label: 'New team…', hint: 'Made in Organisation › Teams', onSelect: () => navigate('/org/teams') },
+            { label: 'New agent…', hint: 'Made in Manage organisation › Agents', separatorBefore: true, onSelect: () => navigate('/admin/agents') },
+            { label: 'New team…', hint: 'Made in Manage organisation › Teams', onSelect: () => navigate('/org/teams') },
           ]}>＋ New</MenuButton>
         </>
       ) : undefined}

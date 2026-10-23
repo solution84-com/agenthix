@@ -57,7 +57,7 @@ describe('a session by its address @SC-508', () => {
   })
 
   it('sends the personal project’s address to your space, keeping the open section', () => {
-    state.project = { id: 'p1', key: 'ME', name: 'My tasks', personalOwnerId: 'u1' }
+    state.project = { id: 'p1', key: 'ME', name: 'My tasks', personalOwnerId: 'u1', personalSpace: true }
     renderAt('/projects/ME?tool=tasks')
     expect(screen.getByTestId('where').textContent).toBe('/space?tool=tasks')
   })

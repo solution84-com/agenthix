@@ -46,24 +46,24 @@ function InfrastructureOverview() {
   return (
     <>
       <OrgEntryGroup title="HQ">
-        <OrgEntryRow to="/org/infrastructure/hq" title="Where HQ runs" line={hosting ? whereHqRunsLine(hosting) : 'Loading…'} />
+        <OrgEntryRow to="/admin/infrastructure/hq" title="Where HQ runs" line={hosting ? whereHqRunsLine(hosting) : 'Loading…'} />
         <OrgEntryRow
-          to="/org/infrastructure/hq"
+          to="/admin/infrastructure/hq"
           title="Version"
           line={version ? `Agenthix ${version.version} · built ${built(version.built)}` : 'Loading…'}
         />
         <OrgEntryRow
-          to="/org/infrastructure/hq"
+          to="/admin/infrastructure/hq"
           title="Address and environment"
           line={env ? `${env.address ?? 'No address set'} · ${requiredKeysLine(env.sections)}` : 'Loading…'}
         />
       </OrgEntryGroup>
 
-      <OrgEntryGroup title="Where work runs" all={{ to: '/org/settings/where-work-runs', label: 'All sites' }}>
+      <OrgEntryGroup title="Where work runs" all={{ to: '/admin/where-work-runs', label: 'All sites' }}>
         {(sites ?? []).filter(s => s.group !== 'removed').map(site => (
           <OrgEntryRow
             key={site.id}
-            to={`/org/settings/where-work-runs/${site.id}`}
+            to={`/admin/where-work-runs/${site.id}`}
             title={site.label}
             line={`${availability(site).sentence} · ${plural(site.projectCount, 'project')}`}
           />
@@ -72,12 +72,12 @@ function InfrastructureOverview() {
 
       <OrgEntryGroup title="Storage">
         <OrgEntryRow
-          to="/org/infrastructure/hq"
+          to="/admin/infrastructure/hq"
           title="Database"
           line={database === undefined ? 'Loading…' : database ? 'Its address is set' : 'Its address is not set'}
         />
         <OrgEntryRow
-          to="/org/infrastructure/hq"
+          to="/admin/infrastructure/hq"
           title="HQ's own files"
           line={storageRoot === undefined ? 'Loading…' : storageRoot
             ? 'Kept where HQ_STORAGE_ROOT says'
@@ -88,11 +88,11 @@ function InfrastructureOverview() {
 
       <OrgEntryGroup title="More">
         <OrgEntryRow
-          to="/org/infrastructure/github-app"
+          to="/admin/infrastructure/github-app"
           title="GitHub App"
           line={!github ? 'Loading…' : github.registered ? `Registered as ${github.slug}` : 'Not registered'}
         />
-        <OrgEntryRow to="/org/infrastructure/diagnostics" title="Logs and diagnostics" line={diagnostics ? diagnosticsLine(diagnostics) : 'Loading…'} />
+        <OrgEntryRow to="/admin/infrastructure/diagnostics" title="Logs and diagnostics" line={diagnostics ? diagnosticsLine(diagnostics) : 'Loading…'} />
       </OrgEntryGroup>
     </>
   )

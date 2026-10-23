@@ -55,7 +55,7 @@ describe('NoExecutionSiteNotice', () => {
     registry([])
     renderNotice()
     const link = screen.getByRole('link', { name: 'Where work runs' })
-    expect(link.getAttribute('href')).toBe('/org/settings/where-work-runs')
+    expect(link.getAttribute('href')).toBe('/admin/where-work-runs')
     expect(screen.queryByText('Ask a fleet admin to add one in the Fleet Console.')).toBeNull()
   })
 

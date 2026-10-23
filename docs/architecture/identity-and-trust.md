@@ -42,7 +42,7 @@ unread ([below](#machines-and-the-fleet); [host-management.md](host-management.m
 | Turn capability | hq, in process, per turn of a conversation | hq's memory for the turn, never stored or sent | Let the lead call hq's own operations as the author of the message it answers | One turn, 15 minutes at most ([the conversation layer](conversation-layer.md#the-lead-in-hq)) |
 | Platform token | The site | The agent's harness | Reach the site's platform tools and git endpoint as the current turn | One run, or a whole conversation for a harness kept across turns; it means something only while a turn runs |
 | Relay token | The site | The agent's harness | Send model requests through the site's relay, only from its own container | A turn on OpenCode; a Claude process's life, meaning something only during a turn |
-| Provider API key | An admin or a person, in hq settings | hq, encrypted; the site in memory for a turn, and hq's own process for a conversation's turn | Call a model provider | Until changed |
+| Provider API key | An organisation admin on Providers, the machine admin, or Agenthix Cloud's controller for Cloud itself | hq, encrypted; the site in memory for a run, and hq's own process for a conversation's turn | Call a model provider | Until changed |
 | Claude subscription login | A person signing in through hq | hq, encrypted; the runner's harness home on the site | Use that Claude subscription | Refreshed by Claude Code |
 | GitHub installation token | hq's GitHub App | Handed through the site to git | Push and pull one repository | About an hour |
 | Host service keys | The host service, once | Its state folder | Sign what it sends its Fleet Console; open what is sealed to it | For good; never replaced |
@@ -82,10 +82,10 @@ unread ([below](#machines-and-the-fleet); [host-management.md](host-management.m
   `docker exec`: the host service runs each command there (`host/src/hq/control.ts`). Each is recorded as
   made on hq's machine and announced to the organisation's admins.
 - **Getting in, in the browser.** Both the first-admin link and an invitation open `/invite/<code>`, where the
-  account is made. The first admin then goes through `/setup` (You, Your organisation, Model access), once per
-  hq: it is done when that admin finishes or skips its last step, recorded on the organisation
+  account is made. The first admin then goes through `/setup` (You, how agents reach AI, Your organisation, a last look), once per
+  hq: it is done when that admin finishes the last look, which requires working models and voice, recorded on the organisation
   (`Org.setupCompletedAt`, `hq/src/setup/setupState.ts`), and an admin invited later is never sent through it.
-  Every invited person goes through `/onboarding` (Join, You, Model access only when they need it, then a last
+  Every invited person goes through `/onboarding` (Join, You, then a last
   look; `hq/src/onboarding/onboardingFlow.ts`). `agenthix install` makes every secret, pairs hq with its
   site and prints the first-admin link (`host/src/install/`).
 - **Links people send are built from hq's configured address** (`HQ_URL`), never from the sender's browser
@@ -411,30 +411,30 @@ sequenceDiagram
 
 ## Model credentials
 
-- **Stored in hq**, encrypted (`ModelCredential`, and the org's API keys as `Provider` rows), per
-  boundary: the organisation's, a project's, or a person's own. A Claude subscription is a login rather
-  than a key, and needs the person to have accepted Anthropic's terms.
-- **Resolved per turn** by hq (`resolveRunCredential`, `hq/src/model-access/modelCredential.ts`):
-  a project's own credential first (in a project), then the run's person's own — their login, then their key —
-  then the organisation's ([ADR-0105](../adr/adr-0105-a-run-uses-the-login-of-the-person-it-is-for.md)). A
-  person's login goes only to a run whose runner is that person, into their own harness home; a task's run in a
-  project runs as the project in a shared home, so it gets the person's API key, which the site's model relay adds to
-  each request. An organisation's or project's subscription is used only while the
-  organisation has exactly one person, so a subscription is never shared between people. Credentials for
-  fallback models' providers are resolved the same way (`fallbackCredentials.ts`).
-- **Automated runs use the same credential.** A run a pulse or a schedule starts is resolved exactly like any
-  other run in its boundary; there is no separate key for automated work.
-- **A conversation's own turns use a key and no login.** hq calls the provider itself, with an API key chosen by the
-  conversation's home: a personal conversation's by the person's, then the organisation's; a project conversation's by
-  the project's, the person's, then the organisation's; a task's thread by the project's, then the organisation's, never
-  a person's (`hq/src/conversations/access/homeAccess.ts`). A Claude login is never used for a turn. The key is read for
-  the turn and not stored with the conversation, which records only whose key it was.
-- **Carried in the dispatch** to the site, which keeps them in memory for the turn and stores none of them.
+- **Providers hold the keys, in hq**, encrypted under `SECRETS_MASTER_KEY`: at most one per vendor for the organisation
+  (`AiProvider` rows), and a person's own Claude subscription as a provider owned by that person. A key is checked with its
+  vendor before it is stored, **written only through one module** (`hq/src/providers/write.ts`) by an organisation admin, the
+  machine admin or Agenthix Cloud's controller, and **never returned by any read**: only its last four characters. The only
+  way to a key is the store's `credentialOf`, for hq's own calls and for building a run's provider descriptor. Neither a
+  project nor an agent holds a key, and hq reads none from its environment. A Claude subscription is a login rather than a
+  key, and needs the person to have accepted Anthropic's terms.
+- **Chosen per call** by the resolver ([model-resolution.md](model-resolution.md)), not by whoever holds a credential: it
+  picks the model via a provider, and the provider is what is presented. A person's login is offered only for work in
+  their own place and goes only to a run whose runner is that person, into their own harness home
+  ([ADR-0105](../adr/adr-0105-a-run-uses-the-login-of-the-person-it-is-for.md)); a task's run in a shared project runs as
+  the project in a shared home, so it can never be given one.
+- **Automated runs use the same rule.** A run a pulse or a schedule starts is resolved exactly like any other run in its
+  place; there is no separate key for automated work.
+- **A conversation's own turns use a key and no login.** hq calls the provider itself with the organisation's key for the
+  model the resolver chose. A Claude login is never used for a turn. The key is read for the turn and not stored with the
+  conversation, which records only which provider it talked through.
+- **Carried in the dispatch** to the site as a provider descriptor ([control-channel.md](control-channel.md#dispatch-how-work-reaches-a-site)),
+  which keeps it in memory for the run and stores none of it.
 - **Never in the container**, except a subscription's login: see [the model relay](sites/model-relay.md).
 - **A refreshed login comes back.** Claude Code refreshes a subscription's login in the harness home, and
-  the site reports the new one with the `site.credentialRefreshed` event. hq accepts it only for the person
-  whose storage that site holds, only if it is newer, and only to update an existing credential
-  (`hq/src/sites/credentialRefresh.ts`). This is the one piece of credential data a site writes back
+  the site reports the new one with the `site.credentialRefreshed` event. hq accepts it only against a grant it made when it
+  handed that login to that site for that run, only if it is newer than what is stored, and only to update an existing
+  login (`hq/src/sites/subscriptionGrants.ts`). This is the one piece of credential data a site writes back
   to hq; separately, `site.credentialHealth` reports, with no secret in it, that a login has stopped
   working.
 - **No person's outside accounts.** A run never loads accounts a person connected to a vendor outside
@@ -464,7 +464,7 @@ No long-lived git secret is ever in the container.
 
 | Where | What | How |
 |---|---|---|
-| hq database | The signing key's private half, provider keys, model credentials, the GitHub App's keys | Encrypted with AES-256-GCM under `SECRETS_MASTER_KEY` (`hq/src/server/crypto/secretCrypto.ts`) |
+| hq database | The signing key's private half, provider keys and subscription logins, the GitHub App's keys | Encrypted with AES-256-GCM under `SECRETS_MASTER_KEY` (`hq/src/server/crypto/secretCrypto.ts`) |
 | hq database | Sites' and host services' machine credentials, the pairing secret, the console credential, one-time codes' lookups, invite and mobile tokens | SHA-256 hash only; never read back |
 | site database | The machine credential | Encrypted under the site's own `SECRETS_MASTER_KEY` |
 | site memory | Run capabilities; platform and relay tokens; the one-use tickets a Claude process trades for its relay token ([model relay](sites/model-relay.md#relay-tokens)); the turn's provider API keys | Never written to disk; lost on restart |

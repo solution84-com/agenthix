@@ -66,7 +66,9 @@ export type Verdict = {
  * `before` is the committed snapshot; `now` what the code declares; `previousMajor` what the code kept for peers one
  * major behind declares, if any.
  */
-export function judge(before: Snapshot, now: Snapshot, previousMajor: Snapshot | null = null): Verdict {
+export function judge(
+  before: Snapshot, now: Snapshot, previousMajor: Snapshot | null = null, methodMaps: ReadonlySet<string> = new Set(),
+): Verdict {
   const name = now.connection
   const problems: string[] = []
   const was = parseProtocolVersion(before.version)
@@ -74,7 +76,7 @@ export function judge(before: Snapshot, now: Snapshot, previousMajor: Snapshot |
   if (!was || !is) {
     return { connection: name, changes: [], needed: 'none', problems: [`${name}: the version must be major.minor (snapshot ${before.version}, code ${now.version})`] }
   }
-  const changes = compareSnapshots(before, now)
+  const changes = compareSnapshots(before, now, methodMaps)
   const needed = levelOf(changes)
   const v = (p: ProtocolVersion) => `${p.major}.${p.minor}`
 

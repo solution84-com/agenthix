@@ -10,9 +10,11 @@ task in a project.
 
 ## 1. Create a project
 
-1. Select **Projects** in the side bar, then **New project**.
+1. Select **Projects** in the side bar, then **New project**. As an organisation administrator, choose **For the
+   organisation**; **Just for you** makes a [personal project](../projects/projects.md#personal-projects) instead.
 2. Give it a **Project Name**. Agenthix suggests a **Key** from it, two to six capital letters that start every
-   task's number, such as `WEB-1`. Add a **Description** if you like.
+   task's number, such as `WEB-1`. Add a **Description** if you like. When the organisation has more than one billing profile, **AI cost billed to**
+   chooses whose cost it is: see [Billing profiles and usage](../your-tools/billing-and-usage.md).
 3. Select **Create**, then open your project from the **Projects** screen.
 
 ![The New Project dialog, with a name, a key and a description](screenshot:new-project)
@@ -38,9 +40,10 @@ To set more at once — a description, a priority, a board — select **More det
 
 ## 4. Run it
 
-A task's runs in a project use the project's model access, then your own API key, then the organisation's — not your
-own Claude login. If you set up Agenthix with a Claude subscription only, open the project's **Settings**, select
-**Add model access** under **Model access**, and add a **Claude subscription** for the project. A Claude subscription is personal: it is your own account, in your name, used through Claude's own runtime. So Agenthix uses it only where the runs are yours alone: your own conversations, and a project's tasks while you are the organisation's only person. Once others join, a project needs an API key. See [Models](../your-tools/models.md), Anthropic's [Consumer Terms of Service](https://www.anthropic.com/legal/consumer-terms) and Claude Code's [legal and compliance page](https://code.claude.com/docs/en/legal-and-compliance).
+A run uses the model the agent is set to, else the organisation's default worker model, as long as the lists that
+apply allow it: the organisation's, the agent's, the project's and yours. A task or routine can name a model of its own
+under **Model**. If no model is working, an organisation administrator adds a provider: see
+[Providers](../your-tools/providers.md) and [Models](../your-tools/models.md).
 
 In the task's **Session**, select **Run**. The task shows **Running** while the agent works, and its **Session**
 shows the run. Select **Open session ›** to follow every step.

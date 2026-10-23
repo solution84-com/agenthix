@@ -195,10 +195,10 @@ As a fleet admin of an organisation whose machine Agenthix Cloud runs, I want to
 
 ### US-337 — Connect my organisation to Agenthix Cloud
 
-As an organisation admin who is also a fleet admin, I want to connect HQ to Agenthix Cloud from the Fleet Console, checking a code on both screens, so that I choose to connect and nothing is shared before I do.
+As an organisation admin, I want to connect HQ to Agenthix Cloud from HQ, checking a code on both screens, and a fleet admin to see where the connection stands in the Fleet Console, so that I choose to connect and nothing is shared before I do.
 
 **Acceptance criteria:**
-- AC-337a: Connect shows a short code and the page to approve it on, waits, and says plainly when the approval was refused, ran out or Cloud did not answer.
-- AC-337b: Disconnect asks first and ends the connection from either side; a fleet admin who is not an organisation admin can see the state but not change it.
+- AC-337a: HQ shows a short code and the page to approve it on while a connection waits, and says plainly when the approval was refused, ran out or Cloud did not answer; the Fleet Console shows that state. *(Changed 2026-10-23)*
+- AC-337b: an organisation admin connects HQ to Agenthix Cloud and disconnects it, from HQ's Providers; a fleet admin who is not one can see the state but not change it. *(Changed 2026-10-23)*
 - AC-337c: through remote access the connection is shown but cannot be changed.
 - AC-337d: on an HQ that Agenthix Cloud runs, Cloud connects it as it sets it up, with no code for me to check, and I cannot disconnect it.

@@ -2,21 +2,19 @@
  * Agenthix Cloud in the Fleet Console (spec §7): the organisation's connection, each fleet admin's own Cloud sign-in,
  * Cloud's sites and fleet admins, remote access and the authenticator code.
  *
- * The organisation's connection is hq's (the connection protocol, core/src/cloud): connecting and disconnecting are
- * asked of hq over the console link, and hq decides who may — a fleet admin who is also an organisation admin — and
- * is the only one that talks to Cloud about it. The rest are scaffolds: a read answers the honest state, which is
+ * The organisation's connection is hq's (the connection protocol, core/src/cloud), made and removed there by an
+ * organisation admin; the Fleet Console only reads its state. The rest are scaffolds: a read answers the honest state, which is
  * that nothing is linked, on or set up; anything that would act, or read through Cloud, is checked and answered "not
  * connected" (409), and nothing else happens.
  *
  * The rule that is already here for when the feature is built: a session that came through the remote tunnel can
- * never turn remote access on or extend it, set up or renew the authenticator code, or connect or disconnect the
- * organisation, so it cannot keep itself open. Turning remote access off is anyone's. The tunnel marks every request
+ * never turn remote access on or extend it, set up or renew the authenticator code, so it cannot keep itself open. Turning remote access off is anyone's. The tunnel marks every request
  * it forwards with `x-remote-tunnel` and removes the header from what a client sends; a client that sets the header
  * itself only gets itself refused, and signing in through it needs a code besides (remoteSignIn.ts).
  */
 import { Router, type Request, type RequestHandler, type Response } from 'express'
 import {
-  AUTHENTICATOR_RECOVERY_CODE_COUNT, configuredCloudUrl, mayTurnOnRemoteAccess, parseCloudBaseUrl, parseCloudConnecting, parseHqCloudState, parseRemoteAccessDuration,
+  AUTHENTICATOR_RECOVERY_CODE_COUNT, configuredCloudUrl, mayTurnOnRemoteAccess, parseCloudBaseUrl, parseHqCloudState, parseRemoteAccessDuration,
   type AuthenticatorView, type CloudView, type HqCloudState, type RemoteAccessOrigin, type RemoteAccessView, type SessionPlace,
 } from '@agenthix/core'
 import { HqCallError } from '../../hq/link'
@@ -24,7 +22,7 @@ import { remoteNameOf } from '../../net/remoteListener'
 import type { ConsoleContext } from '../app'
 import { actorOf } from './fleet'
 import { cloudPlatformRoutes } from './cloudPlatform'
-import { askNewerHq, notUnderstood } from './newerHq'
+import { notUnderstood } from './newerHq'
 
 export const TUNNEL_HEADER = 'x-remote-tunnel'
 
@@ -124,22 +122,10 @@ export function cloudRoutes(ctx: ConsoleContext, authed: RequestHandler): Router
     res.json(view)
   })
 
-  // The organisation's connection: made and removed only on the Fleet Console's machine. hq asks Cloud for it and
-  // answers the code the admin checks on Cloud's page; the screen then reads `GET /cloud` until it is approved.
-  r.post('/cloud/organisation', async (req, res) => {
-    if (refuseFromTunnel(req, res, 'Connecting the organisation to Agenthix Cloud')) return
-    const answer = await askNewerHq(res, () => ctx.link.call('cloud.connect', { byUserId: actorOf(res).userId }))
-    if (answer === undefined) return
-    const connecting = parseCloudConnecting(answer.connecting)
-    if (!connecting) return notUnderstood(res)
-    res.json({ connecting })
-  })
-  r.delete('/cloud/organisation', async (req, res) => {
-    if (refuseFromTunnel(req, res, 'Disconnecting the organisation from Agenthix Cloud')) return
-    const answer = await askNewerHq(res, () => ctx.link.call('cloud.disconnect', { byUserId: actorOf(res).userId }))
-    if (answer === undefined) return
-    if (!answer.disconnected) return notConnected(res)
-    res.json({ disconnected: true })
+  // The organisation's connection is made and removed in hq, by an organisation admin (Manage › Providers); this
+  // screen only reads it. An older screen asking here is told where it moved to.
+  r.all('/cloud/organisation', (_req, res) => {
+    res.status(404).json({ error: 'moved', message: 'Agenthix Cloud is connected and disconnected in HQ, under Manage › Providers, by an organisation admin.' })
   })
 
   // The person's own Cloud sign-in (C6): signing in, signing out, and forgetting the linked account.

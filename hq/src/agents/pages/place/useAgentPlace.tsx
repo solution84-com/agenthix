@@ -5,7 +5,6 @@ import {
 } from 'wasp/client/operations'
 import { Link } from 'react-router'
 import type { Place, PlaceToolGroup } from '../../../places/placeTypes'
-import { modelsForRuntime } from '../../models'
 import type { AgentPlaceView } from '../../agentPlaceQueries'
 import { AgentNowTool } from './AgentNowTool'
 import { AgentProjectsTool } from './AgentProjectsTool'
@@ -16,17 +15,14 @@ import { AgentMemoryTool } from '../../../memory/screen/pages/AgentMemoryTool'
 import { AgentSettingsTool } from './AgentSettingsTool'
 import { nowCount, usageCount } from './agentPlaceCounts'
 import { monthStart } from './usageView'
-
-export function modelLabelOf(runtime: string, model: string): string {
-  return modelsForRuntime(runtime).find(m => m.value === model)?.label ?? model
-}
+import { useAgentModelLine } from '../../useAgentModelLine'
 
 /** An agent's sections after Overview and Conversations (spec §7). */
 const AGENT_SECTION_ORDER = ['now', 'projects', 'runs', 'usage', 'instructions', 'memory', 'settings']
 
 function toolGroups(view: AgentPlaceView, userId: string, extra: { usage: string | undefined; since: string }): PlaceToolGroup[] {
   const { agent } = view
-  const label = (model: string) => modelLabelOf(agent.runtime, model)
+  const label = (model: string) => model
   const now = nowCount(view.now)
   const yourModel = view.yourNarrowing?.model
   return [
@@ -48,7 +44,7 @@ function toolGroups(view: AgentPlaceView, userId: string, extra: { usage: string
       ],
       footer: view.canManage ? (
         <p className="mt-4 text-small">
-          <Link to={`/org/agents/${agent.handle}`} className="font-medium text-accent hover:text-accent-hover">Manage ›</Link>
+          <Link to={`/admin/agents/${agent.handle}`} className="font-medium text-accent hover:text-accent-hover">Manage ›</Link>
         </p>
       ) : undefined,
     },
@@ -67,6 +63,7 @@ export function useAgentPlace(handle: string | undefined) {
   const since = useMemo(() => monthStart(new Date()), [])
   const usage = useQuery(getAgentUsage, { agentId: agentId!, since }, { enabled: !!agentId })
   const view = place.data
+  const modelLine = useAgentModelLine()
   const usageLine = usageCount(usage.data)
 
   const asPlace: Place | undefined = useMemo(() => {
@@ -89,12 +86,12 @@ export function useAgentPlace(handle: string | undefined) {
       facts: [
         { label: 'Role', value: agent.role ?? 'None' },
         { label: 'Handle', value: `@${agent.handle}` },
-        { label: 'Model', value: modelLabelOf(agent.runtime, agent.defaultModel) },
+        { label: 'Models', value: modelLine(agent.id) },
       ],
       toolGroups: toolGroups(view, user.id, { usage: usageLine, since }),
       sectionOrder: AGENT_SECTION_ORDER,
     }
-  }, [view, user, usageLine, since])
+  }, [view, user, usageLine, since, modelLine])
 
   return { view, place: asPlace, isLoading: stub.isLoading || place.isLoading, error: stub.error ?? place.error }
 }

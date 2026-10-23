@@ -22,8 +22,10 @@
  * the container it is started in, that runner's private harness home included.
  * So it runs only in the container of the runner the preview's SESSION runs
  * for, derived from this site's own copy of that session by the rule the runner
- * claim follows: a chat's person, the project for anything else in a project,
- * the owner in a person's own storage. Never another runner's container, and
+ * claim follows: a chat's person, the project for anything else in a project —
+ * except a task in a person's personal project, which ran in that person's
+ * container (hq names them, `personalOwnerId`) — and the owner in a person's
+ * own storage. Never another runner's container, and
  * never a fallback to one: a session this site does not hold, or one that does
  * not work in the location named, is refused.
  *
@@ -82,6 +84,7 @@ const previewStartParams = z
     sessionId: z.string().min(1),
     command: z.string().min(1),
     port: z.number().int().min(1).max(65535),
+    personalOwnerId: z.string().min(1).max(100).optional(),
   })
 
 const previewStopParams = z.object({ previewId: z.string().min(1) })
@@ -183,6 +186,7 @@ async function resolveCwd(loc: PreviewStartParams['location'], method: string): 
 async function resolvePreviewRunner(
   loc: PreviewStartParams['location'],
   sessionId: string,
+  personalOwnerId: string | undefined,
   method: string,
 ): Promise<CapabilityRunner> {
   const session = await prisma.agentSession.findUnique({
@@ -196,13 +200,15 @@ async function resolvePreviewRunner(
   if (!session || !storage || storage.ownerType !== loc.ownerType || storage.ownerId !== loc.ownerId) {
     throw new PreviewError('invalid', `${method} names a session that does not work in that location`)
   }
+  const personalProject = storage.ownerType === 'project' && personalOwnerId ? personalOwnerId : null
   const runner: CapabilityRunner =
     storage.ownerType === 'user' ? { kind: 'person', userId: storage.ownerId }
     : session.sessionType === 'chat' ? { kind: 'person', userId: session.userId }
+    : personalProject ? { kind: 'person', userId: personalProject }
     : { kind: 'project', projectId: storage.ownerId }
   const mismatch = runnerBoundaryMismatch({
     runner,
-    storage: { ownerType: storage.ownerType, ownerId: storage.ownerId },
+    storage: { ownerType: storage.ownerType, ownerId: storage.ownerId, ...(personalProject ? { personalOwnerId: personalProject } : {}) },
     sessionType: session.sessionType,
     invokerUserId: session.userId,
   })
@@ -228,12 +234,12 @@ async function resolvePreviewRunner(
  */
 export async function previewStart(params: unknown, deps: PreviewMethodDeps = realDeps): Promise<PreviewStartResult> {
   const method = PREVIEW_METHODS.start
-  const { location, sessionId, command, port } = parseParams(previewStartParams, params, method)
+  const { location, sessionId, command, port, personalOwnerId } = parseParams(previewStartParams, params, method)
   const previewId = randomUUID()
   let held: string | null = null
   try {
     const cwd = await resolveCwd(location, method)
-    const runner = await resolvePreviewRunner(location, sessionId, method)
+    const runner = await resolvePreviewRunner(location, sessionId, personalOwnerId, method)
     const { container } = await deps.startProcess(
       { previewId, location, runner, cwd, command, port },
       {

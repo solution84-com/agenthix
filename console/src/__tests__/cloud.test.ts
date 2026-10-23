@@ -11,14 +11,14 @@ const TUNNEL = { 'x-remote-tunnel': '1' }
 const ROUTES: [string, string][] = [
   ['GET', '/api/remote-access'], ['POST', '/api/remote-access'], ['DELETE', '/api/remote-access'],
   ['GET', '/api/authenticator'], ['POST', '/api/authenticator'], ['POST', '/api/authenticator/check'], ['POST', '/api/authenticator/recovery-codes'],
-  ['GET', '/api/cloud'], ['POST', '/api/cloud/organisation'], ['DELETE', '/api/cloud/organisation'],
+  ['GET', '/api/cloud'],
   ['POST', '/api/cloud/account/sign-in'], ['DELETE', '/api/cloud/account/sign-in'], ['DELETE', '/api/cloud/account'],
   ['GET', '/api/cloud/sites'], ['GET', '/api/cloud/fleet-admins'],
 ]
 
 /** The ones that would act, or read through Cloud: each says the organisation is not connected. */
 const COMING = ROUTES.filter(([method, path]) =>
-  (method !== 'GET' || path === '/api/cloud/sites' || path === '/api/cloud/fleet-admins') && path !== '/api/cloud/organisation')
+  (method !== 'GET' || path === '/api/cloud/sites' || path === '/api/cloud/fleet-admins'))
 
 const send = (method: string, path: string, auth: object) =>
   h.request(path, { method, body: method === 'POST' ? {} : undefined, ...auth })
@@ -57,11 +57,11 @@ describe('Cloud routes', () => {
     }
   })
 
-  it('a session through the remote tunnel can never turn it on or extend it, set up the code, or connect or disconnect the organisation @SC-1073', async () => {
+  it('a session through the remote tunnel can never turn it on or extend it, or set up the code @SC-1073', async () => {
     const auth = { ...(await h.signIn()), headers: TUNNEL }
     const asks: [string, string, object | undefined][] = [
       ['POST', '/api/remote-access', {}], ['POST', '/api/remote-access', { forMinutes: 30 }], ['POST', '/api/authenticator', {}], ['POST', '/api/authenticator/check', { code: '482175' }],
-      ['POST', '/api/authenticator/recovery-codes', {}], ['POST', '/api/cloud/organisation', {}], ['DELETE', '/api/cloud/organisation', undefined],
+      ['POST', '/api/authenticator/recovery-codes', {}], 
     ]
     for (const [method, path, body] of asks) {
       const res = await h.request(path, { method, body, ...auth })

@@ -13,6 +13,11 @@ vi.mock('wasp/client/auth', () => ({
   logout: vi.fn(),
 }))
 
+vi.mock('wasp/client/operations', () => ({
+  useQuery: () => ({ data: undefined }),
+  getOrgIdentity: 'getOrgIdentity',
+  getUserSettings: 'getUserSettings',
+}))
 vi.mock('@agenthix/ui', () => ({
   Logomark: () => React.createElement('svg', { 'data-testid': 'logomark' }),
   Wordmark: () => React.createElement('svg', { 'data-testid': 'wordmark' }),
@@ -28,6 +33,7 @@ vi.mock('lucide-react', () => ({
   CircleDot: () => null,
   Building2: () => null,
   Settings: () => null,
+  ShieldCheck: () => null,
   ChevronLeft: () => null,
   LogOut: () => null,
   Pin: () => null,

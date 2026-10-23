@@ -19,8 +19,8 @@ const data = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
 vi.mock('wasp/client/operations', () => ({
   useQuery: (q: string) => ({ data: data.value[q], isLoading: false }),
   useAction: () => vi.fn(),
-  createProject: 'createProject', getProjects: 'getProjects', getProducts: 'getProducts', getPrograms: 'getPrograms',
-  getExecutionSites: 'getExecutionSites', getProjectCards: 'getProjectCards', getAllBoards: 'getAllBoards',
+  createProject: 'createProject', createPersonalProject: 'createPersonalProject', getUserSettings: 'getUserSettings', getProjects: 'getProjects', getProducts: 'getProducts', getPrograms: 'getPrograms',
+  getExecutionSites: 'getExecutionSites', getProjectCards: 'getProjectCards', getBillingProfileChoices: 'getBillingProfileChoices', getAllBoards: 'getAllBoards',
   getWorkspacesAcrossPlaces: 'getWorkspacesAcrossPlaces', getRoutinesAcrossProjects: 'getRoutinesAcrossProjects',
   pauseRoutine: 'pauseRoutine', resumeRoutine: 'resumeRoutine',
 }))
@@ -176,5 +176,22 @@ describe('＋ New project ▾ @SC-658', () => {
   it('offers a workspace the places where the person may add one, Chat included', () => {
     open('/projects?new=workspace')
     expect(screen.getByText('new workspace: Chat, Website Redesign')).toBeTruthy()
+  })
+})
+
+describe('Your personal projects @SC-1061', () => {
+  it('groups them apart, marked Only you, and leaves Your space to its own entry', () => {
+    data.value.getProjects = [
+      project('p1', 'WEB', 'Website Redesign'),
+      project('p5', 'TAX', 'Tax return 2026', { personalOwnerId: 'u1', personalSpace: false }),
+      project('p6', 'MY', 'My tasks', { personalOwnerId: 'u1', personalSpace: true }),
+    ]
+    open('/projects')
+    expect(screen.getByRole('heading', { name: 'Your personal projects' })).toBeTruthy()
+    const group = within(screen.getByRole('region', { name: 'Your personal projects' }))
+    expect(group.getAllByText('Tax return 2026').length).toBeGreaterThan(0)
+    expect(group.getByText('Only you')).toBeTruthy()
+    expect(screen.queryByText('My tasks')).toBeNull()
+    expect(screen.getAllByText('Website Redesign').length).toBeGreaterThan(0)
   })
 })

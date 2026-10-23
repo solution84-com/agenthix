@@ -1,11 +1,13 @@
 /**
- * Whether a person can talk to agents in their own Chat (getting-in spec), in
- * place of the global banner's check, against the real test database.
+ * Whether a person can talk to agents in their own Chat, asked of the resolver (models from one place, part 4),
+ * against the real test database.
  */
 process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 7).toString('base64')
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { prisma } from '../../test/db'
 import { createUserWithRole } from '../../test/factories'
+import { createProvider, setOrgDefaults } from '../../routing/__tests__/routingFixtures'
 
 vi.mock('wasp/server', async () => {
   const { prisma } = await import('../../test/db')
@@ -14,42 +16,24 @@ vi.mock('wasp/server', async () => {
 })
 
 import { getMyModelAccess } from '../talkAccess'
-import { orgKey, storeKey, storeSubscription } from './runCredentialFixtures'
 
 const ctx = (user?: { id: string }) => ({ user }) as any
 
-beforeEach(() => vi.stubEnv('HQ_DEV_SHARED_SUBSCRIPTION', ''))
-afterEach(() => vi.unstubAllEnvs())
-
-describe('getMyModelAccess @SC-722', () => {
-  it('says a member cannot talk yet, and that the fix is their own login', async () => {
+describe('getMyModelAccess @SC-722 @SC-1199', () => {
+  it('says nobody can talk while no model provider works, and that the fix is the organisation admins\'', async () => {
     const dana = await createUserWithRole('MEMBER')
-    await expect(getMyModelAccess(undefined, ctx(dana))).resolves.toEqual({ canTalk: false, fix: 'own-login', isAdmin: false })
-  })
-
-  it('points an admin at the organisation\'s model access', async () => {
+    await expect(getMyModelAccess(undefined, ctx(dana))).resolves.toEqual({ canTalk: false, fix: 'org-access', isAdmin: false })
     const avery = await createUserWithRole('ADMIN')
     await expect(getMyModelAccess(undefined, ctx(avery))).resolves.toEqual({ canTalk: false, fix: 'org-access', isAdmin: true })
   })
 
-  it('counts the person\'s own login once its terms are accepted, and their own key', async () => {
+  it('says everyone can talk once a provider works, and no longer when it stops', async () => {
     const dana = await createUserWithRole('MEMBER')
-    await storeSubscription('user', dana.id, 'oauth', { accepted: false })
-    expect((await getMyModelAccess(undefined, ctx(dana))).canTalk).toBe(false)
-
-    const sam = await createUserWithRole('MEMBER')
-    await storeSubscription('user', sam.id)
-    expect((await getMyModelAccess(undefined, ctx(sam))).canTalk).toBe(true)
-
-    const lee = await createUserWithRole('MEMBER')
-    await storeKey('user', lee.id, 'sk-own')
-    expect((await getMyModelAccess(undefined, ctx(lee))).canTalk).toBe(true)
-  })
-
-  it('counts the organisation\'s API key for everyone', async () => {
-    const dana = await createUserWithRole('MEMBER')
-    await orgKey('anthropic', 'sk-org')
+    const provider = await createProvider({ vendor: 'anthropic' })
+    await setOrgDefaults({ conversation: { providerId: provider.id, model: 'claude-sonnet-4-6' } })
     await expect(getMyModelAccess(undefined, ctx(dana))).resolves.toMatchObject({ canTalk: true, fix: null })
+    await prisma.aiProvider.update({ where: { id: provider.id }, data: { state: 'key_refused' } })
+    expect((await getMyModelAccess(undefined, ctx(dana))).canTalk).toBe(false)
   })
 
   it('needs a signed-in person', async () => {

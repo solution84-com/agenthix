@@ -11,7 +11,7 @@
  */
 import { checkProtocolCompatibility, protocolRefusalMessage } from '../protocol/compatibility.js'
 
-export const CLIENT_PROTOCOL_VERSION = '1.0'
+export const CLIENT_PROTOCOL_VERSION = '1.4'
 
 export const CLIENT_PROTOCOL_VERSION_HEADER = 'X-Client-Protocol-Version'
 
@@ -26,7 +26,19 @@ export type HqVersions = {
   /** hq's product version (`0.1.0-alpha.1`), or `dev` for a build made on a machine. */
   release: string
   clientProtocolVersion: string
+  /** Whether HQ is set up yet, so an app says so before sign-in. Absent from an hq before 1.1. */
+  claimState?: HqClaimState
 }
+
+/**
+ * hq's claim state, worked out from its data and never stored:
+ * - `unclaimed`: no account yet; only the link the installer printed opens setup;
+ * - `setting_up`: the first account exists, and setup (its providers, then the organisation) is not finished: that
+ *   account is the only one, and signs in to finish it;
+ * - `set_up`: setup finished; HQ as everyone knows it.
+ */
+export const HQ_CLAIM_STATES = ['unclaimed', 'setting_up', 'set_up'] as const
+export type HqClaimState = (typeof HQ_CLAIM_STATES)[number]
 
 /** Which side must update: HQ, or the app. Always the one behind; the app, when its version cannot be read. */
 export type ClientUpgradeSide = 'hq' | 'client'

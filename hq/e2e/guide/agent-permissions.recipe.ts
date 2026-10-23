@@ -5,7 +5,7 @@ import { capture } from './capture'
 // The preset only changes the draft in the editor; nothing is saved.
 test('agent-permissions', async ({ page }) => {
   await capture(page, {
-    path: '/org/agents/writer',
+    path: '/admin/agents/writer',
     before: async (p) => {
       await p.getByRole('region', { name: 'Permissions', exact: true }).getByRole('button', { name: 'Edit' }).click()
       await p.getByRole('button', { name: 'Safe', exact: true }).click()

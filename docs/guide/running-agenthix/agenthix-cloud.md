@@ -1,6 +1,6 @@
 ---
 title: Agenthix Cloud
-description: What Agenthix Cloud adds to an HQ you run yourself, how a fleet admin connects it, and how people sign in with an Agenthix account.
+description: What Agenthix Cloud adds to an HQ you run yourself, how an organisation admin connects it, and how people sign in with an Agenthix account.
 sidebar:
   order: 10
 ---
@@ -27,17 +27,21 @@ other organisations a person belongs to.
 
 ## Connect HQ to Cloud
 
-Only someone who is both a **fleet admin** and an **organisation admin** can connect or disconnect HQ, because the
-connection belongs to the organisation. It is made on the Fleet Console's machine, not through remote access.
+Only an organisation admin can connect or disconnect HQ, because the connection belongs to the organisation. It is
+made in HQ, not in the Fleet Console, which only shows it.
 
-1. Open the Fleet Console and go to its **HQ** page (see [Open the Fleet Console](index.md#open-the-fleet-console)).
-2. In the **Agenthix Cloud connection** section, select **Connect to Agenthix Cloud**. The page shows a short code.
-   If Cloud is busy, the section says **Not yet** and when to try again.
+1. In HQ, open the menu behind your name and select **Manage**, then **Providers**.
+2. Select **Connect Agenthix Cloud**. HQ shows a short code. If Cloud is not offering AI to your organisation yet, the
+   line reads **Not available yet**.
 3. Select **Approve on Agenthix Cloud**. Cloud's page asks you to sign in and shows the same code. Check that the
    two codes match, then approve.
-4. Back on the **HQ** page, the section reads **Connected** and names the organisation as Cloud knows it.
+4. Back in HQ, the section reads **Agenthix Cloud is connected** and names the organisation as Cloud knows it. The
+   Fleet Console's **HQ** page reads **Connected** too.
 
-To end the connection, select **Disconnect…** in the same section. Nothing on your own machines changes; remote
+During setup the same connection is offered under **Agenthix Cloud**: see [Finish setup](../getting-started/finish-setup.md).
+A machine admin can connect from HQ's machine with `agenthix cloud connect`: see [Commands on a machine](commands.md#agenthix-cloud-and-remote-access).
+
+To end the connection, select **Disconnect…** in the same place. Nothing on your own machines changes; remote
 access to the Fleet Console turns off, the sites Cloud runs leave the fleet, and people who signed in with an Agenthix
 account sign in with their username and password from then on. HQ tells each of them.
 
@@ -45,9 +49,8 @@ Until HQ is connected, it never contacts Cloud. Once connected, it checks in wit
 can tell an HQ that stopped from one that is only quiet, and HQ notices within the hour if the connection was ended on
 Cloud's side.
 
-When Agenthix Cloud runs HQ for you, there is nothing to do: Cloud connects HQ as it sets it up, and the section reads
-**HQ on Agenthix Cloud**, with no **Disconnect**. If it does not, the section offers **Connect to Agenthix Cloud** as
-above.
+When Agenthix Cloud runs HQ for you, there is nothing to do: Cloud connects HQ as it sets it up, and the Fleet Console's
+section reads **HQ on Agenthix Cloud**, with no **Disconnect**. If it does not, connect it in HQ as above.
 
 ## Sign in with an Agenthix account
 

@@ -59,6 +59,9 @@ Times are in the machine's own time zone. `agenthix help` lists the commands, an
 | `hq restore` | Brings back an HQ erased here, within its 30 days |
 | `hq logs [<part>]` | HQ's recent log lines: `hq-server`, `hq-web` and `hq-db`, or one of them. `--lines <n>` shows more or fewer |
 | `hq console-code` | A one-time code to run the Fleet Console on another machine, retiring the current one |
+| `provider add <vendor> [--name <name>] [--address <address>]` | Adds one of the organisation's model or voice providers: `anthropic`, `openai`, `google`, `openrouter`, `openai_compatible`, `assemblyai` or `inworld`. It asks for the key, not shown as you type; from a script, pipe it in. The key is checked with the vendor first. `openai_compatible` needs `--address`. Every organisation admin is told. See [Providers](../your-tools/providers.md#from-a-terminal) |
+| `provider list` | The organisation's providers, what each provides (LLM, STT, TTS), whether it works, and its key's last four characters |
+| `provider remove <vendor> [--yes]` | Removes a provider after asking. Whatever used it falls to another of its type, and the answer says what. Refused when it would leave no model, speech-to-text or text-to-speech provider |
 
 ## The site (on its machine)
 
@@ -87,11 +90,11 @@ On HQ's machine the site goes no further than HQ, so `site erase` and `site hq-a
 
 | Command | What it does |
 |---|---|
-| `cloud connect` | On HQ's machine, connects the organisation to Agenthix Cloud, as **Connect to Agenthix Cloud** in the Fleet Console does. It prints a short code and Cloud's page; an organisation admin approves it there after checking the code matches, and the command says how it ended. You can leave before then: HQ keeps waiting, and running it again says whether it connected. On a machine Cloud runs, Cloud connects HQ itself |
+| `cloud connect` | On HQ's machine, connects the organisation to Agenthix Cloud, as **Connect Agenthix Cloud** under **Manage › Providers** in HQ does. It prints a short code and Cloud's page; an organisation admin approves it there after checking the code matches, and the command says how it ended. You can leave before then: HQ keeps waiting, and running it again says whether it connected. On a machine Cloud runs, Cloud connects HQ itself |
 | `cloud disconnect [--yes]` | On HQ's machine, ends the connection after asking. People who sign in with Agenthix Cloud are told first and use their password from then on; Cloud's sites leave the fleet and remote access turns off. Refused on a machine Cloud runs |
 | `console remote on \| off` | Remote access exists only on a machine Agenthix Cloud runs, and Cloud turns it on, so `on` says so and changes nothing. `off` closes it at once, on the Fleet Console's machine, even when Cloud can't be reached |
 | `console reset-code [--yes] <user>` | On the Fleet Console's machine, beside HQ: forgets that fleet admin's authenticator code and recovery codes, for example after a lost phone. They set up a new one the next time they open the Fleet Console remotely |
 
-These four only check where they run and what you typed; connecting the organisation is done in the Fleet Console,
-not here. See
+These four only check where they run and what you typed; connecting the organisation is done in HQ,
+not in the Fleet Console. See
 [HQ, sites and fleet admins](hq-sites-and-fleet-admins.md#agenthix-cloud-and-remote-access).

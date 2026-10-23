@@ -41,7 +41,7 @@ export function BundlePage() {
     <OrgAdminPage
       area="infrastructure"
       title="Support bundle"
-      trail={[{ label: 'Logs and diagnostics', href: '/org/infrastructure/diagnostics' }]}
+      trail={[{ label: 'Logs and diagnostics', href: '/admin/infrastructure/diagnostics' }]}
       wide
     >
       <OrgAdminHeading title="Support bundle">One file to attach when you ask someone for help. {BRANDING.displayName} sends it nowhere: you decide who gets it.</OrgAdminHeading>

@@ -1,25 +1,38 @@
 ---
 title: Your organisation's page and sign-in
-description: Edit how your organisation is shown, find what needs you, and choose what strangers see before they sign in.
+description: Edit how your organisation is shown, find your way around the admin area, and choose what strangers see before they sign in.
 sidebar:
   order: 3
 ---
 
-**Organisation**, in the menu behind your name at the foot of the side bar, opens your organisation's page in **HQ**, its home in Agenthix. Everyone in the organisation sees its name, picture, cover and the cards under **The workplace**. Administrators see more.
+Open the menu behind your name at the foot of the side bar. Under your organisation's name it has **Overview**, which
+opens your organisation's page in **HQ**, its home in Agenthix, and, for organisation admins, **Manage**, which opens
+the admin area. Under your own name it has **Your settings** and **Sign out**.
 
 ## What the page shows
 
-At the top is the organisation's identity: its name, its @handle, its vision and its mission. Agents read the vision and mission to understand the direction.
+At the top is the organisation's identity: its name, its @handle, its vision and its mission. Agents read the vision and mission to understand the direction. Administrators also have **Edit** and **Manage** here.
 
-![The Organisation page: its identity, what needs attention, today's numbers and where it runs](screenshot:organisation-page)
+![The Organisation page: its identity and the workplace](screenshot:organisation-page)
 
-Below it, for administrators:
+Everyone sees **The workplace**: a card each for **People** (which only administrators can open), **Agents**, **Teams**, **Products**, **Programs** and **Library**. **Products** and **Programs** group projects: see [Filing projects under products and programmes](../projects/projects.md#filing-projects-under-products-and-programmes).
 
-- **Needs attention** lists what an administrator should look at, each with one button: a missing model, a site that is down, invitations nobody has answered, a team the built-in agent proposed. An item clears when it is handled.
-- **Today** shows **Running now**, **Runs**, **Tasks** and **Spend** for the month, which is an estimate.
-- **Where it runs** has a card for each Execution Site, and **＋ Connect a site**. An **Execution Site** is a machine that runs agents: see [Add, move or remove a site](../running-agenthix/add-a-site.md).
+## The admin area
 
-Everyone sees **The workplace**: a card each for **People** (which only administrators can open), **Agents**, **Teams**, **Products**, **Programs** and **Library**. **Products** and **Programs** group projects: see [Filing projects under products and programmes](../projects/projects.md#filing-projects-under-products-and-programmes). Administrators last see **Settings**, which opens **Organisation › Settings**.
+**Manage** opens the admin area, where organisation admins look after the organisation. Its menu down the left has
+six groups, and **Back to** your organisation's name returns to its page. Anyone else who reaches the address is told
+it is for admins.
+
+| Group | What it holds |
+|---|---|
+| **Overview** | **Needs attention**, what an administrator should look at, each with one button: a missing model, a site that is down, invitations nobody has answered, a team the built-in agent proposed. Then the count of people, agents and projects, and **Today**: **Running now**, **Runs**, **Tasks** and **Spend** for the month, an estimate |
+| **People** | **People and invitations**, and **Teams**: see [Invite your people](invite-people.md) and [Teams](teams.md) |
+| **Agents** | Every agent, and each one's page: see [Create an agent](../agents/create-an-agent.md) |
+| **Models and billing** | **Providers**, **Models**, **Billing profiles** and **Usage**: see [Providers](../your-tools/providers.md), [Models](../your-tools/models.md) and [Billing profiles and usage](../your-tools/billing-and-usage.md) |
+| **Settings** | **General** (the sign-in page, below, and uploaded files), **GitHub**, **Automation**, **Runs**, **Memory** and **Tool risk rules** |
+| **Where work runs** | **Sites**, the Execution Sites and how each is doing; **Sites for projects**, which sites new projects can be placed on; and **Infrastructure**: HQ itself, its sites and storage |
+
+An **Execution Site** is a machine that runs agents: see [Add, move or remove a site](../running-agenthix/add-a-site.md).
 
 ## Change the identity
 
@@ -33,7 +46,7 @@ Select **Change** on the picture, or **Change cover** on the cover, to upload an
 
 Anyone who reaches HQ's address sees its sign-in page before they have an account. You choose how much of the organisation they see.
 
-1. Open **Organisation › Settings**.
+1. Open **Manage**, then **Settings**, then **General**.
 2. Under **Sign-in page**, choose one:
 
    | Choice | What strangers see |

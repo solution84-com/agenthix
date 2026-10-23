@@ -5,7 +5,7 @@ import { ExternalLink, CheckCircle2, AppWindow, Loader2, Unplug } from 'lucide-r
 import { OrgAdminHeading, OrgAdminPage } from '../../org/pages/OrgAdminPage'
 
 /**
- * Organisation › Infrastructure › GitHub App: registering the App — one per
+ * Manage organisation › Infrastructure › GitHub App: registering the App — one per
  * HQ, tied to its address — and removing it. Installing it on the
  * organisation's accounts is Organisation › Settings › GitHub.
  */
@@ -71,7 +71,7 @@ function Registration() {
         </div>
         <p className="text-small text-text-secondary">
           Install it on the organisation's accounts under{' '}
-          <Link to="/org/settings/github" className="text-accent hover:text-accent-hover">Organisation › Settings › GitHub</Link>.
+          <Link to="/admin/settings/github" className="text-accent hover:text-accent-hover">Manage organisation › Settings › GitHub</Link>.
         </p>
         <div className="flex items-center gap-2 pt-1 border-t border-border">
           {error && <span className="text-small text-danger flex-1">{error}</span>}

@@ -28,6 +28,7 @@ export const CLOUD_ERROR_STATUS: Readonly<Record<CloudConnectErrorCode | CloudBe
   invalid_grant: 400,
   invalid_request: 400,
   unsupported_grant_type: 400,
+  invalid_scope: 400,
   invalid_client: 401,
   invalid_token: 401,
   not_found: 404,

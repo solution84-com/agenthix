@@ -13,6 +13,7 @@ import type { AgentSession } from '@prisma/client'
 import { isConversationClosed, isHarnessStateLost, closedBecause } from '../../../shared/closedConversation'
 import * as dispatchService from '../../../agents/dispatchService'
 import { toSeed } from '../../../agents/dispatchPayloads'
+import { chooseBoundaryRun } from '../../../agents/runModel'
 import * as siteRuntimeStore from '../../../sessions/siteRuntimeStore'
 import { Logger } from '../../../server/utils/logger'
 import type { SharedBoundary } from '../../contract'
@@ -90,11 +91,15 @@ async function createWorker(slot: Slot, agent: { id: string; runtime: string | n
 /** The person's worker in this boundary for the conversation, made when there is none. */
 export async function standingWorker(
   slot: Slot,
-  agent: { id: string; runtime: string },
+  agent: { id: string },
   title: string,
 ): Promise<AgentSession> {
   const existing = await findWorker(slot)
-  if (!existing) return createWorker(slot, agent, title, 0)
+  if (!existing) {
+    // A new worker starts on the runtime the resolved model runs on (models from one place, part 4).
+    const { runtime } = await chooseBoundaryRun(slot.boundary, agent.id, slot.personId)
+    return createWorker(slot, { id: agent.id, runtime }, title, 0)
+  }
   return isHarnessStateLost(existing) ? freshWorker(existing, slot) : existing
 }
 

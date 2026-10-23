@@ -43,11 +43,13 @@ afterEach(() => {
 })
 
 describe('not connected to Cloud @SC-1077', () => {
-  it('the dashboard offers to connect the organisation, on HQ\'s page, and says remote access waits for it', async () => {
+  it('the dashboard says the organisation is not connected and where to connect it, and that remote access waits for it', async () => {
     fakeServer(signedIn())
     openAt('/fleet')
-    const connect = await screen.findByRole('link', { name: 'Connect Acme Robotics to Agenthix Cloud ↗' })
-    expect(connect.getAttribute('href')).toBe('/hq')
+    const note = await screen.findByRole('link', { name: 'Acme Robotics is not connected to Agenthix Cloud' })
+    expect(note.getAttribute('href')).toBe('/hq')
+    expect(screen.getByText('An organisation admin connects it in HQ, under Manage › Providers.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Connect to Agenthix Cloud/ })).toBeNull()
     expect(screen.getByText('Needs Acme Robotics connected to Agenthix Cloud')).toBeTruthy()
     expect(within(screen.getByRole('region', { name: 'HQ' })).getByText('Not connected')).toBeTruthy()
   })
@@ -92,17 +94,17 @@ describe('not connected to Cloud @SC-1077', () => {
     expect(screen.getByText(/remote access can be turned on or extended only there/)).toBeTruthy()
   })
 
-  it('HQ\'s page connects the organisation only on the machine; through remote access it is read-only', async () => {
-    fakeServer(signedIn({ 'POST /cloud/organisation': NOT_CONNECTED }))
+  it("HQ's page only reads the connection and says it is made in HQ, on the machine or through remote access", async () => {
+    fakeServer(signedIn())
     openAt('/hq')
-    fireEvent.click(await screen.findByRole('button', { name: 'Connect to Agenthix Cloud ↗' }))
-    expect(await screen.findByText('Not connected')).toBeTruthy()
+    expect(await screen.findByText(/done in HQ by an organisation admin/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Connect to Agenthix Cloud/ })).toBeNull()
     cleanup()
 
     fakeServer(signedIn({ 'GET /cloud': { status: 200, body: cloudView({ place: 'throughRemoteAccess' }) } }))
     openAt('/hq')
-    expect(await screen.findByText(/this section is read-only/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Connect to Agenthix Cloud ↗' })).toBeNull()
+    expect(await screen.findByText(/done in HQ by an organisation admin/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Connect to Agenthix Cloud/ })).toBeNull()
   })
 
   it('Your account offers setting up the code, on the machine only, and linking a Cloud account', async () => {

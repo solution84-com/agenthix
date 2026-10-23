@@ -3,7 +3,6 @@ import { PanelHeaderContent, ViewHeaderRow } from '../primitives/ViewHeaderSlot'
 import { NewTaskRow } from '../tasks/NewTaskRow'
 import { TASK_BUTTON, TASK_BUTTON_PRIMARY } from '../tasks/TasksToolParts'
 import { comingUpLine, nowItemLine, sinceText, tasksLine, whenText } from './agentNowLines'
-import { ProjectAgentInThisProject } from './ProjectAgentInThisProject'
 import { ProjectAgentInstructions } from './ProjectAgentInstructions'
 import { LinkButton, Section, type RenderAgentAvatar } from './ProjectAgentParts'
 import type { PlaceInstructionsData, ProjectAgentDetailData, RecentRunData } from './projectAgentTypes'
@@ -14,7 +13,6 @@ export interface ProjectAgentViewProps {
   now: Date
   renderAvatar: RenderAgentAvatar
   profileOf?: (agentId: string, children: ReactNode) => ReactNode
-  modelLabel: (id: string, runtime: string) => string
   /** Absent where the person may not start a conversation. */
   onStartConversation?: () => void
   /** Absent where the person may not add a task. */
@@ -31,8 +29,6 @@ export interface ProjectAgentViewProps {
   permissionsHere?: ReactNode
   /** The part of the agent to scroll to on opening: `&focus=permissions` or `&focus=tasks`. */
   focus?: string | null
-  /** Present for the project's admins. */
-  onEdit?: () => void
   onRemove?: () => void
   /** Names of the teams that bring the agent here when it is here only through them: it is removed through the team (adr-0103). */
   onlyThroughTeams?: string[]
@@ -107,7 +103,6 @@ export function ProjectAgentView(p: ProjectAgentViewProps) {
         </Section>
       </div>
 
-      <ProjectAgentInThisProject detail={detail} modelLabel={p.modelLabel} onEdit={detail.canManage ? p.onEdit : undefined} />
       {p.permissionsHere !== undefined && <div ref={permissionsRef} className="scroll-mt-12 px-4 pt-6">{p.permissionsHere}</div>}
       <ProjectAgentInstructions agentName={agent.name} instructions={p.instructions} onOpenFile={p.onOpenFile} />
 

@@ -8,23 +8,29 @@
  * session's location fields never change, so renewal re-derives the same
  * runner; `renewCapability` checks that it did.
  */
-import { runnerBoundaryMismatch, type CapabilityRunner, type LocationRef } from '@agenthix/core'
+import { runnerBoundaryMismatch, type CapabilityRunner, type RunStorage } from '@agenthix/core'
 import type { SessionLocationFields } from '../../storage/primaryLocationService'
 
 export function resolveRunner(
   session: SessionLocationFields & { id: string },
-  primaryLoc: LocationRef,
+  /** Where the run works, marked with its person when it is a personal project's own storage. */
+  storage: RunStorage,
+  /** Whose authority the run carries (`runBoundary`): a person when the task is in one of their personal projects. */
+  boundary?: { type: 'project' | 'user'; id: string } | null,
 ): CapabilityRunner {
   const runner: CapabilityRunner =
-    primaryLoc.ownerType === 'user' ? { kind: 'person', userId: primaryLoc.ownerId }
+    storage.ownerType === 'user' ? { kind: 'person', userId: storage.ownerId }
     : session.sessionType === 'chat' ? { kind: 'person', userId: session.userId }
-    : { kind: 'project', projectId: primaryLoc.ownerId }
+    // A task in a personal project works in the project's own storage and runs as its person.
+    : boundary?.type === 'user' ? { kind: 'person', userId: boundary.id }
+    : { kind: 'project', projectId: storage.ownerId }
 
   // The site refuses a runner that does not fit the boundary; refusing here
-  // too means hq never signs one, rather than dispatching a run that fails.
+  // too means hq never signs one, rather than dispatching a run that fails. A
+  // person runner for a task passes only in that person's own personal project.
   const mismatch = runnerBoundaryMismatch({
     runner,
-    storage: { ownerType: primaryLoc.ownerType, ownerId: primaryLoc.ownerId },
+    storage,
     sessionType: session.sessionType,
     invokerUserId: session.userId,
   })

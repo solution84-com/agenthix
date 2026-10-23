@@ -1,12 +1,47 @@
 import { InworldTTS } from '@inworld/tts'
 import type { TtsAdapter, TTSConfig, Voice, WordTiming } from './ttsAdapter'
+import { accentOf } from './voiceAccent'
 import { Logger } from '../server/utils/logger'
 
 const logger = new Logger('Voice')
 
 export const INWORLD_TTS_URL = 'https://api.inworld.ai/tts/v1/voice'
 export const INWORLD_TTS_STREAM_URL = 'https://api.inworld.ai/tts/v1/voice:stream'
-export const INWORLD_VOICES_URL = 'https://api.inworld.ai/tts/v1/voices'
+export const INWORLD_VOICES_URL = 'https://api.inworld.ai/voices/v1/voices'
+
+const VOICES_PAGE_SIZE = 500
+const MAX_VOICE_PAGES = 20
+
+type ApiVoice = {
+  voiceId: string
+  displayName?: string
+  description?: string
+  languageCode?: string
+  gender?: string
+  ageGroup?: string
+  categories?: string[]
+  tags?: string[]
+  source?: string
+}
+
+function voiceOf(v: ApiVoice): Voice {
+  const languageCode = v.languageCode ?? ''
+  const source = v.source ?? ''
+  return {
+    voiceId: v.voiceId,
+    displayName: v.displayName || v.voiceId,
+    description: v.description ?? '',
+    languageCode,
+    accent: accentOf(languageCode),
+    gender: v.gender ?? '',
+    ageGroup: v.ageGroup ?? '',
+    categories: v.categories ?? [],
+    tags: v.tags ?? [],
+    source,
+    // Community voices are not listed unless asked for, so a voice that is not Inworld's own is the workspace's.
+    isCustom: source !== '' && source !== 'SYSTEM',
+  }
+}
 
 export class InworldTtsAdapter implements TtsAdapter {
   async synthesize(text: string, config: TTSConfig): Promise<Buffer> {
@@ -58,32 +93,20 @@ export class InworldTtsAdapter implements TtsAdapter {
   }
 
   async listVoices(apiKey: string): Promise<Voice[]> {
-    const response = await fetch(INWORLD_VOICES_URL, {
-      headers: { Authorization: `Basic ${apiKey}` },
-    })
-
-    if (!response.ok) {
-      throw new Error(`Inworld listVoices failed: ${response.status} ${response.statusText}`)
+    const byId = new Map<string, Voice>()
+    let pageToken = ''
+    for (let page = 0; page < MAX_VOICE_PAGES; page++) {
+      const url = `${INWORLD_VOICES_URL}?pageSize=${VOICES_PAGE_SIZE}${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`
+      const response = await fetch(url, { headers: { Authorization: `Basic ${apiKey}` } })
+      if (!response.ok) {
+        throw new Error(`Inworld listVoices failed: ${response.status} ${response.statusText}`)
+      }
+      const data = await response.json() as { voices?: ApiVoice[]; nextPageToken?: string }
+      for (const v of data.voices ?? []) if (v.voiceId) byId.set(v.voiceId, voiceOf(v))
+      pageToken = data.nextPageToken ?? ''
+      if (!pageToken) break
     }
-
-    const data = await response.json() as {
-      voices: Array<{
-        voiceId: string
-        displayName: string
-        description: string
-        languages: string[]
-        tags: string[]
-        isCustom: boolean
-      }>
-    }
-    return data.voices.map(v => ({
-      voiceId: v.voiceId,
-      displayName: v.displayName,
-      description: v.description ?? '',
-      languages: v.languages ?? [],
-      tags: v.tags ?? [],
-      isCustom: v.isCustom ?? false,
-    }))
+    return [...byId.values()]
   }
 }
 

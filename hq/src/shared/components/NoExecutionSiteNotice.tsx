@@ -29,7 +29,7 @@ export function NoExecutionSiteNotice({ className }: { className?: string }) {
       {mySettings && (
         <p className="mt-1.5 text-small text-text-secondary">
           {mySettings.role === 'ADMIN' ? (
-            <Link to="/org/settings/where-work-runs" className="text-accent hover:underline">Where work runs</Link>
+            <Link to="/admin/where-work-runs" className="text-accent hover:underline">Where work runs</Link>
           ) : (
             'Ask a fleet admin to add one in the Fleet Console.'
           )}

@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useQuery, createProject, getProjects, getProducts, getPrograms, getExecutionSites, getProjectCards, getWorkspacesAcrossPlaces } from 'wasp/client/operations'
+import { useQuery, createProject, getProjects, getUserSettings, getProducts, getPrograms, getExecutionSites, getProjectCards, getWorkspacesAcrossPlaces, getBillingProfileChoices } from 'wasp/client/operations'
 import { CreateProjectModal } from '@agenthix/ui/projects'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { NoExecutionSiteNotice, useNoExecutionSite } from '../../shared/components/NoExecutionSiteNotice'
 import type { WorkspacesAcrossPlaces } from '../../storage/workspacesAcrossPlaces'
 import { BoardsAcrossView } from '../screen/BoardsAcrossView'
 import { NewIntoPlace, type NewPlace } from '../screen/NewIntoPlace'
+import { NewProjectDialog } from '../screen/NewProjectDialog'
 import { NewProjectMenu } from '../screen/NewProjectMenu'
 import { ProjectCardsView, type ProjectRow } from '../screen/ProjectCardsView'
 import { RoutinesAcrossView } from '../screen/RoutinesAcrossView'
@@ -16,7 +17,7 @@ type Site = { id: string; siteId: string; label: string; status: string; isDefau
 
 /** Where a board or routine may be added: the projects the person works in, their own Chat among them (a Viewer adds nothing). */
 function boardPlaces(projects: ProjectRow[]): NewPlace[] {
-  return projects.filter(p => p.isMember && p.myRole !== 'VIEWER').map(p => p.personalOwnerId
+  return projects.filter(p => p.isMember && p.myRole !== 'VIEWER').map(p => p.personalSpace
     ? { id: p.id, value: CHAT_PLACE, name: 'Chat', key: null, siteLabel: null }
     : { id: p.id, value: p.key, name: p.name, key: p.key, siteLabel: null })
 }
@@ -42,10 +43,14 @@ export function ProjectsPage() {
   const { data: products } = useQuery(getProducts)
   const { data: programs } = useQuery(getPrograms)
   const { data: executionSites } = useQuery(getExecutionSites)
+  const { data: billingChoices } = useQuery(getBillingProfileChoices)
   const { data: cardLines } = useQuery(getProjectCards)
   const { screen, startCreating } = useProjectsScreenUrl()
   const across = useQuery(getWorkspacesAcrossPlaces, undefined, { enabled: screen.creating === 'workspace' })
   const noSite = useNoExecutionSite()
+  const { data: mySettings } = useQuery(getUserSettings)
+  const isOrgAdmin = (mySettings as { role?: string } | undefined)?.role === 'ADMIN'
+  const [showNew, setShowNew] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
 
   const projects: ProjectRow[] = projectData ?? []
@@ -71,7 +76,7 @@ export function ProjectsPage() {
       action={
         <NewProjectMenu
           noSite={noSite}
-          onNewProject={() => setShowCreate(true)}
+          onNewProject={() => setShowNew(true)}
           onNewBoard={() => startCreating('board')}
           onNewWorkspace={() => startCreating('workspace')}
           onNewRoutine={() => startCreating('routine')}
@@ -103,6 +108,12 @@ export function ProjectsPage() {
         )}
       </div>
 
+      <NewProjectDialog
+        open={showNew}
+        isOrgAdmin={isOrgAdmin}
+        onClose={() => setShowNew(false)}
+        onOrganisationProject={() => setShowCreate(true)}
+      />
       <CreateProjectModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
@@ -111,6 +122,7 @@ export function ProjectsPage() {
         products={((products ?? []) as { id: string; name: string }[]).map(p => ({ id: p.id, name: p.name }))}
         programs={((programs ?? []) as { id: string; name: string }[]).map(p => ({ id: p.id, name: p.name }))}
         existingKeys={projects.map(p => p.key).filter(Boolean)}
+        billingProfiles={billingChoices ?? []}
         actions={{
           createProject: async (input) => {
             const result = await createProject(input)

@@ -36,10 +36,10 @@ HQ's host, such as `files.agenthix.example.com`. Point that name at the machine 
 `files.` in front of, such as `http://192.168.1.20:4100`, has none, and HQ then offers uploaded files only as
 downloads.
 
-Check what HQ has under **Organisation › Infrastructure › HQ**, in **Address and environment**. It shows the
+Check what HQ has under **Manage › Infrastructure › HQ**, in **Address and environment**. It shows the
 address and whether each setting is set, never the value.
 
-![Organisation › Infrastructure, with HQ, Execution Sites, Storage and More](screenshot:infrastructure)
+![Manage › Infrastructure, with HQ, Execution Sites, Storage and More](screenshot:infrastructure)
 
 ## Change HQ's address
 

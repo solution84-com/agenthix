@@ -35,6 +35,7 @@ export async function insertRound(tx: Tx, routine: Routine, at: Date) {
       description: routine.description,
       priority: routine.priority,
       labels: labelsOf(routine.labels),
+      modelChoice: routine.modelChoice,
       projectId: routine.projectId,
       number: (agg._max.number ?? 0) + 1,
       ...place,

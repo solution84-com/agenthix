@@ -1,10 +1,9 @@
 /**
  * The model a task's run takes, the runtime that can be given it, and the session it runs in.
  *
- * A task's run is light work: whatever started it — a person's Run, a conversation, a schedule or the pulse — it
- * takes its boundary's light-work model from the effective policy, on the agent's runtime when it offers that model,
- * else on OpenCode (`workChoice`), as a conversation's worker does. A boundary's override of the agent's model only
- * narrows (agentOverrideService.ts), so where one applies the run keeps it.
+ * A task's run is work: whatever started it — a person's Run, a conversation, a schedule or the pulse — it takes the
+ * model the resolver gives work in its boundary (runModel.ts): the agent's default worker model, else the
+ * organisation's, on the runtime that model and its provider follow.
  *
  * A session keeps the runtime it began on (adr-0078), and a task has one session (`AgentSession.taskId` is unique on
  * hq and on the site). So a run that needs another runtime than the task's session has replaces that session, as a
@@ -15,10 +14,9 @@
 import { prisma } from 'wasp/server'
 import type { Agent, AgentSession } from '@prisma/client'
 import type { RunRow } from '@agenthix/core'
-import type { EffectiveModelPolicy } from '../conversations/contract'
-import { resolveModelPolicy } from '../model-policy/modelPolicyService'
-import { workChoice } from '../model-policy/workChoice'
-import { getAgentOverride, modelOverrideRefusal, type OverrideBoundary, type PackageModel } from './overrides/agentOverrideService'
+import type { OverrideBoundary } from './overrides/agentOverrideService'
+import { chooseBoundaryRun, type RunChoice } from './runModel'
+import { parseChoiceValue } from '../conversations/access/talkingModel'
 import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
 import { expirePreviewsForSessions } from '../preview/previewRegistry'
 import { takePausedMark } from '../sites/scheduled/runHold'
@@ -27,17 +25,13 @@ import { Logger } from '../server/utils/logger'
 
 const logger = new Logger('DispatchService')
 
-export type TaskRunChoice = { model: string; runtime: string }
+export type TaskRunChoice = RunChoice
 
-export function taskRunChoice(policy: EffectiveModelPolicy, agent: PackageModel, overrideModel: string | null): TaskRunChoice {
-  if (overrideModel && modelOverrideRefusal(agent, overrideModel) === null) return { model: overrideModel, runtime: agent.runtime }
-  const choice = workChoice(policy, 'light', agent.runtime)
-  return { model: choice.model ?? agent.defaultModel, runtime: choice.runtime }
-}
-
-export async function chooseTaskRun(boundary: OverrideBoundary, agent: Agent): Promise<TaskRunChoice> {
-  const [override, policy] = await Promise.all([getAgentOverride(boundary, agent.id), resolveModelPolicy(boundary, agent)])
-  return taskRunChoice(policy, agent, override?.model ?? null)
+/** `modelChoice` is the model the task names (a picker value), which the resolver takes as the pick. */
+export function chooseTaskRun(
+  boundary: OverrideBoundary, agent: Pick<Agent, 'id'>, personId: string | null = null, modelChoice: string | null = null,
+): Promise<TaskRunChoice> {
+  return chooseBoundaryRun(boundary, agent.id, personId, parseChoiceValue(modelChoice))
 }
 
 type NewestRun = Pick<RunRow, 'status' | 'manifestStatus' | 'pendingManifest'> | null
@@ -73,11 +67,11 @@ async function replaceTaskSession(taskId: string, session: AgentSession): Promis
  * gives a session it keeps on the run's runtime the run's model — the credential is resolved for the session's model.
  * Returns whether the last run had paused.
  */
-export async function readyTaskSession(taskId: string, agent: Agent, choice: TaskRunChoice): Promise<{ paused: boolean }> {
+export async function readyTaskSession(taskId: string, choice: TaskRunChoice): Promise<{ paused: boolean }> {
   const existing = await prisma.agentSession.findUnique({ where: { taskId } })
   if (!existing) return { paused: false }
   const { session, paused } = await takePausedMark(existing)
-  const sessionRuntime = session.runtime ?? agent.runtime
+  const sessionRuntime = session.runtime ?? choice.runtime
   if (sessionRuntime !== choice.runtime) {
     const newestRun = paused ? null : await newestRunOf(taskId, session.id)
     if (!keepsTaskSession({ sessionRuntime, neededRuntime: choice.runtime, paused, newestRun })) {
@@ -86,6 +80,6 @@ export async function readyTaskSession(taskId: string, agent: Agent, choice: Tas
     }
     return { paused }
   }
-  if (session.model !== choice.model) await prisma.agentSession.update({ where: { id: session.id }, data: { model: choice.model } })
+  if (choice.model && session.model !== choice.model) await prisma.agentSession.update({ where: { id: session.id }, data: { model: choice.model } })
   return { paused }
 }

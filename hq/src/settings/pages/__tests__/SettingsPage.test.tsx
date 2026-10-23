@@ -20,12 +20,10 @@ vi.mock('../../../shared/layouts/AppLayout', () => ({
 vi.mock('../../../org/pages/people/PersonNameAndPicture', () => ({
   PersonNameAndPicture: ({ person }: { person: { name: string } }) => <div>{person.name}</div>,
 }))
-vi.mock('../../../model-access/pages/ModelAccessSection', () => ({
-  ModelAccessSection: (p: { ownerType: string; ownerId: string }) => <div data-testid="model-logins">{p.ownerType}:{p.ownerId}</div>,
+vi.mock('../../../model-access/pages/ClaudeSubscriptionSection', () => ({
+  ClaudeSubscriptionSection: () => <div data-testid="claude-subscription" />,
 }))
-vi.mock('../../../model-policy/components/ModelPolicyForm', () => ({
-  ModelPolicyForm: (p: { scope: string }) => <div data-testid="models-form">{p.scope}</div>,
-}))
+vi.mock('../../../models-settings/components/OwnList', () => ({ OwnList: () => <div data-testid="own-list" /> }))
 vi.mock('../../../conversations/components/PrimaryAgentSection', () => ({ PrimaryAgentSection: () => <div /> }))
 vi.mock('../TimezoneSection', () => ({ TimezoneSection: () => <div /> }))
 vi.mock('../AppearanceSection', () => ({ AppearanceSection: () => <div /> }))
@@ -53,11 +51,10 @@ describe('Settings is one page of the person’s own', () => {
     expect(screen.getByText('Avery')).toBeTruthy()
     expect(screen.getByText(/^Admin · in Agenthix since/)).toBeTruthy()
     expect(headings()).toEqual([
-      'Profile', 'Appearance', 'Conversations', 'Primary agent', 'Models', 'Your model logins', 'Memory', 'Devices and connections', 'Sign-in',
+      'Profile', 'Appearance', 'Conversations', 'Primary agent', 'Your Claude subscription', 'Which models may run for you', 'Memory', 'Devices and connections', 'Sign-in',
     ])
     expect(screen.getByText('@avery · your sign-in name')).toBeTruthy()
-    expect(screen.getByTestId('models-form').textContent).toBe('user')
-    expect(screen.getByTestId('model-logins').textContent).toBe('user:u1')
+    expect(screen.getByTestId('claude-subscription')).toBeTruthy()
     for (const admin of ['Execution Sites', 'Model Access', 'Automation', 'Git Integration', 'Site']) {
       expect(screen.queryByRole('link', { name: admin })).toBeNull()
     }

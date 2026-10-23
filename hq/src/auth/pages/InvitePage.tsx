@@ -62,7 +62,7 @@ export function InvitePage() {
       return
     }
     // Step 1 was this page's form, so the next step is the second of setup or of onboarding.
-    navigate(read.view.kind === 'first_admin' ? '/setup?step=organisation' : '/onboarding?step=you')
+    navigate(read.view.kind === 'first_admin' ? '/setup' : '/onboarding?step=you')
   }
 
   async function signOutAndContinue() {

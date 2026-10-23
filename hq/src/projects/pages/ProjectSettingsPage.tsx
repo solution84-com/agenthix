@@ -1,14 +1,15 @@
 import { useParams } from 'react-router'
 import { useQuery, getProjectByKey, getProjectMembers, getUserSettings } from 'wasp/client/operations'
 import { useAuth } from 'wasp/client/auth'
-import { ModelPolicyForm } from '../../model-policy/components/ModelPolicyForm'
-import { ModelAccessSection } from '../../model-access/pages/ModelAccessSection'
 import { ProjectRunTimeLimit } from '../../automation/pages/ProjectRunTimeLimit'
+import { ProjectBillingSection } from '../../billing/components/ProjectBillingSection'
+import { OwnList } from '../../models-settings/components/OwnList'
 import { ArchiveFinishedSection } from './ArchiveFinishedSection'
 import { AboutSection } from './settings/AboutSection'
 import { AccessSection } from './settings/AccessSection'
 import { AgentsSection } from './settings/AgentsSection'
 import { DeleteSection } from './settings/DeleteSection'
+import { PersonalAutomation } from './settings/PersonalAutomation'
 import { FilingSection } from './settings/FilingSection'
 import { Section } from './settings/Part'
 import { WhereItRuns } from './settings/WhereItRuns'
@@ -48,8 +49,8 @@ export function ProjectSettingsPage() {
         )}
         {personal && (
           <p className="text-small text-text-muted">
-            This is your personal project. Only you can see it, and its tasks run as you: in your own
-            files, with your own model access and your own agent settings.
+            Only you see this project. Agents work in it as you, in its own files, with your own model
+            access and your own agent settings.
           </p>
         )}
 
@@ -57,6 +58,12 @@ export function ProjectSettingsPage() {
           <AboutSection project={proj} canEdit={rights.editOwn} personal={personal} />
           {!personal && <FilingSection project={proj} canEdit={rights.editFiling} />}
         </Section>
+
+        {personal && (
+          <Section title="Automation">
+            <PersonalAutomation projectId={proj.id} />
+          </Section>
+        )}
 
         {!personal && (
           <Section title="Access">
@@ -76,22 +83,19 @@ export function ProjectSettingsPage() {
           </Section>
         )}
 
-        {!personal && (
+        {!personal && people.some(m => m.userId === authUser?.id && m.role === 'ADMIN') && (
           <Section title="Models">
-            <p className="text-small text-text-muted">
-              Which models this project's work uses. Where it chooses none, the organisation's applies.
+            <OwnList owner="project" ownerId={proj.id}
+              intro={orgName => `Narrows ${orgName}'s list for everyone working in this project, agents included. It never widens it.`} />
+            <p className="mt-3 text-small text-text-muted">
+              The organisation&apos;s conversation and worker defaults, and each agent&apos;s own, apply here. If one is not allowed here, the next allowed is used.
             </p>
-            <ModelPolicyForm scope="project" projectId={proj.id} canEdit={rights.editOwn} />
           </Section>
         )}
 
-        {rights.editOwn && !personal && (
-          <Section title="Model access">
-            <p className="text-small text-text-muted">
-              This project's own API key or Claude login. Every run and task in this project uses it first,
-              before the model access of the person it is for and the organisation's.
-            </p>
-            <ModelAccessSection ownerType="project" ownerId={proj.id} />
+        {!personal && (
+          <Section title="Billing">
+            <ProjectBillingSection projectId={proj.id} />
           </Section>
         )}
 

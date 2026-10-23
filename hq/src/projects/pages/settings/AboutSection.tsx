@@ -5,7 +5,7 @@ import { Part, ReadOnlyValue, TextPart } from './Part'
 import { keyProblem, keyState } from './settingsRights'
 import type { SettingsProject } from './types'
 
-/** Name, key, description and lead: the project's own fields, its admins'. */
+/** Name, key, description and lead: the project's own fields, its admins'. A personal project has no lead. */
 export function AboutSection({ project, canEdit, personal }: { project: SettingsProject; canEdit: boolean; personal: boolean }) {
   const navigate = useNavigate()
   const update = useAction(updateProject)
@@ -13,13 +13,11 @@ export function AboutSection({ project, canEdit, personal }: { project: Settings
 
   return (
     <div className="space-y-4">
-      {!personal && (
-        <TextPart
-          label="Name" id="set-name" value={project.name} canEdit={canEdit}
-          validate={next => (next ? null : 'A project needs a name')}
-          onSave={name => update({ projectId: project.id, name })}
-        />
-      )}
+      <TextPart
+        label="Name" id="set-name" value={project.name} canEdit={canEdit}
+        validate={next => (next ? null : 'A project needs a name')}
+        onSave={name => update({ projectId: project.id, name })}
+      />
       {key.locked ? (
         <Part label="Key" htmlFor="set-key">
           <ReadOnlyValue id="set-key" mono>{project.key}</ReadOnlyValue>

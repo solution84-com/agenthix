@@ -14,7 +14,7 @@ vi.mock('wasp/server', async () => {
 })
 vi.mock('../embedding/embedders', () => import('../../test/fakes/embedders'))
 
-import { REEMBED_BATCH, reembedBatch, reembedProgress, switchEmbeddingModel } from '../reembed'
+import { REEMBED_BATCH, reembedBatch } from '../reembed'
 import { tidyMemory } from '../tidy'
 
 const PROVIDER = 'openai/text-embedding-3-small'
@@ -23,7 +23,6 @@ const now = new Date('2026-10-16T12:00:00Z')
 
 let alice: string
 let scout: string
-let orgId: string
 
 function row(key: string, over: Record<string, unknown> = {}) {
   const title = (over.title as string) ?? key
@@ -37,50 +36,29 @@ function row(key: string, over: Record<string, unknown> = {}) {
 beforeEach(async () => {
   alice = (await createUser()).id
   scout = (await createAgent()).id
-  orgId = (await prisma.org.create({ data: { name: 'Org' } })).id
+  await prisma.org.create({ data: { name: 'Org' } })
 })
 
-describe("switching the organisation's embedding model @SC-988", () => {
-  it('is refused for a model HQ cannot use, or a provider the organisation holds no key for', async () => {
-    await expect(switchEmbeddingModel('anthropic/claude')).rejects.toThrow(/not an embedding model/)
-    await expect(switchEmbeddingModel(PROVIDER)).rejects.toThrow(/no openai key/)
-  })
-
-  it('moves every item in batches, the old vectors serving until the last is done, then makes the new model the organisation\'s', async () => {
-    await prisma.memoryItem.createMany({ data: Array.from({ length: REEMBED_BATCH + 5 }, (_, i) => row(`k${i}`)) })
-    await prisma.org.update({ where: { id: orgId }, data: { memoryEmbeddingNext: PROVIDER } })
-    expect(await reembedProgress()).toEqual({ to: PROVIDER, done: 0, total: REEMBED_BATCH + 5 })
-
-    const embedFor = () => createFakeEmbedder(PROVIDER)
-    expect(await reembedBatch(embedFor)).toEqual({ embedded: REEMBED_BATCH, switched: false })
-    expect((await prisma.org.findUniqueOrThrow({ where: { id: orgId } })).memoryEmbeddingModel).toBe('local')
-    expect(await reembedBatch(embedFor)).toEqual({ embedded: 5, switched: false })
-    expect(await reembedBatch(embedFor)).toEqual({ embedded: 0, switched: true })
-
-    expect(await prisma.org.findUniqueOrThrow({ where: { id: orgId } })).toMatchObject({ memoryEmbeddingModel: PROVIDER, memoryEmbeddingNext: null })
-    expect(await prisma.memoryItem.count({ where: { embeddingModel: PROVIDER } })).toBe(REEMBED_BATCH + 5)
-    expect(await reembedProgress()).toBeNull()
-  })
-
-  it('switching back to the current model stops the move, and the same pass returns moved items', async () => {
-    await prisma.memoryItem.create({ data: row('moved', { embeddingModel: PROVIDER }) })
-    await prisma.org.update({ where: { id: orgId }, data: { memoryEmbeddingNext: PROVIDER } })
-    await switchEmbeddingModel('local')
-    expect((await prisma.org.findUniqueOrThrow({ where: { id: orgId } })).memoryEmbeddingNext).toBeNull()
-    expect(await reembedBatch(() => createFakeEmbedder('local'))).toEqual({ embedded: 1, switched: false })
-    expect(await prisma.memoryItem.findFirstOrThrow()).toMatchObject({ embeddingModel: 'local' })
+describe('the background embed @SC-988', () => {
+  it('moves items embedded in another model, in batches, into the built-in one', async () => {
+    await prisma.memoryItem.createMany({ data: Array.from({ length: REEMBED_BATCH + 5 }, (_, i) => row(`k${i}`, { embeddingModel: PROVIDER })) })
+    const embedFor = () => createFakeEmbedder('local')
+    expect(await reembedBatch(embedFor)).toEqual({ embedded: REEMBED_BATCH })
+    expect(await reembedBatch(embedFor)).toEqual({ embedded: 5 })
+    expect(await reembedBatch(embedFor)).toEqual({ embedded: 0 })
+    expect(await prisma.memoryItem.count({ where: { embeddingModel: 'local' } })).toBe(REEMBED_BATCH + 5)
   })
 
   it('gives a vector to an item written while its model could not embed', async () => {
     await prisma.memoryItem.create({ data: row('waiting', { embedding: [], embeddingModel: null }) })
-    expect(await reembedBatch(() => createFakeEmbedder('local'))).toEqual({ embedded: 1, switched: false })
+    expect(await reembedBatch(() => createFakeEmbedder('local'))).toEqual({ embedded: 1 })
     expect((await prisma.memoryItem.findFirstOrThrow()).embedding).toHaveLength(384)
   })
 
   it('makes no change when the model fails, and tries again on the next pass', async () => {
     await prisma.memoryItem.create({ data: row('waiting', { embedding: [], embeddingModel: null }) })
     const failing = () => ({ model: 'local', dimensions: 384, embed: async () => { throw new Error('offline') } })
-    expect(await reembedBatch(failing)).toEqual({ embedded: 0, switched: false })
+    expect(await reembedBatch(failing)).toEqual({ embedded: 0 })
     expect(await prisma.memoryItem.findFirstOrThrow()).toMatchObject({ embeddingModel: null })
   })
 })

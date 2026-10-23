@@ -25,6 +25,10 @@ person's own sign-in to the vendor's tools on a site, not an access for hq's dir
 
 ## Decision
 
+> ⚠️ **Superseded by adr-0141 — who pays only.** The key order of project, person and organisation is gone: the
+> resolver gives each call a provider (adr-0139) and the ledger costs it to a billing profile, a project's or the
+> organisation's default. Who may read and speak in a conversation, and whose authority a turn acts with, still stand.
+
 **A conversation's home decides who may read and speak in it, and who pays.**
 
 - **A person's space or a project:** the conversation is one person's. Only that person reads and speaks in it, and

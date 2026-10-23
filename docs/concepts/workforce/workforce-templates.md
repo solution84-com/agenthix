@@ -66,7 +66,7 @@ interface AgentSpec {
   name: string
   role: string
   responsibilities: string
-  defaultModel?: string    // falls back to the runtime's default model
+  defaultModel?: string    // deprecated, ignored: the resolver decides the model
   skills?: AgentSkillSpec[] // embedded at apply time → files in the agent's package content
 }
 

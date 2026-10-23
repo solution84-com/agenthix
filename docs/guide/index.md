@@ -16,9 +16,9 @@ use it.
 ## What's in the guide
 
 - **Getting started:** from nothing to an agent finishing its first task.
-- **Bring your people in:** invitations, roles and teams.
+- **Bring your people in:** invitations, roles and teams, and the organisation's admin area.
 - **Get work done in a project:** boards, tasks, and following what agents do.
 - **Shape your agents:** their instructions, memory and permissions, and the Library.
 - **Let agents work on their own:** automation and routines, and the limits on them.
-- **Connect your own tools:** models, Claude Code, voice and GitHub.
+- **Connect your own tools:** providers, models and voice, billing and usage, Claude Code and GitHub.
 - **Run it on a server:** a domain, more machines, backups and upgrades.

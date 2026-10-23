@@ -104,7 +104,7 @@ describe('getTaskRuns — a task-scoped run history read', () => {
 describe('getActivitySession @SC-155 @SC-156', () => {
   it('returns the activity session with agent, transcript, and latest run (@SC-155)', async () => {
     const user = await createUser()
-    const agent = await createAgent({ name: 'Scout', runtime: 'claude-code' })
+    const agent = await createAgent({ name: 'Scout' })
     const session = await createSession({ userId: user.id, agentId: agent.id, title: 'Activity one' })
     siteStore.addTranscript(SITE, session.id, [{ role: 'USER', content: 'hi' }])
     siteStore.addRun(SITE, { id: 'run-older', sessionId: session.id, status: 'COMPLETED', createdAt: '2026-01-01T00:00:00.000Z' })
@@ -192,7 +192,7 @@ describe("a personal project's task session is its person's alone", () => {
     const owner = await createUserWithRole('MEMBER')
     const orgAdmin = await createUserWithRole('ADMIN')
     const agent = await createAgent()
-    const project = await createProject({ accessLevel: 'PRIVATE', personalOwnerId: owner.id })
+    const project = await createProject({ accessLevel: 'PRIVATE', personalOwnerId: owner.id, personalSpace: true })
     // The org admin even holds a member row; it grants nothing on a personal project.
     await prisma.projectMember.create({ data: { projectId: project.id, userId: orgAdmin.id, role: 'ADMIN' } })
     const task = await makeTaskInProject(project.id)

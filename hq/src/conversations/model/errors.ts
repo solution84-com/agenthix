@@ -17,19 +17,19 @@ function reasonFor(kind: ModelErrorKind, provider: ModelProvider, status: number
   const subject = provider === 'openai_compatible' ? 'The key for the model endpoint' : `The ${name} key`
   switch (kind) {
     case 'auth':
-      return `${subject} was refused — check it in Settings → Model access.`
+      return `${subject} was refused — check it in Manage organisation › Providers.`
     case 'rate-limit':
       return `${name} is limiting how fast this can run. Wait a moment and send it again.`
     case 'quota':
-      return `${name} says the account behind this key is out of credit or over its limit — check the account, or choose other access in Settings → Model access.`
+      return `${name} says the account behind this key is out of credit or over its limit — check the account, or choose other access in Manage organisation › Providers.`
     case 'unavailable':
       return `${name} could not be reached${status ? ` (it answered with an error, ${status})` : ''}. Try again in a moment.`
     case 'invalid':
-      return `${name} did not accept the request${status ? ` (${status})` : ''}. If it keeps happening, choose another model in Settings → Model access.`
+      return `${name} did not accept the request${status ? ` (${status})` : ''}. If it keeps happening, choose another model in Manage organisation › Providers.`
     case 'cancelled':
       return 'The reply was stopped.'
     case 'other':
-      return `${name} could not answer. Try again, and if it keeps happening, check Settings → Model access.`
+      return `${name} could not answer. Try again, and if it keeps happening, check Manage organisation › Providers.`
   }
 }
 

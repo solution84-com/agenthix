@@ -4,6 +4,9 @@
 # under a namespace of its own, runs `agenthix install` at this machine's network address over plain http, and
 # walks through HQ in a real browser (hq/e2e/install/): the first admin made, a message sent to a stand-in model
 # (no real model is called), a conversation opened, the Fleet Console opened. Then it removes only what it made.
+# Setup's speech providers cannot be checked with their vendors from a test: the walkthrough answers that call and
+# puts each provider in the install's database from inside its hq-server container (speech-provider.cjs), so no
+# database address or secrets key is read out of the install.
 #
 #   scripts/install-test/run.sh
 #
@@ -138,10 +141,12 @@ tr -s ' \n' ' ' < "$LOGS/install.txt" | grep -q 'Voice and dictation do not work
   || fail 'the install did not say that voice and dictation need https or localhost at this address.'
 LINK="$(grep -Eo 'https?://[^ ]+/invite/[^ ]+' "$LOGS/install.txt" | head -1 || true)"
 [ -n "$LINK" ] || fail 'the install printed no link for the first account.'
+HQ_SERVER="$NS-hq-server"
+docker inspect "$HQ_SERVER" >/dev/null 2>&1 || fail "the install made no container $HQ_SERVER."
 
 say 'Walking through HQ in a browser'
 (cd "$ROOT/hq" && INSTALL_TEST_HQ="$ADDRESS" INSTALL_TEST_LINK="$LINK" INSTALL_TEST_MODEL="$MODEL_URL" \
-  INSTALL_TEST_CONSOLE="http://127.0.0.1:$CONSOLE_PORT" npx playwright test --project install --workers 1 --output "$LOGS/playwright")
+  INSTALL_TEST_HQ_SERVER="$HQ_SERVER" INSTALL_TEST_CONSOLE="http://127.0.0.1:$CONSOLE_PORT" npx playwright test --project install --workers 1 --output "$LOGS/playwright")
 
 replies="$(grep -c 'POST /chat/completions' "$LOGS/model.log" 2>/dev/null || true)"
 echo "The stand-in model answered ${replies:-0} chat requests; no real model was called."

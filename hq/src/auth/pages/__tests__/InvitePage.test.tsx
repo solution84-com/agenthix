@@ -143,7 +143,7 @@ describe('The first-admin link @SC-709', () => {
     fireEvent.change(screen.getByLabelText(/Username/), { target: { value: 'avery' } })
     fireEvent.change(screen.getByLabelText(/Password/), { target: { value: 'a-long-password' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/setup?step=organisation'))
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/setup'))
   })
 })
 
@@ -172,6 +172,33 @@ describe('An invitation that no longer works @SC-718 @SC-717', () => {
     await open({ '/api/auth/validate-invite': refused('already_set_up', 'Already set up', null) })
     expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe("Acme Corp's HQ is already set up")
     expect(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')).toBe('/login')
+  })
+
+  describe('a setup link, by how far setup has got @SC-709 @SC-717', () => {
+    const NO_ORG = { shows: 'nothing', name: null, handle: null, vision: null, avatarUrl: null, coverUrl: null }
+    const as = (claimState: string) => ({ '/api/org/public-identity': { body: { ...NO_ORG, claimState } } })
+
+    it('before the first account, an expired link names the command for a new one and offers no sign-in', async () => {
+      await open({ ...as('unclaimed'), '/api/auth/validate-invite': refused('expired', 'x', null) })
+      expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('This setup link has expired')
+      expect(screen.getByText('agenthix hq invite-admin')).toBeTruthy()
+      expect(screen.queryByRole('link', { name: /Sign in/ })).toBeNull()
+    })
+
+    it('before the first account, a replaced or unknown link says the same', async () => {
+      await open({ ...as('unclaimed'), '/api/auth/validate-invite': refused('revoked', 'x', null) })
+      expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('This setup link was replaced by a newer one')
+      cleanup()
+      await open({ ...as('unclaimed'), '/api/auth/validate-invite': refused('unknown', 'x', null, 404) })
+      expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe("This setup link doesn't work")
+    })
+
+    it('once the first account exists but setup is not finished, a spent link sends the person to sign in', async () => {
+      await open({ ...as('setting_up'), '/api/auth/validate-invite': refused('already_set_up', 'x', null) })
+      expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('This setup link was already used')
+      expect(screen.getByText(/setup carries on where it stopped/)).toBeTruthy()
+      expect(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')).toBe('/login')
+    })
   })
 
   it('has no link to read at all without a key', async () => {

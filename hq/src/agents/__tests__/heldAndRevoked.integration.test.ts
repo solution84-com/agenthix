@@ -77,7 +77,7 @@ describe('drainHeldTasks @SC-340', () => {
     const { here, there } = await twoSites()
     const owner = await createUser()
     await prisma.userStoragePlacement.create({ data: { userId: owner.id, siteId: here.id } })
-    const personal = await createProject({ name: 'Mine', personalOwnerId: owner.id, executionSiteId: null, accessLevel: 'PRIVATE' })
+    const personal = await createProject({ name: 'Mine', personalOwnerId: owner.id, personalSpace: true, executionSiteId: null, accessLevel: 'PRIVATE' })
     const agent = await createAgent()
     const task = await addTask({ project: personal, agent, person: owner }, { ...HELD, runStartedBy: 'pulse' })
 

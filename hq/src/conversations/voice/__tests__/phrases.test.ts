@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { VOICE_SETTINGS } from '../../voiceClient/settings'
 import { phraseClips, fillerPhrases, PHRASE_DIRECTION, storedPhrases, type PhraseClip } from '../phrases'
 
-const voice = { apiKey: 'k', voiceId: 'Ashley', model: 'm' }
+const voice = { apiKey: 'k', voiceId: 'Ashley', model: 'm', providerId: 'p1' }
 const random = () => 0
 const PHRASES = storedPhrases(random).map(p => p.text)
 let dir: string
@@ -73,7 +73,7 @@ describe('the stored phrases', () => {
     expect(directed.map(c => c.text)).toEqual(PHRASES)
     expect(asked.every(t => t.startsWith(`${PHRASE_DIRECTION} `))).toBe(true)
     asked.length = 0
-    await collect(synthesize, { ...voice, model: 'inworld-tts-1.5-mini' })
+    await collect(synthesize, { ...voice, model: 'inworld-tts-2' })
     expect(asked.some(t => t.startsWith('['))).toBe(false)
   })
 

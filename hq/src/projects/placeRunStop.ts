@@ -28,9 +28,9 @@ const PENDING_RUN_STATES = ['RUN_QUEUED', 'RUN_THROTTLED', 'RUN_ACTIVE'] as cons
 const STOP_ALL_TIMEOUT_MS = 10_000
 
 /** The sessions whose runs a place's Stop all ends, for this caller. */
-function placeSessions(projectId: string, personalOwnerId: string | null, userId: string): Prisma.AgentSessionWhereInput {
+function placeSessions(projectId: string, space: boolean, userId: string): Prisma.AgentSessionWhereInput {
   const ownChat = { sessionType: 'chat', userId, taskId: null }
-  if (personalOwnerId) {
+  if (space) {
     return {
       OR: [
         { task: { projectId } },
@@ -60,7 +60,7 @@ export const stopPlaceRuns: StopPlaceRuns<{ projectId: string }, { withdrawn: nu
 
   const project = await prisma.project.findUniqueOrThrow({
     where: { id: args.projectId },
-    select: { personalOwnerId: true, executionSite: { select: { siteId: true } } },
+    select: { personalOwnerId: true, personalSpace: true, executionSite: { select: { siteId: true } } },
   })
 
   const tasks = await prisma.task.findMany({
@@ -77,7 +77,7 @@ export const stopPlaceRuns: StopPlaceRuns<{ projectId: string }, { withdrawn: nu
   let cancelled: number
   try {
     cancelled = await stopRunsOfSessions(
-      placeSessions(args.projectId, project.personalOwnerId, userId),
+      placeSessions(args.projectId, project.personalOwnerId !== null && project.personalSpace, userId),
       project.executionSite?.siteId ?? null,
       { timeoutMs: STOP_ALL_TIMEOUT_MS, by: await personName(userId) },
     )

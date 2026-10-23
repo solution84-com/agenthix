@@ -10,7 +10,7 @@ files, git, the web and the platform itself. The organisation runs all of it on 
 flowchart LR
     BR["Browser"] -->|"HTTPS: pages and actions; Socket.io: live output"| HQ
     subgraph HQ ["hq: control plane"]
-        HQDB[("hq database: people, projects, tasks, agents, credentials")]
+        HQDB[("hq database: people, projects, tasks, agents, providers and keys, the ledger")]
     end
     subgraph SA ["Execution Site"]
         SADB[("site database: runs, transcripts, workspaces")]
@@ -21,7 +21,7 @@ flowchart LR
     SB["another Execution Site, optional"]
     SA <-->|"control channel: one WebSocket the site opens; requests from hq, events from the site"| HQ
     SB <-->|"control channel"| HQ
-    SA -->|"HTTPS: platform tool calls, token renewal"| HQ
+    SA -->|"HTTPS: platform tool calls, token renewal, usage reports"| HQ
     C1 -->|"HTTP on a private network: platform tools, model relay, OpenCode's gate"| SA
     C2 -->|"HTTP on a private network"| SA
     SA -->|"model requests with the key added"| MP["Model providers"]
@@ -34,7 +34,7 @@ flowchart LR
 **Two applications run the organisation's work, and two more look after the machines.**
 
 - **hq** (`hq/`) is the control plane and the only thing a browser talks to. It holds the organisation's
-  data (people, projects, boards and tasks, agent definitions, credentials, and the words of every conversation) and
+  data (people, projects, boards and tasks, agent definitions, the organisation's providers and keys, and the words of every conversation) and
   decides who may do what. It runs no agent harness and no container: the agent that talks in a conversation answers
   from hq by direct calls to a model provider, and everything it does as work, it sends to a site
   ([conversation-layer.md](conversation-layer.md)).
@@ -79,7 +79,7 @@ repository's `AGENTS.md` has the stack, the conventions and how to run them.
 | **Storage boundary**, **boundary** | One owner's storage: a project's, or one person's own. Nothing else owns storage |
 | **Location** | A place inside a boundary a run works in: the owner's `files/`, a workspace, or a task's folder |
 | **Workspace** | A named folder inside a boundary, optionally with a git repository attached |
-| **Agent** | A definition held by hq: instructions, skills, model, tool permissions. It owns no storage and no authority |
+| **Agent** | A definition held by hq: instructions, skills, tool permissions, and optionally models and a voice of its own. It owns no storage and no authority |
 | **Run** | One turn of work on a site: carrying out one brief a conversation gave a worker, one task run, or answering one message a person wrote in a task's session |
 | **Session** | A harness session on a site: a task's series of runs, or a standing worker's. Its runs are ordered; nothing else is |
 | **Conversation** | A person talking with an agent, held in hq: a record of messages, answered by the **lead** in direct model calls, with longer work done by **workers** and tasks. A **harness session** answers every message itself: a conversation's worker, and a task's session, which a person can also write in |
@@ -94,7 +94,10 @@ repository's `AGENTS.md` has the stack, the conventions and how to run them.
 | **Run capability** | The token hq signs for one run, carrying what it may do |
 | **Gate** | The site's check on every tool call an agent makes, against the agent's permissions |
 | **Approval** | How an agent's calls that need a person's say-so are handled: `deferred` (carry on, decide after the run), `immediate` (explain and end the turn) or `bypassed` (not checked against the agent's permissions). Permissions are set at three levels, the strictest winning |
-| **Model relay** | The site's endpoint that forwards a harness's model requests to the provider, adding the API key the container never holds |
+| **Model relay** | The site's endpoint that forwards a harness's model requests to the provider, adding the API key the container never holds, and reporting each call's usage to hq |
+| **Provider** | A service the organisation reaches AI through and is billed by: an LLM, speech-to-text or text-to-speech provider, or Agenthix Cloud. hq holds its key; at most one per vendor |
+| **Resolver** | The one module in hq that decides, for every model and voice call, the model via its provider, the runtime and what the cost belongs to |
+| **Ledger** | hq's append-only record of every call and its cost, kept against a billing profile |
 | **Pulse** | hq code, not an agent run, that starts a boundary's queued tasks one at a time per agent. A boundary's automation switch, off by default, turns it and the boundary's schedules on |
 | **Machine** | A computer or virtual machine running a host service. It carries at most one site, named after it |
 | **Host service** | The one service on each machine that runs hq and the site there; the only authority over the machine |
@@ -210,14 +213,15 @@ sequenceDiagram
 | Document | Answers |
 |---|---|
 | [sites/agent-runtimes.md](sites/agent-runtimes.md) | How each harness is started, driven, kept warm and ended |
-| [sites/model-relay.md](sites/model-relay.md) | How model requests reach a provider without the key entering the container |
+| [model-resolution.md](model-resolution.md) | How every model and voice call gets its provider, its key and its cost record: the resolver, the provider descriptors a run is given, the relay's usage reports, the ledger |
+| [sites/model-relay.md](sites/model-relay.md) | How model requests reach a provider without the key entering the container, and how their usage is reported |
 | [sites/site_live_preview.md](sites/site_live_preview.md) | How a person views the web app an agent is building |
 | [tools/tool-control.md](tools/tool-control.md) | The gate, permission states, the command sandbox, tool names |
 | [tools/tool-manifest.md](tools/tool-manifest.md) | Approving tool calls that need a person's say-so |
 | [tools/claude-tools.md](tools/claude-tools.md), [tools/opencode-tools.md](tools/opencode-tools.md) | Each harness's own tools, and which are shown, hidden or replaced |
 | [mcp/tools.md](mcp/tools.md) | The platform tools an agent calls, and how they reach hq |
 | [logs-and-diagnostics.md](logs-and-diagnostics.md) | Where each service's log is, how an admin reads a site's, recent errors, health and the support bundle |
-| [cloud-connection.md](cloud-connection.md) | How hq connects to Agenthix Cloud, signing in to hq with an Agenthix account, and the email before planned downtime |
+| [cloud-connection.md](cloud-connection.md) | How hq connects to Agenthix Cloud, signing in to hq with an Agenthix account, the email before planned downtime, and the contract for Cloud as a provider of models and voice |
 | [deployment.md](deployment.md) | What an install puts on a machine, how hq and the Fleet Console are reached, a front door, capacity, upgrading and backing up |
 | [versioning.md](versioning.md) | The product version and each connection's protocol version: when two parts on different versions still talk, deprecating and removing something, the shape snapshot, stored formats. Read it before changing anything another part receives |
 
@@ -249,7 +253,7 @@ sequenceDiagram
 | Running a turn | `site/src/agents/runtime/` |
 | The agent image and its sandbox launcher | `site/docker/` |
 | Tokens and their checks | `hq/src/server/identity/`, `site/src/server/identity/` |
-| Sign-in, invitations, the first-admin link and recovery | `hq/src/auth/`; first-time `/setup` in `hq/src/setup/`, `/onboarding` in `hq/src/onboarding/`; the install and the machine's commands are `host/` |
+| Sign-in, invitations, the first-admin link and recovery | `hq/src/auth/`; setup in hq, once, in `hq/src/setup/`, `/onboarding` in `hq/src/onboarding/`; the install and the machine's commands are `host/` |
 | Persistent notifications and a site's standing | `hq/src/notifications/`, `hq/src/sites/siteNotifications.ts`, `siteStanding.ts` |
 | Logs, recent errors, health, the support bundle | `core/src/logging/`, `hq/src/diagnostics/`, `site/src/server/hq/diagnosticsMethods.ts` |
 | Storage paths | `site/src/server/storage/paths.ts` |
@@ -258,6 +262,10 @@ sequenceDiagram
 | What the host service, the Fleet Console and hq share: operations, envelopes, joins, figures | `core/src/host/` |
 | hq's side of the fleet: the relay, the fleet admin role, moves, restores | `hq/src/fleet/` |
 | hq's connection to Agenthix Cloud | `hq/src/cloud/`, `core/src/cloud/` (see [cloud-connection.md](cloud-connection.md)) |
+| Providers, their keys and health | `hq/src/providers/` (see [model-resolution.md](model-resolution.md)) |
+| Which model, provider and voice a call uses | `hq/src/routing/`, `hq/src/models-settings/` |
+| The ledger, billing profiles and the usage report | `hq/src/billing/` |
+| The organisation's admin area | `hq/src/admin/` |
 
 ## What must not break, anywhere
 

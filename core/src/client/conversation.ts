@@ -207,9 +207,9 @@ export type MarkConversationReadArgs = { conversationId: string; throughSeq: num
 
 // ── The model picker ──
 
-/** One model the picker offers: one the person's access reaches, within the policy's allow-list and ceiling. */
+/** One model via a provider the picker offers: one the providers reach that every list applying here allows. */
 export type ModelChoice = {
-  /** The model id as the runtimes name it (`<provider>/<model>` for a provider other than Anthropic). */
+  /** The model via its provider: `<providerId>/<model>`, the model as that provider's vendor names it. */
   value: string
   label: string
   /** Who makes it, for grouping: "Anthropic", "DeepSeek", "OpenAI". */
@@ -218,6 +218,8 @@ export type ModelChoice = {
   via: string
   /** A rough price hint, 1 to 3 ($ to $$$). */
   price: 1 | 2 | 3
+  /** The provider is not working: the choice stays listed, greyed out and marked, and cannot be picked. */
+  notWorking?: boolean
 }
 
 export type ModelChoices = {

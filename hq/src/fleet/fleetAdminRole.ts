@@ -100,7 +100,7 @@ async function tell(person: { id: string; name: string }, by: RoleChanger, held:
     body: held
       ? `Given the role by ${who}. Fleet admins look after the organisation's machines in the Fleet Console.`
       : `Removed by ${who}.`,
-    actionUrl: `/org/people/${person.id}`,
+    actionUrl: `/admin/people/${person.id}`,
   }, held ? [] : [person.id])
   await recordActivity({ byUserId: 'userId' in by ? by.userId : null, action, subject: person.name, at: new Date(), announce: false })
 }

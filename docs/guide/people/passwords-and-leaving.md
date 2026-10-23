@@ -11,7 +11,7 @@ sidebar:
 
 On the sign-in page, **Forgot your password?** tells them to ask an administrator. The administrator makes a link:
 
-1. From the menu behind your name at the foot of the side bar, select **Organisation**, then the **People** card, and open the person.
+1. From the menu behind your name at the foot of the side bar, select **Manage**, then **People and invitations**, and open the person.
 2. Select **More** (the three dots), then **Reset password**.
 3. In the dialog, select **Make link**.
 4. Select **Copy link** and send it to them yourself.
@@ -34,13 +34,13 @@ It prints the same kind of one-hour link. If nobody can sign in as an administra
 
 ## Change your own password
 
-From the menu behind your name at the foot of the side bar, select **Settings**, then **Change** beside **Password** under **Sign-in**. Give your current password and the new one twice. Your other browsers and devices are signed out; you stay signed in here.
+From the menu behind your name at the foot of the side bar, select **Your settings**, then **Change** beside **Password** under **Sign-in**. Give your current password and the new one twice. Your other browsers and devices are signed out; you stay signed in here.
 
 ## Someone leaves
 
 Removing a person stops them signing in and takes them out of every project and every team. Nothing is deleted.
 
-1. Open the person from **Organisation › People**, select **More**, then **Remove from the organisation**.
+1. Open the person from **Manage › People and invitations**, select **More**, then **Remove from the organisation**.
 2. If the page lists projects under **Open tasks**, choose for each one who the tasks done on their behalf are now done on behalf of, or **Leave them waiting**. Tasks left waiting don't run until someone takes them on. Nothing is chosen for you. Tasks in private projects you aren't in are left waiting.
 3. Select the **Remove** button, which carries their name.
 

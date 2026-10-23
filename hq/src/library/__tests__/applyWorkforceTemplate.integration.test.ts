@@ -79,7 +79,7 @@ describe('applyTemplate @SC-188', () => {
   it('rolls back already-created agents when a later agent fails (atomic)', async () => {
     // Pre-create an agent so the template's second agent ("qa") collides.
     await prisma.agent.create({
-      data: { name: 'Existing QA', handle: 'qa', runtime: 'claude-sdk' } as any,
+      data: { name: 'Existing QA', handle: 'qa' } as any,
     })
 
     const selections = selectionsFor(TEMPLATE)

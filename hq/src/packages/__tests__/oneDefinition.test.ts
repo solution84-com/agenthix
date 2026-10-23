@@ -13,7 +13,7 @@ import type { Agent } from '@prisma/client'
 import { toAgentConfigPayload } from '../../agents/dispatchPayloads'
 import { contentToFiles, settingsColumns, agentSettingsOf, mergeSettings, defaultAgentSettings } from '../agentPackageService'
 
-const SETTINGS_COLUMNS = ['defaultModel', 'allowedBashPatterns']
+const SETTINGS_COLUMNS = ['allowedBashPatterns']
 
 function models(schema: string): Map<string, string> {
   const out = new Map<string, string>()
@@ -28,7 +28,9 @@ const siteModels = models(readFileSync(join(__dirname, '../../../../site/schema.
 
 describe('an agent is defined once (ADR-0072) @SC-445', () => {
   it('holds its settings on the Agent row and in no other model, in hq or on a site', () => {
-    expect(fieldNames(hqModels.get('Agent')!)).toEqual(expect.arrayContaining([...SETTINGS_COLUMNS, 'runtime', 'approval', 'allowedTools']))
+    expect(fieldNames(hqModels.get('Agent')!)).toEqual(expect.arrayContaining([...SETTINGS_COLUMNS, 'approval', 'allowedTools']))
+    expect(fieldNames(hqModels.get('Agent')!)).not.toContain('defaultModel')
+    expect(fieldNames(hqModels.get('Agent')!)).not.toContain('runtime')
     for (const [name, body] of [...hqModels, ...siteModels]) {
       // A boundary's narrowing holds the agent's own shapes to take away from them (adr-0072), never a copy.
       if (name === 'Agent' || name === 'AgentOverride') continue
@@ -56,11 +58,11 @@ describe('an agent is defined once (ADR-0072) @SC-445', () => {
   it('sends a run the settings read from the Agent row, so a saved edit is what the next run gets', () => {
     const row = {
       id: 'a1', name: 'Scout', handle: 'scout', role: null, isKernel: false,
-      ...settingsColumns(defaultAgentSettings('claude-sonnet-4-6')),
+      ...settingsColumns(defaultAgentSettings()),
       allowedTools: null, allowedBashPatterns: null,
     } as unknown as Agent
-    const edited = { ...row, ...settingsColumns(mergeSettings(agentSettingsOf(row), { defaultModel: 'claude-opus-4-6', approval: 'immediate' })) } as unknown as Agent
-    expect(toAgentConfigPayload(row)).toMatchObject({ defaultModel: 'claude-sonnet-4-6', approval: 'deferred' })
-    expect(toAgentConfigPayload(edited)).toMatchObject({ defaultModel: 'claude-opus-4-6', approval: 'immediate', runtime: 'claude-sdk' })
+    const edited = { ...row, ...settingsColumns(mergeSettings(agentSettingsOf(row), { approval: 'immediate' })) } as unknown as Agent
+    expect(toAgentConfigPayload(row)).toMatchObject({ approval: 'deferred' })
+    expect(toAgentConfigPayload(edited)).toMatchObject({ approval: 'immediate' })
   })
 })

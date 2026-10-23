@@ -17,6 +17,7 @@ vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activi
 
 import * as dashboardPush from '../../test/fakes/debouncedPush'
 import { exportAgent, importAgent } from '../agentZipActions'
+import { DEFAULT_MODEL } from '../models'
 import { readAgentContent, writeAgentContent } from '../../packages/agentPackageService'
 import { contextWithRole, contextWithoutRole, opContext, useTempRoots, type TempRoots } from './definitionFixtures'
 
@@ -34,7 +35,7 @@ async function archive(record: Record<string, unknown>, files: Record<string, st
 
 describe('exportAgent @SC-679', () => {
   it('exports the current definition: settings from the record, content from the package', async () => {
-    const agent = await createAgent({ name: 'Scout', handle: 'scout-x', role: 'Researcher', defaultModel: 'claude-opus-4-6', approval: 'immediate' })
+    const agent = await createAgent({ name: 'Scout', handle: 'scout-x', role: 'Researcher', approval: 'immediate' })
     await writeAgentContent(agent.id, { instructions: 'I', skillFiles: [{ path: 'skills/x/SKILL.md', content: Buffer.from('x') }] }, null)
     const { ctx } = await contextWithRole('ADMIN')
 
@@ -43,7 +44,7 @@ describe('exportAgent @SC-679', () => {
     expect(filename).toBe('scout-x.zip')
     const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'))
     const record = JSON.parse(await zip.file('scout-x/agent.json')!.async('string'))
-    expect(record).toMatchObject({ name: 'Scout', handle: 'scout-x', role: 'Researcher', defaultModel: 'claude-opus-4-6', runtime: 'claude-sdk', approval: 'immediate' })
+    expect(record).toMatchObject({ name: 'Scout', handle: 'scout-x', role: 'Researcher', defaultModel: DEFAULT_MODEL, runtime: 'claude-sdk', approval: 'immediate' })
     expect(await zip.file('scout-x/instructions.md')!.async('string')).toBe('I')
     expect(await zip.file('scout-x/skills/x/SKILL.md')!.async('string')).toBe('x')
   })
@@ -94,7 +95,7 @@ describe('importAgent @SC-680', () => {
 
     expect(result).toEqual({ agentId: expect.any(String), handle: 'imported-x', created: true })
     expect(await prisma.agent.findUniqueOrThrow({ where: { id: result.agentId } })).toMatchObject({
-      name: 'Imported', role: 'Tester', defaultModel: 'claude-sonnet-4-6', approval: 'immediate',
+      name: 'Imported', role: 'Tester', approval: 'immediate',
     })
     const content = (await readAgentContent(result.agentId))!
     expect(content.instructions).toBe('# Imported')
@@ -128,7 +129,6 @@ describe('importAgent @SC-680', () => {
 
   it.each([
     ['an invalid setting', { name: 'N', handle: 'bad-setting', approval: 'bogus' }, /approval/i],
-    ['a blank model', { name: 'N', handle: 'bad-model', defaultModel: ' ' }, /model/i],
   ])('answers 400 for %s, and creates nothing', async (_name, record, message) => {
     const { ctx } = await contextWithRole('ADMIN')
     await expect(importAgent({ base64: await archive(record) }, ctx))

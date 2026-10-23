@@ -7,6 +7,7 @@ import { Field, FormError, Heading, PRIMARY, Steps } from '../../../auth/pages/p
 type Props = {
   me: { id: string; displayName: string | null; username: string | null }
   onNext: () => void
+  position: { step: number; total: number }
 }
 
 function Fact({ label, aside, value, note }: { label: string; aside?: string; value: string; note?: string }) {
@@ -20,7 +21,7 @@ function Fact({ label, aside, value, note }: { label: string; aside?: string; va
 }
 
 /** Setup's first step, seen again: the account made on the first-admin page, with the name editable. */
-export function YouStep({ me, onNext }: Props) {
+export function YouStep({ me, onNext, position }: Props) {
   const [name, setName] = useState(me.displayName ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -42,8 +43,8 @@ export function YouStep({ me, onNext }: Props) {
 
   return (
     <AuthLayout setup side={<FreshHqSide />}>
-      <Steps step={1} />
-      <Heading title="You" lead="The account you created. You're the first person here, so you're the admin." />
+      <Steps step={position.step} total={position.total} name="You" />
+      <Heading title="You" lead="The account you created. You're the first person here, so you're the admin. Next you choose how agents reach AI." />
       <form onSubmit={next}>
         {error && <FormError>{error}</FormError>}
         <Field id="you-name" label="Your name" aside="shown on your work" autoComplete="name" autoFocus value={name} onChange={e => setName(e.target.value)} />

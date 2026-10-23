@@ -84,6 +84,7 @@ export function DockPlaceList({ groups, here, selected, onChoose }: {
                   <PlaceMark row={row} />
                   <div className="min-w-0 flex-1">
                     <div data-name className="truncate text-body font-medium text-text-primary">{row.name}</div>
+                    {row.onlyYou && <div data-only-you className="text-micro text-text-muted">Only you</div>}
                     {isSelected && !searching && (
                       <div data-explanation className="mt-0.5 text-small text-text-muted">{PLACE_EXPLANATION[row.ref.kind]}</div>
                     )}

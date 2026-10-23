@@ -15,6 +15,7 @@
 import type { WorkspaceOwnerType } from './siteData.js'
 import type { RunPackages } from './packages.js'
 import type { ApiKeyRunCredential, RunCredential } from './credential.js'
+import type { RunModelAccess } from './runProvider.js'
 import type { RunLimits } from './runLimits.js'
 import type { SessionStatusValue, SessionClosedReasonValue } from './sessionState.js'
 import { ACTIVE_RUNS_METHOD } from './activeRuns.js'
@@ -233,6 +234,8 @@ export type RunContextPayload = {
    *
    * REQUIRED, and it replaced `llmApiKey` — a removal, which is why the
    * protocol major moved (see connection.ts).
+   *
+   * @deprecated since 1.1; stops working in 3.0. Use `modelAccess` instead.
    */
   credential: RunCredential | null
   /**
@@ -242,8 +245,16 @@ export type RunContextPayload = {
    * credential"). Never `credential`'s own provider again, never a
    * subscription. The site's model relay picks a request's key from
    * `credential` and these by provider. ABSENT when there are none.
+   *
+   * @deprecated since 1.1; stops working in 3.0. Use `modelAccess` instead.
    */
   fallbackCredentials?: ApiKeyRunCredential[]
+  /**
+   * The run's model via its provider, the provider descriptor the site's relay adds the key from, any other provider
+   * a helper of the run may use, and the billing profile its calls are costed to (runProvider.ts). Decided by hq's
+   * resolver. ABSENT from an hq before 1.1, which sends `credential`; a site reads this first when both are there.
+   */
+  modelAccess?: RunModelAccess
   /**
    * The org's web-search key (Exa), for this turn only. ABSENT when the org has
    * none. The site holds it on the run's context for the `web_search` platform

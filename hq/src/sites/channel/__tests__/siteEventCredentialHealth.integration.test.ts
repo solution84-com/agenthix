@@ -1,13 +1,17 @@
 /**
  * `site.credentialHealth` intake (siteEventHandler.ts, SC-349) against the real
- * test database: a site saying an agent's credential is missing or expired
- * becomes one notification per admin, once per site, agent and state a day —
- * and every wire-controlled field is checked before it reaches a notification.
+ * test database: a site saying a run's Claude login is missing or expired tells
+ * each person whose own Claude subscription has expired in hq's record, and
+ * nobody else, once a day each — and every wire-controlled field is checked
+ * before the event is acted on.
  */
+process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 7).toString('base64')
+
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest'
 import type { CredentialHealthEvent } from '@agenthix/core'
 import { prisma } from '../../../test/db'
 import { createUser, createUserWithRole } from '../../../test/factories'
+import { createSubscription } from '../../../routing/__tests__/routingFixtures'
 
 vi.mock('wasp/server', async () => {
   const { prisma } = await import('../../../test/db')
@@ -24,14 +28,21 @@ import { handleSiteEvent, __resetForTests } from '../siteEventHandler'
 import { siteNamed } from './siteEventFixtures'
 
 let warnSpy: MockInstance<typeof console.warn>
-let admins: Array<{ id: string }>
+let expired: Array<{ id: string }>
+
+/** A person's own subscription whose login expired an hour ago. */
+async function expiredSubscription(userId: string) {
+  const sub = await createSubscription(userId)
+  await prisma.aiProvider.update({ where: { id: sub.id }, data: { expiresAt: new Date(Date.now() - 3_600_000) } })
+}
 
 beforeEach(async () => {
   warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
   await siteNamed('site-1', 'Build box')
-  admins = [await createUserWithRole('ADMIN'), await createUserWithRole('ADMIN')]
-  await createUserWithRole('MEMBER')
-  await createUser()
+  expired = [await createUserWithRole('MEMBER'), await createUser()]
+  for (const person of expired) await expiredSubscription(person.id)
+  await createUserWithRole('ADMIN')
+  await createSubscription((await createUserWithRole('MEMBER')).id)
 })
 
 afterEach(() => {
@@ -51,48 +62,42 @@ describe('site event intake — site.credentialHealth @SC-343 @SC-349', () => {
     expect(warnSpy).toHaveBeenCalled()
   })
 
-  it('creates one notification per admin, and none for anyone else, on the first event for a (site, agent, state) today', async () => {
+  it('tells each person whose own subscription has expired, and nobody else: no admin, no one whose login is current', async () => {
     await report(healthEvent())
 
     const rows = await notifications()
-    expect(rows.map((n) => n.userId).sort()).toEqual(admins.map((a) => a.id).sort())
+    expect(rows.map((n) => n.userId).sort()).toEqual(expired.map((p) => p.id).sort())
     expect(rows[0]).toMatchObject({
       type: 'credential_health',
-      title: 'Credential missing on Build box — @bot',
-      actionUrl: '/org/settings/where-work-runs',
+      title: 'Your Claude subscription needs signing in again',
+      actionLabel: 'Sign in again',
+      actionUrl: '/settings',
     })
-    expect(rows[0].body).toContain('no key on file')
   })
 
-  it('a second event for the same (site, agent, state) later the same day creates no further notification', async () => {
+  it('tells each person once a day, whatever the agent or state the site reports', async () => {
     await report(healthEvent())
-    await report(healthEvent())
+    await report(healthEvent({ state: 'expired' }))
+    await report(healthEvent({ agentHandle: 'other-bot' }))
     expect(await prisma.notification.count()).toBe(2)
   })
 
-  it('a different state, or a different agent, for the same site is a distinct key, not swallowed by the first', async () => {
-    await report(healthEvent({ state: 'missing' }))
-    await report(healthEvent({ state: 'expired' }))
-    await report(healthEvent({ agentHandle: 'other-bot' }))
-    expect(await prisma.notification.count()).toBe(6)
-  })
-
-  it('the dedup is scoped to this notification type and to today', async () => {
-    const title = 'Credential missing on Build box — @bot'
-    // Another kind of notification with the same title, and yesterday's of this kind.
-    await prisma.notification.create({ data: { userId: admins[0].id, type: 'task_waiting', title, body: '' } })
+  it('the once-a-day is scoped to this notification type and to today', async () => {
+    const [first] = expired
+    // Another kind of notification today, and yesterday's of this kind.
+    await prisma.notification.create({ data: { userId: first.id, type: 'task_waiting', title: 'Something else', body: '' } })
     await prisma.notification.create({
-      data: { userId: admins[0].id, type: 'credential_health', title, body: '', createdAt: new Date(Date.now() - 36 * 60 * 60 * 1000) },
+      data: { userId: first.id, type: 'credential_health', title: 'Earlier', body: '', createdAt: new Date(Date.now() - 36 * 60 * 60 * 1000) },
     })
 
     await report(healthEvent())
 
-    expect(await prisma.notification.count({ where: { type: 'credential_health' } })).toBe(3)
+    expect(await prisma.notification.count({ where: { type: 'credential_health', userId: first.id } })).toBe(2)
   })
 
   // A site is untrusted network input: it could smuggle unbounded text into a
-  // notification, or vary the handle on every event to defeat the daily dedup.
-  describe('validates wire-controlled fields before they reach a notification', () => {
+  // notification, or vary the handle on every event.
+  describe('validates wire-controlled fields before the event is acted on', () => {
     it.each([
       // `as never`: outside the wire type on purpose.
       ['a state outside the known two values', healthEvent({ state: 'revoked' as never })],
@@ -105,17 +110,17 @@ describe('site event intake — site.credentialHealth @SC-343 @SC-349', () => {
       expect(await prisma.notification.count()).toBe(0)
     })
 
-    it('a well-formed event still notifies exactly as before', async () => {
+    it('a well-formed event still tells each person', async () => {
       await report(healthEvent({ agentHandle: 'my-agent_1' }))
       expect(await prisma.notification.count()).toBe(2)
     })
 
-    it('truncates an oversized detail to 500 characters before it reaches the body — never rejects on this alone', async () => {
+    it('an oversized detail is no reason to reject, and none of the site\'s text reaches the notification', async () => {
       await report(healthEvent({ detail: 'x'.repeat(2_000) }))
 
-      const [first] = await notifications()
-      expect(first.body).toContain('x'.repeat(500))
-      expect(first.body).not.toContain('x'.repeat(501))
+      const rows = await notifications()
+      expect(rows).toHaveLength(2)
+      for (const row of rows) expect(`${row.title} ${row.body}`).not.toContain('x'.repeat(10))
     })
   })
 })

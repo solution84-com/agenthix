@@ -96,19 +96,19 @@ describe('updateAgentSettings @SC-045', () => {
     const agent = await createAgent()
     const { ctx } = await contextWithRole('ADMIN')
 
-    expect(await updateAgentSettings({ agentId: agent.id, approval: 'immediate', defaultModel: 'claude-opus-4-6' }, ctx)).toEqual({ ok: true })
+    expect(await updateAgentSettings({ agentId: agent.id, approval: 'immediate' }, ctx)).toEqual({ ok: true })
 
-    expect(await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).toMatchObject({ approval: 'immediate', defaultModel: 'claude-opus-4-6' })
+    expect(await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).toMatchObject({ approval: 'immediate' })
     expect(await readAgentContent(agent.id)).toBeNull()
   })
 
   it('changes only the settings sent, and can set and clear the tool ceiling', async () => {
-    const agent = await createAgent({ approval: 'immediate', defaultModel: 'claude-haiku-4-5' })
+    const agent = await createAgent({ approval: 'immediate' })
     const { ctx } = await contextWithRole('ADMIN')
 
     await updateAgentSettings({ agentId: agent.id, allowedTools: [{ name: 'Read', state: 'always' }] }, ctx)
     const set = await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })
-    expect(set).toMatchObject({ approval: 'immediate', defaultModel: 'claude-haiku-4-5', allowedTools: [{ name: 'Read', state: 'always' }] })
+    expect(set).toMatchObject({ approval: 'immediate', allowedTools: [{ name: 'Read', state: 'always' }] })
 
     await updateAgentSettings({ agentId: agent.id, allowedTools: null }, ctx)
     expect((await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).allowedTools).toBeNull()
@@ -120,10 +120,7 @@ describe('updateAgentSettings @SC-045', () => {
   })
 
   it.each([
-    ['an unknown runtime', { runtime: 'gpt' }, /runtime/i],
     ['an invalid approval', { approval: 'bogus' }, /approval/i],
-    ['a blank model', { defaultModel: '  ' }, /model/i],
-    ['a model the opencode runtime does not offer', { runtime: 'opencode', defaultModel: 'no-such/model' }, /opencode/i],
   ])('answers 400 for %s, and changes nothing', async (_name, change, message) => {
     const agent = await createAgent()
     const before = await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })

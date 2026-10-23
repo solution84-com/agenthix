@@ -11,7 +11,8 @@
  * (so OpenCode's configuration adds `/v1`), and Claude Code appends
  * `/v1/messages` to one that does not.
  */
-import type { ApiKeyRunCredential, CredentialProvider } from '@agenthix/core'
+import { CLOUD_BILLING_PROFILE_HEADER, CLOUD_CALL_ID_HEADER, type ApiKeyRunCredential, type CredentialProvider } from '@agenthix/core'
+import type { RelayCredential } from './runAccess'
 
 export const MODEL_RELAY_PATH = '/api/v1/model-relay'
 
@@ -35,18 +36,42 @@ export function openCodeProviderBaseUrl(siteUrl: string, provider: CredentialPro
   return relayProviderUrl(siteUrl, provider) + (provider === 'anthropic' ? '/v1' : '')
 }
 
-/** Where this credential's requests go: fixed per built-in provider, the base URL for a compatible endpoint. Null when there is none usable. */
-export function upstreamBase(credential: ApiKeyRunCredential): string | null {
+/**
+ * Where this credential's requests go: fixed per built-in provider, the base URL for a compatible endpoint, and
+ * Agenthix Cloud's gateway for the API it is spoken to in, over HTTPS only. Null when there is none usable.
+ */
+export function upstreamBase(credential: RelayCredential): string | null {
+  if (credential.kind === 'cloud') return usableBase(credential.baseUrl, ['https:'])
   if (credential.provider !== 'openai_compatible') return BUILT_IN_UPSTREAMS[credential.provider]
-  const base = credential.baseUrl
-  if (!base) return null
+  return credential.baseUrl ? usableBase(credential.baseUrl, ['http:', 'https:']) : null
+}
+
+function usableBase(base: string, protocols: readonly string[]): string | null {
   try {
     const url = new URL(base)
-    if ((url.protocol !== 'http:' && url.protocol !== 'https:') || url.username || url.password) return null
+    if (!protocols.includes(url.protocol) || url.username || url.password) return null
   } catch {
     return null
   }
   return base.replace(/\/+$/, '')
+}
+
+/**
+ * What a call through Agenthix Cloud's gateway presents: hq's Cloud token, in the header the vendor API it speaks
+ * reads, and while `usageBilling` is on, the call's id and its billing profile, so Cloud can report the actual cost.
+ */
+export function cloudKeyHeaders(
+  credential: Extract<RelayCredential, { kind: 'cloud' }>,
+  token: string,
+  billing: { callId: string; billingProfileId: string | null } | null,
+): Record<string, string> {
+  const key: Record<string, string> = credential.provider === 'anthropic' ? { 'x-api-key': token } : { authorization: `Bearer ${token}` }
+  if (!billing) return key
+  return {
+    ...key,
+    [CLOUD_CALL_ID_HEADER.toLowerCase()]: billing.callId,
+    ...(billing.billingProfileId ? { [CLOUD_BILLING_PROFILE_HEADER.toLowerCase()]: billing.billingProfileId } : {}),
+  }
 }
 
 /** The key, in the header the provider's own API reads it from. A keyless endpoint gets none. */

@@ -21,8 +21,8 @@ import { approveManifest, rejectManifest } from "./manifestActions" with { type:
 export const agentsSpec: Spec = [
     route("AgentListRoute", "/agents", page(AgentListPage, { authRequired: true })),
     route("AgentDetailRoute", "/agents/:handle", page(AgentPlacePage, { authRequired: true })),
-    route("OrgAgentsRoute", "/org/agents", page(AgentsManageListPage, { authRequired: true })),
-    route("OrgAgentRoute", "/org/agents/:handle", page(AgentManagePage, { authRequired: true })),
+    route("OrgAgentsRoute", "/admin/agents", page(AgentsManageListPage, { authRequired: true })),
+    route("OrgAgentRoute", "/admin/agents/:handle", page(AgentManagePage, { authRequired: true })),
     route("SkillsLibraryRoute", "/skills", page(SkillsRedirectPage, { authRequired: true })),
     query(getAgents, { entities: ["Agent"] }),
     query(getAgent, { entities: ["Agent"] }),

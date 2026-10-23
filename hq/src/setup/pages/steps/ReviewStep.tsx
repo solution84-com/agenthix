@@ -1,13 +1,11 @@
 import type { ReactNode } from 'react'
 import { AuthLayout } from '../../../auth/pages/parts/AuthLayout'
-import { Heading, PRIMARY, SECONDARY, StateLine, Steps, TEXT_LINK } from '../../../auth/pages/parts/authUi'
-import { ModelAccessRows } from '../../../model-access/pages/ModelAccessRows'
-import { useModelAccess } from '../../../model-access/pages/useModelAccess'
+import { Heading, PRIMARY, SECONDARY, Steps, TEXT_LINK } from '../../../auth/pages/parts/authUi'
 import type { HqSiteState } from '../../hqSiteState'
 import { HqSiteWarning } from './HqSiteLine'
 import { AuthedImg } from '../../../shared/components/AuthedImg'
 import { SignInPreview } from './SignInPreview'
-import { CloudSetupLine } from './CloudSetupLine'
+import { DefaultsSection, KernelLine } from './DefaultsSection'
 
 type Props = {
   me: { id: string; displayName: string | null; username: string | null }
@@ -15,8 +13,12 @@ type Props = {
   avatarUrl: string | null
   coverUrl: string | null
   hqSite: HqSiteState
+  timeZone: string
+  position: { step: number; total: number }
+  /** Where models and voice come from, in words. */
+  aiWords: string
   onCheckAgain: () => void
-  onEdit: (step: 'you' | 'org' | 'model') => void
+  onEdit: (step: 'you' | 'org' | 'choice') => void
   onBack: () => void
   onFinish: () => void
   finishing: boolean
@@ -47,33 +49,37 @@ function Thumb({ label, src, wide }: { label: string; src: string | null; wide?:
 }
 
 /** Setup's last step: everything the earlier steps set, read from the server, each with a way back to change it. */
-export function ReviewStep({ me, orgName, avatarUrl, coverUrl, hqSite, onCheckAgain, onEdit, onBack, onFinish, finishing, error }: Props) {
-  const { loaded, set } = useModelAccess({ ownerType: 'org', ownerId: 'org' }, { ownerType: 'user', ownerId: me.id })
+export function ReviewStep({ timeZone, position, aiWords, me, orgName, avatarUrl, coverUrl, hqSite, onCheckAgain, onEdit, onBack, onFinish, finishing, error }: Props) {
   return (
     <AuthLayout setup side={<SignInPreview name={orgName} pictureSrc={avatarUrl} coverSrc={coverUrl} />}>
-      <Steps step={4} />
+      <Steps step={position.step} total={position.total} name="Last look" />
       <Heading title="Check everything before you start" lead="Change anything here; you can also change it later." />
       <Section title="You" onEdit={() => onEdit('you')}>
         <div className="text-body text-text-primary">{me.displayName}</div>
         <div className="text-small text-text-muted">{me.username}</div>
       </Section>
+      <Section title="Models and voice" onEdit={() => onEdit('choice')}>
+        <div className="text-body text-text-primary">{aiWords}</div>
+        <div className="text-small text-text-muted">Change providers any time under Manage › Providers.</div>
+      </Section>
+      <Section title="Defaults for everyone">
+        <DefaultsSection />
+        <div className="text-small text-text-muted">Change these any time under Manage › Models.</div>
+      </Section>
       <Section title="Your organisation" onEdit={() => onEdit('org')}>
-        <div className="mb-2 text-body text-text-primary">{orgName}</div>
+        <div className="mb-2 text-body text-text-primary">{orgName} <span className="text-small text-text-muted">· {timeZone}</span></div>
         <div className="flex items-end gap-4">
           <Thumb label="Picture" src={avatarUrl} />
           <Thumb label="Cover" src={coverUrl} wide />
         </div>
       </Section>
+      <Section title="Your first agent">
+        <KernelLine />
+      </Section>
       <Section title="Where agents run">
         {hqSite.state === 'connected'
           ? <div className="text-small text-text-primary">HQ's site — running on this machine</div>
           : <HqSiteWarning connected={false} onCheckAgain={onCheckAgain} />}
-        <CloudSetupLine />
-      </Section>
-      <Section title="Model access" onEdit={() => onEdit('model')}>
-        {!loaded ? <div className="text-small text-text-muted">Checking…</div> : set.length === 0 ? (
-          <StateLine tone="warn"><b className="font-medium text-text-primary">Not set</b> — agents can't answer until one is set</StateLine>
-        ) : <ModelAccessRows items={set} />}
       </Section>
       {error && <p role="alert" className="mb-3.5 rounded-lg border border-danger/40 px-3 py-2 text-small text-danger">{error}</p>}
       <div className="mt-5 flex items-center gap-3">

@@ -42,6 +42,11 @@ export interface PreviewBoundary {
   location: LocationRef
   /** The owner's name, which hq holds and the site does not. */
   ownerSlug: string
+  /**
+   * For a task in a person's personal project: that person, whose container the task runs in (the capability's
+   * `personalProject` claim names them the same way). Absent for everything else.
+   */
+  personalOwnerId?: string
 }
 
 export async function resolvePreviewBoundary(claims: {
@@ -59,9 +64,10 @@ export async function resolvePreviewBoundary(claims: {
 
   const location = resolvePrimaryLocation(session)
 
-  const [siteId, ownerSlug] = await Promise.all([
+  const [siteId, ownerSlug, personalOwnerId] = await Promise.all([
     resolveOwnerSiteId(location.ownerType, location.ownerId),
     fetchPrimaryOwnerSlug(location),
+    session.sessionType === 'chat' ? null : personalOwnerOf(location),
   ])
   if (!siteId) {
     throw new ControlPlaneError(
@@ -70,5 +76,12 @@ export async function resolvePreviewBoundary(claims: {
     )
   }
 
-  return { agentId: claims.agentId, sessionId: claims.sessionId, siteId, location, ownerSlug }
+  return { agentId: claims.agentId, sessionId: claims.sessionId, siteId, location, ownerSlug, ...(personalOwnerId ? { personalOwnerId } : {}) }
+}
+
+/** A personal project's person, from the project itself; never a person's space, whose storage is their own. */
+async function personalOwnerOf(location: LocationRef): Promise<string | null> {
+  if (location.ownerType !== 'project') return null
+  const project = await prisma.project.findUnique({ where: { id: location.ownerId }, select: { personalOwnerId: true, personalSpace: true } })
+  return project?.personalOwnerId && !project.personalSpace ? project.personalOwnerId : null
 }

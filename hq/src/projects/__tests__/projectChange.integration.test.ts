@@ -248,18 +248,44 @@ describe('deleting a project', () => {
     expect(files.removeLocationOnSite).not.toHaveBeenCalled()
   })
 
-  // Agents own schedule spec §4: it exists as long as its person does.
-  it('refuses a personal project, for an org admin too, before anything is stopped, deleted or removed', async () => {
-    const admin = await createUserWithRole('ADMIN')
-    const owner = await createUser()
-    const personal = await createProject({ personalOwnerId: owner.id })
-    const chat = await createSession({ userId: owner.id, primaryOwnerType: 'project', primaryOwnerId: personal.id })
-    siteStore.addRun(SITE, { id: 'r1', sessionId: chat.id, status: 'RUNNING' })
+  // Your space exists as long as its person does; another personal project is its owner's alone to delete.
+  describe('a personal project', () => {
+    async function withRun(personalSpace: boolean) {
+      const owner = await createUser()
+      const personal = await createProject({ personalOwnerId: owner.id, personalSpace })
+      const chat = await createSession({ userId: owner.id, primaryOwnerType: 'project', primaryOwnerId: personal.id })
+      siteStore.addRun(SITE, { id: 'r1', sessionId: chat.id, status: 'RUNNING' })
+      return { owner, personal }
+    }
 
-    await expect(deleteProject({ projectId: personal.id }, as(admin))).rejects.toMatchObject({ statusCode: 400 })
-    expect(await projectExists(personal.id)).toBe(true)
-    expect(siteStore.cancelledRuns).toEqual([])
-    expect(files.removeLocationOnSite).not.toHaveBeenCalled()
+    it('never deletes Your space, for an org admin or for its owner, before anything is stopped, deleted or removed', async () => {
+      const admin = await createUserWithRole('ADMIN')
+      const { owner, personal } = await withRun(true)
+
+      await expect(deleteProject({ projectId: personal.id }, as(admin))).rejects.toMatchObject({ statusCode: 404 })
+      await expect(deleteProject({ projectId: personal.id }, as(owner))).rejects.toMatchObject({ statusCode: 400 })
+      expect(await projectExists(personal.id)).toBe(true)
+      expect(siteStore.cancelledRuns).toEqual([])
+      expect(files.removeLocationOnSite).not.toHaveBeenCalled()
+    })
+
+    it('lets its owner delete a personal project that is not their space', async () => {
+      const { owner, personal } = await withRun(false)
+
+      await deleteProject({ projectId: personal.id }, as(owner))
+
+      expect(await projectExists(personal.id)).toBe(false)
+    })
+
+    it('does not let an org admin delete another person’s personal project, answering as if it did not exist', async () => {
+      const admin = await createUserWithRole('ADMIN')
+      const { personal } = await withRun(false)
+
+      await expect(deleteProject({ projectId: personal.id }, as(admin))).rejects.toMatchObject({ statusCode: 404 })
+      expect(await projectExists(personal.id)).toBe(true)
+      expect(siteStore.cancelledRuns).toEqual([])
+      expect(files.removeLocationOnSite).not.toHaveBeenCalled()
+    })
   })
 })
 

@@ -16,7 +16,14 @@
  *    between turns — never 401 there, which would make Claude Code run its
  *    `apiKeyHelper` again and spend the process's one ticket;
  * 3. it comes from that turn's container (403; relaySource.ts);
- * 4. the turn has a credential for the provider (403).
+ * 4. the turn has a credential for the provider (403);
+ * 5. for Agenthix Cloud, hq gives its Cloud token (503 while it does not).
+ *
+ * Every upstream call is measured as it passes (callMeter.ts): a call id of its
+ * own, the vendor's usage read from the answer, the upstream status and the
+ * kind of failure. Its report goes to hq through the outbox (usageOutbox.ts),
+ * for the ledger and for the provider's health. A run from an hq that names no
+ * provider id is not reported.
  *
  * A bare `GET` or `HEAD` of a provider's base is answered here without any of
  * that and without contacting the provider: Claude Code sends one, without
@@ -35,10 +42,15 @@ import http from 'node:http'
 import https from 'node:https'
 import type { ConnectionOptions as TlsOptions } from 'node:tls'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { CREDENTIAL_PROVIDERS, type CredentialProvider } from '@agenthix/core'
+import { CREDENTIAL_PROVIDERS, isFeatureOn, type CredentialProvider, type UsageReport } from '@agenthix/core'
 import type { ApiHandler } from '../http/apiHandler'
 import { Logger } from '../utils/logger'
-import { MODEL_RELAY_PATH, providerKeyHeaders, upstreamBase } from './relayProviders'
+import { MODEL_RELAY_PATH, cloudKeyHeaders, providerKeyHeaders, upstreamBase } from './relayProviders'
+import { CallMeter } from './callMeter'
+import { cloudToken } from './cloudToken'
+import type { CloudTokenAnswer } from './usageReportClient'
+import { usageOutbox } from './usageOutbox'
+import { usageApiFor } from './usageReader'
 import { ModelSniffer, downstreamResponseHeaders, relayTokenOf, relayedPath, upstreamRequestHeaders, upstreamUrl } from './relayRequest'
 import { TunnelAgent, describeRoute, proxyDecision } from './relayProxy'
 import { checkRelaySource, type SourceCheck } from './relaySource'
@@ -59,9 +71,19 @@ export type ModelRelayDeps = {
   env?: NodeJS.ProcessEnv
   /** TLS options for a tunnelled connection to the provider; tests trust their stand-in's certificate here. */
   tls?: TlsOptions
+  /** hq's Agenthix Cloud token, for a provider reached through Cloud's gateway. */
+  cloudToken?: () => Promise<CloudTokenAnswer>
+  /** Where each call's usage report goes. */
+  report?: (report: UsageReport) => void
 }
 
-const defaultDeps: ModelRelayDeps = { checkSource: checkRelaySource, upstreamBase, log: line => logger.info(line) }
+const defaultDeps: ModelRelayDeps = {
+  checkSource: checkRelaySource,
+  upstreamBase,
+  log: line => logger.info(line),
+  cloudToken,
+  report: report => { void usageOutbox().add(report).catch(err => logger.warn(`A usage report could not be kept: ${err instanceof Error ? err.message : String(err)}`)) },
+}
 
 function isProvider(value: string): value is CredentialProvider {
   return (CREDENTIAL_PROVIDERS as readonly string[]).includes(value)
@@ -107,6 +129,17 @@ export function createModelRelayHandler(deps: ModelRelayDeps = defaultDeps) {
     const target = base ? upstreamUrl(base, relayed) : null
     if (!target) return turnAway(400, 'The request path is not one the relay forwards')
 
+    const meter = credential.providerId ? new CallMeter({ runId: turn.runId, providerId: credential.providerId, api: usageApiFor(provider) }) : null
+    let keyHeaders: Record<string, string>
+    if (credential.kind === 'cloud') {
+      const answer = await (deps.cloudToken ?? cloudToken)()
+      if (!answer.ok) return turnAway(503, `Agenthix Cloud is not available to this run (${answer.refusal})`)
+      const billing = meter && isFeatureOn('usageBilling', process.env) ? { callId: meter.callId, billingProfileId: turn.billingProfileId } : null
+      keyHeaders = cloudKeyHeaders(credential, answer.token.token, billing)
+    } else {
+      keyHeaders = providerKeyHeaders(credential)
+    }
+
     const sniffer = new ModelSniffer(relayed.path)
     let bytesIn = 0
     let bytesOut = 0
@@ -120,6 +153,10 @@ export function createModelRelayHandler(deps: ModelRelayDeps = defaultDeps) {
       if (logged) return
       logged = true
       untrack()
+      if (meter && deps.report && outcome !== 'proxy-setting-invalid') {
+        const report = deps.report
+        void meter.report(sniffer.model, outcome === 'upstream-error').then(report, () => {})
+      }
       deps.log(
         `conversation=${turn.conversationId} run=${turn.runId} provider=${provider} model=${sniffer.model ?? '-'} ` +
         `method=${req.method} status=${status || '-'} bytesIn=${bytesIn} bytesOut=${bytesOut} ` +
@@ -144,7 +181,7 @@ export function createModelRelayHandler(deps: ModelRelayDeps = defaultDeps) {
     }
     const upstream = (target.protocol === 'https:' ? https : http).request(target, {
       method: req.method,
-      headers: upstreamRequestHeaders(req.headers, providerKeyHeaders(credential)),
+      headers: upstreamRequestHeaders(req.headers, keyHeaders),
       agent,
     })
     untrack = trackRelayRequest(token, () => {
@@ -158,9 +195,11 @@ export function createModelRelayHandler(deps: ModelRelayDeps = defaultDeps) {
       headersAt = performance.now()
       res.writeHead(status, downstreamResponseHeaders(answer.headers))
       res.flushHeaders()
+      meter?.answer(status, answer.headers['content-type'], answer.headers['content-encoding'])
       answer.on('data', (chunk: Buffer) => {
         firstByteAt ??= performance.now()
         bytesOut += chunk.length
+        meter?.chunk(chunk)
       })
       answer.on('end', () => finish('done'))
       answer.on('error', () => {

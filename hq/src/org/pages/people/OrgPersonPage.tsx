@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ADMIN_CRUMB } from '../../../admin/adminCrumbs'
 import { Link, useParams } from 'react-router'
 import { MoreHorizontal } from 'lucide-react'
 import { useQuery, useAction, getOrgPerson, reactivatePerson, updateUserRole } from 'wasp/client/operations'
@@ -42,7 +43,7 @@ function OrgPerson({ userId }: { userId: string }) {
   const [resetting, setResetting] = useState(false)
   const updateRole = useAction(updateUserRole)
   const [roleError, setRoleError] = useState<string | null>(null)
-  const crumbs = (last: string) => [{ label: 'Organisation', href: '/org' }, { label: 'People', href: '/org/people' }, { label: last }]
+  const crumbs = (last: string) => [ADMIN_CRUMB, { label: 'People', href: '/admin/people' }, { label: last }]
 
   if (!view) {
     return (
@@ -82,7 +83,7 @@ function OrgPerson({ userId }: { userId: string }) {
               {menu && (
                 <div role="menu" className="absolute right-0 z-10 mt-1 w-56 rounded-lg border border-border bg-surface-1 py-1 shadow-lg">
                   <button type="button" role="menuitem" onClick={() => { setMenu(false); setResetting(true) }} className="block w-full px-3 py-2 text-left text-body text-text-primary hover:bg-surface-hover">Reset password</button>
-                  <Link role="menuitem" to={`/org/people/${person.userId}/remove`} className="block px-3 py-2 text-body text-danger hover:bg-surface-hover">Remove from the organisation</Link>
+                  <Link role="menuitem" to={`/admin/people/${person.userId}/remove`} className="block px-3 py-2 text-body text-danger hover:bg-surface-hover">Remove from the organisation</Link>
                 </div>
               )}
             </div>

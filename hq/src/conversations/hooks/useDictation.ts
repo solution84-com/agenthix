@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
-import { getSpeechToken } from 'wasp/client/operations'
+import { getSpeechToken, reportSpeechSession } from 'wasp/client/operations'
 import { createSpeechInput, type EndableSpeechInput, type SttConfig } from '../voiceClient/speechInput'
 import { createSpeechTrace, type SpeechTrace } from '../voiceClient/speechTiming'
 import { beginDictation, editText, hearSpeech, movePosition, turnOpen, type DictationText } from './dictationText'
@@ -11,17 +11,21 @@ const TOKEN_MARGIN_MS = 60_000
 /** Dictation ends a turn on a shorter silence than a voice conversation: nothing waits on it. */
 const DICTATION_CONFIG = { max_turn_silence: 1000 }
 
-type Token = { token: string; expiresAt: string; config?: SttConfig }
+type Token = { token: string; expiresAt: string; config?: SttConfig; ticket?: string }
 
 /**
  * Dictation into the message box: the microphone is open only while it is on, and what is heard goes into the
  * box as it is spoken — as ordinary text, corrected in place when the service formats it — for the person to
  * read and send. Nothing is sent by itself.
  */
-export function useDictation({ text, setText, field }: {
+export function useDictation({ text, setText, field, agentId, conversationId }: {
   text: string
   setText: (text: string) => void
   field: RefObject<HTMLTextAreaElement | null>
+  /** Whose own speech to text to use; none means the organisation's default. */
+  agentId?: string
+  /** Where it is used, so the session is costed to that place. */
+  conversationId?: string
 }) {
   const [listening, setListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,12 +42,16 @@ export function useDictation({ text, setText, field }: {
 
   const getToken = useCallback(async (): Promise<Token> => {
     const held = token.current
-    if (held && Date.parse(held.expiresAt) - TOKEN_MARGIN_MS > Date.now()) return held
-    fetching.current ??= getSpeechToken()
-      .then((t) => { token.current = t as Token; return t as Token })
+    // A ticket counts one session: a token used again is handed on without it.
+    if (held && Date.parse(held.expiresAt) - TOKEN_MARGIN_MS > Date.now()) {
+      token.current = { ...held, ticket: undefined }
+      return held
+    }
+    fetching.current ??= getSpeechToken(agentId || conversationId ? { agentId, conversationId } : undefined)
+      .then((t) => { token.current = { ...(t as Token), ticket: undefined }; return t as Token })
       .finally(() => { fetching.current = null })
     return fetching.current
-  }, [])
+  }, [agentId, conversationId])
 
   const show = useCallback((next: DictationText) => {
     const before = state.current
@@ -114,6 +122,7 @@ export function useDictation({ text, setText, field }: {
     trace.current = import.meta.env.DEV ? createSpeechTrace() : null
     const made = createSpeechInput({
       getToken,
+      report: (session) => { void reportSpeechSession(session).catch(() => undefined) },
       trace: trace.current ?? undefined,
       config: DICTATION_CONFIG,
       onPartial: hear(false),

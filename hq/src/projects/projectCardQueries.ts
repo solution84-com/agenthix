@@ -27,7 +27,7 @@ export const getProjectCards: GetProjectCards<void, ProjectCardsView> = async (_
   const me = context.user.id
   const projects = await prisma.project.findMany({
     where: visibleProjectsFilter(me),
-    select: { id: true, personalOwnerId: true, members: { where: { userId: me }, select: { role: true } } },
+    select: { id: true, personalOwnerId: true, personalSpace: true, members: { where: { userId: me }, select: { role: true } } },
   })
   const ids = projects.map(p => p.id)
   const [tasks, usage] = await Promise.all([
@@ -54,7 +54,7 @@ export const getProjectCards: GetProjectCards<void, ProjectCardsView> = async (_
       isMember: p.personalOwnerId ? p.personalOwnerId === me : p.members.length > 0,
       needsYouCount: waiting.length,
       runningCount: here.filter(t => t.runState === 'RUN_ACTIVE' && !needsYou(t)).length,
-      lastRunAt: lastRun.get(p.personalOwnerId ? `user:${p.personalOwnerId}` : `project:${p.id}`) ?? null,
+      lastRunAt: lastRun.get(p.personalOwnerId && p.personalSpace ? `user:${p.personalOwnerId}` : `project:${p.id}`) ?? null,
     }
   })
   return { cards, unanswered: usage.unanswered }

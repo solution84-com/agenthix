@@ -2,7 +2,7 @@
 title: GitHub
 description: Connect Agenthix to GitHub once, then back a project's files up to a repository.
 sidebar:
-  order: 4
+  order: 6
 ---
 
 Connecting GitHub lets agents clone and push code with short-lived, per-repository tokens instead of long-lived
@@ -11,7 +11,7 @@ for your **HQ**, your organisation's home in Agenthix. An administrator sets it 
 
 ## 1. Register the GitHub App
 
-1. Open **Organisation › Infrastructure**, and under **More** select **GitHub App**.
+1. Open **Manage**, then **Infrastructure** under **Where work runs**, and under **More** select **GitHub App**.
 2. Under **GitHub organization**, enter the name of the GitHub organisation that will own the App, or leave it blank
    to create the App under your personal account.
 3. Select **Register the GitHub App**. GitHub asks you to confirm creating it, then sends you back to Agenthix.
@@ -22,7 +22,7 @@ reconnect.
 
 ## 2. Install it on your accounts
 
-1. Open **Organisation › Settings**, and under **Access to models and tools** select **GitHub**.
+1. Open **Manage**, then **Settings**, and under **Access to models and tools** select **GitHub**.
 2. Select **Install or manage on GitHub**, and install the App on your organisation or account.
 3. Back in Agenthix, select **Refresh installations**. The accounts appear under **Installed on**.
 

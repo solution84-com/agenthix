@@ -137,7 +137,6 @@ export async function readWorkforceContent(template: { assetPath: string; isSyst
             name: agentData.name,
             role: agentData.role,
             responsibilities: agentData.responsibilities,
-            defaultModel: agentData.defaultModel,
             approval: agentData.approval,
             allowedTools: agentData.allowedTools,
             allowedBashPatterns: agentData.allowedBashPatterns,
@@ -238,7 +237,7 @@ export async function applyTemplate(
           skillFiles.push({ path: `skills/${skillSel.slug}/SKILL.md`, content: Buffer.from(frontmatter + skillSpec.content, 'utf-8') })
         }
 
-        const base = defaultAgentSettings(agentSpec.defaultModel)
+        const base = defaultAgentSettings()
         const settings: AgentSettings = agentSpec.approval || agentSpec.allowedTools
           ? {
               ...base,

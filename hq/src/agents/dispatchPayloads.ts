@@ -11,8 +11,9 @@
  * handler needs the same agent-config shape a real dispatch sends).
  */
 import type { Agent, AgentSession } from '@prisma/client'
-import { isApproval, type SessionSeed, type AgentConfigPayload, type JsonValue } from '@agenthix/core'
+import { CLAUDE_SDK_RUNTIME, isApproval, type SessionSeed, type AgentConfigPayload, type JsonValue } from '@agenthix/core'
 import { truncateTitle } from '../sessions/siteRuntimeStore'
+import { DEFAULT_MODEL } from './models'
 
 export function toSeed(session: AgentSession): SessionSeed {
   return {
@@ -33,15 +34,19 @@ export function toSeed(session: AgentSession): SessionSeed {
   }
 }
 
+/**
+ * The agent's config as a site reads it. Its runtime and model are the resolver's to decide, not the agent's: a run
+ * overwrites them with the resolved ones (runContext.ts), and these are what an older reader sees without one.
+ */
 export function toAgentConfigPayload(agent: Agent): AgentConfigPayload {
   return {
     id: agent.id,
     name: agent.name,
     handle: agent.handle,
     role: agent.role,
-    runtime: agent.runtime,
+    runtime: CLAUDE_SDK_RUNTIME,
     approval: isApproval(agent.approval) ? agent.approval : 'deferred',
-    defaultModel: agent.defaultModel,
+    defaultModel: DEFAULT_MODEL,
     // Stored JSON columns in one of the forms core declares; the site reads them through its own coercion.
     allowedTools: agent.allowedTools as AgentConfigPayload['allowedTools'],
     allowedBashPatterns: agent.allowedBashPatterns as AgentConfigPayload['allowedBashPatterns'],

@@ -1,6 +1,6 @@
 /**
- * One turn of the lead (conversation layer spec, Inference turn; model access spec): the access that pays for
- * it, the authority it acts with, its context, then the model step by step — text streamed to the screens, a
+ * One turn of the lead (conversation layer spec, Inference turn; models from one place): the model it talks on,
+ * the authority it acts with, its context, then the model step by step — text streamed to the screens, a
  * step's tool calls run together through the tool adapter under the wait limit (stepTools.ts) — and one AGENT
  * message committed at its end, keeping the reply's steps (replySteps.ts). A reply that runs long carries on in
  * the background, started by hq itself (moveToBackground.ts).
@@ -45,6 +45,7 @@ import { withClock } from './clock'
 import type { TurnSpeech } from '../voice/session'
 import type { HeldUpdate } from '../voice/hand'
 import type { CompactAtStart } from '../long/turnStart'
+import { costedToTurn } from '../../billing/sources/hqCalls'
 
 export const NO_AGENT = "This conversation's agent no longer exists. Start a new conversation to keep going."
 export const SOMETHING_WENT_WRONG = 'Something went wrong while writing this reply. Send your message again to retry.'
@@ -221,21 +222,17 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
     const agentId = conversation.agentId
     if (!agentId) return await end('FAILED', NO_AGENT)
 
-    const fixed = conversation.talkingModel && conversation.talkingProvider
-      ? { model: conversation.talkingModel, provider: conversation.talkingProvider, owner: conversation.accessOwnerType ?? undefined }
-      : null
-    const resolved = await deps.resolveAccess(conversation, fixed)
-    if (!resolved.access) return await end('FAILED', resolved.problem ?? 'There is no model access to talk on here.')
-    const access = resolved.access
+    const resolved = await deps.resolveAccess(conversation, claimed.actingUserId)
+    if (!resolved.access) return await end('FAILED', resolved.problem ?? 'There is no model to talk on here.')
+    const access = costedToTurn(resolved.access, turnId)
     talkedOn = access
     model = access.model
-    // The first turn records the policy's fallback when it fixes the model; a later one, that the recorded key was
-    // gone and another payer's is used — once, since setAccess records the new payer for the turns after it.
-    const firstToFix = !fixed && (await deps.fixTalkingAccess(conversationId, access))
-    if (resolved.notice && (firstToFix || fixed)) {
+    // The first turn fixes the model, and says once when it is not the default it would have had.
+    const firstToFix = !conversation.talkingModel && (await deps.fixTalkingAccess(conversationId, access))
+    if (resolved.notice && firstToFix) {
       await commit({ conversationId, role: 'PLATFORM', kind: 'NOTICE', body: { text: resolved.notice } })
     }
-    await deps.record.setAccess(turnId, conversationId, access)
+    await deps.record.setAccess(turnId, access)
 
     const capability = await deps.mint({
       conversation, turnId, agentId, actingUserId: claimed.actingUserId, trigger: claimed.trigger,

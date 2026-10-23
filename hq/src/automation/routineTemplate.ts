@@ -21,10 +21,12 @@ export interface RoutineTemplate {
   boardId: string | null
   /** A column of it, or null for its Backlog. */
   column: string | null
+  /** The model each round's run names (`<providerId>/<model>`); null follows the default. */
+  modelChoice: string | null
 }
 
 /** A template as given: a column left out is the board's first column on a named board, the Backlog otherwise. */
-export type RoutineTemplateInput = Omit<RoutineTemplate, 'column'> & { column?: string | null }
+export type RoutineTemplateInput = Omit<RoutineTemplate, 'column' | 'modelChoice'> & { column?: string | null; modelChoice?: string | null }
 
 export type RoutineScheduleInput = {
   /** ISO time the repeat is anchored at, or begins from; omitted = now. */
@@ -95,7 +97,7 @@ export async function checkTemplate(projectId: string, t: RoutineTemplateInput):
   const columns = sortedColumns(parseColumns(board.columns))
   const wanted = t.column === undefined ? (t.boardId ? columns[0]?.name ?? null : null) : t.column
   if (wanted !== null && !findColumn(columns, wanted)) throw new RoutineError(`"${wanted}" is not a column of that board`)
-  return { ...t, title: t.title.trim(), column: wanted }
+  return { ...t, title: t.title.trim(), column: wanted, modelChoice: t.modelChoice ?? null }
 }
 
 type Db = Pick<Prisma.TransactionClient, 'board' | 'agent' | 'sprint'>

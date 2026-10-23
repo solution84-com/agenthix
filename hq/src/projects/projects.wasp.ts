@@ -16,6 +16,7 @@ import { updateTaskPlan, getMilestones, createMilestone, updateMilestone, delete
 import { getTimeline } from "./timeline" with { type: "ref" };
 import { getMyTasks } from "./myTasksQueries" with { type: "ref" };
 import { getMyPersonalProject } from "./personalProjectQueries" with { type: "ref" };
+import { createPersonalProject } from "./personalProjectActions" with { type: "ref" };
 import { getOrgArchiveSetting, updateOrgArchiveSetting, getProjectArchiveSetting, setProjectArchiveSetting } from "./finishedArchive/archiveActions" with { type: "ref" };
 import { runProject, runBoard, addAgentToProject, removeAgentFromProject, createProject, updateProject, deleteProject, createBoard, updateBoard, deleteBoard, createTask, updateTask, runTask, stopTask, dismissTaskRun, deleteTask, archiveTask, moveTaskToColumn, returnTaskToBacklog, clearTaskSession, addTaskComment, uploadTaskAttachment } from "./actions" with { type: "ref" };
 import { getProjectMembers, listPeopleForProject } from "./memberQueries" with { type: "ref" };
@@ -81,7 +82,8 @@ export const projectsSpec: Spec = [
     action(setProjectLead, { entities: ["Project", "ProjectMember"] }),
     action(addAgentToProject, { entities: ["ProjectAgent", "Project", "ProjectMember"] }),
     action(removeAgentFromProject, { entities: ["ProjectAgent", "Project", "ProjectMember", "Task", "Routine"] }),
-    action(createProject, { entities: ["Project", "Product", "Program", "ExecutionSite", "ProjectMember", "UserSettings"] }),
+    action(createPersonalProject, { entities: ["Project", "ProjectMember", "ExecutionSite", "UserStoragePlacement"] }),
+    action(createProject, { entities: ["Project", "BillingProfile", "Product", "Program", "ExecutionSite", "ProjectMember", "UserSettings"] }),
     action(updateProject, { entities: ["Project", "Product", "Program", "ProjectMember", "UserSettings"] }),
     action(deleteProject, { entities: ["Project", "Board", "Task"] }),
     action(createBoard, { entities: ["Board", "BoardTemplate", "Sprint"] }),

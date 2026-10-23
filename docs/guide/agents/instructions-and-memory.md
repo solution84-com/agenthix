@@ -92,7 +92,7 @@ An agent's own page has a **Memory** section that shows what it remembers about 
 
 ### How well it works
 
-An organisation admin sees how recall has done over the last 30 days under **Organisation**, **Settings**,
+An organisation admin sees how recall has done over the last 30 days under **Manage**, **Settings**,
 **Memory**: how many memories were included in a reply, named as a hint, recalled on request, relied on, not relied
 on, or missed. The same page names the model that reads memory. It runs inside HQ by default. To use a provider's
 model instead, type it as `provider/model` and select **Switch**; the organisation needs that provider's key.

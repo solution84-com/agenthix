@@ -21,8 +21,8 @@ today, and lets you start a conversation straight away:
 Home also offers three ways to begin with Kernel: **What can you do?**, **Set up my first project** and **Invite my
 team**. Select one to start that conversation in the conversation beside the page; Home stays where it is.
 
-If Home says **Agents can't answer you yet: no model access is set up**, follow its link to add one: see
-[Models](../your-tools/models.md).
+If Home says **Agents can't answer you yet: no model is working**, an organisation admin needs to add or fix a
+provider. For an admin it links to **Manage organisation › Providers**: see [Providers](../your-tools/providers.md).
 
 ## The conversation
 
@@ -120,7 +120,8 @@ is greyed when that agent cannot talk; select it to see why. See [Voice](../your
 
 ## Your space
 
-**Your space** is in the side bar, under **Chat**. It is your own private place, and has the same sections as a project:
+**Your space** is in the side bar, under **Chat**. It is your own private place, the first of your
+[personal projects](../projects/projects.md#personal-projects), and has the same sections as a project:
 **Overview**, **Conversations**, **Tasks**, **Boards**, **Runs**, **Automation**, **Files**, **Artefacts**, **Knowledge**,
 **Workspaces** and **Agents**. **Chat** shows only the list of its conversations. See
 [Projects](../projects/projects.md#inside-a-project) for how a place's sections work.

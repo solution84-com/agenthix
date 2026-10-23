@@ -1,8 +1,5 @@
 import { trustedProxyCount } from './trustedProxies'
 import { masterKeyProblem } from './crypto/secretCrypto'
-import { sharedSubscriptionSwitchIgnoredError } from '../model-access/sharedSubscriptionSwitch'
-
-export { sharedSubscriptionSwitchIgnoredError }
 
 /**
  * Everything hq refuses to start without, as one line per problem. Pure over the

@@ -102,7 +102,7 @@ export async function makeRoutineFromTask(
   }
   const checked = await checkTemplate(task.projectId, {
     title: task.title, description: task.description, priority: task.priority, labels: labelsOf(task.labels),
-    assignedAgentId: task.assignedAgentId, boardId: task.boardId, column: task.column,
+    assignedAgentId: task.assignedAgentId, boardId: task.boardId, column: task.column, modelChoice: task.modelChoice,
   })
   const schedule = toRoutineSchedule(scheduleInput, now)
   const startToCome = task.scheduleAt && task.scheduleNextDueAt && task.scheduleAt.getTime() > now.getTime() ? task.scheduleAt : null
@@ -264,7 +264,7 @@ export async function pauseRoutinesForLostAccess(where: Prisma.RoutineWhereInput
 function templateOf(r: Routine): RoutineTemplate {
   return {
     title: r.title, description: r.description, priority: r.priority, labels: labelsOf(r.labels),
-    assignedAgentId: r.assignedAgentId, boardId: r.boardId, column: r.column,
+    assignedAgentId: r.assignedAgentId, boardId: r.boardId, column: r.column, modelChoice: r.modelChoice,
   }
 }
 
@@ -287,7 +287,7 @@ async function syncWaitingRound(tx: Tx, routine: Routine, at: Date | null, now: 
     where: { id: waiting.id },
     data: {
       title: routine.title, description: routine.description, priority: routine.priority, labels: labelsOf(routine.labels),
-      assignedAgentId: place.assignedAgentId, onBehalfOfUserId: routine.onBehalfOfUserId, roundAt: at,
+      assignedAgentId: place.assignedAgentId, modelChoice: routine.modelChoice, onBehalfOfUserId: routine.onBehalfOfUserId, roundAt: at,
       ...(planIsDefault ? roundPlan(at, routine.scheduleTimezone) : {}),
       ...(moved ? { boardId: place.boardId, column: place.column, status: place.status, sprintId: place.sprintId } : {}),
     },

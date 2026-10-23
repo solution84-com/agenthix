@@ -19,7 +19,7 @@ export { ProjectTabBar } from './ProjectTabBar'
 export type { ProjectTab, ProjectTabBarProps } from './ProjectTabBar'
 
 export { CreateProjectModal } from './CreateProjectModal'
-export type { CreateProjectModalProps, ProductOption, ProgramOption } from './CreateProjectModal'
+export type { CreateProjectModalProps, ProductOption, ProgramOption, BillingProfileOption } from './CreateProjectModal'
 
 export type { CreateProjectInput, ProjectActions } from './types'
 

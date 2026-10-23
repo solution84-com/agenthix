@@ -63,7 +63,7 @@ export function MemoryPage() {
       {isAdmin && (
         <p className="mt-8 text-small text-text-muted">
           How well recall works, and the model that reads memory, are under{' '}
-          <Link to="/org/settings/memory" className="text-accent hover:text-accent-hover">Organisation › Settings › Memory</Link>.
+          <Link to="/admin/settings/memory" className="text-accent hover:text-accent-hover">Manage organisation › Settings › Memory</Link>.
         </p>
       )}
     </SettingsSubpage>

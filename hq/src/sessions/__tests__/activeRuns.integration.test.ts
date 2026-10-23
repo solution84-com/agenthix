@@ -169,10 +169,19 @@ describe('getProjectActiveRuns', () => {
   // Agents own schedule spec §4: a personal project's runs are in its person's storage.
   it("shows a personal project's person's own storage, never a project boundary", async () => {
     const owner = await createUser()
-    const project = await projectOnSite({ accessLevel: 'PRIVATE', personalOwnerId: owner.id })
+    const project = await projectOnSite({ accessLevel: 'PRIVATE', personalOwnerId: owner.id, personalSpace: true })
 
     await getProjectActiveRuns({ projectId: project.id }, { user: { id: owner.id } })
 
     expect(siteStore.listActiveRuns).toHaveBeenCalledWith(SITE, { ownerType: 'user', ownerId: owner.id })
+  })
+
+  it("shows another personal project's runs from the project's own storage", async () => {
+    const owner = await createUser()
+    const project = await projectOnSite({ accessLevel: 'PRIVATE', personalOwnerId: owner.id })
+
+    await getProjectActiveRuns({ projectId: project.id }, { user: { id: owner.id } })
+
+    expect(siteStore.listActiveRuns).toHaveBeenCalledWith(SITE, { ownerType: 'project', ownerId: project.id })
   })
 })

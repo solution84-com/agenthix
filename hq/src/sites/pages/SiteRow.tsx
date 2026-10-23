@@ -20,7 +20,7 @@ export function SiteRow({ site }: { site: SiteListEntry }) {
   const detail = rowDetail(site, browserZone())
   return (
     <Link
-      to={`/org/settings/where-work-runs/${site.id}`}
+      to={`/admin/where-work-runs/${site.id}`}
       data-testid="site-row"
       className="flex items-center gap-3 px-5 py-3.5 hover:bg-surface-hover transition-colors"
     >

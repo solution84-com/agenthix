@@ -100,7 +100,7 @@ export async function applyAgentTemplate(
   const { skills = template.isSystem ? [] : 'all', ...config } = agentData
 
   const settings: AgentSettings = {
-    ...defaultAgentSettings(config.defaultModel),
+    ...defaultAgentSettings(),
     approval: config.approval ?? 'deferred',
     permissions: {
       // Bundled templates carry the current ToolPermission[] shape, but a

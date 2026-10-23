@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { prisma } from '../../test/db'
 import { createUserWithRole } from '../../test/factories'
+import { prismaProviderStore } from '../../providers/store'
 
 // Setup runs once per hq, for its first admin only (getting-in spec, The first
 // admin), against the real test database.
@@ -12,7 +13,8 @@ vi.mock('wasp/server', async () => {
 })
 
 import { completeSetup } from '../actions'
-import { getSetupData } from '../queries'
+import { getSetupData, getSetupResume } from '../queries'
+import { claimState } from '../setupState'
 
 const ctx = (user?: { id: string }) => ({ user }) as any
 
@@ -25,6 +27,16 @@ async function firstAdmin() {
   return admin
 }
 
+/** A working provider of one vendor, as setup's steps leave it. */
+const addProvider = (vendor: 'anthropic' | 'assemblyai' | 'inworld') => prismaProviderStore.create({
+  name: vendor, vendor, credentialKind: 'api_key', baseUrl: null, keyHint: 'fake', state: 'works', stateDetail: null,
+  secret: null, lastCheckedAt: null, lastWorkedAt: null,
+})
+
+async function withModelsAndVoice() {
+  for (const vendor of ['anthropic', 'assemblyai', 'inworld'] as const) await addProvider(vendor)
+}
+
 afterEach(() => vi.unstubAllEnvs())
 
 describe('setup, once per hq @SC-710', () => {
@@ -32,7 +44,10 @@ describe('setup, once per hq @SC-710', () => {
     await prisma.org.create({ data: { name: 'My Organisation' } })
     const admin = await firstAdmin()
     expect(await getSetupData(undefined as any, ctx(admin))).toMatchObject({ needsSetup: true, setupComplete: false, isAdmin: true })
+    await expect(completeSetup(undefined as any, ctx(admin))).rejects.toMatchObject({ statusCode: 409 })
+    expect((await prisma.org.findFirstOrThrow()).setupCompletedAt).toBeNull()
 
+    await withModelsAndVoice()
     await completeSetup(undefined as any, ctx(admin))
 
     expect(await getSetupData(undefined as any, ctx(admin))).toMatchObject({ needsSetup: false, setupComplete: true })
@@ -52,6 +67,7 @@ describe('setup, once per hq @SC-710', () => {
   it('succeeds with no Execution Site, and creates nothing beyond the record (R-169)', async () => {
     await prisma.org.create({ data: { name: 'My Organisation' } })
     const admin = await firstAdmin()
+    await withModelsAndVoice()
 
     await expect(completeSetup(undefined as any, ctx(admin))).resolves.toEqual({ done: true })
 
@@ -63,6 +79,31 @@ describe('setup, once per hq @SC-710', () => {
   it('refuses a caller who is not signed in (401)', async () => {
     await expect(completeSetup(undefined as any, ctx())).rejects.toMatchObject({ statusCode: 401 })
     await expect(getSetupData(undefined as any, ctx())).rejects.toMatchObject({ statusCode: 401 })
+  })
+})
+
+describe("hq's claim state and where setup resumes @SC-709 @SC-1182", () => {
+  it('goes from unclaimed to setting up to set up, and resumes at the first unmet need', async () => {
+    await prisma.org.create({ data: { name: 'My Organisation' } })
+    expect(await claimState()).toBe('unclaimed')
+
+    const admin = await firstAdmin()
+    expect(await claimState()).toBe('setting_up')
+    expect(await getSetupResume(undefined as any, ctx(admin))).toEqual({ step: 'choice' })
+
+    await addProvider('anthropic')
+    expect(await getSetupResume(undefined as any, ctx(admin))).toEqual({ step: 'voice' })
+
+    await addProvider('assemblyai')
+    await addProvider('inworld')
+    expect(await getSetupResume(undefined as any, ctx(admin))).toEqual({ step: 'organisation' })
+
+    await completeSetup(undefined as any, ctx(admin))
+    expect(await claimState()).toBe('set_up')
+  })
+
+  it('refuses a caller who is not signed in (401)', async () => {
+    await expect(getSetupResume(undefined as any, ctx())).rejects.toMatchObject({ statusCode: 401 })
   })
 })
 
