@@ -80,6 +80,8 @@ await hq.executionSite.deleteMany({ where: { isDefault: false } })
 await site.$executeRawUnsafe('TRUNCATE TABLE "AgentSession", "Workspace", "RepoAttachment" CASCADE')
 
 // ── The organisation ───────────────────────────────────────────────────────────────────────────
+// Setup makes the organisation, so a database that has not been through it has none.
+if ((await hq.org.count()) === 0) await hq.org.create({ data: { name: 'Fernhill & Co' } })
 await hq.org.updateMany({
   data: {
     name: 'Fernhill & Co',

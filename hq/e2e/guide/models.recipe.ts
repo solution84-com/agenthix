@@ -9,7 +9,7 @@ test('models', async ({ page }) => {
     height: 1300,
     ready: async (p) => {
       await expect(p.getByRole('heading', { name: 'Models', exact: true })).toBeVisible()
-      await expect(p.getByRole('region', { name: 'Defaults' })).toBeVisible()
+      await expect(p.getByRole('region', { name: 'Thinking' })).toBeVisible()
       await expect(p.getByText('via Anthropic').first()).toBeVisible()
     },
   })

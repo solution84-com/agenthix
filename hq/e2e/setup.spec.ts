@@ -98,6 +98,8 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
   test('Back returns to the model provider, still added', async () => {
     await page.getByRole('button', { name: /^back$/i }).click()
     await onStep(page, 'model')
+    // The address changes a moment before the step is drawn: wait for the step, or the voice providers still on screen match too.
+    await expect(page.getByRole('heading', { name: 'Your model provider' })).toBeVisible()
     await expect(page.getByText(/works\. Added by you\./)).toBeVisible()
     await page.getByRole('button', { name: /^continue$/i }).click()
     await onStep(page, 'voice')

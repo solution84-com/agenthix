@@ -168,14 +168,16 @@ export async function seedRuns({ hq, site, ago, people, agents, projects, tasks,
     const inProject = where === 'project'
     const askedAt = ago(minutesAgo)
     const answeredAt = new Date(askedAt.getTime() + 40_000)
+    // A person's message with no turn is one HQ's recovery sweep answers, which would reach the model vendor.
+    const turnId = randomUUID()
     await hq.conversation.create({
       data: {
         home: inProject ? 'PROJECT' : 'PERSON', projectId: inProject ? projects.WEB.id : null,
         openedById: sam.id, agentId: agent.id, title, lastSeq: 2, lastMessageAt: answeredAt, createdAt: askedAt,
         messages: {
           create: [
-            { seq: 1, role: 'PERSON', kind: 'TEXT', authorId: sam.id, body: sealed(ask), createdAt: askedAt },
-            { seq: 2, role: 'AGENT', kind: 'TEXT', agentId: agent.id, body: sealed(answer), createdAt: answeredAt },
+            { seq: 1, role: 'PERSON', kind: 'TEXT', authorId: sam.id, turnId, body: sealed(ask), createdAt: askedAt },
+            { seq: 2, role: 'AGENT', kind: 'TEXT', agentId: agent.id, turnId, body: sealed(answer), createdAt: answeredAt },
           ],
         },
       },

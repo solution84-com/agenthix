@@ -25,7 +25,7 @@ test.describe('the registry lists HQ\'s own site', () => {
   test('HQ\'s own site reads "<machine> · HQ\'s site" in the list', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto('/admin/where-work-runs')
-    await expect(page.getByRole('heading', { name: /^Where work runs$/ })).toBeVisible()
+    await expect(page.getByTestId('shell-screen').getByRole('heading', { name: /^Where work runs$/ })).toBeVisible()
     test.skip((await page.getByTestId('site-row').count()) === 0, 'needs HQ\'s built-in site (paired at boot)')
     // Named after the machine HQ runs on, as everywhere since host management: "hq-box · HQ's site".
     await expect(siteRow(page, " · HQ's site").first()).toBeVisible()
