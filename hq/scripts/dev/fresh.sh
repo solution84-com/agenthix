@@ -10,8 +10,8 @@
 #                        storage folders, so the first-admin flow can be run again.
 #   fresh.sh --dry-run   Print the databases and steps; start nothing, change nothing.
 #
-# Needs the dev databases up (docker compose up -d: hq on 4109, site on 4209)
-# and the normal dev apps stopped (ports 4100/4101 free).
+# Needs the dev databases up (docker compose up -d) and the normal dev apps stopped (the ports of
+# core/src/ports/ports.ts, as scripts/dev/ports.sh prints them, free).
 # HQ prints the first-admin link in its log on a fresh HQ: look for the
 # line "No admin yet. Open this link to set up..." in this terminal's output.
 set -euo pipefail
@@ -20,8 +20,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HQ_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 SITE_DIR="$(dirname "$HQ_DIR")/site"
 
-HQ_DB_PORT="${FRESH_HQ_DB_PORT:-4109}"
-SITE_DB_PORT="${FRESH_SITE_DB_PORT:-4209}"
+REPO_ROOT="$(dirname "$HQ_DIR")"
+eval "$(bash "$REPO_ROOT/scripts/dev/ports.sh")"
+source "$REPO_ROOT/scripts/dev/require-free-ports.sh"
+HQ_DB_PORT="${FRESH_HQ_DB_PORT:-$HQ_DB_PORT}"
+SITE_DB_PORT="${FRESH_SITE_DB_PORT:-$SITE_DB_PORT}"
 HQ_DB_NAME=agenthix_fresh
 SITE_DB_NAME=agenthix_site_fresh
 HQ_DB_CONTAINER=agenthix-dev-hq-db
@@ -29,7 +32,6 @@ SITE_DB_CONTAINER=agenthix-dev-site-db
 # The dev databases' own credentials, from the root docker-compose.yml.
 HQ_DATABASE_URL="postgresql://agenthix:agenthix@localhost:$HQ_DB_PORT/$HQ_DB_NAME"
 SITE_DATABASE_URL="postgresql://agenthix:agenthix@localhost:$SITE_DB_PORT/$SITE_DB_NAME"
-PORTS="${FRESH_PORTS:-4100 4101}"
 # HQ's own files (images, its log) and the site's data, apart from the normal dev HQ's and site's.
 FRESH_DIR="${FRESH_STORAGE_DIR:-$HOME/.agenthix.dev-fresh}"
 HQ_STORAGE="$FRESH_DIR/hq"
@@ -45,13 +47,11 @@ for arg in "$@"; do
   esac
 done
 
-for port in $PORTS; do
-  if lsof -ti:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
-    echo "Refusing to start: port $port is in use, so the normal dev apps (or an HQ install) are running." >&2
-    echo "Stop them first; the fresh HQ uses the same ports." >&2
-    exit 1
-  fi
-done
+if [ -n "${FRESH_PORTS:-}" ]; then
+  REQUIRE_FREE_PORTS_HINT=FRESH_PORTS require_free_ports $FRESH_PORTS
+else
+  require_free_ports HQ_WEB_PORT HQ_SERVER_PORT SITE_SERVER_PORT
+fi
 
 if [ "$DRY" = true ]; then
   echo "hq database:   $HQ_DB_NAME on port $HQ_DB_PORT"

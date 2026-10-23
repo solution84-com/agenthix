@@ -5,7 +5,8 @@
 # (docs/architecture/deployment.md); these are only the databases, published on
 # localhost so host processes can reach them.
 #
-# Ports: hq 4109, site 4209. Each module's .env.server points at its own.
+# Ports: hq 4109, site 4209 (core/src/ports/ports.ts). HQ_DB_PORT and SITE_DB_PORT in the environment move them;
+# each module's .env.server points at its own.
 
 name: agenthix-dev
 
@@ -26,7 +27,7 @@ services:
     ports:
       # localhost-only — dev DBs are reached from native processes on this
       # machine and never need to be visible to anything else on the network.
-      - "127.0.0.1:4109:5432"
+      - "127.0.0.1:${HQ_DB_PORT:-4109}:5432"
     volumes:
       - site_db_data:/var/lib/postgresql/data
 
@@ -39,7 +40,7 @@ services:
       POSTGRES_PASSWORD: agenthix
       POSTGRES_DB: agenthix_site
     ports:
-      - "127.0.0.1:4209:5432"
+      - "127.0.0.1:${SITE_DB_PORT:-4209}:5432"
     volumes:
       - site_exec_db_data:/var/lib/postgresql/data
 
