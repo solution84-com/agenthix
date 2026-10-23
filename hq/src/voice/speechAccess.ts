@@ -4,9 +4,12 @@
  * from the provider store and goes no further than the call that needs it. What each call came to is reported to the
  * provider's health.
  */
+import type { ResolvePlace } from '@agenthix/core'
 import type { ModelErrorKind } from '../conversations/contract'
 import { providerStore } from '../providers/store'
 import { resolve } from '../routing/resolver'
+import { costingOf } from '../billing/costing'
+import type { CallCosting } from '../billing/types'
 
 export type SpeechKind = 'stt' | 'tts'
 
@@ -26,14 +29,25 @@ export interface SpeechAccess {
   /** For text to speech: the voice the agent or the organisation chose. */
   voice: string | null
   apiKey: string
+  /** What its calls are costed to (billing/). */
+  costing: CallCosting
 }
 
 export type SpeechAnswer = { ok: true; access: SpeechAccess } | { ok: false; reason: string }
 
+/** Whose call it is and where: a conversation's place costs its project's billing profile; none costs the organisation's. */
+export type SpeechScope = { place?: ResolvePlace; userId?: string | null; conversationId?: string | null }
+
 /** The provider to use for speech to text or text to speech now; `reason` is what a person reads when there is none. */
-export async function speechAccess(kind: SpeechKind, agentId?: string | null): Promise<SpeechAnswer> {
+export async function speechAccess(kind: SpeechKind, agentId?: string | null, scope: SpeechScope = {}): Promise<SpeechAnswer> {
   const down = { ok: false as const, reason: voiceDownText(kind) }
-  const answer = await resolve({ purpose: kind, place: { kind: 'organisation' }, ...(agentId ? { agentId } : {}) })
+  const req = {
+    purpose: kind, place: scope.place ?? { kind: 'organisation' as const },
+    ...(agentId ? { agentId } : {}),
+    ...(scope.userId ? { userId: scope.userId } : {}),
+    ...(scope.conversationId ? { conversationId: scope.conversationId } : {}),
+  }
+  const answer = await resolve(req)
   if (!answer.ok) return down
   const r = answer.resolution
   if (r.vendor !== VENDOR[kind]) return down
@@ -42,7 +56,7 @@ export async function speechAccess(kind: SpeechKind, agentId?: string | null): P
   if (!apiKey) return down
   return {
     ok: true,
-    access: { providerId: r.model.providerId, providerName: r.providerName, vendor: r.vendor, model: r.model.model, voice: r.voice ?? null, apiKey },
+    access: { providerId: r.model.providerId, providerName: r.providerName, vendor: r.vendor, model: r.model.model, voice: r.voice ?? null, apiKey, costing: costingOf(r, req) },
   }
 }
 

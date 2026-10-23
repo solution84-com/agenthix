@@ -18,6 +18,7 @@ import { seed } from "./src/server/seed" with { type: "ref" };
 import { adminSpec } from "./src/admin/admin.wasp";
 import { agentsSpec } from "./src/agents/agents.wasp";
 import { authSpec } from "./src/auth/auth.wasp";
+import { billingSpec } from "./src/billing/billing.wasp";
 import { automationSpec } from "./src/automation/automation.wasp";
 import { chatSpec } from "./src/chat/chat.wasp";
 import { cloudSpec } from "./src/cloud/cloud.wasp";
@@ -82,6 +83,7 @@ export default app({
     api("POST", "/api/v1/data", dataApi, { auth: false }),
     agentsSpec,
     authSpec,
+    billingSpec,
     automationSpec,
     chatSpec,
     cloudSpec,

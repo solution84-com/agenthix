@@ -42,7 +42,14 @@ function provisionEnv(testDatabaseUrl: string): NodeJS.ProcessEnv {
 async function cleanup(): Promise<void> {
   await stopAll()
   await Promise.all([hqDb.$disconnect(), siteDb.$disconnect()])
-  rmSync(SITE_ROOT_DIR, { recursive: true, force: true })
+  // A temp folder left behind never fails a run whose tests passed. A run that reaches an agent's start leaves its
+  // harness homes (`.claude`, `.opencode`, `.config/opencode`) here, and a machine whose own tooling puts a
+  // deny-delete ACL on such folders refuses their removal.
+  try {
+    rmSync(SITE_ROOT_DIR, { recursive: true, force: true })
+  } catch (err) {
+    console.warn(`[harness] the run's temp folder ${SITE_ROOT_DIR} was not removed: ${err instanceof Error ? err.message : String(err)}`)
+  }
 }
 
 export default async function globalSetup() {

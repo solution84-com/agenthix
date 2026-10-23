@@ -69,6 +69,7 @@ import { startFirstAdminAndControlSocket } from '../auth/machine/startOnBoot'
 import { orgImageHandler, teamImageHandler } from '../org/identityImages'
 import { KERNEL_HANDLE, KERNEL_NAME, KERNEL_ROLE } from '../agents/kernelGuards'
 import { Logger } from './utils/logger'
+import { startLedger } from '../billing/start'
 import { startDiagnostics, startLogging } from '../diagnostics/startDiagnostics'
 
 const logger = new Logger('startup')
@@ -235,6 +236,9 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   // Each provider's state, from a check with its vendor that costs nothing: hourly, and every 5 minutes while one is
   // not working (providers/health.ts). Keys enter only through the provider store, never from hq's environment.
   startProviderHealth()
+
+  // Every call costed on the ledger: subscription runs as they end, the relay's reports as they wait (billing/).
+  startLedger()
 
   // A connection to Agenthix Cloud checks in at once, then within every hour (cloudConnection.ts).
   void cloudConnection()?.startCheckIns().catch(err => logger.warn(`Could not check in with Agenthix Cloud: ${err instanceof Error ? err.message : err}`))

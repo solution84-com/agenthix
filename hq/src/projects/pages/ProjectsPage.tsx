@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery, createProject, getProjects, getUserSettings, getProducts, getPrograms, getExecutionSites, getProjectCards, getWorkspacesAcrossPlaces } from 'wasp/client/operations'
+import { useQuery, createProject, getProjects, getUserSettings, getProducts, getPrograms, getExecutionSites, getProjectCards, getWorkspacesAcrossPlaces, getBillingProfileChoices } from 'wasp/client/operations'
 import { CreateProjectModal } from '@agenthix/ui/projects'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { NoExecutionSiteNotice, useNoExecutionSite } from '../../shared/components/NoExecutionSiteNotice'
@@ -43,6 +43,7 @@ export function ProjectsPage() {
   const { data: products } = useQuery(getProducts)
   const { data: programs } = useQuery(getPrograms)
   const { data: executionSites } = useQuery(getExecutionSites)
+  const { data: billingChoices } = useQuery(getBillingProfileChoices)
   const { data: cardLines } = useQuery(getProjectCards)
   const { screen, startCreating } = useProjectsScreenUrl()
   const across = useQuery(getWorkspacesAcrossPlaces, undefined, { enabled: screen.creating === 'workspace' })
@@ -121,6 +122,7 @@ export function ProjectsPage() {
         products={((products ?? []) as { id: string; name: string }[]).map(p => ({ id: p.id, name: p.name }))}
         programs={((programs ?? []) as { id: string; name: string }[]).map(p => ({ id: p.id, name: p.name }))}
         existingKeys={projects.map(p => p.key).filter(Boolean)}
+        billingProfiles={billingChoices ?? []}
         actions={{
           createProject: async (input) => {
             const result = await createProject(input)

@@ -92,7 +92,7 @@ describe('starting and ending voice @SC-995', () => {
     const getToken = vi.fn(async (_agentId?: string) => ({ token: 't' }))
     const r = rig({ deps: { getToken } })
     r.session.start(C, { id: 'a1', name: 'Kernel', avatarUrl: null }, '/chat/c1')
-    expect(getToken).toHaveBeenCalledWith('a1')
+    expect(getToken).toHaveBeenCalledWith('a1', C)
   })
 
   it('tells hq when the tab closes', async () => {

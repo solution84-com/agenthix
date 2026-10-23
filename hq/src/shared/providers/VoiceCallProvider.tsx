@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { useAuth } from 'wasp/client/auth'
-import { getSpeechToken, sendConversationMessage } from 'wasp/client/operations'
+import { getSpeechToken, reportSpeechSession, sendConversationMessage } from 'wasp/client/operations'
 import { useSocket } from 'wasp/client/webSocket'
 import { CONVERSATION_SOCKET } from '../conversations/protocol'
 import { createPlayback } from '../../conversations/voiceClient/playback'
@@ -25,7 +25,7 @@ export type VoiceCallValue = {
   stopSpeaking: () => boolean
   clearNotice: () => void
   /** Voice may be started soon (its button is under the pointer or focused): its speech token is fetched now. */
-  prepare: (agentId?: string) => void
+  prepare: (agentId?: string, conversationId?: string) => void
   /** How much of a reply's text may show: the part heard so far while it is being spoken, null for all of it. */
   revealLimit: (turnId: string | undefined, text: string) => number | null
   /** The voice runtime while voice is on, for the voice lab to watch; null otherwise. */
@@ -79,7 +79,8 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
       socket: socket as unknown as LooseSocket,
       userId,
       createPlayback: () => createPlayback(),
-      getToken: async (agentId) => (await getSpeechToken(agentId ? { agentId } : undefined)) as never,
+      getToken: async (agentId, conversationId) => (await getSpeechToken(agentId || conversationId ? { agentId, conversationId } : undefined)) as never,
+      reportSpeech: (session) => { void reportSpeechSession(session).catch(() => undefined) },
       sendMessage: (args) => sendConversationMessage(args),
       mirror: import.meta.env.DEV ? mirrorRuntime : undefined,
     })
@@ -105,7 +106,7 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
     toggleMute: () => session?.toggleMute(),
     stopSpeaking: () => session?.stopSpeaking() ?? false,
     clearNotice: () => session?.clearNotice(),
-    prepare: (agentId) => session?.prepare(agentId),
+    prepare: (agentId, conversationId) => session?.prepare(agentId, conversationId),
     revealLimit: (turnId, text) => revealLimitOf(voice, turnId, text),
     runtime: () => session?.runtime() ?? null,
   }), [session, voice, path])

@@ -14,6 +14,7 @@ import { conversationOffer, resolve } from '../../routing/resolver'
 import { hqCallAccess } from '../../routing/reaching'
 import { placeOfConversation } from '../../routing/place'
 import { modelLabel } from '../../routing/modelKeys'
+import { costingOf } from '../../billing/costing'
 
 /** How a model via a provider is shown: `Claude Sonnet 5 · via Anthropic`. */
 export async function choiceLabel(choice: ModelViaProvider): Promise<string> {
@@ -65,7 +66,7 @@ export async function resolveTalkingFor(
   if (!answer.ok) return { access: null, problem: answer.problem.message, offer: await offerOf(req) }
   const access = await hqCallAccess(answer.resolution)
   if (!access) return { access: null, problem: HQ_CALL_REFUSED, offer: null }
-  return { access, problem: null, offer: null, notice: await fellBackNotice(answer.resolution) }
+  return { access: { ...access, costing: costingOf(answer.resolution, req) }, problem: null, offer: null, notice: await fellBackNotice(answer.resolution) }
 }
 
 export const resolveTalking: ResolveConversationAccess = (ref, userId) => resolveTalkingFor(ref, userId, 'conversation')

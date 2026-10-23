@@ -104,7 +104,7 @@ describe('getTaskRuns — a task-scoped run history read', () => {
 describe('getActivitySession @SC-155 @SC-156', () => {
   it('returns the activity session with agent, transcript, and latest run (@SC-155)', async () => {
     const user = await createUser()
-    const agent = await createAgent({ name: 'Scout', runtime: 'claude-code' })
+    const agent = await createAgent({ name: 'Scout' })
     const session = await createSession({ userId: user.id, agentId: agent.id, title: 'Activity one' })
     siteStore.addTranscript(SITE, session.id, [{ role: 'USER', content: 'hi' }])
     siteStore.addRun(SITE, { id: 'run-older', sessionId: session.id, status: 'COMPLETED', createdAt: '2026-01-01T00:00:00.000Z' })

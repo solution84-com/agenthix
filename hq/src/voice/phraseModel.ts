@@ -16,16 +16,21 @@ import { generateText as defaultGenerateText, type LanguageModel } from 'ai'
 import { resolve } from '../routing/resolver'
 import { hqCallAccess } from '../routing/reaching'
 import { languageModelFor } from '../conversations/model/providers'
+import { turnUsageOf } from '../conversations/model/usage'
+import type { ResolvedAccess } from '../conversations/contract'
+import { recordHqCall } from '../billing/sources/hqCalls'
+import { costingOf } from '../billing/costing'
 
 export interface PhraseModelDeps {
   generateText?: typeof defaultGenerateText
   model?: () => Promise<LanguageModel | null>
 }
 
-async function samplePhraseModel(): Promise<LanguageModel | null> {
-  const answer = await resolve({ purpose: 'voice_sample', place: { kind: 'organisation' } })
+async function samplePhraseAccess(): Promise<ResolvedAccess | null> {
+  const req = { purpose: 'voice_sample' as const, place: { kind: 'organisation' as const } }
+  const answer = await resolve(req)
   const access = answer.ok ? await hqCallAccess(answer.resolution) : null
-  return access ? languageModelFor(access) : null
+  return access && answer.ok ? { ...access, costing: costingOf(answer.resolution, req) } : null
 }
 
 export async function generateSamplePhrase(
@@ -33,18 +38,20 @@ export async function generateSamplePhrase(
   lang: string,
   deps: PhraseModelDeps = {},
 ): Promise<string> {
-  const model = await (deps.model ?? samplePhraseModel)()
+  const access = deps.model ? null : await samplePhraseAccess()
+  const model = deps.model ? await deps.model() : access ? languageModelFor(access) : null
   if (!model) {
     throw new Error('Cannot generate a voice sample phrase: no model is working')
   }
   const generate = deps.generateText ?? defaultGenerateText
-  const { text } = await generate({
+  const { text, usage } = await generate({
     model,
     prompt:
       `Write one short sample phrase (1–2 sentences) in language code "${lang}" for a ` +
       `text-to-speech voice with this description: "${description}". The phrase should ` +
       `naturally showcase this voice's character. Return ONLY the phrase text, nothing else.`,
   })
+  if (access) recordHqCall(access, turnUsageOf(usage))
   return text.trim()
 }
 

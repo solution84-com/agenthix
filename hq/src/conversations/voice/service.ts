@@ -12,6 +12,7 @@ import {
   type VoiceStateEvent,
 } from '../../shared/conversations/voice'
 import { requireConversationSpeaker } from '../readingRule'
+import { scopeOfConversation } from '../../voice/speechScope'
 import { accessState } from '../conversationQueries'
 import { conversationEvents } from '../coordinator/events'
 import { liveTurn, stopLive } from '../coordinator/liveTurns'
@@ -57,7 +58,7 @@ export async function startVoice(socketId: string, userId: string, conversationI
   const facts = await loadVoiceFacts({ agentId: ref.agentId, holderId: row.voiceHolderId, speakingRefusal: null, accessProblem })
   const refusal = voiceRefusal(facts, userId)
   if (refusal) throw new VoiceRefused(refusal)
-  const spoken = await agentVoice(ref.agentId!)
+  const spoken = await agentVoice(ref.agentId!, await scopeOfConversation(ref, userId))
   if (!('voice' in spoken)) throw new VoiceRefused(spoken.reason)
   const voice = spoken.voice
 

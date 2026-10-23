@@ -20,7 +20,7 @@ vi.mock('wasp/client/operations', () => ({
   useQuery: (q: string) => ({ data: data.value[q], isLoading: false }),
   useAction: () => vi.fn(),
   createProject: 'createProject', createPersonalProject: 'createPersonalProject', getUserSettings: 'getUserSettings', getProjects: 'getProjects', getProducts: 'getProducts', getPrograms: 'getPrograms',
-  getExecutionSites: 'getExecutionSites', getProjectCards: 'getProjectCards', getAllBoards: 'getAllBoards',
+  getExecutionSites: 'getExecutionSites', getProjectCards: 'getProjectCards', getBillingProfileChoices: 'getBillingProfileChoices', getAllBoards: 'getAllBoards',
   getWorkspacesAcrossPlaces: 'getWorkspacesAcrossPlaces', getRoutinesAcrossProjects: 'getRoutinesAcrossProjects',
   pauseRoutine: 'pauseRoutine', resumeRoutine: 'resumeRoutine',
 }))

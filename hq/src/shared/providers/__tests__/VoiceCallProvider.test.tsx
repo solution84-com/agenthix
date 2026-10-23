@@ -39,7 +39,7 @@ describe('voice for the whole app @SC-1001', () => {
   it('asks for the conversation’s agent’s speech to text token', () => {
     const seen = mount()
     act(() => seen.call!.start('c1', { id: 'a1', name: 'Kernel', avatarUrl: null }))
-    expect(getSpeechToken).toHaveBeenCalledWith({ agentId: 'a1' })
+    expect(getSpeechToken).toHaveBeenLastCalledWith({ agentId: 'a1', conversationId: 'c1' })
   })
 
   it('joins the conversation’s room, so the bar on other pages keeps hearing it', () => {

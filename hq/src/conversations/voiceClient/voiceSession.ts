@@ -39,18 +39,20 @@ export function createVoiceSession(deps: VoiceDeps) {
   let stopMirror: (() => void) | null = null
   let lastActivity = 0
   /** A token fetched before the speech connection needs it: the fetch takes seconds, and audio held meanwhile is lag. */
-  let prepared: { at: number; agentId: string | undefined; token: Promise<SttToken> } | null = null
-  const prepare = (agentId?: string) => {
-    if (prepared && prepared.agentId === agentId && now() - prepared.at < TOKEN_FRESH_MS) return
-    const token = deps.getToken(agentId)
+  let prepared: { at: number; agentId: string | undefined; conversationId: string | undefined; token: Promise<SttToken> } | null = null
+  const prepare = (agentId?: string, conversationId?: string) => {
+    if (prepared && prepared.agentId === agentId && prepared.conversationId === conversationId && now() - prepared.at < TOKEN_FRESH_MS) return
+    const token = deps.getToken(agentId, conversationId)
     token.catch(() => undefined)
-    prepared = { at: now(), agentId, token }
+    prepared = { at: now(), agentId, conversationId, token }
   }
   const getToken = (): Promise<SttToken> => {
     const p = prepared
     prepared = null
     const agentId = snap.agent?.id
-    return p && p.agentId === agentId && now() - p.at < TOKEN_FRESH_MS ? p.token.catch(() => deps.getToken(agentId)) : deps.getToken(agentId)
+    const conversationId = snap.conversationId ?? undefined
+    return p && p.agentId === agentId && p.conversationId === conversationId && now() - p.at < TOKEN_FRESH_MS
+      ? p.token.catch(() => deps.getToken(agentId, conversationId)) : deps.getToken(agentId, conversationId)
   }
 
   const set = (patch: Partial<VoiceSnapshot>) => {
@@ -156,7 +158,7 @@ export function createVoiceSession(deps: VoiceDeps) {
       snap = { ...IDLE, conversationId, agent, returnTo, phase: 'starting' }
       listeners.forEach(l => l())
       lastActivity = now()
-      prepare(agent?.id)
+      prepare(agent?.id, conversationId)
       hq.start(conversationId)
     },
     end() {

@@ -13,6 +13,12 @@ export interface ProgramOption {
   name: string
 }
 
+export interface BillingProfileOption {
+  id: string
+  name: string
+  isDefault: boolean
+}
+
 export interface CreateProjectModalProps {
   open: boolean
   onClose: () => void
@@ -23,6 +29,8 @@ export interface CreateProjectModalProps {
   products?: ProductOption[]
   programs?: ProgramOption[]
   existingKeys?: string[]
+  /** What a project's AI cost can be billed to; the field shows only when there are two or more. */
+  billingProfiles?: BillingProfileOption[]
   actions: Pick<ProjectActions, 'createProject'>
   onCreated?: (id: string) => void
 }
@@ -31,7 +39,7 @@ export interface CreateProjectModalProps {
 export function CreateProjectModal({
   open, onClose, sites, defaultSelectedSiteId,
   defaultProductId, defaultProgramId,
-  products = [], programs = [], existingKeys = [],
+  products = [], programs = [], existingKeys = [], billingProfiles = [],
   actions, onCreated,
 }: CreateProjectModalProps) {
   const [siteId, setSiteId] = useState(defaultSelectedSiteId ?? sites[0]?.siteId ?? '')
@@ -40,6 +48,7 @@ export function CreateProjectModal({
   const [description, setDescription] = useState('')
   const [productId, setProductId] = useState(defaultProductId ?? '')
   const [programId, setProgramId] = useState(defaultProgramId ?? '')
+  const [billingProfileId, setBillingProfileId] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -51,6 +60,9 @@ export function CreateProjectModal({
   useEffect(() => {
     if (resolvedDefaultSite) setSiteId(prev => prev || resolvedDefaultSite)
   }, [resolvedDefaultSite])
+
+  const defaultProfileId = (billingProfiles.find(b => b.isDefault) ?? billingProfiles[0])?.id ?? ''
+  const showBilling = billingProfiles.length >= 2
 
   const handleNameChange = (val: string) => {
     setName(val)
@@ -64,6 +76,7 @@ export function CreateProjectModal({
     setDescription('')
     setProductId(defaultProductId ?? '')
     setProgramId(defaultProgramId ?? '')
+    setBillingProfileId('')
     setError('')
     onClose()
   }
@@ -89,6 +102,7 @@ export function CreateProjectModal({
         productId: productId || undefined,
         programId: programId || undefined,
         ...(trimmedKey ? { key: trimmedKey } : {}),
+        ...(showBilling ? { billingProfileId: billingProfileId || defaultProfileId } : {}),
       })
       handleClose()
       onCreated?.(result.id)
@@ -178,6 +192,20 @@ export function CreateProjectModal({
               </FormField>
             )}
           </div>
+        )}
+        {showBilling && (
+          <FormField label="AI cost billed to" htmlFor="cp-billing" hint="After this, only an organisation admin can change it.">
+            <select
+              id="cp-billing"
+              value={billingProfileId || defaultProfileId}
+              onChange={e => setBillingProfileId(e.target.value)}
+              className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
+            >
+              {billingProfiles.map(b => (
+                <option key={b.id} value={b.id}>{b.name}{b.isDefault ? ' (default)' : ''}</option>
+              ))}
+            </select>
+          </FormField>
         )}
         {error && (
           <div className="px-3 py-2 rounded-xl bg-danger/10 border border-danger/20 text-danger text-body">{error}</div>

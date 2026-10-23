@@ -5,6 +5,7 @@
  * and the next reply tries again.
  */
 import type { LeadRequest } from '../contract'
+import { costedFor } from '../../billing/sources/hqCalls'
 
 const TITLE_INSTRUCTION = 'Name this conversation in three to six words, from what the person asked. Reply with the name only, with no quotes and no full stop.'
 const TITLE_MAX = 80
@@ -17,7 +18,7 @@ export function titleRequest(input: {
   signal: AbortSignal
 }): Omit<LeadRequest, 'tools'> {
   return {
-    access: input.access,
+    access: costedFor(input.access, 'title'),
     system: [{ text: TITLE_INSTRUCTION }],
     messages: [{ role: 'user', content: `The person said: ${input.ask}\n\nThe reply: ${input.reply}` }],
     cacheKey: input.conversationId,

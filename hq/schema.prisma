@@ -2478,6 +2478,50 @@ model UsageEntry {
   @@index([billingProfileId, at])
   @@index([projectId, at])
   @@index([callId])
+  @@index([refersTo])
+}
+
+// Each call's cost (part 5, R1) is the view "UsageCallCost": the latest row with an amount for each `CALL` row — a
+// `CORRECTION` over an `ACTUAL`, an `ACTUAL` over the call itself — or the call with no amount when none has one.
+// Every report reads it. The migration creates it by hand from hq/src/billing/callCostView.sql; hq reads it with raw SQL.
+
+/// What an agent's run is costed to (part 5, U2 and U3), kept when hq dispatches it, so the relay's usage reports and
+/// a subscription run's own report are written to the run's place and billing profile. Plain ids, none a foreign key.
+model RunCosting {
+  runId            String   @id
+  siteId           String
+  sessionId        String
+  agentId          String
+  userId           String?
+  projectId        String?
+  conversationId   String?
+  billingProfileId String
+  /// The run's own provider and model, as the resolver gave them.
+  providerId       String?
+  model            String?
+  /// The run's own provider is a person's own Claude subscription: not relayed, its run written once, included.
+  subscription     Boolean  @default(false)
+  /// The session's token totals when the run was dispatched: a subscription run's usage is what it added.
+  baseInputTokens      Int @default(0)
+  baseOutputTokens     Int @default(0)
+  baseCacheReadTokens  Int @default(0)
+  baseCacheWriteTokens Int @default(0)
+  dispatchedAt     DateTime @default(now())
+
+  @@index([dispatchedAt])
+}
+
+/// A change of a project's billing profile by an organisation admin (part 5, B3): from the next call, recorded.
+model ProjectBillingChange {
+  id              String   @id @default(uuid())
+  projectId       String
+  fromProfileId   String?
+  toProfileId     String
+  /// Not a foreign key: the record outlives an erased person.
+  changedById     String?
+  changedAt       DateTime @default(now())
+
+  @@index([projectId, changedAt])
 }
 
 /// Where hq has read Agenthix Cloud's actual costs to (C6), kept with Cloud's organisation id rather than the

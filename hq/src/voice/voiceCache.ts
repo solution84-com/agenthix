@@ -111,11 +111,14 @@ export async function getCachedAudio(
   phrase: string,
   model: string,
   apiKey: string,
+  /** Told the characters sent when the audio was made rather than read from the cache, for the ledger. */
+  onSynthesized?: (characters: number) => void,
 ): Promise<Buffer> {
   const file = audioFile(voiceId, lang, phrase, model)
   if (fs.existsSync(file)) return fs.readFileSync(file)
 
   const audio = await inworldTtsAdapter.synthesize(phrase, { apiKey, voiceId, model })
+  onSynthesized?.(phrase.length)
   fs.mkdirSync(voiceDir(voiceId), { recursive: true })
   fs.writeFileSync(file, audio)
   return audio

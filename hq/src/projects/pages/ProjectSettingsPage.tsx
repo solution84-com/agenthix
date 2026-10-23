@@ -2,6 +2,7 @@ import { useParams } from 'react-router'
 import { useQuery, getProjectByKey, getProjectMembers, getUserSettings } from 'wasp/client/operations'
 import { useAuth } from 'wasp/client/auth'
 import { ProjectRunTimeLimit } from '../../automation/pages/ProjectRunTimeLimit'
+import { ProjectBillingSection } from '../../billing/components/ProjectBillingSection'
 import { OwnList } from '../../models-settings/components/OwnList'
 import { ArchiveFinishedSection } from './ArchiveFinishedSection'
 import { AboutSection } from './settings/AboutSection'
@@ -89,6 +90,12 @@ export function ProjectSettingsPage() {
             <p className="mt-3 text-small text-text-muted">
               The organisation&apos;s conversation and worker defaults, and each agent&apos;s own, apply here. If one is not allowed here, the next allowed is used.
             </p>
+          </Section>
+        )}
+
+        {!personal && (
+          <Section title="Billing">
+            <ProjectBillingSection projectId={proj.id} />
           </Section>
         )}
 

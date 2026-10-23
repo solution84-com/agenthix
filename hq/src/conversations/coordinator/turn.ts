@@ -45,6 +45,7 @@ import { withClock } from './clock'
 import type { TurnSpeech } from '../voice/session'
 import type { HeldUpdate } from '../voice/hand'
 import type { CompactAtStart } from '../long/turnStart'
+import { costedToTurn } from '../../billing/sources/hqCalls'
 
 export const NO_AGENT = "This conversation's agent no longer exists. Start a new conversation to keep going."
 export const SOMETHING_WENT_WRONG = 'Something went wrong while writing this reply. Send your message again to retry.'
@@ -223,7 +224,7 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
 
     const resolved = await deps.resolveAccess(conversation, claimed.actingUserId)
     if (!resolved.access) return await end('FAILED', resolved.problem ?? 'There is no model to talk on here.')
-    const access = resolved.access
+    const access = costedToTurn(resolved.access, turnId)
     talkedOn = access
     model = access.model
     // The first turn fixes the model, and says once when it is not the default it would have had.

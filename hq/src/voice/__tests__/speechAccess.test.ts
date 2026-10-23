@@ -8,7 +8,7 @@ vi.mock('../../providers/store', () => ({ providerStore: () => ({ credentialOf }
 import { failureKind, speechAccess, voiceDownText } from '../speechAccess'
 
 const resolved = (vendor: string, voice?: string) => ({
-  ok: true, resolution: { vendor, providerName: vendor, model: { providerId: 'p1', model: 'm' }, ...(voice ? { voice } : {}) },
+  ok: true, resolution: { purpose: 'tts', basis: 'ESTIMATED', billingProfileId: 'bp-1', vendor, providerName: vendor, model: { providerId: 'p1', model: 'm' }, ...(voice ? { voice } : {}) },
 })
 
 beforeEach(() => { resolve.mockReset(); credentialOf.mockReset() })
@@ -19,7 +19,18 @@ describe('speechAccess', () => {
     credentialOf.mockResolvedValue({ key: ' sk-test-fake ', baseUrl: null })
     const answer = await speechAccess('tts', 'agent-1')
     expect(resolve).toHaveBeenCalledWith({ purpose: 'tts', place: { kind: 'organisation' }, agentId: 'agent-1' })
-    expect(answer).toEqual({ ok: true, access: { providerId: 'p1', providerName: 'inworld', vendor: 'inworld', model: 'm', voice: 'Ashley', apiKey: 'sk-test-fake' } })
+    expect(answer).toEqual({ ok: true, access: { providerId: 'p1', providerName: 'inworld', vendor: 'inworld', model: 'm', voice: 'Ashley', apiKey: 'sk-test-fake',
+      costing: { purpose: 'tts', basis: 'ESTIMATED', billingProfileId: 'bp-1', projectId: null, agentId: 'agent-1', userId: null, conversationId: null },
+    } })
+  })
+
+  it('costs a project’s conversation to its place: the place, the person and the conversation go to the resolver', async () => {
+    resolve.mockResolvedValue(resolved('inworld'))
+    credentialOf.mockResolvedValue({ key: 'sk-test-fake', baseUrl: null })
+    const place = { kind: 'project' as const, projectId: 'proj-1' }
+    const answer = await speechAccess('tts', 'agent-1', { place, userId: 'u1', conversationId: 'c1' })
+    expect(resolve).toHaveBeenCalledWith({ purpose: 'tts', place, agentId: 'agent-1', userId: 'u1', conversationId: 'c1' })
+    expect(answer.ok && answer.access.costing).toMatchObject({ projectId: 'proj-1', userId: 'u1', conversationId: 'c1' })
   })
 
   it('says voice is down, and who has been told, when the resolver finds no provider', async () => {

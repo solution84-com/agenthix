@@ -188,4 +188,8 @@ export const WASP_QUERIES: readonly string[] = [
   'getAiProviders',
   'getAiProviderRecords',
   'getAiProviderImpact',
+  'getBillingProfiles',
+  'getBillingProfileChoices',
+  'getProjectBilling',
+  'getUsageReport',
 ]

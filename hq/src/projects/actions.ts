@@ -70,7 +70,7 @@ import {
 } from './projectService'
 
 export const createProject: CreateProject<
-  { name: string; description?: string; productId?: string; programId?: string; key?: string; siteId?: string },
+  { name: string; description?: string; productId?: string; programId?: string; key?: string; siteId?: string; billingProfileId?: string },
   any
 > = async (args, context) => {
   await requireRole(context, 'ADMIN', 'Creating a project')

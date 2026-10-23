@@ -17,6 +17,7 @@ import { languageModelFor, type ModelCallExtras } from './providers'
 import { callOptions, messagesOf, systemOf, toolsOf } from './prompt'
 import { breakpointPositions, cacheKeyOf, cacheStyleOf } from './caching'
 import { turnUsageOf } from './usage'
+import { recordHqCall } from '../../billing/sources/hqCalls'
 
 export interface ModelAdapterDeps {
   /** Tests replace this with the SDK's mock models. */
@@ -25,6 +26,8 @@ export interface ModelAdapterDeps {
   maxRetries?: number
   /** Each call's outcome, for its provider's health (routing/resolver.ts `reportCall`); nothing unless set. */
   report?: (providerId: string, failure: ModelCallError['kind'] | null) => void
+  /** Each model call's usage, for its ledger row (billing/); the ledger unless set. */
+  record?: (access: ResolvedAccess, usage: TurnUsage) => void
 }
 
 /** What the request's provider needs beyond its SDK's own options: OpenRouter's hints go into the body. */
@@ -53,9 +56,12 @@ function toolChoiceOf(choice: LeadRequest['toolChoice']) {
 
 export function createModelAdapter(deps: ModelAdapterDeps = {}): ModelAdapter {
   const modelOf = deps.languageModel ?? languageModelFor
+  const record = deps.record ?? recordHqCall
 
   function sharedArgs(request: Omit<LeadRequest, 'tools'>) {
     return {
+      // One row per model call, written as each step ends: a call that fails after its step used tokens keeps its row.
+      onStepFinish: (step: { usage: Parameters<typeof turnUsageOf>[0] }) => record(request.access, turnUsageOf(step.usage)),
       model: modelOf(request.access, extrasOf(request)),
       system: systemOf(request),
       messages: messagesOf(request),

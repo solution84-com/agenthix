@@ -83,7 +83,7 @@ export const projectsSpec: Spec = [
     action(addAgentToProject, { entities: ["ProjectAgent", "Project", "ProjectMember"] }),
     action(removeAgentFromProject, { entities: ["ProjectAgent", "Project", "ProjectMember", "Task", "Routine"] }),
     action(createPersonalProject, { entities: ["Project", "ProjectMember", "ExecutionSite", "UserStoragePlacement"] }),
-    action(createProject, { entities: ["Project", "Product", "Program", "ExecutionSite", "ProjectMember", "UserSettings"] }),
+    action(createProject, { entities: ["Project", "BillingProfile", "Product", "Program", "ExecutionSite", "ProjectMember", "UserSettings"] }),
     action(updateProject, { entities: ["Project", "Product", "Program", "ProjectMember", "UserSettings"] }),
     action(deleteProject, { entities: ["Project", "Board", "Task"] }),
     action(createBoard, { entities: ["Board", "BoardTemplate", "Sprint"] }),

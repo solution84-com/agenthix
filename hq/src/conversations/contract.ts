@@ -6,6 +6,7 @@
 import type { z } from 'zod'
 import type { CapabilityEffectivePermissions } from '@agenthix/core'
 import type { OrgRole } from '../server/identity/rolePolicy'
+import type { CallCosting } from '../billing/types'
 import type {
   ConversationHomeValue,
   ConversationMessageKindValue,
@@ -76,6 +77,8 @@ export interface ResolvedAccess {
   apiKey: string
   /** For an openai_compatible provider. */
   baseUrl?: string
+  /** Who each call's cost belongs to and on what basis, from the resolution: the ledger's row (billing/). */
+  costing?: CallCosting
 }
 
 /** What a conversation stopped on is offered instead: one model via a provider, with its one-line label. */

@@ -4,6 +4,7 @@
  * provider's cache serves — with the instruction behind it. One structured answer: the brief and the full summary.
  */
 import type { LeadMessage, LeadRequest, PromptPart } from '../contract'
+import { costedFor } from '../../billing/sources/hqCalls'
 import { SEGMENT_BRIEF_MAX_TOKENS, SEGMENT_SUMMARY_MAX_TOKENS } from '../../shared/conversations/protocol'
 
 /** About four characters a token. */
@@ -37,7 +38,7 @@ export function summariserRequest(input: {
   signal: AbortSignal
 }): Omit<LeadRequest, 'tools'> {
   return {
-    access: input.access,
+    access: costedFor(input.access, 'summary'),
     system: input.system,
     messages: [...input.folded, { role: 'user', content: SUMMARISER_INSTRUCTION }],
     cacheAfterMessage: input.folded.length - 1,

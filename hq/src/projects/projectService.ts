@@ -20,6 +20,7 @@ import { Logger } from '../server/utils/logger'
 import { displaySiteName } from '../shared/siteName'
 import { upgradeSide } from '../sites/siteStanding'
 import { closeTaskThreads, declineWaitingInThreads } from '../conversations/taskThread/lifecycle'
+import { profileForNewProject } from '../billing/profiles'
 
 const logger = new Logger('Projects')
 
@@ -99,6 +100,8 @@ export async function createProject(params: {
   createdByUserId?: string
   /** Makes it a personal project of this person (not their space): private, with them as its one member, no slug. */
   personalOwnerId?: string
+  /** A shared project's billing profile, as its creator picked it; the default when absent (billing/profiles.ts). */
+  billingProfileId?: string
 }) {
   if (!params.executionSiteId) {
     throw new HttpError(400, 'Pick an Execution Site to create the project on')
@@ -142,12 +145,15 @@ export async function createProject(params: {
     throw new HttpError(409, `Project key "${key}" is already in use`)
   }
 
+  // A person's own project is always billed to the default, so it names none (part 5).
+  const billingProfileId = personalOwnerId ? null : await profileForNewProject(params.billingProfileId)
+
   // Named fields only: the id is generated, and the project's folders are built from it (spec §4.28).
   const { name, description, productId, programId, defaultAgentId, executionSiteId } = params
   // Made with its Project Tasks, so work has somewhere to go from the start (adr-0097).
   const project = await prisma.project.create({
     data: {
-      name, description, productId, programId, defaultAgentId, executionSiteId, slug, key,
+      name, description, productId, programId, defaultAgentId, executionSiteId, slug, key, billingProfileId,
       ...(personalOwnerId ? { accessLevel: 'PRIVATE' as const, personalOwnerId } : {}),
       boards: { create: projectTasksBoardCreate() },
     },

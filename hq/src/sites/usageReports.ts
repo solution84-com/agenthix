@@ -14,6 +14,7 @@ import { USAGE_REPORT_BATCH_MAX, parseUsageReport, type UsageReport, type UsageR
 import { reportOutcome } from '../providers/health'
 import { Logger } from '../server/utils/logger'
 import { authenticateSite } from './registrationService'
+import { ledgerRelayReports } from '../billing/sources/relay'
 
 const logger = new Logger('UsageReports')
 
@@ -22,6 +23,8 @@ export type UsageReportDeps = {
   known: (callIds: string[]) => Promise<string[]>
   keep: (siteId: string, reports: UsageReport[]) => Promise<void>
   outcome: typeof reportOutcome
+  /** Writes what was kept to the ledger, in the background. */
+  ledger: () => Promise<unknown>
 }
 
 const realDeps: UsageReportDeps = {
@@ -36,6 +39,7 @@ const realDeps: UsageReportDeps = {
     })
   },
   outcome: reportOutcome,
+  ledger: () => ledgerRelayReports(),
 }
 
 /** What a call came to, for the provider's health. */
@@ -54,6 +58,9 @@ export async function keepUsageReports(siteId: string, reports: UsageReport[], d
   for (const r of fresh) {
     void deps.outcome(r.providerId, healthOutcome(r))
       .catch(err => logger.warn(`Could not record a call's outcome: ${err instanceof Error ? err.message : String(err)}`))
+  }
+  if (fresh.length) {
+    void deps.ledger().catch(err => logger.warn(`Usage reports not written to the ledger yet: ${err instanceof Error ? err.message : String(err)}`))
   }
   return unique.map(r => r.callId)
 }
