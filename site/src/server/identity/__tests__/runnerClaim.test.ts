@@ -52,7 +52,7 @@ describe('the site refuses a capability whose runner is missing or does not fit'
   })
 })
 
-describe("a task in a person's personal project runs as that person, and only there", () => {
+describe("a task in a person's personal project runs as that person, and only there @SC-1232", () => {
   const taskInAlicesProject = { ...chatInProject, taskId: 't2', userId: 'alice', sessionType: 'task' }
   const alice = { kind: 'person', userId: 'alice' } as const
   const signedFor = (personalProject: unknown) => ({ userId: 'alice', runner: alice, personalProject })

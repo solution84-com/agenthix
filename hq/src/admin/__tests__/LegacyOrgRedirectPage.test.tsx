@@ -23,7 +23,7 @@ const open = (url: string) => render(
 
 afterEach(cleanup)
 
-describe('old /org addresses redirect to the admin area', () => {
+describe('old /org addresses redirect to the admin area @SC-1190', () => {
   it('sends a person to their new address, keeping the query', () => {
     open('/org/people/u1?show=invitations')
     expect(screen.getByTestId('where').textContent).toBe('/admin/people/u1?show=invitations')

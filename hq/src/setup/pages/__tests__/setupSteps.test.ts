@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { neighbour, position, stepOfResume } from '../setupSteps'
 
-describe('setup steps per path', () => {
+describe('setup steps per path @SC-1184', () => {
   it('Cloud is four steps and skips the model provider and voice', () => {
     expect(position('cloud', 'you')).toEqual({ step: 1, total: 4 })
     expect(neighbour('cloud', 'choice', 1)).toBe('org')

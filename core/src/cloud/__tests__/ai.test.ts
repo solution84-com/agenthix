@@ -21,7 +21,7 @@ const catalogue = {
   tts: [{ model: 'inworld-tts-1.5-max', perMillionCharsMicros: 10_000_000, voices: [{ id: 'Ashley', name: 'Ashley', language: 'en' }, { id: 'x' }] }],
 }
 
-describe('the Cloud AI contract: the catalogue (C2)', () => {
+describe('the Cloud AI contract: the catalogue (C2) @SC-1237', () => {
   it('reads a catalogue, dropping entries not in their shape', () => {
     const c = parseCloudAiCatalogue(catalogue)!
     expect(c.version).toBe('2026-10-23.1')
@@ -45,7 +45,7 @@ describe('the Cloud AI contract: the catalogue (C2)', () => {
   })
 })
 
-describe('the Cloud AI contract: voice tokens (C4, C5)', () => {
+describe('the Cloud AI contract: voice tokens (C4, C5) @SC-1237', () => {
   it("Cloud's side reads a token request, with the call id and billing profile only when sent", () => {
     expect(parseCloudSttTokenRequest({ model: 'u3-rt-pro' })).toEqual({ model: 'u3-rt-pro' })
     expect(parseCloudSttTokenRequest({ model: 'u3-rt-pro', callId: CALL, billingProfileId: 'bp-1' }))
@@ -65,7 +65,7 @@ describe('the Cloud AI contract: voice tokens (C4, C5)', () => {
   })
 })
 
-describe('the Cloud AI contract: actual costs (C6)', () => {
+describe('the Cloud AI contract: actual costs (C6) @SC-1237', () => {
   it('reads a page, counting the entries it drops', () => {
     const page = parseCloudUsagePage({
       entries: [{ callId: CALL, at: '2026-10-23T10:00:00Z', amountMicros: 1234, currency: 'USD' }, { callId: CALL, amountMicros: 1.5 }],
@@ -84,7 +84,7 @@ describe('the Cloud AI contract: actual costs (C6)', () => {
   })
 })
 
-describe('the Cloud AI contract: billing profiles (C7) and the token scope (C1)', () => {
+describe('the Cloud AI contract: billing profiles (C7) and the token scope (C1) @SC-1237', () => {
   it("Cloud's side reads a profile put", () => {
     expect(parseCloudBillingProfilePut('bp-1', { name: 'Client X', archived: false })).toEqual({ id: 'bp-1', name: 'Client X', archived: false })
     expect(parseCloudBillingProfilePut('bp/1', { name: 'Client X', archived: false })).toBeNull()
@@ -100,7 +100,7 @@ describe('the Cloud AI contract: billing profiles (C7) and the token scope (C1)'
   })
 })
 
-describe('the Cloud AI contract: refusals (X1–X4)', () => {
+describe('the Cloud AI contract: refusals (X1–X4) @SC-1237', () => {
   it("reads Cloud's own refusals only with their status", () => {
     expect(readCloudAiRefusal(403, { error: 'not_available' })).toEqual({ error: 'not_available' })
     expect(readCloudAiRefusal(404, { error: 'model_not_offered' })).toEqual({ error: 'model_not_offered' })

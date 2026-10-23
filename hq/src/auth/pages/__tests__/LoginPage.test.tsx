@@ -101,7 +101,7 @@ describe('Signing in', () => {
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy()
   })
 
-  it('on an HQ no one has set up says so, with the command for a new link and no form @SC-709', async () => {
+  it('on an HQ no one has set up says so, with the command for a new link and no form @SC-709 @SC-1183', async () => {
     await open({ '/api/org/public-identity': identity({ ...NO_ORG, claimState: 'unclaimed' }) })
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("This HQ isn't set up yet")
     expect(screen.getByText('agenthix hq invite-admin')).toBeTruthy()
@@ -110,7 +110,7 @@ describe('Signing in', () => {
     expect(screen.queryByText('Acme Corp')).toBeNull()
   })
 
-  it('while the first account is setting up says almost ready, and still signs in @SC-709', async () => {
+  it('while the first account is setting up says almost ready, and still signs in @SC-709 @SC-1183', async () => {
     await open({ '/api/org/public-identity': identity({ ...NO_ORG, claimState: 'setting_up' }) })
     expect(screen.getByText('Almost ready.')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy()

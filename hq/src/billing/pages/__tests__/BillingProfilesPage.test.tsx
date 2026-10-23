@@ -37,7 +37,7 @@ const show = () => render(<MemoryRouter><BillingProfilesPage /></MemoryRouter>)
 beforeEach(() => { h.data = { getBillingProfiles: { month: '2026-10', timeZone: 'UTC', profiles: [fern, clientX, old] } } })
 afterEach(() => { cleanup(); h.data = {}; h.error = undefined; h.actions = {} })
 
-describe('the Billing profiles page', () => {
+describe('the Billing profiles page @SC-1216', () => {
   it('lists the profiles, marks the default, and gives this month per basis', () => {
     show()
     const line = screen.getByText('Fernhill', { selector: 'h3' }).closest('li')!

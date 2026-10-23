@@ -35,7 +35,7 @@ const call = (over: Partial<LedgerCall> = {}): LedgerCall => ({
 })
 
 describe('the ledger', () => {
-  it('writes a call once, however often it is reported', async () => {
+  it('writes a call once, however often it is reported @SC-1211', async () => {
     await org()
     expect(await ledger().writeCall(call())).toBe(true)
     expect(await ledger().writeCall(call())).toBe(false)
@@ -44,7 +44,7 @@ describe('the ledger', () => {
     expect(rows[0].amountMicros).toBe(3_000_000n)
   })
 
-  it("gives each call its latest cost: Cloud's actual over the guide, a correction over both", async () => {
+  it("gives each call its latest cost: Cloud's actual over the guide, a correction over both @SC-1211", async () => {
     await org()
     await ledger().writeCall(call({ vendor: 'cloud', basis: 'AWAITING_ACTUAL' }))
     let report = await usageReport('2026-10', 'profile', null)
@@ -58,14 +58,14 @@ describe('the ledger', () => {
     expect(await prisma.usageEntry.count()).toBe(3)
   })
 
-  it('cuts the month in the organisation time zone', async () => {
+  it('cuts the month in the organisation time zone @SC-1219', async () => {
     await prisma.org.create({ data: { name: 'Fernhill', timeZone: 'Asia/Tokyo' } as never })
     await ledger().writeCall(call({ at: new Date('2026-10-31T16:00:00Z') }))
     expect((await usageReport('2026-10', 'profile', null)).rows).toHaveLength(0)
     expect((await usageReport('2026-11', 'profile', null)).rows).toHaveLength(1)
   })
 
-  it('keeps an erased person’s rows, named Former member', async () => {
+  it('keeps an erased person’s rows, named Former member @SC-1219', async () => {
     await org()
     const person = await createUserWithRole('MEMBER')
     await ledger().writeCall(call({ userId: person.id }))
@@ -75,7 +75,7 @@ describe('the ledger', () => {
     expect(await prisma.usageEntry.count({ where: { userId: person.id } })).toBe(1)
   })
 
-  it("writes the relay's reports to their run's place, once", async () => {
+  it("writes the relay's reports to their run's place, once @SC-1214", async () => {
     await org()
     const profile = await ensureDefaultBillingProfile()
     await prisma.runCosting.create({ data: { runId: 'run-1', siteId: 's', sessionId: 'sess', agentId: 'a-1', projectId: 'proj-1', billingProfileId: profile } })
@@ -90,7 +90,7 @@ describe('the ledger', () => {
   })
 })
 
-describe('billing profiles', () => {
+describe('billing profiles @SC-1216', () => {
   it('refuse to archive the default, or one projects use until they move, and record each move', async () => {
     await org()
     const admin = await createUserWithRole('ADMIN')

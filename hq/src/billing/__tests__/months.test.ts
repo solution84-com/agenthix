@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { monthOf, monthRange, parseMonth } from '../months'
 
-describe('a month cut in the organisation time zone', () => {
+describe('a month cut in the organisation time zone @SC-1219', () => {
   it('is the UTC month in UTC', () => {
     const r = monthRange('2026-10', 'UTC')
     expect(r.from.toISOString()).toBe('2026-10-01T00:00:00.000Z')

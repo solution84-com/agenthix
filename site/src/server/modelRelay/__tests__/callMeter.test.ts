@@ -7,7 +7,7 @@ const at = () => new Date('2026-10-23T10:00:00.000Z')
 const info = { runId: 'run-1', providerId: 'prov-1', api: 'anthropic' as const }
 const anthropicBody = JSON.stringify({ type: 'message', usage: { input_tokens: 11, output_tokens: 5 } })
 
-describe('a call measured by the relay', () => {
+describe('a call measured by the relay @SC-1228', () => {
   it('reports its call id, run, provider, model, usage and status, in a shape hq accepts', async () => {
     const meter = new CallMeter(info, at)
     meter.answer(200, 'application/json', undefined)
@@ -64,7 +64,7 @@ describe('a call measured by the relay', () => {
   })
 })
 
-describe('the kind of failure an upstream answer names', () => {
+describe('the kind of failure an upstream answer names @SC-1228', () => {
   it('reads the status, and the words where the status alone does not say', () => {
     expect(upstreamErrorKind(200, '')).toBeUndefined()
     expect(upstreamErrorKind(401, '')).toBe('auth')

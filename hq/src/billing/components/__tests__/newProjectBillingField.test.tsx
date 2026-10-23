@@ -15,7 +15,7 @@ function show(billingProfiles: typeof profiles | undefined, createProject = vi.f
 }
 afterEach(cleanup)
 
-describe('the new project form', () => {
+describe('the new project form @SC-1217', () => {
   it('shows no billing field with one profile, or none', () => {
     show([profiles[1]])
     expect(screen.queryByLabelText('AI cost billed to')).toBeNull()

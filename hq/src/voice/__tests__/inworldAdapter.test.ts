@@ -132,7 +132,7 @@ describe('InworldTtsAdapter @SC-129', () => {
     })
   })
 
-  describe('listVoices', () => {
+  describe('listVoices @SC-1204', () => {
     it('pages through the Voice API and keeps the fields the filters use', async () => {
       const first = {
         voices: [{

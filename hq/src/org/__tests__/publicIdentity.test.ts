@@ -42,7 +42,7 @@ describe('hq\'s versions before sign-in @SC-1140', () => {
   })
 })
 
-describe('the organisation before setup is finished @SC-709', () => {
+describe('the organisation before setup is finished @SC-709 @SC-1183', () => {
   const shown = publicOrgIdentity({ ...org, signInShows: 'COVER' })
 
   it('shows nothing of it to a visitor while hq is unclaimed or being set up', () => {

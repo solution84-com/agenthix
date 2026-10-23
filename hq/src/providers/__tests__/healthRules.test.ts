@@ -5,7 +5,7 @@ const T0 = new Date('2026-10-23T10:00:00Z')
 const at = (s: number) => new Date(T0.getTime() + s * 1000)
 const working: Health = { state: 'works', failuresInRow: 0, lastFailedAt: null }
 
-describe('nextHealth', () => {
+describe('nextHealth @SC-1176', () => {
   it('a success makes it work again, whatever it was', () => {
     for (const state of ['key_refused', 'out_of_credit', 'unreachable'] as const) {
       const r = nextHealth({ state, failuresInRow: 2, lastFailedAt: T0 }, { source: 'check', ok: true }, at(5))
@@ -70,7 +70,7 @@ describe('nextHealth', () => {
   })
 })
 
-describe('checkDue', () => {
+describe('checkDue @SC-1176', () => {
   it('a working provider is checked hourly, one not working every five minutes', () => {
     expect(checkDue({ state: 'works', lastCheckedAt: at(0) }, at(59 * 60))).toBe(false)
     expect(checkDue({ state: 'works', lastCheckedAt: at(0) }, at(60 * 60))).toBe(true)

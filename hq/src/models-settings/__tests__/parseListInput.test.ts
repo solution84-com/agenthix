@@ -9,7 +9,7 @@ vi.mock('../../routing/snapshot', () => ({ routeProviders: vi.fn() }))
 
 import { ENTRIES_MAX, parseListInput, parseRef } from '../modelLists'
 
-describe('a list as sent', () => {
+describe('a list as sent @SC-1202', () => {
   it('takes a mode and entries, dropping a repeated pattern', () => {
     expect(parseListInput({ mode: 'only_these', entries: [
       { effect: 'allow', pattern: ' anthropic/claude-* ' }, { effect: 'never', pattern: 'anthropic/claude-*' },

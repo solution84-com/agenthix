@@ -10,7 +10,7 @@ const costed: ResolvedAccess = {
   costing: { purpose: 'conversation', basis: 'ESTIMATED', billingProfileId: 'bp-1', projectId: 'proj-1', agentId: 'a-1', userId: 'u-1', conversationId: 'c-1' },
 }
 
-describe("hq's own calls on the ledger", () => {
+describe("hq's own calls on the ledger @SC-1213", () => {
   it('records each streamed step once, with its usage', async () => {
     const steps: { access: ResolvedAccess; usage: TurnUsage }[] = []
     const adapter = createModelAdapter({

@@ -16,7 +16,7 @@ beforeEach(() => {
   h.navigate.mockReset()
 })
 
-describe('New project, for everyone @SC-1060', () => {
+describe('New project, for everyone @SC-1207', () => {
   it('shows a person who is not an organisation admin only the personal form, with no choice to make', async () => {
     const onClose = vi.fn()
     render(<NewProjectDialog open isOrgAdmin={false} onClose={onClose} onOrganisationProject={vi.fn()} />)

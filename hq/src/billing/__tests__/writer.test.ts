@@ -35,7 +35,7 @@ const call: LedgerCall = {
   conversationId: 'conv-1', turnId: 'turn-1',
 }
 
-describe('the ledger writer', () => {
+describe('the ledger writer @SC-1211', () => {
   it('writes one CALL row with its price, its money in whole millionths as a bigint', async () => {
     const { rows, store } = memoryStore()
     expect(await createLedger(store, { usageBilling: false }).writeCall(call)).toBe(true)

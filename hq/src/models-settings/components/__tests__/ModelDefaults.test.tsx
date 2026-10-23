@@ -34,7 +34,7 @@ const data = {
   reachable: [],
 }
 
-describe('the organisation’s Models', () => {
+describe('the organisation’s Models @SC-1200', () => {
   it('says it is loading', () => {
     state.result = { data: undefined, error: undefined, refetch: vi.fn() }
     render(<ModelDefaults />)

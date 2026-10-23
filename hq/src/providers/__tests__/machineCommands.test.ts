@@ -26,7 +26,7 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-describe('provider command', () => {
+describe('provider command @SC-1180', () => {
   it('adds as the machine, and neither the answer nor the list carries the key', async () => {
     const added = await providerCommand(['add', 'anthropic', KEY])
     expect(added).toMatchObject({ ok: true, text: 'Added Anthropic (key ending …a3f9). Every organisation admin has been told.' })
@@ -55,7 +55,7 @@ describe('provider command', () => {
   })
 })
 
-describe('supplyCloudAfterConnect', () => {
+describe('supplyCloudAfterConnect @SC-1179 @SC-1172', () => {
   it("adds Agenthix Cloud with the actor Cloud's controller, on a machine Cloud runs only", async () => {
     await supplyCloudAfterConnect()
     expect(await store.list()).toEqual([])

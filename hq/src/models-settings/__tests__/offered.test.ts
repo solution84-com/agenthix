@@ -18,7 +18,7 @@ import { offeredFor } from '../offered'
 
 const req: ResolveRequest = { purpose: 'conversation', place: { kind: 'organisation' } }
 
-describe('the models a picker offers', () => {
+describe('the models a picker offers @SC-1198', () => {
   it('lists a model of a provider that is not working, marked, and one that works, plain', async () => {
     const { models } = await offeredFor(req)
     const anthropic = models.filter(m => m.value.startsWith('p-ant/'))

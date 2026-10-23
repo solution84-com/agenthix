@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { fallbackPhrase, generateSamplePhrase } from '../phraseModel'
 
-describe('the voice sample phrase @SC-090', () => {
+describe('the voice sample phrase @SC-090 @SC-1206', () => {
   it('asks the model once and returns the trimmed text', async () => {
     const generateText = vi.fn().mockResolvedValue({ text: '  Good morning, and welcome.  ' })
     const phrase = await generateSamplePhrase('a warm, low voice', 'en', {
@@ -26,7 +26,7 @@ describe('the voice sample phrase @SC-090', () => {
   })
 })
 
-describe('the fixed sample phrase, for when no model can write one @SC-090', () => {
+describe('the fixed sample phrase, for when no model can write one @SC-090 @SC-1206', () => {
   it('has a phrase in every language the voice screen offers', () => {
     for (const lang of ['ar', 'de', 'en', 'es', 'fr', 'he', 'hi', 'it', 'ja', 'ko', 'nl', 'pl', 'pt', 'ru', 'zh']) {
       expect(fallbackPhrase(lang).length).toBeGreaterThan(10)

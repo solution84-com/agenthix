@@ -19,7 +19,7 @@ const role = (r: string | undefined) => { ops.settings = r ? { data: { role: r }
 
 afterEach(() => { cleanup(); ops.drawn.mockClear() })
 
-describe('the admin area route guard', () => {
+describe('the admin area route guard @SC-1188', () => {
   it('draws the page for an admin', () => {
     role('ADMIN')
     show()

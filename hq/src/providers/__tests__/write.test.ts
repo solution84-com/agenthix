@@ -59,7 +59,7 @@ async function threeProviders() {
   return { llm, stt, tts }
 }
 
-describe('actors', () => {
+describe('actors @SC-1172', () => {
   it('an organisation admin, the machine and, on a machine Cloud runs, its controller may write', async () => {
     await addProvider(ADMIN, { vendor: 'anthropic', key: KEY })
     await addProvider(MACHINE, { vendor: 'openai', key: KEY })
@@ -92,7 +92,7 @@ describe('actors', () => {
 })
 
 describe('add', () => {
-  it("checks the key with the vendor first, and stores nothing when it is refused, saying the vendor's words", async () => {
+  it("checks the key with the vendor first, and stores nothing when it is refused, saying the vendor's words @SC-1170", async () => {
     vendor.answer(KEY, { ok: false, kind: 'auth', detail: `invalid x-api-key ${KEY}` })
     const r = await refusal(addProvider(ADMIN, { vendor: 'anthropic', key: KEY }))
     expect(r.code).toBe('refused_by_vendor')
@@ -102,7 +102,7 @@ describe('add', () => {
     expect(told.announced).toEqual([])
   })
 
-  it('stores the key encrypted, keeps only its last four characters in the clear, and answers no key', async () => {
+  it('stores the key encrypted, keeps only its last four characters in the clear, and answers no key @SC-1171', async () => {
     const answer = await addProvider(ADMIN, { vendor: 'anthropic', key: KEY, name: ' Anthropic (main) ' })
     expect(JSON.stringify(answer)).not.toContain(KEY.slice(0, -4))
     expect(answer.provider).toMatchObject({ name: 'Anthropic (main)', keyHint: 'a3f9', state: 'works' })
@@ -113,12 +113,12 @@ describe('add', () => {
     expect(await store.credentialOf(answer.provider.id)).toEqual({ key: KEY, baseUrl: null })
   })
 
-  it('refuses a second provider of the same vendor', async () => {
+  it('refuses a second provider of the same vendor @SC-1170', async () => {
     await addProvider(ADMIN, { vendor: 'anthropic', key: KEY })
     expect((await refusal(addProvider(ADMIN, { vendor: 'anthropic', key: KEY }))).code).toBe('conflict')
   })
 
-  it('needs a key, except for a custom endpoint, which needs its address', async () => {
+  it('needs a key, except for a custom endpoint, which needs its address @SC-1170', async () => {
     expect((await refusal(addProvider(ADMIN, { vendor: 'openai', key: '' }))).code).toBe('usage')
     expect((await refusal(addProvider(ADMIN, { vendor: 'openai_compatible', key: '' }))).code).toBe('usage')
     expect((await refusal(addProvider(ADMIN, { vendor: 'openai', key: KEY, baseUrl: 'https://x.test' }))).code).toBe('usage')
@@ -126,14 +126,14 @@ describe('add', () => {
     expect(local.provider).toMatchObject({ baseUrl: 'http://llm.internal.test:8080/v1', keyHint: null })
   })
 
-  it("is announced to every organisation admin, with a custom endpoint's address", async () => {
+  it("is announced to every organisation admin, with a custom endpoint's address @SC-1175", async () => {
     await addProvider(MACHINE, { vendor: 'openai_compatible', key: KEY, baseUrl: 'https://llm.example.test/v1' })
     expect(told.announced).toHaveLength(1)
     expect(told.announced[0]).toMatchObject({ action: 'added' })
     expect(told.announced[0].lines.join(' ')).toContain('https://llm.example.test/v1')
   })
 
-  it('Agenthix Cloud is added with no key, and reads not available yet', async () => {
+  it('Agenthix Cloud is added with no key, and reads not available yet @SC-1179', async () => {
     vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
     const { provider } = await supplyCloudProvider({ kind: 'cloud_controller' })
     expect(provider).toMatchObject({ vendor: 'cloud', keyHint: null, state: 'not_available' })
@@ -143,7 +143,7 @@ describe('add', () => {
   })
 })
 
-describe('replace a key', () => {
+describe('replace a key @SC-1173', () => {
   it('checks the new key before the old one is dropped; refused, nothing changes', async () => {
     const { llm } = await threeProviders()
     const next = 'sk-test-fake-1111111111b4c5'
@@ -171,7 +171,7 @@ describe('replace a key', () => {
   })
 })
 
-describe('rename', () => {
+describe('rename @SC-1173', () => {
   it('renames, recorded with the old and new names', async () => {
     const { llm } = await threeProviders()
     await renameProvider(ADMIN, { id: llm.id, name: 'Anthropic, research' })
@@ -188,7 +188,7 @@ describe('rename', () => {
 })
 
 describe('remove and revoke', () => {
-  it('a removal that would leave no provider of a type is refused; a revoke never is', async () => {
+  it('a removal that would leave no provider of a type is refused; a revoke never is @SC-1174', async () => {
     const { stt } = await threeProviders()
     const r = await refusal(removeProvider(ADMIN, { id: stt.id }))
     expect(r.code).toBe('last_of_type')
@@ -199,14 +199,14 @@ describe('remove and revoke', () => {
     expect(store.records.map(r => r.action)).toEqual(['revoked'])
   })
 
-  it('before setup is finished, removing is not refused', async () => {
+  it('before setup is finished, removing is not refused @SC-1174', async () => {
     const { stt } = await threeProviders()
     store.finished = false
     await removeProvider(ADMIN, { id: stt.id })
     expect(await store.byId(stt.id)).toBeNull()
   })
 
-  it('says what falls to what, records it and tells every organisation admin', async () => {
+  it('says what falls to what, records it and tells every organisation admin @SC-1174 @SC-1175', async () => {
     const { llm } = await threeProviders()
     const openai = (await addProvider(ADMIN, { vendor: 'openai', key: KEY })).provider
     told.announced.length = 0
@@ -221,7 +221,7 @@ describe('remove and revoke', () => {
     expect(told.synced).toBeGreaterThan(0)
   })
 
-  it('an unknown provider is not found', async () => {
+  it('an unknown provider is not found @SC-1174', async () => {
     expect((await refusal(removeProvider(ADMIN, { id: 'nope' }))).code).toBe('not_found')
   })
 })

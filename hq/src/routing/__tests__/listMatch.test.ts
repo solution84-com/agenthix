@@ -3,7 +3,7 @@ import { allowedByLists, patternMatches, type AppliedList } from '../listMatch'
 
 const list = (mode: AppliedList['mode'], entries: AppliedList['entries'] = []): AppliedList => ({ mode, entries })
 
-describe('patternMatches', () => {
+describe('patternMatches @SC-1194', () => {
   it('matches a model exactly, by its maker and name', () => {
     expect(patternMatches('anthropic/claude-sonnet-5', 'anthropic/claude-sonnet-5')).toBe(true)
     expect(patternMatches('anthropic/claude-sonnet-5', 'anthropic/claude-opus-5')).toBe(false)
@@ -37,7 +37,7 @@ describe('patternMatches', () => {
   })
 })
 
-describe('allowedByLists', () => {
+describe('allowedByLists @SC-1194', () => {
   it('allows everything with no list', () => {
     expect(allowedByLists([], 'openai/gpt-5')).toBe(true)
   })

@@ -41,7 +41,7 @@ afterEach(() => { cleanup(); setBackendForTests(null) })
 const rows = () => within(screen.getByRole('listbox', { name: 'Voices' })).getAllByRole('option')
 const names = () => rows().map(r => r.querySelector('span.font-medium, span[class*="font-medium"]')?.textContent ?? '')
 
-describe('the voice dialog', () => {
+describe('the voice dialog @SC-1204', () => {
   it('shows the model as text, lists the provider’s voices and starts on English with custom voices first', () => {
     render(<VoiceDialog providerId="p-iw" current={null} onClose={() => {}} onChoose={() => {}} />)
     expect(state.args).toEqual({ providerId: 'p-iw' })
@@ -129,7 +129,7 @@ describe('the voice dialog', () => {
   })
 })
 
-describe('a voice’s play button', () => {
+describe('a voice’s play button @SC-1204', () => {
   it('plays its sample and is lit while it plays', async () => {
     render(<VoicePlayButton providerId="p-iw" voiceId="Alistair" />)
     const button = screen.getByRole('button', { name: 'Play Alistair' })

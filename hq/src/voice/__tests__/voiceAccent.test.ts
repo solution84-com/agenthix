@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { accentOf, regionOf } from '../voiceAccent'
 
-describe('the accent from the language code', () => {
+describe('the accent from the language code @SC-1204', () => {
   it('names the region', () => {
     expect(accentOf('en-GB')).toBe('British')
     expect(accentOf('en_AU')).toBe('Australian')

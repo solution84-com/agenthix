@@ -43,7 +43,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('reportOutcome', () => {
+describe('reportOutcome @SC-1176', () => {
   it('an auth failure on a call is checked at once; confirmed, the key is refused, recorded, and admins are told', async () => {
     const p = await provider()
     vendor.answer(KEY, { ok: false, kind: 'auth', detail: `invalid x-api-key ${KEY}` })
@@ -100,7 +100,7 @@ describe('reportOutcome', () => {
   })
 })
 
-describe('checks', () => {
+describe('checks @SC-1176', () => {
   it('checks what is due: hourly while it works, every five minutes while not, and never Agenthix Cloud', async () => {
     const working = await provider()
     const cloud = await provider('cloud', 'not_available')
@@ -113,7 +113,7 @@ describe('checks', () => {
   })
 })
 
-describe("Agenthix Cloud's state", () => {
+describe("Agenthix Cloud's state @SC-1176", () => {
   it('is set from its answers, recorded, and only for Cloud', async () => {
     const cloud = await provider('cloud', 'not_available')
     await setCloudProviderState('disconnected', 'The connection was ended on Agenthix Cloud.')

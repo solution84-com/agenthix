@@ -27,7 +27,7 @@ const show = (at: string, framed: boolean) => render(
 )
 afterEach(cleanup)
 
-describe('the admin frame', () => {
+describe('the admin frame @SC-1189', () => {
   it('draws its menu, not the main navigation, behind the role check, with the dock hidden but mounted', () => {
     show('/admin/people', true)
     expect(screen.getByTestId('admin-menu')).toBeTruthy()

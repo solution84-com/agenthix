@@ -44,7 +44,7 @@ beforeEach(async () => {
   await prisma.executionSite.create({ data: { siteId: 'site-u', label: 'Usage', status: 'CONNECTED', credentialHash: hashCredential(CREDENTIAL) } })
 })
 
-describe('POST /api/v1/usage/report', () => {
+describe('POST /api/v1/usage/report @SC-1214', () => {
   it('refuses a caller without the site\'s machine credential, keeping nothing', async () => {
     expect((await post({ reports: [report(1)] }, { authorization: 'Bearer wrong', 'x-site-id': 'site-u' })).code).toBe(401)
     expect((await post({ reports: [report(1)] }, {})).code).toBe(401)

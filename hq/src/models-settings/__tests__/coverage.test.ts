@@ -6,7 +6,7 @@ const reach = reachableModels([
   { name: 'OpenRouter', vendor: 'openrouter' },
 ])
 
-describe('what a list reaches', () => {
+describe('what a list reaches @SC-1194 @SC-1202', () => {
   it('lists a model two providers reach once, with both providers', () => {
     const sonnets = reach.filter(m => m.key.startsWith('anthropic/claude-sonnet'))
     expect(sonnets.length).toBeGreaterThan(0)
@@ -51,7 +51,7 @@ describe('what a list reaches', () => {
   })
 })
 
-describe('an entry as typed', () => {
+describe('an entry as typed @SC-1202', () => {
   it('is trimmed, one word, and not too long', () => {
     expect(cleanPattern('  deepseek/*  ', 200)).toBe('deepseek/*')
     expect(cleanPattern('two words', 200)).toBeNull()

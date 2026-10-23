@@ -34,7 +34,7 @@ beforeEach(() => {
 })
 afterEach(() => { globalThis.fetch = originalFetch })
 
-describe('getVoiceServices: which speech services work, for any member', () => {
+describe('getVoiceServices: which speech services work, for any member @SC-1205', () => {
   it('names each working service by its provider, as a value, with nothing else about it', async () => {
     const member = await createUserWithRole('MEMBER')
     const { tts } = await setUpVoiceProviders()
@@ -51,7 +51,7 @@ describe('getVoiceServices: which speech services work, for any member', () => {
   })
 })
 
-describe('listInworldVoices', () => {
+describe('listInworldVoices @SC-1206', () => {
   it('needs a working text to speech provider (503) and a signed-in caller (401)', async () => {
     const viewer = await createUserWithRole('MEMBER')
     await expect(listInworldVoices({ providerId: 'p' }, ctx(viewer))).rejects.toMatchObject({ statusCode: 503 })
@@ -72,7 +72,7 @@ describe('listInworldVoices', () => {
   })
 })
 
-describe('previewVoice @SC-206', () => {
+describe('previewVoice @SC-206 @SC-1206', () => {
   it('answers 503 with the outage message when no text to speech provider works', async () => {
     const operator = await createUserWithRole('MEMBER')
     await expect(previewVoice({ providerId: 'p', voiceId: 'v', description: 'd' }, ctx(operator)))

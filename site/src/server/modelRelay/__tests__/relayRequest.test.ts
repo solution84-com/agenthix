@@ -7,7 +7,7 @@ import { ModelSniffer, downstreamResponseHeaders, relayTokenOf, relayedPath, ups
 
 const PREFIX = '/api/v1/model-relay/openai'
 
-describe('the path below a provider', () => {
+describe('the path below a provider @SC-1222', () => {
   it('keeps the path and query the provider SDK added', () => {
     expect(relayedPath(`${PREFIX}/chat/completions`, PREFIX)).toEqual({ path: '/chat/completions', query: '' })
     expect(relayedPath(`${PREFIX}/models/gemini-2.5-flash:streamGenerateContent?alt=sse`, PREFIX))
@@ -34,7 +34,7 @@ describe('the path below a provider', () => {
   })
 })
 
-describe('the request headers the provider receives', () => {
+describe('the request headers the provider receives @SC-1223', () => {
   it('drops every credential the container sent and every hop-by-hop header, and sets the turn\'s key', () => {
     const out = upstreamRequestHeaders({
       authorization: 'Bearer agenthix-key-arrives-with-each-request',
@@ -85,7 +85,7 @@ describe('the request headers the provider receives', () => {
   })
 })
 
-describe('the relay token a request carries', () => {
+describe('the relay token a request carries @SC-1226', () => {
   it("is the plugin's own header first, then Claude Code's key headers", () => {
     expect(relayTokenOf({ 'x-agenthix-turn': 'T', 'x-api-key': 'placeholder', authorization: 'Bearer placeholder' })).toBe('T')
     expect(relayTokenOf({ 'x-api-key': 'T', authorization: 'Bearer T' })).toBe('T')
@@ -95,7 +95,7 @@ describe('the relay token a request carries', () => {
   })
 })
 
-describe('the model named in the log line', () => {
+describe('the model named in the log line @SC-1225', () => {
   it('is read from the start of the body as it passes, across chunks', () => {
     const sniffer = new ModelSniffer('/chat/completions')
     sniffer.push(Buffer.from('{"mo'))

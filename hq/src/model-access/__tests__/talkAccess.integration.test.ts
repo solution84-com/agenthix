@@ -19,7 +19,7 @@ import { getMyModelAccess } from '../talkAccess'
 
 const ctx = (user?: { id: string }) => ({ user }) as any
 
-describe('getMyModelAccess @SC-722', () => {
+describe('getMyModelAccess @SC-722 @SC-1199', () => {
   it('says nobody can talk while no model provider works, and that the fix is the organisation admins\'', async () => {
     const dana = await createUserWithRole('MEMBER')
     await expect(getMyModelAccess(undefined, ctx(dana))).resolves.toEqual({ canTalk: false, fix: 'org-access', isAdmin: false })

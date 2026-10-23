@@ -9,7 +9,7 @@ const models = [
   m('google/gemini-flash', 'Google', ['OpenRouter'], 1),
 ]
 
-describe('selecting in bulk', () => {
+describe('selecting in bulk @SC-1202', () => {
   it('filters by maker, provider, price band and search together', () => {
     expect(filterModels(models, NO_FILTER)).toHaveLength(3)
     expect(filterModels(models, { ...NO_FILTER, maker: 'OpenAI' }).map(x => x.key)).toEqual(['openai/gpt-5-pro'])

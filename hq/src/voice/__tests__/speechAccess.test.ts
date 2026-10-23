@@ -13,7 +13,7 @@ const resolved = (vendor: string, voice?: string) => ({
 
 beforeEach(() => { resolve.mockReset(); credentialOf.mockReset() })
 
-describe('speechAccess', () => {
+describe('speechAccess @SC-1205', () => {
   it('resolves the agent’s own speech provider and takes its key from the store', async () => {
     resolve.mockResolvedValue(resolved('inworld', 'Ashley'))
     credentialOf.mockResolvedValue({ key: ' sk-test-fake ', baseUrl: null })

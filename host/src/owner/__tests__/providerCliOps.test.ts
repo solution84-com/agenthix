@@ -19,7 +19,7 @@ afterEach(() => {
   m.cleanup()
 })
 
-describe("the machine admin's provider commands", () => {
+describe("the machine admin's provider commands @SC-1234", () => {
   it('reads each request field by field', () => {
     expect(parseOwnerRequest({ op: 'hq.provider', action: 'add', vendor: 'anthropic', key: KEY, extra: 1 }))
       .toEqual({ ok: true, request: { op: 'hq.provider', action: 'add', vendor: 'anthropic', key: KEY } })

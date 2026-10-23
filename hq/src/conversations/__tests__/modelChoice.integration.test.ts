@@ -37,7 +37,7 @@ async function world() {
 
 const values = (choices: { value: string }[]) => choices.map(c => c.value)
 
-describe('the models offered @SC-953', () => {
+describe('the models offered @SC-953 @SC-1198', () => {
   it('are every model via a provider that works, each with where it comes from, the default first chosen', async () => {
     const { me, anthropic, openrouter } = await world()
     const choices = await getModelChoices({ home: 'PERSON' }, ctx(me))

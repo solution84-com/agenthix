@@ -4,7 +4,7 @@ import { priceCall } from '../pricing'
 
 const tokens = { ...NO_USAGE, inputTokens: 1_000_000, outputTokens: 100_000 }
 
-describe('priceCall', () => {
+describe('priceCall @SC-1212', () => {
   it('prices an own key from the catalogue, in whole millionths as a bigint', () => {
     const p = priceCall({ vendor: 'anthropic', model: 'claude-sonnet-4-5', purpose: 'conversation', basis: 'ESTIMATED', usage: tokens }, { usageBilling: false })
     // $3 per million in, $15 per million out.

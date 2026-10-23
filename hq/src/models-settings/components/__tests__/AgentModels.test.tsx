@@ -34,7 +34,7 @@ const data = {
   list: { owner: 'agent', ownerId: 'ag', mode: 'every', entries: [], reachable: 3, allowedAbove: 3, allowed: 3 }, reachable: [],
 }
 
-describe('an agent’s Models', () => {
+describe('an agent’s Models @SC-1201', () => {
   it('says whose each setting is, and offers to give the agent its own or to follow the organisation', async () => {
     state.data = data
     render(<AgentModels agentId="ag" agentName="Kernel" />)

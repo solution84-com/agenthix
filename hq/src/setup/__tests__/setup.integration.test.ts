@@ -82,7 +82,7 @@ describe('setup, once per hq @SC-710', () => {
   })
 })
 
-describe("hq's claim state and where setup resumes @SC-709", () => {
+describe("hq's claim state and where setup resumes @SC-709 @SC-1182", () => {
   it('goes from unclaimed to setting up to set up, and resumes at the first unmet need', async () => {
     await prisma.org.create({ data: { name: 'My Organisation' } })
     expect(await claimState()).toBe('unclaimed')

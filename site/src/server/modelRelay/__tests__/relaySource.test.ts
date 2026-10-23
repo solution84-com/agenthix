@@ -18,7 +18,7 @@ beforeEach(() => {
   now = 1_000_000
 })
 
-describe('on a network the site shares with the container (Linux, or a deployed site)', () => {
+describe('on a network the site shares with the container (Linux, or a deployed site) @SC-1226', () => {
   it("accepts the container's own address, as an IPv4-mapped one too, and reads it once", async () => {
     const d = deps('10.213.0.3', false)
     const check = createSourceCheck(d)
@@ -52,7 +52,7 @@ describe('on a network the site shares with the container (Linux, or a deployed 
   })
 })
 
-describe('through a virtual machine\'s port forwarder (Docker Desktop, the site on the host)', () => {
+describe('through a virtual machine\'s port forwarder (Docker Desktop, the site on the host) @SC-1226', () => {
   it('accepts a loopback source, where every container\'s request arrives', async () => {
     const check = createSourceCheck(deps('10.213.0.3', true))
     await expect(check('c1', '127.0.0.1')).resolves.toBe(true)
@@ -65,7 +65,7 @@ describe('through a virtual machine\'s port forwarder (Docker Desktop, the site 
   })
 })
 
-it('reads an address as one, however it is written', () => {
+it('reads an address as one, however it is written @SC-1226', () => {
   expect(normaliseAddress('::ffff:10.0.0.1')).toBe('10.0.0.1')
   expect(normaliseAddress('fe80::1')).toBe('fe80::1')
   expect(normaliseAddress(undefined)).toBe('')

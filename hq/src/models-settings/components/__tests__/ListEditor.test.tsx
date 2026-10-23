@@ -25,7 +25,7 @@ const view = (over: Partial<ListView> = {}): ListView => ({
   entries: [{ effect: 'never', pattern: 'xai/*', kind: 'maker', covers: 1, meaning: 'Every model made by xAI' }], ...over,
 })
 
-describe('the list editor', () => {
+describe('the list editor @SC-1202', () => {
   it('shows an entry with what it means and how many models it covers', () => {
     render(<ListEditor view={view()} reachable={reachable} intro="For everyone." save={vi.fn()} />)
     expect(screen.getByText('xai/*')).toBeTruthy()

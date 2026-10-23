@@ -30,7 +30,7 @@ async function twoProviders() {
 }
 
 describe('the resolver, reading what is stored', () => {
-  it("answers the organisation's default, and the agent's own over it", async () => {
+  it("answers the organisation's default, and the agent's own over it @SC-1192", async () => {
     const { anthropic, openrouter } = await twoProviders()
     const agent = await createAgent()
     const place = { kind: 'organisation' as const }
@@ -39,7 +39,7 @@ describe('the resolver, reading what is stored', () => {
     expect(await resolve({ purpose: 'conversation', place, agentId: agent.id })).toMatchObject({ ok: true, resolution: { from: 'agent', providerName: 'OpenRouter' } })
   })
 
-  it("applies a shared project's list, and costs to the project's billing profile", async () => {
+  it("applies a shared project's list, and costs to the project's billing profile @SC-1194", async () => {
     const { anthropic } = await twoProviders()
     const profile = await prisma.billingProfile.create({ data: { name: 'Client X' } })
     const project = await createProject({ billingProfileId: profile.id })
@@ -51,7 +51,7 @@ describe('the resolver, reading what is stored', () => {
     expect(answer.resolution.billingProfileId).toBe(profile.id)
   })
 
-  it('goes around a provider that is not working, and offers a conversation fixed to it the same model elsewhere', async () => {
+  it('goes around a provider that is not working, and offers a conversation fixed to it the same model elsewhere @SC-1196', async () => {
     const { anthropic, openrouter } = await twoProviders()
     await prisma.aiProvider.update({ where: { id: anthropic.id }, data: { state: 'key_refused' } })
     const person = await createUserWithRole('MEMBER')
@@ -66,7 +66,7 @@ describe('the resolver, reading what is stored', () => {
     expect(await conversationOffer(req)).toEqual({ providerId: openrouter.id, model: 'anthropic/claude-sonnet-4.5' })
   })
 
-  it("serves a person's own subscription in their personal project, and hands it only to a run that runs as them", async () => {
+  it("serves a person's own subscription in their personal project, and hands it only to a run that runs as them @SC-1197", async () => {
     await twoProviders()
     const person = await createUserWithRole('MEMBER')
     const sub = await createSubscription(person.id)
@@ -89,7 +89,7 @@ describe('the resolver, reading what is stored', () => {
       .toMatchObject({ ok: false, problem: { code: 'subscription_outside_own_place' } })
   })
 
-  it("gives a run the organisation's key for its provider, never in a log", async () => {
+  it("gives a run the organisation's key for its provider, never in a log @SC-1192", async () => {
     const { anthropic } = await twoProviders()
     const answer = await resolve({ purpose: 'worker', place: { kind: 'organisation' } })
     if (!answer.ok) throw new Error(answer.problem.message)

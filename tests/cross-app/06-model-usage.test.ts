@@ -42,7 +42,7 @@ async function reportsWaiting(): Promise<string[]> {
   return (await readdir(USAGE_REPORTS_DIR).catch(() => [] as string[])).filter(n => n.endsWith('.json'))
 }
 
-describe('a run’s call through the relay is written to the ledger', () => {
+describe('a run’s call through the relay is written to the ledger @SC-1220', () => {
   it('an organisation admin adds the provider: hq checks its key with the vendor, keeps it, and answers no key', async () => {
     const added = await op(HQ_URL, 'add-ai-provider', {
       vendor: 'openai_compatible', key: FAKE_KEY, name: 'Stand-in vendor', baseUrl: vendor.baseUrl,

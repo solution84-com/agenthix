@@ -19,7 +19,7 @@ const billing = (mayChange: boolean) => ({
 beforeEach(() => { h.data = { getBillingProfileChoices: choices, getProjectBilling: billing(true) } })
 afterEach(() => { cleanup(); h.data = {}; h.actions = {} })
 
-describe('a project billing section', () => {
+describe('a project billing section @SC-1217', () => {
   it('lets an organisation admin change it, from the next call', async () => {
     render(<ProjectBillingSection projectId="pr1" />)
     const select = screen.getByLabelText('AI cost billed to') as HTMLSelectElement

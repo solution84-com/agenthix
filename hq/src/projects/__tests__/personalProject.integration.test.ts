@@ -25,7 +25,7 @@ import { getMyPersonalProject } from '../personalProjectQueries'
 
 const uniqueViolation = () => Object.assign(new Error('Unique constraint failed'), { code: 'P2002' })
 
-describe('ensurePersonalProject', () => {
+describe('ensurePersonalProject @SC-1210', () => {
   it('creates it private, owned by the person, with them as its one member and admin, its Project Tasks, and no site', async () => {
     const owner = await createUser()
 
@@ -72,7 +72,7 @@ describe('ensurePersonalProject', () => {
   })
 })
 
-describe('ensurePersonalProjectsForEveryone', () => {
+describe('ensurePersonalProjectsForEveryone @SC-1210', () => {
   it('makes one for every account that has none, and one failure does not stop the rest', async () => {
     const first = await createUser()
     const second = await createUser()
@@ -91,7 +91,7 @@ describe('ensurePersonalProjectsForEveryone', () => {
   })
 })
 
-describe('getMyPersonalProject', () => {
+describe('getMyPersonalProject @SC-1210', () => {
   it("answers the caller's own personal project, creating it if it is missing, and refuses anyone signed out", async () => {
     const owner = await createUser()
     const mine = await getMyPersonalProject(undefined, { user: { id: owner.id } } as any)
@@ -100,7 +100,7 @@ describe('getMyPersonalProject', () => {
   })
 })
 
-describe('what a personal project refuses', () => {
+describe('what a personal project refuses @SC-1210', () => {
   it('refuses an act on it with 400 naming the act, and lets any other project — or a missing one — through', async () => {
     const mine = await ensurePersonalProject((await createUser()).id)
     const shared = await createProject()
@@ -126,7 +126,7 @@ describe('what a personal project refuses', () => {
   })
 })
 
-describe('taskRunOwner — where a task runs, and so whose run it is', () => {
+describe('taskRunOwner — where a task runs, and so whose run it is @SC-1210', () => {
   it("a task in Your space runs as its person in their own storage, one in another personal project as them in the project's own, any other as its project, and a gone task as none", async () => {
     const owner = await createUser()
     const mine = await ensurePersonalProject(owner.id)

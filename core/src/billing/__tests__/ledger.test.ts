@@ -7,7 +7,7 @@ import { MODEL_PRICE_LIST_VERSION, MODEL_PRICE_REF, modelPricesMicros } from '..
 import { OPENCODE_CATALOGUE_VERSION } from '../../models/openCodeModels.generated.js'
 import { VOICE_PRICE_REF, sttPricePerHourMicros, ttsPricePerMillionCharsMicros } from '../../models/voicePrices.js'
 
-describe('money in the ledger', () => {
+describe('money in the ledger @SC-1236', () => {
   it('converts a list price to whole millionths once, rounding to the nearest', () => {
     expect(unitsToMicros(3)).toBe(3_000_000n)
     expect(unitsToMicros(0.53856)).toBe(538_560n)
@@ -45,7 +45,7 @@ describe('money in the ledger', () => {
   })
 })
 
-describe("hq's price lists", () => {
+describe("hq's price lists @SC-1236", () => {
   it("versions the model prices by the catalogue's version", () => {
     expect(MODEL_PRICE_LIST_VERSION).toBe(`opencode-${OPENCODE_CATALOGUE_VERSION}`)
     expect(MODEL_PRICE_REF).toBe(`hq:opencode-${OPENCODE_CATALOGUE_VERSION}`)

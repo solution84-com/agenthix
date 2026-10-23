@@ -1,7 +1,7 @@
 ---
 name: User Stories — host
 description: Business-level requirements for the host service — what a machine admin, whoever can use Docker on a machine, needs from Agenthix on that machine. Written for business readers.
-updated: 2026-10-21
+updated: 2026-10-23
 ---
 
 # User Stories — `host/`
@@ -214,3 +214,13 @@ As a machine admin, I want every container, volume and network Agenthix makes to
 - AC-354c: a machine has at most one HQ, whichever host service installed it.
 - AC-354d: the install's networks take addresses from a range of their own and never overlap another network or the machine's own addresses; when none is left, the install says so before it changes anything.
 
+
+---
+
+### US-356 — Add the organisation's providers from the machine
+
+As a machine admin, I want to add, list and remove the organisation's model and voice providers by typing a command on HQ's machine, so that I can stand up an install at a terminal with no browser.
+
+**Acceptance criteria:**
+- AC-356a: `agenthix provider add|list|remove` changes the organisation's providers as the machine, checked with the vendor, recorded and announced to every organisation admin as a change on the Providers page is.
+- AC-356b: the key is asked for unseen and never typed on the command line, so it stays out of my shell's history and the machine's process list, and a removal asks first.

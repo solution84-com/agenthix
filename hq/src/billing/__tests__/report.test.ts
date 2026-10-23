@@ -12,7 +12,7 @@ const names = {
   key: new Map([['u-1', 'Sam'], ['u-erased', 'Former member']]),
 }
 
-describe('the usage report', () => {
+describe('the usage report @SC-1218', () => {
   it('keeps each currency and basis a separate total under one row', () => {
     const rows = groupRows([
       raw({ basis: 'ACTUAL', amount: '20000' }),
@@ -38,7 +38,7 @@ describe('the usage report', () => {
   })
 })
 
-describe('the export', () => {
+describe('the export @SC-1218', () => {
   it('writes millionths as an exact decimal', () => {
     expect(microsToDecimal(4_500_000n)).toBe('4.500000')
     expect(microsToDecimal(-1_500n)).toBe('-0.001500')

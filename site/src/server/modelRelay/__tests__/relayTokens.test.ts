@@ -11,7 +11,7 @@ beforeEach(() => {
   resetGateRunsForTests()
 })
 
-describe('a relay token', () => {
+describe('a relay token @SC-1226', () => {
   it('names nothing until it is pointed at a turn, and each provider the turn may use while it runs', () => {
     const token = issueRelayToken('c1', 'conv-1')
     expect(resolveRelayToken(token)).toBeNull()

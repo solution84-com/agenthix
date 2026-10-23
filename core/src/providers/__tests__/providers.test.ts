@@ -4,7 +4,7 @@ import {
   providerTypesCovered, providersComplete, sameModelViaProvider,
 } from '../providers.js'
 
-describe('providers', () => {
+describe('providers @SC-1235', () => {
   it('knows every vendor, and Agenthix Cloud as one provider of all three types with no key', () => {
     for (const v of AI_PROVIDER_VENDORS) expect(AI_PROVIDER_VENDOR_INFO[v].types.length).toBeGreaterThan(0)
     expect(AI_PROVIDER_VENDOR_INFO.cloud).toMatchObject({ types: ['llm', 'stt', 'tts'], credential: 'none' })

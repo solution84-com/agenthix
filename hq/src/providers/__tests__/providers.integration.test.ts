@@ -42,7 +42,7 @@ async function setUp() {
 }
 
 describe('providers', () => {
-  it('refuses a member and anyone signed out, every operation', async () => {
+  it('refuses a member and anyone signed out, every operation @SC-1172 @SC-1188', async () => {
     const { member } = await setUp()
     await expect(getAiProviders(undefined as any, ctx(member))).rejects.toMatchObject({ statusCode: 403 })
     await expect(addAiProvider({ vendor: 'anthropic', key: KEY }, ctx(member))).rejects.toMatchObject({ statusCode: 403 })
@@ -50,7 +50,7 @@ describe('providers', () => {
     expect(await prisma.aiProvider.count()).toBe(0)
   })
 
-  it('stores the key encrypted, never reads it back, records the write and tells every organisation admin', async () => {
+  it('stores the key encrypted, never reads it back, records the write and tells every organisation admin @SC-1170 @SC-1171 @SC-1175', async () => {
     const { sam, ana } = await setUp()
     const { provider } = await addAiProvider({ vendor: 'anthropic', key: KEY }, ctx(sam))
     const row = await prisma.aiProvider.findUniqueOrThrow({ where: { id: provider.id } })
@@ -65,14 +65,14 @@ describe('providers', () => {
     expect(told[0].title).toBe('Sam added Anthropic')
   })
 
-  it("a vendor's refusal stores nothing and is a 422 with its words", async () => {
+  it("a vendor's refusal stores nothing and is a 422 with its words @SC-1170", async () => {
     const { sam } = await setUp()
     vendor.answer(KEY, { ok: false, kind: 'auth', detail: 'invalid x-api-key' })
     await expect(addAiProvider({ vendor: 'anthropic', key: KEY }, ctx(sam))).rejects.toMatchObject({ statusCode: 422 })
     expect(await prisma.aiProvider.count()).toBe(0)
   })
 
-  it('says what a removal touches, refuses the last of a type, and on revoke leaves the defaults and agents empty', async () => {
+  it('says what a removal touches, refuses the last of a type, and on revoke leaves the defaults and agents empty @SC-1174', async () => {
     const { sam } = await setUp()
     const { provider: stt } = await addAiProvider({ vendor: 'assemblyai', key: 'aai-test-fake-000011' }, ctx(sam))
     await prisma.org.update({ where: { id: 'org' }, data: { defaultSttProviderId: stt.id, defaultSttModel: 'universal-streaming' } })
@@ -91,7 +91,7 @@ describe('providers', () => {
     expect((await prisma.aiProviderRecord.findMany({ orderBy: { at: 'asc' } })).map(r => r.action)).toEqual(['added', 'revoked'])
   })
 
-  it('a key refused on a call and confirmed by a check tells organisation admins once, and clears when replaced', async () => {
+  it('a key refused on a call and confirmed by a check tells organisation admins once, and clears when replaced @SC-1177', async () => {
     const { sam, ana } = await setUp()
     const { provider } = await addAiProvider({ vendor: 'anthropic', key: KEY }, ctx(sam))
     vendor.answer(KEY, { ok: false, kind: 'auth', detail: 'invalid x-api-key' })

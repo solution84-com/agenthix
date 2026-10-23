@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { FEATURE_FLAGS, isDevelopmentBuild, isFeatureOn, type FeatureFlag } from '../featureFlags.js'
 
-describe('feature flags (ADR-0116)', () => {
+describe('feature flags (ADR-0116) @SC-1240', () => {
   it('names usageBilling, with the feature and when the flag goes', () => {
     expect(FEATURE_FLAGS.usageBilling.feature).toMatch(/Cloud/)
     expect(FEATURE_FLAGS.usageBilling.removeWhen.length).toBeGreaterThan(0)

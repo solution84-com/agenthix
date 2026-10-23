@@ -6,7 +6,7 @@ const KEY = 'A'.repeat(42) + 'E'
 const KID = 'k'.repeat(43)
 const form = { client_assertion_type: JWT_BEARER_ASSERTION_TYPE, client_assertion: 'a.b.c', public_key: KEY, proof: 'p.q.r' }
 
-describe('the key rollover (C8)', () => {
+describe('the key rollover (C8) @SC-1238', () => {
   it("Cloud's side reads a registration, with retire_old_now only as 'true'", () => {
     expect(parseCloudKeyRegistration(form)).toEqual(form)
     expect(parseCloudKeyRegistration({ ...form, retire_old_now: 'true' })).toEqual({ ...form, retire_old_now: 'true' })

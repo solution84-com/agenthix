@@ -5,7 +5,7 @@ import { proposeDefaults, recommendedModels, type ProviderFact } from '../setupD
 const p = (id: string, vendor: ProviderFact['vendor'], state: ProviderFact['state'] = 'works'): ProviderFact => ({ id, vendor, state })
 const NONE = { conversation: null, worker: null, stt: null, tts: null }
 
-describe('the models setup recommends', () => {
+describe('the models setup recommends @SC-1186', () => {
   it('are Claude Sonnet 5 to talk and Claude Opus 5 for work on an Anthropic key', () => {
     expect(recommendedModels('anthropic')).toEqual({ conversation: 'claude-sonnet-5', worker: 'claude-opus-5' })
   })
@@ -28,7 +28,7 @@ describe('the models setup recommends', () => {
   })
 })
 
-describe('the defaults setup proposes', () => {
+describe('the defaults setup proposes @SC-1186', () => {
   it('are the recommended models, Inworld TTS 2 speaking as the default voice, and the default listening model', () => {
     const got = proposeDefaults([p('a', 'anthropic'), p('s', 'assemblyai'), p('i', 'inworld')], NONE)
     expect(got.conversation).toEqual({ providerId: 'a', model: 'claude-sonnet-5' })

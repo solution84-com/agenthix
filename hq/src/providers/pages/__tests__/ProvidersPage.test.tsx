@@ -54,7 +54,7 @@ const openMenu = (provider: string, item: string) => {
 beforeEach(() => { h.data = { getAiProviders: [base, assembly, cloud, custom] } })
 afterEach(() => { cleanup(); h.data = {}; h.actions = {} })
 
-describe('the Providers page', () => {
+describe('the Providers page @SC-1178', () => {
   it('lists each provider with its state in words, the vendor message, what uses it and the key end', () => {
     show()
     const anthropic = screen.getByText('Anthropic', { selector: 'h3' }).closest('li')!
@@ -103,7 +103,7 @@ describe('the Providers page', () => {
   })
 })
 
-describe('adding a provider', () => {
+describe('adding a provider @SC-1170 @SC-1178', () => {
   it('goes by type, then vendor, then key, and offers only vendors not yet added', async () => {
     show()
     fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
@@ -142,7 +142,7 @@ describe('adding a provider', () => {
   })
 })
 
-describe('the other dialogs', () => {
+describe('the other dialogs @SC-1173 @SC-1174', () => {
   it('replaces a key without showing the old one', async () => {
     show()
     openMenu('Anthropic', 'Replace key')
@@ -188,7 +188,7 @@ describe('the other dialogs', () => {
     await waitFor(() => expect(act('revokeAiProvider')).toHaveBeenCalledWith({ id: 'p2' }))
   })
 
-  it('connects Agenthix Cloud from the page, and from the Add provider dialog', () => {
+  it('connects Agenthix Cloud from the page, and from the Add provider dialog @SC-1179', () => {
     h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
     show()
     fireEvent.click(screen.getByRole('button', { name: 'Connect Agenthix Cloud' }))

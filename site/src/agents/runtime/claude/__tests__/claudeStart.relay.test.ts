@@ -7,7 +7,7 @@ import { claudeTestContext } from '../../__tests__/claudeTestContext'
 
 const inContainer = { containerName: 'agent-c1', gitCredEnv: {} }
 
-describe("a claude process's provider, from hq's descriptor", () => {
+describe("a claude process's provider, from hq's descriptor @SC-1230", () => {
   it('reaches an API key through the relay, with the key helper, and never holds the key', () => {
     const start = buildClaudeStart(claudeTestContext({ ...inContainer, credential: { kind: 'apiKey', providerId: 'p', provider: 'anthropic', apiKey: 'sk-test-fake' } }), null)
     expect(start.relayed).toBe(true)

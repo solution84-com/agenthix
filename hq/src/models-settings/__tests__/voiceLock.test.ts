@@ -10,7 +10,7 @@ const inworld = { id: 'p-iw', name: 'Inworld', vendor: 'inworld', credentialKind
 const snap = { providers: [assembly, inworld], org: {}, agent: null, agentName: 'Kernel', lists: [], conversationModel: null, billingProfileId: 'bp' } as unknown as Snapshot
 const req = { purpose: 'tts', place: { kind: 'organisation' } } as const
 
-describe('voice is locked to its models', () => {
+describe('voice is locked to its models @SC-1203', () => {
   it('offers Inworld TTS 2 for speech and AssemblyAI’s three live models for listening', () => {
     expect(modelsOfVoice('inworld', 'tts')).toEqual(['inworld-tts-2'])
     expect(modelsOfVoice('assemblyai', 'stt').sort()).toEqual(['u3-rt-pro', 'universal-streaming-english', 'universal-streaming-multilingual'])

@@ -24,7 +24,7 @@ afterEach(async () => {
 
 const files = async () => (await fs.readdir(dir)).filter(n => n.endsWith('.json')).sort()
 
-describe('usage reports on their way to hq', () => {
+describe('usage reports on their way to hq @SC-1229', () => {
   it('are kept on disk until hq acknowledges them, then removed', async () => {
     const send = vi.fn(async (rs: UsageReport[]) => rs.map(r => r.callId))
     const outbox = new UsageOutbox({ dir, send, log: l => logs.push(l) })
@@ -106,7 +106,7 @@ describe('usage reports on their way to hq', () => {
   })
 })
 
-describe("hq's Cloud token, as the relay holds it", () => {
+describe("hq's Cloud token, as the relay holds it @SC-1230", () => {
   it('is asked for once, kept until a minute before it lapses, then asked for again', async () => {
     let now = 0
     const request = vi.fn(async () => ({ ok: true as const, token: { token: `t${request.mock.calls.length}`, expiresAt: 600_000 } }))

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { callsWords, moneyOf, monthWords, shiftMonth } from '../costWords'
 
-describe('cost words', () => {
+describe('cost words @SC-1218', () => {
   it('writes millionths as money, with small amounts kept visible', () => {
     expect(moneyOf(41_200_000, 'USD')).toBe('$41.20')
     expect(moneyOf(1_200, 'USD')).toBe('$0.0012')

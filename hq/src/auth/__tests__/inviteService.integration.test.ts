@@ -164,7 +164,7 @@ describe('validateToken @SC-113 @SC-718', () => {
     })
   })
 
-  it('refuses a withdrawn, a used and an expired invitation (410), naming who to ask', async () => {
+  it('refuses a withdrawn, a used and an expired invitation (410), naming who to ask @SC-1183', async () => {
     const inviter = await createInviterUser('avery', 'Avery Chen')
     const cases = [
       ['revoked', await createInvite({ createdBy: inviter, revokedAt: new Date() })],

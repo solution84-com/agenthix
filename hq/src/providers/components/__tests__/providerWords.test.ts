@@ -6,7 +6,7 @@ const impact = (over: Partial<ProviderImpact> = {}): ProviderImpact => ({
   provider: { id: 'p1', name: 'Anthropic' }, defaults: [], agents: [], goesDown: [], removalRefused: null, ...over,
 })
 
-describe('providerWords', () => {
+describe('providerWords @SC-1174 @SC-1178', () => {
   it('says what each default falls to, and to nothing when no other provider works', () => {
     const lines = impactLines(impact({
       defaults: [{ slot: 'worker', to: { id: 'c', name: 'Agenthix Cloud' } }, { slot: 'stt', to: null }],

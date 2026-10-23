@@ -15,7 +15,7 @@ import { AdminSidebar } from '../components/AdminSidebar'
 const show = (at: string) => render(<MemoryRouter initialEntries={[at]}><AdminSidebar fallback={<nav aria-label="Main">main navigation</nav>} /></MemoryRouter>)
 afterEach(cleanup)
 
-describe('the admin area menu', () => {
+describe('the admin area menu @SC-1189', () => {
   it('replaces the main navigation, with Back to the organisation first', () => {
     ops.role = 'ADMIN'
     show('/admin')

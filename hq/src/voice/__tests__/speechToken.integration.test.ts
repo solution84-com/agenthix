@@ -29,7 +29,7 @@ async function createUser() {
   return user
 }
 
-describe('getSpeechToken @SC-194', () => {
+describe('getSpeechToken @SC-194 @SC-1205', () => {
   const originalFetch = global.fetch
 
   beforeEach(() => vi.clearAllMocks())

@@ -6,7 +6,7 @@ const report = {
   at: '2026-10-23T10:00:00Z', usage: { inputTokens: 10, outputTokens: 5 }, upstreamStatus: 200,
 }
 
-describe('the usage report', () => {
+describe('the usage report @SC-1239', () => {
   it('reads a report, cache tokens 0 when absent', () => {
     expect(parseUsageReport(report)).toEqual({
       ...report, at: '2026-10-23T10:00:00.000Z', usage: { inputTokens: 10, outputTokens: 5, cacheReadTokens: 0, cacheWriteTokens: 0 },

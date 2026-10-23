@@ -62,7 +62,7 @@ const start = (who: { id: string } | undefined, owner: { ownerType: Owner['owner
   startClaudeLogin({ ...owner, termsAccepted }, ctx(who))
 const stored = () => prisma.aiProvider.findMany()
 
-describe('startClaudeLogin', () => {
+describe('startClaudeLogin @SC-1197', () => {
   it('rejects an unauthenticated caller with 401', async () => {
     await expect(start(undefined, { ownerType: 'user', ownerId: person.id })).rejects.toMatchObject({ statusCode: 401 })
   })
@@ -119,7 +119,7 @@ describe('startClaudeLogin', () => {
   })
 })
 
-describe('completeClaudeLogin', () => {
+describe('completeClaudeLogin @SC-1197', () => {
   it('rejects an unauthenticated caller with 401', async () => {
     await expect(completeClaudeLogin({ loginId: 'L1', code: 'c' }, ctx())).rejects.toMatchObject({ statusCode: 401 })
   })
@@ -194,7 +194,7 @@ describe('completeClaudeLogin', () => {
   })
 })
 
-describe('cancelClaudeLogin', () => {
+describe('cancelClaudeLogin @SC-1197', () => {
   it('rejects an unauthenticated caller with 401', async () => {
     await expect(cancelClaudeLogin({ loginId: 'L1' }, ctx())).rejects.toMatchObject({ statusCode: 401 })
   })

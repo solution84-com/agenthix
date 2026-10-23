@@ -38,7 +38,7 @@ const provider = (vendor: NewProvider['vendor'], state: NewProvider['state'] = '
   secret: null, lastCheckedAt: null, lastWorkedAt: null,
 })
 
-describe('claimStateOf @SC-709', () => {
+describe('claimStateOf @SC-709 @SC-1182', () => {
   it('is unclaimed with no user, setting up with a first account, set up once setup is recorded', () => {
     expect(claimStateOf({ users: 0, setupCompletedAt: null })).toBe('unclaimed')
     expect(claimStateOf({ users: 1, setupCompletedAt: null })).toBe('setting_up')
@@ -46,7 +46,7 @@ describe('claimStateOf @SC-709', () => {
   })
 })
 
-describe('setupResumeStep @SC-709', () => {
+describe('setupResumeStep @SC-709 @SC-1182', () => {
   const p = (vendor: NewProvider['vendor'], state: NewProvider['state'] = 'works') => ({ vendor, state })
 
   it('opens at the choice while no model provider works', () => {
@@ -67,7 +67,7 @@ describe('setupResumeStep @SC-709', () => {
   })
 })
 
-describe('finishSetup needs models and voice @SC-710', () => {
+describe('finishSetup needs models and voice @SC-710 @SC-1185', () => {
   let store: FakeProviderStore
   beforeEach(() => {
     store = new FakeProviderStore()

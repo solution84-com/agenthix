@@ -83,7 +83,7 @@ const post = (path: string, headers: Record<string, string> = {}) =>
 const stream = 'data: {"type":"message_start","message":{"usage":{"input_tokens":12,"output_tokens":1}}}\n\n' +
   'data: {"type":"message_delta","usage":{"output_tokens":40}}\n\n'
 
-describe('each call through the relay is reported', () => {
+describe('each call through the relay is reported @SC-1228', () => {
   it('with its usage, read from the streamed answer, which reaches the harness unchanged', async () => {
     pointRelayToken(token, 'run-1', [ANTHROPIC], 'bp-1')
     answer = res => { res.writeHead(200, { 'content-type': 'text/event-stream' }); res.end(stream) }
@@ -131,7 +131,7 @@ describe('each call through the relay is reported', () => {
   })
 })
 
-describe('Agenthix Cloud through the relay', () => {
+describe('Agenthix Cloud through the relay @SC-1230', () => {
   it("presents hq's Cloud token, never a call id or billing profile the harness sent", async () => {
     pointRelayToken(token, 'run-1', [CLOUD], 'bp-1')
     answer = res => { res.writeHead(200, { 'content-type': 'text/event-stream' }); res.end(stream) }

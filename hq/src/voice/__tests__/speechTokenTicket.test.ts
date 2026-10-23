@@ -18,7 +18,7 @@ const costing = { purpose: 'stt', basis: 'ESTIMATED', billingProfileId: 'bp-proj
 const access = { providerId: 'prov', providerName: 'Speech', vendor: 'assemblyai', model: 'm', voice: null, apiKey: 'stt-key', costing }
 const ctx = { user: { id: 'u1' }, entities: {} } as never
 
-describe('getSpeechToken ticket and place', () => {
+describe('getSpeechToken ticket and place @SC-1205 @SC-1215', () => {
   const originalFetch = global.fetch
   beforeEach(() => {
     vi.clearAllMocks()

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { adminPathFor, isAdminPath, teamsBase } from '../adminPaths'
 
-describe('where a former /org address now lives', () => {
+describe('where a former /org address now lives @SC-1190', () => {
   it.each([
     ['/org/people', '/admin/people'],
     ['/org/people/u1', '/admin/people/u1'],
@@ -32,7 +32,7 @@ describe('where a former /org address now lives', () => {
   })
 })
 
-describe('the admin area is every address under /admin', () => {
+describe('the admin area is every address under /admin @SC-1190', () => {
   it('knows its addresses', () => {
     expect(isAdminPath('/admin')).toBe(true)
     expect(isAdminPath('/admin/people/u1')).toBe(true)

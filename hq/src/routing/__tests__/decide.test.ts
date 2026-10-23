@@ -29,7 +29,7 @@ function ok(answer: ReturnType<typeof decide>) {
   return answer.resolution
 }
 
-describe('decide: which model', () => {
+describe('decide: which model @SC-1192', () => {
   it("a conversation takes the organisation's default with no agent's own", () => {
     const r = ok(decide(req(), snap()))
     expect(r).toMatchObject({ model: sonnet, from: 'organisation', providerName: 'Anthropic', runtime: null, billingProfileId: 'bp-default' })
@@ -46,7 +46,7 @@ describe('decide: which model', () => {
     expect(ok(decide(req({ pick }), snap({ agent: { ...NONE, conversation: opus } })))).toMatchObject({ model: pick, from: 'pick' })
   })
 
-  it('work takes the worker default, and its runtime follows the model and provider', () => {
+  it('work takes the worker default, and its runtime follows the model and provider @SC-1193', () => {
     expect(ok(decide(req({ purpose: 'worker' }), snap()))).toMatchObject({ model: opus, runtime: 'claude-sdk' })
     const deepseek = { providerId: 'p-or', model: 'deepseek/deepseek-v3.2' }
     expect(ok(decide(req({ purpose: 'helper', pick: deepseek }), snap()))).toMatchObject({ runtime: 'opencode' })
@@ -72,7 +72,7 @@ describe('decide: which model', () => {
   })
 })
 
-describe('decide: lists', () => {
+describe('decide: lists @SC-1195', () => {
   it('a default cut by a list falls to the next layer, and says so once', () => {
     const lists = [{ mode: 'every' as const, entries: [{ effect: 'never' as const, pattern: 'anthropic/claude-sonnet-*' }] }]
     const r = ok(decide(req(), snap({ lists, org: { ...snap().org, conversation: sonnet }, agent: { ...NONE, conversation: sonnet } })))
@@ -94,7 +94,7 @@ describe('decide: lists', () => {
   })
 })
 
-describe('decide: a provider that is not working', () => {
+describe('decide: a provider that is not working @SC-1196', () => {
   const down = { ...anthropic, state: 'key_refused' as const }
 
   it('a default on it resolves to the same model via another provider first', () => {
@@ -122,7 +122,7 @@ describe('decide: a provider that is not working', () => {
   })
 })
 
-describe('decide: a person’s own Claude subscription', () => {
+describe('decide: a person’s own Claude subscription @SC-1197', () => {
   const pick = { providerId: 'p-sub', model: 'claude-opus-4-5' }
   const withSub = () => snap({ providers: [sub, anthropic, openrouter, assembly, inworld] })
 
@@ -144,7 +144,7 @@ describe('decide: a person’s own Claude subscription', () => {
   })
 })
 
-describe('decide: voice', () => {
+describe('decide: voice @SC-1192', () => {
   it("takes the agent's own, else the organisation's, with its voice", () => {
     const r = ok(decide(req({ purpose: 'tts' }), snap()))
     expect(r).toMatchObject({ model: { providerId: 'p-iw', model: 'inworld-tts-2' }, voice: 'Ashley', basis: 'ESTIMATED' })
@@ -152,14 +152,14 @@ describe('decide: voice', () => {
     expect(own).toMatchObject({ from: 'agent', model: { model: 'universal-streaming-multilingual' } })
   })
 
-  it('resolves to the other provider of its type when the chosen one is not working', () => {
+  it('resolves to the other provider of its type when the chosen one is not working @SC-1196', () => {
     const second: RouteProvider = { id: 'p-cloud', name: 'Agenthix Cloud', vendor: 'cloud', credentialKind: 'none', state: 'works', ownerUserId: null }
     const r = ok(decide(req({ purpose: 'stt' }), snap({ providers: [{ ...assembly, state: 'unreachable' }, second, inworld] })))
     expect(r.model.providerId).toBe('p-cloud')
     expect(r.fellBack?.reason).toBe('provider_not_working')
   })
 
-  it('falls back, with no default chosen, to the models voice is built on', () => {
+  it('falls back, with no default chosen, to the models voice is built on @SC-1203', () => {
     const bare = snap({ org: NONE })
     expect(ok(decide(req({ purpose: 'stt' }), bare)).model).toEqual({ providerId: 'p-aai', model: 'u3-rt-pro' })
     expect(ok(decide(req({ purpose: 'tts' }), bare)).model).toEqual({ providerId: 'p-iw', model: 'inworld-tts-2' })

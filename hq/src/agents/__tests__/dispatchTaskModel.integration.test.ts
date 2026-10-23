@@ -67,7 +67,7 @@ async function claudeSession(t: Awaited<ReturnType<typeof projectTask>>, run: Pa
   return session
 }
 
-describe("a task's run takes the default worker model @SC-955", () => {
+describe("a task's run takes the default worker model @SC-955 @SC-1193", () => {
   it("runs on OpenCode with the organisation's OpenRouter model and key when the agent is on the Claude SDK", async () => {
     const t = await projectTask()
     const provider = await orgWorker(OPEN_ROUTER, 'sk-test-or')

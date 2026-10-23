@@ -16,7 +16,7 @@ async function withOrg(name = 'Fernhill') {
   return prisma.org.create({ data: { name } })
 }
 
-describe("setup's organisation step: time zone and the default billing profile", () => {
+describe("setup's organisation step: time zone and the default billing profile @SC-1187", () => {
   it('stores the time zone and makes the default billing profile named after the organisation', async () => {
     const admin = await createUserWithRole('ADMIN')
     await withOrg()

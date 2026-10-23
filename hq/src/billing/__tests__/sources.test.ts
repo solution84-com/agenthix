@@ -14,7 +14,7 @@ const costing: RunCostingRow = {
   baseInputTokens: 1000, baseOutputTokens: 100, baseCacheReadTokens: 0, baseCacheWriteTokens: 0,
 }
 
-describe("the relay's reports", () => {
+describe("the relay's reports @SC-1214", () => {
   it("are written to the run's place and profile, with the relay's call id", () => {
     const row = relayCallRow(report, costing, { name: 'Anthropic', vendor: 'anthropic', credentialKind: 'api_key' })
     expect(row).toMatchObject({
@@ -37,7 +37,7 @@ describe("the relay's reports", () => {
   })
 })
 
-describe("a run's costing", () => {
+describe("a run's costing @SC-1214", () => {
   const payload = {
     session: { id: 'sess-1', agentId: 'a-1', userId: 'u-owner', primaryOwnerType: 'project', primaryOwnerId: 'proj-9', taskId: null },
     onBehalfOfUserId: 'u-1',
@@ -62,7 +62,7 @@ describe("a run's costing", () => {
   })
 })
 
-describe('voice', () => {
+describe('voice @SC-1215', () => {
   const access: VoiceCallAccess = {
     providerId: 'p-aai', providerName: 'AssemblyAI', vendor: 'assemblyai', model: 'u3-rt-pro',
     costing: { purpose: 'stt', basis: 'ESTIMATED', billingProfileId: 'bp-1', agentId: 'a-1' },

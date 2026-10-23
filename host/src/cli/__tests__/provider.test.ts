@@ -17,7 +17,7 @@ function io(typed: string | null, yes = true) {
   return { value, out, err, prompts }
 }
 
-describe('provider, read', () => {
+describe('provider, read @SC-1233', () => {
   it('reads add, list and remove', () => {
     expect(parseCommand(['provider', 'add', 'anthropic'])).toEqual({ kind: 'providerAdd', vendor: 'anthropic' })
     expect(parseCommand(['provider', 'add', 'openai_compatible', '--address', 'http://lab.example.test/v1', '--name', 'Lab']))
@@ -40,7 +40,7 @@ describe('provider, read', () => {
   })
 })
 
-describe('provider, run', () => {
+describe('provider, run @SC-1233', () => {
   it('asks for the key unseen, and sends it in the request only', async () => {
     const sent: unknown[] = []
     const t = io(`  ${KEY}  `)

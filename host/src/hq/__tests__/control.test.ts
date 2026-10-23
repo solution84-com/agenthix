@@ -55,7 +55,7 @@ async function throughSocket(run: (control: HqControl) => Promise<unknown>): Pro
 }
 
 describe('HqControl', () => {
-  it('sends a provider key inside the piped program, never on the command line', async () => {
+  it('sends a provider key inside the piped program, never on the command line @SC-1234', async () => {
     const { execs, received, answer } = await throughSocket(c => c.providerAdd({ vendor: 'anthropic', key: KEY }))
     expect(answer).toEqual({ ok: true, text: 'Added.' })
     expect(received).toEqual([{ command: 'provider', args: ['add', 'anthropic', KEY, '', ''] }])

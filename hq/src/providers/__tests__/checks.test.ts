@@ -3,7 +3,7 @@ import { classify, probeFor, realVendorChecks } from '../checks'
 
 afterEach(() => vi.unstubAllGlobals())
 
-describe('probeFor', () => {
+describe('probeFor @SC-1181', () => {
   it('asks each vendor something that costs nothing', () => {
     expect(probeFor({ vendor: 'anthropic', key: 'k', baseUrl: null }).url).toBe('https://api.anthropic.com/v1/models')
     expect(probeFor({ vendor: 'openrouter', key: 'k', baseUrl: null }).url).toBe('https://openrouter.ai/api/v1/key')
@@ -16,7 +16,7 @@ describe('probeFor', () => {
   })
 })
 
-describe('classify', () => {
+describe('classify @SC-1181', () => {
   it('reads refusals of the key, of money, of load and of the server', () => {
     expect(classify('anthropic', 401, { error: { message: 'invalid x-api-key' } })).toEqual({ ok: false, kind: 'auth', detail: 'invalid x-api-key' })
     expect(classify('openai', 429, { error: { message: 'You exceeded your current quota' } })).toMatchObject({ kind: 'quota' })
@@ -32,7 +32,7 @@ describe('classify', () => {
   })
 })
 
-describe('realVendorChecks', () => {
+describe('realVendorChecks @SC-1181', () => {
   it('sends the key only in its header, and an unreachable vendor is unavailable', async () => {
     const fetch = vi.fn(async () => new Response(JSON.stringify({ data: [] }), { status: 200 }))
     vi.stubGlobal('fetch', fetch)

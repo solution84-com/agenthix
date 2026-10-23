@@ -15,7 +15,7 @@ const access: RunModelAccess = {
   billingProfileId: 'bp-1',
 }
 
-describe("a run's providers, as the site uses them", () => {
+describe("a run's providers, as the site uses them @SC-1230", () => {
   it('reads the descriptor first, each relayed provider keyed by the relay path it is reached at', () => {
     const run = runAccessOf({ modelAccess: access, credential: { kind: 'apiKey', provider: 'google', apiKey: 'ignored' } })
     expect(run.credential).toEqual({ kind: 'apiKey', providerId: 'p-ant', provider: 'anthropic', apiKey: 'sk-test-fake' })
@@ -43,7 +43,7 @@ describe("a run's providers, as the site uses them", () => {
   })
 })
 
-describe("Agenthix Cloud's gateway, as the relay reaches it", () => {
+describe("Agenthix Cloud's gateway, as the relay reaches it @SC-1230", () => {
   const cloud = { kind: 'cloud' as const, providerId: 'p', provider: 'anthropic' as const, baseUrl: 'https://cloud.example/ai/v1/anthropic/' }
 
   it('is reached over HTTPS only, at the address hq gave', () => {

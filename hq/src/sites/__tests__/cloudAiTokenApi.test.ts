@@ -6,7 +6,7 @@ vi.mock('../registrationService', () => ({ authenticateSite: vi.fn() }))
 
 import { cloudAiTokenAnswer } from '../cloudAiTokenApi'
 
-describe("a site's request for hq's Agenthix Cloud token", () => {
+describe("a site's request for hq's Agenthix Cloud token @SC-1221", () => {
   it('is refused as not connected while hq has no Cloud connection', async () => {
     expect(await cloudAiTokenAnswer({ connected: async () => false })).toEqual({ error: 'not_connected' })
   })

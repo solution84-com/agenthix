@@ -44,7 +44,7 @@ beforeEach(async () => {
   vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 })
 
-describe('making a personal project @SC-1060', () => {
+describe('making a personal project @SC-1207', () => {
   it('lets a member who is not an organisation admin make as many as they like', async () => {
     const person = await createUserWithRole('MEMBER')
     const a = await createPersonalProject({ name: 'Tax return 2026', description: 'Receipts' }, as(person))
@@ -105,7 +105,7 @@ describe('making a personal project @SC-1060', () => {
   })
 })
 
-describe('who sees a personal project @SC-1061', () => {
+describe('who sees a personal project @SC-1208', () => {
   it('lists it to its owner only, and answers anyone else as if it did not exist, an organisation admin included', async () => {
     const owner = await createUserWithRole('MEMBER')
     const admin = await createUserWithRole('ADMIN')
@@ -126,7 +126,7 @@ describe('who sees a personal project @SC-1061', () => {
   })
 })
 
-describe('deleting a personal project @SC-1062', () => {
+describe('deleting a personal project @SC-1209', () => {
   it('lets its owner delete it with its tasks and files, and tells the site that held it', async () => {
     const owner = await createUserWithRole('MEMBER')
     const made = await createPersonalProject({ name: 'Tax return 2026' }, as(owner))

@@ -69,7 +69,7 @@ beforeEach(async () => {
   }
 })
 
-describe('grantSubscription — recording a hand-over', () => {
+describe('grantSubscription — recording a hand-over @SC-1231', () => {
   it('records which login went to which site, session and runner, and names the grant on the credential', async () => {
     const row = await storeLogin(T0 + 8 * HOUR)
 
@@ -99,7 +99,7 @@ describe('grantSubscription — recording a hand-over', () => {
   })
 })
 
-describe('acceptSubscriptionRefresh — only a site that ran with the login', () => {
+describe('acceptSubscriptionRefresh — only a site that ran with the login @SC-1231', () => {
   it('stores a fresher token reported by the site the login was handed to', async () => {
     const row = await storeLogin(T0 + 8 * HOUR)
     const { grantId } = await supply(row)

@@ -49,7 +49,7 @@ async function failedTurn(conversationId: string, authorId: string) {
   return { turn, message }
 }
 
-describe('a conversation on a provider that is not working @SC-952', () => {
+describe('a conversation on a provider that is not working @SC-952 @SC-1196', () => {
   it('shows nothing while its provider works', async () => {
     const { person, conversation } = await talkingOnAnthropic()
     expect(await getConversation({ conversationId: conversation.id }, ctx(person))).toMatchObject({ accessProblem: null, accessOffer: null })

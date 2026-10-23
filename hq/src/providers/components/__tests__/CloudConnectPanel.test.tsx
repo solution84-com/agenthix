@@ -20,7 +20,7 @@ const CONNECTED = { cloudOrganisationId: 'o1', name: 'Acme Robotics', connectedA
 beforeEach(() => { h.state = off; h.connect.mockReset().mockResolvedValue({}); h.disconnect.mockReset().mockResolvedValue({ disconnected: true }); h.refetch.mockReset().mockResolvedValue({}) })
 afterEach(cleanup)
 
-describe('the Agenthix Cloud connection panel', () => {
+describe('the Agenthix Cloud connection panel @SC-1179', () => {
   it('asks for a connection and says who is told', async () => {
     render(<CloudConnectPanel />)
     fireEvent.click(screen.getByRole('button', { name: 'Connect Agenthix Cloud' }))

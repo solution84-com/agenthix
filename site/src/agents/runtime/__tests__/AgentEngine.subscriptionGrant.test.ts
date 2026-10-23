@@ -192,7 +192,7 @@ describe('the document leaves the home with the run @SC-782', () => {
   })
 })
 
-describe('a subscription hq granted', () => {
+describe('a subscription hq granted @SC-1231', () => {
   const GRANTED = SUBSCRIPTION
 
   beforeEach(() => {

@@ -12,7 +12,7 @@ function read(reader: UsageReader, body: string, size = 7): UsageReader {
 
 const sse = (...events: unknown[]) => events.map(e => `data: ${JSON.stringify(e)}\n\n`).join('')
 
-describe('the usage an answer carries', () => {
+describe('the usage an answer carries @SC-1228', () => {
   it("reads Anthropic's message_start and message_delta, the delta's count winning", () => {
     const body =
       'event: message_start\n' + sse({ type: 'message_start', message: { id: 'm', usage: { input_tokens: 25, cache_read_input_tokens: 100, cache_creation_input_tokens: 40, output_tokens: 1 } } }) +
@@ -113,7 +113,7 @@ describe('the usage an answer carries', () => {
   })
 })
 
-describe('which API a request speaks', () => {
+describe('which API a request speaks @SC-1228', () => {
   it('follows the provider the harness addressed', () => {
     expect(usageApiFor('anthropic')).toBe('anthropic')
     expect(usageApiFor('google')).toBe('google')

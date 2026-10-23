@@ -35,7 +35,7 @@ const act = (n: string) => (h.actions[n] ??= vi.fn().mockResolvedValue({}))
 beforeEach(() => { h.data = { getBillingProfiles: profiles, getUsageReport: report }; h.args = [] })
 afterEach(() => { cleanup(); h.data = {}; h.error = undefined; h.actions = {}; h.get.mockReset() })
 
-describe('the Usage page', () => {
+describe('the Usage page @SC-1218', () => {
   it('opens on the current month and keeps each currency and basis apart', () => {
     show()
     expect(screen.getByRole('heading', { name: 'Usage · October 2026' })).toBeTruthy()

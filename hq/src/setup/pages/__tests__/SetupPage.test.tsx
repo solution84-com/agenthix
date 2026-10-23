@@ -73,7 +73,7 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('Setup @SC-710', () => {
+describe('Setup @SC-710 @SC-1184 @SC-1187', () => {
   it('opens on the organisation step, beside the sign-in page it makes, which follows the name', () => {
     setup()
     expect(screen.getByText(/^Step 5 of 6/)).toBeTruthy()
@@ -254,7 +254,7 @@ describe('Setup @SC-710', () => {
   })
 })
 
-describe('Setup opens where it stopped, and counts the chosen path', () => {
+describe('Setup opens where it stopped, and counts the chosen path @SC-1182 @SC-1184', () => {
   it('opens at the choice with no provider, at voice with only a model provider, and at the organisation with all three', () => {
     setup(undefined, {}, '/setup')
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('How will your agents reach AI?')

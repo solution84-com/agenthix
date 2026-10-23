@@ -14,7 +14,7 @@ const diego = voice({ voiceId: 'Diego', displayName: 'Diego', description: 'Calm
 const mine = voice({ voiceId: 'ws__zed', displayName: 'Zed', description: 'Our founder', source: 'IVC', isCustom: true })
 const all = [diego, penelope, felix, mine, clive]
 
-describe('the voice filters', () => {
+describe('the voice filters @SC-1204', () => {
   it('combine, each narrowing the last', () => {
     const f = { ...NO_FILTERS, language: 'en', accent: 'British', gender: 'male' }
     expect(filterVoices(all, f).shown.map(v => v.voiceId)).toEqual(['Clive', 'Felix'])

@@ -30,7 +30,7 @@ const onStep = (page: Page, step: string) => page.waitForURL((url) => url.pathna
 
 test.describe.configure({ mode: 'serial' })
 
-test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-147', () => {
+test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-147 @SC-1184 @SC-1185', () => {
   test.skip(!LINK, 'needs a fresh HQ and its first-admin link: set E2E_FIRST_ADMIN_LINK')
 
   let page: Page

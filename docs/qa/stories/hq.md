@@ -1,16 +1,16 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-10-21
+updated: 2026-10-23
 verified: 2026-06-19
-next-us: US-355
+next-us: US-365
 ---
 
 # User Stories — `hq/`
 
 > Business-level requirements for hq's users, and for the person who owns an Execution Site machine (stories US-182 to US-185).
 > Audience: business readers — no implementation detail.
-> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*.
+> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*.
 > A retired story or criterion keeps its number; nothing is renumbered. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/hq.md`](../scenarios/hq.md), [`../scenarios/site.md`](../scenarios/site.md)), never here.
 
 ---
@@ -127,7 +127,7 @@ As an admin, I want a guided first-run wizard, so that I can configure the works
 - AC-010a: on first login an admin sees setup in three steps — You, Your organisation, Model access — then a review, with a progress indicator (US-271).
 - ~~AC-010b: I can move forward and back between steps, and skip the flow.~~ *(Retired 2026-10-12 — Back and Skip for now replace it; there is no "I'll set up later")*
 - AC-010c: once onboarding is complete the wizard no longer appears and I am taken to Home.
-- AC-010d: the review tells me what still needs doing — model access, HQ's own site — and links to it, and never asks for something already done (AC-271c, AC-271d).
+- AC-010d: the last look shows where models and voice come from and the organisation's four defaults, and where agents will run while HQ's own site is not connected, and never asks for something already done (AC-271c, AC-271d). *(Changed 2026-10-23)*
 
 ---
 
@@ -1030,7 +1030,7 @@ As a member, I want to dictate messages by voice, so that I can talk to an agent
 
 **Acceptance criteria:**
 - AC-094a: I can dictate messages by voice when a speech-to-text provider is configured, into the message box and in voice (see US-325, US-326).
-- AC-094b: a clear error is shown when no provider is configured or it is unreachable.
+- AC-094b: a clear error is shown when no listening provider works or it is unreachable (AC-361a). *(Changed 2026-10-23)*
 
 ---
 
@@ -1409,14 +1409,14 @@ As an admin, I want to test an external LLM provider's key from settings, so tha
 
 ---
 
-### US-126 — Configure voice providers
+### US-126 — ~~Configure voice providers~~ *(Retired 2026-10-23 — US-355)*
 
 As an admin, I want to configure speech-to-text and text-to-speech providers, so that voice chat works.
 
 **Acceptance criteria:**
-- AC-126a: I add or replace the speech-to-text and text-to-speech provider keys; each key is verified against the provider before it is stored.
-- AC-126b: a rejected key surfaces the provider's error.
-- AC-126c: I see only a masked key and a status, never the full key.
+- ~~AC-126a: I add or replace the speech-to-text and text-to-speech provider keys; each key is verified against the provider before it is stored.~~ *(Retired 2026-10-23 — providers are added on Providers; US-355)*
+- ~~AC-126b: a rejected key surfaces the provider's error.~~ *(Retired 2026-10-23 — providers are added on Providers; US-355)*
+- ~~AC-126c: I see only a masked key and a status, never the full key.~~ *(Retired 2026-10-23 — providers are added on Providers; US-355)*
 
 ---
 
@@ -1426,16 +1426,16 @@ As an admin, I want to preview available voices, so that I can choose how agents
 
 **Acceptance criteria:**
 - AC-127a: I list available voices from the configured provider and play a sample for a chosen voice.
-- AC-127b: listing and preview fail clearly when no provider is configured.
+- AC-127b: listing and preview fail clearly when no text-to-speech provider works. *(Changed 2026-10-23)*
 
 ---
 
-### US-128 — Remove a voice provider
+### US-128 — ~~Remove a voice provider~~ *(Retired 2026-10-23 — US-355)*
 
 As an admin, I want to remove a voice provider, so that I can disable voice or rotate providers.
 
 **Acceptance criteria:**
-- AC-128a: removing a provider deletes its configuration and returns the section to "not configured".
+- ~~AC-128a: removing a provider deletes its configuration and returns the section to "not configured".~~ *(Retired 2026-10-23 — a provider is removed on Providers; US-355)*
 
 ---
 
@@ -1444,7 +1444,7 @@ As an admin, I want to remove a voice provider, so that I can disable voice or r
 As a member, I want to give an agent a voice, so that it can speak in voice chat.
 
 **Acceptance criteria:**
-- AC-129a: I enable or disable voice for an agent and choose its voice and text-to-speech model.
+- AC-129a: every agent has a voice, chosen from the provider's list on its page, and nothing can turn it off (AC-360b, AC-360e). *(Changed 2026-10-23)*
 
 ---
 
@@ -1805,14 +1805,14 @@ As a first-time installer, I want hq and the site that comes with it to find eac
 
 ---
 
-### US-163 — Give the organisation model access
+### US-163 — Give the organisation model access *(Changed 2026-10-23: the keys are managed as providers, US-355; only AC-163d stays)*
 
 As an admin, I want to give the organisation an API key, so that shared runs — tasks and project runs — can start.
 
 **Acceptance criteria:**
-- AC-163a: the key I save is stored encrypted, is never shown back to me or anyone, and the page tells me a key is stored.
-- AC-163b: only an org admin can set the organisation's credential, only a project's admin a project's, and a person only their own; anyone else is told what is needed.
-- AC-163c: a credential is deleted with its owner — a person who is removed, a project that is deleted.
+- ~~AC-163a: the key I save is stored encrypted, is never shown back to me or anyone, and the page tells me a key is stored.~~ *(Retired 2026-10-23 — the organisation, project and person keys are gone; US-355)*
+- ~~AC-163b: only an org admin can set the organisation's credential, only a project's admin a project's, and a person only their own; anyone else is told what is needed.~~ *(Retired 2026-10-23 — the organisation, project and person keys are gone; US-355)*
+- ~~AC-163c: a credential is deleted with its owner — a person who is removed, a project that is deleted.~~ *(Retired 2026-10-23 — the organisation, project and person keys are gone; US-355)*
 - AC-163d: I am told before I spend a sign-in code, or try to save a key, that the install cannot store it, and the guide says the secrets key is required.
 
 ---
@@ -1827,15 +1827,15 @@ As a person, I want to use my own Claude subscription for my work, so that I do 
 
 ---
 
-### US-165 — Know which credential a run uses, and be told when none is usable
+### US-165 — ~~Know which credential a run uses, and be told when none is usable~~ *(Retired 2026-10-23 — US-359)*
 
 As a person who starts runs, I want the credential rules to be predictable, so that a run does not fail for a reason I cannot see.
 
 **Acceptance criteria:**
-- AC-165a: a run uses the model access of the person it is for, as US-269 sets out (AC-269a to AC-269d).
-- AC-165b: a run with nothing usable is refused with a sentence, where I am looking, saying what to do and who can do it.
-- AC-165c: an invited person who has not signed up is not counted; an account made by any route is.
-- AC-165d: in a project chat and on a task I am told which credential will be used.
+- ~~AC-165a: a run uses the model access of the person it is for, as US-269 sets out (AC-269a to AC-269d).~~ *(Retired 2026-10-23 — one rule chooses a model through a provider; US-359)*
+- ~~AC-165b: a run with nothing usable is refused with a sentence, where I am looking, saying what to do and who can do it.~~ *(Retired 2026-10-23 — one rule chooses a model through a provider; US-359)*
+- ~~AC-165c: an invited person who has not signed up is not counted; an account made by any route is.~~ *(Retired 2026-10-23 — one rule chooses a model through a provider; US-359)*
+- ~~AC-165d: in a project chat and on a task I am told which credential will be used.~~ *(Retired 2026-10-23 — one rule chooses a model through a provider; US-359)*
 
 ---
 
@@ -1844,8 +1844,8 @@ As a person who starts runs, I want the credential rules to be predictable, so t
 As an admin, I want to be told when the organisation has no usable credential for shared runs, so that I fix it before anyone's task fails.
 
 **Acceptance criteria:**
-- AC-166a: an admin sees a Needs attention item on the Organisation page, and the person who cannot talk sees a line under Home's message box; there is no banner on every page, and the item goes when a usable credential exists (AC-256e, AC-277a).
-- AC-166b: a subscription that has expired counts as missing, and the item says to sign in again.
+- AC-166a: I am told when no model works: the person who cannot talk sees a line under Home's message box, and an organisation admin sees a Needs attention item and a notice about the provider that stopped (AC-256e, AC-277a, AC-355g). *(Changed 2026-10-23)*
+- ~~AC-166b: a subscription that has expired counts as missing, and the item says to sign in again.~~ *(Retired 2026-10-23 — only a person's own subscription can expire; US-359)*
 
 ---
 
@@ -2358,9 +2358,9 @@ As a member, I want to choose a light or a dark look, so that hq is comfortable 
 As a member, I want my own settings in one place and the organisation's elsewhere, so that I find mine without wading through what only admins change.
 
 **Acceptance criteria:**
-- AC-210a: Settings is one page of my own — profile, appearance, voice, conversations, my model logins, my memory, my phone and connections, and signing in — with nothing for admins.
+- AC-210a: Settings is one page of my own — profile, appearance, conversations, my primary agent, my Claude subscription, which models may run for me, my memory, my phone and connections, and signing in — with nothing for admins. *(Changed 2026-10-23)*
 - AC-210b: I change my password by typing my current one and the new one twice; everywhere else I was signed in is signed out, and here I stay signed in.
-- AC-210c: an admin finds the organisation's settings under Organisation › Settings, and what hq runs on — HQ, its sites, storage, the GitHub App and diagnostics — under Organisation › Infrastructure; anyone else is told only admins can see them.
+- AC-210c: an admin finds the organisation's settings and what HQ runs on under Manage organisation (US-358); anyone else is told only admins can see them. *(Changed 2026-10-23)*
 - AC-210d: the Organisation page groups its entries as the workplace — People, Agents, Teams, Products, Programs and Library — and, for an admin, Needs attention, Today, Where it runs and Settings, showing me only those I may open.
 
 ---
@@ -2951,16 +2951,16 @@ As a member, I want a task's session, the activity view and the Runs panel to dr
 
 ## Which model access a run uses (added 2026-10-12)
 
-### US-269 — Have a run use the model access of the person it is for
+### US-269 — ~~Have a run use the model access of the person it is for~~ *(Retired 2026-10-23 — US-359)*
 
 As a person whose organisation uses subscriptions, I want an agent working for me to use my own model access, so that project work runs without an organisation-wide key.
 
 **Acceptance criteria:**
-- AC-269a: a run uses its project's own model access when the project holds one, then the person's own login, then their own key, then the organisation's — in a project as in Chat.
-- AC-269b: the person is whoever started the run, or sent the message, or else the task's or routine's person.
-- AC-269c: a person's login goes only to a run that runs as them; a task's run in a project gets their key instead, and one person's login is never given to another's run.
-- AC-269d: a subscription held by the organisation or a project is used only while the organisation has one person.
-- AC-269e: a run with nothing usable is refused with the order it tried and where to fix it.
+- ~~AC-269a: a run uses its project's own model access when the project holds one, then the person's own login, then their own key, then the organisation's — in a project as in Chat.~~ *(Retired 2026-10-23 — the one rule of US-359 replaces the order of credentials)*
+- ~~AC-269b: the person is whoever started the run, or sent the message, or else the task's or routine's person.~~ *(Retired 2026-10-23 — the one rule of US-359 replaces the order of credentials)*
+- ~~AC-269c: a person's login goes only to a run that runs as them; a task's run in a project gets their key instead, and one person's login is never given to another's run.~~ *(Retired 2026-10-23 — the one rule of US-359 replaces the order of credentials)*
+- ~~AC-269d: a subscription held by the organisation or a project is used only while the organisation has one person.~~ *(Retired 2026-10-23 — the one rule of US-359 replaces the order of credentials)*
+- ~~AC-269e: a run with nothing usable is refused with the order it tried and where to fix it.~~ *(Retired 2026-10-23 — the one rule of US-359 replaces the order of credentials)*
 
 ---
 
@@ -2983,9 +2983,9 @@ As the person who runs an organisation's HQ, I want one command to install it an
 As the first admin, I want a short setup that names the organisation and gets agents answering, so that I end on a working conversation.
 
 **Acceptance criteria:**
-- AC-271a: setup is You, Your organisation, Model access, then a review; the step is in the address so a refresh and Back keep it.
+- AC-271a: setup is You, how my agents reach AI, a model provider and voice or Agenthix Cloud, the organisation and a last look; the step is in the address so a refresh and Back keep it (AC-357c). *(Changed 2026-10-23)*
 - AC-271b: the organisation needs a name; vision, mission, picture and cover are optional, and the sign-in page it makes follows what I type.
-- AC-271c: model access can be skipped; a line about HQ's own site shows only when it is not connected, and never holds setup open.
+- AC-271c: a line about HQ's own site shows only when it is not connected, and never holds setup open; models and voice cannot be skipped (AC-357d). *(Changed 2026-10-23)*
 - AC-271d: the review shows what HQ holds, lets me edit a step, and finishing lands me on Home.
 - AC-271e: setup runs once for the first admin; an admin invited later is never sent through it.
 
@@ -3023,7 +3023,7 @@ As an invited person, I want the invitation page to tell me who invited me and w
 As an invited person, I want a short guided start, so that I land in my work set up.
 
 **Acceptance criteria:**
-- AC-274a: onboarding is Join, You, Model access only when the organisation provides none, then a last look, in the organisation's identity.
+- AC-274a: onboarding is Join, You, then a last look, in the organisation's identity; it never asks for model access. *(Changed 2026-10-23)*
 - AC-274b: You sets my picture and time zone, filled in from the browser.
 - AC-274c: Start working lands me in the first project I was invited to, or Home, with a welcome line once.
 - AC-274d: the first admin is sent to setup, never through onboarding.
@@ -3059,7 +3059,7 @@ As the person who runs HQ's machine, I want commands there that print an admin l
 As a person who cannot talk to agents yet, I want to be told so where I start, so that I know what to fix.
 
 **Acceptance criteria:**
-- AC-277a: Home says under its message box that agents cannot answer yet and links to the fix — my own model login, or for an admin the organisation's model access.
+- AC-277a: Home says under its message box that agents cannot answer yet and, for an organisation admin, links to Providers, or says an organisation admin can set one up. *(Changed 2026-10-23)*
 - AC-277b: nothing shows once I can talk.
 - AC-277c: Home offers first suggestions, each starting a conversation with the built-in agent. *(Changed 2026-10-18: offered always, since Home has nothing to return to)*
 
@@ -3209,9 +3209,9 @@ As a member, I want to choose which agent I talk to and which model it talks wit
 
 **Acceptance criteria:**
 - AC-317a: I choose my primary agent in Settings, and any agent the place offers before my first message, searching by name, handle or role, with my recent agents first.
-- AC-317b: I pick the conversation's model from only those my access reaches within my organisation's rules, before the first message and at any time after, and the switch is noted in the conversation.
-- AC-317c: the conversation is paid for by the right access — mine, my project's or my organisation's, never someone else's — and when that stops working I am told and offered the next, and nothing is switched behind my back.
-- AC-317d: my organisation, a project and I can set which models are used for talking, for light work and for heavy work, within the organisation's limits, and work runs on the model the rules say.
+- AC-317b: I pick the conversation's model, each shown with its provider, from only those my organisation's lists let run, before the first message and at any time after, and the switch is noted in the conversation. *(Changed 2026-10-23)*
+- AC-317c: the conversation uses the provider I picked, and when it stops working I am told and offered the same model through another provider, and nothing is switched behind my back (AC-359f). *(Changed 2026-10-23)*
+- ~~AC-317d: my organisation, a project and I can set which models are used for talking, for light work and for heavy work, within the organisation's limits, and work runs on the model the rules say.~~ *(Retired 2026-10-23 — the organisation, an agent, a project and I set lists and defaults; US-359, US-360)*
 
 ---
 
@@ -3365,7 +3365,7 @@ As a member, I want the left panel to become the place I am in — a project, my
 - AC-329e: the navigation, the bar and the panels are drawn once, so moving between pages never resets them.
 - AC-329f: ‹ in the panel shows the main navigation over it, to go anywhere; choosing where I am, ✕, Esc or a click outside closes it and nothing moves.
 - AC-329g: each part of the breadcrumb opens a list — the main places, the projects, my projects (keeping the section) and the place's sections.
-- AC-329h: the foot is always two rows — Pinned, showing the pin I used last, with its list opening upward, and my name, opening Organisation, Settings and Sign out — with Collapse on that row.
+- AC-329h: the foot is always two rows — Pinned, showing the pin I used last, with its list opening upward, and my name, opening Overview, Manage for an organisation admin, Your settings and Sign out — with Collapse on that row. *(Changed 2026-10-23)*
 
 ---
 
@@ -3520,3 +3520,130 @@ As a member, I want to be invited to the Responsible AI Pledge and told why, and
 - AC-347b: without a linked Agenthix account HQ asks no one for the card; no link carries anything about me or the organisation.
 - AC-347c: with a linked account, I am not shown the card once I have signed the current version, I can sign in one step if I have not, and a new version reaches me once.
 - AC-347d: Settings shows me my own signature and links to my badge; no one else sees it there.
+
+---
+
+## Models and voice from one place (added 2026-10-23)
+
+### US-355 — Keep the organisation's providers in one place
+
+As an organisation admin, I want to add, replace, rename, check and remove the services the organisation reaches AI through, each with one key that is never shown back, so that the people and agents of the organisation can use models and voice without anyone holding a key.
+
+**Acceptance criteria:**
+- AC-355a: I add a provider by its type and vendor with its key, and the key is checked with the vendor first; the organisation has at most one provider of a vendor.
+- AC-355b: I replace a key and the new one is checked before the old one is dropped; I rename a provider.
+- AC-355c: a key is stored encrypted and never shown to me or anyone, only its last four characters.
+- AC-355d: only an organisation admin, HQ's machine and Agenthix Cloud on a machine it runs may change providers; a member may not.
+- AC-355e: before I remove a provider I am told what falls to what, I cannot remove the last of a type, and I can revoke one at once.
+- AC-355f: every change is recorded with who made it and when, and every organisation admin is told.
+- AC-355g: I am told when a provider stops working, in the vendor's words and with what depends on it, and everyone else sees it only where they are choosing a model or using voice.
+- AC-355h: the Providers page shows each provider's state, what uses it, the end of its key and, for a custom endpoint, its address.
+- AC-355i: I connect Agenthix Cloud from HQ, in setup or on Providers, by approving a short code; it says when it is not available yet.
+
+---
+
+### US-357 — Set up HQ with models and voice
+
+As the person who installed HQ, I want one setup, opened from the link the installer printed, that makes my account, gives my agents a model and a voice, and describes the organisation, so that the first conversation works.
+
+**Acceptance criteria:**
+- AC-357a: setup opens at the first step that is still needed, whether I stopped there or came back.
+- AC-357b: before setup is finished HQ's address shows no organisation: it says it is not set up yet and how to get a new link, or that it is almost ready.
+- AC-357c: setup takes me through my account, how my agents reach AI (Agenthix Cloud or my own keys), a model provider and voice for my own keys, the organisation and a last look, and no step can be skipped.
+- AC-357d: setup cannot finish until a model, listening and speech provider work, and finishing writes the organisation's defaults for models and voice.
+- AC-357e: the defaults are chosen for me from what I added, I can change each on the last look, and a preview plays the voice.
+- AC-357f: I give the organisation a name, a picture, a cover and a time zone, and a default billing profile is made, named after it.
+
+---
+
+### US-358 — Manage the organisation in a place of its own
+
+As an organisation admin, I want a separate area for what only I manage, reached from my account menu, so that the organisation's page stays for everyone and my tools stay out of the way.
+
+**Acceptance criteria:**
+- AC-358a: only an organisation admin reaches it; a member who tries is told who to ask.
+- AC-358b: it has its own menu — Overview, People, Agents, Models and billing, Settings, and Where work runs — with a way back to the organisation, and no conversation docked beside it.
+- AC-358c: the old addresses of what moved lead to where it went.
+- AC-358d: its Overview shows what needs me and the day's figures.
+
+---
+
+### US-359 — Know which model and provider every call uses
+
+As a member or an organisation admin, I want every call to a model decided by one rule, so that I can tell which model through which provider a conversation, a task or a worker uses and why.
+
+**Acceptance criteria:**
+- AC-359a: one rule decides every model, listening and speech call, and answers a model through a provider or one problem.
+- AC-359b: a call takes my pick, else the model a conversation already talks on, else the agent's own default, else the organisation's.
+- AC-359c: the runtime follows the model and the provider, and I choose neither.
+- AC-359d: the organisation, an agent, a project and I can each say which models may and may not run, with patterns such as a maker or a family, and a ban always wins.
+- AC-359e: when nothing may run I am told what is missing and who can add it, and a pick a list cuts is refused rather than swapped.
+- AC-359f: when a provider stops working new work goes through another and returns by itself, and a conversation fixed to it is offered the same model through another provider, never switched without my say.
+- AC-359g: my own Claude subscription serves work in my own place only and never pays for HQ's own calls.
+- AC-359h: a model picker shows each model with its provider and the ones a provider that is not working would serve are marked.
+
+---
+
+### US-360 — Choose the organisation's models and voice
+
+As an organisation admin, I want to set the models and the voice the organisation and each agent use, and which models may run, in one place, so that I decide what people get.
+
+**Acceptance criteria:**
+- AC-360a: Models holds four settings — the conversation model, the worker model, the voice and the listening model — and one line about which models may run.
+- AC-360b: an agent can have its own of each or follow the organisation, and every agent has a voice.
+- AC-360c: I edit a list with patterns and bulk selection, and a project admin or a person may narrow it for their own place but never widen it.
+- AC-360d: speech is always Inworld TTS 2 and listening is one of three AssemblyAI live models, and nothing else can be saved.
+- AC-360e: I choose a voice by ear from the provider's own list, with filters and a search, and tapping a voice plays a sample.
+
+---
+
+### US-361 — Speak and listen through the organisation's providers
+
+As a member, I want voice to work for any agent through the organisation's listening and speech providers, so that I can talk to it hands free.
+
+**Acceptance criteria:**
+- AC-361a: voice uses the providers the organisation chose for the agent, costed to the conversation's place, and says plainly, and who has been told, when no provider works.
+- AC-361b: a sample of a voice plays through a working speech provider, and when none works I am told.
+
+---
+
+### US-362 — Make as many personal projects as I need
+
+As a member, I want to make personal projects of my own besides my space, so that I can keep separate pieces of my own work, private to me.
+
+**Acceptance criteria:**
+- AC-362a: I make one by giving a name, whether or not I am an organisation admin, and it has its own files.
+- AC-362b: only I see it; an organisation admin sees neither its contents nor its name.
+- AC-362c: I can delete it by typing its name, and nobody else can; my space is never deleted.
+- AC-362d: it has no members and cannot be shared, my work in it runs as me with my own subscription and lists, and its cost goes to the default billing profile.
+
+---
+
+### US-363 — Know what AI costs and who it belongs to
+
+As an organisation admin, I want every call costed to a billing profile and a report of what each profile, project, agent and person used, so that I can say whose cost it is.
+
+**Acceptance criteria:**
+- AC-363a: every call is written once to a ledger that is only added to, with its cost in exact millionths.
+- AC-363b: a cost says whether it is estimated from list prices, included in a subscription, unpriced, or awaiting Agenthix Cloud's actual figure, and voice at list price is said to be an estimate.
+- AC-363c: HQ's own calls — replies, titles, summaries and samples — are costed.
+- AC-363d: an agent's calls on a site are costed once each to their project and billing profile, even if reported twice.
+- AC-363e: listening and speech are costed by the time and the characters used.
+- AC-363f: I make, rename, archive and choose the default billing profile; the default and one projects use cannot be archived until they move.
+- AC-363g: a new project gets the default profile and, when there are two or more, its creator may pick one; only I change it later.
+- AC-363h: Usage shows a month by profile, project, agent or person, keeps each currency and basis apart and exports to a file.
+- AC-363i: a month is cut in the organisation's time zone and a person who is erased stays in the report as a former member.
+
+---
+
+### US-364 — Keep provider keys out of agents' containers
+
+As a machine owner, I want an agent's model calls to pass through my site without its container ever holding a provider key, and each call's usage to be reported to HQ, so that a key cannot leak from a run and every call is costed.
+
+**Acceptance criteria:**
+- AC-364a: the site relays a call only for a run's own turn, from its own container, with the turn's key set at the last step.
+- AC-364b: the site's log never holds a key, a token or a body.
+- AC-364c: the relay works behind a proxy without giving the proxy the key.
+- AC-364d: each call's usage is read as the answer passes, unchanged, and reported to HQ.
+- AC-364e: a report waits on disk until HQ acknowledges it, so a restart loses none.
+- AC-364f: a call through Agenthix Cloud uses a token HQ gives the site and never one the harness sent.
