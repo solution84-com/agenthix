@@ -223,6 +223,7 @@ sequenceDiagram
 | [logs-and-diagnostics.md](logs-and-diagnostics.md) | Where each service's log is, how an admin reads a site's, recent errors, health and the support bundle |
 | [cloud-connection.md](cloud-connection.md) | How hq connects to Agenthix Cloud, signing in to hq with an Agenthix account, the email before planned downtime, and the contract for Cloud as a provider of models and voice |
 | [deployment.md](deployment.md) | What an install puts on a machine, how hq and the Fleet Console are reached, a front door, capacity, upgrading and backing up |
+| [ports.md](ports.md) | Every port and address block: our own convention inside containers and in dev, what an installation publishes and why, the check before publishing, the agent slice. The numbers come from `core/src/ports/ports.ts` |
 | [versioning.md](versioning.md) | The product version and each connection's protocol version: when two parts on different versions still talk, deprecating and removing something, the shape snapshot, stored formats. Read it before changing anything another part receives |
 
 **Elsewhere:**
