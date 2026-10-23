@@ -70,7 +70,7 @@ Run from the repo root:
 npm run test:cross-app
 ```
 
-**Ports are fixed, not allocated.** Both apps boot on their normal dev ports — hq client 4100 / server 4101, site server 4201 — so the suites drive real running apps. The runner refuses to start if any of the three is already busy; stop any running dev servers first.
+**Ports are free ports, and one run holds the databases.** Both apps boot on ports the operating system gives the run (the harness binds port 0), so the suites drive real running apps without clashing with development's 4100, 4101 and 4201 or an installed copy ([`docs/architecture/ports.md`](../architecture/ports.md)). The test databases are shared (ADR-0035), so a run lock refuses a second cross-app run while the first lives; wait for it to finish.
 
 **Reset granularity is per run, not per test.** Suites run sequentially and deliberately share state across the run: one truncate happens at the start of the whole run, not before each test the way the per-app integration tier resets. A suite needing an isolated fixture creates it itself rather than relying on a mid-run truncate.
 

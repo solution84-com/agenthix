@@ -211,7 +211,7 @@ As a machine admin, I want every container, volume and network Agenthix makes to
 **Acceptance criteria:**
 - AC-354a: every name Agenthix makes on the machine follows one pattern from the install's namespace.
 - AC-354b: each part is its own group in Docker, so upgrading or removing one never removes another, and agents keep running through an upgrade of their site.
-- AC-354c: a machine has at most one HQ, whichever host service installed it.
+- ~~AC-354c: a machine has at most one HQ, whichever host service installed it.~~ **Retired 2026-10-24**: several installations can run on one machine for testing (US-367); what is refused is a port or an address block another holds (US-366).
 - AC-354d: the install's networks take addresses from a range of their own and never overlap another network or the machine's own addresses; when none is left, the install says so before it changes anything.
 
 
@@ -224,3 +224,41 @@ As a machine admin, I want to add, list and remove the organisation's model and 
 **Acceptance criteria:**
 - AC-356a: `agenthix provider add|list|remove` changes the organisation's providers as the machine, checked with the vendor, recorded and announced to every organisation admin as a change on the Providers page is.
 - AC-356b: the key is asked for unseen and never typed on the command line, so it stays out of my shell's history and the machine's process list, and a removal asks first.
+
+## Choosing ports, and sharing the machine with other installations (added 2026-10-24)
+
+Written from the finished code at the close of the one port plan unit.
+
+### US-365 — Choose the ports HQ and the Fleet Console are published on
+
+As a machine admin, I want to say which ports HQ and its Fleet Console are published on when I install, change them later with one command, and have them kept through every upgrade, so that Agenthix never fights other software on my machine for a port.
+
+**Acceptance criteria:**
+- AC-365a: with nothing chosen, HQ is published on 7800 and the Fleet Console on 7801; HQ's port is the port in its address, or `--hq-port`, and the Fleet Console's is `--console-port`, on every command that installs them.
+- AC-365b: a port outside the range I may choose, an address and `--hq-port` that disagree, or two parts on one port are refused, with the reason, before anything is changed.
+- AC-365c: what I chose is kept across upgrades, a second run of install and the host service's own update, and a second run that asks for another port is refused rather than ignored.
+- AC-365d: I change a port later with `agenthix hq address` or `agenthix console port`; a restore or a move chooses afresh on the machine that receives it.
+- AC-365e: the Fleet Console and Agenthix Cloud can name the ports when they install or move HQ, on the host protocol, without breaking a host service that does not know them.
+
+---
+
+### US-366 — Be told before a port clash changes anything, and after one stops a part
+
+As a machine admin, I want every command that publishes a port to check it first and refuse everything at once, and to be told plainly when another program has taken a port while Agenthix was stopped, so that a clash never leaves my installation half changed or silently down.
+
+**Acceptance criteria:**
+- AC-366a: before anything is fetched, written or started, install, restore, a move, the Fleet Console's install, an address or port change, the front door, remote access and an upgrade check the ports they would publish, and refuse, with every problem listed together, ending "Nothing was changed."
+- AC-366b: a port is refused when it is out of range, used by another part of this installation, held by another installation on the machine, published by a container, or held by a program, including on Docker Desktop a program on the computer itself; the refusal names the holder.
+- AC-366c: a part that cannot start because another program took its port is reported in the status, the host service's log and the Fleet Console, with the port, the holder and what to do.
+
+---
+
+### US-367 — Run more than one installation on a machine, for testing
+
+As a maintainer who tests Agenthix beside an installed copy, I want each installation to have its own namespace, ports and agent addresses, and to be refused only what clashes, so that a test installation never disturbs the real one.
+
+**Acceptance criteria:**
+- AC-367a: an installation takes its namespace from `INSTALL_NAMESPACE` at its host service's first start, checks that its container is named for it, and keeps it for good.
+- AC-367b: another installation's HQ is not a reason to refuse; another installation's port or address block is.
+- AC-367c: each installation with a site gets an address slice for its agents of its own, picked before anything is written, and is refused with who holds them when none is left.
+- AC-367d: the firewall rules that keep agents off the machine cover that installation's agents alone.

@@ -202,3 +202,12 @@ As an organisation admin, I want to connect HQ to Agenthix Cloud from HQ, checki
 - AC-337b: an organisation admin connects HQ to Agenthix Cloud and disconnects it, from HQ's Providers; a fleet admin who is not one can see the state but not change it. *(Changed 2026-10-23)*
 - AC-337c: through remote access the connection is shown but cannot be changed.
 - AC-337d: on an HQ that Agenthix Cloud runs, Cloud connects it as it sets it up, with no code for me to check, and I cannot disconnect it.
+
+## Its published port (added 2026-10-24)
+
+### US-369 — Open the Fleet Console where this installation published it
+
+As a fleet admin, I want every message about where to open the Fleet Console to name the port this installation published it on, so that I am never sent to an address that is not mine.
+
+**Acceptance criteria:**
+- AC-369a: the Fleet Console refuses a request that did not arrive at its address with a message naming its own published port, and its commands say that port, whether it is the default or the one the machine admin chose.
