@@ -83,16 +83,16 @@ describe('a run’s call through the relay is written to the ledger @SC-1220', (
     const defaultProfile = await hqDb.billingProfile.findFirstOrThrow({ where: { isDefault: true, archivedAt: null } })
     expect(costing).toMatchObject({ providerId, model: FAKE_MODEL, projectId, agentId, billingProfileId: defaultProfile.id, subscription: false })
 
-    // With no container runtime the run fails at launch; it is left ended, so the site's restart below finds nothing
-    // of it still starting.
+    // The run is left ended, so the site's restart below finds nothing of it still starting. Where there is no
+    // container runtime it fails at launch; where there is one, it may complete.
     const ended = await until(async () => {
       const r = await siteDb.agentRun.findUnique({ where: { id: runId } })
       return r && ['COMPLETED', 'FAILED', 'CANCELLED'].includes(r.status) ? r : null
     }, 'the run to end on the site', 150_000)
-    expect(ended.status).toBe('FAILED')
+    expect(['COMPLETED', 'FAILED']).toContain(ended.status)
     await until(async () => {
       const t = await hqDb.task.findUnique({ where: { id: task.json.id }, select: { runState: true } })
-      return t?.runState === 'RUN_FAILED' ? true : null
+      return t && t.runState !== 'RUN_ACTIVE' && t.runState !== 'RUN_QUEUED' ? true : null
     }, "the task's run state to settle", 30_000)
   })
 
@@ -138,7 +138,8 @@ describe('a run’s call through the relay is written to the ledger @SC-1220', (
     expect(report).toMatchObject({ providerId, model: FAKE_MODEL, hasUsage: true, upstreamStatus: 200, errorKind: null })
     await until(async () => ((await reportsWaiting()).length === 0 ? true : null), 'the site to drop the report hq acknowledged', 30_000)
 
-    const entries = await hqDb.usageEntry.findMany({ where: { runId } })
+    // Where a container runtime is present the run's own harness may also have called through the relay: count this call.
+    const entries = await hqDb.usageEntry.findMany({ where: { runId, callId: report.callId } })
     expect(entries).toHaveLength(1)
     const cached = FAKE_USAGE.prompt_tokens_details.cached_tokens
     const costing = await hqDb.runCosting.findUniqueOrThrow({ where: { runId } })
