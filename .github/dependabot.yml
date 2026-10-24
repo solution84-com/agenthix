@@ -1,0 +1,15 @@
+# Every base image is pinned by digest, so the images built on it keep their content keys until it is moved on
+# purpose; this opens the pull request that moves it, once a week.
+version: 2
+updates:
+  - package-ecosystem: docker
+    directories:
+      - /hq/docker
+      - /site/docker
+      - /host/docker
+      - /console/docker
+    schedule:
+      interval: weekly
+    groups:
+      base-images:
+        patterns: ['*']

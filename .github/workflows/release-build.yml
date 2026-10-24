@@ -6,8 +6,10 @@ name: Release build
 #   - Publish release (publish-images.yml), for a version tag, with publish on: the same build, and each image that
 #     started is pushed by digest for that workflow to sign and publish.
 #
-# 1. The registry and the image names come from the branding module. Nothing built here carries a version: the version
-#    is given at publish, by the tag (publish-images.yml).
+# 1. The registry and the image names come from the branding module, the parts and their Dockerfiles from
+#    scripts/images/parts.json, and each part's content key from scripts/images/keys.mjs, computed once here. Each image
+#    is labelled content-key=<key>. Nothing built here carries a version: the version is given at publish, by the tag
+#    (publish-images.yml).
 # 2. Every image a machine runs — hq's server and browser app, the site, the agent image, the host service and the
 #    Fleet Console — is built for amd64 and arm64, each on a runner of its own architecture, started there and made to answer (scripts/images/start-test.sh). With publish on, only then is it pushed
 #    by digest only, reachable by no version.
@@ -30,6 +32,9 @@ on:
       names:
         description: 'Each image''s name, by part, as JSON'
         value: ${{ jobs.prepare.outputs.names }}
+      keys:
+        description: 'Each part''s content key, by part, as JSON'
+        value: ${{ jobs.prepare.outputs.keys }}
 
 jobs:
   prepare:
@@ -41,6 +46,8 @@ jobs:
     outputs:
       registry: ${{ steps.registry.outputs.registry }}
       names: ${{ steps.names.outputs.names }}
+      keys: ${{ steps.keys.outputs.keys }}
+      images: ${{ steps.keys.outputs.images }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -51,6 +58,11 @@ jobs:
         run: |
           # Registry paths are lower case; the owner's name may not be.
           echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      - name: The parts and their content keys
+        id: keys
+        run: |
+          echo "keys=$(node scripts/images/keys.mjs --json)" >> "$GITHUB_OUTPUT"
+          echo "images=$(node scripts/images/parts.mjs | jq -R -s -c 'split("\n") | map(select(length > 0) | split(" ") | {part: .[0], file: .[1], target: (if .[2] == "-" then "" else .[2] end)})')" >> "$GITHUB_OUTPUT"
       - name: Image names, from the branding module
         id: names
         run: |
@@ -64,7 +76,8 @@ jobs:
             bundle: true, platform: 'node', format: 'esm', write: false,
           })
           const { imageName } = await import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`)
-          const parts = ['hq-server', 'hq-web', 'site-server', 'agent', 'host', 'console']
+          const { readFileSync } = await import('node:fs')
+          const parts = Object.keys(JSON.parse(readFileSync('../scripts/images/parts.json', 'utf8')).parts)
           console.log(`names=${JSON.stringify(Object.fromEntries(parts.map(p => [p, imageName(p)])))}`)
           EOF
 
@@ -79,13 +92,7 @@ jobs:
       # A release stops at the first failure; a release branch reports every image.
       fail-fast: ${{ inputs.publish }}
       matrix:
-        image:
-          - { part: hq-server, file: hq/docker/Dockerfile, target: server }
-          - { part: hq-web, file: hq/docker/Dockerfile, target: web }
-          - { part: site-server, file: site/docker/Dockerfile, target: server }
-          - { part: agent, file: site/docker/agent.Dockerfile, target: '' }
-          - { part: host, file: host/docker/Dockerfile, target: host }
-          - { part: console, file: console/docker/Dockerfile, target: console }
+        image: ${{ fromJSON(needs.prepare.outputs.images) }}
         platform:
           - { arch: amd64, runner: ubuntu-24.04 }
           - { arch: arm64, runner: ubuntu-24.04-arm }
@@ -108,6 +115,7 @@ jobs:
             org.opencontainers.image.title=${{ fromJSON(needs.prepare.outputs.names)[matrix.image.part] }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.licenses=Elastic-2.0
+            content-key=${{ fromJSON(needs.prepare.outputs.keys)[matrix.image.part] }}
           provenance: false
           load: true
           tags: imgtest/${{ matrix.image.part }}:${{ matrix.platform.arch }}
@@ -138,6 +146,7 @@ jobs:
             org.opencontainers.image.title=${{ fromJSON(needs.prepare.outputs.names)[matrix.image.part] }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.licenses=Elastic-2.0
+            content-key=${{ fromJSON(needs.prepare.outputs.keys)[matrix.image.part] }}
           provenance: false
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
       - name: Keep the digest for the publish job

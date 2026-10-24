@@ -44,12 +44,12 @@ describe('the publishing workflow @SC-820 @SC-1052 @SC-1167', () => {
     expect(workflow).not.toMatch(/- \{ part: [a-z-]+, file:/)
     // The signature names the workflow whose job signs, so the shared build never signs.
     expect(releaseBuild).not.toMatch(/id-token|cosign sign/)
-    const built = [...releaseBuild.matchAll(/- \{ part: ([a-z-]+), file:/g)].map(m => m[1])
-    expect(sorted(built)).toEqual(sorted(PUBLISHED_PARTS))
+    // The release build takes its parts from the one list of them.
+    expect(releaseBuild).toContain('scripts/images/parts.json')
+    const listed = Object.keys((JSON.parse(fs.readFileSync(path.join(root, 'scripts/images/parts.json'), 'utf8')) as { parts: Record<string, unknown> }).parts)
+    expect(sorted(listed)).toEqual(sorted(PUBLISHED_PARTS))
     const signed = workflow.match(/part: \[([^\]]+)\]/)?.[1].split(',').map(s => s.trim()) ?? []
     expect(sorted(signed)).toEqual(sorted(PUBLISHED_PARTS))
-    const named = JSON.parse(releaseBuild.match(/const parts = (\[[^\]]+\])/)?.[1].replace(/'/g, '"') ?? '[]') as string[]
-    expect(sorted(named)).toEqual(sorted(PUBLISHED_PARTS))
   })
 
   it('publishes to the registry of the repository the host service trusts', () => {

@@ -15,7 +15,7 @@
 # Sigstore's own image, fixed by digest. The same version signs them (.github/workflows/publish-images.yml).
 FROM ghcr.io/sigstore/cosign/cosign:v3.1.3@sha256:9e5c2f2edc34351160407ca3416c61855bdf9403c3c5936e0f0be7fc261611b8 AS cosign
 
-FROM node:24.14.1-alpine3.23 AS build
+FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS build
 WORKDIR /repo
 COPY core/package.json core/package-lock.json core/
 RUN cd core && npm ci --no-audit --no-fund
@@ -27,7 +27,7 @@ COPY host host
 # Everything is bundled, @agenthix/core included, so the final stage carries no node_modules.
 RUN cd host && npm run build
 
-FROM node:24.14.1-alpine3.23 AS host
+FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS host
 # The docker CLI and its compose plugin: the host service drives Docker with them, and nothing else. nft applies the
 # agent protections' firewall rules (src/protections/).
 RUN apk --no-cache -U upgrade && apk add --no-cache docker-cli docker-cli-compose tini nftables

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The install test: the product tested in the shape it is installed in, since a send that froze over plain http at a
-# network address once passed every test run at localhost. It is a test installation: it builds every image at `dev`,
-# starts a host service of its own, `<namespace>-host` with INSTALL_NAMESPACE set to a namespace it makes up and a
+# network address once passed every test run at localhost. It is a test installation: it installs the images the image
+# start test keeps (building any that is missing), starts a host service of its own, `<namespace>-host` with INSTALL_NAMESPACE set to a namespace it makes up and a
 # state folder of its own, runs `agenthix install` at this machine's network address over plain http on free ports it
 # chooses, and walks through HQ in a real browser (hq/e2e/install/): the first admin made, a message sent to a stand-in model
 # (no real model is called), a conversation opened, the Fleet Console opened. Then it removes only what it made.
@@ -18,8 +18,6 @@
 #   INSTALL_TEST_IP            the network address to install at (found from the machine's own when unset)
 #   INSTALL_TEST_HQ_PORT       HQ's port; INSTALL_TEST_CONSOLE_PORT the Fleet Console's (on 127.0.0.1);
 #                              INSTALL_TEST_MODEL_PORT the stand-in model's. Each is a free port chosen when unset.
-#   INSTALL_TEST_BUILD=0     use the images already built here instead of building them;
-#   INSTALL_TEST_BUILD=start-test  use the image start test's (imgtest/<part>:dev), as the full regression does
 #   INSTALL_TEST_KEEP=1      leave everything running afterwards, and say how to remove it
 #   INSTALL_TEST_LOGS        where the logs go (a new folder under the system's temporary folder)
 set -euo pipefail
@@ -75,27 +73,19 @@ ADDRESS="http://$INSTALL_TEST_IP:$HQ_PORT"
 MODEL_URL="http://$INSTALL_TEST_IP:$MODEL_PORT/v1"
 echo "Namespace $NS; HQ at $ADDRESS; the Fleet Console on 127.0.0.1:$CONSOLE_PORT; the stand-in model at $MODEL_URL; logs in $LOGS"
 
-# --- Every image, at dev ----------------------------------------------------------------------------------------
-if [ "${INSTALL_TEST_BUILD:-1}" = start-test ]; then
-  # The images the image start test just built (scripts/images/start-test-all.sh), so a regression builds each once.
-  for part in hq-server hq-web site-server agent console host; do
-    docker image inspect "imgtest/$part:dev" >/dev/null 2>&1 \
-      || fail "imgtest/$part:dev is not here: run scripts/images/start-test-all.sh first, or leave INSTALL_TEST_BUILD unset."
-    docker tag "imgtest/$part:dev" "$(image "$part")"
-  done
-elif [ "${INSTALL_TEST_BUILD:-1}" != 0 ]; then
-  build() { # <part> <Dockerfile> [target]
-    say "Building $(image "$1")"
-    docker build -f "$ROOT/$2" ${3:+--target "$3"} -t "$(image "$1")" "$ROOT" >"$LOGS/build-$1.log" 2>&1 \
-      || { tail -40 "$LOGS/build-$1.log" >&2; fail "the image $(image "$1") did not build."; }
-  }
-  build hq-server hq/docker/Dockerfile server
-  build hq-web hq/docker/Dockerfile web
-  build site-server site/docker/Dockerfile server
-  build agent site/docker/agent.Dockerfile
-  build console console/docker/Dockerfile console
-  build host host/docker/Dockerfile host
-fi
+# --- Every image, the ones the image start test built ----------------------------------------------------------------
+# The parts are listed in scripts/images/parts.json. The test installs the images the start test keeps
+# (imgtest/<part>:dev) and builds none of its own: a part whose image is missing is built, and started, by
+# scripts/images/start-test-all.sh. Each is tagged with the name the host service runs for a development build.
+PARTS="$(node "$ROOT/scripts/images/parts.mjs" | cut -d ' ' -f 1)"
+for part in $PARTS; do
+  if ! docker image inspect "imgtest/$part:dev" >/dev/null 2>&1; then
+    say "Building imgtest/$part:dev (scripts/images/start-test-all.sh)"
+    "$ROOT/scripts/images/start-test-all.sh" "$part" >"$LOGS/build-$part.log" 2>&1 \
+      || { tail -40 "$LOGS/build-$part.log" >&2; fail "the image imgtest/$part:dev did not build and start."; }
+  fi
+  docker tag "imgtest/$part:dev" "$(image "$part")"
+done
 
 # --- Tear down only what it made --------------------------------------------------------------------------------
 STATE="$(mktemp -d "${TMPDIR:-/tmp}/install-test-state.XXXXXX")"
