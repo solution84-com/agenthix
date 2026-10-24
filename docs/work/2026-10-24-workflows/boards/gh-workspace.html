@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A connected workspace · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="gh-workspace.html"><main>
+<div class="top"><div><h1>G3 · A connected workspace, and its Files line</h1>
+<p class="sub">What a workspace shows about GitHub once it's connected: the repository, the workflows that reach it, and GitHub's own workflows and secrets, with one place for secrets. Fixes P6.</p></div></div>
+
+<h2 id="ba">Before and after: the workspace's About</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock" style="padding:16px">
+<div class="mh" style="font-size:16px">About</div>
+<table style="font-size:13px"><tr><td style="color:var(--t2)">Repository</td><td><code>acme-dev/docs-site</code> · <span style="color:var(--macc)">Disconnect</span></td></tr><tr><td style="color:var(--t2)">Preview</td><td>Not running</td></tr><tr><td style="color:var(--t2)">Site</td><td>Main site</td></tr></table>
+<div class="msec">GitHub secrets</div>
+<div class="mcard"><div class="b"><div class="t">DEPLOY_TOKEN ••••</div></div><span style="font-size:12px;color:var(--t3)">updated 2 Oct</span></div>
+<div id="the-box" style="outline:2px dashed var(--mdanger);outline-offset:6px;border-radius:8px;margin-top:14px;position:relative"><span class="tag" style="position:absolute;top:-22px;right:0;color:var(--mdanger);border-color:var(--mdanger);background:var(--s1)">Removed (GQ1): it moves to Secrets (U6)</span><div style="font-size:12px;color:var(--t3);margin:6px 0">ADD A SECRET (SENT TO GITHUB, NEVER STORED OR SHOWN HERE)</div>
+<div class="row"><div class="in" style="border:1px solid var(--mborder);border-radius:8px;padding:6px 10px">NAME</div><div class="in grow" style="border:1px solid var(--mborder);border-radius:8px;padding:6px 10px;color:var(--t3)">value</div><span class="btn link">Save</span></div></div>
+</div>
+<ol class="sub"><li>A value typed here goes straight to GitHub, and the project's Secrets never know it exists.</li><li>Nothing says which agents' work can reach the repository, or how.</li></ol></div>
+
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="padding:16px">
+<div class="mh" style="font-size:16px">About</div>
+<table style="font-size:13px"><tr><td style="color:var(--t2)">Repository</td><td><code>acme-dev/docs-site</code> · <span style="color:var(--macc)">Disconnect</span></td></tr><tr><td style="color:var(--t2)">Preview</td><td>Not running</td></tr><tr><td style="color:var(--t2)">Site</td><td>Main site</td></tr></table>
+<div class="msec">Workflows that reach GitHub</div>
+<div class="mcard"><div class="b"><div class="t">push · pull · open-pull-request</div><div class="s">Approved · last push today 14:02 ✓</div></div><span class="btn link">Open</span></div>
+<div class="mcard"><div class="b"><div class="t">set-github-secrets</div><div class="s">Sets DEPLOY_TOKEN from the project's Secrets · last run 2 Oct ✓</div></div><span class="btn">Run</span></div>
+<div class="msec">GitHub workflows in the repository</div>
+<div class="mcard"><div class="b"><div class="t">deploy.yml</div><div class="s">Last run #41 today 13:51 · success ↗</div></div></div>
+<div class="msec">Secrets on GitHub</div>
+<div class="mcard"><div class="b"><div class="t">DEPLOY_TOKEN</div><div class="s">From the project's Secrets, by set-github-secrets on 2 Oct</div></div></div>
+<div class="mcard"><div class="b"><div class="t">LEGACY_KEY</div><div class="s">Set on GitHub directly; not in Secrets</div></div><span class="tag">Outside hq</span></div>
+</div>
+<ol class="sub"><li><b>Which workflows reach the repository</b>, with their state, so it's plain what agents can do to it.</li>
+<li><b>GitHub workflows</b> are listed with their last run, read from GitHub. Running one is a workflow (<code>gh workflow run</code>) or GitHub's own page; there's no second Run button here.</li>
+<li><b>Secrets on GitHub</b> are listed by name, each saying whether it came from Secrets. The "Add a secret" box goes: a value enters through Secrets, and reaches GitHub through <code>set-github-secrets</code>.</li></ol></div>
+</div>
+
+<h2 id="files">Before and after: the line at the top of Files</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock" style="padding:12px 16px"><div class="row" style="font-size:13px"><span>⑂</span><span class="grow">Not backed up</span><span class="btn">Back up to GitHub</span></div></div>
+<p class="sub">Opens the same repository panel, with the same failure (P1).</p></div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="padding:12px 16px"><div class="row" style="font-size:13px"><span>⑂</span><span class="grow">Not backed up</span><span class="btn">Back up to GitHub</span></div></div>
+<p class="sub">The same line; it opens the connect flow in G2, so Files and workspaces connect the same way, with the same checks.</p></div>
+</div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li><b>One keeper</b> (board 4, S1): a secret has one home, the project's Secrets. A value already set on GitHub directly stays there and is labelled, not removed.</li>
+<li>A person still decides what goes to GitHub: <code>set-github-secrets</code> is a workflow they approved.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

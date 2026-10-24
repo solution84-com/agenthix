@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connecting GitHub · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="gh-app.html"><main>
+<div class="top"><div><h1>G1 · Connecting GitHub to the organisation</h1>
+<p class="sub">One page for the App, its permissions and the GitHub accounts it's installed on. It shows what each account can reach and which projects can connect to it, and never needs a Refresh button. Fixes P2, P3 and P7.</p></div></div>
+
+<h2 id="chain">How a workspace gets its GitHub account</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="mmd" data-src="chain"></div>
+<table>
+<tr><th></th><th>Step</th><th>Who, and where</th></tr>
+<tr><td class="n">1</td><td><b>Register the App</b>, once. It gets Agenthix's starting permissions (the ceiling)</td><td>An Agenthix admin, on this page; GitHub creates the App</td></tr>
+<tr><td class="n">2</td><td><b>Install the App on a GitHub account</b>, choosing all repositories or some. GitHub calls this an <i>installation</i></td><td>An owner of that GitHub account, on GitHub: you for your own organisations, your client for theirs (install link)</td></tr>
+<tr><td class="n">3</td><td><b>Allow it</b>, and say <b>which projects can connect to it</b>: every project (your own organisations), or chosen ones (a client's)</td><td>An Agenthix admin, on this page</td></tr>
+<tr><td class="n">4</td><td><b>Set the project's default account</b>, which every new workspace starts with</td><td>A project's administrator, in the project's <b>GitHub</b> section</td></tr>
+<tr><td class="n">5</td><td><b>Connect a workspace's repository</b>: the account is the project's default, and can be changed to any other this project can connect to (G2)</td><td>A project's administrator, in the workspace</td></tr>
+<tr><td class="n">6</td><td><b>Run workflows</b>: each run's token comes from the workspace's account, for the workspace's repository only, and only what the workflow declares</td><td>Agents and people, in the workspace</td></tr></table>
+<p class="sub">One App → installed on many GitHub accounts → each open to every project or chosen ones → each project has a default account → each workspace connects one repository, in the default account or another it may use.</p>
+
+<h3 id="projectside">The project's GitHub section</h3>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr"><div class="pnav" data-on="github" data-after data-name="North website"></div>
+<div class="mcentre">
+<div class="crumb">Projects › North website › GitHub</div>
+<div class="mh">GitHub</div>
+<div class="msec">Default account</div>
+<div class="field"><div class="in">north-ltd ▾</div><div class="hint">New workspaces start with this account; each can choose another this project may connect to. The list shows the accounts allowed for this project on <i>Manage organisation › Settings › GitHub</i>.</div></div>
+<div class="msec">Workspaces and their repositories</div>
+<table style="font-size:13px"><tr><th>Workspace</th><th>Repository</th><th>Account</th></tr>
+<tr><td>website</td><td><code>north-ltd/website</code></td><td>north-ltd <span style="color:var(--t3)">· default</span></td></tr>
+<tr><td>mobile</td><td><code>north-ltd/mobile-app</code></td><td>north-ltd <span style="color:var(--t3)">· default</span></td></tr>
+<tr><td>deploy-scripts</td><td><code>acme/deploy-scripts</code></td><td>acme <span class="tag">changed</span></td></tr>
+<tr><td>notes</td><td style="color:var(--t3)">Not connected</td><td></td></tr></table>
+<div class="msec">Workflows that reach GitHub</div>
+<div style="font-size:13px;color:var(--t2)">push, pull, open-pull-request · set-github-secrets · <span style="color:var(--macc)">Open Workflows</span></div>
+</div></div></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="ba" style="grid-template-columns:1fr">
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock" style="padding:16px">
+<div style="font-size:12px;color:var(--t3)">Manage organisation › Infrastructure</div>
+<div class="mh">GitHub App</div>
+<div class="mcard"><div class="b"><div class="t">No GitHub App registered</div><div class="s">Register a GitHub App via the Manifest flow…</div></div></div>
+<div class="field"><label>GitHub organization — leave blank to create under your personal account</label><div class="in ph">my-org</div></div>
+<span class="btn pri">Register the GitHub App ↗</span>
+<hr style="border:0;border-top:1px dashed var(--mborder);margin:16px 0">
+<div style="font-size:12px;color:var(--t3)">Manage organisation › Settings</div>
+<div class="mh">GitHub</div>
+<div class="s" style="color:var(--t2);font-size:13px">No installations found yet. Install the App on your org or account using the link below, then refresh.</div>
+<div class="row" style="margin-top:8px"><span class="btn link">Install or manage on GitHub ↗</span><span class="btn">⟳ Refresh installations</span></div>
+</div>
+<ol class="sub"><li>Registering and installing are on two pages in two areas.</li><li>After installing, the list stays empty until Refresh is pressed.</li><li>Nothing says what an installation can reach: all repositories, or a few.</li><li>The permissions the App asks for are never shown.</li></ol></div>
+
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:200px 1fr"><div class="mnav"><div class="logo"><i></i>Manage organisation</div>
+<div class="sec">Overview</div><a>Overview</a>
+<div class="sec">People</div><a>People and invitations</a><a>Teams</a>
+<div class="sec">Agents</div><a>Agents</a>
+<div class="sec">Models and billing</div><a>Providers</a><a>Models</a><a>Billing profiles</a><a>Usage</a>
+<div class="sec">Settings</div><a>General</a><a class="on">GitHub</a><a>Automation</a><a>Runs</a><a>Memory</a><a>Tool risk rules</a>
+<div class="sec">Where work runs</div><a>Sites</a><a>Sites for projects</a><a>Infrastructure</a></div><div class="mcentre">
+<div style="font-size:12px;color:var(--t3)">Manage organisation › Settings</div>
+<div class="row"><div class="mh grow">GitHub</div><span class="tag ok">App registered</span></div>
+<div class="msec">1 · The App</div>
+<div class="mcard"><div class="b"><div class="t">agenthix-3f9a21c0 <span class="tag">owned by acme</span></div><div class="s">Created on GitHub on 14 Oct. Homepage: https://hq.acme.example</div></div><span class="btn link">Disconnect</span></div>
+<details open style="font-size:13px;margin:4px 0 10px"><summary style="cursor:pointer;color:var(--t2)">The App's permissions: the most any workflow can do · read from GitHub just now</summary>
+<table style="font-size:12.5px"><tr><td>Code: write</td><td>push, pull</td></tr><tr><td>Pull requests: write</td><td>open-pull-request</td></tr><tr><td>Secrets: write</td><td>set-github-secrets</td></tr><tr><td>Workflows: write</td><td>pushing a GitHub workflow file</td></tr><tr><td>Administration: write</td><td>creating a repository for a workspace</td></tr></table>
+<div style="color:var(--t2);margin-top:4px">This is the ceiling. Each run gets a token with only what its workflow declares, below it, for its workspace's repository only, revoked when the run ends.</div>
+<div class="row" style="margin-top:6px;gap:8px"><span class="tag">Agenthix's starting list</span><span class="btn link">Change on GitHub ↗</span></div>
+<div style="color:var(--t3);font-size:12px;margin-top:4px">It's your App: an owner of acme changes its permissions in the App's settings on GitHub. Each GitHub account using it is then asked, on GitHub, to accept the change.</div></details>
+<div class="msec">2 · GitHub accounts</div>
+<div style="font-size:13px;color:var(--t2);margin:-2px 0 8px">The GitHub organisations, or people's GitHub accounts, where the App has been installed on GitHub. A workspace connects its repository in one of them.</div>
+<div class="mcard hl" style="display:block"><div class="row"><div class="b grow"><div class="t">north-ltd wants to connect</div><div class="s">An owner of the GitHub organisation <b>north-ltd</b> installed your App on GitHub 10 minutes ago. Agenthix won't use it until you allow it.</div></div><span class="btn">Ignore</span><span class="btn pri">Allow</span></div></div>
+<table style="font-size:13px;margin-top:6px"><tr><th>GitHub account</th><th>Repositories the App can reach</th><th>Permissions</th><th>Which projects can connect</th></tr>
+<tr><td><b>acme</b><div style="font-size:12px;color:var(--t3)">organisation</div></td><td>All</td><td>Current</td><td>Every project · <span style="color:var(--macc)">Change</span><div><span class="tag acc">Default for new projects</span></div></td></tr>
+<tr><td><b>acme-tests</b><div style="font-size:12px;color:var(--t3)">organisation</div></td><td>All</td><td>Current</td><td>Every project · <span style="color:var(--macc)">Change</span></td></tr>
+<tr><td><b>acme-archive</b><div style="font-size:12px;color:var(--t3)">organisation</div></td><td>3 selected <div style="font-size:12px;color:var(--mwarn)">Can't create new repositories. <span style="color:var(--macc)">How to fix</span></div></td><td>Current</td><td>Every project · <span style="color:var(--macc)">Change</span></td></tr>
+<tr><td><b>sam-lee</b><div style="font-size:12px;color:var(--t3)">personal account</div></td><td>2 selected <div style="font-size:12px;color:var(--t3)">GitHub doesn't let an App create repositories in a personal account</div></td><td><span style="color:var(--mwarn)">Not yet accepted: Issues: write</span><div style="font-size:12px;color:var(--t3)">Until sam-lee accepts on GitHub, its projects keep the older list</div></td><td>Only: Sam\'s space · <span style="color:var(--macc)">Change</span></td></tr></table>
+<div class="row" style="margin-top:10px"><span class="btn">Install on one of your GitHub accounts ↗</span><span class="btn pri">Get an install link for a client</span></div>
+<div class="dialog" style="box-shadow:none;width:auto;max-width:none;margin:14px 0 0">
+<h4>Install link for a client</h4>
+<p style="font-size:13px;color:var(--t2);margin:0 0 8px">Send this to an owner of your client's GitHub organisation. They install the App on their side; you then allow it here and choose the projects that use it.</p>
+<div class="field"><label>Link</label><div class="row"><div class="in grow" style="font-family:ui-monospace,monospace;font-size:12.5px">https://github.com/apps/agenthix-3f9a21c0/installations/new</div><span class="btn">Copy</span></div></div>
+<div class="field"><label>A note to send with it</label><div class="in" style="font-size:13px;line-height:1.5">Hi, to let us work on your code, please install our GitHub App on your organisation: <i>[link]</i><br>GitHub will show you what it may do and ask which repositories to allow: all, or only the ones you choose. You can change that, or remove the App, at any time in your organisation's settings on GitHub, under GitHub Apps.</div></div>
+<div class="row end"><span class="btn">Copy the note</span><span class="btn pri">Done</span></div></div>
+
+<div class="dialog" style="box-shadow:none;width:auto;max-width:none;margin:14px 0 0">
+<h4>Allow north-ltd?</h4>
+<p style="font-size:13px;color:var(--t2);margin:0 0 8px">Only allow a GitHub account you expected. Then say which projects can connect their workspaces to it.</p>
+<div class="radio"><span class="dot"></span><div><b>Every project</b><div class="s" style="color:var(--t2);font-size:13px">For your own organisations</div></div></div>
+<div class="radio on"><span class="dot"></span><div><b>Only chosen projects</b><div class="s" style="color:var(--t2);font-size:13px">North website, North mobile app. For a client's organisation, so other clients' projects can't reach it</div></div></div>
+<div class="field" style="margin-top:8px"><label>People's own storage</label><div class="in">None ▾</div><div class="hint">A person's own storage is never included in "Every project". Choose people here only if they should connect their own workspaces to north-ltd.</div></div>
+<div class="row end" style="margin-top:8px"><span class="btn">Cancel</span><span class="btn pri">Allow</span></div></div>
+</div></div></div>
+<ol class="sub"><li><b>The App's permissions are a ceiling.</b> Registering from Agenthix starts with Agenthix's list; an owner changes it on GitHub, where all of GitHub's permissions are. hq reads the real list and shows it here, and shows which GitHub accounts have accepted the latest change.</li>
+<li><b>A "GitHub account" is a GitHub organisation, or a person's GitHub account, where the App is installed.</b> An owner of that account installs it on GitHub; Agenthix doesn't. You can have several: live work, tests, an archive, or an agency's clients.</li>
+<li><b>Which projects can connect to each account:</b> every project (your own organisations), or chosen ones (a client's), so one client's projects never reach another's repositories. <b>A person's own storage is a place of its own here</b>: none can connect unless an admin chooses them, so a member can't link a client's repository into their own storage and approve workflows on it. hq checks this rule each time it mints a token, not only when a workspace connects (board 9, the mint gate).</li>
+<li><b>A project has a default account</b> in its own GitHub section; each workspace starts with it and can choose another the project may connect to. A run's token is for its workspace's repository only.</li>
+<li><b>A new account must be allowed first.</b> Anyone can install the App on their own GitHub account, so a new one shows as "wants to connect" and isn't used until an admin allows it.</li>
+<li><b>One page, GitHub, in the admin portal's left panel</b> (Manage organisation › Settings › GitHub), with the other settings. It already has that entry; registering the App moves onto it from Infrastructure, whose GitHub App card becomes a link here.</li>
+<li><b>No Refresh button.</b> After GitHub sends the person back, hq asks GitHub again every few seconds for up to a minute until the new installation appears, and says "Waiting for GitHub…" meanwhile.</li>
+<li><b>Each installation says what it can reach</b> (all repositories, or how many selected) and so what it can do: create, or link only.</li>
+<li><b>The App's permissions are listed with what uses each</b>, and the line that each run gets only what it declares.</li></ol></div>
+</div>
+
+<h2 id="client">How a client connects</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="mmd" data-src="client"></div>
+<ol>
+<li><b>You send an install link</b> from this page, with the note.</li>
+<li><b>An owner of the client's GitHub organisation opens it, on GitHub.</b> GitHub shows your App and what it may do, and asks which repositories to allow: all, or chosen ones. They need no Agenthix account, and you never need their password.</li>
+<li><b>Your Agenthix shows "north-ltd wants to connect".</b> You allow it and choose the projects that use it.</li>
+<li><b>Your agents work on their code</b> through your workflows, with tokens that reach only the repositories the client allowed, and only from those projects.</li></ol>
+<div class="why"><b>The client stays in control.</b> They can change which repositories you reach, or remove the App, at any time in their own GitHub settings, and your access stops at once.</div></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li>"Selected only" is what made Back up fail (P1). Saying it here, before anyone connects a repository, is the first half of the fix; G2 is the second.</li>
+<li>A first set-up is one page top to bottom, instead of two areas and a button that has to be pressed at the right moment.</li></ul></div>
+
+<script>
+window.SRC = { chain: `flowchart LR
+  A["1 · the App<br/>(one, with a ceiling)"] --> B["2 · installed on<br/>GitHub accounts"]
+  B --> C["3 · allowed, for every<br/>project or chosen ones"]
+  C --> D["4 · project default<br/>account"]
+  D --> E["5 · workspace connects a<br/>repository: default or another"]
+  E --> F["6 · workflows run with tokens<br/>for that one repository"]`, client: `sequenceDiagram
+  participant Y as You, in Agenthix
+  participant C as Client's org owner
+  participant G as GitHub
+  Y->>C: 1 install link and note
+  C->>G: 2 install your App, choose repositories
+  G-->>Y: 3 north-ltd wants to connect
+  Y->>Y: allow, choose projects
+  Y->>G: 4 workflows push and open pull requests
+  C->>G: change or remove the App, any time` }
+</script>
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

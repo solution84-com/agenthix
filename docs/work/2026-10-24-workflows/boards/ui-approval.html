@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Approving a version · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="ui-approval.html"><main>
+<div class="top"><div><h1>U4 · Approving a version</h1>
+<p class="sub">A short card in the conversation it came from; the full review on the workflow's page, where there's room to read every file.</p></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="box"><span class="lbl before">Before · today</span><p>The conversation already shows approval requests as cards, with an answer (the <code>APPROVAL_REQUEST</code> and <code>APPROVAL_ANSWER</code> messages). <b>Approving a workflow version is new.</b></p></div>
+
+<h3 id="card">In the conversation</h3>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk dock"><div class="pnav" data-on="workflows" data-after data-needs="1"></div>
+<div class="mcentre"><div class="crumb">Projects › Website rebuild › Tasks</div><div class="mh">Tasks</div><div class="placeholder" style="height:300px;border:1px dashed var(--mborder);border-radius:10px"></div></div>
+<div class="dockcol"><div class="dh">Restart the worker after deploying</div>
+<div class="bubble me">Can the deploy also restart the worker?</div>
+<div class="bubble">deploy-staging needs one more step. I've proposed version 2.</div>
+<div class="mcard hl" style="display:block">
+<div class="row"><b class="grow">deploy-staging · version 2</b></div>
+<div class="row" style="gap:6px;margin:6px 0"><span class="tag ok">Reviewer: low risk</span><span class="tag">+1 step</span><span class="tag warn">New step gets STAGING_DEPLOY_KEY</span></div>
+<div style="font-size:12.5px;color:var(--t2)">Adds step 5, "Restart the worker". Gives it STAGING_DEPLOY_KEY. No new host.</div>
+<div style="font-size:12px;color:var(--t3);margin-top:6px">A secret goes to a new step, so this needs the full review.</div>
+<div class="row" style="margin-top:8px"><span class="grow"></span><span class="btn">Decline</span><span class="btn pri">Review all of it</span></div></div>
+</div></div></div>
+<ol class="sub"><li>The card says <b>what changed</b> in one line, written by the plain checks (R1) from the diff, never by the agent or the reviewer; the reviewer's level; and any flag, such as a secret given to a step, a new host or a GitHub permission.</li>
+<li><b>Approve</b> is on the card only when the plain checks say so, whatever the reviewer says: no step newly gets a secret, no <code>run:</code> changes in a step that holds one, no host, GitHub permission or parameter pattern changes, and R1 raised no flag. Otherwise the card has only <b>Review all of it</b>, which opens the full review below, and says why in one line.</li>
+<li>Only the project's administrators see the buttons; others see "Waiting for an administrator".</li></ol></div>
+
+<h3 id="full">The full review</h3>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr"><div class="pnav" data-on="workflows" data-after data-needs="1"></div>
+<div class="mcentre">
+<div class="crumb">Projects › Website rebuild › Workflows › deploy-staging › Version 2</div>
+<div class="row"><div class="grow"><div class="mh">Review deploy-staging, version 2</div><div class="ml">Proposed by Kernel in "Restart the worker after deploying" · version 1 keeps running until you decide</div></div><span class="btn">Decline</span><span class="btn pri">Approve version 2</span></div>
+<div class="why"><b>Reviewer · low risk</b><ul style="margin:4px 0"><li>Adds step 5, "Restart the worker", which gets STAGING_DEPLOY_KEY like the other remote steps; (<code>workflow.yaml:18</code>), running <code>systemctl restart worker</code> over the same ssh connection.</li><li>STAGING_DEPLOY_KEY is still used only as ssh's key file; nothing prints it.</li></ul></div>
+<div class="flag"><b>Checks</b> step 5 newly gets STAGING_DEPLOY_KEY · no secret near output · no host outside the approved list · no unpinned install · runs nothing from the workspace</div>
+<div class="tabs"><span class="on">Changes</span><span>All files</span><span>Steps</span></div>
+<div style="font-size:13px;font-weight:600;margin:6px 0 2px">workflow.yaml</div>
+<pre class="code">   - name: Restart the app
+     run: ./deploy/restart.sh
+<span class="diffadd">+  - name: Restart the worker
++    secrets: [STAGING_DEPLOY_KEY]
++    run: ssh -i /run/secrets/STAGING_DEPLOY_KEY "deploy@$STAGING_HOST" systemctl restart worker</span>
+   - name: Check it answers</pre>
+</div></div></div></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li>A conversation is narrow; reading a long script in it is how things get approved without being read. So a small change that moves no secret can be approved from the card, and anything else must be opened.</li>
+<li>The reviewer can be steered by text in the workflow (board 5, R3), so its level never decides what the person is shown: a steered "low risk" can't put a one-tap Approve beside a change that hands a secret to new code.</li>
+<li>The reviewer's points come before the code, so the person knows where to look.</li></ul></div>
+
+<h2 id="phone">On a phone</h2>
+<div class="box"><div class="phones">
+<div class="phone mock"><div class="mhdr">‹ <span class="grow">Restart the worker…</span></div><div class="mbody">
+<div class="bubble">deploy-staging needs one more step. I've proposed version 2.</div>
+<div class="mcard hl" style="display:block;margin-top:10px"><b>deploy-staging · version 2</b><div class="row" style="gap:6px;margin:6px 0"><span class="tag ok">Reviewer: low risk</span><span class="tag warn">Secret to a new step</span></div><div style="font-size:12.5px;color:var(--t2)">Adds step 5, "Restart the worker", given STAGING_DEPLOY_KEY.</div><div class="row" style="margin-top:8px"><span class="grow"></span><span class="btn">Decline</span><span class="btn pri">Review all of it</span></div></div>
+</div></div></div></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

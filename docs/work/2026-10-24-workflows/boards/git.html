@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitHub through workflows · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="git.html"><main>
+<div class="top"><div><h1>9 · GitHub through workflows</h1>
+<p class="sub">Git and GitHub become the first integration built on the library: the token is a variable hq mints per run, and push, pull and pull requests are workflows. <a class="q" href="/files/decisions.html#q1">Q1</a></p></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="mmd" data-src="before"></div>
+<ol><li>git inside the agent's container pushes to <code>github.com</code>.</li>
+<li>Its credential helper asks the site, with the run token.</li>
+<li>hq mints an installation token for that repository.</li>
+<li><b>The token is handed into the agent's container.</b> Any command can ask the helper for it, and send it anywhere.</li></ol></div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="mmd" data-src="after"></div>
+<ol><li>The agent commits locally, as now: <code>git commit</code> needs no network.</li>
+<li>To share it, the agent runs the approved workflow <code>push</code> with <code>branch = feature/region</code>.</li>
+<li>hq mints <code>GITHUB_TOKEN</code> for that run only: the workspace's one repository, the workflow's declared permissions, and revoked when the run ends (<a href="#gate">the mint gate</a>).</li>
+<li>A first step with no secret packs the commits into a bundle. A second step, holding the token, pushes that bundle from a <b>clean repository of its own</b>, never the agent's (<a href="#clean">why</a>), then is removed. <b>The agent's container never holds a token.</b> Its credential helper and the site's credential endpoint are removed, and a plain <code>git push</code> there fails with a message naming the <code>push</code> workflow.</li></ol></div>
+</div>
+
+<h2 id="starter">Starter workflows</h2>
+<div class="box"><p>Anything the <code>git</code> and <code>gh</code> command-line tools can do can be a workflow. A project starts with these four, shipped as <b>proposals</b>: the reviewer reads them and an administrator approves each one, like any other workflow, when the project's repository is connected.</p>
+<table><tr><th>Workflow</th><th>Parameters</th><th>GitHub permissions</th><th>Does</th></tr>
+<tr><td><code>push</code></td><td><code>branch</code> (pattern)</td><td>contents: write</td><td>Step 1, no secret: <code>git bundle</code> of the branch from the workspace. Step 2, the token: pushes the bundle from a clean repository to <code>refs/heads/&lt;branch&gt;</code>; never <code>--force</code>, never a protected branch</td></tr>
+<tr><td><code>pull</code></td><td><code>branch</code> (pattern)</td><td>contents: read</td><td>Step 1, the token: fetches into a clean repository and writes a bundle. Step 2, no secret: <code>git pull --ff-only</code> from the bundle into the workspace</td></tr>
+<tr><td><code>open-pull-request</code></td><td><code>branch</code>, <code>base</code> (patterns), <code>title</code>, <code>body</code> (text)</td><td>pull requests: write</td><td><code>gh pr create --repo &lt;owner/repo&gt; --head "$branch" --base "$base"</code> with the title and body read from their files, run from outside the workspace</td></tr>
+<tr><td><code>set-github-secrets</code></td><td><code>names</code> (a list of the project's secrets, chosen at approval)</td><td>secrets: write</td><td><code>gh secret set NAME --env &lt;environment&gt; &lt; /run/secrets/NAME</code> for each: an <b>environment</b> secret, never a repository one (<a href="#actions">why</a>)</td></tr></table>
+<p class="sub">Each needs the hosts <code>github.com:443</code> and <code>api.github.com:443</code>. <code>gh</code> is preinstalled in the executor image. The repository's address always comes from hq, never from the workspace's <code>remote.origin.url</code>.</p></div>
+
+<h2 id="clean">Git with a token never runs in the agent's repository</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<p>The workspace's <code>.git</code> is the agent's: it writes the config and the hooks, and the version's hash doesn't cover them. Git runs a hook as a program, and its config can name programs too (<code>core.hooksPath</code>, <code>core.fsmonitor</code>, <code>core.sshCommand</code>, filters, <code>include.path</code>, <code>url.*.insteadOf</code>). So <b>a step that holds a secret never runs git inside the workspace's repository.</b></p>
+<ol><li><b>Steps with no secret</b> work in the workspace as normal, and hand over data only: a <code>git bundle</code> of the commits.</li>
+<li><b>Steps with the token</b> work in a new empty repository under <code>/tmp</code>, with system and user config switched off (<code>GIT_CONFIG_NOSYSTEM=1</code>, <code>GIT_CONFIG_GLOBAL=/dev/null</code>) and hooks off (<code>core.hooksPath=/dev/null</code>). They read the bundle as data, and push to the address hq gives.</li>
+<li><b>A review rule (R1)</b> flags any step that holds a secret and runs <code>git</code> with the workspace as its working tree, as high risk.</li></ol>
+<p class="sub">The same holds for any tool that reads config from where it runs: <code>gh</code> is given <code>--repo</code> and run from outside the workspace.</p></div>
+
+<h2 id="actions">Secrets on GitHub are kept from code the agent pushes</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<p>A repository secret goes to any GitHub workflow that runs on a push or a pull request from the repository. Those workflows run the repository's code (tests, build scripts), and the agent can push that code. So a repository secret would be one push away from the agent.</p>
+<ul><li><b><code>set-github-secrets</code> sets environment secrets only</b>, on a GitHub Environment whose deployment branches are limited to protected branches. Required reviewers on it are recommended where the plan allows.</li>
+<li><b><code>push</code> and <code>open-pull-request</code> refuse a protected branch</b> as their target. hq reads the branch's protection from GitHub when the run starts; the parameter pattern alone isn't relied on.</li>
+<li><b>The approval card for <code>set-github-secrets</code> says it plainly:</b> "These values reach any GitHub workflow that runs in the <i>production</i> environment, on branches that need a reviewed pull request to change."</li>
+<li>Repository secrets set on GitHub some other way stay listed, as "Outside hq" (G3), with a note that pushed code can reach them.</li></ul></div>
+
+<h2 id="perms">GITHUB_TOKEN gets only what the workflow declares</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<p>When hq asks GitHub for an installation token, it can ask for <b>fewer permissions than the App holds</b>, and for <b>only the workspace's repository</b>. So a workflow declares the GitHub permissions it needs, they're part of the reviewed version and flagged on the approval card, and hq mints the token with exactly those.</p>
+<pre class="code">name: push
+github:
+  contents: write
+steps:
+  - name: Bundle the branch
+    run: git bundle create /run/out/push.bundle "refs/heads/$(cat /run/params/branch)"
+  - name: Push
+    secrets: [GITHUB_TOKEN]
+    run: push-bundle /run/out/push.bundle "$(cat /run/params/branch)"   # a script in the executor image: a clean repository, see above</pre>
+<ul><li>A token from <code>push</code> can write code, and can't touch secrets, pull requests or settings.</li>
+<li>The App can keep the broad permissions it registers with; each run gets a narrow slice.</li>
+<li><b>The ceiling is the organisation's.</b> The App is registered with Agenthix's starting list, and an owner changes it on GitHub. hq reads the App's real permissions, and each GitHub account's accepted ones, from GitHub.</li>
+<li><b>A workflow that needs more than the ceiling</b> is caught when it's proposed. Its approval card names the permission and how to add it: "This needs <i>Issues: write</i>. Add it in the App's settings on GitHub (link); each GitHub account using it then accepts it there." It can be approved meanwhile, and runs once its project's account has the permission.</li></ul></div>
+
+<h2 id="accounts">Several GitHub accounts</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<table><tr><th></th><th>Today</th><th>After</th></tr>
+<tr><td>Where the App can be installed</td><td>Only the account that owns it: the manifest registers it as private (<code>public: false</code>, <code>githubApp.ts</code>)</td><td>Any account whose owner installs it: your other organisations, an agency's clients'</td></tr>
+<tr><td>When hq uses an installation</td><td>As soon as it appears</td><td>Only once an admin allows it (G1)</td></tr>
+<tr><td>Which account a workspace uses</td><td>Any, per connection</td><td>The project's default, or another the project can connect to; each account is open to every project or chosen ones</td></tr>
+<tr><td>Where that holds</td><td>—</td><td>On screen (G2 lists only accounts the project can connect to) <b>and</b> when hq mints <code>GITHUB_TOKEN</code>: for the run's workspace's repository only</td></tr></table>
+<p class="sub">Worked: a test project's <code>push</code> asks for a token for <code>acme/website</code>. The workspace's repository is <code>acme-tests/trial-site</code>, so hq refuses before asking GitHub, and the run fails at that step with "This workspace's repository is acme-tests/trial-site; acme/website is outside it".</p></div>
+
+<h2 id="gate">One gate for every token</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<p>Every installation token hq mints, for a workflow run or for hq's own git work, goes through <b>one check</b>. Nothing else in hq asks GitHub for a token.</p>
+<ol><li><b>The repository comes from the run's workspace</b>: its own connection, looked up by workspace id. Never from a URL, or from anything the caller sends.</li>
+<li><b>The workspace belongs to the run's place</b> (the project, or the person's own storage), and that place may connect to the repository's GitHub account (G1): the account is allowed, and its "Which projects can connect" rule still includes the place. This is checked at every mint, not only when connecting, so narrowing the rule takes effect at once.</li>
+<li><b>Accounts and repositories are matched by GitHub's ids</b> (installation id, repository id), never by login or name, which can be renamed and taken.</li>
+<li><b>No exceptions by agent.</b> No agent, the built-in one included, gets past the check.</li>
+<li><b>The token is the run's own:</b> minted fresh, never cached or shared, with exactly the workflow's declared permissions and <code>repository_ids</code> for that one repository. hq revokes it when the run ends, fails or is stopped.</li></ol></div>
+
+<h2 id="also">What stays the same</h2>
+<div class="box"><ul>
+<li>Connecting a repository from hq still runs git on the site with a token, as now (<code>repoWorkMethods.ts</code>); no agent is involved. Its token comes through the same gate.</li>
+<li>A workflow can start a GitHub workflow: <code>gh workflow run deploy.yml</code>. A GitHub workflow that needs a secret gets it through <code>set-github-secrets</code>, as an environment secret (<a href="#actions">above</a>), and a person approves it. Nothing else is built for it.</li></ul></div>
+
+<script>
+window.SRC = {
+before: `flowchart LR
+  G["agent's git"] -- "1 · push" --> H["helper"]
+  H -- "2 · run token" --> S["site"]
+  S -- "3" --> Q["hq mints token"]
+  Q --> S --> H
+  H -- "4 · token in the<br/>agent's container" --> G
+  G --> GH["github.com"]`,
+after: `flowchart LR
+  A["1 · agent commits<br/>locally"] -- "2 · run_workflow push" --> Q["3 · hq mints<br/>GITHUB_TOKEN"]
+  Q --> B["4a · step, no secret<br/>git bundle"]
+  B --> R["4b · step, token<br/>clean repository, push"]
+  R --> GH["github.com"]`
+}
+</script>
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

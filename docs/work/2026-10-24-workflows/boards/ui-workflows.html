@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Workflows section · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="ui-workflows.html"><main>
+<div class="top"><div><h1>U2 · The Workflows section</h1>
+<p class="sub">Every workflow in the project, itemised: what it does, what it uses, whether it's on, and what waits for approval.</p></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="box"><span class="lbl before">Before · today</span><p><b>New: nothing today.</b></p></div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr"><div class="pnav" data-on="workflows" data-after data-needs="1"></div>
+<div class="mcentre">
+<div class="crumb">Projects › Website rebuild › Workflows</div>
+<div class="mh">Workflows</div><div class="ml">What agents and people can run with this project's secrets. Each version was approved by a person.</div>
+<div class="msec">Needs you</div>
+<div class="mcard hl"><div class="ic" style="background:var(--mwarn)">▶</div><div class="b"><div class="t">deploy-staging · version 2</div><div class="s">Proposed by Kernel in "Restart the worker after deploying" · Reviewer: low risk · adds one step</div></div><span class="btn pri">Review</span></div>
+<div class="msec">All workflows</div>
+<div class="mcard"><div class="ic" style="background:var(--mok)">▶</div><div class="b"><div class="t">deploy-staging</div><div class="s">Build, upload and restart the app on staging · 5 steps · STAGING_DEPLOY_KEY · last run today 13:51 ✓</div></div><span class="switch on"></span><span class="btn">Run</span></div>
+<div class="mcard"><div class="ic" style="background:var(--mok)">▶</div><div class="b"><div class="t">push</div><div class="s">Push a branch to GitHub · 1 step · GITHUB_TOKEN · last run today 14:02 ✓</div></div><span class="switch on"></span><span class="btn">Run</span></div>
+<div class="mcard"><div class="ic" style="background:var(--mok)">▶</div><div class="b"><div class="t">open-pull-request</div><div class="s">Open a pull request for a branch · 1 step · GITHUB_TOKEN · last run yesterday ✓</div></div><span class="switch on"></span><span class="btn">Run</span></div>
+<div class="mcard dim"><div class="ic" style="background:var(--t3)">▶</div><div class="b"><div class="t">nightly-backup</div><div class="s">Dump the staging database to the backup bucket · 3 steps · turned off by Sam on 20 Oct</div></div><span class="switch"></span><span class="btn">Run</span></div>
+</div></div></div>
+<ol class="sub"><li><b>Needs you</b> comes first, and only for the project's administrators; others see "Waiting for an administrator".</li>
+<li>Each row: name, description, steps, the <b>secret</b> variables it uses (plain ones are on its page), and its last run.</li>
+<li><b>The switch</b> turns it on or off, for administrators; others see the state only. Off rows are dimmed and Run is unavailable.</li>
+<li><b>Run</b> asks for the parameters, if it has any (U3), then opens the run (U5).</li>
+<li>A click on a row opens the workflow (U3).</li></ol></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li>Itemised so a person can always see <b>everything that can run with the project's secrets</b>, without searching conversations.</li>
+<li>The switch on the row, as on GitHub's workflow list and n8n's, because turning something off quickly is the moment that matters.</li></ul></div>
+
+<h2 id="phone">On a phone</h2>
+<div class="box"><div class="phones">
+<div class="phone mock"><div class="mhdr">☰ <span class="grow">Workflows</span></div><div class="mbody">
+<div class="mcard hl"><div class="b"><div class="t">deploy-staging v2</div><div class="s">Needs you · Reviewer: low risk</div></div></div>
+<div class="mcard"><div class="b"><div class="t">deploy-staging</div><div class="s">5 steps · today ✓</div></div><span class="switch on"></span></div>
+<div class="mcard"><div class="b"><div class="t">push</div><div class="s">1 step · today ✓</div></div><span class="switch on"></span></div>
+<div class="mcard"><div class="b"><div class="t">open-pull-request</div><div class="s">1 step · yesterday ✓</div></div><span class="switch on"></span></div>
+<div class="mcard dim"><div class="b"><div class="t">nightly-backup</div><div class="s">Off</div></div><span class="switch"></span></div>
+</div></div></div><p class="sub">Run moves into the workflow's page on a phone; the switch stays on the row.</p></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

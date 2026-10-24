@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limits · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="limits.html"><main>
+<div class="top"><div><h1>10 · What it stops, and what it does not</h1>
+<p class="sub">The spike's attack paths, each with what stops it. Every row becomes a test that plants dummy secrets and fails if one turns up where the agent can read it.</p></div></div>
+
+<h2 id="attacks">Each attack, and what stops it</h2>
+<div class="box"><table>
+<tr><th></th><th>Attack</th><th>What stops it</th></tr>
+<tr><td class="n">A1</td><td>The workflow prints or encodes a value</td><td>Review before it can run: plain checks flag it, the reviewer and the person read it; masking catches the plain forms</td></tr>
+<tr><td class="n">A2</td><td>A dependency is swapped, or a package steals a secret while installing</td><td>Installs are pinned, from a lock file that is one of the workflow's own files, and only from approved hosts; a step that installs gets no secret unless it names one, and the plain checks flag a step that does both</td></tr>
+<tr><td class="n">A3</td><td>A process from one step waits for a later step's secret</td><td>Each executor container is removed before the next starts</td></tr>
+<tr><td class="n">A4</td><td>An encoding that masking misses</td><td>Review only: masking does not stop it</td></tr>
+<tr><td class="n">A5</td><td>The value is left in a file for the agent</td><td>The run works on a snapshot; its changes reach the workspace only after a scan by content, git's objects included (boards 6, 8), and review</td></tr>
+<tr><td class="n">A6</td><td>The agent's container inspects the executor container</td><td>They share no network or process space; neither has the Docker socket</td></tr>
+<tr><td class="n">A7</td><td>The value is sent out, directly or by DNS</td><td>No network by default; with hosts approved, the proxy lets only those through, resolves names itself, answers the step's DNS, and refuses private addresses. Not a hosted service anyone can sign up to: see below</td></tr>
+<tr><td class="n">A8</td><td>The files change between approval and run</td><td>Approval is of one hash; the site recomputes it before the run, and steps run the approved files from a read-only folder, never the workspace's copies</td></tr>
+<tr><td class="n">A9</td><td>A run while the workflow is off</td><td>hq checks the switch on every run, and stops a run already going when it's turned off</td></tr>
+<tr><td class="n">A10</td><td>A parameter becomes code or an option</td><td>Patterns or fixed lists, checked by hq; values passed as files, never into the text</td></tr>
+<tr><td class="n">A11</td><td>The workflow steers the reviewer</td><td>The reviewer has no tools or variables; plain checks show regardless; the person decides</td></tr>
+<tr><td class="n">A12</td><td>The agent's command gets a GitHub token from git</td><td>No helper, no credential endpoint and no token in the agent's container (board 9)</td></tr>
+<tr><td class="n">A13</td><td>The agent changes what an approved step runs: a script, a lock file, a build output, a git hook or config in the workspace</td><td>Steps run the approved files; the workspace is a snapshot the agent can't change during the run; a secret step that runs anything from it is flagged high and can't be approved from the card; git with a token runs only in a clean repository (boards 6, 9)</td></tr>
+<tr><td class="n">A14</td><td>A steered reviewer gets a harmful version approved in one tap</td><td>Only the plain checks decide whether the card offers Approve; the card's summary is written by them (U4)</td></tr>
+<tr><td class="n">A15</td><td>A member links someone else's repository into their own storage and approves workflows there</td><td>Own storage connects to no GitHub account unless an admin chooses it; wider GitHub permissions there need an admin (G1, board 5)</td></tr>
+<tr><td class="n">A16</td><td>A secret set on GitHub is read by code the agent pushes</td><td>Environment secrets only, limited to protected branches; push and open-pull-request refuse protected branches (board 9)</td></tr>
+<tr><td class="n">A17</td><td>A token for the wrong repository, project or client</td><td>One mint gate: the repository from the workspace's own connection, by GitHub ids; the connect rule rechecked at every mint; no agent exceptions; one token per run, revoked when it ends (board 9)</td></tr>
+<tr><td class="n">A18</td><td>A link in the workspace points the site at a file outside it</td><td>The site never follows links when it copies, snapshots, scans or writes back; a version can't contain one (board 6)</td></tr>
+</table></div>
+
+<h2 id="not">What it does not protect against</h2>
+<div class="box">
+<div class="warnbox"><b>An approved workflow written to misuse a secret.</b> If a person approves code that sends a value to an approved host, or uses it to do damage, it will. The design moves the risk from "any prompt can leak a secret" to "a person approved code that leaks it, after a reviewer and plain checks read it".</div>
+<ul><li><b>An approved host that takes anyone's data.</b> <code>github.com</code>, <code>registry.npmjs.org</code> and the like accept data from any account, so allowing one doesn't stop a step sending a value to an account the attacker owns there. What stops it is that steps run only approved code, with the controls above (A13); the allow-list narrows where, it doesn't prevent.</li>
+<li><b>What the secret itself allows.</b> A run can do anything its secret permits. Narrow secrets (a database user with only a migration's rights, a deploy key for one server) stay the operator's job.</li>
+<li><b>The agent's own outbound network.</b> Unchanged by this unit. With no secret inside the agent's container there's nothing secret to send, but the agent can still send the workspace's files. Limiting that is a separate decision.</li></ul></div>
+
+<h2 id="adr">The decision record it needs</h2>
+<div class="box"><p><b>ADR-0037</b> chose GitHub Actions over a platform-owned runner (its option C) because building secret storage, injection and isolation ourselves was the risk. This design builds that runner, deliberately: it's the only way to keep every integration's secrets out of the agent's container, and it reaches what GitHub Actions can't (a database on the site's machine, a firewalled server). A new decision record amends ADR-0037. GitHub workflows stay, and a workflow can start one.</p>
+<p>It also records a second reversal. ADR-0037 kept a real-secret run's output from the agent, because masking can't close that channel fully. Here the agent gets the masked output, so it can fix a failing deploy without a person relaying the log. What bounds it instead: a person approved the exact code, masking covers every secret of the place, and agent reruns are limited (board 3).</p></div>
+
+<h2 id="verify">To verify while building</h2>
+<div class="box"><p>What the design relies on about GitHub, Docker and our own parts. Each is a test in the build; if one fails, the design changes before anything ships.</p>
+<table><tr><th></th><th>Check</th><th>If it's wrong</th></tr>
+<tr><td class="n">V1</td><td>A container on an internal Docker network with <code>--dns</code> set to the proxy can't resolve names through Docker's own resolver</td><td>Steps with hosts can leak by DNS lookups</td></tr>
+<tr><td class="n">V2</td><td>An installation token asked for with <code>permissions</code> and <code>repository_ids</code> gets exactly those; <code>contents: write</code> can't change <code>.github/workflows/</code>; revoking a token ends it at once</td><td>Token narrowing and revoking (board 9) don't hold</td></tr>
+<tr><td class="n">V3</td><td>No site endpoint the agent's run token can call returns a run instruction, unmasked output or a secret</td><td>Masking is pointless</td></tr>
+<tr><td class="n">V4</td><td>The executor image has no git credential helper from the shared tools stage</td><td>A leftover helper decides how git authenticates</td></tr>
+<tr><td class="n">V5</td><td><code>gh pr create</code> takes the title safely from a file (or one quoted argument), and the plain checks don't flag the starter workflow for it</td><td>The starter needs another way to pass the title</td></tr>
+<tr><td class="n">V6</td><td>Whether one agent container serves several conversations in a place, and so whether one conversation can change what another's workflow sees</td><td>The snapshot (board 6) is all that separates them; check it's taken per run</td></tr>
+<tr><td class="n">V7</td><td>An environment secret limited to protected branches isn't given to workflows on other branches or on pull requests</td><td>SR-6's fix (board 9) doesn't hold</td></tr></table></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

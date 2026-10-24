@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A workflow · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="ui-workflow.html"><main>
+<div class="top"><div><h1>U3 · A workflow</h1>
+<p class="sub">One workflow's page: its switch, Run, and three tabs: what it does (Steps), its Versions, and its Runs.</p></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="box"><span class="lbl before">Before · today</span><p><b>New: nothing today.</b></p></div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr"><div class="pnav" data-on="workflows" data-after data-needs="1"></div>
+<div class="mcentre">
+<div class="crumb">Projects › Website rebuild › Workflows › deploy-staging</div>
+<div class="row"><div class="grow"><div class="mh">deploy-staging</div><div class="ml">Build, upload and restart the app on staging · version 1, approved by Sam on 14 Oct · version 2 waits for you</div></div><span class="switch on"></span><span style="font-size:13px">On</span><span class="btn pri">Run</span></div>
+<div class="tabs"><span class="on">Steps</span><span>Versions · 2</span><span>Runs · 14</span></div>
+<table style="font-size:13px"><tr><th></th><th>Step</th><th>Runs</th><th>Secrets it gets</th></tr>
+<tr><td class="n">1</td><td>Build</td><td><code>npm ci &amp;&amp; npm run build</code></td><td style="color:var(--t3)">no secrets</td></tr>
+<tr><td class="n">2</td><td>Upload</td><td><code>./deploy/upload.sh</code> <a style="color:var(--macc)">view</a></td><td><span class="tag warn">🔒 STAGING_DEPLOY_KEY</span></td></tr>
+<tr><td class="n">3</td><td>Migrate the database</td><td><code>./deploy/migrate.sh</code> <a style="color:var(--macc)">view</a></td><td><span class="tag warn">🔒 STAGING_DEPLOY_KEY</span></td></tr>
+<tr><td class="n">4</td><td>Restart the app</td><td><code>./deploy/restart.sh</code> <a style="color:var(--macc)">view</a></td><td><span class="tag warn">🔒 STAGING_DEPLOY_KEY</span></td></tr>
+<tr><td class="n">5</td><td>Check it answers</td><td><code>curl -fsS https://$STAGING_HOST/health</code></td><td style="color:var(--t3)">none</td></tr></table>
+<div class="msec">Variables it uses</div>
+<div class="row" style="flex-wrap:wrap;gap:6px"><span class="tag">STAGING_HOST = staging.example.com</span><span class="tag">NODE_ENV = production</span></div>
+<div class="msec">Hosts it can reach, and its time limit</div>
+<div class="row" style="flex-wrap:wrap;gap:6px"><span class="tag">registry.npmjs.org:443</span><span class="tag">staging.example.com:22</span><span class="tag">10 min</span></div>
+<div class="msec">Run it</div>
+<div class="dialog" style="box-shadow:none;margin-top:6px;width:380px">
+<h4>Run push</h4><p style="font-size:13px;color:var(--t2);margin:0">An example with a parameter: push asks for the branch.</p>
+<div class="field"><label>branch</label><div class="in">feature/region</div><div class="hint">Letters, digits, . _ / - · up to 100</div></div>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri">Run</span></div></div>
+</div></div></div>
+<ol class="sub"><li><b>The switch and Run</b> are in the screen's header, for administrators; anyone in the project can press Run while it's on.</li>
+<li><b>Steps</b> is the approved version as people read it: each step's name, what it runs (files one click away), and <b>which secrets that step gets</b>. A step with none, like Build, is shown as such.</li>
+<li><b>Versions</b> lists every version: proposed by, reviewer's risk level, approved or declined by and when; any two can be compared.</li>
+<li><b>Runs</b> is this workflow's history; each opens the run (U5).</li></ol></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li>Steps first, because "what will this do if I press Run?" is the first question.</li>
+<li>Each secret flagged with 🔒 on the step that gets it, so what can touch a secret is never more than a glance away.</li></ul></div>
+
+<h2 id="phone">On a phone</h2>
+<div class="box"><div class="phones">
+<div class="phone mock"><div class="mhdr">‹ <span class="grow">deploy-staging</span><span class="switch on"></span></div><div class="mbody">
+<div style="font-size:13px;color:var(--t2)">Build, upload and restart the app on staging · v1</div>
+<div class="tabs"><span class="on">Steps</span><span>Versions</span><span>Runs</span></div>
+<div class="mcard"><div class="b"><div class="t">1 · Build</div></div></div><div class="mcard"><div class="b"><div class="t">2 · Upload</div></div></div><div class="mcard"><div class="b"><div class="t">3 · Migrate the database</div></div></div><div class="mcard"><div class="b"><div class="t">4 · Restart the app</div></div></div><div class="mcard"><div class="b"><div class="t">5 · Check it answers</div></div></div>
+<span class="btn pri wide">Run</span></div></div></div></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

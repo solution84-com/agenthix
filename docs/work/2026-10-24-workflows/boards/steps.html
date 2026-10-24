@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steps and progress · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="steps.html"><main>
+<div class="top"><div><h1>7 · Steps and progress</h1>
+<p class="sub">A workflow is a list of named steps, as in a GitHub Actions job, so a person can follow a run step by step and see at once where it stopped. Each step names the secrets it needs, and gets only those.</p></div></div>
+
+<h2 id="define">How steps are written</h2>
+<div class="box"><span class="lbl after">New · nothing today</span>
+<p>The agent writes one definition file in the GitHub Actions style, which models already know well, plus any script files the steps call. Everything in it is part of the version that's reviewed and approved.</p>
+<pre class="code">name: deploy-staging
+description: Build, upload and restart the app on staging
+hosts: ["registry.npmjs.org:443", "staging.example.com:22"]
+variables: [STAGING_HOST, NODE_ENV]   # every step has these as $STAGING_HOST, $NODE_ENV
+timeout: 10m
+steps:
+  - name: Build
+    run: npm ci && npm run build       # no secrets: installs from the lock file
+  - name: Upload
+    secrets: [STAGING_DEPLOY_KEY]
+    run: ./deploy/upload.sh            # rsync dist/ over ssh
+  - name: Migrate the database
+    secrets: [STAGING_DEPLOY_KEY]
+    run: ./deploy/migrate.sh
+  - name: Restart the app
+    secrets: [STAGING_DEPLOY_KEY]
+    run: ./deploy/restart.sh
+  - name: Check it answers
+    run: curl -fsS "https://$STAGING_HOST/health"</pre>
+<ul><li>Each step has a <b>name</b>, which is what people see, and <b>run</b>, a command or one of the version's files.</li>
+<li>Each step lists the <b>secrets</b> it uses, and receives only those; a step that lists none receives none. The workflow lists the <b>variables</b> it uses once, at the top, and every step has them as environment variables (<code>$STAGING_HOST</code>). Both lists are how "Used by" is known.</li>
+<li>Steps run <b>in order, each in its own container</b>, sharing the workspace, so what one step builds the next can use (board 6).</li>
+<li><b>The first step that fails stops the run</b>; the steps after it are marked skipped.</li>
+<li>A step may have its own <code>timeout</code>; the whole run also has one.</li></ul></div>
+
+<h2 id="how">How progress gets there</h2>
+<div class="box"><ol>
+<li>The site starts each executor container in turn, and removes it when the step ends.</li>
+<li>As each step starts and ends, the site sends a step event (name, state, time, masked output so far) to hq over the control channel, the way a run's status reaches hq today.</li>
+<li>hq updates the run's page and its card in the conversation as the events arrive.</li></ol></div>
+<div class="box why"><b>On screen:</b> a run step by step, on its page and in the conversation, <a href="/files/ui-run.html">U5</a>.</div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

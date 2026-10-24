@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What comes back · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="results.html"><main>
+<div class="top"><div><h1>8 · What comes back</h1>
+<p class="sub">The agent and the person both get the run's output, with every secret value masked. A value only shows up if the approved workflow prints it, and the review is what catches that.</p></div></div>
+
+<h2 id="back">What each sees</h2>
+<div class="box"><span class="lbl after">New · nothing today</span>
+<table><tr><th></th><th>The agent</th><th>The person, on the Workflows section</th></tr>
+<tr><td>Exit status and duration</td><td>yes</td><td>yes</td></tr>
+<tr><td>Each step: passed, failed or skipped, and its time</td><td>yes</td><td>yes, live (board 7)</td></tr>
+<tr><td>Output</td><td>masked, the last 200 lines</td><td>masked, all of it</td></tr>
+<tr><td>Files the run changed in the workspace</td><td>yes, once scanned and written back (below)</td><td>yes</td></tr></table></div>
+
+<h2 id="mask">Masking, worked</h2>
+<div class="box">
+<p>Before anything leaves the site, the site replaces every secret value, in each of these forms, with <code>***</code>. GitHub Actions masks its logs the same way. <b>Every secret of the place, not only the run's own:</b> all the project's (or person's) secrets, and every token minted for it that hasn't expired. So a value one run left behind is still masked when a later run, or another workflow, prints it. hq sends the site only what it needs to find them (their masked forms, or keyed hashes), never extra values in plain.</p>
+<table><tr><th>Form</th><th>Value <code>s3cr3t-pw</code> appears as</th><th>Masked</th></tr>
+<tr><td>As it is</td><td><code>s3cr3t-pw</code></td><td>yes</td></tr>
+<tr><td>base64</td><td><code>czNjcjN0LXB3</code></td><td>yes</td></tr>
+<tr><td>hex</td><td><code>73336372337…</code></td><td>yes</td></tr>
+<tr><td>URL-encoded, inside a connection string</td><td><code>postgres://app:s3cr3t-pw@…</code></td><td>yes</td></tr>
+<tr><td>One character per line, reversed, XOR-ed…</td><td>anything a workflow is written to produce</td><td><b>no</b></td></tr></table>
+<ul class="sub"><li><b>base64 at every alignment:</b> a value inside a longer base64 string (an <code>Authorization: Basic …</code> header) lands at one of three offsets, so all three are masked. Hex in both cases.</li>
+<li><b>Across chunks:</b> live output is held back by the length of the longest secret before it's sent, so a value split between two chunks is still found.</li>
+<li><b>File secrets line by line:</b> a 48 KB file (a private key) is matched by each of its lines too, so printing part of it is masked.</li></ul>
+<div class="warnbox"><b>Masking catches accidents, not intent.</b> A workflow written to leak can encode a value so that no mask finds it. What stops that is the review: the plain checks flag a secret used near output, and the reviewer agent and the person read the code before it can run (board 5).</div></div>
+
+<h2 id="files">Files the run changed</h2>
+<div class="box"><p>A workflow could write a secret into a file for the agent to read later. The run works on a snapshot the agent can't see (board 6), so <b>nothing reaches the agent's workspace until it's been checked</b>. When the run ends, the site checks every file the run created or changed in the snapshot, and everything in <code>/run/out</code>, for the same forms as the output.</p>
+<ul><li><b>By content:</b> the site compares the files themselves against the start, not their modification times and sizes, which a program can set back.</li>
+<li><b>Git's own files too:</b> a value committed by a step is stored compressed in <code>.git/objects</code>, where none of the forms above would find it. The site reads the run's new git objects decompressed and checks those as well.</li>
+<li><b>Nothing found:</b> the changes are written back to the agent's workspace.</li>
+<li><b>A value found:</b> the run fails and none of its changes are written back. The person sees which file and which secret. The agent sees only "the run left a secret in a file, so its changes were dropped".</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>
