@@ -78,6 +78,7 @@ jobs:
       # here types a port. The later steps and the captures read them from the environment.
       - name: Choose the ports
         run: |
+          # shellcheck disable=SC2016 # the backticks are the script's own template strings, for node, not the shell's
           node -e '
             const net = require("node:net");
             const take = () => new Promise((ok) => { const s = net.createServer().listen(0, "127.0.0.1", () => ok(s)); });
