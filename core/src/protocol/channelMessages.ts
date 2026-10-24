@@ -11,6 +11,7 @@ import type {
 } from './runtimeEvents.js'
 import type { SiteHealth } from './siteHealth.js'
 import type { ScheduledChangeNotice } from '../host/scheduledChange.js'
+import type { WorkflowRunResult, WorkflowStepEvent } from './workflowRuns.js'
 
 export type HQConnectionMessageType =
   | 'ping'
@@ -74,6 +75,8 @@ export type SiteEvents = {
   'run.waiting': RunWaitingEvent
   'site.health': SiteHealth
   'site.scheduledChange': ScheduledChangeNotice
+  'workflow.step': WorkflowStepEvent
+  'workflow.result': WorkflowRunResult
 }
 
 export type SiteEventName = keyof SiteEvents

@@ -12,6 +12,7 @@ import {
   SITE_DIAGNOSTICS_METHODS,
   SITE_RESTORE_METHODS,
   SITE_HQ_ADDRESS_METHOD,
+  WORKFLOW_RUN_METHODS,
   type JsonValue,
   type SiteDescribeResult,
   type SiteMethodName,
@@ -183,4 +184,20 @@ export const channelMethods: ChannelHandlers = {
   [CLAUDE_LOGIN_METHODS.start]: () => startLogin(),
   [CLAUDE_LOGIN_METHODS.finish]: (params) => finishLogin(params),
   [CLAUDE_LOGIN_METHODS.cancel]: (params) => cancelLogin(params),
+
+  // Workflows (adr-0147): declared now so both sides build against one contract; until this site has the executor,
+  // it refuses every run and knows of none.
+  [WORKFLOW_RUN_METHODS.run]: async () => ({
+    accepted: false,
+    reason: 'invalid_instruction',
+    message: 'This site does not run workflows yet. Nothing was changed.',
+  }),
+  [WORKFLOW_RUN_METHODS.stop]: async () => ({ stopped: false }),
+  [WORKFLOW_RUN_METHODS.get]: async () => null,
+  [WORKFLOW_RUN_METHODS.readFiles]: async () => ({
+    ok: false,
+    reason: 'workspace_missing',
+    path: null,
+    message: 'This site does not read workflow files yet. Nothing was changed.',
+  }),
 }
