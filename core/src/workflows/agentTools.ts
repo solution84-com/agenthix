@@ -97,8 +97,11 @@ export type WorkflowListEntry = {
 
 export type ListWorkflowsResult = { workflows: WorkflowListEntry[] }
 
-/** One of the plain checks' flags (R1): the rule's number, whether it is high, and what it found. */
-export type WorkflowCheckFlag = { rule: number; high: boolean; message: string; path?: string }
+/**
+ * One of the plain checks' flags (R1): the rule's number, whether it is high, and what it found. `path` is a version
+ * file, or a place in the definition such as `steps[1].run` or `github.issues`; `line` counts from 1 within it.
+ */
+export type WorkflowCheckFlag = { rule: number; high: boolean; message: string; path?: string; line?: number }
 
 export type ProposeWorkflowResult = {
   workflow: string

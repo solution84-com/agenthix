@@ -5,6 +5,7 @@ import { contextShare, type ContextUse } from '@agenthix/core'
 import type { OperationActivityView } from '../../shared/conversations/protocol'
 import { stateWord, type LiveLines } from '../hooks/activityState'
 import { barHeading, workBar } from '../hooks/workBarState'
+import { WorkflowRequestRow } from './WorkflowRequestRow'
 
 /** How much of the background session's context its work has filled, as the runtime last reported it. */
 export function contextLine(use: ContextUse | null | undefined): string | null {
@@ -154,7 +155,9 @@ export function WorkBar({ rows, liveLines, actions }: { rows: OperationActivityV
       </button>
       {open && (
         <ul className="max-h-80 divide-y divide-border-subtle overflow-y-auto border-t border-border-subtle" data-testid="work-bar-list">
-          {bar.requests.map((r) => <RequestRow key={r.operationId} row={r} actions={actions} />)}
+          {bar.requests.map((r) => (r.workflowCard
+            ? <WorkflowRequestRow key={r.operationId} row={r} card={r.workflowCard} actions={actions} />
+            : <RequestRow key={r.operationId} row={r} actions={actions} />))}
           {bar.others.map((r) => <WorkRow key={r.operationId} row={r} live={liveLines[r.operationId]} actions={actions} />)}
         </ul>
       )}

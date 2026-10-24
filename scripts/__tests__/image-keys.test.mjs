@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
-import { computeKeys, fromReferences } from '../images/keys.mjs'
+import { computeKeys, computeToolsKey, fromReferences } from '../images/keys.mjs'
 
 const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd, encoding: 'utf8' }).trim()
 
@@ -93,4 +93,28 @@ test('the rebuild epoch changes every key @SC-1266', () => {
 
 test('a Dockerfile\'s own stages are not base images @SC-1266', () => {
   assert.deepEqual(fromReferences('FROM node:24 AS build\nFROM build AS app\nFROM --platform=$BUILDPLATFORM x@sha256:ab AS y\nFROM app\n'), ['node:24', 'x@sha256:ab'])
+})
+
+test('the tools stage key moves with the tools stage and nothing else in the images', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tools-key-'))
+  const write = (p, text) => {
+    fs.mkdirSync(path.dirname(path.join(dir, p)), { recursive: true })
+    fs.writeFileSync(path.join(dir, p), text)
+  }
+  const stage = pkgs => `# >>> tools stage\nFROM node:24 AS tools\nRUN apk add ${pkgs}\n# <<< tools stage\n`
+  const commit = (message) => { git(dir, 'add', '-A'); git(dir, 'commit', '-q', '-m', message); return git(dir, 'rev-parse', 'HEAD') }
+  git(dir, 'init', '-q', '-b', 'main')
+  write('site/docker/executor.Dockerfile', `${stage('git')}FROM tools\nRUN echo one\n`)
+  const first = commit('first')
+  write('site/docker/executor.Dockerfile', `${stage('git')}FROM tools\nRUN echo two\n`)
+  const laterStep = commit('a later step')
+  write('site/docker/executor.Dockerfile', `${stage('git curl')}FROM tools\nRUN echo two\n`)
+  const tools = commit('a tool')
+  const key = ref => computeToolsKey({ cwd: dir, ref })
+  assert.match(key(first), /^[0-9a-f]{64}$/)
+  assert.equal(key(laterStep), key(first))
+  assert.notEqual(key(tools), key(first))
+  write('site/docker/executor.Dockerfile', 'FROM tools\n')
+  commit('no markers')
+  assert.throws(() => key('HEAD'), /no tools stage/)
 })

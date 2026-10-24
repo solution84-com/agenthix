@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Each image part's content key: a SHA-256 over what the part is built from, so the same key is the same image.
 //   node scripts/images/keys.mjs [<commit>] [--worktree] [--json]
+//   node scripts/images/keys.mjs [<commit>] [--worktree] --tools-key   the shared tools stage's key (the agent and executor images' label)
 // The commit defaults to HEAD; --worktree keys the working tree as it is now (uncommitted changes included, files
 // Git ignores left out), for a local build. It reads Git only: no Docker, nothing built.
 //
@@ -65,9 +66,42 @@ export function computeKeys({ cwd, ref = 'HEAD', worktree = false }) {
   return keys
 }
 
+/** The tools stage of a Dockerfile: the lines between its markers, markers included, or null. */
+export function toolsStageOf(dockerfile) {
+  const m = /^# >>> tools stage[^\n]*\n[\s\S]*?^# <<< tools stage$/m.exec(dockerfile)
+  return m ? m[0] : null
+}
+
+export const TOOLS_STAGE_DOCKERFILE = 'site/docker/executor.Dockerfile'
+
+/**
+ * The content key of the shared tools stage the agent and executor images are both built on (a test holds the two
+ * copies identical): a SHA-256 over the stage's text, which carries its base image and what it installs, and the Git
+ * object ID of every file the stage copies in. It moves exactly when the tools do, and not when anything else in
+ * either image does, so an approved workflow survives an image that changed only elsewhere. The images carry it as
+ * the label `tools-stage-key`, which the site reports to hq.
+ */
+export function computeToolsKey({ cwd, ref = 'HEAD', worktree = false }) {
+  const treeish = worktree ? worktreeTree(cwd) : ref
+  const stage = toolsStageOf(git(cwd, ['show', `${treeish}:${TOOLS_STAGE_DOCKERFILE}`]))
+  if (!stage) throw new Error(`${TOOLS_STAGE_DOCKERFILE} has no tools stage between its markers`)
+  const copied = []
+  for (const line of stage.split('\n')) {
+    const m = /^\s*COPY\s+(?:--\S+\s+)*(.+)$/i.exec(line)
+    if (!m) continue
+    const words = m[1].trim().split(/\s+/)
+    for (const src of words.slice(0, -1)) copied.push(`copy ${src} ${git(cwd, ['rev-parse', `${treeish}:${src.replace(/\/$/, '')}`])}`)
+  }
+  return crypto.createHash('sha256').update(['tools-stage', stage, ...copied].join('\n')).digest('hex')
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2)
   const cwd = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+  if (args.includes('--tools-key')) {
+    console.log(computeToolsKey({ cwd, ref: args.find(a => !a.startsWith('--')), worktree: args.includes('--worktree') }))
+    process.exit(0)
+  }
   const keys = computeKeys({ cwd, ref: args.find(a => !a.startsWith('--')), worktree: args.includes('--worktree') })
   if (args.includes('--json')) console.log(JSON.stringify(keys))
   else for (const [part, key] of Object.entries(keys)) console.log(`${part} ${key}`)

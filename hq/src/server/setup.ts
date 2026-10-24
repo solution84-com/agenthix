@@ -70,6 +70,8 @@ import { orgImageHandler, teamImageHandler } from '../org/identityImages'
 import { KERNEL_HANDLE, KERNEL_NAME, KERNEL_ROLE } from '../agents/kernelGuards'
 import { Logger } from './utils/logger'
 import { startLedger } from '../billing/start'
+import { startRotationNotices } from '../secrets/rotation'
+import { resumeReviews } from '../workflows/review/afterProposal'
 import { startDiagnostics, startLogging } from '../diagnostics/startDiagnostics'
 
 const logger = new Logger('startup')
@@ -236,6 +238,12 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   // Each provider's state, from a check with its vendor that costs nothing: hourly, and every 5 minutes while one is
   // not working (providers/health.ts). Keys enter only through the provider store, never from hq's environment.
   startProviderHealth()
+
+  // Secrets due for rotation: a notice to the place's administrators a week before, overdue after (secrets/).
+  startRotationNotices()
+
+  // Workflow versions a stop of hq left without their review and approval card (workflows/review/).
+  void resumeReviews()
 
   // Every call costed on the ledger: subscription runs as they end, the relay's reports as they wait (billing/).
   startLedger()

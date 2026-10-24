@@ -10,6 +10,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 2
 
+TOOLS_KEY="$(node scripts/images/keys.mjs --worktree --tools-key)" || { echo "Could not compute the tools stage key." >&2; exit 2; }
 KEYS="$(node scripts/images/keys.mjs --worktree --json)" || { echo "Could not compute the content keys." >&2; exit 2; }
 PARTS="$(node scripts/images/parts.mjs)" || { echo "Could not read scripts/images/parts.json." >&2; exit 2; }
 
@@ -24,10 +25,14 @@ while read -r part file target <&3; do
   key="$(node -p 'JSON.parse(process.argv[1])[process.argv[2]]' "$KEYS" "$part")"
   if [ "${START_TEST_NO_BUILD:-}" != 1 ]; then
     have="$(docker image inspect -f '{{index .Config.Labels "content-key"}}' "$image" 2>/dev/null || true)"
-    if [ "$have" = "$key" ]; then
+    have_tools="$(docker image inspect -f '{{index .Config.Labels "tools-stage-key"}}' "$image" 2>/dev/null || true)"
+    case "$part" in agent | executor) ;; *) have_tools="$TOOLS_KEY" ;; esac
+    if [ "$have" = "$key" ] && [ "$have_tools" = "$TOOLS_KEY" ]; then
       echo "Already built for this content ($key)."
     else
       args=(-f "$file" -t "$image" --label "content-key=$key")
+      # The agent and executor images share one tools stage; its key is what hq compares across an image upgrade.
+      case "$part" in agent | executor) args+=(--label "tools-stage-key=$TOOLS_KEY") ;; esac
       [ "$target" = - ] || args+=(--target "$target")
       if ! docker build "${args[@]}" .; then
         results+=("FAILS  $part: it does not build")

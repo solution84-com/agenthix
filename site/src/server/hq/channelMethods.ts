@@ -33,6 +33,8 @@ import * as diagnostics from './diagnosticsMethods'
 import { restoreReport } from './restoreReport'
 import { cancelLogin, finishLogin, startLogin } from '../login/claudeLogin'
 import { addressFollower } from './addressFollow'
+import * as executor from '../../executor/run'
+import { readWorkflowFiles } from '../../executor/readFiles'
 
 const startedAt = new Date()
 
@@ -185,19 +187,11 @@ export const channelMethods: ChannelHandlers = {
   [CLAUDE_LOGIN_METHODS.finish]: (params) => finishLogin(params),
   [CLAUDE_LOGIN_METHODS.cancel]: (params) => cancelLogin(params),
 
-  // Workflows (adr-0147): declared now so both sides build against one contract; until this site has the executor,
-  // it refuses every run and knows of none.
-  [WORKFLOW_RUN_METHODS.run]: async () => ({
-    accepted: false,
-    reason: 'invalid_instruction',
-    message: 'This site does not run workflows yet. Nothing was changed.',
-  }),
-  [WORKFLOW_RUN_METHODS.stop]: async () => ({ stopped: false }),
-  [WORKFLOW_RUN_METHODS.get]: async () => null,
-  [WORKFLOW_RUN_METHODS.readFiles]: async () => ({
-    ok: false,
-    reason: 'workspace_missing',
-    path: null,
-    message: 'This site does not read workflow files yet. Nothing was changed.',
-  }),
+  // Workflows (adr-0147, adr-0148): the executor's run (executor/run.ts). `workflow.run` answers at once and the run
+  // reports by `workflow.step` and `workflow.result` events; `workflow.readFiles` reads a proposal's files, refusing
+  // any link.
+  [WORKFLOW_RUN_METHODS.run]: (params) => executor.startRun(params),
+  [WORKFLOW_RUN_METHODS.stop]: (params) => executor.stopRun(params),
+  [WORKFLOW_RUN_METHODS.get]: (params) => executor.getRun(params),
+  [WORKFLOW_RUN_METHODS.readFiles]: (params) => readWorkflowFiles(params),
 }

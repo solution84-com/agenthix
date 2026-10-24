@@ -73,8 +73,32 @@ export type ResultBody = {
 /** `target.params`: what else the tool's address names to open the item, such as a memory's scope and agent. */
 export type ActionBody = { text: string; toolName: string; target?: { kind: string; id: string; label: string; params?: Record<string, string> } }
 export type TaskBody = { taskId: string; taskKey: string; title: string }
-/** `askedBy` is the agent's name; `what` says what would run ("Run the benchmark"). */
-export type ApprovalRequestBody = { title: string; reason: string; boundaryName?: string; askedBy: string; what?: string }
+/**
+ * A workflow version's approval card (workflows spec part 5, U4). Its summary and flags are the plain checks', never
+ * the agent's words or the reviewer's; `hash` names the version shown, so an answer can approve only that. Approve
+ * is offered only when `mayApprove`; otherwise only "Review all of it", with `reason` in one line. The reviewer's
+ * level is shown, and never decides that.
+ */
+export type WorkflowApprovalCard = {
+  workflowId: string
+  workflow: string
+  version: number
+  hash: string
+  summary: string
+  /** Null when the reviewer gave none; `reviewNote` then says why. */
+  reviewLevel: 'low' | 'look_closely' | 'high' | null
+  reviewNote?: string
+  flags: { rule: number; high: boolean; message: string; path?: string; line?: number }[]
+  mayApprove: boolean
+  reason?: string
+}
+/**
+ * `askedBy` is the agent's name; `what` says what would run ("Run the benchmark"). `workflow` (from 1.5): the card
+ * asks for a workflow version's approval.
+ */
+export type ApprovalRequestBody = {
+  title: string; reason: string; boundaryName?: string; askedBy: string; what?: string; workflow?: WorkflowApprovalCard
+}
 /**
  * Written as the answering person's message; `operationId` is on the message. `transcript`: what the person said,
  * for an answer given aloud (the message is marked spoken).

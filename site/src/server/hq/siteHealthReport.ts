@@ -8,6 +8,8 @@ import { siteCeilings } from '../../agents/runtime/containerLimits'
 import { getStorageRoot } from '../storage/paths'
 import { readMacAvailableBytes } from './macMemory'
 import { runtimeCheck } from './runtimeCheck'
+import { executorImageReport } from './executorImageReport'
+import { executorImageName } from '../../agents/runtime/agentImage'
 
 const IMAGE_VERSION_TIMEOUT_MS = 10_000
 
@@ -64,6 +66,9 @@ export async function takeHealth(deps: HealthDeps = {}): Promise<SiteHealth> {
     (deps.disk ?? diskOf)(getStorageRoot()).catch(() => null),
   ])
   const dockerRunning = check.containerRuntime === 'available'
+  const executorImage = dockerRunning
+    ? await executorImageReport(docker)
+    : { name: executorImageName(), present: false, digest: null, release: null, toolsKey: null }
   return {
     takenAt: (deps.now ?? (() => new Date()))().toISOString(),
     runs: { running, maxAtOnce: maxConcurrentRuns() },
@@ -75,6 +80,7 @@ export async function takeHealth(deps: HealthDeps = {}): Promise<SiteHealth> {
       // The agent image is the one of the site's own release, so the site's version is its version.
       version: check.imagePresent ? process.env.APP_VERSION || null : null,
     },
+    executorImage,
     // The ceilings only: never the machine's resource use or Docker's version from the host service's figures.
     ceilings: siteCeilings(),
     // A condition, never a figure (spec §10).

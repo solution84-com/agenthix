@@ -24,6 +24,7 @@ import { liveActivityOf } from '../../sites/channel/operationLinesForward'
 import { toMessageView } from '../store/messages'
 import { orderActivity, runHrefOf, taskWaitingLine, toActivityView, type ActivityRow } from './activityLines'
 import { contextUseByOperation } from './activityContext'
+import { mayAdministerPlace, type WorkflowPlace } from '../../workflows/placeAccess'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -54,10 +55,21 @@ async function taskFactsOf(taskIds: string[]): Promise<Map<string, TaskFacts>> {
   }]))
 }
 
-type Request = NonNullable<ActivityRow['request']>
+type Request = NonNullable<ActivityRow['request']> & { workflowCard?: ActivityRow['workflowCard'] }
+
+function requestFields(r: Request | undefined): Pick<ActivityRow, 'request' | 'workflowCard'> {
+  if (!r) return { request: null }
+  const { workflowCard, ...request } = r
+  return { request, ...(workflowCard ? { workflowCard } : {}) }
+}
+
+async function workflowPlace(workflowId: string): Promise<WorkflowPlace | null> {
+  const w = await prisma.workflow.findUnique({ where: { id: workflowId }, select: { placeType: true, placeId: true } })
+  return w ? { type: w.placeType, id: w.placeId } : null
+}
 
 /** Each waiting operation's latest request for the person's okay, from its card: what would run and why. */
-async function requestsOf(conversationId: string, operationIds: string[]): Promise<Map<string, Request>> {
+async function requestsOf(conversationId: string, operationIds: string[], viewerId: string): Promise<Map<string, Request>> {
   if (operationIds.length === 0) return new Map()
   const cards = await prisma.conversationMessage.findMany({
     where: { conversationId, kind: 'APPROVAL_REQUEST', operationId: { in: operationIds } },
@@ -66,8 +78,11 @@ async function requestsOf(conversationId: string, operationIds: string[]): Promi
   const requests = new Map<string, Request>()
   for (const card of cards.map(toMessageView)) {
     if (card.kind !== 'APPROVAL_REQUEST' || !card.operationId) continue
-    const { what, title, reason, askedBy } = card.body
-    requests.set(card.operationId, { what: what || title, reason, askedBy })
+    const { what, title, reason, askedBy, workflow } = card.body
+    // A workflow's card: its buttons are for the place's administrators only.
+    const place = workflow ? await workflowPlace(workflow.workflowId) : null
+    const extra = workflow ? { workflowCard: { ...workflow, canAnswer: place ? await mayAdministerPlace(place, viewerId) : false } } : {}
+    requests.set(card.operationId, { what: what || title, reason, askedBy, ...extra })
   }
   return requests
 }
@@ -84,7 +99,7 @@ export const getConversationActivity = async (args: GetConversationActivityArgs,
   const [tasks, contextUse, requests] = await Promise.all([
     taskFactsOf(rows.flatMap((r) => (r.kind === 'TASK' && r.taskId ? [r.taskId] : []))),
     contextUseByOperation(rows),
-    requestsOf(ref.id, outstanding.filter((r) => r.state === 'WAITING_FOR_APPROVAL').map((r) => r.id)),
+    requestsOf(ref.id, outstanding.filter((r) => r.state === 'WAITING_FOR_APPROVAL').map((r) => r.id), userId),
   ])
   const boundaries = new Map<string, string>()
   const boundaryOf = async (type: 'user' | 'project' | null, id: string | null): Promise<string | null> => {
@@ -113,7 +128,7 @@ export const getConversationActivity = async (args: GetConversationActivityArgs,
       endedHelpers: live.endedHelpers,
       contextUse: contextUse.get(row.id) ?? null,
       createdAt: row.createdAt,
-      request: requests.get(row.id) ?? null,
+      ...requestFields(requests.get(row.id)),
       runHref: runHrefOf({ runId: row.runId, sessionId: task ? task.sessionId : row.workerSessionId }, ref.id),
     })
   }

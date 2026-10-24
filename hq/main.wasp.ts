@@ -44,11 +44,13 @@ import { productsSpec } from "./src/products/products.wasp";
 import { projectsSpec } from "./src/projects/projects.wasp";
 import { providersSpec } from "./src/providers/providers.wasp";
 import { runsSpec } from "./src/runs/runs.wasp";
+import { secretsSpec } from "./src/secrets/secrets.wasp";
 import { sessionsSpec } from "./src/sessions/sessions.wasp";
 import { settingsSpec } from "./src/settings/settings.wasp";
 import { sitesSpec } from "./src/sites/sites.wasp";
 import { storageSpec } from "./src/storage/storage.wasp";
 import { voiceSpec } from "./src/voice/voice.wasp";
+import { workflowsSpec } from "./src/workflows/workflows.wasp";
 
 export default app({
   name: "agenthixHq",
@@ -110,10 +112,12 @@ export default app({
     projectsSpec,
     providersSpec,
     runsSpec,
+    secretsSpec,
     sessionsSpec,
     settingsSpec,
     sitesSpec,
     storageSpec,
     voiceSpec,
+    workflowsSpec,
   ],
 });

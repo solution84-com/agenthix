@@ -2478,6 +2478,7 @@ enum UsagePurpose {
   stt
   tts
   voice_sample
+  workflow_review
 }
 
 /// core's COST_BASES.
@@ -2647,10 +2648,26 @@ model Workflow {
   versions        WorkflowVersion[]
   approvals       WorkflowApproval[]
   runs            WorkflowRun[]
+  switches        WorkflowSwitch[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
   @@unique([placeType, placeId, name])
+}
+
+/// Every time a workflow was switched on or off: who, when, which way and why. Kept with the workflow.
+model WorkflowSwitch {
+  id         String   @id @default(uuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  enabled    Boolean
+  /// The person who switched it.
+  byUserId   String
+  /// Why, in words, such as "the secret STAGING_DEPLOY_KEY was turned off"; null when none was given.
+  reason     String?
+  at         DateTime @default(now())
+
+  @@index([workflowId, at])
 }
 
 enum WorkflowVersionState {

@@ -21,6 +21,8 @@ export function parseWorkflowHost(raw: string): ParsedHost {
   if (!/^\d{1,5}$/.test(portPart)) return bad('its port is not a number.')
   const port = Number(portPart)
   if (port < 1 || port > 65535) return bad('its port is not between 1 and 65535.')
+  // A step's lookups go to the egress proxy on DNS's port, so no host can be approved on it.
+  if (port === 53) return bad('port 53 is where the egress proxy answers a step\'s lookups, so no host can be reached on it.')
 
   if (hostPart.startsWith('[')) {
     if (!hostPart.endsWith(']')) return bad('an IPv6 address is written in brackets, such as [2001:db8::1]:443.')

@@ -14,6 +14,7 @@ import { settleOperation } from '../../coordinator/mailbox'
 import { openJson } from '../../sealing'
 import { Logger } from '../../../server/utils/logger'
 import { runApprovedCall, type ApprovedCall } from './runApproved'
+import { answerWorkflowCard, isWorkflowCard } from '../../../workflows/review/cardAnswer'
 
 export const NOT_WAITING = 'This request is not waiting for an answer.'
 
@@ -59,6 +60,7 @@ export function createToolCallOwner(deps: ToolCallOwnerDeps): OperationOwner {
     async answerApproval(operationId, answer, note, byUserId) {
       const row = await toolCall(operationId)
       if (row.state !== 'WAITING_FOR_APPROVAL') throw new HttpError(409, NOT_WAITING)
+      if (isWorkflowCard(row.toolName)) return answerWorkflowCard(row, answer, byUserId, deps.settle)
       if (answer === 'decline') {
         if (!(await deps.settle(operationId, { state: 'CANCELLED', noReport: true, result: { summary: declinedLine(note) } }))) {
           throw new HttpError(409, NOT_WAITING)

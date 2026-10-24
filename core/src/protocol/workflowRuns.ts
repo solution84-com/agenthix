@@ -15,9 +15,14 @@
  *
  * Masking covers every secret of the place, not only the run's (spec part 2, *Masking*), yet hq sends no more values
  * in plain than the run itself is given. So `masking` holds, for each form of each value — as it is, base64 at the
- * three alignments, hex in both cases, URL-encoded, and each line of a file secret — only its length and its
- * HMAC-SHA-256 under a key made for this run. The site finds a form by the keyed hash of each stretch of output of
- * that length. hq makes the forms; the site only matches them.
+ * three alignments, hex in both cases, URL-encoded, and each line of a file secret — only its length, its
+ * HMAC-SHA-256 under a key made for this run, and its class. The site finds a form by the keyed hash of each stretch
+ * of output of that length. The forms are made one way, by `maskFormsOf` in `workflows/maskForms.ts`; the site only
+ * matches them.
+ *
+ * A form's class is the set of bytes its kind can hold (`WORKFLOW_MASK_FORM_CLASS_BYTES`): base64 forms hold only
+ * base64's alphabet, whatever the value, so the class says nothing about the value. The site skips any stretch
+ * holding a byte outside a form's class, which is most of ordinary output for every class but `raw`.
  *
  * Events may be lost, like every site event: hq recovers a run's state with `workflow.get`.
  *
@@ -58,8 +63,26 @@ export type WorkflowStepValues = { secrets: Record<string, string> }
 export type WorkflowContainerLimits = { memoryMb: number; processes: number; cpus: number }
 export const WORKFLOW_CONTAINER_LIMITS: WorkflowContainerLimits = { memoryMb: 1024, processes: 256, cpus: 1 }
 
-/** One form of one secret's value: its length in bytes and its HMAC-SHA-256 under `WorkflowMaskingMaterial.key`, in hex. */
-export type WorkflowMaskForm = { length: number; hmac: string; secretName: string }
+export const WORKFLOW_MASK_FORM_CLASSES = ['raw', 'base64', 'hex', 'url'] as const
+/** What kind of form it is, and so which bytes it can hold: `raw` any, the others those of their encoding. */
+export type WorkflowMaskFormClass = (typeof WORKFLOW_MASK_FORM_CLASSES)[number]
+
+/**
+ * The bytes each class but `raw` can hold, as characters: base64 without padding, hex in either case, and
+ * URL-encoding's unreserved characters (`encodeURIComponent`'s included), `%` and the hex digits after it.
+ */
+export const WORKFLOW_MASK_FORM_CLASS_BYTES: Readonly<Record<Exclude<WorkflowMaskFormClass, 'raw'>, string>> = {
+  base64: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+  hex: '0123456789abcdefABCDEF',
+  url: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~!'()*%",
+}
+
+/**
+ * One form of one secret's value: its length in bytes, its HMAC-SHA-256 under `WorkflowMaskingMaterial.key` in hex,
+ * and its class. Added in site protocol 1.5: `class`, optional so the addition is not breaking; a form without one is
+ * taken as `raw` and looked for everywhere. hq always sends it.
+ */
+export type WorkflowMaskForm = { length: number; hmac: string; secretName: string; class?: WorkflowMaskFormClass }
 
 export type WorkflowMaskingMaterial = {
   /** Made for this run, base64; never reused. */

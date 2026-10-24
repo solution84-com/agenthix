@@ -34,6 +34,7 @@ import { MEMBERSHIP_METHODS } from '@agenthix/core'
 import { heldInstructionRows, deliverHeldInstructionsTo } from '../sites/heldInstructions'
 import { sitesForProject } from '../sites/membershipEnding'
 import { Logger } from '../server/utils/logger'
+import { deleteSecretsAndVariablesOf } from '../secrets/placeDeletion'
 
 const logger = new Logger('ErasePerson')
 
@@ -150,6 +151,10 @@ export const erasePerson = async (
     // Their own Claude subscription and their list of models go with them.
     prisma.aiProvider.deleteMany({ where: { ownerUserId: userId } }),
     prisma.modelList.deleteMany({ where: { owner: 'person', ownerId: userId } }),
+    // The secrets and variables of their own storage and of their own projects, with their records.
+    ...deleteSecretsAndVariablesOf(prisma, [
+      { type: 'user', id: userId }, ...ownProjectIds.map(id => ({ type: 'project' as const, id })),
+    ]),
     prisma.notification.deleteMany({ where: { userId } }),
     prisma.mobileAuthToken.deleteMany({ where: { userId } }),
     prisma.deviceSession.deleteMany({ where: { userId } }),

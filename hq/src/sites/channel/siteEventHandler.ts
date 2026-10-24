@@ -1,5 +1,5 @@
 import type { RunStatusEvent, RunStreamEvent, CredentialHealthEvent } from '@agenthix/core'
-import { RUN_STREAM_EVENT_NAMES, RUN_STREAM_TARGET_ROOMS, SESSION_PATCH_EVENT, RUN_WAITING_EVENT, SITE_HEALTH_EVENT, SCHEDULED_CHANGE_EVENT } from '@agenthix/core'
+import { RUN_STREAM_EVENT_NAMES, RUN_STREAM_TARGET_ROOMS, SESSION_PATCH_EVENT, RUN_WAITING_EVENT, SITE_HEALTH_EVENT, SCHEDULED_CHANGE_EVENT, WORKFLOW_STEP_EVENT, WORKFLOW_RESULT_EVENT } from '@agenthix/core'
 import { prisma } from 'wasp/server'
 import { recordActivity } from '../../server/dashboard/activity'
 import { triggerSnapshotPush } from '../../server/dashboard/debouncedPush'
@@ -82,6 +82,9 @@ export async function handleSiteEvent(siteId: string, event: string, data: unkno
   if (event === 'site.credentialHealth') return handleCredentialHealth(siteId, data as CredentialHealthEvent)
   if (event === SITE_HEALTH_EVENT) return handleSiteHealthEvent(siteId, data)
   if (event === SCHEDULED_CHANGE_EVENT) return handleScheduledChangeEvent(siteId, data)
+  // Loaded when first needed: the workflow runs reach the channel themselves, and a static import would be a cycle.
+  if (event === WORKFLOW_STEP_EVENT) return (await import('../../workflows/runsEvents')).handleWorkflowStepEvent(siteId, data)
+  if (event === WORKFLOW_RESULT_EVENT) return (await import('../../workflows/runsEvents')).handleWorkflowResultEvent(siteId, data)
   warnUnknownEventOnce(siteId, event)
 }
 

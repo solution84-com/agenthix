@@ -22,7 +22,7 @@ export type WorkflowParameterKind = WorkflowParameter['kind']
 
 export type WorkflowStep = {
   name: string
-  /** A command, or one of the version's files (`./deploy/upload.sh`), run from `/run/workflow`. */
+  /** A command, or one of the version's files (`./deploy/upload.sh`, found in `/run/workflow`); run from the workspace snapshot at the agent's path. */
   run: string
   /** The secrets this step gets, as `/run/secrets/<NAME>`, and no other step. Sorted. */
   secrets: string[]

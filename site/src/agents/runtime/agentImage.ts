@@ -21,6 +21,17 @@ export function agentImageName(): string {
   return process.env.AGENT_IMAGE?.trim() || LOCAL_AGENT_IMAGE
 }
 
+/** The executor image's name when nothing names another: a local build (`site/docker/executor.Dockerfile`). */
+export const LOCAL_EXECUTOR_IMAGE = 'agenthix-executor'
+
+/**
+ * The image a workflow step runs in. Where a host service runs the site it is `EXECUTOR_IMAGE`, pinned by digest like
+ * `AGENT_IMAGE`; an empty value counts as unset.
+ */
+export function executorImageName(): string {
+  return process.env.EXECUTOR_IMAGE?.trim() || LOCAL_EXECUTOR_IMAGE
+}
+
 /** The OpenCode release the image installs (`opencode-ai`). */
 export const OPENCODE_VERSION = '1.18.32'
 

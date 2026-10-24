@@ -12,6 +12,7 @@ import * as runtimeOps from './runtimeOps'
 import * as memoryOps from './memoryOps'
 import * as activeRunsOps from './activeRunsOp'
 import * as resultOps from './resultOps'
+import { WORKFLOW_TOOL_OPERATIONS } from '../../workflows/agentTools'
 import { ControlPlaneError, type CallerContext } from './types'
 import { requireConnectionGroup } from './connectionGroups'
 import { actingPerson } from './runPerson'
@@ -84,6 +85,8 @@ export const operations: Record<string, (ctx: CallerContext, args: any) => Promi
   recall: memoryOps.recallOp,
   // a run's result (workers and results spec) — data-path-only: only a run states one
   set_result: resultOps.setResultOp,
+  // workflows (adr-0148) — data-path-only: an agent's run lists, proposes and runs its place's workflows
+  ...WORKFLOW_TOOL_OPERATIONS,
 }
 
 /** Runtime support for the run's own boundary — its preview, its repository's

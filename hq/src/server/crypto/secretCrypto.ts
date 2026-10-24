@@ -44,6 +44,33 @@ export function decryptSecret(stored: string): string {
   return Buffer.concat([decipher.update(Buffer.from(ctB64, 'base64')), decipher.final()]).toString('utf8')
 }
 
+/**
+ * Bound encryption, for values whose row must not lend them to another: the associated data (for a place's secret,
+ * its id and its place) is authenticated with the value, so a ciphertext copied into another row or place fails to
+ * decrypt instead of being used. Bytes in, bytes out, for a database `Bytes` column.
+ * Format: one format byte (1), the 12-byte IV, the 16-byte auth tag, then the ciphertext.
+ */
+const BOUND_FORMAT = 1
+const IV_BYTES = 12
+const TAG_BYTES = 16
+
+export function encryptBytesBound(plain: Uint8Array, associatedData: string): Buffer {
+  const iv = randomBytes(IV_BYTES)
+  const cipher = createCipheriv(ALGO, masterKey(), iv)
+  cipher.setAAD(Buffer.from(associatedData, 'utf8'))
+  const ct = Buffer.concat([cipher.update(plain), cipher.final()])
+  return Buffer.concat([Buffer.from([BOUND_FORMAT]), iv, cipher.getAuthTag(), ct])
+}
+
+export function decryptBytesBound(stored: Uint8Array, associatedData: string): Buffer {
+  const buf = Buffer.from(stored)
+  if (buf.length < 1 + IV_BYTES + TAG_BYTES || buf[0] !== BOUND_FORMAT) throw new Error('Malformed encrypted secret.')
+  const decipher = createDecipheriv(ALGO, masterKey(), buf.subarray(1, 1 + IV_BYTES))
+  decipher.setAAD(Buffer.from(associatedData, 'utf8'))
+  decipher.setAuthTag(buf.subarray(1 + IV_BYTES, 1 + IV_BYTES + TAG_BYTES))
+  return Buffer.concat([decipher.update(buf.subarray(1 + IV_BYTES + TAG_BYTES)), decipher.final()])
+}
+
 /** Whether a stored value has the encrypted shape — three non-empty base64 runs. */
 export function looksEncrypted(stored: string): boolean {
   const parts = stored.split('.')

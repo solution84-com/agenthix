@@ -25,8 +25,8 @@ describe('HQConnectionMessageType', () => {
 
 describe('control-channel protocol @SC-291 @SC-1128', () => {
   it('pins a major.minor version both apps compile against', () => {
-    expect(SITE_PROTOCOL_VERSION).toBe('1.4')
-    expect(parseProtocolVersion(SITE_PROTOCOL_VERSION)).toEqual({ major: 1, minor: 4 })
+    expect(SITE_PROTOCOL_VERSION).toBe('1.5')
+    expect(parseProtocolVersion(SITE_PROTOCOL_VERSION)).toEqual({ major: 1, minor: 5 })
   })
 
   it('names its header after the site protocol', () => {

@@ -147,6 +147,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.commit }}
+      # The agent and executor images share one tools stage, and carry its content key as a label: hq compares it to
+      # decide whether an approved workflow survives an image upgrade.
+      - name: Label the tools stage key
+        if: matrix.part == 'agent' || matrix.part == 'executor'
+        run: |
+          {
+            echo 'LABELS<<LABELS_END'
+            printf '%s\n' "$LABELS"
+            echo "tools-stage-key=$(node scripts/images/keys.mjs --tools-key)"
+            echo 'LABELS_END'
+          } >> "$GITHUB_ENV"
       # Nothing is emulated: each runner builds its own architecture, hq's Wasp stage included (hq/docker/Dockerfile).
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       # Built into this runner's Docker first, and started there: an image that does not start and answer is never

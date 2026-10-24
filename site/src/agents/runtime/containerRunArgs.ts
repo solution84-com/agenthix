@@ -17,6 +17,9 @@ import { agentImageName } from './agentImage'
 import type { AgentMounts, ContainerContext, ContainerKey } from './containerTypes'
 
 
+export const WRITABLE_TMP = '/tmp:rw,nosuid,nodev,size=1g,mode=1777'
+export const WRITABLE_COMMAND_HOME = '/home/agent:rw,nosuid,nodev,size=256m,uid=1001,gid=1001,mode=0700'
+
 export type ContainerRunCommand = {
   args: string[]
   /** Values the docker client hands to the container by name — never on argv. */
@@ -84,6 +87,16 @@ export function buildContainerRunCommand(
     // recovery path; the boot orphan sweep and the in-memory signature reset
     // (a fresh containerStates map) handle server restarts.
     '--restart', 'no',
+    // The container stands between an injected agent and the machine, so it gets the executor's hardening
+    // (workflows spec, running, *The containers* A). The process is uid 1001 and holds no capability; the launcher's
+    // Landlock rules need none and set no_new_privs themselves. The root is read-only; what a harness or a command
+    // writes lives in the harness home and the workspace (binds), in /tmp, and in /home/agent, the commands' own home
+    // (agenthix-contain sets HOME to it), which the image creates 0700 for uid 1001 and a tmpfs recreates the same.
+    '--cap-drop', 'ALL',
+    '--security-opt', 'no-new-privileges',
+    '--read-only',
+    '--tmpfs', WRITABLE_TMP,
+    '--tmpfs', WRITABLE_COMMAND_HOME,
     // Docker's own init as PID 1, so a process that ends is reaped. A
     // conversation's processes are killed repeatedly over the container's life
     // (conversationProcesses.ts); `tail` as PID 1 never reaps, and their zombies

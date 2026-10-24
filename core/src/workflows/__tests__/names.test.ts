@@ -65,6 +65,7 @@ describe('hosts', () => {
     expect(parseWorkflowHost('Registry.npmjs.org:443')).toEqual({ ok: true, host: { host: 'registry.npmjs.org', port: 443 } })
     expect(parseWorkflowHost('10.0.0.5:5432')).toEqual({ ok: true, host: { host: '10.0.0.5', port: 5432 } })
     expect(parseWorkflowHost('[2001:db8::1]:22')).toEqual({ ok: true, host: { host: '[2001:db8::1]', port: 22 } })
+    expect(parseWorkflowHost('dns.example.com:53').ok).toBe(false)
   })
 
   it('refuse a host with no port, a bad port, or a bad name', () => {
