@@ -79,7 +79,7 @@ reaching hq from another device) and **`database-migrations`** (schema changes i
   `not-secure` project included) when `hq` or `ui` is reached, and the image start test
   (`scripts/images/start-test-all.sh`) for each image part whose content key changed (`node scripts/images/keys.mjs`),
   with the install test (`scripts/install-test/run.sh`, which installs from those images at the machine's network
-  address and walks through it in a browser; it refuses on a machine that already runs an HQ) when any did. **The
+  address and walks through it in a browser, beside any installation already there) when any did. **The
   full regression** — every module, every suite, every image — runs for a unit that changes core's protocol shapes,
   a database migration, a Dockerfile, the host service or the install, and in every release rehearsal. CI's *Checks*
   select by the same map (once per tree), and a release build proves the images (see *Git*).

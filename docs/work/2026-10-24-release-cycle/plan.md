@@ -185,9 +185,9 @@ prove a tree twice; a unit's close can run the same selection locally.
 **Execution plan:** none — by hand (the lead, with the owner's say-so for each push and the tag)
 
 - [x] 6.1 The full regression on the dev machine, then the release rehearsal on the branch's last commit, timed
-- [ ] 6.2 *Checks* and the CI release build on that commit, their runner-minutes and image builds recorded
-- [ ] 6.3 The tag (`v0.1.0-alpha.3` by default) on that commit, its publish timed, and an installation made from the published images through the real signature check; the release page says an earlier alpha is reinstalled, not upgraded
-- [ ] 6.4 The measured figures recorded against T1–T7 in the spec's terms, in this plan's closing note
+- [x] 6.2 *Checks* and the CI release build on that commit, their runner-minutes and image builds recorded
+- [x] 6.3 The tag (`v0.1.0-alpha.3` by default) on that commit, its publish timed, and an installation made from the published images through the real signature check; the release page says an earlier alpha is reinstalled, not upgraded
+- [x] 6.4 The measured figures recorded against T1–T7 in the spec's terms, in this plan's closing note
 
 ## Deviations
 
@@ -196,3 +196,76 @@ prove a tree twice; a unit's close can run the same selection locally.
 | 1 | The two lanes run at the same time instead of in sequence, and task 1.8 moved to the first lane (1.1–1.4 and 1.8, then 1.5–1.7) | They share no file once `host/docker/Dockerfile` is the first lane's and `host/` the second's, so waiting bought nothing; 1.8 edits the publish workflow, which the first lane already owns |
 | 1 | Tasks 1.9 and 1.10 added: a container label with the version, and "unchanged since" in `agenthix status` (owner, 2026-10-24); spec Rule 1 amended | With no version inside an image, the owner wanted each part's version visible where people look, and when it last changed, without a version per component |
 | 1 | Task 1.11 added: a development build may switch to another local image (owner, 2026-10-24); spec Rule 1 amended | Lane 1b found the full switch could no longer be run on a dev machine, since a local build is `dev` and the launcher refused it; the owner chose to let a development build skip what only a published version has |
+| 2 | None | |
+| 3 | Task 3.8 needed no work: the tag ruleset already existed | It was set up before this unit |
+| 3 | The release build gained a last job, *The release bar passed*, and runs its install test and screenshots whenever the candidate passed, even when every image was reused (found at 6.2) | When nothing was rebuilt, the jobs after the builds were skipped and the run still passed, so a release could have been proved without its install test |
+| 3 | The release rehearsal runs beside an installed copy, resets the guide databases first, and runs its screenshot servers in a process group of their own (found at 6.1) | Each stopped the first full rehearsal on the dev machine |
+| 4 | *What changed* runs only the plain-Node tests it names; the install test runs its tests by file pattern (found at 6.2) | The secure-page test needs TypeScript, which that job does not install; Node 24.21 stopped running `node --test <folder>` |
+| 5 | None | |
+| 6 | The unit's branch was regrouped from 33 commits to 10 before the tag, and its release proved again on the regrouped head (owner, 2026-10-24) | The tag fixes the commits it points at for good, so the branch was tidied first; the tree did not change |
+| 6 | One test fix in hq: the setup page's tests wait up to five seconds for a step (owner, 2026-10-24) | It failed twice on CI's runners, where a step takes one to two seconds; the fix changed hq's content key, so hq's two images were rebuilt |
+
+## Closing note
+
+*Closed 2026-10-24. Accepted by the owner.*
+
+The unit's own release, `v0.1.0-alpha.3`, was cut through the new flow on this branch (owner's exception) and
+published: rehearsed on the dev machine, proved by *Checks* and the release build on `3a2b71b4`, tagged there; the
+tag built nothing and promoted the attested images. An installation from the published images, under a test namespace,
+passed the host service's real signature check, and `agenthix status` showed every part at `0.1.0-alpha.3`. The release
+page says an installation of `0.1.0-alpha.2` or earlier is reinstalled, not upgraded.
+
+### Measured against the spec's T1–T8
+
+Runner-minutes as the spec counts them: the time each job ran. GitHub bills each job rounded up to a whole minute,
+about a quarter more on these runs.
+
+| # | Before (`v0.1.0-alpha.2`) | Now | Measured at `v0.1.0-alpha.3` |
+|---|---|---|---|
+| T1 | 12 local image builds at a unit's close | The rehearsal builds only the parts whose content key changed; the install test builds none | 129–138 s with nothing to build; 355 s with hq's two images rebuilt |
+| T2 | *Checks* for every module: 23 runner-min | *Checks* for what a change reaches, once per tree | 17 runner-min for a change to hq alone; 24 for every module (the regrouped branch, whose new commits no earlier run had proved) |
+| T3 | A version commit that changed every image's input | None: no commit sets a version | — |
+| T4 | Release branch push: 83 runner-min, 18 image builds | One release build, reusing every attested image whose key is unchanged | 55 runner-min and 12 builds the first time; 42 and 4 with hq changed; 15 and 0 with nothing changed |
+| T5 | The merge commit proved again: 83 runner-min | None | — |
+| T6 | The tag built all 12 images again: 43 runner-min | The tag builds nothing; it verifies, signs and promotes | 5 runner-min, 0 builds, 2 minutes from tag to release page |
+| T7 | *Checks* again on `main`: 23 runner-min | A merge commit whose tree already passed runs no job | Shown at this unit's merge to `main` |
+| T8 | The install test proved images built at `dev` | The install test and the screenshots run on the candidate's images, the ones the tag promotes | Closed |
+
+A release with nothing to fix now costs about 64 runner-minutes and 4 image builds when one part changed (alpha.3's
+last pass: 17 + 42 + 5), and about 44 with no image changed, against 232 and 48 before. The whole unit spent 247
+runner-minutes and 16 CI image builds across eleven runs, the fixes found at 6.1 and 6.2 included; the organisation's
+monthly Actions allowance ran out during 6.2, and a budget was set.
+
+### Open items
+
+Closed in the unit, with evidence, from the lane reports and the handover: 37, among them the setup page test that
+failed on CI's runners (fixed), the guide's command list and the end-to-end README (brought up to date at the close),
+the secure-page test (runs once), and the publish at a tag (proved by `v0.1.0-alpha.3`). The coverage map's rows for
+US-370 to US-374 are added by the QA audit before release, as the map's own rule says.
+
+Deferred, each its own issue. None is critical; #31 blocks the first release, since this unit changed how the host service replaces itself and only a development build's switch has been run:
+
+| Issue | What | Type, priority |
+|---|---|---|
+| #31 | The host service's switch from one published version to the next, run end to end | Chore, High; **blocks `agenthix@v0.1.0`** (the owner's call) |
+| #32 | hq's session privacy browser tests fail now and then, in their setup | Bug, Medium |
+| #33 | hq's integration suite fails now and then on a foreign key while clearing the database | Bug, Medium |
+| #34 | The registry cleanup has never run against the real registry | Chore, Medium |
+| #35 | Publishing the guide's screenshots is started by hand and has not run for a published version | Chore, Medium |
+| #36 | `agenthix install` with a malformed address says the host service is not answering | Bug, Low |
+| #37 | *Checks* runs every job again for a rewritten branch with the same tree | Debt, Low |
+| #38 | The tag finds a hand-started release build by downloading its artifact | Debt, Low |
+| #39 | The rebuild-epoch pull request needs a repository setting, and *Checks* does not start on it | Chore, Low |
+| #40 | `.nvmrc` names only Node's major version | Chore, Low |
+
+Already open and seen again here: #22 (cross-app model usage), #23 (hq move tests), #26 (end-to-end chat streaming).
+
+### Decision records
+
+ADR-0146 accepted and noted as acted on; ADR-0117 amended and noted; ADR-0137 superseded by ADR-0146. The *Depends on*
+records (ADR-0069, ADR-0118, ADR-0136, ADR-0145) are still Accepted.
+
+### QA
+
+The unit's stories (US-370 to US-374) and scenarios were written in phase 5 and their tests tagged. A pre-release needs
+no audit; these entries await the QA audit before `0.1.0`.

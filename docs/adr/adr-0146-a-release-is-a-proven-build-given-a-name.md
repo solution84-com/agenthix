@@ -83,3 +83,9 @@ The design, with the rules and their reasons, is in the unit's spec:
 ## References
 
 adr-0117, adr-0136. Supersedes adr-0137.
+
+> **Acted on.** *(annotated 2026-10-24)* Carried out by the unit of work
+> [`2026-10-24-release-cycle`](../work/2026-10-24-release-cycle/plan.md) and proved by using it: `v0.1.0-alpha.3` was
+> rehearsed on the dev machine, proved by the release build on both architectures, and published by its tag, which built
+> nothing and promoted the attested images. An installation from those images passed the host service's real signature
+> check.

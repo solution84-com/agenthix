@@ -61,3 +61,8 @@ adr-0069, adr-0107, adr-0111.
 > each container its version, its own taken from the image reference it was started by and checked against that
 > version's signature. The tag signs only images whose build attestation it verified. The decision above, that a host
 > service runs only signed, published images, is unchanged.
+
+> **Acted on.** *(annotated 2026-10-24)* The amended check was run end to end at `v0.1.0-alpha.3`
+> ([`2026-10-24-release-cycle`](../work/2026-10-24-release-cycle/plan.md)): a host service started from the published
+> image took its version from its start reference once that version's signature passed, and installed hq, the site and
+> the Fleet Console from the published images.
