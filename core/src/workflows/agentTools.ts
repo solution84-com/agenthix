@@ -51,17 +51,27 @@ export const WORKFLOW_TOOL_DECLARATIONS: WorkflowToolDeclaration[] = [
       'Propose a new version of a workflow from a definition file (workflow.yaml) in your workspace and the files it ' +
       'names. A person reviews and approves it before it can run. Answers the version\'s number and what the plain ' +
       'checks flagged.',
-    args: { path: { type: 'string', description: 'The definition file\'s path in your workspace, such as .workflows/deploy-staging/workflow.yaml', maxLength: 1024 } },
+    args: {
+      path: { type: 'string', description: 'The definition file\'s path from the workspace\'s root, such as .workflows/deploy-staging/workflow.yaml', maxLength: 1024 },
+      workspace: {
+        type: 'string', optional: true, maxLength: 200,
+        description: 'The workspace the file is in, by its name or id, such as demo. Needed when this place has more than one',
+      },
+    },
     runIdFromCaller: true,
   },
   {
     name: WORKFLOW_TOOL_NAMES.run,
     description:
-      'Run the approved version of a workflow, and wait for it. Answers each step\'s result and the last lines of its ' +
+      'Run the approved version of a workflow on one of this place\'s workspaces, and wait for it. Answers each step\'s result and the last lines of its ' +
       'output, with every secret masked. A long run can be checked later with workflow_run.',
     args: {
       name: { type: 'string', description: 'The workflow\'s name, such as push', maxLength: 64 },
       parameters: { type: 'stringMap', description: 'A value for each of the workflow\'s parameters, by name', optional: true },
+      workspace: {
+        type: 'string', optional: true, maxLength: 200,
+        description: 'The workspace to run it on, by its name or id, such as demo. Needed when this place has more than one',
+      },
     },
     runIdFromCaller: true,
   },
@@ -75,8 +85,8 @@ export const WORKFLOW_TOOL_DECLARATIONS: WorkflowToolDeclaration[] = [
 
 export type WorkflowToolArgs = {
   list_workflows: Record<string, never>
-  propose_workflow: { path: string }
-  run_workflow: { name: string; parameters?: Record<string, string> }
+  propose_workflow: { path: string; workspace?: string }
+  run_workflow: { name: string; parameters?: Record<string, string>; workspace?: string }
   workflow_run: { id: string }
 }
 

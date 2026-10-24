@@ -19,6 +19,7 @@ import { startWorkflowRun } from './runs'
 import { refreshRunFromSite } from './runsEvents'
 import { waitForRunEnd } from './runsLive'
 import { agentRunView, requireRunRow } from './runsView'
+import { chooseRunWorkspace } from './runWorkspace'
 
 /** How long `run_workflow` and `workflow_run` wait for a run to end; within the site's wait for hq's answer. */
 export const RUN_TOOL_WAIT_MS = 10_000
@@ -83,9 +84,10 @@ export async function proposeWorkflowOp(ctx: CallerContext, args: WorkflowToolAr
   if (!(await mayStartRunsInPlace(run.place, run.person))) {
     throw new ControlPlaneError('forbidden', 'The person this run is for only reads this place, so it can\'t propose a workflow. Nothing was changed.')
   }
+  const workspace = await chooseRunWorkspace(run.workspace, args.workspace)
   return asTool(() => proposeWorkflowVersion({
     place: run.place,
-    workspace: run.workspace,
+    workspace,
     path: args.path,
     proposer: { kind: 'agent', agentId: run.agentId, agentRunId: run.agentRunId, onBehalfOfUserId: run.person },
   }))
@@ -106,9 +108,10 @@ async function answerFor(runId: string, wait: boolean): Promise<WorkflowRunToolR
 
 export async function runWorkflowOp(ctx: CallerContext, args: WorkflowToolArgs['run_workflow'] & { runId?: string }): Promise<WorkflowRunToolResult> {
   const run = await callingRun(ctx, args.runId, 'run_workflow')
+  const workspace = await chooseRunWorkspace(run.workspace, args.workspace)
   const { runId } = await asTool(() => startWorkflowRun({
     place: run.place,
-    workspace: run.workspace,
+    workspace,
     workflow: { name: args.name },
     parameters: args.parameters ?? {},
     starter: { kind: 'agent', agentId: run.agentId, agentRunId: run.agentRunId, onBehalfOfUserId: run.person, sessionId: run.sessionId },

@@ -1,8 +1,9 @@
 import { createHmac, randomBytes } from 'node:crypto'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { maskFormTag } from '@agenthix/core'
 import { WindowHasher } from '../hmacWindows'
 import { createFormMasker } from '../masker'
-import { base64Aligned, material, RUN_KEY } from './material'
+import { base64Aligned, material, RUN_KEY, TAG_BASE } from './material'
 
 const CANARY = 'canary-7f3a9c1e-deploy-key'
 const OTHER = 'canary-b21d44aa-db-password'
@@ -158,7 +159,8 @@ describe('createFormMasker', () => {
 
   it('gives the event loop a turn while it masks a large chunk', async () => {
     const secrets = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`S${i}`, `canary-${i}-${'z'.repeat(20 + 7 * i)}`]))
-    const m = createFormMasker(material(secrets))
+    // Without tags, so the work is long enough to need turns.
+    const m = createFormMasker(material(secrets, RUN_KEY, null))
     let last = performance.now()
     let longest = 0
     let turns = 0
@@ -182,4 +184,127 @@ describe('createFormMasker', () => {
     expect(r.out).toBe(text)
     expect(seconds).toBeLessThan(60)
   }, 120_000)
+})
+
+describe('createFormMasker with tags', () => {
+  const ten = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`S${i}`, `canary-${i}-${'q'.repeat(3 + 5 * i)}-tail`]))
+
+  it('tags raw forms in the material it is given', () => {
+    const mat = material(ten)
+    expect(mat.tagBase).toBe(TAG_BASE)
+    expect(mat.forms.filter(f => f.class === 'raw').every(f => f.tag !== undefined)).toBe(true)
+  })
+
+  it('masks nothing where a tag matches but the HMAC does not, and hashes only there', async () => {
+    const window = Buffer.from('ordinary-output-text-here')
+    const decoy = Buffer.from('a-different-value-entirely')
+    const form = {
+      length: window.length,
+      hmac: createHmac('sha256', RUN_KEY).update(decoy.subarray(0, window.length)).digest('hex'),
+      secretName: 'DECOY',
+      class: 'raw' as const,
+      ...maskFormTag(window, TAG_BASE),
+    }
+    const mat = { key: RUN_KEY.toString('base64'), forms: [form], tagBase: TAG_BASE }
+    const each = vi.spyOn(WindowHasher.prototype, 'each')
+    try {
+      const text = `x ${window} y ${'z'.repeat(200)}\n`
+      const r = await maskAll(text, mat)
+      expect(r).toEqual({ out: text, printed: [] })
+      expect(each.mock.calls.length).toBeGreaterThan(0)
+      expect(each.mock.calls.length).toBeLessThan(5)
+    } finally {
+      each.mockRestore()
+    }
+  })
+
+  it('finds a tagged value split across chunks, at every chunk size', async () => {
+    const mat = material(ten)
+    const text = `a ${ten.S3} b ${ten.S9}\nc ${Buffer.from(ten.S5!).toString('hex')} d`
+    for (const chunk of [1, 2, 5, 13, 40, 1000]) {
+      const r = await maskAll(text, mat, chunk)
+      expect(r.out, String(chunk)).toBe('a *** b ***\nc *** d')
+      expect(r.printed).toEqual(['S3', 'S5', 'S9'])
+    }
+  })
+
+  it('tags encoded forms with their value\'s tag, and finds each by decoding the output', async () => {
+    const value = 'canary pass/word+1 ~é'
+    const mat = material({ DB: value })
+    expect(mat.forms.filter(f => f.class !== 'raw').every(f => f.tag !== undefined)).toBe(true)
+    const v = Buffer.from(value)
+    const outputs = [
+      ...['', 'a', 'ab', 'abc', 'user:'].map(before => `Basic ${Buffer.from(`${before}${value}:tail`).toString('base64')}`),
+      `h ${v.toString('hex')} H ${v.toString('hex').toUpperCase()}`, `odd x${v.toString('hex')}`,
+      `postgres://u:${encodeURIComponent(value)}@db`, `x=${encodeURIComponent(value).replace(/'/g, '%27')}`,
+    ]
+    for (const text of outputs) {
+      for (const chunk of [1, 7, 1000]) {
+        const r = await maskAll(text, mat, chunk)
+        expect(r.out, `${text} ${chunk}`).toContain('***')
+        expect(r.out).not.toContain(v.toString('hex').slice(6, 20))
+        expect(r.out).not.toContain(encodeURIComponent(value).slice(4, 14))
+        expect(r.printed).toEqual(['DB'])
+      }
+    }
+  })
+
+  it('finds a URL-encoded form that starts inside what reads as a percent escape', async () => {
+    const value = '41-canary value/x'
+    const mat = material({ V: value })
+    const form = encodeURIComponent(value)
+    expect(form.startsWith('41')).toBe(true)
+    const r = await maskAll(`q=%${form}&`, mat)
+    expect(r.out).toBe('q=%***&')
+  })
+
+  it('masks exactly what hashing at every position masks, over random values and output', async () => {
+    let seed = 7
+    const rnd = (n: number) => { seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; return seed % n }
+    const pick = (alphabet: string, n: number) => Array.from({ length: n }, () => alphabet[rnd(alphabet.length)]).join('')
+    const AN = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    for (let round = 0; round < 60; round++) {
+      const secrets: Record<string, Buffer> = {}
+      for (let i = 0; i < 4; i++) {
+        const n = 4 + rnd(40)
+        secrets[`S${i}`] = rnd(2) ? Buffer.from(pick(AN + '%+/ :-_.~!*()\'', n)) : Buffer.from(Array.from({ length: n }, () => rnd(256)))
+      }
+      const pieces: string[] = []
+      for (let k = 0; k < 12; k++) {
+        const v = secrets[`S${rnd(4)}`]!
+        const enc = [v.toString('latin1'), Buffer.concat([Buffer.from(pick(AN, rnd(4))), v]).toString('base64'), v.toString('hex'),
+          v.toString('hex').toUpperCase(), encodeURIComponent(v.toString('latin1'))][rnd(5)]!
+        pieces.push(pick(AN + '%+/=', rnd(30)), enc, pick(' \n:%', 1))
+      }
+      const text = Buffer.from(pieces.join(''), 'latin1')
+      const tagged = material(secrets, RUN_KEY, (rnd(2 ** 31) * 2 + 1) >>> 0)
+      const plain = material(secrets, RUN_KEY, null)
+      for (const chunk of [5, 4096]) {
+        const a = await maskAll(text, tagged, chunk)
+        const b = await maskAll(text, plain, chunk)
+        expect(a, `round ${round}`).toEqual(b)
+      }
+    }
+  })
+
+  it('still finds a form without a tag at every position, beside tagged ones', async () => {
+    const tagged = material({ A: CANARY })
+    const plain = material({ B: OTHER }, RUN_KEY, null)
+    const mat = { ...tagged, forms: [...tagged.forms, ...plain.forms] }
+    expect((await maskAll(`1 ${OTHER} 2 ${CANARY} 3`, mat, 3)).out).toBe('1 *** 2 *** 3')
+    const noBase = { key: tagged.key, forms: tagged.forms }
+    expect((await maskAll(`1 ${CANARY} 2`, noBase, 3)).out).toBe('1 *** 2')
+  })
+
+  it('withholds all output when a tag is not one', async () => {
+    const mat = material({ A: CANARY })
+    for (const bad of [{ tag: 4096 }, { tag: 1.5 }, { tagSpan: 0 }, { tagSpan: 17 }, { tag: undefined }, { tagSpan: CANARY.length }]) {
+      const broken = { ...mat, forms: mat.forms.map((f, i) => (i === 0 ? { ...f, ...bad } : f)) }
+      const m = createFormMasker(broken)
+      expect((await m.push(Buffer.from(`${CANARY}\n`))).length, JSON.stringify(bad)).toBe(0)
+      expect(Buffer.from(await m.end()).toString()).toContain('withheld')
+    }
+    const m = createFormMasker({ ...mat, tagBase: 2 ** 32 })
+    expect(Buffer.from(await m.end()).toString()).toContain('withheld')
+  })
 })

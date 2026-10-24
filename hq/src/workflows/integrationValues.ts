@@ -1,15 +1,14 @@
 /**
  * Values an integration mints for one run (workflows spec part 3, S5): `GITHUB_TOKEN`, minted through the mint gate
- * (part 4) when a step names it, kept encrypted in `WorkflowMintedToken` until it expires, revoked when the run ends,
- * and masked in every later run of the place while it still works.
- *
- * GitHub tokens for workflows come with lane 4a, which replaces `mintIntegrationValues`' body and
- * `revokeAtIssuer`. Until then a run whose steps name `GITHUB_TOKEN` is refused before anything is sent, and there is
- * nothing to revoke.
+ * (part 4) when a step names it, with the version's declared permissions for the run's workspace's repository, kept
+ * encrypted in `WorkflowMintedToken` until it expires, revoked when the run ends, fails or is stopped, and masked in
+ * every later run of the place while it still works.
  */
+import { randomUUID } from 'node:crypto'
 import { HttpError, prisma } from 'wasp/server'
 import { INTEGRATION_SECRET_NAMES, type WorkflowDefinition, type WorkflowRunGitHub } from '@agenthix/core'
-import { decryptBytesBound } from '../server/crypto/secretCrypto'
+import { decryptBytesBound, encryptBytesBound } from '../server/crypto/secretCrypto'
+import { mintForLocation, revokeGateToken, type GateToken, type LocationMint } from '../github/mintGate'
 import type { WorkflowPlace } from './placeAccess'
 
 export type MintedValue = { name: string; value: Buffer; expiresAt: Date }
@@ -18,8 +17,6 @@ export type MintRequest = { runId: string; place: WorkflowPlace; definition: Wor
 
 export type Minted = { values: MintedValue[]; github: WorkflowRunGitHub | null }
 
-export const GITHUB_TOKENS_NOT_YET = 'GitHub tokens for workflows arrive with an update. Nothing was changed.'
-
 const isIntegrationName = (n: string) => (INTEGRATION_SECRET_NAMES as readonly string[]).includes(n)
 
 /** The integration names a definition's steps use. */
@@ -27,10 +24,55 @@ export function integrationNamesOf(definition: WorkflowDefinition): string[] {
   return [...new Set(definition.steps.flatMap((s) => s.secrets).filter(isIntegrationName))].sort()
 }
 
-/** Mints what the run's steps name. Throws an HttpError, before anything is stored, when it can't. */
-export async function mintIntegrationValues(run: MintRequest): Promise<Minted> {
-  if (integrationNamesOf(run.definition).includes('GITHUB_TOKEN')) throw new HttpError(409, GITHUB_TOKENS_NOT_YET)
-  return { values: [], github: null }
+export type IntegrationDeps = {
+  mintGitHub(req: LocationMint): Promise<GateToken>
+  revoke(token: string): Promise<boolean>
+}
+const defaultDeps: IntegrationDeps = { mintGitHub: mintForLocation, revoke: revokeGateToken }
+
+// GitHub's answer names the repository; anything else is not used as an address.
+const FULL_NAME = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9._-]+$/
+
+/**
+ * Mints what the run's steps name. Throws an HttpError, before anything is stored, when it can't. The workspace, its
+ * place, its site and the person come from the run's own row, never from the caller.
+ */
+export async function mintIntegrationValues(run: MintRequest, deps: IntegrationDeps = defaultDeps): Promise<Minted> {
+  if (!integrationNamesOf(run.definition).includes('GITHUB_TOKEN')) return { values: [], github: null }
+  const row = await prisma.workflowRun.findUnique({
+    where: { id: run.runId },
+    select: { placeType: true, placeId: true, workspaceId: true, siteId: true, onBehalfOfUserId: true },
+  })
+  if (!row || row.placeType !== run.place.type || row.placeId !== run.place.id) {
+    throw new HttpError(409, 'This run isn\'t recorded in its place, so no GitHub token is minted for it. Nothing was changed.')
+  }
+  const gate = await deps.mintGitHub({
+    place: run.place, siteId: row.siteId, workspaceId: row.workspaceId, person: row.onBehalfOfUserId, needs: 'work',
+    permissions: run.definition.github,
+  })
+  const value = Buffer.from(gate.token, 'utf8')
+  try {
+    if (!FULL_NAME.test(gate.repository.fullName)) throw new Error('GitHub answered a repository name HQ does not use as an address')
+    const id = randomUUID()
+    await prisma.workflowMintedToken.create({
+      data: {
+        id, runId: run.runId, placeType: run.place.type, placeId: run.place.id, name: 'GITHUB_TOKEN',
+        ciphertext: encryptBytesBound(value, mintedTokenAssociatedData(id, run.place)), expiresAt: gate.expiresAt,
+      },
+    })
+  } catch (err) {
+    value.fill(0)
+    await deps.revoke(gate.token).catch(() => false)
+    throw err
+  }
+  return {
+    values: [{ name: 'GITHUB_TOKEN', value, expiresAt: gate.expiresAt }],
+    github: {
+      repository: gate.repository.fullName,
+      repositoryId: gate.repository.id,
+      cloneUrl: `https://github.com/${gate.repository.fullName}.git`,
+    },
+  }
 }
 
 /** What a minted token's value is bound to when it is encrypted: its row, and its place. */
@@ -58,9 +100,10 @@ export async function unexpiredMintedValues(place: WorkflowPlace, now: Date = ne
   return out
 }
 
-/** Revokes one minted value where it was issued; true once the issuer has it revoked. Lane 4a fills it in. */
-export async function revokeAtIssuer(_name: string, _value: Buffer): Promise<boolean> {
-  return false
+/** Revokes one minted value where it was issued; true once the issuer has it revoked. */
+export async function revokeAtIssuer(name: string, value: Buffer, deps: Pick<IntegrationDeps, 'revoke'> = defaultDeps): Promise<boolean> {
+  if (name !== 'GITHUB_TOKEN') return false
+  return deps.revoke(value.toString('utf8'))
 }
 
 /** Revokes the run's minted values that are still unrevoked, marking each one its issuer confirmed. */

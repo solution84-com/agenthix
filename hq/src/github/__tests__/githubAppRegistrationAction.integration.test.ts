@@ -23,21 +23,24 @@ beforeEach(async () => {
   vi.stubEnv('WASP_SERVER_URL', 'https://hq.example.com')
   admin = await createUserWithRole('ADMIN')
 })
-afterEach(() => { vi.unstubAllEnvs() })
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
+
+const githubSays = (status: number, body: unknown) =>
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(body), { status })))
 
 describe('startGithubAppRegistration (R-166)', () => {
   it('requires the ADMIN role, and a person with no role is refused too (403)', async () => {
     for (const caller of [await createUserWithRole('MEMBER'), await createUser()]) {
-      await expect(startGithubAppRegistration({}, { user: caller } as never)).rejects.toMatchObject({ statusCode: 403 })
+      await expect(startGithubAppRegistration({ owner: 'personal' }, { user: caller } as never)).rejects.toMatchObject({ statusCode: 403 })
     }
   })
 
   it('refuses an unauthenticated caller', async () => {
-    await expect(startGithubAppRegistration({}, {} as never)).rejects.toMatchObject({ statusCode: 401 })
+    await expect(startGithubAppRegistration({ owner: 'personal' }, {} as never)).rejects.toMatchObject({ statusCode: 401 })
   })
 
   it('returns the manifest page address carrying a one-time state issued to the admin', async () => {
-    const { url } = await startGithubAppRegistration({}, ctx())
+    const { url } = await startGithubAppRegistration({ owner: 'personal' }, ctx())
     const parsed = new URL(url)
     expect(parsed.origin + parsed.pathname).toBe('https://hq.example.com/api/v1/github/app-manifest-new')
     const state = parsed.searchParams.get('state') as string
@@ -47,18 +50,37 @@ describe('startGithubAppRegistration (R-166)', () => {
     expect(consumeManifestState(state)).toEqual({ userId: admin.id })
   })
 
-  it('carries a trimmed organisation', async () => {
-    const { url } = await startGithubAppRegistration({ org: '  my-org ' }, ctx())
+  it('carries a trimmed organisation that GitHub knows as an organisation', async () => {
+    githubSays(200, { type: 'Organization' })
+    const { url } = await startGithubAppRegistration({ owner: 'organisation', org: '  my-org ' }, ctx())
+    expect(new URL(url).searchParams.get('org')).toBe('my-org')
+  })
+
+  it('never takes a blank organisation to mean a personal account (400)', async () => {
+    await expect(startGithubAppRegistration({ owner: 'organisation', org: '  ' }, ctx())).rejects.toMatchObject({ statusCode: 400, message: expect.stringMatching(/My personal account/) })
+    await expect(startGithubAppRegistration({}, ctx())).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it('refuses an organisation GitHub does not know, or that is a person, before leaving HQ (400)', async () => {
+    githubSays(404, {})
+    await expect(startGithubAppRegistration({ owner: 'organisation', org: 'solution84-tst' }, ctx())).rejects.toMatchObject({ statusCode: 400, message: expect.stringMatching(/no organisation called "solution84-tst"/) })
+    githubSays(200, { type: 'User' })
+    await expect(startGithubAppRegistration({ owner: 'organisation', org: 'lhengl' }, ctx())).rejects.toMatchObject({ statusCode: 400, message: expect.stringMatching(/person's GitHub account/) })
+  })
+
+  it('goes on when GitHub cannot be asked, leaving the check to GitHub\'s own page', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline') }))
+    const { url } = await startGithubAppRegistration({ owner: 'organisation', org: 'my-org' }, ctx())
     expect(new URL(url).searchParams.get('org')).toBe('my-org')
   })
 
   it('refuses an organisation that is not a GitHub login (400)', async () => {
-    await expect(startGithubAppRegistration({ org: 'a/b?x=1' }, ctx())).rejects.toMatchObject({ statusCode: 400 })
+    await expect(startGithubAppRegistration({ owner: 'organisation', org: 'a/b?x=1' }, ctx())).rejects.toMatchObject({ statusCode: 400 })
   })
 
   it('refuses while an App is connected, telling the admin to disconnect it first (409)', async () => {
     await prisma.gitHubApp.create({ data: { appId: 1, slug: 's', privateKey: 'k' } })
-    await expect(startGithubAppRegistration({}, ctx())).rejects.toMatchObject({
+    await expect(startGithubAppRegistration({ owner: 'personal' }, ctx())).rejects.toMatchObject({
       statusCode: 409,
       message: expect.stringMatching(/disconnect it first/i),
     })
@@ -66,6 +88,6 @@ describe('startGithubAppRegistration (R-166)', () => {
 
   it('refuses with readable text when hq cannot store secrets', async () => {
     vi.stubEnv('SECRETS_MASTER_KEY', '')
-    await expect(startGithubAppRegistration({}, ctx())).rejects.toMatchObject({ statusCode: 503, message: expect.stringContaining('store secrets') })
+    await expect(startGithubAppRegistration({ owner: 'personal' }, ctx())).rejects.toMatchObject({ statusCode: 503, message: expect.stringContaining('store secrets') })
   })
 })

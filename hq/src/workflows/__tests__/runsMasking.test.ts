@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { maskFormsOf, WORKFLOW_MASK_FORM_CLASSES } from '@agenthix/core'
+import { maskFormsOf, maskFormTag, WORKFLOW_MASK_FORM_CLASSES } from '@agenthix/core'
 import { buildMaskingMaterial, maskFormHmac } from '../runsMasking'
 
 const CANARY = Buffer.from('canary-value-0123456789', 'utf8')
@@ -46,14 +46,39 @@ describe('the masking material sent to the site', () => {
     expect(material.key).toBe(key.toString('base64'))
     expect(material.forms.every((f) => /^[0-9a-f]{64}$/.test(f.hmac) && f.secretName === 'STAGING_DEPLOY_KEY')).toBe(true)
     expect(material.forms.every((f) => f.class && WORKFLOW_MASK_FORM_CLASSES.includes(f.class))).toBe(true)
-    expect(material.forms[0]).toEqual({ length: CANARY.length, hmac: maskFormHmac(key, CANARY), secretName: 'STAGING_DEPLOY_KEY', class: 'raw' })
+    expect(material.forms[0]).toEqual({
+      length: CANARY.length, hmac: maskFormHmac(key, CANARY), secretName: 'STAGING_DEPLOY_KEY', class: 'raw',
+      ...maskFormTag(CANARY, material.tagBase!),
+    })
     expect(material.forms.map((f) => f.class)).toEqual(maskFormsOf(CANARY).map((f) => f.class))
   })
 
-  it('uses a new key for each run', () => {
+  it('hashes each line of a key file as it is, and leaves the value it was given unchanged', () => {
+    const key = Buffer.alloc(32, 3)
+    const value = Buffer.from('-----BEGIN KEY-----\nab\nAAAAB3NzaC1yc2EAAAADAQAB\n-----END KEY-----\n')
+    const before = Buffer.from(value)
+    const material = buildMaskingMaterial([{ name: 'KEY', value }], key)
+    expect(Buffer.compare(value, before)).toBe(0)
+    const hmacs = material.forms.map((f) => f.hmac)
+    for (const part of [before, Buffer.from('AAAAB3NzaC1yc2EAAAADAQAB'), Buffer.from('-----END KEY-----')]) {
+      expect(hmacs).toContain(maskFormHmac(key, part))
+    }
+  })
+
+  it('tags raw forms, and encoded forms of a value that is a raw form, under an odd base of 32 bits', () => {
+    const material = buildMaskingMaterial([{ name: 'A', value: Buffer.from(CANARY) }])
+    expect(Number.isInteger(material.tagBase) && material.tagBase! % 2 === 1 && material.tagBase! < 2 ** 32).toBe(true)
+    expect(material.forms.every((f) => f.tag !== undefined && f.tagSpan !== undefined)).toBe(true)
+    const short = buildMaskingMaterial([{ name: 'B', value: Buffer.from('abc') }])
+    expect(short.forms.length).toBeGreaterThan(0)
+    expect(short.forms.every((f) => f.tag === undefined)).toBe(true)
+  })
+
+  it('uses a new key and a new tag base for each run', () => {
     const a = buildMaskingMaterial([{ name: 'A', value: Buffer.from(CANARY) }])
     const b = buildMaskingMaterial([{ name: 'A', value: Buffer.from(CANARY) }])
     expect(a.key).not.toBe(b.key)
+    expect(a.tagBase).not.toBe(b.tagBase)
     expect(a.forms[0].hmac).not.toBe(b.forms[0].hmac)
   })
 })

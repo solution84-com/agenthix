@@ -20,6 +20,8 @@ import { ShownViewer } from './ShownViewer'
 import type { ReplyView } from './ReplyBody'
 import { ThreadMessages } from './ThreadMessages'
 import { WorkBar } from './WorkBar'
+import { useConversationWorkflowRuns } from '../hooks/useConversationWorkflowRuns'
+import { isRunActive } from './WorkflowRunRow'
 import { ConversationHeaderTools } from './ConversationHeaderTools'
 import { DeleteConversationDialog } from './DeleteConversationDialog'
 import type { WorkContext } from './WorkContext'
@@ -52,6 +54,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   onArchived?: () => void
 }) {
   const t = useConversationThread(conversationId)
+  const workflowRuns = useConversationWorkflowRuns(conversationId)
   const newestSeq = t.messages.reduce((n, m) => Math.max(n, m.seq), 0)
   useEffect(() => { if (onSeen && newestSeq > 0) onSeen(newestSeq) }, [onSeen, newestSeq])
   const bar = workBar(t.activityRows)
@@ -165,6 +168,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
         work={work}
         reply={reply}
         listening={inVoice ? voiceCall.voice.partial : undefined}
+        runs={workflowRuns.filter((r) => !isRunActive(r))}
         bar={<>
           {summary.summarising && (
             <div role="status" data-testid="summarising" className="mx-auto flex w-full max-w-[720px] items-center gap-2 px-4 py-1 text-small text-text-secondary">
@@ -175,6 +179,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
           <WorkBar
             rows={t.activityRows}
             liveLines={t.liveLines}
+            workflowRuns={workflowRuns.filter(isRunActive)}
             actions={{
               canAct: view.canSpeak && !closed,
               busy: t.answering,

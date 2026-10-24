@@ -4,7 +4,7 @@
  * Single source of truth for all system MCP tool identifiers, organised by
  * domain group — matching the canonical tool reference in docs/domains/tools/tools.md.
  *
- * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY
+ * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW
  *
  * Access tiers (cross-cutting):
  *   ALWAYS_INJECTED  — PLATFORM tools + task execution lifecycle; never user-configurable
@@ -14,7 +14,7 @@
  * Tool names are stored and passed around in our raw format (e.g. 'create_task').
  * Runtime adapters are responsible for translating to their own naming scheme.
  */
-
+import { WORKFLOW_TOOL_NAMES } from '@agenthix/core'
 import { ALL_RUNTIME_TOOL_NAMES } from './runtimeTools'
 
 // ── Tool registry (by domain) ─────────────────────────────────────────────────
@@ -136,6 +136,17 @@ export const SYSTEM_MCP_TOOLS = {
     RECALL:   'recall',
   },
 
+  /**
+   * The workflow tools (workflows spec part 1, *The agent's tools*; adr-0148), declared in core. Always injected:
+   * they reach only the run's own place, and run only what a person approved, so there is nothing to turn off.
+   */
+  WORKFLOW: {
+    LIST_WORKFLOWS:   WORKFLOW_TOOL_NAMES.list,
+    PROPOSE_WORKFLOW: WORKFLOW_TOOL_NAMES.propose,
+    RUN_WORKFLOW:     WORKFLOW_TOOL_NAMES.run,
+    WORKFLOW_RUN:     WORKFLOW_TOOL_NAMES.runState,
+  },
+
 } as const
 
 // ── Access tier views ─────────────────────────────────────────────────────────
@@ -156,6 +167,7 @@ export const ALWAYS_INJECTED_MCP_TOOLS: string[] = [
   SYSTEM_MCP_TOOLS.MEMORY.REMEMBER,
   SYSTEM_MCP_TOOLS.MEMORY.FORGET,
   SYSTEM_MCP_TOOLS.MEMORY.RECALL,
+  ...Object.values(SYSTEM_MCP_TOOLS.WORKFLOW),
 ]
 
 /** Included by default when allowedTools is null. */

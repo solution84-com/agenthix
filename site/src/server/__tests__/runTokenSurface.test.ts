@@ -39,7 +39,6 @@ describe('V3: what an agent’s run token can call on the site', () => {
       'get /api/v1/identity/whoami',
       'get /health',
       'post /api/v1/harness/claude-key',
-      'post /api/v1/git/credential',
       'post /api/v1/harness/gate',
       'post /api/v1/harness/turn',
       'post /mcp',

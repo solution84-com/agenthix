@@ -5,7 +5,9 @@ import { contextShare, type ContextUse } from '@agenthix/core'
 import type { OperationActivityView } from '../../shared/conversations/protocol'
 import { stateWord, type LiveLines } from '../hooks/activityState'
 import { barHeading, workBar } from '../hooks/workBarState'
+import type { ConversationRunCard } from '../../workflows/conversationRuns'
 import { WorkflowRequestRow } from './WorkflowRequestRow'
+import { isRunActive, WorkflowRunRow } from './WorkflowRunRow'
 
 /** How much of the background session's context its work has filled, as the runtime last reported it. */
 export function contextLine(use: ContextUse | null | undefined): string | null {
@@ -122,7 +124,13 @@ function WorkRow({ row, live, actions }: { row: OperationActivityView; live: Liv
  * collapsed, "4 working · 2 need you"; opened, a list that scrolls, requests first. Absent when nothing is live.
  * It opens by itself when a new request arrives.
  */
-export function WorkBar({ rows, liveLines, actions }: { rows: OperationActivityView[]; liveLines: LiveLines; actions: WorkBarActions }) {
+export function WorkBar({ rows, liveLines, actions, workflowRuns = [] }: {
+  rows: OperationActivityView[]
+  liveLines: LiveLines
+  actions: WorkBarActions
+  /** The workflow runs this conversation started: those under way are work; a finished one has its card in the thread. */
+  workflowRuns?: ConversationRunCard[]
+}) {
   const bar = workBar(rows)
   const [open, setOpen] = useState(false)
   const asked = useRef(bar.needYou)
@@ -130,7 +138,8 @@ export function WorkBar({ rows, liveLines, actions }: { rows: OperationActivityV
     if (bar.needYou > asked.current) setOpen(true)
     asked.current = bar.needYou
   }, [bar.needYou])
-  if (bar.working === 0) return null
+  const runs = workflowRuns.filter(isRunActive)
+  if (bar.working + runs.length === 0) return null
   const attention = bar.needYou > 0
   return (
     <section
@@ -146,7 +155,7 @@ export function WorkBar({ rows, liveLines, actions }: { rows: OperationActivityV
       >
         <Loader2 size={12} aria-hidden className="shrink-0 text-accent motion-safe:animate-spin" />
         <span className={`min-w-0 flex-1 truncate font-medium ${attention ? 'text-warning' : 'text-text-primary'}`} data-testid="work-bar-heading">
-          {barHeading(bar)}
+          {barHeading({ working: bar.working + runs.length, needYou: bar.needYou })}
         </span>
         <span className="flex shrink-0 items-center gap-1 text-text-muted">
           {open ? 'Hide' : 'Show'}
@@ -159,6 +168,7 @@ export function WorkBar({ rows, liveLines, actions }: { rows: OperationActivityV
             ? <WorkflowRequestRow key={r.operationId} row={r} card={r.workflowCard} actions={actions} />
             : <RequestRow key={r.operationId} row={r} actions={actions} />))}
           {bar.others.map((r) => <WorkRow key={r.operationId} row={r} live={liveLines[r.operationId]} actions={actions} />)}
+          {runs.map((c) => <WorkflowRunRow key={c.runId} card={c} />)}
         </ul>
       )}
     </section>

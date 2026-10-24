@@ -7,6 +7,7 @@
  * Both are browser navigations, so neither carries a session; the state is the credential.
  */
 import type { Response } from 'express'
+import { prisma } from 'wasp/server'
 import type { GithubAppManifestNewApi, GithubAppManifestCallbackApi } from 'wasp/server/api'
 import { masterKeyProblem } from '../server/crypto/secretCrypto'
 import { buildManifest, convertManifestCode, getApp, storeAppFromConversion, refreshInstallations } from './githubApp'
@@ -22,15 +23,16 @@ function plain(res: Response, status: number, message: string): void {
   res.status(status).type('text/plain').send(message)
 }
 
-const START_AGAIN = 'Start again from Manage organisation › Infrastructure › GitHub App in hq.'
-const ALREADY_CONNECTED = 'A GitHub App is already connected. Disconnect it under Manage organisation › Infrastructure › GitHub App, then connect again.'
+const START_AGAIN = 'Start again from Manage organisation › Settings › GitHub in HQ.'
+const ALREADY_CONNECTED = 'A GitHub App is already connected. Disconnect it under Manage organisation › Settings › GitHub, then connect again.'
 
 export const appManifestNewHandler: GithubAppManifestNewApi = async (req, res) => {
   const state = typeof req.query.state === 'string' ? req.query.state : ''
   if (!state) { plain(res, 400, `This link is missing its state. ${START_AGAIN}`); return }
   if (!isManifestStateOpen(state)) { plain(res, 403, `This link is invalid or has expired. ${START_AGAIN}`); return }
   const org = typeof req.query.org === 'string' ? req.query.org.trim() : ''
-  const manifest = JSON.stringify(buildManifest(state))
+  const orgName = (await prisma.org.findFirst({ select: { name: true } }))?.name
+  const manifest = JSON.stringify(buildManifest(state, orgName))
   // Org-owned App: POST to the org's apps/new. Personal account: the bare apps/new.
   const base = org
     ? `https://github.com/organizations/${encodeURIComponent(org)}/settings/apps/new`

@@ -88,9 +88,9 @@ function InfrastructureOverview() {
 
       <OrgEntryGroup title="More">
         <OrgEntryRow
-          to="/admin/infrastructure/github-app"
+          to="/admin/settings/github"
           title="GitHub App"
-          line={!github ? 'Loading…' : github.registered ? `Registered as ${github.slug}` : 'Not registered'}
+          line={!github ? 'Loading…' : github.registered ? `Registered as ${github.slug} · managed under Settings › GitHub` : 'Not registered · register it under Settings › GitHub'}
         />
         <OrgEntryRow to="/admin/infrastructure/diagnostics" title="Logs and diagnostics" line={diagnostics ? diagnosticsLine(diagnostics) : 'Loading…'} />
       </OrgEntryGroup>

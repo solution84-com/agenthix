@@ -13,6 +13,7 @@ import { registerClientEvents, type ClientSocket } from './clientEvents'
 import { clientProtocolSocketGuard, describeClient, type ClientStated, type HandshakeSocket } from './clientProtocol'
 import { addSubscriber, removeSubscriber } from './dashboard/subscriptions'
 import { composeSnapshot } from './dashboard/snapshot'
+import { WORKFLOW_RUN_SOCKET_EVENT, type WorkflowRunSocketEvent } from '../workflows/runsSocketEvent'
 import { canReachSessionContent } from '../sessions/sessionEntitlement'
 import { projectOfTaskOrNull, projectOfBoardOrNull } from '../projects/resourceEntitlement'
 import { isProjectMember } from '../projects/membership'
@@ -64,6 +65,8 @@ interface ServerToClientEvents {
   'notifications:changed':   (data: { ids?: string[] }) => void
   'needsYou:changed':        (data: { ids?: string[] }) => void
   'runs:changed':            (data: { runId: string; sessionId: string; status: string }) => void
+  // A workflow run's step or state changed (workflows/runsLive.ts): ids and a state only; the screen reads the run.
+  [WORKFLOW_RUN_SOCKET_EVENT]: (data: WorkflowRunSocketEvent) => void
   // A conversation's room (conversations/coordinator/): CONVERSATION_SOCKET's names.
   'conversation:message':        (data: ConversationMessageEvent) => void
   'conversation:messageUpdated': (data: ConversationMessageEvent) => void

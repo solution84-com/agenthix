@@ -90,9 +90,11 @@ function needOf(name: string, args: string[]): Need | 'unknown' | null {
   const reads = ['view', 'list', 'diff', 'checks', 'status', 'download']
   const level: GitHubPermissionLevel = reads.includes(b ?? '') ? 'read' : 'write'
   switch (a) {
-    case 'pr': return { pull_requests: level }
+    // `gh pr create` reads the repository's default branch over GraphQL before it opens the pull request.
+    case 'pr': return b === 'create' ? { pull_requests: level, contents: 'read' } : { pull_requests: level }
     case 'issue': return { issues: level }
-    case 'secret': return { secrets: level }
+    // An environment's secrets are the environment's: `--env` needs environments, not the repository's secrets.
+    case 'secret': return args.some((x) => x === '--env' || x === '-e' || x.startsWith('--env=')) ? { environments: level } : { secrets: level }
     case 'variable': return { variables: level }
     case 'release': return { contents: level }
     case 'workflow': case 'run': return { actions: level }

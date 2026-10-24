@@ -14,6 +14,11 @@ vi.mock('wasp/server', async () => {
   return { ...actual, prisma }
 })
 vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/debouncedPush'))
+// The site's answer for the workspace's connection: none, so the mint gate refuses GITHUB_TOKEN.
+vi.mock('../../storage/workspaceStore', async () => ({
+  ...(await vi.importActual<object>('../../storage/workspaceStore')),
+  getRepoForTarget: vi.fn(async () => null),
+}))
 
 process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 9).toString('base64')
 
@@ -135,7 +140,7 @@ describe('starting a run', () => {
     const key = Buffer.from(ins.masking.key, 'base64')
     const names = new Set(ins.masking.forms.map((f) => f.secretName))
     expect(names).toEqual(new Set(['KEY', 'OTHER']))
-    expect(ins.masking.forms).toContainEqual({ length: OTHER.length, hmac: maskFormHmac(key, Buffer.from(OTHER)), secretName: 'OTHER', class: 'raw' })
+    expect(ins.masking.forms).toContainEqual(expect.objectContaining({ length: OTHER.length, hmac: maskFormHmac(key, Buffer.from(OTHER)), secretName: 'OTHER', class: 'raw' }))
     const wire = JSON.stringify(ins)
     expect(wire.includes(OTHER)).toBe(false)
     expect(wire.includes(Buffer.from(OTHER).toString('base64'))).toBe(false)
@@ -200,12 +205,14 @@ describe('starting a run', () => {
     expect(await prisma.secretRecord.count({ where: { action: 'USED' } })).toBe(0)
   })
 
-  it('refuses a workflow that names GITHUB_TOKEN until GitHub tokens arrive', async () => {
+  it('refuses GITHUB_TOKEN through the mint gate when the workspace has no repository connected, leaving nothing', async () => {
     const { deps, sent } = standInSite()
     await proposeAndApprove({ name: 'push', github: { contents: 'write' }, steps: [{ name: 'Push', run: 'true', secrets: ['GITHUB_TOKEN'] }] })
     await expect(startWorkflowRun({ place, workspace: workspace(), workflow: { name: 'push' }, parameters: {}, starter: asPerson(member.id) }, deps))
-      .rejects.toThrow(/GitHub tokens for workflows arrive with an update/)
+      .rejects.toThrow(/no GitHub repository connected/)
     expect(sent).toHaveLength(0)
+    expect(await prisma.workflowRun.count({ where: { workflow: { name: 'push' } } })).toBe(0)
+    expect(await prisma.workflowMintedToken.count()).toBe(0)
   })
 })
 

@@ -55,10 +55,10 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "opencode-
  && claude --version | grep -q "^${CLAUDE_CODE_VERSION} " \
  && npm cache clean --force
 
-COPY site/docker/agenthix-git-credential /usr/local/bin/agenthix-git-credential
-RUN chmod +x /usr/local/bin/agenthix-git-credential \
- && git config --system credential.helper '/usr/local/bin/agenthix-git-credential' \
- && git config --system credential.useHttpPath true
+# The container holds no GitHub token: an agent shares its commits by running the
+# approved push workflow. git asks this helper for a credential, which says so and
+# tells git to stop (quit=1), so a plain `git push` fails with that message.
+RUN git config --system credential.helper '!f() { [ "$1" = get ] || exit 0; echo "git cannot push from this container: it holds no GitHub token. To share your commits, run the push workflow (run_workflow with name push and your branch)." >&2; echo quit=1; }; f'
 
 # Everything of Agenthix's own in the image, root-owned so nothing an agent
 # runs can change it:

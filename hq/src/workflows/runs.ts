@@ -6,7 +6,9 @@
  * 2. **Checked** (`runsChecks.ts`): on, approved here with its content still hashing as approved, parameters, the
  *    agent's runs for the hour, every secret and variable still there. The run is recorded in the same transaction
  *    as the count, so two agents' runs at once can't both pass the limit.
- * 3. **Sent** to the site holding the place's storage: the values, decrypted only now and only in memory; the
+ * 3. **Read from GitHub**, for the starter workflows: a protected target branch, and the environment
+ *    `set-github-secrets` sets its secrets on (`starters/runGuards.ts`).
+ * 4. **Sent** to the site holding the place's storage: the values, decrypted only now and only in memory; the
  *    masking material for every value of the place. Each secret given is recorded (S8).
  *
  * A refusal before the site accepted leaves nothing behind: the run's row is removed, and the message ends "Nothing
@@ -23,11 +25,12 @@ import { SecretsRefusal } from '../secrets/refusal'
 import { requireMayStartRunsInPlace, type WorkflowPlace } from './placeAccess'
 import { checkRunStart } from './runsChecks'
 import { buildRunInstruction } from './runsInstruction'
-import { mintIntegrationValues, unexpiredMintedValues } from './integrationValues'
+import { mintIntegrationValues, revokeMintedTokens, unexpiredMintedValues } from './integrationValues'
 import { runSiteCalls, type RunSiteCalls } from './runsSite'
 import { siteCalls, type SiteCalls } from './siteWorkflows'
 import { storedVersionMatches } from './versionContent'
 import { rememberRunSession } from './runsLive'
+import { guardStarterRun } from './starters/runGuards'
 
 /** Who presses Run: a person, or an agent's run on behalf of one. */
 export type RunStarter =
@@ -43,8 +46,8 @@ export type StartRunInput = {
   starter: RunStarter
 }
 
-export type RunDeps = { site: RunSiteCalls; stop: Pick<SiteCalls, 'stop'> }
-const defaultDeps: RunDeps = { site: runSiteCalls, stop: siteCalls }
+export type RunDeps = { site: RunSiteCalls; stop: Pick<SiteCalls, 'stop'>; guard?: typeof guardStarterRun }
+const defaultDeps: RunDeps = { site: runSiteCalls, stop: siteCalls, guard: guardStarterRun }
 
 const HOUR_MS = 60 * 60 * 1000
 const IN_PROGRESS = ['WAITING', 'RUNNING'] as const
@@ -128,6 +131,12 @@ export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = def
   const held: Buffer[] = []
   let outcome: Awaited<ReturnType<RunSiteCalls['run']>>
   try {
+    // What GitHub says of a starter's target, read before any token for the run is minted (spec part 4).
+    await (deps.guard ?? guardStarterRun)({
+      workflowName: workflow.name,
+      parameters: recorded.parameters,
+      location: { place: wPlace, siteId, workspaceId: workspace.workspaceId, person },
+    })
     const minted = await mintIntegrationValues({ runId, place: wPlace, definition: definition! })
     const placeSecrets = await valuesForRun(wPlace, secretNames)
     const mintedForMasking = await unexpiredMintedValues(wPlace)
@@ -145,7 +154,7 @@ export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = def
     })
     outcome = await deps.site.run(siteId, instruction)
   } catch (err) {
-    await forget(runId)
+    await forget(runId, wPlace)
     if (err instanceof SecretsRefusal) throw new HttpError(409, err.message)
     throw err
   } finally {
@@ -153,7 +162,7 @@ export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = def
   }
 
   if (outcome.sent === 'refused' || outcome.sent === 'unreachable') {
-    await forget(runId)
+    await forget(runId, wPlace)
     throw new HttpError(outcome.sent === 'refused' ? 409 : 503, outcome.sent === 'refused'
       ? outcome.message
       : 'The Execution Site that holds this place\'s storage can\'t be reached; try again once it is back. Nothing was changed.')
@@ -170,11 +179,14 @@ export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = def
       },
     })
     await deps.stop.stop(siteId, { runId, reason: 'stopped' }).catch(() => undefined)
+    await revokeMintedTokens(runId, wPlace).catch(() => undefined)
   }
   return { runId }
 }
 
-async function forget(runId: string): Promise<void> {
+/** A minted token is ended before its row goes with the run's. */
+async function forget(runId: string, place: WorkflowPlace): Promise<void> {
+  await revokeMintedTokens(runId, place).catch(() => undefined)
   await prisma.workflowRun.delete({ where: { id: runId } }).catch(() => undefined)
 }
 

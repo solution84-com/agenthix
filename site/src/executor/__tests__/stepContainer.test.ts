@@ -9,7 +9,7 @@ const spec = (over: Partial<StepContainerSpec> = {}): StepContainerSpec => ({
   workflowDir: '/site/executor/runs/run-1/workflow', outDir: '/site/executor/runs/run-1/out',
   snapshotDir: '/site/executor/runs/run-1/snapshot', workdir: '/projects/p/workspaces/w',
   readOnlyWorkspace: true, limits: WORKFLOW_CONTAINER_LIMITS, networkArgs: ['--network', 'none'],
-  variables: { STAGING_HOST: 'staging.example.com' }, command: '/run/workflow/deploy/upload.sh',
+  variables: { STAGING_HOST: 'staging.example.com' }, github: null, command: '/run/workflow/deploy/upload.sh',
   ...over,
 })
 
@@ -91,5 +91,12 @@ describe('a step\'s command', () => {
     const files = new Set(['deploy/upload.sh'])
     expect(commandForStep('./deploy/upload.sh --fast', files, 'deploy/upload.sh')).toBe('/run/workflow/deploy/upload.sh --fast')
     expect(commandForStep('npm run build', files, null)).toBe('npm run build')
+  })
+
+  it('gives every step the run\'s repository, and lets a step run programs from /tmp', () => {
+    const { args } = buildStepRunCommand(spec({ github: { repository: 'acme/site', cloneUrl: 'https://github.com/acme/site.git' } }))
+    expect(args).toContain('GITHUB_REPOSITORY=acme/site')
+    expect(args).toContain('GITHUB_REPOSITORY_URL=https://github.com/acme/site.git')
+    expect(args.find(a => a.startsWith('/tmp:'))).toMatch(/(^|,)exec(,|$)/)
   })
 })

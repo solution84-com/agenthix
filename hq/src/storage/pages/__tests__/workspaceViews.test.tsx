@@ -24,10 +24,10 @@ vi.mock('wasp/client/operations', () => ({
   createWorkspace: 'createWorkspace', connectRepo: 'connectRepo', setWorkspaceAllowedTools: 'setWorkspaceAllowedTools',
 }))
 vi.mock('react-router', () => ({ useSearchParams: () => [new URLSearchParams(), vi.fn()] }))
+vi.mock('../../../github/connect/ConnectRepoFlow', () => ({ ConnectRepoFlow: ({ target, defaultName, onCancel }: { target: { workspaceId: string }; defaultName: string; onCancel: () => void }) => <div>connect flow {target.workspaceId} {defaultName}<button type="button" onClick={onCancel}>Cancel</button></div> }))
 vi.mock('../RepoPanel', () => ({ RepoPanel: () => <div>repo panel</div> }))
 vi.mock('../FolderTree', () => ({ FolderTree: () => <div>folder tree</div> }))
 vi.mock('../OperationsPanel', () => ({ OperationsPanel: () => <div>secrets</div> }))
-vi.mock('../WorkspaceRuns', () => ({ WorkspaceRuns: () => <div>runs</div> }))
 vi.mock('../FileOpened', () => ({ FileOpened: ({ path }: { path: string }) => <div>file opened {path}</div> }))
 const topFolder = vi.hoisted(() => ({ entries: [] as { name: string; isDir: boolean }[] }))
 vi.mock('../filesToolData', async (importOriginal) => ({
@@ -122,14 +122,13 @@ describe('a workspace\'s About', () => {
     <WorkspaceAbout ws={ws} target={{ ownerType: 'project', ownerId: 'p1', workspaceId: 'w1' }} siteLabel="Office Mac" previewId={previewId} onDisconnect={vi.fn()} onBack={vi.fn()} />,
   )
 
-  it('holds the facts, the GitHub runs and the secrets', () => {
+  it('holds the facts and the GitHub section', () => {
     about()
     expect(screen.getByText('acme/web')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy()
     expect(screen.getByText('Not running')).toBeTruthy()
     expect(screen.getByText('Office Mac', { selector: 'dd' })).toBeTruthy()
     expect(screen.getByText(/^All/)).toBeTruthy()
-    expect(screen.getByText('runs')).toBeTruthy()
     expect(screen.getByText('secrets')).toBeTruthy()
   })
 
@@ -158,31 +157,16 @@ describe('a new workspace', () => {
     expect(actions.createWorkspace).toHaveBeenCalledWith({ name: 'docs', ownerType: 'project', ownerId: 'p1' })
   })
 
-  it('from a GitHub repository links it to the new workspace', async () => {
+  it('from a GitHub repository creates the workspace, then goes on to the connect flow', async () => {
     actions.createWorkspace = vi.fn().mockResolvedValue({ workspaceId: 'w9' })
-    actions.connectRepo = vi.fn().mockResolvedValue(undefined)
-    const onCreated = vi.fn()
-    render(<NewWorkspaceForm owner={{ ownerType: 'user', ownerId: 'u1' }} siteLabel={null} onBack={vi.fn()} onCreated={onCreated} />)
-    fireEvent.change(screen.getByPlaceholderText('docs-site'), { target: { value: 'docs' } })
-    fireEvent.click(screen.getByLabelText(/A GitHub repository/))
-    fireEvent.change(screen.getByPlaceholderText('https://github.com/org/repo'), { target: { value: 'https://github.com/acme/docs' } })
-    fireEvent.click(screen.getByRole('button', { name: /Create/ }))
-    await waitFor(() => expect(onCreated).toHaveBeenCalledWith('w9'))
-    expect(actions.connectRepo).toHaveBeenCalledWith({ target: { ownerType: 'user', ownerId: 'u1', workspaceId: 'w9' }, mode: 'link', repoUrl: 'https://github.com/acme/docs' })
-  })
-
-  it('when linking fails, says so, keeps the workspace it made and offers to open it', async () => {
-    actions.createWorkspace = vi.fn().mockResolvedValue({ workspaceId: 'w9' })
-    actions.connectRepo = vi.fn().mockRejectedValue(new Error('Repository not found'))
     const onCreated = vi.fn()
     render(<NewWorkspaceForm owner={{ ownerType: 'project', ownerId: 'p1' }} siteLabel={null} onBack={vi.fn()} onCreated={onCreated} />)
     fireEvent.change(screen.getByPlaceholderText('docs-site'), { target: { value: 'docs' } })
     fireEvent.click(screen.getByLabelText(/A GitHub repository/))
-    fireEvent.change(screen.getByPlaceholderText('https://github.com/org/repo'), { target: { value: 'https://github.com/acme/none' } })
-    fireEvent.click(screen.getByRole('button', { name: /Create/ }))
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Repository not found'))
+    fireEvent.click(screen.getByRole('button', { name: /Create and connect a repository/ }))
+    await waitFor(() => expect(screen.getByText('connect flow w9 docs')).toBeTruthy())
     expect(onCreated).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Open it' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(onCreated).toHaveBeenCalledWith('w9')
   })
 })

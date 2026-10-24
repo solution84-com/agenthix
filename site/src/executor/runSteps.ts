@@ -97,6 +97,7 @@ export async function runSteps(ctx: StepsContext): Promise<StepsOutcome> {
       limits: ins.limits,
       networkArgs: ctx.networkArgs,
       variables: ins.variables,
+      github: ins.github ? { repository: ins.github.repository, cloneUrl: ins.github.cloneUrl } : null,
       command: commandForStep(step.run, files, fileNamedByRun(step.run)),
     })
     let lastSent = 0

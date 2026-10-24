@@ -22,8 +22,8 @@ describe('the agent\'s workflow tools', () => {
     const args = Object.fromEntries(WORKFLOW_TOOL_DECLARATIONS.map(t => [t.name, Object.keys(t.args).sort()]))
     expect(args).toEqual({
       list_workflows: [],
-      propose_workflow: ['path'],
-      run_workflow: ['name', 'parameters'],
+      propose_workflow: ['path', 'workspace'],
+      run_workflow: ['name', 'parameters', 'workspace'],
       workflow_run: ['id'],
     })
   })

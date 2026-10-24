@@ -4,31 +4,58 @@
  * included; nothing they answer holds a secret's value.
  */
 import type { GetPlaceWorkflows, GetWorkflow, GetWorkflowVersion } from 'wasp/server/operations'
-import { HttpError } from 'wasp/server'
-import { isWorkflowPlace, requireMayReadPlace, mayAdministerPlace, type WorkflowPlace } from './placeAccess'
+import { HttpError, prisma } from 'wasp/server'
+import { isWorkflowPlace, requireMayReadPlace, mayAdministerPlace, mayStartRunsInPlace, type WorkflowPlace } from './placeAccess'
+import { proposingConversations, type ProposedIn } from './proposedIn'
 import { listPlaceWorkflows, readVersion, readWorkflow, workflowPlace, type LibraryWorkflow } from './library'
 
 type PlaceArgs = { place: WorkflowPlace }
 
-export const getPlaceWorkflows: GetPlaceWorkflows<PlaceArgs, { workflows: LibraryWorkflow[]; mayAdminister: boolean }> = async (args, context) => {
+export const getPlaceWorkflows: GetPlaceWorkflows<PlaceArgs, { workflows: LibraryWorkflow[]; mayAdminister: boolean; mayRun: boolean }> = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   if (!isWorkflowPlace(args?.place)) throw new HttpError(400, 'A place is a project or a person\'s own storage.')
   await requireMayReadPlace(args.place, context.user.id, 'Reading this place\'s workflows')
-  return { workflows: await listPlaceWorkflows(args.place), mayAdminister: await mayAdministerPlace(args.place, context.user.id) }
+  const [workflows, mayAdminister, mayRun] = await Promise.all([
+    listPlaceWorkflows(args.place),
+    mayAdministerPlace(args.place, context.user.id),
+    mayStartRunsInPlace(args.place, context.user.id),
+  ])
+  return { workflows, mayAdminister, mayRun }
 }
 
-export const getWorkflow: GetWorkflow<{ workflowId: string }, Awaited<ReturnType<typeof readWorkflow>> & { mayAdminister: boolean }> = async (args, context) => {
+type WorkflowRead = Awaited<ReturnType<typeof readWorkflow>>
+export type WorkflowDetailView = Omit<WorkflowRead, 'versions'> & {
+  versions: (WorkflowRead['versions'][number] & { proposedIn: ProposedIn | null })[]
+  mayAdminister: boolean
+  mayRun: boolean
+}
+
+export const getWorkflow: GetWorkflow<{ workflowId: string }, WorkflowDetailView> = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   if (typeof args?.workflowId !== 'string') throw new HttpError(400, 'A workflow id is required.')
   const place = await workflowPlace(args.workflowId)
   await requireMayReadPlace(place, context.user.id, 'Reading this workflow')
-  return { ...(await readWorkflow(args.workflowId)), mayAdminister: await mayAdministerPlace(place, context.user.id) }
+  const read = await readWorkflow(args.workflowId)
+  const where = await proposingConversations(read.versions.map((v) => v.proposedByRunId), context.user.id)
+  return {
+    ...read,
+    versions: read.versions.map((v) => ({ ...v, proposedIn: (v.proposedByRunId && where.get(v.proposedByRunId)) || null })),
+    mayAdminister: await mayAdministerPlace(place, context.user.id),
+    mayRun: await mayStartRunsInPlace(place, context.user.id),
+  }
 }
 
-export const getWorkflowVersion: GetWorkflowVersion<{ workflowId: string; number: number }, Awaited<ReturnType<typeof readVersion>>> = async (args, context) => {
+export type WorkflowVersionDetail = Awaited<ReturnType<typeof readVersion>> & { proposedIn: ProposedIn | null }
+
+export const getWorkflowVersion: GetWorkflowVersion<{ workflowId: string; number: number }, WorkflowVersionDetail> = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   if (typeof args?.workflowId !== 'string' || !Number.isInteger(args?.number)) throw new HttpError(400, 'A workflow id and a version number are required.')
   const place = await workflowPlace(args.workflowId)
   await requireMayReadPlace(place, context.user.id, 'Reading this workflow')
-  return readVersion(args.workflowId, args.number)
+  const [version, row] = await Promise.all([
+    readVersion(args.workflowId, args.number),
+    prisma.workflowVersion.findUnique({ where: { workflowId_number: { workflowId: args.workflowId, number: args.number } }, select: { proposedByRunId: true } }),
+  ])
+  const where = await proposingConversations([row?.proposedByRunId ?? null], context.user.id)
+  return { ...version, proposedIn: (row?.proposedByRunId && where.get(row.proposedByRunId)) || null }
 }

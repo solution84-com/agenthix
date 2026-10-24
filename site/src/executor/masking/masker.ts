@@ -21,6 +21,11 @@ const WITHHELD = Buffer.from('[output withheld: the masking material could not b
 export const SLICE_MS = 10
 /** Positions between looks at the clock. */
 const CLOCK_EVERY = 64
+/**
+ * When masking last gave the event loop a turn, across every masker and push: pushes that each take less than a
+ * slice but follow one another as promises would otherwise hold the loop for as long as they keep coming.
+ */
+let sliceStart = performance.now()
 
 export function createFormMasker(material: WorkflowMaskingMaterial): Masker {
   let matcher: FormMatcher
@@ -44,7 +49,6 @@ export function createFormMasker(material: WorkflowMaskingMaterial): Masker {
     const parts: Buffer[] = []
     let plainFrom = -1
     let p = 0
-    let sliceStart = performance.now()
     for (; p < buf.length; p++) {
       if (p % CLOCK_EVERY === 0 && performance.now() - sliceStart > SLICE_MS) {
         await yieldToLoop()

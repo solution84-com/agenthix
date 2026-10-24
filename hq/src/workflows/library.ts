@@ -16,6 +16,16 @@ const secretsOf = (d: WorkflowDefinition) => [...new Set(d.steps.flatMap((s) => 
 
 export type WaitingVersion = { number: number; hash: string; origin: string; needsApprovalAgain: string | null; createdAt: Date }
 
+/** A workflow's newest run for the list: its state, when it ended, and who it was for (a person, or an agent's name via agentId). */
+export type LastRun = {
+  id: string
+  state: string
+  startedAt: Date | null
+  endedAt: Date | null
+  onBehalfOfUserId: string
+  agentId: string | null
+}
+
 export type LibraryWorkflow = {
   id: string
   name: string
@@ -23,6 +33,7 @@ export type LibraryWorkflow = {
   enabled: boolean
   approved: { number: number; hash: string; definition: WorkflowDefinition } | null
   waiting: WaitingVersion[]
+  lastRun: LastRun | null
 }
 
 function waitingOf(v: { number: number; hash: string; origin: string; createdAt: Date }): WaitingVersion {
@@ -35,6 +46,11 @@ export async function listPlaceWorkflows(place: WorkflowPlace): Promise<LibraryW
     orderBy: { name: 'asc' },
     select: {
       id: true, name: true, enabled: true,
+      runs: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { id: true, state: true, startedAt: true, endedAt: true, onBehalfOfUserId: true, agentId: true },
+      },
       versions: {
         where: { state: { in: ['APPROVED', 'PROPOSED'] } },
         orderBy: { number: 'asc' },
@@ -53,6 +69,7 @@ export async function listPlaceWorkflows(place: WorkflowPlace): Promise<LibraryW
       enabled: w.enabled,
       approved: approvedRow ? { number: approvedRow.number, hash: approvedRow.hash, definition: definitionOf(approvedRow.definition) } : null,
       waiting: w.versions.filter((v) => v.state === 'PROPOSED').map(waitingOf),
+      lastRun: w.runs[0] ? { ...w.runs[0], state: w.runs[0].state.toLowerCase() } : null,
     }
   })
 }

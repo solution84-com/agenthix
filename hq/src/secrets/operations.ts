@@ -16,6 +16,7 @@ import { SecretsRefusal, type SecretsRefusalCode } from './refusal'
 import type { SecretDescription, SecretValueInput } from './rules'
 import { addSecret, deleteSecret, describeSecret, replaceSecret } from './store'
 import { turnOffWhatUses } from './turnOff'
+import { proposeGitHubSecretName, type StarterProposal } from '../workflows/starters/propose'
 import { addVariable, deleteVariable, editVariable, type VariableSave } from './variables'
 import type {
   PlaceSecretsView, PlaceVariablesView, SecretRecordView, TurnedOffView, ValueKind, VariableChangeView, VariableSaveView,
@@ -104,10 +105,27 @@ export const getPlaceVariableHistory: GetPlaceVariableHistory<Named, VariableCha
   return variableHistoryView(place, nameOf(args))
 })
 
-export const addPlaceSecret: AddPlaceSecret<Named & DescriptionArgs & { value: SecretValueInput }, { name: string }> =
+/**
+ * *Also set it on GitHub, for GitHub workflows* (spec part 3, *Adding a secret*) proposes adding the name to the
+ * place's `set-github-secrets`, which an administrator approves next; the secret is added either way, and a
+ * proposal HQ couldn't make is answered with its reason.
+ */
+type GitHubProposalView = StarterProposal | { workflow: 'set-github-secrets'; proposed: false; message: string }
+
+export const addPlaceSecret: AddPlaceSecret<
+  Named & DescriptionArgs & { value: SecretValueInput; alsoOnGitHub?: boolean },
+  { name: string; github: GitHubProposalView | null }
+> =
   (args, context) => answering(async () => {
-    const s = await addSecret(placeOf(args), userOf(context), { name: nameOf(args), value: valueOf(args), ...descriptionOf(args) })
-    return { name: s.name }
+    const place = placeOf(args)
+    const s = await addSecret(place, userOf(context), { name: nameOf(args), value: valueOf(args), ...descriptionOf(args) })
+    if (args?.alsoOnGitHub !== true) return { name: s.name, github: null }
+    try {
+      return { name: s.name, github: await proposeGitHubSecretName(place, s.name) }
+    } catch (err) {
+      if (!(err instanceof HttpError)) throw err
+      return { name: s.name, github: { workflow: 'set-github-secrets' as const, proposed: false as const, message: `The secret was added, but HQ couldn't propose setting it on GitHub: ${err.message}` } }
+    }
   })
 
 export const replacePlaceSecret: ReplacePlaceSecret<Named & { value: SecretValueInput; rotateBy?: Date | string | null }, { name: string }> =

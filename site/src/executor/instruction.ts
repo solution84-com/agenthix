@@ -10,7 +10,8 @@ import { z } from 'zod'
 import {
   checkParameterValues, EXECUTOR_IMAGE_DIGEST_RE, GITHUB_PERMISSION_LEVELS, GITHUB_REPOSITORY_PERMISSIONS,
   hashWorkflowVersion, validateParameterName, validateSecretName, validateVariableName, validateWorkflowName,
-  WORKFLOW_LIMITS, WORKFLOW_MASK_FORM_CLASSES, WORKFLOW_TIMEOUT_MAX_SECONDS, WORKSPACE_OWNER_TYPES,
+  WORKFLOW_LIMITS, WORKFLOW_MASK_FORM_CLASSES, WORKFLOW_MASK_TAG_BITS, WORKFLOW_MASK_TAG_SPAN_MAX, WORKFLOW_TIMEOUT_MAX_SECONDS,
+  WORKSPACE_OWNER_TYPES,
   type WorkflowRunInstruction, type WorkflowRunRefusal, type WorkflowVersionFile,
 } from '@agenthix/core'
 import { isRunId } from './runFolders'
@@ -74,7 +75,10 @@ const instructionSchema = z.object({
       hmac: z.string().regex(HASH_RE),
       secretName: z.string(),
       class: z.enum(WORKFLOW_MASK_FORM_CLASSES).optional(),
+      tag: z.number().int().min(0).max(2 ** WORKFLOW_MASK_TAG_BITS - 1).optional(),
+      tagSpan: z.number().int().min(1).max(WORKFLOW_MASK_TAG_SPAN_MAX).optional(),
     }).strict()),
+    tagBase: z.number().int().min(1).max(2 ** 32 - 1).optional(),
   }).strict(),
   github: z.object({ repository: z.string(), repositoryId: z.number().int().positive(), cloneUrl: z.string() }).strict().nullable(),
 }).strict()

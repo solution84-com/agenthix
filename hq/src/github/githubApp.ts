@@ -1,12 +1,13 @@
 /**
- * GitHub App credential service (ADR-0037 §8).
- * One org-scoped App; mints per-repo short-lived installation tokens. The single
- * accessor getTokenFor() is the security chokepoint + the ADR-0041 relocation seam.
+ * GitHub App credential service (ADR-0037 §8): the App's registration, its JWT and its installations.
+ * Installation tokens are minted only by the mint gate (`mintGate.ts`).
  */
 import { prisma } from 'wasp/server'
 import { encryptSecret, decryptStoredSecret } from '../server/crypto/secretCrypto'
 import { SignJWT, importPKCS8 } from 'jose'
 import { createPrivateKey } from 'node:crypto'
+import { parsePermissions, rememberFacts } from './permissionFacts'
+import type { GitHubPermissions } from '@agenthix/core'
 
 const APP_NAME_PREFIX = 'agenthix'
 // Reuse the existing Wasp URLs — no new env var. Server URL hosts the api routes
@@ -23,15 +24,31 @@ export interface ManifestConversion {
   client_secret?: string
 }
 
+/**
+ * The name GitHub's page starts with: "Agenthix for <the organisation's name>", which is what its clients see when they
+ * install the App. The organisation's bare name would usually be refused, because GitHub reserves an App name that
+ * matches an account's login. GitHub takes up to 34 characters of letters, digits, spaces and `-_.()`; a name already
+ * taken is changed there, on GitHub's page. With no usable name, a generated one.
+ */
+export function defaultAppName(orgName: string | null | undefined, state: string): string {
+  const prefix = 'Agenthix for '
+  const name = (orgName ?? '').replace(/[^A-Za-z0-9 ._()-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 34 - prefix.length).trim()
+  return /^[A-Za-z0-9]/.test(name) ? `${prefix}${name}` : `${APP_NAME_PREFIX}-${state.replace(/[^A-Za-z0-9]/g, '').slice(0, 8)}`
+}
+
 /** The App Manifest we POST to GitHub. default_permissions are exactly what the platform needs. */
-export function buildManifest(state: string): Record<string, unknown> {
+export function buildManifest(state: string, orgName?: string | null): Record<string, unknown> {
   return {
-    name: `${APP_NAME_PREFIX}-${state.replace(/[^A-Za-z0-9]/g, '').slice(0, 8)}`,
+    name: defaultAppName(orgName, state),
     url: WEB_URL(),
     redirect_url: `${serverUrl()}/api/v1/github/app-manifest-callback`,
+    // After someone installs the App, or changes what it can reach, GitHub sends them back to HQ's GitHub page, which
+    // then looks for the new installation (there is no Refresh button).
+    setup_url: `${WEB_URL()}/admin/settings/github`,
+    setup_on_update: true,
     // No webhook: GitHub rejects a localhost hook URL, and we consume no events yet
     // (run-surfacing polls the Actions API). Add hook_attributes when webhooks land + a public URL exists.
-    public: false,
+    public: true, // anyone can install it; a new installation is used only once an administrator allows it
     default_permissions: {
       contents: 'write',
       actions: 'write',
@@ -39,6 +56,7 @@ export function buildManifest(state: string): Record<string, unknown> {
       workflows: 'write',
       pull_requests: 'write', // agent opens PRs from pushed branches (via its installation token)
       administration: 'write', // repo creation on the installed org
+      environments: 'write', // set-github-secrets: environment secrets, and the environment limited to protected branches
       metadata: 'read',
     },
   }
@@ -84,11 +102,8 @@ export async function getAppPrivateKey(): Promise<string> {
   return pem
 }
 
-interface CachedToken { token: string; expMs: number }
-const tokenCache = new Map<string, CachedToken>()   // key: `${owner}/${repo}`
-
 /** App JWT (RS256), 9-min TTL — GitHub caps at 10. Signed with the App private key. */
-async function getAppJwt(): Promise<string> {
+export async function getAppJwt(): Promise<string> {
   const app = await getApp()
   if (!app) throw new Error('No GitHub App is registered.')
   const pem = await getAppPrivateKey()
@@ -105,17 +120,6 @@ async function getAppJwt(): Promise<string> {
     .sign(key)
 }
 
-/** Resolve repo → installation id. Refreshes installations from GitHub on a miss. */
-async function resolveInstallationId(owner: string): Promise<number> {
-  let inst = await prisma.gitHubInstallation.findFirst({ where: { accountLogin: owner } })
-  if (!inst) {
-    await refreshInstallations()
-    inst = await prisma.gitHubInstallation.findFirst({ where: { accountLogin: owner } })
-  }
-  if (!inst) throw new Error(`The GitHub App is not installed on "${owner}". Install it on that org/account.`)
-  return inst.installationId
-}
-
 /**
  * Sync GitHubInstallation with GitHub's current installation list: upsert what GitHub
  * reports and PRUNE rows it no longer reports (so uninstalling on GitHub + refresh
@@ -127,14 +131,19 @@ export async function refreshInstallations(): Promise<void> {
     headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/vnd.github.v3+json' },
   })
   if (!res.ok) throw new Error(`Listing App installations failed (${res.status}): ${await res.text()}`)
-  const installs = await res.json() as Array<{ id: number; account: { login: string; type: string } }>
+  const installs = await res.json() as Array<{
+    id: number; account: { id: number; login: string; type: string }; repository_selection?: string; permissions?: unknown
+  }>
+  const accepted = new Map<number, GitHubPermissions>()
   for (const i of installs) {
-    await prisma.gitHubInstallation.upsert({
-      where: { installationId: i.id },
-      create: { installationId: i.id, accountLogin: i.account.login, accountType: i.account.type },
-      update: { accountLogin: i.account.login, accountType: i.account.type },
-    })
+    const seen = {
+      accountLogin: i.account.login, accountType: i.account.type, accountId: BigInt(i.account.id),
+      repositorySelection: i.repository_selection ?? null,
+    }
+    accepted.set(i.id, parsePermissions(i.permissions))
+    await prisma.gitHubInstallation.upsert({ where: { installationId: i.id }, create: { installationId: i.id, ...seen }, update: seen })
   }
+  rememberFacts(null, accepted)
   // Prune installations GitHub no longer reports (uninstalled). notIn [] prunes all.
   await prisma.gitHubInstallation.deleteMany({ where: { installationId: { notIn: installs.map(i => i.id) } } })
 }
@@ -143,53 +152,4 @@ export async function refreshInstallations(): Promise<void> {
 export async function disconnectApp(): Promise<void> {
   await prisma.gitHubInstallation.deleteMany({})
   await prisma.gitHubApp.deleteMany({})
-}
-
-/** The mint-request body — scoped to one repo, least-privilege. Pure; unit-tested. */
-export function buildInstallationTokenRequest(repoName: string): Record<string, unknown> {
-  return {
-    repositories: [repoName],
-    permissions: { contents: 'write', actions: 'write', secrets: 'write', workflows: 'write', pull_requests: 'write', metadata: 'read' },
-  }
-}
-
-/**
- * THE ACCESSOR. Mint a per-repo, ~1 hr installation token. Cached in memory until
- * 5 min before expiry. This is the single GitHub-credential chokepoint (run-context
- * gate point) and the ADR-0041 relocation seam.
- */
-export async function getTokenFor(repo: { owner: string; name: string }): Promise<string> {
-  const cacheKey = `${repo.owner}/${repo.name}`
-  const cached = tokenCache.get(cacheKey)
-  if (cached && cached.expMs - Date.now() > 5 * 60_000) return cached.token
-
-  const installationId = await resolveInstallationId(repo.owner)
-  const jwt = await getAppJwt()
-  const res = await fetch(`https://api.github.com/app/installations/${installationId}/access_tokens`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildInstallationTokenRequest(repo.name)),
-  })
-  if (!res.ok) throw new Error(`Minting installation token failed (${res.status}): ${await res.text()}`)
-  const { token, expires_at } = await res.json() as { token: string; expires_at: string }
-  tokenCache.set(cacheKey, { token, expMs: new Date(expires_at).getTime() })
-  return token
-}
-
-/**
- * Mint an ORG-level installation token for repo creation. Unlike getTokenFor (per-repo,
- * least-privilege), this is not repo-scoped and carries `administration: write` — required
- * by POST /orgs/{org}/repos. Short-lived, not cached (used only at connect/init time).
- */
-export async function getOrgToken(owner: string): Promise<string> {
-  const installationId = await resolveInstallationId(owner)
-  const jwt = await getAppJwt()
-  const res = await fetch(`https://api.github.com/app/installations/${installationId}/access_tokens`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ permissions: { administration: 'write', contents: 'write' } }),
-  })
-  if (!res.ok) throw new Error(`Minting org token failed (${res.status}): ${await res.text()}`)
-  const { token } = await res.json() as { token: string }
-  return token
 }

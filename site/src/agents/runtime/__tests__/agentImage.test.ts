@@ -43,6 +43,16 @@ describe('the agent image and the site agree', () => {
     expect(HARNESS_SECRET_ENV).toEqual(expect.arrayContaining(['OPENCODE_SERVER_PASSWORD', 'SITE_HARNESS_KEY', 'ANTHROPIC_API_KEY']))
   })
 
+  it('gives git no credential: its helper names the push workflow and tells git to stop (A12)', () => {
+    expect(fs.existsSync(path.join(SITE, 'docker/agenthix-git-credential'))).toBe(false)
+    expect(dockerfile).not.toMatch(/agenthix-git-credential|GIT_CRED_ENDPOINT|git\/credential|useHttpPath/)
+    const helpers = dockerfile.match(/git config --system credential\.helper .*/g) ?? []
+    expect(helpers).toHaveLength(1)
+    expect(helpers[0]).toMatch(/run the push workflow/)
+    expect(helpers[0]).toMatch(/echo quit=1/)
+    expect(helpers[0]).not.toMatch(/curl|wget|password=/)
+  })
+
   it('pins the Claude Code CLI the site SDK bundles', () => {
     const manifest = JSON.parse(read('node_modules/@anthropic-ai/claude-agent-sdk/manifest.json')) as { version: string }
     expect(dockerArg('CLAUDE_CODE_VERSION')).toBe(manifest.version)

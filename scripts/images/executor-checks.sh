@@ -21,7 +21,7 @@ failed=0
 # step <script>: runs the script in a fresh container, shaped as the site starts a step; prints its output.
 step() {
   docker rm -f "$NAME" > /dev/null 2>&1
-  docker run --rm --name "$NAME" --init --network none --read-only --tmpfs /tmp:rw,size=64m --cap-drop ALL \
+  docker run --rm --name "$NAME" --init --network none --read-only --tmpfs /tmp:rw,exec,size=64m --cap-drop ALL \
     --security-opt no-new-privileges --memory 2g --cpus 2 \
     -e GITHUB_REPOSITORY_URL=https://github.com/example/repo.git \
     -v "$dir/token:/run/secrets/GITHUB_TOKEN:ro" "$IMAGE" sh -c "$1" 2>&1

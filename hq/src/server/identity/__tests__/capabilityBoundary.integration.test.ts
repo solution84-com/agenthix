@@ -107,7 +107,7 @@ describe('mint-time role resolution @SC-298', () => {
     expect(claims.role).toBeNull()
   })
 
-  // gitGrantService infers "this run acts as the person in userId" from a
+  // Callers infer "this run acts as the person in userId" from a
   // non-null role, which holds only while every mint keeps this invariant.
   it("whenever a mint returns a role, projectId is null and userId is the session's own user", async () => {
     await role('u1', 'MEMBER')

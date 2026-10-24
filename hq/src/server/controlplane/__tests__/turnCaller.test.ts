@@ -17,7 +17,7 @@ describe('the tools a turn may ever call @SC-950', () => {
     expect(isTurnTool(tool)).toBe(false)
   })
 
-  it.each(['remember', 'forget', 'recall', 'start_preview', 'resolve_git_credential'])('%s is the data path\'s, for a run in its container', (tool) => {
+  it.each(['remember', 'forget', 'recall', 'start_preview'])('%s is the data path\'s, for a run in its container', (tool) => {
     expect(isTurnTool(tool)).toBe(false)
   })
 
@@ -77,7 +77,7 @@ describe('the tool entry holds a turn to its gate before any operation runs @SC-
     return err as ControlPlaneError
   }
 
-  it.each(['run_task', 'set_task_schedule', 'create_routine', 'remember', 'start_preview', 'resolve_git_credential'])('refuses %s, even to a bypassed agent', async (tool) => {
+  it.each(['run_task', 'set_task_schedule', 'create_routine', 'remember', 'start_preview'])('refuses %s, even to a bypassed agent', async (tool) => {
     const ctx = turnCaller({ permissions: { bypassed: true, allowedTools: [], allowedBashPatterns: [], neverTools: [] } })
     expect((await refusalOf(tool, ctx)).message).toMatch(/not available in a conversation/)
   })

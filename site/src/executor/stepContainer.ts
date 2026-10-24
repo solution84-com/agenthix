@@ -53,6 +53,8 @@ export type StepContainerSpec = {
   limits: WorkflowContainerLimits
   networkArgs: string[]
   variables: Record<string, string>
+  /** The run's repository, when hq connected one: every step gets its name and address, which no variable may set. */
+  github: { repository: string; cloneUrl: string } | null
   command: string
 }
 
@@ -65,6 +67,7 @@ export function buildStepRunCommand(s: StepContainerSpec): StepRunCommand {
     HOME: STEP_HOME,
     XDG_CONFIG_HOME: `${STEP_HOME}/.config`,
     GH_CONFIG_DIR: `${STEP_HOME}/.config/gh`,
+    ...(s.github ? { GITHUB_REPOSITORY: s.github.repository, GITHUB_REPOSITORY_URL: s.github.cloneUrl } : {}),
   }
   const clientEnv: Record<string, string> = {}
   const envArgs: string[] = []
@@ -84,8 +87,9 @@ export function buildStepRunCommand(s: StepContainerSpec): StepRunCommand {
     '--cap-drop', 'ALL',
     '--security-opt', 'no-new-privileges',
     '--read-only',
-    // /tmp may hold programs a build makes and runs, so it alone allows running them.
-    '--tmpfs', `/tmp:rw,nosuid,nodev,size=256m,mode=1777`,
+    // /tmp may hold programs a build makes and runs (push-bundle's askpass among them), so it alone allows running
+    // them; Docker mounts a tmpfs noexec unless told otherwise.
+    '--tmpfs', `/tmp:rw,exec,nosuid,nodev,size=256m,mode=1777`,
     ...tmpfs(SECRETS_MOUNT, '64m', owned),
     ...tmpfs(PARAMS_MOUNT, '8m', owned),
     '-v', `${s.workflowDir}:${WORKFLOW_MOUNT}:ro`,

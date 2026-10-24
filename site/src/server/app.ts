@@ -10,7 +10,6 @@ import { Logger } from './utils/logger'
 import { healthHandler } from './health'
 import { whoamiHandler } from './identity/identityApi'
 import { mcpHandler } from './mcp/handler'
-import { gitCredentialHandler } from './git/gitCredentialApi'
 import { harnessTurnHandler } from './harness/turnApi'
 import { harnessGateHandler } from './harness/harnessGateApi'
 import { claudeKeyHandler } from './runtime/claudeKeyApi'
@@ -31,14 +30,13 @@ export const ROUTES: readonly Route[] = [
   // about the site's identity or its link to hq — that is `agenthix-site status`.
   { method: 'get', path: '/health', handler: healthHandler, parseBody: true },
   // Verifies hq-issued tokens locally, with no per-request call to hq. The MCP
-  // and git-credential endpoints below verify through the same code.
+  // endpoint below verifies through the same code.
   { method: 'get', path: '/api/v1/identity/whoami', handler: whoamiHandler, parseBody: true },
-  // A run's container reaches these two directly, validated in the handler
+  // A run's container reaches this directly, validated in the handler
   // against a run token (runTokens.ts) resolved to a verified, audience-pinned
   // hq capability (identity/verifyHqToken.ts). The MCP transport reads the
   // parsed `req.body`.
   { method: 'post', path: '/mcp', handler: mcpHandler, parseBody: true },
-  { method: 'post', path: '/api/v1/git/credential', handler: gitCredentialHandler, parseBody: true },
   // Agenthix's OpenCode plugin asks for a session's current turn here, checked
   // against the key the site gave that container's OpenCode server
   // (opencode/openCodeTurns.ts).

@@ -31,9 +31,10 @@ vi.mock('wasp/client/operations', () => ({
   getWorkflows: 'getWorkflows',
   getRuns: 'getRuns',
   getRepoSecrets: 'getRepoSecrets',
-  dispatchWorkflow: 'dispatchWorkflow',
-  setRepoSecret: 'setRepoSecret',
+  getPlaceWorkflows: 'getPlaceWorkflows',
 }))
+
+vi.mock('../../../github/connect/ConnectRepoFlow', () => ({ ConnectRepoFlow: () => <button type="button">Create and connect</button> }))
 
 import { RepoPanel } from '../RepoPanel'
 import { OperationsPanel } from '../OperationsPanel'
@@ -100,7 +101,7 @@ describe('OperationsPanel when the state cannot be read', () => {
   it('renders the reason rather than disappearing', () => {
     answerWith({ error: new Error(SITE_DOWN) })
     const { container } = render(<OperationsPanel target={target} />)
-    expect(container.textContent).toContain('Operations are unavailable')
+    expect(container.textContent).toContain('GitHub details are unavailable')
     expect(container.textContent).toContain('unreachable')
   })
 

@@ -4,12 +4,14 @@ import { requireRole } from '../server/identity/requireRole'
 import { requireSecretsKey } from '../server/crypto/requireSecretsKey'
 import { getApp, serverUrl } from './githubApp'
 import { issueManifestState } from './manifestState'
+import { checkOrganisation } from './registrationOwner'
 
 const WHAT = 'Connecting GitHub'
 // A GitHub account or organisation login: letters, digits and single hyphens.
 const GITHUB_LOGIN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/
 
-type StartArgs = { org?: string }
+/** Who owns the App: an organisation, named, or the person's own GitHub account. A blank name never means personal. */
+type StartArgs = { owner?: 'organisation' | 'personal'; org?: string }
 
 /**
  * Starts a GitHub App registration from inside hq. Only an admin can, and the returned
@@ -19,12 +21,15 @@ export const startGithubAppRegistration: StartGithubAppRegistration<StartArgs, {
   await requireRole(context, 'ADMIN', WHAT)
   const userId = context.user?.id
   if (!userId) throw new HttpError(401)
-  const org = typeof args?.org === 'string' ? args.org.trim() : ''
-  if (org && !GITHUB_LOGIN.test(org)) throw new HttpError(400, 'That is not a valid GitHub organisation name')
+  const personal = args?.owner === 'personal'
+  const org = personal ? '' : (typeof args?.org === 'string' ? args.org.trim() : '')
+  if (!personal && !org) throw new HttpError(400, 'Type the GitHub organisation that will own the App, or choose My personal account. Nothing was changed.')
+  if (org && !GITHUB_LOGIN.test(org)) throw new HttpError(400, `"${org}" isn't a GitHub organisation name: it has only letters, digits and single hyphens. Nothing was changed.`)
   if (await getApp()) {
     throw new HttpError(409, 'A GitHub App is already connected. Disconnect it first, then connect again.')
   }
   requireSecretsKey(WHAT)
+  if (org) await checkOrganisation(org)
 
   const state = issueManifestState(userId)
   const query = new URLSearchParams({ state })

@@ -24,6 +24,16 @@
  * base64's alphabet, whatever the value, so the class says nothing about the value. The site skips any stretch
  * holding a byte outside a form's class, which is most of ordinary output for every class but `raw`.
  *
+ * A raw form also carries a short tag, so the site hashes only the few stretches that could be it rather than every
+ * stretch of every length: the top `WORKFLOW_MASK_TAG_BITS` bits of a polynomial hash, modulo 2^32 under
+ * `tagBase` (made for this run), of `tagSpan` of the form's bytes from its second (`maskFormTag` in
+ * `workflows/maskForms.ts`). The site rolls that hash along its output and computes an HMAC only where a tag
+ * matches, so every find is still confirmed by its HMAC. A tag gives away those few bits of the value, to the site
+ * only, which already holds the key every form is hashed under. A base64, hex or URL-encoded form carries the tag of
+ * the value it encodes, and the site rolls it along its output decoded; it does so only when that value is a raw form
+ * of the material too, so no tag is sent that a raw form doesn't already carry. A form without a tag, or material
+ * without a base, is looked for by HMAC at every position, as before.
+ *
  * Events may be lost, like every site event: hq recovers a run's state with `workflow.get`.
  *
  * Type aliases rather than interfaces, for the reason `runtimeData.ts` gives.
@@ -82,12 +92,28 @@ export const WORKFLOW_MASK_FORM_CLASS_BYTES: Readonly<Record<Exclude<WorkflowMas
  * and its class. Added in site protocol 1.5: `class`, optional so the addition is not breaking; a form without one is
  * taken as `raw` and looked for everywhere. hq always sends it.
  */
-export type WorkflowMaskForm = { length: number; hmac: string; secretName: string; class?: WorkflowMaskFormClass }
+export type WorkflowMaskForm = {
+  length: number
+  hmac: string
+  secretName: string
+  class?: WorkflowMaskFormClass
+  /** Added in site protocol 1.5, with `tagSpan`: the form's tag, from 0 below 2^`WORKFLOW_MASK_TAG_BITS`. */
+  tag?: number
+  /** How many of the form's bytes the tag covers, from its second: at least 1, at most `WORKFLOW_MASK_TAG_SPAN_MAX`. */
+  tagSpan?: number
+}
+
+/** How many bits of its hash a form's tag keeps. */
+export const WORKFLOW_MASK_TAG_BITS = 12
+/** The most bytes a tag covers: one hash per position serves every form at least this long. */
+export const WORKFLOW_MASK_TAG_SPAN_MAX = 16
 
 export type WorkflowMaskingMaterial = {
   /** Made for this run, base64; never reused. */
   key: string
   forms: WorkflowMaskForm[]
+  /** Added in site protocol 1.5: the odd base, below 2^32, every form's tag is hashed under; made for this run. */
+  tagBase?: number
 }
 
 /** The repository a run's `GITHUB_TOKEN` is for, from the workspace's own connection, never from the workspace's files. */

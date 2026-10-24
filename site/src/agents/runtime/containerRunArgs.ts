@@ -17,8 +17,8 @@ import { agentImageName } from './agentImage'
 import type { AgentMounts, ContainerContext, ContainerKey } from './containerTypes'
 
 
-export const WRITABLE_TMP = '/tmp:rw,nosuid,nodev,size=1g,mode=1777'
-export const WRITABLE_COMMAND_HOME = '/home/agent:rw,nosuid,nodev,size=256m,uid=1001,gid=1001,mode=0700'
+export const WRITABLE_TMP = '/tmp:rw,exec,nosuid,nodev,size=1g,mode=1777'
+export const WRITABLE_COMMAND_HOME = '/home/agent:rw,exec,nosuid,nodev,size=256m,uid=1001,gid=1001,mode=0700'
 
 export type ContainerRunCommand = {
   args: string[]

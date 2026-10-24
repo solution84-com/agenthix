@@ -32,6 +32,7 @@ E2E_CLIENT_URL=<hq's web address> E2E_SERVER_URL=<hq's server address> npm run e
 | Spec | What it covers | Mutates state? |
 |---|---|---|
 | `canary.spec.ts` | `GET /health` (200, `{ status: 'ok' }` and nothing else) · `GET /api/auth/bootstrap-status` (boolean) · unauthenticated `/` → auth page redirect + render | No |
+| `github.spec.ts` | The GitHub screens: the GitHub page in the admin area (the App or its registration), Infrastructure's card linking to it, the old registration address, a project's GitHub section (needs `E2E_PROJECT_KEY`; skips without it) and the phone view | No |
 | `login.spec.ts` | Sign in, invite-only notice, sign out, "Remember me" keeps only the username | Signs in and out |
 | `shell.spec.ts` | The app shell on a wide screen: Home after sign-in, the navigation, its highlighting and collapse, the panels | No |
 | `mobile-responsive.spec.ts` | The shell at 375px: no horizontal scroll, the drawer, full-screen panels | No |
@@ -44,6 +45,8 @@ E2E_CLIENT_URL=<hq's web address> E2E_SERVER_URL=<hq's server address> npm run e
 | `sessionPrivacy.spec.ts` | A conversation is readable only by the person who opened it — see below | Seeds its own data |
 | `setup.spec.ts` | First-admin setup: the account, how agents reach AI (Agenthix Cloud greyed, *not available yet*), a model provider, voice, the organisation with its time zone, the last look — see below | Yes, on a fresh HQ |
 | `notSecure.spec.ts` | At a plain-http network address: voice greyed, a conversation started and a message sent, a link copied — see below | Yes |
+| `workflows.spec.ts` | The Workflows screens: the panel entry after Automation, the section, a workflow, a version's full review, a run, and the phone view; the last three need `E2E_WORKFLOW_ID` (and `E2E_WORKFLOW_PROPOSED_VERSION`, `E2E_WORKFLOW_RUN_ID`; the run's card in a conversation needs `E2E_WORKFLOW_RUN_CONVERSATION_ID`) and skip without them | No |
+| `secrets.spec.ts` | The Secrets and variables screens: the panel entry, the rotation notice's address, the two tabs, the Add a secret form (opened, never saved) and the phone view | No |
 | `install/walkthrough.spec.ts` | HQ as installed, run by `scripts/install-test/run.sh` — see below | On the test's own install |
 
 The canary is deliberately **read-only** so it needs no test-data setup. It

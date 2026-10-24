@@ -75,6 +75,18 @@ describe('rule 6: GitHub permissions', () => {
     expect(flagsOf(6, api)).toEqual([])
   })
 
+  it('counts contents: read as needed by gh pr create, and by no other gh pr command', () => {
+    const pr = (run: string) => version({ steps: [step(run, ['GITHUB_TOKEN'])], github: { pull_requests: 'write', contents: 'read' } })
+    expect(flagsOf(6, pr('gh pr create --repo o/r --head x --base main --title "$(cat /run/params/title)"'))).toEqual([])
+    expect(flagsOf(6, pr('gh pr merge 3 --repo o/r'))).toMatchObject([{ path: 'github.contents' }])
+  })
+
+  it('counts an environment\'s secret as environments, and a repository\'s as secrets', () => {
+    const set = (run: string, github: Record<string, string>) => version({ steps: [step(run, ['GITHUB_TOKEN'])], github })
+    expect(flagsOf(6, set('gh secret set X --repo o/r --env production', { environments: 'write' }))).toEqual([])
+    expect(flagsOf(6, set('gh secret set X --repo o/r', { environments: 'write' }))).toMatchObject([{ path: 'github.environments' }])
+  })
+
   it('flags a permission new since the approved version', () => {
     const approved = version({ steps: [step('git fetch x', ['GITHUB_TOKEN'])], github: { contents: 'read' } })
     const now = version({ steps: [step('git -C /tmp/r push x', ['GITHUB_TOKEN'])], github: { contents: 'write' } })

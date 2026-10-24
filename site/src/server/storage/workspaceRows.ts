@@ -157,8 +157,21 @@ const getForTargetParams = z
  *  target (no workspace) looks up by ownerType+ownerId with workspaceId null. */
 export async function getRepoAttachmentForTarget(params: unknown) {
   const { ownerType, ownerId, workspaceId } = getForTargetParams.parse(params)
-  if (workspaceId) return prisma.repoAttachment.findUnique({ where: { workspaceId } })
-  return prisma.repoAttachment.findFirst({ where: { ownerType, ownerId, workspaceId: null } })
+  const row = workspaceId
+    ? await prisma.repoAttachment.findUnique({ where: { workspaceId } })
+    : await prisma.repoAttachment.findFirst({ where: { ownerType, ownerId, workspaceId: null } })
+  return row && repoAttachmentRow(row)
+}
+
+type StoredRepoAttachment = NonNullable<Awaited<ReturnType<typeof prisma.repoAttachment.findUnique>>>
+
+/** GitHub's repository and account ids are stored as BigInt, which JSON can't carry; they fit a number exactly. */
+function repoAttachmentRow(row: StoredRepoAttachment) {
+  return {
+    ...row,
+    repositoryId: row.repositoryId == null ? null : Number(row.repositoryId),
+    accountId: row.accountId == null ? null : Number(row.accountId),
+  }
 }
 
 const findByUrlParams = z.object({ repoUrl: z.string().min(1) })
@@ -175,7 +188,8 @@ export async function findRepoAttachmentByUrl(params: unknown) {
   const candidates = await prisma.repoAttachment.findMany({
     where: { repoUrl: { contains: ownerAndName, mode: 'insensitive' } },
   })
-  return candidates.find(row => canonicalGitHubRepoUrl(row.repoUrl)?.toLowerCase() === wanted.toLowerCase()) ?? null
+  const found = candidates.find(row => canonicalGitHubRepoUrl(row.repoUrl)?.toLowerCase() === wanted.toLowerCase())
+  return found ? repoAttachmentRow(found) : null
 }
 
 export async function listRepoAttachments(params: unknown) {
@@ -189,11 +203,23 @@ const createRepoAttachmentParams = z
     ownerId: z.string().min(1),
     workspaceId: z.string().min(1).nullable(),
     repoUrl: z.string().min(1),
+    installationId: z.number().int().positive().nullable().optional(),
+    repositoryId: z.number().int().positive().nullable().optional(),
+    accountId: z.number().int().positive().nullable().optional(),
+    accountLogin: z.string().min(1).nullable().optional(),
   })
 
 export async function createRepoAttachment(params: unknown) {
-  const { ownerType, ownerId, workspaceId, repoUrl } = createRepoAttachmentParams.parse(params)
-  return prisma.repoAttachment.create({ data: { ownerType, ownerId, workspaceId, repoUrl } })
+  const p = createRepoAttachmentParams.parse(params)
+  return repoAttachmentRow(await prisma.repoAttachment.create({
+    data: {
+      ownerType: p.ownerType, ownerId: p.ownerId, workspaceId: p.workspaceId, repoUrl: p.repoUrl,
+      installationId: p.installationId ?? null,
+      repositoryId: p.repositoryId == null ? null : BigInt(p.repositoryId),
+      accountId: p.accountId == null ? null : BigInt(p.accountId),
+      accountLogin: p.accountLogin ?? null,
+    },
+  }))
 }
 
 export async function deleteRepoAttachment(params: unknown): Promise<OkResult> {

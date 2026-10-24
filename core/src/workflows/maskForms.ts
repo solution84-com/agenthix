@@ -8,12 +8,26 @@
  * value that has several (a key file). Base64 at alignment k is the run of characters that depend only on the value's
  * own bytes when k bytes come before it, so whatever surrounds it, those characters are the same.
  */
-import type { WorkflowMaskFormClass } from '../protocol/workflowRuns.js'
+import { WORKFLOW_MASK_TAG_BITS, WORKFLOW_MASK_TAG_SPAN_MAX, type WorkflowMaskFormClass } from '../protocol/workflowRuns.js'
 
 /** Shorter than this, a form would mask ordinary output: a one-letter secret would hide every such letter. */
 export const MASK_FORM_MIN_BYTES = 4
 
-export type MaskFormBytes = { bytes: Uint8Array; class: WorkflowMaskFormClass }
+export type MaskFormTag = { tag: number; tagSpan: number }
+export type MaskFormBytes = { bytes: Uint8Array; class: WorkflowMaskFormClass } & Partial<MaskFormTag>
+
+/**
+ * The tag of a value (`protocol/workflowRuns.ts`, *Masking material*): the top bits of the polynomial hash, modulo
+ * 2^32 under `base`, of up to `WORKFLOW_MASK_TAG_SPAN_MAX` of its bytes from its second. The first byte is left out,
+ * and so is the last, so the tag can be rolled along output from a fixed point near a form's start.
+ */
+export function maskFormTag(value: Uint8Array, base: number): MaskFormTag {
+  const tagSpan = Math.min(value.length - 2, WORKFLOW_MASK_TAG_SPAN_MAX)
+  if (tagSpan < 1) throw new Error('A tag needs a value of at least three bytes.')
+  let h = 0
+  for (let i = 1; i <= tagSpan; i++) h = (Math.imul(h, base) + value[i]!) | 0
+  return { tag: h >>> (32 - WORKFLOW_MASK_TAG_BITS), tagSpan }
+}
 
 const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 const HEX = '0123456789abcdef'
@@ -61,7 +75,10 @@ function urlEncoded(value: Uint8Array, unreserved: RegExp): Uint8Array {
   return ascii(out)
 }
 
-function encodingsOf(value: Uint8Array): MaskFormBytes[] {
+/** A form, and the value it encodes. */
+type Encoding = { form: MaskFormBytes; value: Uint8Array }
+
+function encodingsOf(value: Uint8Array): Encoding[] {
   const h = hex(value)
   const forms: MaskFormBytes[] = [{ bytes: value.slice(), class: 'raw' }]
   for (const k of [0, 1, 2] as const) {
@@ -70,7 +87,7 @@ function encodingsOf(value: Uint8Array): MaskFormBytes[] {
   }
   forms.push({ bytes: ascii(h), class: 'hex' }, { bytes: ascii(h.toUpperCase()), class: 'hex' })
   forms.push({ bytes: urlEncoded(value, UNRESERVED), class: 'url' }, { bytes: urlEncoded(value, COMPONENT_UNRESERVED), class: 'url' })
-  return forms
+  return forms.map(form => ({ form, value }))
 }
 
 function linesOf(value: Uint8Array): Uint8Array[] {
@@ -97,16 +114,31 @@ function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
  * Every form of one value, distinct and long enough to mask. Where two kinds give the same bytes (a value of
  * unreserved characters is its own URL encoding), the first kind's form is kept, so a form's class depends only on
  * its kind.
+ *
+ * Given the run's tag base, each raw form carries its tag, and each encoded form carries the tag of the value it
+ * encodes, which the site finds by decoding its output. An encoded form is tagged only when that value is itself a
+ * raw form here, so its tag is one the material already holds and gives away nothing more.
  */
-export function maskFormsOf(value: Uint8Array): MaskFormBytes[] {
-  const all = [...encodingsOf(value), ...linesOf(value).flatMap(encodingsOf)]
-  const kept: MaskFormBytes[] = []
-  for (const form of all) {
-    if (form.bytes.length < MASK_FORM_MIN_BYTES || kept.some(k => sameBytes(k.bytes, form.bytes))) {
-      form.bytes.fill(0)
+export function maskFormsOf(given: Uint8Array, tagBase?: number): MaskFormBytes[] {
+  // A copy, and a plain Uint8Array: a Node Buffer's `slice` is a view, so the forms below would share the caller's
+  // bytes, and zeroing one (here, or by the caller once hashed) would change the value and the forms made after it.
+  const value = new Uint8Array(given)
+  const lines = linesOf(value)
+  const all = [...encodingsOf(value), ...lines.flatMap(encodingsOf)]
+  const kept: Encoding[] = []
+  for (const e of all) {
+    if (e.form.bytes.length < MASK_FORM_MIN_BYTES || kept.some(k => sameBytes(k.form.bytes, e.form.bytes))) {
+      e.form.bytes.fill(0)
       continue
     }
-    kept.push(form)
+    kept.push(e)
   }
-  return kept
+  if (tagBase !== undefined) {
+    for (const { form, value: encoded } of kept) {
+      if (kept.some(k => k.form.class === 'raw' && sameBytes(k.form.bytes, encoded))) Object.assign(form, maskFormTag(encoded, tagBase))
+    }
+  }
+  value.fill(0)
+  for (const line of lines) line.fill(0)
+  return kept.map(k => k.form)
 }

@@ -20,6 +20,7 @@ const started = (title: string, turnId: string, operationId: string, startsAt?: 
 const noneSet = { liveTurnId: null }
 const shape = (items: ThreadItem[]) => items.map((i) => (i.kind === 'message'
   ? i.message.kind === 'TEXT' ? `msg:${i.message.body.text}` : `msg:${i.message.kind}`
+  : i.kind === 'run' ? `run:${i.card.workflow}`
   : `turn:[${i.cards.map((c) => c.body.title).join(',')}|${i.words.map((w) => (w.kind === 'TEXT' ? w.body.text : 'FAILED')).join(',')}|${i.set.map((s) => s.body.title).join(',')}]`))
 
 describe('the thread in blocks @SC-1004', () => {
@@ -87,6 +88,28 @@ describe('the thread in blocks @SC-1004', () => {
   it('keeps every other kind of message where it is', () => {
     const items = threadItems([msg('NOTICE', { text: 'Switched' }, { role: 'PLATFORM' }), msg('ACTION', { text: 'Created WAL-4', toolName: 'create_task' }, { turnId: 't1' })], noneSet).items
     expect(shape(items)).toEqual(['msg:NOTICE', 'msg:ACTION'])
+  })
+
+  it('puts a finished workflow run where it ended, and leaves one under way to the work bar', () => {
+    const at = (t: string) => ({ createdAt: `2026-10-17T${t}.000Z` })
+    const card = (workflow: string, endedAt: string | null) => ({
+      runId: workflow, workflowId: 'w1', workflow, state: endedAt ? 'passed' as const : 'running' as const, stepNumber: null, stepCount: 1,
+      stepName: null, failedStep: null, lastLine: null, durationMs: 2000, endedAt: endedAt ? new Date(`2026-10-17T${endedAt}.000Z`) : null, href: '/r',
+    })
+    const items = threadItems(
+      [ask('Push it', 't1'), { ...words('Pushing.', 't1'), ...at('10:01:00') }, { ...ask('Thanks', 't2'), ...at('10:05:00') }],
+      { liveTurnId: null, runs: [card('push', '10:02:00'), card('deploy', null)] },
+    ).items
+    expect(shape(items)).toEqual(['msg:Push it', 'turn:[|Pushing.|]', 'run:push', 'msg:Thanks'])
+  })
+
+  it('keeps runs that ended between the same two messages in the order they ended', () => {
+    const card = (workflow: string, endedAt: string) => ({
+      runId: workflow, workflowId: 'w1', workflow, state: 'passed' as const, stepNumber: null, stepCount: 1, stepName: null,
+      failedStep: null, lastLine: null, durationMs: 2000, endedAt: new Date(`2026-10-17T${endedAt}.000Z`), href: '/r',
+    })
+    const items = threadItems([ask('Push and open a pull request', 't1')], { liveTurnId: null, runs: [card('open-pull-request', '10:00:09'), card('push', '10:00:05')] }).items
+    expect(shape(items)).toEqual(['msg:Push and open a pull request', 'run:push', 'run:open-pull-request'])
   })
 })
 

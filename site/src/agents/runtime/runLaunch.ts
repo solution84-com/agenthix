@@ -340,8 +340,9 @@ export async function assembleRunLaunch(
           headers: { Authorization: `Bearer ${sink.runToken}` },
         },
       }
-      // Env for the in-container git credential helper (agenthix-git-credential).
-      gitCredEnv.GIT_CRED_ENDPOINT = `${siteUrl}/api/v1/git/credential`
+      // The container's environment carries the run token so a process that lives across turns can be pointed at
+      // the conversation's (ClaudeSDKRuntime's withConversationToken). git gets no credential from it: the
+      // container holds no GitHub token, and sharing commits is the push workflow's.
       gitCredEnv.SITE_MCP_KEY = sink.runToken
       gitCredEnv.AGENT_HANDLE = agent.handle
     }

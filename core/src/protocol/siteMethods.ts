@@ -13,7 +13,7 @@
 import type { SiteDescribeResult } from './channelMessages.js'
 import { SITE_DATA_METHODS } from './siteData.js'
 import type {
-  RepoAttachmentRow, RepoAttachmentSummaryRow, RepoAttachmentTarget, WorkspaceCapsRow, WorkspaceListByOwnerSelect,
+  RepoAttachmentGitHubIds, RepoAttachmentRow, RepoAttachmentSummaryRow, RepoAttachmentTarget, WorkspaceCapsRow, WorkspaceListByOwnerSelect,
   WorkspaceNameRow, WorkspaceOwnerType, WorkspaceRow,
 } from './siteData.js'
 import { RUNTIME_METHODS } from './runtimeData.js'
@@ -85,7 +85,7 @@ export type SiteMethods = {
   [SITE_DATA_METHODS.repoFindByUrl]: { params: { repoUrl: string }; result: RepoAttachmentRow | null }
   [SITE_DATA_METHODS.repoList]: { params: NoParams; result: RepoAttachmentSummaryRow[] }
   [SITE_DATA_METHODS.repoCreate]: {
-    params: { ownerType: WorkspaceOwnerType; ownerId: string; workspaceId: string | null; repoUrl: string }
+    params: { ownerType: WorkspaceOwnerType; ownerId: string; workspaceId: string | null; repoUrl: string } & Partial<RepoAttachmentGitHubIds>
     result: RepoAttachmentRow
   }
   [SITE_DATA_METHODS.repoDelete]: { params: ByIdParams; result: OkResult }

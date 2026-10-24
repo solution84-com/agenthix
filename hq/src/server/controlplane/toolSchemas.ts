@@ -412,17 +412,6 @@ export const DATA_PATH_ONLY_TOOLS: ControlPlaneTool[] = [
     },
   },
   {
-    name: 'resolve_git_credential',
-    schema: {
-      agentId: z.string().optional().describe('Defaults to the caller\'s own agent identity when omitted'),
-      ownerType: z.enum(['project', 'user']),
-      ownerId: z.string(),
-      workspaceId: z.string().nullable(),
-      owner: z.string().describe('GitHub org/user'),
-      repo: z.string().describe('Repo name, without .git'),
-    },
-  },
-  {
     name: 'remember',
     description:
       'Remember one thing you learned, so it can be recalled later by meaning. It must stand alone: a title that ' +

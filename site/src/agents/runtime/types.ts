@@ -86,7 +86,7 @@ export type RunContext = {
   approvedManifest?: ApprovedManifest  // Present for task/chat runs after manifest approval
   deferredManifest?: DeferredManifest  // Mutable; PreToolUse pushes deferred tool requests here during execution
   containerName?: string               // Set when AGENT_CONTAINER_ISOLATION is active; read by ClaudeSDKRuntime
-  gitCredEnv?: Record<string, string>  // Env for the in-container git credential helper (GIT_CRED_ENDPOINT etc.)
+  gitCredEnv?: Record<string, string>  // Env for the agent's container: the run token (SITE_MCP_KEY) and its handle
   cwd: string                          // Run working directory — the session's primary location (ADR-0039)
   capability?: import('./capabilityRenewal').CapabilityHolder  // §2a: minted at run start (by hq), renewed in place during long runs
   /** The run's own provider, from hq's descriptor (RunContextPayload.modelAccess,

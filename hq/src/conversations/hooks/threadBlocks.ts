@@ -2,9 +2,10 @@
  * The thread's blocks, apart from React (walkthrough findings 31–34): each turn of the agent is one block under
  * one name line — the cards of what completed that the turn answers, its words, then the task it set for a time.
  * Work started and requests for the person's okay are in the work bar, not the thread, and so is the person's
- * answer to a request.
+ * answer to a request. A workflow run is in the bar while it runs and in the thread, where it ended, once finished.
  */
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
+import type { ConversationRunCard } from '../../workflows/conversationRuns'
 import { splitShownParts } from '../../shared/conversations/shownParts'
 import { unseenWithdrawn } from '../../shared/conversations/withdrawn'
 
@@ -23,7 +24,7 @@ export type TurnBlock = {
   /** Tasks the turn set for a time. */
   set: StartedMessage[]
 }
-export type ThreadItem = { kind: 'message'; message: ConversationMessageView } | TurnBlock
+export type ThreadItem = { kind: 'message'; message: ConversationMessageView } | { kind: 'run'; card: ConversationRunCard } | TurnBlock
 
 const HIDDEN: ReadonlySet<ConversationMessageView['kind']> = new Set(['APPROVAL_REQUEST', 'APPROVAL_ANSWER'])
 
@@ -49,11 +50,11 @@ function shown(m: ConversationMessageView): boolean {
 /**
  * The thread's items, oldest first, and the running turn's block, drawn last where its words stream. A block
  * sits where its first words are — after any message the person sent while the card waited — or where its first
- * card is when it has no words.
+ * card is when it has no words. A finished workflow run sits after the last message from before it ended.
  */
 export function threadItems(
   messages: ConversationMessageView[],
-  { liveTurnId }: { liveTurnId: string | null },
+  { liveTurnId, runs = [] }: { liveTurnId: string | null; runs?: ConversationRunCard[] },
 ): { items: ThreadItem[]; live: TurnBlock | null } {
   const blocks = new Map<string, TurnBlock>()
   const firstAt = new Map<string, number>()
@@ -82,6 +83,12 @@ export function threadItems(
     if (key === liveKey) continue
     placed.push({ at: wordsAt.get(key) ?? firstAt.get(key)!, item: block })
   }
+  // Oldest first, so runs that ended between the same two messages keep the order they ended in.
+  const ended = runs.flatMap((card) => (card.endedAt ? [{ card, at: new Date(card.endedAt).getTime() }] : [])).sort((a, b) => a.at - b.at)
+  ended.forEach(({ card, at }, i) => {
+    const before = messages.filter((m) => Date.parse(m.createdAt) <= at).length
+    placed.push({ at: before - 0.5 + i / (ended.length + 1) / 2, item: { kind: 'run', card } })
+  })
   placed.sort((a, b) => a.at - b.at)
   const live = liveKey ? blocks.get(liveKey) ?? { kind: 'turn' as const, key: liveKey, turnId: liveTurnId, cards: [], words: [], set: [] } : null
   return { items: placed.map((p) => p.item), live }
