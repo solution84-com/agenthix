@@ -1,6 +1,6 @@
 {
   "name": "@agenthix/opencode-plugin",
-  "version": "0.1.0-alpha.2",
+  "version": "0.0.0",
   "description": "Agenthix's OpenCode plugin, bundled into the agent image",
   "private": true,
   "type": "module",

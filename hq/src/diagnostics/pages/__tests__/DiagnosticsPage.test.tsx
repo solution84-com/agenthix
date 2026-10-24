@@ -21,7 +21,7 @@ import { DiagnosticsPage } from '../DiagnosticsPage'
 const now = new Date()
 const health = {
   checkedAt: now,
-  hq: { runningSince: new Date(now.getTime() - 86_400_000), version: '0.4.0', commit: 'abc', built: '', databaseAnswers: true, schedulerLastTick: { at: now, ok: true }, sitesKnown: 2 },
+  hq: { runningSince: new Date(now.getTime() - 86_400_000), version: '0.4.0', built: '', databaseAnswers: true, schedulerLastTick: { at: now, ok: true }, sitesKnown: 2 },
   sites: [
     { executionSiteId: 'e1', siteId: 's1', label: 'HQ site', isDefault: true, status: 'ONLINE', connected: true, group: 'running', problems: [], protocolVersion: '1.0',
       health: { takenAt: '', runs: { running: 2, maxAtOnce: 4 }, disk: { freeBytes: 182e9, totalBytes: 500e9 }, docker: { running: true, version: '27', }, agentImage: { name: 'a', present: true, version: '0.4.0' }, ceilings: null, memoryNearlyFull: false },

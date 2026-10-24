@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Starts one image and passes only if it starts and answers, so an image that cannot start is never published:
-#   scripts/images/start-test.sh <part> <image> [<version>]
+#   scripts/images/start-test.sh <part> <image>
 # <part> is one of the parts the release publishes: host, console, hq-server, hq-web, site-server, agent.
-# <version>, when given, is the version the image must carry in its label (and, for the host service and the Fleet
-# Console, the one it reports); without it the label must merely be there.
+# An image carries no version: the host service and the Fleet Console are given theirs when they run, so here each
+# need only answer.
 #
 # What it asks of each:
-#   host         its version, through its CLI on the owner socket (`status`), with a state folder of its own
+#   host         its status, through its CLI on the owner socket (`status`), with a state folder of its own
 #   console      its status, from inside its container, where it listens
 #   hq-server    its health, against a throwaway Postgres
 #   site-server  its health, against a throwaway Postgres
@@ -21,12 +21,11 @@ cd "$(dirname "$0")/../.." || exit 2
 
 PART="${1:-}"
 IMAGE="${2:-}"
-VERSION="${3:-}"
 case "$PART" in
   host | console | hq-server | hq-web | site-server | agent) ;;
-  *) echo "Usage: $0 <host|console|hq-server|hq-web|site-server|agent> <image> [<version>]" >&2; exit 2 ;;
+  *) echo "Usage: $0 <host|console|hq-server|hq-web|site-server|agent> <image>" >&2; exit 2 ;;
 esac
-[ -n "$IMAGE" ] || { echo "Usage: $0 $PART <image> [<version>]" >&2; exit 2; }
+[ -n "$IMAGE" ] || { echo "Usage: $0 $PART <image>" >&2; exit 2; }
 
 RUN="imgtest-$PART-$$"
 # The host service's namespace: lower-case letters and digits, never the default install's, so whatever it would
@@ -98,26 +97,22 @@ fetch_inside() {
   docker exec "$1" node -e "fetch(process.argv[1]).then(async r => { const b = await r.text(); process.stdout.write(b); process.exit(r.status === 200 ? 0 : 1) }, () => process.exit(1))" "$2"
 }
 
-label="$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}}' "$IMAGE" 2>/dev/null)" \
-  || { say "FAILS: there is no image $IMAGE on this machine"; exit 1; }
-[ -n "$label" ] && [ "$label" != '<no value>' ] || fail "the image carries no version label"
-[ -z "$VERSION" ] || [ "$label" = "$VERSION" ] || fail "the image is labelled $label, not $VERSION"
-expected="${VERSION:-$label}"
+docker image inspect "$IMAGE" >/dev/null 2>&1 || { say "FAILS: there is no image $IMAGE on this machine"; exit 1; }
 
 case "$PART" in
   host)
     state="$(mktemp -d)"
     start "$NS-host" -e INSTALL_NAMESPACE="$NS" -v "$state:/state" "$IMAGE"
-    host_answers() { docker exec "$NS-host" agenthix status | grep -qF "host service $expected"; }
-    wait_for "$NS-host" "it answered its version on the owner socket" host_answers
-    say "passes: answers on its owner socket as host service $expected"
+    host_answers() { docker exec "$NS-host" agenthix status | grep -qF "host service "; }
+    wait_for "$NS-host" "it answered its status on the owner socket" host_answers
+    say "passes: answers on its owner socket as a host service"
     ;;
   console)
     # An address on the container's own loopback, where nothing answers: the console starts and keeps dialling.
     start "$RUN" -e CONSOLE_HQ_ADDRESS=http://127.0.0.1:9 "$IMAGE"
-    console_answers() { fetch_inside "$RUN" http://127.0.0.1:4301/api/status | grep -qF "\"version\":\"$expected\""; }
+    console_answers() { fetch_inside "$RUN" http://127.0.0.1:4301/api/status | grep -qF "\"version\":"; }
     wait_for "$RUN" "it answered its status" console_answers
-    say "passes: answers its status as version $expected"
+    say "passes: answers its status"
     ;;
   hq-server)
     postgres
@@ -147,6 +142,6 @@ case "$PART" in
     containers+=("$RUN")
     out="$(docker run --name "$RUN" --init --network none "$IMAGE" sh -c 'claude --version && opencode --version' 2>&1)" \
       || fail "its harnesses did not run: $out"
-    say "passes: version $expected, with $(printf '%s' "$out" | tr '\n' ' ')"
+    say "passes: with $(printf '%s' "$out" | tr '\n' ' ')"
     ;;
 esac

@@ -13,7 +13,7 @@ import { upgradeHandlersReady } from './waspHttpServer'
  * GET /health
  *
  * Public, so it answers status only (adr-0106): a version here would tell
- * anyone which known flaws to try. Admins read the version and commit on
+ * anyone which known flaws to try. Admins read the version on
  * Infrastructure › HQ, and HQ's own machine with `agenthix status`.
  */
 export const healthHandler: HealthApi = async (_req, res, _context) => {

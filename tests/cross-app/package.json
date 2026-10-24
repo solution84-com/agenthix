@@ -1,7 +1,7 @@
 {
   "name": "agenthix-cross-app-tests",
   "private": true,
-  "version": "0.1.0-alpha.2",
+  "version": "0.0.0",
   "scripts": {
     "test:unit": "vitest run -c vitest.unit.config.ts",
     "typecheck": "tsc --noEmit"

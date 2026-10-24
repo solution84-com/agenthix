@@ -25,9 +25,6 @@ RUN cd site && npm run build \
 
 FROM node:24.14.1-alpine3.23 AS server
 RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 docker-cli su-exec
-# The publishing workflow passes the version; a build made on a machine is `dev`.
-ARG VERSION=dev
-LABEL org.opencontainers.image.version=$VERSION
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /repo/site/node_modules ./node_modules

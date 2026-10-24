@@ -51,22 +51,6 @@ jobs:
           echo "code=$code" >> "$GITHUB_OUTPUT"
           echo "Anything but documentation changed: $code"
 
-  versions:
-    # The product has one version; a release is refused if the modules disagree, so they are checked on every change.
-    name: "Every module at one version"
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-      - run: node scripts/check-versions.mjs
-
   secure-page:
     # A browser gives some features (crypto.randomUUID, the clipboard, the microphone) only to a secure page, and HQ
     # is also opened over plain http at a network address, so browser code reaches them only through a helper.
@@ -221,10 +205,9 @@ jobs:
       - name: Unit tests
         run: |
           cd host && npm test
-      # At the repository's version, as a release tag builds it: a version the image's build would refuse fails here.
       - name: Build
         run: |
-          cd host && HOST_SERVICE_VERSION="$(node -p "require('../package.json').version")" npm run build
+          cd host && npm run build
       # Each bundle started, as the image starts it: a bundle that type-checks and passes its tests can still fail to load.
       - name: The bundles load
         run: |
@@ -253,10 +236,9 @@ jobs:
       - name: Unit tests
         run: |
           cd console && npm test
-      # At the repository's version, as a release tag builds it: a version the image's build would refuse fails here.
       - name: Build
         run: |
-          cd console && CONSOLE_VERSION="$(node -p "require('../package.json').version")" npm run build
+          cd console && npm run build
 
   console-web:
     name: "console-web: typecheck, unit tests and build"
@@ -418,7 +400,7 @@ jobs:
     # The one check a pull request must pass before it merges, so the rule on main names one job, not each of them.
     name: "All checks passed"
     if: always()
-    needs: [changes, versions, secure-page, core, ui, hq, host, console, console-web, site, site-integration, hq-integration]
+    needs: [changes, secure-page, core, ui, hq, host, console, console-web, site, site-integration, hq-integration]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}

@@ -17,7 +17,6 @@ export function noteSchedulerTick(ok: boolean, at: Date = new Date()): void {
 export type HqHealth = {
   runningSince: Date
   version: string
-  commit: string
   built: string
   databaseAnswers: boolean
   /** When the scheduler last ran, and whether that tick finished; null before the first. */
@@ -37,7 +36,6 @@ export async function readHqHealth(): Promise<HqHealth> {
   return {
     runningSince: new Date(Date.now() - process.uptime() * 1000),
     version: BUILD_INFO.version,
-    commit: BUILD_INFO.commit,
     built: BUILD_INFO.built,
     databaseAnswers,
     schedulerLastTick: lastTick,

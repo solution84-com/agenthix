@@ -6,13 +6,13 @@ name: Publish release
 # only for a version tag, v<major>.<minor>.<patch> or a pre-release of one, v<major>.<minor>.<patch>-alpha.<n>,
 # -beta.<n> or -rc.<n>, and is never started by hand.
 #
-# 0. The tag must name the repository's own version: the root package.json's, which every module's package.json must
-#    equal. A tag that differs is refused, and the build uses the repository's version, never the tag's.
+# 0. The version is the tag's alone: its form is checked, and nothing in the repository carries a version. No image
+#    is built with one; each is given its version here, at publish.
 # 1. The tagged commit's Checks must have passed ("All checks passed"), and so must its install test, its guide
 #    screenshots and its release build on its release branch; it waits while they run.
 # 2. The same release build again (release-build.yml): every image a machine runs — hq's server and browser app, the
 #    site, the agent image, the host service and the Fleet Console — built for amd64 and arm64, each on a runner of
-#    its own architecture, labelled with its version, started there and made to answer, and only then pushed by
+#    its own architecture, started there and made to answer, and only then pushed by
 #    digest only, reachable by no version. An image that does not start is never sent. One build failing stops them
 #    all. Core is built, checked and packed by the same run.
 # 3. Each image is given its version, signed with Sigstore's keyless signing (host-management spec §11, adr-0117) and
@@ -60,7 +60,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - name: The version, which the tag must match
+      - name: The version, which is the tag's
         id: version
         run: |
           version="${GITHUB_REF_NAME#v}"
@@ -68,14 +68,7 @@ jobs:
             echo "::error::The tag $GITHUB_REF_NAME is not a version: write it as v<major>.<minor>.<patch>, or with -alpha.<n>, -beta.<n> or -rc.<n> after it."
             exit 1
           fi
-          # The version a release carries is the repository's own, which the tag must name.
-          repo_version="$(node -p "require('./package.json').version")"
-          if [ "$version" != "$repo_version" ]; then
-            echo "::error::The tag $GITHUB_REF_NAME names version $version, but the repository is at $repo_version. Delete the tag and either tag v$repo_version, or set \"version\" to $version in every package.json and package-lock.json (node scripts/check-versions.mjs lists them), commit that, and tag the new commit."
-            exit 1
-          fi
-          node scripts/check-versions.mjs "$repo_version"
-          echo "version=$repo_version" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: The commit's Checks passed
         env:
           GH_TOKEN: ${{ github.token }}
@@ -148,7 +141,7 @@ jobs:
         part: [hq-server, hq-web, site-server, agent, host, console]
     env:
       IMAGE: ${{ needs.build.outputs.registry }}/${{ fromJSON(needs.build.outputs.names)[matrix.part] }}
-      VERSION: ${{ needs.build.outputs.version }}
+      VERSION: ${{ needs.release.outputs.version }}
     steps:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -193,8 +186,9 @@ jobs:
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             "$IMAGE:$VERSION")"
           printf '%s' "$out" | jq -e --arg d "$DIGEST" 'all(.[]; .critical.image["docker-manifest-digest"] == $d)'
-          label="$(docker buildx imagetools inspect "$IMAGE@$DIGEST" --format '{{json .Image}}' | jq -r '[.[] | .config.Labels["org.opencontainers.image.version"]] | unique | join(",")')"
-          test "$label" = "$VERSION" || { echo "::error::$IMAGE is labelled $label, not $VERSION"; exit 1; }
+          # The version is the index's annotation, written by imagetools create above.
+          annotated="$(docker buildx imagetools inspect "$IMAGE@$DIGEST" --raw | jq -r '.annotations["org.opencontainers.image.version"] // ""')"
+          test "$annotated" = "$VERSION" || { echo "::error::$IMAGE is annotated with version '$annotated', not $VERSION"; exit 1; }
 
   core:
     name: Publish core
@@ -212,17 +206,26 @@ jobs:
         with:
           node-version-file: .nvmrc
           registry-url: https://npm.pkg.github.com
-      # The package the build job packed and checked, exactly as the release branch's build packed it.
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: core-package
-          path: ${{ runner.temp }}/core-package
+      # The package is built here and given the tag's version before it is packed: the release's build packs it
+      # without one. It is checked and packed the same way.
+      - name: Build, give it the version and check it
+        working-directory: core
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+          npm pkg set "version=$VERSION"
+          npm run check:package
+          # Registry scopes are lower case, and this registry's scope is the repository owner.
+          npm pkg set "name=@${GITHUB_REPOSITORY_OWNER,,}/core"
       - name: Publish
-        working-directory: ${{ runner.temp }}/core-package
+        working-directory: core
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          packed=(*.tgz)
+          mkdir -p "$RUNNER_TEMP/core-package"
+          npm pack --pack-destination "$RUNNER_TEMP/core-package"
+          packed=("$RUNNER_TEMP"/core-package/*.tgz)
           test "${#packed[@]}" -eq 1 || { echo "::error::Expected one packed core package, found: ${packed[*]}"; exit 1; }
           packed_version="$(tar -xOzf "${packed[0]}" package/package.json | jq -r .version)"
           test "$packed_version" = "$VERSION" || { echo "::error::The packed core package is $packed_version, not $VERSION"; exit 1; }

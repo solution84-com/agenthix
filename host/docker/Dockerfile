@@ -16,12 +16,6 @@
 FROM ghcr.io/sigstore/cosign/cosign:v3.1.3@sha256:9e5c2f2edc34351160407ca3416c61855bdf9403c3c5936e0f0be7fc261611b8 AS cosign
 
 FROM node:24.14.1-alpine3.23 AS build
-# The publishing workflow passes the release's version; a build made on a machine is `dev`, a development
-# build, the only kind that runs images built on the machine. It is fixed into the bundle, so no setting where
-# the image runs can change it.
-ARG VERSION=dev
-RUN printf '%s' "$VERSION" | grep -Eq '^(dev|[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?)$' \
- || { echo "VERSION must be dev or a published version such as 0.2.0 or 1.0.0-alpha.1 (got $VERSION)." >&2; exit 1; }
 WORKDIR /repo
 COPY core/package.json core/package-lock.json core/
 RUN cd core && npm ci --no-audit --no-fund
@@ -31,15 +25,13 @@ COPY host/package.json host/package-lock.json host/
 RUN cd host && npm ci --no-audit --no-fund
 COPY host host
 # Everything is bundled, @agenthix/core included, so the final stage carries no node_modules.
-RUN cd host && HOST_SERVICE_VERSION="$VERSION" npm run build
+RUN cd host && npm run build
 
 FROM node:24.14.1-alpine3.23 AS host
 # The docker CLI and its compose plugin: the host service drives Docker with them, and nothing else. nft applies the
 # agent protections' firewall rules (src/protections/).
 RUN apk --no-cache -U upgrade && apk add --no-cache docker-cli docker-cli-compose tini nftables
 COPY --from=cosign /ko-app/cosign /usr/local/bin/cosign
-ARG VERSION=dev
-LABEL org.opencontainers.image.version=$VERSION
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /repo/host/dist/host.js /repo/host/dist/host.js.map /repo/host/dist/cli.js /repo/host/dist/cli.js.map \

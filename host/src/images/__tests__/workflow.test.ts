@@ -38,21 +38,6 @@ describe('the publishing workflow @SC-820 @SC-1052 @SC-1167', () => {
     }
   })
 
-  it('every image build and bundle takes the versions the host service takes as published, and dev', () => {
-    const dockerfiles = ['host/docker/Dockerfile', 'console/docker/Dockerfile']
-      .map(f => [f, fs.readFileSync(path.join(root, f), 'utf8').match(/"\$VERSION" \| grep -Eq '([^']+)'/)?.[1]])
-    const scripts = ['host/scripts/build.mjs', 'console/scripts/build.mjs']
-      .map(f => [f, fs.readFileSync(path.join(root, f), 'utf8').match(/if \(!\/(\^[^/]+\$)\/\.test\(version\)\)/)?.[1]])
-    for (const [file, check] of [...dockerfiles, ...scripts]) {
-      expect(check, file).toBeTruthy()
-      const accepted = new RegExp(check!)
-      for (const v of ['dev', '1.0.0', '1.0.0-alpha.1', '1.0.0-beta.2', '1.0.0-rc.12']) expect(accepted.test(v), `${file}: ${v}`).toBe(true)
-      for (const v of ['latest', '1.0', '1.0.0-alpha', '1.0.0-gamma.1', 'v1.0.0']) {
-        expect(accepted.test(v), `${file}: ${v}`).toBe(isPublishedVersion(v))
-      }
-    }
-  })
-
   it('builds, publishes and names every image the host service runs, and no other', () => {
     expect(workflow).toMatch(new RegExp(`\\n {2}build:\\n(?: {4}.*\\n)*? {4}uses: \\./${RELEASE_BUILD.replace(/\./g, '\\.')}\\n`))
     expect(workflow).toMatch(/\n {4}with:\n {6}publish: true\n/)

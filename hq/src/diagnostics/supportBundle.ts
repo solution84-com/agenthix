@@ -153,7 +153,7 @@ export async function buildSupportBundle(
 
   const files: BundleFile[] = [
     { path: 'README.txt', text: readme(now, opts, logsSince, logs.notes) },
-    { path: 'versions.json', text: json({ hq: { version: hq.version, commit: hq.commit, built: hq.built }, protocol: SITE_PROTOCOL_VERSION, sites: siteVersions(cards) }) },
+    { path: 'versions.json', text: json({ hq: { version: hq.version, built: hq.built }, protocol: SITE_PROTOCOL_VERSION, sites: siteVersions(cards) }) },
     { path: 'settings.json', text: json(settings) },
     { path: 'health.json', text: json({ hq, sites: cards.map(({ executionSiteId: _id, ...card }) => card) }) },
     { path: 'recent-errors.json', text: json(recent) },

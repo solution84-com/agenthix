@@ -1,6 +1,6 @@
 {
   "name": "@agenthix/core",
-  "version": "0.1.0-alpha.2",
+  "version": "0.0.0",
   "description": "The platform's shared types and protocol definitions: the host protocol, the connection protocol, the client protocol and the contracts between HQ, a site and a host service",
   "type": "module",
   "main": "dist/index.js",

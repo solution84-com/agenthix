@@ -73,8 +73,6 @@ RUN cd hq && REACT_APP_API_URL=https://hq-address.invalid npx vite build \
  && grep -rqF https://hq-address.invalid .wasp/out/web-app/build
 
 FROM caddy:2-alpine AS web
-ARG VERSION=dev
-LABEL org.opencontainers.image.version=$VERSION
 # The built app as the image holds it; web-address.sh copies it to /srv at each start.
 COPY --from=web-build /repo/hq/.wasp/out/web-app/build /usr/share/hq-web
 COPY hq/docker/Caddyfile /etc/caddy/Caddyfile
@@ -158,11 +156,7 @@ RUN cd .wasp/out/server && npm run bundle
 
 FROM node:24.14.1-alpine3.23 AS server
 RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3
-ARG VERSION=dev
-ARG COMMIT=dev
-LABEL org.opencontainers.image.version=$VERSION
-# What HQ's status and its settings page report (src/server/buildInfo.ts).
-ENV NODE_ENV=production APP_VERSION=$VERSION APP_COMMIT=$COMMIT
+ENV NODE_ENV=production
 COPY --from=server-build /core /core
 COPY --from=server-build /ui /ui
 WORKDIR /app

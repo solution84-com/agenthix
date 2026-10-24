@@ -4,7 +4,7 @@
 #   scripts/images/start-test-all.sh [<part> ...]
 # With parts named, only those. The images are tagged imgtest/<part>:dev and kept, so a second run builds only
 # what changed; START_TEST_NO_BUILD=1 tests the ones already built. Each is built as a machine's own build is
-# (version dev). It stops at nothing: every image is tested, and it fails at the end if any one did.
+# (with no version, as the release builds them). It stops at nothing: every image is tested, and it fails at the end if any one did.
 set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 2
 

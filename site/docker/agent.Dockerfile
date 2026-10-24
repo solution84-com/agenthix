@@ -27,11 +27,6 @@ RUN npm run build
 
 FROM node:24.14.1-alpine3.23
 
-# The version the site reports for this image (siteHealthReport.ts reads the
-# label). The publishing workflow passes it; a build made on a machine is `dev`.
-ARG VERSION=dev
-LABEL org.opencontainers.image.version=$VERSION
-
 # Pinned: the Claude Code CLI to the version the site's Claude Agent SDK
 # bundles (its manifest.json), OpenCode to the v1 line the design was verified
 # on. A unit test holds both to the site's own record (agentImage.ts).

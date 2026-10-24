@@ -4,9 +4,6 @@
 // built output uses extensionless imports that Node's ES module loader refuses.
 import { build } from 'esbuild'
 
-// The version is fixed into the bundle when it is built (`dev` unless the image build passes one).
-const version = process.env.CONSOLE_VERSION || 'dev'
-if (!/^(dev|\d+\.\d+\.\d+(-(alpha|beta|rc)\.\d+)?)$/.test(version)) throw new Error(`CONSOLE_VERSION must be dev or a published version such as 0.2.0 or 1.0.0-alpha.1 (got ${version})`)
 const bundled = path => path === '@agenthix/core' || path.startsWith('@agenthix/core/')
 
 const common = {
@@ -16,7 +13,6 @@ const common = {
   format: 'esm',
   sourcemap: true,
   logLevel: 'info',
-  define: { 'process.env.CONSOLE_VERSION': JSON.stringify(version) },
   plugins: [{
     name: 'npm-packages-external',
     setup(b) {

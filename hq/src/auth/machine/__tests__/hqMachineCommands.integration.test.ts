@@ -94,10 +94,12 @@ describe('status and unknown commands @SC-721', () => {
     })
   })
 
-  it("gives hq's version and commit, which the public /health no longer does @SC-723", async () => {
+  it("gives hq's version, which the public /health no longer does @SC-723", async () => {
     const result = await runHqMachineCommand('status', [])
-    expect(result).toMatchObject({ ok: true, data: { version: BUILD_INFO.version, commit: BUILD_INFO.commit } })
-    expect((result as { text: string }).text).toContain(`HQ ${BUILD_INFO.version} (commit ${BUILD_INFO.commit})`)
+    expect(result).toMatchObject({ ok: true, data: { version: BUILD_INFO.version } })
+    expect((result as { text: string }).text).toContain(`HQ ${BUILD_INFO.version} at `)
+    expect(result).not.toMatchObject({ data: { commit: expect.anything() } })
+    expect((result as { text: string }).text).not.toContain('commit')
   })
 
   it('refuses a command it does not know', async () => {

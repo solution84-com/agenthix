@@ -70,7 +70,6 @@ function HqDetails() {
       {version && (
         <Block title="Version" description="Build info for the running server.">
           <Fact label="Version" value={version.version} />
-          <Fact label="Commit" value={version.commit} />
           <Fact label="Built" value={new Date(version.built).toLocaleString()} />
         </Block>
       )}

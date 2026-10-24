@@ -6,11 +6,10 @@ name: Release build
 #   - Publish release (publish-images.yml), for a version tag, with publish on: the same build, and each image that
 #     started is pushed by digest for that workflow to sign and publish.
 #
-# 1. The version is the repository's own (the root package.json's, which every module's package.json must equal), and
-#    the image names come from the branding module.
+# 1. The registry and the image names come from the branding module. Nothing built here carries a version: the version
+#    is given at publish, by the tag (publish-images.yml).
 # 2. Every image a machine runs — hq's server and browser app, the site, the agent image, the host service and the
-#    Fleet Console — is built for amd64 and arm64, each on a runner of its own architecture, labelled with its
-#    version, started there and made to answer (scripts/images/start-test.sh). With publish on, only then is it pushed
+#    Fleet Console — is built for amd64 and arm64, each on a runner of its own architecture, started there and made to answer (scripts/images/start-test.sh). With publish on, only then is it pushed
 #    by digest only, reachable by no version.
 # 3. @agenthix/core is type-checked, built, checked as a project outside this repository installs it, named for its
 #    registry and packed; the packed file is what a release publishes.
@@ -25,9 +24,6 @@ on:
         required: true
         type: boolean
     outputs:
-      version:
-        description: 'The version built, the repository''s own'
-        value: ${{ jobs.prepare.outputs.version }}
       registry:
         description: 'The registry the images are named under'
         value: ${{ jobs.prepare.outputs.registry }}
@@ -37,26 +33,22 @@ on:
 
 jobs:
   prepare:
-    name: Version and image names
+    name: Registry and image names
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      registry: ${{ steps.version.outputs.registry }}
+      registry: ${{ steps.registry.outputs.registry }}
       names: ${{ steps.names.outputs.names }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - name: The repository's version, which every module carries
-        id: version
+      - name: The registry
+        id: registry
         run: |
-          version="$(node -p "require('./package.json').version")"
-          node scripts/check-versions.mjs "$version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
           # Registry paths are lower case; the owner's name may not be.
           echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
       - name: Image names, from the branding module
@@ -99,7 +91,6 @@ jobs:
           - { arch: arm64, runner: ubuntu-24.04-arm }
     env:
       IMAGE: ${{ needs.prepare.outputs.registry }}/${{ fromJSON(needs.prepare.outputs.names)[matrix.image.part] }}
-      VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Nothing is emulated: each runner builds its own architecture, hq's Wasp stage included (hq/docker/Dockerfile).
@@ -113,13 +104,8 @@ jobs:
           file: ${{ matrix.image.file }}
           target: ${{ matrix.image.target }}
           platforms: linux/${{ matrix.platform.arch }}
-          build-args: |
-            VERSION=${{ env.VERSION }}
-            COMMIT=${{ github.sha }}
           labels: |
             org.opencontainers.image.title=${{ fromJSON(needs.prepare.outputs.names)[matrix.image.part] }}
-            org.opencontainers.image.version=${{ env.VERSION }}
-            org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.licenses=Elastic-2.0
           provenance: false
@@ -129,7 +115,7 @@ jobs:
         env:
           PART: ${{ matrix.image.part }}
           ARCH: ${{ matrix.platform.arch }}
-        run: scripts/images/start-test.sh "$PART" "imgtest/$PART:$ARCH" "$VERSION"
+        run: scripts/images/start-test.sh "$PART" "imgtest/$PART:$ARCH"
       - if: inputs.publish
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
@@ -148,13 +134,8 @@ jobs:
           file: ${{ matrix.image.file }}
           target: ${{ matrix.image.target }}
           platforms: linux/${{ matrix.platform.arch }}
-          build-args: |
-            VERSION=${{ env.VERSION }}
-            COMMIT=${{ github.sha }}
           labels: |
             org.opencontainers.image.title=${{ fromJSON(needs.prepare.outputs.names)[matrix.image.part] }}
-            org.opencontainers.image.version=${{ env.VERSION }}
-            org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.licenses=Elastic-2.0
           provenance: false
