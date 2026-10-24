@@ -12,7 +12,7 @@ Use this skill for each deliverable in the sprint plan.
 You must have:
 - Run `read-context` to understand the current phase
 - Read the sprint plan deliverable description and exit criteria
-- Cloned or updated the project repo with plain `git` (the credential helper signs you in)
+- Brought the project repo up to date with the `pull` workflow (the repository connected to the workspace is already there)
 
 ## Implementation Plan Structure
 
@@ -65,5 +65,5 @@ _Filled in during finishing-a-feature. List anything that changed from the plan 
 
 ## After Writing
 
-1. Commit the plan to the project repo with plain `git` (the credential helper signs you in)
+1. Commit the plan to the project repo with `git`, then share it by running the `push` workflow (`list_workflows` shows it; if it is missing, waiting or off, say so and ask a person who administers the place)
 2. Use `assign-work` to create tasks from this plan

@@ -13,6 +13,9 @@ vi.mock('../runsEvents', () => ({ refreshRunFromSite: vi.fn() }))
 vi.mock('../runsLive', () => ({ waitForRunEnd: vi.fn() }))
 vi.mock('../runsView', () => ({}))
 vi.mock('../placeAccess', () => ({ mayStartRunsInPlace: vi.fn(async () => true) }))
+vi.mock('../../projects/personalProject', () => ({
+  storageOfProject: vi.fn(async (id: string) => (id === 'space-1' ? { ownerType: 'user', ownerId: 'u1' } : { ownerType: 'project', ownerId: id })),
+}))
 vi.mock('../runWorkspace', () => ({
   chooseRunWorkspace: vi.fn(async (run: object, named?: string) => (named === 'demo' ? { ...run, workspaceId: 'ws-demo' } : run)),
 }))
@@ -30,6 +33,15 @@ describe('propose_workflow @SC-1277 @SC-1302', () => {
     expect(proposeWorkflowVersion).toHaveBeenCalledWith(expect.objectContaining({
       path: '.workflows/check-token/workflow.yaml',
       workspace: { ownerType: 'project', ownerId: 'p1', workspaceId: 'ws-demo' },
+    }))
+  })
+
+  it('works in the person\'s own storage for a task in their space, where its workspaces and workflows are', async () => {
+    const inSpace = { ...ctx, claims: { ...ctx.claims, projectId: 'space-1' } }
+    await proposeWorkflowOp(inSpace, { path: '.workflows/check-token/workflow.yaml', runId: 'run-1' })
+    expect(proposeWorkflowVersion).toHaveBeenCalledWith(expect.objectContaining({
+      place: { type: 'user', id: 'u1' },
+      workspace: { ownerType: 'user', ownerId: 'u1', workspaceId: null },
     }))
   })
 })

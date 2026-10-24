@@ -3,7 +3,6 @@ import { GitHubInstallationsPage } from "./pages/GitHubInstallationsPage" with {
 import { GitHubAppPage } from "./pages/GitHubAppPage" with { type: "ref" };
 import { ProjectGitHubPage } from "./pages/ProjectGitHubPage" with { type: "ref" };
 import { getWorkflows, getRuns, getRepoSecrets } from "./queries" with { type: "ref" };
-import { dispatchWorkflow } from "./actions" with { type: "ref" };
 import { getGitHubAccounts, checkForGitHubAccounts, getGitHubInstallLink, getProjectGitHubAccounts, getMyGitHubAccounts, allowGitHubAccount, changeGitHubAccountRule, ignoreGitHubAccount, setProjectGitHubDefault } from "./accountOps" with { type: "ref" };
 import { startGithubAppRegistration } from "./githubAppRegistrationAction" with { type: "ref" };
 import { appManifestNewHandler as githubAppManifestNewApi, appManifestCallbackHandler as githubAppManifestCallbackApi } from "./githubAppApi" with { type: "ref" };
@@ -24,7 +23,6 @@ export const githubSpec: Spec = [
     action(changeGitHubAccountRule),
     action(ignoreGitHubAccount),
     action(setProjectGitHubDefault),
-    action(dispatchWorkflow),
     action(startGithubAppRegistration, { entities: ["GitHubApp", "UserSettings"] }),
     api("GET", "/api/v1/github/app-manifest-new", githubAppManifestNewApi, { auth: false }),
     api("GET", "/api/v1/github/app-manifest-callback", githubAppManifestCallbackApi, { auth: false }),

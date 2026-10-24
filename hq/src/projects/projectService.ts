@@ -21,7 +21,7 @@ import { displaySiteName } from '../shared/siteName'
 import { upgradeSide } from '../sites/siteStanding'
 import { closeTaskThreads, declineWaitingInThreads } from '../conversations/taskThread/lifecycle'
 import { profileForNewProject } from '../billing/profiles'
-import { deleteSecretsAndVariablesOf } from '../secrets/placeDeletion'
+import { deletePlaceRecordsOf } from '../secrets/placeDeletion'
 
 const logger = new Logger('Projects')
 
@@ -263,7 +263,7 @@ export async function deleteProject(
     await tx.board.deleteMany({ where: { projectId } })
     // A project's model list is keyed by its id, not a relation, so it cascades from nothing.
     await tx.modelList.deleteMany({ where: { owner: 'project', ownerId: projectId } })
-    await Promise.all(deleteSecretsAndVariablesOf(tx, [{ type: 'project', id: projectId }]))
+    await Promise.all(deletePlaceRecordsOf(tx, [{ type: 'project', id: projectId }]))
     await tx.project.delete({ where: { id: projectId } })
   })
   await declineWaitingInThreads(closedThreads)

@@ -52,15 +52,3 @@ export function listSecrets(target: RepoTarget, userId: string): Promise<SecretI
     return data.secrets.map((s) => ({ name: s.name, updatedAt: s.updated_at }))
   })
 }
-
-/** Trigger workflow_dispatch on the default branch. Requires `on: workflow_dispatch` in the workflow. */
-export function dispatchWorkflow(target: RepoTarget, userId: string, workflowFile: string): Promise<void> {
-  return withRepoApi({ target, userId, needs: 'work', permissions: { actions: 'write' } }, async ({ owner, repo, token }) => {
-    const repoRes = await githubFetch(token, `/repos/${owner}/${repo}`)
-    const { default_branch } = (await repoRes.json()) as { default_branch: string }
-    await githubFetch(token, `/repos/${owner}/${repo}/actions/workflows/${encodeURIComponent(workflowFile)}/dispatches`, {
-      method: 'POST',
-      body: JSON.stringify({ ref: default_branch }),
-    })
-  })
-}

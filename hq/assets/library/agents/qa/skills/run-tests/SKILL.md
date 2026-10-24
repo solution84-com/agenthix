@@ -9,11 +9,13 @@ Use this skill to execute the test suite and interpret the results. Use it in yo
 
 ## Setup
 
-Use plain `git` in the project repo; the credential helper signs you in, so there is no tool to call first. Check out the branch you are verifying (or `develop` for a suite health check):
+The repository connected to your workspace is already there. Your container holds no GitHub token, so a plain `git fetch` or `git pull` fails: bring in the branch you are verifying (or `develop` for a suite health check) by running the `pull` workflow with `run_workflow`, `name: pull`, `parameters: { branch: "develop" }`. Then check it out:
 
 ```bash
-git checkout develop && git pull origin develop
+git checkout develop
 ```
+
+If `pull` is missing, waiting or off (`list_workflows` shows it), say so and ask a person who administers the place; never fetch by other means, and never look for a token.
 
 ## Run the Suite
 

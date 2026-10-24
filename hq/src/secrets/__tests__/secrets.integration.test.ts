@@ -130,11 +130,13 @@ describe('rotation and deletion', () => {
     expect((await prisma.notification.findFirstOrThrow({ where: { type: SECRET_ROTATION_NOTIFICATION } })).status).toBe('handled')
   })
 
-  it('deletes a project’s secrets, variables and their records with it @SC-1329', async () => {
+  it('deletes a project’s secrets, variables, workflows and their records with it @SC-1329', async () => {
     await addPlaceSecret({ place, name: 'KEY', value: { kind: 'text', text: CANARY }, ...DESC }, ctx(admin))
     await addPlaceVariable({ place, name: 'REGION', value: 'eu-west-2' }, ctx(admin))
+    await approvedWorkflow('deploy', true, ['KEY'])
     await deleteProject(place.id)
     expect([await prisma.placeSecret.count(), await prisma.secretRecord.count(), await prisma.placeVariable.count(), await prisma.placeVariableChange.count()])
       .toEqual([0, 0, 0, 0])
+    expect([await prisma.workflow.count(), await prisma.workflowVersion.count()]).toEqual([0, 0])
   })
 })

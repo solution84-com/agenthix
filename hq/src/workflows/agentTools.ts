@@ -20,6 +20,7 @@ import { refreshRunFromSite } from './runsEvents'
 import { waitForRunEnd } from './runsLive'
 import { agentRunView, requireRunRow } from './runsView'
 import { chooseRunWorkspace } from './runWorkspace'
+import { storageOfProject } from '../projects/personalProject'
 
 /** How long `run_workflow` and `workflow_run` wait for a run to end; within the site's wait for hq's answer. */
 export const RUN_TOOL_WAIT_MS = 10_000
@@ -58,9 +59,13 @@ async function callingRun(ctx: CallerContext, runId: string | undefined, tool: s
   if (run.status !== 'RUNNING' && run.status !== 'PENDING') throw new ControlPlaneError('invalid', 'This run has already ended')
   const person = await personOfRun(claims)
   if (!person) throw new ControlPlaneError('forbidden', `${tool}: this run is on behalf of no one`)
-  // A project's run works in the project; a chat in its person's own storage works there (ADR-0060).
+  // A project's run works where the project's storage is, the person's own for their space; a chat in its person's
+  // own storage works there (ADR-0060).
   let place: WorkflowPlace
-  if (claims.projectId !== null) place = { type: 'project', id: claims.projectId }
+  if (claims.projectId !== null) {
+    const storage = await storageOfProject(claims.projectId)
+    place = { type: storage.ownerType, id: storage.ownerId }
+  }
   else if (claims.taskId === null) place = { type: 'user', id: claims.userId }
   else throw new ControlPlaneError('forbidden', `${tool}: this run has no place of its own`)
   return {
