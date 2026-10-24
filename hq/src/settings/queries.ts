@@ -143,7 +143,7 @@ export const getEnvStatus: GetEnvStatus<void, EnvStatusResult> = async (_args, c
   }
 }
 
-type VersionInfo = { version: string; commit: string; built: string }
+type VersionInfo = { version: string; built: string }
 
 export const getVersionInfo: GetVersionInfo<void, VersionInfo> = async (_args, context) => {
   if (!context.user) throw new HttpError(401)

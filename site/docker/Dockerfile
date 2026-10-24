@@ -3,7 +3,7 @@
 #   docker compose -f site/compose.yml build
 # A plain Node server, built natively on every architecture.
 
-FROM node:24.14.1-alpine3.23 AS build
+FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS build
 # Alpine 3.21 and later no longer bring openssl with Node; Prisma's engine
 # needs it, here to generate the client and in the final stage to run.
 RUN apk add --no-cache openssl python3 build-base
@@ -23,11 +23,8 @@ RUN cd site && npm run build \
  && npm prune --omit=dev --no-audit --no-fund \
  && node node_modules/prisma/build/index.js generate
 
-FROM node:24.14.1-alpine3.23 AS server
+FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server
 RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 docker-cli su-exec
-# The publishing workflow passes the version; a build made on a machine is `dev`.
-ARG VERSION=dev
-LABEL org.opencontainers.image.version=$VERSION
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /repo/site/node_modules ./node_modules

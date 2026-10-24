@@ -37,6 +37,18 @@ describe('the Fleet Console’s compose project @SC-861', () => {
     }
   })
 
+  it('labels the container with the version it runs as, and with none for a development build @SC-1257', () => {
+    const labels = (version: string) => consoleProject(names, settings({ version }), 'laptop', {}, chooseSubnets(names, [], []), inst).services.console.labels
+    expect(labels('0.2.0')).toMatchObject({ [names.label('version')]: '0.2.0', [names.label('role')]: 'console' })
+    expect(labels('dev')).not.toHaveProperty(names.label('version'))
+  })
+
+  it('tells it the version it runs as, which a published image no longer carries, and none for a development build @SC-1257', () => {
+    const env = (version: string) => consoleProject(names, settings({ version }), 'laptop', {}, chooseSubnets(names, [], []), inst).services.console.environment
+    expect(env('0.2.0').CONSOLE_VERSION).toBe('0.2.0')
+    expect(env('dev')).not.toHaveProperty('CONSOLE_VERSION')
+  })
+
   it('keeps its state in a volume it names itself', () => {
     const project = consoleProject(names, settings({}), 'laptop', {}, chooseSubnets(names, [], []), inst)
     expect(project.volumes).toEqual({ state: { name: 'agenthix-console-state' } })

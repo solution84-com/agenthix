@@ -15,7 +15,7 @@ import type { InstallNames } from '../state/namespace'
 import { installationLabels, type Installation } from '../state/installation'
 import type { ImagePins } from '../images/images'
 import { imageRef } from '../images/published'
-import { defaultSiteHqUrl } from './projects'
+import { defaultSiteHqUrl, versionEnv, versionLabel } from './projects'
 import { ipam, type InstallSubnets } from './subnets'
 
 /** Where it listens inside its container; Docker publishes the installation's console port onto it. */
@@ -74,6 +74,7 @@ export function consoleProject(
     CONSOLE_PORT: String(CONSOLE_PORT),
     // Where a browser opens it, for the words it says; it never listens there.
     CONSOLE_PUBLISHED_PORT: String(published),
+    ...versionEnv('CONSOLE_VERSION', m.version),
   }
   if (admission.pairingSecret) environment.HQ_CONSOLE_PAIRING_SECRET = admission.pairingSecret
   if (admission.hqCode) environment.CONSOLE_HQ_CODE = admission.hqCode
@@ -93,7 +94,7 @@ export function consoleProject(
         sysctls: { 'net.ipv4.conf.all.rp_filter': '1', 'net.ipv4.conf.default.rp_filter': '1' },
         volumes: [`state:${CONSOLE_STATE_MOUNT}`],
         restart: 'unless-stopped',
-        labels: { [names.label('role')]: 'console', [names.label('managed-by')]: 'host', ...installationLabels(names, installation) },
+        labels: { [names.label('role')]: 'console', [names.label('managed-by')]: 'host', ...installationLabels(names, installation), ...versionLabel(names, m.version) },
       },
     },
     networks: m.onHqMachine

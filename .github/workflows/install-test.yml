@@ -1,17 +1,29 @@
 name: Install test
 
-# Part of the release bar: the product tested in the shape it is installed in, on a fresh runner, when a release
-# branch is pushed and before the tag. scripts/install-test/run.sh builds every image at `dev`, starts the host
-# service under a namespace of its own, runs `agenthix install` at the runner's network address over plain http, and
-# walks through HQ in a real browser against a stand-in model, so no real model is called and nothing is published.
+# Part of the release bar, called by Release build (release-build.yml) once the images are built: the product tested in
+# the shape it is installed in, on a fresh runner. It pulls the candidate's amd64 images by digest, tags them as
+# scripts/install-test/run.sh expects, and builds nothing. run.sh starts the host service under a namespace of its own,
+# runs `agenthix install` at the runner's network address over plain http, and walks through HQ in a real browser
+# against a stand-in model, so no real model is called and nothing is published.
 on:
-  push:
-    branches: ['release/**']
-  workflow_dispatch:
-
-concurrency:
-  group: install-test-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_call:
+    inputs:
+      commit:
+        description: 'The commit under test'
+        required: true
+        type: string
+      registry:
+        description: 'The registry the images are named under'
+        required: true
+        type: string
+      names:
+        description: 'Each image''s name under the registry, by part, as JSON'
+        required: true
+        type: string
+      digests:
+        description: 'Each part''s amd64 image digest, by part, as JSON'
+        required: true
+        type: string
 
 permissions: {}
 
@@ -22,11 +34,14 @@ jobs:
     timeout-minutes: 120
     permissions:
       contents: read
+      packages: read
     env:
       WASP_TELEMETRY_DISABLE: '1'
       CI: 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.commit }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
@@ -39,10 +54,31 @@ jobs:
           (cd hq && npx playwright install --with-deps chromium)
 
       - name: The stand-in model's own tests
-        run: node --test scripts/install-test/__tests__/
+        run: node --test "scripts/install-test/__tests__/*.test.mjs"
 
-      - name: Build, install and walk through
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The candidate's own images, by digest, under the names run.sh reads (imgtest/<part>:dev).
+      - name: Pull the candidate's images
         env:
+          REGISTRY: ${{ inputs.registry }}
+          NAMES: ${{ inputs.names }}
+          DIGESTS: ${{ inputs.digests }}
+        run: |
+          for part in $(jq -r 'keys[]' <<<"$DIGESTS"); do
+            image="$REGISTRY/$(jq -r --arg p "$part" '.[$p]' <<<"$NAMES")@$(jq -r --arg p "$part" '.[$p]' <<<"$DIGESTS")"
+            docker pull --quiet "$image"
+            docker tag "$image" "imgtest/$part:dev"
+          done
+
+      - name: Install and walk through
+        env:
+          # run.sh builds no image: a missing one is an error.
+          INSTALL_TEST_NO_BUILD: '1'
           INSTALL_TEST_LOGS: ${{ runner.temp }}/install-test
         run: bash scripts/install-test/run.sh
 

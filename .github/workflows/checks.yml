@@ -2,7 +2,7 @@ name: Checks
 
 # Typecheck and unit tests for every package on each pull request and each push to main or a release branch, and the
 # two apps' integration suites against a Postgres service. The images are not built here: on a release branch the
-# release's own build does that, for both architectures (release-branch-build.yml), and on main and pull requests the
+# release's own build does that, for both architectures (release-build.yml), and on main and pull requests the
 # full regression starts them before a unit merges. There is no linter in the repository, so none runs here. A tag is
 # published only once "All checks passed" has passed for the tagged commit (publish-images.yml).
 on:
@@ -19,60 +19,83 @@ permissions: {}
 
 jobs:
   changes:
-    # A change that touches only documentation (docs/ outside the guide, and the Markdown notes at the top of the
-    # repository and of each module) builds and tests nothing, so the jobs below are skipped for it. The guide is
-    # not documentation here: the Fleet Console builds its Help from docs/guide/, and hq checks its screenshot names.
+    # Which jobs this change reaches (scripts/affected.mjs, which derives the dependency map from each package.json),
+    # and, on a push, whether this very tree already passed: the same commit in another branch's run, or a parent
+    # whose tree is identical. Documentation alone reaches no job; the guide is not documentation here, because the
+    # Fleet Console builds its Help from docs/guide/ and hq checks its screenshot names. A manual run selects all.
     name: "What changed"
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
+      checks: read
     outputs:
-      code: ${{ steps.diff.outputs.code }}
+      jobs: ${{ steps.select.outputs.jobs }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - name: Does anything other than documentation change?
-        id: diff
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: The selector's own tests
+        # Plain Node, no install: the secure-page check needs TypeScript, and its own job installs and tests it.
+        run: node --test scripts/__tests__/affected.test.mjs scripts/__tests__/checks-verdict.test.mjs scripts/__tests__/image-keys.test.mjs scripts/__tests__/image-parts.test.mjs
+      - name: Has this tree already passed?
+        id: proof
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD: ${{ github.sha }}
+        run: |
+          tree="$(git rev-parse "$HEAD^{tree}")"
+          proof=""
+          # The same commit first, then each parent whose tree is the same.
+          candidates="$HEAD"
+          for parent in $(git rev-list --parents -n 1 "$HEAD" | cut -d' ' -f2-); do
+            if [ "$(git rev-parse "$parent^{tree}")" = "$tree" ]; then candidates="$candidates $parent"; fi
+          done
+          for sha in $candidates; do
+            passes="$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs?check_name=All%20checks%20passed" \
+              --jq '[.check_runs[] | select(.conclusion == "success")] | length' 2>/dev/null || echo 0)"
+            if [ "${passes:-0}" -gt 0 ]; then proof="$sha"; break; fi
+          done
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+          echo "proof=$proof" >> "$GITHUB_OUTPUT"
+      - name: Which jobs does this change reach?
+        id: select
         env:
           EVENT: ${{ github.event_name }}
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD: ${{ github.sha }}
+          PROOF: ${{ steps.proof.outputs.proof }}
+          TREE: ${{ steps.proof.outputs.tree }}
         run: |
-          code=true
-          if [ "$EVENT" != workflow_dispatch ] && [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            files="$(git diff --name-only "$BASE" "$HEAD")"
-            printf '%s\n' "$files"
-            other="$(printf '%s\n' "$files" | grep -vE '^$|^[^/]+\.md$|^[^/]+/[^/]+\.md$|^\.github/[^/]+\.md$|^docs/' || true)"
-            guide="$(printf '%s\n' "$files" | grep -E '^docs/guide/' || true)"
-            if [ -n "$files" ] && [ -z "$other" ] && [ -z "$guide" ]; then code=false; fi
+          {
+            echo "### What this run checks"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$PROOF" ]; then
+            selected='[]'
+            echo "Nothing: tree \`$TREE\` already passed *All checks passed* on commit \`$PROOF\`, so no job runs again." >> "$GITHUB_STEP_SUMMARY"
+            echo "Tree already proved by $PROOF"
+          else
+            if [ "$EVENT" = workflow_dispatch ]; then set -- --all; else set -- "$BASE" "$HEAD"; fi
+            selected="$(node scripts/affected.mjs "$@" --json | node -e 'process.stdout.write(JSON.stringify(JSON.parse(require("fs").readFileSync(0, "utf8")).selected))')"
+            {
+              echo '```'
+              node scripts/affected.mjs "$@"
+              echo '```'
+            } | tee -a "$GITHUB_STEP_SUMMARY"
           fi
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "Anything but documentation changed: $code"
-
-  versions:
-    # The product has one version; a release is refused if the modules disagree, so they are checked on every change.
-    name: "Every module at one version"
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-      - run: node scripts/check-versions.mjs
+          echo "jobs=$selected" >> "$GITHUB_OUTPUT"
 
   secure-page:
     # A browser gives some features (crypto.randomUUID, the clipboard, the microphone) only to a secure page, and HQ
     # is also opened over plain http at a network address, so browser code reaches them only through a helper.
     name: "Browser code needs no secure page"
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'secure-page')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -92,7 +115,7 @@ jobs:
   core:
     name: "Core: typecheck, unit tests and build"
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'core')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -119,7 +142,7 @@ jobs:
   ui:
     name: "UI: typecheck"
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'ui')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -151,7 +174,7 @@ jobs:
   hq:
     name: "hq: typecheck and unit tests"
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'hq')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -201,7 +224,7 @@ jobs:
   host:
     name: "host: typecheck and unit tests"
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'host')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -221,10 +244,9 @@ jobs:
       - name: Unit tests
         run: |
           cd host && npm test
-      # At the repository's version, as a release tag builds it: a version the image's build would refuse fails here.
       - name: Build
         run: |
-          cd host && HOST_SERVICE_VERSION="$(node -p "require('../package.json').version")" npm run build
+          cd host && npm run build
       # Each bundle started, as the image starts it: a bundle that type-checks and passes its tests can still fail to load.
       - name: The bundles load
         run: |
@@ -233,7 +255,7 @@ jobs:
   console:
     name: "console: typecheck and unit tests"
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'console')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -253,15 +275,14 @@ jobs:
       - name: Unit tests
         run: |
           cd console && npm test
-      # At the repository's version, as a release tag builds it: a version the image's build would refuse fails here.
       - name: Build
         run: |
-          cd console && CONSOLE_VERSION="$(node -p "require('../package.json').version")" npm run build
+          cd console && npm run build
 
   console-web:
     name: "console-web: typecheck, unit tests and build"
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'console-web')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -295,7 +316,7 @@ jobs:
   site:
     name: "site: typecheck and unit tests"
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'site')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -322,7 +343,7 @@ jobs:
   site-integration:
     name: "site: integration tests"
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'site-integration')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -360,7 +381,7 @@ jobs:
   hq-integration:
     name: "hq: integration tests"
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'hq-integration')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -416,23 +437,19 @@ jobs:
 
   all-passed:
     # The one check a pull request must pass before it merges, so the rule on main names one job, not each of them.
+    # Passes only when "What changed" succeeded, every selected job succeeded and every other job was skipped: a
+    # selected job that was skipped or cancelled fails it, and so does one that ran unselected.
     name: "All checks passed"
     if: always()
-    needs: [changes, versions, secure-page, core, ui, hq, host, console, console-web, site, site-integration, hq-integration]
+    needs: [changes, secure-page, core, ui, hq, host, console, console-web, site, site-integration, hq-integration]
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions: {}
+    permissions:
+      contents: read
     steps:
-      - name: Every job passed, or was skipped for a change to documentation alone
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Every selected job passed and every other was skipped
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
-          CHANGES: ${{ needs.changes.result }}
-          CODE: ${{ needs.changes.outputs.code }}
-        run: |
-          echo "$RESULTS"
-          [ "$CHANGES" = success ] || exit 1
-          for r in $RESULTS; do
-            [ "$r" = success ] && continue
-            [ "$r" = skipped ] && [ "$CODE" = false ] && continue
-            exit 1
-          done
+          NEEDS: ${{ toJSON(needs) }}
+          SELECTED: ${{ needs.changes.outputs.jobs }}
+        run: node scripts/checks-verdict.mjs

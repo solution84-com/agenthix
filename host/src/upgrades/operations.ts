@@ -12,6 +12,7 @@ import { registerScheduledChange } from '../scheduled/registry'
 import { isPublishedVersion } from '../images/published'
 import { checkPublished, setUpgrades } from './automatic'
 import { launcherOn, moveHostServiceFirst, readyHostService, switchHostService, type HostServiceReady } from './hostService'
+import { readyBuiltHostService, switchBuiltHostService } from './builtHostService'
 import { checkUpgrade, currentVersion, hostServiceBehind, whoText, type Target } from './rules'
 import { parseWindow, writeUpgrades } from './settings'
 import { upgradesStatus, type UpgradesStatus } from './status'
@@ -22,9 +23,10 @@ export type UpgradesMachineRequest =
   | { op: 'upgrades.status' }
   /** Which version an upgrade of `target` goes to (the newest published, unless one is named), before it is asked. */
   | { op: 'upgrades.check'; target: Target; version?: string }
-  | { op: 'upgrades.hostService'; version?: string }
-  /** Switches the host service to its newest published version, or `version`, through the launcher. */
-  | { op: 'upgrades.hostSwitch'; version?: string }
+  /** `built`, never with `version`: a development build's switch to an image built on the machine, by its name or id. */
+  | { op: 'upgrades.hostService'; version?: string; built?: string }
+  /** Switches the host service to its newest published version, or `version`, or `built`, through the launcher. */
+  | { op: 'upgrades.hostSwitch'; version?: string; built?: string }
   | { op: 'upgrades.set'; auto?: boolean; window?: string; launcher?: boolean }
 
 export type UpgradeCheckResult = {
@@ -44,6 +46,9 @@ export type HostSwitchStarted = { from: string; version: string }
 
 const target = (v: unknown): Target | null => (v === 'hq' || v === 'site' ? v : null)
 const version = (v: unknown): string | undefined | null => (v === undefined ? undefined : typeof v === 'string' && isPublishedVersion(v) ? v : null)
+/** A local image's name or id, as Docker writes one; never anything Docker would read as an option. */
+const LOCAL_IMAGE = /^[A-Za-z0-9][A-Za-z0-9._/:@-]{0,254}$/
+const builtImage = (v: unknown): string | undefined | null => (v === undefined ? undefined : typeof v === 'string' && LOCAL_IMAGE.test(v) ? v : null)
 
 /** The machine's own upgrade requests, rebuilt field by field; null when the op is not one of them. */
 export function parseUpgradesRequest(r: Record<string, unknown>): UpgradesMachineRequest | 'malformed' | null {
@@ -58,7 +63,9 @@ export function parseUpgradesRequest(r: Record<string, unknown>): UpgradesMachin
     case 'upgrades.hostService':
     case 'upgrades.hostSwitch': {
       const v = version(r.version)
-      return v === null ? 'malformed' : { op: r.op, version: v }
+      const built = builtImage(r.built)
+      if (v === null || built === null || (v !== undefined && built !== undefined)) return 'malformed'
+      return built === undefined ? { op: r.op, version: v } : { op: r.op, built }
     }
     case 'upgrades.set': {
       if (r.auto !== undefined && typeof r.auto !== 'boolean') return 'malformed'
@@ -95,9 +102,9 @@ export async function upgradesOperation(ctx: Context, request: UpgradesMachineRe
     case 'upgrades.check':
       return check(ctx, request.target, request.version)
     case 'upgrades.hostService':
-      return readyHostService(ctx, request.version)
+      return request.built === undefined ? readyHostService(ctx, request.version) : readyBuiltHostService(ctx, request.built)
     case 'upgrades.hostSwitch': {
-      const { ready, ended } = await switchHostService(ctx, request.version)
+      const { ready, ended } = request.built === undefined ? await switchHostService(ctx, request.version) : await switchBuiltHostService(ctx, request.built)
       // Settles only if the switch ends without stopping this host service; status says how it went.
       void ended.catch(() => {})
       return { from: ready.from, version: ready.version }

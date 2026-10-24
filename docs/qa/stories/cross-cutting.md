@@ -1,7 +1,7 @@
 ---
 name: User Stories — cross-cutting
 description: Business-level requirements that span more than one module. Each story maps to acceptance criteria in multiple modules' scenarios files.
-updated: 2026-10-21
+updated: 2026-10-24
 ---
 
 # User Stories — cross-cutting
@@ -53,13 +53,13 @@ As a member of an organisation whose HQ is reached at a network address without 
 
 ### US-351 — Release only what was proved
 
-As a maintainer, I want everything a release publishes to have been built, started and installed on its release branch before the tag, so that a tag never publishes something broken.
+As a maintainer, I want everything a release publishes to have been built, started and installed before the tag, so that a tag never publishes something broken.
 
 **Acceptance criteria:**
-- AC-351a: the product has one version, carried by every module, and a release tag must name it.
+- ~~AC-351a: the product has one version, carried by every module, and a release tag must name it.~~ **Retired 2026-10-24** — no module carries the version any more; the tag gives it at publish (AC-370a).
 - AC-351b: before the tag, the product is installed from its own images at a network address over plain http and used in a browser, with no real model called.
 - AC-351c: every image, for both architectures, is started and made to answer before it can be published, and is never sent if it does not start.
-- AC-351d: the tag publishes only what its release branch proved — the checks, the images, the install test and the guide's screenshots — and refuses otherwise, saying what to do; once published, the release has its page.
+- AC-351d: the tag publishes only what a release build proved for the tagged commit — the checks, the images, the install test and the guide's screenshots — and refuses otherwise, saying what to do; once published, the release has its page.
 
 ---
 
@@ -85,3 +85,38 @@ As a contributor, I want every port and address block written once and tests and
 - AC-368b: a development script that would use a taken port refuses, naming the port and its holder.
 - AC-368c: tests that start servers take free ports, and two cross-app runs never share the test databases.
 - AC-368d: the install test installs as a test installation, on free ports, beside whatever is installed.
+
+## The release cycle (added 2026-10-24)
+
+Written from the finished code at the close of the release cycle unit.
+
+### US-371 — Build each image once for its content
+
+As a contributor, I want an image built once for the code it is made from and reused until that code changes, so that a change to one part does not rebuild the others and the same code is not built again and again.
+
+**Acceptance criteria:**
+- AC-371a: one list names the images a release ships and what each is built from, and a test fails when an image's build reads something the list does not name.
+- AC-371b: each image has a content key that changes when, and only when, something it is built from changes.
+- AC-371c: the local image start test builds only the images whose content changed.
+- AC-371d: security updates reach an image whose code has not changed, on a schedule, without a person remembering.
+
+### US-372 — Run only the checks a change reaches
+
+As a contributor, I want a change to run the checks for the code it reaches, once for the same code, so that a small change gets its answer quickly and a pull request cannot merge on checks that did not run.
+
+**Acceptance criteria:**
+- AC-372a: a change selects the checks of the module it is in and of every module that depends on it, and anything not known to be safe selects every check.
+- AC-372b: the one required check fails when a check that should have run did not, or one that should not have run did.
+- AC-372c: code that already passed is not checked again, and the run says which commit proved it.
+
+### US-373 — Release a proven build by giving it a name
+
+As a maintainer, I want a release to be a build that was proved and then named, so that what is published is exactly what was started and installed, and a release costs one run of the release bar.
+
+**Acceptance criteria:**
+- AC-373a: the release build builds, starts and vouches for each image once, reuses only an image it vouched for, and leaves a record of what it built.
+- AC-373b: the tag promotes only images from a run that proved its commit, whose origin and content are checked against the tagged commit before anything is signed, and builds nothing.
+- AC-373c: each release page carries a record of what was published.
+- AC-373d: the install test installs the images the release ships, never images built again for it.
+- AC-373e: the whole release bar can be rehearsed on a development machine before anything is pushed.
+- AC-373f: the registry is cleaned of what no release needs and keeps everything a release record names.

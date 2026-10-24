@@ -5,15 +5,12 @@
 import { build } from 'esbuild'
 import fs from 'node:fs'
 
-// The version is fixed into the bundle when it is built (`dev` unless the image build passes one), so nothing
-// set where the image runs can turn a release build into a development build.
-const version = process.env.HOST_SERVICE_VERSION || 'dev'
-if (!/^(dev|\d+\.\d+\.\d+(-(alpha|beta|rc)\.\d+)?)$/.test(version)) throw new Error(`HOST_SERVICE_VERSION must be dev or a published version such as 0.2.0 or 1.0.0-alpha.1 (got ${version})`)
+// No version is built in: the host service learns its own from the image reference it was started from
+// (src/images/ownVersion.ts), so the same build serves every version it is published as.
 // The bundled S3 client is CommonJS and `require`s Node's own modules as it loads; an ES module has no `require`, so
 // each bundle makes one (`scripts/check-bundles.mjs` starts every bundle to prove it loads).
 const common = {
   bundle: true, platform: 'node', target: 'node22', format: 'esm', sourcemap: true, logLevel: 'info',
-  define: { 'process.env.HOST_SERVICE_VERSION': JSON.stringify(version) },
   banner: { js: "import { createRequire as __hostCreateRequire } from 'node:module'; const require = __hostCreateRequire(import.meta.url);" },
 }
 

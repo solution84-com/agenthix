@@ -117,7 +117,7 @@ describe('Health @SC-725', () => {
     noteSchedulerTick(true)
     makeSiteUnreachable('laptop')
     const health = await getDiagnosticsHealth(undefined, ctx(admin))
-    expect(health.hq).toMatchObject({ version: BUILD_INFO.version, commit: BUILD_INFO.commit, databaseAnswers: true, sitesKnown: 2, schedulerLastTick: { ok: true } })
+    expect(health.hq).toMatchObject({ version: BUILD_INFO.version, databaseAnswers: true, sitesKnown: 2, schedulerLastTick: { ok: true } })
     expect(health.hq.runningSince.getTime()).toBeLessThanOrEqual(Date.now())
     expect(health.sites.map(s => s.label)).toEqual(["HQ built in · HQ's site", 'Design laptop'])
     expect(health.sites[0]).toMatchObject({ connected: true, runStore: 'answers', health: { runs: { running: 2, maxAtOnce: 4 } } })

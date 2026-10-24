@@ -33,6 +33,30 @@ describe('the compose projects', () => {
     expect(h.services['hq-db'].image).toMatch(/^postgres:16-alpine@sha256:[0-9a-f]{64}$/)
   })
 
+  it('gives hq-server and the site the version they run as, which a published image no longer carries, and none for a development build @SC-1257', () => {
+    const n = namesFor('agenthix')
+    expect(hqProject(n, hq, secrets, 'hq-box', any(n), inst).services['hq-server'].environment).toHaveProperty('APP_VERSION', '0.2.0')
+    expect(defaultSiteProject(n, site, secrets, paths, any(n), inst).services.site.environment).toHaveProperty('APP_VERSION', '0.2.0')
+    expect(hqProject(n, { ...hq, version: 'dev' }, secrets, 'hq-box', any(n), inst).services['hq-server'].environment).not.toHaveProperty('APP_VERSION')
+    expect(defaultSiteProject(n, { ...site, version: 'dev' }, secrets, paths, any(n), inst).services.site.environment).not.toHaveProperty('APP_VERSION')
+  })
+
+  it('labels every container of a release part with the version it runs as, never a database, and none for a development build @SC-1257', () => {
+    const n = namesFor('agenthix')
+    const containers = (version: string) => {
+      const h = hqProject(n, { ...hq, version }, secrets, 'hq-box', any(n), inst)
+      const s = defaultSiteProject(n, { ...site, version }, secrets, paths, any(n), inst)
+      return [...Object.entries(h.services), ...Object.entries(s.services)]
+    }
+    for (const [name, service] of containers('0.2.0')) {
+      if (name.endsWith('-db')) expect(service.labels).not.toHaveProperty('agenthix.version')
+      else expect(service.labels).toMatchObject({ 'agenthix.version': '0.2.0', 'agenthix.managed-by': 'host' })
+    }
+    for (const [, service] of containers('dev')) expect(service.labels).not.toHaveProperty('agenthix.version')
+    const acme = namesFor('acme')
+    expect(hqProject(acme, hq, secrets, 'hq-box', any(acme), inst).services['hq-server'].labels).toHaveProperty('acme.version', '0.2.0')
+  })
+
   it("tells HQ its machine's name, which HQ names its own site after @SC-870", () => {
     expect(hqProject(namesFor('agenthix'), hq, secrets, 'hq-box', any(namesFor('agenthix')), inst).services['hq-server'].environment.HQ_MACHINE_NAME).toBe('hq-box')
   })

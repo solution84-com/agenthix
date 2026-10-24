@@ -82,10 +82,10 @@ its absence (`node scripts/check-secure-page.mjs` at the repository's root).
 
 ## HQ as installed (the `install` project)
 
-`scripts/install-test/run.sh`, at the repository's root, builds every image, installs HQ at this machine's network
+`scripts/install-test/run.sh`, at the repository's root, uses the images the image start test keeps (building any whose content key has no image yet), installs HQ at this machine's network
 address over plain http under a namespace of its own, and runs `install/walkthrough.spec.ts` against it: the first
 admin made, a message sent to a stand-in model (no real model is called), the speech providers put in as described
-under the setup spec below, a conversation opened and the Fleet Console opened. It refuses on a machine that already runs an HQ, and removes only what it made. Without it, the
+under the setup spec below, a conversation opened and the Fleet Console opened. It runs beside an installation already on the machine, refuses when a port it was told to use is taken, and removes only what it made. Without it, the
 project skips.
 
 ## The user guide's screenshots

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, cleanup, within, configure } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router'
 
 const mocks = vi.hoisted(() => ({
@@ -37,6 +37,10 @@ vi.mock('../../../org/components/resizeImage', () => ({
   imageFileProblem: (f: File) => (f.size > 10 * 1024 * 1024 ? 'That image is over 10 MB. Choose a smaller one.' : null),
 }))
 vi.mock('../../../shared/components/AuthedImg', () => ({ AuthedImg: ({ src, alt = '' }: { src: string; alt?: string }) => <img src={src} alt={alt} /> }))
+// Setup renders several steps through lazy queries, which take one to two seconds on CI's runners: past Testing
+// Library's default wait of one second.
+configure({ asyncUtilTimeout: 5000 })
+
 vi.mock('wasp/client', () => ({ config: { apiUrl: 'http://hq.test' } }))
 
 import { SetupPage } from '../SetupPage'

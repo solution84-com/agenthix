@@ -11,8 +11,8 @@
  *   every other admin that a password was reset from hq's machine.
  * - `status`: whether hq has people yet, how many agents are working, and
  *   whether its own site is connected and, if not, why — for the installer to
- *   wait on and `agenthix status` to put in sentences; and hq's version and
- *   commit, which its public `/health` no longer gives (adr-0106).
+ *   wait on and `agenthix status` to put in sentences; and hq's version,
+ *   which its public `/health` no longer gives (adr-0106).
  * - `default-site-cause <cause>`: why its own site is not connected, which
  *   only the host service on hq's machine can see; `none` clears it.
  * - `scheduled-change <notice>`: a notice of a change scheduled on hq's machine,
@@ -146,7 +146,6 @@ export type HqStatus = {
   hqSite: HqSiteState
   address: string
   version: string
-  commit: string
 }
 
 const SITE = "HQ's site"
@@ -169,11 +168,11 @@ function peopleSentence(users: number, running: number): string {
 export async function statusCommand(): Promise<CommandResult> {
   const [users, site] = await Promise.all([prisma.user.count(), hqSiteState()])
   const data: HqStatus = {
-    users, runningAgents: activeRunCount(), hqSite: site, address: hqAddress(), version: BUILD_INFO.version, commit: BUILD_INFO.commit,
+    users, runningAgents: activeRunCount(), hqSite: site, address: hqAddress(), version: BUILD_INFO.version,
   }
   return {
     ok: true,
-    text: `HQ ${data.version} (commit ${data.commit}) at ${data.address}. ${peopleSentence(users, data.runningAgents)} ${siteSentence(site)}`,
+    text: `HQ ${data.version} at ${data.address}. ${peopleSentence(users, data.runningAgents)} ${siteSentence(site)}`,
     data,
   }
 }

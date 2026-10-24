@@ -55,3 +55,14 @@ adr-0069, adr-0107, adr-0111.
 > [`2026-10-13-host-management`](../work/2026-10-13-host-management/plan.md), plan 2.8–2.9, merged to `main` at its
 > close and verified by the close-out regression and the owner's walkthroughs. Nothing has been published yet: signing,
 > and the host service's check of a real signature, are first tested end to end at the first publish.
+
+> **Amended.** *(2026-10-24, by adr-0146)* An image no longer carries its version as a label. Each published image's
+> **index** carries its version as an annotation, and its signature names that version's tag; the host service gives
+> each container its version, its own taken from the image reference it was started by and checked against that
+> version's signature. The tag signs only images whose build attestation it verified. The decision above, that a host
+> service runs only signed, published images, is unchanged.
+
+> **Acted on.** *(annotated 2026-10-24)* The amended check was run end to end at `v0.1.0-alpha.3`
+> ([`2026-10-24-release-cycle`](../work/2026-10-24-release-cycle/plan.md)): a host service started from the published
+> image took its version from its start reference once that version's signature passed, and installed hq, the site and
+> the Fleet Console from the published images.

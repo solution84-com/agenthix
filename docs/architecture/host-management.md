@@ -106,6 +106,17 @@ pulls them with a registry credential of its own, kept apart from the machine's 
 [deployment.md](deployment.md#releases-and-the-images-they-publish)). A development
 build, with no published version, runs images built on the machine and says the check was not made.
 
+**Its own version, and the version it gives.** The host service learns its version once, at start, from the image
+reference its container was started from, never from a label or a number built into the image
+(`host/src/images/ownVersion.ts`). A host image of the trusted publisher by a published version's tag (with or
+without `@sha256:…`) is that version once that version's signature checks and the image running is the one signed; a
+failed check stops it with what to do. A local build's name, a bare digest, and a start given no Docker socket are
+`dev`. The image that passed is recorded by its id in `launcher/image.json`, so a start without network trusts the
+same content again, and the launcher, run from the same image, reads its version there. It then writes the version
+into the environment of each compose project it starts, beside the image it picked: `APP_VERSION` for hq's server and
+the site, `CONSOLE_VERSION` for the Fleet Console, and nothing for `dev`
+([versioning.md](versioning.md#the-product-version)).
+
 **Replacing itself.** A container cannot replace itself, so the host service's image carries a **launcher**
 (`host/src/launcher/`): the host service checks and fetches its new image, then starts the launcher, which swaps
 the container and puts the old one back if the new one does not answer within 3 minutes

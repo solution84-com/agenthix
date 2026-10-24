@@ -142,6 +142,8 @@ describe('the host service’s own image @SC-838', () => {
     const ready = await readyHostService(m.ctx)
     const ref = 'ghcr.io/solution84-com/agenthix-host:0.3.0'
     const image = `ghcr.io/solution84-com/agenthix-host@${digestOf(ref)}`
+    // Started by its version's tag and its digest, so the host service started from it knows its version.
+    const startFrom = `ghcr.io/solution84-com/agenthix-host:0.3.0@${digestOf(ref)}`
     expect(m.checked.at(-1)).toEqual([ref, 'https://github.com/solution84-com/agenthix/.github/workflows/publish-images.yml@refs/tags/v0.3.0'])
     // Fetched by its digest, unless it is on the machine already, as it is here.
     expect(m.calls.filter(c => c[0] === 'image' || c[0] === 'pull').map(c => c.at(-1))).toEqual([image])
@@ -154,7 +156,7 @@ describe('the host service’s own image @SC-838', () => {
         'docker rm -f agenthix-host',
         'docker run -d --name agenthix-host --restart unless-stopped --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock ' +
           '--mount type=bind,src=/home/sam/.agenthix,dst=/state --mount type=volume,src=agenthix-host-figures,dst=/run/host-figures ' +
-          `--network host --cap-add NET_ADMIN -e TZ=Europe/London --label com.docker.compose.project=agenthix-host ${image}`,
+          `--network host --cap-add NET_ADMIN -e TZ=Europe/London --label com.docker.compose.project=agenthix-host ${startFrom}`,
       ],
     })
   })
@@ -165,7 +167,7 @@ describe('the host service’s own image @SC-838', () => {
     const ready = await readyHostService(m.ctx)
     expect(ready.commands[1]).toBe('docker run -d --name agenthix-host --restart unless-stopped -v /var/run/docker.sock:/var/run/docker.sock ' +
       '-v /home/sam/.agenthix:/state -v agenthix-host-figures:/run/host-figures --network host --cap-add NET_ADMIN ' +
-      `--label com.docker.compose.project=agenthix-host ${ready.image}`)
+      `--label com.docker.compose.project=agenthix-host ${ready.image.replace('@', ':0.3.0@')}`)
   })
 
   it('is refused unsigned, and nothing is fetched', async () => {

@@ -87,7 +87,7 @@ interface ClientToServerEvents {
   subscribeToTask:    (taskId: any) => void
   subscribeToBoard:   (boardId: any) => void
   'connection:ping':         (ack?: (reply: { ok: true }) => void) => void
-  'hq:version':              (ack?: (reply: { ok: boolean; version?: string; commit?: string; built?: string }) => void) => void
+  'hq:version':              (ack?: (reply: { ok: boolean; version?: string; built?: string }) => void) => void
   subscribeToDashboard:      () => void
   unsubscribeFromDashboard:  () => void
   subscribeToConversation:     (conversationId: unknown) => void

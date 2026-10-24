@@ -11,7 +11,7 @@
 # image's own platform. Node 24.14.1 on Alpine 3.23, for those, is the base
 # Wasp's own generated Dockerfile uses.
 
-FROM --platform=$BUILDPLATFORM node:24.14.1-bookworm-slim AS wasp
+FROM --platform=$BUILDPLATFORM node:24.14.1-bookworm-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS wasp
 # No install or usage telemetry from the Wasp CLI, here or in web-build.
 ENV WASP_TELEMETRY_DISABLE=1
 WORKDIR /repo
@@ -72,9 +72,7 @@ FROM wasp AS web-build
 RUN cd hq && REACT_APP_API_URL=https://hq-address.invalid npx vite build \
  && grep -rqF https://hq-address.invalid .wasp/out/web-app/build
 
-FROM caddy:2-alpine AS web
-ARG VERSION=dev
-LABEL org.opencontainers.image.version=$VERSION
+FROM caddy:2-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f AS web
 # The built app as the image holds it; web-address.sh copies it to /srv at each start.
 COPY --from=web-build /repo/hq/.wasp/out/web-app/build /usr/share/hq-web
 COPY hq/docker/Caddyfile /etc/caddy/Caddyfile
@@ -89,7 +87,7 @@ ENTRYPOINT ["/usr/local/bin/hq-web-entrypoint"]
 # it itself (src/memory/embedding/). Its own stage: it is rebuilt only when the
 # model's manifest changes. hq's package.json makes Node read the two
 # TypeScript modules the script imports as ES modules.
-FROM node:24.14.1-alpine3.23 AS embedding-model
+FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS embedding-model
 WORKDIR /build/hq
 COPY hq/package.json ./
 COPY hq/scripts/models scripts/models
@@ -99,7 +97,7 @@ RUN node scripts/models/fetch-embedding-model.mjs /hq-models
 # The same steps as Wasp's own generated Dockerfile, with the repository's
 # packages at /core and /ui — where the app's `file:../core` and `file:../ui`
 # resolve from /app — rather than copied in and patched.
-FROM node:24.14.1-alpine3.23 AS server-build
+FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server-build
 # The generated package.json still lists the Wasp CLI, so this install runs its postinstall too.
 ENV WASP_TELEMETRY_DISABLE=1
 # Alpine 3.21 and later no longer bring openssl with Node; Prisma's engine
@@ -156,13 +154,9 @@ RUN mkdir -p /ui/node_modules/@types \
 RUN cd .wasp/out/server && npx prisma generate --schema='../db/schema.prisma'
 RUN cd .wasp/out/server && npm run bundle
 
-FROM node:24.14.1-alpine3.23 AS server
+FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server
 RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3
-ARG VERSION=dev
-ARG COMMIT=dev
-LABEL org.opencontainers.image.version=$VERSION
-# What HQ's status and its settings page report (src/server/buildInfo.ts).
-ENV NODE_ENV=production APP_VERSION=$VERSION APP_COMMIT=$COMMIT
+ENV NODE_ENV=production
 COPY --from=server-build /core /core
 COPY --from=server-build /ui /ui
 WORKDIR /app

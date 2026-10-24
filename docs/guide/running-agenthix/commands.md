@@ -25,7 +25,7 @@ Times are in the machine's own time zone. `agenthix help` lists the commands, an
 | Command | What it does |
 |---|---|
 | `install` | Installs HQ and its site here. It asks where people will open HQ, starts both and prints one link for the first account. Run again, it starts what is stopped and changes nothing that is set. `--address <address>` answers the question |
-| `status` | Every HQ and site on this machine, each in a sentence that ends in what to do next |
+| `status` | Every HQ and site on this machine, each in a sentence that ends in what to do next. Each part shows the version it runs, and "unchanged since" an earlier version when its image has not changed since that release |
 | `capacity` | Shows what each agent may use: memory, processors and processes per container, and how many containers run at once |
 | `capacity set` | Changes them, with `--memory <size>`, `--processors <n>`, `--processes <n>` and `--containers <n>`. They must fit the machine. HQ and projects may narrow them for a run, never raise them |
 | `front-door [on \| off]` | Shows, turns on or turns off the host service's own *front door*, the program that serves HQ over HTTPS with its certificates. See [Address and front door](domain-and-https.md) |
@@ -38,7 +38,7 @@ Times are in the machine's own time zone. `agenthix help` lists the commands, an
 | `schedule change <id> --at <time>` | Moves scheduled maintenance to another time |
 | `upgrades` | Shows whether fixes apply by themselves, and when |
 | `upgrades auto off` | Turns automatic fixes off, and cancels any scheduled. `auto on` turns them on; `--window "<day> <from>-<to>"` moves the window |
-| `upgrades host` | Switches the host service to its newest version. `--launcher off` turns the automatic switch off |
+| `upgrades host` | Switches the host service to its newest version. `--launcher off` turns the automatic switch off. On a development build only, `--image <name or id>` switches to another image built on the machine |
 | `uninstall` | Takes Agenthix off this machine and leaves nothing behind: the Fleet Console, the agent containers, the firewall rules, the volumes, networks and images, the state folder, and the host service itself, last. Refused while HQ or a site is here: erase it first. Your backup location is never touched. See [Take Agenthix off a machine](uninstall.md) |
 | `help [<command>]` | The list of commands, or one in detail |
 

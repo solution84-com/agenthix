@@ -34,6 +34,8 @@ export type InspectedContainer = {
   name: string
   /** The image's id, `sha256:…`. */
   image: string
+  /** The image as the container was started from it (`Config.Image`): a name, a tag, a digest, or an id. */
+  reference: string
   running: boolean
   env: string[]
   /** Null when a mount is of a kind the host service does not start a container with (tmpfs, a named pipe). */
@@ -43,7 +45,8 @@ export type InspectedContainer = {
   restart: string
 }
 
-export type ImageInfo = { id: string; env: string[]; version: string | null }
+/** `repoDigests`: `<repository>@sha256:…` for each registry content Docker fetched the image as; none for a local build. */
+export type ImageInfo = { id: string; env: string[]; repoDigests: string[] }
 
 /** What the launcher and the host service ask of Docker about containers; tests stand in a fake. */
 export interface ContainerOps {
@@ -97,7 +100,7 @@ function mountOf(raw: unknown): Mount | null {
 /** What `docker container inspect` says of a container, reduced to the settings it is started with. */
 export function parseInspect(raw: unknown): InspectedContainer | null {
   const c = raw as {
-    Id?: unknown; Name?: unknown; Image?: unknown; State?: { Running?: unknown }; Config?: { Env?: unknown }; Mounts?: unknown
+    Id?: unknown; Name?: unknown; Image?: unknown; State?: { Running?: unknown }; Config?: { Env?: unknown; Image?: unknown }; Mounts?: unknown
     HostConfig?: { NetworkMode?: unknown; CapAdd?: unknown; RestartPolicy?: { Name?: unknown; MaximumRetryCount?: unknown } }
   }
   if (!c || typeof c.Id !== 'string' || typeof c.Name !== 'string' || typeof c.Image !== 'string') return null
@@ -109,6 +112,7 @@ export function parseInspect(raw: unknown): InspectedContainer | null {
     id: c.Id,
     name: c.Name.replace(/^\//, ''),
     image: c.Image,
+    reference: typeof c.Config?.Image === 'string' && c.Config.Image ? c.Config.Image : c.Image,
     running: c.State?.Running === true,
     env: strings(c.Config?.Env),
     mounts: mounts.every((m): m is Mount => m !== null) ? mounts : null,
@@ -125,8 +129,6 @@ export function parseInspect(raw: unknown): InspectedContainer | null {
 export function containerIdIn(mountinfo: string): string | null {
   return /\/containers\/([0-9a-f]{64})\/(?:hostname|hosts|resolv\.conf)\b/.exec(mountinfo)?.[1] ?? null
 }
-
-const VERSION_LABEL = 'org.opencontainers.image.version'
 
 export class Containers implements ContainerOps {
   constructor(private readonly docker: DockerRunner) {}
@@ -152,10 +154,9 @@ export class Containers implements ContainerOps {
   }
 
   async image(ref: string): Promise<ImageInfo | null> {
-    const raw = (await this.json(['image', 'inspect', '--format', '{{json .}}', ref])) as { Id?: unknown; Config?: { Env?: unknown; Labels?: Record<string, unknown> | null } } | null
+    const raw = (await this.json(['image', 'inspect', '--format', '{{json .}}', ref])) as { Id?: unknown; RepoDigests?: unknown; Config?: { Env?: unknown } } | null
     if (!raw || typeof raw.Id !== 'string') return null
-    const version = raw.Config?.Labels?.[VERSION_LABEL]
-    return { id: raw.Id, env: strings(raw.Config?.Env), version: typeof version === 'string' ? version : null }
+    return { id: raw.Id, env: strings(raw.Config?.Env), repoDigests: strings(raw.RepoDigests) }
   }
 
   async run(spec: ContainerSpec): Promise<void> {

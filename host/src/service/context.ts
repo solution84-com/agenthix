@@ -17,6 +17,7 @@ import type { RegistryEnv } from '../images/registryAuth'
 import type { FrontDoorProbes, PortInUse } from '../frontDoor/probes'
 import type { BackupIO } from '../backups/io'
 import type { TagLister } from '../upgrades/versions'
+import type { PlatformDigest } from '../upgrades/unchangedSince'
 import type { LinkHandle } from '../link/link'
 import type { Dial } from '../link/socket'
 
@@ -51,6 +52,8 @@ export type Context = {
   backupIO: BackupIO
   /** Lists an image repository's published tags; the registry's own anonymous API when absent. */
   registryTags?: TagLister
+  /** The platform image an image index lists for this machine; the registry's own anonymous API when absent. */
+  registryPlatformDigest?: PlatformDigest
   /** The link to HQ's relay while a Fleet Console is pinned (`link/link.ts`); absent where nothing runs it. */
   link?: LinkHandle
   /** How the link and a join dial HQ's port; Node's WebSocket when absent. */

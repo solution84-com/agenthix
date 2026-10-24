@@ -2,7 +2,7 @@
   "name": "agenthix_hq",
   "private": true,
   "license": "Elastic-2.0",
-  "version": "0.1.0-alpha.2",
+  "version": "0.0.0",
   "type": "module",
   "workspaces": [
     ".wasp/out/*",

@@ -16,18 +16,18 @@ const now = () => new Date('2026-10-09T10:00:00.000Z')
 const disk = async () => ({ freeBytes: 182 * GIB, totalBytes: 500 * GIB })
 const roomy = () => ({ availableBytes: 20 * GIB, totalBytes: 64 * GIB })
 
-function dockerAnswering(labels = '0.4.0\n') {
+function dockerAnswering() {
   return vi.fn(async (args: string[]) => {
     if (args[0] === 'version') return { stdout: '27.3.1\n', stderr: '' }
-    if (args[1] === 'ls') return { stdout: 'abc123\n', stderr: '' }
-    return { stdout: labels, stderr: '' }
+    return { stdout: 'abc123\n', stderr: '' }
   })
 }
 
 describe("a site's health report @SC-766", () => {
-  afterEach(() => { delete process.env.AGENT_MAX_CONCURRENT_RUNS })
+  afterEach(() => { delete process.env.AGENT_MAX_CONCURRENT_RUNS; delete process.env.APP_VERSION })
 
   it('says what runs, the limit, the disk, Docker and the image', async () => {
+    process.env.APP_VERSION = '0.4.0'
     process.env.AGENT_MAX_CONCURRENT_RUNS = '4'
     const health = await takeHealth({ docker: dockerAnswering(), countRunning: async () => 1, disk, memory: roomy, now })
     expect(health).toEqual({
@@ -45,11 +45,12 @@ describe("a site's health report @SC-766", () => {
   })
 
   it("by default asks Docker through the site's own deadline-bearing call, and reads its answers", async () => {
+    process.env.APP_VERSION = '0.4.0'
     lifecycle.dockerWithin.mockImplementation(dockerAnswering())
     const health = await takeHealth({ countRunning: async () => 0, disk, now })
     expect(health.docker).toEqual({ running: true, version: '27.3.1' })
     expect(health.agentImage).toEqual({ name: 'agenthix-agent', present: true, version: '0.4.0' })
-    expect(lifecycle.dockerWithin.mock.calls.map(([args]) => args[0])).toEqual(['version', 'image', 'image'])
+    expect(lifecycle.dockerWithin.mock.calls.map(([args]) => args[0])).toEqual(['version', 'image'])
   })
 
   it('reports Docker not running, with no image, rather than failing', async () => {
@@ -59,9 +60,19 @@ describe("a site's health report @SC-766", () => {
     expect(health.agentImage).toMatchObject({ present: false, version: null })
   })
 
-  it('has no image version when the image carries no label', async () => {
-    const health = await takeHealth({ docker: dockerAnswering('<no value>\n'), countRunning: async () => 0, disk, now })
-    expect(health.agentImage.version).toBeNull()
+  it('has no image version when the site was given none @SC-1255', async () => {
+    const health = await takeHealth({ docker: dockerAnswering(), countRunning: async () => 0, disk, now })
+    expect(health.agentImage).toMatchObject({ present: true, version: null })
+  })
+
+  it('has no image version when the image is absent, even if the site was given one @SC-1255', async () => {
+    process.env.APP_VERSION = '0.4.0'
+    const docker = vi.fn(async (args: string[]) => {
+      if (args[0] === 'version') return { stdout: '27.3.1\n', stderr: '' }
+      return { stdout: '', stderr: '' }
+    })
+    const health = await takeHealth({ docker, countRunning: async () => 0, disk, now })
+    expect(health.agentImage).toMatchObject({ present: false, version: null })
   })
 
   it('reports the ceilings each run gets, and never the machine figures the host service gives the site', async () => {

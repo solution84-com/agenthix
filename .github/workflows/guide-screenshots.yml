@@ -1,17 +1,19 @@
 name: Guide screenshots
 
 # Captures the user guide's screenshots from the sample organisation and compares them with the last release's.
-# Every push to a release branch, so the screenshots are part of the release bar before the tag, and that run keeps
-# the release set that "Publish guide screenshots" uploads for the tag on its commit; the tag captures nothing. Also a
-# run by hand on any branch. main and pull requests do not run it.
+# Called by Release build (release-build.yml) for every push to a release branch and for every run of it by hand, so the
+# screenshots are part of the release bar before the tag; a run on a release branch keeps the release set that
+# "Publish guide screenshots" uploads for the tag on its commit, and the tag captures nothing. Also a run by hand on any
+# branch. main and pull requests do not run it.
 on:
-  push:
-    branches: ['release/**']
+  workflow_call:
+    inputs:
+      commit:
+        description: 'The commit to capture'
+        required: false
+        type: string
+        default: ''
   workflow_dispatch:
-
-concurrency:
-  group: guide-screenshots-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions: {}
 
@@ -44,6 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.commit }}
           # The comparison finds the last release tag from the history.
           fetch-depth: 0
 
@@ -161,9 +164,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      # The set a tag on this commit publishes: only from a push to a release branch, and only when it all passed.
+      # The set a tag on this commit publishes: from a release build started by hand or on a release branch, and only when it all passed.
       - name: Keep the release set
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/') && success()
+        if: (startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch') && success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: guide-release-set

@@ -1,7 +1,7 @@
 {
   "name": "agenthix-monorepo",
   "license": "Elastic-2.0",
-  "version": "0.1.0-alpha.2",
+  "version": "0.0.0",
   "private": true,
   "description": "Agenthix monorepo — root scripts for orchestrating multi-service dev.",
   "scripts": {

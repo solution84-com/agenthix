@@ -1,0 +1,15 @@
+{
+  "rebuildEpoch": 1,
+  "parts": {
+    "hq-server": { "dockerfile": "hq/docker/Dockerfile", "target": "server", "inputs": ["core/", "ui/", "hq/"] },
+    "hq-web": { "dockerfile": "hq/docker/Dockerfile", "target": "web", "inputs": ["core/", "ui/", "hq/"] },
+    "site-server": { "dockerfile": "site/docker/Dockerfile", "target": "server", "inputs": ["core/", "site/"] },
+    "agent": { "dockerfile": "site/docker/agent.Dockerfile", "target": null, "inputs": ["core/src/", "site/docker/", "site/opencode-plugin/"] },
+    "host": { "dockerfile": "host/docker/Dockerfile", "target": "host", "inputs": ["core/", "host/"] },
+    "console": {
+      "dockerfile": "console/docker/Dockerfile",
+      "target": "console",
+      "inputs": ["core/", "ui/", "console-web/", "console/", "docs/guide/running-agenthix/"]
+    }
+  }
+}

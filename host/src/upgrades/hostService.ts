@@ -12,7 +12,7 @@ import { Refusal } from '../owner/results'
 import { cmd } from '../cli/words'
 import { COMPOSE_PROJECT_LABEL, runArgs } from '../docker/containers'
 import { checkImages, fetchImages } from '../images/images'
-import { isPublishedVersion } from '../images/published'
+import { isPublishedVersion, versionedRef } from '../images/published'
 import { readSwitch, type HostSwitch } from '../launcher/journal'
 import { hostSpec, recordHostContainer, shellCommand } from '../launcher/record'
 import { startSwitch } from '../launcher/start'
@@ -29,15 +29,20 @@ export type HostServiceReady = {
   commands: string[]
   /** Whether the host service switches itself, through the launcher. */
   launcher: boolean
+  /**
+   * A development build's switch to an image built on the machine (`builtHostService.ts`): the name or id the person
+   * gave; `version` is then `dev` and `image` the image's id. Absent for a published version.
+   */
+  built?: string
 }
 
-/** The launcher is on unless the machine admin turned it off; a development build is always switched by hand. */
+/** The launcher is on unless the machine admin turned it off; a development build only switches to an image built here (`builtHostService.ts`). */
 export const launcherOn = (ctx: Context) => readUpgrades(ctx.state).launcher && isPublishedVersion(ctx.machine.hostServiceVersion)
 
 const quoted = (p: string) => (/[\s"'$`\\]/.test(p) ? `'${p.replace(/'/g, `'\\''`)}'` : p)
 
 /** The documented `docker run`, for when the host service cannot read back its own settings. */
-async function documentedRun(ctx: Context, image: string): Promise<string> {
+export async function documentedRun(ctx: Context, image: string): Promise<string> {
   const paths = await ctx.machinePaths()
   if (!paths) throw new Refusal('failed', 'The host service cannot find its state folder on this machine, so it cannot say how to switch.')
   return `docker run -d --name ${ctx.names.hostContainer} --restart unless-stopped ` +
@@ -62,9 +67,11 @@ export async function readyHostService(ctx: Context, version?: string): Promise<
   const image = pins.host!
   await fetchImages(ctx, [image])
   const record = await recordHostContainer(ctx.containers, ctx.state, ctx.now(), ctx.names.hostContainer).catch(() => null)
+  // By its version's tag as well as its digest, so the host service started from it knows its version.
+  const startFrom = versionedRef(image, wanted)
   const run = record && !('problem' in record)
-    ? shellCommand(runArgs(hostSpec(record, image, ctx.names)))
-    : await documentedRun(ctx, image)
+    ? shellCommand(runArgs(hostSpec(record, startFrom, ctx.names)))
+    : await documentedRun(ctx, startFrom)
   return { from: current, version: wanted, image, commands: [`docker rm -f ${ctx.names.hostContainer}`, run], launcher: launcherOn(ctx) }
 }
 
@@ -73,7 +80,7 @@ export async function switchHostService(ctx: Context, version?: string): Promise
   if (!launcherOn(ctx)) {
     throw new Refusal('conflict', isPublishedVersion(ctx.machine.hostServiceVersion)
       ? `The launcher is off on this machine, so the host service is switched by hand. To see how: ${cmd('upgrades host')}`
-      : 'This host service is a development build, which is switched by building it again.')
+      : `This host service is a development build, which switches only to an image built on this machine. Build one, then: ${cmd('upgrades host --image <name or id>')}`)
   }
   const ready = await readyHostService(ctx, version)
   const { ended } = await startSwitch(ctx, ready.version, ready.image)

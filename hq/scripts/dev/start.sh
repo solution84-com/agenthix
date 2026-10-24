@@ -196,5 +196,4 @@ fi
 
 echo ""
 
-APP_VERSION=$(node -p "require('$PROJECT_DIR/package.json').version" 2>/dev/null || echo "dev") \
-  NODE_OPTIONS="--max-old-space-size=8192${LISTEN_PRELOAD:+ $LISTEN_PRELOAD}" npx wasp start
+NODE_OPTIONS="--max-old-space-size=8192${LISTEN_PRELOAD:+ $LISTEN_PRELOAD}" npx wasp start

@@ -1,7 +1,8 @@
 /**
  * What the launcher does (ADR-0118): replaces the host service's container with one from the new image, started
  * with the recorded settings, and keeps the old one until the new one answers as its version — or puts the old one
- * back. It runs only the image the host service checked and wrote down, and only forward.
+ * back. It runs only the image the host service checked and wrote down, and only forward; a development build only an
+ * image built on the machine (`built.ts`), which has no version to go forward from.
  *
  * At every step one host service can run on the machine: the old one is stopped before the new one starts (two
  * would both run the machine's schedule), and it is kept, stopped and named `<namespace>-host-previous`, until the new one
@@ -11,8 +12,10 @@
 import type { ContainerOps } from '../docker/containers'
 import type { StateFolder } from '../state/folder'
 import type { InstallNames } from '../state/namespace'
-import { isPublishedVersion } from '../images/published'
+import { isPublishedVersion, versionedRef } from '../images/published'
+import { DEVELOPMENT } from '../images/ownVersion'
 import { compare } from '../upgrades/versions'
+import { builtRefusal } from './built'
 import { ENDED, endSwitch, readSwitch, writeSwitch, type HostSwitch } from './journal'
 import { hostSpec, readRecord } from './record'
 
@@ -21,7 +24,7 @@ export type LauncherEnv = {
   state: StateFolder
   /** The names derived from the install's recorded namespace: the host service's container among them. */
   names: InstallNames
-  /** The version of the image the launcher runs from: the host service it replaces. */
+  /** The version recorded for the image the launcher runs from (`images/ownVersion.ts`): the host service it replaces. */
   ownVersion: string
   now: () => Date
   sleep: (ms: number) => Promise<void>
@@ -38,26 +41,46 @@ export const ANSWER_COMMAND = ['node', '/app/dist/launcher.js', 'answer']
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err)).replace(/\.?$/, '')
 const minutes = (ms: number) => `${Math.round(ms / 60_000)} minute${Math.round(ms / 60_000) === 1 ? '' : 's'}`
 
-/** Why the launcher will not take this switch up; null when it will. */
-async function refusal(env: LauncherEnv, s: HostSwitch, imageId: string): Promise<string | null> {
-  const own = env.ownVersion
-  if (s.imageId !== imageId) return `The launcher was given ${imageId}, not the image the host service checked.`
+/** A published host service's switch: only an image it checked against its signature, and only forward. */
+function publishedRefusal(own: string, s: HostSwitch): string | null {
   if (!s.checked || !PINNED.test(s.ref)) return `The image ${s.ref} was not checked against its signature by the host service.`
-  if (!isPublishedVersion(own)) return `This host service is a development build (${own}), which is switched by building it again.`
+  if (!isPublishedVersion(own)) return `This host service is a development build (${own}): it switches only to an image built on this machine, not to a published version.`
   if (s.from !== own) return `The launcher is ${own}, not the host service ${s.from} it would replace.`
   if (!isPublishedVersion(s.to) || compare(s.to, own) <= 0) return `The host service is on ${own}, and ${s.to} is not newer: a switch only goes forward.`
+  return null
+}
+
+/** A development build's switch to an image built on the machine (`built.ts`): no signature, no version order. */
+function builtSwitchRefusal(own: string, s: HostSwitch): string | null {
+  if (isPublishedVersion(own)) return `This host service is ${own}, a published version: it switches only forward, to an image signed for a newer version, never to one built on this machine.`
+  if (s.from !== DEVELOPMENT || s.to !== DEVELOPMENT || own !== DEVELOPMENT) return 'The switch was not written for a development build.'
+  return null
+}
+
+/** Why the launcher will not take this switch up; null when it will. */
+async function refusal(env: LauncherEnv, s: HostSwitch, imageId: string): Promise<string | null> {
+  if (s.imageId !== imageId) return `The launcher was given ${imageId}, not the image the host service checked.`
+  const problem = s.built ? builtSwitchRefusal(env.ownVersion, s) : publishedRefusal(env.ownVersion, s)
+  if (problem) return problem
   const image = await env.containers.image(imageId)
   if (!image || image.id !== imageId) return `The image ${s.ref} is not on this machine.`
-  if (image.version !== s.to) return `The image ${s.ref} says it is ${image.version ?? 'no version'}, not ${s.to}.`
   const record = readRecord(env.state)
   if (!record || record.containerId !== s.oldContainer) return 'The settings the host service runs with are not recorded.'
   const host = env.names.hostContainer
   const old = await env.containers.inspect(s.oldContainer)
   if (!old || old.name !== host || !old.running) return `The host service to replace is not running as ${host}.`
-  return null
+  return s.built ? builtRefusal(s.ref, image, old.image) : null
 }
 
-/** Starts the new host service under the host service's name, with the old one stopped and set aside first. */
+/** The new host service, as the words about the switch name it. */
+const newOne = (s: HostSwitch) => (s.built ? `from ${s.ref}` : s.to)
+
+/**
+ * Starts the new host service under the host service's name, with the old one stopped and set aside first. It is
+ * started by `<repository>:<to>@sha256:…`: the digest the signature for `to` covers, and the tag it learns its version
+ * from (`images/ownVersion.ts`). An image built on the machine is started by its id, so it runs exactly the image the
+ * switch was written for, and is a development build too.
+ */
 async function bringUpNew(env: LauncherEnv, s: HostSwitch): Promise<HostSwitch> {
   const c = env.containers
   const { hostContainer: host, previousHostContainer: previous } = env.names
@@ -81,7 +104,7 @@ async function bringUpNew(env: LauncherEnv, s: HostSwitch): Promise<HostSwitch> 
   }
   const record = readRecord(env.state)
   if (!record) throw new Error('the settings the host service runs with are not recorded')
-  await c.run(hostSpec(record, s.imageId, env.names))
+  await c.run(hostSpec(record, s.built ? s.imageId : versionedRef(s.ref, s.to), env.names))
   return waitingFrom(s, null)
 }
 
@@ -96,14 +119,17 @@ async function versionAnswered(c: ContainerOps, host: string): Promise<string | 
   }
 }
 
-/** Null once the new host service answers as its version; otherwise why it is put back. */
+/** Null once the new host service, from the image the switch was written for, answers as its version; otherwise why it is put back. */
 async function waitForAnswer(env: LauncherEnv, s: HostSwitch): Promise<string | null> {
   const since = Date.parse(s.waitingSince ?? env.now().toISOString())
   for (;;) {
     const version = await versionAnswered(env.containers, env.names.hostContainer)
-    if (version === s.to) return null
+    if (version === s.to) {
+      const now = await env.containers.inspect(env.names.hostContainer)
+      return now?.image === s.imageId ? null : `The host service that answered does not run ${s.ref}.`
+    }
     if (version !== null) return `The new host service answered as ${version}, not ${s.to}.`
-    if (env.now().getTime() - since >= s.answerWithinMs) return `The new host service ${s.to} did not answer within ${minutes(s.answerWithinMs)}.`
+    if (env.now().getTime() - since >= s.answerWithinMs) return `The new host service ${newOne(s)} did not answer within ${minutes(s.answerWithinMs)}.`
     await env.sleep(env.pollMs)
   }
 }

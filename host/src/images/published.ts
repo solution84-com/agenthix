@@ -81,6 +81,40 @@ export function imageRef(part: string, version: string): string {
   return isPublishedVersion(version) ? `${repositoryOf(CURRENT, part)}:${version}` : imageName(part)
 }
 
+/** A reference's repository, and its tag and digest when it names them; a bare image id has neither. */
+export function parseReference(ref: string): { name: string; tag: string | null; digest: string | null } {
+  const at = /@(sha256:[0-9a-f]{64})$/.exec(ref)
+  const rest = at ? ref.slice(0, at.index) : ref
+  const tagged = /^(.*[^/:]):([A-Za-z0-9_][A-Za-z0-9_.-]{0,127})$/.exec(rest)
+  return tagged
+    ? { name: tagged[1], tag: tagged[2], digest: at?.[1] ?? null }
+    : { name: rest, tag: null, digest: at?.[1] ?? null }
+}
+
+/**
+ * The version a host service started from `ref` is: the tag, when `ref` is a trusted publisher's host image by a
+ * published version's tag (with or without a digest after it). Null for anything else — a local build's name, a bare
+ * digest, another repository — which is a development build.
+ */
+export function hostVersionOf(ref: string, publishers: readonly TrustedPublisher[] = TRUSTED_PUBLISHERS): string | null {
+  const { name, tag } = parseReference(ref)
+  if (!tag || !isPublishedVersion(tag)) return null
+  return publishers.some(p => repositoryOf(p, 'host') === name) ? tag : null
+}
+
+/** Whether `ref` names one of a trusted publisher's images, whatever its tag or digest: a published image, never a local build. */
+export function fromTrustedPublisher(ref: string, publishers: readonly TrustedPublisher[] = TRUSTED_PUBLISHERS): boolean {
+  const { name } = parseReference(ref)
+  return publishers.some(p => PUBLISHED_PARTS.some(part => repositoryOf(p, part) === name))
+}
+
+/** A pinned image that still says which version it was signed as: `<repository>:<version>@sha256:…`. */
+export function versionedRef(pinned: string, version: string): string {
+  const { name, digest } = parseReference(pinned)
+  if (!digest) throw new Error(`${pinned} is not fixed by a digest`)
+  return `${name}:${version}@${digest}`
+}
+
 /** An image fixed to the content its signature covers: `<repository>@sha256:…`, with any tag dropped. */
 export function pinnedRef(ref: string, digest: string): string {
   return `${ref.replace(/:[^/:@]+$/, '')}@${digest}`

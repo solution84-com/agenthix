@@ -6,7 +6,7 @@ description: A release is its own work, on a branch release/<version> cut from m
 # ADR-0137: A Release Is Cut on Its Own Release Branch
 
 **Date:** 2026-10-21
-**Status:** Accepted
+**Status:** Superseded by adr-0146
 
 ## Context
 

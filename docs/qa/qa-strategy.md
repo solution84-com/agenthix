@@ -1,7 +1,7 @@
 ---
 name: QA Strategy — Agenthix
 description: This repository's QA settings — scope, modules, commands, test tiers, contract files, and how findings are routed. The general QA model is README.md beside this file.
-updated: 2026-10-16
+updated: 2026-10-24
 ---
 
 # QA Strategy — Agenthix
@@ -142,7 +142,7 @@ Remove rows from this table once the scripts are added.
 
 ### Test orchestration
 
-No root command runs every module in one step. CI (`.github/workflows/checks.yml`, on each pull request and each push to `main` or a release branch) runs core's typecheck, unit tests and build, ui's typecheck, hq's typecheck (the guide's too), unit tests and integration tests, site's typecheck, unit tests and integration tests, host's typecheck, unit tests and build, and console's and console-web's typecheck, unit tests and build; it runs neither host's container tier, the e2e suite nor the cross-app tier. A release branch also runs the release build, the install test and the guide's screenshots. Locally, the cross-app tier runs with `npm run test:cross-app` from the repo root, and per-module typecheck/build/test run module by module.
+No root command runs every module in one step. CI (`.github/workflows/checks.yml`, on each pull request and each push to `main` or a release branch, running only the jobs the change reaches, `scripts/affected.mjs`) runs core's typecheck, unit tests and build, ui's typecheck, hq's typecheck (the guide's too), unit tests and integration tests, site's typecheck, unit tests and integration tests, host's typecheck, unit tests and build, and console's and console-web's typecheck, unit tests and build; it runs neither host's container tier, the e2e suite nor the cross-app tier. The release build (`.github/workflows/release-build.yml`, started by hand for a commit of `main` and by each push to a patch's release branch) runs the image start tests, the install test and the guide's screenshots, and the same steps run locally as the release rehearsal (`scripts/release/prove.sh`). The scripts' own tests run with `node --test` over `scripts/__tests__/` and `scripts/release/__tests__/`; the release build runs the second. Locally, the cross-app tier runs with `npm run test:cross-app` from the repo root, and per-module typecheck/build/test run module by module.
 
 ## Test data
 

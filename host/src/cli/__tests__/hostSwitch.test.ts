@@ -71,7 +71,7 @@ describe('agenthix upgrades host, with the launcher on @SC-838', () => {
     expect(readSwitch(m.ctx.state)).toBeNull()
   })
 
-  it('refuses an image whose signature does not check, before any launcher starts', async () => {
+  it('refuses an image whose signature does not check, before any launcher starts @SC-1275', async () => {
     m.signatures.set('ghcr.io/solution84-com/agenthix-host:0.3.0', { kind: 'unsigned' })
     expect(await cli('upgrades', 'host', '--yes')).toBe(1)
     expect(flat(err)).toContain('carries no signature')
@@ -100,7 +100,7 @@ describe('agenthix upgrades host --launcher off @SC-838', () => {
     out = ''
     expect(await cli('upgrades', 'host')).toBe(0)
     expect(out).toContain('  docker rm -f agenthix-host\n')
-    expect(out).toContain(`  docker run -d --name agenthix-host --restart unless-stopped --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock --mount type=bind,src=/home/sam/.agenthix,dst=/state --mount type=volume,src=agenthix-host-figures,dst=/run/host-figures --network host --cap-add NET_ADMIN -e TZ=Europe/London --label com.docker.compose.project=agenthix-host ${HOST_030}\n`)
+    expect(out).toContain(`  docker run -d --name agenthix-host --restart unless-stopped --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock --mount type=bind,src=/home/sam/.agenthix,dst=/state --mount type=volume,src=agenthix-host-figures,dst=/run/host-figures --network host --cap-add NET_ADMIN -e TZ=Europe/London --label com.docker.compose.project=agenthix-host ${HOST_030.replace('@', ':0.3.0@')}\n`)
     expect(flat(out)).toContain('To let the host service switch itself: agenthix upgrades host --launcher on')
     expect(m.containers.byName('agenthix-host-launcher')).toBeNull()
     expect(await cli('upgrades', 'host', '--launcher', 'maybe')).toBe(2)

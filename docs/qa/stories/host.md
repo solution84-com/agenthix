@@ -262,3 +262,25 @@ As a maintainer who tests Agenthix beside an installed copy, I want each install
 - AC-367b: another installation's HQ is not a reason to refuse; another installation's port or address block is.
 - AC-367c: each installation with a site gets an address slice for its agents of its own, picked before anything is written, and is refused with who holds them when none is left.
 - AC-367d: the firewall rules that keep agents off the machine cover that installation's agents alone.
+
+## Knowing the version of what runs (added 2026-10-24)
+
+Written from the finished code at the close of the release cycle unit.
+
+### US-370 — Know which version each part runs
+
+As a machine admin, I want every part to say which version it runs, and to see since when an unchanged part has been the same, so that I know what is installed and what an upgrade really changed.
+
+**Acceptance criteria:**
+- AC-370a: HQ, the site, the Fleet Console and the host service each report the version they were published as, and `dev` when they were not published.
+- AC-370b: the host service takes its version from the published image it was started from, and only after that version's signature checks.
+- AC-370c: every container of a published part shows its version on the machine.
+- AC-370d: `agenthix status` says, for HQ and the site, since which release their image has been unchanged.
+
+### US-374 — Try the host service's own upgrade on a development machine
+
+As a contributor, I want to switch a development host service to another image built on my machine and back, so that the whole switch is tested without publishing anything.
+
+**Acceptance criteria:**
+- AC-374a: a development host service switches to another image built on the machine, and puts the old one back when the new does not answer.
+- AC-374b: a published host service is not given this: it switches only forward, to an image signed for the newer version.

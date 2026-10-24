@@ -54,10 +54,11 @@ export type SwitchStarted = {
 }
 
 /**
- * Starts the launcher for `image` (fixed by digest, its signature checked), version `to`. Refuses, changing
+ * Starts the launcher for `image` (fixed by digest, its signature checked), version `to`; or, with `built`, for an
+ * image built on the machine, which a development build switches to unchecked (`built.ts`). Refuses, changing
  * nothing, when the host service's settings cannot be read back or another switch is under way.
  */
-export async function startSwitch(ctx: Context, to: string, ref: string): Promise<SwitchStarted> {
+export async function startSwitch(ctx: Context, to: string, ref: string, built = false): Promise<SwitchStarted> {
   let started!: () => void
   let notStarted!: (err: unknown) => void
   const ready = new Promise<void>((resolve, reject) => { started = resolve; notStarted = reject })
@@ -66,12 +67,11 @@ export async function startSwitch(ctx: Context, to: string, ref: string): Promis
     if ('problem' in record) throw new Refusal('failed', `The host service cannot read back the settings it runs with: ${record.problem}. Nothing was changed.`)
     const image = await ctx.containers.image(ref)
     if (!image) throw new Refusal('failed', `The image ${ref} is not on this machine. Nothing was changed.`)
-    if (image.version !== to) throw new Refusal('failed', `The image ${ref} says it is ${image.version ?? 'no version'}, not ${to}. Nothing was changed.`)
     const leftover = await ctx.containers.inspect(ctx.names.launcherContainer)
     if (leftover?.running) throw new Refusal('busy', 'A switch of the host service is under way. Wait for it to end, then try again.')
     if (leftover) await ctx.containers.remove(leftover.id)
     const s = writeSwitch(ctx.state, {
-      from: ctx.machine.hostServiceVersion, to, ref, imageId: image.id, checked: true, oldContainer: record.containerId,
+      from: ctx.machine.hostServiceVersion, to, ref, imageId: image.id, checked: !built, ...(built ? { built } : {}), oldContainer: record.containerId,
       answerWithinMs: ANSWER_WITHIN_MS, startedAt: ctx.now().toISOString(), phase: 'ready', attempts: 0,
       waitingSince: null, endedAt: null, reason: null,
     })

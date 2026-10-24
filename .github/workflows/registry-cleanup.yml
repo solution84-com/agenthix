@@ -1,0 +1,96 @@
+name: Registry cleanup
+
+# Once a week, deletes from this repository's images in the registry what no release needs: untagged images more than
+# a week old, and images tagged build-… only (the release build's, scripts/release/reuse.sh) more than 90 days old;
+# in both cases only when no release record (each release's release.json) names it, no kept index points at it, and
+# it is no signature or attestation of a kept image (scripts/release/cleanup.mjs). An image with any other tag, a
+# release's version tag above all, is never deleted. Started by hand, it is a dry run by default: it lists what it
+# would delete and deletes nothing. Only the job that deletes may write to the registry.
+on:
+  schedule:
+    - cron: '41 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'List what would be deleted, and delete nothing'
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: registry-cleanup
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  plan:
+    name: What no release needs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: The plan
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ github.event_name != 'schedule' && inputs.dry_run }}
+        run: |
+          node --test scripts/release/__tests__/cleanup.test.mjs
+          node scripts/release/cleanup.mjs --out "$RUNNER_TEMP/cleanup.json"
+          echo "count=$(jq length "$RUNNER_TEMP/cleanup.json")" >> "$GITHUB_OUTPUT"
+          {
+            echo '### To delete'
+            echo
+            echo '| Image | Digest | Why |'
+            echo '|---|---|---|'
+            jq -r '.[] | "| \(.package) | `\(.digest[0:19])` | \(.reason) |"' "$RUNNER_TEMP/cleanup.json"
+            echo
+            if [ "$DRY_RUN" = true ]; then echo 'Dry run: nothing is deleted. Run again with dry run off to delete these.'; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cleanup-plan
+          path: ${{ runner.temp }}/cleanup.json
+          if-no-files-found: error
+          retention-days: 30
+
+  delete:
+    name: Delete
+    needs: plan
+    # A scheduled run deletes; a run by hand only when its dry run is turned off.
+    if: needs.plan.outputs.count != '0' && (github.event_name == 'schedule' || inputs.dry_run == false)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cleanup-plan
+          path: ${{ runner.temp }}/plan
+      - name: Delete what the plan lists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          jq -c '.[]' "$RUNNER_TEMP/plan/cleanup.json" | while IFS= read -r entry; do
+            path="$(jq -r .path <<<"$entry")"
+            [[ "$path" =~ ^(orgs|users)/[^/]+/packages/container/[^/]+/versions/[0-9]+$ ]] || { echo "::error::Not a package version: $path"; exit 1; }
+            echo "Deleting $(jq -r '"\(.package) \(.digest): \(.reason)"' <<<"$entry")"
+            gh api -X DELETE "$path"
+          done
+          echo "Deleted $(jq length "$RUNNER_TEMP/plan/cleanup.json") images." | tee -a "$GITHUB_STEP_SUMMARY"

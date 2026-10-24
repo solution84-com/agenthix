@@ -6,7 +6,7 @@
 
 # The command launcher (spec "Keeping the gate whole", item 3), linked
 # statically so it needs nothing from the final image.
-FROM alpine:3.23 AS launcher
+FROM alpine:3.23@sha256:ff7f0c727dd796aa36787bfcd9a64bf35a6ce72a73451b3359fde849b6703d63 AS launcher
 RUN apk add --no-cache gcc musl-dev
 WORKDIR /src
 COPY site/docker/launcher/agenthix-contain.c site/docker/launcher/secret-env.list ./
@@ -16,7 +16,7 @@ RUN awk '/^[[:space:]]*(#|$)/ { next } \
  && gcc -O2 -static -Wall -Wextra -Werror -o agenthix-contain agenthix-contain.c
 
 # Agenthix's OpenCode plugin, bundled into one file with the core modules it uses.
-FROM node:24.14.1-alpine3.23 AS plugin
+FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS plugin
 WORKDIR /repo/site/opencode-plugin
 COPY site/opencode-plugin/package.json site/opencode-plugin/package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -25,12 +25,7 @@ COPY site/opencode-plugin/tsconfig.json ./
 COPY site/opencode-plugin/src ./src
 RUN npm run build
 
-FROM node:24.14.1-alpine3.23
-
-# The version the site reports for this image (siteHealthReport.ts reads the
-# label). The publishing workflow passes it; a build made on a machine is `dev`.
-ARG VERSION=dev
-LABEL org.opencontainers.image.version=$VERSION
+FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5
 
 # Pinned: the Claude Code CLI to the version the site's Claude Agent SDK
 # bundles (its manifest.json), OpenCode to the v1 line the design was verified

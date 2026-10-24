@@ -12,6 +12,7 @@ import { protectionFigures } from '../protections/protections'
 import { install } from '../install/install'
 import { machineStatus } from '../status/machineStatus'
 import { blockedParts } from '../status/portsBlocked'
+import { unchangedSince } from '../upgrades/unchangedSince'
 import { parseOwnerRequest, type OwnerRequest } from './requests'
 import { cloudCliOperation } from './cloudCliOps'
 import { providerCliOperation } from './providerCliOps'
@@ -196,7 +197,7 @@ async function operation(ctx: Context, request: OwnerRequest, progress: (p: Prog
       return providerCliOperation(ctx, request)
     case 'machine.status': {
       const door = frontDoorSettings(ctx)
-      const status = { ...(await machineStatus(ctx.machine, installed(ctx), ctx.docker, ctx.hqControl)), protections: protectionFigures(ctx.now()), backups: backupsStatus(ctx), scheduled: listScheduled(ctx), upgrades: upgradesStatus(ctx), lifecycle: lifecycleStatus(ctx), management: await linkStatus(ctx), blocked: await blockedParts(ctx) }
+      const status = { ...(await machineStatus(ctx.machine, installed(ctx), ctx.docker, ctx.hqControl)), protections: protectionFigures(ctx.now()), backups: backupsStatus(ctx), scheduled: listScheduled(ctx), upgrades: upgradesStatus(ctx), lifecycle: lifecycleStatus(ctx), management: await linkStatus(ctx), blocked: await blockedParts(ctx), unchangedSince: await unchangedSince(ctx) }
       return door ? { ...status, frontDoor: { on: door.on, hosts: door.hosts } } : status
     }
     case 'frontDoor.check':

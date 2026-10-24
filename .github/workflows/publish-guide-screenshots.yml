@@ -2,7 +2,8 @@ name: Publish guide screenshots
 
 # Uploads a release's guide screenshots to the website's storage, once per release. Started by hand with a
 # release tag; a dry run (the default) lists what it would upload and writes nothing. The screenshots are the set the
-# release branch captured for the tag's commit (guide-screenshots.yml); the tag itself captures none.
+# release build captured for the tag's commit (guide-screenshots.yml, which release-build.yml calls), from the same run
+# the tag promoted its images from (scripts/release/proven-run.mjs); the tag itself captures none.
 on:
   workflow_dispatch:
     inputs:
@@ -57,30 +58,18 @@ jobs:
             if [ -z "${!name}" ]; then echo "::error::$name is not set in the repository's secrets and variables."; exit 1; fi
           done
 
-      - name: Find the release branch's capture run for the tag's commit
-        id: run
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: source
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: source/.nvmrc
+      - name: Fetch the release set of the release build for the tag's commit
         run: |
           commit="$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha)" || { echo "::error::The tag '$TAG' does not exist."; exit 1; }
-          # The latest run for that commit on a release branch, as the release's own gate reads it (publish-images.yml).
-          found="$(gh api "repos/$GH_REPO/actions/workflows/guide-screenshots.yml/runs?head_sha=$commit&event=push&per_page=50" \
-            --jq '[.workflow_runs[] | select(.head_branch | startswith("release/"))] | sort_by(.created_at) | last
-                  | if . == null then "" else "\(.id) \(.status):\(.conclusion // "")" end')"
-          if [ -z "$found" ]; then
-            echo "::error::No capture run for '$TAG' ($commit) on a release branch. Push the release branch, let it pass, then publish."
-            exit 1
-          fi
-          run_id="${found%% *}"
-          state="${found#* }"
-          if [ "$state" != completed:success ]; then
-            echo "::error::The release branch's capture run for '$TAG' ($commit) is $state, not passed. Fix what failed on the release branch, delete the tag and tag the same version again on the fixed commit."
-            exit 1
-          fi
-          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
-
-      - name: Fetch the run's release set
-        run: |
-          mkdir -p release-set
-          gh run download "${{ steps.run.outputs.run_id }}" --name guide-release-set --dir release-set
+          # The latest release build for that commit, as the tag's own publish reads it (publish-images.yml); it must
+          # have passed and kept the release set.
+          node source/scripts/release/proven-run.mjs --commit "$commit" --artifact guide-release-set --dir release-set --wait-minutes 0
           count="$(find release-set -maxdepth 1 -name '*.png' | wc -l)"
           if [ "$count" -eq 0 ]; then echo "::error::The run's release set holds no screenshots."; exit 1; fi
           echo "$count screenshots in the release set."
