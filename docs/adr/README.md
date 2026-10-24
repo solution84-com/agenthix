@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0146`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0147`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -275,7 +275,7 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0134-s-1](adr-0134-an-hq-connects-to-cloud-by-device-approval-and-signed-tokens.md#decision) | ↳ Only a fleet admin who is also an organisation admin connects, in the Fleet Console (its Decision, last bullet) | Superseded by adr-0144 |
 | [ADR-0135](adr-0135-cloud-connects-an-hq-it-runs-without-a-code.md) | Cloud Connects an hq It Runs Without a Code | Accepted |
 | [ADR-0136](adr-0136-every-connection-restarts-at-1-0-and-peers-one-major-apart-still-talk.md) | Every Connection Restarts at 1.0, and Peers One Major Apart Still Talk | Accepted |
-| [ADR-0137](adr-0137-a-release-is-cut-on-its-own-release-branch.md) | A Release Is Cut on Its Own Release Branch | Accepted |
+| [ADR-0137](adr-0137-a-release-is-cut-on-its-own-release-branch.md) | A Release Is Cut on Its Own Release Branch | Superseded by adr-0146 |
 | [ADR-0138](adr-0138-providers-are-held-by-hq-and-written-by-three-named-actors.md) | Providers Are Held by HQ and Written by Three Named Actors | Accepted |
 | [ADR-0139](adr-0139-one-resolver-chooses-every-model-and-voice-call.md) | One Resolver Chooses Every Model and Voice Call | Accepted |
 | [ADR-0140](adr-0140-setup-needs-models-and-voice-before-the-organisation.md) | Setup Needs Models and Voice Before the Organisation | Accepted |
@@ -284,3 +284,4 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0143](adr-0143-hqs-cloud-key-rolls-over-without-approval.md) | hq's Cloud Key Rolls Over Without Approval | Accepted |
 | [ADR-0144](adr-0144-agenthix-cloud-is-connected-from-hq-by-an-organisation-admin.md) | Agenthix Cloud Is Connected From HQ by an Organisation Admin | Accepted |
 | [ADR-0145](adr-0145-an-installation-owns-its-published-ports-and-address-blocks.md) | An Installation Owns Its Published Ports and Address Blocks | Accepted |
+| [ADR-0146](adr-0146-a-release-is-a-proven-build-given-a-name.md) | A Release Is a Proven Build Given a Name | Accepted |

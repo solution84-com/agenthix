@@ -218,7 +218,7 @@ sequenceDiagram
 - **A site's health.** While its channel is open, a site sends a one-way `site.health` event
   (`core/src/protocol/siteHealth.ts`) at once and then every minute: runs now and the most it takes at once,
   disk free and total under `SITE_ROOT`, whether Docker answers, and whether the agent image is present, with
-  its version label when it has one (`site/src/server/hq/siteHealthReport.ts`). hq checks it field by field
+  the version the site was given (`APP_VERSION`) when it is (`site/src/server/hq/siteHealthReport.ts`). hq checks it field by field
   and keeps the latest on `ExecutionSite.health` and `healthReportedAt` (`hq/src/sites/siteHealth.ts`). An
   admin's **Check again** asks for a report at once with `site.healthNow` instead of waiting for the next one.
 

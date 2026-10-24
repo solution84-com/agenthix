@@ -66,41 +66,66 @@ image on an Apple-silicon Mac needs Docker Desktop's Rosetta setting on, since i
 
 A version tag publishes the images: `v<major>.<minor>.<patch>` for a release, and `v<major>.<minor>.<patch>-alpha.<n>`
 or `-rc.<n>` for a pre-release, while features still land or once the scope is frozen (`-beta.<n>` is accepted too,
-ordered between them). The tag goes on the release branch, `release/<version>`
-([ADR-0137](../adr/adr-0137-a-release-is-cut-on-its-own-release-branch.md)), and **the release branch proves
-everything a release does except publish**, so nothing is done for the first time at the tag. Every push to it runs:
+ordered between them). **A release is a tag on a commit of `main` that has been proved**
+([ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md)); a release branch exists only for a patch
+([versioning.md](versioning.md#the-product-version), `AGENTS.md`, *Git*). Nothing is built at the tag, and no image
+carries a version: the tag gives a name to images already built and proved.
 
-- *Checks*, the typecheck, unit and integration suites (`main` and pull requests get these too);
-- *Install test*, the product installed from its images at a network address and walked through in a browser;
-- *Guide screenshots*, which captures the guide's screenshots and keeps them as the set a tag on that commit
-  publishes;
-- *Release branch build*, the release's own build, `.github/workflows/release-build.yml`, with publishing off: every
-  image for amd64 and arm64, each on a runner of its own architecture, labelled with the version and started there
-  (`scripts/images/start-test.sh`), and `@agenthix/core` built, checked and packed. `npm run check:package` installs
-  the packed package into an empty project and loads every entry point with plain Node and TypeScript's Node module
-  rules, as a project outside this repository will. Core is written with full `.js` import paths (`NodeNext`), since
-  Node does not fill them in as a bundler does; Checks runs the same check on every change.
+**The release build** (`.github/workflows/release-build.yml`) builds and proves everything a release ships except
+publishing it. It is started by hand for a commit of `main`, and by every push to a `release/**` branch (a patch),
+never by a pull request. The same steps run on a dev machine as the **release rehearsal**,
+`scripts/release/prove.sh`, for the dev machine's own architecture:
 
-Each tag runs *Publish release*, `.github/workflows/publish-images.yml`, which only publishes, in one order:
+1. Each image part's content key is computed (`scripts/images/keys.mjs`, over `scripts/images/parts.json`;
+   [versioning.md](versioning.md#an-images-content-key)). For each part and architecture the registry is asked for
+   `build-<key>-<arch>` with a build attestation on it, and an image that is there is reused. The rest is built on a
+   runner of its own architecture, started and made to answer (`scripts/images/start-test.sh`), pushed by digest,
+   tagged `build-<key>-<arch>` and attested (`cosign attest`, keyless, naming the part, architecture, key and commit).
+   The run's page lists each part as reused or built.
+2. The **candidate record** (the artifact `candidate`) holds the commit, its tree, and per part its key and two
+   platform digests.
+3. *Install test* (`install-test.yml`) installs the candidate's amd64 images by digest and walks through the product in
+   a browser, so it proves the images the release ships; *Guide screenshots* captures the guide's screenshots and
+   keeps them as the set the tag publishes.
+4. `@agenthix/core` is type-checked, built, checked and packed. `npm run check:package` installs the packed package
+   into an empty project and loads every entry point with plain Node and TypeScript's Node module rules, as a project
+   outside this repository will. Core is written with full `.js` import paths (`NodeNext`), since Node does not fill
+   them in as a bundler does; Checks runs the same check on every change.
 
-1. the tagged commit's *All checks passed* must have passed, and so must its *Install test*, *Guide screenshots* and
-   *Release branch build* runs on its release branch (it waits while they run);
-2. the same release build, from the same workflow file, with publishing on: each image that started is pushed by
-   digest only; one failing build stops them all;
-3. each image is given its version, signed, and its signature checked as a host service will check it;
-4. then the core package that build packed is published with the tag's version.
+**The tag** runs *Publish release*, `.github/workflows/publish-images.yml`, which builds nothing and only publishes, in
+one order:
 
-The guide's screenshots are uploaded afterwards, by hand, from the release branch's set for the tag's commit
+1. the tagged commit's *All checks passed* must have passed, and so must the latest release build for it, started by
+   hand from `main` or by a push to a release branch (it waits while either runs);
+2. **promotion, after a check of origin:** each part's content key is recomputed at the tagged commit and must equal the
+   candidate's, and each platform digest must carry the release build's attestation for that part, architecture and
+   key (`scripts/release/verify-candidate.mjs`). A digest built from other content is never promoted, whoever pushed
+   it;
+3. per part, one multi-platform index over the two digests, annotated with the version and the commit, tagged
+   `:<version>`, signed (keyless) and its signature checked as a host service will check it. Each release signs its own
+   index, so a reused image is signed again for the new version;
+4. then the core package is given the version and published;
+5. then the release page, with the **release record** attached (`release.json`, `scripts/release/record.mjs`): the
+   version, commit and tree, per part its key, index digest and platform digests, core's name, version and integrity,
+   and the Postgres image the host service pins. It is a record for people and for rebuilding a release; a host service
+   finds a version by its tag and its signature, and does not read it.
+
+The guide's screenshots are uploaded afterwards, by hand, from the release build's set for the tag's commit
 ([the guide's README](../guide/README.md#publishing-screenshots-at-a-release)).
 
+**Cleanup.** The weekly *Registry cleanup* workflow deletes untagged images and `build-…` tags older than 90 days, only
+when no release record names them (`scripts/release/cleanup.mjs`); a release's version tag is never deleted. The
+repository's tag ruleset stops `v*` tags being moved or deleted, with the repository admin's bypass kept for a publish
+that failed part-way.
+
 **If anything fails after the tag is pushed**, the tag and whatever that attempt published (images, the core
-package, a screenshot folder) are deleted, the fix goes on the same release branch, and the same version is tagged
-again on the fixed commit. A new version number is only for a change to something released.
+package, a screenshot folder) are deleted, the fix is made, and the same version is tagged again on the fixed commit;
+with nothing built at the tag, a retry promotes the same digests. A version that published is never published again:
+a fix takes a new version number.
 
 A host service takes a pre-release as published, and expects the signer to be that workflow run for that version's
-own tag. Every check of a version — the workflow, core's `PUBLISHED_VERSION`, the Dockerfiles and the build scripts
-— takes the same forms, and a host test holds them together. Checks builds the host service and the Fleet Console
-at a pre-release's version, as a tag does.
+own tag. Every check of a version — the workflow, core's `PUBLISHED_VERSION` and the host service's own forms — takes
+the same forms, and a host test holds them together.
 
 **While the image packages are private,** a machine needs a credential to pull them, and only a staging machine
 has one. Put `REGISTRY_USERNAME` and `REGISTRY_TOKEN` in the host service's start-up settings

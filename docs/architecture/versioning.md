@@ -4,12 +4,12 @@ Every number the platform carries, what each one promises, and how to move it. R
 another part of the platform receives: a message on a channel, an HTTP route or its answer, a socket event, a stored
 format, or a name on a person's machine. The decision behind it is
 [ADR-0136](../adr/adr-0136-every-connection-restarts-at-1-0-and-peers-one-major-apart-still-talk.md); how a release
-is cut is [ADR-0137](../adr/adr-0137-a-release-is-cut-on-its-own-release-branch.md).
+is made is [ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md).
 
 There are two kinds of number, and they never stand in for each other:
 
-- **The product version**, one for the whole repository, which every image, the core package and the release tag
-  carry (`0.1.0-alpha.1`).
+- **The product version**, one for the whole repository, which the release tag names and every image, the core
+  package and the container's environment are given at publish (`0.1.0-alpha.1`).
 - **A protocol version** for each connection between parts that are installed and upgraded separately
   (`1.0`). Each moves on its own. A phone from an app store and a self-hosted hq are rarely on the same release, so
   what decides whether two parts can talk is the protocol version, never the release.
@@ -38,24 +38,67 @@ general availability. The first public release is `0.1.0`; the cuts before it ar
 and two builds under one name cannot be told apart. The fix takes the next number, `0.1.0-alpha.3` after
 `0.1.0-alpha.2` and `1.0.2` after `1.0.1`. A patch that may be shaky can go out first as a release candidate
 (`1.0.1-rc.1`, `rc.2`, …) and be released as `1.0.1` once it is proved; that is optional. Only a tag whose publishing
-failed before it finished is tagged again under the same version (ADR-0137): nothing complete was published.
+failed before it finished is tagged again under the same version ([ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md)):
+nothing complete was published.
 
-- **Every `package.json` carries it**, and its lock file with it: the root's and each module's.
-  `scripts/check-versions.mjs` fails when any module disagrees with the root, and *Checks* runs it on every change.
-  With a version as its argument (`node scripts/check-versions.mjs 0.1.0-alpha.1`), it also checks that the root
-  is at that version.
-- **It is set only on a release branch**, `release/<version>`, and reaches `main` when that branch merges back
-  ([ADR-0137](../adr/adr-0137-a-release-is-cut-on-its-own-release-branch.md)). Between releases `main` carries the
-  last release's version, `0.0.0` until the first one. No unit of work changes it.
-- **The release workflow checks the tag against it**, rather than putting the tag's version into the build: a tag
-  `v0.1.0-alpha.1` on a commit whose modules are not all at `0.1.0-alpha.1` is refused
-  (`.github/workflows/publish-images.yml`). So the repository, the images, the core package and the tag always
-  agree.
-- **The core package**, `@agenthix/core`, is published with the product version. Under `0.x`, removing or changing
-  anything it exports is a minor release; from `1.0.0`, a major. `npm run check:package` in `core/` installs the
-  packed package into an empty project and loads every entry point with plain Node before it is published.
+**The version is a name given at publish, never built in.**
 
-A build made on a machine rather than by the release workflow reports its version as `dev`.
+- **The tag `v<version>` is the one place it is written.** Every `package.json` and lock file stays at `0.0.0`, and
+  no commit sets a version. The publish workflow checks the tag's form (`.github/workflows/publish-images.yml`).
+- **No image carries a version or a commit.** The Dockerfiles take no `VERSION` or `COMMIT` build argument and set no
+  version label; each image is built with one label, `content-key` (next section). Two builds of the same content
+  therefore never differ by a label.
+- **The published index carries it.** At the tag, each image part's two platform images are put under one
+  multi-platform index tagged `:<version>`, annotated `org.opencontainers.image.version` and
+  `org.opencontainers.image.revision` (the commit), and signed. The tag's check that an image carries its version
+  reads that annotation.
+- **The core package is given it when it is packed** (`npm pkg set version=<version>`), then checked with
+  `npm run check:package` and published. Under `0.x`, removing or changing anything it exports is a minor release;
+  from `1.0.0`, a major. The check installs the packed package into an empty project and loads every entry point
+  with plain Node.
+- **A container is given it by the host service.** The host service writes it into the environment of each compose
+  project it starts, beside the image it picks by that version: `APP_VERSION` for hq's server and the site,
+  `CONSOLE_VERSION` for the Fleet Console. hq and the Fleet Console read it when they start; with none, they report
+  `dev`. A running hq does not know its commit.
+- **The host service learns its own version from the reference it was started from**, never from its image
+  (`host/src/images/ownVersion.ts`): a host image of the trusted publisher by a published version's tag, with or
+  without `@sha256:…`, is that version once the signature for that version checks and the image running is the one
+  signed. Any other reference, a local build or a bare digest, and a host service given no Docker socket, are `dev`.
+  A switch to a new version starts its successor from `<image>:<to>@<digest>`, so the successor reads the same
+  version ([host-management.md](host-management.md#the-host-service)).
+
+A version is therefore always backed by the signature the host service checked for it: the number travels beside the
+image rather than inside it. A build made on a machine rather than by the release workflow reports `dev`.
+
+**At most two lines are maintained.** A *line* is the releases of one `major.minor`. Fixes, security fixes included, go
+to the newest minor of the current major and the newest minor of the major before it; two majors back gets nothing,
+and its users upgrade. Before `1.0.0` only the newest release gets fixes: under `0.x` every minor may break, so there
+is no earlier major. This matches the rule that protocol peers one major apart still talk.
+
+## An image's content key
+
+The platform publishes six **image parts**: `hq-server`, `hq-web`, `site-server`, `agent`, `host` and `console`. Each
+is built once per content and reused until its code changes, so a patch to one part rebuilds that part alone.
+
+- **`scripts/images/parts.json`** is the one list of the parts. Per part it holds the Dockerfile, the build target and
+  the repository paths the image reads (its inputs), beside the **rebuild epoch**, a whole number. The release
+  build, `scripts/images/start-test-all.sh` and `scripts/install-test/run.sh` all read it.
+- **The content key** is a SHA-256 over the Dockerfile's path and target, the Git object ID of `.dockerignore`, of the
+  Dockerfile and of each input path at the commit (a Git object ID changes exactly when a file under it does), the
+  Dockerfile's `FROM` references, and the rebuild epoch. `node scripts/images/keys.mjs [<commit>]` prints the six
+  keys. It reads Git only. The same key is the same image.
+- **A test holds the inputs to the Dockerfiles:** `scripts/__tests__/image-parts.test.mjs` parses every `COPY` (not
+  `COPY --from`) and fails when a source path is not under one of its part's inputs. A key that missed an input
+  would reuse a stale image.
+- **Every `FROM` names a digest**, so a base image moves only on purpose. Dependabot's `docker` ecosystem
+  (`.github/dependabot.yml`) opens the pull request that moves one, and the keys of the parts built on it change.
+- **The rebuild epoch** is raised to take security updates into images whose code has not changed, such as the agent
+  image's system packages: by hand, or by the monthly *Rebuild epoch* workflow, which opens a pull request.
+- **Built images are kept by key.** The release build pushes each image by digest, tags it `build-<key>-<arch>` and
+  attests it; before building a part it reuses an image that tag names when the image is attested by the release
+  build ([deployment.md](deployment.md#releases-and-the-images-they-publish)). A `build-…` tag is never offered as a
+  version: the host service lists only release-version tags. On a dev machine the start test keeps its images as
+  `imgtest/<part>:dev` with the key in a label, and builds only the parts whose key differs.
 
 ## The protocols
 
@@ -263,5 +306,6 @@ hq). Where the product's name appears on a machine, it comes from the recorded n
 | This document | The rule as it stands, and how to move a version. Edited as the rule changes |
 | `core/src/protocol/compatibility.ts` | The one compatibility function every connection asks |
 | `core/snapshot/` and its test | Version moves, deprecation marks, and removals at the right major |
-| `scripts/check-versions.mjs` | One product version across every module |
-| [ADR-0137](../adr/adr-0137-a-release-is-cut-on-its-own-release-branch.md) and `AGENTS.md`, *Git* | Where the product version is set: on a release branch |
+| `scripts/images/parts.json` and `scripts/__tests__/image-parts.test.mjs` | The image parts and their inputs, held to what each Dockerfile copies, so a content key cannot miss an input |
+| `.github/workflows/publish-images.yml`, `scripts/release/verify-candidate.mjs` | The tag's checks: its form, *Checks* and the release build passed for the commit, each image's attestation and recomputed content key, the index annotation, the signature as a host service checks it |
+| [ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md) and `AGENTS.md`, *Git* | How a release is made: a tag on a proven commit, the version given at publish |

@@ -72,14 +72,17 @@ reaching hq from another device) and **`database-migrations`** (schema changes i
 - **When to run the tests:** while working, the ones for what you changed — the tests of the files you touched and
   the typecheck of their modules; the e2e specs for screens you changed; a module's integration suite when you changed
   a server operation or the data it reads; the cross-app suite when you changed what hq and a site say to each other.
-  Before a pull request, the suites of every module it touched. **Before a unit of work merges to `main`, the full
-  regression:** every module's typecheck, unit and integration suites, the cross-app suite, hq's e2e tests (its
-  `not-secure` project included), the image start test (`scripts/images/start-test-all.sh`, which builds every image
-  and starts it) and the install test (`scripts/install-test/run.sh`, which installs from those images at the
-  machine's network address and walks through it in a browser; it refuses on a machine that already runs an HQ, and
-  then runs on the release branch instead). CI runs the typecheck, unit and integration suites again on each pull
-  request and each push to `main`; a release branch also gets the release build (every image on both architectures,
-  built and started as the tag builds it), the install test and the guide's screenshots.
+  Before a pull request, the suites of every module it touched. **Before a unit of work merges to `main`, the
+  regression for what it reaches:** `node scripts/affected.mjs main` names the modules and suites the change reaches
+  (a module's dependents too; any path it has not seen selects everything), and the unit runs those typechecks, unit
+  and integration suites, plus the cross-app suite when `hq`, `site` or `core` is reached, hq's e2e tests (its
+  `not-secure` project included) when `hq` or `ui` is reached, and the image start test
+  (`scripts/images/start-test-all.sh`) for each image part whose content key changed (`node scripts/images/keys.mjs`),
+  with the install test (`scripts/install-test/run.sh`, which installs from those images at the machine's network
+  address and walks through it in a browser; it refuses on a machine that already runs an HQ) when any did. **The
+  full regression** — every module, every suite, every image — runs for a unit that changes core's protocol shapes,
+  a database migration, a Dockerfile, the host service or the install, and in every release rehearsal. CI's *Checks*
+  select by the same map (once per tree), and a release build proves the images (see *Git*).
 
 **Until the first release candidate, `0.1.0-rc.1`: a clean slate.** No install needs its data carried forward yet.
 Never write code that converts existing rows, stored values or on-disk layout — old data and old locations are
@@ -141,32 +144,36 @@ How the maintainers plan, record and land work. Contributors can stop reading he
   unless its commits are cited somewhere, in which case leave them and write a clear merge message. Create a
   `backup/<branch>` before any rebase, reset or regroup.
 - **Never merge to `main` or push without the owner's explicit approval** — each time.
-- **A release is cut on a release branch**
-  ([ADR-0137](docs/adr/adr-0137-a-release-is-cut-on-its-own-release-branch.md)), never on `main`:
-  1. `release/<version>` is cut from `main` when a release is due; units keep merging to `main`, never into it.
-  2. On it, and only there, the version is set in every `package.json` and lock file
-     (`node scripts/check-versions.mjs <version>` checks them).
-  3. **It proves everything a release does except publish**, in CI on every push: *Checks*, the install test, the
-     guide's screenshots and the release build (`.github/workflows/release-build.yml`, the one definition the tag
-     uses too: every image for amd64 and arm64, built and started, and core packed). All but *Checks* run on
-     `release/**` and not on `main`. The full regression is not run again: it ran before each unit merged, and the
-     branch adds only the version. Only fixes for what the bar finds go on it; anything larger is an issue or a unit
-     of its own.
-  4. When the work is ready, the release branch is merged into `main` locally with `--no-ff`, and **that merge commit
-     is pushed to the release branch**, which proves it. The tag, `v<version>`, goes on it once the bar passes, so
-     each release is one merge commit on `main`. **The tag only publishes** what the branch proved, and refuses
-     unless all of it passed for the tagged commit.
-  5. **If anything fails after the tag is pushed**, the tag and whatever that attempt published are deleted, the fix
-     goes on the same release branch, and the same version is tagged again on the fixed commit. A new version number
-     is only for a change to something released.
+- **A release is a tag on a proven commit of `main`**
+  ([ADR-0146](docs/adr/adr-0146-a-release-is-a-proven-build-given-a-name.md)); nothing is built at the tag, and no
+  commit sets a version (every `package.json` stays at `0.0.0`):
+  1. The owner picks a commit of `main`. **The release rehearsal passes on it**, on the dev machine
+     (`scripts/release/prove.sh`: the image keys, the images built and started, the install test, the guide's
+     screenshots, for the dev machine's own architecture; the full regression runs with it).
+  2. **The release build is started by hand** on that commit (*Release build*, `.github/workflows/release-build.yml`:
+     every image part with a new key, for amd64 and arm64, built, started and attested; the install test and the
+     screenshots) and passes.
+  3. The owner tags the commit `v<version>` and pushes the tag. **The tag only publishes** what was proved: it refuses
+     unless *Checks* and the release build passed for the commit, verifies each image's attestation and recomputed key,
+     then makes and signs each version's index, publishes core and makes the release page.
+  4. **A release branch exists only for a patch while `main` has moved on**, cut from the newest tag of its line
+     (`release/1.0.1` from `v1.0.0`, `release/1.0.2` from `v1.0.1`). On it: the fix, the release rehearsal, the release
+     build (its push starts it), the tag on its last commit; then it is merged into `main` with `--no-ff` and deleted.
+     When `main` has not moved since the release, the fix goes on `main` and is tagged there. `main` never flows into
+     a patch branch; where `main` has rewritten the code a fix touches, the fix is ported to `main` by hand with
+     `git cherry-pick -x` instead of merged. A patch holds fixes only.
+  5. **If anything fails after the tag is pushed**, the tag and whatever that attempt published are deleted, the fix is
+     made, and the same version is tagged again; a retry promotes the same images.
      - **A version that published is never published again**, even when it turns out not to work: someone may
        already have it. Its fix takes the next number: `0.1.0-alpha.3` after `0.1.0-alpha.2`, `1.0.2` after `1.0.1`.
        A patch that may be shaky can go out first as a release candidate (`1.0.1-rc.1`, then `rc.2`) and become
        final once it is proved; that is optional.
-  6. Once published, `main` fast-forwards to the tagged merge commit and the branch is deleted (if `main` moved
-     meanwhile, merge it into the release branch and prove it again first). One release branch is open at a time.
+  6. **Tags are permanent:** a repository ruleset stops `v*` tags being moved or deleted (the admin's bypass is for a
+     publish that failed part-way). **At most two lines are maintained** — the newest minor of the current major and
+     of the one before; before `1.0.0`, only the newest release
+     ([versioning.md](docs/architecture/versioning.md#the-product-version)).
 - **Checks on `main`:** a pull request merges only once the *All checks passed* check passes. The owner pushes to
-  `main` without waiting for it, after the full regression; when a run on such a push fails, the fix is the next
+  `main` without waiting for it, after the unit's regression; when a run on such a push fails, the fix is the next
   push. That is the only way a commit with failing checks reaches `main`.
 - **When to commit:** during planned implementation, at each task boundary. During patching, review or a
   walkthrough, only when the owner says so. **Documents** — plans, specs, decision records — only
@@ -190,7 +197,7 @@ scaled to the work — three agents reading code need a sentence, six building i
    shared test databases, Docker, an external service's rate limit or budget, the same files.
 2. **What runs one at a time?** For example, a machine-wide lock around heavy commands; suites that need fixed
    ports run once, by the lead, after the work is combined. Agents run the tests for what they changed and
-   the typecheck of the modules they touched; the full regression runs once, when the unit closes.
+   the typecheck of the modules they touched; the unit's regression runs once, when the unit closes.
 3. **How is it watched?** Free memory, load and swap — or an external service's errors and spend — each with a
    threshold that raises an alert, and an alert when it recovers.
 4. **What happens at a limit?** Decided in advance: which agents pause first, and what is reduced before
