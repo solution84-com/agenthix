@@ -39,7 +39,8 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: The selector's own tests
-        run: node --test "scripts/__tests__/*.test.mjs"
+        # Plain Node, no install: the secure-page check needs TypeScript, and its own job installs and tests it.
+        run: node --test scripts/__tests__/affected.test.mjs scripts/__tests__/checks-verdict.test.mjs scripts/__tests__/image-keys.test.mjs scripts/__tests__/image-parts.test.mjs
       - name: Has this tree already passed?
         id: proof
         if: github.event_name == 'push'
@@ -443,28 +444,12 @@ jobs:
     needs: [changes, secure-page, core, ui, hq, host, console, console-web, site, site-integration, hq-integration]
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions: {}
+    permissions:
+      contents: read
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Every selected job passed and every other was skipped
         env:
           NEEDS: ${{ toJSON(needs) }}
           SELECTED: ${{ needs.changes.outputs.jobs }}
-        run: |
-          results="$(printf '%s' "$NEEDS" | jq -r 'to_entries[] | "\(.key) \(.value.result)"')"
-          echo "$results"
-          echo "Selected: $SELECTED"
-          printf '%s\n' "$results" | grep -qx 'changes success' || { echo "'changes' did not succeed"; exit 1; }
-          selected="$(printf '%s' "$SELECTED" | jq -r '.[]')"
-          for job in $selected; do
-            printf '%s\n' "$results" | grep -q "^$job " || { echo "$job was selected but is not one of the jobs checked here"; exit 1; }
-          done
-          status=0
-          while read -r job result; do
-            [ "$job" = changes ] && continue
-            if printf '%s\n' "$selected" | grep -qx "$job"; then
-              [ "$result" = success ] || { echo "$job was selected and its result is $result"; status=1; }
-            else
-              [ "$result" = skipped ] || { echo "$job was not selected and its result is $result"; status=1; }
-            fi
-          done <<< "$results"
-          exit "$status"
+        run: node scripts/checks-verdict.mjs
