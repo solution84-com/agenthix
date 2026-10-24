@@ -16,7 +16,7 @@ RUN awk '/^[[:space:]]*(#|$)/ { next } \
  && gcc -O2 -static -Wall -Wextra -Werror -o agenthix-contain agenthix-contain.c
 
 # Agenthix's OpenCode plugin, bundled into one file with the core modules it uses.
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS plugin
+FROM node:26.12.0-alpine3.23@sha256:2ae3a23c9c5d2129398f4844c7c43400c061faf6973852f0fa837323bff9a5a8 AS plugin
 WORKDIR /repo/site/opencode-plugin
 COPY site/opencode-plugin/package.json site/opencode-plugin/package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -25,7 +25,7 @@ COPY site/opencode-plugin/tsconfig.json ./
 COPY site/opencode-plugin/src ./src
 RUN npm run build
 
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5
+FROM node:26.12.0-alpine3.23@sha256:2ae3a23c9c5d2129398f4844c7c43400c061faf6973852f0fa837323bff9a5a8
 
 # Pinned: the Claude Code CLI to the version the site's Claude Agent SDK
 # bundles (its manifest.json), OpenCode to the v1 line the design was verified
