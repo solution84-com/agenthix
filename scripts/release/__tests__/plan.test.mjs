@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 
-test('the plan marks an image reused only where the reuse check prints a digest', () => {
+test('the plan marks an image reused only where the reuse check prints a digest @SC-1267', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-test-'))
   const fake = path.join(dir, 'reuse.sh')
   const digest = `sha256:${'a'.repeat(64)}`

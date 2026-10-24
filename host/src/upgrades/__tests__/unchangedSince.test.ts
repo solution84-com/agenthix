@@ -26,7 +26,7 @@ beforeEach(() => {
 })
 afterEach(() => m.cleanup())
 
-describe('the release an image was first built for', () => {
+describe('the release an image was first built for @SC-1259', () => {
   it('is the oldest release of the line, newest first, that lists the same platform image, and stops at the first that differs', async () => {
     expect(await unchangedSince(m.ctx)).toEqual({ hq: '0.2.1' })
     // Not 0.1.9 (another line, and never reached), not 0.3.0 (newer), not 0.2.0 (differs: the walk ended there).
@@ -77,7 +77,7 @@ describe('the release an image was first built for', () => {
   })
 })
 
-describe('the words in status', () => {
+describe('the words in status @SC-1259', () => {
   const status = {
     machine: { name: 'hq-box', hostServiceVersion: '0.2.3' },
     hq: { address: 'https://hq.acme.example', version: '0.2.3', listen: { bind: '127.0.0.1', port: 7800 }, containers: 'running' as const, answer: { users: 2, runningAgents: 1 } },

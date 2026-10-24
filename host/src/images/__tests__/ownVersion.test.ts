@@ -52,7 +52,7 @@ beforeEach(() => {
 })
 afterEach(() => fs.rmSync(dir, { recursive: true, force: true }))
 
-describe('the version an image reference names', () => {
+describe('the version an image reference names @SC-1256', () => {
   it('is the tag of a trusted host image by a published version, with or without a digest after it', () => {
     expect(hostVersionOf(`${REPO}:0.3.0`)).toBe('0.3.0')
     expect(hostVersionOf(`${REPO}:1.0.0-rc.2@${DIGEST}`)).toBe('1.0.0-rc.2')
@@ -80,7 +80,7 @@ describe('the version an image reference names', () => {
   })
 })
 
-describe('the host service’s own version, at start', () => {
+describe('the host service’s own version, at start @SC-1256', () => {
   it('is dev outside a container, and asks nothing', async () => {
     expect(await ownVersion(env({ mountinfo: '' }))).toBe('dev')
     expect(asked).toEqual([])

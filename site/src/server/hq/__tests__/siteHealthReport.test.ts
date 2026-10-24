@@ -60,12 +60,12 @@ describe("a site's health report @SC-766", () => {
     expect(health.agentImage).toMatchObject({ present: false, version: null })
   })
 
-  it('has no image version when the site was given none', async () => {
+  it('has no image version when the site was given none @SC-1255', async () => {
     const health = await takeHealth({ docker: dockerAnswering(), countRunning: async () => 0, disk, now })
     expect(health.agentImage).toMatchObject({ present: true, version: null })
   })
 
-  it('has no image version when the image is absent, even if the site was given one', async () => {
+  it('has no image version when the image is absent, even if the site was given one @SC-1255', async () => {
     process.env.APP_VERSION = '0.4.0'
     const docker = vi.fn(async (args: string[]) => {
       if (args[0] === 'version') return { stdout: '27.3.1\n', stderr: '' }

@@ -16,7 +16,7 @@ const hostDockerfile = fs.readFileSync(path.join(root, 'host/docker/Dockerfile')
 
 const sorted = (xs: readonly string[]) => [...xs].sort()
 
-describe('the publishing workflow @SC-820 @SC-1052 @SC-1167', () => {
+describe('the publishing workflow @SC-820 @SC-1052 @SC-1270', () => {
   it('runs only for a release’s tag or a pre-release’s, the tag the signer is named by', () => {
     const tags = [...workflow.match(/on:\n {2}push:\n {4}tags:\n((?: {6}- '[^']+'\n)+)\n/)![1].matchAll(/- '([^']+)'/g)].map(m => m[1])
     expect(tags).toEqual([

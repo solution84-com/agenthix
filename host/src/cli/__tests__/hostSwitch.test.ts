@@ -71,7 +71,7 @@ describe('agenthix upgrades host, with the launcher on @SC-838', () => {
     expect(readSwitch(m.ctx.state)).toBeNull()
   })
 
-  it('refuses an image whose signature does not check, before any launcher starts', async () => {
+  it('refuses an image whose signature does not check, before any launcher starts @SC-1275', async () => {
     m.signatures.set('ghcr.io/solution84-com/agenthix-host:0.3.0', { kind: 'unsigned' })
     expect(await cli('upgrades', 'host', '--yes')).toBe(1)
     expect(flat(err)).toContain('carries no signature')

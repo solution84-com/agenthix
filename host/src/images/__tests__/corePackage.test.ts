@@ -17,7 +17,7 @@ describe('core as a package @SC-1054', () => {
     expect(build.compilerOptions.declarationMap).toBe(false)
   })
 
-  it('is published by the release run alone, and only after the commit passed its checks and every image is published @SC-1167', () => {
+  it('is published by the release run alone, and only after the commit passed its checks and every image is published @SC-1270', () => {
     const others = fs.readdirSync(workflows).filter(f => f !== 'publish-images.yml')
     for (const f of others) expect(fs.readFileSync(path.join(workflows, f), 'utf8'), f).not.toMatch(/npm publish/)
     const workflow = fs.readFileSync(path.join(workflows, 'publish-images.yml'), 'utf8')

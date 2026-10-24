@@ -94,7 +94,7 @@ describe('status and unknown commands @SC-721', () => {
     })
   })
 
-  it("gives hq's version, which the public /health no longer does @SC-723", async () => {
+  it("gives hq's version, which the public /health no longer does @SC-723 @SC-1255", async () => {
     const result = await runHqMachineCommand('status', [])
     expect(result).toMatchObject({ ok: true, data: { version: BUILD_INFO.version } })
     expect((result as { text: string }).text).toContain(`HQ ${BUILD_INFO.version} at `)

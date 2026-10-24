@@ -33,7 +33,7 @@ describe('the compose projects', () => {
     expect(h.services['hq-db'].image).toMatch(/^postgres:16-alpine@sha256:[0-9a-f]{64}$/)
   })
 
-  it('gives hq-server and the site the version they run as, which a published image no longer carries, and none for a development build', () => {
+  it('gives hq-server and the site the version they run as, which a published image no longer carries, and none for a development build @SC-1257', () => {
     const n = namesFor('agenthix')
     expect(hqProject(n, hq, secrets, 'hq-box', any(n), inst).services['hq-server'].environment).toHaveProperty('APP_VERSION', '0.2.0')
     expect(defaultSiteProject(n, site, secrets, paths, any(n), inst).services.site.environment).toHaveProperty('APP_VERSION', '0.2.0')
@@ -41,7 +41,7 @@ describe('the compose projects', () => {
     expect(defaultSiteProject(n, { ...site, version: 'dev' }, secrets, paths, any(n), inst).services.site.environment).not.toHaveProperty('APP_VERSION')
   })
 
-  it('labels every container of a release part with the version it runs as, never a database, and none for a development build', () => {
+  it('labels every container of a release part with the version it runs as, never a database, and none for a development build @SC-1257', () => {
     const n = namesFor('agenthix')
     const containers = (version: string) => {
       const h = hqProject(n, { ...hq, version }, secrets, 'hq-box', any(n), inst)

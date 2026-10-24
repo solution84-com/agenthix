@@ -37,7 +37,7 @@ function fixture(epoch = 1) {
   return { dir, write, commit }
 }
 
-test('a key changes exactly when something its part is built from changes', () => {
+test('a key changes exactly when something its part is built from changes @SC-1264', () => {
   const { dir, write, commit } = fixture()
   const before = computeKeys({ cwd: dir })
   assert.equal(Object.keys(before).length, 2)
@@ -67,7 +67,7 @@ test('a key changes exactly when something its part is built from changes', () =
   assert.notEqual(afterIgnore.b, afterBase.b)
 })
 
-test('a key is the same at a commit whatever has happened since, and --worktree keys uncommitted changes', () => {
+test('a key is the same at a commit whatever has happened since, and --worktree keys uncommitted changes @SC-1264', () => {
   const { dir, write, commit } = fixture()
   const head = git(dir, 'rev-parse', 'HEAD')
   const before = computeKeys({ cwd: dir, ref: head })
@@ -81,7 +81,7 @@ test('a key is the same at a commit whatever has happened since, and --worktree 
   assert.equal(git(dir, 'status', '--porcelain'), '')
 })
 
-test('the rebuild epoch changes every key', () => {
+test('the rebuild epoch changes every key @SC-1266', () => {
   const { dir, write, commit } = fixture()
   const before = computeKeys({ cwd: dir })
   write('scripts/images/parts.json', fs.readFileSync(path.join(dir, 'scripts/images/parts.json'), 'utf8').replace('"rebuildEpoch":1', '"rebuildEpoch":2'))
@@ -91,6 +91,6 @@ test('the rebuild epoch changes every key', () => {
   assert.notEqual(after.b, before.b)
 })
 
-test('a Dockerfile\'s own stages are not base images', () => {
+test('a Dockerfile\'s own stages are not base images @SC-1266', () => {
   assert.deepEqual(fromReferences('FROM node:24 AS build\nFROM build AS app\nFROM --platform=$BUILDPLATFORM x@sha256:ab AS y\nFROM app\n'), ['node:24', 'x@sha256:ab'])
 })

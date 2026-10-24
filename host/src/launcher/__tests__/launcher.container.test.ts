@@ -116,13 +116,13 @@ describe.skipIf(!process.env.HOST_E2E)('the launcher', () => {
     expect(record.mounts.map(m => m.destination).sort()).toEqual(['/run/host-figures', '/state', '/var/run/docker.sock'])
   })
 
-  it('answers as a development build, started by its local name, and records no image as checked @SC-838', () => {
+  it('answers as a development build, started by its local name, and records no image as checked @SC-838 @SC-1274', () => {
     expect(containerOf(HOST).Config.Image).toBe(OLD)
     expect(answer()).toBe('dev')
     expect(() => readState('launcher/image.json')).toThrow()
   })
 
-  it('refuses a published version’s switch, and a switch to a published image, and leaves the host service running @SC-838', async () => {
+  it('refuses a published version’s switch, and a switch to a published image, and leaves the host service running @SC-838 @SC-1275', async () => {
     const before = containerOf(HOST).Id
     expect(await switchTo(NEW, { ...PUBLISHED, built: undefined })).toMatchObject({ phase: 'refused', reason: expect.stringContaining('development build') })
     expect(await switchTo(NEW, { ref: 'ghcr.io/solution84-com/agenthix-host:0.0.2' })).toMatchObject({ phase: 'refused', reason: expect.stringContaining('is a published image') })
@@ -141,7 +141,7 @@ describe.skipIf(!process.env.HOST_E2E)('the launcher', () => {
     expect(answer()).toBe('dev')
   }, 6 * 60_000)
 
-  it('switches to another image built here, by its id, with the same settings, and removes the old one @SC-838', async () => {
+  it('switches to another image built here, by its id, with the same settings, and removes the old one @SC-838 @SC-1274', async () => {
     const before = containerOf(HOST).Id
     const ended = await switchTo(NEW)
     expect(ended).toMatchObject({ phase: 'done', reason: null })

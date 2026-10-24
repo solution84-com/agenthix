@@ -25,13 +25,13 @@ const reuse = (image, part, arch, key) => {
 }
 const verify = over => verifyCandidate({ candidate: candidate(), keys, commit: 'c1', tree: 't1', registry: 'ghcr.io/o', reuse, ...over })
 
-test('a candidate whose every image is attested with the key the tagged commit computes is promoted', () => {
+test('a candidate whose every image is attested with the key the tagged commit computes is promoted @SC-1269', () => {
   const { problems, promote } = verify({})
   assert.deepEqual(problems, [])
   assert.deepEqual(promote.find(p => p.part === 'host'), { part: 'host', image: 'ghcr.io/o/host', key: 'k1', amd64: d('a'), arm64: d('b') })
 })
 
-test('a digest whose attested key differs from the tagged commit’s is refused, naming the part and both keys', () => {
+test('a digest whose attested key differs from the tagged commit’s is refused, naming the part and both keys @SC-1269', () => {
   const c = candidate()
   c.parts.host.key = 'k-old'
   const { problems, promote } = verify({ candidate: c })
@@ -40,7 +40,7 @@ test('a digest whose attested key differs from the tagged commit’s is refused,
   assert.equal(promote.some(p => p.part === 'host'), false)
 })
 
-test('a digest other than the attested one, or with no attestation, is refused per architecture', () => {
+test('a digest other than the attested one, or with no attestation, is refused per architecture @SC-1269', () => {
   const c = candidate()
   c.parts.agent.platforms.arm64.digest = d('f')
   const { problems } = verify({ candidate: c, reuse: (i, part, arch, key) => (part === 'host' && arch === 'amd64' ? { ok: false, reason: 'no attestation' } : reuse(i, part, arch, key)) })
@@ -50,7 +50,7 @@ test('a digest other than the attested one, or with no attestation, is refused p
   ])
 })
 
-test('a candidate for another commit or tree, with a part missing or extra, or outside the registry, is refused', () => {
+test('a candidate for another commit or tree, with a part missing or extra, or outside the registry, is refused @SC-1269', () => {
   const c = candidate()
   c.parts.extra = c.parts.agent
   delete c.parts.agent
@@ -63,7 +63,7 @@ test('a candidate for another commit or tree, with a part missing or extra, or o
   assert.match(problems.join('\n'), /host: the candidate's image ghcr.io\/elsewhere\/host is not a name under ghcr.io\/o/)
 })
 
-test('the script asks reuse.sh, refuses with what differed, and writes nothing then', () => {
+test('the script asks reuse.sh, refuses with what differed, and writes nothing then @SC-1269', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-test-'))
   const fake = path.join(dir, 'reuse.sh')
   // Attests host for amd64 only; the rest has no attestation.

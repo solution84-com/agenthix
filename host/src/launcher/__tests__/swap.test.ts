@@ -79,7 +79,7 @@ describe('the launcher @SC-838', () => {
     expect(order).toEqual([`stop ${OLD_ID}`, `rename ${OLD_ID}`, `run agenthix-host ${STARTED_AS}`])
   })
 
-  it('starts the new host service by its version’s tag and the checked digest, so it answers as that version', async () => {
+  it('starts the new host service by its version’s tag and the checked digest, so it answers as that version @SC-1258', async () => {
     ready()
     expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'done' })
     expect(host()).toMatchObject({ image: NEW_IMAGE, reference: STARTED_AS })
@@ -101,7 +101,7 @@ describe('the launcher @SC-838', () => {
     expect(ran()).toEqual([])
   })
 
-  it('refuses an older version, or the same one, and only goes forward', async () => {
+  it('refuses an older version, or the same one, and only goes forward @SC-1275', async () => {
     ready({ to: '0.1.9' })
     expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'refused', reason: expect.stringContaining('only goes forward') })
     ready({ to: '0.2.0' })
@@ -190,7 +190,7 @@ describe('a launcher started again partway @SC-838', () => {
   })
 })
 
-describe('a development build switched to an image built on the machine @SC-838', () => {
+describe('a development build switched to an image built on the machine @SC-838 @SC-1274', () => {
   /** What the person named: a local build, by its name. */
   const BUILT = 'agenthix-host:b'
 
@@ -229,7 +229,7 @@ describe('a development build switched to an image built on the machine @SC-838'
     expect(host()).toMatchObject({ id: OLD_ID, running: true })
   })
 
-  it('is refused by a published host service, which switches only forward to a signed image', async () => {
+  it('is refused by a published host service, which switches only forward to a signed image @SC-1275', async () => {
     built()
     expect(await runSwitch({ ...env, ownVersion: '0.2.0' }, NEW_IMAGE)).toMatchObject({ phase: 'refused', reason: expect.stringContaining('0.2.0, a published version') })
     built({ from: '0.2.0' })

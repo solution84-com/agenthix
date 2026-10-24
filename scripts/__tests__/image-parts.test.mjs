@@ -32,7 +32,7 @@ const under = (source, input) => {
   return s === i || s.startsWith(`${i}/`)
 }
 
-test('every COPY from the build context reads only paths under its part\'s inputs', () => {
+test('every COPY from the build context reads only paths under its part\'s inputs @SC-1263', () => {
   for (const [part, p] of Object.entries(parts)) {
     const sources = contextCopySources(read(p.dockerfile))
     assert.ok(sources.length > 0, `${part}: no COPY found in ${p.dockerfile}`)
@@ -45,12 +45,12 @@ test('every COPY from the build context reads only paths under its part\'s input
   }
 })
 
-test('the COPY reader skips COPY --from and joins continued lines', () => {
+test('the COPY reader skips COPY --from and joins continued lines @SC-1263', () => {
   const text = 'COPY --from=build /a /b\nCOPY --chmod=0755 x/y z\nCOPY a/one \\\n  b/two /dest/\n'
   assert.deepEqual(contextCopySources(text), ['x/y', 'a/one', 'b/two'])
 })
 
-test('every input exists, and every Dockerfile and its target are real', () => {
+test('every input exists, and every Dockerfile and its target are real @SC-1263', () => {
   for (const [part, p] of Object.entries(parts)) {
     assert.ok(fs.existsSync(path.join(root, p.dockerfile)), `${part}: ${p.dockerfile} does not exist`)
     for (const input of p.inputs) assert.ok(fs.existsSync(path.join(root, input)), `${part}: input ${input} does not exist`)
@@ -58,7 +58,7 @@ test('every input exists, and every Dockerfile and its target are real', () => {
   }
 })
 
-test('the parts are exactly the host service\'s PUBLISHED_PARTS', () => {
+test('the parts are exactly the host service\'s PUBLISHED_PARTS @SC-1263', () => {
   const source = read('host/src/images/published.ts')
   const m = /PUBLISHED_PARTS\s*=\s*\[([^\]]*)\]/.exec(source)
   assert.ok(m, 'PUBLISHED_PARTS not found in host/src/images/published.ts')

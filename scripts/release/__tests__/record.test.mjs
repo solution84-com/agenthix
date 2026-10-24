@@ -20,14 +20,14 @@ function packCore(dir, version) {
   return tgz
 }
 
-test('the Postgres image is read from the host service’s source, where it is pinned', () => {
+test('the Postgres image is read from the host service’s source, where it is pinned @SC-1271', () => {
   const pinned = postgresImage(fs.readFileSync(path.join(root, 'host/src/images/published.ts'), 'utf8'))
   assert.match(pinned.image, /^postgres:.+@sha256:[0-9a-f]{64}$/)
   assert.equal(pinned.image.endsWith(pinned.digest), true)
   assert.throws(() => postgresImage("export const POSTGRES_IMAGE = 'postgres:16-alpine'"), /pinned by digest/)
 })
 
-test('core’s name, version and integrity come from the packed file', () => {
+test('core’s name, version and integrity come from the packed file @SC-1271', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'record-test-'))
   const tgz = packCore(dir, '1.0.0')
   const core = corePackage(tgz)
@@ -35,7 +35,7 @@ test('core’s name, version and integrity come from the packed file', () => {
   fs.rmSync(dir, { recursive: true, force: true })
 })
 
-test('the record holds the version, commit, tree, each part’s key and digests, core and Postgres', () => {
+test('the record holds the version, commit, tree, each part’s key and digests, core and Postgres @SC-1271', () => {
   const published = [
     { part: 'site-server', image: 'ghcr.io/o/s', key: 'k2', index: d('c'), amd64: d('d'), arm64: d('e') },
     { part: 'host', image: 'ghcr.io/o/h', key: 'k1', index: d('a'), amd64: d('b'), arm64: d('f') },

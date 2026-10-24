@@ -36,7 +36,7 @@ beforeEach(async () => {
 })
 afterEach(() => m.cleanup())
 
-describe('agenthix upgrades host --image, on a development build @SC-838', () => {
+describe('agenthix upgrades host --image, on a development build @SC-838 @SC-1274', () => {
   it('says it is a development build, asks, then starts the launcher for the image built here, unchecked', async () => {
     answers = ['y']
     expect(await cli('upgrades', 'host', '--image', BUILT)).toBe(0)
@@ -56,7 +56,7 @@ describe('agenthix upgrades host --image, on a development build @SC-838', () =>
     expect(readSwitch(m.ctx.state)).toBeNull()
   })
 
-  it('is refused on a published host service, which switches only forward to a signed image', async () => {
+  it('is refused on a published host service, which switches only forward to a signed image @SC-1275', async () => {
     m.ctx.machine.hostServiceVersion = '0.2.0'
     expect(await cli('upgrades', 'host', '--image', BUILT, '--yes')).toBe(1)
     expect(flat(err)).toContain('This host service is 0.2.0, a published version: it switches only forward')
