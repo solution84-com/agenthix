@@ -26,7 +26,7 @@ beforeEach(() => {
   h.secretNames.mockResolvedValue(['DEPLOY_KEY', 'NPM_TOKEN', 'GITHUB_APP_KEY'])
 })
 
-describe('proposing the starter workflows when a repository is connected', () => {
+describe('proposing the starter workflows when a repository is connected @SC-1318', () => {
   it('proposes push, pull and open-pull-request as starters, on the site\'s executor image', async () => {
     const out = await proposeStarters(PLACE, WORKSPACE, deps)
     expect(out.map((o) => [o.workflow, o.proposed])).toEqual([['push', true], ['pull', true], ['open-pull-request', true]])
@@ -50,7 +50,7 @@ describe('proposing the starter workflows when a repository is connected', () =>
   })
 })
 
-describe('Also set it on GitHub', () => {
+describe('Also set it on GitHub @SC-1325', () => {
   it('proposes set-github-secrets with the names approved, waiting and new, leaving out ones the place no longer has', async () => {
     h.versions.mockResolvedValue([
       { state: 'PROPOSED', githubSecretNames: ['NPM_TOKEN'] },

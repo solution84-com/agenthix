@@ -138,7 +138,7 @@ function filesUnder(root: string): string[] {
 const holdsCanary = (root: string) => filesUnder(root).filter((f) => readFileSync(f).includes(CANARY))
 const evilLog = () => (existsSync(join(dir, 'out', 'evil.log')) ? readFileSync(join(dir, 'out', 'evil.log'), 'utf8') : '')
 
-describe.skipIf(!ON)('A13, git: the starters run git with the token only in a clean repository', () => {
+describe.skipIf(!ON)('A13, git: the starters run git with the token only in a clean repository @SC-1320', () => {
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), 'wf-lane-4d-'))
     for (const d of ['out', 'params', 'secrets', 'fake', 'srv/acme']) mkdirSync(join(dir, d), { recursive: true })

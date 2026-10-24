@@ -28,7 +28,7 @@ afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
 const githubSays = (status: number, body: unknown) =>
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(body), { status })))
 
-describe('startGithubAppRegistration (R-166)', () => {
+describe('startGithubAppRegistration (R-166) @SC-1307', () => {
   it('requires the ADMIN role, and a person with no role is refused too (403)', async () => {
     for (const caller of [await createUserWithRole('MEMBER'), await createUser()]) {
       await expect(startGithubAppRegistration({ owner: 'personal' }, { user: caller } as never)).rejects.toMatchObject({ statusCode: 403 })

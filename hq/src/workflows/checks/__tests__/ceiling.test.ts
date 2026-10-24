@@ -18,7 +18,7 @@ beforeEach(() => {
   m.preferred.mockResolvedValue(null)
 })
 
-describe('the permission ceiling @A16', () => {
+describe('the permission ceiling @A16 @SC-1283', () => {
   it('is unknown when GitHub hasn\'t been read', async () => {
     m.facts.mockResolvedValue(null)
     expect(await githubCeilingFor(place)).toEqual({ known: false })

@@ -37,7 +37,7 @@ async function run(change: (snapshot: string) => Promise<void>, agent: () => Pro
   return writeBack({ runId: 'run-1', workspaceDir: ws, snapshotDir: snap, start: s.manifest, end, changes })
 }
 
-describe('the snapshot', () => {
+describe('the snapshot @SC-1339', () => {
   it('copies the workspace, modes kept, and records it by content', async () => {
     const s = await takeSnapshot(ws, snap)
     expect(await fs.readFile(path.join(snap, 'src/app.js'), 'utf8')).toBe('console.log(1)')
@@ -74,7 +74,7 @@ describe('the snapshot', () => {
   })
 })
 
-describe('writing back', () => {
+describe('writing back @SC-1340', () => {
   it('applies the run\'s changes: created, changed and deleted', async () => {
     const result = await run(async s => {
       await fs.writeFile(path.join(s, 'src/app.js'), 'console.log(2)')

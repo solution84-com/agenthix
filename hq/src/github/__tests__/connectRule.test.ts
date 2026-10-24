@@ -9,7 +9,7 @@ const rule = (over: Partial<InstallationForRule> = {}): InstallationForRule =>
 const project = { type: 'project' as const, id: 'p1' }
 const own = { type: 'user' as const, id: 'u1' }
 
-describe('which places may connect to a GitHub account @A15 @A17', () => {
+describe('which places may connect to a GitHub account @A15 @A17 @SC-1310', () => {
   it('only an allowed installation', () => {
     for (const state of ['WANTS_TO_CONNECT', 'IGNORED'] as const) {
       expect(ruleIncludesPlace(rule({ state, projectRule: 'EVERY_PROJECT', projectIds: ['p1'], userIds: ['u1'] }), project, null)).toBe(false)

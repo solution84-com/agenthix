@@ -88,7 +88,7 @@ describe('a workspace opened', () => {
     expect(screen.getByRole('menuitem', { name: 'Delete — files not yet pushed to GitHub go with it; the repository is not affected' })).toBeTruthy()
   })
 
-  it('says No repository with Connect GitHub, and shows the connect flow only once connecting starts', () => {
+  it('says No repository with Connect GitHub, and shows the connect flow only once connecting starts @SC-1321', () => {
     useQuery.mockReturnValue({ data: { ...ws, repoUrl: null }, error: null })
     const { unmount } = render(<WorkspaceView workspaceId="w1" siteLabel={null} previewId={null} connecting={false} onBack={vi.fn()} />)
     expect(screen.getByText('No repository')).toBeTruthy()
@@ -122,7 +122,7 @@ describe('a workspace\'s About', () => {
     <WorkspaceAbout ws={ws} target={{ ownerType: 'project', ownerId: 'p1', workspaceId: 'w1' }} siteLabel="Office Mac" previewId={previewId} onDisconnect={vi.fn()} onBack={vi.fn()} />,
   )
 
-  it('holds the facts and the GitHub section', () => {
+  it('holds the facts and the GitHub section @SC-1321', () => {
     about()
     expect(screen.getByText('acme/web')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy()
@@ -157,7 +157,7 @@ describe('a new workspace', () => {
     expect(actions.createWorkspace).toHaveBeenCalledWith({ name: 'docs', ownerType: 'project', ownerId: 'p1' })
   })
 
-  it('from a GitHub repository creates the workspace, then goes on to the connect flow', async () => {
+  it('from a GitHub repository creates the workspace, then goes on to the connect flow @SC-1321', async () => {
     actions.createWorkspace = vi.fn().mockResolvedValue({ workspaceId: 'w9' })
     const onCreated = vi.fn()
     render(<NewWorkspaceForm owner={{ ownerType: 'project', ownerId: 'p1' }} siteLabel={null} onBack={vi.fn()} onCreated={onCreated} />)

@@ -25,7 +25,7 @@ test.describe('Workflows on a wide window', () => {
     await signIn(page, ADMIN)
   })
 
-  test('the panel has Workflows after Automation, and it opens the section', async ({ page }) => {
+  test('the panel has Workflows after Automation, and it opens the section @SC-1290', async ({ page }) => {
     await page.goto('/space')
     await expect(sections(page).getByRole('link', { name: /^Workflows/ })).toBeVisible()
     const links = sections(page).getByRole('link')
@@ -39,7 +39,7 @@ test.describe('Workflows on a wide window', () => {
     await expect(page.getByRole('region', { name: 'All workflows' })).toBeVisible()
   })
 
-  test('a workflow opens with Steps, Versions and Runs, and Run asks for each parameter', async ({ page }) => {
+  test('a workflow opens with Steps, Versions and Runs, and Run asks for each parameter @SC-1290', async ({ page }) => {
     test.skip(!WORKFLOW_ID, 'needs a workflow: set E2E_WORKFLOW_ID')
     await page.goto(`/workflows/${WORKFLOW_ID}`)
     await expect(page).toHaveURL(at(`/space?tool=workflows&workflow=${WORKFLOW_ID}`))
@@ -51,7 +51,7 @@ test.describe('Workflows on a wide window', () => {
     await expect(page).toHaveURL(/wtab=runs/)
   })
 
-  test('the card’s link opens the full review: the reviewer first, then the checks and the changes', async ({ page }) => {
+  test('the card’s link opens the full review: the reviewer first, then the checks and the changes @SC-1289', async ({ page }) => {
     test.skip(!WORKFLOW_ID || !PROPOSED_VERSION, 'needs a waiting version: set E2E_WORKFLOW_ID and E2E_WORKFLOW_PROPOSED_VERSION')
     await page.goto(`/workflows/${WORKFLOW_ID}/versions/${PROPOSED_VERSION}`)
     await expect(page).toHaveURL(/version=/)
@@ -65,7 +65,7 @@ test.describe('Workflows on a wide window', () => {
     await expect(page.getByRole('button', { name: 'Decline' })).toBeVisible()
   })
 
-  test('a run shows one row per step', async ({ page }) => {
+  test('a run shows one row per step @SC-1298', async ({ page }) => {
     test.skip(!WORKFLOW_ID || !RUN_ID, 'needs a run: set E2E_WORKFLOW_ID and E2E_WORKFLOW_RUN_ID')
     await page.goto(`/workflows/${WORKFLOW_ID}/runs/${RUN_ID}`)
     await expect(page).toHaveURL(/run=/)
@@ -73,7 +73,7 @@ test.describe('Workflows on a wide window', () => {
   })
 })
 
-test.describe('A workflow run in the conversation that started it', () => {
+test.describe('A workflow run in the conversation that started it @SC-1299', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
   test('the finished run has its card in the thread, which opens the run', async ({ page }) => {
@@ -87,7 +87,7 @@ test.describe('A workflow run in the conversation that started it', () => {
   })
 })
 
-test.describe('Workflows on a phone', () => {
+test.describe('Workflows on a phone @SC-1290', () => {
   test.use({ viewport: { width: 375, height: 812 } })
 
   test('the section has no horizontal scroll and its entry is in the drawer', async ({ page }) => {

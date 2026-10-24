@@ -7,21 +7,21 @@ const account = (over: Partial<AccountRow> = {}): AccountRow => ({
 })
 
 describe('permissions', () => {
-  it('lists the App\'s permissions with what uses each, those with a use first', () => {
+  it('lists the App\'s permissions with what uses each, those with a use first @SC-1308', () => {
     const rows = permissionRows({ issues: 'write', contents: 'write', environments: 'write' })
     expect(rows.map((r) => r.label)).toEqual(['Code: write', 'Environments: write', 'Issues: write'])
     expect(rows[0].use).toBe('push, pull')
     expect(rows[1].use).toBe('set-github-secrets')
   })
 
-  it('says which latest permissions an account has not accepted', () => {
+  it('says which latest permissions an account has not accepted @SC-1309', () => {
     expect(acceptance({ contents: 'write', issues: 'write' }, { contents: 'write' })).toEqual({ current: false, unknown: false, missing: ['Issues: write'] })
     expect(acceptance({ contents: 'read' }, { contents: 'write' }).current).toBe(true)
     expect(acceptance(null, { contents: 'write' }).unknown).toBe(true)
   })
 })
 
-describe('reach and rule', () => {
+describe('reach and rule @SC-1309', () => {
   it('says why an account cannot create a repository', () => {
     expect(cannotCreateWords(account())).toBeNull()
     expect(cannotCreateWords(account({ reach: { selection: 'selected', canCreateRepository: false, words: '' } }))).toBe("Can't create new repositories")

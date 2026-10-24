@@ -65,7 +65,7 @@ describe.skipIf(!EXECUTOR_ID || !AGENT_ID)('control checks for the agent\'s cont
     await fs.rm(siteRoot, { recursive: true, force: true })
   })
 
-  it('A6: the agent\'s container and a running step\'s container share no network or process namespace, and neither has the Docker socket', async () => {
+  it('A6: the agent\'s container and a running step\'s container share no network or process namespace, and neither has the Docker socket @SC-1345', async () => {
     resetExecutorForTests()
     const check = 'test ! -e /var/run/docker.sock && test ! -e /run/docker.sock && sleep 60'
     const d = definition({ files: [], steps: [{ name: 'Wait', run: check, secrets: [], timeoutSeconds: null }] })
@@ -94,7 +94,7 @@ describe.skipIf(!EXECUTOR_ID || !AGENT_ID)('control checks for the agent\'s cont
     expect((await getRun({ runId: 'run-a6' }))!.result!.state).toBe('stopped')
   })
 
-  describe('A12 (B-1): git in the agent\'s container gets no GitHub token', () => {
+  describe('A12 (B-1): git in the agent\'s container gets no GitHub token @SC-1354', () => {
     const asHarness = (script: string) => inAgent(script)
     const asCommand = (script: string) => inAgent(`${COMMAND_LAUNCHER_PATH} /bin/bash -c '${script.replace(/'/g, `'\\''`)}'`)
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { usedByMap } from '../usedBy'
 import { rotationNotice, rotationState } from '../rotation'
 
-describe('usedByMap', () => {
+describe('usedByMap @SC-1333', () => {
   const versions = [
     {
       workflowId: 'w2', workflowName: 'restart-worker', enabled: false, githubSecretNames: [],
@@ -30,7 +30,7 @@ describe('usedByMap', () => {
   })
 })
 
-describe('rotation', () => {
+describe('rotation @SC-1331', () => {
   const by = new Date('2026-11-10T15:00:00Z')
 
   it('is due a week before the day, and overdue from the start of it', () => {

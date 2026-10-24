@@ -7,7 +7,7 @@ const dash = (p: string) => {
   return r.canStartWithDash
 }
 
-describe('a parameter pattern', () => {
+describe('a parameter pattern @SC-1361', () => {
   it('matches the whole value', () => {
     const branch = '^[A-Za-z0-9_][A-Za-z0-9._/-]{0,99}$'
     expect(matchesParameterPattern(branch, 'feature/region')).toBe(true)
@@ -35,7 +35,7 @@ describe('a parameter pattern', () => {
   })
 })
 
-describe('whether a pattern can match a value starting with -', () => {
+describe('whether a pattern can match a value starting with - @SC-1361', () => {
   it('says no where the first character cannot be -', () => {
     for (const p of ['^[A-Za-z0-9_][A-Za-z0-9._/-]{0,99}$', '^\\d+$', '\\w-\\w', '[a-z]+', 'main|develop', '^(?:v)\\d', '[^-a]x',
       'a?b', '\\u0041']) {

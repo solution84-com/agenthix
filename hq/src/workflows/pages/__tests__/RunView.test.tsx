@@ -27,7 +27,7 @@ const place = { type: 'project' as const, id: 'p1' }
 beforeEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe('a run', () => {
-  it('shows one row per step, opens the running step to its output and offers Stop', () => {
+  it('shows one row per step, opens the running step to its output and offers Stop @SC-1298', () => {
     data.run = run('running', [step(0, 'Build', 'passed', 'built'), step(1, 'Migrate', 'running', 'Applying 0042'), step(2, 'Restart', 'waiting')])
     render(<RunView place={place} workflowId="w1" runId="r1" onBack={vi.fn()} />)
     expect(screen.getAllByTestId('run-step').map((s) => s.getAttribute('data-state'))).toEqual(['passed', 'running', 'waiting'])
@@ -37,7 +37,7 @@ describe('a run', () => {
     expect(stop).toHaveBeenCalledWith({ runId: 'r1' })
   })
 
-  it('opens the failed step of a failed run and offers no Stop', () => {
+  it('opens the failed step of a failed run and offers no Stop @SC-1298', () => {
     data.run = run('failed', [step(0, 'Build', 'passed'), step(1, 'Push', 'failed', 'rejected'), step(2, 'Restart', 'skipped')], { failure: 'the branch has moved on' })
     render(<RunView place={place} workflowId="w1" runId="r1" onBack={vi.fn()} />)
     expect(screen.getByTestId('step-output').textContent).toBe('rejected')
@@ -45,14 +45,14 @@ describe('a run', () => {
     expect(screen.queryByRole('button', { name: 'Stop' })).toBeNull()
   })
 
-  it('reads the run again when the socket says it changed', () => {
+  it('reads the run again when the socket says it changed @SC-1298', () => {
     data.run = run('running', [step(0, 'Build', 'running')])
     render(<RunView place={place} workflowId="w1" runId="r1" onBack={vi.fn()} />)
     live.onChange?.()
     expect(refetch).toHaveBeenCalled()
   })
 
-  it('names a secret the scan found, for the people of the place', () => {
+  it('names a secret the scan found, for the people of the place @SC-1297', () => {
     data.run = run('failed', [step(0, 'Build', 'passed')], { leaks: [{ path: 'out.txt', secretName: 'KEY' }] })
     render(<RunView place={place} workflowId="w1" runId="r1" onBack={vi.fn()} />)
     expect(screen.getByTestId('run-leaks').textContent).toContain('out.txt (KEY)')

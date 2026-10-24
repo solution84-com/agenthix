@@ -10,7 +10,7 @@ const result = {
   printedSecretNames: ['KEY', 'KEY'], leaks: [{ path: 'a.txt', secretName: 'KEY' }], writeBack: null,
 }
 
-describe('a step event off the wire', () => {
+describe('a step event off the wire @SC-1295', () => {
   it('keeps a well-formed one', () => {
     expect(parseStepEvent(step)).toEqual(step)
   })
@@ -32,7 +32,7 @@ describe('a step event off the wire', () => {
   })
 })
 
-describe('a run result off the wire', () => {
+describe('a run result off the wire @SC-1295', () => {
   it('keeps a well-formed one, each printed secret once', () => {
     expect(parseRunResult(result)).toEqual({ ...result, printedSecretNames: ['KEY'] })
   })

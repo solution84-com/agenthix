@@ -12,7 +12,7 @@ const run = (state: string, steps: ReturnType<typeof step>[], over: Record<strin
   id: 'r1', workflowId: 'w1', state, startedAt: at('10:00:00'), endedAt: null, workflow: { name: 'deploy' }, steps, ...over,
 })
 
-describe('a run\'s card in the conversation', () => {
+describe('a run\'s card in the conversation @SC-1299', () => {
   it('says the step a running run is on, of how many', () => {
     const c = runCard(run('RUNNING', [step(0, 'Build', 'PASSED'), step(1, 'Test', 'RUNNING'), step(2, 'Ship', 'WAITING')]))
     expect(c).toMatchObject({ state: 'running', stepNumber: 2, stepCount: 3, stepName: 'Test', failedStep: null, lastLine: null })

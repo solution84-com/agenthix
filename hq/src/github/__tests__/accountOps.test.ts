@@ -29,7 +29,7 @@ beforeEach(() => {
   m.accountsForPlace.mockResolvedValue({ accounts: [{ id: 'i1' }], defaultId: null })
 })
 
-describe('who may decide', () => {
+describe('who may decide @SC-1309', () => {
   it('only an organisation administrator allows an account', async () => {
     m.requireRole.mockRejectedValue(new Error('no'))
     await expect(allowGitHubAccount({ id: 'i1', projectRule: 'EVERY_PROJECT' }, ctx)).rejects.toThrow()
@@ -45,7 +45,7 @@ describe('who may decide', () => {
   })
 })
 
-describe('a project\'s default account', () => {
+describe('a project\'s default account @SC-1313', () => {
   it('is set by a project administrator, from accounts the project may connect to', async () => {
     await setProjectGitHubDefault({ projectId: 'p1', installationId: 'i1' }, ctx)
     expect(m.projectUpdate).toHaveBeenCalledWith({ where: { id: 'p1' }, data: { defaultGitHubInstallationId: 'i1' } })

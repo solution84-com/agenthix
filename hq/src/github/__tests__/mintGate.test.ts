@@ -60,7 +60,7 @@ const ask = (over: Partial<Parameters<typeof mintForLocation>[0]> = {}) => ({
   permissions: { contents: 'write' as const }, ...over,
 })
 
-describe('the mint gate refuses @A17', () => {
+describe('the mint gate refuses @A17 @SC-1305', () => {
   it.each([
     ['no permissions', {}],
     ['a null set', null],
@@ -153,7 +153,7 @@ describe('the mint gate refuses @A17', () => {
   })
 })
 
-describe('the token the gate mints', () => {
+describe('the token the gate mints @SC-1306', () => {
   it('is for the workspace\'s repository by id, with exactly the permissions asked for', async () => {
     const t = await mintForLocation(ask({ permissions: { contents: 'write', pull_requests: 'read' } }), deps)
     expect(asks).toEqual([{ installationId: 101, permissions: { contents: 'write', pull_requests: 'read' }, repositoryIds: [5001] }])
@@ -176,7 +176,7 @@ describe('the token the gate mints', () => {
   })
 })
 
-describe('requirePermissions', () => {
+describe('requirePermissions @SC-1306', () => {
   it('keeps the set as given', () => {
     expect(requirePermissions({ contents: 'read', metadata: 'read' })).toEqual({ contents: 'read', metadata: 'read' })
   })

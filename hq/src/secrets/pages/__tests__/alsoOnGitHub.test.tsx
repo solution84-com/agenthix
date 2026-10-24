@@ -33,7 +33,7 @@ beforeEach(() => {
   actions.addPlaceSecret.mockResolvedValue({ name: 'STAGING_DEPLOY_KEY', github: { workflow: 'set-github-secrets', proposed: true, version: 3 } })
 })
 
-describe('Also set it on GitHub', () => {
+describe('Also set it on GitHub @SC-1325', () => {
   it('is ticked off by default, and says where the secret will go', () => {
     fill()
     const box = screen.getByRole('checkbox', { name: /Also set it on GitHub/ }) as HTMLInputElement

@@ -19,19 +19,19 @@ import { WORKFLOW_TOOL_OPERATIONS } from '../agentTools'
 import { WORKFLOW_TOOL_SCHEMAS } from '../agentToolsSchemas'
 
 describe("the agent's workflow tools", () => {
-  it('are exactly the four core declares, with a schema each', () => {
+  it('are exactly the four core declares, with a schema each @SC-1300', () => {
     const names = Object.values(WORKFLOW_TOOL_NAMES).sort()
     expect(Object.keys(WORKFLOW_TOOL_OPERATIONS).sort()).toEqual(names)
     expect(WORKFLOW_TOOL_SCHEMAS.map((s) => s.name).sort()).toEqual(names)
   })
 
-  it('reach neither approving nor switching', () => {
+  it('reach neither approving nor switching @SC-1280', () => {
     const source = readFileSync(path.resolve(__dirname, '../agentTools.ts'), 'utf8')
     expect(source).not.toMatch(/from '\.\/(approve|switch|actions)'/)
     expect(source).not.toMatch(/approveWorkflowVersion|declineWorkflowVersion|setWorkflowEnabled|turnOffWorkflows/)
   })
 
-  it('refuse a caller that is not an agent run', async () => {
+  it('refuse a caller that is not an agent run @SC-1301', async () => {
     await expect(WORKFLOW_TOOL_OPERATIONS.run_workflow({ kind: 'connection' } as any, { name: 'push', runId: 'r' }))
       .rejects.toMatchObject({ code: 'forbidden' })
   })

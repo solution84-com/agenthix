@@ -9,7 +9,7 @@ import { requestInstallationToken, revokeInstallationToken, tokenRequestBody, Gi
 
 afterEach(() => vi.unstubAllGlobals())
 
-describe('the mint request', () => {
+describe('the mint request @SC-1306', () => {
   it('always names its permissions, and scopes by id', () => {
     expect(tokenRequestBody({ installationId: 1, permissions: { contents: 'write' }, repositoryIds: [42] }))
       .toEqual({ permissions: { contents: 'write' }, repository_ids: [42] })
@@ -33,7 +33,7 @@ describe('the mint request', () => {
   })
 })
 
-describe('revoking', () => {
+describe('revoking @SC-1306', () => {
   it.each([[204, true], [401, true], [500, false]])('answers %i as ended: %s', async (status, ended) => {
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status }))
     vi.stubGlobal('fetch', fetchMock)
@@ -53,7 +53,7 @@ function sources(dir: string): string[] {
   })
 }
 
-describe('the one place hq asks GitHub for an installation token', () => {
+describe('the one place hq asks GitHub for an installation token @SC-1306', () => {
   it('is installationTokens.ts, reached only from the mint gate', () => {
     const files = sources(SRC)
     expect(files.length).toBeGreaterThan(100)

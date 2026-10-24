@@ -11,7 +11,7 @@ function dockerInspecting(image: unknown) {
   }
 }
 
-describe('the executor image in the health report', () => {
+describe('the executor image in the health report @SC-1356', () => {
   afterEach(() => { delete process.env.APP_VERSION })
 
   it('reports the published digest of its repository, the release and the tools key', async () => {

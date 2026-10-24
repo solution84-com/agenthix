@@ -40,7 +40,7 @@ beforeEach(() => {
 })
 afterEach(() => useSecretsDb(null))
 
-describe('turnOffWhatUses', () => {
+describe('turnOffWhatUses @SC-1334', () => {
   it('switches off every switched-on workflow that names it, and records it', async () => {
     const r = await turnOffWhatUses(P, 'admin-1', 'secret', 'KEY')
     expect(switched.calls).toEqual([{ ids: ['w1', 'w2'], reason: 'the secret KEY was turned off', by: 'admin-1' }])

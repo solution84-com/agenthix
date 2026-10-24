@@ -23,7 +23,7 @@ beforeEach(() => {
   db.install.findUnique.mockResolvedValue({ id: 'i1', state: 'WANTS_TO_CONNECT', accountLogin: 'north-ltd', projectRule: 'CHOSEN_PROJECTS', projects: [], people: [] })
 })
 
-describe('allowing and ignoring a new installation @A15', () => {
+describe('allowing and ignoring a new installation @A15 @SC-1310', () => {
   it('allow records who, the rule and the chosen places; people none by default', async () => {
     db.project.count.mockResolvedValue(2)
     await allowAccount('i1', 'admin1', { projectRule: 'CHOSEN_PROJECTS', projectIds: ['p1', 'p2', 'p1'] })
@@ -63,7 +63,7 @@ describe('allowing and ignoring a new installation @A15', () => {
   })
 })
 
-describe('changing the rule', () => {
+describe('changing the rule @SC-1310', () => {
   it('needs the account to be allowed first', async () => {
     await expect(changeAccountRule('i1', 'a', { projectRule: 'EVERY_PROJECT' })).rejects.toThrow(/allow it first/)
   })

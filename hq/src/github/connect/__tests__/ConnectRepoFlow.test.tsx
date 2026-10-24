@@ -40,7 +40,7 @@ const settle = async () => { await act(async () => { await vi.advanceTimersByTim
 const renderFlow = () => render(<MemoryRouter><ConnectRepoFlow target={target} defaultName="docs-site" /></MemoryRouter>)
 
 describe('the connect flow', () => {
-  it("offers a person's own space the accounts chosen for them, and picks one when there is a choice", async () => {
+  it("offers a person's own space the accounts chosen for them, and picks one when there is a choice @SC-1314", async () => {
     const own = { ownerType: 'user' as const, ownerId: 'u1', workspaceId: 'w2' }
     data.getMyGitHubAccounts = { defaultId: null, accounts: accounts.accounts }
     ops.checkConnect.mockResolvedValue(ok)
@@ -53,7 +53,7 @@ describe('the connect flow', () => {
   })
 
 
-  it('starts at the project\'s default account and checks the name as it is typed', async () => {
+  it('starts at the project\'s default account and checks the name as it is typed @SC-1314 @SC-1315', async () => {
     ops.checkConnect.mockResolvedValue(ok)
     renderFlow()
     expect((screen.getByLabelText('GitHub account') as HTMLSelectElement).value).toBe('acme-tests-id')
@@ -63,7 +63,7 @@ describe('the connect flow', () => {
     expect((screen.getByRole('button', { name: 'Create and connect' }) as HTMLButtonElement).disabled).toBe(false)
   })
 
-  it('says how to fix a selected-repositories account, and does not allow creating', async () => {
+  it('says how to fix a selected-repositories account, and does not allow creating @SC-1315', async () => {
     ops.checkConnect.mockResolvedValue({ ok: false, account: { id: 'archive-id', login: 'acme-archive' }, useExisting: null,
       problem: { kind: 'selected_repositories', words: 'acme-archive gives the App only the repositories selected on GitHub. Nothing was changed.' } })
     renderFlow()
@@ -74,7 +74,7 @@ describe('the connect flow', () => {
     expect(screen.getByRole('button', { name: 'Connect an existing repository instead' })).toBeTruthy()
   })
 
-  it('offers the existing repository when the name is taken', async () => {
+  it('offers the existing repository when the name is taken @SC-1315', async () => {
     ops.checkConnect.mockResolvedValue({ ok: false, account: { id: 'acme-tests-id', login: 'acme-tests' }, problem: { kind: 'name_taken', words: 'acme-tests/docs-site already exists on GitHub. Nothing was changed.' }, useExisting: { repoUrl: 'https://github.com/acme-tests/docs-site' } })
     renderFlow()
     await settle()
@@ -83,7 +83,7 @@ describe('the connect flow', () => {
     expect((screen.getByPlaceholderText('https://github.com/org/repo') as HTMLInputElement).value).toBe('https://github.com/acme-tests/docs-site')
   })
 
-  it('connects, then shows the starter workflows waiting', async () => {
+  it('connects, then shows the starter workflows waiting @SC-1318', async () => {
     ops.checkConnect.mockResolvedValue(ok)
     ops.connectRepo.mockResolvedValue({ repoUrl: 'https://github.com/acme-tests/docs-site', starters: { problem: null, proposed: [
       { workflow: 'push', proposed: true, version: 1 }, { workflow: 'pull', proposed: true, version: 1 }, { workflow: 'open-pull-request', proposed: true, version: 1 },
@@ -104,7 +104,7 @@ describe('the connect flow', () => {
     expect(screen.getByTestId('starters-panel').textContent).toContain('Needs its full review')
   })
 
-  it('shows a refusal in words and keeps the form', async () => {
+  it('shows a refusal in words and keeps the form @SC-1315', async () => {
     ops.checkConnect.mockResolvedValue(ok)
     ops.connectRepo.mockRejectedValue(new Error('GitHub refused. Nothing was changed.'))
     renderFlow()

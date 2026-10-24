@@ -7,7 +7,7 @@ import { AGENT_REFUSAL, requireMayAdministerPlace, type WorkflowActor } from '..
 const agent: WorkflowActor = { kind: 'agent', agentId: 'agent-1', agentRunId: 'run-1', onBehalfOfUserId: 'user-1' }
 const HASH = 'a'.repeat(64)
 
-describe('an agent never approves, declines or switches', () => {
+describe('an agent never approves, declines or switches @SC-1280', () => {
   it('is refused approving', async () => {
     await expect(approveWorkflowVersion({ workflowId: 'w', hash: HASH, via: 'card' }, agent)).rejects.toMatchObject({ statusCode: 403, message: AGENT_REFUSAL })
   })

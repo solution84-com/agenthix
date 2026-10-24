@@ -42,7 +42,7 @@ beforeEach(() => {
   }
 })
 
-describe('checking a new repository', () => {
+describe('checking a new repository @SC-1315', () => {
   it('passes for an organisation on all repositories with a free name, and ends its token', async () => {
     const res = await checkConnect(ask, deps)
     expect(res).toEqual({ ok: true, account: { id: 'row1', login: 'acme' }, problem: null, useExisting: null })
@@ -94,7 +94,7 @@ describe('checking a new repository', () => {
   })
 })
 
-describe('checking an existing repository', () => {
+describe('checking an existing repository @SC-1315', () => {
   const existing = { ...ask, kind: 'existing' as const, repoUrl: 'https://github.com/acme/store' }
 
   it('chooses the account of the address\'s owner, and passes when the account reaches it', async () => {
@@ -117,7 +117,7 @@ describe('checking an existing repository', () => {
   })
 })
 
-describe('undoing a repository that was created', () => {
+describe('undoing a repository that was created @SC-1316', () => {
   let nd: NewRepositoryDeps
   beforeEach(() => {
     nd = {

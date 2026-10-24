@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { encryptBytesBound, decryptBytesBound } from '../secretCrypto'
 
-describe('secretCrypto, bound to associated data', () => {
+describe('secretCrypto, bound to associated data @SC-1326', () => {
   beforeAll(() => {
     process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 7).toString('base64')
   })

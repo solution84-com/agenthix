@@ -35,7 +35,7 @@ const hex = (b: Uint8Array) => [...b].map(x => x.toString(16).padStart(2, '0')).
 const u64 = (n: number) => n.toString(16).padStart(16, '0')
 const s = (v: string) => `73${u64(v.length)}${hex(text(v))}`
 
-describe('the version hash', () => {
+describe('the version hash @SC-1363', () => {
   // Both vectors were also computed by a separate encoder written from the description in versionHash.ts.
   it('is pinned by its test vectors: a change to the encoding is a new format, never an edit', async () => {
     expect(await hashWorkflowVersion(minimal())).toBe('0d82792ae7290de8061265853b2affb1c346463c4fa74218f5679c3facb72037')

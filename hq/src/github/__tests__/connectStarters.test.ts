@@ -7,7 +7,7 @@ import type { StarterProposal } from '../../workflows/starters/propose'
 
 const PLACE = { type: 'project' as const, id: 'p1' }
 
-describe('proposing the starter workflows on connecting', () => {
+describe('proposing the starter workflows on connecting @SC-1318', () => {
   it('answers which versions now wait', async () => {
     const waiting: StarterProposal[] = [{ workflow: 'push', proposed: true, version: 1 }, { workflow: 'pull', proposed: true, version: 1 }]
     const propose = vi.fn(async () => waiting)

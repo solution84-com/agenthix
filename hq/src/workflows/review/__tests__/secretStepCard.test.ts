@@ -56,7 +56,7 @@ beforeEach(() => {
   db.approved = row('v1', 1, v1, 'APPROVED')
 })
 
-describe('A4: a version whose secret step changes is never card-approvable', () => {
+describe('A4: a version whose secret step changes is never card-approvable @SC-1284', () => {
   it.each(CHANGES)('when %s, with no flag raised at all', (_what, v2) => {
     expect(cardDecision(v2, v1, [])).toMatchObject({ mayApprove: false })
   })

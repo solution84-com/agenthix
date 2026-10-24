@@ -15,7 +15,7 @@ const spec = (over: Partial<StepContainerSpec> = {}): StepContainerSpec => ({
 
 const pair = (args: string[], flag: string) => args.flatMap((a, i) => (a === flag ? [args[i + 1]] : []))
 
-describe('how an executor container is started', () => {
+describe('how an executor container is started @SC-1342', () => {
   const { args, clientEnv } = buildStepRunCommand(spec())
 
   it('has every setting the spec lists', () => {
@@ -69,7 +69,7 @@ describe('how an executor container is started', () => {
   })
 })
 
-describe('the values archive', () => {
+describe('the values archive @SC-1342', () => {
   it('holds each secret and parameter as a read-only file, and no value is on the command line', () => {
     const tar = valuesArchive({ STAGING_DEPLOY_KEY: Buffer.from(CANARY) }, { ref: 'main' })
     expect(tar.length % 512).toBe(0)
@@ -86,7 +86,7 @@ describe('the values archive', () => {
   })
 })
 
-describe('a step\'s command', () => {
+describe('a step\'s command @SC-1342', () => {
   it('runs the version\'s own file from /run/workflow', () => {
     const files = new Set(['deploy/upload.sh'])
     expect(commandForStep('./deploy/upload.sh --fast', files, 'deploy/upload.sh')).toBe('/run/workflow/deploy/upload.sh --fast')

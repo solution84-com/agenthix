@@ -38,7 +38,7 @@ async function refusal(p: Promise<unknown>): Promise<SecretsRefusal> {
   return err as SecretsRefusal
 }
 
-describe('variables', () => {
+describe('variables @SC-1332', () => {
   it('keeps every change old → new, with who', async () => {
     await addVariable(P, ADMIN, 'STAGING_HOST', 'staging.example.com')
     await editVariable(P, ADMIN, 'STAGING_HOST', 'staging2.example.com')

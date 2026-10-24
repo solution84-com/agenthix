@@ -84,7 +84,7 @@ async function presented(versionId: string, answer = LOW) {
   return prisma.operation.findFirstOrThrow({ where: { conversationId, toolName: WORKFLOW_APPROVAL_TOOL } })
 }
 
-describe('at proposal', () => {
+describe('at proposal @SC-1286', () => {
   it('stores the plain checks\' flags, summary and card rule, and answers the flags', async () => {
     const { result, versionId } = await propose({ name: 'deploy', steps: [{ name: 'Go', run: 'rm -rf build && ls /run/secrets/KEY', secrets: ['KEY'] }] })
     const v = await prisma.workflowVersion.findUniqueOrThrow({ where: { id: versionId } })
@@ -95,7 +95,7 @@ describe('at proposal', () => {
   })
 })
 
-describe('the reviewer and the card', () => {
+describe('the reviewer and the card @SC-1286', () => {
   it('stores the reviewer\'s level and writes the card in the proposing run\'s conversation', async () => {
     const { versionId } = await propose({ name: 'tidy', steps: [{ name: 'Go', run: 'ls' }] })
     const op = await presented(versionId)

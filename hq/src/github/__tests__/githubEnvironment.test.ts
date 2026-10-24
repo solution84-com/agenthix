@@ -30,7 +30,7 @@ function github(get: { status: number; body?: unknown }, put: { status: number; 
   return { deps, requests }
 }
 
-describe('the environment set-github-secrets sets its secrets on', () => {
+describe('the environment set-github-secrets sets its secrets on @SC-1324', () => {
   it('is used as it is when it admits only protected branches, read with actions: read', async () => {
     const { deps, requests } = github({ status: 200, body: PROTECTED })
     expect(await ensureProtectedEnvironment(LOC, 'production', deps)).toBe('ready')

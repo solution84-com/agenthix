@@ -17,7 +17,7 @@ async function maskAll(text: string | Buffer, mat = material({ DEPLOY_KEY: CANAR
   return { out: Buffer.concat(parts).toString('latin1'), printed: m.printed() }
 }
 
-describe('WindowHasher', () => {
+describe('WindowHasher @SC-1350', () => {
   it('gives HMAC-SHA-256 for every window length, up to several blocks', async () => {
     const key = randomBytes(32)
     const data = randomBytes(400)
@@ -43,7 +43,7 @@ describe('WindowHasher', () => {
   })
 })
 
-describe('createFormMasker', () => {
+describe('createFormMasker @SC-1350', () => {
   it('masks the value as it is, and names it', async () => {
     const r = await maskAll(`deploying with ${CANARY} now\n`)
     expect(r.out).toBe('deploying with *** now\n')
@@ -186,7 +186,7 @@ describe('createFormMasker', () => {
   }, 120_000)
 })
 
-describe('createFormMasker with tags', () => {
+describe('createFormMasker with tags @SC-1350', () => {
   const ten = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`S${i}`, `canary-${i}-${'q'.repeat(3 + 5 * i)}-tail`]))
 
   it('tags raw forms in the material it is given', () => {

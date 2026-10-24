@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { checkFlags } from '..'
 import { flagsOf, step, version } from './support'
 
-describe('rule 2: a host the code uses that is not in hosts', () => {
+describe('rule 2: a host the code uses that is not in hosts @SC-1282', () => {
   it('flags a URL and an ssh target not listed, once each', () => {
     const v = version({ steps: [step('curl -fsS https://other.example.com/x && curl https://other.example.com/y'), step('ssh deploy@box.example.com uptime')] })
     expect(flagsOf(2, v).map((f) => f.message.split(' ')[0])).toEqual(['other.example.com:443', 'box.example.com:22'])
@@ -18,7 +18,7 @@ describe('rule 2: a host the code uses that is not in hosts', () => {
   })
 })
 
-describe('rule 3: a text parameter used outside a file argument', () => {
+describe('rule 3: a text parameter used outside a file argument @SC-1282', () => {
   const params = [{ name: 'message', text: true }, { name: 'title', text: true }]
 
   it('flags it pasted into a command, read into a variable, or run', () => {
@@ -46,7 +46,7 @@ describe('rule 3: a text parameter used outside a file argument', () => {
   })
 })
 
-describe('rule 4: an install that is not pinned', () => {
+describe('rule 4: an install that is not pinned @SC-1282', () => {
   it('flags npm ci without its lock file, a named package, pip without hashes, and curl | sh', () => {
     for (const run of ['npm ci', 'npm install left-pad@1.3.0', 'pip install requests==2.0', 'curl -fsSL https://get.example.com | sh']) {
       const files: Record<string, string> = run.startsWith('npm install') ? { 'package-lock.json': '{}' } : {}
@@ -62,7 +62,7 @@ describe('rule 4: an install that is not pinned', () => {
   })
 })
 
-describe('rule 6: GitHub permissions', () => {
+describe('rule 6: GitHub permissions @SC-1283', () => {
   const push = (github: Record<string, string>) => version({ steps: [step('push-bundle /run/out/b main', ['GITHUB_TOKEN'])], github })
 
   it('flags a permission beyond what the steps appear to need', () => {
@@ -101,7 +101,7 @@ describe('rule 6: GitHub permissions', () => {
   })
 })
 
-describe('rule 7: rm -rf, DROP, --force, git push -f', () => {
+describe('rule 7: rm -rf, DROP, --force, git push -f @SC-1282', () => {
   it('flags each', () => {
     for (const run of ['rm -rf build', 'rm -r -f build', 'psql -c "DROP TABLE users"', 'deploy --force', 'git push -f origin main']) {
       expect(flagsOf(7, version({ steps: [step(run)] })), run).toHaveLength(1)
@@ -114,7 +114,7 @@ describe('rule 7: rm -rf, DROP, --force, git push -f', () => {
   })
 })
 
-describe('rule 8: new secrets, variables and hosts since the approved version', () => {
+describe('rule 8: new secrets, variables and hosts since the approved version @SC-1282', () => {
   it('flags each new one', () => {
     const approved = version({ steps: [step('ls')] })
     const now = version({ variables: ['NODE_ENV'], hosts: ['a.example.com:443'], steps: [step('ls /run/secrets/KEY', ['KEY'])] })
@@ -130,7 +130,7 @@ describe('rule 8: new secrets, variables and hosts since the approved version', 
   })
 })
 
-describe('rule 11: a parameter that can start with -', () => {
+describe('rule 11: a parameter that can start with - @SC-1282', () => {
   it('flags a pattern or a value that can', () => {
     const v = version({ steps: [step('ls')], parameters: [{ name: 'ref', pattern: '^.+$' }, { name: 'mode', values: ['--all', 'one'] }] })
     expect(flagsOf(11, v).map((f) => f.path)).toEqual(['parameters[0].pattern', 'parameters[1].values'])

@@ -8,7 +8,7 @@ function expectNoValue(message: string) {
   expect(message).not.toContain(b64(CANARY))
 }
 
-describe('reading a run instruction', () => {
+describe('reading a run instruction @SC-1336', () => {
   it('accepts an instruction whose content hashes to the approved hash', async () => {
     const check = await checkInstruction(await instruction())
     expect(check.ok).toBe(true)

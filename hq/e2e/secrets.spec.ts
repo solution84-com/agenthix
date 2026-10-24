@@ -15,7 +15,7 @@ test.describe('Secrets and variables on a wide window', () => {
     await signIn(page, ADMIN)
   })
 
-  test('the panel has the entry, and it opens the section', async ({ page }) => {
+  test('the panel has the entry, and it opens the section @SC-1335', async ({ page }) => {
     await page.goto('/space')
     await sections(page).getByRole('link', { name: /^Secrets and variables/ }).click()
     await expect(page).toHaveURL(at('/space?tool=secrets'))
@@ -24,20 +24,20 @@ test.describe('Secrets and variables on a wide window', () => {
     await expect(page.getByRole('tab', { name: /^Variables/ })).toBeVisible()
   })
 
-  test('the rotation notice’s address opens the section', async ({ page }) => {
+  test('the rotation notice’s address opens the section @SC-1331', async ({ page }) => {
     await page.goto('/space/secrets')
     await expect(page).toHaveURL(at('/space?tool=secrets'))
     await expect(page.getByRole('tab', { name: /^Secrets/ })).toBeVisible()
   })
 
-  test('the Variables tab is in the address and has its own add button', async ({ page }) => {
+  test('the Variables tab is in the address and has its own add button @SC-1335', async ({ page }) => {
     await page.goto('/space?tool=secrets')
     await page.getByRole('tab', { name: /^Variables/ }).click()
     await expect(page).toHaveURL(/stab=variables/)
     await expect(page.getByRole('button', { name: 'Add a variable' })).toBeVisible()
   })
 
-  test('Add a secret asks what it is, where to get a new one and the value, and refuses an empty form', async ({ page }) => {
+  test('Add a secret asks what it is, where to get a new one and the value, and refuses an empty form @SC-1335', async ({ page }) => {
     await page.goto('/space?tool=secrets')
     await page.getByRole('button', { name: 'Add a secret' }).click()
     const form = page.getByTestId('add-secret-dialog')
@@ -53,7 +53,7 @@ test.describe('Secrets and variables on a wide window', () => {
   })
 })
 
-test.describe('Secrets and variables on a phone', () => {
+test.describe('Secrets and variables on a phone @SC-1335', () => {
   test.use({ viewport: { width: 375, height: 812 } })
 
   test('the section has no horizontal scroll and the form fits', async ({ page }) => {

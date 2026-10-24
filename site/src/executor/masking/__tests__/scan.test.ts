@@ -49,7 +49,7 @@ async function allFiles(dir: string, prefix = ''): Promise<string[]> {
   return found
 }
 
-describe('scanChanges', () => {
+describe('scanChanges @SC-1352', () => {
   it('finds nothing in clean changes', async () => {
     await write('src/app.ts', 'export const x = 1\n')
     expect(await scan([file('src/app.ts')])).toEqual({ leaks: [] })

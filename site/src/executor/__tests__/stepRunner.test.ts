@@ -64,7 +64,7 @@ function input(spawnDocker: StepRunInput['spawnDocker'], maskers: StepRunInput['
   }
 }
 
-describe('runStepContainer', () => {
+describe('runStepContainer @SC-1351', () => {
   it('masks each stream in order, a secret split across chunks included, and names it', async () => {
     const mat = material({ DEPLOY_KEY: CANARY })
     const docker = fakeDocker([

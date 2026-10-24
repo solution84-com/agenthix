@@ -8,7 +8,7 @@ import { chooseRunWorkspace } from '../runWorkspace'
 const run = { ownerType: 'project' as const, ownerId: 'p1', workspaceId: null }
 const of = (...names: string[]) => ({ workspacesOf: async () => names.map((name, i) => ({ id: `w${i + 1}`, name })) })
 
-describe('the workspace a workflow run acts on', () => {
+describe('the workspace a workflow run acts on @SC-1302', () => {
   it('a named workspace of the place, by name or id', async () => {
     expect(await chooseRunWorkspace(run, 'Demo', of('demo', 'site'))).toEqual({ ...run, workspaceId: 'w1' })
     expect(await chooseRunWorkspace(run, 'w2', of('demo', 'site'))).toEqual({ ...run, workspaceId: 'w2' })

@@ -90,7 +90,7 @@ describe('the thread in blocks @SC-1004', () => {
     expect(shape(items)).toEqual(['msg:NOTICE', 'msg:ACTION'])
   })
 
-  it('puts a finished workflow run where it ended, and leaves one under way to the work bar', () => {
+  it('puts a finished workflow run where it ended, and leaves one under way to the work bar @SC-1299', () => {
     const at = (t: string) => ({ createdAt: `2026-10-17T${t}.000Z` })
     const card = (workflow: string, endedAt: string | null) => ({
       runId: workflow, workflowId: 'w1', workflow, state: endedAt ? 'passed' as const : 'running' as const, stepNumber: null, stepCount: 1,
@@ -103,7 +103,7 @@ describe('the thread in blocks @SC-1004', () => {
     expect(shape(items)).toEqual(['msg:Push it', 'turn:[|Pushing.|]', 'run:push', 'msg:Thanks'])
   })
 
-  it('keeps runs that ended between the same two messages in the order they ended', () => {
+  it('keeps runs that ended between the same two messages in the order they ended @SC-1299', () => {
     const card = (workflow: string, endedAt: string) => ({
       runId: workflow, workflowId: 'w1', workflow, state: 'passed' as const, stepNumber: null, stepCount: 1, stepName: null,
       failedStep: null, lastLine: null, durationMs: 2000, endedAt: new Date(`2026-10-17T${endedAt}.000Z`), href: '/r',

@@ -39,7 +39,7 @@ beforeEach(() => {
   data.detail = { versions: [{ number: 2, origin: 'PROPOSED', proposedByAgentId: null, reviewLevel: 'LOW', checkSummary: 'Adds one step.', needsApprovalAgain: null }] }
 })
 
-describe('the Workflows section', () => {
+describe('the Workflows section @SC-1290', () => {
   it('lists each workflow with its steps and secrets, and the switch shows its state', () => {
     data.place = { mayAdminister: true, mayRun: true, workflows: [workflow(), workflow({ id: 'w2', name: 'backup', enabled: false })] }
     render(<WorkflowsListView place={place} {...handlers} />)

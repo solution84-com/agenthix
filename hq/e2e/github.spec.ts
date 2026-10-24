@@ -17,7 +17,7 @@ test.describe('GitHub on a wide window', () => {
     await signIn(page, ADMIN)
   })
 
-  test('the GitHub page shows the App, or the registration when there is none', async ({ page }) => {
+  test('the GitHub page shows the App, or the registration when there is none @SC-1308', async ({ page }) => {
     await page.goto('/admin/settings/github')
     await expect(page.getByRole('heading', { name: 'GitHub', level: 1 })).toBeVisible()
     const registered = page.getByRole('region', { name: 'The App' })
@@ -31,7 +31,7 @@ test.describe('GitHub on a wide window', () => {
     }
   })
 
-  test('Infrastructure’s GitHub App card links to the page, and the old address lands there', async ({ page }) => {
+  test('Infrastructure’s GitHub App card links to the page, and the old address lands there @SC-1308', async ({ page }) => {
     await page.goto('/admin/infrastructure')
     await page.getByRole('link', { name: /GitHub App/ }).click()
     await expect(page).toHaveURL(at('/admin/settings/github'))
@@ -39,7 +39,7 @@ test.describe('GitHub on a wide window', () => {
     await expect(page).toHaveURL(at('/admin/settings/github'))
   })
 
-  test('a project’s GitHub address opens its GitHub section', async ({ page }) => {
+  test('a project’s GitHub address opens its GitHub section @SC-1313', async ({ page }) => {
     test.skip(!PROJECT_KEY, 'needs a project: set E2E_PROJECT_KEY')
     await page.goto(`/projects/${PROJECT_KEY}/github`)
     await expect(page).toHaveURL(at(`/projects/${PROJECT_KEY}?tool=github`))
@@ -49,7 +49,7 @@ test.describe('GitHub on a wide window', () => {
   })
 })
 
-test.describe('GitHub on a phone', () => {
+test.describe('GitHub on a phone @SC-1308', () => {
   test.use({ viewport: { width: 375, height: 812 } })
 
   test('the GitHub page has no horizontal scroll', async ({ page }) => {

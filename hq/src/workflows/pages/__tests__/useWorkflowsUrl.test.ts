@@ -3,7 +3,7 @@ import { workflowsAddress, workflowsScreenOf } from '../useWorkflowsUrl'
 
 const of = (q: string) => workflowsScreenOf(new URLSearchParams(q))
 
-describe('the Workflows section in the address', () => {
+describe('the Workflows section in the address @SC-1290', () => {
   it('reads each screen', () => {
     expect(of('tool=workflows')).toEqual({ view: 'list' })
     expect(of('tool=workflows&workflow=w1')).toEqual({ view: 'workflow', workflowId: 'w1', tab: 'steps' })

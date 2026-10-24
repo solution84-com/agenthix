@@ -3,7 +3,7 @@ import { releaseLine, upgradeKeepsApproval } from '../imageUpgrade'
 
 const image = (release: string | null, toolsKey: string | null) => ({ digest: `sha256:${'0'.repeat(64)}`, release, toolsKey })
 
-describe('executor image upgrades', () => {
+describe('executor image upgrades @SC-1288', () => {
   it('reads a release line', () => {
     expect(releaseLine('1.4.2')).toBe('1.4')
     expect(releaseLine('v0.1.0-alpha.3')).toBe('0.1')

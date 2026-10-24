@@ -3,7 +3,7 @@ import { flagsOf, step, version } from './support'
 
 const KEY = 'STAGING_DEPLOY_KEY'
 
-describe('rule 1: a secret next to a command that prints, encodes or sends', () => {
+describe('rule 1: a secret next to a command that prints, encodes or sends @SC-1281', () => {
   it('flags echo, base64, curl and cat to output', () => {
     for (const run of [
       `echo "$(cat /run/secrets/${KEY})"`,
@@ -31,7 +31,7 @@ describe('rule 1: a secret next to a command that prints, encodes or sends', () 
   })
 })
 
-describe('rule 5: a secret never read, and installing while holding one', () => {
+describe('rule 5: a secret never read, and installing while holding one @SC-1281', () => {
   it('flags a step given a secret it never reads', () => {
     expect(flagsOf(5, version({ steps: [step('ls', [KEY])] }))).toMatchObject([{ path: 'steps[0].secrets' }])
   })
@@ -59,7 +59,7 @@ describe('rule 5: a secret never read, and installing while holding one', () => 
   })
 })
 
-describe('rule 9: a secret step running workspace code, high', () => {
+describe('rule 9: a secret step running workspace code, high @SC-1281', () => {
   it('flags npm run, node_modules/.bin, dist/ and npx', () => {
     for (const run of ['npm run deploy', 'node_modules/.bin/deploy', 'node dist/deploy.js', 'npx some-tool']) {
       const flags = flagsOf(9, version({ steps: [step(`${run} --key /run/secrets/${KEY}`, [KEY])] }))
@@ -82,7 +82,7 @@ describe('rule 9: a secret step running workspace code, high', () => {
   })
 })
 
-describe('rule 10: a secret step running git in the workspace, high', () => {
+describe('rule 10: a secret step running git in the workspace, high @SC-1281', () => {
   it('flags git push in the working folder', () => {
     const flags = flagsOf(10, version({ steps: [step('git push origin main', ['GITHUB_TOKEN'])], github: { contents: 'write' } }))
     expect(flags).toMatchObject([{ path: 'steps[0].run', high: true }])
@@ -104,7 +104,7 @@ describe('rule 10: a secret step running git in the workspace, high', () => {
   })
 })
 
-describe('rule 12: a secret step handing files on through /run/out', () => {
+describe('rule 12: a secret step handing files on through /run/out @SC-1281', () => {
   it('flags the hand-on, high when a later step reads it and the workflow has hosts', () => {
     const steps = [step(`fetch-it --key /run/secrets/${KEY} > /run/out/data`, [KEY]), step('upload /run/out/data')]
     const quiet = flagsOf(12, version({ steps }))

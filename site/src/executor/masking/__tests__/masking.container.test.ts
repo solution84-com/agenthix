@@ -78,7 +78,7 @@ describe.skipIf(!IMAGE_ID)('masking and the scan, in real containers', () => {
     await fs.rm(siteRoot, { recursive: true, force: true })
   })
 
-  it('masks a secret printed in every form, and another secret of the place the run was not given (A1)', async () => {
+  it('masks a secret printed in every form, and another secret of the place the run was not given (A1) @SC-1350', async () => {
     const d = definition({
       files: [],
       steps: [
@@ -103,7 +103,7 @@ describe.skipIf(!IMAGE_ID)('masking and the scan, in real containers', () => {
     expect(JSON.stringify(r)).not.toContain(CANARY_B)
   })
 
-  it('drops every change when a step commits a secret, and finds it in git\'s objects and in /run/out (A5)', async () => {
+  it('drops every change when a step commits a secret, and finds it in git\'s objects and in /run/out (A5) @SC-1352', async () => {
     const d = definition({
       files: [],
       steps: [

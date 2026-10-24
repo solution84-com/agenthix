@@ -52,7 +52,7 @@ async function projectWithAdmin() {
   return { place: { type: 'project' as const, id: project.id }, admin, project }
 }
 
-describe('who may do what in a place', () => {
+describe('who may do what in a place @SC-1276', () => {
   it('a project\'s admins administer, members work, viewers read, others nothing; an org admin gets nothing from that', async () => {
     const { place, admin, project } = await projectWithAdmin()
     const member = await createUser()
@@ -74,7 +74,7 @@ describe('who may do what in a place', () => {
   })
 })
 
-describe('proposals', () => {
+describe('proposals @SC-1277', () => {
   it('stores the next version with its proposer, and answers the same waiting version for the same content', async () => {
     const { place } = await projectWithAdmin()
     const first = await propose(place, deploy())
@@ -87,7 +87,7 @@ describe('proposals', () => {
 })
 
 describe('approving', () => {
-  it('records (workflow, place, hash, who, when) and turns the workflow on with its first approval', async () => {
+  it('records (workflow, place, hash, who, when) and turns the workflow on with its first approval @SC-1278', async () => {
     const { place, admin } = await projectWithAdmin()
     const v1 = await propose(place, deploy())
     await expect(approveWorkflowVersion({ workflowId: v1.workflowId, hash: v1.hash, via: 'review' }, { kind: 'person', userId: admin.id }))
@@ -96,7 +96,7 @@ describe('approving', () => {
     expect(approval).toMatchObject({ placeType: 'project', placeId: place.id, hash: v1.hash, approvedById: admin.id, automatic: false })
   })
 
-  it('refuses a member who isn\'t an admin', async () => {
+  it('refuses a member who isn\'t an admin @SC-1278', async () => {
     const { place, project } = await projectWithAdmin()
     const member = await createUser()
     await joinProjectAs(project.id, member.id, 'MEMBER')
@@ -105,7 +105,7 @@ describe('approving', () => {
       .rejects.toMatchObject({ statusCode: 403 })
   })
 
-  it('approves per place: the same content in another project waits for that project', async () => {
+  it('approves per place: the same content in another project waits for that project @SC-1278', async () => {
     const a = await projectWithAdmin()
     const b = await projectWithAdmin()
     const va = await propose(a.place, deploy())
@@ -117,7 +117,7 @@ describe('approving', () => {
       .rejects.toMatchObject({ statusCode: 403 })
   })
 
-  it('a newer approval supersedes the old; a waiting version never stops the approved one', async () => {
+  it('a newer approval supersedes the old; a waiting version never stops the approved one @SC-1278', async () => {
     const { place, admin } = await projectWithAdmin()
     const by = { kind: 'person' as const, userId: admin.id }
     const v1 = await propose(place, deploy())
@@ -129,7 +129,7 @@ describe('approving', () => {
     expect(states.map((s) => s.state)).toEqual(['SUPERSEDED', 'APPROVED'])
   })
 
-  it('declines by hash, and a declined version can\'t then be approved', async () => {
+  it('declines by hash, and a declined version can\'t then be approved @SC-1278', async () => {
     const { place, admin } = await projectWithAdmin()
     const by = { kind: 'person' as const, userId: admin.id }
     const v1 = await propose(place, deploy())
@@ -138,7 +138,7 @@ describe('approving', () => {
     expect((await prisma.workflowVersion.findFirstOrThrow({ where: { hash: v1.hash, workflowId: v1.workflowId } })).declinedById).toBe(admin.id)
   })
 
-  it('in own storage, wider GitHub permissions need an organisation administrator', async () => {
+  it('in own storage, wider GitHub permissions need an organisation administrator @SC-1279', async () => {
     const person = await createUserWithRole('MEMBER')
     const place = { type: 'user' as const, id: person.id }
     const wide = await propose(place, { name: 'gh', steps: [{ name: 'S', run: 'true', secrets: ['GITHUB_TOKEN'] }], github: { workflows: 'write' } })
@@ -150,7 +150,7 @@ describe('approving', () => {
   })
 })
 
-describe('on and off', () => {
+describe('on and off @SC-1287', () => {
   it('turns off, stops runs in progress through the site, and turns on again without a new approval', async () => {
     const { place, admin } = await projectWithAdmin()
     const by = { kind: 'person' as const, userId: admin.id }
@@ -178,7 +178,7 @@ describe('on and off', () => {
   })
 })
 
-describe('image upgrades', () => {
+describe('image upgrades @SC-1288', () => {
   it('keeps the approval with the same tools stage, and otherwise waits while the old version stays approved', async () => {
     const { place, admin } = await projectWithAdmin()
     const v1 = await propose(place, deploy())

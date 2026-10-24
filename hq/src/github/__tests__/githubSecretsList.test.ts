@@ -5,7 +5,7 @@ vi.mock('../repoApi', () => ({ withRepoApi: vi.fn() }))
 
 import { ENVIRONMENT_SECRET_NOTE, REPOSITORY_SECRET_NOTE, markSecrets } from '../githubSecrets'
 
-describe('secrets on GitHub, by name', () => {
+describe('secrets on GitHub, by name @SC-1322', () => {
   it('lists every repository secret as outside HQ, and an environment secret as from Secrets only when the approved version sets it', () => {
     const items = markSecrets(
       { secrets: [{ name: 'LEGACY_TOKEN', updated_at: '2026-10-01T00:00:00Z' }] },

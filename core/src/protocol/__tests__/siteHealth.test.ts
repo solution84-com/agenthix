@@ -89,7 +89,7 @@ describe('the memory condition', () => {
   })
 })
 
-describe('the executor image a site reports', () => {
+describe('the executor image a site reports @SC-1366', () => {
   const digest = `sha256:${'a'.repeat(64)}`
   const image = { name: 'agenthix-executor', present: true, digest, release: '0.4.0', toolsKey: 'k1' }
 

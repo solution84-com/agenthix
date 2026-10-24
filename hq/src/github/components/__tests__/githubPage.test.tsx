@@ -30,7 +30,7 @@ beforeEach(() => {
   queries.getOrgPeople = { people: [{ person: { userId: 'u1', name: 'Sam', state: 'active' } }] }
 })
 
-describe('the accounts section', () => {
+describe('the accounts section @SC-1309', () => {
   it('shows what an account can reach, whether it accepted the latest permissions, and who can connect', () => {
     render(<AccountsSection data={data([
       row({}),
@@ -97,7 +97,7 @@ describe('the accounts section', () => {
   })
 })
 
-describe('the App section', () => {
+describe('the App section @SC-1308', () => {
   it('lists the real permissions with what uses each, and links to change them on GitHub', () => {
     render(<AppSection slug="agenthix-1" permissions={{ contents: 'write', pull_requests: 'write' }} settingsUrl="https://github.com/settings/apps/agenthix-1/permissions" onChanged={vi.fn()} />)
     const list = screen.getByRole('list', { name: "The App's permissions" })

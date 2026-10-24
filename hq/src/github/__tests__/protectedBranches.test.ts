@@ -37,7 +37,7 @@ function github(answers: { branch: Answer; rules?: Answer; patterns?: string[] |
   return { deps, calls }
 }
 
-describe('a protected target branch is refused', () => {
+describe('a protected target branch is refused @SC-1323', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('passes an unprotected branch, reading it with only what it needs, and ends the token', async () => {
@@ -95,7 +95,7 @@ describe('a protected target branch is refused', () => {
   })
 })
 
-describe('protection patterns, read widely', () => {
+describe('protection patterns, read widely @SC-1323', () => {
   it.each([
     ['main', 'main', true],
     ['main', 'mainline', false],

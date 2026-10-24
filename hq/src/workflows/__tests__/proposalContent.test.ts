@@ -58,7 +58,7 @@ const workspaceFiles = (definition: unknown = DEFINITION): Record<string, Entry>
   '.workflows/deploy/package-lock.json': { text: '{}' },
 })
 
-describe('reading a proposal', () => {
+describe('reading a proposal @SC-1277', () => {
   it('reads the definition and the files it names relative to its folder, and hashes them with the image digest', async () => {
     const site = standInSite(workspaceFiles())
     const read = await readProposal('site-1', WS, './.workflows/deploy/workflow.yaml', sources(site))

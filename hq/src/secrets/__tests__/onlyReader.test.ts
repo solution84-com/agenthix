@@ -24,7 +24,7 @@ function sources(dir: string): string[] {
 
 const files = sources(SRC).map(f => ({ rel: path.relative(SRC, f).split(path.sep).join('/'), text: readFileSync(f, 'utf8') }))
 
-describe('the only reader of a secret', () => {
+describe('the only reader of a secret @SC-1326', () => {
   // Code, not a comment naming it in backticks.
   it('is named only by the store and the run', () => {
     const naming = files.filter(f => /(?<!`)\bvaluesForRun\b(?!`)/.test(f.text)).map(f => f.rel)

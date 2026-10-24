@@ -32,7 +32,7 @@ function reachable(entry: string): Set<string> {
   return seen
 }
 
-describe('V3: what an agent’s run token can call on the site', () => {
+describe('V3: what an agent’s run token can call on the site @SC-1353', () => {
   it('is these routes and no other; a new one has to be reviewed against V3 here', () => {
     expect(ROUTES.map(r => `${r.method} ${r.path}`).sort()).toEqual([
       'all /api/v1/model-relay/:provider{/*rest}',

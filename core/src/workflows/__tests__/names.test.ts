@@ -6,14 +6,14 @@ import { normaliseWorkflowPath, fileNamedByRun } from '../paths.js'
 import { parseWorkflowHost } from '../hosts.js'
 import { permissionsBeyond } from '../githubPermissions.js'
 
-describe('workflow names', () => {
+describe('workflow names @SC-1362', () => {
   it('takes lower-case words joined by hyphens', () => {
     for (const n of ['push', 'deploy-staging', 'set-github-secrets', 'a1']) expect(validateWorkflowName(n).ok, n).toBe(true)
     for (const n of ['', 'Deploy', 'deploy_staging', '-push', 'push-', 'a--b', 'x'.repeat(65)]) expect(validateWorkflowName(n).ok, n).toBe(false)
   })
 })
 
-describe('secret and variable names', () => {
+describe('secret and variable names @SC-1362', () => {
   it('are capitals, digits and _, not starting with a digit', () => {
     for (const n of ['STAGING_DEPLOY_KEY', 'A', '_X', 'KEY2']) expect(validateSecretName(n).ok, n).toBe(true)
     for (const n of ['', 'staging', '2KEY', 'A-B', 'A B', 'É']) expect(validateSecretName(n).ok, n).toBe(false)
@@ -39,7 +39,7 @@ describe('secret and variable names', () => {
   })
 })
 
-describe('version file paths', () => {
+describe('version file paths @SC-1362', () => {
   it('normalise to one spelling', () => {
     expect(normaliseWorkflowPath('./deploy/upload.sh')).toEqual({ ok: true, path: 'deploy/upload.sh' })
     expect(normaliseWorkflowPath('package-lock.json')).toEqual({ ok: true, path: 'package-lock.json' })
@@ -60,7 +60,7 @@ describe('version file paths', () => {
   })
 })
 
-describe('hosts', () => {
+describe('hosts @SC-1362', () => {
   it('take host:port, lower-cased', () => {
     expect(parseWorkflowHost('Registry.npmjs.org:443')).toEqual({ ok: true, host: { host: 'registry.npmjs.org', port: 443 } })
     expect(parseWorkflowHost('10.0.0.5:5432')).toEqual({ ok: true, host: { host: '10.0.0.5', port: 5432 } })
@@ -76,7 +76,7 @@ describe('hosts', () => {
   })
 })
 
-describe('GitHub permissions', () => {
+describe('GitHub permissions @SC-1362', () => {
   it('names what a grant does not cover, write covering read', () => {
     expect(permissionsBeyond({ contents: 'write', issues: 'read' }, { contents: 'read', issues: 'write' })).toEqual({ contents: 'write' })
     expect(permissionsBeyond({ contents: 'read' }, { contents: 'write' })).toEqual({})

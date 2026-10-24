@@ -6,7 +6,7 @@ const bytes = (s: string) => Uint8Array.from(s, c => c.charCodeAt(0))
 const text = (b: Uint8Array) => String.fromCharCode(...b)
 const forms = (s: string | Uint8Array) => maskFormsOf(typeof s === 'string' ? bytes(s) : s).map(f => ({ text: text(f.bytes), class: f.class }))
 
-describe('the forms a value is masked in', () => {
+describe('the forms a value is masked in @SC-1364', () => {
   it('makes each kind once, in order, with its class', () => {
     expect(forms('p@ss w/rd')).toEqual([
       { text: 'p@ss w/rd', class: 'raw' },
@@ -75,7 +75,7 @@ function referenceTag(value: Uint8Array, base: number): { tag: number; tagSpan: 
   return { tag: Number(h >> 20n), tagSpan }
 }
 
-describe('the tag of a form', () => {
+describe('the tag of a form @SC-1364', () => {
   it('is the top 12 bits of the polynomial hash of up to 16 bytes from the second, for any base', () => {
     for (const base of [1, 3, 0x9e3779b1, 0xffffffff]) {
       for (const s of ['abc', 'abcd', 'canary-7f3a9c1e-deploy-key', '\xff\xfe\x00\x80 wide bytes here, long enough']) {

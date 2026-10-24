@@ -9,7 +9,7 @@ import { clientHello } from './tls'
 const NAMES = ['registry.npmjs.org', 'staging.example.com']
 const PROXY = '10.211.0.2'
 
-describe('the proxy\'s DNS answers', () => {
+describe('the proxy\'s DNS answers @SC-1348', () => {
   it('answers an approved name with the proxy\'s own address', () => {
     const r = readReply(answerDnsQuery(dnsQuery('registry.npmjs.org'), NAMES, PROXY)!)
     expect(r).toEqual({ id: 0x1234, rcode: 0, authoritative: true, recursionAvailable: false, answers: [PROXY] })
@@ -56,7 +56,7 @@ describe('the proxy\'s DNS answers', () => {
   })
 })
 
-describe('which approved host a connection names', () => {
+describe('which approved host a connection names @SC-1348', () => {
   it('reads a TLS ClientHello\'s server name, also when it spans records and arrives in pieces', () => {
     const hello = clientHello('Registry.NPMjs.org')
     expect(tlsServerName(hello)).toBe('registry.npmjs.org')
@@ -81,7 +81,7 @@ describe('which approved host a connection names', () => {
   })
 })
 
-describe('the addresses the proxy refuses unless approved', () => {
+describe('the addresses the proxy refuses unless approved @SC-1348', () => {
   const nonPublic = makeNonPublicCheck(net)
 
   it('refuses private, loopback, link-local, metadata and the IPv6 forms of them', () => {

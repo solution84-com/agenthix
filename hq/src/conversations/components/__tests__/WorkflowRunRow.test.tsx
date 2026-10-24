@@ -19,7 +19,7 @@ const open = (runs: ConversationRunCard[]) => {
   fireEvent.click(screen.getByTestId('work-bar').querySelector('button')!)
 }
 
-describe('a workflow run in the work bar', () => {
+describe('a workflow run in the work bar @SC-1299', () => {
   it('counts a run under way as work, with its step and Follow the run', () => {
     open([card()])
     expect(screen.getByTestId('work-bar-heading').textContent).toBe('1 working')
@@ -38,7 +38,7 @@ describe('a workflow run in the work bar', () => {
   })
 })
 
-describe('a finished workflow run in the thread', () => {
+describe('a finished workflow run in the thread @SC-1299', () => {
   it('shows a failed run with the failed step and its last line, and Open the run', () => {
     render(<MemoryRouter><WorkflowRunCard card={card({ state: 'failed', failedStep: 'Test', lastLine: '2 tests failed', durationMs: 90_000, endedAt: new Date() })} /></MemoryRouter>)
     expect(screen.getByRole('link', { name: 'Open the run' })).toBeTruthy()

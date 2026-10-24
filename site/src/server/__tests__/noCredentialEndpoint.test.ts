@@ -38,7 +38,7 @@ afterAll(async () => {
   await new Promise(resolve => server.close(resolve))
 })
 
-describe('A12 (B-2): the site has no git credential endpoint', () => {
+describe('A12 (B-2): the site has no git credential endpoint @SC-1354', () => {
   it.each(['/api/v1/git/credential', '/api/v1/git/credential/', '/api/v1/git'])('answers 404 to the old helper\'s request at %s', async (path) => {
     const res = await fetch(`${base}${path}`, {
       method: 'POST',

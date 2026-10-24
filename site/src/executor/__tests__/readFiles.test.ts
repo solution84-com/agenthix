@@ -31,7 +31,7 @@ afterEach(async () => {
   await fs.rm(siteRoot, { recursive: true, force: true })
 })
 
-describe('workflow.readFiles', () => {
+describe('workflow.readFiles @SC-1338', () => {
   it('reads each file with its executable bit', async () => {
     const r = await readWorkflowFiles({ workspace, paths: ['wf/workflow.yaml', 'wf/deploy.sh'] })
     expect(r).toEqual({

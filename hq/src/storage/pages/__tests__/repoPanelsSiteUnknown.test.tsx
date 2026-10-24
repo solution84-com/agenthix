@@ -61,7 +61,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('RepoPanel when the state cannot be read', () => {
+describe('RepoPanel when the state cannot be read @SC-1321', () => {
   beforeEach(() => answerWith({ error: new Error(SITE_DOWN) }))
 
   it('says so, and says why it matters', () => {
@@ -97,7 +97,7 @@ describe('RepoPanel while the state is still loading', () => {
   })
 })
 
-describe('OperationsPanel when the state cannot be read', () => {
+describe('OperationsPanel when the state cannot be read @SC-1321', () => {
   it('renders the reason rather than disappearing', () => {
     answerWith({ error: new Error(SITE_DOWN) })
     const { container } = render(<OperationsPanel target={target} />)

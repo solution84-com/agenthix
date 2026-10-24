@@ -72,7 +72,7 @@ async function run(over: Parameters<typeof instruction>[0] = {}, runId = 'run-c1
   return (await getRun({ runId }))!.result!
 }
 
-describe.skipIf(!IMAGE_ID)('the executor, in real containers', () => {
+describe.skipIf(!IMAGE_ID)('the executor, in real containers @SC-1343', () => {
   beforeAll(() => { executorDeps.resolveImage = async digest => (digest === IMAGE_ID ? IMAGE_ID : null) })
 
   beforeEach(async () => {

@@ -100,21 +100,21 @@ describe.each(['as loaded', 'bundled'] as const)('the proxy program, %s', varian
     children.push(await startProgram(source))
   }
 
-  it('answers DNS itself: the approved name with its own address, others NXDOMAIN', async () => {
+  it('answers DNS itself: the approved name with its own address, others NXDOMAIN @SC-1348', async () => {
     await proxy([{ host: 'localhost', port }])
     expect((await lookup(dnsPort, 'localhost')).answers).toEqual(['127.0.0.1'])
     expect((await lookup(dnsPort, 'localhost', 28)).answers).toEqual([])
     expect((await lookup(dnsPort, 'leak-canary-7f3a9c1e.example.net')).rcode).toBe(3)
   })
 
-  it('refuses an approved name that resolves to loopback when no address of it was approved', async () => {
+  it('refuses an approved name that resolves to loopback when no address of it was approved @SC-1348', async () => {
     await proxy([{ host: 'localhost', port }])
     reached.length = 0
     expect(await exchange(port, 'GET /a HTTP/1.1\r\nHost: localhost\r\n\r\n')).toBe('')
     expect(reached).toEqual([])
   })
 
-  it('carries a connection to the approved host at the exact approved address, and refuses another name', async () => {
+  it('carries a connection to the approved host at the exact approved address, and refuses another name @SC-1349', async () => {
     await proxy([{ host: 'localhost', port }, { host: '[::1]', port }])
     reached.length = 0
     expect(await exchange(port, 'GET /b HTTP/1.1\r\nHost: localhost\r\n\r\n')).toBe('upstream-reply\n')

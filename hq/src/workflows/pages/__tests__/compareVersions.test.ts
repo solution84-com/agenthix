@@ -10,7 +10,7 @@ const definition = (run: string) => ({
 const version = (run: string, files: { path: string; text: string | null }[]) =>
   ({ definition: definition(run), files: files.map((f) => ({ ...f, executable: false, size: f.text?.length ?? 0 })) }) as unknown as WorkflowVersionView
 
-describe('compareVersions', () => {
+describe('compareVersions @SC-1289', () => {
   it('shows an added file, a changed line and a changed setting', () => {
     const before = version('./a.sh', [{ path: 'a.sh', text: 'one\ntwo' }])
     const after = version('./b.sh', [{ path: 'a.sh', text: 'one\nthree' }, { path: 'b.sh', text: 'new' }])
@@ -25,7 +25,7 @@ describe('compareVersions', () => {
   })
 })
 
-describe('withContext', () => {
+describe('withContext @SC-1289', () => {
   it('folds the unchanged lines far from a change', () => {
     const lines = Array.from({ length: 20 }, (_, i) => ({ kind: i === 10 ? 'added' as const : 'same' as const, text: String(i) }))
     const shown = withContext(lines, 2)

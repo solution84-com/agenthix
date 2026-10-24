@@ -14,7 +14,7 @@ const deploy = (extra: Record<string, unknown> = {}, files: Record<string, strin
 const checks = (v: ReturnType<typeof version>, approved: ReturnType<typeof version> | null) =>
   runPlainChecks(v, approved ? { number: 1, content: approved } : null, { known: false })
 
-describe('the card may offer Approve only by the four conditions', () => {
+describe('the card may offer Approve only by the four conditions @SC-1284', () => {
   it('needs the full review for a first version that gives a step a secret, though nothing is flagged', () => {
     const r = checks(deploy(), null)
     expect(r.flags).toEqual([])
@@ -54,7 +54,7 @@ describe('the card may offer Approve only by the four conditions', () => {
   })
 })
 
-describe('the summary is written from the diff', () => {
+describe('the summary is written from the diff @SC-1284', () => {
   it('describes a first version by what it holds', () => {
     expect(checks(deploy(), null).summary).toBe('New workflow test-flow: 2 steps; secrets STAGING_DEPLOY_KEY; variables STAGING_HOST; 1 file.')
   })

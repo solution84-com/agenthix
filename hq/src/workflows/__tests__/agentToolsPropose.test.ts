@@ -22,7 +22,7 @@ import { proposeWorkflowOp } from '../agentTools'
 
 const ctx = { kind: 'run', claims: { siteId: 'site-1', sessionId: 's1', taskId: 't1', projectId: 'p1', userId: 'u1', workspaceId: null, agentId: 'a1' } } as any
 
-describe('propose_workflow', () => {
+describe('propose_workflow @SC-1277 @SC-1302', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('reads the definition from the workspace named, one of the place\'s own', async () => {

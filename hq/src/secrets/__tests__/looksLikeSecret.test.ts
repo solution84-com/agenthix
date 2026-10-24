@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { looksLikeSecret } from '../looksLikeSecret'
 
 // Every value here is a made-up canary in the shape of a credential, never a real one.
-describe('looksLikeSecret', () => {
+describe('looksLikeSecret @SC-1332', () => {
   it.each([
     ['a key file', '-----BEGIN OPENSSH PRIVATE KEY-----\nAAAA\n-----END OPENSSH PRIVATE KEY-----'],
     ['a key file with text before it', 'key:\n-----BEGIN RSA PRIVATE KEY-----'],

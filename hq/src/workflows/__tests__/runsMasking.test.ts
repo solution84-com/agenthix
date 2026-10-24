@@ -9,7 +9,7 @@ function found(output: Buffer, value: Buffer): boolean {
   return maskFormsOf(value).some((f) => output.includes(Buffer.from(f.bytes)))
 }
 
-describe('the forms a value is masked in, against Node’s own encodings', () => {
+describe('the forms a value is masked in, against Node’s own encodings @SC-1294', () => {
   it('finds the value as it is', () => {
     expect(found(Buffer.from(`token: ${CANARY} end`), CANARY)).toBe(true)
   })
@@ -36,7 +36,7 @@ describe('the forms a value is masked in, against Node’s own encodings', () =>
   })
 })
 
-describe('the masking material sent to the site', () => {
+describe('the masking material sent to the site @SC-1294', () => {
   it('holds lengths and keyed hashes, never a value in any form', () => {
     const key = Buffer.alloc(32, 7)
     const material = buildMaskingMaterial([{ name: 'STAGING_DEPLOY_KEY', value: Buffer.from(CANARY) }], Buffer.from(key))

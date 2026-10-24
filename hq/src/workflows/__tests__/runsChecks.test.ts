@@ -32,7 +32,7 @@ function facts(over: Partial<RunStartFacts> = {}): RunStartFacts {
   }
 }
 
-describe('the checks before a run', () => {
+describe('the checks before a run @SC-1292', () => {
   it('lets a run of the approved version through, with its checked parameters', () => {
     expect(checkRunStart(facts())).toEqual({ ok: true, parameters: { ref: 'main' } })
   })

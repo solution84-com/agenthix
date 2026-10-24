@@ -3,7 +3,7 @@ import { commonPermissions, parsePermissions } from '../permissionFacts'
 import { reachOf } from '../accountViews'
 import { installLinkFor } from '../installLink'
 
-describe('reading GitHub\'s permissions', () => {
+describe('reading GitHub\'s permissions @SC-1311', () => {
   it('keeps repository permissions, counts admin as write, drops the rest', () => {
     expect(parsePermissions({ contents: 'write', metadata: 'read', pull_requests: 'admin', members: 'write', issues: 'none' }))
       .toEqual({ contents: 'write', metadata: 'read', pull_requests: 'write' })
@@ -16,7 +16,7 @@ describe('reading GitHub\'s permissions', () => {
   })
 })
 
-describe('what an installation can reach', () => {
+describe('what an installation can reach @SC-1311', () => {
   it('an organisation on all repositories that accepted administration can create one', () => {
     expect(reachOf({ repositorySelection: 'all', accountType: 'Organization' }, { administration: 'write' }).canCreateRepository).toBe(true)
     expect(reachOf({ repositorySelection: 'all', accountType: 'Organization' }, { contents: 'write' }).canCreateRepository).toBe(false)
@@ -28,7 +28,7 @@ describe('what an installation can reach', () => {
   })
 })
 
-describe('the install link for a client', () => {
+describe('the install link for a client @SC-1309', () => {
   it('is the App\'s installations/new page, in the note', () => {
     const l = installLinkFor('acme-app', 'Acme')
     expect(l.url).toBe('https://github.com/apps/acme-app/installations/new')

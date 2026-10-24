@@ -95,7 +95,7 @@ test('a Dockerfile\'s own stages are not base images @SC-1266', () => {
   assert.deepEqual(fromReferences('FROM node:24 AS build\nFROM build AS app\nFROM --platform=$BUILDPLATFORM x@sha256:ab AS y\nFROM app\n'), ['node:24', 'x@sha256:ab'])
 })
 
-test('the tools stage key moves with the tools stage and nothing else in the images', () => {
+test('the tools stage key moves with the tools stage and nothing else in the images @SC-1356', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tools-key-'))
   const write = (p, text) => {
     fs.mkdirSync(path.dirname(path.join(dir, p)), { recursive: true })

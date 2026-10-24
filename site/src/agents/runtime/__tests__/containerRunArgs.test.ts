@@ -87,7 +87,7 @@ describe('buildContainerRunCommand', () => {
     ])
   })
 
-  it('is hardened: no capability, no new privileges, a read-only root, and only /tmp and the commands’ home writable beside the binds', () => {
+  it('is hardened: no capability, no new privileges, a read-only root, and only /tmp and the commands’ home writable beside the binds @SC-1355', () => {
     const { args } = buildContainerRunCommand(KEY, CTX, 'c', MOUNTS, 'net-1')
     const at = (flag: string) => args.flatMap((a, i) => (a === flag ? [args[i + 1]] : []))
     expect(at('--cap-drop')).toEqual(['ALL'])

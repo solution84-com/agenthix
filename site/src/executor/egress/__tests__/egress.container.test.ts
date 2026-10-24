@@ -77,7 +77,7 @@ try direct-address curl -sS --connect-timeout 3 --max-time 5 http://${FIXTURE_IP
 try routes ip route
 `
 
-describe.skipIf(!HAVE_IMAGE)('the egress proxy, in containers', () => {
+describe.skipIf(!HAVE_IMAGE)('the egress proxy, in containers @SC-1349', () => {
   beforeAll(async () => {
     await sweepEgress()
     sh('docker', ['rm', '-f', FIXTURE, 'wf-lane-2c-step', 'wf-lane-2c-agent'])

@@ -39,7 +39,7 @@ beforeEach(() => {
 })
 
 describe('the Secrets tab', () => {
-  it('shows the kind of each value, never a value, with rotation and used by', () => {
+  it('shows the kind of each value, never a value, with rotation and used by @SC-1335', () => {
     render(<SecretsTool place={place} />)
     const rows = screen.getAllByTestId('secret-row')
     expect(rows).toHaveLength(2)
@@ -50,7 +50,7 @@ describe('the Secrets tab', () => {
     expect(screen.getByRole('tab', { name: 'Secrets · 2' })).toBeTruthy()
   })
 
-  it('offers Replace and the menu to administrators, and no replace for the GitHub token', () => {
+  it('offers Replace and the menu to administrators, and no replace for the GitHub token @SC-1335', () => {
     render(<SecretsTool place={place} />)
     expect(screen.getByRole('button', { name: 'Add a secret' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Replace STAGING_DEPLOY_KEY' })).toBeTruthy()
@@ -59,7 +59,7 @@ describe('the Secrets tab', () => {
     expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['History', 'Turn off what uses it', 'Delete'])
   })
 
-  it('gives others only the reading controls', () => {
+  it('gives others only the reading controls @SC-1335', () => {
     data.secrets = { mayChange: false, secrets: [secret()] }
     data.variables = { mayChange: false, variables: [variable] }
     render(<SecretsTool place={place} />)
@@ -69,7 +69,7 @@ describe('the Secrets tab', () => {
     expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['History'])
   })
 
-  it('lists the workflows that are on before turning them off, and shows what to do next', async () => {
+  it('lists the workflows that are on before turning them off, and shows what to do next @SC-1334', async () => {
     actions.turnOffWhatUsesIt.mockResolvedValue({ workflows: [{ id: 'w1', name: 'deploy-staging', enabled: false }], runsStopped: 1, next: 'Replace it at its issuer and here, then turn the workflows back on.' })
     render(<SecretsTool place={place} />)
     fireEvent.click(screen.getByRole('button', { name: 'More for STAGING_DEPLOY_KEY' }))
@@ -81,7 +81,7 @@ describe('the Secrets tab', () => {
     expect(screen.getByTestId('turn-off-dialog').textContent).toContain('1 run in progress stopped')
   })
 
-  it('offers Turn off what uses it when a delete is refused for use', async () => {
+  it('offers Turn off what uses it when a delete is refused for use @SC-1334', async () => {
     actions.deletePlaceSecret.mockRejectedValue(Object.assign(new Error('STAGING_DEPLOY_KEY is used by deploy-staging, which is on. Nothing was changed.'), { data: { code: 'in_use' } }))
     render(<SecretsTool place={place} />)
     fireEvent.click(screen.getByRole('button', { name: 'More for STAGING_DEPLOY_KEY' }))
@@ -92,7 +92,7 @@ describe('the Secrets tab', () => {
   })
 })
 
-describe('the Add a secret form', () => {
+describe('the Add a secret form @SC-1335', () => {
   it('asks the questions, refuses an empty form, and shows the GitHub box where there is a repository', () => {
     render(<SecretsTool place={place} />)
     fireEvent.click(screen.getByRole('button', { name: 'Add a secret' }))
@@ -105,7 +105,7 @@ describe('the Add a secret form', () => {
   })
 })
 
-describe('the Variables tab', () => {
+describe('the Variables tab @SC-1335', () => {
   beforeEach(() => window.history.replaceState({}, '', '/?stab=variables'))
 
   it('shows the value in plain sight and an Edit for administrators', () => {

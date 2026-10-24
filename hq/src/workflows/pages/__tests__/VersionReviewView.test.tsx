@@ -32,7 +32,7 @@ const props = { place, workflowId: 'w1', number: 2, against: null, onBack: vi.fn
 
 beforeEach(() => { cleanup(); vi.clearAllMocks() })
 
-describe('the full review', () => {
+describe('the full review @SC-1289', () => {
   it('shows the reviewer first, then the checks and the changes', () => {
     setup(true)
     render(<VersionReviewView {...props} />)

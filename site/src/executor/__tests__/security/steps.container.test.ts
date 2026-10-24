@@ -59,7 +59,7 @@ const PACKAGE = JSON.stringify({ name: 'install-check', version: '1.0.0', privat
 // A shell function: whether any process has `lingering-6b` as one whole argument (never true of the script that asks).
 const LINGERING = String.raw`lingering() { for f in /proc/[0-9]*/cmdline; do a=$'\n'"$(tr '\0' '\n' < "$f" 2>/dev/null || true)"$'\n'; case "$a" in *$'\n'lingering-6b$'\n'*) return 0;; esac; done; return 1; }`
 
-describe.skipIf(!IMAGE_ID)('control checks for a run\'s steps, in real containers', () => {
+describe.skipIf(!IMAGE_ID)('control checks for a run\'s steps, in real containers @SC-1344', () => {
   beforeAll(() => { executorDeps.resolveImage = async digest => (digest === IMAGE_ID ? IMAGE_ID : null) })
 
   beforeEach(async () => {

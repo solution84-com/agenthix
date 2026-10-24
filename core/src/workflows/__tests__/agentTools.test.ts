@@ -6,7 +6,7 @@ const argsForEveryTool: [Exclude<WorkflowToolName, keyof WorkflowToolArgs>] exte
 const noOtherArgs: [Exclude<keyof WorkflowToolArgs, WorkflowToolName>] extends [never] ? true : never = true
 void [argsForEveryTool, noOtherArgs]
 
-describe('the agent\'s workflow tools', () => {
+describe('the agent\'s workflow tools @SC-1365', () => {
   it('declares the four tools once each', () => {
     expect(WORKFLOW_TOOL_DECLARATIONS.map(t => t.name).sort()).toEqual(Object.values(WORKFLOW_TOOL_NAMES).sort())
   })

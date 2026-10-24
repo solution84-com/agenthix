@@ -36,7 +36,7 @@ beforeEach(() => {
   ]
 })
 
-describe('a project\'s GitHub section', () => {
+describe('a project\'s GitHub section @SC-1313', () => {
   it('shows the default account, each workspace\'s repository and whether its account is the default', () => {
     render(<MemoryRouter><ProjectGitHubSection projectId="p1" basePath="/projects/N" /></MemoryRouter>)
     expect((screen.getByLabelText('Default GitHub account') as HTMLSelectElement).value).toBe('n')
@@ -63,7 +63,7 @@ describe('a project\'s GitHub section', () => {
   })
 })
 
-describe('a connected workspace\'s GitHub section', () => {
+describe('a connected workspace\'s GitHub section @SC-1321', () => {
   it('lists workflows that reach GitHub, GitHub\'s own with their last run and no Run button, and secrets by name', () => {
     data.getRepoState = { repoUrl: 'https://github.com/north-ltd/website', isGitRepo: true, hasFiles: true }
     data.getWorkflows = [{ id: 7, name: 'Deploy', path: '.github/workflows/deploy.yml', state: 'active' }]

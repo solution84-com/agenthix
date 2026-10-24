@@ -9,7 +9,7 @@ import { proposingConversations } from '../proposedIn'
 
 beforeEach(() => { vi.clearAllMocks() })
 
-describe('the conversation a version was proposed in', () => {
+describe('the conversation a version was proposed in @SC-1291', () => {
   it('names the newest conversation that ran the proposing run, when the reader may read it', async () => {
     findMany.mockResolvedValue([
       { runId: 'a', conversationId: 'c2', conversation: { title: 'Newer' } },

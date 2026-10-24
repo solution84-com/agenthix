@@ -25,7 +25,7 @@ const open = (c: Card, canAct = true) => {
   fireEvent.click(screen.getByRole('button', { name: /need|working|waiting/i }))
 }
 
-describe('a workflow version\'s approval card', () => {
+describe('a workflow version\'s approval card @SC-1286', () => {
   it('carries the summary, the reviewer\'s level and Approve when the plain checks allow it', () => {
     open(card())
     expect(screen.getByTestId('workflow-card-summary').textContent).toBe('Since version 1: changes what step 1 runs.')

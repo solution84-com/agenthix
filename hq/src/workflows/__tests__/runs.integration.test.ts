@@ -117,7 +117,7 @@ beforeEach(async () => {
 })
 
 describe('starting a run', () => {
-  it('sends each step only the secrets it names, the variables, the checked parameters and the image', async () => {
+  it('sends each step only the secrets it names, the variables, the checked parameters and the image @SC-1293', async () => {
     const { deps, sent } = standInSite()
     const { runId } = await start(asPerson(member.id), deps)
     expect(sent).toHaveLength(1)
@@ -133,7 +133,7 @@ describe('starting a run', () => {
     expect(run.steps.map((s) => s.name).sort()).toEqual(['Build', 'Upload'])
   })
 
-  it('masks every secret of the place, but sends no other secret in any form', async () => {
+  it('masks every secret of the place, but sends no other secret in any form @SC-1293', async () => {
     const { deps, sent } = standInSite()
     await start(asPerson(member.id), deps)
     const ins = sent[0].instruction
@@ -147,7 +147,7 @@ describe('starting a run', () => {
     expect(JSON.stringify(ins.masking).includes(CANARY)).toBe(false)
   })
 
-  it('records the use of each secret given, never of one only masked', async () => {
+  it('records the use of each secret given, never of one only masked @SC-1293', async () => {
     const { deps } = standInSite()
     const { runId } = await start(asPerson(member.id), deps)
     const used = await prisma.secretRecord.findMany({ where: { runId, action: 'USED' } })
@@ -155,14 +155,14 @@ describe('starting a run', () => {
     expect(used[0].byUserId).toBe(member.id)
   })
 
-  it('refuses a viewer, and an agent run on behalf of one', async () => {
+  it('refuses a viewer, and an agent run on behalf of one @SC-1292', async () => {
     const { deps, sent } = standInSite()
     await expect(start(asPerson(viewer.id), deps)).rejects.toMatchObject({ statusCode: 403 })
     await expect(start({ ...asAgent(), onBehalfOfUserId: viewer.id } as RunStarter, deps)).rejects.toMatchObject({ statusCode: 403 })
     expect(sent).toHaveLength(0)
   })
 
-  it('refuses a workflow that is off, a bad parameter, and leaves nothing behind', async () => {
+  it('refuses a workflow that is off, a bad parameter, and leaves nothing behind @SC-1292', async () => {
     const { deps, sent } = standInSite()
     await expect(start(asPerson(member.id), deps, { ref: '--force' })).rejects.toMatchObject({ statusCode: 422 })
     await setWorkflowEnabled(workflowId, false, { kind: 'person', userId: admin.id })
@@ -171,7 +171,7 @@ describe('starting a run', () => {
     expect(await prisma.workflowRun.count({ where: { workflowId } })).toBe(0)
   })
 
-  it('refuses a run asked from another place', async () => {
+  it('refuses a run asked from another place @SC-1292', async () => {
     const { deps } = standInSite()
     const other = await createProject()
     await joinProjectAs(other.id, member.id, 'MEMBER')
@@ -181,7 +181,7 @@ describe('starting a run', () => {
     }, deps)).rejects.toMatchObject({ statusCode: 403 })
   })
 
-  it('refuses a version whose stored content no longer hashes as approved', async () => {
+  it('refuses a version whose stored content no longer hashes as approved @SC-1292', async () => {
     const { deps, sent } = standInSite()
     const v = await prisma.workflowVersion.findFirstOrThrow({ where: { workflowId, state: 'APPROVED' } })
     await prisma.workflowVersion.update({ where: { id: v.id }, data: { definition: { ...(v.definition as object), description: 'changed' } } })
@@ -189,7 +189,7 @@ describe('starting a run', () => {
     expect(sent).toHaveLength(0)
   })
 
-  it('stops an agent at its runs for the hour, and not a person', async () => {
+  it('stops an agent at its runs for the hour, and not a person @SC-1292', async () => {
     const { deps } = standInSite()
     await prisma.workflow.update({ where: { id: workflowId }, data: { agentRunsPerHour: 2 } })
     await start(asAgent(1), deps)
@@ -198,14 +198,14 @@ describe('starting a run', () => {
     await start(asPerson(member.id), deps)
   })
 
-  it('leaves nothing when the site refuses or cannot be reached', async () => {
+  it('leaves nothing when the site refuses or cannot be reached @SC-1292', async () => {
     await expect(start(asPerson(member.id), standInSite('refused').deps)).rejects.toThrow(/busy/)
     await expect(start(asPerson(member.id), standInSite('unreachable').deps)).rejects.toMatchObject({ statusCode: 503 })
     expect(await prisma.workflowRun.count({ where: { workflowId } })).toBe(0)
     expect(await prisma.secretRecord.count({ where: { action: 'USED' } })).toBe(0)
   })
 
-  it('refuses GITHUB_TOKEN through the mint gate when the workspace has no repository connected, leaving nothing', async () => {
+  it('refuses GITHUB_TOKEN through the mint gate when the workspace has no repository connected, leaving nothing @SC-1304', async () => {
     const { deps, sent } = standInSite()
     await proposeAndApprove({ name: 'push', github: { contents: 'write' }, steps: [{ name: 'Push', run: 'true', secrets: ['GITHUB_TOKEN'] }] })
     await expect(startWorkflowRun({ place, workspace: workspace(), workflow: { name: 'push' }, parameters: {}, starter: asPerson(member.id) }, deps))
@@ -217,7 +217,7 @@ describe('starting a run', () => {
 })
 
 describe('events and the result', () => {
-  it('moves the steps, ends the run, and records and tells of a printed secret', async () => {
+  it('moves the steps, ends the run, and records and tells of a printed secret @SC-1295', async () => {
     const { deps } = standInSite()
     const { runId } = await start(asPerson(member.id), deps)
     const now = new Date().toISOString()
@@ -238,14 +238,14 @@ describe('events and the result', () => {
     expect(await prisma.notification.count({ where: { userId: admin.id, type: 'workflow_printed_secret' } })).toBe(1)
   })
 
-  it('ignores a frame from a site that does not run it', async () => {
+  it('ignores a frame from a site that does not run it @SC-1295', async () => {
     const { deps } = standInSite()
     const { runId } = await start(asPerson(member.id), deps)
     await handleWorkflowStepEvent('another-site', { runId, index: 0, name: 'Build', state: 'running', startedAt: null, endedAt: null, exitCode: null, outputTail: '', outputTruncated: false })
     expect(await prisma.workflowRun.findUniqueOrThrow({ where: { id: runId } })).toMatchObject({ state: 'WAITING' })
   })
 
-  it('stops a run for a member, refuses a viewer', async () => {
+  it('stops a run for a member, refuses a viewer @SC-1296', async () => {
     const { deps, stops } = standInSite()
     const { runId } = await start(asPerson(member.id), deps)
     await expect(stopWorkflowRun(runId, viewer.id, deps.stop)).rejects.toMatchObject({ statusCode: 403 })
@@ -254,7 +254,7 @@ describe('events and the result', () => {
   })
 })
 
-describe('the switch history', () => {
+describe('the switch history @SC-1287', () => {
   it('keeps every switch, who and why', async () => {
     await setWorkflowEnabled(workflowId, false, { kind: 'person', userId: admin.id })
     await setWorkflowEnabled(workflowId, true, { kind: 'person', userId: admin.id })

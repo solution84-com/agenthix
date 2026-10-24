@@ -80,7 +80,7 @@ async function finished(): Promise<WorkflowRunResult> {
   return r
 }
 
-describe('starting a run', () => {
+describe('starting a run @SC-1337', () => {
   it('refuses a version whose hash differs, before anything is written or started', async () => {
     const ins = await instruction()
     const answer = await startRun({ ...ins, versionHash: 'f'.repeat(64) })
@@ -114,7 +114,7 @@ describe('starting a run', () => {
 })
 
 describe('a run, end to end on this site', () => {
-  it('writes nothing back when a step leaves a secret in a file, and says which file and secret (attack A5)', async () => {
+  it('writes nothing back when a step leaves a secret in a file, and says which file and secret (attack A5) @SC-1346', async () => {
     executorDeps.runStep = step(async s => { await fs.writeFile(path.join(s, 'README.md'), `key=${CANARY}`) })
     expect(await startRun(await instruction())).toEqual({ accepted: true })
     const r = await finished()
@@ -125,7 +125,7 @@ describe('a run, end to end on this site', () => {
     expect(await fs.readFile(path.join(ws, 'README.md'), 'utf8')).toBe('hello')
   })
 
-  it('writes nothing back when the scan finds a leak (attack A7)', async () => {
+  it('writes nothing back when the scan finds a leak (attack A7) @SC-1346', async () => {
     executorDeps.scanRunChanges = async ({ changes }) => ({ leaks: changes.map(c => ({ path: c.path, secretName: 'STAGING_DEPLOY_KEY' })) })
     executorDeps.runStep = step(async s => { await fs.writeFile(path.join(s, 'leak.txt'), CANARY) })
     await startRun(await instruction())
@@ -134,7 +134,7 @@ describe('a run, end to end on this site', () => {
     await expect(fs.stat(path.join(ws, 'leak.txt'))).rejects.toThrow()
   })
 
-  it('writes the changes back once the scan passes', async () => {
+  it('writes the changes back once the scan passes @SC-1346', async () => {
     executorDeps.scanRunChanges = async () => ({ leaks: [] })
     let n = 0
     executorDeps.runStep = step(async s => { if (n++ === 0) await fs.writeFile(path.join(s, 'built.txt'), 'built') })
@@ -145,7 +145,7 @@ describe('a run, end to end on this site', () => {
     expect(await fs.readFile(path.join(ws, 'built.txt'), 'utf8')).toBe('built')
   })
 
-  it('writes nothing back after a stop (attack A18)', async () => {
+  it('writes nothing back after a stop (attack A18) @SC-1346', async () => {
     executorDeps.scanRunChanges = async () => ({ leaks: [] })
     executorDeps.runStep = async (input: StepRunInput) => {
       const snapshot = input.command.args.find(a => a.includes('/snapshot:'))!.split(':')[0]!
@@ -160,7 +160,7 @@ describe('a run, end to end on this site', () => {
     await expect(fs.stat(path.join(ws, 'half.txt'))).rejects.toThrow()
   })
 
-  it('sends no secret value back, and removes its folders when it ends', async () => {
+  it('sends no secret value back, and removes its folders when it ends @SC-1346', async () => {
     await startRun(await instruction())
     const r = await finished()
     expect(JSON.stringify(r)).not.toContain(CANARY)
@@ -170,7 +170,7 @@ describe('a run, end to end on this site', () => {
     await vi.waitFor(async () => expect(await fs.readdir(path.join(siteRoot, 'executor/runs'))).toEqual([]))
   })
 
-  it('fails without running anything when the workspace holds a hard link', async () => {
+  it('fails without running anything when the workspace holds a hard link @SC-1339', async () => {
     await writeTree(siteRoot, { 'other/file.txt': 'elsewhere' })
     await fs.link(path.join(siteRoot, 'other/file.txt'), path.join(ws, 'hard.txt'))
     let ran = false
@@ -181,7 +181,7 @@ describe('a run, end to end on this site', () => {
     expect(r.failure).toMatchObject({ code: 'site_error', message: expect.stringContaining('hard link') })
   })
 
-  it('answers workflow.get from the database once the run has ended', async () => {
+  it('answers workflow.get from the database once the run has ended @SC-1346', async () => {
     await startRun(await instruction())
     await finished()
     const report = await getRun({ runId: 'run-1' })

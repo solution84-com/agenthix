@@ -57,7 +57,7 @@ afterEach(async () => {
   await fs.rm(tmp, { recursive: true, force: true })
 })
 
-describe('an existing repository, connected to a location', () => {
+describe('an existing repository, connected to a location @SC-1358', () => {
   it('is checked out into an empty location', async () => {
     await seedRemote('main', 'THEIRS.md')
     await repoConnect({ loc: empty, direction: 'pull', repoUrl: remote, token: TOKEN })

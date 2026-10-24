@@ -17,7 +17,7 @@ function row(over: Partial<RunRowWithSteps> = {}): RunRowWithSteps {
   } as RunRowWithSteps
 }
 
-describe('what comes back from a run', () => {
+describe('what comes back from a run @SC-1297', () => {
   it('gives the agent the last 200 lines of each step', () => {
     const view = agentRunView(row())
     const lines = view.steps[0].output.split('\n')

@@ -15,7 +15,7 @@ const health = (digest: string | null): SiteHealth => ({
   ...(digest ? { executorImage: { name: 'executor', present: true, digest, release: '0.4.0', toolsKey: 'k' } } : {}),
 })
 
-describe('the executor image a site reports', () => {
+describe('the executor image a site reports @SC-1288', () => {
   it('is the digest, release and tools key of an image that is there, and nothing otherwise', () => {
     expect(imageOfReport(health(A).executorImage)).toEqual({ digest: A, release: '0.4.0', toolsKey: 'k' })
     expect(imageOfReport(null)).toBeNull()

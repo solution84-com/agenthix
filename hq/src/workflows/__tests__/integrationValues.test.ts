@@ -42,7 +42,7 @@ beforeEach(() => {
   }
 })
 
-describe('GITHUB_TOKEN for a run', () => {
+describe('GITHUB_TOKEN for a run @SC-1304', () => {
   it('mints nothing when no step names it', async () => {
     expect(await mintIntegrationValues({ runId: 'r1', place: PLACE, definition: definition(['KEY'], {}) }, deps)).toEqual({ values: [], github: null })
     expect(deps.mintGitHub).not.toHaveBeenCalled()
@@ -92,7 +92,7 @@ describe('GITHUB_TOKEN for a run', () => {
   })
 })
 
-describe('revoking where it was issued', () => {
+describe('revoking where it was issued @SC-1304', () => {
   it('ends a GITHUB_TOKEN at GitHub, and answers whether GitHub has it ended', async () => {
     expect(await revokeAtIssuer('GITHUB_TOKEN', Buffer.from(TOKEN), deps)).toBe(true)
     expect(deps.revoke).toHaveBeenCalledWith(TOKEN)

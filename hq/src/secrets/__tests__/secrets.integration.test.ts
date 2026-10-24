@@ -55,7 +55,7 @@ async function approvedWorkflow(name: string, enabled: boolean, secrets: string[
 }
 
 describe('secrets through the operations', () => {
-  it('stores the value encrypted and shows members everything but it', async () => {
+  it('stores the value encrypted and shows members everything but it @SC-1326 @SC-1328', async () => {
     await addPlaceSecret({ place, name: 'STAGING_DEPLOY_KEY', value: { kind: 'text', text: CANARY }, ...DESC }, ctx(admin))
     const row = await prisma.placeSecret.findFirstOrThrow({ where: { placeId: place.id } })
     expect(Buffer.from(row.ciphertext).includes(Buffer.from(CANARY))).toBe(false)
@@ -67,14 +67,14 @@ describe('secrets through the operations', () => {
     expect((await valuesForRun(place, ['STAGING_DEPLOY_KEY'])).get('STAGING_DEPLOY_KEY')!.toString()).toBe(CANARY)
   })
 
-  it('refuses a member’s write, and an outsider’s read, organisation admin or not', async () => {
+  it('refuses a member’s write, and an outsider’s read, organisation admin or not @SC-1328', async () => {
     await expect(addPlaceSecret({ place, name: 'K', value: { kind: 'text', text: CANARY }, ...DESC }, ctx(member)))
       .rejects.toMatchObject({ statusCode: 403 })
     await expect(getPlaceSecrets({ place }, ctx(outsider))).rejects.toMatchObject({ statusCode: 403 })
     expect(await prisma.placeSecret.count()).toBe(0)
   })
 
-  it('refuses a ciphertext copied into another secret’s row', async () => {
+  it('refuses a ciphertext copied into another secret’s row @SC-1326', async () => {
     await addPlaceSecret({ place, name: 'A_KEY', value: { kind: 'text', text: CANARY }, ...DESC }, ctx(admin))
     await addPlaceSecret({ place, name: 'B_KEY', value: { kind: 'text', text: 'other' }, ...DESC }, ctx(admin))
     const a = await prisma.placeSecret.findFirstOrThrow({ where: { name: 'A_KEY' } })
@@ -82,7 +82,7 @@ describe('secrets through the operations', () => {
     await expect(valuesForRun(place, ['B_KEY'])).rejects.toMatchObject({ code: 'unreadable' })
   })
 
-  it('round-trips a file, and refuses deleting a secret a switched-on workflow uses', async () => {
+  it('round-trips a file, and refuses deleting a secret a switched-on workflow uses @SC-1327 @SC-1329', async () => {
     const bytes = Buffer.from([0, 1, 2, 250, 255, 10])
     await addPlaceSecret({ place, name: 'KEY_FILE', value: { kind: 'file', base64: bytes.toString('base64') }, ...DESC }, ctx(admin))
     expect((await valuesForRun(place, ['KEY_FILE'])).get('KEY_FILE')!.equals(bytes)).toBe(true)
@@ -95,7 +95,7 @@ describe('secrets through the operations', () => {
     expect((await prisma.secretRecord.findMany({ orderBy: { at: 'asc' } })).map(r => r.action)).toEqual(['SET', 'DELETED'])
   })
 
-  it('records a replacement, keeping the row', async () => {
+  it('records a replacement, keeping the row @SC-1329', async () => {
     await addPlaceSecret({ place, name: 'KEY', value: { kind: 'text', text: CANARY }, ...DESC }, ctx(admin))
     const before = await prisma.placeSecret.findFirstOrThrow({})
     await replacePlaceSecret({ place, name: 'KEY', value: { kind: 'text', text: 'CANARY-2' } }, ctx(admin))
@@ -104,7 +104,7 @@ describe('secrets through the operations', () => {
   })
 })
 
-describe('variables through the operations', () => {
+describe('variables through the operations @SC-1332', () => {
   it('keeps old → new, and asks about a value that looks like a secret', async () => {
     await addPlaceVariable({ place, name: 'STAGING_HOST', value: 'staging.example.com' }, ctx(admin))
     const held = await editPlaceVariable({ place, name: 'STAGING_HOST', value: 'ghp_CANARYaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }, ctx(admin))
@@ -120,7 +120,7 @@ describe('variables through the operations', () => {
 })
 
 describe('rotation and deletion', () => {
-  it('tells the place’s administrators a week before, and clears it once replaced', async () => {
+  it('tells the place’s administrators a week before, and clears it once replaced @SC-1331', async () => {
     await addPlaceSecret({ place, name: 'KEY', value: { kind: 'text', text: CANARY }, ...DESC, rotateBy: new Date(Date.now() + 3 * 86_400_000) }, ctx(admin))
     await sweepRotationNotices()
     const open = await prisma.notification.findMany({ where: { type: SECRET_ROTATION_NOTIFICATION } })
@@ -130,7 +130,7 @@ describe('rotation and deletion', () => {
     expect((await prisma.notification.findFirstOrThrow({ where: { type: SECRET_ROTATION_NOTIFICATION } })).status).toBe('handled')
   })
 
-  it('deletes a project’s secrets, variables and their records with it', async () => {
+  it('deletes a project’s secrets, variables and their records with it @SC-1329', async () => {
     await addPlaceSecret({ place, name: 'KEY', value: { kind: 'text', text: CANARY }, ...DESC }, ctx(admin))
     await addPlaceVariable({ place, name: 'REGION', value: 'eu-west-2' }, ctx(admin))
     await deleteProject(place.id)

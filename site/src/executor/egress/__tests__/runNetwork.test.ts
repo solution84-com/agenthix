@@ -41,7 +41,7 @@ beforeEach(() => {
   calls.proxies = []
 })
 
-describe('a run\'s network', () => {
+describe('a run\'s network @SC-1347', () => {
   it('has no network at all without hosts, and starts nothing', async () => {
     const n = await startRunNetwork('r1', [])
     expect(n.dockerArgs).toEqual(['--network', 'none'])
@@ -98,7 +98,7 @@ describe('a run\'s network', () => {
   })
 })
 
-describe('the proxy\'s container', () => {
+describe('the proxy\'s container @SC-1347', () => {
   it('is hardened as a step is, with no log and its program on standard input', () => {
     const args = proxyCreateArgs({
       runId: 'r1', name: 'p', internalNetwork: 'in', egressNetwork: 'out',

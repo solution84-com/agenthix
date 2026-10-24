@@ -55,7 +55,7 @@ async function refusal(p: Promise<unknown>): Promise<SecretsRefusal> {
   return err as SecretsRefusal
 }
 
-describe('never returning a value', () => {
+describe('never returning a value @SC-1326', () => {
   it('keeps no plain value in what it stores, and returns none from any read but valuesForRun', async () => {
     const added = await addSecret(P, ADMIN, { name: 'STAGING_DEPLOY_KEY', value: text(CANARY), ...DESC })
     expect(db.secretRows[0].ciphertext.includes(Buffer.from(CANARY))).toBe(false)
@@ -75,7 +75,7 @@ describe('never returning a value', () => {
   })
 })
 
-describe('associated data', () => {
+describe('associated data @SC-1326', () => {
   it('refuses a ciphertext copied into another secret', async () => {
     await addSecret(P, ADMIN, { name: 'A_KEY', value: text(CANARY), ...DESC })
     await addSecret(P, ADMIN, { name: 'B_KEY', value: text('other'), ...DESC })
@@ -90,7 +90,7 @@ describe('associated data', () => {
   })
 })
 
-describe('values', () => {
+describe('values @SC-1327', () => {
   it('round-trips a file byte for byte, up to 48 KB', async () => {
     const bytes = Buffer.alloc(48 * 1024)
     for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 131 + 7) % 256
@@ -118,14 +118,14 @@ describe('values', () => {
   })
 })
 
-describe('names', () => {
+describe('names @SC-1327', () => {
   it.each(['ssh_key', '1KEY', 'KEY-1', '', 'GITHUB_TOKEN'])('refuses the secret name %j', async name => {
     expect((await refusal(addSecret(P, ADMIN, { name, value: text(CANARY), ...DESC }))).code).toBe('invalid')
     expect(db.secretRows).toHaveLength(0)
   })
 })
 
-describe('who writes', () => {
+describe('who writes @SC-1328', () => {
   it('refuses anyone but the place’s administrators, and changes nothing', async () => {
     await refusal(addSecret(P, MEMBER, { name: 'KEY', value: text(CANARY), ...DESC }))
     await addSecret(P, ADMIN, { name: 'KEY', value: text(CANARY), ...DESC })
@@ -136,7 +136,7 @@ describe('who writes', () => {
   })
 })
 
-describe('replacing', () => {
+describe('replacing @SC-1329', () => {
   it('keeps the name, description and record; the next run gets the new value', async () => {
     const first = await addSecret(P, ADMIN, { name: 'KEY', value: text(CANARY), ...DESC, rotateBy: new Date(Date.now() + 86_400_000) })
     const second = await replaceSecret(P, ADMIN, 'KEY', { kind: 'file', base64: Buffer.from('CANARY-new').toString('base64') })
@@ -149,7 +149,7 @@ describe('replacing', () => {
   })
 })
 
-describe('deleting', () => {
+describe('deleting @SC-1329', () => {
   const uses = (enabled: boolean, extra: Partial<{ githubSecretNames: string[] }> = {}) => ({
     workflowId: 'w1', workflowName: 'deploy-staging', enabled,
     definition: { steps: [{ name: 'upload', run: './up.sh', secrets: ['KEY'] }], variables: [] },
@@ -190,7 +190,7 @@ describe('deleting', () => {
   })
 })
 
-describe('valuesForRun', () => {
+describe('valuesForRun @SC-1330', () => {
   it('skips an integration’s name and refuses a name the place lacks', async () => {
     await addSecret(P, ADMIN, { name: 'KEY', value: text(CANARY), ...DESC })
     expect([...(await valuesForRun(P, ['KEY', 'GITHUB_TOKEN'])).keys()]).toEqual(['KEY'])
@@ -199,7 +199,7 @@ describe('valuesForRun', () => {
   })
 })
 
-describe('the record of use', () => {
+describe('the record of use @SC-1330', () => {
   it('records each run that used a secret, never its value', async () => {
     const added = await addSecret(P, ADMIN, { name: 'KEY', value: text(CANARY), ...DESC })
     await recordUse(P, 'run-1', ['KEY', 'GITHUB_TOKEN'], MEMBER)

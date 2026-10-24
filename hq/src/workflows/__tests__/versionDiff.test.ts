@@ -9,7 +9,7 @@ const def = (raw: unknown): WorkflowDefinition => {
   return p.definition
 }
 
-describe('a version\'s diff against the approved one', () => {
+describe('a version\'s diff against the approved one @SC-1289', () => {
   it('diffs lines', () => {
     expect(diffLines('a\nb\nc', 'a\nc\nd')).toEqual([
       { kind: 'same', text: 'a' }, { kind: 'removed', text: 'b' }, { kind: 'same', text: 'c' }, { kind: 'added', text: 'd' },

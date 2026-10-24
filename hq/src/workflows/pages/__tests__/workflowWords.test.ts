@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { formatDuration, formatSeconds, parameterAccepts, parameterRule, whenWords } from '../workflowWords'
 
-describe('parameterRule', () => {
+describe('parameterRule @SC-1290', () => {
   it('says a character class and its length in words', () => {
     expect(parameterRule({ name: 'branch', kind: 'pattern', pattern: '[A-Za-z0-9._/-]{1,100}' })).toBe('Letters, digits, . _ / - · up to 100')
   })
@@ -14,7 +14,7 @@ describe('parameterRule', () => {
   })
 })
 
-describe('parameterAccepts', () => {
+describe('parameterAccepts @SC-1290', () => {
   const branch = { name: 'branch', kind: 'pattern' as const, pattern: '[A-Za-z0-9._/-]{1,100}' }
   it('matches the whole value', () => {
     expect(parameterAccepts(branch, 'feature/region')).toBe(true)
@@ -37,7 +37,7 @@ describe('durations and dates', () => {
   })
 })
 
-describe('inConversationWords', () => {
+describe('inConversationWords @SC-1291', () => {
   it('names the conversation a version was proposed in, and nothing when it may not be read', async () => {
     const { inConversationWords } = await import('../workflowWords')
     expect(inConversationWords({ title: 'Ship the shop' })).toBe(' in "Ship the shop"')

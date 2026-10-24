@@ -5,7 +5,7 @@ import { FORWARDED_TOOLS } from '../forwardedToolSchemas'
 
 const workflowTools = FORWARDED_TOOLS.filter(t => WORKFLOW_TOOL_DECLARATIONS.some(d => d.name === t.name))
 
-describe("the agent's workflow tools on the site's MCP server", () => {
+describe("the agent's workflow tools on the site's MCP server @SC-1357", () => {
   it('forwards exactly the four core declares, each for the calling run', () => {
     expect(workflowTools.map(t => t.name).sort()).toEqual(Object.values(WORKFLOW_TOOL_NAMES).sort())
     for (const t of workflowTools) expect(t.runIdFromCaller).toBe(true)

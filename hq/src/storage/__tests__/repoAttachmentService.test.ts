@@ -66,7 +66,7 @@ describe('disconnectRepo @SC-259', () => {
   })
 })
 
-describe('findAttachmentByRepoUrl @SC-263', () => {
+describe('findAttachmentByRepoUrl', () => {
   it('matches an attachment by owner/repo regardless of a .git suffix', async () => {
     mockStoreFindRepoByUrl.mockResolvedValue({ id: 'att1', ownerId: 'p1', repoUrl: 'https://github.com/acme/website' })
     const found = await findAttachmentByRepoUrl(SITE, 'acme', 'website')

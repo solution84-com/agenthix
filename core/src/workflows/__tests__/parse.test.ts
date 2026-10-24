@@ -16,7 +16,7 @@ const errorsOf = (raw: unknown) => {
 const withStep = (step: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
   ({ name: 'x', steps: [{ name: 'S', run: 'true', ...step }], ...extra })
 
-describe('parsing a workflow definition', () => {
+describe('parsing a workflow definition @SC-1360', () => {
   it('reads the worked example into one form: defaults, seconds, sorted sets, the files its steps run', () => {
     expect(parsed(DEPLOY_STAGING)).toEqual({
       name: 'deploy-staging',
@@ -115,7 +115,7 @@ describe('parsing a workflow definition', () => {
   })
 })
 
-describe('checking a run\'s parameter values', () => {
+describe('checking a run\'s parameter values @SC-1361', () => {
   const d = parsed(withStep({}, {
     parameters: [
       { name: 'branch', pattern: '^[A-Za-z0-9_][A-Za-z0-9._/-]{0,99}$' },

@@ -6,7 +6,7 @@ import { starterVersionContent } from '../content'
 const DIGEST = `sha256:${'1'.repeat(64)}`
 const flagsOf = (c: ReturnType<typeof starterVersionContent>) => checkFlags(c, null, { known: false })
 
-describe('the starter workflows under the plain checks', () => {
+describe('the starter workflows under the plain checks @SC-1319', () => {
   it('push raises no flag', () => {
     expect(flagsOf(starterVersionContent(starterSource('push'), DIGEST))).toEqual([])
   })

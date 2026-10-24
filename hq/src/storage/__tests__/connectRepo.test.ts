@@ -41,7 +41,7 @@ beforeEach(() => {
   }
 })
 
-describe('a new repository', () => {
+describe('a new repository @SC-1316', () => {
   it('is created only after the checks passed, then pushed to, and stored with GitHub\'s ids', async () => {
     deps.check = vi.fn(async () => { order.push('check'); return okCheck })
     const res = await connectRepo(SITE, { target, mode: 'init', name: 'Web', userId: 'u1' }, deps)
@@ -90,7 +90,7 @@ describe('a new repository', () => {
   })
 })
 
-describe('an existing repository', () => {
+describe('an existing repository @SC-1317', () => {
   const asked = { target, mode: 'existing' as const, repoUrl: 'https://github.com/org/x', userId: 'u1' }
 
   it('is checked out into an empty workspace with a read token, and nothing is deleted on failure', async () => {

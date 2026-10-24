@@ -31,7 +31,7 @@ async function context(results: Partial<StepOutcome>[], over: Partial<StepsConte
   return { ctx, inputs, events }
 }
 
-describe('a run\'s steps', () => {
+describe('a run\'s steps @SC-1341', () => {
   it('gives each step only the secrets it names (attack A5)', async () => {
     const { ctx, inputs } = await context([])
     const out = await runSteps(ctx)

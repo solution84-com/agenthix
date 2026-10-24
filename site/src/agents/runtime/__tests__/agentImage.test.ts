@@ -43,7 +43,7 @@ describe('the agent image and the site agree', () => {
     expect(HARNESS_SECRET_ENV).toEqual(expect.arrayContaining(['OPENCODE_SERVER_PASSWORD', 'SITE_HARNESS_KEY', 'ANTHROPIC_API_KEY']))
   })
 
-  it('gives git no credential: its helper names the push workflow and tells git to stop (A12)', () => {
+  it('gives git no credential: its helper names the push workflow and tells git to stop (A12) @SC-1354', () => {
     expect(fs.existsSync(path.join(SITE, 'docker/agenthix-git-credential'))).toBe(false)
     expect(dockerfile).not.toMatch(/agenthix-git-credential|GIT_CRED_ENDPOINT|git\/credential|useHttpPath/)
     const helpers = dockerfile.match(/git config --system credential\.helper .*/g) ?? []
@@ -82,7 +82,7 @@ describe('the agent image and the site agree', () => {
     expect(wrapper.trim().split('\n').at(-1)).toBe(`exec ${COMMAND_LAUNCHER_PATH} ${SYSTEM_RIPGREP_PATH} "$@"`)
   })
 
-  it('puts a git that runs the real one through the launcher ahead of it on the PATH, with no hook or fsmonitor for a harness', () => {
+  it('puts a git that runs the real one through the launcher ahead of it on the PATH, with no hook or fsmonitor for a harness @SC-1354', () => {
     expect(dockerfile).toMatch(new RegExp(`^COPY --chmod=0755 site/docker/launcher/git ${CONTAINED_GIT_PATH}$`, 'm'))
     expect(dockerfile).toContain(`test "$(command -v git)" = ${CONTAINED_GIT_PATH} && test -x ${SYSTEM_GIT_PATH}`)
     expect(HARNESS_GIT_CONFIG).toEqual(['core.hooksPath=/dev/null', 'core.fsmonitor=false'])

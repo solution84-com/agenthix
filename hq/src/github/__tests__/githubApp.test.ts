@@ -5,7 +5,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 import { convertManifestCode, buildManifest } from '../githubApp'
 
-describe('convertManifestCode (W-1)', () => {
+describe('convertManifestCode (W-1) @SC-1307', () => {
   it('encodes the code into the GitHub path so it cannot steer the request elsewhere', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: 1, slug: 's', pem: 'p' }), { status: 201 }))
     vi.stubGlobal('fetch', fetchMock)
@@ -21,7 +21,7 @@ describe('convertManifestCode (W-1)', () => {
   })
 })
 
-describe('buildManifest (R-166)', () => {
+describe('buildManifest (R-166) @SC-1307', () => {
   it('names the App from letters and digits of the state only', () => {
     expect(buildManifest('-_ab-cd_efgh').name).toBe('agenthix-abcdefgh')
   })

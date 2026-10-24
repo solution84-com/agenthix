@@ -1,9 +1,9 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-10-24
+updated: 2026-10-25
 verified: 2026-06-19
-next-us: US-375
+next-us: US-383
 ---
 
 # User Stories — `hq/`
@@ -1319,9 +1319,9 @@ do git — without a long-lived personal access token and without per-repo SSH k
 
 - AC-150a — Connecting GitHub registers (or links) a GitHub App; its private key is stored encrypted at rest, never in plaintext.
 - AC-150b — Every GitHub credential is a short-lived token scoped to a single repository, minted on demand.
-- AC-150c — All operations (workflows, runs, secrets, dispatch) use the App, not a PAT.
+- AC-150c — All operations (workflows, runs, secrets, dispatch) use the App, not a PAT. *(Changed 2026-10-25: a secret reaches GitHub only through the approved `set-github-secrets` workflow, and every token goes through one gate with only the permissions asked for — AC-382a, AC-382f)*
 - AC-150d — Git access (clone/push) never persists a credential in the repo's git config.
-- AC-150e — An agent doing git in its container receives a repo-scoped short-lived token and holds no durable credential.
+- ~~AC-150e — An agent doing git in its container receives a repo-scoped short-lived token and holds no durable credential.~~ *(Retired 2026-10-25 — the agent's container receives no GitHub token at all; it shares commits through the approved `push` workflow, AC-377c)*
 
 ---
 
@@ -1653,12 +1653,12 @@ As an operator, I want to open a private URL and see the running web app the age
 As an operator, I want to see and run my project's GitHub Actions workflows and manage their secrets from Agenthix, so that I can run deployments and operations without leaving the platform.
 
 **Acceptance criteria:**
-- AC-148a: I can see the project's GitHub Actions workflows and recent runs (status, run number, commit), each linking to the run on GitHub.
-- AC-148b: I can trigger a workflow run from Agenthix.
-- AC-148c: I can set a secret value that is stored in GitHub; Agenthix keeps no copy and never displays the value.
-- AC-148d: I can see which secrets are set on the repo (name + last-updated) without ever seeing their values.
+- AC-148a: I can see the project's GitHub Actions workflows and recent runs (status, run number, commit), each linking to the run on GitHub. *(Changed 2026-10-25: a connected workspace's About lists each GitHub workflow with its last run, AC-380e)*
+- ~~AC-148b: I can trigger a workflow run from Agenthix.~~ *(Retired 2026-10-25 — there is no Run button for a GitHub workflow; one is started by an approved workflow, with `actions: write`, or on GitHub)*
+- ~~AC-148c: I can set a secret value that is stored in GitHub; Agenthix keeps no copy and never displays the value.~~ *(Retired 2026-10-25 — a secret is kept in the place's Secrets and reaches GitHub only as an environment secret, through the approved `set-github-secrets` workflow, AC-376a, AC-382c, AC-382f)*
+- AC-148d: I can see which secrets are set on the repo (name + last-updated) without ever seeing their values. *(Changed 2026-10-25: each also says whether it came from Secrets or was set outside HQ, AC-380e)*
 
-> Approval/promotion of workflow *changes* is via GitHub's own PR review + branch protection, not Agenthix.
+> Approval/promotion of GitHub workflow *changes* is via GitHub's own PR review + branch protection, not Agenthix. *(Changed 2026-10-25: the platform's own workflows, which use a place's secrets, are approved in Agenthix, US-375.)*
 
 ## US-149 — Organise storage as files + workspaces per owner
 
@@ -3647,3 +3647,111 @@ As a machine owner, I want an agent's model calls to pass through my site withou
 - AC-364d: each call's usage is read as the answer passes, unchanged, and reported to HQ.
 - AC-364e: a report waits on disk until HQ acknowledges it, so a restart loses none.
 - AC-364f: a call through Agenthix Cloud uses a token HQ gives the site and never one the harness sent.
+
+---
+
+## Workflows, secrets and GitHub (added 2026-10-25)
+
+A place's secrets — a project's, or a person's own storage's — are used only by **workflows**: fixed steps a person approved word for word, run by the site in containers of their own. An agent proposes and runs them, and never holds a secret.
+
+### US-375 — Approve the workflows that may use my place's secrets
+
+As a project administrator, or a person for their own storage, I want every workflow that can use my place's secrets listed, and each new version of one to wait for my approval, so that nothing runs with a secret unless a person read it and agreed.
+
+**Acceptance criteria:**
+- AC-375a: every workflow of my place is listed with its steps, the secrets it uses, its versions and its runs; a new version waits for the place's administrators, and an agent can never approve, decline or switch one.
+- AC-375b: I approve one exact version, identified by its hash; it then runs as often as needed until a newer version is approved, a version waiting meanwhile never stops it, and the same files in another project wait for that project's own approval.
+- AC-375c: before I decide, plain checks with no model flag risky patterns and a reviewer that holds nothing advises; the card in the conversation offers Approve only when the plain checks allow it, and otherwise only the full review, with the reason.
+- AC-375d: in my own storage I approve only GitHub permissions over contents and pull requests; anything wider also needs an organisation administrator.
+- AC-375e: I switch a workflow off, which stops it running for anyone and stops a run in progress, and on again without approving it again.
+- AC-375f: when the executor image changes, an approval carries over only where its tools are the same; otherwise the version asks for approval again while the one approved before keeps running.
+
+---
+
+### US-376 — Keep my place's secrets and variables
+
+As a project administrator, or a person for their own storage, I want to keep the secrets and the plain settings my place's workflows use, so that each value is in one place, used only where it is named, and never seen again once typed.
+
+**Acceptance criteria:**
+- AC-376a: a secret is typed, or uploaded as a file of up to 48 KB, once; it is stored encrypted, never shown again to anyone, agents included, and can only be replaced.
+- AC-376b: each secret says what it is and where to get a new one, and may carry a rotate-by date: the administrators are told a week before, and it shows overdue from the day.
+- AC-376c: a variable's value is in plain sight with every change old → new; a name that changes how programs run is refused, and a value that looks like a secret is questioned before it is saved.
+- AC-376d: I see which workflows use each secret and variable, and deleting one that a switched-on workflow uses is refused, naming the workflows.
+- AC-376e: every set, replace and delete, and every run that used a secret, is recorded with who and when, never the value.
+- AC-376f: only the place's administrators change them; the place's people read their names and descriptions.
+
+---
+
+### US-377 — Let agents use workflows without ever holding a secret
+
+As a member, I want an agent to write, propose and run workflows for the work I give it, so that it can deploy, push or open a pull request without a secret ever being in its container, where an instruction hidden in a file could make it leak one.
+
+**Acceptance criteria:**
+- AC-377a: an agent lists the place's workflows by name, proposes a new version from a definition in one of the place's workspaces, runs an approved one on a workspace it names, and checks on a run.
+- AC-377b: a run an agent starts is on behalf of the person its run is for, so an agent working for someone who only reads the place cannot run one; an agent may run a workflow a limited number of times an hour, and people are not limited.
+- AC-377c: no secret value, and no GitHub token, ever reaches the agent's container; a plain `git push` there fails, naming the `push` workflow.
+- AC-377d: the agent gets each step's result and the last lines of its masked output, and of a run that left a secret in a file only that its changes were dropped.
+- AC-377e: values that change from run to run are parameters, checked against the rule approved with the workflow, and reach the steps as files, never as text pasted into a command.
+
+---
+
+### US-378 — Run workflows on my machine without exposing what they hold
+
+As a machine owner, I want my site to run each workflow exactly as approved, apart from the agents, so that a secret it is given can't be read by an agent or sent anywhere that wasn't approved.
+
+**Acceptance criteria:**
+- AC-378a: the site checks the version's hash again and runs only the approved files, from a read-only folder, on a snapshot of the workspace the agent can't change while it runs.
+- AC-378b: each step runs in a fresh, hardened container with only the secrets that step names, as files, and the container is removed before the next step starts.
+- AC-378c: a step has no network unless hosts were approved, and then reaches only those hosts, through a proxy that answers its name lookups and refuses the machine's own and private addresses.
+- AC-378d: what a run changed reaches the workspace only after a scan finds no secret in it, git's own stored objects included, and a file the agent changed meanwhile is kept.
+- AC-378e: the site never follows a symbolic or hard link while reading, copying or writing back.
+
+---
+
+### US-379 — Set up GitHub for the organisation
+
+As an organisation admin, I want to register the organisation's own GitHub App once and decide which GitHub accounts it may work on, and for which places, so that agents can work on our repositories and our clients' without a long-lived key.
+
+**Acceptance criteria:**
+- AC-379a: I register the App from one page, *Manage organisation › Settings › GitHub*, choosing the GitHub organisation that owns it; the page holds the App and its accounts, and Infrastructure's GitHub App card leads there.
+- AC-379b: anyone may install the App, but a new installation is used only once I allow it, choosing every shared project or chosen ones, and the people whose own work may connect (none by default); I can ignore one instead.
+- AC-379c: the page shows the App's real permissions on GitHub with what uses each, what each account lets it reach and whether it accepted the latest permissions, and gives me an install link to send a client.
+- AC-379d: after GitHub sends me back, the page looks for the new installation itself, with no Refresh to press.
+
+---
+
+### US-380 — Connect a workspace to a repository, with its starter workflows
+
+As a project administrator, I want to connect a workspace to a new or existing repository through one flow that checks before it creates, so that agents can work on the code and share it through approved workflows.
+
+**Acceptance criteria:**
+- AC-380a: I set my project's default GitHub account from those it may connect to, and a connection starts there; a person's own space is offered the accounts chosen for them.
+- AC-380b: before a repository is created, the flow checks that the account can create one and that the name is free, says how to fix an account that can't, offers the existing repository on a clash, and deletes a repository it created if a later step fails, saying so.
+- AC-380c: an existing repository is checked out into an empty workspace, or receives a workspace's files when it is empty or shares their history, and is otherwise refused, never overwritten; a workspace's own branches are never moved.
+- AC-380d: once connected, the starter workflows `push`, `pull` and `open-pull-request` wait for approval in the same sitting.
+- AC-380e: a connected workspace shows the workflows that reach GitHub, the repository's own GitHub workflows with their last run, and the secrets on GitHub by name, each saying whether it came from Secrets.
+
+---
+
+### US-381 — Follow a workflow's run
+
+As a member, I want to start a workflow and follow its steps, in its own page and in the conversation that started it, so that I can see what it did and where it stopped.
+
+**Acceptance criteria:**
+- AC-381a: I run a workflow from the Workflows section, its parameters checked before anything is sent, and its run shows each step's state and time, the running step's live masked output, and Stop for anyone who could start it.
+- AC-381b: in the conversation a run under way is in the work bar with the step it is on; once finished it moves into the thread where it ended, with how it ended and a link to the run.
+- AC-381c: I see all of a step's masked output, and which file and which secret a scan found.
+
+---
+
+### US-382 — Keep secrets safe around GitHub and in output
+
+As a project administrator, I want GitHub tokens narrowed to each run, protected branches and GitHub's own secrets kept from what agents push, and secret values hidden from output, so that a workflow can't do more than it says or show what it holds.
+
+**Acceptance criteria:**
+- AC-382a: each run gets its own GitHub token, for its workspace's own repository by GitHub's ids, with only the permissions its workflow declares, checked against which places may connect at every mint, and ended when the run ends.
+- AC-382b: `push` and `open-pull-request` refuse a protected branch, read from GitHub when the run starts, and refuse when it can't be told.
+- AC-382c: `set-github-secrets` sets environment secrets only, on an environment that only protected branches may deploy from.
+- AC-382d: every secret of the place is hidden in a run's output in its common encodings, and a run that printed one is flagged and the administrators told to replace it.
+- AC-382e: *Turn off what uses it* switches off at once every workflow that uses a secret or variable, and stops their runs in progress.
+- AC-382f: adding a secret can also set it on GitHub, which proposes `set-github-secrets` for it.

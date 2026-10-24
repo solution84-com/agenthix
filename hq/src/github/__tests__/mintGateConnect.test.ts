@@ -39,7 +39,7 @@ beforeEach(() => {
   }
 })
 
-describe('which account a connection uses', () => {
+describe('which account a connection uses @SC-1314', () => {
   it('the one chosen, only among those the place may connect to', async () => {
     expect((await chooseConnectInstallation(PLACE, { installationRowId: 'i2' }, deps)).id).toBe('i2')
     await expect(chooseConnectInstallation(PLACE, { installationRowId: 'i9' }, deps)).rejects.toMatchObject({ statusCode: 403 })
@@ -62,7 +62,7 @@ describe('which account a connection uses', () => {
   })
 })
 
-describe('minting while connecting', () => {
+describe('minting while connecting @SC-1316', () => {
   it('scopes the token to the one repository, with the permissions named, and answers its ids', async () => {
     const t = await mintForConnecting({ place: PLACE, person: 'u1', installationRowId: 'i1', repositoryName: 'site', permissions: { contents: 'write' } }, deps)
     expect(asks).toEqual([{ installationId: 1, permissions: { contents: 'write' }, repositoryNames: ['site'] }])

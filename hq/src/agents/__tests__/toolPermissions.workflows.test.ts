@@ -6,7 +6,7 @@ import { resolveEffectivePermissions } from '../permissions/effectivePermissions
 
 const names = WORKFLOW_TOOL_DECLARATIONS.map((d) => d.name)
 
-describe('the workflow tools reach every agent without configuration', () => {
+describe('the workflow tools reach every agent without configuration @SC-1300', () => {
   it('are every tool core declares, always injected', () => {
     expect(Object.values(SYSTEM_MCP_TOOLS.WORKFLOW).sort()).toEqual([...names].sort())
     for (const name of names) expect(ALWAYS_INJECTED_MCP_TOOLS).toContain(name)
