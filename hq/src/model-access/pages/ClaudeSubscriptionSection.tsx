@@ -25,7 +25,7 @@ export function ClaudeSubscriptionSection() {
           </button>
         </div>
       ) : (
-        <ClaudeSignIn ownerType="user" ownerId="" onSignedIn={() => void refetch()} />
+        <ClaudeSignIn ownerType="user" onSignedIn={() => void refetch()} />
       )}
       {error && <p role="alert" className="mt-2 text-small text-danger">{error}</p>}
     </section>
