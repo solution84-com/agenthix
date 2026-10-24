@@ -16,6 +16,8 @@ let clock: number
 let env: LauncherEnv
 
 const PINNED = `ghcr.io/solution84-com/agenthix-host@sha256:${'d'.repeat(64)}`
+/** What the new host service is started from: the checked digest, and the tag it reads its version from. */
+const STARTED_AS = `ghcr.io/solution84-com/agenthix-host:0.3.0@sha256:${'d'.repeat(64)}`
 
 function ready(over: Partial<HostSwitch> = {}): HostSwitch {
   return writeSwitch(state, {
@@ -33,6 +35,7 @@ beforeEach(async () => {
   state = new StateFolder(dir)
   state.prepare()
   docker = new FakeContainers()
+  docker.refs.set(STARTED_AS, NEW_IMAGE)
   clock = Date.parse('2026-10-14T09:00:00Z')
   env = { containers: docker, state, names: namesFor('agenthix'), ownVersion: '0.2.0', now: () => new Date(clock), sleep: async ms => { clock += ms }, pollMs: 3_000 }
   await recordHostContainer(docker, state, new Date(clock), 'agenthix-host')
@@ -61,6 +64,7 @@ describe('the launcher @SC-838', () => {
 
   it('names everything it touches from the recorded namespace @SC-1156', async () => {
     docker = new FakeContainers('acme')
+    docker.refs.set(STARTED_AS, NEW_IMAGE)
     env = { ...env, containers: docker, names: namesFor('acme') }
     await recordHostContainer(docker, state, new Date(clock), 'acme-host')
     ready()
@@ -72,7 +76,13 @@ describe('the launcher @SC-838', () => {
     ready()
     await runSwitch(env, NEW_IMAGE)
     const order = docker.calls.filter(c => /^(stop|rename|run) /.test(c))
-    expect(order).toEqual([`stop ${OLD_ID}`, `rename ${OLD_ID}`, `run agenthix-host ${NEW_IMAGE}`])
+    expect(order).toEqual([`stop ${OLD_ID}`, `rename ${OLD_ID}`, `run agenthix-host ${STARTED_AS}`])
+  })
+
+  it('starts the new host service by its version’s tag and the checked digest, so it answers as that version', async () => {
+    ready()
+    expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'done' })
+    expect(host()).toMatchObject({ image: NEW_IMAGE, reference: STARTED_AS })
   })
 
   it('refuses an image the host service did not check, and changes nothing', async () => {
@@ -92,22 +102,18 @@ describe('the launcher @SC-838', () => {
   })
 
   it('refuses an older version, or the same one, and only goes forward', async () => {
-    docker.images.set(NEW_IMAGE, { ...docker.images.get(NEW_IMAGE)!, version: '0.1.9' })
     ready({ to: '0.1.9' })
     expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'refused', reason: expect.stringContaining('only goes forward') })
-    docker.images.set(NEW_IMAGE, { ...docker.images.get(NEW_IMAGE)!, version: '0.2.0' })
     ready({ to: '0.2.0' })
     expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'refused' })
     expect(ran()).toEqual([])
   })
 
-  it('refuses an image that is not the version written down, and a launcher that is not the version being replaced', async () => {
-    docker.images.set(NEW_IMAGE, { ...docker.images.get(NEW_IMAGE)!, version: '0.4.0' })
+  it('refuses a launcher that is not the version being replaced, or is a development build', async () => {
     ready()
-    expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'refused', reason: expect.stringContaining('0.4.0') })
-    docker.images.set(NEW_IMAGE, { ...docker.images.get(NEW_IMAGE)!, version: '0.3.0' })
+    expect(await runSwitch({ ...env, ownVersion: '0.2.1' }, NEW_IMAGE)).toMatchObject({ phase: 'refused', reason: expect.stringContaining('not the host service 0.2.0') })
     ready()
-    expect(await runSwitch({ ...env, ownVersion: 'dev' }, NEW_IMAGE)).toMatchObject({ phase: 'refused' })
+    expect(await runSwitch({ ...env, ownVersion: 'dev' }, NEW_IMAGE)).toMatchObject({ phase: 'refused', reason: expect.stringContaining('development build') })
     expect(ran()).toEqual([])
   })
 
@@ -123,7 +129,6 @@ describe('the launcher @SC-838', () => {
   })
 
   it('puts the old one back when the new one answers as another version, or cannot be started', async () => {
-    docker.images.set(NEW_IMAGE, { ...docker.images.get(NEW_IMAGE)!, version: '0.3.0' })
     const exec = docker.exec.bind(docker)
     docker.exec = async (name: string, command: string[]) => ({ ...(await exec(name, command)), stdout: '{"version":"0.2.0"}\n' })
     ready()
@@ -162,7 +167,7 @@ describe('a launcher started again partway @SC-838', () => {
     ready({ phase: 'switching', attempts: 1, waitingSince: new Date(clock).toISOString() })
     await docker.stop(OLD_ID)
     await docker.rename(OLD_ID, 'agenthix-host-previous')
-    await docker.run({ name: 'agenthix-host', image: NEW_IMAGE, mounts: [], network: 'host', capAdd: [], env: [], restart: 'unless-stopped', labels: {} })
+    await docker.run({ name: 'agenthix-host', image: STARTED_AS, mounts: [], network: 'host', capAdd: [], env: [], restart: 'unless-stopped', labels: {} })
     docker.calls.length = 0
     expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'done' })
     expect(ran()).toEqual([])
@@ -182,5 +187,72 @@ describe('a launcher started again partway @SC-838', () => {
     expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'done' })
     expect(docker.calls).toEqual([])
     expect(readSwitch(state)!.phase).toBe('done')
+  })
+})
+
+describe('a development build switched to an image built on the machine @SC-838', () => {
+  /** What the person named: a local build, by its name. */
+  const BUILT = 'agenthix-host:b'
+
+  function built(over: Partial<HostSwitch> = {}): HostSwitch {
+    return ready({ from: 'dev', to: 'dev', ref: BUILT, checked: false, built: true, ...over })
+  }
+
+  beforeEach(() => {
+    env = { ...env, ownVersion: 'dev' }
+    docker.refs.set(BUILT, NEW_IMAGE)
+  })
+
+  it('starts the new host service by the image’s id, with the recorded settings, and removes the old one once it answers', async () => {
+    built()
+    expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'done', reason: null })
+    expect(host()).toMatchObject({ image: NEW_IMAGE, reference: NEW_IMAGE, running: true, network: 'host', restart: 'unless-stopped' })
+    expect(host()!.env).toContain('TZ=Europe/London')
+    expect(docker.containers.has(OLD_ID)).toBe(false)
+    expect(docker.calls.filter(c => /^(stop|rename|run) /.test(c))).toEqual([`stop ${OLD_ID}`, `rename ${OLD_ID}`, `run agenthix-host ${NEW_IMAGE}`])
+  })
+
+  it('puts the old host service back when the new one never answers', async () => {
+    docker.silent.add(NEW_IMAGE)
+    built()
+    const ended = await runSwitch(env, NEW_IMAGE)
+    expect(ended).toMatchObject({ phase: 'failed', reason: expect.stringContaining(`The new host service from ${BUILT} did not answer within 3 minutes`) })
+    expect(host()).toMatchObject({ id: OLD_ID, image: OLD_IMAGE, running: true })
+    expect([...docker.containers.values()].map(c => c.name)).toEqual(['agenthix-host'])
+  })
+
+  it('puts the old one back when the new one answers as a published version', async () => {
+    const exec = docker.exec.bind(docker)
+    docker.exec = async (name: string, command: string[]) => ({ ...(await exec(name, command)), stdout: '{"version":"0.3.0"}\n' })
+    built()
+    expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'failed', reason: expect.stringContaining('answered as 0.3.0, not dev') })
+    expect(host()).toMatchObject({ id: OLD_ID, running: true })
+  })
+
+  it('is refused by a published host service, which switches only forward to a signed image', async () => {
+    built()
+    expect(await runSwitch({ ...env, ownVersion: '0.2.0' }, NEW_IMAGE)).toMatchObject({ phase: 'refused', reason: expect.stringContaining('0.2.0, a published version') })
+    built({ from: '0.2.0' })
+    expect(await runSwitch({ ...env, ownVersion: '0.2.0' }, NEW_IMAGE)).toMatchObject({ phase: 'refused' })
+    expect(host()).toMatchObject({ id: OLD_ID, running: true })
+    expect(ran()).toEqual([])
+  })
+
+  it('refuses a published image, by its reference or by where it was fetched from', async () => {
+    built({ ref: 'ghcr.io/solution84-com/agenthix-host:0.3.0' })
+    expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'refused', reason: expect.stringContaining('is a published image') })
+    docker.images.set(NEW_IMAGE, { ...docker.images.get(NEW_IMAGE)!, repoDigests: [`ghcr.io/solution84-com/agenthix-host@sha256:${'d'.repeat(64)}`] })
+    built({ ref: NEW_IMAGE })
+    expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'refused', reason: expect.stringContaining('is a published image') })
+    expect(ran()).toEqual([])
+  })
+
+  it('refuses the image the host service already runs, and a switch not written for a development build', async () => {
+    docker.refs.set(BUILT, OLD_IMAGE)
+    built({ imageId: OLD_IMAGE })
+    expect(await runSwitch(env, OLD_IMAGE)).toMatchObject({ phase: 'refused', reason: expect.stringContaining('already runs') })
+    built({ to: '0.3.0' })
+    expect(await runSwitch(env, NEW_IMAGE)).toMatchObject({ phase: 'refused', reason: expect.stringContaining('not written for a development build') })
+    expect(ran()).toEqual([])
   })
 })

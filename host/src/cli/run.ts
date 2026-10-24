@@ -204,7 +204,7 @@ async function scheduled(command: Extract<Command, { kind: 'scheduled' | 'schedu
   return 0
 }
 
-export async function runCommand(command: Command, send: Send, io: Io, version: string, now: () => Date = () => new Date()): Promise<number> {
+export async function runCommand(command: Command, send: Send, io: Io, version: string | null, now: () => Date = () => new Date()): Promise<number> {
   try {
     switch (command.kind) {
       case 'help':

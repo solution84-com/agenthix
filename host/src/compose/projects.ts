@@ -10,7 +10,7 @@
 import { CLOUD_URL_SETTING, CONTAINER_DATABASE_PORT, SERVICE_PORTS } from '@agenthix/core'
 import type { InstallNames } from '../state/namespace'
 import type { ImagePins } from '../images/images'
-import { imageRef, POSTGRES_IMAGE, type PublishedPart } from '../images/published'
+import { imageRef, isPublishedVersion, POSTGRES_IMAGE, type PublishedPart } from '../images/published'
 import type { InstallSecrets } from '../state/secrets'
 import { cloudSettings, type CloudSettings } from '../config'
 import { ipam, type InstallSubnets } from './subnets'
@@ -62,6 +62,12 @@ export { imageRef }
 const image = (settings: { version: string; images?: ImagePins }, part: PublishedPart) =>
   settings.images?.[part] ?? imageRef(part, settings.version)
 
+/**
+ * The version a service runs as, which its image does not carry: the one it was installed or upgraded to. None for a
+ * development build, which then says `dev` as it does when run by hand.
+ */
+export const versionEnv = (name: string, version: string): Record<string, string> => (isPublishedVersion(version) ? { [name]: version } : {})
+
 export const siteDataPath = (paths: MachinePaths) => `${paths.state.replace(/\/+$/, '')}/site/data`
 
 /** The address hq's default site dials: hq-web by its container name, over the private network they share. */
@@ -77,13 +83,22 @@ function database(names: InstallNames, role: string, db: string, password: strin
     networks: ['internal'],
     healthcheck: { test: ['CMD-SHELL', 'pg_isready -U postgres'], interval: '5s', timeout: '5s', retries: 10 },
     restart: 'unless-stopped',
+    // No version: its image is the pinned Postgres, the same in every release, and a changed label would make compose
+    // recreate the database at each upgrade.
     labels: labels(names, role, installation),
   }
 }
 
+/**
+ * The version a container runs as, for `docker inspect`; none for a development build. A label is no part of an image,
+ * so it moves no content key.
+ */
+export const versionLabel = (names: Pick<InstallNames, 'label'>, version: string): Record<string, string> =>
+  (isPublishedVersion(version) ? { [names.label('version')]: version } : {})
+
 /** Its role, and the installation's published ports and agent range, which another installation's check reads. */
-export function labels(names: InstallNames, role: string, installation: Installation): Record<string, string> {
-  return { [names.label('role')]: role, [names.label('managed-by')]: 'host', ...installationLabels(names, installation) }
+export function labels(names: InstallNames, role: string, installation: Installation, version?: string): Record<string, string> {
+  return { [names.label('role')]: role, [names.label('managed-by')]: 'host', ...installationLabels(names, installation), ...(version ? versionLabel(names, version) : {}) }
 }
 
 /** HQ's published port, which only `installation.json` holds. */
@@ -126,12 +141,13 @@ export function hqProject(
           HQ_CONTROL_SOCKET,
           FILES_ORIGIN: hq.filesOrigin ?? '',
           ...(cloud ? { HQ_RUN_BY_CLOUD: 'true', [CLOUD_URL_SETTING]: cloud.url } : {}),
+          ...versionEnv('APP_VERSION', hq.version),
         },
         volumes: ['storage:/hq-storage'],
         networks: ['internal'],
         depends_on: { 'hq-db': { condition: 'service_healthy' } },
         restart: 'unless-stopped',
-        labels: labels(names, 'hq', installation),
+        labels: labels(names, 'hq', installation, hq.version),
       },
       'hq-web': {
         image: image(hq, 'hq-web'),
@@ -145,7 +161,7 @@ export function hqProject(
         networks: ['internal', 'edge', 'link'],
         depends_on: ['hq-server'],
         restart: 'unless-stopped',
-        labels: labels(names, 'hq', installation),
+        labels: labels(names, 'hq', installation, hq.version),
       },
     },
     networks: {
@@ -200,6 +216,7 @@ export function siteProject(
           HQ_PAIRING_SECRET: hq.credential,
           SECRETS_MASTER_KEY: secrets.siteMasterKey,
           HOST_FIGURES_SOCKET: `${SITE_FIGURES_MOUNT}/figures.sock`,
+          ...versionEnv('APP_VERSION', site.version),
         },
         volumes: [
           // The data folder at the same path inside and out: the Docker the site drives resolves agent mounts on the machine.
@@ -211,7 +228,7 @@ export function siteProject(
         networks: hq.onHqLinkNetwork ? ['internal', 'link'] : ['internal'],
         depends_on: { 'site-db': { condition: 'service_healthy' } },
         restart: 'unless-stopped',
-        labels: labels(names, 'site', installation),
+        labels: labels(names, 'site', installation, site.version),
       },
     },
     networks: hq.onHqLinkNetwork ? { internal, link: { name: names.hqLinkNetwork, external: true } } : { internal },

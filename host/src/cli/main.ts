@@ -4,7 +4,7 @@
  * it does, the host service does.
  */
 import readline from 'node:readline'
-import { HOST_SERVICE_VERSION, OWNER_SOCKET } from '../config'
+import { OWNER_SOCKET } from '../config'
 import { ask } from '../sockets/lineServer'
 import { parseCommand } from './commands'
 import { runCommand, type Io } from './run'
@@ -58,6 +58,19 @@ function terminalIo(): Io {
   }
 }
 
+/** The host service's version, which it learnt at start; only `help` shows it, and shows none when it does not answer. */
+async function serviceVersion(): Promise<string | null> {
+  try {
+    const reply = await ask(OWNER_SOCKET, { op: 'host.version' })
+    const version = (reply.result as { version?: unknown } | undefined)?.version
+    return reply.ok === true && typeof version === 'string' ? version : null
+  } catch {
+    return null
+  }
+}
+
 const io = terminalIo()
-const code = await runCommand(parseCommand(process.argv.slice(2)), (request, onProgress) => ask(OWNER_SOCKET, request, onProgress), io, HOST_SERVICE_VERSION)
+const command = parseCommand(process.argv.slice(2))
+const version = command.kind === 'help' ? await serviceVersion() : null
+const code = await runCommand(command, (request, onProgress) => ask(OWNER_SOCKET, request, onProgress), io, version)
 process.exit(code)

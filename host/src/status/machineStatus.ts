@@ -46,6 +46,8 @@ export type MachineStatus = {
   frontDoor?: { on: boolean; hosts: string[] }
   /** The changes scheduled on this machine, soonest first (spec §14); the owner socket adds them. */
   scheduled?: ScheduledChange[]
+  /** The release each part's image was first built for, when earlier than the one it runs (`upgrades/unchangedSince.ts`); the owner socket adds it. */
+  unchangedSince?: { hq?: string; site?: string }
   /** Parts that are not running because another holds their published port (`portsBlocked.ts`); the owner socket adds them. */
   blocked?: BlockedPart[]
 }

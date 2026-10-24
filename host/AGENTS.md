@@ -15,6 +15,16 @@ docker run -d --name agenthix-host --restart unless-stopped \
   --label com.docker.compose.project=agenthix-host <host service image>
 ```
 
+**Its version is the reference it was started from**, never built in (`src/images/ownVersion.ts`): at start, before
+anything serves, it reads its own container's image reference; a trusted publisher's host image by a published
+version's tag (`…/agenthix-host:0.3.0`, with or without `@sha256:…`) is that version once that version's signature
+passes and the image it runs is the one signed, and a failed check stops it with what to do. Anything else — a local
+build's name, a bare digest — is `dev`, a development build, the only kind that runs images built on the machine.
+The image that passed is recorded by its id (`launcher/image.json`), so a start without network trusts the same
+content again; the launcher reads its own version there, and the CLI asks the service (`host.version`). It writes the
+version into hq-server's and the site's environment (`APP_VERSION`) and the Fleet Console's (`CONSOLE_VERSION`), and
+nothing for a development build.
+
 A second host service under a namespace of its own (`INSTALL_NAMESPACE`) is for testing only; [`docs/architecture/ports.md`](../docs/architecture/ports.md) says how installations share a machine's ports and address blocks.
 
 The label puts the host service, its launcher and each new version in one group in Docker Desktop (`<namespace>-host`); the launcher carries it over.
@@ -50,12 +60,19 @@ folder; only those settings carry over (mounts, network, capabilities, the envir
 restart policy). To switch, it checks the new image's signature, fetches it by digest, writes the switch down in
 `launcher/switch.json`, and starts the launcher from its own image as the container `<namespace>-host-launcher`, with only the
 Docker socket and the state folder. The launcher runs only that image, only forward: it stops the old container and
-keeps it as `<namespace>-host-previous`, starts the new one as `<namespace>-host` with the recorded settings, and removes the old one once
+keeps it as `<namespace>-host-previous`, starts the new one as `<namespace>-host` with the recorded settings, by `<image>:<version>@<digest>` so it reads its version, and removes the old one once
 the new one answers on its owner socket as its version (`launcher.js answer`, run inside it — a command every
 version keeps); if it does not within 3 minutes, it removes the new one and starts the old one again. Each step is
 written down first, and Docker restarts the launcher with the machine until it has ended, so it carries on from
 where it stopped. `agenthix upgrades host --launcher off` turns it off; the CLI then prints the two commands that do
 the same by hand.
+
+**A development build switches to another image built on the machine** (`agenthix upgrades host --image <name or
+id>`, `src/upgrades/builtHostService.ts`, `src/launcher/built.ts`), so the whole switch and the put-back can be run on a
+dev machine. It skips what only a published version has — the signature and "only forward" — and is otherwise the same
+switch: the journal marks it `built`, and the launcher starts the new one by the image's id and checks that it runs
+that image and answers `dev`. Each side refuses it on a published host service, and refuses a published image (by its
+name or its registry digests); a development build is never switched to a published version this way.
 
 The launcher's other mode is `agenthix uninstall`'s last step (`src/launcher/uninstall.ts`), run as
 `<namespace>-host-uninstall`: once the host service has removed everything else, it removes the host service's own

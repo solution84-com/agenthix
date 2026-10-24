@@ -10,9 +10,11 @@
  *   remove its container, its figures volume and its state folder once it has answered (`uninstall.ts`).
  */
 import { DEFAULT_INSTALL_NAMESPACE } from '@agenthix/core'
-import { HOST_SERVICE_VERSION, OWNER_SOCKET, STATE_DIR } from '../config'
+import fs from 'node:fs'
+import { OWNER_SOCKET, STATE_DIR } from '../config'
 import { dockerCli } from '../docker/docker'
-import { Containers } from '../docker/containers'
+import { Containers, containerIdIn } from '../docker/containers'
+import { checkedVersion, DEVELOPMENT } from '../images/ownVersion'
 import { DockerRemoval } from '../docker/removal'
 import { ask } from '../sockets/lineServer'
 import { StateFolder } from '../state/folder'
@@ -31,6 +33,20 @@ async function answer(): Promise<number> {
   return 0
 }
 
+/**
+ * The launcher runs from the host service's image by its id, so it is the version the host service recorded for that
+ * image once its signature passed; `dev` when none was.
+ */
+async function launcherVersion(containers: Containers, state: StateFolder): Promise<string> {
+  let mountinfo = ''
+  try {
+    mountinfo = fs.readFileSync('/proc/self/mountinfo', 'utf8')
+  } catch {}
+  const id = containerIdIn(mountinfo)
+  const self = id ? await containers.inspect(id) : null
+  return self ? checkedVersion(state, self.image) : DEVELOPMENT
+}
+
 async function swap(imageId: string): Promise<number> {
   const containers = new Containers(dockerCli)
   const state = new StateFolder(STATE_DIR)
@@ -40,12 +56,12 @@ async function swap(imageId: string): Promise<number> {
     containers,
     state,
     names,
-    ownVersion: HOST_SERVICE_VERSION,
+    ownVersion: await launcherVersion(containers, state),
     now: () => new Date(),
     sleep: ms => new Promise(resolve => setTimeout(resolve, ms)),
     pollMs: 3_000,
   }, imageId)
-  console.log(ended.phase === 'done' ? `The host service is on ${ended.to}.` : ended.reason)
+  console.log(ended.phase === 'done' ? `The host service is on ${ended.built ? `${ended.ref}, a development build` : ended.to}.` : ended.reason)
   await containers.noRestart(names.launcherContainer).catch(() => {})
   return ended.phase === 'done' ? 0 : 1
 }

@@ -40,8 +40,11 @@ function notRunning(state: PartState, logs: string): string | null {
   return null
 }
 
-function hqBlock(hq: NonNullable<MachineStatus['hq']>, suspended: boolean, blocked: string | undefined): string[] {
-  const lines = [`HQ  ${hq.address}  ${hq.version}`]
+/** ", unchanged since 0.2.1" after a version, when its image is the one an earlier release published. */
+const since = (release: string | undefined) => (release ? `, unchanged since ${release}` : '')
+
+function hqBlock(hq: NonNullable<MachineStatus['hq']>, suspended: boolean, blocked: string | undefined, unchanged?: string): string[] {
+  const lines = [`HQ  ${hq.address}  ${hq.version}${since(unchanged)}`]
   const down = notRunning(hq.containers, 'hq logs')
   if (down && suspended) lines.push(hqSuspendedLine())
   else if (blocked) lines.push(wrap(blocked, IN))
@@ -73,8 +76,9 @@ function stoppedSiteElsewhere(management: ManagementStatus | undefined): string 
 
 function siteBlock(
   site: NonNullable<MachineStatus['site']>, suspended: LifecycleStatus['suspended'] = {}, management?: ManagementStatus, hasHq = true,
+  unchanged?: string,
 ): string[] {
-  const lines = [`Site ${site.name}  ${site.version}${site.carriesHq ? '  HQ · site' : ''}`]
+  const lines = [`Site ${site.name}  ${site.version}${since(unchanged)}${site.carriesHq ? '  HQ · site' : ''}`]
   const down = notRunning(site.containers, 'site logs')
   if (down) {
     const stopped = site.containers === 'stopped' || site.containers === 'missing'
@@ -224,8 +228,8 @@ export function statusText(s: StatusWithBackups, now = new Date()): string {
   }
   lines.push(...managementLines(s.management, !!s.hq, !!s.site, !!s.site?.replacedAt))
   const blocked = s.blocked ?? []
-  if (s.hq) lines.push(...hqBlock(s.hq, !!s.lifecycle?.suspended.hq, blocked.find(b => b.part === 'hq')?.text), ...upgradeLines(s.upgrades, 'hq', now))
-  if (s.site) lines.push(...siteBlock(s.site, s.lifecycle?.suspended, s.management, !!s.hq), ...upgradeLines(s.upgrades, 'site', now))
+  if (s.hq) lines.push(...hqBlock(s.hq, !!s.lifecycle?.suspended.hq, blocked.find(b => b.part === 'hq')?.text, s.unchangedSince?.hq), ...upgradeLines(s.upgrades, 'hq', now))
+  if (s.site) lines.push(...siteBlock(s.site, s.lifecycle?.suspended, s.management, !!s.hq, s.unchangedSince?.site), ...upgradeLines(s.upgrades, 'site', now))
   if (s.site && s.backups) lines.push(...backupLines(s.backups, now))
   lines.push(...consoleHereLines(s.management, !!s.hq), ...blockedLines(blocked, 'console'))
   if (s.hq) lines.push(...frontDoorBlock(s.hq, s.frontDoor), ...blockedLines(blocked, 'front-door'))

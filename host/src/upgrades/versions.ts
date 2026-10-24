@@ -55,8 +55,8 @@ export function newest(versions: string[]): string | null {
   return versions.filter(isReleaseVersion).sort(compare).pop() ?? null
 }
 
-const [REGISTRY_HOST, OWNER] = REGISTRY.split('/')
-const TIMEOUT_MS = 20_000
+export const [REGISTRY_HOST, OWNER] = REGISTRY.split('/')
+export const TIMEOUT_MS = 20_000
 
 /**
  * The registry's anonymous route (the OCI distribution API, as ghcr serves it): a pull token for the repository,
@@ -71,13 +71,19 @@ export class NothingPublished extends Error {
 
 const NOT_THERE = new Set([401, 403, 404])
 
+/** A pull token for `repository`, anonymously; throws `NothingPublished` when the registry holds no such image. */
+export async function registryToken(repository: string, signal: AbortSignal): Promise<string> {
+  const answer = await fetch(`https://${REGISTRY_HOST}/token?scope=repository:${repository}:pull&service=${REGISTRY_HOST}`, { signal })
+  if (NOT_THERE.has(answer.status)) throw new NothingPublished()
+  if (!answer.ok) throw new Error('the registry could not be asked just now')
+  const { token } = (await answer.json()) as { token?: unknown }
+  if (typeof token !== 'string') throw new Error('the registry gave no way to ask it')
+  return token
+}
+
 export const registryTags: TagLister = async repository => {
   const signal = AbortSignal.timeout(TIMEOUT_MS)
-  const tokenAnswer = await fetch(`https://${REGISTRY_HOST}/token?scope=repository:${repository}:pull&service=${REGISTRY_HOST}`, { signal })
-  if (NOT_THERE.has(tokenAnswer.status)) throw new NothingPublished()
-  if (!tokenAnswer.ok) throw new Error('the registry could not be asked just now')
-  const { token } = (await tokenAnswer.json()) as { token?: unknown }
-  if (typeof token !== 'string') throw new Error('the registry gave no way to ask it')
+  const token = await registryToken(repository, signal)
   const answer = await fetch(`https://${REGISTRY_HOST}/v2/${repository}/tags/list?n=1000`, {
     headers: { Authorization: `Bearer ${token}` }, signal,
   })

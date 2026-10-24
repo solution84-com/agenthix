@@ -14,12 +14,20 @@ export type SwitchPhase = 'ready' | 'switching' | 'puttingBack' | 'done' | 'fail
 export type HostSwitch = {
   from: string
   to: string
-  /** The image whose signature the host service checked, fixed by its digest: `<repository>@sha256:…`. */
+  /**
+   * The image whose signature the host service checked, fixed by its digest: `<repository>@sha256:…`; for a `built`
+   * switch, the image's local name or id as the person gave it.
+   */
   ref: string
   /** The same image as Docker holds it, by its id: what the launcher runs, and nothing else. */
   imageId: string
   /** The host service set this only after the signature check passed. */
   checked: boolean
+  /**
+   * A development build's switch to an image built on the machine, named by `ref` (its local name or id): no
+   * signature and no version, so `from` and `to` are both `dev`, and the new one is checked by its image instead.
+   */
+  built?: boolean
   /** The container being replaced, by its id. */
   oldContainer: string
   answerWithinMs: number
@@ -46,7 +54,7 @@ export function readSwitch(state: StateFolder): HostSwitch | null {
   const raw = state.readJson(...FILE) as Record<string, unknown> | null
   if (!raw || typeof raw !== 'object') return null
   const ok = text(raw.from) && text(raw.to) && text(raw.ref) && text(raw.imageId) && typeof raw.checked === 'boolean'
-    && text(raw.oldContainer) && typeof raw.answerWithinMs === 'number' && text(raw.startedAt)
+    && (raw.built === undefined || typeof raw.built === 'boolean') && text(raw.oldContainer) && typeof raw.answerWithinMs === 'number' && text(raw.startedAt)
     && PHASES.has(raw.phase as SwitchPhase) && typeof raw.attempts === 'number'
     && maybe(raw.waitingSince) && maybe(raw.endedAt) && maybe(raw.reason)
   return ok ? (raw as unknown as HostSwitch) : null

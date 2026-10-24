@@ -105,7 +105,7 @@ describe('agenthix hq upgrade @SC-836', () => {
     expect(await cli('hq', 'upgrade', '0.3.0')).toBe(1)
     expect(flat(out)).toContain('HQ 0.3.0 needs the host service 0.3.0 first; this one is older.')
     expect(out).toContain('  docker rm -f agenthix-host\n')
-    expect(out).toMatch(/\n {2}docker run -d --name agenthix-host .* ghcr\.io\/solution84-com\/agenthix-host@sha256:[0-9a-f]{64}\n/)
+    expect(out).toMatch(/\n {2}docker run -d --name agenthix-host .* ghcr\.io\/solution84-com\/agenthix-host:0\.3\.0@sha256:[0-9a-f]{64}\n/)
     expect(flat(out)).toContain('Then: agenthix hq upgrade 0.3.0')
     expect(installed(m.ctx).hq!.settings.version).toBe('0.2.0')
   })

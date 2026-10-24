@@ -47,7 +47,7 @@ const LATELY_MS = 7 * 24 * 3600_000
 function switchFailedLately(ctx: Context): UpgradesStatus['hostSwitchFailed'] {
   const s = readSwitch(ctx.state)
   if (!s || (s.phase !== 'failed' && s.phase !== 'refused') || !s.endedAt || !s.reason) return null
-  return ctx.now().getTime() - Date.parse(s.endedAt) < LATELY_MS ? { version: s.to, endedAt: s.endedAt, reason: s.reason } : null
+  return ctx.now().getTime() - Date.parse(s.endedAt) < LATELY_MS ? { version: s.built ? s.ref : s.to, endedAt: s.endedAt, reason: s.reason } : null
 }
 
 export function upgradesStatus(ctx: Context): UpgradesStatus {

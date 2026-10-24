@@ -15,12 +15,6 @@ export const FIGURES_MOUNT = '/run/host-figures'
 export const FIGURES_SOCKET = `${FIGURES_MOUNT}/figures.sock`
 
 /**
- * Fixed into the bundle when the image is built (`scripts/build.mjs`); `dev` for a build made on a machine, a
- * development build, the only kind that runs images built on the machine (`images/images.ts`).
- */
-export const HOST_SERVICE_VERSION = process.env.HOST_SERVICE_VERSION || 'dev'
-
-/**
  * The machine's own name, recorded at first start: with `--network host` the container has the machine's host
  * name. A site's name defaults to it, and from then on the two are stored apart (spec §6).
  */

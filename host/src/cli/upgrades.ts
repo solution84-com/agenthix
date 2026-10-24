@@ -10,13 +10,14 @@ import { willBe } from '../scheduled/words'
 import type { HostSwitchStarted, UpgradeCheckResult } from '../upgrades/operations'
 import type { HostServiceReady } from '../upgrades/hostService'
 import type { UpgradesStatus } from '../upgrades/status'
+import { builtHostCommand } from './builtSwitch'
 import { atTime, scheduledDone } from './scheduled'
 import { cmd, nextStep, wrap } from './words'
 
 export type UpgradeCommand =
   | { kind: 'upgrade'; target: 'hq' | 'site'; version?: string; at?: string; yes: boolean }
   | { kind: 'upgrades'; auto?: boolean; window?: string }
-  | { kind: 'upgradesHost'; launcher?: boolean; yes: boolean }
+  | { kind: 'upgradesHost'; launcher?: boolean; image?: string; yes: boolean }
 
 type Usage = { kind: 'usage'; message: string }
 
@@ -45,14 +46,16 @@ export function parseUpgrade(target: 'hq' | 'site', args: string[]): UpgradeComm
   return { kind: 'upgrade', target, version, at: at.value, yes }
 }
 
-/** `upgrades host [--yes]`, `upgrades host --launcher on|off`. */
+/** `upgrades host [--yes]`, `upgrades host --image <name or id> [--yes]`, `upgrades host --launcher on|off`. */
 function parseUpgradesHost(args: string[]): UpgradeCommand | Usage {
   const yes = args.includes('--yes')
-  const launcher = take(args.filter(a => a !== '--yes'), '--launcher')
-  if (launcher.bad || launcher.rest.length || (launcher.value !== undefined && launcher.value !== 'on' && launcher.value !== 'off')) {
-    return { kind: 'usage', message: `upgrades host takes --yes, or --launcher on or --launcher off.` }
+  const image = take(args.filter(a => a !== '--yes'), '--image')
+  const launcher = take(image.rest, '--launcher')
+  if (image.bad || launcher.bad || launcher.rest.length || (image.value !== undefined && launcher.value !== undefined)
+    || (launcher.value !== undefined && launcher.value !== 'on' && launcher.value !== 'off')) {
+    return { kind: 'usage', message: `upgrades host takes --yes, or --launcher on or --launcher off; on a development build, --image <name or id>.` }
   }
-  return { kind: 'upgradesHost', yes, launcher: launcher.value === undefined ? undefined : launcher.value === 'on' }
+  return { kind: 'upgradesHost', yes, image: image.value, launcher: launcher.value === undefined ? undefined : launcher.value === 'on' }
 }
 
 /** `upgrades`, `upgrades auto on|off`, `upgrades --window "<day> <from>-<to>"`, `upgrades host …`. */
@@ -175,6 +178,7 @@ export async function upgradeCommand(command: UpgradeCommand, call: Ask, io: Upg
       io.out(launcherText(u.launcher))
       return 0
     }
+    if (command.image !== undefined) return builtHostCommand(call, io, command.image, command.yes)
     const h = await call<HostServiceReady>({ op: 'upgrades.hostService' })
     if (h.launcher) return switchHost(call, io, h, command.yes)
     io.out(hostServiceText(h, `The host service ${h.version} is published.`, null))

@@ -53,7 +53,7 @@ export type SiteHealth = {
   agentImage: {
     name: string
     present: boolean
-    /** The image's `org.opencontainers.image.version` label, when it has one. */
+    /** The release the site was started as, which is the release of the agent image it runs; null when the image is absent or the site was given no version. */
     version: string | null
   }
   /** What each agent container gets, and the machine's ceilings before narrowing; null when they cannot be trusted. */

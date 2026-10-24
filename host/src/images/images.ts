@@ -1,8 +1,8 @@
 /**
  * The images an install runs: each one's signature checked before anything is fetched, then fetched by the digest
- * the signature covers (host-management spec §11, adr-0117). A release build of the host service runs only
- * published, signed images. Only a development build — a host service built on a machine, whose version is `dev`
- * — runs images built on the machine, and it never fetches them. Anything else fails closed.
+ * the signature covers (host-management spec §11, adr-0117). A host service of a published version runs only
+ * published, signed images. Only a development build — one started from an image built on the machine, whose version
+ * is `dev` (`ownVersion.ts`) — runs images built on the machine, and it never fetches them. Anything else fails closed.
  */
 import { Refusal } from '../owner/results'
 import { product } from '../cli/words'
@@ -15,7 +15,7 @@ export type ImagePins = Partial<Record<PublishedPart, string>>
 
 export type WantedImage = { part: PublishedPart; version: string }
 
-/** A host service built on a machine, not published: the one kind that may run images built there. */
+/** A host service started from a local build, not a published image: the one kind that may run images built there. */
 export const isDevelopmentBuild = (hostServiceVersion: string) => hostServiceVersion === 'dev'
 
 const SIGNER = `${product}'s publishing workflow`

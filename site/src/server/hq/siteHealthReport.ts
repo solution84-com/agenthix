@@ -10,7 +10,6 @@ import { readMacAvailableBytes } from './macMemory'
 import { runtimeCheck } from './runtimeCheck'
 
 const IMAGE_VERSION_TIMEOUT_MS = 10_000
-const VERSION_LABEL = 'org.opencontainers.image.version'
 
 /** Starts reporting through `send`; returns the stop function. */
 export type HealthReporter = (send: (health: SiteHealth) => void) => () => void
@@ -73,22 +72,13 @@ export async function takeHealth(deps: HealthDeps = {}): Promise<SiteHealth> {
     agentImage: {
       name: check.agentImage,
       present: check.imagePresent,
-      version: check.imagePresent ? await imageVersion(docker, check.agentImage) : null,
+      // The agent image is the one of the site's own release, so the site's version is its version.
+      version: check.imagePresent ? process.env.APP_VERSION || null : null,
     },
     // The ceilings only: never the machine's resource use or Docker's version from the host service's figures.
     ceilings: siteCeilings(),
     // A condition, never a figure (spec §10).
     memoryNearlyFull: memoryCondition((deps.memory ?? machineMemory)()),
-  }
-}
-
-async function imageVersion(docker: NonNullable<HealthDeps['docker']>, image: string): Promise<string | null> {
-  try {
-    const { stdout } = await docker(['image', 'inspect', '--format', `{{index .Config.Labels "${VERSION_LABEL}"}}`, image])
-    const version = stdout.trim()
-    return version && version !== '<no value>' ? version : null
-  } catch {
-    return null
   }
 }
 

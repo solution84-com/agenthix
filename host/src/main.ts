@@ -6,7 +6,7 @@
  */
 import { DEFAULT_INSTALL_NAMESPACE } from '@agenthix/core'
 import fs from 'node:fs'
-import { FIGURES_MOUNT, FIGURES_SOCKET, HOST_SERVICE_VERSION, OWNER_SOCKET, STATE_DIR, cloudSettings, machineName } from './config'
+import { FIGURES_MOUNT, FIGURES_SOCKET, OWNER_SOCKET, STATE_DIR, cloudSettings, machineName } from './config'
 import { startCloud } from './cloud/start'
 import { cloudOperation } from './cloud/dispatch'
 import { resumeRemoteAccess } from './remoteAccess/handlers'
@@ -24,6 +24,7 @@ import { readInstallation, startInstallation } from './state/installation'
 import { figuresVolumeWarning } from './figures/mount'
 import { checkSignature, cosignCli } from './images/signatures'
 import { registryEnv } from './images/registryAuth'
+import { DEVELOPMENT, ownVersion } from './images/ownVersion'
 import { machineStatus } from './status/machineStatus'
 import { Firewall, nftCli } from './protections/firewall'
 import { machineRules } from './protections/machine'
@@ -33,7 +34,7 @@ import { startNightlyBackups } from './backups/nightly'
 import { startHeldExportSweep } from './backups/exportDownload'
 import { startScheduler } from './scheduled/scheduler'
 import { startUpgrades } from './upgrades/automatic'
-import { recordHostContainer } from './launcher/record'
+import { DOCKER_SOCKET, recordHostContainer } from './launcher/record'
 import { afterSwitch } from './launcher/start'
 import { noticesForSite } from './scheduled/notices'
 import { startBinPurge } from './lifecycle/bin'
@@ -69,6 +70,12 @@ async function main(): Promise<void> {
   const state = new StateFolder(STATE_DIR)
   state.prepare()
   const containers = new Containers(dockerCli)
+  // Once, before anything serves: the version its container was started as, its signature checked (images/ownVersion.ts).
+  // The CLI asks it on the owner socket, and the launcher reads what it recorded, so neither checks again.
+  const version = await ownVersion({
+    containers, state, mountinfo: readMountInfo(), hasDocker: fs.existsSync(DOCKER_SOCKET), now: () => new Date(),
+    check: (ref, signer) => checkSignature(cosignCli, ref, signer, registryEnv(state, process.env)),
+  })
   // At the first start, recorded only once its own container carries the name it finds itself by (`<namespace>-host`).
   const installation = await startInstallation(state, {
     asked: process.env.INSTALL_NAMESPACE,
@@ -86,7 +93,7 @@ async function main(): Promise<void> {
     docker,
     containers,
     hqControl: new HqControl(docker, names.container('hq-server')),
-    machine: { name: machineName(state), hostServiceVersion: HOST_SERVICE_VERSION },
+    machine: { name: machineName(state), hostServiceVersion: version },
     signatures: (ref, signer) => checkSignature(cosignCli, ref, signer, registryEnv(state, process.env)),
     registryEnv: () => registryEnv(state, process.env),
     machinePaths: machinePathsFrom(docker, names.hostContainer, process.env.HOST_STATE_ON_MACHINE),
@@ -163,11 +170,11 @@ async function main(): Promise<void> {
   const stopScheduler = startScheduler(ctx, 15_000, line => console.warn(line))
   // Finishes an upgrade a restart cut short, and schedules fixes for the maintenance window (spec §11).
   const stopUpgrades = startUpgrades(ctx, line => console.warn(line))
-  console.log(`Host service ${HOST_SERVICE_VERSION} on ${ctx.machine.name}: namespace ${names.namespace}, owner socket ${OWNER_SOCKET}, figures socket ${FIGURES_SOCKET}.`)
+  console.log(`Host service ${version} on ${ctx.machine.name}: namespace ${names.namespace}, owner socket ${OWNER_SOCKET}, figures socket ${FIGURES_SOCKET}.`)
   if (ctx.figuresWarning) console.warn(ctx.figuresWarning)
   // The settings this container runs with, so the launcher can start it again from a new image (adr-0118).
   void recordHostContainer(ctx.containers, state, ctx.now(), names.hostContainer).then(r => {
-    if ('problem' in r && HOST_SERVICE_VERSION !== 'dev') console.warn(`The host service cannot switch itself to a new version: ${r.problem}.`)
+    if ('problem' in r && version !== DEVELOPMENT) console.warn(`The host service cannot switch itself to a new version: ${r.problem}.`)
   }, () => {})
   void afterSwitch(ctx).then(s => {
     if (s && (s.phase === 'failed' || s.phase === 'refused') && s.endedAt && Date.now() - Date.parse(s.endedAt) < 3600_000) console.warn(`Host service switch to ${s.to}: ${s.reason}`)

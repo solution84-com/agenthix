@@ -234,6 +234,8 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
       if (registryDown.reason) throw new Error(registryDown.reason)
       return tags.get(repository) ?? []
     },
+    // Never the real registry: a test that wants an answer gives its own.
+    registryPlatformDigest: async () => null,
   }
   return { ctx, calls, dir, hq, up, missingImages, signatures, checked, caddyRefuses, backups, tags, registryDown, agentContainers, agentNetworks, dockerNetworks, machineContainers, heldPorts, siteReport, containers, consoleLocalJoin, consoleAnswers, volumes, images, imagesInUse, dockerFails, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
 }

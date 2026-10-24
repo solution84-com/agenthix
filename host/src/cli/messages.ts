@@ -138,7 +138,8 @@ const GROUPS: Record<HelpRow['group'], string> = {
   cloud: 'Agenthix Cloud',
 }
 
-export function helpText(version: string, topic?: string): string {
+/** `version`: the host service's, or null when it did not answer. */
+export function helpText(version: string | null, topic?: string): string {
   const rows = [...HELP, ...CLOUD_HELP, ...PROVIDER_HELP]
   if (topic) {
     const row = rows.find(r => r.usage.split(' [')[0].split(' <')[0].split(' --')[0] === topic) ??
@@ -147,7 +148,7 @@ export function helpText(version: string, topic?: string): string {
     return [cmd(row.usage), '', wrap(row.detail, '  ')].join('\n')
   }
   const lines = [
-    `${BRANDING.cliCommand} ${version} — runs ${product} on this machine.`,
+    `${BRANDING.cliCommand}${version ? ` ${version}` : ''} — runs ${product} on this machine.`,
     `Without the shortcut, type: docker exec -it ${hostContainer()} ${BRANDING.cliCommand} <command>`,
   ]
   for (const group of Object.keys(GROUPS) as HelpRow['group'][]) {

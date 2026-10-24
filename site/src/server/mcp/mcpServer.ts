@@ -58,7 +58,7 @@ function agentSchema(tool: ForwardedTool): ZodRawShape {
 
 export function createMcpServer(opts: CreateMcpServerOptions): McpServer {
   const server = new McpServer(
-    { name: 'agenthix-site', version: '1.0.0' },
+    { name: 'agenthix-site', version: process.env.APP_VERSION || 'dev' },
     {
       instructions: [
         `${BRANDING.displayName} task management tools are available in this session.`,
