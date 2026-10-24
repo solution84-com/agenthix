@@ -18,6 +18,7 @@
 #   INSTALL_TEST_IP            the network address to install at (found from the machine's own when unset)
 #   INSTALL_TEST_HQ_PORT       HQ's port; INSTALL_TEST_CONSOLE_PORT the Fleet Console's (on 127.0.0.1);
 #                              INSTALL_TEST_MODEL_PORT the stand-in model's. Each is a free port chosen when unset.
+#   INSTALL_TEST_NO_BUILD=1  build nothing: a missing image is an error (the release build installs the candidate's images)
 #   INSTALL_TEST_KEEP=1      leave everything running afterwards, and say how to remove it
 #   INSTALL_TEST_LOGS        where the logs go (a new folder under the system's temporary folder)
 set -euo pipefail
@@ -80,6 +81,7 @@ echo "Namespace $NS; HQ at $ADDRESS; the Fleet Console on 127.0.0.1:$CONSOLE_POR
 PARTS="$(node "$ROOT/scripts/images/parts.mjs" | cut -d ' ' -f 1)"
 for part in $PARTS; do
   if ! docker image inspect "imgtest/$part:dev" >/dev/null 2>&1; then
+    [ "${INSTALL_TEST_NO_BUILD:-0}" != 1 ] || fail "the image imgtest/$part:dev is missing, and INSTALL_TEST_NO_BUILD=1 builds none. Nothing was touched."
     say "Building imgtest/$part:dev (scripts/images/start-test-all.sh)"
     "$ROOT/scripts/images/start-test-all.sh" "$part" >"$LOGS/build-$part.log" 2>&1 \
       || { tail -40 "$LOGS/build-$part.log" >&2; fail "the image imgtest/$part:dev did not build and start."; }

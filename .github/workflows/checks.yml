@@ -2,7 +2,7 @@ name: Checks
 
 # Typecheck and unit tests for every package on each pull request and each push to main or a release branch, and the
 # two apps' integration suites against a Postgres service. The images are not built here: on a release branch the
-# release's own build does that, for both architectures (release-branch-build.yml), and on main and pull requests the
+# release's own build does that, for both architectures (release-build.yml), and on main and pull requests the
 # full regression starts them before a unit merges. There is no linter in the repository, so none runs here. A tag is
 # published only once "All checks passed" has passed for the tagged commit (publish-images.yml).
 on:

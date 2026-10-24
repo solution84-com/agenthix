@@ -1,28 +1,30 @@
 name: Publish release
 
-# A version tag's release. The release branch has already done everything a release does except publish: Checks,
-# the install test, the guide's screenshots, and the release's own build (release-build.yml), which builds and starts
-# every image for both architectures and packs core. The tag publishes only what that proved, in one order. It runs
-# only for a version tag, v<major>.<minor>.<patch> or a pre-release of one, v<major>.<minor>.<patch>-alpha.<n>,
-# -beta.<n> or -rc.<n>, and is never started by hand.
+# A version tag's release. It builds no image: it gives a name to what the release build (release-build.yml) built
+# and proved for the tagged commit, in one order. It runs only for a version tag, v<major>.<minor>.<patch> or a
+# pre-release of one, v<major>.<minor>.<patch>-alpha.<n>, -beta.<n> or -rc.<n>, and is never started by hand.
 #
-# 0. The version is the tag's alone: its form is checked, and nothing in the repository carries a version. No image
-#    is built with one; each is given its version here, at publish.
-# 1. The tagged commit's Checks must have passed ("All checks passed"), and so must its install test, its guide
-#    screenshots and its release build on its release branch; it waits while they run.
-# 2. The same release build again (release-build.yml): every image a machine runs — hq's server and browser app, the
-#    site, the agent image, the host service and the Fleet Console — built for amd64 and arm64, each on a runner of
-#    its own architecture, started there and made to answer, and only then pushed by
-#    digest only, reachable by no version. An image that does not start is never sent. One build failing stops them
-#    all. Core is built, checked and packed by the same run.
-# 3. Each image is given its version, signed with Sigstore's keyless signing (host-management spec §11, adr-0117) and
-#    checked as a host service will check it. Signing is here, not in the build, because the signature names the
-#    workflow whose job signs.
-# 4. Only once every image is published and checked, the core package that build packed is published, so that the
-#    hosted service depends on one implementation of the protocol rather than a copy.
+# 0. The version is the tag's alone: its form is checked, and nothing in the repository carries a version.
+# 1. The tagged commit's Checks must have passed ("All checks passed"), and so must the latest release build for it:
+#    a run of release-build.yml started by a push to a release branch, or by hand from main or a release branch
+#    (scripts/release/proven-run.mjs). It waits while either runs. That run's candidate record names each part's two
+#    platform images by digest.
+# 2. Before anything is signed, where each image came from is checked (scripts/release/verify-candidate.mjs): every
+#    part's content key is recomputed at the tagged commit (scripts/images/keys.mjs, over scripts/images/parts.json)
+#    and must equal the candidate's, and each platform digest must carry release-build.yml's build attestation for
+#    that part, architecture and key (scripts/release/reuse.sh, the check the release build makes before it reuses an
+#    image). A digest built from other content is never promoted under the tag, whoever pushed it.
+# 3. Per part, the multi-platform index over the two digests, annotated with the version and the commit, tagged
+#    :<version>, signed with Sigstore's keyless signing (adr-0117) and checked as a host service will check it.
+#    Signing is here, not in the build, because the signature names the workflow whose job signs.
+# 4. Only once every image is published and checked, core is built, given the version, checked and published, so that
+#    the hosted service depends on one implementation of the protocol rather than a copy.
+# 5. The release page, with the release record attached (release.json, scripts/release/record.mjs): the version,
+#    commit and tree; per part its key, index digest and platform digests; core's name, version and integrity; the
+#    Postgres image the host service pins.
 #
-# If any of it fails, the tag and whatever this run published are deleted, the fix goes on the same release branch,
-# and the same version is tagged again on the fixed commit (adr-0137).
+# If any of it fails, the tag and whatever this run published are deleted, and the same version is tagged again once
+# the fix is proved. With no build here, a retry promotes the same digests.
 #
 # A host service checks every image's signature before it fetches it, against exactly one signer: this file, run
 # for the version's own tag (host/src/images/published.ts). This file's path, the tag's form and the registry are
@@ -46,15 +48,18 @@ env:
 
 jobs:
   release:
-    name: The version, and what its release branch proved
+    name: The version, what the release build proved, and where each image came from
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 150
     permissions:
       contents: read
       checks: read
       actions: read
+      # Reads the candidate's images and their attestations; a private package needs the token to be read.
+      packages: read
     outputs:
       version: ${{ steps.version.outputs.version }}
+      promote: ${{ steps.verify.outputs.promote }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -81,53 +86,48 @@ jobs:
             echo "All checks passed, for $GITHUB_SHA: ${states:-none yet}"
             if [[ " $states " == *" completed:success "* ]]; then exit 0; fi
             if [ -n "$states" ] && [[ "$states" != *queued* ]] && [[ "$states" != *in_progress* ]]; then
-              echo "::error::Checks did not pass for $GITHUB_SHA. Delete the tag, fix it on the release branch, and tag the same version again on the fixed commit."
+              echo "::error::Checks did not pass for $GITHUB_SHA. Delete the tag, fix it, and tag the same version again once the fix is proved."
               exit 1
             fi
             sleep 30
           done
           echo "::error::Checks did not finish for $GITHUB_SHA within an hour. Re-run this workflow once they pass."
           exit 1
-      - name: The release branch's install test, guide screenshots and release build passed
+      - name: The release build passed for this commit
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Each runs on every push to a release branch. Its latest run for this commit on a release branch must have
-          # passed, so a tag publishes nothing its release branch did not prove.
-          for workflow in install-test.yml guide-screenshots.yml release-branch-build.yml; do
-            for _ in $(seq 1 120); do
-              state="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs?head_sha=$GITHUB_SHA&event=push&per_page=50" \
-                --jq '[.workflow_runs[] | select(.head_branch | startswith("release/"))] | sort_by(.created_at) | last
-                      | if . == null then "" else .status + ":" + (.conclusion // "") end')"
-              echo "$workflow, for $GITHUB_SHA on a release branch: ${state:-none}"
-              [ "$state" = completed:success ] && break
-              if [ -z "$state" ]; then
-                echo "::error::$workflow never ran for $GITHUB_SHA on a release branch. Push the release branch, let it pass, then tag."
-                exit 1
-              fi
-              if [[ "$state" == completed:* ]]; then
-                echo "::error::$workflow did not pass for $GITHUB_SHA. Delete the tag, fix it on the release branch, and tag the same version again on the fixed commit."
-                exit 1
-              fi
-              sleep 30
-            done
-            [ "$state" = completed:success ] || { echo "::error::$workflow did not finish for $GITHUB_SHA within an hour."; exit 1; }
-          done
-
-  # The release's one build definition, the same one every push to the release branch ran with publishing off.
-  build:
-    name: Build, start and push
-    needs: release
-    uses: ./.github/workflows/release-build.yml
-    permissions:
-      contents: read
-      packages: write
-    with:
-      publish: true
+          run_id="$(node scripts/release/proven-run.mjs --commit "$GITHUB_SHA" --artifact candidate --dir "$RUNNER_TEMP/candidate")"
+          echo "Promoting the candidate of release build run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run_id" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: ${{ env.COSIGN_VERSION }}
+      - name: Where each image came from, and its key at the tagged commit
+        id: verify
+        run: |
+          node --test "scripts/release/__tests__/*.test.mjs"
+          node scripts/images/keys.mjs "$GITHUB_SHA" --json > "$RUNNER_TEMP/keys.json"
+          node scripts/release/verify-candidate.mjs --candidate "$RUNNER_TEMP/candidate/candidate.json" --keys "$RUNNER_TEMP/keys.json" \
+            --commit "$GITHUB_SHA" --tree "$(git rev-parse "$GITHUB_SHA^{tree}")" \
+            --registry "ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" --out "$RUNNER_TEMP/promote.json"
+          echo "promote=$(cat "$RUNNER_TEMP/promote.json")" >> "$GITHUB_OUTPUT"
+          {
+            echo '### Promoted'
+            echo
+            echo '| Part | Key | amd64 | arm64 |'
+            echo '|---|---|---|---|'
+            jq -r '.[] | "| \(.part) | `\(.key[0:12])` | `\(.amd64[0:19])` | `\(.arm64[0:19])` |"' "$RUNNER_TEMP/promote.json"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   publish:
     name: "Publish and sign ${{ matrix.part }}"
-    needs: [release, build]
+    needs: release
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -137,17 +137,13 @@ jobs:
       id-token: write
     strategy:
       fail-fast: false
+      # Every part of scripts/images/parts.json at the tagged commit, each with the two digests checked above.
       matrix:
-        part: [hq-server, hq-web, site-server, agent, host, console]
+        include: ${{ fromJSON(needs.release.outputs.promote) }}
     env:
-      IMAGE: ${{ needs.build.outputs.registry }}/${{ fromJSON(needs.build.outputs.names)[matrix.part] }}
+      IMAGE: ${{ matrix.image }}
       VERSION: ${{ needs.release.outputs.version }}
     steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: digests-${{ matrix.part }}-*
-          path: ${{ runner.temp }}/digests
-          merge-multiple: true
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
@@ -159,18 +155,22 @@ jobs:
           cosign-release: ${{ env.COSIGN_VERSION }}
       - name: Make the multi-platform image
         id: index
-        working-directory: ${{ runner.temp }}/digests
+        env:
+          AMD64: ${{ matrix.amd64 }}
+          ARM64: ${{ matrix.arm64 }}
         run: |
-          digests=(*)
-          test "${#digests[@]}" -eq 2 || { echo "::error::Expected one digest per platform, found: ${digests[*]}"; exit 1; }
           docker buildx imagetools create \
             --annotation "index:org.opencontainers.image.version=$VERSION" \
             --annotation "index:org.opencontainers.image.revision=$GITHUB_SHA" \
             --annotation "index:org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
             -t "$IMAGE:$VERSION" \
-            "${digests[@]/#/$IMAGE@sha256:}"
+            "$IMAGE@$AMD64" "$IMAGE@$ARM64"
           digest="$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{json .Manifest}}' | jq -r .digest)"
           printf '%s' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$' || { echo "::error::No digest for $IMAGE:$VERSION"; exit 1; }
+          # The index must point at exactly the two images whose origin was checked.
+          held="$(docker buildx imagetools inspect "$IMAGE@$digest" --raw | jq -c '[.manifests[].digest] | sort')"
+          expected="$(jq -n -c --arg a "$AMD64" --arg b "$ARM64" '[$a, $b] | sort')"
+          test "$held" = "$expected" || { echo "::error::$IMAGE:$VERSION points at $held, not the checked $expected."; exit 1; }
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
       - name: Sign it
         env:
@@ -189,6 +189,23 @@ jobs:
           # The version is the index's annotation, written by imagetools create above.
           annotated="$(docker buildx imagetools inspect "$IMAGE@$DIGEST" --raw | jq -r '.annotations["org.opencontainers.image.version"] // ""')"
           test "$annotated" = "$VERSION" || { echo "::error::$IMAGE is annotated with version '$annotated', not $VERSION"; exit 1; }
+      - name: Keep it for the release record
+        env:
+          DIGEST: ${{ steps.index.outputs.digest }}
+          PART: ${{ matrix.part }}
+          KEY: ${{ matrix.key }}
+          AMD64: ${{ matrix.amd64 }}
+          ARM64: ${{ matrix.arm64 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/published"
+          jq -n -c --arg part "$PART" --arg image "$IMAGE" --arg key "$KEY" --arg index "$DIGEST" --arg amd64 "$AMD64" --arg arm64 "$ARM64" \
+            '{part: $part, image: $image, key: $key, index: $index, amd64: $amd64, arm64: $arm64}' > "$RUNNER_TEMP/published/$PART.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: published-${{ matrix.part }}
+          path: ${{ runner.temp }}/published/*.json
+          if-no-files-found: error
+          retention-days: 7
 
   core:
     name: Publish core
@@ -232,26 +249,62 @@ jobs:
           # A pre-release must not become what an install without a version gets.
           if [[ "$VERSION" == *-* ]]; then channel=next; else channel=latest; fi
           npm publish "${packed[0]}" --tag "$channel"
+      # The file the registry received, for the release record's integrity hash.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: core-published
+          path: ${{ runner.temp }}/core-package/*.tgz
+          if-no-files-found: error
+          retention-days: 7
 
   release-page:
     # The release's page on GitHub, once everything is published: a pre-release for an -alpha, -beta or -rc tag, with
-    # notes GitHub writes from the commits since the last release. One made by hand first is left as it is.
-    name: GitHub release page
+    # notes GitHub writes from the commits since the last release, and the release record. A page made by hand first
+    # is left as it is, and the record is attached to it.
+    name: GitHub release page and record
     needs: [release, publish, core]
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: published-*
+          path: ${{ runner.temp }}/published
+          merge-multiple: true
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: core-published
+          path: ${{ runner.temp }}/core
+      - name: The release record
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+          PROMOTE: ${{ needs.release.outputs.promote }}
+        run: |
+          packed=("$RUNNER_TEMP"/core/*.tgz)
+          test "${#packed[@]}" -eq 1 || { echo "::error::Expected one packed core package, found: ${packed[*]}"; exit 1; }
+          node scripts/release/record.mjs --version "$VERSION" --commit "$GITHUB_SHA" --tree "$(git rev-parse "$GITHUB_SHA^{tree}")" \
+            --published "$RUNNER_TEMP/published" --core "${packed[0]}" --host-images host/src/images/published.ts \
+            --out "$RUNNER_TEMP/release.json"
+          # Every part promoted is in the record.
+          test "$(jq '.parts | length' "$RUNNER_TEMP/release.json")" = "$(jq length <<<"$PROMOTE")" \
+            || { echo "::error::The release record does not hold every published part."; exit 1; }
+          { echo '### Release record'; echo; echo '```json'; cat "$RUNNER_TEMP/release.json"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - name: Make the release page
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "The release page for $TAG is there already; left as it is."
+            echo "The release page for $TAG is there already; left as it is, and the record attached to it."
+            gh release upload "$TAG" "$RUNNER_TEMP/release.json" --repo "$GITHUB_REPOSITORY" --clobber
             exit 0
           fi
           prerelease=()
           [[ "$TAG" == *-* ]] && prerelease=(--prerelease)
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --generate-notes "${prerelease[@]}"
+          gh release create "$TAG" "$RUNNER_TEMP/release.json" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --generate-notes "${prerelease[@]}"

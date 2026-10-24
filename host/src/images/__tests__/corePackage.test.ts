@@ -24,7 +24,7 @@ describe('core as a package @SC-1054', () => {
     expect(workflow).not.toMatch(/workflow_dispatch|pull_request|branches:/)
     expect(workflow).toMatch(/permissions: \{\}/)
     expect(workflow).toMatch(/check-runs\?check_name=All%20checks%20passed/)
-    expect(workflow).toMatch(/\n {2}build:\n(?: {4}.*\n)*? {4}needs: release\n/)
+    expect(workflow).toMatch(/\n {2}publish:\n(?: {4}.*\n)*? {4}needs: release\n/)
     expect(workflow).toMatch(/\n {2}core:\n(?: {4}.*\n)*? {4}needs: \[release, publish\]\n(?: {4}.*\n)*? {4}permissions:\n {6}contents: read\n {6}packages: write\n/)
   })
 })

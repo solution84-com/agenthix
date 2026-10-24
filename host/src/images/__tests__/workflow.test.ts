@@ -9,7 +9,7 @@ import { isPublishedVersion, PUBLISHED_PARTS, PUBLISHING_REPOSITORY, PUBLISHING_
 
 const root = path.resolve(__dirname, '../../../..')
 const workflow = fs.readFileSync(path.join(root, PUBLISHING_WORKFLOW), 'utf8')
-// What a release builds is defined once, in the workflow the publishing workflow calls and every release branch runs.
+// What a release builds is defined once, in the release build; the publishing workflow promotes what it proved.
 const RELEASE_BUILD = '.github/workflows/release-build.yml'
 const releaseBuild = fs.readFileSync(path.join(root, RELEASE_BUILD), 'utf8')
 const hostDockerfile = fs.readFileSync(path.join(root, 'host/docker/Dockerfile'), 'utf8')
@@ -38,22 +38,32 @@ describe('the publishing workflow @SC-820 @SC-1052 @SC-1167', () => {
     }
   })
 
-  it('builds, publishes and names every image the host service runs, and no other', () => {
-    expect(workflow).toMatch(new RegExp(`\\n {2}build:\\n(?: {4}.*\\n)*? {4}uses: \\./${RELEASE_BUILD.replace(/\./g, '\\.')}\\n`))
-    expect(workflow).toMatch(/\n {4}with:\n {6}publish: true\n/)
-    expect(workflow).not.toMatch(/- \{ part: [a-z-]+, file:/)
-    // The signature names the workflow whose job signs, so the shared build never signs.
-    expect(releaseBuild).not.toMatch(/id-token|cosign sign/)
-    // The release build takes its parts from the one list of them.
+  it('promotes, signs and names every image the host service runs, built by the release build alone', () => {
+    // The tag builds nothing: no image build, and no call of the release build.
+    expect(workflow).not.toMatch(/docker\/build-push-action|docker (buildx )?build |uses: \.\/\.github\/workflows\//)
+    // It signs, and only after checking each image's attestation and recomputing its key at the tagged commit.
+    expect(workflow).toMatch(/cosign sign --yes "\$IMAGE@\$DIGEST"/)
+    const verify = workflow.indexOf('scripts/release/verify-candidate.mjs')
+    expect(verify).toBeGreaterThan(-1)
+    expect(workflow.indexOf('node scripts/images/keys.mjs "$GITHUB_SHA" --json')).toBeGreaterThan(-1)
+    expect(verify).toBeLessThan(workflow.indexOf('cosign sign'))
+    expect(fs.readFileSync(path.join(root, 'scripts/release/verify-candidate.mjs'), 'utf8')).toContain("'reuse.sh'")
+    // The signature names the workflow whose job signs, so the release build attests its images but never signs them.
+    expect(releaseBuild).not.toMatch(/cosign sign/)
+    expect(releaseBuild).toMatch(/cosign attest /)
+    // Both take the parts from the one list of them, which is the host service's.
     expect(releaseBuild).toContain('scripts/images/parts.json')
+    expect(workflow).toContain('scripts/images/parts.json')
+    expect(workflow).not.toMatch(/part: \[/)
+    expect(workflow).toContain('include: ${{ fromJSON(needs.release.outputs.promote) }}')
     const listed = Object.keys((JSON.parse(fs.readFileSync(path.join(root, 'scripts/images/parts.json'), 'utf8')) as { parts: Record<string, unknown> }).parts)
     expect(sorted(listed)).toEqual(sorted(PUBLISHED_PARTS))
-    const signed = workflow.match(/part: \[([^\]]+)\]/)?.[1].split(',').map(s => s.trim()) ?? []
-    expect(sorted(signed)).toEqual(sorted(PUBLISHED_PARTS))
   })
 
   it('publishes to the registry of the repository the host service trusts', () => {
     expect(releaseBuild).toContain('registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}')
+    // The tag promotes only images under that registry.
+    expect(workflow).toContain('--registry "ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"')
     const owner = new URL(PUBLISHING_REPOSITORY).pathname.split('/')[1]
     expect(REGISTRY).toBe(`ghcr.io/${owner.toLowerCase()}`)
   })
