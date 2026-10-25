@@ -81,11 +81,3 @@ export interface ProbeResult {
   probable: { key: string; title: string; similarity: number }[]
 }
 export type Probe = (principal: MemoryPrincipal, composedQuery: string) => Promise<ProbeResult>
-
-/** A bounded excerpt of a place's knowledge files, from the place's site. Not forwardable. */
-export interface KnowledgeExcerpt { path: string; startLine: number; endLine: number; text: string }
-export type SearchKnowledge = (
-  place: Place,
-  query: string,
-  maxChars: number,
-) => Promise<{ excerpts: KnowledgeExcerpt[]; cut: string[]; unavailable: string | null }>

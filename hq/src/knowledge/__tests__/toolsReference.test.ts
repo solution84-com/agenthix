@@ -14,9 +14,13 @@ describe('the tools reference equals the registry', () => {
 
   it('leaves out tools defined but offered to no one', () => {
     const listed = headings(md)
-    for (const name of [...Object.values(SYSTEM_MCP_TOOLS.KNOWLEDGE), ...Object.values(SYSTEM_MCP_TOOLS.PLACE)]) {
-      expect(listed).not.toContain(name)
-    }
+    for (const name of Object.values(SYSTEM_MCP_TOOLS.PLACE)) expect(listed).not.toContain(name)
+  })
+
+  it('gives every run the knowledge tools, each with its own description', () => {
+    const everyRun = md.slice(md.indexOf('## Given to every run')).split('## Given unless')[0]
+    for (const name of Object.values(SYSTEM_MCP_TOOLS.KNOWLEDGE)) expect(everyRun).toContain(`### ${name}`)
+    expect(everyRun).toMatch(/### search_knowledge\n\nWorks like Grep/)
   })
 
   it('says which runs get each group', () => {

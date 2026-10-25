@@ -4,7 +4,8 @@
  * Single source of truth for all system MCP tool identifiers, organised by
  * domain group — matching the canonical tool reference in docs/domains/tools/tools.md.
  *
- * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW
+ * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW,
+ * KNOWLEDGE
  *
  * Access tiers (cross-cutting):
  *   ALWAYS_INJECTED  — PLATFORM tools + task execution lifecycle; never user-configurable
@@ -148,6 +149,19 @@ export const SYSTEM_MCP_TOOLS = {
     WORKFLOW_RUN:     WORKFLOW_TOOL_NAMES.runState,
   },
 
+  /**
+   * Knowledge at every level, shaped like the native Grep, Read, Write and Edit, forwarded to hq. Always injected:
+   * they reach only the run's own place, the organisation and the platform guide; write, edit and delete are left
+   * out of the list of a run that may change no files (server/mcp/handler.ts).
+   */
+  KNOWLEDGE: {
+    SEARCH_KNOWLEDGE: 'search_knowledge',
+    READ_KNOWLEDGE:   'read_knowledge',
+    WRITE_KNOWLEDGE:  'write_knowledge',
+    EDIT_KNOWLEDGE:   'edit_knowledge',
+    DELETE_KNOWLEDGE: 'delete_knowledge',
+  },
+
 } as const
 
 // ── Access tier views ─────────────────────────────────────────────────────────
@@ -169,6 +183,7 @@ export const ALWAYS_INJECTED_MCP_TOOLS: string[] = [
   SYSTEM_MCP_TOOLS.MEMORY.FORGET,
   SYSTEM_MCP_TOOLS.MEMORY.RECALL,
   ...Object.values(SYSTEM_MCP_TOOLS.WORKFLOW),
+  ...Object.values(SYSTEM_MCP_TOOLS.KNOWLEDGE),
 ]
 
 /** Included by default when allowedTools is null. */
@@ -247,3 +262,4 @@ export type SystemMcpTool =
   | typeof SYSTEM_MCP_TOOLS.LIBRARY[keyof typeof SYSTEM_MCP_TOOLS.LIBRARY]
   | typeof SYSTEM_MCP_TOOLS.GIT[keyof typeof SYSTEM_MCP_TOOLS.GIT]
   | typeof SYSTEM_MCP_TOOLS.MEMORY[keyof typeof SYSTEM_MCP_TOOLS.MEMORY]
+  | typeof SYSTEM_MCP_TOOLS.KNOWLEDGE[keyof typeof SYSTEM_MCP_TOOLS.KNOWLEDGE]

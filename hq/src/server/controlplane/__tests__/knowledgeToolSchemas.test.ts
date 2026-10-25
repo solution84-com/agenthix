@@ -1,11 +1,11 @@
 /**
  * The knowledge tools and suggest_place (agent knowledge spec, parts 3 and 4): shaped like the native Grep, Read,
- * Write and Edit, described as the spec says, and defined without being offered to anyone yet.
+ * Write and Edit, described as the spec says; the five given to every run and the data path, suggest_place to no one yet.
  */
 import { describe, it, expect } from 'vitest'
 import { z } from 'zod'
 import { BRANDING, KNOWLEDGE_LIMITS } from '@agenthix/core'
-import { KNOWLEDGE_TOOLS, PLACE_TOOLS } from '../knowledgeToolSchemas'
+import { KNOWLEDGE_DATA_PATH_TOOLS, KNOWLEDGE_TOOLS, PLACE_TOOLS } from '../knowledgeToolSchemas'
 import { ALL_CONTROL_PLANE_TOOLS, CONTROL_PLANE_TOOLS, DATA_PATH_ONLY_TOOLS, WORKFORCE_TOOLS } from '../toolSchemas'
 import { TOOL_GROUPS } from '../connectionGroups'
 import { isTurnTool } from '../turnCaller'
@@ -16,7 +16,6 @@ import {
 
 const tool = (name: string) => [...KNOWLEDGE_TOOLS, ...PLACE_TOOLS].find(t => t.name === name)!
 const parse = (name: string, args: unknown) => z.object(tool(name).schema).safeParse(args)
-const NAMES = [...KNOWLEDGE_TOOLS, ...PLACE_TOOLS].map(t => t.name)
 
 describe('the knowledge tools in the registry', () => {
   it('are the five the spec names, and suggest_place, under the registry\'s groups', () => {
@@ -25,7 +24,25 @@ describe('the knowledge tools in the registry', () => {
     expect(PLACE_TOOLS.map(t => t.name)).toEqual(Object.values(SYSTEM_MCP_TOOLS.PLACE))
   })
 
-  it.each(NAMES)('%s is defined, not offered: in no tier, no served list, no connection group, and not a turn tool', (name) => {
+  it.each(KNOWLEDGE_TOOLS.map(t => t.name))('%s is given to every run, and reaches no connection and no quick tool of a turn', (name) => {
+    expect(ALWAYS_INJECTED_MCP_TOOLS).toContain(name)
+    expect(DEFAULT_ON_MCP_TOOLS).not.toContain(name)
+    expect(ADMINISTRATIVE_MCP_TOOLS).not.toContain(name)
+    expect(ALL_SYSTEM_MCP_TOOL_NAMES.has(name)).toBe(true)
+    expect(Object.prototype.hasOwnProperty.call(TOOL_GROUPS, name)).toBe(false)
+    expect(isTurnTool(name)).toBe(false)
+    for (const list of [CONTROL_PLANE_TOOLS, WORKFORCE_TOOLS, DATA_PATH_ONLY_TOOLS]) expect(list.map(t => t.name)).not.toContain(name)
+  })
+
+  it.each(KNOWLEDGE_TOOLS.map(t => t.name))('%s is on the data path, with the run\'s id the site fills in', (name) => {
+    const served = ALL_CONTROL_PLANE_TOOLS.find(t => t.name === name)!
+    expect(served).toBe(KNOWLEDGE_DATA_PATH_TOOLS.find(t => t.name === name))
+    expect(Object.keys(served.schema)).toEqual([...Object.keys(tool(name).schema), 'runId'])
+    expect(served.description).toBe(tool(name).description)
+  })
+
+  it('suggest_place is defined, not offered: in no tier, no served list, no connection group, and not a turn tool', () => {
+    const name = 'suggest_place'
     for (const list of [ALWAYS_INJECTED_MCP_TOOLS, DEFAULT_ON_MCP_TOOLS, ADMINISTRATIVE_MCP_TOOLS, listKnownToolNames()]) {
       expect(list).not.toContain(name)
     }

@@ -7,8 +7,8 @@
  *  1. **hq checks entitlement, then asks** — the same rule `listLocationFiles`
  *     applies: the person's own storage, or a project they are on.
  *  2. **A site that is down is never an empty folder** (503, as every storage read).
- *  3. **Knowledge is titled from INDEX.md**, else by file name, and the index
- *     itself is not a topic.
+ *  3. **Knowledge is listed from the site's itemiser**: title, description and
+ *     tags from each page's front matter.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { LocationFileError } from '@agenthix/core'
@@ -135,36 +135,30 @@ describe('artefacts', () => {
 })
 
 describe('knowledge', () => {
-  it('lists the topics newest first, titled from INDEX.md or else by file name, without the index itself', async () => {
+  it('lists the pages newest first, with the title, description and tags the itemiser gave', async () => {
+    const page = (name: string, title: string, description: string, tags: string[], modifiedAt: string) =>
+      ({ page: name, title, description, tags, properties: {}, size: 1, modifiedAt, version: 'v', problems: [] })
     h.listKnowledgeOnSite.mockResolvedValue({
-      files: [
-        { path: 'auth.md', size: 1, modifiedAt: '2026-01-03T00:00:00.000Z' },
-        { path: 'decisions/hosting.md', size: 1, modifiedAt: '2026-01-02T00:00:00.000Z' },
-        { path: 'INDEX.md', size: 40, modifiedAt: '2026-01-01T00:00:00.000Z' },
-      ],
+      files: [],
       truncated: false,
+      sections: [],
+      pages: [
+        page('decisions/hosting.md', 'Hosting', 'Where we host', ['ops'], '2026-01-02T00:00:00.000Z'),
+        page('auth.md', 'How sign-in works', 'sessions and cookies', [], '2026-01-03T00:00:00.000Z'),
+      ],
     })
-    h.readKnowledgeOnSite.mockResolvedValue(Buffer.from('- [How sign-in works](auth.md) — sessions and cookies\n'))
     await expect(listKnowledgeQuery(project, { user: me })).resolves.toEqual({
       topics: [
         { path: 'auth.md', title: 'How sign-in works', summary: 'sessions and cookies', tags: [], modifiedAt: '2026-01-03T00:00:00.000Z' },
-        { path: 'decisions/hosting.md', title: 'hosting.md', summary: '', tags: [], modifiedAt: '2026-01-02T00:00:00.000Z' },
+        { path: 'decisions/hosting.md', title: 'Hosting', summary: 'Where we host', tags: ['ops'], modifiedAt: '2026-01-02T00:00:00.000Z' },
       ],
     })
-    expect(h.readKnowledgeOnSite).toHaveBeenCalledWith(project, 'INDEX.md', expect.any(Number))
+    expect(h.readKnowledgeOnSite).not.toHaveBeenCalled()
   })
 
-  it('reads no index when there is none, and loses only the titles when it cannot be read', async () => {
-    h.listKnowledgeOnSite.mockResolvedValue({ files: [{ path: 'a.md', size: 1, modifiedAt: '2026-01-01T00:00:00.000Z' }], truncated: false })
-    await expect(listKnowledgeQuery(project, { user: me })).resolves.toMatchObject({ topics: [{ title: 'a.md' }] })
-    expect(h.readKnowledgeOnSite).not.toHaveBeenCalled()
-
-    h.listKnowledgeOnSite.mockResolvedValue({
-      files: [{ path: 'a.md', size: 1, modifiedAt: '2026-01-01T00:00:00.000Z' }, { path: 'INDEX.md', size: 1, modifiedAt: '2026-01-01T00:00:00.000Z' }],
-      truncated: false,
-    })
-    h.readKnowledgeOnSite.mockRejectedValueOnce(new LocationFileError('too_large', 'location.readKnowledge "INDEX.md"'))
-    await expect(listKnowledgeQuery(project, { user: me })).resolves.toMatchObject({ topics: [{ title: 'a.md' }] })
+  it('lists nothing for a site that gave no pages', async () => {
+    h.listKnowledgeOnSite.mockResolvedValue({ files: [], truncated: false })
+    await expect(listKnowledgeQuery(project, { user: me })).resolves.toEqual({ topics: [] })
   })
 
   it('opens a topic by its path, named by its file name', async () => {

@@ -3,6 +3,7 @@
  * conversation, whatever its role. They come first in the system prompt and do not change within a conversation,
  * so the provider caches them; the agent's own instructions, the place and the policy follow.
  */
+import { BRANDING } from '@agenthix/core'
 
 export interface LeadInstructionsInput {
   agentName: string
@@ -41,8 +42,11 @@ Tools and work:
   may use either. list_projects gives each project's key, name and id.
 - A task can be for now, for later, or for a time: create_task's \`when\` takes "now", "later" or a time. "Tomorrow
   at 9" is a time: work it out from the time you are told it is now, and pass it. You can start a task at a time.
-- A project the person works in that you aren't assigned to is not unknown: say you aren't assigned to it, and
-  that a project admin can assign you in its Members. Do not start its work anywhere else.
+- A place not in this conversation (each turn names its places) is out of reach, not unknown and not empty:
+  offer it with suggest_place. A project in it where you aren't assigned (start_work says so) is not unknown
+  either: say so, and that a project admin can assign you in its Members. Never do its work in another place.
+- Keep the person's words, in replies and in briefs: "files" are a place's Files, not its knowledge pages;
+  "knowledge" is its Knowledge; "my space" is Your space, never the conversation's project.
 - When a result is too large for the conversation, carry on with it in the background instead of asking for it in
   pieces.
 - Put into a brief what the work needs from what you recalled: in the background you start with the pinned items
@@ -156,7 +160,7 @@ export function cardTurnBlock(input: { continuations: readonly ContinuationStep[
 /**
  * When the lead looks in memory on its own (memory and knowledge spec, What decides a recall): the probe adds what
  * matches by meaning to the turn; these rules catch what it cannot — a referent ("like before"), or something the
- * lead has never seen. Also how it says what it relied on, and what knowledge excerpts may not do.
+ * lead has never seen. Also how it says what it relied on, and where knowledge is found.
  */
 export function leadMemoryRules(): string {
   return `Memory:
@@ -167,10 +171,17 @@ export function leadMemoryRules(): string {
   conversation; asks for something done the way it was done before; or corrects you. A hint naming an item's
   key is one recall by that key.
 - When the person corrects you, or tells you something worth keeping — a preference, a decision, a fact about
-  them or this place — remember it, so you need not be told again. Mark a correction as one.
+  them or this place — remember it, so you need not be told again. Mark a correction as one. Except when it is
+  about what a knowledge page says: then the page is where it is kept. Change the page yourself, and do not
+  remember it as well or start work for it; a memory beside the page would only go stale.
 - When your reply relies on remembered items, call used_memory with their keys once, as you finish your reply.
-- recall with a query also searches this place's knowledge files. You may quote what comes back to the person;
-  never put it into a brief for work in another place, and never pass it on outside this conversation.`
+
+Knowledge:
+search_knowledge finds how things are done here and how ${BRANDING.displayName} itself works, in one search, across the
+places in this conversation. Look there before asking. Where pages differ, the most specific wins: a place,
+then the organisation, then the platform guide. What you learn on your own belongs in memory.
+A question about ${BRANDING.displayName} itself is searched in the guide (scope platform) before you answer it, and the answer
+names its screens as the guide does.`
 }
 
 /**

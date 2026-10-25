@@ -12,7 +12,7 @@
  *   DEFAULT_ON       — included when allowedTools is null
  *   ADMINISTRATIVE   — off by default; must be explicitly granted
  *
- * A group in no tier is defined, not offered: KNOWLEDGE and PLACE, until they are served.
+ * A group in no tier is defined, not offered: PLACE, until a conversation's places are served.
  *
  * Tool names are stored and passed around in our raw format (e.g. 'create_task').
  * Runtime adapters are responsible for translating to their own naming scheme.
@@ -152,7 +152,8 @@ export const SYSTEM_MCP_TOOLS = {
 
   /**
    * Knowledge at every level, shaped like the native Grep, Read, Write and Edit (agent knowledge spec, part 3).
-   * Defined, not offered: in no tier below, so no run or lead is given them until they are served.
+   * Always injected: they reach only the run's own place, the organisation and the platform guide, and a run's
+   * site gives write, edit and delete only to a run that may change files.
    */
   KNOWLEDGE: {
     SEARCH_KNOWLEDGE: 'search_knowledge',
@@ -188,6 +189,7 @@ export const ALWAYS_INJECTED_MCP_TOOLS: string[] = [
   SYSTEM_MCP_TOOLS.MEMORY.FORGET,
   SYSTEM_MCP_TOOLS.MEMORY.RECALL,
   ...Object.values(SYSTEM_MCP_TOOLS.WORKFLOW),
+  ...Object.values(SYSTEM_MCP_TOOLS.KNOWLEDGE),
 ]
 
 /** Included by default when allowedTools is null. */

@@ -1,6 +1,6 @@
 /**
- * Memory in a conversation (memory and knowledge spec): the lead's own memory tools, wired to the store, the
- * place's knowledge on its site, and what the turn was shown. The probe's hook is turnMemory.ts.
+ * Memory in a conversation (memory and knowledge spec): the lead's own memory tools, wired to the store and to what
+ * the turn was shown. The probe's hook is turnMemory.ts.
  */
 import { prisma } from 'wasp/server'
 import type { MemoryOutcomeKindValue } from '../../shared/memory/protocol'
@@ -9,7 +9,6 @@ import { memoryService } from '../../memory/memoryService'
 import { memoryPrincipalOf } from '../../memory/principal'
 import { reachableTargets } from '../../memory/scopes'
 import { currentBars } from '../../memory/barTuner'
-import { searchKnowledge } from '../../memory/knowledge/searchKnowledge'
 import { createLeadMemoryTools } from './leadMemoryTools'
 import { probe } from './probe'
 import { probeScore } from './probeScores'
@@ -17,7 +16,6 @@ import { probeScore } from './probeScores'
 export const memoryTools: ConversationTool[] = createLeadMemoryTools({
   service: memoryService,
   principalOf: (capability, tool) => memoryPrincipalOf({ kind: 'turn', turn: capability }, tool),
-  searchKnowledge,
   async turnOutcomes(turnId) {
     const rows = await prisma.memoryOutcome.findMany({ where: { turnId, itemId: { not: null } }, select: { itemId: true, kind: true } })
     return rows.map(r => ({ itemId: r.itemId!, kind: r.kind as MemoryOutcomeKindValue }))

@@ -3,9 +3,11 @@
  * the file-size rule. Shaped exactly like the native Grep, Read, Write and Edit, under Claude Code's own parameter
  * names, so an agent uses them as it was trained to.
  *
- * **Defined, not offered.** None of these is in `CONTROL_PLANE_TOOLS`, `WORKFORCE_TOOLS`, `DATA_PATH_ONLY_TOOLS` or
- * `ALL_CONTROL_PLANE_TOOLS`, nor in any access tier of `shared/mcpTools.ts`, so no run, connection or lead is given
- * them and the data path answers them as unknown, until the phase that serves them puts them there.
+ * **The five are served**: given to every run in the always-injected tier (shared/mcpTools.ts) — write, edit and
+ * delete only to a run that may change files — through its site's MCP server and the data path
+ * (`KNOWLEDGE_DATA_PATH_TOOLS`, with the run's id the site fills in), and to the lead as its conversation's own
+ * tools (conversations/memory/leadKnowledgeTools.ts). They are in no connection group. `suggest_place` is defined,
+ * not offered, until a conversation's places are served.
  */
 import { z } from 'zod'
 import { BRANDING, KNOWLEDGE_LIMITS as L } from '@agenthix/core'
@@ -105,6 +107,15 @@ export const KNOWLEDGE_TOOLS: ControlPlaneTool[] = [
     schema: { page: PAGE },
   },
 ]
+
+/** The five as the data path takes them: the site adds the calling run's id, which the agent is never shown. */
+export const KNOWLEDGE_DATA_PATH_TOOLS: ControlPlaneTool[] = KNOWLEDGE_TOOLS.map(t => ({
+  ...t,
+  schema: {
+    ...t.schema,
+    runId: z.string().min(1).max(100).optional().describe('Filled in by the site with the run this is called from; leave it out'),
+  },
+}))
 
 /** The lead's only way to reach a place its conversation does not have (P5): a card the person may click. */
 export const PLACE_TOOLS: ControlPlaneTool[] = [

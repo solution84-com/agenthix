@@ -5,15 +5,14 @@
  * read and write for is the one rule (memory/principal.ts) — the person the turn answers, the agent, and the
  * conversation's place. A turn that answers no one may not write.
  *
- * `recall` with a query also searches the place's knowledge files on its site. What comes back is marked not
- * forwardable: the lead may quote it to the person, never brief it to work in another place.
+ * `recall` reaches memory only; knowledge is found by the knowledge tools.
  */
 import { z } from 'zod'
 import { DATA_PATH_ONLY_TOOLS } from '../../server/controlplane/toolSchemas'
 import { ControlPlaneError } from '../../server/controlplane/types'
 import { Logger } from '../../server/utils/logger'
 import type { ConversationTool, ToolCallOutcome, TurnCapability } from '../contract'
-import type { MemoryPrincipal, MemoryService, RecalledItem, SearchKnowledge } from '../../memory/contract'
+import type { MemoryPrincipal, MemoryService, RecalledItem } from '../../memory/contract'
 import {
   MEMORY_BODY_MAX_CHARS, MEMORY_MAX_TAGS, MEMORY_TITLE_MAX_CHARS, type MemoryItemKindValue, type MemoryScopeValue,
 } from '../../shared/memory/protocol'
@@ -24,15 +23,9 @@ import { USED_MEMORY, usedMemoryInput } from './usedMemory'
 
 const logger = new Logger('ConversationMemory')
 
-/** What one knowledge search may add to the lead's context, besides the memory items. */
-export const KNOWLEDGE_EXCERPT_MAX_CHARS = 4_000
-export const NOT_FORWARDABLE =
-  "From this place's knowledge files: you may quote it to the person; never put it into a brief for work in another place."
-
 export interface LeadMemoryDeps {
   service: MemoryService
   principalOf(capability: TurnCapability, tool: string): Promise<MemoryPrincipal>
-  searchKnowledge: SearchKnowledge
   /** The outcomes already recorded for the turn: what it was shown. */
   turnOutcomes(turnId: string): Promise<TurnOutcomeRow[]>
   /** The ids of the items with these keys in the scopes the principal reaches. */
@@ -93,24 +86,11 @@ const forgetInput = z.object({
 })
 
 export function createLeadMemoryTools(deps: LeadMemoryDeps): ConversationTool[] {
-  async function knowledgeFor(principal: MemoryPrincipal, query: string) {
-    if (!principal.place) return null
-    try {
-      const found = await deps.searchKnowledge(principal.place, query, KNOWLEDGE_EXCERPT_MAX_CHARS)
-      return { forwardable: false as const, note: NOT_FORWARDABLE, ...found }
-    } catch (err) {
-      logger.warn(`A knowledge search failed: ${err instanceof Error ? err.message : String(err)}`)
-      return { forwardable: false as const, note: NOT_FORWARDABLE, excerpts: [], cut: [], unavailable: "This place's knowledge could not be searched just now" }
-    }
-  }
-
   const recall: ConversationTool = {
     name: 'recall',
     input: recallInput,
     offered: async c => readsFor(c),
-    describe: async () =>
-      `${descriptionOf('recall')} With a query it also searches this place's knowledge files: what comes back may be ` +
-      'quoted to the person, never put into a brief for work in another place.',
+    describe: async () => descriptionOf('recall'),
     async run(capability, raw) {
       if (!readsFor(capability)) return { status: 'refused', reason: 'recall is not available in this reply' }
       const parsed = recallInput.safeParse(raw ?? {})
@@ -120,14 +100,14 @@ export function createLeadMemoryTools(deps: LeadMemoryDeps): ConversationTool[] 
       if (!key === !query) return { status: 'refused', reason: 'recall takes a key or a query, one of the two' }
       try {
         const principal = await deps.principalOf(capability, 'recall')
-        const [memory, knowledge] = key
-          ? [{ items: await deps.service.recallByKey(principal, [key]), cut: [] as string[] }, null]
-          : await Promise.all([deps.service.recallByQuery(principal, query!), knowledgeFor(principal, query!)])
+        const memory = key
+          ? { items: await deps.service.recallByKey(principal, [key]), cut: [] as string[] }
+          : await deps.service.recallByQuery(principal, query!)
         await deps.service.recordOutcomes(memory.items.map(item => ({
           itemId: item.itemId, kind: 'RECALLED' as const, similarity: item.similarity,
           conversationId: capability.conversationId, turnId: capability.turnId,
         })))
-        return done(capability, { items: memory.items.map(forLead), cut: memory.cut, ...(knowledge ? { knowledge } : {}) })
+        return done(capability, { items: memory.items.map(forLead), cut: memory.cut })
       } catch (err) {
         return refused('recall', err)
       }
@@ -140,7 +120,8 @@ export function createLeadMemoryTools(deps: LeadMemoryDeps): ConversationTool[] 
     offered: async c => writesFor(c),
     describe: async () =>
       `${descriptionOf('remember')} When the person corrected you, set correction: what you had wrong is then ` +
-      'measured against what memory already held.',
+      'measured against what memory already held. Not for what a knowledge page says, or what you just wrote into ' +
+      'one: the page keeps it, and a memory of it would go stale.',
     async run(capability, raw) {
       if (!writesFor(capability)) return { status: 'refused', reason: 'remember changes something, and this reply acts for no one' }
       const parsed = rememberInput.safeParse(raw ?? {})
