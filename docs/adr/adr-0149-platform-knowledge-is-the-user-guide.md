@@ -63,3 +63,7 @@ Undoing it means writing and keeping a second account of the product for agents.
 
 - adr-0150 — agents reach knowledge only through tools shaped like the native ones.
 - adr-0146 — a release is a proven build: the guide ships inside the proved image.
+
+## Implementation notes
+
+Built by the agent knowledge unit and merged with it (2026-10-26): hq's image builds the guide, its glossary and a tools reference generated from the registry into the read-only `platform:` level, and every platform result opens by saying that what the agent may do is what its tools allow. How it fits together: [`docs/concepts/knowledge/knowledge.md`](../concepts/knowledge/knowledge.md).

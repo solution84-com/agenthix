@@ -79,3 +79,7 @@ by level.
 - adr-0121 — the lead is direct inference in hq.
 - adr-0122 — memory in three scopes: what an agent learns on its own is memory, not knowledge.
 - adr-0151 — every change to knowledge goes through one gate.
+
+## Implementation notes
+
+Built by the agent knowledge unit and merged with it (2026-10-26): `search_knowledge`, `read_knowledge`, `write_knowledge`, `edit_knowledge` and `delete_knowledge` on `@agenthix/core/file-tools`, which the OpenCode plugin now runs on too; ripgrep is in hq's and the site's images, and no run mounts knowledge. How it fits together: [`docs/concepts/knowledge/knowledge.md`](../concepts/knowledge/knowledge.md).

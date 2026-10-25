@@ -68,3 +68,7 @@ Undoing it returns the reach of every conversation to every place its person can
 - adr-0060, adr-0101 — a run's authority is its boundary's, bounded by its person.
 - adr-0082 — a conversation acts with its current turn's authority.
 - adr-0150 — agents reach knowledge only through tools shaped like the native ones.
+
+## Implementation notes
+
+Built by the agent knowledge unit and merged with it (2026-10-26): a conversation's places are kept with it, added only by its person (`suggest_place` shows a card), checked every turn, and told to the lead every turn; `start_work` and the lead's knowledge tools reach only them. How it fits together: [`docs/concepts/projects/places.md`](../concepts/projects/places.md).

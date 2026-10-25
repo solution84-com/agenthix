@@ -66,3 +66,7 @@ Undoing it means changes that can land unchecked, unrecorded or over another wri
 
 - adr-0150 — agents reach knowledge only through tools shaped like the native ones.
 - adr-0042 — hq is the organisation's own; a place's content stays on its site.
+
+## Implementation notes
+
+Built by the agent knowledge unit and merged with it (2026-10-26): the site's gate applies every change under a per-page lock, checks it against core's page rules, keeps the previous page as a version, and hq records who made it; versions are pruned daily, and Recently deleted keeps a page 30 days. How it fits together: [`docs/architecture/storage-and-placement.md`](../architecture/storage-and-placement.md).

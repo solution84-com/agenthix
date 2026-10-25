@@ -229,17 +229,54 @@ and the branch ready to merge.
 **Starts when:** phase 7 has merged.
 **Execution plan:** none — by hand, with `closing-a-unit-of-work`; the regression's fixes as lanes.
 
-- [ ] 8.1 The full regression: every module's typecheck, unit and integration suites, the cross-app suite, hq's e2e tests (the `not-secure` project included), the image start test for every image, and the install test
-- [ ] 8.2 Every failure the regression finds fixed, and the regression run again until it passes
-- [ ] 8.3 The QA contract: the stories and scenarios for what the unit built, and the tests that cover them tagged `@SC-NNN`
-- [ ] 8.4 A `backup/feature/agent-knowledge` branch before the history is regrouped
-- [ ] 8.5 The branch's history regrouped into a few ordered commits, one per feature, with every fix folded into the commit it fixes
-- [ ] 8.6 Every open item the unit surfaced triaged: closed in the unit, or deferred
-- [ ] 8.7 Each deferred item raised as an issue, in the right repository, with its type and priority
-- [ ] 8.8 The plan's closing note, the decision records' notes, and the documents the unit changed brought up to date
+- [x] 8.1 The full regression: every module's typecheck, unit and integration suites, the cross-app suite, hq's e2e tests (the `not-secure` project included), the image start test for every image, and the install test
+- [x] 8.2 Every failure the regression finds fixed, and the regression run again until it passes
+- [x] 8.3 The QA contract: the stories and scenarios for what the unit built, and the tests that cover them tagged `@SC-NNN`
+- [x] 8.4 A `backup/feature/agent-knowledge` branch before the history is regrouped
+- [x] 8.5 The branch's history regrouped into a few ordered commits, one per feature, with every fix folded into the commit it fixes
+- [x] 8.6 Every open item the unit surfaced triaged: closed in the unit, or deferred
+- [x] 8.7 Each deferred item raised as an issue, in the right repository, with its type and priority
+- [x] 8.8 The plan's closing note, the decision records' notes, and the documents the unit changed brought up to date
 
 ## Deviations
 
 | Phase | What changed | Why |
 |---|---|---|
 | 1 | ADR-0123 superseded whole by ADR-0150 (which restates the rule that still holds), not in part; ADR-0096 annotated, not amended | The records framework supersedes a record whole and has no amended state; ADR-0096's decision still holds |
+| 2 | None | — |
+| 3 | None | — |
+| 4 | None | — |
+| 5 | None | — |
+| 6 | The lead is told the conversation's places on every turn (P6, the spec's part 4, and ADR-0152) | Walkthrough: without it the lead took "my space" for the conversation's project, and called a project outside the conversation empty |
+| 6 | Your space is the person's default personal project; any other personal project is a place of its own | Walkthrough: the owner's call, so "my space" names one place |
+| 6 | A correction to a knowledge page is made in the page only: not also remembered, and no work started for it | Walkthrough: one correction became three actions |
+| 7 | V1's worker check was run by hand on real runs, not by a harness | A worker's context is assembled on the site; the lead's harness covers the lead. A worker harness is deferred as an issue |
+| 7 | Real-model checks run on a low-cost, capable baseline model (DeepSeek Flash), a large model only to diagnose | The owner's rule, recorded for the repository in AGENTS.md: designing against an expensive model builds its cost into every call |
+| 8 | hq's image builds Wasp with a 4 GB heap | The release rehearsal: compiling hq's Wasp SDK outgrew Node's default heap, as it had in CI's checks |
+
+## Closing note
+
+**Closed 2026-10-26. Accepted by the owner** after the walkthrough (sections A to D passed on retest) and phase 7's
+results.
+
+- **Regression:** the full regression passed — every module's typecheck, unit and integration suites, the site's
+  container suite, the cross-app suite, the security suite (every row, the knowledge rows included), hq's browser
+  tests (its `not-secure` project included) on a fresh HQ, every image built and start-tested, the install test, and
+  the guide's screenshots. Known flaky tests seen and passing on a rerun: #23 (reopened); #22 passed throughout; the
+  install test's first open of the Fleet Console is #69.
+- **Model checks (V1):** the lead's six checks pass three runs in three on the baseline model; a worker, on the same
+  model, searched the guide first, searched its place first, and a correction was made in the page by the lead alone.
+- **Open items:** the close triaged every item from the lane reports, the handover and the walkthrough against the code
+  at head; most were closed with evidence, and the small ones left were fixed in the unit. Deferred as issues on this
+  repository: #60, #61, #62, #63, #64, #65, #66, #67, #68 and #69, and #23 reopened; none is critical and none blocks a
+  release. Four more — planned work on Knowledge's navigation and editor, links across places, and a hardening of how
+  hq takes a worker's run id — are tracked outside this repository.
+- **The owner's decisions at the close:** a run on behalf of no one (in practice a run whose person has left) is refused
+  the knowledge tools, as every operation refuses it; "wiki" stays only among the words people also say for Knowledge.
+- **QA:** the unit wrote its contract (US-383 to US-389, SC-1368 to SC-1446, fourteen earlier scenarios corrected) and
+  tagged its tests; SC-1427 has no test yet (#67). No QA audit ran at the close; these entries await the audit before
+  release.
+- **Decision records:** ADR-0149 to ADR-0152 carry implementation notes; ADR-0123 is superseded by ADR-0150; ADR-0096
+  and ADR-0085 are annotated.
+- **The plan is frozen** from here.
+
