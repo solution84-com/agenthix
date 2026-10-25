@@ -54,3 +54,6 @@ tsconfig.wasp.tsbuildinfo
 # The user guide's screenshot run (e2e/guide/README.md)
 /e2e/guide/.captures/
 /e2e/guide/.report/
+
+# The model checks' results (src/conversations/__modelchecks__/README.md)
+/.model-checks/

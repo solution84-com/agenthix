@@ -1,0 +1,72 @@
+# The lead's model checks
+
+The model checks send the lead of a conversation what a real turn sends: its instructions, memory rules, the
+conversation's places, and its tools with their descriptions. They go to a real model, and the checks grade the tool
+calls the model makes. The context and tools are built by the code a turn uses (`coordinator/context.ts`
+`contextFrom`, `tools/toolAdapter.ts` `leadToolDefinitions`), so a change to the instructions or a tool's description
+is what the checks test. No instruction text is copied here.
+
+The checks run on demand and before a release. They never run in `npm test`, CI's unit suite or the integration
+suite.
+
+## What they check
+
+Each check is a conversation's place, what was said, and what passes. The checks run in a fixed world
+(`world.ts`): one person, Your space, one project (*Website Rebuild*) with a *Release process* page, and the
+platform guide's pages on providers, voice and the glossary. The tools answer from a script (`script.ts`) in the
+real tools' words. Nothing reaches a database, a site or a card.
+
+| Check | Where | Message | Passes when |
+|---|---|---|---|
+| `guide-model-key` | a project | "Where do I add a model key?" | `search_knowledge` (unscoped or scope `platform`) before the answer; not asked back |
+| `guide-voice` | a project | "How do I turn voice on?" | the same |
+| `my-space` | a project | "Look through the files in my space." | `suggest_place` for Your space; never `start_work` or a knowledge call in the project |
+| `place-outside` | Your space | "What's the release process in Website Rebuild?" | `suggest_place` for the project |
+| `correction` | a project, after an answer from *Release process* | "The release process page is wrong: …" | `edit_knowledge` or `write_knowledge` on that page; no `remember`, no `start_work` |
+| `in-reach` | a project | "What's our release process?" | `search_knowledge` before the answer |
+
+A run takes up to 5 model calls. A check passes for a model only when every run of it passes.
+
+## Which models
+
+**The baseline is a low-cost, capable model:** the kind a cost-conscious organisation would choose for everyday agent
+work — today DeepSeek Flash, or another model of its class. Not the cheapest available: a model too weak to do the
+work is no baseline. The lead's instructions and tools are written to work on it, so that a conversation does not need
+an expensive model to behave: a check is met when it passes there.
+
+**A large model (Sonnet, Opus) is for diagnosis only.** When a check fails on the baseline, running it on a large model
+tells an instruction that is unclear (it fails there too) from one that asks more reasoning than the baseline has (it
+passes there). Either way the fix is aimed at the baseline. A large model is never the bar a check is passed against,
+and is not run by default: each call sends the lead's whole context, and costs many times the baseline's. A run of
+several models or many repeats states its expected cost first.
+
+## How to run them
+
+From `hq/`, with the core package built and Wasp compiled once (`npx wasp compile`). The variables are read from
+`.env.testing` at the repository's root (its `.env.testing.example` describes each), so with that file filled in:
+
+```sh
+npm run test:models
+```
+
+A variable already set in the environment wins over the file, for example to diagnose a failure on a large model:
+
+```sh
+MODEL_CHECK_MODELS=~anthropic/claude-sonnet-latest MODEL_CHECK_RUNS=1 npm run test:models
+```
+
+| Variable | What it is |
+|---|---|
+| `MODEL_CHECK_PROVIDER` | The vendor: `anthropic`, `openai`, `google`, `openrouter` or `openai_compatible` |
+| `MODEL_CHECK_MODELS` | The model ids to check, comma-separated, as the vendor names them |
+| `MODEL_CHECK_API_KEY` | The key for that vendor. It is never logged or written |
+| `MODEL_CHECK_BASE_URL` | The endpoint, for `openai_compatible` only |
+| `MODEL_CHECK_RUNS` | How many times each check runs on each model; 3 if not set |
+
+Without the first three, every check is skipped with one line saying what to set, and no model is called.
+
+Each run prints one line per model, check and run (passed, or what it called instead), then a summary table. The same
+goes into a file under `hq/.model-checks/`, which is not committed. The command fails when any check fails on any
+model.
+
+The harness itself is tested in the unit suite (`__tests__/modelChecks.test.ts`) with a fake model.
