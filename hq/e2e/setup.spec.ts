@@ -120,7 +120,8 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
     await expect(page.getByText(/^Your own keys: (?=.*AssemblyAI)(?=.*Inworld)/)).toBeVisible()
     await expect(page.getByText('Acme Corp').first()).toBeVisible()
     await expect(page.getByText('Europe/London').first()).toBeVisible()
-    await expect(page.getByText('Kernel, with a voice')).toBeVisible()
+    // Setup chooses a voice by default, so the first agent is shown speaking as it.
+    await expect(page.getByText(/^Kernel, speaking as \S/)).toBeVisible()
   })
 
   test('Edit on the review returns to the review afterwards', async () => {

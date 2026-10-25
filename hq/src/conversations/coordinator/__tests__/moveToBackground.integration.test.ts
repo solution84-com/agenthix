@@ -1,8 +1,8 @@
 /**
  * hq's own move of a long reply to the background (walkthrough findings 28 and 30), against the real test
- * database: after 4 lookups the work is started through start_work's own path — admitted, an operation on the
- * conversation's standing worker in the conversation's own place, its line in the thread — with the brief hq
- * wrote, and the reply ends with the fixed line. No model call writes the brief or the reply.
+ * database: when the call after 4 lookups asks for more, the work is started through start_work's own path — admitted,
+ * an operation on the conversation's standing worker in the conversation's own place, its line in the thread — with
+ * the brief hq wrote, and the reply ends with the fixed line. No model call writes the brief or the reply.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../../test/db'
@@ -90,7 +90,8 @@ describe("hq's own move to the background @SC-967", () => {
 
     await driveConversation(w.conversation.id, deps(requests))
 
-    expect(requests).toHaveLength(4)
+    // The fifth asked for more: it was not run, and the rest moved.
+    expect(requests).toHaveLength(5)
     const operation = await prisma.operation.findFirstOrThrow({ where: { conversationId: w.conversation.id, toolName: 'start_work' } })
     expect(operation).toMatchObject({ kind: 'WORKER', mode: 'BACKGROUND', state: 'QUEUED', boundaryType: 'user', boundaryId: w.person.id, authorisedById: w.person.id })
     expect(openText(operation.title)).toBe('Find the stale tasks in Shop,')

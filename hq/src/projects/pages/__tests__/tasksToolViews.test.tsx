@@ -203,6 +203,16 @@ describe('a task inside the tool @SC-515', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Confirm: delete' }))
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
+
+  it('closes on Escape and returns focus to its button', () => {
+    render(<OverflowMenu items={[{ label: 'Archive', onSelect: vi.fn() }]} />)
+    const button = screen.getByRole('button', { name: 'More actions' })
+    fireEvent.click(button)
+    expect(screen.getByRole('menuitem', { name: 'Archive' })).toBeTruthy()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('menuitem')).toBeNull()
+    expect(document.activeElement).toBe(button)
+  })
 })
 
 describe('the session in the panel @SC-516 @SC-518', () => {
