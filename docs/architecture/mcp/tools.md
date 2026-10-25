@@ -101,6 +101,7 @@ and the same role floors — and a run in a project is refused the tools that ac
 | | `create_agent` · `list_presets` · `apply_agent_preset` | administrative |
 | **Library** | `list_workforce_templates` · `propose_workforce_template` | administrative |
 | **Git** | `get_github_config` | administrative |
+| **Workflow** | `list_workflows` · `propose_workflow` · `run_workflow` · `workflow_run` | always |
 | **Memory** | `remember` · `forget` · `recall` | always |
 
 **`run_task` is the task-delegation tool** — `adr-0020` chose delegation through a tool over sub-agent spawning, and this is the surface that decision rests on.
@@ -151,6 +152,14 @@ latest on the task, and it refuses a call that names a run other than the caller
 (`hq/src/server/controlplane/resultOps.ts`). The lead of a conversation has these and hq's other quick tools, plus its own
 (`start_work`, `answer_approval`, `ledger` and others) that only a conversation defines
 ([conversation-layer.md](../conversation-layer.md#the-lead-in-hq)).
+
+## What the workflow tools do
+
+`list_workflows`, `propose_workflow`, `run_workflow` and `workflow_run` are forwarded to hq like the others
+(`hq/src/workflows/agentTools.ts`; their shapes in `core/src/workflows/agentTools.ts`). They act in the run's own place,
+which the agent cannot name, and answer secret names, never values. `propose_workflow` and `run_workflow` name a
+workspace, which must be one of the place's own. An agent can propose but never approve or switch a workflow, and its
+runs of one workflow are limited per hour. How a run goes is [workflows.md](../workflows.md).
 
 ## A person's own client
 

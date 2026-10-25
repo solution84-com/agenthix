@@ -45,8 +45,10 @@ The constraint: no secret value may ever enter an agent's container, for any int
    fresh container per step, separate from the agent's, and each step's container holds only the secrets that step
    names. What runs is exactly what was approved.
 3. **hq keeps the secrets**, encrypted, and sends a value only to a run of an approved version that names it.
-4. **Git and GitHub go through workflows.** git's credential helper leaves the agent's container, and every GitHub
-   token is minted for one run, one repository and the permissions its workflow declares.
+4. **Git and GitHub go through workflows.** The credential helper that handed git a token leaves the agent's
+   container, which then holds no git credential. Every GitHub installation token passes one check in hq, the mint
+   gate, and reaches one repository with only the permissions named; a workflow's is minted for one run, with the
+   permissions its approved version declares.
 
 GitHub Actions stays available: a workflow can start a GitHub workflow, and can set a secret on GitHub for one, but
 only through a workflow a person approved.
@@ -59,8 +61,9 @@ The design is in the unit's spec: [`docs/work/2026-10-24-workflows/spec.md`](../
   a tool result or an MCP answer. A new integration is secrets plus workflows, never a credential the agent can reach.
 - **Every use of a secret goes through an approved version.** No path runs code with a secret that a person did not
   approve, and no agent can approve.
-- **No component asks GitHub for an installation token except through the one check** that ties it to a run's
-  workspace and repository.
+- **No component asks GitHub for an installation token except through the one check** that ties it to a location's
+  own repository connection, in a place still allowed to use that GitHub account, with its permissions named.
+- **No component starts a GitHub workflow or sets a secret on GitHub** except an approved workflow.
 - Undoing it means putting credentials back in reach of the agent, or moving every integration onto an outside runner;
   either reopens the leak this closes.
 

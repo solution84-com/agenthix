@@ -28,11 +28,12 @@ why a deploy failed — and pushing and pulling are now workflows too, which an 
 
 ## Decision
 
-1. **An approved version runs as many times as needed, by a person or by an agent in its place, with no one asked
-   again**, while the workflow is switched on. Approval is the gate; the switch stops it at once.
+1. **An approved version runs as many times as needed, by a person who may start runs in its place or by an agent
+   there, with no one asked again**, while the workflow is switched on. Approval is the gate; the switch stops it at once.
 2. **The agent reads the run's output, masked:** every secret value of the place, and every token minted for it that
    hasn't expired, is replaced in each common encoding before anything reaches the agent.
-3. **An agent's reruns are limited** per workflow, by default 30 an hour; a person's are not.
+3. **An agent's runs of a workflow are limited**, by default 30 an hour, which an administrator can change per
+   workflow; a person's are not.
 
 ## What this binds
 

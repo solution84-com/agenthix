@@ -124,7 +124,7 @@ key (`containerNameFor`, `containerLabels.ts`), for example `agenthix-dev-agent-
 
 | | |
 |---|---|
-| Image | `agenthix-agent`, built from `site/docker/agent.Dockerfile`: Node, git, ripgrep, the pinned Claude Code and OpenCode versions, the git credential helper and the Landlock launcher. Its user is `appuser` (uid 1001) |
+| Image | `agenthix-agent`, built from `site/docker/agent.Dockerfile`: Node, git, ripgrep, the pinned Claude Code and OpenCode versions and the Landlock launcher. Its tools stage is shared with the executor image. git has no credential: its only configured helper refuses and names the `push` workflow. Its user is `appuser` (uid 1001) |
 | Storage | One bind mount: the whole boundary, at `/projects/<id>` or `/users/<id>`, writable only if the run's tools can write ([storage-and-placement.md](storage-and-placement.md#how-a-run-sees-storage)) |
 | Harness home | The runner's harness home, bound at `/home/appuser`; the skills staged for a turn are bound again read-only inside it |
 | Commands' home | `/home/agent`, which lives only in the container; agent commands run with it as `HOME` and cannot reach `/home/appuser` |
@@ -132,7 +132,8 @@ key (`containerNameFor`, `containerLabels.ts`), for example `agenthix-dev-agent-
 | Limits | The host service's ceilings for the machine, read from its figures socket (`site/src/server/host/hostFigures.ts`): 8 GB, 2 processors and 4096 processes per container unless set otherwise. `AGENT_CONTAINER_MEMORY`, `AGENT_CONTAINER_PIDS_LIMIT` and `AGENT_CONTAINER_CPUS` may only narrow them, and are the limits themselves where no host service runs the site (`containerLimits.ts`) |
 | The machine | Unreachable from the container: the host service's firewall rules shut the machine's own ports, ports other containers publish and the cloud metadata addresses, and a site the host service runs starts no container until they hold ([host-management.md](host-management.md#the-host-service)) |
 | Process 1 | `docker run --init`, so killed processes are reaped |
-| Secrets | No provider API key, no capability and no long-lived git credential. A harness gets only short-lived tokens the site can revoke (its platform token, which the git credential helper also uses, and its relay token), and for a Claude subscription, the login in its harness home |
+| Hardening | `--cap-drop ALL`, `--security-opt no-new-privileges` and a read-only root, apart from its own writable folders |
+| Secrets | No provider API key, no capability, no GitHub token and no secret of a place. A harness gets only short-lived tokens the site can revoke (its platform token and its relay token), and for a Claude subscription, the login in its harness home |
 
 **Without container isolation.** Containers are used only when `AGENT_CONTAINER_ISOLATION=true` (the
 example environment files set it). Without it, a Claude run is a child process of the site, with the API
@@ -203,7 +204,7 @@ adds what only it can know.
 | The person's timezone | hq | The IANA zone of the person the run is on behalf of (`context.person.timezone`). The site adds the current local time in it to the prompt, so an agent reads "tomorrow at 9" on the person's clock. Absent when the person has set none |
 | Pinned memory | hq | The pinned items the run's person and agent may read, written by the site into the run's home as a read-only file at every run start; the rest is asked of hq with `recall` ([memory](../concepts/memory/memory.md)). Sent only while conversations are on |
 | Platform tools | the site's `/mcp` | Reached with an opaque token; see [mcp/tools.md](mcp/tools.md) |
-| Git | the site's git credential endpoint | Through the credential helper in the image; see [identity-and-trust.md](identity-and-trust.md#git) |
+| Git and secrets | approved workflows | The agent commits locally and shares by running the `push` workflow; anything needing a secret is a workflow too, run by the executor in containers of its own ([workflows.md](workflows.md)) |
 
 ---
 
@@ -232,6 +233,11 @@ Each has its own document; this is what each one is for.
   A Claude subscription is the exception: Anthropic's terms keep its login with the client, so it is
   written into the runner's harness home.
 
+- **Workflow runs** ([workflows.md](workflows.md)). A workflow is not a run of an agent: the site's executor
+  starts a fresh container from the executor image for each step of an approved version, with only that step's
+  secrets, on a snapshot of the workspace, and removes it before the next step. Those containers share no network
+  or process space with the agent's, and neither has the Docker socket.
+
 ---
 
 ## Conversations that cannot continue
@@ -258,11 +264,12 @@ id. The history stays readable.
 | `site/src/agents/runtime/runCompletion.ts`, `runFailure.ts`, `runCleanup.ts` | Ending a run |
 | `site/src/server/runtime/bootSweep.ts` | Runs orphaned by a restart |
 | `site/docker/agent.Dockerfile` | The agent image |
+| `site/src/executor/`, `site/docker/executor.Dockerfile` | Workflow runs and the executor image ([workflows.md](workflows.md)) |
 
 ## What must not break
 
 - **A container mounts one boundary, and its runner comes from the signed capability.**
-- **No provider key, capability or long-lived git credential in a container.** The container holds only
+- **No provider key, capability, GitHub token or place secret in a container.** The container holds only
   opaque tokens the site can revoke.
 - **No harness starts where commands cannot be contained**: without Landlock version 6, no run.
 - **Only a conversation is ordered.** Adding a lock between runs in a boundary undoes ADR-0075.

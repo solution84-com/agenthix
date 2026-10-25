@@ -219,8 +219,8 @@ the virtual machine's addresses, not the computer's, so the same holds there for
 starts, upgrades and removes with `--remove-orphans`, so each part that lives a life of its own is its own group:
 `agenthix-hq`, `agenthix-site`, `agenthix-console` and `agenthix-front-door`, by compose; `agenthix-host`, the host
 service and its launcher, by the label `com.docker.compose.project` on the `docker run` above, which the launcher
-carries to each new version; and `agenthix-agents`, the agent containers and their networks, by the same label, which
-the site sets. The agents never share the site's group, whose next upgrade would remove them as orphans mid-run. Their
+carries to each new version; and `agenthix-agents`, the agent containers and their networks, and a workflow run's step and
+proxy containers ([workflows.md](workflows.md)), by the same label, which the site sets. The agents never share the site's group, whose next upgrade would remove them as orphans mid-run. Their
 group is deleted as one in Docker Desktop, or with `docker compose -p agenthix-agents down`; erasing the site, or HQ
 with it, takes it down too. An agent container holds nothing kept nowhere else, and is made again when needed.
 

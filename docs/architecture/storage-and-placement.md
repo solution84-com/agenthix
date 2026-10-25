@@ -73,10 +73,11 @@ into a path.
 │   ├── knowledge/
 │   ├── artefacts/
 │   └── tasks/<task id>/       a task's folder in the person's personal project
-└── homes/                     harness homes, beside storage and never inside it
-    ├── users/<person id>/personal/
-    ├── users/<person id>/<project id>/
-    └── projects/<project id>/
+├── homes/                     harness homes, beside storage and never inside it
+│   ├── users/<person id>/personal/
+│   ├── users/<person id>/<project id>/
+│   └── projects/<project id>/
+└── executor/runs/<run id>/    a workflow run's own folders while it runs: workflow/, out/, snapshot/
 ```
 
 `SITE_ROOT` defaults to `./site` under the site's working directory (`site/src/agents/agentDiskPaths.ts`).
@@ -86,6 +87,11 @@ the harness's session files and login. A project's storage is mounted by every c
 so a home inside it would be readable by all of them; homes therefore sit in `homes/`, grouped by person, so
 removing a person removes one folder (`site/src/agents/runtime/harnessHomes.ts`). Runners and containers
 are in [container-runtime.md](container-runtime.md).
+
+**A workflow run's folders are not storage either.** The approved files, the run's scratch folder and its
+snapshot of the workspace sit outside every owner's folder, so no agent's container can see them, and on the same
+disk, so the snapshot can be a copy-on-write clone; they are removed when the run ends
+(`site/src/executor/runFolders.ts`; [workflows.md](workflows.md)).
 
 **What lives in hq instead.** An agent's definition and its packages, what an agent remembers (memory items, in
 three scopes: [ADR-0058](../adr/adr-0058-memory-of-a-person-is-held-by-hq-in-two-layers.md)), the words of a
@@ -221,11 +227,14 @@ the folder itself.
   repository into an empty one) is `repo.connect`, and its state is `repo.state` (`core/src/protocol/repoWork.ts`;
   `site/src/server/storage/repoWorkMethods.ts`, `site/src/storage/repoOps.ts`). The credential arrives with
   the call and is passed to git through `GIT_ASKPASS`, never written to `.git/config`.
-- **hq holds the GitHub App** and mints a short-lived token scoped to one repository for each use
-  (`hq/src/github/githubApp.ts`). Only a project admin may attach or detach a project's repository.
-- **An agent pushes and pulls** through a git credential helper in its container; how its token is checked
-  and minted is in [identity-and-trust.md](identity-and-trust.md#git). A run may use an attachment only if
-  its own boundary owns it ([ADR-0060](../adr/adr-0060-authority-comes-from-the-boundary.md)).
+- **hq holds the GitHub App** and mints a short-lived token for one repository for each use, through the mint
+  gate (`hq/src/github/mintGate.ts`; [workflows.md](workflows.md#the-mint-gate)). The attachment records GitHub's
+  installation, account and repository ids, which the gate matches. Only a project admin may attach or detach a
+  project's repository.
+- **An agent pushes and pulls by running workflows**, `push` and `pull`, which the executor runs on a snapshot of
+  the workspace and writes back once scanned ([workflows.md](workflows.md)). Its container holds no git credential.
+  A token is minted only for a location's own attachment in the run's place
+  ([ADR-0060](../adr/adr-0060-authority-comes-from-the-boundary.md)).
 
 ---
 

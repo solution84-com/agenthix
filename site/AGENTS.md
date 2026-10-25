@@ -4,9 +4,9 @@ Read the repository's [`AGENTS.md`](../AGENTS.md) first; this file adds what app
 
 An Execution Site runs agent containers and holds workspace storage. It is where the execution runtime lives:
 the agent engine and container manager (`src/agents/runtime/`), the session drivers, workspace storage, the MCP
-server and git-credential endpoint (`src/server/mcp/`, served locally and forwarding to hq for anything needing
-control-plane authority), the outbound link to hq (`src/server/hq/`), registration (`src/server/registration/`),
-and local verification of hq-issued tokens (`src/server/identity/`). How it fits with hq:
+server (`src/server/mcp/`, served locally and forwarding to hq for anything needing control-plane authority), the
+executor that runs approved workflows (`src/executor/`), the outbound link to hq (`src/server/hq/`), registration
+(`src/server/registration/`), and local verification of hq-issued tokens (`src/server/identity/`). How it fits with hq:
 [`docs/architecture/README.md`](../docs/architecture/README.md).
 
 ## What the site owns, and what it does not
@@ -18,6 +18,12 @@ and local verification of hq-issued tokens (`src/server/identity/`). How it fits
   hq-issued tokens, pinning its own `siteId` as the audience so a token minted for a sibling site is refused.
 - **No operator page** (ADR-0065). Browsers only ever talk to hq. The site's one port serves its agents'
   endpoints and `/health`; `/` answers 404. Status and leaving hq are done with `agenthix-site` on the machine.
+- **No secret in an agent's container** (adr-0147). An agent's container holds no git credential, GitHub token or
+  secret of a place, and nothing the site serves it may return one: no credential endpoint, no tool answer, no
+  unmasked output. Anything that needs a secret is a workflow run, which arrives as `workflow.run` and runs in executor
+  containers from `docker/executor.Dockerfile`, one per step
+  ([`docs/architecture/workflows.md`](../docs/architecture/workflows.md)). The run instruction is held in memory only,
+  never stored or logged.
 - **hq dispatches; the site executes** (ADR-0050). Every chat message and task run arrives over the control
   channel; status and streamed output go back the same way. Reads of runs and transcripts are served from the
   site's database, failing with an explicit site-unreachable error rather than degrading to empty.

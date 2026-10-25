@@ -88,7 +88,9 @@ which the CLI reads again on its next request; a subscription is never relayed.
 (`SITE_SESSION`), so the process and everything it starts end with the conversation;
 `CLAUDE_CODE_SHELL_PREFIX` and `USE_BUILTIN_RIPGREP=0`, so its commands and searches run in the command
 sandbox ([claude-tools.md](../tools/claude-tools.md)); `SITE_COMMAND_READABLE`, naming the staged
-skills folder; the git credential helper's endpoint and token; and `ENABLE_CLAUDEAI_MCP_SERVERS=false`.
+skills folder; the platform token and the agent's handle (`SITE_MCP_KEY`, `AGENT_HANDLE`); and
+`ENABLE_CLAUDEAI_MCP_SERVERS=false`. Nothing git-related: the container holds no git credential
+([workflows.md](../workflows.md)).
 
 **A turn that could not start** is retried once in a new process that resumes the conversation, in two
 cases only: Claude Code refused a new session under an id whose session file already exists, or a process

@@ -14,6 +14,11 @@ forwarded to hq, and the git-credential endpoint. Each call carries only an opaq
 site exchanges for the run's capability, so an agent never holds a credential hq would accept on its
 own. That is why agents call the site rather than hq.
 
+> **The decision holds; the git-credential endpoint is gone.** *(annotated 2026-10-25)* adr-0147 removed it and the
+> credential helper that called it: an agent's container holds no git credential, and git with a token runs only in
+> a workflow's own containers. Agents still reach the site over this network for `/mcp`, the model relay and
+> OpenCode's gate.
+
 While the site ran directly on its machine, agents reached it through `host.docker.internal`. Once
 the site itself runs in a container and starts agent containers beside it through the machine's
 Docker, the machine is no longer where the site listens, so agents need another way to reach it.

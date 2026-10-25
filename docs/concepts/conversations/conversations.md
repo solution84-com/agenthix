@@ -22,10 +22,13 @@ flowchart LR
 | **Lead** | The agent as it talks in a conversation: its words, its choices, which place gets work | In hq, by direct calls to a model, with no harness and no container |
 | **Worker** | The same agent working in one boundary: a harness session (Claude Code or OpenCode) with that boundary's authority | On the site that holds the boundary |
 | **Helper** | A subagent a worker starts through its harness, in a context of its own | Inside the worker's run |
+| **Executor** | Not the agent, and no model: the site carrying out an approved [workflow](../workflows/workflows.md)'s steps exactly as written, the only role that holds a secret | On the site that holds the place's storage, a fresh container per step |
 
 The agent keeps one identity. The lead speaks of its background work as its own, in the first person: *I'm checking
 the README now*, never *I passed it to a worker*. What is Agenthix's own is only the split between talking and
 working; fanning work out inside a boundary is the harness's. A conversation that only talks never starts a worker.
+When the agent needs a secret — to push, to deploy — it runs a workflow, and the run shows as a card of its own: fixed
+steps, not the agent thinking.
 
 A worker is **standing**: one per conversation, per boundary it has worked in, per person it works for. It is made the
 first time the conversation sends work to that boundary and reused for every later brief there. It is an

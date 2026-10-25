@@ -77,7 +77,7 @@ is no earlier major. This matches the rule that protocol peers one major apart s
 
 ## An image's content key
 
-The platform publishes six **image parts**: `hq-server`, `hq-web`, `site-server`, `agent`, `host` and `console`. Each
+The platform publishes seven **image parts**: `hq-server`, `hq-web`, `site-server`, `agent`, `executor` (what a workflow's steps run in, [workflows.md](workflows.md)), `host` and `console`. Each
 is built once per content and reused until its code changes, so a patch to one part rebuilds that part alone.
 
 - **`scripts/images/parts.json`** is the one list of the parts. Per part it holds the Dockerfile, the build target and
@@ -85,7 +85,7 @@ is built once per content and reused until its code changes, so a patch to one p
   build, `scripts/images/start-test-all.sh` and `scripts/install-test/run.sh` all read it.
 - **The content key** is a SHA-256 over the Dockerfile's path and target, the Git object ID of `.dockerignore`, of the
   Dockerfile and of each input path at the commit (a Git object ID changes exactly when a file under it does), the
-  Dockerfile's `FROM` references, and the rebuild epoch. `node scripts/images/keys.mjs [<commit>]` prints the six
+  Dockerfile's `FROM` references, and the rebuild epoch. `node scripts/images/keys.mjs [<commit>]` prints the seven
   keys. It reads Git only. The same key is the same image.
 - **A test holds the inputs to the Dockerfiles:** `scripts/__tests__/image-parts.test.mjs` parses every `COPY` (not
   `COPY --from`) and fails when a source path is not under one of its part's inputs. A key that missed an input

@@ -71,6 +71,10 @@ The ones every concept document leans on:
 | **Operation** | One piece of work a conversation commissioned: a brief to a worker, a task, or a call that outlived its turn. The work bar lists the live ones |
 | **Memory item** | A short record of what an agent learned, held in hq in one of three scopes and recalled by meaning ([memory](memory/memory.md)) |
 | **Programme** | A group of projects; `Program` in the code |
+| **Workflow** | A named, versioned script in a place's library that a person approves word for word; the only thing that uses a secret ([workflows](workflows/workflows.md)) |
+| **Executor** | The site carrying out an approved workflow's steps, each in a container of its own. Not an agent, and has no model |
+| **Secret**, **variable** | A place's named values for its workflows: a secret is never shown and goes only to the steps that name it; a variable is a plain setting anyone in the place can read ([secrets and variables](workflows/secrets-and-variables.md)) |
+| **GitHub account** | A GitHub organisation or person's account where the organisation's GitHub App is installed, and which places may connect to it ([git access](git/git-access.md)) |
 
 ## Who may do what
 
@@ -79,10 +83,10 @@ organisation role grants or withholds work in a project.
 
 | Role | Where it is set | What it allows |
 |---|---|---|
-| Organisation `ADMIN` | `UserSettings.role` | What is organisation-wide: people, agents, providers, model choices and billing profiles, Execution Sites, products and programmes, projects, settings, the GitHub App, and the platform tools that change the organisation |
+| Organisation `ADMIN` | `UserSettings.role` | What is organisation-wide: people, agents, providers, model choices and billing profiles, Execution Sites, products and programmes, projects, settings, the GitHub App and which places may use each GitHub account, and the platform tools that change the organisation |
 | Organisation `MEMBER` (the default) | `UserSettings.role` | Nothing organisation-wide; what they may do in a project is their role there |
-| Project `ADMIN` | `ProjectMember.role` | Everything a Member does, and administer that project: its people, agents, permissions, repositories and settings |
-| Project `MEMBER` | `ProjectMember.role` | Work in the project: talk to its agents, start, stop and change work, comment and approve |
+| Project `ADMIN` | `ProjectMember.role` | Everything a Member does, and administer that project: its people, agents, permissions, repositories, secrets and variables, and approving its workflows |
+| Project `MEMBER` | `ProjectMember.role` | Work in the project: talk to its agents, start, stop and change work, run its approved workflows, comment and approve |
 | Project `VIEWER` | `ProjectMember.role` | Read the project — everything a Member reads — and change nothing in it |
 | Fleet admin | `User.fleetAdmin` | Sign in to the Fleet Console and look after the machines and sites: adding a site, maintenance, backups, moves. In HQ, see a site's figures, versions and logs. Apart from the organisation roles, and given only by a fleet admin or on HQ's machine ([the fleet](fleet/fleet.md)) |
 
@@ -99,9 +103,9 @@ appearance, conversations (waiting or interrupting, the primary agent), their ow
 may run for them, memory, their phone and connections, and signing in. **Manage organisation**, the
 [admin area](organisation/admin-area.md), is the organisation, for its admins: its people, agents, and the whole of
 AI — [providers](providers/providers.md), [models and lists](models/models.md), [billing profiles and usage](billing/billing.md)
-— beside GitHub on the organisation's accounts, the sites new projects can use, automation, run limits, archiving, tool
+— beside GitHub: registering the App, its accounts and which places may use each, the sites new projects can use, automation, run limits, archiving, tool
 risk rules, what the sign-in page shows, and Infrastructure: what everything runs on — HQ itself, every Execution Site,
-storage, registering the GitHub App, and diagnostics. The machines themselves are looked after in the
+storage, a link to the GitHub App, and diagnostics. The machines themselves are looked after in the
 **Fleet Console**, by fleet admins ([the fleet](fleet/fleet.md)).
 
 **Who sees a file.** A file in a project's storage is visible to every member of the project, Viewers
@@ -126,7 +130,8 @@ from other people, keep it in your own storage or in a project they are not part
 | How a new HQ is set up | [Setup](setup/setup-flow.md) |
 | Teams, and a team as one member of a project | [Teams](projects/teams.md) |
 | Where files live and who sees them | [Storage and workspaces](workspace/workspace.md), [file sharing](file-sharing/file-sharing.md) |
-| Repositories | [Git access](git/git-access.md) |
+| Repositories, GitHub accounts and which places can connect | [Git access](git/git-access.md) |
+| Using secrets: workflows, approval, the executor | [Workflows](workflows/workflows.md), [secrets and variables](workflows/secrets-and-variables.md) |
 | Tasks and boards | [Task](tasks/task.md), [board](tasks/board.md), [sub-tasks and delegation](tasks/subtask.md) |
 | Work that starts without a person pressing Run | [Automation](tasks/automation.md), [routines](tasks/routines.md), [one task per agent per project](agents/task-execution-concurrency.md) |
 | A person's own tasks | [Personal projects](projects/personal-projects.md) |
@@ -152,7 +157,7 @@ from other people, keep it in your own storage or in a project they are not part
 | [`budget/`](budget/README.md) | Token counting and cost display; a budget design that is not built |
 | [`file-sharing/`](file-sharing/file-sharing.md) | How files and artefacts are served back to people |
 | [`fleet/`](fleet/fleet.md) | The fleet: HQ, its sites and the machines they run on, the host service, the Fleet Console, and the organisation, fleet and machine admins |
-| [`git/`](git/git-access.md) | Repository attachments, the GitHub App, agents pushing and pulling |
+| [`git/`](git/git-access.md) | Repository attachments, the GitHub App and its accounts, which places can connect, pushing and pulling through workflows |
 | [`library/`](library/library.md) | Agent, board, skill and team templates, each one package with its source, version and publisher |
 | [`memory/`](memory/README.md) | What an agent knows, memory recalled by meaning in three scopes, and where each part is held |
 | [`notifications/`](notifications/notifications.md) | What hq tells a person, what needs them, and how a request clears itself |
@@ -165,6 +170,7 @@ from other people, keep it in your own storage or in a project they are not part
 | [`skills/`](skills/skills.md) | Skills: where they come from, how a turn receives them, writing one |
 | [`tasks/`](tasks/task.md) | Tasks, boards, delegation, [automation](tasks/automation.md) and [routines](tasks/routines.md) |
 | [`workforce/`](workforce/workforce-templates.md) | Workforce templates as a person meets them: why they exist, applying one, the bundled teams. How they are stored and seeded is [library/workforce-templates.md](library/workforce-templates.md) |
+| [`workflows/`](workflows/workflows.md) | Workflows, their versions and approval, the executor; [secrets and variables](workflows/secrets-and-variables.md) |
 | [`workspace/`](workspace/workspace.md) | Storage and workspaces, commit authorship (not built) |
 
 The decisions behind these are in [`../adr/`](../adr/README.md); each document links the ones that shaped
