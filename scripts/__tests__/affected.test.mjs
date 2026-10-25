@@ -62,6 +62,15 @@ test('docs/guide selects hq and console, the rest of docs selects nothing @SC-12
   assert.ok(!d.everything)
 })
 
+test('a guide page and the glossary select hq, the module that builds the platform guide from them @SC-1260', () => {
+  for (const p of ['docs/guide/your-tools/providers.md', 'docs/guide/glossary.md']) {
+    const r = run(p)
+    assert.ok(r.jobs.hq.selected, p)
+    assert.ok(r.jobs['hq-integration'].selected, p)
+    assert.match(r.jobs.hq.reasons[0], /guide/)
+  }
+})
+
 test('any other path selects everything: the root files, .github, scripts, tests, an unknown path @SC-1260', () => {
   for (const p of ['package.json', '.github/workflows/checks.yml', 'scripts/affected.mjs', 'tests/cross-app/a.test.ts', 'brand-new/file.ts', '.nvmrc']) {
     const r = run(p)

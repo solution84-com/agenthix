@@ -77,6 +77,8 @@ describe('tool names in shipped assets', () => {
     const notTools = new Set([...GITHUB_VOCABULARY, ...(await boardStageNames())])
     const unknown: string[] = []
     for (const file of await filesUnder(ASSETS, /\.md$/)) {
+      // The built platform guide is the user guide's text, not instructions to an agent.
+      if (path.relative(ASSETS, file).startsWith('platform-guide')) continue
       const lines = (await fs.readFile(file, 'utf-8')).split('\n')
       lines.forEach((line, i) => {
         const candidates = [

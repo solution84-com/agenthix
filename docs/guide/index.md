@@ -23,3 +23,4 @@ use it.
 - **Keep secrets and connect GitHub:** workflows that use a secret so agents never hold one, and GitHub through them.
 - **Connect your own tools:** providers, models and voice, billing and usage, Claude Code and GitHub.
 - **Run it on a server:** a domain, more machines, backups and upgrades.
+- **Looking for a word?** The [Glossary](glossary.md) lists every word Agenthix shows, where to find it and what else it is called.

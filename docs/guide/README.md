@@ -21,6 +21,7 @@ For example:
 docs/guide/
   README.md                  this file — never published
   index.md                   the guide's overview page
+  glossary.md                every word the product shows, where it is, what else it is called
   getting-started/
     index.md                 the section: its label, its place, and its landing page
     install.md
@@ -67,6 +68,10 @@ sidebar:
 - **Say what the reader does, in the order they do it.** One task per page. Steps are a numbered list; a command
   goes in a fenced code block with its language (` ```sh `).
 - **Write for this release.** No "coming soon", no dates, nothing about a feature that hasn't shipped.
+- **A new word a person might say goes into the [glossary](glossary.md),** as a new screen needs its page. A word is
+  anything the product shows people: a screen, a section, a setting, a tool. Its entry says what it is, where it is
+  (the screen and its address in HQ) and, under **Also said**, the other words people use for it. Agents read the
+  glossary to learn what a person means, so a missing word is a word they cannot place.
 
 ## Links
 
