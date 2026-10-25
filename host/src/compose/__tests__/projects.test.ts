@@ -26,9 +26,10 @@ describe('the compose projects', () => {
     const pinned = 'ghcr.io/solution84-com/agenthix-hq-web@sha256:' + 'a'.repeat(64)
     const h = hqProject(namesFor('agenthix'), { ...hq, images: { 'hq-web': pinned } }, secrets, 'hq-box', any(namesFor('agenthix')), inst)
     expect(h.services['hq-web'].image).toBe(pinned)
-    const s = defaultSiteProject(namesFor('agenthix'), { ...site, images: { agent: 'x@sha256:1', 'site-server': 'y@sha256:2' } }, secrets, paths, any(namesFor('agenthix')), inst)
+    const s = defaultSiteProject(namesFor('agenthix'), { ...site, images: { agent: 'x@sha256:1', executor: 'z@sha256:3', 'site-server': 'y@sha256:2' } }, secrets, paths, any(namesFor('agenthix')), inst)
     expect(s.services.site.image).toBe('y@sha256:2')
     expect(s.services.site.environment.AGENT_IMAGE).toBe('x@sha256:1')
+    expect(s.services.site.environment.EXECUTOR_IMAGE).toBe('z@sha256:3')
     for (const service of [...Object.values(h.services), ...Object.values(s.services)]) expect(service.pull_policy).toBe('never')
     expect(h.services['hq-db'].image).toMatch(/^postgres:16-alpine@sha256:[0-9a-f]{64}$/)
   })
@@ -77,7 +78,7 @@ describe('the compose projects', () => {
 
   it('derives every stored name from the recorded namespace, not the product name @SC-821 @SC-1155', () => {
     const json = composeJson(hqProject(namesFor('acme'), hq, secrets, 'hq-box', any(namesFor('acme')), inst)) + composeJson(defaultSiteProject(namesFor('acme'), site, secrets, { state: '/srv/acme' }, any(namesFor('acme')), inst))
-    const stored = json.replace(/agenthix-(hq-server|hq-web|site-server|agent)(:[\d.]+)?/g, '')
+    const stored = json.replace(/agenthix-(hq-server|hq-web|site-server|agent|executor)(:[\d.]+)?/g, '')
     expect(stored).not.toMatch(/agenthix/)
     expect(json).toContain('"acme-hq-server"')
     expect(json).toContain('"acme.role": "hq"')

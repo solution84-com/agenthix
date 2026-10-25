@@ -31,9 +31,10 @@ vi.mock('wasp/client/operations', () => ({
   getWorkflows: 'getWorkflows',
   getRuns: 'getRuns',
   getRepoSecrets: 'getRepoSecrets',
-  dispatchWorkflow: 'dispatchWorkflow',
-  setRepoSecret: 'setRepoSecret',
+  getPlaceWorkflows: 'getPlaceWorkflows',
 }))
+
+vi.mock('../../../github/connect/ConnectRepoFlow', () => ({ ConnectRepoFlow: () => <button type="button">Create and connect</button> }))
 
 import { RepoPanel } from '../RepoPanel'
 import { OperationsPanel } from '../OperationsPanel'
@@ -60,7 +61,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('RepoPanel when the state cannot be read', () => {
+describe('RepoPanel when the state cannot be read @SC-1321', () => {
   beforeEach(() => answerWith({ error: new Error(SITE_DOWN) }))
 
   it('says so, and says why it matters', () => {
@@ -96,11 +97,11 @@ describe('RepoPanel while the state is still loading', () => {
   })
 })
 
-describe('OperationsPanel when the state cannot be read', () => {
+describe('OperationsPanel when the state cannot be read @SC-1321', () => {
   it('renders the reason rather than disappearing', () => {
     answerWith({ error: new Error(SITE_DOWN) })
     const { container } = render(<OperationsPanel target={target} />)
-    expect(container.textContent).toContain('Operations are unavailable')
+    expect(container.textContent).toContain('GitHub details are unavailable')
     expect(container.textContent).toContain('unreachable')
   })
 

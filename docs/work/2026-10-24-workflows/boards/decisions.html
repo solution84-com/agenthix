@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Questions · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="decisions.html"><main>
+<div class="top"><div><h1>Questions and decisions</h1>
+<p class="sub">Read the boards first. My recommendation is first in each; click one, or answer in chat by number.</p></div></div>
+
+<h2 id="agreed">Agreed</h2>
+<div class="box"><ol>
+<li>Workflows are kept in a library per project, itemised, like GitHub's workflows.</li>
+<li>The agent writes and proposes; only a person approves, one version at a time.</li>
+<li>An approved workflow runs as many times as needed, by a person or an agent, without asking again.</li>
+<li>The agent gets the output, masked; a value only shows if the approved workflow prints it, and review catches that.</li>
+<li>A reviewer agent advises on every new version; it never approves.</li>
+<li>Each workflow has an On/Off switch, like a GitHub workflow: off, nobody can run it; on again, no new approval needed.</li>
+<li>Not limited to GitHub: any integration is variables plus workflows.</li>
+<li>A workflow is a list of named steps, shown step by step while it runs.</li>
+<li>Git and GitHub go through workflows in this unit.</li>
+<li>A workflow runs on the run's own workspace, as a snapshot whose changes come back once scanned.</li>
+<li>Secrets reach GitHub Actions only through a workflow the agent writes; nothing special is built.</li>
+<li>One executor image; extra tools installed by approved, pinned steps; each step in its own container with only its own secrets.</li>
+<li>First-class GitHub: <code>gh</code> preinstalled; a starter <code>set-github-secrets</code> workflow beside push, pull and open-pull-request; <code>GITHUB_TOKEN</code> minted with only the GitHub permissions each workflow declares.</li>
+<li><b>Secrets and variables are kept apart</b>, two tabs in one section: secrets encrypted, never shown, a file for the steps that name them; variables plain, visible and checkable. Both tabs show the same columns. A workflow names the secrets each step needs and the variables it uses, which is how "Used by" is known.</li>
+<li>A secret can be text or a file (up to 48 KB), and can also be set on GitHub from the same form, through <code>set-github-secrets</code>. The box that sent a value straight to GitHub is removed (GQ1).</li>
+<li>Where the GitHub App can't take a new repository (an installation on selected repositories), hq doesn't offer it and says how to fix it (GQ2).</li>
+<li><b>Several GitHub accounts per organisation:</b> the App can be installed on more than one GitHub account; an admin allows each before it's used; <b>each account is open to every project or chosen ones</b> (a client's); <b>a project has a default account</b> in its GitHub section; <b>each workspace starts with it and can choose another</b> the project may connect to; a run's token is for its workspace's repository only (G1, G2, board 9). The App's permissions are a ceiling: Agenthix's starting list at registration, changed by the organisation on GitHub, read back by hq, accepted by each GitHub account on GitHub, and checked against every workflow; each run is narrowed below it. A client connects by installing the App from an install link you send; they need no Agenthix account and can remove it at any time (G1).</li>
+<li>GitHub is one page in the admin portal's left panel, Settings › GitHub, with registering and installing together (GQ3).</li>
+<li>The name is <b>workflow</b> (Q5): protected by design, so it needs no adjective. Not "runbook": the other repositories use that for operational documents (<code>docs/runbooks</code>).</li>
+<li><b>From the security review</b> (2026-10-24), every Critical and High finding is in the design: a run executes only the approved files, from a read-only folder, on a snapshot of the workspace, and its changes come back only once scanned (board 6); git with a token runs only in a clean repository (board 9); the card's Approve is decided by the plain checks alone (U4); a person's own storage connects to no GitHub account unless an admin chooses it, and wider GitHub permissions there need an admin (G1, board 5); secrets reach GitHub only as environment secrets on protected branches (board 9); one mint gate for every token (board 9); links are never followed (board 6). Attacks A13–A18 (board 10). The Medium and Low findings are in too: masking against every secret of the place and at every base64 alignment (board 8); the proxy refusing private addresses and answering DNS (board 6); the agent's container hardened like the executor (board 6); what the hash covers, approvals stored per workflow and place, and agent reruns limited (board 3); variable names that change how programs run refused, and secrets bound to their row (board 4); the reversal of ADR-0037's output rule recorded in the new decision record, and seven checks for the build (board 10).</li>
+<li>Secrets follow the same principles as our own: one keeper, never shown, described, narrowest scope, short-lived where possible, rotation planned, revoking in one action, every use recorded (board 4).</li>
+</ol></div>
+
+<h2 id="q1">Q1 · Git and GitHub through workflows in this unit? <span class="lbl after">Decided</span></h2>
+<div class="box"><p><b>Yes.</b> The agent's git loses its credential helper; push, pull and pull requests are starter workflows using a <code>GITHUB_TOKEN</code> hq mints for each run (board 9).</p></div>
+
+<h2 id="q2">Q2 · Workspace access <span class="lbl after">Decided</span></h2>
+<div class="box"><p><b>A workflow is just a run that can read secrets, on the same workspace.</b> It always gets the run's workspace; there is no access setting. Since the security review it works on a snapshot taken at the start, and its changes come back to the workspace once scanned (boards 6, 8). Steps that hold a secret see the snapshot read-only.</p></div>
+
+<h2 id="q3">Q3 · Tools, and who installs them <span class="lbl after">Decided</span></h2>
+<div class="box"><ul><li><b>One executor image</b>, which we ship in a release: the agent image's tools (bash, git, ssh, curl, Node.js) plus <code>gh</code>, without the harnesses or git's credential helper.</li>
+<li><b>Anything more is installed by a step</b>, which the approver allows by approving it: pinned, and only from approved hosts.</li>
+<li><b>Each step runs in its own container</b>, bound to a snapshot of the run's workspace, at the same path, and to the approved files, read-only, and gets only the secrets it names (board 6).</li></ul></div>
+
+<h2 id="q4">Q4 · Secrets for GitHub Actions <span class="lbl after">Decided</span></h2>
+<div class="box"><p><b>Through a starter workflow, reviewed like any other.</b> <code>set-github-secrets</code> runs <code>gh secret set NAME &lt; /run/secrets/NAME</code> for the secrets chosen at approval, with a token that can only write secrets. No built-in sync: GitHub never gets a value without a person approving the workflow that sends it.</p></div>
+
+<h2 id="q5">Q5 · What do we call it? <span class="lbl after">Decided</span></h2>
+<div class="box"><p><b>Workflow.</b> Every one is protected by design, so the name needs no adjective. GitHub's own are always called <i>GitHub workflows</i> on screen and in the docs, so the two never blur. Considered: workflow, secure workflow, approved workflow, privileged action, work order, runbook.</p></div>
+
+<h2 id="gq1">GQ1 · The "Add a secret" box that sends straight to GitHub <span class="lbl after">Decided</span></h2>
+<div class="box"><p><b>Removed.</b> A value enters through Secrets (U6), with "Also set it on GitHub" on the same form, and reaches GitHub through the approved <code>set-github-secrets</code>. Secrets already on GitHub stay, listed by name and labelled "Outside hq" (<a href="/files/gh-workspace.html#the-box">G3</a>).</p></div>
+
+<h2 id="gq2">GQ2 · A new repository on a selected-repositories installation <span class="lbl after">Decided</span></h2>
+<div class="box"><p><b>Not offered, and the screen says why and how to fix it</b> (<a href="/files/gh-connect.html">G2</a>): set <i>Repository access</i> to <i>All repositories</i> on GitHub, or create the repository there, add it to the App's selection, and connect it as existing. It names the GitHub page and who can change it. Nothing is created that can't be used.</p></div>
+
+<h2 id="gq3">GQ3 · One GitHub page in the admin portal <span class="lbl after">Decided</span></h2>
+<div class="box"><p><b>Yes.</b> GitHub is one page in the admin portal's left panel, <i>Manage organisation › Settings › GitHub</i>, beside the other settings: registering the App and where it's installed, together (<a href="/files/gh-app.html">G1</a>). Infrastructure's GitHub App card becomes a link to it. If more integrations come, they can share an <i>Integrations</i> heading then.</p></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

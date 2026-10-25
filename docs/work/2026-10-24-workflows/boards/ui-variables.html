@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secrets and variables · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="ui-variables.html"><main>
+<div class="top"><div><h1>U6 · Secrets and variables</h1>
+<p class="sub">One section, two tabs, as in GitHub's own settings: <b>Secrets</b>, encrypted and never shown, and <b>Variables</b>, plain values anyone in the project can read and check.</p></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="box"><span class="lbl before">Before · today</span><p><b>New: nothing today.</b> A project has no place for the values its agents' work needs, secret or not.</p></div>
+
+<h3 id="list">The Secrets tab</h3>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr"><div class="pnav" data-on="variables" data-after></div>
+<div class="mcentre">
+<div class="crumb">Projects › Website rebuild › Secrets and variables</div>
+<div class="row"><div class="grow"><div class="mh">Secrets and variables</div></div><span class="btn pri">Add a secret</span></div>
+<div class="tabs"><span class="on">Secrets · 3</span><span>Variables · 2</span></div>
+<div class="ml">Encrypted, and never shown again once saved. Agents see their names only; a workflow step gets one only if it names it.</div>
+<table style="font-size:13px"><tr><th>Name</th><th>Value</th><th>Used by</th><th>Changed</th><th></th></tr>
+<tr><td><code>STAGING_DEPLOY_KEY</code><div style="color:var(--t2);font-size:12px">ssh key for deploy@staging.example.com</div></td><td>🔒 File <div style="font-size:12px;color:var(--t2)">also on GitHub, 3 Oct</div></td><td>deploy-staging</td><td>3 Oct, Sam <div><span class="tag warn">Rotate by 1 Nov</span></div></td><td><span class="btn">Replace</span> <span class="btn link">⋯</span></td></tr>
+<tr><td><code>BACKUP_BUCKET_KEY</code><div style="color:var(--t2);font-size:12px">Write-only key for the backup bucket</div></td><td>🔒 Text</td><td>nightly-backup</td><td>12 Sep, Sam <div><span class="tag" style="color:var(--mdanger);border-color:var(--mdanger)">Overdue</span></div></td><td><span class="btn">Replace</span> <span class="btn link">⋯</span></td></tr>
+<tr><td><code>GITHUB_TOKEN</code><div style="color:var(--t2);font-size:12px">The workspace's repository, per run</div></td><td>🔒 From GitHub</td><td>push, pull, open-pull-request</td><td>made for each run</td><td><span class="btn link">⋯</span></td></tr></table>
+</div></div></div>
+<ol class="sub"><li><b>The same columns on both tabs:</b> name and description, value, used by, changed. For a secret the value column says only what kind it is (text, file, from GitHub), never the value.</li>
+<li><b>Used by</b> lists the workflows whose approved version names it. A secret or variable no workflow names says "Not used".</li>
+<li>When it was last replaced, and its rotate-by date: <i>Rotate by</i> a week before, <i>Overdue</i> after.</li>
+<li>⋯ holds <b>Turn off what uses it</b>, Delete, and the history (set, replaced, every run that used it). Never the value.</li>
+<li><b>"Also on GitHub"</b> shows where it was set and when.</li></ol></div>
+
+<h3 id="vars">The Variables tab</h3>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr"><div class="pnav" data-on="variables" data-after></div>
+<div class="mcentre">
+<div class="crumb">Projects › Website rebuild › Secrets and variables</div>
+<div class="row"><div class="grow"><div class="mh">Secrets and variables</div></div><span class="btn pri">Add a variable</span></div>
+<div class="tabs"><span>Secrets · 3</span><span class="on">Variables · 2</span></div>
+<div class="ml">Plain values, shown to everyone in the project and to agents. A workflow that names one has it as an environment variable in every step. Never put a secret here.</div>
+<table style="font-size:13px"><tr><th>Name</th><th>Value</th><th>Used by</th><th>Changed</th><th></th></tr>
+<tr><td><code>STAGING_HOST</code><div style="color:var(--t2);font-size:12px">The staging server</div></td><td><code>staging.example.com</code></td><td>deploy-staging</td><td>14 Oct, Sam</td><td><span class="btn">Edit</span></td></tr>
+<tr><td><code>NODE_ENV</code><div style="color:var(--t2);font-size:12px">Build mode for staging</div></td><td><code>production</code></td><td>deploy-staging</td><td>14 Oct, Sam</td><td><span class="btn">Edit</span></td></tr></table>
+<div class="flag" style="margin-top:10px"><b>History</b> STAGING_HOST: <code>staging-old.example.com</code> → <code>staging.example.com</code>, 14 Oct, Sam</div>
+</div></div></div>
+<ol class="sub"><li><b>The value is in plain sight</b>, so a person can check it's right at a glance, and agents can read it too.</li>
+<li>A workflow names the variables it uses, like its secrets; each of its steps then reads them as environment variables: <code>$STAGING_HOST</code>.</li>
+<li>Only administrators add, edit or delete; every change is kept as old value → new value, with who and when.</li>
+<li>Saving a value that looks like a secret (a key's BEGIN line, a long random string, a token's known prefix such as <code>ghp_</code>) asks: "This looks like a secret. Add it under Secrets instead?"</li></ol></div>
+
+<h3 id="add">Adding a secret</h3>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="ba">
+<div class="dialog mock" style="box-shadow:none;width:auto;max-width:none">
+<h4>Add a secret</h4>
+<div class="field"><label>Name</label><div class="in">STAGING_DEPLOY_KEY</div><div class="hint">Capitals, digits and _. Say what it's for, not only whose it is.</div></div>
+<div class="field"><label>What it is and what it reaches</label><div class="in">ssh key for deploy@staging.example.com; can log in to the staging server as the deploy user</div></div>
+<div class="field"><label>Where to get a new one</label><div class="in ph">For example: ssh-keygen on the server; add to ~deploy/.ssh/authorized_keys</div></div>
+<div class="field"><label>Value</label>
+<div class="row" style="gap:6px;margin-bottom:6px"><span class="tag acc">Text</span><span class="tag">File</span></div>
+<div class="in ph" style="min-height:70px">Paste it here: one line, or many, like an ssh key with its BEGIN and END lines. You won't see it again.</div>
+<div class="hint">Or choose <b>File</b> to upload one: a key, a certificate, a service account's JSON, a kubeconfig. Up to 48 KB, the most GitHub accepts. A step reads it as <code>/run/secrets/STAGING_DEPLOY_KEY</code>, byte for byte.</div></div>
+<div class="field"><label>Rotate by</label><div class="in ph">Optional date</div><div class="hint">The administrators are reminded a week before.</div></div>
+<div class="field" style="border-top:1px solid var(--msub);padding-top:10px"><label style="display:flex;gap:8px;align-items:center"><span class="chk on"></span>Also set it on GitHub, for GitHub workflows</label>
+<div class="hint">In <b>acme-dev/docs-site</b>, as <code>STAGING_DEPLOY_KEY</code>. Saving proposes adding it to <code>set-github-secrets</code>; you approve that next, and it runs.</div></div>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri">Save, then approve</span></div></div>
+<div class="dialog mock" style="box-shadow:none;width:auto;max-width:none">
+<h4>Approve: set-github-secrets, version 3</h4>
+<p style="font-size:13px;color:var(--t2)">Opens straight after saving, for an administrator.</p>
+<div class="row" style="gap:6px;margin:6px 0"><span class="tag ok">Reviewer: low risk</span><span class="tag warn">+ STAGING_DEPLOY_KEY</span><span class="tag">secrets: write</span></div>
+<pre class="code"> names: [DEPLOY_TOKEN<span class="diffadd">, STAGING_DEPLOY_KEY</span>]</pre>
+<div style="font-size:12.5px;color:var(--t2)">Adds one name to the secrets this workflow sets on acme-dev/docs-site. Once on GitHub, any GitHub workflow in that repository can read it.</div>
+<div class="row end" style="margin-top:8px"><span class="btn">Not now</span><span class="btn pri">Approve and set it</span></div>
+</div>
+<div class="dialog mock" style="box-shadow:none;width:auto;max-width:none;grid-column:1/-1">
+<h4>Turn off what uses STAGING_DEPLOY_KEY?</h4>
+<p style="font-size:13px;color:var(--t2)">For when it may have leaked. These workflows are turned off now, and a run in progress is stopped:</p>
+<div class="mcard"><div class="b"><div class="t">deploy-staging</div><div class="s">On · no run in progress</div></div></div>
+<p style="font-size:13px;color:var(--t2)">Next: replace the key where it's issued (the staging server), then <b>Replace</b> it here, then turn the workflows back on.</p>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri danger" style="background:var(--mdanger);border-color:var(--mdanger);color:#fff">Turn off 1 workflow</span></div></div>
+</div></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li><b>Two tabs, because they're handled differently:</b> a variable is meant to be read and checked; a secret is meant never to be seen. Mixing them in one list invites a secret saved as a plain value.</li>
+<li>The secret form asks the questions our own secret handling asks: what is it, what does it reach, where does a new one come from (board 4).</li>
+<li>Revoking is one button, because the moment a secret may have leaked is the worst time to hunt for what uses it.</li></ul></div>
+
+<h2 id="phone">On a phone</h2>
+<div class="box"><div class="phones">
+<div class="phone mock"><div class="mhdr">☰ <span class="grow">Secrets and variables</span><span class="btn pri">Add</span></div><div class="mbody">
+<div class="tabs"><span class="on">Secrets</span><span>Variables</span></div>
+<div class="mcard"><div class="b"><div class="t">🔒 STAGING_DEPLOY_KEY</div><div class="s">Rotate by 1 Nov · deploy-staging</div></div></div>
+<div class="mcard"><div class="b"><div class="t">🔒 BACKUP_BUCKET_KEY</div><div class="s" style="color:var(--mdanger)">Overdue · nightly-backup</div></div></div>
+<div class="mcard"><div class="b"><div class="t">GITHUB_TOKEN</div><div class="s">From GitHub · 3 workflows</div></div></div>
+</div></div></div></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

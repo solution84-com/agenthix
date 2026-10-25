@@ -2,7 +2,7 @@
 title: Run it on a server
 description: What runs on each machine, who looks after it, and why the machines are looked after apart from HQ.
 sidebar:
-  order: 7
+  order: 8
 ---
 
 This section is for **fleet admins**, who look after the machines Agenthix runs on, and for **machine admins**, who

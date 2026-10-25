@@ -62,12 +62,13 @@ vi.mock('../workspaceStore', () => ({
 vi.mock('../ownerSite', () => ({ resolveOwnerSiteId: vi.fn() }))
 vi.mock('../../sites/localSite', () => ({ resolveDefaultSiteRef: vi.fn(), requireDefaultExecutionSiteId: vi.fn() }))
 vi.mock('../../server/providerService', () => ({ getLlmApiKey: vi.fn() }))
+vi.mock('../../github/connectChecks', () => ({ checkConnect: vi.fn() }))
+vi.mock('../../github/connectStarters', () => ({ proposeStartersFor: vi.fn() }))
 vi.mock('../repoWorkStore', () => ({ connectRepoOnSite: vi.fn(), repoStateOnSite: vi.fn() }))
 vi.mock('../github', () => ({
   createGitHubRepo: vi.fn(), generateAndRegisterKey: vi.fn(), revokeGitHubKey: vi.fn(),
   toRepoSlug: (s: string) => s.toLowerCase(),
 }))
-vi.mock('../gitGrantService', () => ({ grantRepoAccess: vi.fn(), getRepoKeyPath: vi.fn() }))
 vi.mock('node:path', () => ({
   default: { join: (...a: string[]) => a.join('/'), isAbsolute: () => false },
   join: (...a: string[]) => a.join('/'),

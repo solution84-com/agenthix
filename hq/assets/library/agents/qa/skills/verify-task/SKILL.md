@@ -18,12 +18,13 @@ Also read the developer's final comment — it should include the PR URL and a s
 
 ## Step 2: Read the Code
 
-Use plain `git` in the project repo; the credential helper signs you in, so there is no tool to call first. Check out the PR branch:
+The repository connected to your workspace is already there. Your container holds no GitHub token, so a plain `git fetch` fails: bring in the PR branch by running the `pull` workflow with `run_workflow`, `name: pull`, `parameters: { branch: "{branch-name}" }`. Then check it out:
 
 ```bash
-git fetch origin
 git checkout {branch-name}
 ```
+
+If `pull` is missing, waiting or off, say so and ask a person who administers the place; never fetch by other means, and never look for a token.
 
 Read every file mentioned in the task description. Also check `main.wasp.ts` and `schema.prisma` if the task touches routes, operations, or the database.
 

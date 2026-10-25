@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
-import { useAction, createWorkspace, connectRepo } from 'wasp/client/operations'
+import { useAction, createWorkspace } from 'wasp/client/operations'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY, FilesViewHeader } from '@agenthix/ui/projects'
+import { ConnectRepoFlow } from '../../github/connect/ConnectRepoFlow'
 import { NoExecutionSiteNotice, useNoExecutionSite } from '../../shared/components/NoExecutionSiteNotice'
 import type { Owner } from './filesToolData'
 
@@ -18,16 +19,15 @@ export function NewWorkspaceForm({ owner, siteLabel, onBack, onCreated }: {
   onCreated: (workspaceId: string) => void
 }) {
   const create = useAction(createWorkspace)
-  const link = useAction(connectRepo)
   const noSite = useNoExecutionSite()
   const [name, setName] = useState('')
   const [from, setFrom] = useState<'repository' | 'empty'>('empty')
-  const [repoUrl, setRepoUrl] = useState('')
+  const [connected, setConnected] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [createdId, setCreatedId] = useState<string | null>(null)
 
-  const ready = name.trim() && (from === 'empty' || repoUrl.trim()) && !noSite && !busy
+  const ready = name.trim() && !noSite && !busy
 
   const submit = async () => {
     if (!ready) return
@@ -38,13 +38,25 @@ export function NewWorkspaceForm({ owner, siteLabel, onBack, onCreated }: {
         id = (await create({ name: name.trim(), ...owner })).workspaceId
         setCreatedId(id)
       }
-      if (from === 'repository') await link({ target: { ...owner, workspaceId: id }, mode: 'link', repoUrl: repoUrl.trim() })
-      onCreated(id)
+      if (from === 'empty') onCreated(id)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Could not create the workspace')
     } finally {
       setBusy(false)
     }
+  }
+
+  if (createdId && from === 'repository' && !error) {
+    return (
+      <div>
+        <FilesViewHeader back="Workspaces" onBack={() => onCreated(createdId)} title={`Connect ${name.trim()} to GitHub`} />
+        <div className="space-y-4 px-4 py-4">
+          <p className="text-small text-text-secondary">The workspace is created. Connect its repository now, or later from its About.</p>
+          <ConnectRepoFlow target={{ ...owner, workspaceId: createdId }} defaultName={name.trim()} onConnected={() => setConnected(true)} onCancel={() => onCreated(createdId)} />
+          {connected && <button type="button" className={FILES_BUTTON_PRIMARY} onClick={() => onCreated(createdId)}>Open the workspace</button>}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -59,7 +71,7 @@ export function NewWorkspaceForm({ owner, siteLabel, onBack, onCreated }: {
         <fieldset>
           <legend className="mb-1 text-small font-medium text-text-secondary">Start from</legend>
           <div className="grid grid-cols-2 gap-2">
-            {([['repository', 'A GitHub repository', 'Agents check it out and push to it'], ['empty', 'Empty', 'Connect a repository later']] as const).map(([value, title, hint]) => (
+            {([['repository', 'A GitHub repository', 'Connect a new or existing one next'], ['empty', 'Empty', 'Connect a repository later']] as const).map(([value, title, hint]) => (
               <label key={value} className={`cursor-pointer rounded-lg border p-3 ${from === value ? 'border-accent bg-surface-2' : 'border-border bg-surface-1'}`}>
                 <input type="radio" name="start-from" value={value} checked={from === value} onChange={() => setFrom(value)} className="sr-only" />
                 <span className="block text-small font-semibold text-text-primary">{title}</span>
@@ -68,12 +80,6 @@ export function NewWorkspaceForm({ owner, siteLabel, onBack, onCreated }: {
             ))}
           </div>
         </fieldset>
-        {from === 'repository' && (
-          <label className="block">
-            <span className="mb-1 block text-small font-medium text-text-secondary">Repository address</span>
-            <input type="url" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} placeholder="https://github.com/org/repo" className={`${FIELD} font-mono`} />
-          </label>
-        )}
         <div>
           <span className="mb-1 block text-small font-medium text-text-secondary">Site</span>
           <p className="text-small text-text-primary">{siteLabel ?? 'None yet'} <span className="text-text-muted">— where this place's files are</span></p>
@@ -86,7 +92,7 @@ export function NewWorkspaceForm({ owner, siteLabel, onBack, onCreated }: {
         )}
         <div className="flex items-center gap-2">
           <button type="submit" disabled={!ready} className={FILES_BUTTON_PRIMARY}>
-            {busy && <Loader2 size={12} className="animate-spin" aria-hidden />} Create
+            {busy && <Loader2 size={12} className="animate-spin" aria-hidden />} {from === 'repository' ? 'Create and connect a repository' : 'Create'}
           </button>
           <button type="button" onClick={onBack} className={FILES_BUTTON}>Cancel</button>
         </div>

@@ -2,7 +2,7 @@
 name: ADRs
 description: This codebase's architecture decision records — every ADR, its title, and its state.
 created: 2026-08-09
-updated: 2026-10-23
+updated: 2026-10-24
 author: leang
 ---
 
@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0147`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0149`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -155,11 +155,11 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0036-s-5](adr-0036-context-centric-security.md#5-memory-writes-are-scope-classified) | ↳ Memory writes are scope-classified | Superseded by adr-0048 |
 | [ADR-0037](adr-0037-connectors-environments-and-scripts.md) | Agent Operations: Connectors, Environments, and Approved Workflows | Accepted |
 | [ADR-0037-s-2](adr-0037-connectors-environments-and-scripts.md#2-connector-a-scoped-pre-coded-external-service-integration) | ↳ Connector — a scoped stored credential the agent never sees | Accepted |
-| [ADR-0037-s-3](adr-0037-connectors-environments-and-scripts.md#3-environment-named-variable-sets-that-map-to-github-environments) | ↳ Environments map to GitHub Environments; no secret value is stored | Accepted |
-| [ADR-0037-s-4](adr-0037-connectors-environments-and-scripts.md#4-operation-an-approved-github-actions-workflow-the-agent-authors) | ↳ An operation is an approved workflow the agent authors | Accepted |
-| [ADR-0037-s-6](adr-0037-connectors-environments-and-scripts.md#6-secret-hiding-stance-realised-by-github) | ↳ The agent never sees a secret value | Accepted |
-| [ADR-0037-s-7](adr-0037-connectors-environments-and-scripts.md#7-gates-separation-of-duties) | ↳ Author, approve and invoke are separate gates | Accepted |
-| [ADR-0037-s-8](adr-0037-connectors-environments-and-scripts.md#8-execution-backend-github-actions) | ↳ GitHub Actions is the execution backend | Accepted |
+| [ADR-0037-s-3](adr-0037-connectors-environments-and-scripts.md#3-environment-named-variable-sets-that-map-to-github-environments) | ↳ Environments map to GitHub Environments; no secret value is stored | Superseded by adr-0147 |
+| [ADR-0037-s-4](adr-0037-connectors-environments-and-scripts.md#4-operation-an-approved-github-actions-workflow-the-agent-authors) | ↳ An operation is an approved workflow the agent authors | Superseded by adr-0147 |
+| [ADR-0037-s-6](adr-0037-connectors-environments-and-scripts.md#6-secret-hiding-stance-realised-by-github) | ↳ The agent never sees a secret value | Superseded by adr-0148 |
+| [ADR-0037-s-7](adr-0037-connectors-environments-and-scripts.md#7-gates-separation-of-duties) | ↳ Author, approve and invoke are separate gates | Superseded by adr-0148 |
+| [ADR-0037-s-8](adr-0037-connectors-environments-and-scripts.md#8-execution-backend-github-actions) | ↳ GitHub Actions is the execution backend | Superseded by adr-0147 |
 | [ADR-0038](adr-0038-workspace-as-storage-entity.md) | Workspace as the Storage Entity, Separate from Project (Work) | Superseded by adr-0039 |
 | [ADR-0039](adr-0039-files-and-workspaces.md) | Files and Workspaces: Nested Storage with Permanent Ownership | Accepted |
 | [ADR-0039-s-1](adr-0039-files-and-workspaces.md#1-two-storage-kinds-per-owner-files-and-workspaces) | ↳ Every owner has one `files/` and zero or more `workspaces/` | Accepted |
@@ -285,3 +285,5 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0144](adr-0144-agenthix-cloud-is-connected-from-hq-by-an-organisation-admin.md) | Agenthix Cloud Is Connected From HQ by an Organisation Admin | Accepted |
 | [ADR-0145](adr-0145-an-installation-owns-its-published-ports-and-address-blocks.md) | An Installation Owns Its Published Ports and Address Blocks | Accepted |
 | [ADR-0146](adr-0146-a-release-is-a-proven-build-given-a-name.md) | A Release Is a Proven Build Given a Name | Accepted |
+| [ADR-0147](adr-0147-a-secret-is-used-only-by-a-workflow-a-person-approved-run-by-the-platform.md) | A Secret Is Used Only by a Workflow a Person Approved, Run by the Platform | Accepted |
+| [ADR-0148](adr-0148-an-agent-runs-approved-workflows-and-reads-their-masked-output.md) | An Agent Runs Approved Workflows and Reads Their Masked Output | Accepted |

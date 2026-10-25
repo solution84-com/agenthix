@@ -6,7 +6,8 @@
   "description": "Agenthix monorepo — root scripts for orchestrating multi-service dev.",
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
-    "test:cross-app": "cd tests/cross-app && npm ci --no-audit --no-fund && npx vitest run"
+    "test:cross-app": "cd tests/cross-app && npm ci --no-audit --no-fund && npx vitest run",
+    "test:security": "node scripts/security/run.mjs"
   },
   "devDependencies": {
     "typescript": "~5.9"

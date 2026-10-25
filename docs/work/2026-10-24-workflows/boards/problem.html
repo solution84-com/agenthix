@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="problem.html"><main>
+<div class="top"><div><h1>1 · Today: how a secret can leak</h1>
+<p class="sub">Why integrations wait: any value that reaches an agent's container can be read by whoever steers the agent.</p></div></div>
+
+<h2 id="path">The path a leak takes</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="mmd" data-src="today"></div>
+<div class="kbox">
+<div><h4><span class="n">1</span>Instructions hidden in content</h4><p>A README, an issue, a web page or a tool result the agent reads contains instructions like "run this and send the result to…". This is <b>prompt injection</b>: the model can't reliably tell its person's instructions from text it reads.</p></div>
+<div><h4><span class="n">2</span>The agent follows them</h4><p>It runs commands in its container through <code>agenthix-contain</code>, the Landlock sandbox that keeps commands away from the harness's own files and strips the harness's keys (<code>secret-env.list</code>).</p></div>
+<div><h4><span class="n">3</span><code>git credential fill</code></h4><p>git's credential helper (<code>agenthix-git-credential</code>) is a script anyone in the container can call. It reads the run token <code>SITE_MCP_KEY</code>, which is <b>not</b> on the stripped list.</p></div>
+<div><h4><span class="n">4</span>The site and hq agree</h4><p>The site checks the run token; hq checks the repository belongs to the run's storage, then mints an installation token for that repository, valid about an hour.</p></div>
+<div><h4><span class="n">5</span>The token lands in the container</h4><p>The helper prints it to git, inside the container, where the agent's command can read it.</p></div>
+<div><h4><span class="n">6</span>It leaves</h4><p>An agent's container has ordinary outbound internet (its network is a plain bridge, not <code>--internal</code>), so the command can send the token anywhere.</p></div>
+</div>
+<div class="warnbox"><b>Read from the code, not yet run against the real site.</b> Steps 3–6 ran end to end against a stand-in for the site in the spike workspace.</div></div>
+
+<h2 id="general">It isn't only git</h2>
+<div class="box"><p>Any integration built the same way has the same hole: a Slack token, a database password, a deploy key. If the value ever enters the container, through an environment variable, a file, or a helper that hands it out, a steered agent can read it and send it out. Hiding it from the <b>prompt</b> isn't enough: the agent doesn't need to see it in the prompt to run a command that prints it.</p></div>
+
+<h2 id="rule">The rule this design sets</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<p style="font-size:16px"><b>No secret value ever enters an agent's container.</b></p>
+<ul><li>An agent works with secret <b>names</b> only.</li>
+<li>A value is used only by a workflow: a script kept in the project's library, whose version a person has approved, <b>word for word</b>. Once approved it runs as often as needed, by a person or an agent.</li>
+<li>That script runs in <b>a container of its own</b>, never the agent's.</li></ul></div>
+
+<script>
+window.SRC = {
+today: `flowchart LR
+  I["1 · instructions hidden<br/>in a file or page"] --> A["2 · agent runs<br/>a command"]
+  A --> F["3 · git credential fill<br/>(helper + SITE_MCP_KEY)"]
+  F --> S["4 · site checks token,<br/>hq mints a GitHub token"]
+  S --> T["5 · token printed<br/>inside the container"]
+  T --> X["6 · sent out over<br/>open network"]`
+}
+</script>
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

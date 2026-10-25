@@ -17,8 +17,18 @@ export async function handleSiteHealthEvent(siteId: string, data: unknown): Prom
     logger.warn(`site ${siteId}: rejected a malformed site.health report — dropped`)
     return
   }
+  const before = await prisma.executionSite.findFirst({ where: { siteId }, select: { health: true } })
+  const previous = before?.health ? parseSiteHealth(before.health) : null
   await recordSiteHealth(siteId, health)
   await reconcileSiteNotifications()
+  // A new executor image carries the place's approved workflow versions to it (workflows spec part 1, Image upgrades).
+  // Loaded when first needed, as the workflow runs are: they reach the channel this module is part of.
+  const { carryApprovedVersionsToImage, executorImageChanged } = await import('../workflows/executorImage')
+  const image = executorImageChanged(previous, health)
+  if (image) {
+    await carryApprovedVersionsToImage(siteId, previous, image)
+      .catch((err) => logger.error(`site ${siteId}: approved workflow versions not carried to its new executor image`, err))
+  }
 }
 
 export async function recordSiteHealth(siteId: string, health: SiteHealth): Promise<void> {

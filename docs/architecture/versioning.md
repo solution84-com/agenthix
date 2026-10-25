@@ -77,7 +77,7 @@ is no earlier major. This matches the rule that protocol peers one major apart s
 
 ## An image's content key
 
-The platform publishes six **image parts**: `hq-server`, `hq-web`, `site-server`, `agent`, `host` and `console`. Each
+The platform publishes seven **image parts**: `hq-server`, `hq-web`, `site-server`, `agent`, `executor` (what a workflow's steps run in, [workflows.md](workflows.md)), `host` and `console`. Each
 is built once per content and reused until its code changes, so a patch to one part rebuilds that part alone.
 
 - **`scripts/images/parts.json`** is the one list of the parts. Per part it holds the Dockerfile, the build target and
@@ -85,7 +85,7 @@ is built once per content and reused until its code changes, so a patch to one p
   build, `scripts/images/start-test-all.sh` and `scripts/install-test/run.sh` all read it.
 - **The content key** is a SHA-256 over the Dockerfile's path and target, the Git object ID of `.dockerignore`, of the
   Dockerfile and of each input path at the commit (a Git object ID changes exactly when a file under it does), the
-  Dockerfile's `FROM` references, and the rebuild epoch. `node scripts/images/keys.mjs [<commit>]` prints the six
+  Dockerfile's `FROM` references, and the rebuild epoch. `node scripts/images/keys.mjs [<commit>]` prints the seven
   keys. It reads Git only. The same key is the same image.
 - **A test holds the inputs to the Dockerfiles:** `scripts/__tests__/image-parts.test.mjs` parses every `COPY` (not
   `COPY --from`) and fails when a source path is not under one of its part's inputs. A key that missed an input
@@ -109,7 +109,7 @@ is built once per content and reused until its code changes, so a patch to one p
 | 3 | the mobile app, and any later app, ↔ hq | `CLIENT_PROTOCOL_VERSION`, `client/protocol.ts` | the header `X-Client-Protocol-Version` on every request; `clientProtocolVersion` in the socket.io handshake's `auth` | hq, on every HTTP request and socket handshake (`hq/src/server/clientProtocol.ts`); hq states its own before sign-in, so the app can apply the rule from its side |
 | 4 | hq ↔ Agenthix Cloud | `CLOUD_PROTOCOL_VERSION`, `cloud/version.ts` | the header `X-Cloud-Protocol-Version` on every call, in both directions | Cloud, on every call (`checkHqCloudProtocol`); hq, on every answer (`checkCloudAnswerProtocol`, in `hq/src/cloud/cloudClient.ts`) |
 
-`1.0` is the baseline every later version counts from. Today the site protocol is at `1.3`, the client protocol at `1.4`, the
+`1.0` is the baseline every later version counts from. Today the site protocol is at `1.6` (which added GitHub's ids to a repository connection), the client protocol at `1.5` (which added a workflow version's approval card), the
 Cloud protocol at `1.1` (which added [the AI contract](cloud-connection.md#the-ai-contract)) and the host protocol at `1.1` (which added the ports an installation publishes to the operations that install HQ or receive a move). A protocol is named after the party hq
 or the host service talks to, so each constant is `<PARTY>_PROTOCOL_VERSION` and each header
 `X-<Party>-Protocol-Version`; no name carries the product's. hq's one web server receives both the host protocol and

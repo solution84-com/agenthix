@@ -57,6 +57,8 @@ export type ActivityRow = {
   createdAt: Date
   /** Its latest request for the person's okay, read from the request's card. */
   request?: { what: string; reason: string; askedBy: string } | null
+  /** A workflow version's card, read from the request's card, with whether the viewer may answer it. */
+  workflowCard?: OperationActivityView['workflowCard']
   runHref?: string | null
 }
 
@@ -89,6 +91,7 @@ export function toActivityView(row: ActivityRow, canStop: boolean): OperationAct
     canStop: canStop && !isEnded(row.state),
     createdAt: row.createdAt.toISOString(),
     request: row.state === 'WAITING_FOR_APPROVAL' ? row.request ?? null : null,
+    ...(row.state === 'WAITING_FOR_APPROVAL' && row.workflowCard ? { workflowCard: row.workflowCard } : {}),
     runHref: row.runHref ?? null,
   }
 }

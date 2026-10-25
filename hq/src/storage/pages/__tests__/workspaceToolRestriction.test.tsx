@@ -75,7 +75,10 @@ describe('workspace tool restriction @SC-311', () => {
     await waitFor(() => expect(actionMocks['setWorkspaceAllowedTools']).toHaveBeenCalled())
     expect(actionMocks['setWorkspaceAllowedTools']).toHaveBeenCalledWith({
       workspaceId: 'ws-1',
-      allowedTools: ['add_comment', 'fetch_my_queued_tasks', 'forget', 'get_site_info', 'get_task_details', 'ping', 'recall', 'remember', 'run_task', 'set_result', 'start_preview', 'stop_processes'],
+      allowedTools: [
+        'add_comment', 'fetch_my_queued_tasks', 'forget', 'get_site_info', 'get_task_details', 'list_workflows', 'ping',
+        'propose_workflow', 'recall', 'remember', 'run_task', 'run_workflow', 'set_result', 'start_preview', 'stop_processes', 'workflow_run',
+      ],
     })
   })
 
@@ -92,8 +95,9 @@ describe('workspace tool restriction @SC-311', () => {
     expect(actionMocks['setWorkspaceAllowedTools']).toHaveBeenCalledWith({
       workspaceId: 'ws-1',
       allowedTools: [
-        'add_comment', 'bash', 'create_task', 'fetch_my_queued_tasks', 'forget',
-        'get_site_info', 'get_task_details', 'ping', 'recall', 'remember', 'run_task', 'set_result', 'start_preview', 'stop_processes',
+        'add_comment', 'bash', 'create_task', 'fetch_my_queued_tasks', 'forget', 'get_site_info', 'get_task_details',
+        'list_workflows', 'ping', 'propose_workflow', 'recall', 'remember', 'run_task', 'run_workflow', 'set_result',
+        'start_preview', 'stop_processes', 'workflow_run',
       ],
     })
   })

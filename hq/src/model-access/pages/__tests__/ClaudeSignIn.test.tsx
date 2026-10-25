@@ -60,6 +60,12 @@ describe.each([
   })
 })
 
+it("starts a person's own subscription with no owner id, as the subscription section does", async () => {
+  render(<ClaudeSignIn ownerType="user" />)
+  await startFlow()
+  expect(startClaudeLogin).toHaveBeenCalledWith({ ownerType: 'user', termsAccepted: true })
+})
+
 describe('ClaudeSignIn flow', () => {
   it('shows the link as an external link and a code field, and no textarea', async () => {
     render(<ClaudeSignIn ownerType="user" ownerId="u1" />)

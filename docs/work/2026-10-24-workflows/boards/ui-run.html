@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A run · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="ui-run.html"><main>
+<div class="top"><div><h1>U5 · A run, step by step</h1>
+<p class="sub">Followed live on its own page, and as a card in the conversation that started it.</p></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="box"><span class="lbl before">Before · today</span><p>An agent's own runs are listed under <i>Runs</i>, with their transcript. <b>A workflow's run is new</b>, and shown separately: it isn't an agent thinking, it's fixed steps.</p></div>
+
+<h3 id="page">The run's page</h3>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr"><div class="pnav" data-on="workflows" data-after></div>
+<div class="mcentre">
+<div class="crumb">Projects › Website rebuild › Workflows › deploy-staging › Run 14</div>
+<div class="row"><div class="grow"><div class="mh">deploy-staging · run 14</div><div class="ml">Version 2 · started by Kernel in "Restart the worker after deploying" · 1 min 12 s so far</div></div><span class="tag acc">Running</span><span class="btn danger">Stop</span></div>
+<div class="mcard"><span class="tag ok">✓</span><div class="b"><div class="t">Build</div></div><span style="color:var(--t3);font-size:13px">41 s</span></div>
+<div class="mcard"><span class="tag ok">✓</span><div class="b"><div class="t">Upload</div></div><span style="color:var(--t3);font-size:13px">9 s</span></div>
+<div class="mcard hl" style="display:block"><div class="row"><span class="tag acc">●</span><div class="b grow"><div class="t">Migrate the database</div></div><span style="color:var(--t3);font-size:13px">22 s</span></div>
+<pre class="code" style="margin-top:8px">Applying 0042_orders_region.sql
+ALTER TABLE
+Applying 0043_orders_region_index.sql
+…</pre></div>
+<div class="mcard dim"><span class="tag">○</span><div class="b"><div class="t">Restart the app</div></div></div>
+<div class="mcard dim"><span class="tag">○</span><div class="b"><div class="t">Restart the worker</div></div></div>
+<div class="mcard dim"><span class="tag">○</span><div class="b"><div class="t">Check it answers</div></div></div>
+</div></div></div>
+<ol class="sub"><li>One row per step: waiting ○, running ●, passed ✓, failed ✕, skipped. Its time on the right.</li>
+<li>The running step opens to its output, live and masked; any other opens on a click.</li>
+<li><b>Stop</b> for anyone who could start it. A failed run opens the failed step.</li></ol></div>
+
+<h3 id="card">In the conversation</h3>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk dock" style="min-height:360px"><div class="pnav" data-on="tasks" data-after></div>
+<div class="mcentre"><div class="crumb">Projects › Website rebuild › Tasks</div></div>
+<div class="dockcol"><div class="dh">Restart the worker after deploying</div>
+<div class="bubble">Version 2 is approved. Deploying now.</div>
+<div class="mcard" style="display:block"><div class="row"><b class="grow">deploy-staging</b><span class="tag acc">Step 3 of 6</span></div>
+<div class="progress" style="margin:8px 0"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div>
+<div style="font-size:12.5px;color:var(--t2)">Migrate the database · 22 s · <a style="color:var(--macc)">Follow the run</a></div></div>
+<div class="mcard" style="display:block"><div class="row"><b class="grow">push</b><span class="tag" style="color:var(--mdanger);border-color:var(--mdanger)">✕ step 1</span></div>
+<div style="font-size:12.5px;color:var(--t2)">Push: rejected, the branch has moved on GitHub · <a style="color:var(--macc)">Open</a></div></div>
+</div></div></div>
+<p class="sub">A finished card keeps its result: ✓ with the time, or ✕ with the step that failed and its last line.</p></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li>Steps make a run readable at a glance: where it is, and where it stopped, without reading a log.</li>
+<li>The card in the conversation lets the person and the agent see the same progress.</li></ul></div>
+
+<h2 id="phone">On a phone</h2>
+<div class="box"><div class="phones">
+<div class="phone mock"><div class="mhdr">‹ <span class="grow">deploy-staging · run 14</span><span class="tag acc">Running</span></div><div class="mbody">
+<div class="mcard"><span class="tag ok">✓</span><div class="b"><div class="t">Build</div></div><span style="font-size:12px;color:var(--t3)">41 s</span></div>
+<div class="mcard"><span class="tag ok">✓</span><div class="b"><div class="t">Upload</div></div><span style="font-size:12px;color:var(--t3)">9 s</span></div>
+<div class="mcard hl"><span class="tag acc">●</span><div class="b"><div class="t">Migrate the database</div></div><span style="font-size:12px;color:var(--t3)">22 s</span></div>
+<div class="mcard dim"><span class="tag">○</span><div class="b"><div class="t">Restart the app</div></div></div>
+<div class="mcard dim"><span class="tag">○</span><div class="b"><div class="t">Restart the worker</div></div></div>
+<div class="mcard dim"><span class="tag">○</span><div class="b"><div class="t">Check it answers</div></div></div>
+<span class="btn danger wide">Stop</span></div></div></div></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

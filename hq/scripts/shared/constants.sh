@@ -6,6 +6,7 @@
 export SERVER_IMAGE="agenthix-site-server"
 export CLIENT_IMAGE="agenthix-site-client"
 export AGENT_IMAGE="agenthix-agent"
+export EXECUTOR_IMAGE="agenthix-executor"
 
 # ── Local stack ───────────────────────────────────────────────────────────────
 export LOCAL_SERVER_CONTAINER="agenthix-local-hq-server"

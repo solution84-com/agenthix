@@ -20,6 +20,7 @@
  */
 import { z, type ZodRawShape } from 'zod'
 import { FORWARDED_PLANNING_TOOLS } from './forwardedPlanningSchemas'
+import { FORWARDED_WORKFLOW_TOOLS } from './forwardedWorkflowSchemas'
 
 /** A routine's repeat: every N minutes, hours or days (at least 5 minutes), or a time of day on given weekdays. */
 const ROUTINE_RULE = z.discriminatedUnion('kind', [
@@ -259,6 +260,8 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
     },
   },
   ...FORWARDED_PLANNING_TOOLS,
+  // Workflows (adr-0148): built from core's declarations, as hq's copy is.
+  ...FORWARDED_WORKFLOW_TOOLS,
   {
     name: 'add_comment',
     schema: {

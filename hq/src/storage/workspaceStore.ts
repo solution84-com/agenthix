@@ -48,6 +48,7 @@ import {
   type WorkspaceNameRow,
   type WorkspaceOwnerType,
   type WorkspaceListByOwnerSelect,
+  type RepoAttachmentGitHubIds,
   type RepoAttachmentRow,
   type RepoAttachmentSummaryRow,
   type RepoAttachmentTarget,
@@ -295,7 +296,7 @@ export function findRepoByUrl(logicalSiteId: string, repoUrl: string): Promise<R
 
 export function createRepo(
   logicalSiteId: string,
-  params: { ownerType: WorkspaceOwnerType; ownerId: string; workspaceId: string | null; repoUrl: string },
+  params: { ownerType: WorkspaceOwnerType; ownerId: string; workspaceId: string | null; repoUrl: string } & Partial<RepoAttachmentGitHubIds>,
 ): Promise<RepoAttachmentRow> {
   return request(logicalSiteId, SITE_DATA_METHODS.repoCreate, params)
 }

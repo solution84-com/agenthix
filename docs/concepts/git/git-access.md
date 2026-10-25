@@ -1,115 +1,133 @@
 # Git Access
 
-How a git repository is connected to storage, and how an agent gets to push and pull without ever holding
-a long-lived secret.
+How a git repository is connected to storage, which GitHub accounts a place can use, and how an agent pushes and pulls
+without its container ever holding a token.
 
 ```mermaid
 sequenceDiagram
     participant A as Agent in its container
-    participant S as Execution Site
     participant H as hq
     participant G as GitHub
-    A->>S: git asks the credential helper for github.com/owner/repo
-    S->>S: verify the run, find the repository attachment
-    S->>H: resolve_git_credential for that attachment
-    H->>H: does this run's own storage own the attachment?
-    H->>G: mint an installation token for that one repository
-    G-->>H: token valid for about an hour
-    H-->>S: token
-    S-->>A: token, used for this one git call
+    participant S as Site: executor containers
+    A->>A: 1 commit locally, as usual
+    A->>H: 2 run_workflow push, branch
+    H->>H: 3 approved here? the workspace's own repository? may this place use its GitHub account?
+    H->>G: 4 mint a token: that one repository, contents write
+    H->>S: 5 run the approved push, the token for its second step only
+    S->>S: 6 step 1, no secret: bundle the branch from the workspace
+    S->>G: 7 step 2, the token: push the bundle from a clean repository
+    S-->>H: result
+    H->>G: 8 revoke the token
+    H-->>A: each step's result, masked
 ```
 
-**A repository belongs to a storage, and a run may use it only if its own storage owns it.** There is no
-per-agent key, no key per project, and no tool an agent calls to request access. A product owns no
+**A repository belongs to a storage location, and a token is only ever minted for that location's own repository.**
+There is no per-agent key, no key per project, and nothing an agent can call that hands it a token. A product owns no
 repository ([ADR-0061](../../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md)).
 
 ---
 
 ## The pieces
 
-- **A repository attachment** links a GitHub repository to one location in a storage: a workspace, or an
-  owner's `files/` folder. It is a `RepoAttachment` row on the site that holds the storage (`site/schema.prisma`);
-  the checkout is the folder itself. A workspace has at most one repository, and so does an owner's
-  `files/`. See [Storage and Workspaces](../workspace/workspace.md).
-- **The organisation's GitHub App.** One GitHub App per organisation, registered from hq, whose private
-  key only hq holds, encrypted. It is what gives hq the right to create repositories and to mint tokens.
-  hq stores the App and the accounts it is installed on as `GitHubApp` and `GitHubInstallation`
-  (`hq/schema.prisma`).
-- **Short-lived tokens.** hq mints an installation token scoped to one repository for each use, valid for
-  about an hour (`hq/src/github/githubApp.ts`). The token is never written to `.git/config`.
+- **A repository attachment** links a GitHub repository to one location in a storage: a workspace, or an owner's
+  `files/` folder. It is a `RepoAttachment` row on the site that holds the storage (`site/schema.prisma`), recording
+  GitHub's ids for the installation, the account and the repository; the checkout is the folder itself. A location
+  has at most one repository. See [Storage and Workspaces](../workspace/workspace.md).
+- **The organisation's GitHub App.** One App per HQ, registered from hq, whose private key only hq holds, encrypted.
+  Its permissions are a ceiling the organisation sets on GitHub; each token gets only part of it.
+- **GitHub accounts.** A GitHub organisation, or a person's GitHub account, where the App is installed (GitHub calls it
+  an *installation*): the organisation's own, and others', such as a client's. hq stores them as `GitHubInstallation`
+  rows, each with its rule for which places may connect.
+- **The mint gate.** The one check every token passes: the repository comes from the location's own attachment, the
+  place must still be allowed to use that account, accounts and repositories are matched by GitHub's ids, and the token
+  reaches that one repository with only the permissions named
+  ([the mint gate](../../architecture/workflows.md#the-mint-gate)).
 
-## Setting it up
+## Several GitHub accounts, and which places can connect
 
-1. **An administrator registers the GitHub App** under Manage organisation › Infrastructure › GitHub App
-   (`/admin/infrastructure/github-app`, `hq/src/github/pages/GitHubAppPage.tsx`) — one App per HQ, tied to
-   its address. hq sends GitHub an App Manifest, GitHub creates the App and hands its keys back
-   (`hq/src/github/githubAppRegistrationAction.ts`, `githubAppApi.ts`); disconnect there removes it. The
-   administrator then installs it on the organisation's accounts under Manage organisation › Settings › GitHub
-   (`/admin/settings/github`, `hq/src/github/pages/GitHubInstallationsPage.tsx`), where Refresh re-reads where
-   it is installed.
-2. **Someone connects a repository to a location.** Who: a **project's administrator** for a project's
-   storage, and the **person themselves** for their own (`hq/src/storage/actions.ts`,
-   `assertMayAdministerAttachment`). A project member who is not an administrator can use the storage but
-   cannot attach or detach its repository. A project's page for this is `/projects/:key/github`. There are
-   three ways in (`hq/src/storage/repoAttachmentService.ts`):
+| | Step | Who, and where |
+|---|---|---|
+| 1 | Register the App, once | An organisation administrator, on *Manage organisation › Settings › GitHub*; hq sends GitHub an App manifest and GitHub creates the App |
+| 2 | Install the App on a GitHub account, on all repositories or some | An owner of that account, on GitHub, from the App's page or an **install link** hq makes, with a note ready to send to a client |
+| 3 | Allow it, and say which places can connect | An organisation administrator, on the same page |
+| 4 | Set the project's default account | A project administrator, in the project's GitHub section |
+| 5 | Connect a workspace's repository | A project administrator, in the workspace; for a person's own storage, that person |
+
+- **A new installation waits.** The App can be installed by anyone, so a new account shows as *wants to connect* and is
+  not used until an administrator allows it. After GitHub sends the person back, hq looks for the new installation for
+  up to a minute, so nobody has to refresh.
+- **Which places can connect**, set per account: every shared project, or chosen projects; and, separately, chosen
+  people. A person's own storage and their personal projects are never part of *every project*: they can connect to an
+  account only when an administrator has chosen that person, so a member cannot link someone else's repository into
+  their own work and approve workflows there.
+- **The rule is checked at every mint**, not only when a repository is connected, so narrowing it takes effect at once.
+- **A client stays in control.** They change what the App reaches, or remove it, in their own GitHub settings, and
+  access stops there and then. They need no Agenthix account.
+
+## Connecting a repository
+
+From a workspace, from Files' *Back up to GitHub*, or when making a workspace: one flow, with the same checks
+(`hq/src/storage/actions.ts`, `repoAttachmentService.ts`, `hq/src/github/connect/`).
 
 | Mode | The folder is | What happens |
 |---|---|---|
-| Create a new repository | The source of truth | A new private repository is created and the folder is pushed up. Needs the App installed on an organisation; a personal account cannot create one. |
-| Adopt an existing repository | The source of truth | The folder is pushed up to a repository that already exists. |
-| Link an existing repository | Empty, waiting | The repository is pulled down into the empty folder. |
+| A new repository | The source of truth | A private repository is created on the chosen account and the folder pushed up. Offered only where the installation reaches all repositories, since a repository the App creates is not part of a selection; the screen says how an owner of that account can change it |
+| An existing repository | Either | Pulled into an empty location; pushed into an empty repository, or one that shares the folder's history; refused plainly otherwise, never overwritten. A folder with history of its own keeps its branches, and only its `main` is pushed |
 
-   Disconnecting removes the attachment and keeps the folder and its files.
+- **The account** starts at the project's default and can be changed to any other the project may connect to.
+- **Checked before anything is created:** that the account can take a new repository and that the name is free. If a
+  later step fails anyway, hq deletes the repository it just created, or names it if it cannot.
+- **The starter workflows are proposed** as soon as it is connected.
+- **Disconnecting** removes the attachment and keeps the folder and its files.
 
-All git commands run on the site that holds the storage, never in hq: hq checks the person may do it and
-mints the token, and the site runs git with the token for that one call
-(`site/src/server/storage/repoWorkMethods.ts`, `site/src/storage/repoOps.ts`; contract in
-`core/src/protocol/repoWork.ts`).
+Connecting runs git on the site that holds the storage, never in hq and never in an agent's container, with a token
+from the mint gate passed to git for that one call and never written to `.git/config`
+(`site/src/server/storage/repoWorkMethods.ts`, `site/src/storage/repoOps.ts`; contract in `core/src/protocol/repoWork.ts`).
 
-## Agents pushing and pulling
+## Working with the repository
 
-Inside the agent's container, git is configured with a credential helper
-(`site/docker/agenthix-git-credential`) that answers only for `github.com`. It calls the site's
-`POST /api/v1/git/credential` (`site/src/server/git/gitCredentialApi.ts`), which asks hq; the check on
-hq's side is `hq/src/storage/gitGrantService.ts`:
+The agent commits in its workspace as usual. Everything that talks to GitHub is a [workflow](../workflows/workflows.md):
 
-- A run in a **project** may use the repositories attached to that project.
-- A run in a person's **own storage** may use the repositories attached to that person's storage.
-- A run with no storage to act in is refused.
-- A task in a person's **personal project** runs as that person in their own storage, so it may use the repositories attached to that person's storage, and no one else's ([personal projects](../projects/personal-projects.md)).
-- Being assigned to a project grants nothing; only the storage the run is working in counts
-  ([ADR-0060](../../adr/adr-0060-authority-comes-from-the-boundary.md)).
+| Workflow | Does | Its token may |
+|---|---|---|
+| `push` | Bundles a branch with no secret, then pushes the bundle from a clean repository. Never forces, never to a protected branch | Write contents |
+| `pull` | Fetches into a clean repository with the token, then fast-forwards the workspace from the bundle with no secret | Read contents |
+| `open-pull-request` | `gh pr create` for a branch, with a title and body. Never from a protected branch | Write pull requests, read contents |
+| `set-github-secrets` | Sets the named secrets as environment secrets on a GitHub environment limited to protected branches | Write environments |
 
-The mechanism, including how the platform token is checked, is in
-[Identity and Trust](../../architecture/identity-and-trust.md#git).
+A plain `git push` in the agent's container fails with a message naming the `push` workflow. The repository's address
+always comes from hq, never from the workspace's `remote.origin.url`, and git with a token never runs in the agent's
+own repository, whose config and hooks the agent controls. A workflow can also start a GitHub workflow
+(`gh workflow run`), with its own declared permission; hq has no other way to start one.
 
 ## Commit authorship
 
-Connecting a repository commits under one generic identity (`site/src/storage/repoOps.ts`). The agent's
-own commits use whatever git identity the container is configured with. A convention that would name the
-acting agent and person on each commit is specified in
-[GitHub commit authorship](../workspace/github-commit-authorship.md) and is **not built**.
+Connecting a repository commits under one generic identity (`site/src/storage/repoOps.ts`). The agent's own commits use
+whatever git identity the container is configured with. A convention that would name the acting agent and person on
+each commit is specified in [GitHub commit authorship](../workspace/github-commit-authorship.md) and is **not built**.
 
 ## What must not break
 
-- A token is minted per use, for one repository, and is never stored on a site or in a container's files.
-- hq decides whether a run may use an attachment; the site never decides that for itself.
-- A failure after a new repository is created on GitHub can leave an empty repository behind that nothing
-  removes; the code says so in `repoAttachmentService.ts`.
+- No GitHub token is ever in an agent's container, its workspace or a site's database.
+- Every token passes the mint gate, names its permissions, reaches one repository and, for a workflow, is revoked when
+  the run ends.
+- hq decides which places may use which account, at every mint; the site never decides that for itself.
 
 ## Where in the code
 
 | What | Where |
 |---|---|
-| Connect, disconnect, who may | `hq/src/storage/actions.ts`, `repoAttachmentService.ts`, `github.ts` |
-| The GitHub App and token minting | `hq/src/github/` |
-| Registering the App; installing it | `hq/src/github/pages/GitHubAppPage.tsx`; `GitHubInstallationsPage.tsx` |
-| Which run may use which attachment | `hq/src/storage/gitGrantService.ts` |
-| Running git | `site/src/server/storage/repoWorkMethods.ts`, `site/src/storage/repoOps.ts` |
-| The credential helper and its endpoint | `site/docker/agenthix-git-credential`, `site/src/server/git/gitCredentialApi.ts` |
+| Connect, disconnect, who may | `hq/src/storage/actions.ts`, `repoAttachmentService.ts`; `hq/src/github/connect/`, `connectChecks.ts` |
+| The App, its registration and accounts | `hq/src/github/githubApp.ts`, `githubAppRegistrationAction.ts`, `accountOps.ts`, `pages/GitHubInstallationsPage.tsx` |
+| Which places may connect | `hq/src/github/connectRule.ts` |
+| The mint gate | `hq/src/github/mintGate.ts`, `mintGateConnect.ts` |
+| Protected branches, environments | `hq/src/github/protectedBranches.ts`, `githubEnvironment.ts` |
+| The starter workflows | `hq/src/workflows/starters/`, `site/docker/executor/push-bundle` |
+| Running git to connect | `site/src/server/storage/repoWorkMethods.ts`, `site/src/storage/repoOps.ts` |
 
 ## Decisions behind this
 
 [ADR-0039](../../adr/adr-0039-files-and-workspaces.md) (repository as an attachment over a location) ·
 [ADR-0060](../../adr/adr-0060-authority-comes-from-the-boundary.md) ·
-[ADR-0061](../../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md)
+[ADR-0061](../../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md) ·
+[ADR-0147](../../adr/adr-0147-a-secret-is-used-only-by-a-workflow-a-person-approved-run-by-the-platform.md)

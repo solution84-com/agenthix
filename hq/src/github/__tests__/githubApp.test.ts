@@ -3,19 +3,9 @@ import { describe, it, expect, vi } from 'vitest'
 // The GitHub App's pure helpers. Storing, reading and forgetting the App is
 // githubApp.integration.test.ts.
 
-import { buildInstallationTokenRequest, convertManifestCode, buildManifest } from '../githubApp'
+import { convertManifestCode, buildManifest } from '../githubApp'
 
-describe('installation token scoping @SC-257', () => {
-  it('scopes the mint request to one repo with least-privilege permissions', () => {
-    const body = buildInstallationTokenRequest('website')
-    expect(body).toEqual({
-      repositories: ['website'],
-      permissions: { contents: 'write', actions: 'write', secrets: 'write', workflows: 'write', pull_requests: 'write', metadata: 'read' },
-    })
-  })
-})
-
-describe('convertManifestCode (W-1)', () => {
+describe('convertManifestCode (W-1) @SC-1307', () => {
   it('encodes the code into the GitHub path so it cannot steer the request elsewhere', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: 1, slug: 's', pem: 'p' }), { status: 201 }))
     vi.stubGlobal('fetch', fetchMock)
@@ -31,8 +21,21 @@ describe('convertManifestCode (W-1)', () => {
   })
 })
 
-describe('buildManifest (R-166)', () => {
+describe('buildManifest (R-166) @SC-1307', () => {
   it('names the App from letters and digits of the state only', () => {
     expect(buildManifest('-_ab-cd_efgh').name).toBe('agenthix-abcdefgh')
+  })
+
+  it("starts GitHub's page with Agenthix for the organisation's name, fitted to what GitHub takes", () => {
+    expect(buildManifest('s', 'Solution84').name).toBe('Agenthix for Solution84')
+    expect(buildManifest('s', 'Fernhill & Co: Studio').name).toBe('Agenthix for Fernhill Co Studio')
+    expect(buildManifest('s', 'A'.repeat(40)).name).toBe(`Agenthix for ${'A'.repeat(21)}`)
+    expect(buildManifest('-_ab-cd_efgh', '***').name).toBe('agenthix-abcdefgh')
+  })
+
+  it('sends a person back to HQ\'s GitHub page after they install the App or change what it reaches', () => {
+    const m = buildManifest('state')
+    expect(m.setup_url).toMatch(/\/admin\/settings\/github$/)
+    expect(m.setup_on_update).toBe(true)
   })
 })

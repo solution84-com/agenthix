@@ -59,6 +59,7 @@ model User {
   pledgeDismissedAt DateTime?
   // The newest version of the pledge whose new-version card the person dismissed; null while none was.
   pledgeVersionDismissed Int?
+  gitHubInstallations    GitHubInstallationPerson[]
 }
 
 // ──────────────────────────────────────────────
@@ -128,13 +129,65 @@ model GitHubApp {
   createdAt      DateTime @default(now())
 }
 
+/// A GitHub account the organisation's App is installed on (workflows spec part 4, *Several GitHub accounts*). The
+/// App is public, so anyone can install it: a new installation WANTS_TO_CONNECT and is used for nothing until an
+/// organisation administrator allows it. Matched by GitHub's ids, never by login, which can be renamed and taken.
 model GitHubInstallation {
   id             String   @id @default(uuid())
   installationId Int      @unique          // numeric installation id
-  accountLogin   String                    // org/user the App is installed on
+  accountLogin   String                    // org/user the App is installed on; shown, never matched on
   accountType    String                    // "Organization" | "User"
+  /// GitHub's id for the account. Null only on a row written before it was recorded, which the mint gate refuses.
+  accountId      BigInt?
+  /// "all" or "selected", as GitHub last reported; a selected-repositories installation can't take a new repository.
+  repositorySelection String?
+  state          GitHubInstallationState @default(WANTS_TO_CONNECT)
+  /// Who allowed or ignored it, and when; null while it wants to connect.
+  decidedById    String?
+  decidedAt      DateTime?
+  /// Which projects may connect to it: every project, or only `projects`. People's own storage is never part of
+  /// every project: only `people` may, none by default. Checked on connect and at every mint.
+  projectRule    GitHubProjectRule @default(CHOSEN_PROJECTS)
+  projects       GitHubInstallationProject[]
+  people         GitHubInstallationPerson[]
+  defaultFor     Project[] @relation("ProjectDefaultGitHubAccount")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+enum GitHubInstallationState {
+  WANTS_TO_CONNECT
+  ALLOWED
+  IGNORED
+}
+
+enum GitHubProjectRule {
+  EVERY_PROJECT
+  CHOSEN_PROJECTS
+}
+
+/// A project chosen to connect to a GitHub account whose rule is CHOSEN_PROJECTS.
+model GitHubInstallationProject {
+  installationId String
+  installation   GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  projectId      String
+  project        Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt      DateTime           @default(now())
+
+  @@id([installationId, projectId])
+  @@index([projectId])
+}
+
+/// A person whose own storage may connect to a GitHub account.
+model GitHubInstallationPerson {
+  installationId String
+  installation   GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime           @default(now())
+
+  @@id([installationId, userId])
+  @@index([userId])
 }
 
 // ──────────────────────────────────────────────
@@ -1125,6 +1178,11 @@ model Project {
   automationStarts AutomationStart[]
   routines         Routine[]
   milestones       Milestone[]
+  /// The GitHub account a new repository connection starts at (workflows spec part 4); a workspace may choose another
+  /// the project may connect to. Null until a project administrator sets it.
+  defaultGitHubInstallationId String?
+  defaultGitHubInstallation   GitHubInstallation? @relation("ProjectDefaultGitHubAccount", fields: [defaultGitHubInstallationId], references: [id], onDelete: SetNull)
+  gitHubInstallations         GitHubInstallationProject[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -2420,6 +2478,7 @@ enum UsagePurpose {
   stt
   tts
   voice_sample
+  workflow_review
 }
 
 /// core's COST_BASES.
@@ -2559,4 +2618,349 @@ model RelayUsageReport {
 
   @@index([ledgeredAt, receivedAt])
   @@index([runId])
+}
+
+// ──────────────────────────────────────────────
+// Module: Workflows, secrets and variables (workflows spec parts 1–3, adr-0147, adr-0148).
+//
+// A place is where a workflow, a secret or a variable belongs: a project, or a person's own storage (ADR-0060). It
+// is written as storage owners are everywhere else, `placeType` + `placeId` (WorkspaceOwnerType: a project's id or
+// a person's), a logical reference: deleting a project or erasing a person removes its rows in code.
+//
+// No column here ever holds a secret in the clear. PlaceSecret.ciphertext and WorkflowMintedToken.ciphertext are
+// AES-256-GCM under SECRETS_MASTER_KEY, each with its row's id and place as associated data, read and written only
+// through hq's secret store.
+// ──────────────────────────────────────────────
+
+/// A named workflow in a place's library. Its versions are frozen copies; one approved version runs at a time.
+model Workflow {
+  id              String             @id @default(uuid())
+  placeType       WorkspaceOwnerType
+  placeId         String
+  name            String
+  /// On: its approved version can be run. Turned on when its first version is approved; switched only by the people
+  /// who may approve it, never an agent.
+  enabled         Boolean            @default(false)
+  enabledChangedById String?
+  enabledChangedAt   DateTime?
+  /// An agent's runs of it in an hour; null for the default (core's AGENT_WORKFLOW_RUNS_PER_HOUR_DEFAULT).
+  agentRunsPerHour   Int?
+  versions        WorkflowVersion[]
+  approvals       WorkflowApproval[]
+  runs            WorkflowRun[]
+  switches        WorkflowSwitch[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([placeType, placeId, name])
+}
+
+/// Every time a workflow was switched on or off: who, when, which way and why. Kept with the workflow.
+model WorkflowSwitch {
+  id         String   @id @default(uuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  enabled    Boolean
+  /// The person who switched it.
+  byUserId   String
+  /// Why, in words, such as "the secret STAGING_DEPLOY_KEY was turned off"; null when none was given.
+  reason     String?
+  at         DateTime @default(now())
+
+  @@index([workflowId, at])
+}
+
+enum WorkflowVersionState {
+  /// Waiting for a person; reviewed once its checks and review are written.
+  PROPOSED
+  APPROVED
+  DECLINED
+  /// A newer version of the same workflow was approved.
+  SUPERSEDED
+}
+
+enum WorkflowVersionOrigin {
+  /// An agent proposed it.
+  PROPOSED
+  /// hq proposed it when a repository was connected (spec part 4, *The starter workflows*).
+  STARTER
+  /// The same content under a new executor image (spec part 1, *Image upgrades*).
+  IMAGE_UPGRADE
+}
+
+enum WorkflowReviewLevel {
+  LOW
+  LOOK_CLOSELY
+  HIGH
+}
+
+/// One frozen copy of a workflow's files and settings, identified by its hash (core's hashWorkflowVersion).
+model WorkflowVersion {
+  id                  String               @id @default(uuid())
+  workflowId          String
+  workflow            Workflow             @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  /// 1, 2, 3 … within the workflow.
+  number              Int
+  /// SHA-256, 64 lower-case hex digits, over everything below and the files.
+  hash                String
+  /// core's WorkflowDefinition, as parsed.
+  definition          Json
+  /// The names `set-github-secrets` was approved for; empty for every other workflow.
+  githubSecretNames   String[]             @default([])
+  /// The executor image this version runs on, `sha256:…`; part of the hash.
+  executorImageDigest String
+  state               WorkflowVersionState @default(PROPOSED)
+  origin              WorkflowVersionOrigin @default(PROPOSED)
+  /// For IMAGE_UPGRADE: the version whose content this is, under its earlier image.
+  upgradeOfId         String?
+  /// Who proposed it: the agent and its run, on behalf of a person; none for a starter or an image upgrade.
+  proposedByAgentId   String?
+  proposedByRunId     String?
+  proposedForUserId   String?
+  /// The plain checks (R1): their flags (core's WorkflowCheckFlag[]), the card's one-line summary, and whether the
+  /// card may offer Approve. Null until they have run.
+  checkFlags          Json?
+  checkSummary        String?
+  cardMayApprove      Boolean?
+  /// The reviewer (R2): advice only, never deciding what the person is shown.
+  reviewLevel         WorkflowReviewLevel?
+  reviewPoints        Json?
+  reviewedAt          DateTime?
+  /// Who declined it, and when.
+  declinedById        String?
+  declinedAt          DateTime?
+  files               WorkflowVersionFile[]
+  approvals           WorkflowApproval[]
+  runs                WorkflowRun[]
+  createdAt           DateTime             @default(now())
+
+  @@unique([workflowId, number])
+  @@unique([workflowId, hash])
+}
+
+/// A version's file, byte for byte. Never a link: a proposal holding one is refused.
+model WorkflowVersionFile {
+  versionId  String
+  version    WorkflowVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  /// Relative to the definition's folder, as core's normaliseWorkflowPath writes it.
+  path       String
+  content    Bytes
+  executable Boolean         @default(false)
+
+  @@id([versionId, path])
+}
+
+/// An approval of one version of one workflow in one place: never "this hash is approved".
+model WorkflowApproval {
+  id           String             @id @default(uuid())
+  workflowId   String
+  workflow     Workflow           @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  placeType    WorkspaceOwnerType
+  placeId      String
+  versionId    String
+  version      WorkflowVersion    @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  hash         String
+  /// The person who approved it; null when hq kept an approval across an executor image upgrade (`automatic`).
+  approvedById String?
+  automatic    Boolean            @default(false)
+  approvedAt   DateTime           @default(now())
+
+  @@unique([workflowId, hash])
+  @@index([placeType, placeId])
+}
+
+enum WorkflowRunState {
+  WAITING
+  RUNNING
+  PASSED
+  FAILED
+  STOPPED
+}
+
+/// One run of an approved version, by a person or an agent.
+model WorkflowRun {
+  id              String           @id @default(uuid())
+  workflowId      String
+  workflow        Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  versionId       String
+  version         WorkflowVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  hash            String
+  placeType       WorkspaceOwnerType
+  placeId         String
+  /// The workspace it ran on (a logical reference: workspaces live on the site), null for the owner's own files.
+  workspaceId     String?
+  siteId          String
+  /// The person it is for: who pressed Run, or the person the agent's run is for (ADR-0095).
+  onBehalfOfUserId String
+  /// Set when an agent started it: the agent and the agent's run that called run_workflow.
+  agentId         String?
+  agentRunId      String?
+  /// The parameter values, as checked; never a secret.
+  parameters      Json             @default("{}")
+  state           WorkflowRunState @default(WAITING)
+  /// core's WorkflowRunFailure code, and its words.
+  failureCode     String?
+  failureMessage  String?
+  /// Masking found a secret in its output: the administrators are told to rotate it.
+  printedSecret   Boolean          @default(false)
+  /// core's WorkflowLeak[], for the people of the place only.
+  leaks           Json?
+  /// core's WorkflowWriteBack.
+  writeBack       Json?
+  steps           WorkflowStepRun[]
+  mintedTokens    WorkflowMintedToken[]
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime         @default(now())
+
+  @@index([workflowId, createdAt])
+  @@index([workflowId, agentId, createdAt])
+  @@index([placeType, placeId, createdAt])
+  @@index([state])
+}
+
+enum WorkflowStepState {
+  WAITING
+  RUNNING
+  PASSED
+  FAILED
+  SKIPPED
+  STOPPED
+}
+
+model WorkflowStepRun {
+  id              String            @id @default(uuid())
+  runId           String
+  run             WorkflowRun       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  /// The step's position in the version's definition.
+  index           Int
+  name            String
+  state           WorkflowStepState @default(WAITING)
+  exitCode        Int?
+  /// Masked on the site before it left; all of it, up to core's WORKFLOW_STEP_OUTPUT_MAX.
+  output          String            @default("")
+  outputTruncated Boolean           @default(false)
+  startedAt       DateTime?
+  endedAt         DateTime?
+
+  @@unique([runId, index])
+}
+
+/// A value an integration minted for one run (`GITHUB_TOKEN`), kept encrypted until it expires so it can be revoked
+/// when the run ends and masked in every later run of the place while it still works.
+model WorkflowMintedToken {
+  id         String             @id @default(uuid())
+  runId      String
+  run        WorkflowRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+  placeType  WorkspaceOwnerType
+  placeId    String
+  /// The name steps know it by, such as GITHUB_TOKEN.
+  name       String
+  ciphertext Bytes
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime           @default(now())
+
+  @@index([placeType, placeId, expiresAt])
+  @@index([runId])
+}
+
+enum PlaceSecretKind {
+  TEXT
+  /// A file of up to 48 KB, stored as bytes.
+  FILE
+}
+
+/// A secret of a place: typed or uploaded once, never shown again, only replaced.
+model PlaceSecret {
+  id           String             @id @default(uuid())
+  placeType    WorkspaceOwnerType
+  placeId      String
+  name         String
+  kind         PlaceSecretKind
+  /// Encrypted (see the module's header); never read back to a page.
+  ciphertext   Bytes
+  /// What it is and what it reaches.
+  description  String
+  /// Who issues it, such as "the staging server's administrator".
+  issuer       String             @default("")
+  /// Where to get a new one: a page, or words.
+  renewAt      String             @default("")
+  /// An optional date to replace it by: the administrators are told a week before; on the day it shows overdue.
+  rotateBy     DateTime?
+  rotateNoticeSentAt DateTime?
+  createdById  String
+  /// When the value was last set or replaced, and by whom.
+  replacedAt   DateTime           @default(now())
+  replacedById String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([placeType, placeId, name])
+  @@index([rotateBy])
+}
+
+enum SecretRecordAction {
+  SET
+  REPLACED
+  DELETED
+  /// A run of an approved version was given it.
+  USED
+  /// Masking found it in a run's output.
+  PRINTED
+  /// *Turn off what uses it* switched off the workflows that name it.
+  TURNED_OFF_USERS
+}
+
+/// The record of every use of a secret (spec part 3, S8): never its value. Kept after the secret is deleted.
+model SecretRecord {
+  id         String             @id @default(uuid())
+  placeType  WorkspaceOwnerType
+  placeId    String
+  secretName String
+  /// The secret's row while it exists; null for an integration's value and after a delete.
+  secretId   String?
+  action     SecretRecordAction
+  byUserId   String?
+  runId      String?
+  at         DateTime           @default(now())
+
+  @@index([placeType, placeId, secretName, at])
+  @@index([runId])
+}
+
+/// A plain setting of a place: visible to people and agents, edited in place, every change recorded.
+model PlaceVariable {
+  id          String             @id @default(uuid())
+  placeType   WorkspaceOwnerType
+  placeId     String
+  name        String
+  value       String
+  createdById String
+  updatedById String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@unique([placeType, placeId, name])
+}
+
+enum VariableChangeAction {
+  SET
+  CHANGED
+  DELETED
+}
+
+/// A variable's history, old → new. Kept after the variable is deleted.
+model PlaceVariableChange {
+  id        String               @id @default(uuid())
+  placeType WorkspaceOwnerType
+  placeId   String
+  name      String
+  action    VariableChangeAction
+  oldValue  String?
+  newValue  String?
+  byUserId  String
+  at        DateTime             @default(now())
+
+  @@index([placeType, placeId, name, at])
 }

@@ -23,6 +23,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import os from 'node:os'
+import { RepoWorkError } from '@agenthix/core'
 import { GitDeadline, runGit } from './gitRunner'
 
 const GIT_IDENTITY = ['-c', 'user.name=Agenthix', '-c', 'user.email=noreply@agenthix.dev']
@@ -85,41 +86,78 @@ export async function linkAndPullRepo(dir: string, repoUrl: string, token: strin
   await runGit(['-C', dir, 'init', '-q'], { deadline })
   await runGit(['-C', dir, 'remote', 'add', 'origin', url], { deadline })
   const auth = await withGitAuth(token)
+  let branch: string | null
   try {
     await runGit(['-C', dir, 'fetch', 'origin'], { deadline, env: auth.env })
+    // A private repository answers set-head only to a caller with the credential.
+    branch = await remoteDefaultBranch(dir, deadline, auth.env)
   } finally {
     await auth._cleanup()
   }
-  // Left outside the auth block exactly as it was before this module moved:
-  // `set-head` talks to the remote and so has no credential for a private
-  // repository. That is a real defect, carried unchanged rather than repaired
-  // here, because a fix round is the wrong place to change behaviour nobody
-  // asked about.
-  await runGit(['-C', dir, 'remote', 'set-head', 'origin', '-a'], { deadline })
-  const { stdout } = await runGit(['-C', dir, 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], { deadline })
-  const branch = stdout.trim().replace(/^origin\//, '') || 'main'
-  await runGit(['-C', dir, 'checkout', '-B', branch, `origin/${branch}`], { deadline })
+  // An empty repository has no branch to check out: the location is initialised and waits for its first push.
+  if (branch) await runGit(['-C', dir, 'checkout', '-B', branch, `origin/${branch}`], { deadline })
 }
 
-/** Init the dir and push its files UP to an (empty) repo. The dir is the source of truth. */
+/** The remote's default branch, or null when the repository is empty. */
+async function remoteDefaultBranch(dir: string, deadline: GitDeadline, env: NodeJS.ProcessEnv): Promise<string | null> {
+  const { stdout: heads } = await runGit(['-C', dir, 'ls-remote', '--heads', 'origin'], { deadline, env })
+  if (!heads.trim()) return null
+  await runGit(['-C', dir, 'remote', 'set-head', 'origin', '-a'], { deadline, env })
+  const { stdout } = await runGit(['-C', dir, 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], { deadline })
+  return stdout.trim().replace(/^origin\//, '') || 'main'
+}
+
+/**
+ * Refuses a push to a repository that has content of its own unless the location's history is part of it: the
+ * repository is empty, or some branch of it shares a commit with the location's. Nothing is fetched into the
+ * working tree, and nothing is ever forced.
+ */
+async function requireSharedHistory(dir: string, deadline: GitDeadline, env: NodeJS.ProcessEnv): Promise<void> {
+  const { stdout: heads } = await runGit(['-C', dir, 'ls-remote', '--heads', 'origin'], { deadline, env })
+  if (!heads.trim()) return
+  await runGit(['-C', dir, 'fetch', '-q', 'origin', '+refs/heads/*:refs/remotes/origin/*'], { deadline, env })
+  const { stdout: refs } = await runGit(['-C', dir, 'for-each-ref', '--format=%(refname)', 'refs/remotes/origin'], { deadline })
+  for (const ref of refs.split('\n').filter(Boolean)) {
+    const shared = await runGit(['-C', dir, 'merge-base', 'refs/heads/main', ref], { deadline }).then(() => true).catch(() => false)
+    if (shared) return
+  }
+  throw new RepoWorkError(
+    'push_rejected',
+    'the repository already has its own history, which the files in this location do not share, so nothing was pushed',
+  )
+}
+
+/**
+ * Init the dir and push its files UP to an (empty) repo. The dir is the source of truth. A dir with history of its
+ * own keeps its branches as they are: its files are committed only while `main` is checked out, and only `main` is
+ * pushed, never the branch an agent is working on, which reaches GitHub through the push workflow.
+ */
 export async function initAndPushRepo(dir: string, repoUrl: string, token: string, deadline: GitDeadline): Promise<void> {
   await fs.mkdir(dir, { recursive: true })
   const isGitRepo = await fs.access(path.join(dir, '.git')).then(() => true).catch(() => false)
   if (!isGitRepo) await runGit(['-C', dir, 'init', '-q'], { deadline })
 
-  await runGit(['-C', dir, 'add', '-A'], { deadline })
-  const { stdout: status } = await runGit(['-C', dir, 'status', '--porcelain'], { deadline })
   const hasHead = await runGit(['-C', dir, 'rev-parse', '--verify', 'HEAD'], { deadline }).then(() => true).catch(() => false)
-  if (status.trim() || !hasHead) {
-    await runGit(['-C', dir, ...GIT_IDENTITY, 'commit', '--allow-empty', '-m', 'Initial commit'], { deadline })
+  const branch = hasHead
+    ? (await runGit(['-C', dir, 'branch', '--show-current'], { deadline })).stdout.trim()
+    : null
+  if (!hasHead || branch === 'main') {
+    await runGit(['-C', dir, 'add', '-A'], { deadline })
+    const { stdout: status } = await runGit(['-C', dir, 'status', '--porcelain'], { deadline })
+    if (status.trim() || !hasHead) {
+      await runGit(['-C', dir, ...GIT_IDENTITY, 'commit', '--allow-empty', '-m', 'Initial commit'], { deadline })
+    }
+    if (!hasHead) await runGit(['-C', dir, 'branch', '-M', 'main'], { deadline })
   }
-  await runGit(['-C', dir, 'branch', '-M', 'main'], { deadline })
+  const hasMain = await runGit(['-C', dir, 'rev-parse', '--verify', 'refs/heads/main'], { deadline }).then(() => true).catch(() => false)
 
   const url = cleanUrl(repoUrl)
   const hasOrigin = await runGit(['-C', dir, 'remote', 'get-url', 'origin'], { deadline }).then(() => true).catch(() => false)
   await runGit(['-C', dir, 'remote', hasOrigin ? 'set-url' : 'add', 'origin', url], { deadline })
+  if (!hasMain) return
   const auth = await withGitAuth(token)
   try {
+    await requireSharedHistory(dir, deadline, auth.env)
     await runGit(['-C', dir, 'push', '-u', 'origin', 'main'], { deadline, env: auth.env })
   } finally {
     await auth._cleanup()

@@ -1,7 +1,7 @@
 ---
 name: Workforce Assembly
 description: Execute a single workforce creation task — create one agent, team, project, or board as described in the task.
-version: 2
+version: 3
 ---
 
 # Workforce Assembly
@@ -49,7 +49,7 @@ Agents and teams are created disabled. Nothing goes live until the user enables 
 
 ## Git access (for dev agents)
 
-Nothing is provisioned per agent: a run's `git` is signed in by the credential helper in its container, for the repositories attached to the workspace it works in. If the task description says the agent will work on code tasks:
+Nothing is provisioned per agent: a run commits locally with `git` in a workspace's repository, and shares work through the place's approved `push`, `pull` and `open-pull-request` workflows, run with `run_workflow`. Its container holds no GitHub token. If the task description says the agent will work on code tasks:
 
-1. Call `get_github_config` — if `configured` is false, add a comment explaining that the agent cannot push until Git Integration is configured, then move to `in_review` normally.
+1. Call `get_github_config` — if `configured` is false, add a comment explaining that the agent cannot share work until Git Integration is configured, then move to `in_review` normally.
 2. If configured, note in the closing comment that the agent's repository access comes from the repositories attached to its workspace, not from anything you set up.

@@ -19,6 +19,10 @@ import { ProjectAutomationTool } from './projectToolViews'
 import { ProjectMemoryTool } from '../../memory/screen/pages/ProjectMemoryTool'
 import { retryUnlessDenied } from './retryUnlessDenied'
 import { runsCount, tasksCount } from './projectPlaceCounts'
+import { useWorkflowsTool } from '../../workflows/pages/useWorkflowsTool'
+import { useSecretsTool } from '../../secrets/pages/useSecretsTool'
+import { useGitHubTool } from '../../github/components/useGitHubTool'
+import type { PlaceTool } from '../../places/placeTypes'
 import { ChatAgentsFact } from '../../chat/ChatAgentsFact'
 import { chatLinkedTools } from '../../chat/chatPlace'
 
@@ -58,17 +62,20 @@ type Member = { userId: string; role: 'ADMIN' | 'MEMBER' }
 
 /** A project's sections after Overview and Conversations (spec §7). Memory is there for its admins only. */
 const PROJECT_SECTION_ORDER = [
-  'tasks', 'boards', 'timeline', 'runs', 'automation', 'files', 'artefacts', 'knowledge', 'workspaces', 'members', 'settings', 'memory',
+  'tasks', 'boards', 'timeline', 'runs', 'automation', 'workflows', 'files', 'artefacts', 'knowledge', 'workspaces', 'members', 'github', 'secrets', 'settings', 'memory',
 ]
 
 /** A personal project's: those of Your space, and Settings. No Members, no Timeline. */
-const PERSONAL_SECTION_ORDER = ['tasks', 'boards', 'runs', 'automation', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'settings']
+const PERSONAL_SECTION_ORDER = ['tasks', 'boards', 'runs', 'automation', 'workflows', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets', 'settings']
 
 function projectTools(project: ProjectPlaceData, extra: {
   isProjectAdmin: boolean
   runs: unknown[] | undefined
   automationOn: boolean | undefined
   filesCounts: FilesToolCounts
+  workflows: PlaceTool | undefined
+  secrets: PlaceTool | undefined
+  github: PlaceTool | undefined
 }): PlaceToolGroup[] {
   const personal = !!project.personalOwnerId
   const tasks = tasksCount(project.tasks)
@@ -92,6 +99,7 @@ function projectTools(project: ProjectPlaceData, extra: {
         tone: extra.automationOn ? 'live' : undefined,
         render: () => <ProjectAutomationTool projectId={project.id} isProjectAdmin={extra.isProjectAdmin} />,
       },
+      ...(extra.workflows ? [extra.workflows] : []),
       ...(extra.isProjectAdmin && !personal
         ? [{ id: 'memory', label: 'Memory', render: () => <ProjectMemoryTool projectId={project.id} /> }]
         : []),
@@ -100,7 +108,11 @@ function projectTools(project: ProjectPlaceData, extra: {
   }
   const settings: PlaceToolGroup = {
     label: null,
-    tools: [{ id: 'settings', label: 'Settings', render: () => <ProjectSettingsPage /> }],
+    tools: [
+      ...(extra.github && !personal ? [extra.github] : []),
+      ...(extra.secrets ? [extra.secrets] : []),
+      { id: 'settings', label: 'Settings', render: () => <ProjectSettingsPage /> },
+    ],
   }
   // A personal project has storage of its own, on the site that holds the person's, and one member for good.
   return [
@@ -135,6 +147,9 @@ export function useProjectPlace(key: string | undefined) {
   const { data: allAgents } = useQuery(getAgents, undefined, { enabled: personal })
   useArtefactLinks()
   const filesCounts = useFilesToolCounts(project ? { ownerType: 'project', ownerId: project.id } : undefined)
+  const workflows = useWorkflowsTool(project ? { type: 'project', id: project.id } : undefined)
+  const secrets = useSecretsTool(project ? { type: 'project', id: project.id } : undefined)
+  const github = useGitHubTool(project)
 
   if (!project) return { project, place: undefined, isLoading, error }
 
@@ -181,6 +196,9 @@ export function useProjectPlace(key: string | undefined) {
       runs: runs as unknown[] | undefined,
       automationOn: (automation as { effective?: { enabled: boolean } } | undefined)?.effective?.enabled,
       filesCounts,
+      workflows,
+      secrets,
+      github,
     }),
     sectionOrder: personal ? PERSONAL_SECTION_ORDER : PROJECT_SECTION_ORDER,
   }

@@ -13,6 +13,10 @@
  * resource use and Docker's version that the host service's figures carry stay
  * on the machine.
  *
+ * It reports the executor image too (workflows spec part 1, *Image upgrades*): the digest workflow steps start from,
+ * the release it came with and the content key of its tools stage, which together decide whether an approval
+ * survives an upgrade. Added in site protocol 1.5; a site from before reports none.
+ *
  * It also says whether the machine is nearly out of memory (`memoryNearlyFull`), a condition and never a figure, so
  * hq can warn the members whose work runs there (spec §10).
  *
@@ -56,10 +60,23 @@ export type SiteHealth = {
     /** The release the site was started as, which is the release of the agent image it runs; null when the image is absent or the site was given no version. */
     version: string | null
   }
+  /** The image workflow steps start from; absent when the site reports none (it is from before 1.5). */
+  executorImage?: ExecutorImageReport | null
   /** What each agent container gets, and the machine's ceilings before narrowing; null when they cannot be trusted. */
   ceilings: EffectiveCeilings | null
   /** Whether the machine is nearly out of memory (`machineMemoryNearlyFull`). */
   memoryNearlyFull: boolean
+}
+
+export type ExecutorImageReport = {
+  name: string
+  present: boolean
+  /** `sha256:…`: the image's published digest, or its image id for an image built on the machine; null when absent. */
+  digest: string | null
+  /** The release it came with; null when the site was given no version. */
+  release: string | null
+  /** The content key of the image's tools stage, shared with the agent image; null when the image carries none. */
+  toolsKey: string | null
 }
 
 const GIB = 1024 ** 3
@@ -104,6 +121,19 @@ function record(v: unknown): Record<string, unknown> | null {
   return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null
 }
 
+const DIGEST_RE = /^sha256:[0-9a-f]{64}$/
+const TOOLS_KEY_RE = /^[0-9A-Za-z._:-]{1,128}$/
+
+function executorImageOf(v: unknown): ExecutorImageReport | null {
+  const image = record(v)
+  const name = text(image?.name)
+  if (!image || !name || typeof image.present !== 'boolean') return null
+  const digest = typeof image.digest === 'string' && DIGEST_RE.test(image.digest) ? image.digest : null
+  const toolsKey = typeof image.toolsKey === 'string' && TOOLS_KEY_RE.test(image.toolsKey) ? image.toolsKey : null
+  const present = image.present && digest !== null
+  return { name, present, digest: present ? digest : null, release: present ? text(image.release) : null, toolsKey: present ? toolsKey : null }
+}
+
 /** A report as it came off the wire, checked field by field; null when it is not a health report. */
 export function parseSiteHealth(data: unknown): SiteHealth | null {
   const d = record(data)
@@ -118,6 +148,7 @@ export function parseSiteHealth(data: unknown): SiteHealth | null {
   if (!takenAt || running === null || maxAtOnce === null || !name) return null
   if (typeof docker.running !== 'boolean' || typeof image.present !== 'boolean') return null
 
+  const executorImage = executorImageOf(d.executorImage)
   const disk = record(d.disk)
   const freeBytes = bytes(disk?.freeBytes)
   const totalBytes = bytes(disk?.totalBytes)
@@ -128,6 +159,8 @@ export function parseSiteHealth(data: unknown): SiteHealth | null {
     disk: freeBytes !== null && totalBytes !== null && freeBytes <= totalBytes ? { freeBytes, totalBytes } : null,
     docker: { running: docker.running, version: text(docker.version) },
     agentImage: { name, present: image.present, version: text(image.version) },
+    // Left out when not reported, so a report from before 1.5 reads as it did.
+    ...(executorImage ? { executorImage } : {}),
     ceilings: parseEffectiveCeilings(d.ceilings),
     memoryNearlyFull: d.memoryNearlyFull,
   }

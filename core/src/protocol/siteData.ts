@@ -82,6 +82,18 @@ export type RepoAttachmentRow = {
   workspaceId: string | null
   repoUrl: string
   createdAt: string
+} & Partial<RepoAttachmentGitHubIds>
+
+/**
+ * GitHub's ids for a connection (workflows spec part 4, *The mint gate*): hq mints a token for this repository by
+ * these, never by URL, login or name. Absent on a row connected before they were recorded, which the gate refuses.
+ * `accountLogin` is shown, never matched on.
+ */
+export type RepoAttachmentGitHubIds = {
+  installationId: number | null
+  repositoryId: number | null
+  accountId: number | null
+  accountLogin: string | null
 }
 
 /** `repo.list`'s projection — no `id`/`createdAt`, matching workspaceRows.ts's `listRepoAttachments`. */

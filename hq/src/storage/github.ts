@@ -1,50 +1,24 @@
 /**
- * GitHub API helpers (ADR-0039, updated ADR-0037 §8) — repo creation, owner resolution.
- * Credentials are minted via the GitHub App accessor (getTokenFor); PAT and deploy keys retired.
+ * GitHub API helpers (ADR-0039, updated ADR-0037 §8) — repo creation, URL parsing. Tokens come from the mint gate
+ * (`../github/mintGate.ts`); PAT and deploy keys retired.
  */
-import { getOrgToken, refreshInstallations } from '../github/githubApp'
-import { prisma } from 'wasp/server'
 
-/** The account to create repos under — prefer an org install (only orgs can create). Refreshes on a miss. */
-async function appInstallation(): Promise<{ login: string; type: string }> {
-  const pick = async () =>
-    (await prisma.gitHubInstallation.findFirst({ where: { accountType: 'Organization' } }))
-    ?? (await prisma.gitHubInstallation.findFirst())
-  let inst = await pick()
-  if (!inst) { await refreshInstallations(); inst = await pick() }
-  if (!inst) throw new Error('The GitHub App is not installed anywhere yet. Install it on your org or account.')
-  return { login: inst.accountLogin, type: inst.accountType }
-}
+export type CreatedRepository = { repoUrl: string; id: number; ownerId: number }
 
 /**
- * Create an EMPTY private repo via the App installation token. Returns the repoUrl.
- * Only works for an ORGANISATION install (POST /orgs/{org}/repos). Installation tokens
- * cannot create personal-account repos (POST /user/repos needs a user token) — so for a
- * personal install we direct the user to link an existing repo instead.
+ * Create an EMPTY private repo under an organisation with a token from the mint gate's `mintForCreating`. Only an
+ * ORGANISATION install can (POST /orgs/{org}/repos): installation tokens cannot create personal-account repos.
  */
-export async function createGitHubRepo(name: string, description: string): Promise<string> {
-  const { login: owner, type } = await appInstallation()
-  if (type !== 'Organization') {
-    throw new Error(
-      'Creating a new repo requires the GitHub App installed on an organization. ' +
-      'Your App is installed on a personal account — link an existing repo instead.',
-    )
-  }
-  const token = await getOrgToken(owner)
-  const res = await fetch(`https://api.github.com/orgs/${owner}/repos`, {
+export async function createGitHubRepo(token: string, owner: string, name: string, description: string): Promise<CreatedRepository> {
+  const res = await fetch(`https://api.github.com/orgs/${encodeURIComponent(owner)}/repos`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, description, private: true, auto_init: false }),
   })
   if (res.status === 422) throw new Error(`A repository named "${name}" already exists.`)
   if (!res.ok) throw new Error(`GitHub repo creation failed: ${await res.text()}`)
-  return `https://github.com/${owner}/${name}`
-}
-
-/** The repoUrl an existing repo of this (slugged) name would have under the App's install — for adopt/consolidate. */
-export async function installRepoUrl(name: string): Promise<string> {
-  const { login: owner } = await appInstallation()
-  return `https://github.com/${owner}/${toRepoSlug(name)}`
+  const r = await res.json() as { id: number; full_name: string; owner: { id: number } }
+  return { repoUrl: `https://github.com/${r.full_name}`, id: r.id, ownerId: r.owner.id }
 }
 
 // Anchored: the owner and name decide which repository a token is minted for, and

@@ -1,7 +1,7 @@
 ---
 name: Git Workflow
-description: Clone a repo, work on a feature branch per task, commit, push, and open a PR.
-version: 1
+description: Work on a feature branch per task, commit, push, and open a PR through the place's approved workflows.
+version: 2
 ---
 
 # Git Workflow
@@ -10,35 +10,24 @@ Use this skill whenever you are working on a code task that requires pushing cha
 
 ## Git access
 
-There is nothing to set up. The container's git credential helper signs `git` in for the repositories attached to your workspace, with a short-lived token you never see. Use HTTPS repository URLs; do not create SSH keys or `~/.ssh/config`.
+You commit locally with `git`. Your container holds no GitHub token, and a plain `git push` or `git fetch` against GitHub fails with a message naming the `push` workflow. Pushing, pulling and opening a pull request are approved workflows you run with `run_workflow`: `push` (`branch`), `pull` (`branch`) and `open-pull-request` (`branch`, `base`, `title`, `body`). `list_workflows` shows what the place has. If one is missing, waiting or off, say so and ask a person who administers the place; never push, fetch or call GitHub's API by other means, and never look for or ask for a token. Do not create SSH keys or `~/.ssh/config`.
 
-## Clone (first task only)
+## The repository
 
-Extract the repo name from the URL (e.g. `https://github.com/owner/agenthix.git` → `agenthix`). Call it `$REPO_NAME`.
+A workspace connected to GitHub is the repository itself, already checked out; there is nothing to clone. Work at the workspace's root. Set the git identity if it is not set:
 
-If `$WORKSPACE/repos/$REPO_NAME/` does not exist:
-
-1. Get the repo URL from your task description or from the agent that assigned you the task.
-2. Clone into the workspace using the repo name as the folder:
-   ```bash
-   git clone {repoUrl} $WORKSPACE/repos/$REPO_NAME
-   ```
-3. Configure git identity:
-   ```bash
-   cd $WORKSPACE/repos/$REPO_NAME
-   git config user.name "{your-agent-name}"
-   git config user.email "{your-handle}@agenthix.local"
-   ```
-
-All subsequent git operations happen inside `$WORKSPACE/repos/$REPO_NAME`.
+```bash
+git config user.name "{your-agent-name}"
+git config user.email "{your-handle}@agenthix.local"
+```
 
 ## Before each task
 
 ```bash
-cd $WORKSPACE/repos/$REPO_NAME
 git checkout develop
-git pull origin develop
 ```
+
+Then run the `pull` workflow with `parameters: { branch: "develop" }` to bring in what is new on GitHub.
 
 ## Branch naming
 
@@ -52,7 +41,6 @@ Examples:
 
 Create the branch:
 ```bash
-cd $WORKSPACE/repos/$REPO_NAME
 git checkout -b agent/{handle}/{task-id}-{short-slug}
 ```
 
@@ -68,20 +56,11 @@ Commit frequently — after each logical unit of work, not just at the end.
 
 ## When work is complete
 
-1. Push the branch:
-   ```bash
-   git push -u origin agent/{handle}/{task-id}-{short-slug}
-   ```
+1. Push the branch by running the `push` workflow: `name: push`, `parameters: { branch: "agent/{handle}/{task-id}-{short-slug}" }`.
 
-2. Open a PR targeting `develop`:
-   ```bash
-   gh pr create \
-     --base develop \
-     --title "feat: {short description} (#task-id)" \
-     --body "## Summary\n\n{what was changed and why}\n\n## Task\nCloses #{task-id}"
-   ```
+2. Open a PR targeting `develop` by running `open-pull-request`: `parameters: { branch: "agent/{handle}/{task-id}-{short-slug}", base: "develop", title: "feat: {short description} (#task-id)", body: "## Summary\n\n{what was changed and why}\n\n## Task\nCloses #{task-id}" }`.
 
-3. Copy the PR URL from the `gh pr create` output.
+3. Copy the PR URL from the run's output.
 
 4. Report back using the `add_comment` MCP tool:
    ```
@@ -90,7 +69,7 @@ Commit frequently — after each logical unit of work, not just at the end.
 
 ## If you get stuck
 
-- Cannot push: the repository is probably not attached to the workspace you are working in. Say so in a comment on the task rather than working around it.
+- Cannot push: `push` is probably missing, waiting or off, or the repository is not connected to the workspace you are working in. Say so in a comment on the task and ask a person who administers the place; do not work around it.
 - Tests failing: fix before pushing. Never push a broken branch.
-- Merge conflict: rebase on develop (`git rebase develop`), resolve conflicts, then push.
+- Merge conflict: rebase on develop (`git rebase develop`), resolve conflicts, then run `push` again.
 - Unsure about scope: add a comment on the task asking for clarification before proceeding.

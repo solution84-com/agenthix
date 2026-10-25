@@ -17,6 +17,7 @@ flowchart LR
         DISK["storage on disk"]
         C1["agent container"]
         C2["agent container"]
+        EX["executor containers: one per workflow step"]
     end
     SB["another Execution Site, optional"]
     SA <-->|"control channel: one WebSocket the site opens; requests from hq, events from the site"| HQ
@@ -25,7 +26,7 @@ flowchart LR
     C1 -->|"HTTP on a private network: platform tools, model relay, OpenCode's gate"| SA
     C2 -->|"HTTP on a private network"| SA
     SA -->|"model requests with the key added"| MP["Model providers"]
-    SA -->|"git over HTTPS"| GH["GitHub"]
+    EX -->|"approved hosts only, through a proxy: git over HTTPS"| GH["GitHub"]
     HM["Fleet Console: fleet admins' portal, 127.0.0.1 only"] <-->|"console link: commands signed and sealed to a host service"| HQ
     HSA["host service, on each machine"] <-->|"host link: the same commands, relayed unread"| HQ
     HSA -->|"Docker"| SA
@@ -104,6 +105,9 @@ repository's `AGENTS.md` has the stack, the conventions and how to run them.
 | **Fleet Console** | The fleet admins' portal, which asks host services to act through commands hq relays unread |
 | **Fleet admin**, **machine admin**, **organisation admin** | A fleet admin holds an hq account's fleet admin role and looks after the machines through the Fleet Console; a machine admin is whoever can use Docker on one machine; an organisation admin is hq's `ADMIN`, who looks after people, projects and agents |
 | **Envelope** | A message between the Fleet Console and a host service, signed by its sender and sealed to its recipient, so hq can pass or drop it but not read or make it |
+| **Workflow** | A named, versioned script in a place's library that a person approves word for word; the only thing that uses a secret ([workflows.md](workflows.md)) |
+| **Executor** | The site's code that runs an approved workflow version's steps, each in a fresh container of its own with only the secrets it names. Not an agent: it has no model |
+| **Mint gate** | The one check in hq every GitHub installation token passes: one repository, from the location's own connection, with only the permissions named |
 | **Scheduler** | The one in-process loop in hq that, at the top of every minute, starts every pulse and scheduled task that is due, and creates each routine's next round |
 
 ---
@@ -197,7 +201,7 @@ sequenceDiagram
 
 ## The documents
 
-**Read these four first, the fifth before changing anything about machines, and the sixth before changing a conversation.** Each answers one question a newcomer arrives with, and opens with a diagram.
+**Read these four first, the fifth before changing anything about machines, the sixth before changing a conversation, and the seventh before anything touches a secret or GitHub.** Each answers one question a newcomer arrives with, and opens with a diagram.
 
 | Document | Answers |
 |---|---|
@@ -207,6 +211,7 @@ sequenceDiagram
 | [identity-and-trust.md](identity-and-trust.md) | Every credential: who issues it, who holds it, what it allows, how it is checked |
 | [host-management.md](host-management.md) | The host service and the Fleet Console: adding a site, maintenance, backups and restoring, moves, a machine that stops answering, and Agenthix Cloud's controller on a machine Cloud runs |
 | [conversation-layer.md](conversation-layer.md) | How a conversation is answered from hq: the record, the one-turn lock, the lead's context and tools, operations and workers, recovery, memory, voice |
+| [workflows.md](workflows.md) | How a secret is used without entering an agent's container: proposing and approving a workflow, a run end to end, the executor and its containers, the egress proxy, masking and the changed-file scan, the mint gate |
 
 **Then the detail behind them:**
 
@@ -252,7 +257,8 @@ sequenceDiagram
 | The control channel, site side | `site/src/server/hq/` |
 | What starts work on its own: the pulse, the scheduler, routines | `hq/src/automation/` |
 | Running a turn | `site/src/agents/runtime/` |
-| The agent image and its sandbox launcher | `site/docker/` |
+| The agent image and its sandbox launcher; the executor image | `site/docker/` |
+| Workflows, secrets and variables, the GitHub App and the mint gate | `hq/src/workflows/`, `hq/src/secrets/`, `hq/src/github/`; the executor in `site/src/executor/` (see [workflows.md](workflows.md)) |
 | Tokens and their checks | `hq/src/server/identity/`, `site/src/server/identity/` |
 | Sign-in, invitations, the first-admin link and recovery | `hq/src/auth/`; setup in hq, once, in `hq/src/setup/`, `/onboarding` in `hq/src/onboarding/`; the install and the machine's commands are `host/` |
 | Persistent notifications and a site's standing | `hq/src/notifications/`, `hq/src/sites/siteNotifications.ts`, `siteStanding.ts` |
@@ -281,5 +287,6 @@ sequenceDiagram
 - **A site holds no identities.** It verifies what hq signed.
 - **Secrets stay out of agent containers.** A container holds only short-lived tokens the site can revoke,
   plus one exception: a Claude subscription's login, which Anthropic's terms keep with the client, in the
-  runner's own harness home.
+  runner's own harness home. A place's secrets and every GitHub token are used only by approved workflows, in
+  executor containers ([ADR-0147](../adr/adr-0147-a-secret-is-used-only-by-a-workflow-a-person-approved-run-by-the-platform.md)).
 - **A run's authority is its boundary's**, never the union of everyone involved.

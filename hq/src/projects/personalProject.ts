@@ -51,6 +51,12 @@ export function placeStorageOf(project: { id: string; personalOwnerId: string | 
     : { ownerType: 'project', ownerId: project.id }
 }
 
+/** Where a project's files, workspaces and runs live, by id; the project's own when it is gone. */
+export async function storageOfProject(projectId: string): Promise<StorageOwner> {
+  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { id: true, personalOwnerId: true, personalSpace: true } })
+  return project ? placeStorageOf(project) : { ownerType: 'project', ownerId: projectId }
+}
+
 /** Whether the project is a person's space, by id. */
 export async function isSpaceProject(projectId: string): Promise<boolean> {
   const project = await prisma.project.findUnique({ where: { id: projectId }, select: { personalOwnerId: true, personalSpace: true } })

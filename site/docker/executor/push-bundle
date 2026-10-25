@@ -1,0 +1,70 @@
+#!/bin/sh
+# push-bundle <bundle> <branch>: pushes one branch from a git bundle to the repository HQ named.
+#
+# The workspace's repository belongs to the agent: its config and hooks can name programs git runs. So the bundle
+# is read as data into a new, empty repository made here, with no system or user config and no hooks, and that
+# repository pushes. The address is $GITHUB_REPOSITORY_URL (given by HQ, never read from the workspace); the token
+# is read from /run/secrets/GITHUB_TOKEN by git's askpass hook when git asks, so it is on no command line, in no
+# environment and in no output. It never forces a push.
+set -eu
+
+refuse() {
+  echo "push-bundle: $* Nothing was pushed." >&2
+  exit 2
+}
+
+[ "$#" -eq 2 ] || refuse "Usage: push-bundle <bundle> <branch>. The workflow step passed $# arguments."
+bundle="$1"
+branch="$2"
+
+case "$branch" in
+  '' | -* | *@\{* | *[[:space:]]*) refuse "The branch name '$branch' is not allowed. Give a plain branch name, as the approved workflow's parameter." ;;
+esac
+[ -f "$bundle" ] && [ ! -L "$bundle" ] || refuse "The bundle '$bundle' is not a regular file. The step that makes the bundle must run first."
+
+case "$bundle" in
+  /*) ;;
+  *) bundle="$PWD/$bundle" ;;
+esac
+
+url="${GITHUB_REPOSITORY_URL:-}"
+case "$url" in
+  https://*) ;;
+  *) refuse "GITHUB_REPOSITORY_URL is not an https address. HQ sets it for the connected repository; reconnect the repository in HQ." ;;
+esac
+case "$url" in
+  *[[:space:]]* | *@*) refuse "GITHUB_REPOSITORY_URL must not hold spaces or credentials. HQ sets it for the connected repository." ;;
+esac
+[ -r /run/secrets/GITHUB_TOKEN ] || refuse "There is no GITHUB_TOKEN secret for this step. Name GITHUB_TOKEN as a secret of the step in the workflow."
+
+scratch="$(mktemp -d /tmp/push-bundle.XXXXXX)"
+trap 'rm -rf "$scratch"' EXIT INT TERM
+
+# Only these variables reach git: nothing the step's environment names can change what git runs.
+run_git() {
+  env -i PATH=/usr/bin:/bin HOME="$scratch" \
+    GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0 GIT_ASKPASS="$scratch/askpass" \
+    git -c core.hooksPath=/dev/null "$@"
+}
+
+run_git check-ref-format --branch "$branch" >/dev/null 2>&1 \
+  || refuse "'$branch' is not a valid branch name. Give a plain branch name, as the approved workflow's parameter."
+
+cat > "$scratch/askpass" <<'ASKPASS'
+#!/bin/sh
+case "$1" in
+  Username*) echo x-access-token ;;
+  *) cat /run/secrets/GITHUB_TOKEN ;;
+esac
+ASKPASS
+chmod 0700 "$scratch/askpass"
+
+mkdir "$scratch/repo"
+cd "$scratch/repo"
+run_git init -q . >/dev/null
+run_git config core.hooksPath /dev/null
+run_git fetch -q --no-tags "$bundle" "refs/heads/$branch:refs/bundle/$branch" \
+  || refuse "The bundle does not hold the branch '$branch'. The step that makes the bundle must bundle that branch."
+
+run_git -c protocol.allow=never -c protocol.https.allow=always -c http.followRedirects=false \
+  push --no-verify "$url" "refs/bundle/$branch:refs/heads/$branch"

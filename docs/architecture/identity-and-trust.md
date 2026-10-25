@@ -12,8 +12,8 @@ flowchart LR
     C["Agent container"] -->|"opaque platform token"| S
     C -->|"relay token"| S
     S -->|"provider key, added per request"| M["Model provider"]
-    HQ -->|"repository-scoped token, per use"| S
-    S -->|"git credential"| C
+    HQ -->|"a workflow run's secrets and GitHub token; a repository token for hq's own git work"| S
+    S -->|"a step's own secrets, in a tmpfs"| EX["Executor container: one workflow step"]
     HM["Fleet Console: no users"] -->|"console credential; envelopes signed and sealed to a host"| HQ
     HS["Host service: one per machine"] -->|"its own machine credential, to the host link"| HQ
 ```
@@ -24,7 +24,8 @@ has no user, session or login tables
 [ADR-0065](../adr/adr-0065-a-site-serves-no-web-page.md)): it trusts hq because hq signs what it sends,
 and it checks those signatures itself with hq's public key, without asking hq each time. An agent container
 holds even less: only opaque tokens the site issued and can revoke, and, when a run uses a person's Claude
-subscription, that subscription's login.
+subscription, that subscription's login. **No secret of a place and no GitHub token ever enters it**: those are used
+only by approved workflows, in executor containers of their own ([workflows.md](workflows.md)).
 
 **Machines have an authority of their own, which hq does not hold.** The host service on each machine acts only on
 commands from its owner socket or from the one Fleet Console it pinned, each signed and sealed so that hq relays them
@@ -40,11 +41,12 @@ unread ([below](#machines-and-the-fleet); [host-management.md](host-management.m
 | Machine credential, site | The host service that runs the site, its hash registered with hq by the Fleet Console (or the pairing secret, for hq's site) | The site, encrypted; the host service's state folder; the site's backups | Connect to hq's control channel; call hq's site endpoints | Until the site is removed, or renewed by a restore |
 | Run capability | hq, signed per run | The site, never the container | Act for one run: its agent, its boundary, its permissions | 15 minutes, renewed while the run lasts |
 | Turn capability | hq, in process, per turn of a conversation | hq's memory for the turn, never stored or sent | Let the lead call hq's own operations as the author of the message it answers | One turn, 15 minutes at most ([the conversation layer](conversation-layer.md#the-lead-in-hq)) |
-| Platform token | The site | The agent's harness | Reach the site's platform tools and git endpoint as the current turn | One run, or a whole conversation for a harness kept across turns; it means something only while a turn runs |
+| Platform token | The site | The agent's harness | Reach the site's platform tools as the current turn | One run, or a whole conversation for a harness kept across turns; it means something only while a turn runs |
 | Relay token | The site | The agent's harness | Send model requests through the site's relay, only from its own container | A turn on OpenCode; a Claude process's life, meaning something only during a turn |
 | Provider API key | An organisation admin on Providers, the machine admin, or Agenthix Cloud's controller for Cloud itself | hq, encrypted; the site in memory for a run, and hq's own process for a conversation's turn | Call a model provider | Until changed |
 | Claude subscription login | A person signing in through hq | hq, encrypted; the runner's harness home on the site | Use that Claude subscription | Refreshed by Claude Code |
-| GitHub installation token | hq's GitHub App | Handed through the site to git | Push and pull one repository | About an hour |
+| Place secret | A project's administrators, or a person for their own storage, typed or uploaded once | hq, encrypted; for one run of an approved workflow, the site's memory and the tmpfs of each step that names it | Whatever the secret itself allows, only from approved steps | Until replaced or deleted |
+| GitHub installation token | hq's GitHub App, through the mint gate | A workflow step that names `GITHUB_TOKEN`, for one run; the site's memory, for one call of hq's own git work | One repository, with only the permissions named | About an hour; a workflow run's is revoked when the run ends |
 | Host service keys | The host service, once | Its state folder | Sign what it sends its Fleet Console; open what is sealed to it | For good; never replaced |
 | Fleet Console keys | The Fleet Console, once | Its state volume | Sign and seal commands to host services | Until the Fleet Console is replaced |
 | Machine credential, host service | hq, when a fleet admin accepts the machine's join | The host service's state folder | Hold a host link to hq's relay | Until the machine is disconnected |
@@ -443,20 +445,18 @@ sequenceDiagram
 
 ---
 
-## Git
+## Git and workflow secrets
 
 Repositories are reached through the organisation's **GitHub App**, whose private key only hq holds,
-encrypted (`hq/src/github/githubApp.ts`).
+encrypted (`hq/src/github/githubApp.ts`). Every installation token passes **the mint gate**
+(`hq/src/github/mintGate.ts`): the repository comes from the location's own connection, found by its place and
+workspace, the place must still be allowed to connect to that GitHub account, accounts and repositories are matched
+by GitHub's ids, and the token is minted fresh for one repository with exactly the permissions named.
 
-1. git in the container asks its credential helper (`site/docker/agenthix-git-credential`), which calls
-   the site's `POST /api/v1/git/credential` with the platform token.
-2. The site verifies the capability and finds the repository attachment in its own database
-   (`site/src/server/git/gitCredentialApi.ts`).
-3. It asks hq (`resolve_git_credential`). hq checks that the run's own boundary owns that attachment
-   (`hq/src/storage/gitGrantService.ts`) and mints an installation token scoped to that one repository,
-   valid for about an hour.
-
-No long-lived git secret is ever in the container.
+**An agent's container holds no git credential at all.** It commits locally; to share, it runs the approved `push`
+workflow, and a plain `git push` there fails with a message naming it. A step of that workflow gets the run's token
+as a file, and hq revokes it when the run ends. A place's own secrets reach a site only in a run instruction, for an
+approved version that names them. Both are in [workflows.md](workflows.md).
 
 ---
 
@@ -465,9 +465,10 @@ No long-lived git secret is ever in the container.
 | Where | What | How |
 |---|---|---|
 | hq database | The signing key's private half, provider keys and subscription logins, the GitHub App's keys | Encrypted with AES-256-GCM under `SECRETS_MASTER_KEY` (`hq/src/server/crypto/secretCrypto.ts`) |
+| hq database | Places' secrets (`PlaceSecret`); tokens minted for workflow runs, until they expire, so masking can find them (`WorkflowMintedToken`) | The same, each value bound to its row and its place as associated data, so a value copied elsewhere fails to decrypt (`hq/src/secrets/store.ts`) |
 | hq database | Sites' and host services' machine credentials, the pairing secret, the console credential, one-time codes' lookups, invite and mobile tokens | SHA-256 hash only; never read back |
 | site database | The machine credential | Encrypted under the site's own `SECRETS_MASTER_KEY` |
-| site memory | Run capabilities; platform and relay tokens; the one-use tickets a Claude process trades for its relay token ([model relay](sites/model-relay.md#relay-tokens)); the turn's provider API keys | Never written to disk; lost on restart |
+| site memory | A workflow run's instruction, with its secrets, for the run's length ([workflows.md](workflows.md)); run capabilities; platform and relay tokens; the one-use tickets a Claude process trades for its relay token ([model relay](sites/model-relay.md#relay-tokens)); the turn's provider API keys | Never written to disk; lost on restart |
 | The host service's state folder | The secrets of what it runs (database passwords, `JWT_SECRET`, both `SECRETS_MASTER_KEY`s, the pairing secrets, a site's machine credential), its own keys, its machine credential, the machine's backup key, nightly backups | Plain files readable by the folder's owner only (`host/src/state/folder.ts`); backups sealed |
 | The Fleet Console's state volume | Its keys, its credential to hq, sessions | Readable by its owner only; sessions as hashes |
 | A runner's harness home on the site | A Claude subscription's login, `.credentials.json` | Plain file, written for a run granted that subscription; removed when the last run using it ends, or when a run without one arrives and no other run is using it (`site/src/agents/runtime/boundaryClaudeHome.ts`) |
@@ -481,8 +482,9 @@ A database copied without its environment cannot be decrypted.
 - **A site never gets user records**, and never decides who a person is. Entitlement is checked in hq.
 - **The audience pin.** Every capability is checked against the verifying site's own id.
 - **The runner comes from the signed capability**, never from the dispatch.
-- **The container never holds the capability, a provider API key or a long-lived git credential.** A
+- **The container never holds the capability, a provider API key, a GitHub token or a place's secret.** A
   Claude subscription's login is the one exception, and only in its own runner's harness home.
+- **Every GitHub installation token passes the mint gate**, names its permissions and reaches one repository.
 - **A conversation's token resolves to nothing between turns.**
 - **hq stores machine credentials and connection tokens only as hashes.**
 - **hq can relay a command to a machine but cannot read, alter or make one**, and never sees a one-time code, only
@@ -523,4 +525,5 @@ A database copied without its environment cannot be decrypted.
 [ADR-0131](../adr/adr-0131-a-machine-may-pull-private-images-with-registry-credentials.md) ·
 [ADR-0132](../adr/adr-0132-cloud-may-turn-remote-access-on-for-a-machine-it-runs.md) ·
 [ADR-0133](../adr/adr-0133-cloud-may-ask-for-admin-links-on-a-machine-it-runs.md) ·
-[ADR-0134](../adr/adr-0134-an-hq-connects-to-cloud-by-device-approval-and-signed-tokens.md)
+[ADR-0134](../adr/adr-0134-an-hq-connects-to-cloud-by-device-approval-and-signed-tokens.md) ·
+[ADR-0147](../adr/adr-0147-a-secret-is-used-only-by-a-workflow-a-person-approved-run-by-the-platform.md)

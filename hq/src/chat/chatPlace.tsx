@@ -13,7 +13,7 @@ import { ChatAgentsFact } from './ChatAgentsFact'
 import { ChatAgentsTool } from './ChatAgentsTool'
 
 /** Your space's sections after Overview and Conversations (spec §7). */
-export const SPACE_SECTION_ORDER = ['tasks', 'boards', 'runs', 'automation', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents']
+export const SPACE_SECTION_ORDER = ['tasks', 'boards', 'runs', 'automation', 'workflows', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets']
 
 /** The personal project behind Chat: it holds the person's own tasks, boards and routines. */
 export interface PersonalProject {
@@ -31,6 +31,10 @@ export interface ChatSpace {
   /** The site holding the person's own storage; null until it has been placed on one. */
   siteLabel: string | null
   filesCounts: FilesToolCounts
+  /** Workflows in the person's own storage. */
+  workflows?: PlaceTool
+  /** Secrets and variables in the person's own storage. */
+  secrets?: PlaceTool
 }
 
 /** Chat's facts (spec §7). The Site appears only once the person's storage has been placed on one. */
@@ -88,9 +92,11 @@ export function chatToolGroups(space: ChatSpace): PlaceToolGroup[] {
           tone: space.automationOn ? 'live' : undefined,
           render: () => (project ? <ProjectAutomationTool projectId={project.id} isProjectAdmin /> : loading()),
         },
+        ...(space.workflows ? [space.workflows] : []),
       ],
       footer: project ? <ProjectRunControls projectId={project.id} isProjectAdmin personal /> : undefined,
     },
     filesToolGroup({ owner: { ownerType: 'user', ownerId: space.userId }, siteLabel: space.siteLabel, counts: space.filesCounts, personal: true }),
+    ...(space.secrets ? [{ label: null, tools: [space.secrets] }] : []),
   ]
 }

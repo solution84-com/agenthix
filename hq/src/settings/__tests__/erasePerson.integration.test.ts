@@ -56,7 +56,7 @@ describe('erasePerson — when it may run @SC-609', () => {
 })
 
 describe('erasePerson — what goes @SC-609', () => {
-  it('their conversations, own project, memory, connections, logins, name, picture and sign-in', async () => {
+  it('their conversations, own project, memory, connections, workflows, logins, name, picture and sign-in', async () => {
     const admin = await createUserWithRole('ADMIN')
     const { user } = await leftPerson()
     await prisma.user.update({ where: { id: user.id }, data: { avatarUrl: '/people/x/images/a.png' } })
@@ -71,6 +71,9 @@ describe('erasePerson — what goes @SC-609', () => {
       data: { userId: user.id, name: 'Laptop', tokenHash: 'e'.repeat(64), tokenPrefix: 'pc_', expiresAt: new Date(Date.now() + 60_000) },
     })
     await prisma.aiProvider.create({ data: { name: 'Your Claude subscription', vendor: 'anthropic', credentialKind: 'subscription', ownerUserId: user.id, secret: 'x' } })
+    for (const place of [{ placeType: 'user' as const, placeId: user.id }, { placeType: 'project' as const, placeId: personal.id }]) {
+      await prisma.workflow.create({ data: { ...place, name: 'deploy', enabled: true } })
+    }
 
     await erasePerson({ userId: user.id, confirm: 'Dana Reyes' }, ctx(admin.id))
 
@@ -82,6 +85,7 @@ describe('erasePerson — what goes @SC-609', () => {
     expect(await prisma.memoryItem.count({ where: { OR: [{ userId: user.id }, { placeId: user.id }] } })).toBe(0)
     expect(await prisma.personConnection.count({ where: { userId: user.id } })).toBe(0)
     expect(await prisma.aiProvider.count({ where: { ownerUserId: user.id } })).toBe(0)
+    expect(await prisma.workflow.count({ where: { placeId: { in: [user.id, personal.id] } } })).toBe(0)
     expect(await prisma.auth.count({ where: { userId: user.id } })).toBe(0)
     expect(await prisma.userSettings.count({ where: { userId: user.id } })).toBe(0)
     expect(await personById(user.id)).toMatchObject({ name: FORMER_MEMBER, handle: null, state: 'erased' })

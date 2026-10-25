@@ -2,14 +2,13 @@
  * GitHub Operations — entitlement to the target owner (ADR-0060, spec §6.3),
  * against the real test database: projects, members and roles are real rows.
  *
- * Each of the five operations resolves a `RepoTarget` (an owner, optionally a
- * workspace) and either reads from GitHub or writes to it. Being signed in is
+ * Each of the three operations resolves a `RepoTarget` (an owner, optionally a
+ * workspace) and reads from GitHub. Being signed in is
  * not being entitled to the owner named in the target, so every operation
  * must run `assertLocationAccess` before its GitHub call — not after, and
  * not merely before returning. The GitHub-function assertion is the point:
  * a check that ran but let the call through first would still leak the
- * answer, and for the two write operations would already have changed
- * something on someone else's repository.
+ * answer.
  *
  * GitHub itself and the site a named workspace is read from are the stand-ins;
  * whether GitHub was reached is the behaviour checked.
@@ -25,8 +24,6 @@ const h = vi.hoisted(() => {
     listWorkflows: vi.fn(),
     listRuns: vi.fn(),
     listSecrets: vi.fn(),
-    setRepoSecret: vi.fn(),
-    dispatchWorkflow: vi.fn(),
     SiteUnreachableError,
   }
 })
@@ -43,15 +40,12 @@ vi.mock('../../storage/workspaceStore', () => ({
 vi.mock('../githubRuns', () => ({
   listWorkflows: h.listWorkflows,
   listRuns: h.listRuns,
-  listSecrets: h.listSecrets,
-  dispatchWorkflow: h.dispatchWorkflow,
 }))
 vi.mock('../githubSecrets', () => ({
-  setRepoSecret: h.setRepoSecret,
+  listGitHubSecrets: h.listSecrets,
 }))
 
 import { getWorkflows, getRuns, getRepoSecrets } from '../queries'
-import { setRepoSecret, dispatchWorkflow } from '../actions'
 
 type Target = { ownerType: 'project' | 'user'; ownerId: string; workspaceId?: string | null }
 type Ctx = { user: { id: string } }
@@ -60,14 +54,6 @@ const CASES: Record<string, { run: (target: Target, ctx: Ctx) => Promise<unknown
   getWorkflows: { run: (target, ctx) => getWorkflows({ target: target as any }, ctx as any), github: h.listWorkflows },
   getRuns: { run: (target, ctx) => getRuns({ target: target as any }, ctx as any), github: h.listRuns },
   getRepoSecrets: { run: (target, ctx) => getRepoSecrets({ target: target as any }, ctx as any), github: h.listSecrets },
-  setRepoSecret: {
-    run: (target, ctx) => setRepoSecret({ target: target as any, name: 'TOKEN', value: 'v' }, ctx as any),
-    github: h.setRepoSecret,
-  },
-  dispatchWorkflow: {
-    run: (target, ctx) => dispatchWorkflow({ target: target as any, workflowFile: 'ci.yml' }, ctx as any),
-    github: h.dispatchWorkflow,
-  },
 }
 
 /** A private project, one person on it with the project role given (its Member by default), and one Member of the organisation outside it. */
@@ -84,8 +70,6 @@ beforeEach(() => {
   h.listWorkflows.mockReset().mockResolvedValue([])
   h.listRuns.mockReset().mockResolvedValue([])
   h.listSecrets.mockReset().mockResolvedValue([])
-  h.setRepoSecret.mockReset().mockResolvedValue(undefined)
-  h.dispatchWorkflow.mockReset().mockResolvedValue(undefined)
   h.getWorkspace.mockReset()
 })
 
@@ -112,32 +96,12 @@ describe.each(Object.keys(CASES))('%s', (name) => {
   })
 })
 
-// R-196 / SC-388: dispatching a workflow spends the organisation's GitHub
-// runner time, and a repository secret changes what runs use. The project's
-// Viewer reads its repository and does neither (adr-0102).
-describe.each(['setRepoSecret', 'dispatchWorkflow'])('%s needs someone who works in the project', (name) => {
-  const { run, github } = CASES[name]
-
-  it("refuses the project's Viewer, saying so, and never reaches GitHub", async () => {
-    const { target, member } = await privateProject('VIEWER')
-
-    await expect(run(target, member)).rejects.toMatchObject({ statusCode: 403, message: expect.stringContaining('Viewer') })
-    expect(github).not.toHaveBeenCalled()
-  })
-
-  it.each(['MEMBER', 'ADMIN'] as const)('lets its %s through', async (role) => {
-    const { target, member } = await privateProject(role)
-    await run(target, member)
-    expect(github).toHaveBeenCalled()
-  })
-})
-
 /**
- * The five operations pass the whole `RepoTarget` to `assertLocationAccess`,
+ * The three operations pass the whole `RepoTarget` to `assertLocationAccess`,
  * not just its owner fields — a workspace-scoped target must be checked too,
  * or an entitled caller could name a workspace belonging to a different
  * owner and reach that owner's repo attachment instead. `getWorkflows` here
- * stands in for all five, which share the same two lines.
+ * stands in for all three, which share the same two lines.
  */
 describe('a workspace-scoped target is checked too, not only the owner', () => {
   it("refuses a workspace that does not belong to the target's owner (400)", async () => {

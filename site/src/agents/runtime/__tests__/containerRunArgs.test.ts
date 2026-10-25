@@ -5,7 +5,7 @@ vi.mock('../../../server/utils/logger', () => ({
 }))
 vi.mock('../../../server/hq/hqConnection', () => ({ hqConnectionManager: { sendEvent: vi.fn() } }))
 
-import { buildContainerRunCommand } from '../containerRunArgs'
+import { buildContainerRunCommand, WRITABLE_TMP, WRITABLE_COMMAND_HOME } from '../containerRunArgs'
 import type { AgentMounts, ContainerContext, ContainerKey } from '../containerTypes'
 
 const SITE_ROOT = '/site'
@@ -76,10 +76,29 @@ describe('buildContainerRunCommand', () => {
       '--pids-limit', expect.any(String),
       '--cpus', expect.any(String),
       '--restart', 'no',
+      '--cap-drop', 'ALL',
+      '--security-opt', 'no-new-privileges',
+      '--read-only',
+      '--tmpfs', WRITABLE_TMP,
+      '--tmpfs', WRITABLE_COMMAND_HOME,
       '--init',
       'agenthix-agent',
       'tail', '-f', '/dev/null',
     ])
+  })
+
+  it('is hardened: no capability, no new privileges, a read-only root, and only /tmp and the commands’ home writable beside the binds @SC-1355', () => {
+    const { args } = buildContainerRunCommand(KEY, CTX, 'c', MOUNTS, 'net-1')
+    const at = (flag: string) => args.flatMap((a, i) => (a === flag ? [args[i + 1]] : []))
+    expect(at('--cap-drop')).toEqual(['ALL'])
+    expect(at('--security-opt')).toEqual(['no-new-privileges'])
+    expect(args).toContain('--read-only')
+    expect(at('--tmpfs').map(t => t.split(':')[0]).sort()).toEqual(['/home/agent', '/tmp'])
+    expect(WRITABLE_COMMAND_HOME).toContain('uid=1001')
+    expect(args).not.toContain('--privileged')
+    expect(args.some(a => a.startsWith('--cap-add'))).toBe(false)
+    // every option comes before the image
+    expect(args.indexOf('--read-only')).toBeLessThan(args.indexOf('agenthix-agent'))
   })
 
   it('puts no API key in the container’s environment', () => {

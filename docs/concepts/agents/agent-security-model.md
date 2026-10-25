@@ -11,11 +11,15 @@ flowchart TD
     G --> C["Container: unprivileged user, one boundary bind mount, memory, process and CPU limits"]
     L --> C
     C --> N["Private network: the container and the site only"]
-    N --> R["Site: model relay, platform tools, git credentials"]
+    N --> R["Site: model relay, platform tools"]
     R --> X["Internet: model provider, git hosts"]
 ```
 
-The container is not hardened beyond that: `buildContainerRunCommand` (`site/src/agents/runtime/containerRunArgs.ts`) passes no `--cap-drop`, `--security-opt` or `--read-only`. What contains an agent is the unprivileged image user, the single bind mount, the private network and the Landlock launcher.
+The container is also hardened: `buildContainerRunCommand` (`site/src/agents/runtime/containerRunArgs.ts`) starts it with
+`--cap-drop ALL`, `--security-opt no-new-privileges` and a read-only root, its writable folders being its binds and two
+tmpfs folders. What contains an agent is the unprivileged image user, that hardening, the single bind mount, the
+private network and the Landlock launcher. **No secret of a place and no GitHub token is ever in it**: anything that
+needs one runs as an approved [workflow](../workflows/workflows.md), in containers of its own.
 
 ---
 
@@ -133,7 +137,8 @@ This is the most realistic attack vector for autonomous agents and is not remove
 - **The tool gate.** Every call is decided on the site against the agent's permissions (`decideToolCall`). A `never` tool or bash pattern is refused in every run. An `ask` call is refused and shown to a person for approval after the run; for a task run the person it is done on behalf of is notified ([tool-manifest.md](../../architecture/tools/tool-manifest.md)). `rm -rf`, `sudo` and similar are rated `FLAGGED` in the audit log, but the rating records risk; it does not block anything by itself.
 - **The sandbox.** Every command runs under Landlock with the harness's secrets removed, so a command cannot read the harness's credentials or home.
 - **The container.** The blast radius is the boundary's mount and what the container's network reaches.
-- **No keys in the container.** Provider keys stay on the site behind the model relay.
+- **No keys in the container.** Provider keys stay on the site behind the model relay, and a place's secrets and
+  GitHub tokens are used only by approved workflows, so an injected agent has none to print or send.
 
 **What does not limit it:** an agent whose `bash` is `always`, or whose approval is bypassed, runs any command inside the container without approval, including ones that read or delete the whole boundary's storage and ones that use the network. A bash pattern matches every command that starts with it, so a broad `always` pattern is a broad grant. Give an agent shell access only where it needs it, and prefer `ask` for commands that change or send things.
 
@@ -145,7 +150,9 @@ This is the most realistic attack vector for autonomous agents and is not remove
 
 **Accepted for now:** An agent's tools are chosen by an operator who trusts it with the shell; internet access is accepted in that context.
 
-**If this changes:** an egress proxy with a per-project allow-list.
+**If this changes:** an egress proxy with a per-project allow-list. A workflow's steps already have one: they reach only
+the hosts their approved version names, through a proxy of the run's own
+([workflows.md](../../architecture/workflows.md#the-egress-proxy)).
 
 ---
 
@@ -195,7 +202,7 @@ visibility of what is running rather than a lock
 | Boundary | Target | Current state |
 |----------|--------|--------------|
 | Filesystem isolation | Container bind mount of one boundary | Implemented: one container per boundary and runner, mounting that boundary's storage and that runner's own harness home |
-| Container hardening | Dropped capabilities, read-only root | Not built: the container runs as the unprivileged `appuser` but is started without `--cap-drop`, `--security-opt` or `--read-only` |
+| Container hardening | Dropped capabilities, read-only root | Implemented: `appuser`, `--cap-drop ALL`, `no-new-privileges`, a read-only root |
 | Harness files and secrets | Commands cannot reach the harness home | Implemented: the harness path rule for file tools, and the Landlock launcher for every command; one open risk for Claude's `Read`, `Edit` and `Write` (see tool-control.md) |
 | Workspace collision | Visibility of what else is running, not a lock | Implemented: only one conversation's turns are ordered, everything else in a boundary runs in parallel (ADR-0075); the project's running-now view and `list_active_runs` show what is active |
 | Prompt injection | Permissions and approval bound what an injected agent can do | Implemented for `never` and `ask`; an agent given `always` shell access, or with approval bypassed, is not limited beyond the container |
@@ -204,4 +211,4 @@ visibility of what is running rather than a lock
 | Unattended work | Bounded in time, turns, depth and volume | Implemented: run limits on the site, depth and queue limit in hq, automation off by default |
 | Lateral movement | No container-to-container networking | Implemented: each container has a private network whose only other member is the site (ADR-0066, `containerNetwork.ts`) |
 | Context bleeding | Separate container and harness home per runner | Implemented: a container per boundary and runner, each with a private harness home (ADR-0074; see Accepted limits) |
-| Credentials | None in the container | Implemented: no provider key, capability or long-lived git credential; short-lived tokens the site can revoke ([identity-and-trust.md](../../architecture/identity-and-trust.md)) |
+| Credentials | None in the container | Implemented: no provider key, capability, GitHub token or place secret; short-lived tokens the site can revoke ([identity-and-trust.md](../../architecture/identity-and-trust.md)). Secrets are used only by approved workflows ([workflows](../workflows/workflows.md)) |

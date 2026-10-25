@@ -69,9 +69,12 @@ hq/
 │   ├── projects/      — projects, boards and tasks
 │   ├── sessions/      — session operations, and reads of runs and transcripts from the site
 │   ├── sites/         — Execution Sites: registration, the control and content channels, credentials
+│   ├── workflows/     — the workflow library: proposing, the plain checks, the reviewer, approval, runs
+│   ├── secrets/       — places' secrets and variables; `store.ts` is the one way a secret is written or read
+│   ├── github/        — the GitHub App, its accounts and which places may connect, the mint gate
 │   ├── cloud/         — hq's connection to Agenthix Cloud: device approval, signed requests, signing in with an
 │   │                    account, the downtime email (docs/architecture/cloud-connection.md)
-│   ├── …              — the other features (auth, github, library, model-access, settings, storage, voice, …)
+│   ├── …              — the other features (auth, library, model-access, settings, storage, voice, …)
 │   ├── server/        — code every feature uses on the server: setup, socket, middleware, the MCP server,
 │   │                    the site-facing data API, roles and tokens, the dashboard notifier
 │   ├── shared/        — code every feature uses in the client: app shell, layout, shared UI, client/server-safe
@@ -100,6 +103,15 @@ hq/
 - Use Wasp's generated types (`wasp/client/operations`, `wasp/server/operations`, …); do not redefine them.
 - Never import server-only code from client files.
 - Shared types that cross the client/server boundary go in `src/shared/`.
+
+## Secrets and GitHub tokens
+
+[adr-0147](../docs/adr/adr-0147-a-secret-is-used-only-by-a-workflow-a-person-approved-run-by-the-platform.md):
+a place's secret is written and read only through `src/secrets/store.ts`, and decrypted only for a run of an approved
+workflow version that names it (`src/workflows/runs.ts`). Every GitHub installation token is minted through the mint
+gate (`src/github/mintGate.ts`, `mintGateConnect.ts`), with its permissions named; nothing else calls GitHub for one,
+and nothing sends a secret, a token or a run's unmasked output toward an agent. How it fits together:
+[`docs/architecture/workflows.md`](../docs/architecture/workflows.md).
 
 ## Tests
 

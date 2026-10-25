@@ -1,14 +1,13 @@
 import { useState } from 'react'
-import { FileFact, FilesGroupHeading, FilesViewHeader } from '@agenthix/ui/projects'
+import { FileFact, FilesViewHeader } from '@agenthix/ui/projects'
 import { repoName } from './BackupLine'
 import { OperationsPanel } from './OperationsPanel'
-import { WorkspaceRuns } from './WorkspaceRuns'
 import { WorkspaceToolsForm } from './WorkspaceToolsForm'
 import { previewAddress, type Target } from './filesToolData'
 import { allowedToolsText } from './workspaceNotices'
 
 /**
- * A workspace's About (spec §3): its facts, its GitHub workflow runs and its secrets — everything that is not its
+ * A workspace's About (spec §3): its facts, its GitHub section (G3) — everything that is not its
  * files, one step from the explorer.
  */
 export function WorkspaceAbout({ ws, target, siteLabel, previewId, onDisconnect, onBack }: {
@@ -41,13 +40,7 @@ export function WorkspaceAbout({ ws, target, siteLabel, previewId, onDisconnect,
         </FileFact>
       </dl>
       {changingTools && <div className="px-4"><WorkspaceToolsForm workspaceId={ws.id} allowedTools={allowedTools} onSaved={() => setChangingTools(false)} /></div>}
-      <WorkspaceRuns target={target} />
-      {ws.repoUrl && (
-        <>
-          <FilesGroupHeading>GitHub secrets</FilesGroupHeading>
-          <div className="px-4 pb-4"><OperationsPanel target={target} secretsOnly /></div>
-        </>
-      )}
+      {ws.repoUrl && <OperationsPanel target={target} />}
     </div>
   )
 }

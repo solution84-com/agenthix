@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitHub today · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="gh-today.html"><main>
+<div class="top"><div><h1>G0 · GitHub in hq today, numbered</h1>
+<p class="sub">Every place GitHub appears today, read from the code, and what's wrong with each. The boards after this one take them in turn.</p></div></div>
+
+<h2 id="map">Where GitHub appears</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<table>
+<tr><th></th><th>Where</th><th>What it does</th><th>Code</th></tr>
+<tr><td class="n">T1</td><td>Manage organisation › Infrastructure › <b>GitHub App</b></td><td>Registers the organisation's GitHub App through GitHub's manifest flow: an optional GitHub organisation name, then "Register the GitHub App". Disconnect removes hq's copy of its keys</td><td><code>GitHubAppPage.tsx</code></td></tr>
+<tr><td class="n">T2</td><td>Manage organisation › Settings › <b>GitHub</b></td><td>Lists the accounts the App is installed on, a link to install or manage it on GitHub, and <b>Refresh installations</b></td><td><code>GitHubInstallationsPage.tsx</code></td></tr>
+<tr><td class="n">T3</td><td>A project's <b>Files</b>: the line at the top</td><td>"Not backed up · Back up to GitHub" or "Backed up to acme/docs · Manage"; either opens the repository panel (T6)</td><td><code>BackupLine.tsx</code></td></tr>
+<tr><td class="n">T4</td><td>A project's <b>Workspaces</b>: each card, and <b>New</b></td><td>"Connect GitHub" on a card with no repository. New workspace: start from "A GitHub repository" (an address) or Empty</td><td><code>WorkspacesTool.tsx</code>, <code>NewWorkspaceForm.tsx</code></td></tr>
+<tr><td class="n">T5</td><td>A workspace, opened</td><td>A box: the repository name or "No repository", and "Connect GitHub", which opens the repository panel (T6)</td><td><code>WorkspaceView.tsx</code></td></tr>
+<tr><td class="n">T6</td><td>The <b>repository panel</b>, wherever it opens</td><td>Back up to GitHub (a repository name, creates a private repository and pushes); on a name clash, "Connect &amp; push my files up"; Link existing repo (an address, only into an empty location); Disconnect</td><td><code>RepoPanel.tsx</code></td></tr>
+<tr><td class="n">T7</td><td>A workspace's <b>About</b></td><td>Repository with Disconnect; and <b>GitHub secrets</b>: the repository's Actions secrets, and "Add a secret (sent to GitHub, never stored or shown here)"</td><td><code>WorkspaceAbout.tsx</code>, <code>OperationsPanel.tsx</code></td></tr>
+<tr><td class="n">T8</td><td>The <b>Operations</b> panel (GitHub Actions)</td><td>The repository's GitHub workflows with Run, recent runs, its secrets and adding one. Its old page, <code>/projects/:key/github</code>, now redirects to Files</td><td><code>OperationsPanel.tsx</code></td></tr>
+</table></div>
+
+<h2 id="problems">What's wrong</h2>
+<div class="box"><table>
+<tr><th></th><th>Problem</th><th>Where</th><th>Fixed on</th></tr>
+<tr><td class="n">P1</td><td><b>Back up fails on an installation limited to selected repositories, and leaves a stray private repository.</b> It creates the repository, then can't get a token for it, because a repository the App creates isn't part of a selected-repositories installation. Nothing records or removes it</td><td>T3, T5, T6</td><td>G2</td></tr>
+<tr><td class="n">P2</td><td><b>A new installation doesn't show</b> until someone presses Refresh: the refresh after GitHub's redirect can run before GitHub has registered it</td><td>T2</td><td>G1</td></tr>
+<tr><td class="n">P3</td><td><b>The App asks for broad permissions</b> (code, actions, secrets, workflows, pull requests and administration, all write), and every token gets all of them</td><td>T1</td><td>G1, board 9</td></tr>
+<tr><td class="n">P4</td><td><b>The agent's container receives a GitHub token</b> from git's credential helper, and any command can ask for it</td><td>agents</td><td>board 9</td></tr>
+<tr><td class="n">P5</td><td><b>Linking an existing repository into an empty location</b> has never been tried end to end</td><td>T6</td><td>G2, the walk-through</td></tr>
+<tr><td class="n">P6</td><td><b>Two places for secrets.</b> "Add a secret" in T7 and T8 sends a value straight to GitHub, beside the project's Secrets; a value can live in two places, with no record of which</td><td>T7, T8</td><td>G3</td></tr>
+<tr><td class="n">P7</td><td><b>Two admin pages for one thing:</b> registering (Infrastructure) and installing (Settings) are split, so the first set-up crosses between them</td><td>T1, T2</td><td>G1</td></tr>
+</table>
+<p class="sub">The manifest's homepage now reads hq's own address (<code>WEB_URL</code>), so the "localhost" problem once reported is only true on a dev machine.</p></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

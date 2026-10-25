@@ -13,7 +13,8 @@
  * constraint; Wasp still wraps these from the main.wasp.ts declarations.
  */
 import { HttpError } from 'wasp/server'
-import { listWorkflows, listRuns, listSecrets } from './githubRuns'
+import { listWorkflows, listRuns } from './githubRuns'
+import { listGitHubSecrets } from './githubSecrets'
 import { assertLocationAccess } from '../storage/locationAccess'
 import type { RepoTarget } from '../storage/repoAttachmentService'
 
@@ -22,17 +23,17 @@ type Ctx = { user?: { id: string } }
 export const getWorkflows = async ({ target }: { target: RepoTarget }, context: Ctx) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await assertLocationAccess(target, context.user.id, 'read')
-  return listWorkflows(target)
+  return listWorkflows(target, context.user.id)
 }
 
 export const getRuns = async ({ target }: { target: RepoTarget }, context: Ctx) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await assertLocationAccess(target, context.user.id, 'read')
-  return listRuns(target)
+  return listRuns(target, context.user.id)
 }
 
 export const getRepoSecrets = async ({ target }: { target: RepoTarget }, context: Ctx) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await assertLocationAccess(target, context.user.id, 'read')
-  return listSecrets(target)
+  return listGitHubSecrets(target, context.user.id)
 }

@@ -14,10 +14,15 @@
  * database. Callers resolve the siteId (a project's own site, or the local
  * site for other owner types — `../storage/ownerSite.ts`) before calling in.
  */
-import { getTokenFor } from '../github/githubApp'
 import type { LocationRef } from '@agenthix/core'
 import { connectRepoOnSite, repoStateOnSite } from './repoWorkStore'
-import { createGitHubRepo, installRepoUrl, parseRepo, toRepoSlug } from './github'
+import { HttpError } from 'wasp/server'
+import { parseRepo, toRepoSlug } from './github'
+import { revokeGateToken, type GateToken } from '../github/mintGate'
+import { mintForConnecting } from '../github/mintGateConnect'
+import { checkConnect } from '../github/connectChecks'
+import { createRepositoryFor, undoCreatedRepository } from '../github/connectNewRepository'
+import type { WorkflowPlace } from '../workflows/placeAccess'
 import * as store from './workspaceStore'
 import { BRANDING, RepoWorkError, type RepoAttachmentTarget } from '@agenthix/core'
 
@@ -54,73 +59,102 @@ export async function getRepoFor(logicalSiteId: string, t: RepoTarget): Promise<
 
 export interface ConnectParams {
   target: RepoTarget
-  mode: 'init' | 'adopt' | 'link'
-  repoUrl?: string  // required for link
-  name?: string     // for init/adopt repo naming
+  /**
+   * `init` makes a new repository. `existing` connects one that is there: checked out into an empty location, or the
+   * location's files pushed when the repository is empty or shares their history. `adopt` and `link` are `existing`,
+   * kept for callers that send them.
+   */
+  mode: 'init' | 'existing' | 'adopt' | 'link'
+  repoUrl?: string  // an existing repository's address
+  name?: string     // the new repository's name, or an existing one's under the account
+  /** The person connecting it, whom the mint gate checks. */
+  userId: string
+  /** hq's id for the GitHub account chosen; otherwise the mint gate's choice (`chooseConnectInstallation`). */
+  installationId?: string | null
 }
 
-/**
- * Connect a repo to a target. Creates the RepoAttachment; lands `.git` in the
- * location, on the site that holds it.
- *
- * **`init` and `adopt` can orphan a repository on GitHub, and nothing here
- * prevents it.** `createGitHubRepo`/`installRepoUrl` creates real, external
- * state before the git can run, and the name it takes is unique per
- * installation — so a failure after that point leaves a repository nobody
- * asked for, under a name the same request can never reuse.
- *
- * A reachability probe was tried here and removed: `getAttachment` on the line
- * above is ALREADY a channel round trip to the same site, milliseconds
- * earlier, so a site that is simply down fails before anything is created
- * either way. A second probe bought no window at all and read as protection it
- * was not providing.
- *
- * What is left is the genuine case — the site is reachable when asked and the
- * push then fails, because it went down mid-call or because git did — and that
- * is unmitigated. Closing it needs either a compensating delete (a GitHub App
- * permission this code does not establish it has) or creating the repository
- * after a successful push, which `init` cannot do because the push needs
- * somewhere to go.
- */
-export async function connectRepo(logicalSiteId: string, p: ConnectParams): Promise<{ repoUrl: string; attachmentId: string }> {
-  if (await getAttachment(logicalSiteId, p.target)) throw new Error('This location already has a connected repo.')
-  let repoUrl: string
+const refusal = (message: string) => new Error(`${message} Nothing was changed.`)
 
-  if (p.mode === 'init' || p.mode === 'adopt') {
-    const repoName = toRepoSlug(p.name || `${p.target.ownerType}-${p.target.ownerId.slice(0, 8)}`)
-    // init creates a new repo; adopt pushes to the existing one of that name (consolidate).
-    repoUrl = p.mode === 'init'
-      ? await createGitHubRepo(repoName, `${BRANDING.displayName} storage: ${p.name ?? repoName}`)
-      : await installRepoUrl(repoName)
-    const { owner, name } = parseRepo(repoUrl)
+/**
+ * Connect a repository to a target: creates the RepoAttachment and lands `.git` in the location, on the site that
+ * holds it. Everything is checked before anything is created; if a step after creating a new repository fails, the
+ * repository is deleted (or, when it can't be, named in the failure).
+ */
+export async function connectRepo(logicalSiteId: string, p: ConnectParams, deps: ConnectDeps = connectDeps): Promise<{ repoUrl: string; attachmentId: string }> {
+  if (await deps.getAttachment(logicalSiteId, p.target)) throw refusal('This location already has a connected repository.')
+  const place = { type: p.target.ownerType, id: p.target.ownerId }
+  const isNew = p.mode === 'init'
+  const checked = await deps.check({ place, person: p.userId, kind: isNew ? 'new' : 'existing', name: p.name, repoUrl: p.repoUrl, installationRowId: p.installationId })
+  if (!checked.ok || !checked.account) throw new HttpError(checked.problem?.kind === 'choose_account' ? 409 : 422, checked.problem?.words ?? refusal('This repository can not be connected.').message)
+  const account = { place, person: p.userId, installationRowId: checked.account.id, login: checked.account.login }
+
+  const name = isNew ? toRepoSlug(p.name ?? '') : existingName(p)
+  let created = false
+  let token: GateToken | null = null
+  try {
+    let direction: 'push' | 'pull' = 'push'
+    let newId: number | null = null
+    if (isNew) {
+      newId = (await deps.createRepository(account, name, `${BRANDING.displayName} storage: ${p.name ?? name}`)).id
+      created = true
+    } else {
+      direction = (await deps.repoState(logicalSiteId, p.target)).hasFiles ? 'push' : 'pull'
+    }
+    token = await deps.mintForConnecting({ ...account, repositoryName: name, permissions: { contents: direction === 'push' ? 'write' : 'read' } })
+    if (newId !== null && token.repository.id !== newId) throw new Error('GitHub answered another repository than the one just created. Nothing was pushed.')
+    if (token.repository.fullName.toLowerCase() !== `${account.login}/${name}`.toLowerCase()) {
+      throw refusal(`${account.login}/${name} is not a repository of the GitHub account chosen.`)
+    }
     try {
-      await connectRepoOnSite(logicalSiteId, p.target, 'push', repoUrl, await getTokenFor({ owner, name }))
+      await deps.connectOnSite(logicalSiteId, p.target, direction, repoUrlOf(token), token.token)
     } catch (e) {
-      // Adopt is git-safe: a non-fast-forward push (the existing repo has diverging content) is
-      // rejected by git, and the site reports that as a code rather than as prose — so this
-      // message no longer depends on git's own wording surviving the trip.
-      if (p.mode === 'adopt' && e instanceof RepoWorkError && e.code === 'push_rejected') {
-        throw new Error(`The repository "${name}" already has content that would be overwritten. Use a different name to create a new repo, or resolve it on GitHub first.`)
+      if (e instanceof RepoWorkError && e.code === 'push_rejected') {
+        throw new Error(`The repository ${token.repository.fullName} already has its own history, which the files in this location do not share, so nothing was pushed and nothing on GitHub was overwritten.`)
       }
       throw e
     }
-  } else {
-    if (!p.repoUrl?.trim()) throw new Error('A repository URL is required')
-    // Parsed before anything else, and git is given the URL rebuilt from the parts,
-    // never the client's string (spec §4.26).
-    const { owner, name } = parseRepo(p.repoUrl.trim())
-    repoUrl = `https://github.com/${owner}/${name}`
-    if ((await repoStateOnSite(logicalSiteId, p.target)).hasFiles) {
-      throw new Error('This location already has files. Linking would overwrite them.')
-    }
-    await connectRepoOnSite(logicalSiteId, p.target, 'pull', repoUrl, await getTokenFor({ owner, name }))
+    const attachment = await deps.createRow(logicalSiteId, {
+      ownerType: p.target.ownerType, ownerId: p.target.ownerId, workspaceId: p.target.workspaceId ?? null, repoUrl: repoUrlOf(token),
+      installationId: token.installationId, repositoryId: token.repository.id,
+      accountId: token.repository.ownerId, accountLogin: token.repository.ownerLogin,
+    })
+    return { repoUrl: repoUrlOf(token), attachmentId: attachment.id }
+  } catch (e) {
+    if (!created) throw e
+    const said = await deps.undo(account, name)
+    const failure = e instanceof Error ? e.message.trim() : 'Connecting the repository failed.'
+    throw new Error(`${/[.!?]$/.test(failure) ? failure : `${failure}.`} ${said}`)
+  } finally {
+    if (token) await deps.revoke(token.token)
   }
-
-  const attachment = await store.createRepo(logicalSiteId, {
-    ownerType: p.target.ownerType, ownerId: p.target.ownerId, workspaceId: p.target.workspaceId ?? null, repoUrl,
-  })
-  return { repoUrl, attachmentId: attachment.id }
 }
+
+/** An existing repository's name: from its address, or as typed under the chosen account. */
+function existingName(p: ConnectParams): string {
+  if (p.repoUrl?.trim()) return parseRepo(p.repoUrl.trim()).name
+  return (p.name ?? '').trim()
+}
+
+export type ConnectDeps = {
+  getAttachment: typeof getAttachment
+  check: typeof checkConnect
+  repoState: typeof repoStateOnSite
+  createRepository(account: { place: WorkflowPlace; person: string; installationRowId: string; login: string }, name: string, description: string): Promise<{ id: number }>
+  mintForConnecting: typeof mintForConnecting
+  connectOnSite: typeof connectRepoOnSite
+  createRow: typeof store.createRepo
+  undo: typeof undoCreatedRepository
+  revoke(token: string): Promise<unknown>
+}
+
+export const connectDeps: ConnectDeps = {
+  getAttachment, check: checkConnect, repoState: repoStateOnSite,
+  createRepository: (a, name, description) => createRepositoryFor(a, name, description),
+  mintForConnecting, connectOnSite: connectRepoOnSite, createRow: store.createRepo, undo: undoCreatedRepository,
+  revoke: (t) => revokeGateToken(t).catch(() => false),
+}
+
+const repoUrlOf = (t: GateToken) => `https://github.com/${t.repository.fullName}`
 
 /** Find the RepoAttachment for a GitHub owner/repo (normalised, .git-insensitive). */
 export async function findAttachmentByRepoUrl(logicalSiteId: string, owner: string, repo: string) {

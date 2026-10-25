@@ -3,7 +3,7 @@
  * approval.
  */
 import type { ContextUse } from '../protocol/contextUse.js'
-import type { OperationKindValue, OperationStateValue } from './conversation.js'
+import type { OperationKindValue, OperationStateValue, WorkflowApprovalCard } from './conversation.js'
 
 export type OperationOutcome = 'completed' | 'failed' | 'cancelled' | 'detached'
 /** The sheet's words for a state: queued, working (running or uncertain), waiting (for approval, or scheduled). */
@@ -29,6 +29,11 @@ export type OperationActivityView = {
   createdAt: string
   /** While it waits for the person's okay: what it wants to run and why, from its latest request. */
   request?: { what: string; reason: string; askedBy: string } | null
+  /**
+   * From 1.5, while it waits: a workflow version's approval card. `canAnswer` is whether the viewer administers the
+   * workflow's place, the only people its buttons are for.
+   */
+  workflowCard?: (WorkflowApprovalCard & { canAnswer: boolean }) | null
   /** Where its run opens on the Runs screen, once it has one. */
   runHref?: string | null
 }

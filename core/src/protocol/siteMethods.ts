@@ -13,7 +13,7 @@
 import type { SiteDescribeResult } from './channelMessages.js'
 import { SITE_DATA_METHODS } from './siteData.js'
 import type {
-  RepoAttachmentRow, RepoAttachmentSummaryRow, RepoAttachmentTarget, WorkspaceCapsRow, WorkspaceListByOwnerSelect,
+  RepoAttachmentGitHubIds, RepoAttachmentRow, RepoAttachmentSummaryRow, RepoAttachmentTarget, WorkspaceCapsRow, WorkspaceListByOwnerSelect,
   WorkspaceNameRow, WorkspaceOwnerType, WorkspaceRow,
 } from './siteData.js'
 import { RUNTIME_METHODS } from './runtimeData.js'
@@ -55,6 +55,11 @@ import type {
   ClaudeLoginStartParams, ClaudeLoginStartResult,
 } from './claudeLogin.js'
 import type { SiteHealth } from './siteHealth.js'
+import { WORKFLOW_RUN_METHODS } from './workflowRuns.js'
+import type {
+  WorkflowGetParams, WorkflowReadFilesParams, WorkflowReadFilesResult, WorkflowRunAcceptance, WorkflowRunInstruction,
+  WorkflowRunReport, WorkflowStopParams, WorkflowStopResult,
+} from './workflowRuns.js'
 
 /** A method that takes nothing: hq sends `{}`. */
 type NoParams = Record<string, never>
@@ -80,7 +85,7 @@ export type SiteMethods = {
   [SITE_DATA_METHODS.repoFindByUrl]: { params: { repoUrl: string }; result: RepoAttachmentRow | null }
   [SITE_DATA_METHODS.repoList]: { params: NoParams; result: RepoAttachmentSummaryRow[] }
   [SITE_DATA_METHODS.repoCreate]: {
-    params: { ownerType: WorkspaceOwnerType; ownerId: string; workspaceId: string | null; repoUrl: string }
+    params: { ownerType: WorkspaceOwnerType; ownerId: string; workspaceId: string | null; repoUrl: string } & Partial<RepoAttachmentGitHubIds>
     result: RepoAttachmentRow
   }
   [SITE_DATA_METHODS.repoDelete]: { params: ByIdParams; result: OkResult }
@@ -138,6 +143,11 @@ export type SiteMethods = {
   [CLAUDE_LOGIN_METHODS.start]: { params: ClaudeLoginStartParams; result: ClaudeLoginStartResult }
   [CLAUDE_LOGIN_METHODS.finish]: { params: ClaudeLoginFinishParams; result: ClaudeLoginFinishResult }
   [CLAUDE_LOGIN_METHODS.cancel]: { params: ClaudeLoginCancelParams; result: ClaudeLoginCancelResult }
+
+  [WORKFLOW_RUN_METHODS.run]: { params: WorkflowRunInstruction; result: WorkflowRunAcceptance }
+  [WORKFLOW_RUN_METHODS.stop]: { params: WorkflowStopParams; result: WorkflowStopResult }
+  [WORKFLOW_RUN_METHODS.get]: { params: WorkflowGetParams; result: WorkflowRunReport | null }
+  [WORKFLOW_RUN_METHODS.readFiles]: { params: WorkflowReadFilesParams; result: WorkflowReadFilesResult }
 }
 
 export type SiteMethodName = keyof SiteMethods

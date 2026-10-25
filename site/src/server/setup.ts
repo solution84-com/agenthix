@@ -19,6 +19,7 @@ import { listAgentHandles } from '../agents/agentDiskPaths'
 import { listStorageBoundaries } from './storage/storageBoundaries'
 import { setAsideSupersededMemory } from '../agents/memorySupersede'
 import { runCrashRecoverySweep, flushBootSweepBuffer } from './runtime/bootSweep'
+import { sweepExecutorLeftovers } from '../executor/runCleanup'
 import { sweepExpiredRunTokens } from './runtime/runTokens'
 import { setAfterPackageStored } from '../packages/packageMethods'
 import { schedulePackageEviction } from '../packages/packageEvictionScheduler'
@@ -65,6 +66,17 @@ export async function setupServer(): Promise<void> {
   // instead of flushing on this boot's own first open.
   const { swept } = await runCrashRecoverySweep()
   if (swept > 0) logger.info(`Cleaned up ${swept} orphaned run(s) — buffered for hq.`)
+
+  // Workflow runs a crash left behind (workflows spec part 2): recorded as failed, and their step containers,
+  // networks, folders and snapshots removed, before this boot can start a run. hq reads the outcome with workflow.get.
+  try {
+    const left = await sweepExecutorLeftovers()
+    if (left.runs + left.containers + left.folders > 0) {
+      logger.info(`Cleaned up after workflow runs: ${left.runs} unfinished, ${left.containers} container(s), ${left.folders} folder(s).`)
+    }
+  } catch (err) {
+    logger.warn(`Could not clean up after earlier workflow runs: ${err instanceof Error ? err.message : String(err)}`)
+  }
 
   // Package cache hygiene: nothing can
   // legitimately still be mid-put before this boot has even opened a channel,

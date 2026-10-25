@@ -71,7 +71,7 @@ describe('the location access rule at the repository operations', () => {
   it("reads, connects and disconnects the caller's own files, on the site that holds them", async () => {
     const mine = { ownerType: 'user' as const, ownerId: me.id }
     await expect(getRepoStateQuery({ target: mine }, { user: me })).resolves.toEqual({ repoUrl: null, isGitRepo: false, hasFiles: true })
-    await expect(connectRepoAction({ target: mine, mode: 'init', name: 'mine' }, { user: me })).resolves.toEqual({ repoUrl: 'https://github.com/o/r' })
+    await expect(connectRepoAction({ target: mine, mode: 'init', name: 'mine' }, { user: me })).resolves.toMatchObject({ repoUrl: 'https://github.com/o/r' })
     await expect(disconnectRepoAction({ target: mine }, { user: me })).resolves.toBeUndefined()
     expect(h.disconnectRepo).toHaveBeenCalledWith(siteId, mine)
   })

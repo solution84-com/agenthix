@@ -345,7 +345,72 @@ model RepoAttachment {
   workspaceId String?            @unique
   workspace   Workspace?         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   repoUrl     String
+  /// GitHub's ids for the installation, the repository and the account it belongs to (workflows spec part 4, *The
+  /// mint gate*): hq mints a run's token for this repository by these, never by URL, login or name. Null only on a
+  /// row from before they were recorded, which is dropped, never filled in.
+  installationId Int?
+  repositoryId   BigInt?
+  accountId      BigInt?
+  /// The account's login, as connected: shown, never matched on.
+  accountLogin   String?
   createdAt   DateTime           @default(now())
 
   @@index([ownerType, ownerId])
+}
+
+// ──────────────────────────────────────────────
+// Module: Executor — workflow runs on this site (workflows spec part 2).
+//
+// Only what the site needs to clean up after a crash and to answer `workflow.get`: which runs it had, their
+// state, and the snapshot each took. Never the run instruction, a secret, a parameter or the masking material: those
+// stay in memory for the run. Paths are derived from the run's id, never stored (ADR-0039); containers and networks
+// are found by the run's label.
+// ──────────────────────────────────────────────
+
+enum ExecutorRunState {
+  RUNNING
+  SCANNING
+  WRITING_BACK
+  PASSED
+  FAILED
+  STOPPED
+}
+
+model ExecutorRun {
+  /// hq's id for the run.
+  id           String             @id
+  ownerType    WorkspaceOwnerType
+  ownerId      String
+  /// Null for the owner's own files.
+  workspaceId  String?
+  workflowName String
+  versionHash  String
+  /// The executor image it ran on, `sha256:…`.
+  imageDigest  String
+  state        ExecutorRunState   @default(RUNNING)
+  /// The step running now, by its position.
+  currentStep  Int?
+  /// core's WorkflowRunResult once it has ended: masked output only.
+  result       Json?
+  snapshot     ExecutorSnapshot?
+  startedAt    DateTime           @default(now())
+  endedAt      DateTime?
+  updatedAt    DateTime           @updatedAt
+
+  @@index([state])
+}
+
+enum ExecutorSnapshotKind {
+  /// Copy-on-write, where the disk allows it.
+  CLONE
+  COPY
+}
+
+/// The copy of the workspace a run works on, removed when the run has ended and written back.
+model ExecutorSnapshot {
+  runId     String               @id
+  run       ExecutorRun          @relation(fields: [runId], references: [id], onDelete: Cascade)
+  kind      ExecutorSnapshotKind
+  createdAt DateTime             @default(now())
+  removedAt DateTime?
 }

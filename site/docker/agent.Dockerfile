@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Agent execution image: the two harnesses, Claude Code and OpenCode, the tools
-# an agent's commands use, and the launcher every one of those commands runs
+# an agent's commands use (the tools stage, shared with the executor image), and the launcher every one of those commands runs
 # through. No app server code, no secrets. Build context: the repository root.
 #   docker build -t agenthix-agent -f site/docker/agent.Dockerfile .
 
@@ -25,17 +25,23 @@ COPY site/opencode-plugin/tsconfig.json ./
 COPY site/opencode-plugin/src ./src
 RUN npm run build
 
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5
+# >>> tools stage: identical in agent.Dockerfile and executor.Dockerfile (a test holds the two to each other)
+# The tools every command uses, in the agent and in a workflow step alike, so what
+# the agent can run a step can run. Shell and git tooling; ripgrep because OpenCode
+# otherwise downloads it from GitHub at its first search, and no setting stops that.
+# uid 1001 matches the app containers' so volume file ownership aligns.
+FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS tools
+RUN apk add --no-cache bash git openssh-client curl ripgrep \
+ && adduser -D -s /bin/bash -u 1001 appuser
+# <<< tools stage
+
+FROM tools
 
 # Pinned: the Claude Code CLI to the version the site's Claude Agent SDK
 # bundles (its manifest.json), OpenCode to the v1 line the design was verified
 # on. A unit test holds both to the site's own record (agentImage.ts).
 ARG CLAUDE_CODE_VERSION=2.1.141
 ARG OPENCODE_VERSION=1.18.32
-
-# Shell and git tooling for agent commands. ripgrep because OpenCode otherwise
-# downloads it from GitHub at its first search, and no setting stops that.
-RUN apk add --no-cache bash git openssh-client curl ripgrep
 
 # Both harnesses. Every model provider Agenthix offers on OpenCode (OpenRouter,
 # OpenAI, Google, Anthropic, an OpenAI-compatible endpoint) is compiled into
@@ -49,10 +55,10 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "opencode-
  && claude --version | grep -q "^${CLAUDE_CODE_VERSION} " \
  && npm cache clean --force
 
-COPY site/docker/agenthix-git-credential /usr/local/bin/agenthix-git-credential
-RUN chmod +x /usr/local/bin/agenthix-git-credential \
- && git config --system credential.helper '/usr/local/bin/agenthix-git-credential' \
- && git config --system credential.useHttpPath true
+# The container holds no GitHub token: an agent shares its commits by running the
+# approved push workflow. git asks this helper for a credential, which says so and
+# tells git to stop (quit=1), so a plain `git push` fails with that message.
+RUN git config --system credential.helper '!f() { [ "$1" = get ] || exit 0; echo "git cannot push from this container: it holds no GitHub token. To share your commits, run the push workflow (run_workflow with name push and your branch)." >&2; echo quit=1; }; f'
 
 # Everything of Agenthix's own in the image, root-owned so nothing an agent
 # runs can change it:
@@ -84,9 +90,6 @@ RUN node /tmp/extract-models.mjs /usr/local/lib/node_modules/opencode-ai/bin/ope
  && rm /tmp/extract-models.mjs \
  && chmod 0444 /usr/local/lib/agenthix/opencode/models.json /usr/local/lib/agenthix/opencode/plugin/agenthix.js \
  && chmod 0755 /usr/local/lib/agenthix/opencode /usr/local/lib/agenthix/opencode/plugin
-
-# Create non-root user matching app container uid (1001) so volume file ownership aligns
-RUN adduser -D -s /bin/bash -u 1001 appuser
 
 # /home/appuser is the runner's harness home, bound whole from the site's disk
 # at run time (ADR-0074): every runtime's private state (~/.claude/,

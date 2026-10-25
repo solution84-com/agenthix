@@ -122,7 +122,7 @@ sequenceDiagram
 - **Site events** ([ADR-0050](../adr/adr-0050-dispatch-and-status-cross-the-control-channel.md),
   [ADR-0051](../adr/adr-0051-live-site-data-crosses-as-typed-events-not-a-generic-relay.md)). One way,
   site to hq, never answered. The list is closed: `run.status`, `run.stream`, `session.patch`,
-  `run.waiting`, `site.health`, `site.credentialRefreshed`, `site.credentialHealth` and `site.subscriptionRefreshed`. Each has its own handler in
+  `run.waiting`, `site.health`, `site.credentialRefreshed`, `site.credentialHealth`, `site.subscriptionRefreshed`, `workflow.step` and `workflow.result`. Each has its own handler in
   `hq/src/sites/channel/siteEventHandler.ts` that validates every field before touching a row or a
   browser, and hq drops anything else. There is deliberately no general-purpose relay.
 - **Control frames**: `ping` and `pong`, `revoke` (hq tells the site it is revoked), `site.detach` (the
@@ -136,6 +136,7 @@ sequenceDiagram
 | Workspace and attachment rows | `siteData.ts` (`SITE_DATA_METHODS`) | creating and listing workspaces |
 | Files | `locationFiles.ts` | `location.listFiles`, `location.readFile`, and an owner's `artefacts/` and `knowledge/`: `location.listArtefacts`, `location.readArtefact`, `location.listKnowledge`, `location.readKnowledge`, and `location.searchKnowledge`, a bounded excerpt of the `knowledge/` files that match a query, which the lead of a conversation recalls knowledge with |
 | Git | `repoWork.ts` | `repo.connect`, `repo.state` |
+| Workflow runs | `workflowRuns.ts` (`WORKFLOW_RUN_METHODS`) | `workflow.run`, the one message that carries secret values, answered at once and followed by `workflow.step` and `workflow.result` events; `workflow.stop`, `workflow.get`; `workflow.readFiles`, a proposal's files, refusing any link. See [workflows.md](workflows.md) |
 | Agent packages | `packages.ts` | `packages.missing`, `packages.put` |
 | Previews | `preview.ts` | `preview.start`, `preview.stop` |
 | A person leaving | `membership.ts` | `membership.memberLeftProject`, `membership.personLeftOrganisation` |

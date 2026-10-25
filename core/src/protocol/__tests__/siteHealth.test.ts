@@ -88,3 +88,26 @@ describe('the memory condition', () => {
     expect(parseSiteHealth({ ...report, memoryNearlyFull: 'yes' })).toBeNull()
   })
 })
+
+describe('the executor image a site reports @SC-1366', () => {
+  const digest = `sha256:${'a'.repeat(64)}`
+  const image = { name: 'agenthix-executor', present: true, digest, release: '0.4.0', toolsKey: 'k1' }
+
+  it('keeps it beside the agent image', () => {
+    expect(parseSiteHealth({ ...report, executorImage: image })?.executorImage).toEqual(image)
+  })
+
+  it('is absent from a report that carries none, as from a site before 1.5', () => {
+    expect(parseSiteHealth(report)).not.toHaveProperty('executorImage')
+  })
+
+  it('reads an image without a digest it can trust as not there', () => {
+    expect(parseSiteHealth({ ...report, executorImage: { ...image, digest: 'latest' } })?.executorImage)
+      .toEqual({ ...image, present: false, digest: null, release: null, toolsKey: null })
+  })
+
+  it('drops a tools key that is not a key, and the image that is not one', () => {
+    expect(parseSiteHealth({ ...report, executorImage: { ...image, toolsKey: 'a b' } })?.executorImage?.toolsKey).toBeNull()
+    expect(parseSiteHealth({ ...report, executorImage: { present: true } })).not.toHaveProperty('executorImage')
+  })
+})

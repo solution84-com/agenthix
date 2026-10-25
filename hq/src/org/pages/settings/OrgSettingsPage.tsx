@@ -7,7 +7,7 @@ import { UploadedFilesSetting } from './UploadedFilesSetting'
 
 function githubLine(status: Awaited<ReturnType<typeof getGithubAppStatus>> | undefined): string {
   if (!status) return "Installing the GitHub App on the organisation's accounts"
-  if (!status.registered) return 'The GitHub App is not registered yet — under Infrastructure'
+  if (!status.registered) return 'The GitHub App is not registered yet — register it on this page'
   const logins = status.installations.map(i => i.login)
   return logins.length > 0 ? `Installed on ${logins.join(', ')}` : 'Registered, not installed on any account yet'
 }

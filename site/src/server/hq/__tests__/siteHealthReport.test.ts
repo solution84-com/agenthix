@@ -36,6 +36,8 @@ describe("a site's health report @SC-766", () => {
       disk: { freeBytes: 182 * GIB, totalBytes: 500 * GIB },
       docker: { running: true, version: '27.3.1' },
       agentImage: { name: 'agenthix-agent', present: true, version: '0.4.0' },
+      // The stand-in Docker answers no inspection a report can read.
+      executorImage: { name: 'agenthix-executor', present: false, digest: null, release: null, toolsKey: null },
       ceilings: {
         machine: { memoryBytesPerContainer: 8 * GIB, cpusPerContainer: 2, processesPerContainer: 4096, containersAtOnce: 4 },
         ceilings: { memoryBytesPerContainer: 8 * GIB, cpusPerContainer: 2, processesPerContainer: 4096, containersAtOnce: 4 },
@@ -50,7 +52,7 @@ describe("a site's health report @SC-766", () => {
     const health = await takeHealth({ countRunning: async () => 0, disk, now })
     expect(health.docker).toEqual({ running: true, version: '27.3.1' })
     expect(health.agentImage).toEqual({ name: 'agenthix-agent', present: true, version: '0.4.0' })
-    expect(lifecycle.dockerWithin.mock.calls.map(([args]) => args[0])).toEqual(['version', 'image'])
+    expect(lifecycle.dockerWithin.mock.calls.map(([args]) => args[0])).toEqual(['version', 'image', 'image'])
   })
 
   it('reports Docker not running, with no image, rather than failing', async () => {

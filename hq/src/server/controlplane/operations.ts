@@ -12,6 +12,7 @@ import * as runtimeOps from './runtimeOps'
 import * as memoryOps from './memoryOps'
 import * as activeRunsOps from './activeRunsOp'
 import * as resultOps from './resultOps'
+import { WORKFLOW_TOOL_OPERATIONS } from '../../workflows/agentTools'
 import { ControlPlaneError, type CallerContext } from './types'
 import { requireConnectionGroup } from './connectionGroups'
 import { actingPerson } from './runPerson'
@@ -76,7 +77,6 @@ export const operations: Record<string, (ctx: CallerContext, args: any) => Promi
   // runtime support — data-path-only; see runtimeOps.ts's header for why these
   // are absent from hq's own MCP surface.
   start_preview: runtimeOps.startPreviewOp,
-  resolve_git_credential: runtimeOps.resolveGitCredentialOp,
   // memory (memory and knowledge spec) — data-path-only; who it is for is
   // memory/principal.ts's one rule.
   remember: memoryOps.rememberOp,
@@ -84,11 +84,12 @@ export const operations: Record<string, (ctx: CallerContext, args: any) => Promi
   recall: memoryOps.recallOp,
   // a run's result (workers and results spec) — data-path-only: only a run states one
   set_result: resultOps.setResultOp,
+  // workflows (adr-0148) — data-path-only: an agent's run lists, proposes and runs its place's workflows
+  ...WORKFLOW_TOOL_OPERATIONS,
 }
 
-/** Runtime support for the run's own boundary — its preview, its repository's
- *  credential (adr-0060) — which acts on no one's behalf. */
-const BOUNDARY_ONLY: ReadonlySet<string> = new Set(['start_preview', 'resolve_git_credential'])
+/** Runtime support for the run's own boundary — its preview (adr-0060) — which acts on no one's behalf. */
+const BOUNDARY_ONLY: ReadonlySet<string> = new Set(['start_preview'])
 
 /** Memory, which a run nobody commissioned still reaches for its place: its tools check their own principal. */
 const OWN_PRINCIPAL: ReadonlySet<string> = new Set(['remember', 'forget', 'recall'])

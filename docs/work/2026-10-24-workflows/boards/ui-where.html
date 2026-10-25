@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where it lives · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="ui-where.html"><main>
+<div class="top"><div><h1>U1 · Where it lives in a project</h1>
+<p class="sub">Two new sections in a project's left panel: Workflows under <i>Agents at work</i>, Secrets and variables beside Members and Settings. A person's own space gets the same two.</p></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr;min-height:520px"><div class="pnav" data-on="overview"></div>
+<div class="mcentre"><div class="crumb">Projects › Website rebuild</div><div class="mh">Website rebuild</div>
+<ol style="font-size:13px;color:var(--t2)"><li><b>Work:</b> Tasks, Boards, Timeline</li><li><b>Agents at work:</b> Runs, Automation, Memory</li><li><b>Files:</b> Files, Artefacts, Knowledge, Workspaces</li><li>Members, Settings</li></ol>
+<p style="font-size:13px;color:var(--t2)">Nowhere to keep a secret for agents' work; GitHub's token goes into the agent's container.</p></div></div></div></div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr;min-height:520px"><div class="pnav" data-on="overview" data-after data-needs="1"></div>
+<div class="mcentre"><div class="crumb">Projects › Website rebuild</div><div class="mh">Website rebuild</div>
+<ol style="font-size:13px;color:var(--t2)"><li><b>Workflows</b>, in <i>Agents at work</i>, after Automation: what agents and people can run with the project's secrets. Its count is the number of workflows, or "N need you" when versions wait for approval (U2).</li><li><b>Secrets and variables</b>, beside Members and Settings: two tabs, secrets encrypted and never shown, variables plain and visible (U6).</li></ol></div></div></div></div>
+</div>
+
+<h2 id="why">Why there</h2>
+<div class="box"><ul>
+<li><b>Workflows are agents' work</b>, like Runs and Automation, so they sit with them. Automation already shows On or Off as its count; a workflow's own switch reads the same way.</li>
+<li><b>Secrets and variables are the project's set-up</b>, like Members and Settings: set once by an administrator, rarely visited.</li>
+<li><b>"N need you"</b> uses the panel's existing <i>needs</i> tone, as Tasks does, so a waiting approval is seen without opening the conversation it came from.</li>
+<li>A person's own space (<code>/space</code>) has the same two sections, for workflows and secrets in their own storage.</li></ul></div>
+
+<h2 id="phone">On a phone</h2>
+<div class="box"><div class="phones">
+<div class="phone mock"><div class="mhdr">☰ <span class="grow">Website rebuild</span></div><div class="mbody"><div class="pnav" data-on="workflows" data-after data-needs="1" style="border:0;background:none;padding:0"></div></div></div>
+</div><p class="sub">The navigation is the drawer opened from ☰, as everywhere else in hq below the large breakpoint.</p></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

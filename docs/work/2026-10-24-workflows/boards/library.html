@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The library · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="library.html"><main>
+<div class="top"><div><h1>3 · The workflow library</h1>
+<p class="sub">Level 2 of part 2: every workflow is itemised in the project, with its versions and runs, so a person can always see what can run and what it uses.</p></div></div>
+
+<h2 id="script">What a workflow is</h2>
+<div class="box"><span class="lbl after">New · nothing today</span>
+<table>
+<tr><th></th><th>Part</th><th>Example</th><th>Default</th></tr>
+<tr><td class="n">a</td><td>Name and description</td><td><code>push</code>: "push the current branch to GitHub"</td><td>—</td></tr>
+<tr><td class="n">b</td><td>Steps, and the files they run (board 7)</td><td>two steps: bundle the branch, then push the bundle from a clean repository (board 9)</td><td>Copied from the workspace when proposed; a symbolic or hard link is refused, never followed</td></tr>
+<tr><td class="n">d</td><td>Secrets each step uses</td><td>step "Push": <code>GITHUB_TOKEN</code></td><td>Must exist in the project; a step gets only its own. The variables it uses are listed once for the whole workflow</td></tr>
+<tr><td class="n">e</td><td>Parameters</td><td><code>branch</code>, matching <code>^[A-Za-z0-9_][A-Za-z0-9._/-]{0,99}$</code></td><td>None</td></tr>
+<tr><td class="n">f</td><td>Network hosts</td><td><code>github.com:443</code></td><td>None</td></tr>
+<tr><td class="n">g</td><td>GitHub permissions, for a workflow that uses <code>GITHUB_TOKEN</code></td><td><code>contents: write</code></td><td>None: the token is minted with only these (board 9)</td></tr>
+<tr><td class="n">h</td><td>Time limit</td><td>2 min</td><td>10 min</td></tr>
+</table>
+<p>A <b>version</b> is all of that, frozen: hq copies the files' bytes (refusing links) and hashes everything (SHA-256 over each file's path and content, then the variables, parameters, hosts and time limit). Change anything and it's a new version, waiting for review and approval. <b>The approved version runs any number of times</b>, by a person or an agent, with no one asked again, until a newer version is approved.</p>
+<ul><li><b>What the hash covers:</b> everything the run instruction carries, not only the files: each step's list of secrets, the GitHub permissions, the names <code>set-github-secrets</code> was approved for, the variables' names, the hosts, the parameters' patterns, the time limits and the executor image's digest. Encoded one way only (sorted, length-prefixed fields; paths normalised, with no <code>..</code>), so two different versions can never hash the same.</li>
+<li><b>An approval is of a version of one workflow in one place:</b> stored as (workflow, project or person, hash), never as "this hash is approved". The same files proposed in another project wait for that project's own approval.</li>
+<li><b>Agent reruns are limited:</b> an agent can run an approved workflow at most 30 times an hour by default, which an administrator can change per workflow. People aren't limited. Past the limit, the run is refused and the agent is told why.</li></ul></div>
+
+<h2 id="onoff">On and off</h2>
+<div class="box"><span class="lbl after">New · nothing today</span>
+<p>Every workflow has a switch, like enabling and disabling a workflow on GitHub.</p>
+<ul><li><b>On:</b> the approved version can be run, by a person from the Workflows section or by an agent with <code>run_workflow</code>.</li>
+<li><b>Off:</b> nobody can run it, person or agent. <code>list_workflows</code> still shows it to the agent, marked off, so the agent can say "deploy-staging is turned off" instead of trying something else.</li>
+<li>Turning it back on needs no new approval: the same approved version runs again.</li>
+<li>Who can switch it: the people who can approve it. An agent can't.</li>
+<li>A workflow is <b>on</b> when its first version is approved. A run already going when it's turned off is stopped.</li></ul></div>
+
+<h2 id="params">Parameters</h2>
+<div class="box"><p>Git and GitHub operations need values that change each run: a branch, a commit message, a pull request's title. So a workflow declares its parameters, and they're approved with it.</p>
+<ul><li>Each parameter has a name and either a <b>pattern</b> (a regular expression the whole value must match) or a <b>fixed list</b> of allowed values.</li>
+<li>Values reach the workflow as files, <code>/run/params/&lt;name&gt;</code>, never pasted into its text, so a value can't become code.</li>
+<li>hq refuses a run whose value doesn't match. Worked: <code>branch = "feature/region"</code> runs; <code>branch = "--force"</code> is refused, because the pattern's first character can't be <code>-</code>. The starter workflows also pass it as <code>refs/heads/&lt;branch&gt;</code> after <code>--</code>, so git never reads it as an option.</li>
+<li>Free text (a commit message, a pull request's body) is allowed as a parameter marked <i>text</i>. The reviewer checks that the workflow only ever passes it as data, for example <code>git commit -F /run/params/message</code>.</li></ul></div>
+
+<h2 id="vars">Secrets and variables</h2>
+<div class="box"><p>Named values a project's workflows use, as in GitHub's Actions variables and secrets.</p>
+<table><tr><th>Kind</th><th>Who sets it</th><th>Example</th><th>Seen by an agent</th></tr>
+<tr><td><b>Plain</b></td><td>A project's administrator</td><td><code>STAGING_HOST = staging.example.com</code></td><td>Name and value</td></tr>
+<tr><td><b>Secret</b></td><td>A project's administrator. Typed once, never shown again, only replaced</td><td><code>STAGING_DEPLOY_KEY</code></td><td>Name only</td></tr>
+<tr><td><b>From an integration</b></td><td>Nobody: hq makes a fresh value for each run</td><td><code>GITHUB_TOKEN</code>: an installation token from the organisation's GitHub App, for the workspace's repository only, with the workflow's declared permissions, revoked when the run ends</td><td>Name only</td></tr></table>
+<p class="sub">How they are kept, described, rotated and revoked: <a href="/files/secrets.html">board 4, Secret management</a>. A secret variable belongs to the project, or to a person's own storage, matching where runs are authorised (ADR-0060).</p></div>
+
+<div class="box why"><b>On screen:</b> the Workflows section and a workflow's page, <a href="/files/ui-workflows.html">U2</a> and <a href="/files/ui-workflow.html">U3</a>.</div>
+<h2 id="states">A version's life</h2>
+<div class="box"><div class="mmd" data-src="states"></div></div>
+
+<script>
+window.SRC = {
+states: `stateDiagram-v2
+  [*] --> Reviewing: propose_workflow
+  Reviewing --> Waiting: reviewer's advice written
+  Waiting --> Approved: a person approves
+  Waiting --> Declined: a person declines
+  Waiting --> Superseded: a newer proposal
+  Approved --> Approved: run, any number of times (On)
+  Approved --> Retired: a newer version approved
+  Approved --> Off: a person turns it off
+  Off --> Approved: a person turns it on`
+}
+</script>
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

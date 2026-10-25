@@ -20,5 +20,6 @@ use it.
 - **Get work done in a project:** boards, tasks, and following what agents do.
 - **Shape your agents:** their instructions, memory and permissions, and the Library.
 - **Let agents work on their own:** automation and routines, and the limits on them.
+- **Keep secrets and connect GitHub:** workflows that use a secret so agents never hold one, and GitHub through them.
 - **Connect your own tools:** providers, models and voice, billing and usage, Claude Code and GitHub.
 - **Run it on a server:** a domain, more machines, backups and upgrades.

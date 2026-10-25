@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Running · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="run.html"><main>
+<div class="top"><div><h1>6 · Running: a container for each step</h1>
+<p class="sub">Level 2 of parts 5–6. A workflow is a run like any other, on the agent's workspace, except that it can read secrets. It runs the approved files only, on a snapshot of the workspace the agent can't touch while it runs. Each step runs in a container of its own and gets only the secrets it names.</p></div></div>
+
+<h2 id="steps">From run to result</h2>
+<div class="box"><span class="lbl after">New · nothing today</span>
+<div class="mmd" data-src="seq"></div>
+<ol>
+<li><b>Asked:</b> the agent calls <code>run_workflow("push", { branch: "feature/region" })</code>, or a person presses Run.</li>
+<li><b>Checked by hq:</b> the workflow is on; it has an approved version; every parameter matches its pattern or list; every secret it uses still exists. For a secret from an integration, hq mints the value now (for <code>GITHUB_TOKEN</code>, an installation token for the workspace's repository, through the mint gate on board 9).</li>
+<li><b>Sent:</b> hq sends the site holding the project's storage a run instruction over the control channel (already encrypted and authenticated): the files, their hash, the workspace, each step's secrets, the workflow's variables, the parameters, the hosts and the limits.</li>
+<li><b>Checked again by the site:</b> it recomputes the hash from the files it received, and refuses if it differs. It writes those files to a read-only folder, <code>/run/workflow</code>, outside the workspace.</li>
+<li><b>Snapshot:</b> the site copies the run's workspace (copy-on-write where the disk allows). Every step works on this copy; the agent's container can't see or change it until the run ends (<a href="#snapshot">why</a>).</li>
+<li><b>Each step, in order:</b> the site starts a container for the step, with only that step's secrets, runs it, and removes it. The first step that fails ends the run.</li>
+<li><b>Ended:</b> the site scans the output, and every file the run changed in the copy, for secret values (board 8). <b>Only then</b> are the changes written back to the agent's workspace, and the result sent back.</li>
+</ol></div>
+
+<h2 id="container">The executor containers, beside the agent's</h2>
+<div class="box"><div class="mmd" data-src="boxes"></div>
+<div class="kbox">
+<div><h4><span class="n">A</span>The agent's container</h4><p>Holds no secret at all once git goes through workflows (board 9). It shares nothing with the steps while they run: not the snapshot, not the network, not processes. It sees the run's changes only after they've been scanned. It now stands between an injected agent and the machine, so it gets the executor's hardening: <code>--cap-drop ALL</code>, <code>no-new-privileges</code>, and a read-only root apart from its own writable folders.</p></div>
+<div><h4><span class="n">B</span>An executor container</h4><p>Started by the site with <code>docker run</code> from the executor image, for one step, then removed with everything in it. No process from one step is still running when the next starts.</p></div>
+<div><h4><span class="n">C</span>That step's values</h4><p>A <code>tmpfs</code> with <code>/run/secrets/&lt;NAME&gt;</code> for <b>only the secrets this step names</b>, and <code>/run/params</code>. The variables the workflow names are its environment variables. A build step that names none gets none. Never on disk.</p></div>
+<div><h4><span class="n">D</span>The egress proxy</h4><p>On the site. A step's only route out, when hosts were approved. It lets through connections to those host:port pairs, resolves names itself, and refuses everything else. It tells runs apart by their network, never by source address, and the agent's container can't reach it. It refuses private, loopback and link-local addresses (the site, hq, a cloud's metadata address) unless that exact address was approved, and checks again after resolving the name. The step's DNS points at the proxy, so a lookup can't carry data out through Docker's own resolver.</p></div>
+<div><h4><span class="n">E</span>The workspace snapshot</h4><p>A copy of the run's workspace, taken when the run starts. Each step binds it <b>at the agent's path</b>, so paths work the same, and what one step builds the next one sees. Steps with no secret get it read-write. <b>Steps that hold a secret get it read-only</b>, plus <code>/run/out</code>, a scratch folder of the run's own for what they hand on. Only the workspace the run came from, not the agent's whole storage folder.</p></div>
+<div><h4><span class="n">F</span>The approved files</h4><p><code>/run/workflow</code>, read-only, holding exactly the files the hash covers. <code>run:</code>, and every file a step names, is found there and nowhere else.</p></div>
+</div></div>
+
+<h2 id="image">The executor image</h2>
+<div class="box"><table><tr><th></th><th>Agent</th><th>Executor</th></tr>
+<tr><td>Image part</td><td><code>agent</code></td><td><code>executor</code></td></tr>
+<tr><td>Published as</td><td><code>agenthix-agent</code></td><td><code>agenthix-executor</code></td></tr>
+<tr><td>Dockerfile</td><td><code>site/docker/agent.Dockerfile</code></td><td><code>site/docker/executor.Dockerfile</code></td></tr>
+<tr><td>The site's setting</td><td><code>AGENT_IMAGE</code></td><td><code>EXECUTOR_IMAGE</code></td></tr>
+<tr><td>Holds</td><td>The tools, the harnesses (Claude Code, OpenCode), the command launcher, git's credential helper (removed by this unit)</td><td>The same tools plus <code>gh</code>. No harness, no launcher, no credential helper</td></tr></table>
+<p class="sub">The two share one stage for their tools, so they can't drift apart: what the agent can run, a step can run. Listed in <code>scripts/images/parts.json</code>, built, signed and published with the other images.</p></div>
+
+<h2 id="tools">Who installs tools</h2>
+<div class="box"><table>
+<tr><th>Where</th><th>Who</th><th>How</th></tr>
+<tr><td><b>The executor image</b></td><td>We do, in a release</td><td>The agent image's tools (bash, git, ssh, curl, Node.js) plus <code>gh</code>, without the harnesses or git's credential helper. Built, signed and published with the other images; no organisation can change it</td></tr>
+<tr><td><b>A step</b></td><td>The approver, by approving the step</td><td>A step may install what it needs, only from approved hosts, and only pinned: an exact version with its checksum, or a lock file <b>that is one of the workflow's own files</b>, so the hash covers it (<code>npm ci</code> with the version's <code>package-lock.json</code> and <code>.npmrc</code>, not the workspace's). The plain checks flag unpinned installs and <code>curl … | sh</code>. Gone with the executor container</td></tr>
+<tr><td><b>The agent's own container</b></td><td>The agent</td><td>As today. No secret is there, so nothing is at stake</td></tr>
+</table>
+<div class="warnbox"><b>Why steps are separate.</b> An installed package can run its own code while it installs (npm's <code>postinstall</code>, for example). Because a step gets only the secrets it names, the step that runs <code>npm ci</code> holds none, and the step that holds the deploy key installs nothing.</div></div>
+
+<h2 id="snapshot">Why the run gets the approved files and a snapshot</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<p>A person approves one exact version. But the workspace is the agent's: it can change any file there, before the run and while it runs. If a step with a secret ran a script, a lock file, a git hook or a build output from the live workspace, it would run what the agent wrote, not what was approved.</p>
+<ol><li><b>What runs is the approved files:</b> <code>run:</code> and the files it names come from <code>/run/workflow</code>, which the hash covers. A <code>run: ./deploy/upload.sh</code> means the version's <code>deploy/upload.sh</code>, not the workspace's.</li>
+<li><b>Nothing changes under a run:</b> steps work on a snapshot, so the agent can't swap a file between the hash check and a step, or between steps.</li>
+<li><b>What a secret step runs from the workspace is flagged.</b> A step that holds a secret and runs anything from the snapshot (<code>node_modules/.bin</code>, <code>dist/</code>, a <code>package.json</code> script) runs code the agent could have changed before the run. The review flags it as high risk: "this step runs code the agent can change after approval". It can still be approved, but never from the card (board 5).</li>
+<li><b>Secret steps can't write into the workspace:</b> they get the snapshot read-only, and hand on only through <code>/run/out</code>, which is scanned before anything leaves the run (board 8).</li>
+<li><b>Links are never followed.</b> Wherever the site copies, snapshots, scans or writes back workspace files, it refuses to follow a symbolic or hard link, so a link can't point the site at a file outside the workspace. A version can't contain a link.</li></ol>
+<p class="sub">Writing back: the run's changes are applied to the workspace as a change set. A file the agent also changed during the run isn't overwritten: the run reports it as a conflict and keeps its own copy beside it.</p></div>
+
+<h2 id="settings">How an executor container is started</h2>
+<div class="box"><table>
+<tr><th>Setting</th><th>Starting value</th><th>Why</th></tr>
+<tr><td>Image</td><td>the executor image, pinned by digest</td><td>The same tools as the agent, so <code>npm run build</code> works in both</td></tr>
+<tr><td>User</td><td>non-root, uid 1001</td><td>The same user as the agent, so files it writes in the workspace belong to the agent's user</td></tr>
+<tr><td>Capabilities</td><td><code>--cap-drop ALL</code>, <code>--security-opt no-new-privileges</code></td><td>Nothing to escalate with; the Claude login container already starts this way</td></tr>
+<tr><td>Root filesystem</td><td><code>--read-only</code>, a small writable <code>/tmp</code> tmpfs; <code>HOME</code> and config folders (<code>XDG_CONFIG_HOME</code>, <code>GH_CONFIG_DIR</code>) on it</td><td>Nothing it writes outside the workspace outlives the step, and no tool reads its config from the workspace</td></tr>
+<tr><td>Secrets and variables</td><td>secrets: files in a tmpfs, this step's only. Variables: environment variables, the ones the workflow names</td><td>Files, not environment variables: an environment is inherited by every child process and turns up in crash output. Never pasted into the text</td></tr>
+<tr><td>Workspace</td><td>the run's snapshot, at the agent's path: read-write for a step with no secret, read-only for a step with one</td><td>A workflow works on the agent's files, but not on files the agent can change under it</td></tr>
+<tr><td>Approved files</td><td><code>/run/workflow</code>, read-only; <code>/run/out</code>, the run's scratch folder</td><td>What runs is what was approved</td></tr>
+<tr><td>Docker socket</td><td>never</td><td>It would give the container the machine</td></tr>
+<tr><td>Network</td><td>no hosts: <code>--network none</code>. Hosts: its own internal network whose only other member is the proxy, with <code>--dns</code> set to the proxy</td><td>No route but the approved ones, DNS included</td></tr>
+<tr><td>Limits</td><td>memory 1 GB, 256 processes, 1 CPU; the step's and the run's time limits (default 10 min for the run)</td><td>A run can't starve the agents</td></tr>
+<tr><td>Start-up</td><td>about half a second per step</td><td>The cost of a fresh container each time</td></tr>
+</table></div>
+
+<script>
+window.SRC = {
+seq: `sequenceDiagram
+  participant A as Agent
+  participant H as hq
+  participant S as Site
+  participant R as Executor containers
+  A->>H: 1 run_workflow(name, parameters)
+  H->>H: 2 on? approved? parameters match? mint integration values
+  H->>S: 3 files, hash, workspace, each step's values, hosts, limits
+  S->>S: 4 recompute hash, write /run/workflow
+  S->>S: snapshot the workspace
+  loop 5 each step
+    S->>R: docker run, this step's secrets only
+    R-->>S: exit, output
+    S->>S: remove the container
+  end
+  S->>S: 6 scan output and changed files
+  S->>S: write the changes back to the workspace
+  S-->>H: result
+  H-->>A: per-step results, masked output`,
+boxes: `flowchart LR
+  subgraph SITE["Site machine"]
+    A["A · agent's container<br/>no secrets"]
+    W[("the agent's workspace")]
+    E[("E · the run's snapshot")]
+    F[("F · /run/workflow<br/>approved files, read-only")]
+    subgraph B["B · executor container, step 3's container"]
+      C["C · this step's<br/>secrets (tmpfs)"]
+    end
+    D["D · egress proxy<br/>approved hosts only"]
+  end
+  A --- W
+  W -- "copied at start,<br/>scanned changes back" --- E
+  B -- "agent's path" --- E
+  B --- F
+  B --> D --> X["staging.example.com:22"]`
+}
+</script>
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

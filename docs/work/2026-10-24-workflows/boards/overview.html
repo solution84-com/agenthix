@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=3"></head>
+<body data-board="overview.html"><main>
+<div class="top"><div><h1>2 · The design at a glance</h1>
+<p class="sub">Level 1: six parts. A project keeps a library of workflows, like the GitHub workflows a repository keeps. Agents write them, a person approves each version once, and then anyone in the project, agents included, can run it as often as they need.</p></div></div>
+
+<h2 id="parts">The six parts</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="mmd" data-src="l1"></div>
+<div class="kbox">
+<div><h4><span class="n">1</span>Agent</h4><p><b>Does:</b> writes or changes a workflow, proposes it, and runs workflows whenever its work needs them.</p><p><b>Holds:</b> secret names only; variables' names and values. Cannot approve.</p><p><b>Tools:</b> <code>list_workflows</code>, <code>propose_workflow</code>, <code>run_workflow</code>, served by the site's MCP server and forwarded to hq.</p></div>
+<div><h4><span class="n">2</span>hq: the library and the variables</h4><p><b>The library:</b> every workflow, each version, which version is approved, every run. <b>Secrets and variables</b>, kept apart, like GitHub's: Secret values are encrypted with hq's secret key (<code>secretCrypto.ts</code>) and never shown again.</p><p><b>Decides:</b> who may approve, that the version run is the approved one.</p><p><a href="/files/library.html">Board 3 →</a></p></div>
+<div><h4><span class="n">3</span>Reviewer</h4><p><b>What:</b> a built-in agent that reads every proposed version before a person sees it, and writes its advice on the approval card.</p><p><b>Holds:</b> nothing. No tools, no variables. It only advises.</p><p><a href="/files/review.html">Board 5 →</a></p></div>
+<div><h4><span class="n">4</span>Approver</h4><p><b>Who:</b> a project's administrators; the person, for their own storage. Never an agent.</p><p><b>Decides:</b> approve this version, with the reviewer's advice in front of them.</p><p><a href="/files/review.html">Board 5 →</a></p></div>
+<div><h4><span class="n">5</span>Site</h4><p><b>Does:</b> starts the executor container, runs the egress proxy, masks secret values in the output and in any file the run changed.</p><p><a href="/files/run.html">Board 6 →</a></p></div>
+<div><h4><span class="n">6</span>Executor containers</h4><p><b>What:</b> a fresh container for each step, from the executor image, sharing the run's workspace. Each gets only the secrets its step names, as files in memory. No network unless hosts were approved.</p><p><a href="/files/run.html">Board 6 →</a></p></div>
+</div></div>
+
+<h2 id="roles">Who does what</h2>
+<div class="box"><table><tr><th></th><th>What it is</th><th>Where it runs</th></tr>
+<tr><td><b>Lead</b></td><td>The agent as it talks in a conversation</td><td>hq, by direct model calls</td></tr>
+<tr><td><b>Worker</b></td><td>The agent working in one boundary: a harness session</td><td>The site, in the agent container (image <code>agenthix-agent</code>)</td></tr>
+<tr><td><b>Helper</b></td><td>A subagent the worker starts</td><td>Inside the worker's run</td></tr>
+<tr><td><b>Executor</b> <span class="tag ok">new</span></td><td><b>Not the agent.</b> It carries out an approved workflow's steps exactly as written, with only the secrets each step names. No model, no choices</td><td>The site, in <b>executor containers</b>, one per step (image <code>agenthix-executor</code>), sharing the run's workspace with the worker</td></tr></table></div>
+
+<h2 id="example">A worked example</h2>
+<div class="box">
+<ol>
+<li>Sam's project has a secret variable <code>STAGING_DEPLOY_KEY</code>, typed in by Sam, an administrator, and a plain one <code>STAGING_HOST</code>. Its GitHub repository gives it <code>GITHUB_TOKEN</code> without anyone typing anything: hq mints it for each run (board 3).</li>
+<li>The agent needs to deploy to staging. There's no such workflow yet, so it writes <code>deploy-staging</code> and proposes it.</li>
+<li>The reviewer reads it: <i>low risk; uses STAGING_DEPLOY_KEY only with ssh to STAGING_HOST; prints nothing secret</i>. Sam reads the card and approves.</li>
+<li>From then on the agent runs <code>deploy-staging</code> whenever its work is ready, as often as needed, with no one asked. So can Sam, from the Workflows section.</li>
+<li>Next month the agent changes the workflow to also restart a worker. That's a new version: the reviewer reads it, Sam approves it. Until then the old version keeps running.</li>
+</ol></div>
+
+<h2 id="scope">In this unit, and next</h2>
+<div class="box"><table>
+<tr><th>This unit</th><th>Next units</th></tr>
+<tr><td><ul><li>Variables, secret or not</li><li>The workflow library: propose, review, approve, run, record</li><li>The reviewer agent</li><li>The executor container, egress proxy, masking</li><li>GitHub through workflows: push, pull, open a pull request (board 9) <a class="q" href="/files/decisions.html#q1">Q1</a></li><li>The security test suite</li></ul></td>
+<td><ul><li>Other integrations, each a source of variables and a set of workflows</li></ul></td></tr></table></div>
+
+<script>
+window.SRC = {
+l1: `flowchart LR
+  A["1 · Agent<br/>writes, proposes, runs"] -- "propose_workflow" --> H["2 · hq<br/>library + variables"]
+  H -- "new version" --> V["3 · Reviewer<br/>advice only"]
+  V -- "advice" --> H
+  H -- "approval card" --> P["4 · Approver<br/>a person"]
+  P -- "approve version" --> H
+  A -- "run_workflow, any time" --> H
+  H -- "run" --> S["5 · Site"]
+  S --> R["6 · Executor container"]
+  R --> S
+  S -- "masked result" --> H
+  H -- "result" --> A`
+}
+</script>
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

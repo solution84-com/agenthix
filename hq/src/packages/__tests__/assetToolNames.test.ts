@@ -52,10 +52,11 @@ async function boardStageNames(): Promise<Set<string>> {
 describe('tool names in shipped assets', () => {
   it('finds the tools the assets were written against (guards the scan)', () => {
     const real = realToolNames()
-    for (const name of ['list_tasks', 'add_comment', 'start_preview', 'get_site_info', 'read_file', 'resolve_git_credential']) {
+    for (const name of ['list_tasks', 'add_comment', 'start_preview', 'get_site_info', 'read_file']) {
       expect(real.has(name)).toBe(true)
     }
     expect(real.has('request_project_git')).toBe(false)
+    expect(real.has('resolve_git_credential')).toBe(false)
   })
 
   it('every tool an agent.json allows or forbids exists', async () => {

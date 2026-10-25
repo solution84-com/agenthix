@@ -36,6 +36,7 @@ vi.mock('../../../shared/securePage', async (importOriginal) => ({
   microphonePossible: () => h.securePage,
 }))
 vi.mock('../../../shared/providers/VoiceCallProvider', () => ({ useVoiceCall: () => h.voice }))
+vi.mock('../../hooks/useConversationWorkflowRuns', () => ({ useConversationWorkflowRuns: () => [] }))
 vi.mock('../../hooks/useConversationThread', () => ({ useConversationThread: () => h.thread }))
 vi.mock('../../../agents/profile/AgentProfileCard', () => ({ AgentProfileTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock('../../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: () => <i /> }))

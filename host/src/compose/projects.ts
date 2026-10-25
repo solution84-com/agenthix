@@ -212,6 +212,7 @@ export function siteProject(
           HOST_NAMESPACE: names.namespace,
           AGENT_NETWORK_RANGE: installation.agentRange,
           AGENT_IMAGE: image(site, 'agent'),
+          EXECUTOR_IMAGE: image(site, 'executor'),
           HQ_URL: hq.hqUrl,
           HQ_PAIRING_SECRET: hq.credential,
           SECRETS_MASTER_KEY: secrets.siteMasterKey,

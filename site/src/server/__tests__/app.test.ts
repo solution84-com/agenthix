@@ -21,7 +21,6 @@ const { echo } = vi.hoisted(() => ({
 vi.mock('../health', () => ({ healthHandler: echo('health') }))
 vi.mock('../identity/identityApi', () => ({ whoamiHandler: echo('whoami') }))
 vi.mock('../mcp/handler', () => ({ mcpHandler: echo('mcp') }))
-vi.mock('../git/gitCredentialApi', () => ({ gitCredentialHandler: echo('gitCredential') }))
 vi.mock('../harness/turnApi', () => ({ harnessTurnHandler: echo('harnessTurn') }))
 vi.mock('../harness/harnessGateApi', () => ({ harnessGateHandler: echo('harnessGate') }))
 vi.mock('../runtime/claudeKeyApi', () => ({ claudeKeyHandler: echo('claudeKey') }))
@@ -69,7 +68,6 @@ describe('the site routes', () => {
 
   it.each([
     ['/mcp', 'mcp'],
-    ['/api/v1/git/credential', 'gitCredential'],
     [HARNESS_TURN_PATH, 'harnessTurn'],
     [HARNESS_GATE_PATH, 'harnessGate'],
     [CLAUDE_KEY_PATH, 'claudeKey'],
@@ -80,7 +78,7 @@ describe('the site routes', () => {
   })
 
   it('parses a form body on an ordinary route', async () => {
-    const res = await fetch(`${base}/api/v1/git/credential`, {
+    const res = await fetch(`${base}${HARNESS_TURN_PATH}`, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: 'protocol=https&host=github.com',

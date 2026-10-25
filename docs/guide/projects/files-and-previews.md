@@ -17,13 +17,11 @@ Agents write the files; you read them. If a project has none, **Files** says so 
 
 The first line of **Files** says where the project is backed up: **Backed up to** a repository, or **Not backed up**.
 
-1. Select **Back up to GitHub**.
-2. Check the **repo name**, then select **Back up to GitHub** again. It makes a private repository and pushes the project's files to it.
+1. Select **Back up to GitHub**. It opens the same steps as connecting a workspace.
+2. Choose **A new repository** or **An existing repository**, the GitHub account and the name, then select **Create and connect** or **Connect**. A new repository is private, with the project's files pushed to it.
 3. Select **Manage** later to see it, or to **Disconnect**.
 
-Only a project administrator can back a project up, link a repository or disconnect one.
-
-If a repository of that name already exists, Agenthix offers **Connect & push my files up**. It only adds files; it never overwrites or deletes anything, and if there is a clash it declines and changes nothing. To use a repository you already have, select **Link existing repo**, enter its address and select **Link repo**. This is offered only while the project has no files, because linking would overwrite them. Once connected, agents mount the repository and push to it during runs. Both need the GitHub App set up first: see [GitHub](../your-tools/github.md).
+Only a project administrator can back a project up or disconnect one. Connecting needs the GitHub App set up and an account allowed for the project: see [Connect GitHub](../workflows/connect-github.md). Once connected, agents push and open pull requests through workflows that a person approves once.
 
 ## Artefacts
 
@@ -53,7 +51,7 @@ Or ask in a conversation: "set up a docs site in a new workspace".
 Each card shows the workspace's name, its repository and its site. If it has no repository and no preview running, **Connect GitHub** is on the card. Select a card to open it as a file explorer. At the top:
 
 - **Open preview** appears while a preview is running.
-- **About** shows its repository, preview and site, **Tools agents may use** (**Change** to narrow them), its **GitHub runs** with **Run a workflow ▾**, and its **GitHub secrets**.
+- **About** shows its repository, preview and site, **Tools agents may use** (**Change** to narrow them), and, once a repository is connected, the **Workflows that reach GitHub**, the **GitHub workflows in the repository** and the **Secrets on GitHub**. See [Connect GitHub](../workflows/connect-github.md#what-a-connected-workspace-shows).
 
 The **⋯** menu has **Delete workspace**. The repository isn't affected.
 

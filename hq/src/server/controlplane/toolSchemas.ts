@@ -26,6 +26,7 @@
  */
 import { z, type ZodRawShape } from 'zod'
 import { PLANNING_TOOLS } from './planningToolSchemas'
+import { WORKFLOW_TOOL_SCHEMAS } from '../../workflows/agentToolsSchemas'
 import { MEMORY_BODY_MAX_CHARS, MEMORY_MAX_TAGS, MEMORY_TITLE_MAX_CHARS } from '../../shared/memory/protocol'
 
 /** A routine's repeat: every N minutes, hours or days (at least 5 minutes), or a time of day on given weekdays. */
@@ -411,17 +412,6 @@ export const DATA_PATH_ONLY_TOOLS: ControlPlaneTool[] = [
     },
   },
   {
-    name: 'resolve_git_credential',
-    schema: {
-      agentId: z.string().optional().describe('Defaults to the caller\'s own agent identity when omitted'),
-      ownerType: z.enum(['project', 'user']),
-      ownerId: z.string(),
-      workspaceId: z.string().nullable(),
-      owner: z.string().describe('GitHub org/user'),
-      repo: z.string().describe('Repo name, without .git'),
-    },
-  },
-  {
     name: 'remember',
     description:
       'Remember one thing you learned, so it can be recalled later by meaning. It must stand alone: a title that ' +
@@ -461,4 +451,8 @@ export const DATA_PATH_ONLY_TOOLS: ControlPlaneTool[] = [
 
 /** All control-plane registry operations (operations.ts) — what dataApi.ts
  *  validates incoming args against before dispatch. */
-export const ALL_CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [...CONTROL_PLANE_TOOLS, ...WORKFORCE_TOOLS, ...DATA_PATH_ONLY_TOOLS]
+export const ALL_CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
+  ...CONTROL_PLANE_TOOLS, ...WORKFORCE_TOOLS, ...DATA_PATH_ONLY_TOOLS,
+  // Data-path-only too, built from core's declarations as the site's copy is (workflows/agentToolsSchemas.ts).
+  ...WORKFLOW_TOOL_SCHEMAS,
+]

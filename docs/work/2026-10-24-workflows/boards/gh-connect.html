@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connecting a repository · Workflows</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="gh-connect.html"><main>
+<div class="top"><div><h1>G2 · Connecting a repository</h1>
+<p class="sub">From a workspace, Files or a new workspace: choose where the repository goes, find out before anything is created whether it will work, and end with agents able to push once the starter workflows are approved. Fixes P1 and P5.</p></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock" style="padding:16px">
+<div class="mh" style="font-size:16px">Repository</div>
+<div class="s" style="color:var(--t2);font-size:13px">Connect a GitHub repo — back up these files or check out an existing repo. Agents mount it and push during runs.</div>
+<div class="mcard" style="display:block;margin-top:10px"><div class="t">Back up to GitHub</div><div class="s" style="color:var(--t2);font-size:13px">Creates a private repo named below and pushes this location's files up to it.</div>
+<div class="field"><div class="in">repo name · docs-site</div></div><span class="btn pri">Back up to GitHub</span></div>
+<div class="mcard dim"><div class="b"><div class="t">Link existing — unavailable.</div><div class="s">This location already has files; linking would overwrite them.</div></div></div>
+<div class="flag" style="background:#0000;border:1px solid var(--mdanger);color:var(--mdanger)">There is at least one repository that does not exist or is not accessible to the parent installation (422)</div>
+</div>
+<ol class="sub"><li>Doesn't say which account the repository goes to.</li><li>On a selected-repositories install it creates the repository, then fails with GitHub's raw message, and leaves the repository behind.</li><li>When it works, nothing more is said: agents then push with a token in their container.</li></ol></div>
+
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="padding:16px">
+<div class="mh" style="font-size:16px">Connect docs-site to GitHub</div>
+<div class="radio on"><span class="dot"></span><div><b>A new repository</b><div class="s" style="color:var(--t2);font-size:13px">Created private, with this workspace's files pushed to it</div></div></div>
+<div class="radio"><span class="dot"></span><div><b>An existing repository</b><div class="s" style="color:var(--t2);font-size:13px">This workspace is empty, so the repository is checked out into it. (With files, they're pushed to it if it's empty or shares their history.)</div></div></div>
+<div class="field"><label>GitHub account</label><div class="in">acme-tests · the project's default ▾</div>
+<div class="menu" style="position:relative;width:auto;margin-top:4px"><div class="gh">Accounts this project can connect to</div>
+<div class="it on"><div class="t">acme-tests</div><div class="s">The project's default · all repositories</div></div>
+<div class="it"><div class="t">acme</div><div class="s">All repositories</div></div>
+<div class="it off"><div class="t">acme-archive</div><div class="s">Selected repositories only: can't take a new one (how to fix ↓)</div></div></div>
+<div class="hint">Starts at the project's default (Project › GitHub). north-ltd isn't listed: only North's projects can connect to it.</div></div>
+<div class="flag" style="display:block;margin:-2px 0 10px"><b>acme-archive can't take a new repository.</b> The GitHub App is installed there on <i>selected repositories only</i>, so it can't use a repository it creates. Either:
+<ol style="margin:6px 0 0;padding-left:18px"><li><b>Let the App reach all of acme's repositories:</b> on GitHub, acme-archive's <i>Settings › GitHub Apps › agenthix-3f9a21c0 › Configure</i>, set <i>Repository access</i> to <i>All repositories</i>, then come back and choose acme-archive. <a style="color:var(--macc)">Open on GitHub ↗</a></li>
+<li><b>Or create the repository yourself:</b> make it on GitHub, add it to the App's selected repositories on that same page, then choose <b>An existing repository</b> here.</li></ol>
+<div style="margin-top:6px;color:var(--t2)">Only an owner of acme-archive on GitHub can change this.</div></div>
+<div class="field"><label>Name</label><div class="in">docs-site</div><div class="hint">✓ Free on acme-tests</div></div>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri">Create and connect</span></div>
+</div>
+<ol class="sub"><li><b>The account starts at the project's default</b> and can be changed to any other this project can connect to; accounts it can't aren't listed.</li>
+<li><b>If that account can't take a new repository</b>, the screen says why and <b>how to fix it</b>: the GitHub page and setting to change, the other way round it, and who on GitHub can do it.</li>
+<li><b>Checked before anything is created:</b> that the installation covers new repositories, and that the name is free. A clash offers "use the existing one" right there.</li>
+<li><b>If a later step fails anyway,</b> hq deletes the repository it just created and says so; if it can't, it records it and names it, so nothing is left unknown.</li>
+<li>An existing repository into a location with files: pushed if the repository is empty or shares their history, refused plainly if not, never overwritten.</li></ol></div>
+</div>
+
+<h3 id="done">When it's connected</h3>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="padding:16px;max-width:640px">
+<div class="row"><b class="grow">docs-site is connected to acme-tests/docs-site</b><span class="tag ok">Connected</span></div>
+<div class="s" style="color:var(--t2);font-size:13px;margin:6px 0 10px">Agents can work on the code now. To push, pull and open pull requests they need these workflows, each approved once:</div>
+<div class="mcard"><div class="b"><div class="t">push</div><div class="s">contents: write · Reviewer: low risk</div></div><span class="tag warn">Waiting</span></div>
+<div class="mcard"><div class="b"><div class="t">pull</div><div class="s">contents: read · Reviewer: low risk</div></div><span class="tag warn">Waiting</span></div>
+<div class="mcard"><div class="b"><div class="t">open-pull-request</div><div class="s">pull requests: write · Reviewer: low risk</div></div><span class="tag warn">Waiting</span></div>
+<div class="row end"><span class="btn">Review each</span><span class="btn pri">Approve all three</span></div>
+</div>
+<p class="sub">The starter workflows are proposed the moment a repository is connected, so the person who connected it, if they're an administrator, approves them in the same sitting. <code>set-github-secrets</code> is proposed only when a GitHub workflow needs a secret (G3).</p></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li>P1 came from finding out too late. Every check that can be made before creating is made before creating.</li>
+<li>Connecting is the natural moment to approve push, pull and pull requests: until then, agents can work on the code but not share it, and the screen says so.</li></ul></div>
+
+<h2 id="phone">On a phone</h2>
+<div class="box"><div class="phones">
+<div class="phone mock"><div class="mhdr">‹ <span class="grow">Connect docs-site</span></div><div class="mbody">
+<div class="radio on"><span class="dot"></span><div><b>A new repository</b></div></div><div class="radio"><span class="dot"></span><div><b>An existing repository</b></div></div>
+<div class="field"><label>GitHub account</label><div class="in">acme-tests · default ▾</div></div><div class="field"><label>Name</label><div class="in">docs-site</div><div class="hint">✓ Free on acme-tests</div></div>
+<span class="btn pri wide">Create and connect</span></div></div></div></div>
+
+<script type="module" src="/files/shell.js?v=7"></script>
+</body></html>

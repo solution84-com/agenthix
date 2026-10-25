@@ -247,6 +247,30 @@ describe('repo attachment row params @SC-320', () => {
     expect(repoCreate).not.toHaveBeenCalled()
   })
 
+  it('create stores GitHub\'s ids, and answers them as numbers the channel can carry @SC-1359', async () => {
+    repoCreate.mockImplementation(async ({ data }) => ({ id: 'r9', createdAt: new Date(0), ...data }))
+    const row = await rows.createRepoAttachment({
+      ownerType: 'project', ownerId: 'p1', workspaceId: 'w1', repoUrl: 'https://github.com/acme/widgets',
+      installationId: 11, repositoryId: 4_000_000_001, accountId: 22, accountLogin: 'acme',
+    })
+    expect(repoCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ installationId: 11, repositoryId: 4_000_000_001n, accountId: 22n, accountLogin: 'acme' }) })
+    expect(row).toMatchObject({ repositoryId: 4_000_000_001, accountId: 22 })
+    expect(() => JSON.stringify(row)).not.toThrow()
+  })
+
+  it('create without ids stores none, which the mint gate refuses @SC-1359', async () => {
+    repoCreate.mockImplementation(async ({ data }) => ({ id: 'r9', createdAt: new Date(0), ...data }))
+    const row = await rows.createRepoAttachment({ ownerType: 'project', ownerId: 'p1', workspaceId: null, repoUrl: 'https://github.com/acme/widgets' })
+    expect(row).toMatchObject({ installationId: null, repositoryId: null, accountId: null, accountLogin: null })
+  })
+
+  it('getForTarget answers a stored row\'s BigInt ids as numbers @SC-1359', async () => {
+    repoFindUnique.mockResolvedValue({ id: 'r1', workspaceId: 'w1', installationId: 3, repositoryId: 77n, accountId: 8n, accountLogin: 'acme' })
+    const row = await rows.getRepoAttachmentForTarget({ ownerType: 'project', ownerId: 'p1', workspaceId: 'w1' })
+    expect(row).toMatchObject({ repositoryId: 77, accountId: 8 })
+    expect(() => JSON.stringify(row)).not.toThrow()
+  })
+
   it('delete errors on an attachment that does not exist', async () => {
     repoFindUnique.mockResolvedValue(null)
     await expect(rows.deleteRepoAttachment({ id: 'missing' })).rejects.toThrow(/not found/i)

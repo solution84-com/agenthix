@@ -3,7 +3,8 @@ import { useAction, startClaudeLogin, completeClaudeLogin, cancelClaudeLogin } f
 
 interface Props {
   ownerType: 'org' | 'project' | 'user'
-  ownerId: string
+  /** Left out for a person's own subscription, which is always the caller's. */
+  ownerId?: string
   /** Called once the login has been saved. */
   onSignedIn?: () => void
 }
@@ -64,7 +65,7 @@ export function ClaudeSignIn({ ownerType, ownerId, onSignedIn }: Props) {
     setProblem(null)
     setStep({ name: 'starting' })
     try {
-      const { loginId, url } = await start({ ownerType, ownerId, termsAccepted: accepted })
+      const { loginId, url } = await start({ ownerType, ...(ownerId ? { ownerId } : {}), termsAccepted: accepted })
       if (!mounted.current) {
         release(loginId)
         return

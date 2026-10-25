@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Starts one image and passes only if it starts and answers, so an image that cannot start is never published:
 #   scripts/images/start-test.sh <part> <image>
-# <part> is one of the parts the release publishes: host, console, hq-server, hq-web, site-server, agent.
+# <part> is one of the parts the release publishes: host, console, hq-server, hq-web, site-server, agent, executor.
 # An image carries no version: the host service and the Fleet Console are given theirs when they run, so here each
 # need only answer.
 #
@@ -11,7 +11,10 @@
 #   hq-server    its health, against a throwaway Postgres
 #   site-server  its health, against a throwaway Postgres
 #   hq-web       its page
-#   agent        its harnesses' versions
+#   agent        its harnesses' versions, run hardened (read-only root, writable /tmp and /home/agent, no capabilities),
+#                the launcher, and its tools-stage-key label
+#   executor     as a step runs it (read-only root, no network, no capabilities): uid 1001, gh and push-bundle
+#                present, no credential helper in any git config, and none of the agent image's files
 #
 # Everything it makes is named from one prefix of its own for the run (`imgtest-<part>-<pid>`), and everything it
 # made, and only that, is removed when it ends, whether it passes or not: it never touches another container,
@@ -22,8 +25,8 @@ cd "$(dirname "$0")/../.." || exit 2
 PART="${1:-}"
 IMAGE="${2:-}"
 case "$PART" in
-  host | console | hq-server | hq-web | site-server | agent) ;;
-  *) echo "Usage: $0 <host|console|hq-server|hq-web|site-server|agent> <image>" >&2; exit 2 ;;
+  host | console | hq-server | hq-web | site-server | agent | executor) ;;
+  *) echo "Usage: $0 <host|console|hq-server|hq-web|site-server|agent|executor> <image>" >&2; exit 2 ;;
 esac
 [ -n "$IMAGE" ] || { echo "Usage: $0 $PART <image>" >&2; exit 2; }
 
@@ -138,10 +141,48 @@ case "$PART" in
     say "passes: serves the browser app's page"
     ;;
   agent)
-    # As the site runs it: under Docker's init, on no network.
+    # As the site runs it: under Docker's init, on no network, hardened (read-only root, a writable /tmp and
+    # /home/agent, no capabilities). The folder arguments match site/src/agents/runtime/containerRunArgs.ts.
     containers+=("$RUN")
-    out="$(docker run --name "$RUN" --init --network none "$IMAGE" sh -c 'claude --version && opencode --version' 2>&1)" \
-      || fail "its harnesses did not run: $out"
+    # shellcheck disable=SC2016 # the script is for the container's shell, not this one
+    check='
+      claude --version && opencode --version
+      test "$(id -u)" = 1001 || { echo "it does not run as uid 1001"; exit 1; }
+      touch /tmp/w /home/agent/w || { echo "/tmp or /home/agent is not writable"; exit 1; }
+      ! touch /usr/local/w 2> /dev/null || { echo "the root is writable"; exit 1; }
+      test "$(grep ^CapEff /proc/self/status | tr -d "[:space:]")" = CapEff:0000000000000000 || { echo "a capability is held"; exit 1; }
+      /usr/local/lib/agenthix/bin/agenthix-contain /bin/true || { echo "the launcher does not run"; exit 1; }
+    '
+    out="$(docker run --name "$RUN" --init --network none --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m,mode=1777 \
+      --tmpfs /home/agent:rw,nosuid,nodev,size=64m,uid=1001,gid=1001,mode=0700 --cap-drop ALL \
+      --security-opt no-new-privileges "$IMAGE" sh -c "$check" 2>&1)" \
+      || fail "its harnesses did not run hardened: $out"
+    tools_key="$(docker image inspect -f '{{index .Config.Labels "tools-stage-key"}}' "$IMAGE" 2>/dev/null)"
+    [ "$tools_key" = "$(node scripts/images/keys.mjs --worktree --tools-key)" ] \
+      || fail "its tools-stage-key label is '$tools_key', not the tools stage's key (build it with --label tools-stage-key=<key>)"
     say "passes: with $(printf '%s' "$out" | tr '\n' ' ')"
+    ;;
+  executor)
+    # As the site starts a step: read-only root, a writable /tmp, no network, no capabilities.
+    containers+=("$RUN")
+    # shellcheck disable=SC2016 # the script is for the container's shell, not this one
+    check='
+      test "$(id -u)" = 1001 || { echo "it does not run as uid 1001"; exit 1; }
+      gh --version | head -n 1
+      command -v push-bundle > /dev/null || { echo "push-bundle is missing"; exit 1; }
+      test -z "$(git config --show-origin --get-all credential.helper)" || { echo "git has a credential helper:"; git config --show-origin --get-all credential.helper; exit 1; }
+      test ! -e /etc/gitconfig || { echo "there is a system git config"; exit 1; }
+      for f in /usr/local/bin/agenthix-git-credential /usr/local/lib/agenthix /usr/local/bin/claude /usr/local/bin/opencode; do
+        test ! -e "$f" || { echo "$f is in the executor image"; exit 1; }
+      done
+      echo "no credential helper, uid 1001"
+    '
+    out="$(docker run --name "$RUN" --init --network none --read-only --tmpfs /tmp:rw,size=64m --cap-drop ALL \
+      --security-opt no-new-privileges "$IMAGE" sh -c "$check" 2>&1)" \
+      || fail "it is not the executor image: $out"
+    tools_key="$(docker image inspect -f '{{index .Config.Labels "tools-stage-key"}}' "$IMAGE" 2>/dev/null)"
+    [ "$tools_key" = "$(node scripts/images/keys.mjs --worktree --tools-key)" ] \
+      || fail "its tools-stage-key label is '$tools_key', not the tools stage's key (build it with --label tools-stage-key=<key>)"
+    say "passes: $(printf '%s' "$out" | tr '\n' ' ')"
     ;;
 esac

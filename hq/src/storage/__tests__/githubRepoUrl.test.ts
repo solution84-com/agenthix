@@ -3,15 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const h = vi.hoisted(() => ({
   getRepoForTarget: vi.fn(),
   createRepo: vi.fn(),
-  getTokenFor: vi.fn(),
+  connecting: vi.fn(),
   connectRepoOnSite: vi.fn(),
   repoStateOnSite: vi.fn(),
 }))
 
-vi.mock('../../github/githubApp', () => ({
-  getTokenFor: h.getTokenFor,
-  getOrgToken: vi.fn(),
-  refreshInstallations: vi.fn(),
+vi.mock('../../github/mintGate', () => ({ revokeGateToken: vi.fn(async () => true) }))
+vi.mock('../../github/mintGateConnect', () => ({
+  chooseConnectInstallation: vi.fn(async () => ({ id: 'inst-row-1' })), mintForConnecting: h.connecting, mintForCreating: vi.fn(),
 }))
 vi.mock('../workspaceStore', () => ({
   getRepoForTarget: h.getRepoForTarget,
@@ -64,38 +63,5 @@ describe('parseRepo', () => {
     'https://github.com/acme/store\nhttps://evil.example/a/b',
   ])('refuses %j', (url) => {
     expect(() => parseRepo(url)).toThrow(/Invalid GitHub repo URL/)
-  })
-})
-
-describe('connectRepo link — repository URL', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    h.getRepoForTarget.mockResolvedValue(null)
-    h.repoStateOnSite.mockResolvedValue({ isGitRepo: false, hasFiles: false })
-    h.getTokenFor.mockResolvedValue('ghs_minted')
-    h.createRepo.mockResolvedValue({ id: 'att-1' })
-    h.connectRepoOnSite.mockResolvedValue({ connected: true })
-  })
-
-  it.each([
-    'https://evil.example/github.com/acme/store',
-    'https://github.com:443@evil.example/acme/store',
-    'https://github.com/acme/store/../../other',
-  ])('refuses %j before asking the site, minting a token or running git', async (repoUrl) => {
-    await expect(connectRepo('site-1', { target: filesTarget, mode: 'link', repoUrl })).rejects.toThrow(/Invalid GitHub repo URL/)
-    expect(h.repoStateOnSite).not.toHaveBeenCalled()
-    expect(h.getTokenFor).not.toHaveBeenCalled()
-    expect(h.connectRepoOnSite).not.toHaveBeenCalled()
-    expect(h.createRepo).not.toHaveBeenCalled()
-  })
-
-  it('points git at the github.com URL rebuilt from owner and name, and records that URL', async () => {
-    const result = await connectRepo('site-1', { target: filesTarget, mode: 'link', repoUrl: '  git@github.com:acme/store.git ' })
-    expect(h.getTokenFor).toHaveBeenCalledWith({ owner: 'acme', name: 'store' })
-    expect(h.connectRepoOnSite).toHaveBeenCalledWith('site-1', filesTarget, 'pull', 'https://github.com/acme/store', 'ghs_minted')
-    expect(h.createRepo).toHaveBeenCalledWith('site-1', {
-      ownerType: 'project', ownerId: 'p1', workspaceId: null, repoUrl: 'https://github.com/acme/store',
-    })
-    expect(result).toEqual({ repoUrl: 'https://github.com/acme/store', attachmentId: 'att-1' })
   })
 })

@@ -48,6 +48,8 @@ Site-wide credentials the platform uses to deliver built-in features (voice, LLM
 A stored, scoped credential for a service the platform built support for (Drive, Slack, GitHub), scope-resolved project → product → org. The agent uses it **interactively** (built-in tools, or a credential proxy) **without ever seeing the value**. This is the "agent, read my Drive" surface — distinct from deployment. (Realises the schema's reserved `Connector` model.)
 
 ### 3. Environment — named variable sets that map to GitHub Environments
+> ⚠️ **Superseded by adr-0147 — this section only.** hq now keeps a place's secrets, encrypted, and uses them only in workflows the platform runs; a value reaches GitHub only through an approved workflow that sets it, as an environment secret. Not categorising variables by purpose still stands.
+
 A project has **named environments** (`preview`, `staging`, `production` — add / rename / delete) **plus a fixed `Shared` scope**. These **map onto [GitHub Environments](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment)**. Each holds **Variables**:
 - flat **key → value** pairs, each with a **secret flag**: secret → relayed to that environment's **GitHub Secrets** (the agent knows the name only, never the value); not-secret → a **GitHub Actions variable** (`vars` context), readable by the agent.
 - the platform does **not** categorise variables by purpose — they are just named values; the workflows decide what each is for.
@@ -55,6 +57,8 @@ A project has **named environments** (`preview`, `staging`, `production` — add
 - **We store no secret values.** The operator enters a value in our UI; we encrypt it with the repo's public key and write it to GitHub's secrets API — pass-through, nothing persisted. This sidesteps the plaintext-at-rest debt for deploy secrets entirely (GitHub is the custodian). *(Git **access** — clone/push — is a **separate** credential from these app secrets; it is handled by the platform's GitHub credential in §8, not stored as a workflow secret. See Open.)*
 
 ### 4. Operation — an approved GitHub Actions workflow the agent authors
+> ⚠️ **Superseded by adr-0147 — this section only.** An operation is now a workflow in the place's library, run by the platform, not a GitHub Actions file pushed on approval. Draft → approved, the live version running until a new one is approved, and operations being general rather than deploy-only still stand.
+
 An operation is a workflow file (`.github/workflows/<slug>.yml`, plus any scripts it calls) the agent authors, scoped to an environment:
 - **draft → live**. The agent writes a draft; a human **reviews and approves**; **approval is what pushes the workflow to the repo** (the agent never pushes a workflow unreviewed). Editing an approved workflow lands as a new draft — the live version keeps running until the new one is approved.
 - **operations are general, not deploy-only.** A workflow is *any* approved operation, triggered on demand (`workflow_dispatch`) or on a schedule (`schedule:` cron), and **need not touch the codebase** — a manual `pg_dump` of production, a one-off migration, or a nightly backup are each a workflow with a secret and no build step. The workflow *file* lives in the repo only because that is where GitHub reads workflow definitions; that is storage, not a constraint on what the operation does.
@@ -67,14 +71,20 @@ An operation is a workflow file (`.github/workflows/<slug>.yml`, plus any script
 The platform does not dictate *how* a deploy works — `fly` vs `ssh`, env-file vs `process.env`, deploy-vs-sync as separate workflows: all of that lives in the agent's workflow. The platform's job is **authoring + approval + surfacing**, with **GitHub Actions as the execution backend** and **GitHub Secrets / Environments as the secret + gate store**.
 
 ### 6. Secret-hiding stance *(realised by GitHub)*
+> ⚠️ **Superseded by adr-0148 — this section only.** The agent now reads a real-secret run's output, masked. That the agent never sees a secret value still stands, realised by adr-0147 rather than by GitHub.
+
 The agent **never sees a real secret value, in any environment.** It authors workflows referencing names; the **operator provides values**; **GitHub holds, injects, and masks** them. The agent debugs against **mocks / non-real values**, and for a real-secret run the agent is **not given the run's output** (an agent that authors the code *and* watches it run with real secrets is an exfiltration channel masking alone can't fully close) — enforced as a policy on whether the agent may read a run's Actions logs. **Production is safe by construction** — the agent never runs or observes the production app.
 
 ### 7. Gates — separation of duties
+> ⚠️ **Superseded by adr-0148 — this section only.** Invoke is no longer operator-only by default: an agent may run any approved, switched-on workflow in its place. Author and approve as separate gates, approve human-only, still stand.
+
 - **Author** — the agent drafts a workflow. Gated by an author permission.
 - **Approve** — a human reviews the diff; **approval pushes the workflow to the repo**. Human-only; never an agent-holdable permission. GitHub's **required-reviewer** environment protection adds a *second*, native gate at run time for protected environments.
 - **Invoke** — triggering a run (`workflow_dispatch`): operator-only by default; `agent-runnable` only where the operator opts that workflow in.
 
 ### 8. Execution backend — GitHub Actions
+> ⚠️ **Superseded by adr-0147 — this section only.** The platform runs workflows itself (this record's option C); GitHub Actions stays available to a workflow, which can start a GitHub workflow. The same applies to *Execution backend — chosen path and alternatives* below.
+
 - **Secrets** relay to GitHub Secrets (per environment / Shared) via the secrets API; we store nothing.
 - **Environments** map to GitHub Environments, carrying GitHub's protection rules (required reviewers, wait timers).
 - **Runs** execute on GitHub Actions and are surfaced in our UI by reading the Actions API.
@@ -87,6 +97,8 @@ The agent **never sees a real secret value, in any environment.** It authors wor
 This lives on the project's **GitHub tab** (these are all GitHub surfaces): the **Repository** connection on top, then **Actions & secrets** below — **environment sub-tabs** (`Shared` + the environments) → a view-only **Variables** tile ("synced to GitHub") and **Workflow** tiles (pending-review with a Review action; live runs with Run / Cancel, run number, commit, status) that drill into detail (the diff to approve, the run log on GitHub). Heavy management lives on drill-down screens.
 
 ## Execution backend — chosen path and alternatives
+> ⚠️ **Superseded by adr-0147 — this section only.** Option C was chosen.
+
 
 Documented so we can revisit as we scale. The control plane (secrets, environments, gates, orchestration, log masking) is **GitHub's in all three**; the options differ only in **where the job's compute runs**.
 

@@ -15,6 +15,8 @@ import * as store from './workspaceStore'
 import { asHttp, rethrowLocationFileErrorAsHttp, rethrowSiteUnreachableAsHttp } from './httpErrors'
 import { assertLocationAccess, type LocationUse } from './locationAccess'
 import { requireProjectAdmin } from '../projects/membership'
+import { checkConnect, type ConnectCheck } from '../github/connectChecks'
+import { proposeStartersFor, type StarterOutcome } from '../github/connectStarters'
 
 type Ctx = { user?: { id: string } }
 
@@ -82,23 +84,57 @@ export async function assertWorkspaceReachable(workspaceId: string, userId: stri
   await assertLocationAccess({ ownerType: ws.ownerType, ownerId: ws.ownerId, workspaceId }, userId, use)
 }
 
-export const connectRepoAction = async (
-  { target, mode, repoUrl, name }: { target: RepoTarget; mode: 'init' | 'adopt' | 'link'; repoUrl?: string; name?: string },
-  context: Ctx,
-): Promise<{ repoUrl: string }> => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
+export type ConnectInput = {
+  target: RepoTarget
+  /** `init` is a new repository; `existing` (or the older `adopt`, `link`) one that is there. */
+  mode: 'init' | 'existing' | 'adopt' | 'link'
+  repoUrl?: string
+  name?: string
+  /** hq's id for the GitHub account chosen; the project's default when absent. */
+  installationId?: string
+}
+
+/** Who may connect, and where: the same for the check and the connection. */
+async function connectingContext(target: RepoTarget, userId: string, what: string): Promise<string> {
   // Outside the try: asHttp would rewrap its 403/404 as a generic 400.
-  await assertLocationAccess(target, context.user.id, 'work')
-  await assertMayAdministerAttachment(target, context.user.id, 'Connecting a repository')
+  await assertLocationAccess(target, userId, 'work')
+  await assertMayAdministerAttachment(target, userId, what)
   // Outside the try as well: asHttp would rewrap the shared 503 as a 400.
   const siteId = await resolveOwnerSiteId(target.ownerType, target.ownerId)
   if (!siteId) throw new HttpError(400, 'No Execution Site available for this owner')
+  return siteId
+}
+
+/** What `connectRepoAction` would meet, asked before anything is created: the account, the name, the reach. */
+export const checkConnectAction = async (input: Omit<ConnectInput, 'mode'> & { kind: 'new' | 'existing' }, context: Ctx): Promise<ConnectCheck> => {
+  if (!context.user) throw new HttpError(401, 'Not authenticated')
+  await connectingContext(input.target, context.user.id, 'Connecting a repository')
   try {
-    const { repoUrl: url } = await connectRepo(siteId, { target, mode, repoUrl, name })
-    return { repoUrl: url }
+    return await checkConnect({
+      place: { type: input.target.ownerType, id: input.target.ownerId }, person: context.user.id,
+      kind: input.kind, name: input.name, repoUrl: input.repoUrl, installationRowId: input.installationId,
+    })
   } catch (err) {
+    if (err instanceof HttpError) throw err
     throw asHttp(err)
   }
+}
+
+export const connectRepoAction = async (
+  { target, mode, repoUrl, name, installationId }: ConnectInput,
+  context: Ctx,
+): Promise<{ repoUrl: string; starters: StarterOutcome }> => {
+  if (!context.user) throw new HttpError(401, 'Not authenticated')
+  const siteId = await connectingContext(target, context.user.id, 'Connecting a repository')
+  let connected: { repoUrl: string }
+  try {
+    connected = await connectRepo(siteId, { target, mode, repoUrl, name, userId: context.user.id, installationId })
+  } catch (err) {
+    if (err instanceof HttpError) throw err
+    throw asHttp(err)
+  }
+  const starters = await proposeStartersFor({ type: target.ownerType, id: target.ownerId }, target.workspaceId ?? null)
+  return { repoUrl: connected.repoUrl, starters }
 }
 
 export const disconnectRepoAction = async (

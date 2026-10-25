@@ -42,6 +42,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import ts from 'typescript'
 import { FORWARDED_TOOLS } from '../forwardedToolSchemas'
+import { WORKFLOW_TOOL_NAME_SET } from '../forwardedWorkflowSchemas'
 
 interface ToolInfo { fields: string[]; description: string | undefined }
 
@@ -132,16 +133,12 @@ const siteFields = new Map([...siteInfo].map(([name, info]) => [name, info.field
 const hqFields = new Map([...hqInfo].map(([name, info]) => [name, info.fields]))
 
 /**
- * hq's toolSchemas.ts also declares DATA_PATH_ONLY_TOOLS entries that are
- * deliberately NOT MCP tools at all (runtimeOps.ts's header: kept out of
- * CONTROL_PLANE_TOOLS/WORKFORCE_TOOLS specifically so hq's own MCP surface
- * never registers them) — `resolve_git_credential` is called directly by
- * gitCredentialApi.ts's callHqData, never through an agent-facing tool name.
- * The AST walk above finds every {name, schema} object in the file
- * regardless of which array it's in, so it must be named here rather
- * than silently failing the bidirectional check below.
+ * hq's toolSchemas.ts may declare DATA_PATH_ONLY_TOOLS entries that are not MCP tools at all, called by the site
+ * directly rather than through an agent-facing tool name. The AST walk above finds every {name, schema} object in the
+ * file regardless of which array it's in, so such an entry must be named here rather than silently failing the
+ * bidirectional check below. None is today.
  */
-const HQ_TOOLS_NOT_FORWARDED = new Set(['resolve_git_credential'])
+const HQ_TOOLS_NOT_FORWARDED = new Set<string>()
 
 describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts field-set drift @SC-348', () => {
   it('the extractor actually found tool entries on both sides (sanity check against a silently-empty parse)', () => {
@@ -149,7 +146,8 @@ describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts field-set drift @SC
     expect(hqFields.size).toBeGreaterThan(30)
   })
 
-  it.each(FORWARDED_TOOLS.map(t => t.name))('%s has the same field-name set on both sides', (name) => {
+  // The workflow tools are built on both sides from core's one declaration, so they can't drift; forwardedWorkflowSchemas.test.ts.
+  it.each(FORWARDED_TOOLS.map(t => t.name).filter(n => !WORKFLOW_TOOL_NAME_SET.has(n)))('%s has the same field-name set on both sides', (name) => {
     const site = siteFields.get(name)
     const hq = hqFields.get(name)
     expect(site, `site's forwardedToolSchemas.ts is missing a schema for ${name}`).toBeDefined()

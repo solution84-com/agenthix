@@ -8,6 +8,8 @@ import { CHAT_PATH, useChatComposerPlace } from './chatComposer'
 import { SPACE_PATH } from './chatPlacePaths'
 import { SPACE_SECTION_ORDER, chatFacts, chatLinkedTools, chatToolGroups, type PersonalProject } from './chatPlace'
 import { useFilesToolCounts } from '../storage/pages/filesToolGroup'
+import { useWorkflowsTool } from '../workflows/pages/useWorkflowsTool'
+import { useSecretsTool } from '../secrets/pages/useSecretsTool'
 import { useArtefactLinks } from '../storage/pages/useArtefactLinks'
 
 /**
@@ -28,6 +30,8 @@ export function useChatPlace(): Place | undefined {
   const composer = useChatComposerPlace(null)
   useArtefactLinks()
   const filesCounts = useFilesToolCounts(user ? { ownerType: 'user', ownerId: user.id } : undefined)
+  const workflows = useWorkflowsTool(user ? { type: 'user', id: user.id } : undefined)
+  const secrets = useSecretsTool(user ? { type: 'user', id: user.id } : undefined)
   const automationOn = (automation as { effective?: { enabled: boolean } } | undefined)?.effective?.enabled
 
   return useMemo(() => {
@@ -45,9 +49,9 @@ export function useChatPlace(): Place | undefined {
       linkedTools: chatLinkedTools,
       toolGroups: chatToolGroups({
         userId: user.id, project, runs: runs as unknown[] | undefined, automationOn,
-        siteLabel: (site as { label: string } | null | undefined)?.label ?? null, filesCounts,
+        siteLabel: (site as { label: string } | null | undefined)?.label ?? null, filesCounts, workflows, secrets,
       }),
       sectionOrder: SPACE_SECTION_ORDER,
     }
-  }, [user, composer.agents, composer.defaultAgentId, site, project, runs, automationOn, filesCounts])
+  }, [user, composer.agents, composer.defaultAgentId, site, project, runs, automationOn, filesCounts, workflows, secrets])
 }

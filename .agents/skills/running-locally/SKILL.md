@@ -88,6 +88,12 @@ run with `docker exec … mobiletest-host agenthix …`, and `agenthix uninstall
 same way, each under a namespace of its own and on free ports, so they run beside an install. If the machine's own
 install is the one that must keep running, never run these commands as it: use the namespace's host container.
 
+## GitHub in development
+
+Register a dev hq's GitHub App on a GitHub organisation kept for testing, never one that holds live work: connecting a
+workspace creates a repository there, and the starter workflows push to it. The same goes for anything else that
+creates repositories, such as a test or a walkthrough.
+
 ## A further site
 
 A further site registers with an admin's consent (ADR-0064): from that site's `site/`,

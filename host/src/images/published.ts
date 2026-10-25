@@ -13,7 +13,7 @@
 import { BRANDING, imageName, isPublishedVersion } from '@agenthix/core'
 
 /** The images this repository publishes, by the part `imageName` turns into a name. */
-export const PUBLISHED_PARTS = ['hq-server', 'hq-web', 'site-server', 'agent', 'host', 'console'] as const
+export const PUBLISHED_PARTS = ['hq-server', 'hq-web', 'site-server', 'agent', 'executor', 'host', 'console'] as const
 export type PublishedPart = (typeof PUBLISHED_PARTS)[number]
 
 export type TrustedPublisher = {

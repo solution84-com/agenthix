@@ -134,7 +134,7 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 
 ### 19. Storage, workspaces & repositories
 - **Files:** `src/storage/` (actions.ts, queries.ts, locationAccess.ts, workspaceStore.ts, repoAttachmentService.ts); `src/github/` (actions.ts, queries.ts); `src/storage/pages/`; `src/preview/` (open a project's files as a page)
-- **Ops:** createWorkspace, deleteWorkspace, setWorkspaceAllowedTools, connectRepo, disconnectRepo, getRepoState, getMyStorage, getWorkspace, listLocationFiles, getFileContent, getWorkflows, getRuns, getRepoSecrets, setRepoSecret, dispatchWorkflow, getWorkspacesAcrossPlaces, getMyStorageSite, listArtefacts, getArtefactContent, listKnowledge, getKnowledgeContent, getPlaceInstructions, listPlacePreviews, openPreview
+- **Ops:** createWorkspace, deleteWorkspace, setWorkspaceAllowedTools, connectRepo, disconnectRepo, getRepoState, getMyStorage, getWorkspace, listLocationFiles, getFileContent, getWorkflows, getRuns, getRepoSecrets, getWorkspacesAcrossPlaces, getMyStorageSite, listArtefacts, getArtefactContent, listKnowledge, getKnowledgeContent, getPlaceInstructions, listPlacePreviews, openPreview
 
 ### 20. Memory
 - **Files:** `src/memory/` (memoryService.ts, scopes.ts, items.ts, ranking.ts, embedding/, maintenance.ts, tidy.ts, barTuner.ts, runPinnedMemory.ts, knowledge/); `src/memory/screen/` (the memory screen and its pages); `src/conversations/memory/` (the probe and the agent's memory tools)

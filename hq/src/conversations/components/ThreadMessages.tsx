@@ -1,10 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import type { ConversationAgentView, ConversationMessageView } from '../../shared/conversations/protocol'
+import type { ConversationRunCard } from '../../workflows/conversationRuns'
 import type { LiveSteps, StreamState } from '../hooks/threadState'
 import { threadItems, type TurnBlock } from '../hooks/threadBlocks'
 import { MessageItem, PersonBubble } from './MessageItem'
 import type { ReplyView } from './ReplyBody'
 import { TurnBlockView } from './TurnBlock'
+import { WorkflowRunCard } from './WorkflowRunRow'
 import type { WorkContext } from './WorkContext'
 
 /** How close to the top of the thread counts as scrolling up to older messages, in pixels. */
@@ -15,9 +17,9 @@ const NEAR_BOTTOM = 160
 /**
  * The thread: messages oldest to newest, older pages loaded as the person scrolls up (their place kept), each
  * turn of the agent's one block, the running turn's last with its words streaming in, messages waiting behind
- * it, and the work bar as the last thing in it.
+ * it, and the work bar as the last thing in it. Finished workflow runs sit where they ended.
  */
-export function ThreadMessages({ messages, waiting, stream, running, turnId, turnSince, steps, agent, hasMore, loadingOlder, onLoadOlder, busy, onSendNow, onCancel, work, reply, listening, bar }: {
+export function ThreadMessages({ messages, waiting, stream, running, turnId, turnSince, steps, agent, hasMore, loadingOlder, onLoadOlder, busy, onSendNow, onCancel, work, reply, listening, runs = [], bar }: {
   messages: ConversationMessageView[]
   waiting: ConversationMessageView[]
   stream: StreamState | null
@@ -38,6 +40,8 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
   reply?: ReplyView
   /** What the person is saying now, in voice mode, before it is sent. */
   listening?: string
+  /** The finished workflow runs this conversation started. */
+  runs?: ConversationRunCard[]
   /** The work bar, drawn last. */
   bar?: ReactNode
 }) {
@@ -46,7 +50,10 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
   const streamLimit = stream ? reply?.limitFor(stream.turnId, stream.text) ?? null : null
   const streamShown = stream ? (streamLimit === null ? stream.text : stream.text.slice(0, streamLimit)) : ''
   const liveTurnId = turnId ?? steps?.turnId ?? stream?.turnId ?? null
-  const { items, live: liveBlock } = threadItems(messages, { liveTurnId })
+  // A run that ended before the oldest message loaded waits for its page, so it is never drawn out of order.
+  const oldestAt = hasMore && messages[0] ? Date.parse(messages[0].createdAt) : -Infinity
+  const shownRuns = runs.filter((r) => r.endedAt && new Date(r.endedAt).getTime() >= oldestAt)
+  const { items, live: liveBlock } = threadItems(messages, { liveTurnId, runs: shownRuns })
   // A turn running before the screen knows its id is still drawn, as a block with only its pill.
   const live: Pick<TurnBlock, 'cards' | 'words' | 'set'> | null = liveBlock ?? (running || stream ? { cards: [], words: [], set: [] } : null)
   const liveSteps = steps && (!liveTurnId || steps.turnId === liveTurnId) ? steps : null
@@ -109,6 +116,8 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
         )}
         {items.map((item) => item.kind === 'message'
           ? <MessageItem key={item.message.id} message={item.message} agent={agent} work={work} reply={reply} />
+          : item.kind === 'run'
+          ? <WorkflowRunCard key={`run:${item.card.runId}`} card={item.card} />
           : <TurnBlockView key={item.key} block={item} agent={agent} work={work} reply={reply} heldSince={item.turnId ? sinceOf.current.get(item.turnId) : undefined} />)}
         {live && (
           <TurnBlockView

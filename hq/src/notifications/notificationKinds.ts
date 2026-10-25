@@ -85,10 +85,13 @@ export const PROVIDER_NOTIFICATION_TYPES = {
  * is about is addressed, or until a person dismisses it where its kind allows.
  * A feature that raises one adds its types here.
  */
+/** A secret due for rotation, or overdue (secrets/rotation.ts). */
+export const SECRET_ROTATION_NOTIFICATION = 'secret_rotation'
+
 export const PERSISTENT_TYPES: readonly string[] = [
   ...Object.values(SITE_NOTIFICATION_TYPES), ...Object.values(ORG_NOTIFICATION_TYPES), ROUTINE_FAILING_TYPE,
   RUN_SHORT_NOTIFICATION, SITE_NEARLY_OUT_NOTIFICATION, ...Object.values(FLEET_MACHINE_NOTIFICATION_TYPES),
-  PROVIDER_NOTIFICATION_TYPES.notWorking,
+  PROVIDER_NOTIFICATION_TYPES.notWorking, SECRET_ROTATION_NOTIFICATION,
 ]
 
 /**

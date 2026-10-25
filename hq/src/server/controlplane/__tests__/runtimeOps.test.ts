@@ -1,7 +1,7 @@
 /**
  * start_preview's forward: it reads nothing itself — it hands the preview tool
  * the run's own boundary, from its claims, and a channel request to the site
- * that holds it. (resolve_git_credential: resolveGitCredential.integration.test.ts.)
+ * that holds it.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { CapabilityClaims } from '@agenthix/core'
