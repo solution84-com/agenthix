@@ -12,6 +12,7 @@ import { HttpError } from 'wasp/server'
 import { SITE_PROTOCOL_VERSION, checkProtocolCompatibility } from '@agenthix/core'
 import { provisionProjectFiles } from '../storage/filesService'
 import { deriveProjectKey, deriveSlug } from '../shared/identifiers'
+import { RESERVED_PROJECT_KEYS, reservedKeyRefusal, reservedSlugRefusal } from './reservedNames'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { recordActivity } from '../server/dashboard/activity'
 import { entitledProjectsFilter } from './membership'
@@ -131,13 +132,16 @@ export async function createProject(params: {
   // A personal project names no slug: a slug taken would tell another person the name was in use.
   const personalOwnerId = params.personalOwnerId
   const slug = personalOwnerId ? null : deriveSlug(params.name)
+  const reserved = slug ? reservedSlugRefusal(slug) : null
+  if (reserved) throw new HttpError(400, reserved)
   const existing = slug ? await prisma.project.findUnique({ where: { slug } }) : null
   if (existing) throw new Error(`A project with slug "${slug}" already exists. Choose a different name.`)
 
   const existingKeys = (await prisma.project.findMany({ select: { key: true } })).map(p => p.key)
   const key = params.key
     ? params.key.toUpperCase()
-    : deriveProjectKey(params.name, existingKeys)
+    : deriveProjectKey(params.name, [...existingKeys, ...RESERVED_PROJECT_KEYS])
+  if (RESERVED_PROJECT_KEYS.includes(key)) throw new HttpError(400, reservedKeyRefusal(key))
 
   if (!/^[A-Z]{2,6}$/.test(key)) {
     throw new HttpError(400, 'Project key must be 2–6 uppercase letters')

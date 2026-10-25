@@ -28,6 +28,7 @@ import { setTaskStart } from '../work/tasks/taskOperations'
 import { boundaryName, continuationCheck } from './continuationChecks'
 import { notifyAfterCardTurn } from './notify'
 import { turnVoice } from '../voice/registry'
+import { dropLostPlaces } from '../places'
 import { compactAtStart, ledger } from '../long'
 import { personTimezone } from '../../server/controlplane/personTimezone'
 import type { BackgroundSources } from './moveToBackground'
@@ -83,7 +84,11 @@ export const turnDeps: TurnDeps = {
   tools: toolAdapter,
   resolveAccess: resolveTalking,
   fixTalkingAccess,
-  mint: mintTurnCapability,
+  // Every turn starts with the conversation's places re-checked: one its person can no longer open drops out (adr-0152).
+  async mint(input) {
+    await dropLostPlaces(input.conversation.id)
+    return mintTurnCapability(input)
+  },
   context: assembleContext,
   appendMessage,
   updateMessage,

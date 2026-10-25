@@ -4,8 +4,8 @@
  * kind: it admits the brief, queues it on the worker and returns at once; the result comes back as a completion.
  *
  * The boundary's three checks run as things stand at the call, and the run's authority is minted for that
- * boundary from the worker's session — never from the conversation's place. The same brief to the same boundary
- * while one is pending is that one.
+ * boundary from the worker's session — never from the conversation's place. Work starts only in one of the
+ * conversation's places (adr-0152). The same brief to the same boundary while one is pending is that one.
  */
 import { Prisma } from '@prisma/client'
 import { HttpError, prisma } from 'wasp/server'
@@ -16,7 +16,7 @@ import type { ConversationTool, SharedBoundary, ToolCallOutcome, TurnCapability 
 import { sealJson, sealText } from '../../sealing'
 import { idempotencyKey } from '../../tools/turnTools'
 import { THEN_DESCRIPTION, continuationFor } from '../continuation'
-import { admitToBoundary, admittedBoundaries, placeLine, placesNamed, projectWords, unassignedProjects } from '../boundaries'
+import { admitToBoundary, admittedBoundaries, placeLine, placesNamed, projectWords, unassignedInConversation } from '../boundaries'
 import { describeWorkerModels } from '../../../models-settings/startWorkModels'
 import { MODEL_CHOICE_MAX_CHARS, checkedModelFor } from '../../../models-settings/taskModelChoice'
 import { standingWorker, workerClosedReason } from './standingWorker'
@@ -54,9 +54,12 @@ export function describeStartWork({ admitted, unassigned = [], models = [] }: St
     'call, what you are doing ("I\'m listing your space now — I\'ll tell you what\'s in it."); the reply ends once',
     'the work has started. When the work ends you are told what you found, and you tell the person then.',
     '',
-    'Places you can start work in (pass the key as `boundary`). People name a project by its key or its name;',
-    'either finds it:',
+    'Places you can start work in, the places in this conversation (pass the key as `boundary`). People name a',
+    'project by its key or its name; either finds it:',
     ...admitted.map(line),
+    '',
+    'Work can start only in a place in this conversation. When the person asks for work in another place, only they',
+    'can add it: ask them with suggest_place, and start the work once they have.',
   ]
   if (unassigned.length > 0) {
     lines.push(
@@ -95,17 +98,17 @@ async function pendingWithKey(conversationId: string, key: string): Promise<stri
   return row?.id ?? null
 }
 
-async function placeFor(personId: string, agentId: string, words: string): Promise<{ boundary: SharedBoundary } | { refusal: string }> {
+async function placeFor(personId: string, agentId: string, words: string, conversationId: string): Promise<{ boundary: SharedBoundary } | { refusal: string }> {
   const found = await placesNamed(personId, words)
   if (found.length > 1) {
     return { refusal: `more than one project is called "${projectWords(words)}": ${found.map(placeLine).join(', ')}; pass the key of the one you mean` }
   }
   const boundary = found[0]
   if (!boundary) {
-    const known = (await admittedBoundaries(personId, agentId)).map(placeLine).join(', ')
+    const known = (await admittedBoundaries(personId, agentId, START_WORK, conversationId)).map(placeLine).join(', ')
     return { refusal: `there is no project with the key or name "${words.trim()}"; the places you can work in are: ${known}` }
   }
-  const admitted = await admitToBoundary({ personId, agentId, boundary, tool: START_WORK })
+  const admitted = await admitToBoundary({ personId, agentId, boundary, tool: START_WORK, conversationId })
   return admitted.ok ? { boundary } : { refusal: admitted.reason }
 }
 
@@ -121,15 +124,15 @@ export function createStartWorkTool(deps: StartWorkDeps = { moveOn: schedulePump
 
     async offered(capability) {
       if (asksForNoOne(capability) || capability.home === 'TASK') return false
-      return (await admittedBoundaries(capability.actingUserId as string, capability.agentId)).length > 0
+      return (await admittedBoundaries(capability.actingUserId as string, capability.agentId, START_WORK, capability.conversationId)).length > 0
     },
 
     async describe(capability) {
       const personId = capability.actingUserId ?? capability.readerUserId
       if (!personId) return describeStartWork({ admitted: [] })
       const [admitted, unassigned] = await Promise.all([
-        admittedBoundaries(personId, capability.agentId),
-        unassignedProjects(personId, capability.agentId),
+        admittedBoundaries(personId, capability.agentId, START_WORK, capability.conversationId),
+        unassignedInConversation(personId, capability.agentId, capability.conversationId),
       ])
       return describeStartWork({ admitted, unassigned, models: await describeWorkerModels(capability.agentId, personId) })
     },
@@ -148,7 +151,7 @@ export function createStartWorkTool(deps: StartWorkDeps = { moveOn: schedulePump
       const agent = await agentOf(capability.agentId)
       if (!agent) return { status: 'refused', reason: 'this agent no longer exists' }
 
-      const place = await placeFor(personId, agent.id, args.boundary)
+      const place = await placeFor(personId, agent.id, args.boundary, capability.conversationId)
       if ('refusal' in place) return { status: 'refused', reason: place.refusal }
       const { boundary } = place
 

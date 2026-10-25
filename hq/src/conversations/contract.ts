@@ -243,6 +243,11 @@ export type AdmitToBoundary = (input: {
   boundary: SharedBoundary
   /** The tool or tool group being admitted: 'start_work' for a brief, the tool's name for a task tool. */
   tool: string
+  /**
+   * Set when new work is started from a conversation: the boundary must be one of its places (adr-0152). Left out
+   * when re-checking work already started there, which carries on after its place is removed.
+   */
+  conversationId?: string
 }) => Promise<{ ok: true } | { ok: false; reason: string }>
 
 /** How an operation ended. A conditional update from any outstanding state: a repeat is a no-op. */

@@ -5,8 +5,19 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const h = vi.hoisted(() => ({ findUnique: vi.fn(), actingPerson: vi.fn(), search: vi.fn(async () => 'text') }))
-vi.mock('wasp/server', () => ({ prisma: { project: { findUnique: h.findUnique } } }))
+const h = vi.hoisted(() => ({
+  findUnique: vi.fn(), actingPerson: vi.fn(), search: vi.fn(async () => 'text'),
+  conversation: vi.fn(async (): Promise<unknown> => null), placeRows: vi.fn(async (): Promise<unknown[]> => []),
+}))
+vi.mock('wasp/server', () => ({
+  prisma: {
+    project: { findUnique: h.findUnique },
+    conversation: { findUnique: h.conversation },
+    conversationPlace: { findMany: h.placeRows, deleteMany: vi.fn() },
+    user: { findUnique: async () => ({ deactivatedAt: null }) },
+  },
+}))
+vi.mock('../../../projects/membership', () => ({ projectStanding: async () => 'works' }))
 vi.mock('../../../server/controlplane/runPerson', () => ({ actingPerson: h.actingPerson }))
 vi.mock('../../../knowledge', () => {
   const answer = async () => 'text'
@@ -40,6 +51,8 @@ function setup() {
 beforeEach(() => {
   vi.clearAllMocks()
   h.actingPerson.mockResolvedValue({ userId: 'u1', role: 'MEMBER' })
+  h.conversation.mockResolvedValue(null)
+  h.placeRows.mockResolvedValue([])
 })
 
 describe('which turns are offered which tools', () => {
@@ -135,6 +148,17 @@ describe("the turn's reach, as wired", () => {
     h.actingPerson.mockResolvedValue({ userId: 'u2', role: 'MEMBER' })
     const reach = await reachFor({ actingUserId: null, readerUserId: 'u2' })
     expect(reach).toMatchObject({ userId: 'u2', mayChange: false, places: [{ level: 'personal', owner: { ownerType: 'user', ownerId: 'u2' } }] })
+  })
+
+  it('a conversation reaches the places its person added, after its own', async () => {
+    h.conversation.mockResolvedValue({ id: 'conv-1', home: 'PERSON', projectId: null, openedById: 'u1' })
+    h.placeRows.mockResolvedValue([{ id: 'r1', placeKind: 'PROJECT', projectId: 'p1', userId: null, addedById: 'u1', addedAt: new Date() }])
+    h.findUnique.mockResolvedValue({ id: 'p1', slug: 'shop', key: 'SHP', personalOwnerId: null, personalSpace: false })
+    const reach = await reachFor({})
+    expect(reach?.places).toEqual([
+      { level: 'personal', owner: { ownerType: 'user', ownerId: 'u1' } },
+      { level: 'shop', owner: { ownerType: 'project', ownerId: 'p1' } },
+    ])
   })
 
   it("a task's thread with no project and no one reaches no place", async () => {

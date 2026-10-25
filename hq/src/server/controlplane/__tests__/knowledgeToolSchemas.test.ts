@@ -1,6 +1,7 @@
 /**
  * The knowledge tools and suggest_place (agent knowledge spec, parts 3 and 4): shaped like the native Grep, Read,
- * Write and Edit, described as the spec says; the five given to every run and the data path, suggest_place to no one yet.
+ * Write and Edit, described as the spec says; the five given to every run and the data path, suggest_place to no run:
+ * it is the lead's own.
  */
 import { describe, it, expect } from 'vitest'
 import { z } from 'zod'
@@ -17,7 +18,7 @@ import {
 const tool = (name: string) => [...KNOWLEDGE_TOOLS, ...PLACE_TOOLS].find(t => t.name === name)!
 const parse = (name: string, args: unknown) => z.object(tool(name).schema).safeParse(args)
 
-describe('the knowledge tools in the registry', () => {
+describe('the knowledge tools in the registry @SC-1409', () => {
   it('are the five the spec names, and suggest_place, under the registry\'s groups', () => {
     expect(KNOWLEDGE_TOOLS.map(t => t.name)).toEqual(Object.values(SYSTEM_MCP_TOOLS.KNOWLEDGE))
     expect(KNOWLEDGE_TOOLS.map(t => t.name)).toEqual(['search_knowledge', 'read_knowledge', 'write_knowledge', 'edit_knowledge', 'delete_knowledge'])
@@ -41,7 +42,7 @@ describe('the knowledge tools in the registry', () => {
     expect(served.description).toBe(tool(name).description)
   })
 
-  it('suggest_place is defined, not offered: in no tier, no served list, no connection group, and not a turn tool', () => {
+  it('suggest_place is defined, not offered: in no tier, no served list, no connection group, and not a turn tool @SC-1439', () => {
     const name = 'suggest_place'
     for (const list of [ALWAYS_INJECTED_MCP_TOOLS, DEFAULT_ON_MCP_TOOLS, ADMINISTRATIVE_MCP_TOOLS, listKnownToolNames()]) {
       expect(list).not.toContain(name)
@@ -55,7 +56,7 @@ describe('the knowledge tools in the registry', () => {
   })
 })
 
-describe('their shapes, as the native tools take them', () => {
+describe('their shapes, as the native tools take them @SC-1409', () => {
   it('search_knowledge takes Grep\'s parameters, and a scope', () => {
     expect(Object.keys(tool('search_knowledge').schema)).toEqual(
       ['pattern', 'scope', 'path', 'glob', 'output_mode', '-i', '-n', '-A', '-B', '-C', 'head_limit', 'offset'])
@@ -81,7 +82,7 @@ describe('their shapes, as the native tools take them', () => {
   })
 })
 
-describe('their descriptions', () => {
+describe('their descriptions @SC-1409', () => {
   it('say each works like its native tool, on knowledge', () => {
     expect(tool('search_knowledge').description).toMatch(/^Works like Grep, over everything known here/)
     expect(tool('read_knowledge').description).toMatch(/^Works like Read, on knowledge/)
@@ -91,6 +92,7 @@ describe('their descriptions', () => {
 
   it('name the product from its one constant', () => {
     expect(tool('search_knowledge').description).toContain(`how ${BRANDING.displayName} itself works`)
+    expect(tool('search_knowledge').description).toContain(`Asked about ${BRANDING.displayName} itself (where a setting is, what a screen does), search here before you answer`)
   })
 
   it('write_knowledge says what the front matter must hold, the limits, and to change knowledge only when asked', () => {

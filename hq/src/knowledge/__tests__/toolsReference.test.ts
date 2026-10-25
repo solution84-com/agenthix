@@ -4,7 +4,7 @@ import { toolsReference } from '../guideBuild/toolsReference'
 
 const headings = (md: string) => [...md.matchAll(/^### (.+)$/gm)].map(m => m[1])
 
-describe('the tools reference equals the registry', () => {
+describe('the tools reference equals the registry @SC-1412', () => {
   const md = toolsReference()
 
   it('names every tool of every access tier once, and no other', () => {
@@ -12,14 +12,21 @@ describe('the tools reference equals the registry', () => {
     expect(headings(md).sort()).toEqual(offered)
   })
 
-  it('leaves out tools defined but offered to no one', () => {
+  it("leaves out tools no run is given, such as the lead's own suggest_place", () => {
     const listed = headings(md)
     for (const name of Object.values(SYSTEM_MCP_TOOLS.PLACE)) expect(listed).not.toContain(name)
   })
 
-  it('gives every run the knowledge tools, each with its own description', () => {
-    const everyRun = md.slice(md.indexOf('## Given to every run')).split('## Given unless')[0]
-    for (const name of Object.values(SYSTEM_MCP_TOOLS.KNOWLEDGE)) expect(everyRun).toContain(`### ${name}`)
+  it('gives every run search and read, and only runs that may change files write, edit and delete', () => {
+    const section = (title: string) => md.slice(md.indexOf(`## ${title}`)).split(/\n## (?!#)/)[0]
+    const everyRun = section('Given to every run')
+    const changers = section('Given to runs that may change files')
+    const { SEARCH_KNOWLEDGE, READ_KNOWLEDGE, WRITE_KNOWLEDGE, EDIT_KNOWLEDGE, DELETE_KNOWLEDGE } = SYSTEM_MCP_TOOLS.KNOWLEDGE
+    for (const name of [SEARCH_KNOWLEDGE, READ_KNOWLEDGE]) expect(everyRun).toContain(`### ${name}`)
+    for (const name of [WRITE_KNOWLEDGE, EDIT_KNOWLEDGE, DELETE_KNOWLEDGE]) {
+      expect(everyRun).not.toContain(`### ${name}`)
+      expect(changers).toContain(`### ${name}`)
+    }
     expect(everyRun).toMatch(/### search_knowledge\n\nWorks like Grep/)
   })
 

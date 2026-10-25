@@ -6,8 +6,8 @@
  * **The five are served**: given to every run in the always-injected tier (shared/mcpTools.ts) — write, edit and
  * delete only to a run that may change files — through its site's MCP server and the data path
  * (`KNOWLEDGE_DATA_PATH_TOOLS`, with the run's id the site fills in), and to the lead as its conversation's own
- * tools (conversations/memory/leadKnowledgeTools.ts). They are in no connection group. `suggest_place` is defined,
- * not offered, until a conversation's places are served.
+ * tools (conversations/memory/leadKnowledgeTools.ts). They are in no connection group. `suggest_place` is the lead's
+ * alone, as its conversation's own tool (conversations/placesSuggest.ts); no run is given it.
  */
 import { z } from 'zod'
 import { BRANDING, KNOWLEDGE_LIMITS as L } from '@agenthix/core'
@@ -30,7 +30,9 @@ export const KNOWLEDGE_TOOLS: ControlPlaneTool[] = [
       'Works like Grep, over everything known here: how this place and this organisation do things, and how ' +
       `${BRANDING.displayName} itself works (its words, screens and settings). Each match says where it is from. Use it ` +
       'before asking how something is done, and whenever a person names a place, screen or setting you don\'t ' +
-      'recognise, before asking them what they mean. ' +
+      'recognise, before asking them what they mean. Asked about ' +
+      `${BRANDING.displayName} itself (where a setting is, what a screen does), search here before you answer, and ` +
+      'name its screens as the guide does. ' +
       'It searches every level you may see: the places in this conversation (or this run\'s place), the organisation ' +
       `and the ${BRANDING.displayName} guide; where pages differ, the most specific wins: a place, then the ` +
       'organisation, then the guide. Each match is marked with its page\'s name, which read_knowledge takes as it is. ' +

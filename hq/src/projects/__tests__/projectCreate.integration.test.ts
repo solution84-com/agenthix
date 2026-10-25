@@ -191,6 +191,18 @@ describe('createProject — accepted fields @SC-017', () => {
     await expect(createProjectRecord({ name: 'Three', key: 'X1', executionSiteId: SITE_ROW_ID, createdByUserId: creator }))
       .rejects.toMatchObject({ statusCode: 400 })
   })
+
+  it('refuses a name whose slug is a knowledge level, and the key ORG, making nothing @SC-1434', async () => {
+    const creator = (await createUser()).id
+    for (const name of ['Org', 'Platform', 'Personal']) {
+      await expect(createProjectRecord({ name, executionSiteId: SITE_ROW_ID, createdByUserId: creator }))
+        .rejects.toMatchObject({ statusCode: 400, message: expect.stringMatching(/can't be called .*Nothing was changed\.$/) })
+    }
+    await expect(createProjectRecord({ name: 'Ops', key: 'org', executionSiteId: SITE_ROW_ID, createdByUserId: creator }))
+      .rejects.toMatchObject({ statusCode: 400 })
+    expect((await createProjectRecord({ name: 'Organic', executionSiteId: SITE_ROW_ID, createdByUserId: creator })).key).not.toBe('ORG')
+    expect(await prisma.project.count({ where: { name: { in: ['Org', 'Platform', 'Personal', 'Ops'] } } })).toBe(0)
+  })
 })
 
 // The row is committed before its files are asked for; if the ask fails and the

@@ -163,7 +163,10 @@ export const SYSTEM_MCP_TOOLS = {
     DELETE_KNOWLEDGE: 'delete_knowledge',
   },
 
-  /** The lead asking the person to add a place to its conversation (agent knowledge spec, part 4). Not offered yet. */
+  /**
+   * The lead asking the person to add a place to its conversation (agent knowledge spec, part 4): the lead's own
+   * conversation tool (conversations/placesSuggest.ts), never a run's, so in no access tier below.
+   */
   PLACE: {
     SUGGEST_PLACE: 'suggest_place',
   },

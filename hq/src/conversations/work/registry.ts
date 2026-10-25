@@ -11,6 +11,7 @@ import { memoryTools } from '../memory'
 import { knowledgeTools } from '../memory/leadKnowledgeTools'
 import { ledgerTool } from '../long/ledgerTool'
 import { zoomTools } from '../long/zoom'
+import { placeTools } from '../placesSuggest'
 
 export function operationOwner(kind: OperationKindValue): OperationOwner {
   switch (kind) {
@@ -21,7 +22,7 @@ export function operationOwner(kind: OperationKindValue): OperationOwner {
 }
 
 export function conversationTools(): readonly ConversationTool[] {
-  return [...workerTools, ...taskTools, ...toolCallTools, ...memoryTools, ...knowledgeTools, ledgerTool, ...zoomTools]
+  return [...workerTools, ...taskTools, ...toolCallTools, ...memoryTools, ...knowledgeTools, ...placeTools, ledgerTool, ...zoomTools]
 }
 
 export function conversationTool(name: string): ConversationTool | null {

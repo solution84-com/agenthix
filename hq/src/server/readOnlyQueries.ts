@@ -40,6 +40,7 @@ export const WASP_QUERIES: readonly string[] = [
   'getConversationAgentChoices',
   'getConversationDeletePreview',
   'getConversationMessages',
+  'getConversationPlaces',
   'getErasedProjectCount',
   'getLastWrittenConversation',
   'getConversationSegment',

@@ -6,6 +6,8 @@ import type { ReplyView } from './ReplyBody'
 import { SummarisedMarker } from './SummarisedMarker'
 import { NewConversationOffer } from './NewConversationOffer'
 import { ActionLine } from './ActionLine'
+import { SuggestPlaceCardRow } from './SuggestPlaceCard'
+import { placeSuggestionOf } from '../placesProtocol'
 import { TaskCard } from './TaskCard'
 import { TurnBlockView } from './TurnBlock'
 import type { WorkContext } from './WorkContext'
@@ -85,6 +87,18 @@ export function MessageItem({ message, agent, work, reply }: {
     case 'ACTION':
       if (message.body.toolName === 'offer_new_conversation' && work?.newConversationHref) {
         return <NewConversationOffer text={message.body.text} href={work.newConversationHref} />
+      }
+      {
+        const suggestion = placeSuggestionOf(message.body)
+        if (suggestion && work) {
+          return (
+            <div className="mx-auto w-full max-w-[720px] px-4">
+              <div className="overflow-hidden rounded-lg border border-border-subtle">
+                <SuggestPlaceCardRow conversationId={work.conversationId} card={suggestion} agentName={agent?.name ?? 'The agent'} canAnswer={work.canChangePlaces === true} />
+              </div>
+            </div>
+          )
+        }
       }
       return <ActionLine body={message.body} placePath={work?.placePath} />
     case 'VOICE_STARTED':

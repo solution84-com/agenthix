@@ -23,6 +23,7 @@ import { WorkBar } from './WorkBar'
 import { useConversationWorkflowRuns } from '../hooks/useConversationWorkflowRuns'
 import { isRunActive } from './WorkflowRunRow'
 import { ConversationHeaderTools } from './ConversationHeaderTools'
+import { ConversationPlaces } from './ConversationPlaces'
 import { DeleteConversationDialog } from './DeleteConversationDialog'
 import type { WorkContext } from './WorkContext'
 
@@ -91,6 +92,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
     newConversationHref: newConversationPath(listPath, agent?.id ?? null),
     placePath: listPath,
     people: view.people,
+    canChangePlaces: !closed && myId !== null && view.openedById === myId,
     agentsById,
   }
   const tools = (
@@ -149,6 +151,12 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
           {tools}
         </div>
       )}
+
+      <ConversationPlaces
+        conversationId={conversationId}
+        agentName={agent?.name ?? 'The agent'}
+        canChange={work.canChangePlaces === true}
+      />
 
       <ThreadMessages
         messages={t.messages}
