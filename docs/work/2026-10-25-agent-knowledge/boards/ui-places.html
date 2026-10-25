@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Places in a conversation · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-places.html"><main>
+<div class="top"><div><h1>C3 · Places in a conversation</h1>
+<p class="sub">A conversation sees its own place, the organisation and the platform guide. Any other place is added by the person, deliberately, like Claude Code's additional directories. The person sets the blast radius, not us. This changes how conversations work.</p></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before · today</span>
+<ul><li>The lead may start work in <b>any place the person can reach</b> (<code>start_work</code>, <code>admitToBoundary</code>), from any conversation.</li>
+<li>Nothing on screen says which places a conversation is reaching.</li></ul></div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<ul><li>A conversation reaches <b>its own place</b>, plus the organisation's knowledge and the platform guide.</li>
+<li><b>Other places only when the person adds them</b>, shown in the conversation's header, removable at any time.</li>
+<li>The lead may <b>suggest</b> one; only the person's click adds it.</li></ul></div>
+</div>
+
+<h2 id="header">The header</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="padding:0">
+<div class="mhdr"><span class="grow">Release planning</span><span style="font-size:13px;color:var(--t2);font-weight:400">Places:</span><span class="chip" style="background:var(--macc-sub);color:var(--t1)">Your space</span><span class="chip">Website rebuild ✕</span><span class="btn" style="font-weight:400">+ Add place…</span></div>
+<div style="padding:14px;display:flex;flex-direction:column;gap:8px;position:relative;min-height:260px">
+<div class="bubble me">How do we run releases in Website rebuild?</div>
+<div class="stepcard">Searched knowledge · Your space, Website rebuild, organisation, platform guide</div>
+<div class="bubble">Website rebuild cuts releases on Thursdays; staging deploys need Mia's approval before 4pm (website-rebuild:processes/release.md).</div>
+<div class="menu" style="right:14px;top:6px;width:300px"><div class="gh">Add a place to this conversation</div>
+<div class="it"><div class="t">Shop</div><div class="s">Project · you're a member</div></div>
+<div class="it"><div class="t">Client portal</div><div class="s">Project · you're an admin</div></div>
+<div class="it"><div class="t">My side project</div><div class="s">Personal project</div></div>
+<div class="it off"><div class="s">Only places you can access are listed.</div></div></div>
+</div></div>
+<ol class="sub">
+<li><b>Places</b>: the conversation's own place first (not removable), then each added place with ✕.</li>
+<li><b>Add place…</b> lists only places the person can access. Choosing one asks once: <i>"Kernel will be able to read Shop's knowledge and start work there. What it finds can reach the other places in this conversation. Add it?"</i></li>
+<li><b>Removing</b> a place takes effect from the next turn. Work already started there carries on.</li>
+<li>The <b>work step</b> for a search names the places it covered, so the person always sees how far it reached.</li></ol></div>
+
+<h2 id="suggest">When the lead needs another place</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="padding:14px;display:flex;flex-direction:column;gap:8px;max-width:720px">
+<div class="bubble me">Set up the same release process in Shop.</div>
+<div class="bubble">Shop isn't in this conversation yet. Add it, and I'll read its knowledge and set the process up there.</div>
+<div class="stepcard"><div class="row"><span class="grow"><b>Add a place to this conversation: Shop</b><br/><span style="color:var(--t2)">Kernel will be able to read Shop's knowledge and start work there.</span></span><span class="btn">Not now</span><span class="btn pri">Add Shop</span></div></div>
+</div>
+<ol class="sub">
+<li>The lead has a tool, <code>suggest_place(place, why)</code>, that shows this card. It cannot add a place itself.</li>
+<li>Only the person in the conversation sees the buttons. "Add Shop" does exactly what Add place… does.</li>
+<li>A place the person can't access is never suggested: the lead is told "no such place you can reach".</li></ol></div>
+
+<h2 id="phone">On a phone</h2>
+<div class="box"><div class="phones">
+<div class="phone mock"><div class="mhdr">← <span class="grow">Release planning</span><span class="chip">2 places</span></div><div class="mbody">
+<div class="bubble me" style="margin-left:auto">Set up the same release process in Shop.</div>
+<div class="stepcard" style="margin-top:8px"><b>Add a place: Shop</b><div class="row" style="margin-top:6px"><span class="btn grow" style="text-align:center">Not now</span><span class="btn pri grow" style="text-align:center">Add Shop</span></div></div>
+</div>
+<div class="sheet"><div class="grab"></div><b>Places</b><div style="margin:8px 0"><span class="chip">Your space</span> <span class="chip">Website rebuild ✕</span></div><span class="btn">+ Add place…</span></div></div>
+</div><p class="sub">On a phone the header shows "2 places"; a tap opens the list as a sheet.</p></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li><b>The person accepts the blast radius</b> by a deliberate act they can see and undo; nothing reaches further than they chose.</li>
+<li><b>Like additional directories</b> in Claude Code: a session sees its own folder until you add another.</li>
+<li><b>The lead may ask, never add</b>, so a misled agent can't widen its own reach.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

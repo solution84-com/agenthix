@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limits · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="limits.html"><main>
+<div class="top"><div><h1>7 · What it stops, what it does not, what waits</h1>
+<p class="sub">The honest edges of the design, how it is proved, and what is left for later on purpose.</p></div></div>
+
+<h2 id="stops">What it stops</h2>
+<div class="box"><ul>
+<li>A tool call reaching another place's knowledge: there is no place to name (board 5).</li>
+<li>A change to a page with no author, no previous version, or that silently overwrites another writer (board 4).</li>
+<li>An agent answering a question about Agenthix from guesswork, when it was told to look it up and the answer is in the guide (board 3).</li></ul></div>
+
+<h2 id="not">What it does not stop</h2>
+<div class="box"><table>
+<tr><th>Gap</th><th>Why it stays</th><th>What limits it</th></tr>
+<tr><td>A misled agent carrying one place's knowledge into another of the conversation's places, unasked</td><td>Within the places the person added to the conversation: the blast radius they chose (board 6, C3)</td><td>The tools reach only the conversation's places; every brief shows in the conversation</td></tr>
+<tr><td>An agent writing something wrong, or something it was tricked into, into a page</td><td>Agents writing knowledge when asked is the point</td><td>Every change shows who and why; history and undo; agents write only when a person asks (instruction)</td></tr>
+<tr><td>A person carrying knowledge between their own projects</td><td>It is theirs to share</td><td>Nothing: their call, as if they had pasted it</td></tr>
+<tr><td>Platform knowledge describing a feature a run's tools don't allow</td><td>The guide describes the product, not a run</td><td>Every guide read starts with "what you may do here is what your tools allow"</td></tr></table></div>
+
+<h2 id="proof">How it is proved</h2>
+<div class="box"><table>
+<tr><th></th><th>Test</th><th>Kind</th></tr>
+<tr><td class="n">V1</td><td>Asked "look through the files in my space", "where do I add a model key?", "how do I turn voice on?", the lead and a worker each map them to the right place without asking back</td><td>Model checks with a real model, run on demand and before a release</td></tr>
+<tr><td class="n">V2</td><td>The guide's build fails on a page without a description, a glossary that doesn't parse, or anything else in its folder; the tools reference equals the registry</td><td>Unit (hq)</td></tr>
+<tr><td class="n">V3</td><td>The file tools: Grep's parameters map to ripgrep and give Grep's output; read's line numbers, offset and limit; applyEdit's exact matching; write is all or nothing; the guards S1–S8 (a backtracking or look-around pattern, an over-long pattern, a slow search, too many calls, a name leaving its root, a flag smuggled in a pattern, the fixed messages, no pattern in the log)</td><td>Unit (core), in the security suite</td></tr>
+<tr><td class="n">V4</td><td>The gate: write and edit, T1–T5, a changed page refused, an edit's passage not found exactly once refused, properties kept as written, versions, pruning, permanent deletion, restore; the itemiser lists hand-placed files with their problems</td><td>Unit (site), integration (hq and site)</td></tr>
+<tr><td class="n">V5</td><td>The place rule: every knowledge tool reaches only the run's place or the conversation's places, the organisation and the guide; <code>start_work</code> refuses a place not in the conversation; only the person adds a place; a place they lose access to drops out; <code>org:</code> changes only for admins</td><td>Unit and cross-app, in the security suite</td></tr>
+<tr><td class="n">V6</td><td>The Knowledge tool: the tree, property filters, Needs fixing, editing with properties, move, conflict, delete, restore, permanent deletion, permissions; organisation knowledge; places in a conversation</td><td>hq e2e</td></tr>
+<tr><td class="n">V7</td><td>No run mounts knowledge; search across levels merges and marks results in order</td><td>Site container test, cross-app</td></tr></table></div>
+
+<h2 id="later">What waits, and what would bring it in</h2>
+<div class="box"><table>
+<tr><th>Later</th><th>Brought in when</th></tr>
+<tr><td>Ranking by meaning (embeddings, as memory has; the site search already leaves room for it)</td><td>Word matching is seen to miss pages a person expected to be found</td></tr>
+<tr><td>Caching search on the server</td><td>Search time is measured as a problem</td></tr>
+<tr><td>Measuring knowledge use, as memory's outcomes do</td><td>There is a question it would answer</td></tr>
+<tr><td>Organisation-wide knowledge</td><td>An organisation needs one place for what every project shares (today: <code>ORG.md</code> in task runs)</td></tr>
+<tr><td>"Copy to project" in the Knowledge tool</td><td>People ask for it; asking an agent covers it meanwhile</td></tr>
+<tr><td>Review of agent-written skills</td><td>Its own work: skills are instructions, not knowledge</td></tr></table></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

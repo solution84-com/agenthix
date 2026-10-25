@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="overview.html"><main>
+<div class="top"><div><h1>2 · The design at a glance</h1>
+<p class="sub">Level 1. Three kinds of knowledge, one way to reach each, and one check at the edge of a place. Agents look things up when they need them; nothing is preloaded beyond a few lines saying where to look.</p></div></div>
+
+<h2 id="words">Four levels of knowledge, and what is not knowledge</h2>
+<div class="box"><table>
+<tr><th>What</th><th>Holds</th><th>Written by</th><th>Read by</th><th>Reached through</th></tr>
+<tr><td><b>Platform knowledge</b> <span class="tag ok">new</span></td><td>How Agenthix works: its words, where each screen and setting is, how to do things. Not about anything a customer builds.</td><td>The maintainers, as the user guide</td><td>Every agent in every organisation</td><td><code>search_knowledge</code> and <code>read_knowledge</code>, as <code>platform:</code> pages. Board 3</td></tr>
+<tr><td><b>Organisation knowledge</b> <span class="tag ok">new</span></td><td>How the whole organisation works: its processes, policies, brand, clients. Its own pages</td><td>Organisation admins, and agents when an admin asks</td><td>Every member and every agent, in every project</td><td>The same knowledge tools, <code>scope: "org"</code>. Boards 4–5, U5</td></tr>
+<tr><td><b>Project knowledge</b></td><td>A project's own knowledge: its workflows, decisions, conventions, reference, in detail</td><td>The project's people and its agents</td><td>The project's members, and agents working in the project</td><td>Search and read, as for the guide; save and edit through one gate. Boards 4–5</td></tr>
+<tr><td><b>Personal knowledge</b></td><td>A person's own knowledge, in their own space and their personal projects: the same as a project's</td><td>The person and agents in their space</td><td>The person and runs in their space</td><td>Same as project knowledge</td></tr>
+<tr><td style="color:var(--muted)">Memory</td><td colspan="4" style="color:var(--muted)">Preferences and what an agent learned while working. Rows in hq, <code>recall</code>/<code>remember</code>. Unchanged, except that <code>recall</code> no longer searches knowledge.</td></tr>
+<tr><td style="color:var(--muted)">Instructions</td><td colspan="4" style="color:var(--muted)">A place's <code>AGENTS.md</code> and an agent's own instructions: read on every run. Unchanged.</td></tr>
+<tr><td style="color:var(--muted)">Permissions</td><td colspan="4" style="color:var(--muted)">What a run may do is what its tools allow. Platform knowledge describes the product; it never grants anything.</td></tr>
+</table></div>
+
+<h2 id="parts">The parts</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="mmd" data-src="l1"></div>
+<div class="kbox">
+<div><h4><span class="n">1</span>Agent</h4><p>The lead (hq) or a worker (site). Starts with one short <b>Knowledge</b> section in its instructions saying where to look; nothing else is loaded.</p></div>
+<div><h4><span class="n">2</span>Platform knowledge</h4><p>Built from <code>docs/guide/</code> when hq's image is built, and searched and read as the <code>platform:</code> level of knowledge. Same commit as hq, so it never describes another version.</p><p><a href="/files/platform.html">Board 3 →</a></p></div>
+<div><h4><span class="n">3</span>Knowledge tools</h4><p><code>search_knowledge</code> (a grep), <code>read_knowledge</code>, <code>write_knowledge</code>, <code>edit_knowledge</code>, <code>delete_knowledge</code>: hq operations, served to workers through the site's MCP server and to the lead as conversation tools. <b>No place parameter</b>: always the run's or the conversation's place.</p><p><a href="/files/tools.html">Board 5 →</a></p></div>
+<div><h4><span class="n">4</span>A place's knowledge</h4><p>The place's own guide, on the site, outside what runs mount: Markdown pages in any sections, with title, description, tags and any properties of the team's own. Every change goes through one gate, which keeps the previous page for 30 days.</p><p><a href="/files/convention.html">Board 4 →</a></p></div>
+<div><h4><span class="n">5</span>The conversation's places</h4><p>A conversation reaches its own place; any other place is added by the person, in its header, like Claude Code's additional directories. The lead may suggest one, never add it. The person sets the blast radius (board 6, C3).</p><p><a href="/files/boundaries.html">Board 6 →</a></p></div>
+<div><h4><span class="n">6</span>The Knowledge tool</h4><p>People list, read, edit, delete and restore pages, and see who changed what. Correcting by asking an agent works the same way, through the tools.</p><p><a href="/files/ui-list.html">Boards U2–U4 →</a></p></div>
+</div></div>
+
+<h2 id="example">A worked example</h2>
+<div class="box"><ol>
+<li>Sam asks Kernel, in Your space: "where do I add a model key?" Kernel doesn't know the setting, so it calls <code>search_knowledge("model.?key|api.?key|provider")</code>, finds <code>platform:your-tools/providers.md</code>, and answers with a link to that settings screen in hq (board 3, C2).</li>
+<li>In the Website rebuild project, Sam says "release process is wrong: staging deploys need Mia's OK now". Kernel calls <code>search_knowledge("release|deploy")</code>, reads the page, and changes the one passage with <code>edit_knowledge</code>. The conversation shows "Updated page · Release process" with Undo (C1).</li>
+<li>Later a worker on a task in the same project calls <code>search_knowledge("staging")</code>, finds the page and follows it, with the same tool the lead used (board 5).</li>
+<li>Mia opens Knowledge › Release process, sees "Changed by Kernel, asked by Sam, 2 hours ago", and opens History to see the change (U4).</li>
+<li>From Your space, Sam asks Kernel to set the same release process up in Shop. Shop isn't in the conversation, so Kernel shows "Add a place to this conversation: Shop". Sam adds it; Kernel reads Shop's knowledge and starts the work there (C3).</li>
+</ol></div>
+
+<h2 id="scope">In this unit, and later</h2>
+<div class="box"><table><tr><th>This unit</th><th>Later, when usage shows the need</th></tr>
+<tr><td><ul><li>Platform knowledge built from the guide, with its glossary, and a generated tools reference</li><li>Knowledge as a place's own guide: pages in sections, the team's own properties, one gate, versions and recently deleted</li><li>The five knowledge tools, for the lead and workers alike; no knowledge folder in runs</li><li>Editing, deleting, restoring and history in the Knowledge tool</li><li>Places in a conversation: added by the person, the lead's reach limited to them; a change to how conversations work</li></ul></td>
+<td><ul><li>Ranking by meaning (embeddings, as memory has)</li><li>Server-side caching of search</li><li>Measuring how knowledge is used, as memory does</li><li>Organisation-wide knowledge</li><li>A "copy to project" action</li></ul></td></tr></table></div>
+
+<script>
+window.SRC = {
+l1: `flowchart LR
+  A["1 · Agent<br/>lead or worker"] -- "search / read_knowledge (platform:)" --> P["2 · Platform knowledge<br/>from docs/guide"]
+  A -- "search / read / save / edit / delete" --> T["3 · Knowledge tools<br/>in hq, this place only"]
+  T --> K["4 · Knowledge<br/>organisation, project, person"]
+  A -- "start_work: the conversation's places only" --> C["5 · places the<br/>person added"]
+  U["6 · Knowledge tool<br/>people"] --> T`
+}
+</script>
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

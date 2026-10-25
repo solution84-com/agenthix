@@ -77,3 +77,7 @@ and a run works in one boundary (adr-0060). Questions spanning projects are left
 > *(annotated 2026-10-18)* The person's own space is now *Your space* (`/space`), with its own entry in the navigation, and the Chat
 > page lists its conversations. The tools shown beside a conversation are no longer its place's: the conversation is
 > docked beside whatever page the person opens (adr-0128). A conversation still belongs to one place, as decided here.
+
+> *(annotated 2026-10-25)* What a conversation reaches beyond its place is bounded by adr-0152: its own place, the
+> organisation's knowledge, the platform guide, and the places its person added. It still belongs to one place, as
+> decided here.

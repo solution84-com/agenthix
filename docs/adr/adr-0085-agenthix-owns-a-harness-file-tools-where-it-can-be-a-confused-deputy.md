@@ -115,3 +115,7 @@ replaced.
 - adr-0081 — a harness runs the way its vendor intends; this record is where Agenthix departs from it
 - adr-0082 — a conversation acts with its current turn's authority
 - adr-0084 — an agent's skills are staged by Agenthix per turn
+
+> *(annotated 2026-10-25)* The harness-neutral part of these tools — the safe open and check, text reading, the
+> line-numbered read and the write — lives in `@agenthix/core/file-tools`, which the OpenCode plugin and the knowledge
+> tools both use (adr-0150). The plugin's OpenCode-shaped wrappers and its copied edit matching stay in the plugin.

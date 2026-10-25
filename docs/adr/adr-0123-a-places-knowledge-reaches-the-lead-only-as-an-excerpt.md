@@ -5,7 +5,7 @@ description: A place's knowledge stays its files on the place's site; hq never i
 
 # ADR-0123: A Place's Knowledge Reaches the Lead Only as an Excerpt, Never Indexed in hq
 
-**Status:** Accepted
+**Status:** Superseded by adr-0150
 
 ## Context
 

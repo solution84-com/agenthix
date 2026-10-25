@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge tool today · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-today.html"><main>
+<div class="top"><div><h1>U1 · The Knowledge tool today, numbered</h1>
+<p class="sub">As <code>KnowledgeTool.tsx</code> and <code>FileOpened.tsx</code> draw it on <code>main</code>. Today only; the boards after this one say what changes.</p></div></div>
+
+<h2 id="list">The list</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr"><div class="pnav" data-on="knowledge"></div>
+<div class="mcentre">
+<div class="crumb">Projects › Website rebuild › Knowledge</div>
+<div class="mh">Knowledge</div>
+<div class="preview"><span class="num">1</span>What is known here, filed by topic. Agents look things up here when they need to and add what they learn. Nothing here is read on every run: that is AGENTS.md.</div>
+<div class="row" style="margin:12px 0"><span class="num">2</span><div class="field grow" style="margin:0"><div class="in ph">Search knowledge</div></div><span class="num">3</span><span class="btn">Tag ▾</span></div>
+<div class="msec">Topics · 3</div>
+<div class="mcard"><span class="num">4</span><div class="b"><div class="t">Release process</div><div class="s">how we cut a release</div></div><span class="tag">2 days ago</span></div>
+<div class="mcard"><span class="num">4</span><div class="b"><div class="t">deploy.md</div><div class="s">staging and production</div></div><span class="tag">5 days ago</span></div>
+<div class="mcard"><span class="num">4</span><div class="b"><div class="t">notes-on-api.md</div><div class="s">&nbsp;</div></div><span class="tag">last week</span></div>
+</div></div></div>
+<table>
+<tr><td class="n">1</td><td>The note explains knowledge versus <code>AGENTS.md</code>. Your space has its own wording ("Only you see it…").</td></tr>
+<tr><td class="n">2</td><td>Search filters the list by title and summary, in the browser.</td></tr>
+<tr><td class="n">3</td><td>The Tag filter lists tags in use. <b>Always empty</b>: tags are never stored.</td></tr>
+<tr><td class="n">4</td><td>A row: title and summary guessed from <code>INDEX.md</code>, or the file name and nothing when the index doesn't name the file; when it changed. Newest first. <code>INDEX.md</code> itself is not listed.</td></tr></table></div>
+
+<h2 id="topic">A topic opened</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr"><div class="pnav" data-on="knowledge"></div>
+<div class="mcentre">
+<div class="crumb"><a>← Knowledge</a></div>
+<div class="row"><div class="mh grow">Release process</div><span class="num">5</span><span class="btn">Edit</span><span class="num">6</span><span class="btn">Mention</span><span class="btn">Download</span><span class="btn">⋯</span></div>
+<div class="ml">release.md · changed 2 days ago</div>
+<div class="preview" style="min-height:160px"><span class="num">7</span>Releases are cut from main on Thursdays. Staging deploys go out after the checks pass…</div>
+</div></div></div>
+<table>
+<tr><td class="n">5</td><td><b>Edit is a placeholder</b>: it toggles a state and nothing else.</td></tr>
+<tr><td class="n">6</td><td>Mention refers to the topic in a message; Download and the overflow menu work as for a file. No delete.</td></tr>
+<tr><td class="n">7</td><td>The topic shown as Markdown, read-only. No author, no history.</td></tr></table></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>
