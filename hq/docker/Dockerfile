@@ -155,7 +155,7 @@ RUN cd .wasp/out/server && npx prisma generate --schema='../db/schema.prisma'
 RUN cd .wasp/out/server && npm run bundle
 
 FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server
-RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3
+RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 ripgrep
 ENV NODE_ENV=production
 COPY --from=server-build /core /core
 COPY --from=server-build /ui /ui

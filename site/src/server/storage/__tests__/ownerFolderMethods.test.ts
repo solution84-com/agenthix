@@ -165,7 +165,7 @@ describe('the wire', () => {
     const listA: Record<keyof LocationListArtefactsParams, true> = { ownerType: true, ownerId: true }
     const readA: Record<keyof LocationReadArtefactParams, true> = { ownerType: true, ownerId: true, name: true, maxBytes: true }
     const listK: Record<keyof LocationListKnowledgeParams, true> = { ownerType: true, ownerId: true }
-    const readK: Record<keyof LocationReadKnowledgeParams, true> = { ownerType: true, ownerId: true, relPath: true, maxBytes: true }
+    const readK: Record<keyof LocationReadKnowledgeParams, true> = { ownerType: true, ownerId: true, relPath: true, maxBytes: true, versionId: true }
     const pairs: [{ shape: object }, object][] = [
       [listArtefactsParams, listA],
       [readArtefactParams, readA],
@@ -183,5 +183,36 @@ describe('the wire', () => {
       expect(readArtefactParams.safeParse({ ...owner, name, maxBytes: 10 }).success).toBe(false)
     }
     expect(readArtefactParams.safeParse({ ...owner, name: 'pricing-options.pdf', maxBytes: 10 }).success).toBe(true)
+  })
+})
+
+describe('the knowledge methods site protocol 1.7 added, before this site serves them', () => {
+  const gate = [
+    LOCATION_FILE_METHODS.writeKnowledge, LOCATION_FILE_METHODS.editKnowledge, LOCATION_FILE_METHODS.deleteKnowledge,
+    LOCATION_FILE_METHODS.restoreKnowledge, LOCATION_FILE_METHODS.knowledgeVersions,
+  ] as const
+
+  it.each(gate)('%s answers a fixed refusal, whatever it is sent', async (method) => {
+    for (const params of [{ ...owner, page: 'a.md', content: 'x', baseVersion: null }, { nonsense: true }, null]) {
+      const err = await channelMethods[method](params).then(() => null, (e: unknown) => e as LocationFileError)
+      expect(err).toBeInstanceOf(LocationFileError)
+      expect(err?.code).toBe('failed')
+      expect(err?.message).toContain(`${method}: this site can't do that yet`)
+      expect(err?.message).toMatch(/Nothing was changed\.$/)
+    }
+  })
+
+  it('refuses a Grep-form search the same way, and still answers the query form', async () => {
+    const search = channelMethods[LOCATION_FILE_METHODS.searchKnowledge]
+    const err = await search({ ...owner, query: 'release', maxChars: 1000, grep: { pattern: 'release' } })
+      .then(() => null, (e: unknown) => e as LocationFileError)
+    expect(err?.code).toBe('failed')
+    expect(err?.message).toContain("this site can't do that yet")
+    await expect(search({ ...owner, query: 'release', maxChars: 1000 })).resolves.toMatchObject({ excerpts: [] })
+  })
+
+  it('accepts no kept version on a read until it keeps versions', () => {
+    expect(readKnowledgeParams.safeParse({ ...owner, relPath: 'a.md', maxBytes: 10 }).success).toBe(true)
+    expect(readKnowledgeParams.safeParse({ ...owner, relPath: 'a.md', maxBytes: 10, versionId: 'v1' }).success).toBe(false)
   })
 })

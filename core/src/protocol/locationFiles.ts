@@ -41,9 +41,15 @@
  * ADR-0042 an Execution Site holds no identity store and has nothing to
  * re-derive entitlement from. What the site does check is that the resolved
  * path lands inside the named location, resolving symlinks, so a planted link
- * cannot walk out.
+ * cannot walk out. A knowledge change carries who made it, as a record the
+ * site keeps beside the version and never checks (`locationKnowledge.ts`).
  */
 import type { LocationRef, StorageOwnerType } from '../storage/locationRef.js'
+import type {
+  KnowledgeGrepParams, KnowledgeGrepResult, KnowledgePageListing, KnowledgeSection,
+} from './locationKnowledge.js'
+
+export * from './locationKnowledge.js'
 
 export const LOCATION_FILE_METHODS = {
   /** Control channel: the entries directly under a location, or under one directory inside it. */
@@ -74,15 +80,25 @@ export const LOCATION_FILE_METHODS = {
   listArtefacts: 'location.listArtefacts',
   /** Content transport: one artefact's bytes, addressed by its file name in `artefacts/`. */
   readArtefact: 'location.readArtefact',
-  /** Control channel: every topic file under an owner's `knowledge/` folder, at any depth. */
+  /** Control channel: an owner's knowledge sections and pages, each page with its index entry and problems. */
   listKnowledge: 'location.listKnowledge',
-  /** Content transport: one file's bytes from an owner's `knowledge/` folder. */
+  /** Content transport: one page's bytes, or one kept version's. */
   readKnowledge: 'location.readKnowledge',
   /**
-   * Control channel: a bounded excerpt of the owner's `knowledge/` files that match a query. Owner-addressed like
-   * the four above.
+   * Control channel: search an owner's knowledge pages with Grep's parameters, by ripgrep (since 1.7); before that,
+   * a bounded excerpt of the files matching a query. Owner-addressed like the four above.
    */
   searchKnowledge: 'location.searchKnowledge',
+  /** Control channel, the gate (1.7): a whole page written, carrying the version it started from. */
+  writeKnowledge: 'location.writeKnowledge',
+  /** Control channel, the gate (1.7): one passage of a page replaced. */
+  editKnowledge: 'location.editKnowledge',
+  /** Control channel, the gate (1.7): a page deleted (kept until pruned), or a page or version removed for good. */
+  deleteKnowledge: 'location.deleteKnowledge',
+  /** Control channel, the gate (1.7): a kept version saved back as the page. */
+  restoreKnowledge: 'location.restoreKnowledge',
+  /** Control channel (1.7): a page's kept versions, or the recently deleted pages. */
+  knowledgeVersions: 'location.knowledgeVersions',
 } as const
 
 export type LocationFileMethod = (typeof LOCATION_FILE_METHODS)[keyof typeof LOCATION_FILE_METHODS]
@@ -371,28 +387,42 @@ export interface LocationReadArtefactParams extends StorageOwnerRef {
 export type LocationListKnowledgeParams = StorageOwnerRef
 
 /**
- * Every regular file under `knowledge/`, at any depth up to
- * `KNOWLEDGE_LIST_MAX_DEPTH`, paths relative to `knowledge/`. Hidden entries
- * and links are not listed; `INDEX.md` is, and hq reads it for the titles.
+ * An owner's knowledge, up to `KNOWLEDGE_LIST_MAX_FILES` pages and
+ * `KNOWLEDGE_LIST_MAX_DEPTH` deep. Hidden entries and links are not listed.
+ * Since 1.7 a site answers `sections` and `pages`, each page with its index
+ * entry and its problems; `files` stays for hq on 1.6, the same pages' paths.
  */
 export interface LocationListKnowledgeResult {
+  /** @deprecated since 1.7; stops working in 3.0. Use `pages` instead. */
   files: OwnerFolderFile[]
   truncated: boolean
-}
-
-/** One file under `knowledge/`, by its path relative to it. `maxBytes` as for an artefact. */
-export interface LocationReadKnowledgeParams extends StorageOwnerRef {
-  relPath: string
-  maxBytes: number
+  sections?: KnowledgeSection[]
+  pages?: KnowledgePageListing[]
 }
 
 /**
- * Search an owner's `knowledge/`: the query is split into terms and the best matching lines come back with a few
- * lines of context, overlapping ranges merged, `INDEX.md` first, until `maxChars` of text is reached.
+ * One page, by its path inside the owner's knowledge pages, or with
+ * `versionId` one of its kept versions (a deleted page's included).
+ * `maxBytes` as for an artefact.
+ */
+export interface LocationReadKnowledgeParams extends StorageOwnerRef {
+  relPath: string
+  maxBytes: number
+  versionId?: string
+}
+
+/**
+ * Search an owner's knowledge. Since 1.7, with `grep`, the site runs ripgrep with Grep's parameters and answers in
+ * `grep`; it then ignores `query` and `maxChars`, which hq still fills (the pattern, and its size cap) so that a site
+ * on 1.6 answers the old way: the query split into terms, the best matching lines with a few lines of context,
+ * until `maxChars` of text.
  */
 export interface LocationSearchKnowledgeParams extends StorageOwnerRef {
+  /** @deprecated since 1.7; stops working in 3.0. Use `grep` instead. */
   query: string
+  /** @deprecated since 1.7; stops working in 3.0. Use `grep` instead. */
   maxChars: number
+  grep?: KnowledgeGrepParams
 }
 
 /** A run of lines from one knowledge file, 1-based and inclusive, paths relative to `knowledge/`. */
@@ -403,10 +433,13 @@ export interface KnowledgeSearchExcerpt {
   text: string
 }
 
+/** A site on 1.7 answers a `grep` search in `grep`, with the three older fields empty. */
 export interface LocationSearchKnowledgeResult {
+  /** @deprecated since 1.7; stops working in 3.0. Use `grep` instead. */
   excerpts: KnowledgeSearchExcerpt[]
-  /** Files with matches the budget left out. */
+  /** @deprecated since 1.7; stops working in 3.0. Use `grep` instead. */
   cut: string[]
   /** The site stopped reading files at the listing bound, so matches may be missing. */
   truncated: boolean
+  grep?: KnowledgeGrepResult
 }

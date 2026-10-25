@@ -4,12 +4,15 @@
  * Single source of truth for all system MCP tool identifiers, organised by
  * domain group — matching the canonical tool reference in docs/domains/tools/tools.md.
  *
- * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW
+ * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW,
+ * KNOWLEDGE, PLACE
  *
  * Access tiers (cross-cutting):
  *   ALWAYS_INJECTED  — PLATFORM tools + task execution lifecycle; never user-configurable
  *   DEFAULT_ON       — included when allowedTools is null
  *   ADMINISTRATIVE   — off by default; must be explicitly granted
+ *
+ * A group in no tier is defined, not offered: KNOWLEDGE and PLACE, until they are served.
  *
  * Tool names are stored and passed around in our raw format (e.g. 'create_task').
  * Runtime adapters are responsible for translating to their own naming scheme.
@@ -147,6 +150,23 @@ export const SYSTEM_MCP_TOOLS = {
     WORKFLOW_RUN:     WORKFLOW_TOOL_NAMES.runState,
   },
 
+  /**
+   * Knowledge at every level, shaped like the native Grep, Read, Write and Edit (agent knowledge spec, part 3).
+   * Defined, not offered: in no tier below, so no run or lead is given them until they are served.
+   */
+  KNOWLEDGE: {
+    SEARCH_KNOWLEDGE: 'search_knowledge',
+    READ_KNOWLEDGE:   'read_knowledge',
+    WRITE_KNOWLEDGE:  'write_knowledge',
+    EDIT_KNOWLEDGE:   'edit_knowledge',
+    DELETE_KNOWLEDGE: 'delete_knowledge',
+  },
+
+  /** The lead asking the person to add a place to its conversation (agent knowledge spec, part 4). Not offered yet. */
+  PLACE: {
+    SUGGEST_PLACE: 'suggest_place',
+  },
+
 } as const
 
 // ── Access tier views ─────────────────────────────────────────────────────────
@@ -246,3 +266,5 @@ export type SystemMcpTool =
   | typeof SYSTEM_MCP_TOOLS.LIBRARY[keyof typeof SYSTEM_MCP_TOOLS.LIBRARY]
   | typeof SYSTEM_MCP_TOOLS.GIT[keyof typeof SYSTEM_MCP_TOOLS.GIT]
   | typeof SYSTEM_MCP_TOOLS.MEMORY[keyof typeof SYSTEM_MCP_TOOLS.MEMORY]
+  | typeof SYSTEM_MCP_TOOLS.KNOWLEDGE[keyof typeof SYSTEM_MCP_TOOLS.KNOWLEDGE]
+  | typeof SYSTEM_MCP_TOOLS.PLACE[keyof typeof SYSTEM_MCP_TOOLS.PLACE]

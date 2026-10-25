@@ -38,6 +38,8 @@ import type {
   LocationReadArtefactParams, LocationReadFileParams, LocationReadKnowledgeParams, LocationRemoveParams,
   LocationRemoveResult, LocationSearchKnowledgeParams, LocationSearchKnowledgeResult, LocationSeedFilesParams,
   LocationSeedFilesResult, LocationStatFileParams, LocationStatFileResult,
+  KnowledgeChangeResult, LocationDeleteKnowledgeParams, LocationEditKnowledgeParams, LocationKnowledgeVersionsParams,
+  LocationKnowledgeVersionsResult, LocationRestoreKnowledgeParams, LocationWriteKnowledgeParams,
 } from './locationFiles.js'
 import { REPO_WORK_METHODS } from './repoWork.js'
 import type { RepoConnectParams, RepoConnectResult, RepoStateParams, RepoStateResult } from './repoWork.js'
@@ -129,6 +131,11 @@ export type SiteMethods = {
   [LOCATION_FILE_METHODS.listArtefacts]: { params: LocationListArtefactsParams; result: LocationListArtefactsResult }
   [LOCATION_FILE_METHODS.listKnowledge]: { params: LocationListKnowledgeParams; result: LocationListKnowledgeResult }
   [LOCATION_FILE_METHODS.searchKnowledge]: { params: LocationSearchKnowledgeParams; result: LocationSearchKnowledgeResult }
+  [LOCATION_FILE_METHODS.writeKnowledge]: { params: LocationWriteKnowledgeParams; result: KnowledgeChangeResult }
+  [LOCATION_FILE_METHODS.editKnowledge]: { params: LocationEditKnowledgeParams; result: KnowledgeChangeResult }
+  [LOCATION_FILE_METHODS.deleteKnowledge]: { params: LocationDeleteKnowledgeParams; result: KnowledgeChangeResult }
+  [LOCATION_FILE_METHODS.restoreKnowledge]: { params: LocationRestoreKnowledgeParams; result: KnowledgeChangeResult }
+  [LOCATION_FILE_METHODS.knowledgeVersions]: { params: LocationKnowledgeVersionsParams; result: LocationKnowledgeVersionsResult }
 
   [REPO_WORK_METHODS.connect]: { params: RepoConnectParams; result: RepoConnectResult }
   [REPO_WORK_METHODS.state]: { params: RepoStateParams; result: RepoStateResult }

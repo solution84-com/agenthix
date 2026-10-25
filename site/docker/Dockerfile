@@ -24,7 +24,7 @@ RUN cd site && npm run build \
  && node node_modules/prisma/build/index.js generate
 
 FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server
-RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 docker-cli su-exec
+RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 docker-cli su-exec ripgrep
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /repo/site/node_modules ./node_modules

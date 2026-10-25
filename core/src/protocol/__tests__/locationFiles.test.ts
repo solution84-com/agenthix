@@ -21,6 +21,9 @@ import {
   LocationFileError,
   encodeLocationFileError,
   decodeLocationFileError,
+  type LocationEditKnowledgeParams,
+  type LocationSearchKnowledgeParams,
+  type LocationWriteKnowledgeParams,
 } from '../locationFiles.js'
 
 describe('the error vocabulary', () => {
@@ -120,5 +123,39 @@ describe("an owner's artefacts and knowledge @SC-760", () => {
 describe('location.searchKnowledge @SC-1017', () => {
   it('is a method of its own', () => {
     expect(LOCATION_FILE_METHODS.searchKnowledge).toBe('location.searchKnowledge')
+  })
+})
+
+describe('the knowledge gate and history (1.7)', () => {
+  it('are methods of their own, under the location. prefix @SC-1382', () => {
+    expect(LOCATION_FILE_METHODS.writeKnowledge).toBe('location.writeKnowledge')
+    expect(LOCATION_FILE_METHODS.editKnowledge).toBe('location.editKnowledge')
+    expect(LOCATION_FILE_METHODS.deleteKnowledge).toBe('location.deleteKnowledge')
+    expect(LOCATION_FILE_METHODS.restoreKnowledge).toBe('location.restoreKnowledge')
+    expect(LOCATION_FILE_METHODS.knowledgeVersions).toBe('location.knowledgeVersions')
+    const names = Object.values(LOCATION_FILE_METHODS)
+    expect(new Set(names).size).toBe(names.length)
+  })
+
+  it('carry no one\'s identity: who made a change is hq\'s record, not the site\'s @SC-1382', () => {
+    const write: LocationWriteKnowledgeParams = {
+      ownerType: 'project', ownerId: '42', page: 'processes/release.md', content: '---\n', baseVersion: null,
+    }
+    const edit: LocationEditKnowledgeParams = {
+      ownerType: 'project', ownerId: '42', page: 'processes/release.md', old_string: 'a', new_string: 'b',
+    }
+    // @ts-expect-error a change carries no author
+    const withAuthor: LocationWriteKnowledgeParams = { ...write, by: { kind: 'person', userId: 'u7' } }
+    void withAuthor
+    expect(Object.keys(write)).not.toContain('by')
+    expect(Object.keys(edit)).not.toContain('by')
+  })
+
+  it('keep the query form beside the Grep form, so a site on 1.6 still answers @SC-1017', () => {
+    const search: LocationSearchKnowledgeParams = {
+      ownerType: 'user', ownerId: '7', query: 'staging approv', maxChars: 8000,
+      grep: { pattern: 'staging.*(approv|sign.?off)', '-n': true, output_mode: 'content' },
+    }
+    expect(search.grep?.pattern).toContain('staging')
   })
 })

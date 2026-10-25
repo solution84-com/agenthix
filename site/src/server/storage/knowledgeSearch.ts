@@ -20,7 +20,7 @@ import {
   type LocationSearchKnowledgeResult,
 } from '@agenthix/core'
 import { openInOwnerFolder, parseParams } from './locationContainment'
-import { listKnowledge } from './ownerFolderMethods'
+import { knowledgeNotServedYet, listKnowledge } from './ownerFolderMethods'
 
 export const searchKnowledgeParams = z
   .object({
@@ -28,6 +28,9 @@ export const searchKnowledgeParams = z
     ownerId: z.string().min(1),
     query: z.string(),
     maxChars: z.number().int().nonnegative(),
+    // Grep's form (site protocol 1.7), accepted and refused below until this site runs ripgrep. Its fields are not
+    // read here, so they are taken as they come; the refusal happens before any of them could matter.
+    grep: z.object({ pattern: z.string() }).passthrough().optional() as z.ZodType<LocationSearchKnowledgeParams['grep']>,
   })
 
 const _wireMirrorsCore: Exact<z.infer<typeof searchKnowledgeParams>, LocationSearchKnowledgeParams> = true
@@ -164,6 +167,7 @@ async function readKnowledgeText(owner: LocationSearchKnowledgeParams, relPath: 
 export async function searchKnowledge(params: unknown): Promise<LocationSearchKnowledgeResult> {
   const method = LOCATION_FILE_METHODS.searchKnowledge
   const parsed = parseParams(searchKnowledgeParams, params, method)
+  if (parsed.grep !== undefined) knowledgeNotServedYet(method)
   const terms = queryTerms(parsed.query)
   const { files, truncated } = await listKnowledge({ ownerType: parsed.ownerType, ownerId: parsed.ownerId })
   if (!terms.length) return { excerpts: [], cut: [], truncated }

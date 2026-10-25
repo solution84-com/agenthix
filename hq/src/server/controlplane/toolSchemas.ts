@@ -456,3 +456,9 @@ export const ALL_CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   // Data-path-only too, built from core's declarations as the site's copy is (workflows/agentToolsSchemas.ts).
   ...WORKFLOW_TOOL_SCHEMAS,
 ]
+
+/**
+ * The knowledge tools and `suggest_place` (agent knowledge spec, parts 3 and 4): defined, and deliberately in none of
+ * the lists above, so nothing offers them until they are served (knowledgeToolSchemas.ts).
+ */
+export { KNOWLEDGE_TOOLS, PLACE_TOOLS } from './knowledgeToolSchemas'

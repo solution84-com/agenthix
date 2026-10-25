@@ -58,8 +58,17 @@ export const listArtefactsParams = z.object(ownerShape)
 export const readArtefactParams = z
   .object({ ...ownerShape, name: artefactName, maxBytes: z.number().int().nonnegative() })
 export const listKnowledgeParams = z.object(ownerShape)
+/**
+ * `versionId` (a kept version, site protocol 1.7) is accepted on the wire but refused until this site keeps
+ * versions: reading the page itself in its place would answer something other than what was asked.
+ */
 export const readKnowledgeParams = z
-  .object({ ...ownerShape, relPath: z.string().min(1), maxBytes: z.number().int().nonnegative() })
+  .object({
+    ...ownerShape,
+    relPath: z.string().min(1),
+    maxBytes: z.number().int().nonnegative(),
+    versionId: z.string().min(1).optional().refine((v): boolean => v === undefined),
+  })
 
 /** Pinned against core's types, as `./locationFileMethods.ts` pins its own. */
 const _wireMirrorsCore: [
@@ -69,6 +78,23 @@ const _wireMirrorsCore: [
   Exact<z.infer<typeof readKnowledgeParams>, LocationReadKnowledgeParams>,
 ] = [true, true, true, true]
 void _wireMirrorsCore
+
+/**
+ * The answer, for now, to the knowledge methods site protocol 1.7 added — the gate's changes, versions, and a
+ * Grep-shaped search — which this site does not serve yet. A fixed refusal, before anything is read or written.
+ */
+export function knowledgeNotServedYet(method: string): never {
+  throw new LocationFileError(
+    'failed',
+    `${method}: this site can't do that yet; it needs a release that serves knowledge changes. Nothing was changed.`,
+  )
+}
+
+export const writeKnowledge = async (_params: unknown): Promise<never> => knowledgeNotServedYet(LOCATION_FILE_METHODS.writeKnowledge)
+export const editKnowledge = async (_params: unknown): Promise<never> => knowledgeNotServedYet(LOCATION_FILE_METHODS.editKnowledge)
+export const deleteKnowledge = async (_params: unknown): Promise<never> => knowledgeNotServedYet(LOCATION_FILE_METHODS.deleteKnowledge)
+export const restoreKnowledge = async (_params: unknown): Promise<never> => knowledgeNotServedYet(LOCATION_FILE_METHODS.restoreKnowledge)
+export const knowledgeVersions = async (_params: unknown): Promise<never> => knowledgeNotServedYet(LOCATION_FILE_METHODS.knowledgeVersions)
 
 function newestFirst(a: OwnerFolderFile, b: OwnerFolderFile): number {
   return b.modifiedAt.localeCompare(a.modifiedAt) || a.path.localeCompare(b.path)
