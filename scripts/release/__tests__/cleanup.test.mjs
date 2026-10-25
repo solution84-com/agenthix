@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { planDeletions, recordedDigests } from '../cleanup.mjs'
+import { imageNames, planDeletions, recordedDigests } from '../cleanup.mjs'
 
 const now = Date.parse('2026-10-24T00:00:00Z')
 const d = c => `sha256:${c.repeat(64)}`
@@ -39,4 +39,9 @@ test('a kept index keeps its platform images, and a kept image its signatures an
 test('an image whose manifest cannot be read is kept; one that a kept image needs and cannot be read stops everything @SC-1272', () => {
   assert.deepEqual(plan([v(d('1'), [], 200)], { manifests: { [d('1')]: null } }), [])
   assert.throws(() => plan([v(d('i'), ['1.0.0'], 200)], { manifests: { [d('i')]: null } }), /Nothing is deleted/)
+})
+
+test('the images are the parts\' names, each a bare registry name, and nothing else is accepted', () => {
+  assert.deepEqual(imageNames('{"host":"agenthix-host","agent":"agenthix-agent"}'), ['agenthix-host', 'agenthix-agent'])
+  for (const bad of [undefined, '{}', '[]', '{"host":"../etc"}', '{"host":"Agenthix/Host"}']) assert.throws(() => imageNames(bad))
 })

@@ -44,10 +44,30 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # As the release build works them out: the workflow's token is refused a listing of the owner's packages, so
+      # each image is asked for by its name.
+      - name: Image names, from the branding module
+        id: names
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          cd host && npm ci --no-audit --no-fund
+          # Bundled first, as host's build does: core's built output uses imports Node's own loader refuses.
+          node --input-type=module >> "$GITHUB_OUTPUT" <<'EOF'
+          import { build } from 'esbuild'
+          const out = await build({
+            stdin: { contents: "export { imageName } from '@agenthix/core'", resolveDir: '.' },
+            bundle: true, platform: 'node', format: 'esm', write: false,
+          })
+          const { imageName } = await import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`)
+          const { readFileSync } = await import('node:fs')
+          const parts = Object.keys(JSON.parse(readFileSync('../scripts/images/parts.json', 'utf8')).parts)
+          console.log(`names=${JSON.stringify(Object.fromEntries(parts.map(p => [p, imageName(p)])))}`)
+          EOF
       - name: The plan
         id: plan
         env:
           GH_TOKEN: ${{ github.token }}
+          IMAGE_NAMES: ${{ steps.names.outputs.names }}
           DRY_RUN: ${{ github.event_name != 'schedule' && inputs.dry_run }}
         run: |
           node --test scripts/release/__tests__/cleanup.test.mjs
