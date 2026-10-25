@@ -10,7 +10,7 @@ A program is a strategic initiative with a defined outcome — a goal that multi
 
 Programs are cross-cutting by nature. While a product is a vertical slice ("what we build"), a program is a horizontal slice ("what we're trying to achieve"). A single program may involve projects from several different products.
 
-Like products, programs are entirely optional, and like them they only group: a program owns no files, workspaces, members, wiki or runs, and filing a project under one grants nobody anything ([ADR-0061](../../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md)). Storage belongs to a project or a person ([workspace.md](../workspace/workspace.md)). Organisation › Programs is the same screen as Products: the list beside the one opened, which shows the programme's goal (its description) and its projects. A programme has no end date yet. Creating, changing and deleting a program, and filing a project under one, take an org admin (`hq/src/products/actions.ts`).
+Like products, programs are entirely optional, and like them they only group: a program owns no files, workspaces, members, knowledge or runs, and filing a project under one grants nobody anything ([ADR-0061](../../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md)). Storage belongs to a project or a person ([workspace.md](../workspace/workspace.md)). Organisation › Programs is the same screen as Products: the list beside the one opened, which shows the programme's goal (its description) and its projects. A programme has no end date yet. Creating, changing and deleting a program, and filing a project under one, take an org admin (`hq/src/products/actions.ts`).
 
 ---
 

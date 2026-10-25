@@ -26,6 +26,11 @@ function mcpOk(data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] }
 }
 
+/** A tool that answers text, as the native Grep and Read do: given to the agent as it is. */
+function mcpText(data: unknown) {
+  return typeof data === 'string' ? { content: [{ type: 'text' as const, text: data }] } : mcpOk(data)
+}
+
 function mcpError(message: string) {
   return {
     content: [{ type: 'text' as const, text: JSON.stringify({ error: message }) }],
@@ -117,7 +122,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): McpServer {
       const sent = tool.runIdFromCaller ? { ...(args as Record<string, unknown>), runId: callingRunId } : args
       try {
         const result = await callHqData(name, sent, opts.capabilityJwt)
-        return mcpOk(result)
+        return tool.textResult ? mcpText(result) : mcpOk(result)
       } catch (e) {
         if (e instanceof HqDataError) return mcpError(e.message)
         throw e

@@ -29,7 +29,7 @@
 // OpenCode calls every export of this module as a plugin, so it exports this one alone.
 import { OPENCODE_PLUGIN_CONFIG_ENV, parseOpenCodePluginConfig } from '@agenthix/core'
 import type { Plugin } from '@opencode-ai/plugin'
-import { procFdPaths } from './files/verifiedFs'
+import { procFdPaths } from '@agenthix/core/file-tools'
 import { agenthixHooks } from './plugin'
 import { siteClient } from './site'
 

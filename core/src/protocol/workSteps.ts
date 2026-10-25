@@ -130,6 +130,12 @@ const SPECS: Record<string, Spec> = {
   stop_processes: { kind: 'ran', verb: 'Stopped', noun: null, ask: 'Stop its processes', text: () => 'its processes' },
   ping: { kind: 'other', verb: 'Checked', noun: null, ask: 'Check the connection', text: () => 'the connection' },
   get_site_info: looked('Looked at', 'site', 'Read the site', () => 'the site'),
+  // A knowledge page is named with its level (`website-rebuild:processes/release.md`), as the agent read it.
+  search_knowledge: looked('Searched knowledge for', 'search', 'Search knowledge', a => quoted(str(a.pattern))),
+  read_knowledge: looked('Read the page', 'page', 'Read knowledge', a => str(a.page)),
+  write_knowledge: changed('Wrote the page', 'page', 'Write knowledge pages', a => str(a.page)),
+  edit_knowledge: changed('Edited the page', 'page', 'Edit knowledge pages', a => str(a.page)),
+  delete_knowledge: changed('Deleted the page', 'page', 'Delete knowledge pages', a => str(a.page)),
 }
 
 /** Harness names for the same tools. */

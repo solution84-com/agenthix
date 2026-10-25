@@ -296,19 +296,6 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
 
     for (let step = 0; step < deps.maxSteps; step++) {
       mode = stepMode({ step, maxSteps: deps.maxSteps, lookups: stepLog.count(), moveAfter: deps.moveAfterSteps, canMove })
-      if (mode === 'move' && background) {
-        const moved = await moveToBackground({
-          capability, inputIds: claimed.inputIds, found, sources: background, runStep: calls => runStep(calls, deps.now()),
-        })
-        if (signal.aborted) throw new ModelCallError('cancelled', 'The reply was stopped.')
-        if (moved) {
-          if (text && !text.endsWith('\n')) stream('\n\n')
-          stream(MOVED_TO_BACKGROUND)
-          return await end('COMPLETED', null)
-        }
-        canMove = false
-        mode = 'words'
-      }
       if (mode === 'words' && step > 0) messages.push(wordsNote())
       const calls: { id: string; name: string; input: unknown }[] = []
       let stepText = ''
@@ -337,6 +324,22 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
       }
       // A words-only step that asks for tools anyway is not followed: the reply ends with what it said.
       if (calls.length === 0 || mode === 'words') break
+      // Past the lookups a reply may take, more tools are hq's to start in the background, not run here; work the
+      // model starts itself runs as asked.
+      if (mode === 'move' && background && !calls.every(c => STARTS_WORK.has(c.name))) {
+        const moved = await moveToBackground({
+          capability, inputIds: claimed.inputIds, found, sources: background, runStep: calls => runStep(calls, deps.now()),
+        })
+        if (signal.aborted) throw new ModelCallError('cancelled', 'The reply was stopped.')
+        if (moved) {
+          if (text && !text.endsWith('\n')) stream('\n\n')
+          stream(MOVED_TO_BACKGROUND)
+          return await end('COMPLETED', null)
+        }
+        canMove = false
+        if (stepText) messages.push({ role: 'assistant', content: stepText })
+        continue
+      }
       messages.push({ role: 'assistant', content: stepText, toolCalls: calls })
       const done = await runStep(calls, askedAt)
       for (const { call, outcome } of done) messages.push({ role: 'tool', toolCallId: call.id, toolName: call.name, result: forModel(outcome) })

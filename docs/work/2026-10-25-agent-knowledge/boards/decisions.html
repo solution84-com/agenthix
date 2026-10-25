@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Questions and decisions · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="decisions.html"><main>
+<div class="top"><div><h1>Questions and decisions</h1>
+<p class="sub">The questions raised while designing, how each was decided, and the defaults the design applies. The spec is written from these boards.</p></div></div>
+
+<h2 id="status">Status</h2>
+<div class="box"><ul>
+<li><b>Boards:</b> architecture 1–7; the Knowledge tool U1–U5; in a conversation C1–C3. Designed 24–25 Oct 2026; every question answered.</li>
+<li><b>Today</b> (boards 1 and U1) is read from <code>main</code> at 68bab23b.</li></ul></div>
+
+<h2 id="open">Open questions</h2>
+<div class="box"><p><b>None.</b> Every question is answered; see Decided.</p></div>
+
+<h2 id="decided">Decided</h2>
+<div class="box"><table><tr><th></th><th>Decision</th><th>When</th></tr>
+<tr><td class="n" id="q1">Q1</td><td><b>One way in for every agent, no skill.</b></td><td>25 Oct</td></tr>
+<tr><td class="n" id="q1b">Q1b</td><td><b>Search is a grep</b> (option C): a regular-expression search and a read, the same for the lead and workers; chosen for consistency and an answer in the same turn. Rejected: word matching (weak), handing the question to a worker (a container and a second model run), the glossary in every prompt (tokens on every turn), search by meaning (later, on top). Run safely: board 3, S1–S8.</td><td>25 Oct</td></tr>
+<tr><td class="n" id="q2">Q2</td><td><b>Agents reach knowledge only through the knowledge tools</b>: no knowledge folder in runs; the tools are shaped like the native ones and run on universal file tools. Settled while drawing boards 4–5.</td><td>25 Oct</td></tr>
+<tr><td class="n" id="q4">Q4</td><td><b>Who may edit a project's knowledge:</b> anyone who may change the project's files (<code>assertLocationAccess(…, 'write')</code>), the same people who can change its <code>AGENTS.md</code>. The same for a person's own space: the person.</td><td>25 Oct</td></tr>
+<tr><td class="n" id="q5">Q5</td><td><b>Who may change organisation knowledge:</b> organisation admins, and agents acting for one (the person a turn answers, or a run is for, is an organisation admin). Every member and every agent reads it.</td><td>25 Oct</td></tr></table></div>
+
+<h2 id="defaults">Recommended defaults</h2>
+<div class="box"><table>
+<tr><th></th><th>Decision</th><th>Board</th></tr>
+<tr><td class="n">D1</td><td>Platform knowledge is the user guide (<code>docs/guide/</code>), not the concepts docs; nothing is written twice.</td><td>3</td></tr>
+<tr><td class="n">D2</td><td>A new guide page, <i>Glossary</i>, lists each word, where it is (with its hq address), and what else people call it. The guide's rules gain: new words go in it.</td><td>3</td></tr>
+<tr><td class="n">D3</td><td>A tools reference is generated from hq's tool registry at build; never hand-written.</td><td>3</td></tr>
+<tr><td class="n">D4</td><td>Built by a stage of hq's image (the release rehearsal and the Release build make it; hq's dev start runs it too) into <code>hq/assets/platform-guide/</code>, which hq serves. hq's image parts gain <code>docs/guide/</code> as an input, and a guide change selects hq's checks.</td><td>3</td></tr>
+<tr><td class="n">D5</td><td>Nothing about platform knowledge in the prompt. When to look it up is <code>search_knowledge</code>'s description; "the guide grants nothing" heads every result. Revisited if V1 fails.</td><td>3, 7</td></tr>
+<tr><td class="n">D6</td><td>Knowledge is a place's own guide: anything shared across the project's workspaces (processes, decisions, reference), not opinionated. Pages are Markdown in any sections; front matter <code>title</code>, <code>description</code>, <code>tags</code>, plus any properties of the team's own (<code>status</code>, <code>date</code>…). No <code>INDEX.md</code>; old folders ignored.</td><td>4</td></tr>
+<tr><td class="n">D7</td><td>Limits: title 120, description 300, 8 tags, 20 properties, 64 KB a page, sections 8 deep, 2,000 pages. No attachments: pages link to Files.</td><td>4</td></tr>
+<tr><td class="n">D8</td><td>One gate for every change, agent or person: applied to the current page, the result checked (problems listed), a changed page refused, swapped in by one rename, who recorded. No drafts.</td><td>4</td></tr>
+<tr><td class="n">D9</td><td>Versions are whole earlier pages: 30 days and the last 20 always; deleted pages 30 days; 200 MB per place; delete permanently at once. Not git.</td><td>4, U4</td></tr>
+<tr><td class="n">D10</td><td>Five tools (<code>search_knowledge</code>, <code>read_knowledge</code>, <code>write_knowledge</code>, <code>edit_knowledge</code>, <code>delete_knowledge</code>), the same for the lead and workers, with no place parameter. No list tool: an empty search gives the sections and tags; results come 50 at a time.</td><td>5</td></tr>
+<tr><td class="n">D11</td><td><code>recall</code> stops searching knowledge.</td><td>5</td></tr>
+<tr><td class="n">D12</td><td><code>search_knowledge</code> runs <b>ripgrep</b> on every level, the program Claude Code's Grep runs, with S1–S8 from the same <code>core</code> module (the site's and hq's images gain the <code>ripgrep</code> package). RE2 dropped: ripgrep's engine has the same protection against runaway patterns. Ranking by meaning waits. The rules for writing a page are the tools' descriptions and refusals, not a skill (the lead has no skill loader); a team's own conventions go in its <code>AGENTS.md</code>.</td><td>5, 7</td></tr>
+<tr><td class="n">D13</td><td>Agents change knowledge when a person asks or corrects a page; no approval step; Undo in the conversation.</td><td>C1</td></tr>
+<tr><td class="n">D14</td><td><b>No check on briefs; the person sets the blast radius.</b> A conversation reaches its own place, the organisation and the guide; other places only when the person adds them (C3, like Claude Code's additional directories). <code>start_work</code> and the knowledge tools reach only the conversation's places; the lead may suggest a place, never add one. Fingerprinting rejected as too complicated. Part of this unit, though it changes conversations.</td><td>6, C3</td></tr>
+<tr><td class="n">D15</td><td>Answers about Agenthix link to the screen in hq, not to the website.</td><td>C2</td></tr>
+<tr><td class="n">D16</td><td>Out of this unit: caching, ranking by meaning, usage measurement, organisation-wide knowledge, copy to project, review of agent-written skills.</td><td>7</td></tr>
+<tr><td class="n">D17</td><td>No product name in identifiers, so a rebrand changes no code: the guide is the <code>platform:</code> level of the knowledge tools, its files <code>hq/assets/platform-guide/</code>. The product name appears only in text people read.</td><td>3</td></tr>
+<tr><td class="n">D18</td><td>Every knowledge and guide tool is shaped exactly like the native tool agents are trained on: <code>search_*</code> like Grep, <code>read_*</code> like Read (lines, <code>offset</code>, <code>limit</code>), <code>write_knowledge</code> like Write (the whole Markdown, read first), <code>edit_knowledge</code> like Edit (<code>old_string</code>, <code>new_string</code>, <code>replace_all</code>; exact match). Built on Agenthix's own file tools (ADR-0085), lifted into <code>core</code>; the OpenCode plugin keeps its own shape on the same module.</td><td>3, 5</td></tr>
+<tr><td class="n">D19</td><td>Universal file tools underneath, lifted from the OpenCode plugin's own file tools (ADR-0085) and extended: <code>@agenthix/core/file-tools</code> (node-only) holds grep (ripgrep), read, applyEdit and write over any root folder, with the guards S1–S8 built in. The knowledge and guide tools are thin wrappers that pick the root, and the gate for knowledge changes. Ready for a runtime of our own later.</td><td>5</td></tr>
+<tr><td class="n">D20</td><td>Four levels: platform guide, organisation, project, person (a person's space and personal projects work exactly like a project). Organisation knowledge is stored like a project's, on the organisation's default site, placed at first use as a person's storage is. Tools take <code>scope: "place" | "org"</code>; search covers both by default. Pages link to each other: relative links between pages, broken links listed as problems, "Linked from" on a page.</td><td>4, 5, U3, U5</td></tr>
+<tr><td class="n">D21</td><td><b>One search over every level.</b> <code>search_knowledge</code> covers this place, the organisation and the platform guide at once; each hit is marked <code>place:</code>, <code>org:</code> or <code>platform:</code>, which is also the page's name for <code>read_knowledge</code>; <code>scope</code> only narrows. The most specific wins: place, organisation, platform. No separate guide tools; the prompt's Knowledge section is five lines.</td></tr></table></div>
+
+<h2 id="notes">Notes for the spec</h2>
+<div class="box"><ul>
+<li><b>Decision records:</b> where platform knowledge comes from and how it reaches agents (D1–D5, D21); knowledge reached only through tools shaped like the native ones, on universal file tools (Q2, D18, D19); a conversation's places are added by the person (D14).</li>
+<li><b>A protocol change:</b> new channel methods for writing, editing, deleting, restoring and versions, and a changed search (board 5): a new minor version under the versioning rules.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

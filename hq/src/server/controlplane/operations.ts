@@ -12,6 +12,7 @@ import * as runtimeOps from './runtimeOps'
 import * as memoryOps from './memoryOps'
 import * as activeRunsOps from './activeRunsOp'
 import * as resultOps from './resultOps'
+import * as knowledgeOps from './knowledgeOps'
 import { WORKFLOW_TOOL_OPERATIONS } from '../../workflows/agentTools'
 import { ControlPlaneError, type CallerContext } from './types'
 import { requireConnectionGroup } from './connectionGroups'
@@ -84,6 +85,12 @@ export const operations: Record<string, (ctx: CallerContext, args: any) => Promi
   recall: memoryOps.recallOp,
   // a run's result (workers and results spec) — data-path-only: only a run states one
   set_result: resultOps.setResultOp,
+  // knowledge (agent knowledge spec, part 3) — data-path-only: a run's reach is its capability's (knowledgeOps.ts)
+  search_knowledge: knowledgeOps.searchKnowledgeOp,
+  read_knowledge: knowledgeOps.readKnowledgeOp,
+  write_knowledge: knowledgeOps.writeKnowledgeOp,
+  edit_knowledge: knowledgeOps.editKnowledgeOp,
+  delete_knowledge: knowledgeOps.deleteKnowledgeOp,
   // workflows (adr-0148) — data-path-only: an agent's run lists, proposes and runs its place's workflows
   ...WORKFLOW_TOOL_OPERATIONS,
 }

@@ -15,10 +15,12 @@ export function buildAgentIdentityContent(agent: AgentLike): string {
 }
 
 const KNOWLEDGE_GUIDANCE =
-  'The `knowledge` directory (listed under Filesystem when mounted) is the team\'s: a project\'s own, or the ' +
-  'person\'s own space. Read its `INDEX.md` first, then the topic files it points to. Edit it only when ' +
-  'someone asks you to; what you learn yourself belongs in memory. Each tree is readable only inside its ' +
-  'own boundary — using a person\'s knowledge in a project means deliberately copying it there.'
+  '## Knowledge\n\n' +
+  '`search_knowledge` finds how things are done here and how ' +
+  BRANDING.displayName +
+  ' itself works, in one search, across the ' +
+  'places in this conversation. Look there before asking. Where pages differ, the most specific wins: a place, ' +
+  'then the organisation, then the platform guide. What you learn on your own belongs in memory.'
 
 /**
  * Memory is held by hq and recalled by meaning (memory and knowledge spec): none of it arrives whole in the

@@ -6,7 +6,9 @@ sidebar:
 ---
 
 An agent works from three kinds of words: **instructions** that someone wrote for it, **skills** that teach it a
-way of working, and **memory** that agents keep as they work. Different people look after each.
+way of working, and **memory** that agents keep as they work. Different people look after each. A fourth, **Knowledge**,
+is not read on every run: it holds the pages a place shares, which agents search when they need them. See
+[Knowledge](../projects/knowledge.md).
 
 ## What an agent is told
 
@@ -73,6 +75,10 @@ There are three sets, and each belongs to someone:
 
 When an agent remembers or forgets something in a conversation, the conversation shows a quiet line saying so, with
 **Show in Memory**, which opens **Settings › Memory** at that memory.
+
+Memory is for a short fact or a preference. A process, a decision or reference that the whole place should be able to find
+belongs in [Knowledge](../projects/knowledge.md) instead. If you say "I prefer short answers", an agent remembers it; if you
+say "the Release process page is wrong", it changes that page.
 
 ### Looking after memory
 

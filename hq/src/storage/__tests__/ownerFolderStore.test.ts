@@ -1,6 +1,6 @@
 /**
- * hq's typed caller for an owner's `artefacts/` and `knowledge/`. Addressed by
- * the owner — no location names these folders — and sent to the site that
+ * hq's typed caller for an owner's `artefacts/`. Addressed by
+ * the owner — no location names this folder — and sent to the site that
  * holds that owner's storage: listings on the control channel, bytes on the
  * content transport, and an unreachable site never an empty answer.
  */
@@ -29,7 +29,7 @@ vi.mock('wasp/server', () => ({ prisma: { executionSite: { findUnique: async () 
 import { ChannelRequestFailed } from '../../sites/channel/pendingRequests'
 import { ContentStreamFailed } from '../../sites/content/contentStream'
 import { SiteUnreachableError } from '../workspaceStore'
-import { listArtefactsOnSite, listKnowledgeOnSite, readArtefactOnSite, readKnowledgeOnSite } from '../ownerFolderStore'
+import { listArtefactsOnSite, readArtefactOnSite } from '../ownerFolderStore'
 
 const owner = { ownerType: 'project' as const, ownerId: 'p1' }
 
@@ -53,31 +53,20 @@ describe('listing', () => {
     await listArtefactsOnSite({ ...owner, workspaceId: 'w1' } as typeof owner)
     expect(resolveStorageSite).toHaveBeenCalledWith(owner)
     expect(request).toHaveBeenCalledWith('site-logical-1', LOCATION_FILE_METHODS.listArtefacts, owner)
-
-    request.mockResolvedValue({ files: [], truncated: false })
-    await listKnowledgeOnSite(owner)
-    expect(request).toHaveBeenLastCalledWith('site-logical-1', LOCATION_FILE_METHODS.listKnowledge, owner)
   })
 
   it('raises an unreachable site as unreachable, not as an empty folder', async () => {
     request.mockRejectedValue(new ChannelRequestFailed('site is offline', 'offline'))
     await expect(listArtefactsOnSite(owner)).rejects.toBeInstanceOf(SiteUnreachableError)
-    await expect(listKnowledgeOnSite(owner)).rejects.toBeInstanceOf(SiteUnreachableError)
   })
 })
 
 describe('reading', () => {
-  it('reads an artefact by name, and a knowledge file by path, on the content transport with the size bound', async () => {
+  it('reads an artefact by name on the content transport with the size bound', async () => {
     openContentStream.mockResolvedValueOnce(streamOf('# Pricing\n'))
     expect((await readArtefactOnSite(owner, 'pricing.md', 100)).toString('utf8')).toBe('# Pricing\n')
     expect(openContentStream).toHaveBeenCalledWith('site-logical-1', LOCATION_FILE_METHODS.readArtefact, {
       ...owner, name: 'pricing.md', maxBytes: 100,
-    })
-
-    openContentStream.mockResolvedValueOnce(streamOf('# Auth\n'))
-    expect((await readKnowledgeOnSite(owner, 'decisions/auth.md', 100)).toString('utf8')).toBe('# Auth\n')
-    expect(openContentStream).toHaveBeenLastCalledWith('site-logical-1', LOCATION_FILE_METHODS.readKnowledge, {
-      ...owner, relPath: 'decisions/auth.md', maxBytes: 100,
     })
     expect(request).not.toHaveBeenCalled()
   })

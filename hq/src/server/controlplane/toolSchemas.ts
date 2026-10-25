@@ -26,6 +26,7 @@
  */
 import { z, type ZodRawShape } from 'zod'
 import { PLANNING_TOOLS } from './planningToolSchemas'
+import { KNOWLEDGE_DATA_PATH_TOOLS } from './knowledgeToolSchemas'
 import { WORKFLOW_TOOL_SCHEMAS } from '../../workflows/agentToolsSchemas'
 import { MEMORY_BODY_MAX_CHARS, MEMORY_MAX_TAGS, MEMORY_TITLE_MAX_CHARS } from '../../shared/memory/protocol'
 
@@ -455,4 +456,9 @@ export const ALL_CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   ...CONTROL_PLANE_TOOLS, ...WORKFORCE_TOOLS, ...DATA_PATH_ONLY_TOOLS,
   // Data-path-only too, built from core's declarations as the site's copy is (workflows/agentToolsSchemas.ts).
   ...WORKFLOW_TOOL_SCHEMAS,
+  // Data-path-only too: a run's site forwards them with the calling run's id (knowledgeToolSchemas.ts).
+  ...KNOWLEDGE_DATA_PATH_TOOLS,
 ]
+
+/** The knowledge tools as an agent sees them, and `suggest_place`, the lead's alone (knowledgeToolSchemas.ts). */
+export { KNOWLEDGE_TOOLS, PLACE_TOOLS } from './knowledgeToolSchemas'

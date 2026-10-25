@@ -69,6 +69,14 @@ reaching hq from another device) and **`database-migrations`** (schema changes i
 - **Verify by running things.** Types: `npm run typecheck` in the module (`npx tsc --noEmit` in `ui/`; in `hq/` a
   bare `npx tsc --noEmit` checks nothing). Logic: the test suite. A file's contents: read it.
   Never "verify" with a script that prints a conclusion written in advance.
+- **A test that calls a real model runs on the baseline: a low-cost, capable model** — the kind a cost-conscious
+  organisation would choose for everyday agent work; today DeepSeek Flash, or another model of its class. Not the
+  cheapest available: a model too weak to do the work is no baseline. Agent instructions and tool descriptions are
+  written for the baseline, and a check is met when it passes there. A large model (Sonnet, Opus) is used only to
+  diagnose a failure on the baseline — an instruction that fails there too is unclear, one that passes there asks for
+  more reasoning than the baseline has — and the fix is aimed at the baseline either way. Nothing calls a large model
+  by default, and a run of several models or many repeats states its expected cost first. The lead's model checks:
+  [`hq/src/conversations/__modelchecks__/`](hq/src/conversations/__modelchecks__/README.md).
 - **When to run the tests:** while working, the ones for what you changed — the tests of the files you touched and
   the typecheck of their modules; the e2e specs for screens you changed; a module's integration suite when you changed
   a server operation or the data it reads; the cross-app suite when you changed what hq and a site say to each other.

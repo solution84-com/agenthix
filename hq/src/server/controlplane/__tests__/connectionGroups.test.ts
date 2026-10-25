@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest'
 
 import { callOperation } from '../operations'
 import { TOOL_GROUPS } from '../connectionGroups'
-import { CONTROL_PLANE_TOOLS, WORKFORCE_TOOLS, DATA_PATH_ONLY_TOOLS } from '../toolSchemas'
+import { CONTROL_PLANE_TOOLS, WORKFORCE_TOOLS, DATA_PATH_ONLY_TOOLS, KNOWLEDGE_TOOLS } from '../toolSchemas'
 import { ControlPlaneError } from '../types'
 import { connectionCaller } from '../../../shared/testing/connectionCaller'
 import { CONNECTION_GROUPS, type ConnectionGroup } from '../../../shared/connections'
@@ -64,7 +64,7 @@ describe('a call to a tool whose group is off', () => {
     }
   })
 
-  it.each(DATA_PATH_ONLY_TOOLS.map(t => t.name))('%s is refused to a connection with every group on', async (tool) => {
+  it.each([...DATA_PATH_ONLY_TOOLS, ...KNOWLEDGE_TOOLS].map(t => t.name))('%s is refused to a connection with every group on', async (tool) => {
     const err = await refusal(callOperation(tool, connectionCaller(), {}))
     expect(err.message).toMatch(/not available through a connection/)
   })

@@ -17,7 +17,8 @@ flowchart TD
     AG -->|"assigned to"| PRJ
     TEAM["Teams: people and agents"] -->|"one member of, written through"| PRJ
     PRJ --> BRD["Boards and tasks"]
-    PRJ --> PST["Project storage: files, workspaces, knowledge"]
+    PRJ --> PST["Project storage: files, workspaces"]
+    PRJ --> KNW["Knowledge: pages in sections"]
     PPL --> OST["Each person's own storage"]
     PPL -->|"talk with an agent, in a project, their own space or a task"| CONV["Conversations, held in hq"]
     CONV -->|"start work in a boundary, or a task"| BRD
@@ -42,6 +43,9 @@ flowchart TD
   ([places](projects/places.md)), or a task, as the team's thread about it. It is held in hq, where the agent answers at
   once, and longer work is started in the background and reported back
   ([conversations](conversations/conversations.md)). The place's tools sit beside it.
+- **A conversation reaches only its own place and the places its person added.** Only the person adds one; the agent
+  can only ask. The organisation's knowledge and the platform guide are always in reach
+  ([places](projects/places.md#the-places-a-conversation-reaches), [knowledge](knowledge/knowledge.md)).
 - **Agents have no schedule of their own.** Work starts on its own only from a boundary's automation, and every
   task is done on behalf of a person.
 - **What is built is described as built.** Where a document keeps a design that is not built, it says so
@@ -56,7 +60,7 @@ The ones every concept document leans on:
 
 | Term | Meaning |
 |---|---|
-| **Storage** | The files a project or a person owns: `files/`, `workspaces/`, `knowledge/`, `artefacts/`, and for a project `tasks/` and `members/`. Also called a **storage boundary** ([storage and workspaces](workspace/workspace.md)) |
+| **Storage** | The files a project or a person owns: `files/`, `workspaces/`, `artefacts/`, and for a project `tasks/` and `members/`. Also called a **storage boundary** ([storage and workspaces](workspace/workspace.md)) |
 | **Run** | One stretch of an agent's work (the industry's term, as in OpenAI's thread → run → run steps; Claude Code's *query*): from the message, task start or routine that hands the agent work, through everything it does without a person in between, until it hands back. Waiting for approval does not end it ([sessions](agents/sessions.md#a-run)) |
 | **Harness** | The vendor's program that actually drives the model: Claude Code or OpenCode |
 | **Runner** | Whom a run's container is for: a person, or the project itself for a task in a project. A task in a person's personal project runs as that person |
@@ -66,10 +70,12 @@ The ones every concept document leans on:
 | **Routine** | A schedule and a task template that keeps its next round ready as a task ([routines](tasks/routines.md)) |
 | **Run state** | Whether a run of a task is pending or going now, set by the system; separate from the task's board column ([task](tasks/task.md)) |
 | **On behalf of** | The person a task's work is done for. Each run is on behalf of whoever started it, or the task's person when nobody did, and that person answers its approvals |
-| **Place** | Where a conversation belongs: a project, or a person's own space, shown as Your space ([places](projects/places.md)) |
+| **Place** | A project, Your space included. A conversation belongs to one and reaches the places its person added to it ([places](projects/places.md)) |
 | **Lead**, **worker** | In a conversation, the lead is the agent as it talks, answering by direct model calls from hq; a worker is the same agent working in one boundary, as a harness session on that boundary's site ([conversations](conversations/conversations.md#the-lead-workers-and-helpers)) |
 | **Operation** | One piece of work a conversation commissioned: a brief to a worker, a task, or a call that outlived its turn. The work bar lists the live ones |
 | **Memory item** | A short record of what an agent learned, held in hq in one of three scopes and recalled by meaning ([memory](memory/memory.md)) |
+| **Knowledge**, **page**, **section** | What a place shares for everyone and every agent working there: pages (Markdown files with front matter) in sections (folders), searched by words and changed through one gate. Four **levels**: the platform guide (`platform:`), the organisation (`org:`), a project, and Your space (`personal:`) ([knowledge](knowledge/knowledge.md)) |
+| **Your space** | A person's default personal project. Any other personal project is a place of its own, like any project ([places](projects/places.md)) |
 | **Programme** | A group of projects; `Program` in the code |
 | **Workflow** | A named, versioned script in a place's library that a person approves word for word; the only thing that uses a secret ([workflows](workflows/workflows.md)) |
 | **Executor** | The site carrying out an approved workflow's steps, each in a container of its own. Not an agent, and has no model |
@@ -137,11 +143,12 @@ from other people, keep it in your own storage or in a project they are not part
 | A person's own tasks | [Personal projects](projects/personal-projects.md) |
 | Reaching hq from a person's own tools | [Connections](auth/connections.md) |
 | Conversations: the lead, workers, a turn, the work bar | [Conversations](conversations/conversations.md), [long conversations](conversations/long-conversations.md), [voice](conversations/voice.md) |
-| Where conversations belong | [Places](projects/places.md) |
+| Where conversations belong, and which places one reaches | [Places](projects/places.md) |
 | Harness sessions on a site (a task's, a worker's) and how a run happens | [Sessions](agents/sessions.md), [how a run happens](agents/agent-execution-flow.md) |
 | What needs a person, and how they are told | [Notifications](notifications/notifications.md) |
 | The machines it runs on, and who looks after them | [The fleet](fleet/fleet.md) |
-| What an agent knows, and how it is recalled | [Memory](memory/memory.md), [the prompt](agents/prompt_builder.md) |
+| What an agent learned, and how it is recalled | [Memory](memory/memory.md), [the prompt](agents/prompt_builder.md) |
+| What a place shares: pages in sections, the platform guide, the gate, who may change what | [Knowledge](knowledge/knowledge.md) |
 | What an agent can do, and approvals | [Skills](skills/skills.md), [tool control and approvals](agents/hitl-and-tool-control.md) |
 | Which harness runs work | [Runtimes and models](agents/agent-runtime-model.md) |
 | Ready-made agents, boards and teams | [the library](library/library.md) |
@@ -159,7 +166,8 @@ from other people, keep it in your own storage or in a project they are not part
 | [`fleet/`](fleet/fleet.md) | The fleet: HQ, its sites and the machines they run on, the host service, the Fleet Console, and the organisation, fleet and machine admins |
 | [`git/`](git/git-access.md) | Repository attachments, the GitHub App and its accounts, which places can connect, pushing and pulling through workflows |
 | [`library/`](library/library.md) | Agent, board, skill and team templates, each one package with its source, version and publisher |
-| [`memory/`](memory/README.md) | What an agent knows, memory recalled by meaning in three scopes, and where each part is held |
+| [`knowledge/`](knowledge/README.md) | What a place shares for agents and people: pages in sections, four levels, the tools, the gate with versions, who may change what |
+| [`memory/`](memory/README.md) | What an agent learned, memory recalled by meaning in three scopes, how it differs from knowledge, and where each part is held |
 | [`notifications/`](notifications/notifications.md) | What hq tells a person, what needs them, and how a request clears itself |
 | [`models/`](models/models.md) | Which model answers, works, listens and speaks, and the lists that say which may run |
 | [`organisation/`](organisation/organisation.md) | The Organisation page, and [the admin area](organisation/admin-area.md) |

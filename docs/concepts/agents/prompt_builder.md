@@ -162,7 +162,7 @@ The resolver returns two paths: the host path the builder reads the file from, a
 
 ## Memory
 
-No memory arrives whole in a prompt. `buildMemoryContent` (`site/src/agents/promptSectionText.ts`) renders one section that says what the agent knows is kept in hq, tells it to call `recall` before asking again, `remember` when it learns something and `forget` when an item stops being true, and, when the run has pinned items, names the read-only file they are in (`pinnedMemoryPath`, written at run start from what hq sent in the dispatch context). The same section carries the guidance on the `knowledge` folder. A run nobody commissioned has no pinned file for a person ([memory](../memory/memory.md)).
+No memory arrives whole in a prompt. `buildMemoryContent` (`site/src/agents/promptSectionText.ts`) renders one section that says what the agent knows is kept in hq, tells it to call `recall` before asking again, `remember` when it learns something and `forget` when an item stops being true, and, when the run has pinned items, names the read-only file they are in (`pinnedMemoryPath`, written at run start from what hq sent in the dispatch context). The same section ends with a few lines on knowledge: that `search_knowledge` finds how things are done here and how Agenthix works, in one search across the conversation's places, that the most specific page wins, and that what the agent learns on its own belongs in memory. None of knowledge itself is in the prompt ([knowledge](../knowledge/knowledge.md)). A run nobody commissioned has no pinned file for a person ([memory](../memory/memory.md)).
 
 ---
 

@@ -8,7 +8,7 @@ import os from 'node:os'
 import path from 'node:path'
 import type { ToolContext } from '@opencode-ai/plugin/tool'
 import type { HarnessGateRequest, HarnessGateResponse, HarnessTurn } from '@agenthix/core'
-import type { FdPaths } from '../files/verifiedFs'
+import type { FdPaths } from '@agenthix/core/file-tools'
 import type { SiteClient } from '../site'
 
 export function tempDir(): string {

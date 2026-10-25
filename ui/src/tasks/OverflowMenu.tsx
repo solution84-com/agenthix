@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MoreHorizontal } from 'lucide-react'
 
 export interface OverflowItem {
@@ -13,12 +13,25 @@ export interface OverflowItem {
 export function OverflowMenu({ items, label = 'More actions' }: { items: OverflowItem[]; label?: string }) {
   const [open, setOpen] = useState(false)
   const [confirming, setConfirming] = useState<string | null>(null)
+  const button = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setOpen(false)
+      setConfirming(null)
+      button.current?.focus()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open])
   if (items.length === 0) return null
   const close = () => { setOpen(false); setConfirming(null) }
   return (
     <div className="relative">
       {open && <div className="fixed inset-0 z-10" onClick={close} />}
       <button
+        ref={button}
         type="button"
         aria-label={label}
         aria-haspopup="menu"

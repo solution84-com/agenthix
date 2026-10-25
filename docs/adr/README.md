@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0149`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0153`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -258,7 +258,7 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0120](adr-0120-a-site-is-named-after-its-machine.md) | A Site Is Named After Its Machine | Accepted |
 | [ADR-0121](adr-0121-a-conversations-record-is-in-hq-and-its-lead-is-direct-inference.md) | A Conversation's Record Is in hq, and Its Lead Is Direct Inference | Accepted |
 | [ADR-0122](adr-0122-memory-is-recalled-by-meaning-in-three-scopes.md) | Memory Is Recalled by Meaning, in Three Scopes | Accepted |
-| [ADR-0123](adr-0123-a-places-knowledge-reaches-the-lead-only-as-an-excerpt.md) | A Place's Knowledge Reaches the Lead Only as an Excerpt, Never Indexed in hq | Accepted |
+| [ADR-0123](adr-0123-a-places-knowledge-reaches-the-lead-only-as-an-excerpt.md) | A Place's Knowledge Reaches the Lead Only as an Excerpt, Never Indexed in hq | Superseded by adr-0150 |
 | [ADR-0124](adr-0124-a-long-conversation-is-compacted-into-segments-written-once.md) | A Long Conversation Is Compacted Into Segments Written Once, With a Ledger | Accepted |
 | [ADR-0125](adr-0125-voice-is-a-mode-of-the-conversation.md) | Voice Is a Mode of the Conversation | Accepted |
 | [ADR-0125-s-1](adr-0125-voice-is-a-mode-of-the-conversation.md#decision) | ↳ Speech providers are organisation settings, outside the model policy (its Decision, last sentence) | Superseded by adr-0139 |
@@ -287,3 +287,7 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0146](adr-0146-a-release-is-a-proven-build-given-a-name.md) | A Release Is a Proven Build Given a Name | Accepted |
 | [ADR-0147](adr-0147-a-secret-is-used-only-by-a-workflow-a-person-approved-run-by-the-platform.md) | A Secret Is Used Only by a Workflow a Person Approved, Run by the Platform | Accepted |
 | [ADR-0148](adr-0148-an-agent-runs-approved-workflows-and-reads-their-masked-output.md) | An Agent Runs Approved Workflows and Reads Their Masked Output | Accepted |
+| [ADR-0149](adr-0149-platform-knowledge-is-the-user-guide.md) | Platform Knowledge Is the User Guide | Accepted |
+| [ADR-0150](adr-0150-agents-reach-knowledge-only-through-tools-shaped-like-the-native-ones.md) | Agents Reach Knowledge Only Through Tools Shaped Like the Native Ones | Accepted |
+| [ADR-0151](adr-0151-every-change-to-knowledge-goes-through-one-gate.md) | Every Change to Knowledge Goes Through One Gate | Accepted |
+| [ADR-0152](adr-0152-a-conversation-reaches-only-its-own-place-and-the-places-its-person-added.md) | A Conversation Reaches Only Its Own Place and the Places Its Person Added | Accepted |

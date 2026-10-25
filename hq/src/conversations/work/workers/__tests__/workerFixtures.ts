@@ -1,6 +1,7 @@
 /**
  * What the workers' integration tests stand on: a person who works in a project that the conversation's agent is
- * assigned to, the person's own conversation with that agent, and a turn answering the person in it. The test file
+ * assigned to, the person's own conversation with that agent with the project added to it, and a turn answering the
+ * person in it. The test file
  * mocks `wasp/server`, the site and dispatch fakes, and the mailbox, before importing this.
  */
 import { vi } from 'vitest'
@@ -25,8 +26,15 @@ export async function world(): Promise<World> {
   await joinProjectAs(project.id, person.id, 'MEMBER')
   await prisma.projectAgent.create({ data: { projectId: project.id, agentId: agent.id } })
   const conversation = await prisma.conversation.create({ data: { home: 'PERSON', openedById: person.id, agentId: agent.id } })
+  // The person has added the project to the conversation, so work can start there (adr-0152).
+  await addToConversation(conversation.id, person.id, project.id)
   const capability = turnCapability({ conversationId: conversation.id, agentId: agent.id, actingUserId: person.id, trigger: 'MESSAGE' })
   return { person, agent, project, conversation, capability }
+}
+
+/** A project added to the conversation by the person, as Add place… does. */
+export function addToConversation(conversationId: string, personId: string, projectId: string) {
+  return prisma.conversationPlace.create({ data: { conversationId, placeKind: 'PROJECT', projectId, addedById: personId } })
 }
 
 /** The mailbox the tests stand in for: it records, and the real settleOperation calls it. */

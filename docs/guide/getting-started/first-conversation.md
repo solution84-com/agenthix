@@ -118,6 +118,32 @@ To talk instead of typing, select the voice button at the right of the empty box
 chosen place with the chosen agent, opens, and voice starts at once, so what you say is its first message. The button
 is greyed when that agent cannot talk; select it to see why. See [Voice](../your-tools/phone-and-voice.md).
 
+## Places in a conversation
+
+A **place** is a project, **Your space** included. A conversation starts in one place, the one you started it in, and
+agents in it can read that place's knowledge, the organisation's knowledge and this guide. They cannot see any other
+place, even one you can open yourself, until you add it to the conversation. **Your space** is your default personal
+project; any other personal project is a place of its own, like any project.
+
+Under the conversation's title a line lists its places: **Places: Your space · Website relaunch ✕ · + Add place…**. On a
+phone it reads **2 places**, and a tap opens the list. The conversation's own place comes first and cannot be removed.
+
+1. Select **Add place…** and choose a place. Only places you can open are listed.
+2. Read the notice. It says that the agent will be able to read that place's knowledge and start work there, and that what
+   it finds can reach the other places in the conversation.
+3. Select **Add** and the place's name.
+
+To take a place out, select **✕** beside it. It takes effect from the next message; work already started there carries on.
+If you lose access to a place, it drops out of the conversation.
+
+An agent cannot add a place itself. When it needs one, a card appears in the conversation: **Add a place to this
+conversation**, with the place's name and the agent's reason. Select **Add** and the place's name to add it, or **Not now** to
+leave it. Only the person in the conversation sees these buttons. If a question is about a place that is not in the
+conversation, the agent says so and offers the card, rather than answering as if the place were empty.
+
+Anything an agent finds can go into what it writes or hands on in the same conversation, so add only places you are happy to
+have worked on together. See [Knowledge](../projects/knowledge.md#four-levels) for what each place's knowledge holds.
+
 ## Your space
 
 **Your space** is in the side bar, under **Chat**. It is your own private place, the first of your

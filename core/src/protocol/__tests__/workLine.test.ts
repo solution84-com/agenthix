@@ -45,6 +45,15 @@ describe('a tool call as a plain step @SC-756', () => {
     })
   })
 
+  it("names a worker's knowledge calls by the page, with its level", () => {
+    expect(toolStep('mcp__platform__search_knowledge', { pattern: 'release' })).toMatchObject({ kind: 'looked', verb: 'Searched knowledge for', text: '"release"' })
+    expect(toolStep('read_knowledge', { page: 'org:how-we-work/review.md' })).toMatchObject({ kind: 'looked', text: 'org:how-we-work/review.md' })
+    expect(toolStep('mcp__platform__edit_knowledge', { page: 'website-rebuild:processes/release.md', old_string: 'a', new_string: 'b' })).toMatchObject({
+      kind: 'changed', verb: 'Edited the page', text: 'website-rebuild:processes/release.md',
+    })
+    expect(toolAsk('delete_knowledge')).toBe('Delete knowledge pages')
+  })
+
   it('counts what a listing returned', () => {
     expect(toolStep('mcp__platform__list_tasks', {}, JSON.stringify([{}, {}, {}])).count).toBe(3)
   })

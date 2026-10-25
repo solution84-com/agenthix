@@ -15,11 +15,9 @@ import { tool, type ToolContext, type ToolResult } from '@opencode-ai/plugin/too
 import { askExternalDirectory, parseArgs, platformMessage, resolveIn } from './common'
 import { InstructionFiles } from './instructions'
 import {
-  closeQuietly, listFolder, NotFoundError, openForRead, PathChangedError, readAll, type FdPaths,
-} from './verifiedFs'
-import {
-  isBinaryFile, MAX_BYTES, MAX_BYTES_LABEL, readLines, readSample, sniffMime, SUPPORTED_IMAGE_MIMES,
-} from './textFile'
+  closeQuietly, isBinaryFile, listFolder, MAX_BYTES, MAX_BYTES_LABEL, NotFoundError, openForRead, PathChangedError,
+  readAll, readLines, readSample, sniffMime, SUPPORTED_IMAGE_MIMES, type FdPaths,
+} from '@agenthix/core/file-tools'
 import { READ_DESCRIPTION } from './descriptions'
 
 const DEFAULT_READ_LIMIT = 2000
@@ -116,7 +114,7 @@ export function readTool(sys: FdPaths, instructions: InstructionFiles) {
             title,
             output: msg,
             metadata: { preview: msg, truncated: false, loaded: loaded.map(i => i.filepath) },
-            attachments: [{ type: 'file', mime, url: `data:${mime};base64,${bytes.toString('base64')}` }],
+            attachments: [{ type: 'file', mime, url: `data:${mime};base64,${Buffer.from(bytes).toString('base64')}` }],
           }
         }
         if (isBinaryFile(filepath, sample)) throw new Error(`Cannot read binary file: ${filepath}`)

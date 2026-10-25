@@ -47,6 +47,9 @@ E2E_CLIENT_URL=<hq's web address> E2E_SERVER_URL=<hq's server address> npm run e
 | `notSecure.spec.ts` | At a plain-http network address: voice greyed, a conversation started and a message sent, a link copied — see below | Yes |
 | `workflows.spec.ts` | The Workflows screens: the panel entry after Automation, the section, a workflow, a version's full review, a run, and the phone view; the last three need `E2E_WORKFLOW_ID` (and `E2E_WORKFLOW_PROPOSED_VERSION`, `E2E_WORKFLOW_RUN_ID`; the run's card in a conversation needs `E2E_WORKFLOW_RUN_CONVERSATION_ID`) and skip without them | No |
 | `secrets.spec.ts` | The Secrets and variables screens: the panel entry, the rotation notice's address, the two tabs, the Add a secret form (opened, never saved) and the phone view | No |
+| `knowledge.spec.ts` | The Knowledge tool in a project: writing a page, the gate's refusals, Linked from, the section tree and property filters, New section, Needs fixing, History and Restore, Move, a conflict between two tabs, Delete and Recently deleted, a Viewer's read-only view; needs `E2E_KNOWLEDGE_PROJECT_KEY` from `fixtures/seed-e2e-knowledge.mjs` | Yes, in sections named for the run |
+| `orgKnowledge.spec.ts` | The organisation's Knowledge (an admin writes and changes, a member reads), and a project's search over This project, Organisation or Both with each result marked; same seed | Yes |
+| `conversationPlaces.spec.ts` | A conversation's places: the header, Add place… with its notice, the cross, the lead's card, the phone sheet; needs `E2E_PLACES_CONVERSATION_ID` and `E2E_PLACES_PROJECT_NAME` from the same seed | Yes |
 | `install/walkthrough.spec.ts` | HQ as installed, run by `scripts/install-test/run.sh` — see below | On the test's own install |
 
 The canary is deliberately **read-only** so it needs no test-data setup. It

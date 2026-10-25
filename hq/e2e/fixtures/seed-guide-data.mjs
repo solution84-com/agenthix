@@ -20,6 +20,7 @@ import { seedAgentInstructions } from './guide-sample-agents.mjs'
 import { seedRuns } from './guide-sample-runs.mjs'
 import { seedAccess } from './guide-sample-access.mjs'
 import { seedP } from './guide-sample-p.mjs'
+import { seedKnowledge } from './guide-sample-knowledge.mjs'
 import { seedAutomation } from './guide-sample-automation.mjs'
 import { seedModelsAndBilling } from './guide-sample-models.mjs'
 
@@ -293,6 +294,7 @@ await seedModelsAndBilling({ hq, hqRoot, sample, people, agents, projects, defau
 
 // ── Workspaces for the project pages ─────────────────────────────────────────────────────────
 await seedP({ hq, site, ago, projects })
+await seedKnowledge({ projects, hqRoot })
 
 console.log(`[seed-guide-data] loaded Fernhill & Co: ${Object.keys(people).length} people, ${Object.keys(projects).length} projects, ${Object.keys(tasks).length} tasks.`)
 await hq.$disconnect()

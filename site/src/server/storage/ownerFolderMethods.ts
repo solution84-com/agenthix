@@ -19,8 +19,6 @@ import { constants as fsConstants, type Dirent } from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
 import {
-  KNOWLEDGE_LIST_MAX_DEPTH,
-  KNOWLEDGE_LIST_MAX_FILES,
   LOCATION_FILE_METHODS,
   LocationFileError,
   WORKSPACE_OWNER_TYPES,
@@ -34,7 +32,9 @@ import {
   type OwnerFolderFile,
   type StorageOwnerRef,
 } from '@agenthix/core'
+import { itemiseKnowledge } from '../knowledge/itemiser'
 import { describeOwnerFolder, openInOwnerFolder, parseParams, type OwnerFolder } from './locationContainment'
+import { knowledgeOwnerShape, orgIdIsFixed } from '../knowledge/owner'
 import {
   DESCRIPTOR_PATHS_PINNED,
   confirmDescriptor,
@@ -57,9 +57,20 @@ const artefactName = z
 export const listArtefactsParams = z.object(ownerShape)
 export const readArtefactParams = z
   .object({ ...ownerShape, name: artefactName, maxBytes: z.number().int().nonnegative() })
-export const listKnowledgeParams = z.object(ownerShape)
+export const listKnowledgeParams = z.object(knowledgeOwnerShape).refine(orgIdIsFixed)
+/**
+ * A page by its path in the owner's knowledge pages, or with `versionId` one of its kept versions (site protocol
+ * 1.7). Read from the knowledge root, outside the owner's folder (`../knowledge/knowledgeRead.ts`); the organisation's
+ * knowledge too.
+ */
 export const readKnowledgeParams = z
-  .object({ ...ownerShape, relPath: z.string().min(1), maxBytes: z.number().int().nonnegative() })
+  .object({
+    ...knowledgeOwnerShape,
+    relPath: z.string().min(1),
+    maxBytes: z.number().int().nonnegative(),
+    versionId: z.string().min(1).optional(),
+  })
+  .refine(orgIdIsFixed)
 
 /** Pinned against core's types, as `./locationFileMethods.ts` pins its own. */
 const _wireMirrorsCore: [
@@ -129,63 +140,10 @@ export async function listArtefacts(params: unknown): Promise<LocationListArtefa
 }
 
 /**
- * Every regular file under `knowledge/`, newest first, walked breadth-first
- * and bounded (`KNOWLEDGE_LIST_MAX_FILES`, `KNOWLEDGE_LIST_MAX_DEPTH`).
- *
- * Hidden entries and links are skipped. Each directory below the folder is
- * opened the way the folder is — not following a link, and confirmed by a
- * link-free walk — before it is read, so a directory an agent swaps for a link
- * between being listed and being read is refused rather than walked into.
+ * The itemiser (`../knowledge/itemiser.ts`): the sections and pages of the owner's knowledge pages, each with its
+ * index entry and its problems. `files` stays for hq on site protocol 1.6.
  */
 export async function listKnowledge(params: unknown): Promise<LocationListKnowledgeResult> {
-  const method = LOCATION_FILE_METHODS.listKnowledge
-  const owner = parseParams(listKnowledgeParams, params, method)
-  const opened = await openFolder(owner, 'knowledge', method)
-  if (!opened) return { files: [], truncated: false }
-  const { realRoot } = opened
-  const files: OwnerFolderFile[] = []
-  let truncated = false
-  const queue: { rel: string; depth: number; handle: FileHandle | null }[] = [{ rel: '', depth: 0, handle: opened.handle }]
-
-  while (queue.length && !truncated) {
-    const next = queue.shift()!
-    const realDir = path.join(realRoot, next.rel)
-    let handle = next.handle
-    if (!handle) {
-      handle = await openResolved(
-        { realRoot, realTarget: realDir }, fsConstants.O_RDONLY | fsConstants.O_DIRECTORY, 'outside',
-      ).catch(() => null)
-      if (!handle) continue
-    }
-    try {
-      const fail = () => new LocationFileError('outside', `${method} "${next.rel || '.'}" in ${describeOwnerFolder(owner, 'knowledge')}`)
-      // The folder itself failing is the listing failing; a directory below it
-      // that fails is left out, as a link there is.
-      const read = await readDirectory(handle, realRoot, realDir, fail).catch((err: unknown) => {
-        if (!next.rel) throw err
-        return null
-      })
-      if (!read) continue
-      const { dir, dirents } = read
-      for (const d of dirents.sort((a, b) => a.name.localeCompare(b.name))) {
-        if (d.name.startsWith('.')) continue
-        const rel = next.rel ? `${next.rel}/${d.name}` : d.name
-        if (d.isDirectory()) {
-          if (next.depth + 1 < KNOWLEDGE_LIST_MAX_DEPTH) queue.push({ rel, depth: next.depth + 1, handle: null })
-          continue
-        }
-        if (!d.isFile()) continue
-        if (files.length >= KNOWLEDGE_LIST_MAX_FILES) {
-          truncated = true
-          break
-        }
-        const stat = await fs.lstat(path.join(dir, d.name)).catch(() => null)
-        if (stat?.isFile()) files.push({ path: rel, size: stat.size, modifiedAt: stat.mtime.toISOString() })
-      }
-    } finally {
-      await handle.close().catch(() => {})
-    }
-  }
-  for (const rest of queue) await rest.handle?.close().catch(() => {})
-  return { files: files.sort(newestFirst), truncated }
+  const owner = parseParams(listKnowledgeParams, params, LOCATION_FILE_METHODS.listKnowledge)
+  return itemiseKnowledge(owner)
 }

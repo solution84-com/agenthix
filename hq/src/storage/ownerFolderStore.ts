@@ -1,5 +1,5 @@
 /**
- * hq's typed store for an owner's `artefacts/` and `knowledge/` on the site
+ * hq's typed store for an owner's `artefacts/` on the site
  * that holds its storage — the folders beside `files/` that no location names
  * (core's `LOCATION_FILE_METHODS.listArtefacts` says why). The handlers are
  * `site/src/server/storage/ownerFolderMethods.ts` for the listings and
@@ -13,9 +13,7 @@
 import {
   LOCATION_FILE_METHODS,
   type LocationListArtefactsResult,
-  type LocationListKnowledgeResult,
   type LocationReadArtefactParams,
-  type LocationReadKnowledgeParams,
   type StorageOwnerRef,
   type SiteMethodResult,
 } from '@agenthix/core'
@@ -29,7 +27,7 @@ function wireOwner(owner: StorageOwnerRef): StorageOwnerRef {
 }
 
 /** The owner-addressed listings, whose params are the owner and nothing else. */
-type OwnerListing = typeof LOCATION_FILE_METHODS.listArtefacts | typeof LOCATION_FILE_METHODS.listKnowledge
+type OwnerListing = typeof LOCATION_FILE_METHODS.listArtefacts
 
 async function request<M extends OwnerListing>(owner: StorageOwnerRef, method: M): Promise<SiteMethodResult<M>> {
   const logicalSiteId = await resolveStorageSite(wireOwner(owner))
@@ -54,15 +52,4 @@ export function listArtefactsOnSite(owner: StorageOwnerRef): Promise<LocationLis
 export function readArtefactOnSite(owner: StorageOwnerRef, name: string, maxBytes: number): Promise<Buffer> {
   const params: LocationReadArtefactParams = { ...wireOwner(owner), name, maxBytes }
   return read(owner, LOCATION_FILE_METHODS.readArtefact, params, name)
-}
-
-/** Every file under an owner's `knowledge/`, bounded by the site. */
-export function listKnowledgeOnSite(owner: StorageOwnerRef): Promise<LocationListKnowledgeResult> {
-  return request(owner, LOCATION_FILE_METHODS.listKnowledge)
-}
-
-/** One file under an owner's `knowledge/`, by its path there; `maxBytes` as for an artefact. */
-export function readKnowledgeOnSite(owner: StorageOwnerRef, relPath: string, maxBytes: number): Promise<Buffer> {
-  const params: LocationReadKnowledgeParams = { ...wireOwner(owner), relPath, maxBytes }
-  return read(owner, LOCATION_FILE_METHODS.readKnowledge, params, relPath)
 }

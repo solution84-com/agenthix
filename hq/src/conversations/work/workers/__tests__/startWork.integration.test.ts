@@ -25,7 +25,7 @@ vi.mock('../../../coordinator/mailbox', async () => {
 import * as siteStore from '../../../../test/fakes/siteRuntimeStore'
 import { openJson, openText } from '../../../sealing'
 import { createStartWorkTool } from '../startWork'
-import { NEVER_ABORTED, world, type World } from './workerFixtures'
+import { NEVER_ABORTED, addToConversation, world, type World } from './workerFixtures'
 
 let w: World
 const movedOn: string[] = []
@@ -51,6 +51,7 @@ describe('start_work is offered @SC-960', () => {
   it("listing apart the projects the person works in that the agent isn't assigned to", async () => {
     const walkthrough = await createProject({ name: 'Walkthrough' })
     await joinProjectAs(walkthrough.id, w.person.id, 'MEMBER')
+    await addToConversation(w.conversation.id, w.person.id, walkthrough.id)
     const description = await tool.describe(w.capability)
     const [canStart, unassigned] = description.split("that you aren't assigned to")
     expect(canStart).toContain(`- ${w.project.key}: the Shop project`)
@@ -82,6 +83,7 @@ describe('start_work refuses, in words @SC-960 @SC-961', () => {
   it("a project the agent isn't assigned to, saying so and how a project admin assigns it, starting nothing", async () => {
     const walkthrough = await createProject({ name: 'Walkthrough' })
     await joinProjectAs(walkthrough.id, w.person.id, 'MEMBER')
+    await addToConversation(w.conversation.id, w.person.id, walkthrough.id)
     for (const boundary of [walkthrough.key, 'Walkthrough', 'the Walkthrough project']) {
       expect(await brief({ boundary })).toEqual({
         status: 'refused',
@@ -204,5 +206,43 @@ describe('start_work admits a brief @SC-960', () => {
       [b.workerSessionId, other.id, w.project.id],
     ])
     expect([a.authorisedById, b.authorisedById]).toEqual([w.person.id, other.id])
+  })
+})
+
+describe("start_work reaches only the conversation's places (adr-0152) @SC-1442", () => {
+  const notIn = (name: string) =>
+    `${name} isn't in this conversation, so no work can start there; the person can add it with Add place… in the ` +
+    "conversation's header, or you can ask them to with suggest_place"
+
+  it('refuses a project the person and the agent share that the conversation does not hold, saying the person can add it', async () => {
+    const finance = await createProject({ name: 'Finance' })
+    await joinProjectAs(finance.id, w.person.id, 'MEMBER')
+    await prisma.projectAgent.create({ data: { projectId: finance.id, agentId: w.agent.id } })
+    expect(await brief({ boundary: finance.key })).toEqual({ status: 'refused', reason: notIn('Finance') })
+    expect(await prisma.operation.count()).toBe(0)
+    expect(await prisma.agentSession.count()).toBe(0)
+    expect(await tool.describe(w.capability)).not.toContain('Finance')
+  })
+
+  it('admits it once the person has added it', async () => {
+    const finance = await createProject({ name: 'Finance' })
+    await joinProjectAs(finance.id, w.person.id, 'MEMBER')
+    await prisma.projectAgent.create({ data: { projectId: finance.id, agentId: w.agent.id } })
+    await addToConversation(w.conversation.id, w.person.id, finance.id)
+    expect(await brief({ boundary: finance.key })).toMatchObject({ status: 'accepted' })
+    expect(await tool.describe(w.capability)).toContain(`- ${finance.key}: the Finance project`)
+  })
+
+  it('refuses it again once the person has removed it', async () => {
+    await prisma.conversationPlace.deleteMany({ where: { conversationId: w.conversation.id } })
+    expect(await brief()).toEqual({ status: 'refused', reason: notIn('Shop') })
+  })
+
+  it("refuses the person's own space from a project's conversation that does not hold it", async () => {
+    const conversation = await prisma.conversation.create({ data: { home: 'PROJECT', projectId: w.project.id, openedById: w.person.id, agentId: w.agent.id } })
+    const capability = { ...w.capability, conversationId: conversation.id, home: 'PROJECT' as const, projectId: w.project.id }
+    const outcome = await tool.run(capability, { boundary: 'personal', title: 'Notes', brief: 'Tidy my notes.' }, NEVER_ABORTED)
+    expect(outcome).toEqual({ status: 'refused', reason: notIn('your space') })
+    expect(await tool.run(capability, { boundary: w.project.key, title: 'Shop', brief: 'Measure.' }, NEVER_ABORTED)).toMatchObject({ status: 'accepted' })
   })
 })

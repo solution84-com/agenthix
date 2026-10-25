@@ -27,7 +27,7 @@ needs one runs as an approved [workflow](../workflows/workflows.md), in containe
 
 ### The boundary
 
-A run happens in a container keyed on the storage boundary it works in — one person's storage or one project's — and on who is running in it: a person, or the project itself for a run with nobody behind it, such as a task ([ADR-0074](../../adr/adr-0074-a-container-is-keyed-on-its-boundary-and-its-runner.md)). The container mounts its boundary's whole folder once — files, knowledge, artefacts, every workspace, tasks and member folders — read-write or read-only according to whether the run has write tools ([ADR-0079](../../adr/adr-0079-access-to-a-boundary-is-access-to-all-of-it.md)), plus that container's own harness home: the runtime's private state for the one runner it belongs to, kept on the site's disk beside storage, never inside it, and mounted at `/home/appuser`. An agent has no directory of its own to mount. The host filesystem is not otherwise accessible from inside the container.
+A run happens in a container keyed on the storage boundary it works in — one person's storage or one project's — and on who is running in it: a person, or the project itself for a run with nobody behind it, such as a task ([ADR-0074](../../adr/adr-0074-a-container-is-keyed-on-its-boundary-and-its-runner.md)). The container mounts its boundary's whole folder once — files, artefacts, every workspace, tasks and member folders — read-write or read-only according to whether the run has write tools ([ADR-0079](../../adr/adr-0079-access-to-a-boundary-is-access-to-all-of-it.md)), plus that container's own harness home: the runtime's private state for the one runner it belongs to, kept on the site's disk beside storage, never inside it, and mounted at `/home/appuser`. An agent has no directory of its own to mount. The host filesystem is not otherwise accessible from inside the container.
 
 `cwd` is not a security boundary. It sets the starting directory for the subprocess but can be escaped via `cd ../`, absolute paths in `Bash`, or absolute paths passed to `Read`/`Write`/`Edit`/`Glob`/`Grep`. The container mount is the only real boundary.
 
@@ -170,10 +170,12 @@ A project's override files, `.agents/agents/<agent id>/instructions.md` in the p
 an agent for that project and their text joins that agent's prompt on later runs. Any agent running in
 the project can write them, so one agent can change what another is told. This does not widen what an
 agent may do: its tools and approval come from hq, not from these files. Every member of the project can read
-the override text, in its Files and in its Agents tool. It is accepted because agents writing project knowledge that later runs read is the
-purpose of a project's files. What agents write to a project's knowledge base is the same case, and so
-are the project's skills for every agent, `.agents/skills/` in its files: any agent there can add a
-skill every other agent there is then offered, which confers no authority either.
+the override text, in its Files and in its Agents tool. It is accepted because agents writing project files that later runs read is the
+purpose of a project's files. So are the project's skills for every agent, `.agents/skills/` in its files: any agent
+there can add a skill every other agent there is then offered, which confers no authority either. What agents write to
+a project's [knowledge](../knowledge/knowledge.md) is a different case. They are told to change it only when a person
+asks or corrects it, no run mounts it, and every change goes through one gate that records who made it and keeps the
+previous version, so a wrong or misled change can be seen and undone.
 
 ### A container's own harness home is private to its runner
 
@@ -188,7 +190,7 @@ home is given no person's memory: the place's memory only ([memory](../memory/me
 
 ### A shared project shares its storage, not its conversations
 
-In a project, the files, knowledge, artefacts, workspaces and member folders are shared by everyone
+In a project, the files, artefacts, workspaces and member folders are shared by everyone
 working in the project — that is the point of a project. What is not shared is what the harness keeps
 for a person: their raw transcript, their pinned memory, and the run's credential. Their other memory stays in hq and is answered only to a call made for them.
 Two runs sharing project storage can still edit the same files at the same moment; the platform gives

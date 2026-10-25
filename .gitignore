@@ -29,6 +29,9 @@ compose.env
 # Wasp
 .wasp/
 
+# The platform guide hq reads, built from docs/guide/ (hq/scripts/guide/build-platform-guide.mjs)
+/hq/assets/platform-guide/
+
 # Scratch / working notes — local only
 tmp/
 

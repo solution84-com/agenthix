@@ -95,3 +95,23 @@ export async function ensureUserStoragePlacement(userId: string): Promise<string
     return placed.site.siteId
   }
 }
+
+/**
+ * The site holding the organisation's knowledge: placed on the default site the first time it is asked, as a
+ * person's storage is, and never moved. Returns the site's logical `siteId`.
+ */
+export async function ensureOrgKnowledgePlacement(): Promise<string> {
+  const select = { site: { select: { siteId: true } } } as const
+  const existing = await prisma.orgKnowledgePlacement.findUnique({ where: { id: 'org' }, select })
+  if (existing) return existing.site.siteId
+
+  const local = await requireDefaultSiteRef()
+  try {
+    const placement = await prisma.orgKnowledgePlacement.create({ data: { siteId: local.id }, select })
+    return placement.site.siteId
+  } catch (err) {
+    // A simultaneous first resolution wrote it first: theirs stands.
+    if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) throw err
+    return (await prisma.orgKnowledgePlacement.findUniqueOrThrow({ where: { id: 'org' }, select })).site.siteId
+  }
+}

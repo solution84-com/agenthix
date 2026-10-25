@@ -14,9 +14,9 @@ import path from 'node:path'
 import { LOCATION_FILE_METHODS, LocationFileError } from '@agenthix/core'
 import { contentMethods } from '../contentMethods'
 import { handleArtefactRead, handleKnowledgeRead } from '../locationReadHandler'
-import { getArtefactsDir, getFilesDir, getKnowledgeDir } from '../../../storage/paths'
+import { getArtefactsDir, getFilesDir, knowledgePagesDir, knowledgeVersionsDir } from '../../../storage/paths'
 import { openRead } from './contentReadHarness'
-import { swapAfterCheck, replaceWithLink } from '../../../storage/__tests__/swapAfterCheck'
+import { replaceWithLink } from '../../../storage/__tests__/swapAfterCheck'
 
 const owner = { ownerType: 'project' as const, ownerId: 'proj-0001' }
 const PRICING = '# Pricing options\n'
@@ -39,7 +39,7 @@ beforeEach(async () => {
   outside = await fs.mkdtemp(path.join(os.tmpdir(), 'site-outside-'))
   process.env.SITE_ROOT = root
   artefacts = getArtefactsDir(owner.ownerType, owner.ownerId)
-  knowledge = getKnowledgeDir(owner.ownerType, owner.ownerId)
+  knowledge = knowledgePagesDir(owner)
   await fs.mkdir(artefacts, { recursive: true })
   await fs.mkdir(path.join(knowledge, 'decisions'), { recursive: true })
   await fs.mkdir(getFilesDir(owner.ownerType, owner.ownerId), { recursive: true })
@@ -111,16 +111,41 @@ describe('location.readArtefact @SC-780', () => {
   })
 })
 
-describe('location.readKnowledge @SC-780', () => {
-  it('streams a file by its path under knowledge/', async () => {
+describe('location.readKnowledge @SC-1392', () => {
+  it('streams a page by its path in the knowledge pages, outside the folder runs mount', async () => {
     const read = readKnowledge({ ...owner, relPath: 'decisions/auth.md', maxBytes: MAX })
     await read.outcome
     expect(read.body().toString('utf8')).toBe(AUTH)
     expect(read.writableEnded()).toBe(true)
   })
 
-  it("refuses a climb out of knowledge/, even into the owner's own files", async () => {
+  it('streams a kept version by its id', async () => {
+    const id = '20261025T120000000Z-0123abcd'
+    const kept = path.join(knowledgeVersionsDir(owner), 'decisions', 'auth.md')
+    await fs.mkdir(kept, { recursive: true })
+    await fs.writeFile(path.join(kept, `${id}.md`), '# Before\n')
+    const read = readKnowledge({ ...owner, relPath: 'decisions/auth.md', versionId: id, maxBytes: MAX })
+    await read.outcome
+    expect(read.body().toString('utf8')).toBe('# Before\n')
+  })
+
+  it('fails a version id that is not one, or not kept, as not found', async () => {
+    expect(await refusedWith(readKnowledge({ ...owner, relPath: 'decisions/auth.md', versionId: '../../x', maxBytes: MAX }))).toBe('not_found')
+    expect(await refusedWith(readKnowledge({
+      ...owner, relPath: 'decisions/auth.md', versionId: '20261025T120000000Z-0123abcd', maxBytes: MAX,
+    }))).toBe('not_found')
+  })
+
+  it("never reads the old knowledge folder inside the owner's folder @SC-1384", async () => {
+    const old = path.join(path.dirname(getFilesDir(owner.ownerType, owner.ownerId)), 'knowledge')
+    await fs.mkdir(old, { recursive: true })
+    await fs.writeFile(path.join(old, 'old.md'), 'OLD\n')
+    expect(await refusedWith(readKnowledge({ ...owner, relPath: 'old.md', maxBytes: MAX }))).toBe('not_found')
+  })
+
+  it("refuses a climb out of the pages, even into the owner's own files", async () => {
     expect(await refusedWith(readKnowledge({ ...owner, relPath: '../files/AGENTS.md', maxBytes: MAX }))).toBe('outside')
+    expect(await refusedWith(readKnowledge({ ...owner, relPath: '../../../projects/proj-0001/files/AGENTS.md', maxBytes: MAX }))).toBe('outside')
   })
 
   it('refuses an absolute path', async () => {
@@ -132,10 +157,20 @@ describe('location.readKnowledge @SC-780', () => {
     expect(await refusedWith(readKnowledge({ ...owner, relPath: 'alias/auth.md', maxBytes: MAX }))).toBe('outside')
   })
 
+  it('refuses a page that is a link', async () => {
+    await fs.symlink(path.join(outside, 'secret.md'), path.join(knowledge, 'escape.md'))
+    expect(await refusedWith(readKnowledge({ ...owner, relPath: 'escape.md', maxBytes: MAX }))).toBe('outside')
+  })
+
   it('sends none of a file outside when a directory is swapped for a link after the check', async () => {
     await fs.writeFile(path.join(outside, 'auth.md'), 'OUTSIDE SECRET\n')
     const dir = path.join(knowledge, 'decisions')
-    const spy = swapAfterCheck(path.join(dir, 'auth.md'), () => replaceWithLink(dir, outside))
+    const realOpen = fs.open
+    const spy = vi.spyOn(fs, 'open').mockImplementation((async (...args: Parameters<typeof fs.open>) => {
+      spy.mockRestore()
+      await replaceWithLink(dir, outside)
+      return realOpen(...args)
+    }) as typeof fs.open)
     try {
       const read = readKnowledge({ ...owner, relPath: 'decisions/auth.md', maxBytes: MAX })
       await expect(read.outcome).rejects.toMatch(/outside/i)
@@ -144,10 +179,19 @@ describe('location.readKnowledge @SC-780', () => {
       spy.mockRestore()
     }
   })
+
+  it('reads the organisation\'s knowledge', async () => {
+    const org = { ownerType: 'org' as const, ownerId: 'org' }
+    await fs.mkdir(knowledgePagesDir(org), { recursive: true })
+    await fs.writeFile(path.join(knowledgePagesDir(org), 'brand.md'), '# Brand\n')
+    const read = readKnowledge({ ...org, relPath: 'brand.md', maxBytes: MAX })
+    await read.outcome
+    expect(read.body().toString('utf8')).toBe('# Brand\n')
+  })
 })
 
 describe('the content registry', () => {
-  it('serves both reads under the names core publishes', () => {
+  it('serves both reads under the names core publishes @SC-780 @SC-1392', () => {
     expect(contentMethods[LOCATION_FILE_METHODS.readArtefact]).toBe(handleArtefactRead)
     expect(contentMethods[LOCATION_FILE_METHODS.readKnowledge]).toBe(handleKnowledgeRead)
   })

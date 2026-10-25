@@ -61,7 +61,8 @@ RUN mkdir -p ui/node_modules/@types \
  && test -e ui/node_modules/lucide-react/package.json \
  && test -e ui/node_modules/@types/react/index.d.ts \
  && test -e ui/node_modules/@types/react-dom/index.d.ts
-RUN cd hq && npx wasp build
+# Building Wasp's SDK type-checks every operation, and has grown past Node's default heap (as in CI's checks).
+RUN cd hq && NODE_OPTIONS=--max-old-space-size=4096 npx wasp build
 
 FROM wasp AS web-build
 # Wasp fixes the browser app's server address when it is built. It is built
@@ -71,6 +72,13 @@ FROM wasp AS web-build
 # reach the built files, as it would if Wasp changed how it embeds it.
 RUN cd hq && REACT_APP_API_URL=https://hq-address.invalid npx vite build \
  && grep -rqF https://hq-address.invalid .wasp/out/web-app/build
+
+# The platform guide agents read (agent knowledge spec, part 1): the user guide's pages, its glossary and the tools
+# reference, built from this same commit. The build fails on a page without a description, a glossary that does not
+# parse, or anything else landing in the folder. Its own stage, so a guide change rebuilds only this.
+FROM wasp AS platform-guide
+COPY docs/guide /repo/docs/guide
+RUN cd hq && node scripts/guide/build-platform-guide.mjs
 
 FROM caddy:2-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f AS web
 # The built app as the image holds it; web-address.sh copies it to /srv at each start.
@@ -155,7 +163,7 @@ RUN cd .wasp/out/server && npx prisma generate --schema='../db/schema.prisma'
 RUN cd .wasp/out/server && npm run bundle
 
 FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server
-RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3
+RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 ripgrep
 ENV NODE_ENV=production
 COPY --from=server-build /core /core
 COPY --from=server-build /ui /ui
@@ -168,6 +176,7 @@ COPY --from=server-build /app/.wasp/out/db .wasp/out/db
 # Platform assets (skills, avatars, templates), read-only. Nothing for
 # execution: no Docker or Claude Code tools — hq runs nothing (ADR-0050).
 COPY hq/assets /app/assets
+COPY --from=platform-guide /repo/hq/assets/platform-guide /app/assets/platform-guide
 # The embedding model, read-only; hq reads it from here rather than its storage.
 COPY --from=embedding-model /hq-models /hq-models
 ENV HQ_BUNDLED_MODELS_DIR=/hq-models

@@ -23,7 +23,7 @@ import { parsePatch, type Hunk } from './patchParse'
 import {
   closeQuietly, entryStat, openExistingForChange, openFileForWrite, PathChangedError, readAll, removeFile,
   replaceContents, type FdPaths,
-} from './verifiedFs'
+} from '@agenthix/core/file-tools'
 
 const z = tool.schema
 

@@ -129,6 +129,9 @@ if ! docker image inspect agenthix-agent &>/dev/null; then
   bash "$SCRIPT_DIR/build-agent.sh"
 fi
 
+echo "==> Building the platform guide..."
+node scripts/guide/build-platform-guide.mjs
+
 echo "==> Starting app..."
 
 # Resolve the addresses the bundle and server should advertise.

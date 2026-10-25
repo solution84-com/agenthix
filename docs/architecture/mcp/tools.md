@@ -103,6 +103,7 @@ and the same role floors — and a run in a project is refused the tools that ac
 | **Git** | `get_github_config` | administrative |
 | **Workflow** | `list_workflows` · `propose_workflow` · `run_workflow` · `workflow_run` | always |
 | **Memory** | `remember` · `forget` · `recall` | always |
+| **Knowledge** | `search_knowledge` · `read_knowledge` · `write_knowledge` · `edit_knowledge` · `delete_knowledge` | always (the last three only to a run that may change files) |
 
 **`run_task` is the task-delegation tool** — `adr-0020` chose delegation through a tool over sub-agent spawning, and this is the surface that decision rests on.
 
@@ -146,12 +147,63 @@ the task is pending. That is the task's **run state**, which only the system cha
 
 `remember`, `forget` and `recall` reach memory by meaning ([memory](../../concepts/memory/memory.md)): which scopes a call
 may touch is decided in hq from the person the run is for, never from an argument (`hq/src/memory/principal.ts`). `recall`
-with a query also searches the place's `knowledge/` files, but only for a conversation's lead; a worker reads them where
-they are mounted. `set_result` is how a run states what it achieved; hq keeps it with the run (`RunResult`) and a task's
+searches memory only; knowledge has its own tools, below. `set_result` is how a run states what it achieved; hq keeps it with the run (`RunResult`) and a task's
 latest on the task, and it refuses a call that names a run other than the caller's own, or one that has ended
 (`hq/src/server/controlplane/resultOps.ts`). The lead of a conversation has these and hq's other quick tools, plus its own
 (`start_work`, `answer_approval`, `ledger` and others) that only a conversation defines
 ([conversation-layer.md](../conversation-layer.md#the-lead-in-hq)).
+
+## What the knowledge tools do
+
+`search_knowledge`, `read_knowledge`, `write_knowledge`, `edit_knowledge` and `delete_knowledge` are shaped like the
+native Grep, Read, Write and Edit, under their parameter names, and reach every level of
+[knowledge](../../concepts/knowledge/knowledge.md): the platform guide, the organisation's, the run's place's, and for a
+conversation's lead each place its person added. The tools are defined once, in `hq/src/server/controlplane/knowledgeToolSchemas.ts`
+(`knowledgeOps.ts` runs them), and reach a worker the way every data tool does:
+
+```mermaid
+flowchart LR
+    A["Agent in a container"] -->|"tool call"| M["The site's /mcp endpoint"]
+    M -->|"callHqData, with the run's capability"| H["hq: knowledge operations"]
+    L["The lead, in hq"] -->|"in process, with the turn's capability"| H
+    H -->|"the guide in hq's image"| PG["platform:"]
+    H -->|"location.searchKnowledge, readKnowledge, write, edit, delete"| S["The site holding the level"]
+    S --> G["The gate, then the pages"]
+```
+
+- **The levels a call may name are those its capability holds**: a worker's one place, or a conversation's places
+  (`hq/src/knowledge/reach.ts`), with `org:` and `platform:`. There is no parameter that names another place.
+- **hq decides who may change**: an `org:` change is refused unless the run or turn acts for an organisation admin,
+  `platform:` is read-only, and the change tools are not offered to a run that has no write tools or to a turn that does
+  not answer a person (the site withholds them from the run's tool list, and hq refuses them for it as well).
+- **A search fans out.** hq asks the sites holding the places' and the organisation's knowledge, and its own copy of the
+  guide, at once, and merges the answers within one time limit, the conversation's own place first. Each hit is marked
+  with its page's name. A site that cannot be reached, or a missing guide, is said in the result and never fails a
+  turn. The result is at most 8,000 characters and says where to continue.
+- **The site runs the search.** `location.searchKnowledge` takes Grep's parameters and runs ripgrep over the owner's pages
+  with the guards of `@agenthix/core/file-tools` (below); a change goes to the one site that holds the page, which applies
+  it through the gate ([storage and placement](../storage-and-placement.md#where-knowledge-lives)).
+- **A tool call is a normal result, whatever happens.** Refusals use a fixed set of messages, details go to the log,
+  and the log never holds a search pattern.
+- **`suggest_place`** is not one of these and not a run's: it is the lead's own conversation tool, which leaves a card
+  asking the person to add a place ([conversation layer](../conversation-layer.md#a-conversations-places)).
+
+### The file tools underneath
+
+`@agenthix/core/file-tools` (`core/src/fileTools/`) holds grep, read, write and edit over any folder they are given,
+knowing nothing of knowledge or places: ripgrep search with Grep's parameters, numbered reading that gives a version,
+exact-match editing, and a write that goes beside and is renamed in. The OpenCode plugin's file tools are built on the
+same module ([opencode-tools.md](../tools/opencode-tools.md)). The guards live here, so every user gets them:
+
+| Risk | What stops it |
+|---|---|
+| A pattern that never finishes | ripgrep's engine never backtracks; a pattern it cannot run (backreferences, look-around) is refused with ripgrep's own message |
+| Heavy or many searches | Pattern at most 500 characters; `rg` as its own process, killed after 2 seconds; a file size, line width and one-thread limit; at most 30 calls a minute per run or conversation |
+| A pattern or option taking over the command | `rg` is started directly, never through a shell; arguments are built only from the allowed parameters; the pattern follows `-e`; links are not followed |
+| Reading outside the folder | Every name is resolved inside its root only, opened without following links and checked to be the file allowed |
+| An error giving the system away | A fixed set of messages; the detail goes to the log |
+
+ripgrep is installed in the site's server image and hq's, as well as the agent and executor images.
 
 ## What the workflow tools do
 

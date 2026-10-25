@@ -21,6 +21,7 @@
 import { z, type ZodRawShape } from 'zod'
 import { FORWARDED_PLANNING_TOOLS } from './forwardedPlanningSchemas'
 import { FORWARDED_WORKFLOW_TOOLS } from './forwardedWorkflowSchemas'
+import { FORWARDED_KNOWLEDGE_TOOLS } from './forwardedKnowledgeSchemas'
 
 /** A routine's repeat: every N minutes, hours or days (at least 5 minutes), or a time of day on given weekdays. */
 const ROUTINE_RULE = z.discriminatedUnion('kind', [
@@ -42,6 +43,8 @@ export interface ForwardedTool {
   schema: ZodRawShape
   /** The tool's `runId` is the calling run's, filled in by the site: the agent is not shown it and cannot name another. */
   runIdFromCaller?: true
+  /** hq answers the tool's text, as the native Grep and Read do: the agent is given it as it is, not as JSON. */
+  textResult?: true
 }
 
 export const FORWARDED_TOOLS: ForwardedTool[] = [
@@ -262,6 +265,7 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
   ...FORWARDED_PLANNING_TOOLS,
   // Workflows (adr-0148): built from core's declarations, as hq's copy is.
   ...FORWARDED_WORKFLOW_TOOLS,
+  ...FORWARDED_KNOWLEDGE_TOOLS,
   {
     name: 'add_comment',
     schema: {

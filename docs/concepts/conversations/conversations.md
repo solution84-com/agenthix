@@ -57,10 +57,38 @@ elsewhere) with that agent picked.
 
 A person has one conversation open at a time, and it is shown in the **dock**, docked on the right of every page, not on the page of its place: moving about hq never closes or changes it, and a new one begins as a draft in the dock, with the list of places to choose from ([places](../projects/places.md#the-docked-conversation)). Where it is shown does not change the place it belongs to.
 
-The home is where the lead reads directly (the place's tasks, board and knowledge), with that place's authority. **Work
-may be commissioned in any boundary the person and the agent share**, and each piece of work is authorised on its own
-for its own boundary: the person must be a member, the agent assigned there, the tool allowed there. Nothing is
-unioned, and a refusal is said in words ("you're not a member of Finance").
+The home is where the lead reads directly (the place's tasks, board and knowledge), with that place's authority.
+
+### A conversation's places
+
+A conversation reaches its **own place** and the places its person has **added**. It also always reaches the
+organisation's knowledge and the platform guide. It reaches no other place, even one the person belongs to.
+
+| | What the lead can do |
+|---|---|
+| **Its own place** | Read and search the place's knowledge, and start work in it |
+| **A place the person added** | The same: search and read that place's knowledge, and start work there |
+| **Any other place** | Nothing. It is out of reach, and the lead is told so: finding nothing in it does not mean it is empty |
+
+Only the person adds a place, with *Add place…* in the conversation's header (a project they can open, or another
+personal project of theirs), and they can remove it again; removing takes effect from the next turn, and work already
+started there carries on. Adding asks once, and says what it allows: the lead will be able to read that place's
+knowledge and start work there, and what it finds can reach the other places in the conversation. When the lead needs
+a place the conversation does not hold, it cannot add it: it calls `suggest_place`, which leaves a card in the thread
+(*Add a place to this conversation: Shop*, with *Not now* and *Add Shop*), and only the person's click adds the place.
+A place the person cannot open is never suggested. A task's conversation works only in its task's project and has no places to add. The person's access is checked when the place is added and on every
+turn, and a place they lose access to drops out of the conversation.
+
+The lead is told its places at the start of every turn, by the names the person sees: the conversation's places (**Your
+space** for the person's default personal project, any other personal project by its own name), that the
+organisation's knowledge and the platform guide are always in reach, and that anything in another place is out of
+reach until the person adds it. A search that finds nothing names the places it searched.
+
+**Work may be commissioned only in a place of the conversation**, and each piece of work is authorised on its own for
+its own boundary: the person must be a member, the agent assigned there, the tool allowed there. Nothing is unioned,
+and a refusal is said in words ("you're not a member of Finance"; "Shop isn't in this conversation, so no work can
+start there"). Whatever a conversation carries between its places it carries between places its person chose to put
+together; a worker holds only its own boundary's authority and sees only that place's knowledge.
 
 ### A task's conversation
 
@@ -89,11 +117,13 @@ conversation at a time**, across hq's processes: a lock on the conversation, wit
   the **thinking pill** beside the agent's name: *Thinking · 6 s* with a pulsing dot while it works, *Thought for 6 s*
   after, with *started N* or *set N* if the reply started work or set a task for a time. Select it to see each step as
   one line with its time.
-- **A reply that runs long moves to the background.** After 4 steps that looked something up, hq itself starts the rest
-  as work in the conversation's place, the brief being the person's message and what has been found so far, and ends
-  the reply with one fixed line: *That's taking longer than I expected — I'm working on it in the background, and
-  I'll tell you as soon as I have it.* No model call writes it. Where work cannot be started there, the next call is
-  words only. A turn takes at most 8 steps, and its last is always words.
+- **A reply that runs long moves to the background.** After 4 steps that looked something up, the model is called once
+  more. Only if that call asks for more tools does hq itself start the rest as work in the conversation's own place,
+  the brief being the person's message and what has been found so far, and end the reply with one fixed line:
+  *That's taking longer than I expected — I'm working on it in the background, and I'll tell you as soon as I have
+  it.* No model call writes it. A call that answers in words instead ends the reply as any other does, so the fixed
+  line never follows an answer. Where work cannot be started there, the next call is words only. A turn takes at most
+  8 steps, and its last is always words.
 - **A reply that starts work ends there.** The work's card answers; the model is not called again. The agent always
   says in the same step what it has started, and if it does not, hq writes a fixed line.
 - **Stop** cancels the running turn; what it had written stays, marked as stopped.
@@ -113,7 +143,10 @@ reason, and the call waits for an answer.
 | **Work** — a model is in it or behind it | `start_work` (a brief to a boundary), `run_task`, `create_task` | Background at once: an **operation** is created, and the result comes back as a completion |
 
 The lead's own tools are `start_work`, `create_task`, `run_task`, `cancel_operation`, `answer_approval`, `ledger`,
-`recall`, `remember`, `forget`, `expand` and `messages`, besides hq's task, board and project tools. A worker gets
+`recall`, `remember`, `forget`, `expand` and `messages`, and the knowledge tools `search_knowledge`, `read_knowledge`,
+`write_knowledge`, `edit_knowledge`, `delete_knowledge` and `suggest_place`, besides hq's task, board and project
+tools. `recall` searches memory only; knowledge is searched with `search_knowledge`
+([knowledge](../knowledge/knowledge.md)). The change tools are offered only in a turn that answers a person. A worker gets
 the platform tools too, and `set_result`, with which a run states what it achieved.
 
 `create_task` is three asks: *now* (queued for its agent), *later* (the backlog, nothing runs) and *at a time*. A task
@@ -200,7 +233,9 @@ of the agent and the organisation applies.
 
 The lead reads memory by meaning, not as a whole: before each turn hq looks for items that match the message and either
 includes them or hints at them; the lead can `recall`, `remember` and `forget`. Workers get the person's pinned items as
-a file and can recall the rest. [Memory](../memory/memory.md) has the scopes, the ranking and knowledge excerpts.
+a file and can recall the rest. [Memory](../memory/memory.md) has the scopes, the ranking, and how memory differs from
+[knowledge](../knowledge/knowledge.md), which the lead and workers search and read by other tools. When a person
+corrects what a knowledge page says, the lead changes the page and does not also remember the correction.
 
 ## Closing, archiving, deleting
 
@@ -233,6 +268,7 @@ wants seen) as a card in voice and inline otherwise.
 | A task's thread | `hq/src/conversations/taskThread/` |
 | The model a conversation talks on and the picker | `hq/src/conversations/access/`, `modelChoice.ts`; the rule `hq/src/routing/` ([models](../models/models.md)) |
 | Screens | `hq/src/conversations/components/`, `pages/`, `hooks/` |
+| A conversation's places, `suggest_place`, what the lead is told of them | `hq/src/conversations/places.ts`, `placesSuggest.ts`, `lead/placesBlock.ts`; `hq/schema.prisma` (`ConversationPlace`) |
 | Archive, deleting, closing | `hq/src/conversations/archive/`, `work/deleting.ts`, `closing.ts` |
 
 How the parts fit together as a system: [the conversation layer](../../architecture/conversation-layer.md).

@@ -4,7 +4,7 @@
  * is written against these types alone. Nothing outside src/conversations/model/ names a provider's SDK.
  */
 import type { z } from 'zod'
-import type { CapabilityEffectivePermissions } from '@agenthix/core'
+import type { CapabilityEffectivePermissions, KnowledgeStepView } from '@agenthix/core'
 import type { OrgRole } from '../server/identity/rolePolicy'
 import type { CallCosting } from '../billing/types'
 import type {
@@ -194,9 +194,12 @@ export type MintTurnCapability = (input: {
   continuationDepth?: number
 }) => Promise<TurnCapability>
 
-/** What a tool call gave the lead. `done` results are already capped (RESULT_CAP_CHARS). */
+/**
+ * What a tool call gave the lead. `done` results are already capped (RESULT_CAP_CHARS). `knowledge`: what a knowledge
+ * call did, which its work step keeps for the screen; never shown to the model.
+ */
 export type ToolCallOutcome =
-  | { status: 'done'; operationId: string; result: unknown }
+  | { status: 'done'; operationId: string; result: unknown; knowledge?: KnowledgeStepView }
   | { status: 'accepted'; operationId: string }
   | { status: 'waitingApproval'; operationId: string }
   | { status: 'refused'; reason: string }
@@ -243,6 +246,11 @@ export type AdmitToBoundary = (input: {
   boundary: SharedBoundary
   /** The tool or tool group being admitted: 'start_work' for a brief, the tool's name for a task tool. */
   tool: string
+  /**
+   * Set when new work is started from a conversation: the boundary must be one of its places (adr-0152). Left out
+   * when re-checking work already started there, which carries on after its place is removed.
+   */
+  conversationId?: string
 }) => Promise<{ ok: true } | { ok: false; reason: string }>
 
 /** How an operation ended. A conditional update from any outstanding state: a repeat is a no-op. */

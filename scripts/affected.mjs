@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url'
 
 // A module's jobs, when they are not just its own name.
 const EXTRA_JOBS = { hq: ['hq-integration'], site: ['site-integration'] }
-// docs/guide/ is checked by these modules: hq checks the screenshot names, the Fleet Console builds its Help from it.
+// docs/guide/ is checked by these modules: hq checks the screenshot names and builds the platform guide agents read
+// from it (its image part has docs/guide/ as an input), the Fleet Console builds its Help from it.
 const GUIDE_MODULES = ['hq', 'console']
 // What `checks.yml` has always treated as documentation: docs/ (the guide excepted), and the Markdown notes at the top
 // of the repository, of each module and in .github/.

@@ -18,7 +18,7 @@ import { EDIT_DESCRIPTION, WRITE_DESCRIPTION } from './descriptions'
 import {
   closeQuietly, NotFoundError, openExistingForChange, openExistingForWrite, openFileForWrite, PathChangedError, readAll,
   replaceContents, type FdPaths, type Opened,
-} from './verifiedFs'
+} from '@agenthix/core/file-tools'
 
 const z = tool.schema
 

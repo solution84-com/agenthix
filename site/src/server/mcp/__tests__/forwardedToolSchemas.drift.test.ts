@@ -61,6 +61,12 @@ function stringValueOf(expr: ts.Expression): string | null {
   return null
 }
 
+/** A description built with constants (a template literal naming the product, a limit) cannot be evaluated here, so
+ *  its source is compared instead, with whitespace collapsed: both sides must write it alike, names included. */
+function descriptionOf(expr: ts.Expression): string {
+  return stringValueOf(expr) ?? expr.getText().replace(/\s+/g, ' ')
+}
+
 function extractToolInfo(source: string, fileName: string): Map<string, ToolInfo> {
   const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true)
   const result = new Map<string, ToolInfo>()
@@ -97,7 +103,7 @@ function extractToolInfo(source: string, fileName: string): Map<string, ToolInfo
         const descProp = node.properties.find(
           (p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && propName(p.name) === 'description',
         )
-        const description = descProp ? (stringValueOf(descProp.initializer) ?? undefined) : undefined
+        const description = descProp ? descriptionOf(descProp.initializer) : undefined
         result.set(toolName, { fields: fieldNames, description })
       }
     }
@@ -124,10 +130,12 @@ const HQ_CONTROLPLANE = '../../../../../hq/src/server/controlplane'
 const siteInfo = extractFromFiles([
   ['../forwardedToolSchemas.ts', 'site-forwardedToolSchemas.ts'],
   ['../forwardedPlanningSchemas.ts', 'site-forwardedPlanningSchemas.ts'],
+  ['../forwardedKnowledgeSchemas.ts', 'site-forwardedKnowledgeSchemas.ts'],
 ])
 const hqInfo = extractFromFiles([
   [`${HQ_CONTROLPLANE}/toolSchemas.ts`, 'hq-toolSchemas.ts'],
   [`${HQ_CONTROLPLANE}/planningToolSchemas.ts`, 'hq-planningToolSchemas.ts'],
+  [`${HQ_CONTROLPLANE}/knowledgeToolSchemas.ts`, 'hq-knowledgeToolSchemas.ts'],
 ])
 const siteFields = new Map([...siteInfo].map(([name, info]) => [name, info.fields]))
 const hqFields = new Map([...hqInfo].map(([name, info]) => [name, info.fields]))
@@ -136,11 +144,11 @@ const hqFields = new Map([...hqInfo].map(([name, info]) => [name, info.fields]))
  * hq's toolSchemas.ts may declare DATA_PATH_ONLY_TOOLS entries that are not MCP tools at all, called by the site
  * directly rather than through an agent-facing tool name. The AST walk above finds every {name, schema} object in the
  * file regardless of which array it's in, so such an entry must be named here rather than silently failing the
- * bidirectional check below. None is today.
+ * bidirectional check below. `suggest_place` is the lead's own, in hq, and no run is given it.
  */
-const HQ_TOOLS_NOT_FORWARDED = new Set<string>()
+const HQ_TOOLS_NOT_FORWARDED = new Set<string>(['suggest_place'])
 
-describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts field-set drift @SC-348', () => {
+describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts field-set drift @SC-348 @SC-1394', () => {
   it('the extractor actually found tool entries on both sides (sanity check against a silently-empty parse)', () => {
     expect(siteFields.size).toBeGreaterThan(30)
     expect(hqFields.size).toBeGreaterThan(30)
@@ -176,9 +184,9 @@ describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts field-set drift @SC
  */
 const DESCRIPTION_DRIFT_ALLOWED = new Set(['start_preview'])
 
-describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts description drift @SC-348', () => {
+describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts description drift @SC-348 @SC-1394', () => {
   const toolNamesWithADescription = [...new Set([...siteInfo.keys(), ...hqInfo.keys()])]
-    .filter(name => !DESCRIPTION_DRIFT_ALLOWED.has(name))
+    .filter(name => !DESCRIPTION_DRIFT_ALLOWED.has(name) && !HQ_TOOLS_NOT_FORWARDED.has(name))
     .filter(name => siteInfo.get(name)?.description !== undefined || hqInfo.get(name)?.description !== undefined)
 
   it('found at least the memory tools among the descriptions compared (sanity check against a silently-empty parse)', () => {

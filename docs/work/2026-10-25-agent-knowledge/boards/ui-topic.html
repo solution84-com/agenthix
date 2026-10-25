@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A page · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-topic.html"><main>
+<div class="top"><div><h1>U3 · A page: reading and editing</h1>
+<p class="sub">Edit stops being a placeholder. A page reads like a guide page, shows its properties and who changed it, and a person's Save goes through the same gate as an agent's (board 4).</p></div></div>
+
+<h2 id="read">Reading</h2>
+<div class="box"><span class="lbl before">Before · today</span><p>U1, items 5–7: Edit does nothing, no delete, no author. <a href="/files/ui-today.html#topic">U1 →</a></p></div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:200px 1fr 200px"><div class="pnav" data-on="knowledge" data-count="23"></div>
+<div class="mcentre">
+<div class="crumb"><a>Knowledge</a> › <a>processes</a> › Release process</div>
+<div class="row"><div class="mh grow">Release process</div><span class="btn">Mention</span><span class="btn">History</span><span class="btn pri">Edit</span><span class="btn">⋯</span></div>
+<div class="ml">How we cut and publish a release, and who approves a staging deploy.</div>
+<div class="row" style="font-size:13px;color:var(--t2)"><span class="chip">releases</span><span class="chip">deploys</span><span class="grow"></span>Changed 2 hours ago by Kernel, asked by Sam in <a style="color:var(--macc)">"Staging approvals"</a></div>
+<div class="preview" style="min-height:200px;margin-top:10px"><b>Cutting a release</b><br/>Releases are cut from main on Thursdays. Run the checks, tag the commit…<br/><br/><b>Staging</b><br/>Staging deploys need Mia's approval before 4pm. The checklist is in <a style="color:var(--macc)">Files › release-checklist.pdf</a>.<br/><br/><b>Production</b><br/>…</div>
+<div class="menu" style="right:232px;top:66px;width:210px"><div class="it"><div class="t">Move…</div><div class="s">To another section</div></div><div class="it"><div class="t">Download</div><div class="s">As Markdown</div></div><div class="it"><div class="t" style="color:var(--mdanger)">Delete</div><div class="s">Kept 30 days in Recently deleted</div></div></div>
+</div>
+<div class="dockcol"><div class="dh">On this page</div><div>Cutting a release</div><div>Staging</div><div>Production</div></div>
+</div></div>
+<ol class="sub">
+<li>Under the title: the <b>description</b>, the <b>tags</b>, and <b>who changed it last</b>, linked to the conversation or run it happened in. A page with the team's properties shows them here too (a decision's <code>status</code>, <code>date</code>, <code>supersedes</code> as a link).</li>
+<li><b>On this page</b>: its headings, as a detailed guide page needs.</li>
+<li><b>Links between pages</b> open the linked page; an organisation page opens in the organisation's Knowledge (U5). A broken link shows as a problem, with the page it should go to if the page was moved (History knows).</li>
+<li><b>Linked from</b>, under the text: the pages that link here, so a reader can find related workflows.</li>
+<li>Files are linked from the text, as on the platform guide's pages; they live in Files.</li>
+<li><b>Edit</b>, <b>Move</b> and <b>Delete</b> for people who may change the place's files <a class="q" href="/files/decisions.html#q4">Q4</a>; others see Mention, History and Download.</li>
+<li><b>A page with problems</b> lists them above the text, in words, with Edit to fix them.</li></ol></div>
+
+<h2 id="edit">Editing</h2>
+<div class="box"><span class="lbl after">After · proposed · New: nothing today</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:200px 1fr"><div class="pnav" data-on="knowledge" data-count="23"></div>
+<div class="mcentre">
+<div class="crumb"><a>← 0003 · Staging needs an approval</a></div>
+<div class="row"><div class="mh grow">Edit page</div><span class="btn">Cancel</span><span class="btn pri">Save</span></div>
+<div class="field"><label>Title</label><div class="in">Staging needs an approval</div></div>
+<div class="field"><label>Description</label><div class="in">Who signs off a staging deploy, and when.</div><div class="hint">One sentence. Agents see it before they open a page.</div></div>
+<div class="field"><label>Tags</label><div class="in"><span class="chip">decision ✕</span><span style="color:var(--t3)">Add a tag</span></div></div>
+<div class="field"><label>Properties</label>
+<div class="row" style="margin-bottom:4px"><div class="in" style="width:140px">status</div><div class="in grow">proposed</div><span class="btn link">✕</span></div>
+<div class="row"><div class="in" style="width:140px">date</div><div class="in grow">2026-10-25</div><span class="btn link">✕</span></div>
+<div class="hint">Your section's own fields. Offered from its other pages; add any you need.</div></div>
+<div class="field"><label>Text</label><div class="tabs" style="margin:0 0 6px"><span class="on">Write</span><span>Preview</span></div><div class="editor">## Context
+Staging deploys have gone out with failing checks twice this month…
+
+## Decision
+Staging deploys need Mia's approval before 4pm.</div></div>
+</div></div></div>
+<ol class="sub">
+<li>Title, description, tags and properties are fields, so a person never writes front matter; Save writes the page with it.</li>
+<li><b>Save</b> sends the page through the gate: the same checks as an agent's change. A problem is shown on its field ("Description is missing").</li>
+<li><b>New page</b> (U2) opens the same editor, empty, with the section's usual properties offered; the file name is made from the title.</li></ol></div>
+
+<h2 id="conflict">When someone changed it meanwhile</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="flag"><b>Changed while you were editing.</b>&nbsp;Kernel saved this page 1 minute ago. Your text is kept here: <span class="btn link">See their change</span> · <span class="btn link">Save mine over it</span></div>
+<p class="sub">The gate refused the save (board 4, G2). "Save mine over it" saves again from the new version; theirs stays in History.</p></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li><b>A guide page</b>: long, detailed pages need their headings beside them.</li>
+<li><b>Properties as fields</b>: a team's own structure (a decision's status) without the platform knowing what it means.</li>
+<li><b>One gate for people and agents</b>: the same checks, the same history, whoever saves.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

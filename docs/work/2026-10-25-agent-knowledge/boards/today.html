@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="today.html"><main>
+<div class="top"><div><h1>1 · Today: how agents reach knowledge</h1>
+<p class="sub">Read from the code on <code>main</code> (68bab23b). Everything on this board is today; nothing is proposed.</p></div></div>
+
+<h2 id="map">What exists, numbered</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="mmd" data-src="today"></div>
+<div class="kbox">
+<div><h4><span class="n">1</span>The lead</h4><p>The agent as it talks in a conversation, run in hq by direct model calls. Has <code>recall</code>, <code>remember</code>, <code>forget</code>, <code>used_memory</code>, <code>start_work</code>.</p><p><b>Knowledge:</b> <code>recall</code> with a query also searches the conversation's place's knowledge (<code>leadMemoryTools.ts:90-130</code>). It cannot write knowledge.</p></div>
+<div><h4><span class="n">2</span>A worker</h4><p>A run on the site, in the agent container (Claude Code or OpenCode). Its only instruction channel is the prompt (<code>settingSources: []</code>).</p><p><b>Knowledge:</b> the place's <code>knowledge/</code> folder as plain files, inside one bind of the whole place folder, writable whenever the run has any write tool (<code>containerPrep.ts:45</code>). No knowledge tool; <code>recall</code> here is memory only.</p></div>
+<div><h4><span class="n">3</span>The knowledge folder</h4><p><code>&lt;place&gt;/knowledge/</code> on the site, beside <code>files/</code> and <code>artefacts/</code>, for a project or a person. The prompt says: read <code>INDEX.md</code> first, edit only when asked (<code>promptSectionText.ts:17</code>).</p><p>Nothing fixes how an <code>INDEX.md</code> line is written. hq's parser guesses at the shapes agents write; <b>tags are never stored</b> (<code>knowledgeIndex.ts</code>).</p></div>
+<div><h4><span class="n">4</span>Site search</h4><p><code>location.searchKnowledge</code>: word matching over the files, <code>INDEX.md</code> hits first, at most 400 files and 24 lines back (<code>knowledgeSearch.ts</code>). Used only by the lead's <code>recall</code>.</p></div>
+<div><h4><span class="n">5</span>The Knowledge tool</h4><p>In the Files group of a project and of Your space. Lists topics, searches, filters by tag (always empty), opens a topic. <b>Edit is a placeholder</b>; there is no delete (<code>KnowledgeTool.tsx</code>, <code>FileOpened.tsx:26</code>).</p></div>
+<div><h4><span class="n">6</span>Memory, kept apart</h4><p>Rows in hq (<code>MemoryItem</code>), three scopes, with embeddings and outcomes. Has its own screens: Settings › Memory, a project's Memory tool. Not knowledge, and stays as it is.</p></div>
+<div><h4><span class="n">7</span>Platform package</h4><p>Built by hq at boot from <code>hq/assets/platform/skills</code> and staged into every run as skills. <b>The folder is empty.</b> Nothing about Agenthix itself reaches an agent beyond a few lines of instructions.</p></div>
+</div></div>
+
+<h2 id="gaps">What goes wrong because of it</h2>
+<div class="box"><table>
+<tr><th></th><th>Gap</th><th>Seen as</th></tr>
+<tr><td class="n">a</td><td>Agents don't know the product they live in (7).</td><td>"Look through the files in my space" answered with "I couldn't find anything called MySpace".</td></tr>
+<tr><td class="n">b</td><td>The index is a free-text file that rests on a prompt line (3); tags have nowhere to live.</td><td>Topics listed with guessed titles; the Tag filter is always empty.</td></tr>
+<tr><td class="n">c</td><td>People can see knowledge but not correct it (5).</td><td>Edit does nothing.</td></tr>
+<tr><td class="n">d</td><td>Workers write files directly (2), so a change has no author, no history and no undo.</td><td>Nobody can tell who changed a topic, or put it back.</td></tr>
+<tr><td class="n">e</td><td>The lead and workers reach knowledge differently (1, 2): search inside <code>recall</code> versus files.</td><td>Memory and knowledge blur in the lead; workers can't search.</td></tr>
+</table></div>
+
+<script>
+window.SRC = {
+today: `flowchart LR
+  L["1 · Lead<br/>in hq"] -- "recall(query)" --> S["4 · Site search"]
+  S --> K["3 · knowledge/ folder<br/>INDEX.md + files"]
+  W["2 · Worker<br/>on the site"] -- "reads and writes files<br/>(rw mount)" --> K
+  U["5 · Knowledge tool<br/>read only"] -- "listKnowledge / readKnowledge" --> K
+  L -- "remember / recall" --> M["6 · Memory<br/>rows in hq"]
+  W -- "remember / recall" --> M
+  P["7 · Platform package<br/>(empty)"] -. "skills" .-> W
+  L -- "start_work(brief)" --> W`
+}
+</script>
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

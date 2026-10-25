@@ -10,7 +10,7 @@
  * skipped.
  */
 import path from 'node:path'
-import { closeQuietly, openForRead, readAll, type FdPaths } from './verifiedFs'
+import { closeQuietly, openForRead, readAll, type FdPaths } from '@agenthix/core/file-tools'
 
 function instructionNames(env: NodeJS.ProcessEnv): string[] {
   const noClaude = truthy(env.OPENCODE_DISABLE_CLAUDE_CODE) || truthy(env.OPENCODE_DISABLE_CLAUDE_CODE_PROMPT)
@@ -56,7 +56,7 @@ export class InstructionFiles {
       }
       try {
         if (!opened.stat.isFile()) continue
-        return { filepath, content: readAll(opened.fd).toString('utf-8') }
+        return { filepath, content: Buffer.from(readAll(opened.fd)).toString('utf-8') }
       } finally {
         closeQuietly(opened.fd)
       }

@@ -4,7 +4,8 @@
  * place; each operation is admitted on its own, for its own boundary, as things stand at that moment: the person
  * is a member there, the agent is assigned there, and the tool is allowed there.
  *
- * A refusal is the lead's words to say, about the person it talks to ("you're not a member of Finance").
+ * Work started from a conversation is admitted only in one of its places (adr-0152): its own, or one its person
+ * added. A refusal is the lead's words to say, about the person it talks to ("you're not a member of Finance").
  */
 import { prisma } from 'wasp/server'
 import type { CapabilityEffectivePermissions } from '@agenthix/core'
@@ -12,6 +13,7 @@ import { runPermissions, type OverrideBoundary } from '../../agents/overrides/ag
 import { projectStanding } from '../../projects/membership'
 import { turnToolState } from '../../server/controlplane/turnCaller'
 import type { AdmitToBoundary, SharedBoundary } from '../contract'
+import { holdsPlace, placesOf, samePlace } from '../places'
 
 /** What the lead passes as `boundary` for the person's own space. */
 export const PERSONAL_BOUNDARY_KEY = 'personal'
@@ -135,16 +137,41 @@ async function agentRefusal(agentId: string, boundary: SharedBoundary, tool: str
   return null
 }
 
-export const admitToBoundary: AdmitToBoundary = async ({ personId, agentId, boundary, tool }) => {
-  const reason = (await memberRefusal(personId, boundary)) ?? (await agentRefusal(agentId, boundary, tool))
+/** What the lead says of a place the person can reach that its conversation does not hold. */
+export function notInConversation(name: string): string {
+  return `${name} isn't in this conversation, so no work can start there; the person can add it with Add place… in ` +
+    "the conversation's header, or you can ask them to with suggest_place"
+}
+
+const boundaryName = (b: SharedBoundary) => (b.type === 'user' ? PERSONAL_BOUNDARY_NAME : b.name)
+
+export const admitToBoundary: AdmitToBoundary = async ({ personId, agentId, boundary, tool, conversationId }) => {
+  const member = await memberRefusal(personId, boundary)
+  if (member) return { ok: false, reason: member }
+  if (conversationId && !(await holdsPlace(conversationId, { type: boundary.type, id: boundary.id }))) {
+    return { ok: false, reason: notInConversation(boundaryName(boundary)) }
+  }
+  const reason = await agentRefusal(agentId, boundary, tool)
   return reason ? { ok: false, reason } : { ok: true }
 }
 
-/** The shared boundaries the agent may start work in for this person now. */
-export async function admittedBoundaries(personId: string, agentId: string, tool = 'start_work'): Promise<SharedBoundary[]> {
-  const shared = await sharedBoundaries(personId, agentId)
+/** Only the boundaries among the conversation's places, when one is given. */
+async function inConversation(boundaries: SharedBoundary[], conversationId?: string): Promise<SharedBoundary[]> {
+  if (!conversationId) return boundaries
+  const places = await placesOf(conversationId)
+  return boundaries.filter(b => places.some(p => samePlace(p, { type: b.type, id: b.id })))
+}
+
+/** The shared boundaries the agent may start work in for this person now, among the conversation's places if given. */
+export async function admittedBoundaries(personId: string, agentId: string, tool = 'start_work', conversationId?: string): Promise<SharedBoundary[]> {
+  const shared = await inConversation(await sharedBoundaries(personId, agentId), conversationId)
   const admitted = await Promise.all(
     shared.map(async boundary => ((await admitToBoundary({ personId, agentId, boundary, tool })).ok ? boundary : null)),
   )
   return admitted.filter((b): b is SharedBoundary => b !== null)
+}
+
+/** The projects the agent is not assigned to, among the conversation's places. */
+export async function unassignedInConversation(personId: string, agentId: string, conversationId: string): Promise<SharedBoundary[]> {
+  return inConversation(await unassignedProjects(personId, agentId), conversationId)
 }

@@ -1,5 +1,5 @@
 /**
- * The Artefacts and Knowledge tools' reads, against the real test database
+ * The Artefacts tool's reads, against the real test database
  * (projects, membership and the location access rule are real); the site's
  * folder store is the stand-in, and whether the site was asked is part of the
  * behaviour checked.
@@ -7,8 +7,6 @@
  *  1. **hq checks entitlement, then asks** — the same rule `listLocationFiles`
  *     applies: the person's own storage, or a project they are on.
  *  2. **A site that is down is never an empty folder** (503, as every storage read).
- *  3. **Knowledge is titled from INDEX.md**, else by file name, and the index
- *     itself is not a topic.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { LocationFileError } from '@agenthix/core'
@@ -18,8 +16,6 @@ import { createProject, createUser } from '../../test/factories'
 const h = vi.hoisted(() => ({
   listArtefactsOnSite: vi.fn(),
   readArtefactOnSite: vi.fn(),
-  listKnowledgeOnSite: vi.fn(),
-  readKnowledgeOnSite: vi.fn(),
 }))
 
 vi.mock('wasp/server', async () => {
@@ -34,8 +30,6 @@ vi.mock('../ownerFolderStore', () => h)
 import {
   listArtefactsQuery,
   getArtefactContentQuery,
-  listKnowledgeQuery,
-  getKnowledgeContentQuery,
 } from '../ownerFolderQueries'
 import { SiteUnreachableError } from '../workspaceStore'
 
@@ -47,21 +41,17 @@ let project: { ownerType: 'project'; ownerId: string }
 beforeEach(async () => {
   for (const fn of Object.values(h)) fn.mockReset()
   h.listArtefactsOnSite.mockResolvedValue({ entries: [] })
-  h.listKnowledgeOnSite.mockResolvedValue({ files: [], truncated: false })
   h.readArtefactOnSite.mockResolvedValue(Buffer.from('# Pricing'))
-  h.readKnowledgeOnSite.mockResolvedValue(Buffer.from('# Auth'))
   me = await createUser()
   const open = await createProject({ accessLevel: 'OPEN' })
   await prisma.projectMember.create({ data: { projectId: open.id, userId: me.id } })
   project = { ownerType: 'project', ownerId: open.id }
 })
 
-describe('the location access rule at the four queries', () => {
+describe('the location access rule at both queries', () => {
   const calls = (owner: { ownerType: 'user' | 'project'; ownerId: string }, ctx: { user?: { id: string } }) => [
     () => listArtefactsQuery(owner, ctx),
     () => getArtefactContentQuery({ ...owner, name: 'a.md' }, ctx),
-    () => listKnowledgeQuery(owner, ctx),
-    () => getKnowledgeContentQuery({ ...owner, path: 'a.md' }, ctx),
   ]
 
   it("refuses someone else's own storage and a project the caller is not on, open or private, without asking the site", async () => {
@@ -131,50 +121,5 @@ describe('artefacts', () => {
       .resolves.toEqual({ kind: 'too-large', name: 'big.pdf' })
     h.readArtefactOnSite.mockRejectedValueOnce(new LocationFileError('not_found', 'location.readArtefact "x.md"'))
     await expect(getArtefactContentQuery({ ...project, name: 'x.md' }, { user: me })).rejects.toMatchObject({ statusCode: 404 })
-  })
-})
-
-describe('knowledge', () => {
-  it('lists the topics newest first, titled from INDEX.md or else by file name, without the index itself', async () => {
-    h.listKnowledgeOnSite.mockResolvedValue({
-      files: [
-        { path: 'auth.md', size: 1, modifiedAt: '2026-01-03T00:00:00.000Z' },
-        { path: 'decisions/hosting.md', size: 1, modifiedAt: '2026-01-02T00:00:00.000Z' },
-        { path: 'INDEX.md', size: 40, modifiedAt: '2026-01-01T00:00:00.000Z' },
-      ],
-      truncated: false,
-    })
-    h.readKnowledgeOnSite.mockResolvedValue(Buffer.from('- [How sign-in works](auth.md) — sessions and cookies\n'))
-    await expect(listKnowledgeQuery(project, { user: me })).resolves.toEqual({
-      topics: [
-        { path: 'auth.md', title: 'How sign-in works', summary: 'sessions and cookies', tags: [], modifiedAt: '2026-01-03T00:00:00.000Z' },
-        { path: 'decisions/hosting.md', title: 'hosting.md', summary: '', tags: [], modifiedAt: '2026-01-02T00:00:00.000Z' },
-      ],
-    })
-    expect(h.readKnowledgeOnSite).toHaveBeenCalledWith(project, 'INDEX.md', expect.any(Number))
-  })
-
-  it('reads no index when there is none, and loses only the titles when it cannot be read', async () => {
-    h.listKnowledgeOnSite.mockResolvedValue({ files: [{ path: 'a.md', size: 1, modifiedAt: '2026-01-01T00:00:00.000Z' }], truncated: false })
-    await expect(listKnowledgeQuery(project, { user: me })).resolves.toMatchObject({ topics: [{ title: 'a.md' }] })
-    expect(h.readKnowledgeOnSite).not.toHaveBeenCalled()
-
-    h.listKnowledgeOnSite.mockResolvedValue({
-      files: [{ path: 'a.md', size: 1, modifiedAt: '2026-01-01T00:00:00.000Z' }, { path: 'INDEX.md', size: 1, modifiedAt: '2026-01-01T00:00:00.000Z' }],
-      truncated: false,
-    })
-    h.readKnowledgeOnSite.mockRejectedValueOnce(new LocationFileError('too_large', 'location.readKnowledge "INDEX.md"'))
-    await expect(listKnowledgeQuery(project, { user: me })).resolves.toMatchObject({ topics: [{ title: 'a.md' }] })
-  })
-
-  it('opens a topic by its path, named by its file name', async () => {
-    await expect(getKnowledgeContentQuery({ ...project, path: 'decisions/auth.md' }, { user: me }))
-      .resolves.toEqual({ kind: 'markdown', name: 'auth.md', text: '# Auth' })
-    expect(h.readKnowledgeOnSite).toHaveBeenCalledWith(project, 'decisions/auth.md', 1_000_000)
-  })
-
-  it('answers a path that leaves knowledge/ as the containment refusal it is (403)', async () => {
-    h.readKnowledgeOnSite.mockRejectedValueOnce(new LocationFileError('outside', 'location.readKnowledge "../files/AGENTS.md" is outside project p knowledge'))
-    await expect(getKnowledgeContentQuery({ ...project, path: '../files/AGENTS.md' }, { user: me })).rejects.toMatchObject({ statusCode: 403 })
   })
 })

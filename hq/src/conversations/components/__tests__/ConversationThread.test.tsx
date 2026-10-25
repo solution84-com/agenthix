@@ -42,6 +42,11 @@ vi.mock('../../../agents/profile/AgentProfileCard', () => ({ AgentProfileTrigger
 vi.mock('../../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: () => <i /> }))
 vi.mock('../../../shared/components/MarkdownMessage', () => ({ MarkdownMessage: ({ content }: { content: string }) => <p>{content}</p> }))
 
+vi.mock('../ConversationPlaces', () => ({
+  ConversationPlaces: ({ agentName, canChange }: { agentName: string; canChange: boolean }) => (
+    <span data-testid="places-for" data-agent={agentName} data-can-change={String(canChange)} />
+  ),
+}))
 vi.mock('../ConversationModelPicker', () => ({
   ConversationModelPicker: ({ conversationId }: { conversationId: string }) => (
     <span data-testid="model-picker-for">{conversationId}</span>
@@ -308,6 +313,25 @@ describe('the header\'s tools', () => {
     h.thread.view = { ...baseView, openedById: 'someone-else' }
     renderThread()
     expect(screen.queryByRole('button', { name: /Delete/ })).toBeNull()
+  })
+})
+
+describe('the places strip @SC-1441', () => {
+  it('names the agent and lets the one who opened the conversation change the places', () => {
+    renderThread()
+    const strip = screen.getByTestId('places-for')
+    expect(strip.getAttribute('data-agent')).toBe('Kernel')
+    expect(strip.getAttribute('data-can-change')).toBe('true')
+  })
+
+  it('is read-only for anyone else, and for a closed conversation', () => {
+    h.thread.view = { ...baseView, openedById: 'someone-else' }
+    renderThread()
+    expect(screen.getByTestId('places-for').getAttribute('data-can-change')).toBe('false')
+    cleanup()
+    h.thread.view = { ...baseView, status: 'CLOSED' }
+    renderThread()
+    expect(screen.getByTestId('places-for').getAttribute('data-can-change')).toBe('false')
   })
 })
 

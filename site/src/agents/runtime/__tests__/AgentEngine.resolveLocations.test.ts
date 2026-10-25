@@ -3,9 +3,10 @@
  * cwd (ADR-0074, ADR-0079).
  *
  * A container binds its STORAGE OWNER's folder whole. The folders listed for
- * the prompt — a project's files/, knowledge/, every workspace, tasks/ and
- * members/; a person's files/, their own knowledge/ and every workspace — are
- * all inside that one bind. Nothing about the run varies it.
+ * the prompt — a project's files/, every workspace, tasks/ and members/; a
+ * person's files/ and every workspace — are all inside that one bind. Nothing
+ * about the run varies it. Knowledge is none of them: it lives outside the
+ * owner's folder and runs reach it only through the knowledge tools.
  *
  * The cwd still varies per run, and is always a path INSIDE that set — never a
  * mount of its own. A task run's cwd points into the mounted tasks/ root.
@@ -60,10 +61,9 @@ function dirs(owner: StorageOwner, workspaces = WORKSPACES): string[] {
 // ── the set is a function of the owner ───────────────────────────────────────
 
 describe('resolveAccessibleLocations — a project\'s storage', () => {
-  it('mounts files, knowledge, artefacts, every workspace, the tasks root and the members root', () => {
+  it('mounts files, artefacts, every workspace, the tasks root and the members root', () => {
     expect(new Set(dirs(PROJECT))).toEqual(new Set([
       '/projects/proj-uuid/files',
-      '/projects/proj-uuid/knowledge',
       '/projects/proj-uuid/artefacts',
       '/projects/proj-uuid/workspaces/ws-uuid-a',
       '/projects/proj-uuid/workspaces/ws-uuid-b',
@@ -82,7 +82,7 @@ describe('resolveAccessibleLocations — a project\'s storage', () => {
     // segment strings, and hq reads the same directory through that module. A
     // literal on both sides would let the two spellings be changed apart — the
     // run writing one name while hq reads another — with every test still
-    // green. Files, workspaces, members, tasks and knowledge are pinned the same
+    // green. Files, workspaces, members and tasks are pinned the same
     // way below.
     const locations = resolveAccessibleLocations(PROJECT, SITE, [])
     const artefacts = locations.find(l => l.containerDir === '/projects/proj-uuid/artefacts')!
@@ -97,12 +97,13 @@ describe('resolveAccessibleLocations — a project\'s storage', () => {
     expect(artefacts.description).not.toMatch(/set/)
   })
 
-  it('mounts the knowledge directory where the storage-path module says it is', () => {
+  it('lists no knowledge folder, and the knowledge root is outside the bind @SC-1384', () => {
     for (const owner of [PROJECT, PERSON]) {
       const locations = resolveAccessibleLocations(owner, SITE, [])
-      const plural = owner.ownerType === 'project' ? 'projects' : 'users'
-      const knowledge = locations.find(l => l.containerDir === `/${plural}/${owner.ownerId}/knowledge`)!
-      expect(knowledge.hostDir).toBe(getKnowledgeDir(owner.ownerType, owner.ownerId))
+      expect(locations.some(l => l.containerDir.endsWith('/knowledge'))).toBe(false)
+      const bind = resolveBoundaryMount(owner, SITE)
+      const knowledge = getKnowledgeDir(owner.ownerType, owner.ownerId)
+      expect(knowledge === bind.hostDir || knowledge.startsWith(`${bind.hostDir}/`)).toBe(false)
     }
   })
 
@@ -215,48 +216,8 @@ describe('resolveAccessibleLocations — a person\'s own storage', () => {
     expect(artefacts.hostDir).toBe(getArtefactsDir('user', 'user-uuid-1'))
   })
 
-  it('mounts a person\'s own knowledge for a run in their own space', () => {
-    const locations = resolveAccessibleLocations(PERSON, SITE, [])
-    const knowledge = locations.find(l => l.containerDir === '/users/user-uuid-1/knowledge')
-    expect(knowledge).toBeDefined()
-    expect(knowledge!.hostDir).toBe(`${SITE}/users/user-uuid-1/knowledge`)
-  })
-})
-
-// ── the knowledge mount (close-out spec §6.1) ─────────────────────────────────
-
-describe('the knowledge mount takes the owner kind', () => {
-  it('derives a project\'s knowledge path from the owner kind, not a hard-coded one', () => {
-    const locations = resolveAccessibleLocations(PROJECT, SITE, [])
-    const knowledge = locations.find(l => l.containerDir === '/projects/proj-uuid/knowledge')!
-    expect(knowledge.hostDir).toBe(`${SITE}/projects/proj-uuid/knowledge`)
-  })
-
-  it('carries a description for the prompt', () => {
-    const locations = resolveAccessibleLocations(PROJECT, SITE, [])
-    const knowledge = locations.find(l => l.containerDir === '/projects/proj-uuid/knowledge')!
-    expect(knowledge.description).toBe('project knowledge: shared notes every agent on this project reads')
-  })
-
-  it('carries a distinct description for a person\'s own tree', () => {
-    const locations = resolveAccessibleLocations(PERSON, SITE, [])
-    const knowledge = locations.find(l => l.containerDir === '/users/user-uuid-1/knowledge')!
-    expect(knowledge.description).toBeTruthy()
-    expect(knowledge.description).not.toBe('project knowledge: shared notes every agent on this project reads')
-  })
-
-  it('does not mount one owner\'s knowledge into another owner\'s run', () => {
-    expect(dirs(PERSON, [])).not.toContain('/projects/proj-uuid/knowledge')
-  })
-
-  it('a person\'s knowledge is not reachable from another person\'s run', () => {
-    const OTHER_PERSON: StorageOwner = { ownerType: 'user', ownerId: 'user-uuid-2' }
-    const mine = resolveAccessibleLocations(PERSON, SITE, []).find(l => l.containerDir === '/users/user-uuid-1/knowledge')!
-    const theirsKnowledge = resolveAccessibleLocations(OTHER_PERSON, SITE, []).find(l => l.containerDir === '/users/user-uuid-2/knowledge')
-    // The other person's own run does mount a knowledge tree — the isolation
-    // claim below is about it being A DIFFERENT tree, not merely present or absent.
-    expect(theirsKnowledge).toBeDefined()
-    expect(theirsKnowledge!.hostDir).not.toBe(mine.hostDir)
+  it('lists no knowledge folder in a person\'s own space either @SC-1384', () => {
+    expect(dirs(PERSON, [])).not.toContain('/users/user-uuid-1/knowledge')
   })
 })
 

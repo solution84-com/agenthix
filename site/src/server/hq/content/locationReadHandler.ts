@@ -59,7 +59,6 @@ import {
   MAX_CHUNK_BYTES,
   LocationFileError,
   type LocationFileErrorCode,
-  type StorageOwnerRef,
 } from '@agenthix/core'
 import type { ContentHandler } from './contentMethods'
 // Separate modules, deliberately: the wire schemas these reads validate against
@@ -77,9 +76,10 @@ import {
   openInLocation,
   openInOwnerFolder,
   refuse,
-  type OwnerFolder,
 } from '../../storage/locationContainment'
 import type { FileHandle } from '../../../agents/runtime/containedFile'
+import { openKnowledgeForRead } from '../../knowledge/knowledgeRead'
+import { describeKnowledgeOwner, nameForRefusal } from '../../knowledge/owner'
 
 const METHOD = LOCATION_FILE_METHODS.readFile
 
@@ -95,23 +95,22 @@ export const handleLocationRead: ContentHandler = async (stream, params) => {
 }
 
 /**
- * One file out of an owner's `artefacts/` or `knowledge/`, streamed to hq.
+ * One file out of an owner's `artefacts/`, or one knowledge page or kept
+ * version, streamed to hq.
  *
- * The same stream and the same rules, a different address: these folders are
- * not locations (core's `LOCATION_FILE_METHODS.listArtefacts` says why), and
- * their containment refuses every link (`openInOwnerFolder`). `maxBytes` is
- * checked against the descriptor's own size before a byte is sent, so hq can
- * decline a file too large to show without the site streaming it.
+ * The same stream and the same rules, a different address: neither is a
+ * location (core's `LOCATION_FILE_METHODS.listArtefacts` says why), and their
+ * containment refuses every link (`openInOwnerFolder`; for knowledge,
+ * `openKnowledgeForRead` on the knowledge root outside the owner's folder).
+ * `maxBytes` is checked against the descriptor's own size before a byte is
+ * sent, so hq can decline a file too large to show without the site streaming it.
  */
 function ownerFolderRead(
-  folder: OwnerFolder,
-  method: string,
-  parse: (params: unknown) => { owner: StorageOwnerRef; relPath: string; maxBytes: number },
+  parse: (params: unknown) => { open: () => Promise<FileHandle>; detail: string; maxBytes: number },
 ): ContentHandler {
   return async (stream, params) => {
-    const { owner, relPath, maxBytes } = parse(params)
-    const { handle } = await openInOwnerFolder(owner, folder, method, relPath, fsConstants.O_RDONLY)
-    const detail = `${method} "${relPath}" in ${describeOwnerFolder(owner, folder)}`
+    const { open, detail, maxBytes } = parse(params)
+    const handle = await open()
     const named = (code: LocationFileErrorCode) => new LocationFileError(code, detail)
     const classify = (err: unknown) => (err instanceof LocationFileError ? err : named(locationFileCodeFor(err)))
     await streamContainedFile(stream, handle, {
@@ -131,15 +130,25 @@ const ARTEFACT_METHOD = LOCATION_FILE_METHODS.readArtefact
 const KNOWLEDGE_METHOD = LOCATION_FILE_METHODS.readKnowledge
 
 /** `location.readArtefact` — one artefact, by its name directly in `artefacts/`. */
-export const handleArtefactRead = ownerFolderRead('artefacts', ARTEFACT_METHOD, params => {
+export const handleArtefactRead = ownerFolderRead(params => {
   const { ownerType, ownerId, name, maxBytes } = parseParams(readArtefactParams, params, ARTEFACT_METHOD)
-  return { owner: { ownerType, ownerId }, relPath: name, maxBytes }
+  const owner = { ownerType, ownerId }
+  return {
+    open: async () => (await openInOwnerFolder(owner, 'artefacts', ARTEFACT_METHOD, name, fsConstants.O_RDONLY)).handle,
+    detail: `${ARTEFACT_METHOD} "${name}" in ${describeOwnerFolder(owner, 'artefacts')}`,
+    maxBytes,
+  }
 })
 
-/** `location.readKnowledge` — one file under `knowledge/`, by its path there. */
-export const handleKnowledgeRead = ownerFolderRead('knowledge', KNOWLEDGE_METHOD, params => {
-  const { ownerType, ownerId, relPath, maxBytes } = parseParams(readKnowledgeParams, params, KNOWLEDGE_METHOD)
-  return { owner: { ownerType, ownerId }, relPath, maxBytes }
+/** `location.readKnowledge` — one page by its path in the owner's pages, or with `versionId` one kept version of it. */
+export const handleKnowledgeRead = ownerFolderRead(params => {
+  const { ownerType, ownerId, relPath, maxBytes, versionId } = parseParams(readKnowledgeParams, params, KNOWLEDGE_METHOD)
+  const owner = { ownerType, ownerId }
+  return {
+    open: () => openKnowledgeForRead(KNOWLEDGE_METHOD, owner, relPath, versionId),
+    detail: `${KNOWLEDGE_METHOD} "${nameForRefusal(relPath)}" in ${describeKnowledgeOwner(owner)}`,
+    maxBytes,
+  }
 })
 
 /**

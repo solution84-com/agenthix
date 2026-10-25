@@ -1,16 +1,16 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-10-25
+updated: 2026-10-26
 verified: 2026-06-19
-next-us: US-383
+next-us: US-390
 ---
 
 # User Stories — `hq/`
 
 > Business-level requirements for hq's users, and for the person who owns an Execution Site machine (stories US-182 to US-185).
 > Audience: business readers — no implementation detail.
-> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*.
+> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*.
 > A retired story or criterion keeps its number; nothing is renumbered. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/hq.md`](../scenarios/hq.md), [`../scenarios/site.md`](../scenarios/site.md)), never here.
 
 ---
@@ -1770,7 +1770,7 @@ at the filesystem, not by convention.
 - AC-160b — An agent's memory of a person is delivered by hq into that person's own chat runs and nowhere else; unattended runs carry nobody's memory.
 - AC-160c — No path visible inside a container or a prompt reveals the site's host directory layout.
 - AC-160d — A run whose effective toolset has no write tools cannot modify mounted work locations, whatever the agent's approval.
-- AC-160e — Project runs share a project-owned knowledge location; what one agent learns there, others on the project can read.
+- AC-160e — Project runs share the project's knowledge; what one agent writes there, others on the project can read, through the knowledge tools. *(Changed 2026-10-26 — knowledge is no longer a folder mounted into runs.)*
 
 ---
 
@@ -3293,10 +3293,13 @@ As a member, I want agents to remember what I have told them and to find it when
 
 ### US-324 — Have agents use my place's knowledge
 
-As a member, I want an agent to find what my team wrote down in the place's knowledge files, so that its answers use the team's own words.
+As a member, I want an agent to find what my team and my organisation wrote down, so that its answers use our own words. *(Changed 2026-10-26: knowledge is pages at every level, reached through the knowledge tools.)*
 
 **Acceptance criteria:**
-- AC-324a: the agent finds the relevant lines of the place's knowledge files and may quote them to me, they stay on the place's site, and when that site cannot be reached the agent says the knowledge is unavailable while its memory still answers.
+- AC-324a: the agent searches the conversation's places, the organisation's knowledge and the platform guide in one search, each answer saying where it came from, reads a page with its line numbers and may quote it to me; knowledge stays on its site, and when a level cannot be searched the agent is told so while the others still answer. *(Changed 2026-10-26: every level, through the knowledge tools.)*
+- AC-324b: no run holds knowledge as files: agents reach it only through the knowledge tools, which cannot reach outside a place's pages, cannot be made to hang the machine, and give away no path, error or what was searched for.
+- AC-324c: an agent changes a page only when a person asks, through the same checks a person's save meets; it must have read a page before replacing it, never changes the platform guide, changes the organisation's only for an organisation admin, and changes nothing in a run that may not change files.
+- AC-324d: a worker in a place has the same knowledge tools as the conversation's agent, limited to its place, the organisation's knowledge and the platform guide.
 
 ---
 
@@ -3755,3 +3758,70 @@ As a project administrator, I want GitHub tokens narrowed to each run, protected
 - AC-382d: every secret of the place is hidden in a run's output in its common encodings, and a run that printed one is flagged and the administrators told to replace it.
 - AC-382e: *Turn off what uses it* switches off at once every workflow that uses a secret or variable, and stops their runs in progress.
 - AC-382f: adding a secret can also set it on GitHub, which proposes `set-github-secrets` for it.
+
+---
+
+## Knowledge at every level (added 2026-10-26)
+
+Written from the finished code at the close of the agent knowledge unit. Knowledge is what a place has written down to share — processes, decisions, conventions, reference — as **pages** in **sections**, at four **levels**: the platform guide (how Agenthix works), the organisation's, a project's, and Your space's. Agents look it up when they need it; people browse, edit and restore it in the Knowledge tool. What agents find and change on their own is in US-324.
+
+### US-383 — Ask an agent about Agenthix itself
+
+As a member, I want an agent to answer a question about Agenthix from the product's own guide, so that it finds the right screen or setting without asking me back, in the words the product uses.
+
+**Acceptance criteria:**
+- AC-383a: asked how to do something in Agenthix, the agent searches the guide before answering or asking back, and names the screens and settings as the guide does.
+- AC-383b: the guide agents read is the user guide of the running version, with its glossary and a list of the agents' tools; a guide page without a description, a glossary that cannot be read, or a tools list that differs from the tools stops the build.
+- AC-383c: whatever the guide describes, the agent is reminded that what it may do is what its own tools allow.
+
+### US-384 — See what an agent did with knowledge, and undo it
+
+As a member, I want to see in the conversation which knowledge an agent searched, read and changed, and to open or undo a change, so that I can trust what it writes down and correct it at once.
+
+**Acceptance criteria:**
+- AC-384a: each search, read and change of knowledge is one line among the reply's steps, in plain words, naming the places searched or the page.
+- AC-384b: a change says in one line what changed, opens the page's history at that version, and can be undone once.
+- AC-384c: every change records who made it — me, or the agent and the person it acted for, with the conversation or run it came from — and that record outlives the agent and the conversation.
+
+### US-385 — Browse, search and read a place's Knowledge
+
+As a member, I want to browse, search and read the pages my team has written down, in a project, in Your space and for the whole organisation, so that I can find what we know without asking an agent.
+
+**Acceptance criteria:**
+- AC-385a: I see a place's knowledge as sections and pages, newest first, with what each is about, its tags and properties, and who changed it last; I narrow it by tag and property, and pages that need fixing — a page put there by hand included — are gathered with what is wrong.
+- AC-385b: I read a page with its headings, follow its links to other pages, the organisation's included, and see which pages link to it.
+- AC-385c: I search for the words I type in this place, the organisation's or both, and each result says where it is from.
+- AC-385d: what I am offered shows what I may change: someone who may only read sees no way to change.
+
+### US-386 — Write and keep a place's Knowledge
+
+As a member who may change a place, I want to write, change, move and delete its pages, and to see and undo what was changed, so that the team's knowledge stays right and nothing is lost by mistake.
+
+**Acceptance criteria:**
+- AC-386a: a project's Members and Admins change its knowledge and a Viewer only reads it; Your space's is mine alone; the organisation's is changed by its admins; and every change, mine or an agent's, goes through one gate that keeps the page as it was before.
+- AC-386b: I write a page as a title, description, tags, properties and text, never front matter, and the same rules the agents meet tell me on each field what to fix; nothing that breaks them is stored.
+- AC-386c: when someone changed a page while I was editing it, nothing is lost: I keep my text, see theirs and who made it, and choose; two changes at once never mix.
+- AC-386d: I move a page to another section without its ever being under both names or under neither.
+- AC-386e: a deleted page is kept 30 days with who deleted it and can be restored; I can remove a page, or one version of it, for good after one confirming step.
+- AC-386f: I see every earlier version with who made it and what it changed, and restore one as a new version; earlier versions are kept 30 days, a page's last 20 always, and tidied away by themselves after that.
+
+### US-387 — Keep the organisation's own Knowledge
+
+As an organisation admin, I want one place for how the whole organisation works that every member and agent can look up, so that it is written once and not copied into every project.
+
+**Acceptance criteria:**
+- AC-387a: every member and every agent reads it, from the organisation's area and from any project; only organisation admins, and agents acting for one, change it.
+- AC-387b: it has the same screens as a project's Knowledge, at its own address in the organisation's area, with a card on the Workplace.
+- AC-387c: it is kept on the organisation's default site from its first use and does not move when the default changes.
+- AC-387d: no project can take a name that is a level of knowledge (org, platform, personal) or the key ORG.
+
+### US-388 — Decide how far a conversation reaches
+
+As a member, I want to choose which of my places a conversation can read and work in, so that what an agent finds in one place reaches another only when I put them together.
+
+**Acceptance criteria:**
+- AC-388a: a conversation reaches its own place, the organisation's knowledge and the platform guide, and any other place only after I add it; I see which places it holds at the top of the conversation.
+- AC-388b: only I, whose conversation it is, add or remove a place, and only one I can open, after being told what adding lets the agent do; the agent can ask me with a card but never adds one.
+- AC-388c: a place I lose access to drops out of the conversation, and nothing reaches it from then on.
+- AC-388d: the agent knows which places it has and which it has not, says a place out of reach was not searched rather than that it is empty, and asks me for it.
+- AC-388e: the agent starts work only in the places the conversation holds, and says how to add one when asked for another.

@@ -24,6 +24,8 @@ import { resolvePlatformToken } from '../runtime/runTokens'
 import { gateRunContext } from '../../agents/runtime/toolGateRuns'
 import { verifyHqToken } from '../identity/verifyHqToken'
 import { createMcpServer } from './mcpServer'
+import { KNOWLEDGE_CHANGE_TOOLS } from './forwardedKnowledgeSchemas'
+import { runHasWriteTools } from '../../agents/runtime/toolPermissions'
 import { OPENCODE_HARNESS, PLATFORM_TOOLS_HARNESS_HEADER } from './siteTools'
 import { Logger } from '../utils/logger'
 
@@ -55,9 +57,13 @@ export const mcpHandler: ApiHandler = async (req, res) => {
     return
   }
 
-  const disabledTools = claims.permissions.neverTools.length > 0
-    ? new Set(claims.permissions.neverTools)
-    : undefined
+  // A run that may change no files changes no knowledge either: its change tools are not offered (agent knowledge
+  // spec, part 3). hq refuses them for it as well.
+  const withheld = [
+    ...claims.permissions.neverTools,
+    ...(runHasWriteTools(claims.permissions) ? [] : KNOWLEDGE_CHANGE_TOOLS),
+  ]
+  const disabledTools = withheld.length > 0 ? new Set(withheld) : undefined
 
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
   // claims itself is not passed through — createMcpServer

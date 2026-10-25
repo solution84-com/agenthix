@@ -41,7 +41,9 @@ const CLAIMS = {
   tokenType: 'capability' as const,
   userId: 'u1', agentId: 'agent-1', sessionId: 's1',
   projectId: null, workspaceId: null, taskId: null, role: null, siteId: 'this-site',
-  permissions: { bypassed: false, allowedTools: [], allowedBashPatterns: [], neverTools: [] as string[] },
+  permissions: {
+    bypassed: false, allowedTools: [{ name: 'write_file', state: 'always' as const }], allowedBashPatterns: [], neverTools: [] as string[],
+  },
 }
 
 beforeEach(() => {
@@ -118,5 +120,22 @@ describe('MCP handler — the one auth branch', () => {
     h.gateRunContext.mockReturnValue({ runId: 'run-1', sessionId: 'another-conversation' })
     await mcpHandler(makeReqRes({ authorization: 'Bearer t' }).req, makeReqRes().res)
     expect(h.createMcpServer).toHaveBeenLastCalledWith(expect.objectContaining({ siteTools: { context: null, openCode: false } }))
+  })
+
+  it('leaves the knowledge change tools out of the list of a run that may change no files, and keeps its never-listed tools @SC-1395', async () => {
+    const claims = { ...CLAIMS, permissions: { ...CLAIMS.permissions, allowedTools: [{ name: 'read_file', state: 'always' as const }], neverTools: ['delete_task'] } }
+    h.resolvePlatformToken.mockReturnValue({ holder: { jwt: 'holder-jwt', expiresAt: Date.now() + 60_000 }, runId: null })
+    h.verifyHqToken.mockResolvedValue(claims)
+    await mcpHandler(makeReqRes({ authorization: 'Bearer t' }).req, makeReqRes().res)
+    expect(h.createMcpServer).toHaveBeenLastCalledWith(expect.objectContaining({
+      disabledTools: new Set(['delete_task', 'write_knowledge', 'edit_knowledge', 'delete_knowledge']),
+    }))
+  })
+
+  it('offers them to a run that may change files, bypassed or granted @SC-1395', async () => {
+    h.resolvePlatformToken.mockReturnValue({ holder: { jwt: 'holder-jwt', expiresAt: Date.now() + 60_000 }, runId: null })
+    h.verifyHqToken.mockResolvedValue({ ...CLAIMS, permissions: { ...CLAIMS.permissions, bypassed: true, allowedTools: [] } })
+    await mcpHandler(makeReqRes({ authorization: 'Bearer t' }).req, makeReqRes().res)
+    expect(h.createMcpServer).toHaveBeenLastCalledWith(expect.objectContaining({ disabledTools: undefined }))
   })
 })

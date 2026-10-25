@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>History · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-history.html"><main>
+<div class="top"><div><h1>U4 · History and recently deleted</h1>
+<p class="sub">Every change keeps the whole earlier page. A version can be compared, restored, or deleted for good. New: nothing today.</p></div></div>
+
+<h2 id="history">A page's history</h2>
+<div class="box"><span class="lbl before">Before · today</span><p><b>New: nothing today.</b> A worker's edit to a knowledge file leaves no trace.</p></div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr"><div class="pnav" data-on="knowledge" data-count="5"></div>
+<div class="mcentre">
+<div class="crumb"><a>← Release process</a></div>
+<div class="mh">History</div><div class="ml">Each version is the whole page as it was. Kept 30 days, and the last 20 always.</div>
+<div style="display:grid;grid-template-columns:300px 1fr;gap:16px">
+<div>
+<div class="mcard hl"><div class="b"><div class="t">2 hours ago</div><div class="s">Kernel, asked by Sam · in "Staging approvals"</div></div></div>
+<div class="mcard"><div class="b"><div class="t">5 days ago</div><div class="s">Mia</div></div></div>
+<div class="mcard"><div class="b"><div class="t">12 Oct</div><div class="s">Kernel, in run SHOP-12 #3 · asked by Sam</div></div></div>
+<div class="mcard"><div class="b"><div class="t">8 Oct · created</div><div class="s">Sam</div></div></div>
+</div>
+<div><div class="row"><b class="grow">Changes in this version</b><span class="btn">Restore this version</span></div>
+<pre class="code">  Releases are cut from main on Thursdays.
+<span class="diffdel">- Staging deploys go out after the checks pass.</span>
+<span class="diffadd">+ **Staging deploys need Mia's approval** in the deploys channel before 4pm.</span>
+<span class="diffadd">  tags: releases, deploys</span><span class="diffdel">  (was: releases)</span></pre><div class="row" style="margin-top:6px"><span class="btn link">Download this version</span><span class="grow"></span><span class="btn link" style="color:var(--mdanger)">Delete this version permanently</span></div></div>
+</div>
+</div></div></div>
+<ol class="sub">
+<li>Newest first. Each version: when, and who, as on the page; an agent's change names the person it was answering and links to the conversation or run.</li>
+<li>The right side shows what that version changed: the text line by line, and the title, description, tags and properties.</li>
+<li><b>Restore this version</b> saves it back through the gate as a new version, so restoring is itself in the history.</li>
+<li><b>Delete this version permanently</b> removes it at once, for a password or a person's details pasted by mistake. For people who may edit; it asks once.</li></ol></div>
+
+<h2 id="deleted">Recently deleted</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:220px 1fr"><div class="pnav" data-on="knowledge" data-count="5"></div>
+<div class="mcentre">
+<div class="crumb"><a>← Knowledge</a></div>
+<div class="mh">Recently deleted</div><div class="ml">Deleted pages are kept 30 days, then removed with their history.</div>
+<div class="mcard"><div class="b"><div class="t">Old API notes</div><div class="s">api / old-api-notes · deleted 3 days ago by Kernel, asked by Mia · removed in 27 days</div></div><span class="btn">Restore</span><span class="btn danger">Delete permanently</span></div>
+</div></div></div>
+<p class="sub">Restore puts the page back at its path, or beside it if a page has taken the path since. Each place's versions are capped at 200 MB; the oldest go first.</p></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li><b>Agents change shared notes</b>; people need to see what changed and undo it without asking anyone.</li>
+<li><b>Restore makes a new version</b>, as document tools do, so nothing is ever lost by restoring.</li>
+<li><b>30 days</b>, the usual length of a recycle bin; the last 20 versions are kept beyond it so an old, rarely changed page still has a past.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

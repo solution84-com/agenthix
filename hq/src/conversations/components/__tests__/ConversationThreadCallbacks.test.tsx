@@ -17,6 +17,11 @@ vi.mock('wasp/client/operations', () => ({
 vi.mock('../../../shared/providers/VoiceCallProvider', () => ({
   useVoiceCall: () => ({ voice: { conversationId: null, phase: 'off', partial: '' }, revealLimit: () => null }),
 }))
+vi.mock('../ConversationPlaces', () => ({
+  ConversationPlaces: ({ agentName, canChange }: { agentName: string; canChange: boolean }) => (
+    <span data-testid="places-for" data-agent={agentName} data-can-change={String(canChange)} />
+  ),
+}))
 vi.mock('../../hooks/useConversationWorkflowRuns', () => ({ useConversationWorkflowRuns: () => [] }))
 vi.mock('../../hooks/useConversationThread', () => ({ useConversationThread: () => h.thread }))
 vi.mock('../../hooks/useSummariseNow', () => ({ useSummariseNow: () => ({ summarising: false, failure: null, dismiss: vi.fn(), summarise: vi.fn() }) }))

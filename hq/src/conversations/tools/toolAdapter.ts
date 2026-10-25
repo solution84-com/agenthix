@@ -102,6 +102,33 @@ function waitFor(running: Promise<Ended>, waitLimitMs: number, signal: AbortSign
   })
 }
 
+/**
+ * The tools the lead is offered under this capability, `own` the conversation's own tools: what a turn's toolsFor
+ * gives, and what the model checks (__modelchecks__) send, with the few whose description reads the database scripted.
+ */
+export async function leadToolDefinitions(capability: TurnCapability, own: readonly ConversationTool[]): Promise<LeadToolDefinition[]> {
+  // A report turn speaks and starts no work: it is offered nothing.
+  if (capability.trigger === 'REPORT') return []
+  // A conversation's own version of a tool (run_task, create_task) replaces the control plane's for a turn.
+  const offers = await Promise.all(own.map(async t => {
+    if (await t.offered(capability)) return { tool: t, asks: false }
+    return (await ownToolAsks(t, capability)) ? { tool: t, asks: true } : null
+  }))
+  const offered = offers.filter((t): t is NonNullable<typeof t> => t !== null)
+  const ownNames = new Set(own.map(t => t.name))
+  const asking = TURN_TOOL_SCHEMAS
+    .filter(t => !ownNames.has(t.name) && turnToolAsks(capability, t.name))
+    .map(t => askDefinition(t.name, t.description ?? `${toolCallTitle(t.name)}.`, z.object(t.schema)))
+  return [
+    ...turnToolDefinitions(capability).filter(t => !ownNames.has(t.name)),
+    ...asking,
+    ...(await Promise.all(offered.map(async ({ tool, asks }) => {
+      const description = await tool.describe(capability)
+      return asks ? askDefinition(tool.name, description, tool.input) : { name: tool.name, description, input: tool.input }
+    }))),
+  ]
+}
+
 export function createToolAdapter(deps: ToolAdapterDeps): ToolAdapter {
   /** The line for a call that completed; a failure to write it never fails the call. */
   async function recordAction(capability: TurnCapability, call: LeadToolCall, result: unknown, removed: TaskFacts | null): Promise<void> {
@@ -114,26 +141,7 @@ export function createToolAdapter(deps: ToolAdapterDeps): ToolAdapter {
 
   return {
     async toolsFor(capability) {
-      // A report turn speaks and starts no work: it is offered nothing.
-      if (capability.trigger === 'REPORT') return []
-      // A conversation's own version of a tool (run_task, create_task) replaces the control plane's for a turn.
-      const own = await Promise.all(conversationTools().map(async t => {
-        if (await t.offered(capability)) return { tool: t, asks: false }
-        return (await ownToolAsks(t, capability)) ? { tool: t, asks: true } : null
-      }))
-      const offered = own.filter((t): t is NonNullable<typeof t> => t !== null)
-      const ownNames = new Set(conversationTools().map(t => t.name))
-      const asking = TURN_TOOL_SCHEMAS
-        .filter(t => !ownNames.has(t.name) && turnToolAsks(capability, t.name))
-        .map(t => askDefinition(t.name, t.description ?? `${toolCallTitle(t.name)}.`, z.object(t.schema)))
-      return [
-        ...turnToolDefinitions(capability).filter(t => !ownNames.has(t.name)),
-        ...asking,
-        ...(await Promise.all(offered.map(async ({ tool, asks }) => {
-          const description = await tool.describe(capability)
-          return asks ? askDefinition(tool.name, description, tool.input) : { name: tool.name, description, input: tool.input }
-        }))),
-      ]
+      return leadToolDefinitions(capability, conversationTools())
     },
 
     async call(capability: TurnCapability, call: LeadToolCall, options: { waitLimitMs: number; signal: AbortSignal; mailbox: MailboxSink }): Promise<ToolCallOutcome> {

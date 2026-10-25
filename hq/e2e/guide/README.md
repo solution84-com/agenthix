@@ -84,7 +84,9 @@ them if missing.
    node scripts/guide/with-guide-db.mjs bash -c 'cd ../site && DATABASE_URL="$GUIDE_SITE_DATABASE_URL" npm run dev'
    node scripts/guide/with-guide-db.mjs npx wasp start
    ```
-2. Load the sample organisation (it empties the guide databases first):
+2. Load the sample organisation (it empties the guide databases first). Knowledge pages are files on the site's disk, so
+   the sample writes them under `SITE_ROOT`: set it to the same directory for the site and for this command, or the pages
+   are skipped and the Knowledge recipes fail:
    ```bash
    node scripts/guide/with-guide-db.mjs node e2e/fixtures/seed-guide-data.mjs
    ```

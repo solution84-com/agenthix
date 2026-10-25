@@ -24,6 +24,8 @@ model User {
   offerDismissals  OfferDismissal[]
   memoryRecords    MemoryItem[]
   storagePlacement UserStoragePlacement?
+  knowledgeChanges KnowledgeChange[]   @relation("KnowledgeChangePersonPlace")
+  conversationPlaces ConversationPlace[] @relation("ConversationPlacePerson")
   personalProjects Project[]            @relation("PersonalProject")
   // A person's own Claude subscription, as a provider owned by them (models from one place, part 4).
   ownAiProviders   AiProvider[]         @relation("AiProviderOwner")
@@ -514,6 +516,7 @@ model Conversation {
   operations    Operation[]
   segments      ConversationSegment[]
   readers       ConversationReader[]
+  places        ConversationPlace[]
 
   @@index([openedById, home, status, lastMessageAt])
   @@index([projectId, openedById, status])
@@ -980,6 +983,7 @@ model ExecutionSite {
 
   projects              Project[]
   userStoragePlacements UserStoragePlacement[]
+  orgKnowledgePlacements OrgKnowledgePlacement[]
   heldInstructions      HeldSiteInstruction[]
   scheduledChanges      ScheduledChange[]
 
@@ -1178,6 +1182,8 @@ model Project {
   automationStarts AutomationStart[]
   routines         Routine[]
   milestones       Milestone[]
+  knowledgeChanges KnowledgeChange[]
+  conversationPlaces ConversationPlace[] @relation("ConversationPlaceProject")
   /// The GitHub account a new repository connection starts at (workflows spec part 4); a workspace may choose another
   /// the project may connect to. Null until a project administrator sets it.
   defaultGitHubInstallationId String?
@@ -1722,6 +1728,87 @@ model UserStoragePlacement {
   site      ExecutionSite @relation(fields: [siteId], references: [id], onDelete: Restrict)
   createdAt DateTime      @default(now())
   @@index([siteId])
+}
+
+// ──────────────────────────────────────────────
+// Module: Agent knowledge (agent knowledge spec: knowledge.md, places.md).
+//
+// Pages live on the site that holds the place (knowledge.md, Where it is stored); hq keeps only what it must know:
+// where the organisation's knowledge is placed, a record of every change, and each conversation's places.
+// A place is a project, a person's own storage, or the organisation: `KnowledgePlaceKind`, with the project or the
+// person as a real relation so deleting either takes its rows with it. The organisation's place has neither.
+// ──────────────────────────────────────────────
+
+enum KnowledgePlaceKind {
+  PROJECT
+  USER
+  ORG
+}
+
+enum KnowledgeChangeKind {
+  CREATED
+  EDITED
+  MOVED
+  DELETED
+  RESTORED
+}
+
+/// Which site holds the organisation's knowledge. At most one row (`id` is always "org"), written once, the first
+/// time the organisation's knowledge is used, on the default site, and never moved (as UserStoragePlacement).
+model OrgKnowledgePlacement {
+  id        String        @id @default("org")
+  siteId    String
+  site      ExecutionSite @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  createdAt DateTime      @default(now())
+  @@index([siteId])
+}
+
+/// One change to a knowledge page (gate step G5): who made it and what it was. Written by hq as the site reports
+/// each finished change. `page` is the page's path in its place; for a move, `fromPage` is where it was.
+model KnowledgeChange {
+  id           String              @id @default(uuid())
+  placeKind    KnowledgePlaceKind
+  projectId    String?
+  project      Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?               @relation("KnowledgeChangePersonPlace", fields: [userId], references: [id], onDelete: Cascade)
+  page         String
+  fromPage     String?
+  kind         KnowledgeChangeKind
+  /// The page's version after the change, the hex SHA-256 of its bytes (the version that was current, for a delete).
+  version      String
+  createdAt    DateTime            @default(now())
+  /// Who made it: a person (`actorUserId` alone), or an agent (`agentId`) with the person it acted for
+  /// (`actorUserId`) and the conversation or run it acted in. Plain ids: a history outlives a conversation, a run
+  /// and a removed agent.
+  actorUserId  String?
+  agentId      String?
+  conversationId String?
+  runId        String?
+
+  @@index([placeKind, projectId, userId, page, createdAt])
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// A place added to a conversation, with who added it and when (places.md, P1). The conversation's own place is not
+/// a row: it is the conversation's place today.
+model ConversationPlace {
+  id             String             @id @default(uuid())
+  conversationId String
+  conversation   Conversation       @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  placeKind      KnowledgePlaceKind
+  projectId      String?
+  project        Project?           @relation("ConversationPlaceProject", fields: [projectId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?              @relation("ConversationPlacePerson", fields: [userId], references: [id], onDelete: Cascade)
+  /// The person who added it: their click on a suggestion, or their own choice.
+  addedById      String
+  addedAt        DateTime           @default(now())
+
+  @@index([conversationId])
+  @@index([projectId])
+  @@index([userId])
 }
 
 // ──────────────────────────────────────────────

@@ -7,6 +7,13 @@ import type { ConversationMessageView } from '../../../shared/conversations/prot
 vi.mock('../../../shared/components/AuthedAgentAvatar', () => ({ AuthedAgentAvatar: () => null }))
 vi.mock('../../../shared/components/MarkdownMessage', () => ({ MarkdownMessage: ({ content }: { content: string }) => <p>{content}</p> }))
 
+vi.mock('wasp/client/operations', () => ({
+  useQuery: () => ({ data: { own: { kind: 'user', name: 'Your space', level: 'personal' }, added: [], addable: [] } }),
+  useAction: () => vi.fn(),
+  getConversationPlaces: 'getConversationPlaces',
+  addConversationPlace: vi.fn(),
+}))
+
 import { MessageItem, PersonBubble } from '../MessageItem'
 
 afterEach(cleanup)
@@ -62,5 +69,32 @@ describe('a message waiting behind a reply @SC-1008', () => {
   it('offers nothing on a message that is not waiting', () => {
     render(<PersonBubble message={waiting} />)
     expect(screen.queryByRole('button')).toBeNull()
+  })
+})
+
+describe('the lead\'s suggest-a-place card @SC-1440', () => {
+  const body = {
+    text: 'Add a place to this conversation: Shop',
+    toolName: 'suggest_place',
+    target: { kind: 'place', id: 'p1', label: 'Shop', params: { level: 'shop', why: 'To set the process up there.' } },
+  }
+  const work = { conversationId: 'c1', myId: 'u1' }
+
+  it('draws the card, with buttons for the conversation\'s person', () => {
+    render(<MessageItem message={msg({ kind: 'ACTION', body })} agent={agent} work={{ ...work, canChangePlaces: true }} />)
+    expect(screen.getByText('Add a place to this conversation: Shop')).toBeTruthy()
+    expect(screen.getByText('To set the process up there.')).toBeTruthy()
+    expect(screen.getByText('Add Shop')).toBeTruthy()
+  })
+
+  it('shows no buttons to anyone else', () => {
+    render(<MessageItem message={msg({ kind: 'ACTION', body })} agent={agent} work={work} />)
+    expect(screen.queryByText('Add Shop')).toBeNull()
+    expect(screen.queryByText('Not now')).toBeNull()
+  })
+
+  it('draws any other action as its line', () => {
+    render(<MessageItem message={msg({ kind: 'ACTION', body: { text: 'Opened the board', toolName: 'open_board' } })} agent={agent} work={work} />)
+    expect(screen.queryByTestId('suggest-place-card')).toBeNull()
   })
 })

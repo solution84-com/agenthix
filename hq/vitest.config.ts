@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 import { globSync, readFileSync } from 'node:fs'
 
-const exclude = ['**/node_modules/**', '**/dist/**', '**/.agenthix/**', '**/.wasp/**', '**/e2e/**', '**/*.integration.test.ts']
+const exclude = ['**/node_modules/**', '**/dist/**', '**/.agenthix/**', '**/.wasp/**', '**/e2e/**', '**/*.integration.test.ts', '**/__modelchecks__/**/*.models.ts']
 
 // Starting a fresh process for each test file is most of this suite's time. A file that reaches outside
 // itself — a module mock, a stub, a spy, fake timers, environment variables, globals or a DOM environment —

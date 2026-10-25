@@ -10,7 +10,7 @@ flowchart LR
 ```
 
 Scheduled and repeating work needs somewhere to live for a person, not only for a project, and every task belongs to
-a project. A person's own place is **Your space** and every **personal project** they make. All of them are ordinary
+a project. A person's own place is **Your space**, their default personal project, and every other **personal project** they make. All of them are ordinary
 projects with one extra column, `Project.personalOwnerId`, and the rules that column brings. They reuse the project's
 boards, tasks and [automation](../tasks/automation.md), shown through the same screens as a project
 ([places](places.md)).
@@ -22,7 +22,9 @@ boards, tasks and [automation](../tasks/automation.md), shown through the same s
 | How many | One per person, marked `Project.personalSpace`; a partial unique index on `(personalOwnerId) WHERE personalSpace` keeps it one | As many as the person likes |
 | Made by | The account: `ensurePersonalProject` runs when it is created and at boot for any account without one | The person, with *New project* › *Just for you* (`createPersonalProject`) |
 | Name, key | **My tasks**, shown as **Your space**; key `MY` and letters | Their own name; a key made from it, as for any project |
-| Storage | None of its own: the person's own storage, on the site that holds it | Its own (`files/`, `workspaces/`, `knowledge/`, `artefacts/`, `tasks/`), on the site that holds the person's |
+| Storage | None of its own: the person's own storage, on the site that holds it | Its own (`files/`, `workspaces/`, `artefacts/`, `tasks/`), on the site that holds the person's |
+| Knowledge | The person's own, at the `personal:` level | Its own pages, at the level named after the project: a place of its own, never `personal:` |
+| In a conversation | Reached as the conversation's own place when the conversation is in it; otherwise only when the person adds it | A place like any project: reached only when it is the conversation's place or the person adds it |
 | Deleted | Never, before the person is erased | By its owner, who types its name |
 | Settings | None | Name, description and the automation switch, and Delete. A project has no picture yet |
 
@@ -78,4 +80,6 @@ send a person to Chat instead of a project (the project pages, the dock, the bre
 a boundary, which a person's own place is),
 [ADR-0089](../../adr/adr-0089-every-task-runs-on-behalf-of-a-person.md) (every task runs on behalf of a person),
 [ADR-0096](../../adr/adr-0096-a-conversation-belongs-to-a-place.md) (a conversation belongs to a place),
+[ADR-0152](../../adr/adr-0152-a-conversation-reaches-only-its-own-place-and-the-places-its-person-added.md) (a
+conversation reaches only its own place and the places its person added),
 [ADR-0100](../../adr/adr-0100-leaving-deactivates-erasing-is-separate.md) (leaving and erasing).

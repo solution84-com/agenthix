@@ -33,7 +33,8 @@ Selecting a card opens the project on its **Overview**: its facts (lead, site, d
 | **Conversations** | The conversations you have had about the project. Select one to open it beside the page: see [The conversation beside your work](../getting-started/first-conversation.md#the-conversation-beside-your-work) |
 | **Tasks**, **Boards**, **Timeline** | See [Boards, tasks and the timeline](boards-and-tasks.md) |
 | **Runs**, **Automation** | See [Follow what agents are doing](runs-and-approvals.md) |
-| **Files**, **Artefacts**, **Knowledge**, **Workspaces** | See [Files, workspaces and previews](files-and-previews.md) |
+| **Files**, **Artefacts**, **Workspaces** | See [Files, workspaces and previews](files-and-previews.md) |
+| **Knowledge** | See [Knowledge](knowledge.md) |
 | **Members**, **Settings** | See below. **Memory** is also there for project administrators |
 
 At the foot, under **Pinned**, your name opens a menu with your organisation's **Overview** and, for administrators, **Manage**, then **Your settings** and **Sign out**; **«** beside it narrows the side bar to icons, and **»** widens it again. On a medium window the side bar shows an icon for each section, with its name when you point at it. **Pinned** is then the last pin's picture, with its list opening to the right, and you are your picture, opening the same menu. On a phone, **☰** opens the side bar as a drawer, and the bar at the top names the section you are on; select its name to list the sections. The section is part of the address, so a link, a reload or Back returns you to it.

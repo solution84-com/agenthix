@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Correcting by asking · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-correct.html"><main>
+<div class="top"><div><h1>C1 · Correcting a page by asking</h1>
+<p class="sub">The first way to correct knowledge: say what is wrong in a conversation. The agent finds the page, changes it, and the conversation shows the change with Undo.</p></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before · today, illustrated</span>
+<div class="frame mock" style="padding:14px;display:flex;flex-direction:column;gap:8px">
+<div class="bubble me">The release process page is wrong: staging deploys need Mia's OK now.</div>
+<div class="stepcard">Recalled 2 items</div>
+<div class="bubble">Thanks, I'll remember that staging deploys need Mia's approval.</div>
+</div>
+<ul class="sub"><li>The lead has no way to write knowledge, so the correction goes into <b>memory</b>, and the page stays wrong for every other agent and person.</li>
+<li>Or it starts background work whose worker edits the file directly, with no trace.</li></ul></div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="padding:14px;display:flex;flex-direction:column;gap:8px">
+<div class="bubble me">The <span class="chip">Release process</span> page is wrong: staging deploys need Mia's OK now.</div>
+<div class="stepcard">Read page · Release process</div>
+<div class="stepcard"><div class="row"><span class="grow"><b>Updated page · Release process</b><br/><span style="color:var(--t2)">Staging deploys now need Mia's approval; tag "deploys" added</span></span><span class="btn link">See change</span><span class="btn">Undo</span></div></div>
+<div class="bubble">Done: Release process now says staging deploys need Mia's approval in the deploys channel before 4pm. Anyone in Website rebuild, and every agent here, will see it.</div>
+</div>
+<ol class="sub"><li>The person names the page (Mention from the page, or just its name; the agent uses <code>search_knowledge</code>).</li>
+<li><b>Updated page</b> is a work step like the others, with what changed in one line. The agent changed one passage with <code>edit_knowledge</code>, through the gate.</li>
+<li><b>See change</b> opens the page's history at that version (U4); <b>Undo</b> restores the version before it, for that person only if they may edit.</li></ol></div>
+</div>
+
+<h2 id="when">When the agent changes knowledge, and when memory</h2>
+<div class="box"><table>
+<tr><th>The person says</th><th>The agent</th></tr>
+<tr><td>"The release process page is wrong: …"</td><td>Changes the page (a correction of a page)</td></tr>
+<tr><td>"Write down how we deploy, for the team"</td><td>Saves a new page (asked to)</td></tr>
+<tr><td>"I prefer short answers"</td><td>Remembers it (a preference: memory)</td></tr>
+<tr><td>Nothing; the agent noticed something while working</td><td>Remembers it; may suggest "shall I add this to the project's knowledge?"</td></tr></table>
+<p class="sub">This is the rule in the Knowledge section of the prompt (board 5). No approval step: the person asked, and every change can be undone.</p></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li><b>Asking comes first</b>: people correct in the conversation they are already in.</li>
+<li><b>No approval step</b> for a change the person just asked for; an approval would ask them to confirm their own words. History and Undo are the safety.</li>
+<li><b>The change is shown</b> in the conversation, so a misunderstanding is caught at once.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

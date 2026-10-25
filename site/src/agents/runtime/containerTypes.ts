@@ -32,7 +32,7 @@ export interface LocationMount {
  * What a run's container has of its boundary's storage (ADR-0079).
  *
  * `boundary` is the ONE bind: the owner's whole folder, `/projects/<id>` or
- * `/users/<id>`, with everything in it — files, knowledge, artefacts, every
+ * `/users/<id>`, with everything in it — files, artefacts, every
  * workspace, tasks and member folders. A workspace created while the container
  * runs is a new directory inside that bind and appears in it straight away, so
  * the bind never changes for a given key.

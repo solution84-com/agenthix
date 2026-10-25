@@ -30,7 +30,40 @@ export const MESSAGE_MAX_CHARS = 32_000
  * of its lookups worked. `made` is on a step that started one piece of work (`started`) or set one task to start
  * at a time (`set`): each such piece is its own step, so a screen counts them ("started 2", "set 1").
  */
-export type ReplyStepView = { label: string; ms?: number; failed?: boolean; made?: 'started' | 'set' }
+export type ReplyStepView = {
+  label: string
+  ms?: number
+  failed?: boolean
+  made?: 'started' | 'set'
+  /** What the step's knowledge calls did, for its detail (since 1.6): one entry per call that worked. */
+  knowledge?: KnowledgeStepView[]
+}
+
+/**
+ * One knowledge call of a reply's step (agent knowledge spec, part 5, C1–C3). `level` is the level's name as the
+ * agent reads pages by it (`website-rebuild`, `personal`, `org`, `platform`); `owner` is whose pages it is, as hq's
+ * Knowledge operations take it.
+ *
+ * - `knowledge_change`: a page the step created, edited, moved, deleted or restored. `versionId` is the page's
+ *   version after the change (its hash, as History lists it); `previousVersionId` the kept version holding what the
+ *   page was before, which *Undo* restores (absent for a page just created). `summary` is the change in one line.
+ * - `knowledge_search`: the levels a search covered, in the order it answered, with each one's name as shown.
+ * - `platform_page`: the platform guide's page a read used, by its name in the guide.
+ */
+export type KnowledgeStepView =
+  | {
+    kind: 'knowledge_change'
+    level: string
+    owner: { ownerType: 'project' | 'user' | 'org'; ownerId: string }
+    page: string
+    title: string
+    change: 'created' | 'edited' | 'moved' | 'deleted' | 'restored'
+    versionId?: string
+    previousVersionId?: string
+    summary: string
+  }
+  | { kind: 'knowledge_search'; levels: string[]; names: string[] }
+  | { kind: 'platform_page'; page: string; title: string }
 /** How long a reply that looked things up worked, start to end, and its steps: kept with the reply, shown on asking. */
 export type ReplyThinking = { ms: number; steps: ReplyStepView[] }
 

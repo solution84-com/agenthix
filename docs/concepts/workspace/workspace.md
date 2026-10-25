@@ -7,7 +7,6 @@ flowchart TD
     subgraph P ["A project's storage"]
         PF["files/"]
         PW["workspaces/"]
-        PK["knowledge/"]
         PA["artefacts/"]
         PT["tasks/"]
         PM["members/"]
@@ -15,7 +14,6 @@ flowchart TD
     subgraph U ["A person's own storage"]
         UF["files/"]
         UW["workspaces/"]
-        UK["knowledge/"]
         UA["artefacts/"]
     end
     Members["Project members"] -->|"can read and use"| P
@@ -40,10 +38,13 @@ The files themselves sit on an Execution Site, not in hq; see
 | `files/` | The owner's own documents. A run that names no workspace works here. `AGENTS.md` at its top is the place's instructions for every agent, put into every run's prompt; a new project starts with it and a `ROADMAP.md`. | project, person |
 | `files/.agents/` | The place's own adjustments for its agents: `skills/<slug>/` for every agent working here, and `agents/<agent id>/` for one agent's own `instructions.md` and `skills/`. Agents may change them when asked. | project, person |
 | `workspaces/` | One named folder per workspace, below. | project, person |
-| `knowledge/` | What is known in the place, kept as topic files with an `INDEX.md` that gives each a one-line entry. | project, person |
 | `artefacts/` | The throwaway things an agent makes for people in a conversation, one file each, directly in the folder. The agent's reply links to it as `artefacts/<file name>`. | project, person |
 | `tasks/` | One working folder per task. A task run works here. | project only |
 | `members/` | One area per member, holding their `agenda.md` and drafts. Everyone with access to the project can read it. | project only |
+
+**Knowledge is not in a storage.** A place's [knowledge](../knowledge/knowledge.md), its pages in sections, is kept on
+the same site but beside the storage, never inside it, so no run mounts it and the only way to change a page is the
+gate. The organisation's knowledge sits there too, on its default site.
 
 A person's own storage has no `tasks/` or `members/`: a task belongs to a project, and an agenda in
 personal storage sits in `files/`. The layout on disk and the code that derives it are in
@@ -74,12 +75,11 @@ The pages for this are the project's Files and Workspaces pages (`/projects/:key
 
 ## What hq reads
 
-hq lists and reads a storage's `files/` (each entry with its size and when it last changed), its
-`artefacts/` and its `knowledge/`, always by asking the site that holds it, under the same access rule
-below (`hq/src/storage/queries.ts`, `ownerFolderQueries.ts`). The Knowledge tool titles each topic from
-its line in `INDEX.md`, and otherwise by its file name (`hq/src/storage/knowledgeIndex.ts`). For
-`artefacts/` and `knowledge/` the site refuses every link, including one that stays inside, and a folder
-that has itself been replaced by a link.
+hq lists and reads a storage's `files/` (each entry with its size and when it last changed) and its
+`artefacts/`, always by asking the site that holds it, under the same access rule below
+(`hq/src/storage/queries.ts`, `ownerFolderQueries.ts`). For `artefacts/` the site refuses every link, including one
+that stays inside, and a folder that has itself been replaced by a link. A place's knowledge is read and changed
+through its own tools and screens ([knowledge](../knowledge/knowledge.md)), not as a folder of files.
 
 ## Who can see what
 
@@ -101,16 +101,15 @@ they are not part of.
 ## What an agent sees
 
 A run's container mounts one whole storage, at `/projects/<project id>` or `/users/<person id>`, with
-every folder above inside it. A workspace created while it runs appears at once. The working folder is
+every folder above inside it (not knowledge, which is kept outside the mount). A workspace created while it runs appears at once. The working folder is
 `tasks/<id>` for a task, `workspaces/<id>` for a run in a workspace, and `files/` otherwise. The mount is
 writable only if the run's permissions include a tool that writes
 (`site/src/agents/runtime/locationResolver.ts`, `containerPrep.ts`).
 
 The agent's prompt names the folders it can see, and carries the place's `AGENTS.md`. It is told to save
 each throwaway item it makes for people as one file directly in `artefacts/` and link to it in its reply
-as `[title](artefacts/<file name>)`, and to keep distilled facts in `knowledge/` with an `INDEX.md`, and that each knowledge tree is readable only inside its own storage: using a
-person's knowledge in a project means copying it there on purpose
-(`site/src/agents/promptSectionText.ts`). A run never reaches a second person's or project's storage, and
+as `[title](artefacts/<file name>)`. It reaches knowledge only through the knowledge tools, which hold only the levels
+the run may see (`site/src/agents/promptSectionText.ts`). A run never reaches a second person's or project's storage, and
 never reaches the harness's own session files, which sit beside storage in a harness home, not inside it
 ([Memory](../memory/memory.md)).
 
@@ -131,7 +130,8 @@ is [File sharing](../file-sharing/file-sharing.md).
 | The access rule | `hq/src/storage/locationAccess.ts` |
 | A new project's starter documents | `hq/src/storage/filesService.ts` |
 | Files listing and reading | `hq/src/storage/queries.ts`, `locationFileStore.ts` |
-| Artefacts and knowledge listing and reading | `hq/src/storage/ownerFolderQueries.ts`, `ownerFolderStore.ts`; on the site `site/src/server/storage/ownerFolderMethods.ts` |
+| Artefacts listing and reading | `hq/src/storage/ownerFolderQueries.ts`, `ownerFolderStore.ts`; on the site `site/src/server/storage/ownerFolderMethods.ts` |
+| Knowledge, outside every storage | `site/src/server/storage/paths.ts` (`getKnowledgeDir`), `site/src/server/knowledge/`; [knowledge](../knowledge/knowledge.md) |
 | The place's instructions in the prompt | `site/src/agents/placeInstructions.ts` |
 | Which site holds a storage | [Storage and Placement](../../architecture/storage-and-placement.md) |
 

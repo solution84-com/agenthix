@@ -12,7 +12,7 @@ describe('core as a package @SC-1054', () => {
     expect(pkg.name).toBe('@agenthix/core')
     expect(pkg.files).toEqual(['dist'])
     expect(pkg.publishConfig).toEqual({ registry: 'https://npm.pkg.github.com' })
-    expect(Object.keys(pkg.exports)).toEqual(['.', './client', './host-crypto', './cloud-crypto'])
+    expect(Object.keys(pkg.exports)).toEqual(['.', './client', './host-crypto', './file-tools', './cloud-crypto'])
     const build = JSON.parse(fs.readFileSync(path.join(core, 'tsconfig.build.json'), 'utf8'))
     expect(build.compilerOptions.declarationMap).toBe(false)
   })

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browsing knowledge · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-list.html"><main>
+<div class="top"><div><h1>U2 · Browsing knowledge</h1>
+<p class="sub">A place's own guide: its sections as a tree, and each section's pages listed as items with title, description, tags, the team's properties, who changed it, and any problems.</p></div></div>
+
+<h2 id="ba">Before and after</h2>
+<div class="box"><span class="lbl before">Before · today</span><p>U1, items 1–4: one flat list, titles guessed from <code>INDEX.md</code>, an empty Tag filter, no author, nothing to add or restore. <a href="/files/ui-today.html">U1 →</a></p></div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:200px 220px 1fr"><div class="pnav" data-on="knowledge" data-count="23"></div>
+<div style="border-right:1px solid var(--msub);padding:16px 10px;font-size:13px;background:var(--s1)">
+<div style="font-weight:600;padding:0 6px 8px">Knowledge</div>
+<div style="padding:4px 6px;color:var(--t2)">▸ 📁 processes <span style="float:right;color:var(--t3)">6</span></div>
+<div style="padding:4px 6px;background:var(--macc-sub);border-radius:6px">▾ 📁 decisions <span style="float:right;color:var(--t3)">12</span></div>
+<div style="padding:4px 6px;color:var(--t2)">▸ 📁 client <span style="float:right;color:var(--t3)">4</span></div>
+<div style="padding:4px 6px;color:var(--t2)">&nbsp;&nbsp;&nbsp;📄 glossary</div>
+<div style="padding:12px 6px 4px;color:var(--t3);font-size:12px">All pages · 23</div>
+<div style="padding:4px 6px;color:var(--mwarn)">⚠ Needs fixing · 1</div>
+<div style="padding:4px 6px;color:var(--t2)">🗑 Recently deleted · 1</div>
+</div>
+<div class="mcentre">
+<div class="crumb">Website rebuild › Knowledge › <b>decisions</b></div>
+<div class="row"><div class="mh grow">decisions</div><span class="btn">⋯</span><span class="btn pri">New page</span></div>
+<div class="row" style="margin:12px 0"><div class="field grow" style="margin:0"><div class="in ph">Search knowledge</div></div><span class="btn">Tag ▾</span><span class="btn">status ▾</span></div>
+<div class="mcard"><div class="b"><div class="t">0002 · One repository for web and API</div><div class="s">Why web and API share a repository.</div><div style="margin-top:4px"><span class="tag ok">accepted</span> <span class="chip">20 Oct 2026</span><span class="chip">decision</span><span class="chip">architecture</span></div></div><div style="text-align:right;font-size:12px;color:var(--t2)">5 days ago<br/>Kernel, asked by Sam</div></div>
+<div class="mcard"><div class="b"><div class="t">0003 · Staging needs an approval</div><div class="s">Who signs off a staging deploy, and when.</div><div style="margin-top:4px"><span class="tag warn">proposed</span> <span class="chip">25 Oct 2026</span><span class="chip">decision</span></div></div><div style="text-align:right;font-size:12px;color:var(--t2)">2 hours ago<br/>Mia</div></div>
+<div class="mcard"><div class="ic" style="background:var(--mwarn)">⚠</div><div class="b"><div class="t">0001-postgres</div><div class="s" style="color:var(--mwarn)">No title · tag "Database" must be lower-case</div></div><div style="text-align:right;font-size:12px;color:var(--t2)">put on the disk by hand<br/>last month</div></div>
+</div></div></div>
+<ol class="sub">
+<li><b>The tree</b> shows the place's sections, as the team laid them out, with their page counts; a page at the top level shows in the tree too.</li>
+<li><b>A row</b>: title, description, tags, and <b>the team's properties</b> (here a decision's <code>status</code> and <code>date</code>), when it changed and who.</li>
+<li><b>Filters</b>: Tag, and one per property the section's pages use (here <i>status</i>). Nothing about decisions is built in; a section of client sheets would get its own.</li>
+<li><b>A row with problems</b> shows them in place of the description and is gathered under <b>Needs fixing</b>. It is titled from its file name until it has a title.</li>
+<li><b>All pages</b> lists every page, newest first; the tree narrows it to a section.</li>
+<li><b>New page</b> opens the editor (U3) in the section shown, with the properties the section's other pages use already offered. For people who may change the place's files <a class="q" href="/files/decisions.html#q4">Q4</a>. <b>⋯</b> has New section.</li></ol></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul><li><b>A tree of sections</b>: people find their way the way they do in Files or a guide.</li>
+<li><b>Properties shown and filterable</b>, so a team keeping decisions here gets a decision log (status, date) without the platform knowing what a decision is.</li>
+<li><b>Problems shown, never hidden</b>: a page with something wrong still appears, with what to fix.</li></ul></div>
+
+<h2 id="phone">On a phone</h2>
+<div class="box"><div class="phones">
+<div class="phone mock"><div class="mhdr">☰ <span class="grow">Knowledge</span><span class="btn pri">New</span></div><div class="mbody">
+<div class="field" style="margin-top:0"><div class="in ph">Search knowledge</div></div>
+<div class="mcard"><div class="b"><div class="t">📁 processes</div><div class="s">6 pages</div></div></div>
+<div class="mcard"><div class="b"><div class="t">📁 decisions</div><div class="s">12 pages</div></div></div>
+<div class="mcard"><div class="b"><div class="t">📁 client</div><div class="s">4 pages</div></div></div>
+<div class="mcard"><div class="b"><div class="t">📄 glossary</div></div></div>
+<div class="mcard"><div class="b"><div class="t" style="color:var(--mwarn)">⚠ Needs fixing · 1</div></div></div>
+</div></div>
+<div class="phone mock"><div class="mhdr">← <span class="grow">decisions</span></div><div class="mbody">
+<div class="mcard"><div class="b"><div class="t">0002 · One repository…</div><div class="s"><span class="tag ok">accepted</span> · 5 d · Kernel</div></div></div>
+<div class="mcard"><div class="b"><div class="t">0003 · Staging needs an approval</div><div class="s"><span class="tag warn">proposed</span> · 2 h · Mia</div></div></div>
+</div></div>
+</div><p class="sub">On a phone the tree becomes one level at a time: sections, then a section's pages.</p></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

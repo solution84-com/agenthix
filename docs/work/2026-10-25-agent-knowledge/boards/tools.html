@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge tools · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="tools.html"><main>
+<div class="top"><div><h1>5 · How agents find, read and change knowledge</h1>
+<p class="sub">Level 2. Reading is the platform guide's pair, search and read. Changing is write or edit, through the one gate (board 4). All are shaped exactly like the native Read, Grep, Write and Edit. The same five tools for the lead and workers.</p></div></div>
+
+<h2 id="paths">Who reaches it, and how</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before · today</span>
+<ul><li><b>Lead:</b> word matching only, folded into <code>recall</code>; cannot read a whole page or write.</li>
+<li><b>Worker:</b> the <code>knowledge/</code> folder, mounted read and write (<code>paths.ts:90</code>, <code>containerPrep.ts:45</code>). No tool.</li>
+<li><b>Discovery:</b> "read <code>INDEX.md</code> first", a prompt line.</li></ul></div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="mmd" data-src="paths"></div></div>
+</div>
+
+<h2 id="mirror">One set of tools for every level</h2>
+<div class="box"><table>
+<tr><th>Level</th><th>A page's name</th><th>Searched and read</th><th>Changed</th><th>Where it is</th></tr>
+<tr><td>Each place in the conversation (its own, and those the person added, C3); a run's one place</td><td><code>website-rebuild:processes/release.md</code>: the place's key; <code>personal:</code> for the person's own space</td><td>Yes</td><td>Yes, through the gate</td><td>The place's site</td></tr>
+<tr><td>The organisation</td><td><code>org:how-we-work/code-review.md</code></td><td>Yes</td><td>Yes, for organisation admins <a class="q" href="/files/decisions.html#q5">Q5</a></td><td>The organisation's default site</td></tr>
+<tr><td>The platform guide</td><td><code>platform:your-tools/providers.md</code></td><td>Yes</td><td>No: the maintainers write it</td><td>hq's image (board 3)</td></tr></table>
+<p class="sub">The agent never picks a tool or a level. It searches, and every result says where it came from.</p></div>
+
+<h2 id="layers">Three layers: file tools underneath, knowledge and guide on top</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="mmd" data-src="layers"></div>
+<div class="kbox">
+<div><h4><span class="n">F</span>File tools: our own, universal</h4><p>One module, <code>@agenthix/core/file-tools</code>, a new node-only subpath export beside <code>./host-crypto</code>, <b>lifted from the file tools Agenthix already owns for OpenCode</b> (ADR-0085: the safe open-then-check, text reading, line-numbered reading, writing) and extended with ripgrep search. The OpenCode plugin builds on it too. Plain <b>grep</b>, <b>read</b>, <b>write</b> and <b>edit</b>, shaped like Claude Code's, over <b>any folder they are given</b> (the root). Nothing in them knows about knowledge, places or the guide.</p>
+<ul><li><code>grep(root, {pattern, path, glob, output_mode, -i, -n, -A/-B/-C, head_limit, offset})</code>: runs ripgrep</li><li><code>read(root, {file, offset, limit})</code>: numbered lines, and a version (a hash)</li><li><code>applyEdit(text, {old_string, new_string, replace_all})</code>: the new text, or why not; exact match</li><li><code>write(root, {file, content})</code>: written beside, then renamed in, so never half-written</li></ul>
+<p><b>The guards live here</b> (board 3, S1–S8): paths kept inside the root, no links, <code>rg</code> without a shell, pattern after <code>-e</code>, time and size caps, fixed messages. So every user of the module gets them.</p></div>
+<div><h4><span class="n">K</span>Knowledge and guide tools</h4><p>Thin wrappers that pick the root and add what is theirs:</p>
+<ul><li><code>search_knowledge</code> = <code>grep</code> on each level's pages at once (the place's, the organisation's, the guide), merged, each hit marked with its level</li><li><code>read_knowledge</code> = <code>read</code> on the level its name starts with</li><li><code>edit_knowledge</code> = the gate: <code>read</code> → <code>applyEdit</code> → check the rules → keep the previous version → <code>write</code> → record who</li><li><code>write_knowledge</code> = the gate, with the whole content</li><li><code>platform:</code> pages: <code>grep</code> and <code>read</code> on the built guide in hq; changes refused</li></ul></div>
+<div><h4><span class="n">S</span>Serving</h4><p>As drawn below: hq operations, given to workers through the site's MCP server and to the lead as conversation tools. hq answers a search by asking the place's site, the organisation's site and its own copy of the guide at once, and merges the results within one time limit. A read or a change goes to the one level the name names.</p></div>
+</div>
+<div class="why"><b>Why a universal layer</b>: if Agenthix later runs agents in a runtime of its own, that runtime's file tools are these, on a workspace folder, already built and tested. Knowledge and the guide are simply their first users.</div></div>
+
+<h2 id="discovery">How an agent finds what it needs</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<p><b>It doesn't choose.</b> One search covers every level it may read; the result tells it where each answer came from.</p>
+<pre class="code">search_knowledge(pattern: "staging|deploy", -n: true)
+  website-rebuild:processes/release.md:14: Staging deploys need Mia's approval before 4pm.
+  shop:processes/release.md:9: Staging deploys go out after the checks pass.
+  org:how-we-work/releases.md:9: Every deploy to staging is announced in #deploys.
+  platform:projects/runs-and-approvals.md:31: An approval asks a person before a run continues.</pre>
+<table>
+<tr><th></th><th>Rule</th></tr>
+<tr><td class="n">D1</td><td><b>Search everything it may see, by default</b>: every place in the conversation (or the run's one place), the organisation, the platform guide. <code>scope</code> (a place's key, <code>org</code>, <code>platform</code>) only narrows it.</td></tr>
+<tr><td class="n">D2</td><td><b>Every hit is marked</b> with where it is from (a place's key, <code>org:</code> or <code>platform:</code>), and that mark is the page's name for <code>read_knowledge</code>.</td></tr>
+<tr><td class="n">D3</td><td><b>The most specific wins</b> where pages differ: a place, then the organisation, then the platform guide. Results come in that order, the conversation's own place first. Two places that differ are both shown, each marked; the person's question says which is meant.</td></tr>
+<tr><td class="n">D4</td><td><b>Links are followed</b> from page to page, across levels (<code>org:</code> links from a project page).</td></tr></table>
+<pre class="code">## Knowledge
+search_knowledge finds how things are done here and how Agenthix itself works, in one
+search, across the places in this conversation. Look there before asking. Where pages
+differ, the most specific wins: a place, then the organisation, then the platform guide. What you learn on your own belongs in memory.</pre>
+<p class="sub">The prompt's whole Knowledge section: no section lists, no tool choice to explain.</p></div>
+
+<h2 id="tools">The five tools: the native ones, on knowledge</h2>
+<div class="box"><p>Agents are trained on their harness's own Read, Grep, Write and Edit. These tools take the same parameters and behave the same way, so an agent already knows how to use them. Only the target differs: a page of knowledge, at any level, instead of a file.</p>
+<table>
+<tr><th></th><th>Native (Claude Code)</th><th>Ours</th><th>Takes, as the native one does</th><th>Gives back</th></tr>
+<tr><td class="n">K1</td><td><code>Grep</code></td><td><code>search_knowledge</code></td><td><code>pattern</code> (a regular expression), <code>scope</code> (optional: <code>place</code>, <code>org</code>, <code>platform</code>), <code>path</code> (a section or page), <code>glob</code> (e.g. <code>decisions/*.md</code>), <code>output_mode</code> (<code>content</code>, <code>files_with_matches</code>, <code>count</code>), <code>-i</code> (default on), <code>-n</code>, <code>-A</code>/<code>-B</code>/<code>-C</code>, <code>head_limit</code>, <code>offset</code></td><td>As Grep, because it is the same program: the site runs ripgrep over the place's pages, as Claude Code's Grep runs it over files. Matching lines with line numbers, page names, or counts. Front matter is searched too, so <code>status:\s*proposed</code> finds open decisions; <code>files_with_matches</code> with <code>.</code> lists pages. At most 8,000 characters a call, saying where to continue.</td></tr>
+<tr><td class="n">K2</td><td><code>Read</code></td><td><code>read_knowledge</code></td><td><code>page</code>, <code>offset</code> (a line), <code>limit</code> (lines)</td><td>As Read: the page with line numbers, front matter included, up to 2,000 lines; and its version, for a later write.</td></tr>
+<tr><td class="n">K3</td><td><code>Write</code></td><td><code>write_knowledge</code></td><td><code>page</code>, <code>content</code>: the whole page as Markdown, front matter included, as it would be written to a file</td><td>Done; or refused with the problems. As with Write, an existing page must have been read first: the write carries the version <code>read_knowledge</code> gave, and a page changed since is refused with its current text.</td></tr>
+<tr><td class="n">K4</td><td><code>Edit</code></td><td><code>edit_knowledge</code></td><td><code>page</code>, <code>old_string</code>, <code>new_string</code>, <code>replace_all</code> (default off)</td><td>As Edit: <code>old_string</code> must appear exactly once unless <code>replace_all</code>; otherwise refused, saying how many times it was found. Then the gate checks the result.</td></tr>
+<tr><td class="n">K5</td><td>(none: <code>rm</code> in bash)</td><td><code>delete_knowledge</code></td><td><code>page</code></td><td>Done, and how to restore: Recently deleted for 30 days.</td></tr></table>
+<ul>
+<li><b>Built on the file tools Agenthix already owns</b> for OpenCode (ADR-0085, <code>site/opencode-plugin/src/files/</code>), lifted into <code>core</code> and extended: the knowledge tools take Claude Code's names, exact matching for edits, read-before-write enforced, and ripgrep for search; the plugin keeps OpenCode's shape on the same module.</li>
+<li><b>No place parameter beyond what the person allowed.</b> A worker's place comes from its capability token. The lead's places are the conversation's: its own and those the person added (C3). A page's name says its level; <code>search_knowledge</code>'s optional <code>scope</code> narrows a search to one of them. Nothing can name a place outside them. Changes to <code>org:</code> pages refuse unless the run or turn acts for an organisation admin <a class="q" href="/files/decisions.html#q5">Q5</a>; <code>platform:</code> pages are read-only.</li>
+<li><b>A page is a name, not a file path</b>, e.g. <code>processes/release.md</code>. The site resolves it inside the place's <code>pages/</code> only, refusing <code>..</code>, absolute paths and links.</li>
+<li><b>Moving a page</b> is writing it at the new name and deleting the old; the Knowledge tool does both as one "Move" for people.</li>
+<li><b>Change tools are offered</b> to the lead only when the turn answers a person (as <code>remember</code> is), and to workers in runs that have write tools.</li>
+<li><b>Served</b> as hq operations: to workers through the site's MCP server, forwarded like the other tools; to the lead as conversation tools. hq asks the place's site through channel methods; <code>searchKnowledge</code> changes to take Grep's parameters and run ripgrep, under board 3's guards S1–S8 (the site's server image gains the <code>ripgrep</code> package); <code>writeKnowledge</code>, <code>editKnowledge</code>, <code>deleteKnowledge</code>, <code>restoreKnowledge</code> and <code>knowledgeVersions</code> are new: a new minor version of <code>core/src/protocol/locationFiles.ts</code>.</li></ul></div>
+
+<h2 id="edit">Changing one step of a process</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<pre class="code">search_knowledge(pattern: "staging.*(approv|sign.?off)", -n: true)
+  processes/release.md:14: Staging deploys go out after the checks pass.
+
+read_knowledge(page: "processes/release.md", offset: 10, limit: 10)
+  10  ## Staging
+  …
+  14  Staging deploys go out after the checks pass.
+
+edit_knowledge(page: "processes/release.md",
+               old_string: "Staging deploys go out after the checks pass.",
+               new_string: "Staging deploys need Mia's approval before 4pm.")
+  Done. Version 7; the previous one is in History.</pre>
+<p class="sub">Exactly how the agent would change a file: find the line, read around it, replace the text. A few lines sent, not the page. A new decision record is one <code>write_knowledge</code> with the whole Markdown, the team's properties in its front matter, following the place's <code>AGENTS.md</code>.</p></div>
+
+<h2 id="lines">What tells an agent how to write</h2>
+<div class="box"><p><b>The tools' descriptions</b>, which every agent has, and the refusals, which say exactly what to fix:</p>
+<pre class="code">write_knowledge — Works like Write, on a page of this place's knowledge. Content is the
+whole page as Markdown. It must start with front matter: title, a one-sentence description,
+up to 8 lower-case tags, and the place's own properties (status, date…) as its other pages
+have them. Read an existing page with read_knowledge first. For part of a page, use
+edit_knowledge. Change knowledge only when a person asks you to or corrects it.
+
+edit_knowledge — Works like Edit, on a page of this place's knowledge: replaces old_string,
+which must appear exactly once unless replace_all, with new_string.</pre>
+<p><b>The team's conventions</b> (sections, naming, which properties a decision has) are its own, in its <code>AGENTS.md</code>, which every run already reads. The platform adds none.</p>
+<p>The prompt's Knowledge section is shown above, under "How an agent finds what it needs".</p>
+<p><b><code>recall</code> stops searching knowledge.</b></p></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul>
+<li><b>Reading as for the guide</b>: search and read cover it, for every agent.</li>
+<li><b>The native tools' shape</b>: agents are trained on Read, Grep, Write and Edit, so the same parameters and behaviour mean they already know how to use these. Native tools on a mounted folder were weighed: nothing could refuse a bad change or see one made through bash, and the lead has no files.</li>
+<li><b>Edit beside write</b>: detailed pages change a passage at a time; sending the whole page for each would be slow and costly.</li>
+<li><b>No drafts</b>: each call is one finished change; versions are the undo.</li>
+<li><b>No knowledge folder in runs</b>: the tools are the one way in, as for the guide.</li>
+<li><b>No list tool</b>: an empty search gives the shape (sections and tags); a list of thousands of titles would only be cut short.</li></ul></div>
+
+<script>
+window.SRC = {
+layers: `flowchart TB
+  subgraph S["S · Serving"]
+    M["site MCP server → workers"]
+    C["conversation tools → lead"]
+  end
+  subgraph K["K · Knowledge tools · place, org, platform"]
+    K1["search / read_knowledge<br/>every level, marked"]
+    K2["write / edit_knowledge<br/>+ the gate"]
+  end
+  subgraph F["F · File tools · @agenthix/core/file-tools"]
+    F1["grep (ripgrep)"]
+    F2["read"]
+    F3["applyEdit + write"]
+  end
+  FUT["a runtime of our own, later"]
+  S --> K
+  K1 --> F1
+  K1 --> F2
+  K2 --> F2
+  K2 --> F3
+  FUT -.-> F`,
+paths: `flowchart LR
+  L["Lead<br/>(hq)"] -- "K1–K5" --> HQ["hq operations<br/>place from the conversation<br/>or the run's token"]
+  W["Worker<br/>(site)"] -- "K1–K5 via the site's MCP server" --> HQ
+  HQ -- "channel methods" --> S["site<br/>pages/ + versions/<br/>never mounted"]`
+}
+</script>
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

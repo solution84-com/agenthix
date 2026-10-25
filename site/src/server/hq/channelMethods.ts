@@ -21,6 +21,9 @@ import {
 import * as workspaceRows from '../storage/workspaceRows'
 import * as locationFiles from '../storage/locationFileMethods'
 import { listArtefacts, listKnowledge } from '../storage/ownerFolderMethods'
+import {
+  deleteKnowledge, editKnowledge, knowledgeVersions, restoreKnowledge, writeKnowledge,
+} from '../knowledge/changeMethods'
 import { searchKnowledge } from '../storage/knowledgeSearch'
 import { removeLocation } from '../storage/locationRemove'
 import * as repoWork from '../storage/repoWorkMethods'
@@ -155,6 +158,12 @@ export const channelMethods: ChannelHandlers = {
   [LOCATION_FILE_METHODS.listArtefacts]: (params) => listArtefacts(params),
   [LOCATION_FILE_METHODS.listKnowledge]: (params) => listKnowledge(params),
   [LOCATION_FILE_METHODS.searchKnowledge]: (params) => searchKnowledge(params),
+  // The gate and its history (site protocol 1.7, `../knowledge/changeMethods.ts`).
+  [LOCATION_FILE_METHODS.writeKnowledge]: (params) => writeKnowledge(params),
+  [LOCATION_FILE_METHODS.editKnowledge]: (params) => editKnowledge(params),
+  [LOCATION_FILE_METHODS.deleteKnowledge]: (params) => deleteKnowledge(params),
+  [LOCATION_FILE_METHODS.restoreKnowledge]: (params) => restoreKnowledge(params),
+  [LOCATION_FILE_METHODS.knowledgeVersions]: (params) => knowledgeVersions(params),
 
   // Repository work on a location. hq owns the GitHub side and the token; this
   // site owns the disk and therefore the git. Neither method carries file

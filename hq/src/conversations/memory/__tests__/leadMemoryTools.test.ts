@@ -1,6 +1,6 @@
 /**
- * The lead's own memory tools (memory and knowledge spec): recall by key and by query — with the place's knowledge,
- * marked not forwardable — recorded once as recalled; remember and forget only for a turn that acts for someone;
+ * The lead's own memory tools (memory and knowledge spec): recall by key and by query, memory only, recorded once as
+ * recalled; remember and forget only for a turn that acts for someone;
  * used_memory recording used, unused and missed; a correction measured against what memory already held.
  */
 import { describe, it, expect, vi } from 'vitest'
@@ -11,7 +11,7 @@ vi.mock('../../../memory/embedding/embedders', () => import('../../../test/fakes
 import type { MemoryService, RecalledItem } from '../../../memory/contract'
 import { turnCapability } from '../../../server/controlplane/__tests__/turnFixtures'
 import { ControlPlaneError } from '../../../server/controlplane/types'
-import { createLeadMemoryTools, NOT_FORWARDABLE, type LeadMemoryDeps } from '../leadMemoryTools'
+import { createLeadMemoryTools, type LeadMemoryDeps } from '../leadMemoryTools'
 import type { TurnOutcomeRow } from '../outcomes'
 
 const item = (key: string, similarity?: number): RecalledItem => ({
@@ -33,9 +33,6 @@ function setup(over: Partial<LeadMemoryDeps> = {}, outcomes: TurnOutcomeRow[] = 
   const deps = {
     service,
     principalOf: vi.fn(async () => principal),
-    searchKnowledge: vi.fn<LeadMemoryDeps['searchKnowledge']>(async () => ({
-      excerpts: [{ path: 'INDEX.md', startLine: 1, endLine: 2, text: 'Deploys go to staging-2' }], cut: [], unavailable: null,
-    })),
     turnOutcomes: vi.fn(async () => outcomes),
     itemIdsByKey: vi.fn(async (_p: unknown, keys: readonly string[]) => keys.map(k => `id-${k}`)),
     nearest: vi.fn(async () => null as { itemId: string; similarity: number } | null),
@@ -51,35 +48,22 @@ const signal = new AbortController().signal
 const turn = turnCapability()
 
 describe('recall @SC-990', () => {
-  it('by query returns the memory items and the place\'s knowledge, marked not forwardable, and records each item recalled once', async () => {
-    const { tools, service, deps } = setup()
+  it('by query returns the memory items only, and records each item recalled once @SC-1410', async () => {
+    const { tools, service } = setup()
     const outcome = await tools.recall!.run(turn, { query: 'where do we deploy' }, { signal })
     expect(outcome.status).toBe('done')
     const result = (outcome as { result: Record<string, unknown> }).result
     expect(result.items).toEqual([{ key: 'staging', scope: 'agent_place', title: 'staging', body: 'staging body', kind: 'fact', tags: ['x'], pinned: false, writtenAt: '2026-10-01T00:00:00Z' }])
     expect(result.cut).toEqual(['older'])
-    expect(result.knowledge).toEqual({
-      forwardable: false, note: NOT_FORWARDABLE,
-      excerpts: [{ path: 'INDEX.md', startLine: 1, endLine: 2, text: 'Deploys go to staging-2' }], cut: [], unavailable: null,
-    })
-    expect(deps.searchKnowledge).toHaveBeenCalledWith({ type: 'user', id: 'u1' }, 'where do we deploy', expect.any(Number))
+    expect(result).not.toHaveProperty('knowledge')
     expect(service.recordOutcomes).toHaveBeenCalledTimes(1)
     expect(service.recordOutcomes).toHaveBeenCalledWith([{ itemId: 'id-staging', kind: 'RECALLED', similarity: 0.7, conversationId: 'conv-1', turnId: 'turn-1' }])
   })
 
-  it('by key reads one item and does not search knowledge', async () => {
-    const { tools, deps } = setup()
+  it('by key reads one item', async () => {
+    const { tools } = setup()
     const outcome = await tools.recall!.run(turn, { key: 'staging' }, { signal })
     expect((outcome as { result: Record<string, unknown> }).result).not.toHaveProperty('knowledge')
-    expect(deps.searchKnowledge).not.toHaveBeenCalled()
-  })
-
-  it('says when the place\'s knowledge is unavailable, while memory still answers', async () => {
-    const { tools } = setup({ searchKnowledge: vi.fn(async () => { throw new Error('boom') }) })
-    const outcome = await tools.recall!.run(turn, { query: 'deploys' }, { signal })
-    const result = (outcome as { result: { items: unknown[]; knowledge: { unavailable: string; forwardable: boolean } } }).result
-    expect(result.items).toHaveLength(1)
-    expect(result.knowledge).toMatchObject({ forwardable: false, unavailable: expect.stringMatching(/could not be searched/) })
   })
 
   it('takes a key or a query, one of the two', async () => {

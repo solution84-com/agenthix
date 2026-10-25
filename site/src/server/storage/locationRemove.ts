@@ -54,7 +54,7 @@ import {
   resolveContained,
 } from '../../agents/runtime/containedFile'
 import { describeLocation, locationFileError, parseParams, refuse } from './locationContainment'
-import { getStorageRoot, locationDir, ownerDir, type LocationRef } from './paths'
+import { getKnowledgeDir, getStorageRoot, locationDir, ownerDir, type LocationRef } from './paths'
 
 const METHOD = LOCATION_FILE_METHODS.removeLocation
 
@@ -97,8 +97,16 @@ export async function removeLocation(params: unknown): Promise<LocationRemoveRes
     )
   }
 
-  const root = getStorageRoot()
   const target = targetFor(loc, !!wholeOwner)
+  const removed = await removeTarget(loc, target, !!wholeOwner)
+  // An owner's knowledge lives outside its folder (so runs never mount it), and goes with it.
+  if (!wholeOwner) return { removed }
+  const knowledge = await removeTarget(loc, getKnowledgeDir(loc.ownerType, loc.ownerId), true)
+  return { removed: removed || knowledge }
+}
+
+async function removeTarget(loc: LocationRef, target: string, wholeOwner: boolean): Promise<boolean> {
+  const root = getStorageRoot()
   const depth = path.relative(root, target).split(path.sep).filter(Boolean).length
   if (depth < (wholeOwner ? 2 : 3)) throw locationFileError('outside', METHOD, loc)
 
@@ -108,12 +116,12 @@ export async function removeLocation(params: unknown): Promise<LocationRemoveRes
       if ((err as NodeJS.ErrnoException | null)?.code === 'ENOENT') return null
       throw err
     })
-    if (!top) return { removed: false }
+    if (!top) return false
     // The location's own directory is site-made, so a link standing there is
     // removed as a link: its target was contained above, and is not ours to empty.
     if (!top.isDirectory()) {
       await fs.unlink(target)
-      return { removed: true }
+      return true
     }
     // A link above the location's own directory (`workspaces/` replaced by
     // one) would make this some other directory under the storage root.
@@ -123,9 +131,9 @@ export async function removeLocation(params: unknown): Promise<LocationRemoveRes
     }
     await removeTree(realRoot, realTarget)
     await fs.rmdir(realTarget)
-    return { removed: true }
+    return true
   } catch (err) {
-    if ((err as NodeJS.ErrnoException | null)?.code === 'ENOENT') return { removed: false }
+    if ((err as NodeJS.ErrnoException | null)?.code === 'ENOENT') return false
     if (typeof (err as NodeJS.ErrnoException | null)?.code === 'string') refuse(err, METHOD, loc)
     // The helper's own message is discarded rather than wrapped: it can name the root.
     throw locationFileError('outside', METHOD, loc)

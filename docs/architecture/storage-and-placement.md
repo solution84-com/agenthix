@@ -63,16 +63,18 @@ into a path.
 │   │   ├── AGENTS.md          the place's instructions, put into every run's prompt
 │   │   └── .agents/           skills for every agent, and one agent's own instructions and skills
 │   ├── workspaces/<id>/       one folder per workspace
-│   ├── knowledge/             what is known in the project: topic files and an INDEX.md
 │   ├── artefacts/             throwaway things agents made in conversations, one file each
 │   ├── tasks/<task id>/       a task's working folder
 │   └── members/<person id>/   one member's area in the project, holding their agenda.md
 ├── users/<person id>/
 │   ├── files/                 the person's own files, and their agenda.md
 │   ├── workspaces/<id>/
-│   ├── knowledge/
 │   ├── artefacts/
 │   └── tasks/<task id>/       a task's folder in the person's personal project
+├── knowledge/                 pages and versions, beside storage and never inside it
+│   ├── projects/<project id>/ pages/ and versions/
+│   ├── users/<person id>/     the same
+│   └── org/                   the organisation's, on its default site only
 ├── homes/                     harness homes, beside storage and never inside it
 │   ├── users/<person id>/personal/
 │   ├── users/<person id>/<project id>/
@@ -81,6 +83,13 @@ into a path.
 ```
 
 `SITE_ROOT` defaults to `./site` under the site's working directory (`site/src/agents/agentDiskPaths.ts`).
+
+**Knowledge is not storage either.** A place's pages sit under `knowledge/`, beside the storage folders, because a run
+mounts a whole storage folder and Docker cannot leave one folder of a mount out: kept apart, no run reaches a page and
+the only way to change one is the gate. `pages/` holds the place's sections and pages; `versions/` holds each page's
+earlier versions and its deleted pages (`site/src/server/storage/paths.ts`, `getKnowledgeDir`; the code that knows the
+layout is `site/src/server/knowledge/`). A `knowledge/` folder inside an owner's folder is ignored. The
+[concept](../concepts/knowledge/knowledge.md) says what a page is and how versions are kept.
 
 **Harness homes are not storage.** A harness home holds one runner's private runtime state in one boundary:
 the harness's session files and login. A project's storage is mounted by every container in the project,
@@ -103,7 +112,7 @@ None of them is on a site.
 
 ## Which site holds what
 
-hq's database holds three placement records, each written once. **Nothing moves storage between sites**:
+hq's database holds four placement records, each written once. **Nothing moves storage between sites**:
 there is no code that changes a placement and carries the files with it, so a different site for an
 existing owner would be new work.
 
@@ -112,13 +121,14 @@ existing owner would be new work.
 | A project | `Project.executionSiteId` | The project is created; whoever creates it picks the site (the `createProject` action, `hq/src/projects/actions.ts`) |
 | A person | `UserStoragePlacement` | The first time that person's storage is needed. Today always the default site |
 | A workspace | `WorkspacePlacement` | The workspace is created, on its owner's site (`hq/src/storage/workspaceService.ts`) |
+| The organisation's knowledge | `OrgKnowledgePlacement` | The first time it is used, on the default site, and never moved (`ensureOrgKnowledgePlacement`, `hq/src/storage/storageSite.ts`) |
 
 The site's own database holds the `Workspace` and `RepoAttachment` rows (`site/schema.prisma`), served to
 hq through `site/src/server/storage/workspaceRows.ts`. `WorkspacePlacement` is hq's index into those rows,
 written only by hq, so there is one writer and nothing to keep in step.
 
 The **default site** is the one that comes with hq ([control-channel.md](control-channel.md#how-a-site-takes-part)).
-It is where a person's own storage goes (`hq/src/sites/localSite.ts`). With no default site connected, anything that needs one fails with
+It is where a person's own storage goes and where the organisation's knowledge is placed (`hq/src/sites/localSite.ts`). With no default site connected, anything that needs one fails with
 "No Execution Site is connected" (`hq/src/sites/noExecutionSite.ts`).
 
 ---
@@ -157,6 +167,32 @@ flowchart TD
 
 ---
 
+## Where knowledge lives
+
+A place's [knowledge](../concepts/knowledge/knowledge.md) is held on the site that holds the place, outside the storage
+a run mounts (see *On the site's disk*): a project's on the project's site, a person's with their storage, and the
+organisation's on the default site. hq reaches it by owner (a project, a person or the organisation), not by location,
+through the knowledge methods of the control channel and content transport; the platform guide is the exception, held in
+hq's image and never on a site.
+
+- **Nothing is mounted.** No container mount contains knowledge, so an agent cannot read or change a page except through
+  the knowledge tools, whose reach is decided in hq ([MCP tools](mcp/tools.md#what-the-knowledge-tools-do)).
+- **The site holds the gate.** Every change, an agent's or a person's, goes to the site that holds the page and is applied
+  there in one step: the change applied to the current page, the result checked against the page rules in
+  `@agenthix/core`, the current page moved into `versions/`, and the new one renamed into place. One change at a time
+  per page (`site/src/server/knowledge/gate.ts`, `pageLock.ts`). hq then records who made it (`KnowledgeChange` in
+  `hq/schema.prisma`: the place, the page, the kind of change, and the person, or the agent with the person and the
+  conversation or run).
+- **The site lists and searches.** The listing (`itemiser.ts`) walks `pages/` and returns sections and pages with their
+  index entries and problems; the search runs ripgrep over `pages/` with the guards of `@agenthix/core/file-tools`.
+  Every name is resolved inside the owner's pages only, and every link is refused, including one that stays inside.
+- **Versions are pruned daily** by the site (`pruning.ts`): a page's versions for 30 days and its last 20 always, a deleted
+  page for 30 days, and each owner's versions together capped at 200 MB, oldest first. Permanent deletion removes a page
+  or a version at once.
+- **The site does not know who is asking.** hq checks the person (`assertLocationAccess` for a place; an organisation
+  admin for changes to the organisation's) before it asks, and the site only keeps the record it is handed.
+- **Deleting a project or a person's storage removes its knowledge** with it (`location.remove`).
+
 ## hq reading and writing files
 
 hq has no path to a site's disk. Everything goes through `location.*` methods
@@ -166,8 +202,10 @@ hq has no path to a site's disk. Everything goes through `location.*` methods
 |---|---|---|
 | `location.listFiles`, `location.statFile` | control channel | The storage pages, file browsers |
 | `location.readFile` | content transport | Showing a file |
-| `location.listArtefacts`, `location.listKnowledge` | control channel | The Artefacts and Knowledge tools |
-| `location.readArtefact`, `location.readKnowledge` | content transport | Opening an artefact or a knowledge topic |
+| `location.listArtefacts` | control channel | The Artefacts tool |
+| `location.readArtefact` | content transport | Opening an artefact |
+| `location.listKnowledge`, `location.searchKnowledge`, `location.write`/`edit`/`delete`/`restoreKnowledge`, `location.knowledgeVersions` | control channel | The Knowledge tool, and the knowledge tools of agents ([below](#where-knowledge-lives)) |
+| `location.readKnowledge` | content transport | Opening a page, or one of its versions |
 | `location.seedFiles`, `location.ensureDir` | control channel | hq creating a project's starting files and folders |
 | `location.remove` | control channel | Deleting a project's storage after the project is deleted |
 
@@ -175,8 +213,8 @@ hq has no path to a site's disk. Everything goes through `location.*` methods
   reach that boundary (`assertLocationAccess`, `hq/src/storage/locationAccess.ts`): a person's own storage
   is theirs alone, and a project's is open to its members. The site checks only that the path stays inside
   the location, with links resolved on both sides (`site/src/server/storage/locationContainment.ts`). In
-  `artefacts/` and `knowledge/`, which hq addresses by the owner rather than by a location, it refuses every
-  link, and a folder that has itself been replaced by one. It has no notion of who is asking: it has no
+  `artefacts/`, which hq addresses by the owner rather than by a location, it refuses every
+  link, and a folder that has itself been replaced by one. The same holds for knowledge, below. It has no notion of who is asking: it has no
   users.
 - hq's callers are `hq/src/storage/locationFileStore.ts` and `ownerFolderStore.ts`, and the queries in
   `hq/src/storage/queries.ts` and `ownerFolderQueries.ts`. A file larger than 1 MB is described rather than
@@ -193,7 +231,7 @@ A run's container mounts **one whole boundary**, at a path that mirrors the site
 root: `/projects/<project id>` or `/users/<person id>`
 ([ADR-0079](../adr/adr-0079-access-to-a-boundary-is-access-to-all-of-it.md);
 `resolveBoundaryMount`, `site/src/agents/runtime/locationResolver.ts`). Everything inside it comes with that
-one mount: files, knowledge, artefacts, every workspace, and a project's tasks and members folders. A
+one mount: files, artefacts, every workspace, and a project's tasks and members folders. A
 workspace created while the container runs appears in it at once.
 
 **What keeps a run out of other storage** is that nothing else is mounted. The site builds the container's
@@ -240,7 +278,7 @@ the folder itself.
 
 ## When owners go away
 
-- **A project is deleted**: hq sends `location.remove` for the whole project folder after the deletion
+- **A project is deleted**: hq sends `location.remove` for the whole project folder, and its knowledge, after the deletion
   commits (`hq/src/projects/projectStorageRemoval.ts`). If the site is down the folder stays and the failure
   is logged.
 - **A person leaves a project or the organisation**: hq sends a membership-ending instruction, held until
@@ -265,6 +303,8 @@ the folder itself.
 - **Paths are derived from ids, on the site.** Never store a path, and never key a folder by a name.
 - **A container mounts exactly one boundary.** Mounting two would let a run in one owner's storage reach
   another's.
+- **Knowledge stays outside storage.** A run mounts a whole storage folder, so a page inside it could be changed without
+  the gate.
 - **Harness homes stay outside storage.** Moving one inside a project would expose one person's sessions
   to every container in the project.
 - **Placement is decided once, by the same function for dispatch and capability.**

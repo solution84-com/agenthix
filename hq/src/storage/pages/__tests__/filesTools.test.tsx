@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** The Files tools on screen (every screen reviewed spec §3): Files, Artefacts, Knowledge and Workspaces. */
+/** The Files tools on screen (every screen reviewed spec §3): Files, Artefacts and Workspaces. */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
@@ -39,7 +39,6 @@ vi.mock('../../../shared/components/NoExecutionSiteNotice', () => ({ NoExecution
 
 import { FilesTool } from '../FilesTool'
 import { ArtefactsTool } from '../ArtefactsTool'
-import { KnowledgeTool } from '../KnowledgeTool'
 import { WorkspacesTool } from '../WorkspacesTool'
 
 const owner = { ownerType: 'project' as const, ownerId: 'p1' }
@@ -49,7 +48,6 @@ beforeEach(() => {
   setAddress('tool=files')
   data.useFolder.mockReturnValue(ok([]))
   data.useArtefacts.mockReturnValue(ok([]))
-  data.useKnowledge.mockReturnValue(ok([]))
   data.useFileContent.mockReturnValue(ok({ kind: 'markdown', name: 'ROADMAP.md', text: '# Roadmap\n\n- Pricing page' }))
   data.useWorkspaces.mockReturnValue({ workspaces: [], unanswered: [], isLoading: false })
 })
@@ -234,55 +232,6 @@ describe('the Artefacts tool', () => {
     render(<ArtefactsTool owner={owner} />)
     expect(screen.getByRole('status').textContent).toContain('not available yet')
     expect(screen.queryByText(/No artefacts yet/)).toBeNull()
-  })
-})
-
-describe('the Knowledge tool', () => {
-  const topics = [
-    { path: 'brand.md', title: 'Brand voice', summary: 'Tone and words.', tags: [], modifiedAt: NOW_ISO(20) },
-    { path: 'payments.md', title: 'Payments', summary: 'How checkout works.', tags: ['stack'], modifiedAt: NOW_ISO(0, 9) },
-  ]
-
-  it('says it is looked up when needed and is not AGENTS.md', () => {
-    data.useKnowledge.mockReturnValue(ok(topics))
-    render(<KnowledgeTool owner={owner} />)
-    expect(screen.getByText(/Nothing here is read on every run: that is AGENTS.md/)).toBeTruthy()
-  })
-
-  it('lists topics newest first with a summary and tags, and keeps a Tag filter', () => {
-    data.useKnowledge.mockReturnValue(ok(topics))
-    render(<KnowledgeTool owner={owner} />)
-    const titles = screen.getAllByText(/Brand voice|Payments/).map(t => t.textContent)
-    expect(titles).toEqual(['Payments', 'Brand voice'])
-    expect(screen.getByText('How checkout works.')).toBeTruthy()
-    expect(screen.getByLabelText('Tag')).toBeTruthy()
-    fireEvent.change(screen.getByLabelText('Tag'), { target: { value: 'stack' } })
-    expect(screen.queryByText('Brand voice')).toBeNull()
-  })
-
-  it('searches the topics', () => {
-    data.useKnowledge.mockReturnValue(ok(topics))
-    render(<KnowledgeTool owner={owner} />)
-    fireEvent.change(screen.getByLabelText('Search knowledge'), { target: { value: 'tone' } })
-    expect(screen.queryByText('Payments')).toBeNull()
-    expect(screen.getByText('Brand voice')).toBeTruthy()
-  })
-
-  it('opens a topic like a file, with Mention, and Edit as a placeholder that explains', () => {
-    data.useKnowledge.mockReturnValue(ok(topics))
-    render(<KnowledgeTool owner={owner} />)
-    fireEvent.click(screen.getByText('Payments'))
-    expect(address.params.get('topic')).toBe('payments.md')
-    expect(screen.getByRole('button', { name: 'Mention' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
-    expect(screen.getByRole('note').textContent).toContain('Editing by hand is coming')
-  })
-
-  it('in Chat is the person’s own, with no Memory notes', () => {
-    data.useKnowledge.mockReturnValue(ok(topics))
-    render(<KnowledgeTool owner={{ ownerType: 'user', ownerId: 'u1' }} personal />)
-    expect(screen.getByText(/in your own space/)).toBeTruthy()
-    expect(screen.queryByText(/About you/)).toBeNull()
   })
 })
 

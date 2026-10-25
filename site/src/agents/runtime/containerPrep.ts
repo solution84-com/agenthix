@@ -58,8 +58,8 @@ export function resolveContainerKey(
  * session one runner has in one location shares its container; another runner,
  * or another owner, gets a different one rather than a remount.
  *
- * The container binds the OWNER's whole folder once (ADR-0079) — its files, its
- * knowledge, every one of its workspaces, and (for a project) its tasks and
+ * The container binds the OWNER's whole folder once (ADR-0079) — its files, every
+ * one of its workspaces, and (for a project) its tasks and
  * members roots — so nothing about this run can widen or narrow it, and a
  * workspace created while the container runs appears in it. Only the cwd varies
  * per run, and it is a path inside that folder.

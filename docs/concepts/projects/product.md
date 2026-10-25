@@ -14,7 +14,7 @@ Not every project needs a product. A project called "Manage my personal life" be
 
 ## What a product does
 
-A product groups projects for reports and lookups, and nothing else. It owns no files, workspaces, members, wiki or runs, no access check consults it, and filing a project under one grants nobody anything ([ADR-0061](../../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md)). Storage belongs to a project or a person ([workspace.md](../workspace/workspace.md)); content that spans a product's projects lives in one of them.
+A product groups projects for reports and lookups, and nothing else. It owns no files, workspaces, members, knowledge or runs, no access check consults it, and filing a project under one grants nobody anything ([ADR-0061](../../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md)). Storage belongs to a project or a person ([workspace.md](../workspace/workspace.md)); content that spans a product's projects lives in one of them.
 
 Organisation › Products shows the list of products beside the one opened, which shows its projects as the Projects screen's cards, with **File a project** for admins (`hq/src/products/components/`). Creating, changing and deleting a product, and filing a project under one, take an org admin (`hq/src/products/actions.ts`, `updateProject` in `hq/src/projects/actions.ts`).
 

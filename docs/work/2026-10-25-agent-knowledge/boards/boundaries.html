@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boundaries · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="boundaries.html"><main>
+<div class="top"><div><h1>6 · Who reaches what</h1>
+<p class="sub">Level 2. Each level of knowledge is reached only by those allowed to. A conversation reaches only its own place and the places its person added: the person sets the blast radius, deliberately (C3).</p></div></div>
+
+<h2 id="who">Who reaches what</h2>
+<div class="box"><table>
+<tr><th></th><th>Read</th><th>Change</th><th>Enforced by</th></tr>
+<tr><td><b>Platform knowledge</b></td><td>Every agent; anyone, as the public guide</td><td>The maintainers, in this repository</td><td>Nothing to protect: it is public and holds nothing of an organisation.</td></tr>
+<tr><td><b>Organisation knowledge</b></td><td>Every member; every run and conversation in the organisation</td><td>Organisation admins; agents when the person they answer is one <a class="q" href="/files/decisions.html#q5">Q5</a></td><td>UI: an organisation-admin check for changes. Agents: <code>org:</code> pages are open to every run, for reading; change tools refuse unless the turn or run acts for an admin.</td></tr>
+<tr><td><b>A project's knowledge</b></td><td>Its members; runs and conversations in the project</td><td>Members who may change the project's files <a class="q" href="/files/decisions.html#q4">Q4</a>; agents through K3–K5 when asked</td><td>UI: <code>assertLocationAccess</code> (read / write), as the Knowledge tool's queries do today. Agents: the tools take no place (board 5); no run mounts knowledge.</td></tr>
+<tr><td><b>A person's knowledge</b></td><td>The person; runs and conversations in their space</td><td>The person; agents in their space when asked</td><td>The same checks, so exactly who can open the person's own files can open it.</td></tr></table></div>
+
+<h2 id="paths">How one place's knowledge could reach another</h2>
+<div class="box"><table>
+<tr><th></th><th>Path</th><th>After</th></tr>
+<tr><td class="n">B1</td><td>A run reads another place's knowledge</td><td>Not possible: no knowledge is mounted, and the tools reach only the run's own place, the organisation and the guide</td></tr>
+<tr><td class="n">B2</td><td>A tool call names another place</td><td>Not possible: the tools take no place</td></tr>
+<tr><td class="n">B3</td><td>The lead shows it to the person</td><td>Allowed: the person may read it</td></tr>
+<tr><td class="n">B4</td><td>The lead reads another place's knowledge, or starts work there</td><td><b>Only a place the person added to the conversation</b> (C3). <code>start_work</code> and the knowledge tools both check the conversation's places.</td></tr>
+<tr><td class="n">B5</td><td>What the conversation holds goes into a brief for another of its places</td><td>Allowed: the person put those places together, knowing it (the notice on adding says so)</td></tr>
+<tr><td class="n">B6</td><td>The lead widens its own reach</td><td>Not possible: <code>suggest_place</code> only shows the person a card; only their click adds a place</td></tr></table></div>
+
+<h2 id="blast">The blast radius: the places the person added</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<p>A conversation starts with its own place (a project, or the person's own space), the organisation's knowledge and the platform guide. Any other place is <b>added by the person</b>, in the conversation's header, like Claude Code's additional directories (C3). So whatever a conversation moves between places, it moves between places the person chose to put together: <b>they accept the blast radius, by a deliberate act they can see and undo.</b></p>
+<table>
+<tr><th></th><th>Mechanism</th></tr>
+<tr><td class="n">P1</td><td>hq stores each conversation's places: its own, and each added one with who added it and when.</td></tr>
+<tr><td class="n">P2</td><td><code>start_work</code>'s admission (<code>admitToBoundary</code>) accepts only a place in the conversation; today it accepts any place the person can reach.</td></tr>
+<tr><td class="n">P3</td><td>The lead's knowledge tools search and read every place in the conversation, each hit marked with its place (board 5). A worker or a task run has one place, as today.</td></tr>
+<tr><td class="n">P4</td><td>Adding checks the person can access the place, then and on every turn: a place they have lost access to drops out of the conversation.</td></tr>
+<tr><td class="n">P5</td><td><code>suggest_place</code> is the lead's only way to ask for one: a card the person answers.</td></tr></table>
+<p class="sub">No check on briefs (D14): within a conversation's places, carrying knowledge across is the person's choice.</p></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><ul>
+<li><b>The tools hold the line that matters</b>: an agent can never reach a place the person can't.</li>
+<li><b>Workers find their own place's knowledge</b>, so a brief no longer needs to carry it; most of the old reason to copy knowledge into briefs is gone.</li>
+<li><b>Simple and honest</b>: no partial check that looks like protection and misses paraphrase.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

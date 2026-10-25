@@ -4,12 +4,15 @@
  * Single source of truth for all system MCP tool identifiers, organised by
  * domain group — matching the canonical tool reference in docs/domains/tools/tools.md.
  *
- * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW
+ * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW,
+ * KNOWLEDGE, PLACE
  *
  * Access tiers (cross-cutting):
  *   ALWAYS_INJECTED  — PLATFORM tools + task execution lifecycle; never user-configurable
  *   DEFAULT_ON       — included when allowedTools is null
  *   ADMINISTRATIVE   — off by default; must be explicitly granted
+ *
+ * A group in no tier is defined, not offered: PLACE, until a conversation's places are served.
  *
  * Tool names are stored and passed around in our raw format (e.g. 'create_task').
  * Runtime adapters are responsible for translating to their own naming scheme.
@@ -147,6 +150,27 @@ export const SYSTEM_MCP_TOOLS = {
     WORKFLOW_RUN:     WORKFLOW_TOOL_NAMES.runState,
   },
 
+  /**
+   * Knowledge at every level, shaped like the native Grep, Read, Write and Edit (agent knowledge spec, part 3).
+   * Always injected: they reach only the run's own place, the organisation and the platform guide, and a run's
+   * site gives write, edit and delete only to a run that may change files.
+   */
+  KNOWLEDGE: {
+    SEARCH_KNOWLEDGE: 'search_knowledge',
+    READ_KNOWLEDGE:   'read_knowledge',
+    WRITE_KNOWLEDGE:  'write_knowledge',
+    EDIT_KNOWLEDGE:   'edit_knowledge',
+    DELETE_KNOWLEDGE: 'delete_knowledge',
+  },
+
+  /**
+   * The lead asking the person to add a place to its conversation (agent knowledge spec, part 4): the lead's own
+   * conversation tool (conversations/placesSuggest.ts), never a run's, so in no access tier below.
+   */
+  PLACE: {
+    SUGGEST_PLACE: 'suggest_place',
+  },
+
 } as const
 
 // ── Access tier views ─────────────────────────────────────────────────────────
@@ -168,6 +192,7 @@ export const ALWAYS_INJECTED_MCP_TOOLS: string[] = [
   SYSTEM_MCP_TOOLS.MEMORY.FORGET,
   SYSTEM_MCP_TOOLS.MEMORY.RECALL,
   ...Object.values(SYSTEM_MCP_TOOLS.WORKFLOW),
+  ...Object.values(SYSTEM_MCP_TOOLS.KNOWLEDGE),
 ]
 
 /** Included by default when allowedTools is null. */
@@ -246,3 +271,5 @@ export type SystemMcpTool =
   | typeof SYSTEM_MCP_TOOLS.LIBRARY[keyof typeof SYSTEM_MCP_TOOLS.LIBRARY]
   | typeof SYSTEM_MCP_TOOLS.GIT[keyof typeof SYSTEM_MCP_TOOLS.GIT]
   | typeof SYSTEM_MCP_TOOLS.MEMORY[keyof typeof SYSTEM_MCP_TOOLS.MEMORY]
+  | typeof SYSTEM_MCP_TOOLS.KNOWLEDGE[keyof typeof SYSTEM_MCP_TOOLS.KNOWLEDGE]
+  | typeof SYSTEM_MCP_TOOLS.PLACE[keyof typeof SYSTEM_MCP_TOOLS.PLACE]

@@ -24,6 +24,7 @@ import { sweepExpiredRunTokens } from './runtime/runTokens'
 import { setAfterPackageStored } from '../packages/packageMethods'
 import { schedulePackageEviction } from '../packages/packageEvictionScheduler'
 import { sweepIncomingDir } from '../packages/packageCache'
+import { startKnowledgePruning } from './knowledge/pruning'
 import { usageOutbox } from './modelRelay/usageOutbox'
 import { startControlSocket } from './control/controlSocket'
 import { validateEnv } from './validateEnv'
@@ -113,6 +114,9 @@ export async function setupServer(): Promise<void> {
     // removed out from under it.
     sweepIncomingDir().catch(() => {})
   }, 60_000).unref()
+
+  // Kept versions of knowledge pages: pruned once a day (knowledge spec, *Versions and pruning*).
+  startKnowledgePruning()
 
   if (process.env.AGENT_CONTAINER_ISOLATION === 'true') {
     // ADR-0057: a container belongs to a storage location, so what makes one an

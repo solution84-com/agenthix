@@ -1,6 +1,6 @@
 /**
- * The Artefacts and Knowledge tools' reads: a place's `artefacts/` and
- * `knowledge/`, listed and opened.
+ * The Artefacts tool's reads: a place's `artefacts/`, listed and opened. The
+ * Knowledge tool's are `../knowledge/people/`.
  *
  * Every query applies the one location access rule to the owner BEFORE it asks
  * the site — the person's own storage, or a project they are on — exactly as
@@ -13,14 +13,10 @@ import { LocationFileError, type StorageOwnerType } from '@agenthix/core'
 import { assertLocationAccess } from './locationAccess'
 import { rethrowLocationFileErrorAsHttp } from './httpErrors'
 import { classifyFileContent, FILE_CONTENT_MAX_BYTES, type FileContent } from './fileContentService'
-import { KNOWLEDGE_INDEX_FILE, knowledgeTopics, type KnowledgeTopic } from './knowledgeIndex'
-import { listArtefactsOnSite, listKnowledgeOnSite, readArtefactOnSite, readKnowledgeOnSite } from './ownerFolderStore'
+import { listArtefactsOnSite, readArtefactOnSite } from './ownerFolderStore'
 
 type Ctx = { user?: { id: string } }
 type OwnerArgs = { ownerType: StorageOwnerType; ownerId: string }
-
-/** More than any index an agent keeps by hand, and a bound on what one listing reads. */
-const KNOWLEDGE_INDEX_MAX_BYTES = 256 * 1024
 
 async function entitledOwner(args: OwnerArgs, context: Ctx): Promise<OwnerArgs> {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
@@ -55,35 +51,4 @@ export const listArtefactsQuery = async (
 export const getArtefactContentQuery = async (args: OwnerArgs & { name: string }, context: Ctx): Promise<FileContent> => {
   const owner = await entitledOwner(args, context)
   return content(args.name, () => readArtefactOnSite(owner, args.name, FILE_CONTENT_MAX_BYTES))
-}
-
-/**
- * The topics under `knowledge/`, newest first, each titled from `INDEX.md`'s
- * line for it, else by its file name. The index is read beside the listing;
- * a place with none simply has no titles from it.
- */
-export const listKnowledgeQuery = async (args: OwnerArgs, context: Ctx): Promise<{ topics: KnowledgeTopic[] }> => {
-  const owner = await entitledOwner(args, context)
-  try {
-    const { files } = await listKnowledgeOnSite(owner)
-    const hasIndex = files.some(file => file.path === KNOWLEDGE_INDEX_FILE)
-    const index = hasIndex
-      ? await readKnowledgeOnSite(owner, KNOWLEDGE_INDEX_FILE, KNOWLEDGE_INDEX_MAX_BYTES)
-        .then(bytes => bytes.toString('utf8'))
-        .catch((err: unknown) => {
-          // An index that is too large or no longer there costs the titles, not the list.
-          if (err instanceof LocationFileError && ['too_large', 'not_found', 'not_a_file'].includes(err.code)) return null
-          throw err
-        })
-      : null
-    return { topics: knowledgeTopics(files, index) }
-  } catch (err) {
-    rethrowLocationFileErrorAsHttp(err)
-  }
-}
-
-export const getKnowledgeContentQuery = async (args: OwnerArgs & { path: string }, context: Ctx): Promise<FileContent> => {
-  const owner = await entitledOwner(args, context)
-  const name = args.path.split('/').pop() || args.path
-  return content(name, () => readKnowledgeOnSite(owner, args.path, FILE_CONTENT_MAX_BYTES))
 }

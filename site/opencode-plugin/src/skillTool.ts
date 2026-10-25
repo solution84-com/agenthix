@@ -18,7 +18,7 @@ import { HARNESS_GATE_UNAVAILABLE, openCodeSkillsContainerDir } from '@agenthix/
 import { tool, type ToolContext, type ToolResult } from '@opencode-ai/plugin/tool'
 import { parseArgs } from './files/common'
 import { SKILL_DESCRIPTION } from './files/descriptions'
-import { closeQuietly, listFolder, openForRead, readAll, type FdPaths } from './files/verifiedFs'
+import { closeQuietly, listFolder, openForRead, readAll, type FdPaths } from '@agenthix/core/file-tools'
 import type { SiteClient } from './site'
 
 const z = tool.schema
@@ -100,7 +100,7 @@ export function skillTool(
       const opened = openForRead(sys, path.join(dir, 'SKILL.md'))
       let body: string
       try {
-        body = skillBody(readAll(opened.fd).toString('utf-8'))
+        body = skillBody(Buffer.from(readAll(opened.fd)).toString('utf-8'))
       } finally {
         closeQuietly(opened.fd)
       }

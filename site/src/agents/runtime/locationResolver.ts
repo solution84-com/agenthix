@@ -20,8 +20,7 @@
  * under `members/`.
  */
 import type { WorkspaceOwnerType } from '@prisma/client'
-import path from 'node:path'
-import { getKnowledgeDir, ownerDir, type LocationRef } from '../../server/storage/paths'
+import type { LocationRef } from '../../server/storage/paths'
 import { AGENDA_FILE_NAME, getAgendaFilePath, hasAgendaIn } from '../agendaService'
 import type { LocationMount } from './containerTypes'
 
@@ -54,18 +53,6 @@ export function ownerDisplayName(loc: { ownerType: WorkspaceOwnerType; ownerId: 
 /** The container-side root of one owner's storage: its site path, site root removed. */
 function containerOwnerBase(ownerType: WorkspaceOwnerType, ownerId: string): string {
   return `/${PLURAL_OWNER[ownerType]}/${ownerId}`
-}
-
-/**
- * The knowledge tree an owner kind carries, described for the prompt. Knowledge
- * is a file tree the run walks, readable only inside its own boundary: a
- * project's tree is mounted only into that project's runs, and a person's own
- * tree is mounted only into runs in their own space — never into each other's.
- */
-function knowledgeDescription(ownerType: WorkspaceOwnerType): string {
-  return ownerType === 'project'
-    ? 'project knowledge: shared notes every agent on this project reads'
-    : 'their own knowledge: notes read by every agent running in this person\'s space'
 }
 
 const ARTEFACTS_DESCRIPTION =
@@ -104,10 +91,12 @@ export function resolveBoundaryMount(owner: { ownerType: WorkspaceOwnerType; own
  * The folders inside a boundary, described for the prompt — never binds of
  * their own; they arrive with the boundary's one bind (`resolveBoundaryMount`).
  *
- * A project has its `files/`, its `knowledge/`, its `artefacts/`, every one of
- * its workspaces, its `tasks/` root and its `members/` root; a person has their
- * `files/`, their own `knowledge/`, their `artefacts/`, every one of their
- * workspaces and the `tasks/` root of their personal project. Every path belongs to that one owner. The workspaces are the ones
+ * A project has its `files/`, its `artefacts/`, every one of its workspaces,
+ * its `tasks/` root and its `members/` root; a person has their `files/`,
+ * their `artefacts/`, every one of their workspaces and the `tasks/` root of
+ * their personal project. Knowledge is not among them: it lives outside the
+ * owner's folder (`getKnowledgeDir`) and a run reaches it only through the
+ * knowledge tools. Every path belongs to that one owner. The workspaces are the ones
  * listed when the run launched; one created later is still inside the bind,
  * just not named in this run's prompt.
  *
@@ -134,10 +123,6 @@ export function resolveAccessibleLocations(
   }
 
   add('files', filesDescription(owner))
-  // The host side is built from `siteHostPath`, which need not be the path
-  // this process sees, so only the segment is taken from the path module.
-  const knowledgeSegment = path.relative(ownerDir(owner.ownerType, owner.ownerId), getKnowledgeDir(owner.ownerType, owner.ownerId))
-  add(knowledgeSegment, knowledgeDescription(owner.ownerType))
   // Every owner kind has an artefacts root — anything an agent produces was
   // produced for somebody, and this is where hq reads it back from: it lists
   // the files directly in it, and opens the link the reply makes to one.

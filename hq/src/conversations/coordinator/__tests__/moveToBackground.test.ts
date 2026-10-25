@@ -1,7 +1,8 @@
 /**
  * A reply that runs long (walkthrough findings 25, 28 and 30): after 4 steps that looked something up — never by
- * time — hq starts the rest in the background itself, with a brief it writes and no model call, then ends the
- * reply with a fixed line in the agent's voice. Where it cannot, the next call is words only.
+ * time — the model is called once more, and if it asks for more tools hq starts the rest in the background itself,
+ * with a brief it writes, then ends the reply with a fixed line in the agent's voice. A reply that is done by then
+ * ends as it is (agent knowledge walkthrough, F6). Where hq cannot move it, the next call is words only.
  */
 import { describe, it, expect } from 'vitest'
 import { z } from 'zod'
@@ -16,6 +17,8 @@ const ask = (...calls: { id: string; name: string; input?: unknown }[]): Step =>
 const say = (text: string): Step => [{ type: 'text', text }, { ...finish, reason: 'stop' as const }]
 const lookup = (n: number): Step => ask({ id: `c${n}`, name: 'list_projects', input: { n } })
 const fourLookups = (): Step[] => [lookup(1), lookup(2), lookup(3), lookup(4)]
+/** Four lookups, then a call that asks for more: the rest moves. */
+const wantsMore = (): Step[] => [...fourLookups(), lookup(5)]
 const startWork: LeadToolDefinition = { name: 'start_work', description: 'Start work', input: z.object({}) }
 
 /** The capability of an agent that is not bypassed and lists no tools: start_work reads as Ask in it. */
@@ -64,13 +67,14 @@ describe('when a reply moves to the background @SC-967', () => {
 })
 
 describe("hq's own move @SC-967", () => {
-  it('starts the work itself after 4 lookups, with no further model call, and ends with the fixed reply', async () => {
-    const { model, h } = longHarness(fourLookups())
+  it('starts the work itself when the call after 4 lookups asks for more, without running it, and ends with the fixed reply', async () => {
+    const { model, h } = longHarness(wantsMore())
 
     const outcome = await runTurn(h.deps, h.run().running)
 
-    expect(model.requests).toHaveLength(4)
+    expect(model.requests).toHaveLength(5)
     expect(model.requests.every(r => r.toolChoice === undefined)).toBe(true)
+    expect(h.toolCall.mock.calls.filter(c => (c[1] as { name: string }).name === 'list_projects')).toHaveLength(4)
     expect(moveCall(h).input).toMatchObject({ boundary: 'personal', title: 'Find the stale tasks in WAL' })
     expect(outcome).toMatchObject({ state: 'COMPLETED', text: MOVED_TO_BACKGROUND })
     expect(h.stored.map(m => m.kind)).toEqual(['OPERATION_STARTED', 'TEXT'])
@@ -83,7 +87,7 @@ describe("hq's own move @SC-967", () => {
   })
 
   it("briefs the work with the person's words and what the reply found, in the conversation's own place", async () => {
-    const { h } = longHarness(fourLookups())
+    const { h } = longHarness(wantsMore())
     await runTurn(h.deps, h.run().running)
 
     const { brief } = moveCall(h).input
@@ -94,7 +98,7 @@ describe("hq's own move @SC-967", () => {
   })
 
   it("starts it in a project conversation's project, by its key", async () => {
-    const { h } = longHarness(fourLookups())
+    const { h } = longHarness(wantsMore())
     h.deps.mint = notBypassed({ home: 'PROJECT', projectId: 'p-wal' })
     await runTurn(h.deps, h.run(claimed({ home: 'PROJECT', projectId: 'p-wal' })).running)
 
@@ -105,7 +109,7 @@ describe("hq's own move @SC-967", () => {
 
   it('names work the reply already started, so the background leaves it alone', async () => {
     const { h } = longHarness([
-      lookup(1), ask({ id: 's', name: 'run_task', input: { taskId: 'WAL-2' } }, { id: 'c2', name: 'list_projects', input: { n: 2 } }), lookup(3), lookup(4),
+      lookup(1), ask({ id: 's', name: 'run_task', input: { taskId: 'WAL-2' } }, { id: 'c2', name: 'list_projects', input: { n: 2 } }), lookup(3), lookup(4), lookup(5),
     ])
     h.toolCall.mockImplementation(async (_c, call) => {
       if (call.name === 'run_task') return { status: 'accepted', operationId: 'op-r' }
@@ -121,10 +125,32 @@ describe("hq's own move @SC-967", () => {
   it('keeps what the reply already said, and puts the fixed reply after it', async () => {
     const { h } = longHarness([
       [{ type: 'text', text: 'Let me look.' }, { type: 'tool-call', call: { id: 'c1', name: 'list_projects', input: {} } }, finish],
-      lookup(2), lookup(3), lookup(4),
+      lookup(2), lookup(3), lookup(4), lookup(5),
     ])
     const outcome = await runTurn(h.deps, h.run().running)
     expect(outcome.text).toBe(`Let me look.\n\n${MOVED_TO_BACKGROUND}`)
+  })
+
+  it('never follows a reply that is already done: the call after 4 lookups answers, and nothing moves (F6)', async () => {
+    const { model, h } = longHarness([
+      lookup(1), lookup(2), lookup(3),
+      [{ type: 'text', text: 'Fixed.' }, { type: 'tool-call', call: { id: 'c4', name: 'list_projects', input: {} } }, finish],
+      [{ ...finish, reason: 'stop' as const }],
+    ])
+    const outcome = await runTurn(h.deps, h.run().running)
+
+    expect(model.requests).toHaveLength(5)
+    expect(h.toolCall.mock.calls.some(c => (c[1] as { name: string }).name === 'start_work')).toBe(false)
+    expect(outcome).toMatchObject({ state: 'COMPLETED', text: 'Fixed.' })
+    expect(h.stored.map(m => m.kind)).toEqual(['TEXT'])
+  })
+
+  it('runs work the model starts itself after 4 lookups, rather than starting its own', async () => {
+    const { h } = longHarness([...fourLookups(), ask({ id: 's', name: 'start_work', input: { boundary: 'personal', title: 'Mine', brief: 'b' } })])
+    await runTurn(h.deps, h.run().running)
+
+    expect(moveCall(h).input).toMatchObject({ title: 'Mine' })
+    expect(h.toolCall.mock.calls.filter(c => (c[1] as { name: string }).name === 'start_work')).toHaveLength(1)
   })
 
   it('never moves by time: a slow reply under 4 lookups carries on', async () => {
@@ -138,10 +164,11 @@ describe("hq's own move @SC-967", () => {
 })
 
 describe('where hq cannot start the work @SC-967', () => {
-  const wordsOnly = (h: ReturnType<typeof scriptedModel>) => {
-    expect(h.requests).toHaveLength(5)
-    expect(h.requests[4]!.toolChoice).toBe('none')
-    expect(h.requests[4]!.messages.at(-1)).toMatchObject({ role: 'user', content: expect.stringContaining('words only') })
+  /** The last call is words only: the fifth where hq never could move, the sixth after the fifth asked for more. */
+  const wordsOnly = (h: ReturnType<typeof scriptedModel>, at = 4) => {
+    expect(h.requests).toHaveLength(at + 1)
+    expect(h.requests[at]!.toolChoice).toBe('none')
+    expect(h.requests[at]!.messages.at(-1)).toMatchObject({ role: 'user', content: expect.stringContaining('words only') })
   }
 
   it('ends in words when start_work is not offered', async () => {
@@ -153,17 +180,17 @@ describe('where hq cannot start the work @SC-967', () => {
   })
 
   it('ends in words when starting the work is refused', async () => {
-    const { model, h } = longHarness([...fourLookups(), say('So far: nothing.')], { startWork: { status: 'refused', reason: "you can only read Walkthrough, not start work there" } })
+    const { model, h } = longHarness([...wantsMore(), say('So far: nothing.')], { startWork: { status: 'refused', reason: "you can only read Walkthrough, not start work there" } })
     await runTurn(h.deps, h.run().running)
-    wordsOnly(model)
+    wordsOnly(model, 5)
     expect(h.stored.map(m => m.kind)).toEqual(['TEXT'])
   })
 
   it("ends in words in a task's thread, which has no place to move to", async () => {
-    const { model, h } = longHarness([...fourLookups(), say('So far.')])
+    const { model, h } = longHarness([...wantsMore(), say('So far.')])
     h.deps.mint = notBypassed({ home: 'TASK', projectId: 'p-wal', taskId: 't1' })
     await runTurn(h.deps, h.run(claimed({ home: 'TASK', projectId: 'p-wal', taskId: 't1' })).running)
-    wordsOnly(model)
+    wordsOnly(model, 5)
   })
 
   it('ends in words when the reply answers cards, not a person', async () => {
@@ -173,9 +200,9 @@ describe('where hq cannot start the work @SC-967', () => {
   })
 
   it("ends in words when the person's words cannot be read", async () => {
-    const { model, h } = longHarness([...fourLookups(), say('So far.')])
+    const { model, h } = longHarness([...wantsMore(), say('So far.')])
     h.deps.background = { ...h.deps.background!, asked: async () => [] }
     await runTurn(h.deps, h.run().running)
-    wordsOnly(model)
+    wordsOnly(model, 5)
   })
 })

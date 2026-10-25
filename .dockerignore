@@ -5,12 +5,12 @@
 **/compose.env
 **/.DS_Store
 .git
-# Only the user guide pages the Fleet Console builds into its Help.
+# The user guide: the Fleet Console builds its Help from one folder of it, hq's image builds the platform guide from it all.
 docs/*
 !docs/guide
-docs/guide/*
-!docs/guide/running-agenthix
 tests
+# Made inside hq's image from docs/guide/, never taken from a machine.
+hq/assets/platform-guide
 brand
 assets
 .superpowers

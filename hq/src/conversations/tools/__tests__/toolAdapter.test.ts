@@ -21,6 +21,10 @@ vi.mock('../../work/workers', () => ({ workerTools: [], workerOwner: {} }))
 vi.mock('../../work/toolCalls', () => ({ toolCallTools: [], toolCallOwner: {} }))
 // The lead's own recall, remember, forget and used_memory read memory; they are tested beside their own code.
 vi.mock('../../memory', () => ({ memoryTools: [] }))
+// The lead's knowledge tools are tested beside their own code.
+vi.mock('../../memory/leadKnowledgeTools', () => ({ knowledgeTools: [] }))
+// suggest_place is tested beside its own code.
+vi.mock('../../placesSuggest', () => ({ placeTools: [] }))
 // The lead's ledger tool is tested beside its own code.
 vi.mock('../../long/ledgerTool', () => ({ ledgerTool: { name: 'ledger', offered: async () => false } }))
 // expand, messages and offer_new_conversation read the record; they are tested beside their own code.

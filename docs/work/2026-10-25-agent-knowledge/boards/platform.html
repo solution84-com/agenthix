@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platform knowledge · Agent Knowledge</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="platform.html"><main>
+<div class="top"><div><h1>3 · Platform knowledge: from the guide to the agent</h1>
+<p class="sub">Level 2. The user guide is already written for each release, page by page, for people. Platform knowledge is that guide, plus a glossary, built into hq's image and read by every agent through the same <code>search_knowledge</code> and <code>read_knowledge</code> as every other level of knowledge, as <code>platform:</code> pages. Nothing is written twice.</p></div></div>
+
+<h2 id="two">Two places, one hand-off</h2>
+<div class="box"><p>Platform knowledge is <b>made</b> in our repository and CI, and <b>used</b> inside each organisation's hq. The only thing that crosses from one to the other is <b>hq's image</b>: an organisation never builds anything, and our CI never sees an organisation.</p></div>
+
+<h2 id="made">Part 1 · Where it is made: our repository and CI</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="mmd" data-src="made"></div>
+<div class="kbox">
+<div><h4><span class="n">P1</span>The guide, as today</h4><p><code>docs/guide/</code>: 40-odd pages, each with front matter <code>title</code> and <code>description</code> (already required by the guide's rules). Published at agenthix.com/docs from each release's tag.</p><p><b>One rule added</b> to <code>docs/guide/README.md</code>: a new word a person might say goes into the glossary (P2).</p></div>
+<div><h4><span class="n">P2</span>The glossary <span class="tag ok">new</span></h4><p>A new guide page, <code>docs/guide/glossary.md</code>, useful to people too. One entry per word: what it is, where it is (the screen, and its hq address), and what else people call it.</p><pre class="code">## Your space
+Your own place: Chat, My tasks, and your own Files and Knowledge.
+Only you see it. Where: the top of the left panel (/chat).
+Also said: my space, personal space, my stuff.</pre></div>
+<div><h4><span class="n">P3</span>The tools reference <span class="tag ok">new</span>, generated</h4><p>Written by the build from hq's tool registry (<code>hq/src/shared/mcpTools.ts</code> and the schemas beside it): each tool's name, what it does, and which kinds of run get it. Never written by hand, so it cannot disagree with the tools.</p></div>
+<div><h4><span class="n">P4</span>The build step <span class="tag ok">new</span></h4><p><b>No person runs it.</b> It is a stage of hq's image, so whatever builds hq's image builds it:</p><ul><li><b>A release:</b> the rehearsal (<code>scripts/release/prove.sh</code>) and the <i>Release build</i> workflow; the tag only publishes what they built.</li><li><b>Development:</b> hq's dev start runs it before hq boots.</li><li><b>Checks:</b> its tests, in hq's unit suite.</li></ul><p>Writes <code>hq/assets/platform-guide/</code> (gitignored; layout below). Fails on a page without a description or a glossary that doesn't parse.</p></div>
+</div>
+<div class="why"><b>Two changes to our CI so this holds.</b> hq's image parts in <code>scripts/images/parts.json</code> gain <code>docs/guide/</code> as an input (today: <code>core/</code>, <code>ui/</code>, <code>hq/</code>), so a guide change makes a new key and a new image; and the change map behind <code>scripts/affected.mjs</code> sends a guide change to hq's checks. The Fleet Console already builds its Help from <code>docs/guide/</code> the same way. hq's image also gains the <code>ripgrep</code> package (today only the agent and executor images have it).</div></div>
+
+<h2 id="used">Part 2 · Where it is used: inside an organisation's hq</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="mmd" data-src="used"></div>
+<div class="kbox">
+<div><h4><span class="n">P5</span>hq holds the built guide</h4><p>The files P4 wrote, inside hq's image. hq reads them from its own disk to answer the tool; nothing is copied to sites or into runs. The platform package (<code>hq/assets/platform/skills</code>) is not used for this and stays as it is.</p></div>
+<div><h4><span class="n">P6</span>One more source for <code>search_knowledge</code></h4><p>No tools of its own. The guide is the <code>platform:</code> level of knowledge (board 5): <code>search_knowledge</code> searches it with the organisation's and the place's knowledge, marking its hits <code>platform:your-tools/providers.md:12: …</code>, and <code>read_knowledge("platform:your-tools/providers.md")</code> reads a page. hq runs both on its own copy, with the file tools (board 5, layer F). Read-only: a write, edit or delete on a <code>platform:</code> page is refused.</p><p>Every <code>platform:</code> result starts with <i>"This describes Agenthix. What you may do here is what your tools allow."</i></p></div>
+<div><h4><span class="n">P7</span>Every agent reaches it the same way</h4><p>Through <code>search_knowledge</code> and <code>read_knowledge</code>: workers through the site's MCP server, the lead as conversation tools. Nothing of an organisation is in the guide, so every run and every turn may read it.</p></div>
+</div></div>
+
+<h2 id="safety">Running a pattern safely</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<p>A pattern is written by a model, which may have read untrusted text, so it is treated as hostile input. What could go wrong, and what stops it:</p>
+<table>
+\1
+<tr><td class="n">S1</td><td><b>A pattern that never finishes</b> (catastrophic backtracking, such as <code>(a+)+$</code>), freezing hq</td><td><b>ripgrep</b> (<code>rg</code>), the program Claude Code's Grep runs. Its regex engine (Rust's <code>regex</code>) never backtracks: its time grows only in line with the text, by design. A pattern it can't run (backreferences, look-around) is refused with ripgrep's own message, which agents know from Grep.</td></tr>
+<tr><td class="n">S2</td><td><b>Heavy or many searches</b> slowing hq for everyone</td><td>Pattern at most 500 characters. <code>rg</code> runs as its own process, so hq never waits on it, killed after 2 seconds ("search took too long; narrow the pattern"). <code>--max-filesize</code>, <code>--max-columns</code>, one thread. At most 30 calls a minute for one run or conversation, then "too many searches; wait a moment".</td></tr>
+<tr><td class="n">S2b</td><td><b>A pattern or option that takes over the command</b>: a flag like <code>--pre</code> slipped in, or shell characters</td><td><code>rg</code> is started directly, never through a shell. Its arguments are built only from the tool's allowed parameters; the pattern is passed after <code>-e</code>, so it can never be read as a flag; links are not followed; it runs inside the guide's folder only.</td></tr>
+<tr><td class="n">S3</td><td><b>Reading something private</b> through a path</td><td>Search and read work only inside the built guide's folder in hq's image, read-only. A page name is resolved inside that folder and refused if it leaves it (<code>../</code>, absolute paths); links are not followed (the file tools' guards, board 5).</td></tr>
+<tr><td class="n">S4</td><td><b>Something private in the guide itself</b></td><td>The build takes only <code>docs/guide/*.md</code> (not <code>README.md</code>, the writers' rules) and the generated tools reference, all public in this repository. A test fails the build if anything else lands in <code>platform-guide/</code>. Nothing of an organisation is ever in it.</td></tr>
+<tr><td class="n">S5</td><td><b>A huge result</b> filling the model's context</td><td>The caps in P6 (50 matches, 8,000 characters, 16,000 a page), each with "cut: narrow the pattern" or the next <code>offset</code>.</td></tr>
+<tr><td class="n">S6</td><td><b>An error that gives the system away</b> (stack traces, file paths, versions)</td><td>Each failure is one of a fixed set of messages (S1, S2, S3, "the guide isn't available in this install"); nothing else is returned. Details go to hq's log.</td></tr>
+<tr><td class="n">S7</td><td><b>A person's words kept in logs</b>: a pattern may carry what the person said</td><td>hq's log records the call, its time and its outcome, never the pattern. The conversation shows the work step to the person, as it shows every tool call.</td></tr>
+<tr><td class="n">S8</td><td><b>The tools breaking a turn or a run</b></td><td>Every failure is a normal tool result the model can act on, never an exception that ends the turn. If the built guide is missing (a dev hq that skipped the build), hq says so once at boot and the tools answer "the guide isn't available in this install".</td></tr></table>
+<p class="sub">The guide is public, so S2b–S4 protect against the tools becoming a way to read anything else, not against reading the guide.</p></div>
+
+<h2 id="files">What hq searches for <code>platform:</code></h2>
+<div class="box"><span class="lbl after">After · proposed · New: nothing today</span>
+<pre class="code">hq/assets/platform-guide/     written by the build (P4), never by hand
+├── index.json                every page: path, title, description; every glossary term
+├── glossary.md               from docs/guide/glossary.md (P2)
+├── tools.md                  from hq's tool registry (P3)
+└── pages/
+    ├── getting-started/first-conversation.md
+    ├── projects/files-and-previews.md
+    ├── your-tools/providers.md
+    └── …                     every docs/guide page, images replaced by their text</pre>
+<p class="sub"><code>index.json</code> gives each page's name, title and description: the page list an empty search lists for <code>platform:</code>. hq loads all of this into memory at boot (S3).</p></div>
+
+<h2 id="instructions">How an agent knows to look</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<p>It doesn't have to choose: one <code>search_knowledge</code> covers the guide, the organisation and the place, and each hit says where it came from (board 5). The "MySpace" trigger sits in that tool's description, which every agent has:</p>
+<pre class="code">search_knowledge — Works like Grep, over everything known here: how this place and this
+organisation do things, and how Agenthix itself works (its words, screens and settings).
+Each match says where it is from: place:, org: or platform:. Use it before asking how
+something is done, and whenever a person names a place, screen or setting you don't
+recognise, before asking them what they mean.</pre>
+<p class="sub">The full tool definitions are on board 5. The name "Agenthix" is written by the build from <code>BRANDING.displayName</code> (<code>core/src/naming/branding.ts</code>), so a rebrand changes one constant and the guide's text, no identifier (D17).</p></div>
+
+<h2 id="version">How it stays in step with the product</h2>
+<div class="box"><table>
+<tr><th>Risk</th><th>What prevents it</th></tr>
+<tr><td>The guide describes another version than the one running</td><td>Built from the same commit as hq's image, and served by that hq.</td></tr>
+<tr><td>A site on another version</td><td>Irrelevant: the tool is answered by hq, not the site.</td></tr>
+<tr><td>Tool documentation drifts from the tools</td><td>Generated from the registry (P3); the existing schema drift test covers the registry itself.</td></tr>
+<tr><td>A new screen ships without words for it</td><td>The guide's own rule already asks for its page; the glossary rule (P1) asks for its words. Checked in review, like the page.</td></tr>
+<tr><td>A page goes out of date</td><td>The same as for people: the guide's screenshots are regenerated each release and reviewed with them.</td></tr></table></div>
+
+<h2 id="why">Why this shape</h2>
+<div class="box"><ul>
+<li><b>The guide is the one source</b> because it is already written per release, for the words people use, and reviewed. <code>docs/concepts/</code> is for maintainers: it describes code, which would mislead an agent talking to a person.</li>
+<li><b>No tools of its own</b>: the agent shouldn't have to choose a tool; one search over every level tells it where each answer came from. The lead can't open files, so tools are needed anyway; workers get the same ones.</li>
+<li><b>Search is Grep</b>, run by ripgrep, the program Claude Code's Grep runs: patterns cover a word's variants, which word matching misses, and the answer comes in the same turn. Handing the question to a worker would cost a container and a second model run for the same search.</li>
+<li><b>No preloaded glossary</b>: the description's "names a place… you don't recognise" is what fixes "MySpace". The tests (board 7) measure it; if it misses, the glossary goes into the instructions (about 1,500 tokens, cached).</li></ul></div>
+
+<script>
+window.SRC = {
+made: `flowchart LR
+  G["P1 · docs/guide/<br/>pages + front matter"] --> B["P4 · build stage<br/>in hq's image build"]
+  W["P2 · glossary.md"] --> B
+  R["P3 · hq tool registry<br/>→ tools.md"] --> B
+  B --> I[["hq's image<br/>platform-guide/ inside"]]
+  I -- "release: tag publishes" --> REG[("image registry")]`,
+used: `flowchart LR
+  REG[("hq's image<br/>installed or upgraded")] --> HQ["P5 · hq<br/>holds the built guide"]
+  HQ --> T["P6 · platform: pages of<br/>search_knowledge / read_knowledge"]
+  WK["P7 · worker on a site"] -- "via the site's MCP server" --> T
+  LD["P7 · lead in hq"] -- "conversation tool" --> T`
+}
+</script>
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>
