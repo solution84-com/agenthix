@@ -1,10 +1,13 @@
 /**
  * A reply that runs long carries on in the background (walkthrough findings 25, 28 and 30). After a set number of
  * steps that looked something up — steps only, never time, since the model's own pace is not the reply's length —
- * hq starts the rest itself, with no model call: a brief it writes from what was asked and what the reply found
- * (backgroundBrief.ts), in the conversation's own place, through start_work's own path; then a fixed reply in the
- * agent's voice ends it. Where it cannot start work, the next call is words only: what it has, and why it stopped.
- * The step cap stays as the guard: its last call is always words only, so a reply never ends without saying anything.
+ * the model is called once more, and only if it asks for more tools does hq start the rest itself: its calls are not
+ * run, no model call writes a brief, hq writes one from what was asked and what the reply found (backgroundBrief.ts),
+ * in the conversation's own place, through start_work's own path; then a fixed reply in the agent's voice ends it.
+ * A reply whose work is already done answers in that call and ends as any other, so the fixed reply never follows a
+ * "done" (agent knowledge walkthrough, F6). Where it cannot start work, the next call is words only: what it has, and
+ * why it stopped. The step cap stays as the guard: its last call is always words only, so a reply never ends without
+ * saying anything.
  */
 import type { LeadMessage, LeadRequest, LeadToolCall, LeadToolDefinition, TurnCapability } from '../contract'
 import { backgroundBrief, backgroundTitle, type BriefPlace } from './backgroundBrief'
@@ -23,7 +26,10 @@ export const STOPPED_WITHOUT_ANSWER =
 
 export type StepMode = 'free' | 'move' | 'words'
 
-/** What comes next: a model call free to use tools, hq's own move to the background, or a words-only call. */
+/**
+ * What comes next: a model call free to use tools; one whose tool calls hq answers by moving the rest of the reply to
+ * the background instead of running them (`move`); or a words-only call.
+ */
 export function stepMode(at: { step: number; maxSteps: number; lookups: number; moveAfter: number; canMove: boolean }): StepMode {
   if (at.step >= at.maxSteps - 1) return 'words'
   if (at.lookups >= at.moveAfter) return at.canMove ? 'move' : 'words'

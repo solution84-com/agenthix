@@ -15,15 +15,13 @@ export interface FileOpenedProps {
   path: string
   /** What the list knew of it: size and time. Absent when the list was not read. */
   entry?: ListedEntry
-  /** The title; a topic's is not its file name. */
+  /** The title; a knowledge page's is not its file name. */
   title?: string
   /** "Files", "Artefacts": where ‹ goes. */
   backLabel: string
   onBack: () => void
   /** Drawn in the panel's one header row (narrow), or as a row of its own beside the folders (wide). */
   embedded?: boolean
-  /** Knowledge: Edit is shown as a placeholder. */
-  editPlaceholder?: boolean
 }
 
 function download(name: string, content: FileContent | undefined): OverflowItem[] {
@@ -45,13 +43,12 @@ function save(name: string, href: string) {
 }
 
 /**
- * A file or a topic opened inside its tool (spec §3): its title and when it changed, the content rendered, and
+ * A file or a knowledge page opened inside its tool (spec §3): its title and when it changed, the content rendered, and
  * **Mention**, which puts a reference to it into the message being written beside it.
  */
-export function FileOpened({ kind, target, path, entry, title, backLabel, onBack, embedded, editPlaceholder }: FileOpenedProps) {
+export function FileOpened({ kind, target, path, entry, title, backLabel, onBack, embedded }: FileOpenedProps) {
   const content = useFileContent(kind, target, path)
   const [notice, setNotice] = useState('')
-  const [editing, setEditing] = useState(false)
   const name = path.split('/').pop() ?? path
   const reference = mentionReference(kind, path)
 
@@ -67,7 +64,6 @@ export function FileOpened({ kind, target, path, entry, title, backLabel, onBack
   ]
   const actions = (
     <>
-      {editPlaceholder && <button type="button" className={FILES_BUTTON} aria-expanded={editing} onClick={() => setEditing(e => !e)}>Edit</button>}
       <button type="button" className={FILES_BUTTON} onClick={() => void mention()}>Mention</button>
       <OverflowMenu items={menu} />
     </>
@@ -87,11 +83,6 @@ export function FileOpened({ kind, target, path, entry, title, backLabel, onBack
       )}
       {(facts || notice) && (
         <p role="status" className="px-4 pt-3 text-small text-text-muted">{[facts, notice].filter(Boolean).join(' · ')}</p>
-      )}
-      {editing && (
-        <p role="note" className="mx-4 mt-3 rounded-lg bg-surface-2 px-3 py-2 text-small text-text-secondary">
-          Editing by hand is coming. For now, mention this {kind === 'knowledge' ? 'topic' : 'file'} in a message and say what is wrong.
-        </p>
       )}
       <FileBody content={content.data} isLoading={content.isLoading} error={content.error} />
     </>

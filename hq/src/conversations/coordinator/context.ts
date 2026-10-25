@@ -6,7 +6,8 @@
  * 2. the compaction block, once the conversation has been compacted — a breakpoint after it;
  * 3. the window: every message since the last compaction, verbatim, up to the last one this turn answers — a
  *    breakpoint at the last message before this turn's input;
- * 4. the turn block (memory, voice, what to do with cards), appended to the turn's own message.
+ * 4. the turn block (the conversation's places, memory, voice, what to do with cards), appended to the turn's own
+ *    message.
  * Assembled once at the start of a turn: nothing in the first three parts changes within it.
  *
  * A run also gets its boundary's instructions override and the place's AGENTS.md, which live on the site's
@@ -31,6 +32,7 @@ import { readSegments } from '../long/segments'
 import { awaitingCardsWhere, type ClaimedTurn, type TurnConversation } from './claim'
 import { answerForLead, approvalForLead, resultForLead, wasCapped } from './cards'
 import { madeForLead } from './startedWords'
+import { placesForLead, placesTurnBlock, type PlacesForLead } from '../lead/placesBlock'
 
 export interface LeadContext {
   system: PromptPart[]
@@ -176,19 +178,30 @@ export async function readAll(conversationId: string): Promise<ConversationMessa
 
 type Place = Pick<TurnConversation, 'home' | 'projectId'> & { taskId?: string | null }
 
+/** The place the instructions name, from what was read of it: a task, a project, or neither (the person's own space). */
+export function placeLabelOf(found: {
+  task?: { number: number; title: string; project: { key: string; name: string } } | null
+  project?: { name: string; key: string } | null
+}): string {
+  const { task, project } = found
+  if (task) return `the conversation on task ${task.project.key}-${task.number} "${task.title}" in the ${task.project.name} project, which the project's people share`
+  if (project) return `the ${project.name} project (key ${project.key})`
+  return 'their own space'
+}
+
 async function placeLabel(conversation: Place): Promise<string> {
   if (conversation.home === 'TASK' && conversation.taskId) {
     const task = await prisma.task.findUnique({
       where: { id: conversation.taskId },
       select: { number: true, title: true, project: { select: { key: true, name: true } } },
     })
-    if (task) return `the conversation on task ${task.project.key}-${task.number} "${task.title}" in the ${task.project.name} project, which the project's people share`
+    if (task) return placeLabelOf({ task })
   }
   if (conversation.home === 'PROJECT' && conversation.projectId) {
     const project = await prisma.project.findUnique({ where: { id: conversation.projectId }, select: { name: true, key: true } })
-    if (project) return `the ${project.name} project (key ${project.key})`
+    if (project) return placeLabelOf({ project })
   }
-  return 'their own space'
+  return placeLabelOf({})
 }
 
 async function orgInstructions(): Promise<string | null> {
@@ -263,6 +276,34 @@ export async function leadSystem(
   return systemWithBlock(await instructionsFor(conversation, agentId), segments)
 }
 
+/** What a turn's context is built from, once read: the turn builds it here, and so do the model checks (__modelchecks__). */
+export interface ContextParts {
+  instructions: Instructions
+  segments: readonly OpenedSegment[]
+  history: readonly ConversationMessageView[]
+  awaiting: ReadonlySet<string>
+  turn: Pick<ContextTurn, 'trigger' | 'inputIds' | 'continuations'>
+  /** The memory block the probe found, or none. */
+  memory: string | null
+  places: PlacesForLead | null
+  /** The person listening to this turn (voice), or none. */
+  listening: { trailedOff: boolean; wentOnAfter: string | null } | null
+}
+
+export function contextFrom(parts: ContextParts): LeadContext {
+  const { instructions, segments, history, awaiting, turn, memory, places, listening } = parts
+  const system = systemWithBlock(instructions, segments)
+  const messages = leadMessages(windowOf(history, segments), turn.inputIds, awaiting, instructions.agentName)
+  const withTurn = withTurnBlock(messages.messages, history, turn, listening !== null, listening?.trailedOff ?? false, listening?.wentOnAfter ?? null)
+  // The places, re-checked every turn (P6), go after the cached prefix like memory does.
+  const withPlaces = places ? appendBlock(withTurn, placesTurnBlock(places)) : withTurn
+  return {
+    system,
+    messages: withMemoryBlock(withPlaces, memory),
+    cacheAfterMessage: messages.cacheAfter,
+  }
+}
+
 export async function assembleContext(conversation: TurnConversation, agentId: string, turn: ContextTurn): Promise<LeadContext> {
   const [segments, history, awaiting] = await Promise.all([
     readSegments(conversation.id),
@@ -270,14 +311,8 @@ export async function assembleContext(conversation: TurnConversation, agentId: s
     awaitingCardIds(conversation.id),
   ])
   const instructions = await instructionsFor(conversation, agentId)
-  const system = systemWithBlock(instructions, segments)
-  const messages = leadMessages(windowOf(history, segments), turn.inputIds, awaiting, instructions.agentName)
   // What memory the probe found goes with the turn's own message, after the cached prefix.
-  const memory = await memoryForTurn({ conversation, agentId, turn, history })
+  const [memory, places] = await Promise.all([memoryForTurn({ conversation, agentId, turn, history }), placesForLead(conversation.id)])
   const session = listeningSession(conversation.id, turn)
-  return {
-    system,
-    messages: withMemoryBlock(withTurnBlock(messages.messages, history, turn, session !== null, session?.trailedOff ?? false, session?.wentOnAfter ?? null), memory),
-    cacheAfterMessage: messages.cacheAfter,
-  }
+  return contextFrom({ instructions, segments, history, awaiting, turn, memory, places, listening: session })
 }
