@@ -10,14 +10,14 @@ flowchart LR
         MEM["Memory items, in three scopes, each with a vector"]
     end
     subgraph SITE ["Held on the Execution Site"]
-        KN["knowledge/ folder of the storage"]
+        KN["Knowledge: pages in sections, behind the gate"]
         AG["The person's agenda.md"]
         HH["A worker's history, in the runner's harness home"]
     end
     REC[("The conversation's record, in hq")]
     DEF -->|"the lead's instructions; delivered with a worker's run"| USE["A lead turn or a worker's run"]
     MEM -->|"the probe adds matches to a turn; recall finds the rest; pinned items travel with a worker's run"| USE
-    KN -->|"read in a worker's mounted storage; to the lead only as a bounded excerpt"| USE
+    KN -->|"search_knowledge and read_knowledge, for the lead and for a worker alike"| USE
     AG -->|"read in the mounted storage"| USE
     HH -->|"resumed by the harness"| USE
     REC -->|"assembled into the lead's context"| USE
@@ -53,8 +53,8 @@ An item is a fact, a preference, a decision, a correction or a note about a proj
 | **One agent, about you** (`AGENT_PERSON`) | The person, for one agent | That agent, working for that person | Goes with the person |
 | **One agent, in a place** (`AGENT_PLACE`) | A project or a person's own space, for one agent | That agent, in that place | Never; stays with its place |
 
-The third scope is where an agent's learnings about a project now go, so a project's `knowledge/` folder is the team's
-alone.
+The third scope is where an agent's learnings about a project go, so a project's [knowledge](../knowledge/knowledge.md)
+is the team's alone.
 
 **One rule says whose memory a call reaches** (`hq/src/memory/principal.ts`). The person a run or turn is for is the
 author of the message that commissioned it: a conversation's person, the person who pressed Run, the sender of a message
@@ -109,19 +109,28 @@ person's own scopes are reached only from a run in that person's own home (`hq/s
 another's disk. Held in hq, an agent knows the same things wherever it works, and the lead, which lives in hq, can read
 it directly.
 
-## 3. Knowledge files
+## 3. Knowledge and memory
 
-Each storage has a `knowledge/` folder, with an `INDEX.md` listing topic files: a project's tech stack, conventions
-and decisions, or notes about the person apart from any project. It is the **team's**: people and agents edit it as
-files, and agents are told to change it only when asked, since what they learn themselves belongs in memory. A worker
-reads it where it is mounted. It stays inside its own storage, so a person's knowledge reaches a project only if
-someone copies it there ([Storage and Workspaces](../workspace/workspace.md); `site/src/agents/promptSectionText.ts`).
+[Knowledge](../knowledge/knowledge.md) is the other thing an agent can look up. It is **the team's**: pages in sections
+that the organisation, a project or a person keeps for everyone to use, found with `search_knowledge` and
+`read_knowledge` by the lead and by a worker alike, and changed only through one gate. It is held on the sites, never in
+hq (except the platform guide, which is hq's own), and no run mounts it.
 
-The **lead**, which runs in hq and has no disk, reaches a place's knowledge only through `recall` with a query: hq asks
-the place's site to search its files and gets back a bounded excerpt (at most 4,000 characters) with where each piece
-came from. Knowledge is never indexed or copied into hq, so a sleeping site makes the place's knowledge "unavailable from
-that site" while memory still answers. An excerpt **cannot be forwarded**: the lead may quote it to the person, but may
-not put it into a brief for a worker in another place (`hq/src/memory/knowledge/searchKnowledge.ts`).
+The two differ in who writes them and what for:
+
+| | Memory | Knowledge |
+|---|---|---|
+| **What it holds** | Short records of what an agent learned: a preference, a decision, a fact about a person or a place | Pages a place keeps on purpose: processes, workflows, decisions, conventions, reference |
+| **Who writes it** | The agent, as it learns, or a person in Settings | A person; an agent only when a person asks or corrects it |
+| **Found by** | Meaning (`recall`), with the probe adding matches to a turn | Words (`search_knowledge`), when the agent looks |
+| **Held** | In hq, in three scopes | On the site that holds the place, as files |
+| **Seen by others** | By the person who owns the scope | By everyone who may read the place |
+
+**The line between them.** What an agent learns on its own belongs in memory. What a person asks to have written down
+for the team, or a correction to what a page says, belongs in the page: the agent changes that page and does not
+remember it as well, since a memory beside the page would only go stale. `recall` searches memory only; it no longer
+searches knowledge. An agent that notices something worth sharing remembers it, and may offer to add it to the place's
+knowledge.
 
 ## 4. The agenda
 
@@ -155,7 +164,8 @@ remembers are the ones above, each of which a person can see and change.
 
 - A run nobody commissioned never receives a person's items.
 - One agent's scopes are never delivered to another agent.
-- Agent-in-a-place memory never leaves its place, and a knowledge excerpt is never forwarded.
+- Agent-in-a-place memory never leaves its place.
+- A correction to what a knowledge page says is kept in the page, not as a memory item as well.
 - An item stands alone: it is read months later by a different turn.
 - Memory stays in hq. Do not move it onto a site's disk; a worker's pinned file is a read-only copy.
 
@@ -167,7 +177,7 @@ remembers are the ones above, each of which a person can see and change.
 | Whose memory a call reaches | `hq/src/memory/principal.ts` |
 | Embedding, ranking, the tidy, the bars | `hq/src/memory/embedding/`, `ranking.ts`, `tidy.ts`, `barTuner.ts`, `maintenance.ts` |
 | The probe and the lead's memory tools | `hq/src/conversations/memory/` |
-| Knowledge excerpts | `hq/src/memory/knowledge/searchKnowledge.ts` |
+| Knowledge, which `recall` does not search | `hq/src/knowledge/` ([knowledge](../knowledge/knowledge.md)) |
 | A worker's pinned items | `hq/src/memory/runPinnedMemory.ts`, `site/src/agents/runtime/pinnedMemoryFiles.ts` |
 | The memory screen | `hq/src/memory/screen/` |
 | Agent definition and packages | `hq/src/agents/`, `hq/schema.prisma` (`Package`) |

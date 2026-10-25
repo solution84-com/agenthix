@@ -6,7 +6,7 @@ A **Project** is the primary unit of work in Agenthix. It is where tasks are cre
 
 ## What is a Project?
 
-A project is a scoped coordination zone — a bounded space where people define work, assign it to agents, and track progress. It is also a [place](./places.md): it opens on an Overview of its facts and sections, which are tabs across the screen, and a conversation about it is docked beside whatever page is open. It is also one of the two owners of storage, the other being a person ([ADR-0061](../../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md)): a project's files, knowledge, artefacts, workspaces and runs belong to the project. Storage is described in [workspace.md](../workspace/workspace.md).
+A project is a scoped coordination zone — a bounded space where people define work, assign it to agents, and track progress. It is also a [place](./places.md): it opens on an Overview of its facts and sections, which are tabs across the screen, and a conversation about it is docked beside whatever page is open. It is also one of the two owners of storage, the other being a person ([ADR-0061](../../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md)): a project's files, artefacts, workspaces and runs belong to the project, and so do its [knowledge](../knowledge/knowledge.md) pages. Storage is described in [workspace.md](../workspace/workspace.md).
 
 Projects are freestanding by default. They can optionally be filed under a Product (what is being built) and/or a Program (what strategic initiative this contributes to), but neither is required, and filing grants nobody anything.
 

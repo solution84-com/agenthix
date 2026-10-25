@@ -26,16 +26,35 @@ Every conversation belongs to one place, fixed when it starts
 | Agents | Only the project's; another is refused when the conversation is created | Any agent in the organisation |
 | Who sees it | Only the person who started it ([ADR-0041](../../adr/adr-0041-chat-session-privacy.md)) | Only the person |
 
-A conversation is never moved; one about another place is started there. Work may still be commissioned in any boundary the person and the agent share, each piece authorised for its own boundary; the
-conversation stays where it was started ([conversations](../conversations/conversations.md#where-a-conversation-lives)).
+A conversation is never moved; one about another place is started there. Besides its own place, a conversation reaches
+the places its person adds to it, and no others
+([below](#the-places-a-conversation-reaches)); the conversation stays where it was started
+([conversations](../conversations/conversations.md#where-a-conversation-lives)).
 A task has a third home, its own page, where its thread is shared with the project; a task's session is the agent's
 working record and is shared too ([sessions](../agents/sessions.md#a-tasks-session-is-shared)).
+
+## The places a conversation reaches
+
+A place is a project, Your space included. A conversation starts with its own place. Its person can **add** other
+places to it, in the conversation's header (*Places: Your space · Website rebuild ✕ · + Add place…*; on a phone, "2 places"
+and a sheet), and the lead can only ask for one: it shows a card, *Add a place to this conversation: Shop*, and only
+the person's click adds it. Only places the person can open are offered, and one they lose access to drops out.
+
+| A conversation can, in a place it reaches | In any other place |
+|---|---|
+| Search and read the place's [knowledge](../knowledge/knowledge.md), and start work there, each piece of work authorised for that place alone | Nothing; the lead is told the place is out of reach, and never answers as if it were empty |
+
+The organisation's knowledge and the platform guide are always in reach. The lead is told its places every turn, by the
+names the person sees: **Your space**, a project's name, or a personal project's own name. A worker, or a task's run,
+reaches the one place it works in. How this is built is in
+[the conversation layer](../../architecture/conversation-layer.md#a-conversations-places).
 
 ## The person's own place
 
 A person's own place is **Your space** and every [personal project](personal-projects.md) they make. Only they see
 them, agents work in them as the person, and the person's own Claude subscription serves Claude models there and
-nowhere else.
+nowhere else. Your space is the person's default personal project; any other personal project is a place of its own,
+like any project, and a conversation reaches it only when it is the conversation's place or the person adds it.
 
 **Your space** is the person's default personal project, which every person has, together with their own storage,
 shown through the same screens as a project. It has its own entry, fixed at the top of the navigation under Chat, and the same
@@ -49,7 +68,7 @@ Your space or Chat.
 **A personal project** the person made is a place of its own at `/projects/KEY`, marked *Only you* in the Projects page
 under *Your personal projects*, in the project switcher and in the dock's list of places. It has the sections of Your
 space and a Settings, and its own storage, so its Files, Artefacts, Knowledge and Workspaces are its own and not the
-person's. Its conversations are listed in it, and only with the person's own choices (the person's list, not the
+person's. Its knowledge is at its own level, named after the project, and only Your space is `personal:`. Its conversations are listed in it, and only with the person's own choices (the person's list, not the
 project's).
 
 ## A place's sections are the left panel
@@ -127,6 +146,7 @@ Some facts about what a place holds, in a project:
 | Chat as a place | `hq/src/chat/` |
 | Personal projects: making, deleting, where a run works | `hq/src/projects/personalProject.ts`, `personalProjectActions.ts`, `projectService.ts` ([personal projects](personal-projects.md)) |
 | A conversation's place and a place's conversations | `hq/src/conversations/` ([conversations](../conversations/conversations.md)) |
+| A conversation's added places, and the header that lists them | `hq/src/conversations/places.ts`, `components/PlacesBar.tsx`, `components/SuggestPlaceCard.tsx` |
 | Lead, first agent as default, Stop all | `hq/src/projects/projectLead.ts`, `agentAssignment.ts`, `placeRunStop.ts` |
 | A project's Members view | `hq/src/projects/place/members/`, `hq/src/projects/place/teamRows.tsx` |
 | An agent's instructions in a place | `hq/src/agents/projectAgentQueries.ts`, `hq/src/storage/placeInstructions.ts` |
@@ -138,6 +158,8 @@ Some facts about what a place holds, in a project:
 ## Decisions behind this
 
 [ADR-0096](../../adr/adr-0096-a-conversation-belongs-to-a-place.md) (a conversation belongs to a place),
+[ADR-0152](../../adr/adr-0152-a-conversation-reaches-only-its-own-place-and-the-places-its-person-added.md) (a
+conversation reaches only its own place and the places its person added),
 [ADR-0039](../../adr/adr-0039-files-and-workspaces.md) (a run's primary location),
 [ADR-0041](../../adr/adr-0041-chat-session-privacy.md) and
 [ADR-0077](../../adr/adr-0077-within-a-boundary-a-running-chat-is-visible-its-content-is-not.md) (a

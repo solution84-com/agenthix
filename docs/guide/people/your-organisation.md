@@ -15,7 +15,7 @@ At the top is the organisation's identity: its name, its @handle, its vision and
 
 ![The Organisation page: its identity and the workplace](screenshot:organisation-page)
 
-Everyone sees **The workplace**: a card each for **People** (which only administrators can open), **Agents**, **Teams**, **Products**, **Programs** and **Library**. **Products** and **Programs** group projects: see [Filing projects under products and programmes](../projects/projects.md#filing-projects-under-products-and-programmes).
+Everyone sees **The workplace**: a card each for **People** (which only administrators can open), **Agents**, **Teams**, **Knowledge**, **Products**, **Programs** and **Library**. **Knowledge** is the organisation's own pages: every member reads them and admins change them (see [Organisation knowledge](../projects/knowledge.md#organisation-knowledge)). **Products** and **Programs** group projects: see [Filing projects under products and programmes](../projects/projects.md#filing-projects-under-products-and-programmes).
 
 ## The admin area
 

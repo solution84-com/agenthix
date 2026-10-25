@@ -11,3 +11,4 @@ These pages use a project on **HQ**, your organisation's home in Agenthix, and t
 2. [Boards, tasks and the timeline](boards-and-tasks.md): plan work, move it along and see it over time.
 3. [Follow what agents are doing](runs-and-approvals.md): the Runs screen, Notifications and answering an approval.
 4. [Files, workspaces and previews](files-and-previews.md): what a project keeps, and the apps agents build in it.
+5. [Knowledge](knowledge.md): the processes, decisions and reference a place shares, as pages that people and agents search, edit and restore.

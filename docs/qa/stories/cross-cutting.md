@@ -1,7 +1,7 @@
 ---
 name: User Stories — cross-cutting
 description: Business-level requirements that span more than one module. Each story maps to acceptance criteria in multiple modules' scenarios files.
-updated: 2026-10-24
+updated: 2026-10-26
 ---
 
 # User Stories — cross-cutting
@@ -120,3 +120,16 @@ As a maintainer, I want a release to be a build that was proved and then named, 
 - AC-373d: the install test installs the images the release ships, never images built again for it.
 - AC-373e: the whole release bar can be rehearsed on a development machine before anything is pushed.
 - AC-373f: the registry is cleaned of what no release needs and keeps everything a release record names.
+
+## The lead against a real model (added 2026-10-26)
+
+Written from the finished code at the close of the agent knowledge unit.
+
+### US-389 — Check the lead against a real model before a release
+
+As a maintainer, I want to check the conversation's agent against real models before a release, so that a change to its instructions or tools cannot quietly make a model stop looking in the right place.
+
+**Acceptance criteria:**
+- AC-389a: the checks send a model exactly what a real turn sends, in a fixed world, and grade only the tools it called and what it said: questions about the product, the person's own space, a place not in the conversation, a correction to a page, and the place's own process.
+- AC-389b: the checks run on demand and before a release, never in the everyday test suites, and call nothing when no model is set up.
+- AC-389c: a check passes for a model only when every run of it does, and the key used is never shown.

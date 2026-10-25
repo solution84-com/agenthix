@@ -28,7 +28,7 @@ A machine-to-machine `X-Site-Key` header no longer serves any file route. The na
 
 ## Bucket 1 — Artefacts
 
-The throwaway things an agent makes for people in a conversation — a draft, a table, a comparison. Each is one file directly in the owner's `artefacts/` folder, beside its `files/` and `knowledge/`, with no folder per conversation or per set:
+The throwaway things an agent makes for people in a conversation — a draft, a table, a comparison. Each is one file directly in the owner's `artefacts/` folder, beside its `files/`, with no folder per conversation or per set:
 
 ```
 {projects|users}/{ownerId}/artefacts/
@@ -125,5 +125,5 @@ The review page saves in-progress selections to `applicationData.draftSelections
 
 ## Related
 
-- [workspace.md](../workspace/workspace.md) — Storage and Workspaces: the current storage layout, where each owner's `files/`, `knowledge/` and `artefacts/` sit
+- [workspace.md](../workspace/workspace.md) — Storage and Workspaces: the current storage layout, where each owner's `files/` and `artefacts/` sit
 - [workforce-templates.md](../workforce/workforce-templates.md) — workforce template review flow

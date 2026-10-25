@@ -65,7 +65,7 @@
 
 ## Files and cards (added 2026-10-12)
 
-- **SC-798** — The Files tools list newest first (what has no time after, by name) in Today, This week and Older, hide names that start with a dot, show "Markdown · 2 KB" (a folder is just "Folder", an unknown size is left out), word a change as a time today, "Yesterday", a weekday, "last week", "N weeks ago" and then a date, and filter topics of Knowledge by a search over title, summary and tags and by one tag.
+- **SC-798** — The Files tools list newest first (what has no time after, by name) in Today, This week and Older, hide names that start with a dot, show "Markdown · 2 KB" (a folder is just "Folder", an unknown size is left out), and word a change as a time today, "Yesterday", a weekday, "last week", "N weeks ago" and then a date. *(Changed 2026-10-26: Knowledge is no longer one of these lists; its pages, filters and search are hq's, **SC-1426** and **SC-1428**.)*
 - **SC-799** — A card — a bordered tile that stands on its own, such as a project, team, site or product — shows hover and focus by its border turning the accent colour and never by a grey fill, a chosen card keeps the accent border, and a row in a list, a menu item or a button highlights with the grey fill.
 
 ---

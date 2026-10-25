@@ -29,7 +29,7 @@ Only a project administrator can back a project up or disconnect one. Connecting
 
 ## Knowledge
 
-**Knowledge** is what the project knows, filed by topic. Agents look things up here when they need to and add what they learn. Nothing here is read on every run. Search it, or filter by **Tag**. Select a topic to read it.
+**Knowledge** is what the project shares: its processes, decisions and reference, as pages in sections. Agents search it when they need it and change a page only when you ask. Nothing here is read on every run. See [Knowledge](knowledge.md) for finding, writing, restoring and who may change a page.
 
 ## Workspaces
 

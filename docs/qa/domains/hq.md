@@ -1,12 +1,12 @@
 ---
 name: Domain map — hq
-description: Feature-domain carving of the hq module for a QA audit's accuracy code pass. Stable domain order keeps US-numbering stable across runs. Regenerated 2026-09-26 from main.wasp (221 operations); domains 21 and 22 and the operation changes of the agents-own-schedule unit added 2026-10-05 (254 operations); domains 23 to 25 and the operation changes of the unit *every screen reviewed* added 2026-10-12 (350 operations) and the src/ tree, after the hq/site split. Update only when the operation set changes.
-updated: 2026-10-21
+description: Feature-domain carving of the hq module for a QA audit's accuracy code pass. Stable domain order keeps US-numbering stable across runs. Regenerated 2026-09-26 from main.wasp (221 operations); domains 21 and 22 and the operation changes of the agents-own-schedule unit added 2026-10-05 (254 operations); domains 23 to 25 and the operation changes of the unit *every screen reviewed* added 2026-10-12 (350 operations) and the src/ tree, after the hq/site split; domain 27 and the operation changes of the agent knowledge unit added 2026-10-26 (470 operations). Update only when the operation set changes.
+updated: 2026-10-26
 ---
 
 # Domain map — `hq/`
 
-26 domains (17 from the 2026-06-19 map, one added beside 16, three added at the end so existing numbers stay stable, two more on 2026-10-05 three more on 2026-10-12 and one on 2026-10-17). Each subagent reads only its files; the one-line scope is what every other subagent receives for overlap awareness. Operation names are the Wasp declarations in `main.wasp.ts`; `main.wasp` declared 221 (117 actions, 88 queries, 16 api). Since 2026-10-12 each feature folder declares its own operations in `src/<folder>/<folder>.wasp.ts`, `main.wasp.ts` gathers them, and the total is 350 (180 actions, 150 queries, 20 api).
+27 domains (17 from the 2026-06-19 map, one added beside 16, three added at the end so existing numbers stay stable, two more on 2026-10-05 three more on 2026-10-12, one on 2026-10-17 and one on 2026-10-26). Each subagent reads only its files; the one-line scope is what every other subagent receives for overlap awareness. Operation names are the Wasp declarations in `main.wasp.ts`; `main.wasp` declared 221 (117 actions, 88 queries, 16 api). Since 2026-10-12 each feature folder declares its own operations in `src/<folder>/<folder>.wasp.ts`, `main.wasp.ts` gathers them, and the total was 350 (180 actions, 150 queries, 20 api); on 2026-10-26 it is 470 (234 actions, 207 queries, 29 api).
 
 This map was named `site.md` until 2026-09-26. After the split, hq holds the control plane and the whole browser UI; the agent runtime, session drivers, workspace storage, MCP serving and the control-channel client live in the separate `site/` module, which has no domain map yet.
 
@@ -134,7 +134,7 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 
 ### 19. Storage, workspaces & repositories
 - **Files:** `src/storage/` (actions.ts, queries.ts, locationAccess.ts, workspaceStore.ts, repoAttachmentService.ts); `src/github/` (actions.ts, queries.ts); `src/storage/pages/`; `src/preview/` (open a project's files as a page)
-- **Ops:** createWorkspace, deleteWorkspace, setWorkspaceAllowedTools, connectRepo, disconnectRepo, getRepoState, getMyStorage, getWorkspace, listLocationFiles, getFileContent, getWorkflows, getRuns, getRepoSecrets, getWorkspacesAcrossPlaces, getMyStorageSite, listArtefacts, getArtefactContent, listKnowledge, getKnowledgeContent, getPlaceInstructions, listPlacePreviews, openPreview
+- **Ops:** createWorkspace, deleteWorkspace, setWorkspaceAllowedTools, connectRepo, disconnectRepo, getRepoState, getMyStorage, getWorkspace, listLocationFiles, getFileContent, getWorkflows, getRuns, getRepoSecrets, getWorkspacesAcrossPlaces, getMyStorageSite, listArtefacts, getArtefactContent, getPlaceInstructions, listPlacePreviews, openPreview
 
 ### 20. Memory
 - **Files:** `src/memory/` (memoryService.ts, scopes.ts, items.ts, ranking.ts, embedding/, maintenance.ts, tidy.ts, barTuner.ts, runPinnedMemory.ts, knowledge/); `src/memory/screen/` (the memory screen and its pages); `src/conversations/memory/` (the probe and the agent's memory tools)
@@ -167,8 +167,15 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 
 ### 26. Conversations
 - **Files:** `src/conversations/` (the coordinator, access and model choice, tools, work and workers, task threads, long conversations, voice and its client, archive, components and hooks, pages); `src/model-policy/`; `src/shared/conversations/`; `src/server/controlplane/` (turn authority, memory and result operations)
-- **Ops:** getConversations, getConversation, getConversationMessages, getPrimaryAgent, getConversationAgentChoices, startConversation, setPrimaryAgent, sendConversationMessage, stopConversationTurn, sendWaitingConversationMessageNow, cancelWaitingConversationMessage, switchConversationAccess, getModelChoices, setConversationModel, getConversationActivity, getOperationResult, answerConversationApproval, cancelConversationOperation, getConversationDeletePreview, deleteConversation, archiveConversation, getConversationSegment, summariseConversationNow, getTaskConversation, startTaskConversation, getTaskThreadMarks, markConversationRead, setConversationKeep, reopenConversation, getArchivedConversations, searchConversationRuns, getModelPolicy, setModelPolicy
+- **Ops:** getConversations, getConversation, getConversationMessages, getPrimaryAgent, getConversationAgentChoices, startConversation, setPrimaryAgent, sendConversationMessage, stopConversationTurn, sendWaitingConversationMessageNow, cancelWaitingConversationMessage, switchConversationAccess, getModelChoices, setConversationModel, getConversationActivity, getOperationResult, answerConversationApproval, cancelConversationOperation, getConversationDeletePreview, deleteConversation, archiveConversation, getConversationSegment, summariseConversationNow, getTaskConversation, startTaskConversation, getTaskThreadMarks, markConversationRead, setConversationKeep, reopenConversation, getArchivedConversations, searchConversationRuns, getModelPolicy, setModelPolicy, getConversationPlaces, addConversationPlace, removeConversationPlace
 - **Note:** added 2026-10-17 at the close of the unit that built them. A conversation's record and its turns are hq's own; the voice socket events and the conversation room are not operations but are in the contract (**SC-994** to **SC-1000**).
+
+- **Note (2026-10-26):** a conversation's places (`src/conversations/places.ts`, `placesOperations.ts`, `placesSuggest.ts`, `lead/placesBlock.ts`) are this domain's; the knowledge tools the lead holds are domain 27's.
+
+### 27. Knowledge
+- **Files:** `src/knowledge/` (the knowledge service for agents: search across levels, pages, the change record, the platform guide and its build in `guideBuild/`); `src/knowledge/people/` (the operations for people); `src/storage/pages/knowledge/` (the Knowledge tool's screens: browse, page, editor, history, Recently deleted, search); `src/storage/pages/KnowledgeTool.tsx`; `src/org/pages/OrgKnowledgePage.tsx`, `src/org/components/OrgKnowledgeTool.tsx`; `src/storage/storageSite.ts` (the organisation's knowledge placement); `src/server/controlplane/` (knowledgeOps.ts, knowledgeReach.ts, knowledgeToolSchemas.ts); `src/conversations/memory/leadKnowledgeTools.ts`; `src/conversations/coordinator/knowledgeSteps.ts`, `src/conversations/components/knowledge/`; `src/projects/reservedNames.ts`
+- **Ops:** listKnowledgePages, getKnowledgePage, knowledgePageVersions, recentlyDeletedKnowledge, searchKnowledgePages, saveKnowledgePage, moveKnowledgePage, deleteKnowledgePage, restoreKnowledgeVersion
+- **Note:** added 2026-10-26 at the close of the agent knowledge unit. The knowledge tools agents call are not operations but are in the contract (**SC-1397** to **SC-1416**); the page rules are core's and the gate the site's.
 
 ---
 

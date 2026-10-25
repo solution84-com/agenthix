@@ -20,7 +20,11 @@ flowchart LR
     end
     MOD --> PRV["Model provider"]
     WORK <-->|"control channel: run.dispatch, run.status"| SITE["Execution Site: standing worker, a harness session in a container"]
-    TOOLS --> SITEK["location.searchKnowledge: a place's knowledge, asked of its site"]
+    TOOLS --> KN["Knowledge tools: search, read, write, edit, delete"]
+    KN --> SITEK["location.*Knowledge: a place's pages, asked of its site, and the guide in hq's image"]
+    CO --> PLC["The conversation's places: its own, and those its person added"]
+    PLC -.->|"limit"| KN
+    PLC -.->|"limit"| WORK
 ```
 
 **What is new here is that hq answers.** hq still starts no harness and touches no site's disk. But the reply a person
@@ -63,8 +67,9 @@ claim wins (`coordinator/scheduler.ts`).
 - **The turn** (`coordinator/turn.ts`) resolves the model and provider (the resolver), mints its capability, assembles its context, then
   loops: a model call streams text to the room, the step's tool calls run together through the tool adapter, and the
   results go back, to at most 8 steps; the last is words only. One agent message is committed at the end, with the reply's
-  steps. After 4 steps that looked something up, hq starts the rest as work itself and ends the reply with a fixed line
-  (`coordinator/moveToBackground.ts`).
+  steps. After 4 steps that looked something up, the model is called once more; only if that call asks for more tools
+  does hq start the rest as work itself and end the reply with a fixed line, and a call that answers in words ends the
+  reply as any other (`coordinator/moveToBackground.ts`).
 - **Report and continuation turns** (`coordinator/cardTurn.ts`) answer no one: the mailbox wrote a `RESULT` card, and one
   turn over all the cards waiting speaks and starts no work. A continuation replaces it when a completed operation carries
   an obligation whose three checks (member of the boundary, agent assigned, tool allowed) still pass, acting as the person
@@ -104,8 +109,10 @@ Each call of a step runs under the **wait limit** of 4 seconds; past it the same
 created before the call started and an idempotency key (the tool and its arguments), so an identical call while the first
 is pending is the same operation. A result over 16,000 characters is cut with a line telling the lead to brief a worker.
 The conversation's own tools are `start_work`, `create_task`, `run_task`, `cancel_operation`, `answer_approval`, `ledger`,
-`expand`, `messages` and `offer_new_conversation`, beside `recall`, `remember`, `forget` and hq's task, board and project
-tools.
+`expand`, `messages`, `offer_new_conversation` and `suggest_place`, beside `recall`, `remember`, `forget`, the five
+knowledge tools (`search_knowledge`, `read_knowledge`, `write_knowledge`, `edit_knowledge`, `delete_knowledge`;
+`hq/src/conversations/memory/leadKnowledgeTools.ts`) and hq's task, board and project tools. `recall` searches memory
+only. The change tools are offered only in a turn that answers a person.
 
 ## Work on a site
 
@@ -127,8 +134,39 @@ session between briefs (`work/workers/freshStart.ts`).
 run it started, with the run's stated result. In a task's thread, `start_work` is `run_task` on the task, and every run of
 the task leaves a card there.
 
-**Knowledge** is read with `location.searchKnowledge`, which asks the place's site for a bounded excerpt. Nothing of it is
-stored in hq.
+## A conversation's places
+
+A conversation reaches its own place and the places its person added, and no other. `ConversationPlace` rows hold each added
+place, who added it and when (`hq/schema.prisma`); the conversation's own place is not a row but is read from the
+conversation (`hq/src/conversations/places.ts`).
+
+- **One re-checked list serves everything.** On every turn the list is rebuilt from the rows, keeping only places the
+  person can still open; a place they lost drops out and is no longer named. The knowledge tools' reach
+  (`hq/src/knowledge/reach.ts`), `start_work`'s admission and the lead's own account of its places all read this list.
+  Removing a place takes effect from the next turn; work already started there carries on.
+- **Knowledge.** The turn's tools search and read every place in the list, the organisation and the platform guide, each hit
+  marked with its place. A task's thread has its task's project only and cannot add places.
+- **`start_work`.** Its admission (`admitToBoundary`, `work/boundaries.ts`) refuses a place the conversation does not hold,
+  in words that say how to add it, after it has checked the person, the agent and the tool for that place as before.
+  A worker's capability is still its boundary's alone.
+- **Telling the lead.** The turn block, appended after the cached part of the context, names the places by the names the
+  person sees ("Your space" for the person's default personal project; any other personal project by its own name),
+  says the organisation's knowledge and the platform guide are always in reach, and says that anything else is out of
+  reach until the person adds it, never to be answered as if empty (`lead/placesBlock.ts`). A search that finds nothing
+  names the places it covered.
+- **Only the person adds.** `addConversationPlace` and `removeConversationPlace` (`placesOperations.ts`) are the person's
+  own operations; the person must be the conversation's. The lead's `suggest_place` (`placesSuggest.ts`) only writes a
+  card into the thread, looked up among the places the person can open and answered in fixed words when there is none;
+  the person's click on it calls `addConversationPlace`.
+
+## Knowledge
+
+The lead reaches knowledge through its five knowledge tools, in process, with the turn's capability: the same operations
+a worker reaches through its site's `/mcp` endpoint ([MCP tools](mcp/tools.md#what-the-knowledge-tools-do)). A search asks
+the sites holding the places' and the organisation's knowledge, and reads the platform guide from hq's own image, at once.
+Nothing of a page is stored in hq; hq stores only the record of who changed one. Each call is shown as a work step of the
+reply (*Searched knowledge*, *Updated page*), and a change leaves the version before it for Undo
+([knowledge](../concepts/knowledge/knowledge.md)).
 
 ## Memory
 
@@ -198,7 +236,7 @@ The events say what hq and the client tell each other; they do not say when to s
 - **A turn never waits on a call longer than the wait limit, and a detached call is never run twice.**
 - **An operation is authorised for its own boundary**, at admission and again before any continuation. Nothing is unioned
   across a conversation's places, and a worker holds its boundary's authority and none of the conversation's.
-- **A knowledge excerpt is not forwarded** into a brief for another place.
+- **A conversation reaches only its own place and the places its person added**, and only the person adds one.
 - **Nothing in the first three parts of the context changes within a turn**; an expansion is appended, never substituted.
 - **The record is hq's.** A site holds the work and a worker's own history; the words of a conversation are not copied there.
 
@@ -216,7 +254,9 @@ The events say what hq and the client tell each other; they do not say when to s
 | Memory | `hq/src/memory/`, `hq/src/conversations/memory/` |
 | Voice, on hq and in the browser | `hq/src/conversations/voice/`, `voiceClient/` |
 | What crosses to the browser | `hq/src/shared/conversations/`; a run's events, rebuilt from the site's frames, in `runEvents.ts` and `hq/src/sites/channel/clientRunEvents.ts` |
-| A knowledge search on a site | `core/src/protocol/locationFiles.ts` (`location.searchKnowledge`) |
+| The knowledge tools and their reach | `hq/src/knowledge/`, `hq/src/conversations/memory/leadKnowledgeTools.ts` |
+| A conversation's places | `hq/src/conversations/places.ts`, `placesOperations.ts`, `placesSuggest.ts`, `lead/placesBlock.ts` |
+| Knowledge on a site | `core/src/protocol/locationFiles.ts` (`location.searchKnowledge` and the other `location.*Knowledge` methods) |
 
 ## Decisions behind this
 
@@ -224,4 +264,6 @@ The events say what hq and the client tell each other; they do not say when to s
 [ADR-0075](../adr/adr-0075-work-in-a-boundary-runs-in-parallel-only-a-conversation-is-ordered.md) (only a conversation is ordered) ·
 [ADR-0082](../adr/adr-0082-a-conversation-acts-with-its-current-turns-authority.md) ·
 [ADR-0096](../adr/adr-0096-a-conversation-belongs-to-a-place.md) ·
-[ADR-0101](../adr/adr-0101-a-run-is-bounded-by-the-person-it-is-for.md)
+[ADR-0101](../adr/adr-0101-a-run-is-bounded-by-the-person-it-is-for.md) ·
+[ADR-0150](../adr/adr-0150-agents-reach-knowledge-only-through-tools-shaped-like-the-native-ones.md) ·
+[ADR-0152](../adr/adr-0152-a-conversation-reaches-only-its-own-place-and-the-places-its-person-added.md)
