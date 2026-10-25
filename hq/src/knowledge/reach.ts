@@ -4,11 +4,11 @@
  * resolved in that order: `platform`, `org`, `personal`, then a project's key among the reach's places. Nothing here
  * can name a place the reach does not hold.
  */
-import { KNOWLEDGE_ORG_OWNER_ID, type KnowledgeOwnerRef } from '@agenthix/core'
+import { KNOWLEDGE_ORG_OWNER_ID, type KnowledgeOwnerRef, type KnowledgeStepView } from '@agenthix/core'
 
 /** What one caller may reach: built from a run's capability or a conversation's turn. */
 export interface KnowledgeReach {
-  /** The places, most specific first: the run's one place, or the conversation's own place (phase 5 adds the rest). */
+  /** The places, most specific first: the run's one place, or the places a conversation reaches. */
   places: { level: string; owner: KnowledgeOwnerRef }[]
   /** The person the call acts for. */
   userId: string
@@ -18,6 +18,8 @@ export interface KnowledgeReach {
   mayChange: boolean
   /** The key the rate limit and the read-before-write record use: the run's or the conversation's id. */
   callerKey: string
+  /** Told what each call did, for the conversation's work step; set only for a conversation's turn (`./steps.ts`). */
+  onStep?: (step: KnowledgeStepView) => void
 }
 
 export const PLATFORM_LEVEL = 'platform'

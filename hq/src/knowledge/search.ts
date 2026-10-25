@@ -15,6 +15,7 @@ import { mergeSearch, type LevelOutcome, type SearchMode } from './searchFormat'
 import { parseToolParams } from './params'
 import { platformGuideNotice, platformNameOfFile } from './platformGuide'
 import { levelNames, levelsOf, resolveLevel, splitName, type KnowledgeReach, type Level } from './reach'
+import { tellSearch } from './steps'
 
 type Params = {
   pattern: string
@@ -76,31 +77,41 @@ async function askLevel(deps: KnowledgeDeps, reach: KnowledgeReach, level: Level
 
 const limiter = new GrepRateLimiter()
 
+/** A search refused before it reached any level is still a step of the conversation: one that covered nothing. */
+function searchedNothing(reach: KnowledgeReach, answer: string): string {
+  tellSearch(reach, [])
+  return answer
+}
+
 export async function searchKnowledgeIn(deps: KnowledgeDeps, reach: KnowledgeReach, input: unknown): Promise<string> {
   const parsed = parseToolParams('search_knowledge', input)
   if (!parsed.ok) {
     const tooLong = parsed.parameter === 'pattern' && typeof (input as { pattern?: unknown })?.pattern === 'string'
-    return tooLong ? grepRefusalMessage('pattern-too-long') : grepRefusalMessage('invalid-parameter', parsed.parameter as 'pattern')
+    return searchedNothing(reach, tooLong ? grepRefusalMessage('pattern-too-long') : grepRefusalMessage('invalid-parameter', parsed.parameter as 'pattern'))
   }
   const p = parsed.value as Params
-  if (!limiter.take(reach.callerKey)) return grepRefusalMessage('rate-limited')
+  if (!limiter.take(reach.callerKey)) return searchedNothing(reach, grepRefusalMessage('rate-limited'))
 
   // A path may carry its level (`website-rebuild:processes`), as hits are marked: that is the scope.
   let scope = p.scope
   let path = p.path
   const pathLevel = path ? splitName(path) : null
   if (pathLevel) {
-    if (scope !== undefined && scope !== pathLevel.level) return MESSAGES.invalidParameter('path')
+    if (scope !== undefined && scope !== pathLevel.level) return searchedNothing(reach, MESSAGES.invalidParameter('path'))
     scope = pathLevel.level
     path = pathLevel.rest || undefined
   }
   let levels = levelsOf(reach)
   if (scope !== undefined) {
     const level = resolveLevel(reach, scope.endsWith(':') ? scope.slice(0, -1) : scope)
-    if (!level) return MESSAGES.notInReach(levelNames(reach))
+    if (!level) {
+      const held = levelsOf(reach).map(l => l.name)
+      return searchedNothing(reach, reach.agent?.conversationId ? MESSAGES.searchNotInConversation(scope, held) : MESSAGES.notInReach(levelNames(reach)))
+    }
     levels = [level]
   }
 
+  tellSearch(reach, levels)
   if (p.pattern.trim() === '') return outlineLevels(deps, levels)
 
   const mode = p.output_mode ?? 'content'
@@ -145,7 +156,8 @@ export async function searchKnowledgeIn(deps: KnowledgeDeps, reach: KnowledgeRea
     else if ('note' in answer) outcomes.push({ level: level.name, note: answer.note })
     else if ('failed' in answer) outcomes.push({ level: level.name, note: levelSearchNote(level.name, answer.failed) })
     // A path a level does not have is that level having nothing there.
-    else if (answer.refused !== NOT_FOUND) outcomes.push({ level: level.name, note: `[${level.name}: ${answer.refused}]` })
+    else if (answer.refused === NOT_FOUND) outcomes.push({ level: level.name, hits: [] })
+    else outcomes.push({ level: level.name, note: `[${level.name}: ${answer.refused}]` })
   }
-  return mergeSearch({ mode, outcomes, offset, limit, platformNotice: platformGuideNotice() })
+  return mergeSearch({ mode, outcomes, offset, limit, platformNotice: platformGuideNotice(), inConversation: !!reach.agent?.conversationId })
 }

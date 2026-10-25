@@ -4,7 +4,7 @@
  * is written against these types alone. Nothing outside src/conversations/model/ names a provider's SDK.
  */
 import type { z } from 'zod'
-import type { CapabilityEffectivePermissions } from '@agenthix/core'
+import type { CapabilityEffectivePermissions, KnowledgeStepView } from '@agenthix/core'
 import type { OrgRole } from '../server/identity/rolePolicy'
 import type { CallCosting } from '../billing/types'
 import type {
@@ -194,9 +194,12 @@ export type MintTurnCapability = (input: {
   continuationDepth?: number
 }) => Promise<TurnCapability>
 
-/** What a tool call gave the lead. `done` results are already capped (RESULT_CAP_CHARS). */
+/**
+ * What a tool call gave the lead. `done` results are already capped (RESULT_CAP_CHARS). `knowledge`: what a knowledge
+ * call did, which its work step keeps for the screen; never shown to the model.
+ */
 export type ToolCallOutcome =
-  | { status: 'done'; operationId: string; result: unknown }
+  | { status: 'done'; operationId: string; result: unknown; knowledge?: KnowledgeStepView }
   | { status: 'accepted'; operationId: string }
   | { status: 'waitingApproval'; operationId: string }
   | { status: 'refused'; reason: string }

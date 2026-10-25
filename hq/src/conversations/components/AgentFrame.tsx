@@ -7,10 +7,12 @@ import { ThinkingPill, ThinkingSteps, type ThinkingView } from './ThinkingPill'
  * A turn of the agent's: its avatar, "Name · 10:26" with the thinking pill after the time, its steps under the
  * name line while the pill is open — closed to begin with — then what the turn holds.
  */
-export function AgentFrame({ agent, meta, thinking, children }: {
+export function AgentFrame({ agent, meta, thinking, placePath, children }: {
   agent: ConversationAgentView | null
   meta?: ReactNode
   thinking?: ThinkingView | null
+  /** The place's address, where a knowledge step's *See change* opens the page's history. */
+  placePath?: string
   children?: ReactNode
 }) {
   const name = agent?.name ?? 'Agent'
@@ -27,7 +29,7 @@ export function AgentFrame({ agent, meta, thinking, children }: {
           </>}
           {thinking && <ThinkingPill view={thinking} open={open} onToggle={() => setOpen((o) => !o)} />}
         </div>
-        {thinking && open && <ThinkingSteps steps={thinking.steps} />}
+        {thinking && open && <ThinkingSteps steps={thinking.steps} placePath={placePath} />}
         {children}
       </div>
     </div>

@@ -10,14 +10,15 @@ import { KNOWLEDGE_READ_MAX_LINES } from '../server/controlplane/knowledgeToolSc
 import type { KnowledgeDeps, SiteAnswer } from './deps'
 import { levelFailureMessage, MESSAGES } from './messages'
 import { parseToolParams } from './params'
-import { levelNames, pageKey, resolveLevel, splitName, type KnowledgeReach, type Level } from './reach'
+import { levelNames, levelsOf, pageKey, resolveLevel, splitName, type KnowledgeReach, type Level } from './reach'
 import type { ReadRecord } from './readRecord'
+import { tellChange, tellPlatformPage, type ChangeAsked } from './steps'
 
 type SiteLevel = Extract<Level, { kind: 'org' | 'place' }>
 type Target = { ok: true; level: Level; page: string } | { ok: false; message: string }
 
 /** A page inside its level: no way out of the level's folder, whatever the site would also check (S3). */
-function isPageName(page: string): boolean {
+export function isPageName(page: string): boolean {
   if (!page || page.length > 600 || page.startsWith('/') || page.includes('\\') || page.includes('\0')) return false
   return page.split('/').every(seg => seg !== '' && seg !== '.' && seg !== '..')
 }
@@ -26,7 +27,12 @@ export function targetOf(reach: KnowledgeReach, name: string): Target {
   const split = splitName(name)
   if (!split) return { ok: false, message: MESSAGES.noLevel(levelNames(reach)) }
   const level = resolveLevel(reach, split.level)
-  if (!level) return { ok: false, message: MESSAGES.notInReach(levelNames(reach)) }
+  if (!level) {
+    const message = reach.agent?.conversationId
+      ? MESSAGES.pageNotInConversation(split.level, levelsOf(reach).map(l => l.name))
+      : MESSAGES.notInReach(levelNames(reach))
+    return { ok: false, message }
+  }
   if (!isPageName(split.rest)) return { ok: false, message: MESSAGES.badPage() }
   return { ok: true, level, page: split.rest }
 }
@@ -67,7 +73,11 @@ export class KnowledgePages {
     const target = targetOf(reach, name)
     if (!target.ok) return target.message
     const { level, page } = target
-    if (level.kind === 'platform') return this.deps.guide.read({ page, offset, limit }).text
+    if (level.kind === 'platform') {
+      const answer = this.deps.guide.read({ page, offset, limit })
+      if (answer.ok) tellPlatformPage(reach, page, this.deps.guide.outline()?.find(o => o.name === page)?.title)
+      return answer.text
+    }
 
     const bytes = await this.ask(level, () => this.deps.sites.read(level.owner, page))
     if (!bytes.ok) return levelFailureMessage(level.name, bytes.why)
@@ -99,7 +109,7 @@ export class KnowledgePages {
       this.reads.remember(reach.callerKey, key, result.current.version)
       return `${result.message}\n${pageText(`${level.name}:${page}`, result.current.content, result.current.version)}`
     }
-    return this.finish(reach, level, page, result)
+    return this.finish(reach, level, page, result, { tool: 'write', content })
   }
 
   async edit(reach: KnowledgeReach, input: unknown): Promise<string> {
@@ -112,7 +122,7 @@ export class KnowledgePages {
     const change = { page, old_string: p.old_string, new_string: p.new_string, ...(p.replace_all !== undefined ? { replace_all: p.replace_all } : {}) }
     const answer = await this.ask(level, () => this.deps.sites.edit(level.owner, change))
     if (!answer.ok) return levelFailureMessage(level.name, answer.why)
-    return this.finish(reach, level, page, answer.value)
+    return this.finish(reach, level, page, answer.value, { tool: 'edit', old_string: p.old_string, new_string: p.new_string })
   }
 
   async delete(reach: KnowledgeReach, input: unknown): Promise<string> {
@@ -123,7 +133,7 @@ export class KnowledgePages {
     const { level, page } = target
     const answer = await this.ask(level, () => this.deps.sites.delete(level.owner, { page }))
     if (!answer.ok) return levelFailureMessage(level.name, answer.why)
-    return this.finish(reach, level, page, answer.value)
+    return this.finish(reach, level, page, answer.value, { tool: 'delete' })
   }
 
   private async changeTarget(reach: KnowledgeReach, name: string): Promise<{ ok: true; level: SiteLevel; page: string } | { ok: false; message: string }> {
@@ -144,7 +154,7 @@ export class KnowledgePages {
     }
   }
 
-  private async finish(reach: KnowledgeReach, level: SiteLevel, page: string, result: KnowledgeChangeResult): Promise<string> {
+  private async finish(reach: KnowledgeReach, level: SiteLevel, page: string, result: KnowledgeChangeResult, asked: ChangeAsked): Promise<string> {
     if (result.outcome === 'refused') return result.message
     const name = `${level.name}:${page}`
     const key = pageKey(level.owner, page)
@@ -161,12 +171,20 @@ export class KnowledgePages {
       // The change stands on the site; only its record is missing, which the log says.
       this.deps.log.warn('a knowledge change was made but not recorded', { level: level.kind, error: err instanceof Error ? err.name : 'unknown' })
     }
+    if (reach.onStep) tellChange(reach, level, page, result, version, await this.withTitle(level, page, asked))
     if (result.change === 'deleted') {
       return `Deleted ${name}. It is kept among the recently deleted for 30 days: a person can restore it from History in HQ's Knowledge tool, or write the page again.`
     }
     const short = version ? ` Version ${version.slice(0, 12)}.` : ''
     const previous = result.previousVersionId ? ' The previous one is in History.' : ''
     return `Done: ${name} ${result.change}.${short}${previous}`
+  }
+
+  /** An edit's page read back, for the title its work step names; without it the step names the file. */
+  private async withTitle(level: SiteLevel, page: string, asked: ChangeAsked): Promise<ChangeAsked> {
+    if (asked.tool !== 'edit') return asked
+    const bytes = await this.ask(level, () => this.deps.sites.read(level.owner, page))
+    return bytes.ok ? { ...asked, content: Buffer.from(bytes.value).toString('utf8') } : asked
   }
 
   /** The version a deleted page had, from the kept version the delete made, when the caller never read it. */

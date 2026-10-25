@@ -1,10 +1,10 @@
 /** Everything the Files tools read, behind one module (every screen reviewed spec §3). */
 import {
   useQuery, listLocationFiles, getFileContent, getMyStorage,
-  listArtefacts, getArtefactContent, listKnowledge, getKnowledgeContent, listPlacePreviews,
+  listArtefacts, getArtefactContent, listKnowledgePages, listPlacePreviews,
 } from 'wasp/client/operations'
 import type { SiteSilence } from '@agenthix/core'
-import type { KnowledgeTopic, ListedEntry } from '@agenthix/ui/projects'
+import type { ListedEntry } from '@agenthix/ui/projects'
 import type { FileContent } from '../fileContentService'
 import type { FilesToolKind } from './fileReferences'
 
@@ -35,18 +35,18 @@ export function useArtefacts(owner: Owner, enabled = true): Read<ListedEntry[]> 
   return { data: data?.entries.map(e => ({ ...e, isDir: false })), isLoading, error }
 }
 
-export function useKnowledge(owner: Owner, enabled = true): Read<KnowledgeTopic[]> {
-  const { data, isLoading, error } = useQuery(listKnowledge, { ownerType: owner.ownerType, ownerId: owner.ownerId }, { enabled })
-  return { data: data?.topics, isLoading, error }
+/** The pages of a place's knowledge, for the count beside the tool's name; the tool itself reads the whole list. */
+export function useKnowledge(owner: Owner, enabled = true): Read<unknown[]> {
+  const { data, isLoading, error } = useQuery(listKnowledgePages, { owner }, { enabled })
+  return { data: (data as { pages?: unknown[] } | undefined)?.pages, isLoading, error }
 }
 
-/** One file's content, from the folder the tool lists. */
+/** One file's content, from the folder the tool lists. A knowledge page is read by the Knowledge tool itself. */
 export function useFileContent(kind: FilesToolKind, target: Target, path: string): Read<FileContent> {
   const owner = { ownerType: target.ownerType, ownerId: target.ownerId }
   const files = useQuery(getFileContent, { target, filePath: path }, { enabled: kind === 'files' })
   const artefact = useQuery(getArtefactContent, { ...owner, name: path }, { enabled: kind === 'artefacts' })
-  const topic = useQuery(getKnowledgeContent, { ...owner, path }, { enabled: kind === 'knowledge' })
-  const read = kind === 'files' ? files : kind === 'artefacts' ? artefact : topic
+  const read = kind === 'files' ? files : artefact
   return { data: read.data as FileContent | undefined, isLoading: read.isLoading, error: read.error }
 }
 

@@ -34,8 +34,12 @@ export class FakeSites implements KnowledgeSites {
   readonly store = new Map<string, Pages>()
   readonly modes = new Map<string, SiteMode>()
   readonly calls: { method: string; owner: string; params?: unknown }[] = []
-  /** The kept versions a delete made, by id. */
-  private readonly kept = new Map<string, { page: string; version: string }>()
+  /** The kept versions the gate made, by id: what the page held before each change. */
+  readonly kept = new Map<string, { page: string; version: string; text: string; change: 'edited' | 'deleted' | 'moved' | 'restored'; savedAt: string }>()
+  private keep(page: string, text: string, id: string, change: 'edited' | 'deleted' | 'moved' | 'restored'): string {
+    this.kept.set(id, { page, version: v(text), text, change, savedAt: new Date().toISOString() })
+    return id
+  }
 
   put(owner: KnowledgeOwnerRef, page: string, text: string): void {
     const pages = this.store.get(keyOf(owner)) ?? new Map()
@@ -77,8 +81,9 @@ export class FakeSites implements KnowledgeSites {
       }
     })
 
-  read: KnowledgeSites['read'] = async (owner, page) => {
-    const answer = await this.run('read', owner, page, pages => pages.get(page))
+  read: KnowledgeSites['read'] = async (owner, page, versionId) => {
+    const answer = await this.run('read', owner, versionId ? { page, versionId } : page, pages =>
+      versionId ? (this.kept.get(versionId)?.page === page ? this.kept.get(versionId)!.text : undefined) : pages.get(page))
     if (!answer.ok) return answer
     return answer.value === undefined ? { ok: false, why: 'not_found' } : { ok: true, value: Buffer.from(answer.value, 'utf8') }
   }
@@ -94,7 +99,9 @@ export class FakeSites implements KnowledgeSites {
       }
       if (!change.content.startsWith('---')) return { outcome: 'refused', reason: 'problems', problems: [], message: `${change.page} was not saved: title is missing. Nothing was changed.` }
       pages.set(change.page, change.content)
-      return { outcome: 'done', page: change.page, change: current === undefined ? 'created' : 'edited', version: v(change.content), ...(current !== undefined ? { previousVersionId: 'k1' } : {}) }
+      if (current !== undefined) this.keep(change.page, current, 'k1', 'edited')
+      const kind = change.movedFrom !== undefined ? 'moved' : current === undefined ? 'created' : 'edited'
+      return { outcome: 'done', page: change.page, change: kind, version: v(change.content), ...(current !== undefined ? { previousVersionId: 'k1' } : {}) }
     })
 
   edit: KnowledgeSites['edit'] = (owner, change) =>
@@ -105,24 +112,54 @@ export class FakeSites implements KnowledgeSites {
       if (found !== 1 && !change.replace_all) return { outcome: 'refused', reason: 'not_unique', found, message: `old_string was found ${found} times in ${change.page}. Nothing was changed.` }
       const next = current.split(change.old_string).join(change.new_string)
       pages.set(change.page, next)
+      this.keep(change.page, current, 'k2', 'edited')
       return { outcome: 'done', page: change.page, change: 'edited', version: v(next), previousVersionId: 'k2' }
     })
 
   delete: KnowledgeSites['delete'] = (owner, change) =>
     this.run('delete', owner, change, (pages): KnowledgeChangeResult => {
       const current = pages.get(change.page)
+      if (change.permanently) {
+        if (change.versionId !== undefined) {
+          if (this.kept.get(change.versionId)?.page !== change.page) return { outcome: 'refused', reason: 'not_found', message: `${change.page} has no such earlier version. Nothing was changed.` }
+          this.kept.delete(change.versionId)
+          return { outcome: 'done', page: change.page, change: 'deleted' }
+        }
+        const had = [...this.kept].filter(([, k]) => k.page === change.page)
+        if (current === undefined && !had.length) return { outcome: 'refused', reason: 'not_found', message: `There is no page ${change.page}. Nothing was changed.` }
+        pages.delete(change.page)
+        for (const [id] of had) this.kept.delete(id)
+        return { outcome: 'done', page: change.page, change: 'deleted' }
+      }
       if (current === undefined) return { outcome: 'refused', reason: 'not_found', message: `There is no page ${change.page}. Nothing was changed.` }
       pages.delete(change.page)
-      this.kept.set('k-del', { page: change.page, version: v(current) })
-      return { outcome: 'done', page: change.page, change: 'deleted', previousVersionId: 'k-del' }
+      const moved = change.movedTo !== undefined
+      this.keep(change.page, current, moved ? 'k-moved' : 'k-del', moved ? 'moved' : 'deleted')
+      return { outcome: 'done', page: change.page, change: moved ? 'moved' : 'deleted', previousVersionId: moved ? 'k-moved' : 'k-del' }
+    })
+
+  restore: KnowledgeSites['restore'] = (owner, change) =>
+    this.run('restore', owner, change, (pages): KnowledgeChangeResult => {
+      const kept = this.kept.get(change.versionId)
+      if (!kept || kept.page !== change.page) return { outcome: 'refused', reason: 'not_found', message: `${change.page} has no such earlier version. Nothing was changed.` }
+      const current = pages.get(change.page)
+      if (current === kept.text) return { outcome: 'refused', reason: 'no_change', message: `${change.page} already says exactly that. Nothing was changed.` }
+      if (current !== undefined) this.keep(change.page, current, 'k-restored', 'restored')
+      pages.set(change.page, kept.text)
+      return { outcome: 'done', page: change.page, change: 'restored', version: v(kept.text), ...(current !== undefined ? { previousVersionId: 'k-restored' } : {}) }
     })
 
   versions: KnowledgeSites['versions'] = (owner, page) =>
-    this.run('versions', owner, page, () => ({
+    this.run('versions', owner, page, pages => ({
       truncated: false,
-      versions: [...this.kept].filter(([, k]) => k.page === page).map(([id, k]) => ({
-        page, id, version: k.version, savedAt: '', size: 0, change: 'deleted' as const, deleted: true,
-      })),
+      versions: [...this.kept]
+        .filter(([, k]) => (page === undefined ? !pages.has(k.page) && (k.change === 'deleted' || k.change === 'moved') : k.page === page))
+        .map(([id, k]) => ({
+          page: k.page, id, version: k.version, savedAt: k.savedAt, size: k.text.length, change: k.change,
+          deleted: k.change === 'deleted' || k.change === 'moved',
+          ...(k.change === 'deleted' ? { removeAfter: '2026-11-24T10:00:00.000Z' } : {}),
+        }))
+        .reverse(),
     }))
 }
 

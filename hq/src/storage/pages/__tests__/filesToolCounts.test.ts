@@ -3,18 +3,18 @@ import { filesToolCounts } from '../filesToolCounts'
 import { silentSitesLine, allowedToolsText } from '../workspaceNotices'
 
 describe('what the four tools show in the tools list', () => {
-  it('counts each list once it has been read, and says nothing before', () => {
+  it('counts each list once it has been read, and says nothing before @SC-1431', () => {
     expect(filesToolCounts({})).toEqual({})
     expect(filesToolCounts({
       files: [{ name: 'AGENTS.md' }, { name: '.agents', isDir: true }, { name: 'specs', isDir: true }],
       artefacts: [{ name: 'a.md' }],
-      topics: [{ path: 'a.md', title: 'A', summary: '', tags: [], modifiedAt: '' }, { path: 'b.md', title: 'B', summary: '', tags: [], modifiedAt: '' }],
+      pages: [{}, {}],
       workspaces: [{}, {}, {}],
-    })).toEqual({ files: '2', artefacts: '1', knowledge: '2 topics', workspaces: '3' })
+    })).toEqual({ files: '2', artefacts: '1', knowledge: '2 pages', workspaces: '3' })
   })
 
-  it('says "1 topic" for one', () => {
-    expect(filesToolCounts({ topics: [{ path: 'a.md', title: 'A', summary: '', tags: [], modifiedAt: '' }] }).knowledge).toBe('1 topic')
+  it('says "1 page" for one @SC-1431', () => {
+    expect(filesToolCounts({ pages: [{}] }).knowledge).toBe('1 page')
   })
 })
 

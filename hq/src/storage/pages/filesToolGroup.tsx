@@ -14,7 +14,7 @@ export function useFilesToolCounts(owner: Owner | undefined): FilesToolCounts {
   const knowledge = useKnowledge(owner ?? { ownerType: 'user', ownerId: '' }, !!owner)
   const workspaces = useWorkspaces(owner ?? { ownerType: 'user', ownerId: '' })
   if (!owner) return {}
-  return filesToolCounts({ files: files.data, artefacts: artefacts.data, topics: knowledge.data, workspaces: workspaces.workspaces })
+  return filesToolCounts({ files: files.data, artefacts: artefacts.data, pages: knowledge.data, workspaces: workspaces.workspaces })
 }
 
 /**

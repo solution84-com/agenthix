@@ -3,6 +3,7 @@ import { OrgPage } from "./pages/OrgPage" with { type: "ref" };
 import { OrgPeoplePage } from "./pages/people/OrgPeoplePage" with { type: "ref" };
 import { OrgPersonPage } from "./pages/people/OrgPersonPage" with { type: "ref" };
 import { RemovePersonPage } from "./pages/people/RemovePersonPage" with { type: "ref" };
+import { OrgKnowledgePage } from "./pages/OrgKnowledgePage" with { type: "ref" };
 import { TeamsPage } from "./pages/TeamsPage" with { type: "ref" };
 import { TeamPage as TeamDetailPage } from "./pages/TeamPage" with { type: "ref" };
 import { OrgSettingsPage } from "./pages/settings/OrgSettingsPage" with { type: "ref" };
@@ -30,6 +31,7 @@ export const orgSpec: Spec = [
     route("OrgSitesForProjectsRoute", "/admin/sites-for-projects", page(SitesForProjectsPage, { authRequired: true })),
     route("InfrastructureRoute", "/admin/infrastructure", page(InfrastructurePage, { authRequired: true })),
     route("InfrastructureHqRoute", "/admin/infrastructure/hq", page(HqPage, { authRequired: true })),
+    route("OrgKnowledgeRoute", "/org/knowledge", page(OrgKnowledgePage, { authRequired: true })),
     route("TeamsRoute", "/org/teams", page(TeamsPage, { authRequired: true })),
     route("TeamDetailRoute", "/org/teams/:id", page(TeamDetailPage, { authRequired: true })),
     route("AdminTeamsRoute", "/admin/teams", page(TeamsPage, { authRequired: true })),

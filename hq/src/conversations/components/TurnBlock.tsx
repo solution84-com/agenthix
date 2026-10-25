@@ -80,7 +80,7 @@ export function TurnBlockView({ block, agent, work, reply, live, heldSince }: {
   const streamShown = stream ? (stream.limit === null ? stream.text : stream.text.slice(0, stream.limit)) : ''
   const said = wordsOf({ words: heard })
   return (
-    <AgentFrame agent={writerOf(first, agent, work)} meta={formatTime(at ?? new Date())} thinking={thinking}>
+    <AgentFrame agent={writerOf(first, agent, work)} meta={formatTime(at ?? new Date())} thinking={thinking} placePath={work?.placePath}>
       {block.cards.map((c) => <ResultCard key={c.id} message={c} conversationId={work?.conversationId} />)}
       {heard.map((w) => <Words key={w.id} message={w} reply={reply} />)}
       {stream && streamShown && (

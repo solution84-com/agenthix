@@ -6,6 +6,8 @@
  * that answers a person, as `remember` is. A tool the agent's place never allows is not offered.
  */
 import { z } from 'zod'
+import { prisma } from 'wasp/server'
+import type { KnowledgeStepView } from '@agenthix/core'
 import * as knowledge from '../../knowledge'
 import type { KnowledgeReach } from '../../knowledge'
 import { KNOWLEDGE_TOOLS } from '../../server/controlplane/knowledgeToolSchemas'
@@ -27,6 +29,8 @@ export interface LeadKnowledgeDeps {
   delete: KnowledgeCall
   /** The turn's reach, or why it has none. */
   reachOf(capability: TurnCapability, tool: string): Promise<KnowledgeReach>
+  /** Each level's name as a person reads it in the work step, by the level's name in the reach. */
+  levelNames(reach: KnowledgeReach): Promise<Map<string, string>>
 }
 
 const CHANGES: ReadonlySet<string> = new Set(['write_knowledge', 'edit_knowledge', 'delete_knowledge'])
@@ -65,13 +69,38 @@ export function createLeadKnowledgeTools(deps: LeadKnowledgeDeps): ConversationT
         return { status: 'refused', reason: `${name} ${why}` }
       }
       try {
-        const text = await calls[name](await deps.reachOf(capability, name), raw ?? {})
-        return { status: 'done', operationId: capability.turnId, result: text }
+        let step: KnowledgeStepView | undefined
+        const reach: KnowledgeReach = { ...(await deps.reachOf(capability, name)), onStep: s => (step = s) }
+        const text = await calls[name](reach, raw ?? {})
+        const knowledge = step ? await named(deps, reach, step) : undefined
+        return { status: 'done', operationId: capability.turnId, result: text, ...(knowledge ? { knowledge } : {}) }
       } catch (err) {
         return refused(name, err)
       }
     },
   }))
+}
+
+/** A search's step names its levels as the person knows them; a name that can't be read stays the level's own. */
+async function named(deps: LeadKnowledgeDeps, reach: KnowledgeReach, step: KnowledgeStepView): Promise<KnowledgeStepView> {
+  if (step.kind !== 'knowledge_search') return step
+  const names = await deps.levelNames(reach).catch(() => new Map<string, string>())
+  return { ...step, names: step.levels.map(l => names.get(l) ?? l) }
+}
+
+/** "Your space", a project's name, "Organisation", "Platform guide". */
+async function levelNames(reach: KnowledgeReach): Promise<Map<string, string>> {
+  const names = new Map<string, string>([['org', 'Organisation'], ['platform', 'Platform guide']])
+  const projects = reach.places.filter(p => p.owner.ownerType === 'project')
+  const rows = projects.length
+    ? await prisma.project.findMany({ where: { id: { in: projects.map(p => p.owner.ownerId) } }, select: { id: true, name: true } })
+    : []
+  for (const place of reach.places) {
+    if (place.owner.ownerType === 'user') names.set(place.level, 'Your space')
+    const row = rows.find(r => r.id === place.owner.ownerId)
+    if (place.owner.ownerType === 'project' && row) names.set(place.level, row.name)
+  }
+  return names
 }
 
 export const knowledgeTools: ConversationTool[] = createLeadKnowledgeTools({
@@ -85,4 +114,5 @@ export const knowledgeTools: ConversationTool[] = createLeadKnowledgeTools({
     const { userId } = await actingPerson({ kind: 'turn', turn: capability }, tool)
     return turnReach(capability, userId)
   },
+  levelNames,
 })

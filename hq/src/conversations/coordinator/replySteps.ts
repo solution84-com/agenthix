@@ -1,11 +1,13 @@
 /**
  * A reply's steps (walkthrough findings 24 and 25): each model call that asked for tools is one, named by what it
  * looked at or did in a person's words — never a tool's name — and timed from asking the model to its tools being
- * back. The screens get them live; the reply's message keeps them with how long the reply worked, so the pill and
+ * back. Within it, each knowledge call is a line of its own, so none hides another (agent knowledge walkthrough,
+ * F11). The screens get them live; the reply's message keeps them with how long the reply worked, so the pill and
  * its steps survive a reload.
  */
 import type { LeadToolCall, ToolCallOutcome } from '../contract'
 import type { ReplyStepView, ReplyThinking } from '../../shared/conversations/protocol'
+import { isKnowledgeTool, knowledgeCallLabel, knowledgeOf } from './knowledgeSteps'
 import { toolCallTitle } from '../tools/turnTools'
 import { USED_MEMORY } from '../memory/usedMemory'
 import { madeLabel } from './startedWords'
@@ -74,6 +76,8 @@ export function whyInWords(reason: string): string {
  */
 export async function callLabel(call: LeadToolCall, outcome: ToolCallOutcome | null, names?: StepNames, title?: string): Promise<string> {
   const args = asArgs(call.input)
+  const knowledge = knowledgeCallLabel(call.name, args, outcome)
+  if (knowledge !== null) return knowledge
   const change = CHANGES[call.name]
   if (change) {
     if (!outcome || outcome.status === 'refused') return change.ask(args)
@@ -122,6 +126,21 @@ export function isLookup(calls: readonly LeadToolCall[]): boolean {
   return calls.some(c => c.name !== USED_MEMORY)
 }
 
+/**
+ * A step's calls as its lines: each knowledge call alone, since a screen draws one from what it did in place of the
+ * words; the rest together, where the first of them was asked.
+ */
+function linesOf(calls: StepCall[]): StepCall[][] {
+  const lines: StepCall[][] = []
+  let others: StepCall[] | null = null
+  for (const d of calls) {
+    if (isKnowledgeTool(d.call.name)) lines.push([d])
+    else if (others) others.push(d)
+    else lines.push((others = [d]))
+  }
+  return lines
+}
+
 export interface StepLog {
   /** A step asked for tools: shown as running, with what it set out to do. */
   begin(calls: readonly LeadToolCall[], askedAt: Date): Promise<void>
@@ -165,10 +184,10 @@ export function createStepLog(input: {
       if (!askedAt) return
       const ms = input.now().getTime() - askedAt.getTime()
       steps.pop()
-      const rest = done.filter(d => !d.made)
-      if (isLookup(rest.map(d => d.call))) {
-        const { label, failed } = await stepLine(rest, input.names)
-        steps.push({ label, ms, ...(failed ? { failed: true } : {}) })
+      for (const lines of linesOf(done.filter(d => !d.made && d.call.name !== USED_MEMORY))) {
+        const { label, failed } = await stepLine(lines, input.names)
+        const knowledge = knowledgeOf(lines.map(d => d.outcome))
+        steps.push({ label, ms, ...(failed ? { failed: true } : {}), ...(knowledge.length ? { knowledge } : {}) })
       }
       // The same call asked twice in one step is one piece of work.
       const made = new Map(done.filter(d => d.made && 'operationId' in d.outcome).map(d => [(d.outcome as { operationId: string }).operationId, d]))

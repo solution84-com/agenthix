@@ -1,4 +1,4 @@
-import { useQuery, getWorkplacePeople, getOrgAgents, getTeams, getProducts, getPrograms, getLibrary } from 'wasp/client/operations'
+import { useQuery, getWorkplacePeople, getOrgAgents, getTeams, getProducts, getPrograms, getLibrary, listKnowledgePages } from 'wasp/client/operations'
 import type { LibraryItem } from '../../library/packages/packageActions'
 import { AuthedPersonAvatar } from '../../people/AuthedPersonAvatar'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
@@ -60,6 +60,17 @@ function TeamsCard() {
   )
 }
 
+function KnowledgeCard() {
+  const { data } = useQuery(listKnowledgePages, { owner: { ownerType: 'org' } })
+  const count = data?.pages.length
+  return (
+    <OrgCard title="Knowledge" to="/org/knowledge">
+      <BigNumber value={count ?? '–'} label={count === 1 ? 'page' : 'pages'} />
+      <CardLine left="How the whole organisation works, for every member and agent" />
+    </OrgCard>
+  )
+}
+
 function ProductsCard() {
   const { data: products } = useQuery(getProducts)
   const rows = (products ?? []) as Array<{ id: string; name: string; _count: { projects: number } }>
@@ -109,6 +120,7 @@ export function WorkplaceSection({ isAdmin }: { isAdmin: boolean }) {
         <PeopleCard isAdmin={isAdmin} />
         <AgentsCard />
         <TeamsCard />
+        <KnowledgeCard />
         <ProductsCard />
         <ProgramsCard />
         <LibraryCard />

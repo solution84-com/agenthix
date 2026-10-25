@@ -61,6 +61,7 @@ type ControlMethod =
   | typeof LOCATION_FILE_METHODS.writeKnowledge
   | typeof LOCATION_FILE_METHODS.editKnowledge
   | typeof LOCATION_FILE_METHODS.deleteKnowledge
+  | typeof LOCATION_FILE_METHODS.restoreKnowledge
   | typeof LOCATION_FILE_METHODS.knowledgeVersions
 
 function request<M extends ControlMethod>(owner: KnowledgeOwnerRef, method: M, params: SiteMethodParams<M>, timeoutMs = CHANGE_TIMEOUT_MS): Promise<SiteAnswer<SiteMethodResult<M>>> {
@@ -82,13 +83,20 @@ export const siteKnowledge: KnowledgeSites = {
     request(owner, LOCATION_FILE_METHODS.searchKnowledge, { ...wireOwner(owner), query: grep.pattern, maxChars: 0, grep }, timeoutMs)
       .then(a => (a.ok && a.value.grep === undefined ? { ok: false as const, why: 'outdated' as const } : a.ok ? { ok: true as const, value: a.value.grep! } : a)),
   list: (owner, timeoutMs) => request(owner, LOCATION_FILE_METHODS.listKnowledge, wireOwner(owner), timeoutMs),
-  read: (owner, page) =>
+  read: (owner, page, versionId) =>
     settle(LOCATION_FILE_METHODS.readKnowledge, owner, async () => {
-      const params: LocationReadKnowledgeParams = { ...wireOwner(owner), relPath: page, maxBytes: MAX_FILE_BYTES }
+      const params: LocationReadKnowledgeParams = { ...wireOwner(owner), relPath: page, maxBytes: MAX_FILE_BYTES, ...(versionId ? { versionId } : {}) }
       return new Uint8Array(await collectStream(await siteOf(owner), LOCATION_FILE_METHODS.readKnowledge, params, page))
     }),
   write: (owner, change) => request(owner, LOCATION_FILE_METHODS.writeKnowledge, { ...wireOwner(owner), ...change }),
   edit: (owner, change) => request(owner, LOCATION_FILE_METHODS.editKnowledge, { ...wireOwner(owner), ...change }),
-  delete: (owner, change) => request(owner, LOCATION_FILE_METHODS.deleteKnowledge, { ...wireOwner(owner), page: change.page }),
-  versions: (owner, page) => request(owner, LOCATION_FILE_METHODS.knowledgeVersions, { ...wireOwner(owner), page }),
+  delete: (owner, change) => request(owner, LOCATION_FILE_METHODS.deleteKnowledge, {
+    ...wireOwner(owner),
+    page: change.page,
+    ...(change.movedTo !== undefined ? { movedTo: change.movedTo } : {}),
+    ...(change.permanently ? { permanently: true as const } : {}),
+    ...(change.versionId !== undefined ? { versionId: change.versionId } : {}),
+  }),
+  restore: (owner, change) => request(owner, LOCATION_FILE_METHODS.restoreKnowledge, { ...wireOwner(owner), page: change.page, versionId: change.versionId }),
+  versions: (owner, page) => request(owner, LOCATION_FILE_METHODS.knowledgeVersions, { ...wireOwner(owner), ...(page !== undefined ? { page } : {}) }),
 }

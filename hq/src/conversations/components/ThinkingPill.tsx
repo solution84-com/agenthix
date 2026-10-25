@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReplyStepView } from '../../shared/conversations/protocol'
+import { KnowledgeStepRow } from './knowledge/KnowledgeStepRow'
 
 /**
  * How long a reply that looked things up worked: `ms` once it is written, or `since` — when it began, on this
@@ -71,16 +72,22 @@ function stepMark(step: ReplyStepView): { mark: string; tone: string } {
 }
 
 /** The reply's steps, one line each with its time; the one still running has none yet, nor does work it started. */
-export function ThinkingSteps({ steps }: { steps: ReplyStepView[] }) {
+export function ThinkingSteps({ steps, placePath }: { steps: ReplyStepView[]; placePath?: string }) {
   return (
     <ol className="space-y-0.5 border-l-2 border-border pl-2.5 text-small text-text-muted" data-testid="thinking-steps">
       {steps.map((step, i) => (
         <li key={i} className="flex gap-1.5">
           <span aria-hidden className={stepMark(step).tone}>{stepMark(step).mark}</span>
-          <span className="min-w-0 break-words">
-            {step.label}
-            {step.ms !== undefined && !step.made && <span className="tabular-nums"> · {stepTime(step.ms)}</span>}
-          </span>
+          {step.knowledge && step.knowledge.length > 0 ? (
+            <span className="min-w-0 space-y-0.5">
+              {step.knowledge.map((k, n) => <span key={n} className="block"><KnowledgeStepRow data={k} placePath={placePath} /></span>)}
+            </span>
+          ) : (
+            <span className="min-w-0 break-words">
+              {step.label}
+              {step.ms !== undefined && !step.made && <span className="tabular-nums"> · {stepTime(step.ms)}</span>}
+            </span>
+          )}
         </li>
       ))}
     </ol>

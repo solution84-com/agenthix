@@ -28,11 +28,14 @@ export type SiteAnswer<T> = { ok: true; value: T } | { ok: false; why: SiteFailu
 export interface KnowledgeSites {
   grep(owner: KnowledgeOwnerRef, params: KnowledgeGrepParams, timeoutMs: number): Promise<SiteAnswer<KnowledgeGrepResult>>
   list(owner: KnowledgeOwnerRef, timeoutMs: number): Promise<SiteAnswer<LocationListKnowledgeResult>>
-  read(owner: KnowledgeOwnerRef, page: string): Promise<SiteAnswer<Uint8Array>>
-  write(owner: KnowledgeOwnerRef, change: { page: string; content: string; baseVersion: string | null }): Promise<SiteAnswer<KnowledgeChangeResult>>
+  /** A page's bytes, or with `versionId` one of its kept versions'. */
+  read(owner: KnowledgeOwnerRef, page: string, versionId?: string): Promise<SiteAnswer<Uint8Array>>
+  write(owner: KnowledgeOwnerRef, change: { page: string; content: string; baseVersion: string | null; movedFrom?: string }): Promise<SiteAnswer<KnowledgeChangeResult>>
   edit(owner: KnowledgeOwnerRef, change: { page: string; old_string: string; new_string: string; replace_all?: boolean }): Promise<SiteAnswer<KnowledgeChangeResult>>
-  delete(owner: KnowledgeOwnerRef, change: { page: string }): Promise<SiteAnswer<KnowledgeChangeResult>>
-  versions(owner: KnowledgeOwnerRef, page: string): Promise<SiteAnswer<LocationKnowledgeVersionsResult>>
+  delete(owner: KnowledgeOwnerRef, change: { page: string; movedTo?: string; permanently?: true; versionId?: string }): Promise<SiteAnswer<KnowledgeChangeResult>>
+  restore(owner: KnowledgeOwnerRef, change: { page: string; versionId: string }): Promise<SiteAnswer<KnowledgeChangeResult>>
+  /** A page's kept versions, newest first; with no page, the recently deleted pages. */
+  versions(owner: KnowledgeOwnerRef, page?: string): Promise<SiteAnswer<LocationKnowledgeVersionsResult>>
 }
 
 export type GuideGrepAnswer =
@@ -51,6 +54,8 @@ export interface KnowledgeGuide {
 export interface KnowledgeChangeEntry {
   owner: KnowledgeOwnerRef
   page: string
+  /** For the moved page's record: where it was. */
+  fromPage?: string
   kind: KnowledgeChangeKind
   version: string
   reach: Pick<KnowledgeReach, 'userId' | 'agent'>

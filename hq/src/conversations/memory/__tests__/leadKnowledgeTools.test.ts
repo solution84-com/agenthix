@@ -37,12 +37,13 @@ const CHANGES = ['write_knowledge', 'edit_knowledge', 'delete_knowledge']
 function setup() {
   const reach: KnowledgeReach = { places: [], userId: 'u1', mayChange: true, callerKey: 'conv-1' }
   const deps = {
-    search: vi.fn(async () => 'website-rebuild:processes/release.md:14: Staging deploys go out after the checks pass.'),
+    search: vi.fn(async (_r: KnowledgeReach, _p: unknown) => 'website-rebuild:processes/release.md:14: Staging deploys go out after the checks pass.'),
     read: vi.fn(async () => '1\tline'),
     write: vi.fn(async () => 'Done.'),
-    edit: vi.fn(async () => 'Done. Version 7.'),
+    edit: vi.fn(async (_r: KnowledgeReach, _p: unknown) => 'Done. Version 7.'),
     delete: vi.fn(async () => 'Done.'),
     reachOf: vi.fn(async () => reach),
+    levelNames: vi.fn(async () => new Map([['website-rebuild', 'Website rebuild'], ['org', 'Organisation']])),
   } satisfies LeadKnowledgeDeps
   const tools = Object.fromEntries(createLeadKnowledgeTools(deps).map(t => [t.name, t]))
   return { deps, tools, reach }
@@ -55,7 +56,7 @@ beforeEach(() => {
   h.placeRows.mockResolvedValue([])
 })
 
-describe('which turns are offered which tools', () => {
+describe('which turns are offered which tools @SC-1410', () => {
   it('are the five, among the lead\'s own tools', () => {
     expect(knowledgeTools.map(t => t.name)).toEqual(NAMES)
     for (const name of NAMES) expect(conversationTools().filter(t => t.name === name)).toHaveLength(1)
@@ -96,23 +97,47 @@ describe('which turns are offered which tools', () => {
 })
 
 describe('running them', () => {
-  it("passes the turn's reach and the call's input, and answers the service's text", async () => {
+  it("passes the turn's reach and the call's input, and answers the service's text @SC-1410", async () => {
     const { tools, deps, reach } = setup()
     const input = { pattern: 'staging.*(approv|sign.?off)', '-n': true }
     const outcome = await tools.search_knowledge!.run(turnCapability(), input, { signal })
     expect(deps.reachOf).toHaveBeenCalledWith(turnCapability({ expiresAt: expect.any(Number) as unknown as number }), 'search_knowledge')
-    expect(deps.search).toHaveBeenCalledWith(reach, input)
+    expect(deps.search).toHaveBeenCalledWith({ ...reach, onStep: expect.any(Function) }, input)
     expect(outcome).toEqual({ status: 'done', operationId: 'turn-1', result: 'website-rebuild:processes/release.md:14: Staging deploys go out after the checks pass.' })
   })
 
-  it('a change from a turn answering no one is refused before the service is asked', async () => {
+  it("carries what a change did for the work step, apart from the model's text @SC-1414", async () => {
+    const { tools, deps } = setup()
+    const change = {
+      kind: 'knowledge_change' as const, level: 'website-rebuild', owner: { ownerType: 'project' as const, ownerId: 'p1' },
+      page: 'processes/release.md', title: 'Release', change: 'edited' as const, versionId: 'v2', previousVersionId: 'k2', summary: 'Now says "x"',
+    }
+    deps.edit.mockImplementationOnce(async (r: KnowledgeReach) => {
+      r.onStep?.(change)
+      return 'Done. Version 7.'
+    })
+    const outcome = await tools.edit_knowledge!.run(turnCapability(), { page: 'website-rebuild:processes/release.md', old_string: 'a', new_string: 'x' }, { signal })
+    expect(outcome).toEqual({ status: 'done', operationId: 'turn-1', result: 'Done. Version 7.', knowledge: change })
+  })
+
+  it("names a search's levels as the person knows them, keeping a level it cannot name as it is @SC-1414", async () => {
+    const { tools, deps } = setup()
+    deps.search.mockImplementationOnce(async (r: KnowledgeReach) => {
+      r.onStep?.({ kind: 'knowledge_search', levels: ['website-rebuild', 'org', 'shop'], names: ['website-rebuild', 'org', 'shop'] })
+      return 'hits'
+    })
+    const outcome = await tools.search_knowledge!.run(turnCapability(), { pattern: 'release' }, { signal })
+    expect(outcome).toMatchObject({ knowledge: { kind: 'knowledge_search', levels: ['website-rebuild', 'org', 'shop'], names: ['Website rebuild', 'Organisation', 'shop'] } })
+  })
+
+  it('a change from a turn answering no one is refused before the service is asked @SC-1410', async () => {
     const { tools, deps } = setup()
     const outcome = await tools.edit_knowledge!.run(turnCapability({ actingUserId: null, readerUserId: 'u1' }), { page: 'org:a.md' }, { signal })
     expect(outcome).toEqual({ status: 'refused', reason: 'edit_knowledge changes knowledge, and this reply acts for no one' })
     expect(deps.edit).not.toHaveBeenCalled()
   })
 
-  it("a refusal of the rules is said in its own words; any other failure plainly, never its detail", async () => {
+  it("a refusal of the rules is said in its own words; any other failure plainly, never its detail @SC-1410", async () => {
     const { tools, deps } = setup()
     deps.reachOf.mockRejectedValueOnce(new ControlPlaneError('forbidden', 'The person this run is for is no longer in the organisation'))
     expect(await tools.read_knowledge!.run(turnCapability(), { page: 'org:a.md' }, { signal }))
@@ -123,7 +148,7 @@ describe('running them', () => {
   })
 })
 
-describe("the turn's reach, as wired", () => {
+describe("the turn's reach, as wired @SC-1410", () => {
   const reachFor = async (overrides: Parameters<typeof turnCapability>[0]) => {
     const tool = knowledgeTools.find(t => t.name === 'search_knowledge')!
     await tool.run(turnCapability(overrides), { pattern: 'x' }, { signal })
@@ -134,6 +159,7 @@ describe("the turn's reach, as wired", () => {
     expect(await reachFor({})).toEqual({
       places: [{ level: 'personal', owner: { ownerType: 'user', ownerId: 'u1' } }],
       userId: 'u1', agent: { agentId: 'agent-1', conversationId: 'conv-1' }, mayChange: true, callerKey: 'conv-1',
+      onStep: expect.any(Function),
     })
   })
 
