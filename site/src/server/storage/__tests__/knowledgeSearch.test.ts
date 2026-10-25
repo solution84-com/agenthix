@@ -238,7 +238,7 @@ describe('the grep form @SC-1393', () => {
       p => p.then(() => searchKnowledge({ ...other, query: '', maxChars: 0, grep: { pattern: 'x' } })), Promise.resolve(null),
     )
     expect((last as { grep: { outcome: string } }).grep.outcome).toBe('refused')
-  })
+  }, 60_000) // Hundreds of real ripgrep runs, one after another: seconds on a slow runner.
 })
 
 describe('the organisation\'s knowledge @SC-1393', () => {
