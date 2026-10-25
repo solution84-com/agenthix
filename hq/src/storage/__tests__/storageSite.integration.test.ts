@@ -14,7 +14,7 @@ vi.mock('wasp/server', async () => {
   return { prisma, HttpError }
 })
 
-import { resolveStorageSite, ensureUserStoragePlacement } from '../storageSite'
+import { resolveStorageSite, ensureUserStoragePlacement, ensureOrgKnowledgePlacement } from '../storageSite'
 import { resolveOwnerSiteId } from '../ownerSite'
 import { NO_EXECUTION_SITE_MESSAGE } from '../../shared/noExecutionSite'
 
@@ -102,5 +102,22 @@ describe("the site that owns an owner's storage", () => {
     await expect(resolveOwnerSiteId('user', 'u1')).rejects.toThrow(NO_EXECUTION_SITE_MESSAGE)
     const s = await ensureExecutionSite()
     expect(await resolveOwnerSiteId('user', 'u1')).toBe(s.siteId)
+  })
+})
+
+describe('ensureOrgKnowledgePlacement @SC-1433', () => {
+  it('places the organisation\'s knowledge on the default site once, and keeps it there', async () => {
+    const first = await ensureExecutionSite()
+    expect(await ensureOrgKnowledgePlacement()).toBe(first.siteId)
+    await prisma.executionSite.update({ where: { id: first.id }, data: { isDefault: false } })
+    await site('Later default').then(s => prisma.executionSite.update({ where: { id: s.id }, data: { isDefault: true } }))
+    expect(await ensureOrgKnowledgePlacement()).toBe(first.siteId)
+    expect(await prisma.orgKnowledgePlacement.count()).toBe(1)
+  })
+
+  it('lands two simultaneous first resolutions on one placement', async () => {
+    const s = await ensureExecutionSite()
+    expect(await Promise.all([ensureOrgKnowledgePlacement(), ensureOrgKnowledgePlacement()])).toEqual([s.siteId, s.siteId])
+    expect(await prisma.orgKnowledgePlacement.count()).toBe(1)
   })
 })

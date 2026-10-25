@@ -278,7 +278,10 @@
             "fields": {"method":{"type":{"literal":"location.listFiles"}},"params":{"type":{"ref":"LocationListFilesParams"}}}
           },
           {
-            "fields": {"method":{"type":{"literal":"location.listKnowledge"}},"params":{"type":{"ref":"StorageOwnerRef"}}}
+            "fields": {
+              "method": {"type":{"literal":"location.listKnowledge"}},
+              "params": {"type":{"ref":"LocationListKnowledgeParams"}}
+            }
           },
           {
             "fields": {"method":{"type":{"literal":"location.remove"}},"params":{"type":{"ref":"LocationRemoveParams"}}}
@@ -864,6 +867,19 @@
         ]
       }
     },
+    "KnowledgeOwnerRef": {
+      "file": "protocol/locationKnowledge.ts",
+      "shape": {
+        "fields": {
+          "ownerId": {"type":{"type":"string"}},
+          "ownerType": {"type":{"union":[{"literal":"org"},{"literal":"project"},{"literal":"user"}]}}
+        }
+      }
+    },
+    "KnowledgeOwnerType": {
+      "file": "protocol/locationKnowledge.ts",
+      "shape": {"union":[{"literal":"org"},{"literal":"project"},{"literal":"user"}]}
+    },
     "KnowledgePageField": {
       "file": "knowledge/problems.ts",
       "shape": {
@@ -989,7 +1005,7 @@
         "fields": {
           "movedTo": {"optional":true,"type":{"type":"string"}},
           "ownerId": {"type":{"type":"string"}},
-          "ownerType": {"type":{"union":[{"literal":"project"},{"literal":"user"}]}},
+          "ownerType": {"type":{"union":[{"literal":"org"},{"literal":"project"},{"literal":"user"}]}},
           "page": {"type":{"type":"string"}},
           "permanently": {"optional":true,"type":{"literal":true}},
           "versionId": {"optional":true,"type":{"type":"string"}}
@@ -1003,7 +1019,7 @@
           "new_string": {"type":{"type":"string"}},
           "old_string": {"type":{"type":"string"}},
           "ownerId": {"type":{"type":"string"}},
-          "ownerType": {"type":{"union":[{"literal":"project"},{"literal":"user"}]}},
+          "ownerType": {"type":{"union":[{"literal":"org"},{"literal":"project"},{"literal":"user"}]}},
           "page": {"type":{"type":"string"}},
           "replace_all": {"optional":true,"type":{"type":"boolean"}}
         }
@@ -1077,7 +1093,7 @@
       "shape": {
         "fields": {
           "ownerId": {"type":{"type":"string"}},
-          "ownerType": {"type":{"union":[{"literal":"project"},{"literal":"user"}]}},
+          "ownerType": {"type":{"union":[{"literal":"org"},{"literal":"project"},{"literal":"user"}]}},
           "page": {"optional":true,"type":{"type":"string"}}
         }
       }
@@ -1098,7 +1114,15 @@
       }
     },
     "LocationListFilesResult": {"file":"protocol/locationFiles.ts","shape":{"fields":{"entries":{"type":{"array":{"ref":"LocationEntry"}}}}}},
-    "LocationListKnowledgeParams": {"file":"protocol/locationFiles.ts","shape":{"ref":"StorageOwnerRef"}},
+    "LocationListKnowledgeParams": {
+      "file": "protocol/locationFiles.ts",
+      "shape": {
+        "fields": {
+          "ownerId": {"type":{"type":"string"}},
+          "ownerType": {"type":{"union":[{"literal":"org"},{"literal":"project"},{"literal":"user"}]}}
+        }
+      }
+    },
     "LocationListKnowledgeResult": {
       "file": "protocol/locationFiles.ts",
       "shape": {
@@ -1134,7 +1158,7 @@
         "fields": {
           "maxBytes": {"type":{"type":"number"}},
           "ownerId": {"type":{"type":"string"}},
-          "ownerType": {"type":{"union":[{"literal":"project"},{"literal":"user"}]}},
+          "ownerType": {"type":{"union":[{"literal":"org"},{"literal":"project"},{"literal":"user"}]}},
           "relPath": {"type":{"type":"string"}},
           "versionId": {"optional":true,"type":{"type":"string"}}
         }
@@ -1161,7 +1185,7 @@
       "shape": {
         "fields": {
           "ownerId": {"type":{"type":"string"}},
-          "ownerType": {"type":{"union":[{"literal":"project"},{"literal":"user"}]}},
+          "ownerType": {"type":{"union":[{"literal":"org"},{"literal":"project"},{"literal":"user"}]}},
           "page": {"type":{"type":"string"}},
           "versionId": {"type":{"type":"string"}}
         }
@@ -1174,7 +1198,7 @@
           "grep": {"optional":true,"type":{"ref":"KnowledgeGrepParams"}},
           "maxChars": {"deprecated":"since 1.7; stops working in 3.0. Use `grep` instead.","type":{"type":"number"}},
           "ownerId": {"type":{"type":"string"}},
-          "ownerType": {"type":{"union":[{"literal":"project"},{"literal":"user"}]}},
+          "ownerType": {"type":{"union":[{"literal":"org"},{"literal":"project"},{"literal":"user"}]}},
           "query": {"deprecated":"since 1.7; stops working in 3.0. Use `grep` instead.","type":{"type":"string"}}
         }
       }
@@ -1249,7 +1273,7 @@
           "content": {"type":{"type":"string"}},
           "movedFrom": {"optional":true,"type":{"type":"string"}},
           "ownerId": {"type":{"type":"string"}},
-          "ownerType": {"type":{"union":[{"literal":"project"},{"literal":"user"}]}},
+          "ownerType": {"type":{"union":[{"literal":"org"},{"literal":"project"},{"literal":"user"}]}},
           "page": {"type":{"type":"string"}}
         }
       }
@@ -2940,7 +2964,10 @@
           },
           "location.listKnowledge": {
             "type": {
-              "fields": {"params":{"type":{"ref":"StorageOwnerRef"}},"result":{"type":{"ref":"LocationListKnowledgeResult"}}}
+              "fields": {
+                "params": {"type":{"ref":"LocationListKnowledgeParams"}},
+                "result": {"type":{"ref":"LocationListKnowledgeResult"}}
+              }
             }
           },
           "location.remove": {

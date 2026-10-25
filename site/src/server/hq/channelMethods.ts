@@ -20,9 +20,10 @@ import {
 } from '@agenthix/core'
 import * as workspaceRows from '../storage/workspaceRows'
 import * as locationFiles from '../storage/locationFileMethods'
+import { listArtefacts, listKnowledge } from '../storage/ownerFolderMethods'
 import {
-  deleteKnowledge, editKnowledge, knowledgeVersions, listArtefacts, listKnowledge, restoreKnowledge, writeKnowledge,
-} from '../storage/ownerFolderMethods'
+  deleteKnowledge, editKnowledge, knowledgeVersions, restoreKnowledge, writeKnowledge,
+} from '../knowledge/changeMethods'
 import { searchKnowledge } from '../storage/knowledgeSearch'
 import { removeLocation } from '../storage/locationRemove'
 import * as repoWork from '../storage/repoWorkMethods'
@@ -157,7 +158,7 @@ export const channelMethods: ChannelHandlers = {
   [LOCATION_FILE_METHODS.listArtefacts]: (params) => listArtefacts(params),
   [LOCATION_FILE_METHODS.listKnowledge]: (params) => listKnowledge(params),
   [LOCATION_FILE_METHODS.searchKnowledge]: (params) => searchKnowledge(params),
-  // The gate and its history (site protocol 1.7): a fixed refusal until this site serves them.
+  // The gate and its history (site protocol 1.7, `../knowledge/changeMethods.ts`).
   [LOCATION_FILE_METHODS.writeKnowledge]: (params) => writeKnowledge(params),
   [LOCATION_FILE_METHODS.editKnowledge]: (params) => editKnowledge(params),
   [LOCATION_FILE_METHODS.deleteKnowledge]: (params) => deleteKnowledge(params),

@@ -27,6 +27,9 @@ import {
   ownerDir,
   getMemberDir,
   getArtefactsDir,
+  getKnowledgeDir,
+  knowledgePagesDir,
+  knowledgeVersionsDir,
 } from '../paths'
 
 const savedSiteRoot = process.env.SITE_ROOT
@@ -109,5 +112,28 @@ describe('a crafted id cannot escape the location it names', () => {
   it('refuses an artefacts directory built from a crafted owner', () => {
     expect(() => getArtefactsDir('project', '../etc')).toThrow(/Unsafe/)
     expect(() => getArtefactsDir('user', '/abs')).toThrow(/Unsafe/)
+  })
+})
+
+describe("an owner's knowledge root, outside the folder a run mounts @SC-1384", () => {
+  it('puts each owner kind under the knowledge root, the organisation as org/org', () => {
+    expect(getKnowledgeDir('project', 'p1')).toBe('/site/knowledge/projects/p1')
+    expect(getKnowledgeDir('user', 'u1')).toBe('/site/knowledge/users/u1')
+    expect(getKnowledgeDir('org', 'org')).toBe('/site/knowledge/org/org')
+  })
+
+  it('keeps pages and versions apart under it', () => {
+    expect(knowledgePagesDir({ ownerType: 'project', ownerId: 'p1' })).toBe('/site/knowledge/projects/p1/pages')
+    expect(knowledgeVersionsDir({ ownerType: 'org', ownerId: 'org' })).toBe('/site/knowledge/org/org/versions')
+  })
+
+  it('is never inside the owner folder a run mounts', () => {
+    expect(getKnowledgeDir('project', 'p1').startsWith(ownerDir('project', 'p1'))).toBe(false)
+    expect(getKnowledgeDir('user', 'u1').startsWith(ownerDir('user', 'u1'))).toBe(false)
+  })
+
+  it('refuses a crafted owner id', () => {
+    expect(() => getKnowledgeDir('project', '../etc')).toThrow(/Unsafe/)
+    expect(() => knowledgePagesDir({ ownerType: 'org', ownerId: '/abs' })).toThrow(/Unsafe/)
   })
 })

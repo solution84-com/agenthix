@@ -1,37 +1,36 @@
 /**
- * `location.searchKnowledge`: a bounded term search over an owner's `knowledge/`
- * files, answering with excerpts and where they came from.
- *
- * The files are those `listKnowledge` offers (so its bounds, hidden-entry and
- * link rules hold), and each is opened through `openInOwnerFolder` like a read,
- * so a link swapped in meanwhile is refused and the file left out. Nothing here
- * names a path on this disk. Matching is lexical on purpose: a site-side index
- * with the same embedding model as hq's memory can replace `rankExcerpts`
- * without changing the method.
+ * `location.searchKnowledge`. The `grep` form runs the file tools' Grep (ripgrep, with every guard of "Running a
+ * pattern safely") over the owner's `pages/` and answers in `grep`; the pattern is a model's and is never trusted.
+ * The deprecated `query` form (site protocol 1.6, until hq stops sending it) keeps its lexical matcher over the
+ * pages the itemiser lists, each opened through the file tools' verified open. Nothing here names a path on this disk.
  */
-import { constants as fsConstants } from 'node:fs'
+import path from 'node:path'
 import { z } from 'zod'
 import {
   LOCATION_FILE_METHODS,
-  WORKSPACE_OWNER_TYPES,
   type Exact,
+  type KnowledgeGrepHit,
+  type KnowledgeGrepParams,
+  type KnowledgeGrepResult,
   type KnowledgeSearchExcerpt,
   type LocationSearchKnowledgeParams,
   type LocationSearchKnowledgeResult,
 } from '@agenthix/core'
-import { openInOwnerFolder, parseParams } from './locationContainment'
-import { knowledgeNotServedYet, listKnowledge } from './ownerFolderMethods'
+import { grep, GrepRateLimiter, readTextFile, systemFdPaths, type GrepFound, type GrepParams } from '@agenthix/core/file-tools'
+import { itemiseKnowledge } from '../knowledge/itemiser'
+import { knowledgeOwnerShape, orgIdIsFixed } from '../knowledge/owner'
+import { pagesFolderOf } from '../knowledge/pagesRoot'
+import { parseParams } from './locationContainment'
 
 export const searchKnowledgeParams = z
   .object({
-    ownerType: z.enum(WORKSPACE_OWNER_TYPES),
-    ownerId: z.string().min(1),
+    ...knowledgeOwnerShape,
     query: z.string(),
     maxChars: z.number().int().nonnegative(),
-    // Grep's form (site protocol 1.7), accepted and refused below until this site runs ripgrep. Its fields are not
-    // read here, so they are taken as they come; the refusal happens before any of them could matter.
+    // Grep's form (site protocol 1.7). Taken as it comes: the file tools' own check judges every field.
     grep: z.object({ pattern: z.string() }).passthrough().optional() as z.ZodType<LocationSearchKnowledgeParams['grep']>,
   })
+  .refine(orgIdIsFixed)
 
 const _wireMirrorsCore: Exact<z.infer<typeof searchKnowledgeParams>, LocationSearchKnowledgeParams> = true
 void _wireMirrorsCore
@@ -147,34 +146,78 @@ export function rankExcerpts(
   return { excerpts, cut: [...cutFiles].sort() }
 }
 
-async function readKnowledgeText(owner: LocationSearchKnowledgeParams, relPath: string, method: string): Promise<string | null> {
-  try {
-    const { handle } = await openInOwnerFolder(owner, 'knowledge', method, relPath, fsConstants.O_RDONLY)
-    try {
-      const stat = await handle.stat()
-      if (!stat.isFile() || stat.size > MAX_FILE_BYTES) return null
-      const text = await handle.readFile({ encoding: 'utf8' })
-      return text.includes('\u0000') ? null : text
-    } finally {
-      await handle.close().catch(() => {})
+const GREP_KEYS: (keyof KnowledgeGrepParams)[] = [
+  'pattern', 'path', 'glob', 'output_mode', '-i', '-n', '-A', '-B', '-C', 'head_limit', 'offset',
+]
+
+function hitsOf(found: GrepFound): KnowledgeGrepHit[] {
+  if (found.mode === 'files_with_matches') return found.filenames.map(page => ({ page }))
+  if (found.mode === 'count') return found.counts.map(c => ({ page: c.file, count: c.count }))
+  const hits: KnowledgeGrepHit[] = []
+  for (const l of found.lines) {
+    if (l.kind === 'break') continue
+    if (l.kind === 'binary') hits.push({ page: l.file, text: l.text })
+    else {
+      hits.push({
+        page: l.file,
+        ...(found.showLineNumbers ? { line: l.line } : {}),
+        text: l.text,
+        ...(l.kind === 'context' ? { context: true as const } : {}),
+      })
     }
-  } catch {
-    // A file that cannot be opened safely is left out of the search, as a link is left out of the listing.
-    return null
   }
+  return hits
+}
+
+/**
+ * hq limits each run and conversation to the file tools' 30 searches a minute. Here the key is the owner, which every
+ * caller in the organisation shares for `org`, so the site's limit is only a backstop against flooding the machine:
+ * high enough that one busy caller never uses up an owner for everyone else.
+ */
+export const OWNER_SEARCHES_PER_MINUTE = 600
+const ownerLimiter = new GrepRateLimiter(OWNER_SEARCHES_PER_MINUTE)
+
+/** One owner's pages searched by Grep's parameters; a refusal is an answer with one of the file tools' fixed messages. */
+async function grepPages(owner: LocationSearchKnowledgeParams, params: KnowledgeGrepParams): Promise<KnowledgeGrepResult> {
+  // Only Grep's own parameters go on: nothing else the caller sent is looked at.
+  const picked: Record<string, unknown> = {}
+  for (const key of GREP_KEYS) if (params[key] !== undefined) picked[key] = params[key]
+  const folder = pagesFolderOf(owner)
+  const mode = (picked.output_mode as KnowledgeGrepParams['output_mode']) ?? 'files_with_matches'
+  if (folder.kind !== 'ok') return { outcome: 'done', mode, hits: [] }
+  const result = await grep(folder.real, picked as GrepParams, { callerKey: `knowledge:${owner.ownerType}:${owner.ownerId}`, limiter: ownerLimiter })
+  if (!result.ok) return { outcome: 'refused', message: result.message }
+  return {
+    outcome: 'done',
+    mode: result.mode,
+    hits: hitsOf(result),
+    ...(result.nextOffset !== undefined ? { nextOffset: result.nextOffset } : {}),
+  }
+}
+
+function readPageText(root: string, page: string): string | null {
+  const read = readTextFile(systemFdPaths(), path.join(root, page))
+  if (!read.ok || read.bytes.length > MAX_FILE_BYTES) return null
+  const text = Buffer.from(read.bytes).toString('utf8')
+  return text.includes('\u0000') ? null : text
 }
 
 export async function searchKnowledge(params: unknown): Promise<LocationSearchKnowledgeResult> {
   const method = LOCATION_FILE_METHODS.searchKnowledge
   const parsed = parseParams(searchKnowledgeParams, params, method)
-  if (parsed.grep !== undefined) knowledgeNotServedYet(method)
+  if (parsed.grep !== undefined) {
+    return { excerpts: [], cut: [], truncated: false, grep: await grepPages(parsed, parsed.grep) }
+  }
   const terms = queryTerms(parsed.query)
-  const { files, truncated } = await listKnowledge({ ownerType: parsed.ownerType, ownerId: parsed.ownerId })
-  if (!terms.length) return { excerpts: [], cut: [], truncated }
+  const { files, truncated } = itemiseKnowledge(parsed)
+  if (!terms.length || !files.length) return { excerpts: [], cut: [], truncated }
+  const folder = pagesFolderOf(parsed)
+  if (folder.kind !== 'ok') return { excerpts: [], cut: [], truncated }
+  const real = folder.real
   const ordered = [...files].sort((a, b) => Number(isIndex(b.path)) - Number(isIndex(a.path)))
   const texts: KnowledgeFileText[] = []
   for (const file of ordered.slice(0, MAX_FILES_READ)) {
-    const text = await readKnowledgeText(parsed, file.path, method)
+    const text = readPageText(real, file.path)
     if (text !== null) texts.push({ path: file.path, text })
   }
   const { excerpts, cut } = rankExcerpts(texts, terms, parsed.maxChars)

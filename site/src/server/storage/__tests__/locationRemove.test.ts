@@ -16,7 +16,7 @@ vi.mock('#db', () => ({ prisma: {} }))
 
 import { removeLocation, REMOVE_LOCATION_PARAMS_SHAPE } from '../locationRemove'
 import { channelMethods } from '../../hq/channelMethods'
-import { locationDir, ownerDir } from '../paths'
+import { getKnowledgeDir, locationDir, ownerDir } from '../paths'
 
 let root: string
 let outside: string
@@ -65,6 +65,18 @@ describe('location.remove — a whole owner', () => {
     const owner = await seedProject('proj-1')
     expect(await removeLocation({ loc: { ownerType: 'project', ownerId: 'proj-1' }, wholeOwner: true })).toEqual({ removed: true })
     expect(await exists(owner)).toBe(false)
+  })
+
+  it('deletes the owner\'s knowledge too, which lives outside its folder @SC-1384', async () => {
+    await seedProject('proj-1')
+    const knowledge = getKnowledgeDir('project', 'proj-1')
+    await fs.mkdir(path.join(knowledge, 'pages', 'processes'), { recursive: true })
+    await fs.writeFile(path.join(knowledge, 'pages', 'processes', 'release.md'), '# release\n')
+    const other = getKnowledgeDir('project', 'proj-2')
+    await fs.mkdir(path.join(other, 'pages'), { recursive: true })
+    expect(await removeLocation({ loc: { ownerType: 'project', ownerId: 'proj-1' }, wholeOwner: true })).toEqual({ removed: true })
+    expect(await exists(knowledge)).toBe(false)
+    expect(await exists(other)).toBe(true)
   })
 
   it('leaves every other owner alone', async () => {

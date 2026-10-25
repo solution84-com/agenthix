@@ -46,7 +46,7 @@
  */
 import type { LocationRef, StorageOwnerType } from '../storage/locationRef.js'
 import type {
-  KnowledgeGrepParams, KnowledgeGrepResult, KnowledgePageListing, KnowledgeSection,
+  KnowledgeGrepParams, KnowledgeGrepResult, KnowledgeOwnerRef, KnowledgePageListing, KnowledgeSection,
 } from './locationKnowledge.js'
 
 export * from './locationKnowledge.js'
@@ -384,7 +384,7 @@ export interface LocationReadArtefactParams extends StorageOwnerRef {
   maxBytes: number
 }
 
-export type LocationListKnowledgeParams = StorageOwnerRef
+export interface LocationListKnowledgeParams extends KnowledgeOwnerRef {}
 
 /**
  * An owner's knowledge, up to `KNOWLEDGE_LIST_MAX_FILES` pages and
@@ -405,7 +405,7 @@ export interface LocationListKnowledgeResult {
  * `versionId` one of its kept versions (a deleted page's included).
  * `maxBytes` as for an artefact.
  */
-export interface LocationReadKnowledgeParams extends StorageOwnerRef {
+export interface LocationReadKnowledgeParams extends KnowledgeOwnerRef {
   relPath: string
   maxBytes: number
   versionId?: string
@@ -417,7 +417,7 @@ export interface LocationReadKnowledgeParams extends StorageOwnerRef {
  * on 1.6 answers the old way: the query split into terms, the best matching lines with a few lines of context,
  * until `maxChars` of text.
  */
-export interface LocationSearchKnowledgeParams extends StorageOwnerRef {
+export interface LocationSearchKnowledgeParams extends KnowledgeOwnerRef {
   /** @deprecated since 1.7; stops working in 3.0. Use `grep` instead. */
   query: string
   /** @deprecated since 1.7; stops working in 3.0. Use `grep` instead. */

@@ -24,7 +24,22 @@
  * starter documents do; reading a page stays on the content transport (`location.readKnowledge`).
  */
 import type { KnowledgePageProblem } from '../knowledge/problems.js'
-import type { StorageOwnerRef } from './locationFiles.js'
+import { WORKSPACE_OWNER_TYPES } from './siteData.js'
+
+/**
+ * Who a knowledge method is about: a project, a person, or the organisation. Only the knowledge methods take the
+ * organisation; files, workspaces and mounts stay a person's or a project's (`StorageOwnerType`). The organisation's
+ * own knowledge sits on its default site, and a site holds one organisation's, so its `ownerId` is always
+ * `KNOWLEDGE_ORG_OWNER_ID`.
+ */
+export const KNOWLEDGE_OWNER_TYPES = [...WORKSPACE_OWNER_TYPES, 'org'] as const
+export type KnowledgeOwnerType = (typeof KNOWLEDGE_OWNER_TYPES)[number]
+export const KNOWLEDGE_ORG_OWNER_ID = 'org'
+
+export interface KnowledgeOwnerRef {
+  ownerType: KnowledgeOwnerType
+  ownerId: string
+}
 
 export type KnowledgeChangeKind = 'created' | 'edited' | 'moved' | 'deleted' | 'restored'
 
@@ -114,7 +129,7 @@ export interface KnowledgePageListing {
 // ── Changes: the gate ───────────────────────────────────────────────────────
 
 /** A whole page (G2: a write is the whole page and carries the version it started from). */
-export interface LocationWriteKnowledgeParams extends StorageOwnerRef {
+export interface LocationWriteKnowledgeParams extends KnowledgeOwnerRef {
   page: string
   content: string
   /** The version the change started from, as a read gave it; null to make a page that is not there yet. */
@@ -124,7 +139,7 @@ export interface LocationWriteKnowledgeParams extends StorageOwnerRef {
 }
 
 /** A passage replaced, under Edit's own names: found exactly once unless `replace_all`, by exact matching. */
-export interface LocationEditKnowledgeParams extends StorageOwnerRef {
+export interface LocationEditKnowledgeParams extends KnowledgeOwnerRef {
   page: string
   old_string: string
   new_string: string
@@ -136,7 +151,7 @@ export interface LocationEditKnowledgeParams extends StorageOwnerRef {
  * `permanently` removes at once instead, and for good: the page and all its versions, or, with `versionId`, that one
  * kept version only (a pasted password, a person's details).
  */
-export interface LocationDeleteKnowledgeParams extends StorageOwnerRef {
+export interface LocationDeleteKnowledgeParams extends KnowledgeOwnerRef {
   page: string
   /** The page it was moved to, when this delete is the second half of a move. */
   movedTo?: string
@@ -145,7 +160,7 @@ export interface LocationDeleteKnowledgeParams extends StorageOwnerRef {
 }
 
 /** A kept version saved back as the page, through the gate, as a new version. Restores a deleted page too. */
-export interface LocationRestoreKnowledgeParams extends StorageOwnerRef {
+export interface LocationRestoreKnowledgeParams extends KnowledgeOwnerRef {
   page: string
   versionId: string
 }
@@ -188,7 +203,7 @@ export type KnowledgeChangeResult =
 // ── History ─────────────────────────────────────────────────────────────────
 
 /** One page's kept versions, newest first; with no `page`, the recently deleted pages. */
-export interface LocationKnowledgeVersionsParams extends StorageOwnerRef {
+export interface LocationKnowledgeVersionsParams extends KnowledgeOwnerRef {
   page?: string
 }
 

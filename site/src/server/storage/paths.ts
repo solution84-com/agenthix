@@ -20,7 +20,7 @@
 import path from 'node:path'
 import { getSiteRoot } from '../../agents/agentDiskPaths'
 import type { WorkspaceOwnerType } from '@prisma/client'
-import type { LocationRef } from '@agenthix/core'
+import type { KnowledgeOwnerRef, KnowledgeOwnerType, LocationRef } from '@agenthix/core'
 
 export type { LocationRef }
 
@@ -32,6 +32,8 @@ const PLURAL: Record<WorkspaceOwnerType, string> = {
   project: 'projects',
   user: 'users',
 }
+
+const KNOWLEDGE_PLURAL: Record<KnowledgeOwnerType, string> = { ...PLURAL, org: 'org' }
 
 // ids are system-generated uuids; guard anyway so a crafted id can't escape the root.
 function assertSafeId(id: string): void {
@@ -88,17 +90,39 @@ export function getMemberDir(projectId: string, userId: string): string {
 }
 
 /**
- * An owner's knowledge: the notes every agent running in that owner's storage
- * reads. A sibling of `files/` and `artefacts/`, mounted whole into a run.
+ * An owner's knowledge root (agent knowledge spec, part 2, *Where it is stored*):
+ * `{STORAGE_ROOT}/knowledge/<projects|users|org>/<id>`, holding `pages/` and
+ * `versions/`. Outside the owner's folder on purpose: a run mounts that folder
+ * whole, and Docker cannot leave one folder out of a bind, so knowledge lives
+ * where no run reaches it and the only way to change it is the gate
+ * (`../knowledge/gate.ts`). The organisation's id is always
+ * `KNOWLEDGE_ORG_OWNER_ID`. A `knowledge/` folder left inside an owner's folder
+ * by an older site is ignored, never converted.
  */
-export function getKnowledgeDir(ownerType: WorkspaceOwnerType, ownerId: string): string {
-  return path.join(ownerDir(ownerType, ownerId), 'knowledge')
+export function getKnowledgeDir(ownerType: KnowledgeOwnerType, ownerId: string): string {
+  assertSafeId(ownerId)
+  return path.join(getStorageRoot(), 'knowledge', KNOWLEDGE_PLURAL[ownerType], ownerId)
+}
+
+/** Every owner kind's folder under the knowledge root, for a walk over all owners (pruning). */
+export function getKnowledgeKindDir(ownerType: KnowledgeOwnerType): string {
+  return path.join(getStorageRoot(), 'knowledge', KNOWLEDGE_PLURAL[ownerType])
+}
+
+/** The pages themselves, in any sections: `pages/<sections…>/<page>.md`. */
+export function knowledgePagesDir(owner: KnowledgeOwnerRef): string {
+  return path.join(getKnowledgeDir(owner.ownerType, owner.ownerId), 'pages')
+}
+
+/** Earlier and deleted pages: `versions/<page path>/<version id>.md` (`../knowledge/versionStore.ts`). */
+export function knowledgeVersionsDir(owner: KnowledgeOwnerRef): string {
+  return path.join(getKnowledgeDir(owner.ownerType, owner.ownerId), 'versions')
 }
 
 /**
  * Where an artefact lives: a file an agent produced for people to read back,
  * kept in the storage of the boundary the work was done for, because that is
- * who it is for. A sibling of `files/` and `knowledge/`, so a run reaches it the
+ * who it is for. A sibling of `files/`, so a run reaches it the
  * same way it reaches the rest of that owner's storage, and hq serves it back
  * addressed by the boundary rather than by whichever agent happened to write it.
  *
