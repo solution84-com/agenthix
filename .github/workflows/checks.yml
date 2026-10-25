@@ -220,6 +220,7 @@ jobs:
           cd hq && npm run typecheck:guide
       - name: Unit tests
         run: |
+          sudo apt-get install -y --no-install-recommends ripgrep   # the knowledge search and the platform guide run it
           cd hq && npm test
       - name: hq-web's start-time address step
         run: |
@@ -342,6 +343,7 @@ jobs:
           (cd site/opencode-plugin && npm run typecheck)
       - name: Unit tests
         run: |
+          sudo apt-get install -y --no-install-recommends ripgrep   # the knowledge search runs it
           cd site && npm test
 
   site-integration:
