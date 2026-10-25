@@ -38,7 +38,7 @@ A second user for commands would not change this: the harness still follows the 
 
 ### How Agenthix's file tools open a file
 
-Every file the plugin's tools touch goes through `site/opencode-plugin/src/files/verifiedFs.ts`:
+Every file the plugin's tools touch goes through `core/src/fileTools/verifiedFs.ts` (`@agenthix/core/file-tools`). The same module holds the grep, read, write and edit that the [knowledge tools](../mcp/tools.md#what-the-knowledge-tools-do) run on, with Claude Code's names and exact matching; the plugin keeps OpenCode's shape and its matching copied from OpenCode, and both get the same guards:
 
 1. The gate's allow carries the call's arguments with each checked path replaced by its real path, and
    the plugin puts those arguments in place of the model's (`replaceArgs`, `hooks.ts`).
@@ -153,7 +153,7 @@ requires and the vendor-guidance check
 |---|---|
 | `site/opencode-plugin/src/index.ts`, `plugin.ts` | The plugin OpenCode loads, and the hooks and tools it registers |
 | `site/opencode-plugin/src/hooks.ts` | `tool.execute.before` (the gate), `shell.env` (tag, secrets), `chat.headers` (the relay token) |
-| `site/opencode-plugin/src/files/` | `read`, `write`, `edit`, `apply_patch`, and `verifiedFs.ts`, which opens first and checks |
+| `site/opencode-plugin/src/files/` | `read`, `write`, `edit`, `apply_patch`, on `@agenthix/core/file-tools` (`core/src/fileTools/verifiedFs.ts`), which opens first and checks |
 | `site/opencode-plugin/src/skillTool.ts` | The per-conversation `skill` tool |
 | `site/src/agents/runtime/opencode/openCodeNames.ts` | OpenCode's tool names and arguments to the gate's canonical ones |
 | `site/src/agents/runtime/opencode/openCodeConfig.ts` | The server's configuration and environment: what is on, off and denied |

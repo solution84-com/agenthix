@@ -9,12 +9,12 @@ import { extractConnection } from './protocolSnapshot/extract.js'
 import { judge } from './protocolSnapshot/rules.js'
 import { canonical } from './protocolSnapshot/shape.js'
 
-// Core has no Node type declarations; vitest runs under Node.
+// Read through globalThis: only core/src/fileTools may use Node (nodeOnly.test.ts); vitest runs under Node.
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {}
 const UPDATE = env.PROTOCOL_SNAPSHOT_UPDATE === '1'
 const program = coreProgram()
 
-describe('every connection matches its committed shape snapshot @SC-1133', () => {
+describe('every connection matches its committed shape snapshot @SC-1133 @SC-1383', () => {
   for (const connection of CONNECTIONS) {
     it(connection.name, () => {
       const now = extractConnection(program, CORE_SRC, connection)

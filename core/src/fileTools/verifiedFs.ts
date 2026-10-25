@@ -16,6 +16,9 @@
  *
  * Whatever the site allowed, these never open anything in `/proc`, and never
  * open for writing anything in the harness home.
+ *
+ * Node-only. The types it exports name nothing of Node's, so the package's
+ * declarations check without Node's type declarations.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -106,7 +109,24 @@ function openChecked(sys: FdPaths, p: string, flags: number, forbidden: string[]
   return verify(sys, fd, p, forbidden)
 }
 
-export type Opened = { fd: number; stat: fs.Stats }
+/** What these helpers say of a file: the part of `fs.Stats` the tools use. */
+export type FileStat = {
+  size: number
+  mtimeMs: number
+  isFile(): boolean
+  isDirectory(): boolean
+  isSymbolicLink(): boolean
+}
+
+/** One entry of a folder: the part of `fs.Dirent` the tools use. */
+export type FolderEntry = {
+  name: string
+  isFile(): boolean
+  isDirectory(): boolean
+  isSymbolicLink(): boolean
+}
+
+export type Opened = { fd: number; stat: FileStat }
 
 /** A file or folder to read, opened at exactly `p`. Throws NotFoundError when nothing is there. */
 export function openForRead(sys: FdPaths, p: string): Opened {
@@ -158,7 +178,7 @@ function inCheckedFolder<T>(sys: FdPaths, p: string, fn: (entry: string) => T): 
 }
 
 /** What is at exactly `p`, a link itself rather than what it leads to, never in the harness home. */
-export function entryStat(sys: FdPaths, p: string): fs.Stats {
+export function entryStat(sys: FdPaths, p: string): FileStat {
   return inCheckedFolder(sys, p, entry => fs.lstatSync(entry))
 }
 
@@ -228,7 +248,7 @@ export function openFileForWrite(sys: FdPaths, p: string): Opened & { created: b
 }
 
 /** Every byte of an open file. */
-export function readAll(fd: number): Buffer {
+export function readAll(fd: number): Uint8Array {
   const chunks: Buffer[] = []
   let position = 0
   for (;;) {
@@ -242,14 +262,14 @@ export function readAll(fd: number): Buffer {
 }
 
 /** Replaces an open file's contents. */
-export function replaceContents(fd: number, data: Buffer): void {
+export function replaceContents(fd: number, data: Uint8Array): void {
   fs.ftruncateSync(fd, 0)
   let written = 0
   while (written < data.length) written += fs.writeSync(fd, data, written, data.length - written, written)
 }
 
 /** The entries of an open folder, read through its descriptor. */
-export function listFolder(sys: FdPaths, fd: number): fs.Dirent[] {
+export function listFolder(sys: FdPaths, fd: number): FolderEntry[] {
   return fs.readdirSync(sys.child(fd, '.'), { withFileTypes: true })
 }
 

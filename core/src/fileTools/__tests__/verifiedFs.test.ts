@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest'
 import {
   closeQuietly, NotFoundError, openExistingForChange, openExistingForWrite, openFileForWrite, openForRead, PathChangedError, readAll,
   removeFile, replaceContents,
-} from '../files/verifiedFs'
-import { tempDir, testFdPaths } from './helpers'
+} from '../verifiedFs.js'
+import { tempDir, testFdPaths } from './helpers.js'
 
 function project() {
   const root = tempDir()
@@ -17,13 +17,13 @@ function project() {
   return { root, secret, p: path.join(root, 'p') }
 }
 
-describe('opening only the checked path', () => {
+describe('opening only the checked path @SC-1369', () => {
   it('opens a file that is where it was checked, and reads it through the descriptor', () => {
     const { p } = project()
     const opened = openForRead(testFdPaths(), path.join(p, 'a.txt'))
     try {
       expect(opened.stat.isFile()).toBe(true)
-      expect(readAll(opened.fd).toString()).toBe('hello')
+      expect(Buffer.from(readAll(opened.fd)).toString()).toBe('hello')
     } finally {
       closeQuietly(opened.fd)
     }
@@ -77,7 +77,7 @@ describe('opening only the checked path', () => {
   })
 })
 
-describe('writing through the checked descriptor', () => {
+describe('writing through the checked descriptor @SC-1369', () => {
   it('creates a file with its missing folders, each made inside its checked parent', () => {
     const { p } = project()
     const target = path.join(p, 'x', 'y', 'new.txt')
@@ -132,12 +132,12 @@ describe('writing through the checked descriptor', () => {
   })
 })
 
-describe('changing and removing only the checked path', () => {
+describe('changing and removing only the checked path @SC-1369', () => {
   it('opens an existing file to change read-only, and never one in the harness home', () => {
     const { p } = project()
     const opened = openExistingForChange(testFdPaths(), path.join(p, 'a.txt'))
     try {
-      expect(readAll(opened.fd).toString()).toBe('hello')
+      expect(Buffer.from(readAll(opened.fd)).toString()).toBe('hello')
     } finally {
       closeQuietly(opened.fd)
     }

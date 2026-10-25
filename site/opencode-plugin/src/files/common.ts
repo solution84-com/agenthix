@@ -7,7 +7,7 @@
 import path from 'node:path'
 import type { ToolContext } from '@opencode-ai/plugin/tool'
 import type { z } from 'zod'
-import { NotFoundError } from './verifiedFs'
+import { NotFoundError } from '@agenthix/core/file-tools'
 
 export function contains(parent: string, child: string): boolean {
   const result = path.relative(parent, child)
