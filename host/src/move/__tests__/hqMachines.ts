@@ -58,7 +58,9 @@ export async function hqMachines(): Promise<HqTwo> {
   writePin(old.ctx.state, pin('h-old', 'http://127.0.0.1:4100', true))
   writePin(fresh.ctx.state, pin('h-new', OLD, false))
   for (const m of [old, fresh]) {
-    setTimings(m.ctx, QUICK)
+    // Idle is real time: a move of hq carries more than a site's, and on a busy machine (or CI with every module's suite
+    // at once) a frame can take longer than QUICK's 3 s, which ends the move as idle mid-test.
+    setTimings(m.ctx, { ...QUICK, idleMs: 15_000 })
     Object.assign(m.hq, { 'read-only': ok(), 'address-move': ok('told', { sites: { told: 1, of: 1 }, hosts: { told: 1, of: 1 }, console: false }), 'transfer-open': ok('Open.', { opened: true }) })
   }
   old.backups.databases.set('agenthix_hq', Buffer.from('the hq rows'))
