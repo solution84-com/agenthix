@@ -200,6 +200,9 @@ jobs:
           for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../hq/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
           test -e ui/node_modules/@types/react/index.d.ts
       - name: Install the Wasp dependencies and compile
+        # Building Wasp's SDK type-checks every operation, and grew past Node's default heap on the runner.
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
         run: |
           cd hq
           # The Wasp CLI is the version hq pins as a dev dependency, never a global one.
@@ -423,6 +426,9 @@ jobs:
           for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../hq/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
           test -e ui/node_modules/@types/react/index.d.ts
       - name: Install the Wasp dependencies and compile
+        # Building Wasp's SDK type-checks every operation, and grew past Node's default heap on the runner.
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
         run: |
           cd hq
           # The Wasp CLI is the version hq pins as a dev dependency, never a global one.
