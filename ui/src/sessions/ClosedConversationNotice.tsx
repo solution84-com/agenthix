@@ -3,8 +3,7 @@
  * it is closed, and a way to start a new conversation with the same agent.
  *
  * Presentational only. The words are composed by the app — `closedConversationCopy`
- * in hq — because `@agenthix/ui` has no test runner, and a copy rule written
- * here would be a rule nobody runs. What starting a new conversation does is the
+ * in hq, which tests it. What starting a new conversation does is the
  * app's too.
  */
 import { MessageSquarePlus } from 'lucide-react'

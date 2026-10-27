@@ -2,8 +2,7 @@
  * Names the Execution Sites a view could not get an answer from.
  *
  * Presentational only. The words are composed by the app — `unansweredSitesCopy`
- * in hq — because `@agenthix/ui` has no test runner, and a copy rule written
- * here would be a rule nobody runs. This component decides how the lines look
+ * in hq, which tests it. This component decides how the lines look
  * and nothing about what they say.
  *
  * It renders nothing when `copy` is null, which is what the composer returns

@@ -138,7 +138,7 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
 - `StatePill` (a state in words, its tone only repeating them: healthy, warning, danger, neutral) and
   `HostingBadge` with `hostingLabel` (where a site runs, *Self-hosted* or *Agenthix Cloud*, the same in every portal
   — U3); both used by the Fleet Console today
-- `UnansweredSitesNotice` (presenter — takes composed copy; the app writes the words, because `ui` has no test runner and a copy rule here would be untested)
+- `UnansweredSitesNotice` (presenter — takes composed copy; the app writes and tests the words)
 
 **`ui/src/tasks/`** — task-domain composites:
 - `KeyBadge`, `StatusBadge`, `PriorityBadge`, `RunStateBadge` (renders nothing when no run is pending; `wait` is its tooltip)
@@ -164,6 +164,10 @@ Current contents of `@agenthix/ui` (canonical; hq consumes them):
   - `RoundLineBar` — one line above the columns of a board whose project throttles: the round in progress, or the next
   - Pure rules in `cardState.ts` and `columnsModel.ts`
 - **The Timeline's presenters** (`ui/src/timeline/`, adr-0098): `Timeline` with `TimelineToolbar`, `TimelineRows`, `TaskBar` (a task's plan as its bar, ▶ its start, its runs as slices; dragging changes only the plan) and `TimelineAgenda` (the narrow and phone view); pure rules in `layout.ts` (the chart's range, its width and scroll position), `rows.ts` and `agenda.ts`
+
+**`ui/src/files/`** (`@agenthix/ui/files`, adr-0155) — the renderer boundary:
+- `FileFrame` — the frame around every file shown: breadcrumb, title, facts line, Mention, Download (a link through the relay, greyed only when the relay or the site isn't answering), ⋯ (Copy link, Copy path, Open full screen), and every state in words (`frameStates.ts`); opened or embedded (a card for a kind whose renderer does not embed). Takes hq's open answer and callbacks
+- The registry (`RENDERERS`, `createRegistry`) and the `Renderer` entry: a renderer is given the file's facts and its bytes, and reports one state; each lives in `renderers/<name>/`. `createFileBytes` reads a ticket link by range, with no credentials, aborted when the renderer unmounts
 
 **`ui/src/sessions/`** — session/chat-domain composites:
 - `ChatPanel` — width-responsive master-detail chat panel (session list + chat view, two-pane or single-pane by width)
