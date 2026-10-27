@@ -1,4 +1,5 @@
 import {
+  MAX_STREAM_WINDOW_BYTES,
   type ContentErrorCode,
   encodeControlFrame,
   parseControlFrame,
@@ -36,6 +37,27 @@ type StreamState = {
   localEnded: boolean
   /** The peer has ended its half. */
   remoteEnded: boolean
+  /**
+   * Bytes this side may still send, when the stream was opened with a window (the server's view); null is unlimited.
+   */
+  sendWindow: number | null
+  /** Bytes the peer may still send, when we opened the stream with a window (the opener's view); null is unlimited. */
+  receiveWindow: number | null
+  /** Writes waiting for credit; woken by credit or by the stream going away. */
+  waiting: Array<() => void>
+}
+
+export interface OpenOptions {
+  /** Bytes the server may send before it waits for `credit`; omitted, the stream is unlimited. */
+  window?: number
+}
+
+function isWindow(value: number, min: number): boolean {
+  return Number.isInteger(value) && value >= min && value <= MAX_STREAM_WINDOW_BYTES
+}
+
+function newStream(events: StreamEvents | null, sendWindow: number | null, receiveWindow: number | null): StreamState {
+  return { events, localEnded: false, remoteEnded: false, sendWindow, receiveWindow, waiting: [] }
 }
 
 export class StreamMux {
@@ -50,12 +72,28 @@ export class StreamMux {
     return this.streams.size
   }
 
-  open(method: string, params: unknown, events: StreamEvents): number {
+  open(method: string, params: unknown, events: StreamEvents, options: OpenOptions = {}): number {
     if (this.role !== 'opener') throw new Error('Only the opener opens streams; a site answers them')
+    const { window } = options
+    if (window !== undefined && !isWindow(window, 0)) throw new Error(`A stream window is 0 to ${MAX_STREAM_WINDOW_BYTES} bytes`)
     const id = this.nextId++
-    this.streams.set(id, { events, localEnded: false, remoteEnded: false })
-    this.out.sendText(encodeControlFrame({ t: 'open', id, method, params }))
+    this.streams.set(id, newStream(events, null, window ?? null))
+    this.out.sendText(encodeControlFrame(
+      window === undefined ? { t: 'open', id, method, params } : { t: 'open', id, method, params, window },
+    ))
     return id
+  }
+
+  /** Lets the server send `bytes` more on a stream opened with a window: call it as the reader takes what arrived. */
+  credit(id: number, bytes: number): void {
+    if (this.role !== 'opener') throw new Error('Only the opener grants credit; it is the one reading')
+    const stream = this.streams.get(id)
+    if (!stream || stream.receiveWindow === null || stream.remoteEnded) return
+    if (!isWindow(bytes, 1) || !isWindow(stream.receiveWindow + bytes, 0)) {
+      throw new Error(`Credit of ${bytes} bytes would take stream ${id}'s window past ${MAX_STREAM_WINDOW_BYTES}`)
+    }
+    stream.receiveWindow += bytes
+    this.out.sendText(encodeControlFrame({ t: 'credit', id, bytes }))
   }
 
   accept(id: number, events: StreamEvents): void {
@@ -70,10 +108,19 @@ export class StreamMux {
     const stream = this.streams.get(id)
     if (!stream) throw new Error(`Stream ${id} is not open`)
     if (stream.localEnded) throw new Error(`Stream ${id} has ended its half`)
-    for (const piece of chunkPayload(payload)) {
-      // Re-checked per chunk: the stream can fail while an earlier chunk flushes.
-      if (!this.streams.has(id)) throw new Error(`Stream ${id} closed during write`)
-      await this.out.sendBinary(encodeDataFrame(id, piece))
+    for (let piece of chunkPayload(payload)) {
+      while (piece.length > 0) {
+        // Re-checked per frame: the stream can fail while an earlier frame flushes or while it waits for credit.
+        if (this.streams.get(id) !== stream) throw new Error(`Stream ${id} closed during write`)
+        if (stream.sendWindow === 0) {
+          await new Promise<void>(resolve => { stream.waiting.push(resolve) })
+          continue
+        }
+        const size = stream.sendWindow === null ? piece.length : Math.min(piece.length, stream.sendWindow)
+        if (stream.sendWindow !== null) stream.sendWindow -= size
+        await this.out.sendBinary(encodeDataFrame(id, piece.subarray(0, size)))
+        piece = piece.subarray(size)
+      }
     }
   }
 
@@ -86,14 +133,12 @@ export class StreamMux {
   }
 
   fail(id: number, code: ContentErrorCode, message: string): void {
-    if (!this.streams.has(id)) return
-    this.streams.delete(id)
+    if (!this.drop(id)) return
     this.out.sendText(encodeControlFrame({ t: 'error', id, code, message }))
   }
 
   cancel(id: number): void {
-    if (this.role !== 'opener' || !this.streams.has(id)) return
-    this.streams.delete(id)
+    if (this.role !== 'opener' || !this.drop(id)) return
     this.out.sendText(encodeControlFrame({ t: 'cancel', id }))
   }
 
@@ -110,12 +155,23 @@ export class StreamMux {
     // Data for a stream that has failed, been cancelled, or never existed is
     // dropped: it is either late or wrong, and neither is worth closing over.
     if (!stream?.events || stream.remoteEnded) return
+    if (stream.receiveWindow !== null) {
+      if (frame.payload.length > stream.receiveWindow) {
+        // A peer that ignores the window: its bytes would otherwise be held without bound.
+        const message = `Stream ${frame.id} sent past the window it was given`
+        this.fail(frame.id, 'protocol', message)
+        stream.events.onError('protocol', message)
+        return
+      }
+      stream.receiveWindow -= frame.payload.length
+    }
     stream.events.onData(frame.payload)
   }
 
   closeAll(code: ContentErrorCode, message: string): void {
     const streams = [...this.streams.values()]
     this.streams.clear()
+    for (const s of streams) this.wakeWriters(s)
     for (const s of streams) s.events?.onError(code, message)
   }
 
@@ -131,7 +187,7 @@ export class StreamMux {
           return
         }
         if (this.streams.has(frame.id)) return
-        this.streams.set(frame.id, { events: null, localEnded: false, remoteEnded: false })
+        this.streams.set(frame.id, newStream(null, frame.window ?? null, null))
         if (this.onOpen) this.onOpen(frame.id, frame.method, frame.params)
         else this.fail(frame.id, 'unknown_method', `Unknown method: ${frame.method}`)
         return
@@ -152,21 +208,50 @@ export class StreamMux {
       case 'error': {
         const stream = this.streams.get(frame.id)
         if (!stream) return
-        this.streams.delete(frame.id)
+        this.drop(frame.id)
         stream.events?.onError(frame.code, frame.message)
         return
       }
       case 'cancel': {
         const stream = this.streams.get(frame.id)
         if (!stream || this.role !== 'server') return
-        this.streams.delete(frame.id)
+        this.drop(frame.id)
         stream.events?.onError('cancelled', 'Cancelled by hq')
+        return
+      }
+      case 'credit': {
+        // Late credit for a stream already over is normal, and credit for a stream without a window means nothing.
+        const stream = this.streams.get(frame.id)
+        if (!stream || this.role !== 'server' || stream.sendWindow === null) return
+        if (stream.sendWindow + frame.bytes > MAX_STREAM_WINDOW_BYTES) {
+          const message = `Credit took stream ${frame.id}'s window past ${MAX_STREAM_WINDOW_BYTES} bytes`
+          this.fail(frame.id, 'protocol', message)
+          stream.events?.onError('protocol', message)
+          return
+        }
+        stream.sendWindow += frame.bytes
+        this.wakeWriters(stream)
         return
       }
     }
   }
 
   private forgetIfDone(id: number, stream: StreamState): void {
-    if (stream.localEnded && stream.remoteEnded) this.streams.delete(id)
+    if (stream.localEnded && stream.remoteEnded) this.drop(id)
+  }
+
+  /** Forgets a stream, waking any write waiting on it so it sees the stream is gone. False if it was not held. */
+  private drop(id: number): boolean {
+    const stream = this.streams.get(id)
+    if (!stream) return false
+    this.streams.delete(id)
+    this.wakeWriters(stream)
+    return true
+  }
+
+  private wakeWriters(stream: StreamState): void {
+    const waiting = stream.waiting
+    stream.waiting = []
+    for (const wake of waiting) wake()
   }
 }

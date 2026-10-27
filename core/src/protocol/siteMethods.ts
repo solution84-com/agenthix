@@ -40,6 +40,7 @@ import type {
   LocationSeedFilesResult, LocationStatFileParams, LocationStatFileResult,
   KnowledgeChangeResult, LocationDeleteKnowledgeParams, LocationEditKnowledgeParams, LocationKnowledgeVersionsParams,
   LocationKnowledgeVersionsResult, LocationRestoreKnowledgeParams, LocationWriteKnowledgeParams,
+  LocationFindFilesParams, LocationFindFilesResult,
 } from './locationFiles.js'
 import { REPO_WORK_METHODS } from './repoWork.js'
 import type { RepoConnectParams, RepoConnectResult, RepoStateParams, RepoStateResult } from './repoWork.js'
@@ -51,6 +52,12 @@ import { SITE_RESTORE_METHODS } from './siteRestore.js'
 import type { SiteRestoreReport } from './siteRestore.js'
 import { SITE_HQ_ADDRESS_METHOD } from './hqAddress.js'
 import type { SiteHqAddressParams, SiteHqAddressResult } from './hqAddress.js'
+import { FILES_SERVE_METHOD, RELAY_ASSIGN_METHOD } from './relayFiles.js'
+import { FILE_ABOUT_METHOD } from './fileAbout.js'
+import type { FileAboutParams, FileAboutResult } from './fileAbout.js'
+import { GIT_STATUS_METHOD } from './gitStatus.js'
+import type { GitStatusParams, GitStatusResult } from './gitStatus.js'
+import type { FilesServeParams, RelayAssignParams, RelayAssignResult } from './relayFiles.js'
 import { CLAUDE_LOGIN_METHODS } from './claudeLogin.js'
 import type {
   ClaudeLoginCancelParams, ClaudeLoginCancelResult, ClaudeLoginFinishParams, ClaudeLoginFinishResult,
@@ -70,6 +77,9 @@ type NoParams = Record<string, never>
 export type SiteMethods = {
   'site.describe': { params: NoParams; result: SiteDescribeResult }
   [SITE_HQ_ADDRESS_METHOD]: { params: SiteHqAddressParams; result: SiteHqAddressResult }
+  [RELAY_ASSIGN_METHOD]: { params: RelayAssignParams; result: RelayAssignResult }
+  /** Before hq opens a file: its facts, never its content. */
+  [FILE_ABOUT_METHOD]: { params: FileAboutParams; result: FileAboutResult }
 
   [SITE_DATA_METHODS.workspaceGet]: { params: ByIdParams; result: WorkspaceRow | null }
   /** Ordered by creation, oldest first. */
@@ -124,6 +134,7 @@ export type SiteMethods = {
   [PACKAGE_METHODS.missing]: { params: PackagesMissingParams; result: PackagesMissingResult }
 
   [LOCATION_FILE_METHODS.listFiles]: { params: LocationListFilesParams; result: LocationListFilesResult }
+  [LOCATION_FILE_METHODS.findFiles]: { params: LocationFindFilesParams; result: LocationFindFilesResult }
   [LOCATION_FILE_METHODS.statFile]: { params: LocationStatFileParams; result: LocationStatFileResult }
   [LOCATION_FILE_METHODS.seedFiles]: { params: LocationSeedFilesParams; result: LocationSeedFilesResult }
   [LOCATION_FILE_METHODS.ensureDir]: { params: LocationEnsureDirParams; result: LocationEnsureDirResult }
@@ -139,6 +150,8 @@ export type SiteMethods = {
 
   [REPO_WORK_METHODS.connect]: { params: RepoConnectParams; result: RepoConnectResult }
   [REPO_WORK_METHODS.state]: { params: RepoStateParams; result: RepoStateResult }
+  /** Read only: a folder's branch, changed files and last commit. */
+  [GIT_STATUS_METHOD]: { params: GitStatusParams; result: GitStatusResult }
 
   [PREVIEW_METHODS.start]: { params: PreviewStartParams; result: PreviewStartResult }
   [PREVIEW_METHODS.stop]: { params: PreviewStopParams; result: PreviewStopResult }
@@ -163,14 +176,17 @@ export type SiteMethodResult<M extends SiteMethodName> = SiteMethods[M]['result'
 
 /**
  * hq → site on the content transport: each stream's opening params. What crosses after the opening is bytes, in
- * whichever direction the method says (a package's content to the site; a file's to hq; a preview's both ways).
+ * whichever direction the method says (a package's content to the site; a file's to hq, or to a relay; a preview's both ways).
  */
 export type SiteContentMethods = {
   [PACKAGE_METHODS.put]: { params: { ref: PackageRef } }
   [LOCATION_FILE_METHODS.readFile]: { params: LocationReadFileParams }
+  /** @deprecated since 1.8; stops working in 3.0. Use `files.serve` instead. */
   [LOCATION_FILE_METHODS.readArtefact]: { params: LocationReadArtefactParams }
   [LOCATION_FILE_METHODS.readKnowledge]: { params: LocationReadKnowledgeParams }
   [PREVIEW_METHODS.connect]: { params: PreviewConnectParams }
+  /** Opened by a relay on a site's relay line, not by hq: the site verifies the ticket itself. */
+  [FILES_SERVE_METHOD]: { params: FilesServeParams }
 }
 
 export type SiteContentMethodName = keyof SiteContentMethods

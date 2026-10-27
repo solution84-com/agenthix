@@ -2,7 +2,7 @@
  * Every port and address block the platform uses, in one place (docs/architecture/ports.md is written from it).
  * Plain data with no imports: the dev scripts read this file directly with Node.
  *
- * Our own numbers follow one convention — each service owns a hundred (41 hq, 42 site, 43 Fleet Console) and the
+ * Our own numbers follow one convention — each service owns a hundred (41 hq, 42 site, 43 Fleet Console, 44 relay) and the
  * last two digits say what listens (00 the web page, 01 the server, 09 the database) — the same inside every
  * installation's containers and in dev, where nothing else of ours uses them. Only an installation's published
  * ports can clash with other software, so those are the machine admin's to choose, with quiet defaults.
@@ -13,6 +13,7 @@ export const SERVICE_PORTS = {
   hq: { web: 4100, server: 4101, database: 4109 },
   site: { server: 4201, database: 4209 },
   console: { web: 4300, server: 4301 },
+  relay: { server: 4401 },
 } as const
 
 /** Inside containers, every database keeps PostgreSQL's own port: each is on a private network of its own. */

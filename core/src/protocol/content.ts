@@ -22,6 +22,21 @@ export const MAX_CHUNK_BYTES = 64 * 1024
 /** The most one stream buffers before its reader consumes it; beyond this it fails rather than grows. */
 export const MAX_STREAM_BUFFER_BYTES = 16 * 1024 * 1024
 
+/**
+ * Flow control per stream, as HTTP/2 has it. An opener that reads more slowly than the line may open a stream with a
+ * window: the bytes the server may send on it before it waits. The opener then grants more with `credit` frames as
+ * its own reader takes what arrived, so a slow reader slows only its own stream; the shared socket is never paused.
+ * A stream opened without a window is unlimited, as streams were before windows existed.
+ *
+ * 2 MiB keeps a stream near 15 MiB/s across a 130 ms round trip while bounding what one stream can make its reader
+ * hold; a credit is sent once a quarter of a megabyte is owed, about eight frames per window, small beside the bytes
+ * and always well under the window, so credit held back for batching never leaves a writer waiting.
+ */
+export const STREAM_INITIAL_WINDOW_BYTES = 2 * 1024 * 1024
+export const STREAM_CREDIT_STEP_BYTES = 256 * 1024
+/** The largest a window may grow, HTTP/2's own bound; a credit carrying it past this is a protocol error. */
+export const MAX_STREAM_WINDOW_BYTES = 2 ** 31 - 1
+
 /** How long a site has to accept a stream hq opened. Matches the control channel's request timeout. */
 export const CONTENT_OPEN_TIMEOUT_MS = 15_000
 
@@ -39,11 +54,12 @@ export type ContentOpen = {
 }[SiteContentMethodName]
 
 export type ContentControlFrame =
-  | ({ t: 'open'; id: number } & ContentOpen)
+  | ({ t: 'open'; id: number; window?: number } & ContentOpen)
   | { t: 'accept'; id: number }
   | { t: 'end'; id: number }
   | { t: 'error'; id: number; code: ContentErrorCode; message: string }
   | { t: 'cancel'; id: number }
+  | { t: 'credit'; id: number; bytes: number }
 
 /**
  * A frame as the transport handles it, before a side reads it: an `open` names a method the server has still to look
@@ -52,10 +68,14 @@ export type ContentControlFrame =
  */
 type TransportControlFrame =
   | Exclude<ContentControlFrame, { t: 'open' }>
-  | { t: 'open'; id: number; method: string; params: unknown }
+  | { t: 'open'; id: number; method: string; params: unknown; window?: number }
 
 const MAX_STREAM_ID = 2 ** 32 - 1
 const ID_BYTES = 4
+
+function isWindowSize(value: unknown, min: number): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= MAX_STREAM_WINDOW_BYTES
+}
 
 function isStreamId(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= MAX_STREAM_ID
@@ -65,7 +85,10 @@ export function encodeControlFrame(frame: TransportControlFrame): string {
   return JSON.stringify(frame)
 }
 
-/** Null for anything that is not exactly one of the five frames — never a partial guess. */
+/**
+ * Null for anything that is not exactly one of the frames — never a partial guess. A peer that predates a frame type
+ * gets null for it and drops it, which is what keeps an added frame compatible.
+ */
 export function parseControlFrame(text: string): TransportControlFrame | null {
   let value: unknown
   try {
@@ -78,10 +101,13 @@ export function parseControlFrame(text: string): TransportControlFrame | null {
   if (!isStreamId(f.id)) return null
 
   switch (f.t) {
-    case 'open':
-      return typeof f.method === 'string' && f.method.length > 0
-        ? { t: 'open', id: f.id, method: f.method, params: f.params }
-        : null
+    case 'open': {
+      if (typeof f.method !== 'string' || f.method.length === 0) return null
+      if (f.window === undefined) return { t: 'open', id: f.id, method: f.method, params: f.params }
+      return isWindowSize(f.window, 0) ? { t: 'open', id: f.id, method: f.method, params: f.params, window: f.window } : null
+    }
+    case 'credit':
+      return isWindowSize(f.bytes, 1) ? { t: 'credit', id: f.id, bytes: f.bytes } : null
     case 'accept':
     case 'end':
     case 'cancel':

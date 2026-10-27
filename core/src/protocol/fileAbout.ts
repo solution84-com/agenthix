@@ -1,0 +1,34 @@
+/**
+ * "About this file" (site protocol 1.8), on the control channel: what hq asks a site before it opens a file, so it can
+ * choose the kind (`chooseFileKind`) and sign a ticket at the file's version. No content crosses hq: only the facts,
+ * and whether the first bytes (up to `TEXT_SNIFF_BYTES`, judged by `looksLikeText`) look like text.
+ *
+ * The params name a file in one of the three spaces a site serves (`SiteFileRef`). The site confines it to its
+ * owner's storage as every read is, symbolic links resolved, and answers a path that leads out of it as `not-found`,
+ * without saying which. A refusal is an answer, not a channel failure; params of the wrong shape are a
+ * `LocationFileError` (`invalid`).
+ */
+import type { SiteFileRef } from '../files/refs.js'
+
+export const FILE_ABOUT_METHOD = 'file.about'
+
+export type FileAboutParams = SiteFileRef
+
+export const FILE_ABOUT_REFUSALS = ['not-found', 'not-a-file'] as const
+export type FileAboutRefusal = (typeof FILE_ABOUT_REFUSALS)[number]
+
+export type FileAboutResult =
+  | {
+    ok: true
+    /** The file's own name, as a person sees it. */
+    name: string
+    size: number
+    /** ISO, as on a stat. */
+    modifiedAt: string
+    /** `fileVersion(size, modifiedAt)`: what a ticket carries, and what the site checks when it serves one. */
+    version: string
+    /** `contentTypeForName`'s guess from the name. */
+    contentType: string
+    looksLikeText: boolean
+  }
+  | { ok: false; refusal: FileAboutRefusal }
