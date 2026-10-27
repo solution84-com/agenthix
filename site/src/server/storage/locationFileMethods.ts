@@ -99,6 +99,9 @@ const locRefSchema = z
     taskId: z.string().nullish(),
   })
 
+/** The location shape every method here takes, for a method kept in a module of its own (`./findFiles.ts`). */
+export const LOC_REF_SCHEMA = locRefSchema
+
 /**
  * Exported so the "no caller" property is a test the wire can fail, not a
  * reading of this file. Same for the four below.

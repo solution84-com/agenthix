@@ -23,13 +23,13 @@ describe('a release build of the host service @SC-820', () => {
     const check = m.ctx.signatures
     m.ctx.signatures = async (ref, signer) => { m.calls.push(['cosign', ref]); return check(ref, signer) }
     await run()
-    expect(m.checked).toEqual(['hq-server', 'hq-web', 'site-server', 'agent', 'console'].map(p => [published(p), SIGNER]))
+    expect(m.checked).toEqual(['hq-server', 'hq-web', 'relay', 'site-server', 'agent', 'console'].map(p => [published(p), SIGNER]))
     const lastCheck = m.calls.map(c => c[0]).lastIndexOf('cosign')
     const firstImage = m.calls.findIndex(c => c[0] === 'image' || c[0] === 'pull')
     expect(lastCheck).toBeLessThan(firstImage)
     expect(progress[0]).toEqual({ event: 'step', step: 'Checking the images are signed by Agenthix' })
     expect(progress[1]).toEqual({ event: 'stepDone', outcome: 'passes' })
-    expect(progress[2]).toEqual({ event: 'step', step: 'Pulling HQ 0.2.0 (3 images)' })
+    expect(progress[2]).toEqual({ event: 'step', step: 'Pulling HQ 0.2.0 (4 images)' })
     expect(progress[4]).toEqual({ event: 'step', step: 'Pulling the site 0.2.0 and the agent image' })
   })
 
@@ -41,10 +41,11 @@ describe('a release build of the host service @SC-820', () => {
     const fleetConsole = JSON.parse(fs.readFileSync(m.ctx.state.path('console', 'compose.json'), 'utf8'))
     expect(fleetConsole.services.console.image).toBe(pinned('console'))
     expect(hq.services['hq-web'].image).toBe(pinned('hq-web'))
+    expect(hq.services.relay.image).toBe(pinned('relay'))
     expect(site.services.site.image).toBe(pinned('site-server'))
     expect(site.services.site.environment.AGENT_IMAGE).toBe(pinned('agent'))
     const inspected = m.calls.filter(c => c[0] === 'image').map(c => c[c.length - 1])
-    expect(inspected).toEqual(expect.arrayContaining([pinned('hq-server'), pinned('hq-web'), pinned('site-server'), pinned('agent')]))
+    expect(inspected).toEqual(expect.arrayContaining([pinned('hq-server'), pinned('hq-web'), pinned('relay'), pinned('site-server'), pinned('agent')]))
     expect(inspected.some(ref => ref.endsWith(':0.2.0'))).toBe(false)
   })
 

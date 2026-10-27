@@ -137,7 +137,7 @@ async function run(ctx: Context, target: Target, version: string, progress: Repo
   writeUpgrades(ctx.state, s => { s.underWay = u })
   progress({ event: 'step', step: `Starting ${version}` })
   try {
-    const hq = target === 'hq' && u.hq ? { ...u.hq, version, images: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'] } } : null
+    const hq = target === 'hq' && u.hq ? { ...u.hq, version, images: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'], relay: pins.relay } } : null
     await writeProjects(ctx, hq, { ...u.site, version, images: { 'site-server': pins['site-server'], agent: pins.agent } }, paths)
     await startTarget(ctx, target)
     progress({ event: 'stepDone', outcome: 'done' })

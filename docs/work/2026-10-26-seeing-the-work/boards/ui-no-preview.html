@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>No preview · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-no-preview.html"><main>
+<div class="top"><div><h1>F4 · No preview, too large, unavailable</h1>
+<p class="sub">Every way a preview can't be shown, each said in words, in the renderer's place, with what can be done. The frame draws these, never a renderer (board 4, contract). Download is in the header in every case but the last two.</p></div></div>
+
+<h2 id="states">The states</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<table><tr><th></th><th>When</th><th>What it says</th><th>Offers</th></tr>
+<tr><td class="n">1</td><td>No renderer for the kind</td><td><i>"No preview for .zip files."</i></td><td>Download</td></tr>
+<tr><td class="n">2</td><td>Past the renderer's cap, part shown</td><td>The renderer, under <i>"Showing the first 1 MB of 3.4 MB."</i></td><td>Download</td></tr>
+<tr><td class="n">3</td><td>Past the cap, nothing useful to show (PDF over 50 MB, image over 20 MB)</td><td><i>"Too large to preview (68 MB)."</i></td><td>Download</td></tr>
+<tr><td class="n">4</td><td>Looks like text but isn't (bytes that aren't text)</td><td><i>"This doesn't look like text, so it isn't shown."</i></td><td>Download</td></tr>
+<tr><td class="n">5</td><td>PDF on an hq with no files address</td><td><i>"PDF preview needs a files address. An admin can set one up."</i> Admins see a link to how</td><td>Download</td></tr>
+<tr><td class="n">6</td><td>The file changed while open (the ticket's version no longer matches)</td><td><i>"This file changed since you opened it."</i></td><td>Show the new version</td></tr>
+<tr><td class="n">7</td><td>The site's relay isn't answering (D17)</td><td><i>"Files on office-server can't be opened right now: relay-2 isn't answering."</i></td><td>Try again · admins: Fleet Console</td></tr>
+<tr><td class="n">8</td><td>The site isn't answering</td><td><i>"The site holding these files isn't answering."</i>, the words the folder list already uses</td><td>Try again</td></tr></table></div>
+
+<h2 id="mocks">Three of them</h2>
+<div class="box"><span class="lbl after">After · proposed</span><div class="two">
+<div class="frame mock"><div class="mcentre"><div class="row"><div class="mh grow">export.zip</div><span class="btn">Mention</span><span class="btn">Download</span><span class="btn">⋯</span></div>
+<div class="ml" style="font-size:12px;color:var(--t2)">Changed yesterday · ZIP · 4.2 MB</div>
+<div class="preview" style="min-height:90px;display:flex;align-items:center;justify-content:center;color:var(--t2)">No preview for .zip files.</div></div></div>
+<div class="frame mock"><div class="mcentre"><div class="row"><div class="mh grow">run.log</div><span class="btn">Mention</span><span class="btn">Download</span><span class="btn">⋯</span></div>
+<div class="ml" style="font-size:12px;color:var(--t2)">Changed today 11:05 · Log · 3.4 MB</div>
+<div class="flag" style="margin:6px 0">Showing the first 1 MB of 3.4 MB. <span class="btn link">Download</span></div>
+<div class="preview" style="font:12px/1.5 ui-monospace,monospace;white-space:pre">11:02:14 step 1/6 install … ok
+11:02:31 step 2/6 build … ok</div></div></div>
+<div class="frame mock"><div class="mcentre"><div class="row"><div class="mh grow">q3.pdf</div><span class="btn">Mention</span><span class="btn" style="opacity:.45">Download</span><span class="btn">⋯</span></div>
+<div class="preview" style="min-height:90px;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;color:var(--t2)">Files on office-server can't be opened right now: relay-2 isn't answering.<span class="btn">Try again</span></div></div></div>
+</div>
+<ul class="sub"><li>Download is greyed only in states 7 and 8, when no byte can be fetched.</li><li>State 2 matters most for logs: an agent run's long output still opens, showing its start.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

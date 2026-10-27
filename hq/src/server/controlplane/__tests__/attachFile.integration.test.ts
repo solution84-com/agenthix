@@ -18,7 +18,7 @@ vi.mock('wasp/server', async () => {
 vi.mock('../../dashboard/debouncedPush', () => import('../../../test/fakes/debouncedPush'))
 vi.mock('../../../agents/TaskRunner', () => import('../../../test/fakes/TaskRunner'))
 
-import { attachFileOp } from '../taskOps'
+import { attachFileOp, getTaskDetailsOp } from '../taskOps'
 import { ControlPlaneError } from '../types'
 import { seedWorld, chatCtx, runCtx, connCtx, expectForbidden, type World } from './controlPlaneFixtures'
 
@@ -96,14 +96,41 @@ describe('attach_file — file name', () => {
     await nothingWritten()
   })
 
-  it('stores a plain name as given and returns only the attachment id and file name — no URL, no path', async () => {
+  it('stores a plain name as given and returns the attachment id, file name and reference — no URL, no path @SC-1548', async () => {
     const result = await attach(runCtx(w.project.id), 'notes v2.md')
     const [uuid] = await fs.readdir(path.join(root, 'tasks', w.task.id))
     expect(await fs.readFile(path.join(root, 'tasks', w.task.id, uuid, 'notes v2.md'), 'utf8')).toBe('hello')
     const row = await prisma.taskAttachment.findFirstOrThrow()
     expect(row).toMatchObject({ uuid, fileName: 'notes v2.md' })
-    expect(result).toEqual({ success: true, attachmentId: row.id, fileName: 'notes v2.md' })
+    const project = await prisma.project.findUniqueOrThrow({ where: { id: w.project.id } })
+    expect(result).toEqual({ success: true, attachmentId: row.id, fileName: 'notes v2.md', reference: `attachments/${project.key}-1/notes%20v2.md` })
+    expect(row.fileSizeBytes).toBe(5)
     expect(JSON.stringify(result)).not.toContain(root)
     expect(JSON.stringify(result)).not.toContain('hq.example')
+  })
+})
+
+describe("get_task_details — the task's attachments @SC-1548", () => {
+  it('lists each attachment with its name, size, label and reference, oldest first, and the task key', async () => {
+    await attach(chatCtx(w.member.id), 'plan.md', 'the plan')
+    await attachFileOp(chatCtx(w.member.id), { taskId: w.task.id, filename: 'shot one.png', content: 'png', label: 'evidence' })
+    const project = await prisma.project.findUniqueOrThrow({ where: { id: w.project.id } })
+    const key = `${project.key}-1`
+    const details = await getTaskDetailsOp(chatCtx(w.member.id), { taskId: w.task.id })
+    expect(details.taskKey).toBe(key)
+    expect(details.attachments).toEqual([
+      { name: 'plan.md', sizeBytes: 8, label: null, reference: `attachments/${key}/plan.md` },
+      { name: 'shot one.png', sizeBytes: 3, label: 'evidence', reference: `attachments/${key}/shot%20one.png` },
+    ])
+    expect(JSON.stringify(details.attachments)).not.toContain(root)
+  })
+
+  it('answers an empty list for a task with none', async () => {
+    expect((await getTaskDetailsOp(chatCtx(w.member.id), { taskId: w.task.id })).attachments).toEqual([])
+  })
+
+  it("refuses a caller who is not entitled to the task's project, naming no attachment", async () => {
+    await attach(chatCtx(w.member.id))
+    await expectForbidden(getTaskDetailsOp(chatCtx(w.outsider.id), { taskId: w.task.id }))
   })
 })

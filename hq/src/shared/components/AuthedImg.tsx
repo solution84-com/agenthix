@@ -2,8 +2,8 @@ import type { ReactEventHandler } from 'react'
 import { useAgentImageUrl } from '../hooks/useAgentImageUrl'
 
 /**
- * A plain <img> for an uploaded picture (an avatar or a cover), loaded from the
- * files origin by a link HQ makes for the person (adr-0114). Resolves the raw
+ * A plain <img> for an uploaded picture (an avatar or a cover), loaded from
+ * HQ's relay by a link HQ makes for the person (adr-0153). Resolves the raw
  * stored path through the shared cache and renders
  * nothing until it resolves — including if that fails, since a failed
  * resolution is never cached as a value this component could render (see

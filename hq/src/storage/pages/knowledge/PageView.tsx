@@ -4,6 +4,7 @@ import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import { mentionInMessage } from '@agenthix/ui/sessions'
 import { FILES_BUTTON, FilesViewHeader, FilesQuietLine } from '@agenthix/ui/projects'
 import { MarkdownMessage } from '../../../shared/components/MarkdownMessage'
+import { pageEmbed, pageFolder } from './pageEmbed'
 import { copyText } from '../../../shared/copyText'
 import { ChangeLine } from './ChangeLine'
 import { PageActions, type PageAction } from './PageActions'
@@ -160,7 +161,7 @@ export function PageView(props: PageViewProps) {
           )}
           {/* Clicks on the rendered text are links; the handler decides which open a page. */}
           <div ref={textRef} className="min-w-0 flex-1" onClick={onTextClick}>
-            <MarkdownMessage content={parsed.text} />
+            <MarkdownMessage content={parsed.text} embed={pageEmbed(owner, pageFolder(page))} />
             {linkedFrom.length > 0 && (
               <section aria-label="Linked from" className="mt-6 border-t border-border-subtle pt-3">
                 <h4 className="mb-1 text-micro font-medium uppercase tracking-wide text-text-muted">Linked from</h4>

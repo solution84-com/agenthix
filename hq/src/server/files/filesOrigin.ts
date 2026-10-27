@@ -1,11 +1,12 @@
 /**
- * Where uploaded files are served from (host-management spec §16, adr-0114): an origin of their own,
- * `FILES_ORIGIN`, so HQ's own address never serves content someone uploaded.
+ * The files address (adr-0114): an origin for files alone, `FILES_ORIGIN`, where hq's relay answers (adr-0153), so HQ's
+ * own address never serves content someone uploaded or an agent wrote.
  *
  * - `FILES_ORIGIN` set: that origin. The host service sets it at install — `files.<HQ's host>` for a domain.
  * - Unset, with HQ on `localhost`: `files.localhost` on HQ's own scheme and port, which every browser resolves to
  *   this machine, so a developer and a local install need no setting.
- * - Otherwise there is no host name to give files: HQ serves them from its own address, only as downloads.
+ * - Otherwise there is no host name to give files: hq's relay answers under the bare door on HQ's own address, only
+ *   with downloads.
  */
 import { getSitePublicUrl } from '../siteConfig'
 
@@ -16,7 +17,7 @@ export type FilesPlace =
 const ORIGIN = /^https?:\/\/([a-z0-9]([a-z0-9.-]*[a-z0-9])?|\[[0-9a-f:.]+\])(:\d{1,5})?$/i
 
 /** A host name with no port, lowercase and without brackets. */
-export function hostOf(value: string | undefined): string {
+function hostOf(value: string | undefined): string {
   if (!value) return ''
   const h = value.trim().toLowerCase().replace(/\.$/, '')
   if (h.startsWith('[')) return h.slice(1, h.indexOf(']'))
@@ -50,9 +51,4 @@ export function filesPlace(env: NodeJS.ProcessEnv = process.env, hqUrl: string =
     return { mode: 'origin', origin, host: 'files.localhost' }
   }
   return { mode: 'downloadsOnly', reason: hq && hasNoSubdomains(hqHost) ? 'bareAddress' : 'notSet', origin: hqOrigin }
-}
-
-/** Whether a request's Host header names the files origin. */
-export function isFilesHost(hostHeader: string | undefined, place: FilesPlace): boolean {
-  return place.mode === 'origin' && hostOf(hostHeader) === place.host
 }

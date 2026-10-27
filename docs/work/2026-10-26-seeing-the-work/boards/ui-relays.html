@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relays in the Fleet Console · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-relays.html"><main>
+<div class="top"><div><h1>R1 · Relays: add, assign, watch</h1>
+<p class="sub">The Fleet Console (<code>console-web</code>) lists machines: HQ, then every site by its machine, then the jobs (<code>shell/menu.ts</code>). A relay runs on a machine like a site, so it appears <b>on its machine</b>, not as a new menu. Most organisations never see more than hq's relay.</p></div></div>
+
+<h2 id="hq">HQ's page: hq's relay</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:200px 1fr"><div class="mnav"><div class="logo"><i></i>Fleet Console</div><a>Dashboard</a><a class="on">HQ</a><div class="sec">Sites</div><a>● hq-box</a><a>● office-server</a><a>● build-box</a><a>● relay-box <span class="cnt">relay</span></a><div class="sec">&nbsp;</div><a>Maintenance</a><a>Backups</a><a>Activity</a><a>Fleet admins</a></div>
+<div class="mcentre">
+<div class="mh">HQ</div>
+<div class="kbox" style="margin-top:10px">
+<div><h4>hq</h4><p>● Running · 0.1.0</p></div>
+<div><h4>hq's site</h4><p>● Running · 4 agents</p></div>
+<div><h4>hq's relay <span class="tag ok">new</span></h4><p>● Running · <code>files.example.com</code><br>Serves 2 sites · 38 MB today · 3 open now</p><p><a style="color:var(--macc)">Sites it serves ›</a></p></div></div>
+</div></div></div>
+<ol class="sub"><li>A third card beside hq and hq's site, with its address, how many sites it serves, today's traffic and open streams.</li>
+<li>A machine that runs only a relay is listed with the sites, by its machine name and tagged <i>relay</i>, as the menu lists every machine today.</li>
+<li>No address set (a bare address): <i>"Answering on hq's own address: PDF preview is off. Set a files address ›"</i>, linking to the deployment guide.</li></ol></div>
+
+<h2 id="add">Adding a relay</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="two">
+<div class="frame mock"><div class="mcentre">
+<div class="mh">Add a machine</div>
+<div class="field"><label>What it runs</label>
+<div class="radio on"><span class="dot"></span><div><b>A site</b><br><span style="color:var(--t2);font-size:12px">Holds projects' files and runs agents. Dials out; nothing reaches it</span></div></div>
+<div class="radio"><span class="dot"></span><div><b>A relay</b><br><span style="color:var(--t2);font-size:12px">Carries file bytes to people's browsers, so hq doesn't</span></div></div></div>
+<div class="row"><span class="grow"></span><span class="btn pri">Get the join code</span></div>
+<p class="sub" style="margin-top:8px">A site: <b>no address asked, and none shown</b>.</p></div></div>
+<div class="frame mock"><div class="mcentre">
+<div class="mh">Add a machine</div>
+<div class="field"><label>What it runs</label>
+<div class="radio"><span class="dot"></span><div><b>A site</b><br><span style="color:var(--t2);font-size:12px">Holds projects' files and runs agents. Dials out; nothing reaches it</span></div></div>
+<div class="radio on"><span class="dot"></span><div><b>A relay</b><br><span style="color:var(--t2);font-size:12px">Carries file bytes to people's browsers, so hq doesn't</span></div></div></div>
+<div class="field"><label>Its address</label><div class="in">files-2.example.com</div><div class="hint">The name people's browsers will reach it on. For faster files, put it near the sites it will serve.</div></div>
+<div class="row"><span class="grow"></span><span class="btn pri">Get the join code</span></div>
+<p class="sub" style="margin-top:8px">A relay: the address appears only now.</p></div></div>
+</div>
+<ol class="sub"><li>The same <b>Add</b> flow as a site today (<code>pages/add/AddSitePage.tsx</code>): a one-off code, the host service on the new machine, signed images (adr-0117). The only new question is what it runs: a site <i>or</i> a relay, never both (D22).</li>
+<li><b>Only a relay is asked for an address</b>, because only a relay has a door. Choosing <i>A site</i> shows no address field at all, and a site's page never shows one: a site is reached by nobody, so it has nothing to give.</li>
+<li>A hosted deployment may add relays and give their addresses for the organisation.</li></ol></div>
+
+<h2 id="site">A site's page: its relay</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="max-width:560px"><div class="mcentre">
+<div class="mh">office-server</div>
+<div class="kbox" style="margin-top:8px"><div><h4>Files are served by</h4><p>● relay-2 · <code>files-2.example.com</code><br><span style="color:var(--t2)">Placed by hq</span></p><p><span class="btn">Pin to a relay…</span></p></div></div></div></div>
+<ol class="sub"><li><b>Placed by hq</b> (D9) or <b>Pinned by Sam</b>; Pin chooses from the organisation's relays.</li>
+<li>When its relay is quiet: <i>"relay-2 isn't answering. Files on this site can't be opened."</i>, the same words people see (F4, 7), and the Dashboard's <b>Needs you</b> lists it.</li></ol></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

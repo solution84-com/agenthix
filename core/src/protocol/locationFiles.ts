@@ -50,10 +50,13 @@ import type {
 } from './locationKnowledge.js'
 
 export * from './locationKnowledge.js'
+export * from './locationFind.js'
 
 export const LOCATION_FILE_METHODS = {
   /** Control channel: the entries directly under a location, or under one directory inside it. */
   listFiles: 'location.listFiles',
+  /** Control channel (1.8): a location's files whose names hold a fragment, best first — `./locationFind.ts`. */
+  findFiles: 'location.findFiles',
   /** Control channel: one entry's kind, size and modification time. */
   statFile: 'location.statFile',
   /** Control channel: write a new location's starter documents, each saying whether it may replace one. */
@@ -78,7 +81,10 @@ export const LOCATION_FILE_METHODS = {
    * these use.
    */
   listArtefacts: 'location.listArtefacts',
-  /** Content transport: one artefact's bytes, addressed by its file name in `artefacts/`. */
+  /**
+   * Content transport: one artefact's bytes, addressed by its file name in `artefacts/`. Deprecated since 1.8 (its
+   * entry in `SiteContentMethods`): hq no longer calls it, since a relay serves an artefact on a ticket (`files.serve`).
+   */
   readArtefact: 'location.readArtefact',
   /** Control channel: an owner's knowledge sections and pages, each page with its index entry and problems. */
   listKnowledge: 'location.listKnowledge',

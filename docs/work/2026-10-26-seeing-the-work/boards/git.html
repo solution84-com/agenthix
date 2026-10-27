@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git in plain view · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="git.html"><main>
+<div class="top"><div><h1>6 · Git in plain view: what the site reads</h1>
+<p class="sub">Level 2, git observability. The agent does git; the person watches. Everything here is a <b>read</b> of a workspace's own repository on its site, whether or not it has a remote. Git is not GitHub. Status is in the MVP; the rest is stretch (D3).</p></div></div>
+
+<h2 id="today">Today</h2>
+<div class="box"><span class="lbl before">Before · today</span><ul>
+<li>The site knows only <b>whether</b> a folder is a repository (<code>getContentState</code> → <code>isGitRepo</code>, <code>site/src/storage/repoOps.ts:73</code>). Nothing reads its branch, status or log.</li>
+<li>The Files tool's top line is the <b>GitHub backup</b> (<code>BackupLine.tsx</code>): the remote, or an offer to connect one. A repository with no remote shows nothing about git.</li></ul></div>
+
+<h2 id="reads">What the site reads, and how it crosses</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<table><tr><th>Read</th><th>What it returns</th><th>Crosses as</th><th>Phase</th></tr>
+<tr><td><b>Status</b></td><td>Branch (or detached at a commit), clean or the count of changed files, the last commit (short id, message's first line, author, when)</td><td>A typed request on the control channel (small JSON), read when the workspace or the Files tool opens, and again on focus (R6)</td><td>MVP</td></tr>
+<tr><td><b>Changed files</b></td><td>Each changed path with its mark: <code>M</code>, <code>A</code>, <code>D</code>, <code>R</code>, <code>??</code></td><td>The same request, asked with <code>files: true</code>; capped at 1,000 paths</td><td>Stretch</td></tr>
+<tr><td><b>Diff</b></td><td>One file's change against the last commit, or between two commits</td><td>Bytes, <b>through the relay</b>, on a ticket naming the file and the two versions; drawn by the <code>diff</code> renderer (board 4, part 6); 1 MB</td><td>Stretch</td></tr>
+<tr><td><b>Log and branches</b></td><td>The last 50 commits; local branches; ahead and behind the remote branch <b>as last fetched</b></td><td>Typed request, paged</td><td>Stretch</td></tr></table>
+<ul>
+<li><b>Read only, always.</b> Nothing here checks out, commits, fetches or pushes. Those stay with agents, and with the workflows work, any git that needs a credential goes through a workflow. Reading local state needs none, so it doesn't touch that design.</li>
+<li><b>No fetch to compute ahead/behind</b>: it compares with the remote branch as the agent last fetched it, and says when that was.</li>
+<li><b>How the site reads:</b> <code>git</code> run with fixed arguments and a time limit (as <code>repoOps.ts</code> already runs it), never a shell, with <code>GIT_OPTIONAL_LOCKS=0</code> so a read never blocks an agent's write. A repository's own config can't run anything: hooks, <code>fsmonitor</code> and external diff tools are switched off for these reads (T12).</li>
+<li><b>Where:</b> a workspace is one repository. The Files tool reads <code>files/</code> as one if it is one.</li></ul></div>
+
+<h2 id="why">Why this split</h2>
+<div class="box"><ul>
+<li>Status, changed files and logs are small, structured and asked often: they're facts, so they stay on the typed channel hq already uses for listings.</li>
+<li>A diff is file bytes and can be large, so it goes through the relay like any file (D4, D17).</li>
+<li>Monaco, suggested in git observability, isn't needed: highlighted code and a diff renderer cover reading, and editing isn't in this epic.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

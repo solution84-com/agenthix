@@ -9,6 +9,7 @@ import { ActionLine } from './ActionLine'
 import { SuggestPlaceCardRow } from './SuggestPlaceCard'
 import { placeSuggestionOf } from '../placesProtocol'
 import { TaskCard } from './TaskCard'
+import { PersonText } from './PersonText'
 import { TurnBlockView } from './TurnBlock'
 import type { WorkContext } from './WorkContext'
 
@@ -37,7 +38,7 @@ export function PersonBubble({ message, author, waiting, busy, onSendNow, onCanc
           <span>{formatTime(message.createdAt)}</span>
         </div>
         <div className="rounded-2xl rounded-tr-sm bg-surface-2 px-4 py-2.5">
-          <p className="whitespace-pre-wrap break-words text-reading text-text-primary">{message.body.text}</p>
+          <p className="whitespace-pre-wrap break-words text-reading text-text-primary"><PersonText text={message.body.text} writtenAt={message.createdAt} /></p>
         </div>
         {waiting && (
           <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 pt-1 text-micro text-text-muted">

@@ -21,6 +21,7 @@ import { startHealthReports, type HealthReporter } from './siteHealthReport'
 import { hostFigures } from '../host/hostFigures'
 import { startScheduledRelay } from '../host/scheduledRelay'
 import type { HqLinkProblem } from './linkProblem'
+import { relayLines } from '../relay/relayLines'
 
 const RECONNECT_DELAY_MS = 5_000
 const MAX_RECONNECT_DELAY_MS = 60_000
@@ -420,6 +421,8 @@ class HqConnectionManager {
     this.stopHealthReports()
     this.content?.stop()
     this.content = null
+    // The relay line is hq's to assign, and hq assigns again once the link is back.
+    relayLines.stop()
     this.ws?.close()
     this.ws = null
     this.state = 'disconnected'

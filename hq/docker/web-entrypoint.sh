@@ -5,12 +5,12 @@
 set -eu
 # HQ's address first (adr-0111): without a valid one, hq-web does not start.
 /usr/local/bin/hq-web-address
-# Uploaded files' own host (adr-0114), which the Caddyfile routes to hq-server's file handlers alone.
+# The files host (adr-0114), on which the Caddyfile routes a ticket to hq's relay and nothing else.
 # Exported only when there is one: Caddy's default for an unset FILES_HOST matches nothing, an empty one is an error.
 files_host="$(/usr/local/bin/hq-web-files)"
 if [ -n "$files_host" ]; then
   export FILES_HOST="$files_host"
-  echo "hq-web: uploaded files are served on $FILES_HOST."
+  echo "hq-web: files are opened on $FILES_HOST."
 else
   unset FILES_HOST
 fi

@@ -16,12 +16,12 @@ import type {
   JoinAcceptance, JoinPurpose, JoinRequest, ConsoleHandoverAcceptance, ConsoleHandoverAsk, ConsoleHandoverCertificate,
 } from './join.js'
 import type { TransferChunk, TransferClosedReason } from './transfer.js'
-import type { HqAbout, SiteLoad } from './hqFacts.js'
+import type { HqAbout, HqRelay, SiteLoad } from './hqFacts.js'
 import type { FleetActivityPage, FleetNotice, HqAccount } from './fleetRecord.js'
 import type { CloudConnecting, HqCloudState } from './cloud.js'
 
 /** The host protocol: both links' version, and that of Cloud's host link. */
-export const HOST_PROTOCOL_VERSION = '1.1'
+export const HOST_PROTOCOL_VERSION = '1.2'
 
 export const HQ_HOST_LINK_PATH = '/host-link'
 export const HQ_CONSOLE_LINK_PATH = '/console-link'
@@ -222,6 +222,11 @@ export type ConsoleLinkMethods = {
   /** Each connected site's runs, from the health it last reported; a site that has reported none is left out. */
   'site.loads': { params: Record<string, never>; result: { sites: SiteLoad[] } }
   /**
+   * hq's own relay, for the card on HQ's page (hqFacts.ts): its files address, whether it is answering, the sites it
+   * serves and its traffic. `relay` is null when hq has none. An hq older than this answers `unknown_method`.
+   */
+  'relay.facts': { params: Record<string, never>; result: { relay: HqRelay | null } }
+  /**
    * For the Fleet Console's screens (fleetRecord.ts), each answered only when `byUserId`, the fleet admin asking, holds
    * the role (`not_allowed` otherwise); an hq older than 1.4 answers `unknown_method`. The record of what fleet admins
    * did, newest first, a page at a time: `after` is the `next` of the page before.
@@ -282,7 +287,7 @@ export const CONSOLE_LINK_METHODS = [
   'signIn.check', 'join.open', 'join.close', 'join.accept', 'join.refuse', 'host.list', 'host.disconnect',
   'site.register', 'site.remove', 'fleetAdmin.grant', 'activity.record', 'fleetAdmin.revoke', 'fleetAdmin.list',
   'handover.open', 'handover.accept', 'handover.close', 'transfer.open', 'transfer.close', 'site.move',
-  'hq.about', 'site.loads', 'activity.list', 'notices.list', 'notices.dismiss', 'account.find',
+  'hq.about', 'site.loads', 'relay.facts', 'activity.list', 'notices.list', 'notices.dismiss', 'account.find',
   'host.silenceFacts',
   'cloud.state', 'cloud.connect', 'cloud.disconnect',
   'cloud.askCount', 'cloud.offers', 'cloud.dismissOffer',

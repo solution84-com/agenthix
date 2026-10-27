@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 vi.mock('wasp/client/operations', () => ({ getSpeechToken: vi.fn() }))
 
 import { MessageBox, type MessageBoxVoice } from '../MessageBox'
+import { fieldOf, typeInto, valueOf } from './messageFieldHelpers'
 
 afterEach(cleanup)
 
@@ -20,7 +21,7 @@ function box(props: Partial<React.ComponentProps<typeof MessageBox>> = {}) {
   render(<MessageBox placeholder="Message Kernel…" running={false} sending={false} onSend={onSend} onStop={onStop} voice={voice()} {...props} />)
   return { onSend, onStop }
 }
-const type = (text: string) => fireEvent.change(screen.getByLabelText('Message Kernel…'), { target: { value: text } })
+const type = (text: string) => typeInto('Message Kernel…', text)
 
 describe('the pill’s one right button @SC-1007', () => {
   it('starts voice when the box is empty', () => {
@@ -36,7 +37,7 @@ describe('the pill’s one right button @SC-1007', () => {
     expect(screen.queryByRole('button', { name: 'Start voice' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
     await vi.waitFor(() => expect(onSend).toHaveBeenCalledWith('Hello there'))
-    await vi.waitFor(() => expect((screen.getByLabelText('Message Kernel…') as HTMLTextAreaElement).value).toBe(''))
+    await vi.waitFor(() => expect(valueOf('Message Kernel…')).toBe(''))
   })
 
   it('stops while a reply runs and the box is empty', () => {
@@ -110,20 +111,11 @@ describe('the plus @SC-1007', () => {
 })
 
 describe('the box grows with its text @SC-1007', () => {
-  it('sets its height to fit what is written, up to its limit, and back down when cleared', async () => {
-    const tall = vi.spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get').mockReturnValue(96)
-    const { onSend } = box()
-    const field = screen.getByLabelText('Message Kernel…') as HTMLTextAreaElement
-    type('A long message\nover\nseveral lines')
-    expect(field.style.height).toBe('96px')
-    tall.mockReturnValue(400)
-    type('Far too long for the box\n'.repeat(20))
-    expect(field.style.height).toBe('128px')
-    tall.mockReturnValue(36)
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
-    await vi.waitFor(() => expect(onSend).toHaveBeenCalled())
-    await vi.waitFor(() => expect(field.style.height).toBe('36px'))
-    tall.mockRestore()
+  it('grows with what is written up to its limit, then scrolls', () => {
+    box()
+    const field = fieldOf('Message Kernel…')
+    expect(field.style.maxHeight).toBe('128px')
+    expect(field.className).toContain('overflow-y-auto')
   })
 })
 
@@ -150,7 +142,7 @@ describe('from two lines the text takes the whole width above the buttons @SC-10
 
   it('keeps the same field, and its focus, when the layout changes', () => {
     box()
-    const field = screen.getByLabelText('Message Kernel…') as HTMLTextAreaElement
+    const field = fieldOf('Message Kernel…')
     field.focus()
     type('First line\nsecond line')
     expect(screen.getByLabelText('Message Kernel…')).toBe(field)

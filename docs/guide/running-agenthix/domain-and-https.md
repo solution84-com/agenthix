@@ -35,15 +35,33 @@ The port in these examples is HQ's default, 7800. If you chose another at instal
 ([Choose the ports](../getting-started/install.md#choose-the-ports)), use yours wherever 7800 appears. A web server
 or front door in front of HQ answers on 443 and passes on to HQ's port.
 
-Uploaded files are served from an address of their own, so that a file can never act as HQ: `files.` followed by
-HQ's host, such as `files.agenthix.example.com`. Point that name at the machine too. An address with no name to put
-`files.` in front of, such as `http://192.168.1.20:7800`, has none, and HQ then offers uploaded files only as
-downloads.
+Files are opened from an address of their own, described under [The files address](#the-files-address) below.
 
 Check what HQ has under **Manage › Infrastructure › HQ**, in **Address and environment**. It shows the
 address and whether each setting is set, never the value.
 
 ![Manage › Infrastructure, with HQ, Execution Sites, Storage and More](screenshot:infrastructure)
+
+## The files address
+
+When someone opens or downloads a file in HQ, the file reaches their browser from an address of its own, so that a file an
+agent wrote can never act as HQ. It is `files.` followed by HQ's host, such as `files.agenthix.example.com`, and it is
+answered by **HQ's relay**, a small part of HQ that runs on HQ's machine and carries the file's bytes from the site that
+holds it. Point that name at the machine too, with a certificate, as for HQ's own address; the host service's front door
+below does both.
+
+An address with no name to put `files.` in front of, such as `http://192.168.1.20:7800`, has no files address. HQ then
+carries files on its own address, where it never shows a file inline. Everything still works, with two differences:
+
+- **Text, Markdown, code, tables and pictures open**, drawn by HQ's page from the file's bytes.
+- **A PDF can't be previewed**: it says **PDF preview needs a files address. An admin can set one up.** and offers
+  **Download**. Every file can be downloaded.
+
+On the Fleet Console's **HQ** page, the card for HQ's relay shows its address, how many sites it serves, what it has
+carried since it started and how many streams are open, or **Answering on hq's own address: PDF preview is off** when
+there is no files address. If the relay stops answering, files can't be opened anywhere in HQ until it does, and the
+Dashboard's **Needs you** says so; it runs with HQ, so check HQ is running on its machine and restart it if it is.
+Nothing else is affected.
 
 ## Change HQ's address
 
@@ -76,7 +94,7 @@ The host service, the small program that runs Agenthix on every machine, include
 HTTPS itself, with certificates it gets and renews on its own. It needs:
 
 - HQ's `https://` address on a domain name, not a network address, `localhost` or a `.local` name;
-- that domain, and the uploaded files' `files.` name, pointing at the machine in DNS;
+- that domain, and the `files.` name for files, pointing at the machine in DNS;
 - ports 80 and 443 free on the machine and reachable from the internet, so a certificate can be issued.
 
 **It takes ports 80 and 443.** While it is on, nothing else on the machine can serve web traffic on them: a web server
@@ -89,14 +107,14 @@ agenthix front-door on         # turn it on; asks first, or add --take-ports-80-
 agenthix front-door off        # stop it and free the ports
 ```
 
-`--files <host>` names the host that uploaded files are served from, if not `files.` followed by HQ's host. It waits up
+`--files <host>` names the host that files are served from, if not `files.` followed by HQ's host. It waits up
 to three minutes for each certificate; if one cannot be had, everything is put back as it was.
 
 ### The machine already has a web server
 
 Point your own web server at HQ. `agenthix front-door`, with nothing after it, prints exactly where:
 
-1. Route HQ's domain, and the uploaded files' `files.` name, to `127.0.0.1:7800`, with a certificate for each.
+1. Route HQ's domain, and the `files.` name for files, to `127.0.0.1:7800`, with a certificate for each.
 2. Pass on each request's own host name, so HQ can tell HQ's address from the files' address.
 3. Pass WebSocket connections through: browsers, sites and host services hold them open.
 

@@ -1,0 +1,232 @@
+import { useEffect } from 'react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import type { FileOpenAnswer } from '@agenthix/core'
+import { FileFrame, type FileFrameProps } from '../FileFrame'
+import { DOWNLOAD, MB, PREVIEW, facts, ready, stubRegistry, stubRenderer } from './testKit'
+
+afterEach(() => vi.unstubAllGlobals())
+
+function frame(answer: FileOpenAnswer | undefined, over: Partial<FileFrameProps> = {}) {
+  const onReopen = vi.fn()
+  render(<FileFrame answer={answer} name="q3.pdf" registry={stubRegistry()} onReopen={onReopen} {...over} />)
+  return { onReopen }
+}
+
+const downloadLink = () => screen.queryAllByRole('link', { name: 'Download' })[0] ?? null
+const greyedDownload = () => screen.getByRole('button', { name: 'Download' })
+
+describe('FileFrame: the eight states @SC-1578', () => {
+  it('1 · no renderer for the kind', () => {
+    frame(ready({ name: 'export.zip', kind: 'none', contentType: 'application/octet-stream', size: 4.2 * MB }))
+    expect(screen.getByText('No preview for .zip files.')).toBeTruthy()
+    expect(screen.getAllByRole('link', { name: 'Download' }).every(a => a.getAttribute('href') === DOWNLOAD)).toBe(true)
+    expect(screen.getByText('ZIP · 4.2 MB')).toBeTruthy()
+  })
+
+  it('2 · past the cap, part shown: the renderer under the line', () => {
+    const registry = stubRegistry(stubRenderer({ reports: { state: 'partial', shown: MB } }))
+    frame(ready({ name: 'run.log', size: 3.4 * MB }), { registry })
+    expect(screen.getByText('Showing the first 1 MB of 3.4 MB.')).toBeTruthy()
+    expect(screen.getByText('drawn by the stub')).toBeTruthy()
+    expect(screen.getAllByRole('link', { name: 'Download' })).toHaveLength(2)
+  })
+
+  it('3 · past the cap, nothing useful to show', () => {
+    const registry = stubRegistry(stubRenderer({ reports: { state: 'failed', reason: 'too-large' } }))
+    frame(ready({ size: 68 * MB }), { registry })
+    expect(screen.getByText('Too large to preview (68 MB).')).toBeTruthy()
+    expect(screen.queryByText('drawn by the stub')).toBeNull()
+    expect(downloadLink()).toBeTruthy()
+  })
+
+  it('4 · looks like text but isn\'t: by its name, or by the renderer\'s report', () => {
+    frame(ready({ name: 'notes.md', kind: 'none' }))
+    expect(screen.getByText("This doesn't look like text, so it isn't shown.")).toBeTruthy()
+    expect(downloadLink()).toBeTruthy()
+  })
+
+  it('4 · a renderer that finds bytes that aren\'t text', () => {
+    frame(ready(), { registry: stubRegistry(stubRenderer({ reports: { state: 'failed', reason: 'unreadable' } })) })
+    expect(screen.getByText("This doesn't look like text, so it isn't shown.")).toBeTruthy()
+  })
+
+  it('5 · PDF with no files address', () => {
+    const hint = vi.fn(() => <a href="/help">How to set one up</a>)
+    frame({ state: 'no-files-address', facts: facts({ name: 'q3.pdf', kind: 'pdf' }), downloadLink: DOWNLOAD, expiresAt: 0 }, { adminHint: hint })
+    expect(screen.getByText('PDF preview needs a files address. An admin can set one up.')).toBeTruthy()
+    expect(hint).toHaveBeenCalledWith('no-files-address')
+    expect(screen.getByRole('link', { name: 'How to set one up' })).toBeTruthy()
+    expect(downloadLink()).toBeTruthy()
+  })
+
+  it('6 · changed while open: Show the new version opens it again', () => {
+    const { onReopen } = frame(ready(), { registry: stubRegistry(stubRenderer({ reports: { state: 'failed', reason: 'changed' } })) })
+    expect(screen.getByText('This file changed since you opened it.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Show the new version' }))
+    expect(onReopen).toHaveBeenCalledOnce()
+    expect(downloadLink()).toBeTruthy()
+  })
+
+  it('7 · the site\'s relay isn\'t answering: the names from the answer, Try again, Download greyed', () => {
+    const { onReopen } = frame({ state: 'relay-unavailable', siteName: 'office-server', relayName: 'relay-2' })
+    expect(screen.getByText("Files on office-server can't be opened right now: relay-2 isn't answering.")).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(onReopen).toHaveBeenCalledOnce()
+    expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByRole('heading', { name: 'q3.pdf' })).toBeTruthy()
+  })
+
+  it('7 · a renderer whose reads find no relay', () => {
+    frame(ready(), { registry: stubRegistry(stubRenderer({ reports: { state: 'failed', reason: 'unavailable' } })) })
+    expect(screen.getByText("This file can't be read right now: its relay isn't answering.")).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+    expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('8 · the site isn\'t answering', () => {
+    frame({ state: 'site-unavailable' })
+    expect(screen.getByText("The site holding these files isn't answering.")).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+    expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('Download is a link in every state but 7 and 8', () => {
+    const answers: FileOpenAnswer[] = [
+      ready({ name: 'a.zip', kind: 'none' }),
+      ready({ kind: 'text' }),
+      { state: 'no-files-address', facts: facts({ kind: 'pdf' }), downloadLink: DOWNLOAD, expiresAt: 0 },
+    ]
+    for (const answer of answers) {
+      const { unmount } = render(<FileFrame answer={answer} name="x" registry={stubRegistry()} onReopen={() => {}} />)
+      expect(downloadLink()?.getAttribute('href')).toBe(DOWNLOAD)
+      unmount()
+    }
+  })
+})
+
+describe('FileFrame: around the renderer @SC-1579', () => {
+  it('says Loading… while the answer is asked for', () => {
+    frame(undefined)
+    expect(screen.getByText('Loading…')).toBeTruthy()
+    expect((greyedDownload() as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('draws the breadcrumb, the title and the facts line with the kind\'s own fact', () => {
+    const registry = stubRegistry(stubRenderer({ reports: { state: 'ready' }, fact: '14 pages' }))
+    frame(ready({ name: 'q3.pdf', kind: 'pdf', size: 1.2 * MB }), {
+      registry, breadcrumb: ['Files', 'reports'], changed: 'Changed today 10:42 by an agent run',
+    })
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('Files › reports › q3.pdf')
+    expect(screen.getByRole('heading', { name: 'q3.pdf' })).toBeTruthy()
+    expect(screen.getByText('Changed today 10:42 by an agent run · PDF · 1.2 MB · 14 pages')).toBeTruthy()
+  })
+
+  it('names code by its language', () => {
+    frame(ready({ name: 'a.ts', kind: 'code', language: 'typescript', size: 100 }), { registry: stubRegistry(stubRenderer({ kinds: ['code'] })) })
+    expect(screen.getByText('TypeScript · 100 B')).toBeTruthy()
+  })
+
+  it('offers Mention and ⋯ Copy link, Copy path, Open full screen from the caller', () => {
+    const [onMention, onCopyLink, onCopyPath, onFullScreen] = [vi.fn(), vi.fn(), vi.fn(), vi.fn()]
+    frame(ready(), { onMention, onCopyLink, onCopyPath, onFullScreen, notice: 'Path copied.' })
+    fireEvent.click(screen.getByRole('button', { name: 'Mention' }))
+    expect(onMention).toHaveBeenCalledOnce()
+    for (const [label, fn] of [['Copy link', onCopyLink], ['Copy path', onCopyPath], ['Open full screen', onFullScreen]] as const) {
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(screen.getByRole('menuitem', { name: label }))
+      expect(fn).toHaveBeenCalledOnce()
+    }
+    expect(screen.getByText(/Path copied\./)).toBeTruthy()
+  })
+
+  it('narrow: ‹ back in the header row, no breadcrumb', () => {
+    const onBack = vi.fn()
+    frame(ready(), { layout: 'narrow', back: { label: 'Files', onBack }, breadcrumb: ['Files'] })
+    fireEvent.click(screen.getByRole('button', { name: 'Files' }))
+    expect(onBack).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).toBeNull()
+  })
+
+  it('mounts the renderer afresh for a new version, and aborts the old one\'s reads', () => {
+    const signals: AbortSignal[] = []
+    vi.stubGlobal('fetch', vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.signal) signals.push(init.signal)
+      return new Promise<Response>(() => {})
+    }))
+    const { rerender } = render(<FileFrame answer={ready()} name="notes.txt" onReopen={() => {}} />)
+    expect(signals).toHaveLength(1)
+    rerender(<FileFrame answer={ready({ version: '2048:2' })} name="notes.txt" onReopen={() => {}} />)
+    expect(signals[0]!.aborted).toBe(true)
+    expect(signals).toHaveLength(2)
+    expect(signals[1]!.aborted).toBe(false)
+  })
+
+  it('keeps the renderer for renewed tickets: nothing read again, later reads by the new ticket', async () => {
+    const urls: string[] = []
+    const signals: AbortSignal[] = []
+    vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      urls.push(String(url))
+      if (init?.signal) signals.push(init.signal)
+      return new Response('hello', { status: 206, headers: { 'Content-Range': 'bytes 0-4/5' } })
+    }))
+    const renewed: FileOpenAnswer = { ...ready(), previewLink: 'https://files.example.org/t/renewed.ticket.x' } as FileOpenAnswer
+    const { rerender } = render(<FileFrame answer={ready()} name="notes.txt" onReopen={() => {}} />)
+    await screen.findByText('hello')
+    rerender(<FileFrame answer={renewed} name="notes.txt" onReopen={() => {}} />)
+    expect(screen.getByText('hello')).toBeTruthy()
+    expect(urls).toEqual([PREVIEW])
+    expect(signals[0]!.aborted).toBe(false)
+
+    let mounts = 0
+    let reread: (() => Promise<Uint8Array>) | undefined
+    const counting = stubRenderer({
+      render: props => {
+        reread = () => props.bytes.range(0, 1)
+        return <Mounted onMount={() => { mounts += 1 }} />
+      },
+    })
+    const { rerender: again } = render(<FileFrame answer={ready()} name="notes.txt" registry={stubRegistry(counting)} onReopen={() => {}} />)
+    again(<FileFrame answer={renewed} name="notes.txt" registry={stubRegistry(counting)} onReopen={() => {}} />)
+    expect(mounts).toBe(1)
+    await reread!()
+    expect(urls.at(-1)).toBe('https://files.example.org/t/renewed.ticket.x')
+  })
+})
+
+function Mounted({ onMount }: { onMount: () => void }) {
+  useEffect(onMount, [])
+  return <p>mounted</p>
+}
+
+describe('FileFrame: links @SC-1580', () => {
+  it('never makes an href of a link that is not http(s) or a path', () => {
+    const answer = { ...ready({ name: 'a.zip', kind: 'none' }), downloadLink: 'javascript:alert(1)' } as FileOpenAnswer
+    frame(answer)
+    expect(downloadLink()).toBeNull()
+  })
+})
+
+describe('FileFrame: embedded @SC-1581', () => {
+  it('draws a card for a kind whose renderer does not embed: a click opens it', () => {
+    const onOpen = vi.fn()
+    frame(ready({ name: 'q3-data.csv', kind: 'text', size: 84 * 1024 }), { mode: 'embedded', onOpen })
+    expect(screen.queryByText('drawn by the stub')).toBeNull()
+    expect(screen.queryByRole('heading')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /q3-data\.csv/ }))
+    expect(onOpen).toHaveBeenCalledOnce()
+    expect(downloadLink()).toBeTruthy()
+  })
+
+  it('draws a renderer that embeds, with no controls', () => {
+    frame(ready({ kind: 'image' }), { mode: 'embedded', registry: stubRegistry(stubRenderer({ kinds: ['image'], embeds: true })) })
+    expect(screen.getByText('drawn by the stub')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Mention' })).toBeNull()
+  })
+
+  it('says why on the card when the file cannot be shown', () => {
+    frame({ state: 'site-unavailable' }, { mode: 'embedded' })
+    expect(screen.getByText("The site holding these files isn't answering.")).toBeTruthy()
+    expect(downloadLink()).toBeNull()
+  })
+})

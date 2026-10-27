@@ -11,7 +11,9 @@ A project keeps its files on its **Execution Site**, the machine that runs its a
 
 **Files** holds the project's documents, newest first. Search by name, open a folder, or select a file to read it. A wide panel shows the folders beside the open file.
 
-Agents write the files; you read them. If a project has none, **Files** says so and suggests asking an agent to write one, for example "put this in specs". On an open file, **Mention** puts a reference to it into the message you are writing, and the **⋯** menu offers **Download** and **Copy path**. Files attached to one task are on that task, under **Files**.
+Agents write the files; you read them. If a project has none, **Files** says so and suggests asking an agent to write one, for example "put this in specs". A file opens in place, and **Download** saves it: see [Open and download files](open-and-download-files.md). **Mention** puts the file into the message you are writing, and the **⋯** menu has **Copy link**, **Copy path** and **Open full screen**. Files attached to one task are on that task, under **Attachments**; the files its runs wrote are under **Working files**: see [A task's files](task-files.md).
+
+If the project's files are a git repository, the git line above them, described under [Git at a glance](#git-at-a-glance) below, says where it stands.
 
 ### Back it up to GitHub
 
@@ -25,7 +27,7 @@ Only a project administrator can back a project up or disconnect one. Connecting
 
 ## Artefacts
 
-**Artefacts** are the throwaway things agents made for you in conversations, newest first under **Today**, **This week** and **Older**. They open in the same viewer as a file. To keep one, ask an agent to move it into **Files**.
+**Artefacts** are the throwaway things agents made for you in conversations, newest first under **Today**, **This week** and **Older**. They open in the same view as a file. To keep one, ask an agent to move it into **Files**.
 
 ## Knowledge
 
@@ -54,6 +56,24 @@ Each card shows the workspace's name, its repository and its site. If it has no 
 - **About** shows its repository, preview and site, **Tools agents may use** (**Change** to narrow them), and, once a repository is connected, the **Workflows that reach GitHub**, the **GitHub workflows in the repository** and the **Secrets on GitHub**. See [Connect GitHub](../workflows/connect-github.md#what-a-connected-workspace-shows).
 
 The **⋯** menu has **Delete workspace**. The repository isn't affected.
+
+A file in a workspace opens in the same view as any other file: see [Open and download files](open-and-download-files.md).
+
+### Git at a glance
+
+If the workspace is a git repository, one line above its files says where it stands, read when you open it and again when
+you return to the page:
+
+- **⎇ main · ✓ No changes · Last commit `a41f2c9` "Add Q3 chart page" by Kernel, 12 min ago**: the branch, whether anything is
+  uncommitted, and the last commit with its short id, first line, author and how long ago.
+- **● 3 changed** in place of **✓ No changes**: three files differ from the last commit.
+- **● 12 new files · No commits yet**: the repository has no commits.
+- **⚠ Merge in progress** or **⚠ Rebase in progress**: an agent left one unfinished.
+- **detached at** and a commit id, when no branch is checked out.
+
+The line only reports: it has nothing to select, and Agenthix never commits, fetches or pushes on its own. A folder that isn't
+a git repository has no line, and neither does one whose machine isn't answering. This is separate from **Backed up to**, which
+is about GitHub.
 
 ## Previews
 

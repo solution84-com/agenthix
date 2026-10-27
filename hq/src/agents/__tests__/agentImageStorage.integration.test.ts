@@ -1,10 +1,10 @@
 /**
  * An agent's avatar and cover are hq's own data about an agent — nothing a run
- * reads — so they are written to, and served from, storage of hq's own rather
+ * reads — so they are written to, and opened from, storage of hq's own rather
  * than a site's disk (close-out spec §6.5).
  *
- * Against a real filesystem: the upload path, the preset paths and the serving
- * route all run for real, with two roots side by side (hq's own storage and a
+ * Against a real filesystem: the upload path, the preset paths and the access
+ * check hq makes before signing a ticket all run for real, with two roots side by side (hq's own storage and a
  * site's) so "landed in hq's storage" and "left the site's disk alone" are both
  * observed rather than assumed.
  */
@@ -21,18 +21,13 @@ vi.mock('wasp/server', async () => {
   const { prisma } = await import('../../test/db')
   return { ...actual, prisma }
 })
-vi.mock('../../server/files/fileAccess', async () => ({
-  ...(await vi.importActual<typeof import('../../server/files/fileAccess')>('../../server/files/fileAccess')),
-  // The link a request carries is the files origin's check (files/__tests__/fileAccess.test.ts); here, who it names.
-  readerOf: () => ({ userId: 'usr_signed_in', download: false }),
-}))
 vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/debouncedPush'))
 vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activity'))
 vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
 import { uploadAgentImage, applyAgentPreset } from '../actions'
 import { applyAgentPresetOp } from '../../server/controlplane/agentOps'
-import { getAgentImage } from '../../server/imageHandlers'
+import { uploadAccess } from '../../server/files/uploadAccess'
 import { getAgentImagesDir, getHqStorageRoot } from '../../server/hqStoragePaths'
 import { contextWithRole } from './definitionFixtures'
 import type { CallerContext } from '../../server/controlplane/types'
@@ -63,15 +58,10 @@ const adminCtx = async () => (await contextWithRole('ADMIN')).ctx
 const avatarOf = async (id: string) => (await prisma.agent.findUniqueOrThrow({ where: { id } })).avatarUrl
 
 
-function makeRes(): any {
-  return {
-    status: vi.fn().mockReturnThis(),
-    json: vi.fn().mockReturnThis(),
-    type: vi.fn().mockReturnThis(),
-    setHeader: vi.fn(),
-    send: vi.fn(),
-    end: vi.fn(),
-  }
+/** Whether hq would sign a ticket for a signed-in person to open the agent's image: 200, or the refusal's status. */
+async function opening(agentId: string, filename: string): Promise<number> {
+  const access = await uploadAccess(`/agents/${agentId}/images/${filename}`, 'usr_signed_in')
+  return access.ok ? 200 : access.status
 }
 
 async function write(file: string, content: string) {
@@ -160,47 +150,32 @@ describe('an uploaded avatar lands in hq\'s own storage', () => {
     expect(await avatarOf('dev-id')).toBe(result.url)
   })
 
-  it('serves it back with no site disk present at all', async () => {
+  it('opens it with no site disk present at all', async () => {
     const result = await uploadAgentImage({ agentId: 'dev-id', type: 'cover', dataUrl: PNG_DATA_URL }, await adminCtx())
     const filename = result.url.split('/').pop()!
-    // Serving must not depend on the site's disk being there — which is the
+    // Opening must not depend on the site's disk being there — which is the
     // whole of what this move is for, and the one thing a round trip against a
     // colocated disk cannot tell apart on its own.
     await fs.rm(site, { recursive: true, force: true })
 
-    const res = makeRes()
-    await getAgentImage({ params: { agentId: 'dev-id', filename } } as any, res)
-
-    expect(res.send).toHaveBeenCalledWith(PNG_BYTES)
-    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'image/png')
-    expect(res.status).not.toHaveBeenCalledWith(404)
+    expect(await opening('dev-id', filename)).toBe(200)
   })
 
-  it('serves an image hq\'s storage holds', async () => {
+  it('opens an image hq\'s storage holds', async () => {
     await fs.mkdir(getAgentImagesDir('dev-id'), { recursive: true })
     await fs.writeFile(path.join(getAgentImagesDir('dev-id'), 'held.png'), PNG_BYTES)
 
-    const res = makeRes()
-    await getAgentImage({ params: { agentId: 'dev-id', filename: 'held.png' } } as any, res)
-
-    expect(res.send).toHaveBeenCalledWith(PNG_BYTES)
-    expect(res.status).not.toHaveBeenCalledWith(404)
+    expect(await opening('dev-id', 'held.png')).toBe(200)
   })
 
-  it('answers 404 for an image hq\'s storage does not hold', async () => {
-    const res = makeRes()
-    await getAgentImage({ params: { agentId: 'dev-id', filename: 'nothing-here.png' } } as any, res)
-    expect(res.status).toHaveBeenCalledWith(404)
-    expect(res.send).not.toHaveBeenCalled()
+  it('opens no image hq\'s storage does not hold (404)', async () => {
+    expect(await opening('dev-id', 'nothing-here.png')).toBe(404)
   })
 
-  it('refuses to serve a path that climbs out of hq\'s storage', async () => {
+  it('refuses to open a path that climbs out of hq\'s storage', async () => {
     const parent = path.dirname(getHqStorageRoot())
     await write(path.join(parent, 'images', 'sneak.png'), 'NOT-AN-AVATAR')
-    const res = makeRes()
-    await getAgentImage({ params: { agentId: '../..', filename: 'sneak.png' } } as any, res)
-    expect(res.status).toHaveBeenCalledWith(404)
-    expect(res.send).not.toHaveBeenCalled()
+    expect(await opening('../..', 'sneak.png')).toBe(404)
   })
 })
 
@@ -230,18 +205,14 @@ describe('an upload whose destination leaves hq\'s storage is refused', () => {
   // Both link shapes, because they fail different checks: an absolute one is
   // visibly elsewhere, a relative one spells a path that stays inside the tree
   // until it is followed.
-  it.each(['absolute', 'relative'] as const)('refuses to serve through an %s link that leaves hq\'s storage', async (kind) => {
+  it.each(['absolute', 'relative'] as const)('refuses to open through an %s link that leaves hq\'s storage', async (kind) => {
     const images = getAgentImagesDir('dev-id')
     await fs.mkdir(images, { recursive: true })
     await write(path.join(outside, 'secret.png'), 'HOST-SECRET')
     const target = path.join(outside, 'secret.png')
     await fs.symlink(kind === 'absolute' ? target : path.relative(images, target), path.join(images, 'linked.png'))
 
-    const res = makeRes()
-    await getAgentImage({ params: { agentId: 'dev-id', filename: 'linked.png' } } as any, res)
-
-    expect(res.status).toHaveBeenCalledWith(404)
-    expect(res.send).not.toHaveBeenCalled()
+    expect(await opening('dev-id', 'linked.png')).toBe(404)
   })
 })
 

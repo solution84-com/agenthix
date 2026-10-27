@@ -1,7 +1,7 @@
 ---
 name: User Stories — cross-cutting
 description: Business-level requirements that span more than one module. Each story maps to acceptance criteria in multiple modules' scenarios files.
-updated: 2026-10-26
+updated: 2026-10-27
 ---
 
 # User Stories — cross-cutting
@@ -133,3 +133,20 @@ As a maintainer, I want to check the conversation's agent against real models be
 - AC-389a: the checks send a model exactly what a real turn sends, in a fixed world, and grade only the tools it called and what it said: questions about the product, the person's own space, a place not in the conversation, a correction to a page, and the place's own process.
 - AC-389b: the checks run on demand and before a release, never in the everyday test suites, and call nothing when no model is set up.
 - AC-389c: a check passes for a model only when every run of it does, and the key used is never shown.
+
+## Files, carried by relays (added 2026-10-27)
+
+Written from the finished code at the close of the unit *seeing the agents' work*. hq decides, relays carry, sites hold and run: hq checks who may open a file and signs a short-lived ticket for it, a relay carries the bytes from the site, and the site serves only what the ticket names.
+
+### US-397 — Trust that a file opens only for who may see it, and costs hq nothing
+
+As an organisation that runs hq, I want every file an agent made to open through a relay on a ticket for that one file, so that nobody sees what they may not, a hostile file cannot act as the person who opens it, and an organisation's hours of work with many agents never make hq the bottleneck.
+
+**Acceptance criteria:**
+- AC-397a: a new installation opens files with nothing to set up: hq's relay starts with hq and answers on the files address, or, where there is none, on a path of hq's own address that serves downloads and text and never anything inline.
+- AC-397b: no file byte passes through hq's server: hq answers the facts and a link, and the relay carries the bytes.
+- AC-397c: a link is a ticket hq signed for one file, one person's opening and one purpose, good for minutes and dead once the file changes; no one but hq can make one, and nothing logs it.
+- AC-397d: a site serves only the file a ticket names, inside the place it names: a path that climbs out, a link that leads out and another owner's file give nothing, and a relay reaches no other file.
+- AC-397e: a file an agent wrote cannot act as the person opening it: it is served from another address that holds no hq session, with the browser told not to run or sniff it, and no other page can read it.
+- AC-397f: limits keep a flood away: what is drawn of a file is bounded by kind, a person has a bounded number of streams, a site a bounded number of reads at once, and a slow reader holds only its own stream.
+- AC-397g: hq records who opened which file, at which version and when, and whether to preview or download.

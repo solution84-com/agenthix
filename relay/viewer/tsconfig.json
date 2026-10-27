@@ -1,0 +1,17 @@
+{
+  // The PDF viewer page: browser code, bundled by scripts/build.mjs and type-checked by `npm run typecheck`.
+  "compilerOptions": {
+    "target": "es2023",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "types": [],
+    "strict": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["."],
+  "exclude": ["**/__tests__/**"]
+}

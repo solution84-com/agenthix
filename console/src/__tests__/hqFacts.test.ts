@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { SiteLoad } from '@agenthix/core'
+import type { HqRelay, SiteLoad } from '@agenthix/core'
 import { FakeHost } from './fakes'
 import { SAM, startHarness, type Harness } from './harness'
 
@@ -88,6 +88,33 @@ describe('agents running, per site @SC-888', () => {
   it('drop an entry not in its shape', async () => {
     h.link.handle('site.loads', () => ({ sites: [{ ...LOADS[1], running: -4 }] }) as never)
     expect(agentsOf(await fleet(), 'office-server')).toBeNull()
+  })
+})
+
+describe('hq’s own relay on the fleet @SC-1591', () => {
+  const RELAY: HqRelay = { name: 'hq-box', filesAddress: 'https://files.acme.example', answering: true, lastSeenAt: at, sites: 2, openStreams: 1, bytesCarried: 5_000_000 }
+  const relayOf = async () => ((await h.request('/api/fleet', auth)).json as { hqRelay: unknown }).hqRelay
+
+  it('is hq’s relay as hq gives it', async () => {
+    h.link.handle('relay.facts', () => ({ relay: RELAY }))
+    expect(await relayOf()).toEqual(RELAY)
+  })
+
+  it('drops an address that is not a web address', async () => {
+    h.link.handle('relay.facts', () => ({ relay: { ...RELAY, filesAddress: 'javascript:alert(1)' } }) as never)
+    expect(await relayOf()).toEqual({ ...RELAY, filesAddress: null })
+  })
+
+  it('is null for a relay not in its shape', async () => {
+    h.link.handle('relay.facts', () => ({ relay: { name: 'x', answering: 'yes' } }) as never)
+    expect(await relayOf()).toBeNull()
+  })
+
+  it('is null from an hq older than the method, and while hq does not answer', async () => {
+    expect(await relayOf()).toBeNull()
+    h.link.handle('relay.facts', () => ({ relay: RELAY }))
+    h.link.state = 'disconnected'
+    expect(await relayOf()).toBeNull()
   })
 })
 

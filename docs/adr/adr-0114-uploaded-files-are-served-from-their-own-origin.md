@@ -52,3 +52,10 @@ adr-0067, adr-0071.
 > **Acted on.** *(annotated 2026-10-16)* Carried out by the unit of work
 > [`2026-10-13-host-management`](../work/2026-10-13-host-management/plan.md), plan 2.28–2.29, merged to `main` at its
 > close and verified by the close-out regression and the owner's walkthroughs.
+
+> **Served by hq's relay.** *(annotated 2026-10-27)* The files origin now belongs to hq's relay rather than hq-server
+> ([ADR-0153](adr-0153-relays-carry-every-file-byte-and-hq-only-signs-tickets.md)), and it serves every file a browser
+> opens, an agent's as well as an upload. Its short-lived signed links are file tickets: one file at one version, one
+> person, five minutes. On a bare address the relay answers under `/relay/` on HQ's own address, every answer a
+> download. The decision stands unchanged — nothing on HQ's own origin serves a file inline — so this record is not
+> superseded. [files-and-relays.md](../architecture/files-and-relays.md) describes it as built.

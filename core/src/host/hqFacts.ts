@@ -23,6 +23,23 @@ export type SiteLoad = {
   reportedAt: string
 }
 
+/**
+ * hq's own relay, the one that carries its files to browsers (`relay.facts`): what the Fleet Console's page for HQ shows
+ * of it. `filesAddress` is null while HQ has no files address, so the relay answers on HQ's own address and PDF preview
+ * is off. The counts are from the relay's last report, null while it has made none.
+ */
+export type HqRelay = {
+  name: string
+  filesAddress: string | null
+  /** It reported to hq within the last minute and hq has not taken it out of service. */
+  answering: boolean
+  lastSeenAt: string | null
+  sites: number | null
+  openStreams: number | null
+  /** Bytes carried since the relay started, which is as far back as its report goes. */
+  bytesCarried: number | null
+}
+
 const ID = /^[A-Za-z0-9_-]{1,64}$/
 /** Scheme, host name or bracketed IPv6 address, an optional port, an optional path; no user, query or fragment. */
 const ADDRESS = /^https?:\/\/([A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(:\d{1,5})?(\/[A-Za-z0-9._~%!$&'()*+,;=:/-]*)?$/i
@@ -80,6 +97,27 @@ export function parseSiteLoads(v: unknown): SiteLoad[] | null {
     out.push({ executionSiteId, isDefault: s.isDefault, running, maxAtOnce, reportedAt })
   }
   return out
+}
+
+function bigCount(v: unknown): number | null {
+  return typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 ? v : null
+}
+
+/** `relay.facts`' answer: hq's relay in its shape; null when hq has none, or gives it in another shape. */
+export function parseHqRelay(v: unknown): HqRelay | null {
+  const r = record(record(v)?.relay)
+  if (!r) return null
+  const relayName = name(r.name)
+  if (!relayName || typeof r.answering !== 'boolean') return null
+  return {
+    name: relayName,
+    filesAddress: parseHqAddress(r.filesAddress),
+    answering: r.answering,
+    lastSeenAt: time(r.lastSeenAt),
+    sites: count(r.sites),
+    openStreams: count(r.openStreams),
+    bytesCarried: bigCount(r.bytesCarried),
+  }
 }
 
 /** `fleetAdmin.list`' accounts in their shape; one without an id or a name is dropped. An older hq gives no `since`. */

@@ -9,6 +9,9 @@ flowchart LR
     S["Execution Site: no users"] -->|"machine credential"| HQ
     HQ -->|"run capability, signed JWT, in the dispatch"| S
     HQ -->|"public key at /.well-known/jwks.json"| S
+    B -->|"file ticket, in the link's path"| RL["hq's relay"]
+    S -->|"relay pass"| RL
+    RL -->|"hq's relay secret"| HQ
     C["Agent container"] -->|"opaque platform token"| S
     C -->|"relay token"| S
     S -->|"provider key, added per request"| M["Model provider"]
@@ -40,6 +43,9 @@ unread ([below](#machines-and-the-fleet); [host-management.md](host-management.m
 | hq session token | hq (Wasp auth) | A browser, in its local storage; sent as `Authorization: Bearer`, never a cookie | Use hq as that person, within their role | Until sign-out or Wasp's session expires |
 | Machine credential, site | The host service that runs the site, its hash registered with hq by the Fleet Console (or the pairing secret, for hq's site) | The site, encrypted; the host service's state folder; the site's backups | Connect to hq's control channel; call hq's site endpoints | Until the site is removed, or renewed by a restore |
 | Run capability | hq, signed per run | The site, never the container | Act for one run: its agent, its boundary, its permissions | 15 minutes, renewed while the run lasts |
+| File ticket | hq, signed per file opened, and recorded | A browser, in the link it fetches from a relay | Read one file at one version, for one purpose, through one relay; refused once the file changes | 5 minutes ([files-and-relays.md](files-and-relays.md#tickets-and-passes)) |
+| Relay pass | hq, signed per site and relay | The site | Hold a line to that one relay | 1 hour, renewed at 80% of that |
+| hq's relay secret | The host service at install (`HQ_RELAY_SECRET`) | hq-server and hq's relay, in their environment; hq keeps its hash | Hold hq's relay's link to hq | Until changed |
 | Turn capability | hq, in process, per turn of a conversation | hq's memory for the turn, never stored or sent | Let the lead call hq's own operations as the author of the message it answers | One turn, 15 minutes at most ([the conversation layer](conversation-layer.md#the-lead-in-hq)) |
 | Platform token | The site | The agent's harness | Reach the site's platform tools as the current turn | One run, or a whole conversation for a harness kept across turns; it means something only while a turn runs |
 | Relay token | The site | The agent's harness | Send model requests through the site's relay, only from its own container | A turn on OpenCode; a Claude process's life, meaning something only during a turn |
@@ -135,11 +141,15 @@ encrypted (`hq/src/server/identity/signingKeyService.ts`). The public half is se
 |---|---|---|
 | Run capability | The one site the run is placed on | 15 minutes, renewed after 80% of that (12 minutes) |
 | Identity token, for a signed-in person | A site | 1 hour; only a check endpoint on the site uses it today |
+| File ticket | The site that serves the file; for a file hq keeps, hq's relay | 5 minutes, signed in `hq/src/relays/relayTokens.ts` |
+| Relay pass | The relay; its subject the site | 1 hour |
 
 **How a site checks one** (`site/src/server/identity/verifyHqToken.ts`, `tokenVerify.ts`): it fetches hq's
 public key once and caches it, refetching only for a key id it has not seen; then it checks the signature,
 algorithm, issuer, expiry and token type, and that the audience is **its own** site id. A capability minted
-for a sibling site is refused here, so a token copied from one site cannot be replayed on another.
+for a sibling site is refused here, so a token copied from one site cannot be replayed on another. File tickets and
+relay passes are checked the same way, by core's `verifyRelayToken`, on the site before it reads a byte and on the
+relay before it keeps a site's line.
 
 ---
 

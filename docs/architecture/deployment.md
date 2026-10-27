@@ -17,6 +17,7 @@ flowchart TB
         HQW["hq-web: one plain-HTTP port"]
         HQS["hq-server"]
         HQD[("hq-db")]
+        RL["relay: hq's relay"]
         S1["site, site-db, agent containers"]
         HM["Fleet Console: 127.0.0.1, its published port"]
         FD["front door, optional: 80 and 443"]
@@ -27,6 +28,8 @@ flowchart TB
     end
     P["People's browsers"] --> FD --> HQW
     HQW --> HQS --> HQD
+    HQW -->|"the files address, the sites' lines"| RL
+    RL -->|"hq's private network"| HQS
     S1 -->|"hq's private link network"| HQW
     HM -->|"hq's private link network"| HQW
     HOST1 -->|"hq's local port"| HQW
@@ -36,12 +39,13 @@ flowchart TB
 
 | Machine | Runs | Reachable from outside |
 |---|---|---|
-| hq's | the host service; hq (`hq-web`, `hq-server`, `hq-db`); hq's site (`site-server`, `site-db`, agent containers); the Fleet Console; optionally a front door | `hq-web`'s one published port (7800 unless chosen otherwise), or the front door's 80 and 443 in front of it |
+| hq's | the host service; hq (`hq-web`, `hq-server`, `relay`, `hq-db`); hq's site (`site-server`, `site-db`, agent containers); the Fleet Console; optionally a front door | `hq-web`'s one published port (7800 unless chosen otherwise), or the front door's 80 and 443 in front of it |
 | Any other | the host service; its site | Nothing |
 
 **Only hq listens on the network.** hq publishes one plain-HTTP port, served by `hq-web`, which serves the browser
 app and forwards every server path to `hq-server`
-([ADR-0067](../adr/adr-0067-hq-ends-at-one-plain-http-port.md)). Sites, host services and the Fleet Console dial out to
+([ADR-0067](../adr/adr-0067-hq-ends-at-one-plain-http-port.md)), and the files address and the lines sites dial to hq's
+relay ([below](#hqs-relay)). Sites, host services and the Fleet Console dial out to
 it; agents dial their site over a private network ([ADR-0066](../adr/adr-0066-a-site-reaches-its-agents-over-a-private-network-per-boundary.md));
 nothing dials a site, a host service or the Fleet Console. HTTPS is the job of a **front door**: the one web server on a
 machine that holds ports 80 and 443 and the certificates — the machine's own, or one the host service runs.
@@ -50,7 +54,10 @@ machine that holds ports 80 and 443 and the certificates — the machine's own, 
 hq's machine always carries hq and its site, connected by a shared secret
 ([ADR-0070](../adr/adr-0070-hq-and-its-own-site-are-connected-by-configuration.md)); every further site is on a machine
 of its own, added by a fleet admin in the Fleet Console
-([ADR-0115](../adr/adr-0115-a-site-takes-part-when-a-fleet-admin-or-cloud-adds-it.md)).
+([ADR-0115](../adr/adr-0115-a-site-takes-part-when-a-fleet-admin-or-cloud-adds-it.md)). Outside hq's machine, a
+machine carries a site or a relay, never both
+([ADR-0154](../adr/adr-0154-a-machine-carries-a-site-or-a-relay-never-both-outside-hqs.md)); hq's relay is the only
+relay today.
 
 ## What a machine needs
 
@@ -198,7 +205,7 @@ the installation runs carries them as labels, which another installation's host 
 anything (`host/src/state/installation.ts`).
 
 Every name on the machine is `<namespace>-<part>[-<what>]`, from that namespace (`host/src/state/namespace.ts`): the containers `agenthix-host`,
-`agenthix-hq-server`, `agenthix-hq-web`, `agenthix-hq-db`, `agenthix-site-server`, `agenthix-site-db`,
+`agenthix-hq-server`, `agenthix-hq-web`, `agenthix-relay`, `agenthix-hq-db`, `agenthix-site-server`, `agenthix-site-db`,
 `agenthix-console` and `agenthix-agent-<id>`; the volumes `agenthix-hq-db-data`, `agenthix-hq-storage`,
 `agenthix-site-db-data`, `agenthix-console-state` and `agenthix-host-figures`; the networks `agenthix-hq-internal`,
 `agenthix-site-internal`, `agenthix-hq-link`, `agenthix-edge` and `agenthix-console`; and the databases `agenthix_hq`
@@ -320,11 +327,40 @@ changing hq's address is a restart — done as a move, `agenthix hq address <add
 front door when there is one. hq uses the caller's address in its per-address limits, so with a front door hq-web must
 stay on `127.0.0.1`, or a caller reaching hq-web around it could claim any address.
 
-**Uploaded files have their own origin**, `FILES_ORIGIN` ([ADR-0114](../adr/adr-0114-uploaded-files-are-served-from-their-own-origin.md);
+**Files have their own origin**, `FILES_ORIGIN` ([ADR-0114](../adr/adr-0114-uploaded-files-are-served-from-their-own-origin.md);
 `filesOriginFor`, `host/src/install/address.ts`): `files.localhost` on hq's own port for a local address,
-`files.<hq's host>` for a domain, and none for a bare network address, where hq serves uploads only as downloads.
-hq-web answers that host only with hq-server's file handlers (`hq/docker/Caddyfile`), each file reached by a signed link
-that lives five to ten minutes (`hq/src/server/files/fileLinks.ts`).
+`files.<hq's host>` for a domain, and none for a bare network address. hq's relay answers there, never hq-server
+([below](#hqs-relay)). On a bare address tickets are opened on hq's own address under `/relay/`, where every answer is a
+download (a picture keeps its type, so an image tag still draws it, and text is read and drawn by the page), so PDF
+preview needs a files address.
+
+### hq's relay
+
+The `relay` container in hq's compose set carries the bytes of every file a browser opens: a site's, and the uploads
+hq keeps (task attachments, pictures)
+([ADR-0153](../adr/adr-0153-relays-carry-every-file-byte-and-hq-only-signs-tickets.md);
+[files-and-relays.md](files-and-relays.md)). hq-server serves no file. It publishes nothing and is reached by hq-web
+alone (`hq/docker/Caddyfile`):
+
+| On hq-web | Goes to |
+|---|---|
+| `/t/*` and `/viewer/pdf` on the files host | the relay: a ticket, and the PDF viewer page. Nothing else is answered on the files host |
+| `/relay-line` on hq's host | the relay: the WebSocket a site dials to hold its file line |
+| `/relay/*` on hq's host | the relay, unchanged: a ticket on a bare address |
+
+hq-web compresses nothing under `/t/` or `/relay/`: a PDF is read by byte range, and a range of a compressed answer is
+not a range of the file. The relay dials hq-server for its own link on hq's private network, so `/relay-link` has no
+route through hq-web. Its environment (`host/src/compose/projects.ts`; the full list is in `relay/AGENTS.md`):
+
+| Variable | Set to |
+|---|---|
+| `HQ_RELAY_SECRET` | A secret made at install, the same in hq-server's environment; at least 32 characters |
+| `RELAY_HQ_ADDRESS` | hq-server on hq's private network |
+| `HQ_URL`, `FILES_ORIGIN` | hq's address, the one origin given CORS, and the files address |
+| `RELAY_PORT` | The relay's server port ([ports.md](ports.md)) |
+| `HQ_UPLOADS_ROOT` | hq's storage volume, mounted read-only at `/hq-storage` |
+
+When the relay is stopped, files cannot be opened or downloaded and screens say so; the rest of hq carries on.
 
 ## In front of hq
 
@@ -339,7 +375,7 @@ the machine, and both ports reachable from the internet. `front-door off` stops 
 Caddy then asks no certificate authority for any name, the pair is written at 0600 under the front door's folder and
 mounted read-only into its container, one certificate serves both hosts and must cover each, and a new certificate
 starts the front door again. A files host Cloud gives is kept through an address change; with a certificate and none
-given, only hq's host is routed and uploads are served as downloads only.
+given, only hq's host is routed and files are opened on hq's own address, under the bare `/relay/t/…` path, where a PDF can only be downloaded.
 
 **The machine's own front door.** With an `https://` address and no front door of the host service's, point the
 machine's own web server at hq-web for both hq's host and the files host, passing the `Host` header and WebSocket
@@ -434,7 +470,7 @@ use. The defaults have not been measured on a deployment machine.
 | On the machine | Does |
 |---|---|
 | `agenthix status` | Every hq and site on the machine, each in a sentence that ends in what to do next |
-| `agenthix hq logs [<part>]`, `agenthix site logs [<part>]` | Recent log lines of hq-server, hq-web, hq-db, or the site and site-db |
+| `agenthix hq logs [<part>]`, `agenthix site logs [<part>]` | Recent log lines of hq-server, the relay, hq-web, hq-db, or the site and site-db |
 | `agenthix hq invite-admin` | On a fresh install, a link for the first account; once hq has people, an organisation admin invitation for when none can sign in |
 | `agenthix provider add <vendor>`, `list`, `remove <vendor>` | The organisation's model and voice providers, from hq's machine: the key is asked for at the terminal and sent over hq's control socket, checked with the vendor before it is stored, and recorded as the machine admin's |
 | `agenthix hq reset-password <user>` | A one-time link, valid an hour, to set that person's password |

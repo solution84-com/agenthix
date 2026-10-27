@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your own IDE · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-ide.html"><main>
+<div class="top"><div><h1>I1 · Starting and ending a session</h1>
+<p class="sub">IDE access, designed only (board 7). Sketched so the proof of concept has a shape to aim at; nothing here is in the MVP.</p></div></div>
+
+<h2 id="start">Starting</h2>
+<div class="box"><span class="lbl open">Designed, not built</span>
+<div class="frame mock" style="max-width:620px"><div class="mcentre">
+<div class="crumb"><a>Workspaces</a> › site-redesign</div>
+<div class="row"><div class="mh grow">site-redesign</div><span class="btn">Open in your IDE</span><span class="btn">⋯</span></div>
+<div class="dialog" style="position:relative;margin-top:10px"><h4>Open site-redesign in your IDE</h4>
+<p style="font-size:13px;color:var(--t2)">Your IDE connects to the live workspace, the same files agents are working on. Not a copy.</p>
+<div class="stepcard"><b>1</b> Once per computer: install the helper <code>agenthix ide</code></div>
+<div class="stepcard"><b>2</b> Copy into your terminal: <code>agenthix ide connect hq.example.com/ws/7f3a…</code></div>
+<p style="font-size:12px;color:var(--t2)">Opens VS Code connected over SSH. Lasts 1 hour; you can renew it.</p>
+<div class="row"><span class="grow"></span><span class="btn">Cancel</span><span class="btn pri">Start session</span></div></div></div></div>
+<ol class="sub"><li>Shown to people who may change the workspace's files.</li>
+<li>The helper sets up the SSH connection through the relay (board 7, part 3); the person's IDE does the rest.</li></ol></div>
+
+<h2 id="during">During</h2>
+<div class="box"><span class="lbl open">Designed, not built</span>
+<div class="flag">● You have site-redesign open in your IDE · 48 min left <span class="btn link">Renew</span> <span class="btn link">End</span></div>
+<p class="sub" style="margin-top:8px">On the workspace for the person. Others, and agents starting a run there, see <i>"Sam has this open in an IDE"</i>: not a lock, a heads-up.</p></div>
+
+<h2 id="end">Ending</h2>
+<div class="box"><ul>
+<li>When it expires, when they press End, or when an admin ends it from the Fleet Console's Activity. The IDE shows its own "disconnected".</li>
+<li>Every session is in Activity: who, which workspace, from when to when.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

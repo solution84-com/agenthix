@@ -41,6 +41,8 @@ The solution must be self-contained, require no external storage service, and re
 > describes the mechanism as it is; the convention reference linked below is now only a pointer to it.
 >
 > *(Annotated 2026-10-07.)* The artefact route is gone: an artefact is one file in its owner's `artefacts/` folder, listed and read through hq's own queries (`listArtefacts`, `getArtefactContent`) under the same location access rule, and opened in hq's file viewer. Only the task-attachment route remains.
+>
+> *(Annotated 2026-10-27.)* The task-attachment route is gone too: hq-server serves no file. Every file a browser opens, a task's attachment included, is carried by a relay on a ticket hq signs for one file and one person ([ADR-0153](adr-0153-relays-carry-every-file-byte-and-hq-only-signs-tickets.md); [files-and-relays.md](../architecture/files-and-relays.md)). What stands is still the choice this record makes: files are served by the platform itself, with no external storage service.
 
 Expose two HTTP endpoints on the Site backend rather than integrating an external storage service.
 

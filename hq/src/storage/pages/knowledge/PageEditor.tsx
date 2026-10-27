@@ -9,6 +9,7 @@ import {
 } from './editorModel'
 import { readKnowledgePage, saveKnowledge } from './knowledgeData'
 import { refusalWords } from './PageActions'
+import { pageEmbed, pageFolder } from './pageEmbed'
 import type { KnowledgeOwner, KnowledgePageRow, LastChange } from './knowledgeTypes'
 
 export type EditTarget =
@@ -115,7 +116,10 @@ export function PageEditor({ owner, target, pages, backLabel, onCancel, onSaved 
       <Field label="Properties" hint="Your section's own fields, offered from its other pages. Add any you need." problems={shown.properties}>
         <PropertyRows rows={state.properties} offered={offered} onChange={properties => set({ properties })} />
       </Field>
-      <TextEditor value={state.body} onChange={body => set({ body })} problems={[...(shown.content ?? []), ...(shown.frontMatter ?? [])]} />
+      <TextEditor
+        value={state.body} onChange={body => set({ body })} problems={[...(shown.content ?? []), ...(shown.frontMatter ?? [])]}
+        embed={pageEmbed(owner, page === '' ? state.section.trim().replace(/^\/+|\/+$/g, '') : pageFolder(page))}
+      />
     </>
   )
 }

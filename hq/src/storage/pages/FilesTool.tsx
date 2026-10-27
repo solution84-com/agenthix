@@ -5,14 +5,16 @@ import {
 } from '@agenthix/ui/projects'
 import { isSiteUnreachable } from '../../shared/siteSilence'
 import { BackupLine } from './BackupLine'
-import { FileOpened } from './FileOpened'
+import { GitLine } from './GitLine'
+import { OpenedFile } from './OpenedFile'
 import { FolderTree } from './FolderTree'
 import { useFolder, type Owner } from './filesToolData'
 import { useToolParams, useWide } from './useToolParams'
 
 /**
- * The Files tool (every screen reviewed spec §3): the place's documents, newest first, with the GitHub backup on
- * one line above them. A file opens inside the tool; wide, the folders sit beside the open file.
+ * The Files tool (every screen reviewed spec §3): the place's documents, newest first, with their git status (when
+ * `files/` is a repository) and the GitHub backup each on one line above them. A file opens inside the tool; wide,
+ * the folders sit beside the open file.
  */
 export function FilesTool({ owner }: { owner: Owner }) {
   const root = useRef<HTMLDivElement>(null)
@@ -27,9 +29,12 @@ export function FilesTool({ owner }: { owner: Owner }) {
   const openFile = (path: string | null) => url.set({ file: path })
 
   const opened = file && (
-    <FileOpened
-      kind="files" target={owner} path={file} entry={entry} backLabel="Files"
-      onBack={() => openFile(null)} embedded={wide}
+    <OpenedFile
+      file={{ space: 'place', loc: { ...owner, workspaceId: null, taskId: null }, path: file }}
+      kind="files" path={file} entry={entry} breadcrumb={['Files', ...parentOf(file).split('/').filter(Boolean)]}
+      backLabel="Files" onBack={() => openFile(null)} layout={wide ? 'wide' : 'narrow'}
+      link={{ tool: url.get('tool'), file }}
+      onOpenFile={ref => { if (ref.space === 'place') openFile(ref.path) }}
     />
   )
   const search = (
@@ -41,6 +46,7 @@ export function FilesTool({ owner }: { owner: Owner }) {
   if (wide) {
     return (
       <div ref={root} className="flex min-h-0 flex-1 flex-col bg-surface-1">
+        <GitLine target={owner} />
         <BackupLine owner={owner} />
         <div className="flex min-h-0 flex-1">
           <div className="w-64 shrink-0 overflow-y-auto border-r border-border-subtle">
@@ -62,6 +68,7 @@ export function FilesTool({ owner }: { owner: Owner }) {
   const silent = isSiteUnreachable(folder.error)
   return (
     <div ref={root} className="bg-surface-1">
+      <GitLine target={owner} />
       <BackupLine owner={owner} />
       {search}
       {dir && (

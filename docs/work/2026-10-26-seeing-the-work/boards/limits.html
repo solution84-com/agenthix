@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security and limits · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="limits.html"><main>
+<div class="top"><div><h1>8 · Security and limits</h1>
+<p class="sub">Q5, settled on 25 Oct (D12–D15). What the relay design trusts, what could go wrong, and what stops it. Every defence was checked again as boards 3–7 were drawn.</p></div></div>
+
+<h2 id="trust">Who trusts whom</h2>
+<div class="box"><div class="mmd" data-src="trust"></div>
+<table><tr><th>Party</th><th>Trusted to</th><th>Not trusted to</th></tr>
+<tr><td><b>hq</b></td><td>Decide who may read what, and sign tickets with a key only it holds (R1)</td><td>—</td></tr>
+<tr><td><b>Site</b></td><td>Hold files; check every ticket against hq's public key before reading a byte</td><td>Make tickets</td></tr>
+<tr><td><b>Relay</b></td><td>Pass requests and bytes between browsers and the sites assigned to it; enrolled like a site (R4)</td><td>Decide anything, make tickets, or reach a site that isn't assigned to it</td></tr>
+<tr><td><b>Browser</b></td><td>Carry the ticket it was given</td><td>Anything else; a ticket is all it has</td></tr>
+<tr><td><b>The file itself</b></td><td>Nothing. An agent wrote it, so it may be hostile: script in HTML or a PDF, a huge file, or a symbolic link pointing somewhere else</td><td>—</td></tr>
+</table></div>
+
+<h2 id="doors">How many doors?</h2>
+<div class="box"><p><b>hq's machine keeps one front door with two names, as it has today.</b> hq publishes one port (adr-0067); <code>hq-web</code> behind it sends each name to its own place.</p>
+<table><tr><th>Name</th><th>Today</th><th>After</th></tr>
+<tr><td><code>hq.example.com</code></td><td>hq: the app and its API</td><td>Unchanged</td></tr>
+<tr><td><code>files.example.com</code> (adr-0114)</td><td><b>hq-server</b>, filtering requests down to uploads: a request on the files name still lands in the app's process</td><td><b>hq's relay</b>, a separate container that holds nothing and decides nothing. hq-server no longer receives a single request on the files name</td></tr>
+<tr><td>Preview names (adr-0071)</td><td>hq-server</td><td>Unchanged (D10)</td></tr></table>
+<ul>
+<li><b>No new door on hq's machine, and less behind the one there is:</b> file traffic stops reaching hq at all.</li>
+<li><b>A bare address</b> has one name only; hq's relay answers on a path of it (D17). Still one door.</li>
+<li><b>A further relay on a machine of its own</b> (relay-2) is the only new door: opt-in, for an organisation that has outgrown hq's relay, on a machine with no files and no decisions to attack.</li>
+<li><b>Sites have no door at all</b>, before or after.</li></ul></div>
+
+<h2 id="threats">What could go wrong, and what stops it</h2>
+<div class="box"><table><tr><th></th><th>Threat</th><th>What stops it</th><th></th></tr>
+<tr><td class="n">T1</td><td><b>A forged or altered ticket</b> opens a file nobody granted</td><td>Signed by hq's private key; the site verifies every field, so changing one breaks the signature (R1, R2)</td><td><span class="tag ok">proposed</span></td></tr>
+<tr><td class="n">T2</td><td><b>A leaked ticket</b>, for example in a log, the browser's history or a shared screenshot, is reused</td><td>It expires in minutes, covers one file and one purpose, and dies if the file changes. A URL is never a long-lived credential (adr-0026's rule)</td><td><span class="tag ok">decided · D13</span></td></tr>
+<tr><td class="n">T3</td><td><b>The relay reads or alters bytes</b> passing through it</td><td>Accepted, the same as for a site (D12). A relay is a fleet member, enrolled and run by whoever is trusted with the sites it serves; it gets the same hardening and the same enrolment as a site</td><td><span class="tag ok">decided · D12</span></td></tr>
+<tr><td class="n">T4</td><td><b>A rogue machine poses as a relay</b>, and sites dial it</td><td>A site dials only relays hq names, and checks the relay's enrolled identity before sending anything</td><td><span class="tag ok">proposed</span></td></tr>
+<tr><td class="n">T5</td><td><b>A compromised relay asks a site for other files</b></td><td>It has no ticket for them. The site serves only what a valid ticket names, so a relay can replay a ticket it has seen, but only for that file, until it expires</td><td><span class="tag ok">proposed</span></td></tr>
+<tr><td class="n">T6</td><td><b>An agent plants a symbolic link</b> (<code>notes.md → /etc/passwd</code>, or into another project) and a person opens it</td><td>The site resolves the real path and refuses anything outside the storage boundary, as task attachments do today</td><td><span class="tag ok">proposed</span></td></tr>
+<tr><td class="n">T7</td><td><b>A hostile file runs script</b> as the person viewing it</td><td>The relay's address is a different origin from hq's, so script there has no hq session. Every response carries <code>CSP: sandbox</code>, <code>nosniff</code> and <code>no-referrer</code>. Active kinds are drawn only in a sandboxed frame; text-like kinds are drawn as text, never as HTML (R3). Markdown's one HTML exception is a sized <code>&lt;img&gt;</code>, sanitised to four attributes (D23)</td><td><span class="tag ok">proposed</span></td></tr>
+<tr><td class="n">T8</td><td><b>hq's page fetches from the relay</b>, and something else does too</td><td>The relay allows reads only from hq's own address, and never with cookies or credentials. The ticket is the only authority</td><td><span class="tag ok">proposed</span></td></tr>
+<tr><td class="n">T9</td><td><b>Someone loses access</b> but still holds a ticket</td><td>It stops working within its expiry, a few minutes. No revocation list</td><td><span class="tag ok">proposed</span></td></tr>
+<tr><td class="n">T10</td><td><b>Flooding</b>: huge files, many requests, a slow site</td><td>Caps per kind on what a preview reads, larger ones offered as downloads. Limits per person at the relay; limits on concurrent reads at the site. A slow site affects only its own relay streams, never hq</td><td><span class="tag ok">decided · D14</span></td></tr>
+<tr><td class="n">T11</td><td><b>Nobody can tell who opened what</b></td><td>hq records every ticket it issues: who, which file, when. That's where audit lives, because the relay and the site see only tickets</td><td><span class="tag ok">proposed</span></td></tr>
+<tr><td class="n">T12</td><td><b>A repository's own config runs code</b> during a git read (a hook, <code>fsmonitor</code>, an external diff)</td><td>All switched off for the site's reads (board 6)</td><td><span class="tag ok">proposed</span></td></tr>
+<tr><td class="n">T13</td><td><b>Opening a page tells another website who's reading</b>, through an image it embeds</td><td>Images from other websites wait for a click (T3)</td><td><span class="tag ok">proposed</span></td></tr>
+</table></div>
+
+<h2 id="decide">To decide, one at a time</h2>
+<h3 id="s1">S1 · May a relay see the bytes? Decided: yes (D12)</h3>
+<div class="box"><p><b>A relay is trusted like a site, because both are fleet members.</b> A site sees every file it holds; asking the relay to be blind would ask more of it than of the site, so the rule is the same for both: whoever runs a fleet machine is trusted with what it holds or carries. An organisation that has its fleet hosted for it trusts the host with sites and relays alike. Blind relays (TLS passthrough) were considered and dropped as inconsistent and costly.</p></div>
+
+<h3 id="s2">S2 · How the browser carries the ticket. Decided: in the link (D13)</h3>
+<div class="box"><p><b>The ticket is part of the link</b>, for example <code>files.example.com/t/&lt;ticket&gt;</code>. It's good for a few minutes and reusable until then, so a PDF viewer can fetch page by page. That's the way the files address already serves uploads (adr-0114), so one pattern serves every file. It's sent with <code>no-referrer</code> and never logged by a relay or a site. Rejected: a cookie, which is third-party inside hq's page and already blocked by Safari; a request header, which a PDF frame or a download can't send.</p></div>
+
+<h3 id="s3">S3 · The caps. Decided (D14)</h3>
+<div class="box"><p>Decided 25 Oct. Text is held at <b>1 MB on purpose</b>: across the platform's own 5,191 text and code files the median is 3.5 KB and 99% are under 25 KB, so a text file larger than 1 MB is a smell, not a case to serve. A file that size gets Download; if a real need appears, it's a change request (pagination, say), not a raised cap. The other values are starting points an admin can change. Past a preview cap, the preview shows what fits and says so, with Download beside it. Nothing is refused that could be downloaded.</p>
+<table><tr><th>What</th><th>Proposed</th><th>Why</th></tr>
+<tr><td><b>Text, Markdown, code</b></td><td>Draw the first <b>1 MB</b>; highlight code up to <b>512 KB</b>, plain text beyond</td><td>Today's cap, kept. Larger text is a smell; past it the preview says so and offers Download</td></tr>
+<tr><td><b>JSON</b></td><td>Fold and pretty-print up to <b>5 MB</b>; beyond that, show it as text</td><td>Parsing happens in the browser</td></tr>
+<tr><td><b>CSV</b></td><td>The first <b>10,000 rows</b> as a table, up to 5 MB read</td><td>A table of more than that isn't readable anyway</td></tr>
+<tr><td><b>Images</b></td><td>Up to <b>20 MB</b></td><td>The browser decodes them; larger is almost always a raw export</td></tr>
+<tr><td><b>PDF</b></td><td>Up to <b>50 MB</b>, fetched page by page</td><td>The viewer reads ranges, not the whole file</td></tr>
+<tr><td><b>Download, through a relay</b></td><td><b>No cap</b>, streamed</td><td>Bytes never touch hq; the relay streams them</td></tr>
+<tr><td><b>A bare address</b> (no files subdomain)</td><td>Downloads, and text-like kinds drawn as text, through a path on hq's address that <code>hq-web</code> sends to hq's relay. No PDF preview (D17)</td><td>hq-server still carries nothing; nothing is shown inline on hq's address (adr-0114)</td></tr>
+<tr><td><b>Per person, at a relay</b></td><td><b>16</b> streams at once</td><td>Enough for a page of thumbnails and a PDF; stops a runaway script</td></tr>
+<tr><td><b>Per site</b></td><td><b>32</b> file reads at once, queued beyond</td><td>A site's disk is shared with its agents' work</td></tr>
+<tr><td><b>Ticket life</b></td><td><b>5 minutes</b></td><td>The same as uploads' signed links today (5–10 minutes)</td></tr></table></div>
+
+<script>
+window.SRC = {
+trust: `flowchart LR
+  B["browser<br/>holds a ticket"] -- "1 · may I read X?" --> H["hq<br/>signs tickets<br/>records who opened what"]
+  H -- "2 · ticket: X, you, read, minutes" --> B
+  B -- "3 · ticket" --> R["relay<br/>enrolled · passes bytes"]
+  S["site<br/>checks ticket with hq's public key<br/>confines the path"] -- "dials out, checks the relay is enrolled" --> R
+  R -- "4 · request + ticket" --> S
+  S -- "5 · bytes" --> R -- "6 · bytes, sandbox headers" --> B`
+}
+</script>
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

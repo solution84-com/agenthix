@@ -80,6 +80,10 @@ The ones every concept document leans on:
 | **Workflow** | A named, versioned script in a place's library that a person approves word for word; the only thing that uses a secret ([workflows](workflows/workflows.md)) |
 | **Executor** | The site carrying out an approved workflow's steps, each in a container of its own. Not an agent, and has no model |
 | **Secret**, **variable** | A place's named values for its workflows: a secret is never shown and goes only to the steps that name it; a variable is a plain setting anyone in the place can read ([secrets and variables](workflows/secrets-and-variables.md)) |
+| **Relay** | A fleet member that carries file bytes between browsers and sites and decides nothing. HQ's relay is always there. Not the *model relay* on a site ([the fleet](fleet/fleet.md#relays)) |
+| **Ticket** | HQ's signed permission, five minutes long, for one person to preview or download one file ([opening a file](file-sharing/opening-files.md)) |
+| **Renderer**, **frame** | A renderer draws one or more kinds of file; the frame is what Agenthix draws around it: title, facts, Download and every state ([opening a file](file-sharing/opening-files.md#what-a-renderer-can-do)) |
+| **Reference**, **chip**, **embed** | A path written from a place's root (`files/reports/q3.pdf`, `tasks/MOP-1`) that names a file, folder, task or attachment; the small piece it is drawn as in a message; and a file drawn inside a page ([references, chips and embeds](file-sharing/references-and-chips.md)) |
 | **GitHub account** | A GitHub organisation or person's account where the organisation's GitHub App is installed, and which places may connect to it ([git access](git/git-access.md)) |
 
 ## Who may do what
@@ -136,6 +140,8 @@ from other people, keep it in your own storage or in a project they are not part
 | How a new HQ is set up | [Setup](setup/setup-flow.md) |
 | Teams, and a team as one member of a project | [Teams](projects/teams.md) |
 | Where files live and who sees them | [Storage and workspaces](workspace/workspace.md), [file sharing](file-sharing/file-sharing.md) |
+| How a person opens an agent's file, and how relays and tickets carry it | [Opening a file](file-sharing/opening-files.md) |
+| How a file, folder, task or attachment is named in a message, and drawn there | [References, chips and embeds](file-sharing/references-and-chips.md) |
 | Repositories, GitHub accounts and which places can connect | [Git access](git/git-access.md) |
 | Using secrets: workflows, approval, the executor | [Workflows](workflows/workflows.md), [secrets and variables](workflows/secrets-and-variables.md) |
 | Tasks and boards | [Task](tasks/task.md), [board](tasks/board.md), [sub-tasks and delegation](tasks/subtask.md) |
@@ -162,8 +168,8 @@ from other people, keep it in your own storage or in a project they are not part
 | [`conversations/`](conversations/README.md) | Conversations held in hq: the lead and its workers, turns, operations and approvals, long conversations, voice |
 | [`billing/`](billing/billing.md) | Billing profiles, the ledger of every call's cost and the usage report |
 | [`budget/`](budget/README.md) | Token counting and cost display; a budget design that is not built |
-| [`file-sharing/`](file-sharing/file-sharing.md) | How files and artefacts are served back to people |
-| [`fleet/`](fleet/fleet.md) | The fleet: HQ, its sites and the machines they run on, the host service, the Fleet Console, and the organisation, fleet and machine admins |
+| [`file-sharing/`](file-sharing/file-sharing.md) | How files and artefacts are served back to people: [what is kept and who may read it](file-sharing/file-sharing.md), [opening a file](file-sharing/opening-files.md) through tickets and relays, and [references, chips and embeds](file-sharing/references-and-chips.md) |
+| [`fleet/`](fleet/fleet.md) | The fleet: HQ, its sites and relay and the machines they run on, the host service, the Fleet Console, and the organisation, fleet and machine admins |
 | [`git/`](git/git-access.md) | Repository attachments, the GitHub App and its accounts, which places can connect, pushing and pulling through workflows |
 | [`library/`](library/library.md) | Agent, board, skill and team templates, each one package with its source, version and publisher |
 | [`knowledge/`](knowledge/README.md) | What a place shares for agents and people: pages in sections, four levels, the tools, the gate with versions, who may change what |

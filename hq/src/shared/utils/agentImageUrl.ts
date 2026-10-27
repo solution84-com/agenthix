@@ -4,10 +4,10 @@ import { api } from 'wasp/client/api'
  * Turns a stored picture path (an agent's avatar or cover, a person's, the
  * organisation's or a team's) into an address an `<img>` can load.
  *
- * Uploaded files are served from an origin of their own (adr-0114), each to a
- * short-lived link HQ makes for one file and one person: an `<img src>` cannot
- * carry the session's token, and the files origin never sees it. So the link
- * is asked for once through the authenticated client, and the same one handed
+ * Uploaded files are served by HQ's relay (adr-0153), each on a short-lived
+ * ticket HQ signs for one file and one person: an `<img src>` cannot carry the
+ * session's token, and the relay never sees it. So the link is asked for once
+ * through the authenticated client, and the same one handed
  * to every caller that asks for the same path while it lives — a session's
  * sidebar row and its open chat panel can show the same agent at once.
  *

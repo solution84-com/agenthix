@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import {
   useQuery, useAction, getTaskByKey, getSessionPendingManifest, approveManifest, archiveTask, deleteTask, updateTaskPlan,
 } from 'wasp/client/operations'
@@ -9,12 +10,17 @@ import {
 import type { PendingManifestData } from '@agenthix/ui/sessions'
 import { InlineEdit } from '../../shared/components/ui/InlineEdit'
 import { useTaskDetail } from '../hooks/useTaskDetail'
-import { CommentsSection } from '../components/TaskPanel'
+import { CommentsSection, taskEmbed } from '../components/TaskPanel'
+import { taskEmbedOpeners, taskFileAddress } from '../components/taskEmbedOpen'
 import { isManifestApprovalComment } from '../components/ManifestApprovalComment'
 import { TaskNotices } from '../components/TaskNotices'
 import { TaskFactsPanel } from '../components/TaskFactsPanel'
 import { TaskWaiting } from '../components/TaskWaiting'
 import { TaskThreadSection } from '../components/TaskThreadSection'
+import { TaskBesideFile } from '../components/TaskBesideFile'
+import { TaskOpenedFile } from '../components/TaskOpenedFile'
+import { taskLocation } from '../hooks/useTaskFiles'
+import type { OpenTaskFile } from './useTasksToolUrl'
 import { lostAccessRunNotice } from './taskHeldNotice'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 
@@ -39,7 +45,7 @@ const ACTION_LABEL = { run: 'Run', stop: 'Stop', approve: 'Approve', runAgain: '
  * every task: what it is, what waits in its session, its comments, its facts,
  * and the one action for the state it is in.
  */
-export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGone, onOpenSession, projectLink }: {
+export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGone, onOpenSession, projectLink, openFile, onOpenFile }: {
   taskKey: string
   focusWaiting: boolean
   /** What the way back is called; "Tasks" where it is not given. */
@@ -51,7 +57,12 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   onOpenSession: () => void
   /** On the task's own page, its project is a fact; inside a project's tool it is the context. */
   projectLink?: boolean
+  /** The task's file open beside it (spec part 3, *A task's files*), kept by the caller in the address. */
+  openFile?: OpenTaskFile | null
+  /** Opens one of the task's files beside it, or closes it (null). Without it, files only download. */
+  onOpenFile?: (file: OpenTaskFile | null) => void
 }) {
+  const navigate = useNavigate()
   const { data: byKey, isLoading, error } = useQuery(getTaskByKey, { taskKey })
   const detail = useTaskDetail(byKey?.id)
   const task = detail.task as unknown as TaskView | null | undefined
@@ -88,7 +99,14 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
 
   const action = primaryAction({ runState: task.runState, hasPendingApproval: !!pending })
   const lostAccess = lostAccessRunNotice(task)
-  const project = (byKey as { project?: { key: string; name: string } }).project
+  const project = (byKey as { project?: { id: string; key: string; name: string; personalSpace?: boolean; personalOwnerId?: string | null } }).project
+  const loc = taskLocation(project, task.id)
+  const openers = taskEmbedOpeners({
+    taskId: task.id, taskKey, go: navigate,
+    // Without a place to open it beside, a file opens on the task's own page.
+    openBeside: file => (onOpenFile ? onOpenFile(file) : navigate(taskFileAddress(taskKey, file))),
+  })
+  const embed = taskEmbed(byKey?.projectId, task.id, { key: taskKey, personalSpace: project?.personalSpace, personalOwnerId: project?.personalOwnerId, openers })
   const stages = detail.boardStages
   const column = stages.find(s => s.name === detail.task?.column)?.label ?? detail.task?.column ?? null
   const keyLine = [taskKey, task.isEpic ? 'Epic' : null, task.board?.name, column ?? 'Backlog'].filter(Boolean).join(' · ')
@@ -128,14 +146,14 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
     ] : []),
   ]
 
-  return (
+  const view = (
     <TaskInTool
       onBack={onBack}
       backLabel={backLabel}
       keyLine={keyLine}
       title={<InlineEdit readOnly={!canChange} value={task.title} onSave={detail.handleSaveTitle} placeholder="Task title" textClassName="text-h2 font-semibold" />}
       description={
-        <InlineEdit readOnly={!canChange} value={task.description ?? ''} onSave={detail.handleSaveDescription} multiline markdown placeholder="Add a description…" textClassName="text-body leading-relaxed" />
+        <InlineEdit readOnly={!canChange} embed={embed} value={task.description ?? ''} onSave={detail.handleSaveDescription} multiline markdown placeholder="Add a description…" textClassName="text-body leading-relaxed" />
       }
       notices={
         <>
@@ -166,11 +184,17 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
           commentTextareaRef={detail.commentTextareaRef}
           onAddComment={canChange ? () => void detail.handleAddComment() : undefined}
           sessionId={session?.id}
+          embed={embed}
           placeholder={`Comment — everyone on the task sees it${task.assignedAgent ? `; ${task.assignedAgent.name} reads it on its next run` : ''}`}
         />
         </>
       }
-      facts={<TaskFactsPanel detail={detail} project={projectLink ? project : undefined} />}
+      facts={
+        <TaskFactsPanel
+          detail={detail} project={projectLink ? project : undefined}
+          files={onOpenFile ? { opened: openFile ?? null, loc, onOpen: onOpenFile } : undefined}
+        />
+      }
       action={
         !canChange || (lostAccess && action !== 'stop' && action !== 'approve') ? null : (
           <button
@@ -185,6 +209,18 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
         )
       }
       menu={<OverflowMenu items={menu} />}
+    />
+  )
+  if (!onOpenFile) return view
+  return (
+    <TaskBesideFile
+      task={view}
+      file={openFile ? layout => (
+        <TaskOpenedFile
+          file={openFile} taskId={task.id} taskKey={taskKey} loc={loc} layout={layout}
+          onClose={() => onOpenFile(null)} onOpenWorking={path => onOpenFile({ kind: 'working', path })}
+        />
+      ) : null}
     />
   )
 }

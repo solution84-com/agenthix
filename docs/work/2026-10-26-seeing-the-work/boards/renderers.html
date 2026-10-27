@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The renderer boundary · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="renderers.html"><main>
+<div class="top"><div><h1>4 · The renderer boundary</h1>
+<p class="sub">Level 2. Agenthix owns the frame: header, actions, loading, errors, access. A renderer draws only inside the area it's given, from one input: the file's facts and a way to read its bytes from the relay (D17). First-party renderers use the same contract that admin-managed ones would later (file preview).</p></div></div>
+
+<h2 id="shape">The shape</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="mmd" data-src="shape"></div>
+<div class="kbox">
+<div><h4><span class="n">1</span>Choosing the kind</h4><p>One function, in <code>core</code>, so hq and the page agree: name → content type, then the site's look at the first bytes (text or binary). It returns a <b>kind</b>: <code>markdown</code>, <code>text</code>, <code>code</code>, <code>json</code>, <code>csv</code>, <code>image</code>, <code>pdf</code>, or <code>none</code>. It replaces <code>classifyFileContent</code>'s closed union.</p></div>
+<div><h4><span class="n">2</span>The registry</h4><p>A list of renderers, each saying which kinds it draws and where it runs, looked up by kind. The pattern hq already uses for a place's tools (<code>PlaceTool { id, label, render }</code>). Adding a format is adding an entry, never editing the frame.</p></div>
+<div><h4><span class="n">3</span>The frame</h4><p>Today's <code>FileOpened</code>, kept: title, facts, Mention, <b>Download for every kind</b>, Copy path, Copy link. It mounts the renderer and draws loading, "showing part", and every error itself (F2, F4).</p></div>
+<div><h4><span class="n">4</span>In-page renderers</h4><p>Text-like kinds, drawn by trusted code as <b>text, never as HTML</b>: Markdown (react-markdown, raw HTML off, as today), text, code (the installed <code>react-syntax-highlighter</code>), JSON, CSV, images. Bytes fetched from the relay with the ticket link.</p></div>
+<div><h4><span class="n">5</span>Framed renderers</h4><p>Active kinds, drawn by a <b>viewer page served from the files address</b>, in a frame. PDF first: pdf.js in that page, reading pages by range. If the viewer were ever tricked, it runs where there's no hq session (T7). Admin-managed renderers would run the same way, later.</p></div>
+<div><h4><span class="n">6</span>Diffs, later</h4><p>A <code>diff</code> kind (git observability): an in-page renderer whose bytes are a diff the site produces, on a ticket naming two versions. Nothing in the frame or the registry changes for it.</p></div>
+</div></div>
+
+<h2 id="contract">The contract</h2>
+<div class="box"><p>Narrow on purpose: what goes in, what comes out, and when it ends. It's written once and implemented by every renderer.</p>
+<pre class="code">// core: what every renderer is given
+interface FileFacts {
+  name: string; size: number; version: string; contentType: string
+  kind: Kind            // 'markdown' | 'text' | 'code' | 'json' | 'csv' | 'image' | 'pdf' | 'none'
+  language?: string     // code only
+}
+interface FileBytes {
+  link: string                                  // the ticket link on the relay (D13)
+  read(limit: number): Promise&lt;{ bytes: Uint8Array; whole: boolean }&gt;
+  range(start: number, end: number): Promise&lt;Uint8Array&gt;
+}
+
+// ui: one entry per renderer
+interface Renderer {
+  id: string            // 'code', 'pdf', …
+  kinds: Kind[]
+  runs: 'page' | 'frame'
+  previewLimit: number  // D14: what it reads at most
+  embeds: boolean       // draws in 'embedded' mode too (T3); otherwise the frame draws a card
+  // page: drawn inside the frame's area
+  render?(props: { facts: FileFacts; bytes: FileBytes; mode: 'opened' | 'embedded'; report: (r: Report) =&gt; void }): ReactNode
+  // frame: the viewer page's path on the files address
+  viewer?: string
+}
+type Report =
+  | { state: 'ready' }
+  | { state: 'partial'; shown: number }          // the frame says "Showing the first 1 MB of 3.4 MB"
+  | { state: 'failed'; reason: 'unreadable' | 'too-large' | 'changed' | 'unavailable' }</pre>
+<ul>
+<li><b>In:</b> facts and bytes, nothing else. No hq API, no person, no store. A renderer can't do more than draw.</li>
+<li><b>Out:</b> one report, which the frame turns into words. A renderer never draws its own error.</li>
+<li><b>Two modes</b> (T3): <i>opened</i>, the whole area with the frame around it, or <i>embedded</i>, inside a page or a message, bounded in size and with no controls. A renderer that doesn't embed is shown as a card the frame draws.</li>
+<li><b>Lifecycle:</b> mounted when the file opens, unmounted when it closes or the file changes; reads are cancelled on unmount.</li>
+<li><b>A framed renderer</b> gets the same facts and link in its address, and sends the same reports to the frame by <code>postMessage</code>, checked against the files address's origin.</li></ul></div>
+
+<h2 id="first">The first-party renderers</h2>
+<div class="box"><table><tr><th>Renderer</th><th>Kinds</th><th>Runs</th><th>Reads at most (D14)</th><th>Phase</th></tr>
+<tr><td>Markdown</td><td>markdown</td><td>page</td><td>1 MB</td><td>MVP: moved behind the boundary</td></tr>
+<tr><td>Text</td><td>text</td><td>page</td><td>1 MB, wrapped</td><td>MVP</td></tr>
+<tr><td>Code</td><td>code</td><td>page</td><td>1 MB; highlighted to 512 KB</td><td>MVP</td></tr>
+<tr><td>JSON</td><td>json</td><td>page</td><td>5 MB folded; as text beyond</td><td>MVP</td></tr>
+<tr><td>Table</td><td>csv</td><td>page</td><td>10,000 rows, 5 MB</td><td>MVP</td></tr>
+<tr><td>Image</td><td>image (png, jpg, gif, webp, avif, svg as an image, ico, bmp)</td><td>page</td><td>20 MB</td><td>MVP</td></tr>
+<tr><td>PDF</td><td>pdf</td><td>frame</td><td>50 MB, by range</td><td>MVP; needs a files address</td></tr>
+<tr><td>YAML, HTML source, Markdown with relative images</td><td>code, markdown</td><td>page</td><td>1 MB</td><td>Stretch</td></tr>
+<tr><td>Diff</td><td>diff</td><td>page</td><td>1 MB</td><td>Stretch (git observability)</td></tr></table></div>
+
+<h2 id="later">Admin-managed renderers: where they'd plug in</h2>
+<div class="box"><span class="lbl open">Designed, not built</span><ul>
+<li>A renderer an organisation's admin adds is a <b>framed renderer</b>: a viewer page served from the files address, never code in hq's page.</li>
+<li>It declares the kinds or content types it draws and is listed in the registry beside the first-party ones. An admin chooses which wins for a kind.</li>
+<li>It speaks the same contract by <code>postMessage</code>: facts and link in, reports out. It sees one file's bytes for one ticket's life, and nothing of hq.</li>
+<li>Not in this epic: installing from a marketplace, renderers that run on a server, editing.</li></ul></div>
+
+<h2 id="why">Why this shape</h2>
+<div class="box"><ul>
+<li><b>One input</b>, because relays alone carry bytes (D17). There's no second path to support.</li>
+<li><b>Text-like kinds in the page</b>, because they're drawn as text and can't run, and a frame per Markdown file would be slow.</li>
+<li><b>PDF in a viewer page of our own</b>, not the browser's built-in viewer: browsers refuse their own PDF viewer inside a sandboxed frame, and pdf.js lets us read by range and keep the same reports.</li></ul></div>
+
+<script>
+window.SRC = {
+shape: `flowchart LR
+  O["open: hq returns<br/>facts + ticket link"] --> K["1 · kind"]
+  K --> G["2 · registry"]
+  G -->|"text-like"| P["4 · in-page renderer<br/>draws as text"]
+  G -->|"active"| F["5 · framed renderer<br/>viewer page on files address"]
+  P --> FR["3 · the frame<br/>header · Download · states"]
+  F --> FR
+  R[("relay")] -. "bytes, by ticket" .-> P
+  R -. "bytes, by ticket" .-> F`
+}
+</script>
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

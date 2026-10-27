@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CONSOLE_LINK_METHODS, parseFleetAdminAccounts, parseHqAbout, parseSiteLoads } from '../index.js'
+import { CONSOLE_LINK_METHODS, parseFleetAdminAccounts, parseHqAbout, parseHqRelay, parseSiteLoads } from '../index.js'
 
 describe('what hq says of itself over the console link', () => {
   it('takes the organisation’s name and the address people open HQ at', () => {
@@ -71,5 +71,33 @@ describe('the fleet admins, as hq lists them', () => {
   it('drops an account without an id or a name', () => {
     expect(parseFleetAdminAccounts([{ ...sam, id: 7 }, { ...sam, name: null }, 'u-sam'])).toEqual([])
     expect(parseFleetAdminAccounts('not a list')).toEqual([])
+  })
+})
+
+describe('hq’s own relay over the console link @SC-1467', () => {
+  const relay = {
+    name: 'hq-box', filesAddress: 'https://files.acme.example/', answering: true, lastSeenAt: '2026-10-26T08:00:00Z',
+    sites: 2, openStreams: 3, bytesCarried: 38_000_000,
+  }
+
+  it('takes the relay in its shape', () => {
+    expect(parseHqRelay({ relay })).toEqual({ ...relay, filesAddress: 'https://files.acme.example', lastSeenAt: '2026-10-26T08:00:00.000Z' })
+    expect(CONSOLE_LINK_METHODS).toContain('relay.facts')
+  })
+
+  it('keeps a relay with no files address and no report yet, with each missing figure null', () => {
+    expect(parseHqRelay({ relay: { name: 'hq-box', filesAddress: null, answering: false, lastSeenAt: null } }))
+      .toEqual({ name: 'hq-box', filesAddress: null, answering: false, lastSeenAt: null, sites: null, openStreams: null, bytesCarried: null })
+  })
+
+  it('drops an address or a figure that is not its shape, and keeps the rest', () => {
+    expect(parseHqRelay({ relay: { ...relay, filesAddress: 'javascript:alert(1)', sites: -1, openStreams: 1.5, bytesCarried: '9' } }))
+      .toMatchObject({ filesAddress: null, sites: null, openStreams: null, bytesCarried: null, answering: true })
+  })
+
+  it('is null for no relay, a nameless one, or one that does not say whether it answers', () => {
+    for (const v of [null, {}, { relay: null }, { relay: { ...relay, name: ' ' } }, { relay: { ...relay, answering: 'yes' } }, { relay: [] }]) {
+      expect(parseHqRelay(v)).toBeNull()
+    }
   })
 })

@@ -198,7 +198,7 @@ test.describe('resizing the window', () => {
     for (const [width, form] of [[1000, 'medium'], [375, 'narrow'], [1440, 'wide']] as const) {
       await page.setViewportSize({ width, height: 900 })
       await expect(dock).toHaveAttribute('data-width', form)
-      await expect(box).toHaveValue('half a thought')
+      await expect(box).toHaveText('half a thought')
     }
   })
 })

@@ -49,14 +49,14 @@ async function waitFor<T>(ctx: Context, limitMs: number, probe: () => Promise<T 
 async function getImages(progress: (p: Progress) => void, ctx: Context, hq: StoredHq, site: StoredSite): Promise<{ hq: ImagePins; site: ImagePins; console: ImagePins }> {
   const pins = await step(progress, `Checking the images are signed by ${product}`, async () => {
     const { pins, checked } = await checkImages(ctx, [
-      { part: 'hq-server', version: hq.version }, { part: 'hq-web', version: hq.version },
+      { part: 'hq-server', version: hq.version }, { part: 'hq-web', version: hq.version }, { part: 'relay', version: hq.version },
       { part: 'site-server', version: site.version }, { part: 'agent', version: site.version },
       { part: 'console', version: hq.version },
     ])
     return { value: pins, outcome: checked ? 'passes' : 'not checked: images built here (development build)' }
   })
-  await step(progress, `Pulling HQ ${hq.version} (3 images)`, async () => {
-    await fetchImages(ctx, [POSTGRES_IMAGE, pins['hq-server']!, pins['hq-web']!])
+  await step(progress, `Pulling HQ ${hq.version} (4 images)`, async () => {
+    await fetchImages(ctx, [POSTGRES_IMAGE, pins['hq-server']!, pins['hq-web']!, pins.relay!])
     return { value: undefined, outcome: 'done' }
   })
   await step(progress, `Pulling the site ${site.version} and the agent image`, async () => {
@@ -68,7 +68,7 @@ async function getImages(progress: (p: Progress) => void, ctx: Context, hq: Stor
     return { value: undefined, outcome: 'done' }
   })
   return {
-    hq: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'] },
+    hq: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'], relay: pins.relay },
     site: { 'site-server': pins['site-server'], agent: pins.agent },
     console: { console: pins.console },
   }

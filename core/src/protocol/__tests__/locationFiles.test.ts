@@ -12,6 +12,11 @@
 import { describe, it, expect } from 'vitest'
 import {
   LOCATION_FILE_METHODS,
+  FIND_FILES_MAX_ENTRIES,
+  FIND_FILES_MAX_FRAGMENT,
+  FIND_FILES_MAX_MS,
+  FIND_FILES_MAX_RESULTS,
+  FIND_FILES_SKIPPED_FOLDERS,
   KNOWLEDGE_LIST_MAX_FILES,
   KNOWLEDGE_LIST_MAX_DEPTH,
   LOCATION_FILE_ERROR_CODES,
@@ -157,5 +162,20 @@ describe('the knowledge gate and history (1.7)', () => {
       grep: { pattern: 'staging.*(approv|sign.?off)', '-n': true, output_mode: 'content' },
     }
     expect(search.grep?.pattern).toContain('staging')
+  })
+})
+
+describe('finding files by name @SC-1466', () => {
+  it('is a control method of its own, beside the listing', () => {
+    expect(LOCATION_FILE_METHODS.findFiles).toBe('location.findFiles')
+  })
+
+  it('bounds what one find answers and walks', () => {
+    expect(FIND_FILES_MAX_RESULTS).toBeGreaterThan(0)
+    expect(FIND_FILES_MAX_RESULTS).toBeLessThanOrEqual(50)
+    expect(FIND_FILES_MAX_FRAGMENT).toBeLessThanOrEqual(200)
+    expect(FIND_FILES_MAX_ENTRIES).toBeGreaterThan(FIND_FILES_MAX_RESULTS)
+    expect(FIND_FILES_MAX_MS).toBeLessThanOrEqual(5_000)
+    expect(FIND_FILES_SKIPPED_FOLDERS).toContain('.git')
   })
 })

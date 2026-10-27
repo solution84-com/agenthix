@@ -1,8 +1,11 @@
-import { LOCATION_FILE_METHODS, PACKAGE_METHODS, PREVIEW_METHODS, type SiteContentMethodName } from '@agenthix/core'
+import {
+  FILES_SERVE_METHOD, LOCATION_FILE_METHODS, PACKAGE_METHODS, PREVIEW_METHODS, type SiteContentMethodName,
+} from '@agenthix/core'
 import type { ContentStream } from './contentStream'
 import { handlePackagesPut } from '../../../packages/packageMethods'
 import { handleArtefactRead, handleKnowledgeRead, handleLocationRead } from './locationReadHandler'
 import { handlePreviewConnect } from './previewConnectHandler'
+import { refuseFilesServeFromHq } from '../../relay/filesServeFromHq'
 
 /**
  * The streams this site serves (ADR-0051: named methods, never a generic
@@ -29,4 +32,7 @@ export const contentMethods: Readonly<Record<SiteContentMethodName, ContentHandl
   // nothing else — the container and the port are resolved from this site's
   // registry, never sent.
   [PREVIEW_METHODS.connect]: handlePreviewConnect,
+  // A file for a browser, on a ticket (adr-0153). Served only on a relay's line, where the handler knows which relay
+  // the ticket must name (`../../relay/relayLines.ts`); hq carries no file bytes, so here it is refused.
+  [FILES_SERVE_METHOD]: refuseFilesServeFromHq,
 })

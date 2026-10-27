@@ -1,16 +1,16 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-10-26
+updated: 2026-10-27
 verified: 2026-06-19
-next-us: US-390
+next-us: US-398
 ---
 
 # User Stories — `hq/`
 
 > Business-level requirements for hq's users, and for the person who owns an Execution Site machine (stories US-182 to US-185).
 > Audience: business readers — no implementation detail.
-> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*.
+> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*.
 > A retired story or criterion keeps its number; nothing is renumbered. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/hq.md`](../scenarios/hq.md), [`../scenarios/site.md`](../scenarios/site.md)), never here.
 
 ---
@@ -3825,3 +3825,68 @@ As a member, I want to choose which of my places a conversation can read and wor
 - AC-388c: a place I lose access to drops out of the conversation, and nothing reaches it from then on.
 - AC-388d: the agent knows which places it has and which it has not, says a place out of reach was not searched rather than that it is empty, and asks me for it.
 - AC-388e: the agent starts work only in the places the conversation holds, and says how to add one when asked for another.
+
+---
+
+## Seeing the agents' work (added 2026-10-27)
+
+Written from the finished code at the close of the unit *seeing the agents' work*. People direct agents in Agenthix, and must be able to see what the agents made — a report, a chart, a data file, a change to a codebase — without leaving it. A file opens read-only and in place wherever it is named; the page that coordinates the agents never carries the file's bytes (US-397, in [`cross-cutting.md`](cross-cutting.md)); and what the fleet admin sees of the machine that carries them is US-396, in [`console.md`](console.md).
+
+### US-390 — Open what an agent made, where I am
+
+As a member, I want to open any file an agent produced, in place and read-only, drawn the way it should be read, so that I can see the work without downloading it or leaving Agenthix.
+
+**Acceptance criteria:**
+- AC-390a: I open a file from a project's or my own Files, a workspace, an artefact, a knowledge page, a task, a link or a chip, and see which file it is, where it lives, its size and what kind it is.
+- AC-390b: Markdown reads as a page, plain text and code as text (code highlighted, its language named), JSON as a tree and as text, a CSV file as a table I can sort, an image as an image and a PDF as a PDF; a kind that cannot be drawn says so and offers Download.
+- AC-390c: a file too large to show in full shows its start and says so; text that is not text, a file that changed while I was looking (I can open the new version) and a file that is gone are each said in words.
+- AC-390d: when a file cannot be reached I am told why — the machine's relay is not answering, or the machine is not — naming them, and can try again; the page does not load forever.
+- AC-390e: someone who may not see a place gets what they would for a place that does not exist, and never a file's name.
+
+### US-391 — Download any file, and attach one to a task
+
+As a member, I want to download any file I can reach, whatever its kind or size, and to attach a file to a task, so that nothing an agent made is out of my reach and I can give an agent my own.
+
+**Acceptance criteria:**
+- AC-391a: Download is offered for every file I can reach, of any kind and any size, and gives the file as it is.
+- AC-391b: I attach a file of up to 10 MB to a task; a larger one is refused at once, telling me the limit before anything is sent.
+
+### US-392 — See pictures and files where they are written
+
+As a member, I want the images in the text I read — a file, a knowledge page, a task's description and comments, an agent's reply — drawn where they are written, and a link to another file to show what it is, so that a report reads as the report it is.
+
+**Acceptance criteria:**
+- AC-392a: an image a text names — in its own folder, in the place's other folders, or a task's own attachment — is drawn there; one that is not there, or that I may not see, shows as a broken image with its name and reveals nothing.
+- AC-392b: an image on another website is not asked for until I click *Load*, so opening a page never tells another website that I am reading it.
+- AC-392c: a link to a file alone on its line shows a card with what the file is and opens it; inside a sentence it is a chip.
+- AC-392d: nothing in a file can run: only an image, with its address, text, width and height, is drawn inside a text, and every other tag stays text.
+
+### US-393 — Reach a file from wherever it is named
+
+As a member, I want each file to have one link that opens it in place, and files, folders and tasks that are named in a conversation to be chips I can click, so that I can follow an agent's words to the work and point an agent to a file myself.
+
+**Acceptance criteria:**
+- AC-393a: *Copy link* gives the file's one address — the place's own, with the tool and the file — which opens it in place for anyone who may see the place and never names a machine or a ticket; a file that is gone says so and where it was.
+- AC-393b: a file, folder, task or attachment an agent names, or a link pasted into a message, is a chip with its kind, status or title; a task I may not see stays plain text; a file that is gone is struck through.
+- AC-393c: a chip opens the file beside the conversation, in the frame; a link to another place goes to that place.
+- AC-393d: *Mention* puts a file in my message as a chip where I am typing, one Backspace removes it whole, and a path I type or paste becomes a chip; what is sent is the text with the paths written out.
+- AC-393e: typing `@` offers the files of the conversation's places by name, narrowed as I type, which I choose with the keyboard or a click; Escape closes it and leaves my text.
+- AC-393f: agents are told how to name files and tasks, and what they attach comes back with the name that makes it a chip.
+
+### US-394 — See a task's files beside the task
+
+As a member, I want a task's attachments and the files its runs worked on to open beside the task, so that I find the result where I asked for the work.
+
+**Acceptance criteria:**
+- AC-394a: a task's attachment opens beside the task (covering it, with a way back, on a narrow screen) and still downloads.
+- AC-394b: the folder the task's runs work in is listed under its attachments, and I step into its folders and open its files.
+- AC-394c: a task's file has a link that names the project, the task and the file, which opens the task and the file together; someone who cannot see the project is told it is not found.
+- AC-394d: a file in a task's own text opens beside the task, and a file of the place opens in its own tool.
+
+### US-395 — See where a workspace stands in git
+
+As a member, I want to see a workspace's branch, whether it has uncommitted changes and its last commit, so that I know where the agents left it without asking.
+
+**Acceptance criteria:**
+- AC-395a: above a workspace's files and my project's `files/` one line shows the branch (or the commit checked out), clean or how many files changed, the last commit and how long ago, and a merge or rebase left stopped halfway; a folder that is not a repository shows no line.
+- AC-395b: reading never runs anything a repository is set up to run and never gets in the way of an agent's own commit.

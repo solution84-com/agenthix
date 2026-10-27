@@ -8,7 +8,7 @@ import type { Installation } from '../../state/installation'
 
 const secrets: InstallSecrets = {
   hqDbPassword: 'hqdb', jwtSecret: 'jwt', hqMasterKey: 'hqkey', pairingSecret: 'p'.repeat(64),
-  siteDbPassword: 'sitedb', siteMasterKey: 'sitekey', consolePairingSecret: 'm'.repeat(64),
+  siteDbPassword: 'sitedb', siteMasterKey: 'sitekey', consolePairingSecret: 'm'.repeat(64), relaySecret: 'r'.repeat(64),
 }
 const hq = { address: 'https://hq.acme.example', bind: '127.0.0.1', trustedProxies: 2, version: '0.2.0' }
 const inst: Installation = { namespace: 'agenthix', ports: { hq: 7800, console: 7801 }, agentRange: '10.213.16.0/20', recordedAt: '2026-10-24T00:00:00.000Z' }
@@ -76,9 +76,42 @@ describe('the compose projects', () => {
     expect(hqProject(namesFor('agenthix'), hq, secrets, 'hq-box', any(namesFor('agenthix')), inst).services['hq-web'].environment.HQ_URL).toBe('https://hq.acme.example')
   })
 
+  it("runs hq's relay (adr-0153) beside hq-server, dialling it over the private network, with the secret they share, and publishing nothing @SC-1594", () => {
+    const names = namesFor('agenthix')
+    const h = hqProject(names, { ...hq, filesOrigin: 'https://files.hq.acme.example' }, secrets, 'hq-box', any(names), inst)
+    const relay = h.services.relay
+    expect(relay.image).toBe('ghcr.io/solution84-com/agenthix-relay:0.2.0')
+    expect(relay.networks).toEqual(['internal'])
+    expect('ports' in relay).toBe(false)
+    expect(relay.environment).toMatchObject({
+      RELAY_HQ_ADDRESS: 'http://hq-server:4101', HQ_RELAY_SECRET: secrets.relaySecret,
+      HQ_URL: 'https://hq.acme.example', FILES_ORIGIN: 'https://files.hq.acme.example',
+    })
+    expect(h.services['hq-server'].environment.HQ_RELAY_SECRET).toBe(secrets.relaySecret)
+    expect(relay.depends_on).toEqual(['hq-server'])
+    expect(relay.environment.HQ_UPLOADS_ROOT).toBe('/hq-storage')
+    expect(relay.volumes).toEqual(['storage:/hq-storage:ro'])
+    expect(relay.healthcheck.test.join(' ')).toContain('127.0.0.1:4401/health')
+    expect(h.services['hq-web'].networks).toContain('internal')
+  })
+
+  it("lets the relay's secret leave no other service's environment, and an uploads-only HQ give the relay no files origin @SC-1594", () => {
+    const names = namesFor('agenthix')
+    const h = hqProject(names, hq, secrets, 'hq-box', any(names), inst)
+    expect(h.services.relay.environment.FILES_ORIGIN).toBe('')
+    expect(JSON.stringify(h.services['hq-web'])).not.toContain(secrets.relaySecret)
+    expect(JSON.stringify(h.services['hq-db'])).not.toContain(secrets.relaySecret)
+  })
+
+  it('runs the relay as the image pinned when its signature was checked @SC-1594', () => {
+    const pinned = 'ghcr.io/solution84-com/agenthix-relay@sha256:' + 'b'.repeat(64)
+    const h = hqProject(namesFor('agenthix'), { ...hq, images: { relay: pinned } }, secrets, 'hq-box', any(namesFor('agenthix')), inst)
+    expect(h.services.relay.image).toBe(pinned)
+  })
+
   it('derives every stored name from the recorded namespace, not the product name @SC-821 @SC-1155', () => {
     const json = composeJson(hqProject(namesFor('acme'), hq, secrets, 'hq-box', any(namesFor('acme')), inst)) + composeJson(defaultSiteProject(namesFor('acme'), site, secrets, { state: '/srv/acme' }, any(namesFor('acme')), inst))
-    const stored = json.replace(/agenthix-(hq-server|hq-web|site-server|agent|executor)(:[\d.]+)?/g, '')
+    const stored = json.replace(/agenthix-(hq-server|hq-web|relay|site-server|agent|executor)(:[\d.]+)?/g, '')
     expect(stored).not.toMatch(/agenthix/)
     expect(json).toContain('"acme-hq-server"')
     expect(json).toContain('"acme.role": "hq"')
@@ -88,7 +121,7 @@ describe('the compose projects', () => {
     const names = namesFor('agenthix')
     const h = hqProject(names, hq, secrets, 'hq-box', any(names), inst)
     const s = defaultSiteProject(names, site, secrets, paths, any(names), inst)
-    expect(Object.values(h.services).map(v => v.container_name)).toEqual(['agenthix-hq-db', 'agenthix-hq-server', 'agenthix-hq-web'])
+    expect(Object.values(h.services).map(v => v.container_name)).toEqual(['agenthix-hq-db', 'agenthix-hq-server', 'agenthix-relay', 'agenthix-hq-web'])
     expect(Object.values(s.services).map(v => v.container_name)).toEqual(['agenthix-site-db', 'agenthix-site-server'])
     expect(h.networks).toMatchObject({ internal: { name: 'agenthix-hq-internal' }, edge: { name: 'agenthix-edge' }, link: { name: 'agenthix-hq-link' } })
     expect(h.volumes).toEqual({ db_data: { name: 'agenthix-hq-db-data' }, storage: { name: 'agenthix-hq-storage' } })

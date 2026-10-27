@@ -1,8 +1,9 @@
 // node scripts/security/run.mjs [--no-integration] [--no-container] [--no-cross-app]   (npm run test:security at the root)
 //
-// The security matrix, in one pass: every row of the workflows design's "Each attack, and what stops it" (A1–A18) and
-// of the agent knowledge design's guards and place rule (K-…), with the tests that show its control holds, run with the
-// suites they belong to, then one line per row. A row passes only when each of its tests ran and passed; a test
+// The security matrix, in one pass: every row of the workflows design's "Each attack, and what stops it" (A1–A18), of
+// the agent knowledge design's guards and place rule (K-…) and of the file path's proofs (F-…: tickets, the site's
+// reads, relays, hq-server carrying no byte, hq's relay, hostile files), with the tests that show its control holds, run
+// with the suites they belong to, then one line per row. A row passes only when each of its tests ran and passed; a test
 // skipped (Docker, an image or ripgrep missing, say) fails its row, so a run without them can't read as a pass.
 // `--no-integration`, `--no-container` and `--no-cross-app` leave those suites out, and their rows are then shown as
 // not run.
@@ -31,6 +32,7 @@ const SUITES = {
     env: { STARTER_CONTAINER_TESTS: '1', EXECUTOR_IMAGE },
   },
   'site unit': { cwd: 'site', cmd: ['npx', 'vitest', 'run'] },
+  'relay unit': { cwd: 'relay', cmd: ['npx', 'vitest', 'run'] },
   'site container': {
     cwd: 'site', cmd: ['npx', 'vitest', 'run', '-c', 'vitest.container.config.ts'], kind: 'container',
     env: { EXECUTOR_TEST_IMAGE: EXECUTOR_IMAGE, AGENT_TEST_IMAGE: AGENT_IMAGE },
@@ -55,6 +57,14 @@ const SITE_K = 'site/src/server/knowledge/__tests__'
 const SITE_SEARCH = 'site/src/server/storage/__tests__/knowledgeSearch.test.ts'
 const SITE_MCP = 'site/src/server/mcp/__tests__/knowledgeTools.test.ts'
 const CROSS_LEVELS = 'tests/cross-app/07-knowledge-levels.test.ts'
+const CORE_RELAY = 'core/src/relay/__tests__'
+const HQ_RELAYS = 'hq/src/relays/__tests__'
+const HQ_FILES = 'hq/src/files/__tests__'
+const HQ_UPLOADS = 'hq/src/server/files/__tests__'
+const SITE_RELAY = 'site/src/server/relay/__tests__'
+const RELAY = 'relay/src/__tests__'
+const CROSS_FILES = 'tests/cross-app/08-file-relay.test.ts'
+const CROSS_UPLOADS = 'tests/cross-app/09-upload-relay.test.ts'
 
 // Row → its tests, each with the suite it runs in.
 const MATRIX = [
@@ -246,6 +256,69 @@ const MATRIX = [
   ['K-R6', 'A run reads knowledge mounted into its container', [
     ['site unit', 'site/src/agents/runtime/__tests__/AgentEngine.resolveLocations.test.ts'],
     ['site container', `${SITE_K}/noKnowledgeMount.container.test.ts`],
+  ]],
+
+  // The file path (seeing the agents' work, part 6, *How it's proved*): F-V1–F-V6 and F-V11 are its V1–V6 and V11.
+  // The container half of V3 and V6 (hq-web's routes, the image start and install tests) is in shell scripts, which
+  // this runner does not run.
+  ['F-V1', 'A forged, altered, expired or misdirected ticket, or one for a file since changed', [
+    ['core unit', `${CORE_RELAY}/verifyToken.test.ts`],
+    ['core unit', `${CORE_RELAY}/protocol.test.ts`],
+    ['hq unit', `${HQ_RELAYS}/relayTokens.test.ts`],
+    ['hq unit', `${HQ_RELAYS}/fileTickets.test.ts`],
+    ['hq unit', `${HQ_FILES}/openFile.test.ts`],
+    ['hq integration', `${HQ_FILES}/openFile.integration.test.ts`],
+    ['site unit', `${SITE_RELAY}/filesServe.test.ts`],
+    ['cross-app', CROSS_FILES],
+  ]],
+  ['F-V2', "A site reads outside the place: '..', a symbolic or hard link out, or a file the ticket does not name", [
+    ['site unit', `${SITE_RELAY}/filesServe.test.ts`],
+    ['site unit', `${SITE_RELAY}/filesServeSpaces.test.ts`],
+    ['site unit', `${SITE_RELAY}/filesServeFromHq.test.ts`],
+    ['site unit', 'site/src/server/files/__tests__/fileAbout.test.ts'],
+    ['cross-app', CROSS_FILES],
+  ]],
+  ['F-V3', 'A relay serves an unassigned site, misses its headers or CORS, logs a ticket, or lets one person flood it', [
+    ['core unit', `${CORE_RELAY}/door.test.ts`],
+    ['relay unit', `${RELAY}/ticketRequest.test.ts`],
+    ['relay unit', `${RELAY}/siteLines.test.ts`],
+    ['relay unit', `${RELAY}/flowControl.test.ts`],
+    ['relay unit', `${RELAY}/endToEnd.test.ts`],
+    ['relay unit', `${RELAY}/uploads.test.ts`],
+  ]],
+  ['F-V4', "A rogue relay or site: a line without hq's pass, or a relay hq did not name", [
+    ['relay unit', `${RELAY}/lineServer.test.ts`],
+    ['relay unit', `${RELAY}/hqLink.test.ts`],
+    ['site unit', `${SITE_RELAY}/relayLines.test.ts`],
+    ['site unit', `${SITE_RELAY}/lineUrl.test.ts`],
+    ['site unit', `${SITE_RELAY}/relayLine.test.ts`],
+    ['hq unit', `${HQ_RELAYS}/relayAssignment.test.ts`],
+    ['hq unit', `${HQ_RELAYS}/relayLinkServer.test.ts`],
+    ['hq integration', `${HQ_RELAYS}/relays.integration.test.ts`],
+    ['cross-app', CROSS_FILES],
+  ]],
+  ['F-V5', 'A file byte passes through hq-server', [
+    ['hq unit', `${HQ_UPLOADS}/uploadLinks.test.ts`],
+    ['hq integration', `${HQ_UPLOADS}/uploadLinks.integration.test.ts`],
+    ['cross-app', CROSS_FILES],
+    ['cross-app', CROSS_UPLOADS],
+  ]],
+  ['F-V6', "hq's relay serves an upload without access checked, outside the upload folder, or inline on hq's own address", [
+    ['hq unit', `${HQ_RELAYS}/hqRelay.test.ts`],
+    ['hq unit', `${HQ_RELAYS}/hqRelayLine.test.ts`],
+    ['hq unit', `${HQ_UPLOADS}/uploadAccess.test.ts`],
+    ['hq unit', `${HQ_UPLOADS}/pictureTickets.test.ts`],
+    ['relay unit', `${RELAY}/uploads.test.ts`],
+    ['relay unit', `${RELAY}/bareDoor.test.ts`],
+    ['relay unit', `${RELAY}/config.test.ts`],
+    ['cross-app', CROSS_UPLOADS],
+  ]],
+  ['F-V11', "A hostile file (HTML, SVG with script, a PDF, a polyglot) runs with hq's session", [
+    ['core unit', `${CORE_RELAY}/door.test.ts`],
+    ['relay unit', `${RELAY}/ticketRequest.test.ts`],
+    ['relay unit', `${RELAY}/bareDoor.test.ts`],
+    ['cross-app', CROSS_FILES],
+    ['cross-app', CROSS_UPLOADS],
   ]],
 ]
 

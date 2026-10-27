@@ -26,9 +26,13 @@ vi.mock('wasp/client/operations', () => ({
 vi.mock('react-router', () => ({ useSearchParams: () => [new URLSearchParams(), vi.fn()] }))
 vi.mock('../../../github/connect/ConnectRepoFlow', () => ({ ConnectRepoFlow: ({ target, defaultName, onCancel }: { target: { workspaceId: string }; defaultName: string; onCancel: () => void }) => <div>connect flow {target.workspaceId} {defaultName}<button type="button" onClick={onCancel}>Cancel</button></div> }))
 vi.mock('../RepoPanel', () => ({ RepoPanel: () => <div>repo panel</div> }))
+vi.mock('../GitLine', () => ({ GitLine: ({ target }: { target: { workspaceId?: string } }) => <div>git line {target.workspaceId}</div> }))
 vi.mock('../FolderTree', () => ({ FolderTree: () => <div>folder tree</div> }))
 vi.mock('../OperationsPanel', () => ({ OperationsPanel: () => <div>secrets</div> }))
-vi.mock('../FileOpened', () => ({ FileOpened: ({ path }: { path: string }) => <div>file opened {path}</div> }))
+vi.mock('../OpenedFile', () => ({
+  OpenedFile: ({ path, file, link }: { path: string; file: { space: string; loc: { workspaceId: string } }; link: Record<string, string> }) =>
+    <div>file opened {path} in {file.space} {file.loc.workspaceId}, linked as {link.workspace}/{link.wfile}</div>,
+}))
 const topFolder = vi.hoisted(() => ({ entries: [] as { name: string; isDir: boolean }[] }))
 vi.mock('../filesToolData', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../filesToolData')>()),
@@ -55,6 +59,8 @@ describe('a workspace opened', () => {
     expect(screen.getByText('acme/web')).toBeTruthy()
     expect(screen.getByText('Office Mac')).toBeTruthy()
     expect(screen.getByText('folder tree')).toBeTruthy()
+    // The workspace's git status sits above its files.
+    expect(screen.getByText('git line w1').compareDocumentPosition(screen.getByText('folder tree')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByRole('button', { name: 'About' })).toBeTruthy()
     // Runs, facts and secrets are in About, not on the explorer.
     expect(screen.queryByText('runs')).toBeNull()
@@ -105,7 +111,7 @@ describe('a workspace opened', () => {
     vi.stubGlobal('ResizeObserver', class { constructor(cb: never) { observers.push(cb) } observe() {} disconnect() {} })
     render(<WorkspaceView workspaceId="w1" siteLabel={null} previewId={null} connecting={false} onBack={vi.fn()} />)
     act(() => observers.forEach(cb => cb([{ contentRect: { width: 900 } }])))
-    expect(screen.getByText('file opened README.md')).toBeTruthy()
+    expect(screen.getByText('file opened README.md in place w1, linked as w1/README.md')).toBeTruthy()
     vi.unstubAllGlobals()
   })
 

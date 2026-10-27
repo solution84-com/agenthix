@@ -1,7 +1,6 @@
 /**
  * Storage Queries (ADR-0039)
  */
-import path from 'node:path'
 import { HttpError } from 'wasp/server'
 import { prisma } from 'wasp/server'
 import type { WorkspaceRow, RepoAttachmentSummaryRow } from '@agenthix/core'
@@ -12,8 +11,7 @@ import * as store from './workspaceStore'
 import { rethrowSiteUnreachableAsHttp, rethrowLocationFileErrorAsHttp, rethrowRepoWorkErrorAsHttp } from './httpErrors'
 import { entitledProjectsFilter } from '../projects/membership'
 import { assertLocationAccess } from './locationAccess'
-import { listFilesOnSite, statFileOnSite, readFileOnSite } from './locationFileStore'
-import { classifyFileContent, FILE_CONTENT_MAX_BYTES, type FileContent } from './fileContentService'
+import { listFilesOnSite } from './locationFileStore'
 
 type Ctx = { user?: { id: string } }
 
@@ -136,7 +134,7 @@ export const getWorkspaceQuery = async ({ workspaceId }: { workspaceId: string }
  *
  * COSMETIC, and only that. It keeps the entry out of a listing; it does not
  * make the directory unreachable, and is not meant to — `subPath: '.git'`
- * lists it and `filePath: '.git/config'` reads it, exactly as they did before
+ * lists it and opening `.git/config` opens it, exactly as they did before
  * this crossed the channel. Nothing in there is a secret hq is keeping: a
  * remote URL never carries a token (`site/src/storage/repoOps.ts` passes
  * credentials through `GIT_ASKPASS`), and the caller is entitled to the
@@ -161,33 +159,6 @@ export const listLocationFilesQuery = async (
         .filter(entry => entry.name !== '.git')
         .map(entry => ({ name: entry.name, isDir: entry.kind === 'directory', size: entry.size, modifiedAt: entry.modifiedAt })),
     }
-  } catch (err) {
-    rethrowLocationFileErrorAsHttp(err)
-  }
-}
-
-/**
- * One file's content for the preview viewer, classified on hq and read from
- * the site that holds it.
- *
- * The size is asked for FIRST and the bytes only after: a file over the cap is
- * answered without reading it at all, rather than streaming a megabyte across
- * the channel in order to decide not to show it.
- *
- * The name is the one the caller addressed, not the one the site resolved: a
- * link is shown as the file the person asked for.
- */
-export const getFileContentQuery = async (
-  { target, filePath }: { target: RepoTarget; filePath: string },
-  context: Ctx,
-): Promise<FileContent> => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  await assertLocationAccess(target, context.user.id, 'read')
-  const name = path.basename(filePath)
-  try {
-    const stat = await statFileOnSite(target, filePath)
-    if (stat.size > FILE_CONTENT_MAX_BYTES) return { kind: 'too-large', name }
-    return classifyFileContent(name, await readFileOnSite(target, filePath))
   } catch (err) {
     rethrowLocationFileErrorAsHttp(err)
   }

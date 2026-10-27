@@ -141,6 +141,10 @@ class CappedOutput {
     this.dropped += Math.max(0, chunk.length - room)
   }
 
+  get truncated(): boolean {
+    return this.dropped > 0
+  }
+
   toString(): string {
     return this.dropped > 0 ? `${this.text}\n… ${this.dropped} further characters not retained` : this.text
   }
@@ -159,7 +163,10 @@ export interface RunGitOptions {
  * distinct things the caller reports differently, rather than one errno to
  * pattern-match.
  */
-export async function runGit(args: string[], opts: RunGitOptions): Promise<{ stdout: string; stderr: string }> {
+export async function runGit(
+  args: string[],
+  opts: RunGitOptions,
+): Promise<{ stdout: string; stderr: string; /** Output passed what is retained; `stdout` ends with a note of it. */ stdoutTruncated: boolean }> {
   const remaining = opts.deadline.remainingMs()
   if (remaining <= 0) {
     throw new GitTimedOut(args, null, true, '', '')
@@ -220,5 +227,5 @@ export async function runGit(args: string[], opts: RunGitOptions): Promise<{ std
   if (outcome.code !== 0) {
     throw new GitCommandFailed(args, outcome.code, outcome.signal, stdout.toString(), stderr.toString())
   }
-  return { stdout: stdout.toString(), stderr: stderr.toString() }
+  return { stdout: stdout.toString(), stderr: stderr.toString(), stdoutTruncated: stdout.truncated }
 }

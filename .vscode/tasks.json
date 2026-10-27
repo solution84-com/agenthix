@@ -24,7 +24,7 @@
     // ─── Start everything ────────────────────────────────────────────────────
     {
       "label": "[dev] Start All",
-      "detail": "Dev DBs + hq (4100/4101) + site (4201), each in its own terminal",
+      "detail": "Dev DBs + hq (4100/4101, with its relay on 4401) + site (4201), each in its own terminal",
       "dependsOn": ["[dev:hq] Start", "[dev:site] Start"],
       "dependsOrder": "parallel",
       "problemMatcher": [],
@@ -34,7 +34,7 @@
     // ─── hq ──────────────────────────────────────────────────────────────────
     {
       "label": "[dev:hq] Start",
-      "detail": "hq — control plane + UI. Client 4100, server 4101.",
+      "detail": "hq — control plane + UI. Client 4100, server 4101; also starts hq's relay on 4401.",
       "type": "shell",
       "command": "bash scripts/dev/start.sh",
       "options": { "cwd": "${workspaceFolder}/hq" },

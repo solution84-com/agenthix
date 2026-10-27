@@ -159,7 +159,9 @@ operations (`host/src/link/envelopes.ts`).
 
 The Fleet Console also asks hq a closed set of things of its own over its link (`ConsoleLinkMethods`,
 `hq/src/fleet/consoleMethods.ts`): signing in, the fleet admins, recording what fleet admins did (`activity.record`,
-kept in hq's `FleetActivity`), adding and removing a site's credential, and the facts about silent machines below.
+kept in hq's `FleetActivity`), adding and removing a site's credential, the facts about silent machines below, and hq's relay as HQ's page shows it
+(`relay.facts`: its files address, whether it is answering, the sites holding a line, open streams and traffic;
+[files-and-relays.md](files-and-relays.md#hqs-relay)).
 
 **Where it runs.** On hq's machine by default, started by `agenthix install`. It may move to another machine — even a
 fleet admin's own computer — with `agenthix hq console-code` on hq's machine and `agenthix console install` on the
@@ -181,7 +183,7 @@ code's setup on the Fleet Console, a fleet admin's own Cloud sign-in to it, and 
 admins there (`console/src/http/routes/cloud.ts`).
 
 **The host protocol.** Every link between a host service or the Fleet Console and hq (and Cloud's host link) is
-versioned as the host protocol, `HOST_PROTOCOL_VERSION` (`1.1`, `core/src/host/relay.ts`), stated in the
+versioned as the host protocol, `HOST_PROTOCOL_VERSION` (`1.2`, `core/src/host/relay.ts`), stated in the
 `X-Host-Protocol-Version` header when the link is dialled. It follows the same rule as the site protocol
 ([control-channel.md](control-channel.md#protocol-versions)): majors at most one apart work together, and a peer two or
 more apart is answered `426` with the receiver's own version, so each side can say which of the two must upgrade.

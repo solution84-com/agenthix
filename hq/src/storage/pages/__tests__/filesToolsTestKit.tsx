@@ -12,10 +12,34 @@ export function setAddress(query: string) {
 export const data = {
   useFolder: vi.fn(),
   useArtefacts: vi.fn(),
-  useFileContent: vi.fn(),
   useWorkspaces: vi.fn(),
   usePlacePreviews: vi.fn(() => new Map<string, string>()),
   previewAddress: (id: string) => `/open-preview/${id}`,
+}
+
+/** hq's *open* action, and the relay a ready answer points at. */
+export const opened = { openFile: vi.fn(), openFiles: vi.fn() }
+
+export const PREVIEW = 'https://files.example.com/t/hdr.preview.sig'
+export const DOWNLOAD = 'https://files.example.com/t/hdr.download.sig'
+
+export function readyAnswer(name: string, kind: string, size: number, contentType = 'text/markdown') {
+  return {
+    state: 'ready', facts: { name, size, version: 'v1', contentType, kind },
+    previewLink: PREVIEW, downloadLink: DOWNLOAD, expiresAt: Date.now() + 300_000,
+  }
+}
+
+/** The relay, answering ranges of `body` at the preview link. */
+export function relayServing(body: string) {
+  const bytes = new TextEncoder().encode(body)
+  const fetch = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+    const [, start, end] = /bytes=(\d+)-(\d+)/.exec(new Headers(init?.headers).get('Range') ?? 'bytes=0-0')!.map(Number)
+    const last = Math.min(end!, bytes.length - 1)
+    return new Response(bytes.slice(start, last + 1), { status: 206, headers: { 'Content-Range': `bytes ${start}-${last}/${bytes.length}` } })
+  })
+  vi.stubGlobal('fetch', fetch)
+  return fetch
 }
 
 export const ok = <T,>(value: T) => ({ data: value, isLoading: false, error: null as Error | null })

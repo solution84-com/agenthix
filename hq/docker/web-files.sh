@@ -1,7 +1,7 @@
 #!/bin/sh
-# The host name hq-web answers uploaded files on (adr-0114), printed for its Caddyfile's FILES_HOST: FILES_ORIGIN's
-# host when it is set, files.localhost when HQ is on localhost, and nothing otherwise — then hq-server serves
-# uploads from HQ's own address, as downloads only. A FILES_ORIGIN that is not an origin stops the start.
+# The host name hq-web answers files' tickets on (adr-0114), printed for its Caddyfile's FILES_HOST: FILES_ORIGIN's
+# host when it is set, files.localhost when HQ is on localhost, and nothing otherwise — then tickets are opened on
+# HQ's own address under /relay/, as downloads only (adr-0153). A FILES_ORIGIN that is not an origin stops the start.
 set -eu
 
 fail() {

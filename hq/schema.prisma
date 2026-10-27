@@ -1013,7 +1013,75 @@ model ExecutionSite {
   /// set, the site is Cloud's. A removed row keeps it, so the same machine's site can take back its own id.
   cloudMachineId String?
 
+  /// The relay this site holds its file line to (adr-0153). Null until hq places it; hq places every site without
+  /// one on hq's relay when it connects. A relay's removal leaves the site to be placed again.
+  relayId String?
+  relay   Relay?  @relation(fields: [relayId], references: [id], onDelete: SetNull)
+
   @@index([cloudMachineId])
+  @@index([relayId])
+}
+
+/// The state of a relay: answering (ON), quiet for a while (QUIET), or taken out of service (REMOVED). A removed
+/// relay's credential is cleared, so its link is refused, and no site is placed on it.
+enum RelayState {
+  ON
+  QUIET
+  REMOVED
+}
+
+/// A relay (adr-0153): the fleet's door for file bytes. Sites dial it and browsers fetch from it; it holds no files
+/// and decides nothing. hq's own relay is configuration, as hq's site is: one row with `isHq`, its credential the
+/// hash of `HQ_RELAY_SECRET` (relays/hqRelay.ts).
+model Relay {
+  id             String     @id @default(uuid())
+  name           String
+  /// The files address browsers reach it on. Null while it has none to give.
+  address        String?
+  isHq           Boolean    @default(false)
+  /// SHA-256 of the secret it presents on its link to hq. Null once removed: its link is refused from then on.
+  credentialHash String?    @unique
+  lastSeenAt     DateTime?
+  /// Its last report on the link (core's RelayLinkReport, without the frame's type and version): the sites holding
+  /// a line, open streams, bytes carried since it started.
+  load           Json?
+  state          RelayState @default(ON)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  sites ExecutionSite[]
+}
+
+/// One file ticket hq signed (spec part 1, *What hq keeps*; T11): who it was for, which file at which version, for
+/// what, through which relay. Written only by relays/fileTickets.ts, for every ticket before it leaves hq. Plain ids,
+/// with no relation: the record outlives a removed person, place, site and relay.
+model FileOpened {
+  id            String   @id @default(uuid())
+  /// Who it was made for. Null only for a picture the sign-in page shows, opened before anyone signs in.
+  personId      String?
+  /// Which space the file is in: core's FileSpace (place, artefact, knowledge, upload).
+  space         String
+  /// The owner the file belongs to (`user`, `project`, or `org` for the organisation's knowledge); null for an upload.
+  ownerType     String?
+  ownerId       String?
+  workspaceId   String?
+  taskId        String?
+  /// Its path in the space: a place's path, an artefact's name, a page's path, an upload's path.
+  path          String
+  /// A knowledge page's kept version, when a kept version was opened.
+  pageVersionId String?
+  /// The file's version when the ticket was signed (core's fileVersion).
+  version       String
+  /// The ticket's purpose: core's TicketPurpose.
+  purpose       String
+  /// The site that serves it; null for an upload, which hq's relay serves itself.
+  siteId        String?
+  relayId       String
+  openedAt      DateTime @default(now())
+
+  @@index([personId, openedAt])
+  @@index([ownerType, ownerId, openedAt])
+  @@index([openedAt])
 }
 
 /// A control-channel instruction a site must receive even if it is offline when

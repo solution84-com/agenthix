@@ -97,14 +97,31 @@ export const CONSOLE_PAIRING_SECRET = 'feed0000'.repeat(8)
 // run's temp dir: by default it sits in a folder named after hq's port, which a developer's hq on the same port uses.
 export const HQ_CONTROL_SOCKET = join(SITE_ROOT_DIR, 'hq-control.sock')
 
-// Three free ports, asked of the operating system once per run: hq's web page, hq's server and the site. Handed to
-// the test-file workers by the environment, as SITE_ROOT_DIR is, so every process names the same ones.
-const [hqClient, hqServer, siteServer] = process.env.CROSSAPP_PORTS
+// Four free ports, asked of the operating system once per run: hq's web page, hq's server, the site and hq's relay.
+// Handed to the test-file workers by the environment, as SITE_ROOT_DIR is, so every process names the same ones.
+const [hqClient, hqServer, siteServer, relay] = process.env.CROSSAPP_PORTS
   ? process.env.CROSSAPP_PORTS.split(',').map(Number)
-  : await freePorts(3)
-process.env.CROSSAPP_PORTS = [hqClient, hqServer, siteServer].join(',')
+  : await freePorts(4)
+process.env.CROSSAPP_PORTS = [hqClient, hqServer, siteServer, relay].join(',')
 
-export const PORTS = { hqClient, hqServer, siteServer } as const
+export const PORTS = { hqClient, hqServer, siteServer, relay } as const
 
 export const HQ_URL = `http://localhost:${PORTS.hqServer}`
 export const SITE_URL = `http://localhost:${PORTS.siteServer}`
+/** hq's web page, as a browser opens it: in development Vite, which passes a ticket's path to hq's relay. */
+export const HQ_CLIENT_URL = `http://localhost:${PORTS.hqClient}`
+/** hq's relay itself, on this machine only. Browsers reach it through hq's web page; the site dials it directly. */
+export const RELAY_URL = `http://127.0.0.1:${PORTS.relay}`
+export const RELAY_ROOT = join(REPO_ROOT, 'relay')
+
+// The secret hq and its relay share (HQ_RELAY_SECRET), as the host service makes it at install: fixed, 64 hex
+// characters, and only ever used against the harness's own test databases.
+export const RELAY_SECRET = 'f11e5000'.repeat(8)
+
+// hq's storage folder (HQ_STORAGE_ROOT), where hq writes its uploads; hq's relay reads it, as it reads hq's volume
+// mounted read-only in compose.
+export const HQ_STORAGE_DIR = join(SITE_ROOT_DIR, 'hq-storage')
+
+// The key hq encrypts its stored secrets with, its signing key among them: the wrapper merges the environment over
+// hq/.env.server, so the environment's wins, as it does for hq.
+export const HQ_SECRETS_MASTER_KEY: string | undefined = process.env.SECRETS_MASTER_KEY?.trim() || hqEnv.SECRETS_MASTER_KEY?.trim()

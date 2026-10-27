@@ -1,6 +1,6 @@
 /** Where uploaded files are served from, by HQ's address (host-management spec §16). */
 import { describe, it, expect } from 'vitest'
-import { filesPlace, isFilesHost } from '../filesOrigin'
+import { filesPlace } from '../filesOrigin'
 
 const env = (vars: Record<string, string> = {}) => vars as NodeJS.ProcessEnv
 
@@ -30,13 +30,5 @@ describe('the files origin', () => {
   it("is never HQ's own host, nor something that is not an origin", () => {
     expect(filesPlace(env({ FILES_ORIGIN: 'https://hq.acme.example:8443' }), 'https://hq.acme.example').mode).toBe('downloadsOnly')
     expect(filesPlace(env({ FILES_ORIGIN: 'https://files.acme.example/path' }), 'https://hq.acme.example').mode).toBe('downloadsOnly')
-  })
-
-  it('is told apart by the Host header, whatever its port or case', () => {
-    const place = filesPlace(env(), 'http://localhost:4100')
-    expect(isFilesHost('files.localhost:4100', place)).toBe(true)
-    expect(isFilesHost('FILES.localhost', place)).toBe(true)
-    expect(isFilesHost('localhost:4100', place)).toBe(false)
-    expect(isFilesHost(undefined, place)).toBe(false)
   })
 })

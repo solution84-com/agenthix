@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Each kind · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-kinds.html"><main>
+<div class="top"><div><h1>F3 · Each kind: text, code, data, PDF, images</h1>
+<p class="sub">What each MVP renderer draws inside the frame (F2), and the one control it adds, if any. Caps from D14.</p></div></div>
+
+<h2 id="text">Text and Markdown</h2>
+<div class="box"><span class="lbl after">After · proposed</span><div class="two">
+<div class="frame mock"><div class="mcentre"><div class="ml" style="font-size:12px;color:var(--t2)">notes.txt · 3 KB · 64 lines</div>
+<div class="preview" style="font:12px/1.6 ui-monospace,monospace;white-space:pre-wrap">Call with the north team moved to Thursday. Bring the Q3 numbers and the draft of the pricing note; Sam will cover the support figures, which are still being pulled from the export.</div></div></div>
+<div class="frame mock"><div class="mcentre"><div class="ml" style="font-size:12px;color:var(--t2)">summary.md · 6 KB <span class="grow"></span><span class="tabs" style="display:inline-flex;margin-left:8px"><span class="on">Read</span><span>Source</span></span></div>
+<div class="preview"><b style="font-size:15px">Q3 summary</b><br>Revenue grew <b>6%</b> on Q2.<ul style="margin:4px 0"><li>North led</li><li>Units flat</li></ul></div></div></div></div>
+<ul class="sub"><li><b>Text</b> wraps; long lines never scroll the page sideways.</li><li><b>Markdown</b> reads as today (react-markdown, no raw HTML), with <b>Read / Source</b> to see what the agent wrote.</li></ul></div>
+
+<h2 id="code">Code</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre"><div class="ml" style="font-size:12px;color:var(--t2)">pipeline.ts · TypeScript · 2 KB · 58 lines <span style="float:right">Wrap ☐</span></div>
+<div class="preview" style="font:12px/1.6 ui-monospace,monospace;white-space:pre"><span style="color:var(--t3)">1</span>  <span style="color:#a626a4">export async function</span> <span style="color:#4078f2">run</span>(steps: <span style="color:#c18401">Step</span>[]) {
+<span style="color:var(--t3)">2</span>    <span style="color:#a626a4">for</span> (<span style="color:#a626a4">const</span> s <span style="color:#a626a4">of</span> steps) <span style="color:#a626a4">await</span> s.go()
+<span style="color:var(--t3)">3</span>  }</div></div></div>
+<ul class="sub"><li>Highlighted with the installed <code>react-syntax-highlighter</code>, the language named in the facts line. Line numbers; <b>Wrap</b> off by default.</li><li>Over 512 KB: drawn plain, with a line saying highlighting is off for large files.</li></ul></div>
+
+<h2 id="data">JSON and CSV</h2>
+<div class="box"><span class="lbl after">After · proposed</span><div class="two">
+<div class="frame mock"><div class="mcentre"><div class="ml" style="font-size:12px;color:var(--t2)">package.json · 2 KB <span class="tabs" style="display:inline-flex;margin-left:8px"><span class="on">Tree</span><span>Text</span></span></div>
+<div class="preview" style="font:12px/1.7 ui-monospace,monospace;white-space:pre">▾ {
+    "name": "alpha",
+    "version": "0.3.1",
+  ▸ "scripts": { 6 }
+  ▸ "dependencies": { 14 }
+  }</div></div></div>
+<div class="frame mock"><div class="mcentre"><div class="ml" style="font-size:12px;color:var(--t2)">q3-data.csv · 84 KB · 1,204 rows</div>
+<table style="font-size:12px"><tr><th>#</th><th>region ↕</th><th>quarter</th><th>revenue</th><th>units</th></tr><tr><td>1</td><td>north</td><td>Q3</td><td>412,000</td><td>1,290</td></tr><tr><td>2</td><td>south</td><td>Q3</td><td>388,500</td><td>1,175</td></tr><tr><td>3</td><td>east</td><td>Q3</td><td>401,220</td><td>1,203</td></tr></table></div></div></div>
+<ul class="sub"><li><b>JSON</b>: a tree, folded below the first level, with <b>Tree / Text</b>. Invalid JSON is shown as text with the line of the problem.</li><li><b>CSV</b>: a table with a row number and the header row fixed; sort by a column. The first 10,000 rows; past that, "Showing 10,000 of 48,210 rows" with Download.</li></ul></div>
+
+<h2 id="images">Images</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre"><div class="ml" style="font-size:12px;color:var(--t2)">chart.png · PNG · 240 KB · 1600 × 900 <span style="float:right">Fit · 100%</span></div>
+<div class="preview" style="height:140px;display:flex;align-items:center;justify-content:center;background:repeating-conic-gradient(var(--s2) 0 25%,var(--s1) 0 50%) 0 0/16px 16px"><div style="width:60%;height:100px;border:1px solid var(--mborder);background:var(--s1);display:flex;align-items:flex-end;gap:8px;padding:8px"><div style="flex:1;height:40%;background:var(--macc)"></div><div style="flex:1;height:70%;background:var(--macc)"></div><div style="flex:1;height:55%;background:var(--macc)"></div></div></div></div></div>
+<ul class="sub"><li>Fitted to the area, with <b>Fit / 100%</b>; a checkered ground shows transparency. Pixel size in the facts line.</li><li>Adds <code>avif</code> to today's types. SVG is drawn as an image only, so it runs no script.</li></ul></div>
+
+<h2 id="pdf">PDF</h2>
+<div class="box"><span class="lbl after">After · proposed</span><p>As in F2: pages read by range in a viewer from the files address (board 4, part 5), with page count, page number and zoom. Up to 50 MB; past it, F4's "too large to preview" with Download. On an hq with no files address: F4's "PDF preview needs a files address".</p></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

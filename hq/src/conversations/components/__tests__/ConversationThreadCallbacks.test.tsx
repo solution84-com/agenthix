@@ -13,6 +13,8 @@ vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
 vi.mock('wasp/client/operations', () => ({
   archiveConversation: (args: unknown) => h.archive(args),
   setConversationKeep: vi.fn(),
+  useQuery: () => ({ data: undefined }),
+  getConversationPlaces: 'getConversationPlaces',
 }))
 vi.mock('../../../shared/providers/VoiceCallProvider', () => ({
   useVoiceCall: () => ({ voice: { conversationId: null, phase: 'off', partial: '' }, revealLimit: () => null }),

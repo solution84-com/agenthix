@@ -13,13 +13,16 @@ vi.mock('../../voiceClient/speechInput', () => ({
 }))
 
 import { MessageBox } from '../MessageBox'
+import { fieldOf, typeInto, valueOf } from './messageFieldHelpers'
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers() })
+
+const LABEL = 'Message Kernel…'
 
 function box(agentId?: string) {
   const onSend = vi.fn(async () => true)
   render(<MessageBox agentId={agentId} placeholder="Message Kernel…" running={false} sending={false} onSend={onSend} onStop={vi.fn()} />)
-  return { onSend, field: screen.getByLabelText('Message Kernel…') as HTMLTextAreaElement }
+  return { onSend, field: { get value() { return valueOf(LABEL) } } }
 }
 
 async function dictate() {
@@ -95,10 +98,10 @@ describe('dictating into the box @SC-1003', () => {
 
   it('keeps the person’s typing while words are heard', async () => {
     const { field } = box()
-    fireEvent.change(field, { target: { value: 'Note:' } })
+    typeInto(LABEL, 'Note:')
     await dictate()
     await partial('one', 0)
-    fireEvent.change(field, { target: { value: 'Quick note: one' } })
+    typeInto(LABEL, 'Quick note: one')
     await partial('one two', 0)
     expect(field.value).toBe('Quick note: one two')
   })
@@ -111,7 +114,7 @@ describe('dictating into the box @SC-1003', () => {
     await vi.waitFor(() => expect(onSend).toHaveBeenCalledWith('This is a test.'))
     await vi.waitFor(() => expect(field.value).toBe(''))
     expect(speech.stop).toHaveBeenCalled()
-    fireEvent.change(field, { target: { value: 'Typed after' } })
+    typeInto(LABEL, 'Typed after')
     expect(field.value).toBe('Typed after')
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
     await vi.waitFor(() => expect(onSend).toHaveBeenLastCalledWith('Typed after'))
@@ -140,16 +143,27 @@ describe('dictating into the box @SC-1003', () => {
     await dictate()
     await turn('Old words.', 0)
     // Typing replaces everything, then the service corrects the old turn: the box stays the person's.
-    fireEvent.change(field, { target: { value: 'Mine' } })
+    typeInto(LABEL, 'Mine')
     await turn('Old words, corrected.', 0)
     expect(field.value).toBe('Mine')
     await partial('new', 1)
     expect(field.value).toBe('Mine new')
   })
 
-  it('fetches a token when the box is focused, so the microphone connects at once', async () => {
+  it('writes beside a chip in the box, keeping the chip and the same field @SC-1543', async () => {
     const { field } = box()
-    fireEvent.focus(field)
+    typeInto(LABEL, 'See files/q3.pdf ')
+    const element = fieldOf(LABEL)
+    await dictate()
+    await partial('now please', 0)
+    expect(field.value).toBe('See files/q3.pdf now please')
+    expect(fieldOf(LABEL)).toBe(element)
+    expect(element.querySelector('[data-reference="files/q3.pdf"]')).not.toBeNull()
+  })
+
+  it('fetches a token when the box is focused, so the microphone connects at once', async () => {
+    box()
+    fireEvent.focus(fieldOf(LABEL))
     await vi.waitFor(() => expect(getSpeechToken).toHaveBeenCalledTimes(1))
     await dictate()
     await speech.opts!.getToken()

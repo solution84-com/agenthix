@@ -2,8 +2,8 @@ import { action, page, query, route, type Spec } from "@wasp.sh/spec";
 import { ProjectFilesPage } from "./pages/ProjectFilesPage" with { type: "ref" };
 import { ProjectWorkspacesPage } from "./pages/ProjectWorkspacesPage" with { type: "ref" };
 import { createWorkspaceAction as createWorkspace, deleteWorkspaceAction as deleteWorkspace, setWorkspaceAllowedToolsAction as setWorkspaceAllowedTools, connectRepoAction as connectRepo, checkConnectAction as checkConnect, disconnectRepoAction as disconnectRepo } from "./actions" with { type: "ref" };
-import { getRepoStateQuery as getRepoState, getMyStorageQuery as getMyStorage, getWorkspaceQuery as getWorkspace, listLocationFilesQuery as listLocationFiles, getFileContentQuery as getFileContent } from "./queries" with { type: "ref" };
-import { listArtefactsQuery as listArtefacts, getArtefactContentQuery as getArtefactContent } from "./ownerFolderQueries" with { type: "ref" };
+import { getRepoStateQuery as getRepoState, getMyStorageQuery as getMyStorage, getWorkspaceQuery as getWorkspace, listLocationFilesQuery as listLocationFiles } from "./queries" with { type: "ref" };
+import { listArtefactsQuery as listArtefacts } from "./ownerFolderQueries" with { type: "ref" };
 import {
     listKnowledgePagesQuery as listKnowledgePages, getKnowledgePageQuery as getKnowledgePage, knowledgePageVersionsQuery as knowledgePageVersions,
     recentlyDeletedKnowledgeQuery as recentlyDeletedKnowledge, searchKnowledgePagesQuery as searchKnowledgePages,
@@ -11,6 +11,7 @@ import {
     deleteKnowledgePageAction as deleteKnowledgePage, restoreKnowledgeVersionAction as restoreKnowledgeVersion,
 } from "../knowledge/people/operations" with { type: "ref" };
 import { getWorkspacesAcrossPlacesQuery as getWorkspacesAcrossPlaces } from "./workspacesAcrossPlaces" with { type: "ref" };
+import { getGitStatusQuery as getGitStatus } from "./gitStatus" with { type: "ref" };
 import { getPlaceInstructions } from "./placeInstructions" with { type: "ref" };
 import { WorkspacesPage } from "./pages/WorkspacesPage" with { type: "ref" };
 import { WorkspaceDetailPage } from "./pages/WorkspaceDetailPage" with { type: "ref" };
@@ -26,13 +27,12 @@ export const storageSpec: Spec = [
     action(checkConnect),
     action(disconnectRepo),
     query(getRepoState),
+    query(getGitStatus),
     query(getMyStorage, { entities: ["Project", "Product", "Program"] }),
     query(getWorkspacesAcrossPlaces, { entities: ["Project"] }),
     query(getWorkspace, { entities: ["Project", "Product", "Program"] }),
     query(listLocationFiles),
-    query(getFileContent),
     query(listArtefacts),
-    query(getArtefactContent),
     // Knowledge, at every level (agent knowledge spec, part 5): the change record is read for who made each change.
     query(listKnowledgePages, { entities: ["KnowledgeChange"] }),
     query(getKnowledgePage, { entities: ["KnowledgeChange"] }),

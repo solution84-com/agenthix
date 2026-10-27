@@ -16,7 +16,11 @@ import { newConversationPath } from '../threadPaths'
 import { RefusedAction } from '../../shared/components/RefusedAction'
 import { ClosedNotice } from './ClosedNotice'
 import { ConversationComposer } from './ConversationComposer'
-import { ShownViewer } from './ShownViewer'
+import { FileViewer, ShownViewer, TaskFileViewer } from './ShownViewer'
+import { ConversationFilesContext, type ConversationFiles } from './conversationFiles'
+import { useConversationOwner } from '../hooks/useConversationOwner'
+import type { SiteFileRef } from '@agenthix/core'
+import type { OpenedTaskFile } from '../../shared/components/markdownEmbed/taskChipTypes'
 import type { ReplyView } from './ReplyBody'
 import { ThreadMessages } from './ThreadMessages'
 import { WorkBar } from './WorkBar'
@@ -69,11 +73,19 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   const [keepError, setKeepError] = useState<string | null>(null)
   const voiceCall = useVoiceCall()
   const [opened, setOpened] = useState<{ key: string; index: number } | null>(null)
+  // A chip's file opens where a shown part opens, in place of it.
+  const [openedFile, setOpenedFile] = useState<SiteFileRef | OpenedTaskFile | null>(null)
+  const owner = useConversationOwner(conversationId, view?.openedById)
+  const files = useMemo<ConversationFiles | null>(() => owner && {
+    owner, placePath: listPath,
+    onOpen: (ref) => { setOpened(null); setOpenedFile(ref) },
+    onOpenTaskFile: (file) => { setOpened(null); setOpenedFile(file) },
+  }, [owner, listPath])
   const inVoice = voiceCall.voice.conversationId === conversationId && voiceCall.voice.phase !== 'off'
   const reply = useMemo<ReplyView>(() => ({
     inVoice,
     limitFor: inVoice ? voiceCall.revealLimit : () => null,
-    onOpenPart: (key, index) => setOpened({ key, index }),
+    onOpenPart: (key, index) => { setOpenedFile(null); setOpened({ key, index }) },
   }), [inVoice, voiceCall.revealLimit])
 
   if (t.viewError) {
@@ -117,6 +129,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   }
   const phoneRow = (!closed && view.canSpeak) || (myId !== null && view.openedById === myId)
   return (
+    <ConversationFilesContext.Provider value={files}>
     <div className="flex h-full min-h-0">
     <div className="relative isolate flex h-full min-h-0 min-w-0 flex-1 flex-col">
       {inVoice && (
@@ -243,8 +256,28 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
       )}
     </div>
     {openedPart && <ShownViewer part={openedPart} onClose={() => setOpened(null)} />}
+    {openedFile && files && 'taskId' in openedFile && (
+      <TaskFileViewer opened={openedFile} onOpen={files.onOpenTaskFile} onClose={() => setOpenedFile(null)} />
+    )}
+    {openedFile && files && !('taskId' in openedFile) && (
+      <FileViewer
+        file={openedFile} placePath={listPath} onOpen={files.onOpen} onClose={() => setOpenedFile(null)}
+        onOpenFolder={(ref) => navigate(folderPath(listPath, ref))}
+      />
+    )}
     </div>
+    </ConversationFilesContext.Provider>
   )
+}
+
+/** The place's Files (or the workspace) at the folder a file was in. */
+function folderPath(placePath: string, ref: SiteFileRef): string {
+  if (ref.space === 'artefact') return `${placePath}?tool=artefacts`
+  if (ref.space !== 'place') return placePath
+  const dir = ref.path.split('/').slice(0, -1).join('/')
+  const params = new URLSearchParams(ref.loc.workspaceId ? { tool: 'workspaces', workspace: ref.loc.workspaceId } : { tool: 'files' })
+  if (dir && !ref.loc.workspaceId) params.set('dir', dir)
+  return `${placePath}?${params.toString()}`
 }
 
 /** The part a card opened, read from the reply as it stands now: still streaming, or in the record. */

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Links and mentions · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-links.html"><main>
+<div class="top"><div><h1>T2 · Links and mentions that open a file</h1>
+<p class="sub">One stable link per file (R5), the same from every surface, opening the file in place. Files and workspaces already have one: the place's own address with the tool and the file (<code>?tool=files&amp;file=</code>, <code>?workspace=&amp;wfile=</code>). A task's working files gain the same shape.</p></div></div>
+
+<h2 id="link">The link</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<table><tr><th>Where the file is</th><th>Its link</th></tr>
+<tr><td>A project's Files</td><td><code>hq.example.com/projects/ALPHA?tool=files&amp;file=reports/q3.pdf</code></td></tr>
+<tr><td>A workspace</td><td><code>hq.example.com/projects/ALPHA?tool=workspaces&amp;workspace=&lt;id&gt;&amp;wfile=src/app.ts</code></td></tr>
+<tr><td>A task's working files</td><td><code>hq.example.com/projects/ALPHA?task=WEB-42&amp;file=notes.md</code> <span class="tag ok">new</span></td></tr>
+<tr><td>Your space</td><td><code>hq.example.com/chat?tool=files&amp;file=drafts/plan.md</code></td></tr></table>
+<ul><li>Never a site, a relay or a ticket: those are decided when it's opened (board 3). A link copied today still opens after the site moves.</li>
+<li>Someone who can't see the place gets the place's usual "not found", never the file's name.</li>
+<li>A file that's gone: "This file isn't here any more", with its folder.</li></ul></div>
+
+<h2 id="chat">In a conversation</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="two">
+<div class="frame mock"><div class="mcentre">
+<div class="bubble" style="max-width:none">I've put the report in <span class="chip" style="color:var(--macc)">📄 reports/q3.pdf</span> and the raw numbers in <span class="chip" style="color:var(--macc)">📊 reports/q3-data.csv</span>.</div>
+<p class="sub" style="margin-top:8px">An agent's reply. A path it writes, <code>files/…</code> as today's Mention inserts, or <code>artefacts/…</code> as today, becomes a chip.</p></div></div>
+<div class="frame mock"><div class="mcentre">
+<div class="field"><div class="in">Can you check <span class="chip">📊 q3-data.csv</span> against last quarter?</div></div>
+<p class="sub" style="margin-top:8px">Mention, from a file's header (F2), puts the same chip in the message being written. The agent receives the path, as today.</p></div></div></div>
+<ol class="sub">
+<li><b>A chip opens the file beside the thread</b>, where a shown part opens today (<code>ShownViewer.tsx</code>: beside on a wide screen, a sheet from the bottom on a phone), in F2's frame.</li>
+<li>Chips are made by extending today's artefact-link interception (<code>useArtefactLinks.ts</code>) to <code>files/</code> and workspace paths, so old messages gain them too.</li>
+<li>A chip for a file that's gone is struck through, with its name kept.</li></ol></div>
+
+<h2 id="elsewhere">Anywhere else</h2>
+<div class="box"><ul>
+<li><b>Copy link</b> in a file's ⋯ (F2) gives the link above, for a task's description, a comment, or outside Agenthix.</li>
+<li><b>Pasted into Agenthix</b>, a link to a file shows as the same chip.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

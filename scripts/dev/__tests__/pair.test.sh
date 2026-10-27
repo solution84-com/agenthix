@@ -6,7 +6,7 @@ set -uo pipefail
 PAIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/pair.sh"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/pair-test.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
-export HQ_ENV_FILE="$WORK/hq.env" SITE_ENV_FILE="$WORK/site.env"
+export HQ_ENV_FILE="$WORK/hq.env" SITE_ENV_FILE="$WORK/site.env" RELAY_ENV_FILE="$WORK/relay.env"
 FAILS=0
 
 check() { # description, condition-exit-code
@@ -32,6 +32,15 @@ K1="$(val SECRETS_MASTER_KEY "$SITE_ENV_FILE")"
 [ -z "$(val SECRETS_MASTER_KEY "$HQ_ENV_FILE")" ]; check "hq's file is not given the site's key" $?
 [[ "$OUT1" != *"$K1"* ]]; check "the site key is not printed" $?
 [ "$(stat -f %Lp "$HQ_ENV_FILE" 2>/dev/null || stat -c %a "$HQ_ENV_FILE")" = "640" ]; check "file permissions preserved" $?
+[ "$(val HQ_RELAY_LINE_URL "$HQ_ENV_FILE")" = "ws://localhost:4401/relay-line" ]; check "hq is given the relay's line address for dev" $?
+[ -z "$(val HQ_RELAY_LINE_URL "$SITE_ENV_FILE")" ]; check "the site is not given it" $?
+
+S1R="$(val HQ_RELAY_SECRET "$HQ_ENV_FILE")"
+[ "${#S1R}" -eq 64 ] && [[ "$S1R" =~ ^[0-9a-f]+$ ]]; check "hq gets a 64-hex-character relay secret" $?
+[ "$(val HQ_RELAY_SECRET "$RELAY_ENV_FILE")" = "$S1R" ]; check "hq's relay carries the same value, in a file it is made" $?
+[ "$S1R" != "$S1" ]; check "the relay's secret is not the pairing secret" $?
+[ -z "$(val HQ_RELAY_SECRET "$SITE_ENV_FILE")" ]; check "the site is not given the relay's secret" $?
+[[ "$OUT1" != *"$S1R"* ]]; check "the relay secret is not printed" $?
 
 echo "second run"
 cp "$HQ_ENV_FILE" "$WORK/hq.before"; cp "$SITE_ENV_FILE" "$WORK/site.before"
@@ -45,12 +54,27 @@ others="$(awk 'index($0,"HQ_PAIRING_SECRET=")!=1' "$SITE_ENV_FILE")"; printf '%s
 bash "$PAIR" >/dev/null 2>&1
 [ "$(val HQ_PAIRING_SECRET "$SITE_ENV_FILE")" = "$S1" ] && [ "$(grep -c '^HQ_PAIRING_SECRET=' "$SITE_ENV_FILE")" -eq 1 ]; check "site is set back to hq's value, once" $?
 
+echo "the relay's file drifted from hq"
+printf 'HQ_RELAY_SECRET=stale\nOTHER=kept\n' > "$RELAY_ENV_FILE"
+bash "$PAIR" >/dev/null 2>&1
+[ "$(val HQ_RELAY_SECRET "$RELAY_ENV_FILE")" = "$S1R" ] && [ "$(val OTHER "$RELAY_ENV_FILE")" = "kept" ]; check "the relay is set back to hq's value, other keys kept" $?
+
 echo "an existing HQ_URL and an existing secret are kept"
 printf 'HQ_URL=https://hq.example.com\n' > "$SITE_ENV_FILE"
 printf 'HQ_PAIRING_SECRET="%s"\n' "$(printf 'ab%.0s' $(seq 1 32))" > "$HQ_ENV_FILE"
 bash "$PAIR" >/dev/null 2>&1
 [ "$(val HQ_URL "$SITE_ENV_FILE")" = "https://hq.example.com" ]; check "site HQ_URL kept" $?
 [ "$(val HQ_PAIRING_SECRET "$SITE_ENV_FILE")" = "$(printf 'ab%.0s' $(seq 1 32))" ]; check "hq's quoted secret is copied unquoted" $?
+
+sed -i.bak '/^HQ_RELAY_LINE_URL=/d' "$HQ_ENV_FILE"; rm -f "$HQ_ENV_FILE.bak"
+printf 'HQ_RELAY_LINE_URL=wss://elsewhere.example/relay-line\n' >> "$HQ_ENV_FILE"
+bash "$PAIR" >/dev/null 2>&1
+[ "$(val HQ_RELAY_LINE_URL "$HQ_ENV_FILE")" = "wss://elsewhere.example/relay-line" ] && [ "$(grep -c '^HQ_RELAY_LINE_URL=' "$HQ_ENV_FILE")" -eq 1 ]; check "a relay line address already set is kept" $?
+
+echo "a too-short relay secret is refused"
+printf 'HQ_PAIRING_SECRET=%s\nHQ_RELAY_SECRET=short\n' "$S1" > "$HQ_ENV_FILE"; : > "$SITE_ENV_FILE"; rm -f "$RELAY_ENV_FILE"
+bash "$PAIR" >/dev/null 2>&1; [ $? -ne 0 ]; check "exits non-zero" $?
+[ ! -e "$RELAY_ENV_FILE" ]; check "the relay's file is untouched" $?
 
 echo "a too-short secret is refused"
 printf 'HQ_PAIRING_SECRET=short\n' > "$HQ_ENV_FILE"; : > "$SITE_ENV_FILE"
@@ -60,7 +84,8 @@ bash "$PAIR" >/dev/null 2>&1; [ $? -ne 0 ]; check "exits non-zero" $?
 echo "two runs at once agree on one secret"
 printf 'PORT=1\n' > "$HQ_ENV_FILE"; printf 'PORT=2\n' > "$SITE_ENV_FILE"
 bash "$PAIR" >/dev/null 2>&1 & bash "$PAIR" >/dev/null 2>&1 & wait
-[ "$(grep -c '^HQ_PAIRING_SECRET=' "$HQ_ENV_FILE")" -eq 1 ] && [ "$(val HQ_PAIRING_SECRET "$HQ_ENV_FILE")" = "$(val HQ_PAIRING_SECRET "$SITE_ENV_FILE")" ]; check "one secret, identical on both sides" $?
+[ "$(grep -c '^HQ_RELAY_SECRET=' "$HQ_ENV_FILE")" -eq 1 ] && [ "$(val HQ_RELAY_SECRET "$HQ_ENV_FILE")" = "$(val HQ_RELAY_SECRET "$RELAY_ENV_FILE")" ] &&
+  [ "$(grep -c '^HQ_PAIRING_SECRET=' "$HQ_ENV_FILE")" -eq 1 ] && [ "$(val HQ_PAIRING_SECRET "$HQ_ENV_FILE")" = "$(val HQ_PAIRING_SECRET "$SITE_ENV_FILE")" ]; check "one secret, identical on both sides" $?
 [ ! -d "$HQ_ENV_FILE.pair.lock" ]; check "lock released" $?
 
 echo "a missing env file does not block startup"

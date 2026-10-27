@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A task's files · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-task.html"><main>
+<div class="top"><div><h1>T1 · A task's attachments and folder</h1>
+<p class="sub">Where an agent hands back its work most often. Today a task lists its attachments and downloads them, and says nothing of the folder its runs work in (<code>tasks/&lt;task&gt;/</code>, adr-0039 §10). After: both open in place, in the same frame as Files (F2).</p></div></div>
+
+<h2 id="before">Today</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock" style="max-width:420px"><div class="mcentre">
+<div class="mh">WEB-42 · Q3 report</div>
+<div style="font-size:13px;color:var(--t2);margin:6px 0">Files</div>
+<div style="font-size:13px;line-height:1.9">📎 q3.pdf <span style="color:var(--t3)">1.2 MB</span><br>📎 q3-data.csv <span style="color:var(--t3)">84 KB</span></div>
+<p class="sub">① Clicking downloads; nothing previews (<code>TaskAttachments.tsx</code>). ② The run's working folder isn't shown at all.</p></div></div></div>
+
+<h2 id="after">After</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:360px 1fr"><div class="mcentre" style="border-right:1px solid var(--mborder)">
+<div class="mh">WEB-42 · Q3 report</div>
+<div style="font-size:12px;color:var(--t2);margin:2px 0 10px">Done · by Kernel · 10:42</div>
+<div style="font-size:13px;color:var(--t2);margin:6px 0">Attachments · 2</div>
+<div style="font-size:13px;line-height:2"><div style="background:var(--macc-sub);border-radius:6px;padding:0 6px">📄 <b>q3.pdf</b> <span style="color:var(--t3)">PDF · 1.2 MB</span></div><div style="padding:0 6px">📊 q3-data.csv <span style="color:var(--t3)">CSV · 84 KB</span></div></div>
+<div style="font-size:13px;color:var(--t2);margin:12px 0 6px">Working files · 5 <span style="float:right;color:var(--macc)">Open in Files ›</span></div>
+<div style="font-size:13px;line-height:2;padding:0 6px">📄 notes.md<br>📄 draft-v2.md<br>📁 charts · 3</div>
+</div>
+<div class="mcentre">
+<div class="crumb"><a>WEB-42</a> › Attachments › q3.pdf</div>
+<div class="row"><div class="mh grow">q3.pdf</div><span class="btn">Mention</span><span class="btn">Download</span><span class="btn">⋯</span><span class="btn">✕</span></div>
+<div class="ml" style="font-size:12px;color:var(--t2)">Attached by Kernel · 10:42 · PDF · 1.2 MB · 14 pages</div>
+<div class="preview" style="min-height:150px;background:var(--s2)"><div style="margin:8px auto;width:60%;background:var(--s1);border:1px solid var(--mborder);padding:12px;font-size:12px"><b>Q3 report</b><br><br>Revenue grew 6%…</div></div>
+</div></div></div>
+<ol class="sub">
+<li><b>An attachment opens beside the task</b>, in F2's frame with its renderer; ✕ closes it. Wide, it's beside; narrow, it covers the task with ‹ back.</li>
+<li><b>Working files</b>: the task's own folder on the site, the run's working directory, listed under the attachments. A file opens the same way; <b>Open in Files ›</b> opens the folder in the place's Files tool.</li>
+<li>Icons and the kind come from the same choice of kind as everywhere (board 4, part 1).</li>
+<li>Attachments stay where they live today, on hq's disk; hq's relay serves them like any file (D18).</li></ol></div>
+
+<h2 id="why">Why</h2>
+<div class="box"><p>A task is where a person asked for the work, so it's where they look for the result. Sending them to Files to find what the run wrote is the gap file preview names: "if users are able to talk to agents but they can't see the work".</p></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

@@ -62,6 +62,19 @@ describe('the reason shown for a held task', () => {
   })
 })
 
+describe('getTask names what a task text needs of its project @SC-1557', () => {
+  it("says whether the project is Your space and whose, so a task's files/ resolve there", async () => {
+    const owner = await createUser()
+    const shared = await createProject({ accessLevel: 'OPEN' })
+    const own = await createProject({ accessLevel: 'PRIVATE', personalSpace: true, personalOwnerId: owner.id })
+    for (const p of [shared, own]) await prisma.projectMember.create({ data: { projectId: p.id, userId: owner.id } })
+    const sharedTask = await makeTask(shared.id)
+    const ownTask = await makeTask(own.id)
+    expect((await getTask({ taskId: sharedTask.id }, ctx(owner)))!.project).toMatchObject({ id: shared.id, personalSpace: false, personalOwnerId: null })
+    expect((await getTask({ taskId: ownTask.id }, ctx(owner)))!.project).toMatchObject({ id: own.id, personalSpace: true, personalOwnerId: owner.id })
+  })
+})
+
 describe('createTaskComment @SC-041', () => {
   const emit = vi.fn()
   const to = vi.fn(() => ({ emit }))

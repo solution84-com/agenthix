@@ -3,8 +3,9 @@ import { useAction, useQuery, deleteWorkspace, disconnectRepo, getWorkspace, get
 import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import { FILES_BUTTON, FilesQuietLine, FilesViewHeader } from '@agenthix/ui/projects'
 import { repoName } from './BackupLine'
-import { FileOpened } from './FileOpened'
+import { OpenedFile } from './OpenedFile'
 import { FolderTree } from './FolderTree'
+import { GitLine } from './GitLine'
 import { RepoPanel } from './RepoPanel'
 import { workspaceDeleteConfirm } from './workspaceDeleteWords'
 import { WorkspaceAbout } from './WorkspaceAbout'
@@ -66,7 +67,13 @@ export function WorkspaceView({ workspaceId, siteLabel, previewId, connecting, o
   }
 
   const opened = file && (
-    <FileOpened kind="files" target={target} path={file} backLabel={ws.name} onBack={() => url.set({ wfile: null })} embedded={wide} />
+    <OpenedFile
+      file={{ space: 'place', loc: { ...owner, workspaceId: ws.id, taskId: null }, path: file }}
+      kind="files" path={file} breadcrumb={[ws.name, ...file.split('/').slice(0, -1)]}
+      backLabel={ws.name} onBack={() => url.set({ wfile: null })} layout={wide ? 'wide' : 'narrow'}
+      link={{ tool: url.get('tool'), workspace: ws.id, wfile: file }}
+      onOpenFile={ref => { if (ref.space === 'place') url.set({ wfile: ref.path }) }}
+    />
   )
   if (file && !wide) return <div ref={root}>{opened}</div>
 
@@ -105,6 +112,7 @@ export function WorkspaceView({ workspaceId, siteLabel, previewId, connecting, o
       {header}
       {box}
       {connect}
+      <GitLine target={target} className="mx-4 mt-3 rounded-xl border border-border-subtle" />
       {wide ? (
         <div className="mx-4 my-3 flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border-subtle">
           <div className="w-64 shrink-0 overflow-y-auto border-r border-border-subtle py-2">{tree}</div>

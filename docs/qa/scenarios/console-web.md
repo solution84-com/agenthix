@@ -75,3 +75,10 @@ The screens talk only to the Fleet Console's own API. Every action that changes 
 ## The Cloud protocol (added 2026-10-21)
 
 - **SC-1169** — HQ's Cloud section says why HQ's calls to Agenthix Cloud are refused for the protocol (**SC-1143**), in HQ's words, as an alert under the connection — beside *Connected* or not — and says nothing when they are not refused; the Fleet Console's server passes it on from HQ's state, which carries it only while the refusal holds and reads anything unreadable as none. · fulfils AC-348a · tests `console-web/src/__tests__/cloudConnect.test.tsx`, `console/src/__tests__/cloudConnect.test.ts`, `core/src/cloud/__tests__/hqState.test.ts`
+
+## The Fleet Console's screens and hq's relay (added 2026-10-27)
+
+HQ's page carries a card for hq's relay, and a relay that is not answering is on the Dashboard's *Needs you*.
+
+- **SC-1592** — HQ's page shows a card for HQ's relay: its address, the sites it serves, today's traffic as people read it and its open streams; with no files address it says it answers on HQ's own address, that PDF preview is off, and links to the guide; it says what is not reported yet and warns when the relay is not answering; and it is left out when HQ has no relay, has not said, or is an older HQ. · fulfils AC-396a
+- **SC-1593** — A relay that is not answering is listed on *Needs you* with the words people see and opens HQ; it is not listed while it answers, when HQ has none, or when HQ itself is not answering. · fulfils AC-396b

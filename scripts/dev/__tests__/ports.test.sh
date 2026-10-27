@@ -6,7 +6,7 @@ FAILS=0
 check() { if [ "$2" -eq 0 ]; then echo "  ok   $1"; else echo "  FAIL $1"; FAILS=$((FAILS + 1)); fi; }
 
 out="$(env -u HQ_WEB_PORT bash "$DIR/ports.sh")"
-grep -qx 'HQ_WEB_PORT=4100' <<<"$out" && grep -qx 'SITE_DB_PORT=4209' <<<"$out" && grep -qx 'CONSOLE_SERVER_PORT=4301' <<<"$out"
+grep -qx 'HQ_WEB_PORT=4100' <<<"$out" && grep -qx 'SITE_DB_PORT=4209' <<<"$out" && grep -qx 'CONSOLE_SERVER_PORT=4301' <<<"$out" && grep -qx 'RELAY_SERVER_PORT=4401' <<<"$out"
 check "prints the ports file's numbers as NAME=value" $?
 
 ( unset HQ_WEB_PORT; eval "$(bash "$DIR/ports.sh")"; [ "$HQ_WEB_PORT" = 4100 ] )

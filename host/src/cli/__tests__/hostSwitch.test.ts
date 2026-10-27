@@ -30,7 +30,7 @@ const flat = (s: string) => s.replace(/\s+/g, ' ')
 const HOST_030 = `ghcr.io/solution84-com/agenthix-host@${digestOf('ghcr.io/solution84-com/agenthix-host:0.3.0')}`
 
 function publish(versions: string[]): void {
-  for (const part of ['hq-server', 'hq-web', 'site-server', 'agent', 'host']) m.tags.set(`solution84-com/agenthix-${part}`, versions)
+  for (const part of ['hq-server', 'hq-web', 'relay', 'site-server', 'agent', 'host']) m.tags.set(`solution84-com/agenthix-${part}`, versions)
 }
 
 beforeEach(async () => {

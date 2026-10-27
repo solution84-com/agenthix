@@ -18,6 +18,8 @@ function Place() {
       <a href="artefacts/pricing-options.pdf">Pricing options</a>
       <a href="https://example.com/x">Elsewhere</a>
       <a href="artefacts/Hero%20crop.png"><span>Hero crop</span></a>
+      <a href="files/reports/q3.pdf">The report</a>
+      <a href="workspaces/w1/src/app.ts">The app</a>
     </div>
   )
 }
@@ -53,5 +55,22 @@ describe('artefact links', () => {
     render(<Place />)
     fireEvent.click(screen.getByText('Pricing options'))
     expect(opened().get('place')).toBe('open')
+  })
+})
+
+describe('links to the place\'s files and workspaces @SC-1536', () => {
+  it('open the Files tool with that file', () => {
+    render(<Place />)
+    expect(fireEvent.click(screen.getByText('The report'))).toBe(false)
+    expect(opened().get('tool')).toBe('files')
+    expect(opened().get('file')).toBe('reports/q3.pdf')
+  })
+
+  it('open the Workspaces tool with that workspace and file', () => {
+    render(<Place />)
+    fireEvent.click(screen.getByText('The app'))
+    expect(opened().get('tool')).toBe('workspaces')
+    expect(opened().get('workspace')).toBe('w1')
+    expect(opened().get('wfile')).toBe('src/app.ts')
   })
 })

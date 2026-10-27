@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relays · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="relays.html"><main>
+<div class="top"><div><h1>5 · Relays: hq's relay, more relays, placement</h1>
+<p class="sub">Level 2. A relay is a fleet member that carries file bytes and decides nothing (D5). hq's relay is always there and just works (D16). More relays are added the way more sites are, and hq places sites on them (D9). The example organisation owns <code>hq.example.com</code>.</p></div></div>
+
+<h2 id="kinds">Two kinds of relay, mirroring sites</h2>
+<div class="box"><table><tr><th></th><th>hq's relay</th><th>A further relay</th></tr>
+<tr><td>Like</td><td>hq's site</td><td>A further site</td></tr>
+<tr><td>Where</td><td>hq's machine, in hq's compose set</td><td>A machine of its own, never a site's (D22). For speed, a small machine near the sites it serves</td></tr>
+<tr><td>Joins by</td><td>Configuration: a shared secret with hq (as adr-0070)</td><td>A fleet admin adds it in the Fleet Console with a one-off code (as adr-0115); it gets its own credential</td></tr>
+<tr><td>Address</td><td><code>files.example.com</code>, or <code>files.localhost</code> on a laptop; or a path on hq's own address where there's no files address (D17)</td><td><code>files-2.example.com</code> (R7). Its own front door, listening on 443</td></tr>
+<tr><td>Reached through</td><td><code>hq-web</code>, hq's one published port (adr-0067): it routes the files host to the relay</td><td>Its own front door</td></tr>
+<tr><td>Also serves</td><td>The files hq keeps itself: task attachments and pictures, from hq's upload folder mounted read-only (D18)</td><td>Only its sites' files</td></tr>
+<tr><td>Removed</td><td>Never; it's part of hq</td><td>By a fleet admin; its sites move to another relay first</td></tr></table></div>
+
+<h2 id="links">Who dials whom</h2>
+<div class="box"><div class="mmd" data-src="links"></div>
+<ul>
+<li><b>A relay dials hq</b> on the control channel, like any fleet machine: it reports it's alive, its load, and gets nothing else from hq but which sites may connect.</li>
+<li><b>A site dials its relay</b>, when hq tells it which (step 3 below), and keeps one line open. Requests come down it; bytes go up it. The protocol is the content channel's stream multiplexer, reused (<code>core/src/protocol/contentMux.ts</code>).</li>
+<li><b>Both ends prove who they are.</b> The site presents a pass hq signed (this site, this relay, an expiry); the relay presents its enrolled identity, which hq named to the site. A rogue relay gets no connection (T4); a relay accepts no site hq didn't send.</li>
+<li><b>Browsers reach a relay</b> only with a ticket (board 3).</li></ul></div>
+
+<h2 id="placement">Placement (D9)</h2>
+<div class="box"><ol>
+<li><b>Default:</b> every site is on hq's relay. One relay, nothing to decide.</li>
+<li><b>When a relay is added</b>, hq moves sites onto it until the load is even: by sites per relay at first, by bytes carried once there's history.</li>
+<li><b>hq tells a site its relay</b> on the control channel (a typed message, with the pass); the site dials it. A move is the same message with another relay: the site opens the new line, then closes the old one, so open files carry on.</li>
+<li><b>When a relay goes quiet</b> for longer than a minute, hq moves its sites to the others. If none is left, they wait for hq's relay.</li>
+<li><b>An admin can pin a site to a relay</b>, for example one in the same region as the site and its people. A pinned site isn't moved; if its relay is down, its files say so (D17).</li></ol></div>
+
+<h2 id="down">When a relay is down</h2>
+<div class="box"><p>Relays alone carry file bytes (D17). Opening a file whose site's relay is down answers at once, without trying: <i>"Files on office-server can't be opened right now: relay-2 isn't answering."</i> Listing and browsing still work, because they're typed requests through hq, not file bytes. The Fleet Console marks the relay, and for hq's relay that's the same machine as hq, so it's already an outage worth seeing.</p></div>
+
+<h2 id="data">What hq keeps</h2>
+<div class="box"><table><tr><th>Record</th><th>Fields</th></tr>
+<tr><td><b>Relay</b> <span class="tag ok">new</span></td><td>id, name, address, <code>isHqs</code>, credential, last seen, load, state (on · quiet · removed)</td></tr>
+<tr><td><b>Site</b> <span class="tag">changed</span></td><td>+ its relay, + whether an admin pinned it</td></tr>
+<tr><td><b>File opened</b> <span class="tag ok">new</span></td><td>who, which owner and path, which version, when, for preview or download (T11)</td></tr></table></div>
+
+<script>
+window.SRC = {
+links: `flowchart LR
+  H["hq"]
+  R1["hq's relay<br/>files.example.com"]
+  R2["relay-2<br/>files-2.example.com"]
+  S1["hq's site"]
+  S2["office-server"]
+  S3["laptop"]
+  R2 -- "control: alive, load" --> H
+  R1 -- "shared secret" --> H
+  S1 -- "pass from hq" --> R1
+  S3 -- "pass from hq" --> R1
+  S2 -- "pass from hq" --> R2
+  H -. "which relay (control channel)" .-> S2`
+}
+</script>
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

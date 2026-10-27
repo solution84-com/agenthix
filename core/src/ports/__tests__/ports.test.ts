@@ -4,7 +4,7 @@ import {
   DEV_TAILSCALE_PORTS, PUBLISHED_DEFAULTS, SERVICE_PORTS,
 } from '../ports.js'
 
-const HUNDREDS = { hq: 41, site: 42, console: 43 } as const
+const HUNDREDS = { hq: 41, site: 42, console: 43, relay: 44 } as const
 const ROLES = { web: 0, server: 1, database: 9 } as const
 
 function block(cidr: string): { start: number; end: number } {

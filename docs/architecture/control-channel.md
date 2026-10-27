@@ -33,8 +33,11 @@ that need no answer. When the site needs something from hq (a platform tool call
 makes an ordinary HTTPS request instead, because hq does not serve requests on the channel.
 
 A second WebSocket, the **content transport** (`/hq-content`), runs beside the control channel with the
-same credential. It carries bytes (file contents, agent packages, live preview traffic) so a large transfer
-never delays a control message ([ADR-0063](../adr/adr-0063-preview-traffic-crosses-on-its-own-transport.md)).
+same credential. It carries the bytes hq itself needs (a place's instruction file, a knowledge page, agent packages,
+live preview traffic) so a large transfer never delays a control message
+([ADR-0063](../adr/adr-0063-preview-traffic-crosses-on-its-own-transport.md)). **The bytes of a file a person opens do
+not cross it**: the site serves them to its relay, on a third WebSocket it dials to the relay, which reuses the same
+frames and stream multiplexer ([files-and-relays.md](files-and-relays.md#the-sites-line)).
 
 ---
 
@@ -134,9 +137,10 @@ sequenceDiagram
 |---|---|---|
 | Runs, sessions, transcripts | `runtimeData.ts` (`RUNTIME_METHODS`) | `run.dispatch`, `run.cancel`, `run.approve`, `transcript.list` |
 | Workspace and attachment rows | `siteData.ts` (`SITE_DATA_METHODS`) | creating and listing workspaces |
-| Files | `locationFiles.ts` | `location.listFiles`, `location.readFile`, and an owner's `artefacts/`: `location.listArtefacts`, `location.readArtefact` |
+| Files | `locationFiles.ts`, `fileAbout.ts` | `location.listFiles`, `location.findFiles` (a place's files by name, bounded and never following a link; since 1.8), `location.readFile`, and an owner's `artefacts/`: `location.listArtefacts`, `location.readArtefact` (deprecated since 1.8: no caller in hq); `file.about` (a file's facts before hq opens it, no content; since 1.8) |
+| Relays | `relayFiles.ts` | `relay.assign`: which relay the site holds its file line to, with the pass that admits it, renewed before the pass ends (since 1.8). Its partner `files.serve` is a content method a relay opens on that line, never hq. See [files-and-relays.md](files-and-relays.md) |
 | Knowledge | `locationFiles.ts`, `locationKnowledge.ts` | An owner's pages, addressed by owner (a project, a person, or the organisation) and not by location: `location.listKnowledge` (sections and pages with their properties and problems), `location.readKnowledge` (content transport; a page or one of its versions), `location.searchKnowledge` (Grep's parameters, run by ripgrep), and the gate's `location.writeKnowledge`, `location.editKnowledge`, `location.deleteKnowledge`, `location.restoreKnowledge` and `location.knowledgeVersions`. Since site protocol 1.7; a site that does not know a method answers `unknown_method`, which hq reports as the site being out of date. See [storage and placement](storage-and-placement.md#where-knowledge-lives) |
-| Git | `repoWork.ts` | `repo.connect`, `repo.state` |
+| Git | `repoWork.ts`, `gitStatus.ts` | `repo.connect`, `repo.state`; `git.status`, a folder's branch, changed count and last commit, read without running anything the repository holds (since 1.8) |
 | Workflow runs | `workflowRuns.ts` (`WORKFLOW_RUN_METHODS`) | `workflow.run`, the one message that carries secret values, answered at once and followed by `workflow.step` and `workflow.result` events; `workflow.stop`, `workflow.get`; `workflow.readFiles`, a proposal's files, refusing any link. See [workflows.md](workflows.md) |
 | Agent packages | `packages.ts` | `packages.missing`, `packages.put` |
 | Previews | `preview.ts` | `preview.start`, `preview.stop` |
@@ -348,7 +352,7 @@ one not heard from for 10 minutes, one that left by itself — judged from the h
 
 ## Protocol versions
 
-`SITE_PROTOCOL_VERSION` in `core/src/protocol/connection.ts` is `major.minor`, currently `1.3`; `1.0` is the baseline every
+`SITE_PROTOCOL_VERSION` in `core/src/protocol/connection.ts` is `major.minor`, currently `1.8`; `1.0` is the baseline every
 later version counts from. A site states it in the `X-Site-Protocol-Version` header when it dials either channel
 ([ADR-0136](../adr/adr-0136-every-connection-restarts-at-1-0-and-peers-one-major-apart-still-talk.md); [`versioning.md`](versioning.md) has every connection's version and how to
 move one).
@@ -390,7 +394,8 @@ The places a new method touches, using `preview.stop` as the example:
 4. **Tests** beside the existing ones: `site/src/server/hq/__tests__/`,
    `hq/src/sites/channel/__tests__/`.
 
-Bytes go over the content transport instead (`site/src/server/hq/content/contentMethods.ts`). Something
+Bytes hq needs go over the content transport instead (`site/src/server/hq/content/contentMethods.ts`); bytes for a
+browser go through a relay on a ticket, never through hq ([files-and-relays.md](files-and-relays.md)). Something
 the site must tell hq unprompted is a new `site.event`, with its own validating handler in
 `siteEventHandler.ts`, never a generic one.
 
@@ -417,4 +422,5 @@ the site must tell hq unprompted is a new `site.event`, with its own validating 
 [ADR-0063](../adr/adr-0063-preview-traffic-crosses-on-its-own-transport.md) ·
 [ADR-0065](../adr/adr-0065-a-site-serves-no-web-page.md) ·
 [ADR-0070](../adr/adr-0070-hq-and-its-own-site-are-connected-by-configuration.md) ·
-[ADR-0115](../adr/adr-0115-a-site-takes-part-when-a-fleet-admin-or-cloud-adds-it.md)
+[ADR-0115](../adr/adr-0115-a-site-takes-part-when-a-fleet-admin-or-cloud-adds-it.md) ·
+[ADR-0153](../adr/adr-0153-relays-carry-every-file-byte-and-hq-only-signs-tickets.md)

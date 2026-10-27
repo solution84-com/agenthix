@@ -42,7 +42,7 @@ import { uninstallRun } from '../lifecycle/uninstallSteps'
 /** The owner socket is the CLI's, so whoever asks through it is the machine admin. */
 const MACHINE_ADMIN = { kind: 'machineAdmin' } as const
 
-const SERVICES = { hq: ['hq-db', 'hq-server', 'hq-web'], site: ['site-db', 'site'] } as const
+const SERVICES = { hq: ['hq-db', 'hq-server', 'relay', 'hq-web'], site: ['site-db', 'site'] } as const
 
 function opOf(data: unknown): string | null {
   const op = data && typeof data === 'object' ? (data as { op?: unknown }).op : undefined

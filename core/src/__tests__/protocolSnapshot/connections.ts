@@ -1,7 +1,7 @@
 /**
  * Which declarations make up each connection, and where its committed snapshot lives.
  *
- * The site, host and Cloud connections are what their entry module exports, so the shapes their entry publishes are
+ * The site, host, Cloud and relay connections are what their entry module exports, so the shapes their entry publishes are
  * the contract. The site's entry includes its method maps (`SiteMethods`, `SiteContentMethods`, `SiteEvents`) and the
  * host's its console link's (`ConsoleLinkMethods`), so every method's params and result are recorded with it. The client connection is the mobile app's own list (mobileApp.ts) and the
  * version handshake beside it (protocol.ts): the client entry also exports what only hq's web pages use, and the
@@ -46,6 +46,13 @@ export const CONNECTIONS: Connection[] = [
     name: 'cloud',
     modules: ['cloud/index.ts'],
     version: 'cloud/version.ts#CLOUD_PROTOCOL_VERSION',
+    previousMajor: [],
+    methodMaps: [],
+  },
+  {
+    name: 'relay',
+    modules: ['relay/index.ts'],
+    version: 'relay/protocol.ts#RELAY_PROTOCOL_VERSION',
     previousMajor: [],
     methodMaps: [],
   },

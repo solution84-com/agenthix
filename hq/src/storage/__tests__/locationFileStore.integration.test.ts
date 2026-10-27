@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
-import { createProject, createUser, ensureExecutionSite } from '../../test/factories'
+import { createProject, ensureExecutionSite } from '../../test/factories'
 
 const request = vi.hoisted(() => vi.fn())
 vi.mock('../../sites/channel', async () => {
@@ -31,7 +31,6 @@ vi.mock('wasp/server', async () => {
 import { ChannelRequestFailed } from '../../sites/channel/pendingRequests'
 import { ContentStreamFailed } from '../../sites/content/contentStream'
 import { listFilesOnSite, statFileOnSite, readFileOnSite, removeLocationOnSite } from '../locationFileStore'
-import { readArtefactOnSite } from '../ownerFolderStore'
 import { SiteUnreachableError } from '../workspaceStore'
 
 let loc: { ownerType: 'project'; ownerId: string }
@@ -74,10 +73,8 @@ describe('a site that will not answer', () => {
 })
 
 describe('reading through the content transport from a site that will not answer', () => {
-  it('surfaces an unreachable site as itself rather than as an empty file, or a missing artefact', async () => {
+  it('surfaces an unreachable site as itself rather than as an empty file', async () => {
     openContentStream.mockRejectedValue(new ContentStreamFailed('no content connection', 'offline'))
-    const me = await createUser()
     await expect(readFileOnSite(loc, 'ROADMAP.md')).rejects.toBeInstanceOf(SiteUnreachableError)
-    await expect(readArtefactOnSite({ ownerType: 'user', ownerId: me.id }, 'NOTES.md', 1000)).rejects.toBeInstanceOf(SiteUnreachableError)
   })
 })

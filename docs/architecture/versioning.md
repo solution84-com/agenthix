@@ -22,6 +22,8 @@ flowchart LR
     HS["host service"] -->|"(2) host protocol: host link"| HQ
     HS -->|"(2) host protocol: Cloud's host link"| CL["Agenthix Cloud"]
     HQ -->|"(4) Cloud protocol"| CL
+    SITE -->|"(5) relay protocol: site line"| RL["relay"]
+    RL -->|"(5) relay protocol: hq link"| HQ
 ```
 
 Each arrow points from the side that dials to the side that listens. hq's own web pages have no number: hq serves
@@ -77,7 +79,7 @@ is no earlier major. This matches the rule that protocol peers one major apart s
 
 ## An image's content key
 
-The platform publishes seven **image parts**: `hq-server`, `hq-web`, `site-server`, `agent`, `executor` (what a workflow's steps run in, [workflows.md](workflows.md)), `host` and `console`. Each
+The platform publishes eight **image parts**: `hq-server`, `hq-web`, `relay`, `site-server`, `agent`, `executor` (what a workflow's steps run in, [workflows.md](workflows.md)), `host` and `console`. Each
 is built once per content and reused until its code changes, so a patch to one part rebuilds that part alone.
 
 - **`scripts/images/parts.json`** is the one list of the parts. Per part it holds the Dockerfile, the build target and
@@ -85,7 +87,7 @@ is built once per content and reused until its code changes, so a patch to one p
   build, `scripts/images/start-test-all.sh` and `scripts/install-test/run.sh` all read it.
 - **The content key** is a SHA-256 over the Dockerfile's path and target, the Git object ID of `.dockerignore`, of the
   Dockerfile and of each input path at the commit (a Git object ID changes exactly when a file under it does), the
-  Dockerfile's `FROM` references, and the rebuild epoch. `node scripts/images/keys.mjs [<commit>]` prints the seven
+  Dockerfile's `FROM` references, and the rebuild epoch. `node scripts/images/keys.mjs [<commit>]` prints the eight
   keys. It reads Git only. The same key is the same image.
 - **A test holds the inputs to the Dockerfiles:** `scripts/__tests__/image-parts.test.mjs` parses every `COPY` (not
   `COPY --from`) and fails when a source path is not under one of its part's inputs. A key that missed an input
@@ -108,9 +110,10 @@ is built once per content and reused until its code changes, so a patch to one p
 | 2 | the Fleet Console and a host service ↔ hq's console and host links; a host service ↔ Agenthix Cloud's host link | `HOST_PROTOCOL_VERSION`, `host/relay.ts` | the header `X-Host-Protocol-Version` when a link is dialled; the `version` field of every frame | hq, on the upgrade (`hq/src/fleet/relay/upgrade.ts`) and on every frame (`hq/src/fleet/relay/frames.ts`); the host service on every frame (`host/src/link/frames.ts`); the Fleet Console reads hq's version from a 426 (`console/src/hq/wsLink.ts`) |
 | 3 | the mobile app, and any later app, ↔ hq | `CLIENT_PROTOCOL_VERSION`, `client/protocol.ts` | the header `X-Client-Protocol-Version` on every request; `clientProtocolVersion` in the socket.io handshake's `auth` | hq, on every HTTP request and socket handshake (`hq/src/server/clientProtocol.ts`); hq states its own before sign-in, so the app can apply the rule from its side |
 | 4 | hq ↔ Agenthix Cloud | `CLOUD_PROTOCOL_VERSION`, `cloud/version.ts` | the header `X-Cloud-Protocol-Version` on every call, in both directions | Cloud, on every call (`checkHqCloudProtocol`); hq, on every answer (`checkCloudAnswerProtocol`, in `hq/src/cloud/cloudClient.ts`) |
+| 5 | an Execution Site ↔ its relay, on the site line; a relay ↔ hq, on the hq link | `RELAY_PROTOCOL_VERSION`, `relay/protocol.ts` | the header `X-Relay-Protocol-Version` when a site dials its relay's line and when a relay dials hq; the `version` field of every hq link frame. On the line a site states its site protocol as well, since the streams it serves there are site protocol methods | the relay, on a site's line; hq, on a relay's link |
 
-`1.0` is the baseline every later version counts from. Today the site protocol is at `1.7` (which added the knowledge methods: the gate's changes to a page, its kept versions, and a search with Grep's parameters), the client protocol at `1.6` (which added what a reply step's knowledge calls did), the
-Cloud protocol at `1.1` (which added [the AI contract](cloud-connection.md#the-ai-contract)) and the host protocol at `1.1` (which added the ports an installation publishes to the operations that install HQ or receive a move). A protocol is named after the party hq
+`1.0` is the baseline every later version counts from. Today the site protocol is at `1.8` (which added `relay.assign` and `files.serve`, by which a site holds a line to its relay and serves a file on a ticket hq signed, `file.about`, by which hq learns a file's facts before it opens it, `git.status`, a folder's git status at a glance, and `location.findFiles`, by which hq finds a place's files by name; and deprecated `location.readArtefact`, which nothing in hq calls since a relay serves an artefact on a ticket), the relay protocol at `1.0` (whose tickets name a place's file, an artefact, a knowledge page, or an upload hq keeps, which hq's relay serves itself), the client protocol at `1.6` (which added what a reply step's knowledge calls did), the
+Cloud protocol at `1.1` (which added [the AI contract](cloud-connection.md#the-ai-contract)) and the host protocol at `1.2` (1.1 added the ports an installation publishes to the operations that install HQ or receive a move; 1.2 added `relay.facts` on the console link, hq's relay as the Fleet Console's page for HQ shows it). A protocol is named after the party hq
 or the host service talks to, so each constant is `<PARTY>_PROTOCOL_VERSION` and each header
 `X-<Party>-Protocol-Version`; no name carries the product's. hq's one web server receives both the host protocol and
 the client protocol, which is why they never share a header.
@@ -126,6 +129,7 @@ app, `hq/0.1.0-alpha.1` from hq to Cloud. It is logged, and decides nothing: any
 | Host | Accepted on the upgrade; every frame still carries its own `version`, and a frame the rule refuses is dropped |
 | Client | Accepted: a browser, hq's own pages, or an app from before the client protocol |
 | Cloud | Cloud refuses a call from hq without one; hq reads an answer without one as `1.0` |
+| Relay | Refused, on the site line and on the hq link, as a version that cannot be read |
 
 ## The rule every connection follows
 
@@ -225,10 +229,10 @@ with it.
 
 ## The shape snapshot
 
-`core/snapshot/` holds one committed file per connection, `site.json`, `host.json`, `client.json` and `cloud.json`:
+`core/snapshot/` holds one committed file per connection, `site.json`, `host.json`, `client.json`, `cloud.json` and `relay.json`:
 every type the connection declares in core, with its fields, their types, whether each is optional, and its
 deprecation marks, and the version the shapes were recorded at. Which declarations make up each connection is
-`core/src/__tests__/protocolSnapshot/connections.ts`: the site's, host's and Cloud's are what their entry module
+`core/src/__tests__/protocolSnapshot/connections.ts`: the site's, host's, Cloud's and relay's are what their entry module
 exports, the site's method maps included; the client's is the mobile app's own list, `core/src/client/mobileApp.ts`
 (each HTTP route, operation, socket room and event the mobile app relies on), with the version handshake beside it.
 

@@ -12,6 +12,7 @@ flowchart TB
         HS1["host service"]
         HQ["HQ"]
         S1["hq-box · HQ's site"]
+        RL1["hq-box · HQ's relay"]
         HM["Fleet Console"]
     end
     subgraph M2 ["A machine: office-server"]
@@ -24,11 +25,15 @@ flowchart TB
     end
     HS1 --- HQ
     HS1 --- S1
+    HS1 --- RL1
     HS2 --- S2
     HS3 --- S3
     S1 -->|"work"| HQ
     S2 -->|"work"| HQ
     S3 -->|"work"| HQ
+    S1 -->|"file bytes"| RL1
+    S2 -->|"file bytes"| RL1
+    S3 -->|"file bytes"| RL1
     HM -->|"asks host services to act, through HQ"| HQ
 ```
 
@@ -38,13 +43,32 @@ flowchart TB
 |---|---|
 | **HQ** | The organisation's own instance: its people, projects, agents and data ([ADR-0042](../../adr/adr-0042-hq-is-the-orgs-own.md)). One per organisation, on one machine |
 | **Site** | An Execution Site: where agents run and the projects' files are kept. HQ's machine always carries one, *HQ's site*; every other site is on a machine of its own |
-| **Machine** | A computer or virtual machine running a host service. It carries at most one HQ and at most one site ([ADR-0108](../../adr/adr-0108-a-machine-carries-at-most-one-hq-and-one-site.md)). A second organisation is a second machine |
+| **Relay** | A fleet member that carries file bytes between people's browsers and the sites assigned to it, and decides nothing: HQ checks who may open a file and signs a ticket, and the relay passes the bytes the site serves. Sites dial out to their relay and listen on nothing. **HQ's relay** is always there, on HQ's machine, and every site is on it today ([opening a file](../file-sharing/opening-files.md), [ADR-0153](../../adr/adr-0153-relays-carry-every-file-byte-and-hq-only-signs-tickets.md)). Not the model relay, which forwards a site's model requests |
+| **Machine** | A computer or virtual machine running a host service. It carries at most one HQ and at most one site ([ADR-0108](../../adr/adr-0108-a-machine-carries-at-most-one-hq-and-one-site.md)). Outside HQ's machine it carries a site or a relay, never both ([ADR-0154](../../adr/adr-0154-a-machine-carries-a-site-or-a-relay-never-both-outside-hqs.md)). A second organisation is a second machine |
 | **Host service** | The one service on each machine that installs, upgrades, backs up, restores, moves and erases what runs there, holds the machine's capacity, and keeps agents off the machine itself. Nothing else has authority over the machine ([ADR-0107](../../adr/adr-0107-the-host-service-alone-holds-a-machines-authority.md)) |
 | **Fleet Console** | The fleet admins' screens for the whole fleet. It runs beside HQ by default, opens only on its own machine (bar remote access on a machine Agenthix Cloud runs), has no accounts and no authority of its own: it asks host services to act, and HQ passes each request on without being able to read it ([ADR-0109](../../adr/adr-0109-the-host-manager-is-a-site-that-signs-its-commands.md)) |
 
 **A site is named after its machine** — *office-server* — in the Fleet Console, in HQ and on the machine. When a site
 moves to another machine, or is restored onto one, it takes that machine's name. HQ's own site is shown with a tag,
 *hq-box · HQ's site*. A name is a label only: machines are told apart and trusted by their fingerprints.
+
+**HQ's relay is named the same way**, tagged the same way: *hq-box · HQ's relay*. Where a file cannot be opened the
+message names the site and the relay — "Files on hq-box · HQ's site can't be opened right now: hq-box · HQ's relay isn't
+answering" — so a stopped relay is not read as the machine being down.
+
+## Relays
+
+A relay exists so that no file byte passes through HQ and no site needs a door. HQ's machine carries HQ, HQ's site and
+HQ's relay behind the one front door HQ already has, and the relay answers on the **files address**, a name of its own
+beside HQ's ([address and front door](../../guide/running-agenthix/domain-and-https.md)). Every site keeps a line open to
+its relay. When HQ's relay is not answering, files cannot be opened and downloaded anywhere, and the Fleet Console's
+Dashboard says so under *Needs you*; the rest of HQ keeps working, since there is no second way for bytes to travel.
+
+On HQ's page in the Fleet Console, a card for HQ's relay shows its address, how many sites it serves, what it has carried
+since it started, and how many streams are open. With no files address it says "Answering on hq's own address: PDF
+preview is off". More relays on machines of their own, to carry more files near the sites they serve, are designed
+([ADR-0154](../../adr/adr-0154-a-machine-carries-a-site-or-a-relay-never-both-outside-hqs.md)); no screen for adding one exists yet,
+and every site is placed on HQ's relay.
 
 ## Who looks after what
 

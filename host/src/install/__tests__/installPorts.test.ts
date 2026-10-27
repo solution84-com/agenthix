@@ -80,7 +80,7 @@ describe('the labels every container carries @SC-1248', () => {
   it("carries the installation's published ports on each container it runs", async () => {
     await run({ address: 'http://192.168.0.13:7500', consolePort: 7520 })
     const services = [...Object.values(compose('hq').services), ...Object.values(compose('site').services), ...Object.values(compose('console').services)]
-    expect(services).toHaveLength(6)
+    expect(services).toHaveLength(7)
     for (const s of services as { labels: Record<string, string> }[]) {
       expect(s.labels['agenthix.ports']).toBe('7500,7520')
       expect(s.labels['agenthix.agent-range']).toBe('10.213.0.0/20')

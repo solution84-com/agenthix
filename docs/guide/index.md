@@ -17,7 +17,7 @@ use it.
 
 - **Getting started:** from nothing to an agent finishing its first task.
 - **Bring your people in:** invitations, roles and teams, and the organisation's admin area.
-- **Get work done in a project:** boards, tasks, and following what agents do.
+- **Get work done in a project:** boards, tasks, following what agents do, and opening the files they make.
 - **Shape your agents:** their instructions, memory and permissions, and the Library.
 - **Let agents work on their own:** automation and routines, and the limits on them.
 - **Keep secrets and connect GitHub:** workflows that use a secret so agents never hold one, and GitHub through them.

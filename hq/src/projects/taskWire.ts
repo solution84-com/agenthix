@@ -40,6 +40,13 @@ export function taskBoardRef(b: { id: string; name: string; kind: TaskBoardRef['
   return { id: b.id, name: b.name, kind: b.kind, columns: wireColumns(b.columns) }
 }
 
+/** What a task's text needs of its project beyond who it is: whether it is its person's Your space, and whose. */
+export type TaskProjectFacts = TaskProjectRef & { personalSpace: boolean; personalOwnerId: string | null }
+
+export function taskProjectFacts(p: TaskProjectFacts): TaskProjectFacts {
+  return { ...taskProjectRef(p), personalSpace: p.personalSpace, personalOwnerId: p.personalOwnerId }
+}
+
 export function taskProjectRef(p: TaskProjectRef): TaskProjectRef {
   return { id: p.id, name: p.name, key: p.key }
 }
