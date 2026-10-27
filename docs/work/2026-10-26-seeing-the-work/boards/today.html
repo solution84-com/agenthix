@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="today.html"><main>
+<div class="top"><div><h1>1 · Today: how a file reaches the screen</h1>
+<p class="sub">Read from agenthix <code>main</code> at 8c6fd3c0 on 25 Oct. The starting point for file preview and git observability.</p></div></div>
+
+<h2 id="path">The path a workspace file takes</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="mmd" data-src="today"></div>
+<table>
+<tr><th></th><th>What</th><th>Where</th></tr>
+<tr><td class="n">1</td><td>The file lives on the <b>site</b>, in a project's or a person's storage.</td><td>site's disk</td></tr>
+<tr><td class="n">2</td><td>hq asks the site for the whole file over the <b>content channel</b>, the second connection the site opens just for bulk data (adr-0063). It holds the file in memory.</td><td><code>hq/src/storage/locationFileStore.ts:254</code></td></tr>
+<tr><td class="n">3</td><td>hq checks access, then classifies by <b>extension only</b>: <code>markdown | code | image | binary | too-large</code>. Over 1 MB is too large.</td><td><code>hq/src/storage/fileContentService.ts:39</code></td></tr>
+<tr><td class="n">4</td><td>It sends the file to the browser as <b>JSON</b> on the app's own address, with images as base64.</td><td>Wasp queries <code>getFileContentQuery</code> and two more</td></tr>
+<tr><td class="n">5</td><td>A hard-coded <code>switch</code> draws it: Markdown through react-markdown, code as plain <code>&lt;pre&gt;</code>, images as <code>&lt;img&gt;</code>.</td><td><code>hq/src/storage/pages/FileBody.tsx</code></td></tr>
+</table></div>
+
+<h2 id="gaps">What's missing</h2>
+<div class="box"><ul>
+<li><b>No renderer boundary.</b> Every new format means editing the switch.</li>
+<li><b>Binary and over-cap files can't even be downloaded.</b> The menu's Download appears only for Markdown, code and images.</li>
+<li><b>Code isn't highlighted</b>, though <code>react-syntax-highlighter</code> is installed and unused.</li>
+<li><b>No PDF, no CSV table, no JSON view.</b> CSV and JSON show as plain text.</li>
+<li><b>Task attachments are listed but never previewed</b>, and no task links to its own folder.</li>
+<li><b>Mention inserts plain text</b> <code>files/&lt;path&gt;</code>, not a link.</li>
+<li><b>Every byte passes through hq</b>, in memory and as JSON. That's the load D4 moves off hq.</li>
+</ul></div>
+
+<h2 id="have">What there is to build on</h2>
+<div class="box"><ul>
+<li>Access is checked on hq before any byte is read (<code>assertLocationAccess</code>).</li>
+<li>Markdown already renders without raw HTML, so untrusted Markdown can't run script.</li>
+<li>A <b>files address</b> with no cookies and locked-down headers, for task attachments (adr-0114). Its signed links last 5–10 minutes (<code>hq/src/server/files/fileLinks.ts</code>).</li>
+<li>Files already have addresses in the URL: <code>?tool=files&amp;file=</code>, <code>?artefact=</code>, <code>?wfile=</code>.</li>
+<li>A registry pattern to copy: <code>PlaceTool { id, label, render }</code> in <code>places/placeTypes.ts</code>.</li>
+<li>The content channel already streams. A caller can pipe it rather than collect it.</li>
+</ul></div>
+
+<script>
+window.SRC = {
+today: `flowchart LR
+  S["site<br/>holds the file"] -- "content channel<br/>whole file" --> H["hq<br/>access check · classify<br/>≤ 1 MB, in memory"]
+  H -- "JSON, base64 images<br/>app address" --> B["browser<br/>FileBody switch"]
+  H -. "task attachments only<br/>signed link" .-> F["files address<br/>(adr-0114)"] -.-> B`
+}
+</script>
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

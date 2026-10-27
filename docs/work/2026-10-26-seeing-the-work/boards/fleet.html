@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The fleet · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="fleet.html"><main>
+<div class="top"><div><h1>2 · The fleet: layers and network</h1>
+<p class="sub">How file bytes move without loading hq, and how that fits the fleet as it may grow. Only hq's relay and the file path are built in this unit; anything marked "later" is an open issue, drawn here only to show it fits. Decided: relays are the only file address, with no tunnel option (D6). The example organisation is self-hosted and owns <code>example.com</code>: its app is <code>hq.example.com</code> and its files are <code>files.example.com</code>.</p></div></div>
+<h2 id="why-relay">Why a relay at all</h2>
+<div class="box"><p><b>A relay is the fleet's own tunnel: the one public door that sites dial out to, so no site is ever exposed.</b> Ten sites can do the work and hold the files, and one relay serves them all.</p>
+<ul>
+<li><b>Most sites can't be reached.</b> A site runs on a laptop, an office server or a rack behind a firewall, and listens on nothing by design (adr-0044, adr-0063). A browser can't reach it; a relay it dials out to can.</li>
+<li><b>A site is the last thing to expose.</b> It holds every project's files it carries and runs agents. A relay holds nothing and decides nothing; it only passes bytes for a ticket the site checks.</li>
+<li><b>One address and certificate per relay, not per site.</b> Adding a site never means a new public name.</li>
+<li><b>The separate address is the browser's safety wall</b> (adr-0114): an agent's file opened at the relay's address can't act as you in hq.</li>
+<li><b>A site never has a door</b>, not even beside a relay on its own machine: a machine is a site or a relay, never both, outside hq's machine (D22). For speed, a relay goes near the sites it serves, on a machine of its own.</li></ul></div>
+
+<h2 id="addresses">Whose address is this?</h2>
+<div class="box"><p>Every address on these boards belongs to someone, and which one depends on where the hq runs. The example organisation owns <code>example.com</code>.</p>
+<table><tr><th></th><th>The app (hq)</th><th>Files (relays)</th><th>Who owns the domain</th></tr>
+<tr><td><b>Self-hosted</b></td><td><code>hq.example.com</code></td><td><code>files.example.com</code>, plus <code>files-2.example.com</code> and so on for more relays</td><td>The organisation. Its admin points the names at its own machines and sets <code>FILES_ORIGIN</code></td></tr>
+<tr><td><b>A hosted fleet</b></td><td>Wherever the host puts it, or the organisation's own name</td><td>A name on a domain kept for files alone, one per relay</td><td>Whoever hosts the fleet, or the organisation for its own name</td></tr>
+<tr><td><b>Self-hosted, no domain to spare</b></td><td>a bare address, e.g. <code>203.0.113.7</code></td><td>hq's relay, on a path of hq's own address: downloads and text, no PDF preview (D17)</td><td>—</td></tr></table></div>
+
+<h2 id="layers">The layers: what each machine is for</h2>
+<p class="sub">This is a picture to think with, not a plan. Only the relay's file path is in this unit; everything else marked "later" is an open issue. There are three kinds of work, each with its own kind of machine, and every machine dials out to hq.</p>
+
+<style>
+  .fw svg{width:100%;height:auto;font:12px system-ui}
+  .fw .b{fill:none;stroke:currentColor;stroke-width:1.3}
+  .fw .ctl{fill:none;stroke:#2563eb;stroke-width:1.8}
+  .fw .dat{fill:none;stroke:#b45309;stroke-width:1.8}
+  .fw .cmp{fill:none;stroke:#16a34a;stroke-width:1.8}
+  .fw .later{stroke-dasharray:6 4}
+  .fw text{fill:currentColor}
+  .fw .tb{fill:#2563eb}.fw .ta{fill:#b45309}.fw .tg{fill:#16a34a}
+  .fw .lane{fill:currentColor;opacity:.04}
+  .fw .c{stroke:#2563eb;stroke-width:1.1;fill:none;stroke-dasharray:2 3}
+  .fw .d{stroke:#b45309;stroke-width:3;fill:none}
+  .fw .dl{stroke:#b45309;stroke-width:3;fill:none;stroke-dasharray:6 4}
+  .fw .s{font-size:10.5px}
+</style>
+
+<div class="box dg fw"><div class="lbl open">One organisation's fleet</div><div>
+<svg viewBox="0 0 1000 640">
+  <!-- lanes -->
+  <rect class="lane" x="0" y="0" width="1000" height="150" rx="10"/>
+  <rect class="lane" x="0" y="170" width="1000" height="150" rx="10"/>
+  <rect class="lane" x="0" y="340" width="1000" height="290" rx="10"/>
+  <text x="12" y="20" class="tb" font-weight="700">CONTROL · decides</text>
+  <text x="12" y="190" class="ta" font-weight="700">DATA · moves bytes</text>
+  <text x="12" y="360" class="tg" font-weight="700">COMPUTE · runs agents, holds files</text>
+
+  <!-- people -->
+  <rect class="b" x="20" y="45" width="130" height="80" rx="10"/>
+  <text x="85" y="70" text-anchor="middle" font-weight="700">people</text>
+  <text x="85" y="88" text-anchor="middle" class="s">browser · mobile app</text>
+  <text x="85" y="104" text-anchor="middle" class="s">your own IDE</text>
+
+  <!-- hq -->
+  <rect class="ctl" x="270" y="35" width="330" height="100" rx="10"/>
+  <text x="435" y="57" text-anchor="middle" font-weight="700" class="tb">hq</text>
+  <text x="435" y="76" text-anchor="middle" class="s">people, projects, agents, tasks · checks access · issues tickets</text>
+  <text x="435" y="92" text-anchor="middle" class="s">places spaces on sites and sites on relays</text>
+  <rect class="ctl later" x="300" y="102" width="270" height="24" rx="6"/>
+  <text x="435" y="118" text-anchor="middle" class="s">later: several hq copies behind a load balancer</text>
+
+  <rect class="b" x="660" y="45" width="150" height="80" rx="10"/>
+  <text x="735" y="70" text-anchor="middle" font-weight="700">Fleet Console</text>
+  <text x="735" y="88" text-anchor="middle" class="s">enrols every machine</text>
+  <text x="735" y="104" text-anchor="middle" class="s">sites · relays · burst</text>
+  <rect class="b later" x="845" y="45" width="140" height="80" rx="10"/>
+  <text x="915" y="70" text-anchor="middle" font-weight="700">a hosted service</text>
+  <text x="915" y="88" text-anchor="middle" class="s">can run any of these</text>
+  <text x="915" y="104" text-anchor="middle" class="s">for an organisation</text>
+
+  <path class="c" d="M150 75H268"/>
+  <path class="c" d="M600 85H658"/>
+
+  <!-- relays -->
+  <rect class="dat" x="230" y="210" width="170" height="90" rx="10"/>
+  <text x="315" y="234" text-anchor="middle" font-weight="700" class="ta">hq's relay</text>
+  <text x="315" y="252" text-anchor="middle" class="s">on hq's machine (default)</text>
+  <text x="315" y="268" text-anchor="middle" class="s">files.example.com</text>
+  <text x="315" y="286" text-anchor="middle" class="s">checks nothing, passes bytes</text>
+  <rect class="dat" x="440" y="210" width="170" height="90" rx="10"/>
+  <text x="525" y="234" text-anchor="middle" font-weight="700" class="ta">relay-2</text>
+  <text x="525" y="252" text-anchor="middle" class="s">its own machine</text>
+  <text x="525" y="268" text-anchor="middle" class="s">files-2.example.com</text>
+
+  <!-- people to relay bytes -->
+  <path class="d" d="M120 125L250 210"/>
+  <text x="150" y="175" class="s ta">file bytes, on a ticket</text>
+
+  <!-- sites -->
+  <rect class="cmp" x="40" y="390" width="200" height="110" rx="10"/>
+  <text x="140" y="413" text-anchor="middle" font-weight="700" class="tg">hq's site</text>
+  <text x="140" y="432" text-anchor="middle" class="s">holds: personal spaces</text>
+  <text x="140" y="448" text-anchor="middle" class="s">runs their agents</text>
+  <rect class="cmp" x="280" y="390" width="200" height="110" rx="10"/>
+  <text x="380" y="413" text-anchor="middle" font-weight="700" class="tg">site · office-server</text>
+  <text x="380" y="432" text-anchor="middle" class="s">holds: project Alpha, Beta</text>
+  <text x="380" y="448" text-anchor="middle" class="s">behind the office firewall</text>
+  <text x="380" y="480" text-anchor="middle" class="s ta">busy ↑ CPU</text>
+  <rect class="cmp" x="520" y="390" width="200" height="110" rx="10"/>
+  <text x="620" y="413" text-anchor="middle" font-weight="700" class="tg">site · build-box</text>
+  <text x="620" y="432" text-anchor="middle" class="s">holds: project Gamma</text>
+
+  <!-- burst -->
+  <rect class="cmp later" x="760" y="390" width="220" height="110" rx="10"/>
+  <text x="870" y="413" text-anchor="middle" font-weight="700" class="tg">burst site (later)</text>
+  <text x="870" y="432" text-anchor="middle" class="s">owns no space; borrowed compute</text>
+  <text x="870" y="448" text-anchor="middle" class="s">gets a checked-out copy of Alpha</text>
+  <text x="870" y="464" text-anchor="middle" class="s">runs, checks back in, is released</text>
+  <text x="870" y="482" text-anchor="middle" class="s">proposed elsewhere: offloading, rooms</text>
+
+  <!-- dial outs -->
+  <path class="d" d="M420 390L470 302"/>
+  <path class="d" d="M620 390L540 302"/>
+  <path class="d" d="M140 390L290 302"/>
+  <!-- checkout via relay -->
+  <path class="dl" d="M480 470C620 560 760 540 800 500"/>
+  <text x="640" y="560" text-anchor="middle" class="s ta">later: the Alpha checkout copy travels through a relay, not hq</text>
+
+  <!-- host service note -->
+  <text x="500" y="605" text-anchor="middle" class="s">every machine also runs the host service; every machine dials out to hq on the control channel (blue, not drawn per box)</text>
+</svg>
+</div></div>
+
+<div class="two">
+  <div class="box"><div class="lbl open">The rule that holds it together</div><div style="font-size:13px">
+    <ul>
+      <li><b class="tb" style="color:#2563eb">hq decides, it doesn't carry.</b> It checks access and chooses placement: which site holds a space, which relay serves a site, and where a burst run goes. It issues tickets.</li>
+      <li><b style="color:#b45309">Relays carry, they don't decide.</b> The only file address there is, with no tunnel option. They pass bytes between machines and browsers. A site checks every ticket.</li>
+      <li><b style="color:#16a34a">Sites hold and run.</b> A space has one home site. A burst site borrows a copy for a while and owns nothing.</li>
+      <li>Every machine dials out and is enrolled in the Fleet Console, so a laptop or an office box behind a firewall is a full member.</li>
+    </ul>
+  </div></div>
+  <div class="box"><div class="lbl open">What this unit builds of it</div><div style="font-size:13px">
+    <ul>
+      <li><b>In:</b> the file ticket, hq's relay in the compose file, sites dialling it, and the browser fetching files from it. No fallback through hq (D17).</li>
+      <li><b>Designed for, not built:</b> more relays, and hq assigning sites to them.</li>
+      <li><b>Not ours:</b> burst sites and checkout, shared rooms, and hq as several copies, all proposed elsewhere. The picture only shows that they fit.</li>
+    </ul>
+  </div></div>
+</div>
+
+<h2 id="network">The network: where each machine sits, and who dials whom</h2>
+<p class="sub">Where each machine sits and who connects to whom. An arrow points <b>from the side that opens the connection to the side that listens</b>. Only front doors listen to the internet, each on 443: hq's and each relay's. Everything else only dials out.</p>
+
+<style>
+  .nw svg{width:100%;height:auto;font:12px system-ui}
+  .nw .zone{fill:currentColor;fill-opacity:.035;stroke:currentColor;stroke-opacity:.45;stroke-width:1.2}
+  .nw .fw{fill:none;stroke:#dc2626;stroke-width:2.2;stroke-dasharray:7 4}
+  .nw .b{fill:none;stroke:currentColor;stroke-width:1.3}
+  .nw .door{fill:none;stroke:currentColor;stroke-width:2.2}
+  .nw .rel{fill:none;stroke:#b45309;stroke-width:1.8}
+  .nw .hqb{fill:none;stroke:#2563eb;stroke-width:1.8}
+  .nw .st{fill:none;stroke:#16a34a;stroke-width:1.8}
+  .nw .later{stroke-dasharray:6 4}
+  .nw text{fill:currentColor}
+  .nw .zl{font-weight:700;font-size:11.5px;opacity:.8}
+  .nw .s{font-size:10.5px}
+  .nw .tb{fill:#2563eb}.nw .ta{fill:#b45309}.nw .tg{fill:#16a34a}.nw .tr{fill:#dc2626}
+  .nw .ctl{stroke:#2563eb;stroke-width:1.6;fill:none;marker-end:url(#nb)}
+  .nw .dat{stroke:#b45309;stroke-width:2.6;fill:none;marker-end:url(#na)}
+  .nw .datl{stroke:#b45309;stroke-width:2.6;fill:none;stroke-dasharray:6 4;marker-end:url(#na)}
+  .nw .ctll{stroke:#2563eb;stroke-width:1.6;fill:none;stroke-dasharray:6 4;marker-end:url(#nb)}
+  .nw .loc{stroke:currentColor;stroke-width:1;fill:none;opacity:.6}
+</style>
+<svg width="0" height="0" style="position:absolute"><defs>
+<marker id="nb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="#2563eb"/></marker>
+<marker id="na" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#b45309"/></marker></defs></svg>
+
+<div class="box dg nw"><div class="lbl open">One organisation on the internet</div><div>
+<svg viewBox="0 0 1000 700">
+  <!-- internet -->
+  <rect class="zone" x="5" y="5" width="990" height="150" rx="12"/>
+  <text x="18" y="24" class="zl">THE INTERNET</text>
+  <rect class="b" x="30" y="40" width="190" height="80" rx="10"/>
+  <text x="125" y="64" text-anchor="middle" font-weight="700">people's browsers</text>
+  <text x="125" y="82" text-anchor="middle" class="s">office, home, a phone on the move</text>
+  <text x="125" y="98" text-anchor="middle" class="s">listen on nothing</text>
+
+  <!-- hq machine -->
+  <rect class="zone" x="5" y="185" width="480" height="265" rx="12"/>
+  <text x="18" y="204" class="zl">hq's MACHINE · a server with a public address</text>
+  <rect class="door" x="25" y="215" width="440" height="44" rx="8"/>
+  <text x="245" y="235" text-anchor="middle" font-weight="700">front door (Caddy) · listens :443</text>
+  <text x="245" y="251" text-anchor="middle" class="s">hq.example.com → hq · files.example.com → hq's relay</text>
+  <rect class="hqb" x="25" y="290" width="130" height="58" rx="8"/>
+  <text x="90" y="315" text-anchor="middle" font-weight="700" class="tb">hq</text>
+  <text x="90" y="333" text-anchor="middle" class="s">app · tickets</text>
+  <rect class="rel" x="180" y="290" width="130" height="58" rx="8"/>
+  <text x="245" y="315" text-anchor="middle" font-weight="700" class="ta">hq's relay</text>
+  <text x="245" y="333" text-anchor="middle" class="s">own container</text>
+  <rect class="st" x="335" y="290" width="130" height="58" rx="8"/>
+  <text x="400" y="315" text-anchor="middle" font-weight="700" class="tg">hq's site</text>
+  <text x="400" y="333" text-anchor="middle" class="s">personal spaces</text>
+  <rect class="b" x="25" y="375" width="130" height="50" rx="8"/>
+  <text x="90" y="404" text-anchor="middle">Postgres</text>
+  <rect class="b" x="180" y="375" width="285" height="50" rx="8"/>
+  <text x="322" y="397" text-anchor="middle">host service</text>
+  <text x="322" y="413" text-anchor="middle" class="s">one on every machine below too</text>
+  <path class="loc" d="M90 259V290M245 259V290"/>
+  <path class="loc" d="M90 348V375"/>
+  <path class="loc" d="M335 312H312M335 330C250 360 120 360 120 350"/>
+  <text x="400" y="364" text-anchor="middle" class="s">dials hq + hq's relay locally</text>
+
+  <!-- relay-2 machine -->
+  <rect class="zone" x="520" y="185" width="250" height="160" rx="12"/>
+  <text x="533" y="204" class="zl">relay-2's MACHINE · public address</text>
+  <rect class="door" x="540" y="215" width="210" height="40" rx="8"/>
+  <text x="645" y="233" text-anchor="middle" font-weight="700">front door · listens :443</text>
+  <text x="645" y="248" text-anchor="middle" class="s">files-2.example.com</text>
+  <rect class="rel" x="560" y="275" width="170" height="50" rx="8"/>
+  <text x="645" y="297" text-anchor="middle" font-weight="700" class="ta">relay-2</text>
+  <text x="645" y="313" text-anchor="middle" class="s">enrolled in the fleet</text>
+  <path class="loc" d="M645 255V275"/>
+
+  <!-- a hosted service (later) -->
+  <rect class="zone later" x="800" y="185" width="195" height="265" rx="12"/>
+  <text x="813" y="204" class="zl">A HOSTED SERVICE (later)</text>
+  <rect class="st later" x="820" y="330" width="155" height="80" rx="8"/>
+  <text x="897" y="355" text-anchor="middle" font-weight="700" class="tg">burst site</text>
+  <text x="897" y="373" text-anchor="middle" class="s">borrowed compute</text>
+  <text x="897" y="389" text-anchor="middle" class="s">proposed elsewhere</text>
+
+  <!-- office LAN -->
+  <rect class="zone" x="5" y="490" width="300" height="200" rx="12"/>
+  <path class="fw" d="M5 490H305"/>
+  <text x="18" y="510" class="zl">OFFICE NETWORK</text>
+  <text x="290" y="510" text-anchor="end" class="s tr">firewall · nothing comes in</text>
+  <rect class="st" x="45" y="590" width="220" height="70" rx="8"/>
+  <text x="155" y="615" text-anchor="middle" font-weight="700" class="tg">site · office-server</text>
+  <text x="155" y="633" text-anchor="middle" class="s">projects Alpha, Beta</text>
+  <text x="155" y="649" text-anchor="middle" class="s">served by relay-2</text>
+
+  <!-- home -->
+  <rect class="zone" x="335" y="490" width="230" height="200" rx="12"/>
+  <path class="fw" d="M335 490H565"/>
+  <text x="348" y="510" class="zl">SOMEONE'S HOME · router NAT</text>
+  <rect class="st" x="360" y="590" width="180" height="70" rx="8"/>
+  <text x="450" y="615" text-anchor="middle" font-weight="700" class="tg">site · laptop</text>
+  <text x="450" y="633" text-anchor="middle" class="s">project Delta</text>
+  <text x="450" y="649" text-anchor="middle" class="s">served by hq's relay</text>
+
+  <!-- build-box -->
+  <rect class="zone" x="595" y="490" width="195" height="200" rx="12"/>
+  <path class="fw" d="M595 490H790"/>
+  <text x="608" y="510" class="zl">A DATA CENTRE RACK</text>
+  <rect class="st" x="610" y="590" width="165" height="70" rx="8"/>
+  <text x="692" y="615" text-anchor="middle" font-weight="700" class="tg">site · build-box</text>
+  <text x="692" y="633" text-anchor="middle" class="s">project Gamma</text>
+  <text x="692" y="649" text-anchor="middle" class="s">served by relay-2</text>
+
+  <!-- browsers to doors -->
+  <path class="ctl" d="M120 120L120 213"/>
+  <path class="dat" d="M170 120L260 213"/>
+  <path class="dat" d="M220 95C420 95 560 140 600 213"/>
+  <text x="100" y="170" text-anchor="end" class="s tb">app</text>
+  <text x="225" y="170" class="s ta">files</text>
+
+  <!-- relay-2 enrols with hq -->
+  <path class="ctl" d="M560 290C520 290 500 250 467 245"/>
+
+  <!-- office-server -->
+  <path class="ctl" d="M100 590L100 452"/>
+  <path class="dat" d="M210 590C260 500 520 400 620 327"/>
+  <!-- laptop -->
+  <path class="ctl" d="M400 590L330 452"/>
+  <path class="dat" d="M470 590L300 452"/>
+  <!-- build-box -->
+  <path class="ctl" d="M640 590C600 520 470 470 440 452"/>
+  <path class="dat" d="M720 590C740 450 700 380 680 327"/>
+  <!-- burst -->
+  <path class="ctll" d="M840 410C760 470 520 470 470 440"/>
+  <path class="datl" d="M860 330C820 300 760 300 732 300"/>
+
+  <!-- legend -->
+  <g transform="translate(330,155)">
+    <line x1="0" y1="10" x2="34" y2="10" class="ctl"/><text x="40" y="14" class="s">control channel / app</text>
+    <line x1="180" y1="10" x2="214" y2="10" class="dat"/><text x="220" y="14" class="s">file bytes (content)</text>
+  </g>
+</svg>
+</div></div>
+
+<div class="two">
+  <div class="box"><div class="lbl open">Who listens</div><div style="font-size:13px">
+    <ul>
+      <li><b>hq's front door</b>, at two names: the app, and hq's relay.</li>
+      <li><b>Each extra relay's front door</b> (relay-2).</li>
+    </ul>
+    <p>No site listens on anything. The office, the home and the rack open no port, because every arrow out of them points away from them.</p>
+  </div></div>
+  <div class="box"><div class="lbl open">Opening a file in project Alpha</div><div style="font-size:13px">
+    <ol>
+      <li>The browser asks <b>hq.example.com</b>, and hq checks access. Alpha's home is office-server, and office-server is served by relay-2, so hq returns a ticket for <b>files-2.example.com</b>.</li>
+      <li>The browser asks <b>files-2</b> with the ticket.</li>
+      <li>relay-2 passes the request down the line office-server opened to it.</li>
+      <li>office-server checks the ticket and streams the file back up that same line.</li>
+    </ol>
+    <p>hq handled one small request, and none of the bytes.</p>
+  </div></div>
+</div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

@@ -2,7 +2,7 @@
 name: ADRs
 description: This codebase's architecture decision records — every ADR, its title, and its state.
 created: 2026-08-09
-updated: 2026-10-24
+updated: 2026-10-26
 author: leang
 ---
 
@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0153`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0156`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -291,3 +291,6 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0150](adr-0150-agents-reach-knowledge-only-through-tools-shaped-like-the-native-ones.md) | Agents Reach Knowledge Only Through Tools Shaped Like the Native Ones | Accepted |
 | [ADR-0151](adr-0151-every-change-to-knowledge-goes-through-one-gate.md) | Every Change to Knowledge Goes Through One Gate | Accepted |
 | [ADR-0152](adr-0152-a-conversation-reaches-only-its-own-place-and-the-places-its-person-added.md) | A Conversation Reaches Only Its Own Place and the Places Its Person Added | Accepted |
+| [ADR-0153](adr-0153-relays-carry-every-file-byte-and-hq-only-signs-tickets.md) | Relays Carry Every File Byte, and hq Only Signs Tickets | Accepted |
+| [ADR-0154](adr-0154-a-machine-carries-a-site-or-a-relay-never-both-outside-hqs.md) | A Machine Carries a Site or a Relay, Never Both, Outside hq's | Accepted |
+| [ADR-0155](adr-0155-a-file-is-drawn-only-by-a-renderer-behind-one-boundary.md) | A File Is Drawn Only by a Renderer Behind One Boundary | Accepted |

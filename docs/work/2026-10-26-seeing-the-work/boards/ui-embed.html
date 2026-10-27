@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Embedded files · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-embed.html"><main>
+<div class="top"><div><h1>T3 · Embedded: in Markdown, tasks and conversations</h1>
+<p class="sub">The second way a file is shown. <b>Opened</b> (F2, T1) is a file on its own, in a panel or full screen. <b>Embedded</b> is a file shown inside something else: an image in a Markdown page, a chart in a task's description, a picture in a message. The same ticket and relay carry the bytes; only the size and the controls differ. Raised in review. Scope decided (D19); where a person's own images go, D20.</p></div></div>
+
+<h2 id="today">Today</h2>
+<div class="box"><span class="lbl before">Before · today</span><ul>
+<li><b>Markdown images aren't resolved.</b> <code>![](charts/q3.png)</code> in a file or a knowledge page points nowhere; an image on another website loads straight from that website, telling it who's reading.</li>
+<li><b>Conversations carry no images.</b> A person can't paste or upload one; an agent can only mention a path.</li>
+<li><b>A task's description</b> is text; its attachments are a list (T1).</li></ul></div>
+
+<h2 id="two">Two ways to show a file</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<table><tr><th></th><th>Opened</th><th>Embedded</th></tr>
+<tr><td>Where</td><td>Files, a task's panel, full screen (F2, T1)</td><td>Inside a Markdown page, a task's description, a message</td></tr>
+<tr><td>Size</td><td>The whole area</td><td>Fits the text's width; images up to 480 px tall, then scaled</td></tr>
+<tr><td>Kinds</td><td>Every kind with a renderer</td><td><b>Images</b> drawn inline; <b>every other kind as a card</b>: icon, name, kind, size, a line of preview where cheap (a CSV's columns, a PDF's page count)</td></tr>
+<tr><td>Controls</td><td>The frame's: Mention, Download, ⋯</td><td>None inline. A click opens it (Opened); hover shows Download</td></tr>
+<tr><td>Bytes</td><td>A ticket per file (board 3)</td><td>The same ticket, asked for all the embeds on screen in one request to hq; loaded as they scroll into view</td></tr></table>
+<p class="sub">In the contract (board 4): a renderer is told <code>mode: 'opened' | 'embedded'</code>. In MVP only the image renderer draws embedded; everything else gets the card, which the frame draws.</p></div>
+
+<h2 id="markdown">In a Markdown page</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="max-width:640px"><div class="mcentre"><div class="ml" style="font-size:12px;color:var(--t2)">reports/summary.md</div>
+<div class="preview"><b style="font-size:15px">Q3 summary</b><br>Revenue grew 6% on Q2, led by the north region.<br>
+<div style="margin:10px 0;border:1px solid var(--mborder);border-radius:8px;height:120px;display:flex;align-items:flex-end;gap:10px;padding:10px;background:var(--s1);width:70%"><div style="flex:1;height:40%;background:var(--macc)"></div><div style="flex:1;height:75%;background:var(--macc)"></div><div style="flex:1;height:55%;background:var(--macc)"></div></div>
+<span style="font-size:12px;color:var(--t2)">charts/q3.png</span><br><br>
+The full numbers are in <span class="chip">📊 q3-data.csv · 84 KB</span><br><br>
+<span style="border:1px dashed var(--mborder);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--t2)">🖼 Image from example.org · <a style="color:var(--macc)">Load</a></span></div></div></div>
+<ol class="sub">
+<li><b>A relative path</b> (<code>![](charts/q3.png)</code>) resolves against the page's folder, in the same place, and embeds through the relay. A path outside the place shows as a broken image with its name.</li>
+<li><b>An image tag</b>, <code>&lt;img src="charts/q3.png" alt="Q3" width="600"&gt;</code>, is drawn the same way, so an image can be sized, as GitHub's Markdown allows (D23). It's the only HTML Markdown accepts: only <code>src</code>, <code>alt</code>, <code>width</code> and <code>height</code> are kept, and every other tag stays text. Its <code>src</code> resolves like a Markdown image.</li>
+<li><b>A link to another file</b> becomes the card, or a chip inline.</li>
+<li><b>An image on another website isn't loaded on its own</b>: it's shown as "Image from example.org · Load", so opening a page never tells another site who's reading. One click loads it.</li>
+<li><b>One Markdown embed, everywhere Markdown is drawn</b> (D19): Markdown files, knowledge pages, a task's description and comments, and agents' replies in conversations. All of them go through <code>MarkdownMessage</code> today, so the embed is added once, there.</li></ol></div>
+
+<h2 id="conversation">In a conversation: the same Markdown</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="two">
+<div class="frame mock"><div class="mcentre">
+<div class="bubble" style="max-width:none;margin-left:40px;background:var(--macc-sub)">Here's the sketch from the whiteboard, can you turn it into a diagram?
+<div style="margin-top:8px;height:90px;border-radius:6px;background:repeating-linear-gradient(45deg,var(--s2) 0 8px,var(--s1) 8px 16px);border:1px solid var(--mborder)"></div></div>
+<p class="sub" style="margin-top:6px">A person's message with an image they pasted or chose.</p></div></div>
+<div class="frame mock"><div class="mcentre">
+<div class="bubble" style="max-width:none">Done. Here it is, saved as <span class="chip">📄 diagrams/flow.png</span>
+<div style="margin-top:8px;height:90px;border:1px solid var(--mborder);border-radius:6px;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--s1)"><span class="chip">Start</span>→<span class="chip">Review</span>→<span class="chip">Ship</span></div></div>
+<p class="sub" style="margin-top:6px">An agent's reply showing an image it made.</p></div></div></div>
+<ol class="sub">
+<li><b>A message carries a reference, never the bytes</b>: the file's place, path and version. The image is a file like any other, so it can be opened, downloaded, mentioned and found in Files later.</li>
+<li><b>An agent shows an image by writing Markdown</b>, <code>![flow](files/diagrams/flow.png)</code>: its replies are already drawn as Markdown (<code>ReplyBody.tsx</code> uses <code>MarkdownMessage</code>), so the Markdown embed covers them with nothing new. Paths are read from the conversation's place, the same <code>files/…</code> form Mention inserts. A path it only mentions stays a chip (T2).</li>
+<li><b>Stretch: a person adds an image</b> by pasting, dropping or choosing a file. It belongs to the conversation's place but is kept <b>outside what runs mount</b>, as knowledge is: people see it through the relay, agents only through Agenthix's tools for that conversation, never on the file system (D20). <b>It stays in the room</b>: only people in the conversation see it, today its owner, later whoever is invited; <i>Save to Files</i> or a task attachment shares it beyond (D21). The message refers to it like any file.</li>
+<li>Whether the agent can <b>see</b> an image a person sends (a model that reads images) is the conversation's work, not this epic's; this epic makes the file exist and show.</li>
+<li>Files keep no history on a site, so a message shows the file as it is now. If it changed after the message was sent (the reference's version differs), a small line says "Changed since this message".</li></ol></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

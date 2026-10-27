@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A file opened · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-open.html"><main>
+<div class="top"><div><h1>F2 · A file opened: frame and renderers</h1>
+<p class="sub">The frame Agenthix owns (board 4, part 3), around whatever renderer draws the file. Today's layout is kept: the place's panel, the folders, the open file. What changes is the header row, the facts line and the states, which are the same for every kind.</p></div></div>
+
+<h2 id="wide">Wide: folders beside the file</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:200px 220px 1fr"><div class="pnav" data-on="files" data-name="Alpha"></div>
+<div class="mcentre" style="border-right:1px solid var(--mborder);padding-right:8px">
+<div class="field"><div class="in" style="color:var(--t3)">Search files</div></div>
+<div style="font-size:13px;line-height:2">▾ reports<br>&nbsp;&nbsp;&nbsp;<b>q3.pdf</b><br>&nbsp;&nbsp;&nbsp;q3-data.csv<br>&nbsp;&nbsp;&nbsp;summary.md<br>▸ src<br>&nbsp;&nbsp;package.json<br>&nbsp;&nbsp;export.zip</div></div>
+<div class="mcentre">
+<div class="crumb"><a>Files</a> › <a>reports</a> › q3.pdf</div>
+<div class="row"><div class="mh grow">q3.pdf</div><span class="btn">Mention</span><span class="btn">Download</span><span class="btn">⋯</span></div>
+<div class="ml" style="font-size:13px;color:var(--t2)">Changed today 10:42 by an agent run · PDF · 1.2 MB · 14 pages</div>
+<div class="preview" style="min-height:220px;padding:0;background:var(--s2)"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);padding:6px 10px;border-bottom:1px solid var(--mborder)"><span>Page 1 of 14</span><span>− 100% +</span></div>
+<div style="margin:12px auto;width:62%;background:var(--s1);border:1px solid var(--mborder);padding:14px;min-height:160px;font-size:12px"><b>Q3 report</b><br><br>Revenue grew 6% on Q2, led by the north region…</div></div>
+<div class="menu" style="right:18px;top:78px;width:220px"><div class="it"><div class="t">Copy link</div><div class="s">Opens this file, for anyone who can see it</div></div><div class="it"><div class="t">Copy path</div><div class="s">files/reports/q3.pdf, for a message</div></div><div class="it"><div class="t">Open full screen</div></div></div>
+</div></div></div>
+<ol class="sub">
+<li><b>Download is a button</b>, for every kind and size, through the relay (board 3). It's no longer in ⋯ and never missing (F1, items 1 and 5).</li>
+<li><b>A breadcrumb</b> above the title, so a file opened from a link (T2) shows where it lives.</li>
+<li><b>The facts line</b> adds who changed it, when the site knows (an agent run or a person), and the kind's own fact: pages, rows, lines, or pixel size.</li>
+<li><b>⋯ › Copy link</b> copies the stable link (R5), which opens this file in place for anyone who can see it. <b>Copy path</b> stays for messages.</li>
+<li><b>Open full screen</b>: the same frame and renderer, filling the window.</li>
+<li>The renderer draws only inside the grey area. Its toolbar (here, PDF's pages and zoom) is its own.</li></ol></div>
+
+<h2 id="narrow">Narrow: the file alone</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="phones"><div class="phone"><div class="mhead">‹ Files &nbsp; <b>q3-data.csv</b></div><div class="mbody">
+<div class="row" style="justify-content:flex-end"><span class="btn">Mention</span><span class="btn">Download</span><span class="btn">⋯</span></div>
+<div style="font-size:12px;color:var(--t2);margin:4px 0">Changed today 10:40 · CSV · 84 KB · 1,204 rows</div>
+<table style="font-size:11px"><tr><th>region</th><th>quarter</th><th>revenue</th></tr><tr><td>north</td><td>Q3</td><td>412,000</td></tr><tr><td>south</td><td>Q3</td><td>388,500</td></tr><tr><td>east</td><td>Q3</td><td>401,220</td></tr></table>
+</div></div></div>
+<p class="sub">As today: ‹ back to the folder, the actions under the title, the renderer filling the width. A table scrolls sideways inside its own area, never the page.</p></div>
+
+<h2 id="states">The frame's states</h2>
+<div class="box"><table><tr><th>State</th><th>What the frame shows</th></tr>
+<tr><td><b>Opening</b></td><td>The header and facts at once (from hq's <i>open</i>), and a quiet "Loading…" where the renderer goes</td></tr>
+<tr><td><b>Ready</b></td><td>The renderer</td></tr>
+<tr><td><b>Showing part</b></td><td>The renderer, under a line: <i>"Showing the first 1 MB of 3.4 MB."</i> with <b>Download</b> (F4)</td></tr>
+<tr><td><b>No preview</b>, <b>too large</b>, <b>changed</b>, <b>unavailable</b></td><td>A short sentence in the renderer's place, with what can be done (F4)</td></tr></table></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

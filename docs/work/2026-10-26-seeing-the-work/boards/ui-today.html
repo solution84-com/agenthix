@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The file viewer today · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-today.html"><main>
+<div class="top"><div><h1>F1 · The file viewer today, numbered</h1>
+<p class="sub">Read from <code>hq/src/storage/pages/FilesTool.tsx</code>, <code>FileOpened.tsx</code> and <code>FileBody.tsx</code> at 8c6fd3c0. A project's Files tool, wide: the folders beside the open file. Numbers match the list below.</p></div></div>
+
+<h2 id="pdf">A PDF opened</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:200px 220px 1fr"><div class="pnav" data-on="files" data-name="Alpha"></div>
+<div class="mcentre" style="border-right:1px solid var(--mborder);padding-right:8px">
+<div class="field"><div class="in" style="color:var(--t3)">Search files</div></div>
+<div style="font-size:13px;line-height:2">▾ reports<br>&nbsp;&nbsp;&nbsp;<b>q3.pdf</b><br>&nbsp;&nbsp;&nbsp;q3-data.csv<br>&nbsp;&nbsp;&nbsp;summary.md<br>▸ src<br>&nbsp;&nbsp;package.json<br>&nbsp;&nbsp;export.zip</div></div>
+<div class="mcentre">
+<div class="row"><div class="mh grow">q3.pdf</div><span class="btn">Mention</span><span class="btn">⋯ <b style="color:var(--mdanger)">①</b></span></div>
+<div class="ml" style="font-size:13px;color:var(--t2)">Changed today 10:42 · PDF · 1.2 MB</div>
+<div class="preview" style="min-height:160px;display:flex;align-items:center;justify-content:center;color:var(--t2)">This file type can't be previewed. <b style="color:var(--mdanger);margin-left:6px">②</b></div>
+<div class="menu" style="right:24px;top:52px;width:180px"><div class="it"><div class="t">Copy path</div></div></div>
+</div></div></div></div>
+
+<h2 id="kinds">Other kinds</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="two">
+<div class="frame mock"><div class="mcentre"><div class="row"><div class="mh grow">q3-data.csv</div><span class="btn">Mention</span><span class="btn">⋯</span></div>
+<div class="preview" style="font:12px/1.5 ui-monospace,monospace;white-space:pre">region,quarter,revenue,units
+north,Q3,412000,1290
+south,Q3,388500,1175
+east,Q3,401220,1203 …</div><p class="sub">③ CSV is plain text: no table.</p></div></div>
+<div class="frame mock"><div class="mcentre"><div class="row"><div class="mh grow">pipeline.ts</div><span class="btn">Mention</span><span class="btn">⋯</span></div>
+<div class="preview" style="font:12px/1.5 ui-monospace,monospace;white-space:pre">export async function run(steps: Step[]) {
+  for (const s of steps) await s.go()
+}</div><p class="sub">④ Code isn't highlighted.</p></div></div>
+<div class="frame mock"><div class="mcentre"><div class="row"><div class="mh grow">export.zip</div><span class="btn">Mention</span><span class="btn">⋯</span></div>
+<div class="preview" style="color:var(--t2)">This file type can't be previewed.</div><p class="sub">⑤ No Download either: binary files can't leave.</p></div></div>
+<div class="frame mock"><div class="mcentre"><div class="row"><div class="mh grow">run.log</div><span class="btn">Mention</span><span class="btn">⋯</span></div>
+<div class="preview" style="color:var(--t2)">This file is too large to preview here.</div><p class="sub">⑥ Over 1 MB: no preview, no Download.</p></div></div>
+</div></div>
+
+<h2 id="list">What's wrong, numbered</h2>
+<div class="box"><table><tr><th></th><th>Today</th><th>Fixed on</th></tr>
+<tr><td class="n">1</td><td><b>Download hides in ⋯</b>, and only for Markdown, code and images (<code>FileOpened.tsx</code> <code>download()</code>).</td><td>F2</td></tr>
+<tr><td class="n">2</td><td><b>PDF isn't previewed</b>; it's classified as binary.</td><td>F3</td></tr>
+<tr><td class="n">3</td><td><b>CSV and JSON are plain text.</b></td><td>F3</td></tr>
+<tr><td class="n">4</td><td><b>Code isn't highlighted</b>, though the library is installed.</td><td>F3</td></tr>
+<tr><td class="n">5</td><td><b>Binary files can't be downloaded.</b></td><td>F2, F4</td></tr>
+<tr><td class="n">6</td><td><b>Over 1 MB: nothing at all</b>, not even the first part.</td><td>F4</td></tr>
+<tr><td class="n">7</td><td><b>No link to the file</b>: Copy path gives <code>files/reports/q3.pdf</code>, which only means something typed into a message.</td><td>F2, T2</td></tr>
+<tr><td class="n">8</td><td><b>The site being silent</b> is said on the folder list ("The site holding these files isn't answering"), but an open file shows the raw error message in red (<code>FileBody.tsx</code>).</td><td>F4</td></tr></table></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

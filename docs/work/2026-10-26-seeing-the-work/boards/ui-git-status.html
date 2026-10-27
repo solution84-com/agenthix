@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git status · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-git-status.html"><main>
+<div class="top"><div><h1>G1 · Status at a glance</h1>
+<p class="sub">MVP: git observability, tier 1. One line, where the person already looks: above a workspace's files, and in the Files tool when <code>files/</code> is a repository. It sits with the GitHub backup line (<code>BackupLine.tsx</code>), which keeps its job, the remote.</p></div></div>
+
+<h2 id="workspace">A workspace</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:200px 1fr"><div class="pnav" data-on="workspaces" data-name="Alpha"></div>
+<div class="mcentre">
+<div class="crumb"><a>Workspaces</a> › site-redesign</div>
+<div class="row" style="font-size:13px;color:var(--t2);border-bottom:1px solid var(--mborder);padding:6px 0"><span>⎇ <b style="color:var(--t1)">feature/q3-charts</b></span><span>·</span><span style="color:var(--mwarn)">● 3 changed</span><span>·</span><span>Last commit <code>a41f2c9</code> "Add Q3 chart page" by Kernel, 12 min ago</span><span class="grow"></span><span style="color:var(--t3)">GitHub: example/site · backed up</span></div>
+<div style="font-size:13px;line-height:2;margin-top:8px">▸ src<br>▸ public<br>&nbsp;&nbsp;package.json<br>&nbsp;&nbsp;README.md</div></div></div></div>
+<ol class="sub">
+<li><b>Branch</b>, or "detached at a41f2c9".</li>
+<li><b>Clean</b> (green ✓ "No changes") or <b>the count of changed files</b>. In the MVP the count is the end of it; with stretch G2 it opens the changed files.</li>
+<li><b>The last commit</b>: short id, the first line of its message, who, when.</li>
+<li><b>The GitHub backup</b> keeps its place at the end of the line: git and GitHub side by side, never merged.</li>
+<li>A folder that isn't a repository shows no git line at all; the backup line is as today.</li></ol></div>
+
+<h2 id="states">Its states</h2>
+<div class="box"><table><tr><th>State</th><th>The line says</th></tr>
+<tr><td>Reading</td><td>Nothing until it's read; no spinner on a line this small</td></tr>
+<tr><td>Clean</td><td>⎇ main · ✓ No changes · Last commit …</td></tr>
+<tr><td>Changed</td><td>⎇ main · ● 3 changed · Last commit …</td></tr>
+<tr><td>No commits yet</td><td>⎇ main · ● 12 new files · No commits yet</td></tr>
+<tr><td>Mid-merge or rebase</td><td>⎇ main · ⚠ Merge in progress · …, because an agent stopped halfway</td></tr>
+<tr><td>Site not answering</td><td>The folder's own message, as today; the git line hides</td></tr></table></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

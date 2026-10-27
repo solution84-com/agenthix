@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changed files, diffs, log · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ui-git-more.html"><main>
+<div class="top"><div><h1>G2 · Changed files, diffs, log (stretch)</h1>
+<p class="sub">Git observability, tier 2, read only. Built if time allows, in this order: markers and diffs first (what changed, and how), then the log. Each is droppable without touching the rest (D2).</p></div></div>
+
+<h2 id="markers">Changed files and a diff</h2>
+<div class="box"><span class="lbl after">After · proposed · stretch</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:240px 1fr"><div class="mcentre" style="border-right:1px solid var(--mborder)">
+<div class="tabs" style="margin:0 0 8px"><span>All files</span><span class="on">Changed · 3</span></div>
+<div style="font:13px/2 ui-monospace,monospace"><span style="color:var(--mwarn)">M</span> src/pages/q3.tsx<br><span style="color:var(--mok)">A</span> src/charts/bar.tsx<br><span style="color:var(--t3)">??</span> notes.md</div></div>
+<div class="mcentre">
+<div class="row"><div class="mh grow">src/pages/q3.tsx</div><span class="tabs" style="display:inline-flex;margin:0"><span class="on">Changes</span><span>File</span></span><span class="btn">Download</span><span class="btn">⋯</span></div>
+<div class="ml" style="font-size:12px;color:var(--t2)">Changed, not committed · against a41f2c9 · +12 −3</div>
+<div class="preview" style="font:12px/1.6 ui-monospace,monospace;white-space:pre;padding:6px 0"><span style="color:var(--t3)"> 14 </span>  return (
+<span style="background:#dc262614"><span style="color:var(--t3)"> 15 </span>- &lt;Page title="Q3"&gt;</span>
+<span style="background:#05966914"><span style="color:var(--t3)"> 15 </span>+ &lt;Page title="Q3 report"&gt;</span>
+<span style="background:#05966914"><span style="color:var(--t3)"> 16 </span>+   &lt;BarChart data={rows} /&gt;</span>
+<span style="color:var(--t3)"> 17 </span>    &lt;Summary /&gt;</div></div></div></div>
+<ol class="sub">
+<li><b>Markers</b> beside files in the tree (<code>M</code> <code>A</code> <code>D</code> <code>R</code> <code>??</code>), and a <b>Changed</b> tab listing only them. G1's "3 changed" opens this tab.</li>
+<li>A changed file opens on <b>Changes</b>: the diff renderer (board 4, part 6), one column, against the last commit. <b>File</b> shows it whole in its usual renderer.</li>
+<li>A diff over 1 MB: F4's "showing part" with Download of the patch.</li></ol></div>
+
+<h2 id="log">The log</h2>
+<div class="box"><span class="lbl after">After · proposed · stretch</span>
+<div class="frame mock"><div class="mcentre">
+<div class="row" style="font-size:13px"><span>⎇ <b>feature/q3-charts</b> ▾</span><span style="color:var(--t2)">2 ahead, 0 behind origin/feature/q3-charts, as fetched 1 hour ago</span></div>
+<table style="font-size:13px"><tr><td><code>a41f2c9</code></td><td>Add Q3 chart page</td><td style="color:var(--t2)">Kernel</td><td style="color:var(--t2)">12 min ago</td></tr>
+<tr><td><code>9be03d1</code></td><td>Pull Q3 numbers into data/</td><td style="color:var(--t2)">Kernel</td><td style="color:var(--t2)">40 min ago</td></tr>
+<tr><td><code>77c1e0a</code></td><td>Start Q3 report (WEB-42)</td><td style="color:var(--t2)">Sam</td><td style="color:var(--t2)">yesterday</td></tr></table></div></div>
+<ol class="sub">
+<li>The last 50 commits, then <b>More</b>. A commit opens its changed files and their diffs, as above.</li>
+<li>The branch menu lists local branches to <b>look at</b>, never to check out: choosing one shows its log only.</li>
+<li>Ahead and behind say when the remote was last fetched, since reading never fetches (board 6).</li></ol></div>
+
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

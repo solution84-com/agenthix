@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your own IDE · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="ide.html"><main>
+<div class="top"><div><h1>7 · Your own IDE: a session</h1>
+<p class="sub">Level 2, IDE access. <b>Designed, not built</b>: how a session is authorised is designed here (D3); the proof of concept is stretch. Agenthix bundles and hosts no IDE. A person's own desktop IDE connects to the live workspace for a session they start, under their own identity.</p></div></div>
+
+<h2 id="room">What the MVP leaves room for</h2>
+<div class="box"><p><b>Same relay and door, its own line.</b> The relay carries streams, each opened with a ticket naming its purpose (R8), so an IDE session is one more purpose. It travels on a line of its own from the site, so downloads never slow typing, and a site with IDE access switched off refuses it outright. Nothing else in the MVP has to anticipate it. Why it will be asked for: Agenthix previews common kinds only, and people working on their own app's file types need their own tools.</p></div>
+
+<h2 id="shape">The shape: the same fleet, one more kind of traffic</h2>
+<div class="box"><span class="lbl open">Designed, not built</span>
+<div class="mmd" data-src="ide"></div>
+<div class="kbox">
+<div><h4><span class="n">1</span>Started in hq</h4><p>The person chooses <i>Open in your IDE</i> on a workspace (I1). hq checks they may change its files, and records a <b>session</b>: who, which workspace, when, how long (an hour, renewable).</p></div>
+<div><h4><span class="n">2</span>An access container</h4><p>The site starts a container for the session, <b>not</b> an agent's container and not the site's machine: it mounts that one workspace and nothing else, with no secrets and no workflows (the workflows work). It ends when the session ends; the workspace stays.</p></div>
+<div><h4><span class="n">3</span>Through the relay</h4><p>The IDE's SSH connection travels through the site's relay, like file bytes: a small helper on the person's computer (<code>ProxyCommand</code>) opens a connection to the relay with the session's ticket. Nothing on the site listens; the site dials the relay, as for files (D5).</p></div>
+<div><h4><span class="n">4</span>Ended anywhere</h4><p>A session ends when it expires, when the person ends it, or when an admin or a change of membership ends it. hq tells the site on the control channel, and the site stops the container at once: unlike a file ticket, a session is revoked, not left to expire.</p></div>
+</div></div>
+
+<h2 id="questions">What the proof of concept must answer (IDE access)</h2>
+<div class="box"><table><tr><th>Question</th><th>The design's answer, to be proved</th></tr>
+<tr><td>How hq authorises, starts and revokes a session</td><td>Parts 1 and 4: a session record in hq, a ticket for the relay, revocation over the control channel</td></tr>
+<tr><td>Exposing one workspace without the rest</td><td>Part 2: a container per session, mounting one workspace; no site administration, secrets or workflows inside</td></tr>
+<tr><td>Self-hosted and hosted fleets, and sites behind NAT</td><td>Part 3: the relay carries it, so a site behind NAT needs nothing opened</td></tr>
+<tr><td>What VS Code Remote SSH installs</td><td>It installs its own server in the container, from Microsoft, as the person's VS Code does on any SSH host; Agenthix redistributes nothing. To be measured: size, memory, and whether it needs to download from the internet</td></tr>
+<tr><td>Agents and a person editing at once</td><td>Not collaborative editing. The IDE sees agents' changes as files change on disk; the workspace shows "Someone has this open in an IDE" to agents and people. Conflicts are the person's, as in any shared folder</td></tr></table></div>
+
+<script>
+window.SRC = {
+ide: `flowchart LR
+  P["person's IDE<br/>+ helper"] -- "SSH inside TLS, with the session ticket" --> R["site's relay"]
+  H["hq<br/>session record"] -. "start / end session (control channel)" .-> S["site"]
+  S -- "dials out" --> R
+  S --> C["access container<br/>one workspace mounted"]
+  R -- "down the site's line" --> C`
+}
+</script>
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>

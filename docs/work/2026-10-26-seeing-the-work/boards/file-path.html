@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opening a file · Seeing the agents' work</title><link rel="stylesheet" href="/files/shell.css?v=1"></head>
+<body data-board="file-path.html"><main>
+<div class="top"><div><h1>3 · Opening a file: ticket, relay, site</h1>
+<p class="sub">Level 2. One file opened, step by step, from a click to bytes on screen. hq answers one small question, and the bytes go site → relay → browser (D4, D5). The example organisation owns <code>hq.example.com</code>, and its project Alpha lives on site office-server, which relay-2 serves.</p></div></div>
+
+<h2 id="sequence">The sequence</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="mmd" data-src="seq"></div></div>
+
+<h2 id="steps">Step by step</h2>
+<div class="box"><table><tr><th></th><th>What happens</th><th>Where</th></tr>
+<tr><td class="n">1</td><td>A person clicks a file anywhere: the explorer, a task, a chat link, a mention. Every one is <b>the same stable link</b>, naming the owner and the path: <code>hq.example.com/…?tool=files&amp;owner=project:alpha&amp;file=reports/q3.pdf</code>, never a site or a relay (R5).</td><td>browser</td></tr>
+<tr><td class="n">2</td><td>The page asks hq to <b>open</b> the file. hq checks access (<code>assertLocationAccess</code>, as today) and finds the owner's home site.</td><td>hq</td></tr>
+<tr><td class="n">3</td><td>hq asks the site <b>about</b> the file, a small typed request on the control channel: size, modified time, a version, a content-type guess from the name, and whether the first bytes look like text. No content crosses.</td><td>hq ↔ site</td></tr>
+<tr><td class="n">4</td><td>hq picks the <b>renderer kind</b> from that, signs a <b>ticket</b> (R1, R2), records who opened what (T11), and returns kind, size, version and the ticket's link on the site's relay: <code>files-2.example.com/t/&lt;ticket&gt;</code> (D13).</td><td>hq</td></tr>
+<tr><td class="n">5</td><td>The page mounts the renderer for that kind (board 4), and the renderer fetches the link. A text-like kind fetches the first part it needs; a PDF frame loads the link and reads pages by range.</td><td>browser</td></tr>
+<tr><td class="n">6</td><td>The relay passes the request down the connection the site opened to it. It reads only the ticket's header to know which site, and checks nothing else.</td><td>relay</td></tr>
+<tr><td class="n">7</td><td>The site <b>verifies the ticket</b> with hq's public key, resolves the real path inside the owner's storage and refuses anything outside it (T6), checks the version is still the one ticketed, then streams the bytes or the range asked for.</td><td>site</td></tr>
+<tr><td class="n">8</td><td>The relay streams the bytes back with the sandbox headers (<code>CSP: sandbox</code>, <code>nosniff</code>, <code>no-referrer</code>, and CORS for hq's own address only) (T7, T8). The renderer draws.</td><td>relay → browser</td></tr>
+</table></div>
+
+<h2 id="download">Downloading</h2>
+<div class="box"><p>The same, with <code>download</code> as the ticket's purpose: the relay adds <code>Content-Disposition: attachment</code>, and nothing is capped (D14). Every file can be downloaded, whatever its kind or size, which fixes today's gap for binary and over-cap files.</p></div>
+
+<h2 id="down">When a relay is down</h2>
+<div class="box"><p><b>Relays alone carry file bytes; there is no fallback through hq (D17).</b> hq's relay runs beside hq on hq's own machine (D16), so if it is down, that machine is unwell. Step 4 then answers <i>"Files can't be opened right now: hq's relay isn't answering"</i>, and the Fleet Console shows the relay's health. A site on another relay shows the same message, naming that relay, until hq places the site on a working one (D9).</p>
+<p><b>On a bare address</b> (an hq with no files subdomain), <code>hq-web</code> sends one path on hq's own address, <code>/relay/…</code>, straight to hq's relay. Downloads and text-like previews work; nothing is shown inline there (adr-0114), so PDF preview needs a files address.</p></div>
+
+<h2 id="parts">What's new, by module</h2>
+<div class="box"><table><tr><th>Module</th><th>New or changed</th></tr>
+<tr><td><code>core</code></td><td>The ticket: its fields, encoding and verification, shared by hq and site. The relay protocol reuses the content channel's stream multiplexer (<code>core/src/protocol/contentMux.ts</code>): the site is the server, as on the content channel</td></tr>
+<tr><td><code>hq</code></td><td>The <i>open</i> operation, the ticket signer and its key, which relay serves which site (D9), and the audit row. <code>classifyFileContent</code> becomes the choice of renderer kind</td></tr>
+<tr><td><code>site</code></td><td>A connection to its relay, and a read that answers only a valid ticket, confined to the owner's storage, by range</td></tr>
+<tr><td><code>relay</code> <span class="tag ok">new</span></td><td>A small service of its own: accepts sites' connections and browsers' requests, and passes one to the other. No database. Its own image; hq's relay is in hq's compose set, reached through <code>hq-web</code> (D16)</td></tr>
+<tr><td><code>ui</code> / <code>hq</code> pages</td><td>The renderer registry and renderers (board 4); the frame's Download for every kind</td></tr></table></div>
+
+<script>
+window.SRC = {
+seq: `sequenceDiagram
+  autonumber
+  participant B as browser (hq.example.com page)
+  participant H as hq
+  participant S as site office-server
+  participant R as relay-2 (files-2.example.com)
+  Note over S,R: the site dialled out to relay-2 earlier and keeps the line open
+  B->>H: open project:alpha / reports/q3.pdf
+  H->>H: access check, find home site
+  H->>S: about this file? (control channel)
+  S-->>H: size, modified, version, looks like PDF
+  H->>H: kind = pdf, sign ticket, record who opened
+  H-->>B: kind, size, link files-2.example.com/t/ticket
+  B->>R: GET link (range)
+  R->>S: request + ticket, down the site's line
+  S->>S: verify ticket, confine path, check version
+  S-->>R: bytes (range)
+  R-->>B: bytes + sandbox headers
+  B->>B: renderer draws`
+}
+</script>
+<script type="module" src="/files/shell.js?v=1"></script>
+</body></html>
