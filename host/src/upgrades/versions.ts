@@ -115,6 +115,6 @@ export async function publishedVersions(ctx: Context, parts: readonly PublishedP
 
 /** The images an upgrade of each target switches: HQ's comes with its default site. */
 export const PARTS_OF = {
-  hq: ['hq-server', 'hq-web', 'site-server', 'agent'],
+  hq: ['hq-server', 'hq-web', 'relay', 'site-server', 'agent'],
   site: ['site-server', 'agent'],
 } as const satisfies Record<'hq' | 'site', readonly PublishedPart[]>

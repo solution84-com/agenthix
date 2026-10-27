@@ -1,11 +1,11 @@
 /**
  * What the screens show of hq, asked over the link (core's hqFacts.ts): the organisation's name, the address people
- * open HQ at, and each site's runs. Words on a screen only — each answer is parsed field by field, and nothing here
+ * open HQ at, each site's runs and hq's own relay. Words on a screen only — each answer is parsed field by field, and nothing here
  * decides anything. Kept for a while, so a screen read is not a call to hq each time; while one is out, the screen
  * gets the last answer, and waits briefly only for the first. An hq that does not answer, or is older than these
  * methods, leaves them out.
  */
-import { parseHqAbout, parseSiteLoads, type HqAboutParsed, type SiteLoad } from '@agenthix/core'
+import { parseHqAbout, parseHqRelay, parseSiteLoads, type HqAboutParsed, type HqRelay, type SiteLoad } from '@agenthix/core'
 import type { HqLink } from './link'
 
 const ABOUT_FRESH_MS = 5 * 60_000
@@ -47,10 +47,12 @@ class Kept<T> {
 export class HqFacts {
   private readonly about: Kept<HqAboutParsed>
   private readonly loads: Kept<SiteLoad[]>
+  private readonly relay: Kept<HqRelay | null>
 
   constructor(private readonly link: HqLink, now: () => number = Date.now, firstWaitMs = FIRST_WAIT_MS) {
     this.about = new Kept(async () => parseHqAbout(await link.call('hq.about', {})), ABOUT_FRESH_MS, now, firstWaitMs)
     this.loads = new Kept(async () => parseSiteLoads(await link.call('site.loads', {})), LOADS_FRESH_MS, now, firstWaitMs)
+    this.relay = new Kept(async () => parseHqRelay(await link.call('relay.facts', {})), LOADS_FRESH_MS, now, firstWaitMs)
   }
 
   /** The organisation's name and HQ's address; the last answer while hq does not answer. */
@@ -61,5 +63,10 @@ export class HqFacts {
   /** Each site's runs; none while hq does not answer, since a count from before is not today's. */
   async siteLoads(): Promise<SiteLoad[] | null> {
     return this.link.state === 'connected' ? this.loads.read() : null
+  }
+
+  /** hq's own relay; null while hq does not answer, has none, or is older than the method. */
+  async hqRelay(): Promise<HqRelay | null> {
+    return this.link.state === 'connected' ? this.relay.read() : null
   }
 }

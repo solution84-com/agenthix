@@ -10,7 +10,7 @@ import { NothingPublished, isFixOf, publishedVersions } from '../versions'
 import '../operations'
 
 let m: FakeMachine
-const HQ_PARTS = ['hq-server', 'hq-web', 'site-server', 'agent']
+const HQ_PARTS = ['hq-server', 'hq-web', 'relay', 'site-server', 'agent']
 
 /** Every image of HQ and its site published at these versions, and the host service at `host`. */
 function publish(versions: string[], host: string[] = versions): void {

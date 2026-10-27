@@ -65,8 +65,8 @@ export type Installed = {
   site: { settings: SiteSettings & { installedAt: string }; file: string; project: string } | null
 }
 
-/** hq-db, hq-server and hq-web; site-db and site. */
-const HQ_SERVICES = 3
+/** hq-db, hq-server, relay and hq-web; site-db and site. */
+const HQ_SERVICES = 4
 const SITE_SERVICES = 2
 
 export async function machineStatus(

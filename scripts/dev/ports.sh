@@ -17,6 +17,7 @@ PORTS_FILE="$ROOT/core/src/ports/ports.ts" node --input-type=module -e '
     HQ_DB_PORT: SERVICE_PORTS.hq.database,
     SITE_SERVER_PORT: SERVICE_PORTS.site.server,
     SITE_DB_PORT: SERVICE_PORTS.site.database,
+    RELAY_SERVER_PORT: SERVICE_PORTS.relay.server,
     CONSOLE_WEB_PORT: SERVICE_PORTS.console.web,
     CONSOLE_SERVER_PORT: SERVICE_PORTS.console.server,
     TAILSCALE_HQ_WEB_PORT: DEV_TAILSCALE_PORTS.hqWeb,

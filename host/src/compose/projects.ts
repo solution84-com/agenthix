@@ -1,6 +1,6 @@
 /**
  * The compose projects the host service writes into its state folder and runs (host-management spec §6): hq
- * (hq-db, hq-server, hq-web) and its default site (site-db, site). Every stored name comes from the recorded
+ * (hq-db, hq-server, relay, hq-web) and its default site (site-db, site). Every stored name comes from the recorded
  * namespace; every image name from the branding module's `imageName`. Each image is the one install checked and
  * fetched (`images/images.ts`), fixed by its digest, and compose never fetches one itself (`pull_policy: never`).
  *
@@ -137,6 +137,7 @@ export function hqProject(
           SECRETS_MASTER_KEY: secrets.hqMasterKey,
           HQ_PAIRING_SECRET: secrets.pairingSecret,
           HQ_CONSOLE_PAIRING_SECRET: secrets.consolePairingSecret,
+          HQ_RELAY_SECRET: secrets.relaySecret,
           HQ_MACHINE_NAME: machineName,
           HQ_CONTROL_SOCKET,
           FILES_ORIGIN: hq.filesOrigin ?? '',
@@ -146,6 +147,32 @@ export function hqProject(
         volumes: ['storage:/hq-storage'],
         networks: ['internal'],
         depends_on: { 'hq-db': { condition: 'service_healthy' } },
+        restart: 'unless-stopped',
+        labels: labels(names, 'hq', installation, hq.version),
+      },
+      // hq's relay (adr-0153) carries the bytes of every file a browser opens: a site's, and hq's own uploads, which it
+      // reads from hq's storage volume mounted read-only. It dials hq-server on the private network, is reached by
+      // hq-web alone, and publishes nothing: hq-web sends it the tickets (on the files address, or under the bare
+      // prefix on HQ's own) and the line sites dial.
+      relay: {
+        image: image(hq, 'relay'),
+        pull_policy: 'never',
+        container_name: names.container('relay'),
+        environment: {
+          RELAY_HQ_ADDRESS: `http://hq-server:${SERVICE_PORTS.hq.server}`,
+          HQ_RELAY_SECRET: secrets.relaySecret,
+          HQ_URL: hq.address,
+          FILES_ORIGIN: hq.filesOrigin ?? '',
+          RELAY_PORT: String(SERVICE_PORTS.relay.server),
+          HQ_UPLOADS_ROOT: '/hq-storage',
+        },
+        volumes: ['storage:/hq-storage:ro'],
+        networks: ['internal'],
+        depends_on: ['hq-server'],
+        healthcheck: {
+          test: ['CMD', 'node', '-e', `fetch('http://127.0.0.1:${SERVICE_PORTS.relay.server}/health').then(r => process.exit(r.status === 200 ? 0 : 1), () => process.exit(1))`],
+          interval: '10s', timeout: '5s', retries: 5, start_period: '10s',
+        },
         restart: 'unless-stopped',
         labels: labels(names, 'hq', installation, hq.version),
       },

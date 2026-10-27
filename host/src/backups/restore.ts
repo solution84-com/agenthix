@@ -192,14 +192,14 @@ async function apply(
 async function images(ctx: Context, m: Manifest): Promise<{ hq: StoredHq; site: StoredSite; console: StoredConsole | null }> {
   const hq = m.hq!
   const { pins } = await checkImages(ctx, [
-    { part: 'hq-server', version: hq.version }, { part: 'hq-web', version: hq.version },
+    { part: 'hq-server', version: hq.version }, { part: 'hq-web', version: hq.version }, { part: 'relay', version: hq.version },
     { part: 'site-server', version: m.site.version }, { part: 'agent', version: m.site.version },
     ...(m.console ? [{ part: 'console' as const, version: m.console.version }] : []),
   ])
-  await fetchImages(ctx, [POSTGRES_IMAGE, pins['hq-server']!, pins['hq-web']!, pins['site-server']!, pins.agent!, ...(m.console ? [pins.console!] : [])])
+  await fetchImages(ctx, [POSTGRES_IMAGE, pins['hq-server']!, pins['hq-web']!, pins.relay!, pins['site-server']!, pins.agent!, ...(m.console ? [pins.console!] : [])])
   const fleetConsole = m.console ? { ...m.console, images: { console: pins.console } } : null
   return {
-    hq: { ...hq, images: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'] } },
+    hq: { ...hq, images: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'], relay: pins.relay } },
     // A site is named after the machine it runs on, so a restore onto another machine renames it.
     site: { ...m.site, name: ctx.machine.name, images: { 'site-server': pins['site-server'], agent: pins.agent } },
     console: fleetConsole,

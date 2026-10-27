@@ -13,15 +13,19 @@
 #                        has none (site/scripts/dev/ensure-secrets-key.sh). Every
 #                        other key is left as it is.
 #
+# hq's relay (adr-0153) shares a second secret with hq, HQ_RELAY_SECRET, in hq/.env.server and
+# relay/.env.server, made and kept the same way.
+#
 # Idempotent: a second run changes nothing. No secret is ever printed.
 # Called by hq/scripts/dev/start.sh and by the "[dev:site] Start" task.
 #
-# Overrides, for testing against copies: HQ_ENV_FILE, SITE_ENV_FILE.
+# Overrides, for testing against copies: HQ_ENV_FILE, SITE_ENV_FILE, RELAY_ENV_FILE.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HQ_ENV_FILE="${HQ_ENV_FILE:-$ROOT/hq/.env.server}"
 SITE_ENV_FILE="${SITE_ENV_FILE:-$ROOT/site/.env.server}"
+RELAY_ENV_FILE="${RELAY_ENV_FILE:-$ROOT/relay/.env.server}"
 eval "$(bash "$ROOT/scripts/dev/ports.sh")"
 DEV_HQ_URL="http://localhost:$HQ_SERVER_PORT"
 MIN_LENGTH=32
@@ -101,4 +105,32 @@ fi
 # not start without one.
 SITE_ENV_FILE="$SITE_ENV_FILE" bash "$ROOT/site/scripts/dev/ensure-secrets-key.sh"
 
-echo "pair: hq and its site share HQ_PAIRING_SECRET."
+# hq's relay: one secret, the same in hq's file and the relay's. The relay's file is made when it is missing, as
+# long as the relay's folder is there.
+RELAY_SECRET="$(env_value HQ_RELAY_SECRET "$HQ_ENV_FILE")"
+if [ -z "$RELAY_SECRET" ]; then
+  RELAY_SECRET="$(openssl rand -hex 32)"
+  set_env_value HQ_RELAY_SECRET RELAY_SECRET "$HQ_ENV_FILE"
+  echo "pair: generated HQ_RELAY_SECRET in hq/.env.server"
+elif [ "${#RELAY_SECRET}" -lt "$MIN_LENGTH" ]; then
+  echo "pair: HQ_RELAY_SECRET in $HQ_ENV_FILE is shorter than $MIN_LENGTH characters." >&2
+  echo "      Replace it with a value from: openssl rand -hex 32   (or delete the line and run this again)" >&2
+  exit 1
+fi
+if [ -d "$(dirname "$RELAY_ENV_FILE")" ]; then
+  [ -f "$RELAY_ENV_FILE" ] || { : > "$RELAY_ENV_FILE"; chmod 600 "$RELAY_ENV_FILE"; }
+  if [ "$(env_value HQ_RELAY_SECRET "$RELAY_ENV_FILE")" != "$RELAY_SECRET" ]; then
+    set_env_value HQ_RELAY_SECRET RELAY_SECRET "$RELAY_ENV_FILE"
+    echo "pair: wrote HQ_RELAY_SECRET to relay/.env.server"
+  fi
+fi
+
+# In dev the site dials hq-server, which has no /relay-line: hq is told to hand hq's relay's line to sites as an
+# absolute address. Left alone when already set.
+if [ -z "$(env_value HQ_RELAY_LINE_URL "$HQ_ENV_FILE")" ]; then
+  RELAY_LINE_URL="ws://localhost:$RELAY_SERVER_PORT/relay-line"
+  set_env_value HQ_RELAY_LINE_URL RELAY_LINE_URL "$HQ_ENV_FILE"
+  echo "pair: set HQ_RELAY_LINE_URL=$RELAY_LINE_URL in hq/.env.server"
+fi
+
+echo "pair: hq and its site share HQ_PAIRING_SECRET; hq and its relay share HQ_RELAY_SECRET."

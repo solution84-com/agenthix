@@ -67,7 +67,7 @@ export function fleetRoutes(ctx: ConsoleContext): Router {
   r.get('/fleet', async (_req, res) => {
     // Figures missing or old are asked for now and shown at the next read; the answer is not waited for.
     ctx.figures.refreshStale(actorOf(res))
-    const [hq, loads] = await Promise.all([ctx.hqFacts.hq(), ctx.hqFacts.siteLoads()])
+    const [hq, loads, hqRelay] = await Promise.all([ctx.hqFacts.hq(), ctx.hqFacts.siteLoads(), ctx.hqFacts.hqRelay()])
     res.json({
       console: {
         machineName: ctx.machineName,
@@ -77,6 +77,8 @@ export function fleetRoutes(ctx: ConsoleContext): Router {
       },
       // The organisation's name and HQ's address, for the words on the screen; null when hq has not said.
       hq,
+      // hq's own relay, as it last reported; null when hq has none or does not say.
+      hqRelay,
       hosts: ctx.hosts.list().map(h => hostView(h, loads)),
       // Disconnected here, and listed until a fleet admin removes them from the list (spec §6).
       disconnected: ctx.hosts.disconnected.list(),

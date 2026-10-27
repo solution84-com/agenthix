@@ -1,19 +1,20 @@
 // Vitest global setup for the cross-app tier: provisions both test databases,
-// resets them, seeds the shared fixtures, boots both real apps, and waits for
-// both to report ready. Runs once for the whole suite run (fileParallelism is
+// resets them, seeds the shared fixtures, boots both real apps and hq's relay,
+// and waits for all three to report ready. Runs once for the whole suite run (fileParallelism is
 // off and suites run in filename order — see vitest.config.ts).
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { rmSync, symlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   HQ_ROOT,
   HQ_TEST_DATABASE_URL,
+  RELAY_ROOT,
   SITE_ROOT,
   SITE_ROOT_DIR,
   SITE_TEST_DATABASE_URL,
 } from './harness/env'
 import { hqDb, siteDb, truncateAll, seedBase } from './harness/db'
-import { startHq, startSite, stopAll, waitForHq, waitForSite, markAsProcessOwner } from './harness/apps'
+import { startHq, startRelay, startSite, stopAll, waitForHq, waitForRelay, waitForSite, markAsProcessOwner } from './harness/apps'
 import { acquireRunLock, releaseRunLock } from './harness/runLock'
 
 function runWrapperNoop(cwd: string, env: NodeJS.ProcessEnv): Promise<void> {
@@ -37,6 +38,12 @@ function provisionEnv(testDatabaseUrl: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env, DATABASE_URL: testDatabaseUrl }
   delete env.TEST_DB_NAME
   return env
+}
+
+// hq's relay runs from its build, as scripts/dev/relay.sh runs it: built here, so a run never uses a stale one.
+function buildRelay(): void {
+  const r = spawnSync('npm', ['run', 'build'], { cwd: RELAY_ROOT, encoding: 'utf8', timeout: 120_000 })
+  if (r.status !== 0) throw new Error(`hq's relay did not build: ${r.stderr || r.stdout}`)
 }
 
 async function cleanup(): Promise<void> {
@@ -96,20 +103,21 @@ export default async function globalSetup() {
   // made by hand on the machine — not anything reachable from this repo, so
   // not portable to another machine or CI.
   symlinkSync(join(HQ_ROOT, 'assets'), join(SITE_ROOT_DIR, 'assets'))
+  buildRelay()
 
-  // 5. Boot both apps and wait for readiness. Promise.allSettled (not
+  // 5. Boot both apps and hq's relay, and wait for readiness. Promise.allSettled (not
   // Promise.all) throughout: Promise.all resolves/rejects as soon as the
   // FIRST promise settles while the other keeps running, and if that other
   // one later rejects — after the catch block below has already torn down
   // the temp dir — it fires as an unhandled rejection against resources that
   // no longer exist. allSettled always waits for both, then this surfaces
   // the first real failure (hq before site) itself.
-  const startOutcomes = await Promise.allSettled([startHq(), startSite()])
+  const startOutcomes = await Promise.allSettled([startHq(), startSite(), startRelay()])
   const startFailure = startOutcomes.find((r): r is PromiseRejectedResult => r.status === 'rejected')
 
   let waitFailure: PromiseRejectedResult | undefined
   if (!startFailure) {
-    const waitOutcomes = await Promise.allSettled([waitForHq(), waitForSite()])
+    const waitOutcomes = await Promise.allSettled([waitForHq(), waitForSite(), waitForRelay()])
     waitFailure = waitOutcomes.find((r): r is PromiseRejectedResult => r.status === 'rejected')
   }
 

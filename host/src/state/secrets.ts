@@ -15,9 +15,11 @@ export type InstallSecrets = {
   siteMasterKey: string
   /** One value set in hq-server's and its Fleet Console's environment (spec §4 C8). */
   consolePairingSecret: string
+  /** One value set in hq-server's and hq's relay's environment (adr-0153); at least 32 characters. */
+  relaySecret: string
 }
 
-const KEYS: (keyof InstallSecrets)[] = ['hqDbPassword', 'jwtSecret', 'hqMasterKey', 'pairingSecret', 'siteDbPassword', 'siteMasterKey', 'consolePairingSecret']
+const KEYS: (keyof InstallSecrets)[] = ['hqDbPassword', 'jwtSecret', 'hqMasterKey', 'pairingSecret', 'siteDbPassword', 'siteMasterKey', 'consolePairingSecret', 'relaySecret']
 
 const hex = (n: number) => crypto.randomBytes(n).toString('hex')
 const base64 = (n: number) => crypto.randomBytes(n).toString('base64')
@@ -31,6 +33,7 @@ function fresh(): InstallSecrets {
     siteDbPassword: hex(24),
     siteMasterKey: base64(32),
     consolePairingSecret: hex(32),
+    relaySecret: hex(32),
   }
 }
 

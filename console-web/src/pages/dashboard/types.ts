@@ -1,4 +1,4 @@
-import type { HostFigures, ScheduledChangeNotice } from '@agenthix/core'
+import type { HostFigures, HqRelay, ScheduledChangeNotice } from '@agenthix/core'
 import type { HqFacts } from '../../api/session'
 
 /** What `GET /api/fleet` answers (console/src/http/routes/fleet.ts). */
@@ -50,6 +50,8 @@ export type FleetResponse = {
   }
   /** What HQ says of itself, for the words on the screen; null when it has not said. */
   hq: HqFacts | null
+  /** HQ's own relay as it last reported; null when HQ has none or has not said. */
+  hqRelay?: HqRelay | null
   hosts: FleetHost[]
   disconnected: DisconnectedMachine[]
 }

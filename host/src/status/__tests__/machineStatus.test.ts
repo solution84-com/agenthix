@@ -18,7 +18,7 @@ const ok = (stdout = ''): RunResult => ({ code: 0, stdout, stderr: '' })
 const run: DockerRunner = async (args, options) => {
   calls.push(args)
   if (args[0] === 'compose' && args.includes('ps')) {
-    const services = args[args.indexOf('-p') + 1].endsWith('-hq') ? ['hq-db', 'hq-server', 'hq-web'] : ['site-db', 'site']
+    const services = args[args.indexOf('-p') + 1].endsWith('-hq') ? ['hq-db', 'hq-server', 'relay', 'hq-web'] : ['site-db', 'site']
     return ok(services.map(s => JSON.stringify({ Service: s, State: 'running', Health: '' })).join('\n'))
   }
   if (args[0] === 'exec' && args[2] === 'ns-hq-server') {

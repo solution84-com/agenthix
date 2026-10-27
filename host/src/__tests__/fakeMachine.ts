@@ -68,7 +68,7 @@ export type FakeMachine = {
   cleanup: () => void
 }
 
-const SERVICES: Record<string, string[]> = { hq: ['hq-db', 'hq-server', 'hq-web'], site: ['site-db', 'site'] }
+const SERVICES: Record<string, string[]> = { hq: ['hq-db', 'hq-server', 'relay', 'hq-web'], site: ['site-db', 'site'] }
 
 export function fakeMachine(ns = 'agenthix'): FakeMachine {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'host-machine-'))

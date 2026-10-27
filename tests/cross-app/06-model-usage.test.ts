@@ -10,7 +10,8 @@
 // running site's outbox folder, and the site delivers it to hq when it starts again.
 //
 // Runs after 05-relay, on the pair 04-pairing left running.
-import { readdir } from 'node:fs/promises'
+import { access, readdir } from 'node:fs/promises'
+import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { HQ_URL } from './harness/env'
 import { hqDb, siteDb } from './harness/db'
@@ -26,6 +27,7 @@ let providerId: string
 let projectId: string
 let agentId: string
 let runId: string
+let callId: string
 
 beforeAll(async () => {
   vendor = await FakeVendor.start()
@@ -121,7 +123,11 @@ describe('a run’s call through the relay is written to the ledger @SC-1220', (
     expect(JSON.stringify(vendor.seen)).not.toContain(token)
 
     await relay.reportsKept(1)
-    expect(await reportsWaiting()).toHaveLength(1)
+    // The folder is also the running site's outbox: a run's own container may have left a report there, so this
+    // call's report is found by its id, not by counting.
+    expect(relay.keptCallIds).toHaveLength(1)
+    callId = relay.keptCallIds[0]
+    await expect(access(join(USAGE_REPORTS_DIR, `${callId}.json`))).resolves.toBeUndefined()
   })
 
   it('the site delivers the report to hq, and hq writes one CALL row with the vendor’s counts, the run, its project and the profile', async () => {
@@ -131,7 +137,7 @@ describe('a run’s call through the relay is written to the ledger @SC-1220', (
     await waitForSite()
 
     const report = await until(
-      async () => hqDb.relayUsageReport.findFirst({ where: { runId, ledgeredAt: { not: null } } }),
+      async () => hqDb.relayUsageReport.findFirst({ where: { callId, ledgeredAt: { not: null } } }),
       'the relay usage report kept and on the ledger in hq',
       90_000,
     )
@@ -139,12 +145,12 @@ describe('a run’s call through the relay is written to the ledger @SC-1220', (
     await until(async () => ((await reportsWaiting()).length === 0 ? true : null), 'the site to drop the report hq acknowledged', 30_000)
 
     // Where a container runtime is present the run's own harness may also have called through the relay: count this call.
-    const entries = await hqDb.usageEntry.findMany({ where: { runId, callId: report.callId } })
+    const entries = await hqDb.usageEntry.findMany({ where: { runId, callId } })
     expect(entries).toHaveLength(1)
     const cached = FAKE_USAGE.prompt_tokens_details.cached_tokens
     const costing = await hqDb.runCosting.findUniqueOrThrow({ where: { runId } })
     expect(entries[0]).toMatchObject({
-      kind: 'CALL', callId: report.callId, purpose: 'worker',
+      kind: 'CALL', callId, purpose: 'worker',
       providerId, providerName: 'Stand-in vendor', model: FAKE_MODEL,
       inputTokens: FAKE_USAGE.prompt_tokens - cached, outputTokens: FAKE_USAGE.completion_tokens,
       cacheReadTokens: cached, cacheWriteTokens: 0,

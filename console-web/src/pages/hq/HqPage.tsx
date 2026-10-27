@@ -13,6 +13,7 @@ import type { FleetHost, FleetResponse } from '../dashboard/types'
 import { possessive, spanOf, whenIs } from '../dashboard/words'
 import { BackupsCard, HealthCard, ProtectionsCard, SystemCard, VersionCard } from '../site/SiteCards'
 import { EraseModal } from './EraseModal'
+import { RelayCard } from './RelayCard'
 import { DependsCard, HqSiteLine, ReachCard } from './HqCards'
 import { commandWords, graceWords, hqCondition, hqHealth, localChange, newest, type Asked, type HqAction } from './hqWords'
 import { useHostCommand } from './useHostCommand'
@@ -143,6 +144,7 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
 
       <FactGroup tag="HQ" aside="what people sign in to">
         <ReachCard host={host} address={address} now={now} />
+        {fleet.hqRelay && <RelayCard relay={fleet.hqRelay} />}
         <DependsCard hosts={fleet.hosts} />
         <VersionCard host={host} target="hq" now={now} />
         <BackupsCard host={host} now={now} backupsTo={`${HQ_PATH}/backups`} next />

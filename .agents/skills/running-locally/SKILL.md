@@ -14,7 +14,7 @@ cd site && npm install && npm run db:deploy && npm run dev   # server 4201
 ```
 
 In VS Code, **Run Task → `[dev] Start All`** does all of it. `hq/scripts/dev/start.sh` starts hq with extra
-checks (the agent container image) and the network modes below.
+checks (the agent container image) and the network modes below, and starts hq's relay beside it.
 
 hq needs Node.js 24.14.1 or later. Its Wasp CLI is pinned as a dev dependency (`@wasp.sh/wasp-cli`), so Wasp
 runs as `npx wasp` from `hq/`; a global `wasp` of another version is never used. On a fresh clone, run
@@ -45,6 +45,33 @@ The site that comes with hq connects by configuration, not registration
 `HQ_PAIRING_SECRET`, in both `hq/.env.server` and `site/.env.server`, written by `scripts/dev/pair.sh` at the repository root (which
 `[dev] Start All` and `hq/scripts/dev/start.sh` run). hq creates a default organisation and the default site at
 first boot, so there is nothing to register or approve. `npm run site -- status` from `site/` shows the link.
+
+## hq's relay
+
+The relay ([adr-0153](../../../docs/adr/adr-0153-relays-carry-every-file-byte-and-hq-only-signs-tickets.md)) carries the
+bytes of every file a browser opens: a site's, from the site that holds it, and hq's own uploads (task attachments and
+pictures), which it reads from hq's storage folder. In development it is a process on port 4401 beside
+hq, started by `hq/scripts/dev/start.sh` (so by `[dev] Start All`) through `scripts/dev/relay.sh`, which builds it and
+runs it on this machine only; it stops when hq's script ends. To run it alone: `bash scripts/dev/relay.sh`. If its
+port is taken it says so and hq starts without it.
+
+It shares a second secret with hq, `HQ_RELAY_SECRET` (at least 32 characters), in `hq/.env.server` and
+`relay/.env.server`, made and kept equal by `scripts/dev/pair.sh`; it dials hq-server at `localhost:4101` and reads
+hq's address (and the files address, when `hq/.env.server` has one) from `hq/.env.server`. hq's dev server sends it a
+ticket's path (`/t/…`) and the line sites dial (`/relay-line`, a WebSocket), and keeps the `Host` header when it
+does: the relay answers a `/t/…` ticket only on the files address, which is `files.localhost:4100` while hq is on
+`localhost`. The same path on `localhost:4100` is refused by design. On `localhost:4100` itself a ticket is opened
+under the bare prefix, `/relay/t/…`, which the dev server also sends to the relay, and every answer there is a
+download.
+
+The relay reads hq's uploads from hq's storage folder (`HQ_UPLOADS_ROOT`): `scripts/dev/relay.sh` takes it from
+`HQ_STORAGE_ROOT` in the environment or `hq/.env.server`, and otherwise uses `hq/storage`, hq's own fallback. If hq
+runs with another `HQ_STORAGE_ROOT` than the relay sees, pictures and attachments do not open. In the installed
+compose set the same volume is mounted read-only into the relay.
+
+In development the site dials hq-server (`localhost:4101`), which has no `/relay-line`, so `pair.sh` also writes
+`HQ_RELAY_LINE_URL=ws://localhost:4401/relay-line` into `hq/.env.server`: hq gives that address to sites as hq's relay's
+line, in place of the path. It is for development only. An invalid value is ignored, with a warning in hq's log at start. Without the relay, files cannot be opened; everything else works.
 
 ## On a machine that also has an install
 

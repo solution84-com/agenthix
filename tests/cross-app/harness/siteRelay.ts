@@ -26,10 +26,11 @@ export const USAGE_REPORTS_DIR = join(SITE_ROOT_DIR, 'usage-reports')
 type Descriptor = Parameters<typeof access.siteCredentialOf>[0]
 
 export class InProcessRelay {
-  private constructor(private readonly server: Server, readonly baseUrl: string, private readonly kept: Promise<void>[]) {}
+  private constructor(private readonly server: Server, readonly baseUrl: string, private readonly kept: Promise<void>[], readonly keptCallIds: string[]) {}
 
   static async start(): Promise<InProcessRelay> {
     const kept: Promise<void>[] = []
+    const keptCallIds: string[] = []
     // Never sends: the running site is the one that delivers, from the same folder.
     const outbox = new outboxModule.UsageOutbox({
       dir: USAGE_REPORTS_DIR,
@@ -43,13 +44,14 @@ export class InProcessRelay {
       // No proxy from the developer's shell: the stand-in vendor is on this machine.
       env: {},
       report: report => {
+        keptCallIds.push(report.callId)
         kept.push(outbox.add(report).then(() => outbox.stop()))
       },
     })
     const server = createServer((req, res) => { void handler(req, res) })
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
     const { port } = server.address() as AddressInfo
-    return new InProcessRelay(server, `http://127.0.0.1:${port}`, kept)
+    return new InProcessRelay(server, `http://127.0.0.1:${port}`, kept, keptCallIds)
   }
 
   /** A turn of `runId` with the provider hq described, as a container's start points one; returns its token. */

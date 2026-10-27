@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Starts one image and passes only if it starts and answers, so an image that cannot start is never published:
 #   scripts/images/start-test.sh <part> <image>
-# <part> is one of the parts the release publishes: host, console, hq-server, hq-web, site-server, agent, executor.
+# <part> is one of the parts the release publishes: host, console, hq-server, hq-web, relay, site-server, agent, executor.
 # An image carries no version: the host service and the Fleet Console are given theirs when they run, so here each
 # need only answer.
 #
@@ -9,8 +9,10 @@
 #   host         its status, through its CLI on the owner socket (`status`), with a state folder of its own
 #   console      its status, from inside its container, where it listens
 #   hq-server    its health, against a throwaway Postgres
-#   site-server  its health, against a throwaway Postgres
+#   site-server  its health, against a throwaway Postgres, and the git and ripgrep it runs
 #   hq-web       its page
+#   relay        it refuses to start without its secret and says so, and with it answers its health path and a
+#                browser's request (a 404 for a path that is no ticket, on any host)
 #   agent        its harnesses' versions, run hardened (read-only root, writable /tmp and /home/agent, no capabilities),
 #                the launcher, and its tools-stage-key label
 #   executor     as a step runs it (read-only root, no network, no capabilities): uid 1001, gh and push-bundle
@@ -25,8 +27,8 @@ cd "$(dirname "$0")/../.." || exit 2
 PART="${1:-}"
 IMAGE="${2:-}"
 case "$PART" in
-  host | console | hq-server | hq-web | site-server | agent | executor) ;;
-  *) echo "Usage: $0 <host|console|hq-server|hq-web|site-server|agent|executor> <image>" >&2; exit 2 ;;
+  host | console | hq-server | hq-web | relay | site-server | agent | executor) ;;
+  *) echo "Usage: $0 <host|console|hq-server|hq-web|relay|site-server|agent|executor> <image>" >&2; exit 2 ;;
 esac
 [ -n "$IMAGE" ] || { echo "Usage: $0 $PART <image>" >&2; exit 2; }
 
@@ -132,13 +134,32 @@ case "$PART" in
       -e SITE_ROOT=/site-data -e SECRETS_MASTER_KEY="$(secret)" "$IMAGE"
     site_healthy() { fetch_inside "$RUN" http://127.0.0.1:4201/health | grep -qF '"status":"ok"'; }
     wait_for "$RUN" "it answered its health" site_healthy
-    say "passes: migrated its database and answers its health"
+    # The server runs git itself (a workspace's status, repository work), and ripgrep for knowledge search.
+    docker exec "$RUN" git --version >/dev/null 2>&1 || fail "it has no git"
+    docker exec "$RUN" rg --version >/dev/null 2>&1 || fail "it has no ripgrep"
+    say "passes: migrated its database, answers its health, and has git and ripgrep"
     ;;
   hq-web)
     start "$RUN" -e HQ_URL=http://localhost:4100 "$IMAGE"
     web_page() { docker exec "$RUN" wget -qO- http://127.0.0.1:4100/ | grep -qE '<script[^>]+src="/[^"]+\.js"'; }
     wait_for "$RUN" "it served its page" web_page
     say "passes: serves the browser app's page"
+    ;;
+  relay)
+    # Without its secret it stops at once and names what is missing (and never prints a secret it was given).
+    out="$(docker run --rm --name "$RUN-refuses" -e RELAY_HQ_ADDRESS=http://127.0.0.1:9 "$IMAGE" 2>&1)" \
+      && fail "it started without HQ_RELAY_SECRET"
+    printf '%s' "$out" | grep -qF 'HQ_RELAY_SECRET is not set' || fail "it did not say HQ_RELAY_SECRET is missing: $out"
+    # With it, on an address of its own loopback where hq does not answer: it listens and keeps dialling, and answers
+    # its health path (the one hq's compose set checks) with ok, then refuses a path no ticket is.
+    relay_secret="$(secret | tr -dc 'A-Za-z0-9')"
+    start "$RUN" -e RELAY_HQ_ADDRESS=http://127.0.0.1:9 -e HQ_RELAY_SECRET="$relay_secret" -e HQ_URL=http://localhost:4100 "$IMAGE"
+    relay_healthy() { fetch_inside "$RUN" http://127.0.0.1:4401/health | grep -qx 'ok'; }
+    wait_for "$RUN" "it answered its health" relay_healthy
+    relay_answers() { docker exec "$RUN" node -e "fetch('http://127.0.0.1:4401/t/x').then(async r => process.exit(r.status === 404 && (await r.text()).includes('Not found') ? 0 : 1), () => process.exit(1))"; }
+    wait_for "$RUN" "it answered a browser's request" relay_answers
+    docker logs "$RUN" 2>&1 | grep -qF "$relay_secret" && fail "it printed its secret"
+    say "passes: refuses to start without its secret, answers its health, and answers a browser's request"
     ;;
   agent)
     # As the site runs it: under Docker's init, on no network, hardened (read-only root, a writable /tmp and

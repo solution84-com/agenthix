@@ -72,7 +72,7 @@ describe('an upgrade of HQ and its site @SC-835', () => {
       'Checking the images are signed by Agenthix', 'Pulling HQ 0.2.1 and its site', 'Stopping HQ and its site',
       'Taking a sealed backup', 'Starting 0.2.1', 'Health check',
     ])
-    expect(m.checked.map(c => c[0])).toEqual(['hq-server', 'hq-web', 'site-server', 'agent'].map(p => tagged(p, '0.2.1')))
+    expect(m.checked.map(c => c[0])).toEqual(['hq-server', 'hq-web', 'relay', 'site-server', 'agent'].map(p => tagged(p, '0.2.1')))
     const order = actions()
     expect(order.indexOf('stop')).toBeGreaterThan(order.lastIndexOf('pull'))
     const here = installed(m.ctx)
