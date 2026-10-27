@@ -1,0 +1,45 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /OpenAction 6 0 R /Names << /JavaScript << /Names [(open) 6 0 R] >> >> /AcroForm << /Fields [8 0 R] >> >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> /AA << /O 6 0 R >> /Annots [7 0 R 8 0 R] >>
+endobj
+4 0 obj
+<< /Length 61 >>
+stream
+BT /F1 24 Tf 72 720 Td (A PDF that carries JavaScript.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /S /JavaScript /JS (app.alert('pdf script ran'); try { top.location = 'https://example.invalid/ran'; } catch (e) {} this.submitForm('https://example.invalid/submit');) >>
+endobj
+7 0 obj
+<< /Type /Annot /Subtype /Link /Rect [72 700 400 740] /Border [0 0 0] /A 6 0 R >>
+endobj
+8 0 obj
+<< /Type /Annot /Subtype /Widget /FT /Tx /T (field) /Rect [72 600 300 630] /P 3 0 R /AA << /K 6 0 R /F 6 0 R >> >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000167 00000 n 
+0000000224 00000 n 
+0000000391 00000 n 
+0000000502 00000 n 
+0000000572 00000 n 
+0000000761 00000 n 
+0000000858 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R >>
+startxref
+988
+%%EOF
