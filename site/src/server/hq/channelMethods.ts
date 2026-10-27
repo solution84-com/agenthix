@@ -1,10 +1,13 @@
 import { prisma } from '#db'
 import {
   CLAUDE_LOGIN_METHODS,
+  FILE_ABOUT_METHOD,
+  GIT_STATUS_METHOD,
   LOCATION_FILE_METHODS,
   MEMBERSHIP_METHODS,
   PACKAGE_METHODS,
   PREVIEW_METHODS,
+  RELAY_ASSIGN_METHOD,
   REPO_WORK_METHODS,
   RUNTIME_METHODS,
   SITE_DATA_METHODS,
@@ -21,6 +24,7 @@ import {
 import * as workspaceRows from '../storage/workspaceRows'
 import * as locationFiles from '../storage/locationFileMethods'
 import { listArtefacts, listKnowledge } from '../storage/ownerFolderMethods'
+import { findFiles } from '../storage/findFiles'
 import {
   deleteKnowledge, editKnowledge, knowledgeVersions, restoreKnowledge, writeKnowledge,
 } from '../knowledge/changeMethods'
@@ -38,6 +42,9 @@ import { cancelLogin, finishLogin, startLogin } from '../login/claudeLogin'
 import { addressFollower } from './addressFollow'
 import * as executor from '../../executor/run'
 import { readWorkflowFiles } from '../../executor/readFiles'
+import { relayLines } from '../relay/relayLines'
+import { fileAbout } from '../files/fileAbout'
+import { gitStatus } from '../storage/gitStatusMethod'
 
 const startedAt = new Date()
 
@@ -78,6 +85,9 @@ export const channelMethods: ChannelHandlers = {
 
   // hq moves to a new address: the site follows once the address passes the move check (host-management spec §13).
   [SITE_HQ_ADDRESS_METHOD]: params => addressFollower.take(params),
+
+  // Which relay this site holds a line to, and the pass that admits it (adr-0153): `../relay/relayLines.ts`.
+  [RELAY_ASSIGN_METHOD]: params => relayLines.assign(params),
 
   // Workspace + RepoAttachment rows (plan 5c task 10) — thin wrappers over
   // workspaceRows.ts, which owns param validation and the actual queries.
@@ -149,6 +159,7 @@ export const channelMethods: ChannelHandlers = {
   // location and a path and no user id: hq checks entitlement before it asks,
   // and this site checks containment.
   [LOCATION_FILE_METHODS.listFiles]: (params) => locationFiles.listFiles(params),
+  [LOCATION_FILE_METHODS.findFiles]: (params) => findFiles(params),
   [LOCATION_FILE_METHODS.statFile]: (params) => locationFiles.statFile(params),
   [LOCATION_FILE_METHODS.seedFiles]: (params) => locationFiles.seedFiles(params),
   [LOCATION_FILE_METHODS.ensureDir]: (params) => locationFiles.ensureDir(params),
@@ -164,6 +175,8 @@ export const channelMethods: ChannelHandlers = {
   [LOCATION_FILE_METHODS.deleteKnowledge]: (params) => deleteKnowledge(params),
   [LOCATION_FILE_METHODS.restoreKnowledge]: (params) => restoreKnowledge(params),
   [LOCATION_FILE_METHODS.knowledgeVersions]: (params) => knowledgeVersions(params),
+  // What hq asks before it opens a file in any of this site's spaces: facts only, never bytes (site protocol 1.8).
+  [FILE_ABOUT_METHOD]: (params) => fileAbout(params),
 
   // Repository work on a location. hq owns the GitHub side and the token; this
   // site owns the disk and therefore the git. Neither method carries file
@@ -172,6 +185,7 @@ export const channelMethods: ChannelHandlers = {
   // the channel's default timeout.
   [REPO_WORK_METHODS.connect]: (params) => repoWork.repoConnect(params),
   [REPO_WORK_METHODS.state]: (params) => repoWork.repoState(params),
+  [GIT_STATUS_METHOD]: (params) => gitStatus(params),
 
   // A dev server somebody is watching. Both are control methods — a command,
   // a port, an id — because a preview's own traffic crosses the content

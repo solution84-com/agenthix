@@ -10,7 +10,9 @@ export class ContentStreamFailed extends Error {
 
 /**
  * One content stream as a Node Duplex, so callers use `pipeline()` against a
- * file or an HTTP response and get backpressure on writes for free.
+ * file or an HTTP response and get backpressure on writes for free. On a stream the opener gave a window (a relay
+ * does), `write` waits in the multiplexer for the opener's credit, so a piped file is read only as fast as the
+ * far reader takes it.
  *
  * The site serves streams rather than opening them: a handler reads hq's
  * request to its end and then writes its response, so both halves stay open

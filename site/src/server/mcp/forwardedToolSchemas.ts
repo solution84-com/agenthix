@@ -83,7 +83,13 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
       limit: z.number().optional().describe('Max tasks to return (default 50)'),
     },
   },
-  { name: 'get_task_details', schema: { taskId: z.string().describe('The task ID to retrieve') } },
+  {
+    name: 'get_task_details',
+    description:
+      "Get a task's details, its comments and its attachments. Each attachment has a reference " +
+      '(attachments/WAL-2/notes.md): to show a person the file, write that reference in your reply, as it is.',
+    schema: { taskId: z.string().describe('The task ID to retrieve') },
+  },
   { name: 'archive_task', schema: { taskId: z.string().describe('The task ID to archive') } },
   { name: 'delete_task', schema: { taskId: z.string().describe('The task ID to permanently delete') } },
   {
@@ -199,6 +205,9 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
   },
   {
     name: 'attach_file',
+    description:
+      'Attach a file to a task. Answers with its reference (attachments/WAL-2/notes.md): to show a person the file, ' +
+      'write that reference in your reply, as it is.',
     schema: {
       agentId: z.string().optional().describe('Deprecated — no longer used'),
       taskId: z.string().describe('The task to attach the file to'),
