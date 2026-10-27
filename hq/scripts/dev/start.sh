@@ -44,6 +44,9 @@
 #                   place; all other keys preserved.
 #                   HQ_PAIRING_SECRET is added once by ../scripts/dev/pair.sh if missing.
 #                   SECRETS_MASTER_KEY is generated once by ensure-secrets-key.sh if blank.
+#                   HQ_RELAY_SECRET is added the same way, and kept equal to relay/.env.server's.
+#
+# It also runs hq's relay (../scripts/dev/relay.sh) in the background, on its own port, for as long as hq runs.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -195,6 +198,15 @@ bash "$SCRIPT_DIR/ensure-secrets-key.sh"
 PAIR_SCRIPT="$PROJECT_DIR/../scripts/dev/pair.sh"
 if [ -f "$PAIR_SCRIPT" ]; then
   bash "$PAIR_SCRIPT"
+fi
+
+# hq's relay (adr-0153) runs beside the dev servers and stops with them. If its port is taken (it is already
+# running, say), it says so and hq starts without it.
+RELAY_SCRIPT="$REPO_ROOT/scripts/dev/relay.sh"
+if [ -f "$RELAY_SCRIPT" ] && [ -d "$REPO_ROOT/relay" ]; then
+  bash "$RELAY_SCRIPT" &
+  RELAY_PID=$!
+  trap 'kill "$RELAY_PID" 2>/dev/null || true' EXIT
 fi
 
 echo ""

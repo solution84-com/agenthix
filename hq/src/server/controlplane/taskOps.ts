@@ -22,6 +22,7 @@ import { confinedProjectId, reachesOwnSpace } from './runPerson'
 import { taskCommentsForAgent } from '../../agents/taskCommentsForRun'
 import { getTaskAttachmentDir } from '../hqStoragePaths'
 import { attachmentFileNameProblem } from '../../shared/attachmentFileName'
+import { attachmentReference } from '../../shared/taskReferences'
 import {
   listAgentTasks,
   listTasks,
@@ -114,9 +115,13 @@ export async function getTaskDetailsOp(ctx: CallerContext, args: { taskId: strin
   const task = await withDisplayReason(await getTask(args.taskId))
   if (!task) throw new ControlPlaneError('not_found', `Task ${args.taskId} not found`)
   const columns = sortedColumns(parseColumns(task.board?.columns))
+  const taskKey = `${task.project.key}-${task.number}`
+  const attachments = await prisma.taskAttachment.findMany({
+    where: { taskId: task.id }, orderBy: { createdAt: 'asc' }, select: { fileName: true, fileSizeBytes: true, label: true },
+  })
   const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null)
   return {
-    taskId: task.id, title: task.title, description: task.description,
+    taskId: task.id, taskKey, title: task.title, description: task.description,
     priority: task.priority, status: task.status, column: task.column ?? null,
     boardId: task.boardId, boardName: task.board?.name ?? null, boardKind: task.board?.kind ?? null,
     projectId: task.projectId, assignedAgentId: task.assignedAgentId,
@@ -133,6 +138,10 @@ export async function getTaskDetailsOp(ctx: CallerContext, args: { taskId: strin
     milestone: task.milestone ? { milestoneId: task.milestone.id, name: task.milestone.name, date: day(task.milestone.date) } : null,
     // Every comment, oldest first: a run is opened with only those new since its last (spec §9).
     comments: await taskCommentsForAgent(args.taskId),
+    // Each attachment's reference is what a reply writes to show the file to a person; there is no address to write.
+    attachments: attachments.map(a => ({
+      name: a.fileName, sizeBytes: a.fileSizeBytes, label: a.label, reference: attachmentReference(taskKey, a.fileName),
+    })),
     source: 'local',
   }
 }
@@ -184,23 +193,28 @@ export async function attachFileOp(ctx: CallerContext, args: AttachFileArgs) {
   // signed-in person could attach a file to any task in the org, private
   // projects included — which is why every task operation above now asks for
   // the same thing.
-  await loadTaskScoped(ctx, args.taskId, 'attach_file', 'work')
+  const task = await loadTaskScoped(ctx, args.taskId, 'attach_file', 'work')
 
   const nameProblem = attachmentFileNameProblem(args.filename)
   if (nameProblem) throw new ControlPlaneError('invalid', nameProblem)
 
   const uuid = randomUUID()
-  const dir = getTaskAttachmentDir(args.taskId, uuid)
+  const dir = getTaskAttachmentDir(task.id, uuid)
   await fs.mkdir(dir, { recursive: true })
   const filePath = nodePath.join(dir, args.filename)
   await fs.writeFile(filePath, args.content, 'utf-8')
   const attachment = await prisma.taskAttachment.create({
-    data: { taskId: args.taskId, uuid, fileName: args.filename, label: args.label ?? null },
+    data: { taskId: task.id, uuid, fileName: args.filename, label: args.label ?? null, fileSizeBytes: Buffer.byteLength(args.content, 'utf-8') },
   })
+  const named = await prisma.task.findUniqueOrThrow({ where: { id: task.id }, select: { number: true, project: { select: { key: true } } } })
 
   // No URL and no path: an agent carries a run capability, not a browser
   // session, so a link would answer 401, and hq's disk path means nothing to it.
-  return { success: true, attachmentId: attachment.id, fileName: args.filename }
+  // The reference is what its reply writes to show the file to a person.
+  return {
+    success: true, attachmentId: attachment.id, fileName: args.filename,
+    reference: attachmentReference(`${named.project.key}-${named.number}`, args.filename),
+  }
 }
 
 // ── add_comment ───────────────────────────────────────────────────────────────

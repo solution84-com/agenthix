@@ -15,6 +15,7 @@ import { getConversationSegment, summariseConversationNow } from "./long/segment
 import { getTaskConversation, startTaskConversation, getTaskThreadMarks, markConversationRead } from "./taskThread/operations" with { type: "ref" };
 import { setConversationKeep, reopenConversation, getArchivedConversations, searchConversationRuns } from "./archive/operations" with { type: "ref" };
 import { getConversationPlaces, addConversationPlace, removeConversationPlace } from "./placesOperations" with { type: "ref" };
+import { findConversationFilesQuery as findConversationFiles } from "./findConversationFiles" with { type: "ref" };
 import { ChatThreadPage } from "./pages/ChatThreadPage" with { type: "ref" };
 import { ProjectThreadPage } from "./pages/ProjectThreadPage" with { type: "ref" };
 import { VoiceLabPage } from "./voiceClient/lab/VoiceLabPage" with { type: "ref" };
@@ -58,4 +59,6 @@ export const conversationsSpec: Spec = [
     query(getConversationPlaces, { entities: ["Conversation", "ConversationPlace", "Project"] }),
     action(addConversationPlace, { entities: ["Conversation", "ConversationPlace"] }),
     action(removeConversationPlace, { entities: ["Conversation", "ConversationPlace"] }),
+    // The message box's @ picker: the own place's files by name, from its site, after the access check.
+    query(findConversationFiles, { entities: ["Conversation", "Project"] }),
 ];

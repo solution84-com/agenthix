@@ -7,8 +7,38 @@ import {
 } from '@agenthix/ui/tasks'
 import { useTaskDetail } from '../hooks/useTaskDetail'
 import { TaskSessionSection } from './TaskSessionSection'
-import { MarkdownMessage } from '../../shared/components/MarkdownMessage'
+import { MarkdownMessage, type MarkdownEmbedContext } from '../../shared/components/MarkdownMessage'
+import { taskEmbedOpeners, taskFileAddress } from './taskEmbedOpen'
 import { ManifestApprovalComment, isManifestApprovalComment } from './ManifestApprovalComment'
+
+/** What a task's text needs of its task beyond its ids: its key, and whether its project is its person's Your space. */
+export interface TaskEmbedFacts {
+  key?: string
+  personalSpace?: boolean | null
+  personalOwnerId?: string | null
+  /** What a click on an embedded file does; without it an embed is shown and a click opens nothing. */
+  openers?: Pick<MarkdownEmbedContext, 'onOpen' | 'onOpenTaskFile'>
+}
+
+/**
+ * A task's text resolves images and file links in the task's own folder of its project; `files/…`, `artefacts/…` and
+ * `workspaces/<id>/…` in its project's storage (in its person's own for a task of Your space, which works there), and
+ * `attachments/<its key>/<file>` to one of its own attachments.
+ */
+export function taskEmbed(projectId: string | undefined, taskId: string | undefined, facts: TaskEmbedFacts = {}): MarkdownEmbedContext | undefined {
+  if (!projectId || !taskId) return undefined
+  const siblings = facts.personalSpace && facts.personalOwnerId
+    ? { ownerType: 'user' as const, ownerId: facts.personalOwnerId }
+    : { ownerType: 'project' as const, ownerId: projectId }
+  return {
+    place: {
+      space: 'place', loc: { ownerType: 'project', ownerId: projectId, workspaceId: null, taskId }, siblings,
+      ...(facts.key ? { task: { id: taskId, key: facts.key } } : {}),
+    },
+    folder: '',
+    ...facts.openers,
+  }
+}
 
 // AgentButton is a thin re-export so existing call sites keep working.
 export const AgentButton = AgentPicker
@@ -30,6 +60,7 @@ export function CommentsSection({
   onAddComment,
   sessionId,
   placeholder,
+  embed,
 }: {
   taskComments: SiteComment[]
   liveComments: SiteComment[]
@@ -42,6 +73,8 @@ export function CommentsSection({
   /** The task's own session — a manifest-approval comment's run always belongs to it. */
   sessionId?: string
   placeholder?: string
+  /** The place comments' images and file links resolve in. */
+  embed?: MarkdownEmbedContext
 }) {
   const persistedIds = new Set(taskComments.map((c) => c.id))
   const merged: SiteComment[] = [
@@ -60,7 +93,7 @@ export function CommentsSection({
         // that the same as "not yet resolved".
         isManifestApprovalComment(c.content)
           ? <ManifestApprovalComment content={c.content} sessionId={sessionId ?? ''} />
-          : <MarkdownMessage content={c.content} className="text-reading" />
+          : <MarkdownMessage content={c.content} className="text-reading" embed={embed} />
       }
       commentDraft={commentDraft}
       setCommentDraft={setCommentDraft}
@@ -86,10 +119,17 @@ export function TaskPanel({ taskId, onClose, mode = 'panel' }: TaskPanelProps) {
   const navigate = useNavigate()
   const detail = useTaskDetail(taskId)
   const { task, taskSession } = detail
-
   const taskKey = task
     ? `${(task as any).project?.key}-${(task as any).number}`
     : undefined
+  const project = (task as { project?: { personalSpace?: boolean; personalOwnerId?: string | null } } | null)?.project
+  // The slide-in has no room beside the task: a file opens on the task's own page.
+  const openers = task && taskKey
+    ? taskEmbedOpeners({ taskId: task.id, taskKey, openBeside: file => navigate(taskFileAddress(taskKey, file)), go: navigate })
+    : undefined
+  const embed = taskEmbed((task as { projectId?: string } | null)?.projectId, task?.id, {
+    key: taskKey, personalSpace: project?.personalSpace, personalOwnerId: project?.personalOwnerId, openers,
+  })
 
   return (
     <UITaskPanel
@@ -114,7 +154,7 @@ export function TaskPanel({ taskId, onClose, mode = 'panel' }: TaskPanelProps) {
       renderCommentContent={(content) =>
         isManifestApprovalComment(content)
           ? <ManifestApprovalComment content={content} sessionId={taskSession?.id ?? ''} />
-          : <MarkdownMessage content={content} className="text-reading" />
+          : <MarkdownMessage content={content} className="text-reading" embed={embed} />
       }
     />
   )

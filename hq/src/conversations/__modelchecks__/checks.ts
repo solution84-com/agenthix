@@ -6,6 +6,7 @@ import { PERSONAL_LEVEL } from '../../knowledge/reach'
 import type { RecordedCall, RunRecord } from './run'
 import type { CheckSetup } from './setup'
 import { PROJECT, PROJECT_LEVEL, RELEASE_PAGE, levelOf } from './world'
+import { FILE_CHECKS } from './fileChecks'
 
 export type Grade = { passed: true } | { passed: false; why: string }
 
@@ -123,4 +124,5 @@ export const CHECKS: readonly Check[] = [
     setup: { home: 'project', message: "What's our release process?" },
     grade: run => searchedFirst(run, inReach, 'search_knowledge'),
   },
+  ...FILE_CHECKS,
 ]

@@ -1,6 +1,6 @@
 /**
  * The organisation's picture and cover before sign-in (getting-in spec, Signing in), against the real test database:
- * only the current two files, and only while its admin chose the whole cover, pass on a link made without a session.
+ * only the current two files, and only while its admin chose the whole cover, may be opened without a session.
  */
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../test/db'
@@ -10,24 +10,11 @@ vi.mock('wasp/server', async () => {
   const { prisma } = await import('../../test/db')
   return { ...actual, prisma }
 })
-vi.mock('../../server/files/fileAccess', async () => ({
-  ...(await vi.importActual<typeof import('../../server/files/fileAccess')>('../../server/files/fileAccess')),
-  // The link a request carries is the files origin's check (files/__tests__/fileAccess.test.ts); here, who it names.
-  readerOf: () => ({ userId: null, download: false }),
-}))
-
-import { orgImageHandler } from '../identityImages'
+import { uploadAccess } from '../../server/files/uploadAccess'
 
 async function fetchSignedOut(filename: string): Promise<number> {
-  let status = 200
-  const res: any = {
-    status: (s: number) => { status = s; return res },
-    json: () => res,
-    setHeader: () => res,
-    send: () => res,
-  }
-  await orgImageHandler({ params: { filename } } as any, res)
-  return status
+  const access = await uploadAccess(`/org/images/${filename}`, null)
+  return access.ok ? 200 : access.status
 }
 
 describe("the organisation's images before sign-in @SC-663", () => {

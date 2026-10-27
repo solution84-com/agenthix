@@ -110,3 +110,6 @@ export function levelOf(name: string): string {
 export function heldLevels(home: Home): string[] {
   return [home === 'project' ? PROJECT_LEVEL : PERSONAL_LEVEL, 'org', 'platform']
 }
+
+/** A task of the project with one attachment, as get_task_details answers it. */
+export const TASK = { id: '0b9f6a52-3c1d-4e8a-9f27-5d6c1b2a7e40', key: 'WEB-3', title: 'Fix the sign-up form', attachment: 'signup-error.png' }

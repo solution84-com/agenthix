@@ -39,13 +39,10 @@ import { HQ_SITE_CHANNEL_PATH } from '@agenthix/core'
 import { startSiteChannel, markAllOfflineAtBoot } from '../sites/channel'
 import { startContentChannel } from '../sites/content'
 import { startFleetLinks } from '../fleet'
+import { ensureHqRelay, NO_HQ_RELAY_MESSAGE, placeUnplacedSites, startRelayLink } from '../relays'
 import { reconcileDanglingSessionsForOnlineSites } from '../sessions/danglingSessionReconciler'
 import { whenWaspHttpServerReady } from './waspHttpServer'
-import { getTaskFile, resolveSessionUserId } from './fileServingHandlers'
-import { fileLinkHandler } from './files/fileAccess'
-import { filesPlace } from './files/filesOrigin'
-import { getAgentImage, getPersonImage } from './imageHandlers'
-import { hqCors } from './middleware'
+import { registerUploadLinkRoute } from './files/uploadLinkDeps'
 import { listPresets, servePreset } from './presetHandlers'
 import { registerPreviewHost } from '../preview/previewHostWiring'
 import { startPreviewSweep } from '../preview/previewSweep'
@@ -66,7 +63,6 @@ import { startScheduledChangeSweep } from '../sites/scheduled/scheduledChanges'
 import { trustedProxyCount } from './trustedProxies'
 import { envProblems } from './envValidation'
 import { startFirstAdminAndControlSocket } from '../auth/machine/startOnBoot'
-import { orgImageHandler, teamImageHandler } from '../org/identityImages'
 import { KERNEL_HANDLE, KERNEL_NAME, KERNEL_ROLE } from '../agents/kernelGuards'
 import { Logger } from './utils/logger'
 import { startLedger } from '../billing/start'
@@ -141,6 +137,16 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
       : `Default site ${outcome}.`)
   } catch (err) {
     logger.error(`Default site not ensured: ${err instanceof Error ? err.message : String(err)}`)
+  }
+
+  // hq's own relay connects by HQ_RELAY_SECRET, as its site does by the pairing secret (adr-0153); every site without
+  // a relay is placed on it. Never log the secret.
+  try {
+    const outcome = await ensureHqRelay()
+    if (outcome === 'unset') logger.warn(NO_HQ_RELAY_MESSAGE)
+    else logger.info(`HQ's relay ${outcome}; ${await placeUnplacedSites()} site(s) placed on it.`)
+  } catch (err) {
+    logger.error(`HQ's relay not ensured: ${err instanceof Error ? err.message : String(err)}`)
   }
 
   // The platform's built-in skills, as a package every run loads (spec §6.5).
@@ -315,26 +321,20 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
     startFleetLinks(server)
   })
 
+  // Relays dial in on their own path, to be told who they are and to report their load (adr-0153).
+  whenWaspHttpServerReady('relay links', server => {
+    startRelayLink(server)
+  })
+
   // ═══════════════════════════════════════════════════════════════════
   // File Serving Endpoints
   // ═══════════════════════════════════════════════════════════════════
   // Registered directly on Express (not via Wasp api blocks) because
   // Wasp 0.21 does not support wildcard (*) path segments in api routes.
 
-  // Uploaded files (host-management spec §16, adr-0114): served on the files origin, each to a short-lived link
-  // HQ makes for one file and one person, never to a session. The link is asked for on HQ's own address, with
-  // the session's token, so it answers a page on another origin (the dev client) as the other APIs do.
-  app.options('/file-link', hqCors())
-  app.get('/file-link', hqCors(), fileLinkHandler(resolveSessionUserId))
-  app.get('/files/task/:taskId/:uuid/*path', getTaskFile)
-  app.get('/agents/:agentId/images/:filename', getAgentImage)
-  app.get('/people/:userId/images/:filename', getPersonImage)
-  app.get('/org/images/:filename', orgImageHandler)
-  app.get('/teams/:teamId/images/:filename', teamImageHandler)
-  const files = filesPlace()
-  logger.info(files.mode === 'origin'
-    ? `Uploaded files served from ${files.origin}.`
-    : `Uploaded files are served from HQ's own address, as downloads only: set FILES_ORIGIN to give them their own.`)
+  // Uploaded files (adr-0153): hq-server makes a link, on a ticket for hq's relay, and never sends the file. The
+  // relay serves it from hq's storage folder, mounted read-only.
+  registerUploadLinkRoute(app)
 
   // Preset endpoints — serves files directly from assets/{avatars,covers}/
   app.get('/presets/:type', listPresets)

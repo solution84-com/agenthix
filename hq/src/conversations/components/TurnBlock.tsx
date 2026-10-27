@@ -33,7 +33,7 @@ function Words({ message, reply }: { message: WordsMessage; reply?: ReplyView })
     return <>
       {message.body.partialText && (
         <div className="max-w-[720px] text-reading">
-          <ReplyBody text={message.body.partialText} replyKey={key} view={reply} />
+          <ReplyBody text={message.body.partialText} replyKey={key} view={reply} writtenAt={message.createdAt} />
         </div>
       )}
       <FailedCard reason={message.body.reason} />
@@ -43,7 +43,7 @@ function Words({ message, reply }: { message: WordsMessage; reply?: ReplyView })
   return <>
     {message.body.text.trim() && (
       <div className="max-w-[720px] text-reading">
-        <ReplyBody text={message.body.text} limit={limit} replyKey={key} view={reply} />
+        <ReplyBody text={message.body.text} limit={limit} replyKey={key} view={reply} writtenAt={message.createdAt} />
       </div>
     )}
     {message.interrupted && (

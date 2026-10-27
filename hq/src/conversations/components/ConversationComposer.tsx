@@ -46,6 +46,7 @@ export function ConversationComposer({ conversationId, view, running, sending, o
       <MessageBox
         agentId={agent?.id}
         conversationId={conversationId}
+        takesMentions
         placeholder={agent ? `Message ${agent.name}…` : 'Write a message…'}
         running={running}
         sending={sending}

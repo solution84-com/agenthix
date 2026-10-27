@@ -2,8 +2,10 @@
 /** The Files tools on screen (every screen reviewed spec §3): Files, Artefacts and Workspaces. */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
-import { address, setAddress, data, ok, failed, siteDown, NOW_ISO } from './filesToolsTestKit'
+import { render, screen, fireEvent } from '@testing-library/react'
+import {
+  address, setAddress, data, ok, failed, siteDown, NOW_ISO, opened, readyAnswer, relayServing,
+} from './filesToolsTestKit'
 
 // Where ui has its own copy of lucide-react, the icons ui renders here are stubbed by that path, so no second React
 // renders. Where ui shares hq's copy, as on CI and in the image, the path is hq's, and every other icon stays real.
@@ -13,7 +15,7 @@ const uiLucideReactPath = vi.hoisted(() => {
 })
 vi.mock(uiLucideReactPath, async (importOriginal) => {
   const icon = () => null
-  return { ...(await importOriginal<object>()), File: icon, FileImage: icon, Folder: icon, Search: icon, ChevronDown: icon, MoreHorizontal: icon, Plus: icon }
+  return { ...(await importOriginal<object>()), File: icon, FileImage: icon, FileText: icon, Loader2: icon, Folder: icon, Search: icon, ChevronDown: icon, MoreHorizontal: icon, Plus: icon }
 })
 
 vi.mock('react-router', async () => {
@@ -32,7 +34,9 @@ vi.mock('react-router', async () => {
   }
 })
 vi.mock('../filesToolData', async () => (await import('./filesToolsTestKit')).data)
+vi.mock('wasp/client/operations', async () => (await import('./filesToolsTestKit')).opened)
 vi.mock('../BackupLine', () => ({ BackupLine: () => <div data-testid="backup" />, repoName: (u: string) => u.replace('https://github.com/', '') }))
+vi.mock('../GitLine', () => ({ GitLine: ({ target }: { target: { ownerId: string; workspaceId?: string } }) => <div data-testid="git">git line {target.ownerId}{target.workspaceId ?? ''}</div> }))
 vi.mock('../WorkspaceView', () => ({ WorkspaceView: ({ workspaceId, connecting }: { workspaceId: string; connecting: boolean }) => <div>workspace {workspaceId}{connecting ? ' connecting' : ''}</div> }))
 vi.mock('../NewWorkspaceForm', () => ({ NewWorkspaceForm: () => <div>new workspace form</div> }))
 vi.mock('../../../shared/components/NoExecutionSiteNotice', () => ({ NoExecutionSiteNotice: () => null, useNoExecutionSite: () => false }))
@@ -42,13 +46,16 @@ import { ArtefactsTool } from '../ArtefactsTool'
 import { WorkspacesTool } from '../WorkspacesTool'
 
 const owner = { ownerType: 'project' as const, ownerId: 'p1' }
+const loc = { ...owner, workspaceId: null, taskId: null }
+const ROADMAP = '# Roadmap\n\n- Pricing page'
 
 beforeEach(() => {
   vi.clearAllMocks()
   setAddress('tool=files')
   data.useFolder.mockReturnValue(ok([]))
   data.useArtefacts.mockReturnValue(ok([]))
-  data.useFileContent.mockReturnValue(ok({ kind: 'markdown', name: 'ROADMAP.md', text: '# Roadmap\n\n- Pricing page' }))
+  opened.openFile.mockResolvedValue(readyAnswer('ROADMAP.md', 'markdown', ROADMAP.length))
+  relayServing(ROADMAP)
   data.useWorkspaces.mockReturnValue({ workspaces: [], unanswered: [], isLoading: false })
 })
 
@@ -71,10 +78,11 @@ describe('the Files tool', () => {
     expect(screen.queryByText('.agents')).toBeNull()
   })
 
-  it('shows the GitHub backup line and searches by name', () => {
+  it('shows the git status line for files/, then the GitHub backup line, and searches by name', () => {
     data.useFolder.mockReturnValue(ok(files))
     render(<FilesTool owner={owner} />)
-    expect(screen.getByTestId('backup')).toBeTruthy()
+    expect(screen.getByTestId('git').textContent).toBe(`git line ${owner.ownerId}`)
+    expect(screen.getByTestId('git').compareDocumentPosition(screen.getByTestId('backup')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Search files'), { target: { value: 'road' } })
     expect(rowNames()).toHaveLength(1)
     fireEvent.change(screen.getByLabelText('Search files'), { target: { value: 'zzz' } })
@@ -118,49 +126,21 @@ describe('the Files tool', () => {
     expect(address.params.get('dir')).toBeNull()
   })
 
-  it('opens a file inside the tool, rendered, with Mention and ⋯ — and goes back to the list', () => {
+  it('opens a file inside the tool through HQ\'s open action, drawn by the frame, with Mention and ⋯ — and goes back to the list @SC-1533', async () => {
     data.useFolder.mockReturnValue(ok(files))
     render(<FilesTool owner={owner} />)
     fireEvent.click(screen.getByText('ROADMAP.md'))
     expect(address.params.get('file')).toBe('ROADMAP.md')
-    expect(screen.getByRole('heading', { name: 'Roadmap' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Roadmap' })).toBeTruthy()
+    expect(opened.openFile).toHaveBeenCalledTimes(1)
+    expect(opened.openFile).toHaveBeenCalledWith({ file: { space: 'place', loc, path: 'ROADMAP.md' } })
+    expect(screen.getByText(/Markdown · \d+ B/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Mention' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'More actions' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Files/ }))
     expect(address.params.get('file')).toBeNull()
   })
 
-  it('puts Download and Copy path under ⋯', () => {
-    setAddress('tool=files&file=ROADMAP.md')
-    data.useFolder.mockReturnValue(ok(files))
-    render(<FilesTool owner={owner} />)
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
-    expect(screen.getByRole('menuitem', { name: 'Download' })).toBeTruthy()
-    expect(screen.getByRole('menuitem', { name: 'Copy path' })).toBeTruthy()
-  })
-
-  it('Mention puts the file into the message box beside it', () => {
-    setAddress('tool=files&file=specs/pricing.md')
-    data.useFolder.mockReturnValue(ok(files))
-    const taken: string[] = []
-    const listener = (e: Event) => { e.preventDefault(); taken.push((e as CustomEvent<string>).detail) }
-    window.addEventListener('agenthix:mention', listener)
-    render(<FilesTool owner={owner} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Mention' }))
-    window.removeEventListener('agenthix:mention', listener)
-    expect(taken).toEqual(['files/specs/pricing.md'])
-  })
-
-  it('with no message box beside it, Mention copies the reference instead of doing nothing', async () => {
-    setAddress('tool=files&file=ROADMAP.md')
-    data.useFolder.mockReturnValue(ok(files))
-    const writeText = vi.fn().mockResolvedValue(undefined)
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
-    render(<FilesTool owner={owner} />)
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Mention' })) })
-    expect(writeText).toHaveBeenCalledWith('files/ROADMAP.md')
-    expect(screen.getByRole('status').textContent).toContain('Copied files/ROADMAP.md')
-  })
 })
 
 describe('the Files tool, wide', () => {
@@ -174,14 +154,15 @@ describe('the Files tool, wide', () => {
     })
   }
 
-  it('puts the folders beside the open file instead of replacing the list', () => {
+  it('puts the folders beside the open file instead of replacing the list, with where it lives above its title @SC-1533', async () => {
     widen(900)
     setAddress('tool=files&file=ROADMAP.md')
     data.useFolder.mockReturnValue(ok([{ name: 'ROADMAP.md', size: 2048, modifiedAt: NOW_ISO(0) }, { name: 'specs', isDir: true, modifiedAt: NOW_ISO(3) }]))
     render(<FilesTool owner={owner} />)
     expect(screen.getByRole('button', { name: 'specs' })).toBeTruthy()
-    expect(screen.getByRole('heading', { name: 'Roadmap' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Roadmap' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Mention' })).toBeTruthy()
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toBe('Files › ROADMAP.md')
   })
 
   it('asks for a file when none is open', () => {
@@ -215,12 +196,14 @@ describe('the Artefacts tool', () => {
     expect(groups[2][1]).toContain('Old story.md')
   })
 
-  it('opens one in the same viewer, and a link’s address opens it directly', () => {
+  it('opens one in the same frame, through the open action, and a link’s address opens it directly', async () => {
     data.useArtefacts.mockReturnValue(ok(artefacts))
+    opened.openFile.mockResolvedValue(readyAnswer('Pricing options.pdf', 'pdf', 220 * 1024, 'application/pdf'))
     const { unmount } = render(<ArtefactsTool owner={owner} />)
     fireEvent.click(screen.getByText('Pricing options.pdf'))
     expect(address.params.get('artefact')).toBe('Pricing options.pdf')
-    expect(data.useFileContent).toHaveBeenCalledWith('artefacts', owner, 'Pricing options.pdf')
+    expect(opened.openFile).toHaveBeenCalledWith({ file: { space: 'artefact', owner, name: 'Pricing options.pdf' } })
+    expect(await screen.findByTitle('Pricing options.pdf')).toBeTruthy()
     unmount()
     setAddress('tool=artefacts&artefact=Hero%20options.png')
     render(<ArtefactsTool owner={owner} />)

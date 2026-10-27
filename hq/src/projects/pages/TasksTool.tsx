@@ -67,6 +67,7 @@ export function TasksTool({ projectKey }: { projectKey?: string } = {}) {
       <TaskInToolView
         key={screen.taskKey} taskKey={screen.taskKey} focusWaiting={screen.atWaiting}
         onBack={url.toList} onGone={url.toList} onOpenSession={() => url.toSession(screen.taskKey)}
+        openFile={url.file} onOpenFile={file => url.toTaskFile(screen.taskKey, file)}
       />
     )
   }

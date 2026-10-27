@@ -1,8 +1,14 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { isValidElement, useState, type ReactElement, type ReactNode } from 'react'
+import { isValidElement, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { Check, Copy } from 'lucide-react'
 import { copyText } from '../copyText'
+import { embedComponents } from './markdownEmbed/embedComponents'
+import { rehypeImgTags } from './markdownEmbed/imgTag'
+import { remarkReferences } from './markdownEmbed/remarkReferences'
+import type { MarkdownEmbedContext } from './markdownEmbed/embedTarget'
+
+export type { MarkdownEmbedContext } from './markdownEmbed/embedTarget'
 
 function CodeBlock({ children, className }: { children?: React.ReactNode; className?: string }) {
   const [copied, setCopied] = useState<'yes' | 'failed' | null>(null)
@@ -42,13 +48,63 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
 interface MarkdownMessageProps {
   content: string
   className?: string
+  /**
+   * The place the text belongs to. With it, images and links to files resolve in that place and embed through the
+   * relay, a sized image tag is drawn, and other websites' images wait for Load (spec part 2, *Embedded files*).
+   * Without it, the text is drawn exactly as before.
+   */
+  embed?: MarkdownEmbedContext
 }
 
-export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
+const link = (href: string | undefined, children: ReactNode) => (
+  <a
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="text-accent hover:text-accent-hover underline underline-offset-2"
+  >
+    {children}
+  </a>
+)
+
+const paragraph = (children: ReactNode) => (
+  <p className="mb-3 last:mb-0 leading-relaxed text-text-primary">{children}</p>
+)
+
+const remarkPlugins = [remarkGfm]
+// In a conversation's place, a path the agent wrote is a link to its file too.
+const ownerRemarkPlugins = [remarkGfm, remarkReferences]
+const embedRehypePlugins = [rehypeImgTags]
+
+/**
+ * The embed components, made again only when the place or folder changes: a caller passing a new context object each
+ * render must not remount every embed (and ask for its file again).
+ */
+function useEmbedComponents(embed: MarkdownEmbedContext | undefined) {
+  const onOpen = useRef(embed?.onOpen)
+  onOpen.current = embed?.onOpen
+  const onOpenTaskFile = useRef(embed?.onOpenTaskFile)
+  onOpenTaskFile.current = embed?.onOpenTaskFile
+  const key = embed ? JSON.stringify([embed.place, embed.folder, !!embed.onOpen, !!embed.onOpenTaskFile, embed.placePath, embed.writtenAt]) : null
+  return useMemo(() => {
+    if (!embed) return null
+    const open = embed.onOpen ? (ref: Parameters<NonNullable<MarkdownEmbedContext['onOpen']>>[0]) => onOpen.current?.(ref) : undefined
+    const openTaskFile = embed.onOpenTaskFile
+      ? (file: Parameters<NonNullable<MarkdownEmbedContext['onOpenTaskFile']>>[0]) => onOpenTaskFile.current?.(file)
+      : undefined
+    const { place, folder, placePath, writtenAt } = embed
+    return embedComponents({ place, folder, onOpen: open, onOpenTaskFile: openTaskFile, placePath, writtenAt }, link, paragraph)
+    // Keyed by what the context says, not by its identity.
+  }, [key])
+}
+
+export function MarkdownMessage({ content, className, embed }: MarkdownMessageProps) {
+  const embedded = useEmbedComponents(embed)
   return (
     <div className={`prose-markdown ${className ?? ''}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={embed?.place.space === 'owner' ? ownerRemarkPlugins : remarkPlugins}
+        rehypePlugins={embedded ? embedRehypePlugins : undefined}
         components={{
           // A fenced block arrives as <pre><code>; only that is a block. Judging by the language class instead
           // made a block with no language render inline, its lines run together.
@@ -59,9 +115,7 @@ export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
             const inner = isValidElement(children) ? (children as ReactElement<{ className?: string; children?: ReactNode }>).props : {}
             return <CodeBlock className={inner.className}>{inner.children}</CodeBlock>
           },
-          p: ({ children }) => (
-            <p className="mb-3 last:mb-0 leading-relaxed text-text-primary">{children}</p>
-          ),
+          p: ({ children }) => paragraph(children),
           h1: ({ children }) => (
             <h1 className="text-h2 font-semibold text-text-primary mb-2 mt-4 first:mt-0">{children}</h1>
           ),
@@ -92,16 +146,7 @@ export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
             <em className="italic text-text-secondary">{children}</em>
           ),
           hr: () => <hr className="border-border my-4" />,
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent hover:text-accent-hover underline underline-offset-2"
-            >
-              {children}
-            </a>
-          ),
+          a: ({ href, children }) => link(href, children),
           table: ({ children }) => (
             <div className="overflow-x-auto my-3">
               <table className="w-full text-body border-collapse">{children}</table>
@@ -121,6 +166,7 @@ export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
           tr: ({ children }) => (
             <tr className="border-b border-border hover:bg-surface-2/50">{children}</tr>
           ),
+          ...embedded,
         }}
       >
         {content}
@@ -128,3 +174,8 @@ export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
     </div>
   )
 }
+
+/** For a renderer that draws Markdown from text alone (the Files tool's): Markdown drawn with this place's embeds. */
+export const renderMarkdownIn = (embed?: MarkdownEmbedContext) => (markdown: string) => (
+  <MarkdownMessage content={markdown} embed={embed} />
+)

@@ -78,7 +78,8 @@ describe('the console link’s methods @SC-924', () => {
     const { calls, handle } = recording()
     expect(await handle('hq.about', { userId: 'u-1' })).toMatchObject({ ok: true })
     expect(await handle('site.loads', undefined)).toMatchObject({ ok: true })
-    expect(calls).toEqual([{ method: 'hq.about', params: {} }, { method: 'site.loads', params: {} }])
+    expect(await handle('relay.facts', { relayId: 'r-1' })).toMatchObject({ ok: true })
+    expect(calls).toEqual([{ method: 'hq.about', params: {} }, { method: 'site.loads', params: {} }, { method: 'relay.facts', params: {} }])
   })
 
   it('reads the record, the notices and an account only for a named fleet admin, and passes on only what each names', async () => {

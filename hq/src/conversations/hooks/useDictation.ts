@@ -11,6 +11,14 @@ const TOKEN_MARGIN_MS = 60_000
 /** Dictation ends a turn on a shorter silence than a voice conversation: nothing waits on it. */
 const DICTATION_CONFIG = { max_turn_silence: 1000 }
 
+/** The field dictation writes into: its selection as offsets in the box's text, and whether it has the focus. */
+export type TextField = {
+  readonly selectionStart: number
+  readonly selectionEnd: number
+  setSelectionRange: (start: number, end: number) => void
+  hasFocus: () => boolean
+}
+
 type Token = { token: string; expiresAt: string; config?: SttConfig; ticket?: string }
 
 /**
@@ -21,7 +29,7 @@ type Token = { token: string; expiresAt: string; config?: SttConfig; ticket?: st
 export function useDictation({ text, setText, field, agentId, conversationId }: {
   text: string
   setText: (text: string) => void
-  field: RefObject<HTMLTextAreaElement | null>
+  field: RefObject<TextField | null>
   /** Whose own speech to text to use; none means the organisation's default. */
   agentId?: string
   /** Where it is used, so the session is costed to that place. */
@@ -56,7 +64,7 @@ export function useDictation({ text, setText, field, agentId, conversationId }: 
   const show = useCallback((next: DictationText) => {
     const before = state.current
     const el = field.current
-    if (before && el && document.activeElement === el) {
+    if (before && el && el.hasFocus()) {
       cursor.current = [movePosition(before, next, el.selectionStart), movePosition(before, next, el.selectionEnd)]
     }
     state.current = next

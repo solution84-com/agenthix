@@ -1,6 +1,7 @@
 import { FileText } from 'lucide-react'
 import { splitShownParts, type ShownPart } from '../../shared/conversations/shownParts'
-import { MarkdownMessage } from '../../shared/components/MarkdownMessage'
+import { MarkdownMessage, type MarkdownEmbedContext } from '../../shared/components/MarkdownMessage'
+import { useConversationEmbed } from './conversationFiles'
 
 /** How a reply's shown parts are drawn: as cards that open a viewer in voice mode, inline outside it. */
 export type ReplyView = {
@@ -26,11 +27,11 @@ export function ShownCard({ part, onOpen }: { part: ShownPart; onOpen: () => voi
   )
 }
 
-function InlinePart({ part }: { part: ShownPart }) {
+function InlinePart({ part, embed }: { part: ShownPart; embed?: MarkdownEmbedContext }) {
   return (
     <section data-testid="shown-inline" className="rounded-xl border border-border-subtle px-4 py-3">
       <h3 className="pb-1 text-small font-semibold text-text-primary">{part.title}</h3>
-      <MarkdownMessage content={part.body} />
+      <MarkdownMessage content={part.body} embed={embed} />
     </section>
   )
 }
@@ -38,14 +39,17 @@ function InlinePart({ part }: { part: ShownPart }) {
 /**
  * A reply's words. `limit` holds back the text not yet heard; shown parts become cards in voice mode (their body
  * opens beside the thread) and stay inline outside it. A card takes its title from the whole reply, so it does not
- * change word by word while the reply is revealed.
+ * change word by word while the reply is revealed. In a conversation, paths and images are read in its place.
  */
-export function ReplyBody({ text, limit = null, replyKey, view }: {
+export function ReplyBody({ text, limit = null, replyKey, view, writtenAt }: {
   text: string
   limit?: number | null
   replyKey: string
   view?: ReplyView
+  /** When the reply was written, so a file it names that changed since says so; absent while it streams. */
+  writtenAt?: string
 }) {
+  const embed = useConversationEmbed(writtenAt)
   const visible = limit === null ? text : text.slice(0, limit)
   const segments = splitShownParts(visible)
   const whole = limit === null ? segments : splitShownParts(text)
@@ -54,12 +58,12 @@ export function ReplyBody({ text, limit = null, replyKey, view }: {
   return (
     <div className="space-y-3">
       {segments.map((s, i) => {
-        if (s.kind === 'prose') return <MarkdownMessage key={i} content={s.text} />
+        if (s.kind === 'prose') return <MarkdownMessage key={i} content={s.text} embed={embed} />
         const index = shownSoFar++
         const part = (wholeParts[index]?.kind === 'shown' ? wholeParts[index].part : s.part)
         return view?.inVoice
           ? <ShownCard key={i} part={part} onOpen={() => view.onOpenPart(replyKey, index)} />
-          : <InlinePart key={i} part={part} />
+          : <InlinePart key={i} part={part} embed={embed} />
       })}
     </div>
   )

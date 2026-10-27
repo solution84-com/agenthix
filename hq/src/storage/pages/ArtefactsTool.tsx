@@ -4,7 +4,7 @@ import {
   FileRow, FilesGroupHeading, FilesQuietLine, FilesToolNote, filterByName, groupByRecency, kindAndSize, newestFirst, changedLabel,
 } from '@agenthix/ui/projects'
 import { isSiteUnreachable } from '../../shared/siteSilence'
-import { FileOpened } from './FileOpened'
+import { OpenedFile } from './OpenedFile'
 import { useArtefacts, type Owner } from './filesToolData'
 import { useToolParams } from './useToolParams'
 
@@ -20,9 +20,12 @@ export function ArtefactsTool({ owner }: { owner: Owner }) {
 
   if (name) {
     return (
-      <FileOpened
-        kind="artefacts" target={owner} path={name} entry={list.data?.find(e => e.name === name)}
-        backLabel="Artefacts" onBack={() => url.set({ artefact: null })}
+      <OpenedFile
+        file={{ space: 'artefact', owner, name }}
+        kind="artefacts" path={name} entry={list.data?.find(e => e.name === name)} breadcrumb={['Artefacts']}
+        backLabel="Artefacts" onBack={() => url.set({ artefact: null })} layout="narrow"
+        link={{ tool: url.get('tool'), artefact: name }}
+        onOpenFile={ref => { if (ref.space === 'artefact') url.set({ artefact: ref.name }) }}
       />
     )
   }

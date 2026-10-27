@@ -5,6 +5,9 @@ import { TaskSchedulePanel } from '../../automation/pages/TaskSchedulePanel'
 import { TaskPlanFacts } from './TaskPlanFacts'
 import { TaskOnBehalfOfSection } from './TaskOnBehalfOfSection'
 import { TaskAttachments } from './TaskAttachments'
+import { TaskWorkingFiles } from './TaskWorkingFiles'
+import type { LocationRef } from '@agenthix/core'
+import type { OpenTaskFile } from '../pages/useTasksToolUrl'
 import type { useTaskDetail } from '../hooks/useTaskDetail'
 
 type Detail = ReturnType<typeof useTaskDetail>
@@ -12,7 +15,14 @@ type Detail = ReturnType<typeof useTaskDetail>
 const day = (v: string | Date) => new Date(v).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 
 /** A task's facts (every screen reviewed spec §3): agent, board and column, priority, plan and epic, on whose behalf, start time, files, when it was created. */
-export function TaskFactsPanel({ detail, project }: { detail: Detail; project?: { key: string; name: string } }) {
+/** The task's files: the one open beside it, its own folder, and how to open one. */
+export interface TaskFilesFacts {
+  opened: OpenTaskFile | null
+  loc: LocationRef | null
+  onOpen: (file: OpenTaskFile) => void
+}
+
+export function TaskFactsPanel({ detail, project, files }: { detail: Detail; project?: { key: string; name: string }; files?: TaskFilesFacts }) {
   const task = detail.task
   if (!task) return null
   const hasStages = !!task.boardId && detail.boardStages.length > 0
@@ -45,7 +55,20 @@ export function TaskFactsPanel({ detail, project }: { detail: Detail; project?: 
       <TaskPlanFacts task={task as never} onChanged={() => void detail.refetchTask()} />
       <TaskOnBehalfOfSection taskId={task.id} onChanged={() => void detail.refetchTask()} />
       <TaskSchedulePanel task={task as never} />
-      <TaskFact label="Files"><TaskAttachments taskId={task.id} /></TaskFact>
+      <TaskFact label="Attachments">
+        <TaskAttachments
+          taskId={task.id}
+          selected={files?.opened?.kind === 'attachment' ? files.opened.id : undefined}
+          onOpen={files ? id => files.onOpen({ kind: 'attachment', id }) : undefined}
+        />
+      </TaskFact>
+      {files?.loc && (
+        <TaskWorkingFiles
+          loc={files.loc}
+          selected={files.opened?.kind === 'working' ? files.opened.path : undefined}
+          onOpen={path => files.onOpen({ kind: 'working', path })}
+        />
+      )}
       <TaskFact label="Created">{task.createdAt ? day(task.createdAt) : '—'}</TaskFact>
     </>
   )

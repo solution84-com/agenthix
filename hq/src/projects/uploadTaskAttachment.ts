@@ -4,13 +4,12 @@ import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { getTaskAttachmentDir } from '../server/hqStoragePaths'
-import { getSitePublicUrl } from '../server/siteConfig'
-import { attachmentFileNameProblem } from '../shared/attachmentFileName'
+import { attachmentFileNameProblem, ATTACHMENT_MAX_BYTES, ATTACHMENT_TOO_LARGE } from '../shared/attachmentFileName'
 import { requireMayWorkInProject } from './membership'
 
 export const uploadTaskAttachment: UploadTaskAttachment<
   { taskId: string; filename: string; dataUrl: string; label?: string },
-  { attachmentId: string; url: string }
+  { attachmentId: string; path: string }
 > = async ({ taskId, filename, dataUrl, label }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
 
@@ -30,7 +29,7 @@ export const uploadTaskAttachment: UploadTaskAttachment<
   if (!match) throw new HttpError(400, 'Invalid data URL — expected data:<mime>;base64,<data>')
   const [, mimeType, b64] = match
   const buf = Buffer.from(b64, 'base64')
-  if (buf.length > 10 * 1024 * 1024) throw new HttpError(400, 'File too large (max 10 MB)')
+  if (buf.length > ATTACHMENT_MAX_BYTES) throw new HttpError(400, ATTACHMENT_TOO_LARGE)
 
   const uuid = randomUUID()
   const dir = getTaskAttachmentDir(taskId, uuid)
@@ -41,10 +40,8 @@ export const uploadTaskAttachment: UploadTaskAttachment<
     data: { taskId, uuid, fileName: filename, mimeType, fileSizeBytes: buf.length, label: label ?? null },
   })
 
-  const siteUrl = getSitePublicUrl()
-  const url = siteUrl
-    ? `${siteUrl}/files/task/${taskId}/${uuid}/${encodeURIComponent(filename)}`
-    : path.join(dir, filename)
+  // The path a client asks `/file-link` for: hq's relay serves the file on the ticket hq signs for it (adr-0153).
+  const uploadPath = `/files/task/${taskId}/${uuid}/${encodeURIComponent(filename)}`
 
-  return { attachmentId: attachment.id, url }
+  return { attachmentId: attachment.id, path: uploadPath }
 }

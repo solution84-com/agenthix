@@ -245,11 +245,9 @@ export function removeLocationOnSite(
 /**
  * One file's bytes, over the content transport.
  *
- * Collected whole, because every caller (the preview viewer) holds the file in
- * memory and needs it classified
- * before it can answer. A caller that wants to pipe the stream straight to an
- * HTTP response can open one itself; this function is the common case, not the
- * only shape available.
+ * Collected whole, for hq's own small reads (a place's instructions), which it
+ * holds as text. A file a person opens never comes this way: its bytes go from
+ * the site through a relay (adr-0153).
  */
 export async function readFileOnSite(loc: LocationRef, relPath: string): Promise<Buffer> {
   const logicalSiteId = await resolveStorageSite(loc)

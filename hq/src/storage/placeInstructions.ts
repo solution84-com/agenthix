@@ -22,8 +22,10 @@ import { LocationFileError, PACKAGE_KEY_PATTERN, type LocationRef, type StorageO
 import { requireProjectVisible } from '../projects/resourceEntitlement'
 import { readAgentContent } from '../packages/agentPackageService'
 import { listFilesOnSite, readFileOnSite, statFileOnSite } from './locationFileStore'
-import { FILE_CONTENT_MAX_BYTES } from './fileContentService'
 import { rethrowLocationFileErrorAsHttp } from './httpErrors'
+
+/** The largest instructions file shown; a larger one is named, not read. */
+export const INSTRUCTIONS_MAX_BYTES = 1_000_000
 
 export const PLACE_INSTRUCTIONS_FILE = 'AGENTS.md'
 export const SHARED_SKILLS_DIR = '.agents/skills'
@@ -54,7 +56,7 @@ async function readInstructionFile(owner: Owner, relPath: string): Promise<Instr
   try {
     const stat = await statFileOnSite(loc, relPath)
     if (stat.kind !== 'file') return { path: relPath, text: null, modifiedAt: null, tooLarge: false }
-    if (stat.size > FILE_CONTENT_MAX_BYTES) return { path: relPath, text: null, modifiedAt: stat.modifiedAt, tooLarge: true }
+    if (stat.size > INSTRUCTIONS_MAX_BYTES) return { path: relPath, text: null, modifiedAt: stat.modifiedAt, tooLarge: true }
     const bytes = await readFileOnSite(loc, relPath)
     return { path: relPath, text: bytes.toString('utf8'), modifiedAt: stat.modifiedAt, tooLarge: false }
   } catch (err) {

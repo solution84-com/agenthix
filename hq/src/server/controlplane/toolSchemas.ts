@@ -98,6 +98,9 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   },
   {
     name: 'get_task_details',
+    description:
+      "Get a task's details, its comments and its attachments. Each attachment has a reference " +
+      '(attachments/WAL-2/notes.md): to show a person the file, write that reference in your reply, as it is.',
     schema: { taskId: z.string().describe('The task to retrieve: its key (e.g. WAL-2) or its ID') },
   },
   {
@@ -223,6 +226,9 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   },
   {
     name: 'attach_file',
+    description:
+      'Attach a file to a task. Answers with its reference (attachments/WAL-2/notes.md): to show a person the file, ' +
+      'write that reference in your reply, as it is.',
     schema: {
       agentId: z.string().optional().describe("Deprecated — no longer used"),
       taskId: z.string().describe('The task to attach the file to: its key (e.g. WAL-2) or its ID'),

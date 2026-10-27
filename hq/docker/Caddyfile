@@ -1,6 +1,8 @@
-# hq-web (ADR-0067): serves the browser app and forwards every server path, every
-# preview host (ADR-0071) and the files host's uploaded files (ADR-0114) to
-# hq-server. The one port hq publishes; HTTPS is the machine's front door's.
+# hq-web (ADR-0067): serves the browser app and forwards every server path and
+# every preview host (ADR-0071) to hq-server. Every byte of a file, a site's or an
+# upload hq keeps, goes to hq's relay (ADR-0153) on a ticket, as does the line a
+# site dials to serve it; hq-server serves no file. The one port hq publishes;
+# HTTPS is the machine's front door's.
 {
 	admin off
 	servers {
@@ -9,7 +11,10 @@
 }
 
 :4100 {
-	encode gzip
+	# A file's bytes are never compressed here: a PDF is read by byte range, and a range of a gzipped answer is
+	# not a range of the file.
+	@compressible not path /t/* /relay/*
+	encode @compressible gzip
 
 	# A preview host (adr-0071) is forwarded whole — every path, live reload
 	# included — and hq-server tells it apart by host name. Its placeholder
@@ -20,29 +25,47 @@
 		reverse_proxy hq-server:4101
 	}
 
-	# The files host (adr-0114) answers uploaded files and nothing else: no app,
-	# no API. FILES_HOST comes from FILES_ORIGIN, or files.localhost when HQ is
-	# on localhost (web-entrypoint.sh); unset, its placeholder matches nothing.
+	# The files host (adr-0114) answers a ticket for a file (adr-0153) and the PDF viewer
+	# page, nothing else: no app, no API. FILES_HOST comes from FILES_ORIGIN, or files.localhost when HQ is on
+	# localhost (web-entrypoint.sh); unset, its placeholder matches nothing.
 	@files host {$FILES_HOST:files-off.invalid}
 	handle @files {
-		@upload path_regexp ^/(files/task/[^/]+/[^/]+/.+|(agents|people|teams)/[^/]+/images/[^/]+|org/images/[^/]+)$
-		handle @upload {
-			reverse_proxy hq-server:4101
+		# A ticket on the files host: the relay checks the host itself and reads no
+		# cookie; it verifies the ticket hq signed, and the site (or, for an upload, the
+		# relay's own read-only folder) holds the file.
+		@ticket path /t/*
+		handle @ticket {
+			reverse_proxy relay:4401
+		}
+		# The PDF viewer page and its files: the relay serves them on the files host with
+		# their own policy (scripts from that origin only, framed only by HQ).
+		@viewer path /viewer/pdf /viewer/pdf/*
+		handle @viewer {
+			reverse_proxy relay:4401
 		}
 		handle {
 			respond 404
 		}
 	}
 
-	@server path /api /api/* /auth /auth/* /operations/* /socket.io/* /hq-link /hq-content /host-link /console-link /files/task/* /file-link /presets/* /health /mcp /.well-known/*
-	handle @server {
-		reverse_proxy hq-server:4101
+	# The line a site dials to hold a file stream open (adr-0153): a WebSocket
+	# on HQ's own host, which the relay keeps only for a pass hq signed.
+	@relayline path /relay-line
+	handle @relayline {
+		reverse_proxy relay:4401
 	}
 
-	# Uploaded pictures, which hq-server serves only on the files host, or as
-	# downloads where there is none.
-	@images path_regexp ^/((agents|people|teams)/[^/]+/images/|org/images/)
-	handle @images {
+	# The bare address (adr-0153): where there is no files host, a ticket is opened on
+	# HQ's own address under this prefix, which goes to the relay unchanged. The relay
+	# applies the stricter bare rule (every answer a download) to it.
+	@bare path /relay/*
+	handle @bare {
+		reverse_proxy relay:4401
+	}
+
+	# /file-link answers a JSON link (a ticket's address), never a file.
+	@server path /api /api/* /auth /auth/* /operations/* /socket.io/* /hq-link /hq-content /host-link /console-link /file-link /presets/* /health /mcp /.well-known/*
+	handle @server {
 		reverse_proxy hq-server:4101
 	}
 

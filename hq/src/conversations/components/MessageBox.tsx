@@ -1,6 +1,10 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { AudioLines, Hand, Mic, MicOff, Plus, Send, Square } from 'lucide-react'
+import { useMentionTarget } from '@agenthix/ui/sessions'
+import { MessageField, type MessageFieldHandle } from './MessageField'
 import { useDictation } from '../hooks/useDictation'
+import { AtPicker } from './atPicker/AtPicker'
+import { useAtPicker } from './atPicker/useAtPicker'
 import { handRaiseWords, rightButton, SPEAKER_RING, type Speaker } from '../voiceClient/voiceUi'
 
 export type MessageBoxVoice = {
@@ -23,10 +27,8 @@ export type MessageBoxVoice = {
   status?: string | null
 }
 
-const MAX_FIELD_PX = 128
-
 /** How many lines `text` takes at the one-row field's width, measured in a hidden copy of the field. */
-function linesAtOneRow(text: string, copy: HTMLDivElement | null, width: number, field: HTMLTextAreaElement): number {
+function linesAtOneRow(text: string, copy: HTMLDivElement | null, width: number, field: HTMLElement): number {
   if (!text) return 1
   const newlines = text.split('\n').length
   if (!copy || width <= 0) return newlines
@@ -48,7 +50,7 @@ const NO_VOICE: MessageBoxVoice = {
  * voice mode, mute and End stand beside the pill and give way while the person types. The text stays in the box
  * when sending is refused.
  */
-export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plus, voice = NO_VOICE }: {
+export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plus, voice = NO_VOICE, takesMentions = false }: {
   placeholder: string
   running: boolean
   sending: boolean
@@ -61,13 +63,25 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
   agentId?: string
   /** The conversation it writes into, so dictation is costed to its place. */
   conversationId?: string
+  /** Mention in a file beside it puts the file's path here, at the caret, shown as a chip; with a conversation, `@` opens a picker of its files. */
+  takesMentions?: boolean
 }) {
   const [text, setText] = useState('')
+  const mentioned = useCallback((t: string) => field.current?.insertMention(t), [])
   const [menu, setMenu] = useState(false)
   const [why, setWhy] = useState(false)
   const menuRoot = useRef<HTMLDivElement>(null)
-  const field = useRef<HTMLTextAreaElement>(null)
+  const field = useRef<MessageFieldHandle>(null)
   const dictation = useDictation({ text, setText, field, agentId, conversationId })
+  const picker = useAtPicker({ enabled: takesMentions && !!conversationId, field })
+  const pill = useRef<HTMLFormElement>(null)
+  const [pickerLeft, setPickerLeft] = useState(0)
+  useLayoutEffect(() => {
+    if (!picker.open) return
+    const caret = field.current?.caretRect()
+    const box = pill.current?.getBoundingClientRect()
+    if (caret && box) setPickerLeft(Math.max(0, Math.min(caret.left - box.left, box.width - 320)))
+  }, [picker.open, picker.fragment])
   const hasText = text.trim().length > 0
 
   useEffect(() => {
@@ -77,18 +91,16 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
     return () => document.removeEventListener('mousedown', outside)
   }, [menu])
 
-  // The field grows with what is written, up to max-h-32 (128 px), then scrolls;
+  // The field grows with what is written, up to its limit, then scrolls;
   // from two lines the text sits above the whole width and the buttons stay in a row underneath. Lines are counted at
   // the one-row field's width whichever layout shows, so the layout never flips back and forth at the edge.
   const [twoLines, setTwoLines] = useState(false)
   const oneRowWidth = useRef(0)
   const mirror = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
-    const el = field.current
+    const el = field.current?.element()
     if (!el) return
-    if (!twoLines) oneRowWidth.current = el.clientWidth
-    el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, MAX_FIELD_PX)}px`
+    if (!twoLines && el.isConnected) oneRowWidth.current = el.clientWidth
     setTwoLines(linesAtOneRow(text, mirror.current, oneRowWidth.current, el) >= 2)
   }, [text, twoLines])
 
@@ -129,18 +141,19 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
     </div>
   )
   // Keyed, so it keeps its place (and the focus) when the layout changes.
-  const textarea = (
-    <textarea
+  const textField = (
+    <MessageField
       key="field"
-      ref={field}
-      value={text}
-      onChange={(e) => dictation.edit(e.target.value)}
+      handle={field}
+      text={text}
+      onText={dictation.edit}
+      onSubmit={() => void submit()}
       onFocus={dictation.prefetch}
-      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit() } }}
       placeholder={placeholder}
-      aria-label={placeholder}
-      rows={1}
-      className={`max-h-32 min-h-[36px] min-w-0 resize-none bg-transparent text-body text-text-primary placeholder:text-text-muted focus:outline-none ${twoLines ? 'w-full px-2.5 pb-1 pt-1.5' : 'flex-1 px-2 py-1.5'}`}
+      twoLines={twoLines}
+      onCaret={picker.onCaret}
+      onKeyFirst={picker.onKeyFirst}
+      listbox={picker.open ? { id: picker.listId, activeId: picker.activeId } : null}
     />
   )
   const mic = !voice.inVoice && (
@@ -161,6 +174,7 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
     <div className="shrink-0 px-4 pb-4 pt-2">
       <div className="flex items-end gap-2">
         <form
+          ref={pill}
           onSubmit={(e) => { e.preventDefault(); void submit() }}
           data-testid="message-pill"
           data-speaker={voice.inVoice ? voice.speaker : undefined}
@@ -168,14 +182,15 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
           className={`relative flex min-w-0 flex-1 rounded-3xl border border-border bg-surface-1 transition-shadow focus-within:border-accent ${twoLines ? 'flex-col px-1.5 pb-1.5 pt-2' : 'items-end gap-1 p-1.5'} ${ring}`}
         >
           {twoLines ? [
-            textarea,
+            textField,
             <div key="buttons" className="flex items-center gap-1">{more}<span aria-hidden className="flex-1" />{mic}{right}</div>,
           ] : [
             <Fragment key="more">{more}</Fragment>,
-            textarea,
+            textField,
             <Fragment key="mic">{mic}</Fragment>,
             <Fragment key="right">{right}</Fragment>,
           ]}
+          {picker.open && conversationId && <AtPicker conversationId={conversationId} picker={picker} left={pickerLeft} />}
           <div ref={mirror} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 whitespace-pre-wrap break-words px-2 text-body" />
         </form>
         {voice.inVoice && !hasText && (
@@ -211,6 +226,7 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
           </div>
         )}
       </div>
+      {takesMentions && <MentionTarget onMention={mentioned} />}
       {voice.inVoice && voice.status && (
         <p role="status" data-testid="voice-status" className="px-3 pt-1.5 text-small text-text-secondary">{voice.status}</p>
       )}
@@ -222,6 +238,12 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
       )}
     </div>
   )
+}
+
+/** Takes Mention only while drawn: a box that doesn't take it must not claim it. */
+function MentionTarget({ onMention }: { onMention: (text: string) => void }) {
+  useMentionTarget(onMention)
+  return null
 }
 
 function RightButton({ button, sending, onStop, onVoice, onPrepare, onWhy }: {

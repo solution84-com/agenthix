@@ -1,12 +1,9 @@
 /** Everything the Files tools read, behind one module (every screen reviewed spec §3). */
 import {
-  useQuery, listLocationFiles, getFileContent, getMyStorage,
-  listArtefacts, getArtefactContent, listKnowledgePages, listPlacePreviews,
+  useQuery, listLocationFiles, getMyStorage, listArtefacts, listKnowledgePages, listPlacePreviews,
 } from 'wasp/client/operations'
 import type { SiteSilence } from '@agenthix/core'
 import type { ListedEntry } from '@agenthix/ui/projects'
-import type { FileContent } from '../fileContentService'
-import type { FilesToolKind } from './fileReferences'
 
 export interface Owner {
   ownerType: 'project' | 'user'
@@ -39,15 +36,6 @@ export function useArtefacts(owner: Owner, enabled = true): Read<ListedEntry[]> 
 export function useKnowledge(owner: Owner, enabled = true): Read<unknown[]> {
   const { data, isLoading, error } = useQuery(listKnowledgePages, { owner }, { enabled })
   return { data: (data as { pages?: unknown[] } | undefined)?.pages, isLoading, error }
-}
-
-/** One file's content, from the folder the tool lists. A knowledge page is read by the Knowledge tool itself. */
-export function useFileContent(kind: FilesToolKind, target: Target, path: string): Read<FileContent> {
-  const owner = { ownerType: target.ownerType, ownerId: target.ownerId }
-  const files = useQuery(getFileContent, { target, filePath: path }, { enabled: kind === 'files' })
-  const artefact = useQuery(getArtefactContent, { ...owner, name: path }, { enabled: kind === 'artefacts' })
-  const read = kind === 'files' ? files : artefact
-  return { data: read.data as FileContent | undefined, isLoading: read.isLoading, error: read.error }
 }
 
 /** The running preview of each workspace in a place, by workspace id. */

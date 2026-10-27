@@ -17,3 +17,7 @@ export function attachmentFileNameProblem(name: string): string | null {
   }
   return null
 }
+
+/** The largest file a task takes as an attachment; checked in the browser before sending, and again by hq. */
+export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
+export const ATTACHMENT_TOO_LARGE = 'Attachments can be up to 10 MB.'

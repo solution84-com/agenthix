@@ -140,7 +140,7 @@ describe('uploadTaskAttachment @SC-042', () => {
     expect(await prisma.taskAttachment.count()).toBe(0)
   })
 
-  it('stores any-MIME file under an unguessable uuid, as the name given, and returns a share-by-link url encoding it', async () => {
+  it('stores any-MIME file under an unguessable uuid, as the name given, and returns its upload path, which /file-link turns into a link to hq\'s relay', async () => {
     const project = await createProject()
     const task = await makeTask(project.id)
 
@@ -150,7 +150,8 @@ describe('uploadTaskAttachment @SC-042', () => {
 
     const row = await prisma.taskAttachment.findUniqueOrThrow({ where: { id: res.attachmentId } })
     expect(row).toMatchObject({ fileName: 'notes v2.bin', mimeType: 'application/octet-stream', fileSizeBytes: 5, label: 'draft' })
-    expect(res.url).toBe(`https://hq.example/files/task/${task.id}/${row.uuid}/notes%20v2.bin`)
+    expect(res.path).toBe(`/files/task/${task.id}/${row.uuid}/notes%20v2.bin`)
+    expect(res).not.toHaveProperty('url')
     expect(await fs.readFile(path.join(root, 'tasks', task.id, row.uuid, 'notes v2.bin'), 'utf8')).toBe('hello')
   })
 

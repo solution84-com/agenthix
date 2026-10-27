@@ -11,6 +11,7 @@ import { taskRunner } from '../../agents/TaskRunner'
 import { deliverHeldInstructions } from '../heldInstructions'
 import { reconcileSiteNotifications, startSiteNotifications } from '../siteNotifications'
 import { reconcileAfterRestore } from '../restoreReconcile'
+import { relayAssigner } from '../../relays/assigner'
 import { Logger } from '../../server/utils/logger'
 
 const logger = new Logger('SiteChannel')
@@ -56,6 +57,8 @@ export const siteChannelRegistry = new SiteChannelRegistry(prismaSiteStatusStore
  */
 function onSiteConnected(siteId: string): void {
   void deliverHeldInstructions(siteId)
+  // The relay its file line goes to, with a pass; first, so files open as soon as the site is back (adr-0153).
+  void relayAssigner.onSiteConnected(siteId)
   // After a restore, of the site or of HQ: what was lost, and what HQ takes back (host-management spec §12).
   reconcileAfterRestore(siteId).catch(err => logger.error(`reconcileAfterRestore failed for site ${siteId}:`, err))
   // A site back on a matching version clears its upgrade, not-connected and HQ-site notifications.

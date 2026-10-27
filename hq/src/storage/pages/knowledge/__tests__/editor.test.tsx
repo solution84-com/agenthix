@@ -4,7 +4,10 @@ import './setup'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { data, ok, row, listOf, iso, setAddress, address, stubWidth } from './kit'
+import type { SiteFileRef } from '@agenthix/core'
 import { KnowledgeTool } from '../../KnowledgeTool'
+import { createEmbedBatch } from '../../../../shared/components/markdownEmbed/embedBatch'
+import { EmbedBatchContext } from '../../../../shared/components/markdownEmbed/useEmbedAnswer'
 
 const owner = { ownerType: 'project' as const, ownerId: 'p1' }
 const TEXT = '---\ntitle: Staging needs an approval\ndescription: Who signs off.\ntags: [decision]\nstatus: proposed\n---\n## Context\nChecks failed twice.\n'
@@ -71,6 +74,29 @@ describe('a new page @SC-1430', () => {
     fireEvent.change(screen.getByLabelText('Text'), { target: { value: '## A heading' } })
     fireEvent.click(screen.getByRole('tab', { name: 'Preview' }))
     expect(screen.getByRole('heading', { name: 'A heading' })).toBeTruthy()
+  })
+
+  it('previews embedded files as the saved page draws them: the place\'s Files beside the page\'s own section @SC-1558', async () => {
+    const asked: SiteFileRef[] = []
+    const batch = createEmbedBatch(async refs => {
+      asked.push(...refs)
+      return refs.map(r => ({
+        state: 'ready' as const, facts: { name: 'q3.png', size: 10, version: 'v1', contentType: 'image/png', kind: 'image' as const },
+        previewLink: `https://files.example.com/t/${r.space}`, downloadLink: 'https://files.example.com/t/d', expiresAt: Date.now() + 60_000,
+      }))
+    }, 0)
+    render(<EmbedBatchContext.Provider value={batch}><KnowledgeTool owner={owner} /></EmbedBatchContext.Provider>)
+    fireEvent.click(screen.getByRole('button', { name: 'New page' }))
+    fireEvent.change(screen.getByLabelText('Text'), { target: { value: '![chart](files/e2e-files/charts/q3.png)\n\n<img src="flow.png" width="200">' } })
+    fireEvent.click(screen.getByRole('tab', { name: 'Preview' }))
+    const images = () => [...document.querySelectorAll('img')]
+    await vi.waitFor(() => expect(images()).toHaveLength(2))
+    expect(images().map(i => i.getAttribute('src'))).toEqual(['https://files.example.com/t/place', 'https://files.example.com/t/knowledge'])
+    expect(images()[1].getAttribute('width')).toBe('200')
+    expect(asked).toEqual([
+      { space: 'place', loc: { ownerType: 'project', ownerId: 'p1', workspaceId: null, taskId: null }, path: 'e2e-files/charts/q3.png' },
+      { space: 'knowledge', owner, path: 'decisions/flow.png' },
+    ])
   })
 
   it('shows what the gate refused on its field', async () => {

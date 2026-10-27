@@ -11,8 +11,6 @@
  *    with a centralized `Logger` instance. This avoids duplicate log lines and
  *    gives us a single, consistent log format across the whole server.
  *
- * 1b. **The files origin** — answers uploaded files and nothing else (adr-0114).
- *
  * 2. **CORS** — Replaces Wasp's default CORS handler (which only allows
  *    `WASP_WEB_CLIENT_URL`) with one that also accepts the HQ origin so that
  *    brokered browser sessions can call site operations cross-origin.
@@ -32,7 +30,6 @@ import { CLIENT_PROTOCOL_VERSION_HEADER } from '@agenthix/core'
 import type { MiddlewareConfigFn } from 'wasp/server'
 import { Logger } from './utils/logger'
 import { signInLimit } from '../auth/signInLimit'
-import { filesHostGuard } from './files/fileAccess'
 import { readOnlyGuard } from './readOnly'
 import { slidePhoneSessionGuard } from '../mobile/slideSession'
 import { clientProtocolGuard, clientStatedOf, describeClient } from './clientProtocol'
@@ -41,14 +38,15 @@ const logger = new Logger('HTTP')
 
 /**
  * Wasp reads every JSON body with Express's default limit (100 kB), far under a picture sent as a data URL.
- * The four image-upload actions get room for a 10 MB image as base64 (about 13.4 MB); every other route keeps the default.
+ * The four image-upload actions and a task attachment's upload get room for a 10 MB file as base64 (about 13.4 MB);
+ * every other route keeps the default.
  */
-export const IMAGE_UPLOAD_BODY_LIMIT = '15mb'
-const IMAGE_UPLOAD_PATH = /^\/operations\/(upload-org-image|upload-team-image|upload-agent-image|upload-person-picture)\/?$/
+export const UPLOAD_BODY_LIMIT = '15mb'
+const UPLOAD_PATH = /^\/operations\/(upload-org-image|upload-team-image|upload-agent-image|upload-person-picture|upload-task-attachment)\/?$/
 const defaultJson = express.json()
-const imageJson = express.json({ limit: IMAGE_UPLOAD_BODY_LIMIT })
+const uploadJson = express.json({ limit: UPLOAD_BODY_LIMIT })
 export const jsonBody: express.RequestHandler = (req, res, next) =>
-  (IMAGE_UPLOAD_PATH.test(req.originalUrl.split('?')[0]) ? imageJson : defaultJson)(req, res, next)
+  (UPLOAD_PATH.test(req.originalUrl.split('?')[0]) ? uploadJson : defaultJson)(req, res, next)
 
 /**
  * The CORS rule every browser-facing route shares. The routes registered straight on Express in setup.ts (the
@@ -86,15 +84,6 @@ export const middlewareConfig: MiddlewareConfigFn = (middlewareConfig) => {
 
   middlewareConfig.set('logger', timestampLogger)
 
-  // ── 1b. The files origin answers uploaded files and nothing else ──
-  // Moved to just after the logger, ahead of everything Wasp set, so no
-  // later middleware or route sees a request to the files origin that is not
-  // a file's, or HQ's sign-in on one (adr-0114).
-  const rest = [...middlewareConfig].filter(([key]) => key !== 'logger')
-  for (const [key] of rest) middlewareConfig.delete(key)
-  middlewareConfig.set('filesHost', filesHostGuard)
-  for (const [key, value] of rest) middlewareConfig.set(key, value)
-
   // ── 2. CORS — allow both site frontend and HQ origin ──────────────
   // Wasp's default CORS handler only allows WASP_WEB_CLIENT_URL.  We
   // replace it so that Plan 2 brokered sessions (HQ browser → site API)
@@ -113,7 +102,7 @@ export const middlewareConfig: MiddlewareConfigFn = (middlewareConfig) => {
   // Acts only on Wasp's own login route; every other request passes through.
   middlewareConfig.set('signInLimit', signInLimit)
 
-  // ── 4. JSON bodies: room for the image-upload actions only ────────
+  // ── 4. JSON bodies: room for the upload actions only ──────────────
   middlewareConfig.set('express.json', jsonBody)
 
   // ── 5. Read-only while hq moves to a new machine (readOnly.ts) ────

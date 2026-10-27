@@ -96,7 +96,7 @@ function toWireLocation(loc: LocationRef): LocationRef {
   }
 }
 
-async function translateFailure(logicalSiteId: string, method: string, err: unknown): Promise<never> {
+export async function translateFailure(logicalSiteId: string, method: string, err: unknown): Promise<never> {
   const code = err instanceof ChannelRequestFailed ? err.code : null
   if (code === 'offline' || code === 'timeout' || code === 'disconnected') {
     const site = await siteInfoForLogicalSiteId(logicalSiteId)

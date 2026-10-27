@@ -328,7 +328,7 @@ describe('the tools the lead is given @SC-958', () => {
 
   it('carry a description and a schema the call is checked against', async () => {
     const getTask = (await adapter.toolsFor(capability)).find(t => t.name === 'get_task_details')!
-    expect(getTask.description).toBe('Get task details.')
+    expect(getTask.description).toMatch(/^Get a task's details, its comments and its attachments\. Each attachment has a reference/)
     expect(getTask.input.safeParse({ taskId: 't1' }).success).toBe(true)
     expect(getTask.input.safeParse({}).success).toBe(false)
   })

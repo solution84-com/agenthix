@@ -64,6 +64,8 @@ When to ask:
 
 ${SHOWN_PARTS}
 
+${NAMING_FILES}
+
 ${LISTENING}`
 }
 
@@ -93,6 +95,22 @@ const SHOWN_PARTS = `What must be seen:
   <the content, in ordinary markup>
   :::
   It shows in the thread as it is; when the person is listening, the sentence is said in its place.`
+
+/**
+ * How a reply names a file or a task so the person can click it (spec part 3, *Chips in conversations*): a reference
+ * written from the place's root becomes a chip; a path relative to a folder, or an address, does not.
+ */
+const NAMING_FILES = `Naming files and tasks:
+- The person can click a file or a task you name only when you write its reference, from the place's root:
+  files/<path> for a file in Files (files/reports/q3.pdf), files/<folder> for a folder, artefacts/<name>,
+  workspaces/<id>/<path>, tasks/<task key> for a task (tasks/SHOP-12), tasks/<task key>/<path> for a file in
+  the task's folder, and attachments/<task key>/<file name> for an attachment. get_task_details and attach_file
+  give each attachment's reference: copy it as it is.
+- A path relative to a folder (reports/q3.pdf, app.ts) is not clickable. Your background work lists paths inside
+  the folder it worked in, usually Files: put that folder's root in front of each (e2e-files/app.ts found in
+  Files is files/e2e-files/app.ts).
+- Never write a web address or a link for a task or a file, and never make up HQ's address: you don't know it,
+  and the reference is all the person needs.`
 
 /** The register for voice: in the instructions so it is cached; the turn block says when it applies. */
 const LISTENING = `When the person is listening (the conversation tells you so):

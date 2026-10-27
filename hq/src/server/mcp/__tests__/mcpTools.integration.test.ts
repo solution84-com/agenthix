@@ -173,7 +173,9 @@ describe('attach_file', () => {
   it('writes the file and records the attachment, with its label when given', async () => {
     const r = await callTool(admin(), 'attach_file', { taskId: w.task.id, name: 'Application', filename: 'application.json', content: '{}', label: 'application' })
     const row = await prisma.taskAttachment.findFirstOrThrow()
-    expect(parsed(r)).toEqual({ success: true, attachmentId: row.id, fileName: 'application.json' })
+    const { key } = await prisma.project.findUniqueOrThrow({ where: { id: (await prisma.task.findUniqueOrThrow({ where: { id: w.task.id } })).projectId } })
+    const { number } = await prisma.task.findUniqueOrThrow({ where: { id: w.task.id } })
+    expect(parsed(r)).toEqual({ success: true, attachmentId: row.id, fileName: 'application.json', reference: `attachments/${key}-${number}/application.json` })
     expect(row).toMatchObject({ taskId: w.task.id, fileName: 'application.json', label: 'application' })
     expect(await fs.readFile(path.join(storageRoot, 'tasks', w.task.id, row.uuid, 'application.json'), 'utf8')).toBe('{}')
   })

@@ -2,7 +2,7 @@
  * A person's name and picture (every screen reviewed spec §3, People), set by
  * themselves in their Profile and by organisation admins. Their login name
  * stays their handle. The picture is written and served as an agent's is
- * (server/imageUpload.ts, server/imageHandlers.ts).
+ * (server/imageUpload.ts; opened through hq's relay, server/files/uploadAccess.ts).
  */
 import { HttpError, prisma } from 'wasp/server'
 import { isOrgAdmin } from '../projects/membership'

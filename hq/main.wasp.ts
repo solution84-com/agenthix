@@ -25,6 +25,7 @@ import { cloudSpec } from "./src/cloud/cloud.wasp";
 import { connectionsSpec } from "./src/connections/connections.wasp";
 import { conversationsSpec } from "./src/conversations/conversations.wasp";
 import { dashboardSpec } from "./src/dashboard/dashboard.wasp";
+import { filesSpec } from "./src/files/files.wasp";
 import { fleetSpec } from "./src/fleet/fleet.wasp";
 import { diagnosticsSpec } from "./src/diagnostics/diagnostics.wasp";
 import { githubSpec } from "./src/github/github.wasp";
@@ -92,6 +93,7 @@ export default app({
     connectionsSpec,
     conversationsSpec,
     dashboardSpec,
+    filesSpec,
     fleetSpec,
     diagnosticsSpec,
     githubSpec,

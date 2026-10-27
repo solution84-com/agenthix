@@ -5,6 +5,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
 import { data, history, ok, row, listOf, iso, setAddress, address, stubWidth } from './kit'
 import { KnowledgeTool } from '../../KnowledgeTool'
+import { createEmbedBatch } from '../../../../shared/components/markdownEmbed/embedBatch'
+import { EmbedBatchContext } from '../../../../shared/components/markdownEmbed/useEmbedAnswer'
+import type { SiteFileRef } from '@agenthix/core'
 
 const owner = { ownerType: 'project' as const, ownerId: 'p1' }
 const TEXT = [
@@ -167,5 +170,16 @@ describe('a page, read', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete page' }))
     await vi.waitFor(() => expect(screen.getAllByRole('alert').map(a => a.textContent).join()).toContain('Nothing was changed.'))
     expect(address.params.get('page')).toBe('processes/release.md')
+  })
+})
+
+describe('a page\'s images @SC-1558', () => {
+  it('embeds an image the page names, from its own section of the same knowledge', async () => {
+    data.useKnowledgePageContent.mockReturnValue(ok({ page: 'processes/release.md', content: 'See ![chart](img/chart.png)', version: 'v1', linkedFrom: [] }))
+    const asked: SiteFileRef[][] = []
+    const batch = createEmbedBatch(async files => { asked.push(files); return files.map(() => ({ state: 'not-found' as const })) }, 0)
+    render(<EmbedBatchContext.Provider value={batch}><KnowledgeTool owner={owner} /></EmbedBatchContext.Provider>)
+    expect(await screen.findByRole('img', { name: "chart can't be shown" })).toBeTruthy()
+    expect(asked).toEqual([[{ space: 'knowledge', owner, path: 'processes/img/chart.png' }]])
   })
 })

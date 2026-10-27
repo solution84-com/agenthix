@@ -33,7 +33,7 @@ import { readBoardsAcrossProjects } from './boardsAcrossProjects'
 import { WARNED_SITE_SELECT, projectSiteAsShown } from '../sites/resources/projectSiteWarning'
 import { boardFields, projectDetail, projectFields, projectListItem } from './projectWire'
 import { isTaskState } from './taskArgs'
-import { LISTED_TASK_INCLUDE, projectTaskListItem, taskCommentView, taskProjectRef } from './taskWire'
+import { LISTED_TASK_INCLUDE, projectTaskListItem, taskCommentView, taskProjectFacts, type TaskProjectFacts } from './taskWire'
 
 type OpenedRow = Parameters<typeof projectDetail>[0] & {
   executionSite: Parameters<typeof projectSiteAsShown>[0]
@@ -160,7 +160,7 @@ export const getTasks: GetTasks<GetTasksArgs, ProjectTaskListItem[]> = async (ar
   return rows.map(projectTaskListItem)
 }
 
-export const getTask: GetTask<TaskIdArgs, TaskListItem | null> = async ({ taskId }, context) => {
+export const getTask: GetTask<TaskIdArgs, (TaskListItem & { project: TaskProjectFacts }) | null> = async ({ taskId }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   // A caller can transiently invoke this before its route param resolves; guard the
   // undefined id so Prisma doesn't 500 (the client re-queries with the real id).
@@ -168,11 +168,11 @@ export const getTask: GetTask<TaskIdArgs, TaskListItem | null> = async ({ taskId
   await requireTaskVisible(taskId, context.user.id)
   const task = await withDisplayReason(await context.entities.Task.findUnique({
     where: { id: taskId },
-    include: { ...LISTED_TASK_INCLUDE, project: { select: { id: true, name: true, key: true } } },
+    include: { ...LISTED_TASK_INCLUDE, project: { select: { id: true, name: true, key: true, personalSpace: true, personalOwnerId: true } } },
   }))
   if (!task) return null
   const [shown] = await withRunWaitNotes([task])
-  return { ...projectTaskListItem(shown), project: taskProjectRef(shown.project) }
+  return { ...projectTaskListItem(shown), project: taskProjectFacts(shown.project) }
 }
 
 const TASK_NOT_FOUND = 'Task not found'

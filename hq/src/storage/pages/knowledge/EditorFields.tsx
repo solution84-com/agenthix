@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
-import { MarkdownMessage } from '../../../shared/components/MarkdownMessage'
+import { MarkdownMessage, type MarkdownEmbedContext } from '../../../shared/components/MarkdownMessage'
 import type { PropertyRow } from './editorModel'
 
 const INPUT = 'block w-full rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-body text-text-primary placeholder:text-text-muted'
@@ -101,8 +101,13 @@ export function PropertyRows({ rows, offered, onChange }: {
   )
 }
 
-/** The page's text in Markdown, written or previewed as it will read. */
-export function TextEditor({ value, onChange, problems }: { value: string; onChange: (v: string) => void; problems?: string[] }) {
+/** The page's text in Markdown, written or previewed as it will read: `embed` is the saved page's place and folder. */
+export function TextEditor({ value, onChange, problems, embed }: {
+  value: string
+  onChange: (v: string) => void
+  problems?: string[]
+  embed?: MarkdownEmbedContext
+}) {
   const [tab, setTab] = useState<'write' | 'preview'>('write')
   const tabClass = (on: boolean) => `rounded-lg px-2.5 py-1 text-small ${on ? 'bg-surface-2 font-medium text-text-primary' : 'text-text-secondary hover:bg-surface-hover'}`
   return (
@@ -118,7 +123,7 @@ export function TextEditor({ value, onChange, problems }: { value: string; onCha
         />
       ) : (
         <div role="tabpanel" className="min-h-[8rem] rounded-lg border border-border-subtle bg-surface-1 px-3 py-2">
-          {value.trim() === '' ? <p className="text-small text-text-muted">Nothing to preview yet.</p> : <MarkdownMessage content={value} />}
+          {value.trim() === '' ? <p className="text-small text-text-muted">Nothing to preview yet.</p> : <MarkdownMessage content={value} embed={embed} />}
         </div>
       )}
     </Field>

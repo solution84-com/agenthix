@@ -38,12 +38,42 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in hq/compose.env}
       SECRETS_MASTER_KEY: ${SECRETS_MASTER_KEY:?Set SECRETS_MASTER_KEY in hq/compose.env (openssl rand -base64 32)}
       HQ_PAIRING_SECRET: ${HQ_PAIRING_SECRET:-}
+      # Shared with the relay below (adr-0153): without it HQ's relay cannot connect and files cannot be opened.
+      HQ_RELAY_SECRET: ${HQ_RELAY_SECRET:-}
+      FILES_ORIGIN: ${FILES_ORIGIN:-}
     volumes:
       - hq_storage:/hq-storage
     networks: [internal]
     depends_on:
       hq-db:
         condition: service_healthy
+    restart: unless-stopped
+
+  # hq's relay (adr-0153) carries the bytes of every file a browser opens: a site's, over the line the site dials, and
+  # hq's own uploads, read from hq's storage folder, mounted read-only. It dials hq-server on the private network, is
+  # reached by hq-web alone and publishes nothing.
+  relay:
+    build:
+      context: ..
+      dockerfile: relay/docker/Dockerfile
+      target: relay
+    image: agenthix-relay
+    environment:
+      RELAY_HQ_ADDRESS: http://hq-server:4101
+      HQ_RELAY_SECRET: ${HQ_RELAY_SECRET:?Set HQ_RELAY_SECRET in hq/compose.env (openssl rand -hex 32)}
+      HQ_URL: ${HQ_URL}
+      FILES_ORIGIN: ${FILES_ORIGIN:-}
+      HQ_UPLOADS_ROOT: /hq-storage
+    volumes:
+      - hq_storage:/hq-storage:ro
+    networks: [internal]
+    depends_on: [hq-server]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4401/health').then(r => process.exit(r.status === 200 ? 0 : 1), () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   hq-web:

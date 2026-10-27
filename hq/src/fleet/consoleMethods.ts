@@ -132,6 +132,7 @@ const READ: { [M in ConsoleLinkMethod]: (p: Record<string, unknown>) => Params<M
   'site.move': p => ({ executionSiteId: text(p, 'executionSiteId', 64, ID), toHostId: text(p, 'toHostId', 64, ID) }),
   'hq.about': () => ({}),
   'site.loads': () => ({}),
+  'relay.facts': () => ({}),
   'activity.list': p => ({
     byUserId: text(p, 'byUserId', 64, ID),
     ...(p.after === undefined ? {} : { after: text(p, 'after', 64, ID) }),

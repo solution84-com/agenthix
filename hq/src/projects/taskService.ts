@@ -32,7 +32,7 @@ export async function getTask(taskId: string) {
       sprint:  { select: { id: true, number: true, name: true, startDate: true, finishDate: true, finishedAt: true } },
       epic:    { select: { id: true, number: true, title: true } },
       milestone: { select: { id: true, name: true, date: true } },
-      project: { select: { name: true } },
+      project: { select: { name: true, key: true } },
     },
   })
 }

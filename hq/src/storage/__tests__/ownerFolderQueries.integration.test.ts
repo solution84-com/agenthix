@@ -1,5 +1,5 @@
 /**
- * The Artefacts tool's reads, against the real test database
+ * The Artefacts tool's listing, against the real test database
  * (projects, membership and the location access rule are real); the site's
  * folder store is the stand-in, and whether the site was asked is part of the
  * behaviour checked.
@@ -9,13 +9,11 @@
  *  2. **A site that is down is never an empty folder** (503, as every storage read).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { LocationFileError } from '@agenthix/core'
 import { prisma } from '../../test/db'
 import { createProject, createUser } from '../../test/factories'
 
 const h = vi.hoisted(() => ({
   listArtefactsOnSite: vi.fn(),
-  readArtefactOnSite: vi.fn(),
 }))
 
 vi.mock('wasp/server', async () => {
@@ -27,10 +25,7 @@ vi.mock('wasp/server', async () => {
 // refusal is an unchecked read.
 vi.mock('../ownerFolderStore', () => h)
 
-import {
-  listArtefactsQuery,
-  getArtefactContentQuery,
-} from '../ownerFolderQueries'
+import { listArtefactsQuery } from '../ownerFolderQueries'
 import { SiteUnreachableError } from '../workspaceStore'
 
 const askedTheSite = () => Object.values(h).reduce((n, fn) => n + fn.mock.calls.length, 0)
@@ -41,17 +36,15 @@ let project: { ownerType: 'project'; ownerId: string }
 beforeEach(async () => {
   for (const fn of Object.values(h)) fn.mockReset()
   h.listArtefactsOnSite.mockResolvedValue({ entries: [] })
-  h.readArtefactOnSite.mockResolvedValue(Buffer.from('# Pricing'))
   me = await createUser()
   const open = await createProject({ accessLevel: 'OPEN' })
   await prisma.projectMember.create({ data: { projectId: open.id, userId: me.id } })
   project = { ownerType: 'project', ownerId: open.id }
 })
 
-describe('the location access rule at both queries', () => {
+describe('the location access rule at the listing', () => {
   const calls = (owner: { ownerType: 'user' | 'project'; ownerId: string }, ctx: { user?: { id: string } }) => [
     () => listArtefactsQuery(owner, ctx),
-    () => getArtefactContentQuery({ ...owner, name: 'a.md' }, ctx),
   ]
 
   it("refuses someone else's own storage and a project the caller is not on, open or private, without asking the site", async () => {
@@ -83,7 +76,7 @@ describe('the location access rule at both queries', () => {
     }
   })
 
-  it('answers an unreachable site with 503 from every one of them', async () => {
+  it('answers an unreachable site with 503', async () => {
     const down = new SiteUnreachableError('Local site', 'site-1')
     for (const fn of Object.values(h)) fn.mockRejectedValue(down)
     for (const call of calls(project, { user: me })) {
@@ -107,19 +100,5 @@ describe('artefacts', () => {
       ],
     })
     expect(h.listArtefactsOnSite).toHaveBeenCalledWith(project)
-  })
-
-  it('opens one in the same shape the file viewer reads, asking for no more than it can show', async () => {
-    await expect(getArtefactContentQuery({ ...project, name: 'pricing.md' }, { user: me }))
-      .resolves.toEqual({ kind: 'markdown', name: 'pricing.md', text: '# Pricing' })
-    expect(h.readArtefactOnSite).toHaveBeenCalledWith(project, 'pricing.md', 1_000_000)
-  })
-
-  it('shows a file the site refused as too large as too large, and a missing one as 404', async () => {
-    h.readArtefactOnSite.mockRejectedValueOnce(new LocationFileError('too_large', 'location.readArtefact "big.pdf"'))
-    await expect(getArtefactContentQuery({ ...project, name: 'big.pdf' }, { user: me }))
-      .resolves.toEqual({ kind: 'too-large', name: 'big.pdf' })
-    h.readArtefactOnSite.mockRejectedValueOnce(new LocationFileError('not_found', 'location.readArtefact "x.md"'))
-    await expect(getArtefactContentQuery({ ...project, name: 'x.md' }, { user: me })).rejects.toMatchObject({ statusCode: 404 })
   })
 })

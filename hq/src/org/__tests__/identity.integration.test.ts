@@ -2,7 +2,7 @@
  * An organisation's and a team's identity (every screen reviewed spec §3,
  * Organisation: an identity has a hero), against the real test database with
  * hq's storage in a temporary folder: everyone reads it, admins change it, and
- * a picture or cover is stored and served as an agent's is.
+ * a picture or cover is stored as an agent's is, and opened by the same rule.
  */
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
 import os from 'node:os'
@@ -16,15 +16,9 @@ vi.mock('wasp/server', async () => {
   const { prisma } = await import('../../test/db')
   return { ...actual, prisma }
 })
-const session = vi.hoisted(() => ({ userId: null as string | null }))
-vi.mock('../../server/files/fileAccess', async () => ({
-  ...(await vi.importActual<typeof import('../../server/files/fileAccess')>('../../server/files/fileAccess')),
-  // The link a request carries is the files origin's check (files/__tests__/fileAccess.test.ts); here, who it names.
-  readerOf: () => ({ userId: session.userId, download: false }),
-}))
-
 import { getOrgIdentity, normaliseOrgHandle, updateOrgIdentity } from '../identity'
-import { orgImageHandler, removeOrgImage, teamImageHandler, uploadOrgImage, uploadTeamImage } from '../identityImages'
+import { removeOrgImage, uploadOrgImage, uploadTeamImage } from '../identityImages'
+import { uploadAccess } from '../../server/files/uploadAccess'
 
 const ctx = (user?: { id: string }) => ({ user }) as any
 const PNG = `data:image/png;base64,${Buffer.from('not really a png').toString('base64')}`
@@ -44,13 +38,10 @@ afterAll(async () => {
   await fs.rm(tmp, { recursive: true, force: true })
 })
 
-function response() {
-  const res: any = { statusCode: 200, headers: {} as Record<string, string>, body: undefined as unknown }
-  res.status = (code: number) => { res.statusCode = code; return res }
-  res.json = (body: unknown) => { res.body = body; return res }
-  res.setHeader = (k: string, v: string) => { res.headers[k] = v }
-  res.send = (body: unknown) => { res.body = body; return res }
-  return res
+/** What opening an upload would answer: 200 when hq would sign its ticket, else the refusal's status. */
+async function opening(uploadPath: string, userId: string | null): Promise<number> {
+  const access = await uploadAccess(uploadPath, userId)
+  return access.ok ? 200 : access.status
 }
 
 describe('normaliseOrgHandle @SC-662', () => {
@@ -87,7 +78,7 @@ describe("the organisation's identity @SC-662 @SC-663", () => {
     expect((await prisma.org.findFirstOrThrow()).name).toBe('Acme')
   })
 
-  it("stores an admin's picture and cover in hq's storage and serves them to anyone signed in, and signed out only while the sign-in page shows them", async () => {
+  it("stores an admin's picture and cover in hq's storage and opens them to anyone signed in, and signed out only while the sign-in page shows them", async () => {
     const admin = await createUserWithRole('ADMIN')
     const member = await createUserWithRole('MEMBER')
     await prisma.org.create({ data: { name: 'Acme' } })
@@ -97,19 +88,12 @@ describe("the organisation's identity @SC-662 @SC-663", () => {
     expect((await prisma.org.findFirstOrThrow()).coverUrl).toBe(url)
     await expect(uploadOrgImage({ type: 'avatar', dataUrl: PNG }, ctx(member))).rejects.toMatchObject({ statusCode: 403 })
 
-    const filename = url.split('/').pop()!
-    session.userId = null
     // Signed out, only while the sign-in page shows the whole cover (getting-in spec).
     await prisma.org.updateMany({ data: { signInShows: 'NAME' } })
-    const refused = response()
-    await orgImageHandler({ params: { filename } } as any, refused)
-    expect(refused.statusCode).toBe(401)
+    expect(await opening(url, null)).toBe(401)
+    expect(await opening(url, member.id)).toBe(200)
     await prisma.org.updateMany({ data: { signInShows: 'COVER' } })
-    session.userId = member.id
-    const served = response()
-    await orgImageHandler({ params: { filename } } as any, served)
-    expect(served.statusCode).toBe(200)
-    expect(served.headers['Content-Type']).toBe('image/png')
+    expect(await opening(url, null)).toBe(200)
 
     await removeOrgImage({ type: 'cover' }, ctx(admin))
     expect((await prisma.org.findFirstOrThrow()).coverUrl).toBeNull()
@@ -125,10 +109,10 @@ describe("a team's identity @SC-663", () => {
     expect(url).toMatch(new RegExp(`^/teams/${team.id}/images/[0-9a-f-]+\\.png$`))
     expect((await prisma.team.findUniqueOrThrow({ where: { id: team.id } })).avatarUrl).toBe(url)
 
-    session.userId = admin.id
-    const climbing = response()
-    await teamImageHandler({ params: { teamId: '..', filename: url.split('/').pop() } } as any, climbing)
-    expect(climbing.statusCode).toBe(404)
+    expect(await opening(url, admin.id)).toBe(200)
+    expect(await opening(`/teams/../images/${url.split('/').pop()}`, admin.id)).toBe(404)
+    expect(await opening(`/teams/not-a-team/images/${url.split('/').pop()}`, admin.id)).toBe(404)
+    expect(await opening(url, null)).toBe(401)
     await expect(uploadTeamImage({ teamId: 'missing', type: 'avatar', dataUrl: PNG }, ctx(admin))).rejects.toMatchObject({ statusCode: 404 })
   })
 })

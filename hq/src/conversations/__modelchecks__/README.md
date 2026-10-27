@@ -13,7 +13,7 @@ suite.
 
 Each check is a conversation's place, what was said, and what passes. The checks run in a fixed world
 (`world.ts`): one person, Your space, one project (*Website Rebuild*) with a *Release process* page, and the
-platform guide's pages on providers, voice and the glossary. The tools answer from a script (`script.ts`) in the
+platform guide's pages on providers, voice and the glossary, and one task (*WEB-3*) with one attachment. The tools answer from a script (`script.ts`) in the
 real tools' words. Nothing reaches a database, a site or a card.
 
 | Check | Where | Message | Passes when |
@@ -24,6 +24,8 @@ real tools' words. Nothing reaches a database, a site or a card.
 | `place-outside` | Your space | "What's the release process in Website Rebuild?" | `suggest_place` for the project |
 | `correction` | a project, after an answer from *Release process* | "The release process page is wrong: …" | `edit_knowledge` or `write_knowledge` on that page; no `remember`, no `start_work` |
 | `in-reach` | a project | "What's our release process?" | `search_knowledge` before the answer |
+| `task-attachment` | a project | "Can you link me WEB-3 and its attachment?" | `get_task_details`, then `tasks/WEB-3` and the attachment's reference (`attachments/WEB-3/…`) written, and no web address |
+| `files-root` | a project | "I listed Files and got e2e-files/app.ts, … Which one is the readme? I want to click it." | `files/e2e-files/README.md` written, and no web address |
 
 A run takes up to 5 model calls. A check passes for a model only when every run of it passes.
 

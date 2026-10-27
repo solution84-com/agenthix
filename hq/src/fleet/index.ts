@@ -19,6 +19,7 @@ import { activityPage, dismissFleetNotice, findAccount, fleetNotices } from './f
 import { reconcileMachineNotices, startMachineNotices } from '../sites/machineNotices'
 import { moveSite, openTransfer } from './siteMove'
 import { hqAbout, siteLoads } from './consoleFacts'
+import { relayFacts } from './relayFacts'
 import { cloudConsoleServices } from '../cloud'
 import {
   acceptHandover, claimHandover, closeHandover, completeHandover, completeHandoverWithCredential, handoverCertificates,
@@ -80,6 +81,7 @@ export function consoleServices(hub: RelayHub): ConsoleServices {
     'site.move': params => moveSite(params),
     'hq.about': () => hqAbout(),
     'site.loads': () => siteLoads(),
+    'relay.facts': () => relayFacts(),
     'activity.list': ({ byUserId, after }) => activityPage(byUserId, after),
     'notices.list': ({ byUserId }) => fleetNotices(byUserId),
     'notices.dismiss': ({ byUserId, noticeId }) => dismissFleetNotice(byUserId, noticeId),
