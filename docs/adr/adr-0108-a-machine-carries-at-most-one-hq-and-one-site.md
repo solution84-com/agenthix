@@ -58,3 +58,7 @@ adr-0042, adr-0066, adr-0070, adr-0107.
 > [`2026-10-13-host-management`](../work/2026-10-13-host-management/plan.md), plan 2.4–2.5 and 3.16, merged to `main` at
 > its close and verified by the close-out regression and the owner's walkthroughs. Its naming was superseded by adr-0120
 > during the unit.
+
+> **Extended by adr-0154.** *(annotated 2026-10-27)* A machine also carries at most one relay, and outside hq's machine a
+> site and a relay never together ([ADR-0154](adr-0154-a-machine-carries-a-site-or-a-relay-never-both-outside-hqs.md)).
+> hq's machine carries hq, hq's site and hq's relay. The rest of this record stands.

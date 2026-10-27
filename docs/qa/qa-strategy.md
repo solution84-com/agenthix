@@ -12,7 +12,7 @@ This file holds this repository's QA settings. The general QA model — the two 
 
 **A full QA audit is required before every release, and optional at a unit's close.** The owner decides at each close whether to run one, scoped to the modules the unit changed; it checks the contract against the code, walks the requirement → scenario → test chain, runs the suites, and its findings become the unit's open items. Contract entries a unit wrote for itself are checked by the next audit like any other — the audit before release at the latest.
 
-**Scope: `core`, `hq`, `site`, `host`, `console`, `console-web`, `ui`.** `host` (the host service and its `agenthix` command line), `console` (the Fleet Console's server) and `console-web` (its screens) joined on 2026-10-16, at the close of the host management unit. The identity service, the old central aggregator, the mobile client and the marketing site moved out of this repository on 2026-08-09. Each now carries its own `qa-strategy.md`, self-contained beside its own code, and this file no longer covers them. This repo's own control-plane app was renamed `site` → `hq` on 2026-08-11, and a separate `site/` module — the Execution Site — was created alongside it, reusing the vacated name; see the naming note under Modules.
+**Scope: `core`, `hq`, `site`, `host`, `console`, `console-web`, `relay`, `ui`.** `host` (the host service and its `agenthix` command line), `console` (the Fleet Console's server) and `console-web` (its screens) joined on 2026-10-16, at the close of the host management unit. The identity service, the old central aggregator, the mobile client and the marketing site moved out of this repository on 2026-08-09. Each now carries its own `qa-strategy.md`, self-contained beside its own code, and this file no longer covers them. This repo's own control-plane app was renamed `site` → `hq` on 2026-08-11, and a separate `site/` module — the Execution Site — was created alongside it, reusing the vacated name; see the naming note under Modules.
 
 ## Modules
 
@@ -28,7 +28,8 @@ Which checks apply to each module and its end-to-end surface.
 | host | yes | yes (esbuild) | yes | none (a command line; its container tier, below, drives the built image) |
 | console | yes | yes (esbuild) | yes | none |
 | console-web | yes | yes (vite) | yes | none (web, without a browser suite — see End-to-end) |
-| ui | yes | no | no | none |
+| relay | yes (the viewer too) | yes (esbuild) | yes | none (a server with no screen; the PDF viewer page is covered by `hq`'s e2e and the cross-app tier) |
+| ui | yes | no | yes (the files frame and its renderers) | none |
 
 ## Commands
 
@@ -42,7 +43,8 @@ The standard interface is `npm run typecheck`, `npm run build`, `npm test`. Wher
 | host | `npm run typecheck` | `npm run build` | `npm test` | — (not yet instrumented) |
 | console | `npm run typecheck` | `npm run build` | `npm test` | — (not yet instrumented) |
 | console-web | `npm run typecheck` (the app and its Vite config) | `npm run build` | `npm test` | — (not yet instrumented) |
-| ui | `npx tsc --noEmit` | — | — | — |
+| relay | `npm run typecheck` | `npm run build` | `npm test` | — (not yet instrumented) |
+| ui | `npm run typecheck` (`npx tsc --noEmit`) | — | `npm test` | — |
 
 `host` also has `npm run test:container` (`vitest.container.config.ts`, the `*.container.test.ts` files): it needs Docker and the host service's image built (`docker build -f host/docker/Dockerfile -t <name> .` at the root), runs one file at a time, and drives the real image — its CLI, its compose projects, the firewall rules on the machine, backups and restores in Docker. All three new modules need `core` built first (`cd core && npm run build`).
 
@@ -82,7 +84,7 @@ Self-contained — the testing contract lives under `docs/qa/`, no dependency on
 
 | Artifact | Path | Committed |
 |---|---|---|
-| Scenarios contracts | `docs/qa/scenarios/` — one file per module (`hq.md`, `site.md`, `host.md`, `console.md`, `console-web.md`, `core.md`, `ui.md`) | yes |
+| Scenarios contracts | `docs/qa/scenarios/` — one file per module (`hq.md`, `site.md`, `host.md`, `console.md`, `console-web.md`, `core.md`, `relay.md`, `ui.md`) | yes |
 | Stories contracts | `docs/qa/stories/` — `hq.md` (members and organisation admins), `host.md` (the machine admin), `console.md` (the fleet admin, for `console` and `console-web` together), `cross-cutting.md` | yes |
 | Domain maps (per module) | `docs/qa/domains/` | yes |
 | User-journey coverage map (which journeys matter to which role, and what covers them) | `docs/qa/coverage.md` | yes |
@@ -120,7 +122,8 @@ The audit records pure defects as non-authoritative observations and recommends 
 - **hq** — a typecheck/build quirk: typecheck requires the `.wasp/` SDK present (run `npx wasp compile` once if it hasn't been generated yet). hq's `tsconfig.json` only references `tsconfig.src.json` (the app) and `tsconfig.wasp.json` (the `*.wasp.ts` declaration files), so a bare `npx tsc --noEmit` in `hq/` checks nothing and passes; `npm run typecheck` checks both. **The build/boot gate is authoritative, not optional.** `npm run typecheck` and `npx vitest run` run against `src/` and do **not** compile Wasp's generated SDK (`.wasp/out/sdk/wasp`), so they can be fully green while `npx wasp build` fails — e.g. an operation whose return type is a TS `interface` (instead of a `type` alias) fails the SuperJSON `Payload` index-signature constraint only at SDK build. The client build (`npx vite build`, which the image's web stage runs) type-checks `src/`, tests included, before it bundles, so a type error in a test fails the image build. Before finishing a branch on hq, a clean **`npx wasp build`** (or **`npx wasp start`** booting to `Server listening on port 4101`) is required — the agent runs it (backgrounded + watched + stopped), never the user. Wasp snapshots source into `.wasp/out` at generation, so re-running `tsc` inside `.wasp/out` tests stale code — only a fresh regenerate is valid.
 - **host**, **console** — plain Node servers built with esbuild; `npm run typecheck` needs `core` built (`core/dist`) and nothing generated. `host`'s container tier needs Docker; it is not run in CI.
 - **console-web** — a React app built with Vite; `npm run typecheck` checks the app and `tsconfig.node.json` (its Vite config); its tests run in jsdom.
-- **ui** — no test runner; components are tested through consumers (`hq`). Exposes `typecheck` only.
+- **relay** — a plain Node server built with esbuild, its PDF viewer page bundled beside it; `npm run typecheck` needs `core` built (`core/dist`) and nothing generated. Its tests run the relay against fakes of the sites and of hq.
+- **ui** — `npm run typecheck` and `npm test` (Vitest in jsdom, `ui/vitest.config.ts`), which needs its React peers linked from `hq` as CI does; no build of its own. `@agenthix/ui/files` (the file frame and its renderers) has its own tests; components without tests of their own are still tested through their consumers (`hq`, `console-web`).
 
 ## Deviations
 
@@ -130,7 +133,8 @@ Remove rows from this table once the scripts are added.
 
 | Module | Missing scripts | Direct command used instead |
 |---|---|---|
-| ui | all scripts | `npx tsc --noEmit` for typecheck |
+| ui | `build` | none: the package is consumed as source and has nothing to build |
+- **ui** — `npm run typecheck` and `npm test` (Vitest in jsdom, `ui/vitest.config.ts`), which needs its React peers linked from `hq` as CI does; no build of its own. `@agenthix/ui/files` (the file frame and its renderers) has its own tests; components without tests of their own are still tested through their consumers (`hq`, `console-web`).
 
 ### Coverage instrumentation
 
@@ -169,7 +173,7 @@ test.describe('delete session @SC-074', () => { ... })     // e2e (Playwright �
 Scenario coverage is then **derived, not hand-mapped**:
 
 ```
-grep -rhoE '@SC-[0-9]+' core/src hq/src hq/scripts hq/e2e site/src host/src console/src console-web/src tests/cross-app scripts | sort -u    # scenarios with a citing test
+grep -rhoE '@SC-[0-9]+' core/src hq/src hq/scripts hq/e2e site/src host/src console/src console-web/src relay/src relay/viewer ui/src tests/cross-app scripts | sort -u    # scenarios with a citing test
 # gaps = scenarios in the contract with no citing test
 ```
 

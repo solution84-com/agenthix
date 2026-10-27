@@ -16,6 +16,8 @@ itself.
 
 ![The HQ page in the Fleet Console, with how people reach HQ, its version and backups, and the machine it runs on](screenshot:console-hq)
 
+**HQ's relay** runs with HQ on its machine. It carries file bytes from the sites to people's browsers, so that no file passes through HQ itself, and HQ's page shows it in a card of its own: its address, how many sites it serves, what it has carried since it started and how many streams are open. If it stops, no file can be opened in HQ until it answers, and the Dashboard's **Needs you** says so; see [The files address](domain-and-https.md#the-files-address).
+
 ## Sites
 
 A **site**, short for Execution Site, is where agents run, and where the files of the projects on it are kept. HQ has

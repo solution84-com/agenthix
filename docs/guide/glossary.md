@@ -31,6 +31,11 @@ Also said: permission request, sign-off, ask, "needs you".
 The throwaway things agents made for you in conversations, such as a draft or a chart. Keep one by asking an agent to move it into **Files**. Where: **Artefacts** in a project or in **Your space** (`/space?tool=artefacts`).
 Also said: artifacts, outputs, generated files, things the agent made.
 
+## Attachment
+
+A file that belongs to a task, attached by a person or by an agent as a deliverable, up to 10 MB. It opens beside the task and downloads. Where: **Attachments** on a task's page (`/projects/<key>?task=<number>`). See [A task's files](projects/task-files.md).
+Also said: task file, upload, deliverable, attached file.
+
 ## Automation
 
 Agents picking up work on their own, within limits an administrator sets. Where: **Automation** in a project (`/projects/<key>?tool=automation`) or in **Your space**; the organisation's switch and limits are under **Manage › Settings › Automation** (`/admin/settings/automation`).
@@ -51,6 +56,11 @@ Also said: kanban, task board, backlog.
 The list of your conversations in **Your space**, newest first. Where: **Chat** in the side bar (`/chat`).
 Also said: messages, talk to the agent, my conversations.
 
+## Chip
+
+A file, folder, task or attachment named in a message, shown as a small piece with an icon, a name and what kind it is. Select it to open what it names. Where: in conversations, and in the message box after **Mention** or `@`. See [Files in conversations](projects/files-in-conversations.md).
+Also said: file link, mention, reference, tag, pill.
+
 ## Connection
 
 A way for a tool outside Agenthix, such as your own Claude Code, to work in HQ as you, with only the permissions you turn on. Where: **Settings › Devices and connections › Connections** (`/settings/connections`).
@@ -68,7 +78,7 @@ Also said: site, server, runner, worker machine, where work runs.
 
 ## Files
 
-The documents of a project, or of your space, that agents write and people read. Where: **Files** in a project (`/projects/<key>?tool=files`) or in **Your space** (`/space?tool=files`).
+The documents of a project, or of your space, that agents write and people read, opened in place and downloadable. See [Open and download files](projects/open-and-download-files.md). Where: **Files** in a project (`/projects/<key>?tool=files`) or in **Your space** (`/space?tool=files`).
 Also said: documents, folder, attachments, project files.
 
 ## Fleet Console
@@ -115,6 +125,11 @@ Also said: team members, collaborators, who is in this project, access.
 
 What agents remember about you, or about a place, so that you do not repeat yourself. Where: **Settings › Memory** for your own (`/settings/memory`); a project's **Memory** for administrators; the organisation's under **Manage › Settings › Memory** (`/admin/settings/memory`).
 Also said: remember this, what the agent knows about me, preferences, forget.
+
+## Mention
+
+Putting a file into the message you are writing. Select **Mention** on an open file, or type `@` in the message box and choose a file. It becomes a chip, and the agent receives the file's path. Where: **Mention** on an open file, and the message box of a conversation. See [Files in conversations](projects/files-in-conversations.md).
+Also said: @, attach, reference a file, tag a file, link a file.
 
 ## Models
 
@@ -186,6 +201,11 @@ Also said: API key, vendor, LLM provider, model account, STT, TTS.
 The pages deleted from a place's Knowledge in the last 30 days, each with who deleted it and when it will be removed. **Restore** brings a page back; **Delete permanently** removes it at once. Where: **Recently deleted** at the foot of the sections in **Knowledge** (`?tool=knowledge&view=deleted`).
 Also said: trash, bin, deleted pages, recycle bin.
 
+## Relay
+
+The part of HQ that carries files to your browser, so that no file passes through HQ's own server. It runs with HQ. If it stops, files can't be opened until it answers, and a file says so by name, for example "hq-box · HQ's relay isn't answering". Where: named in the message on a file that can't be opened, and on the Fleet Console's **HQ** page (fleet admins). See [Open and download files](projects/open-and-download-files.md#when-a-file-cant-be-opened).
+Also said: file server, files host, file relay.
+
 ## Routine
 
 Work that comes round again on a schedule, such as a weekly summary. Each time it makes a task, called a round. Where: **Automation** in a project (`/projects/<key>/routines`).
@@ -245,6 +265,11 @@ Also said: voice call, talk, speech, dictation, text to speech, speech to text.
 
 A named set of steps, each running in a container of its own with only the secrets that step names. An agent proposes it and a person approves each version before it can run. Where: **Workflows** in a project or **Your space** (`/projects/<key>?tool=workflows`); one workflow at `/workflows/<id>`.
 Also said: pipeline, script, automation (loosely), job, GitHub action.
+
+## Working files
+
+What a task's runs wrote in the task's own folder: notes, outputs and drafts. They open beside the task. Where: **Working files** on a task's page. See [A task's files](projects/task-files.md).
+Also said: task folder, outputs, run files, files the agent wrote.
 
 ## Workspace
 

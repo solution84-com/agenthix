@@ -105,8 +105,8 @@ disk, so the snapshot can be a copy-on-write clone; they are removed when the ru
 **What lives in hq instead.** An agent's definition and its packages, what an agent remembers (memory items, in
 three scopes: [ADR-0058](../adr/adr-0058-memory-of-a-person-is-held-by-hq-in-two-layers.md)), the words of a
 conversation ([conversation-layer.md](conversation-layer.md#the-record)), task attachments
-uploaded by people and agent images are hq's own (`HQ_STORAGE_ROOT`, `hq/src/server/hqStoragePaths.ts`).
-None of them is on a site.
+uploaded by people and agent images are hq's own (`HQ_STORAGE_ROOT`, `hq/src/server/hqStoragePaths.ts`),
+served to browsers by hq's relay from that folder mounted read-only. None of them is on a site.
 
 ---
 
@@ -195,15 +195,20 @@ hq's image and never on a site.
 
 ## hq reading and writing files
 
-hq has no path to a site's disk. Everything goes through `location.*` methods
-(`core/src/protocol/locationFiles.ts`):
+hq has no path to a site's disk. Everything it reads or writes itself goes through `location.*` methods
+(`core/src/protocol/locationFiles.ts`). **A file a person opens or downloads is not read by hq**: hq asks the site
+about it (`file.about`), signs a ticket, and the site serves the bytes to its relay, confined to the place's storage
+as these reads are ([files-and-relays.md](files-and-relays.md)).
 
 | Method | Transport | Used for |
 |---|---|---|
 | `location.listFiles`, `location.statFile` | control channel | The storage pages, file browsers |
-| `location.readFile` | content transport | Showing a file |
+| `location.findFiles` | control channel | The message box's `@` picker: a place's files by name, bounded, never following a link |
+| `file.about` | control channel | A file's facts before hq opens it or a chip shows it; no content |
+| `git.status` | control channel | The git line above a workspace or `files/` ([files-in-the-browser.md](files-in-the-browser.md#git-status-at-a-glance)) |
+| `location.readFile` | content transport | A place's instruction file, which the lead reads |
 | `location.listArtefacts` | control channel | The Artefacts tool |
-| `location.readArtefact` | content transport | Opening an artefact |
+| `location.readArtefact` | content transport | Nothing in hq; deprecated since site protocol 1.8 |
 | `location.listKnowledge`, `location.searchKnowledge`, `location.write`/`edit`/`delete`/`restoreKnowledge`, `location.knowledgeVersions` | control channel | The Knowledge tool, and the knowledge tools of agents ([below](#where-knowledge-lives)) |
 | `location.readKnowledge` | content transport | Opening a page, or one of its versions |
 | `location.seedFiles`, `location.ensureDir` | control channel | hq creating a project's starting files and folders |
@@ -217,8 +222,7 @@ hq has no path to a site's disk. Everything goes through `location.*` methods
   link, and a folder that has itself been replaced by one. The same holds for knowledge, below. It has no notion of who is asking: it has no
   users.
 - hq's callers are `hq/src/storage/locationFileStore.ts` and `ownerFolderStore.ts`, and the queries in
-  `hq/src/storage/queries.ts` and `ownerFolderQueries.ts`. A file larger than 1 MB is described rather than
-  sent (`hq/src/storage/fileContentService.ts`).
+  `hq/src/storage/queries.ts` and `ownerFolderQueries.ts`.
 - **People do not write into a site's storage through hq.** A person's upload to a task is stored by hq
   (`uploadTaskAttachment`). Agents write their own files in their container. How files are shared and
   served is [the file-sharing concept](../concepts/file-sharing/file-sharing.md).

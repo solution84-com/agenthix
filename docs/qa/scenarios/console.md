@@ -89,3 +89,9 @@ The Fleet Console has no accounts and no authority of its own: a fleet admin sig
 ## Its published port (added 2026-10-24)
 
 - **SC-1254** — The Fleet Console knows the port it is published on (`CONSOLE_PUBLISHED_PORT`, 7801 outside an installation, refused when not a port), and every sentence that names its address names that one: the refusal of a request with the wrong Host header from the published port, the words `console install` prints before starting it, and the compose project that publishes it to `127.0.0.1` on that port only and dials HQ's own address; its own server stays on 4301 whichever port it is published on. · fulfils AC-369a · tests `console/src/__tests__/listen.test.ts`, `console/src/__tests__/guards.test.ts`, `host/src/cli/__tests__/consoleWords.test.ts`, `host/src/compose/__tests__/console.test.ts`
+
+## The Fleet Console and hq's relay (added 2026-10-27)
+
+The Fleet Console asks hq about hq's own relay as it asks about hq and its sites; it holds no files and no tickets.
+
+- **SC-1591** — The Fleet Console reads hq's own relay from hq over its link (`relay.facts`, host protocol 1.2) and gives it as hq gives it — address, the sites it serves, traffic, open streams and whether it answers — dropping an address that is not a web address, giving none for a relay not in its shape, and none from an hq older than the method or while hq does not answer. · fulfils AC-396a

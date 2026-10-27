@@ -155,6 +155,8 @@ Implementation note (presentation, not a decision): products and programs render
 - **Scratch lifecycle** — when/whether to sweep old session scratch (carried from ADR-0038).
 - **Concurrency for same-path writes** — file-grained, mechanism deferred (carried from ADR-0038).
 
+*(Annotated 2026-10-27: the file-viewer scope is answered by [ADR-0155](adr-0155-a-file-is-drawn-only-by-a-renderer-behind-one-boundary.md) — every file drawn read-only by a renderer behind one boundary: Markdown, text, code, JSON, CSV, images and PDF, and every file downloadable whatever its kind or size; [files-in-the-browser.md](../architecture/files-in-the-browser.md).)*
+
 ## References
 - [ADR-0038 — Workspace as the Storage Entity](./adr-0038-workspace-as-storage-entity.md) — **superseded by this ADR.** Its build remains on `feature/workspace-storage-entity` (unmerged) as reference.
 - [ADR-0036 — Context-Centric Security](./adr-0036-context-centric-security.md) — the owner is the access boundary; permanent ownership + subtree mounts.

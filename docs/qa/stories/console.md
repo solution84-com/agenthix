@@ -1,7 +1,7 @@
 ---
 name: User Stories — Fleet Console
 description: Business-level requirements for the Fleet Console (console/ and console-web/) — what a fleet admin needs to look after the machines Agenthix runs on. Written for business readers.
-updated: 2026-10-16
+updated: 2026-10-27
 ---
 
 # User Stories — the Fleet Console (`console/`, `console-web/`)
@@ -211,3 +211,15 @@ As a fleet admin, I want every message about where to open the Fleet Console to 
 
 **Acceptance criteria:**
 - AC-369a: the Fleet Console refuses a request that did not arrive at its address with a message naming its own published port, and its commands say that port, whether it is the default or the one the machine admin chose.
+
+## hq's relay (added 2026-10-27)
+
+Written from the finished code at the close of the unit *seeing the agents' work*. hq's relay is what carries every file's bytes between a browser and the site that holds it; it runs on hq's machine with hq.
+
+### US-396 — See whether hq's relay is answering
+
+As a fleet admin, I want to see hq's relay beside hq and be told at once when it is not answering, so that I know why people cannot open files and do not mistake it for the machine being down.
+
+**Acceptance criteria:**
+- AC-396a: HQ's page shows a card for hq's relay: the address people reach it at, the sites it serves, today's traffic and its open streams; with no files address it says so and that PDF preview is off, and links to the guide; what is not reported yet is said.
+- AC-396b: a relay that is not answering is on the Dashboard's *Needs you* in the words people see and takes me to HQ; it is not listed while it answers.

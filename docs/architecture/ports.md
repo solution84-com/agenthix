@@ -22,8 +22,8 @@ own numbers stay the same everywhere, so what runs in development is what runs i
 
 ## Our own convention
 
-Each service owns a hundred, and the last two digits say what listens: **41 hq, 42 site, 43 Fleet Console; 00 the
-web page, 01 the server, 09 the database.**
+Each service owns a hundred, and the last two digits say what listens: **41 hq, 42 site, 43 Fleet Console, 44 relay; 00
+the web page, 01 the server, 09 the database.**
 
 <!-- ports:convention -->
 | Service | x00 web page | x01 server | x09 database |
@@ -31,6 +31,7 @@ web page, 01 the server, 09 the database.**
 | hq (41) | 4100 | 4101 | 4109 |
 | site (42) | — | 4201 | 4209 |
 | Fleet Console (43) | 4300 | 4301 | — |
+| relay (44) | — | 4401 | — |
 
 - The x09 database ports are for development, where a database listens on the machine. Inside an installation's
   containers every database keeps PostgreSQL's own port (5432), because each is on a private network of its own.
@@ -38,6 +39,9 @@ web page, 01 the server, 09 the database.**
   server, which also serves those screens once built, listens on 4301 in development and inside its container.
 - Tailscale serve, for reaching a development copy from your other devices, uses the two ports in the next table. It
   listens on the tailnet address only.
+- The relay carries file bytes between browsers and the sites assigned to it. It has no web page and no database: its
+  server answers browsers on the files address and the lines sites dial to it, on 4401 in development and inside its
+  container.
 
 <!-- ports:constants -->
 | Name | Value |
@@ -56,6 +60,7 @@ web page, 01 the server, 09 the database.**
 | site server | 4201, and a control socket | hq's server; agent containers, for models | not published |
 | site database | 5432 | the site's server | not published |
 | Fleet Console | 4301: its server, which also serves its screens; a control socket; on a machine Agenthix Cloud runs, the remote-access port | fleet admins' browsers, through the published port; Agenthix Cloud | the Fleet Console's published port, on 127.0.0.1 only; the remote-access port as Agenthix Cloud names it |
+| hq's relay | 4401: browsers' requests on the files address, and the lines sites dial | hq web, which sends it the files address and the sites' lines | not published |
 | Front door (Caddy), when on | 80 and 443 | anyone opening an https address | 80 and 443 |
 | Host service | none: sockets only | its command line, the Fleet Console | not published |
 | Agent containers | 4096 on the container's own loopback address (the OpenCode server); an agent's own preview, on whatever port its app uses | only from inside the container: the site reaches both through `docker exec` | not published |

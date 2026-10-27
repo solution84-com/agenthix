@@ -97,3 +97,10 @@ every site to be reachable.
 - [ADR-0057](adr-0057-a-container-is-bound-to-one-storage-location.md) — the container a preview runs
   inside
 - `docs/work/2026-09-15-hq-site-split-close-out/spec.md` §6.6 — the design this is cut from
+
+> **Files no longer cross hq.** *(annotated 2026-10-27)* The bytes of a file a person opens no longer take this
+> transport through hq: a site serves them to a relay, a fleet member it dials out to, which carries them to the
+> browser on a ticket hq signed ([ADR-0153](adr-0153-relays-carry-every-file-byte-and-hq-only-signs-tickets.md)). The
+> relay's line reuses this transport's frames and stream multiplexer, so opaque bytes still never travel on the control
+> channel, and a site still listens on nothing. The separable relay this record foresaw is that fleet member for files.
+> Previews still cross hq as decided here, and the content transport still carries the bytes hq itself needs.

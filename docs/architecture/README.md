@@ -9,9 +9,11 @@ files, git, the web and the platform itself. The organisation runs all of it on 
 ```mermaid
 flowchart LR
     BR["Browser"] -->|"HTTPS: pages and actions; Socket.io: live output"| HQ
+    BR -->|"HTTPS on the files address: a file's bytes, on a ticket hq signed"| RL
     subgraph HQ ["hq: control plane"]
         HQDB[("hq database: people, projects, tasks, agents, providers and keys, the ledger")]
     end
+    RL["hq's relay: carries file bytes, decides nothing"]
     subgraph SA ["Execution Site"]
         SADB[("site database: runs, transcripts, workspaces")]
         DISK["storage on disk"]
@@ -22,6 +24,9 @@ flowchart LR
     SB["another Execution Site, optional"]
     SA <-->|"control channel: one WebSocket the site opens; requests from hq, events from the site"| HQ
     SB <-->|"control channel"| HQ
+    SA -->|"relay line: the site dials; files.serve on a ticket"| RL
+    SB -->|"relay line"| RL
+    RL -->|"relay link: alive, load"| HQ
     SA -->|"HTTPS: platform tool calls, token renewal, usage reports"| HQ
     C1 -->|"HTTP on a private network: platform tools, model relay, OpenCode's gate"| SA
     C2 -->|"HTTP on a private network"| SA
@@ -56,9 +61,12 @@ flowchart LR
 
 Every install brings hq, one site and the Fleet Console to one machine; an organisation may add more sites, each on a
 machine of its own, through the Fleet Console ([host-management.md](host-management.md)).
-Each site dials out to hq; hq never connects to a site. Control messages cross that connection, bytes such
-as file contents cross a second socket the site also opens, and the site calls hq's HTTPS endpoints for the
-little it needs from hq ([control-channel.md](control-channel.md)). hq is the
+Each site dials out to hq; hq never connects to a site. Control messages cross that connection, the bytes hq itself
+needs (agent packages, a page of knowledge, a live preview) cross a second socket the site also opens, and the site
+calls hq's HTTPS endpoints for the little it needs from hq ([control-channel.md](control-channel.md)). **The bytes of a
+file a person opens never pass through hq**: hq checks access and signs a short-lived ticket, and **hq's relay**, which
+runs beside hq behind its one door, carries the bytes from a line the site dials to it
+([files-and-relays.md](files-and-relays.md)). hq is the
 organisation's own: one per organisation, self-hosted, and the single source of truth for its data
 ([ADR-0042](../adr/adr-0042-hq-is-the-orgs-own.md)).
 
@@ -100,7 +108,11 @@ repository's `AGENTS.md` has the stack, the conventions and how to run them.
 | **Resolver** | The one module in hq that decides, for every model and voice call, the model via its provider, the runtime and what the cost belongs to |
 | **Ledger** | hq's append-only record of every call and its cost, kept against a billing profile |
 | **Pulse** | hq code, not an agent run, that starts a boundary's queued tasks one at a time per agent. A boundary's automation switch, off by default, turns it and the boundary's schedules on |
-| **Machine** | A computer or virtual machine running a host service. It carries at most one site, named after it |
+| **Machine** | A computer or virtual machine running a host service. It carries at most one site, named after it; outside hq's machine, a site or a relay, never both |
+| **Relay** | A fleet member that carries the bytes of files between browsers and sites, and decides nothing. Today the one relay is **hq's relay**, on hq's machine ([files-and-relays.md](files-and-relays.md)). Not the site's model relay, nor hq relaying the Fleet Console's commands |
+| **Files address** | The origin a relay answers browsers on, apart from hq's own, with no session, so a file opened there cannot act as the person in hq |
+| **Ticket** | hq's signed permission for one stream of one file at one version, for one person, through one relay; five minutes long |
+| **Renderer** | What draws one kind of file, behind one contract, inside Agenthix's frame ([files-in-the-browser.md](files-in-the-browser.md)) |
 | **Host service** | The one service on each machine that runs hq and the site there; the only authority over the machine |
 | **Fleet Console** | The fleet admins' portal, which asks host services to act through commands hq relays unread |
 | **Fleet admin**, **machine admin**, **organisation admin** | A fleet admin holds an hq account's fleet admin role and looks after the machines through the Fleet Console; a machine admin is whoever can use Docker on one machine; an organisation admin is hq's `ADMIN`, who looks after people, projects and agents |
@@ -201,7 +213,7 @@ sequenceDiagram
 
 ## The documents
 
-**Read these four first, the fifth before changing anything about machines, the sixth before changing a conversation, and the seventh before anything touches a secret or GitHub.** Each answers one question a newcomer arrives with, and opens with a diagram.
+**Read these four first, the fifth before changing anything about machines, the sixth before changing a conversation, the seventh before anything touches a secret or GitHub, and the last two before anything shows a file or moves its bytes.** Each answers one question a newcomer arrives with, and opens with a diagram.
 
 | Document | Answers |
 |---|---|
@@ -212,6 +224,8 @@ sequenceDiagram
 | [host-management.md](host-management.md) | The host service and the Fleet Console: adding a site, maintenance, backups and restoring, moves, a machine that stops answering, and Agenthix Cloud's controller on a machine Cloud runs |
 | [conversation-layer.md](conversation-layer.md) | How a conversation is answered from hq: the record, the one-turn lock, the lead's context and tools, operations and workers, recovery, memory, voice |
 | [workflows.md](workflows.md) | How a secret is used without entering an agent's container: proposing and approving a workflow, a run end to end, the executor and its containers, the egress proxy, masking and the changed-file scan, the mint gate |
+| [files-and-relays.md](files-and-relays.md) | How a file's bytes reach a browser without passing through hq: opening a file end to end, tickets and passes, the site's line to its relay, the relay, hq's relay |
+| [files-in-the-browser.md](files-in-the-browser.md) | How a file is drawn and referred to: its kind, the renderer contract and registry, the frame and its states, the Markdown embed, chips and references, the `@` picker, git status |
 
 **Then the detail behind them:**
 
@@ -267,7 +281,10 @@ sequenceDiagram
 | The host service and its command line | `host/src/`; its commands in `host/src/cli/commands.ts` |
 | The Fleet Console's server, and its screens | `console/src/`, `console-web/src/` |
 | What the host service, the Fleet Console and hq share: operations, envelopes, joins, figures | `core/src/host/` |
-| hq's side of the fleet: the relay, the fleet admin role, moves, restores | `hq/src/fleet/` |
+| hq's side of the fleet: relaying the Fleet Console's commands, the fleet admin role, moves, restores | `hq/src/fleet/` |
+| Opening a file, tickets, the relays hq knows and where each site is placed | `hq/src/files/`, `hq/src/relays/`, `core/src/relay/`, `core/src/files/` (see [files-and-relays.md](files-and-relays.md)) |
+| The relay | `relay/` |
+| The renderer boundary and its frame; the Markdown embed and chips | `ui/src/files/`; `hq/src/shared/components/markdownEmbed/` (see [files-in-the-browser.md](files-in-the-browser.md)) |
 | hq's connection to Agenthix Cloud | `hq/src/cloud/`, `core/src/cloud/` (see [cloud-connection.md](cloud-connection.md)) |
 | Providers, their keys and health | `hq/src/providers/` (see [model-resolution.md](model-resolution.md)) |
 | Which model, provider and voice a call uses | `hq/src/routing/`, `hq/src/models-settings/` |
@@ -282,8 +299,11 @@ sequenceDiagram
 - **hq holds no authority over machines.** A machine is acted on only by its host service, asked through its own
   command line or by the one controller it pinned — the Fleet Console, or on a machine Agenthix Cloud runs Cloud's
   own; hq relays a Fleet Console's commands and cannot read or make one.
-- **Nothing dials a site, a host service or an agent.** Only hq listens on the network, and the Fleet Console on a
-  machine Cloud runs listens on one more port while Cloud has remote access on, to the addresses Cloud allows.
+- **Nothing dials a site, a host service or an agent.** Only hq listens on the network, with hq's relay behind the same
+  door, and the Fleet Console on a machine Cloud runs listens on one more port while Cloud has remote access on, to the
+  addresses Cloud allows.
+- **No file byte for a browser passes through hq-server.** A relay carries it, on a ticket hq signed and the site
+  verifies.
 - **A site holds no identities.** It verifies what hq signed.
 - **Secrets stay out of agent containers.** A container holds only short-lived tokens the site can revoke,
   plus one exception: a Claude subscription's login, which Anthropic's terms keep with the client, in the

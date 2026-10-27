@@ -1,7 +1,7 @@
 ---
 name: User-journey coverage map
 description: For each kind of person who uses Agenthix, the journeys that matter to them, what "works" means, which scenarios cover each, and whether a test backs them. Written from users' expectations, not from the code.
-updated: 2026-10-23
+updated: 2026-10-27
 ---
 
 # User-journey coverage map
@@ -24,7 +24,7 @@ A journey is **critical** when a person cannot do their job without it, or when 
 
 A citing test is not proof that it asserts the current wording; the audit that closes a unit re-reads them. Retired scenarios never count.
 
-Re-derive the citations with the command in the strategy (`grep -rhoE '@SC-[0-9]+' core/src hq/src hq/scripts hq/e2e site/src host/src console/src console-web/src tests/cross-app | sort -u`).
+Re-derive the citations with the command in the strategy (`grep -rhoE '@SC-[0-9]+' core/src hq/src hq/scripts hq/e2e site/src host/src console/src console-web/src relay/src relay/viewer ui/src tests/cross-app | sort -u`).
 
 ## First-time installer
 
@@ -136,6 +136,22 @@ These are not yet counted in the summary below; the full audit before the first 
 | **OPR-34** Make personal projects of my own | Important | I make as many as I like with a name only; only I see them, an organisation admin included; I can delete them and never my space; my work in them runs as me. | SC-1207, SC-1208, SC-1209, SC-1210 | 4 of 4 | Covered by a scenario and a test |
 | **MCH-14** Add the organisation's providers from the machine | Important | One command adds, lists or removes a provider, the key is asked for unseen and never put on a command line. | SC-1180, SC-1233, SC-1234 | 3 of 3 | Covered by a scenario and a test |
 
+### Journeys added at the close of *seeing the agents' work* (2026-10-27)
+
+These are not yet counted in the summary below; the full audit before the first release counts them. Every scenario below has a citing test. Most citations are on a whole group of tests (a `describe`), not on each test, so the audit re-reads them; the end-to-end specs (`hq/e2e/filesFrame.spec.ts`, `hq/e2e/fileLinks.spec.ts`) and the cross-app suites that carry some of the tags have not been run for this unit by the contract's authors.
+
+| Journey | Weight | What "works" means | Scenarios | Tests cite | Status |
+|---|---|---|---|---|---|
+| **OPR-35** Open what an agent made, where I am | Critical | A file opens read-only, in place, from Files, a workspace, an artefact, a knowledge page, a task, a link or a chip; each kind is drawn properly, a file too large shows its start, and every way it cannot open is said in words with the machine named; someone outside the place gets "not found". | SC-1447 to SC-1451, SC-1490, SC-1491, SC-1509 to SC-1517, SC-1532 to SC-1534, SC-1575 to SC-1577, SC-1578 to SC-1590 | 35 of 35 | Covered by a scenario and a test |
+| **OPR-36** Download any file, and attach one | Important | Download is there for every file of any kind and size; a task attachment of up to 10 MB uploads and a larger file is refused with the limit said first. | SC-1494, SC-1518, SC-1531 | 3 of 3 | Covered by a scenario and a test |
+| **OPR-37** See pictures and files where they are written | Important | Images in files, knowledge pages, task text and replies are drawn where written; another website's image waits for Load; only an image with its four attributes is drawn inside text. | SC-1550 to SC-1558, SC-1580, SC-1581 | 11 of 11 | Covered by a scenario and a test |
+| **OPR-38** Reach a file from where it is named | Important | One link per file; chips for files, folders, tasks and attachments; Mention and `@` put them in a message; agents are told how to name them. | SC-1535 to SC-1548 | 14 of 14 | Covered by a scenario and a test |
+| **OPR-39** See a task's files beside the task | Important | Attachments and the task's working files open beside it, with a link that names the task and the file. | SC-1516, SC-1517, SC-1557, SC-1559 to SC-1561 | 6 of 6 | Covered by a scenario and a test |
+| **OPR-40** See where a workspace stands in git | Important | One line: branch, clean or how many changed, last commit; reading runs nothing the repository sets up and never blocks an agent. | SC-1465, SC-1505 to SC-1508, SC-1549 | 6 of 6 | Covered by a scenario and a test |
+| **ADM-18** Be sure a file opens only for who may see it, and costs hq nothing | Critical | A ticket hq signed for one file and one person is the only way in; nothing from a file can act as the person opening it; no file byte passes through hq's server; every opening is recorded; the limits hold. | SC-1562 to SC-1577 | 16 of 16 | Covered by a scenario and a test |
+
+**Promises with no automated test that cites them:** the image start test and the install test for hq's relay (`scripts/images/start-test-all.sh`, `scripts/install-test/run.sh`) prove that hq's relay starts with hq and answers `files.localhost` with nothing configured (AC-397a); they are scripts and carry no `@SC` tag. Nothing else written for this unit is without a citing test. Designed but not built, so with no scenario: further relays on machines of their own, placement and pinning, the Fleet Console's relay screens beyond HQ's card, changed-file markers, diffs and the log, a person adding an image to a conversation, and a person's own IDE reaching a workspace.
+
 ## Viewer
 
 A stakeholder who reads what agents did and never starts work.
@@ -193,6 +209,7 @@ A person in HQ who holds the fleet admin role and looks after the machines — H
 | **FLT-13** Only the Fleet Console commands a machine | Critical | Every command is signed and sealed, HQ passes it unread and cannot make one; a handover is followed only when the running Fleet Console signed it. | SC-866, SC-877, SC-891, SC-923, SC-924, SC-937, SC-847 | 7 of 7 | Covered by a scenario and a test |
 | **FLT-14** Change how people reach HQ | Important | The front door and address are shown and changed with a warning; every machine follows only once the new address is HQ. | SC-890, SC-915, SC-935, SC-936, SC-855, SC-856, SC-857 | 7 of 7 | Covered by a scenario and a test |
 | **FLT-15** Read how it works without leaving the Fleet Console | Important | Help shows the guide's running pages with working links. | SC-919 | 1 of 1 | Covered by a scenario and a test |
+| **FLT-16** Know hq's relay is answering | Important | HQ's page shows hq's relay — address, sites served, traffic, streams — and a relay that is not answering is on *Needs you* in the words people see. | SC-1467, SC-1530, SC-1591, SC-1592, SC-1593 | 5 of 5 | Covered by a scenario and a test |
 
 No browser suite drives the Fleet Console's screens: they are covered by component tests against a fake server, and the server by unit tests; the cross-app suite covers the relay and sign-in only (SC-921, SC-923).
 
@@ -218,6 +235,7 @@ Whoever can use Docker on a machine Agenthix runs on, typing `agenthix` commands
 | **MCH-14** Choose the ports HQ and the Fleet Console are published on | Critical | Two ports with quiet defaults (7800, 7801) chosen at install, kept through upgrades, changed with one command. (Added 2026-10-24.) | SC-1242, SC-1243, SC-1249 | 3 of 3 | Covered by a scenario and a test |
 | **MCH-15** Be told before a port clash changes anything, and after one stops a part | Critical | One check before anything is published, one refusal ending "Nothing was changed."; a part a taken port blocks is reported. (Added 2026-10-24.) | SC-1244, SC-1245 | 2 of 2 | Covered by a scenario and a test |
 | **MCH-16** Run several installations on one machine, for testing | Important | A namespace of its own, an address slice for its agents and firewall rules for it alone; only a clash is refused. (Added 2026-10-24.) | SC-1241, SC-1246, SC-1247, SC-1248, SC-1253 | 4 of 5 (the install test is a script) | Covered by a scenario and a test |
+| **MCH-17** Have hq's relay start with hq | Important | hq's compose set runs the relay beside hq with a secret the install makes, publishing nothing of its own, from the image whose signature was checked. (Added 2026-10-27.) | SC-1524, SC-1594, SC-1595 | 3 of 3 | Covered by a scenario and a test |
 
 Some of these scenarios are also asserted by container tests (`npm run test:container` in `host/`), which need Docker and the built image; each scenario has at least one unit test too.
 
