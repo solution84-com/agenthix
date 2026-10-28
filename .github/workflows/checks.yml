@@ -213,6 +213,9 @@ jobs:
           npx wasp install
           npx wasp compile
       - name: Typecheck
+        # hq's own type check grew past Node's default heap on the runner too.
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
         run: |
           cd hq && npm run typecheck
       # The guide's recipes and sample data, which otherwise are type-checked only when the screenshots are taken. The

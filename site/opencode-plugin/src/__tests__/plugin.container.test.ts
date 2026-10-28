@@ -120,7 +120,6 @@ async function stageFor(conversationId: string, agentPkg: string) {
   return stageOpenCodeSkills({
     runId: `run-${conversationId}`,
     claudeHome: { serverDir: path.join(dir, 'home', '.claude'), visibleDir: '/home/appuser/.claude' },
-    packages: { platformDir: path.join(dir, 'packages', 'platform') },
     skills: installedOnly(await cacheInstalledSkills(agentSkills.get(agentPkg) ?? {})),
   }, conversationId)
 }
