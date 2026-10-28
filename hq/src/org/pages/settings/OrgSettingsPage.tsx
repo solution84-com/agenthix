@@ -35,6 +35,7 @@ export function OrgSettingsPage() {
         <OrgEntryRow to="/admin/settings/automation" title="Automation" line="What projects' pulses and schedules may do" />
         <OrgEntryRow to="/admin/settings/runs" title="Runs" line="Run time and turn limits, and archiving finished tasks" />
         <OrgEntryRow to="/admin/settings/memory" title="Memory" line="How well recall works, and the model that reads what agents remember" />
+        <OrgEntryRow to="/admin/settings/library" title="Library and skills" line="Whom the organisation trusts to sign what it installs, and how skills reach agents" />
         <OrgEntryRow to="/admin/settings/risk-rules" title="Tool risk rules" line="Patterns that label a command's risk" />
       </OrgEntryGroup>
       <p className="mt-6 text-small text-text-muted">

@@ -95,6 +95,8 @@ async function installOne(db: PrismaClient, kind: ImageTemplateKind, root: strin
   const { main } = preview
   if (preview.refusal) return { root, identity: main.identity, outcome: 'refused', problem: preview.refusal }
   if (main.outcome === 'same' || main.outcome === 'older') return { root, identity: main.identity, outcome: main.outcome, problem: null }
+  // An administrator removed it: it stays removed until one of them puts it back.
+  if (main.outcome === 'restore') return { root, identity: main.identity, outcome: 'removed', problem: null }
   const parts = readParts({ root, files: stamped })
   await db.$transaction(tx => writePlan(tx, { main, embedded: [] }, parts, { source: 'BUILT_IN', signerKind: 'NONE', byId: null, note: null }, 'Installed from Agenthix'))
   return { root, identity: main.identity, outcome: main.outcome, problem: null }

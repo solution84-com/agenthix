@@ -37,6 +37,7 @@ export const ADMIN_MENU: AdminMenuGroup[] = [
     { to: '/admin/settings/automation', label: 'Automation' },
     { to: '/admin/settings/runs', label: 'Runs' },
     { to: '/admin/settings/memory', label: 'Memory' },
+    { to: '/admin/settings/library', label: 'Library and skills' },
     { to: '/admin/settings/risk-rules', label: 'Tool risk rules' },
   ] },
   { heading: 'Where work runs', icon: Server, entries: [

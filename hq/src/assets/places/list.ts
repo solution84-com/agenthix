@@ -13,6 +13,8 @@ import { assertSees, placeOfProject, type PlaceContext } from './place'
 import { recordScan } from './scan'
 import { scanOnSite } from './siteSkills'
 import { defaultsOf, type PlaceDefaults } from './switches'
+import { libraryOffers, offerKey, originOf } from './libraryUpdate'
+import type { Origin } from './placeVersions'
 import { switchState } from './switchState'
 
 const NOTHING = 'Nothing was changed.'
@@ -47,6 +49,10 @@ export type PlaceSkillView = {
   gone: boolean
   setAsideReason: string | null
   lastSeenAt: Date | null
+  /** The Library skill it was added from, at the version copied or last updated to (F3). */
+  origin: Origin | null
+  /** The newer version the Library pins, offered with *Update…*; never applied by itself. */
+  libraryUpdate: string | null
 }
 
 export type PlaceSkillsView = {
@@ -67,10 +73,12 @@ export async function listPlaceSkills(db: PrismaClient, actor: Actor & { kind: '
 async function viewOf(db: PrismaClient, actor: Actor, ctx: PlaceContext): Promise<PlaceSkillsView> {
   const rows = await db.placeSkill.findMany({
     where: { ...ctx.place, OR: [{ goneAt: null }, { draft: { isNot: null } }] },
-    include: { versions: { select: { number: true, digest: true }, orderBy: { number: 'desc' } }, draft: { select: { revision: true } } },
+    include: { versions: { select: { number: true, digest: true, originIdentity: true, originVersion: true }, orderBy: { number: 'desc' } }, draft: { select: { revision: true } } },
     orderBy: [{ group: 'asc' }, { path: 'asc' }],
   })
+  const offers = await libraryOffers(db, rows.flatMap(r => originOf(r.versions[0]) ?? []))
   const skills = rows.map((row): PlaceSkillView => {
+    const origin = row.group === 'WORKSPACE' ? null : originOf(row.versions[0])
     const matching = row.versions.find(v => v.digest === row.lastFingerprint)
     const newest = row.versions[0]?.number ?? null
     return {
@@ -86,6 +94,8 @@ async function viewOf(db: PrismaClient, actor: Actor, ctx: PlaceContext): Promis
       gone: row.goneAt !== null,
       setAsideReason: row.setAsideReason,
       lastSeenAt: row.lastSeenAt,
+      origin,
+      libraryUpdate: origin ? offers.get(offerKey(origin)) ?? null : null,
     }
   })
   const allowed = Object.fromEntries(ACTIONS.map(a => [a, may(actor, a, ctx.target)])) as PlaceSkillsView['may']

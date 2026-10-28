@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router'
-import { AudioLines, House, MessageSquare, UserRound, FolderKanban, Bot, CircleDot, Building2, Settings, ShieldCheck } from 'lucide-react'
+import { AudioLines, House, MessageSquare, UserRound, FolderKanban, Bot, CircleDot, Library, Building2, Settings, ShieldCheck } from 'lucide-react'
 import { useShellCounts } from '../../layouts/useShellCounts'
 import { NavItem, type NavIcon } from './NavItem'
 
@@ -19,8 +19,9 @@ export const MAIN_LINKS: MainLink[] = [
   { to: '/space', label: 'Your space', icon: UserRound, active: (p) => within(p, '/space') },
   // Only the list itself: inside a project, the project's pin is what is highlighted.
   { to: '/projects', label: 'Projects', icon: FolderKanban, active: (p) => p === '/projects' },
-  { to: '/agents', label: 'Agents', icon: Bot, active: (p) => within(p, '/agents') },
   { to: '/tasks', label: 'Tasks', icon: CircleDot, active: (p) => within(p, '/tasks') },
+  { to: '/agents', label: 'Agents', icon: Bot, active: (p) => within(p, '/agents') },
+  { to: '/library', label: 'Library', icon: Library, active: (p) => within(p, '/library') || within(p, '/skills') },
 ]
 
 /** Development builds only: the voice lab, to watch voice while it runs. */

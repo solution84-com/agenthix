@@ -8,20 +8,36 @@ import type { PrismaClient } from '@prisma/client'
 import type { Db } from '../../packages/packageStore'
 import type { Actor } from '../policy'
 import { LifecycleError } from './errors'
-import { assertLibrary, byOf, identityOf, librarySkill } from './records'
+import { assertLibrary, byOf, identityOf, libraryAsset, librarySkill } from './records'
 
 const NOTHING = 'Nothing was changed.'
 const MAX_AGENTS_AT_ONCE = 200
 
-export type Holders = { everyAgent: boolean; agents: { id: string; name: string }[] }
+/** What was made from a template: read-only, and never changed by anything done to the template (adr-0072). */
+export type MadeThing = { name: string; version: string }
+
+/** A skill's: every agent or the agents chosen. A template's: nothing has it, but `made` names what was made from it. */
+export type Holders = { everyAgent: boolean; agents: { id: string; name: string }[]; made: MadeThing[] }
+
+type MadeRow = { name: string; madeFromVersion: { version: string } | null }
+
+async function madeFrom(db: Db, kind: string, assetId: string): Promise<MadeThing[]> {
+  const query = { where: { madeFromVersion: { assetId } }, select: { name: true, madeFromVersion: { select: { version: true } } }, orderBy: { name: 'asc' as const } }
+  const rows: MadeRow[] = kind === 'AGENT' ? await db.agent.findMany(query)
+    : kind === 'BOARD' ? await db.board.findMany(query)
+    : kind === 'TEAM' ? await db.team.findMany(query)
+    : []
+  return rows.map(r => ({ name: r.name, version: r.madeFromVersion?.version ?? '' }))
+}
 
 export async function holdersOf(db: Db, assetId: unknown): Promise<Holders> {
-  const asset = await librarySkill(db, assetId)
+  const asset = await libraryAsset(db, assetId)
+  if (asset.kind !== 'SKILL') return { everyAgent: false, agents: [], made: await madeFrom(db, asset.kind, asset.id) }
   if (asset.givenToAll) {
-    return { everyAgent: true, agents: await db.agent.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }) }
+    return { everyAgent: true, agents: await db.agent.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }), made: [] }
   }
   const grants = await db.assetGrant.findMany({ where: { assetId: asset.id }, select: { agent: { select: { id: true, name: true } } } })
-  return { everyAgent: false, agents: grants.map(g => g.agent).sort((a, b) => a.name.localeCompare(b.name)) }
+  return { everyAgent: false, agents: grants.map(g => g.agent).sort((a, b) => a.name.localeCompare(b.name)), made: [] }
 }
 
 /** Every agent (L2), or only the agents chosen (L3), who keep any grants they had. */
@@ -65,18 +81,36 @@ export async function removeFromAgent(db: PrismaClient, actor: Actor, input: { a
 
 export type RemoveResult = { removed: true } | { removed: false; confirm: string; holders: Holders }
 
-/** *Remove*: names the agents that have it and asks first; confirmed, it is marked removed. */
+/**
+ * *Remove*: names what it reaches and asks first; confirmed, it is marked removed. A skill's agents stop using it. A
+ * template's agents, boards and teams made from it stay exactly as they are; a removed template of Agenthix's is not
+ * installed again when hq starts, until an administrator puts it back.
+ */
 export async function removeAsset(db: PrismaClient, actor: Actor, input: { assetId: unknown; confirmed?: unknown }, now: Date): Promise<RemoveResult> {
   await assertLibrary(actor, 'remove', db)
   const by = byOf(actor)
-  const asset = await librarySkill(db, input.assetId)
+  const asset = await libraryAsset(db, input.assetId)
   if (asset.builtIn) throw new LifecycleError(`Built-in skills are switched off, not removed. ${NOTHING}`, 409)
   const holders = await holdersOf(db, asset.id)
   if (input.confirmed !== true && holders.agents.length > 0) {
     const who = holders.everyAgent ? 'Every agent has it' : `${holders.agents.map(a => a.name).join(', ')} ${holders.agents.length === 1 ? 'has' : 'have'} it`
     return { removed: false, confirm: `${who}. Removing ${identityOf(asset)} takes it from them; their pages will show it as missing.`, holders }
   }
+  if (input.confirmed !== true && holders.made.length > 0) {
+    const made = holders.made.map(m => m.name).join(', ')
+    return { removed: false, confirm: `${made} ${holders.made.length === 1 ? 'was' : 'were'} made from ${identityOf(asset)}. Removing it doesn't change them.`, holders }
+  }
   const { count } = await db.asset.updateMany({ where: { id: asset.id, removedAt: null }, data: { removedAt: now, removedById: by.byId } })
   if (count === 0) throw new LifecycleError(`That isn't in the Library. ${NOTHING}`, 404)
   return { removed: true }
+}
+
+/** *Put back*: a removed asset back in the Library, as it was. Administrators, as removing is. */
+export async function restoreAsset(db: PrismaClient, actor: Actor, input: { assetId: unknown }): Promise<{ identity: string }> {
+  await assertLibrary(actor, 'remove', db)
+  byOf(actor)
+  const asset = typeof input.assetId === 'string' ? await db.asset.findUnique({ where: { id: input.assetId } }) : null
+  if (!asset || !asset.removedAt || !asset.currentVersionId) throw new LifecycleError(`That isn't removed from the Library. ${NOTHING}`, 404)
+  await db.asset.update({ where: { id: asset.id }, data: { removedAt: null, removedById: null } })
+  return { identity: identityOf(asset) }
 }

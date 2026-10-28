@@ -12,6 +12,7 @@ import { requireConversationReader } from '../../conversations/readingRule'
 import { openJson } from '../../conversations/sealing'
 import { usedSkillsOf } from './usedSkillRecord'
 import { usedSkillView } from './usedSkillView'
+import { noteSkillUses } from './lastUsed'
 import { USED_SKILL_NOT_FOUND, type GetUsedSkillArgs, type UsedSkillView } from './usedSkillTypes'
 
 type Ctx = { user?: { id: string } | null }
@@ -26,7 +27,7 @@ export const getUsedSkill = async (args: GetUsedSkillArgs, context: Ctx): Promis
   const name = text(args?.name, 64)
   const path = args?.path === undefined ? undefined : text(args.path)
   if (!operationId || !name || path === null) throw new HttpError(400, 'Say which skill to open.')
-  const row = await prisma.operation.findFirst({ where: { id: operationId, conversationId: ref.id }, select: { siteId: true, runId: true, resultSummary: true } })
+  const row = await prisma.operation.findFirst({ where: { id: operationId, conversationId: ref.id }, select: { siteId: true, runId: true, resultSummary: true, boundaryType: true, boundaryId: true } })
   const result = row?.resultSummary ? openJson<OperationResult>(row.resultSummary) : null
   const runId = result?.runId ?? row?.runId
   if (!row?.siteId || !runId) throw new HttpError(404, USED_SKILL_NOT_FOUND)
@@ -37,6 +38,7 @@ export const getUsedSkill = async (args: GetUsedSkillArgs, context: Ctx): Promis
     if (err instanceof SiteUnreachableError) throw new HttpError(503, "The place this ran is not reachable now, so the skill it used can't be found. Try again later.")
     throw err
   }
+  if (run) await noteSkillUses(prisma, [run], row.boundaryType && row.boundaryId ? { placeType: row.boundaryType, placeId: row.boundaryId } : null)
   const use = usedSkillsOf(run?.skillsUsed).get(name)
   const view = use ? await usedSkillView({ db: prisma, sees: isProjectMember }, userId, use, path) : null
   if (!view) throw new HttpError(404, USED_SKILL_NOT_FOUND)

@@ -1672,6 +1672,16 @@ model Asset {
   /// Removed from the Library. The row and its history stay, so it can be restored.
   removedAt        DateTime?
   removedById      String?
+  /// *Skip this version* (U5): the update offer stays hidden until a version after this one is held.
+  skippedVersion   String?
+  /// News on the organisation's own copy (D18) dismissed up to this version of the original; a later one shows again.
+  newsSeenVersion  String?
+  /// The newest use hq has read from a run's record of skills used: when, which agent, and the boundary it worked in
+  /// ('user' | 'project' and its id). Plain ids: the record outlives a removed agent or project.
+  lastUsedAt        DateTime?
+  lastUsedAgentId   String?
+  lastUsedPlaceType WorkspaceOwnerType?
+  lastUsedPlaceId   String?
   versions         AssetVersion[]
   pinChanges       AssetPinChange[]
   grants           AssetGrant[]
@@ -1964,6 +1974,9 @@ model PlaceSkill {
   goneAt            DateTime?
   /// Why it is set aside: the same identity comes from a higher level (D12, D16).
   setAsideReason    String?
+  /// The newest use hq has read from a run's record of skills used, and the agent that used it (a plain id).
+  lastUsedAt        DateTime?
+  lastUsedAgentId   String?
   versions          PlaceSkillVersion[]
   draft             Draft?
   proposals         Proposal[]
@@ -1985,6 +1998,10 @@ model PlaceSkillVersion {
   publishedById      String?
   requestedByAgentId String?
   note               String?
+  /// The Library skill it came from with *Add to this place* (F3): its identity and the version copied or last updated
+  /// to. Set by hq when it adds or updates from the Library, and kept by every later publish; never read from the files.
+  originIdentity     String?
+  originVersion      String?
   createdAt          DateTime       @default(now())
 
   @@unique([placeSkillId, number])

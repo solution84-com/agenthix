@@ -18,7 +18,7 @@ import { createProject, createUserWithRole, joinProjectAs } from '../../../test/
 import { storeContent } from '../../content'
 import { disk, get, put, site } from './fakeSite'
 import {
-  addSkillToPlace, createPlaceSkillDraft, getPlaceSkillDraft, getPlaceSkills, getPlaceSkillVersions, publishPlaceSkillDraft,
+  addSkillToPlace, createPlaceSkillDraft, getPlaceSkillDraft, getPlaceSkillFiles, getPlaceSkills, getPlaceSkillVersions, publishPlaceSkillDraft,
   publishPlaceSkillFiles, putBackPlaceSkillVersion, removePlaceSkill, rollBackPlaceSkillVersion, savePlaceSkillDraft,
   scanPlaceSkills, switchPlaceSkill,
 } from '../operations'
@@ -118,6 +118,16 @@ describe('changed in files, not published (FV4)', () => {
     expect(v2.number).toBe(2)
     expect(meta(get(loc, '.agents/skills/review')!['SKILL.md'])).toEqual({ version: '2' })
     expect(Object.keys(get(loc, '.agents/skills/review')!).sort()).toEqual(['SKILL.md', 'scripts/x.sh'])
+  })
+
+  it("gives the newest version's text of each changed file beside the text now, for the line diff", async () => {
+    const { admin, skill } = await changedSkill()
+    const files = await getPlaceSkillFiles({ placeSkillId: skill.id }, as(admin))
+    expect(files.changes).toEqual({ added: ['scripts/x.sh'], changed: ['SKILL.md'], removed: [] })
+    expect(files.before.map(f => f.path)).toEqual(['SKILL.md'])
+    const before = Buffer.from(files.before[0].base64, 'base64').toString()
+    expect(meta(before)).toEqual({ version: '1' })
+    expect(before).not.toContain('Edited by an agent.')
   })
 
   it('puts the newest version back over the change', async () => {

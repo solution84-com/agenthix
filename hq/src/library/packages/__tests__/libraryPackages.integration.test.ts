@@ -119,8 +119,13 @@ describe('importing a package @SC-680', () => {
   it('a skill made here exports as an asset package under its publisher and version', async () => {
     const admin = await createUserWithRole('ADMIN')
     await prisma.org.create({ data: { name: 'Fernhill' } })
-    const { createMadeHereSkill } = await import('../../../assets/madeHere')
-    const made = await createMadeHereSkill(prisma as any, { name: 'release-notes', title: 'Release Notes', description: 'Writes notes', content: 'Body', byId: admin.id })
+    const { createNewSkill } = await import('../../../assets/lifecycle/draftStore')
+    const { publishDraft } = await import('../../../assets/lifecycle/publish')
+    const { personActor } = await import('../../../assets/policyActors')
+    const actor = await personActor(admin.id, prisma)
+    const draft = await createNewSkill(prisma as any, actor, { name: 'release-notes', description: 'Writes notes' })
+    await publishDraft(prisma as any, actor, { assetId: draft.assetId, revision: draft.revision, note: 'First version' })
+    const made = { id: draft.assetId }
 
     const { base64, filename } = await exportLibraryItem({ kind: 'skill', id: made.id }, ctx(admin))
 

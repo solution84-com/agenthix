@@ -11,7 +11,7 @@ function Where() {
 }
 
 describe('the old Skills address @SC-678', () => {
-  it('goes to the Library’s Skills tab', () => {
+  it('goes to the Library, narrowed to skills', () => {
     render(
       <MemoryRouter initialEntries={['/skills']}>
         <Routes>
@@ -20,6 +20,6 @@ describe('the old Skills address @SC-678', () => {
         </Routes>
       </MemoryRouter>,
     )
-    expect(screen.getByText('/library?tab=skills')).toBeTruthy()
+    expect(screen.getByText('/library?type=skill')).toBeTruthy()
   })
 })

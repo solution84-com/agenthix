@@ -1,5 +1,4 @@
-import { useQuery, getWorkplacePeople, getOrgAgents, getTeams, getProducts, getPrograms, getLibrary, listKnowledgePages } from 'wasp/client/operations'
-import type { LibraryItem } from '../../library/packages/packageActions'
+import { useQuery, getWorkplacePeople, getOrgAgents, getTeams, getProducts, getPrograms, listKnowledgePages } from 'wasp/client/operations'
 import { AuthedPersonAvatar } from '../../people/AuthedPersonAvatar'
 import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import { BigNumber, CardGrid, CardLine, FaceStack, OrgCard, OrgGroupHeading } from './orgCardParts'
@@ -96,21 +95,6 @@ function ProgramsCard() {
   )
 }
 
-function LibraryCard() {
-  const { data } = useQuery(getLibrary)
-  const kinds: Array<[string, LibraryItem[]]> = data ? [['agents', data.agents], ['boards', data.boards], ['skills', data.skills], ['teams', data.teams]] : []
-  const total = kinds.reduce((n, [, items]) => n + items.length, 0)
-  const madeHere = kinds.reduce((n, [, items]) => n + items.filter(i => i.source === 'MADE_HERE').length, 0)
-  return (
-    <OrgCard title="Library" to="/library">
-      <BigNumber value={data ? total : '–'} label="ready-made items" />
-      {data && <CardLine left={kinds.map(([k, items]) => `${items.length} ${k}`).join(' · ')} />}
-      {data && <CardLine left={`${madeHere} made here`} />}
-      <CardLine left="Marketplace" right="Coming soon" />
-    </OrgCard>
-  )
-}
-
 /** The workplace (every screen reviewed spec §3, Organisation), for everyone: a card for each part, with its count and what matters in it now. */
 export function WorkplaceSection({ isAdmin }: { isAdmin: boolean }) {
   return (
@@ -123,7 +107,6 @@ export function WorkplaceSection({ isAdmin }: { isAdmin: boolean }) {
         <KnowledgeCard />
         <ProductsCard />
         <ProgramsCard />
-        <LibraryCard />
       </CardGrid>
     </section>
   )

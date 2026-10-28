@@ -30,7 +30,7 @@ test.describe('the navigation @SC-011', () => {
     await expect(n.getByRole('link', { name: 'Agenthix' })).toBeVisible()
     await expect(n.getByRole('button', { name: /^Notifications/ })).toBeVisible()
     await expect(n.getByRole('button', { name: /^Runs/ })).toBeVisible()
-    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Agents', 'Tasks']) {
+    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library']) {
       await expect(n.getByRole('link', { name: new RegExp(`^${place}`) })).toBeVisible()
     }
     const foot = n.getByTestId('sidebar-foot')
@@ -47,7 +47,7 @@ test.describe('the navigation @SC-011', () => {
     await expect(menu).toHaveCount(0)
     await expect(foot.getByRole('button', { name: /, account menu$/ })).toBeFocused()
     // Retired from the navigation (their pages stay for links).
-    for (const gone of ['Dashboard', 'My tasks', 'Boards', 'Workspaces', 'Products', 'Programs', 'Library']) {
+    for (const gone of ['Dashboard', 'My tasks', 'Boards', 'Workspaces', 'Products', 'Programs']) {
       await expect(n.getByRole('link', { name: gone, exact: true })).toHaveCount(0)
     }
   })

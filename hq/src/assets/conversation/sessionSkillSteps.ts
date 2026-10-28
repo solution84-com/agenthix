@@ -6,6 +6,7 @@
  * M6). A skill the viewer may not see is left out, and its step keeps the staged name. Hosted in `assets.wasp.ts`.
  */
 import { HttpError, prisma } from 'wasp/server'
+import type { WorkspaceOwnerType } from '@prisma/client'
 import type { RunSkillUse } from '@agenthix/core'
 import * as siteRuntimeStore from '../../sessions/siteRuntimeStore'
 import * as dispatchService from '../../agents/dispatchService'
@@ -15,6 +16,7 @@ import { rethrowSiteUnreachableAsHttp } from '../../storage/httpErrors'
 import { isProjectMember } from '../../projects/membership'
 import { usedSkillOrigin, usedSkillLabel, type UsedSkillDeps, type UsedSkillOrigin } from './usedSkillOrigin'
 import { usedSkillsOf } from './usedSkillRecord'
+import { noteSkillUses, type RunPlace } from './lastUsed'
 
 /** The session's newest runs whose skills are named; older ones keep their staged names. */
 export const SESSION_SKILL_RUNS = 50
@@ -47,6 +49,15 @@ export async function skillStepsOf(deps: UsedSkillDeps, viewerId: string, runs: 
   return out
 }
 
+/** Where a session's runs worked: its task's project, or the boundary its worker serves. */
+async function sessionPlace(session: { taskId: string | null; primaryOwnerType: WorkspaceOwnerType | null; primaryOwnerId: string | null }): Promise<RunPlace> {
+  if (session.taskId) {
+    const task = await prisma.task.findUnique({ where: { id: session.taskId }, select: { projectId: true } })
+    return task ? { placeType: 'project', placeId: task.projectId } : null
+  }
+  return session.primaryOwnerType && session.primaryOwnerId ? { placeType: session.primaryOwnerType, placeId: session.primaryOwnerId } : null
+}
+
 export const getSessionSkillSteps = async (args: GetSessionSkillStepsArgs, context: Ctx): Promise<SessionSkillSteps> => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const userId = context.user.id
@@ -65,5 +76,6 @@ export const getSessionSkillSteps = async (args: GetSessionSkillStepsArgs, conte
   } catch (err) {
     rethrowSiteUnreachableAsHttp(err)
   }
+  await noteSkillUses(prisma, runs, await sessionPlace(session))
   return { runs: await skillStepsOf({ db: prisma, sees: isProjectMember }, userId, runs), latestRunId: runs[0]?.id ?? null }
 }

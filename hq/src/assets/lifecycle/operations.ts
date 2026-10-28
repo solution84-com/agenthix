@@ -14,11 +14,12 @@ import { uploadArrival } from '../sources/upload'
 import { addStatedCredit, creditOf } from './credits'
 import { createNewSkill, discardDraft, readDraft, saveDraft } from './draftStore'
 import { LifecycleError } from './errors'
-import { addToAgents, holdersOf, removeAsset, removeFromAgent, setEveryAgent } from './holders'
+import { addToAgents, holdersOf, removeAsset, removeFromAgent, restoreAsset, setEveryAgent } from './holders'
 import { installVersionOnPurpose, type OnPurposeConfirmation } from './onPurpose'
 import { copyNews, editAsset, switchToCopy, switchToOriginal } from './ownCopy'
 import { listVersions, moveToVersion, versionChanges } from './pinnedVersions'
 import { publishDraft } from './publish'
+import { dismissNews, skipUpdate } from './notices'
 
 type Ctx = { user?: { id: string } | null }
 type Args = Record<string, unknown>
@@ -58,6 +59,10 @@ export const getAssetVersionChanges = async (a: unknown, c: Ctx) => {
   return lifecycle(() => versionChanges(prisma, args(a).assetId, args(a).versionId))
 }
 export const acceptAssetUpdate = async (a: unknown, c: Ctx) => { const actor = await person(c); return lifecycle(() => moveToVersion(prisma, actor, 'update', move(a))) }
+export const skipAssetUpdate = async (a: unknown, c: Ctx) => {
+  const actor = await person(c)
+  return lifecycle(() => skipUpdate(prisma, actor, { assetId: args(a).assetId, version: args(a).version }))
+}
 export const rollBackAsset = async (a: unknown, c: Ctx) => { const actor = await person(c); return lifecycle(() => moveToVersion(prisma, actor, 'rollBack', move(a))) }
 
 export const installAssetVersionOnPurpose = async (a: PackageFrom & { confirm: OnPurposeConfirmation }, c: Ctx) => {
@@ -99,6 +104,10 @@ export const editLibraryAsset = async (a: unknown, c: Ctx) => {
 }
 export const switchToOriginalAsset = async (a: unknown, c: Ctx) => { const actor = await person(c); return lifecycle(() => switchToOriginal(prisma, actor, args(a).assetId)) }
 export const switchToOwnCopy = async (a: unknown, c: Ctx) => { const actor = await person(c); return lifecycle(() => switchToCopy(prisma, actor, args(a).assetId)) }
+export const dismissAssetNews = async (a: unknown, c: Ctx) => {
+  const actor = await person(c)
+  return lifecycle(() => dismissNews(prisma, actor, { assetId: args(a).assetId, version: args(a).version }))
+}
 export const getAssetCopyNews = async (a: unknown, c: Ctx) => { await reader(c); return lifecycle(() => copyNews(prisma, args(a).assetId)) }
 
 // Provenance (2.10)
@@ -126,4 +135,8 @@ export const removeAssetFromAgent = async (a: unknown, c: Ctx) => {
 export const removeLibraryAsset = async (a: unknown, c: Ctx) => {
   const actor = await person(c)
   return lifecycle(() => removeAsset(prisma, actor, { assetId: args(a).assetId, confirmed: args(a).confirmed }, new Date()))
+}
+export const restoreLibraryAsset = async (a: unknown, c: Ctx) => {
+  const actor = await person(c)
+  return lifecycle(() => restoreAsset(prisma, actor, { assetId: args(a).assetId }))
 }

@@ -18,6 +18,7 @@ import { LifecycleError } from './errors'
 import { copyLines, heldLines, ProvenanceError, type HeldLine } from './provenance'
 import { assertLibrary, byOf, identityOf, librarySkill, type LibrarySkill } from './records'
 import { bySemVerDescending, fileChanges, type FileChanges } from './versions'
+import { pastMark } from './offers'
 
 const NOTHING = 'Nothing was changed.'
 const TRANSACTION = { timeout: 30_000, maxWait: 10_000 }
@@ -143,7 +144,9 @@ export async function copyNews(db: Db, copyId: unknown): Promise<CopyNews | null
   const origin = await originOf(db, copy)
   if (!origin || !origin.line.version) return null
   const versions = await db.assetVersion.findMany({ where: { assetId: origin.asset.id }, select: { version: true, digest: true } })
-  const newest = versions.filter(v => compareSemVer(v.version, origin.line.version!) > 0).sort((a, b) => bySemVerDescending(a.version, b.version))[0]
+  const newest = versions
+    .filter(v => compareSemVer(v.version, origin.line.version!) > 0 && pastMark(v.version, copy.newsSeenVersion))
+    .sort((a, b) => bySemVerDescending(a.version, b.version))[0]
   const base = { original: origin.line.skill, copiedFrom: origin.line.version, inUse: origin.asset.setAsideById === copy.id }
   if (!newest) return { ...base, newer: null }
   const copied = versions.find(v => v.version === origin.line.version)

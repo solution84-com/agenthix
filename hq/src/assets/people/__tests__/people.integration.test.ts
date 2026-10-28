@@ -12,7 +12,7 @@ vi.mock('wasp/server', async () => {
   return { ...actual, prisma }
 })
 
-import { addTrustedPublisher, listTrustedPublishers, removeTrustedPublisher, trustPublisher } from '../trustedPublishers'
+import { addTrustedPublisher, listTrustedPublishers, removeTrustedPublisher, renameTrustedPublisher, trustPublisher } from '../trustedPublishers'
 import { getAssetSettings, updateAssetSettings } from '../settings'
 import { listLibraryMaintainers, MAINTAINER_REACH, nameLibraryMaintainer, removeLibraryMaintainer } from '../maintainers'
 import { contextWithRole } from '../../../agents/__tests__/definitionFixtures'
@@ -81,6 +81,17 @@ describe('trusted publishers (P1)', () => {
     } })
     const { publisher } = await trustPublisher({ id: once.id, displayName: 'Acme Ltd' }, admin.ctx)
     expect(publisher).toMatchObject({ name: 'acme', displayName: 'Acme Ltd', status: 'trusted' })
+  })
+
+  it('renames only the name shown, never the name in what it signed, and counts what it signed in the Library', async () => {
+    const { publisher } = await addTrustedPublisher(keyless(), admin.ctx)
+    await prisma.asset.create({ data: { kind: 'SKILL', publisher: 'acme', name: 'sql-review' } })
+    await prisma.asset.create({ data: { kind: 'SKILL', publisher: 'acme', name: 'gone', removedAt: new Date() } })
+    const renamed = await renameTrustedPublisher({ id: publisher.id, displayName: '  Acme Corp  ' }, admin.ctx)
+    expect(renamed.publisher).toMatchObject({ name: 'acme', displayName: 'Acme Corp', installed: 1 })
+    expect((await listTrustedPublishers({}, admin.ctx)).find(p => p.name === 'acme')).toMatchObject({ displayName: 'Acme Corp', installed: 1 })
+    await expect(renameTrustedPublisher({ id: publisher.id, displayName: ' ' }, admin.ctx)).rejects.toMatchObject({ statusCode: 400 })
+    await expect(renameTrustedPublisher({ id: publisher.id, displayName: 'Acme' }, member.ctx)).rejects.toMatchObject({ statusCode: 403 })
   })
 
   it('refuses removing a built-in row', async () => {

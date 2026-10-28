@@ -47,7 +47,8 @@ async function reviewing(db: PrismaClient, reviewerId: string, proposalId: unkno
 
 export type AcceptInput = { proposalId: unknown; digest: unknown; files?: unknown; note?: unknown }
 
-export async function acceptProposal(db: PrismaClient, reviewerId: string, input: AcceptInput): Promise<{ state: OutcomeState; version: string }> {
+/** `assetId` is the Library skill accepting published, so the reviewer can go on to choose its agents; null in a place. */
+export async function acceptProposal(db: PrismaClient, reviewerId: string, input: AcceptInput): Promise<{ state: OutcomeState; version: string; assetId: string | null }> {
   const { proposal, ctx, reviewer } = await reviewing(db, reviewerId, input.proposalId, input.digest)
   const proposed = await readContent(proposal.digest, db)
   const files = input.files === undefined || input.files === null ? proposed : draftFiles(input.files)
@@ -59,7 +60,7 @@ export async function acceptProposal(db: PrismaClient, reviewerId: string, input
 
   const published = ctx ? await acceptInPlace(db, reviewer, proposal, ctx, files, note) : await acceptInLibrary(db, reviewer, proposal, files, note)
   await settle(db, proposal, reviewer.userId, state, typeof input.note === 'string' ? input.note.trim() || null : null, published.versionId)
-  return { state, version: published.version }
+  return { state, version: published.version, assetId: published.assetId }
 }
 
 export async function rejectProposal(db: PrismaClient, reviewerId: string, input: { proposalId: unknown; digest: unknown; note: unknown }): Promise<{ state: 'REJECTED' }> {
@@ -89,7 +90,7 @@ async function acceptInLibrary(db: PrismaClient, reviewer: PersonActor, p: Propo
   try {
     const out = await publishDraft(db, reviewer, { assetId, revision: draft.revision, note })
     const version = await db.assetVersion.findFirstOrThrow({ where: { assetId, version: out.version }, select: { id: true } })
-    return { version: `${out.identity} ${out.version}`, versionId: version.id }
+    return { version: `${out.identity} ${out.version}`, versionId: version.id, assetId }
   } catch (err) {
     // The draft accepting made goes again, so the proposal can be accepted later or rejected.
     await discardDraft(db, reviewer, { assetId, revision: draft.revision }).catch(() => undefined)
@@ -119,7 +120,7 @@ async function acceptInPlace(db: PrismaClient, reviewer: PersonActor, p: Proposa
     if (!(err instanceof LifecycleError)) throw err
   })
   const version = await db.placeSkillVersion.findFirstOrThrow({ where: { placeSkillId, number: published.number }, select: { id: true } })
-  return { version: `version ${published.number}`, versionId: version.id }
+  return { version: `version ${published.number}`, versionId: version.id, assetId: null }
 }
 
 async function settle(db: PrismaClient, p: Proposal, reviewerId: string, state: OutcomeState, note: string | null, resultVersionId: string | null): Promise<void> {

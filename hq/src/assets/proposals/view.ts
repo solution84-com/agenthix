@@ -5,6 +5,7 @@
  * review M6's rule: access is checked when it is looked at).
  */
 import type { PrismaClient, Proposal } from '@prisma/client'
+import { HttpError } from 'wasp/server'
 import type { Db } from '../../packages/packageStore'
 import { readContent } from '../content'
 import { may, type PersonActor } from '../policy'
@@ -14,6 +15,7 @@ import { libraryTarget, identityOf } from '../lifecycle/records'
 import { placeOfSkill, type PlaceContext } from '../places/place'
 import { newestVersion, skillNameOf } from '../places/placeDrafts'
 import { organisationPublisher } from '../organisationPublisher'
+import { requireConversationReader } from '../../conversations/readingRule'
 import { ProposalRefused } from './checks'
 import { agentName, personName } from './names'
 import { placeOfProposal, reviewersOf } from './target'
@@ -48,6 +50,19 @@ export type SkillProposalView = {
   mayAim: boolean
   /** Where else the person may aim it: their own space always, the organisation, and the conversation's project. */
   aims: ('organisation' | 'project' | 'person')[]
+  /** The conversation it was proposed in, only when this viewer may read it (board R1, *Open the conversation*). */
+  conversationId?: string | null
+}
+
+/** Whether the viewer may read the conversation, by the conversations' own reading rule. */
+async function readsConversation(conversationId: string, viewerId: string): Promise<boolean> {
+  try {
+    await requireConversationReader(conversationId, viewerId)
+    return true
+  } catch (err) {
+    if (err instanceof HttpError) return false
+    throw err
+  }
 }
 
 const asText = (b: Buffer) => { const t = b.toString('utf-8'); return t.includes('�') ? null : t }
@@ -73,6 +88,7 @@ export async function viewProposal(db: PrismaClient, viewerId: string, proposalI
     mayReview: open && mayReview,
     mayAim: open && p.forUserId === viewerId && !edits,
     aims: open && p.forUserId === viewerId && !edits ? await aimsFor(db, p) : [],
+    conversationId: p.conversationId && await readsConversation(p.conversationId, viewerId) ? p.conversationId : null,
   }
 }
 

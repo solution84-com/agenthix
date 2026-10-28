@@ -76,7 +76,7 @@ describe('reviewing a project proposal @D27', () => {
   it('accepting publishes version 1 into the place, switched on, and tells the agent', async () => {
     const p = await proposed('checkout-review', 'project')
     const out = await acceptProposal(prisma, projectAdmin.id, { proposalId: p.id, digest: p.digest })
-    expect(out).toEqual({ state: 'ACCEPTED', version: 'version 1' })
+    expect(out).toEqual({ state: 'ACCEPTED', version: 'version 1', assetId: null })
     const skill = await prisma.placeSkill.findFirstOrThrow({ where: { placeId: project.id } })
     expect(skill).toMatchObject({ switch: 'ON', switchFingerprint: skill.lastFingerprint })
     const version = await prisma.placeSkillVersion.findFirstOrThrow({ where: { placeSkillId: skill.id } })
@@ -116,6 +116,14 @@ describe('the organisation\'s Library', () => {
     expect(out.version).toMatch(/\/release-notes 1\.0\.0$/)
     const asset = await prisma.asset.findFirstOrThrow({ include: { currentVersion: true } })
     expect(asset).toMatchObject({ givenToAll: false, currentVersion: { byId: orgAdmin.id } })
+    // So the reviewer can go on to Add to agents… on its page (board R1).
+    expect(out.assetId).toBe(asset.id)
+  })
+
+  it('names the conversation it came from only to a viewer who may read that conversation', async () => {
+    const p = await proposed('release-notes', 'organisation')
+    expect((await viewProposal(prisma, member.id, p.id)).conversationId).toBe(conversationId)
+    expect((await viewProposal(prisma, orgAdmin.id, p.id)).conversationId).toBeNull()
   })
 })
 

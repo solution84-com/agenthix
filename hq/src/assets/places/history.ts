@@ -35,6 +35,8 @@ export type PlaceSkillFilesView = {
   files: { path: string; base64: string }[]
   newestVersion: number | null
   changes: FileChanges
+  /** The newest version's text of each file changed or removed since, for the line diff. */
+  before: { path: string; base64: string }[]
 }
 
 export async function placeSkillFiles(db: PrismaClient, userId: string, placeSkillId: unknown): Promise<PlaceSkillFilesView> {
@@ -44,11 +46,15 @@ export async function placeSkillFiles(db: PrismaClient, userId: string, placeSki
   const files = await liveFiles(db, ctx, skill)
   const newest = await newestVersion(db, skill.id)
   const fingerprint = fingerprintOf(files)
+  const published = newest ? await readContent(newest.digest, db) : []
+  const changes = fileChanges(published, files)
+  const differs = new Set([...changes.changed, ...changes.removed])
   return {
     fingerprint,
     current: fingerprint === skill.lastFingerprint,
     files: files.map(f => ({ path: f.path, base64: f.content.toString('base64') })),
     newestVersion: newest?.number ?? null,
-    changes: fileChanges(newest ? await readContent(newest.digest, db) : [], files),
+    changes,
+    before: published.filter(f => differs.has(f.path)).map(f => ({ path: f.path, base64: f.content.toString('base64') })),
   }
 }

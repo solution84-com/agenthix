@@ -45,7 +45,7 @@ export async function addToPlace(db: PrismaClient, actor: Actor, input: AddInput
   return db.$transaction(async tx => {
     const skill = taken ?? await tx.placeSkill.create({ data: { ...ctx.place, path, group: agentId ? 'AGENT' : 'PLACE', agentId } })
     const published = await publishFiles(
-      tx, ctx, skill, files, { publishedById: by.byId, requestedByAgentId: null }, `Added from ${identity} ${version}`, { identity, version },
+      tx, ctx, skill, files, { publishedById: by.byId, requestedByAgentId: null }, `Added from ${identity} ${version}`, { copied: { identity, version } },
     )
     return { placeSkillId: skill.id, path, number: published.number }
   }, TRANSACTION)

@@ -2,7 +2,6 @@ import { Link } from 'react-router'
 import { useQuery, getPlaceInstructions } from 'wasp/client/operations'
 import { MarkdownMessage } from '../../../shared/components/MarkdownMessage'
 
-const HEADING = 'text-micro font-medium uppercase tracking-wide text-text-muted'
 type File = { path: string; text: string | null; modifiedAt: string | null; tooLarge: boolean }
 
 function Source({ label, from, openPath }: { label: string; from: string; openPath?: string }) {
@@ -50,12 +49,6 @@ export function AgentInstructionsTool({ agentId }: { agentId: string }) {
           )}
           <Source label="Yours" from="for every agent in your Chat · AGENTS.md" openPath={data.everyAgent.file.path} />
           <FileText file={data.everyAgent.file} />
-          {(data.forAgent?.skills.length || data.everyAgent.skills.length) ? (
-            <>
-              <h3 className={`${HEADING} mt-4`}>Your skills</h3>
-              <p className="mt-1 text-small text-text-primary">{[...(data.forAgent?.skills ?? []), ...data.everyAgent.skills].join(' · ')}</p>
-            </>
-          ) : null}
           <p className="mt-4 text-small text-text-muted">To change them, ask it in a conversation — it can edit your instructions — or open them in Files.</p>
         </>
       )}

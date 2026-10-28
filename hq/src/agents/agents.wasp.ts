@@ -9,7 +9,7 @@ import { getToolCallLog, getSessionPendingManifest, getRunManifestStatus } from 
 import { getOrgRunLimitsQuery as getOrgRunLimits, updateOrgRunLimits, getProjectRunLimitsQuery as getProjectRunLimits, setProjectRunLimits } from "./runLimits/runLimitsActions" with { type: "ref" };
 import { createAgent, updateAgent, stopAgent, saveAgentSkill, deleteAgentSkill, deleteAgent, uploadAgentImage, applyAgentPreset } from "./actions" with { type: "ref" };
 import { updateAgentFile, updateAgentSettings } from "./definitionActions" with { type: "ref" };
-import { createLibrarySkill, updateLibrarySkill, deleteLibrarySkill, installSkill, uninstallSkill } from "./librarySkillActions" with { type: "ref" };
+import { installSkill, uninstallSkill } from "./librarySkillActions" with { type: "ref" };
 import { getSkillLibrary, getInstalledSkillVersions } from "./librarySkillQueries" with { type: "ref" };
 import { getAgentOverride, setAgentOverride } from "./overrides/overrideOperations" with { type: "ref" };
 import { getAgentPermissions, getAgentPermissionsHere, getAgentCardHere } from "./permissions/permissionQueries" with { type: "ref" };
@@ -66,9 +66,6 @@ export const agentsSpec: Spec = [
     action(importAgent, { entities: ["Agent"] }),
     action(saveAgentSkill, { entities: ["Agent"] }),
     action(deleteAgentSkill, { entities: ["Agent"] }),
-    action(createLibrarySkill, { entities: ["Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "TrustedPublisher", "Org", "PackageContent"] }),
-    action(updateLibrarySkill, { entities: ["Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "TrustedPublisher", "Org", "PackageContent"] }),
-    action(deleteLibrarySkill, { entities: ["Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "TrustedPublisher", "Org", "PackageContent"] }),
     action(installSkill, { entities: ["Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "TrustedPublisher", "Org", "PackageContent", "Agent", "Project"] }),
     action(uninstallSkill, { entities: ["Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "TrustedPublisher", "Org", "PackageContent"] }),
     action(deleteAgent, { entities: ["Agent", "AgentSession"] }),

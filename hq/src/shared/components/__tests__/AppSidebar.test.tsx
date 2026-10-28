@@ -31,6 +31,7 @@ vi.mock('lucide-react', () => ({
   FolderKanban: () => null,
   Bot: () => null,
   CircleDot: () => null,
+  Library: () => null,
   Building2: () => null,
   Settings: () => null,
   ShieldCheck: () => null,
@@ -117,14 +118,25 @@ describe('AppSidebar off-canvas drawer @SC-220', () => {
 })
 
 describe('AppSidebar places @SC-011 @SC-150', () => {
-  it('lists Home, Chat, Projects, Agents and Tasks; Organisation and Settings are behind your name', () => {
+  it('lists Home, Chat, Projects, Tasks, Agents and Library, in that order; Organisation and Settings are behind your name', () => {
     renderSidebar()
-    for (const label of ['Home', 'Chat', 'Projects', 'Agents', 'Tasks']) {
+    for (const label of ['Home', 'Chat', 'Projects', 'Tasks', 'Agents', 'Library']) {
       expect(screen.getByText(label)).toBeTruthy()
     }
     expect(screen.queryByText('Organisation')).toBeNull()
     expect(screen.queryByText('Settings')).toBeNull()
     expect(screen.getByText('Chat').closest('a')?.getAttribute('href')).toBe('/chat')
+    const order = screen.getAllByRole('link').map(a => a.textContent ?? '')
+    const at = (label: string) => order.findIndex(t => t.startsWith(label))
+    expect(at('Projects')).toBeLessThan(at('Tasks'))
+    expect(at('Tasks')).toBeLessThan(at('Agents'))
+    expect(at('Agents')).toBeLessThan(at('Library'))
+    expect(screen.getByText('Library').closest('a')?.getAttribute('href')).toBe('/library')
+  })
+
+  it('marks Library on the Library and on the old Skills address', () => {
+    renderSidebar({}, '/library')
+    expect(screen.getByText('Library').closest('a')?.getAttribute('aria-current')).toBe('page')
   })
 
   it('lists Your space after Home and Chat, at its own address, highlighted there', () => {
@@ -141,9 +153,9 @@ describe('AppSidebar places @SC-011 @SC-150', () => {
     expect(screen.getByText('Your space').closest('a')?.getAttribute('aria-current')).toBeNull()
   })
 
-  it('no longer lists Dashboard, My tasks, Boards, Workspaces, Products, Programs or Library', () => {
+  it('no longer lists Dashboard, My tasks, Boards, Workspaces, Products, Programs', () => {
     renderSidebar()
-    for (const label of ['Dashboard', 'My tasks', 'Boards', 'Workspaces', 'Products', 'Programs', 'Library']) {
+    for (const label of ['Dashboard', 'My tasks', 'Boards', 'Workspaces', 'Products', 'Programs']) {
       expect(screen.queryByText(label)).toBeNull()
     }
   })

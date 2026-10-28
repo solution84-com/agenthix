@@ -1,89 +1,89 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
-import { Upload } from 'lucide-react'
-import { useQuery, getLibrary, getUserSettings } from 'wasp/client/operations'
+import { Link, useSearchParams } from 'react-router'
+import { useAction, useQuery, getLibraryAssets, removeLibraryAsset } from 'wasp/client/operations'
 import { AppLayout } from '../../shared/layouts/AppLayout'
-import { MenuButton } from '../../org/components/menus'
 import { AddAgentDialog } from '../components/AddAgentDialog'
-import { BoardTemplateView } from '../components/BoardTemplateView'
-import { LibraryKindList } from '../components/LibraryKindList'
-import { MarketplaceTab } from '../components/MarketplaceTab'
-import { NewTemplateModal } from '../components/NewTemplateModal'
-import { SkillDialog } from '../components/SkillDialog'
+import { LibraryAssetList } from '../components/LibraryAssetList'
 import { useLibraryTransfer } from '../components/useLibraryTransfer'
-import { KINDS, isLibraryTab, type LibraryTab } from '../components/libraryWords'
-import type { LibraryItem } from '../packages/packageActions'
+import { isStatusFilter, isTypeFilter, type LibraryFilter } from '../components/libraryFilters'
+import { LIBRARY_ADD_PATH, LIBRARY_MARKETPLACE_PATH, LIBRARY_NEW_SKILL_PATH, LIBRARY_SETTINGS_PATH } from '../components/libraryRoutes'
+import type { LibraryAssetRow } from '../assetList/types'
 
-type Creating = 'board' | 'skill' | null
+const BUTTON = 'rounded-lg border border-border px-3 py-1.5 text-body text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary'
 
 /**
- * The Library (every screen reviewed spec §3, Organisation): the organisation's ready-made agents, boards, skills and
- * teams to start from, each marked Built in, Made here or Marketplace; using one makes the organisation's own copy.
- * The Marketplace tab is Coming soon until the marketplace opens with Agenthix Cloud.
+ * The Library (skills spec part 6; board U2): everything the organisation has installed for its agents, as one searched
+ * view with filters by type and by state. Members read; administrators and Library maintainers act. The type and the
+ * state are in the address, so a link keeps them (`/skills` opens `?type=skill`). Add and New skill lead to other
+ * screens (the asset's page, Add and the editor), which are built beside this one.
  */
 export function LibraryPage() {
-  const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const requested = params.get('tab')
-  const tab: LibraryTab = isLibraryTab(requested) ? requested : 'agents'
-  const { data: library, refetch } = useQuery(getLibrary)
-  const { data: me } = useQuery(getUserSettings)
-  const isAdmin = me?.role === 'ADMIN'
+  const { data, error, refetch } = useQuery(getLibraryAssets)
+  const remove = useAction(removeLibraryAsset)
   const transfer = useLibraryTransfer(() => void refetch())
-  const [creating, setCreating] = useState<Creating>(null)
+  const [search, setSearch] = useState('')
   const [addAgentId, setAddAgentId] = useState<string | null>(null)
-  const [boardId, setBoardId] = useState<string | null>(null)
-  const [skill, setSkill] = useState<LibraryItem | null>(null)
+  const [notice, setNotice] = useState<{ text: string; failed: boolean } | null>(null)
 
-  const choose = (next: LibraryTab) => setParams(prev => { const p = new URLSearchParams(prev); p.set('tab', next); return p }, { replace: true })
+  const type = params.get('type')
+  const status = params.get('show')
+  const filter: LibraryFilter = { search, type: isTypeFilter(type) ? type : 'all', status: isStatusFilter(status) ? status : null }
+  const setFilter = (next: LibraryFilter) => {
+    setSearch(next.search)
+    setParams(prev => {
+      const p = new URLSearchParams(prev)
+      if (next.type === 'all') p.delete('type'); else p.set('type', next.type)
+      if (next.status === null) p.delete('show'); else p.set('show', next.status)
+      return p
+    }, { replace: true })
+  }
 
+  const removeRow = async (row: LibraryAssetRow) => {
+    if (!row.assetId) return
+    setNotice(null)
+    try {
+      let result = await remove({ assetId: row.assetId })
+      if (!result.removed) {
+        if (!window.confirm(result.confirm)) return
+        result = await remove({ assetId: row.assetId, confirmed: true })
+      }
+      setNotice({ text: `${row.title} was removed from the Library.`, failed: false })
+      void refetch()
+    } catch (err) {
+      setNotice({ text: err instanceof Error ? err.message : 'It could not be removed. Nothing was changed.', failed: true })
+    }
+  }
+
+  const note = notice ?? transfer.message
   return (
     <AppLayout
-      breadcrumbs={[{ label: 'Organisation', href: '/org' }, { label: 'Library' }]}
+      breadcrumbs={[{ label: 'Library' }]}
       title="Library"
-      subtitle="Ready-made things to start from. Using one makes your own copy"
-      action={isAdmin ? (
+      subtitle="Everything your organisation has installed for its agents. Each item is checked when it comes in, and stays at its version until you publish or update it."
+      action={data ? (
         <>
-          <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-body text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary">
-            <Upload size={14} aria-hidden />
-            {transfer.importing ? 'Importing…' : 'Import'}
-            <input type="file" accept=".zip" multiple onChange={e => void transfer.onFiles(e)} className="hidden" disabled={transfer.importing} />
-          </label>
-          <MenuButton items={[
-            { label: 'New board', hint: 'Columns a kind of work moves through', onSelect: () => setCreating('board') },
-            { label: 'New skill', hint: 'Know-how to give an agent', onSelect: () => setCreating('skill') },
-            { label: 'New agent…', hint: 'Made in Manage organisation › Agents', separatorBefore: true, onSelect: () => navigate('/admin/agents') },
-            { label: 'New team…', hint: 'Made in Manage organisation › Teams', onSelect: () => navigate('/org/teams') },
-          ]}>＋ New</MenuButton>
+          {data.marketplace && <Link to={LIBRARY_MARKETPLACE_PATH} className={BUTTON}>Marketplace</Link>}
+          {data.isAdmin && <Link to={LIBRARY_SETTINGS_PATH} className={BUTTON}>Settings</Link>}
+          <Link to={LIBRARY_NEW_SKILL_PATH} className={BUTTON}>New skill</Link>
+          {data.mayAdd && <Link to={LIBRARY_ADD_PATH} className="rounded-lg bg-accent px-3 py-1.5 text-body font-medium text-on-accent hover:bg-accent-hover">＋ Add</Link>}
         </>
       ) : undefined}
     >
       <div className="mx-auto max-w-5xl px-4 py-5 lg:px-8">
-        <div role="tablist" aria-label="Library" className="mb-4 flex gap-1 overflow-x-auto border-b border-border-subtle [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {[...KINDS.map(k => ({ id: k.id as LibraryTab, label: k.label, count: library?.[k.id].length })), { id: 'marketplace' as LibraryTab, label: 'Marketplace', count: undefined }].map(t => (
-            <button
-              key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => choose(t.id)}
-              className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-small font-medium transition-colors ${tab === t.id ? 'border-accent text-text-primary' : 'border-transparent text-text-muted hover:text-text-secondary'}`}
-            >
-              {t.label}{t.count !== undefined && <span className="ml-1.5 text-text-muted">{t.count}</span>}
-            </button>
-          ))}
-        </div>
-        {transfer.message && <p role={transfer.message.failed ? 'alert' : 'status'} className={`mb-3 text-small ${transfer.message.failed ? 'text-danger' : 'text-text-secondary'}`}>{transfer.message.text}</p>}
-        {tab === 'marketplace' ? <MarketplaceTab /> : !library ? (
+        {note && <p role={note.failed ? 'alert' : 'status'} className={`mb-3 text-small ${note.failed ? 'text-danger' : 'text-text-secondary'}`}>{note.text}</p>}
+        {error ? (
+          <p role="alert" className="text-body text-danger">{error.message}</p>
+        ) : !data ? (
           <p className="text-body text-text-muted">Loading…</p>
         ) : (
-          <LibraryKindList
-            key={tab} kind={tab} items={library[tab]} isAdmin={isAdmin}
-            onAddAgent={setAddAgentId} onViewBoard={setBoardId} onViewSkill={setSkill} onExport={(kind, id) => void transfer.exportOne(kind, id)}
+          <LibraryAssetList
+            rows={data.rows} filter={filter} onFilter={setFilter} isAdmin={data.isAdmin}
+            onCreateAgent={setAddAgentId} onExport={r => void transfer.exportOne(r.kind, r.assetId!)} onRemove={r => void removeRow(r)}
           />
         )}
       </div>
-
       <AddAgentDialog templateId={addAgentId} onClose={() => setAddAgentId(null)} />
-      <BoardTemplateView templateId={boardId} onClose={() => setBoardId(null)} />
-      <SkillDialog item={skill} creating={creating === 'skill'} onClose={() => { setSkill(null); setCreating(null) }} onChanged={() => void refetch()} />
-      {creating === 'board' && <NewTemplateModal onClose={() => { setCreating(null); void refetch() }} />}
     </AppLayout>
   )
 }

@@ -55,18 +55,6 @@ export function removeSkill(files: PackageFileInput[], slug: string): PackageFil
   return files.filter(f => !f.path.startsWith(prefix))
 }
 
-/**
- * Removes an installed skill only when it came from `librarySkillId` — its
- * SKILL.md carries `installed_from` (librarySkillFiles). A PLATFORM and an ORG
- * library skill can share a slug; deleting one must not remove the other's copy.
- */
-export function removeSkillInstalledFrom(files: PackageFileInput[], slug: string, librarySkillId: string): PackageFileInput[] {
-  assertSkillSlug(slug)
-  const skillMd = files.find(f => f.path === `${SKILLS_DIR}/${slug}/SKILL.md`)
-  if (!skillMd || parseFrontmatter(skillMd.content.toString('utf-8')).installedFrom !== librarySkillId) return files
-  return removeSkill(files, slug)
-}
-
 export function skillEntries(files: PackageFileInput[]): SkillEntry[] {
   const entries: SkillEntry[] = []
   for (const file of files) {

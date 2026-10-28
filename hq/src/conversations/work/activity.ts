@@ -26,6 +26,7 @@ import { orderActivity, runHrefOf, taskWaitingLine, toActivityView, type Activit
 import { contextUseByOperation } from './activityContext'
 import { mayAdministerPlace, type WorkflowPlace } from '../../workflows/placeAccess'
 import { usedSkillSteps } from '../../assets/conversation/usedSkillView'
+import { noteSkillUses, type RunPlace } from '../../assets/conversation/lastUsed'
 import { isProjectMember } from '../../projects/membership'
 
 type Ctx = { user?: { id: string } | null }
@@ -141,10 +142,11 @@ export const getConversationActivity = async (args: GetConversationActivityArgs,
 const SITE_PROBLEM = "The place this ran is not reachable now, so its work can't be shown. The result above is kept."
 
 /** The run's work as the run screen draws it, from its site; null with a plain problem line when it cannot be read. */
-async function runWork(siteId: string, runId: string, viewerId: string): Promise<Pick<OperationResultView, 'work' | 'problem' | 'runUrl'>> {
+async function runWork(siteId: string, runId: string, viewerId: string, place: RunPlace): Promise<Pick<OperationResultView, 'work' | 'problem' | 'runUrl'>> {
   try {
     const run = await siteRuntimeStore.getRun(siteId, runId)
     if (!run) return { work: null, problem: 'This run is no longer on its site, so its work cannot be shown.', runUrl: null }
+    await noteSkillUses(prisma, [run], place)
     const rows = await siteRuntimeStore.listTranscript(siteId, run.sessionId, { limit: TRANSCRIPT_TAIL, tail: true })
     const mine = rows.filter((r) => r.runId === runId)
     const line = workLine(mine as TranscriptRow[], { startedAt: run.startedAt, endedAt: run.endedAt })
@@ -167,7 +169,7 @@ export const getOperationResult = async (args: GetOperationResultArgs, context: 
 
   const result = row.resultSummary ? openJson<OperationResult>(row.resultSummary) : null
   const runId = result?.runId ?? row.runId
-  const detail = row.siteId && runId ? await runWork(row.siteId, runId, userId) : { work: null, problem: null, runUrl: null }
+  const detail = row.siteId && runId ? await runWork(row.siteId, runId, userId, row.boundaryType && row.boundaryId ? { placeType: row.boundaryType, placeId: row.boundaryId } : null) : { work: null, problem: null, runUrl: null }
   return {
     title: openText(row.title),
     state: row.state,

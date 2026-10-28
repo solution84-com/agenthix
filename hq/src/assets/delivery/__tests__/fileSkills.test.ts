@@ -44,7 +44,7 @@ describe('what hq keeps of a scan', () => {
 const row = (over: Partial<PlaceSkill> = {}): PlaceSkill => ({
   id: 'r1', placeType: 'project', placeId: 'proj', path: '.agents/skills/release', group: 'PLACE', agentId: null, workspaceId: null,
   switch: null, switchFingerprint: null, switchedById: null, switchedAt: null, lastFingerprint: F, lastSeenAt: new Date(), goneAt: null,
-  setAsideReason: null, name: '', description: '', createdAt: new Date(), updatedAt: new Date(), ...over,
+  setAsideReason: null, name: '', description: '', lastUsedAt: null, lastUsedAgentId: null, createdAt: new Date(), updatedAt: new Date(), ...over,
 })
 
 describe('which skills in files a run is told about', () => {

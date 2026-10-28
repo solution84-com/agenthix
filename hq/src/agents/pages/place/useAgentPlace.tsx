@@ -11,6 +11,7 @@ import { AgentProjectsTool } from './AgentProjectsTool'
 import { AgentRunsTool } from './AgentRunsTool'
 import { AgentUsageTool } from './AgentUsageTool'
 import { AgentInstructionsTool } from './AgentInstructionsTool'
+import { AgentSkillsTool } from '../../../assets/pages/agent/AgentSkillsTool'
 import { AgentMemoryTool } from '../../../memory/screen/pages/AgentMemoryTool'
 import { AgentSettingsTool } from './AgentSettingsTool'
 import { nowCount, usageCount } from './agentPlaceCounts'
@@ -18,7 +19,7 @@ import { monthStart } from './usageView'
 import { useAgentModelLine } from '../../useAgentModelLine'
 
 /** An agent's sections after Overview and Conversations (spec §7). */
-const AGENT_SECTION_ORDER = ['now', 'projects', 'runs', 'usage', 'instructions', 'memory', 'settings']
+const AGENT_SECTION_ORDER = ['now', 'projects', 'runs', 'usage', 'instructions', 'skills', 'memory', 'settings']
 
 function toolGroups(view: AgentPlaceView, userId: string, extra: { usage: string | undefined; since: string }): PlaceToolGroup[] {
   const { agent } = view
@@ -39,6 +40,7 @@ function toolGroups(view: AgentPlaceView, userId: string, extra: { usage: string
       label: 'About it',
       tools: [
         { id: 'instructions', label: 'Your instructions', render: () => <AgentInstructionsTool agentId={agent.id} /> },
+        { id: 'skills', label: 'Skills', render: () => <AgentSkillsTool agentId={agent.id} /> },
         { id: 'memory', label: 'Memory', render: () => <AgentMemoryTool agentId={agent.id} agentName={agent.name} /> },
         { id: 'settings', label: 'Your settings', count: yourModel ? `${label(yourModel)} for you` : undefined, render: () => <AgentSettingsTool agentId={agent.id} userId={userId} /> },
       ],

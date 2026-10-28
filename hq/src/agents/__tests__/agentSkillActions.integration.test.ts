@@ -1,6 +1,6 @@
 /**
- * Integration tests (ADR-0094 — real test DB) for the actions that put skills into an agent's or the
- * organisation's package: saveAgentSkill, deleteAgentSkill, installSkill, uninstallSkill. A Library skill is an
+ * Integration tests (ADR-0094 — real test DB) for the actions that put skills into an
+ * agent's package: saveAgentSkill, deleteAgentSkill, installSkill, uninstallSkill. A Library skill is an
  * asset; Agenthix's shelf is read from a temporary assets root.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -19,7 +19,6 @@ import { saveAgentSkill, deleteAgentSkill } from '../actions'
 import { installSkill, uninstallSkill } from '../librarySkillActions'
 import { storeContent } from '../../assets/content'
 import { readAgentContent, writeAgentContent } from '../../packages/agentPackageService'
-import { readCurrentFiles } from '../../packages/packageStore'
 import { contextWithRole, contextWithoutRole, opContext, useTempRoots, writeTextFile, type TempRoots } from './definitionFixtures'
 import path from 'node:path'
 
@@ -37,10 +36,6 @@ async function agentWithContent(skills: { slug: string; body: string }[] = []) {
 
 async function agentSkillPaths(agentId: string) {
   return (await readAgentContent(agentId))!.skillFiles.map(f => f.path)
-}
-
-async function orgWithPackage() {
-  return prisma.org.create({ data: { name: 'Acme' } })
 }
 
 /** An installed Library skill: an asset pinned to one version whose content is stored. */
@@ -172,24 +167,12 @@ describe('installSkill', () => {
     expect(asset.currentVersion).toMatchObject({ version: '1.0.0', source: 'BUILT_IN', signerKind: 'NONE' })
   })
 
-  it('puts an org skill into the organisation\'s package', async () => {
-    const org = await orgWithPackage()
+  it("sends giving a skill to every agent to the skill's page in the Library, and changes nothing", async () => {
     const skill = await librarySkill()
     const { ctx } = await contextWithRole('ADMIN')
-
-    await installSkill({ skillId: skill.id, target: { scope: 'ORG', orgId: org.id } }, ctx)
-
-    const files = (await readCurrentFiles('org', org.id))!
-    expect(files.map(f => f.path)).toContain('skills/notes/SKILL.md')
-    expect(files.map(f => f.path)).toContain('ORG.md')
-    expect((await prisma.asset.findUniqueOrThrow({ where: { id: skill.id } })).givenToAll).toBe(true)
-  })
-
-  it('answers 409 when there is no organisation to install into', async () => {
-    const skill = await librarySkill()
-    const { ctx } = await contextWithRole('ADMIN')
-    await expect(installSkill({ skillId: skill.id, target: { scope: 'ORG', orgId: 'none' } }, ctx))
-      .rejects.toMatchObject({ statusCode: 409 })
+    await expect(installSkill({ skillId: skill.id, target: { scope: 'ORG', orgId: 'x' } } as any, ctx))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining("skill's page in the Library") })
+    expect((await prisma.asset.findUniqueOrThrow({ where: { id: skill.id } })).givenToAll).toBe(false)
   })
 
   it('answers 404 for a skill that does not exist, and installs nothing', async () => {
@@ -241,18 +224,6 @@ describe('uninstallSkill', () => {
     expect(await agentSkillPaths(agent.id)).toEqual(['skills/other/SKILL.md'])
   })
 
-  it('removes a skill from the organisation\'s package', async () => {
-    const org = await orgWithPackage()
-    const skill = await librarySkill()
-    const { ctx } = await contextWithRole('ADMIN')
-    await installSkill({ skillId: skill.id, target: { scope: 'ORG', orgId: org.id } }, ctx)
-
-    await uninstallSkill({ slug: 'notes', target: { scope: 'ORG', orgId: org.id } }, ctx)
-
-    expect((await readCurrentFiles('org', org.id))!.map(f => f.path)).not.toContain('skills/notes/SKILL.md')
-    expect((await prisma.asset.findUniqueOrThrow({ where: { id: skill.id } })).givenToAll).toBe(false)
-  })
-
   it('takes the grant away when it removes an installed copy from an agent', async () => {
     const agent = await agentWithContent()
     const skill = await librarySkill()
@@ -263,12 +234,6 @@ describe('uninstallSkill', () => {
 
     expect(await agentSkillPaths(agent.id)).toEqual([])
     expect(await prisma.assetGrant.count()).toBe(0)
-  })
-
-  it('answers 409 when there is no organisation', async () => {
-    const { ctx } = await contextWithRole('ADMIN')
-    await expect(uninstallSkill({ slug: 'notes', target: { scope: 'ORG', orgId: 'none' } }, ctx))
-      .rejects.toMatchObject({ statusCode: 409 })
   })
 
   it.each([

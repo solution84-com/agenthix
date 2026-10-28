@@ -59,7 +59,7 @@ describe('the breadcrumb’s lists @SC-1044', () => {
   it('Home ▾ lists the main navigation', () => {
     renderBar()
     expect(items(open('Home')).map(([label]) => label)).toEqual(
-      ['Home', 'Chat', 'Your space', 'Projects', 'Agents', 'Tasks', 'Organisation', 'Settings'],
+      ['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library', 'Organisation', 'Settings'],
     )
   })
 

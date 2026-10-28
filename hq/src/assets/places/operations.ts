@@ -17,6 +17,7 @@ import { listPlaceSkills, scanPlace } from './list'
 import { createPlaceSkill, discardPlaceDraft, readPlaceDraft, savePlaceDraft } from './placeDrafts'
 import { publishFromFiles, publishPlaceDraft, putBackPlaceSkill, rollBackPlaceSkill } from './placeVersions'
 import { setPlaceDefault, switchAll, switchSkill } from './switches'
+import { placeSkillUpdate, updateFromLibrary } from './libraryUpdate'
 
 type Ctx = { user?: { id: string } | null }
 type Args = Record<string, unknown>
@@ -133,4 +134,15 @@ export const removePlaceSkill = async (a: unknown, c: Ctx) => {
   const { placeSkillId } = args(a)
   const actor = await personForSkill(c, placeSkillId)
   return places(() => removeFromPlace(prisma, actor, { placeSkillId }))
+}
+
+// Update… on a skill added from the Library (F3): what it would change, then the update itself
+export const getPlaceSkillLibraryUpdate = async (a: unknown, c: Ctx) => {
+  const actor = await personForSkill(c, args(a).placeSkillId)
+  return places(() => placeSkillUpdate(prisma, actor, args(a).placeSkillId))
+}
+export const updatePlaceSkillFromLibrary = async (a: unknown, c: Ctx) => {
+  const { placeSkillId, version, fingerprint } = args(a)
+  const actor = await personForSkill(c, placeSkillId)
+  return places(() => updateFromLibrary(prisma, actor, { placeSkillId, version, fingerprint }))
 }

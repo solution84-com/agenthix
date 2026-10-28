@@ -11,6 +11,7 @@ import { useFilesToolCounts } from '../storage/pages/filesToolGroup'
 import { useWorkflowsTool } from '../workflows/pages/useWorkflowsTool'
 import { useSecretsTool } from '../secrets/pages/useSecretsTool'
 import { useArtefactLinks } from '../storage/pages/useArtefactLinks'
+import { useSkillsTool } from '../assets/pages/place/useSkillsTool'
 
 /**
  * Your space as a place (spec §7, §8): the person's personal space — their conversations outside any project, with
@@ -32,6 +33,7 @@ export function useChatPlace(): Place | undefined {
   const filesCounts = useFilesToolCounts(user ? { ownerType: 'user', ownerId: user.id } : undefined)
   const workflows = useWorkflowsTool(user ? { type: 'user', id: user.id } : undefined)
   const secrets = useSecretsTool(user ? { type: 'user', id: user.id } : undefined)
+  const skills = useSkillsTool(projectId ? { projectId, name: 'Your space', isSpace: true, agents: composer.agents.map((a) => ({ id: a.id, name: a.name })) } : undefined)
   const automationOn = (automation as { effective?: { enabled: boolean } } | undefined)?.effective?.enabled
 
   return useMemo(() => {
@@ -49,9 +51,9 @@ export function useChatPlace(): Place | undefined {
       linkedTools: chatLinkedTools,
       toolGroups: chatToolGroups({
         userId: user.id, project, runs: runs as unknown[] | undefined, automationOn,
-        siteLabel: (site as { label: string } | null | undefined)?.label ?? null, filesCounts, workflows, secrets,
+        siteLabel: (site as { label: string } | null | undefined)?.label ?? null, filesCounts, workflows, skills, secrets,
       }),
       sectionOrder: SPACE_SECTION_ORDER,
     }
-  }, [user, composer.agents, composer.defaultAgentId, site, project, runs, automationOn, filesCounts, workflows, secrets])
+  }, [user, composer.agents, composer.defaultAgentId, site, project, runs, automationOn, filesCounts, workflows, skills, secrets])
 }

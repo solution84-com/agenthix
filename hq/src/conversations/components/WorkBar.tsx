@@ -6,6 +6,7 @@ import type { OperationActivityView } from '../../shared/conversations/protocol'
 import { stateWord, type LiveLines } from '../hooks/activityState'
 import { barHeading, workBar } from '../hooks/workBarState'
 import type { ConversationRunCard } from '../../workflows/conversationRuns'
+import { AssetRequestDetails } from '../../assets/pages/card/AssetRequestDetails'
 import { WorkflowRequestRow } from './WorkflowRequestRow'
 import { isRunActive, WorkflowRunRow } from './WorkflowRunRow'
 
@@ -44,6 +45,7 @@ function RequestRow({ row, actions }: { row: OperationActivityView; actions: Wor
             {what !== row.title && <span className="text-text-muted"> · <Title row={row} /></span>}
           </p>
           {row.request?.reason && <p className="text-micro text-text-secondary">{row.request.reason}</p>}
+          <AssetRequestDetails operationId={row.operationId} />
           {!actions.canAct ? (
             <p className="mt-1 text-micro text-text-muted">Waiting for someone who can write here to answer</p>
           ) : declining ? (

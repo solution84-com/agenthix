@@ -32,17 +32,28 @@ function byFor(actor: Actor, requestedByAgentId?: string | null): By {
   return { publishedById: by.byId, requestedByAgentId: by.requestedByAgentId ?? null }
 }
 
-/** Writes `files` as the skill's next version: into hq's record, then the place's folder, in one transaction. */
+/** The Library skill a place skill was copied from, and the version copied or last updated to (F3). */
+export type Origin = { identity: string; version: string }
+
+/**
+ * Writes `files` as the skill's next version: into hq's record, then the place's folder, in one transaction. A copy
+ * from the Library (*Add to this place*, *Update to …*) names its origin and writes the Library's version into the
+ * metadata; any other publish writes the place's number and keeps the newest version's origin, or the one `origin`
+ * names (a roll back keeps its target's), so the offer of a newer Library version follows the skill.
+ */
 export async function publishFiles(
   tx: Db, ctx: PlaceContext, skill: PlaceSkill, files: PackageFile[], by: By, note: string,
-  meta: { identity?: string; version?: string } = {},
+  from: { copied?: Origin; origin?: Origin | null } = {},
 ): Promise<Published> {
   const newest = await newestVersion(tx, skill.id)
   const number = (newest?.number ?? 0) + 1
-  const written = withSkillMetadata(files, { version: meta.version ?? String(number), identity: meta.identity })
+  const held = newest?.originIdentity && newest.originVersion ? { identity: newest.originIdentity, version: newest.originVersion } : null
+  const origin = from.copied ?? (from.origin !== undefined ? from.origin : held)
+  const written = withSkillMetadata(files, { version: from.copied?.version ?? String(number), identity: origin?.identity })
   checkedSkill(skillNameOf(skill), written)
   const fingerprint = await storeContent(written, tx)
-  await tx.placeSkillVersion.create({ data: { placeSkillId: skill.id, number, digest: fingerprint, note, ...by } })
+  const kept = { originIdentity: origin?.identity ?? null, originVersion: origin?.version ?? null }
+  await tx.placeSkillVersion.create({ data: { placeSkillId: skill.id, number, digest: fingerprint, note, ...by, ...kept } })
   const { loc, dir } = folderOf(ctx, skill)
   if ((skill.goneAt || skill.lastFingerprint === null) && await folderHoldsFiles(loc, dir)) {
     throw new LifecycleError(`The place's files hold a folder there that HQ hasn't looked at. Look at the place again. ${NOTHING}`, 409)
@@ -134,7 +145,8 @@ export async function rollBackPlaceSkill(
   if (newest?.id === target.id) throw new LifecycleError(`Version ${target.number} is the newest version already. ${NOTHING}`, 409)
   const reason = typeof input.reason === 'string' && input.reason.trim() ? `: ${input.reason.trim().slice(0, 900)}` : ''
   const files = await readContent(target.digest, db)
-  return db.$transaction(tx => publishFiles(tx, ctx, skill, files, by, `Rolled back to version ${target.number}${reason}`), TRANSACTION)
+  const origin = target.originIdentity && target.originVersion ? { identity: target.originIdentity, version: target.originVersion } : null
+  return db.$transaction(tx => publishFiles(tx, ctx, skill, files, by, `Rolled back to version ${target.number}${reason}`, { origin }), TRANSACTION)
 }
 
 /** FV4 *Put back version N*: the newest version's files written back over a change made outside the editor. */

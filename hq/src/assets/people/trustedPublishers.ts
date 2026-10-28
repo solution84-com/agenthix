@@ -1,6 +1,6 @@
 /**
  * The organisation's trusted publishers (P1; spec part 3 *Who signs*), administrators only: the list, adding a
- * keyless publisher or a key pair, trusting one remembered from an install, and removing one. Agenthix is always on
+ * keyless publisher or a key pair, trusting one remembered from an install, renaming one, and removing one. Agenthix is always on
  * the list and can't be removed: its packages come from HQ's own image, trusted by where they are (adr-0117). A row
  * is never deleted, so a publisher's name can never pass to a different signer.
  */
@@ -31,24 +31,32 @@ export type TrustedPublisherView = {
   removable: boolean
   addedById: string | null
   addedAt: string | null
+  /** How many assets it signed are in the Library now. */
+  installed: number
 }
 
 const AGENTHIX: TrustedPublisherView = {
   id: null, name: AGENTHIX_PUBLISHER, displayName: 'Agenthix', kind: 'built-in', issuer: null, identity: null,
-  repository: null, refs: null, keyId: null, status: 'trusted', removable: false, addedById: null, addedAt: null,
+  repository: null, refs: null, keyId: null, status: 'trusted', removable: false, addedById: null, addedAt: null, installed: 0,
 }
 
 type Row = Awaited<ReturnType<typeof prisma.trustedPublisher.findMany>>[number]
 
-function view(row: Row): TrustedPublisherView {
+function view(row: Row, installed = 0): TrustedPublisherView {
   const key = row.signerKind === 'KEY'
   return {
     id: row.id, name: row.name, displayName: row.displayName, kind: key ? 'key' : 'keyless',
     issuer: row.issuer, identity: row.certificateIdentity, repository: row.repository,
     refs: key ? null : refsAllowed(row), keyId: key ? row.signerIdentity.replace(/^key:/, '') : null,
     status: row.removedAt ? 'remembered' : 'trusted', removable: !row.builtIn && !row.removedAt,
-    addedById: row.addedById, addedAt: row.createdAt.toISOString(),
+    addedById: row.addedById, addedAt: row.createdAt.toISOString(), installed,
   }
+}
+
+/** Assets in the Library now, by the publisher that signed them. */
+async function installedBy(db: Db): Promise<Map<string, number>> {
+  const groups = await db.asset.groupBy({ by: ['publisher'], where: { removedAt: null }, _count: { _all: true } })
+  return new Map(groups.map(g => [g.publisher, g._count._all]))
 }
 
 async function requireTrust(context: Ctx, db: Db) {
@@ -57,8 +65,12 @@ async function requireTrust(context: Ctx, db: Db) {
 
 export const listTrustedPublishers = async (_args: unknown, context: Ctx): Promise<TrustedPublisherView[]> => {
   await requireTrust(context, prisma)
-  const rows = await prisma.trustedPublisher.findMany({ orderBy: [{ removedAt: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }] })
-  return [AGENTHIX, ...rows.filter(r => r.name !== AGENTHIX_PUBLISHER).map(view)]
+  const [rows, installed] = await Promise.all([
+    prisma.trustedPublisher.findMany({ orderBy: [{ removedAt: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }] }),
+    installedBy(prisma),
+  ])
+  const count = (name: string) => installed.get(name) ?? 0
+  return [{ ...AGENTHIX, installed: count(AGENTHIX_PUBLISHER) }, ...rows.filter(r => r.name !== AGENTHIX_PUBLISHER).map(r => view(r, count(r.name)))]
 }
 
 export type AddPublisherResult = { publisher: TrustedPublisherView; message: string }
@@ -111,6 +123,24 @@ export const trustPublisher = async (args: { id?: unknown; displayName?: unknown
     data: { displayName, removedAt: null, removedById: null, addedById: actor.userId },
   })
   return { publisher: view(updated), message: `${updated.displayName} is trusted. What it signs installs as ${updated.name}/….` }
+}
+
+/**
+ * Renames a publisher: only the name shown as "Signed by …" (D9). The name in what it signs (`acme/…`) never changes,
+ * so nothing installed is renamed and no identity can move to another signer.
+ */
+export const renameTrustedPublisher = async (args: { id?: unknown; displayName?: unknown }, context: Ctx): Promise<AddPublisherResult> => {
+  await requireTrust(context, prisma)
+  if (typeof args?.id !== 'string') throw new HttpError(400, `Say which publisher to rename. ${NOTHING}`)
+  const displayName = typeof args.displayName === 'string' ? args.displayName.trim() : ''
+  if (!displayName) throw new HttpError(400, `Give the publisher a name to show. ${NOTHING}`)
+  if (displayName.length > 100) throw new HttpError(400, `A publisher's name is at most 100 characters. ${NOTHING}`)
+  const row = await prisma.trustedPublisher.findUnique({ where: { id: args.id } })
+  if (!row) throw new HttpError(404, `That publisher isn't known here. ${NOTHING}`)
+  if (row.builtIn || row.name === AGENTHIX_PUBLISHER) throw new HttpError(409, `Agenthix's name comes with HQ itself. ${NOTHING}`)
+  const updated = await prisma.trustedPublisher.update({ where: { id: row.id }, data: { displayName } })
+  const installed = (await installedBy(prisma)).get(updated.name) ?? 0
+  return { publisher: view(updated, installed), message: `${updated.name} is shown as “${updated.displayName}”. What it signed keeps its name, ${updated.name}/….` }
 }
 
 /**

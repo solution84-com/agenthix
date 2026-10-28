@@ -30,6 +30,7 @@ vi.mock('wasp/client/operations', () => ({
   setConversationKeep: (args: unknown) => h.keep(args),
   getOperationResult: 'getOperationResult',
   getConversationPlaces: 'getConversationPlaces',
+  getAssetRequestChange: 'getAssetRequestChange',
 }))
 // jsdom is not a secure page: it has no microphone, so each test says whether the page has one.
 vi.mock('../../../shared/securePage', async (importOriginal) => ({
