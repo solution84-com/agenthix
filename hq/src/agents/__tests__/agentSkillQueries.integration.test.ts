@@ -1,6 +1,7 @@
 /**
  * Integration tests (ADR-0094 — real test DB) for the agent and skill reads: getAgent, getAgentSkills,
- * getSkillLibrary, getInstalledSkillVersions. Library skill sources are read from temporary roots.
+ * getSkillLibrary, getInstalledSkillVersions. Agenthix's shelf is read from a temporary assets root; the
+ * organisation's skills are assets.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import path from 'node:path'
@@ -13,7 +14,9 @@ vi.mock('wasp/server', async () => {
   return { ...actual, prisma }
 })
 
-import { getAgent, getAgentSkills, getSkillLibrary, getInstalledSkillVersions } from '../queries'
+import { getAgent, getAgentSkills } from '../queries'
+import { getSkillLibrary, getInstalledSkillVersions } from '../librarySkillQueries'
+import { storeContent } from '../../assets/content'
 import { writeAgentContent } from '../../packages/agentPackageService'
 import { opContext, useTempRoots, writeTextFile, type TempRoots } from './definitionFixtures'
 
@@ -72,29 +75,38 @@ describe('getAgentSkills', () => {
   })
 })
 
+const shelfSkill = (name: string, front: string, body: string) =>
+  writeTextFile(path.join(roots.assets, `library/skills/${name}/SKILL.md`), `---\n${front}\n---\n\n${body}`)
+
+async function asset(publisher: string, name: string, removed = false) {
+  const files = [{ path: 'SKILL.md', content: Buffer.from(`---\nname: ${name}\ndescription: d\n---\n\n${name} body\n`) }]
+  const row = await prisma.asset.create({ data: { kind: 'SKILL', publisher, name, removedAt: removed ? new Date() : null } })
+  const version = await prisma.assetVersion.create({ data: { assetId: row.id, version: '2.1.0', digest: await storeContent(files, prisma), source: 'UPLOAD' } })
+  return prisma.asset.update({ where: { id: row.id }, data: { currentVersionId: version.id } })
+}
+
 describe('getSkillLibrary', () => {
-  it('lists the platform skills by name, with their body read from hq\'s assets and the frontmatter dropped', async () => {
-    await prisma.skill.create({ data: { slug: 'b-skill', name: 'Bravo', description: 'd', assetPath: 'library/skills/b-skill', scope: 'PLATFORM' } })
-    await prisma.skill.create({ data: { slug: 'a-skill', name: 'Alpha', description: 'd', assetPath: 'library/skills/a-skill', scope: 'PLATFORM' } })
-    await writeTextFile(path.join(roots.assets, 'library/skills/a-skill/SKILL.md'), '---\nname: Alpha\n---\n\nAlpha body\n')
-    // b-skill has no source file: it is listed with an empty body.
+  it("lists Agenthix's shelf by folder, titled and with the front matter dropped, leaving out a folder with no SKILL.md", async () => {
+    await shelfSkill('b-skill', 'name: Bravo\ndescription: d', 'Bravo body\n')
+    await shelfSkill('a-skill', 'name: Alpha\ndescription: d', 'Alpha body\n')
+    await writeTextFile(path.join(roots.assets, 'library/skills/c-skill/README.md'), 'not a skill')
 
     const skills = await getSkillLibrary({ scope: 'PLATFORM' }, await signedIn())
 
-    expect(skills.map(s => [s.name, s.content])).toEqual([['Alpha', 'Alpha body\n'], ['Bravo', '']])
+    expect(skills.map(s => [s.id, s.slug, s.name, s.content, s.version])).toEqual([
+      ['agenthix/a-skill', 'a-skill', 'Alpha', 'Alpha body\n', '1.0.0'],
+      ['agenthix/b-skill', 'b-skill', 'Bravo', 'Bravo body\n', '1.0.0'],
+    ])
   })
 
-  it('lists only the organisation\'s own skills for the ORG scope, read from hq\'s storage', async () => {
-    const org = await prisma.org.create({ data: { name: 'Acme' } })
-    const other = await prisma.org.create({ data: { name: 'Other' } })
-    await prisma.skill.create({ data: { slug: 'mine', name: 'Mine', description: 'd', assetPath: 'org/skills/mine', scope: 'ORG', orgId: org.id } })
-    await prisma.skill.create({ data: { slug: 'theirs', name: 'Theirs', description: 'd', assetPath: 'org/skills/theirs', scope: 'ORG', orgId: other.id } })
-    await prisma.skill.create({ data: { slug: 'shipped', name: 'Shipped', description: 'd', assetPath: 'library/skills/shipped', scope: 'PLATFORM' } })
-    await writeTextFile(path.join(roots.storage, 'org/skills/mine/SKILL.md'), 'my body')
+  it("lists the organisation's installed and made skills for the ORG scope, not removed ones nor Agenthix's", async () => {
+    const mine = await asset('acme', 'mine')
+    await asset('acme', 'gone', true)
+    await asset('agenthix', 'shipped')
 
-    const skills = await getSkillLibrary({ scope: 'ORG', orgId: org.id }, await signedIn())
+    const skills = await getSkillLibrary({ scope: 'ORG' }, await signedIn())
 
-    expect(skills.map(s => [s.slug, s.content])).toEqual([['mine', 'my body']])
+    expect(skills.map(s => [s.id, s.slug, s.content, s.publisher, s.version])).toEqual([[mine.id, 'mine', 'mine body\n', 'acme', '2.1.0']])
   })
 
   it('answers 401 when nobody is signed in', async () => {
@@ -103,11 +115,10 @@ describe('getSkillLibrary', () => {
 })
 
 describe('getInstalledSkillVersions', () => {
-  it('maps each asked-for platform skill\'s slug to its library version', async () => {
-    const org = await prisma.org.create({ data: { name: 'Acme' } })
-    await prisma.skill.create({ data: { slug: 'one', name: 'One', description: 'd', assetPath: 'library/skills/one', scope: 'PLATFORM', version: 4 } })
-    await prisma.skill.create({ data: { slug: 'two', name: 'Two', description: 'd', assetPath: 'library/skills/two', scope: 'PLATFORM', version: 2 } })
-    await prisma.skill.create({ data: { slug: 'three', name: 'Three', description: 'd', assetPath: 'org/skills/three', scope: 'ORG', orgId: org.id, version: 9 } })
+  it("maps each asked-for shelf skill's slug to its major version", async () => {
+    await shelfSkill('one', 'description: d\nversion: 4', 'x')
+    await shelfSkill('two', 'description: d', 'x')
+    await asset('acme', 'three')
 
     expect(await getInstalledSkillVersions({ slugs: ['one', 'three', 'ghost'] }, await signedIn())).toEqual({ one: 4 })
   })

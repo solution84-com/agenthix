@@ -13,6 +13,7 @@ import { Prisma, type ConversationMessage } from '@prisma/client'
 import type { AppendMessage, AppendMessageInput, ReadMessages, UpdateMessage } from '../contract'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { openJson, sealJson } from '../sealing'
+import { pickedSkillOf, type PickedSkill } from '@agenthix/core'
 
 export function toMessageView(row: ConversationMessage): ConversationMessageView {
   return {
@@ -191,4 +192,18 @@ export async function readWaitingMessages(conversationId: string): Promise<Conve
     orderBy: { seq: 'asc' },
   })
   return rows.map(toMessageView)
+}
+
+/** The skill picked with `/` for the newest of a turn's person messages that picked one (work/pickedSkill.ts), or null. */
+export async function readPickedSkillOfTurn(turnId: string): Promise<PickedSkill | null> {
+  const rows = await prisma.conversationMessage.findMany({
+    where: { turnId, role: 'PERSON', kind: 'TEXT' },
+    orderBy: { seq: 'desc' },
+    select: { body: true },
+  })
+  for (const row of rows) {
+    const skill = pickedSkillOf(openJson<{ skill?: unknown }>(row.body).skill)
+    if (skill) return skill
+  }
+  return null
 }

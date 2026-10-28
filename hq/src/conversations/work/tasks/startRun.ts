@@ -4,6 +4,7 @@
  * the project's queue limit. The run is the person's, at depth 0. Its operation is created before the run is
  * asked to start, so the run's first event always finds it.
  */
+import type { PickedSkill } from '@agenthix/core'
 import { prisma } from 'wasp/server'
 import type { Agent } from '@prisma/client'
 import { taskRunner } from '../../../agents/TaskRunner'
@@ -82,10 +83,11 @@ export async function startTaskOperation(input: {
   idempotencyKey: string
   continuation: ContinuationObligation | null
   brief?: string | null
+  skill?: PickedSkill | null
 }): Promise<ToolCallOutcome> {
-  const { capability, task, toolName, idempotencyKey, continuation, brief } = input
+  const { capability, task, toolName, idempotencyKey, continuation, brief, skill } = input
   const admitted = await createTaskOperation({
-    capability, toolName, idempotencyKey, continuation, brief,
+    capability, toolName, idempotencyKey, continuation, brief, skill,
     title: `${task.key} ${task.title}`, taskId: task.id, projectId: task.projectId, state: 'QUEUED',
   })
   if (admitted.alreadyRunning) return { status: 'accepted', operationId: admitted.operationId }

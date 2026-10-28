@@ -16,7 +16,7 @@ vi.mock(uiLucideReactPath, () => {
     BookOpen: icon, Bot: icon, Box: icon, Camera: icon, Check: icon, CheckCircle: icon,
     CheckCircle2: icon, ChevronDown: icon, ChevronLeft: icon, ChevronRight: icon, ClipboardList: icon, Clock: icon,
     Copy: icon, Download: icon, ExternalLink: icon, File: icon, FileImage: icon, Flame: icon,
-    Folder: icon, FolderKanban: icon, FolderOpen: icon, Inbox: icon, Kanban: icon, LayoutList: icon,
+    Folder: icon, FolderKanban: icon, Library: icon, FolderOpen: icon, Inbox: icon, Kanban: icon, LayoutList: icon,
     Leaf: icon, ListTodo: icon, Loader2: icon, Lock: icon, Maximize2: icon, MessageSquare: icon,
     MessageSquarePlus: icon, Mic: icon, MicOff: icon, Minimize2: icon, MoreHorizontal: icon, Pause: icon,
     Pencil: icon, Play: icon, Plus: icon, Radio: icon, RefreshCw: icon, Repeat: icon,

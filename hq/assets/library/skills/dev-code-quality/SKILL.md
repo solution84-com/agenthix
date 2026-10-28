@@ -1,6 +1,8 @@
 ---
 name: Code Quality
 description: Write tests alongside implementation, lint before committing
+version: 2
+suitedTo: [developer, reviewer]
 ---
 
 # Code Quality

@@ -1,6 +1,8 @@
 ---
 name: Sprint Planning
 description: Plan sprint scope, break epics into tasks, communicate capacity
+version: 2
+suitedTo: [project-manager, product-manager]
 ---
 
 # Sprint Planning

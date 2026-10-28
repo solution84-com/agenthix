@@ -25,6 +25,7 @@ import { useGitHubTool } from '../../github/components/useGitHubTool'
 import type { PlaceTool } from '../../places/placeTypes'
 import { ChatAgentsFact } from '../../chat/ChatAgentsFact'
 import { chatLinkedTools } from '../../chat/chatPlace'
+import { useSkillsTool } from '../../assets/pages/place/useSkillsTool'
 
 /** The project's site, and under it the warning when its machine is nearly out of disk or memory. */
 function SiteFact({ site }: { site: ProjectPlaceData['executionSite'] }) {
@@ -62,11 +63,11 @@ type Member = { userId: string; role: 'ADMIN' | 'MEMBER' }
 
 /** A project's sections after Overview and Conversations (spec §7). Memory is there for its admins only. */
 const PROJECT_SECTION_ORDER = [
-  'tasks', 'boards', 'timeline', 'runs', 'automation', 'workflows', 'files', 'artefacts', 'knowledge', 'workspaces', 'members', 'github', 'secrets', 'settings', 'memory',
+  'tasks', 'boards', 'timeline', 'runs', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'members', 'github', 'secrets', 'settings', 'memory',
 ]
 
 /** A personal project's: those of Your space, and Settings. No Members, no Timeline. */
-const PERSONAL_SECTION_ORDER = ['tasks', 'boards', 'runs', 'automation', 'workflows', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets', 'settings']
+const PERSONAL_SECTION_ORDER = ['tasks', 'boards', 'runs', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets', 'settings']
 
 function projectTools(project: ProjectPlaceData, extra: {
   isProjectAdmin: boolean
@@ -74,6 +75,7 @@ function projectTools(project: ProjectPlaceData, extra: {
   automationOn: boolean | undefined
   filesCounts: FilesToolCounts
   workflows: PlaceTool | undefined
+  skills: PlaceTool | undefined
   secrets: PlaceTool | undefined
   github: PlaceTool | undefined
 }): PlaceToolGroup[] {
@@ -100,6 +102,7 @@ function projectTools(project: ProjectPlaceData, extra: {
         render: () => <ProjectAutomationTool projectId={project.id} isProjectAdmin={extra.isProjectAdmin} />,
       },
       ...(extra.workflows ? [extra.workflows] : []),
+      ...(extra.skills ? [extra.skills] : []),
       ...(extra.isProjectAdmin && !personal
         ? [{ id: 'memory', label: 'Memory', render: () => <ProjectMemoryTool projectId={project.id} /> }]
         : []),
@@ -149,6 +152,12 @@ export function useProjectPlace(key: string | undefined) {
   const filesCounts = useFilesToolCounts(project ? { ownerType: 'project', ownerId: project.id } : undefined)
   const workflows = useWorkflowsTool(project ? { type: 'project', id: project.id } : undefined)
   const secrets = useSecretsTool(project ? { type: 'project', id: project.id } : undefined)
+  const skills = useSkillsTool(project ? {
+    projectId: project.id,
+    name: project.name,
+    isSpace: false,
+    agents: (project.personalOwnerId ? (allAgents ?? []).map((a) => ({ id: a.id, name: a.name })) : project.agents.map((a) => ({ id: a.agent.id, name: a.agent.name }))),
+  } : undefined)
   const github = useGitHubTool(project)
 
   if (!project) return { project, place: undefined, isLoading, error }
@@ -197,6 +206,7 @@ export function useProjectPlace(key: string | undefined) {
       automationOn: (automation as { effective?: { enabled: boolean } } | undefined)?.effective?.enabled,
       filesCounts,
       workflows,
+      skills,
       secrets,
       github,
     }),

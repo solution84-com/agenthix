@@ -40,7 +40,7 @@ describe('skill files', () => {
   it('refuses a skill without SKILL.md and a slug that cannot be namespaced', () => {
     expect(() => replaceSkill([], 'a', [f('x.md', 'x')])).toThrow(/SKILL.md/)
     expect(() => assertSkillSlug('Bad Slug')).toThrow(/lowercase/)
-    expect(() => assertSkillSlug('x'.repeat(56))).toThrow(/55/)
+    expect(() => assertSkillSlug('x'.repeat(52))).toThrow(/51/)
   })
 
   it('lists skill entries from SKILL.md frontmatter', () => {

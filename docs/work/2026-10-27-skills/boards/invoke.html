@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>In a conversation · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="invoke.html"><main>
+<div class="top"><div><h1>7 · In a conversation: pick, invoke, record</h1>
+<p class="sub">What happens between a person typing <code>/</code> and the work step that opens the skill Ada used, and how agents learn what skills are. Numbers match the diagram. Screens: C1, C2. Spec part 5.</p></div></div>
+
+<h2 id="seq">The path</h2>
+<div class="box"><div class="mmd" data-src="seq"></div></div>
+
+<h2 id="steps">Each step</h2>
+<div class="kbox">
+<div><h4><span class="n">1</span>The picker's list</h4><p><b>New hq query:</b> <code>listConversationSkills</code>, given the conversation. hq resolves what this run would stage (spec part 5): built-ins not switched off, installed skills Ada has, the place's switched-on file skills, the person's published personal skills, after the clash order (D16). It leaves out anything set aside, switched off, or marked <code>user-invocable: false</code>. Each item: display name, description, level, identity and version, staged name.</p></div>
+<div><h4><span class="n">2</span>The message carries a field</h4><p><b>Protocol change:</b> the message hq sends a site gains an optional <code>skill</code> (the staged name). The text is never rewritten (R3). It's a new optional field, so the site protocol's minor version moves (versioning.md).</p></div>
+<div><h4><span class="n">3</span>The site validates it</h4><p>Accepted only if it equals a name <b>staged for this turn</b> whose skill allows invocation; otherwise it's dropped and the text kept (security review M7). Text beginning with <code>/</code> is escaped either way, so the runtime never parses a command, bundled ones included (T7).</p></div>
+<div><h4><span class="n">4</span>The runtime's own form</h4><p><b>Claude:</b> the turn's user message is built in <code>claude/turnInput.ts</code>, which today pushes plain text; with a skill, the turn begins with an explicit instruction to use that skill through Claude Code's <code>Skill</code> tool, in the staged plugin (<code>claude/claudeSkills.ts</code>). <b>OpenCode:</b> the same instruction, and Agenthix's plugin <code>skill</code> tool loads it from the conversation's staged folder (<code>opencode/openCodeSkills.ts</code>). Same words on both runtimes.</p></div>
+<div><h4><span class="n">5</span>The agent loads it</h4><p>A <code>Skill</code> / <code>skill</code> tool call, gated as today: a name not staged is refused (<code>skill-not-staged</code>, <code>sdkToolGate.ts</code>). The agent may also load a skill on its own when a task matches its description: the same call, with no picker.</p></div>
+<div><h4><span class="n">6</span>The site records what ran</h4><p>Per run, a table from staged name to <b>level, identity, version and fingerprint</b>, written when staging. The tool call is looked up in it, so the step names the skill a person knows, not <code>org-dev-code-review</code>.</p></div>
+<div><h4><span class="n">7</span>The work step</h4><p><code>core/src/protocol/workSteps.ts</code>: the <code>skill</code> spec gains a target. <code>WorkTarget</code> today is task, board or file; it gains <code>{ type: 'skill', name, identity, version, fingerprint, level }</code>. The step reads <b>Used the skill Code Review · Fernhill · 1.3</b>.</p></div>
+<div><h4><span class="n">8</span>Opening it</h4><p>The step opens the skill beside the conversation (<code>ShownViewer.tsx</code>'s Beside panel) at <b>the fingerprint the run used</b>, from hq's kept content (D26). <b>Access is checked when it's opened</b> (M6): installed skills for any member; a place's skill for whoever can see that place; a personal skill only for its person.</p></div>
+</div>
+
+<h2 id="learn">How agents learn about skills</h2>
+<div class="box"><table><tr><th>Source</th><th>Says</th><th>Reaches the agent as</th></tr>
+<tr><td><b>The listing</b></td><td>Each skill's name and description</td><td>Every request, from the runtime (adr-0084)</td></tr>
+<tr><td><b>The user guide's <i>Skills</i> page</b></td><td>What skills are, the levels, picking, proposing, and the rule of D29: instructions always steer, skills instruct one kind of task, knowledge informs</td><td>The <code>platform:</code> knowledge level, searched when needed (adr-0149)</td></tr>
+<tr><td><b>Built-in <code>skill-creator</code></b></td><td>How to write a good skill, to put a process in knowledge and let the skill enforce it, and to use <code>propose_skill</code>, never a folder</td><td>Listed for every agent (D6)</td></tr>
+<tr><td><b><code>propose_skill</code>'s description</b></td><td>Its arguments and what happens next</td><td>The tool list, and the guide's generated tools reference</td></tr>
+</table></div>
+
+<h2 id="ba">Before, after, why</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><ul><li>A typed <code>/name</code> goes to the runtime as text; bundled commands work (T7).</li><li>The step shows a staged name and opens nothing (T8).</li></ul></div>
+<div class="box"><span class="lbl after">After</span><ul><li>A picked skill is a validated field; typed text is never a command.</li><li>The step names the skill and version, and opens what ran, to whoever may see it.</li></ul></div>
+</div>
+<div class="why"><b>Why a field and a table:</b> the field keeps the person's words untouched and lets the site check them against this turn's staging. The table is the only place that knows staged name → identity → fingerprint at the moment the run used it.</div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th><th>Recommended</th></tr>
+<tr><td class="n">YQ1</td><td><b>Claude invocation form:</b> the turn's message begins with an explicit "Use the skill <i>X</i> for this" instruction, or the SDK's own slash-command path for plugin skills?</td><td>The explicit instruction on both runtimes: one form, and it never relies on slash parsing that M7 forbids</td></tr>
+<tr><td class="n">YQ2</td><td><b>Where the run's skill table lives:</b> sent to hq with the run's record, or kept on the site and fetched?</td><td>Sent to hq with the run's record: hq answers C2's access check and keeps the content (D26)</td></tr>
+</table></div>
+
+<script>
+window.SRC = { seq: `sequenceDiagram
+  participant P as Person (browser)
+  participant H as hq
+  participant S as Site
+  participant R as Runtime (Claude / OpenCode)
+  P->>H: 1 · listConversationSkills
+  H-->>P: this run's skills, after the clash order
+  P->>H: 2 · message + skill field
+  H->>S: turn: text, skill, staged set by fingerprint
+  S->>S: 3 · stage, validate the field, escape a leading slash
+  S->>R: 4 · turn with "use skill X"
+  R->>S: 5 · Skill tool call (gated)
+  S->>H: 6 · run record: staged name → identity, version, fingerprint
+  H-->>P: 7 · work step with skill target
+  P->>H: 8 · open at fingerprint (access checked)
+` }
+</script>
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

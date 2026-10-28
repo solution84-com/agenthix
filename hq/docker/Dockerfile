@@ -70,7 +70,7 @@ FROM wasp AS web-build
 # answers at; hq-web puts HQ's real address in its place when it starts
 # (adr-0111, web-address.sh). The build fails if the placeholder does not
 # reach the built files, as it would if Wasp changed how it embeds it.
-RUN cd hq && REACT_APP_API_URL=https://hq-address.invalid npx vite build \
+RUN cd hq && NODE_OPTIONS=--max-old-space-size=4096 REACT_APP_API_URL=https://hq-address.invalid npx vite build \
  && grep -rqF https://hq-address.invalid .wasp/out/web-app/build
 
 # The platform guide agents read (agent knowledge spec, part 1): the user guide's pages, its glossary and the tools
@@ -160,7 +160,7 @@ RUN mkdir -p /ui/node_modules/@types \
  && test -e /ui/node_modules/@types/react/index.d.ts \
  && test -e /ui/node_modules/@types/react-dom/index.d.ts
 RUN cd .wasp/out/server && npx prisma generate --schema='../db/schema.prisma'
-RUN cd .wasp/out/server && npm run bundle
+RUN cd .wasp/out/server && NODE_OPTIONS=--max-old-space-size=4096 npm run bundle
 
 FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server
 RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 ripgrep

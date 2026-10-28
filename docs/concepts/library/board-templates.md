@@ -2,7 +2,6 @@
 
 A board template is a reusable set of **columns** — the named steps of a workflow, applied when creating a new board. Templates are defined once and reused across projects; each board is an independent copy of a template, and a lasting workflow that lives until it is archived ([board.md](../tasks/board.md)).
 
-Board templates are **self-contained** — they reference no other assets. There is no bundled/installed distinction: what is in the file is the complete record. System templates are always seeded at startup on every instance, so workforce templates that reference them by `templateId` never need to embed them.
 
 ---
 
@@ -58,68 +57,38 @@ column when its run finishes: a person or an agent moves it. An automatic advanc
 
 ---
 
-## Source files and seeding
+## The package
 
-Board templates are authored as JSON files in `assets/library/boards/` and seeded into the `BoardTemplate` DB table at startup via `ensureSystemTemplates()`. The DB record stores only metadata — `id`, `name`, `description`, `version`, `isSystem`, and an `assetPath` pointer. The columns are read from the JSON file at runtime when a board is created from the template.
+A board template is an asset of kind `board` ([the Library](./library.md)): a package holding `board.json` (its name, description and columns) beside its manifest. Agenthix's six ship in hq's image and are installed as `agenthix/<name>` when hq starts. The organisation's own are made in HQ under its own publisher name, version `1.0.0` and then each next minor version, with history; another publisher's template is edited by making the organisation's own copy ([editing makes your own copy](./library.md#editing-makes-your-own-copy)). Others come from an upload or a link ([installing](./installing.md)).
 
-```
-assets/library/boards/<id>.json  →  BoardTemplate { id, name, description, assetPath: 'library/boards/<id>.json', version }
-```
+Board templates are **self-contained**: they reference no other asset, so a package needs nothing carried with it.
 
-Seeding is version-gated: if the stored `version` matches the file, the record is skipped. Bump `version` in the file to force an update on next startup.
-
-Org-created board templates are stored under `org/boards/<id>.json` in hq's own storage (`<HQ_STORAGE_ROOT>/org/boards/`) with `isSystem = false`.
+A board made from a template copies its columns and keeps a read-only link to the version it was made from. It never follows the template's later versions.
 
 ---
 
-## DB schema
+## Agenthix's templates
 
-```prisma
-model BoardTemplate {
-  id          String   @id @default(uuid())  // system templates are seeded with a stable id, e.g. "sys-tpl-0001-kanban"
-  name        String
-  description String
-  assetPath   String                 // relative path — resolve under hq's assets root (system) or hq's storage root (org)
-  isSystem    Boolean  @default(false)
-  version     Int      @default(1)
-  source         LibrarySource @default(MADE_HERE)   // built in, made here or marketplace
-  packageVersion String        @default("1")
-  publisher      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-```
+Read-only in the Library, and a copy can be made to change one.
 
----
-
-## Installed form vs bundled form
-
-Board templates have **no bundled form**. They are self-contained — they reference no other assets by slug, so there is nothing to embed for portability. A board template JSON file is already the complete record.
-
-System templates (`sys-tpl-*`) are seeded at startup on every instance, so workforce templates that reference them by `templateId` can always resolve them without bundling. Custom board templates created by users are org-local and not expected to travel between instances.
-
----
-
-## System templates
-
-The platform ships 6 board templates, authored in `assets/library/boards/` and seeded at startup. System templates are read-only in the UI — orgs can create custom templates alongside them.
-
-| ID | Name | Columns |
+| Identity | Name | Columns |
 |---|---|---|
-| `sys-tpl-0001-kanban` | Kanban | To Do → In Progress → Done |
-| `sys-tpl-0002-sprint` | Sprint Board | To Do → In Progress → In Review → Done |
-| `sys-tpl-0003-issues` | Issue Tracker | Open → Triaged → In Progress → Resolved |
-| `sys-tpl-0004-ideation` | Ideation | Ideas → Evaluating → Approved → Executing → Done |
-| `sys-tpl-0005-roadmap` | Product Roadmap | Planned → In Development → In Review → Released |
-| `sys-tpl-0006-workforce-assembly` | Workforce Assembly | Planned → In Progress → In Review → Approved → Done |
+| `agenthix/kanban` | Kanban | To Do → In Progress → Done |
+| `agenthix/sprint` | Sprint Board | To Do → In Progress → In Review → Done |
+| `agenthix/issues` | Issue Tracker | Open → Triaged → In Progress → Resolved |
+| `agenthix/ideation` | Ideation | Ideas → Evaluating → Approved → Executing → Done |
+| `agenthix/roadmap` | Product Roadmap | Planned → In Development → In Review → Released |
+| `agenthix/workforce-assembly` | Workforce Assembly | Planned → In Progress → In Review → Approved → Done |
+
+Workforce Assembly is the one hq itself relies on: it is where the built-in agent's proposed teams wait for review.
 
 ---
 
 ## Where board templates appear
 
-- **Library page** (`/library`) — the **Boards** tab, beside Agents, Skills and Teams
-- **New Board modal** — template picker when creating a board within a project
-- **Workforce templates** — referenced by `templateId` in `boards[].templateId` (e.g. `"sys-tpl-0002-sprint"`)
+- **Library** (`/library`), filtered to boards
+- **New Board** — the template picker when creating a board within a project
+- **Team templates** — each project of a team template names the board template it starts with, by name (for example `sprint`)
 
 ---
 
@@ -131,6 +100,6 @@ When an agent calls `get_task_details`, the response includes `availableColumns[
 
 ## Related
 
-- [library.md](./library.md) — three-layer library model
-- [workforce-templates.md](./workforce-templates.md) — workforce templates reference board templates by `templateId`
+- [library.md](./library.md) — assets, versions and the pin
+- [workforce-templates.md](./workforce-templates.md) — team templates name the board template each project starts with
 - [board.md](../tasks/board.md) — the three kinds of board, columns, the Backlog, sprints, archiving

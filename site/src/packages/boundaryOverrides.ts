@@ -1,9 +1,9 @@
 /**
  * A boundary's own adjustments, kept on the boundary's disk (ADR-0072): for one
- * agent, `.agents/agents/<agentId>/instructions.md` and `…/skills/<slug>/`;
- * for every agent working in the boundary, `.agents/skills/<slug>/` — all in
- * the files home of the project or person the run acts in. Per-agent files are
- * keyed on the agent's id, so a rename moves nothing.
+ * agent, `.agents/agents/<agentId>/instructions.md`, in the files home of the
+ * project or person the run acts in, keyed on the agent's id, so a rename moves
+ * nothing. Skills in a place's files are staged only as hq names them
+ * (placeSkillHomes.ts, skillSources.ts), never from here.
  *
  * Everything under here sits on disk the agent itself (or anyone with access to
  * the boundary) can write, so every read stays real-path-confined to the
@@ -20,8 +20,6 @@ import { PACKAGE_KEY_PATTERN } from '@agenthix/core'
 import { getFilesDir, ownerDir, type LocationRef } from '../server/storage/paths'
 
 export const OVERRIDES_DIR = '.agents/agents'
-/** Skills every agent working in the boundary receives, staged as `shared-<slug>`. */
-export const SHARED_SKILLS_DIR = '.agents/skills'
 
 /**
  * The boundary's own override directory and the files home every read under it
@@ -57,7 +55,7 @@ export function isInsideHome(home: string, real: string): boolean {
  * where the layout puts it. A run can replace `files/` with a link, and
  * resolving through it would make the link's target the boundary.
  */
-async function realFilesHome(loc: Pick<LocationRef, 'ownerType' | 'ownerId'>, filesHome: string): Promise<string | null> {
+export async function realFilesHome(loc: Pick<LocationRef, 'ownerType' | 'ownerId'>, filesHome: string): Promise<string | null> {
   const [realHome, realOwner] = await Promise.all([realpathOrNull(filesHome), realpathOrNull(ownerDir(loc.ownerType, loc.ownerId))])
   if (!realHome || !realOwner || realHome !== path.join(realOwner, path.basename(filesHome))) return null
   return realHome
@@ -202,21 +200,4 @@ export async function readBoundaryFile(override: BoundaryOverride, relPath: stri
   if (!realParent || !isInsideHome(override.filesHome, realParent)) return null
   const result = await readFileNoFollow(file, { sandboxHome: override.filesHome })
   return result.ok ? result.buf.toString('utf-8') : null
-}
-
-/**
- * The boundary's shared skills directory — skills every agent working there
- * receives — and the real files home every read under it is confined to, or
- * null for a directory that is absent or
- * resolves outside the files home. Every read under it rechecks containment
- * (skillStaging.ts), as for a per-agent override.
- */
-export async function resolveBoundarySharedSkillsDir(
-  loc: Pick<LocationRef, 'ownerType' | 'ownerId'>,
-): Promise<BoundaryOverride | null> {
-  const filesHome = getFilesDir(loc.ownerType, loc.ownerId)
-  const dir = path.join(filesHome, ...SHARED_SKILLS_DIR.split('/'))
-  const [realHome, realDir] = await Promise.all([realFilesHome(loc, filesHome), realpathOrNull(dir)])
-  if (!realHome || !realDir || !isInsideHome(realHome, realDir)) return null
-  return { dir: realDir, filesHome: realHome }
 }

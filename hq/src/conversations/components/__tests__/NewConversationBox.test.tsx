@@ -9,6 +9,8 @@ const h = vi.hoisted(() => ({
   voiceStart: vi.fn(),
   choices: { data: undefined as unknown, error: null as { message: string } | null },
   securePage: true,
+  skillsAsked: [] as unknown[],
+  skills: { data: { skills: [] as unknown[] }, isLoading: false, error: undefined },
 }))
 // jsdom is not a secure page: it has no microphone, so each test says whether the page has one.
 vi.mock('../../../shared/securePage', async (importOriginal) => ({
@@ -18,8 +20,14 @@ vi.mock('../../../shared/securePage', async (importOriginal) => ({
 vi.mock('wasp/client/operations', () => ({
   startConversation: 'startConversation',
   getConversationAgentChoices: 'getConversationAgentChoices',
+  listConversationSkills: 'listConversationSkills',
+  listStartSkills: 'listStartSkills',
   useAction: () => h.start,
-  useQuery: () => h.choices,
+  useQuery: (op: string, args: unknown) => {
+    if (op !== 'listStartSkills') return h.choices
+    h.skillsAsked.push(args)
+    return h.skills
+  },
 }))
 vi.mock('../StartModelPicker', () => ({
   StartModelPicker: ({ picked, onPick }: { picked: string | null; onPick: (m: string) => void }) => (
@@ -41,11 +49,11 @@ import { NewConversationBox } from '../NewConversationBox'
 function Where() {
   return <output data-testid="where">{useLocation().pathname}</output>
 }
-function renderBox(initial = '/chat') {
+function renderBox(initial = '/chat', autoFocus = false) {
   return render(
     <MemoryRouter initialEntries={[initial]}>
       <Routes>
-        <Route path="/chat" element={<NewConversationBox home="PERSON" basePath="/chat" placeholder="Ask your agent…" noAgentsNotice="Add an agent first" />} />
+        <Route path="/chat" element={<NewConversationBox home="PERSON" basePath="/chat" placeholder="Ask your agent…" noAgentsNotice="Add an agent first" autoFocus={autoFocus} />} />
         <Route path="*" element={<Where />} />
       </Routes>
     </MemoryRouter>,
@@ -60,10 +68,78 @@ beforeEach(() => {
   h.voiceStart.mockReset()
   h.choices.data = [kernel, writer]
   h.choices.error = null
+  h.skillsAsked = []
+  h.skills = { data: { skills: [{ name: 'org-code-review', title: 'Code review', description: 'Review a change', source: 'every-agent', sourceName: 'Fernhill', detail: 'fernhill/code-review 1.0.0' }] }, isLoading: false, error: undefined }
+})
+
+describe('the / picker in the box that starts a conversation (skills spec part 5)', () => {
+  it("lists the chosen agent's skills here, and sends the one picked beside the first message, never in its text", async () => {
+    renderBox()
+    const box = screen.getByLabelText('Ask your agent…') as HTMLTextAreaElement
+    fireEvent.change(box, { target: { value: '/' } })
+    expect(screen.getByRole('listbox', { name: 'Skills' }).textContent).toContain('Code review')
+    expect(h.skillsAsked.at(-1)).toEqual({ home: 'PERSON', agentId: 'k' })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    expect(box.value).toBe('/org-code-review ')
+    expect(screen.getByTestId('skill-mark').textContent).toBe('/org-code-review')
+    expect(h.start).not.toHaveBeenCalled()
+
+    fireEvent.change(box, { target: { value: '/org-code-review Review the checkout change' } })
+    expect(screen.getByTestId('skill-mark').textContent).toBe('/org-code-review')
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    await waitFor(() => expect(h.start).toHaveBeenCalled())
+    expect(h.start.mock.calls[0]![0]).toMatchObject({ text: 'Review the checkout change', skill: { name: 'org-code-review' } })
+  })
+
+  it('lets the picked skill go when another agent is chosen', () => {
+    renderBox()
+    const box = screen.getByLabelText('Ask your agent…') as HTMLTextAreaElement
+    fireEvent.change(box, { target: { value: '/' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    expect(screen.getByTestId('skill-mark')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'agent:Writer' }))
+    expect(screen.queryByTestId('skill-mark')).toBeNull()
+  })
+
+  it('lets the skill go when its text is changed, and sends the words as typed', async () => {
+    renderBox()
+    const box = screen.getByLabelText('Ask your agent…') as HTMLTextAreaElement
+    fireEvent.change(box, { target: { value: '/' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    fireEvent.change(box, { target: { value: '/org-code-revie hello' } })
+    expect(screen.queryByTestId('skill-mark')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    await waitFor(() => expect(h.start).toHaveBeenCalled())
+    expect(h.start.mock.calls[0]![0].text).toBe('/org-code-revie hello')
+    expect(h.start.mock.calls[0]![0].skill).toBeUndefined()
+  })
+
+  it('a typed /name that was never picked stays plain text', () => {
+    renderBox()
+    fireEvent.change(screen.getByLabelText('Ask your agent…'), { target: { value: '/org-code-review hello' } })
+    expect(screen.queryByTestId('skill-mark')).toBeNull()
+  })
+
+  it('opens for a / at the start only', () => {
+    renderBox()
+    fireEvent.change(screen.getByLabelText('Ask your agent…'), { target: { value: 'see src/' } })
+    expect(screen.queryByRole('listbox', { name: 'Skills' })).toBeNull()
+  })
 })
 afterEach(cleanup)
 
 describe('the message box that starts a conversation @SC-1007', () => {
+  it('takes the caret when it is asked to, but never from a field being typed in', () => {
+    renderBox('/chat', true)
+    expect(document.activeElement).toBe(screen.getByLabelText('Ask your agent…'))
+    cleanup()
+    const field = document.body.appendChild(document.createElement('textarea'))
+    field.focus()
+    renderBox('/chat', true)
+    expect(document.activeElement).toBe(field)
+    field.remove()
+  })
+
   it('is empty and writable again once the conversation is started, where it stays on screen (the dock) @SC-1037', async () => {
     render(
       <MemoryRouter initialEntries={['/chat']}>

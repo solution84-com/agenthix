@@ -1,0 +1,8 @@
+{
+  "format": 2,
+  "kind": "agent",
+  "publisher": "agenthix",
+  "name": "product-manager",
+  "version": "1.0.0",
+  "description": "Owns product vision, strategy, and roadmap"
+}

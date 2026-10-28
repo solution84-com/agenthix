@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where a skill can live · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="locations.html"><main>
+<div class="top"><div><h1>2 · Where a skill can live</h1>
+<p class="sub">Every place a skill can be kept in Agenthix: what is read today, and what is proposed. The levels L1–L6 match the diagram, the table and the run example.</p></div></div>
+
+<h2 id="map">The map</h2>
+<div class="box"><div class="mmd" data-src="map"></div>
+<p class="sub">Solid lines: read today. Dashed: proposed. hq holds the definitions; the site holds a place's files.</p></div>
+
+<h2 id="levels">The levels</h2>
+<div class="box"><table><tr><th></th><th>Level</th><th>Kept where</th><th>Applies to</th><th>Who changes it today</th><th>Read today?</th><th>Like, in Claude Code</th></tr>
+<tr><td class="n">L1a</td><td><b>Built in</b></td><td>hq's image: the platform package (<code>hq/assets/platform/skills/</code>). <b>Empty today.</b></td><td>Every agent in every organisation, always. Not listed today</td><td>Agenthix, with each release</td><td>Yes (as source <code>platform</code>)</td><td>Bundled skills: present and on by default; can be switched off; not editable</td></tr>
+<tr><td class="n">L1b</td><td><b>Offered by Agenthix</b></td><td>hq's image: the 18 library skills (<code>hq/assets/library/skills/</code>)</td><td>Nobody until installed. Today a new organisation installs all 18 by itself, which blurs this line</td><td>Agenthix, with each release</td><td>Only once copied into L2 or L3</td><td>Nothing in Claude Code. On the API, Anthropic's pre-built skills, named per request</td></tr>
+<tr><td class="n">L2</td><td><b>Organisation</b></td><td>hq: the organisation's package (<code>skills/</code>), plus skills made here in hq's storage</td><td>Every agent in the organisation, wherever it works</td><td>Administrators</td><td>Yes (<code>org</code>)</td><td>Enterprise (managed)</td></tr>
+<tr><td class="n">L3</td><td><b>Agent</b></td><td>hq: the agent's own package (<code>skills/</code>)</td><td>That agent, wherever it works. It travels with the agent when exported or used as a template</td><td>Administrators</td><td>Yes (<code>agent</code>)</td><td>A plugin's skills: they come with the thing that carries them</td></tr>
+<tr><td class="n">L4</td><td><b>Place, every agent</b></td><td>Site: <code>files/.agents/skills/</code> in a project's storage or a person's own space</td><td>Every agent working in that place</td><td>Anyone who can write the place's files, agents included</td><td>Yes (<code>shared</code>)</td><td>Project skills (<code>.claude/skills</code>)</td></tr>
+<tr><td class="n">L5</td><td><b>Place, one agent</b></td><td>Site: <code>files/.agents/agents/&lt;agent id&gt;/skills/</code></td><td>That agent, only in that place</td><td>Anyone who can write the place's files, agents included</td><td>Yes (<code>boundary</code>)</td><td>None: Agenthix's own</td></tr>
+<tr><td class="n">L6</td><td><b>Workspace</b> (a repository)</td><td>Site: <code>workspaces/&lt;id&gt;/</code> holding <code>.claude/skills/</code>, <code>.agents/skills/</code> or <code>.github/skills/</code>, as the repository has them</td><td>Proposed: runs working in that workspace</td><td>Whoever commits to the repository, people and agents</td><td><b>No.</b> Claude Code is started with no setting sources, and OpenCode's discovery is off (adr-0084)</td><td>Project skills, exactly. The repository a team already shares on GitHub</td></tr>
+</table></div>
+
+<h3 id="person">The person: Your space today; following the person from now on (D15)</h3>
+<div class="box"><p>A person's own space is a place, so their skills are L4 and L5 in <i>their</i> storage. They apply <b>only when an agent works in Your space</b>. They do not follow the person into a project, the way <code>~/.claude/skills</code> follows you into every repository on your machine.</p><p><b>Decided (D15):</b> they follow the person into their own conversations everywhere. hq delivers the turned-on ones by fingerprint. They never apply to runs other people start, or to scheduled ones. The organisation's installed version wins a clash.</p></div>
+
+<h2 id="claude">How Claude does it: built in or installed</h2>
+<div class="box"><p><b>Claude's rule: a skill that is present is on.</b> Installing it is what makes it present. The control afterwards is switching it off, never switching it on.</p>
+<table><tr><th>Product</th><th>Kind</th><th>On by default?</th><th>Who turns it off</th><th>Editable?</th></tr>
+<tr><td>Claude Code</td><td><b>Bundled</b> (<code>/code-review</code>, <code>/simplify</code>, <code>/loop</code>, <code>/claude-api</code>, …)</td><td>Yes, most</td><td>The person or an administrator: <code>disableBundledSkills</code>, or per skill <code>skillOverrides</code> (on, name only, only when typed, off), in any settings file, managed included</td><td>No. A same-named skill of your own replaces it</td></tr>
+<tr><td>Claude Code</td><td>Personal, project, enterprise, plugin</td><td>Yes, once present</td><td><code>skillOverrides</code> (plugins through <code>/plugin</code>), permission rules</td><td>Yes</td></tr>
+<tr><td>claude.ai</td><td><b>Anthropic's</b> (docx, xlsx, pptx, pdf)</td><td>Available to everyone, no setup (on by default appears so, not stated)</td><td>The person toggles; the owner's Skills switch</td><td>No</td></tr>
+<tr><td>claude.ai</td><td><b>Organisation-provisioned</b></td><td>Yes, for everyone</td><td>Each person may toggle one off; only the owner removes it</td><td>Not by members</td></tr>
+<tr><td>claude.ai</td><td>Personal (made or uploaded)</td><td>Yes, for the person</td><td>The person; the owner can stop people making them</td><td>Yes, by its maker</td></tr>
+<tr><td>API</td><td>Anthropic pre-built and custom</td><td><b>No.</b> Each request names its skills (at most 20)</td><td>The developer, by leaving it out</td><td>Custom: new versions</td></tr>
+</table>
+<div class="why"><b>For Agenthix:</b> two kinds shipped by Agenthix.
+<ul><li><b>L1a Built in</b> is like Claude Code's bundled skills: on for every agent, an administrator can switch one off, and nobody edits it.</li>
+<li><b>L1b Offered</b> is a shelf, like the API's pre-built skills: nothing runs until it's installed.</li></ul>
+After that, Claude's rule applies to everything installed (L2–L6): present means on, and the control is switching off, per organisation, agent or place. A natural first built-in is a <i>skill creator</i>, like Claude's, which teaches an agent how to write and propose a skill well.</div></div>
+
+<h2 id="example">What one run sees</h2>
+<div class="box"><p><b>Example:</b> Avery asks the agent <b>Ada</b> to fix a bug in the project <b>Website rebuild</b>, working in its workspace <b>site-repo</b>, a clone of the team's GitHub repository.</p>
+<table><tr><th></th><th>Today</th><th>Proposed</th></tr>
+<tr><td class="n">L1a</td><td>Built-in skills (none today)</td><td>Built-in skills not switched off</td></tr>
+<tr><td class="n">L1b</td><td>Not directly: all 18 were installed into L2</td><td>Nothing until installed</td></tr>
+<tr><td class="n">L2</td><td>All 18 library skills, installed at the organisation's first write</td><td>Only what the organisation gives every agent</td></tr>
+<tr><td class="n">L3</td><td>Ada's own skills</td><td>Same</td></tr>
+<tr><td class="n">L4</td><td>Website rebuild's <code>files/.agents/skills/</code></td><td>Same</td></tr>
+<tr><td class="n">L5</td><td>Website rebuild's skills for Ada</td><td>Same</td></tr>
+<tr><td class="n">L6</td><td>Nothing: site-repo's <code>.claude/skills/</code> is ignored</td><td>site-repo's skills, because the run works there</td></tr>
+<tr><td class="n">Avery</td><td>Nothing from Avery's own space</td><td>Open: Q8</td></tr>
+</table>
+<p class="sub">Each reaches the model as <code>&lt;source&gt;-&lt;slug&gt;</code>, so the same name at two levels never clashes. Workspace skills would need a source of their own, for example <code>workspace-&lt;slug&gt;</code>.</p></div>
+
+<h2 id="notes">What the map shows</h2>
+<div class="box"><ul>
+<li><b>Three levels are hq's (L1–L3), and three are files (L4–L6).</b> hq's levels are definitions that administrators manage. File levels belong to whoever can write the place, and that includes agents. That is the trust question in <a href="/files/decisions.html#q3">Q3</a>.</li>
+<li><b>L6 is the one teams already have.</b> A repository with <code>.claude/skills</code> or <code>.agents/skills</code> works in Claude Code and GitHub Copilot today, but not in Agenthix.</li>
+<li><b>L4 and L5 are Agenthix's own folders</b>, in the place's <code>files/</code>, not in a repository.</li>
+<li><b>No "local" level.</b> As in Claude Code, a per-person, per-project layer would switch skills on or off. It would not hold skills.</li></ul></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th></tr>
+<tr><td class="n">Q9</td><td><b>Workspace skills (L6):</b> read a repository's skill folders when a run works in that workspace? Which folders: <code>.claude/skills</code>, <code>.agents/skills</code>, <code>.github/skills</code>?</td></tr>
+</table></div>
+
+<script>
+window.SRC = { map: `flowchart LR
+  subgraph HQ["hq: definitions"]
+    L1["L1a · Built in · L1b · Offered<br/>hq's image"]
+    L2["L2 · Organisation<br/>organisation's package"]
+    L3["L3 · Agent<br/>the agent's own package"]
+  end
+  subgraph SITE["Site: a place's storage"]
+    L4["L4 · Place, every agent<br/>files/.agents/skills/"]
+    L5["L5 · Place, one agent<br/>files/.agents/agents/id/skills/"]
+    L6["L6 · Workspace (a repository)<br/>workspaces/id/.claude/skills/ …"]
+  end
+  RUN["A run: staged per turn<br/>as source-slug"]
+  L1 --> RUN
+  L2 --> RUN
+  L3 --> RUN
+  L4 --> RUN
+  L5 --> RUN
+  L6 -.->|"proposed"| RUN
+` }
+</script>
+<script type="module" src="/files/shell.js?v=8"></script>
+</body></html>

@@ -1,11 +1,14 @@
 /**
- * Removes content no package points at (ADR-0072). Content is kept for
+ * Removes content nothing names (ADR-0072). Content is kept for
  * PACKAGE_CONTENT_GRACE_MS after the last package moved off it, so a run that
- * started before an edit is still served the content it named. Current content
- * is never removed: the query requires that no package points at it, and the
- * Package → PackageContent relation refuses the delete besides.
+ * started before an edit is still served the content it named. Content a
+ * holder names is never removed: a package's current content, and every asset
+ * version, draft and its revisions, proposal and place skill version (skills
+ * spec, Retention). The query requires that none names it, and each relation
+ * refuses the delete besides.
  */
 import { prisma } from 'wasp/server'
+import type { Prisma } from '@prisma/client'
 import type { Db } from './packageStore'
 import { Logger } from '../server/utils/logger'
 
@@ -14,16 +17,26 @@ const logger = new Logger('Packages')
 export const PACKAGE_CONTENT_GRACE_MS = 24 * 60 * 60 * 1000
 export const PACKAGE_CONTENT_SWEEP_INTERVAL_MS = 60 * 60 * 1000
 
-export async function sweepUnreferencedContent(now: Date = new Date(), db: Db = prisma): Promise<number> {
+/** Every PackageContent relation that keeps its content; its own files are not one. */
+export const CONTENT_HOLDERS = [
+  'packages', 'assetVersions', 'drafts', 'draftRevisions', 'proposals', 'placeSkillVersions',
+] as const
+
+type HolderFilter = { [K in (typeof CONTENT_HOLDERS)[number]]: { none: Record<string, never> } }
+
+export function unreferencedContentWhere(now: Date): HolderFilter & Prisma.PackageContentWhereInput {
   const cutoff = new Date(now.getTime() - PACKAGE_CONTENT_GRACE_MS)
-  const { count } = await db.packageContent.deleteMany({
-    where: {
-      packages: { none: {} },
-      // Released long enough ago — or never pointed at at all (a write that
-      // lost a race outside a transaction) and old enough.
-      OR: [{ releasedAt: { lt: cutoff } }, { releasedAt: null, createdAt: { lt: cutoff } }],
-    },
-  })
+  const none = Object.fromEntries(CONTENT_HOLDERS.map(h => [h, { none: {} }])) as HolderFilter
+  return {
+    ...none,
+    // Released long enough ago — or never pointed at at all (a write that
+    // lost a race outside a transaction) and old enough.
+    OR: [{ releasedAt: { lt: cutoff } }, { releasedAt: null, createdAt: { lt: cutoff } }],
+  }
+}
+
+export async function sweepUnreferencedContent(now: Date = new Date(), db: Db = prisma): Promise<number> {
+  const { count } = await db.packageContent.deleteMany({ where: unreferencedContentWhere(now) })
   return count
 }
 

@@ -10,10 +10,10 @@ export function TaskBesideFile({ task, file }: { task: ReactNode; file: ((layout
   const wide = useWide(root)
   // The task and the file keep their places in the tree, so the open file isn't opened again when the width is known.
   return (
-    <div ref={root} className={file && wide ? 'grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)]' : undefined}>
-      {(!file || wide) && <div className="min-w-0">{task}</div>}
+    <div ref={root} className={file && wide ? 'grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)]' : file ? 'flex min-h-0 flex-1 flex-col' : undefined}>
+      {(!file || wide) && <div className={file ? 'min-h-0 min-w-0 overflow-y-auto' : 'min-w-0'}>{task}</div>}
       {file && (
-        <section aria-label="Open file" className={wide ? 'min-w-0 border-l border-border-subtle' : undefined}>
+        <section aria-label="Open file" className={`flex min-h-0 min-w-0 flex-1 flex-col${wide ? ' border-l border-border-subtle' : ''}`}>
           {file(wide ? 'wide' : 'narrow')}
         </section>
       )}

@@ -65,6 +65,11 @@ For anything else — a commercial licence, or a use you are unsure about — as
   [Smart Turn](https://github.com/pipecat-ai/smart-turn) by Daily, under the BSD 2-Clause licence. Each licence is
   beside its file. The browser runs them with ONNX Runtime Web (`onnxruntime-web`, MIT licence), whose WebAssembly
   file goes into HQ's client build.
+- **HQ's image carries Sigstore's public trust root** (`hq/assets/sigstore/trusted_root.json`), which it checks
+  package signatures against, fetched from [Sigstore](https://www.sigstore.dev/)'s public TUF repository; the signing
+  tests use bundles copied unchanged from
+  [sigstore/sigstore-conformance](https://github.com/sigstore/sigstore-conformance) (Apache License 2.0), whose
+  source and commit are recorded beside them (`hq/src/assets/signing/__tests__/fixtures/README.md`).
 - **Every other dependency** keeps its own licence, listed in its package.
 
 Anything else copied or adapted into this repository — code, fonts, icons, images — keeps its own licence and is

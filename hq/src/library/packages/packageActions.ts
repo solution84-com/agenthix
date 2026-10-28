@@ -5,12 +5,18 @@
  * exporting and importing are its admins', as an agent's export and import are.
  */
 import { HttpError, prisma } from 'wasp/server'
+import { AGENTHIX_PUBLISHER } from '@agenthix/core'
 import { requireRole } from '../../server/identity/requireRole'
-import { TemplateValidationError } from '../boardTemplateService'
+import { listBoardTemplates, TemplateValidationError, type BoardTemplateSummary } from '../boardTemplateService'
+import { listAgentTemplates, type AgentTemplateSummary } from '../agentTemplateService'
+import { listTeamTemplates, type TeamTemplateSummary } from '../workforceTemplateService'
 import { exportLibraryPackage, LibraryItemNotFoundError } from './exportPackage'
 import { importLibraryPackage, PackageImportError, type ImportedItem } from './importPackage'
 import { PackageZipError } from './packageZip'
-import { PACKAGE_KINDS, effectiveSource, publisherOf, type LibrarySource, type PackageKind } from './packageManifest'
+import { personActor } from '../../assets/policyActors'
+import { asHttp } from '../../assets/operations'
+import { PACKAGE_KINDS, BUILT_IN_PUBLISHER, type LibrarySource, type PackageKind } from './packageManifest'
+import { listOrgSkills, listShelfSkills } from '../../agents/skillsLibraryService'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -26,28 +32,47 @@ export type LibraryItem = {
 
 export type Library = Record<'agents' | 'boards' | 'skills' | 'teams', LibraryItem[]>
 
-const item = (
-  kind: PackageKind,
-  row: { id: string; name: string; source: LibrarySource; packageVersion: string; publisher: string | null; isSystem?: boolean; scope?: string },
-  description: string,
-): LibraryItem => ({
-  kind, id: row.id, name: row.name, description,
-  source: effectiveSource(row), version: row.packageVersion, publisher: publisherOf(row),
-})
+/**
+ * Skills as assets: Agenthix's shelf (Built in), then what the organisation made (Made here) or installed from
+ * anyone else, shown under their publisher.
+ */
+async function librarySkillItems(): Promise<LibraryItem[]> {
+  const [shelf, org, organisation] = await Promise.all([
+    listShelfSkills(), listOrgSkills(), prisma.org.findFirst({ select: { publisherName: true } }),
+  ])
+  // A template's role skill is shown with its template, never on its own (spec part 2 *Identity*).
+  const rows = [...shelf, ...org.filter(r => !r.slug.includes('/'))].sort((a, b) => a.name.localeCompare(b.name))
+  return rows.map(r => ({
+    kind: 'skill' as const, id: r.id, name: r.name, description: r.description, version: r.version,
+    source: r.scope === 'PLATFORM' ? 'BUILT_IN' as const : r.publisher === organisation?.publisherName ? 'MADE_HERE' as const : 'MARKETPLACE' as const,
+    publisher: r.scope === 'PLATFORM' ? BUILT_IN_PUBLISHER : r.publisher,
+  }))
+}
+
+/** A template as the Library lists it: Agenthix's (from hq's image), the organisation's own, or another publisher's. */
+function templateItem(kind: 'agent' | 'board' | 'team', t: AgentTemplateSummary | BoardTemplateSummary | TeamTemplateSummary, organisation: string | null): LibraryItem {
+  const source: LibrarySource = t.publisher === AGENTHIX_PUBLISHER ? 'BUILT_IN' : t.publisher === organisation ? 'MADE_HERE' : 'MARKETPLACE'
+  return {
+    kind, id: t.id, name: t.name, description: t.description, version: t.version, source,
+    publisher: source === 'BUILT_IN' ? BUILT_IN_PUBLISHER : t.publisher,
+  }
+}
 
 export const getLibrary = async (_args: unknown, context: Ctx): Promise<Library> => {
   if (!context.user) throw new HttpError(401)
-  const [agents, boards, skills, teams] = await Promise.all([
-    prisma.agentTemplate.findMany({ orderBy: { name: 'asc' } }),
-    prisma.boardTemplate.findMany({ orderBy: { name: 'asc' } }),
-    prisma.skill.findMany({ where: { scope: { in: ['PLATFORM', 'ORG'] } }, orderBy: { name: 'asc' } }),
-    prisma.workforceTemplate.findMany({ orderBy: { name: 'asc' } }),
+  const [agents, boards, skills, teams, org] = await Promise.all([
+    listAgentTemplates(),
+    listBoardTemplates(),
+    librarySkillItems(),
+    listTeamTemplates(),
+    prisma.org.findFirst({ select: { publisherName: true } }),
   ])
+  const organisation = org?.publisherName ?? null
   return {
-    agents: agents.map(a => item('agent', a, '')),
-    boards: boards.map(b => item('board', b, b.description)),
-    skills: skills.map(s => item('skill', s, s.description)),
-    teams: teams.map(t => item('team', t, t.description)),
+    agents: agents.map(a => templateItem('agent', a, organisation)),
+    boards: boards.map(b => templateItem('board', b, organisation)),
+    skills,
+    teams: teams.map(t => templateItem('team', t, organisation)),
   }
 }
 
@@ -70,8 +95,9 @@ export const exportLibraryItem = async (
 export const importLibraryItem = async ({ base64 }: { base64: string }, context: Ctx): Promise<ImportedItem> => {
   await requireRole(context, 'ADMIN', 'Importing into the library')
   if (typeof base64 !== 'string' || base64 === '') throw new HttpError(400, 'Choose a package to import')
+  const actor = await personActor(context.user!.id, prisma)
   try {
-    return await importLibraryPackage(Buffer.from(base64, 'base64'))
+    return await asHttp(() => importLibraryPackage(Buffer.from(base64, 'base64'), actor))
   } catch (err) {
     if (err instanceof PackageImportError) throw new HttpError(err.status, err.message)
     if (err instanceof PackageZipError || err instanceof TemplateValidationError) throw new HttpError(400, err.message)

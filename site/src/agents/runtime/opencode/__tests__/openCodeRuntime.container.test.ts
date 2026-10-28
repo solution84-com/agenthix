@@ -58,6 +58,10 @@ import { serveSite, type ServedSite, type SiteCall } from './containerSite'
 import { HARNESS_GATE_PATH, HARNESS_TURN_PATH } from '@agenthix/core'
 import type { HarnessSessionStore } from '../openCodeSessions'
 import type { RunContext, RunEvent } from '../../types'
+import type { RunSkillInputs } from '../../skillSources'
+import { PLAIN_TEXT_LINE, pickedSkillInstruction, pickedSkillReadInstruction } from '../../pickedSkill'
+import { openCodeSkillsDirs } from '../openCodeSkills'
+import { cacheInstalledSkills, installedOnly } from '../../__tests__/installedSkillFixture'
 
 const IMAGE = process.env.AGENT_IMAGE ?? 'agenthix-agent:latest'
 const NAME = process.env.AGENT_TEST_CONTAINER ?? 'ovi-lane1-opencode'
@@ -87,6 +91,8 @@ const store: HarnessSessionStore = {
 }
 
 const passwords: string[] = []
+let skills: RunSkillInputs | null = null
+const siteRootBefore = process.env.SITE_ROOT
 let runs = 0
 function context(sessionId: string, prompt: string, over: Partial<RunContext> = {}): RunContext {
   return {
@@ -99,7 +105,7 @@ function context(sessionId: string, prompt: string, over: Partial<RunContext> = 
     credential: { kind: 'apiKey', provider: 'openai_compatible', apiKey: TURN_KEY, baseUrl: modelUrl },
     // A chat's manifest approving every command: a run with none refuses `ask` tools.
     approvedManifest: { tools: [], bashPatterns: ['*'], approvedAt: new Date(0).toISOString() },
-    riskRules: null, packages, boundaryOverride: null, boundarySharedSkills: null,
+    riskRules: null, packages, boundaryOverride: null, skills,
     claudeHome: { serverDir: path.join(home, '.claude'), visibleDir: '/home/appuser/.claude' }, workingTreeDir: '/projects/p1/files',
     abortSignal: new AbortController().signal,
     ...over,
@@ -114,7 +120,7 @@ async function turn(ctx: RunContext): Promise<RunEvent[]> {
 
 const steps = (...s: Array<Array<{ name: string; args: Record<string, unknown> }>>) => `DIRECTIVE:STEPS ${JSON.stringify(s)}`
 const results = (events: RunEvent[]) => events.filter((e): e is Extract<RunEvent, { type: 'tool_result' }> => e.type === 'tool_result').map(e => e.output)
-type ModelRequest = { n: number; url: string; authorization: string | null; tools: string[]; messages: number; toolResults: string[]; system: string }
+type ModelRequest = { n: number; url: string; authorization: string | null; tools: string[]; messages: number; lastUser: string; toolResults: string[]; system: string }
 const modelLog = (): ModelRequest[] =>
   fs.readFileSync(path.join(root, 'model.jsonl'), 'utf8').trim().split('\n').filter(Boolean).map(l => JSON.parse(l))
 const mcpLog = (): Array<{ token: string; call: string; args: unknown }> =>
@@ -142,13 +148,19 @@ describe.skipIf(!available)('the OpenCode runtime in an agent container', () => 
     const project = path.join(root, 'project')
     const pkgs = path.join(root, 'packages')
     packages = { platformDir: path.join(pkgs, 'platform'), orgDir: null, agentDir: path.join(pkgs, 'agent'), refs: {} as RunContext['packages']['refs'] }
-    for (const d of [home, path.join(home, '.config', 'opencode'), path.join(home, '.opencode'), path.join(home, '.claude', '.tmp'), logs, config, project, path.join(project, '.opencode'), path.join(pkgs, 'platform', 'skills'), path.join(pkgs, 'agent', 'skills', 'probe')]) {
+    for (const d of [home, path.join(home, '.config', 'opencode'), path.join(home, '.opencode'), path.join(home, '.claude', '.tmp'), logs, config, project, path.join(project, '.opencode'), path.join(pkgs, 'platform', 'skills'), path.join(pkgs, 'agent')]) {
       fs.mkdirSync(d, { recursive: true })
       fs.chmodSync(d, 0o777)
     }
     fs.writeFileSync(path.join(config, '.gitignore'), 'node_modules\npackage.json\npackage-lock.json\nbun.lock\n.gitignore', { mode: 0o444 })
     fs.writeFileSync(path.join(project, 'notes.txt'), 'The codeword is PERSIMMON-42.\n')
-    fs.writeFileSync(path.join(pkgs, 'agent', 'skills', 'probe', 'SKILL.md'), '---\nname: probe\ndescription: A skill staged for the test.\n---\n\nThe probe skill.\n')
+    // The agent's skill comes as hq gives it: installed for the agent, its content in the site's package cache.
+    process.env.SITE_ROOT = path.join(root, 'site')
+    skills = installedOnly(await cacheInstalledSkills({
+      probe: { 'SKILL.md': '---\nname: probe\ndescription: A skill staged for the test.\n---\n\nThe probe skill.\n' },
+      // Only a person invokes it: a pick tells the model to read its file.
+      'by-hand': { 'SKILL.md': '---\nname: by-hand\ndescription: Run only when a person picks it.\ndisable-model-invocation: true\n---\n\nThe by-hand skill.\n' },
+    }))
     // Configuration an agent could write into its project: never read.
     const planted = JSON.stringify({ permission: { task: 'allow', question: 'allow', bash: 'deny', [`${connB}_*`]: 'allow' } })
     fs.writeFileSync(path.join(project, 'opencode.json'), planted)
@@ -205,6 +217,8 @@ describe.skipIf(!available)('the OpenCode runtime in an agent container', () => 
     await site?.close()
     model?.kill()
     spawnSync('docker', ['rm', '-f', NAME], { stdio: 'ignore' })
+    if (siteRootBefore === undefined) delete process.env.SITE_ROOT
+    else process.env.SITE_ROOT = siteRootBefore
     if (root) fs.rmSync(root, { recursive: true, force: true })
   })
 
@@ -279,6 +293,38 @@ describe.skipIf(!available)('the OpenCode runtime in an agent container', () => 
     expect(first.system).not.toContain('customize-opencode')
     expect(first.system).toContain('<name>agent-probe</name>')
     expect(first.system).toContain('<location>/home/appuser/.claude/.tmp/')
+  })
+
+  it('tells the model to load a skill the person picked, which then loads by its name (security review M7) @security-M7 @SC-1607', async () => {
+    const before = modelLog().length
+    const prompt = steps([{ name: 'skill', args: { name: 'agent-probe' } }])
+    const events = await turn(context(convA, prompt, { pickedSkill: 'agent-probe' }))
+    const sent = modelLog().slice(before).filter(r => r.lastUser.includes('DIRECTIVE:STEPS'))
+    expect(sent[0]!.lastUser).toBe(`${pickedSkillInstruction('agent-probe')}\n\n${prompt}`)
+    expect(results(events).join('\n')).toContain('The probe skill.')
+
+    const unknown = modelLog().length
+    await turn(context(convA, 'Say hello.', { pickedSkill: 'agent-no-such-skill' }))
+    expect(modelLog().slice(unknown).map(r => r.lastUser)).not.toContainEqual(expect.stringContaining('The person picked the skill'))
+  })
+
+  it('tells the model to read the file of a picked skill the model may not load itself, and the read runs @SC-1607', async () => {
+    const skillFile = path.posix.join(openCodeSkillsDirs(context(convA, '').claudeHome, convA).visibleDir, 'agent-by-hand', 'SKILL.md')
+    const before = modelLog().length
+    const prompt = steps([{ name: 'read', args: { filePath: skillFile } }])
+    const events = await turn(context(convA, prompt, { pickedSkill: 'agent-by-hand' }))
+    const sent = modelLog().slice(before).filter(r => r.lastUser.includes('DIRECTIVE:STEPS'))
+    expect(sent[0]!.lastUser).toBe(`${pickedSkillReadInstruction('agent-by-hand', skillFile)}\n\n${prompt}`)
+    expect(results(events).join('\n')).toContain('The by-hand skill.')
+  })
+
+  it.each(['/init', '/compact', '/agent-probe', '/no-such-command'])('sends a typed %s to the model as plain text, never running it @SC-1607', async (typed) => {
+    const before = modelLog().length
+    const events = await turn(context(convA, typed))
+    const sent = modelLog().slice(before).filter(r => r.url.includes('/chat/completions') && r.tools.length > 0)
+    expect(sent.map(r => r.lastUser)).toEqual([`${PLAIN_TEXT_LINE}\n\n${typed}`])
+    expect(events.filter(e => e.type === 'text_delta').map(e => (e as { textDelta: string }).textDelta).join('')).toBe('OK')
+    expect(events.filter(e => e.type === 'compacted')).toEqual([])
   })
 
   it('asks the site\'s gate before every tool call: a read in the project runs, one in the harness home does not', async () => {

@@ -1,6 +1,6 @@
 ---
 name: Implement Wasp Feature
-description: Implement a feature in a Wasp codebase following Wasp conventions. Covers the full pattern: schema, main.wasp.ts, server, and client layers.
+description: "Implement a feature in a Wasp codebase following Wasp conventions. Covers the full pattern: schema, main.wasp.ts, server, and client layers."
 ---
 
 # Implement Wasp Feature

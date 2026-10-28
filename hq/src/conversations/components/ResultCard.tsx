@@ -3,12 +3,14 @@ import { AlertCircle, CheckCircle2, CircleSlash } from 'lucide-react'
 import { useQuery, getOperationResult } from 'wasp/client/operations'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { cardSummaryLine } from '../hooks/activityState'
+import { useUsedSkillOpener } from '../../assets/conversation/usedSkillOpener'
 
 type ResultMessage = Extract<ConversationMessageView, { kind: 'RESULT' }>
 
 /** The run behind a completion, fetched when opened: what it gave, and the steps it took. */
 function ResultDetail({ conversationId, operationId }: { conversationId: string; operationId: string }) {
   const { data, error, isLoading } = useQuery(getOperationResult, { conversationId, operationId })
+  const openSkill = useUsedSkillOpener()
   if (error) return <p role="alert" className="mt-2 text-small text-danger">{error.message}</p>
   if (isLoading || !data) return <p className="mt-2 text-small text-text-muted">Loading…</p>
   return (
@@ -20,7 +22,15 @@ function ResultDetail({ conversationId, operationId }: { conversationId: string;
         <div>
           {data.work.summary && <p className="text-small font-medium text-text-secondary">{data.work.summary}</p>}
           <ul className="mt-1 space-y-0.5 text-small text-text-secondary">
-            {data.work.steps.map((s, i) => <li key={i}>{s.text}</li>)}
+            {data.work.steps.map((s, i) => (
+              <li key={i}>
+                {s.skill && openSkill ? (
+                  <button type="button" onClick={() => openSkill({ operationId, name: s.skill!.name })} className="text-left text-accent hover:underline" data-testid="used-skill-step">
+                    {s.text}
+                  </button>
+                ) : s.text}
+              </li>
+            ))}
           </ul>
         </div>
       )}

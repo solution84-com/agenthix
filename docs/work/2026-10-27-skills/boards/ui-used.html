@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A skill used · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-used.html"><main>
+<div class="top"><div><h1>C2 · A skill used: the step and the panel</h1>
+<p class="sub">When an agent follows a skill, the reply's steps say which one by its person-facing name, and the step opens the skill beside the conversation <b>as it was for that run</b>, found by the fingerprint the run recorded (R4, spec part 5).</p></div></div>
+
+<h2 id="today">Today, numbered</h2>
+<div class="box"><table><tr><th></th><th>Today</th><th>Where</th></tr>
+<tr><td class="n">1</td><td>The agent's name line has a grey pill, <i>Thought for 42 s</i>. Clicking it shows the reply's steps, one line each with a mark and its time</td><td><code>ThinkingPill.tsx</code> (<code>ThinkingSteps</code>)</td></tr>
+<tr><td class="n">2</td><td>A skill load reads <b>"Used the skill org-dev-code-review"</b>: the verb from the step table and the <i>staged</i> name, which means nothing to a person</td><td><code>core/src/protocol/workSteps.ts</code> (<code>skill</code>)</td></tr>
+<tr><td class="n">3</td><td>The step has <b>no target</b>, so it opens nothing. Targets exist only for a task, a board and a file</td><td><code>WorkTarget</code> in <code>workSteps.ts</code></td></tr>
+<tr><td class="n">4</td><td>Files and shown parts already open in a panel <b>beside the thread</b>: 420 px on a wide screen, a sheet from the bottom on a phone</td><td><code>ShownViewer.tsx</code> (<code>Beside</code>)</td></tr>
+<tr><td class="n">5</td><td>A run records the fingerprint of the content it was delivered, but not which skill, from which level, at which version</td><td>adr-0072</td></tr>
+</table></div>
+
+<h2 id="step">1 · The step names the skill</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>✓ Used the skill org-dev-code-review · 0.2 s</p></div>
+<div class="box"><span class="lbl after">After</span><p>✓ Used the skill <span style="color:var(--accent);font-weight:600">Review code</span> · Fernhill · 1.3 · 0.2 s</p></div>
+</div>
+<div class="kbox">
+<div><h4><span class="n">1</span>What the run records</h4><p>When the site stages a turn's skills it keeps a small table for the run: staged name → identity, version, level, and the skill's own fingerprint (one digest over its folder). It reports this with the run, as it reports the run's other facts. It costs a few lines per skill, not content.</p></div>
+<div><h4><span class="n">2</span>What the step carries</h4><p>The <code>skill</code> step gains a target: <code>{ kind: 'skill', name, identity, level, fingerprint }</code>. It joins <code>task</code>, <code>board</code> and <code>file</code> in <code>WorkTarget</code>. The step's text uses the skill's display name from that table, not the staged name.</p></div>
+<div><h4><span class="n">3</span>The level in a few words</h4><p><i>Built in</i>, the organisation's name (installed), the project's name (its files or a workspace), or <i>Yours</i> (the person's own, D15). The version for installed skills; for a skill in files, its folder.</p></div>
+</div>
+
+<h2 id="panel">2 · Clicking it opens the skill beside the thread</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>Nothing opens. To see what Ada followed, a person would have to find the skill somewhere, and it may have changed since.</p></div>
+<div class="box"><span class="lbl after">After</span><p>The skill opens in the beside panel <b>at the version the run used</b>: its instructions rendered, where it came from, and a way to the Library or the place's Skills page.</p></div>
+</div>
+
+<div class="frame mock"><div class="desk dock">
+<div class="anav" data-on="chat"></div>
+<div class="mcentre" style="min-height:560px">
+<div class="mhdr" style="margin:-16px -32px 12px;padding-left:32px">Ada <span class="chip">Website rebuild</span></div>
+<div class="bubble me"><span class="chip" style="color:var(--macc);background:var(--macc-sub)">⚡ Review code</span> the checkout form changes before the pull request</div>
+<div style="margin-top:14px;font-weight:600">Ada <span class="chip" style="font-weight:400">Thought for 42 s ›</span></div>
+<ol style="list-style:none;padding-left:10px;border-left:2px solid var(--mborder);margin:6px 0;font-size:13px;color:var(--t2)">
+<li><span style="color:var(--mok)">✓</span> Used the skill <span style="color:var(--macc);font-weight:600;background:var(--macc-sub);border-radius:4px;padding:0 4px">Review code</span> · Fernhill · 1.3 · 0.2 s</li>
+<li><span style="color:var(--mok)">✓</span> Read Form.tsx · 0.1 s</li>
+<li><span style="color:var(--mok)">✓</span> Read Form.test.tsx · 0.1 s</li>
+<li><span style="color:var(--mok)">✓</span> Used the skill <span style="color:var(--macc)">Review a release</span> · Website rebuild · 0.1 s</li>
+</ol>
+<div class="bubble" style="max-width:none">Reviewed against the checklist. Two things to fix before the pull request:<br>1. The submit handler swallows network errors; show the message.<br>2. No test covers an expired card.</div>
+</div>
+<div class="dockcol">
+<div class="dh" style="display:flex;align-items:center">⚡ Review code<span class="grow"></span><span style="color:var(--t3)">✕</span></div>
+<div class="row" style="flex-wrap:wrap;gap:6px"><span class="tag acc">Fernhill · installed</span><span class="tag">agenthix/dev-code-review 1.3</span><span class="tag ok">Signed by Agenthix</span></div>
+<div style="color:var(--t2)">As Ada used it in this reply. Every agent has it.</div>
+<div class="preview" style="font-size:13px"><b>Review code</b><br>Review a change for correctness, architecture fit and test coverage.<br><br>1. Read the change and what it touches.<br>2. Check errors are surfaced, not swallowed.<br>3. Every new path has a test…</div>
+<div class="fm">SKILL.md · checklist.md</div>
+<div class="grow"></div>
+<span class="btn link">Open in the Library →</span>
+</div>
+</div></div>
+
+<div class="box"><ul>
+<li><b>Where the content comes from:</b> hq finds the skill by fingerprint. For an installed skill that's a version hq keeps (V6). For a skill in files, see 3.</li>
+<li><b>The tags:</b> the level, the identity and version, and the signer from the install check (D8). A skill made here shows <i>Made here</i>, and a copy shows <i>Based on agenthix/… 1.3</i> (D19).</li>
+<li><b>The footer:</b> <i>Open in the Library</i> for an installed skill (U3), or <i>Open in Website rebuild's Skills</i> for a file skill (P1). People who can't see that place see the panel only.</li>
+<li><b>The skill chip in the person's message</b> opens the same panel.</li>
+<li><b>On a phone:</b> the same panel as a sheet from the bottom, as files open today.</li></ul></div>
+
+<h2 id="files">3 · A skill from a place's files, at the version Ada used</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>A project's skill in <code>.agents/skills</code> was used, but nothing shows which one or what it said.</p></div>
+<div class="box"><span class="lbl after">After</span><p>The panel shows the project's skill, from its folder, as it was when Ada used it. It names the version Ada used (D25). If a newer version has been published since, or the folder has changed in files and not been published, it says so, with a link to the current one.</p></div>
+</div>
+<div class="frame mock"><div class="mcentre" style="max-width:460px">
+<div class="dh" style="font-weight:600;display:flex">⚡ Review a release<span class="grow"></span><span style="color:var(--t3)">✕</span></div>
+<div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0"><span class="tag acc">Website rebuild · files</span><span class="tag">.agents/skills/review-a-release</span></div>
+<div class="flag"><b>Version 3, as Ada used it on 27 Oct.</b> Version 4 has been published since. <span style="color:var(--macc)">Show version 4</span></div>
+<div class="preview" style="font-size:13px;margin-top:8px"><b>Review a release</b><br>Before a release: the changelog is updated, screenshots are current, a person has signed off…</div>
+</div></div>
+<div class="why"><b>Why hq keeps a copy of what was used:</b> skills in files change and hq can't pin them (F1, F2). So the first time a run uses a file skill at a given fingerprint, the site sends its text with the run's report, and hq keeps it, bounded by the same limits as staging. Then "what did the agent follow?" always has an answer, and a skill an agent quietly edited between turns can't hide what it said.</div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th><th>Recommended</th></tr>
+<tr><td class="n">CQ5</td><td><b>Keep a copy of every file skill a run used</b>, by fingerprint, so the panel can show exactly what was followed?</td><td>Yes. Skills are small text, it's bounded by staging's limits, and it's the only way to answer "what did it follow" for files, which hq can't pin</td></tr>
+<tr><td class="n">CQ6</td><td><b>How long those copies are kept:</b> as long as the conversation, or as long as run records are kept?</td><td>As long as the run's own record: the step that points to it lives as long as that</td></tr>
+<tr><td class="n">CQ7</td><td><b>Show a skill the agent loaded but whose instructions it then didn't follow?</b></td><td>No such judgement: the step says it was <i>used</i> (loaded), which is a fact. Whether it was followed is for the person reading the reply</td></tr>
+</table></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

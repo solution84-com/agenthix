@@ -14,12 +14,16 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { HARNESS_GATE_UNAVAILABLE } from '@agenthix/core'
 import {
   HARNESS_SECRET_ENV, OPENCODE_COMMAND_SHELL, OPENCODE_MODELS_FILE, OPENCODE_PLUGIN_URL,
 } from '../../../src/agents/runtime/agentImage'
+// Staging records what a run used on its row; this test has no database.
+vi.mock('#db', () => ({ prisma: { agentRun: { update: vi.fn().mockResolvedValue({}) } } }))
+
 import { stageOpenCodeSkills } from '../../../src/agents/runtime/opencode/openCodeSkills'
+import { cacheInstalledSkills, installedOnly } from '../../../src/agents/runtime/__tests__/installedSkillFixture'
 import { APPLY_PATCH_DESCRIPTION, EDIT_DESCRIPTION, READ_DESCRIPTION, SKILL_DESCRIPTION, WRITE_DESCRIPTION } from '../files/descriptions'
 
 const exec = promisify(execFile)
@@ -107,24 +111,30 @@ async function startServer(label: string, withKeys: boolean) {
   expect(await driver<{ ready: boolean }>('ready')).toEqual({ ready: true })
 }
 
+const siteRootBefore = process.env.SITE_ROOT
+
+/** Each agent's skills, as hq gives them: installed for the agent, their content in the site's package cache. */
+const agentSkills = new Map<string, Record<string, Record<string, string>>>()
+
 async function stageFor(conversationId: string, agentPkg: string) {
   return stageOpenCodeSkills({
+    runId: `run-${conversationId}`,
     claudeHome: { serverDir: path.join(dir, 'home', '.claude'), visibleDir: '/home/appuser/.claude' },
-    packages: { agentDir: path.join(dir, 'packages', agentPkg), orgDir: null, platformDir: path.join(dir, 'packages', 'platform'), refs: {} as never },
-    boundaryOverride: null,
-    boundarySharedSkills: null,
+    packages: { platformDir: path.join(dir, 'packages', 'platform') },
+    skills: installedOnly(await cacheInstalledSkills(agentSkills.get(agentPkg) ?? {})),
   }, conversationId)
 }
 
 async function writeSkill(agentPkg: string, slug: string, description: string, body: string) {
-  const skillDir = path.join(dir, 'packages', agentPkg, 'skills', slug)
-  await fs.mkdir(skillDir, { recursive: true })
-  await fs.writeFile(path.join(skillDir, 'SKILL.md'), `---\nname: ${slug}\ndescription: ${description}\n---\n\n${body}\n`)
+  const skills = agentSkills.get(agentPkg) ?? {}
+  skills[slug] = { 'SKILL.md': `---\nname: ${slug}\ndescription: ${description}\n---\n\n${body}\n` }
+  agentSkills.set(agentPkg, skills)
 }
 
 describe.skipIf(!enabled)("Agenthix's plugin in a real OpenCode server", () => {
   beforeAll(async () => {
     dir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'ovi-lane3-')))
+    process.env.SITE_ROOT = path.join(dir, 'site')
     for (const d of ['home/.claude/.tmp', 'home/.config/opencode', 'home/.opencode', 'oc-config', 'fixtures/logs', 'packages/platform/skills']) {
       await fs.mkdir(path.join(dir, d), { recursive: true })
     }
@@ -153,6 +163,8 @@ describe.skipIf(!enabled)("Agenthix's plugin in a real OpenCode server", () => {
 
   afterAll(async () => {
     if (!enabled) return
+    if (siteRootBefore === undefined) delete process.env.SITE_ROOT
+    else process.env.SITE_ROOT = siteRootBefore
     await docker(['rm', '-f', C]).catch(() => '')
     await fs.rm(dir, { recursive: true, force: true }).catch(() => {})
   }, 60_000)

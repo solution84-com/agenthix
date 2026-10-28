@@ -5,7 +5,7 @@
  * Thin Wasp action wrappers: authenticate, guard, then delegate to agentService.
  * Business logic lives in agentService.ts.
  */
-import { type CreateAgent, type UpdateAgent, type DeleteAgent, type StopAgent, type SaveAgentSkill, type DeleteAgentSkill, type CreateLibrarySkill, type UpdateLibrarySkill, type DeleteLibrarySkill, type InstallSkill, type UninstallSkill, type UploadAgentImage, type ApplyAgentPreset } from 'wasp/server/operations'
+import { type CreateAgent, type UpdateAgent, type DeleteAgent, type StopAgent, type SaveAgentSkill, type DeleteAgentSkill, type UploadAgentImage, type ApplyAgentPreset } from 'wasp/server/operations'
 import { HttpError } from 'wasp/server'
 import { KERNEL_HANDLE, assertNotReservedHandle, assertNotKernel, assertKernelUpdateAllowed } from './kernelGuards'
 import { requireRole } from '../server/identity/requireRole'
@@ -18,11 +18,9 @@ import { createAgent as createAgentRecord, updateAgent as updateAgentRecord, del
 import { resolveRealWriteTargetWithin } from '../server/realPathWithin'
 import { getAgentImagesDir, getHqStorageRoot } from '../server/hqStoragePaths'
 import { writeImageFromDataUrl } from '../server/imageUpload'
-import { createLibrarySkill as createLibrarySkillRecord, updateLibrarySkill as updateLibrarySkillRecord, deleteLibrarySkill as deleteLibrarySkillRecord, orgLibrarySkillDir, orgLibrarySkillFile } from './skillsLibraryService'
 import { packageWriteOrHttp } from '../packages/writeErrors'
 import { changeAgentContent } from '../packages/agentPackageService'
-import { changeOrgPackage } from '../packages/orgPackageService'
-import { replaceSkill, removeSkill, removeSkillInstalledFrom, librarySkillFiles } from '../packages/skillFiles'
+import { replaceSkill, removeSkill } from '../packages/skillFiles'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -135,126 +133,6 @@ type DeleteAgentSkillArgs = { agentId: string; slug: string }
 export const deleteAgentSkill: DeleteAgentSkill<DeleteAgentSkillArgs, void> = async (args, context) => {
   await requireRole(context, 'ADMIN', "Changing an agent's skills")
   await packageWriteOrHttp(() => changeAgentContent(args.agentId, d => ({ ...d, skillFiles: removeSkill(d.skillFiles, args.slug) }), context.user!.id))
-}
-
-// -- Library skill actions ---------------------------------------------------
-
-type CreateLibrarySkillArgs = {
-  scope: 'PLATFORM' | 'ORG'
-  orgId?: string
-  slug: string
-  name: string
-  description: string
-  content: string  // SKILL.md body — written to disk, assetPath stored in DB
-}
-
-export const createLibrarySkill: CreateLibrarySkill<CreateLibrarySkillArgs, any> = async (args, context) => {
-  await requireRole(context, 'ADMIN', 'Creating a library skill')
-  const { scope, orgId, slug, name, description, content } = args
-  // The row first: it validates the slug, and a taken slug fails here rather
-  // than after an existing skill's source has been overwritten.
-  const skill = await createLibrarySkillRecord({ scope, orgId, slug, name, description, assetPath: `org/skills/${slug}` })
-    .catch((e: unknown) => {
-      throw new HttpError(400, e instanceof Error ? e.message : 'Failed to create skill')
-    })
-  const skillDir = orgLibrarySkillDir(slug)
-  try {
-    await fs.mkdir(skillDir, { recursive: true })
-    await fs.writeFile(path.join(skillDir, 'SKILL.md'), content, 'utf-8')
-  } catch {
-    // The row rollback can itself fail (e.g. the DB going away mid-request). A
-    // swallowed failure here would leave an orphaned row with no SKILL.md on
-    // disk and the slug still taken, so a failed rollback is logged rather
-    // than silently dropped — the original write error is still what the
-    // caller sees.
-    await prisma.skill.delete({ where: { id: skill.id } }).catch((deleteError: unknown) => {
-      logger.error(
-        `createLibrarySkill: failed to roll back orphaned skill row after a disk write failure (slug: ${slug}, id: ${skill.id})`,
-        deleteError,
-      )
-    })
-    throw new HttpError(500, 'Failed to write skill')
-  }
-  return skill
-}
-
-type UpdateLibrarySkillArgs = { id: string; name?: string; description?: string; content?: string }
-
-export const updateLibrarySkill: UpdateLibrarySkill<UpdateLibrarySkillArgs, any> = async (args, context) => {
-  await requireRole(context, 'ADMIN', 'Updating a library skill')
-  // Only the fields the editor sends. A stored slug or assetPath decides where
-  // later writes, installs and deletes land, so a client never sets either.
-  const { id, name, description, content } = args
-  try {
-    // Write content to disk if provided (ORG skills only — PLATFORM skills are read-only)
-    if (content !== undefined) {
-      const skill = await prisma.skill.findUnique({ where: { id }, select: { assetPath: true, scope: true } })
-      if (skill && skill.scope === 'ORG') {
-        let skillFile: string
-        try { skillFile = orgLibrarySkillFile(skill.assetPath) } catch { throw new HttpError(403, 'Path not allowed') }
-        await fs.mkdir(path.dirname(skillFile), { recursive: true })
-        await fs.writeFile(skillFile, content, 'utf-8')
-      }
-    }
-    return await updateLibrarySkillRecord(id, { name, description })
-  } catch (e: unknown) {
-    if (e instanceof HttpError) throw e
-    throw new HttpError(400, e instanceof Error ? e.message : 'Failed to update skill')
-  }
-}
-
-type DeleteLibrarySkillArgs = { id: string }
-
-export const deleteLibrarySkill: DeleteLibrarySkill<DeleteLibrarySkillArgs, void> = async (args, context) => {
-  // Deleting a skill the org has installed removes it from the org package (P15).
-  await requireRole(context, 'ADMIN', 'Deleting a library skill')
-  const skill = await prisma.skill.findUnique({ where: { id: args.id }, select: { slug: true } })
-  try {
-    await deleteLibrarySkillRecord(args.id)
-  } catch (e: unknown) {
-    throw new HttpError(400, e instanceof Error ? e.message : 'Failed to delete skill')
-  }
-  if (skill) await packageWriteOrHttp(() => changeOrgPackage(files => removeSkillInstalledFrom(files, skill.slug, args.id), context.user!.id))
-}
-
-type InstallTarget = { scope: 'ORG'; orgId: string } | { scope: 'AGENT'; agentId: string }
-
-type InstallSkillArgs = { skillId: string; target: InstallTarget }
-
-/** Every InstallTarget member is 'ORG' or 'AGENT' — anything else, including a missing target, is a 400, not a TypeError. */
-function assertInstallTargetScope(target: InstallTarget | undefined): asserts target is InstallTarget {
-  const scope = (target as { scope?: unknown } | undefined)?.scope
-  if (scope !== 'ORG' && scope !== 'AGENT') throw new HttpError(400, `Invalid skill target scope '${scope}'`)
-}
-
-export const installSkill: InstallSkill<InstallSkillArgs, void> = async (args, context) => {
-  await requireRole(context, 'ADMIN', 'Installing a skill')
-  assertInstallTargetScope(args.target)
-  const skill = await prisma.skill.findUnique({ where: { id: args.skillId } })
-  if (!skill) throw new HttpError(404, 'Skill not found')
-  if (args.target.scope === 'AGENT') {
-    const { agentId } = args.target
-    const skillFiles = await librarySkillFiles(skill)
-    await packageWriteOrHttp(() => changeAgentContent(agentId, d => ({ ...d, skillFiles: replaceSkill(d.skillFiles, skill.slug, skillFiles) }), context.user!.id))
-    return
-  }
-  const orgFiles = await librarySkillFiles(skill)
-  const written = await packageWriteOrHttp(() => changeOrgPackage(files => replaceSkill(files, skill.slug, orgFiles), context.user!.id))
-  if (!written) throw new HttpError(409, 'Create the organisation before installing skills for it')
-}
-
-type UninstallSkillArgs = { slug: string; target: InstallTarget }
-
-export const uninstallSkill: UninstallSkill<UninstallSkillArgs, void> = async (args, context) => {
-  await requireRole(context, 'ADMIN', 'Removing a skill')
-  assertInstallTargetScope(args.target)
-  if (args.target.scope === 'AGENT') {
-    const { agentId } = args.target
-    await packageWriteOrHttp(() => changeAgentContent(agentId, d => ({ ...d, skillFiles: removeSkill(d.skillFiles, args.slug) }), context.user!.id))
-    return
-  }
-  const written = await packageWriteOrHttp(() => changeOrgPackage(files => removeSkill(files, args.slug), context.user!.id))
-  if (!written) throw new HttpError(409, 'There is no organisation to remove a skill from')
 }
 
 type UploadAgentImageArgs = {

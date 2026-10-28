@@ -138,11 +138,12 @@ sequenceDiagram
 | Runs, sessions, transcripts | `runtimeData.ts` (`RUNTIME_METHODS`) | `run.dispatch`, `run.cancel`, `run.approve`, `transcript.list` |
 | Workspace and attachment rows | `siteData.ts` (`SITE_DATA_METHODS`) | creating and listing workspaces |
 | Files | `locationFiles.ts`, `fileAbout.ts` | `location.listFiles`, `location.findFiles` (a place's files by name, bounded and never following a link; since 1.8), `location.readFile`, and an owner's `artefacts/`: `location.listArtefacts`, `location.readArtefact` (deprecated since 1.8: no caller in hq); `file.about` (a file's facts before hq opens it, no content; since 1.8) |
+| A place's skills | `locationSkills.ts` | `location.scanSkills`, the skill folders in a place's files and its workspaces, each with its fingerprint (since 1.10); `location.removeSkill` (control) and `location.writeSkill` (content), which remove or write one whole skill folder of a place, never a workspace's (since 1.11). See [skills-and-assets.md](skills-and-assets.md) |
 | Relays | `relayFiles.ts` | `relay.assign`: which relay the site holds its file line to, with the pass that admits it, renewed before the pass ends (since 1.8). Its partner `files.serve` is a content method a relay opens on that line, never hq. See [files-and-relays.md](files-and-relays.md) |
 | Knowledge | `locationFiles.ts`, `locationKnowledge.ts` | An owner's pages, addressed by owner (a project, a person, or the organisation) and not by location: `location.listKnowledge` (sections and pages with their properties and problems), `location.readKnowledge` (content transport; a page or one of its versions), `location.searchKnowledge` (Grep's parameters, run by ripgrep), and the gate's `location.writeKnowledge`, `location.editKnowledge`, `location.deleteKnowledge`, `location.restoreKnowledge` and `location.knowledgeVersions`. Since site protocol 1.7; a site that does not know a method answers `unknown_method`, which hq reports as the site being out of date. See [storage and placement](storage-and-placement.md#where-knowledge-lives) |
 | Git | `repoWork.ts`, `gitStatus.ts` | `repo.connect`, `repo.state`; `git.status`, a folder's branch, changed count and last commit, read without running anything the repository holds (since 1.8) |
 | Workflow runs | `workflowRuns.ts` (`WORKFLOW_RUN_METHODS`) | `workflow.run`, the one message that carries secret values, answered at once and followed by `workflow.step` and `workflow.result` events; `workflow.stop`, `workflow.get`; `workflow.readFiles`, a proposal's files, refusing any link. See [workflows.md](workflows.md) |
-| Agent packages | `packages.ts` | `packages.missing`, `packages.put` |
+| Agent packages, and the skills a run names | `packages.ts` | `packages.missing`, `packages.put`; the `skill` package kind carries an installed or personal skill's published version (since 1.10) |
 | Previews | `preview.ts` | `preview.start`, `preview.stop` |
 | A person leaving | `membership.ts` | `membership.memberLeftProject`, `membership.personLeftOrganisation` |
 | What is running in one boundary | `activeRuns.ts` | `run.listActive`: each `PENDING` or `RUNNING` run's ids, status and times, never its content; hq resolves the names. The platform tool `list_active_runs` is built on it |
@@ -188,7 +189,7 @@ sequenceDiagram
 - **What crosses** (`RunDispatchPayload`, `core/src/protocol/runtimeData.ts`): the kind of run, the signed
   capability, a seed for the site's session row, the input text and model, and a context holding the
   agent's configuration, the chat or task details, the run's providers (`modelAccess`, below), the run's pinned memory
-  items (`pinnedMemory`, only while conversations are on), the package digests and the person's timezone. The site stores none of the secrets: the run row keeps
+  items (`pinnedMemory`, only while conversations are on), the package digests, the skills the run is to have (`installedSkills`, `fileSkills`, `personSkills`, and the skill the person picked; [skills-and-assets.md](skills-and-assets.md#delivery-to-a-run)) and the person's timezone. The site stores none of the secrets: the run row keeps
   only the kind. Two fields say how the run is to be held:
   - `startedBy` is what started it: `person`, `pulse` (a boundary's pulse), `schedule` (a task's start time) or
     `agent` (an agent called `run_task`). It is required, and the capability carries it too, signed, so hq can

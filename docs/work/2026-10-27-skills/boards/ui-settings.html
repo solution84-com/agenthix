@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The organisation's settings · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-settings.html"><main>
+<div class="top"><div><h1>R2 · The organisation's settings</h1>
+<p class="sub">The few settings the design gives an administrator: whom the organisation trusts to sign (P1), unsigned assets (P2), who may install from outside (P3), skills found in files (C1), a person's skills outside Your space (D15), and the built-in skills (D6). They live on one page in the admin area's <b>Settings</b> group.</p></div></div>
+
+<h2 id="today">Today, numbered</h2>
+<div class="box"><span class="lbl before">Before</span>
+<table><tr><th></th><th>Today</th><th>Where</th></tr>
+<tr><td class="n">1</td><td>The admin area's <b>Settings</b> group holds General, GitHub, Automation, Runs, Memory and Tool risk rules. Nothing about skills or the Library.</td><td><code>hq/src/admin/adminMenu.ts</code></td></tr>
+<tr><td class="n">2</td><td>Anything an administrator uploads is imported without a check. There's no signature and no trust list.</td><td><code>hq/src/library/packages/importPackage.ts</code></td></tr>
+<tr><td class="n">3</td><td>Skills in a place's files always run. There's no setting.</td><td><code>site/src/agents/runtime/skillStaging.ts</code></td></tr>
+<tr><td class="n">4</td><td>There are no built-in skills to switch: the platform package is empty.</td><td><code>hq/assets/platform/skills/</code></td></tr>
+</table></div>
+
+<h2 id="where">Where it sits</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>Settings: General · GitHub · Automation · Runs · Memory · Tool risk rules</p></div>
+<div class="box"><span class="lbl after">After</span><p>Settings: General · GitHub · Automation · Runs · Memory · <b>Library and skills</b> · Tool risk rules, at <code>/admin/settings/library</code></p></div>
+</div>
+<div class="why"><b>Why there:</b> these say how the organisation works, which is what the Settings group is for. The Library itself is in the main sidebar for everyone (D21). This page holds only the rules an administrator sets for it. One entry in <code>ADMIN_MENU</code>, guarded like every page under <code>/admin</code>.</div>
+
+<h2 id="page">The page</h2>
+<div class="frame mock"><div class="desk">
+<div class="mnav"><div class="logo"><i></i>Manage Fernhill</div><a>‹ Back to Fernhill</a>
+<div class="sec">Overview</div><a>Overview</a>
+<div class="sec">People</div><a>People and invitations</a><a>Teams</a>
+<div class="sec">Agents</div><a>Agents</a>
+<div class="sec">Models and billing</div><a>Providers</a><a>Models</a>
+<div class="sec">Settings</div><a>General</a><a>GitHub</a><a>Automation</a><a>Runs</a><a>Memory</a><a class="on">Library and skills</a><a>Tool risk rules</a>
+<div class="sec">Where work runs</div><a>Sites</a></div>
+<div class="mcentre">
+<div class="mh">Library and skills</div><div class="ml">Whom Fernhill trusts to sign what it installs, and how skills reach agents.</div>
+
+<div class="msec">Trusted publishers <span class="num">P1</span></div>
+<div class="msecl">Assets they sign install without asking. A signature proves who published something, not that it's safe.</div>
+<div class="mcard"><div class="ic" style="background:var(--macc)">A</div><div class="b"><div class="t">Agenthix <span class="tag">always trusted</span></div><div class="s">Signs Agenthix's own skills and templates · 23 installed</div></div></div>
+<div class="mcard"><div class="ic" style="background:var(--mok)">A</div><div class="b"><div class="t">Acme</div><div class="s fm">github.com/acme/skills · workflow release.yml (keyless)</div><div class="s">Named by Avery Chen when installing acme/sql-review, 27 Oct · 2 installed</div></div><span class="btn">Rename</span><span class="btn danger">Remove</span></div>
+<div class="mcard"><div class="ic" style="background:var(--t3)">K</div><div class="b"><div class="t">Fernhill partners</div><div class="s fm">key SHA256:4f1c…a9e2</div><div class="s">Added by Avery Chen, 20 Oct · 0 installed</div></div><span class="btn">Rename</span><span class="btn danger">Remove</span></div>
+<span class="btn">Add a public key…</span>
+
+<div class="msec">Unsigned assets <span class="num">P2</span></div>
+<div class="radio on"><span class="dot"></span><div><b>Allowed after a warning</b><div class="s">The person installing reads it and confirms.</div></div></div>
+<div class="radio"><span class="dot"></span><div><b>Never</b><div class="s">Only signed assets install. Skills made here are unaffected.</div></div></div>
+
+<div class="msec">Who may install from outside <span class="num">P3</span></div>
+<div class="radio on"><span class="dot"></span><div><b>Administrators</b></div></div>
+<div class="radio"><span class="dot"></span><div><b>Administrators and Library maintainers</b><div class="s">Library maintainers may then install new assets from outside, not only accept updates.</div></div></div>
+
+<div class="msec">Library maintainers <span class="num">D28</span></div>
+<div class="msecl">They maintain every asset in the Library: create new skills, edit and publish, accept updates, roll back, and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming Library maintainers stay with administrators. It's the only role beside administrators: there are no maintainers per asset.</div>
+<div class="row"><span class="chip">Avery Chen</span><span class="chip">Lee Park</span><span class="btn link">＋ Add a Library maintainer</span></div>
+<div class="s" style="font-size:12.5px;color:var(--t3);margin-top:4px">A project's skills are published by the project's administrators; anyone with write access edits them.</div>
+<div class="dialog" style="margin-top:10px;width:auto;max-width:520px"><h4>Make Lee Park a Library maintainer?</h4>
+<p style="font-size:13px;color:var(--t2)">Library maintainers publish skills that run for every agent, in every project, including ones they can't access.</p>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri">Make Library maintainer</span></div></div>
+
+<div class="msec">Skills found in files <span class="num">C1</span></div>
+<div class="msecl">Skills in a project's files, its workspaces' repositories and Your space. A project can choose a stricter default.</div>
+<div class="radio"><span class="dot"></span><div><b>On by default</b><div class="s">Everything found runs. The place's administrators can switch one off.</div></div></div>
+<div class="radio on"><span class="dot"></span><div><b>Off by default</b> <span class="tag acc">recommended</span><div class="s">Everything found is listed and stays off until switched on. A skill that changes goes off again.</div></div></div>
+<div class="radio"><span class="dot"></span><div><b>Never</b><div class="s">Skills in files aren't read. Only installed skills run.</div></div></div>
+
+<div class="msec">Personal skills outside Your space <span class="num">D15</span></div>
+<div class="row"><span class="switch on"></span><div class="grow"><b>On</b> <span class="s" style="color:var(--t2)">· A person's own skills come with them into their own conversations in projects.</span></div></div>
+
+<div class="msec">Built-in skills <span class="num">D6</span></div>
+<div class="msecl">Shipped with Agenthix, on for every agent, updated with each release. Switching one off removes it from every agent.</div>
+<div class="mcard"><div class="b"><div class="t">working-with-git</div><div class="s">Commit locally; push, pull and open pull requests only through approved workflows. Used only in a workspace with a repository.</div></div><span class="switch on"></span></div>
+<div class="mcard"><div class="b"><div class="t">skill-creator</div><div class="s">How to write a good skill, and propose it rather than write it into files.</div></div><span class="switch on"></span></div>
+</div></div></div>
+
+<h2 id="features">Each setting: before, after, why</h2>
+
+<h3 id="p1">Trusted publishers (P1)</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>Nothing is checked (2).</p></div>
+<div class="box"><span class="lbl after">After</span><p>A list of signing identities and keys, each with the name an administrator gave it. Most are added at install time, from S2's <i>Trust this publisher</i>; a key can also be added here for offline signing (W2). Agenthix can't be removed.</p></div></div>
+<div class="why"><b>Mechanism:</b> each entry stores what a signature proves: a keyless certificate's repository and workflow, or a key's fingerprint. It also stores the administrator's name for it, who added it and when. The install check (spec part 3) matches a verified signature against this list to decide between S1 and S2. Removing one doesn't uninstall anything (RQ8).</div>
+
+<h3 id="p2">Unsigned assets (P2) and who installs from outside (P3)</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>Any administrator imports anything.</p></div>
+<div class="box"><span class="lbl after">After</span><p>Unsigned: allowed after the S3 warning, or never. Installing from an upload or a URL: administrators, or Library maintainers too.</p></div></div>
+<div class="why"><b>Mechanism:</b> two values the install check reads before it starts. <i>Never</i> refuses S3 at the check. P3 is enforced on the server, beside the role-by-action matrix (D17). Assets made in hq are never "from outside".</div>
+
+<h3 id="maint">Library maintainers: one organisation role (D28)</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>Only administrators touch skills.</p></div>
+<div class="box"><span class="lbl after">After</span><p><b>Library maintainers</b> here, for every asset. No maintainers per asset. Each project's skills are published by its administrators. Maintainers per team or department may come later.</p></div></div>
+<div class="why"><b>Mechanism:</b> one organisation role, checked on the server by the same helper as the role-by-action matrix. Naming someone shows the reach once, and that trust is recorded as an accepted risk. Proposals are routed to the reviewers of the level they aim at (R1). When a member leaves, the role goes; the history still names them.</div>
+
+<h3 id="c1">Skills found in files (C1)</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>Always on, unseen (3).</p></div>
+<div class="box"><span class="lbl after">After</span><p>On by default, off by default, or never. A place's own default (C1b) may only be stricter. Switching one skill is on the place's Skills page (board P1).</p></div></div>
+<div class="why"><b>Mechanism:</b> hq resolves the effective default per place (the organisation's, or the place's if stricter). It combines that with each skill's switch, remembered by fingerprint, into the list of file skills a dispatch names. <i>Never</i> stops hq asking the site to scan at all.</div>
+
+<h3 id="personal">Personal skills outside Your space (D15)</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>A person's skills apply only in Your space.</p></div>
+<div class="box"><span class="lbl after">After</span><p>On by default: they follow the person into their own conversations. Off keeps them in Your space.</p></div></div>
+<div class="why"><b>Mechanism:</b> when hq builds a run for a person's own conversation outside Your space, it adds their switched-on skills only if this is on.</div>
+
+<h3 id="builtin">Built-in skills (D6)</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>None exist (4).</p></div>
+<div class="box"><span class="lbl after">After</span><p>Two, on for every agent, with a switch each.</p></div></div>
+<div class="why"><b>Mechanism:</b> the switch is one organisation-wide flag per built-in identity. hq leaves a switched-off built-in out of every run. It's never editable here: to change one, an administrator installs their own skill (D18).</div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><p><b>None.</b> RQ6–RQ10 were applied as defaults (this page at <code>/admin/settings/library</code>; built-ins switched organisation-wide only; removing a publisher leaves what is installed pinned; a changed default applies from then on; P3 kept, defaulting to administrators).</p></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

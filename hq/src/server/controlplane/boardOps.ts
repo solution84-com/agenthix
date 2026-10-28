@@ -15,6 +15,7 @@ import { confinedProjectId, reachesOwnSpace } from './runPerson'
 import { listBoards, getBoard, createBoard, parseColumns, sortedColumns, type ColumnInput } from '../../projects/projectService'
 import { currentSprint, finishSprint, renameSprint, requireDestination } from '../../projects/sprintService'
 import { sprintView } from '../../projects/boardView'
+import { boardTemplateColumns } from '../../library/boardTemplateService'
 
 /** A service's refusal, as the control plane says it: its own message, never a stack or a path. */
 export async function asControlPlane<T>(fn: () => Promise<T>): Promise<T> {
@@ -101,7 +102,7 @@ interface CreateBoardArgs {
 
 // No blanket try/catch-and-wrap here (plan 5b-2 task 5 review, I3): only the
 // service's own refusals (HttpError 4xx) are translated; anything else (Prisma,
-// the filesystem read in readBoardColumns) propagates uncaught rather than
+// the template's content read) propagates uncaught rather than
 // forwarding err.message (which can carry Prisma's file paths and code
 // excerpts) into a 400 body — dataApi.ts's generic catch turns it into an
 // opaque 500 instead.
@@ -112,19 +113,10 @@ export async function createBoardOp(ctx: CallerContext, args: CreateBoardArgs) {
   const project = await prisma.project.findUnique({ where: { id: args.projectId } })
   if (!project) throw new ControlPlaneError('not_found', `Project ${args.projectId} not found`)
 
-  let resolvedColumns: ColumnInput[] | undefined = args.columns
-  let resolvedTemplateId = args.templateId
-  if (!resolvedColumns?.length && args.templateId) {
-    const tpl = await prisma.boardTemplate.findUnique({ where: { id: args.templateId } })
-    if (tpl) {
-      const { readBoardColumns } = await import('../../library/boardTemplateService')
-      resolvedColumns = await readBoardColumns(tpl.assetPath, tpl.isSystem)
-    } else {
-      resolvedTemplateId = undefined
-    }
-  }
+  const template = !args.columns?.length ? await boardTemplateColumns(args.templateId) : null
+  const resolvedColumns: ColumnInput[] | undefined = template?.columns ?? args.columns
   const board = await asControlPlane(() => createBoard({
-    projectId: args.projectId, name: args.name, templateId: resolvedTemplateId, columns: resolvedColumns,
+    projectId: args.projectId, name: args.name, madeFromVersionId: template?.madeFromVersionId, columns: resolvedColumns,
     kind: args.kind === 'sprints' ? 'SPRINTS' : 'WORKFLOW', sprintDays: args.sprintDays,
   }))
   return { success: true, boardId: board.id, kind: board.kind, message: `Board '${board.name}' created`, source: 'local' }

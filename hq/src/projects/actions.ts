@@ -51,6 +51,7 @@ import { notifyBoardsOfTasks } from './boardNotify'
 import { LOST_ACCESS_REASON } from './taskOnBehalfOf'
 import { LOST_ACCESS_RUN_REFUSAL } from '../agents/taskExecutionReasons'
 import { autoQueueChange, changesAutoQueue, applyAutoQueueChange } from './autoQueueColumns'
+import { boardTemplateColumns } from '../library/boardTemplateService'
 import {
   createProject as createProjectRecord,
   updateProject as updateProjectRecord,
@@ -172,20 +173,10 @@ export const createBoard: CreateBoard<
 > = async ({ projectId, name, kind, templateId, columns, sprintDays }, context) => {
   if (!context.user) throw new HttpError(401)
   await requireMayWorkInProject(projectId, context.user.id, 'Creating a board in this project')
-  // Coerce empty string to undefined — passing '' to Prisma trips the FK on Board.templateId.
-  let resolvedTemplateId: string | undefined = templateId && templateId.length > 0 ? templateId : undefined
-  let resolvedColumns: ColumnInput[] | undefined = columns
-  if (resolvedTemplateId && !columns?.length) {
-    const tpl = await prisma.boardTemplate.findUnique({ where: { id: resolvedTemplateId } })
-    if (tpl) {
-      const { readBoardColumns } = await import('../library/boardTemplateService')
-      resolvedColumns = await readBoardColumns(tpl.assetPath, tpl.isSystem)
-    } else {
-      // Stale template reference — drop it so we fall back to default columns.
-      resolvedTemplateId = undefined
-    }
-  }
-  return createBoardService({ projectId, name, kind, templateId: resolvedTemplateId, columns: resolvedColumns, sprintDays })
+  // A template that isn't in the Library leaves the board on the default columns.
+  const template = !columns?.length ? await boardTemplateColumns(templateId) : null
+  const resolvedColumns: ColumnInput[] | undefined = template?.columns ?? columns
+  return createBoardService({ projectId, name, kind, madeFromVersionId: template?.madeFromVersionId, columns: resolvedColumns, sprintDays })
 }
 
 export const updateBoard: UpdateBoard<

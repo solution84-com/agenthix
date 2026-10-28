@@ -1,16 +1,16 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-10-27
+updated: 2026-10-28
 verified: 2026-06-19
-next-us: US-398
+next-us: US-410
 ---
 
 # User Stories — `hq/`
 
 > Business-level requirements for hq's users, and for the person who owns an Execution Site machine (stories US-182 to US-185).
 > Audience: business readers — no implementation detail.
-> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*.
+> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*.
 > A retired story or criterion keeps its number; nothing is renumbered. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/hq.md`](../scenarios/hq.md), [`../scenarios/site.md`](../scenarios/site.md)), never here.
 
 ---
@@ -790,6 +790,8 @@ As the platform, I want to rate and gate every tool call against risk rules, so 
 ---
 
 ## Skills
+
+> *Changed 2026-10-28:* the skills unit made every Library item an installed, versioned asset. Installing pins a version rather than copying (US-071 to US-075 as they read below are met by US-398 to US-401), editing an installed skill makes a draft and then a version, and an agent's skills are had from the installed set (US-403).
 
 ### US-071 — Browse the skills library
 
@@ -3890,3 +3892,124 @@ As a member, I want to see a workspace's branch, whether it has uncommitted chan
 **Acceptance criteria:**
 - AC-395a: above a workspace's files and my project's `files/` one line shows the branch (or the commit checked out), clean or how many files changed, the last commit and how long ago, and a merge or rebase left stopped halfway; a folder that is not a repository shows no line.
 - AC-395b: reading never runs anything a repository is set up to run and never gets in the way of an agent's own commit.
+
+---
+
+## The Library, skills and the asset layer
+
+### US-398 — Find and add skills and other assets in the Library
+
+As a member, I want one place that lists everything installed for the organisation, and a plain way to add more, so that I can see what my agents can be given and bring in what is missing.
+
+**Acceptance criteria:**
+- AC-398a: the Library, after Agents in the sidebar, lists every installed skill, agent template, board template and team template in one searched view that I narrow by type and by state; each row says what it is, who signed it or that it was made here, who has it and what state it is in, and its whole row opens the asset's page.
+- AC-398b: an administrator adds a skill from Agenthix's shelf, from an upload (a ZIP or a folder, with its signature file if there is one) or from a link, beside *New skill*; the shelf marks what the organisation already has and narrows by what a skill is suited to.
+- AC-398c: before anything is installed I am told what comes with it: a template's role skills, the ones I already have and the ones that are newer.
+- AC-398d: an asset is installed once for the organisation however many agents have it, and installing the same version again changes nothing.
+- AC-398e: a link must be an https address on the public internet; anything else is refused in words that do not say why.
+
+### US-399 — Know who signed what I install
+
+As an administrator, I want to be told who published an asset and whether it was changed on the way, so that I decide what to trust.
+
+**Acceptance criteria:**
+- AC-399a: I am told one of four things before installing: signed by someone I trust, signed by someone new (and I may trust them, install once or cancel), not signed (installable only after I say I have read it, if the organisation allows it), or changed after it was signed (refused, with no way round).
+- AC-399b: the publisher is who signed, never what the package says about itself; Agenthix's name belongs to Agenthix alone; the same name from a different signer is a different asset, never an update.
+- AC-399c: I record the publishers the organisation trusts exactly, a release workflow of a repository, a key or a person, and remove them; Agenthix is always on the list.
+- AC-399d: I choose whether unsigned assets are allowed or never, and who may install from outside.
+
+### US-400 — Update, roll back and remove what is installed
+
+As an administrator or Library maintainer, I want to move an installed asset between versions on purpose and take one out knowing what depends on it, so that agents use the version I chose.
+
+**Acceptance criteria:**
+- AC-400a: an update is offered only for a newer version signed by the same publisher, and shows what changed.
+- AC-400b: I roll back, or install any version on purpose, with a reason that the history keeps; a version its publisher withdrew warns me first, naming why.
+- AC-400c: I can skip a version, or dismiss news about an original, and am not asked again until a later one is out.
+- AC-400d: removing an asset names the agents that have it, or what was made from a template, and asks first; only administrators remove.
+
+### US-401 — Write and publish a skill
+
+As a member, I want to draft a skill, see exactly what changed and publish it with a note, so that agents get a version someone chose.
+
+**Acceptance criteria:**
+- AC-401a: *New skill* asks for a name and a description, checks the name as I type and opens an editor on a draft that no agent sees; the draft is shared by everyone who may edit it and saves itself.
+- AC-401b: the editor shows the skill's files with a marker for each change, lets me view, edit and compare each file, and checks the skill against the Agent Skills rules as I edit.
+- AC-401c: *Publish* shows every changed file, asks for a note, makes the next version and publishes only the draft I saw.
+- AC-401d: editing a skill another publisher signed makes the organisation's own copy and sets the original aside, one click to go back; the two are one entry in the Library.
+- AC-401e: a copy credits what it was based on, and a line is shown as verified only when HQ recorded it.
+- AC-401f: I can ask an agent to edit, and am told which agent will answer and where before anything is sent.
+
+### US-402 — Look after the Library together
+
+As an administrator, I want to name the people who look after the Library and say what everyone may do, so that skills are kept right without everyone being an administrator.
+
+**Acceptance criteria:**
+- AC-402a: I name Library maintainers, who create, edit and publish every Library asset, update, roll back and review proposals; installing from outside, removing, choosing agents, trust and naming maintainers stay with administrators; I am shown what maintainers reach before anyone is named.
+- AC-402b: a project's administrators publish its skills, its members edit drafts and add skills, and viewers read; an organisation administrator outside the project acts nothing there.
+- AC-402c: *Library and skills* in Settings holds trusted publishers, unsigned assets, who may install, Library maintainers, skills found in files, personal skills outside Your space and the built-in switches.
+
+### US-403 — See and choose what each agent has
+
+As an administrator, I want to see every skill an agent will use and say which agents have which, so that agents have what they need and no more.
+
+**Acceptance criteria:**
+- AC-403a: an agent's page lists everything it will see, grouped by why it has it, with what was set aside and why.
+- AC-403b: an administrator adds a skill to chosen agents or every agent and removes one from an agent; members read what they can see.
+- AC-403c: the page estimates what the listing costs each request and warns when it grows past about 20 skills or 4,000 tokens.
+- AC-403d: when one skill comes from two places, the organisation's installed one wins over the project's, and the project's over the person's; what was set aside is shown with the reason.
+
+### US-404 — Decide which skills found in files run
+
+As a project administrator, I want to see the skills agents find in a place's files and switch them on or off, so that nothing reaches an agent without someone choosing it.
+
+**Acceptance criteria:**
+- AC-404a: a place's Skills page lists the skills found in the place, for one agent and in each workspace's repository, with their version and state, and *All on* and *All off* for the page and each group.
+- AC-404b: the default for skills found in files is *Off by default*, *On by default* or *Never*, a place only ever stricter than the organisation; a switch holds for the files as they were switched on and goes off when they change, and says why.
+- AC-404c: publishing a skill found in files asks for a note and gives it a version; a change made outside the editor shows what changed with *Publish* or *Put back*; rolling back asks why and publishes the older files as the next version.
+- AC-404d: *Add to this place* copies an installed skill in, offering a newer version later; *Remove* deletes a place's skill; a workspace repository's skill can only be switched.
+- AC-404e: members edit and add, administrators publish and switch, viewers read; in Your space the person does everything.
+
+### US-405 — Keep my own skills with me
+
+As a member, I want the skills I write in Your space to follow me into my own conversations, so that I do not copy them into every project.
+
+**Acceptance criteria:**
+- AC-405a: a skill I published in Your space reaches my own conversations everywhere, projects included, at the version I published.
+- AC-405b: it reaches no one else's run, no task and no scheduled run, and an administrator can turn it off for the organisation.
+
+### US-406 — Pick a skill and see it used
+
+As a member, I want to ask an agent for a skill by name and see afterwards that it used it, so that I know it did the work that way.
+
+**Acceptance criteria:**
+- AC-406a: typing `/` at the start of the message box offers the skills this conversation's agent has, grouped by where each comes from and narrowed as I type; my choice stays in the message as highlighted text and is sent as a choice, not parsed from the words.
+- AC-406b: text I type that begins with `/` is plain text for the agent; the runtime's own commands are never reached.
+- AC-406c: the work shows *Used the skill* with its name and opens it beside the conversation at the version the run used, for whoever may see it.
+- AC-406d: a skill's page says when it was last used and by which agent.
+
+### US-407 — Review what agents propose
+
+As a member, I want an agent that learns a good routine to propose it as a skill, and a person to decide, so that no agent changes what other agents are told.
+
+**Acceptance criteria:**
+- AC-407a: an agent proposes a skill rather than writing one; from my own conversation, where I may edit, it becomes my draft with *Open draft* and *Publish* on its card, and from anywhere else it is a proposal.
+- AC-407b: proposals reach the people who review their level, counted on the Overview, in the Library and on a project's Skills page; they accept, edit then accept, or reject with a note, and the agent is told the outcome.
+- AC-407c: an agent's request to publish, roll back, switch on or install is a card for the person it acts for, shows what would change, and runs only if that person approves and still holds the right.
+
+### US-408 — Use ready-made templates
+
+As an administrator, I want agent, board and team templates to be installed, checked and kept up to date like skills, so that I can make agents and teams from them.
+
+**Acceptance criteria:**
+- AC-408a: templates ship with HQ and install, update and are removed through the same asset layer, each carrying every skill it needs, built from one source.
+- AC-408b: from a template I create an agent, or use a team template through its review.
+- AC-408c: an agent can be exported as an agent template package, and installed again in the Library.
+- AC-408d: Kernel's own skills ship with HQ and are Kernel's alone.
+
+### US-409 — Rely on the built-in skills
+
+As an administrator, I want a small set of skills every agent has, so that agents work well in Agenthix from the first conversation.
+
+**Acceptance criteria:**
+- AC-409a: working with git and creating a skill are built in and on for every agent, git only in a run that works in a repository; I can switch a built-in off and on again, the switch holds across upgrades, and members read the list.

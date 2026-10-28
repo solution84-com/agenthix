@@ -1,62 +1,45 @@
 # Agent Templates
 
-An agent template is a complete, reusable role definition — settings, instructions and skills — that can be applied to create a fully configured agent in one action. Applying one creates the agent: its settings on the agent's record, and its instructions and skills as its package content held by hq. A template gives an agent no schedule: an agent never wakes itself, and work that repeats is a [routine](../tasks/routines.md) a person sets up.
+An agent template is a complete, reusable role definition — settings, instructions and skills — that can be applied to create a fully configured agent in one action. Applying one creates the agent: its settings on the agent's record, its instructions as its content held by hq, and the skills its role needs given to it. A template gives an agent no schedule: an agent never wakes itself, and work that repeats is a [routine](../tasks/routines.md) a person sets up.
 
 ---
 
-## Source files and seeding
+## The package
 
-Agent templates are authored as directories in `assets/library/agents/<slug>/` and seeded into the `AgentTemplate` DB table at startup via `ensureAgentTemplates()`. The DB record stores only metadata — `slug`, `name`, `version`, `handle`, `isSystem`, and an `assetPath` pointer. File contents (`agent.json`, `instructions.md`, skills) are read from hq's assets when a template is applied and become the agent's settings and first content.
+An agent template is an asset of kind `agent` ([the Library](./library.md)): a package holding `agent.json`, `instructions.md` and a `skills/<name>/` folder for each skill its role needs. Agenthix's five (every canonical role but Kernel) ship in hq's image and are installed as `agenthix/<name>` when hq starts. Others come from an upload or a link ([installing](./installing.md)).
 
 ```
-assets/library/agents/<slug>/
-  agent.json          →  read at apply time → agent config
-  instructions.md     →  read at apply time → the agent's instructions
-  skills/             →  the skills named in agent.json are copied into the agent's package content
+agenthix/project-manager        the template, one pinned version
+  package.json                  the manifest: kind, name, version, publisher
+  agent.json                    settings: name, handle, role, approval, tools, the skills it has
+  instructions.md               the agent's instructions
+  skills/<name>/SKILL.md        the role skills it carries
 ```
 
-Seeding: `ensureAgentTemplates()` scans `assets/library/agents/` and upserts `{ slug, name, version, handle, assetPath, isSystem }`. No JSON content is stored in the DB record.
+Applying one reads the pinned version once. The agent takes its settings and instructions, and **keeps a read-only link to the version it was made from**; it never follows the template's later versions, and a later edit to the agent changes only the agent ([ADR-0072](../../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md)).
 
----
+**Skills are given, not copied.** The first time an agent is made from a template, the skills it carries are installed as assets under the template's publisher, and the new agent is given the ones its `agent.json` names. After that they are ordinary installed skills the agent has: pinned, updated and rolled back like any other ([library skills](./skills.md)). A skill an administrator removed stays removed, and the agent is made without it, its page showing it as missing.
 
-## DB schema
-
-```prisma
-model AgentTemplate {
-  id        String   @id @default(cuid())
-  slug      String   @unique        // stable identifier, e.g. "wasp-developer"
-  name      String
-  version   Int
-  handle    String                  // suggested default handle
-  assetPath String                  // relative path under assets root — e.g. "library/agents/wasp-developer"
-  isSystem  Boolean  @default(true)
-  source         LibrarySource @default(MADE_HERE)   // built in, made here or marketplace
-  packageVersion String        @default("1")
-  publisher      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-```
-
-All content (agent config, instructions, skills) is read from the `assetPath` directory under hq's assets root at apply time — nothing is stored in the DB record; the applied agent's content is stored as its package.
-
-### `agent.json` shape (on disk)
+### `agent.json`
 
 ```json
 {
+  "name": "QA",
+  "handle": "qa",
+  "role": "Verifies completed work against acceptance criteria",
   "approval": "deferred",
   "allowedTools": [
     { "name": "read_file", "state": "always" },
     { "name": "create_task", "state": "ask" }
   ],
   "allowedBashPatterns": [
-    { "pattern": "git ", "state": "always" },
-    { "pattern": "npm ", "state": "always" }
-  ]
+    { "pattern": "git ", "state": "always" }
+  ],
+  "skills": ["verify-task", "run-tests", "explore-feature"]
 }
 ```
 
-`instructions.md` and a `skills/` subdirectory live alongside `agent.json` in the same `assetPath` directory. `agent.json` also carries `name`, `handle`, `role`, `version` and a `skills` list of slugs.
+Every field is checked and bounded when the package comes in. The `skills` list names the folders under `skills/` that the agent has.
 
 ---
 
@@ -64,13 +47,13 @@ All content (agent config, instructions, skills) is read from the `assetPath` di
 
 The `handle` on an agent template is a suggestion, not a guarantee. Applying a template (`applyAgentTemplate`) takes the handle the person chose, and the agent is created with that one — never blindly copied from the template.
 
-Workforce templates do not use agent templates: each defines its own agents, with their own handles, which are checked against existing agents in the org and resolved on its review page.
+Team templates do not use agent templates: each defines its own agents, with their own handles, which are checked against existing agents in the org and resolved on its review page.
 
 ---
 
 ## Agent archives
 
-An agent archive (ZIP) holds one agent's current definition: `agent.json` (identity and settings), `instructions.md` and every file of every skill. Importing one replaces that agent's content and settings in place. Archives from before packages carry `PROFILE.md` and `RESPONSIBILITIES.md`, which are merged into the instructions on import.
+An agent archive (ZIP) holds one agent's current definition: `agent.json` (identity and settings), `instructions.md` and every file of every skill. Importing one replaces that agent's content and settings in place. It is not the same as the Library's agent template: it changes one agent, and adds nothing to the Library.
 
 ---
 
@@ -81,14 +64,17 @@ An agent archive (ZIP) holds one agent's current definition: `agent.json` (ident
 | `kernel` | Kernel | `kernel` | `orchestrate`, `assembly`, `planning` |
 | `product-manager` | Product Manager | `product-manager` | `write-brief`, `write-roadmap`, `review-roadmap`, `understand-vision`, `process-feedback` |
 | `project-manager` | Project Manager | `project-manager` | `write-sprint-plan`, `write-implementation-plan`, `assign-work`, `review-work`, `read-context` |
-| `skills-engineer` | Skills Engineer | `skills-engineer` | `observe-patterns`, `propose-skill`, `codify-skill`, `audit-skills` |
-| `wasp-developer` | Wasp Developer | `wasp-developer` | `implement-wasp-feature`, `fix-bug`, `write-tests`, `git-workflow` |
+| `skills-engineer` | Skills Engineer | `skills-engineer` | `observe-patterns`, `audit-skills` |
+| `wasp-developer` | Wasp Developer | `wasp-developer` | `implement-wasp-feature`, `fix-bug`, `write-tests` |
 | `qa` | QA | `qa` | `verify-task`, `run-tests`, `explore-feature` |
 
 ---
 
+Writing a skill and proposing it is taught by the built-in `skill-creator`, and git work by the built-in `working-with-git`, so no template carries either. Kernel is the organisation's built-in agent: its template is written to it from hq's image and is never offered in the Library.
+
 ## Related
 
-- [library.md](./library.md) — library overview and file → DB seeding pattern
-- [workforce-templates.md](./workforce-templates.md) — workforce templates, which define their own agents rather than referencing agent templates
-- [skills.md](../skills/skills.md) — skill sources and how they are staged for each turn
+- [library.md](./library.md): assets, versions and the pin
+- [skills.md](./skills.md): built-in, offered and role skills
+- [workforce-templates.md](./workforce-templates.md): team templates, which define their own agents
+- [skills](../skills/skills.md): where skills live and how a turn receives them

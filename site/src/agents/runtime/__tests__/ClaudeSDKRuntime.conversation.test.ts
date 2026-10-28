@@ -8,9 +8,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+import { PLAIN_TEXT_LINE } from '../pickedSkill'
 vi.mock('@anthropic-ai/claude-agent-sdk', () => ({ query: vi.fn() }))
 vi.mock('#db', () => ({ prisma: { toolCallLog: { create: vi.fn().mockResolvedValue({}) } } }))
-vi.mock('../skillStaging', () => ({ stageSkills: vi.fn(async () => []), skillRootsFor: vi.fn(() => []) }))
+vi.mock('../skillStaging', () => ({ stageSkills: vi.fn(async () => ({ staged: [], refused: [] })) }))
 vi.mock('../landlockCheck', () => ({ requireLandlock: vi.fn(async () => {}) }))
 vi.mock('../DockerSpawner', () => ({
   spawnDockerClaude: vi.fn(() => ({ once: vi.fn((_event: string, onExit: () => void) => onExit()), stderr: null })),
@@ -98,7 +99,7 @@ describe('one claude process per conversation', () => {
   })
 
   it("replies with the CLI's own answer when a turn reached no model, and only then", async () => {
-    useFake((_turn, text) => text === '/nope'
+    const fake = useFake((_turn, text) => text.endsWith('/nope')
       ? [{ type: 'result', subtype: 'success', num_turns: 0, result: 'Unknown command: /nope' }]
       : [
           { type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'text_delta', text: 'hi' } } },
@@ -107,6 +108,8 @@ describe('one claude process per conversation', () => {
     const local = await turn({ prompt: '/nope' })
     const answered = await turn({ runId: 'run-2', prompt: 'hello', isNewSession: false })
 
+    // What a person types is never a command: the process is given it after a line saying it is plain text.
+    expect(fake.started[0]!.turns[0]).toBe(`${PLAIN_TEXT_LINE}\n\n/nope`)
     expect(local.filter(e => e.type === 'text_delta')).toEqual([{ type: 'text_delta', textDelta: 'Unknown command: /nope' }])
     expect(statusOf(local)).toMatchObject({ status: 'completed' })
     expect(answered.filter(e => e.type === 'text_delta')).toEqual([{ type: 'text_delta', textDelta: 'hi' }])
@@ -183,10 +186,10 @@ describe('one claude process per conversation', () => {
 
   it('keeps the process while its skills are unchanged, and replaces it when one changes', async () => {
     let body = 'v1'
-    vi.mocked(stageSkills).mockImplementation(async (_roots, dest) => {
+    vi.mocked(stageSkills).mockImplementation(async (_inputs, dest) => {
       await fs.mkdir(path.join(dest, 'org-x'), { recursive: true })
       await fs.writeFile(path.join(dest, 'org-x', 'SKILL.md'), body)
-      return [{ source: 'org', slug: 'x', name: 'org-x' }]
+      return { staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f', userInvocable: true, modelInvocable: true }], refused: [] }
     })
     const fake = useFake()
     await turn()
@@ -201,7 +204,7 @@ describe('one claude process per conversation', () => {
     expect(optionsOf(fake.started[1]!).additionalDirectories).not.toEqual(optionsOf(fake.started[0]!).additionalDirectories)
     // The replaced process's folder went with it.
     expect(await fs.readdir(path.join(home, '.tmp'))).toHaveLength(1)
-    vi.mocked(stageSkills).mockImplementation(async () => [])
+    vi.mocked(stageSkills).mockImplementation(async () => ({ staged: [], refused: [] }))
   })
 
   it('measures memory after a turn, not at the start of the next', async () => {
@@ -309,14 +312,14 @@ describe('one claude process per conversation', () => {
   })
 
   it("gives the key, the tag and the command launcher to the process's own exec, in a container", async () => {
-    vi.mocked(stageSkills).mockImplementation(async (_roots, dest) => {
+    vi.mocked(stageSkills).mockImplementation(async (_inputs, dest) => {
       await fs.mkdir(path.join(dest, 'org-x'), { recursive: true })
       await fs.writeFile(path.join(dest, 'org-x', 'SKILL.md'), 'x')
-      return [{ source: 'org', slug: 'x', name: 'org-x' }]
+      return { staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f', userInvocable: true, modelInvocable: true }], refused: [] }
     })
     const fake = useFake()
     await turn({ containerName: 'c1', credential: { kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-run' }, gitCredEnv: { AGENT_HANDLE: 'coder', USE_BUILTIN_RIPGREP: '1' } })
-    vi.mocked(stageSkills).mockImplementation(async () => [])
+    vi.mocked(stageSkills).mockImplementation(async () => ({ staged: [], refused: [] }))
 
     const env = execEnvOf(fake.started[0]!)
     expect(env).toMatchObject({

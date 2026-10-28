@@ -115,3 +115,6 @@ label {
 .prose-editor strong { font-weight: 600; color: var(--color-text-primary); }
 .prose-editor em { font-style: italic; color: var(--color-text-secondary); }
 .prose-editor p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--color-text-muted); font-style: italic; pointer-events: none; float: left; height: 0; }
+
+/* The skill picked with `/` in a message, painted over its `/name` (conversations/components/atPicker/skillMark.ts). */
+::highlight(skill-pick) { background-color: var(--color-accent-subtle); color: var(--color-accent); }

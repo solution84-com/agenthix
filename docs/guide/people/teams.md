@@ -16,7 +16,7 @@ A team's real use is joining a project: add it once, with one role, and every pe
 3. Give it a **Name** and a **Purpose**: what the team is for.
 4. Select **Create team**. Its own page opens.
 
-You can also start from a ready-made team in [The Library](../agents/library.md), which adds its agents as a new team. Add the people after.
+The [Library](../agents/library.md) also holds ready-made teams. To make a team from one, see [Use a ready-made team](../agents/library.md#use-a-ready-made-team).
 
 ## Add people and agents
 

@@ -35,6 +35,7 @@ import { heldInstructionRows, deliverHeldInstructionsTo } from '../sites/heldIns
 import { sitesForProject } from '../sites/membershipEnding'
 import { Logger } from '../server/utils/logger'
 import { deletePlaceRecordsOf } from '../secrets/placeDeletion'
+import { personSkillErasure } from '../assets/conversation/usedSkillErase'
 
 const logger = new Logger('ErasePerson')
 
@@ -131,6 +132,9 @@ export const erasePerson = async (
 
   const ownProject = { personalOwnerId: userId }
   const ownProjectIds = ownProjects.map(p => p.id)
+  const ownPlaces = [{ type: 'user' as const, id: userId }, ...ownProjectIds.map(id => ({ type: 'project' as const, id }))]
+  // Read first: what the transaction then deletes of the skills in their own places, with the content kept for them.
+  const skillErasure = await personSkillErasure(prisma, ownPlaces)
   await prisma.$transaction([
     // Told to every site that holds any of their projects' homes and containers; a site that is down gets it later.
     prisma.heldSiteInstruction.createMany({
@@ -152,9 +156,9 @@ export const erasePerson = async (
     prisma.aiProvider.deleteMany({ where: { ownerUserId: userId } }),
     prisma.modelList.deleteMany({ where: { owner: 'person', ownerId: userId } }),
     // The secrets, variables and workflows of their own storage and of their own projects, with their records.
-    ...deletePlaceRecordsOf(prisma, [
-      { type: 'user', id: userId }, ...ownProjectIds.map(id => ({ type: 'project' as const, id })),
-    ]),
+    ...deletePlaceRecordsOf(prisma, ownPlaces),
+    // Their own skills and every version and draft of them: a run that used one keeps only its identity and fingerprint.
+    ...skillErasure,
     prisma.notification.deleteMany({ where: { userId } }),
     prisma.mobileAuthToken.deleteMany({ where: { userId } }),
     prisma.deviceSession.deleteMany({ where: { userId } }),

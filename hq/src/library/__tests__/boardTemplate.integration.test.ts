@@ -1,124 +1,111 @@
-import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest'
-import os from 'node:os'
-import path from 'node:path'
-import fs from 'node:fs/promises'
+/**
+ * Board templates as Library assets against the real test database (ADR-0094): the organisation's own made here under
+ * its publisher name, each save the next version with history, Agenthix's read-only, removal keeping the history, and
+ * a board made from one keeping a read-only link to the version it was made from (adr-0072, adr-0157).
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
-
-// Board template CRUD + validation against the real test DB (ADR-0035). The
-// service writes stage JSON under getBoardTemplatesDir(); we point
-// HQ_STORAGE_ROOT at a temp dir so those writes are isolated. `wasp/server` is
-// mocked to the real test-DB client.
-
-let TMP_ROOT: string
+import { createProject, createUser } from '../../test/factories'
 
 vi.mock('wasp/server', async () => {
   const { prisma } = await import('../../test/db')
   const { HttpError } = await vi.importActual<any>('wasp/server')
   return { prisma, HttpError, Prisma: (await import('@prisma/client')).Prisma }
 })
+vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/debouncedPush'))
 
 import {
-  createBoardTemplate,
-  updateBoardTemplate,
-  deleteBoardTemplate,
-  listBoardTemplates,
+  boardTemplateColumns, createBoardTemplate, deleteBoardTemplate, getBoardTemplate, listBoardTemplates, updateBoardTemplate,
   TemplateValidationError,
 } from '../boardTemplateService'
+import { createBoard } from '../../projects/boardService'
+import { COLUMNS, boardPackage, seedTemplate } from '../../assets/templates/__tests__/templateFixtures'
 
-let n = 0
-function fullColumns() {
-  return [
-    { name: 'todo', label: 'To Do', status: 'TODO' as const, color: '#000', order: 0, description: '' },
-    { name: 'doing', label: 'In Progress', status: 'IN_PROGRESS' as const, color: '#111', order: 1, description: '' },
-    { name: 'done', label: 'Done', status: 'DONE' as const, color: '#222', order: 2, description: '' },
-  ]
-}
-
-beforeAll(async () => {
-  TMP_ROOT = await fs.mkdtemp(path.join(os.tmpdir(), 'bt-test-'))
-  process.env.HQ_STORAGE_ROOT = TMP_ROOT
+let byId: string
+beforeEach(async () => {
+  await prisma.org.create({ data: { name: 'Fernhill' } })
+  byId = (await createUser()).id
 })
-afterAll(async () => {
-  await fs.rm(TMP_ROOT, { recursive: true, force: true })
-})
-beforeEach(() => vi.clearAllMocks())
 
 describe('createBoardTemplate @SC-029', () => {
-  // SC-029 — user can create and browse org board templates.
-  it('creates an org template and it appears in the list', async () => {
-    const tpl = await createBoardTemplate({ name: `Tpl ${n++}`, columns: fullColumns() })
-    expect(tpl.isSystem).toBe(false)
-    const all = await listBoardTemplates()
-    expect(all.map(t => t.id)).toContain(tpl.id)
+  it('makes the organisation its own template, version 1.0.0, listed in the Library', async () => {
+    const tpl = await createBoardTemplate({ name: 'Release Train', columns: COLUMNS, byId })
+    expect(tpl).toMatchObject({ identity: 'fernhill/release-train', version: '1.0.0', isSystem: false, name: 'Release Train' })
+    expect((await listBoardTemplates()).map(t => t.id)).toContain(tpl.id)
+    const history = await prisma.assetPinChange.findMany({ where: { assetId: tpl.id } })
+    expect(history).toHaveLength(1)
+    expect(history[0]).toMatchObject({ byId, reason: 'Published' })
+  })
+
+  it('refuses a second template under the same name', async () => {
+    await createBoardTemplate({ name: 'Ops', columns: COLUMNS, byId })
+    await expect(createBoardTemplate({ name: 'Ops', columns: COLUMNS, byId })).rejects.toMatchObject({ status: 409 })
   })
 })
 
 describe('createBoardTemplate missingStatus @SC-170', () => {
-  // SC-170 — creating a template missing any of TODO / IN_PROGRESS / DONE is
-  // rejected, naming the missing statuses.
-  it('rejects a template missing the DONE status', async () => {
-    const columns = fullColumns().filter(s => s.status !== 'DONE')
-    await expect(createBoardTemplate({ name: 'Bad', columns }))
+  it('refuses columns without one of the three states, naming it', async () => {
+    await expect(createBoardTemplate({ name: 'Bad', columns: COLUMNS.filter(c => c.status !== 'DONE'), byId }))
       .rejects.toThrow(/missing DONE/)
   })
 })
 
-describe('updateBoardTemplate metadata sync @SC-029', () => {
-  // F-031 — a name/description-only edit must update the on-disk JSON too, not
-  // just the DB row, or the file and DB drift.
-  it('writes name/description changes to the on-disk JSON', async () => {
-    const tpl = await createBoardTemplate({ name: `Meta ${n++}`, description: 'before', columns: fullColumns() })
-
-    await updateBoardTemplate({ id: tpl.id, name: 'Renamed', description: 'after' })
-
-    const updated = await prisma.boardTemplate.findUnique({ where: { id: tpl.id } })
-    expect(updated?.name).toBe('Renamed')
-    expect(updated?.description).toBe('after')
-
-    const filePath = path.join(TMP_ROOT, updated!.assetPath)
-    const onDisk = JSON.parse(await fs.readFile(filePath, 'utf-8'))
-    expect(onDisk.name).toBe('Renamed')
-    expect(onDisk.description).toBe('after')
-    // Stages were not part of the edit — they must be preserved unchanged.
-    expect(onDisk.columns).toHaveLength(3)
+describe('updateBoardTemplate @SC-029', () => {
+  it('publishes the next version, keeping the columns not edited', async () => {
+    const tpl = await createBoardTemplate({ name: 'Meta', description: 'before', columns: COLUMNS, byId })
+    const updated = await updateBoardTemplate({ id: tpl.id, name: 'Renamed', description: 'after', byId })
+    expect(updated).toMatchObject({ name: 'Renamed', description: 'after', version: '1.1.0' })
+    expect((await getBoardTemplate(tpl.id))?.columns).toHaveLength(3)
+    expect(await prisma.assetVersion.count({ where: { assetId: tpl.id } })).toBe(2)
   })
 })
 
 describe('updateBoardTemplate validation @SC-171', () => {
-  // SC-171 — editing a template re-runs the coverage validation and rejects an
-  // incomplete set.
-  it('rejects an edit that drops a required status', async () => {
-    const tpl = await createBoardTemplate({ name: `Edit ${n++}`, columns: fullColumns() })
-    const incomplete = fullColumns().filter(s => s.status !== 'IN_PROGRESS')
-    await expect(updateBoardTemplate({ id: tpl.id, columns: incomplete }))
+  it('refuses an edit that drops a state', async () => {
+    const tpl = await createBoardTemplate({ name: 'Edit', columns: COLUMNS, byId })
+    await expect(updateBoardTemplate({ id: tpl.id, columns: COLUMNS.filter(c => c.status !== 'IN_PROGRESS'), byId }))
       .rejects.toThrow(/missing IN_PROGRESS/)
   })
 })
 
-describe('updateBoardTemplate system @SC-172', () => {
-  // SC-172 — editing a built-in (system) board template is rejected.
-  it('rejects editing a system template', async () => {
-    const sys = await prisma.boardTemplate.create({
-      data: { name: 'System', description: '', assetPath: 'assets/library/boards/sys.json', isSystem: true } as any,
-    })
-    await expect(updateBoardTemplate({ id: sys.id, name: 'Renamed' }))
-      .rejects.toThrow(TemplateValidationError)
+describe("Agenthix's templates @SC-172 @SC-173", () => {
+  it('are neither edited nor removed here', async () => {
+    const { assetId } = await seedTemplate(prisma, 'BOARD', 'kanban', boardPackage('kanban'))
+    await expect(updateBoardTemplate({ id: assetId, name: 'Renamed', byId })).rejects.toThrow(TemplateValidationError)
+    await expect(deleteBoardTemplate(assetId, byId)).rejects.toThrow(TemplateValidationError)
+    expect((await prisma.asset.findUnique({ where: { id: assetId } }))?.removedAt).toBeNull()
+  })
+
+  it('removing the organisation\'s own keeps its history', async () => {
+    const tpl = await createBoardTemplate({ name: 'Del', columns: COLUMNS, byId })
+    await deleteBoardTemplate(tpl.id, byId)
+    expect(await prisma.asset.findUnique({ where: { id: tpl.id } })).toMatchObject({ removedById: byId })
+    expect(await prisma.assetVersion.count({ where: { assetId: tpl.id } })).toBe(1)
+    expect(await listBoardTemplates()).toEqual([])
   })
 })
 
-describe('deleteBoardTemplate system @SC-173', () => {
-  // SC-173 — deleting a built-in (system) board template is rejected.
-  it('rejects deleting a system template', async () => {
-    const sys = await prisma.boardTemplate.create({
-      data: { name: 'System', description: '', assetPath: 'assets/library/boards/sys.json', isSystem: true } as any,
-    })
-    await expect(deleteBoardTemplate(sys.id)).rejects.toThrow(TemplateValidationError)
-    expect(await prisma.boardTemplate.findUnique({ where: { id: sys.id } })).not.toBeNull()
+describe('a board made from a template', () => {
+  it('copies its columns and keeps the version it was made from, never following later versions', async () => {
+    const tpl = await createBoardTemplate({ name: 'Flow', columns: COLUMNS, byId })
+    const project = await createProject()
+    const made = await boardTemplateColumns(tpl.id)
+    const board = await createBoard({ projectId: project.id, name: 'Work', madeFromVersionId: made?.madeFromVersionId, columns: made?.columns })
+    const first = (await prisma.asset.findUnique({ where: { id: tpl.id } }))!.currentVersionId
+    expect(board.madeFromVersionId).toBe(first)
+
+    await updateBoardTemplate({ id: tpl.id, columns: [...COLUMNS, { ...COLUMNS[1], name: 'review', label: 'Review' }], byId })
+    const after = await prisma.board.findUniqueOrThrow({ where: { id: board.id } })
+    expect(after.madeFromVersionId).toBe(first)
+    expect(after.columns as unknown[]).toHaveLength(3)
   })
 
-  it('deletes an org template', async () => {
-    const tpl = await createBoardTemplate({ name: `Del ${n++}`, columns: fullColumns() })
-    await deleteBoardTemplate(tpl.id)
-    expect(await prisma.boardTemplate.findUnique({ where: { id: tpl.id } })).toBeNull()
+  it('finds Agenthix\'s template by the names team templates use', async () => {
+    const { versionId } = await seedTemplate(prisma, 'BOARD', 'kanban', boardPackage('kanban'))
+    for (const ref of ['kanban', 'agenthix/kanban']) {
+      expect((await boardTemplateColumns(ref))?.madeFromVersionId).toBe(versionId)
+    }
+    // The names from before board templates were assets are gone.
+    for (const ref of ['does-not-exist', 'sys-tpl-0001-kanban']) expect(await boardTemplateColumns(ref)).toBeNull()
   })
 })

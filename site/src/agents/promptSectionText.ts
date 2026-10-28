@@ -22,6 +22,11 @@ const KNOWLEDGE_GUIDANCE =
   'places in this conversation. Look there before asking. Where pages differ, the most specific wins: a place, ' +
   'then the organisation, then the platform guide. What you learn on your own belongs in memory.'
 
+const SKILLS_GUIDANCE =
+  '## Skills\n\n' +
+  "A skill's name starts with where it comes from (`platform-`, `org-`, `agent-`, `person-`, `workspace-N-`); the " +
+  'rest is its name. A person\'s `/code-review` is the skill ending in `code-review`.'
+
 /**
  * Memory is held by hq and recalled by meaning (memory and knowledge spec): none of it arrives whole in the
  * prompt, so the section only says how to reach it. hq decides at each call which memory this run may use.
@@ -39,7 +44,9 @@ export function buildMemoryContent(pinnedPath?: string | null): string {
     'something worth knowing next time, and `forget` when an item is no longer true.' +
     pinned +
     '\n\n' +
-    KNOWLEDGE_GUIDANCE
+    KNOWLEDGE_GUIDANCE +
+    '\n\n' +
+    SKILLS_GUIDANCE
   )
 }
 

@@ -95,3 +95,15 @@ describe('Summarise now @SC-776', () => {
     expect(h.engineRun).toHaveBeenCalledWith('run-1', expect.objectContaining({ summarise: false }))
   })
 })
+
+describe('the skill a person picked with /', () => {
+  it('goes to the engine by name when hq sent one of a skill name’s shape, and not otherwise; the text is kept', async () => {
+    await runChat(payload({ skill: { name: 'org-review' } }))
+    expect(h.engineRun).toHaveBeenLastCalledWith('run-1', expect.objectContaining({ pickedSkill: 'org-review' }))
+    for (const skill of [{ name: '/init' }, { name: 7 }, 'org-review', undefined]) {
+      await runChat(payload({ skill } as never))
+      expect(h.engineRun.mock.lastCall?.[1]).toMatchObject({ pickedSkill: undefined })
+    }
+    expect(h.transcriptCreate).toHaveBeenLastCalledWith({ data: expect.objectContaining({ content: 'Use the staging bucket' }) })
+  })
+})

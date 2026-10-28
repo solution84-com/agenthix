@@ -81,6 +81,12 @@ describe('dispatch params agree with the context hq actually sends', () => {
     expect(result.success).toBe(true)
   })
 
+  it('carries the picked skill through as it came, and runs a dispatch whose skill is malformed', () => {
+    const picked = runDispatchParams.safeParse({ ...dispatch(context), skill: { name: 'org-review' } })
+    expect(picked.success && picked.data.skill).toEqual({ name: 'org-review' })
+    expect(runDispatchParams.safeParse({ ...dispatch(context), skill: { name: 42 } }).success).toBe(true)
+  })
+
   it('carries the run limits through, and refuses a dispatch without them', () => {
     const limits = { timeLimitMinutes: 45, turnLimit: 80 }
     const withLimits = runDispatchParams.safeParse({ ...dispatch(context), runLimits: limits })

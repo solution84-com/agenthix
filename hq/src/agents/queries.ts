@@ -5,12 +5,11 @@
  * Agents are site-level shared resources — all authenticated users
  * see the same pool of agents.
  */
-import { type GetAgents, type GetAgent, type GetAgentByHandle, type GetAgentDetail, type GetAgentChatStats, type GetAgentSkills, type GetSkillLibrary, type GetAgentPromptPreview, type GetInstalledSkillVersions } from 'wasp/server/operations'
+import { type GetAgents, type GetAgent, type GetAgentByHandle, type GetAgentDetail, type GetAgentChatStats, type GetAgentSkills, type GetAgentPromptPreview } from 'wasp/server/operations'
 import { countTasks } from '../shared/taskCounts'
 import { HttpError } from 'wasp/server'
 import type { RunRow, AgentPromptPreviewResult, AgentListItem } from '@agenthix/core'
 import { agentListItem } from './agentListItem'
-import { listLibrarySkills } from './skillsLibraryService'
 import { readAgentContent } from '../packages/agentPackageService'
 import { skillEntries } from '../packages/skillFiles'
 import { resolveAgentSiteId, sitesForAgent } from './agentSite'
@@ -287,23 +286,4 @@ export const getAgentSkills: GetAgentSkills<GetAgentSkillsArgs, any[]> = async (
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const current = await readAgentContent(args.agentId)
   return current ? skillEntries(current.skillFiles) : []
-}
-
-type GetSkillLibraryArgs = { scope: 'PLATFORM' | 'ORG'; orgId?: string }
-
-export const getSkillLibrary: GetSkillLibrary<GetSkillLibraryArgs, any[]> = async (args, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  return listLibrarySkills(args.scope, args.orgId ?? null)
-}
-
-type GetInstalledSkillVersionsArgs = { slugs: string[] }
-
-export const getInstalledSkillVersions: GetInstalledSkillVersions<GetInstalledSkillVersionsArgs, Record<string, number>> = async (args, context) => {
-  if (!context.user) throw new HttpError(401, 'Not authenticated')
-  if (args.slugs.length === 0) return {}
-  const skills = await context.entities.Skill.findMany({
-    where: { slug: { in: args.slugs }, scope: 'PLATFORM', orgId: null },
-    select: { slug: true, version: true },
-  })
-  return Object.fromEntries(skills.map(s => [s.slug, s.version]))
 }

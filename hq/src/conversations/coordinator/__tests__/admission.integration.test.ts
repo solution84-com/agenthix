@@ -24,6 +24,7 @@ import { sendConversationMessage } from '../../sendMessage'
 import { cancelWaitingConversationMessage, sendWaitingConversationMessageNow } from '../../waitingMessages'
 import { stopConversationTurn } from '../../stopTurn'
 import { scheduleConversation } from '../scheduler'
+import { openJson } from '../../sealing'
 
 const ctx = (user: { id: string }) => ({ user })
 let n = 0
@@ -52,6 +53,17 @@ describe('sending a message @SC-945', () => {
     const row = await prisma.conversationMessage.findUniqueOrThrow({ where: { id: result.messageId } })
     expect(row).toMatchObject({ role: 'PERSON', kind: 'TEXT', authorId: person.id, queueState: null, turnId: null })
     expect(scheduleConversation).toHaveBeenCalledWith(conversation.id)
+  })
+
+  it('keeps the skill picked with `/` on the message, and refuses one that is not a skill name, storing nothing', async () => {
+    const { person, conversation } = await conversationOf()
+    const sent = await sendConversationMessage({ conversationId: conversation.id, clientMessageId: `c-${n++}`, text: 'review it', skill: { name: 'org-code-review' } }, ctx(person))
+    const row = await prisma.conversationMessage.findUniqueOrThrow({ where: { id: sent.messageId } })
+    expect(openJson(row.body)).toEqual({ text: 'review it', skill: { name: 'org-code-review' } })
+
+    await expect(sendConversationMessage({ conversationId: conversation.id, clientMessageId: `c-${n++}`, text: 'x', skill: { name: '/init' } }, ctx(person)))
+      .rejects.toMatchObject({ statusCode: 400 })
+    expect(await prisma.conversationMessage.count({ where: { conversationId: conversation.id } })).toBe(1)
   })
 
   it('stores a message sent twice once', async () => {

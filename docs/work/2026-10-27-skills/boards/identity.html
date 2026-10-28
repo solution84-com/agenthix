@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Identity and dependencies · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="identity.html"><main>
+<div class="top"><div><h1>2c · Identity and dependencies</h1>
+<p class="sub">Does a skill have an identity of its own, and does an agent template carry its skills or point to them? Worked like a package registry (pub.dev, npm), so nothing a template needs can disappear.</p></div></div>
+
+<h2 id="today">Today</h2>
+<div class="box"><ul>
+<li><b>A library package already has an identity.</b> Every library item (an agent, a board, a skill, a team) exports as one ZIP with a <code>package.json</code>: <code>kind</code>, <code>name</code>, <code>version</code>, <code>publisher</code>, <code>source</code> (built in, made here, marketplace). Its comment says it is shaped "so a marketplace can later deliver the same packages" (<code>hq/src/library/packages/packageManifest.ts</code>).</li>
+<li><b>Nothing declares dependencies.</b> An agent package carries its skills inside it (<code>skills/&lt;slug&gt;/</code>), and a team carries a shared pool. Both are <b>self-contained</b>, which is why the 26 copies exist and drift.</li>
+<li><b>An installed skill forgets where it came from,</b> apart from an <code>installed_from</code> pointing at a row in this hq.</li>
+<li>adr-0072 dropped agent versions. It noted that holding one project on an older version "is a need a shared marketplace has".</li></ul></div>
+
+<h2 id="ways">Two ways a template can hold its skills</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Self-contained (vendored)</span><ul>
+<li>The template carries copies.</li>
+<li><b>For:</b> never missing; unpack it anywhere and it works.</li>
+<li><b>Against:</b> every copy drifts. A fix to the shared skill reaches no template. Two agents from different templates carry two versions of "the same" skill.</li></ul></div>
+<div class="box"><span class="lbl after">References (dependencies)</span><ul>
+<li>The template names the skills it needs.</li>
+<li><b>For:</b> one skill, fixed once; templates stay small.</li>
+<li><b>Against:</b> a name can stop resolving (deleted, renamed, never installed), and the agent arrives missing part of its job. That is your concern, and the one every package registry has had to solve.</li></ul></div>
+</div>
+
+<h2 id="proposed">Proposed: both, with a registry's rules</h2>
+<div class="box"><div class="mmd" data-src="deps"></div></div>
+
+<div class="kbox">
+<div><h4><span class="n">1</span>Every skill has an identity</h4><p><code>publisher/name</code> plus a version, from the manifest that already exists. Examples: <code>agenthix/qa-bug-reporting 1.2</code>, an organisation's own <code>fernhill/release-notes 3</code>. The name a run uses (<code>source-slug</code>) is unchanged.</p></div>
+<div><h4><span class="n">2</span>Bundled: a template's own role skills</h4><p>Written for that role, and they refer to each other (the project manager's <i>read-context</i> "must run before any other skill"). They live inside the template's package with identities under it (<code>agenthix/project-manager/read-context</code>), travel with it, and aren't offered alone. Like npm's bundled dependencies.</p></div>
+<div><h4><span class="n">3</span>Dependencies: shelf skills it names</h4><p>The manifest lists them with a version range: <code>agenthix/qa-bug-reporting ^1</code>. Team templates do the same, instead of carrying 26 copies.</p></div>
+<div><h4><span class="n">4</span>Rule: it resolves, or it isn't published</h4><p>A template is exported or published only if every dependency resolves. In this hq that means the shelf or the organisation's skills; later, the marketplace. The check is the same one pub.dev runs on upload.</p></div>
+<div><h4><span class="n">5</span>Rule: a published version never disappears</h4><p>A version, once published, is never changed or deleted, only marked <i>deprecated</i> or <i>withdrawn</i>, as pub.dev retracts and discontinues. So nothing that depends on it can break. It's the same rule the platform's own releases follow.</p></div>
+<div><h4><span class="n">6</span>Installing resolves</h4><p>Creating an agent from a template installs its bundled skills with it. For each dependency, hq reuses an installed skill whose version fits, or installs one. The agent records the exact version it got, like a lock file. A newer version that fits is offered as an update, never applied by itself.</p></div>
+<div><h4><span class="n">7</span>Removing something depended on</h4><p>hq names the agents that depend on it and asks first. If you go ahead, they keep working without it, and their pages show <i>missing: qa-bug-reporting</i> with <i>Install</i>. Nothing breaks silently.</p></div>
+<div><h4><span class="n">8</span>Between hqs, with no registry</h4><p>An exported ZIP <b>vendors</b> its dependencies, so it is self-contained in transit, and importing de-duplicates by identity and version. A self-hosted hq without the marketplace still shares whole templates. When the marketplace comes, references resolve against it instead.</p></div>
+</div>
+
+<div class="why"><b>Why this shape:</b> it takes the self-contained template's guarantee (unpack it and it works) and the reference's single source (fix once). It's the shape package registries settled on, and it is the foundation the later publishing work needs. <b>Only skills use it in this unit</b> (D2). Agents and boards keep their manifests as they are.</div>
+
+<h2 id="one-rule">Revised: one rule for everyone, every package carries what it needs</h2>
+<div class="box"><p><b>Raised 27 Oct:</b> letting only Agenthix's packages hold references would make the experience inconsistent, with some templates able to point to skills and others not. And with packages coming from anywhere (D7), references for everyone would need a resolver across every source, with skills that can go missing.</p>
+<p><b>Where the drift really comes from:</b> the 26 copies are hand-kept copies in our <i>source</i>, not a flaw in self-contained packages. Fix the drift where it starts, and packages can stay self-contained.</p>
+<div class="mmd" data-src="dedupe"></div>
+<table><tr><th></th><th>Rule</th><th>What it solves</th></tr>
+<tr><td class="n">I1</td><td><b>Every package carries every skill it needs.</b> The same rule applies to Agenthix's packages, an organisation's, and anyone's from GitHub. There are no references between packages, so nothing can go missing.</td><td>Consistency; your concern about missing skills</td></tr>
+<tr><td class="n">I2</td><td><b>Every skill inside keeps its own identity:</b> <code>publisher/name</code> and a version, even inside a template. A template's role skills are named under it (<code>agenthix/project-manager/read-context</code>); a shared one keeps its own name (<code>agenthix/pm-sprint-planning 1.3</code>).</td><td>hq can tell that two packages carry the same skill</td></tr>
+<tr><td class="n">I3</td><td><b>Installing de-duplicates by identity.</b> If the organisation already has <code>agenthix/pm-sprint-planning</code>, a template bringing the same version reuses it. One bringing a newer version offers the update. One bringing an older version leaves the installed one alone. One identity, installed once, shared by every agent that has it.</td><td>The drift between installed copies</td></tr>
+<tr><td class="n">I4</td><td><b>Same name, different signer, is a different skill.</b> <code>acme/code-review</code> and <code>agenthix/code-review</code> never merge. A package claiming <code>agenthix/…</code> but not signed by Agenthix is refused, so nobody can slip in under another publisher's name.</td><td>Impersonation</td></tr>
+<tr><td class="n">I5</td><td><b>Agenthix's build copies from one source.</b> Each shelf skill is written once. The build puts it into every template that uses it, so the 26 hand-kept copies go. Anyone else can build their packages the same way; that's their tooling.</td><td>The drift in our own source</td></tr>
+<tr><td class="n">I6</td><td><b>Installing says what comes with it:</b> "This template brings 7 skills: 5 for its role, 1 you already have, 1 newer than yours (update offered)."</td><td>No surprises</td></tr>
+</table>
+<div class="why"><b>Why this over references:</b> one rule for every package and every source. No resolver, no missing skills, and nothing to maintain in each hq beyond matching identities. It's how Claude Code plugins and npm's bundled dependencies behave. References can still be added later, with the registry, if a real need appears (YAGNI). This replaces items 3–4 and 6–8 of <i>Proposed</i> above.</div></div>
+
+<h2 id="versions">Versions: pinned on install, changed on purpose</h2>
+<div class="box"><div class="mmd" data-src="versions"></div>
+<table><tr><th></th><th>Rule</th><th>How it works</th></tr>
+<tr><td class="n">V1</td><td><b>Installing pins the version.</b> Nothing changes until someone changes it</td><td>hq records the identity, the version and its content fingerprint. That record is the pin, like a lock file</td></tr>
+<tr><td class="n">V2</td><td><b>Upgrade and roll back are explicit</b></td><td><i>Update available</i> shows what changed. <i>Roll back</i> returns to any earlier installed version, from the skill's history</td></tr>
+<tr><td class="n">V3</td><td><b>Any version can be installed</b>, newer or older, if the package is at hand (uploaded, or offered by its source)</td><td>It replaces the installed one after a confirmation. Going back a version says so: "This is older than the one you have"</td></tr>
+<tr><td class="n">V4</td><td><b>One version per skill per organisation at a time</b></td><td>Every agent that has <code>agenthix/pm-sprint-planning</code> uses the same pinned version (I3)</td></tr>
+<tr><td class="n">V5</td><td><b>Sites cache by fingerprint, as they already do</b></td><td>hq decides which version; a site fetches that content once by its fingerprint, caches it, and never alters it (adr-0072). Each run records the fingerprint it used, so "which version ran" always has an answer</td></tr>
+<tr><td class="n">V6</td><td><b>hq keeps the content of every installed version</b></td><td>Never swept while it's installed or in the history, so a roll back always works</td></tr>
+<tr><td class="n">—</td><td><b>Later, not now:</b> different versions side by side, such as one project or one agent held on an older version</td><td>Needs a pin per place or per agent, plus a cache holding several versions at once. adr-0072 named it as a need that comes with a shared marketplace</td></tr>
+</table></div>
+
+<h3 id="file-levels">The file levels: observed, not controlled</h3>
+<div class="box"><p><b>V1–V6 are for installed skills</b>: the ones hq holds (L2 the organisation, L3 an agent). Skills in files, in a place (L4, L5), a workspace's repository (L6) or a person's own space, belong to whoever owns those files. hq can't pin them: a file changes when someone writes it, and a repository changes when someone commits.</p>
+<table><tr><th></th><th>What hq can do with a skill in files</th></tr>
+<tr><td class="n">F1</td><td><b>Its version is its content.</b> The site reports each skill folder's fingerprint, and each run records the fingerprint it used. "What ran" is answered for files too.</td></tr>
+<tr><td class="n">F2</td><td><b>History is the owner's.</b> A repository has git's history (L6). A place's <code>files/</code> has none of its own, so hq keeps the fingerprints it has seen, to show <i>changed since</i>.</td></tr>
+<tr><td class="n">F3</td><td><b>Knowing where it came from.</b> A skill copied in with <i>Add to this place</i> records its identity and version in its <code>metadata</code>. hq can then show "agenthix/pm-sprint-planning 1.3, <b>edited here</b>" or "1.4 is available", and offer to overwrite it. It's an offer, never enforced.</td></tr>
+<tr><td class="n">F4</td><td><b>On or off</b> by fingerprint: the gate in Q3. That's the only control hq has over files, and it covers agent-written skills too.</td></tr>
+<tr><td class="n">F5</td><td><b>The same skill in files and installed:</b> when a place's files hold a skill whose identity is also installed for the organisation, the organisation's installed version wins, and the file copy is set aside (D12).</td></tr>
+</table>
+<div class="why"><b>How Claude Code settles F5:</b> enterprise beats personal, and personal beats project, so the managed copy wins a clash. Applied here, <b>the organisation's installed version wins</b> for the same identity. The file copy is not staged, and the place's Skills page shows it as <i>set aside: the organisation installs 1.4</i>. A skill with a different identity, or none, is never affected.</div></div>
+
+<h2 id="copies">Copies and credit (D18, D19)</h2>
+<div class="box"><ul>
+<li><b>Edit an installed skill and it becomes your copy:</b> <code>agenthix/code-review 1.3</code> edited by Fernhill becomes <code>fernhill/code-review</code>, made here, and takes the original's place. The original is set aside, and upstream updates show as news.</li>
+<li><b>Provenance is written once, when the copy is made:</b> the manifest's <code>basedOn</code> list, inherited and extended by one dated line. hq never changes it afterwards, and people can only add <code>stated</code> credits.</li></ul>
+<pre class="code">"basedOn": [
+  { "skill": "agenthix/code-review", "version": "1.3", "fingerprint": "sha256:9f2c…",
+    "copied": "2026-10-27", "recorded": "hq" },
+  { "skill": "blog.example.com/review-checklist", "copied": "2026-10-27", "recorded": "stated" }
+]</pre>
+<p class="sub">Shown as <i>verified</i> where hq can match the fingerprint, and as <i>stated</i> otherwise. The licence travels with it.</p></div>
+
+<h2 id="registry">Who is the registry: Agenthix, never an organisation</h2>
+<div class="box"><p><b>Raised 27 Oct:</b> if every organisation can publish packages with dependencies, each hq becomes a registry beside ours. That's two registries to maintain, plus the dependency logic inside every organisation's templates. Instead, <b>Agenthix is the only registry</b>, run as a hosted service. An hq installs; it never publishes.</p>
+<div class="mmd" data-src="reg"></div>
+<table><tr><th></th><th>Rule</th><th>Why</th></tr>
+<tr><td class="n">G1</td><td><b>Only Agenthix's registry holds published packages</b>, with identities, versions and dependencies. The rules on this board (resolve or refuse, never deleted, ranges) are enforced there and in Agenthix's own build, not in each hq.</td><td>One registry to maintain. The dependency logic lives in one place.</td></tr>
+<tr><td class="n">G2</td><td><b>hq ships a snapshot of Agenthix's own packages</b> in its image (built-ins, the shelf, the agent and team templates). A self-hosted hq with no hosted service and no internet has the whole official catalogue, updated with each hq release.</td><td>Nothing is withheld from self-hosted. It works offline, as the guide does (adr-0149).</td></tr>
+<tr><td class="n">G3</td><td><b>hq resolves, never publishes.</b> It installs from the snapshot, or later from the hosted registry when connected, and records the exact version (the lock).</td><td>An install cache, not a registry: like a package manager's local cache.</td></tr>
+<tr><td class="n">G4</td><td><b>An organisation's own skills are local and unpublished.</b> They are made here, kept with their history, given to agents and places, and never need a hosted service. They have no version ranges and no dependents outside this hq.</td><td>The organisation's data stays its own (adr-0042), and local use needs no registration.</td></tr>
+<tr><td class="n">G5</td><td><b>An organisation's own templates bundle their own skills</b> (self-contained). They may depend only on registry packages (<code>agenthix/…</code>, later published ones), never on another local package.</td><td>No dependency graph between local things, so no local resolver to maintain.</td></tr>
+<tr><td class="n">G6</td><td><b>Publishing to the registry is later work</b> (D3): an organisation's identity as publisher, verification, the marketplace. Until then, sharing between hqs is an exported ZIP with its dependencies inside.</td><td>Keeps this unit inside its scope.</td></tr>
+</table></div>
+
+<h2 id="selfhost">Self-hosted: how do new skills reach an hq?</h2>
+<div class="box"><p><b>The catch in G1–G6:</b> if only Agenthix publishes, a self-hosted organisation gets new skills only from hq releases, or by registering with a hosted service to pull. Must it register with us just to install?</p>
+
+<h3 id="precedent">What self-hosters expect, from the tools they already use</h3>
+<table><tr><th>Tool</th><th>Install (pull)</th><th>Publish (push)</th><th>Private and own</th></tr>
+<tr><td>npm</td><td>Anonymous, no account</td><td>Account on npmjs</td><td>Private registries (Verdaccio, GitHub Packages, Artifactory), chosen per scope in <code>.npmrc</code></td></tr>
+<tr><td>pub.dev</td><td>Anonymous</td><td>Google account</td><td>A self-hosted pub server, named per dependency (<code>hosted:</code>), or a git dependency</td></tr>
+<tr><td>Docker Hub</td><td>Anonymous, rate-limited</td><td>Account</td><td>Private registries are routine</td></tr>
+<tr><td>Terraform</td><td>Anonymous public registry</td><td>Account, via GitHub</td><td>Private registry, or modules straight from a git URL</td></tr>
+<tr><td>Claude Code plugins</td><td>From a <b>marketplace that is just a git repository</b>; Anthropic runs no central registry for them</td><td>Push to your own repository</td><td>A private repository is a private marketplace</td></tr>
+<tr><td>GitHub Copilot skills</td><td><code>gh skill</code> installs from repositories (<code>anthropics/skills</code>, <code>github/awesome-copilot</code>)</td><td>A repository</td><td>A private repository</td></tr>
+</table>
+<div class="why"><b>The expectation:</b>
+<ol><li>Installing the public catalogue needs <b>no account</b>.</li>
+<li>What ships works <b>offline</b>.</li>
+<li>Your own things are used privately, <b>without publishing anywhere</b>.</li>
+<li>You can <b>point at your own source</b>, increasingly just a git repository, instead of running a registry.</li>
+<li><b>An account is needed only to publish publicly.</b></li></ol>
+Requiring registration to pull would read as lock-in to a self-hoster.</div>
+
+<h3 id="options">The options</h3>
+<div class="opt" data-choice="a" onclick="toggleSelect && toggleSelect(this)"><b>A · A hosted registry only; register to pull</b>
+<ul><li><b>For:</b> one channel; we know every installation.</li>
+<li><b>Against:</b> breaks expectations 1 and 4. An air-gapped organisation is stuck with each release's snapshot. Works against "nothing withheld from self-hosted".</li></ul></div>
+<div class="opt" data-choice="b" onclick="toggleSelect && toggleSelect(this)"><b>B · A hosted registry, anonymous pull; publishing needs an account</b>
+<ul><li><b>Pull:</b> any hq installs Agenthix's and, later, published packages with no account. The snapshot in the image covers offline use.</li>
+<li><b>Own:</b> local skills (G4) and ZIPs between hqs.</li>
+<li><b>Against:</b> no way to share privately across an organisation's several hqs or teams except ZIPs. Expectation 4 is unmet.</li></ul></div>
+<div class="opt" data-choice="c" onclick="toggleSelect && toggleSelect(this)"><b>C · B, plus git repositories as sources</b> (recommended)
+<ul><li><b>As B</b>, and an administrator can add a <b>source</b>: a git repository holding skills in the Agent Skills format (folders with <code>SKILL.md</code>). That's the format Claude, Copilot and Cursor share, and how teams already keep them.</li>
+<li><b>Nobody runs a registry.</b> The repository is the private catalogue, as Claude Code's plugin marketplaces are.</li>
+<li><b>Simple on purpose:</b> skills from a source are self-contained, with no dependency ranges, so hq needs no resolver for them. Dependencies resolve only against Agenthix's registry (G5).</li>
+<li><b>Against:</b> a private repository needs a credential. That has to go through the workflow and secrets rules, not a token in hq. More to build than B.</li></ul></div>
+<div class="opt" data-choice="d" onclick="toggleSelect && toggleSelect(this)"><b>D · Organisations run their own registry server</b>
+<ul><li>What we want to avoid: two registry implementations to keep in step, as above.</li></ul></div>
+
+<h3 id="release">For the release</h3>
+<p>Whichever is chosen, 0.1.0 needs only: the snapshot in hq's image, the organisation's own skills, upload of a folder or ZIP, and ZIP export. A hosted registry and git sources come after, and the shape leaves room for both.</p></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th></tr>
+<tr><td class="n">Q14</td><td><b>Identity and dependencies:</b>
+<ul><li>every skill has a <code>publisher/name</code> and a version;</li>
+<li>a template bundles its own role skills and names shelf skills as dependencies with a version range;</li>
+<li>it's exported only if every dependency resolves;</li>
+<li>published versions are never deleted, only deprecated or withdrawn;</li>
+<li>installing resolves and records the exact version;</li>
+<li>removing something depended on warns and shows <i>missing</i>;</li>
+<li>exports vendor their dependencies.</li></ul>
+Is that the rule set? (Settles Q12a: role skills stay bundled with their template.)</td></tr>
+</table></div>
+
+<script>
+window.SRC = { deps: `flowchart LR
+  subgraph T["Template: project-manager 2.0"]
+    B1["bundled: read-context"]
+    B2["bundled: assign-work …"]
+    D1["depends on: agenthix/pm-sprint-planning ^1"]
+  end
+  SHELF["Shelf (this hq)<br/>agenthix/pm-sprint-planning 1.3"]
+  D1 -->|"resolves to 1.3"| SHELF
+  T -->|"Create an agent"| AG["Agent: Priya"]
+  AG --> L["records: pm-sprint-planning 1.3 (lock)"]
+  SHELF -->|"installed once,<br/>reused by every agent<br/>that depends on it"| ORG["The organisation's installed skills"]
+  ZIP["Exported ZIP<br/>vendors its dependencies"] -.->|"import: de-duplicate<br/>by identity + version"| ORG
+`, reg: `flowchart LR
+  BUILD["Agenthix's build<br/>checks: resolves, versions"] --> REG["Agenthix's registry<br/>(hosted)"]
+  BUILD -->|"snapshot in each release"| IMG["hq's image<br/>built-ins, shelf, templates"]
+  IMG -->|"install"| HQ["An organisation's hq<br/>installed skills + locks"]
+  REG -.->|"install when connected (later)"| HQ
+  OWN["The organisation's own skills<br/>local, unpublished"] --> HQ
+  HQ -.->|"publish (later work, D3)"| REG
+`, dedupe: `flowchart LR
+  SRC["One source per skill<br/>agenthix/pm-sprint-planning"] -->|"build copies in"| T1["Template: project manager<br/>carries pm-sprint-planning 1.3"]
+  SRC -->|"build copies in"| T2["Team: dev team<br/>carries pm-sprint-planning 1.3"]
+  T1 -->|"install"| CHK{"Same identity<br/>already installed?"}
+  T2 -->|"install"| CHK
+  CHK -->|"no"| NEW["Install once"]
+  CHK -->|"same version"| REUSE["Reuse"]
+  CHK -->|"newer"| UPD["Offer the update"]
+  NEW --> ORG["The organisation's skills<br/>one per identity, shared"]
+  REUSE --> ORG
+  UPD --> ORG
+`, versions: `flowchart LR
+  PKG["Package<br/>pm-sprint-planning 1.3"] -->|"install"| PIN["hq: the pin<br/>identity · 1.3 · fingerprint"]
+  PIN -->|"run: stage fingerprint"| SITE["Site cache<br/>by fingerprint, unaltered"]
+  NEW["1.4 arrives"] -.->|"Update available"| PIN
+  HIST["History: 1.2, 1.3"] -.->|"Roll back"| PIN
+` }
+</script>
+<script type="module" src="/files/shell.js?v=8"></script>
+</body></html>

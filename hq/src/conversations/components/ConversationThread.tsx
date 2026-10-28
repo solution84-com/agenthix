@@ -30,6 +30,8 @@ import { ConversationHeaderTools } from './ConversationHeaderTools'
 import { ConversationPlaces } from './ConversationPlaces'
 import { DeleteConversationDialog } from './DeleteConversationDialog'
 import type { WorkContext } from './WorkContext'
+import { UsedSkillOpenerContext, type UsedSkillRef } from '../../assets/conversation/usedSkillOpener'
+import { UsedSkillPanel } from '../../assets/conversation/UsedSkillPanel'
 
 /** What is going on in a conversation, for a view of it that shows only a sign (the dock's rail and pill). */
 export interface ThreadActivity {
@@ -75,17 +77,20 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   const [opened, setOpened] = useState<{ key: string; index: number } | null>(null)
   // A chip's file opens where a shown part opens, in place of it.
   const [openedFile, setOpenedFile] = useState<SiteFileRef | OpenedTaskFile | null>(null)
+  // A used skill opens there too, in place of either.
+  const [openedSkill, setOpenedSkill] = useState<UsedSkillRef | null>(null)
+  const openSkill = useMemo(() => (ref: UsedSkillRef) => { setOpened(null); setOpenedFile(null); setOpenedSkill(ref) }, [])
   const owner = useConversationOwner(conversationId, view?.openedById)
   const files = useMemo<ConversationFiles | null>(() => owner && {
     owner, placePath: listPath,
-    onOpen: (ref) => { setOpened(null); setOpenedFile(ref) },
-    onOpenTaskFile: (file) => { setOpened(null); setOpenedFile(file) },
+    onOpen: (ref) => { setOpened(null); setOpenedSkill(null); setOpenedFile(ref) },
+    onOpenTaskFile: (file) => { setOpened(null); setOpenedSkill(null); setOpenedFile(file) },
   }, [owner, listPath])
   const inVoice = voiceCall.voice.conversationId === conversationId && voiceCall.voice.phase !== 'off'
   const reply = useMemo<ReplyView>(() => ({
     inVoice,
     limitFor: inVoice ? voiceCall.revealLimit : () => null,
-    onOpenPart: (key, index) => { setOpenedFile(null); setOpened({ key, index }) },
+    onOpenPart: (key, index) => { setOpenedFile(null); setOpenedSkill(null); setOpened({ key, index }) },
   }), [inVoice, voiceCall.revealLimit])
 
   if (t.viewError) {
@@ -130,6 +135,7 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   const phoneRow = (!closed && view.canSpeak) || (myId !== null && view.openedById === myId)
   return (
     <ConversationFilesContext.Provider value={files}>
+    <UsedSkillOpenerContext.Provider value={openSkill}>
     <div className="flex h-full min-h-0">
     <div className="relative isolate flex h-full min-h-0 min-w-0 flex-1 flex-col">
       {inVoice && (
@@ -265,7 +271,9 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
         onOpenFolder={(ref) => navigate(folderPath(listPath, ref))}
       />
     )}
+    {openedSkill && <UsedSkillPanel conversationId={conversationId} skill={openedSkill} onClose={() => setOpenedSkill(null)} />}
     </div>
+    </UsedSkillOpenerContext.Provider>
     </ConversationFilesContext.Provider>
   )
 }

@@ -11,7 +11,8 @@ import type { OpenedTaskFile } from '../../shared/components/markdownEmbed/taskC
 
 const ASIDE = 'fixed inset-x-0 bottom-0 z-40 flex max-h-[70vh] flex-col rounded-t-2xl border border-border bg-surface-1 shadow-pop lg:static lg:z-auto lg:max-h-none lg:w-[420px] lg:shrink-0 lg:rounded-none lg:border-y-0 lg:border-r-0 lg:shadow-none'
 
-function Beside({ label, testId, children }: { label: string; testId: string; children: ReactNode }) {
+/** The place beside the thread: 420 px on a wide screen, a sheet from the bottom on a phone. */
+export function Beside({ label, testId, children }: { label: string; testId: string; children: ReactNode }) {
   return (
     <aside data-testid={testId} aria-label={label} className={ASIDE}>
       <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border lg:hidden" aria-hidden />
@@ -60,7 +61,7 @@ export function FileViewer({ file, placePath, onOpen, onOpenFolder, onClose }: {
   const top = file.space === 'artefact' ? 'Artefacts' : file.space === 'place' && file.loc.workspaceId ? 'Workspace' : 'Files'
   return (
     <Beside label={name} testId="file-viewer">
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col">
         <OpenedFile
           key={reference}
           file={file} kind={file.space === 'artefact' ? 'artefacts' : 'files'} path={path}
@@ -85,7 +86,7 @@ export function TaskFileViewer({ opened, onOpen, onClose }: {
   const name = opened.file.kind === 'working' ? opened.file.path.split('/').pop() ?? opened.file.path : opened.taskKey
   return (
     <Beside label={name} testId="task-file-viewer">
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col">
         <TaskOpenedFile
           key={JSON.stringify(opened.file)}
           file={opened.file} taskId={opened.taskId} taskKey={opened.taskKey} loc={opened.loc} layout="narrow"

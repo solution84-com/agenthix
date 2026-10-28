@@ -1,47 +1,35 @@
 /**
  * Agent ZIP Actions
  * =================
- * Wasp action wrappers for agent ZIP export and import.
- * Business logic lives in agentZipService.ts.
- *
- * An export is the library's package of kind agent (library/packages): the
- * agent archive with a package.json beside its agent.json, recording that it
- * was made here, its version and its publisher, the organisation. An import
- * takes such a package, or an archive from before packages; a package of
- * another kind belongs in the library and is refused here.
+ * An agent's export is an agent template package (format 2, `agentPackageExport.ts`): the Library installs it
+ * through the install pipeline, with the skills it needs inside, and an agent is then made from it. An import here
+ * takes an agent archive from before packages; a package of any kind belongs in the Library and is refused here.
  */
-import JSZip from 'jszip'
 import type { ExportAgent, ImportAgent } from 'wasp/server/operations'
-import { HttpError, prisma } from 'wasp/server'
+import { HttpError } from 'wasp/server'
+import { ASSET_MANIFEST_FILE } from '@agenthix/core'
 import { requireRole } from '../server/identity/requireRole'
 import { packageWriteOrHttp } from '../packages/writeErrors'
-import { exportAgentZip, importAgentZip, type ImportAgentResult } from './agentZipService'
-import { readPackageZip, PackageZipError } from '../library/packages/packageZip'
-import { PACKAGE_FORMAT, PACKAGE_MANIFEST_FILE, type PackageManifest } from '../library/packages/packageManifest'
+import { importAgentZip, type ImportAgentResult } from './agentZipService'
+import { AgentExportError, exportAgentPackage } from './agentPackageExport'
+import { NoOrganisationError } from '../assets/organisationPublisher'
+import { writePackageZip } from '../library/packages/packageZip'
+import { PackageReadError, readZipPackage } from '../assets/install/archive'
 
 type ExportAgentArgs = { agentId: string }
 type ExportAgentResult = { base64: string; filename: string }
 
 export const exportAgent: ExportAgent<ExportAgentArgs, ExportAgentResult> = async ({ agentId }, context) => {
   await requireRole(context, 'ADMIN', 'Exporting an agent')
-  const { buffer, handle } = await exportAgentZip(agentId)
-  const [agent, org] = await Promise.all([
-    prisma.agent.findUnique({ where: { id: agentId }, select: { name: true, role: true } }),
-    prisma.org.findFirst({ select: { name: true } }),
-  ])
-  const manifest: PackageManifest = {
-    format: PACKAGE_FORMAT,
-    kind: 'agent',
-    name: agent?.name ?? handle,
-    description: agent?.role ?? '',
-    source: 'made_here',
-    version: '1',
-    publisher: org?.name ?? null,
+  try {
+    const { root, files } = await exportAgentPackage(agentId)
+    const buffer = await writePackageZip(root, null, files)
+    return { base64: buffer.toString('base64'), filename: `${root}.zip` }
+  } catch (err) {
+    if (err instanceof AgentExportError) throw new HttpError(404, err.message)
+    if (err instanceof NoOrganisationError) throw new HttpError(409, err.message)
+    throw err
   }
-  const zip = await JSZip.loadAsync(buffer)
-  zip.file(`${handle}/${PACKAGE_MANIFEST_FILE}`, JSON.stringify(manifest, null, 2))
-  const packaged = await zip.generateAsync({ type: 'nodebuffer' })
-  return { base64: packaged.toString('base64'), filename: `${handle}.zip` }
 }
 
 type ImportAgentArgs = { base64: string }
@@ -50,13 +38,13 @@ export const importAgent: ImportAgent<ImportAgentArgs, ImportAgentResult> = asyn
   // An import writes the agent's content (P15).
   await requireRole(context, 'ADMIN', 'Importing an agent')
   const buffer = Buffer.from(base64, 'base64')
-  let kind: string | null = null
+  let packaged = false
   try {
-    kind = (await readPackageZip(buffer)).manifest?.kind ?? null
+    packaged = (await readZipPackage(buffer)).files.some(f => f.path === ASSET_MANIFEST_FILE)
   } catch (err) {
-    if (!(err instanceof PackageZipError)) throw err
+    if (!(err instanceof PackageReadError)) throw err
     // A malformed archive is refused by the agent import below, in its own words.
   }
-  if (kind !== null && kind !== 'agent') throw new HttpError(400, `This is a ${kind} package: import it in the Library`)
+  if (packaged) throw new HttpError(400, 'This is a package: install it in the Library, then add an agent from it. Nothing was changed.')
   return packageWriteOrHttp(() => importAgentZip(buffer, context.user!.id))
 }

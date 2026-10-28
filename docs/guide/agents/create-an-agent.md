@@ -50,9 +50,10 @@ with the agent picked, or **Give it a task**.
 
 ## What else is on its page
 
-The agent's page in **Manage › Agents** has a section for each part of it, each opened with **Edit**:
+The agent's page in **Manage › Agents** has a section for each part of it, most opened with **Edit**:
 
-- **Instructions** and **Skills**: [Instructions and memory](instructions-and-memory.md).
+- **Instructions**: [Instructions and memory](instructions-and-memory.md).
+- **Skills**: the skills the agent has, with **Add a skill** to give it one: [Give a skill to agents](../skills/give-skills-to-agents.md).
 - **Models and voice**: its **Conversation** and **Workers** models, its **Voice** and **Listening** model, and
   **Which models it may use**. Each row says whether it is the organisation's or the agent's own, and **Follow** hands
   it back. See [Models](../your-tools/models.md).

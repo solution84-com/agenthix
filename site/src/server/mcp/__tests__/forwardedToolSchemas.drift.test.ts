@@ -43,6 +43,7 @@ import { join } from 'node:path'
 import ts from 'typescript'
 import { FORWARDED_TOOLS } from '../forwardedToolSchemas'
 import { WORKFLOW_TOOL_NAME_SET } from '../forwardedWorkflowSchemas'
+import { FORWARDED_SKILL_TOOLS } from '../forwardedSkillSchemas'
 
 interface ToolInfo { fields: string[]; description: string | undefined }
 
@@ -154,8 +155,10 @@ describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts field-set drift @SC
     expect(hqFields.size).toBeGreaterThan(30)
   })
 
-  // The workflow tools are built on both sides from core's one declaration, so they can't drift; forwardedWorkflowSchemas.test.ts.
-  it.each(FORWARDED_TOOLS.map(t => t.name).filter(n => !WORKFLOW_TOOL_NAME_SET.has(n)))('%s has the same field-name set on both sides', (name) => {
+  // The workflow tools and propose_skill are built on both sides from core's one declaration, so they can't drift;
+  // forwardedWorkflowSchemas.test.ts and forwardedSkillSchemas.test.ts.
+  const declaredInCore = new Set([...WORKFLOW_TOOL_NAME_SET, ...FORWARDED_SKILL_TOOLS.map(t => t.name)])
+  it.each(FORWARDED_TOOLS.map(t => t.name).filter(n => !declaredInCore.has(n)))('%s has the same field-name set on both sides', (name) => {
     const site = siteFields.get(name)
     const hq = hqFields.get(name)
     expect(site, `site's forwardedToolSchemas.ts is missing a schema for ${name}`).toBeDefined()

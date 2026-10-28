@@ -5,6 +5,7 @@ import {
   getConversationActivity, answerConversationApproval, cancelConversationOperation,
 } from 'wasp/client/operations'
 import { useSocket } from 'wasp/client/webSocket'
+import type { PickedSkill } from '@agenthix/core'
 import {
   CONVERSATION_SOCKET,
   CONVERSATION_VOICE_SOCKET,
@@ -208,11 +209,12 @@ export function useConversationThread(conversationId: string) {
     }
   }, [loadLatest, refetchView])
 
-  const send = useCallback(async (text: string): Promise<boolean> => {
-    attempt.current = clientIdFor(attempt.current, text)
+  const send = useCallback(async (text: string, skill?: PickedSkill): Promise<boolean> => {
+    // The same words with another skill are another message.
+    attempt.current = clientIdFor(attempt.current, skill ? `${skill.name}\n${text}` : text)
     const { id } = attempt.current
     setSending(true)
-    const ok = await act(() => sendConversationMessage({ conversationId, clientMessageId: id, text }))
+    const ok = await act(() => sendConversationMessage({ conversationId, clientMessageId: id, text, ...(skill ? { skill } : {}) }))
     setSending(false)
     if (ok) attempt.current = null
     return ok

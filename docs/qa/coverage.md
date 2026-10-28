@@ -1,7 +1,7 @@
 ---
 name: User-journey coverage map
 description: For each kind of person who uses Agenthix, the journeys that matter to them, what "works" means, which scenarios cover each, and whether a test backs them. Written from users' expectations, not from the code.
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # User-journey coverage map
@@ -152,6 +152,24 @@ These are not yet counted in the summary below; the full audit before the first 
 
 **Promises with no automated test that cites them:** the image start test and the install test for hq's relay (`scripts/images/start-test-all.sh`, `scripts/install-test/run.sh`) prove that hq's relay starts with hq and answers `files.localhost` with nothing configured (AC-397a); they are scripts and carry no `@SC` tag. Nothing else written for this unit is without a citing test. Designed but not built, so with no scenario: further relays on machines of their own, placement and pinning, the Fleet Console's relay screens beyond HQ's card, changed-file markers, diffs and the log, a person adding an image to a conversation, and a person's own IDE reaching a workspace.
 
+### Journeys added at the close of *skills and the asset layer* (2026-10-28)
+
+These are not yet counted in the summary below; the full audit before the first release counts them. Every scenario below has a citing test. Most citations are on a whole group of tests (a `describe`) or on each test of an end-to-end spec, so the audit re-reads them. Some promises are asserted at more than one level: SC-1607 by the site's unit tests, the cross-app suite and the runtime container tests (which need Docker and are run by hand), and SC-1661 and SC-1604 by unit, integration and cross-app tests. SC-1614 is also asserted by a release script's test that a trust root older than the limit cannot ship.
+
+| Journey | Weight | What "works" means | Scenarios | Tests cite | Status |
+|---|---|---|---|---|---|
+| **ADM-19** Install an asset knowing who signed it and that it was not changed | Critical | Add skill offers the shelf, an upload and a link; the person is told who signed it or that it is not signed; a changed package is refused with no way round; the publisher is the signer, never the package's claim; a link is fetched only from a public https address. | SC-1609 to SC-1618, SC-1623 | 11 of 11 | Covered by a scenario and a test |
+| **ADM-20** Nothing reaches an agent that no person approved | Critical | A skill found in files runs only while switched on at the fingerprint hq names and goes off when it changes; an agent proposes and a person publishes, an agent's publish, roll back or install is a card for the person it acts for; staging copies only what hq named; a picked skill is checked by the site. | SC-1604, SC-1605, SC-1607, SC-1642, SC-1643, SC-1645, SC-1651, SC-1661, SC-1663 to SC-1665 | 11 of 11 | Covered by a scenario and a test |
+| **ADM-21** Update, roll back and remove what is installed | Important | Versions in order; an update only from the same signer; roll back or any version with a reason; a withdrawn version warns first; skipping an update; Remove names the agents or what was made from a template. | SC-1619 to SC-1622, SC-1628, SC-1629, SC-1637 | 7 of 7 | Covered by a scenario and a test |
+| **ADM-22** Choose which agents have which skills, and what it costs | Important | The agent's page lists everything it will see in the clash order; an administrator adds and removes; the listing's cost is estimated and warned about; built-in skills are on and can be switched off. | SC-1633, SC-1634, SC-1650, SC-1652 to SC-1655 | 7 of 7 | Covered by a scenario and a test |
+| **ADM-23** Decide whom the Library trusts and who looks after it | Important | Trusted publishers bound exactly; unsigned assets and installing from outside set by the organisation; Library maintainers named after the reach is shown; the settings page is for administrators. | SC-1614 to SC-1617 | 4 of 4 | Covered by a scenario and a test |
+| **ADM-24** Use the ready-made templates | Important | Agent, board and team templates install, update and are removed through the asset layer, each carrying its skills; an agent is created from one and a team used through its review; an agent can be exported; Kernel's skills ship with HQ. | SC-1635 to SC-1640 | 6 of 6 | Covered by a scenario and a test |
+| **OPR-41** Write and publish a skill | Important | A draft no agent sees that saves itself; an editor with change markers and a diff; Publish with a note makes the next version; editing another publisher's skill makes the organisation's own copy with its credit; the same in a place's files. | SC-1624 to SC-1627, SC-1629, SC-1644, SC-1647 | 7 of 7 | Covered by a scenario and a test |
+| **OPR-42** Pick a skill and see it used | Important | `/` at the start of the message box picks from the agent's skills; typed `/` text is plain text; the work says which skill was used and opens it at the version used for whoever may see it; the skill says when it was last used. | SC-1607, SC-1656 to SC-1660 | 6 of 6 | Covered by a scenario and a test |
+| **OPR-43** Keep my own skills with me | Important | Skills published in Your space follow the person into their own conversations, projects included, and into no one else's run. | SC-1648, SC-1649 | 2 of 2 | Covered by a scenario and a test |
+| **OPR-44** Review what an agent proposes | Important | A proposal or a draft by who asked; reviewers at each level are counted and see it; accept, edit then accept, or reject with a note; the card in the conversation shows the outcome. | SC-1661 to SC-1663, SC-1666 | 4 of 4 | Covered by a scenario and a test |
+| **OPR-45** Decide which skills found in a place's files run | Important | The place's Skills page lists them grouped, with defaults, switches by fingerprint, versions by publishing, changes made in files, and who may do what. | SC-1641 to SC-1647 | 7 of 7 | Covered by a scenario and a test |
+
 ## Viewer
 
 A stakeholder who reads what agents did and never starts work.
@@ -271,4 +289,4 @@ These settle points where the design leaves a question open, so that the scenari
 
 ## Not mapped
 
-Nice-to-have journeys are not mapped: the skill library, the organisation profile page, teams, voice, mobile pairing. The full audit of the finished product (its own unit) maps them.
+Nice-to-have journeys are not mapped: the organisation profile page, teams, voice, mobile pairing. The full audit of the finished product (its own unit) maps them.

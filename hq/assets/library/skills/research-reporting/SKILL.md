@@ -1,6 +1,8 @@
 ---
 name: Research Reporting
 description: Write research reports and methodology docs; make findings accessible
+version: 2
+suitedTo: [researcher, analyst]
 ---
 
 # Research Reporting

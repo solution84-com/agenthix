@@ -15,10 +15,13 @@ function argSchema(arg: WorkflowToolArg): ZodTypeAny {
   return arg.optional ? described.optional() : described
 }
 
-export const FORWARDED_WORKFLOW_TOOLS: ForwardedTool[] = WORKFLOW_TOOL_DECLARATIONS.map((d) => {
+/** A forwarded tool from a declaration in core's shape (the workflow tools, `propose_skill`). */
+export function forwardedFromDeclaration(d: { name: string; description: string; args: Record<string, WorkflowToolArg> }): ForwardedTool {
   const schema: ZodRawShape = Object.fromEntries(Object.entries(d.args).map(([k, a]) => [k, argSchema(a)]))
   schema.runId = z.string().optional().describe('Filled in by the site with the run this is called from; leave it out')
   return { name: d.name, description: d.description, schema, runIdFromCaller: true as const }
-})
+}
+
+export const FORWARDED_WORKFLOW_TOOLS: ForwardedTool[] = WORKFLOW_TOOL_DECLARATIONS.map(forwardedFromDeclaration)
 
 export const WORKFLOW_TOOL_NAME_SET: ReadonlySet<string> = new Set(WORKFLOW_TOOL_DECLARATIONS.map((d) => d.name))

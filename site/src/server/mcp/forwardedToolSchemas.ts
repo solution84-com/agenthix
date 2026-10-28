@@ -21,6 +21,7 @@
 import { z, type ZodRawShape } from 'zod'
 import { FORWARDED_PLANNING_TOOLS } from './forwardedPlanningSchemas'
 import { FORWARDED_WORKFLOW_TOOLS } from './forwardedWorkflowSchemas'
+import { FORWARDED_SKILL_TOOLS } from './forwardedSkillSchemas'
 import { FORWARDED_KNOWLEDGE_TOOLS } from './forwardedKnowledgeSchemas'
 
 /** A routine's repeat: every N minutes, hours or days (at least 5 minutes), or a time of day on given weekdays. */
@@ -260,7 +261,7 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
       projectId: z.string().describe('Project ID this board belongs to'),
       name: z.string().describe('Board name'),
       description: z.string().optional().describe('Board description'),
-      templateId: z.string().optional().describe('Board template ID to use for columns (e.g. sys-tpl-0006-workforce-assembly). Ignored if columns are provided.'),
+      templateId: z.string().optional().describe('Board template to use for columns, by name (e.g. workforce-assembly). Ignored if columns are provided.'),
       kind: z.enum(['workflow', 'sprints']).optional().describe('A workflow board (default), or one with sprints: numbered time boxes'),
       sprintDays: z.number().int().optional().describe('A sprint board\'s sprint length in days (default 14)'),
       columns: z.array(z.object({
@@ -274,6 +275,7 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
   ...FORWARDED_PLANNING_TOOLS,
   // Workflows (adr-0148): built from core's declarations, as hq's copy is.
   ...FORWARDED_WORKFLOW_TOOLS,
+  ...FORWARDED_SKILL_TOOLS,
   ...FORWARDED_KNOWLEDGE_TOOLS,
   {
     name: 'add_comment',
@@ -356,7 +358,7 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
   {
     name: 'propose_workforce_template',
     schema: {
-      templateId: z.string().describe('Workforce template ID to propose (e.g. "wft-dev-team")'),
+      templateId: z.string().describe('Workforce template to propose: the id list_workforce_templates gives (e.g. "agenthix/dev-team")'),
       reason: z.string().describe('Why you are proposing this template — shown to the user on the review page'),
     },
   },

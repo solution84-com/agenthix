@@ -31,6 +31,8 @@ import { diagnosticsSpec } from "./src/diagnostics/diagnostics.wasp";
 import { githubSpec } from "./src/github/github.wasp";
 import { homeSpec } from "./src/home/home.wasp";
 import { librarySpec } from "./src/library/library.wasp";
+import { editorSpec } from "./src/assets/pages/editor/editor.wasp";
+import { assetsSpec } from "./src/assets/assets.wasp";
 import { memorySpec } from "./src/memory/memory.wasp";
 import { mobileSpec } from "./src/mobile/mobile.wasp";
 import { modelAccessSpec } from "./src/model-access/model-access.wasp";
@@ -99,6 +101,8 @@ export default app({
     githubSpec,
     homeSpec,
     librarySpec,
+    assetsSpec,
+    editorSpec,
     memorySpec,
     mobileSpec,
     modelAccessSpec,

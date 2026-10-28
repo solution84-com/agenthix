@@ -34,36 +34,19 @@ afterEach(async () => {
 })
 
 describe('platform package', () => {
-  it('writes the built-in skills from hq\'s assets, as the system', async () => {
+  it('is written empty, as the system: the built-in skills in hq\'s assets reach runs as assets, never through it', async () => {
     await fs.mkdir(path.join(root, 'platform', 'skills', 'example-skill'), { recursive: true })
     await fs.writeFile(path.join(root, 'platform', 'skills', 'example-skill', 'SKILL.md'), 'read')
-    await fs.writeFile(path.join(root, 'platform', 'skills', '.gitkeep'), '')
 
     const { ref, changed } = await writePlatformPackage()
 
     expect(changed).toBe(true)
     expect(ref).toMatchObject({ kind: 'platform', key: 'platform' })
     expect(await getCurrentPackage('platform', 'platform')).toMatchObject({ updatedById: null })
-    const files = await readCurrentFiles('platform', 'platform')
-    expect(files?.map(f => [f.path, f.content.toString()])).toEqual([['skills/example-skill/SKILL.md', 'read']])
-  })
-
-  it('refuses to write when the platform skills directory is missing, naming the path and HQ_ASSETS_ROOT', async () => {
-    const err = await writePlatformPackage().catch(e => e)
-    expect(err).toBeInstanceOf(Error)
-    expect(err.message).toContain(path.join(root, 'platform', 'skills'))
-    expect(err.message).toContain('HQ_ASSETS_ROOT')
-    expect(await prisma.package.count()).toBe(0)
-  })
-
-  it('still writes a present but empty platform skills directory', async () => {
-    await fs.mkdir(path.join(root, 'platform', 'skills'), { recursive: true })
-    await writePlatformPackage()
     expect(await readCurrentFiles('platform', 'platform')).toEqual([])
   })
 
-  it('changes nothing when written again with the same skills', async () => {
-    await fs.mkdir(path.join(root, 'platform', 'skills'), { recursive: true })
+  it('changes nothing when written again', async () => {
     await writePlatformPackage()
     expect((await writePlatformPackage()).changed).toBe(false)
   })
@@ -72,7 +55,7 @@ describe('platform package', () => {
 describe('kernel definition', () => {
   const kernelRow = () => createAgent({ handle: 'kernel', isKernel: true, approval: 'immediate' })
 
-  it('writes the kernel\'s content from its asset files, with every kernel skill, as the system', async () => {
+  it("writes the kernel's content from its asset files, as the system, without its skills: those are installed assets granted to it", async () => {
     process.env.HQ_ASSETS_ROOT = realAssets
     const kernel = await kernelRow()
     await ensureKernelDefinition(kernel)
@@ -80,8 +63,8 @@ describe('kernel definition', () => {
     expect((await getCurrentPackage('agent', kernel.id))?.updatedById).toBeNull()
     const content = await readAgentContent(kernel.id)
     expect(content?.instructions).toContain('You are Kernel')
-    expect(content?.skillFiles.map(f => f.path.split('/')[1])).toEqual(expect.arrayContaining(['assembly', 'orchestrate', 'planning']))
-    expect(content?.skillFiles.some(f => /AGENDA|ONBOARDING/.test(f.path))).toBe(false)
+    expect(content?.skillFiles).toEqual([])
+    expect((await readCurrentFiles('agent', kernel.id))?.some(f => f.path.startsWith('skills/'))).toBe(false)
   })
 
   it('leaves the built-in agent\'s settings as they are', async () => {
@@ -114,18 +97,12 @@ describe('kernel definition', () => {
       expect(await getCurrentPackage('agent', kernel.id)).toBeNull()
     })
 
-    it('refuses when the kernel\'s skills directory is missing', async () => {
+    it("writes a kernel directory that holds only its instructions", async () => {
       const kernel = await kernelRow()
       await fs.mkdir(path.join(root, 'library', 'agents', 'kernel'), { recursive: true })
-      await expect(ensureKernelDefinition(kernel)).rejects.toThrow(path.join(root, 'library', 'agents', 'kernel', 'skills'))
-      expect(await getCurrentPackage('agent', kernel.id)).toBeNull()
-    })
-
-    it('still writes present but empty kernel directories', async () => {
-      const kernel = await kernelRow()
-      await fs.mkdir(path.join(root, 'library', 'agents', 'kernel', 'skills'), { recursive: true })
+      await fs.writeFile(path.join(root, 'library', 'agents', 'kernel', 'instructions.md'), 'You are Kernel')
       await ensureKernelDefinition(kernel)
-      expect((await readAgentContent(kernel.id))?.skillFiles).toEqual([])
+      expect(await readAgentContent(kernel.id)).toMatchObject({ instructions: 'You are Kernel', skillFiles: [] })
     })
   })
 })

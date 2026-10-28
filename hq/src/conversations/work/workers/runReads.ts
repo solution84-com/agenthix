@@ -4,12 +4,18 @@
  * wants to do and its own words about it as the reason; the frame a run's row stands for. Pure: the
  * reads are the caller's.
  */
-import type { RunRow, RunStatusEvent } from '@agenthix/core'
+import type { PickedSkill, RunRow, RunStatusEvent } from '@agenthix/core'
 import { RESULT_CAP_CHARS, RESULT_TOO_LARGE, type OperationResult } from '../../../shared/conversations/protocol'
 import { cutShort, plainText } from '../../plainText'
 
 /** What a WORKER operation keeps in `args`: the start_work arguments it was given. */
-export type WorkerArgs = { effort?: 'light' | 'heavy'; /** The model the person's words named: a picker value (`<providerId>/<model>`). */ model?: string }
+export type WorkerArgs = {
+  effort?: 'light' | 'heavy'
+  /** The model the person's words named: a picker value (`<providerId>/<model>`). */
+  model?: string
+  /** The skill the person picked with `/` for the message this work answers (pickedSkill.ts). */
+  skill?: PickedSkill
+}
 
 /** The summary when a run ended saying nothing at all. */
 export const NO_SUMMARY = 'The work ended without saying what it found.'

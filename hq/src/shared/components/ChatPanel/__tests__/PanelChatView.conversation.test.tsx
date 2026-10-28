@@ -16,6 +16,8 @@ const h = vi.hoisted(() => ({
   actions: {} as Record<string, ReturnType<typeof vi.fn>>,
   names: ['triggerAgentRun', 'cancelAgentRun', 'updateSession', 'approveManifest', 'rejectManifest', 'tryAgain', 'sendWaitingMessageNow', 'cancelWaitingMessage', 'summariseConversation'],
 }))
+// A used skill's line is hq's to give (useSessionSkillLines.test.ts); none here.
+vi.mock('../useSessionSkillLines', () => ({ useSessionSkillLines: () => () => null }))
 vi.mock('wasp/client/operations', () => ({
   useQuery: vi.fn(),
   useAction: (name: string) => (h.actions[name] ??= vi.fn(async () => ({ id: 'run-new' }))),

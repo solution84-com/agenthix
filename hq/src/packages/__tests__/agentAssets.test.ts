@@ -32,9 +32,10 @@ describe('agent assets', () => {
     expect(draft.skillFiles).toEqual([])
   })
 
-  it('reads a library agent\'s listed skills only', async () => {
-    const qa = path.join(HQ_ASSETS, 'library', 'agents', 'qa')
-    const draft = await readAssetContent(qa, ['run-tests'])
-    expect(new Set(draft.skillFiles.map(f => f.path.split('/')[1]))).toEqual(new Set(['run-tests']))
+  it("reads a library agent's instructions and none of its skills, which reach it as installed assets", async () => {
+    const kernel = path.join(HQ_ASSETS, 'library', 'agents', 'kernel')
+    const draft = await readAssetContent(kernel)
+    expect(draft.instructions).toContain('You are Kernel')
+    expect(draft.skillFiles).toEqual([])
   })
 })

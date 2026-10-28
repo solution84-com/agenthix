@@ -22,6 +22,7 @@ import { MODEL_CHOICE_MAX_CHARS, checkedModelFor } from '../../../models-setting
 import { standingWorker, workerClosedReason } from './standingWorker'
 import { schedulePump } from './queue'
 import type { WorkerArgs } from './runReads'
+import { pickedSkillOfTurn } from '../pickedSkill'
 
 export const START_WORK = 'start_work'
 export const TITLE_MAX_CHARS = 120
@@ -172,7 +173,8 @@ export function createStartWorkTool(deps: StartWorkDeps = { moveOn: schedulePump
       }
 
       const continuation = continuationFor(capability, args.then)
-      const workerArgs: WorkerArgs = { effort: args.effort ?? 'light', ...(model ? { model } : {}) }
+      const skill = await pickedSkillOfTurn(capability.turnId)
+      const workerArgs: WorkerArgs = { effort: args.effort ?? 'light', ...(model ? { model } : {}), ...(skill ? { skill } : {}) }
       let operationId: string
       try {
         const row = await prisma.operation.create({

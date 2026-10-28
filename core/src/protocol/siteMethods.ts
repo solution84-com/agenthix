@@ -40,7 +40,8 @@ import type {
   LocationSeedFilesResult, LocationStatFileParams, LocationStatFileResult,
   KnowledgeChangeResult, LocationDeleteKnowledgeParams, LocationEditKnowledgeParams, LocationKnowledgeVersionsParams,
   LocationKnowledgeVersionsResult, LocationRestoreKnowledgeParams, LocationWriteKnowledgeParams,
-  LocationFindFilesParams, LocationFindFilesResult,
+  LocationFindFilesParams, LocationFindFilesResult, LocationScanSkillsParams, LocationScanSkillsResult,
+  LocationRemoveSkillParams, LocationRemoveSkillResult, LocationWriteSkillParams,
 } from './locationFiles.js'
 import { REPO_WORK_METHODS } from './repoWork.js'
 import type { RepoConnectParams, RepoConnectResult, RepoStateParams, RepoStateResult } from './repoWork.js'
@@ -135,6 +136,8 @@ export type SiteMethods = {
 
   [LOCATION_FILE_METHODS.listFiles]: { params: LocationListFilesParams; result: LocationListFilesResult }
   [LOCATION_FILE_METHODS.findFiles]: { params: LocationFindFilesParams; result: LocationFindFilesResult }
+  [LOCATION_FILE_METHODS.scanSkills]: { params: LocationScanSkillsParams; result: LocationScanSkillsResult }
+  [LOCATION_FILE_METHODS.removeSkill]: { params: LocationRemoveSkillParams; result: LocationRemoveSkillResult }
   [LOCATION_FILE_METHODS.statFile]: { params: LocationStatFileParams; result: LocationStatFileResult }
   [LOCATION_FILE_METHODS.seedFiles]: { params: LocationSeedFilesParams; result: LocationSeedFilesResult }
   [LOCATION_FILE_METHODS.ensureDir]: { params: LocationEnsureDirParams; result: LocationEnsureDirResult }
@@ -181,6 +184,8 @@ export type SiteMethodResult<M extends SiteMethodName> = SiteMethods[M]['result'
 export type SiteContentMethods = {
   [PACKAGE_METHODS.put]: { params: { ref: PackageRef } }
   [LOCATION_FILE_METHODS.readFile]: { params: LocationReadFileParams }
+  /** Since 1.11: the stream carries a `SkillFolderTransfer`. */
+  [LOCATION_FILE_METHODS.writeSkill]: { params: LocationWriteSkillParams }
   /** @deprecated since 1.8; stops working in 3.0. Use `files.serve` instead. */
   [LOCATION_FILE_METHODS.readArtefact]: { params: LocationReadArtefactParams }
   [LOCATION_FILE_METHODS.readKnowledge]: { params: LocationReadKnowledgeParams }

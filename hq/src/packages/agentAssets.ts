@@ -2,7 +2,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { getHqAssetsRoot } from '../server/hqAssets'
-import { readSkillTree, SKILLS_DIR } from './skillFiles'
 import type { AgentContent } from './agentPackageService'
 
 export const INSTRUCTIONS_ASSET_FILE = 'instructions.md'
@@ -19,17 +18,8 @@ async function readText(file: string): Promise<string> {
   }
 }
 
-export async function readAssetContent(
-  dir: string,
-  skills: 'none' | 'all' | readonly string[] = 'none',
-): Promise<AgentContent> {
-  const skillFiles = skills === 'none'
-    ? []
-    : await readSkillTree(path.join(dir, SKILLS_DIR), SKILLS_DIR, skills === 'all' ? undefined : new Set(skills))
-  return {
-    instructions: await readText(path.join(dir, INSTRUCTIONS_ASSET_FILE)),
-    skillFiles,
-  }
+export async function readAssetContent(dir: string): Promise<AgentContent> {
+  return { instructions: await readText(path.join(dir, INSTRUCTIONS_ASSET_FILE)), skillFiles: [] }
 }
 
 /** A create_agent caller's responsibilities replace the template's placeholder section. */

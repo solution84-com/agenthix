@@ -206,8 +206,14 @@ RELAY_SCRIPT="$REPO_ROOT/scripts/dev/relay.sh"
 if [ -f "$RELAY_SCRIPT" ] && [ -d "$REPO_ROOT/relay" ]; then
   bash "$RELAY_SCRIPT" &
   RELAY_PID=$!
-  trap 'kill "$RELAY_PID" 2>/dev/null || true' EXIT
 fi
+
+# The AI providers in the repository root's .env.dev, added once hq is up (add-providers.mjs; .env.dev.example).
+if [ -f "$REPO_ROOT/.env.dev" ]; then
+  node "$SCRIPT_DIR/add-providers.mjs" "$REPO_ROOT/.env.dev" &
+  PROVIDERS_PID=$!
+fi
+trap 'kill ${RELAY_PID:-} ${PROVIDERS_PID:-} 2>/dev/null || true' EXIT
 
 echo ""
 

@@ -68,7 +68,7 @@ export function TaskSessionPane({ taskKey, onBack }: { taskKey: string; onBack?:
         onCancelWaiting: (runId: string) => cancelWaitingFn({ sessionId: session.id, runId } as never),
         onTryAgain: () => void tryAgainFn({ sessionId: session.id } as never),
       } : undefined}
-      links={{ onOpenRun: links.onOpenRun, onOpenTarget: links.onOpenTarget, canOpenTarget: links.canOpenTarget }}
+      links={{ onOpenRun: links.onOpenRun, onOpenTarget: links.onOpenTarget, canOpenTarget: links.canOpenTarget, skillLabel: links.skillLabel }}
       renderMarkdown={p => <MarkdownMessage content={p.content} className={p.className} />}
       readOnlyReason={canStart ? undefined : VIEWER_CANNOT_WORK}
       sendDisabledReason={!session ? 'There is no session yet. Run the task to start one.' : undefined}

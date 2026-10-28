@@ -5,7 +5,7 @@
  * domain group — matching the canonical tool reference in docs/domains/tools/tools.md.
  *
  * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW,
- * KNOWLEDGE, PLACE
+ * KNOWLEDGE, SKILL, PLACE
  *
  * Access tiers (cross-cutting):
  *   ALWAYS_INJECTED  — PLATFORM tools + task execution lifecycle; never user-configurable
@@ -17,7 +17,7 @@
  * Tool names are stored and passed around in our raw format (e.g. 'create_task').
  * Runtime adapters are responsible for translating to their own naming scheme.
  */
-import { WORKFLOW_TOOL_NAMES } from '@agenthix/core'
+import { PROPOSE_SKILL_TOOL, WORKFLOW_TOOL_NAMES } from '@agenthix/core'
 import { ALL_RUNTIME_TOOL_NAMES } from './runtimeTools'
 
 // ── Tool registry (by domain) ─────────────────────────────────────────────────
@@ -164,6 +164,14 @@ export const SYSTEM_MCP_TOOLS = {
   },
 
   /**
+   * Proposing a skill (skills spec part 5): a draft or a proposal a person reviews, never a live skill. Always
+   * injected: it reaches only the run's own place, its person's own space and the organisation's Library.
+   */
+  SKILL: {
+    PROPOSE_SKILL: PROPOSE_SKILL_TOOL,
+  },
+
+  /**
    * The lead asking the person to add a place to its conversation (agent knowledge spec, part 4): the lead's own
    * conversation tool (conversations/placesSuggest.ts), never a run's, so in no access tier below.
    */
@@ -193,6 +201,7 @@ export const ALWAYS_INJECTED_MCP_TOOLS: string[] = [
   SYSTEM_MCP_TOOLS.MEMORY.RECALL,
   ...Object.values(SYSTEM_MCP_TOOLS.WORKFLOW),
   ...Object.values(SYSTEM_MCP_TOOLS.KNOWLEDGE),
+  ...Object.values(SYSTEM_MCP_TOOLS.SKILL),
 ]
 
 /** Included by default when allowedTools is null. */

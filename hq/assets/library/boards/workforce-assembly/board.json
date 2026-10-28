@@ -1,0 +1,51 @@
+{
+  "name": "Workforce Assembly",
+  "description": "Track the creation of agents, teams, and projects when building out an agent workforce.",
+  "columns": [
+    {
+      "name": "planned",
+      "label": "Planned",
+      "status": "TODO",
+      "color": "#6b7280",
+      "order": 0,
+      "description": "Entity planned but not yet started.",
+      "hint": "Move here when a task is defined and waiting for execution."
+    },
+    {
+      "name": "in_progress",
+      "label": "In Progress",
+      "status": "IN_PROGRESS",
+      "color": "#f59e0b",
+      "order": 1,
+      "description": "Currently being created by the kernel.",
+      "hint": "Move here when the kernel begins creating this entity."
+    },
+    {
+      "name": "in_review",
+      "label": "In Review",
+      "status": "IN_PROGRESS",
+      "color": "#8b5cf6",
+      "order": 2,
+      "description": "Created \u2014 waiting for user approval before going live.",
+      "hint": "Move here once the entity is created and pending user review."
+    },
+    {
+      "name": "approved",
+      "label": "Approved",
+      "status": "IN_PROGRESS",
+      "color": "#3b82f6",
+      "order": 3,
+      "description": "User has reviewed and approved \u2014 entity can be enabled.",
+      "hint": "Move here once the user has confirmed this entity looks correct."
+    },
+    {
+      "name": "done",
+      "label": "Done",
+      "status": "DONE",
+      "color": "#10b981",
+      "order": 4,
+      "description": "Entity live and active.",
+      "hint": "Move here once the entity is enabled and in use."
+    }
+  ]
+}

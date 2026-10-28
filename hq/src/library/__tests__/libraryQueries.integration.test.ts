@@ -16,18 +16,13 @@ vi.mock('wasp/server', async () => {
   return { prisma, HttpError }
 })
 
-vi.mock('../workforceTemplateService', async () => ({
-  ...(await vi.importActual<any>('../workforceTemplateService')),
-  readWorkforceContent: vi.fn(async () => ({
-    teams: [{ name: 'Eng', purpose: 'Build', agents: [{ handle: 'proposed-dev', name: 'Dev', role: 'Dev', responsibilities: 'Code', skills: [] }] }],
-    projects: [],
-  })),
-}))
-
 import { getWorkforceTemplates } from '../queries'
 import { confirmWorkforceTemplate, saveWorkforceDraft } from '../actions'
 import { listLibrarySkills } from '../../agents/skillsLibraryService'
-import { SYSTEM_TEMPLATE_IDS } from '../systemTemplates'
+import { storeContent } from '../../assets/content'
+import { boardPackage, seedTemplate, teamPackage } from '../../assets/templates/__tests__/templateFixtures'
+
+const seedSoloDev = () => seedTemplate(prisma, 'TEAM', 'wft-solo-dev', teamPackage('wft-solo-dev', { agents: [{ handle: 'proposed-dev' }] }))
 
 const authed = { user: { id: 'u1' } } as any
 const anon = { user: undefined } as any
@@ -39,16 +34,9 @@ async function makeOrg() {
 async function makeProject(name = 'P') {
   return createProject({ name, key: 'P' + Math.random().toString(36).slice(2, 6) })
 }
-async function makeBoardTemplate(id: string) {
-  return prisma.boardTemplate.upsert({
-    where: { id },
-    create: { id, name: id, description: '', assetPath: `library/boards/${id}.json`, isSystem: true },
-    update: {},
-  } as any)
-}
-async function makeBoard(projectId: string, templateId?: string) {
-  if (templateId) await makeBoardTemplate(templateId)
-  return prisma.board.create({ data: { name: 'B', projectId, templateId } as any })
+async function makeBoard(projectId: string, templateName?: string) {
+  const made = templateName ? await seedTemplate(prisma, 'BOARD', templateName, boardPackage(templateName)) : null
+  return prisma.board.create({ data: { name: 'B', projectId, madeFromVersionId: made?.versionId } })
 }
 // confirmWorkforceTemplate requires the ADMIN role (src/library/actions.ts:77,
 // added by ee9a54f's shared role-floor policy). `authed` above is a bare
@@ -80,22 +68,19 @@ async function makeTask(opts: { projectId: string; boardId?: string; column?: st
 describe('listLibrarySkills @SC-061', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('lists org skills scoped to the given org and not platform skills', async () => {
-    const org = await makeOrg()
-    await prisma.skill.create({
-      data: { slug: 'org-skill', name: 'Org Skill', description: 'd', assetPath: 'org/skills/org-skill', scope: 'ORG', orgId: org.id } as any,
-    })
-    await prisma.skill.create({
-      data: { slug: 'plat-skill', name: 'Platform Skill', description: 'd', assetPath: 'library/skills/plat-skill', scope: 'PLATFORM', orgId: null } as any,
-    })
+  it("lists the organisation's skills apart from Agenthix's shelf", async () => {
+    await makeOrg()
+    const files = [{ path: 'SKILL.md', content: Buffer.from('---\nname: org-skill\ndescription: d\n---\nbody') }]
+    const asset = await prisma.asset.create({ data: { kind: 'SKILL', publisher: 'acme', name: 'org-skill' } })
+    const version = await prisma.assetVersion.create({ data: { assetId: asset.id, version: '1.0.0', digest: await storeContent(files, prisma), source: 'MADE_HERE' } })
+    await prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } })
 
-    const orgSkills = await listLibrarySkills('ORG', org.id)
-    const platformSkills = await listLibrarySkills('PLATFORM', null)
+    const orgSkills = await listLibrarySkills('ORG')
+    const platformSkills = await listLibrarySkills('PLATFORM')
 
     expect(orgSkills.map((s) => s.slug)).toEqual(['org-skill'])
-    expect(platformSkills.map((s) => s.slug)).toEqual(['plat-skill'])
-    // Content falls back to '' when the asset file is absent on disk.
-    expect(typeof orgSkills[0].content).toBe('string')
+    expect(orgSkills[0].content).toBe('body')
+    expect(platformSkills.every((s) => s.id.startsWith('agenthix/'))).toBe(true)
   })
 })
 
@@ -103,13 +88,11 @@ describe('getWorkforceTemplates @SC-061', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('returns workforce template summaries for an authenticated user', async () => {
-    await prisma.workforceTemplate.create({
-      data: { id: 'wft-x', name: 'X', description: 'desc', tags: ['a'], assetPath: 'library/workforce/wft-x' } as any,
-    })
+    const { assetId } = await seedTemplate(prisma, 'TEAM', 'wft-x', teamPackage('wft-x', { agents: [{ handle: 'x' }] }))
 
     const result = await getWorkforceTemplates(undefined, authed)
 
-    expect(result).toEqual([{ id: 'wft-x', name: 'X', description: 'desc', tags: ['a'] }])
+    expect(result).toEqual([{ id: assetId, name: 'The wft-x', description: 'wft-x team', tags: ['test'] }])
   })
 
   it('rejects an unauthenticated caller', async () => {
@@ -121,12 +104,10 @@ describe('confirmWorkforceTemplate @SC-067', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('applies the proposed template, finishes the task with no run queued, and stores the selections', async () => {
-    await prisma.workforceTemplate.create({
-      data: { id: 'wft-solo-dev', name: 'Solo', assetPath: 'library/workforce/wft-solo-dev' } as any,
-    })
+    await seedSoloDev()
     const admin = await makeAdminAuthed()
     const project = await makeProject()
-    const board = await makeBoard(project.id, SYSTEM_TEMPLATE_IDS.WORKFORCE_ASSEMBLY)
+    const board = await makeBoard(project.id, 'workforce-assembly')
     const task = await makeTask({
       projectId: project.id,
       boardId: board.id,
@@ -134,7 +115,7 @@ describe('confirmWorkforceTemplate @SC-067', () => {
       applicationData: { templateId: 'wft-solo-dev', draftSelections: { teams: [], projects: [] } },
     })
     const selections = {
-      teams: [{ name: 'Eng', include: true, agents: [{ handle: 'proposed-dev', resolvedHandle: 'proposed-dev', include: true, skills: [] }] }],
+      teams: [{ name: 'Crew', include: true, agents: [{ handle: 'proposed-dev', resolvedHandle: 'proposed-dev', include: true, skills: [] }] }],
       projects: [],
     } as any
 
@@ -155,15 +136,13 @@ describe('confirmWorkforceTemplate @SC-067', () => {
   })
 
   it('leaves the task in review when applying fails', async () => {
-    await prisma.workforceTemplate.create({
-      data: { id: 'wft-solo-dev', name: 'Solo', assetPath: 'library/workforce/wft-solo-dev' } as any,
-    })
+    await seedSoloDev()
     await prisma.agent.create({ data: { name: 'Taken', handle: 'proposed-dev' } as any })
     const admin = await makeAdminAuthed()
     const project = await makeProject()
     const task = await makeTask({ projectId: project.id, column: 'in_review', applicationData: { templateId: 'wft-solo-dev' } })
     const selections = {
-      teams: [{ name: 'Eng', include: true, agents: [{ handle: 'proposed-dev', resolvedHandle: 'proposed-dev', include: true, skills: [] }] }],
+      teams: [{ name: 'Crew', include: true, agents: [{ handle: 'proposed-dev', resolvedHandle: 'proposed-dev', include: true, skills: [] }] }],
       projects: [],
     } as any
 

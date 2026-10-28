@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your space: your skills · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-yours.html"><main>
+<div class="top"><div><h1>P2 · Your space: your skills that follow you</h1>
+<p class="sub">Your space has the same Skills page as a project (P1), plus one thing a project doesn't: the skills switched on here follow you into your own conversations everywhere, projects included (D15, spec part 4). Shown for Avery Chen in Fernhill.</p></div></div>
+
+<h2 id="today">Today, numbered</h2>
+<div class="box"><ol>
+<li><b>Names only.</b> On an agent's page, <i>Your instructions</i> (<code>AgentInstructionsTool.tsx</code>) ends with "Your skills", a plain list of names from Your space's two folders, read-only.</li>
+<li><b>Changed by asking the agent,</b> or by finding the folder in Files: "To change them, ask it in a conversation".</li>
+<li><b>They stay in Your space.</b> They apply only when an agent works in your Chat, not when you talk to the same agent inside a project.</li>
+<li><b>Live once written,</b> like a project's (T6).</li></ol></div>
+
+<h2 id="page">Your Skills page</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk">
+<div class="mnav"><div class="logo"><i></i>Your space</div><a>Chat</a><a>My tasks<span class="cnt">4</span></a>
+<div class="sec">Agents at work</div><a>Runs</a><a>Automation</a><a class="on">Skills<span class="cnt">5</span></a>
+<div class="sec">Files</div><a>Files</a><a>Artefacts</a><a>Knowledge</a><a>Workspaces</a></div>
+<div class="mcentre">
+<div class="crumb">Your space › Skills</div>
+<div class="row"><div class="grow"><div class="mh">Your skills</div><p class="ml">Your own way of working. <b>5 on · 1 waiting for you</b></p></div>
+<span class="btn">All on</span><span class="btn">All off</span><span class="btn">New skill</span><span class="btn pri">Add</span></div>
+<div class="preview"><b>Your skills follow you.</b> The ones switched on here also apply in <b>your own conversations</b> in any project you work in. They never apply to runs someone else starts, or to scheduled ones. <span class="fm">Fernhill allows this · Personal skills outside Your space: on</span></div>
+
+<div class="msec">For every agent <span class="fm">files/.agents/skills/</span></div>
+<div class="mcard"><div class="b"><div class="t">weekly-summary <span class="tag">version 3</span> <span class="tag ok">follows you</span></div><div class="s">How I like my Friday summaries: three bullets, risks first.</div></div><span class="switch on"></span></div>
+<div class="mcard"><div class="b"><div class="t">code-review <span class="tag">version 2</span> <span class="tag ok">follows you</span></div><div class="s">My review checklist. <b>In Website rebuild, the project's own code-review is used instead</b> (D16).</div></div><span class="btn link">Where</span><span class="switch on"></span></div>
+<div class="mcard hl"><div class="b"><div class="t">meeting-notes <span class="tag warn">in files, not published · off</span></div><div class="s">Written into the folder by Ada on 27 Oct, in your Chat. Not used until you publish it and switch it on.</div></div><span class="btn link">Read</span><span class="btn">Publish as version 1</span></div>
+
+<div class="msec">For Ada only <span class="fm">files/.agents/agents/ada/skills/</span></div>
+<div class="mcard"><div class="b"><div class="t">draft-in-my-voice <span class="tag">version 1</span> <span class="tag ok">follows you</span></div><div class="s">When Ada drafts for me: plain words, no exclamation marks.</div></div><span class="switch on"></span></div>
+
+<div class="msec">Workspace notes-repo <span class="fm">.claude/skills/</span></div>
+<div class="mcard"><div class="b"><div class="t">changelog-style <span class="tag">Your space only</span> <span class="tag">repository · read-only</span></div><div class="s">From the repository. Workspace skills belong to their workspace, so they don't follow you.</div></div><span class="switch on"></span></div>
+</div></div></div>
+<ol class="sub">
+<li><b>The same page as P1</b>: the same scan of Your space's folders and workspaces, the same switches, and the same versions (D25): you are the one who publishes (FV5). <i>New skill</i> and <i>Edit</i> open the editor (<a href="/files/ui-edit.html">U3b</a>) on a draft; a folder written outside the editor is <i>in files, not published</i> or <i>changed in files, not published</i> until you publish it or put the last version back (FV4). Under the place's default (C1b), which only you set.</li>
+<li><b>Follows you</b>: for the person's own conversation in another place, hq reads the switched-on skills of Your space's two folders through the person's site and delivers them by fingerprint (D15). That works when Your space and the project sit on different sites. A workspace's skills stay with their workspace (spec part 1: the person is Your space's L4 and L5).</li>
+<li><b>Set aside where</b>: <i>Where</i> lists the places in which a skill of the same identity wins over yours: the organisation's installed one anywhere, or a project's own there (D12, D16).</li>
+<li><b>Add</b> copies an installed skill from the Library into your folder, as <i>Add to this place</i> does (P1).</li></ol>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><ul><li>A list of names inside one agent's page.</li><li>Only in Your space.</li><li>Live as soon as written.</li></ul></div>
+<div class="box"><span class="lbl after">After</span><ul><li>A Skills page of your own, with switches.</li><li>Your way of working comes with you into projects, under the project's standards.</li><li>You choose what an agent wrote for you before it's used.</li></ul></div></div>
+<div class="why"><b>Why:</b> people bring their own way of working to every project (D15). Copying a skill into ten projects, or asking for it to become the organisation's, is the friction this removes. It's safe because a skill adds no power: in your own conversation it can only ask for what you could type.</div></div>
+
+<h2 id="off">When the organisation keeps them home</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre">
+<div class="mh">Your skills</div>
+<div class="preview"><b>Your skills stay in Your space.</b> Fernhill keeps personal skills to Your space, so they apply only when an agent works with you here. <span class="fm">Personal skills outside Your space: off · set by an administrator</span></div>
+<div class="mcard"><div class="b"><div class="t">weekly-summary <span class="tag">Your space only</span></div><div class="s">How I like my Friday summaries.</div></div><span class="switch on"></span></div></div></div>
+<ol class="sub"><li>The organisation's setting (R2) changes the banner and every <i>follows you</i> tag to <i>Your space only</i>. Nothing else on the page changes.</li></ol></div>
+
+<h2 id="in-project">What you see inside a project</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre">
+<div class="mh">Skills</div><p class="ml">Website rebuild · what agents find here</p>
+<div class="msec">Yours, in your conversations</div>
+<div class="mcard"><div class="b"><div class="t">weekly-summary <span class="tag ok">yours</span></div><div class="s">Applies when you talk to an agent here. Only you see this group.</div></div><span class="btn link">Manage in Your space</span></div>
+<div class="mcard dim"><div class="b"><div class="t">code-review <span class="tag">set aside here</span></div><div class="s">This project's own code-review is used instead.</div></div></div></div></div>
+<ol class="sub"><li>A project's Skills page (P1) shows each person their own group, and no one else's. The project's administrator doesn't see people's personal skills: they are the person's, and add no power (D15).</li></ol></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><p><b>None.</b> PQ5 (every switched-on skill follows you) was applied as a default. PQ6 (your own group on a project's Skills page, private to you) was answered by D27.</p></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

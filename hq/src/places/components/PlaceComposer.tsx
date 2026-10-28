@@ -7,6 +7,9 @@ import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import type { Place } from '../placeTypes'
 import { actionErrorText, clientIdFor } from '../../conversations/hooks/threadState'
 import { threadPath } from '../../conversations/threadPaths'
+import { StartSkillPicker } from '../../conversations/components/atPicker/SkillPicker'
+import { SkillBackdrop } from '../../conversations/components/atPicker/SkillBackdrop'
+import { useStartSkillPicker } from '../../conversations/components/atPicker/useStartSkillPicker'
 
 /** The agent a new conversation starts with: the place's default when it may be talked to here, else the first. */
 export function startingAgentId(place: Pick<Place, 'agents' | 'defaultAgentId'>): string {
@@ -21,7 +24,7 @@ export type ComposerPlace = Pick<Place, 'basePath' | 'sessionLocation' | 'agents
  * A message box with the place's own agents to pick from — an agent's page has only that agent. Sending the first
  * message starts a new conversation with the picked agent, in the place's project or else in the person's own
  * space, and opens it. A project's Viewer talks to none of its agents (adr-0102), so they get a line saying so in
- * its place.
+ * its place. `/` at the start of the message picks one of the agent's skills, sent beside the first message.
  */
 export const PlaceComposer = forwardRef<HTMLTextAreaElement, { place: ComposerPlace; autoFocus?: boolean }>(function PlaceComposer({ place, autoFocus = false }, ref) {
   const navigate = useNavigate()
@@ -35,7 +38,8 @@ export const PlaceComposer = forwardRef<HTMLTextAreaElement, { place: ComposerPl
   const picked = useRef(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
-  const box = useRef<HTMLTextAreaElement>(null)
+  const projectId = place.sessionLocation?.primaryOwnerId
+  const { skills, box, textarea } = useStartSkillPicker({ enabled: Boolean(agentId) && mayWork, agentId, text, setText })
   useImperativeHandle(ref, () => box.current as HTMLTextAreaElement)
 
   // The place's agents and its default arrive after the first render, and can change while the screen is open.
@@ -54,19 +58,19 @@ export const PlaceComposer = forwardRef<HTMLTextAreaElement, { place: ComposerPl
   }, [autoFocus, disabledReason])
 
   const send = async () => {
-    const inputText = text.trim()
+    const inputText = skills.wordsOf(text)
     if (!inputText || !agentId || sending || disabledReason) return
     setSending(true)
     setError('')
     attempt.current = clientIdFor(attempt.current, inputText)
     try {
-      const projectId = place.sessionLocation?.primaryOwnerId
       const result = await start({
         home: projectId ? 'PROJECT' : 'PERSON', ...(projectId ? { projectId } : {}),
         agentId, clientMessageId: attempt.current.id, text: inputText,
+        ...(skills.skill ? { skill: { name: skills.skill.name } } : {}),
       })
       attempt.current = null
-      setText(''); setSending(false)
+      setText(''); skills.reset(); setSending(false)
       navigate(threadPath(place.basePath, result.conversationId))
     } catch (err: unknown) {
       setError(actionErrorText(err, 'Could not start the conversation'))
@@ -83,19 +87,27 @@ export const PlaceComposer = forwardRef<HTMLTextAreaElement, { place: ComposerPl
       {error && <p role="alert" className="mb-2 text-small text-danger">{error}</p>}
       <form
         onSubmit={(e) => { e.preventDefault(); void send() }}
-        className="flex items-end gap-2 rounded-xl border border-border bg-surface-1 p-2 focus-within:border-accent"
+        className="relative flex items-end gap-2 rounded-xl border border-border bg-surface-1 p-2 focus-within:border-accent"
       >
+        <SkillBackdrop text={text} skill={skills.skill?.name ?? null} className="min-w-0 flex-1">
         <textarea
           ref={box}
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send() } }}
+          onChange={textarea.onChange}
+          onSelect={textarea.onSelect}
+          aria-controls={textarea['aria-controls']}
+          aria-activedescendant={textarea['aria-activedescendant']}
+          onKeyDown={(e) => {
+            if (textarea.onKeyFirst(e)) return
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send() }
+          }}
           placeholder={disabledReason ?? place.composerPlaceholder}
           aria-label={place.composerPlaceholder}
           disabled={!!disabledReason || sending}
           rows={1}
-          className="max-h-32 min-h-[36px] flex-1 resize-none bg-transparent px-2 py-1.5 text-body text-text-primary placeholder:text-text-muted focus:outline-none"
+          className="relative max-h-32 min-h-[36px] w-full resize-none bg-transparent px-2 py-1.5 text-body text-text-primary placeholder:text-text-muted focus:outline-none"
         />
+        </SkillBackdrop>
         {place.agents.length > 0 && (
           <label className="relative shrink-0">
             <span className="sr-only">Agent</span>
@@ -110,10 +122,13 @@ export const PlaceComposer = forwardRef<HTMLTextAreaElement, { place: ComposerPl
             <ChevronDown size={12} aria-hidden className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted" />
           </label>
         )}
+        {skills.open && agentId && (
+          <StartSkillPicker start={{ home: projectId ? 'PROJECT' : 'PERSON', ...(projectId ? { projectId } : {}), agentId }} picker={skills} left={0} />
+        )}
         <button
           type="submit"
           aria-label="Send"
-          disabled={!text.trim() || !!disabledReason || sending}
+          disabled={!skills.wordsOf(text) || !!disabledReason || sending}
           className="flex shrink-0 items-center justify-center rounded-lg bg-accent p-2 text-on-accent hover:bg-accent-hover disabled:opacity-50"
         >
           <Send size={14} />

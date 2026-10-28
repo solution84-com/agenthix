@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="data.html"><main>
+<div class="top"><div><h1>5 · Data: assets, versions, drafts, proposals, switches</h1>
+<p class="sub">The records the spec implies, in hq and on the site. Numbers match the diagram. hq holds definitions and decisions; content stays immutable by fingerprint, as packages are today (adr-0072). Before <code>0.1.0-rc.1</code> nothing is carried forward, so old rows and folders are dropped, not converted.</p></div></div>
+
+<h2 id="today">Today</h2>
+<div class="box"><table><tr><th>Record</th><th>Where</th><th>What it is</th><th>Fate</th></tr>
+<tr><td><code>Skill</code> + <code>SkillScope</code> (PLATFORM, ORG, PROJECT)</td><td><code>hq/schema.prisma</code> (Module: Skills Library)</td><td>A catalogue row per library or organisation skill, unique on slug + scope + orgId. <code>PROJECT</code> is never used. The null-orgId hole lets a taken name overwrite (T10)</td><td><b>Replaced</b> by <code>Asset</code> (1). <code>SkillScope</code> goes</td></tr>
+<tr><td><code>Package</code> + <code>PackageContent</code></td><td><code>hq/schema.prisma</code> (ADR-0072)</td><td>A pointer per agent, org and platform to immutable content by digest, with a grace-period sweep</td><td><b>Kept as the content store.</b> <code>PackageContent</code> holds every asset version's content (3). The agent package stops carrying <code>skills/</code></td></tr>
+<tr><td><code>installed_from</code> in a copied <code>SKILL.md</code></td><td>Package files</td><td>The only link from a copy back to its library row</td><td><b>Gone</b>: identity lives on <code>Asset</code></td></tr>
+<tr><td>Library manifest (<code>package.json</code>)</td><td><code>hq/src/library/packages/packageManifest.ts</code></td><td>kind, name, version, publisher (free text), source</td><td><b>Extended</b>: <code>basedOn</code>, <code>licence</code>; publisher becomes the verified signer (C1)</td></tr>
+</table></div>
+
+<h2 id="diagram">The records</h2>
+<div class="box"><div class="mmd" data-src="er"></div></div>
+
+<h2 id="hq">In hq</h2>
+<div class="kbox">
+<div><h4><span class="n">1</span>Asset</h4><p>One per identity per organisation. <b>Key:</b> <code>(kind, publisher, name)</code>, unique without a nullable column (closes T10). <b>Fields:</b> kind (skill, agent, board, team), publisher (verified signer's recorded name, <code>unsigned</code>, or the organisation for made here; C1), name, <code>currentVersionId</code> (the pin, V1), <code>givenToAll</code> (L2), <code>builtIn</code> + <code>switchedOff</code> (L1a, D6), <code>setAsideById</code> (D18: the copy that replaced it), <code>suitedTo</code> hint.</p></div>
+<div><h4><span class="n">2</span>AssetVersion</h4><p>Every installed or published version. <b>Fields:</b> version (SemVer, D30), <code>digest</code> → PackageContent, signer and source (D8), <code>basedOn</code> lines (D19; only lines hq wrote are <i>verified</i>, M5), licence, note, by and when, <code>withdrawn</code> flag for Agenthix's (D30). Never deleted while current or in history (V6).</p></div>
+<div><h4><span class="n">3</span>PackageContent (existing)</h4><p>Immutable, by digest (<code>packageDigestInput</code>, <code>package.json</code> included, H1). Shared by every row that names the digest. The sweep skips any digest an AssetVersion, Draft, Proposal, PlaceSkillVersion or a run's record still names (V6, D26).</p></div>
+<div><h4><span class="n">4</span>AssetGrant</h4><p>Which agents have an asset when not every agent (L3, D23). <b>Key:</b> <code>(assetId, agentId)</code>. Templates create grants for the agent made from them.</p></div>
+<div><h4><span class="n">5</span>Draft</h4><p><b>One per asset</b>, shared (D25, EQ4). Points at a draft content digest and keeps its own revision list (author or proposing run per change, H5). <b>Publish</b> names the revision the publisher saw and is refused if a newer one exists (H5). For a place skill, the draft is keyed by place + path instead (FV1).</p></div>
+<div><h4><span class="n">6</span>Proposal</h4><p>From <code>propose_skill</code>, or a member's New skill. Aim (organisation, project, person), the asset it edits (optional), content digest, agent, person (from the run's on-behalf-of record, H5), conversation or run, state (open, accepted, accepted with changes, rejected + note). One open proposal per name per place (CQ12).</p></div>
+<div><h4><span class="n">7</span>TrustedPublisher</h4><p>Keyless: issuer + exact certificate identity + repository + ref constraint (H2), or a public key. The recorded display name (D9). Agenthix's is built in and can't be removed (P1).</p></div>
+<div><h4><span class="n">8</span>LibraryMaintainer</h4><p>One row per member (D28): the organisation role. Dropped when the member leaves; history keeps the name.</p></div>
+<div><h4><span class="n">9</span>PlaceSkill · PlaceSkillVersion</h4><p>A skill found in a place's files, keyed by <code>(place, path)</code>, with its switch (on, off, by fingerprint, D13, H3), source group (place, one agent, workspace n), and set-aside reason. Its versions: number, digest, published by (FV2), so roll back works (FV3). <i>Changed in files, not published</i> is a reported fingerprint that matches no version (FV4).</p></div>
+<div><h4><span class="n">10</span>Settings</h4><p>On the organisation: unsigned allowed (P2), who installs from outside (P3), skills found in files default (C1, shipped <i>off by default</i>), personal skills outside Your space (D15). On a place: its stricter default (C1b).</p></div>
+</div>
+
+<h2 id="site">On the site</h2>
+<div class="box"><table><tr><th></th><th>Record</th><th>What it holds</th></tr>
+<tr><td class="n">11</td><td><b>Package cache</b> (existing)</td><td>Content by digest, never altered. Now also asset versions and the person's published skills, so it is bounded like file skills and out of every container's reach (L4)</td></tr>
+<tr><td class="n">12</td><td><b>Skill scan</b> (new, answered on request)</td><td>Each skill folder found in a place's files and its workspaces' three folders: path, fingerprint, bounded (L1). Not stored; hq keeps what matters as PlaceSkill</td></tr>
+<tr><td class="n">13</td><td><b>The run's used skills</b> (on <code>AgentRun</code>, <code>site/schema.prisma</code>)</td><td>Staged name → identity or place + path, version, level, fingerprint, for C2's panel and for the sweep. A person's skill is marked as theirs, so opening it checks the person (M6)</td></tr>
+</table></div>
+
+<h2 id="retention">Retention</h2>
+<div class="box"><ul>
+<li><b>Asset versions:</b> kept while current or in the history (V6). Removing an asset keeps its history (the old R5), so it can be restored.</li>
+<li><b>Content a run used:</b> as long as the run's own record (D26, CQ6). A person's skill content goes when the person is removed, leaving identity and fingerprint (M6).</li>
+<li><b>Drafts:</b> until published or discarded.</li>
+<li><b>Proposals:</b> accepted ones stay with the asset's history; rejected ones are removed after 90 days (RQ5).</li></ul></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th><th>Recommended</th></tr>
+<tr><td class="n">XQ1</td><td><b>Where do place skills' drafts and versions live:</b> hq (as above) or on the place's site beside its files?</td><td>hq: drafts must stay out of the live folder and out of every container's reach, and roll back needs the content even if the site is replaced</td></tr>
+<tr><td class="n">XQ2</td><td><b>Templates' assets:</b> does an agent template's version keep the agents made from it as a relation (for U3's "agents made from it")?</td><td>Yes: one nullable <code>madeFromVersionId</code> on Agent, Board and Team, read-only, never followed (D20)</td></tr>
+</table></div>
+
+<script>
+window.SRC = { er: `erDiagram
+  ASSET ||--o{ ASSET_VERSION : "1·2 versions"
+  ASSET ||--|| ASSET_VERSION : "current (pin)"
+  ASSET_VERSION }o--|| PACKAGE_CONTENT : "3 digest"
+  ASSET ||--o{ ASSET_GRANT : "4 agents with it"
+  ASSET ||--o| DRAFT : "5 one draft"
+  DRAFT }o--|| PACKAGE_CONTENT : "draft digest"
+  ASSET ||--o{ PROPOSAL : "6 edits proposed"
+  PROPOSAL }o--|| PACKAGE_CONTENT : "content"
+  TRUSTED_PUBLISHER ||--o{ ASSET : "7 signs"
+  PLACE_SKILL ||--o{ PLACE_SKILL_VERSION : "9 versions"
+  PLACE_SKILL_VERSION }o--|| PACKAGE_CONTENT : "digest"
+  PLACE_SKILL ||--o| DRAFT : "draft by place + path"
+` }
+</script>
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

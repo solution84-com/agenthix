@@ -1,17 +1,14 @@
 /**
- * The org's package (ruling P11): ORG.md and the skills the org installed for
- * every run, edited without a publish step (ADR-0072). ORG.md's name, vision and mission come
- * from the Org row at every write; its body carries over from the current content.
+ * The org's package (ruling P11): ORG.md, edited without a publish step (ADR-0072). ORG.md's name, vision and
+ * mission come from the Org row at every write; its body carries over from the current content. A new organisation's
+ * package carries no skills: its skills are installed assets (adr-0157), and none of Agenthix's offered skills is
+ * installed by itself (spec part 1, *What Agenthix ships*).
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { prisma } from 'wasp/server'
-import { assertAssetDir, getHqAssetsRoot } from '../server/hqAssets'
+import { getHqAssetsRoot } from '../server/hqAssets'
 import { getCurrentPackage, writePackage, readCurrentFiles, type Db, type PackageFileInput, type WriteResult } from './packageStore'
-import { librarySkillFiles, replaceSkill } from './skillFiles'
-import { Logger } from '../server/utils/logger'
-
-const logger = new Logger('Packages')
 
 export const ORG_FILE = 'ORG.md'
 const FALLBACK_BODY = '## About\n\n_Add any additional context about your organisation here._\n'
@@ -35,28 +32,15 @@ async function templateBody(): Promise<string> {
   }
 }
 
-/** Every platform library skill, installed into the org's first package content. */
-async function initialOrgFiles(db: Db): Promise<PackageFileInput[]> {
-  // Later writes carry these skills forward, so a first write without them never gains them.
-  await assertAssetDir(path.join(getHqAssetsRoot(), 'library', 'skills'))
-  let files: PackageFileInput[] = [{ path: ORG_FILE, content: Buffer.from(await templateBody(), 'utf-8') }]
-  const platformSkills = await db.skill.findMany({ where: { scope: 'PLATFORM', orgId: null }, orderBy: { slug: 'asc' } })
-  for (const skill of platformSkills) {
-    try {
-      files = replaceSkill(files, skill.slug, await librarySkillFiles(skill))
-    } catch (err) {
-      logger.warn(`platform library skill ${skill.slug} not installed for the org: ${err instanceof Error ? err.message : String(err)}`)
-    }
-  }
-  return files
+/** The org's first package content: ORG.md from the template, and nothing else. */
+async function initialOrgFiles(_db: Db): Promise<PackageFileInput[]> {
+  return [{ path: ORG_FILE, content: Buffer.from(await templateBody(), 'utf-8') }]
 }
 
 /**
- * The disk reads a first-ever org write needs — the org template and every
- * installed platform library skill's SKILL.md — done up front so a caller can
- * read them BEFORE opening a transaction (reading them inside
- * `prisma.$transaction` risks its 5s interactive-transaction timeout on the
- * sequential disk I/O). `changeOrgPackage` only uses the result when its own,
+ * The disk read a first-ever org write needs — the org template — done up front so a caller can
+ * read them BEFORE opening a transaction (reading it inside
+ * `prisma.$transaction` would spend its 5s interactive-transaction timeout on disk I/O). `changeOrgPackage` only uses the result when its own,
  * in-transaction check confirms the org still has no package — a
  * write that sneaks in between this call and the transaction just makes
  * this work wasted, never wrong. Returns null when there's nothing to

@@ -1,0 +1,34 @@
+{
+  "name": "Content Studio",
+  "description": "Editorial workflow — any team where the primary output is written content.",
+  "tags": [
+    "content",
+    "editorial",
+    "marketing"
+  ],
+  "teams": [
+    {
+      "name": "Content",
+      "purpose": "Produce and publish high-quality written content",
+      "agents": [
+        "strategist",
+        "writer",
+        "editor",
+        "seo"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Content Pipeline",
+      "description": "From idea to published content",
+      "defaultAgentHandle": "strategist",
+      "boards": [
+        {
+          "name": "Editorial",
+          "template": "kanban"
+        }
+      ]
+    }
+  ]
+}

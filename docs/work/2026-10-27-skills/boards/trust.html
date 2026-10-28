@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install from anywhere · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="trust.html"><main>
+<div class="top"><div><h1>2d · Install from anywhere: signatures and trust</h1>
+<p class="sub">Agenthix isn't prescriptive about where a skill comes from. What it requires is one protocol: what a package is, how it is signed, and what hq checks before installing it. Signed packages show who signed them. Unsigned ones are allowed after a clear warning. Tampered ones are refused.</p></div></div>
+
+<h2 id="flow">The flow</h2>
+<div class="box"><div class="mmd" data-src="flow"></div>
+<p class="sub">Every source goes through the same check. Where a package came from only decides how hq fetches it.</p></div>
+
+<h2 id="protocol">The protocol, in four parts</h2>
+<div class="kbox">
+<div><h4><span class="n">1</span>The package</h4><p>The library package format that already exists: a ZIP with <code>package.json</code> (kind, name, version, publisher) and the skill's files in the Agent Skills format. A plain skill folder with only a <code>SKILL.md</code> is accepted too, and counts as unsigned.</p></div>
+<div><h4><span class="n">2</span>The fingerprint</h4><p>One digest over every file, sorted by path, with each file's own digest: the same idea as the content fingerprints hq already uses. The signature covers this digest plus the manifest's name and version, so changing one byte, or relabelling the version, breaks it.</p></div>
+<div><h4><span class="n">3</span>The signature</h4><p>A detached signature beside the package (<code>package.sigstore.json</code>), in Sigstore's bundle format, which <b>the platform already uses for its own images</b> (adr-0117). Two ways to sign, both verified the same way:
+<ul><li><b>Keyless:</b> signed by an identity, such as a GitHub repository's workflow, an email address or an organisation's domain, through Sigstore. There are no keys to manage. It is recorded in Sigstore's public log.</li>
+<li><b>With a key:</b> the publisher's own key pair, for anyone who wants nothing in a public log, or who works offline. An administrator adds the public key to hq's trusted keys.</li></ul></p></div>
+<div><h4><span class="n">4</span>The check in hq</h4><p>hq verifies the signature against the fingerprint, and then against who it trusts. Sigstore's trust root ships in hq's image, refreshed each release, so verification works offline too. The result is one of four states.</p></div>
+</div>
+
+<h2 id="states">What a person sees: four states</h2>
+<div class="box"><table><tr><th></th><th>State</th><th>What hq says</th><th>What it allows</th></tr>
+<tr><td class="n">S1</td><td><b>Signed by someone you trust</b></td><td>"Signed by <b>Agenthix</b>" or "Signed by <b>github.com/acme/skills</b>". The signature was checked</td><td>Install</td></tr>
+<tr><td class="n">S2</td><td><b>Signed, by someone new</b></td><td>"Signed by <b>github.com/acme/skills</b>. You haven't installed anything from them before. A signature tells you who published it, not that it's safe."</td><td><i>Trust this publisher and install</i>, or <i>install this once</i>, or cancel</td></tr>
+<tr><td class="n">S3</td><td><b>Unsigned</b></td><td>"This skill isn't signed. Agenthix can't tell who made it or whether it was changed on the way. Read it before you install it."</td><td>Install after reading, if the organisation allows unsigned skills</td></tr>
+<tr><td class="n">S4</td><td><b>Signature doesn't match</b></td><td>"This skill was changed after it was signed."</td><td><b>Refused.</b> No override</td></tr>
+</table>
+<div class="why"><b>Verification is not endorsement.</b> "Signed by Acme" proves who published it and that it arrived unchanged. It doesn't make it safe, so hq never words it as a safety stamp. Agenthix vouches for the signature check, not the contents. Even Agenthix's own skills are words an agent follows, and installing one grants no capability (R10).</div></div>
+
+<h2 id="who">Who signs: an organisation, not a person</h2>
+<div class="box"><p><b>The rule from the ownership work:</b> a published package belongs to an organisation. Individuals don't publish in their own name. A solo creator uses a one-person organisation. Who in the organisation maintained it stays internal and is never shown to outsiders.</p>
+<table><tr><th></th><th>Signing identity</th><th>Shown as</th><th>Fits the rule?</th></tr>
+<tr><td class="n">W1</td><td><b>The organisation's release workflow</b> (keyless): a GitHub Actions workflow in the organisation's repository signs each release. No person's account is involved</td><td>"Signed by <b>Acme</b> (github.com/acme, workflow <code>release.yml</code>)"</td><td>Yes, and the recommended way: it's how Agenthix signs its own images</td></tr>
+<tr><td class="n">W2</td><td><b>The organisation's key</b>, held by the organisation, not by one member</td><td>"Signed by <b>Acme</b>": the name the administrator gave the key when trusting it</td><td>Yes. For offline use, or to stay out of a public log</td></tr>
+<tr><td class="n">W3</td><td><b>A person's own identity</b>, such as an email address through Sigstore</td><td>"Signed by <b>a person</b>, alice@example.com, not an organisation"</td><td>Accepted, because the protocol is open, but labelled as a person so nobody mistakes it for an organisation's</td></tr>
+<tr><td class="n">W4</td><td><b>Both</b>: an organisation, plus the member who released it</td><td>—</td><td>Not used. It would expose who in the organisation did it, which stays internal</td></tr>
+</table>
+<div class="warnbox"><b>What a keyless signature proves:</b> the repository and workflow that signed it (github.com/acme/skills, <code>release.yml</code>), not that "acme" is an organisation rather than one person's account. So hq shows exactly what is proven, the administrator names the publisher when trusting it ("Acme"), and <b>"Verified organisation"</b> is kept for a hosted registry's later publisher check. hq never claims more than the signature proves.</div>
+<div class="why"><b>Two things the person installing must understand, and confirm:</b>
+<ol><li><b>If it's unsigned:</b> nobody can say who made it, or whether it changed on the way.</li>
+<li><b>If it's signed:</b> who signed it is proven. Do you trust <i>that organisation</i>, or that person in W3's case? Trusting means trusting their future versions too, until the signer changes.</li></ol></div></div>
+
+<h2 id="policy">The organisation's settings</h2>
+<div class="box"><table><tr><th></th><th>Setting</th><th>Default</th></tr>
+<tr><td class="n">P1</td><td><b>Trusted publishers:</b> the identities and keys this organisation trusts. Agenthix is always on it</td><td>Agenthix only</td></tr>
+<tr><td class="n">P2</td><td><b>Unsigned skills:</b> allowed after the warning, or never</td><td>Allowed after the warning</td></tr>
+<tr><td class="n">P3</td><td><b>Who may install from outside:</b> administrators, or maintainers too</td><td>Administrators</td></tr>
+</table></div>
+
+<h2 id="after">After installing</h2>
+<div class="box"><ul>
+<li><b>Recorded on the skill:</b> its source (a URL, a repository, an upload), its fingerprint, its signer or <i>unsigned</i>, and who installed it and when. All of it is shown on the skill's page.</li>
+<li><b>Updates keep the signer.</b> A newer version signed by a <i>different</i> publisher, or newly unsigned, is not offered as a plain update. It's shown as a change of publisher and asks again, as an app store does when a signing key changes.</li>
+<li><b>Skills made here</b> (the organisation's own, G4) need no signature: they never left hq. They are signed only if the organisation exports them to share.</li>
+<li><b>Skills in a place's files</b> (L4–L6) aren't installed packages, so this check doesn't apply to them. They follow Q3's on/off rule.</li></ul></div>
+
+<h2 id="sources">Sources: where hq can fetch from</h2>
+<div class="box"><table><tr><th>Source</th><th>How</th><th>For the release?</th></tr>
+<tr><td>hq's own image</td><td>Agenthix's packages, signed in the release build</td><td>Yes</td></tr>
+<tr><td>Upload</td><td>A ZIP or folder, with its signature file if there is one</td><td>Yes</td></tr>
+<tr><td>A URL</td><td>A ZIP on any web server, such as a GitHub release; the signature beside it</td><td>Candidate</td></tr>
+<tr><td>A git repository</td><td>Skill folders in a repository, signed per release (Q16 C)</td><td>Later</td></tr>
+<tr><td>Agenthix's registry (hosted)</td><td>Published packages with verified publishers. Just another source</td><td>Later</td></tr>
+</table></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th></tr>
+<tr><td class="n">—</td><td>None open. Q17 was accepted as D8 and Q18 as D9.</td></tr>
+</table></div>
+
+<script>
+window.SRC = { flow: `flowchart LR
+  SRC["Any source<br/>image · upload · URL · git · registry"] --> PKG["Package<br/>package.json + skill files<br/>(+ signature file)"]
+  PKG --> FP["Fingerprint<br/>over every file"]
+  FP --> V{"Signature?"}
+  V -->|"none"| S3["S3 · Unsigned<br/>warn, read first"]
+  V -->|"present"| CHK{"Matches the<br/>fingerprint?"}
+  CHK -->|"no"| S4["S4 · Tampered<br/>refused"]
+  CHK -->|"yes"| WHO{"Signer trusted<br/>by this organisation?"}
+  WHO -->|"yes"| S1["S1 · Signed, trusted<br/>install"]
+  WHO -->|"no"| S2["S2 · Signed, new publisher<br/>trust, once, or cancel"]
+  S1 --> INST["Installed<br/>source, fingerprint, signer recorded"]
+  S2 --> INST
+  S3 --> INST
+` }
+</script>
+<script type="module" src="/files/shell.js?v=8"></script>
+</body></html>

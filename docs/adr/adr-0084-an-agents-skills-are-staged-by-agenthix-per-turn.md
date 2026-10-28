@@ -41,6 +41,12 @@ person's fixed agents in one project, which a shared server is not.
 same sources and under the same namespaces, and the model is given only that set. A harness's own skill
 discovery is never relied on.
 
+> **The sources have changed since; the decision stands.** *(annotated 2026-10-28)* An agent's own package is no
+> longer a source (adr-0157). Skills reach a turn from those the organisation installed (built in, for every agent,
+> or for this agent), from a project's files and its workspaces' repositories, and from the person's own skills in
+> their own conversation. A skill in files is staged only when its bytes still match the fingerprint hq named for that
+> place and path (adr-0159).
+
 For OpenCode, Agenthix's plugin replaces the `skill` tool with one that reads the calling session's
 staged folder, and the skill list is sent with each turn's prompt — the same two steps, list and load, the
 model sees natively.

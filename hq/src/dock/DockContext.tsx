@@ -24,6 +24,8 @@ export interface DockDraft {
   place: PlaceRef
   /** The agent the box starts with (*Talk to <agent>*), or null for the place's usual one. */
   agentId: string | null
+  /** Counts each ask for a new conversation, so asking again while the draft shows can refocus its box. */
+  asked: number
   /** The conversation that was open before, kept mounted and hidden under the draft. */
   behind: OpenConversation | null
   /** Discards the draft and puts back what was open, in its position, or closes the dock if nothing was. */

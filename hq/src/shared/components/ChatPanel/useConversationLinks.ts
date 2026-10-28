@@ -1,12 +1,17 @@
 import { useNavigate } from 'react-router'
 import type { WorkTarget } from '@agenthix/core'
+import { useSessionSkillLines } from './useSessionSkillLines'
 
 /** The run's page, with the conversation it belongs to so the one site that holds it is asked. */
 export const runAddress = (runId: string, sessionId: string) => `/runs/${runId}?session=${sessionId}`
 
-/** Where a conversation's links go: a run's page, the Runs screen, and a changed task in the Tasks tool. */
+/**
+ * Where a conversation's links go: a run's page, the Runs screen, and a changed task in the Tasks tool; and how a
+ * used skill reads in its work line.
+ */
 export function useConversationLinks(sessionId: string) {
   const navigate = useNavigate()
+  const skillLabel = useSessionSkillLines(sessionId)
   return {
     onOpenRun: (runId: string) => navigate(runAddress(runId, sessionId)),
     onOpenConversationRuns: (latestRunId: string | null) => navigate(latestRunId ? runAddress(latestRunId, sessionId) : '/runs'),
@@ -18,5 +23,6 @@ export function useConversationLinks(sessionId: string) {
       next.set('task', target.key)
       navigate({ search: `?${next.toString()}` }, { replace: true })
     },
+    skillLabel,
   }
 }

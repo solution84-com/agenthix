@@ -8,6 +8,8 @@ import { NewConversationOffer } from './NewConversationOffer'
 import { ActionLine } from './ActionLine'
 import { SuggestPlaceCardRow } from './SuggestPlaceCard'
 import { placeSuggestionOf } from '../placesProtocol'
+import { SKILL_OUTCOME_TARGET, skillCardOf } from '../../assets/proposals/types'
+import { SkillCardRow } from './SkillCardRow'
 import { TaskCard } from './TaskCard'
 import { PersonText } from './PersonText'
 import { TurnBlockView } from './TurnBlock'
@@ -86,6 +88,12 @@ export function MessageItem({ message, agent, work, reply }: {
     case 'SUMMARISED':
       return <SummarisedMarker message={message} conversationId={work?.conversationId} />
     case 'ACTION':
+      {
+        // A skill an agent proposed or drafted (skills spec part 5); its review's line is for the agent, and the card shows it.
+        const skill = skillCardOf(message.body)
+        if (skill) return <SkillCardRow card={skill} />
+        if (message.body.target?.kind === SKILL_OUTCOME_TARGET) return null
+      }
       if (message.body.toolName === 'offer_new_conversation' && work?.newConversationHref) {
         return <NewConversationOffer text={message.body.text} href={work.newConversationHref} />
       }

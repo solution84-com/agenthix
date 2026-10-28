@@ -13,7 +13,7 @@ import { ChatAgentsFact } from './ChatAgentsFact'
 import { ChatAgentsTool } from './ChatAgentsTool'
 
 /** Your space's sections after Overview and Conversations (spec §7). */
-export const SPACE_SECTION_ORDER = ['tasks', 'boards', 'runs', 'automation', 'workflows', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets']
+export const SPACE_SECTION_ORDER = ['tasks', 'boards', 'runs', 'automation', 'workflows', 'skills', 'files', 'artefacts', 'knowledge', 'workspaces', 'agents', 'secrets']
 
 /** The personal project behind Chat: it holds the person's own tasks, boards and routines. */
 export interface PersonalProject {
@@ -33,6 +33,8 @@ export interface ChatSpace {
   filesCounts: FilesToolCounts
   /** Workflows in the person's own storage. */
   workflows?: PlaceTool
+  /** Skills found in the person's own storage, with the ones that follow them. */
+  skills?: PlaceTool
   /** Secrets and variables in the person's own storage. */
   secrets?: PlaceTool
 }
@@ -93,6 +95,7 @@ export function chatToolGroups(space: ChatSpace): PlaceToolGroup[] {
           render: () => (project ? <ProjectAutomationTool projectId={project.id} isProjectAdmin /> : loading()),
         },
         ...(space.workflows ? [space.workflows] : []),
+        ...(space.skills ? [space.skills] : []),
       ],
       footer: project ? <ProjectRunControls projectId={project.id} isProjectAdmin personal /> : undefined,
     },

@@ -54,7 +54,7 @@ describe("a board's columns as a client is given them @SC-1142", () => {
 
   it("keeps the board's stored order and reads columns that are not a list as none", () => {
     const board: Board = {
-      id: 'b1', name: 'Work', projectId: 'p1', kind: 'WORKFLOW', templateId: null, archivedAt: null,
+      id: 'b1', name: 'Work', projectId: 'p1', kind: 'WORKFLOW', madeFromVersionId: null, archivedAt: null,
       createdAt: at, updatedAt: at, columns: 'not json',
     }
     expect(boardFields(board).columns).toEqual([])

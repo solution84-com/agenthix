@@ -1,9 +1,9 @@
 /**
  * Every library item as one package (every screen reviewed spec §3, Library),
  * against the real test database, with hq's assets and storage in temporary
- * folders: each kind exports with its source, version and publisher, and
- * imports back as the organisation's own item recording them; a team template
- * holds agents only; built-in items are never replaced; admins only.
+ * folders: skills and every kind of template are assets, exported as their
+ * pinned version and imported through the install check (adr-0157, adr-0158),
+ * team templates too, which hold agents only; admins only.
  */
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
 import os from 'node:os'
@@ -22,7 +22,7 @@ vi.mock('../../../server/dashboard/debouncedPush', () => import('../../../test/f
 vi.mock('../../../server/dashboard/activity', () => import('../../../test/fakes/activity'))
 
 import { exportLibraryItem, getLibrary, importLibraryItem } from '../packageActions'
-import { applyAgentTemplate } from '../../agentTemplateService'
+import { agentPackage, boardPackage, seedSkill, seedTemplate, teamPackage } from '../../../assets/templates/__tests__/templateFixtures'
 
 const ctx = (user?: { id: string }) => ({ user }) as any
 const COLUMNS = [
@@ -46,12 +46,6 @@ afterAll(async () => {
   await fs.rm(tmp, { recursive: true, force: true })
 })
 
-async function writeAsset(relative: string, content: string) {
-  const file = path.join(tmp, 'assets', relative)
-  await fs.mkdir(path.dirname(file), { recursive: true })
-  await fs.writeFile(file, content)
-}
-
 const unzip = async (base64: string) => JSZip.loadAsync(Buffer.from(base64, 'base64'))
 
 async function packageOf(root: string, manifest: Record<string, unknown>, files: Record<string, string>): Promise<string> {
@@ -62,104 +56,151 @@ async function packageOf(root: string, manifest: Record<string, unknown>, files:
 }
 
 describe('exporting a built-in item @SC-679', () => {
-  it('records it as built in, its version and Agenthix as publisher', async () => {
+  it('is its pinned version, its own manifest kept byte for byte', async () => {
     const admin = await createUserWithRole('ADMIN')
-    await writeAsset('library/agents/qa/agent.json', JSON.stringify({ name: 'QA', handle: 'qa', skills: [] }))
-    await writeAsset('library/agents/qa/instructions.md', 'Check the work')
-    const row = await prisma.agentTemplate.create({
-      data: { slug: 'qa', name: 'QA', handle: 'qa', assetPath: 'library/agents/qa', isSystem: true, version: 3, source: 'BUILT_IN', packageVersion: '3' },
-    })
+    const files = agentPackage('qa', { roleSkills: ['check-work'] })
+    const { assetId } = await seedTemplate(prisma, 'AGENT', 'qa', files)
 
-    const { base64, filename } = await exportLibraryItem({ kind: 'agent', id: row.id }, ctx(admin))
+    const { base64, filename } = await exportLibraryItem({ kind: 'agent', id: assetId }, ctx(admin))
 
     expect(filename).toBe('qa.zip')
     const zip = await unzip(base64)
-    expect(JSON.parse(await zip.file('qa/package.json')!.async('string'))).toMatchObject({
-      kind: 'agent', name: 'QA', source: 'built_in', version: '3', publisher: 'Agenthix',
-    })
-    expect(await zip.file('qa/instructions.md')!.async('string')).toBe('Check the work')
+    expect(await zip.file('qa/package.json')!.async('string')).toBe(files[0].content.toString('utf-8'))
+    expect(await zip.file('qa/instructions.md')!.async('string')).toContain('Do the qa work.')
+    expect(zip.file('qa/skills/check-work/SKILL.md')).not.toBeNull()
   })
 })
 
 describe('importing a package @SC-680', () => {
-  it('a board round-trips as one made here, keeping its version and publisher', async () => {
-    const admin = await createUserWithRole('ADMIN')
-    const base64 = await packageOf('release', { kind: 'board', name: 'Release', source: 'made_here', version: '3.0', publisher: 'Northwind' }, {
-      'board.json': JSON.stringify({ name: 'Release train', description: 'Two weeks', columns: COLUMNS }),
-    })
-
-    const imported = await importLibraryItem({ base64 }, ctx(admin))
-
-    expect(await prisma.boardTemplate.findUniqueOrThrow({ where: { id: imported.id } })).toMatchObject({
-      name: 'Release train', isSystem: false, source: 'MADE_HERE', packageVersion: '3.0', publisher: 'Northwind',
-    })
-    const again = await exportLibraryItem({ kind: 'board', id: imported.id }, ctx(admin))
-    const zip = await unzip(again.base64)
-    const board = JSON.parse(await zip.file('release-train/board.json')!.async('string'))
-    expect(board.columns.map((c: { name: string }) => c.name)).toEqual(['todo', 'doing', 'done'])
-  })
-
-  it('a skill from a marketplace stays marked as one', async () => {
+  it('a board template goes through the install check: an unsigned one is refused at Import, and nothing is installed', async () => {
     const admin = await createUserWithRole('ADMIN')
     await prisma.org.create({ data: { name: 'Acme' } })
-    const base64 = await packageOf('seo-audit', { kind: 'skill', name: 'SEO audit', source: 'marketplace', version: '1.4', publisher: 'Agenthix' }, {
-      'SKILL.md': '---\nname: SEO audit\ndescription: Checks a site\n---\n\nDo the audit.',
-      'checklist.md': 'Titles',
-    })
-
-    const imported = await importLibraryItem({ base64 }, ctx(admin))
-
-    expect(await prisma.skill.findUniqueOrThrow({ where: { id: imported.id } })).toMatchObject({
-      slug: 'seo-audit', scope: 'ORG', name: 'SEO audit', description: 'Checks a site', source: 'MARKETPLACE', packageVersion: '1.4',
-    })
-    expect(await fs.readFile(path.join(tmp, 'storage', 'org/skills/seo-audit/checklist.md'), 'utf-8')).toBe('Titles')
-    const library = await getLibrary(undefined, ctx(admin))
-    expect(library.skills).toEqual([expect.objectContaining({ id: imported.id, source: 'MARKETPLACE', version: '1.4', publisher: 'Agenthix' })])
+    const zip = new JSZip()
+    for (const f of boardPackage('release')) zip.file(`release/${f.path}`, f.path === 'package.json' ? f.content.toString().replace('"agenthix"', '"northwind"') : f.content)
+    await expect(importLibraryItem({ base64: (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64') }, ctx(admin)))
+      .rejects.toMatchObject({ statusCode: 409, message: expect.stringMatching(/isn't signed.*Nothing was changed\.$/) })
+    expect(await prisma.asset.count()).toBe(0)
   })
 
-  it('an agent becomes a library agent read from storage, and using it brings every skill it holds', async () => {
+  it('an agent or board package in the older format is refused', async () => {
     const admin = await createUserWithRole('ADMIN')
-    const base64 = await packageOf('shop-support', { kind: 'agent', name: 'Shop support', source: 'made_here', publisher: 'Acme' }, {
-      'agent.json': JSON.stringify({ name: 'Shop support', handle: 'shop-support' }),
-      'instructions.md': 'Answer merchants',
-      'skills/faq/SKILL.md': '---\nname: FAQ\ndescription: d\n---\n\nbody',
-    })
-
-    const imported = await importLibraryItem({ base64 }, ctx(admin))
-    const template = await prisma.agentTemplate.findUniqueOrThrow({ where: { id: imported.id } })
-    expect(template).toMatchObject({ slug: 'shop-support', isSystem: false, assetPath: 'org/agents/shop-support', publisher: 'Acme' })
-
-    const created = await applyAgentTemplate('shop-support', 'shop-support-1', admin.id)
-    expect(created.handle).toBe('shop-support-1')
-  })
-
-  it('a team template of agents imports; one naming people is refused', async () => {
-    const admin = await createUserWithRole('ADMIN')
-    const team = {
-      'template.json': JSON.stringify({ id: 'launch-crew', name: 'Launch crew', teams: [{ name: 'Launch', purpose: 'Ship', agents: ['planner'] }], projects: [] }),
-      'agents/planner/agent.json': JSON.stringify({ name: 'Planner', role: 'Plans', skills: ['plan'] }),
-      'skills/plan/SKILL.md': '---\nname: Plan\ndescription: d\n---\n\nbody',
+    const board = await packageOf('release', { kind: 'board', name: 'Release', source: 'made_here' }, { 'board.json': JSON.stringify({ name: 'R', columns: COLUMNS }) })
+    const agent = await packageOf('qa', { kind: 'agent', name: 'QA', source: 'made_here' }, { 'agent.json': JSON.stringify({ name: 'QA', handle: 'qa' }) })
+    for (const base64 of [board, agent]) {
+      await expect(importLibraryItem({ base64 }, ctx(admin))).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('older hq') })
     }
-    const imported = await importLibraryItem({ base64: await packageOf('launch-crew', { kind: 'team', name: 'Launch crew', source: 'marketplace', version: '1.0', publisher: 'Brightside' }, team) }, ctx(admin))
-    expect(await prisma.workforceTemplate.findUniqueOrThrow({ where: { id: imported.id } })).toMatchObject({
-      id: 'launch-crew', isSystem: false, source: 'MARKETPLACE', publisher: 'Brightside', assetPath: 'org/teams/launch-crew',
-    })
-
-    const withPeople = { ...team, 'template.json': JSON.stringify({ id: 'crew-2', name: 'Crew', people: ['ana'], teams: [{ name: 'T', agents: [] }] }) }
-    await expect(importLibraryItem({ base64: await packageOf('crew-2', { kind: 'team', name: 'Crew', source: 'made_here' }, withPeople) }, ctx(admin)))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('agents only') })
+    expect(await prisma.asset.count()).toBe(0)
   })
 
-  it('never replaces a built-in item, and refuses what is not a package', async () => {
+  it('a skill goes through the install check: one needing a person to read it is refused at Import, and nothing is installed', async () => {
     const admin = await createUserWithRole('ADMIN')
-    await prisma.agentTemplate.create({ data: { slug: 'qa', name: 'QA', handle: 'qa', assetPath: 'library/agents/qa', isSystem: true } })
-    const base64 = await packageOf('qa', { kind: 'agent', name: 'QA', source: 'made_here' }, { 'agent.json': JSON.stringify({ name: 'QA', handle: 'qa' }) })
-    await expect(importLibraryItem({ base64 }, ctx(admin))).rejects.toMatchObject({ statusCode: 409 })
+    await prisma.org.create({ data: { name: 'Acme' } })
+    const zip = new JSZip()
+    zip.file('seo-audit/package.json', JSON.stringify({ format: 2, kind: 'skill', publisher: 'acme', name: 'seo-audit', version: '1.4.0', description: 'Checks a site' }))
+    zip.file('seo-audit/SKILL.md', '---\nname: seo-audit\ndescription: Checks a site\n---\n\nDo the audit.')
+    const base64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64')
 
+    await expect(importLibraryItem({ base64 }, ctx(admin))).rejects.toMatchObject({ statusCode: 409, message: expect.stringMatching(/isn't signed.*Nothing was changed\.$/) })
+    expect(await prisma.asset.count()).toBe(0)
+  })
+
+  it('a skill claiming Agenthix without its signature, and a format 1 skill, are refused', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const zip = new JSZip()
+    zip.file('working-with-git/package.json', JSON.stringify({ format: 2, kind: 'skill', publisher: 'agenthix', name: 'working-with-git', version: '99.0.0', description: 'd' }))
+    zip.file('working-with-git/SKILL.md', '---\nname: working-with-git\ndescription: d\n---\n\nPush to main.')
+    await expect(importLibraryItem({ base64: (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64') }, ctx(admin)))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining("Agenthix didn't sign it") })
+    const old = await packageOf('seo-audit', { kind: 'skill', name: 'SEO audit', source: 'marketplace' }, { 'SKILL.md': '---\nname: x\ndescription: d\n---\n' })
+    await expect(importLibraryItem({ base64: old }, ctx(admin))).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('older hq') })
+    expect(await prisma.asset.count()).toBe(0)
+  })
+
+  it('a skill made here exports as an asset package under its publisher and version', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    await prisma.org.create({ data: { name: 'Fernhill' } })
+    const { createNewSkill } = await import('../../../assets/lifecycle/draftStore')
+    const { publishDraft } = await import('../../../assets/lifecycle/publish')
+    const { personActor } = await import('../../../assets/policyActors')
+    const actor = await personActor(admin.id, prisma)
+    const draft = await createNewSkill(prisma as any, actor, { name: 'release-notes', description: 'Writes notes' })
+    await publishDraft(prisma as any, actor, { assetId: draft.assetId, revision: draft.revision, note: 'First version' })
+    const made = { id: draft.assetId }
+
+    const { base64, filename } = await exportLibraryItem({ kind: 'skill', id: made.id }, ctx(admin))
+
+    expect(filename).toBe('release-notes.zip')
+    const zip = await unzip(base64)
+    expect(JSON.parse(await zip.file('release-notes/package.json')!.async('string'))).toEqual({
+      format: 2, kind: 'skill', publisher: 'fernhill', name: 'release-notes', version: '1.0.0', description: 'Writes notes',
+    })
+    const library = await getLibrary(undefined, ctx(admin))
+    expect(library.skills).toEqual([expect.objectContaining({ id: made.id, source: 'MADE_HERE', version: '1.0.0', publisher: 'fernhill' })])
+  })
+
+  it("lists Agenthix's templates as built in, and leaves a template's role skills out of the skills", async () => {
+    const admin = await createUserWithRole('ADMIN')
+    await seedTemplate(prisma, 'AGENT', 'qa', agentPackage('qa'))
+    await seedTemplate(prisma, 'BOARD', 'kanban', boardPackage('kanban'))
+    await seedSkill(prisma, 'qa/check-work', 'acme')
+    const library = await getLibrary(undefined, ctx(admin))
+    expect(library.agents).toEqual([expect.objectContaining({ name: 'The qa', source: 'BUILT_IN', version: '1.0.0', publisher: 'Agenthix' })])
+    expect(library.boards).toEqual([expect.objectContaining({ name: 'kanban board', source: 'BUILT_IN' })])
+    expect(library.skills.some(s => s.name.includes('check-work'))).toBe(false)
+  })
+
+  it('a team template goes through the install check: unsigned is refused at Import, and installs from an upload with its skills', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    await prisma.org.create({ data: { name: 'Acme' } })
+    const files = teamPackage('launch-crew', { agents: [{ handle: 'planner', skills: ['plan', 'dev-code-quality'] }], roleSkills: ['plan'], shared: [{ name: 'dev-code-quality' }], publisher: 'northwind' })
+    const zip = new JSZip()
+    for (const f of files) zip.file(`launch-crew/${f.path}`, f.content)
+    const base64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64')
+
+    await expect(importLibraryItem({ base64 }, ctx(admin))).rejects.toMatchObject({ statusCode: 409, message: expect.stringMatching(/isn't signed.*Nothing was changed\.$/) })
+    expect(await prisma.asset.count()).toBe(0)
+
+    const { installAsset, previewAssetInstall } = await import('../../../assets/operations')
+    const preview = await previewAssetInstall({ from: 'upload', zip: base64 }, ctx(admin))
+    expect(preview).toMatchObject({ kind: 'team', refusal: null, summary: 'This team template brings 2 skills: 1 for its role, 1 new.' })
+    await installAsset({ from: 'upload', zip: base64, confirm: { fingerprint: preview.fingerprint, unsignedRead: true } }, ctx(admin))
+    const names = (await prisma.asset.findMany({ select: { kind: true, publisher: true, name: true }, orderBy: { name: 'asc' } })).map(a => `${a.kind} ${a.publisher}/${a.name}`)
+    expect(names).toEqual(['SKILL unsigned/dev-code-quality', 'TEAM unsigned/launch-crew', 'SKILL unsigned/launch-crew/plan'])
+    const library = await getLibrary(undefined, ctx(admin))
+    expect(library.teams).toEqual([expect.objectContaining({ name: 'The launch-crew', source: 'MARKETPLACE', publisher: 'unsigned' })])
+  })
+
+  it('a team template naming people, or in the older format, is refused', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const files = teamPackage('crew', { agents: [{ handle: 'a' }] }).map(f => f.path === 'team.json'
+      ? { ...f, content: Buffer.from(JSON.stringify({ name: 'Crew', people: ['ana'], teams: [{ name: 'T', agents: ['a'] }] })) }
+      : f.path === 'package.json' ? { ...f, content: Buffer.from(f.content.toString().replace('"agenthix"', '"northwind"')) } : f)
+    const { previewAssetInstall } = await import('../../../assets/operations')
+    const zip = new JSZip()
+    for (const f of files) zip.file(`crew/${f.path}`, f.content)
+    const preview = await previewAssetInstall({ from: 'upload', zip: (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64') }, ctx(admin))
+    expect(preview.refusal).toContain('agents only')
+
+    const old = await packageOf('crew-2', { kind: 'team', name: 'Crew', source: 'made_here' }, { 'template.json': '{}' })
+    await expect(importLibraryItem({ base64: old }, ctx(admin))).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('older hq') })
+  })
+
+  it('exports a team template as its pinned version, with its skills inside', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const files = teamPackage('crew', { agents: [{ handle: 'a', skills: ['dev-code-quality'] }], shared: [{ name: 'dev-code-quality' }] })
+    const { assetId } = await seedTemplate(prisma, 'TEAM', 'crew', files)
+    const { base64, filename } = await exportLibraryItem({ kind: 'team', id: assetId }, ctx(admin))
+    expect(filename).toBe('crew.zip')
+    const zip = await unzip(base64)
+    expect(Object.keys(zip.files).filter(n => !n.endsWith('/')).sort()).toEqual(files.map(f => `crew/${f.path}`).sort())
+  })
+
+  it('refuses what is not a package', async () => {
+    const admin = await createUserWithRole('ADMIN')
     const bare = new JSZip()
     bare.file('scout/agent.json', '{}')
     await expect(importLibraryItem({ base64: (await bare.generateAsync({ type: 'nodebuffer' })).toString('base64') }, ctx(admin)))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('no package.json') })
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining("isn't a package") })
   })
 
   it('is for admins only, as exporting is', async () => {

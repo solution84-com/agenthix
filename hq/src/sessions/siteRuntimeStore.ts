@@ -49,7 +49,7 @@ import {
 import { siteChannelRegistry, ChannelRequestFailed } from '../sites/channel'
 import { prisma } from 'wasp/server'
 import { SiteUnreachableError, reasonFor } from '../storage/workspaceStore'
-import { deliverPackages } from '../packages/packageDelivery'
+import { deliverPackages, skillRefsOf } from '../packages/packageDelivery'
 import { displaySiteName } from '../shared/siteName'
 import { namedShortRuns } from '../sites/resources/runResourceWords'
 import { recordRunCosting } from '../billing/sources/runs'
@@ -248,7 +248,7 @@ export function runUsage(siteId: string, params: RunUsageParams): Promise<RunUsa
 
 export async function dispatchRun(siteId: string, payload: RunDispatchPayload): Promise<RunDispatchResult> {
   await refuseRevokedSite(siteId)
-  await deliverPackages(siteId, payload.context.packages)
+  await deliverPackages(siteId, payload.context.packages, skillRefsOf(payload.context))
   const result: RunDispatchResult = await request(siteId, RUNTIME_METHODS.runDispatch, payload)
   // What the run is costed to, for the relay's usage reports and a subscription run's own (billing/sources/runs.ts).
   await recordRunCosting(siteId, result.runId, payload)

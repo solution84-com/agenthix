@@ -23,6 +23,7 @@ vi.mock('../coordinator/scheduler', async (importOriginal) => ({
 import { startConversation } from '../startConversation'
 import { getConversation, getConversationMessages, getConversations } from '../conversationQueries'
 import { appendMessage } from '../store/messages'
+import { openJson } from '../sealing'
 
 const ctx = (user: { id: string }) => ({ user })
 let sent = 0
@@ -47,6 +48,17 @@ describe('starting a conversation @SC-940', () => {
     const message = await prisma.conversationMessage.findUniqueOrThrow({ where: { id: messageId! } })
     expect(message).toMatchObject({ seq: 1, role: 'PERSON', kind: 'TEXT', authorId: person.id })
     expect(message.body).not.toContain('What is on today?')
+  })
+
+  it('keeps the skill picked with `/` on the first message, and refuses one that is not a skill name, starting nothing', async () => {
+    await kernel()
+    const person = await createUserWithRole('MEMBER')
+    const { messageId } = await start(person, { text: 'Review it', skill: { name: 'person-review' } })
+    const message = await prisma.conversationMessage.findUniqueOrThrow({ where: { id: messageId! } })
+    expect(openJson(message.body)).toEqual({ text: 'Review it', skill: { name: 'person-review' } })
+
+    await expect(start(person, { text: 'x', skill: { name: 'Bad Name' } })).rejects.toMatchObject({ statusCode: 400 })
+    expect(await prisma.conversation.count({ where: { openedById: person.id } })).toBe(1)
   })
 
   it('starts for voice with no message: the conversation is there to talk in, its first message what is said', async () => {

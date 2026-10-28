@@ -30,7 +30,7 @@ describe('the admin area menu @SC-1189', () => {
     const links = within(menu).getAllByRole('link').map(a => a.textContent)
     expect(links).toEqual([
       'Back to Fernhill', 'Overview', 'People and invitations', 'Teams', 'Agents', 'Providers', 'Models', 'Billing profiles', 'Usage',
-      'General', 'GitHub', 'Automation', 'Runs', 'Memory', 'Tool risk rules', 'Sites', 'Sites for projects', 'Infrastructure',
+      'General', 'GitHub', 'Automation', 'Runs', 'Memory', 'Library and skills', 'Tool risk rules', 'Sites', 'Sites for projects', 'Infrastructure',
     ])
   })
 

@@ -12,13 +12,17 @@ import { AgentPicker } from './AgentPicker'
 import { StartModelPicker } from './StartModelPicker'
 import { randomId } from '../../shared/randomId'
 import { microphonePossible, SECURE_PAGE_WORDS } from '../../shared/securePage'
+import { StartSkillPicker } from './atPicker/SkillPicker'
+import { SkillBackdrop } from './atPicker/SkillBackdrop'
+import { useStartSkillPicker } from './atPicker/useStartSkillPicker'
 
 /**
  * The message box that starts a conversation — on Home, in Chat and in a project. Typing and sending creates it
  * with the person's primary agent; before that first message two quiet buttons choose the agent and the model. The
  * server's reason fills the place of the box when the person may not talk here. Empty, its right button is voice:
  * it creates the conversation with no message, opens it and starts voice there, so what the person says is its
- * first message. Greyed when the chosen agent cannot talk, its reason shown on a tap.
+ * first message. Greyed when the chosen agent cannot talk, its reason shown on a tap. Once the agent is known, `/` at
+ * the start of the message picks one of its skills, sent beside the first message.
  */
 export function NewConversationBox({ home, projectId, basePath, placeholder, noAgentsNotice, autoFocus = false, agentId: given, onAgentChange }: {
   home: 'PERSON' | 'PROJECT'
@@ -46,12 +50,12 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const attempt = useRef<{ text: string; id: string } | null>(null)
-  const box = useRef<HTMLTextAreaElement>(null)
 
   // The first choice is the person's primary agent; a link from a closed conversation can name another.
   const wanted = search.get('agent')
   const agentId = [picked, given, wanted].find((id) => id && choices?.some((a) => a.id === id)) ?? choices?.[0]?.id ?? ''
   const current = choices?.find((a) => a.id === agentId)
+  const { skills, box, textarea } = useStartSkillPicker({ enabled: Boolean(current), agentId, text, setText })
   // hq's reason first; then the page, which must be secure for the microphone.
   const voiceRefusal = current ? current.voiceRefusal ?? (microphonePossible() ? null : SECURE_PAGE_WORDS) : null
   const report = useRef(onAgentChange)
@@ -69,11 +73,14 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
   useEffect(() => {
     if (!autoFocus || focused.current || reason || !choices) return
     focused.current = true
+    // The box fills in late, once its agents are known: it never takes the caret from a field being typed in.
+    const typing = document.activeElement
+    if (typing instanceof HTMLElement && typing !== box.current && typing.matches('input, textarea, select, [contenteditable]')) return
     box.current?.focus()
   }, [autoFocus, reason, choices])
 
   const send = async () => {
-    const value = text.trim()
+    const value = skills.wordsOf(text)
     if (!value || !agentId || sending || reason) return
     setSending(true)
     setError('')
@@ -83,9 +90,10 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
         home, projectId, clientMessageId: attempt.current.id, text: value,
         ...(picked || given || wanted ? { agentId } : {}),
         ...(model ? { model } : {}),
+        ...(skills.skill ? { skill: { name: skills.skill.name } } : {}),
       })
       attempt.current = null
-      setText(''); setSending(false)
+      setText(''); skills.reset(); setSending(false)
       navigate(threadPath(basePath, result.conversationId))
     } catch (err) {
       setError(actionErrorText(err, 'Could not start the conversation'))
@@ -121,29 +129,38 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
       <RefusedAction reason={error} className="mb-2" />
       <form
         onSubmit={(e) => { e.preventDefault(); void send() }}
-        className="flex flex-col gap-1 rounded-xl border border-border bg-surface-1 p-2 focus-within:border-accent"
+        className="relative flex flex-col gap-1 rounded-xl border border-border bg-surface-1 p-2 focus-within:border-accent"
       >
+        <SkillBackdrop text={text} skill={skills.skill?.name ?? null}>
         <textarea
           ref={box}
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send() } }}
+          onChange={textarea.onChange}
+          onSelect={textarea.onSelect}
+          aria-controls={textarea['aria-controls']}
+          aria-activedescendant={textarea['aria-activedescendant']}
+          onKeyDown={(e) => {
+            if (textarea.onKeyFirst(e)) return
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send() }
+          }}
           placeholder={placeholder}
           aria-label={placeholder}
           disabled={sending}
           rows={1}
-          className="max-h-32 min-h-[36px] w-full resize-none bg-transparent px-2 py-1.5 text-body text-text-primary placeholder:text-text-muted focus:outline-none"
+          className="relative max-h-32 min-h-[36px] w-full resize-none bg-transparent px-2 py-1.5 text-body text-text-primary placeholder:text-text-muted focus:outline-none"
         />
+        </SkillBackdrop>
+        {skills.open && current && <StartSkillPicker start={{ home, ...(projectId ? { projectId } : {}), agentId }} picker={skills} left={0} />}
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-1">
             {choices && <AgentPicker agents={choices} selectedId={agentId} onSelect={setPicked} disabled={sending} above />}
             <StartModelPicker home={home} projectId={projectId} picked={model} onPick={setModel} disabled={sending} />
           </div>
-          {text.trim() || !current ? (
+          {skills.wordsOf(text) || !current ? (
             <button
               type="submit"
               aria-label="Send"
-              disabled={!text.trim() || sending || !agentId}
+              disabled={!skills.wordsOf(text) || sending || !agentId}
               className="flex shrink-0 items-center justify-center rounded-lg bg-accent p-2 text-on-accent hover:bg-accent-hover disabled:opacity-50"
             >
               <Send size={14} />

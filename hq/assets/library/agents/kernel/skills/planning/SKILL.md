@@ -34,7 +34,7 @@ Wait for the user to approve before proceeding.
 
 ## Step 4 — Set up the Workforce Assembly board
 
-Find or create a project named **"Workforce Assembly"**. Inside it, find or create a board named **"Workforce Assembly"** using template `sys-tpl-0006-workforce-assembly`.
+Find or create a project named **"Workforce Assembly"**. Inside it, find or create a board named **"Workforce Assembly"** using the board template `workforce-assembly`.
 
 Before creating it, explain to the user:
 

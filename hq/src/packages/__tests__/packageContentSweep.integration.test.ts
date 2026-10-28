@@ -59,3 +59,55 @@ describe('package content sweep @SC-446', () => {
     await expect(readPackage(one.ref)).resolves.toBeDefined()
   })
 })
+
+// The asset layer's records name content too (skills spec, data board: Retention; V6, D26). Each is the only thing
+// naming the content, and the content is past the grace period.
+describe('package content sweep keeps what the asset layer names', () => {
+  const content = async (tag: string) =>
+    (await prisma.packageContent.create({ data: { digest: tag.repeat(64), formatVersion: 1 } })).digest
+  const pastGrace = () => later(PACKAGE_CONTENT_GRACE_MS + HOUR)
+  const asset = () => prisma.asset.create({ data: { kind: 'SKILL', publisher: 'acme', name: 'review' } })
+  const placeSkill = () => prisma.placeSkill.create({
+    data: { placeType: 'project', placeId: 'p1', path: '.agents/skills/review', group: 'PLACE' },
+  })
+
+  it('keeps an asset version\'s content, and sweeps it once the version is gone', async () => {
+    const digest = await content('a')
+    const { id: assetId } = await asset()
+    const version = await prisma.assetVersion.create({ data: { assetId, version: '1.0.0', digest, source: 'UPLOAD' } })
+    expect(await sweepUnreferencedContent(pastGrace())).toBe(0)
+    await prisma.assetVersion.delete({ where: { id: version.id } })
+    expect(await sweepUnreferencedContent(pastGrace())).toBe(1)
+  })
+
+  it('keeps a draft\'s content and every revision\'s', async () => {
+    const head = await content('b')
+    const older = await content('c')
+    const { id: assetId } = await asset()
+    const draft = await prisma.draft.create({ data: { assetId, revision: 2, digest: head } })
+    await prisma.draftRevision.createMany({
+      data: [{ draftId: draft.id, number: 1, digest: older }, { draftId: draft.id, number: 2, digest: head }],
+    })
+    expect(await sweepUnreferencedContent(pastGrace())).toBe(0)
+    await prisma.draft.delete({ where: { id: draft.id } })
+    expect(await sweepUnreferencedContent(pastGrace())).toBe(2)
+  })
+
+  it('keeps a proposal\'s content', async () => {
+    const digest = await content('d')
+    await prisma.proposal.create({
+      data: { aim: 'PROJECT', placeId: 'p1', name: 'review', description: 'Reviews code', digest, agentId: 'agent-1' },
+    })
+    expect(await sweepUnreferencedContent(pastGrace())).toBe(0)
+    expect(await prisma.packageContent.count({ where: { digest } })).toBe(1)
+  })
+
+  it('keeps a place skill version\'s content', async () => {
+    const digest = await content('e')
+    const skill = await placeSkill()
+    await prisma.placeSkillVersion.create({ data: { placeSkillId: skill.id, number: 1, digest } })
+    expect(await sweepUnreferencedContent(pastGrace())).toBe(0)
+    await prisma.placeSkill.delete({ where: { id: skill.id } })
+    expect(await sweepUnreferencedContent(pastGrace())).toBe(1)
+  })
+})

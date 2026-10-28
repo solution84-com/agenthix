@@ -2,7 +2,7 @@
 title: Workflows and secrets
 description: Let work that needs a password or token run safely, and connect GitHub, without any agent ever holding a secret.
 sidebar:
-  order: 6
+  order: 7
 ---
 
 An agent never holds a secret. A key, password or token is kept by a project, or by a person in their own space, and

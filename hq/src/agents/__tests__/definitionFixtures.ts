@@ -16,7 +16,7 @@ export function opContext(user: { id: string } | undefined) {
       Agent: prisma.agent,
       AgentSession: prisma.agentSession,
       Task: prisma.task,
-      Skill: prisma.skill,
+      Asset: prisma.asset,
       Org: prisma.org,
       Project: prisma.project,
       AgentOverride: prisma.agentOverride,

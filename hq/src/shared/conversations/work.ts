@@ -44,8 +44,11 @@ export type OperationResultView = {
   state: OperationStateValue
   summary: string | null
   stated: boolean | null
-  /** The run's work, as the run screen draws it; null when the site cannot be reached or there was no run. */
-  work: { steps: { text: string }[]; summary: string | null } | null
+  /**
+   * The run's work, as the run screen draws it; null when the site cannot be reached or there was no run. A step that
+   * used a skill the viewer may see names it as people read it and carries its staged name, which opens it.
+   */
+  work: { steps: { text: string; skill?: { name: string } }[]; summary: string | null } | null
   /** Where the run's full record opens, when there is one. */
   runUrl: string | null
   /** Why the run's detail could not be fetched ("Shop's site is offline"). */

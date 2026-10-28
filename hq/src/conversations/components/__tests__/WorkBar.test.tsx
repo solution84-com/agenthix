@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 import React from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import type { OperationActivityView } from '../../../shared/conversations/protocol'
 import { contextLine, WorkBar } from '../WorkBar'
+
+// A request's detail under its card asks the server what an agent's skill request would change; none here is one.
+vi.mock('wasp/client/operations', () => ({ useQuery: () => ({ data: { kind: 'none' } }), getAssetRequestChange: 'getAssetRequestChange' }))
 
 afterEach(cleanup)
 

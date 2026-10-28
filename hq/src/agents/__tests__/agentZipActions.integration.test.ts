@@ -17,7 +17,6 @@ vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activi
 
 import * as dashboardPush from '../../test/fakes/debouncedPush'
 import { exportAgent, importAgent } from '../agentZipActions'
-import { DEFAULT_MODEL } from '../models'
 import { readAgentContent, writeAgentContent } from '../../packages/agentPackageService'
 import { contextWithRole, contextWithoutRole, opContext, useTempRoots, type TempRoots } from './definitionFixtures'
 
@@ -35,6 +34,7 @@ async function archive(record: Record<string, unknown>, files: Record<string, st
 
 describe('exportAgent @SC-679', () => {
   it('exports the current definition: settings from the record, content from the package', async () => {
+    await prisma.org.create({ data: { name: 'Acme' } })
     const agent = await createAgent({ name: 'Scout', handle: 'scout-x', role: 'Researcher', approval: 'immediate' })
     await writeAgentContent(agent.id, { instructions: 'I', skillFiles: [{ path: 'skills/x/SKILL.md', content: Buffer.from('x') }] }, null)
     const { ctx } = await contextWithRole('ADMIN')
@@ -44,21 +44,29 @@ describe('exportAgent @SC-679', () => {
     expect(filename).toBe('scout-x.zip')
     const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'))
     const record = JSON.parse(await zip.file('scout-x/agent.json')!.async('string'))
-    expect(record).toMatchObject({ name: 'Scout', handle: 'scout-x', role: 'Researcher', defaultModel: DEFAULT_MODEL, runtime: 'claude-sdk', approval: 'immediate' })
+    expect(record).toMatchObject({ name: 'Scout', handle: 'scout-x', role: 'Researcher', approval: 'immediate' })
+    expect(record.defaultModel).toBeUndefined()
     expect(await zip.file('scout-x/instructions.md')!.async('string')).toBe('I')
     expect(await zip.file('scout-x/skills/x/SKILL.md')!.async('string')).toBe('x')
   })
 
-  it('what is exported can be imported back as the same agent', async () => {
+  it('is refused by the import here, which sends it to the Library, and changes nothing', async () => {
+    await prisma.org.create({ data: { name: 'Acme' } })
     const agent = await createAgent({ name: 'Round', handle: 'round-trip', approval: 'immediate' })
     await writeAgentContent(agent.id, { instructions: 'keep', skillFiles: [] }, null)
     const { ctx } = await contextWithRole('ADMIN')
     const { base64 } = await exportAgent({ agentId: agent.id }, ctx)
     await writeAgentContent(agent.id, { instructions: 'edited since', skillFiles: [] }, null)
 
-    expect(await importAgent({ base64 }, ctx)).toEqual({ agentId: agent.id, handle: 'round-trip', created: false })
+    await expect(importAgent({ base64 }, ctx)).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('install it in the Library') })
+    expect((await readAgentContent(agent.id))!.instructions).toBe('edited since')
+  })
 
-    expect((await readAgentContent(agent.id))!.instructions).toBe('keep')
+  it('needs the organisation, whose name it is published under', async () => {
+    const agent = await createAgent({ name: 'Early', handle: 'early' })
+    await writeAgentContent(agent.id, { instructions: 'I', skillFiles: [] }, null)
+    const { ctx } = await contextWithRole('ADMIN')
+    await expect(exportAgent({ agentId: agent.id }, ctx)).rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('Create the organisation first') })
   })
 
   it.each([
@@ -192,8 +200,8 @@ describe('importAgent @SC-680', () => {
   })
 })
 
-describe('an agent export is the library package of kind agent @SC-679', () => {
-  it('carries package.json beside agent.json: made here, its version, the organisation as publisher', async () => {
+describe('an agent export is an agent template package @SC-679', () => {
+  it('carries package.json (format 2) beside agent.json: the organisation as publisher, a version from when it was made', async () => {
     await prisma.org.create({ data: { name: 'Acme' } })
     const agent = await createAgent({ name: 'Scout', handle: 'scout-pkg', role: 'Researcher' })
     await writeAgentContent(agent.id, { instructions: 'I', skillFiles: [] }, null)
@@ -203,7 +211,7 @@ describe('an agent export is the library package of kind agent @SC-679', () => {
 
     const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'))
     expect(JSON.parse(await zip.file('scout-pkg/package.json')!.async('string'))).toEqual({
-      format: 1, kind: 'agent', name: 'Scout', description: 'Researcher', source: 'made_here', version: '1', publisher: 'Acme',
+      format: 2, kind: 'agent', publisher: 'acme', name: 'scout-pkg', version: expect.stringMatching(/^1\.\d{8}\.\d+$/), description: 'Researcher',
     })
   })
 
@@ -214,6 +222,6 @@ describe('an agent export is the library package of kind agent @SC-679', () => {
     const base64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64')
     const { ctx } = await contextWithRole('ADMIN')
 
-    await expect(importAgent({ base64 }, ctx)).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('board package') })
+    await expect(importAgent({ base64 }, ctx)).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('install it in the Library') })
   })
 })

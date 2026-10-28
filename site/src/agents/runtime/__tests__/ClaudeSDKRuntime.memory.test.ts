@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@anthropic-ai/claude-agent-sdk', () => ({ query: vi.fn() }))
 vi.mock('#db', () => ({ prisma: { toolCallLog: { create: vi.fn().mockResolvedValue({}) } } }))
-vi.mock('../skillStaging', () => ({ stageSkills: vi.fn(async () => []), skillRootsFor: vi.fn(() => []) }))
+vi.mock('../skillStaging', () => ({ stageSkills: vi.fn(async () => ({ staged: [], refused: [] })) }))
 vi.mock('../landlockCheck', () => ({ requireLandlock: vi.fn(async () => {}) }))
 vi.mock('../claude/claudeProcessProbe', () => ({
   claudeProcessMemoryMb: vi.fn().mockResolvedValue(300),

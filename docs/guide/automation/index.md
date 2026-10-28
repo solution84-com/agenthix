@@ -2,7 +2,7 @@
 title: Let agents work on their own
 description: Have agents pick up queued tasks and repeating work without anyone pressing Run, within limits you set.
 sidebar:
-  order: 5
+  order: 6
 ---
 
 These pages use the projects and agents of your organisation's **HQ**, its home in Agenthix; see

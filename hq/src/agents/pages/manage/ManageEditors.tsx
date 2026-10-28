@@ -1,10 +1,9 @@
 import {
   useQuery, useAction,
   updateAgent as updateAgentAction, updateAgentSettings, getUserSettings, getAgentPromptPreview, updateAgentFile,
-  getAgentSkills, getSkillLibrary, getInstalledSkillVersions, saveAgentSkill, deleteAgentSkill, installSkill,
 } from 'wasp/client/operations'
 import {
-  PromptTab, SkillsTab, ConfigurationTab, type AgentDetail,
+  PromptTab, ConfigurationTab, type AgentDetail,
 } from '@agenthix/ui/agents'
 import { RichTextEditor } from '../../../shared/components/ui/RichTextEditor'
 import { MarkdownMessage } from '../../../shared/components/MarkdownMessage'
@@ -12,6 +11,7 @@ import { AgentModelsSection } from '../../../models-settings/components/AgentMod
 import { resolveAgentSave, type AgentBehaviourFields } from '../agentSaveGate'
 import { ManageSection } from './ManageSection'
 import { PermissionsSection } from './PermissionsSection'
+import { AgentSkillsSection } from '../../../assets/pages/agent/AgentSkillsSection'
 
 const slots = {
   renderEditor: (p: { value: string; onChange: (v: string) => void; placeholder?: string }) => <RichTextEditor {...p} />,
@@ -34,28 +34,6 @@ function InstructionsSection({ agent }: { agent: AgentDetail }) {
           queries={{ getAgentPromptPreview: ((i: { agentId: string; mode: 'chat' | 'task' }) => getAgentPromptPreview(i).then((r) => ({ sections: (r.sections ?? []) as never }))) as never }}
           actions={{ updateAgentFile: (i) => updateFile(i as never) }}
           slots={slots}
-        />
-      }
-    />
-  )
-}
-
-function SkillsSection({ agent }: { agent: AgentDetail }) {
-  const save = useAction(saveAgentSkill)
-  const remove = useAction(deleteAgentSkill)
-  const install = useAction(installSkill)
-  const { data } = useQuery(getAgentSkills, { agentId: agent.id })
-  const names = ((data ?? []) as { name?: string; slug?: string }[]).map(s => s.name ?? s.slug).filter(Boolean)
-  return (
-    <ManageSection
-      title="Skills"
-      editLabel="Add"
-      summary={names.length ? names.join(' · ') : <span className="text-text-muted">None.</span>}
-      editor={
-        <SkillsTab
-          agent={agent}
-          queries={{ getAgentSkills, getSkillLibrary, getInstalledSkillVersions } as never}
-          actions={{ saveAgentSkill: save, deleteAgentSkill: remove, installSkill: install } as never}
         />
       }
     />
@@ -95,7 +73,7 @@ export function ManageEditors({ agent }: { agent: AgentDetail }) {
   return (
     <>
       <InstructionsSection agent={agent} />
-      <SkillsSection agent={agent} />
+      <AgentSkillsSection agentId={agent.id} />
       <AgentModelsSection agentId={agent.id} agentName={agent.name} />
       <SettingsSection agent={agent} />
       <PermissionsSection agent={agent} />

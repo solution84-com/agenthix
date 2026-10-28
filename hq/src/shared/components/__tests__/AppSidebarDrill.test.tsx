@@ -28,7 +28,7 @@ vi.mock('../../../pins/components/PinButton', () => ({
 vi.mock('lucide-react', () => {
   const Icon = () => null
   return Object.fromEntries([
-    'AudioLines', 'House', 'MessageSquare', 'UserRound', 'FolderKanban', 'Bot', 'CircleDot', 'Building2', 'Settings', 'ShieldCheck', 'ChevronLeft',
+    'AudioLines', 'House', 'MessageSquare', 'UserRound', 'FolderKanban', 'Bot', 'CircleDot', 'Library', 'Building2', 'Settings', 'ShieldCheck', 'ChevronLeft',
     'LogOut', 'Pin', 'PinOff', 'X', 'LayoutDashboard', 'MessagesSquare', 'SquareCheck', 'Kanban', 'GanttChart', 'Play',
     'Repeat', 'Folder', 'Diamond', 'BookOpen', 'GitBranch', 'Users', 'Brain', 'Activity', 'Gauge', 'ScrollText', 'Circle',
   ].map((n) => [n, Icon]))
@@ -142,7 +142,7 @@ describe('‹ shows the main navigation over the panel @SC-1043', () => {
     renderPanel()
     fireEvent.click(back())
     const dialog = overlay()!
-    for (const label of ['Home', 'Chat', 'Your space', 'Projects', 'Agents', 'Tasks']) {
+    for (const label of ['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library']) {
       expect(within(dialog).getByRole('link', { name: new RegExp(label) })).toBeTruthy()
     }
     // The same foot as the panel's: Pinned, then you.

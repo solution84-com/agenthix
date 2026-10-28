@@ -24,6 +24,9 @@ vi.mock('#db', () => ({ prisma: { toolCallLog: { create: vi.fn().mockResolvedVal
 import { ClaudeSDKRuntime } from '../ClaudeSDKRuntime'
 import type { RunContext, RunEvent } from '../types'
 import { claudeTestContext } from './claudeTestContext'
+import { cacheInstalledSkills, installedOnly } from './installedSkillFixture'
+import type { RunSkillInputs } from '../skillSources'
+import { PLAIN_TEXT_LINE, pickedSkillInstruction, pickedSkillReadInstruction } from '../pickedSkill'
 
 const run = promisify(execFile)
 const IMAGE = process.env.AGENT_IMAGE ?? 'agenthix-agent:latest'
@@ -36,6 +39,8 @@ const PROBE_INSTRUCTIONS = 'PROBE-INSTRUCTIONS-5520'
 let dir: string
 let standin: ChildProcess | undefined
 let port = ''
+let skills: RunSkillInputs | null = null
+const siteRootBefore = process.env.SITE_ROOT
 const runtime = new ClaudeSDKRuntime()
 const sessionId = randomUUID()
 const docker = async (...args: string[]) => (await run('docker', args, { timeout: 60_000 })).stdout
@@ -57,6 +62,7 @@ function context(overrides: Partial<RunContext> = {}): RunContext {
     containerName: CONTAINER,
     credential: null,
     claudeHome: { serverDir: path.join(dir, 'home', '.claude'), visibleDir: '/home/appuser/.claude' },
+    skills,
     packages: {
       refs: { agent: { kind: 'agent', key: 'a', digest: 'a'.repeat(64) }, org: null, platform: { kind: 'platform', key: 'platform', digest: 'b'.repeat(64) } },
       agentDir: path.join(dir, 'pkg', 'agent'),
@@ -88,6 +94,14 @@ async function turn(prompt: string, overrides: Partial<RunContext> = {}): Promis
 
 const toolNames = (r: Request) => (r.body.tools ?? []).map(t => t.name)
 const text = (r: Request) => JSON.stringify(r.body.messages ?? [])
+// The turn's own message: a kept process sends the conversation's earlier turns too, so a check about this turn
+// reads only the newest message from the person.
+const lastUserText = (r: Request) => {
+  const messages = (r.body.messages ?? []) as Array<{ role?: string }>
+  return JSON.stringify(messages.filter(m => m.role === 'user').at(-1) ?? null)
+}
+// The request's text as it reads inside the JSON these helpers return: quotes escaped.
+const asJson = (s: string) => JSON.stringify(s).slice(1, -1)
 /** The skill list Claude Code puts in a reminder, one `name: description` per line. */
 const listed = (r: Request) => [...text(r).matchAll(/\\n- (\S+?): /g)].map(m => m[1])
   .filter(() => text(r).includes('skills are available for use with the Skill tool'))
@@ -101,17 +115,20 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     await fs.mkdir(path.join(dir, 'project', 'files'), { recursive: true })
     await fs.writeFile(path.join(dir, 'project', 'files', 'x.txt'), 'x\n')
     await fs.mkdir(path.join(dir, 'pkg', 'platform', 'skills'), { recursive: true })
-    const skill = async (slug: string, md: string) => {
-      await fs.mkdir(path.join(dir, 'pkg', 'agent', 'skills', slug), { recursive: true })
-      await fs.writeFile(path.join(dir, 'pkg', 'agent', 'skills', slug, 'SKILL.md'), md)
-    }
-    await skill('hello-claude', `---\nname: hello-claude\ndescription: Greets the user the Agenthix way.\n---\n\n${INSTRUCTIONS}\n`)
-    // A command hook while the skill is active, and an inline command in its body.
-    await skill('shell-probe', [
-      '---', 'name: shell-probe', 'description: Probes what a skill can run.', 'hooks:', '  PreToolUse:', '    - matcher: "Read"', '      hooks:',
-      '        - type: command', '          command: "id > /tmp/hook-ran"', '---', '',
-      PROBE_INSTRUCTIONS, 'Inline: !`echo INLINE-RAN-$((6*7))`', '',
-    ].join('\n'))
+    await fs.mkdir(path.join(dir, 'pkg', 'agent'), { recursive: true })
+    // The agent's skills come as hq gives them: installed for the agent, their content in the site's package cache.
+    process.env.SITE_ROOT = path.join(dir, 'site')
+    skills = installedOnly(await cacheInstalledSkills({
+      'hello-claude': { 'SKILL.md': `---\nname: hello-claude\ndescription: Greets the user the Agenthix way.\n---\n\n${INSTRUCTIONS}\n` },
+      // A command hook while the skill is active, and an inline command in its body.
+      'shell-probe': {
+        'SKILL.md': [
+          '---', 'name: shell-probe', 'description: Probes what a skill can run.', 'hooks:', '  PreToolUse:', '    - matcher: "Read"', '      hooks:',
+          '        - type: command', '          command: "id > /tmp/hook-ran"', '---', '',
+          PROBE_INSTRUCTIONS, 'Inline: !`echo INLINE-RAN-$((6*7))`', '',
+        ].join('\n'),
+      },
+    }))
 
     standin = spawn('node', [fileURLToPath(new URL('./fixtures/standinAnthropic.mjs', import.meta.url))], {
       env: { ...process.env, PORT: '0', LOG: path.join(dir, 'anthropic.jsonl'), BODY_LOG: path.join(dir, 'bodies.jsonl') },
@@ -132,6 +149,8 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     await runtime.endConversation({ sessionId, containerName: CONTAINER }).catch(() => {})
     await docker('rm', '-f', CONTAINER).catch(() => '')
     standin?.kill()
+    if (siteRootBefore === undefined) delete process.env.SITE_ROOT
+    else process.env.SITE_ROOT = siteRootBefore
     await fs.rm(dir, { recursive: true, force: true })
   }, 60_000)
 
@@ -153,7 +172,7 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     const none = path.join(dir, 'pkg', 'none')
     const { sent } = await turn('TURN hello', {
       isNewSession: true, sessionId: randomUUID(), ...restricted,
-      packages: { ...context().packages, agentDir: none, platformDir: none },
+      packages: { ...context().packages, agentDir: none, platformDir: none }, skills: null,
     })
     expect(sent.length).toBeGreaterThan(0)
     for (const request of sent) {
@@ -162,24 +181,59 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     }
   }, 120_000)
 
-  it("loads a staged skill's instructions by its name, and by a person's /name", async () => {
+  it("loads a staged skill's instructions by its name", async () => {
     const called = await turn('TURN DO:SKILL agent-hello-claude', { isNewSession: true, ...restricted })
     expect(results(called.events)).toEqual(['Launching skill: agent-hello-claude'])
     expect(text(called.sent.at(-1)!)).toContain(INSTRUCTIONS)
-
-    const typed = await turn('/agent-hello-claude', restricted)
-    expect(typed.sent).toHaveLength(1)
-    expect(text(typed.sent[0]!)).toContain(INSTRUCTIONS)
   }, 120_000)
 
-  it('says so when a person types a /name the run has no skill for, instead of ending silently', async () => {
-    const { events, sent } = await turn('/no-such-skill', restricted)
-    expect(sent).toHaveLength(0)
-    expect(events.filter(e => e.type === 'text_delta')).toEqual([{ type: 'text_delta', textDelta: 'Unknown command: /no-such-skill' }])
-    expect(events.find(e => e.type === 'status')).toMatchObject({ status: 'completed' })
-  }, 60_000)
+  it('tells the model to load a skill the person picked, which then loads by its name (security review M7) @security-M7 @SC-1607', async () => {
+    const picked = await turn('TURN DO:SKILL agent-hello-claude', { ...restricted, pickedSkill: 'agent-hello-claude' })
+    expect(lastUserText(picked.sent[0]!)).toContain(asJson(pickedSkillInstruction('agent-hello-claude')))
+    expect(results(picked.events)).toEqual(['Launching skill: agent-hello-claude'])
+    expect(text(picked.sent.at(-1)!)).toContain(INSTRUCTIONS)
 
-  it("refuses one of Claude Code's own bundled skills", async () => {
+    const notStaged = await turn('TURN hello', { ...restricted, pickedSkill: 'agent-no-such-skill' })
+    expect(lastUserText(notStaged.sent[0]!)).not.toContain('The person picked the skill')
+  }, 120_000)
+
+  it('tells the model to read the file of a picked skill it may not load itself, from the folder its process reads @SC-1607', async () => {
+    const BY_HAND = 'BY-HAND-INSTRUCTIONS-8812'
+    const byHand = {
+      ...restricted,
+      sessionId: randomUUID(),
+      skills: installedOnly(await cacheInstalledSkills({
+        'by-hand': { 'SKILL.md': `---\nname: by-hand\ndescription: Run only when a person picks it.\ndisable-model-invocation: true\n---\n\n${BY_HAND}\n` },
+      })),
+    }
+    const picked = await turn('TURN hello', { ...byHand, isNewSession: true, pickedSkill: 'agent-by-hand' })
+    const file = text(picked.sent[0]!).match(/Read the file (\S+?\/agent-by-hand\/SKILL\.md) first/)?.[1]
+    expect(file).toMatch(/^\/home\/appuser\/\.claude\/\.tmp\/skills-[^/]+\/\.claude\/skills\/agent-by-hand\/SKILL\.md$/)
+    expect(lastUserText(picked.sent[0]!)).toContain(asJson(pickedSkillReadInstruction('agent-by-hand', file!)))
+
+    // The same skills keep the process, and with it the folder the instruction named: the read runs there.
+    const read = await turn(`TURN DO:READ ${file}`, { ...byHand, pickedSkill: 'agent-by-hand' })
+    expect(lastUserText(read.sent[0]!)).toContain(asJson(pickedSkillReadInstruction('agent-by-hand', file!)))
+    expect(results(read.events)).toEqual([expect.stringContaining(BY_HAND)])
+    await runtime.endConversation({ sessionId: byHand.sessionId, containerName: CONTAINER }).catch(() => {})
+  }, 180_000)
+
+  it.each([
+    ['a staged skill', '/agent-hello-claude', INSTRUCTIONS],
+    ['a skill the run has none of', '/no-such-skill', 'Unknown command'],
+    // What each bundled command would put before the model, had it run.
+    ["Claude Code's /init", '/init', 'Please analyze this codebase'],
+    ["Claude Code's /compact", '/compact', 'Your task is to create a detailed summary'],
+  ])("sends a typed /name for %s to the model as plain text, never running it @security-M7", async (_label, typed, neverSeen) => {
+    const { events, sent } = await turn(`${typed} TURN`, restricted)
+    expect(sent).toHaveLength(1)
+    expect(text(sent[0]!)).toContain(PLAIN_TEXT_LINE.replaceAll('"', '\\"'))
+    expect(lastUserText(sent[0]!)).not.toContain(neverSeen)
+    expect(events.filter(e => e.type === 'text_delta')).toEqual([{ type: 'text_delta', textDelta: 'stand-in reply 0' }])
+    expect(events.filter(e => e.type === 'compacted')).toEqual([])
+  }, 120_000)
+
+  it("refuses one of Claude Code's own bundled skills @SC-1607", async () => {
     const { events } = await turn('TURN DO:SKILL update-config', restricted)
     expect(results(events)).toEqual([expect.stringContaining('not in this session')])
   }, 60_000)

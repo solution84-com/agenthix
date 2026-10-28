@@ -68,7 +68,7 @@ vi.mock('../../../packages/runPackages', () => ({
 vi.mock('../../promptContent', () => ({
   loadPromptContent: vi.fn(async () => ({ instructions: null, org: null })),
 }))
-vi.mock('../../../packages/boundaryOverrides', () => ({ resolveBoundaryOverrideDir: vi.fn(async () => null), resolveBoundarySharedSkillsDir: vi.fn(async () => null) }))
+vi.mock('../../../packages/boundaryOverrides', () => ({ resolveBoundaryOverrideDir: vi.fn(async () => null) }))
 
 vi.mock('../conversationLifecycle', () => ({ conversationLifecycle: h.lifecycle }))
 const finder = vi.hoisted(() => ({ endConversationProcesses: vi.fn() }))

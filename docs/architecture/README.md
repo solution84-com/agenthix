@@ -98,7 +98,8 @@ repository's `AGENTS.md` has the stack, the conventions and how to run them.
 | **Harness** | The vendor's agent program that runs the model loop and its tools: Claude Code or OpenCode |
 | **Runner** | Who a container runs for: a person, or the project for work nobody is behind, such as a task in a project |
 | **Harness home** | A runner's private folder on the site for the harness's own state: its session files and, for a Claude subscription, its login |
-| **Package** | A versioned bundle hq holds and sends to a site by its digest: an agent's instructions and skills, the organisation's, the platform's |
+| **Package** | A versioned bundle hq holds and sends to a site by its digest: an agent's instructions, the organisation's, the platform's, and a skill's published version |
+| **Asset** | A Library item (a skill, or an agent, board or team template): one identity `publisher/name`, pinned to one version for the organisation, its content held by digest ([skills-and-assets.md](skills-and-assets.md)) |
 | **Platform tools** | The tools Agenthix itself gives every agent (tasks, boards, memory, previews), served over MCP, the Model Context Protocol |
 | **Run capability** | The token hq signs for one run, carrying what it may do |
 | **Gate** | The site's check on every tool call an agent makes, against the agent's permissions |
@@ -225,6 +226,7 @@ sequenceDiagram
 | [conversation-layer.md](conversation-layer.md) | How a conversation is answered from hq: the record, the one-turn lock, the lead's context and tools, operations and workers, recovery, memory, voice |
 | [workflows.md](workflows.md) | How a secret is used without entering an agent's container: proposing and approving a workflow, a run end to end, the executor and its containers, the egress proxy, masking and the changed-file scan, the mint gate |
 | [files-and-relays.md](files-and-relays.md) | How a file's bytes reach a browser without passing through hq: opening a file end to end, tickets and passes, the site's line to its relay, the relay, hq's relay |
+| [skills-and-assets.md](skills-and-assets.md) | How a skill gets from where it lives into a run, and how a Library asset is installed: the asset records, the install pipeline and the signature check, a link's limits, the run's skills named per turn, staging by digest and fingerprint, the picked skill, what a run records as used |
 | [files-in-the-browser.md](files-in-the-browser.md) | How a file is drawn and referred to: its kind, the renderer contract and registry, the frame and its states, the Markdown embed, chips and references, the `@` picker, git status |
 
 **Then the detail behind them:**
@@ -271,6 +273,7 @@ sequenceDiagram
 | The control channel, site side | `site/src/server/hq/` |
 | What starts work on its own: the pulse, the scheduler, routines | `hq/src/automation/` |
 | Running a turn | `site/src/agents/runtime/` |
+| The Library's assets, installing them, and the skills a run is told about | `hq/src/assets/`, `core/src/assets/` (see [skills-and-assets.md](skills-and-assets.md)) |
 | The agent image and its sandbox launcher; the executor image | `site/docker/` |
 | Workflows, secrets and variables, the GitHub App and the mint gate | `hq/src/workflows/`, `hq/src/secrets/`, `hq/src/github/`; the executor in `site/src/executor/` (see [workflows.md](workflows.md)) |
 | Tokens and their checks | `hq/src/server/identity/`, `site/src/server/identity/` |

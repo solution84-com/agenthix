@@ -30,7 +30,7 @@ test.describe('the navigation @SC-011', () => {
     await expect(n.getByRole('link', { name: 'Agenthix' })).toBeVisible()
     await expect(n.getByRole('button', { name: /^Notifications/ })).toBeVisible()
     await expect(n.getByRole('button', { name: /^Runs/ })).toBeVisible()
-    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Agents', 'Tasks']) {
+    for (const place of ['Home', 'Chat', 'Your space', 'Projects', 'Tasks', 'Agents', 'Library']) {
       await expect(n.getByRole('link', { name: new RegExp(`^${place}`) })).toBeVisible()
     }
     const foot = n.getByTestId('sidebar-foot')
@@ -47,7 +47,7 @@ test.describe('the navigation @SC-011', () => {
     await expect(menu).toHaveCount(0)
     await expect(foot.getByRole('button', { name: /, account menu$/ })).toBeFocused()
     // Retired from the navigation (their pages stay for links).
-    for (const gone of ['Dashboard', 'My tasks', 'Boards', 'Workspaces', 'Products', 'Programs', 'Library']) {
+    for (const gone of ['Dashboard', 'My tasks', 'Boards', 'Workspaces', 'Products', 'Programs']) {
       await expect(n.getByRole('link', { name: gone, exact: true })).toHaveCount(0)
     }
   })
@@ -192,8 +192,10 @@ test.describe('a place’s sections are the left panel', () => {
     await sections.getByRole('link', { name: /^Tasks/ }).click()
     await expect(page).toHaveURL(at('/space?tool=tasks'))
     await expect(sections.getByRole('link', { name: /^Tasks/ })).toHaveAttribute('aria-current', 'page')
-    await page.getByTestId('screen-bar').getByRole('button', { name: 'Talk in your space' }).click()
     const dock = page.getByRole('complementary', { name: 'Conversation' })
+    // A person with no conversation yet has the dock fill itself with a new one, so Cancel has nothing else to go back to.
+    const filledWithDraft = (await dock.getByTestId('dock-draft').count()) > 0
+    await page.getByTestId('screen-bar').getByRole('button', { name: 'Talk in your space' }).click()
     await expect(dock.getByTestId('dock-draft')).toBeVisible()
     await expect(dock.getByRole('option', { selected: true })).toContainText('Your space')
     await expect(dock.getByRole('textbox', { name: 'Ask any agent…' })).toBeFocused()
@@ -201,7 +203,7 @@ test.describe('a place’s sections are the left panel', () => {
     await expect(sections.getByRole('link', { name: /^Tasks/ })).toHaveAttribute('aria-current', 'page')
     // Cancel goes back to the conversation the dock filled itself with: it is never empty.
     await dock.getByRole('button', { name: 'Cancel' }).click()
-    await expect(dock.getByTestId('dock-draft')).toHaveCount(0)
+    await expect(dock.getByTestId('dock-draft')).toHaveCount(filledWithDraft ? 1 : 0)
     await expect(dock).toBeVisible()
   })
 

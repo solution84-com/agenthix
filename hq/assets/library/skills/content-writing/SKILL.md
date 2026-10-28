@@ -1,6 +1,8 @@
 ---
 name: Content Writing
 description: Draft articles and copy from briefs, match brand voice
+version: 2
+suitedTo: [writer, marketer]
 ---
 
 # Content Writing

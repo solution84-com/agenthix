@@ -49,6 +49,11 @@ step.
 > immediate — and its tool ceiling is its **permissions**, a state per tool and per command pattern. A project's
 > or a person's override narrows both, the strictest level winning. The decision itself stands.
 
+> **Skills are no longer part of an agent's definition.** *(annotated 2026-10-28)* adr-0157 made every Library item,
+> skills included, a versioned asset pinned once per organisation: an agent has the skills installed for it, and its
+> own package carries none. A skill is updated and rolled back as an asset; the rest of an agent's definition is still
+> one unversioned definition, edited in place, and the decision stands for it.
+
 **A run is delivered the definition by its content fingerprint.** hq names the fingerprint of what the
 run receives; a site that does not hold that content fetches it once and caches it, and never alters
 it. The run records the fingerprint, so what a run used can always be named.

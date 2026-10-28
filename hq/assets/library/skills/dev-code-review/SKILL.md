@@ -1,6 +1,8 @@
 ---
 name: Code Review
 description: Review PRs for correctness, architecture fit, and test coverage
+version: 2
+suitedTo: [developer, reviewer]
 ---
 
 # Code Review

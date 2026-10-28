@@ -44,7 +44,7 @@ export async function readProjectBoards(projectId: string, includeArchived: bool
     // A sprint board's columns show its current sprint; its past sprints' work is in their record.
     const inColumns = mine.filter(t => t.column !== null && (b.kind !== 'SPRINTS' || t.sprintId === sprint?.id))
     return {
-      id: b.id, name: b.name, kind: b.kind, archivedAt: b.archivedAt, templateId: b.templateId,
+      id: b.id, name: b.name, kind: b.kind, archivedAt: b.archivedAt, templateId: b.madeFromVersionId,
       columns: sortedColumns(wireColumns(b.columns)).map(c => ({ ...c, count: inColumns.filter(t => t.column === c.name).length })),
       backlogCount: mine.filter(t => t.column === null).length,
       needsYouCount: [...inColumns, ...mine.filter(t => t.column === null)].filter(needsYou).length,
@@ -82,7 +82,7 @@ export async function readBoardView(boardId: string, userId: string, opts: { inc
     ensureProjectTasks(board.projectId),
   ])
   return {
-    id: board.id, name: board.name, kind: board.kind, archivedAt: board.archivedAt, templateId: board.templateId,
+    id: board.id, name: board.name, kind: board.kind, archivedAt: board.archivedAt, templateId: board.madeFromVersionId,
     projectId: board.projectId, project: taskProjectRef(board.project), projectTasksBoardId,
     columns: sortedColumns(wireColumns(board.columns)),
     tasks, backlog, showAlso,

@@ -178,7 +178,7 @@ stream is followed again for later turns.
 4. It records the session's turn for the plugin: the conversation id, the platform token, and the header
    carrying the relay token.
 5. It sends the message with `POST /session/:id/prompt_async` — the model, the agent `build`, the system
-   prompt with the staged skills' list, and the text — which answers at once, and ends the turn on the
+   prompt with the staged skills' list, and the text (after the one-line instruction for the skill the person picked, when the site kept the pick; [skills-and-assets.md](../skills-and-assets.md#the-picked-skill)) — which answers at once, and ends the turn on the
    stream's `session.idle`. No request is held open for a whole turn.
 6. When the turn ends, the turn record, relay token and platform token resolve to nothing again.
 
@@ -214,7 +214,7 @@ The same for both runtimes; each harness's messages are translated into the site
 
 - **Completed.** The reply is the turn's text. Text parts separated by tool calls are joined with a
   paragraph break, the same in the streamed text and the stored reply. When Claude Code answers a turn
-  itself without calling the model — `/no-such-skill` gets `Unknown command: …` — that answer is the reply.
+  itself without calling the model — the one command the site sends, Summarise now, is such a command — that answer is the reply. A person's message is never sent as a command: text that begins with `/` is given after a line saying it is plain text.
   A turn that ends with no text says "The agent ended its turn without a reply."
 - **Retrying.** Each harness retries a failed model request itself: OpenCode up to five times over about
   70 s, Claude Code up to its own limit. Each retry is shown in the chat as a transient notice (the

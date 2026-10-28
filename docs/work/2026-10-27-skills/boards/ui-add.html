@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add from anywhere · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-add.html"><main>
+<div class="top"><div><h1>U4 · Add from anywhere: the install check</h1>
+<p class="sub">How an asset comes into the Library: from Agenthix's shelf in hq's image, an upload, or a URL (D22). Every source goes through the same check, and ends in one of the four states S1–S4 (D8). The wording is the spec's (spec/03). Numbers match the notes.</p></div></div>
+
+<h2 id="menu">Add</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="position:relative;min-height:330px"><div class="desk">
+<div class="anav" data-on="library"></div>
+<div class="mcentre"><div class="row"><div class="mh grow">Library</div><span class="btn pri">＋ Add ▾</span></div>
+<div class="tabs"><span class="on">Skills 14</span><span>Agents 6</span><span>Boards 4</span><span>Teams 5</span></div>
+<div class="menu" style="right:32px;top:52px">
+<div class="gh">Install</div>
+<div class="it on"><div class="t">From Agenthix <span class="num">1</span></div><div class="s">The skills and templates that ship with this hq</div></div>
+<div class="it"><div class="t">Upload a package <span class="num">2</span></div><div class="s">A ZIP or a skill folder, with its signature file if it has one</div></div>
+<div class="it"><div class="t">From a link <span class="num">3</span></div><div class="s">A ZIP on any web server, such as a GitHub release</div></div>
+<div class="gh">Make</div>
+<div class="it"><div class="t">New skill</div><div class="s">Write one here. It's yours, made here</div></div>
+</div></div></div></div>
+<ol>
+<li><b>From Agenthix</b> opens the shelf (below): Agenthix's packages, already in hq's image, signed in the release build. Works offline (spec/03, Sources).</li>
+<li><b>Upload</b> takes a package ZIP (<code>package.json</code> and its files) or a plain folder with a <code>SKILL.md</code>. A signature file beside it (<code>package.sigstore.json</code>) is checked; without one it is unsigned.</li>
+<li><b>From a link</b>: hq fetches the ZIP and looks for its signature at the same address with <code>.sigstore.json</code> added.</li></ol>
+<p class="sub">Shown to administrators only, by default: the organisation's setting <i>Who may install from outside</i> (P3, R2). <i>New skill</i> follows the same rule.</p></div>
+
+<h2 id="shelf">From Agenthix: the shelf</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre">
+<div class="crumb"><a>Library</a> › Add from Agenthix</div>
+<div class="row"><div class="mh grow">From Agenthix</div></div>
+<div class="ml">Ready to install. Nothing here reaches an agent until you install it and add it to one.</div>
+<div class="row" style="margin-bottom:8px"><span class="chip" style="background:var(--macc-sub);color:var(--t1)">Skills 17</span><span class="chip">Agent templates 6</span><span class="chip">Board templates 4</span><span class="chip">Team templates 5</span>
+<span class="grow"></span><span class="chip">Suited to: all ▾</span></div>
+<div class="mcard"><div class="b"><div class="t">Code Review <span class="fm">agenthix/dev-code-review · 1.4</span></div><div class="s">Review pull requests for correctness, architecture fit and test coverage · suited to developers <span class="num">4</span></div></div><span class="tag warn">You have 1.3</span><span class="btn">View</span></div>
+<div class="mcard"><div class="b"><div class="t">Bug Reporting <span class="fm">agenthix/qa-bug-reporting · 1.0</span></div><div class="s">File structured bug reports with steps, expected and actual, and severity · suited to QA</div></div><span class="btn">View</span><span class="btn pri">Install</span></div>
+<div class="mcard"><div class="b"><div class="t">Data Analysis <span class="fm">agenthix/data-analysis · 1.0</span></div><div class="s">Queries, models and clear charts with assumptions stated · suited to research</div></div><span class="tag ok">New in this release <span class="num">5</span></span><span class="btn">View</span><span class="btn pri">Install</span></div>
+<div class="mcard"><div class="b"><div class="t">Sprint Planning <span class="fm">agenthix/pm-sprint-planning · 1.3</span></div><div class="s">Plan sprint scope and break epics into tasks · suited to product</div></div><span class="tag ok">Installed</span><span class="btn">Open</span></div>
+</div></div>
+<ol start="4">
+<li><b>Suited to</b> is a hint for finding things (D14), never a lock.</li>
+<li><b>New in this release</b> marks shelf items that arrived with an hq upgrade. They are never installed by themselves (R2, D14). An item the organisation already has shows its version, and the newer one as an update (U5).</li></ol></div>
+
+<h2 id="states">The check: the four states</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<p class="sub">After any source, hq takes the fingerprint over every file, checks the signature against it, and then checks whether this organisation trusts the signer (spec/03). One dialog per state.</p>
+
+<div class="step">S1 · Signed by someone trusted</div>
+<div class="frame mock" style="position:relative;min-height:230px"><div class="scrimbox"><div class="dialog">
+<h4>Install Bug Reporting?</h4>
+<p><span class="fm">agenthix/qa-bug-reporting · 1.0</span></p>
+<p>✓ Signed by <b>Agenthix</b>. The signature was checked.</p>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri">Install</span></div></div></div></div>
+
+<div class="step">S2 · Signed by someone new</div>
+<div class="frame mock" style="position:relative;min-height:500px"><div class="scrimbox"><div class="dialog" style="width:520px">
+<h4>Install SEO Audit?</h4>
+<p><span class="fm">acme/seo-audit · 2.0</span> · from github.com/acme/skills/releases/…</p>
+<p>Signed by <b>github.com/acme/skills</b> (workflow <code>release.yml</code>). You haven't installed anything from them before. A signature tells you who published it, not that it's safe.</p>
+<div class="field"><label>Call this publisher</label><div class="in">Acme</div></div>
+<div class="radio on"><div class="dot"></div><div><b>Trust Acme and install</b><div style="font-size:13px;color:var(--t2)">Later versions signed the same way install without asking</div></div></div>
+<div class="radio"><div class="dot"></div><div><b>Install this once</b><div style="font-size:13px;color:var(--t2)">You'll be asked again next time</div></div></div>
+<div class="row end"><span class="btn">Cancel</span><span class="btn">Read it first</span><span class="btn pri">Continue</span></div></div></div></div>
+
+<div class="step">S3 · Unsigned</div>
+<div class="frame mock" style="position:relative;min-height:270px"><div class="scrimbox"><div class="dialog" style="width:520px">
+<h4>Install Legal Review?</h4>
+<p><span class="fm">legal-review · 1</span> · uploaded</p>
+<div class="warnbox"><b>This isn't signed.</b> Agenthix can't tell who made it or whether it was changed on the way. Read it before you install it.</div>
+<div class="row" style="margin-top:10px"><span class="chk on"></span> I've read it <span class="fm">· required before Install (D26)</span></div>
+<div class="row end"><span class="btn">Cancel</span><span class="btn">Read it</span><span class="btn pri">Install</span></div></div></div></div>
+<p class="sub">Only if the organisation allows unsigned assets (P2, on by default). If it doesn't: "Your organisation doesn't allow unsigned skills." and no Install.</p>
+
+<div class="step">S4 · Signature doesn't match</div>
+<div class="frame mock" style="position:relative;min-height:210px"><div class="scrimbox"><div class="dialog">
+<h4>Can't install SEO Audit</h4>
+<div class="warnbox"><b>This was changed after it was signed.</b> It won't be installed.</div>
+<div class="row end"><span class="btn pri">Close</span></div></div></div></div>
+<p class="sub">Refused with no override (D8). The same refusal for a package that claims a publisher it isn't signed by, such as <span class="fm">agenthix/…</span> without Agenthix's signature (I4).</p>
+
+<div class="step">A person signed it</div>
+<p>In S1 or S2, a signature from a person's own identity reads <i>Signed by <b>a person</b>, alice@example.com, not an organisation</i> (D9, W3).</p>
+</div>
+
+<h2 id="brings">A template: what comes with it</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="position:relative;min-height:440px"><div class="scrimbox"><div class="dialog" style="width:540px">
+<h4>Install Project manager?</h4>
+<p><span class="fm">agenthix/project-manager · 2.0</span> · ✓ Signed by <b>Agenthix</b></p>
+<p><b>It brings 7 skills:</b></p>
+<div class="stepcard">5 for its role: read-context, write-implementation-plan, write-sprint-plan, assign-work, review-work<br>
+1 you already have: <b>Sprint Planning 1.3</b>, shared, not copied<br>
+1 newer than yours: <b>Code Review 1.4</b> (you have 1.3). Update offered after install <span class="num">6</span></div>
+<p style="font-size:13px;color:var(--t2)">Installing the template doesn't add it to anyone. Create an agent from it, and that agent gets its role skills.</p>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri">Install</span></div></div></div></div>
+<ol start="6"><li><b>De-duplicated by identity</b> (I3, I6): the same version is reused; an older one leaves yours alone; a newer one is offered, never applied by itself (V2). The template's own role skills install with it under its name.</li></ol></div>
+
+<h2 id="done">It says what it did</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="flag" style="background:var(--ok-soft)"><b style="color:var(--ok)">Installed.</b>&nbsp;Bug Reporting 1.0 is in the Library. No agent has it yet. <span class="btn link">Add to agents…</span></div>
+<p class="sub">After every install, a confirmation in words, with the next step. Today <i>Install to Org</i> confirms nothing (U1 ④).</p></div>
+
+<h2 id="features">Before, after, why</h2>
+<h3 id="f-sources">Sources</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p><i>Import</i> takes ZIPs; <i>Install to Org</i> copies from the built-in library. Nothing is checked.</p></div>
+<div class="box"><span class="lbl after">After</span><p><i>Add</i>: from Agenthix, upload, or a link, all through one check.</p></div></div>
+<div class="why"><b>Why:</b> skills come from anywhere (D7), and nobody is tied to a service. One check means one place where a tampered package is stopped.</div>
+<h3 id="f-trust">Trust</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>Anything imported is trusted silently.</p></div>
+<div class="box"><span class="lbl after">After</span><p>Four states. The person is always told the two things that matter: that it's unsigned, or who signed it.</p></div></div>
+<div class="why"><b>Why:</b> Agenthix vouches that a signer is who they say they are, never that an asset is safe (D8). Naming the publisher on first trust gives administrators a word they recognise (D9).</div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><p><b>None.</b> UQ7 (the "I've read it" tick before installing an unsigned asset) was answered by D26; <i>Install</i> stays disabled until it is ticked. UQ8 (install, then add to agents, as separate steps) and UQ9 (trusted publishers managed in settings) were applied as defaults.</p></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

@@ -1,3 +1,4 @@
+import { pickedSkillInstruction, pickedSkillReadInstruction } from '../pickedSkill'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 vi.mock('#db', () => ({ prisma: {} }))
@@ -19,7 +20,7 @@ const C = 'agent-c1'
 const CONV = 'conv-1'
 const CONN = openCodeConnectionName(CONV)
 
-const noSkills = async () => ({ skills: [], systemSection: null })
+const noSkills = async () => ({ skills: [], systemSection: null, invocable: [] })
 
 function context(over: Partial<RunContext> = {}): RunContext {
   return {
@@ -30,7 +31,7 @@ function context(over: Partial<RunContext> = {}): RunContext {
     mcpServers: { platform: { type: 'http', url: 'http://site/mcp', headers: { Authorization: 'Bearer run-token' } } },
     capability: { jwt: 'jwt', expiresAt: Date.now() + 600_000 },
     credential: { kind: 'apiKey', provider: 'openrouter', apiKey: 'or-key' },
-    riskRules: null, packages: {} as RunContext['packages'], boundaryOverride: null, boundarySharedSkills: null,
+    riskRules: null, packages: {} as RunContext['packages'], boundaryOverride: null, skills: null,
     claudeHome: { serverDir: '/h', visibleDir: '/home/appuser' }, workingTreeDir: '/w',
     abortSignal: new AbortController().signal,
     ...over,
@@ -115,12 +116,34 @@ describe('an OpenCode turn', () => {
     const staged: string[] = []
     const stageSkills = async (_c: unknown, id: string) => {
       staged.push(id)
-      return { skills: [{ name: 'notes', description: 'Reads notes', location: '/x/SKILL.md' }], systemSection: '<skills>notes</skills>' }
+      return { skills: [{ name: 'notes', description: 'Reads notes', location: '/x/SKILL.md' }], systemSection: '<skills>notes</skills>', invocable: [{ name: 'notes', userInvocable: true, modelInvocable: true, skillFile: '/x/SKILL.md' }] }
     }
     await collect(new OpenCodeRuntime({ servers, store: memoryStore(), stageSkills }).run(context()))
     expect(staged).toEqual([CONV])
     const prompt = relays[0].calls.find(c => c.path.includes('/prompt_async'))!
     expect((prompt.body as { system: string }).system).toBe('You are Ada.\n\n<skills>notes</skills>')
+  })
+
+  it('tells the agent to load a picked skill staged for the turn, and drops one not staged or not for people', async () => {
+    const stageSkills = async () => ({
+      skills: [], systemSection: null,
+      invocable: [
+        { name: 'org-review', userInvocable: true, modelInvocable: true, skillFile: '/s/org-review/SKILL.md' },
+        { name: 'org-hidden', userInvocable: false, modelInvocable: true, skillFile: '/s/org-hidden/SKILL.md' },
+        { name: 'org-by-hand', userInvocable: true, modelInvocable: false, skillFile: '/s/org-by-hand/SKILL.md' },
+      ],
+    })
+    const sent = async (pickedSkill: string) => {
+      const { servers, relays } = scripted(replyAndIdle)
+      await collect(new OpenCodeRuntime({ servers, store: memoryStore(), stageSkills }).run(context({ pickedSkill })))
+      const prompt = relays[0].calls.find(c => c.path.includes('/prompt_async'))!
+      return (prompt.body as { parts: { text: string }[] }).parts[0].text
+    }
+    expect(await sent('org-review')).toBe(`${pickedSkillInstruction('org-review')}\n\nRead the notes and stamp the codeword please now`)
+    expect(await sent('org-hidden')).toBe('Read the notes and stamp the codeword please now')
+    expect(await sent('org-elsewhere')).toBe('Read the notes and stamp the codeword please now')
+    expect(await sent('org-by-hand'))
+      .toBe(`${pickedSkillReadInstruction('org-by-hand', '/s/org-by-hand/SKILL.md')}\n\nRead the notes and stamp the codeword please now`)
   })
 
   it('points the conversation\'s token, a relay token and the plugin\'s turn at this run only while it runs', async () => {

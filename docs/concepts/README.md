@@ -77,6 +77,10 @@ The ones every concept document leans on:
 | **Knowledge**, **page**, **section** | What a place shares for everyone and every agent working there: pages (Markdown files with front matter) in sections (folders), searched by words and changed through one gate. Four **levels**: the platform guide (`platform:`), the organisation (`org:`), a project, and Your space (`personal:`) ([knowledge](knowledge/knowledge.md)) |
 | **Your space** | A person's default personal project. Any other personal project is a place of its own, like any project ([places](projects/places.md)) |
 | **Programme** | A group of projects; `Program` in the code |
+| **Asset** | A Library item: a skill, or an agent, board or team template. A signed or unsigned package with an identity (`publisher/name`), pinned to one version for the whole organisation ([the Library](library/library.md)) |
+| **Skill**, **has** | A folder of instructions an agent follows for one kind of task. An agent *has* a skill, from the Library, a project's files or a person's own space; never "given" ([skills](skills/skills.md)) |
+| **Draft**, **publish**, **proposal** | An edit is a draft no agent sees; publishing makes the next version. Agents draft and propose; people publish ([drafts and proposals](skills/drafts-and-proposals.md)) |
+| **Library maintainer** | An organisation role, named by administrators, that looks after every Library asset ([the Library](library/library.md#who-may-do-what)) |
 | **Workflow** | A named, versioned script in a place's library that a person approves word for word; the only thing that uses a secret ([workflows](workflows/workflows.md)) |
 | **Executor** | The site carrying out an approved workflow's steps, each in a container of its own. Not an agent, and has no model |
 | **Secret**, **variable** | A place's named values for its workflows: a secret is never shown and goes only to the steps that name it; a variable is a plain setting anyone in the place can read ([secrets and variables](workflows/secrets-and-variables.md)) |
@@ -156,8 +160,9 @@ from other people, keep it in your own storage or in a project they are not part
 | What an agent learned, and how it is recalled | [Memory](memory/memory.md), [the prompt](agents/prompt_builder.md) |
 | What a place shares: pages in sections, the platform guide, the gate, who may change what | [Knowledge](knowledge/knowledge.md) |
 | What an agent can do, and approvals | [Skills](skills/skills.md), [tool control and approvals](agents/hitl-and-tool-control.md) |
+| How a skill is looked after: drafts, publishing, proposals, a project's own skills | [Drafts and proposals](skills/drafts-and-proposals.md), [skills in files](skills/skills-in-files.md) |
 | Which harness runs work | [Runtimes and models](agents/agent-runtime-model.md) |
-| Ready-made agents, boards and teams | [the library](library/library.md) |
+| Ready-made agents, boards, teams and skills, and how they are installed, versioned and trusted | [the Library](library/library.md), [installing](library/installing.md) |
 
 ## The folders
 
@@ -171,7 +176,7 @@ from other people, keep it in your own storage or in a project they are not part
 | [`file-sharing/`](file-sharing/file-sharing.md) | How files and artefacts are served back to people: [what is kept and who may read it](file-sharing/file-sharing.md), [opening a file](file-sharing/opening-files.md) through tickets and relays, and [references, chips and embeds](file-sharing/references-and-chips.md) |
 | [`fleet/`](fleet/fleet.md) | The fleet: HQ, its sites and relay and the machines they run on, the host service, the Fleet Console, and the organisation, fleet and machine admins |
 | [`git/`](git/git-access.md) | Repository attachments, the GitHub App and its accounts, which places can connect, pushing and pulling through workflows |
-| [`library/`](library/library.md) | Agent, board, skill and team templates, each one package with its source, version and publisher |
+| [`library/`](library/library.md) | The asset layer: skills and agent, board and team templates, each one a package with an identity, a pinned version, a history and a maintainer; [installing](library/installing.md) from anywhere; [library skills](library/skills.md) |
 | [`knowledge/`](knowledge/README.md) | What a place shares for agents and people: pages in sections, four levels, the tools, the gate with versions, who may change what |
 | [`memory/`](memory/README.md) | What an agent learned, memory recalled by meaning in three scopes, how it differs from knowledge, and where each part is held |
 | [`notifications/`](notifications/notifications.md) | What hq tells a person, what needs them, and how a request clears itself |
@@ -181,9 +186,9 @@ from other people, keep it in your own storage or in a project they are not part
 | [`projects/`](projects/README.md) | Projects, products and programmes; places, where conversations belong ([places](projects/places.md)); each person's personal project ([personal projects](projects/personal-projects.md)) |
 | [`onboarding/`](onboarding/onboarding-flow.md) | Onboarding: every invited person joins the organisation |
 | [`setup/`](setup/setup-flow.md) | Setup: the first admin sets up a fresh HQ, once, with models and voice |
-| [`skills/`](skills/skills.md) | Skills: where they come from, how a turn receives them, writing one |
+| [`skills/`](skills/skills.md) | Skills: where they live and which wins, [skills in files](skills/skills-in-files.md), [drafts, publishing and proposals](skills/drafts-and-proposals.md), how a turn receives them ([staging](skills/skills-merge.md)), [writing one](skills/authoring-skills.md) |
 | [`tasks/`](tasks/task.md) | Tasks, boards, delegation, [automation](tasks/automation.md) and [routines](tasks/routines.md) |
-| [`workforce/`](workforce/workforce-templates.md) | Workforce templates as a person meets them: why they exist, applying one, the bundled teams. How they are stored and seeded is [library/workforce-templates.md](library/workforce-templates.md) |
+| [`workforce/`](workforce/workforce-templates.md) | Workforce templates as a person meets them: why they exist, applying one, the bundled teams. The package is [library/workforce-templates.md](library/workforce-templates.md) |
 | [`workflows/`](workflows/workflows.md) | Workflows, their versions and approval, the executor; [secrets and variables](workflows/secrets-and-variables.md) |
 | [`workspace/`](workspace/workspace.md) | Storage and workspaces, commit authorship (not built) |
 

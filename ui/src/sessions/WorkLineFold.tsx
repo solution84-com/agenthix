@@ -10,6 +10,11 @@ export type WorkLineActions = {
   /** Opens what a change changed; a target it returns false for is shown as plain text. */
   onOpenTarget?: (target: WorkTarget) => boolean | void
   canOpenTarget?: (target: WorkTarget) => boolean
+  /**
+   * A used skill's line as people read it ("Used the skill Code Review · Fernhill · 1.3.0"), for the skill a run
+   * staged under `name`; null keeps the step as it is. `runId` is null while the run has no id here yet.
+   */
+  skillLabel?: (name: string, runId: string | null) => string | null
 }
 
 export const toWorkEntry = (e: TranscriptEntry) => ({
@@ -35,19 +40,24 @@ function glyph(step: WorkStep) {
   return <span className="w-3 shrink-0" />
 }
 
-function StepRow({ step, actions, running }: { step: WorkStep; actions: WorkLineActions; running: boolean }) {
+function StepRow({ step, actions, running, runId }: { step: WorkStep; actions: WorkLineActions; running: boolean; runId: string | null }) {
   const [open, setOpen] = useState(false)
   const target = step.target && actions.canOpenTarget?.(step.target) ? step.target : null
   const folded = step.items.length > 1
+  const skillLine = step.target?.type === 'skill' ? actions.skillLabel?.(step.target.name, runId) ?? null : null
   return (
     <li className="py-0.5">
       <div className="flex items-start gap-2">
         {glyph(step)}
         <p className={`min-w-0 flex-1 text-small ${step.kind === 'changed' ? 'text-text-primary' : 'text-text-secondary'}`}>
-          <span className={step.kind === 'thought' ? 'italic text-text-muted' : 'font-medium'}>{step.verb}</span>{' '}
-          {step.kind === 'thought'
-            ? <span className="italic text-text-muted">{step.text}</span>
-            : <span className={step.kind === 'ran' ? 'font-mono text-micro break-all' : ''}>{step.text}</span>}
+          {skillLine ? <span className="font-medium">{skillLine}</span> : (
+            <>
+              <span className={step.kind === 'thought' ? 'italic text-text-muted' : 'font-medium'}>{step.verb}</span>{' '}
+              {step.kind === 'thought'
+                ? <span className="italic text-text-muted">{step.text}</span>
+                : <span className={step.kind === 'ran' ? 'font-mono text-micro break-all' : ''}>{step.text}</span>}
+            </>
+          )}
           {target && (
             <button type="button" onClick={() => actions.onOpenTarget?.(target)} className="ml-1.5 rounded text-accent hover:underline">
               {target.type === 'task' && target.key ? target.key : 'Open'} ›
@@ -71,7 +81,14 @@ function StepRow({ step, actions, running }: { step: WorkStep; actions: WorkLine
 }
 
 /** A run's steps, every one in the order it happened; long runs show the first and last few. */
-export function WorkSteps({ steps, runId, actions, running = false }: { steps: WorkStep[]; runId: string | null; actions: WorkLineActions; running?: boolean }) {
+export function WorkSteps({ steps, runId, actions, running = false, forRun = runId }: {
+  steps: WorkStep[]
+  runId: string | null
+  actions: WorkLineActions
+  running?: boolean
+  /** The run the steps are of, for naming its skills, when `runId` is left out to hide its link. */
+  forRun?: string | null
+}) {
   const [all, setAll] = useState(false)
   const { head, hidden, tail } = abridgeWorkLine(steps)
   const shown = all || hidden === 0 ? steps : head
@@ -79,13 +96,13 @@ export function WorkSteps({ steps, runId, actions, running = false }: { steps: W
   return (
     <div>
       <ul>
-        {shown.map((s, i) => <StepRow key={i} step={s} actions={actions} running={running && i === lastIndex} />)}
+        {shown.map((s, i) => <StepRow key={i} step={s} actions={actions} running={running && i === lastIndex} runId={forRun} />)}
         {!all && hidden > 0 && (
           <li className="py-1 text-center">
             <button type="button" onClick={() => setAll(true)} className="text-micro text-accent hover:underline">··· Show all {steps.length} steps ···</button>
           </li>
         )}
-        {!all && tail.map((s, i) => <StepRow key={`t${i}`} step={s} actions={actions} running={running && i === tail.length - 1} />)}
+        {!all && tail.map((s, i) => <StepRow key={`t${i}`} step={s} actions={actions} running={running && i === tail.length - 1} runId={forRun} />)}
       </ul>
       {runId && actions.onOpenRun && (
         <button type="button" onClick={() => actions.onOpenRun?.(runId)} className="mt-1 text-small text-accent hover:underline">
@@ -109,7 +126,7 @@ export function WorkLineFold({ entries, runId, actions, span, live = false, defa
   if (line.steps.length === 0 || (!line.summary && !live)) return null
   return (
     <FoldedLine label={line.summary ?? (live ? 'Working…' : '')} defaultOpen={defaultOpen || live}>
-      <WorkSteps steps={line.steps} runId={live ? null : runId} actions={actions} running={live} />
+      <WorkSteps steps={line.steps} runId={live ? null : runId} forRun={runId} actions={actions} running={live} />
     </FoldedLine>
   )
 }

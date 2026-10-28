@@ -1,0 +1,50 @@
+{
+  "name": "Dev Team",
+  "description": "A small software product team — PM, lead dev, developer, and QA.",
+  "tags": [
+    "software",
+    "team",
+    "product"
+  ],
+  "teams": [
+    {
+      "name": "Engineering",
+      "purpose": "Build and ship software features",
+      "agents": [
+        "lead-dev",
+        "dev",
+        "qa"
+      ]
+    },
+    {
+      "name": "Product",
+      "purpose": "Own the backlog and product direction",
+      "agents": [
+        "pm"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Product",
+      "description": "Main product development project",
+      "defaultAgentHandle": "pm",
+      "boards": [
+        {
+          "name": "Sprint",
+          "template": "sprint"
+        }
+      ]
+    },
+    {
+      "name": "Ops",
+      "description": "Operational issues and maintenance",
+      "boards": [
+        {
+          "name": "Issues",
+          "template": "issues"
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 /**
- * Agent archives (5b.13): an export is an agent's current definition, an import
- * writes one.
+ * Agent archives from before packages (5b.13), imported: an agent's export is now an agent template package
+ * (`agentPackageExport.ts`), installed in the Library.
  *
  * ZIP structure:
  *   {handle}/
@@ -29,14 +29,13 @@
  */
 import JSZip from 'jszip'
 import { prisma, HttpError } from 'wasp/server'
-import { CLAUDE_SDK_RUNTIME, isValidPackagePath, PACKAGE_MAX_BYTES, type ToolPermission, type BashPatternPermission } from '@agenthix/core'
+import { isValidPackagePath, PACKAGE_MAX_BYTES, type ToolPermission, type BashPatternPermission } from '@agenthix/core'
 import { createAgent } from './agentService'
-import { DEFAULT_MODEL } from './models'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { INVALID_AGENT_HANDLE_MESSAGE, isValidAgentHandle } from './agentHandle'
 import { coerceToolPermissions, coerceBashPatternPermissions } from './toolPermissions'
 import {
-  readAgentContent, writeAgentContent, mergeInstructions, defaultAgentSettings, agentSettingsOf, settingsColumns,
+  writeAgentContent, mergeInstructions, defaultAgentSettings, settingsColumns,
   INSTRUCTIONS_FILE, type AgentContent, type AgentSettings,
 } from '../packages/agentPackageService'
 import { PackageContentError, type PackageFileInput } from '../packages/packageStore'
@@ -72,30 +71,6 @@ export interface ParsedAgentZip {
 
 /** A `type` alias (not interface) so it satisfies Wasp's SuperJSON Payload constraint. */
 export type ImportAgentResult = { agentId: string; handle: string; created: boolean }
-
-export async function exportAgentZip(agentId: string): Promise<{ buffer: Buffer; handle: string }> {
-  const agent = await prisma.agent.findUnique({ where: { id: agentId } })
-  if (!agent) throw new Error(`Agent '${agentId}' not found`)
-  const content = await readAgentContent(agentId)
-  if (!content) throw new Error(`Agent '${agent.handle}' has no instructions to export`)
-  const s = agentSettingsOf(agent)
-  const record: AgentArchiveRecord = {
-    name: agent.name,
-    handle: agent.handle,
-    ...(agent.role ? { role: agent.role } : {}),
-    defaultModel: DEFAULT_MODEL,
-    runtime: CLAUDE_SDK_RUNTIME,
-    approval: s.approval,
-    ...(s.permissions.tools ? { allowedTools: s.permissions.tools } : {}),
-    ...(s.permissions.bashPatterns ? { allowedBashPatterns: s.permissions.bashPatterns } : {}),
-  }
-  const zip = new JSZip()
-  const root = zip.folder(agent.handle)!
-  root.file('agent.json', JSON.stringify(record, null, 2))
-  root.file(INSTRUCTIONS_FILE, content.instructions)
-  for (const file of content.skillFiles) root.file(file.path, file.content)
-  return { buffer: await zip.generateAsync({ type: 'nodebuffer' }), handle: agent.handle }
-}
 
 /**
  * Cheap, early refusal on an uploaded archive's *declared* shape: too many
@@ -223,7 +198,7 @@ export async function parseAgentZip(buffer: Buffer): Promise<ParsedAgentZip> {
     skillFiles.push({ path: relative, content: await readEntryCounted(file, budget) })
   }
   // Ordinal, not locale-collated: package file order must be stable across
-  // environments (readAgentContent/exportAgentZip round-trip through it).
+  // environments.
   skillFiles.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
 
   return {

@@ -33,6 +33,10 @@ separate empty databases (`agenthix_fresh`, `agenthix_site_fresh` on the dev dat
 without touching `.env.server` or the normal databases. hq's log prints the first-admin link ("No admin yet. Open this link…"), an `/invite/<key>` address that opens setup at `/setup`.
 `fresh.sh --reset` recreates both databases to run the first-admin flow again; `--dry-run` prints what it would do. It refuses to run while ports 4100/4101 are in use.
 
+AI providers after a wipe: copy `.env.dev.example` to `.env.dev` at the repository root and fill in the keys you have.
+`start.sh` (so `fresh.sh` too) adds each one hq does not have yet once hq is up, through its control socket, and logs
+a line per provider added or refused. Leave a key blank to add that provider by hand, in setup for example.
+
 ## hq and its own site come as a pair
 
 Workspace and repository-attachment rows live in the site's database, and hq reads them over the control

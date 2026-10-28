@@ -28,6 +28,7 @@ import { clearOpenCodeTurn, recordOpenCodeSession, setOpenCodeTurn } from './ope
 import { openCodeSessionExists, openCodeSessionForTurn, prismaHarnessSessionStore, type HarnessSessionStore } from './opencode/openCodeSessions'
 import { runOpenCodeTurn } from './opencode/openCodeTurn'
 import { ReadableRunError } from './readableRunError'
+import { turnPrompt } from './pickedSkill'
 import { openCodeSkillsDirs, stageOpenCodeSkills } from './opencode/openCodeSkills'
 import { setOpenCodeSkillsDir } from './opencode/openCodeGate'
 import { issueRelayToken, pointRelayToken, revokeRelayToken, turnModelCredentials } from '../../server/modelRelay/relayTokens'
@@ -126,7 +127,7 @@ export class OpenCodeRuntime implements AgentRuntime {
         openCodeSessionId,
         connectionName,
         model,
-        context,
+        context: { ...context, prompt: turnPrompt(context, staged.invocable) },
         system: [context.agent.systemPrompt, staged.systemSection].filter(Boolean).join('\n\n') || undefined,
       })
     } finally {

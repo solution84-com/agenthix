@@ -1,4 +1,5 @@
 import { useAuth } from 'wasp/client/auth'
+import type { PickedSkill } from '@agenthix/core'
 import type { ConversationView } from '../../shared/conversations/protocol'
 import { useVoiceCall } from '../../shared/providers/VoiceCallProvider'
 import { speakerOf, voiceHere, voiceStatusWords } from '../voiceClient/voiceUi'
@@ -16,7 +17,7 @@ export function ConversationComposer({ conversationId, view, running, sending, o
   view: ConversationView
   running: boolean
   sending: boolean
-  onSend: (text: string) => Promise<boolean>
+  onSend: (text: string, skill?: PickedSkill) => Promise<boolean>
   onStop: () => Promise<unknown>
 }) {
   const { data: me } = useAuth()
@@ -47,6 +48,7 @@ export function ConversationComposer({ conversationId, view, running, sending, o
         agentId={agent?.id}
         conversationId={conversationId}
         takesMentions
+        takesSkills
         placeholder={agent ? `Message ${agent.name}…` : 'Write a message…'}
         running={running}
         sending={sending}

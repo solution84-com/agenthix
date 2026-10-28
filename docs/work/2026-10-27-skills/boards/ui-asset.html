@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>An asset's page · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-asset.html"><main>
+<div class="top"><div><h1>U3 · An asset: versions, history, credit</h1>
+<p class="sub">An installed asset's own page, opened from its row in the Library (U2). It's the same page for every kind (D20); a template's page adds what it carries. The example is the organisation's own copy of a code review skill, so every section has something in it. Numbers match the notes.</p></div></div>
+
+<h2 id="page">The page</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk">
+<div class="anav" data-on="library"></div>
+<div class="mcentre">
+<div class="crumb"><a>Library</a> › <a>Skills</a> › Code Review</div>
+<div class="row"><div class="mh grow">Code Review</div><span class="btn">Ask an agent to edit</span><span class="btn">Edit <span class="num">5</span></span><span class="btn">⋯</span></div>
+<div class="ml"><span class="fm">fernhill/code-review · version 2</span> · Made here</div>
+<div class="preview" style="min-height:110px"><b>Review a pull request for correctness, fit and tests. Use when asked to review code or a PR.</b><br><br># Code Review<br>1. Read the linked task and its acceptance criteria.<br>2. Check the change against the project's standards in AGENTS.md…<br><span style="color:var(--t3)">Files beside it: checklist.md</span></div>
+
+<div class="msec">Agents with this skill <span class="num">1</span></div>
+<div class="radio"><div class="dot"></div><div><b>Every agent</b><div class="s" style="font-size:13px;color:var(--t2)">Every agent in Fernhill, now and later</div></div></div>
+<div class="radio on"><div class="dot"></div><div><b>Chosen agents</b> <span class="chip">Ada ✕</span><span class="chip">Priya ✕</span><span class="btn link">＋ Add an agent</span></div></div>
+
+<div class="msec">Versions <span class="num">2</span></div>
+<div class="mcard"><div class="b"><div class="t">Version 2 · in use</div><div class="s">Saved by Avery Chen, today 10:42 · "Check AGENTS.md standards first"</div></div><span class="tag ok">In use</span></div>
+<div class="mcard"><div class="b"><div class="t">Version 1</div><div class="s">Made by Avery Chen from agenthix/code-review 1.3, 24 Oct</div></div><span class="btn">View</span><span class="btn">Roll back to this</span></div>
+<div class="flag"><b>News:</b> agenthix/code-review 1.4 is out. <span class="btn link">See what changed</span> <span class="num">6</span></div>
+
+<div class="msec">Credit <span class="num">3</span></div>
+<div class="stepcard">Based on <b>agenthix/code-review 1.3</b> · copied 24 Oct · <span class="tag ok">verified</span><br>Based on <b>blog.example.com/review-checklist</b> · added by Avery Chen · <span class="tag">stated</span><br><span style="color:var(--t3)">Licence: MIT, carried from agenthix/code-review</span> <span class="btn link">＋ Add a credit</span></div>
+
+<div class="msec">Who can edit <span class="num">4</span></div>
+<div class="s" style="font-size:13px;color:var(--t2)">Administrators and the Library maintainers, Avery Chen and Lee Park, who look after every asset. <a style="color:var(--macc)">Settings › Library and skills</a></div>
+<div class="msec">About</div><div class="stepcard" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+<div><b>Identity</b><br><span class="fm">fernhill/code-review</span></div>
+<div><b>Signed</b><br>Made here: it never left hq, so it needs no signature</div>
+<div><b>Came from</b><br>Edited from agenthix/code-review 1.3, which is now set aside <span class="btn link">Use it again</span></div>
+<div><b>Installed</b><br>Avery Chen, 24 Oct</div>
+<div><b>Used</b><br>Last used by Ada, today 11:05, in Website rebuild</div>
+</div>
+<div class="row end" style="margin-top:12px"><span class="btn">Export</span> <span class="btn danger">Remove… <span class="num">7</span></span></div>
+</div>
+</div></div>
+<ol>
+<li><b>Agents with this skill</b> (D23): every agent (L2) or chosen agents (L3), with <i>Add to agents…</i> and <i>Remove from Ada</i>. Changing it is an administrator's action (D17), and it takes effect on each agent's next turn.</li>
+<li><b>Versions</b>: each published or installed version, with who, when and a note (D11, V2, V6). <i>Roll back to this</i> makes that version the one in use, after a confirmation, and records who did it. Content of every version is kept while it's in the history.</li>
+<li><b>Credit</b>: the "based on" list from the manifest, written once when the copy was made (D19). <i>verified</i> where hq matched the original's fingerprint, <i>stated</i> otherwise. The licence travels with it. People can only <i>Add a credit</i> (stated). No line can be edited or removed here.</li>
+<li><b>Who can edit</b> (D28): administrators and the <b>Library maintainers</b>, an organisation role named in the settings (R2), who look after every asset. There are no maintainers per asset. Library maintainers may edit and publish (U3b), accept an update, roll back, and review proposals. They may not choose which agents have it, or remove it: those stay with administrators.</li>
+<li><b>Edit</b> opens the editor on a draft of the skill's files (<a href="/files/ui-edit.html">U3b</a>): View, Edit and Changes, published as the next version with a note (D24, D25). <i>Ask an agent to edit</i> does the same through a conversation. On an asset another publisher signed, Edit says first that it will make your own copy (U5, D18).</li>
+<li><b>News</b>: a newer version of the original is shown here, never merged (D18).</li>
+<li><b>Remove</b> names what it reaches before it does it (below).</li></ol></div>
+
+<h2 id="edit">Editing: draft, then publish (D24)</h2>
+<div class="warnbox"><b>Drawn in full on <a href="/files/ui-edit.html">U3b · Making and editing a skill</a></b>: the skill's files in a tree, View, Edit and Changes modes, change markers, a per-file diff, and asking an agent. This section is the short version.</div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk"><div class="anav" data-on="library"></div><div class="mcentre">
+<div class="crumb"><a>Library</a> › <a>Skills</a> › Code Review</div>
+<div class="row"><div class="mh grow">Code Review <span class="tag warn">Draft</span></div><span class="btn">Discard draft</span><span class="btn pri">Publish…</span></div>
+<div class="ml"><span class="fm">fernhill/code-review</span> · version 2 in use · <b>draft by Sam, 2 changes</b> · no agent sees a draft</div>
+<div class="tabs"><span class="on">SKILL.md</span><span>checklist.md</span><span>＋ File</span><span>What changed</span></div>
+<div class="editor">---
+name: code-review
+description: Review a pull request for correctness, fit and tests. Use when asked to review code or a PR.
+---
+# Code Review
+1. Read the linked task and its acceptance criteria.
+2. Check the change against the project's standards in AGENTS.md.
+<span class="diffadd">3. Check accessibility: labels, contrast, keyboard paths.</span>
+…</div>
+<div class="scrimbox" style="position:relative;inset:auto;margin-top:12px;background:none"><div class="dialog"><h4>Publish version 3</h4>
+<p style="font-size:13px;color:var(--t2)">Every agent with this skill, Ada and Priya, uses version 3 from their next turn. Version 2 stays in the history, one click to roll back.</p>
+<div class="field"><label>What changed</label><div class="in">Added the accessibility check</div></div>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri">Publish</span></div></div></div>
+</div></div></div>
+<table><tr><th></th><th>Step</th><th>Mechanism</th></tr>
+<tr><td class="n">E1</td><td><b>Edit</b> makes a draft</td><td>Administrators and Library maintainers (D28). A draft is kept per skill, shown to whoever can edit, and never staged</td></tr>
+<tr><td class="n">E2</td><td><b>Publish</b> asks for a note and makes the next version</td><td>The pin moves to it (V1); every agent with the skill gets it on its next turn; the history records who published it and when (D17)</td></tr>
+<tr><td class="n">E3</td><td><b>Ask an agent to edit</b> opens a conversation with the skill attached</td><td>The agent writes the change with <code>propose_skill</code> as an edit. Because the person asking can edit this skill, it lands as <b>their draft</b>, with <i>Open draft</i> and <i>Publish</i> on the card (C3). From someone who can't, it's a proposal for review (R1)</td></tr>
+<tr><td class="n">E4</td><td><b>Agents draft, people publish</b></td><td>No agent publishes, the same rule as workflows (<code>propose_workflow</code>, <code>hq/src/workflows/propose.ts</code>)</td></tr>
+<tr><td class="n">E5</td><td>A skill <b>another publisher signed</b></td><td>The first edit's draft is the organisation's own copy; publishing it is the copy's version 1 (D18, U5)</td></tr>
+</table></div>
+
+<h2 id="installed">The same page, for an installed asset signed by someone else</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre">
+<div class="row"><div class="mh grow">SEO Audit</div><span class="btn">Edit</span><span class="btn">⋯</span></div>
+<div class="ml"><span class="fm">acme/seo-audit · 2.0</span> · Signed by <b>Acme</b> (github.com/acme, workflow <code>release.yml</code>) · from <span class="fm">https://github.com/acme/skills/releases/download/v2.0/seo-audit.zip</span></div>
+<div class="flag"><b>No agent has it yet.</b> Installed by Avery Chen today. <span class="btn link">Add to agents…</span></div>
+<p class="sub">The <b>About</b> section shows the signer exactly as the check proved it, and the name the administrator gave the publisher when trusting it (D9). It never says "verified organisation": that waits for a hosted registry's own check.</p>
+</div></div></div>
+
+<h2 id="template">A template's page adds what it carries</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre">
+<div class="row"><div class="mh grow">Project manager</div><span class="btn pri">Create an agent from this</span><span class="btn">⋯</span></div>
+<div class="ml"><span class="fm">agenthix/project-manager · 2.0</span> · Signed by Agenthix</div>
+<div class="msec">Skills it brings</div>
+<div class="mcard"><div class="b"><div class="t">read-context, write-implementation-plan, write-sprint-plan, assign-work, review-work</div><div class="s">Its own role skills, named under it (<span class="fm">agenthix/project-manager/…</span>)</div></div><span class="tag">Role</span></div>
+<div class="mcard"><div class="b"><div class="t">Sprint Planning <span class="fm">agenthix/pm-sprint-planning 1.3</span></div><div class="s">Already installed at the same version: shared, not copied (I3)</div></div><span class="tag ok">Installed</span></div>
+<div class="msec">Agents made from it</div><div>Priya (made from 2.0)</div>
+<p class="sub">Agents made from a template are their own definitions (adr-0072). Updating the template doesn't change Priya. The list only says which version each was made from.</p>
+</div></div></div>
+
+<h2 id="remove">Remove</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="position:relative;min-height:300px"><div class="mcentre"><div class="mh">Code Review</div></div>
+<div class="scrimbox"><div class="dialog">
+<h4>Remove Code Review?</h4>
+<p><b>Ada</b> and <b>Priya</b> have it. They'll stop using it on their next turn. Their pages will show it as <i>missing</i>, with <i>Install</i>.</p>
+<p style="color:var(--t2);font-size:13px">Its history is kept, so it can be installed again with its versions and credit.</p>
+<div class="row end"><span class="btn">Cancel</span><span class="btn danger">Remove</span></div>
+</div></div></div>
+<p class="sub">An administrator's action (D17). A template that brought the skill keeps working without it: packages are self-contained, so nothing else breaks (I1).</p></div>
+
+<h2 id="features">Before, after, why</h2>
+<h3 id="f-page">A page instead of a dialog</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>A dialog with the content and <i>Install to Org</i>, plus <i>Edit</i> and <i>Delete</i> for skills made here (U1 ④⑤). No versions, no record of who changed what, no way to see where it's used.</p></div>
+<div class="box"><span class="lbl after">After</span><p>A page with its own address: content, who has it, versions, credit, who can edit, and its signer and source.</p></div></div>
+<div class="why"><b>Why:</b> looking after an asset needs history and ownership (T9, D11, D17, D19). A page can be linked, from a run's step (C2) or from an agent's list (A1).</div>
+<h3 id="f-give">Agents with this skill, from the asset</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>To the whole organisation from the Library, or to one agent from that agent's page, built-in skills only (U1 ⑥⑦).</p></div>
+<div class="box"><span class="lbl after">After</span><p>Both from here: every agent, or chosen agents. The agent's page offers the same from the other side (A1).</p></div></div>
+<div class="why"><b>Why:</b> agents have only what someone added (D14). One control, reachable from both ends.</div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><p><b>None.</b> UQ4 ("last used by"), UQ5 (a template's agents made from it, read-only) and UQ6 (removing a skill a template brought is allowed, with the warning) were applied as defaults.</p></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

@@ -12,7 +12,6 @@ const h = vi.hoisted(() => ({
   capturedPromptArg: null as any,
   resolveAgentContext: vi.fn(),
   resolveBoundaryOverrideDir: vi.fn(),
-  resolveBoundarySharedSkillsDir: vi.fn(),
   mockPrisma: {
     agentRun: { findUnique: vi.fn(), update: vi.fn() },
     agentSession: { update: vi.fn(), findUnique: vi.fn() },
@@ -46,10 +45,8 @@ vi.mock('node:fs/promises', () => ({
 }))
 
 const FAKE_OVERRIDE = { dir: '/files/.agents/agents/agent-1', filesHome: '/files' }
-const FAKE_SHARED = { dir: '/files/.agents/skills', filesHome: '/files' }
 vi.mock('../../../packages/boundaryOverrides', () => ({
   resolveBoundaryOverrideDir: h.resolveBoundaryOverrideDir,
-  resolveBoundarySharedSkillsDir: h.resolveBoundarySharedSkillsDir,
 }))
 
 vi.mock('../../AgentPromptBuilder', () => ({
@@ -150,7 +147,6 @@ describe('assembleRunLaunch — a boundary\'s overrides reach the run (P18)', ()
     h.mockPrisma.toolCallLog.findMany.mockResolvedValue([])
     h.resolveAgentContext.mockResolvedValue({ agent: AGENT_FIXTURE, session: TASK_SESSION_FIXTURE })
     h.resolveBoundaryOverrideDir.mockResolvedValue(FAKE_OVERRIDE)
-    h.resolveBoundarySharedSkillsDir.mockResolvedValue(FAKE_SHARED)
   })
 
   it('threads the real override through', async () => {
@@ -161,7 +157,18 @@ describe('assembleRunLaunch — a boundary\'s overrides reach the run (P18)', ()
     expect(h.resolveBoundaryOverrideDir).toHaveBeenCalledWith(PRIMARY_LOC, 'agent-1')
     expect(h.capturedContext.boundaryOverride).toEqual(FAKE_OVERRIDE)
     expect(h.capturedPromptArg).toEqual(FAKE_OVERRIDE)
-    expect(h.resolveBoundarySharedSkillsDir).toHaveBeenCalledWith(PRIMARY_LOC)
-    expect(h.capturedContext.boundarySharedSkills).toEqual(FAKE_SHARED)
+    expect(h.capturedContext.skills).toBeNull()
+  })
+
+  it("carries the skills hq named, for the run's place and agent, and leaves out an entry of the wrong shape", async () => {
+    mockAgentRun({ taskId: null })
+    const file = { placeId: 'p1', path: '.agents/skills/review', fingerprint: 'c'.repeat(64), group: 'place' as const }
+    const context = { ...DISPATCH_CONTEXT, fileSkills: [file, { placeId: 'p1', path: 'x', fingerprint: 'not hex', group: 'place' }] } as RunContextPayload
+
+    await agentEngine.run('run-1', { dispatchContext: context, capabilityJwt: 'jwt', runLimits: DEFAULT_RUN_LIMITS })
+
+    expect(h.capturedContext.skills).toMatchObject({
+      place: { ownerType: 'project', ownerId: 'p1' }, agentId: 'agent-1', installed: [], files: [file], person: [],
+    })
   })
 })

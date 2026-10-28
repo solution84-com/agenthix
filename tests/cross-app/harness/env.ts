@@ -87,6 +87,8 @@ export const SITE_SECRETS_MASTER_KEY: string | undefined = loadedSiteKey
   ? undefined
   : (process.env.CROSSAPP_SITE_SECRETS_KEY ?? randomBytes(32).toString('base64'))
 if (SITE_SECRETS_MASTER_KEY) process.env.CROSSAPP_SITE_SECRETS_KEY = SITE_SECRETS_MASTER_KEY
+/** The key the site this tier boots encrypts its stored secrets with, whichever of the two above it is. */
+export const SITE_SECRETS_KEY_IN_USE: string = loadedSiteKey || (SITE_SECRETS_MASTER_KEY as string)
 
 // What the host service sets at install for hq and its Fleet Console (host-management spec §4 C8). hq is always
 // started with it here, so the stand-in Fleet Console (fleetConsole.ts) can dial hq in any file, after any restart.

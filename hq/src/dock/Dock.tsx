@@ -101,8 +101,18 @@ const placeKey = (place: PlaceRef) => (place.kind === 'space' ? 'space' : `proje
 
 /** A new conversation (spec §10): *New conversation* and Cancel in place of the buttons; Esc cancels too. */
 function NewInDock({ draft }: { draft: DockDraft }) {
+  const area = useRef<HTMLDivElement>(null)
+  const seen = useRef(draft.asked)
+  // Asking again while the draft shows (Talk, or Talk to an agent) puts the caret back in its box; the first ask
+  // is focused by the box itself once its agents are known.
+  useEffect(() => {
+    if (seen.current === draft.asked) return
+    seen.current = draft.asked
+    area.current?.querySelector('textarea')?.focus()
+  }, [draft.asked])
   return (
     <div
+      ref={area}
       data-testid="dock-draft"
       className="flex min-h-0 flex-1 flex-col"
       onKeyDown={(e) => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); draft.cancel() } }}

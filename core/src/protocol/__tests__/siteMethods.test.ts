@@ -30,7 +30,8 @@ const CONTROL_LIST = [
   LOCATION_FILE_METHODS.ensureDir, LOCATION_FILE_METHODS.removeLocation, LOCATION_FILE_METHODS.listArtefacts,
   LOCATION_FILE_METHODS.listKnowledge, LOCATION_FILE_METHODS.searchKnowledge, LOCATION_FILE_METHODS.writeKnowledge,
   LOCATION_FILE_METHODS.editKnowledge, LOCATION_FILE_METHODS.deleteKnowledge, LOCATION_FILE_METHODS.restoreKnowledge,
-  LOCATION_FILE_METHODS.knowledgeVersions, LOCATION_FILE_METHODS.findFiles,
+  LOCATION_FILE_METHODS.knowledgeVersions, LOCATION_FILE_METHODS.findFiles, LOCATION_FILE_METHODS.scanSkills,
+  LOCATION_FILE_METHODS.removeSkill,
   ...Object.values(SITE_DIAGNOSTICS_METHODS), ...Object.values(SITE_RESTORE_METHODS), ...Object.values(CLAUDE_LOGIN_METHODS),
   ...Object.values(WORKFLOW_RUN_METHODS),
 ] as const
@@ -42,7 +43,7 @@ const CONTROL = new Set<string>(CONTROL_LIST)
 
 const CONTENT: Record<SiteContentMethodName, true> = {
   'packages.put': true, 'location.readFile': true, 'location.readArtefact': true, 'location.readKnowledge': true,
-  'preview.connect': true, [FILES_SERVE_METHOD]: true,
+  'location.writeSkill': true, 'preview.connect': true, [FILES_SERVE_METHOD]: true,
 }
 
 const EVENTS: Record<SiteEventName, true> = {

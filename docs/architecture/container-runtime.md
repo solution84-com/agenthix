@@ -196,9 +196,9 @@ adds what only it can know.
 
 | Item | From | Notes |
 |---|---|---|
-| Agent configuration and packages | hq | Its instructions, skills and settings, as packages delivered by digest ([ADR-0072](../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md)) |
+| Agent configuration and packages | hq | Its instructions and settings, as packages delivered by digest (its skills are delivered beside them, as the Skills row says) ([ADR-0072](../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md)) |
 | System prompt | built on the site | `AgentPromptBuilder` (`site/src/agents/AgentPromptBuilder.ts`), from the packages, the boundary's overrides, the mounted folders, the person's agenda and a memory section that says how to recall. See [the prompt builder concept](../concepts/agents/prompt_builder.md) |
-| Skills | staged on the site per turn | From five sources, under namespaced names ([ADR-0084](../adr/adr-0084-an-agents-skills-are-staged-by-agenthix-per-turn.md); [the skills concept](../concepts/skills/skills.md)) |
+| Skills | staged on the site per turn | The ones hq names for the run (built in, installed, a place's switched on, the person's own), each re-checked against its digest or fingerprint, under namespaced names ([ADR-0084](../adr/adr-0084-an-agents-skills-are-staged-by-agenthix-per-turn.md); [skills and the asset layer](skills-and-assets.md)) |
 | What it may do | the signed capability | Tool permissions, already narrowed by the boundary's override and the workspace's guardrail |
 | The run's provider | hq, per run | A provider descriptor for the provider of the model hq's resolver chose: the organisation's key for it, or in a person's own place their own Claude subscription ([model-resolution.md](model-resolution.md), [identity-and-trust.md](identity-and-trust.md#model-credentials)). Kept on the site for the run; see the model relay below |
 | The person's timezone | hq | The IANA zone of the person the run is on behalf of (`context.person.timezone`). The site adds the current local time in it to the prompt, so an agent reads "tomorrow at 9" on the person's clock. Absent when the person has set none |

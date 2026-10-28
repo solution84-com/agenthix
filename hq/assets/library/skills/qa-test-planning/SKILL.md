@@ -1,6 +1,8 @@
 ---
 name: Test Planning
 description: Write test plans covering happy path, edge cases, and regression
+version: 2
+suitedTo: [qa, tester]
 ---
 
 # Test Planning

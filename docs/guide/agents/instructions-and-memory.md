@@ -45,16 +45,17 @@ text that comes with Agenthix; an administrator can edit them like any other age
 ## Skills
 
 A skill is a set of written steps an agent follows for one kind of job, such as reviewing content or writing a bug
-report.
+report. An agent uses a skill when it **has** it: the organisation installs skills in the [Library](library.md), and an
+administrator gives each to every agent or to chosen agents.
 
-1. On the agent's page, find **Skills** and select **Add**.
-2. Select the book icon (**Browse skill library**), choose a skill in **Skill Library** and select **Add**. Or select
-   the plus icon (**New custom skill**), type a name where it says **Skill name...**, and select **Add**.
-3. Select a skill in the list to read or edit it. A skill from the library is marked **Library**, and its **Update**
-   turns on when a newer version exists. One you wrote is marked **Custom**.
+1. On the agent's page, find **Skills**. It lists everything the agent will use, grouped by where each skill comes from.
+2. An administrator selects **Add a skill**, finds one in the Library's skills and selects **Give to** the agent. To take
+   one away, select **Remove from** the agent beside it.
+3. Select a skill's name to read it in the Library.
 
-Skills Agenthix gives every agent, such as task management, are always on and aren't listed. For ready-made skills
-to start from, see [The Library](library.md).
+Skills that come with Agenthix, such as **skill-creator** and **working-with-git**, are on for every agent and listed under
+**Built in**. Skills found in a project's files are switched on per project. All of this, and writing your own, is in
+[Give agents skills](../skills/index.md).
 
 ## What agents remember
 

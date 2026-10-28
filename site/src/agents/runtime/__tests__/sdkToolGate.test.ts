@@ -27,7 +27,7 @@ function ctx(over: Partial<RunContext> = {}): RunContext {
     riskRules: null,
     packages: { refs: { agent: null, org: null, platform: null }, agentDir: null, orgDir: null, platformDir: null } as unknown as RunContext['packages'],
     boundaryOverride: null,
-    boundarySharedSkills: null,
+    skills: null,
     claudeHome: { serverDir: '/site/homes/x/.claude', visibleDir: '/site/homes/x/.claude' },
     workingTreeDir: '/projects/p1/files',
     ...over,

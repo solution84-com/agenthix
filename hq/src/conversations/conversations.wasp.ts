@@ -16,6 +16,7 @@ import { getTaskConversation, startTaskConversation, getTaskThreadMarks, markCon
 import { setConversationKeep, reopenConversation, getArchivedConversations, searchConversationRuns } from "./archive/operations" with { type: "ref" };
 import { getConversationPlaces, addConversationPlace, removeConversationPlace } from "./placesOperations" with { type: "ref" };
 import { findConversationFilesQuery as findConversationFiles } from "./findConversationFiles" with { type: "ref" };
+import { listConversationSkillsQuery as listConversationSkills, listStartSkillsQuery as listStartSkills } from "./listConversationSkills" with { type: "ref" };
 import { ChatThreadPage } from "./pages/ChatThreadPage" with { type: "ref" };
 import { ProjectThreadPage } from "./pages/ProjectThreadPage" with { type: "ref" };
 import { VoiceLabPage } from "./voiceClient/lab/VoiceLabPage" with { type: "ref" };
@@ -61,4 +62,7 @@ export const conversationsSpec: Spec = [
     action(removeConversationPlace, { entities: ["Conversation", "ConversationPlace"] }),
     // The message box's @ picker: the own place's files by name, from its site, after the access check.
     query(findConversationFiles, { entities: ["Conversation", "Project"] }),
+    // The message box's / picker: the skills the conversation's agent would have, from hq's records alone.
+    query(listConversationSkills, { entities: ["Conversation", "Asset", "PlaceSkill", "Project"] }),
+    query(listStartSkills, { entities: ["Agent", "Asset", "PlaceSkill", "Project"] }),
 ];

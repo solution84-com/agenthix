@@ -17,7 +17,7 @@ vi.mock('node:fs/promises', () => ({
 }))
 vi.mock('@anthropic-ai/claude-agent-sdk', () => ({ query: vi.fn() }))
 vi.mock('#db', () => ({ prisma: { toolCallLog: { create: vi.fn().mockResolvedValue({}) } } }))
-vi.mock('../skillStaging', () => ({ stageSkills: vi.fn(async () => []), skillRootsFor: vi.fn(() => []) }))
+vi.mock('../skillStaging', () => ({ stageSkills: vi.fn(async () => ({ staged: [], refused: [] })) }))
 
 import { query } from '@anthropic-ai/claude-agent-sdk'
 import { ClaudeSDKRuntime } from '../ClaudeSDKRuntime'

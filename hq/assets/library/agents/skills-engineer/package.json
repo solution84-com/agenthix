@@ -1,0 +1,8 @@
+{
+  "format": 2,
+  "kind": "agent",
+  "publisher": "agenthix",
+  "name": "skills-engineer",
+  "version": "1.0.0",
+  "description": "Observes team work patterns and codifies repeatable sequences into agent skills"
+}

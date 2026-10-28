@@ -20,7 +20,8 @@
     "typecheck:guide": "tsc -p e2e/guide/tsconfig.json",
     "guide:console-web": "npm --prefix ../console-web run build",
     "guide:screenshots": "rm -rf e2e/guide/.captures && node scripts/guide/check-names.mjs && npm run typecheck:guide && npm run guide:console-web && node scripts/guide/with-guide-db.mjs sh -c \"npx playwright test --project guide-fresh --workers 1 && node e2e/fixtures/seed-guide-data.mjs && npx playwright test --project guide\"",
-    "guide:compare": "node scripts/guide/compare.mjs"
+    "guide:compare": "node scripts/guide/compare.mjs",
+    "sigstore:refresh": "node scripts/sigstore/refresh-trust-root.mjs"
   },
   "dependencies": {
     "@agenthix/core": "file:../core",
@@ -33,6 +34,10 @@
     "@huggingface/tokenizers": "^0.2.0",
     "@inworld/tts": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@sigstore/bundle": "5.0.0",
+    "@sigstore/core": "4.0.1",
+    "@sigstore/protobuf-specs": "0.5.2",
+    "@sigstore/verify": "4.1.2",
     "@tiptap/extension-placeholder": "^3.22.2",
     "@tiptap/markdown": "^3.22.2",
     "@tiptap/react": "^3.22.2",
@@ -60,6 +65,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.0",
+    "@sigstore/tuf": "5.0.0",
     "@tailwindcss/vite": "^4.3.1",
     "@testing-library/dom": "^10.4.1",
     "@types/bcrypt": "^6.0.0",

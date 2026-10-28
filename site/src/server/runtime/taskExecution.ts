@@ -17,7 +17,7 @@
  * hq-driven at the cutover, since only hq knows the task reached a terminal state.
  */
 import { prisma } from '#db'
-import { defaultModelFor, type RunDispatchPayload } from '@agenthix/core'
+import { defaultModelFor, pickedSkillOf, type RunDispatchPayload } from '@agenthix/core'
 import type { TaskContext, DeferredManifest } from '../../agents/runtime/types'
 import { agentEngine } from '../../agents/runtime/AgentEngine'
 import { buildApprovedManifest } from '../../agents/runtime/manifestParser'
@@ -99,7 +99,7 @@ export async function runTask(payload: RunDispatchPayload): Promise<string> {
     )
     const run = await prisma.agentRun.create({
       data: {
-        ...runPackageColumns(context.packages),
+        ...runPackageColumns(context.packages, context),
         agentId: agent.id,
         sessionId: session.id,
         status: 'PENDING',
@@ -114,7 +114,7 @@ export async function runTask(payload: RunDispatchPayload): Promise<string> {
     })
     logger.info(`bypassed run ${run.id} started (task: ${task.taskId})`)
     void agentEngine
-      .run(run.id, { queued: false, taskContext, dispatchContext: context, capabilityJwt, runLimits: payload.runLimits, startedBy: payload.startedBy })
+      .run(run.id, { queued: false, taskContext, dispatchContext: context, capabilityJwt, runLimits: payload.runLimits, startedBy: payload.startedBy, pickedSkill: pickedSkillOf(payload.skill)?.name })
       .catch(err => logger.error(`bypassed run ${run.id} failed:`, err))
     return run.id
   }
@@ -135,7 +135,7 @@ export async function runTask(payload: RunDispatchPayload): Promise<string> {
 
   const run = await prisma.agentRun.create({
     data: {
-      ...runPackageColumns(context.packages),
+      ...runPackageColumns(context.packages, context),
       agentId: agent.id,
       sessionId: session.id,
       status: 'PENDING',
@@ -152,7 +152,7 @@ export async function runTask(payload: RunDispatchPayload): Promise<string> {
 
   // The run's time limit is the engine's (runLimitWatch.ts), not a timer here or on hq.
   void agentEngine
-    .run(run.id, { taskContext, deferredManifest, dispatchContext: context, capabilityJwt, runLimits: payload.runLimits, startedBy: payload.startedBy })
+    .run(run.id, { taskContext, deferredManifest, dispatchContext: context, capabilityJwt, runLimits: payload.runLimits, startedBy: payload.startedBy, pickedSkill: pickedSkillOf(payload.skill)?.name })
     .then(outcome =>
       reportDeferredManifestIfAny({
         runId: run.id,

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installing a skill · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="install.html"><main>
+<div class="top"><div><h1>3 · Installing: how a skill gets into each level</h1>
+<p class="sub">Where a skill comes from, how it reaches each level from board 2 (L1–L6), and how a person sees and removes it. First today, then three ways to handle the file levels (L4–L6).</p></div></div>
+
+<h2 id="today">Today</h2>
+<div class="box"><div class="mmd" data-src="today"></div>
+<p class="sub">Solid lines: an action in hq. Dashed lines: someone writing files, with no action and no record.</p></div>
+
+<h3 id="today-table">Level by level</h3>
+<div class="box"><table><tr><th></th><th>How a skill gets in</th><th>Where a person sees it</th><th>How it comes out</th></tr>
+<tr><td class="n">L1</td><td>An hq release. Library skills are seeded into the <code>Skill</code> table at start.</td><td>The Library's Skills tab, reached from an Overview card</td><td>A later release</td></tr>
+<tr><td class="n">L2</td><td><b>Install to Org</b> in the Library: a copy goes into the organisation's package. All 18 are copied at the organisation's first write. Administrators only.</td><td>Nowhere as a list. The agent page doesn't show them</td><td><b>Nothing in the interface.</b> The server action exists but has no button</td></tr>
+<tr><td class="n">L3</td><td>On the agent's page: <b>Add</b> from the library (a copy) or <b>New custom skill</b>. Also from an agent template, a team template or an imported agent zip. Administrators only.</td><td>The agent's manage page, with an <i>Update</i> button when the library is newer</td><td>Delete on the agent's page</td></tr>
+<tr><td class="n">L4 · L5</td><td>Someone writes a folder into <code>files/.agents/…/skills/</code>: an agent with its file tools, or a person uploading in Files. No install action.</td><td>As files in Files. In Your space, the agent's page also lists the names, read-only</td><td>Delete the folder. There's no Delete in Files yet, so in practice an agent does it</td></tr>
+<tr><td class="n">L6</td><td>Through the repository: a clone or pull in a workspace, or a commit by a person or an agent.</td><td>As files in the workspace</td><td>A commit that removes it</td></tr>
+</table></div>
+
+<h2 id="files">The question: the file levels (L4–L6)</h2>
+<div class="box"><p>For L1–L3, hq already has actions: install, add, remove. For L4–L6 the store is <b>files</b>, which anyone who can write the place can change, agents included. Three ways to handle them:</p>
+
+<div class="opt" data-choice="a" onclick="toggleSelect && toggleSelect(this)"><b>A · Files only</b> (today)
+<ul><li><b>How:</b> people manage skills by browsing and editing files. hq shows nothing more.</li>
+<li><b>For:</b> nothing to build. It's how Claude Code's project skills work.</li>
+<li><b>Against:</b> a person can't tell which skills an agent will see in a place. An agent-written skill is live at once with no one noticing. Nothing can be offered as an update. People must know the folder names.</li></ul></div>
+
+<div class="opt" data-choice="b" onclick="toggleSelect && toggleSelect(this)"><b>B · Files stay the store; hq lists them and installs into them</b> (recommended)
+<ul><li><b>Listed:</b> the site scans the place's skill folders (L4, L5, and L6 for each workspace) and reports each skill with its fingerprint. hq shows them on the place's <b>Skills</b> page, grouped by level, like Claude Code's <code>/skills</code>.</li>
+<li><b>On or off:</b> kept in hq per place. A skill found but never looked at is <i>new</i>. Whether new and changed skills start on or off is Q3, the trust question.</li>
+<li><b>Install:</b> <i>Add to this project</i> (or to one agent here) copies a skill from the platform's or the organisation's skills into <code>files/.agents/…/skills/&lt;name&gt;/</code>. It writes the origin into the skill's <code>metadata</code>, the specification's own key, so an update can be offered later.</li>
+<li><b>Remove:</b> from the page. hq asks the site to delete the folder. For a workspace it can't, because the repository owns it, so it is switched off instead.</li>
+<li><b>Files still work:</b> a folder someone drops in, or a repository brings, simply appears in the list. Nothing breaks for teams who manage skills in git.</li></ul></div>
+
+<div class="opt" data-choice="c" onclick="toggleSelect && toggleSelect(this)"><b>C · hq installs; files are hq's alone</b>
+<ul><li><b>How:</b> place skills exist only when installed through hq, which keeps a record. Folders written by hand or by a repository are ignored.</li>
+<li><b>For:</b> full control and a clean record.</li>
+<li><b>Against:</b> breaks L6. A team's repository skills, the reason to read workspaces at all, would never work. Agents can't write skills even when asked.</li></ul></div>
+</div>
+
+<h2 id="proposed">Proposed with B</h2>
+<div class="box"><div class="mmd" data-src="proposed"></div>
+<p class="sub">Every way in ends in a list a person can see, with an on/off state kept by hq. The run stages only what is on.</p></div>
+
+<h3 id="b-table">Level by level, with B</h3>
+<div class="box"><table><tr><th></th><th>Install</th><th>Seen</th><th>Remove</th></tr>
+<tr><td class="n">L1</td><td>An hq release</td><td>Offered under <i>Add from Agenthix</i>, marked <i>New</i> or <i>Update available</i></td><td>—</td></tr>
+<tr><td class="n">L2</td><td><i>Add</i> from the platform's skills, New, Upload (a folder or zip), or an accepted proposal</td><td>The organisation's skills page</td><td>Remove, with a confirmation naming the agents it reaches</td></tr>
+<tr><td class="n">L3</td><td>The same, on the agent's page, plus templates and imported agents</td><td>The agent's page, showing <b>every level</b> it will see, grouped</td><td>Remove</td></tr>
+<tr><td class="n">L4 · L5</td><td><i>Add to this place</i> (a copy into the folder), a folder written in Files, or an agent writing one</td><td>The place's <b>Skills</b> page, scanned from files, with on/off</td><td>Remove (deletes the folder), or switch off</td></tr>
+<tr><td class="n">L6</td><td>Through the repository</td><td>The same page, under the workspace's name</td><td>Switch off. The repository decides what's in it</td></tr>
+</table></div>
+
+<h2 id="controls">Controls for skills in files: two layers</h2>
+<div class="box"><p>hq can read the place's files and its workspaces' repositories, so it can list every skill there (B above). The controls sit on that list.</p>
+<table><tr><th></th><th>Layer</th><th>Who</th><th>Choices</th></tr>
+<tr><td class="n">C1</td><td><b>The organisation's default</b>: one setting, <i>Skills found in files</i></td><td>Administrators</td><td><b>On by default</b>: every skill found runs, and anyone can switch one off. <b>Off by default</b> (recommended): every skill found is listed but stays off until someone switches it on, and a changed one goes off again. <b>Never</b>: hq doesn't read skills from files at all</td></tr>
+<tr><td class="n">C1b</td><td><b>A place's default</b>: the same choice for one project, or for Your space</td><td>The project's administrator, or the person in their own space</td><td>It can only be <b>stricter</b> than the organisation's: a project can choose off by default when the organisation has on, never the other way. That's the same rule as every other override (adr-0072)</td></tr>
+<tr><td class="n">C2</td><td><b>Each skill's switch</b>, on the place's Skills page, grouped by where it was found (the place, one agent, each workspace). <b>All on</b> and <b>All off</b> for the whole page and for each group</td><td>The project's administrator, or the person in their own space</td><td>On or off, remembered by fingerprint</td></tr>
+</table>
+<div class="why"><b>Two starting points, as you'd expect:</b> everything on, switch off what you don't want; or everything off, switch on what you do. The organisation picks one, a place may pick the stricter one, and <i>All on</i> and <i>All off</i> make either quick to change. A separate switch per workspace isn't needed: <i>All off</i> on that workspace's group does it. It's the same shape as Claude Code, where managed settings set the policy and per-skill overrides do the rest. The organisation's installed version still wins for the same identity (D12), whatever the switches say. Renaming a skill in files makes it a different skill. That's a deliberate choice, and the switches above still apply to it.</div></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th></tr>
+<tr><td class="n">Q21</td><td><b>Controls for skills in files:</b> the organisation's policy (On, Ask first, Off; Ask first by default) and each skill's switch with all on and all off per group? Accepting it settles Q10 as B (files stay the store; hq lists them and installs into them) and Q3 as the policy's default.</td></tr>
+
+</table></div>
+
+<script>
+window.SRC = { today: `flowchart LR
+  REL["An hq release"] --> L1["L1 · Platform<br/>library, 18"]
+  L1 -->|"Install to Org (copy)"| L2["L2 · Organisation"]
+  L1 -->|"Add on the agent's page (copy)"| L3["L3 · Agent"]
+  NEW["New custom skill<br/>(agent's page)"] --> L3
+  TPL["Template or<br/>imported agent"] --> L3
+  AG["An agent's file tools"] -.-> L45["L4 · L5 · Place's files<br/>.agents/skills"]
+  PER["A person in Files"] -.-> L45
+  GIT["git: clone, pull, commit"] -.-> L6["L6 · Workspace"]
+  L2 --> RUN["The run"]
+  L3 --> RUN
+  L45 --> RUN
+`, proposed: `flowchart LR
+  REL["An hq release"] --> L1["L1 · Platform<br/>offered"]
+  UP["New · Upload ·<br/>accepted proposal"] --> L2
+  L1 -->|"Add"| L2["L2 · Organisation"]
+  L1 -->|"Add"| L3["L3 · Agent"]
+  L2 -->|"Add to this place<br/>(copy + origin)"| L45
+  L1 -->|"Add to this place"| L45["L4 · L5 · Place's files"]
+  AG["Agent or person<br/>writes a folder"] -.-> L45
+  GIT["git"] -.-> L6["L6 · Workspace"]
+  L45 --> SCAN["Site scans folders,<br/>reports name + fingerprint"]
+  L6 --> SCAN
+  SCAN --> LIST["Place's Skills page<br/>on / off kept in hq"]
+  L2 --> RUN["The run<br/>stages what is on"]
+  L3 --> RUN
+  LIST --> RUN
+` }
+</script>
+<script type="module" src="/files/shell.js?v=8"></script>
+</body></html>

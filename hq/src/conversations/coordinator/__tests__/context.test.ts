@@ -22,6 +22,18 @@ describe('systemParts @SC-980', () => {
   })
 })
 
+describe('a message that picked a skill', () => {
+  it('reads with a note that the work it hands on loads that skill; a malformed one reads as the text alone', () => {
+    const history = [
+      m(1, 'PERSON', 'TEXT', { text: 'review it', skill: { name: 'org-code-review' } }, { turnId: null }),
+    ]
+    const { messages } = leadMessages(history, ['m1'])
+    expect(messages[0]).toEqual({ role: 'user', content: expect.stringMatching(/^review it\n\n\[The person picked the skill org-code-review for this message\. .*start_work/) })
+    const bad = leadMessages([m(1, 'PERSON', 'TEXT', { text: 'hi', skill: { name: '/init' } }, { turnId: null })], ['m1'])
+    expect(bad.messages[0]).toEqual({ role: 'user', content: 'hi' })
+  })
+})
+
 describe('leadMessages @SC-980', () => {
   it('reads what was said in order, joining runs by one side, and stops at the last input', () => {
     const history = [

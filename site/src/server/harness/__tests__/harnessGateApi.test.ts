@@ -37,7 +37,7 @@ function context(over: Partial<RunContext> = {}): RunContext {
     riskRules: null,
     packages: {} as RunContext['packages'],
     boundaryOverride: null,
-    boundarySharedSkills: null,
+    skills: null,
     claudeHome: { serverDir: '/site/homes/x/.claude', visibleDir: '/home/appuser/.claude' },
     workingTreeDir: '/site/projects/p1/files',
     ...over,

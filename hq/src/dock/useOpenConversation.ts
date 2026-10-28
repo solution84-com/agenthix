@@ -112,7 +112,7 @@ export function useOpenConversation(): DockValue {
     const at = locationRef.current
     if (!draftRef.current) setBehind({ open: openRef.current, position: positionRef.current })
     set(null)
-    setDraft({ place, agentId: agentId ?? null })
+    setDraft((was) => ({ place, agentId: agentId ?? null, asked: (was?.asked ?? 0) + 1 }))
     setPosition((p) => (p === 'collapsed' ? 'docked' : p))
     if (conversationParamOf(at.search)) navigate(withConversation(at, null), { state: at.state })
   }, [navigate, set])
@@ -156,6 +156,8 @@ export function useOpenConversation(): DockValue {
 interface Draft {
   place: PlaceRef
   agentId: string | null
+  /** Counts each ask, so asking again while the draft shows can bring the caret back to its box. */
+  asked: number
 }
 
 /** What was open when a new conversation was started, put back by Cancel. */

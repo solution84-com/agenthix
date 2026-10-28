@@ -23,7 +23,7 @@ vi.mock('../../../coordinator/mailbox', async () => {
 })
 
 import * as siteStore from '../../../../test/fakes/siteRuntimeStore'
-import { openJson, openText } from '../../../sealing'
+import { openJson, openText, sealJson } from '../../../sealing'
 import { createStartWorkTool } from '../startWork'
 import { NEVER_ABORTED, addToConversation, world, type World } from './workerFixtures'
 
@@ -151,6 +151,25 @@ describe('start_work admits a brief @SC-960', () => {
     })
     expect(siteStore.createSession).toHaveBeenCalledWith('site-1', expect.objectContaining({ id: worker.id, primaryOwnerId: w.project.id }))
     expect(movedOn).toEqual([worker.id])
+  })
+
+  it('carrying the skill the person picked with `/` for the message the turn answers', async () => {
+    const said = (seq: number, body: object) => prisma.conversationMessage.create({
+      data: { conversationId: w.conversation.id, seq, role: 'PERSON', kind: 'TEXT', body: sealJson(body), authorId: w.person.id, turnId: w.capability.turnId },
+    })
+    await said(1, { text: 'review this', skill: { name: 'org-code-review' } })
+    await said(2, { text: 'and be brief' })
+    const outcome = await brief()
+    const op = await prisma.operation.findUniqueOrThrow({ where: { id: (outcome as { operationId: string }).operationId } })
+    expect(openJson(op.args!)).toEqual({ effort: 'light', skill: { name: 'org-code-review' } })
+  })
+
+  it('carrying no skill when the picked one is not a name a skill can have', async () => {
+    await prisma.conversationMessage.create({
+      data: { conversationId: w.conversation.id, seq: 1, role: 'PERSON', kind: 'TEXT', body: sealJson({ text: 'x', skill: { name: '/init' } }), authorId: w.person.id, turnId: w.capability.turnId },
+    })
+    const op = await prisma.operation.findUniqueOrThrow({ where: { id: ((await brief()) as { operationId: string }).operationId } })
+    expect(openJson(op.args!)).toEqual({ effort: 'light' })
   })
 
   it('on the same worker for a later brief to the same boundary, and on another for another boundary', async () => {

@@ -14,6 +14,7 @@ import { entitledProjectsFilter } from '../projects/membership'
 import { ORG_NOTIFICATION_TYPES, OPEN_STATUSES, RUN_SHORT_NOTIFICATION, SITE_NOTIFICATION_TYPES, taskKeyOf } from './notificationKinds'
 import { syncAdminNotices } from './adminNotices'
 import { staleRequestIds } from './staleRequests'
+import { skillProposalsItem, SKILL_PROPOSALS_ITEM_TYPE } from '../assets/pages/review/attention'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -40,7 +41,8 @@ const INFRASTRUCTURE = new Set<string>([...Object.values(SITE_NOTIFICATION_TYPES
 const ORDER: string[] = [
   SITE_NOTIFICATION_TYPES.hqSiteDown, SITE_NOTIFICATION_TYPES.health, RUN_SHORT_NOTIFICATION, SITE_NOTIFICATION_TYPES.offlineWithWork,
   SITE_NOTIFICATION_TYPES.upgrade, 'credential_health', SITE_NOTIFICATION_TYPES.requests, SITE_NOTIFICATION_TYPES.requestExpired,
-  'tool_approval', ORG_NOTIFICATION_TYPES.invitations, ORG_NOTIFICATION_TYPES.teamProposed, ORG_NOTIFICATION_TYPES.bypassed,
+  'tool_approval', ORG_NOTIFICATION_TYPES.invitations, ORG_NOTIFICATION_TYPES.teamProposed, SKILL_PROPOSALS_ITEM_TYPE,
+  ORG_NOTIFICATION_TYPES.bypassed,
 ]
 
 const ATTENTION_TYPES = ORDER
@@ -104,6 +106,8 @@ export const getNeedsAttention = async (_args: unknown, context: Ctx): Promise<A
     await prisma.notification.updateMany({ where: { id: { in: [...answered] }, userId: me }, data: { status: 'handled' } })
   }
   const approvals = await approvalsItem(requests.filter(n => !answered.has(n.id)), me)
-  const items = [...open.filter(n => n.type !== 'tool_approval').map(itemOf), ...(approvals ? [approvals] : [])]
+  // Read from the proposals themselves, so handling the last one clears it.
+  const skills = await skillProposalsItem(prisma, me)
+  const items = [...open.filter(n => n.type !== 'tool_approval').map(itemOf), ...(approvals ? [approvals] : []), ...(skills ? [skills] : [])]
   return items.sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type))
 }

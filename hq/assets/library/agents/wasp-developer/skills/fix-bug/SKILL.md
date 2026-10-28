@@ -58,7 +58,7 @@ Run the test you wrote (it should now pass) and the full test suite:
 npm test
 ```
 
-If the full suite passes: commit and follow the PR process in `git-workflow`.
+If the full suite passes: commit, push and open a pull request as the built-in `working-with-git` skill says.
 
 ## Rules
 
