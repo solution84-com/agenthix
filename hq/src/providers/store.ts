@@ -64,7 +64,6 @@ export interface ProviderStore {
   usesOf(id: string): Promise<AiProviderUse>
   /** Active people holding the organisation admin role. */
   orgAdmins(): Promise<Person[]>
-  setupFinished(): Promise<boolean>
 }
 
 const ROW = {
@@ -115,9 +114,6 @@ export const prismaProviderStore: ProviderStore = {
     })
     const people = await peopleByIds(rows.map(r => r.userId))
     return rows.map(r => ({ id: r.userId, name: people.get(r.userId)?.name ?? '' }))
-  },
-  async setupFinished() {
-    return (await prisma.org.findFirst({ select: { setupCompletedAt: true } }))?.setupCompletedAt != null
   },
 }
 

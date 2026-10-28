@@ -3,12 +3,27 @@ import { Link } from 'react-router'
 import { useQuery, useAction, getNeedsAttention, getMyModelAccess, acknowledgeBypassedAgents, dismissNotification } from 'wasp/client/operations'
 import { OrgGroupHeading } from './orgCardParts'
 
-/** No working model is read from what is stored each time, not kept as a notification: it clears the moment it is set. */
-const MODEL_ACCESS_ITEM = {
-  key: 'model-access', area: 'infrastructure', type: 'model_access', title: "Agents can't answer yet",
-  body: 'No model provider is working: add one, or fix the one there is',
-  actionLabel: 'Open Providers', actionUrl: '/admin/providers', notificationIds: [] as string[],
+/**
+ * No working model, and voice never set up, are read from what is stored each time, not kept as notifications: each
+ * clears the moment it is set. A voice provider that was added and stopped working has its own notice.
+ */
+const ACCESS_ITEM = {
+  area: 'infrastructure', actionLabel: 'Open Providers', actionUrl: '/admin/providers', notificationIds: [] as string[],
   dismissible: false, acknowledgeable: false,
+}
+const MODEL_ACCESS_ITEM = { ...ACCESS_ITEM, key: 'model-access', type: 'model_access', title: "Agents can't answer yet" }
+const MODEL_BODY = { added: 'No model provider is working: add one, or fix the one there is', none: 'No model provider has been added. Add one so agents can think' }
+const VOICE_ITEM = {
+  ...ACCESS_ITEM, key: 'voice-setup', type: 'voice_setup', title: "Voice isn't set up",
+  body: 'People can type to agents but not talk to them. Add a speech-to-text and a text-to-speech provider',
+}
+
+type AccessFacts = { canTalk: boolean; fix: string | null; added: { model: boolean; voice: boolean } }
+
+/** The items read from the organisation's providers, before the stored notices. */
+function accessItems(access: AccessFacts) {
+  const model = !access.canTalk && access.fix === 'org-access' ? [{ ...MODEL_ACCESS_ITEM, body: access.added.model ? MODEL_BODY.added : MODEL_BODY.none }] : []
+  return [...model, ...(access.added.voice ? [] : [VOICE_ITEM])]
 }
 
 const ACTION = 'shrink-0 rounded-lg border border-border bg-surface-1 px-2.5 py-1 text-small font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:opacity-40'
@@ -21,7 +36,7 @@ const ACTION = 'shrink-0 rounded-lg border border-border bg-surface-1 px-2.5 py-
 export function NeedsAttentionSection() {
   const { data: notices, refetch } = useQuery(getNeedsAttention, undefined, { refetchInterval: 30_000 })
   const { data: access } = useQuery(getMyModelAccess)
-  const items = notices && (access && !access.canTalk && access.fix === 'org-access' ? [MODEL_ACCESS_ITEM, ...notices] : notices)
+  const items = notices && (access ? [...accessItems(access), ...notices] : notices)
   const acknowledge = useAction(acknowledgeBypassedAgents)
   const dismiss = useAction(dismissNotification)
   const [busy, setBusy] = useState<string | null>(null)

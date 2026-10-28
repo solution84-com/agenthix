@@ -24,6 +24,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* A page whose buttons are pinned to the window's foot (authUi's ActionRow) scrolls a focused field clear of them. */
+html:has([data-action-row]) {
+  scroll-padding-bottom: 6rem;
+}
+
 /* ──────────────────────────────────────────────
    Wasp Auth Form Overrides
    Wasp's <LoginForm /> uses CSS modules with !important on every

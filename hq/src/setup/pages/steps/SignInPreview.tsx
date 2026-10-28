@@ -39,7 +39,6 @@ export function SignInPreview({ name, pictureSrc, coverSrc }: { name: string; pi
           </AuthLayout>
         </div>
       </div>
-      <div className="text-small text-text-muted">Updates as you type</div>
     </div>
   )
 }

@@ -11,8 +11,9 @@ you talk to an agent. Voice is a mode of the conversation you are already in, no
 ## Set up speech for the organisation
 
 Voice needs two [providers](providers.md): **AssemblyAI** turns what you say into text, and **Inworld** speaks the
-answer. Setup asks for both (see [Finish setup](../getting-started/finish-setup.md#4-add-your-voice)); an organisation
-admin can add or replace them later under **Manage › Providers**.
+answer. Setup offers both, and can leave them for later (see [Finish setup](../getting-started/finish-setup.md#5-add-your-voice));
+an organisation admin can add or replace them under **Manage › Providers**. Until both are added, the voice button says
+voice isn't set up.
 
 Under **Manage › Models**, **Voice** and **Listening** choose the organisation's voice and the model that hears people:
 see [Models](models.md#the-organisations-defaults). Voice is always Inworld TTS 2, and the voice is chosen by ear from

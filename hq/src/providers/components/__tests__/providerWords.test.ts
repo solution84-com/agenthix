@@ -3,7 +3,7 @@ import { impactLines, sinceWords, usedByWords, keyWords } from '../providerWords
 import type { ProviderImpact } from '../../impact'
 
 const impact = (over: Partial<ProviderImpact> = {}): ProviderImpact => ({
-  provider: { id: 'p1', name: 'Anthropic' }, defaults: [], agents: [], goesDown: [], removalRefused: null, ...over,
+  provider: { id: 'p1', name: 'Anthropic' }, defaults: [], agents: [], goesDown: [], ...over,
 })
 
 describe('providerWords @SC-1174 @SC-1178', () => {

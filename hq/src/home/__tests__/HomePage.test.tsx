@@ -9,7 +9,7 @@ const data = vi.hoisted(() => ({
   signals: { notificationsNeedingYou: 3, agentsAtWork: 1, comingUpToday: 2 } as Record<string, number> | undefined,
   agents: [{ id: 'k', name: 'Kernel', handle: 'kernel', avatarUrl: null }, { id: 'pm', name: 'Project manager', handle: 'pm', avatarUrl: null }, { id: 'rs', name: 'Research agent', handle: 'rs', avatarUrl: null }],
   signalArgs: [] as unknown[],
-  access: { canTalk: true, fix: null, isAdmin: false } as { canTalk: boolean; fix: string | null; isAdmin: boolean },
+  access: { canTalk: true, fix: null, isAdmin: false, added: { model: true, voice: true } } as { canTalk: boolean; fix: string | null; isAdmin: boolean; added: { model: boolean; voice: boolean } },
   start: vi.fn(),
 }))
 
@@ -71,7 +71,7 @@ beforeEach(() => {
   data.setup = { isAdmin: false, setupComplete: true }
   data.signals = { notificationsNeedingYou: 3, agentsAtWork: 1, comingUpToday: 2 }
   data.signalArgs = []
-  data.access = { canTalk: true, fix: null, isAdmin: false }
+  data.access = { canTalk: true, fix: null, isAdmin: false, added: { model: true, voice: true } }
   data.start.mockReset().mockResolvedValue({ conversationId: 'c99', messageId: 'm1' })
 })
 
@@ -127,13 +127,20 @@ describe('Home @SC-509', () => {
   })
 
   it('says under the message box that agents cannot answer yet, and who can fix it @SC-722', () => {
-    data.access = { canTalk: false, fix: 'org-access', isAdmin: false }
+    data.access = { canTalk: false, fix: 'org-access', isAdmin: false, added: { model: true, voice: true } }
     renderHome()
+    expect(screen.getByTestId('talk-access-line').textContent).toContain('no model is working')
     expect(screen.getByTestId('talk-access-line').textContent).toContain('An organisation admin can set one up')
   })
 
+  it('says no model provider has been added when setup left models for later @SC-722', () => {
+    data.access = { canTalk: false, fix: 'org-access', isAdmin: false, added: { model: false, voice: false } }
+    renderHome()
+    expect(screen.getByTestId('talk-access-line').textContent).toContain('no model provider has been added')
+  })
+
   it('points an organisation admin to Providers @SC-722', () => {
-    data.access = { canTalk: false, fix: 'org-access', isAdmin: true }
+    data.access = { canTalk: false, fix: 'org-access', isAdmin: true, added: { model: true, voice: true } }
     renderHome()
     expect(screen.getByRole('link', { name: 'Manage organisation › Providers' }).getAttribute('href')).toBe('/admin/providers')
   })

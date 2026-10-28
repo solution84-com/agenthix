@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// hq's setup state is derived from its data and never stored (setup spec); setup cannot finish without models and voice.
+// hq's setup state is derived from its data and never stored (setup spec); models and voice may be left for later (ADR-0160).
 
 const db = vi.hoisted(() => ({
   org: { setupCompletedAt: null as Date | null },
@@ -49,25 +49,23 @@ describe('claimStateOf @SC-709 @SC-1182', () => {
 describe('setupResumeStep @SC-709 @SC-1182', () => {
   const p = (vendor: NewProvider['vendor'], state: NewProvider['state'] = 'works') => ({ vendor, state })
 
-  it('opens at the choice while no model provider works', () => {
-    expect(setupResumeStep([])).toBe('choice')
-    expect(setupResumeStep([p('anthropic', 'key_refused')])).toBe('choice')
-    expect(setupResumeStep([p('assemblyai'), p('inworld')])).toBe('choice')
+  it('opens at the organisation until its step is saved, whatever the providers', () => {
+    expect(setupResumeStep(false, [])).toBe('organisation')
+    expect(setupResumeStep(false, [p('anthropic'), p('assemblyai'), p('inworld')])).toBe('organisation')
   })
 
-  it('opens at voice with a model provider but no speech-to-text or text-to-speech', () => {
-    expect(setupResumeStep([p('anthropic')])).toBe('voice')
-    expect(setupResumeStep([p('anthropic'), p('assemblyai')])).toBe('voice')
-    expect(setupResumeStep([p('anthropic'), p('assemblyai'), p('inworld', 'unreachable')])).toBe('voice')
+  it('then at the AI choice while no provider is added', () => {
+    expect(setupResumeStep(true, [])).toBe('choice')
   })
 
-  it('opens at the organisation once models and voice are covered, one provider or three', () => {
-    expect(setupResumeStep([p('anthropic'), p('assemblyai'), p('inworld')])).toBe('organisation')
-    expect(setupResumeStep([p('cloud')])).toBe('organisation')
+  it('then at the last look once any provider is added, working or not, covering every type or not', () => {
+    expect(setupResumeStep(true, [p('anthropic')])).toBe('review')
+    expect(setupResumeStep(true, [p('assemblyai', 'key_refused')])).toBe('review')
+    expect(setupResumeStep(true, [p('cloud')])).toBe('review')
   })
 })
 
-describe('finishSetup needs models and voice @SC-710 @SC-1185', () => {
+describe('finishSetup leaves models and voice optional @SC-710 @SC-1185', () => {
   let store: FakeProviderStore
   beforeEach(() => {
     store = new FakeProviderStore()
@@ -76,10 +74,26 @@ describe('finishSetup needs models and voice @SC-710 @SC-1185', () => {
   })
   afterEach(() => useProviderStore(null))
 
-  it('refuses (409) and records nothing while a type is uncovered', async () => {
-    await store.create(provider('anthropic'))
-    await expect(finishSetup('u1')).rejects.toMatchObject({ statusCode: 409 })
-    expect(db.updated).toBe(0)
+  it('records setup with no provider at all, and writes no default', async () => {
+    expect(await finishSetup('u1')).toBe(true)
+    expect(db.updated).toBe(1)
+    expect(db.written).toEqual([])
+  })
+
+  it('records setup with a model and no voice, writing only the model defaults', async () => {
+    const a = await store.create(provider('anthropic'))
+    expect(await finishSetup('u1')).toBe(true)
+    expect(db.written).toEqual([{
+      defaultConversationProviderId: a.id, defaultConversationModel: 'claude-sonnet-5',
+      defaultWorkerProviderId: a.id, defaultWorkerModel: 'claude-opus-5',
+    }])
+  })
+
+  it('records setup with voice and no model', async () => {
+    await store.create(provider('assemblyai'))
+    await store.create(provider('inworld'))
+    expect(await finishSetup('u1')).toBe(true)
+    expect(db.updated).toBe(1)
   })
 
   it('records setup once an LLM, an STT and a TTS work', async () => {

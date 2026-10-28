@@ -162,7 +162,7 @@ describe('the other dialogs @SC-1173 @SC-1174', () => {
   })
 
   it('shows what falls to what before a removal is confirmed', async () => {
-    h.data.getAiProviderImpact = { provider: { id: 'p1', name: 'Anthropic' }, defaults: [{ slot: 'worker', to: { id: 'p3', name: 'Agenthix Cloud' } }], agents: [], goesDown: [], removalRefused: null }
+    h.data.getAiProviderImpact = { provider: { id: 'p1', name: 'Anthropic' }, defaults: [{ slot: 'worker', to: { id: 'p3', name: 'Agenthix Cloud' } }], agents: [], goesDown: [] }
     show()
     openMenu('Anthropic', 'Remove')
     expect(screen.getByText('The default worker model falls to Agenthix Cloud, the next allowed, until you choose.')).toBeTruthy()
@@ -171,16 +171,17 @@ describe('the other dialogs @SC-1173 @SC-1174', () => {
     await waitFor(() => expect(act('removeAiProvider')).toHaveBeenCalledWith({ id: 'p1' }))
   })
 
-  it('gives the reason and no button when the last of a type cannot be removed', () => {
-    h.data.getAiProviderImpact = { provider: { id: 'p2', name: 'AssemblyAI' }, defaults: [], agents: [], goesDown: ['stt'], removalRefused: 'AssemblyAI is the organisation’s only speech-to-text provider, and there must always be one.' }
+  it('removes the last of a type after saying it goes down until another is added', async () => {
+    h.data.getAiProviderImpact = { provider: { id: 'p2', name: 'AssemblyAI' }, defaults: [], agents: [], goesDown: ['stt'] }
     show()
     openMenu('AssemblyAI', 'Remove')
-    expect(screen.getByRole('alert').textContent).toContain('only speech-to-text provider')
-    expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull()
+    expect(screen.getByText('Nothing else provides speech to text: it is down until a provider is added.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    await waitFor(() => expect(act('removeAiProvider')).toHaveBeenCalledWith({ id: 'p2' }))
   })
 
   it('revokes with its warning, even for the last of a type', async () => {
-    h.data.getAiProviderImpact = { provider: { id: 'p2', name: 'AssemblyAI' }, defaults: [{ slot: 'stt', to: null }], agents: [], goesDown: ['stt'], removalRefused: 'only one' }
+    h.data.getAiProviderImpact = { provider: { id: 'p2', name: 'AssemblyAI' }, defaults: [{ slot: 'stt', to: null }], agents: [], goesDown: ['stt'] }
     show()
     openMenu('AssemblyAI', 'Revoke now')
     expect(screen.getByText(/Revoke the key at AssemblyAI too: HQ cannot/)).toBeTruthy()

@@ -16,7 +16,6 @@ export class FakeProviderStore implements ProviderStore {
   readonly records: NewRecord[] = []
   admins: Person[] = [{ id: 'admin-1', name: 'Sam' }, { id: 'admin-2', name: 'Ana' }]
   uses = new Map<string, AiProviderUse>()
-  finished = true
 
   async list() {
     return [...this.rows.values()].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()).map(rowOf)
@@ -62,10 +61,6 @@ export class FakeProviderStore implements ProviderStore {
 
   async orgAdmins() {
     return this.admins
-  }
-
-  async setupFinished() {
-    return this.finished
   }
 
   secretOf(id: string): string | null {

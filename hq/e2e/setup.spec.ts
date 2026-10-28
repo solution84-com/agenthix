@@ -4,10 +4,11 @@ import { STAND_IN_URL } from './fixtures/standInModel'
 import { answerSpeechProviders } from './fixtures/voiceProviders'
 
 // Setup, once per HQ, for its first admin: the one-time link /invite/<code> makes the account (setup's first step)
-// and sends the person to /setup, which opens at the first step whose need is unmet: How will your agents reach AI?
-// Agenthix Cloud's card is disabled (*not available yet*), so the way through is Your own keys: one model provider,
-// then voice (one speech to text, one text to speech), Your organisation with its time zone, and a last look.
-// The step is kept in the address, so a refresh and Back both stay on it.
+// and sends the person to /setup, which opens at the first step whose need is unmet: Your organisation, with its time
+// zone. Then How will your agents reach AI? Agenthix Cloud's card is disabled (*not available yet*); this walk takes
+// Your own keys: one model provider, then voice (one speech to text, one text to speech), and a last look. Each of
+// those two steps could be skipped, and Later skips both (ADR-0160). The step is kept in the address, so a refresh
+// and Back both stay on it.
 //
 // It needs a fresh HQ with no admin yet and that HQ's first-admin link, which the HQ prints in its log
 // ("No admin yet. Open this link", or `agenthix hq invite-admin`). The link works once and nothing in the suite
@@ -43,13 +44,23 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
     await page.close()
   })
 
-  test('the first-admin link makes the account and opens setup at how agents reach AI', async () => {
+  test('the first-admin link makes the account and opens setup at the organisation', async () => {
     await page.goto(LINK!)
     await page.getByLabel(/^your name/i).fill('E2E Admin')
     await page.getByLabel(/^username/i).fill(`e2e-first-${Date.now()}`)
     await page.getByLabel(/^password/i).fill('E2eFirstAdmin!2026')
     await page.getByRole('button', { name: /^continue$/i }).click()
+    // Setup opens at the organisation, from where it resumes: the address has no step yet.
+    await expect(page.getByRole('heading', { name: 'Your organisation', exact: true })).toBeVisible()
+  })
+
+  test('your organisation: a name and a time zone, then how agents reach AI', async () => {
+    await page.getByLabel(/^name/i).fill('Acme Corp')
+    await page.getByLabel('Time zone').selectOption('Europe/London')
+    await page.getByRole('button', { name: /^continue$/i }).click()
+    await onStep(page, 'choice')
     await expect(page.getByRole('heading', { name: 'How will your agents reach AI?' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Later' }).getByRole('button', { name: 'Set up later' })).toBeVisible()
   })
 
   test('Agenthix Cloud cannot be chosen yet, and Your own keys is the way through', async () => {
@@ -63,8 +74,9 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
   })
 
   test('a model provider is added with its key, checked, and a refresh stays on the step', async () => {
-    // Nothing to continue with until one works.
-    await expect(page.getByRole('button', { name: /^continue$/i })).toHaveCount(0)
+    // Nothing to continue with until one works, but it can be skipped.
+    await expect(page.getByRole('button', { name: /^continue$/i })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible()
     await page.getByRole('button', { name: /Your own OpenAI-compatible endpoint/ }).click()
     await page.getByLabel(/^address/i).fill(STAND_IN_URL)
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
@@ -80,19 +92,20 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
 
   test('voice needs one speech to text and one text to speech provider', async () => {
     await expect(page.getByRole('heading', { name: 'Voice' })).toBeVisible()
-    await expect(page.getByRole('button', { name: /^continue$/i })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^continue$/i })).toBeDisabled()
 
     await page.getByRole('button', { name: /^AssemblyAI/ }).click()
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
     await page.getByRole('button', { name: /^save$/i }).click()
     await expect(page.getByText('AssemblyAI').first()).toBeVisible()
-    // One of the two is not enough.
-    await expect(page.getByRole('button', { name: /^continue$/i })).toHaveCount(0)
+    // One of the two is not enough to continue; skipping would keep it.
+    await expect(page.getByRole('button', { name: /^continue$/i })).toBeDisabled()
 
     await page.getByRole('button', { name: /^Inworld/ }).click()
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
     await page.getByRole('button', { name: /^save$/i }).click()
-    await expect(page.getByRole('button', { name: /^continue$/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^continue$/i })).toBeEnabled()
+    await expect(page.getByRole('button', { name: 'Skip for now' })).toHaveCount(0)
   })
 
   test('Back returns to the model provider, still added', async () => {
@@ -103,14 +116,6 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
     await expect(page.getByText(/works\. Added by you\./)).toBeVisible()
     await page.getByRole('button', { name: /^continue$/i }).click()
     await onStep(page, 'voice')
-    await page.getByRole('button', { name: /^continue$/i }).click()
-    await onStep(page, 'organisation')
-  })
-
-  test('your organisation: a name and a time zone', async () => {
-    await expect(page.getByRole('heading', { name: 'Your organisation' })).toBeVisible()
-    await page.getByLabel(/^name/i).fill('Acme Corp')
-    await page.getByLabel('Time zone').selectOption('Europe/London')
     await page.getByRole('button', { name: /^continue$/i }).click()
     await onStep(page, 'review')
   })

@@ -72,7 +72,7 @@ describe('providers', () => {
     expect(await prisma.aiProvider.count()).toBe(0)
   })
 
-  it('says what a removal touches, refuses the last of a type, and on revoke leaves the defaults and agents empty @SC-1174', async () => {
+  it('says what a removal touches, and on revoke leaves the defaults and agents empty @SC-1174', async () => {
     const { sam } = await setUp()
     const { provider: stt } = await addAiProvider({ vendor: 'assemblyai', key: 'aai-test-fake-000011' }, ctx(sam))
     await prisma.org.update({ where: { id: 'org' }, data: { defaultSttProviderId: stt.id, defaultSttModel: 'universal-streaming' } })
@@ -81,14 +81,19 @@ describe('providers', () => {
 
     const impact = await getAiProviderImpact({ id: stt.id }, ctx(sam))
     expect(impact).toMatchObject({ defaults: [{ slot: 'stt', to: null }], agents: [{ id: agent.id, name: 'Kernel helper' }], goesDown: ['stt'] })
-    expect(impact.removalRefused).toBeTruthy()
-    await expect(removeAiProvider({ id: stt.id }, ctx(sam))).rejects.toMatchObject({ statusCode: 409 })
 
     await revokeAiProvider({ id: stt.id }, ctx(sam))
     expect(await prisma.aiProvider.count()).toBe(0)
     expect((await prisma.org.findUniqueOrThrow({ where: { id: 'org' } })).defaultSttProviderId).toBeNull()
     expect((await prisma.agentModelChoices.findUniqueOrThrow({ where: { agentId: agent.id } })).sttProviderId).toBeNull()
     expect((await prisma.aiProviderRecord.findMany({ orderBy: { at: 'asc' } })).map(r => r.action)).toEqual(['added', 'revoked'])
+  })
+
+  it('removes the last provider of a type, which then reads as not set up (ADR-0160) @SC-1174', async () => {
+    const { sam } = await setUp()
+    const { provider: stt } = await addAiProvider({ vendor: 'assemblyai', key: 'aai-test-fake-000011' }, ctx(sam))
+    await removeAiProvider({ id: stt.id }, ctx(sam))
+    expect(await prisma.aiProvider.count()).toBe(0)
   })
 
   it('a key refused on a call and confirmed by a check tells organisation admins once, and clears when replaced @SC-1177', async () => {

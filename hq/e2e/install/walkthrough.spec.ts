@@ -56,7 +56,12 @@ test.describe('HQ installed at a network address over plain http @SC-1149', () =
     await page.getByLabel(/^password/i).fill(ADMIN.password)
     await page.getByRole('button', { name: /^continue$/i }).click()
 
-    // Agenthix Cloud is not available yet, so the way through is Your own keys.
+    // Setup opens at the organisation, from where it resumes: the address has no step yet.
+    await expect(page.getByRole('heading', { name: 'Your organisation', exact: true })).toBeVisible()
+    await page.getByLabel(/^name/i).fill('Install Test')
+    await page.getByRole('button', { name: /^continue$/i }).click()
+
+    // Agenthix Cloud is not available yet, so this walk takes Your own keys.
     await expect(page.getByRole('heading', { name: 'How will your agents reach AI?' })).toBeVisible()
     await page.getByRole('region', { name: 'Your own keys' }).getByRole('button', { name: 'Choose' }).click()
     await onStep(page, 'model')
@@ -75,10 +80,6 @@ test.describe('HQ installed at a network address over plain http @SC-1149', () =
     await page.getByRole('button', { name: /^Inworld/ }).click()
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
     await page.getByRole('button', { name: /^save$/i }).click()
-    await page.getByRole('button', { name: /^continue$/i }).click()
-    await onStep(page, 'organisation')
-
-    await page.getByLabel(/^name/i).fill('Install Test')
     await page.getByRole('button', { name: /^continue$/i }).click()
     await onStep(page, 'review')
     await page.getByRole('button', { name: /^finish$/i }).click()

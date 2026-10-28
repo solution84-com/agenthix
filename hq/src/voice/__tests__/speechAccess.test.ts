@@ -2,16 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const resolve = vi.hoisted(() => vi.fn())
 const credentialOf = vi.hoisted(() => vi.fn())
+const list = vi.hoisted(() => vi.fn())
 vi.mock('../../routing/resolver', () => ({ resolve, reportCall: vi.fn() }))
-vi.mock('../../providers/store', () => ({ providerStore: () => ({ credentialOf }) }))
+vi.mock('../../providers/store', () => ({ providerStore: () => ({ credentialOf, list }) }))
 
-import { failureKind, speechAccess, voiceDownText } from '../speechAccess'
+import { failureKind, speechAccess, voiceDownText, voiceNotSetUpText } from '../speechAccess'
 
 const resolved = (vendor: string, voice?: string) => ({
   ok: true, resolution: { purpose: 'tts', basis: 'ESTIMATED', billingProfileId: 'bp-1', vendor, providerName: vendor, model: { providerId: 'p1', model: 'm' }, ...(voice ? { voice } : {}) },
 })
 
-beforeEach(() => { resolve.mockReset(); credentialOf.mockReset() })
+beforeEach(() => { resolve.mockReset(); credentialOf.mockReset(); list.mockReset().mockResolvedValue([{ vendor: 'assemblyai' }, { vendor: 'inworld' }]) })
 
 describe('speechAccess @SC-1205', () => {
   it('resolves the agent’s own speech provider and takes its key from the store', async () => {
@@ -49,6 +50,14 @@ describe('speechAccess @SC-1205', () => {
       ok: false, reason: "Voice is down: speech to text isn't working. An organisation admin has been told.",
     })
     expect(voiceDownText('tts')).toBe("Voice is down: text to speech isn't working. An organisation admin has been told.")
+  })
+
+  it('says voice is not set up, rather than down, when no provider of the type was ever added @SC-1667', async () => {
+    resolve.mockResolvedValue({ ok: false, problem: { code: 'no_provider' } })
+    list.mockResolvedValue([{ vendor: 'anthropic' }, { vendor: 'inworld' }])
+    expect(await speechAccess('stt')).toEqual({ ok: false, reason: voiceNotSetUpText('stt') })
+    expect(voiceNotSetUpText('stt')).toBe("Voice isn't set up: no speech to text provider has been added. An organisation admin can add one.")
+    expect(await speechAccess('tts')).toEqual({ ok: false, reason: voiceDownText('tts') })
   })
 
   it('treats a provider of another vendor, or with no key, as down', async () => {

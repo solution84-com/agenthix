@@ -26,7 +26,7 @@ const MACHINE = { kind: 'machine' } as const
 const USAGE = 'Usage: provider add <vendor> <key> [<name> [<address>]] | provider list | provider remove <vendor or id>'
 
 const CODE: Partial<Record<RefusalCode, 'not_found' | 'conflict' | 'usage'>> = {
-  not_found: 'not_found', conflict: 'conflict', last_of_type: 'conflict', usage: 'usage',
+  not_found: 'not_found', conflict: 'conflict', usage: 'usage',
 }
 
 function refused(err: unknown): CommandResult {

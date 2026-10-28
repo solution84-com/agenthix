@@ -4,23 +4,30 @@
  * their space would be; nothing is kept.
  */
 import { HttpError, prisma } from 'wasp/server'
+import { providerTypesOf } from '@agenthix/core'
 import { roleAtLeast } from '../server/identity/rolePolicy'
 import { resolve } from '../routing/resolver'
+import { providerStore } from '../providers/store'
 
 export type TalkAccess = {
   canTalk: boolean
   /** Where the fix is: always the organisation's providers and models, which an organisation admin sets. */
   fix: 'org-access' | null
   isAdmin: boolean
+  /** Whether any provider of models, and of both halves of voice, has been added at all, working or not: none is "not set up", not "down" (ADR-0160). */
+  added: { model: boolean; voice: boolean }
 }
 
 export async function computeTalkAccess(userId: string): Promise<TalkAccess> {
-  const [answer, settings] = await Promise.all([
+  const [answer, settings, providers] = await Promise.all([
     resolve({ purpose: 'conversation', place: { kind: 'own', userId }, userId }),
     prisma.userSettings.findUnique({ where: { userId }, select: { role: true } }),
+    providerStore().list(),
   ])
   const isAdmin = roleAtLeast(settings?.role ?? null, 'ADMIN')
-  return answer.ok ? { canTalk: true, fix: null, isAdmin } : { canTalk: false, fix: 'org-access', isAdmin }
+  const has = (type: 'llm' | 'stt' | 'tts') => providers.some(p => providerTypesOf(p.vendor).includes(type))
+  const added = { model: has('llm'), voice: has('stt') && has('tts') }
+  return answer.ok ? { canTalk: true, fix: null, isAdmin, added } : { canTalk: false, fix: 'org-access', isAdmin, added }
 }
 
 export const getMyModelAccess = async (_args: void, context: { user?: { id: string } | null }): Promise<TalkAccess> => {

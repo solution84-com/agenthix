@@ -6,6 +6,7 @@ import { useProviderStore } from '../store'
 import { useVendorChecks } from '../checks'
 
 vi.mock('../notices', () => ({ announceProviderChange: async () => {}, syncProviderNotices: async () => {} }))
+vi.mock('../../setup/setupDefaults', () => ({ fillEmptyDefaults: async () => {} }))
 
 import { providerCommand, supplyCloudAfterConnect } from '../machineCommands'
 
@@ -41,11 +42,11 @@ describe('provider command @SC-1180', () => {
     expect(added).toMatchObject({ ok: true, data: { provider: { name: 'Lab server', baseUrl: 'http://lab.example.test/v1', keyHint: null } } })
   })
 
-  it('removes by vendor, and refuses the last provider of a type as a conflict', async () => {
+  it('removes by vendor, the last provider of a type too, and says so for one there is not', async () => {
     await providerCommand(['add', 'anthropic', KEY])
     await providerCommand(['add', 'openai', KEY])
     expect(await providerCommand(['remove', 'openai'])).toMatchObject({ ok: true })
-    expect(await providerCommand(['remove', 'anthropic'])).toMatchObject({ ok: false, code: 'conflict' })
+    expect(await providerCommand(['remove', 'anthropic'])).toMatchObject({ ok: true })
     expect(await providerCommand(['remove', 'inworld'])).toMatchObject({ ok: false, code: 'not_found' })
   })
 

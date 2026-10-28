@@ -73,10 +73,10 @@ describe('listInworldVoices @SC-1206', () => {
 })
 
 describe('previewVoice @SC-206 @SC-1206', () => {
-  it('answers 503 with the outage message when no text to speech provider works', async () => {
+  it('answers 503 saying voice is not set up when no text to speech provider was added', async () => {
     const operator = await createUserWithRole('MEMBER')
     await expect(previewVoice({ providerId: 'p', voiceId: 'v', description: 'd' }, ctx(operator)))
-      .rejects.toMatchObject({ statusCode: 503, message: "Voice is down: text to speech isn't working. An organisation admin has been told." })
+      .rejects.toMatchObject({ statusCode: 503, message: "Voice isn't set up: no text to speech provider has been added. An organisation admin can add one." })
   })
 
   it('answers base64 audio and the phrase when a provider works', async () => {

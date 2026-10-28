@@ -22,9 +22,9 @@ const ctx = (user?: { id: string }) => ({ user }) as any
 describe('getMyModelAccess @SC-722 @SC-1199', () => {
   it('says nobody can talk while no model provider works, and that the fix is the organisation admins\'', async () => {
     const dana = await createUserWithRole('MEMBER')
-    await expect(getMyModelAccess(undefined, ctx(dana))).resolves.toEqual({ canTalk: false, fix: 'org-access', isAdmin: false })
+    await expect(getMyModelAccess(undefined, ctx(dana))).resolves.toEqual({ canTalk: false, fix: 'org-access', isAdmin: false, added: { model: false, voice: false } })
     const avery = await createUserWithRole('ADMIN')
-    await expect(getMyModelAccess(undefined, ctx(avery))).resolves.toEqual({ canTalk: false, fix: 'org-access', isAdmin: true })
+    await expect(getMyModelAccess(undefined, ctx(avery))).resolves.toEqual({ canTalk: false, fix: 'org-access', isAdmin: true, added: { model: false, voice: false } })
   })
 
   it('says everyone can talk once a provider works, and no longer when it stops', async () => {
@@ -33,7 +33,15 @@ describe('getMyModelAccess @SC-722 @SC-1199', () => {
     await setOrgDefaults({ conversation: { providerId: provider.id, model: 'claude-sonnet-4-6' } })
     await expect(getMyModelAccess(undefined, ctx(dana))).resolves.toMatchObject({ canTalk: true, fix: null })
     await prisma.aiProvider.update({ where: { id: provider.id }, data: { state: 'key_refused' } })
-    expect((await getMyModelAccess(undefined, ctx(dana))).canTalk).toBe(false)
+    await expect(getMyModelAccess(undefined, ctx(dana))).resolves.toMatchObject({ canTalk: false, added: { model: true, voice: false } })
+  })
+
+  it('says voice is added only once both speech to text and text to speech have a provider @SC-1667', async () => {
+    const dana = await createUserWithRole('MEMBER')
+    await createProvider({ vendor: 'assemblyai' })
+    expect((await getMyModelAccess(undefined, ctx(dana))).added.voice).toBe(false)
+    await createProvider({ vendor: 'inworld' })
+    expect((await getMyModelAccess(undefined, ctx(dana))).added.voice).toBe(true)
   })
 
   it('needs a signed-in person', async () => {

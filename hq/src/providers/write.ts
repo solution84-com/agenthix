@@ -8,8 +8,8 @@
  *
  * A key is checked with its vendor before it is stored, encrypted under SECRETS_MASTER_KEY, and never answered: an
  * answer carries its last four characters at most. Every write is a record and is announced to every organisation
- * admin. A removal that would leave no LLM, STT or TTS provider is refused; a revoke never is. Writes run one at a
- * time, so two removals cannot each leave the other's type empty.
+ * admin. A removal that leaves no provider of a type is allowed, with a warning first (ADR-0160). Writes run one at a
+ * time. A key that works fills the organisation's defaults that are still empty.
  */
 import { AI_PROVIDER_VENDOR_INFO, PROVIDER_WRITERS, type AiProviderVendor, type ProviderActor, type ProviderRecordAction } from '@agenthix/core'
 import { encryptSecret } from '../server/crypto/secretCrypto'
@@ -17,10 +17,11 @@ import { checkBaseUrl } from '../shared/modelProviders'
 import { vendorChecks, type CheckResult } from './checks'
 import { impactOf, impactSentences, type ProviderImpact } from './impact'
 import { announceProviderChange, syncProviderNotices } from './notices'
+import { fillEmptyDefaults } from '../setup/setupDefaults'
 import { keyHintOf, providerKeyProblem, vendorMessage } from './secrecy'
 import { providerStore, type ProviderRow } from './store'
 
-export type RefusalCode = 'not_allowed' | 'not_found' | 'conflict' | 'usage' | 'refused_by_vendor' | 'last_of_type'
+export type RefusalCode = 'not_allowed' | 'not_found' | 'conflict' | 'usage' | 'refused_by_vendor'
 
 export class ProviderRefusal extends Error {
   constructor(readonly code: RefusalCode, message: string) {
@@ -131,6 +132,7 @@ export async function addProvider(
       throw err
     }
     await finish(by, created, 'added', [...addressLine(created), ...(created.keyHint ? [`Key ending …${created.keyHint}.`] : [])])
+    await fillEmptyDefaults()
     return { provider: written(created) }
   })
 }
@@ -170,6 +172,7 @@ export async function replaceProviderKey(actor: ProviderActor, input: { id: stri
       failuresInRow: 0, lastFailedAt: null, lastCheckedAt: now, lastWorkedAt: now,
     })
     await finish(by, after, 'key_replaced', [`Key ending …${after.keyHint} replaced key ending …${before.keyHint ?? ''}.`])
+    await fillEmptyDefaults()
     return { provider: written(after) }
   })
 }
@@ -190,8 +193,8 @@ export async function renameProvider(actor: ProviderActor, input: { id: string; 
 export async function providerImpact(id: string): Promise<ProviderImpact> {
   const store = providerStore()
   const gone = await found(id)
-  const [all, uses, finished] = await Promise.all([store.list(), store.usesOf(id), store.setupFinished()])
-  return impactOf(gone, all, uses, finished)
+  const [all, uses] = await Promise.all([store.list(), store.usesOf(id)])
+  return impactOf(gone, all, uses)
 }
 
 async function takeAway(actor: ProviderActor, id: string, action: 'removed' | 'revoked'): Promise<{ impact: ProviderImpact }> {
@@ -199,7 +202,6 @@ async function takeAway(actor: ProviderActor, id: string, action: 'removed' | 'r
   return oneAtATime(async () => {
     const gone = await found(id)
     const impact = await providerImpact(id)
-    if (action === 'removed' && impact.removalRefused) throw new ProviderRefusal('last_of_type', impact.removalRefused)
     await providerStore().remove(id)
     const lines = impactSentences(impact)
     if (action === 'revoked' && gone.credentialKind === 'api_key') lines.push(`Revoke the key at ${AI_PROVIDER_VENDOR_INFO[gone.vendor].label} too: HQ cannot.`)

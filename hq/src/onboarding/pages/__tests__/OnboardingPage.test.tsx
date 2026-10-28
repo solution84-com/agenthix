@@ -5,11 +5,12 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router'
 
 const mocks = vi.hoisted(() => ({
-  data: undefined as unknown, refetch: vi.fn(), setName: vi.fn(), upload: vi.fn(), removePic: vi.fn(), setZone: vi.fn(), sub: { present: false },
+  data: undefined as unknown, access: { canTalk: true } as { canTalk: boolean }, refetch: vi.fn(), setName: vi.fn(), upload: vi.fn(), removePic: vi.fn(), setZone: vi.fn(), sub: { present: false },
 }))
 vi.mock('wasp/client/operations', () => ({
   getOnboardingData: 'getOnboardingData',
   getModelCredentialStatus: 'getModelCredentialStatus',
+  getMyModelAccess: 'getMyModelAccess',
   setPersonName: (...a: unknown[]) => mocks.setName(...a),
   uploadPersonPicture: (...a: unknown[]) => mocks.upload(...a),
   removePersonPicture: (...a: unknown[]) => mocks.removePic(...a),
@@ -19,6 +20,7 @@ vi.mock('wasp/client/operations', () => ({
   useQuery: (q: string, args?: { kind?: string }) =>
     q === 'getModelCredentialStatus'
       ? { data: { present: args?.kind === 'SUBSCRIPTION' && mocks.sub.present }, refetch: vi.fn() }
+      : q === 'getMyModelAccess' ? { data: mocks.access }
       : { data: mocks.data, isLoading: mocks.data === undefined, refetch: mocks.refetch },
 }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u9' } }) }))
@@ -129,6 +131,21 @@ describe('Onboarding @SC-720', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start working' }))
     expect(screen.getByTestId('where').textContent).toBe('/')
     expect(window.sessionStorage.getItem('agenthix:welcome-line')).toBeNull()
+  })
+
+  it('the last look says when the organisation has not set up models yet, and not otherwise @SC-1667', () => {
+    open('/onboarding?step=review')
+    expect(screen.queryByText(/hasn't set up models yet/)).toBeNull()
+    cleanup()
+    mocks.access = { canTalk: false }
+    open('/onboarding?step=review')
+    expect(screen.getByText("Acme Corp hasn't set up models yet, so agents can't answer until an admin does.")).toBeTruthy()
+    mocks.access = { canTalk: true }
+  })
+
+  it('keeps the buttons in one row pinned to the foot of the window @SC-1668', () => {
+    open('/onboarding?step=review')
+    expect(screen.getByRole('button', { name: 'Start working' }).closest('[data-action-row]')).toBeTruthy()
   })
 
   it('Edit on the last look goes to the step and comes back to the last look', async () => {

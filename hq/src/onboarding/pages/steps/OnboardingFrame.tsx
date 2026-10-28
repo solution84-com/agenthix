@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { AuthLayout } from '../../../auth/pages/parts/AuthLayout'
-import { PRIMARY, SECONDARY, Steps } from '../../../auth/pages/parts/authUi'
+import { ActionRow, PRIMARY, SECONDARY, Steps } from '../../../auth/pages/parts/authUi'
 import type { ShownIdentity } from '../../../auth/pages/parts/orgCard'
 import { STEP_NAME, countedSteps, type Step } from '../../onboardingFlow'
 
@@ -31,10 +31,10 @@ export function StepButtons({ onBack, next, nextLabel, busy, onNext }: {
   onNext?: () => void
 }) {
   return (
-    <div className="mt-5 flex items-center gap-3">
+    <ActionRow>
       {onBack && <button type="button" disabled={busy} onClick={onBack} className={SECONDARY}>Back</button>}
       <button type={next === 'submit' ? 'submit' : 'button'} disabled={busy} onClick={onNext} className={`${PRIMARY} flex-1`}>{nextLabel}</button>
-    </div>
+    </ActionRow>
   )
 }
 

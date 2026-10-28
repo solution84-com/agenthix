@@ -115,7 +115,7 @@ export async function currentDefaults(): Promise<{ orgId: string; current: Defau
   }
 }
 
-/** Writes the defaults that are not set yet; called as setup finishes. */
+/** Writes the defaults that are not set yet; called as setup finishes, and whenever a provider's key is found to work. */
 export async function writeSetupDefaults(providers: readonly ProviderFact[]): Promise<void> {
   const found = await currentDefaults()
   if (!found) return
@@ -129,6 +129,11 @@ export async function writeSetupDefaults(providers: readonly ProviderFact[]): Pr
     Object.assign(data, { defaultTtsProviderId: next.tts.providerId, defaultTtsModel: next.tts.model, defaultTtsVoice: next.tts.voice ?? null })
   }
   if (Object.keys(data).length > 0) await prisma.org.update({ where: { id: found.orgId }, data })
+}
+
+/** After a provider is added or its key replaced: setup may have left models or voice for later (ADR-0160). */
+export async function fillEmptyDefaults(): Promise<void> {
+  await writeSetupDefaults(await providerStore().list())
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)

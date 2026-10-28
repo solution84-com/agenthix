@@ -32,6 +32,18 @@ export function FormError({ children }: { children: ReactNode }) {
   return <p role="alert" className="mb-3.5 rounded-lg border border-danger/40 px-3 py-2 text-small text-danger">{children}</p>
 }
 
+/**
+ * A setup or onboarding screen's buttons: right under the form when it fits the window, pinned to the window's foot
+ * while the form is longer, so the way on is always in reach. Main.css keeps a focused field clear of it.
+ */
+export function ActionRow({ children }: { children: ReactNode }) {
+  return (
+    <div data-action-row className="sticky bottom-0 z-10 -mx-5 mt-5 flex items-center gap-2 border-t border-border-subtle bg-surface-1/90 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+      {children}
+    </div>
+  )
+}
+
 /** A line saying how something stands, outlined in the colour of what it says. */
 export function StateLine({ tone = 'plain', children }: { tone?: 'ok' | 'warn' | 'plain'; children: ReactNode }) {
   const outline = tone === 'ok' ? 'border-success/50' : tone === 'warn' ? 'border-warning/60' : 'border-border-subtle'
