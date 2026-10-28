@@ -14,8 +14,8 @@ export interface ImpactDialogProps {
 }
 
 /**
- * Remove or revoke, with what falls to what read from the operation before anything is confirmed. A removal the server
- * would refuse (the last of a type) says why and offers no button; a revoke is never refused and warns instead.
+ * Remove or revoke, with what falls to what read from the operation before anything is confirmed. Neither is refused:
+ * taking away the last provider of a type warns that it goes down until another is added (ADR-0160).
  */
 export function ImpactDialog({ kind, provider, onClose }: ImpactDialogProps) {
   const { data: impact, error: loadError } = useQuery(getAiProviderImpact, { id: provider.id })
@@ -24,7 +24,6 @@ export function ImpactDialog({ kind, provider, onClose }: ImpactDialogProps) {
   const [working, setWorking] = useState(false)
   const vendor = AI_PROVIDER_VENDOR_INFO[provider.vendor].label
   const revoke = kind === 'revoke'
-  const refused = !revoke && impact?.removalRefused ? impact.removalRefused : null
 
   const confirm = async () => {
     setWorking(true)
@@ -51,13 +50,12 @@ export function ImpactDialog({ kind, provider, onClose }: ImpactDialogProps) {
             {impactLines(impact).length === 0 && <li>Nothing uses it.</li>}
           </ul>
         )}
-        {refused && <p role="alert" className="text-small text-danger">{refused}</p>}
         {revoke && <p className="text-small text-text-muted">Revoke the key at {vendor} too: HQ cannot.</p>}
-        {impact && !refused && <p className="text-small text-text-muted">Every organisation admin is told what moved, and it is recorded.</p>}
+        {impact && <p className="text-small text-text-muted">Every organisation admin is told what moved, and it is recorded.</p>}
         {error && <p role="alert" className="text-small text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-          {!refused && <Button type="button" variant="danger" disabled={!impact || working} onClick={() => void confirm()}>{working ? 'Working…' : revoke ? 'Revoke now' : 'Remove'}</Button>}
+          <Button type="button" variant="danger" disabled={!impact || working} onClick={() => void confirm()}>{working ? 'Working…' : revoke ? 'Revoke now' : 'Remove'}</Button>
         </div>
       </div>
     </Modal>

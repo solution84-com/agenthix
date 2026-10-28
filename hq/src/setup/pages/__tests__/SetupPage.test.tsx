@@ -63,11 +63,13 @@ const setup = (hqSite: unknown = { state: 'connected', dockerRunning: true }, ov
   mocks.data = { ...(mocks.data as object), org: over.org ?? { ...(mocks.data as { org: object }).org, timeZone: 'Europe/London' } }
   render(<MemoryRouter initialEntries={[entry]}><Routes><Route path="/setup" element={<><SetupPage /><Where /></>} /><Route path="*" element={<Where />} /></Routes></MemoryRouter>)
 }
-/** From the organisation step to the review: choosing models is not a step of setup here. */
+const THREE = [provider('anthropic', 'Anthropic', ['llm']), provider('assemblyai', 'AssemblyAI', ['stt']), provider('inworld', 'Inworld', ['tts'])]
+/** From the organisation step to the review, leaving AI for later. */
 const toReview = async () => {
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Acme Corp' } })
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-  await screen.findByText(/^Step 6 of 6/)
+  fireEvent.click(await screen.findByRole('button', { name: 'Set up later' }))
+  await screen.findByText(/^Step 4 of 4/)
 }
 
 beforeEach(() => {
@@ -80,7 +82,7 @@ afterEach(cleanup)
 describe('Setup @SC-710 @SC-1184 @SC-1187', () => {
   it('opens on the organisation step, beside the sign-in page it makes, which follows the name', () => {
     setup()
-    expect(screen.getByText(/^Step 5 of 6/)).toBeTruthy()
+    expect(screen.getByText(/^Step 2 of 6/)).toBeTruthy()
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Your organisation')
     expect(screen.getByText('Vision, mission and @handle can be added later on the Organisation page.')).toBeTruthy()
     const preview = screen.getByTestId('sign-in-preview')
@@ -132,6 +134,7 @@ describe('Setup @SC-710 @SC-1184 @SC-1187', () => {
   })
 
   it('shows the four defaults on the last look, each with Change, and Kernel speaking as the voice', () => {
+    queries({ getAiProviders: THREE })
     setup(undefined, {}, '/setup?step=review&path=keys')
     const rows = within(screen.getByRole('region', { name: 'Thinking' }))
     expect(rows.getByText('Claude Sonnet 5 · via Anthropic')).toBeTruthy()
@@ -148,17 +151,17 @@ describe('Setup @SC-710 @SC-1184 @SC-1187', () => {
     expect(screen.getByTestId('sign-in-preview').textContent).toContain("to Acme Corp's HQ")
   })
 
-  it('goes back from the review to step 2 with the browser Back', async () => {
+  it('goes back from the review to the AI choice with the browser Back', async () => {
     setup()
     await toReview()
     fireEvent.click(screen.getByRole('button', { name: 'browser back' }))
-    expect(await screen.findByText(/^Step 5 of 6/)).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'How will your agents reach AI?' })).toBeTruthy()
   })
 
-  it('goes back from the organisation to voice, and from the first step shows the account with the name filled in', async () => {
+  it('goes back from the organisation to the first step, which shows the account with the name filled in', async () => {
     setup()
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(await screen.findByRole('heading', { name: 'Voice' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'You' })).toBeTruthy()
     cleanup()
     setup(undefined, {}, '/setup?step=you&path=keys')
     expect((screen.getByLabelText(/^Your name/) as HTMLInputElement).value).toBe('Dana Ruiz')
@@ -167,16 +170,17 @@ describe('Setup @SC-710 @SC-1184 @SC-1187', () => {
     expect(screen.queryByRole('button', { name: 'Back' })).toBeNull()
   })
 
-  it('saves an edited name on step 1 and continues to the choice; Back on the last look returns to the organisation', async () => {
+  it('saves an edited name on step 1 and continues to the organisation; Back on the last look returns to voice', async () => {
     setup(undefined, {}, '/setup?step=you&path=keys')
+    expect(screen.getByText(/Next you name your organisation/)).toBeTruthy()
     fireEvent.change(screen.getByLabelText(/^Your name/), { target: { value: 'Dana R. Ruiz' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    expect(await screen.findByRole('heading', { name: 'How will your agents reach AI?' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Your organisation' })).toBeTruthy()
     expect(mocks.setName).toHaveBeenCalledWith({ userId: 'u1', displayName: 'Dana R. Ruiz' })
     cleanup()
     setup(undefined, {}, '/setup?step=review&path=keys')
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(await screen.findByText(/^Step 5 of 6/)).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Voice' })).toBeTruthy()
   })
 
   it('opens at the step setup stopped at for an unknown step', () => {
@@ -196,7 +200,7 @@ describe('Setup @SC-710 @SC-1184 @SC-1187', () => {
   it('opens a step from Edit on the review and returns to the review on Continue', async () => {
     setup(undefined, {}, '/setup?step=review&path=keys')
     fireEvent.click(screen.getByRole('button', { name: 'Edit your organisation' }))
-    expect(await screen.findByText(/^Step 5 of 6/)).toBeTruthy()
+    expect(await screen.findByText(/^Step 2 of 6/)).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Acme Corp' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(await screen.findByText(/^Step 6 of 6/)).toBeTruthy()
@@ -244,7 +248,8 @@ describe('Setup @SC-710 @SC-1184 @SC-1187', () => {
     expect((screen.getByLabelText('Time zone') as HTMLSelectElement).value).toBe('Europe/London')
     fireEvent.change(screen.getByLabelText('Time zone'), { target: { value: 'Asia/Tokyo' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    await screen.findByText(/^Step 6 of 6/)
+    fireEvent.click(await screen.findByRole('button', { name: 'Set up later' }))
+    await screen.findByText(/^Step 4 of 4/)
     expect(mocks.saveOrg).toHaveBeenCalledWith({ timeZone: 'Asia/Tokyo' })
     expect(screen.getByText(/Asia\/Tokyo/)).toBeTruthy()
   })
@@ -259,27 +264,31 @@ describe('Setup @SC-710 @SC-1184 @SC-1187', () => {
 })
 
 describe('Setup opens where it stopped, and counts the chosen path @SC-1182 @SC-1184', () => {
-  it('opens at the choice with no provider, at voice with only a model provider, and at the organisation with all three', () => {
+  it('opens at the organisation until it is saved, then at the choice with no provider, then at the last look', () => {
+    queries({ getSetupResume: { step: 'organisation' } })
+    setup(undefined, {}, '/setup')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Your organisation')
+    expect(screen.getByText(/^Step 2 of 6/)).toBeTruthy()
+    cleanup()
+    queries({ getSetupResume: { step: 'choice' } })
     setup(undefined, {}, '/setup')
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('How will your agents reach AI?')
     cleanup()
-    queries({ getSetupResume: { step: 'voice' }, getAiProviders: [provider('anthropic', 'Anthropic', ['llm'])] })
+    queries({ getSetupResume: { step: 'review' }, getAiProviders: [provider('anthropic', 'Anthropic', ['llm'])] })
     setup(undefined, {}, '/setup')
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Voice')
-    expect(screen.getByText(/^Step 4 of 6/)).toBeTruthy()
-    cleanup()
-    queries({ getSetupResume: { step: 'organisation' }, getAiProviders: [provider('anthropic', 'Anthropic', ['llm']), provider('assemblyai', 'AssemblyAI', ['stt']), provider('inworld', 'Inworld', ['tts'])] })
-    setup(undefined, {}, '/setup')
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Your organisation')
-    expect(screen.getByText(/^Step 5 of 6/)).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Check everything before you start')
+    expect(screen.getByText(/^Step 6 of 6/)).toBeTruthy()
   })
 
-  it('counts four steps on the Cloud path and six with own keys', () => {
+  it('counts four steps on the Cloud and later paths and six with own keys, the organisation second on each', () => {
     setup(undefined, {}, '/setup?step=organisation&path=cloud')
-    expect(screen.getByText(/^Step 3 of 4/)).toBeTruthy()
+    expect(screen.getByText(/^Step 2 of 4/)).toBeTruthy()
+    cleanup()
+    setup(undefined, {}, '/setup?step=organisation&path=later')
+    expect(screen.getByText(/^Step 2 of 4/)).toBeTruthy()
     cleanup()
     setup(undefined, {}, '/setup?step=organisation&path=keys')
-    expect(screen.getByText(/^Step 5 of 6/)).toBeTruthy()
+    expect(screen.getByText(/^Step 2 of 6/)).toBeTruthy()
   })
 
   it('disables the Cloud card while its models and voice are not available yet, and own keys goes on to the model provider', async () => {
@@ -288,37 +297,80 @@ describe('Setup opens where it stopped, and counts the chosen path @SC-1182 @SC-
     expect((within(screen.getByRole('region', { name: 'Agenthix Cloud' })).getByRole('button', { name: 'Connect' }) as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: 'Choose' }))
     expect(await screen.findByRole('heading', { name: 'Your model provider' })).toBeTruthy()
-    expect(screen.getByText(/^Step 3 of 6/)).toBeTruthy()
+    expect(screen.getByText(/^Step 4 of 6/)).toBeTruthy()
     expect(screen.getByText('You can add more providers, or Agenthix Cloud, later in Manage › Providers.')).toBeTruthy()
   })
 
-  it('offers Connect on the Cloud card when it is available, and goes straight to the organisation once connected', async () => {
+  it('offers Connect on the Cloud card when it is available, and goes straight to the last look once connected', async () => {
     queries({ getHqCloudConnection: { ...CLOUD_OFF, aiAvailable: true, connection: { cloudOrganisationId: 'o1', name: 'Acme', connectedAt: '2026-10-01T00:00:00Z' } } })
     setup(undefined, {}, '/setup?step=choice')
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    expect(await screen.findByRole('heading', { name: 'Your organisation' })).toBeTruthy()
-    expect(screen.getByText(/^Step 3 of 4/)).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Check everything before you start' })).toBeTruthy()
+    expect(screen.getByText(/^Step 4 of 4/)).toBeTruthy()
   })
 
-  it('shows a model provider that works instead of the form, and goes on to voice, which needs both providers', async () => {
+  it('shows a model provider that works instead of the form, and goes on to voice, whose Continue needs both providers', async () => {
     queries({ getAiProviders: [provider('anthropic', 'Anthropic', ['llm'])] })
     setup(undefined, {}, '/setup?step=model&path=keys')
     expect(screen.getByText('works. Added by you.', { exact: false })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Skip for now' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(await screen.findByRole('heading', { name: 'Voice' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull()
+    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(true)
     cleanup()
-    queries({ getAiProviders: [provider('anthropic', 'Anthropic', ['llm']), provider('assemblyai', 'AssemblyAI', ['stt']), provider('inworld', 'Inworld', ['tts'])] })
+    queries({ getAiProviders: THREE })
     setup(undefined, {}, '/setup?step=voice&path=keys')
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    expect(await screen.findByRole('heading', { name: 'Your organisation' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Check everything before you start' })).toBeTruthy()
+  })
+})
+
+describe('Setup leaves models and voice for later (ADR-0160) @SC-1185', () => {
+  it('skips the model provider to voice, and voice to the last look', async () => {
+    setup(undefined, {}, '/setup?step=model&path=keys')
+    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
+    expect(await screen.findByRole('heading', { name: 'Voice' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
+    expect(await screen.findByRole('heading', { name: 'Check everything before you start' })).toBeTruthy()
   })
 
-  it('has no way to skip, and says so plainly when finishing is refused until providers work', async () => {
-    mocks.complete.mockRejectedValue(new Error('Add a model provider and a speech-to-text and a text-to-speech provider that work before finishing setup'))
-    setup(undefined, {}, '/setup?step=review&path=keys')
-    expect(screen.queryByRole('button', { name: /skip/i })).toBeNull()
+  it('sets AI up later from the choice, and the last look says what that leaves, then finishes', async () => {
+    setup(undefined, {}, '/setup?step=choice')
+    fireEvent.click(screen.getByRole('button', { name: 'Set up later' }))
+    expect(await screen.findByText(/^Step 4 of 4/)).toBeTruthy()
+    expect(screen.getByText('Not set up.')).toBeTruthy()
+    expect(screen.getByText(/Agents can.t think or talk until you add a provider/)).toBeTruthy()
+    expect(screen.getByText('Chosen for you when you add a provider.')).toBeTruthy()
+    expect(screen.getByText('Answers once a model provider is added.')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
-    expect((await screen.findByRole('alert')).textContent).toContain('not working yet')
+    await waitFor(() => expect(mocks.complete).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/'))
+  })
+
+  it('says on the last look when a model was added and voice was not, and when voice was added and a model was not', () => {
+    queries({ getAiProviders: [provider('anthropic', 'Anthropic', ['llm'])] })
+    setup(undefined, {}, '/setup?step=review&path=keys')
+    expect(screen.getByText(/Voice isn.t set up, so people type to agents/)).toBeTruthy()
+    cleanup()
+    queries({ getAiProviders: [provider('assemblyai', 'AssemblyAI', ['stt']), provider('inworld', 'Inworld', ['tts'])] })
+    setup(undefined, {}, '/setup?step=review&path=keys')
+    expect(screen.getByText(/Agents can.t think until you add a model provider/)).toBeTruthy()
+  })
+
+  it('shows the organisation\'s sign-in page beside every step after the organisation @SC-1668', () => {
+    for (const step of ['choice', 'model', 'voice', 'review']) {
+      setup(undefined, {}, `/setup?step=${step}&path=keys`)
+      expect(screen.getByTestId('sign-in-preview').textContent).toContain("to My Organisation's HQ")
+      expect(screen.queryByTestId('brand-side')).toBeNull()
+      cleanup()
+    }
+    setup(undefined, {}, '/setup?step=you&path=keys')
+    expect(screen.getByTestId('brand-side')).toBeTruthy()
+  })
+
+  it('keeps every step\'s buttons in one row pinned to the foot of the window @SC-1668', () => {
+    setup()
+    expect(screen.getByRole('button', { name: 'Continue' }).closest('[data-action-row]')).toBeTruthy()
   })
 })

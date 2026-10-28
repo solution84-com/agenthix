@@ -8,7 +8,7 @@ import { saveSetupOrganisation } from "./organisation" with { type: "ref" };
 export const setupSpec: Spec = [
     route("SetupRoute", "/setup", page(SetupPage, { authRequired: true })),
     query(getSetupData, { entities: ["Org", "UserSettings", "Invite", "ExecutionSite"] }),
-    query(getSetupResume, { entities: ["AiProvider"] }),
+    query(getSetupResume, { entities: ["AiProvider", "BillingProfile"] }),
     query(getSetupDefaults, { entities: ["Org", "AiProvider", "ModelList", "Agent"] }),
     action(completeSetup, { entities: ["Org", "UserSettings", "Invite", "AiProvider"] }),
     action(saveSetupOrganisation, { entities: ["Org", "BillingProfile"] }),

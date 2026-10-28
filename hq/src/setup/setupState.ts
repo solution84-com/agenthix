@@ -1,12 +1,13 @@
 /**
  * Setup runs once per hq, for its first admin only (getting-in spec, The first
- * admin): You · Your organisation · Model access. The first admin is whoever
+ * admin): You · Your organisation · how agents reach AI. The first admin is whoever
  * made their account with the first-admin link; an admin invited later accepts
  * an invitation like anyone else and is never sent through setup. Setup is done
- * when that admin finishes or skips its last step, recorded on the organisation.
+ * when that admin finishes it, recorded on the organisation; models and voice may
+ * be left for later (ADR-0160).
  */
-import { HttpError, prisma } from 'wasp/server'
-import { providerTypesCovered, providersComplete, type HqClaimState } from '@agenthix/core'
+import { prisma } from 'wasp/server'
+import type { AiProviderState, AiProviderVendor, HqClaimState } from '@agenthix/core'
 import { providerStore } from '../providers/store'
 import { writeSetupDefaults } from './setupDefaults'
 
@@ -23,21 +24,26 @@ export async function claimState(): Promise<HqClaimState> {
   return claimStateOf({ users, setupCompletedAt: org?.setupCompletedAt ?? null })
 }
 
-/** The step setup opens at, by what the organisation's providers already cover (setup spec, Resuming). */
-export type SetupResumeStep = 'choice' | 'voice' | 'organisation'
+/** The step setup opens at, by what is already done (setup spec, Resuming). */
+export type SetupResumeStep = 'organisation' | 'choice' | 'review'
 
-type ProviderFacts = Parameters<typeof providersComplete>[0]
+type ProviderFacts = ReadonlyArray<{ vendor: AiProviderVendor; state: AiProviderState }>
 
-/** The first step whose need is unmet: no working LLM, the choice; an LLM but no STT or TTS, voice; otherwise the organisation. */
-export function setupResumeStep(providers: ProviderFacts): SetupResumeStep {
-  const covered = providerTypesCovered(providers)
-  if (!covered.llm) return 'choice'
-  if (!covered.stt || !covered.tts) return 'voice'
-  return 'organisation'
+/**
+ * The organisation until its step is saved (which makes the default billing profile), then the AI choice while no
+ * provider is added, otherwise the last look: providers once added are never asked for again, nor are missing ones.
+ */
+export function setupResumeStep(organisationSaved: boolean, providers: ProviderFacts): SetupResumeStep {
+  if (!organisationSaved) return 'organisation'
+  return providers.length === 0 ? 'choice' : 'review'
 }
 
 export async function currentSetupResumeStep(): Promise<SetupResumeStep> {
-  return setupResumeStep(await providerStore().list())
+  const [profile, providers] = await Promise.all([
+    prisma.billingProfile.findFirst({ where: { isDefault: true, archivedAt: null }, select: { id: true } }),
+    providerStore().list(),
+  ])
+  return setupResumeStep(!!profile, providers)
 }
 
 export async function needsSetup(userId: string): Promise<boolean> {
@@ -51,16 +57,12 @@ export async function needsSetup(userId: string): Promise<boolean> {
 }
 
 /**
- * Records setup as done; only the first admin, and only once. Refused (409) until the providers reach a working LLM,
- * STT and TTS, and it writes the organisation's defaults that are not set yet, so a finished setup always has models and voice.
+ * Records setup as done; only the first admin, and only once. Never refused for providers: models and voice may be
+ * left for later (ADR-0160). It writes the organisation's defaults the providers added so far can fill.
  */
 export async function finishSetup(userId: string, now = new Date()): Promise<boolean> {
   if (!(await needsSetup(userId))) return false
-  const providers = await providerStore().list()
-  if (!providersComplete(providers)) {
-    throw new HttpError(409, 'Add a model provider and a speech-to-text and a text-to-speech provider that work before finishing setup')
-  }
-  await writeSetupDefaults(providers)
+  await writeSetupDefaults(await providerStore().list())
   const { count } = await prisma.org.updateMany({ where: { setupCompletedAt: null }, data: { setupCompletedAt: now } })
   return count > 0
 }

@@ -34,7 +34,7 @@ import { resolveTalking } from '../../access/talkingModel'
 import { getConversation } from '../../conversationQueries'
 import { sendConversationMessage } from '../../sendMessage'
 import { appendMessage } from '../../store/messages'
-import { voiceDownText } from '../../../voice/speechAccess'
+import { voiceDownText, voiceNotSetUpText } from '../../../voice/speechAccess'
 import { clearVoiceHolders, HQ_RESTARTED_VOICE, releaseVoice, takeVoice } from '../holder'
 import { resetVoiceSessions, voiceSession } from '../registry'
 import { ENDED, endVoice, interruptVoice, startVoice, VoiceRefused } from '../service'
@@ -65,17 +65,16 @@ describe('taking voice @SC-994', () => {
     expect([...voiceSession(conversation.id)!.socketIds]).toEqual(['s1', 's2'])
   })
 
-  it('refuses with the reason the greyed button shows: voice is down, or the model access has a problem', async () => {
+  it('refuses with the reason the greyed button shows: voice is not set up while no speech-to-text provider was added', async () => {
     await providers({ stt: false })
     const { person, conversation } = await voiced()
-    await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow(new VoiceRefused(voiceDownText('stt')))
-    expect(voiceDownText('stt')).toBe("Voice is down: speech to text isn't working. An organisation admin has been told.")
+    await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow(new VoiceRefused(voiceNotSetUpText('stt')))
   })
 
-  it('says text to speech is down when only that is missing', async () => {
+  it('says text to speech is not set up when only that was never added @SC-1667', async () => {
     await providers({ tts: false })
     const { person, conversation } = await voiced()
-    await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow(new VoiceRefused(voiceDownText('tts')))
+    await expect(startVoice('s1', person.id, conversation.id)).rejects.toThrow(new VoiceRefused(voiceNotSetUpText('tts')))
   })
 
   // Only one provider per vendor, and AssemblyAI is the only speech-to-text vendor with a key today, so a speech

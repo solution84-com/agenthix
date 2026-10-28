@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { setPersonName } from 'wasp/client/operations'
 import { AuthLayout } from '../../../auth/pages/parts/AuthLayout'
 import { FreshHqSide } from '../../../auth/pages/parts/BrandSide'
-import { Field, FormError, Heading, PRIMARY, Steps } from '../../../auth/pages/parts/authUi'
+import { ActionRow, Field, FormError, Heading, PRIMARY, Steps } from '../../../auth/pages/parts/authUi'
 
 type Props = {
   me: { id: string; displayName: string | null; username: string | null }
@@ -44,15 +44,15 @@ export function YouStep({ me, onNext, position }: Props) {
   return (
     <AuthLayout setup side={<FreshHqSide />}>
       <Steps step={position.step} total={position.total} name="You" />
-      <Heading title="You" lead="The account you created. You're the first person here, so you're the admin. Next you choose how agents reach AI." />
+      <Heading title="You" lead="The account you created. You're the first person here, so you're the admin. Next you name your organisation." />
       <form onSubmit={next}>
         {error && <FormError>{error}</FormError>}
         <Field id="you-name" label="Your name" aside="shown on your work" autoComplete="name" autoFocus value={name} onChange={e => setName(e.target.value)} />
         <Fact label="Username" aside="how you sign in · can't be changed" value={me.username ?? ''} />
         <Fact label="Password" value="Set" note="Change it any time in Settings › Sign-in" />
-        <div className="mt-5">
+        <ActionRow>
           <button type="submit" disabled={saving} className={PRIMARY}>{saving ? 'Saving…' : 'Continue'}</button>
-        </div>
+        </ActionRow>
       </form>
     </AuthLayout>
   )

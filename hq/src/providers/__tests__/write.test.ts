@@ -16,6 +16,9 @@ vi.mock('../notices', () => ({
   syncProviderNotices: async () => { told.synced++ },
 }))
 
+const filled = vi.hoisted(() => ({ times: 0 }))
+vi.mock('../../setup/setupDefaults', () => ({ fillEmptyDefaults: async () => { filled.times++ } }))
+
 import {
   ProviderRefusal, addProvider, removeProvider, renameProvider, replaceProviderKey, revokeProvider, supplyCloudProvider,
 } from '../write'
@@ -36,6 +39,7 @@ beforeEach(() => {
   useVendorChecks(vendor)
   told.announced.length = 0
   told.synced = 0
+  filled.times = 0
 })
 
 afterEach(() => {
@@ -92,6 +96,17 @@ describe('actors @SC-1172', () => {
 })
 
 describe('add', () => {
+  it('fills the organisation\'s empty defaults once a key works, since setup may have left them for later (ADR-0160)', async () => {
+    vendor.answer(KEY, { ok: false, kind: 'auth', detail: 'invalid x-api-key' })
+    await refusal(addProvider(ADMIN, { vendor: 'anthropic', key: KEY }))
+    expect(filled.times).toBe(0)
+    vendor.answer(KEY, { ok: true })
+    const { provider } = await addProvider(ADMIN, { vendor: 'anthropic', key: KEY })
+    expect(filled.times).toBe(1)
+    await replaceProviderKey(ADMIN, { id: provider.id, key: 'sk-test-fake-0000000000b4c1' })
+    expect(filled.times).toBe(2)
+  })
+
   it("checks the key with the vendor first, and stores nothing when it is refused, saying the vendor's words @SC-1170", async () => {
     vendor.answer(KEY, { ok: false, kind: 'auth', detail: `invalid x-api-key ${KEY}` })
     const r = await refusal(addProvider(ADMIN, { vendor: 'anthropic', key: KEY }))
@@ -188,22 +203,20 @@ describe('rename @SC-1173', () => {
 })
 
 describe('remove and revoke', () => {
-  it('a removal that would leave no provider of a type is refused; a revoke never is @SC-1174', async () => {
+  it('removing the last provider of a type is not refused: it says the type goes down (ADR-0160) @SC-1174', async () => {
     const { stt } = await threeProviders()
-    const r = await refusal(removeProvider(ADMIN, { id: stt.id }))
-    expect(r.code).toBe('last_of_type')
-    expect(await store.byId(stt.id)).not.toBeNull()
-    const revoked = await revokeProvider(ADMIN, { id: stt.id })
+    const removed = await removeProvider(ADMIN, { id: stt.id })
     expect(await store.byId(stt.id)).toBeNull()
-    expect(revoked.impact.goesDown).toEqual(['stt'])
-    expect(store.records.map(r => r.action)).toEqual(['revoked'])
+    expect(removed.impact.goesDown).toEqual(['stt'])
+    expect(told.announced.at(-1)!.lines.join(' ')).toContain('Nothing else provides speech-to-text')
   })
 
-  it('before setup is finished, removing is not refused @SC-1174', async () => {
-    const { stt } = await threeProviders()
-    store.finished = false
-    await removeProvider(ADMIN, { id: stt.id })
-    expect(await store.byId(stt.id)).toBeNull()
+  it('a revoke is never refused either @SC-1174', async () => {
+    const { tts } = await threeProviders()
+    const revoked = await revokeProvider(ADMIN, { id: tts.id })
+    expect(await store.byId(tts.id)).toBeNull()
+    expect(revoked.impact.goesDown).toEqual(['tts'])
+    expect(store.records.map(r => r.action)).toEqual(['revoked'])
   })
 
   it('says what falls to what, records it and tells every organisation admin @SC-1174 @SC-1175', async () => {

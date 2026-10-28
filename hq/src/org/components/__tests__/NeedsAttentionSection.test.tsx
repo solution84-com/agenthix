@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 
-const ops = vi.hoisted(() => ({ access: { canTalk: true, fix: null, isAdmin: true } as unknown, items: [] as unknown[] | undefined, acknowledge: vi.fn(), dismiss: vi.fn(), refetch: vi.fn() }))
+const ops = vi.hoisted(() => ({ access: { canTalk: true, fix: null, isAdmin: true, added: { model: true, voice: true } } as unknown, items: [] as unknown[] | undefined, acknowledge: vi.fn(), dismiss: vi.fn(), refetch: vi.fn() }))
 vi.mock('wasp/client/operations', () => ({
   useQuery: (q: string) => (q === 'getMyModelAccess' ? { data: ops.access } : { data: ops.items, refetch: ops.refetch }),
   useAction: (fn: string) => (fn === 'acknowledgeBypassedAgents' ? ops.acknowledge : ops.dismiss),
@@ -20,7 +20,9 @@ const item = (over: Record<string, unknown>) => ({
 })
 const show = () => render(<MemoryRouter><NeedsAttentionSection /></MemoryRouter>)
 
-beforeEach(() => { vi.clearAllMocks(); ops.items = []; ops.access = { canTalk: true, fix: null, isAdmin: true } })
+const ADDED = { model: true, voice: true }
+
+beforeEach(() => { vi.clearAllMocks(); ops.items = []; ops.access = { canTalk: true, fix: null, isAdmin: true, added: ADDED } })
 afterEach(cleanup)
 
 describe('Needs attention @SC-666', () => {
@@ -30,12 +32,27 @@ describe('Needs attention @SC-666', () => {
   })
 
   it('adds model access to the list while an admin cannot talk to agents, linking to the fix', () => {
-    ops.access = { canTalk: false, fix: 'org-access', isAdmin: true }
+    ops.access = { canTalk: false, fix: 'org-access', isAdmin: true, added: ADDED }
     show()
     expect(screen.getByText("Agents can't answer yet")).toBeTruthy()
+    expect(screen.getByText('No model provider is working: add one, or fix the one there is')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Open Providers' }).getAttribute('href')).toBe('/admin/providers')
     expect(screen.getByText('Needs attention · 1')).toBeTruthy()
     expect(screen.queryByText('Nothing needs you.')).toBeNull()
+  })
+
+  it('says a model provider was never added, rather than that one stopped working, when setup left models for later @SC-1667', () => {
+    ops.access = { canTalk: false, fix: 'org-access', isAdmin: true, added: { model: false, voice: true } }
+    show()
+    expect(screen.getByText('No model provider has been added. Add one so agents can think')).toBeTruthy()
+  })
+
+  it('adds voice not set up while no speech-to-text or text-to-speech provider has been added @SC-1667', () => {
+    ops.access = { canTalk: true, fix: null, isAdmin: true, added: { model: true, voice: false } }
+    show()
+    expect(screen.getByText("Voice isn't set up")).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Open Providers' }).getAttribute('href')).toBe('/admin/providers')
+    expect(screen.getByText('Needs attention · 1')).toBeTruthy()
   })
 
   it('shows no model access item once agents can answer', () => {

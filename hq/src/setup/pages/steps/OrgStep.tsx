@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { removeOrgImage, saveSetupOrganisation, updateOrgIdentity, uploadOrgImage } from 'wasp/client/operations'
 import { AuthLayout } from '../../../auth/pages/parts/AuthLayout'
-import { Field, FormError, Heading, INPUT, PRIMARY, SECONDARY, Steps } from '../../../auth/pages/parts/authUi'
+import { ActionRow, Field, FormError, Heading, INPUT, PRIMARY, SECONDARY, Steps } from '../../../auth/pages/parts/authUi'
 import { resizeImage, imageFileProblem, PICTURE_SIZE } from '../../../org/components/resizeImage'
 import { browserZone, zoneOptions } from '../../../onboarding/pages/steps/zones'
 import { ImageUpload } from './ImageUpload'
@@ -90,10 +90,10 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
           </select>
         </div>
         <p className="mt-3 text-small text-text-muted">Vision, mission and @handle can be added later on the Organisation page.</p>
-        <div className="mt-5 flex gap-2">
+        <ActionRow>
           {onBack && <button type="button" onClick={onBack} className={SECONDARY}>Back</button>}
           <button type="submit" disabled={saving} className={`${PRIMARY} flex-1`}>{saving ? 'Saving…' : 'Continue'}</button>
-        </div>
+        </ActionRow>
       </form>
     </AuthLayout>
   )

@@ -28,7 +28,7 @@ async function asOrgAdmin(context: { user?: { id: string } | null }): Promise<Pr
 }
 
 const STATUS: Record<RefusalCode, number> = {
-  not_allowed: 403, not_found: 404, conflict: 409, usage: 400, refused_by_vendor: 422, last_of_type: 409,
+  not_allowed: 403, not_found: 404, conflict: 409, usage: 400, refused_by_vendor: 422,
 }
 
 async function answering<T>(work: () => Promise<T>): Promise<T> {

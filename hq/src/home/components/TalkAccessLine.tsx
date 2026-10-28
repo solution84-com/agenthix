@@ -11,7 +11,7 @@ export function TalkAccessLine() {
   if (!data || data.canTalk || !data.fix) return null
   return (
     <p role="status" className="text-center text-small text-text-muted" data-testid="talk-access-line">
-      Agents can't answer you yet: no model is working.{' '}
+      Agents can't answer you yet: {data.added.model ? 'no model is working' : 'no model provider has been added'}.{' '}
       {data.isAdmin
         ? <Link to="/admin/providers" className="font-medium text-accent hover:text-accent-hover">Manage organisation › Providers</Link>
         : 'An organisation admin can set one up.'}

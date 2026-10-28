@@ -67,8 +67,8 @@ Select the **More about** menu on a line:
   one is saved.
 - **Rename**: changes only the name admins see.
 - **Remove**: first lists what falls to what. A default that used the provider falls to the next provider that works
-  for it, until you choose again; an agent that chose it itself follows the organisation's defaults. HQ refuses to remove
-  the last provider of a type, and says why, because nothing could then provide it.
+  for it, until you choose again; an agent that chose it itself follows the organisation's defaults. Removing the last
+  provider of a type is allowed, and the confirmation warns that nothing then provides it until you add another.
 - **Revoke now**: for a key that may have leaked. HQ drops it at once and nothing can use it again. It is never
   refused, and warns when nothing else provides a type. Revoke the key at the vendor too: HQ cannot.
 

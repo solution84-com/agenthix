@@ -14,17 +14,18 @@ export function AgenthixMark({ className }: { className?: string }) {
   )
 }
 
-/** Setup's panel while the organisation has no picture or cover of its own: our mark and name on a branded cover. Screen only; the name is never stored. */
+/**
+ * Setup's panel while the organisation has no picture or cover of its own: our mark and name, large, in the centre of a
+ * branded cover, with what this is under them. Screen only; the name is never stored.
+ */
 export function BrandSide({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div data-testid="brand-side" className="relative flex flex-col justify-end bg-accent px-5 py-6 text-on-accent lg:min-h-screen lg:px-10 lg:py-9">
+    <div data-testid="brand-side" className="relative flex flex-col items-center justify-center bg-accent px-5 py-10 text-center text-on-accent lg:min-h-screen lg:px-10">
       <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-scrim to-transparent" />
-      <div className="relative">
-        <div className="mb-4 flex items-center gap-3">
-          <AgenthixMark className="h-12 w-12" />
-          <span className="text-h1 font-bold">{BRANDING.displayName}</span>
-        </div>
-        <div className="text-h2 font-bold lg:text-display">{title}</div>
+      <div className="relative flex flex-col items-center">
+        <AgenthixMark className="h-16 w-16 lg:h-24 lg:w-24" />
+        <span className="mt-3 text-h1 font-bold lg:text-display">{BRANDING.displayName}</span>
+        <div className="mt-6 text-h2 font-bold lg:mt-8">{title}</div>
         {children && <div className="mt-2 max-w-[440px] text-body opacity-90 lg:text-reading">{children}</div>}
       </div>
     </div>

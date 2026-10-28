@@ -35,13 +35,13 @@ describe('getSpeechToken @SC-194 @SC-1205', () => {
   beforeEach(() => vi.clearAllMocks())
   afterEach(() => { global.fetch = originalFetch })
 
-  it('returns 503 saying voice is down when no speech-to-text provider works', async () => {
+  it('returns 503 saying voice is not set up when no speech-to-text provider was added', async () => {
     const user = await createUser()
     global.fetch = vi.fn() as any
 
     await expect(getSpeechToken(undefined, ctx(user))).rejects.toMatchObject({
       statusCode: 503,
-      message: "Voice is down: speech to text isn't working. An organisation admin has been told.",
+      message: "Voice isn't set up: no speech to text provider has been added. An organisation admin can add one.",
     })
     expect(global.fetch).not.toHaveBeenCalled()
   })

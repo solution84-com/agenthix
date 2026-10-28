@@ -278,7 +278,7 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0137](adr-0137-a-release-is-cut-on-its-own-release-branch.md) | A Release Is Cut on Its Own Release Branch | Superseded by adr-0146 |
 | [ADR-0138](adr-0138-providers-are-held-by-hq-and-written-by-three-named-actors.md) | Providers Are Held by HQ and Written by Three Named Actors | Accepted |
 | [ADR-0139](adr-0139-one-resolver-chooses-every-model-and-voice-call.md) | One Resolver Chooses Every Model and Voice Call | Accepted |
-| [ADR-0140](adr-0140-setup-needs-models-and-voice-before-the-organisation.md) | Setup Needs Models and Voice Before the Organisation | Accepted |
+| [ADR-0140](adr-0140-setup-needs-models-and-voice-before-the-organisation.md) | Setup Needs Models and Voice Before the Organisation | Superseded by adr-0160 |
 | [ADR-0141](adr-0141-every-call-is-costed-to-a-billing-profile-in-an-append-only-ledger.md) | Every Call Is Costed to a Billing Profile in an Append-Only Ledger | Accepted |
 | [ADR-0142](adr-0142-the-organisations-admin-area-is-separate-from-its-page.md) | The Organisation's Admin Area Is Separate From Its Page | Accepted |
 | [ADR-0143](adr-0143-hqs-cloud-key-rolls-over-without-approval.md) | hq's Cloud Key Rolls Over Without Approval | Accepted |
@@ -298,3 +298,4 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0157](adr-0157-every-library-item-is-a-versioned-asset-pinned-once-per-organisation.md) | Every Library Item Is a Versioned Asset, Pinned Once per Organisation | Accepted |
 | [ADR-0158](adr-0158-an-asset-is-installed-from-anywhere-through-one-signed-protocol.md) | An Asset Is Installed From Anywhere Through One Signed Protocol | Accepted |
 | [ADR-0159](adr-0159-agents-draft-skills-people-publish-them.md) | Agents Draft Skills, People Publish Them | Accepted |
+| [ADR-0160](adr-0160-setup-defines-the-organisation-first-and-ai-may-come-later.md) | Setup Defines the Organisation First, and AI May Come Later | Accepted |

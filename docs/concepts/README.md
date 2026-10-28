@@ -185,7 +185,7 @@ from other people, keep it in your own storage or in a project they are not part
 | [`providers/`](providers/providers.md) | The services the organisation reaches AI through, and who writes them |
 | [`projects/`](projects/README.md) | Projects, products and programmes; places, where conversations belong ([places](projects/places.md)); each person's personal project ([personal projects](projects/personal-projects.md)) |
 | [`onboarding/`](onboarding/onboarding-flow.md) | Onboarding: every invited person joins the organisation |
-| [`setup/`](setup/setup-flow.md) | Setup: the first admin sets up a fresh HQ, once, with models and voice |
+| [`setup/`](setup/setup-flow.md) | Setup: the first admin sets up a fresh HQ, once: the organisation, then models and voice, now or later |
 | [`skills/`](skills/skills.md) | Skills: where they live and which wins, [skills in files](skills/skills-in-files.md), [drafts, publishing and proposals](skills/drafts-and-proposals.md), how a turn receives them ([staging](skills/skills-merge.md)), [writing one](skills/authoring-skills.md) |
 | [`tasks/`](tasks/task.md) | Tasks, boards, delegation, [automation](tasks/automation.md) and [routines](tasks/routines.md) |
 | [`workforce/`](workforce/workforce-templates.md) | Workforce templates as a person meets them: why they exist, applying one, the bundled teams. The package is [library/workforce-templates.md](library/workforce-templates.md) |

@@ -32,12 +32,12 @@ export function firstAdminLink(): string {
   return new URL(link).pathname
 }
 
-/** Creates the first administrator, the sample organisation's Sam, from a first-admin link, and lands on setup's next step, how agents reach AI. */
+/** Creates the first administrator, the sample organisation's Sam, from a first-admin link, and lands on setup's next step, Your organisation. */
 export async function createFirstAdmin(page: Page): Promise<void> {
   await page.goto(firstAdminLink())
   await fillAccount(page)
   await page.getByRole('button', { name: 'Continue' }).click()
-  await expect(page.getByRole('heading', { name: 'How will your agents reach AI?' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your organisation', exact: true })).toBeVisible()
 }
 
 export async function fillAccount(page: Page): Promise<void> {

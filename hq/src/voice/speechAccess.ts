@@ -4,7 +4,7 @@
  * from the provider store and goes no further than the call that needs it. What each call came to is reported to the
  * provider's health.
  */
-import type { ResolvePlace } from '@agenthix/core'
+import { providerTypesOf, type ResolvePlace } from '@agenthix/core'
 import type { ModelErrorKind } from '../conversations/contract'
 import { providerStore } from '../providers/store'
 import { resolve } from '../routing/resolver'
@@ -19,6 +19,17 @@ const VENDOR: Record<SpeechKind, string> = { stt: 'assemblyai', tts: 'inworld' }
 /** What a person sees when no provider of the type works: an outage, and who has been told. */
 export function voiceDownText(kind: SpeechKind): string {
   return `Voice is down: ${WORDS[kind]} isn't working. An organisation admin has been told.`
+}
+
+/** What a person sees when no provider of the type was ever added: nothing broke, it was left for later (ADR-0160). */
+export function voiceNotSetUpText(kind: SpeechKind): string {
+  return `Voice isn't set up: no ${WORDS[kind]} provider has been added. An organisation admin can add one.`
+}
+
+/** Down when a provider of the type was added and none works; not set up when none was ever added. */
+async function noSpeech(kind: SpeechKind): Promise<{ ok: false; reason: string }> {
+  const added = (await providerStore().list()).some(p => providerTypesOf(p.vendor).includes(kind))
+  return { ok: false, reason: added ? voiceDownText(kind) : voiceNotSetUpText(kind) }
 }
 
 export interface SpeechAccess {
@@ -44,7 +55,6 @@ export type SpeechScope = {
 
 /** The provider to use for speech to text or text to speech now; `reason` is what a person reads when there is none. */
 export async function speechAccess(kind: SpeechKind, agentId?: string | null, scope: SpeechScope = {}): Promise<SpeechAnswer> {
-  const down = { ok: false as const, reason: voiceDownText(kind) }
   const req = {
     purpose: kind, place: scope.place ?? { kind: 'organisation' as const },
     ...(agentId ? { agentId } : {}),
@@ -53,12 +63,12 @@ export async function speechAccess(kind: SpeechKind, agentId?: string | null, sc
     ...(scope.pick ? { pick: scope.pick } : {}),
   }
   const answer = await resolve(req)
-  if (!answer.ok) return down
+  if (!answer.ok) return noSpeech(kind)
   const r = answer.resolution
-  if (r.vendor !== VENDOR[kind]) return down
+  if (r.vendor !== VENDOR[kind]) return noSpeech(kind)
   const credential = await providerStore().credentialOf(r.model.providerId)
   const apiKey = credential?.key?.trim() ?? ''
-  if (!apiKey) return down
+  if (!apiKey) return noSpeech(kind)
   return {
     ok: true,
     access: { providerId: r.model.providerId, providerName: r.providerName, vendor: r.vendor, model: r.model.model, voice: r.voice ?? null, apiKey, costing: costingOf(r, req) },

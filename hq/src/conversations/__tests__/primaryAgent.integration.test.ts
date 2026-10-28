@@ -89,7 +89,7 @@ describe('the agents a conversation may start with @SC-941', () => {
     const person = await createUserWithRole('MEMBER')
     await createAgent({ name: 'Writer' })
     const choices = await getConversationAgentChoices({ home: 'PERSON' }, ctx(person))
-    expect(choices.find(a => a.name === 'Kernel')?.voiceRefusal).toContain('Voice is down')
+    expect(choices.find(a => a.name === 'Kernel')?.voiceRefusal).toContain("Voice isn't set up")
     expect(choices.find(a => a.name === 'Writer')?.voiceRefusal).toBeTruthy()
   })
 

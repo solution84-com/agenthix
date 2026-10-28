@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react'
 import { providerTypesCovered, type AiProviderSummary, type AiProviderType } from '@agenthix/core'
 import { AuthLayout } from '../../../auth/pages/parts/AuthLayout'
-import { FreshHqSide } from '../../../auth/pages/parts/BrandSide'
-import { Heading, PRIMARY, SECONDARY, StateLine, Steps } from '../../../auth/pages/parts/authUi'
+import { ActionRow, Heading, PRIMARY, SECONDARY, StateLine, Steps } from '../../../auth/pages/parts/authUi'
 import { AddProviderForm } from '../../../providers/components/AddProviderDialog'
 
 type Props = {
   position: { step: number; total: number }
+  /** The organisation's sign-in page, as the organisation step made it. */
+  side: ReactNode
   providers: AiProviderSummary[]
   onNext: () => void
   onBack: () => void
@@ -29,40 +30,42 @@ function Part({ title, type, providers, onBack }: { title?: string; type: AiProv
   )
 }
 
+/** Always there, so nothing jumps: Skip for now until the step's providers work, then Continue only (ADR-0160). */
 function Buttons({ ready, onNext, onBack }: { ready: boolean; onNext: () => void; onBack: () => void }) {
   return (
-    <div className="mt-5 flex gap-2">
+    <ActionRow>
       <button type="button" onClick={onBack} className={SECONDARY}>Back</button>
+      {!ready && <button type="button" onClick={onNext} className={SECONDARY}>Skip for now</button>}
       <button type="button" disabled={!ready} onClick={onNext} className={`${PRIMARY} flex-1`}>Continue</button>
-    </div>
+    </ActionRow>
   )
 }
 
-/** Setup's third step (own keys): one model provider and its key, checked with the vendor before it is stored. */
-export function ModelStep({ position, providers, onNext, onBack }: Props) {
+/** Setup's fourth step (own keys): one model provider and its key, checked with the vendor before it is stored, or skipped. */
+export function ModelStep({ position, side, providers, onNext, onBack }: Props) {
   const ready = !!worksFor(providers, 'llm')
   return (
-    <AuthLayout setup side={<FreshHqSide />}>
+    <AuthLayout setup side={side}>
       <Steps step={position.step} total={position.total} name="Your model provider" />
       <Heading title="Your model provider" lead="Pick one. Agents think with it." />
       <Part type="llm" providers={providers} onBack={onBack} />
       <p className="text-small text-text-muted">You can add more providers, or Agenthix Cloud, later in Manage › Providers.</p>
-      {ready && <Buttons ready onNext={onNext} onBack={onBack} />}
+      <Buttons ready={ready} onNext={onNext} onBack={onBack} />
     </AuthLayout>
   )
 }
 
-/** Setup's fourth step (own keys): one speech-to-text and one text-to-speech provider, each with its key. */
-export function VoiceStep({ position, providers, onNext, onBack }: Props) {
+/** Setup's fifth step (own keys): one speech-to-text and one text-to-speech provider, each with its key, or skipped. */
+export function VoiceStep({ position, side, providers, onNext, onBack }: Props) {
   const covered = providerTypesCovered(providers)
   return (
-    <AuthLayout setup side={<FreshHqSide />}>
+    <AuthLayout setup side={side}>
       <Steps step={position.step} total={position.total} name="Voice" />
       <Heading title="Voice" lead="People talk to agents, and agents talk back. One provider for each." />
       <Part title="Speech to text" type="stt" providers={providers} onBack={onBack} />
       <Part title="Text to speech" type="tts" providers={providers} onBack={onBack} />
       <p className="text-small text-text-muted">Each key is checked with its vendor before it is stored.</p>
-      {covered.stt && covered.tts && <Buttons ready onNext={onNext} onBack={onBack} />}
+      <Buttons ready={covered.stt && covered.tts} onNext={onNext} onBack={onBack} />
     </AuthLayout>
   )
 }

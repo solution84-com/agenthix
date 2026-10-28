@@ -6,7 +6,7 @@ description: A new HQ is set up in HQ itself, by its first admin, and cannot fin
 # ADR-0140: Setup Needs Models and Voice Before the Organisation
 
 **Date:** 2026-10-23
-**Status:** Accepted
+**Status:** Superseded by adr-0160
 
 ## Context
 

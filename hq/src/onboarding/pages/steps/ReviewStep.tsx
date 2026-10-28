@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useQuery, getMyModelAccess } from 'wasp/client/operations'
 import { PersonFace } from '../../../org/pages/people/PersonFace'
 import { Heading, TEXT_LINK } from '../../../auth/pages/parts/authUi'
 import { joinNames } from '../../../auth/pages/parts/linkApi'
@@ -27,6 +28,7 @@ export function ReviewStep({ data, onEdit, onBack, onStart, starting }: {
   starting: boolean
 }) {
   const { me } = data
+  const { data: access } = useQuery(getMyModelAccess)
   const name = me.displayName ?? me.username ?? ''
   const first = data.projects[0]
   const aside = (
@@ -53,6 +55,7 @@ export function ReviewStep({ data, onEdit, onBack, onStart, starting }: {
       <Section title="Models">
         <div className="text-body text-text-primary">Provided by {data.orgName}
           <div className="text-small text-text-muted">The organisation's admins choose the models everyone uses.</div>
+          {access && !access.canTalk && <div className="text-small text-text-muted">{data.orgName} hasn't set up models yet, so agents can't answer until an admin does.</div>}
         </div>
       </Section>
       <Section title="Joining">
