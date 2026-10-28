@@ -43,7 +43,7 @@ export type OpenCodeTurnSkills = {
   invocable: InvocableSkill[]
 }
 
-type StagingContext = Pick<RunContext, 'runId' | 'claudeHome' | 'skills'> & { packages: Pick<RunContext['packages'], 'platformDir'> }
+type StagingContext = Pick<RunContext, 'runId' | 'claudeHome' | 'skills'>
 
 function stagingDirName(conversationId: string): string {
   const name = conversationStagingDirName(conversationId)
@@ -108,7 +108,7 @@ export async function stageOpenCodeSkills(context: StagingContext, conversationI
 
   let result: StagingResult
   try {
-    result = await stageSkills(context.packages.platformDir, context.skills, next)
+    result = await stageSkills(context.skills, next)
     await fs.rename(dirs.serverDir, old).catch((err: NodeJS.ErrnoException) => {
       if (err.code !== 'ENOENT') throw err
     })

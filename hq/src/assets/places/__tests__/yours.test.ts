@@ -10,7 +10,7 @@ const own = (over: Partial<Parameters<typeof yoursOf>[0][number]> = {}) => ({
   id: 's1', name: 'weekly-summary', path: '.agents/skills/weekly-summary', agentName: null, version: 3, on: true, ...over,
 })
 
-describe('yoursOf', () => {
+describe('yoursOf @SC-1649', () => {
   it('follows the person when it is published, switched on and the organisation allows it', () => {
     expect(yoursOf([own()], [], true, null)[0].follows).toBe(true)
   })

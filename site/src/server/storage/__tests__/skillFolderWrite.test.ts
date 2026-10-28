@@ -47,7 +47,7 @@ async function tree(dir: string): Promise<string[]> {
   return out.sort()
 }
 
-describe("writing a place's skill folder", () => {
+describe("writing a place's skill folder @SC-1603", () => {
   it("writes a new folder for the place, and one for an agent, making the roots, and a scan then finds what was written", async () => {
     await write('.agents/skills/release', { 'SKILL.md': MD, 'scripts/run.sh': 'echo' })
     await write('.agents/agents/a1/skills/mine', { 'SKILL.md': MD })
@@ -155,7 +155,7 @@ describe("writing a place's skill folder", () => {
   })
 })
 
-describe("removing a place's skill folder", () => {
+describe("removing a place's skill folder @SC-1603", () => {
   it('removes it, and answers false for one already gone', async () => {
     await write('.agents/skills/x', { 'SKILL.md': MD })
     expect(await removeSkillFolder({ loc, dir: '.agents/skills/x' })).toEqual({ removed: true })
@@ -174,5 +174,39 @@ describe("removing a place's skill folder", () => {
     await fs.symlink(outside, path.join(files(), '.agents/skills/x'))
     await expect(removeSkillFolder({ loc, dir: '.agents/skills/x' })).rejects.toThrow(/refused/)
     expect(await fs.readdir(outside)).toEqual(['keep'])
+  })
+})
+
+describe("a place whose files folder does not exist yet @SC-1603", () => {
+  const fresh: LocationRef = { ownerType: 'user', ownerId: 'newcomer', workspaceId: null, taskId: null }
+
+  it('makes the folder on a first write, and a scan then finds the skill', async () => {
+    await write('.agents/skills/first', { 'SKILL.md': MD }, fresh)
+    const home = getFilesDir('user', 'newcomer')
+    expect(await fs.readFile(path.join(home, '.agents/skills/first/SKILL.md'), 'utf-8')).toBe(MD)
+    expect((await scanSkills({ loc: fresh, agentId: 'a1' })).skills.map(s => s.path)).toEqual(['first'])
+  })
+
+  it('finds nothing to scan or remove before any write, and makes nothing', async () => {
+    expect((await scanSkills({ loc: fresh, agentId: 'a1' })).skills).toEqual([])
+    expect(await removeSkillFolder({ loc: fresh, dir: '.agents/skills/x' })).toEqual({ removed: false })
+    await expect(fs.lstat(getFilesDir('user', 'newcomer'))).rejects.toThrow()
+  })
+
+  it('refuses a ref that is not a place, making nothing', async () => {
+    const bad = { ...fresh, ownerId: '../escape' }
+    await expect(write('.agents/skills/x', { 'SKILL.md': MD }, bad)).rejects.toThrow()
+    await expect(fs.lstat(path.join(root, 'escape'))).rejects.toThrow()
+    await expect(write('.agents/skills/x', { 'SKILL.md': MD }, { ...fresh, workspaceId: 'w1' })).rejects.toThrow(/invalid/)
+    await expect(fs.lstat(getFilesDir('user', 'newcomer'))).rejects.toThrow()
+  })
+
+  it('refuses a link standing where the files folder goes, writing nothing behind it', async () => {
+    const outside = path.join(root, 'outside')
+    await fs.mkdir(outside)
+    await fs.mkdir(path.dirname(getFilesDir('user', 'newcomer')), { recursive: true })
+    await fs.symlink(outside, getFilesDir('user', 'newcomer'))
+    await expect(write('.agents/skills/x', { 'SKILL.md': MD }, fresh)).rejects.toThrow(/not_found/)
+    expect(await fs.readdir(outside)).toEqual([])
   })
 })

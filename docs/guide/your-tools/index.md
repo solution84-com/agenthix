@@ -2,7 +2,7 @@
 title: Connect your own tools
 description: Providers, models, voice and billing, Claude Code and GitHub, and the settings that are yours.
 sidebar:
-  order: 7
+  order: 8
 ---
 
 These pages cover the connections between **HQ**, your organisation's home in Agenthix, and what sits outside it: the

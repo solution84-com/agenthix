@@ -22,7 +22,7 @@ const changes = [{ path: 'SKILL.md', status: 'added', before: null, after: 'x' }
 
 afterEach(cleanup)
 
-describe('Publish (board U3b section 5)', () => {
+describe('Publish (board U3b section 5) @SC-1625', () => {
   it('offers Add to agents after the first publish, even once the view has the new version in use', async () => {
     const api = { publish: vi.fn().mockResolvedValue({ version: '1.0.0' }) } as unknown as EditorApi
     const props = { api, changes, onClose: vi.fn(), onPublished: vi.fn(), onReload: vi.fn() }

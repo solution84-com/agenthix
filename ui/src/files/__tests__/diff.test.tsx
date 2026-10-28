@@ -5,7 +5,7 @@ import { FileDiff } from '../diff/FileDiff'
 import { ChangesList, type FileChange } from '../diff/ChangesList'
 import { changeLabel } from '../diff/changeMarker'
 
-describe('diffLines', () => {
+describe('diffLines @SC-1626', () => {
   it('marks removed and added lines with old and new numbers', () => {
     const lines = diffLines('a\nb\nc\n', 'a\nB\nc\nd\n')
     expect(lines.map(l => [l.kind, l.text, l.oldNo, l.newNo])).toEqual([
@@ -39,7 +39,7 @@ describe('diffLines', () => {
   })
 })
 
-describe('FileDiff', () => {
+describe('FileDiff @SC-1626', () => {
   it('shows a sign and a name for every changed line, so colour is never the only cue', () => {
     const { container } = render(<FileDiff before={'a\nb\n'} after={'a\nc\n'} />)
     expect(container.querySelector('[data-line="del"]')?.textContent).toContain('−')
@@ -65,7 +65,7 @@ describe('FileDiff', () => {
   })
 })
 
-describe('ChangesList', () => {
+describe('ChangesList @SC-1626', () => {
   const files: FileChange[] = [
     { path: 'SKILL.md', status: 'modified', before: 'a\n', after: 'b\n' },
     { path: 'scripts/format.py', status: 'added', before: null, after: 'x\ny\n' },
@@ -105,7 +105,7 @@ describe('ChangesList', () => {
   })
 })
 
-describe('changeLabel', () => {
+describe('changeLabel @SC-1626', () => {
   it('reads like the board: "modified, 3 lines added, 1 removed"', () => {
     expect(changeLabel('modified', 3, 1)).toBe('modified, 3 lines added, 1 removed')
   })

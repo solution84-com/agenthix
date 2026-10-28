@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { base64OfBytes, bytesOfBase64, bytesOfText, pathProblem, renamedFile, saveInput, textOf, withFile, withoutFile } from '../editorFiles'
 
-describe('text and binary', () => {
+describe('text and binary @SC-1626', () => {
   it('reads text, and calls a NUL byte or invalid UTF-8 binary', () => {
     expect(textOf(bytesOfText('héllo\n'))).toBe('héllo\n')
     expect(textOf(new Uint8Array([104, 0, 105]))).toBeNull()
@@ -17,7 +17,7 @@ describe('text and binary', () => {
   })
 })
 
-describe('pathProblem', () => {
+describe('pathProblem @SC-1626', () => {
   const existing = ['SKILL.md', 'scripts/a.sh']
   it('accepts a new path in a folder', () => expect(pathProblem('scripts/format.py', existing)).toBeNull())
   it('refuses empty, absolute, dotted, hidden and manifest paths', () => {
@@ -32,7 +32,7 @@ describe('pathProblem', () => {
   it('lets a file keep its own path when renamed', () => expect(pathProblem('scripts/a.sh', existing, 'scripts/a.sh')).toBeNull())
 })
 
-describe('changing the set', () => {
+describe('changing the set @SC-1626', () => {
   const files = [{ path: 'b', bytes: new Uint8Array([1]) }, { path: 'a', bytes: new Uint8Array([2]) }]
   it('adds, replaces, removes and renames, keeping the list sorted', () => {
     expect(withFile(files, { path: 'c', bytes: new Uint8Array() }).map(f => f.path)).toEqual(['a', 'b', 'c'])

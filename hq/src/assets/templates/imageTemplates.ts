@@ -11,8 +11,8 @@
  * **The build numbers the versions** rather than anyone by hand: content the template already held keeps that
  * version; new content takes the template's own `package.json` version the first time, then the next major version.
  *
- * Kernel's own template is not a Library template: it is written to the built-in agent from the image
- * (`packages/kernelPackage.ts`), and never offered.
+ * Kernel's own template is not a Library template, and never offered: its instructions are written to the built-in
+ * agent from the image (`packages/kernelPackage.ts`), and its skills installed and given to it (`kernelSkills.ts`).
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'

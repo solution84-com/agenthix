@@ -9,7 +9,7 @@ const at = '2026-10-28T10:00:00.000Z'
 const skillCall = { role: 'TOOL' as const, content: '', toolName: 'Skill', toolInput: { skill: 'agenthix:org-code-review' }, toolOutput: 'Launching skill: org-code-review', createdAt: at }
 const steps = workLine([skillCall]).steps
 
-describe("a used skill's step (skills spec part 5, Seeing it used)", () => {
+describe("a used skill's step (skills spec part 5, Seeing it used) @SC-1658", () => {
   it('reads as hq names it for this run, when it does', () => {
     const asked: Array<[string, string | null]> = []
     render(<WorkSteps steps={steps} runId="r1" actions={{

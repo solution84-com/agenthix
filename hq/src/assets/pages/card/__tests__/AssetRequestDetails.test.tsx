@@ -11,7 +11,7 @@ import { AssetRequestDetails } from '../AssetRequestDetails'
 
 afterEach(cleanup)
 
-describe("an agent's request on its approval card (D31)", () => {
+describe("an agent's request on its approval card (D31) @SC-1665", () => {
   it('shows what a publish would change, file by file, with the agent\'s note', () => {
     h.data = {
       kind: 'publish', identity: 'fernhill/code-review', requestedBy: 'Ada', from: '1.1.0', to: '1.2.0', note: 'Adds a rate-limit step', stale: null,

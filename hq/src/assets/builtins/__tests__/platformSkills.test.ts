@@ -10,7 +10,7 @@ import { validateSkill } from '../../validation'
 
 const image = path.resolve(__dirname, '../../../../assets/platform/skills')
 
-describe("the built-in skills in hq's image", () => {
+describe("the built-in skills in hq's image @SC-1633", () => {
   it('are working-with-git and skill-creator, each a valid skill with nothing ignored when run', async () => {
     const { skills, problems } = await readPlatformSkills(image)
     expect(problems).toEqual([])
@@ -35,7 +35,7 @@ describe("the built-in skills in hq's image", () => {
   })
 })
 
-describe('reading a folder of built-ins', () => {
+describe('reading a folder of built-ins @SC-1633', () => {
   it('leaves out and names a folder that fails the rules, or whose name is not a skill name', async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'builtins-'))
     try {

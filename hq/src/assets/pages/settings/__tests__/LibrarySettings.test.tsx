@@ -32,7 +32,7 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('skills found in files (board R2, C1)', () => {
+describe('skills found in files (board R2, C1) @SC-1616', () => {
   it('asks before turning On by default on, and says why', async () => {
     render(<OutsideSettings />)
     fireEvent.click(screen.getByRole('radio', { name: /On by default/ }))
@@ -60,7 +60,7 @@ describe('skills found in files (board R2, C1)', () => {
   })
 })
 
-describe('Library maintainers (board R2, D28)', () => {
+describe('Library maintainers (board R2, D28) @SC-1617', () => {
   it('names the people who are, and offers members who are not and not administrators', () => {
     render(<MaintainersSection />)
     expect(screen.getByTestId('maintainers').textContent).toContain('Avery Chen')

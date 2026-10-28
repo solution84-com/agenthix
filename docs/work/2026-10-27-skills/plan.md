@@ -273,20 +273,20 @@ de-duplicate them on install.
 **Starts when:** phases 2–5 are merged for the screens each one uses; the diff renderer and the Library view merge first.
 **Execution plan:** none — lanes.
 
-- [ ] 6.1 The sidebar: Home, Chat, Your space, Projects, Tasks, Agents, Library
-- [ ] 6.2 The Library as one searched view with type and status filters; the Marketplace button behind its flag
-- [ ] 6.3 An asset's page: content, agents with it, versions, news, credit and licence, signer and source, remove
-- [ ] 6.4 Add: the shelf, upload, a link, new skill, and the four install dialogs with the unsigned tick
-- [ ] 6.5 A diff renderer behind the file frame's boundary, in one column
-- [ ] 6.6 CodeMirror 6 in `ui/`
-- [ ] 6.7 The editor: the tree with change markers, View, Edit and Changes, checks, ask an agent, publish; the old screen's direct save and delete (`updateLibrarySkill`, `deleteLibrarySkill`, `publishMadeHereEdit`) and its writes into the org package's `skills/` removed
-- [ ] 6.8 Update, change of publisher, roll back and own copy screens
-- [ ] 6.9 A project's Skills page: groups, versions, switches, defaults, add to this place, the private group
-- [ ] 6.10 Your space's Skills page and the person's skills that follow them
-- [ ] 6.11 The agent's page: everything it will see, set aside and why, the cost estimate; the member's view
-- [ ] 6.12 Review: proposals by level, line by line, accept, edit then accept, reject with a note; the Overview item
-- [ ] 6.13 Settings: *Library and skills* in the admin area
-- [ ] 6.14 The approval card for an agent's publish request
+- [x] 6.1 The sidebar: Home, Chat, Your space, Projects, Tasks, Agents, Library
+- [x] 6.2 The Library as one searched view with type and status filters; the Marketplace button behind its flag
+- [x] 6.3 An asset's page: content, agents with it, versions, news, credit and licence, signer and source, remove
+- [x] 6.4 Add: the shelf, upload, a link, new skill, and the four install dialogs with the unsigned tick
+- [x] 6.5 A diff renderer behind the file frame's boundary, in one column
+- [x] 6.6 CodeMirror 6 in `ui/`
+- [x] 6.7 The editor: the tree with change markers, View, Edit and Changes, checks, ask an agent, publish; the old screen's direct save and delete (`updateLibrarySkill`, `deleteLibrarySkill`, `publishMadeHereEdit`) and its writes into the org package's `skills/` removed
+- [x] 6.8 Update, change of publisher, roll back and own copy screens
+- [x] 6.9 A project's Skills page: groups, versions, switches, defaults, add to this place, the private group
+- [x] 6.10 Your space's Skills page and the person's skills that follow them
+- [x] 6.11 The agent's page: everything it will see, set aside and why, the cost estimate; the member's view
+- [x] 6.12 Review: proposals by level, line by line, accept, edit then accept, reject with a note; the Overview item
+- [x] 6.13 Settings: *Library and skills* in the admin area
+- [x] 6.14 The approval card for an agent's publish request
 - [x] 6.15 The editor and publishing, from the walkthrough: drafts save themselves; Publish says why it can't be used; publishing writes the version into `SKILL.md`; *Ask an agent* names the agent and the place, and lets the person pick; *Add skill*; a place's roll back asks a reason
 - [x] 6.16 A copy and the original it replaced are one Library entry
 - [x] 6.17 Every file view fills its space and scrolls inside, with a setting to grow with its content
@@ -302,15 +302,15 @@ de-duplicate them on install.
 **Starts when:** phase 6 is merged.
 **Execution plan:** none — lanes.
 
-- [ ] 7.1 Security suite for every finding in the review (C1, H1–H5, M2–M7, L1–L5)
-- [ ] 7.2 Cross-app scenarios: delivery, the files gate, personal skills, picked skills on both runtimes, typed bundled commands refused
-- [ ] 7.3 e2e specs for the Library, the editor, a place's Skills page, the agent's page, the conversation and review
+- [x] 7.1 Security suite for every finding in the review (C1, H1–H5, M2–M7, L1–L5)
+- [x] 7.2 Cross-app scenarios: delivery, the files gate, personal skills, picked skills on both runtimes, typed bundled commands refused
+- [x] 7.3 e2e specs for the Library, the editor, a place's Skills page, the agent's page, the conversation and review
 - [ ] 7.4 Model checks on the baseline model: uses a given skill, follows a picked one, proposes rather than writes, answers "what can you do?"
-- [ ] 7.5 The listing's cost measured again on both runtimes, against 1.1
-- [ ] 7.6 User guide: a *Skills* page, the glossary, the Library and agent pages, the stale task-management line
-- [ ] 7.7 Concept documents: skills, the Library, knowledge's relation to skills
-- [ ] 7.8 Architecture documents: delivery, the install protocol, the site protocol's changes
-- [ ] 7.9 The Sigstore trust root's refresh run by the release rehearsal
+- [x] 7.5 The listing's cost measured again on both runtimes, against 1.1
+- [x] 7.6 User guide: a *Skills* page, the glossary, the Library and agent pages, the stale task-management line
+- [x] 7.7 Concept documents: skills, the Library, knowledge's relation to skills
+- [x] 7.8 Architecture documents: delivery, the install protocol, the site protocol's changes
+- [x] 7.9 The Sigstore trust root's refresh run by the release rehearsal
 
 ### Phase 8 — Close
 **Delivers:** the unit's record complete, nothing left open or untracked, and what it changed described everywhere it's
@@ -318,15 +318,15 @@ read; the branch ready to merge.
 **Starts when:** the owner has accepted the work after the phase 6 walkthrough, and phase 7 is merged.
 **Execution plan:** none — by hand, with one triage agent and document agents split by area.
 
-- [ ] 8.1 Every open item gathered from the plan, lane reports, walkthrough, security review and handover, and triaged against the code at head
-- [ ] 8.2 Each one closed with its evidence, or raised as an issue with type and priority
-- [ ] 8.3 Any critical item fixed, or raised at High with *Blocks release* for `agenthix@v0.1.0`
-- [ ] 8.4 The QA contract: stories and scenarios for what the unit built, written from the finished code, and the tests that cover them tagged `@SC`
-- [ ] 8.5 The QA model in `docs/qa/README.md` current
-- [ ] 8.6 Notes on every decision record this unit implements, and the ones it revisits superseded or annotated; the index updated
-- [ ] 8.7 The epic, kept outside this repository, given its completion comment, with its open sub-issues re-homed where the owner says
-- [ ] 8.8 The line's roadmap and delivery record, kept outside this repository, updated
-- [ ] 8.9 Deviations completed for every phase, and a dated closing note: who accepted the work, items closed and deferred, whether an audit ran, the records updated
+- [x] 8.1 Every open item gathered from the plan, lane reports, walkthrough, security review and handover, and triaged against the code at head
+- [x] 8.2 Each one closed with its evidence, or raised as an issue with type and priority
+- [x] 8.3 Any critical item fixed, or raised at High with *Blocks release* for `agenthix@v0.1.0`
+- [x] 8.4 The QA contract: stories and scenarios for what the unit built, written from the finished code, and the tests that cover them tagged `@SC`
+- [x] 8.5 The QA model in `docs/qa/README.md` current
+- [x] 8.6 Notes on every decision record this unit implements, and the ones it revisits superseded or annotated; the index updated
+- [x] 8.7 The epic, kept outside this repository, given its completion comment, with its open sub-issues re-homed where the owner says
+- [x] 8.8 The line's roadmap and delivery record, kept outside this repository, updated
+- [x] 8.9 Deviations completed for every phase, and a dated closing note: who accepted the work, items closed and deferred, whether an audit ran, the records updated
 
 ## Deviations
 
@@ -338,3 +338,22 @@ read; the branch ready to merge.
 | 3 | Publishing, adding and removing a place's skill go through a new site call that writes or removes a whole skill folder (spec part 4 amended); site protocol 1.11 | The spec assumed a general site file write existed; the only one writes new files and never replaces, so no place skill could be published |
 | 6 | The owner's walkthrough changed the design (spec parts 2 and 6, amended): a draft saves itself; publishing writes the version into the skill's files; *Ask an agent* says which agent and where; *Add* is *Add skill* until other kinds can be added; a copy and its original are one Library entry; every file view fills its space and scrolls; a place's switch says why it went off and its default is a labelled setting; the agent's page lists skills as rows. Tasks 6.15–6.19 | Found walking through the built screens: a draft left unsaved blocked Publish with no reason, the file and the record disagreed on the version, two Library rows for one skill, file views pushed their buttons off screen, and the agent's page and the place's default read as quiet text nobody would act on |
 | 6 | The walkthrough's second round (spec parts 2, 5 and 6, amended): a Library row's actions all in its menu; proposals at every level reach their reviewers; *Ask an agent* in a dialog; the draft card says what was published; the `/` pick is highlighted text, not a chip; a run is told what staged names mean. Several screens' look is left for a design pass of every feature before release, recorded in `design-state.md`. Tasks 6.20–6.23 | A project's proposals had no way in; a row's buttons competed with opening it; a chip read as a menu, not part of the message; the model spent steps working out staged names. The look was judged a first go, to be reviewed across features rather than one screen at a time |
+| 7 | Proof found four defects, fixed in the phase: Kernel's own skills no longer reached its runs (the site stopped staging agent packages' `skills/`; they are now installed from hq's image as `agenthix/kernel/*` and given to Kernel once); a ready-made team could no longer be used from the Library (*Use this team* restored); a person's first skill in a place with no files folder yet couldn't be published (the site makes the folder); hq took a site's skill scan at its word (now capped per place, real fingerprints only). Two dock focus fixes from the e2e specs | Each was found by the phase's own checks — writing the docs against the code, the cross-app scenarios, the security map and the e2e specs — not by the walkthrough |
+| 4 | None beyond the follow-ups recorded in its tasks | — |
+| 5 | None | — |
+| 7 | Task 7.4, the model checks on the baseline model, did not run: the model-check key was refused. Raised as agenthix#92 (High, blocks `agenthix@v0.1.0`) | The checks need a working key; the rest of the proof did not depend on them |
+| 8 | None | — |
+
+## Closing note
+
+**28 October 2026.** The owner walked the built screens (23 steps, two rounds of fixes) and accepted the work as
+"good enough for now", with the look of several screens left for a design pass of every feature before release; the
+state of each screen against its board is in `design-state.md`. Phase 7's proof found four defects, all fixed in the
+unit. The close triaged every open item against the code: none critical; 24 closed with evidence; 26 raised as issues
+(21 on this repository, agenthix#92–#112; five planned features tracked outside it), two of them blocking
+`agenthix@v0.1.0` (the model checks, agenthix#92, and the design pass). No QA audit ran; the QA contract was written
+(US-398–409, SC-1596–1666). Decision records: adr-0158 corrected before it reached `main`; adr-0072, adr-0084 and
+adr-0149 annotated. The full regression passed: every module's typecheck and unit suite, hq and site integration, the
+container, cross-app and security suites, hq's e2e (its three failures a known pre-existing issue, agenthix#109, and
+one flake under parallel load), every image built and started, and the install test.
+

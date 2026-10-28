@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { countsLine, groupSkills, isWaiting, looserThanOrganisation, pageCounts, rowActions, stateWords, waitingNote } from '../placeSkillsModel'
 import { MAY_ALL, MAY_NONE, skill } from './fixtures'
 
-describe('the words of a row', () => {
+describe('the words of a row @SC-1642 @SC-1645 @SC-1646', () => {
   it('a published skill is its version', () => {
     expect(stateWords(skill())).toEqual(['version 3'])
   })
@@ -29,7 +29,7 @@ describe('the words of a row', () => {
   })
 })
 
-describe('who may do what', () => {
+describe('who may do what @SC-1643', () => {
   it('viewers read and switch nothing', () => {
     const a = rowActions(skill({ status: 'unpublished', version: null, newestVersion: null }), MAY_NONE)
     expect(a).toMatchObject({ switch: false, publish: false, edit: false, remove: false, history: false, read: true })
@@ -40,7 +40,7 @@ describe('who may do what', () => {
   })
 })
 
-describe('the page', () => {
+describe('the page @SC-1642', () => {
   const list = [
     skill({ id: 'a', path: '.agents/skills/b-skill', name: 'b-skill' }),
     skill({ id: 'b', path: '.agents/skills/a-skill', name: 'a-skill', state: 'off', switch: null, switchHolds: false, status: 'unpublished', version: null }),
@@ -61,7 +61,7 @@ describe('the page', () => {
   })
 })
 
-describe('the default', () => {
+describe('the default @SC-1642', () => {
   it('a place may be stricter than the organisation, never looser', () => {
     expect(looserThanOrganisation('ON', 'OFF')).toMatch(/stricter, never looser/)
     expect(looserThanOrganisation('NEVER', 'OFF')).toBeNull()

@@ -5,7 +5,7 @@ import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { MoreMenu, type MenuItem } from '../../../org/components/menus'
 import { AddAgentDialog } from '../../../library/components/AddAgentDialog'
 import { useLibraryTransfer } from '../../../library/components/useLibraryTransfer'
-import { LIBRARY_PATH } from '../../../library/components/libraryRoutes'
+import { LIBRARY_PATH, libraryUseTeamPath } from '../../../library/components/libraryRoutes'
 import { AssetFiles } from '../../components/AssetFiles'
 import { Notice, type NoticeText } from '../../components/Notice'
 import { Section, SMALL_BUTTON } from '../../components/Section'
@@ -76,6 +76,7 @@ export function AssetPage() {
           {page.can.edit && (page.own
             ? <Link to={libraryEditPath(page.assetId)} className={SMALL_BUTTON}>Edit</Link>
             : <button type="button" className={SMALL_BUTTON} onClick={() => setCopying(true)}>Edit</button>)}
+          {page.kind === 'team' && page.can.remove && <Link to={libraryUseTeamPath(page.assetId)} className={SMALL_BUTTON}>Use this team</Link>}
           {page.kind === 'agent' && <button type="button" className={SMALL_BUTTON} onClick={() => setCreating(true)}>Create an agent from this</button>}
           {menu.length > 0 && <MoreMenu items={menu} label={`More about ${page.title}`} />}
         </>

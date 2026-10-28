@@ -161,6 +161,18 @@ describe('the draft and Cancel @SC-1035', () => {
     expect(screen.getByTestId('dock-rail')).toBeTruthy()
   })
 
+  it('Talk again while the draft is already showing puts the caret back in its box, keeping the unsent text', () => {
+    renderDataRouter('/projects/AGX')
+    fireEvent.click(screen.getByRole('button', { name: 'Talk about Agenthix' }))
+    const text = screen.getByLabelText('New message') as HTMLTextAreaElement
+    fireEvent.change(text, { target: { value: 'half typed' } })
+    ;(screen.getByRole('button', { name: 'Talk about Agenthix' })).focus()
+    expect(document.activeElement).not.toBe(text)
+    fireEvent.click(screen.getByRole('button', { name: 'Talk about Agenthix' }))
+    expect(document.activeElement).toBe(screen.getByLabelText('New message'))
+    expect((screen.getByLabelText('New message') as HTMLTextAreaElement).value).toBe('half typed')
+  })
+
   it('puts back the position too: expanded, or collapsed to the rail', () => {
     renderDataRouter('/projects/AGX?c=c1')
     press('Expand over the page')

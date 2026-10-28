@@ -5,7 +5,7 @@ const row = (over: Partial<PlaceSkillSwitchRow> = {}): PlaceSkillSwitchRow => ({
   switch: null, switchFingerprint: null, lastFingerprint: 'a'.repeat(64), ...over,
 })
 
-describe('whether a skill found in files runs', () => {
+describe('whether a skill found in files runs @SC-1642', () => {
   it('takes the stricter of the place and organisation defaults', () => {
     expect(effectiveDefault(null, 'OFF')).toBe('OFF')
     expect(effectiveDefault('ON', 'OFF')).toBe('OFF')
@@ -25,7 +25,7 @@ describe('whether a skill found in files runs', () => {
     expect(switchState(off, null, 'ON')).toBe('off')
   })
 
-  it('drops a switch once the files change, so a changed skill goes off under Off by default', () => {
+  it('drops a switch once the files change, so a changed skill goes off under Off by default @security-H3', () => {
     const changed = row({ switch: 'ON', switchFingerprint: 'b'.repeat(64) })
     expect(switchState(changed, null, 'OFF')).toBe('off')
   })

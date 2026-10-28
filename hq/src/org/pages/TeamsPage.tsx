@@ -29,13 +29,13 @@ export function TeamsPage() {
         {isLoading && <p className="text-body text-text-muted">Loading…</p>}
         {teams && teams.length === 0 && (
           <p className="rounded-2xl border border-border-subtle bg-surface-1 p-10 text-center text-body text-text-muted">
-            No teams yet.{isAdmin ? ' Make one, or add a ready-made team from the Library.' : ''}
+            No teams yet.{isAdmin ? ' Make one, or open a ready-made team in the Library and choose Use this team.' : ''}
           </p>
         )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(teams ?? []).map(team => <TeamCard key={team.id} team={team} />)}
         </div>
-        <p className="mt-5 text-small text-text-muted">From the Library, a ready-made team adds its agents (and their boards) as a new team; people are added after.</p>
+        <p className="mt-5 text-small text-text-muted">In the Library, Use this team on a ready-made team lets you choose which of its teams, agents and projects to make; people are added after.</p>
       </div>
       <TeamDialog open={creating} onClose={() => setCreating(false)} onSaved={id => navigate(`${teamsBase(pathname)}/${id}`)} />
     </AppLayout>

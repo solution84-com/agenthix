@@ -16,7 +16,7 @@ const refused = (over: Record<string, unknown>) => {
   throw new Error('not refused')
 }
 
-describe('propose_skill plain checks (H5, R8)', () => {
+describe('propose_skill plain checks (H5, R8) @security-H5 @SC-1662', () => {
   it('passes a valid skill and keeps the description from SKILL.md', () => {
     const c = checkProposal(args())
     expect(c).toMatchObject({ name: 'checkout-review', aim: 'project', edits: null, description: 'Review a checkout change. Use when it touches src/checkout.' })
@@ -67,7 +67,7 @@ describe('propose_skill plain checks (H5, R8)', () => {
   })
 })
 
-describe('the files SKILL.md names', () => {
+describe('the files SKILL.md names @SC-1662', () => {
   it('reads relative links and scripts, references and assets paths, never web links or anchors', () => {
     expect(namedPaths('See [a](./references/a.md#top), [web](https://x.test/a), [here](#steps). Run scripts/run.py.').sort())
       .toEqual(['references/a.md', 'scripts/run.py'])

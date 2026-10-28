@@ -37,7 +37,7 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('a used skill beside the thread', () => {
+describe('a used skill beside the thread @SC-1658', () => {
   it('names where it came from and the version the run used', () => {
     h.query = { data: view({ newer: 'The agents that have it now get 1.4.0.' }), error: null, isLoading: false }
     render(<UsedSkillPanel conversationId="c1" skill={{ operationId: 'op1', name: 'org-review' }} onClose={() => {}} />)
@@ -78,7 +78,7 @@ describe('a used skill beside the thread', () => {
   })
 })
 
-describe("a result's steps", () => {
+describe("a result's steps @SC-1658", () => {
   it('open a used skill beside the thread; a step without one stays text', () => {
     h.query = { data: { title: 'Review', state: 'COMPLETED', summary: null, stated: true, problem: null, runUrl: null, work: { summary: null, steps: [{ text: 'Used the skill Review code · Fernhill · 1.3.0', skill: { name: 'org-review' } }, { text: 'Read a.ts' }] } }, error: null, isLoading: false }
     const open = vi.fn()

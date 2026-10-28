@@ -50,7 +50,7 @@ beforeEach(() => {
   get.mockReturnValue({ protocol: { major: 1, minor: 11 } })
 })
 
-describe("writing a place's skill folder on its site", () => {
+describe("writing a place's skill folder on its site @SC-1644", () => {
   it('streams every file with its contents entry, named by the fingerprint, for the place alone', async () => {
     const stream = fakeStream()
     openContentStream.mockResolvedValue(stream)
@@ -89,7 +89,7 @@ describe("writing a place's skill folder on its site", () => {
   })
 })
 
-describe("removing a place's skill folder on its site", () => {
+describe("removing a place's skill folder on its site @SC-1647", () => {
   it('asks the site to remove that folder of the place', async () => {
     request.mockResolvedValue({ removed: true })
     await removeSkillFolder(loc, '.agents/agents/a1/skills/x')

@@ -28,7 +28,7 @@ function dbOf(over: { original?: Partial<typeof original>; versions?: number } =
   } as never
 }
 
-describe('a copy and its original on each other’s page', () => {
+describe('a copy and its original on each other’s page @SC-1628', () => {
   it("shows the copy the original it replaced: its identity, version, signer and the version copied", async () => {
     const r = await assetRelatives(dbOf(), { id: 'c' }, true, 'fernhill')
     expect(r.copies).toEqual([])

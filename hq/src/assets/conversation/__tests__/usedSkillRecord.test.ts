@@ -5,7 +5,7 @@ import { plainSkillName, usedSkillLabel } from '../usedSkillOrigin'
 const FP = 'a'.repeat(64)
 const use = (over: Record<string, unknown> = {}) => ({ name: 'org-review', source: 'org', fingerprint: FP, identity: 'fernhill/review', version: '1.3.0', ...over })
 
-describe("a run's record of the skills it used, read as the site's word", () => {
+describe("a run's record of the skills it used, read as the site's word @SC-1658", () => {
   it('keeps each staged skill by its staged name', () => {
     const used = usedSkillsOf([use(), use({ name: 'boundary-release', source: 'boundary', identity: undefined, version: undefined, placeId: 'p1', path: '.agents/skills/release' })])
     expect([...used.keys()]).toEqual(['org-review', 'boundary-release'])
@@ -41,7 +41,7 @@ describe("a run's record of the skills it used, read as the site's word", () => 
   })
 })
 
-describe("a used skill's step", () => {
+describe("a used skill's step @SC-1658", () => {
   it('reads with its person-facing name, where it came from and its version', () => {
     expect(usedSkillLabel({ title: 'Review code', where: 'Fernhill', version: '1.3' })).toBe('Used the skill Review code · Fernhill · 1.3')
     expect(usedSkillLabel({ title: 'Review a release', where: 'Website rebuild', version: null })).toBe('Used the skill Review a release · Website rebuild')

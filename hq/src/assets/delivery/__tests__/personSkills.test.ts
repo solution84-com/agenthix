@@ -7,7 +7,7 @@ import { isOwnConversation, personalSkillsApply, publishedPersonSkill, type Chat
 
 const own: RunFor = { kind: 'chat', startedBy: 'person', personId: 'p1', ownConversation: true, place: { placeType: 'project', placeId: 'proj' } }
 
-describe('whose runs a person\'s skills follow them into', () => {
+describe('whose runs a person\'s skills follow them into @SC-1649', () => {
   it('their own conversation in a project', () => {
     expect(personalSkillsApply(own, true)).toBe(true)
   })
@@ -36,7 +36,7 @@ describe('whose runs a person\'s skills follow them into', () => {
 const myChat: ChatTurn = { taskId: null, sessionUserId: 'p1', senderId: 'p1', conversationId: null, conversation: null }
 const myWorker: ChatTurn = { ...myChat, conversationId: 'c1', conversation: { openedById: 'p1', home: 'PROJECT' } }
 
-describe('a turn of the person\'s own conversation', () => {
+describe('a turn of the person\'s own conversation @SC-1649', () => {
   it('their own chat', () => {
     expect(isOwnConversation(myChat)).toBe(true)
   })
@@ -64,7 +64,7 @@ describe('a turn of the person\'s own conversation', () => {
     expect(isOwnConversation({ ...myWorker, conversation: null })).toBe(false)
   })
 
-  it('a worker of my own conversation gets my skills; a task or scheduled run doesn\'t', () => {
+  it('a worker of my own conversation gets my skills; a task or scheduled run doesn\'t @security-L5', () => {
     const worker = { ...own, ownConversation: isOwnConversation(myWorker) }
     expect(personalSkillsApply(worker, true)).toBe(true)
     expect(personalSkillsApply({ ...worker, kind: 'task' }, true)).toBe(false)
@@ -82,7 +82,7 @@ const row = (over: Partial<PersonSkillRow> = {}): PersonSkillRow => ({
   published: { id: 'v1', number: 3, digest: F1 }, skillMd: md(), ...over,
 })
 
-describe('which version of a person\'s skill follows them', () => {
+describe('which version of a person\'s skill follows them @security-H4 @SC-1649', () => {
   it('the published version, by its own ref', () => {
     expect(publishedPersonSkill(P1, row(), null, 'ON')).toEqual({
       entry: { identity: `${P1}/release-notes`, version: '3', digest: F1, ref: { kind: 'skill', key: 'v1', digest: F1 } },

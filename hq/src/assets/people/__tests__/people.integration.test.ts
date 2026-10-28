@@ -33,7 +33,7 @@ beforeEach(async () => {
   member = await contextWithRole('MEMBER')
 })
 
-describe('trusted publishers (P1)', () => {
+describe('trusted publishers (P1) @SC-1615', () => {
   it('always lists Agenthix first, which can\'t be removed', async () => {
     const list = await listTrustedPublishers({}, admin.ctx)
     expect(list).toMatchObject([{ name: 'agenthix', kind: 'built-in', removable: false, status: 'trusted' }])
@@ -54,7 +54,7 @@ describe('trusted publishers (P1)', () => {
     expect(publisher).toMatchObject({ kind: 'key', keyId: expect.stringMatching(/^[0-9a-f]{64}$/) })
   })
 
-  it('refuses a reserved name, a taken name, and the organisation\'s own name', async () => {
+  it('refuses a reserved name, a taken name, and the organisation\'s own name @security-C1', async () => {
     await expect(addTrustedPublisher(keyless({ name: 'agenthix' }), admin.ctx)).rejects.toMatchObject({ statusCode: 400 })
     await expect(addTrustedPublisher(keyless({ name: 'unsigned' }), admin.ctx)).rejects.toMatchObject({ statusCode: 400 })
     await addTrustedPublisher(keyless(), admin.ctx)
@@ -107,8 +107,8 @@ describe('trusted publishers (P1)', () => {
   })
 })
 
-describe('the organisation\'s settings', () => {
-  it('ships unsigned allowed, administrators installing from outside, skills in files off, personal skills on', async () => {
+describe('the organisation\'s settings @SC-1616', () => {
+  it('ships unsigned allowed, administrators installing from outside, skills in files off, personal skills on @security-H4', async () => {
     expect(await getAssetSettings({}, admin.ctx)).toEqual({
       unsignedAssets: 'allowed', outsideInstallers: 'ADMINS', fileSkillsDefault: 'OFF', personalSkillsOutsideSpace: true,
     })
@@ -128,7 +128,7 @@ describe('the organisation\'s settings', () => {
   })
 })
 
-describe('Library maintainers (D28, M1)', () => {
+describe('Library maintainers (D28, M1) @security-M1 @SC-1617', () => {
   it('shows the reach first and names nobody until it is confirmed', async () => {
     expect(await nameLibraryMaintainer({ userId: member.user.id }, admin.ctx)).toEqual({ named: false, reach: MAINTAINER_REACH })
     expect(await prisma.libraryMaintainer.count()).toBe(0)

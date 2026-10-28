@@ -42,7 +42,7 @@ async function agentWithSkills() {
   })
 }
 
-describe("an agent's export", () => {
+describe("an agent's export @SC-1639", () => {
   it('is an agent template package carrying every skill it has but the built-ins, under the organisation', async () => {
     const agent = await agentWithSkills()
     const { root, files } = await exportAgentPackage(agent.id, new Date('2026-10-28T09:30:15Z'))
@@ -78,7 +78,7 @@ describe("an agent's export", () => {
   })
 })
 
-describe('the numbers an export takes', () => {
+describe('the numbers an export takes @SC-1639', () => {
   it('is a version that grows with each export, and a name every handle can take', () => {
     expect(exportVersion(new Date('2026-01-02T00:00:05Z'))).toBe('1.20260102.5')
     expect(packageName('ada_pm')).toBe('ada-pm')

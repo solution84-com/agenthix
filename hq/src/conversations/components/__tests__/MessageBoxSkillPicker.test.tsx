@@ -58,7 +58,7 @@ const chip = () => screen.queryByTestId('skill-chip')
 /** What the browser's text highlight paints now (jsdom has none, so the test brings a small one). */
 const highlighted = () => [...((CSS as unknown as { highlights: Map<string, { ranges: Range[] }> }).highlights.get('skill-pick')?.ranges ?? [])].map(r => r.toString())
 
-describe('the / picker @SC-1548', () => {
+describe('the / picker @SC-1657', () => {
   it('opens for a / at the start with the agent\'s skills in groups, the field keeping the focus', () => {
     box()
     typeInto(LABEL, '/')

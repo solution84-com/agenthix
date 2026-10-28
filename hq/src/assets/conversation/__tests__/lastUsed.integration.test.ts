@@ -27,7 +27,7 @@ async function librarySkill() {
   return { asset, digest }
 }
 
-describe('last used', () => {
+describe('last used @SC-1660', () => {
   it('keeps the newest use, and the page says it with the place only to who sees it', async () => {
     await prisma.org.create({ data: { name: 'Fernhill' } })
     const { asset, digest } = await librarySkill()

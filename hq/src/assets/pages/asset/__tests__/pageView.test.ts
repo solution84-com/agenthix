@@ -37,7 +37,7 @@ function dbOf(over: { asset?: object; versions?: object[] } = {}) {
   } as never
 }
 
-describe("an asset's page", () => {
+describe("an asset's page @SC-1632", () => {
   it('says what it is, who signed it, where it came from, who installed it and the update offered', async () => {
     const page = await assetPageView(dbOf(), admin, 'a1')
     expect(page).toMatchObject({
@@ -80,7 +80,7 @@ describe("an asset's page", () => {
   })
 })
 
-describe('who vouches for it, in words', () => {
+describe('who vouches for it, in words @SC-1632', () => {
   it('says signed by Agenthix for the image, and never claims more for a built-in', () => {
     expect(signedByWords({ source: 'BUILT_IN', trustedPublisher: null }, 'agenthix', false, false)).toBe('Signed by Agenthix')
     expect(signedByWords({ source: 'BUILT_IN', trustedPublisher: null }, 'agenthix', true, false)).toContain('Built in')

@@ -9,7 +9,7 @@ const header = (files: { path: string; content: Buffer }[]) => {
   return { meta: parse(yaml), body: text.split('\n---\n')[1] }
 }
 
-describe("writing hq's metadata into a skill's SKILL.md", () => {
+describe("writing hq's metadata into a skill's SKILL.md @SC-1644", () => {
   it('writes the version into metadata, keeping every other key, the body and the other files', () => {
     const out = withSkillMetadata(file('---\nname: review\ndescription: Reviews\nmetadata:\n  owner: ada\n---\n\n# Review\nDo it.\n'), { version: '4' })
     expect(header(out).meta).toEqual({ name: 'review', description: 'Reviews', metadata: { owner: 'ada', version: '4' } })

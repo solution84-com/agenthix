@@ -34,7 +34,7 @@ async function failure(p: Promise<unknown>): Promise<Error> {
   return err as Error
 }
 
-describe('a package from a link', () => {
+describe('a package from a link @SC-1611', () => {
   it('arrives as a URL source recording the link as given, less its fragment', async () => {
     const body = await zip({ 'pdf/SKILL.md': '---\nname: pdf\ndescription: Reads PDFs\n---\n' })
     const arrival = await linkArrival(`${LINK}#readme`, serving(body))
@@ -49,7 +49,7 @@ describe('a package from a link', () => {
     expect((await failure(linkArrival(42, serving(new Uint8Array())))).message).toContain('not a link')
   })
 
-  it('says the same thing whatever is wrong with what came back (M3)', async () => {
+  it('says the same thing whatever is wrong with what came back (M3) @security-M3', async () => {
     const bodies = [
       new TextEncoder().encode('<html>not a zip</html>'),
       new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 0]),

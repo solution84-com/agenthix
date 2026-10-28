@@ -6,7 +6,7 @@ import {
 
 const h = (c: string) => c.repeat(64)
 
-describe('the fingerprint', () => {
+describe('the fingerprint @SC-1598', () => {
   it('is the package digest input over every file, package.json included', () => {
     const files = [{ path: 'SKILL.md', sha256: h('a') }, { path: 'package.json', sha256: h('b') }]
     expect(assetFingerprintInput(files)).toBe(packageDigestInput({ formatVersion: PACKAGE_FORMAT_VERSION, files }))
@@ -31,7 +31,7 @@ describe('the fingerprint', () => {
   })
 })
 
-describe('the file list check', () => {
+describe('the file list check @security-H1 @SC-1598', () => {
   it('passes an ordinary skill', () => {
     expect(checkAssetFileList(['package.json', 'SKILL.md', 'scripts/run.sh', 'references/a.md'])).toEqual([])
   })
@@ -71,7 +71,7 @@ describe('the file list check', () => {
   })
 })
 
-describe('the signed statement', () => {
+describe('the signed statement @security-H1 @SC-1598', () => {
   const base = { format: 2, kind: 'skill' as const, publisher: 'acme', name: 'code-review', version: '1.3.0', fingerprint: h('9') }
 
   it('is canonical JSON of exactly six fields', () => {

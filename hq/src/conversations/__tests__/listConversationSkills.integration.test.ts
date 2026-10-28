@@ -46,7 +46,7 @@ beforeEach(async () => {
   agent = await createAgent({ name: 'Ada' })
 })
 
-describe('the / picker\'s skills @SC-1547', () => {
+describe('the / picker\'s skills @SC-1656', () => {
   it('lists this agent\'s installed skills by staged name, with title, description and source, and no other agent\'s', async () => {
     await installed('code-review', { givenToAll: true })
     await installed('mine', { grantTo: agent.id })
@@ -135,7 +135,7 @@ describe('the / picker\'s skills @SC-1547', () => {
   })
 })
 
-describe('the / picker in the box that starts a conversation @SC-1548', () => {
+describe('the / picker in the box that starts a conversation @SC-1656', () => {
   it("lists the chosen agent's skills in the project it will start in, and only for an agent the person may talk to there", async () => {
     await installed('code-review', { givenToAll: true })
     const project = await createProject({ name: 'Website rebuild' })
@@ -155,7 +155,7 @@ describe('the / picker in the box that starts a conversation @SC-1548', () => {
   })
 })
 
-describe('the built-in given only in a repository, in the picker', () => {
+describe('the built-in given only in a repository, in the picker @SC-1656', () => {
   it("is offered once the conversation's work has run in a workspace, from hq's records alone", async () => {
     const asset = await prisma.asset.create({ data: { kind: 'SKILL', publisher: 'agenthix', name: 'working-with-git', builtIn: true } })
     const version = await prisma.assetVersion.create({ data: { assetId: asset.id, version: '1.0.0', digest: await content('working-with-git'), source: 'UPLOAD' } })

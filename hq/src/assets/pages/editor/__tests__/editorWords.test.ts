@@ -4,7 +4,7 @@ import { publishBlock, saveStatus } from '../editorWords'
 const saving = { dirty: false, saving: false, failed: null, moved: false, revision: 2 }
 const publish = { mayPublish: true, place: false, dirty: false, saving: false, failed: null, moved: false, nothing: false, blocked: false, inUse: '1.0.0' }
 
-describe('the draft saving itself, in words (finding 8)', () => {
+describe('the draft saving itself, in words (finding 8) @SC-1624', () => {
   it('says Saving… while a change waits or is being saved, Saved once it is, and why it could not be', () => {
     expect(saveStatus({ ...saving, dirty: true })).toBe('Saving…')
     expect(saveStatus({ ...saving, saving: true })).toBe('Saving…')
@@ -15,7 +15,7 @@ describe('the draft saving itself, in words (finding 8)', () => {
   })
 })
 
-describe('Publish says why it can’t be used', () => {
+describe('Publish says why it can’t be used @SC-1625', () => {
   it('is available only with a saved change that passes the checks, by someone who may publish', () => {
     expect(publishBlock(publish)).toBeNull()
   })

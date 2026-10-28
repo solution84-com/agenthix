@@ -99,7 +99,7 @@ beforeEach(async () => {
 const open = (who: { id: string }, name: string, path?: string, where = thread) =>
   getUsedSkill({ ...where, name, ...(path ? { path } : {}) }, ctx(who))
 
-describe('the step names the skill (R4)', () => {
+describe('the step names the skill (R4) @SC-1658', () => {
   it("reads with the person-facing name and opens it, for whoever may see it; a refused skill isn't one used", async () => {
     runWith([installed, inFiles, own, { ...installed, name: 'org-gone', refused: 'its content was not in the cache' }])
     site.listTranscript.mockResolvedValue([
@@ -119,7 +119,7 @@ describe('the step names the skill (R4)', () => {
   })
 })
 
-describe('opening it, access checked at view time (M6)', () => {
+describe('opening it, access checked at view time (M6) @security-M6 @SC-1659', () => {
   it('an installed skill opens for anyone in the organisation who reads the conversation', async () => {
     runWith([installed])
     const view = await open(member, 'org-review')
@@ -165,7 +165,7 @@ describe('opening it, access checked at view time (M6)', () => {
   })
 })
 
-describe('erasing a person', () => {
+describe('erasing a person @security-M6 @SC-1659', () => {
   it("takes their own skills' kept content, leaving the run's identity and fingerprint opening nothing", async () => {
     await prisma.$transaction(await personSkillErasure(prisma, [{ type: 'user', id: author.id }]))
     expect(await prisma.placeSkill.count({ where: { placeType: 'user', placeId: author.id } })).toBe(0)

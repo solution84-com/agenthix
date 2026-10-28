@@ -5,7 +5,7 @@ import { SAMPLE } from './fixtures'
 const all: LibraryFilter = { search: '', type: 'all', status: null }
 const keys = (f: Partial<LibraryFilter>) => filterRows(SAMPLE, { ...all, ...f }).map(r => r.key)
 
-describe('the Library’s filters', () => {
+describe('the Library’s filters @SC-1630', () => {
   it('shows every asset with no filter', () => expect(keys({})).toHaveLength(SAMPLE.length))
 
   it('narrows to a type', () => {

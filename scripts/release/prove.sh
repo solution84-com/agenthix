@@ -8,6 +8,8 @@
 # 2. The install test (scripts/install-test/run.sh) from those images.
 # 3. The guide's screenshots (npm run guide:screenshots in hq/), with the site and hq started for it as
 #    guide-screenshots.yml starts them, on ports the operating system gives, against the guide databases.
+# Before any of that, the Sigstore trust root hq's image carries must be fresh enough to ship (scripts/release/trust-root.mjs):
+# the rehearsal only reads it, and refuses when it is old, naming the refresh to run and commit.
 # Each step's time is printed, and the last lines are one per step: passes or fails. It refuses, before anything is run,
 # where a step cannot run on this machine, and says what holds it.
 # shellcheck disable=SC2329 # the steps are run by name, through step
@@ -22,6 +24,7 @@ refuse() { printf '\nCannot prove the release here: %s\nNothing was run.\n' "$*"
 command -v docker >/dev/null || refuse 'Docker is not on this machine.'
 docker info >/dev/null 2>&1 || refuse 'Docker is not running.'
 command -v node >/dev/null || refuse 'Node is not on this machine.'
+trust_root="$(node scripts/release/trust-root.mjs 2>&1)" || refuse "$trust_root"
 
 
 [ -d hq/node_modules ] && [ -d site/node_modules ] || refuse 'hq/ and site/ are not installed (the guide screenshots start both): run npm install in each.'

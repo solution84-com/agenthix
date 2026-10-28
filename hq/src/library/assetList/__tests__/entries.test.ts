@@ -9,7 +9,7 @@ const other = row({ key: 'x', assetId: 'x', title: 'SEO Audit', identity: 'acme/
 const owners = new Map([['o', 'Agenthix']])
 const link = (over: Partial<CopyLink> = {}): CopyLink => ({ copyId: 'c', originId: 'o', copiedFrom: '2.0.0', inUse: true, published: true, ...over })
 
-describe('a copy and its original as one Library entry', () => {
+describe('a copy and its original as one Library entry @SC-1628', () => {
   it('shows the copy in use as the entry, with the set-aside original under it, and keeps its own states', () => {
     const rows = foldCopies([original, copy, other], [link()], owners)
     expect(rows.map(r => r.key)).toEqual(['c', 'x'])

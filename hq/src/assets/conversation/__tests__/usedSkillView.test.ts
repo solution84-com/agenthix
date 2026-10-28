@@ -75,7 +75,7 @@ const installed: RunSkillUse = { name: 'org-review', source: 'org', fingerprint:
 const inFiles: RunSkillUse = { name: 'boundary-release', source: 'boundary', fingerprint: FP('b'), placeId: 'proj', path: '.agents/skills/release' }
 const own: RunSkillUse = { name: 'person-notes', source: 'person', fingerprint: FP('c'), identity: 'ada/notes', version: '1', personId: 'ada' }
 
-describe('an installed skill', () => {
+describe('an installed skill @SC-1659', () => {
   it('opens for anyone in the organisation, at the version the run used, with what is newer', async () => {
     const view = await usedSkillView(deps, 'ben', installed)
     expect(view).toMatchObject({ title: 'Review code', where: 'Fernhill', version: '1.3.0', identity: 'fernhill/review', level: 'installed', openHref: '/library' })
@@ -100,7 +100,7 @@ describe('an installed skill', () => {
   })
 })
 
-describe("a skill in a place's files", () => {
+describe("a skill in a place's files @SC-1659", () => {
   it('opens for whoever sees the place, at the version used, saying a newer one was published', async () => {
     const view = await usedSkillView(deps, 'ada', inFiles)
     expect(view).toMatchObject({ title: 'Review a release', where: 'Website rebuild', version: 'Version 3', level: 'place', newer: 'Version 4 has been published since.', openHref: null })
@@ -122,7 +122,7 @@ describe("a skill in a place's files", () => {
   })
 })
 
-describe("a person's own skill", () => {
+describe("a person's own skill @security-M6 @SC-1659", () => {
   it('opens for that person only', async () => {
     expect(await usedSkillView(deps, 'ada', own)).toMatchObject({ title: 'My notes', where: 'Yours', level: 'yours', version: 'Version 1' })
     expect(await usedSkillView(deps, 'ben', own)).toBeNull()
@@ -140,7 +140,7 @@ describe("a person's own skill", () => {
 const stepsOf = (...calls: [string, unknown][]): WorkStep[] =>
   calls.map(([tool, input]) => ({ ...toolStep(tool, input), at: '', steps: 1, items: [], toolUseIds: [] }))
 
-describe("a run's steps", () => {
+describe("a run's steps @SC-1658", () => {
   const record = [installed, inFiles, { ...own, refused: 'gone' }]
 
   it('name each used skill as people read it and point at it, for one who may see it', async () => {

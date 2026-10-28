@@ -3,7 +3,7 @@ import { approxTokens, costLine, costWarning, listingCost, overBudget, skillToke
 
 const skill = (n: number, description = 'Draft articles and copy from briefs, in the brand\'s voice.') => ({ name: `skill-${n}`, description })
 
-describe("an agent's listing cost (R9)", () => {
+describe("an agent's listing cost (R9) @SC-1655", () => {
   it('estimates a skill from its name and description plus a fixed entry, at four bytes a token', () => {
     expect(skillTokens({ name: 'abcd', description: 'efgh' })).toBe(Math.ceil((190 + 8) / 4))
     expect(skillTokens({ name: 'é', description: '' })).toBe(Math.ceil((190 + 2) / 4))

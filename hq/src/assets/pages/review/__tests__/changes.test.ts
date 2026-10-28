@@ -5,7 +5,7 @@ import { filesToSend, isEdited, liveChanges } from '../liveChanges'
 
 const f = (path: string, text: string | Buffer): PackageFile => ({ path, content: Buffer.isBuffer(text) ? text : Buffer.from(text) })
 
-describe('what a proposal changes', () => {
+describe('what a proposal changes @SC-1663', () => {
   it('lists every file added, modified or removed, scripts included, and none that is unchanged', () => {
     const current = [f('SKILL.md', 'one\ntwo'), f('notes.md', 'same'), f('old.md', 'gone')]
     const proposed = [f('SKILL.md', 'one\ntwo\nthree'), f('notes.md', 'same'), f('scripts/check.sh', 'curl x')]
@@ -22,7 +22,7 @@ describe('what a proposal changes', () => {
   })
 })
 
-describe('the reviewer\'s edits laid over a proposal (edit, then accept)', () => {
+describe('the reviewer\'s edits laid over a proposal (edit, then accept) @SC-1663', () => {
   const files = fileViews([f('SKILL.md', 'one\ntwo\nthree'), f('notes.md', 'same')])
   const changes = changesBetween([f('SKILL.md', 'one\ntwo'), f('notes.md', 'same')], [f('SKILL.md', 'one\ntwo\nthree'), f('notes.md', 'same')])
 

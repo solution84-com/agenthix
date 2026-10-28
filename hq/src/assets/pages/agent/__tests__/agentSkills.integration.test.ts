@@ -34,7 +34,7 @@ async function install(name: string, ctx: unknown) {
 
 const ctxOf = (user: { id: string }) => ({ user, entities: {} }) as never
 
-describe("an agent's Skills @board-A1", () => {
+describe("an agent's Skills @board-A1 @SC-1654", () => {
   it('groups skills by why the agent has them, and offers an administrator the rest to add', async () => {
     const { ctx } = await contextWithRole('ADMIN')
     const agent = await createAgent({ name: 'Ada' })

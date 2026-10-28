@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { capture } from './capture'
 
-// screenshot:library — the Library's Agents tab, with the ready-made agents that come with hq.
+// screenshot:library — the Library, listing the ready-made agents, boards and teams that come with hq.
 test('library', async ({ page }) => {
   await capture(page, {
     path: '/library',

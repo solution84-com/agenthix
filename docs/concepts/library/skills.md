@@ -1,133 +1,64 @@
-# Skills (Library)
+# Skills in the Library
 
-A library skill is a pre-authored `SKILL.md` template — a reusable behavioral instruction set that can be browsed in the Library, added to agents, and referenced by agent and workforce templates. The library is the catalogue; active skill copies on the filesystem are what agents actually run.
+A skill is one kind of asset ([library.md](./library.md)). This page is the skills Agenthix ships and what the Library does with a skill that other assets do not. Where skills live and how a turn receives them is [skills](../skills/skills.md).
 
----
-
-## Relationship to active skills
-
-The library and active runtime are separate layers:
-
-| Layer | Location | Purpose |
-|---|---|---|
-| **Library** | `Skill` DB table (scope = PLATFORM) | Browsable catalogue; source of truth for template content |
-| **Active** | `skills/<slug>/` inside an agent's, the org's or the platform's package, or in a project's or person's own storage — under `.agents/agents/<agentId>/skills/<slug>/` for one agent, or `.agents/skills/<slug>/` for every agent working there | Staged afresh for each turn as `<source>-<slug>`, then shown to the model by the runtime: Claude gets a local plugin plus a name allowlist, OpenCode a list in the system prompt plus the plugin's skill tool (see [skills.md](../skills/skills.md)) |
-
-A skill is "installed" when its content is copied from the library into an agent's package (or the org's package), edited in place; the next run uses it. The copy records `installed_from` in its frontmatter. The library record is never modified at runtime — it is the canonical template.
-
----
-
-## Source files and seeding
-
-Library skills are authored as `SKILL.md` files in `assets/library/skills/<slug>/` and seeded into the `Skill` DB table at startup via `seedPlatformSkills()`. The DB record stores only metadata — `slug`, `name`, `description`, `version`, and an `assetPath` pointer. Content is read from hq's assets (or hq's storage, for an org skill) when a skill is installed into an agent's package or exported.
-
-```
-assets/library/skills/<slug>/SKILL.md  →  Skill { slug, name, description, assetPath: 'library/skills/<slug>', scope: PLATFORM }
+```mermaid
+flowchart LR
+    BI["1 · Built in<br/>2 skills, on for every agent"] --> HAS
+    SH["2 · The shelf<br/>17 offered skills,<br/>installed when chosen"] --> HAS
+    TP["3 · Inside a template<br/>role skills, installed with<br/>the first agent made from it"] --> HAS
+    MH["4 · Made in HQ<br/>New skill, or an agent's proposal"] --> HAS
+    UP["5 · An upload or a link<br/>checked, then installed"] --> HAS
+    HAS["An installed skill<br/>every agent has it, or chosen agents"]
 ```
 
-Seeding is version-gated: if the stored `version` matches the file's frontmatter, the record is skipped. Bump `version` to force an update on next startup.
-
-Org skills (created via the Skills UI) are stored under `org/skills/<slug>/SKILL.md` in hq's own storage (`<HQ_STORAGE_ROOT>/org/skills/`), with `assetPath = 'org/skills/<slug>'`. They share the same `Skill` table with `scope = ORG`.
-
----
-
-## DB schema
-
-```prisma
-model Skill {
-  id          String     @id @default(cuid())
-  slug        String
-  name        String
-  description String
-  assetPath   String     // relative path — resolve under hq's assets root (PLATFORM) or hq's storage root (ORG)
-  version     Int        @default(1)
-  scope       SkillScope // PLATFORM | ORG
-  source         LibrarySource @default(MADE_HERE)   // built in, made here or marketplace
-  packageVersion String        @default("1")        // the version as its publisher numbers it
-  publisher      String?
-  orgId       String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  @@unique([slug, scope, orgId])
-}
-```
-
-(Shown without the relation fields. `source`, `packageVersion` and `publisher` are the package facts described in [library.md](./library.md).)
-
-Library skills have `scope = PLATFORM` and `orgId = null`. Org skills share the same table with `scope = ORG` and their `orgId` set. There is no `PROJECT`-scoped library skill — a project's own skills are files in the project's storage — under `.agents/agents/<agentId>/skills/` for one agent, or `.agents/skills/` for every agent working there — and have no DB record.
+1. **Built in** skills ship with hq and are on for every agent. An administrator can switch one off, and nobody can edit or remove one ([ADR-0156](../../adr/adr-0156-built-in-skills-sit-beside-platform-knowledge.md)).
+2. **The shelf** is Agenthix's offered skills. Nobody has one until someone installs it.
+3. **A role skill** belongs to its template, is named under it, and goes with the agent made from it.
+4. **Made in HQ**: the organisation's own, published under its own publisher name.
+5. **From outside**: signed or unsigned ([installing](./installing.md)).
 
 ---
 
-## SKILL.md format
+## Built-in skills
 
-```markdown
----
-name: Human-readable name
-description: One sentence — what does this skill do?
----
+A built-in skill is written for the agent: it says what to do. The user guide, which agents search as the platform's knowledge, says what things are. A built-in gives the steps and points to guide pages rather than describing the product again, and it ships with hq so it cannot go stale. Two ship today:
 
-# Skill Name
-
-Body is free-form markdown. Write instructions the agent will follow.
-```
-
-The `version` field is optional in frontmatter (defaults to 1). Bump it to force a re-seed.
-
----
-
-## Slug prefixing conventions
-
-Library skills use a flat directory structure. To prevent collisions and aid discoverability, slugs are prefixed by role or domain:
-
-| Prefix | Domain | Examples |
-|---|---|---|
-| `pm-` | Product Manager | `pm-backlog-management`, `pm-sprint-planning` |
-| `dev-` | Developer | `dev-code-review`, `dev-ui-development` |
-| `qa-` | QA | `qa-test-planning`, `qa-bug-reporting` |
-| *(none)* | Domain-specific | `content-writing`, `research-methodology`, `technical-writing` |
-
-Domain-specific skills (no prefix) are authored for workforce templates that define inline agents — roles with no canonical template (e.g. Content Studio, Research Lab).
-
----
-
-## Library skills (18 total)
-
-The role skills that agent templates carry (for example `fix-bug`, `write-brief`, `orchestrate`) are not library skills; they live inside those templates.
-
-| Slug | Role |
+| Skill | For |
 |---|---|
-| `pm-backlog-management` | Product Manager |
-| `pm-sprint-planning` | Product Manager |
-| `pm-stakeholder-comms` | Product Manager |
-| `dev-ui-development` | Developer |
-| `dev-api-development` | Developer |
-| `dev-code-review` | Developer |
-| `dev-code-quality` | Developer |
-| `dev-github-operations` | Developer |
-| `qa-test-planning` | QA |
-| `qa-bug-reporting` | QA |
-| `content-writing` | Domain |
-| `content-review` | Domain |
-| `editorial-planning` | Domain |
-| `seo-research` | Domain |
-| `technical-writing` | Domain |
-| `research-methodology` | Domain |
-| `research-reporting` | Domain |
-| `data-analysis` | Domain |
+| `working-with-git` | Working in a git repository through the place's approved push, pull and pull-request workflows, never a plain `git push`. Given to a run only when it works in a git repository |
+| `skill-creator` | Writing a good skill, and proposing it instead of writing it into files. Teaches whether something belongs in a skill, in instructions or in knowledge |
 
----
+Built-ins are the `agenthix/…` skills in the Library marked built in, with a switch in Manage organisation › Settings › Library and skills. A switch survives releases.
 
-## Bundled form
+## The shelf
 
-Skills themselves have no bundled form — the `Skill` row indexes a `SKILL.md` file under hq's assets or hq's storage. An agent archive embeds the skill files it carries; importing it replaces the agent's content and settings in place and does not touch the `Skill` table.
+17 skills, each carrying a *suited to* hint that the Add page can filter by: a hint, never a lock.
 
----
+| For | Skills |
+|---|---|
+| Developers | `dev-api-development`, `dev-code-quality`, `dev-code-review`, `dev-ui-development` |
+| Product | `pm-backlog-management`, `pm-sprint-planning`, `pm-stakeholder-comms` |
+| QA | `qa-bug-reporting`, `qa-test-planning` |
+| Content | `content-writing`, `content-review`, `editorial-planning`, `seo-research`, `technical-writing` |
+| Research | `research-methodology`, `research-reporting`, `data-analysis` |
+
+Installing one makes `agenthix/<name>` and pins its version. Because it is an asset, it can be updated when a newer one ships, rolled back, edited into the organisation's own copy, and removed. A skill an agent has costs listing space on every request, which is why a new organisation has none of these by default.
+
+## Role skills
+
+An agent template carries the skills its role needs, such as `write-brief` for the product manager. They are not on the shelf and cannot be installed on their own; they are installed when the first agent is made from the template, and the agent is *given* them. Removing one the agent needs leaves the agent made without it, and its page shows it as missing.
+
+## What the Library keeps about a skill
+
+- **Versions and history**, as for every asset.
+- **Who has it** and, for a skill hq has seen used, **when it was last used**, by which agent and in which project or personal space.
+- **A draft**, one at a time, shared by everyone who may edit.
+- **The agent's cost**: an agent's page estimates what its skill listing costs per request and warns above about 20 skills or 4,000 tokens.
+
+An agent's page lists everything it has, in groups: built in, those every agent has, those it has, where it works, its own, and any set aside.
 
 ## Related
 
-- [library.md](./library.md) — library overview and file → DB seeding pattern
-- [agent-templates.md](./agent-templates.md) — agent templates reference skills by slug in `skills[]`
-- [workforce-templates.md](./workforce-templates.md) — workforce templates reference skills via agent definitions
-- [skills.md](../skills/skills.md) — skill sources and how they are staged for each turn
-- [authoring-skills.md](../skills/authoring-skills.md) — SKILL.md format and how to author a skill
+- [library.md](./library.md)
+- [skills](../skills/skills.md), [authoring](../skills/authoring-skills.md), [drafts and proposals](../skills/drafts-and-proposals.md)

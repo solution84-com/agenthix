@@ -11,7 +11,7 @@ const file = (path: string, group: FileSkillEntry['group'] = 'place'): NamedItem
 const person = (identity: string): NamedItem => ({ kind: 'person', entry: { identity, version: '1', digest: D } satisfies PersonSkillEntry })
 const at = (level: SkillLevel, item: NamedItem, key = JSON.stringify(item.entry)): SkillCandidate<NamedItem> => ({ level, key, label: key, item })
 
-describe('the name a skill stages under, as the site gives it', () => {
+describe('the name a skill stages under, as the site gives it @SC-1653', () => {
   it('an installed skill by its level, a person\'s as theirs, a place\'s and an agent\'s folder by theirs', () => {
     expect(stagedNameOf(installed('acme/review', 'org'))).toBe('org-review')
     expect(stagedNameOf(installed('acme/team/review', 'agent'))).toBe('agent-review')
@@ -30,7 +30,7 @@ describe('the name a skill stages under, as the site gives it', () => {
   })
 })
 
-describe('two skills that would stage under one name', () => {
+describe('two skills that would stage under one name @security-M2 @SC-1653', () => {
   it('keeps the earlier installed at the same level and sets the later aside, whichever publisher', () => {
     const first = at('installed', installed('acme/review'))
     const later = at('installed', installed('other/review'))

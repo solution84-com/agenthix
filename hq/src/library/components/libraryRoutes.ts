@@ -11,3 +11,5 @@ export const libraryNewPlaceSkillPath = (projectId: string, agentId?: string) =>
   `${LIBRARY_NEW_SKILL_PATH}?place=${encodeURIComponent(projectId)}${agentId ? `&agent=${encodeURIComponent(agentId)}` : ''}`
 /** A place skill's draft in the editor. */
 export const libraryPlaceSkillPath = (placeSkillId: string) => `/library/place-skills/${encodeURIComponent(placeSkillId)}`
+/** A team template's review, with no task behind it: the administrator chooses what to make and applies it. */
+export const libraryUseTeamPath = (assetId: string) => `/workforce-templates/review?templateId=${encodeURIComponent(assetId)}`

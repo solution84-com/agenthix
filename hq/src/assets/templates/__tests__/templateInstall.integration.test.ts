@@ -50,7 +50,7 @@ async function install(args: Awaited<ReturnType<typeof acmeTemplate>>, ctx: unkn
   return { preview, result }
 }
 
-describe("Agenthix's templates from hq's image, at boot", () => {
+describe("Agenthix's templates from hq's image, at boot @SC-1635", () => {
   it('installs each as agenthix/<name> without what it carries, and a second boot changes nothing (D14)', async () => {
     await writeImage('agents/qa', agentPackage('qa', { roleSkills: ['check-work'] }))
     await writeImage('boards/kanban', boardPackage('kanban'))
@@ -125,7 +125,7 @@ describe("Agenthix's templates from hq's image, at boot", () => {
   })
 })
 
-describe('an uploaded template', () => {
+describe('an uploaded template @SC-1636', () => {
   it('says what comes with it, then installs it with its skills under the signer, role skills under its name', async () => {
     const { ctx } = await contextWithRole('ADMIN')
     const { preview, result } = await install(await acmeTemplate(), ctx)

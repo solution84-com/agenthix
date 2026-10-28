@@ -3,7 +3,7 @@ import { bySemVerDescending, fileChanges, nextVersion, pinMoveRefusal } from '..
 
 const file = (path: string, text: string) => ({ path, content: Buffer.from(text, 'utf-8') })
 
-describe('the next version a publish makes', () => {
+describe('the next version a publish makes @SC-1625', () => {
   it('is 1.0.0 for an asset with no version yet', () => {
     expect(nextVersion([], 'minor')).toBe('1.0.0')
     expect(nextVersion([], 'major')).toBe('1.0.0')
@@ -25,13 +25,13 @@ describe('the next version a publish makes', () => {
   })
 })
 
-describe('versions in order', () => {
+describe('versions in order @security-M4 @SC-1619', () => {
   it('sorts by SemVer precedence, newest first, not as text', () => {
     expect(['1.2.0', '1.10.0', '1.9.1', '2.0.0-rc.1', '2.0.0'].sort(bySemVerDescending)).toEqual(['2.0.0', '2.0.0-rc.1', '1.10.0', '1.9.1', '1.2.0'])
   })
 })
 
-describe('moving the pin', () => {
+describe('moving the pin @SC-1619', () => {
   it('lets an update go only to a newer version, and a roll back only to an earlier one', () => {
     expect(pinMoveRefusal('update', '1.2.0', '1.3.0')).toBeNull()
     expect(pinMoveRefusal('rollBack', '1.2.0', '1.0.0')).toBeNull()
@@ -44,7 +44,7 @@ describe('moving the pin', () => {
   })
 })
 
-describe('what changed between two versions', () => {
+describe('what changed between two versions @SC-1619', () => {
   it('lists every file added, changed and removed, scripts included, in path order', () => {
     const from = [file('SKILL.md', 'a'), file('scripts/run.sh', 'echo 1'), file('references/old.md', 'x')]
     const to = [file('SKILL.md', 'b'), file('scripts/run.sh', 'echo 1'), file('scripts/new.sh', 'rm'), file('references/a.md', 'y')]

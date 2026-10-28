@@ -13,7 +13,7 @@ const place = { placeType: 'project' as const, placeId: 'p1' }
 const found = (path: string, fingerprint: string, extra: object = {}) =>
   ({ group: 'place' as const, path, fingerprint, name: path, description: '', ...extra })
 
-describe('recording what a scan of a place found', () => {
+describe('recording what a scan of a place found @SC-1641', () => {
   it('keeps one row per folder, updating its fingerprint, and marks a folder no longer found as gone', async () => {
     await recordScan(place, { skills: [found('a', '1'.repeat(64)), found('b', '2'.repeat(64))], problems: [], truncated: false })
     const rows = await recordScan(place, { skills: [found('a', '3'.repeat(64))], problems: [], truncated: false })

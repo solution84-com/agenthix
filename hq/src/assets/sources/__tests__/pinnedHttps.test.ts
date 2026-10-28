@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { LookupAddress } from 'node:dns'
 import { pinnedLookup } from '../pinnedHttps'
 
-describe('pinnedLookup', () => {
+describe('pinnedLookup @SC-1611', () => {
   const lookup = pinnedLookup({ address: '140.82.112.3', family: 4 })
 
   it('answers a single lookup with the pinned address, whatever name is asked', () => {

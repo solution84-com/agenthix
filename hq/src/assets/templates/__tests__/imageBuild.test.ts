@@ -24,7 +24,7 @@ const team = (skills: string[], extra: Array<ReturnType<typeof f>> = []) => [
   ...extra,
 ]
 
-describe('building a template from its sources', () => {
+describe('building a template from its sources @SC-1635', () => {
   it('copies each shared skill its agents name from the shelf, with a manifest at the shelf version, and keeps role skills as they are', () => {
     const built = buildTemplate('crew', team(['dev-code-review', 'plan'], [f('skills/plan/SKILL.md', SKILL('plan'))]), sources)
     expect(built.map(x => x.path)).toEqual([
@@ -51,7 +51,7 @@ describe('building a template from its sources', () => {
   })
 })
 
-describe('the version the build gives a template', () => {
+describe('the version the build gives a template @SC-1635', () => {
   const built = buildTemplate('crew', team(['dev-code-review']), sources)
   const db = (held: Array<{ version: string; digest: string }>) => ({ assetVersion: { findMany: async () => held } }) as unknown as Db
   const at = (version: string) => ({ version, digest: fingerprintOf(stampVersion(built, version)) })

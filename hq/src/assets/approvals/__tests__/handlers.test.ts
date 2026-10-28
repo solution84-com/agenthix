@@ -34,7 +34,7 @@ beforeEach(() => {
   fakes.installPackage.mockResolvedValue({ assetId: 'a1', message: 'Installed.' })
 })
 
-describe('an approved publish @D31', () => {
+describe('an approved publish @D31 @SC-1664', () => {
   it('publishes exactly the revision the request named, as the person, requested by the agent', async () => {
     const summary = await assetRequestHandlers.publish({ kind: 'publish', assetId: 'a1', revision: 3, note: 'Clearer steps', bump: 'patch' }, approved)
     expect(fakes.publishDraft).toHaveBeenCalledTimes(1)
@@ -51,7 +51,7 @@ describe('an approved publish @D31', () => {
   })
 })
 
-describe('an approved roll back @D31', () => {
+describe('an approved roll back @D31 @SC-1664', () => {
   it('rolls back to the version the request named, with its reason, as the person, requested by the agent', async () => {
     const summary = await assetRequestHandlers.rollBack({ kind: 'rollBack', assetId: 'a1', toVersionId: 'v1', reason: 'It broke reviews' }, approved)
     expect(fakes.moveToVersion).toHaveBeenCalledTimes(1)
@@ -64,7 +64,7 @@ describe('an approved roll back @D31', () => {
   })
 })
 
-describe('an approved install @D31', () => {
+describe('an approved install @D31 @SC-1664', () => {
   it('hands the agent that asked to the install itself, so it is written in the same transaction', async () => {
     await assetRequestHandlers.install({ kind: 'install', from: 'shelf', name: 'code-review', note: 'For reviews' }, approved)
     expect(fakes.installPackage).toHaveBeenCalledTimes(1)
@@ -75,7 +75,7 @@ describe('an approved install @D31', () => {
   })
 })
 
-describe('switching on', () => {
+describe('switching on @SC-1664', () => {
   it('is still refused when approved, with nothing done', async () => {
     await expect(assetRequestHandlers.switchOn({ kind: 'switchOn', placeSkillId: 'p1', fingerprint: 'f' }, approved))
       .rejects.toMatchObject({ statusCode: 409 })

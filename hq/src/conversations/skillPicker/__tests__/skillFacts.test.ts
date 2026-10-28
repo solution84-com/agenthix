@@ -3,7 +3,7 @@ import { scannedFacts, skillFacts } from '../skillFacts'
 
 const md = (header: string) => `---\n${header}\n---\n\n# Heading\n\nBody`
 
-describe("a skill's facts for the / picker", () => {
+describe("a skill's facts for the / picker @SC-1656", () => {
   it('reads the title and the first line of the description', () => {
     expect(skillFacts(md('name: Code Review\ndescription: |\n  Review a change.\n  Second line.'), 'code-review')).toEqual({
       title: 'Code Review', description: 'Review a change.', userInvocable: true,

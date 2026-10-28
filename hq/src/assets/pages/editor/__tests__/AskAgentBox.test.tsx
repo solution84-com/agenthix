@@ -29,7 +29,7 @@ import { AskAgentBox } from '../AskAgentBox'
 
 afterEach(() => { cleanup(); start.mockReset() })
 
-describe('Ask an agent to edit', () => {
+describe('Ask an agent to edit @SC-1627', () => {
   it('opens as a dialog over the page, not inline, and Cancel and Escape close it', () => {
     const onClose = vi.fn()
     render(<AskAgentBox identity="org/notes" where="Library" onClose={onClose} onAsked={vi.fn()} />)

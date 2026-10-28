@@ -7,7 +7,7 @@ import { ready, stubRegistry } from './testKit'
 const frame = (grow?: boolean) =>
   render(<FileFrame answer={ready()} name="q3.pdf" registry={stubRegistry()} onReopen={vi.fn()} grow={grow} />)
 
-describe('a file view fills the space it is given and scrolls inside', () => {
+describe('a file view fills the space it is given and scrolls inside @SC-1626', () => {
   it('the frame fills its container and only the file scrolls', () => {
     frame()
     expect(screen.getByTestId('file-frame').className).toContain('h-full')

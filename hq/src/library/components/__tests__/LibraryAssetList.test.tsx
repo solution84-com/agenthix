@@ -18,16 +18,16 @@ vi.mock(uiLucideReactPath, async (importOriginal) => {
 
 import { LibraryAssetList } from '../LibraryAssetList'
 import type { LibraryFilter } from '../libraryFilters'
-import { SAMPLE } from './fixtures'
+import { SAMPLE, row } from './fixtures'
 
 afterEach(cleanup)
 
-function Harness({ onCreateAgent = () => {} }: { onCreateAgent?: (id: string) => void }) {
+function Harness({ onCreateAgent = () => {}, source = SAMPLE, isAdmin = true }: { onCreateAgent?: (id: string) => void; source?: typeof SAMPLE; isAdmin?: boolean }) {
   const [filter, setFilter] = useState<LibraryFilter>({ search: '', type: 'all', status: null })
   return (
     <MemoryRouter>
       <Where />
-      <LibraryAssetList rows={SAMPLE} filter={filter} onFilter={setFilter} isAdmin onCreateAgent={onCreateAgent} onExport={() => {}} onRemove={() => {}} />
+      <LibraryAssetList rows={source} filter={filter} onFilter={setFilter} isAdmin={isAdmin} onCreateAgent={onCreateAgent} onExport={() => {}} onRemove={() => {}} />
     </MemoryRouter>
   )
 }
@@ -35,7 +35,7 @@ function Where() { return <output data-testid="where">{useLocation().pathname}</
 const openMenu = (row: HTMLElement) => fireEvent.click(within(row).getByRole('button', { name: /^More about/ }))
 const rows = () => screen.getAllByTestId('library-row')
 
-describe('the Library view', () => {
+describe('the Library view @SC-1628 @SC-1630 @SC-1638', () => {
   it('lists every asset with its kind, identity, version, signer, who has it and state', () => {
     render(<Harness />)
     expect(rows()).toHaveLength(SAMPLE.length)
@@ -145,5 +145,20 @@ describe('the Library view', () => {
     openMenu(template)
     fireEvent.click(within(template).getByRole('menuitem', { name: 'Create an agent' }))
     expect(create).toHaveBeenCalledWith('a1')
+  })
+
+  it("opens a team template into its review, with no task behind it", () => {
+    render(<Harness source={[row({ key: 't1', assetId: 't1', kind: 'team', title: 'Support desk', identity: 'agenthix/support-desk' })]} />)
+    const team = rows()[0]!
+    openMenu(team)
+    fireEvent.click(within(team).getByRole('menuitem', { name: /^Use this team/ }))
+    expect(screen.getByTestId('where').textContent).toBe('/workforce-templates/review')
+  })
+
+  it('leaves Use this team off for someone who is not an administrator', () => {
+    render(<Harness isAdmin={false} source={[row({ key: 't1', assetId: 't1', kind: 'team', title: 'Support desk', identity: 'agenthix/support-desk' })]} />)
+    const team = rows()[0]!
+    openMenu(team)
+    expect((within(team).getByRole('menuitem', { name: /^Use this team/ }) as HTMLButtonElement).disabled).toBe(true)
   })
 })

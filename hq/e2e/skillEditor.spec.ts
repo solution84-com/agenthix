@@ -9,7 +9,7 @@ test.use({ viewport: { width: 1280, height: 800 } })
 
 test.beforeEach(async ({ page }) => { await signIn(page, ADMIN) })
 
-test('New skill checks the name as it is typed, then opens the editor on a draft', async ({ page }) => {
+test('New skill checks the name as it is typed, then opens the editor on a draft @SC-1624', async ({ page }) => {
   await page.goto('/library/new-skill')
   await page.getByLabel('Name').fill('Release Notes')
   await expect(page.getByRole('alert')).toContainText('lowercase letters')
@@ -23,7 +23,7 @@ test('New skill checks the name as it is typed, then opens the editor on a draft
   await expect(page.getByTestId('editor-tree')).toContainText('references/README.md')
 })
 
-test('editing a file marks it modified, shows its changes, and flags a file SKILL.md names that is missing', async ({ page }) => {
+test('editing a file marks it modified, shows its changes, and flags a file SKILL.md names that is missing @SC-1626', async ({ page }) => {
   await page.goto('/library/new-skill')
   const name = `e2e-edit-${Date.now() % 100000}`
   await page.getByLabel('Name').fill(name)
@@ -41,7 +41,7 @@ test('editing a file marks it modified, shows its changes, and flags a file SKIL
   await expect(page.getByTestId('draft-state')).toHaveText('Saved')
 })
 
-test('Publish says why it can’t be used while a change is saving, and once nothing changed', async ({ page }) => {
+test('Publish says why it can’t be used while a change is saving, and once nothing changed @SC-1625', async ({ page }) => {
   await page.goto('/library/new-skill')
   await page.getByLabel('Name').fill(`e2e-why-${Date.now() % 100000}`)
   await page.getByLabel('What it does, and when to use it').fill('Does a thing. Use when asked.')
@@ -63,7 +63,7 @@ test('Publish says why it can’t be used while a change is saving, and once not
   await expect(page.getByTestId('publish-why')).toHaveText('Nothing has changed since version 1.0.0, the version in use.')
 })
 
-test('publishing writes the version it makes into SKILL.md, and the editor says it will', async ({ page }) => {
+test('publishing writes the version it makes into SKILL.md, and the editor says it will @SC-1625', async ({ page }) => {
   await page.goto('/library/new-skill')
   await page.getByLabel('Name').fill(`e2e-ver-${Date.now() % 100000}`)
   await page.getByLabel('What it does, and when to use it').fill('Does a thing. Use when asked.')
@@ -78,13 +78,13 @@ test('publishing writes the version it makes into SKILL.md, and the editor says 
   await expect(page.getByTestId('edit-file')).toContainText('version: 1.0.0')
 })
 
-test('Ask an agent names the agent that will answer and where, and lets the person pick another', async ({ page }) => {
+test('Ask an agent names the agent that will answer and where, and lets the person pick another @SC-1627', async ({ page }) => {
   await page.goto('/library/new-skill')
   await page.getByLabel('Name').fill(`e2e-ask-${Date.now() % 100000}`)
   await page.getByLabel('What it does, and when to use it').fill('Does a thing. Use when asked.')
   await page.getByRole('radio', { name: /Ask an agent to write it/ }).check()
   await expect(page.getByTestId('ask-who')).toHaveText(/^.+ will answer, in a new conversation in Your space\.$/)
-  await expect(page.getByRole('button', { name: 'Agent' })).toBeVisible()
+  await expect(page.getByTestId('new-skill').getByRole('button', { name: 'Agent' })).toBeVisible()
   await expect(page.getByRole('button', { name: /^Ask .+/ })).toBeEnabled()
 
   await page.getByRole('radio', { name: /A plain skill/ }).check()
@@ -96,7 +96,7 @@ test('Ask an agent names the agent that will answer and where, and lets the pers
   await expect(dialog).toHaveCount(0)
 })
 
-test('Publish shows every changed file, asks for a note, and the first publish is version 1.0.0', async ({ page }) => {
+test('Publish shows every changed file, asks for a note, and the first publish is version 1.0.0 @SC-1625', async ({ page }) => {
   await page.goto('/library/new-skill')
   await page.getByLabel('Name').fill(`e2e-pub-${Date.now() % 100000}`)
   await page.getByLabel('What it does, and when to use it').fill('Does a thing. Use when asked.')

@@ -6,7 +6,7 @@ import { BEACON_IDENTITY, BEACON_REPOSITORY, GITHUB_ISSUER, keylessRecord } from
 const workflow = (ref: string | null) =>
   ({ kind: 'keyless' as const, issuer: GITHUB_ISSUER, identity: BEACON_IDENTITY, repository: BEACON_REPOSITORY, ref })
 
-describe('refAllowed', () => {
+describe('refAllowed @security-H2 @SC-1615', () => {
   const tagsOnly = { allowTags: true, allowedBranch: null }
   const mainOnly = { allowTags: false, allowedBranch: 'main' }
 
@@ -30,7 +30,7 @@ describe('refAllowed', () => {
   })
 })
 
-describe('matchKeyless', () => {
+describe('matchKeyless @security-H2 @SC-1615', () => {
   it('trusts a release workflow from a tag when tags are allowed', () => {
     const record = keylessRecord({ allowTags: true, allowedBranch: null })
     expect(matchKeyless(workflow('refs/tags/v2.0.0'), [record])).toBe(record)
@@ -51,7 +51,7 @@ describe('matchKeyless', () => {
   })
 })
 
-describe('identityWithoutRef', () => {
+describe('identityWithoutRef @SC-1615', () => {
   const base = `${BEACON_IDENTITY}`
 
   it('removes exactly the certificate’s own ref', () => {
@@ -71,7 +71,7 @@ describe('identityWithoutRef', () => {
   })
 })
 
-describe('signerString', () => {
+describe('signerString @SC-1615', () => {
   it('is the canonical form stored on trusted publishers', () => {
     expect(signerString(workflow('refs/heads/main'))).toBe(`keyless:${GITHUB_ISSUER}#${BEACON_IDENTITY}`)
     expect(signerString({ kind: 'key', keyId: 'ab'.repeat(32) })).toBe(`key:${'ab'.repeat(32)}`)

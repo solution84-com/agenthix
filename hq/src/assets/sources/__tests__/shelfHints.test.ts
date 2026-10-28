@@ -5,7 +5,7 @@ vi.mock('wasp/server', () => ({ prisma: {} }))
 
 import { listShelf } from '../imageShelf'
 
-describe("Agenthix's shelf in hq's image", () => {
+describe("Agenthix's shelf in hq's image @SC-1609", () => {
   it('offers the 17 trade skills, each with a suited-to hint, and no git guide (that is built in)', async () => {
     const saved = process.env.HQ_ASSETS_ROOT
     process.env.HQ_ASSETS_ROOT = path.resolve(__dirname, '../../../../assets')

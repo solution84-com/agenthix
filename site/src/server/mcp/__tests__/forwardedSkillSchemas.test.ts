@@ -4,7 +4,7 @@ import { PROPOSE_SKILL_TOOL } from '@agenthix/core'
 import { FORWARDED_TOOLS } from '../forwardedToolSchemas'
 import { ALWAYS_INJECTED_MCP_TOOLS } from '../../../shared/mcpTools'
 
-describe('propose_skill on the site\'s MCP server (skills spec part 5)', () => {
+describe('propose_skill on the site\'s MCP server (skills spec part 5) @SC-1600', () => {
   const tool = FORWARDED_TOOLS.find(t => t.name === PROPOSE_SKILL_TOOL)
 
   it('is forwarded once, for the calling run, and given to every run', () => {

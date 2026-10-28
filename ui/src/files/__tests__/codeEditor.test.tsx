@@ -6,7 +6,7 @@ import { languageFor } from '../../editor/editorLanguage'
 
 const viewOf = (container: HTMLElement) => EditorView.findFromDOM(container.querySelector('.cm-editor') as HTMLElement)!
 
-describe('CodeEditor', () => {
+describe('CodeEditor @SC-1626', () => {
   it('shows the text and reports an edit with the whole text', () => {
     const onChange = vi.fn()
     const { container } = render(<CodeEditor value="# Title" fileName="SKILL.md" onChange={onChange} />)
@@ -46,7 +46,7 @@ describe('CodeEditor', () => {
   })
 })
 
-describe('languageFor', () => {
+describe('languageFor @SC-1626', () => {
   it('has a grammar for Markdown, YAML, JSON and scripts, and none for plain text', () => {
     for (const n of ['a.md', 'a.yaml', 'a.yml', 'a.json', 'a.sh', 'a.py', 'a.ts', 'a.js']) expect(languageFor(n)).not.toBeNull()
     expect(languageFor('notes.txt')).toBeNull()

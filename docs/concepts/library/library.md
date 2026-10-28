@@ -1,131 +1,102 @@
 # Library
 
-The Library is the platform's reusable-asset layer. It provides four types of pre-built content — skills, board templates, agent templates, and workforce templates (the Library's ready-made teams, or team templates) — that any org can use without authoring from scratch.
-
-All library assets follow the same pattern: **the DB record is the index, files are the content**. At startup, asset files are scanned and their metadata (name, version, slug) is seeded into DB records. The DB stores an `assetPath` pointer — never raw content. File content is read from hq's own assets or hq's own storage when needed (on apply, on install, on export); an Execution Site never holds it.
-
-Two roots determine where files are resolved:
-
-| Root | Function | Dev path | Docker path |
-|---|---|---|---|
-| **assets root** | Platform-owned, read-only (`HQ_ASSETS_ROOT`) | `hq/assets` | bundled in hq's image |
-| **hq storage root** | Org-created, writable (`HQ_STORAGE_ROOT`) | `<hq-storage-root>` | mounted volume |
-
-Platform assets (`assetPath = library/…`) resolve under hq's assets root. Org assets (`assetPath = org/…`) resolve under hq's storage root. Neither is on a site's disk.
-
----
-
-## Asset types
-
-| Type | Source files | DB table | `assetPath` prefix | What it defines |
-|---|---|---|---|---|
-| **Skills** | `assets/library/skills/<slug>/SKILL.md` | `Skill` | `library/skills/<slug>` | Behavioral instructions staged for each agent turn |
-| **Board templates** | `assets/library/boards/<id>.json` | `BoardTemplate` | `library/boards/<id>.json` | Column sets for project boards |
-| **Agent templates** | `assets/library/agents/<slug>/` | `AgentTemplate` | `library/agents/<slug>` | Complete role: config, identity files, skill references |
-| **Workforce templates** | `assets/library/workforce/<id>/` (a directory holding `template.json`; e.g. `wft-solo-dev/`) | `WorkforceTemplate` | `library/workforce/<file>` | Team compositions: agents, teams, projects, boards |
-
-Org-created skills and board templates use `org/skills/<slug>` and `org/boards/<id>.json`, resolved under hq's storage root.
-
----
-
-## How they relate
+The Library is everything the organisation has **installed** for its agents: skills, and agent, board and team templates. Each of these is an **asset**. An asset is checked when it comes in, held by hq at one version, and changes only when someone publishes or updates it ([ADR-0157](../../adr/adr-0157-every-library-item-is-a-versioned-asset-pinned-once-per-organisation.md)).
 
 ```mermaid
-graph TD
-    S["Skills: assets/library/skills/ - behavioral instructions"]
-    BT["Board Templates: assets/library/boards/ - column sets"]
-    AT["Agent Templates: assets/library/agents/ - role: config, identity, skills"]
-    WT["Workforce Templates: assets/library/workforce/ - team: agents, teams, projects, boards"]
-
-    S -->|"skill slugs referenced by"| AT
-    BT -->|"templateId referenced by"| WT
+flowchart LR
+    SRC["1 · Where it comes from<br/>hq's image, an upload, a link,<br/>or made in HQ"] --> CHK
+    CHK["2 · The one check<br/>signature, validation,<br/>what comes with it"] --> AS
+    AS["3 · An installed asset<br/>publisher/name, one pinned version,<br/>its versions and history"] --> USE
+    USE["4 · What uses it<br/>agents have a skill;<br/>templates make agents, boards, teams"]
 ```
 
-Agent templates reference skills by slug. Workforce templates reference board templates by ID and nothing else: each workforce bundle defines its own agents and holds its own skills, so it never refers to an agent template ([workforce-templates.md](./workforce-templates.md)).
+1. **Sources.** Agenthix's own assets ship in hq's image. Others are uploaded as a package or fetched from a link. Others are made in HQ's editor.
+2. **The check** is the same for every source and every kind ([installing](./installing.md)).
+3. **An installed asset** has an identity, a version in use, and every version it has had.
+4. **Use.** An agent *has* a skill ([library skills](./skills.md)). An agent, a board or a team is *made from* a template, and from then on is its own ([agent templates](./agent-templates.md), [board templates](./board-templates.md), [team templates](./workforce-templates.md)).
 
 ---
 
-## File → DB seeding pattern
+## The four kinds
 
-Every asset type is seeded at startup using the same version-gated upsert:
+| Kind | What it is | Made into |
+|---|---|---|
+| **Skill** | A folder with a `SKILL.md`: a routine agents follow | Nothing: agents have it |
+| **Agent template** | A complete role: settings, instructions and the skills the role needs | An agent |
+| **Board template** | A set of columns | A board in a project |
+| **Team template** | Agents, teams, projects and boards | All of them, after a review page |
 
-```
-if DB record missing  → insert with assetPath
-if DB version < file  → update assetPath (and metadata)
-if DB version ≥ file  → skip
-```
+## Identity
 
-Bump `version` in the source file to force an update on next startup. The DB record stores only queryable metadata — `name`, `slug`, `version`, `assetPath`. Content (markdown, JSON) is read from disk at runtime when the asset is applied, installed, or exported.
+Every asset is `publisher/name` plus a version, such as `agenthix/code-review` `1.3.0`. A template's role skill is named under its template (`agenthix/project-manager/read-context`).
 
----
+**The publisher is whoever verifiably signed the package, as this organisation named them**, never what the package claims for itself. Three publishers are fixed:
+
+| Publisher | What it means |
+|---|---|
+| `agenthix` | Agenthix's own: from hq's image, or signed by Agenthix's release identity. Nothing else can use it |
+| `unsigned` | Installed with no signature. It never matches, updates or replaces a signed asset |
+| The organisation's own name | What was made in HQ. It is written once from the organisation's name and never changes when the organisation is renamed |
+
+A signer the organisation trusts gets a name the administrator chose (`acme`). The same name from a different signer is a **different asset**, never an update. Every asset inside a package, an embedded skill included, takes the package's publisher.
+
+## Self-contained packages
+
+An asset is one ZIP **package** with a manifest, `package.json`, and the kind's own files. **A package carries every skill it needs**; packages never refer to one another, so nothing can go missing and hq needs no resolver. Agenthix's build copies each shared skill into every template that uses it from one source. The manifest holds the asset's kind, name, description, version, its "based on" list, its licence and, for an offered skill, a hint about which agents suit it. Its `publisher` field is a claim, covered by the signature and checked against the signer.
+
+A package is content, held by hq by its digest. It is never on a site's disk until a run needs it.
+
+## Versions and the pin
+
+hq records, for each asset, the **version in use**: the pin. Installing pins the version; everything that has the asset uses it. The rules:
+
+- **One version at a time** per asset in the organisation. Different versions side by side are not offered.
+- **Versions are SemVer** (major.minor.patch) and compare as such.
+- **An update is explicit.** A newer version from the same signer is stored and offered as *Update available*, with what changed. It is never applied by itself, and *Skip this version* hides an offer until a later version is held.
+- **Roll back** goes to any earlier version hq holds.
+- **Any version can be installed on purpose**, newer or older, by administrators and Library maintainers, after a confirmation that says plainly when it goes back. It asks for a reason.
+- **A released version never changes**: the same version with other content is refused.
+- **A withdrawn version**, one its publisher took back, is installed only after a warning that names why. Agenthix's withdrawn versions ship in hq's image, so the warning works offline.
+- **History.** Every move of the pin records who, when and why, and the version's note.
+
+An asset made in HQ is published with *Publish*, which makes the next version ([drafts and proposals](../skills/drafts-and-proposals.md)).
+
+## Editing makes your own copy
+
+Another publisher's asset is not edited in place. *Edit* on `agenthix/code-review` makes **the organisation's own copy**, `acme/code-review`, from the version in use. When the copy is first published it takes the original's place for the agents that had it. The original stays installed, **set aside**, and *Use the original again* switches back in one click. In the Library the two are one entry: the copy's, with the original shown on its page as what it replaced. A newer original shows on the copy as news, with what changed, and is never merged by itself. An asset the organisation made is edited in place, with history.
+
+An agent, board or team already made from a template is its own definition, edited in place, and never follows the template's later versions ([ADR-0072](../../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md)).
+
+## Based on
+
+A copy carries a dated **based on** list, written once, when the copy is made: it inherits the original's list and adds the original as one line. Nothing rewrites it afterwards. A line shows as **verified** only when hq wrote it in this organisation and can match the original's fingerprint; a line from an imported package shows as **stated** by that package's signer, whatever the file says. People can add stated credits for sources hq never saw. The licence travels with the asset and is shown. Credit is recorded and shown, never required or certified.
+
+## Which agents have a skill
+
+A skill is had by **every agent** or by **chosen agents** (*Add to agents…*, *Remove from Ada*). Built-in skills are on for every agent unless an administrator switches one off. A template's role skills go to the agent made from it. There are no per-agent exceptions to a skill every agent has. Removing an asset names the agents that have it and asks first; the asset and its history stay, so their pages show it as missing with *Install*, and it can be installed again.
+
+## Who may do what
+
+Beside administrators there is one organisation role, the **Library maintainer**, named by administrators in the settings. Maintainers create, edit and publish every Library asset, accept updates, roll back and review proposals. They install from outside only if the organisation lets them. Removing, choosing which agents have an asset, trusting publishers, naming maintainers and the settings stay with administrators. When a member leaves their role is dropped, and the history still names them.
+
+Everyone in the organisation reads the Library. One policy decides every action, by role and level; [drafts and proposals](../skills/drafts-and-proposals.md#who-approves) has the table.
 
 ## On screen
 
-Organisation › Library (`hq/src/library/pages/LibraryPage.tsx`) has the tabs **Agents · Boards · Skills · Teams ·
-Marketplace**. Each of the first four lists its items as rows marked **Built in**, **Made here** or **Marketplace ·
-v2.1** (with the publisher for anything not built in), with search, a filter by source, and for each item an action
-and ⋯ (Export). Agents are added to the organisation's agents under a handle; a board is opened to see its columns;
-a skill opens with its content, and for admins Install, Edit and Delete; a team opens its review page. Admins also
-have **Import** (a package ZIP) and **＋ New**. Using an item makes the organisation's own copy.
+**Library** is in everyone's sidebar. Its rows list what is installed, with search and filters by kind and by state, and each row's actions in its menu. Its header leads to the proposals waiting for review, **Settings** (administrators), **New skill** and **Add skill**.
 
-**Marketplace** is on every hq. Until the marketplace opens with Agenthix Cloud it is a *Coming soon* page: what the
-marketplace will be, **Get notified on agenthix.com ↗** (the website's sign-up, in a new tab; hq sends nothing),
-**About Agenthix Cloud ↗**, and one example card for each kind of item. An hq updated to a release with the
-marketplace shows it there. `/skills` opens the Skills tab (`/library?tab=skills`).
+- **An asset's page** shows its versions and history, who has it, its signer or *Unsigned*, what it is based on, an *Update available* offer, and the actions its person may take.
+- **Add** takes an upload or a link, or one of the shelf's skills, and shows the check's result before anything is installed ([installing](./installing.md)).
+- **Export** makes the asset's package, unsigned, to share. **Import** installs a package only when nothing needs a person's look: Agenthix's own or one a trusted publisher signed. Anything else goes through *Add*.
+- **Manage organisation › Settings › Library and skills** (administrators): trusted publishers, whether unsigned assets are allowed, who may install from outside, Library maintainers, built-in skills' switches, the default for skills found in files, and personal skills outside Your space.
+- **Marketplace** is a *Coming soon* page until a marketplace opens. hq sends nothing from it.
 
----
-
-## Installed form vs bundled form
-
-Assets that reference other assets by slug need two forms:
-
-**Installed form** — what lives in the DB. References are slug-only. Lean, normalised, no content duplication.
-
-**Bundled form** — what travels in an export/import payload. All referenced content is embedded inline so the package is self-contained and portable across orgs and instances.
-
-An agent export from Manage organisation › Agents is the agent's current definition, as the package of kind agent; importing it there replaces that agent's content and settings in place, keyed by handle, and writes nothing into the library. Importing a package into the Library instead makes a library item (see Packages, below).
-
-| Type | Bundled form? | Reason |
-|---|---|---|
-| Skills | No | The source is a `SKILL.md` file under hq's assets or hq's storage; the `Skill` row only indexes it |
-| Board templates | No | Self-contained — no external references; always seeded on every instance |
-| Agent templates | Yes | References skills that may not exist on the target |
-| Workforce templates | Yes | References agents and skills that may not exist on the target |
-
----
-
-## Packages: source, version and publisher
-
-Every library item — an agent, a board, a skill or a team template — exports and imports as one **package**, so
-a marketplace can later deliver the same packages. A package is a ZIP with one folder holding `package.json`
-beside the kind's own files:
-
-| Kind | Its files |
-|---|---|
-| `agent` | `agent.json`, `instructions.md`, `skills/<slug>/…` — the agent archive Manage organisation › Agents exports |
-| `board` | `board.json`: its name, description and columns |
-| `skill` | `SKILL.md` and the skill's other files; the folder's name is the skill's slug |
-| `team` | `template.json`, `agents/<handle>/agent.json`, `skills/<slug>/SKILL.md` — a team template's bundle |
-
-`package.json` records the package `format`, its `kind`, `name` and `description`, its `source` (`built_in`,
-`made_here` or `marketplace`), its `version` as its publisher numbers it (`2.1`), and its `publisher`.
-
-Each library row records the same: `source`, `packageVersion` and `publisher`. Built-in items are seeded as
-Built in, published by Agenthix; anything shipped in hq's assets reads as Built in whatever its row says.
-**Importing** makes the organisation's own item, its files in hq's storage (`org/agents/<slug>`,
-`org/boards/<id>.json`, `org/skills/<slug>`, `org/teams/<id>`), keeping the version and publisher. An import is
-never Built in: an item another hq built in arrives as made by its publisher, and a marketplace item stays one.
-Importing over an item made here or installed replaces it; an item with a built-in one's name or id is refused.
-
-A **team template holds agents only**, with their boards; people are added after it is used. A template that
-names people is refused.
-
-Exporting and importing are for organisation admins. The code is `hq/src/library/packages/`.
+A new organisation's agents carry only the built-in skills and what their templates bring.
 
 ## Related docs
 
-- [skills.md](./skills.md) — skills as a library asset: DB schema, seeding, slug prefixing, full catalogue
-- [board-templates.md](./board-templates.md) — board template format, DB schema, system templates
-- [agent-templates.md](./agent-templates.md) — agent template format, DB schema, canonical roles
-- [workforce-templates.md](./workforce-templates.md) — workforce template format, DB schema, apply paths
-- [skills.md](../skills/skills.md) — skill sources and how they are staged for each turn
+- [installing.md](./installing.md): the check, signed and unsigned, trusted publishers
+- [skills.md](./skills.md): built-in, offered and role skills
+- [agent-templates.md](./agent-templates.md), [board-templates.md](./board-templates.md), [workforce-templates.md](./workforce-templates.md)
+- [skills](../skills/skills.md): where skills live and how a turn receives them
+- [architecture/skills-and-assets.md](../../architecture/skills-and-assets.md): the records and the pipeline

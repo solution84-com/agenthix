@@ -12,7 +12,7 @@ const G = 'b'.repeat(64)
 const found = (over: Partial<ScannedSkill> = {}): ScannedSkill => ({ group: 'place', path: 'release', fingerprint: F, name: 'release', description: 'd', ...over })
 const scan = (skills: ScannedSkill[]): LocationScanSkillsResult => ({ skills, problems: [], truncated: false })
 
-describe('what hq keeps of a scan', () => {
+describe('what hq keeps of a scan @SC-1641', () => {
   it('keeps the place\'s, this agent\'s and this run\'s workspaces\' skills', () => {
     const skills = [
       found(),
@@ -47,7 +47,7 @@ const row = (over: Partial<PlaceSkill> = {}): PlaceSkill => ({
   setAsideReason: null, name: '', description: '', lastUsedAt: null, lastUsedAgentId: null, createdAt: new Date(), updatedAt: new Date(), ...over,
 })
 
-describe('which skills in files a run is told about', () => {
+describe('which skills in files a run is told about @security-H3 @SC-1651', () => {
   it('none new under Off by default; each under On by default', () => {
     expect(switchedOn([found()], [row()], 'proj', null, 'OFF')).toEqual([])
     expect(switchedOn([found()], [row()], 'proj', null, 'ON')).toEqual([

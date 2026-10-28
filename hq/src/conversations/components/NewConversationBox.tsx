@@ -73,6 +73,9 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
   useEffect(() => {
     if (!autoFocus || focused.current || reason || !choices) return
     focused.current = true
+    // The box fills in late, once its agents are known: it never takes the caret from a field being typed in.
+    const typing = document.activeElement
+    if (typing instanceof HTMLElement && typing !== box.current && typing.matches('input, textarea, select, [contenteditable]')) return
     box.current?.focus()
   }, [autoFocus, reason, choices])
 

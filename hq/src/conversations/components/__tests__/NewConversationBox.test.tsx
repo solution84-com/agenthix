@@ -49,11 +49,11 @@ import { NewConversationBox } from '../NewConversationBox'
 function Where() {
   return <output data-testid="where">{useLocation().pathname}</output>
 }
-function renderBox(initial = '/chat') {
+function renderBox(initial = '/chat', autoFocus = false) {
   return render(
     <MemoryRouter initialEntries={[initial]}>
       <Routes>
-        <Route path="/chat" element={<NewConversationBox home="PERSON" basePath="/chat" placeholder="Ask your agent…" noAgentsNotice="Add an agent first" />} />
+        <Route path="/chat" element={<NewConversationBox home="PERSON" basePath="/chat" placeholder="Ask your agent…" noAgentsNotice="Add an agent first" autoFocus={autoFocus} />} />
         <Route path="*" element={<Where />} />
       </Routes>
     </MemoryRouter>,
@@ -129,6 +129,17 @@ describe('the / picker in the box that starts a conversation (skills spec part 5
 afterEach(cleanup)
 
 describe('the message box that starts a conversation @SC-1007', () => {
+  it('takes the caret when it is asked to, but never from a field being typed in', () => {
+    renderBox('/chat', true)
+    expect(document.activeElement).toBe(screen.getByLabelText('Ask your agent…'))
+    cleanup()
+    const field = document.body.appendChild(document.createElement('textarea'))
+    field.focus()
+    renderBox('/chat', true)
+    expect(document.activeElement).toBe(field)
+    field.remove()
+  })
+
   it('is empty and writable again once the conversation is started, where it stays on screen (the dock) @SC-1037', async () => {
     render(
       <MemoryRouter initialEntries={['/chat']}>

@@ -3,7 +3,7 @@ import { newSkillProblems, newSkillRequest } from '../newSkill'
 import { reachWords } from '../PublishDialog'
 import type { EditorView } from '../editorTypes'
 
-describe('newSkillProblems', () => {
+describe('newSkillProblems @SC-1624', () => {
   it('says nothing before anything is typed, and names the rule when the name is wrong', () => {
     expect(newSkillProblems('', '')).toEqual({ name: null, description: null })
     expect(newSkillProblems('Release Notes', '').name).toMatch(/lowercase letters, digits and single hyphens/)
@@ -19,7 +19,7 @@ describe('newSkillProblems', () => {
 const view = (agentsWith: EditorView['agentsWith'], kind: 'library' | 'place' = 'library') =>
   ({ target: kind === 'library' ? { kind, assetId: 'a' } : { kind, placeSkillId: 'p' }, agentsWith }) as EditorView
 
-describe('reachWords', () => {
+describe('reachWords @SC-1624', () => {
   it('names who a publish reaches', () => {
     expect(reachWords(view({ everyAgent: true, names: [] }))).toBe('Every agent uses it from its next turn.')
     expect(reachWords(view({ everyAgent: false, names: ['Ada', 'Priya'] }))).toBe('Ada and Priya use it from their next turn.')

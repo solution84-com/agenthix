@@ -17,7 +17,7 @@ function dbWith(rows: Row[]) {
   return { db: { asset: { findMany } } as unknown as Db, findMany }
 }
 
-describe('the built-in skills a run is given', () => {
+describe('the built-in skills a run is given @SC-1634', () => {
   it('asks only for built-ins that are on, not removed, and published by Agenthix', async () => {
     const { db, findMany } = dbWith([])
     await builtInSkillsFor(db, async () => true)
@@ -62,7 +62,7 @@ describe('the built-in skills a run is given', () => {
   })
 })
 
-describe('whether the run works in a repository', () => {
+describe('whether the run works in a repository @SC-1634', () => {
   const loc = { ownerType: 'project' as const, ownerId: 'p1', workspaceId: 'w1' }
 
   it('is what the site holding the location says', async () => {

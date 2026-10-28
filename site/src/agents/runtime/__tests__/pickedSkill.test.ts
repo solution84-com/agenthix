@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { PLAIN_TEXT_LINE, acceptedPickedSkill, asPlainText, pickedSkillInstruction, pickedSkillReadInstruction, turnPrompt, withPickedSkill } from '../pickedSkill'
 
-describe('text that starts with "/" @M7', () => {
+describe('text that starts with "/" @security-M7 @SC-1607', () => {
   it('is given after a line saying it is plain text, so no runtime reads it as a command', () => {
     for (const text of ['/init', '/compact now', '  /org-review do it', '\n/agenthix:org-review']) {
       const prompt = asPlainText(text)
@@ -15,7 +15,7 @@ describe('text that starts with "/" @M7', () => {
   })
 })
 
-describe('the picked skill', () => {
+describe('the picked skill @SC-1607', () => {
   const skill = (name: string, over: { userInvocable?: boolean; modelInvocable?: boolean } = {}) =>
     ({ name, userInvocable: true, modelInvocable: true, skillFile: `/run/skills/${name}/SKILL.md`, ...over })
   const staged = [skill('org-review'), skill('org-hidden', { userInvocable: false }), skill('org-by-hand', { modelInvocable: false })]
@@ -45,7 +45,7 @@ describe('the picked skill', () => {
   })
 })
 
-describe("a turn's prompt", () => {
+describe("a turn's prompt @SC-1607", () => {
   const staged = [{ name: 'org-review', userInvocable: true, modelInvocable: true, skillFile: '/s/org-review/SKILL.md' }]
   const turn = (over: { prompt: string; summarise?: boolean; pickedSkill?: string }) => turnPrompt({ runId: 'r', ...over }, staged)
 

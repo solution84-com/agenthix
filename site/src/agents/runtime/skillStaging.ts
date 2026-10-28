@@ -42,8 +42,8 @@ async function writeSkill(candidate: SkillCandidate, destSkillsDir: string): Pro
   }
 }
 
-export async function stageSkills(platformDir: string, inputs: RunSkillInputs | null, destSkillsDir: string): Promise<StagingResult> {
-  const { candidates, refused } = await runSkillSources(platformDir, inputs)
+export async function stageSkills(inputs: RunSkillInputs | null, destSkillsDir: string): Promise<StagingResult> {
+  const { candidates, refused } = await runSkillSources(inputs)
   const byName = new Map<string, SkillCandidate[]>()
   for (const c of candidates) byName.set(c.name, [...(byName.get(c.name) ?? []), c])
 

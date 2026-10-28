@@ -172,7 +172,7 @@ the project can write them, so one agent can change what another is told. This d
 agent may do: its tools and approval come from hq, not from these files. Every member of the project can read
 the override text, in its Files and in its Agents tool. It is accepted because agents writing project files that later runs read is the
 purpose of a project's files. So are the project's skills for every agent, `.agents/skills/` in its files: any agent
-there can add a skill every other agent there is then offered, which confers no authority either. What agents write to
+there can add a skill, which confers no authority, and which runs only as the project's switches allow: under the shipped default it is listed and stays off until a project administrator switches it on, and it goes off again when it changes ([skills in files](../skills/skills-in-files.md)). What agents write to
 a project's [knowledge](../knowledge/knowledge.md) is a different case. They are told to change it only when a person
 asks or corrects it, no run mounts it, and every change goes through one gate that records who made it and keeps the
 previous version, so a wrong or misled change can be seen and undone.

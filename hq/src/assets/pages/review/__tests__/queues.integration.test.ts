@@ -57,7 +57,7 @@ async function proposed(name: string, aim: string) {
   return prisma.proposal.findUniqueOrThrow({ where: { id: out.proposal }, select: { id: true, digest: true } })
 }
 
-describe('proposals by level @board-R1', () => {
+describe('proposals by level @board-R1 @SC-1663', () => {
   it('lists each level only for the people who review it', async () => {
     await proposed('release-notes', 'organisation')
     await proposed('checkout-review', 'project')
@@ -75,7 +75,7 @@ describe('proposals by level @board-R1', () => {
   })
 })
 
-describe('reviewing one @board-R1', () => {
+describe('reviewing one @board-R1 @SC-1663', () => {
   it('shows a new skill as all added, every file with its bytes, and what accepting would make', async () => {
     const p = await proposed('release-notes', 'organisation')
     const review = await proposalReview(prisma, orgAdmin.id, p.id)
@@ -92,7 +92,7 @@ describe('reviewing one @board-R1', () => {
   })
 })
 
-describe("the Overview's item @board-R1", () => {
+describe("the Overview's item @board-R1 @SC-1663", () => {
   it('stands for the proposals aimed at the organisation, and goes when they are handled', async () => {
     expect(await skillProposalsItem(prisma, orgAdmin.id)).toBeNull()
     const p = await proposed('release-notes', 'organisation')

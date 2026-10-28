@@ -49,7 +49,7 @@ describe("a staged skill's front matter", () => {
   })
 })
 
-describe('whether a person may pick a skill', () => {
+describe('whether a person may pick a skill @SC-1607', () => {
   it('is so unless its front matter sets user-invocable: false', () => {
     expect(isUserInvocable('---\nname: a\n---\nBody')).toBe(true)
     expect(isUserInvocable('---\nname: a\nuser-invocable: true\n---\nBody')).toBe(true)
@@ -59,7 +59,7 @@ describe('whether a person may pick a skill', () => {
   })
 })
 
-describe('whether the model may load a skill itself', () => {
+describe('whether the model may load a skill itself @SC-1607', () => {
   it('is so unless its front matter sets disable-model-invocation: true', () => {
     expect(isModelInvocable('---\nname: a\n---\nBody')).toBe(true)
     expect(isModelInvocable('---\nname: a\ndisable-model-invocation: false\n---\nBody')).toBe(true)

@@ -34,7 +34,7 @@ const db = (outsideInstallers = 'ADMINS') => ({
 
 afterEach(cleanup)
 
-describe('the shelf', () => {
+describe('the shelf @SC-1609', () => {
   it("marks what the organisation has, and a newer version on the shelf as one it doesn't", async () => {
     const view = await shelfView(db(), admin)
     expect(view.items.map(i => [i.name, i.have])).toEqual([
@@ -58,7 +58,7 @@ describe('the shelf', () => {
   })
 })
 
-describe('the shelf list', () => {
+describe('the shelf list @SC-1609', () => {
   it('offers Install for what is new, "You have 1.3.0" with the newer version for an update, and Open for what is installed', async () => {
     const view = await shelfView(db(), admin)
     const onInstall = vi.fn()

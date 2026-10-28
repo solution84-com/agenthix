@@ -19,9 +19,9 @@ The conversation-driven assembly flow works well once you know what you want, bu
 
 ## Templates are not a snapshot of a workforce
 
-**Templates** are curated starting points. They are authored once and applied many times to spin up a fresh workforce from nothing. Skills live as separate SKILL.md files alongside the template definition so common skills (e.g. `git-workflow`) are defined once and referenced by multiple agents without duplication. Templates have no concept of current state — they describe what to create, not what exists.
+**Templates** are curated starting points. They are authored once and applied many times to spin up a fresh workforce from nothing. A template is a Library asset ([the Library](../library/library.md)): it carries every skill its agents need, and those skills are installed once and shared by every agent that has them. Templates have no concept of current state — they describe what to create, not what exists.
 
-A team template exports and imports as a `team` package ([library.md](../library/library.md#packages-source-version-and-publisher)): the template itself, not the workforce it made.
+A team template exports and imports as a `team` package ([the Library](../library/library.md#self-contained-packages)): the template itself, not the workforce it made.
 
 ### Not built: exporting a live workforce
 
@@ -39,84 +39,40 @@ When an agent proposes a template (via the `propose_workforce_template` MCP tool
 
 ## File format
 
-A template is a directory bundle: a `template.json`, `agents/<handle>/agent.json` and a shared `skills/` pool. Bundled templates live in hq's `assets/library/workforce/<slug>/`. An organisation's own templates come only from importing a `team` package, which stores the bundle in hq's storage at `org/teams/<id>`; there is no way to make one inside the app — the Library's **New team…** goes to Organisation › Teams, which makes a team, not a template.
+A team template is a package ([the Library](../library/library.md#self-contained-packages)) holding a `team.json`, an `agents/<handle>/agent.json` for each agent, and the skills its agents need under `skills/`. Agenthix's templates ship in hq's image as `agenthix/<name>` and are installed when hq starts. An organisation's own come from adding a `team` package from an upload or a link; there is no way to make one inside the app. The package is checked like any other asset ([installing](../library/installing.md)).
 
-Application selections — which agents, teams, projects and skills to include, and each agent's resolved handle — are not a file and cannot be downloaded or re-uploaded: a proposal keeps them on the task row (see "Application selections" below).
+Application selections, which agents, teams, projects and skills to include and each agent's resolved handle, are not a file and cannot be downloaded or re-uploaded: a proposal keeps them on the task row (see "Application selections" below).
 
-The task (for agent-initiated flow) keeps the template id and the review selections in its `applicationData` column; the description stays human-readable prose with a link to the review page.
+The task (for agent-initiated flow) keeps the template and the review selections in its `applicationData` column; the description stays human-readable prose with a link to the review page.
 
-```typescript
-interface WorkforceTemplate {
-  id: string               // stable slug, e.g. "wft-solo-dev"
-  name: string
-  description: string
-  tags: string[]           // e.g. ["software", "solo", "startup"]
-  teams: TeamSpec[]
-  projects: ProjectSpec[]
-}
-
-interface TeamSpec {
-  name: string
-  purpose: string
-  agents: AgentSpec[]      // embedded — one team per agent enforced by structure
-}
-
-interface AgentSpec {
-  handle: string           // unique within template; suffixed if collision at apply time
-  name: string
-  role: string
-  responsibilities: string
-  defaultModel?: string    // deprecated, ignored: the resolver decides the model
-  skills?: AgentSkillSpec[] // embedded at apply time → files in the agent's package content
-}
-
-interface AgentSkillSpec {
-  slug: string             // directory name, e.g. "git-workflow"
-  name: string
-  description: string
-  content: string          // raw SKILL.md body (no frontmatter — written by apply)
-}
-
-interface ProjectSpec {
-  name: string
-  description: string
-  defaultAgentHandle?: string  // resolved across all teams at apply time
-  boards: BoardSpec[]
-}
-
-interface BoardSpec {
-  name: string
-  templateId: string       // board template slug, e.g. "sys-tpl-0002-sprint"
+```json
+{
+  "name": "Solo Developer",
+  "description": "Minimal footprint — one dev agent and one QA agent to validate work.",
+  "tags": ["software", "solo", "startup"],
+  "teams": [{ "name": "Engineering", "purpose": "Build and validate software features", "agents": ["dev", "qa"] }],
+  "projects": [
+    { "name": "Main", "description": "Primary development project", "defaultAgentHandle": "dev",
+      "boards": [{ "name": "Work", "template": "kanban" }] }
+  ]
 }
 ```
+
+`teams[].agents` are handles; each agent's settings are in `agents/<handle>/agent.json` (`name`, `role`, `responsibilities`, `approval`, `allowedTools`, `allowedBashPatterns`, and `skills`, a list of the skill folders it has). A project's board names a board template by name (`kanban`, `sprint`, `issues`, `ideation`, `roadmap`). A team holds agents only: people are added after, and a template that names people is refused. One team per agent is enforced by structure.
 
 ---
 
 ## Skills in templates
 
-### Why embedded, not referenced
+A template is self-contained: its package carries each skill its agents need. Agenthix's build copies each skill into every template that uses it from one source, so the same skill is not kept twice by hand.
 
-An agent's skills are part of its package content (ADR-0072), held by hq — not files on a site's disk. On apply they are written into the agent's content as `skills/{slug}/SKILL.md` and staged for every run of that agent.
+When a template is first used, the skills it carries are **installed** as assets under the template's publisher (matched by identity, so one the organisation already has is reused, a newer one is offered as an update and one an administrator removed stays removed). Each agent is then **given** the skills the template names for it. Nothing is copied into the agent: an agent's skills are installed assets that it has, pinned and updated like any other ([library skills](../library/skills.md)). Boot installs the template, never the skills it carries, so a new organisation's Library holds only what has been used.
 
-Referencing library skills by slug would also break template portability — a slug that exists in one org's library may not exist in another. Templates are designed to be self-contained and shareable across instances.
-
-**Decision: skills are always embedded in the template bundle.** The content travels with the template and is written into the agent's package content on apply.
-
-### Apply-time behaviour
-
-For each `AgentSpec` that includes skills, the apply step adds these files to the agent's package content:
-
-```
-skills/{slug}/SKILL.md
-```
-
-The file carries standard SKILL.md frontmatter synthesised from `name` and `description`, followed by `content`. A run loads the agent's current content, so it picks these up on its next run.
-
-Skills in a template are agent-source skills and therefore present in every run of that agent. Each source is staged under its own name (`agent-<slug>`, `org-<slug>`, `platform-<slug>`, `boundary-<slug>`, `shared-<slug>`), so a skill from another source with the same slug is available beside it and does not replace it.
+A run stages each as `agent-<name>` or `org-<name>`; the sources are in [skills](../skills/skills.md#names).
 
 ### Review page
 
-Each agent row on the review checklist is expandable. Skills appear nested under their agent, each with its own `include` toggle. Deselecting a skill skips writing that SKILL.md at apply time but does not affect the agent itself. The selections carry `include` flags at the skill level, matching the same pattern used for agents, teams, and projects.
+Each agent row on the review checklist is expandable. Skills appear nested under their agent, each with its own `include` toggle. Deselecting a skill leaves the agent without it but does not affect the agent itself. The selections carry `include` flags at the skill level, matching the pattern used for agents, teams, and projects.
 
 ---
 
@@ -172,161 +128,23 @@ Before this, the design was a write-once application file under the task's attac
 
 ## Bundled templates
 
-### 1 · Solo Developer `wft-solo-dev`
+Five ship in hq's image. Each skill is a shelf skill ([library skills](../library/skills.md#the-shelf)).
 
-Minimal footprint — one dev agent and one QA agent to validate work.
+| Template | Teams and agents | Projects and boards | Skills |
+|---|---|---|---|
+| **Solo Developer** `agenthix/solo-dev` | Engineering: `dev`, `qa` | Main: Kanban | `dev-code-quality`, `qa-test-planning`, `qa-bug-reporting` |
+| **Dev Team** `agenthix/dev-team` | Engineering: `lead-dev`, `dev`, `qa`. Product: `pm` | Product: Sprint Board. Ops: Issue Tracker | `dev-code-review`, `dev-code-quality`, `qa-test-planning`, `qa-bug-reporting`, `pm-backlog-management`, `pm-sprint-planning` |
+| **AI Startup** `agenthix/ai-startup` | Engineering: `frontend`, `backend`, `qa`, `docs`. Product: `pm` | Product Development: Sprint Board. Documentation: Kanban. Internal Ops: Issue Tracker | `dev-ui-development`, `dev-api-development`, `qa-test-planning`, `qa-bug-reporting`, `technical-writing`, `pm-backlog-management`, `pm-stakeholder-comms` |
+| **Content Studio** `agenthix/content-studio` | Content: `strategist`, `writer`, `editor`, `seo` | Content Pipeline: Kanban | `editorial-planning`, `content-writing`, `content-review`, `seo-research` |
+| **Research Lab** `agenthix/research-lab` | Research: `research-lead`, `analyst`, `docs` | Active Research: Ideation. Published Work: Kanban | `research-methodology`, `data-analysis`, `research-reporting` |
 
-| Entity | Details |
-|--------|---------|
-| **Engineering Team** | |
-| → Dev | `handle: dev` · writes code, runs tests, commits via git |
-| → QA | `handle: qa` · reviews PRs, writes test plans, files bug reports |
-| **Main Project** | Kanban board |
-
-**Skills per agent:**
-
-| Agent | Skill | Description |
-|-------|-------|-------------|
-| dev | `git-workflow` | Clone a repo, work on a feature branch per task, commit, push, and open a PR |
-| dev | `code-quality` | Write tests alongside implementation, lint before committing, check for obvious issues |
-| qa | `test-planning` | Write test plans covering happy path, edge cases, and regression for a given change |
-| qa | `bug-reporting` | File structured bug reports with repro steps, expected vs actual, and severity |
-
-```
-Agents: 2  ·  Teams: 1  ·  Projects: 1  ·  Boards: 1  ·  Skills: 4
-```
-
----
-
-### 2 · Dev Team `wft-dev-team`
-
-A small software product team. Most useful for testing the full task → review → done cycle.
-
-| Entity | Details |
-|--------|---------|
-| **Engineering Team** | |
-| → Lead Developer | `handle: lead-dev` · architecture decisions, code review, complex features |
-| → Developer | `handle: dev` · feature implementation, bug fixes |
-| → QA Engineer | `handle: qa` · test plans, regression, release sign-off |
-| **Product Team** | |
-| → Product Manager | `handle: pm` · owns the backlog, writes specs, prioritises work |
-| **Product Project** | Sprint board |
-| **Ops Project** | Issue tracker |
-
-**Skills per agent:**
-
-| Agent | Skill | Description |
-|-------|-------|-------------|
-| pm | `backlog-management` | Write specs, groom and prioritise the backlog, keep tasks well-defined |
-| pm | `sprint-planning` | Plan sprint scope, break epics into tasks, communicate capacity |
-| lead-dev | `git-workflow` | Clone a repo, work on a feature branch per task, commit, push, and open a PR |
-| lead-dev | `code-review` | Review PRs for correctness, architecture fit, and test coverage; leave actionable feedback |
-| dev | `git-workflow` | Clone a repo, work on a feature branch per task, commit, push, and open a PR |
-| dev | `code-quality` | Write tests alongside implementation, lint before committing, check for obvious issues |
-| qa | `test-planning` | Write test plans covering happy path, edge cases, and regression for a given change |
-| qa | `bug-reporting` | File structured bug reports with repro steps, expected vs actual, and severity |
-
-```
-Agents: 4  ·  Teams: 2  ·  Projects: 2  ·  Boards: 2  ·  Skills: 8
-```
-
----
-
-### 3 · AI Startup `wft-ai-startup`
-
-Full development lifecycle — frontend, backend, QA, docs. Closer to a real company structure.
-
-| Entity | Details |
-|--------|---------|
-| **Engineering Team** | |
-| → Frontend Developer | `handle: frontend` · UI, design system, user-facing features |
-| → Backend Developer | `handle: backend` · APIs, data models, integrations |
-| → QA Engineer | `handle: qa` · automated tests, quality gates, regression |
-| **Product Team** | |
-| → Product Manager | `handle: pm` · strategy, roadmap, stakeholder communication |
-| → Technical Writer | `handle: docs` · changelogs, API docs, internal guides |
-| **Product Development** | Sprint board |
-| **Documentation** | Kanban board |
-| **Internal Ops** | Issue tracker |
-
-**Skills per agent:**
-
-| Agent | Skill | Description |
-|-------|-------|-------------|
-| pm | `backlog-management` | Write specs, groom and prioritise the backlog, keep tasks well-defined |
-| pm | `stakeholder-comms` | Write status updates, maintain the roadmap, communicate scope changes clearly |
-| frontend | `git-workflow` | Clone a repo, work on a feature branch per task, commit, push, and open a PR |
-| frontend | `ui-development` | Build components that follow the existing design system; prefer composition over custom styles |
-| backend | `git-workflow` | Clone a repo, work on a feature branch per task, commit, push, and open a PR |
-| backend | `api-development` | Design RESTful endpoints, keep data models normalised, document changes |
-| qa | `test-planning` | Write test plans covering happy path, edge cases, and regression for a given change |
-| qa | `bug-reporting` | File structured bug reports with repro steps, expected vs actual, and severity |
-| docs | `technical-writing` | Write changelogs, API docs, and internal guides in plain language; keep docs close to the code |
-
-```
-Agents: 5  ·  Teams: 2  ·  Projects: 3  ·  Boards: 3  ·  Skills: 9
-```
-
----
-
-### 4 · Content Studio `wft-content-studio`
-
-Editorial workflow — any team where the primary output is written content.
-
-| Entity | Details |
-|--------|---------|
-| **Content Team** | |
-| → Content Strategist | `handle: strategist` · editorial calendar, topic research, briefs |
-| → Writer | `handle: writer` · drafts articles, scripts, copy |
-| → Editor | `handle: editor` · reviews drafts, tone/quality, final sign-off |
-| → SEO Researcher | `handle: seo` · keyword research, optimisation recommendations |
-| **Content Pipeline** | Kanban board |
-
-**Skills per agent:**
-
-| Agent | Skill | Description |
-|-------|-------|-------------|
-| strategist | `editorial-planning` | Maintain the editorial calendar, write content briefs, research topics and angles |
-| writer | `content-writing` | Draft articles and copy from briefs; match the brand voice; structure for readability |
-| editor | `content-review` | Review drafts for tone, clarity, factual accuracy, and brand alignment; approve or return with notes |
-| seo | `seo-research` | Research keywords, assess search intent, and recommend on-page optimisations for drafts |
-
-```
-Agents: 4  ·  Teams: 1  ·  Projects: 1  ·  Boards: 1  ·  Skills: 4
-```
-
----
-
-### 5 · Research Lab `wft-research-lab`
-
-Investigative work — research teams, data science, academic contexts.
-
-| Entity | Details |
-|--------|---------|
-| **Research Team** | |
-| → Research Lead | `handle: research-lead` · defines research questions, reviews findings |
-| → Data Analyst | `handle: analyst` · queries, models, visualisations |
-| → Technical Writer | `handle: docs` · research reports, methodology docs |
-| **Active Research** | Ideation board |
-| **Published Work** | Kanban board |
-
-**Skills per agent:**
-
-| Agent | Skill | Description |
-|-------|-------|-------------|
-| research-lead | `research-methodology` | Frame research questions, define scope, review findings for validity and coherence |
-| analyst | `data-analysis` | Write queries, build models, produce clear visualisations with stated assumptions |
-| docs | `research-reporting` | Write research reports and methodology docs; make findings accessible to non-technical readers |
-
-```
-Agents: 3  ·  Teams: 1  ·  Projects: 2  ·  Boards: 2  ·  Skills: 3
-```
+Every agent also has the built-in skills. A template names no git skill: `working-with-git` is built in.
 
 ---
 
 ## Canonical agent role assets
 
-Agent role definitions live in hq's `assets/library/agents/<slug>/` and are seeded into the `AgentTemplate` table at startup (see [agent-templates.md](../library/agent-templates.md)). Each has a full `agent.json` config (permissions, model, approval, bash patterns), `instructions.md` and skills as proper `SKILL.md` files. Applying one creates the agent with those settings and that content.
+Agent role definitions live in hq's image as agent templates, installed as `agenthix/<name>` when hq starts (see [agent templates](../library/agent-templates.md)). Each has a full `agent.json` config (permissions, model, approval, bash patterns), `instructions.md` and skills as proper `SKILL.md` files. Applying one creates the agent with those settings and that content.
 
 Current canonical roles:
 - **Kernel** — built-in orchestrator; seeded at server startup, not importable
@@ -336,14 +154,14 @@ Current canonical roles:
 - **Wasp Developer** — implements features in a Wasp/React/Prisma codebase
 - **QA** — verifies completed tasks against acceptance criteria
 
-They are applied from the Library's agent templates tab; an agent can also be exported and imported as an archive. Workforce templates that overlap (e.g., `wft-solo-dev` includes a developer and QA agent) define their own inline agents that are shallower than the canonical role assets.
+They are applied from the Library's agent templates tab; an agent can also be exported and imported as an archive. Workforce templates that overlap (e.g., Solo Developer includes a developer and QA agent) define their own inline agents that are shallower than the canonical role assets.
 
 ---
 
 ## Decisions
 
-- **Template source** — directory bundles in hq's `assets/library/workforce/<slug>/`. Seeded into the DB on startup (`ensureWorkforceTemplates()`), same pattern as board templates.
-- **Application selections** — Held in `Task.applicationData` on the task row (`hq/schema.prisma`), never in a file and never served over `/files/task/`. The proposal writes `templateId` there (`proposeWorkforceTemplateOp`, `hq/src/server/controlplane/workforceOps.ts`); the template content itself stays in the seeded `WorkforceTemplate` row and is read back from it (`hq/src/library/queries.ts`). The original decision — a write-once `application.json` under the task's attachments — was not built; the two entries below are what the code does. An organisation's own templates come only from importing a `team` package; none can be made inside the app.
+- **Template source** — a team template is an asset in the Library, a package installed from hq's image or added from outside, with a pinned version ([the Library](../library/library.md)). What a team made from it is, is its own and never follows the template's later versions.
+- **Application selections** — Held in `Task.applicationData` on the task row (`hq/schema.prisma`), never in a file and never served over `/files/task/`. The proposal writes the template there (`proposeWorkforceTemplateOp`, `hq/src/server/controlplane/workforceOps.ts`); the template content is read back from the Library's pinned version. The original decision — a write-once `application.json` under the task's attachments — was not built; the two entries below are what the code does. An organisation's own templates come only from importing a `team` package; none can be made inside the app.
 - **Draft selections** — Stored in `Task.applicationData.draftSelections` (mutable). The review page writes here when the user clicks "Save Progress". The kernel can read them via `get_task_details`.
 - **Confirmed selections** — Stored in `Task.applicationData.confirmedSelections` after the user clicks "Confirm". The `confirmWorkforceTemplate` action (an organisation admin's) applies the template, stores these and moves the task to done; no run is queued.
 - **Agents embedded in teams** — `AgentSpec` lives inside `TeamSpec`, not at the top level. This enforces the one-team-per-agent constraint by structure: an agent physically exists inside one team and cannot appear in two. Top-level agent arrays would allow the same handle to be referenced by multiple teams with no structural prevention.
@@ -352,5 +170,5 @@ They are applied from the Library's agent templates tab; an agent can also be ex
 - **Apply surface** — Library page for user-initiated (synchronous). `propose_workforce_template` MCP tool for agent-initiated (async, review-gated). Both converge on the same review page.
 - **Task description** — human-readable prose only, with a link to the review page. No structured data in the description so users cannot corrupt the payload by editing.
 - **Nothing runs on its own** — an agent has no schedule of its own, so a newly created agent does nothing until a person starts work for it or turns on a project's automation ([automation.md](../tasks/automation.md)).
-- **Skills are embedded, not referenced** — skill content is carried in the template bundle. Embedding keeps templates self-contained and portable across orgs and instances. At apply time, each `AgentSkillSpec` becomes `skills/{slug}/SKILL.md` in the agent's package content. The review page exposes per-skill `include` toggles nested under each agent.
+- **Skills are carried, then installed** — a template's package carries the skills its agents need so it is self-contained and portable across organisations and instances. They are installed as assets when the template is first used, and each agent is given its own; nothing is written into an agent's own content.
 - **Skills are optional per-agent** — `skills` is an optional array on `AgentSpec`. An agent without skills is valid. Users can deselect individual skills on the review page without affecting the agent.

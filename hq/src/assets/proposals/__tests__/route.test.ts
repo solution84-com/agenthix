@@ -6,7 +6,7 @@ import {
   draftCardBody, outcomeBody, outcomeForLead, proposalCardBody, PROPOSE_SKILL_TOOL, skillCardOf,
 } from '../types'
 
-describe('where propose_skill lands (H5, D24)', () => {
+describe('where propose_skill lands (H5, D24) @security-H5 @SC-1661', () => {
   it('is the person\'s draft only from their own conversation, where they may edit, for a skill edited in place', () => {
     expect(landingOf({ ownConversation: true, mayEdit: true, editsSigned: false })).toBe('draft')
   })
@@ -21,7 +21,7 @@ describe('where propose_skill lands (H5, D24)', () => {
   })
 })
 
-describe('the tool\'s arguments', () => {
+describe('the tool\'s arguments @SC-1661', () => {
   const schema = z.object(PROPOSE_SKILL_SCHEMA.schema)
   const valid = { name: 'x', description: 'd', files: { 'SKILL.md': 'b' }, why: 'w', aim: 'person' }
 
@@ -35,7 +35,7 @@ describe('the tool\'s arguments', () => {
   })
 })
 
-describe('the card and the outcome line', () => {
+describe('the card and the outcome line @SC-1661', () => {
   it('reads back what it wrote, and nothing else', () => {
     expect(skillCardOf(proposalCardBody('p1', 'checkout-review', false))).toEqual({ kind: 'proposal', proposalId: 'p1', name: 'checkout-review' })
     expect(skillCardOf(draftCardBody({ kind: 'place', id: 's1' }, 'x', 3))).toEqual({ kind: 'draft', draft: { kind: 'place', id: 's1' }, name: 'x', revision: 3 })

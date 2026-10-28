@@ -7,7 +7,7 @@ import { signIn, ADMIN, MEMBER } from './fixtures/auth'
 test.use({ viewport: { width: 1280, height: 800 } })
 
 test.describe('an agent\'s Skills, for an administrator', () => {
-  test('shows everything the agent will see, in the clash order, with what the list costs', async ({ page }) => {
+  test('shows everything the agent will see, in the clash order, with what the list costs @SC-1654', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto('/admin/agents')
     await page.getByRole('link', { name: 'Manage', exact: true }).first().click()
@@ -21,7 +21,7 @@ test.describe('an agent\'s Skills, for an administrator', () => {
     await expect(skills.getByRole('button', { name: 'Add a skill' })).toBeVisible()
   })
 
-  test('opens a picker over the Library\'s skills, with a way to add one that is not there yet', async ({ page }) => {
+  test('opens a picker over the Library\'s skills, with a way to add one that is not there yet @SC-1622', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto('/admin/agents')
     await page.getByRole('link', { name: 'Manage', exact: true }).first().click()
@@ -32,7 +32,7 @@ test.describe('an agent\'s Skills, for an administrator', () => {
 })
 
 test.describe('an agent\'s Skills, for a member', () => {
-  test('reads what the agent can do, and changes nothing', async ({ page }) => {
+  test('reads what the agent can do, and changes nothing @SC-1654', async ({ page }) => {
     await signIn(page, MEMBER)
     await page.goto('/agents')
     await page.getByRole('link').filter({ hasText: /@/ }).first().click()

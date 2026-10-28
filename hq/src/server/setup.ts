@@ -36,6 +36,7 @@ import { startMemoryMaintenance } from '../memory/maintenance'
 // each stays in the one chunk. Keep this one static.
 import { discardPlaintextSecrets } from './boot/discardPlaintextSecrets'
 import { ensureKernelDefinition } from '../packages/kernelPackage'
+import { ensureKernelSkills } from '../assets/templates/kernelSkills'
 import { HQ_SITE_CHANNEL_PATH } from '@agenthix/core'
 import { startSiteChannel, markAllOfflineAtBoot } from '../sites/channel'
 import { startContentChannel } from '../sites/content'
@@ -197,6 +198,17 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
     logger.info(`Built-in agent's content at ${kernelPackage.ref.digest.slice(0, 12)}${kernelPackage.changed ? ' (written now)' : ''}.`)
   } catch (err) {
     logger.error(`Built-in agent's content not written: ${err instanceof Error ? err.message : String(err)}`)
+  }
+
+  // Kernel's own skills, installed as assets and granted to it once (D14): an administrator's removal stays.
+  try {
+    const kernelRow = await prisma.agent.findUniqueOrThrow({ where: { handle: KERNEL_HANDLE } })
+    for (const s of await ensureKernelSkills(prisma, kernelRow.id)) {
+      if (s.problem) logger.warn(`Kernel's skill ${s.identity} not installed: ${s.problem}`)
+      else if (s.outcome === 'new' || s.outcome === 'update') logger.info(`Kernel's skill ${s.identity} ${s.outcome === 'new' ? 'installed and given to Kernel' : 'offered as an update'} at ${s.version}.`)
+    }
+  } catch (err) {
+    logger.error(`Kernel's skills not installed: ${err instanceof Error ? err.message : String(err)}`)
   }
 
   // ── Personal projects — one per person (agents own schedule spec §4) ──────

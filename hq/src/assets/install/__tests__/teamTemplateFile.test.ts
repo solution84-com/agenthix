@@ -15,7 +15,7 @@ const team = (over: Record<string, unknown> = {}, agent: Record<string, unknown>
   f('skills/plan/SKILL.md', SKILL),
 ]
 
-describe("a team template's files", () => {
+describe("a team template's files @SC-1636", () => {
   it('reads its teams, agents, projects and boards, and only the fields it knows', () => {
     expect(readTeamTemplate(team())).toEqual({
       name: 'Crew', description: 'A crew', tags: ['x'],

@@ -11,7 +11,7 @@ const keyless = (over: Partial<KeylessPublisherInput> = {}): KeylessPublisherInp
 
 const message = (r: ReturnType<typeof keylessBinding>) => (r.ok ? '' : r.message)
 
-describe('a keyless publisher as an administrator records it (H2)', () => {
+describe('a keyless publisher as an administrator records it (H2) @security-H2 @SC-1615', () => {
   it('binds issuer, exact identity, repository and the refs allowed, under the canonical signer string', () => {
     const r = keylessBinding(keyless({ allowedBranch: 'main' }))
     expect(r).toEqual({ ok: true, binding: {
@@ -54,7 +54,7 @@ describe('a keyless publisher as an administrator records it (H2)', () => {
   })
 })
 
-describe('a key-pair publisher', () => {
+describe('a key-pair publisher @SC-1615', () => {
   it('is stored by the sha256 of its key, with the key itself', () => {
     const { publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' })
     const pem = publicKey.export({ type: 'spki', format: 'pem' }).toString()
@@ -70,7 +70,7 @@ describe('a key-pair publisher', () => {
   })
 })
 
-describe('publisherBinding', () => {
+describe('publisherBinding @SC-1615', () => {
   it('needs a name and a kind', () => {
     expect(publisherBinding(null).ok).toBe(false)
     expect(publisherBinding({ name: 'x', kind: 'other' }).ok).toBe(false)

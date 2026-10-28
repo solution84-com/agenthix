@@ -16,7 +16,7 @@ import { MoveDialog } from '../../asset/dialogs/MoveDialog'
 beforeEach(() => { update.mockReset().mockResolvedValue({}); rollBack.mockReset().mockResolvedValue({}) })
 afterEach(cleanup)
 
-describe('rolling back', () => {
+describe('rolling back @SC-1619', () => {
   it('says every agent that has it uses the earlier version from its next turn, and that the newer one stays in the history', async () => {
     const done = vi.fn()
     render(<MoveDialog mode="rollBack" assetId="a1" title="Code Review" inUse="1.4.0" target={{ id: 'v1', version: '1.3.0', withdrawn: null }} onClose={() => {}} onDone={done} />)
@@ -28,7 +28,7 @@ describe('rolling back', () => {
   })
 })
 
-describe('updating to a version the publisher withdrew', () => {
+describe('updating to a version the publisher withdrew @SC-1620', () => {
   it('shows why, and does not move until the warning is accepted', async () => {
     render(<MoveDialog mode="update" assetId="a1" title="Code Review" inUse="1.3.0" target={{ id: 'v2', version: '1.4.0', withdrawn: 'It tells agents to push to main.' }} onClose={() => {}} onDone={() => {}} />)
     expect(screen.getByRole('alert').textContent).toContain('The publisher withdrew 1.4.0: It tells agents to push to main.')

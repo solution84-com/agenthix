@@ -37,7 +37,7 @@ async function callerFor(session: { id: string; userId: string; taskId?: string 
   return proposingRun(ctx as never, `run-${session.id}`)
 }
 
-describe('the run that proposes @H5', () => {
+describe('the run that proposes @security-H5 @SC-1661', () => {
   it("is the person's own conversation in their own chat", async () => {
     const s = await createSession({ userId: person.id, agentId: agent.id, sessionType: 'chat' })
     expect(await callerFor(s)).toMatchObject({ forUserId: person.id, ownConversation: true })

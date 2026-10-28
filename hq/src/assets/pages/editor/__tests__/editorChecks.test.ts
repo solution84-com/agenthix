@@ -6,7 +6,7 @@ const f = (path: string, text: string): EditorFile => ({ path, bytes: bytesOfTex
 const md = (header: string, body = '# Notes\n') => f('SKILL.md', `---\n${header}\n---\n\n${body}`)
 const texts = (checks: ReturnType<typeof checkSkill>) => checks.map(c => `${c.level}: ${c.text}`)
 
-describe('namedFiles', () => {
+describe('namedFiles @SC-1623', () => {
   it('finds files under the skill folders, in backticks, prose and links', () => {
     const body = 'Run `scripts/collect-prs.sh` then scripts/format.py, see [style](references/style.md#tone). Visit https://example.com/scripts/x.sh or org:processes/a.md.'
     expect(namedFiles(body, [])).toEqual(['references/style.md', 'scripts/collect-prs.sh', 'scripts/format.py'])
@@ -16,7 +16,7 @@ describe('namedFiles', () => {
   })
 })
 
-describe('checkSkill', () => {
+describe('checkSkill @SC-1623', () => {
   it('passes a skill whose files all exist', () => {
     const files = [md('name: release-notes\ndescription: Writes release notes. Use for a changelog.', 'Run scripts/collect.sh\n'), f('scripts/collect.sh', '#!/bin/sh\n')]
     const checks = checkSkill('release-notes', files)

@@ -44,7 +44,7 @@ const renderPage = () => render(
 beforeEach(() => { h.accept.mockReset(); h.reject.mockReset() })
 afterEach(cleanup)
 
-describe('reviewing one proposal (board R1)', () => {
+describe('reviewing one proposal (board R1) @SC-1663', () => {
   it('shows why, and every file of the change, scripts included', () => {
     h.data = review()
     renderPage()

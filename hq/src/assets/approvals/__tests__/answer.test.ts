@@ -58,7 +58,7 @@ beforeEach(() => {
   handlers = { publish: record('publish'), rollBack: record('rollBack'), switchOn: record('switchOn'), install: record('install') }
 })
 
-describe('who may answer an asset request', () => {
+describe('who may answer an asset request @SC-1664', () => {
   it('is only the person it acts for, and Approve only by their tap', () => {
     expect(assetAnswerRefusal({ authorisedById: 'u1' }, 'approve', 'u1', 'card')).toBeNull()
     expect(assetAnswerRefusal({ authorisedById: 'u1' }, 'decline', 'u1', 'turn')).toBeNull()
@@ -67,7 +67,7 @@ describe('who may answer an asset request', () => {
   })
 })
 
-describe('answering an asset request', () => {
+describe('answering an asset request @SC-1664', () => {
   it('runs it when approved, as that person, recording the agent as who asked', async () => {
     await answerAssetCard(row(), 'approve', 'u1', deps())
     expect(calls).toEqual([{ kind: 'publish', approved: { actor: { ...ADMIN, userId: 'u1' }, requestedByAgentId: 'agent-1', runId: 'run-1' } }])

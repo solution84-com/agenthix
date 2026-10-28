@@ -5,6 +5,7 @@
  * into its own content (D23). Real test database (ADR-0094); the activity side effects are the shared fakes.
  */
 import { describe, it, expect, vi } from 'vitest'
+import path from 'node:path'
 import { prisma } from '../../test/db'
 
 vi.mock('wasp/server', async () => {
@@ -18,6 +19,8 @@ vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activi
 import { applyAgentTemplate, listAgentTemplates } from '../agentTemplateService'
 import { readAgentContent } from '../../packages/agentPackageService'
 import { agentPackage, seedSkill, seedTemplate } from '../../assets/templates/__tests__/templateFixtures'
+import { installImageTemplates } from '../../assets/templates/imageTemplates'
+import { carriedSkillNames, listTemplates, templateFiles } from '../../assets/templates/templateAssets'
 
 async function seedDeveloper(opts: { approval?: string; source?: 'BUILT_IN' | 'UPLOAD' } = {}) {
   return seedTemplate(prisma, 'AGENT', 'wasp-developer',
@@ -51,6 +54,29 @@ describe('applyAgentTemplate @SC-065', () => {
     const result = await applyAgentTemplate('agenthix/wasp-developer', 'wasp-dev', null)
     expect(result.missingSkills).toEqual(['wasp-developer/write-code'])
     expect((await prisma.assetGrant.findMany({ where: { agentId: result.id } })).map(g => g.assetId)).toEqual([kept])
+  })
+
+  it("gives an agent made from each of Agenthix's agent templates every skill it carries, installed on that first use (D14)", async () => {
+    const saved = process.env.HQ_ASSETS_ROOT
+    process.env.HQ_ASSETS_ROOT = path.resolve(__dirname, '../../../assets')
+    try {
+      await installImageTemplates(prisma)
+      expect(await prisma.asset.count({ where: { kind: 'SKILL' } })).toBe(0)
+      const templates = await listTemplates(prisma, 'AGENT')
+      expect(templates.length).toBeGreaterThan(0)
+      for (const template of templates) {
+        const carried = carriedSkillNames(template, await templateFiles(prisma, template))
+        const result = await applyAgentTemplate(template.id, `${template.name}-agent`, null)
+        const granted = await prisma.assetGrant.findMany({ where: { agentId: result.id }, select: { asset: { select: { publisher: true, name: true } } } })
+        expect({ template: template.name, missing: result.missingSkills, granted: granted.map(g => g.asset.name).sort() })
+          .toEqual({ template: template.name, missing: [], granted: [...carried].sort() })
+        expect(granted.every(g => g.asset.publisher === 'agenthix')).toBe(true)
+        expect(carried.length).toBeGreaterThan(0)
+      }
+    } finally {
+      if (saved === undefined) delete process.env.HQ_ASSETS_ROOT
+      else process.env.HQ_ASSETS_ROOT = saved
+    }
   })
 
   it('never follows the template: a later version leaves the agent as it was made', async () => {

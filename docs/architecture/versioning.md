@@ -276,12 +276,11 @@ What one release writes, a later one reads: the databases, sealed backups and ag
   From `0.1.0-rc.1` every schema change is a new migration that carries a release's data forward. The
   `database-migrations` skill (`.agents/skills/`) has the commands.
 - **Formats carry a whole number, starting at 1**: the agent package's contents (`PACKAGE_FORMAT_VERSION`,
-  `core/src/protocol/packages.ts`) and its manifest (`PACKAGE_FORMAT`, `hq/src/library/packages/packageManifest.ts`),
+  `core/src/protocol/packages.ts`), a Library asset's manifest (`ASSET_MANIFEST_FORMAT`, now 2,
+  `core/src/assets/manifest.ts`, which the signed statement also names; a package in the earlier format is refused),
   a sealed backup's header (`format`, `host/src/backups/seal.ts`) and the host service's envelopes
   (`HOST_ENVELOPE_VERSION`, `core/src/host/envelope.ts`). Today each reader accepts exactly its own number and
-  refuses any other. Two more numbers count content rather than a format: the board and workforce templates hq seeds
-  (`hq/src/library/systemTemplates.ts`), which hq seeds again when the number differs from what its database holds,
-  and the voice settings (`hq/src/conversations/voiceClient/settings.ts`), whose number a voice event log records;
+  refuses any other. One more number counts content rather than a format: the voice settings (`hq/src/conversations/voiceClient/settings.ts`), whose number a voice event log records;
   a log recorded under another number is shown with it, and nothing from it is applied.
 - **A later version reads what an earlier one wrote.** When a format changes in a way an older reader could not read,
   its number moves, and the newer reader reads one number back, as a protocol is spoken one major back.

@@ -18,7 +18,7 @@ function fieldType(body: string, field: string): string {
   return type
 }
 
-describe('asset records', () => {
+describe('asset records @SC-1608', () => {
   it('key an identity on kind, publisher and name, none of them nullable, so a taken name cannot be written twice (T10)', () => {
     const asset = model('Asset')
     expect(asset).toMatch(/@@unique\(\[kind, publisher, name\]\)/)

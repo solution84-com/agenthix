@@ -23,7 +23,7 @@ import { SkillHistoryDialog } from '../SkillHistoryDialog'
 
 afterEach(() => { cleanup(); rollBack.mockReset() })
 
-describe('rolling a place skill back', () => {
+describe('rolling a place skill back @SC-1644', () => {
   it('asks why before going back, and records the reason written', async () => {
     rollBack.mockResolvedValue({ number: 3 })
     const onClose = vi.fn()

@@ -1,6 +1,6 @@
 ---
 created: 2026-10-27
-description: hq installs an asset from any source — its own image, an upload, a URL — through one check. A package's canonical fingerprint is signed in a Sigstore bundle, verified offline. The publisher is the verified signer, never the manifest's claim; unsigned assets install after a warning under their own namespace; a tampered one is refused.
+description: hq installs an asset from any source — its own image, an upload, a URL — through one check. A package's canonical fingerprint is signed in a Sigstore bundle, verified offline. The publisher is the verified signer, never the manifest's claim; unsigned assets install after a warning under their own namespace; one that can't be checked or was tampered with is refused.
 ---
 
 # ADR-0158: An Asset Is Installed From Anywhere Through One Signed Protocol
@@ -23,6 +23,10 @@ package had not been changed on the way.
 - **Trust the manifest's publisher.** Rejected: it lets any package take a trusted name and arrive as an update.
 - **Refuse unsigned assets.** Rejected: most skills people write are unsigned; refusing them pushes them into files,
   where they are checked less.
+- **Compare a keyless signer's whole certificate identity.** Rejected: a workflow's identity ends in the ref it ran
+  from, so every tagged release would arrive as a different signer.
+- **Offer an unknown key-pair signer as a new publisher, as a keyless one is.** Rejected: a key-pair bundle names its
+  key but doesn't carry it, so there is nothing to check until someone adds the key.
 - **Sign with the person who released it, or with both person and organisation.** Rejected: trust would reset when a
   person leaves, and who released something inside an organisation stays internal.
 - **One open protocol, any source, signature checked offline, publisher taken from the signer (chosen).**
@@ -35,11 +39,14 @@ package had not been changed on the way.
    one digest over every file stored, `package.json` included. Ambiguous archives (duplicate entries, paths differing
    only by case or normalisation) are refused.
 3. **The signature is a Sigstore bundle**, keyless or with a key pair, verified offline against a trust root shipped in
-   hq's image, including the transparency-log proof. A trusted keyless publisher is bound exactly: issuer, certificate
-   identity, and repository and ref (tags or the default branch only).
-4. **Four outcomes:** signed by someone trusted installs; signed by someone new asks whether to trust them; unsigned
-   installs only after the person confirms they read it, if the organisation allows it; changed after signing is
-   refused, with no override.
+   hq's image; a keyless one must carry the transparency-log proof. A trusted keyless publisher is bound exactly:
+   issuer and certificate identity less the ref it ran from, so one workflow's releases are one signer, and the
+   repository and ref checked on their own (tags or the default branch only). A key-pair publisher is trusted by
+   adding its public key.
+4. **Five outcomes:** signed by someone trusted installs; signed keyless by someone new asks whether to trust them;
+   unsigned installs only after the person confirms they read it, if the organisation allows it; a signature that
+   can't be checked (a key nobody added, a bundle hq can't read) is refused; changed after signing is refused, with no
+   override.
 5. **The publisher is the verified signer**, as this organisation named it when trusting it. Every asset in a package
    takes the package's verified publisher. Unsigned assets install under `unsigned/` and never update or replace a
    signed one. `agenthix/` is reserved for Agenthix's release identity. A different signer is always a different

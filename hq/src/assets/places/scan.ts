@@ -8,7 +8,10 @@
  */
 import { prisma } from 'wasp/server'
 import type { PlaceSkill, PlaceSkillGroup, Prisma, WorkspaceOwnerType } from '@prisma/client'
-import { PLACE_SKILLS_ROOT, WORKSPACE_SKILL_ROOTS, agentSkillsRoot, type LocationScanSkillsResult, type ScannedSkill } from '@agenthix/core'
+import {
+  PACKAGE_DIGEST_PATTERN, PLACE_SKILLS_ROOT, SCAN_SKILLS_MAX_PER_PLACE, WORKSPACE_SKILL_ROOTS, agentSkillsRoot,
+  type LocationScanSkillsResult, type ScannedSkill,
+} from '@agenthix/core'
 
 export type Place = { placeType: WorkspaceOwnerType; placeId: string }
 
@@ -44,6 +47,17 @@ function scannedText(value: unknown, max: number): string {
   return typeof value === 'string' ? value.replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '').trim().slice(0, max) : ''
 }
 
+/**
+ * What hq takes of a site's scan (security review L1): findings with a fingerprint that is a digest, at most the
+ * per-place cap. The site keeps to the cap itself, but its answer is its word, so hq does too; anything past the cap
+ * counts as a scan cut short, which marks nothing gone.
+ */
+export function boundedFindings(scan: LocationScanSkillsResult): { skills: ScannedSkill[]; cut: boolean } {
+  const all = Array.isArray(scan?.skills) ? scan.skills : []
+  const valid = all.filter(s => typeof s?.fingerprint === 'string' && PACKAGE_DIGEST_PATTERN.test(s.fingerprint))
+  return { skills: valid.slice(0, SCAN_SKILLS_MAX_PER_PLACE), cut: scan?.truncated === true || valid.length > SCAN_SKILLS_MAX_PER_PLACE }
+}
+
 export async function recordScan(
   place: Place,
   scan: LocationScanSkillsResult,
@@ -52,7 +66,8 @@ export async function recordScan(
 ): Promise<PlaceSkill[]> {
   const seen: string[] = []
   const rows: PlaceSkill[] = []
-  for (const skill of scan.skills) {
+  const { skills, cut } = boundedFindings(scan)
+  for (const skill of skills) {
     const path = placeSkillPath(skill)
     if (!path) continue
     seen.push(path)
@@ -72,7 +87,7 @@ export async function recordScan(
       update: found,
     }))
   }
-  if (!scan.truncated) {
+  if (!cut) {
     await prisma.placeSkill.updateMany({
       where: { ...place, path: { notIn: seen }, goneAt: null, OR: coveredRoots(covered) },
       data: { goneAt: now },

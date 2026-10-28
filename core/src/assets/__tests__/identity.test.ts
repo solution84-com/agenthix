@@ -4,7 +4,7 @@ import {
   formatAssetIdentity, isAssetName, isReservedPublisher, parseAssetIdentity, roleSkillName,
 } from '../identity.js'
 
-describe('asset identity', () => {
+describe('asset identity @SC-1596', () => {
   it('names the four kinds', () => {
     expect([...ASSET_KINDS]).toEqual(['skill', 'agent', 'board', 'team'])
   })

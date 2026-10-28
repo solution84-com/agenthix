@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { compareSemVer, formatSemVer, isSemVer, parseSemVer, SEMVER_MAX_LENGTH } from '../semver.js'
 
-describe('SemVer', () => {
+describe('SemVer @SC-1599', () => {
   it('parses major.minor.patch with an optional pre-release', () => {
     expect(parseSemVer('1.2.3')).toEqual({ major: 1, minor: 2, patch: 3, prerelease: [] })
     expect(parseSemVer('0.1.0-rc.1')).toEqual({ major: 0, minor: 1, patch: 0, prerelease: ['rc', 1] })

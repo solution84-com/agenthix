@@ -17,7 +17,7 @@ const ALL = Object.fromEntries(ASSET_ACTIONS.map(a => [a, true])) as Record<Asse
 const NONE = Object.fromEntries(ASSET_ACTIONS.map(a => [a, false])) as Record<AssetAction, boolean>
 const only = (...actions: AssetAction[]) => ({ ...NONE, ...Object.fromEntries(actions.map(a => [a, true])) })
 
-describe('the Library policy, the organisation level', () => {
+describe('the Library policy, the organisation level @SC-1617', () => {
   it('lets an administrator do everything', () => {
     expect(table(person({ role: 'ADMIN' }), ORG)).toEqual(ALL)
   })
@@ -38,7 +38,7 @@ describe('the Library policy, the organisation level', () => {
   })
 })
 
-describe('the policy, a project', () => {
+describe('the policy, a project @SC-1643', () => {
   it('lets its administrators publish, roll back, remove, review and set its default', () => {
     expect(table(person({ projectRole: 'ADMIN' }), PROJECT)).toEqual(only('install', 'editDraft', 'publish', 'rollBack', 'remove', 'reviewProposal', 'settings'))
   })
@@ -53,7 +53,7 @@ describe('the policy, a project', () => {
   })
 })
 
-describe('the policy, Your space', () => {
+describe('the policy, Your space @SC-1643', () => {
   it('lets the person do everything in their own space but trust, name maintainers, grant or install from outside', () => {
     expect(table(person(), OWN)).toEqual(only('install', 'editDraft', 'publish', 'rollBack', 'remove', 'reviewProposal', 'settings'))
   })
@@ -63,7 +63,7 @@ describe('the policy, Your space', () => {
   })
 })
 
-describe('the policy, an agent', () => {
+describe('the policy, an agent @SC-1661', () => {
   const agent = (p: PersonActor | null, forUserId = 'u1'): AgentActor => ({ kind: 'agent', agentId: 'a1', forUserId, runId: 'r1', person: p })
 
   it('only ever edits a draft, and only where the person it acts for may', () => {
@@ -86,7 +86,7 @@ describe('the policy, an agent', () => {
   })
 })
 
-describe('refusals', () => {
+describe('refusals @SC-1617', () => {
   it('say who holds the action and end with nothing changed', () => {
     expect(() => assertMay(person(), 'remove', ORG)).toThrow(PolicyError)
     expect(refusal(person(), 'remove', ORG)).toBe('Removing is for administrators. Ask an administrator. Nothing was changed.')

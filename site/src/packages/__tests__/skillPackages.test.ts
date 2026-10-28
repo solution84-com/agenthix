@@ -16,7 +16,7 @@ beforeEach(async () => {
 })
 afterEach(async () => { await fs.rm(root, { recursive: true, force: true }) })
 
-describe("a skill's content in the package cache", () => {
+describe("a skill's content in the package cache @security-L4 @SC-1604", () => {
   it('is stored when it is a skill within the bounds', async () => {
     const { ref, body } = makeTransfer('skill', 'v1', { 'SKILL.md': 'x', 'scripts/a.sh': 'a' })
     await storeVerifiedPackage(ref, body)

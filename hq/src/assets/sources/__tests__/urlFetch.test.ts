@@ -52,7 +52,7 @@ async function refusal(promise: Promise<unknown>): Promise<UrlFetchRefused> {
   return error as UrlFetchRefused
 }
 
-describe('fetchPackageFromUrl', () => {
+describe('fetchPackageFromUrl @security-M3 @SC-1611', () => {
   it('fetches a package and its signature', async () => {
     const net = network({ [LINK]: { status: 200, body: chunks(ZIP) }, [SIG]: { status: 200, body: chunks(BUNDLE) } })
     const fetched = await fetchPackageFromUrl(LINK, net)

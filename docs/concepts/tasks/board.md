@@ -138,14 +138,13 @@ the org or the project chose otherwise) is archived automatically: off the board
 
 ## Board templates
 
-A board template is a saved set of columns. `BoardTemplate` holds only the metadata and an `assetPath`; the
-columns live in a JSON file there. System templates ship in `hq/assets/library/boards/` (kanban, sprint,
-issues, ideation, roadmap, workforce assembly); an organisation's own are written under its hq storage. A
-template must contain at least one column for each of the three states, and none named `backlog`.
+A board template is a saved set of columns, a Library asset of kind `board` with a version ([the Library](../library/library.md)).
+Agenthix's ship in hq's image (kanban, sprint, issues, ideation, roadmap, workforce assembly); an organisation's own are
+made in HQ. A template must contain at least one column for each of the three states, and none named `backlog`.
 
-Making a board from a template copies the columns into the board and records `templateId`. The copy is
-independent: editing or deleting the template later does not change existing boards. The library side is
-described in [board-templates.md](../library/board-templates.md).
+Making a board from a template copies the columns into the board and keeps a read-only link to the template version it
+was made from. The copy is independent: publishing a later version of the template, or removing it, does not change
+existing boards. The library side is described in [board-templates.md](../library/board-templates.md).
 
 ## What the Boards tool reads
 
@@ -170,7 +169,7 @@ in. Archiving and deleting a board are a person's actions; no platform tool does
 
 | What | Where |
 |---|---|
-| Schema | `hq/schema.prisma`: `Board`, enum `BoardKind`, `Sprint`, `BoardShowAlso`, `BoardTemplate` |
+| Schema | `hq/schema.prisma`: `Board`, enum `BoardKind`, `Sprint`, `BoardShowAlso` |
 | Columns, Project Tasks | `hq/src/projects/boardColumns.ts`, `boardService.ts` |
 | Sprints | `hq/src/projects/sprintService.ts`, `sprintDates.ts` |
 | Moving tasks between boards and columns | `hq/src/projects/taskService.ts` |

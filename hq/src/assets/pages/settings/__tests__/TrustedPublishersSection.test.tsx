@@ -21,7 +21,7 @@ import { TrustedPublishersSection } from '../TrustedPublishersSection'
 
 afterEach(cleanup)
 
-describe('trusted publishers (board R2)', () => {
+describe('trusted publishers (board R2) @SC-1615', () => {
   it('says how many each has installed, and renames only the name shown', async () => {
     render(<TrustedPublishersSection />)
     expect(screen.getByTestId('publishers').textContent).toContain('23 installed')

@@ -10,7 +10,7 @@ const asset = (over: Partial<InstalledAssetRow> = {}): InstalledAssetRow => ({
   currentVersion: { id: 'ver-1', version: '1.3.0', digest: D }, ...over,
 })
 
-describe('an installed skill a run is given', () => {
+describe('an installed skill a run is given @SC-1650', () => {
   it('at its pinned version, with the content to deliver', () => {
     expect(installedEntry(asset())).toEqual({
       identity: 'acme/code-review', version: '1.3.0', digest: D, level: 'agent', ref: { kind: 'skill', key: 'ver-1', digest: D },

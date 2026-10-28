@@ -53,7 +53,7 @@ const run = (over: Partial<RunSkillsInput> = {}): RunSkillsInput => ({
   place: { placeType: 'project', placeId: projectId }, workspaceIds: [], ...over,
 })
 
-describe('installed skills', () => {
+describe('installed skills @SC-1650', () => {
   it('every agent\'s and this agent\'s, at the pinned version, with the content to deliver; never another agent\'s, a removed or a set-aside one', async () => {
     const every = await installed('acme', 'every', { givenToAll: true })
     const mine = await installed('acme', 'mine', { grantTo: agentId })
@@ -71,7 +71,7 @@ describe('installed skills', () => {
   })
 })
 
-describe('skills in the place\'s files', () => {
+describe('skills in the place\'s files @SC-1651', () => {
   const found: ScannedSkill = { group: 'place', path: 'release', fingerprint: F, name: 'release', description: 'd' }
 
   it('records what the scan found, off under Off by default, and named once switched on for that fingerprint', async () => {
@@ -113,7 +113,7 @@ async function personSkill(name: string, data: { published?: boolean; switchOn?:
   return { row, version }
 }
 
-describe('the person\'s skills', () => {
+describe('the person\'s skills @SC-1649', () => {
   it('their published, switched-on skills follow them into their own conversation in a project', async () => {
     const { version } = await personSkill('notes')
     await personSkill('draft-only', { published: false })
@@ -121,7 +121,7 @@ describe('the person\'s skills', () => {
     expect(skills.personSkills).toEqual([{ identity: `${personId}/notes`, version: '1', digest: version!.digest, ref: { kind: 'skill', key: version!.id, digest: version!.digest } }])
   })
 
-  it('never a scheduled run, a task, or a run not of their own conversation', async () => {
+  it('never a scheduled run, a task, or a run not of their own conversation @security-L5', async () => {
     await personSkill('notes')
     for (const over of [{ startedBy: 'schedule' as const }, { kind: 'task' as const }, { ownConversation: false }]) {
       expect((await resolveRunSkills(run(over), prisma, noScan)).personSkills).toEqual([])
@@ -135,7 +135,7 @@ describe('the person\'s skills', () => {
   })
 })
 
-describe('the clash order', () => {
+describe('the clash order @SC-1652', () => {
   it('installed before the project, the project before the person, each set aside with why', async () => {
     await installed('acme', 'code-review', { givenToAll: true })
     await personSkill('notes')
@@ -155,7 +155,7 @@ describe('the clash order', () => {
   })
 })
 
-describe('two skills that would stage under one name', () => {
+describe('two skills that would stage under one name @SC-1653', () => {
   it('sends only the one installed first, and says why the other was set aside', async () => {
     const first = await installed('acme', 'review', { givenToAll: true })
     const later = await installed('other', 'review', { givenToAll: true })

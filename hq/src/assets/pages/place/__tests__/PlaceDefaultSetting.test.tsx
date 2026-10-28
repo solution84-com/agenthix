@@ -15,7 +15,7 @@ afterEach(cleanup)
 const draw = (over: Partial<React.ComponentProps<typeof PlaceDefaultSetting>> = {}) =>
   render(<PlaceDefaultSetting projectId="p1" effective="OFF" org="OFF" placeDefault={null} canChange {...over} />)
 
-describe('PlaceDefaultSetting', () => {
+describe('PlaceDefaultSetting @SC-1642', () => {
   it('is a labelled control showing the default, with the organisation\'s in words beside it', () => {
     draw()
     const select = screen.getByLabelText('Skills found in files') as HTMLSelectElement

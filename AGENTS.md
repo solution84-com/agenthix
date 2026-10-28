@@ -156,7 +156,7 @@ How the maintainers plan, record and land work. Contributors can stop reading he
   ([ADR-0146](docs/adr/adr-0146-a-release-is-a-proven-build-given-a-name.md)); nothing is built at the tag, and no
   commit sets a version (every `package.json` stays at `0.0.0`):
   1. The owner picks a commit of `main`. **The release rehearsal passes on it**, on the dev machine
-     (`scripts/release/prove.sh`: the image keys, the images built and started, the install test, the guide's
+     (`scripts/release/prove.sh`: the Sigstore trust root hq carries no older than 300 days, the image keys, the images built and started, the install test, the guide's
      screenshots, for the dev machine's own architecture; the full regression runs with it).
   2. **The release build is started by hand** on that commit (*Release build*, `.github/workflows/release-build.yml`:
      every image part with a new key, for amd64 and arm64, built, started and attested; the install test and the

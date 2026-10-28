@@ -78,7 +78,7 @@ async function publishedWithDraft() {
   return assetId
 }
 
-describe('an agent\'s publish @D31', () => {
+describe('an agent\'s publish @D31 @security-H5 @SC-1664', () => {
   it('waits for the person as a card, though the agent is Bypassed, and publishes nothing yet', async () => {
     const assetId = await publishedWithDraft()
     const { operationId, waitsForPerson } = await requestAssetChange(requester(), { kind: 'publish', assetId, revision: 1, note: 'Clearer steps' })
@@ -123,7 +123,7 @@ describe('an agent\'s publish @D31', () => {
   })
 })
 
-describe('an agent\'s roll back @D31', () => {
+describe('an agent\'s roll back @D31 @SC-1664', () => {
   async function twoVersions() {
     const assetId = await publishedWithDraft()
     await publishAssetDraft({ assetId, revision: 1, note: 'Clearer steps' }, ctx as never)
@@ -153,7 +153,7 @@ describe('an agent\'s roll back @D31', () => {
   })
 })
 
-describe('an install\'s "requested by"', () => {
+describe('an install\'s "requested by" @SC-1664', () => {
   async function uploadArgs() {
     const z = new JSZip()
     z.file('code-review/package.json', JSON.stringify({ format: 2, kind: 'skill', publisher: 'acme', name: 'code-review', version: '1.0.0', description: 'Reviews', licence: 'MIT' }))

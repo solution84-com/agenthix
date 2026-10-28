@@ -29,7 +29,7 @@ function dbOf(assets: object[], proposals: object[] = []) {
   } as never
 }
 
-describe('the Library’s rows', () => {
+describe('the Library’s rows @SC-1630', () => {
   it('names a skill by its SKILL.md, its identity and version, who signed it, and that no agent has it', async () => {
     const [r] = await libraryRows(dbOf([asset()]), member)
     expect(r).toMatchObject({

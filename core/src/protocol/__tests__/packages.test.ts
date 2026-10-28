@@ -75,7 +75,7 @@ describe('package contracts', () => {
     expect(namespacedSkillName('person', 'review')).toBe('person-review')
   })
 
-  it('names a workspace\'s skills per workspace and folder, workspace-<n>-<slug>, n from 1 to 99', () => {
+  it('names a workspace\'s skills per workspace and folder, workspace-<n>-<slug>, n from 1 to 99 @security-M2', () => {
     expect(SKILL_SOURCES).toContain('workspace')
     expect(workspaceSkillName(1, 'review')).toBe('workspace-1-review')
     expect(workspaceSkillName(MAX_WORKSPACE_SKILL_INDEX, 'review')).toBe('workspace-99-review')
@@ -86,7 +86,7 @@ describe('package contracts', () => {
     expect(workspaceSkillName(12, 'x')).not.toBe(workspaceSkillName(1, '2-x'))
   })
 
-  it('takes the slug limit from the longest prefix, workspace-99-', () => {
+  it('takes the slug limit from the longest prefix, workspace-99- @security-M2', () => {
     expect(MAX_SKILL_SLUG_LENGTH).toBe(MAX_SKILL_NAME_LENGTH - 'workspace-99-'.length)
     expect(workspaceSkillName(99, 'x'.repeat(MAX_SKILL_SLUG_LENGTH))).toHaveLength(MAX_SKILL_NAME_LENGTH)
     expect(workspaceSkillName(99, 'x'.repeat(MAX_SKILL_SLUG_LENGTH + 1))).toBeNull()
@@ -117,7 +117,7 @@ describe('the name an installed or personal skill stages under', () => {
   })
 })
 
-describe('pickedSkillOf', () => {
+describe('pickedSkillOf @security-M7', () => {
   it('keeps a name a run could stage', () => {
     expect(pickedSkillOf({ name: 'org-code-review' })).toEqual({ name: 'org-code-review' })
     expect(pickedSkillOf({ name: 'workspace-2-lint', extra: 'dropped' })).toEqual({ name: 'workspace-2-lint' })

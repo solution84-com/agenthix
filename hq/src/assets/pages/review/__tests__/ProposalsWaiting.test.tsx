@@ -21,7 +21,7 @@ const at = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>)
 
 afterEach(cleanup)
 
-describe('proposals waiting for review', () => {
+describe('proposals waiting for review @SC-1663', () => {
   it("says on a project's Skills page how many wait for that project, with a way to review them", () => {
     h.data = [level({ level: 'organisation', projectId: null, label: 'Org' }, 3), level({}, 2), level({ projectId: 'pr2' }, 5)]
     at(<ProjectProposalsWaiting projectId="pr1" />)

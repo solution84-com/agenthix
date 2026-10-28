@@ -6,7 +6,7 @@ const f = (path: string, text: string): EditorFile => ({ path, bytes: bytesOfTex
 
 const base = [f('SKILL.md', 'a\nb\n'), f('scripts/collect.sh', 'x\n'), f('references/voice.md', 'voice\n'), f('references/old-template.md', 'old\n')]
 
-describe('changesBetween', () => {
+describe('changesBetween @SC-1626', () => {
   it('marks added, modified and removed files, and leaves the unchanged out', () => {
     const now = [f('SKILL.md', 'a\nb\nc\n'), f('scripts/collect.sh', 'x\n'), f('scripts/format.py', 'print()\n'), f('references/voice.md', 'voice\n')]
     const changes = changesBetween(base, now)
@@ -42,7 +42,7 @@ describe('changesBetween', () => {
   })
 })
 
-describe('treeRows', () => {
+describe('treeRows @SC-1626', () => {
   it('keeps a deleted file in the tree, and counts lines for the others', () => {
     const now = [f('SKILL.md', 'a\nb\nc\n'), f('scripts/collect.sh', 'x\n'), f('references/voice.md', 'voice\n')]
     const rows = treeRows(base, now)
@@ -52,7 +52,7 @@ describe('treeRows', () => {
   })
 })
 
-describe('changeSummary', () => {
+describe('changeSummary @SC-1626', () => {
   it('says how many files changed and how', () => {
     const now = [f('SKILL.md', 'a\nb\nc\n'), f('scripts/collect.sh', 'x\n'), f('scripts/format.py', 'p\n'), f('references/voice.md', 'voice\n')]
     expect(changeSummary(changesBetween(base, now))).toBe('3 files changed: 1 added, 1 modified, 1 deleted')

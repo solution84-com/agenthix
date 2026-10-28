@@ -10,7 +10,7 @@ import { speaksRunSkills } from '../runSkills'
 const D1 = '1'.repeat(64)
 const D2 = '2'.repeat(64)
 
-describe('delivering installed and personal content', () => {
+describe('delivering installed and personal content @SC-1650', () => {
   it('names each version once, by digest', () => {
     const ref1 = { kind: 'skill' as const, key: 'v1', digest: D1 }
     const ref2 = { kind: 'skill' as const, key: 'v2', digest: D2 }
@@ -29,7 +29,7 @@ describe('delivering installed and personal content', () => {
   })
 })
 
-describe('which sites are sent a run\'s skills', () => {
+describe('which sites are sent a run\'s skills @SC-1650', () => {
   it('a site on 1.10 or later', () => {
     expect(speaksRunSkills({ major: 1, minor: 10 })).toBe(true)
     expect(speaksRunSkills({ major: 2, minor: 0 })).toBe(true)

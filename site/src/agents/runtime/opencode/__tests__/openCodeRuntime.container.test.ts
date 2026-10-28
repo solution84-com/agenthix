@@ -295,7 +295,7 @@ describe.skipIf(!available)('the OpenCode runtime in an agent container', () => 
     expect(first.system).toContain('<location>/home/appuser/.claude/.tmp/')
   })
 
-  it('tells the model to load a skill the person picked, which then loads by its name (security review M7)', async () => {
+  it('tells the model to load a skill the person picked, which then loads by its name (security review M7) @security-M7 @SC-1607', async () => {
     const before = modelLog().length
     const prompt = steps([{ name: 'skill', args: { name: 'agent-probe' } }])
     const events = await turn(context(convA, prompt, { pickedSkill: 'agent-probe' }))
@@ -308,7 +308,7 @@ describe.skipIf(!available)('the OpenCode runtime in an agent container', () => 
     expect(modelLog().slice(unknown).map(r => r.lastUser)).not.toContainEqual(expect.stringContaining('The person picked the skill'))
   })
 
-  it('tells the model to read the file of a picked skill the model may not load itself, and the read runs', async () => {
+  it('tells the model to read the file of a picked skill the model may not load itself, and the read runs @SC-1607', async () => {
     const skillFile = path.posix.join(openCodeSkillsDirs(context(convA, '').claudeHome, convA).visibleDir, 'agent-by-hand', 'SKILL.md')
     const before = modelLog().length
     const prompt = steps([{ name: 'read', args: { filePath: skillFile } }])
@@ -318,7 +318,7 @@ describe.skipIf(!available)('the OpenCode runtime in an agent container', () => 
     expect(results(events).join('\n')).toContain('The by-hand skill.')
   })
 
-  it.each(['/init', '/compact', '/agent-probe', '/no-such-command'])('sends a typed %s to the model as plain text, never running it', async (typed) => {
+  it.each(['/init', '/compact', '/agent-probe', '/no-such-command'])('sends a typed %s to the model as plain text, never running it @SC-1607', async (typed) => {
     const before = modelLog().length
     const events = await turn(context(convA, typed))
     const sent = modelLog().slice(before).filter(r => r.url.includes('/chat/completions') && r.tools.length > 0)

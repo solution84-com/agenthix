@@ -15,7 +15,7 @@ const record = (name: string): TrustedPublisherRecord => ({
 })
 const trusted = (name: string): VerifyOutcome => ({ state: 'trusted', signer, publisher: record(name) })
 
-describe('the state and the publisher (C1)', () => {
+describe('the state and the publisher (C1) @security-C1 @SC-1613', () => {
   it('takes the publisher from the verified signer, never the manifest', () => {
     const d = decide('upload', trusted('acme-corp'), parts({ claim: 'acme' }))
     expect(d).toMatchObject({ state: 'trusted', publisher: 'acme-corp', refusal: null })
@@ -50,7 +50,7 @@ describe('the state and the publisher (C1)', () => {
     expect(decide('upload', { state: 'unverifiable', reason: 'the trust root expired' }, parts()).refusal).toMatch(/the trust root expired/)
   })
 
-  it('leaves a new keyless signer to be named, and refuses a new key outright', () => {
+  it('leaves a new keyless signer to be named, and refuses a new key outright @security-H2', () => {
     expect(decide('upload', { state: 'new-publisher', signer }, parts())).toMatchObject({ state: 'new-publisher', publisher: null, refusal: null })
     expect(decide('upload', { state: 'new-publisher', signer: { kind: 'key', keyId: 'ab'.repeat(32) } }, parts()).refusal).toMatch(/key this organisation hasn't added/)
   })

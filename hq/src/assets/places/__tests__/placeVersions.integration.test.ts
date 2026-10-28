@@ -48,7 +48,7 @@ async function foundSkill(projectId: string, userId: string) {
   return skill
 }
 
-describe('versions by publishing (FV1–FV3)', () => {
+describe('versions by publishing (FV1–FV3) @SC-1644', () => {
   it('lets a member draft, only an administrator publish the revision seen, and writes the version into metadata', async () => {
     const { project, admin, member, loc } = await aPlace()
     const made = await createPlaceSkillDraft({ projectId: project.id, name: 'review', description: 'Reviews code' }, as(member))
@@ -98,7 +98,7 @@ describe('versions by publishing (FV1–FV3)', () => {
   })
 })
 
-describe('changed in files, not published (FV4)', () => {
+describe('changed in files, not published (FV4) @SC-1645', () => {
   async function changedSkill() {
     const p = await aPlace()
     const made = await createPlaceSkillDraft({ projectId: p.project.id, name: 'review', description: 'Reviews code' }, as(p.admin))
@@ -146,7 +146,7 @@ describe('changed in files, not published (FV4)', () => {
   })
 })
 
-describe('a repository skill is read-only in HQ (FV6)', () => {
+describe('a repository skill is read-only in HQ (FV6) @SC-1646', () => {
   it('refuses drafting, publishing and removing it, and still lets it be switched', async () => {
     const { project, admin } = await aPlace()
     const content = await storeContent([{ path: 'SKILL.md', content: Buffer.from(SKILL('Repo.')) }], prisma)
@@ -160,7 +160,7 @@ describe('a repository skill is read-only in HQ (FV6)', () => {
   })
 })
 
-describe('Add to this place, and Remove (F3)', () => {
+describe('Add to this place, and Remove (F3) @SC-1647', () => {
   async function librarySkill() {
     const digest = await storeContent([
       { path: 'SKILL.md', content: Buffer.from('---\nname: pm-sprint-planning\ndescription: Plans sprints\n---\n\nPlan.\n') },

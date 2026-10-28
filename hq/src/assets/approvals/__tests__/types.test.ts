@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { actionOf, parseAssetRequest, parseRequestArgs, policyTarget } from '../types'
 
-describe('an agent\'s asset request', () => {
+describe('an agent\'s asset request @SC-1664', () => {
   it('reads each kind it may ask for, and nothing else', () => {
     expect(parseAssetRequest({ kind: 'publish', assetId: 'a1', revision: 3, note: ' Fixes the example ' }))
       .toEqual({ kind: 'publish', assetId: 'a1', revision: 3, note: 'Fixes the example' })

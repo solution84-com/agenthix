@@ -17,7 +17,7 @@ function packageContentListFields(): string[] {
   return [...body.matchAll(/^\s+(\w+)\s+\w+\[\]/gm)].map(m => m[1])
 }
 
-describe('package content sweep: what keeps content', () => {
+describe('package content sweep: what keeps content @SC-1608', () => {
   it('names every record that refers to content, besides the content\'s own files', () => {
     const holders = packageContentListFields().filter(f => f !== 'files')
     expect([...CONTENT_HOLDERS].sort()).toEqual(holders.sort())

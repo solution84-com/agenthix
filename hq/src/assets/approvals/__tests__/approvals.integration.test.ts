@@ -60,7 +60,7 @@ const answer = (who: string, key: string, how: 'approve' | 'decline' = 'approve'
   conversationId, operationId, answer: how, note: null, answererId: who, via: { kind: 'card', clientMessageId: key },
 })
 
-describe('an agent\'s request to install @D31', () => {
+describe('an agent\'s request to install @D31 @SC-1664', () => {
   it('waits for the person as a card, though the agent is Bypassed, and installs nothing yet', async () => {
     const { operationId, waitsForPerson } = await requestAssetChange(requester(), install)
     expect(waitsForPerson).toBe(true)
@@ -110,7 +110,7 @@ describe('an agent\'s request to install @D31', () => {
   })
 })
 
-describe('what is refused before any card', () => {
+describe('what is refused before any card @SC-1664', () => {
   it('a request the person couldn\'t approve, with the policy\'s words', async () => {
     await prisma.userSettings.update({ where: { userId: person.id }, data: { role: 'MEMBER' } })
     await expect(requestAssetChange(requester(), install)).rejects.toMatchObject({ statusCode: 403 })

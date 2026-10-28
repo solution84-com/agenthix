@@ -67,7 +67,7 @@ async function cards(conversationId: string) {
 
 const live = async () => ({ versions: await prisma.assetVersion.count(), placeVersions: await prisma.placeSkillVersion.count() })
 
-describe('propose_skill routing @H5', () => {
+describe('propose_skill routing @security-H5 @SC-1661', () => {
   it("is the person's own draft from their own conversation where they may edit, with the agent and run recorded", async () => {
     const r = run(member.id)
     const conversationId = await conversationFor(r.runId, member.id)

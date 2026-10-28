@@ -17,7 +17,7 @@ const draw = (s = skill(), may = MAY_ALL, h = handlers()) => {
   return h
 }
 
-describe('PlaceSkillRow', () => {
+describe('PlaceSkillRow @SC-1642 @SC-1644 @SC-1645 @SC-1646 @SC-1647', () => {
   it('says which Library skill it was added from and offers the newer version to whoever publishes here (F3)', () => {
     const added = skill({ version: 2, origin: { identity: 'agenthix/pm-sprint-planning', version: '1.3.0' }, libraryUpdate: '1.4.0' })
     const h = draw(added)

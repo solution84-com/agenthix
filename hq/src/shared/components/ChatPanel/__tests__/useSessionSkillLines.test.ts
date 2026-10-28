@@ -18,7 +18,7 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
-describe("a used skill's line in a session's work (skills spec part 5) @M6", () => {
+describe("a used skill's line in a session's work (skills spec part 5) @M6 @SC-1658", () => {
   it("reads hq's line for the run, by the staged name, and the newest run's for a live line", () => {
     const { result } = renderHook(() => useSessionSkillLines('s1'))
     expect(h.asked[0]).toEqual({ sessionId: 's1' })

@@ -21,7 +21,7 @@ function scripted(rounds: Array<Array<{ name: string; input: Record<string, unkn
 
 const SKILL = { 'SKILL.md': '---\nname: pr-review\ndescription: Review a pull request.\n---\n\n1. Read it.\n' }
 
-describe('the propose_skill model check', () => {
+describe('the propose_skill model check @SC-1662', () => {
   it('gives the agent skill-creator in its list, and the skill tool answers with its own SKILL.md', async () => {
     expect(system()[0]!.text).toContain('platform-skill-creator')
     expect(tools().map(t => t.name)).toEqual(['Skill', 'Read', 'Write', 'Bash', 'propose_skill'])

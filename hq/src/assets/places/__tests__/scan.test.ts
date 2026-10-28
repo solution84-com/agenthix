@@ -6,7 +6,7 @@ import { placeSkillPath } from '../scan'
 
 const skill = { fingerprint: 'a'.repeat(64), name: 'x', description: 'y', path: 'review' }
 
-describe('the path a found skill is kept under', () => {
+describe('the path a found skill is kept under @SC-1641', () => {
   it('names the root it was found under', () => {
     expect(placeSkillPath({ ...skill, group: 'place' })).toBe('.agents/skills/review')
     expect(placeSkillPath({ ...skill, group: 'agent', agentId: 'ada' })).toBe('.agents/agents/ada/skills/review')

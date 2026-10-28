@@ -11,7 +11,7 @@ const agent = (over: Record<string, unknown> = {}) => [
   f('agent.json', { name: 'QA', handle: 'qa', role: 'Checks', approval: 'deferred', ...over }), f('instructions.md', '# QA'),
 ]
 
-describe("an agent template's files", () => {
+describe("an agent template's files @SC-1636", () => {
   it('reads only the fields it knows, bounded', () => {
     expect(readAgentTemplate(agent({ extra: 'ignored', allowedTools: ['read_file'] }))).toEqual({
       name: 'QA', handle: 'qa', role: 'Checks', approval: 'deferred', allowedTools: ['read_file'], allowedBashPatterns: null,
@@ -28,7 +28,7 @@ describe("an agent template's files", () => {
   })
 })
 
-describe("a board template's files", () => {
+describe("a board template's files @SC-1636", () => {
   it('reads its columns in the order listed', () => {
     const board = readBoardTemplate([f('board.json', { name: 'Flow', columns: COLUMNS })])
     expect(board.columns.map(c => [c.name, c.order])).toEqual([['todo', 0], ['doing', 1], ['done', 2]])

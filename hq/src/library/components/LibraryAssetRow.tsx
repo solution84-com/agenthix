@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router'
 import { MoreMenu, type MenuItem } from '../../org/components/menus'
 import type { LibraryAssetRow as Row, LibraryKindId } from '../assetList/types'
-import { libraryAssetPath, libraryProposalPath } from './libraryRoutes'
+import { libraryAssetPath, libraryProposalPath, libraryUseTeamPath } from './libraryRoutes'
 
 const MARK: Record<LibraryKindId, string> = { skill: 'S', agent: 'A', board: 'B', team: 'T' }
 
@@ -33,13 +33,14 @@ export function whoLine(r: Row): string[] {
   ]
 }
 
-function action(r: Row): { label: string; to: string } | 'createAgent' | null {
+function action(r: Row): { label: string; to: string } | 'createAgent' | 'useTeam' | null {
   if (r.proposalId) return { label: 'Review', to: libraryProposalPath(r.proposalId) }
   if (!r.assetId) return null
   const page = libraryAssetPath(r.assetId)
   if (r.statuses.includes('setAside')) return { label: 'Use this again', to: page }
   if (r.updateTo) return { label: 'Update', to: page }
   if (r.kind === 'agent') return 'createAgent'
+  if (r.kind === 'team') return 'useTeam'
   if (r.statuses.includes('noAgent')) return { label: 'Add to agents…', to: page }
   return null
 }
@@ -63,7 +64,9 @@ export function LibraryAssetRow({ row, isAdmin, onCreateAgent, onExport, onRemov
   const main = action(row)
   const mainItem: MenuItem[] = main === 'createAgent' && row.assetId
     ? [{ label: 'Create an agent', onSelect: () => onCreateAgent(row.assetId!) }]
-    : main && main !== 'createAgent' ? [{ label: main.label, onSelect: () => navigate(main.to) }] : []
+    : main === 'useTeam' && row.assetId
+      ? [{ label: 'Use this team', hint: 'Choose what to make from it', disabled: !isAdmin, onSelect: () => navigate(libraryUseTeamPath(row.assetId!)) }]
+    : main && main !== 'createAgent' && main !== 'useTeam' ? [{ label: main.label, onSelect: () => navigate(main.to) }] : []
   const menu: MenuItem[] = [
     ...mainItem,
     ...(row.assetId && !row.builtIn ? [

@@ -34,7 +34,7 @@ beforeEach(() => { h.give.mockClear(); h.take.mockClear() })
 afterEach(cleanup)
 const renderSection = () => render(<MemoryRouter><AgentSkillsSection agentId="ag1" /></MemoryRouter>)
 
-describe("the agent's Skills on its manage page (board A1)", () => {
+describe("the agent's Skills on its manage page (board A1) @SC-1654", () => {
   it('lists everything in the clash order, with counts for the places and why a skill is set aside', () => {
     h.data = view()
     renderSection()
@@ -73,7 +73,7 @@ describe("the agent's Skills on its manage page (board A1)", () => {
   })
 })
 
-describe("the agent's Skills on its own page (board A1)", () => {
+describe("the agent's Skills on its own page (board A1) @SC-1654", () => {
   const renderTool = () => render(<MemoryRouter><AgentSkillsTool agentId="ag1" /></MemoryRouter>)
 
   it('gives a member the same rows as the manage page, read only, with their own skills as rows', () => {

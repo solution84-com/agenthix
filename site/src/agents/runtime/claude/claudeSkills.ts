@@ -58,7 +58,7 @@ export async function stageTurnSkills(context: RunContext): Promise<StagedTurnSk
   const skillsDir = path.join(pluginDir, 'skills')
   await fs.mkdir(skillsDir, { recursive: true })
 
-  const result = await stageSkills(context.packages.platformDir, context.skills, skillsDir)
+  const result = await stageSkills(context.skills, skillsDir)
   await recordSkillsUsed(context.runId, result)
   const staged = result.staged
   if (staged.length === 0) {

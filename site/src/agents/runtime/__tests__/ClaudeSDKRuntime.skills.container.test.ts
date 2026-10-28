@@ -100,6 +100,8 @@ const lastUserText = (r: Request) => {
   const messages = (r.body.messages ?? []) as Array<{ role?: string }>
   return JSON.stringify(messages.filter(m => m.role === 'user').at(-1) ?? null)
 }
+// The request's text as it reads inside the JSON these helpers return: quotes escaped.
+const asJson = (s: string) => JSON.stringify(s).slice(1, -1)
 /** The skill list Claude Code puts in a reminder, one `name: description` per line. */
 const listed = (r: Request) => [...text(r).matchAll(/\\n- (\S+?): /g)].map(m => m[1])
   .filter(() => text(r).includes('skills are available for use with the Skill tool'))
@@ -185,9 +187,9 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     expect(text(called.sent.at(-1)!)).toContain(INSTRUCTIONS)
   }, 120_000)
 
-  it('tells the model to load a skill the person picked, which then loads by its name (security review M7)', async () => {
+  it('tells the model to load a skill the person picked, which then loads by its name (security review M7) @security-M7 @SC-1607', async () => {
     const picked = await turn('TURN DO:SKILL agent-hello-claude', { ...restricted, pickedSkill: 'agent-hello-claude' })
-    expect(text(picked.sent[0]!)).toContain(pickedSkillInstruction('agent-hello-claude'))
+    expect(lastUserText(picked.sent[0]!)).toContain(asJson(pickedSkillInstruction('agent-hello-claude')))
     expect(results(picked.events)).toEqual(['Launching skill: agent-hello-claude'])
     expect(text(picked.sent.at(-1)!)).toContain(INSTRUCTIONS)
 
@@ -195,7 +197,7 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     expect(lastUserText(notStaged.sent[0]!)).not.toContain('The person picked the skill')
   }, 120_000)
 
-  it('tells the model to read the file of a picked skill it may not load itself, from the folder its process reads', async () => {
+  it('tells the model to read the file of a picked skill it may not load itself, from the folder its process reads @SC-1607', async () => {
     const BY_HAND = 'BY-HAND-INSTRUCTIONS-8812'
     const byHand = {
       ...restricted,
@@ -207,11 +209,11 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     const picked = await turn('TURN hello', { ...byHand, isNewSession: true, pickedSkill: 'agent-by-hand' })
     const file = text(picked.sent[0]!).match(/Read the file (\S+?\/agent-by-hand\/SKILL\.md) first/)?.[1]
     expect(file).toMatch(/^\/home\/appuser\/\.claude\/\.tmp\/skills-[^/]+\/\.claude\/skills\/agent-by-hand\/SKILL\.md$/)
-    expect(text(picked.sent[0]!)).toContain(pickedSkillReadInstruction('agent-by-hand', file!))
+    expect(lastUserText(picked.sent[0]!)).toContain(asJson(pickedSkillReadInstruction('agent-by-hand', file!)))
 
     // The same skills keep the process, and with it the folder the instruction named: the read runs there.
     const read = await turn(`TURN DO:READ ${file}`, { ...byHand, pickedSkill: 'agent-by-hand' })
-    expect(text(read.sent[0]!)).toContain(pickedSkillReadInstruction('agent-by-hand', file!))
+    expect(lastUserText(read.sent[0]!)).toContain(asJson(pickedSkillReadInstruction('agent-by-hand', file!)))
     expect(results(read.events)).toEqual([expect.stringContaining(BY_HAND)])
     await runtime.endConversation({ sessionId: byHand.sessionId, containerName: CONTAINER }).catch(() => {})
   }, 180_000)
@@ -222,7 +224,7 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     // What each bundled command would put before the model, had it run.
     ["Claude Code's /init", '/init', 'Please analyze this codebase'],
     ["Claude Code's /compact", '/compact', 'Your task is to create a detailed summary'],
-  ])("sends a typed /name for %s to the model as plain text, never running it", async (_label, typed, neverSeen) => {
+  ])("sends a typed /name for %s to the model as plain text, never running it @security-M7", async (_label, typed, neverSeen) => {
     const { events, sent } = await turn(`${typed} TURN`, restricted)
     expect(sent).toHaveLength(1)
     expect(text(sent[0]!)).toContain(PLAIN_TEXT_LINE.replaceAll('"', '\\"'))
@@ -231,7 +233,7 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     expect(events.filter(e => e.type === 'compacted')).toEqual([])
   }, 120_000)
 
-  it("refuses one of Claude Code's own bundled skills", async () => {
+  it("refuses one of Claude Code's own bundled skills @SC-1607", async () => {
     const { events } = await turn('TURN DO:SKILL update-config', restricted)
     expect(results(events)).toEqual([expect.stringContaining('not in this session')])
   }, 60_000)

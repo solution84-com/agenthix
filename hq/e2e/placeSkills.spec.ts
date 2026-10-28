@@ -3,12 +3,15 @@ import { mkdirSync, writeFileSync, appendFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { signIn, ADMIN } from './fixtures/auth'
 import { at } from './fixtures/address'
+import { memberProjectKey } from './fixtures/memberProject'
 
 // A place's Skills page (skills spec part 6; boards P1, P2): the Skills entry under Agents at work in Your space and in a
 // project, the page's header, default and groups, and its dialogs. Written against the seeded e2e organisation; run by
 // the lead against a running hq.
 
 test.use({ viewport: { width: 1440, height: 900 } })
+// These specs change and read one place's settings and skills (Your space), so they run one after another.
+test.describe.configure({ mode: 'serial' })
 
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Main' })
 const sections = (page: Page) => nav(page).getByRole('list', { name: 'Your space sections' })
@@ -25,7 +28,7 @@ test.describe('Your space: your skills', () => {
     await expect(page.getByTestId('place-skills-counts')).toBeVisible()
   })
 
-  test('has a Skills entry after Workflows, and the page says your skills follow you or stay home', async ({ page }) => {
+  test('has a Skills entry after Workflows, and the page says your skills follow you or stay home @SC-1642 @SC-1648', async ({ page }) => {
     const labels = await sections(page).getByRole('link').allTextContents()
     const index = (name: string) => labels.findIndex(t => t.startsWith(name))
     expect(index('Skills')).toBeGreaterThan(index('Automation'))
@@ -35,7 +38,7 @@ test.describe('Your space: your skills', () => {
     await expect(page.getByTestId('place-skills-counts')).toContainText(/\d+ on/)
   })
 
-  test('the default is a labelled setting with the organisation\'s in words, and a looser choice is unavailable', async ({ page }) => {
+  test('the default is a labelled setting with the organisation\'s in words, and a looser choice is unavailable @SC-1642', async ({ page }) => {
     const line = page.getByTestId('place-default-line')
     const select = line.getByLabel('Skills found in files')
     await expect(select).toBeVisible()
@@ -48,13 +51,16 @@ test.describe('Your space: your skills', () => {
       await expect(line.getByTestId('place-default-unavailable')).toContainText("isn't available")
     }
     const before = await select.inputValue()
-    await select.selectOption('NEVER')
-    await expect(page.getByText('Skills in files aren\'t read here.').or(page.getByText('No skills found in this place yet.'))).toBeVisible()
-    await select.selectOption(before)
+    try {
+      await select.selectOption('NEVER')
+      await expect(page.getByText('Skills in files aren\'t read here.').or(page.getByText('No skills found in this place yet.'))).toBeVisible()
+    } finally {
+      await select.selectOption(before)
+    }
     await expect(select).toHaveValue(before)
   })
 
-  test('Add lists the installed skills and what to add them for', async ({ page }) => {
+  test('Add lists the installed skills and what to add them for @SC-1647', async ({ page }) => {
     await page.getByRole('button', { name: 'Add', exact: true }).click()
     const dialog = page.getByTestId('add-to-place-dialog')
     await expect(dialog.getByRole('radio', { name: /Every agent/ })).toBeChecked()
@@ -62,12 +68,12 @@ test.describe('Your space: your skills', () => {
     await dialog.getByRole('button', { name: 'Cancel' }).click()
   })
 
-  test('New skill opens the editor for this place', async ({ page }) => {
+  test('New skill opens the editor for this place @SC-1624', async ({ page }) => {
     await page.getByRole('link', { name: 'New skill' }).click()
     await expect(page).toHaveURL(/\/library\/new-skill\?place=/)
   })
 
-  test('a skill added from the Library says what it is based on, and Update… shows what would change before it writes', async ({ page }) => {
+  test('a skill added from the Library says what it is based on, and Update… shows what would change before it writes @SC-1647', async ({ page }) => {
     const row = page.getByTestId('place-skill-row').filter({ has: page.getByRole('button', { name: 'Update…' }) }).first()
     if (!(await row.count())) test.skip(true, 'no skill here was added from the Library at a version older than the one it pins')
     await expect(row.getByTestId('place-skill-words')).toContainText(/based on \S+ \S+ · \S+ available/)
@@ -78,19 +84,18 @@ test.describe('Your space: your skills', () => {
     await expect(dialog).toHaveCount(0)
   })
 
-  test('All on names what it would switch before it does', async ({ page }) => {
-    await page.getByRole('button', { name: 'All on' }).first().click()
+  test('All on names what it would switch before it does @SC-1642', async ({ page }) => {
+    const allOn = page.getByRole('button', { name: 'All on' }).first()
+    if (await allOn.isDisabled()) test.skip(true, 'every skill in Your space is already on, or none is installed there: All on has nothing to switch')
+    await allOn.click()
     await expect(page.getByTestId('confirm-switch-all')).toBeVisible()
     await page.getByTestId('confirm-switch-all').getByRole('button', { name: 'Cancel' }).click()
   })
 })
 
 test.describe('a project: what agents find here', () => {
-  test('has the Skills page under Agents at work, with groups by where each skill was found', async ({ page }) => {
-    await page.goto('/projects')
-    await page.getByRole('link', { name: /Open|View/ }).first().click().catch(() => {})
-    const first = page.locator('a[href^="/projects/"]').first()
-    await first.click()
+  test('has the Skills page under Agents at work, with groups by where each skill was found @SC-1642', async ({ page }) => {
+    await page.goto(`/projects/${await memberProjectKey(page)}`)
     const panel = page.getByTestId('place-panel-header')
     await expect(panel).toBeVisible()
     await nav(page).getByRole('link', { name: /^Skills/ }).click()
@@ -107,19 +112,24 @@ test.describe('a project: what agents find here', () => {
 test.describe('Your space: a skill found in files, switched on, then changed', () => {
   const DIR = process.env.E2E_SPACE_SKILLS_DIR
   test.skip(!DIR, 'needs E2E_SPACE_SKILLS_DIR: the e2e administrator\'s files/.agents/skills folder')
-  const NAME = 'e2e-switch-check'
+  // A new name each time: a skill that was published and switched on once is a record HQ keeps, and a second run would meet it.
+  let NAME = ''
   const file = () => join(DIR!, NAME, 'SKILL.md')
   const row = (page: Page) => page.getByTestId('place-skill-row').filter({ hasText: NAME })
 
   test.beforeEach(async ({ page }) => {
+    NAME = `e2e-switch-${Date.now() % 1000000}`
     mkdirSync(join(DIR!, NAME), { recursive: true })
     writeFileSync(file(), `---\nname: ${NAME}\ndescription: Checks that a switch goes off when the files change.\n---\nSay hello.\n`)
     await page.goto('/space?tool=skills')
+    // Files are read only when the place's default isn't Never; the scenarios need them read, whatever it was left at.
+    const find = page.getByTestId('place-default-line').getByLabel('Skills found in files')
+    if ((await find.inputValue()) === 'NEVER') await find.selectOption('OFF')
     await page.getByRole('button', { name: 'Look at the files again' }).click()
   })
   test.afterEach(() => rmSync(join(DIR!, NAME), { recursive: true, force: true }))
 
-  test('publish from the files with a note, switch on, a change turns it off and says why, put back keeps it on', async ({ page }) => {
+  test('publish from the files with a note, switch on, a change turns it off and says why, put back keeps it on @SC-1644', async ({ page }) => {
     await expect(row(page)).toContainText('in files, not published')
     await row(page).getByRole('button', { name: 'Publish as version 1' }).click()
     const publish = page.getByTestId('skill-files-dialog')
@@ -149,7 +159,7 @@ test.describe('Your space: a skill found in files, switched on, then changed', (
     await expect(row(page).getByTestId('place-skill-switched-off')).toHaveCount(0)
   })
 
-  test('a skill never published says why its switch went off too', async ({ page }) => {
+  test('a skill never published says why its switch went off too @SC-1645', async ({ page }) => {
     await row(page).getByRole('switch').click()
     await page.getByTestId('skill-files-dialog').getByRole('button', { name: 'Switch on' }).click()
     await expect(row(page).getByRole('switch')).toHaveAttribute('aria-checked', 'true')

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { madeFromText, signedByText, titleOfName, whoHasText } from '../words'
 
-describe('the Library’s row words', () => {
+describe('the Library’s row words @SC-1630', () => {
   it('says who has an asset', () => {
     expect(whoHasText([])).toBe('No agent has it yet')
     expect(whoHasText(['Ada'])).toBe('Ada has it')

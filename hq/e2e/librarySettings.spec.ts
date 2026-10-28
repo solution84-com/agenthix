@@ -7,7 +7,7 @@ import { at } from './fixtures/address'
 
 test.use({ viewport: { width: 1280, height: 800 } })
 
-test('is in the Settings group of the admin menu', async ({ page }) => {
+test('is in the Settings group of the admin menu @SC-1616', async ({ page }) => {
   await signIn(page, ADMIN)
   await page.goto('/admin')
   await page.getByRole('link', { name: 'Library and skills' }).first().click()
@@ -15,7 +15,7 @@ test('is in the Settings group of the admin menu', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Library and skills' })).toBeVisible()
 })
 
-test('holds each setting the design gives an administrator', async ({ page }) => {
+test('holds each setting the design gives an administrator @SC-1616', async ({ page }) => {
   await signIn(page, ADMIN)
   await page.goto('/admin/settings/library')
   for (const name of ['Trusted publishers', 'Unsigned assets', 'Who may install from outside', 'Skills found in files', 'Personal skills outside Your space', 'Library maintainers', 'Built-in skills']) {
@@ -25,7 +25,7 @@ test('holds each setting the design gives an administrator', async ({ page }) =>
   await expect(page.getByTestId('built-ins')).toContainText('skill-creator')
 })
 
-test('asks before skills in files are on by default, and leaves the setting alone if it is not confirmed', async ({ page }) => {
+test('asks before skills in files are on by default, and leaves the setting alone if it is not confirmed @SC-1616 @SC-1642', async ({ page }) => {
   await signIn(page, ADMIN)
   await page.goto('/admin/settings/library')
   const off = page.getByRole('radio', { name: /Off by default/ })
@@ -36,7 +36,7 @@ test('asks before skills in files are on by default, and leaves the setting alon
   await expect(off).toBeChecked()
 })
 
-test('shows what a Library maintainer reaches before anyone is named', async ({ page }) => {
+test('shows what a Library maintainer reaches before anyone is named @SC-1617', async ({ page }) => {
   await signIn(page, ADMIN)
   await page.goto('/admin/settings/library')
   const choose = page.getByLabel('Person to name')
@@ -48,7 +48,7 @@ test('shows what a Library maintainer reaches before anyone is named', async ({ 
   await page.getByRole('button', { name: 'Cancel' }).click()
 })
 
-test('is for administrators: a member is told so', async ({ page }) => {
+test('is for administrators: a member is told so @SC-1617', async ({ page }) => {
   await signIn(page, MEMBER)
   await page.goto('/admin/settings/library')
   await expect(page.getByRole('heading', { name: 'Admins only' })).toBeVisible()

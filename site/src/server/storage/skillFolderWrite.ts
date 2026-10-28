@@ -22,6 +22,7 @@ import {
 import { LOC_REF_SCHEMA } from './locationFileMethods'
 import { describeLocation, parseParams } from './locationContainment'
 import { placeFilesHome } from '../../packages/placeSkillHomes'
+import { getFilesDir } from './paths'
 import { isInsideHome, realpathOrNull } from '../../packages/boundaryOverrides'
 import { readSkillTransfer, SkillTransferError, type TransferredFile } from './skillFolderTransfer'
 import type { ContentHandler } from '../hq/content/contentMethods'
@@ -38,14 +39,36 @@ function refusal(code: LocationFileErrorCode, method: string, loc: LocationRef, 
   return new LocationFileError(code, `${method} "${dir}" in ${describeLocation(loc)}: ${why}`)
 }
 
+/**
+ * The place's files folder, as its real path. Where nothing stands there yet (a person or project nobody has written
+ * a file for) a write makes it, as the site's other writes do for a first file, and a removal finds nothing. A link or
+ * a file standing there is refused either way, and the make is followed by the same check as an existing home.
+ */
+async function homeOf(method: string, loc: LocationRef, dir: string, create: boolean): Promise<string | null> {
+  const home = await placeFilesHome(loc)
+  if (home) return home
+  let files: string
+  try {
+    files = getFilesDir(loc.ownerType, loc.ownerId)
+  } catch {
+    throw refusal('invalid', method, loc, dir, 'the place is not one')
+  }
+  if (await fs.lstat(files).catch(() => null)) throw refusal('not_found', method, loc, dir, "the place's files are not where they should be")
+  if (!create) return null
+  await fs.mkdir(files, { recursive: true })
+  const made = await placeFilesHome(loc)
+  if (!made) throw refusal('not_found', method, loc, dir, "the place's files are not where they should be")
+  return made
+}
+
 /** The folder's place on disk, its root made where missing; refused for a workspace, any other path, or a link. */
 async function folderOf(method: string, loc: LocationRef, dir: string, create: boolean): Promise<Folder | null> {
   const folder = placeSkillFolder(dir)
   if (!folder || loc.workspaceId || loc.taskId) {
     throw refusal('invalid', method, loc, dir, "it is not a place's skill folder")
   }
-  const home = await placeFilesHome(loc)
-  if (!home) throw refusal('not_found', method, loc, dir, "the place's files are not where they should be")
+  const home = await homeOf(method, loc, dir, create)
+  if (!home) return null
   let at = home
   for (const part of dir.split('/').slice(0, -1)) {
     at = path.join(at, part)

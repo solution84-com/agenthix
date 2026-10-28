@@ -6,7 +6,7 @@ const list = parseWithdrawnList({
   withdrawn: [{ asset: 'agenthix/dev-github-operations', version: '1.0.0', reason: 'It told agents to push to the default branch.' }],
 })
 
-describe("Agenthix's withdrawn list", () => {
+describe("Agenthix's withdrawn list @security-M4 @SC-1620", () => {
   it('names why a listed Agenthix version was withdrawn', () => {
     expect(withdrawnReason(list, { publisher: 'agenthix', name: 'dev-github-operations', version: '1.0.0' })).toBe('It told agents to push to the default branch.')
     expect(withdrawnReason(list, { publisher: 'agenthix', name: 'dev-github-operations', version: '1.1.0' })).toBeNull()

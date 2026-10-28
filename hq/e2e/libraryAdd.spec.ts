@@ -16,7 +16,7 @@ async function open(page: Page, from?: 'shelf' | 'upload' | 'link') {
 }
 
 test.describe('Add', () => {
-  test('offers Agenthix, an upload and a link to install, and New skill to make', async ({ page }) => {
+  test('offers Agenthix, an upload and a link to install, and New skill to make @SC-1609', async ({ page }) => {
     await open(page)
     await expect(page.getByTestId('add-shelf')).toContainText('From Agenthix')
     await expect(page.getByTestId('add-upload')).toContainText('Upload a package')
@@ -24,7 +24,7 @@ test.describe('Add', () => {
     await expect(page.getByRole('link', { name: /New skill/ })).toBeVisible()
   })
 
-  test('the shelf lists what ships with this HQ, narrowed by Suited to, which is a hint and not a lock', async ({ page }) => {
+  test('the shelf lists what ships with this HQ, narrowed by Suited to, which is a hint and not a lock @SC-1609', async ({ page }) => {
     await open(page, 'shelf')
     await expect(page.getByTestId('shelf')).toContainText('Nothing here reaches an agent until you install it and add it to one.')
     const items = page.getByTestId('shelf-item')
@@ -42,7 +42,7 @@ test.describe('Add', () => {
     await expect(page.getByTestId('read-package')).toContainText('name:')
   })
 
-  test("the shelf lists Agenthix's templates an administrator removed, to put back", async ({ page }) => {
+  test("the shelf lists Agenthix's templates an administrator removed, to put back @SC-1637", async ({ page }) => {
     await open(page, 'shelf')
     const removed = page.getByTestId('removed-templates')
     if (!(await removed.count())) test.skip(true, "no Agenthix template is removed in the seeded organisation")
@@ -50,19 +50,19 @@ test.describe('Add', () => {
     await expect(removed.getByRole('button', { name: 'Put back' }).first()).toBeVisible()
   })
 
-  test('installing from the shelf says Signed by Agenthix, and Cancel changes nothing', async ({ page }) => {
+  test('installing from the shelf says Signed by Agenthix, and Cancel changes nothing @SC-1609 @SC-1612', async ({ page }) => {
     await open(page, 'shelf')
     const item = page.getByTestId('shelf-item').filter({ has: page.getByRole('button', { name: /^(Install|Get)/ }) }).first()
     await item.getByRole('button', { name: /^(Install|Get)/ }).click()
     const dialog = page.getByTestId('install-trusted')
     await expect(dialog).toContainText('✓ Signed by')
     await expect(dialog).toContainText('The signature was checked.')
-    await page.getByRole('button', { name: 'Cancel' }).click()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
     await expect(dialog).toHaveCount(0)
     await expect(page.getByTestId('installed-notice')).toHaveCount(0)
   })
 
-  test('an unsigned folder says so and keeps Install off until “I’ve read it” is ticked', async ({ page }) => {
+  test('an unsigned folder says so and keeps Install off until “I’ve read it” is ticked @SC-1612', async ({ page }) => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'add-'))
     const folder = path.join(dir, 'legal-review')
     fs.mkdirSync(folder)
@@ -81,7 +81,7 @@ test.describe('Add', () => {
     await dialog.getByRole('button', { name: 'Cancel' }).click()
   })
 
-  test('a link that is not https is refused in words, before anything is fetched', async ({ page }) => {
+  test('a link that is not https is refused in words, before anything is fetched @SC-1611', async ({ page }) => {
     await open(page, 'link')
     await page.getByLabel('Link to the package').fill('http://example.com/seo-audit.zip')
     await page.getByRole('button', { name: 'Check it' }).click()
@@ -90,7 +90,7 @@ test.describe('Add', () => {
     await page.getByRole('button', { name: 'Close' }).click()
   })
 
-  test('a member who may not install sees why, not a broken screen', async ({ page }) => {
+  test('a member who may not install sees why, not a broken screen @SC-1617', async ({ page }) => {
     await signIn(page, { username: 'e2e-operator', password: 'E2eOperator!2026' })
     await page.goto('/library/add')
     await expect(page.getByTestId('add-not-allowed')).toContainText('Adding to the Library is for administrators and Library maintainers')

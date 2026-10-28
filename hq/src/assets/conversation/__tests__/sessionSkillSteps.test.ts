@@ -19,7 +19,7 @@ beforeEach(() => {
     use.name === 'org-code-review' ? { title: 'Code review', where: 'Fernhill', version: '1.3.0' } : null)
 })
 
-describe("a session's used skills, named for the viewer @M6", () => {
+describe("a session's used skills, named for the viewer @M6 @SC-1658", () => {
   it('names each run\'s skills the viewer may see, and leaves out the rest', async () => {
     const runs = await skillStepsOf(deps, 'u1', [
       { id: 'r2', skillsUsed: [review, notes] },

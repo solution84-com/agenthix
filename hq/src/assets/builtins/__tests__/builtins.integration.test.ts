@@ -30,7 +30,7 @@ const assetOf = (name: string) => prisma.asset.findUniqueOrThrow({
   include: { currentVersion: true, versions: true, pinChanges: true },
 })
 
-describe('installed at boot', () => {
+describe('installed at boot @SC-1633', () => {
   it('as agenthix/<name>, built in, for every agent by itself, from what hq\'s image ships', async () => {
     const { skills } = await readPlatformSkills(path.resolve(__dirname, '../../../../assets/platform/skills'))
     const { installed } = await installBuiltInSkills(prisma, skills)
@@ -79,7 +79,7 @@ describe('installed at boot', () => {
   })
 })
 
-describe("the organisation's switch", () => {
+describe("the organisation's switch @SC-1634", () => {
   beforeEach(async () => {
     await prisma.org.create({ data: { name: 'Fernhill' } })
     await installBuiltInSkills(prisma, [skill('skill-creator'), skill('working-with-git')])
@@ -107,7 +107,7 @@ describe("the organisation's switch", () => {
   })
 })
 
-describe('what a run is given', () => {
+describe('what a run is given @SC-1634', () => {
   const noScan: ScanPlace = async () => ({ skills: [], problems: [], truncated: false })
   let input: RunSkillsInput
 

@@ -16,7 +16,7 @@ import { RemoveDialog } from '../dialogs/RemoveDialog'
 beforeEach(() => { remove.mockReset().mockResolvedValue({ removed: true }) })
 afterEach(cleanup)
 
-describe('Remove', () => {
+describe('Remove @SC-1622 @SC-1637', () => {
   it('names the agents that have it, says their pages will show it as missing, and that its history is kept', async () => {
     holders.data = { everyAgent: false, agents: [{ id: 'g1', name: 'Ada' }, { id: 'g2', name: 'Priya' }] }
     const done = vi.fn()

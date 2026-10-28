@@ -22,7 +22,7 @@ const emptyDb = {
 } as unknown as Db
 const noVerifier: SignatureVerifier = { verify: async () => { throw new Error('the image is never verified') }, trustRootAge: () => ({ issuedAt: new Date(0), expired: false }) }
 
-describe("the templates in hq's image", () => {
+describe("the templates in hq's image @SC-1635", () => {
   it('are every agent template but Kernel, every board template and every team template', async () => {
     expect((await imageTemplateArrivals('agent')).map(a => a.arrived.root)).toEqual(['product-manager', 'project-manager', 'qa', 'skills-engineer', 'wasp-developer'])
     expect((await imageTemplateArrivals('board')).map(a => a.arrived.root)).toEqual(['ideation', 'issues', 'kanban', 'roadmap', 'sprint', 'workforce-assembly'])

@@ -64,7 +64,7 @@ async function outcomeLines() {
   return (await readMessages(conversationId, { limit: 50 })).filter(m => m.kind === 'ACTION' && m.body.target?.kind === SKILL_OUTCOME_TARGET).map(m => m.kind === 'ACTION' ? m.body.text : '')
 }
 
-describe('reviewing a project proposal @D27', () => {
+describe('reviewing a project proposal @D27 @SC-1663', () => {
   it('is for the project\'s administrators: a member and an organisation administrator outside it are refused', async () => {
     const p = await proposed('checkout-review', 'project')
     await expect(acceptProposal(prisma, member.id, { proposalId: p.id, digest: p.digest })).rejects.toThrow(/administrators/)
@@ -109,7 +109,7 @@ describe('reviewing a project proposal @D27', () => {
   })
 })
 
-describe('the organisation\'s Library', () => {
+describe('the organisation\'s Library @SC-1663', () => {
   it('an administrator accepts it as version 1.0.0 of the organisation\'s own skill, which no agent has yet', async () => {
     const p = await proposed('release-notes', 'organisation')
     const out = await acceptProposal(prisma, orgAdmin.id, { proposalId: p.id, digest: p.digest })
@@ -127,7 +127,7 @@ describe('the organisation\'s Library', () => {
   })
 })
 
-describe('the person it was proposed for', () => {
+describe('the person it was proposed for @SC-1663', () => {
   it('sees it and may aim it at their own space, and only they may', async () => {
     await createProject({ name: 'Your space', personalOwnerId: member.id, personalSpace: true })
     const p = await proposed('my-notes', 'organisation')
@@ -146,7 +146,7 @@ describe('the person it was proposed for', () => {
   })
 })
 
-describe('rejected proposals are removed 90 days after review (RQ5)', () => {
+describe('rejected proposals are removed 90 days after review (RQ5) @SC-1663', () => {
   it('removes only rejected ones reviewed before then', async () => {
     const old = await proposed('old-one', 'project')
     const open = await proposed('open-one', 'project')

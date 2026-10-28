@@ -5,7 +5,7 @@ const f = (path: string, text: string) => ({ path, content: Buffer.from(text) })
 const SKILL = '---\nname: code-review\ndescription: Reviews code\n---\n\n# Code Review\n\nBody\n'
 const manifest = (over: Record<string, unknown> = {}) => JSON.stringify({ format: 2, kind: 'skill', publisher: 'acme', name: 'code-review', version: '1.2.0', description: 'Reviews', ...over })
 
-describe('what a package holds', () => {
+describe('what a package holds @SC-1610', () => {
   it('reads a format 2 manifest, keeping its publisher only as a claim', () => {
     const parts = readParts({ root: 'x', files: [f('SKILL.md', SKILL), f('package.json', manifest())] })
     expect(parts).toMatchObject({ kind: 'skill', name: 'code-review', version: '1.2.0', claim: 'acme', title: 'Code Review', description: 'Reviews code', plain: false })
@@ -44,7 +44,7 @@ describe('what a package holds', () => {
   })
 })
 
-describe("a plain skill folder's suited-to hint", () => {
+describe("a plain skill folder's suited-to hint @SC-1609", () => {
   const plain = (front: string) => readParts({ root: 'review', files: [f('SKILL.md', `---\ndescription: d\n${front}---\nb`)] })
 
   it('is read from suitedTo in its front matter', () => {

@@ -28,7 +28,7 @@ function newKey(): { privateKey: KeyObject; pem: string; keyId: string } {
   return { privateKey, pem: pemOf(publicKey), keyId: keyIdOf(publicKey) }
 }
 
-describe('a key-pair bundle', () => {
+describe('a key-pair bundle @SC-1614', () => {
   it('is trusted when signed by a trusted key, named by the sha256 of its DER', async () => {
     const key = newKey()
     const record = keyRecord(key.pem, key.keyId)
@@ -37,7 +37,7 @@ describe('a key-pair bundle', () => {
     expect(key.keyId).toMatch(/^[0-9a-f]{64}$/)
   })
 
-  it('is unverifiable when signed by a key nobody trusts', async () => {
+  it('is unverifiable when signed by a key nobody trusts @security-H2', async () => {
     const signer = newKey()
     const other = newKey()
     const outcome = await verifier.verify({
@@ -71,7 +71,7 @@ describe('a key-pair bundle', () => {
   })
 })
 
-describe('any bundle', () => {
+describe('any bundle @SC-1614', () => {
   it('is unsigned when there is none', async () => {
     expect(await verifier.verify({ statement, bundle: null, trusted: [keylessRecord()], now: NOW })).toEqual({ state: 'unsigned' })
   })

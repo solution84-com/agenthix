@@ -14,7 +14,7 @@ async function duplicateZip(): Promise<Buffer> {
   return Buffer.from(buffer.toString('latin1').split('skill/SKILL.mE').join('skill/SKILL.md'), 'latin1')
 }
 
-describe('reading an arrived package (H1)', () => {
+describe('reading an arrived package (H1) @security-H1 @SC-1610', () => {
   it('keeps every file under the root, package.json included', async () => {
     const read = await readZipPackage(await zipOf({ 'x/package.json': '{}', 'x/SKILL.md': 'b', 'x/scripts/run.sh': 'c' }))
     expect(read.root).toBe('x')

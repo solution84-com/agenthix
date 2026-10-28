@@ -3,7 +3,7 @@ import { validateSkill } from '../validation'
 
 const md = (text: string) => [{ path: 'SKILL.md', content: Buffer.from(text) }]
 
-describe('validation against the Agent Skills rules (R8)', () => {
+describe('validation against the Agent Skills rules (R8) @SC-1623', () => {
   it('passes a well-formed skill', () => {
     expect(validateSkill('code-review', md('---\nname: code-review\ndescription: Reviews code\n---\nBody'))).toEqual({ errors: [], warnings: [] })
   })

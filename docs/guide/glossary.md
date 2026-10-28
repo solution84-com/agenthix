@@ -2,7 +2,7 @@
 title: Glossary
 description: The words Agenthix shows, what each one is, where to find it and what else people call it.
 sidebar:
-  order: 9
+  order: 10
 ---
 
 Every word the screens show, in alphabetical order. Each entry says what the word is, where it is (the screen, and
@@ -30,6 +30,11 @@ Also said: permission request, sign-off, ask, "needs you".
 
 The throwaway things agents made for you in conversations, such as a draft or a chart. Keep one by asking an agent to move it into **Files**. Where: **Artefacts** in a project or in **Your space** (`/space?tool=artefacts`).
 Also said: artifacts, outputs, generated files, things the agent made.
+
+## Asset
+
+Anything installed in the Library: a skill, or a ready-made agent, board or team. Each is one package with a name, a version and a history, checked when it came in. Where: **Library** (`/library`); an asset's own page is at `/library/<id>`. See [The Library](agents/library.md).
+Also said: package, item, template (for an agent, board or team), library item.
 
 ## Attachment
 
@@ -71,6 +76,11 @@ Also said: MCP, API access, token, connect Claude Code.
 A talk with an agent, in your space, a project or on a task. It opens beside the page and stays there as you move around HQ. Where: beside every page, and listed in **Chat** (`/chat`) or in a project's **Conversations**.
 Also said: chat, thread, session (for a task's transcript), message.
 
+## Draft
+
+An unpublished edit of a skill. No agent sees a draft; publishing it makes the next version. An agent can write a draft, and a person publishes it. Where: the skill's editor (`/library/<id>/edit`), a **Draft** state on its row in the **Library**, and a **Draft of** card in a conversation. See [Write and edit a skill](skills/write-and-edit.md).
+Also said: work in progress, unpublished change, saved draft.
+
 ## Execution Site
 
 The machine that runs agents, in containers, and keeps the files of the places it serves. It connects out to HQ and has no web page of its own. Where: **Manage › Where work runs › Sites** (`/admin/where-work-runs`).
@@ -108,8 +118,13 @@ Also said: wiki, notes, docs, know-how, how we do things.
 
 ## Library
 
-A shelf of ready-made agents, boards, skills and teams to start from. Using one makes the organisation's own copy. Where: the **Library** card on your organisation's **Overview** (`/library`).
-Also said: templates, starter kit, marketplace, gallery.
+The list of what your organisation has installed for its agents: skills, and ready-made agents, boards and teams. Each item is checked when it comes in and stays at its version until someone updates it. Where: **Library** in the side bar (`/library`; `/skills` opens it filtered to skills). See [The Library](agents/library.md).
+Also said: templates, starter kit, marketplace, gallery, skill library, shelf.
+
+## Library maintainer
+
+A member an administrator names to look after the Library without being an administrator: they create, edit and publish skills, accept updates, roll back and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming maintainers stay with administrators. Where: **Manage › Settings › Library and skills** (`/admin/settings/library`). See [Library and skills settings](skills/library-settings.md#library-maintainers).
+Also said: maintainer, skill owner, skill editor.
 
 ## Manage
 
@@ -191,6 +206,11 @@ Also said: program, initiative, campaign.
 A shared place for one piece of work, with its boards, tasks, files and members. Where: **Projects** (`/projects`) and each project's page (`/projects/<key>`).
 Also said: job, team space, piece of work.
 
+## Proposal
+
+A skill, or a change to one, that an agent or a person offers for someone else to accept. It waits for review and reaches no agent until it is accepted. Where: **Review** at the top of the **Library**, **Waiting for review** (`/library/proposals`), a project's **Skills**, and a **Proposed skill** card in a conversation. See [Use skills in a conversation](skills/use-skills-in-conversations.md#review-what-is-proposed).
+Also said: suggested skill, request to add a skill, submission.
+
 ## Provider
 
 A company or service that supplies models or voices to the organisation, such as Anthropic or OpenAI, with its key. Where: **Manage › Models and billing › Providers** (`/admin/providers`).
@@ -226,15 +246,25 @@ Also said: API key, password, credential, token, environment variable (for a var
 A folder of pages in Knowledge, which can hold other sections, such as `processes` or `decisions`. It is not one of a project's sections in the side bar, such as **Tasks** or **Files**. Where: the tree beside the pages in **Knowledge**.
 Also said: folder, category, topic, chapter.
 
+## Set aside
+
+A skill that is not used because the same skill from a higher level is used instead, or because an organisation's copy took its place. It stays listed with the reason. Where: **Set aside** on an agent's **Skills**, and on a row in the **Library** or a place's **Skills**. See [Give agents skills](skills/index.md#where-skills-come-from).
+Also said: overridden, shadowed, disabled, replaced.
+
 ## Settings
 
 Your own settings: profile, appearance, conversations, your Claude subscription, memory, devices and sign-in. Where: **Your settings** in the menu behind your name (`/settings`).
 Also said: preferences, my account, profile, options.
 
+## Signed
+
+A package with a signature that matches it, so HQ can tell who published it and that it was not changed on the way. A signature never says a package is safe. Where: the install dialog on **Library › Add skill**, and **Signed by** on a row in the **Library**. See [Add a skill](skills/add-a-skill.md#what-the-check-says).
+Also said: verified, trusted publisher, signature.
+
 ## Skill
 
-A written procedure an agent can follow when a task calls for it. Where: **Skills** (`/skills`) and the **Library** (`/library`).
-Also said: playbook, instructions, how-to, recipe.
+A written routine an agent follows for one kind of job, in a folder with a `SKILL.md` file. An agent uses a skill when it has it, or when you pick it with `/` in a message. Where: **Library** (`/library?type=skill`), a project's or Your space's **Skills** (`/projects/<key>?tool=skills`, `/space?tool=skills`) and an agent's **Skills**. See [Give agents skills](skills/index.md).
+Also said: playbook, instructions, how-to, recipe, slash command.
 
 ## Task
 
@@ -245,6 +275,11 @@ Also said: ticket, card, to-do, issue, job.
 
 A group of people who can be added to a project together. Where: **Teams** (`/org/teams`); admins also at `/admin/teams`.
 Also said: group, department.
+
+## Unsigned
+
+A package that came with no signature, so nobody vouches for who made it. HQ marks it **Unsigned**; installing one needs you to read it first, and an administrator can turn them away. Where: the install dialog and a row's state in the **Library**; **Manage › Settings › Library and skills**. See [Add a skill](skills/add-a-skill.md#what-the-check-says).
+Also said: no signature, unverified.
 
 ## Usage
 

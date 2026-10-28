@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { skillGroups, slashQueryAt, type SkillRow } from '../slashQuery'
 
-describe('where a / opens the skill picker', () => {
+describe('where a / opens the skill picker @SC-1657', () => {
   it('opens for a / at the very start of the message, then no space up to the caret', () => {
     expect(slashQueryAt('/', 1)).toEqual({ start: 0, end: 1, fragment: '' })
     expect(slashQueryAt('/rev', 4)).toEqual({ start: 0, end: 4, fragment: 'rev' })
@@ -28,7 +28,7 @@ const rows = [
   row({ name: 'shared-release', title: 'Review a release', source: 'place', sourceName: 'Website rebuild', description: '' , detail: '.agents/skills/release' }),
 ]
 
-describe("the picker's groups", () => {
+describe("the picker's groups @SC-1657", () => {
   it('groups by where each comes from, built in first and the person\'s own last', () => {
     expect(skillGroups(rows, '').map(g => g.heading)).toEqual(['Built in', 'Fernhill', 'Website rebuild', 'Yours'])
   })

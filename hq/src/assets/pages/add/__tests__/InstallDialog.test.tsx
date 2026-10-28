@@ -40,7 +40,7 @@ async function open(p: InstallPreview, onInstalled = vi.fn()) {
 beforeEach(() => { library.rows = []; preview.mockReset(); install.mockReset() })
 afterEach(cleanup)
 
-describe('signed by someone trusted', () => {
+describe('signed by someone trusted @SC-1612', () => {
   it('says who signed it, and installs on one click naming the fingerprint that was shown', async () => {
     const done = await open(base())
     expect(screen.getByRole('heading', { name: 'Install SEO Audit?' })).toBeTruthy()
@@ -51,7 +51,7 @@ describe('signed by someone trusted', () => {
   })
 })
 
-describe('signed by someone new', () => {
+describe('signed by someone new @SC-1612', () => {
   const newcomer = () => base({ state: 'new-publisher', publisher: 'acme', publisherFixed: false, needs: { unsignedRead: false, publisherChoice: true } })
 
   it('names the signer, warns that a signature is not a safety check, and offers to trust them or install once', async () => {
@@ -83,7 +83,7 @@ describe('signed by someone new', () => {
   })
 })
 
-describe('unsigned', () => {
+describe('unsigned @SC-1612', () => {
   it("says it isn't signed, and keeps Install off until “I've read it” is ticked", async () => {
     const done = await open(base({ state: 'unsigned', publisher: 'unsigned', signedBy: null, needs: { unsignedRead: true, publisherChoice: false } }))
     expect(screen.getByText(/This isn't signed\. Agenthix can't tell who made it or whether it was changed on the way\. Read it before you install it\./)).toBeTruthy()
@@ -97,7 +97,7 @@ describe('unsigned', () => {
   })
 })
 
-describe("a signature that doesn't match", () => {
+describe("a signature that doesn't match @SC-1612", () => {
   it('refuses with no way to install, only Close', async () => {
     await open(base({ state: 'tampered', refusal: "This was changed after it was signed. It won't be installed. Nothing was changed." }))
     expect(screen.getByRole('heading', { name: "Can't install SEO Audit" })).toBeTruthy()
@@ -107,7 +107,7 @@ describe("a signature that doesn't match", () => {
   })
 })
 
-describe('a template', () => {
+describe('a template @SC-1612 @SC-1618', () => {
   it('says what comes with it: its role skills, the ones you have, and the newer ones offered after install', async () => {
     await open(base({
       kind: 'agent', title: 'Project manager', main: item({ kind: 'agent', identity: 'agenthix/project-manager', name: 'project-manager', title: 'Project manager' }) as never,

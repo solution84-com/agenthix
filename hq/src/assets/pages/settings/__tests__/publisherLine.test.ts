@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { publisherLine } from '../publisherLine'
 
-describe('a trusted publisher in words (board R2)', () => {
+describe('a trusted publisher in words (board R2) @SC-1615', () => {
   it('says Agenthix is always trusted and what it signs', () => {
     expect(publisherLine({ kind: 'built-in', status: 'trusted', repository: null, identity: null, refs: null, keyId: null, addedAt: null }))
       .toBe("Always trusted. Signs Agenthix's own skills and templates; they come with HQ itself.")

@@ -5,13 +5,13 @@
  * stages one only when what it reads then has that fingerprint. A site that can't scan gives no file skills that turn.
  */
 import {
-  LOCATION_FILE_METHODS, PACKAGE_DIGEST_PATTERN, WORKSPACE_SKILL_ROOTS, isValidPackagePath,
+  LOCATION_FILE_METHODS, WORKSPACE_SKILL_ROOTS, isValidPackagePath,
   type FileSkillEntry, type LocationScanSkillsParams, type LocationScanSkillsResult, type ScannedSkill,
 } from '@agenthix/core'
 import type { FileSkillsDefault, PlaceSkill } from '@prisma/client'
 import type { Db } from '../../packages/packageStore'
 import { siteChannelRegistry } from '../../sites/channel'
-import { placeSkillPath, recordScan, type Place } from '../places/scan'
+import { boundedFindings, placeSkillPath, recordScan, type Place } from '../places/scan'
 import { switchState } from '../places/switchState'
 import { skillKey } from './clashOrder'
 
@@ -25,10 +25,8 @@ export const scanPlaceOnSite: ScanPlace = (siteId, params) =>
  * with a fingerprint. A finding for another agent or another workspace than this run's is left out.
  */
 export function keptFindings(scan: LocationScanSkillsResult, agentId: string, workspaceIds: string[]): ScannedSkill[] {
-  const skills = Array.isArray(scan?.skills) ? scan.skills : []
-  return skills.filter(s =>
-    typeof s?.fingerprint === 'string' && PACKAGE_DIGEST_PATTERN.test(s.fingerprint)
-    && isValidPackagePath(s.path)
+  return boundedFindings(scan).skills.filter(s =>
+    isValidPackagePath(s.path)
     && (s.group === 'place'
       || (s.group === 'agent' && s.agentId === agentId)
       || (s.group === 'workspace' && typeof s.workspaceId === 'string' && workspaceIds.includes(s.workspaceId)
@@ -88,11 +86,12 @@ export async function fileSkillsFor(
     return none(`Skills in this place's files were not read this turn: the site could not list them (${why}).`)
   }
   const found = keptFindings(result, input.agentId, input.workspaceIds)
-  const rows = await recordScan(input.place, { ...result, skills: found }, { agentId: input.agentId, workspaceIds: input.workspaceIds })
+  const cut = boundedFindings(result).cut
+  const rows = await recordScan(input.place, { ...result, skills: found, truncated: cut }, { agentId: input.agentId, workspaceIds: input.workspaceIds })
   return {
     candidates: switchedOn(found, rows, input.place.placeId, placeDefault, input.orgDefault),
     found,
     rows,
-    problem: result.truncated ? 'Not every skill in this place\'s files was listed: a bound was reached.' : null,
+    problem: cut ? 'Not every skill in this place\'s files was listed: a bound was reached.' : null,
   }
 }

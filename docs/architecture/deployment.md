@@ -81,7 +81,10 @@ carries a version: the tag gives a name to images already built and proved.
 **The release build** (`.github/workflows/release-build.yml`) builds and proves everything a release ships except
 publishing it. It is started by hand for a commit of `main`, and by every push to a `release/**` branch (a patch),
 never by a pull request. The same steps run on a dev machine as the **release rehearsal**,
-`scripts/release/prove.sh`, for the dev machine's own architecture:
+`scripts/release/prove.sh`, for the dev machine's own architecture. The rehearsal first refuses to go on if the
+Sigstore trust root that hq's image carries (`hq/assets/sigstore/`, which lets hq check package signatures offline) was
+fetched more than 300 days ago; `npm run sigstore:refresh` in `hq/` fetches a new one, and the refreshed files are
+committed before the release. The rehearsal itself changes no file.
 
 1. Each image part's content key is computed (`scripts/images/keys.mjs`, over `scripts/images/parts.json`;
    [versioning.md](versioning.md#an-images-content-key)). For each part and architecture the registry is asked for

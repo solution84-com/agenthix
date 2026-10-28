@@ -30,7 +30,7 @@ async function writeTree(dir: string, files: Record<string, string>): Promise<vo
 const files = () => getFilesDir('project', 'p1')
 const MD = '---\nname: Release notes\ndescription: Write the notes\nmetadata:\n  version: "4"\n  identity: agenthix/release-notes\n---\nBody\n'
 
-describe('scanning a place for skills', () => {
+describe('scanning a place for skills @SC-1602', () => {
   it("lists the place's, the agent's and each workspace's three folders, with what staging would check", async () => {
     await writeTree(path.join(files(), '.agents/skills/release'), { 'SKILL.md': MD, 'scripts/x.sh': 'x' })
     await writeTree(path.join(files(), '.agents/agents/a1/skills/mine'), { 'SKILL.md': '---\nname: Mine\n---\n' })
@@ -64,7 +64,7 @@ describe('scanning a place for skills', () => {
     const [found] = (await scanSkills({ loc, agentId: 'a1' })).skills
     expect(found.fingerprint).toBe(fingerprint({ 'SKILL.md': MD }))
     const dest = path.join(root, 'out')
-    const staged = await stageSkills(path.join(root, 'none'), {
+    const staged = await stageSkills({
       place: loc, agentId: 'a1', personId: null, installed: [], person: [],
       files: [{ placeId: 'p1', path: '.agents/skills/release', fingerprint: found.fingerprint, group: 'place' }],
     }, dest)
@@ -85,7 +85,7 @@ describe('scanning a place for skills', () => {
     ])
   })
 
-  it('reports at most the cap of skills per place, and says it stopped', async () => {
+  it('reports at most the cap of skills per place, and says it stopped @security-L1', async () => {
     for (let i = 0; i <= SCAN_SKILLS_MAX_PER_PLACE; i++) await writeTree(path.join(files(), `.agents/skills/s${i}`), { 'SKILL.md': 'x' })
     const result = await scanSkills({ loc, agentId: 'a1' })
     expect(result.skills).toHaveLength(SCAN_SKILLS_MAX_PER_PLACE)

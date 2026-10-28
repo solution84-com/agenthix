@@ -45,8 +45,8 @@ async function scanned(projectId: string, userId: string) {
   return scanPlaceSkills({ projectId }, as({ id: userId }))
 }
 
-describe("a place's skills, switched by fingerprint", () => {
-  it('lists what a scan found, off under Off by default, and switching on shows every file, scripts included', async () => {
+describe("a place's skills, switched by fingerprint @SC-1642", () => {
+  it('lists what a scan found, off under Off by default, and switching on shows every file, scripts included @security-L3 @security-H4', async () => {
     const { project, admin, loc } = await aPlace()
     put(loc, '.agents/skills/review', { 'SKILL.md': SKILL('review'), 'scripts/check.sh': 'echo check' })
     const page = await scanned(project.id, admin.id)
@@ -73,7 +73,7 @@ describe("a place's skills, switched by fingerprint", () => {
     expect(after).toMatchObject({ state: 'off', switch: 'ON', switchHolds: false })
   })
 
-  it("refuses switching on when the site's files are no longer what the place was last seen holding (H3)", async () => {
+  it("refuses switching on when the site's files are no longer what the place was last seen holding (H3) @security-H3", async () => {
     const { project, admin, loc } = await aPlace()
     put(loc, '.agents/skills/review', { 'SKILL.md': SKILL('review') })
     const [skill] = (await scanned(project.id, admin.id)).skills
@@ -101,7 +101,7 @@ describe("a place's skills, switched by fingerprint", () => {
   })
 })
 
-describe("a place's default, only ever stricter than the organisation's (C1b)", () => {
+describe("a place's default, only ever stricter than the organisation's (C1b) @SC-1642", () => {
   it('runs everything found under On by default, unless the organisation is stricter', async () => {
     const { project, admin, loc } = await aPlace()
     put(loc, '.agents/skills/review', { 'SKILL.md': SKILL('review') })
@@ -127,7 +127,7 @@ describe("a place's default, only ever stricter than the organisation's (C1b)", 
   })
 })
 
-describe("who acts on a place's skills (D27, D32)", () => {
+describe("who acts on a place's skills (D27, D32) @SC-1643", () => {
   it('lets Viewers read, members not switch, and an organisation administrator outside the project nothing', async () => {
     const { project, admin, member, viewer, orgAdmin, loc } = await aPlace()
     put(loc, '.agents/skills/review', { 'SKILL.md': SKILL('review') })

@@ -3,7 +3,7 @@ import { DIFF_TEXT_LIMIT, diffFiles } from '../pageDiff'
 
 const file = (path: string, text: string) => ({ path, content: Buffer.from(text, 'utf-8') })
 
-describe('what changed between two versions, file by file', () => {
+describe('what changed between two versions, file by file @SC-1632', () => {
   it('lists added, modified and removed files, and leaves out an unchanged one', () => {
     const changes = diffFiles(
       [file('SKILL.md', 'one\n'), file('old.md', 'gone\n'), file('same.md', 'same\n')],

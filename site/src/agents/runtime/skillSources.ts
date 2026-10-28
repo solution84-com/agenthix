@@ -2,16 +2,14 @@
  * What a run may stage, read into memory from exactly what hq named (spec part 4 *Defaults and switches*, part 5
  * *Delivery per turn*, adr-0084, adr-0159):
  *
- * - the platform package's own skills, as before (built-ins are phase 4's);
- * - installed and personal skills, from their delivered content in the package cache, by a `skill` ref whose digest is
- *   the entry's, and whose files there still fingerprint to it;
+ * - installed and personal skills, built-ins and Kernel's own among them, from their delivered content in the package
+ *   cache, by a `skill` ref whose digest is the entry's, and whose files there still fingerprint to it;
  * - skills in the place's files, each read from the place, path and fingerprint hq named and kept only when what is
  *   read now fingerprints to exactly that (security review H3).
  *
- * The org and agent packages' own `skills/`, and the place's folders read directly, are no longer sources. Anything
+ * No package's own `skills/` is a source, nor are the place's folders read directly. Anything
  * named but not kept comes back as a refusal with its reason, for the run's record. Never throws.
  */
-import fs from 'node:fs/promises'
 import path from 'node:path'
 import {
   ASSET_MANIFEST_FILE, MAX_WORKSPACE_SKILL_INDEX, isAssetFingerprint, isPackageRef, namespacedSkillName,
@@ -48,22 +46,6 @@ export type SkillSourcesResult = { candidates: SkillCandidate[]; refused: SkillR
 const LEVEL_SOURCE: Record<InstalledSkillLevel, SkillSource> = { builtin: 'platform', org: 'org', agent: 'agent' }
 
 const fingerprintOrEmpty = (value: unknown) => (isAssetFingerprint(value) ? value : '')
-
-/** The platform package's skills, each folder of `skills/` a skill. Site-owned, verified content, bounded per skill. */
-async function platformSkills(platformDir: string, out: SkillSourcesResult): Promise<void> {
-  const root = path.join(platformDir, 'skills')
-  const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => [])
-  for (const entry of entries.filter(e => e.isDirectory()).sort((a, b) => (a.name < b.name ? -1 : 1))) {
-    const name = namespacedSkillName('platform', entry.name)
-    if (!name) continue
-    const read = await readSkillTree(path.join(root, entry.name), { home: null, budget: newSkillTreeBudget() })
-    if (!read.ok) {
-      out.refused.push({ source: 'platform', name, fingerprint: '', origin: {}, reason: SKILL_TREE_REFUSALS[read.reason] })
-      continue
-    }
-    out.candidates.push({ source: 'platform', slug: entry.name, name, fingerprint: skillFingerprint(read.files), files: read.files, origin: {} })
-  }
-}
 
 /** One installed or personal skill, from the package cache: its files there must still be the content hq named. */
 async function deliveredSkill(
@@ -154,9 +136,8 @@ async function fileSkills(inputs: RunSkillInputs, out: SkillSourcesResult): Prom
   }
 }
 
-export async function runSkillSources(platformDir: string, inputs: RunSkillInputs | null): Promise<SkillSourcesResult> {
+export async function runSkillSources(inputs: RunSkillInputs | null): Promise<SkillSourcesResult> {
   const out: SkillSourcesResult = { candidates: [], refused: [] }
-  await platformSkills(platformDir, out)
   if (!inputs) return out
   for (const entry of inputs.installed) {
     const source = LEVEL_SOURCE[entry.level] ?? 'agent'

@@ -24,7 +24,7 @@ const result: StagingResult = {
   ],
 }
 
-describe('the record of skills a run used', () => {
+describe('the record of skills a run used @SC-1606', () => {
   it('has one entry per staged name with what it was, and one per refusal with why', () => {
     expect(skillUsesOf(result)).toEqual([
       { name: 'platform-plan', source: 'platform', fingerprint: F },

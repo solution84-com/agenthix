@@ -46,7 +46,7 @@ async function install(args: Awaited<ReturnType<typeof upload>>, ctx: unknown) {
   return installAsset({ ...args, confirm: { fingerprint: preview.fingerprint, unsignedRead: true } }, ctx as never)
 }
 
-describe('New skill, drafts and publishing', () => {
+describe('New skill, drafts and publishing @SC-1624 @SC-1625', () => {
   it('makes an asset with a draft and no version, then publishes 1.0.0 with a note', async () => {
     const { user, ctx } = await contextWithRole('ADMIN')
     const made = await createSkillDraft({ name: 'release-notes', description: 'Writes release notes', shape: 'scripts' }, ctx)
@@ -79,7 +79,7 @@ describe('New skill, drafts and publishing', () => {
     expect(await prisma.packageContent.count({ where: { digest: newest.currentVersion!.digest, releasedAt: null } })).toBe(1)
   })
 
-  it('keeps one shared draft, each revision with its author, and publishes only the revision the publisher saw', async () => {
+  it('keeps one shared draft, each revision with its author, and publishes only the revision the publisher saw @security-H5', async () => {
     const a = await contextWithRole('ADMIN')
     const b = await contextWithRole('MEMBER')
     await prisma.libraryMaintainer.create({ data: { userId: b.user.id } })
@@ -115,7 +115,7 @@ describe('New skill, drafts and publishing', () => {
   })
 })
 
-describe("editing another publisher's skill", () => {
+describe("editing another publisher's skill @SC-1628", () => {
   it('makes the organisation copy with its provenance, which takes the place on first publish, and switches back', async () => {
     const { ctx } = await contextWithRole('ADMIN')
     const original = await install(await upload('1.3.0', '', [{ skill: 'agenthix/x', version: '1.0.0', fingerprint: 'c'.repeat(64), copied: '2026-01-01', recorded: 'hq' }]), ctx)

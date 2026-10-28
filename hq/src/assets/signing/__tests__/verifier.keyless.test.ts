@@ -19,7 +19,7 @@ const SIGNER = {
   ref: 'refs/heads/main',
 }
 
-describe('a keyless bundle', () => {
+describe('a keyless bundle @SC-1614', () => {
   it('is trusted when issuer, identity, repository and branch match a trusted publisher', async () => {
     const record = keylessRecord()
     const outcome = await verifier.verify({ statement, bundle, trusted: [record], now: NOW })
@@ -31,7 +31,7 @@ describe('a keyless bundle', () => {
       .toEqual({ state: 'new-publisher', signer: SIGNER })
   })
 
-  it('is a new publisher when it was signed from a branch the publisher does not allow', async () => {
+  it('is a new publisher when it was signed from a branch the publisher does not allow @security-H2', async () => {
     const trusted = [keylessRecord({ allowedBranch: 'release' }), keylessRecord({ allowTags: true, allowedBranch: null })]
     expect((await verifier.verify({ statement, bundle, trusted, now: NOW })).state).toBe('new-publisher')
   })
@@ -67,7 +67,7 @@ describe('a keyless bundle', () => {
     expect(['tampered', 'unverifiable']).toContain(outcome.state)
   })
 
-  it('is unverifiable without an inclusion proof, even with the log’s signed promise', async () => {
+  it('is unverifiable without an inclusion proof, even with the log’s signed promise @security-H2', async () => {
     const json = fixtureJson('keyless.sigstore.json') as {
       mediaType: string; verificationMaterial: { tlogEntries: { inclusionProof?: unknown }[]; certificate?: unknown; x509CertificateChain?: unknown }
     }
@@ -87,7 +87,7 @@ describe('a keyless bundle', () => {
     expect(outcome.state).toBe('unverifiable')
   })
 
-  it('is unverifiable against an expired trust root, and the root says so', async () => {
+  it('is unverifiable against an expired trust root, and the root says so @security-M4', async () => {
     const later = new Date(new Date(ISSUED_AT).getTime() + 366 * 24 * 60 * 60 * 1000)
     const outcome = await verifier.verify({ statement, bundle, trusted: [keylessRecord()], now: later })
     expect(outcome).toMatchObject({ state: 'unverifiable', reason: expect.stringContaining('2026-10-27') })

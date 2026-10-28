@@ -5,7 +5,7 @@ import {
 } from '../locationFiles.js'
 import { PACKAGE_KINDS, PACKAGE_MAX_BYTES, isPackageRef } from '../packages.js'
 
-describe('scanning a place for skills', () => {
+describe('scanning a place for skills @SC-1601', () => {
   it('is a control method of its own', () => {
     expect(LOCATION_FILE_METHODS.scanSkills).toBe('location.scanSkills')
   })
@@ -24,7 +24,7 @@ describe('scanning a place for skills', () => {
   })
 })
 
-describe('the skill package kind', () => {
+describe('the skill package kind @SC-1601', () => {
   it('is a package kind whose key is a version row id', () => {
     expect(PACKAGE_KINDS).toContain('skill')
     expect(isPackageRef({ kind: 'skill', key: 'cm1abc', digest: 'a'.repeat(64) })).toBe(true)
@@ -32,7 +32,7 @@ describe('the skill package kind', () => {
   })
 })
 
-describe('writing and removing a place\'s skill folder', () => {
+describe('writing and removing a place\'s skill folder @SC-1601', () => {
   it('names the two methods', () => {
     expect(LOCATION_FILE_METHODS.writeSkill).toBe('location.writeSkill')
     expect(LOCATION_FILE_METHODS.removeSkill).toBe('location.removeSkill')

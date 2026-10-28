@@ -52,7 +52,7 @@ async function setUp() {
   return { project, admin, member, loc, asset, pin, placeSkillId: added.placeSkillId }
 }
 
-describe('Update… on a skill added from the Library (F3)', () => {
+describe('Update… on a skill added from the Library (F3) @SC-1647', () => {
   it('offers nothing until the Library pins a newer version, then offers it, kept across a publish here', async () => {
     const { project, admin, loc, pin, placeSkillId } = await setUp()
     expect((await getPlaceSkills({ projectId: project.id }, as(admin))).skills[0])

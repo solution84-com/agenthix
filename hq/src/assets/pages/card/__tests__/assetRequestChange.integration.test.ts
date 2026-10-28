@@ -51,7 +51,7 @@ async function card(request: AssetRequestArgs['request']) {
   })
 }
 
-describe('what a publish request would change @D31', () => {
+describe('what a publish request would change @D31 @SC-1665', () => {
   it('shows the person the agent asked the files that change, the next version and the note', async () => {
     const op = await card({ kind: 'publish', assetId, revision: 2, note: 'Adds step two' })
     const change = await assetRequestChange(prisma, person.id, op.id)

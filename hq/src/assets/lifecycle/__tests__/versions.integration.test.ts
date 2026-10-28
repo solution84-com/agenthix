@@ -46,7 +46,7 @@ async function withUpdateOffered(ctx: unknown) {
   return { assetId: assetId!, v100: versions.find(v => v.version === '1.0.0')!.id, v110: versions.find(v => v.version === '1.1.0')!.id }
 }
 
-describe('update and roll back', () => {
+describe('update and roll back @SC-1619', () => {
   it('lists versions in SemVer order with the offered update, shows what changed, and accepts it, recorded', async () => {
     const { user, ctx } = await contextWithRole('ADMIN')
     const { assetId, v110 } = await withUpdateOffered(ctx)
@@ -80,7 +80,7 @@ describe('update and roll back', () => {
     await expect(acceptAssetUpdate({ assetId, versionId: v110 }, m.ctx)).resolves.toMatchObject({ version: '1.1.0' })
   })
 
-  it("warns before going to a version in Agenthix's withdrawn list, naming why", async () => {
+  it("warns before going to a version in Agenthix's withdrawn list, naming why @security-M4", async () => {
     const { ctx } = await contextWithRole('ADMIN')
     await writeTextFile(path.join(roots.assets, 'library/skills/code-review/SKILL.md'), '---\nname: code-review\ndescription: Reviews\nversion: 1.1.0\n---\n\n# Code Review\n')
     const shelf = { from: 'shelf' as const, name: 'code-review' }
@@ -95,7 +95,7 @@ describe('update and roll back', () => {
   })
 })
 
-describe('any version on purpose', () => {
+describe('any version on purpose @security-M4 @SC-1620', () => {
   it('installs an older version from an upload with a reason, says it went back, and records why', async () => {
     const { user, ctx } = await contextWithRole('ADMIN')
     const { assetId } = await install(await upload('1.3.0'), ctx)
@@ -121,7 +121,7 @@ describe('any version on purpose', () => {
   })
 })
 
-describe('which agents have it', () => {
+describe('which agents have it @SC-1622', () => {
   it('gives it to chosen agents, takes it from one, and to every agent, with no per-agent exceptions', async () => {
     const { ctx } = await contextWithRole('ADMIN')
     const { assetId } = await install(await upload('1.0.0'), ctx)

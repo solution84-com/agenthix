@@ -13,7 +13,7 @@ import { SkillFilesDialog } from '../SkillFilesDialog'
 
 afterEach(cleanup)
 
-describe('publishing from files', () => {
+describe('publishing from files @SC-1644', () => {
   it('asks for a note, and sends it with the fingerprint shown', async () => {
     const confirm = vi.fn(async () => ({}))
     const onClose = vi.fn()

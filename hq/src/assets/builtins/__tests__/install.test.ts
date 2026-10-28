@@ -4,7 +4,7 @@ vi.mock('wasp/server', () => ({ prisma: {} }))
 
 import { nextBuiltInVersion } from '../install'
 
-describe("a built-in's next version when hq's image changes it", () => {
+describe("a built-in's next version when hq's image changes it @SC-1633", () => {
   it('starts at 1.0.0', () => {
     expect(nextBuiltInVersion([])).toBe('1.0.0')
   })

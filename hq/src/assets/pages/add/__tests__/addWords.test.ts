@@ -10,7 +10,7 @@ const preview = (over: Partial<InstallPreview>): InstallPreview => ({
   main: {} as never, embedded: [], summary: '', warnings: [], refusal: null, needs: { unsignedRead: false, publisherChoice: false }, ...over,
 })
 
-describe('the four install states and their words', () => {
+describe('the four install states and their words @SC-1612', () => {
   it('maps a check to its dialog: trusted, a new publisher, unsigned, or refused with no override', () => {
     expect(dialogState(preview({ state: 'trusted' }))).toBe('trusted')
     expect(dialogState(preview({ state: 'built-in' }))).toBe('trusted')
@@ -37,7 +37,7 @@ describe('the four install states and their words', () => {
   })
 })
 
-describe('reading a package before installing it', () => {
+describe('reading a package before installing it @SC-1610', () => {
   const arrival = (files: Array<{ path: string; content: Buffer }>) => ({ source: 'upload' as const, arrived: { root: 'x', files }, bundle: null, sourceUrl: null })
 
   it('returns text files as text, and a binary or oversized file as not shown', () => {
@@ -62,7 +62,7 @@ describe('reading a package before installing it', () => {
   })
 })
 
-describe('choosing a package', () => {
+describe('choosing a package @SC-1610', () => {
   it('needs a file or a link before it can be checked', () => {
     expect(hasUpload(NO_UPLOAD)).toBe(false)
     expect(hasUpload({ ...NO_UPLOAD, zip: new File(['x'], 'a.zip') })).toBe(true)

@@ -37,7 +37,7 @@ async function install(args: Awaited<ReturnType<typeof upload>> | { from: 'shelf
   return installAsset({ ...args, confirm: { fingerprint: preview.fingerprint, ...confirm } }, ctx as never)
 }
 
-describe('installing from Agenthix', () => {
+describe('installing from Agenthix @SC-1609', () => {
   it('installs a shelf skill as agenthix/<name>, trusted by where it is, with its history', async () => {
     await writeTextFile(path.join(roots.assets, 'library/skills/code-review/SKILL.md'), SKILL('Code Review'))
     const { user, ctx } = await contextWithRole('ADMIN')
@@ -63,7 +63,7 @@ describe('installing from Agenthix', () => {
   })
 })
 
-describe('installing an upload', () => {
+describe('installing an upload @SC-1610', () => {
   it('installs an unsigned package as unsigned/<name>, only once "I\'ve read it" is ticked', async () => {
     const { ctx } = await contextWithRole('ADMIN')
     const args = await upload('1.0.0')
@@ -115,7 +115,7 @@ describe('installing an upload', () => {
     await expect(install(await upload('1.0.0'), m.ctx, { unsignedRead: true })).resolves.toMatchObject({ outcome: 'new' })
   })
 
-  it('refuses a package claiming Agenthix, and a ZIP with hidden entries, and installs nothing', async () => {
+  it('refuses a package claiming Agenthix, and a ZIP with hidden entries, and installs nothing @security-C1 @security-H1', async () => {
     const { ctx } = await contextWithRole('ADMIN')
     const z = new JSZip()
     z.file('working-with-git/package.json', JSON.stringify({ format: 2, kind: 'skill', publisher: 'agenthix', name: 'working-with-git', version: '99.0.0', description: 'd' }))

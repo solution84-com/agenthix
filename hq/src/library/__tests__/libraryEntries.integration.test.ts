@@ -48,7 +48,7 @@ async function entries(ctx: unknown) {
   return (await getLibraryAssets(undefined, ctx as never)).rows.filter(r => r.kind === 'skill' && !r.builtIn && !r.proposalId)
 }
 
-describe('a copy and its original as one Library entry', () => {
+describe('a copy and its original as one Library entry @SC-1628', () => {
   it('is one entry from the copy being made, through its first publish, to switching back and again', async () => {
     const { ctx } = await contextWithRole('ADMIN')
     const original = await install('1.3.0', ctx)

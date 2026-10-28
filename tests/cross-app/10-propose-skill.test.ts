@@ -83,7 +83,7 @@ beforeAll(async () => {
   agentId = agent.json.id
 }, 600_000)
 
-describe('an agent proposes a skill through its site @H5', () => {
+describe('an agent proposes a skill through its site @security-H5 @SC-1661', () => {
   it('reaches hq, which makes a proposal for the run\'s person, never a live skill, whatever the call names', async () => {
     const { runId, capability } = await goingRun('schedule')
     const sent = await forwarded(capability, {

@@ -17,7 +17,7 @@ function recorder(fail = false) {
   return { db: { asset: delegate('asset'), placeSkill: delegate('placeSkill') } as never, calls }
 }
 
-describe('last used, stamped from runs’ records (UQ4)', () => {
+describe('last used, stamped from runs’ records (UQ4) @SC-1660', () => {
   it('stamps each skill once, with its newest use, the agent and where the run worked', async () => {
     const { db, calls } = recorder()
     await noteSkillUses(db, [

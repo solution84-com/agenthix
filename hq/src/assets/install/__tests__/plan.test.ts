@@ -10,7 +10,7 @@ const existing = (over: Partial<ExistingAsset> = {}): ExistingAsset => ({
   ...over,
 })
 
-describe('de-duplication by identity (I3)', () => {
+describe('de-duplication by identity (I3) @SC-1618', () => {
   it('installs what is not here', () => {
     expect(classify(null, input, 'acme', 'keyless:i#x')).toMatchObject({ outcome: 'new', identity: 'acme/code-review', existingId: null })
   })
@@ -29,12 +29,12 @@ describe('de-duplication by identity (I3)', () => {
     expect(classify(existing(), { ...input, fingerprint: FP('f') }, 'acme', 'keyless:i#x')).toMatchObject({ outcome: 'refused', reason: expect.stringMatching(/already here with different content/) })
   })
 
-  it('refuses a different signer under the same name, never an update', () => {
+  it('refuses a different signer under the same name, never an update @security-C1', () => {
     expect(classify(existing(), { ...input, version: '9.0.0' }, 'acme', 'keyless:i#evil').outcome).toBe('refused')
     expect(classify(existing(), { ...input, version: '9.0.0' }, 'acme', null).outcome).toBe('refused')
   })
 
-  it("refuses a built-in's identity", () => {
+  it("refuses a built-in's identity @security-C1", () => {
     expect(classify(existing({ builtIn: true }), input, 'agenthix', null)).toMatchObject({ outcome: 'refused', reason: expect.stringMatching(/built into hq/) })
   })
 
@@ -48,7 +48,7 @@ describe('de-duplication by identity (I3)', () => {
   })
 })
 
-describe('what comes with a package (I6)', () => {
+describe('what comes with a package (I6) @SC-1618', () => {
   it('says what a template brings', () => {
     const main = classify(null, { ...input, kind: 'team', name: 'delivery' }, 'agenthix', null)
     const items = [

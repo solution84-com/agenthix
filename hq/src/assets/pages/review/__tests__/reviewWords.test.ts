@@ -9,7 +9,7 @@ const proposal = (over: Partial<SkillProposalView> = {}): SkillProposalView => (
   mayReview: true, mayAim: false, aims: [], ...over,
 })
 
-describe('the review screen\'s words (board R1)', () => {
+describe('the review screen\'s words (board R1) @SC-1663', () => {
   it('says an edit to the organisation\'s own skill saves the next version, and names it on the button', () => {
     const w = reviewWords(proposal(), '1.4.0')
     expect(w.heading).toBe('Edit to code-review waiting')

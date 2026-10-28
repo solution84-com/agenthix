@@ -16,7 +16,7 @@ const proposal = (over: Partial<SkillProposalView> = {}): SkillProposalView => (
 })
 const actions = () => ({ busy: false, error: null, onAccept: vi.fn(), onReject: vi.fn(), onAim: vi.fn() })
 
-describe('a proposed skill\'s card (board C3)', () => {
+describe('a proposed skill\'s card (board C3) @SC-1666', () => {
   it('says what it is, for whom, who proposed it and who reviews it, and offers no review to others', () => {
     render(<SkillProposalCard proposal={proposal()} actions={actions()} />)
     expect(screen.getByText(/Proposed skill · checkout-review/)).toBeTruthy()
@@ -63,7 +63,7 @@ describe('a proposed skill\'s card (board C3)', () => {
   })
 })
 
-describe('a draft change\'s card (D24)', () => {
+describe('a draft change\'s card (D24) @SC-1666', () => {
   const draft = (over: Partial<SkillDraftCardView> = {}): SkillDraftCardView => ({
     name: 'fernhill/code-review', revision: 3, published: '1.2.0', mayPublish: true, openHref: '/library', ...over,
   })

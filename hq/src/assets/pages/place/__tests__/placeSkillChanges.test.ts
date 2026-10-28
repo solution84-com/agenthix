@@ -11,7 +11,7 @@ const data = (over: Partial<SkillFiles> = {}): SkillFiles => ({
   ...over,
 })
 
-describe("a place skill's changes since its newest version", () => {
+describe("a place skill's changes since its newest version @SC-1645", () => {
   it('gives each changed file its text then and now, an added file only now, a removed one only then', () => {
     expect(placeSkillChanges(data())).toEqual([
       { path: 'SKILL.md', status: 'modified', before: 'one\n', after: 'one\ntwo\n', binary: false },

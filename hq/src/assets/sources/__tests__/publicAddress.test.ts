@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { isPublicAddress } from '../publicAddress'
 
-describe('isPublicAddress', () => {
+describe('isPublicAddress @security-M3 @SC-1611', () => {
   it.each([
     '0.0.0.0', '0.1.2.3', '10.0.0.1', '100.64.0.1', '127.0.0.1', '127.255.255.254', '169.254.169.254', '172.16.0.1',
     '172.31.255.255', '192.0.0.8', '192.0.2.1', '192.168.1.1', '198.18.0.1', '198.51.100.7', '203.0.113.9',

@@ -5,7 +5,7 @@ const FP = 'a'.repeat(64)
 const FP2 = 'b'.repeat(64)
 const DAY = new Date('2026-10-27T12:00:00Z')
 
-describe('the based-on list a copy is given', () => {
+describe('the based-on list a copy is given @SC-1629', () => {
   it("inherits the original's list and adds the original as one line recorded by hq", () => {
     const inherited: HeldLine[] = [{ skill: 'blog.example.com/checklist', copied: '2026-01-02', recorded: 'stated', statedBy: 'acme' }]
     expect(copyLines({ identity: 'agenthix/code-review', version: '1.3.0', digest: FP, basedOn: inherited }, DAY)).toEqual([
@@ -26,7 +26,7 @@ describe('the based-on list a copy is given', () => {
   })
 })
 
-describe('a credit a person states', () => {
+describe('a credit a person states @SC-1629', () => {
   it('is a stated line, dated today, by the organisation', () => {
     expect(statedLine({ skill: ' blog.example.com/review-checklist ' }, 'fernhill', DAY)).toEqual({
       skill: 'blog.example.com/review-checklist', copied: '2026-10-27', recorded: 'stated', statedBy: 'fernhill',
@@ -44,7 +44,7 @@ describe('a credit a person states', () => {
   })
 })
 
-describe('which lines show as verified (security review M5)', () => {
+describe('which lines show as verified (security review M5) @security-M5 @SC-1629', () => {
   const hqLine: HeldLine = { skill: 'agenthix/code-review', version: '1.3.0', fingerprint: FP, copied: '2026-10-27', recorded: 'hq' }
   const holds = (identity: string, version: string) => (identity === 'agenthix/code-review' && version === '1.3.0' ? FP : null)
 
@@ -67,7 +67,7 @@ describe('which lines show as verified (security review M5)', () => {
   })
 })
 
-describe('reading the list hq holds', () => {
+describe('reading the list hq holds @SC-1629', () => {
   it('keeps only well-formed lines', () => {
     expect(heldLines([{ skill: 'x', copied: '2026-01-01', recorded: 'stated' }, { nonsense: true }, 'x'])).toEqual([{ skill: 'x', copied: '2026-01-01', recorded: 'stated' }])
     expect(heldLines(null)).toEqual([])

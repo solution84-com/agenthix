@@ -38,7 +38,7 @@ async function install(version: string, ctx: unknown, body = '') {
   return installAsset({ ...args, confirm: { fingerprint: preview.fingerprint, unsignedRead: true } }, ctx as never)
 }
 
-describe('Skip this version', () => {
+describe('Skip this version @SC-1621', () => {
   it('hides the update offered until a later version is held, and only for those who may update', async () => {
     const { ctx } = await contextWithRole('ADMIN')
     const { ctx: member } = await contextWithRole('MEMBER')
@@ -57,7 +57,7 @@ describe('Skip this version', () => {
   })
 })
 
-describe('dismissing news on the organisation’s copy', () => {
+describe('dismissing news on the organisation’s copy @SC-1621', () => {
   it('hides the version named until a later one is out', async () => {
     const { ctx } = await contextWithRole('ADMIN')
     const original = await install('1.3.0', ctx)

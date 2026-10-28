@@ -29,11 +29,11 @@ Memory by meaning is part of the conversation layer ([conversations](../conversa
 
 ## 1. The agent's definition and instructions
 
-An agent is **one current definition held by hq**: its name, role, instructions, skills
-and settings. Edit it and the next run uses it; there is no version number
-([ADR-0072](../../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md)). Content is
-held as packages (`Package` and `PackageContent` in `hq/schema.prisma`; kinds agent, organisation and
-platform) and a run is told the fingerprint of what it should use; a site fetches and caches it. A project,
+An agent is **one current definition held by hq**: its name, role, instructions and
+settings, with the installed skills it has. Edit it and the next run uses it; there is no version number
+([ADR-0072](../../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md)). Its instructions are
+held as packages (`Package` and `PackageContent` in `hq/schema.prisma`; kinds agent, organisation,
+platform and skill) and a run is told the fingerprint of what it should use; a site fetches and caches it. A project,
 or a person in their own storage, can add instructions or skills on top without changing the agent
 itself (`hq/src/agents/overrides/`). The **lead** of a conversation, which runs in hq, reads the agent's own
 instructions and the organisation's, after rules for how it talks; the overrides and the place's `AGENTS.md` are files on

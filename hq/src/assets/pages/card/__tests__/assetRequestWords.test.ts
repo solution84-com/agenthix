@@ -5,7 +5,7 @@ import type { AssetRequestChange } from '../assetRequestChange'
 type Shown = Exclude<AssetRequestChange, { kind: 'none' }>
 const publish: Shown = { kind: 'publish', identity: 'fernhill/code-review', requestedBy: 'Ada', from: '1.1.0', to: '1.2.0', note: 'Adds rate limits', stale: null, changes: [] }
 
-describe("an agent's request on its approval card (D31)", () => {
+describe("an agent's request on its approval card (D31) @SC-1665", () => {
   it('says who asks, what, and which version', () => {
     expect(changeHeading(publish)).toBe('Ada asks you to publish fernhill/code-review 1.2.0, now 1.1.0')
     expect(changeHeading({ kind: 'rollBack', identity: 'fernhill/code-review', requestedBy: null, from: '1.2.0', to: '1.1.0', reason: 'x', changes: [], stale: null }))

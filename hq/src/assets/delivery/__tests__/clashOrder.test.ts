@@ -3,7 +3,7 @@ import { settleClashes, skillKey, type SkillCandidate, type SkillLevel } from '.
 
 const at = (level: SkillLevel, key: string, item = `${level}:${key}`): SkillCandidate<string> => ({ level, key, label: key, item })
 
-describe('the order when the same skill comes from two places', () => {
+describe('the order when the same skill comes from two places @SC-1652', () => {
   it.each([
     ['installed', 'project'],
     ['installed', 'person'],
@@ -43,7 +43,7 @@ describe('the order when the same skill comes from two places', () => {
   })
 })
 
-describe('what a skill is the same skill as', () => {
+describe('what a skill is the same skill as @SC-1652', () => {
   it('is its identity when it names a valid one', () => {
     expect(skillKey({ identity: 'acme/code-review', name: 'review', path: '.agents/skills/r' })).toBe('acme/code-review')
   })

@@ -29,7 +29,7 @@ function setUp(save: EditorApi['save']) {
   return { hook, reload }
 }
 
-describe('the draft saves itself (finding 8)', () => {
+describe('the draft saves itself (finding 8) @SC-1624', () => {
   it('saves a moment after the person stops typing, once, with the revision loaded, then counts as saved', async () => {
     const save = vi.fn().mockResolvedValue({ revision: 1 })
     const { hook } = setUp(save)

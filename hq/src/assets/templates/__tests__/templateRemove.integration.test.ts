@@ -33,7 +33,7 @@ async function bootWithQa() {
   return prisma.asset.findFirstOrThrow({ where: { kind: 'AGENT', name: 'qa' } })
 }
 
-describe('removing a template', () => {
+describe('removing a template @SC-1637', () => {
   it('names what was made from it, asks first, and leaves it as it was', async () => {
     const { ctx } = await contextWithRole('ADMIN')
     const { ctx: member } = await contextWithRole('MEMBER')

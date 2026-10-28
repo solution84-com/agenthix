@@ -34,6 +34,11 @@ Both are built with the guide into hq's image, so the guide an agent reads is th
 the read-only `platform:` level of knowledge, through the same tools as every other level (adr-0150); it has no tools
 of its own and is not copied to sites or into runs.
 
+> **Built-in skills now sit beside the guide.** *(annotated 2026-10-28)* adr-0156 ships a few skills in hq's image
+> that tell every agent what to do for one kind of task and point to guide pages. They are steps, not a description:
+> the guide is still the only description of the platform, and the platform skill rejected above, a second
+> description, stays rejected.
+
 ## What this binds
 
 - A new screen needs its guide page, and a new word a person might say needs its glossary entry, before agents can

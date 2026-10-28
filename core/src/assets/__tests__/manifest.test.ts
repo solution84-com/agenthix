@@ -10,7 +10,7 @@ const valid = {
 const parse = (over: Record<string, unknown>) => parseAssetManifest({ ...valid, ...over })
 const refuses = (over: Record<string, unknown>, what: RegExp) => expect(() => parse(over)).toThrow(what)
 
-describe('manifest format 2', () => {
+describe('manifest format 2 @SC-1597', () => {
   it('reads a minimal manifest', () => {
     expect(ASSET_MANIFEST_FORMAT).toBe(2)
     expect(parseAssetManifest(valid)).toEqual({ ...valid, basedOn: [], licence: null, suitedTo: [] })
@@ -61,7 +61,7 @@ describe('manifest format 2', () => {
   })
 })
 
-describe('basedOn', () => {
+describe('basedOn @SC-1597', () => {
   const hqLine = { skill: 'agenthix/code-review', version: '1.3.0', fingerprint: fp, copied: '2026-10-27', recorded: 'hq' }
   const stated = { skill: 'blog.example.com/review-checklist', copied: '2026-10-27', recorded: 'stated' }
 
