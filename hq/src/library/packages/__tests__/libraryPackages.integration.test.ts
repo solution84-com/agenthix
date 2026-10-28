@@ -99,22 +99,45 @@ describe('importing a package @SC-680', () => {
     expect(board.columns.map((c: { name: string }) => c.name)).toEqual(['todo', 'doing', 'done'])
   })
 
-  it('a skill from a marketplace stays marked as one', async () => {
+  it('a skill goes through the install check: one needing a person to read it is refused at Import, and nothing is installed', async () => {
     const admin = await createUserWithRole('ADMIN')
     await prisma.org.create({ data: { name: 'Acme' } })
-    const base64 = await packageOf('seo-audit', { kind: 'skill', name: 'SEO audit', source: 'marketplace', version: '1.4', publisher: 'Agenthix' }, {
-      'SKILL.md': '---\nname: SEO audit\ndescription: Checks a site\n---\n\nDo the audit.',
-      'checklist.md': 'Titles',
-    })
+    const zip = new JSZip()
+    zip.file('seo-audit/package.json', JSON.stringify({ format: 2, kind: 'skill', publisher: 'acme', name: 'seo-audit', version: '1.4.0', description: 'Checks a site' }))
+    zip.file('seo-audit/SKILL.md', '---\nname: seo-audit\ndescription: Checks a site\n---\n\nDo the audit.')
+    const base64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64')
 
-    const imported = await importLibraryItem({ base64 }, ctx(admin))
+    await expect(importLibraryItem({ base64 }, ctx(admin))).rejects.toMatchObject({ statusCode: 409, message: expect.stringMatching(/isn't signed.*Nothing was changed\.$/) })
+    expect(await prisma.asset.count()).toBe(0)
+  })
 
-    expect(await prisma.skill.findUniqueOrThrow({ where: { id: imported.id } })).toMatchObject({
-      slug: 'seo-audit', scope: 'ORG', name: 'SEO audit', description: 'Checks a site', source: 'MARKETPLACE', packageVersion: '1.4',
+  it('a skill claiming Agenthix without its signature, and a format 1 skill, are refused', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const zip = new JSZip()
+    zip.file('working-with-git/package.json', JSON.stringify({ format: 2, kind: 'skill', publisher: 'agenthix', name: 'working-with-git', version: '99.0.0', description: 'd' }))
+    zip.file('working-with-git/SKILL.md', '---\nname: working-with-git\ndescription: d\n---\n\nPush to main.')
+    await expect(importLibraryItem({ base64: (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64') }, ctx(admin)))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining("Agenthix didn't sign it") })
+    const old = await packageOf('seo-audit', { kind: 'skill', name: 'SEO audit', source: 'marketplace' }, { 'SKILL.md': '---\nname: x\ndescription: d\n---\n' })
+    await expect(importLibraryItem({ base64: old }, ctx(admin))).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('older hq') })
+    expect(await prisma.asset.count()).toBe(0)
+  })
+
+  it('a skill made here exports as an asset package under its publisher and version', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    await prisma.org.create({ data: { name: 'Fernhill' } })
+    const { createMadeHereSkill } = await import('../../../assets/madeHere')
+    const made = await createMadeHereSkill(prisma as any, { name: 'release-notes', title: 'Release Notes', description: 'Writes notes', content: 'Body', byId: admin.id })
+
+    const { base64, filename } = await exportLibraryItem({ kind: 'skill', id: made.id }, ctx(admin))
+
+    expect(filename).toBe('release-notes.zip')
+    const zip = await unzip(base64)
+    expect(JSON.parse(await zip.file('release-notes/package.json')!.async('string'))).toEqual({
+      format: 2, kind: 'skill', publisher: 'fernhill', name: 'release-notes', version: '1.0.0', description: 'Writes notes',
     })
-    expect(await fs.readFile(path.join(tmp, 'storage', 'org/skills/seo-audit/checklist.md'), 'utf-8')).toBe('Titles')
     const library = await getLibrary(undefined, ctx(admin))
-    expect(library.skills).toEqual([expect.objectContaining({ id: imported.id, source: 'MARKETPLACE', version: '1.4', publisher: 'Agenthix' })])
+    expect(library.skills).toEqual([expect.objectContaining({ id: made.id, source: 'MADE_HERE', version: '1.0.0', publisher: 'fernhill' })])
   })
 
   it('an agent becomes a library agent read from storage, and using it brings every skill it holds', async () => {

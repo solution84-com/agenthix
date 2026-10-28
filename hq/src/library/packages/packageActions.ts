@@ -10,7 +10,10 @@ import { TemplateValidationError } from '../boardTemplateService'
 import { exportLibraryPackage, LibraryItemNotFoundError } from './exportPackage'
 import { importLibraryPackage, PackageImportError, type ImportedItem } from './importPackage'
 import { PackageZipError } from './packageZip'
-import { PACKAGE_KINDS, effectiveSource, publisherOf, type LibrarySource, type PackageKind } from './packageManifest'
+import { personActor } from '../../assets/policyActors'
+import { asHttp } from '../../assets/operations'
+import { PACKAGE_KINDS, effectiveSource, publisherOf, BUILT_IN_PUBLISHER, type LibrarySource, type PackageKind } from './packageManifest'
+import { listOrgSkills, listShelfSkills } from '../../agents/skillsLibraryService'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -35,18 +38,34 @@ const item = (
   source: effectiveSource(row), version: row.packageVersion, publisher: publisherOf(row),
 })
 
+/**
+ * Skills as assets: Agenthix's shelf (Built in), then what the organisation made (Made here) or installed from
+ * anyone else, shown under their publisher.
+ */
+async function librarySkillItems(): Promise<LibraryItem[]> {
+  const [shelf, org, organisation] = await Promise.all([
+    listShelfSkills(), listOrgSkills(), prisma.org.findFirst({ select: { publisherName: true } }),
+  ])
+  const rows = [...shelf, ...org].sort((a, b) => a.name.localeCompare(b.name))
+  return rows.map(r => ({
+    kind: 'skill' as const, id: r.id, name: r.name, description: r.description, version: r.version,
+    source: r.scope === 'PLATFORM' ? 'BUILT_IN' as const : r.publisher === organisation?.publisherName ? 'MADE_HERE' as const : 'MARKETPLACE' as const,
+    publisher: r.scope === 'PLATFORM' ? BUILT_IN_PUBLISHER : r.publisher,
+  }))
+}
+
 export const getLibrary = async (_args: unknown, context: Ctx): Promise<Library> => {
   if (!context.user) throw new HttpError(401)
   const [agents, boards, skills, teams] = await Promise.all([
     prisma.agentTemplate.findMany({ orderBy: { name: 'asc' } }),
     prisma.boardTemplate.findMany({ orderBy: { name: 'asc' } }),
-    prisma.skill.findMany({ where: { scope: { in: ['PLATFORM', 'ORG'] } }, orderBy: { name: 'asc' } }),
+    librarySkillItems(),
     prisma.workforceTemplate.findMany({ orderBy: { name: 'asc' } }),
   ])
   return {
     agents: agents.map(a => item('agent', a, '')),
     boards: boards.map(b => item('board', b, b.description)),
-    skills: skills.map(s => item('skill', s, s.description)),
+    skills,
     teams: teams.map(t => item('team', t, t.description)),
   }
 }
@@ -70,8 +89,9 @@ export const exportLibraryItem = async (
 export const importLibraryItem = async ({ base64 }: { base64: string }, context: Ctx): Promise<ImportedItem> => {
   await requireRole(context, 'ADMIN', 'Importing into the library')
   if (typeof base64 !== 'string' || base64 === '') throw new HttpError(400, 'Choose a package to import')
+  const actor = await personActor(context.user!.id, prisma)
   try {
-    return await importLibraryPackage(Buffer.from(base64, 'base64'))
+    return await asHttp(() => importLibraryPackage(Buffer.from(base64, 'base64'), actor))
   } catch (err) {
     if (err instanceof PackageImportError) throw new HttpError(err.status, err.message)
     if (err instanceof PackageZipError || err instanceof TemplateValidationError) throw new HttpError(400, err.message)

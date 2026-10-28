@@ -1250,7 +1250,6 @@ model Project {
   members        ProjectMember[]
   agents         ProjectAgent[]
   teams          ProjectTeam[]
-  skills         Skill[]
   automation       ProjectAutomation?
   automationStarts AutomationStart[]
   routines         Routine[]
@@ -1270,8 +1269,8 @@ model Project {
 
 /// Where a library item came from (every screen reviewed spec §3, Library):
 /// shipped with hq, made in this organisation, or installed from a marketplace.
-/// A built-in item (isSystem, or a PLATFORM skill) reads as BUILT_IN whatever
-/// this column says (library/packages/librarySource.ts).
+/// A built-in item (isSystem) reads as BUILT_IN whatever this column says
+/// (library/packages/packageManifest.ts). Skills are assets and do not use it.
 enum LibrarySource {
   BUILT_IN
   MADE_HERE
@@ -1617,40 +1616,12 @@ model Org {
   outsideInstallers          OutsideInstallers @default(ADMINS)
   fileSkillsDefault          FileSkillsDefault @default(OFF)
   personalSkillsOutsideSpace Boolean           @default(true)
-  skills    Skill[]
+  /// The publisher segment of everything made here (`fernhill` in `fernhill/release-notes`): a slug of the
+  /// organisation's name, written once when first needed and never changed, so identities stay stable (skills spec
+  /// part 2 *Identity*). Never `agenthix`, `unsigned`, nor a trusted publisher's name.
+  publisherName              String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-// ──────────────────────────────────────────────
-// Module: Skills Library
-// Library = DB-driven browsable pool.
-// Active (runtime-injected) copies live on the filesystem.
-// ──────────────────────────────────────────────
-enum SkillScope {
-  PLATFORM
-  ORG
-  PROJECT
-}
-
-model Skill {
-  id          String     @id @default(cuid())
-  slug        String
-  name        String
-  description String
-  assetPath   String                      // relative path from root: library/skills/<slug> (PLATFORM uses getHqAssetsRoot() — HQ_ASSETS_ROOT, read-only; ORG uses getHqStorageRoot() — HQ_STORAGE_ROOT, hq's own storage)
-  version     Int        @default(1)
-  scope       SkillScope
-  source         LibrarySource @default(MADE_HERE)
-  packageVersion String        @default("1")
-  publisher      String?
-  orgId       String?    // null for PLATFORM; set for ORG
-  org         Org?       @relation(fields: [orgId], references: [id])
-  projects    Project[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  @@unique([slug, scope, orgId])
 }
 
 // ──────────────────────────────────────────────

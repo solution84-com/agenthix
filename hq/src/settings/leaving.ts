@@ -112,6 +112,8 @@ export const removePerson = async (args: RemovePersonArgs, context: Ctx): Promis
     prisma.projectMember.deleteMany({ where: { userId, project: { personalOwnerId: null } } }),
     // Out of their teams too, or the next change to a team would write them back into its projects (adr-0103).
     prisma.teamPerson.deleteMany({ where: { userId } }),
+    // Their Library maintainer role ends with them; the history still names them by id (skills spec part 2).
+    prisma.libraryMaintainer.deleteMany({ where: { userId } }),
     // Their own conversations close, as every site closes their chats, and keep what was said.
     prisma.conversation.updateMany({
       where: { openedById: userId, home: { in: OWN_CONVERSATION_HOMES }, status: { not: 'CLOSED' } },

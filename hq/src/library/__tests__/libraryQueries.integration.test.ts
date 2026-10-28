@@ -27,6 +27,7 @@ vi.mock('../workforceTemplateService', async () => ({
 import { getWorkforceTemplates } from '../queries'
 import { confirmWorkforceTemplate, saveWorkforceDraft } from '../actions'
 import { listLibrarySkills } from '../../agents/skillsLibraryService'
+import { storeContent } from '../../assets/content'
 import { SYSTEM_TEMPLATE_IDS } from '../systemTemplates'
 
 const authed = { user: { id: 'u1' } } as any
@@ -80,22 +81,19 @@ async function makeTask(opts: { projectId: string; boardId?: string; column?: st
 describe('listLibrarySkills @SC-061', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('lists org skills scoped to the given org and not platform skills', async () => {
-    const org = await makeOrg()
-    await prisma.skill.create({
-      data: { slug: 'org-skill', name: 'Org Skill', description: 'd', assetPath: 'org/skills/org-skill', scope: 'ORG', orgId: org.id } as any,
-    })
-    await prisma.skill.create({
-      data: { slug: 'plat-skill', name: 'Platform Skill', description: 'd', assetPath: 'library/skills/plat-skill', scope: 'PLATFORM', orgId: null } as any,
-    })
+  it("lists the organisation's skills apart from Agenthix's shelf", async () => {
+    await makeOrg()
+    const files = [{ path: 'SKILL.md', content: Buffer.from('---\nname: org-skill\ndescription: d\n---\nbody') }]
+    const asset = await prisma.asset.create({ data: { kind: 'SKILL', publisher: 'acme', name: 'org-skill' } })
+    const version = await prisma.assetVersion.create({ data: { assetId: asset.id, version: '1.0.0', digest: await storeContent(files, prisma), source: 'MADE_HERE' } })
+    await prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } })
 
-    const orgSkills = await listLibrarySkills('ORG', org.id)
-    const platformSkills = await listLibrarySkills('PLATFORM', null)
+    const orgSkills = await listLibrarySkills('ORG')
+    const platformSkills = await listLibrarySkills('PLATFORM')
 
     expect(orgSkills.map((s) => s.slug)).toEqual(['org-skill'])
-    expect(platformSkills.map((s) => s.slug)).toEqual(['plat-skill'])
-    // Content falls back to '' when the asset file is absent on disk.
-    expect(typeof orgSkills[0].content).toBe('string')
+    expect(orgSkills[0].content).toBe('body')
+    expect(platformSkills.every((s) => s.id.startsWith('agenthix/'))).toBe(true)
   })
 })
 

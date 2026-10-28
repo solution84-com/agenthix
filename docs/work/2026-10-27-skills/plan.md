@@ -200,21 +200,21 @@ published, rolled back and maintained, with every agent's publish going through 
 **Starts when:** phase 1 is merged.
 **Execution plan:** none — lanes. Security lanes on Opus.
 
-- [ ] 2.1 The install pipeline: ZIP reader bounds, duplicate and case-colliding entries refused, the fingerprint over exactly what is stored
-- [ ] 2.2 A Sigstore verifier in hq: keyless with exact identity and ref, the transparency-log proof offline, key pairs, the shipped trust root and its age
-- [ ] 2.3 The four states, the publisher from the verified signer, `unsigned/`, the reserved `agenthix/`
-- [ ] 2.4 Sources: hq's image shelf, upload, and the guarded URL fetch
-- [ ] 2.5 Trusted publishers, unsigned assets and who may install from outside (P1–P3)
-- [ ] 2.6 De-duplication by identity on install, and what comes with it (I3, I6)
-- [ ] 2.7 Pinned versions: update, roll back, any version on purpose, the withdrawn-version warning
-- [ ] 2.8 Drafts: one per asset, shared, with each change's author; publish of the exact revision seen
-- [ ] 2.9 Editing a signed asset makes the organisation's own copy, which takes its place
-- [ ] 2.10 Provenance written once; *verified* only for lines hq wrote
-- [ ] 2.11 Agents with this skill: every agent or chosen agents; remove names who has it
-- [ ] 2.12 Library maintainers, the reach warning on naming, and history of who did what
-- [ ] 2.13 One permission policy: role, Library maintainer, project role, and agent callers
-- [ ] 2.14 An agent's publish, roll back, switch on and install as approval cards, *Bypassed* included
-- [ ] 2.15 Validation against the Agent Skills rules on every save, upload and install
+- [x] 2.1 The install pipeline: ZIP reader bounds, duplicate and case-colliding entries refused, the fingerprint over exactly what is stored
+- [x] 2.2 A Sigstore verifier in hq: keyless with exact identity and ref, the transparency-log proof offline, key pairs, the shipped trust root and its age
+- [x] 2.3 The four states, the publisher from the verified signer, `unsigned/`, the reserved `agenthix/`
+- [x] 2.4 Sources: hq's image shelf, upload, and the guarded URL fetch
+- [x] 2.5 Trusted publishers, unsigned assets and who may install from outside (P1–P3)
+- [x] 2.6 De-duplication by identity on install, and what comes with it (I3, I6)
+- [x] 2.7 Pinned versions: update, roll back, any version on purpose, the withdrawn-version warning
+- [x] 2.8 Drafts: one per asset, shared, with each change's author; publish of the exact revision seen
+- [x] 2.9 Editing a signed asset makes the organisation's own copy, which takes its place
+- [x] 2.10 Provenance written once; *verified* only for lines hq wrote
+- [x] 2.11 Agents with this skill: every agent or chosen agents; remove names who has it
+- [x] 2.12 Library maintainers, the reach warning on naming, and history of who did what
+- [x] 2.13 One permission policy: role, Library maintainer, project role, and agent callers
+- [x] 2.14 An agent's publish, roll back, switch on and install as approval cards, *Bypassed* included
+- [x] 2.15 Validation against the Agent Skills rules on every save, upload and install
 
 ### Phase 3 — Delivery and skills in files
 **Delivers:** a run receives exactly the skills the design says, with file skills scanned, switched, versioned by
@@ -279,7 +279,7 @@ de-duplicate them on install.
 - [ ] 6.4 Add: the shelf, upload, a link, new skill, and the four install dialogs with the unsigned tick
 - [ ] 6.5 A diff renderer behind the file frame's boundary, in one column
 - [ ] 6.6 CodeMirror 6 in `ui/`
-- [ ] 6.7 The editor: the tree with change markers, View, Edit and Changes, checks, ask an agent, publish
+- [ ] 6.7 The editor: the tree with change markers, View, Edit and Changes, checks, ask an agent, publish; the old screen's direct save and delete (`updateLibrarySkill`, `deleteLibrarySkill`, `publishMadeHereEdit`) removed
 - [ ] 6.8 Update, change of publisher, roll back and own copy screens
 - [ ] 6.9 A project's Skills page: groups, versions, switches, defaults, add to this place, the private group
 - [ ] 6.10 Your space's Skills page and the person's skills that follow them
@@ -301,6 +301,7 @@ de-duplicate them on install.
 - [ ] 7.6 User guide: a *Skills* page, the glossary, the Library and agent pages, the stale task-management line
 - [ ] 7.7 Concept documents: skills, the Library, knowledge's relation to skills
 - [ ] 7.8 Architecture documents: delivery, the install protocol, the site protocol's changes
+- [ ] 7.9 The Sigstore trust root's refresh run by the release rehearsal
 
 ### Phase 8 — Close
 **Delivers:** the unit's record complete, nothing left open or untracked, and what it changed described everywhere it's
@@ -323,3 +324,4 @@ read; the branch ready to merge.
 | Phase | What changed | Why |
 |---|---|---|
 | 1 | Task 1.7 adds the new records but leaves `Skill` and `SkillScope` in place; they are removed in phase 2 with the code that reads them (2.6) | Removing the table in phase 1 would leave the Library's skill actions broken until phase 2 rewrites them; the removal belongs with their replacement |
+| 2 | A keyless signer's identity is the certificate's identity less the ref it ran from, with the ref checked on its own; an unknown key-pair signer is refused as unverifiable, not offered as a new publisher (spec part 3 *Who signs*, amended) | A workflow's certificate identity ends in its ref, so comparing it whole made every tag release a different signer; a key-pair bundle doesn't carry its key, so there's nothing to verify until it is trusted |

@@ -1,7 +1,7 @@
 /**
  * Integration tests (ADR-0094 — real test DB) for the actions that put skills into an agent's or the
- * organisation's package: saveAgentSkill, deleteAgentSkill, installSkill, uninstallSkill. Library skill
- * sources are read from temporary storage and assets roots.
+ * organisation's package: saveAgentSkill, deleteAgentSkill, installSkill, uninstallSkill. A Library skill is an
+ * asset; Agenthix's shelf is read from a temporary assets root.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '../../test/db'
@@ -15,7 +15,9 @@ vi.mock('wasp/server', async () => {
 vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/debouncedPush'))
 vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activity'))
 
-import { saveAgentSkill, deleteAgentSkill, installSkill, uninstallSkill } from '../actions'
+import { saveAgentSkill, deleteAgentSkill } from '../actions'
+import { installSkill, uninstallSkill } from '../librarySkillActions'
+import { storeContent } from '../../assets/content'
 import { readAgentContent, writeAgentContent } from '../../packages/agentPackageService'
 import { readCurrentFiles } from '../../packages/packageStore'
 import { contextWithRole, contextWithoutRole, opContext, useTempRoots, writeTextFile, type TempRoots } from './definitionFixtures'
@@ -41,14 +43,13 @@ async function orgWithPackage() {
   return prisma.org.create({ data: { name: 'Acme' } })
 }
 
-async function librarySkill(over: Record<string, unknown> = {}) {
-  const slug = (over.slug as string) ?? 'notes'
-  const skill = await prisma.skill.create({
-    data: { slug, name: 'Notes', description: 'Takes notes', assetPath: `org/skills/${slug}`, scope: 'ORG', ...over },
-  })
-  const source = skill.scope === 'PLATFORM' ? path.join(roots.assets, skill.assetPath) : path.join(roots.storage, skill.assetPath)
-  await writeTextFile(path.join(source, 'SKILL.md'), '---\nname: Notes\n---\n\nTake notes.\n')
-  return skill
+/** An installed Library skill: an asset pinned to one version whose content is stored. */
+async function librarySkill(slug = 'notes') {
+  const files = [{ path: 'SKILL.md', content: Buffer.from(`---\nname: ${slug}\ndescription: Takes notes\n---\n\n# Notes\n\nTake notes.\n`) }]
+  const asset = await prisma.asset.create({ data: { kind: 'SKILL', publisher: 'acme', name: slug } })
+  const version = await prisma.assetVersion.create({ data: { assetId: asset.id, version: '1.2.0', digest: await storeContent(files, prisma), source: 'UPLOAD' } })
+  await prisma.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } })
+  return asset
 }
 
 describe('saveAgentSkill', () => {
@@ -152,20 +153,23 @@ describe('installSkill', () => {
     const installed = (await readAgentContent(agent.id))!.skillFiles
     expect(installed.map(f => f.path)).toEqual(['skills/notes/SKILL.md'])
     const text = installed[0].content.toString()
-    expect(text).toContain(`installed_from: ${skill.id}`)
-    expect(text).toContain('scope: ORG')
+    expect(text).toContain('installed_from: acme/notes')
+    expect(text).toContain('version: 1')
     expect(text).toContain('Take notes.')
+    expect(await prisma.assetGrant.findMany({ select: { assetId: true, agentId: true } })).toEqual([{ assetId: skill.id, agentId: agent.id }])
   })
 
-  it('copies a platform library skill from hq\'s assets, with its companion files', async () => {
+  it('installs an Agenthix skill from the shelf first, then copies it with its companion files', async () => {
     const agent = await agentWithContent()
-    const skill = await librarySkill({ slug: 'bundled', scope: 'PLATFORM', assetPath: 'library/skills/bundled' })
+    await writeTextFile(path.join(roots.assets, 'library/skills/bundled/SKILL.md'), '---\nname: Bundled\ndescription: d\n---\n\nBody\n')
     await writeTextFile(path.join(roots.assets, 'library/skills/bundled/reference.md'), 'ref')
     const { ctx } = await contextWithRole('ADMIN')
 
-    await installSkill({ skillId: skill.id, target: { scope: 'AGENT', agentId: agent.id } }, ctx)
+    await installSkill({ skillId: 'agenthix/bundled', target: { scope: 'AGENT', agentId: agent.id } }, ctx)
 
     expect(await agentSkillPaths(agent.id)).toEqual(['skills/bundled/SKILL.md', 'skills/bundled/reference.md'])
+    const asset = await prisma.asset.findUniqueOrThrow({ where: { kind_publisher_name: { kind: 'SKILL', publisher: 'agenthix', name: 'bundled' } }, include: { currentVersion: true } })
+    expect(asset.currentVersion).toMatchObject({ version: '1.0.0', source: 'BUILT_IN', signerKind: 'NONE' })
   })
 
   it('puts an org skill into the organisation\'s package', async () => {
@@ -178,6 +182,7 @@ describe('installSkill', () => {
     const files = (await readCurrentFiles('org', org.id))!
     expect(files.map(f => f.path)).toContain('skills/notes/SKILL.md')
     expect(files.map(f => f.path)).toContain('ORG.md')
+    expect((await prisma.asset.findUniqueOrThrow({ where: { id: skill.id } })).givenToAll).toBe(true)
   })
 
   it('answers 409 when there is no organisation to install into', async () => {
@@ -212,10 +217,13 @@ describe('installSkill', () => {
     await expect(installSkill({ skillId: skill.id, target } as any, ctx)).rejects.toMatchObject({ statusCode: 400 })
   })
 
-  it('refuses a Member, a person with no role and a signed-out caller, and installs nothing', async () => {
+  it('refuses a Library maintainer, a Member, a person with no role and a signed-out caller, and installs nothing', async () => {
     const agent = await agentWithContent()
     const skill = await librarySkill()
     const args = { skillId: skill.id, target: { scope: 'AGENT' as const, agentId: agent.id } }
+    const maintainer = await contextWithRole('MEMBER')
+    await prisma.libraryMaintainer.create({ data: { userId: maintainer.user.id } })
+    await expect(installSkill(args, maintainer.ctx)).rejects.toMatchObject({ statusCode: 403 })
     await expect(installSkill(args, (await contextWithRole('MEMBER')).ctx)).rejects.toMatchObject({ statusCode: 403 })
     await expect(installSkill(args, (await contextWithoutRole()).ctx)).rejects.toMatchObject({ statusCode: 403 })
     await expect(installSkill(args, opContext(undefined))).rejects.toMatchObject({ statusCode: 401 })
@@ -242,6 +250,19 @@ describe('uninstallSkill', () => {
     await uninstallSkill({ slug: 'notes', target: { scope: 'ORG', orgId: org.id } }, ctx)
 
     expect((await readCurrentFiles('org', org.id))!.map(f => f.path)).not.toContain('skills/notes/SKILL.md')
+    expect((await prisma.asset.findUniqueOrThrow({ where: { id: skill.id } })).givenToAll).toBe(false)
+  })
+
+  it('takes the grant away when it removes an installed copy from an agent', async () => {
+    const agent = await agentWithContent()
+    const skill = await librarySkill()
+    const { ctx } = await contextWithRole('ADMIN')
+    await installSkill({ skillId: skill.id, target: { scope: 'AGENT', agentId: agent.id } }, ctx)
+
+    await uninstallSkill({ slug: 'notes', target: { scope: 'AGENT', agentId: agent.id } }, ctx)
+
+    expect(await agentSkillPaths(agent.id)).toEqual([])
+    expect(await prisma.assetGrant.count()).toBe(0)
   })
 
   it('answers 409 when there is no organisation', async () => {

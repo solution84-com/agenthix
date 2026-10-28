@@ -76,7 +76,7 @@ await hq.$executeRawUnsafe(`TRUNCATE TABLE "User", "Project", "Product", "Progra
   "WorkspacePlacement", "UserStoragePlacement", "UsageEntry", "BillingProfile", "GitHubApp", "GitHubInstallation", "MobileAuthToken"
   CASCADE`)
 await hq.agent.deleteMany({ where: { isKernel: false } })
-await hq.skill.deleteMany({ where: { scope: { not: 'PLATFORM' } } })
+await hq.asset.deleteMany({ where: { publisher: { not: 'agenthix' } } })
 await hq.executionSite.deleteMany({ where: { isDefault: false } })
 await site.$executeRawUnsafe('TRUNCATE TABLE "AgentSession", "Workspace", "RepoAttachment" CASCADE')
 

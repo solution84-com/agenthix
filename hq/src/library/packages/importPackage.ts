@@ -1,6 +1,8 @@
 /**
- * Imports a package into the library as the organisation's own item, recording
- * where it came from, its version and its publisher (`packageManifest.ts`).
+ * Imports a package into the library. A skill is an asset and goes through the
+ * install pipeline (`assets/install/`), signature check included. A template is
+ * imported as the organisation's own item, recording where it came from, its
+ * version and its publisher (`packageManifest.ts`).
  * Its files go to hq's own storage; nothing of it runs, and using it later
  * makes a copy, as with any library item.
  *
@@ -11,7 +13,13 @@
  */
 import { prisma } from 'wasp/server'
 import { isValidAgentHandle, INVALID_AGENT_HANDLE_MESSAGE } from '../../agents/agentHandle'
-import { parseFrontmatter } from '../../agents/skillsActiveService'
+import { ASSET_MANIFEST_FILE } from '@agenthix/core'
+import { readZipPackage, type ArrivedPackage } from '../../assets/install/archive'
+import { installPackage } from '../../assets/install/commit'
+import { previewInstall } from '../../assets/install/preview'
+import type { Arrival } from '../../assets/install/types'
+import type { PersonActor } from '../../assets/policy'
+import { createVerifier } from '../../assets/signing'
 import { createBoardTemplate, parseBoardTemplateColumns } from '../boardTemplateService'
 import { replaceStorageTree } from './fileTree'
 import { fileText, readPackageZip, type PackageFile } from './packageZip'
@@ -41,13 +49,49 @@ function json(files: PackageFile[], path: string): Record<string, unknown> {
   throw new PackageImportError(`${path} is not a JSON object`)
 }
 
-export async function importLibraryPackage(buffer: Buffer): Promise<ImportedItem> {
-  const { root, manifest, files } = await readPackageZip(buffer)
+/** A skill (format 2, or a plain skill folder) goes through the asset pipeline; a format 1 template is read as before. */
+async function assetArrival(buffer: Buffer): Promise<ArrivedPackage | null> {
+  let arrived: ArrivedPackage
+  try {
+    arrived = await readZipPackage(buffer)
+  } catch {
+    return null
+  }
+  const manifest = arrived.files.find(f => f.path === ASSET_MANIFEST_FILE)
+  if (!manifest) return arrived.files.some(f => f.path === 'SKILL.md') ? arrived : null
+  try {
+    const raw = JSON.parse(manifest.content.toString('utf-8')) as { format?: unknown; kind?: unknown }
+    return raw.format === 1 && raw.kind !== 'skill' ? null : arrived
+  } catch {
+    return arrived
+  }
+}
+
+/**
+ * Import installs a skill when nothing needs confirming: Agenthix's own, or one signed by a publisher this
+ * organisation trusts. An unsigned skill or a new publisher needs the person to read it and choose, which Import
+ * can't ask, so it is refused with what to do.
+ */
+async function importSkillAsset(arrival: Arrival, actor: PersonActor): Promise<ImportedItem> {
+  const deps = { db: prisma, verifier: createVerifier(), now: new Date() }
+  const preview = await previewInstall(arrival, actor, deps)
+  if (preview.refusal) throw new PackageImportError(preview.refusal)
+  if (preview.needs.unsignedRead || preview.needs.publisherChoice) {
+    throw new PackageImportError(`${preview.title} ${preview.needs.unsignedRead ? "isn't signed" : `is signed by ${preview.signedBy}, a publisher this organisation hasn't trusted`}, so it must be read and confirmed before it is installed, which Import can't ask for. Nothing was changed.`, 409)
+  }
+  const result = await installPackage(arrival, { fingerprint: preview.fingerprint }, actor, deps)
+  return { kind: 'skill', id: result.assetId ?? '', name: preview.title }
+}
+
+export async function importLibraryPackage(buffer: Buffer, actor: PersonActor): Promise<ImportedItem> {
+  const arrived = await assetArrival(buffer)
+  if (arrived) return importSkillAsset({ source: 'upload', arrived, bundle: null, sourceUrl: null }, actor)
+  const { manifest, files } = await readPackageZip(buffer)
   if (!manifest) throw new PackageImportError('This is not a library package: it has no package.json')
   switch (manifest.kind) {
     case 'agent': return importAgent(manifest, files)
     case 'board': return importBoard(manifest, files)
-    case 'skill': return importSkill(manifest, root, files)
+    case 'skill': throw new PackageImportError('This skill package was made for an older hq (package format 1). Export it again from this version of hq.')
     case 'team': return importTeam(manifest, files)
   }
 }
@@ -76,25 +120,6 @@ async function importBoard(m: PackageManifest, files: PackageFile[]): Promise<Im
   const created = await createBoardTemplate({ name, description, columns })
   await prisma.boardTemplate.update({ where: { id: created.id }, data: record(m) })
   return { kind: 'board', id: created.id, name }
-}
-
-async function importSkill(m: PackageManifest, root: string, files: PackageFile[]): Promise<ImportedItem> {
-  if (!SLUG_RE.test(root)) throw new PackageImportError("A skill package's folder is its name: lowercase letters, digits and hyphens")
-  const body = fileText(files, 'SKILL.md')
-  if (body === null) throw new PackageImportError('This package has no SKILL.md')
-  const front = parseFrontmatter(body)
-  const name = front.name !== 'Unnamed' ? front.name : m.name
-  const description = front.description || m.description
-  const org = await prisma.org.findFirst({ select: { id: true } })
-  if (!org) throw new PackageImportError('Create the organisation before importing skills for it', 409)
-  const assetPath = `org/skills/${root}`
-  await replaceStorageTree(assetPath, files)
-  const existing = await prisma.skill.findFirst({ where: { slug: root, scope: 'ORG', orgId: org.id } })
-  const data = { name, description, assetPath, ...record(m) }
-  const row = existing
-    ? await prisma.skill.update({ where: { id: existing.id }, data })
-    : await prisma.skill.create({ data: { slug: root, scope: 'ORG', orgId: org.id, ...data } })
-  return { kind: 'skill', id: row.id, name: row.name }
 }
 
 async function importTeam(m: PackageManifest, files: PackageFile[]): Promise<ImportedItem> {

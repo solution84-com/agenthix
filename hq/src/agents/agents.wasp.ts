@@ -4,11 +4,13 @@ import { AgentPlacePage } from "./pages/AgentPlacePage" with { type: "ref" };
 import { AgentsManageListPage } from "./pages/manage/AgentsManageListPage" with { type: "ref" };
 import { AgentManagePage } from "./pages/manage/AgentManagePage" with { type: "ref" };
 import { SkillsRedirectPage } from "../library/pages/SkillsRedirectPage" with { type: "ref" };
-import { getAgents, getAgent, getAgentByHandle, getAgentDetail, getAgentChatStats, getAgentPromptPreview, getAgentSkills, getSkillLibrary, getInstalledSkillVersions } from "./queries" with { type: "ref" };
+import { getAgents, getAgent, getAgentByHandle, getAgentDetail, getAgentChatStats, getAgentPromptPreview, getAgentSkills } from "./queries" with { type: "ref" };
 import { getToolCallLog, getSessionPendingManifest, getRunManifestStatus } from "./manifestQueries" with { type: "ref" };
 import { getOrgRunLimitsQuery as getOrgRunLimits, updateOrgRunLimits, getProjectRunLimitsQuery as getProjectRunLimits, setProjectRunLimits } from "./runLimits/runLimitsActions" with { type: "ref" };
-import { createAgent, updateAgent, stopAgent, saveAgentSkill, deleteAgentSkill, createLibrarySkill, updateLibrarySkill, deleteLibrarySkill, installSkill, uninstallSkill, deleteAgent, uploadAgentImage, applyAgentPreset } from "./actions" with { type: "ref" };
+import { createAgent, updateAgent, stopAgent, saveAgentSkill, deleteAgentSkill, deleteAgent, uploadAgentImage, applyAgentPreset } from "./actions" with { type: "ref" };
 import { updateAgentFile, updateAgentSettings } from "./definitionActions" with { type: "ref" };
+import { createLibrarySkill, updateLibrarySkill, deleteLibrarySkill, installSkill, uninstallSkill } from "./librarySkillActions" with { type: "ref" };
+import { getSkillLibrary, getInstalledSkillVersions } from "./librarySkillQueries" with { type: "ref" };
 import { getAgentOverride, setAgentOverride } from "./overrides/overrideOperations" with { type: "ref" };
 import { getAgentPermissions, getAgentPermissionsHere, getAgentCardHere } from "./permissions/permissionQueries" with { type: "ref" };
 import { exportAgent, importAgent } from "./agentZipActions" with { type: "ref" };
@@ -40,8 +42,8 @@ export const agentsSpec: Spec = [
     query(getAgentAssignments, { entities: ["Agent", "ProjectAgent", "AgentOverride", "Project", "ProjectMember"] }),
     query(getAgentUsage, { entities: ["Agent", "AgentSession", "ProjectMember"] }),
     query(getAgentSkills, { entities: ["Agent"] }),
-    query(getSkillLibrary, { entities: ["Skill"] }),
-    query(getInstalledSkillVersions, { entities: ["Skill"] }),
+    query(getSkillLibrary, { entities: ["Asset", "AssetVersion"] }),
+    query(getInstalledSkillVersions, { entities: ["Asset"] }),
     query(getToolCallLog, { entities: ["AgentSession"] }),
     query(getSessionPendingManifest, { entities: ["AgentSession"] }),
     query(getRunManifestStatus, { entities: ["AgentSession"] }),
@@ -64,11 +66,11 @@ export const agentsSpec: Spec = [
     action(importAgent, { entities: ["Agent"] }),
     action(saveAgentSkill, { entities: ["Agent"] }),
     action(deleteAgentSkill, { entities: ["Agent"] }),
-    action(createLibrarySkill, { entities: ["Skill"] }),
-    action(updateLibrarySkill, { entities: ["Skill"] }),
-    action(deleteLibrarySkill, { entities: ["Skill"] }),
-    action(installSkill, { entities: ["Skill", "Agent", "Project"] }),
-    action(uninstallSkill, { entities: ["Skill"] }),
+    action(createLibrarySkill, { entities: ["Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "TrustedPublisher", "Org", "PackageContent"] }),
+    action(updateLibrarySkill, { entities: ["Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "TrustedPublisher", "Org", "PackageContent"] }),
+    action(deleteLibrarySkill, { entities: ["Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "TrustedPublisher", "Org", "PackageContent"] }),
+    action(installSkill, { entities: ["Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "TrustedPublisher", "Org", "PackageContent", "Agent", "Project"] }),
+    action(uninstallSkill, { entities: ["Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "TrustedPublisher", "Org", "PackageContent"] }),
     action(deleteAgent, { entities: ["Agent", "AgentSession"] }),
     action(uploadAgentImage, { entities: ["Agent"] }),
     action(applyAgentPreset, { entities: ["Agent"] }),

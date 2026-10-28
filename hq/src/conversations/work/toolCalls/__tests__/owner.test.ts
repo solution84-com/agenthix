@@ -113,3 +113,13 @@ describe('Stop @SC-965', () => {
     await expect(owner.cancel('op-1', 'person-1')).rejects.toThrow(/not found/)
   })
 })
+
+describe('an agent\'s asset request (skills D31)', () => {
+  it('is never run as the lead\'s own call: what it holds is checked as an asset request first', async () => {
+    row.toolName = 'approve_asset_request'
+    await expect(owner.answerApproval('op-1', 'approve', null, 'answerer-1')).rejects.toMatchObject({ statusCode: 409 })
+    await Promise.all(detached)
+    expect(runs).toHaveLength(0)
+    expect(row.state).toBe('WAITING_FOR_APPROVAL')
+  })
+})

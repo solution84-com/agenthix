@@ -21,8 +21,8 @@ export const librarySpec: Spec = [
     action(confirmWorkforceTemplate, { entities: ["Task"] }),
     action(saveWorkforceDraft, { entities: ["Task"] }),
     query(getAgentTemplates, { entities: ["AgentTemplate"] }),
-    action(applyAgentTemplate, { entities: ["AgentTemplate", "Agent", "Skill"] }),
-    query(getLibrary, { entities: ["AgentTemplate", "BoardTemplate", "Skill", "WorkforceTemplate"] }),
-    action(exportLibraryItem, { entities: ["AgentTemplate", "BoardTemplate", "Skill", "WorkforceTemplate"] }),
-    action(importLibraryItem, { entities: ["AgentTemplate", "BoardTemplate", "Skill", "WorkforceTemplate", "Org"] }),
+    action(applyAgentTemplate, { entities: ["AgentTemplate", "Agent"] }),
+    query(getLibrary, { entities: ["AgentTemplate", "BoardTemplate", "Asset", "AssetVersion", "WorkforceTemplate"] }),
+    action(exportLibraryItem, { entities: ["AgentTemplate", "BoardTemplate", "Asset", "AssetVersion", "WorkforceTemplate"] }),
+    action(importLibraryItem, { entities: ["AgentTemplate", "BoardTemplate", "Asset", "AssetVersion", "AssetPinChange", "TrustedPublisher", "PackageContent", "WorkforceTemplate", "Org"] }),
 ];

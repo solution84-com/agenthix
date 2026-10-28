@@ -8,6 +8,12 @@
  * no symlink entries; one root folder; and every path checked with
  * `isValidPackagePath` (no `..`, absolute or backslash segments). A Finder
  * zip's `__MACOSX/` and dotfile metadata is skipped, not treated as an escape.
+ *
+ * An asset's package is read stricter (`readZipEntries`, spec part 3 *The
+ * protocol* 2, security review H1): JSZip keeps one file per name, so two
+ * central-directory records with one name, or a name it rewrote (`a/../b`),
+ * would leave the files stored differing from the files the archive holds.
+ * Both are refused, and nothing is skipped: the caller checks every name.
  */
 import JSZip from 'jszip'
 import { isValidPackagePath, PACKAGE_MAX_BYTES } from '@agenthix/core'
@@ -80,14 +86,65 @@ function readCounted(file: JSZip.JSZipObject, budget: { used: number }): Promise
   })
 }
 
-export async function readPackageZip(buffer: Buffer): Promise<ReadPackage> {
+async function loadZip(buffer: Buffer): Promise<JSZip> {
   let zip: JSZip
   try {
-    zip = await JSZip.loadAsync(buffer)
+    zip = await JSZip.loadAsync(buffer, { createFolders: false })
   } catch {
     throw new PackageZipError('Invalid package: not a ZIP archive')
   }
   assertDeclaredShape(zip)
+  return zip
+}
+
+const EOCD = Buffer.from([0x50, 0x4b, 0x05, 0x06])
+const CENTRAL_HEADER = 0x02014b50
+
+/** How many records the central directory really holds, walked as JSZip walks it. */
+function centralDirectoryRecords(buffer: Buffer): number {
+  const end = buffer.lastIndexOf(EOCD)
+  if (end < 0 || end + 22 > buffer.length) throw new PackageZipError('Invalid package: not a ZIP archive')
+  const size = buffer.readUInt32LE(end + 12)
+  if (buffer.readUInt16LE(end + 10) === 0xffff || size === 0xffffffff || buffer.readUInt32LE(end + 16) === 0xffffffff) {
+    throw new PackageZipError('Invalid package: ZIP64 archives are not read')
+  }
+  let at = end - size
+  if (at < 0) throw new PackageZipError('Invalid package: not a ZIP archive')
+  let records = 0
+  while (at + 46 <= end && buffer.readUInt32LE(at) === CENTRAL_HEADER) {
+    records++
+    at += 46 + buffer.readUInt16LE(at + 28) + buffer.readUInt16LE(at + 30) + buffer.readUInt16LE(at + 32)
+  }
+  return records
+}
+
+export type ZipEntry = { name: string; content: Buffer }
+
+/**
+ * Every file entry of an asset's archive, by its full name, read under the same bounds. `checkNames` sees every
+ * entry's name, folders included, before any content is inflated, and throws to refuse.
+ */
+export async function readZipEntries(buffer: Buffer, checkNames: (names: string[]) => void): Promise<ZipEntry[]> {
+  const zip = await loadZip(buffer)
+  const entries = Object.values(zip.files)
+  if (entries.length !== centralDirectoryRecords(buffer)) {
+    throw new PackageZipError('Invalid package: two entries in it have the same name')
+  }
+  for (const file of entries) {
+    const original = (file as unknown as { unsafeOriginalName?: string }).unsafeOriginalName
+    if (original !== undefined && original !== file.name) throw new PackageZipError(`Invalid package: unsafe path ${original}`)
+  }
+  checkNames(entries.map(f => f.name))
+  const budget = { used: 0 }
+  const out: ZipEntry[] = []
+  for (const file of entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
+    if (!file.dir) out.push({ name: file.name, content: await readCounted(file, budget) })
+  }
+  return out
+}
+
+export async function readPackageZip(buffer: Buffer): Promise<ReadPackage> {
+  const zip = await loadZip(buffer)
   const names = Object.keys(zip.files).filter(n => !isFinderMetadata(n))
   const roots = new Set(names.map(n => n.split('/')[0]))
   const [root] = roots
@@ -116,7 +173,8 @@ export async function readPackageZip(buffer: Buffer): Promise<ReadPackage> {
   return { root, manifest, files }
 }
 
-export async function writePackageZip(root: string, manifest: PackageManifest, files: PackageFile[]): Promise<Buffer> {
+/** `manifest` is a format 1 manifest for a template, or an asset's format 2 manifest. */
+export async function writePackageZip(root: string, manifest: PackageManifest | object, files: PackageFile[]): Promise<Buffer> {
   const zip = new JSZip()
   const folder = zip.folder(root)!
   folder.file(PACKAGE_MANIFEST_FILE, JSON.stringify(manifest, null, 2))

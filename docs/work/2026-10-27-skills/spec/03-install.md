@@ -44,10 +44,15 @@ safe. The person installing is always told the two things that matter: that it's
 | W3 | **A person's own identity**, accepted because the protocol is open | "Signed by **a person**, alice@example.com, not an organisation" |
 | W4 | Both an organisation and the member who released it | Not used: who inside an organisation released something stays internal |
 
-**A trusted keyless publisher is bound exactly** (security review H2): the issuer, the exact certificate identity (no
-pattern match), and the source repository and ref from the certificate's extensions, tags or the default branch only,
-so a feature branch that can run the release workflow can't sign as the publisher. A key-pair publisher is revoked by
-removing its key. W3 shows the identity provider beside the email.
+**A trusted keyless publisher is bound exactly** (security review H2): the issuer, the exact certificate identity
+less the ref it ran from (no pattern match; a workflow's identity ends in `@<ref>`, which would make every tag release
+a new signer), and the source repository and ref from the certificate's extensions, checked on their own: tags or
+the default branch only, so a feature branch that can run the release workflow can't sign as the publisher. The ref is
+shown beside the identity. **A key-pair publisher is trusted by adding its public key first**: a key-pair bundle
+names its key but doesn't carry it, so an unknown key can't be checked and is refused as unverifiable rather than
+offered as a new publisher (S2 applies to keyless signers). A key-pair publisher is revoked by removing its key, and
+needs no transparency-log entry, so an organisation's key can sign offline. W3 shows the identity provider beside the
+email.
 
 The organisation signs because it outlives its people, so trust doesn't reset when a maintainer leaves. A keyless
 signature proves a repository and workflow, not that the account is an organisation: hq shows exactly what is proven,

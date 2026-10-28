@@ -8,7 +8,10 @@ import path from 'node:path'
 import { prisma } from 'wasp/server'
 import { assertAssetDir, getHqAssetsRoot } from '../server/hqAssets'
 import { getCurrentPackage, writePackage, readCurrentFiles, type Db, type PackageFileInput, type WriteResult } from './packageStore'
-import { librarySkillFiles, replaceSkill } from './skillFiles'
+import { replaceSkill } from './skillFiles'
+import { AGENTHIX_PUBLISHER } from '@agenthix/core'
+import { listShelf, shelfDir } from '../assets/sources/imageShelf'
+import { skillCopy } from '../assets/packageCopies'
 import { Logger } from '../server/utils/logger'
 
 const logger = new Logger('Packages')
@@ -35,17 +38,16 @@ async function templateBody(): Promise<string> {
   }
 }
 
-/** Every platform library skill, installed into the org's first package content. */
-async function initialOrgFiles(db: Db): Promise<PackageFileInput[]> {
+/** Every skill on Agenthix's shelf in hq's image, copied into the org's first package content. */
+async function initialOrgFiles(_db: Db): Promise<PackageFileInput[]> {
   // Later writes carry these skills forward, so a first write without them never gains them.
-  await assertAssetDir(path.join(getHqAssetsRoot(), 'library', 'skills'))
+  await assertAssetDir(shelfDir())
   let files: PackageFileInput[] = [{ path: ORG_FILE, content: Buffer.from(await templateBody(), 'utf-8') }]
-  const platformSkills = await db.skill.findMany({ where: { scope: 'PLATFORM', orgId: null }, orderBy: { slug: 'asc' } })
-  for (const skill of platformSkills) {
+  for (const skill of await listShelf()) {
     try {
-      files = replaceSkill(files, skill.slug, await librarySkillFiles(skill))
+      files = replaceSkill(files, skill.name, skillCopy({ publisher: AGENTHIX_PUBLISHER, name: skill.name }, skill.version, skill.files).files)
     } catch (err) {
-      logger.warn(`platform library skill ${skill.slug} not installed for the org: ${err instanceof Error ? err.message : String(err)}`)
+      logger.warn(`Agenthix's skill ${skill.name} not copied for the org: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
   return files
