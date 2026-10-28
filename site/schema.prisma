@@ -278,6 +278,7 @@ model AgentRun {
   manifestDecidedAt  DateTime? // when the request was approved, denied, or replaced by something newer
   contextUse         Json?     // the runtime's memory of the conversation as this run left it (core's ContextUse)
   auditSummary       Json?     // AuditSummary — written at run completion
+  skillsUsed         Json?     // RunSkillUse[] — each skill staged for the run, with the fingerprint of what was staged
 
   toolCallLogs ToolCallLog[]
 

@@ -27,6 +27,13 @@ export const FEATURE_FLAGS = {
     removeWhen: "Agenthix Cloud's metering and billing are live.",
     onInProduction: false,
   },
+  marketplace: {
+    feature:
+      "The Library's Marketplace: its button and its own page, for finding and installing assets from a hosted " +
+      'registry. Installing from an upload or a link is not behind it.',
+    removeWhen: 'The hosted registry and the Marketplace page are built.',
+    onInProduction: false,
+  },
 } as const satisfies Record<string, FeatureFlagEntry>
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS

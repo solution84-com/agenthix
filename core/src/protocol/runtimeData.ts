@@ -13,7 +13,7 @@
  */
 
 import type { WorkspaceOwnerType } from './siteData.js'
-import type { RunPackages } from './packages.js'
+import type { FileSkillEntry, InstalledSkillEntry, PersonSkillEntry, RunPackages, RunSkillUse } from './packages.js'
 import type { ApiKeyRunCredential, RunCredential } from './credential.js'
 import type { RunModelAccess } from './runProvider.js'
 import type { RunLimits } from './runLimits.js'
@@ -269,6 +269,12 @@ export type RunContextPayload = {
    * site fails the run rather than load any other content (`package_unavailable`).
    */
   packages: RunPackages
+  /** Built-in and installed skills this agent has, at their pinned versions, by digest. ABSENT from an hq before 1.9. */
+  installedSkills?: InstalledSkillEntry[]
+  /** The place's switched-on skills in files, by place, path and fingerprint. ABSENT from an hq before 1.9. */
+  fileSkills?: FileSkillEntry[]
+  /** The person's own published skills, only on a turn of their own conversation. ABSENT from an hq before 1.9. */
+  personSkills?: PersonSkillEntry[]
   /**
    * The person this run is on behalf of, so the agent can read "tomorrow at 9"
    * on their clock: their IANA timezone. The site adds the current local time
@@ -322,6 +328,12 @@ export type RunDispatchPayload = {
   capabilityJwt: string
   session: SessionSeed
   inputText: string
+  /**
+   * The skill the person picked for this message (`/` in the message box): a name staged for this turn. The site
+   * keeps it only when it is one, and the skill may be invoked by a person; otherwise it drops it and keeps the text.
+   * ABSENT when none was picked, and from an hq before 1.9.
+   */
+  skill?: { name: string }
   model: string
   hideUserMessage: boolean
   context: RunContextPayload
@@ -423,4 +435,6 @@ export type RunRow = {
   agentPackageDigest: string | null
   orgPackageDigest: string | null
   platformPackageDigest: string | null
+  /** The skills the run had staged; null before it staged any. ABSENT from a site before 1.9. */
+  skillsUsed?: RunSkillUse[] | null
 }

@@ -20,7 +20,8 @@
 import fs from 'node:fs/promises'
 import { constants as fsConstants } from 'node:fs'
 import path from 'node:path'
-import { namespacedSkillName, type SkillSource } from '@agenthix/core'
+import { createHash } from 'node:crypto'
+import { namespacedSkillName, packageDigestInput, PACKAGE_FORMAT_VERSION, type PackageFileEntry, type SkillSource } from '@agenthix/core'
 import type { ResolvedRunPackages } from '../../packages/runPackages'
 import {
   realpathOrNull, isInsideHome, readFileNoFollow, realpathOfFd,
@@ -38,7 +39,31 @@ export const MAX_BOUNDARY_BYTES = 16 * 1024 * 1024
 export const MAX_BOUNDARY_DEPTH = 8
 
 export type SkillRoot = { source: SkillSource; dir: string; sandboxHome?: string }
-export type StagedSkill = { source: SkillSource; slug: string; name: string }
+export type StagedSkill = {
+  source: SkillSource
+  slug: string
+  name: string
+  /** The sha256 of what was staged, as a package digest is made (undefined when it could not be read back). */
+  fingerprint?: string
+  /** Where the skill sits in the place's files, for a boundary or shared skill. */
+  path?: string
+}
+
+/** The fingerprint of a staged skill folder: its files as staged, SKILL.md rewritten and every other file included. */
+async function fingerprintOf(dir: string): Promise<string> {
+  const files: PackageFileEntry[] = []
+  const walk = async (current: string, prefix: string): Promise<void> => {
+    for (const entry of await fs.readdir(current, { withFileTypes: true })) {
+      if (entry.isDirectory()) await walk(path.join(current, entry.name), `${prefix}${entry.name}/`)
+      else if (entry.isFile()) {
+        const sha256 = createHash('sha256').update(await fs.readFile(path.join(current, entry.name))).digest('hex')
+        files.push({ path: `${prefix}${entry.name}`, sha256 })
+      }
+    }
+  }
+  await walk(dir, '')
+  return createHash('sha256').update(packageDigestInput({ formatVersion: PACKAGE_FORMAT_VERSION, files })).digest('hex')
+}
 
 export function skillRootsFor(
   packages: Pick<ResolvedRunPackages, 'agentDir' | 'orgDir' | 'platformDir'>,
@@ -294,7 +319,12 @@ export async function stageSkills(roots: SkillRoot[], destSkillsDir: string): Pr
         // SKILL.md was read and charged above; the copy leaves it out.
         await copyTree(src, dest, sandbox, 0, 'SKILL.md')
         await fs.writeFile(path.join(dest, 'SKILL.md'), stagedSkillMd(skillMdBuf.toString('utf-8'), name), 'utf-8')
-        staged.push({ source: root.source, slug: entry.name, name })
+        const fingerprint = await fingerprintOf(dest).catch((err: Error) => {
+          logger.warn(`skill ${root.source}/${entry.name} staged but not fingerprinted: ${err.message}`)
+          return undefined
+        })
+        const where = root.sandboxHome ? path.relative(root.sandboxHome, src).split(path.sep).join('/') : undefined
+        staged.push({ source: root.source, slug: entry.name, name, fingerprint, ...(where ? { path: where } : {}) })
       } catch (err) {
         // Any other failure in staging this one skill — never the run's launch.
         logger.warn(`skill ${root.source}/${entry.name} skipped: ${(err as Error).message}`)

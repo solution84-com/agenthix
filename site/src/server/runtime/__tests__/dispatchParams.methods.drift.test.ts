@@ -67,6 +67,9 @@ const fullContext: Required<RunContextPayload> = {
   packages,
   person: { timezone: 'Australia/Sydney' },
   pinnedMemory: [{ key: 'tea', scope: 'agent_person', title: 'Tea', body: 'Prefers tea.' }],
+  installedSkills: [{ identity: 'agenthix/code-review', version: '1.3.0', digest: 'd'.repeat(64), level: 'agent' }],
+  fileSkills: [{ placeId: 'p1', path: '.agents/skills/release', fingerprint: 'e'.repeat(64), group: 'place' }],
+  personSkills: [{ identity: 'fernhill/my-notes', version: '1.0.0', digest: 'f'.repeat(64) }],
 }
 
 function seed(sessionType: SessionSeed['sessionType']): SessionSeed {

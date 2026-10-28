@@ -184,15 +184,15 @@ and the close (8). Skills are usable end to end after phase 4.
 **Starts when:** —
 **Execution plan:** none — lanes. Shapes are decided in the spec and boards 5–6; nothing is migrated.
 
-- [ ] 1.1 Measure each part of a request on both runtimes today, as the baseline
-- [ ] 1.2 `core`: asset identity, manifest format 2 with `basedOn`, SemVer comparison
-- [ ] 1.3 `core`: the signed statement and the canonical fingerprint
-- [ ] 1.4 `core`: staging sources (`workspace`, `person`), dispatch skill entries by place, path and fingerprint, and the deprecation marks
-- [ ] 1.5 `core`: the message's `skill` field and the `skill` work target
-- [ ] 1.6 `core`: the Marketplace feature flag
-- [ ] 1.7 hq schema: `Asset`, `AssetVersion`, `Draft`, `Proposal`, `TrustedPublisher`, Library maintainer flag, `PlaceSkill` and `PlaceSkillVersion`, settings; `Skill` and `SkillScope` removed
-- [ ] 1.8 hq: `PackageContent` kept for every installed or used version, and the sweep changed to match
-- [ ] 1.9 Site: records of skills a run used
+- [x] 1.1 Measure each part of a request on both runtimes today, as the baseline
+- [x] 1.2 `core`: asset identity, manifest format 2 with `basedOn`, SemVer comparison
+- [x] 1.3 `core`: the signed statement and the canonical fingerprint
+- [x] 1.4 `core`: staging sources (`workspace`, `person`), dispatch skill entries by place, path and fingerprint, and the deprecation marks
+- [x] 1.5 `core`: the message's `skill` field and the `skill` work target
+- [x] 1.6 `core`: the Marketplace feature flag
+- [x] 1.7 hq schema: `Asset`, `AssetVersion`, `Draft`, `Proposal`, `TrustedPublisher`, Library maintainer flag, `PlaceSkill` and `PlaceSkillVersion`, settings; `Skill` and `SkillScope` removed
+- [x] 1.8 hq: `PackageContent` kept for every installed or used version, and the sweep changed to match
+- [x] 1.9 Site: records of skills a run used
 
 ### Phase 2 — Installing and the Library's lifecycle (skills)
 **Delivers:** skills install from hq's image, an upload or a URL through the signed check, and are versioned, edited,

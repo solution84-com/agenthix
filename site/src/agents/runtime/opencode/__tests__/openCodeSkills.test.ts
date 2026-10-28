@@ -1,12 +1,14 @@
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OPENCODE_STAGING_CONTAINER_DIR, openCodeSkillsContainerDir } from '@agenthix/core'
 import { AGENT_CONTAINER_CLAUDE_HOME } from '../../../agentDiskPaths'
 import { SKILLS_STAGING_DIRNAME } from '../../skillsStagingDir'
 import { openCodeSkillsDirs, openCodeSkillsSection, stageOpenCodeSkills } from '../openCodeSkills'
 import { skillDescription } from '../skillDescription'
+
+vi.mock('#db', () => ({ prisma: { agentRun: { update: vi.fn(async () => ({})) } } }))
 
 let dir: string
 beforeEach(async () => {
@@ -21,6 +23,7 @@ async function skill(pkg: string, slug: string, md: string) {
 
 function context(agentPkg = 'agent') {
   return {
+    runId: 'run-1',
     claudeHome: { serverDir: path.join(dir, 'home', '.claude'), visibleDir: AGENT_CONTAINER_CLAUDE_HOME },
     packages: { agentDir: path.join(dir, agentPkg), orgDir: null, platformDir: path.join(dir, 'platform'), refs: {} as never },
     boundaryOverride: null,

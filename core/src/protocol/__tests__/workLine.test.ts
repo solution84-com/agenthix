@@ -64,6 +64,19 @@ describe('a tool call as a plain step @SC-756', () => {
   })
 })
 
+describe('a skill used, as a step', () => {
+  it('keeps "Used the skill" and points at the staged name', () => {
+    expect(toolStep('Skill', { skill: 'org-code-review' })).toMatchObject({
+      kind: 'other', verb: 'Used the skill', text: 'org-code-review', target: { type: 'skill', name: 'org-code-review' },
+    })
+    expect(toolStep('skill', { name: 'workspace-1-release' }).target).toEqual({ type: 'skill', name: 'workspace-1-release' })
+  })
+
+  it('points at nothing when the call names no skill', () => {
+    expect(toolStep('Skill', {}).target).toBeNull()
+  })
+})
+
 describe('the work line @SC-756', () => {
   it('keeps every step in the order it happened, thinking where it happened', () => {
     const line = workLine([

@@ -11,11 +11,15 @@
 
 export type WorkStepKind = 'looked' | 'changed' | 'ran' | 'thought' | 'asked' | 'failed' | 'stopped' | 'other'
 
-/** What a change points at, for its link: a task (by id, and by key when the call's answer gave it), a board, a file. */
+/**
+ * What a step points at, for its link: a task (by id, and by key when the call's answer gave it), a board, a file, or
+ * a skill by the name it was staged under, which hq maps to what was used through the run's record of its skills.
+ */
 export type WorkTarget =
   | { type: 'task'; id: string | null; key: string | null }
   | { type: 'board'; id: string }
   | { type: 'file'; path: string }
+  | { type: 'skill'; name: string }
 
 export type ToolStep = {
   kind: WorkStepKind
@@ -53,6 +57,8 @@ function taskKeyIn(out: unknown): string | null {
   return task && typeof task.key === 'string' ? task.key : null
 }
 const taskTarget = (a: Args, out: unknown): WorkTarget => ({ type: 'task', id: str(a.taskId) || idIn(out), key: taskKeyIn(out) })
+const skillOf = (a: Args) => str(a.skill) || str(a.name)
+const skillTarget = (a: Args): WorkTarget | null => (skillOf(a) ? { type: 'skill', name: skillOf(a) } : null)
 const boardTarget = (a: Args): WorkTarget | null => (str(a.boardId) ? { type: 'board', id: str(a.boardId) } : null)
 
 function idIn(out: unknown): string | null {
@@ -79,7 +85,7 @@ const SPECS: Record<string, Spec> = {
   web_fetch: looked('Fetched', 'web page', 'Fetch a web page', a => str(a.url)),
   web_search: looked('Searched the web for', 'search', 'Search the web', a => quoted(str(a.query))),
   todo: { kind: 'thought', verb: 'Planned', noun: null, ask: 'Keep a to-do list', text: () => 'its next steps' },
-  skill: { kind: 'other', verb: 'Used the skill', noun: null, ask: 'Use skills', text: a => str(a.skill) || str(a.name) },
+  skill: { kind: 'other', verb: 'Used the skill', noun: null, ask: 'Use skills', text: skillOf, target: skillTarget },
   subagent: { kind: 'other', verb: 'Handed part of the work to a helper', noun: null, ask: 'Hand work to a helper', text: a => str(a.description) },
 
   list_tasks: looked('Listed', 'task', 'List tasks', () => 'tasks', true),

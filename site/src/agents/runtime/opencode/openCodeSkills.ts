@@ -20,6 +20,7 @@ import path from 'node:path'
 import { OPENCODE_SKILLS_DIRNAME, conversationStagingDirName } from '@agenthix/core'
 import { Logger } from '../../../server/utils/logger'
 import { skillRootsFor, stageSkills } from '../skillStaging'
+import { recordSkillsUsed } from '../skillUseRecord'
 import { SKILLS_STAGING_DIRNAME } from '../skillsStagingDir'
 import type { RunContext } from '../types'
 import { skillDescription } from './skillDescription'
@@ -39,7 +40,7 @@ export type OpenCodeTurnSkills = {
   systemSection: string | null
 }
 
-type StagingContext = Pick<RunContext, 'claudeHome' | 'packages' | 'boundaryOverride' | 'boundarySharedSkills'>
+type StagingContext = Pick<RunContext, 'runId' | 'claudeHome' | 'packages' | 'boundaryOverride' | 'boundarySharedSkills'>
 
 function stagingDirName(conversationId: string): string {
   const name = conversationStagingDirName(conversationId)
@@ -116,6 +117,7 @@ export async function stageOpenCodeSkills(context: StagingContext, conversationI
     await fs.rm(old, { recursive: true, force: true }).catch(() => {})
   }
 
+  await recordSkillsUsed(context.runId, staged)
   const skills: OpenCodeSkill[] = []
   for (const s of staged) {
     const markdown = await fs.readFile(path.join(dirs.serverDir, s.name, 'SKILL.md'), 'utf-8').catch(() => null)

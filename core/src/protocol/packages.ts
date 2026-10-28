@@ -96,28 +96,94 @@ export function packageDigestInput(contents: PackageContents): string {
 }
 
 /**
- * Where a run's skill came from. `boundary` is one agent's skills on a
- * boundary's disk (`.agents/agents/<agentId>/skills/`); `shared` is the
- * boundary's skills for every agent working there (`.agents/skills/`). No
+ * Where a run's skill came from (adr-0084). `boundary` is one agent's skills in a
+ * place's files (`.agents/agents/<agentId>/skills/`); `shared` is the place's
+ * skills for every agent working there (`.agents/skills/`); `workspace` is a
+ * workspace repository's (`.agents/skills/`, `.claude/skills/`, `.github/skills/`);
+ * `person` is the person's own, following them into their own conversations. No
  * source is another's prefix followed by a hyphen, so no two sources can
  * produce the same name.
  */
-export const SKILL_SOURCES = ['platform', 'org', 'agent', 'boundary', 'shared'] as const
-export type SkillSource = (typeof SKILL_SOURCES)[number]
+export const SKILL_SOURCES = ['platform', 'org', 'agent', 'boundary', 'shared', 'workspace', 'person'] as const
+
+/**
+ * The agent package's own `skills/`: an agent's installed skills now reach a run as `installedSkills`.
+ *
+ * @deprecated since 1.9; stops working in 3.0. Use `installedSkills` instead.
+ */
+export type AgentPackageSkillSource = 'agent'
+
+export type SkillSource = Exclude<(typeof SKILL_SOURCES)[number], AgentPackageSkillSource> | AgentPackageSkillSource
 
 export const MAX_SKILL_NAME_LENGTH = 64
-/** 64 less the longest prefix, `boundary-`. */
-export const MAX_SKILL_SLUG_LENGTH = MAX_SKILL_NAME_LENGTH - 'boundary-'.length
+
+/** A run numbers each workspace-and-folder pair it stages skills from, 1 to this. */
+export const MAX_WORKSPACE_SKILL_INDEX = 99
+
+/** 64 less the longest prefix, `workspace-99-`. */
+export const MAX_SKILL_SLUG_LENGTH = MAX_SKILL_NAME_LENGTH - Math.max(
+  ...SKILL_SOURCES.map(s => (s === 'workspace' ? `${s}-${MAX_WORKSPACE_SKILL_INDEX}-` : `${s}-`).length),
+)
 
 const SKILL_SLUG = /^[a-z0-9][a-z0-9-]*$/
 
+function boundedSkillName(prefix: string, slug: string): string | null {
+  if (slug.length > MAX_SKILL_SLUG_LENGTH || !SKILL_SLUG.test(slug)) return null
+  return `${prefix}-${slug}`
+}
+
 /**
- * `<source>-<slug>` — the directory and `name` a run sees (P20). Skill names are
+ * `<source>-<slug>`: the directory and `name` a run sees (P20). Skill names are
  * lowercase letters, digits and hyphens, at most 64 characters, matching their
- * directory. Null when the slug cannot be namespaced within that.
+ * directory. Null when the slug cannot be namespaced within that, and for
+ * `workspace`, whose names carry a number (`workspaceSkillName`).
  */
 export function namespacedSkillName(source: SkillSource, slug: string): string | null {
-  if (!SKILL_SLUG.test(slug)) return null
-  const name = `${source}-${slug}`
-  return name.length <= MAX_SKILL_NAME_LENGTH ? name : null
+  return source === 'workspace' ? null : boundedSkillName(source, slug)
+}
+
+/**
+ * `workspace-<n>-<slug>`: a workspace's skill, `n` numbering the workspace and
+ * folder within the run, so two folders never merge into one staged name
+ * (security review M2). Null when `n` is outside 1–99 or the slug is not valid.
+ */
+export function workspaceSkillName(n: number, slug: string): string | null {
+  if (!Number.isInteger(n) || n < 1 || n > MAX_WORKSPACE_SKILL_INDEX) return null
+  return boundedSkillName(`workspace-${n}`, slug)
+}
+
+/**
+ * The skills hq names in a run's dispatch beside its packages (spec part 4 *Defaults and switches*, part 5
+ * *Delivery*). Installed and personal skills are content by digest, delivered as packages are; file skills are named
+ * by place, path and fingerprint, and the site stages one only when what it reads has that fingerprint (security
+ * review H3). Absent from an hq before 1.9.
+ */
+export type InstalledSkillLevel = 'builtin' | 'org' | 'agent'
+
+/** `identity` is `publisher/name` (assets/identity.ts); `version` its pinned SemVer version. */
+export type InstalledSkillEntry = { identity: string; version: string; digest: string; level: InstalledSkillLevel }
+
+/** Where in a place's files a skill was found: the place's own, one agent's, or a workspace repository's. */
+export type FileSkillGroup = 'place' | 'agent' | 'workspace'
+
+/** `path` is the skill folder within the place's storage; `fingerprint` the one that was switched on. */
+export type FileSkillEntry = { placeId: string; path: string; fingerprint: string; group: FileSkillGroup }
+
+/** A published version of the person's own skill, for the turns of their own conversation only. */
+export type PersonSkillEntry = { identity: string; version: string; digest: string }
+
+/**
+ * One skill a run had staged, as the site records it on the run (`AgentRun.skillsUsed`): its staged name and source,
+ * the fingerprint of what was staged, and what it was, so hq can show it at the version used. `personId` marks a
+ * person's own skill, which opens only for that person (security review M6).
+ */
+export type RunSkillUse = {
+  name: string
+  source: SkillSource
+  fingerprint: string
+  identity?: string
+  version?: string
+  placeId?: string
+  path?: string
+  personId?: string
 }

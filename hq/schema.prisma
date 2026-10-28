@@ -62,6 +62,7 @@ model User {
   // The newest version of the pledge whose new-version card the person dismissed; null while none was.
   pledgeVersionDismissed Int?
   gitHubInstallations    GitHubInstallationPerson[]
+  libraryMaintainer      LibraryMaintainer?
 }
 
 // ──────────────────────────────────────────────
@@ -358,6 +359,7 @@ model Agent {
   overrides    AgentOverride[]
   memoryRecords MemoryItem[]
   teams        TeamAgent[]
+  assetGrants  AssetGrant[]
 }
 
 // AgentRouteBinding was removed — routing moves to Mission Control (see ADR 0006)
@@ -1220,6 +1222,9 @@ model Project {
   runTurnLimit        Int?
   /// Archive its finished tasks after this many days; 0 = never, null = the org's default.
   archiveFinishedAfterDays Int?
+  /// The project's own default for skills found in its files (C1b); null = the organisation's. Only a stricter one
+  /// applies, at use, as run limits do. On the person's `personalSpace` project it is Your space's, set by the person.
+  fileSkillsDefault FileSkillsDefault?
   /// Set only on a person's personal projects, which it marks as such: private to them, with them as its one
   /// member, and its runs act as that person. A person has several (models from one place, part 4); the one that
   /// is `personalSpace` works in their own storage, every other in its own. Never changes once set. Restrict: removing the person removes this project first
@@ -1605,6 +1610,13 @@ model Org {
   defaultTtsProvider            AiProvider? @relation("OrgTts", fields: [defaultTtsProviderId], references: [id], onDelete: SetNull)
   defaultTtsModel               String?
   defaultTtsVoice               String?
+  /// The asset layer's settings (skills spec parts 3 and 4): unsigned assets installed after the warning, or never
+  /// (P2); who installs from outside (P3); skills found in files (C1, shipped off by default); and whether a person's
+  /// own skills follow them outside Your space (D15).
+  unsignedAssetsAllowed      Boolean           @default(true)
+  outsideInstallers          OutsideInstallers @default(ADMINS)
+  fileSkillsDefault          FileSkillsDefault @default(OFF)
+  personalSkillsOutsideSpace Boolean           @default(true)
   skills    Skill[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1639,6 +1651,386 @@ model Skill {
   updatedAt   DateTime   @updatedAt
 
   @@unique([slug, scope, orgId])
+}
+
+// ──────────────────────────────────────────────
+// Module: Assets (skills and the asset layer spec, parts 2–5; adr-0157, adr-0158, adr-0159)
+//
+// Every Library item (a skill, an agent template, a board template, a team template) is an asset: one identity
+// `publisher/name` per kind, pinned to one version at a time. Content is never stored here: every version, draft
+// revision, proposal and place skill version names immutable PackageContent by digest (adr-0072), and the content
+// sweep keeps any digest one of them names. hq is one organisation's own (adr-0042), so the organisation is implied,
+// as on every other table, and an identity's key has no nullable column (closes the taken-name fault of `Skill`).
+//
+// Skills in a place's files are not assets: hq lists them as PlaceSkill, keyed by place and path, and versions them
+// by publishing. A place is written as workflows write it, `placeType` + `placeId` (WorkspaceOwnerType: a project's
+// id or a person's), a logical reference: deleting a project or erasing a person removes its rows in code.
+// ──────────────────────────────────────────────
+
+/// core's AssetKind.
+enum AssetKind {
+  SKILL
+  AGENT
+  BOARD
+  TEAM
+}
+
+/// Where a version came from (part 3, *Sources*). How hq fetched it, never who signed it.
+enum AssetVersionSource {
+  /// Agenthix's own packages, shipped in hq's image.
+  BUILT_IN
+  UPLOAD
+  URL
+  /// Published in hq's editor.
+  MADE_HERE
+}
+
+/// How a version's signature was verified (part 3, *Who signs*). Made here and unsigned versions have none.
+enum AssetSignerKind {
+  NONE
+  /// A keyless Sigstore certificate: issuer, exact identity, repository and ref.
+  KEYLESS
+  /// A key pair whose public key the organisation trusts.
+  KEY
+}
+
+/// One identity per kind in this organisation (data board record 1).
+model Asset {
+  id               String         @id @default(uuid())
+  kind             AssetKind
+  /// The verified signer's name as this organisation recorded it (TrustedPublisher.name), `unsigned`, or the
+  /// organisation's own name for what it made. Never the manifest's claim (security review C1).
+  publisher        String
+  /// core's isAssetName; a template's role skill is `template/skill`.
+  name             String
+  /// The pin (V1, V4): the version every agent that has it gets. Null while it has only a draft (a new skill before
+  /// its first publish). NoAction: the current version can't be deleted (V6).
+  currentVersionId String?        @unique
+  currentVersion   AssetVersion?  @relation("AssetCurrentVersion", fields: [currentVersionId], references: [id], onDelete: NoAction)
+  /// Every agent has it (L2); otherwise only the agents granted it (L3).
+  givenToAll       Boolean        @default(false)
+  /// Agenthix's built-in skill, on for every agent unless an administrator switched it off (L1a, D6).
+  builtIn          Boolean        @default(false)
+  switchedOff      Boolean        @default(false)
+  /// The organisation's own copy that replaced it for the agents that had it (D18); one click switches back.
+  setAsideById     String?
+  setAsideBy       Asset?         @relation("AssetSetAside", fields: [setAsideById], references: [id], onDelete: SetNull)
+  setAsideFor      Asset[]        @relation("AssetSetAside")
+  /// An offered skill's hint (manifest `suitedTo`): lowercase words.
+  suitedTo         String[]       @default([])
+  /// Removed from the Library. The row and its history stay, so it can be restored.
+  removedAt        DateTime?
+  removedById      String?
+  versions         AssetVersion[]
+  pinChanges       AssetPinChange[]
+  grants           AssetGrant[]
+  draft            Draft?
+  proposals        Proposal[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([kind, publisher, name])
+  @@index([kind, givenToAll])
+  @@index([kind, builtIn])
+}
+
+/// Every installed or published version (data board record 2). Never deleted while current or in the history (V6).
+model AssetVersion {
+  id                 String              @id @default(uuid())
+  assetId            String
+  asset              Asset               @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  /// SemVer `major.minor.patch[-pre]`, compared by core's compareSemVer.
+  version            String
+  /// The content, which is also its fingerprint (core's assetFingerprintInput: every file, package.json included).
+  digest             String
+  content            PackageContent      @relation("AssetVersionContent", fields: [digest], references: [digest], onDelete: Restrict)
+  source             AssetVersionSource
+  /// The address it was fetched from, for URL.
+  sourceUrl          String?
+  signerKind         AssetSignerKind     @default(NONE)
+  /// Exactly what the signature proved: the keyless certificate's issuer, identity, repository and ref, or the key's
+  /// fingerprint. An update is one only when this matches (part 3, *After installing*).
+  signerIdentity     String?
+  /// The publisher it was trusted as when installed. SetNull: removing a publisher never removes what it signed.
+  trustedPublisherId String?
+  trustedPublisher   TrustedPublisher?   @relation(fields: [trustedPublisherId], references: [id], onDelete: SetNull)
+  /// core's BasedOnLine[] as hq recorded them (D19). Only a line hq wrote in this organisation reads as verified (M5).
+  basedOn            Json                @default("[]")
+  licence            String?
+  /// The publisher's or installer's note.
+  note               String?
+  /// Who installed or published it; null for a built-in written at boot. With `requestedByAgentId`, the agent that
+  /// asked and this person approved (D31).
+  byId               String?
+  requestedByAgentId String?
+  /// A version its publisher withdrew, installed only after a warning naming why (V3).
+  withdrawn          Boolean             @default(false)
+  withdrawnReason    String?
+  currentOf          Asset?              @relation("AssetCurrentVersion")
+  pinnedFrom         AssetPinChange[]    @relation("AssetPinChangeFrom")
+  pinnedTo           AssetPinChange[]    @relation("AssetPinChangeTo")
+  createdAt          DateTime            @default(now())
+
+  @@unique([assetId, version])
+  @@index([assetId, createdAt])
+  @@index([digest])
+  @@index([trustedPublisherId])
+}
+
+/// Every move of an asset's pin: an install, an update, a roll back, a publish, an older version installed on
+/// purpose. Who, when and why (V2, V3, D30).
+model AssetPinChange {
+  id                 String        @id @default(uuid())
+  assetId            String
+  asset              Asset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  /// Null for the first install or publish.
+  fromVersionId      String?
+  fromVersion        AssetVersion? @relation("AssetPinChangeFrom", fields: [fromVersionId], references: [id], onDelete: Restrict)
+  toVersionId        String
+  toVersion          AssetVersion  @relation("AssetPinChangeTo", fields: [toVersionId], references: [id], onDelete: Restrict)
+  byId               String?
+  requestedByAgentId String?
+  reason             String?
+  at                 DateTime      @default(now())
+
+  @@index([assetId, at])
+}
+
+/// An agent that has an asset not given to every agent (L3, D23). A template's role skills are granted to the agent
+/// made from it.
+model AssetGrant {
+  assetId     String
+  asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  grantedById String?
+  createdAt   DateTime @default(now())
+
+  @@id([assetId, agentId])
+  @@index([agentId])
+}
+
+/// The one shared draft of a Library asset, or of a skill in a place's files (FV1): exactly one of `assetId` and
+/// `placeSkillId` is set, by a check the migration adds by hand:
+///   ALTER TABLE "Draft" ADD CONSTRAINT "Draft_one_owner_check" CHECK (("assetId" IS NULL) <> ("placeSkillId" IS NULL));
+/// No agent sees it. Kept until published or discarded (data board record 5).
+model Draft {
+  id           String          @id @default(uuid())
+  assetId      String?         @unique
+  asset        Asset?          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  placeSkillId String?         @unique
+  placeSkill   PlaceSkill?     @relation(fields: [placeSkillId], references: [id], onDelete: Cascade)
+  /// The newest revision's number and content. Publish names the revision its publisher saw and is refused when this
+  /// has moved on (security review H5).
+  revision     Int             @default(1)
+  digest       String
+  content      PackageContent  @relation("DraftContent", fields: [digest], references: [digest], onDelete: Restrict)
+  revisions    DraftRevision[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([digest])
+}
+
+/// One change to a draft, with its author: a person, or the run that proposed it with the person it acted for (H5).
+/// Plain ids: a history outlives a conversation, a run and a removed agent.
+model DraftRevision {
+  id                String         @id @default(uuid())
+  draftId           String
+  draft             Draft          @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  number            Int
+  digest            String
+  content           PackageContent @relation("DraftRevisionContent", fields: [digest], references: [digest], onDelete: Restrict)
+  /// The person who made it, or on whose behalf the proposing run acted.
+  authorId          String?
+  proposedByAgentId String?
+  proposedByRunId   String?
+  conversationId    String?
+  createdAt         DateTime       @default(now())
+
+  @@unique([draftId, number])
+  @@index([digest])
+}
+
+/// The level a proposal is aimed at, and so who reviews it (part 5, *Proposing*; D27).
+enum ProposalAim {
+  /// Administrators and Library maintainers.
+  ORGANISATION
+  /// The project's administrators.
+  PROJECT
+  /// The person, for Your space.
+  PERSON
+}
+
+enum ProposalState {
+  OPEN
+  ACCEPTED
+  ACCEPTED_WITH_CHANGES
+  REJECTED
+}
+
+/// A skill an agent proposed with `propose_skill`, or a member's New skill they may not publish (data board record
+/// 6). Reaches no agent. One open proposal per name per place, by a partial unique index the migration adds by hand:
+///   CREATE UNIQUE INDEX "Proposal_open_name_key" ON "Proposal"("aim", COALESCE("placeId", ''), "name") WHERE "state" = 'OPEN';
+/// Accepted ones stay with the asset's history; rejected ones are removed 90 days after review (RQ5).
+model Proposal {
+  id              String         @id @default(uuid())
+  aim             ProposalAim
+  /// The project's id or the person's for PROJECT and PERSON; null for ORGANISATION.
+  placeId         String?
+  /// The skill's name, core's isAssetName.
+  name            String
+  description     String
+  /// Why the agent proposes it, in its words.
+  why             String         @default("")
+  /// The Library asset or the place skill it edits; neither for a new skill.
+  assetId         String?
+  asset           Asset?         @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  placeSkillId    String?
+  placeSkill      PlaceSkill?    @relation(fields: [placeSkillId], references: [id], onDelete: SetNull)
+  digest          String
+  content         PackageContent @relation("ProposalContent", fields: [digest], references: [digest], onDelete: Restrict)
+  /// Who proposed it: the agent, the person from the run's on-behalf-of record (never a tool argument), and the
+  /// conversation or run. Null agent for a member's own New skill. Plain ids, as KnowledgeChange's.
+  agentId         String?
+  forUserId       String?
+  conversationId  String?
+  runId           String?
+  state           ProposalState  @default(OPEN)
+  reviewedById    String?
+  reviewNote      String?
+  reviewedAt      DateTime?
+  /// The version it became when accepted: an AssetVersion's id, or a PlaceSkillVersion's.
+  resultVersionId String?
+  createdAt       DateTime       @default(now())
+
+  @@index([aim, placeId, state])
+  @@index([runId])
+  @@index([state, reviewedAt])
+  @@index([digest])
+}
+
+/// The organisation's default for skills found in files (C1), and a place's own (C1b), which may only be stricter:
+/// NEVER is stricter than OFF, OFF than ON.
+enum FileSkillsDefault {
+  /// Everything found runs; anyone can switch one off.
+  ON
+  /// Listed but off until switched on; a changed skill goes off again.
+  OFF
+  /// hq doesn't read skills from files.
+  NEVER
+}
+
+/// Who may install from outside (P3).
+enum OutsideInstallers {
+  ADMINS
+  ADMINS_AND_MAINTAINERS
+}
+
+/// A publisher this organisation trusts (P1, part 3 *Who signs*). Keyless: bound exactly to the issuer, the
+/// certificate identity, the source repository and the refs allowed (security review H2). Or a public key. A row is
+/// never deleted: removing a publisher sets `removedAt`, so its `name` can never be taken by a different signer and
+/// become an update to what it signed. Agenthix's is built in and can't be removed.
+model TrustedPublisher {
+  id                  String          @id @default(uuid())
+  /// The publisher in every identity it signs (`acme` in `acme/code-review`), core's isAssetName.
+  name                String          @unique
+  /// The name the administrator gave it, shown as "Signed by …" (D9).
+  displayName         String
+  signerKind          AssetSignerKind
+  /// One string per signer, unique: the keyless fields joined, or the key's fingerprint. What `signerIdentity` on
+  /// a version is compared against.
+  signerIdentity      String          @unique
+  /// Keyless: the OIDC issuer, the exact certificate identity (no pattern), the repository, and the refs allowed:
+  /// tags when `allowTags`, and the one branch `allowedBranch` (the default branch) when set.
+  issuer              String?
+  certificateIdentity String?
+  repository          String?
+  allowTags           Boolean         @default(true)
+  allowedBranch       String?
+  /// A key pair's public key, PEM.
+  publicKey           String?
+  builtIn             Boolean         @default(false)
+  addedById           String?
+  removedAt           DateTime?
+  removedById         String?
+  versions            AssetVersion[]
+  createdAt           DateTime        @default(now())
+}
+
+/// A Library maintainer (D28): an organisation role beside administrators, named by them. Dropped when the member
+/// leaves; the history still names them by id.
+model LibraryMaintainer {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  namedById String?
+  createdAt DateTime @default(now())
+}
+
+/// Where in a place's files a skill was found (C2).
+enum PlaceSkillGroup {
+  /// The place's own skill folder.
+  PLACE
+  /// One agent's folder in the place (`agentId`).
+  AGENT
+  /// A workspace's repository (`workspaceId`): read-only in hq, its versions are its commits (FV6).
+  WORKSPACE
+}
+
+enum PlaceSkillSwitch {
+  ON
+  OFF
+}
+
+/// A skill found in a place's files, a workspace's repository included (data board record 9), keyed by place and
+/// the skill folder's path in it.
+model PlaceSkill {
+  id                String             @id @default(uuid())
+  placeType         WorkspaceOwnerType
+  placeId           String
+  path              String
+  group             PlaceSkillGroup
+  agentId           String?
+  workspaceId       String?
+  /// The switch, for exactly one fingerprint (D13, H3): it holds only while the skill's files still have
+  /// `switchFingerprint`. Null: the place's default decides.
+  switch            PlaceSkillSwitch?
+  switchFingerprint String?
+  switchedById      String?
+  switchedAt        DateTime?
+  /// The fingerprint the site last reported, and when; a fingerprint that matches no version is *changed in files,
+  /// not published* (FV4).
+  lastFingerprint   String?
+  lastSeenAt        DateTime?
+  /// When the site last reported the folder missing; the row and its versions stay for history and roll back.
+  goneAt            DateTime?
+  /// Why it is set aside: the same identity comes from a higher level (D12, D16).
+  setAsideReason    String?
+  versions          PlaceSkillVersion[]
+  draft             Draft?
+  proposals         Proposal[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@unique([placeType, placeId, path])
+}
+
+/// A published version of a place skill (FV2, FV3): its number, content and who published it.
+model PlaceSkillVersion {
+  id                 String         @id @default(uuid())
+  placeSkillId       String
+  placeSkill         PlaceSkill     @relation(fields: [placeSkillId], references: [id], onDelete: Cascade)
+  /// 1, 2, 3 … within the skill, written into its `metadata` as `version`.
+  number             Int
+  digest             String
+  content            PackageContent @relation("PlaceSkillVersionContent", fields: [digest], references: [digest], onDelete: Restrict)
+  publishedById      String?
+  requestedByAgentId String?
+  note               String?
+  createdAt          DateTime       @default(now())
+
+  @@unique([placeSkillId, number])
+  @@index([digest])
 }
 
 // ──────────────────────────────────────────────
@@ -2040,6 +2432,12 @@ model PackageContent {
   releasedAt    DateTime?
   packages      Package[]
   files         PackageFile[]
+  /// Everything else that names it; the sweep keeps it while any does (packageContentSweep.ts).
+  assetVersions      AssetVersion[]      @relation("AssetVersionContent")
+  drafts             Draft[]             @relation("DraftContent")
+  draftRevisions     DraftRevision[]     @relation("DraftRevisionContent")
+  proposals          Proposal[]          @relation("ProposalContent")
+  placeSkillVersions PlaceSkillVersion[] @relation("PlaceSkillVersionContent")
 
   @@index([releasedAt])
 }

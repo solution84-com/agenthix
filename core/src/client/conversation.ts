@@ -243,6 +243,8 @@ export type StartConversationArgs = {
   /** The first message; empty only when `voice` starts the conversation to be talked in. */
   text: string
   voice?: boolean
+  /** The skill picked with `/` for the first message, by the name it is staged under (`PickedSkill`). */
+  skill?: PickedSkill
 }
 /** `messageId`: null for a conversation started for voice, which has no message yet. */
 export type StartConversationResult = { conversationId: string; messageId: string | null }
@@ -253,7 +255,14 @@ export type StartConversationResult = { conversationId: string; messageId: strin
  */
 export type SendConversationMessageArgs = {
   conversationId: string; clientMessageId: string; text: string; spoken?: boolean; trailedOff?: boolean
+  skill?: PickedSkill
 }
+
+/**
+ * The skill a person picked with `/` at the start of the message box: a structured field beside the message, never
+ * rewritten text. `name` is a name staged for the agent's run; the site keeps it only when it is one.
+ */
+export type PickedSkill = { name: string }
 /** `queued` when a turn was running and the message waits for it (or interrupted it, by the person's setting). */
 export type SendConversationMessageResult = { messageId: string; seq: number; queued: boolean; duplicate: boolean }
 

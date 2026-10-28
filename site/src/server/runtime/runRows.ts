@@ -64,6 +64,7 @@ function toRunRow(run: AgentRun): RunRow {
     agentPackageDigest: run.agentPackageDigest,
     orgPackageDigest: run.orgPackageDigest,
     platformPackageDigest: run.platformPackageDigest,
+    skillsUsed: run.skillsUsed as RunRow['skillsUsed'],
   }
 }
 

@@ -7,6 +7,13 @@ describe('feature flags (ADR-0116) @SC-1240', () => {
     expect(FEATURE_FLAGS.usageBilling.removeWhen.length).toBeGreaterThan(0)
   })
 
+  it('names marketplace, off in production until the Marketplace is built', () => {
+    expect(FEATURE_FLAGS.marketplace.feature).toMatch(/Marketplace/)
+    expect(FEATURE_FLAGS.marketplace.onInProduction).toBe(false)
+    expect(isFeatureOn('marketplace', { NODE_ENV: 'production' })).toBe(false)
+    expect(isFeatureOn('marketplace', { NODE_ENV: 'development' })).toBe(true)
+  })
+
   it('is on in development and in tests', () => {
     expect(isFeatureOn('usageBilling', { NODE_ENV: 'development' })).toBe(true)
     expect(isFeatureOn('usageBilling', { NODE_ENV: 'test' })).toBe(true)
