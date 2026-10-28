@@ -22,7 +22,7 @@ import { getNeedsAttention } from '../needsAttention'
 import { acknowledgeBypassedAgents, dismissNotification } from '../actions'
 import { getNotifications } from '../queries'
 import { ORG_NOTIFICATION_TYPES as T } from '../notificationKinds'
-import { SYSTEM_TEMPLATE_IDS } from '../../library/systemTemplates'
+import { boardPackage, seedTemplate } from '../../assets/templates/__tests__/templateFixtures'
 
 const ctx = (user?: { id: string }) => ({ user, entities: { Notification: prisma.notification } }) as any
 const DAY = 24 * 60 * 60 * 1000
@@ -145,12 +145,8 @@ describe('a team the built-in agent proposed @SC-666', () => {
   it('is a notification for admins in place of the banner, and clears once confirmed', async () => {
     const admin = await createUserWithRole('ADMIN')
     const project = await createProject()
-    await prisma.boardTemplate.upsert({
-      where: { id: SYSTEM_TEMPLATE_IDS.WORKFORCE_ASSEMBLY },
-      create: { id: SYSTEM_TEMPLATE_IDS.WORKFORCE_ASSEMBLY, name: 'Assembly', assetPath: 'x', isSystem: true },
-      update: {},
-    })
-    const board = await prisma.board.create({ data: { name: 'Assembly', projectId: project.id, templateId: SYSTEM_TEMPLATE_IDS.WORKFORCE_ASSEMBLY } })
+    const { versionId } = await seedTemplate(prisma, 'BOARD', 'workforce-assembly', boardPackage('workforce-assembly'))
+    const board = await prisma.board.create({ data: { name: 'Assembly', projectId: project.id, madeFromVersionId: versionId } })
     const task = await prisma.task.create({ data: {
       title: 'Proposed: Solo Developer', projectId: project.id, boardId: board.id, column: 'in_review', number: 1,
       onBehalfOfUserId: (await createUser()).id, applicationData: { templateId: 'wft-solo-dev' },

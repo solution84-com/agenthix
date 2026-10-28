@@ -1,6 +1,8 @@
 ---
 name: Data Analysis
 description: Write queries, build models, produce clear visualisations with stated assumptions
+version: 2
+suitedTo: [analyst, researcher, data-scientist]
 ---
 
 # Data Analysis

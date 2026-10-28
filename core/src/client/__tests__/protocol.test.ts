@@ -5,8 +5,8 @@ import {
 } from '../index.js'
 
 describe('the client protocol @SC-1130', () => {
-  it('is 1.7, with its own header and handshake field', () => {
-    expect(CLIENT_PROTOCOL_VERSION).toBe('1.7')
+  it('is 1.8, with its own header and handshake field', () => {
+    expect(CLIENT_PROTOCOL_VERSION).toBe('1.8')
     expect(CLIENT_PROTOCOL_VERSION_HEADER).toBe('X-Client-Protocol-Version')
     expect(CLIENT_PROTOCOL_HANDSHAKE_FIELD).toBe('clientProtocolVersion')
     expect(CLIENT_PROTOCOL_REFUSED).toBe('client_protocol_refused')
@@ -19,7 +19,7 @@ describe('the client protocol @SC-1130', () => {
   it.each([
     // hq, the app
     ['1.0', '1.0'],
-    ['1.0', '1.7'],
+    ['1.0', '1.8'],
     ['2.3', '1.0'],
     ['2.0', '3.4'],
   ])('hq on %s serves an app on %s: the same major or one apart', (own, presented) => {
@@ -50,8 +50,8 @@ describe('the client protocol @SC-1130', () => {
     expect(decideClientProtocol(presented)).toEqual({
       ok: false,
       refusal: {
-        error: `This app stated the protocol version ${JSON.stringify(presented)}, which is not one; HQ speaks 1.7.`,
-        reason: 'malformed', hqVersion: '1.7', clientVersion: presented, upgrade: 'client',
+        error: `This app stated the protocol version ${JSON.stringify(presented)}, which is not one; HQ speaks 1.8.`,
+        reason: 'malformed', hqVersion: '1.8', clientVersion: presented, upgrade: 'client',
       },
     })
   })

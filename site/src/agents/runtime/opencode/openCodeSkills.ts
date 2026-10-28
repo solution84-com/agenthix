@@ -23,6 +23,7 @@ import { stageSkills, type StagingResult } from '../skillStaging'
 import { recordSkillsUsed } from '../skillUseRecord'
 import { SKILLS_STAGING_DIRNAME } from '../skillsStagingDir'
 import type { RunContext } from '../types'
+import type { InvocableSkill } from '../pickedSkill'
 import { skillDescription } from './skillDescription'
 
 const logger = new Logger('OpenCodeSkills')
@@ -38,6 +39,8 @@ export type OpenCodeTurnSkills = {
   skills: OpenCodeSkill[]
   /** The section for the turn's `system` field, or null when no skill was staged. */
   systemSection: string | null
+  /** Each staged skill as a person's pick is checked and told to the model (pickedSkill.ts). */
+  invocable: InvocableSkill[]
 }
 
 type StagingContext = Pick<RunContext, 'runId' | 'claudeHome' | 'skills'> & { packages: Pick<RunContext['packages'], 'platformDir'> }
@@ -129,5 +132,13 @@ export async function stageOpenCodeSkills(context: StagingContext, conversationI
     })
   }
   if (skills.length > 0) logger.info(`[launch]   skills     = ${skills.map(s => s.name).join(', ')}`)
-  return { skills, systemSection: skills.length > 0 ? openCodeSkillsSection(skills) : null }
+  const listed = new Map(skills.map(s => [s.name, s]))
+  return {
+    skills,
+    systemSection: skills.length > 0 ? openCodeSkillsSection(skills) : null,
+    invocable: result.staged.flatMap(s => {
+      const skill = listed.get(s.name)
+      return skill ? [{ name: s.name, userInvocable: s.userInvocable, modelInvocable: s.modelInvocable, skillFile: skill.location }] : []
+    }),
+  }
 }

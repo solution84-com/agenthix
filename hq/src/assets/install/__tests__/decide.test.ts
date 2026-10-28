@@ -5,7 +5,7 @@ import type { SignerIdentity, TrustedPublisherRecord, VerifyOutcome } from '../.
 
 const part = (over: Partial<PackagePart> = {}): PackagePart => ({
   kind: 'skill', name: 'code-review', version: '1.0.0', claim: 'acme', title: 'Code Review', description: 'd',
-  basedOn: [], licence: null, suitedTo: [], files: [], plain: false, ...over,
+  basedOn: [], licence: null, suitedTo: [], files: [], plain: false, role: false, ...over,
 })
 const parts = (over: Partial<PackagePart> = {}, embedded: PackagePart[] = []): PackageParts => ({ ...part(over), embedded })
 const signer: SignerIdentity = { kind: 'keyless', issuer: 'https://token.actions.githubusercontent.com', identity: 'https://github.com/acme/skills/.github/workflows/release.yml', repository: 'https://github.com/acme/skills', ref: 'refs/tags/v1' }

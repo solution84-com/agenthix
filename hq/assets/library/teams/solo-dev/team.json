@@ -1,0 +1,32 @@
+{
+  "name": "Solo Developer",
+  "description": "Minimal footprint — one dev agent and one QA agent to validate work.",
+  "tags": [
+    "software",
+    "solo",
+    "startup"
+  ],
+  "teams": [
+    {
+      "name": "Engineering",
+      "purpose": "Build and validate software features",
+      "agents": [
+        "dev",
+        "qa"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Main",
+      "description": "Primary development project",
+      "defaultAgentHandle": "dev",
+      "boards": [
+        {
+          "name": "Work",
+          "template": "kanban"
+        }
+      ]
+    }
+  ]
+}

@@ -14,7 +14,7 @@ import { assertMay, type PersonActor } from '../policy'
 import { publisherNameProblem } from '../publisherNames'
 import { canonicalSigner } from '../signing/signer'
 import type { SignerIdentity } from '../signing/types'
-import { readParts, type PackagePart } from './parts'
+import { readParts, type PackagePart, type PackageParts } from './parts'
 import { previewInstall, type PipelineDeps } from './preview'
 import type { PlanItem } from './plan'
 import type { Arrival, InstallConfirmation, InstallPreview, InstallResult, NewPublisherChoice } from './types'
@@ -36,8 +36,7 @@ function statedLines(lines: BasedOnLine[]): BasedOnLine[] {
 function confirmRefusal(preview: InstallPreview, confirmation: InstallConfirmation): string | null {
   if (preview.refusal) return preview.refusal
   if (confirmation.fingerprint !== preview.fingerprint) return `This package changed since it was shown. Look at it again before installing. ${NOTHING}`
-  if (preview.kind !== 'skill') return `Only skills can be installed this way yet. ${NOTHING}`
-  if (preview.needs.unsignedRead && confirmation.unsignedRead !== true) return `Tick “I've read it” before installing an unsigned skill. ${NOTHING}`
+  if (preview.needs.unsignedRead && confirmation.unsignedRead !== true) return `Tick “I've read it” before installing an unsigned ${preview.kind === 'skill' ? 'skill' : 'template'}. ${NOTHING}`
   if (preview.needs.publisherChoice && !confirmation.newPublisher) return `Choose whether to trust this publisher or install this once. ${NOTHING}`
   return null
 }
@@ -109,6 +108,54 @@ async function write(tx: Db, item: PlanItem, part: PackagePart, version: Prisma.
   return assetId
 }
 
+const WRITES: readonly PlanItem['outcome'][] = ['new', 'restore', 'update']
+
+type VersionFields = Omit<Prisma.AssetVersionUncheckedCreateInput, 'assetId' | 'digest' | 'version' | 'basedOn' | 'licence'>
+
+function versionRow(version: VersionFields, part: PackagePart, item: PlanItem, licence: string | null): Prisma.AssetVersionUncheckedCreateInput {
+  return {
+    ...version, assetId: '', digest: '', version: item.version, basedOn: statedLines(part.basedOn), licence: part.licence ?? licence,
+    note: item.outcome === 'update' ? (version.note ?? 'Offered as an update') : version.note,
+  }
+}
+
+/**
+ * Writes the skills a template carries, each by its own outcome (I3): a new one installed and pinned, an update stored
+ * and offered, a removed one brought back only where `outcomes` says so. In the caller's transaction.
+ */
+export async function writeCarried(
+  tx: Db,
+  items: PlanItem[],
+  parts: PackageParts,
+  version: VersionFields,
+  reason: string,
+  outcomes: readonly PlanItem['outcome'][] = WRITES,
+): Promise<void> {
+  for (const item of items) {
+    if (!outcomes.includes(item.outcome)) continue
+    const part = parts.embedded.find(p => p.name === item.name)
+    if (part) await write(tx, item, part, versionRow(version, part, item, parts.licence), reason)
+  }
+}
+
+/**
+ * Writes what the plan says, in the caller's transaction: the package's own asset, then each skill a template carries,
+ * de-duplicated by identity (I3): one already here at that version is reused, a newer one is offered as an update, an
+ * older one leaves the installed one alone. Each carried skill keeps its own version; a role skill has its template's.
+ * Nothing is written when the package itself is already here or older.
+ */
+export async function writePlan(
+  tx: Db,
+  plan: { main: PlanItem; embedded: PlanItem[] },
+  parts: PackageParts,
+  version: VersionFields,
+  reason: string,
+): Promise<string> {
+  const assetId = await write(tx, plan.main, parts, versionRow(version, parts, plan.main, parts.licence), reason)
+  await writeCarried(tx, plan.embedded, parts, version, `${reason}, with ${formatAssetIdentity(plan.main)}`)
+  return assetId
+}
+
 export async function installPackage(
   arrival: Arrival,
   confirmation: InstallConfirmation,
@@ -135,15 +182,12 @@ export async function installPackage(
       }
       if (main.outcome === 'same' || main.outcome === 'older') return { assetId: main.existingId, identity: main.identity, version: main.version, outcome: main.outcome, message: resultMessage(main) }
       const signer = preview.signer
-      const version: Prisma.AssetVersionUncheckedCreateInput = {
-        assetId: '', version: main.version, digest: '', source: SOURCE_ROW[arrival.source], sourceUrl: arrival.sourceUrl,
-        signerKind: signer ? (signer.kind === 'keyless' ? 'KEYLESS' : 'KEY') : 'NONE', signerIdentity: signer ? canonicalSigner(signer) : null,
-        trustedPublisherId: trustedId, basedOn: statedLines(part.basedOn), licence: part.licence,
-        note: main.outcome === 'update' ? (note ?? 'Offered as an update') : note, byId: actor.userId,
-        requestedByAgentId: options.requestedByAgentId ?? null,
-      }
       const how = arrival.source === 'image' ? 'from Agenthix' : arrival.source === 'url' ? `from ${arrival.sourceUrl}` : 'from an upload'
-      const assetId = await write(tx, main, part, version, note ?? `Installed ${how}`)
+      const assetId = await writePlan(tx, preview, part, {
+        source: SOURCE_ROW[arrival.source], sourceUrl: arrival.sourceUrl,
+        signerKind: signer ? (signer.kind === 'keyless' ? 'KEYLESS' : 'KEY') : 'NONE', signerIdentity: signer ? canonicalSigner(signer) : null,
+        trustedPublisherId: trustedId, note, byId: actor.userId, requestedByAgentId: options.requestedByAgentId ?? null,
+      }, note ?? `Installed ${how}`)
       main = { ...main, existingId: assetId }
       return { assetId, identity: formatAssetIdentity(main), version: main.version, outcome: main.outcome, message: resultMessage(main) }
     }, TRANSACTION)

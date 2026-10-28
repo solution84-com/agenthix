@@ -11,7 +11,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { SkillSource } from '@agenthix/core'
 import { Logger } from '../../server/utils/logger'
-import { stagedSkillMd } from './skillFrontmatter'
+import { isModelInvocable, isUserInvocable, stagedSkillMd } from './skillFrontmatter'
 import { runSkillSources, type RunSkillInputs, type SkillCandidate, type SkillOrigin, type SkillRefusal } from './skillSources'
 import { SKILL_FILE } from './skillTree'
 
@@ -19,7 +19,13 @@ const logger = new Logger('SkillStaging')
 
 export type { RunSkillInputs } from './skillSources'
 
-export type StagedSkill = { source: SkillSource; slug: string; name: string; fingerprint: string } & SkillOrigin
+/**
+ * `userInvocable`: the skill doesn't set `user-invocable: false`, so a person may pick it; `modelInvocable`: it doesn't
+ * set `disable-model-invocation: true`, so the model may load it with its skill tool (pickedSkill.ts).
+ */
+export type StagedSkill = {
+  source: SkillSource; slug: string; name: string; fingerprint: string; userInvocable: boolean; modelInvocable: boolean
+} & SkillOrigin
 
 export type StagingResult = { staged: StagedSkill[]; refused: SkillRefusal[] }
 
@@ -50,7 +56,8 @@ export async function stageSkills(platformDir: string, inputs: RunSkillInputs | 
     }
     try {
       await writeSkill(candidate, destSkillsDir)
-      staged.push({ source, slug, name, fingerprint, ...origin })
+      const skillMd = candidate.files.find(f => f.path === SKILL_FILE)?.content.toString('utf-8') ?? ''
+      staged.push({ source, slug, name, fingerprint, userInvocable: isUserInvocable(skillMd), modelInvocable: isModelInvocable(skillMd), ...origin })
     } catch (err) {
       logger.warn(`skill ${name} could not be staged: ${(err as Error).message}`)
       await fs.rm(path.join(destSkillsDir, name), { recursive: true, force: true }).catch(() => {})

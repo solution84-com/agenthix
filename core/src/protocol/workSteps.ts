@@ -57,7 +57,11 @@ function taskKeyIn(out: unknown): string | null {
   return task && typeof task.key === 'string' ? task.key : null
 }
 const taskTarget = (a: Args, out: unknown): WorkTarget => ({ type: 'task', id: str(a.taskId) || idIn(out), key: taskKeyIn(out) })
-const skillOf = (a: Args) => str(a.skill) || str(a.name)
+/** The staged name a call loaded: Claude may name it within the plugin the skills are staged in (`<plugin>:<name>`), and a staged name has no colon. */
+const skillOf = (a: Args) => {
+  const named = str(a.skill) || str(a.name)
+  return named.slice(named.lastIndexOf(':') + 1)
+}
 const skillTarget = (a: Args): WorkTarget | null => (skillOf(a) ? { type: 'skill', name: skillOf(a) } : null)
 const boardTarget = (a: Args): WorkTarget | null => (str(a.boardId) ? { type: 'board', id: str(a.boardId) } : null)
 

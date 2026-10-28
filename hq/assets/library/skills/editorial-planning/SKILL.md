@@ -1,6 +1,8 @@
 ---
 name: Editorial Planning
 description: Maintain the editorial calendar, write content briefs, research topics
+version: 2
+suitedTo: [editor, content-strategist]
 ---
 
 # Editorial Planning

@@ -1,10 +1,14 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { AudioLines, Hand, Mic, MicOff, Plus, Send, Square } from 'lucide-react'
+import type { PickedSkill } from '@agenthix/core'
 import { useMentionTarget } from '@agenthix/ui/sessions'
 import { MessageField, type MessageFieldHandle } from './MessageField'
 import { useDictation } from '../hooks/useDictation'
 import { AtPicker } from './atPicker/AtPicker'
 import { useAtPicker } from './atPicker/useAtPicker'
+import { SkillPicker } from './atPicker/SkillPicker'
+import { useSkillPicker } from './atPicker/useSkillPicker'
+import { SkillChip } from './atPicker/SkillChip'
 import { handRaiseWords, rightButton, SPEAKER_RING, type Speaker } from '../voiceClient/voiceUi'
 
 export type MessageBoxVoice = {
@@ -50,11 +54,12 @@ const NO_VOICE: MessageBoxVoice = {
  * voice mode, mute and End stand beside the pill and give way while the person types. The text stays in the box
  * when sending is refused.
  */
-export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plus, voice = NO_VOICE, takesMentions = false }: {
+export function MessageBox({ agentId, conversationId, placeholder, running, sending, onSend, onStop, plus, voice = NO_VOICE, takesMentions = false, takesSkills = false }: {
   placeholder: string
   running: boolean
   sending: boolean
-  onSend: (text: string) => Promise<boolean>
+  /** `skill`: the one picked with `/`, beside the text and never in it. */
+  onSend: (text: string, skill?: PickedSkill) => Promise<boolean>
   onStop: () => void
   /** What the plus opens: the model choice. */
   plus?: ReactNode
@@ -65,6 +70,8 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
   conversationId?: string
   /** Mention in a file beside it puts the file's path here, at the caret, shown as a chip; with a conversation, `@` opens a picker of its files. */
   takesMentions?: boolean
+  /** With a conversation, `/` at the start of the message opens a picker of its agent's skills; the one chosen is sent beside the text. */
+  takesSkills?: boolean
 }) {
   const [text, setText] = useState('')
   const mentioned = useCallback((t: string) => field.current?.insertMention(t), [])
@@ -74,14 +81,16 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
   const field = useRef<MessageFieldHandle>(null)
   const dictation = useDictation({ text, setText, field, agentId, conversationId })
   const picker = useAtPicker({ enabled: takesMentions && !!conversationId, field })
+  const skills = useSkillPicker({ enabled: takesSkills && !!conversationId, field, text, setText })
+  const open = picker.open || skills.open
   const pill = useRef<HTMLFormElement>(null)
   const [pickerLeft, setPickerLeft] = useState(0)
   useLayoutEffect(() => {
-    if (!picker.open) return
+    if (!open) return
     const caret = field.current?.caretRect()
     const box = pill.current?.getBoundingClientRect()
     if (caret && box) setPickerLeft(Math.max(0, Math.min(caret.left - box.left, box.width - 320)))
-  }, [picker.open, picker.fragment])
+  }, [open, picker.fragment, skills.fragment])
   const hasText = text.trim().length > 0
 
   useEffect(() => {
@@ -112,7 +121,8 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
     if (sending) return
     const value = (dictation.listening ? await dictation.finish() : text).trim()
     if (!value) return
-    if (await onSend(value)) setText('')
+    const sent = skills.skill ? await onSend(value, { name: skills.skill.name }) : await onSend(value)
+    if (sent) { setText(''); skills.reset() }
   }
 
   const button = rightButton({
@@ -151,11 +161,12 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
       onFocus={dictation.prefetch}
       placeholder={placeholder}
       twoLines={twoLines}
-      onCaret={picker.onCaret}
-      onKeyFirst={picker.onKeyFirst}
-      listbox={picker.open ? { id: picker.listId, activeId: picker.activeId } : null}
+      onCaret={(t, c) => { picker.onCaret(t, c); skills.onCaret(t, c) }}
+      onKeyFirst={(e) => skills.onKeyFirst(e) || picker.onKeyFirst(e)}
+      listbox={skills.open ? { id: skills.listId, activeId: skills.activeId } : picker.open ? { id: picker.listId, activeId: picker.activeId } : null}
     />
   )
+  const chip = skills.skill && <SkillChip key="skill" skill={skills.skill} onRemove={skills.clear} />
   const mic = !voice.inVoice && (
     <button
       type="button"
@@ -182,14 +193,17 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
           className={`relative flex min-w-0 flex-1 rounded-3xl border border-border bg-surface-1 transition-shadow focus-within:border-accent ${twoLines ? 'flex-col px-1.5 pb-1.5 pt-2' : 'items-end gap-1 p-1.5'} ${ring}`}
         >
           {twoLines ? [
+            chip,
             textField,
             <div key="buttons" className="flex items-center gap-1">{more}<span aria-hidden className="flex-1" />{mic}{right}</div>,
           ] : [
             <Fragment key="more">{more}</Fragment>,
+            chip,
             textField,
             <Fragment key="mic">{mic}</Fragment>,
             <Fragment key="right">{right}</Fragment>,
           ]}
+          {skills.open && conversationId && <SkillPicker conversationId={conversationId} picker={skills} left={pickerLeft} />}
           {picker.open && conversationId && <AtPicker conversationId={conversationId} picker={picker} left={pickerLeft} />}
           <div ref={mirror} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 whitespace-pre-wrap break-words px-2 text-body" />
         </form>

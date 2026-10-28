@@ -196,6 +196,9 @@ export const runDispatchParams = z
       })
       ,
     inputText: z.string(),
+    // The skill the person picked with `/`: read by its shape alone (core's pickedSkillOf), and a malformed one is
+    // dropped rather than refusing the run. Whether it is staged is checked when the turn's skills are.
+    skill: z.unknown().optional(),
     // Empty only when hq found no model the run may use: the run is still
     // recorded, and fails with hq's `credentialProblem` (runLaunch.ts).
     model: z.string(),

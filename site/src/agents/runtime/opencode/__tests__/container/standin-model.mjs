@@ -4,7 +4,7 @@
 //   DIRECTIVE:STEPS [[call, call], [call], ...]  each inner list is one step of parallel tool calls, then "DONE"
 //   anything else                                 "OK"
 // Every request is logged, one JSON line each: its Authorization header, the
-// tools offered, how many messages it carried, and the last tool results.
+// tools offered, how many messages it carried, the last user message's text, and the last tool results.
 import http from 'node:http'
 import fs from 'node:fs'
 
@@ -42,6 +42,7 @@ const server = http.createServer((req, res) => {
       authorization: req.headers.authorization ?? null,
       tools: (body.tools || []).map(t => t.function?.name).sort(),
       messages: (body.messages || []).length,
+      lastUser: textOf([...(body.messages || [])].reverse().find(x => x.role === 'user')?.content),
       toolResults: (body.messages || []).filter(x => x.role === 'tool').map(x => textOf(x.content)),
       system: (body.messages || []).filter(x => x.role === 'system').map(x => textOf(x.content)).join('\n'),
     }

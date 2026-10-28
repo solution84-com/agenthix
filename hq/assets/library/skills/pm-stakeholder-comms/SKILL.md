@@ -1,6 +1,8 @@
 ---
 name: Stakeholder Communications
 description: Write status updates, maintain the roadmap, communicate scope changes
+version: 2
+suitedTo: [product-manager, project-manager]
 ---
 
 # Stakeholder Communications

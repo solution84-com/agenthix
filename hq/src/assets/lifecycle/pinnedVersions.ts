@@ -9,7 +9,7 @@ import type { Db } from '../../packages/packageStore'
 import { readContent } from '../content'
 import type { Actor } from '../policy'
 import { LifecycleError } from './errors'
-import { assertLibrary, byOf, identityOf, librarySkill, movePin } from './records'
+import { assertLibrary, byOf, identityOf, libraryAsset, movePin } from './records'
 import { bySemVerDescending, fileChanges, pinMoveRefusal, type FileChanges, type PinMove } from './versions'
 import { loadWithdrawnList, withdrawnReason, withdrawnRefusal } from './withdrawn'
 
@@ -35,7 +35,7 @@ export type PinHistoryRow = { fromVersion: string | null; toVersion: string; byI
 export type AssetVersions = { identity: string; inUse: string | null; versions: VersionRow[]; history: PinHistoryRow[] }
 
 export async function listVersions(db: Db, assetId: unknown): Promise<AssetVersions> {
-  const asset = await librarySkill(db, assetId)
+  const asset = await libraryAsset(db, assetId)
   const [versions, changes, withdrawn] = await Promise.all([
     db.assetVersion.findMany({ where: { assetId: asset.id } }),
     db.assetPinChange.findMany({
@@ -62,13 +62,13 @@ export async function listVersions(db: Db, assetId: unknown): Promise<AssetVersi
 
 async function heldVersion(db: Db, assetId: string, versionId: unknown) {
   const version = typeof versionId === 'string' ? await db.assetVersion.findUnique({ where: { id: versionId } }) : null
-  if (!version || version.assetId !== assetId) throw new LifecycleError(`hq doesn't hold that version of this skill. ${NOTHING}`, 404)
+  if (!version || version.assetId !== assetId) throw new LifecycleError(`hq doesn't hold that version of this. ${NOTHING}`, 404)
   return version
 }
 
 /** *Update available* and *Roll back* show what changed: every file added, changed or removed, from the version in use. */
 export async function versionChanges(db: Db, assetId: unknown, versionId: unknown): Promise<{ from: string | null; to: string; changes: FileChanges }> {
-  const asset = await librarySkill(db, assetId)
+  const asset = await libraryAsset(db, assetId)
   const target = await heldVersion(db, asset.id, versionId)
   const from = asset.currentVersion ? await readContent(asset.currentVersion.digest, db) : []
   return { from: asset.currentVersion?.version ?? null, to: target.version, changes: fileChanges(from, await readContent(target.digest, db)) }
@@ -87,7 +87,7 @@ export type MoveInput = {
 export async function moveToVersion(db: PrismaClient, actor: Actor, move: PinMove, input: MoveInput): Promise<{ identity: string; version: string }> {
   await assertLibrary(actor, move, db)
   const by = byOf(actor, input.requestedByAgentId)
-  const asset = await librarySkill(db, input.assetId)
+  const asset = await libraryAsset(db, input.assetId)
   const current = asset.currentVersion
   if (!current) throw new LifecycleError(`${identityOf(asset)} has no published version yet. ${NOTHING}`, 409)
   const target = await heldVersion(db, asset.id, input.versionId)

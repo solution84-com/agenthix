@@ -77,11 +77,14 @@ export function itemLine(item: PlanItem): string {
   }
 }
 
-/** I6: "This template brings 7 skills: 5 new, 1 you already have, 1 newer than yours, update offered." */
+/** I6: "This template brings 7 skills: 5 for its role, 1 you already have, 1 newer than yours, update offered." */
 export function summarise(main: PlanItem, embedded: PlanItem[]): string {
   if (embedded.length === 0) return itemLine(main)
-  const count = (o: ItemOutcome) => embedded.filter(e => e.outcome === o).length
+  const role = embedded.filter(e => e.name.includes('/') && e.outcome !== 'refused')
+  const shared = embedded.filter(e => !role.includes(e))
+  const count = (o: ItemOutcome) => shared.filter(e => e.outcome === o).length
   const parts = [
+    role.length ? `${role.length} for its role` : null,
     count('new') + count('restore') ? `${count('new') + count('restore')} new` : null,
     count('same') ? `${count('same')} you already have` : null,
     count('update') ? `${count('update')} newer than yours, update offered` : null,

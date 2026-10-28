@@ -192,7 +192,6 @@
   "skills": [
     "implement-wasp-feature",
     "fix-bug",
-    "write-tests",
-    "git-workflow"
+    "write-tests"
   ]
 }

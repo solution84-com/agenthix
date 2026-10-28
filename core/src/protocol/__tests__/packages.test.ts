@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   PACKAGE_METHODS, PACKAGE_FORMAT_VERSION, MAX_SKILL_SLUG_LENGTH, MAX_SKILL_NAME_LENGTH, MAX_WORKSPACE_SKILL_INDEX, SKILL_SOURCES,
-  workspaceSkillName, deliveredSkillName, INSTALLED_SKILL_SOURCE,
+  workspaceSkillName, deliveredSkillName, INSTALLED_SKILL_SOURCE, pickedSkillOf,
   isValidPackagePath, isPackageRef, canonicalJson, packageDigestInput, namespacedSkillName,
   type PackageContents,
 } from '../packages.js'
@@ -114,5 +114,19 @@ describe('the name an installed or personal skill stages under', () => {
 
   it('is none for what is not an identity', () => {
     for (const bad of ['review', '', 'a/b/c/d', 'Acme/review', '../x', 'a//b']) expect(deliveredSkillName('org', bad)).toBeNull()
+  })
+})
+
+describe('pickedSkillOf', () => {
+  it('keeps a name a run could stage', () => {
+    expect(pickedSkillOf({ name: 'org-code-review' })).toEqual({ name: 'org-code-review' })
+    expect(pickedSkillOf({ name: 'workspace-2-lint', extra: 'dropped' })).toEqual({ name: 'workspace-2-lint' })
+  })
+
+  it('is null for anything else', () => {
+    for (const bad of [null, undefined, 'org-x', 7, {}, { name: '' }, { name: '/init' }, { name: 'Org-x' }, { name: '-x' },
+      { name: 'a b' }, { name: 'x'.repeat(MAX_SKILL_NAME_LENGTH + 1) }, { name: ['org-x'] }]) {
+      expect(pickedSkillOf(bad)).toBeNull()
+    }
   })
 })

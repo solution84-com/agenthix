@@ -1,6 +1,8 @@
 ---
 name: SEO Research
 description: Research keywords, assess search intent, recommend on-page optimisations
+version: 2
+suitedTo: [marketer, writer]
 ---
 
 # SEO Research

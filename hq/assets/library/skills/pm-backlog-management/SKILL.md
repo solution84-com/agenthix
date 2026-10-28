@@ -1,6 +1,8 @@
 ---
 name: Backlog Management
 description: Write specs, groom and prioritise the backlog
+version: 2
+suitedTo: [product-manager, project-manager]
 ---
 
 # Backlog Management

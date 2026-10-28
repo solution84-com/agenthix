@@ -28,6 +28,9 @@ export type PlaceSkillStatus =
 export type PlaceSkillView = {
   id: string
   path: string
+  /** The front matter's name and description as the last scan read them; empty when absent. */
+  name: string
+  description: string
   group: 'PLACE' | 'AGENT' | 'WORKSPACE'
   agentId: string | null
   workspaceId: string | null
@@ -71,7 +74,7 @@ async function viewOf(db: PrismaClient, actor: Actor, ctx: PlaceContext): Promis
     const matching = row.versions.find(v => v.digest === row.lastFingerprint)
     const newest = row.versions[0]?.number ?? null
     return {
-      id: row.id, path: row.path, group: row.group, agentId: row.agentId, workspaceId: row.workspaceId,
+      id: row.id, path: row.path, name: row.name, description: row.description, group: row.group, agentId: row.agentId, workspaceId: row.workspaceId,
       fingerprint: row.lastFingerprint,
       state: row.goneAt ? 'off' : switchState(row, ctx.placeDefault, ctx.orgDefault),
       switch: row.switch,

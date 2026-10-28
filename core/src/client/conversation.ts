@@ -67,8 +67,11 @@ export type KnowledgeStepView =
 /** How long a reply that looked things up worked, start to end, and its steps: kept with the reply, shown on asking. */
 export type ReplyThinking = { ms: number; steps: ReplyStepView[] }
 
-/** `thinking`: on a reply that took steps to look something up; a plain answer has none. */
-export type TextBody = { text: string; thinking?: ReplyThinking }
+/**
+ * `thinking`: on a reply that took steps to look something up; a plain answer has none. `skill`: on a person's
+ * message, the skill they picked with `/` for it, carried with the work the message is answered by.
+ */
+export type TextBody = { text: string; thinking?: ReplyThinking; skill?: PickedSkill }
 /** A quiet line from hq: an access switch, a lead taking over a task's thread. */
 export type NoticeBody = { text: string }
 /** A turn that failed: the partial reply it streamed, and why, in words a person can act on. */

@@ -9,6 +9,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from 'wasp/server'
 import type { ContinuationObligation, OperationStateValue } from '../../../shared/conversations/protocol'
 import type { TurnCapability } from '../../contract'
+import type { PickedSkill } from '@agenthix/core'
 import { randomUUID } from 'node:crypto'
 import { openJson, sealJson, sealText, openText } from '../../sealing'
 import { outstandingOperations } from '../settle'
@@ -25,6 +26,8 @@ export interface NewTaskOperation {
   continuation: ContinuationObligation | null
   /** In a task's thread: the person's ask, which the run is given as its brief. */
   brief?: string | null
+  /** With the brief: the skill the person picked with `/` for their ask, which the run is told to load. */
+  skill?: PickedSkill | null
 }
 
 /** The states a task operation waits in before its run starts: a run starting is the one it asked for. */
@@ -40,7 +43,7 @@ export async function pendingWithKey(conversationId: string, idempotencyKey: str
 
 /** The new operation, or the pending one with the same key when two identical calls were admitted at once. */
 export async function createTaskOperation(input: NewTaskOperation): Promise<{ operationId: string; alreadyRunning: boolean }> {
-  const { capability, toolName, idempotencyKey, title, taskId, projectId, state, continuation, brief } = input
+  const { capability, toolName, idempotencyKey, title, taskId, projectId, state, continuation, brief, skill } = input
   try {
     const row = await prisma.operation.create({
       data: {
@@ -57,6 +60,7 @@ export async function createTaskOperation(input: NewTaskOperation): Promise<{ op
         boundaryId: projectId,
         taskId,
         ...(brief ? { brief: sealText(brief) } : {}),
+        ...(brief && skill ? { args: sealJson({ skill }) } : {}),
         ...(continuation ? { continuation } : {}),
       },
       select: { id: true },
@@ -79,7 +83,7 @@ export type SetTaskResult = { taskId: string; startsAt: string }
  * ended operation does not (settle.ts): the same ask made again is a new call.
  */
 export async function createSetTaskOperation(
-  input: Omit<NewTaskOperation, 'state' | 'continuation' | 'brief'> & { startsAt: string },
+  input: Omit<NewTaskOperation, 'state' | 'continuation' | 'brief' | 'skill'> & { startsAt: string },
 ): Promise<{ operationId: string }> {
   const { capability, toolName, idempotencyKey, title, taskId, projectId, startsAt } = input
   const id = randomUUID()

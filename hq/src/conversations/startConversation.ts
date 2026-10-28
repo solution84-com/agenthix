@@ -16,6 +16,7 @@ import { agentChoicesFor } from './primaryAgent'
 import { appendMessageIn } from './store/messages'
 import { afterMessageAdmitted } from './afterAdmission'
 import { requireOfferedModel } from './modelChoice'
+import { requirePickedSkill } from './work/pickedSkill'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -37,6 +38,7 @@ export const startConversation = async (args: StartConversationArgs, context: Ct
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const userId = context.user.id
   const { text, clientMessageId } = requireMessage(args)
+  const skill = requirePickedSkill(args?.skill)
 
   const sentBefore = text && await prisma.conversationMessage.findFirst({
     where: { clientMessageId, authorId: userId, seq: 1, conversation: { openedById: userId } },
@@ -70,7 +72,7 @@ export const startConversation = async (args: StartConversationArgs, context: Ct
       conversationId: conversation.id,
       role: 'PERSON',
       kind: 'TEXT',
-      body: { text },
+      body: { text, ...(skill && { skill }) },
       authorId: userId,
       clientMessageId,
     })

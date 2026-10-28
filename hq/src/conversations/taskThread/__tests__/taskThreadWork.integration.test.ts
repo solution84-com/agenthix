@@ -39,14 +39,14 @@ vi.mock('../../work/toolCalls/registryLater', () => ({
 
 import * as runnerFake from '../../../test/fakes/TaskRunner'
 import * as dispatchFake from '../../../test/fakes/dispatchService'
-import { openText, sealText } from '../../sealing'
+import { openText, sealJson, sealText } from '../../sealing'
 import { startWorkTool, IN_A_TASK_THREAD } from '../../work/workers/startWork'
 import { runTaskTool } from '../../work/tasks/runTaskTool'
 import { handleTaskRunStatus } from '../../work/tasks/runListener'
 import { answerConversationApproval, cancelConversationOperation } from '../../work/answerAndStop'
 import { appendMessage } from '../../store/messages'
 import { notifyCard } from '../../coordinator/notify'
-import { briefForTaskRun } from '../brief'
+import { askForTaskRun, briefForTaskRun } from '../brief'
 import { taskWorld, type TaskWorld } from '../../work/tasks/__tests__/taskWorld'
 import type { ConversationMessageView } from '../../../shared/conversations/protocol'
 import type { TurnCapability } from '../../contract'
@@ -88,6 +88,21 @@ describe('start_work in a task’s thread @SC-977', () => {
     expect(op).toMatchObject({ kind: 'TASK', taskId: w.taskId, toolName: 'run_task', state: 'QUEUED' })
     expect(openText(op!.brief!)).toBe('Only the thumbnails, not the full images')
     await expect(briefForTaskRun(w.taskId)).resolves.toBe('Only the thumbnails, not the full images')
+  })
+})
+
+describe('a skill picked in a task’s thread', () => {
+  it("goes with the person's ask to the task's run", async () => {
+    await prisma.conversationMessage.create({
+      data: { conversationId: threadId, seq: 1, role: 'PERSON', kind: 'TEXT', body: sealJson({ text: 'thumbnails', skill: { name: 'org-images' } }), authorId: w.personId, turnId: cap.turnId },
+    })
+    await runTaskTool.run(cap, { brief: 'Only the thumbnails' }, { signal })
+    await expect(askForTaskRun(w.taskId)).resolves.toEqual({ brief: 'Only the thumbnails', skill: { name: 'org-images' } })
+  })
+
+  it('is none when the person picked none', async () => {
+    await runTaskTool.run(cap, { brief: 'Only the thumbnails' }, { signal })
+    await expect(askForTaskRun(w.taskId)).resolves.toEqual({ brief: 'Only the thumbnails', skill: null })
   })
 })
 

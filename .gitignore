@@ -63,4 +63,4 @@ docs/work/*/execution/
 .scratchpad/
 
 # Local triage copy of open GitHub issues — working notes only
-issues/
+/issues/

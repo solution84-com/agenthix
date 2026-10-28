@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+import { TurnInput } from '../claude/turnInput'
+import { pickedSkillInstruction, pickedSkillReadInstruction } from '../pickedSkill'
 vi.mock('node:fs/promises', () => ({
   default: {
     mkdtemp: vi.fn().mockResolvedValue('/site/homes/project-proj-alpha/.tmp/skills-123'),
@@ -336,7 +338,7 @@ describe('ClaudeSDKRuntime @SC-119', () => {
   })
 
   it('passes additionalDirectories when custom agent skills exist', async () => {
-    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }], refused: [] })
+    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f', userInvocable: true, modelInvocable: true }], refused: [] })
 
     mockQuery.mockReturnValue(makeSDKStream([
       { type: 'result', subtype: 'success' },
@@ -354,7 +356,7 @@ describe('ClaudeSDKRuntime @SC-119', () => {
 
   it('hands the staged skills over as a local plugin, allowlisted, with inline skill commands off', async () => {
     const fsMod = (await import('node:fs/promises')).default as any
-    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }, { source: 'agent', slug: 'y', name: 'agent-y', fingerprint: 'f' }], refused: [] })
+    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f', userInvocable: true, modelInvocable: true }, { source: 'agent', slug: 'y', name: 'agent-y', fingerprint: 'f', userInvocable: true, modelInvocable: true }], refused: [] })
     mockQuery.mockReturnValue(makeSDKStream([{ type: 'result', subtype: 'success' }]) as any)
 
     for await (const _ of new ClaudeSDKRuntime().run(baseContext)) { /* drain */ }
@@ -367,6 +369,27 @@ describe('ClaudeSDKRuntime @SC-119', () => {
     expect(options?.settings).toMatchObject({ disableSkillShellExecution: true })
     expect(fsMod.writeFile).toHaveBeenCalledWith(
       '/site/homes/project-proj-alpha/.tmp/skills-123/.claude/.claude-plugin/plugin.json', JSON.stringify({ name: 'agenthix' }))
+  })
+
+  it('tells the agent to load a picked skill staged for the turn, and drops one a person may not pick', async () => {
+    const pushed = vi.spyOn(TurnInput.prototype, 'push')
+    const staged = { staged: [
+      { source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f', userInvocable: true, modelInvocable: true },
+      { source: 'org', slug: 'y', name: 'org-y', fingerprint: 'f', userInvocable: false, modelInvocable: true },
+      { source: 'org', slug: 'w', name: 'org-w', fingerprint: 'f', userInvocable: true, modelInvocable: false },
+    ], refused: [] }
+    for (const pickedSkill of ['org-x', 'org-y', 'org-z', 'org-w']) {
+      mockStageSkills.mockResolvedValueOnce(structuredClone(staged) as never)
+      mockQuery.mockReturnValue(makeSDKStream([{ type: 'result', subtype: 'success' }]) as any)
+      for await (const _ of new ClaudeSDKRuntime().run({ ...baseContext, pickedSkill })) { /* drain */ }
+      await new ClaudeSDKRuntime().endConversation({ sessionId: baseContext.sessionId, containerName: null })
+    }
+    expect(pushed.mock.calls.map(c => c[0])).toEqual([
+      `${pickedSkillInstruction('org-x')}\n\nFix the bug`, 'Fix the bug', 'Fix the bug',
+      // Read from the staged folder of the process that takes the turn, as it sees it.
+      `${pickedSkillReadInstruction('org-w', '/site/homes/project-proj-alpha/.tmp/skills-123/.claude/skills/org-w/SKILL.md')}\n\nFix the bug`,
+    ])
+    pushed.mockRestore()
   })
 
   it('allowlists no skill and loads no plugin when none are staged, so the bundled ones stay hidden', async () => {
@@ -442,7 +465,7 @@ describe('skills are staged where the run can reach them', () => {
   it("creates the skills tmpdir on the site's own view of the boundary home", async () => {
     process.env.AGENT_CONTAINER_ISOLATION = 'true'
     const fsMod = (await import('node:fs/promises')).default as any
-    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }], refused: [] })
+    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f', userInvocable: true, modelInvocable: true }], refused: [] })
     mockQuery.mockReturnValue(makeSDKStream([{ type: 'result', subtype: 'success' }]) as any)
 
     for await (const _ of new ClaudeSDKRuntime().run(containerizedContext)) { /* drain */ }
@@ -458,7 +481,7 @@ describe('skills are staged where the run can reach them', () => {
 
     // Container mode: the site's own path -> the fixed container path.
     process.env.AGENT_CONTAINER_ISOLATION = 'true'
-    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }], refused: [] })
+    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f', userInvocable: true, modelInvocable: true }], refused: [] })
     fsMod.mkdtemp.mockImplementation(async (prefix: string) => `${prefix}xyz`)
     mockQuery.mockReturnValue(makeSDKStream([{ type: 'result', subtype: 'success' }]) as any)
 
@@ -471,7 +494,7 @@ describe('skills are staged where the run can reach them', () => {
     process.env.ANTHROPIC_API_KEY = 'test-key'
     process.env.SITE_ROOT = '/site'
     delete process.env.AGENT_CONTAINER_ISOLATION
-    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }], refused: [] })
+    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f', userInvocable: true, modelInvocable: true }], refused: [] })
     fsMod.mkdtemp.mockImplementation(async (prefix: string) => `${prefix}xyz`)
     mockQuery.mockReturnValue(makeSDKStream([{ type: 'result', subtype: 'success' }]) as any)
 

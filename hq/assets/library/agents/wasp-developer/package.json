@@ -1,0 +1,8 @@
+{
+  "format": 2,
+  "kind": "agent",
+  "publisher": "agenthix",
+  "name": "wasp-developer",
+  "version": "1.0.0",
+  "description": "Implements features and fixes bugs in a Wasp/React/Prisma codebase"
+}

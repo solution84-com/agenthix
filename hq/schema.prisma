@@ -360,6 +360,10 @@ model Agent {
   memoryRecords MemoryItem[]
   teams        TeamAgent[]
   assetGrants  AssetGrant[]
+  /// The agent template version it was made from (adr-0072, adr-0157): read-only, never followed. Null when made
+  /// without one, or when that version is gone.
+  madeFromVersionId String?
+  madeFromVersion   AssetVersion? @relation("AgentMadeFrom", fields: [madeFromVersionId], references: [id], onDelete: SetNull)
 }
 
 // AgentRouteBinding was removed — routing moves to Mission Control (see ADR 0006)
@@ -1267,33 +1271,6 @@ model Project {
   @@index([personalOwnerId])
 }
 
-/// Where a library item came from (every screen reviewed spec §3, Library):
-/// shipped with hq, made in this organisation, or installed from a marketplace.
-/// A built-in item (isSystem) reads as BUILT_IN whatever this column says
-/// (library/packages/packageManifest.ts). Skills are assets and do not use it.
-enum LibrarySource {
-  BUILT_IN
-  MADE_HERE
-  MARKETPLACE
-}
-
-model BoardTemplate {
-  id          String   @id @default(uuid())
-  name        String
-  description String   @default("")
-  assetPath   String                      // relative path from root: assets/library/boards/<id>.json (system) or org/boards/<id>.json (org)
-  isSystem    Boolean  @default(false)
-  version     Int      @default(1)
-  /// The library package's record: its source, its version as its publisher
-  /// numbered it, and who published it. `version` above is the seeder's own counter.
-  source         LibrarySource @default(MADE_HERE)
-  packageVersion String        @default("1")
-  publisher      String?
-  boards      Board[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
 /// A board is a lasting workflow (adr-0097): a named set of columns a kind of
 /// work moves through, until it is archived. A task in no column is in the
 /// board's Backlog, its first column.
@@ -1303,8 +1280,10 @@ model Board {
   project      Project     @relation(fields: [projectId], references: [id])
   projectId    String
   kind         BoardKind   @default(WORKFLOW)
-  template     BoardTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  templateId   String?     // source template; null if not from a template or template was deleted
+  /// The board template version it was made from (adr-0072, adr-0157): read-only, never followed. Null when made
+  /// without one, or when that version is gone.
+  madeFromVersionId String?
+  madeFromVersion   AssetVersion? @relation("BoardMadeFrom", fields: [madeFromVersionId], references: [id], onDelete: SetNull)
   /// The working columns, in order. Backlog is not one of them: it is where a task with no column sits.
   columns      Json        @default("[{\"name\":\"todo\",\"label\":\"To Do\",\"status\":\"TODO\",\"color\":\"#6b7280\",\"order\":0},{\"name\":\"in_progress\",\"label\":\"In Progress\",\"status\":\"IN_PROGRESS\",\"color\":\"#f59e0b\",\"order\":1},{\"name\":\"done\",\"label\":\"Done\",\"status\":\"DONE\",\"color\":\"#10b981\",\"order\":2}]")
   /// Set while it is archived; never on Project Tasks.
@@ -1315,6 +1294,7 @@ model Board {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
+  @@index([madeFromVersionId])
   @@index([projectId, kind])
 }
 
@@ -1740,6 +1720,9 @@ model AssetVersion {
   currentOf          Asset?              @relation("AssetCurrentVersion")
   pinnedFrom         AssetPinChange[]    @relation("AssetPinChangeFrom")
   pinnedTo           AssetPinChange[]    @relation("AssetPinChangeTo")
+  agentsMade         Agent[]             @relation("AgentMadeFrom")
+  boardsMade         Board[]             @relation("BoardMadeFrom")
+  teamsMade          Team[]              @relation("TeamMadeFrom")
   createdAt          DateTime            @default(now())
 
   @@unique([assetId, version])
@@ -1973,6 +1956,10 @@ model PlaceSkill {
   /// not published* (FV4).
   lastFingerprint   String?
   lastSeenAt        DateTime?
+  /// The front matter's `name` and `description` as the last scan read them (bounded; empty when absent), so a skill
+  /// not yet published is shown by them. Site-reported, so text only, never trusted for anything else.
+  name              String             @default("")
+  description       String             @default("")
   /// When the site last reported the folder missing; the row and its versions stay for history and roll back.
   goneAt            DateTime?
   /// Why it is set aside: the same identity comes from a higher level (D12, D16).
@@ -2005,46 +1992,6 @@ model PlaceSkillVersion {
 }
 
 // ──────────────────────────────────────────────
-// Module: Workforce Templates
-// The library's ready-made teams (team templates): agents with their boards,
-// never people. Built-in ones are seeded from assets/library/workforce/ on
-// startup; imported ones are kept in hq's storage.
-// ──────────────────────────────────────────────
-model WorkforceTemplate {
-  id          String   @id               // stable slug, e.g. "wft-solo-dev"
-  name        String
-  description String   @default("")
-  tags        String[] @default([])
-  assetPath   String                      // a bundle folder: library/workforce/<id> from assetsRoot (system), or org/teams/<id> from hq storage
-  isSystem    Boolean  @default(false)
-  version     Int      @default(1)
-  source         LibrarySource @default(MADE_HERE)
-  packageVersion String        @default("1")
-  publisher      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-// ──────────────────────────────────────────────
-// Module: Agent Templates
-// Canonical role definitions seeded from assets/library/agents/.
-// ──────────────────────────────────────────────
-model AgentTemplate {
-  id        String   @id @default(cuid())
-  slug      String   @unique             // directory name, e.g. "wasp-developer"
-  name      String
-  version   Int      @default(1)
-  handle    String                       // suggested default handle
-  assetPath String                       // relative path from assetsRoot: library/agents/<slug> (system), or from hq storage: org/agents/<slug>
-  isSystem  Boolean  @default(true)
-  source         LibrarySource @default(MADE_HERE)
-  packageVersion String        @default("1")
-  publisher      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// ──────────────────────────────────────────────
 // Module: Teams
 // ──────────────────────────────────────────────
 /// A group of people and agents with a purpose (Marketing, Support). A team
@@ -2058,6 +2005,9 @@ model Team {
   avatarUrl String?
   coverUrl  String?
   createdBy String?
+  /// The team template version it was made from (adr-0157): read-only, and it never follows the template's later versions.
+  madeFromVersionId String?
+  madeFromVersion   AssetVersion? @relation("TeamMadeFrom", fields: [madeFromVersionId], references: [id], onDelete: SetNull)
   people    TeamPerson[]
   agents    TeamAgent[]
   projects  ProjectTeam[]

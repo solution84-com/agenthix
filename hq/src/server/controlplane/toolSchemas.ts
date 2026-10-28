@@ -28,6 +28,7 @@ import { z, type ZodRawShape } from 'zod'
 import { PLANNING_TOOLS } from './planningToolSchemas'
 import { KNOWLEDGE_DATA_PATH_TOOLS } from './knowledgeToolSchemas'
 import { WORKFLOW_TOOL_SCHEMAS } from '../../workflows/agentToolsSchemas'
+import { PROPOSE_SKILL_SCHEMA } from '../../assets/proposals/tool'
 import { MEMORY_BODY_MAX_CHARS, MEMORY_MAX_TAGS, MEMORY_TITLE_MAX_CHARS } from '../../shared/memory/protocol'
 
 /** A routine's repeat: every N minutes, hours or days (at least 5 minutes), or a time of day on given weekdays. */
@@ -284,7 +285,7 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
       projectId: z.string().describe('Project ID this board belongs to'),
       name: z.string().describe('Board name'),
       description: z.string().optional().describe('Board description'),
-      templateId: z.string().optional().describe('Board template ID to use for columns (e.g. sys-tpl-0006-workforce-assembly). Ignored if columns are provided.'),
+      templateId: z.string().optional().describe('Board template to use for columns, by name (e.g. workforce-assembly). Ignored if columns are provided.'),
       kind: z.enum(['workflow', 'sprints']).optional().describe('A workflow board (default), or one with sprints: numbered time boxes'),
       sprintDays: z.number().int().optional().describe('A sprint board\'s sprint length in days (default 14)'),
       columns: z.array(z.object({
@@ -383,7 +384,7 @@ export const WORKFORCE_TOOLS: ControlPlaneTool[] = [
   {
     name: 'propose_workforce_template',
     schema: {
-      templateId: z.string().describe('Workforce template ID to propose (e.g. "wft-dev-team")'),
+      templateId: z.string().describe('Workforce template to propose: the id list_workforce_templates gives (e.g. "agenthix/dev-team")'),
       reason: z.string().describe('Why you are proposing this template — shown to the user on the review page'),
     },
   },
@@ -464,6 +465,8 @@ export const ALL_CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   ...WORKFLOW_TOOL_SCHEMAS,
   // Data-path-only too: a run's site forwards them with the calling run's id (knowledgeToolSchemas.ts).
   ...KNOWLEDGE_DATA_PATH_TOOLS,
+  // Data-path-only too: a run's site forwards it with the calling run's id (assets/proposals/tool.ts).
+  PROPOSE_SKILL_SCHEMA,
 ]
 
 /** The knowledge tools as an agent sees them, and `suggest_place`, the lead's alone (knowledgeToolSchemas.ts). */

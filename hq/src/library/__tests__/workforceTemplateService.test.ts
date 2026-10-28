@@ -14,7 +14,7 @@ const TEMPLATE: WorkforceTemplateContent = {
     },
   ],
   projects: [
-    { name: 'Main', description: 'Main project', defaultAgentHandle: 'dev', boards: [{ name: 'Kanban', templateId: 'sys-tpl-0001-kanban' }] },
+    { name: 'Main', description: 'Main project', defaultAgentHandle: 'dev', boards: [{ name: 'Kanban', template: 'kanban' }] },
   ],
 }
 

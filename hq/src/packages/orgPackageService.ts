@@ -1,20 +1,14 @@
 /**
- * The org's package (ruling P11): ORG.md and the skills the org installed for
- * every run, edited without a publish step (ADR-0072). ORG.md's name, vision and mission come
- * from the Org row at every write; its body carries over from the current content.
+ * The org's package (ruling P11): ORG.md, edited without a publish step (ADR-0072). ORG.md's name, vision and
+ * mission come from the Org row at every write; its body carries over from the current content. A new organisation's
+ * package carries no skills: its skills are installed assets (adr-0157), and none of Agenthix's offered skills is
+ * installed by itself (spec part 1, *What Agenthix ships*).
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { prisma } from 'wasp/server'
-import { assertAssetDir, getHqAssetsRoot } from '../server/hqAssets'
+import { getHqAssetsRoot } from '../server/hqAssets'
 import { getCurrentPackage, writePackage, readCurrentFiles, type Db, type PackageFileInput, type WriteResult } from './packageStore'
-import { replaceSkill } from './skillFiles'
-import { AGENTHIX_PUBLISHER } from '@agenthix/core'
-import { listShelf, shelfDir } from '../assets/sources/imageShelf'
-import { skillCopy } from '../assets/packageCopies'
-import { Logger } from '../server/utils/logger'
-
-const logger = new Logger('Packages')
 
 export const ORG_FILE = 'ORG.md'
 const FALLBACK_BODY = '## About\n\n_Add any additional context about your organisation here._\n'
@@ -38,27 +32,15 @@ async function templateBody(): Promise<string> {
   }
 }
 
-/** Every skill on Agenthix's shelf in hq's image, copied into the org's first package content. */
+/** The org's first package content: ORG.md from the template, and nothing else. */
 async function initialOrgFiles(_db: Db): Promise<PackageFileInput[]> {
-  // Later writes carry these skills forward, so a first write without them never gains them.
-  await assertAssetDir(shelfDir())
-  let files: PackageFileInput[] = [{ path: ORG_FILE, content: Buffer.from(await templateBody(), 'utf-8') }]
-  for (const skill of await listShelf()) {
-    try {
-      files = replaceSkill(files, skill.name, skillCopy({ publisher: AGENTHIX_PUBLISHER, name: skill.name }, skill.version, skill.files).files)
-    } catch (err) {
-      logger.warn(`Agenthix's skill ${skill.name} not copied for the org: ${err instanceof Error ? err.message : String(err)}`)
-    }
-  }
-  return files
+  return [{ path: ORG_FILE, content: Buffer.from(await templateBody(), 'utf-8') }]
 }
 
 /**
- * The disk reads a first-ever org write needs — the org template and every
- * installed platform library skill's SKILL.md — done up front so a caller can
- * read them BEFORE opening a transaction (reading them inside
- * `prisma.$transaction` risks its 5s interactive-transaction timeout on the
- * sequential disk I/O). `changeOrgPackage` only uses the result when its own,
+ * The disk read a first-ever org write needs — the org template — done up front so a caller can
+ * read them BEFORE opening a transaction (reading it inside
+ * `prisma.$transaction` would spend its 5s interactive-transaction timeout on disk I/O). `changeOrgPackage` only uses the result when its own,
  * in-transaction check confirms the org still has no package — a
  * write that sneaks in between this call and the transaction just makes
  * this work wasted, never wrong. Returns null when there's nothing to

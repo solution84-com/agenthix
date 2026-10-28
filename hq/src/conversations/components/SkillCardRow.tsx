@@ -1,0 +1,77 @@
+import { useState } from 'react'
+import {
+  useAction, useQuery, acceptSkillProposal, aimSkillProposal, getSkillDraftCard, getSkillProposal, publishAssetDraft,
+  publishPlaceSkillDraft, rejectSkillProposal,
+} from 'wasp/client/operations'
+import type { SkillCardRef } from '../../assets/proposals/types'
+import { actionErrorText } from '../hooks/threadState'
+import { SkillDraftCard, SkillProposalCard } from './SkillProposalCard'
+
+/** The card `propose_skill` left in the thread, read live: a proposal and its review, or a draft change and Publish. */
+export function SkillCardRow({ card }: { card: SkillCardRef }) {
+  return (
+    <div className="mx-auto w-full max-w-[720px] px-4">
+      <div className="overflow-hidden rounded-lg border border-border-subtle">
+        {card.kind === 'proposal' ? <ProposalRow proposalId={card.proposalId} /> : <DraftRow card={card} />}
+      </div>
+    </div>
+  )
+}
+
+/** One who may not see it (a person who isn't its reviewer or its person) sees the line, without its content. */
+function Unavailable({ text }: { text: string }) {
+  return <p className="px-3 py-2 text-micro text-text-muted">{text}</p>
+}
+
+function ProposalRow({ proposalId }: { proposalId: string }) {
+  const { data, error: readError, refetch } = useQuery(getSkillProposal, { proposalId })
+  const accept = useAction(acceptSkillProposal)
+  const reject = useAction(rejectSkillProposal)
+  const aim = useAction(aimSkillProposal)
+  const [state, setState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null })
+  if (readError) return <Unavailable text="A skill was proposed here." />
+  if (!data) return null
+  const run = async (work: () => Promise<unknown>, fallback: string) => {
+    setState({ busy: true, error: null })
+    try {
+      await work()
+      setState({ busy: false, error: null })
+    } catch (err) {
+      setState({ busy: false, error: actionErrorText(err, fallback) })
+    }
+    void refetch()
+  }
+  const files = (skillMd: string) => data.files.map((f) => (f.path === 'SKILL.md' ? { path: f.path, text: skillMd } : { path: f.path, text: f.text ?? '' }))
+  return (
+    <SkillProposalCard
+      proposal={data}
+      actions={{
+        ...state,
+        onAccept: (edited, note) => void run(() => accept({ proposalId, digest: data.digest, note, ...(edited !== null ? { files: files(edited) } : {}) }), 'Could not accept it'),
+        onReject: (note) => void run(() => reject({ proposalId, digest: data.digest, note }), 'Could not answer it'),
+        onAim: (to) => void run(() => aim({ proposalId, aim: to }), 'Could not aim it there'),
+      }}
+    />
+  )
+}
+
+function DraftRow({ card }: { card: Extract<SkillCardRef, { kind: 'draft' }> }) {
+  const { data, error: readError, refetch } = useQuery(getSkillDraftCard, { kind: card.draft.kind, id: card.draft.id })
+  const publishAsset = useAction(publishAssetDraft)
+  const publishPlace = useAction(publishPlaceSkillDraft)
+  const [state, setState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null })
+  if (readError) return <Unavailable text={`A draft of ${card.name} was changed here.`} />
+  if (!data) return null
+  const onPublish = async (note: string) => {
+    setState({ busy: true, error: null })
+    try {
+      if (card.draft.kind === 'asset') await publishAsset({ assetId: card.draft.id, revision: card.revision, note })
+      else await publishPlace({ placeSkillId: card.draft.id, revision: card.revision, note })
+      setState({ busy: false, error: null })
+    } catch (err) {
+      setState({ busy: false, error: actionErrorText(err, 'Could not publish it') })
+    }
+    void refetch()
+  }
+  return <SkillDraftCard name={card.name} shownRevision={card.revision} draft={data} busy={state.busy} error={state.error} onPublish={(n) => void onPublish(n)} />
+}

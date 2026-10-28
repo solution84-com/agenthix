@@ -5,11 +5,11 @@
  * publisher from the verified signer (`decide.ts`).
  */
 import {
-  ASSET_MANIFEST_FILE, AssetManifestError, isAssetName, isSemVer, parseAssetManifest,
+  ASSET_MANIFEST_FILE, AssetManifestError, SUITED_TO_MAX, isAssetName, isSemVer, parseAssetManifest, roleSkillName,
   type AssetKind, type BasedOnLine,
 } from '@agenthix/core'
 import type { PackageFile } from '../../library/packages/packageZip'
-import { SKILL_FILE, skillDescription, skillMdOf, skillMdVersion, skillTitle } from '../skillFile'
+import { SKILL_FILE, skillDescription, skillMdOf, skillMdVersion, skillTitle, type SkillMd } from '../skillFile'
 import { PackageReadError, type ArrivedPackage } from './archive'
 
 export type PackagePart = {
@@ -27,6 +27,8 @@ export type PackagePart = {
   files: PackageFile[]
   /** A plain skill folder with no manifest: it can't carry a signature (part 3, *The protocol* 1). */
   plain: boolean
+  /** A template's own role skill, named under it (`<template>/<skill>`); false for a shared skill and a package. */
+  role: boolean
 }
 
 export type PackageParts = PackagePart & { embedded: PackagePart[] }
@@ -62,6 +64,13 @@ function plainVersion(raw: string | null): string {
   return version
 }
 
+/** A plain folder's *suited to* hint, `suitedTo` in its front matter: a hint only, so one that isn't a list of at most 10 different lowercase words is dropped, never refused. */
+export function plainSuitedTo(md: SkillMd | null): string[] {
+  const raw = md?.header?.suitedTo
+  if (!Array.isArray(raw) || raw.length > SUITED_TO_MAX || !raw.every(isAssetName) || new Set(raw).size !== raw.length) return []
+  return raw
+}
+
 function partOf(files: PackageFile[], folderName: string, where: string, fallback?: { claim: string | null; version: string }): PackagePart {
   const manifest = manifestOf(files, where)
   const md = skillMdOf(files)
@@ -69,7 +78,7 @@ function partOf(files: PackageFile[], folderName: string, where: string, fallbac
     return {
       kind: manifest.kind, name: manifest.name, version: manifest.version, claim: manifest.publisher,
       title: skillTitle(md, manifest.name), description: skillDescription(md) || manifest.description,
-      basedOn: manifest.basedOn, licence: manifest.licence, suitedTo: manifest.suitedTo, files, plain: false,
+      basedOn: manifest.basedOn, licence: manifest.licence, suitedTo: manifest.suitedTo, files, plain: false, role: false,
     }
   }
   if (!md) throw new PackageReadError(`This isn't a package: ${where || 'it '}has neither a package.json nor a ${SKILL_FILE}.`)
@@ -79,11 +88,16 @@ function partOf(files: PackageFile[], folderName: string, where: string, fallbac
   return {
     kind: 'skill', name: folderName, version: fallback?.version ?? plainVersion(skillMdVersion(md)), claim: fallback ? fallback.claim : null,
     title: skillTitle(md, folderName), description: skillDescription(md),
-    basedOn: [], licence: null, suitedTo: [], files, plain: fallback === undefined,
+    basedOn: [], licence: null, suitedTo: plainSuitedTo(md), files, plain: fallback === undefined, role: false,
   }
 }
 
-/** The skills a template carries, each in `skills/<name>/`: its own package.json if it has one, else the template's. */
+/**
+ * The skills a template carries, each in `skills/<folder>/` (spec part 2 *Identity*). A folder with its own
+ * `package.json` is a shared skill under its own name and version, which must be the folder's; one without is the
+ * template's role skill, `<template>/<folder>` at the template's version. Either is stored without a manifest, so a
+ * shared skill carried inside a template is the same content as the skill installed on its own (I3).
+ */
 function embeddedOf(outer: PackagePart): PackagePart[] {
   const folders = new Map<string, PackageFile[]>()
   for (const file of outer.files) {
@@ -95,9 +109,19 @@ function embeddedOf(outer: PackagePart): PackagePart[] {
   const parts: PackagePart[] = []
   for (const [folder, files] of folders) {
     if (!files.some(f => f.path === SKILL_FILE)) continue
-    const part = partOf(files, folder, `skills/${folder}/`, { claim: outer.claim, version: outer.version })
-    if (part.kind !== 'skill') throw new PackageReadError(`This package can't be read: skills/${folder}/ is a ${part.kind}, not a skill.`)
-    parts.push(part)
+    const where = `skills/${folder}/`
+    const shared = files.some(f => f.path === ASSET_MANIFEST_FILE)
+    const part = partOf(files, folder, where, { claim: outer.claim, version: outer.version })
+    if (part.kind !== 'skill') throw new PackageReadError(`This package can't be read: ${where} is a ${part.kind}, not a skill.`)
+    const content = files.filter(f => f.path !== ASSET_MANIFEST_FILE)
+    if (shared) {
+      if (part.name !== folder) throw new PackageReadError(`This package can't be read: ${where} holds the skill ${part.name}; a shared skill's folder is its name.`)
+      parts.push({ ...part, files: content })
+      continue
+    }
+    const name = roleSkillName(outer.name, folder)
+    if (!name) throw new PackageReadError(`This package can't be read: ${where} must be named with 1 to 64 lowercase letters, digits and single hyphens.`)
+    parts.push({ ...part, name, role: true, files: content })
   }
   return parts.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
 }

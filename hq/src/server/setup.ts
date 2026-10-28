@@ -20,10 +20,11 @@ import { prisma } from 'wasp/server'
 import { ensureSiteSecret } from './siteSecretService'
 import { ensureDefaultOrg } from '../org/ensureDefaultOrg'
 import { ensureDefaultSite } from '../sites/defaultSite'
-import { ensureSystemTemplates } from '../library/systemTemplates'
+import { installImageTemplates } from '../assets/templates/imageTemplates'
 import { ensurePersonalProjectsForEveryone } from '../projects/personalProject'
 import { seedPlatformSkills } from '../agents/skillsLibraryService'
 import { writePlatformPackage } from '../packages/platformPackageService'
+import { ensureBuiltInSkills } from '../assets/builtins/boot'
 import { ensureOrgPackage } from '../packages/orgPackageService'
 import { startPackageContentSweep } from '../packages/packageContentSweep'
 import { startMemoryMaintenance } from '../memory/maintenance'
@@ -52,6 +53,7 @@ import { startProviderHealth } from '../providers/health'
 import { startArchiveSweep } from '../projects/finishedArchive/archiveSweep'
 import { startConversationRecovery } from '../conversations/coordinator/recovery'
 import { startConversationArchiveSweep } from '../conversations/archive/sweep'
+import { startRejectedProposalSweep } from '../assets/proposals/sweep'
 import { registerTaskOperationListener } from '../conversations/work/tasks'
 import { registerRunResultListener } from './controlplane/runResults'
 import { registerWorkerRunListener } from '../conversations/work/workers'
@@ -149,12 +151,19 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
     logger.error(`HQ's relay not ensured: ${err instanceof Error ? err.message : String(err)}`)
   }
 
-  // The platform's built-in skills, as a package every run loads (spec §6.5).
+  // The platform package every run loads (spec §6.5); empty since the built-in skills are assets.
   try {
     const platformPackage = await writePlatformPackage()
     logger.info(`Platform package at ${platformPackage.ref.digest.slice(0, 12)}${platformPackage.changed ? ' (written now)' : ''}.`)
   } catch (err) {
     logger.error(`Platform package not written: ${err instanceof Error ? err.message : String(err)}`)
+  }
+
+  // Agenthix's built-in skills, installed as assets and given to runs by hq (adr-0156).
+  try {
+    await ensureBuiltInSkills()
+  } catch (err) {
+    logger.error(`Built-in skills not installed: ${err instanceof Error ? err.message : String(err)}`)
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -194,9 +203,11 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   // Only accounts without one are touched, so this is a no-op once each has it.
   await ensurePersonalProjectsForEveryone()
 
-  // ── System board templates — ensure defaults exist ────────────────────────
-  await ensureSystemTemplates()
-  logger.info(`System board templates ensured.`)
+  // ── Agenthix's agent, board and team templates — installed from hq's image (adr-0157), without what they carry (D14) ──
+  for (const t of await installImageTemplates(prisma)) {
+    if (t.problem) logger.warn(`Template ${t.identity ?? t.root} in hq's image not installed: ${t.problem}`)
+    else if (t.outcome !== 'same') logger.info(`Template ${t.identity}: ${t.outcome}.`)
+  }
 
   // ── Platform skills library — seed DB from assets/library/skills/ ────────────────
   await seedPlatformSkills()
@@ -229,6 +240,8 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   startConversationRecovery()
   // Conversations idle for the organisation's days, once a day (on-screen spec).
   startConversationArchiveSweep()
+  // Rejected skill proposals, 90 days after their review, once a day (skills spec part 5).
+  startRejectedProposalSweep()
   // A run's end: its result marked, then any conversation's task operation it carries out (after the task's own state).
   registerRunResultListener()
   registerTaskOperationListener()
@@ -256,16 +269,6 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
 
   // A connection to Agenthix Cloud checks in at once, then within every hour (cloudConnection.ts).
   void cloudConnection()?.startCheckIns().catch(err => logger.warn(`Could not check in with Agenthix Cloud: ${err instanceof Error ? err.message : err}`))
-
-  // ── Workforce templates — seed from assets/library/workforce/ ────────────
-  const { ensureWorkforceTemplates } = await import('../library/workforceTemplateService')
-  await ensureWorkforceTemplates()
-  logger.info(`Workforce templates seeded.`)
-
-  // ── Agent templates — seed from assets/library/agents/ ───────────────────
-  const { ensureAgentTemplates } = await import('../library/agentTemplateService')
-  await ensureAgentTemplates()
-  logger.info(`Agent templates seeded.`)
 
   // ── Site secrets — auto-generate on first boot if missing ────────────────
   const newJwt = await ensureSiteSecret('JWT_SIGNING_SECRET')

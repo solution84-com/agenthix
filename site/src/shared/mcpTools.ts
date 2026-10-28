@@ -5,7 +5,7 @@
  * domain group — matching the canonical tool reference in docs/domains/tools/tools.md.
  *
  * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW,
- * KNOWLEDGE
+ * KNOWLEDGE, SKILL
  *
  * Access tiers (cross-cutting):
  *   ALWAYS_INJECTED  — PLATFORM tools + task execution lifecycle; never user-configurable
@@ -16,7 +16,7 @@
  * Runtime adapters are responsible for translating to their own naming scheme.
  */
 
-import { WORKFLOW_TOOL_NAMES } from '@agenthix/core'
+import { PROPOSE_SKILL_TOOL, WORKFLOW_TOOL_NAMES } from '@agenthix/core'
 import { ALL_RUNTIME_TOOL_NAMES } from './runtimeTools'
 
 // ── Tool registry (by domain) ─────────────────────────────────────────────────
@@ -162,6 +162,14 @@ export const SYSTEM_MCP_TOOLS = {
     DELETE_KNOWLEDGE: 'delete_knowledge',
   },
 
+  /**
+   * Proposing a skill (skills spec part 5), forwarded to hq: a draft or a proposal a person reviews, never a live
+   * skill. Always injected: hq lets it reach only the run's own place, its person's own space and the Library.
+   */
+  SKILL: {
+    PROPOSE_SKILL: PROPOSE_SKILL_TOOL,
+  },
+
 } as const
 
 // ── Access tier views ─────────────────────────────────────────────────────────
@@ -184,6 +192,7 @@ export const ALWAYS_INJECTED_MCP_TOOLS: string[] = [
   SYSTEM_MCP_TOOLS.MEMORY.RECALL,
   ...Object.values(SYSTEM_MCP_TOOLS.WORKFLOW),
   ...Object.values(SYSTEM_MCP_TOOLS.KNOWLEDGE),
+  ...Object.values(SYSTEM_MCP_TOOLS.SKILL),
 ]
 
 /** Included by default when allowedTools is null. */

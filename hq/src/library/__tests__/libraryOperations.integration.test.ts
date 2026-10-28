@@ -7,8 +7,8 @@ import { prisma } from '../../test/db'
 import { createUserWithRole, createProject, createTestTask } from '../../test/factories'
 
 // The library's operations called with a real context against the real test DB (ADR-0094): board template
-// actions and queries, the workforce and agent template reads, and the apply actions. Template bundles and
-// board template JSON live in temp directories.
+// actions and queries, the workforce and agent template reads, and the apply actions. Agent, board and team
+// templates are assets (adr-0157).
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -26,6 +26,7 @@ import {
   createBoardTemplate, updateBoardTemplate, deleteBoardTemplate,
   applyWorkforceTemplate, confirmWorkforceTemplate, saveWorkforceDraft, applyAgentTemplate,
 } from '../actions'
+import { agentPackage, boardPackage, seedTemplate, teamPackage } from '../../assets/templates/__tests__/templateFixtures'
 
 let tmpRoot: string
 const prev = { assets: process.env.HQ_ASSETS_ROOT, storage: process.env.HQ_STORAGE_ROOT }
@@ -46,9 +47,9 @@ afterAll(async () => {
 const anon = { user: undefined } as any
 const noSelections = { teams: [], projects: [] } as any
 const columns = [
-  { name: 'todo', label: 'To Do', status: 'TODO', color: 'x', order: 0, description: '' },
-  { name: 'doing', label: 'Doing', status: 'IN_PROGRESS', color: 'x', order: 1, description: '' },
-  { name: 'done', label: 'Done', status: 'DONE', color: 'x', order: 2, description: '' },
+  { name: 'todo', label: 'To Do', status: 'TODO', color: '#6b7280', description: '' },
+  { name: 'doing', label: 'Doing', status: 'IN_PROGRESS', color: '#f59e0b', description: '' },
+  { name: 'done', label: 'Done', status: 'DONE', color: '#10b981', description: '' },
 ]
 
 async function caller(role: 'ADMIN' | 'MEMBER') {
@@ -57,23 +58,12 @@ async function caller(role: 'ADMIN' | 'MEMBER') {
 }
 
 async function seedWorkforceBundle(id: string, handle = 'bundle-dev') {
-  const dir = path.join(tmpRoot, 'assets', 'library', 'workforce', id)
-  await fs.mkdir(path.join(dir, 'agents', handle), { recursive: true })
-  await fs.writeFile(path.join(dir, 'template.json'), JSON.stringify({
-    teams: [{ name: 'Bundle Team', purpose: 'Build', agents: [handle] }],
-    projects: [],
-  }))
-  await fs.writeFile(path.join(dir, 'agents', handle, 'agent.json'), JSON.stringify({
-    name: 'Bundle Dev', role: 'Dev', responsibilities: 'Code',
-  }))
-  await prisma.workforceTemplate.create({
-    data: { id, name: id, description: 'd', tags: ['x'], assetPath: `library/workforce/${id}`, isSystem: true } as any,
-  })
+  return seedTemplate(prisma, 'TEAM', id, teamPackage(id, { agents: [{ handle }] }))
 }
 
 function selectionsFor(handle: string) {
   return {
-    teams: [{ name: 'Bundle Team', include: true, agents: [{ handle, resolvedHandle: handle, include: true, skills: [] }] }],
+    teams: [{ name: 'Crew', include: true, agents: [{ handle, resolvedHandle: handle, include: true, skills: [] }] }],
     projects: [],
   } as any
 }
@@ -86,83 +76,87 @@ async function makeProposalTask(applicationData: unknown) {
 }
 
 describe('board template operations', () => {
-  it('createBoardTemplate lets an ADMIN create an org template, stored as a row and a file', async () => {
+  beforeEach(async () => { await prisma.org.create({ data: { name: 'Fernhill' } }) })
+
+  it('createBoardTemplate lets an ADMIN make the organisation its own template, as an asset', async () => {
     const admin = await caller('ADMIN')
     const created = await createBoardTemplate({ name: 'Mine', description: 'desc', columns }, admin)
-    expect(created).toMatchObject({ name: 'Mine', description: 'desc', isSystem: false })
-    expect(await prisma.boardTemplate.findUnique({ where: { id: created.id } })).not.toBeNull()
-    const file = JSON.parse(await fs.readFile(path.join(tmpRoot, 'storage', created.assetPath), 'utf-8'))
-    expect(file.columns.map((s: any) => s.name)).toEqual(['todo', 'doing', 'done'])
+    expect(created).toMatchObject({ identity: 'fernhill/mine', version: '1.0.0', isSystem: false })
+    expect(await prisma.asset.findUnique({ where: { id: created.id } })).toMatchObject({ kind: 'BOARD', publisher: 'fernhill' })
   })
 
   it('createBoardTemplate maps a template missing a status to 400 and stores nothing', async () => {
     const admin = await caller('ADMIN')
     await expect(createBoardTemplate({ name: 'Bad', columns: columns.slice(0, 2) }, admin))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('DONE') })
-    expect(await prisma.boardTemplate.count()).toBe(0)
+      .rejects.toMatchObject({ statusCode: 400 })
+    expect(await prisma.asset.count()).toBe(0)
   })
 
-  it('updateBoardTemplate lets an ADMIN rename an org template', async () => {
+  it('updateBoardTemplate lets an ADMIN rename it, as the next version', async () => {
     const admin = await caller('ADMIN')
     const created = await createBoardTemplate({ name: 'Before', columns }, admin)
     const updated = await updateBoardTemplate({ id: created.id, name: 'After' }, admin)
-    expect(updated.name).toBe('After')
-    expect((await prisma.boardTemplate.findUnique({ where: { id: created.id } }))?.name).toBe('After')
+    expect(updated).toMatchObject({ name: 'After', version: '1.1.0' })
   })
 
-  it('updateBoardTemplate maps an invalid edit and an unknown id to 400', async () => {
+  it('updateBoardTemplate maps an invalid edit to 400 and an unknown id to 404', async () => {
     const admin = await caller('ADMIN')
     const created = await createBoardTemplate({ name: 'Keep', columns }, admin)
     await expect(updateBoardTemplate({ id: created.id, columns: columns.slice(0, 1) }, admin))
       .rejects.toMatchObject({ statusCode: 400 })
     await expect(updateBoardTemplate({ id: 'missing', name: 'x' }, admin))
-      .rejects.toMatchObject({ statusCode: 400, message: 'Template not found.' })
-    expect((await prisma.boardTemplate.findUnique({ where: { id: created.id } }))?.name).toBe('Keep')
+      .rejects.toMatchObject({ statusCode: 404 })
+    expect((await getBoardTemplate({ id: created.id }, admin))?.name).toBe('Keep')
   })
 
-  it('deleteBoardTemplate lets an ADMIN delete an org template, row and file', async () => {
+  it('deleteBoardTemplate lets an ADMIN remove the organisation\'s own, keeping its history', async () => {
     const admin = await caller('ADMIN')
     const created = await createBoardTemplate({ name: 'Gone', columns }, admin)
     await deleteBoardTemplate({ id: created.id }, admin)
-    expect(await prisma.boardTemplate.findUnique({ where: { id: created.id } })).toBeNull()
-    await expect(fs.access(path.join(tmpRoot, 'storage', created.assetPath))).rejects.toThrow()
+    expect((await prisma.asset.findUnique({ where: { id: created.id } }))?.removedAt).not.toBeNull()
+    expect(await getBoardTemplates(undefined, admin)).toEqual([])
   })
 
-  it('deleteBoardTemplate refuses a system template', async () => {
+  it("deleteBoardTemplate refuses Agenthix's template", async () => {
     const admin = await caller('ADMIN')
-    await prisma.boardTemplate.create({
-      data: { id: 'sys-x', name: 'Sys', description: '', assetPath: 'library/boards/sys-x.json', isSystem: true } as any,
-    })
-    await expect(deleteBoardTemplate({ id: 'sys-x' }, admin)).rejects.toThrow(/System templates cannot be deleted/)
-    expect(await prisma.boardTemplate.findUnique({ where: { id: 'sys-x' } })).not.toBeNull()
+    const { assetId } = await seedTemplate(prisma, 'BOARD', 'kanban', boardPackage('kanban'))
+    await expect(deleteBoardTemplate({ id: assetId }, admin)).rejects.toMatchObject({ statusCode: 409 })
+    expect((await prisma.asset.findUnique({ where: { id: assetId } }))?.removedAt).toBeNull()
   })
 
   describe.each([
     ['createBoardTemplate', (c: any) => createBoardTemplate({ name: 'T', columns }, c)],
-    ['updateBoardTemplate', (c: any) => updateBoardTemplate({ id: 'bt1', name: 'T' }, c)],
-    ['deleteBoardTemplate', (c: any) => deleteBoardTemplate({ id: 'bt1' }, c)],
-  ] as const)('%s needs the ADMIN role', (_name, call) => {
+    ['updateBoardTemplate', (c: any, id: string) => updateBoardTemplate({ id, name: 'T' }, c)],
+    ['deleteBoardTemplate', (c: any, id: string) => deleteBoardTemplate({ id }, c)],
+  ] as const)('%s is the Library policy\'s', (_name, call) => {
+    let id: string
     beforeEach(async () => {
-      await prisma.boardTemplate.create({
-        data: { id: 'bt1', name: 'Existing', description: '', assetPath: 'org/boards/bt1.json', isSystem: false } as any,
-      })
+      id = (await createBoardTemplate({ name: 'Existing', columns }, await caller('ADMIN'))).id
     })
 
-    it.each(['MEMBER'] as const)('refuses a %s with 403 naming ADMIN, and changes nothing', async (role) => {
-      await expect(call(await caller(role))).rejects.toMatchObject({ statusCode: 403, message: expect.stringContaining('ADMIN') })
-      const rows = await prisma.boardTemplate.findMany()
-      expect(rows.map((r) => [r.id, r.name])).toEqual([['bt1', 'Existing']])
+    it('refuses a MEMBER with 403, and changes nothing', async () => {
+      await expect(call(await caller('MEMBER'), id)).rejects.toMatchObject({ statusCode: 403 })
+      expect(await prisma.asset.findMany({ select: { name: true, removedAt: true } })).toEqual([{ name: 'existing', removedAt: null }])
+      expect(await prisma.assetVersion.count()).toBe(1)
     })
 
     it('refuses a person with no settings row with 403', async () => {
       const user = await prisma.user.create({ data: {} as any })
-      await expect(call({ user: { id: user.id } })).rejects.toMatchObject({ statusCode: 403 })
+      await expect(call({ user: { id: user.id } }, id)).rejects.toMatchObject({ statusCode: 403 })
     })
 
     it('refuses a caller who is not signed in with 401', async () => {
-      await expect(call(anon)).rejects.toMatchObject({ statusCode: 401 })
-      expect(await prisma.boardTemplate.count()).toBe(1)
+      await expect(call(anon, id)).rejects.toMatchObject({ statusCode: 401 })
+      expect(await prisma.asset.count()).toBe(1)
     })
+  })
+
+  it('lets a Library maintainer make and edit one, but not remove it (D28)', async () => {
+    const maintainer = await caller('MEMBER')
+    await prisma.libraryMaintainer.create({ data: { userId: maintainer.user.id } })
+    const created = await createBoardTemplate({ name: 'Kept', columns }, maintainer)
+    await expect(updateBoardTemplate({ id: created.id, name: 'Kept too' }, maintainer)).resolves.toMatchObject({ version: '1.1.0' })
+    await expect(deleteBoardTemplate({ id: created.id }, maintainer)).rejects.toMatchObject({ statusCode: 403 })
   })
 
   it('getBoardTemplates lists the templates for a signed-in caller and refuses an anonymous one', async () => {
@@ -185,11 +179,11 @@ describe('board template operations', () => {
 })
 
 describe('workforce template queries', () => {
-  it('getWorkforceTemplate returns the template with its content read from the bundle', async () => {
-    await seedWorkforceBundle('wft-read')
+  it('getWorkforceTemplate returns the team template asset with its content read from its pinned version', async () => {
+    const { assetId } = await seedWorkforceBundle('wft-read')
     const result = await getWorkforceTemplate({ id: 'wft-read' }, await caller('MEMBER'))
-    expect(result).toMatchObject({ id: 'wft-read', name: 'wft-read', description: 'd', tags: ['x'] })
-    expect(result?.content.teams[0]).toMatchObject({ name: 'Bundle Team' })
+    expect(result).toMatchObject({ id: assetId, name: 'The wft-read', description: 'wft-read team', tags: ['test'] })
+    expect(result?.content.teams[0]).toMatchObject({ name: 'Crew' })
     expect(result?.content.teams[0].agents.map((a: any) => a.handle)).toEqual(['bundle-dev'])
   })
 
@@ -215,14 +209,10 @@ describe('workforce template queries', () => {
   })
 
   it('getAgentTemplates lists the agent templates by name and refuses an anonymous caller', async () => {
-    for (const [slug, name] of [['zed', 'Zed'], ['abe', 'Abe']]) {
-      await prisma.agentTemplate.create({
-        data: { slug, name, version: 1, handle: slug, assetPath: `library/agents/${slug}`, isSystem: true } as any,
-      })
-    }
+    for (const slug of ['zed', 'abe']) await seedTemplate(prisma, 'AGENT', slug, agentPackage(slug))
     const list = await getAgentTemplates(undefined, await caller('MEMBER'))
     expect(list.map((t) => t.slug)).toEqual(['abe', 'zed'])
-    expect(Object.keys(list[0]).sort()).toEqual(['handle', 'id', 'name', 'slug'])
+    expect(Object.keys(list[0]).sort()).toEqual(['description', 'handle', 'id', 'identity', 'name', 'publisher', 'slug', 'version'])
     await expect(getAgentTemplates(undefined, anon)).rejects.toMatchObject({ statusCode: 401 })
   })
 
@@ -234,7 +224,7 @@ describe('applyWorkforceTemplate', () => {
     const result = await applyWorkforceTemplate({ templateId: 'wft-apply', selections: selectionsFor('applied-dev') }, await caller('ADMIN'))
     expect(result).toMatchObject({ agentCount: 1, teamCount: 1 })
     expect(await prisma.agent.findUnique({ where: { handle: 'applied-dev' } })).not.toBeNull()
-    expect(await prisma.team.count({ where: { name: 'Bundle Team' } })).toBe(1)
+    expect(await prisma.team.count({ where: { name: 'Crew' } })).toBe(1)
   })
 
   it('refuses an unknown template with 404', async () => {
@@ -306,13 +296,7 @@ describe('confirmWorkforceTemplate and saveWorkforceDraft refusals', () => {
 
 describe('applyAgentTemplate action @SC-186', () => {
   async function seedAgentBundle(slug: string, handle: string) {
-    const dir = path.join(tmpRoot, 'assets', 'library', 'agents', slug)
-    await fs.mkdir(dir, { recursive: true })
-    await fs.writeFile(path.join(dir, 'agent.json'), JSON.stringify({ name: 'Bundle Agent', handle, role: 'Eng', skills: [] }))
-    await fs.writeFile(path.join(dir, 'instructions.md'), '# Bundle Agent')
-    await prisma.agentTemplate.create({
-      data: { slug, name: 'Bundle Agent', version: 1, handle, assetPath: `library/agents/${slug}`, isSystem: true } as any,
-    })
+    await seedTemplate(prisma, 'AGENT', slug, agentPackage(slug, { handle }))
   }
 
   it('creates the agent as an ADMIN', async () => {
@@ -321,7 +305,7 @@ describe('applyAgentTemplate action @SC-186', () => {
     const result = await applyAgentTemplate({ slug: 'bundle-agent', handle: 'my-agent' }, admin)
     expect(result.handle).toBe('my-agent')
     const agent = await prisma.agent.findUnique({ where: { id: result.id } })
-    expect(agent).toMatchObject({ name: 'Bundle Agent', handle: 'my-agent' })
+    expect(agent).toMatchObject({ name: 'The bundle-agent', handle: 'my-agent' })
   })
 
   it('maps a handle that already exists to 409 and creates no second agent', async () => {

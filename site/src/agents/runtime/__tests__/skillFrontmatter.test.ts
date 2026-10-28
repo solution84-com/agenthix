@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { stagedSkillMd } from '../skillFrontmatter'
+import { isModelInvocable, isUserInvocable, stagedSkillMd } from '../skillFrontmatter'
 import { skillDescription } from '../opencode/skillDescription'
 
 describe("a staged skill's front matter", () => {
@@ -46,5 +46,25 @@ describe("a staged skill's front matter", () => {
   it('drops a key hidden under YAML syntax it does not read, rather than keeping it', () => {
     const md = '---\ndescription: d\n? hooks\n: {PreToolUse: []}\n<<: {model: opus}\n"allowed-tools": Bash\n---\nBody'
     expect(stagedSkillMd(md, 'x')).toBe('---\nname: x\ndescription: "d"\n---\nBody')
+  })
+})
+
+describe('whether a person may pick a skill', () => {
+  it('is so unless its front matter sets user-invocable: false', () => {
+    expect(isUserInvocable('---\nname: a\n---\nBody')).toBe(true)
+    expect(isUserInvocable('---\nname: a\nuser-invocable: true\n---\nBody')).toBe(true)
+    expect(isUserInvocable('No front matter\nuser-invocable: false')).toBe(true)
+    expect(isUserInvocable('---\nname: a\nuser-invocable: false  # only the model\n---\nBody')).toBe(false)
+    expect(isUserInvocable('\ufeff---\r\nname: a\r\n"user-invocable": false\r\n---\r\nBody')).toBe(false)
+  })
+})
+
+describe('whether the model may load a skill itself', () => {
+  it('is so unless its front matter sets disable-model-invocation: true', () => {
+    expect(isModelInvocable('---\nname: a\n---\nBody')).toBe(true)
+    expect(isModelInvocable('---\nname: a\ndisable-model-invocation: false\n---\nBody')).toBe(true)
+    expect(isModelInvocable('No front matter\ndisable-model-invocation: true')).toBe(true)
+    expect(isModelInvocable('---\nname: a\ndisable-model-invocation: true  # a person runs it\n---\nBody')).toBe(false)
+    expect(isModelInvocable('﻿---\r\nname: a\r\n"disable-model-invocation": true\r\n---\r\nBody')).toBe(false)
   })
 })

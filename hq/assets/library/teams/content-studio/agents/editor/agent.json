@@ -1,0 +1,156 @@
+{
+  "name": "Editor",
+  "role": "Content Editor",
+  "responsibilities": "Review drafts for tone, clarity, and brand alignment. Final sign-off.",
+  "approval": "deferred",
+  "allowedTools": [
+    {
+      "name": "read_file",
+      "state": "always"
+    },
+    {
+      "name": "edit_file",
+      "state": "always"
+    },
+    {
+      "name": "write_file",
+      "state": "always"
+    },
+    {
+      "name": "glob_files",
+      "state": "always"
+    },
+    {
+      "name": "grep_files",
+      "state": "always"
+    },
+    {
+      "name": "bash",
+      "state": "never"
+    },
+    {
+      "name": "Agent",
+      "state": "never"
+    },
+    {
+      "name": "web_fetch",
+      "state": "always"
+    },
+    {
+      "name": "web_search",
+      "state": "always"
+    },
+    {
+      "name": "get_org",
+      "state": "never"
+    },
+    {
+      "name": "list_teams",
+      "state": "never"
+    },
+    {
+      "name": "update_org",
+      "state": "never"
+    },
+    {
+      "name": "create_team",
+      "state": "never"
+    },
+    {
+      "name": "list_products",
+      "state": "never"
+    },
+    {
+      "name": "get_product",
+      "state": "never"
+    },
+    {
+      "name": "create_product",
+      "state": "never"
+    },
+    {
+      "name": "update_product",
+      "state": "never"
+    },
+    {
+      "name": "delete_product",
+      "state": "never"
+    },
+    {
+      "name": "list_projects",
+      "state": "always"
+    },
+    {
+      "name": "create_project",
+      "state": "never"
+    },
+    {
+      "name": "list_boards",
+      "state": "always"
+    },
+    {
+      "name": "get_board",
+      "state": "always"
+    },
+    {
+      "name": "create_board",
+      "state": "never"
+    },
+    {
+      "name": "list_tasks",
+      "state": "always"
+    },
+    {
+      "name": "create_task",
+      "state": "never"
+    },
+    {
+      "name": "update_task",
+      "state": "always"
+    },
+    {
+      "name": "attach_file",
+      "state": "always"
+    },
+    {
+      "name": "archive_task",
+      "state": "never"
+    },
+    {
+      "name": "delete_task",
+      "state": "never"
+    },
+    {
+      "name": "list_agents",
+      "state": "never"
+    },
+    {
+      "name": "create_agent",
+      "state": "never"
+    },
+    {
+      "name": "list_presets",
+      "state": "never"
+    },
+    {
+      "name": "apply_agent_preset",
+      "state": "never"
+    },
+    {
+      "name": "list_workforce_templates",
+      "state": "never"
+    },
+    {
+      "name": "propose_workforce_template",
+      "state": "never"
+    },
+    {
+      "name": "get_github_config",
+      "state": "never"
+    }
+  ],
+  "allowedBashPatterns": [],
+  "skills": [
+    "content-review"
+  ]
+}

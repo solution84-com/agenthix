@@ -9,6 +9,8 @@ const h = vi.hoisted(() => ({
   voiceStart: vi.fn(),
   choices: { data: undefined as unknown, error: null as { message: string } | null },
   securePage: true,
+  skillsAsked: [] as unknown[],
+  skills: { data: { skills: [] as unknown[] }, isLoading: false, error: undefined },
 }))
 // jsdom is not a secure page: it has no microphone, so each test says whether the page has one.
 vi.mock('../../../shared/securePage', async (importOriginal) => ({
@@ -18,8 +20,14 @@ vi.mock('../../../shared/securePage', async (importOriginal) => ({
 vi.mock('wasp/client/operations', () => ({
   startConversation: 'startConversation',
   getConversationAgentChoices: 'getConversationAgentChoices',
+  listConversationSkills: 'listConversationSkills',
+  listStartSkills: 'listStartSkills',
   useAction: () => h.start,
-  useQuery: () => h.choices,
+  useQuery: (op: string, args: unknown) => {
+    if (op !== 'listStartSkills') return h.choices
+    h.skillsAsked.push(args)
+    return h.skills
+  },
 }))
 vi.mock('../StartModelPicker', () => ({
   StartModelPicker: ({ picked, onPick }: { picked: string | null; onPick: (m: string) => void }) => (
@@ -60,6 +68,43 @@ beforeEach(() => {
   h.voiceStart.mockReset()
   h.choices.data = [kernel, writer]
   h.choices.error = null
+  h.skillsAsked = []
+  h.skills = { data: { skills: [{ name: 'org-code-review', title: 'Code review', description: 'Review a change', source: 'every-agent', sourceName: 'Fernhill', detail: 'fernhill/code-review 1.0.0' }] }, isLoading: false, error: undefined }
+})
+
+describe('the / picker in the box that starts a conversation (skills spec part 5)', () => {
+  it("lists the chosen agent's skills here, and sends the one picked beside the first message, never in its text", async () => {
+    renderBox()
+    const box = screen.getByLabelText('Ask your agent…') as HTMLTextAreaElement
+    fireEvent.change(box, { target: { value: '/' } })
+    expect(screen.getByRole('listbox', { name: 'Skills' }).textContent).toContain('Code review')
+    expect(h.skillsAsked.at(-1)).toEqual({ home: 'PERSON', agentId: 'k' })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    expect(screen.getByTestId('skill-chip').textContent).toContain('Code review')
+    expect(box.value).toBe('')
+    expect(h.start).not.toHaveBeenCalled()
+
+    fireEvent.change(box, { target: { value: 'Review the checkout change' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    await waitFor(() => expect(h.start).toHaveBeenCalled())
+    expect(h.start.mock.calls[0]![0]).toMatchObject({ text: 'Review the checkout change', skill: { name: 'org-code-review' } })
+  })
+
+  it('lets the picked skill go when another agent is chosen', () => {
+    renderBox()
+    const box = screen.getByLabelText('Ask your agent…') as HTMLTextAreaElement
+    fireEvent.change(box, { target: { value: '/' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    expect(screen.getByTestId('skill-chip')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'agent:Writer' }))
+    expect(screen.queryByTestId('skill-chip')).toBeNull()
+  })
+
+  it('opens for a / at the start only', () => {
+    renderBox()
+    fireEvent.change(screen.getByLabelText('Ask your agent…'), { target: { value: 'see src/' } })
+    expect(screen.queryByRole('listbox', { name: 'Skills' })).toBeNull()
+  })
 })
 afterEach(cleanup)
 

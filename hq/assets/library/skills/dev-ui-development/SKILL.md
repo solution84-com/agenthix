@@ -1,6 +1,8 @@
 ---
 name: UI Development
 description: Build components that follow the existing design system
+version: 2
+suitedTo: [developer, frontend, designer]
 ---
 
 # UI Development

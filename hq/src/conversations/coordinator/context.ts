@@ -14,6 +14,7 @@
  * disk; the lead, in hq, does not read them.
  */
 import { prisma } from 'wasp/server'
+import { pickedSkillOf } from '@agenthix/core'
 import type { LeadMessage, PromptPart } from '../contract'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { MESSAGE_PAGE_SIZE } from '../../shared/conversations/protocol'
@@ -32,7 +33,9 @@ import { readSegments } from '../long/segments'
 import { awaitingCardsWhere, type ClaimedTurn, type TurnConversation } from './claim'
 import { answerForLead, approvalForLead, resultForLead, wasCapped } from './cards'
 import { madeForLead } from './startedWords'
+import { pickedSkillNote } from '../work/pickedSkill'
 import { placesForLead, placesTurnBlock, type PlacesForLead } from '../lead/placesBlock'
+import { outcomeForLead } from '../../assets/proposals/types'
 
 export interface LeadContext {
   system: PromptPart[]
@@ -80,7 +83,10 @@ export function asLead(message: ConversationMessageView, self?: string): LeadMes
   if (message.queueState === 'CANCELLED' || unseenWithdrawn(message)) return null
   switch (message.kind) {
     case 'TEXT':
-      if (message.role === 'PERSON') return { role: 'user', content: message.body.text }
+      if (message.role === 'PERSON') {
+        const skill = pickedSkillOf(message.body.skill)
+        return { role: 'user', content: skill ? `${message.body.text}\n\n${pickedSkillNote(skill)}` : message.body.text }
+      }
       // A reply stopped or spoken over keeps only what was said: the lead is told it was cut there.
       if (message.interrupted) {
         const heard = message.body.text.trim()
@@ -101,6 +107,11 @@ export function asLead(message: ConversationMessageView, self?: string): LeadMes
       return { role: 'user', content: approvalForLead(message.body, self) }
     case 'APPROVAL_ANSWER':
       return { role: 'user', content: answerForLead(message.body) }
+    case 'ACTION': {
+      // A proposed skill's review, told on the next turn (skills spec part 5); every other action line is the lead's own.
+      const outcome = outcomeForLead(message.body)
+      return outcome ? { role: 'user', content: outcome } : null
+    }
     default:
       return null
   }

@@ -18,7 +18,7 @@ import { createHash } from 'node:crypto'
 import { prisma } from 'wasp/server'
 import { ORG_NOTIFICATION_TYPES as T } from './notificationKinds'
 import { clearPersistentNotification, syncPersistentNotifications, type PersistentNotice } from './persistent'
-import { SYSTEM_TEMPLATE_IDS } from '../library/systemTemplates'
+import { MADE_FROM_WORKFORCE_ASSEMBLY } from '../library/systemTemplates'
 import { Logger } from '../server/utils/logger'
 
 const logger = new Logger('AdminNotices')
@@ -110,7 +110,7 @@ export async function syncInvitationsNotice(admins?: string[]): Promise<void> {
 /** In place of the Organisation page's banner: one notice per proposal waiting for review. */
 export async function syncTeamProposalNotices(admins?: string[]): Promise<void> {
   const proposals = await prisma.task.findMany({
-    where: { column: 'in_review', board: { templateId: SYSTEM_TEMPLATE_IDS.WORKFORCE_ASSEMBLY } },
+    where: { column: 'in_review', board: MADE_FROM_WORKFORCE_ASSEMBLY },
     select: { id: true, title: true, applicationData: true },
     orderBy: { createdAt: 'asc' },
   })

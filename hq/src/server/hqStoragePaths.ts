@@ -69,15 +69,6 @@ export function getVoiceCacheDir(): string {
 }
 
 /**
- * Where an org's own board templates live, one JSON file per template id.
- * System templates ship read-only in hq's assets (hqAssets.ts) and never
- * reach here — only the `isSystem: false` branch does.
- */
-export function getBoardTemplatesDir(): string {
-  return path.join(getHqStorageRoot(), 'org', 'boards')
-}
-
-/**
  * Where an org library skill's source lives, keyed by its slug. Platform
  * skills ship read-only in hq's assets (hqAssets.ts) and never reach here.
  *

@@ -241,18 +241,18 @@ proposals; the two built-ins replace the copies, and new organisations stop rece
 **Starts when:** phase 3 is merged.
 **Execution plan:** none — lanes.
 
-- [ ] 4.1 `listConversationSkills`, and the `/` trigger on the `@` picker's hook
-- [ ] 4.2 The `skill` field on the message, validated by the site, invoked as an explicit instruction on both runtimes
-- [ ] 4.3 Typed `/` text escaped so the runtime never parses it as a command
-- [ ] 4.4 The run's record of skills used sent to hq; the `skill` work step with the person-facing name
-- [ ] 4.5 The used skill opened beside the thread at its version, with access checked at view time
-- [ ] 4.6 `propose_skill`: arguments, the on-behalf-of person, checks, a limit per run
-- [ ] 4.7 Routing: the person's own draft from their interactive conversation, otherwise a proposal to the aimed level
-- [ ] 4.8 The proposal and draft card in the conversation, and the outcome told to the agent
-- [ ] 4.9 Built-in `working-with-git`, staged only in a workspace with a repository, replacing the git guides kept in five places
-- [ ] 4.10 Built-in `skill-creator`, teaching instructions, skills and knowledge, replacing codify and propose
-- [ ] 4.11 The shelf of 17 with *suited to* hints; a new organisation installs none by itself
-- [ ] 4.12 Built-in switches for the organisation
+- [x] 4.1 `listConversationSkills`, and the `/` trigger on the `@` picker's hook
+- [x] 4.2 The `skill` field on the message, validated by the site, invoked as an explicit instruction on both runtimes
+- [x] 4.3 Typed `/` text escaped so the runtime never parses it as a command
+- [x] 4.4 The run's record of skills used sent to hq; the `skill` work step with the person-facing name
+- [x] 4.5 The used skill opened beside the thread at its version, with access checked at view time
+- [x] 4.6 `propose_skill`: arguments, the on-behalf-of person, checks, a limit per run
+- [x] 4.7 Routing: the person's own draft from their interactive conversation, otherwise a proposal to the aimed level
+- [x] 4.8 The proposal and draft card in the conversation, and the outcome told to the agent
+- [x] 4.9 Built-in `working-with-git`, staged only in a workspace with a repository, replacing the git guides kept in five places
+- [x] 4.10 Built-in `skill-creator`, teaching instructions, skills and knowledge, replacing codify and propose
+- [x] 4.11 The shelf of 17 with *suited to* hints; a new organisation installs none by itself
+- [x] 4.12 Built-in switches for the organisation
 
 ### Phase 5 — Templates on the same layer
 **Delivers:** agent, board and team templates are assets like skills, carry their skills built from one source, and
@@ -260,13 +260,13 @@ de-duplicate them on install.
 **Starts when:** phase 2 is merged; can overlap phase 4 once phase 3 is merged.
 **Execution plan:** none — lanes.
 
-- [ ] 5.1 Agent, board and team templates installed, versioned and checked through the asset layer
-- [ ] 5.2 Agenthix's build copies each shared skill into the templates that use it, from one source
-- [ ] 5.3 The 26 hand-kept copies removed from the team templates
-- [ ] 5.4 Installing a template de-duplicates its skills by identity
-- [ ] 5.5 What a template makes keeps a read-only "made from version" link
-- [ ] 5.6 Kernel's three skills inside Kernel's template, never offered
-- [ ] 5.7 Importing and exporting agents and templates through the asset layer, with dependencies inside
+- [x] 5.1 Agent, board and team templates installed, versioned and checked through the asset layer
+- [x] 5.2 Agenthix's build copies each shared skill into the templates that use it, from one source
+- [x] 5.3 The 26 hand-kept copies removed from the team templates
+- [x] 5.4 Installing a template de-duplicates its skills by identity
+- [x] 5.5 What a template makes keeps a read-only "made from version" link
+- [x] 5.6 Kernel's three skills inside Kernel's template, never offered
+- [x] 5.7 Importing and exporting agents and templates through the asset layer, with dependencies inside
 
 ### Phase 6 — The screens
 **Delivers:** everything people meet, as drawn on the UI boards.
@@ -279,7 +279,7 @@ de-duplicate them on install.
 - [ ] 6.4 Add: the shelf, upload, a link, new skill, and the four install dialogs with the unsigned tick
 - [ ] 6.5 A diff renderer behind the file frame's boundary, in one column
 - [ ] 6.6 CodeMirror 6 in `ui/`
-- [ ] 6.7 The editor: the tree with change markers, View, Edit and Changes, checks, ask an agent, publish; the old screen's direct save and delete (`updateLibrarySkill`, `deleteLibrarySkill`, `publishMadeHereEdit`) removed
+- [ ] 6.7 The editor: the tree with change markers, View, Edit and Changes, checks, ask an agent, publish; the old screen's direct save and delete (`updateLibrarySkill`, `deleteLibrarySkill`, `publishMadeHereEdit`) and its writes into the org package's `skills/` removed
 - [ ] 6.8 Update, change of publisher, roll back and own copy screens
 - [ ] 6.9 A project's Skills page: groups, versions, switches, defaults, add to this place, the private group
 - [ ] 6.10 Your space's Skills page and the person's skills that follow them

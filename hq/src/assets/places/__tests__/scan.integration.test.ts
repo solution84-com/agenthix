@@ -45,6 +45,15 @@ describe('recording what a scan of a place found', () => {
     expect(gone.map(r => r.path)).toEqual(['.agents/agents/ada/skills/mine', '.agents/skills/a'])
   })
 
+  it("keeps the front matter's name and description the scan read, bounded and as plain text", async () => {
+    const [row] = await recordScan(place, {
+      skills: [found('review', '1'.repeat(64), { name: 'Code\u0007 Review', description: `${'d'.repeat(2000)}` })], problems: [], truncated: false,
+    })
+    expect(row).toMatchObject({ name: 'Code Review', description: 'd'.repeat(1024) })
+    const [again] = await recordScan(place, { skills: [found('review', '2'.repeat(64), { name: 'Review', description: 'Short.' })], problems: [], truncated: false })
+    expect(again).toMatchObject({ name: 'Review', description: 'Short.' })
+  })
+
   it('records no row for a finding whose path or workspace folder is unsafe', async () => {
     const rows = await recordScan(place, {
       skills: [

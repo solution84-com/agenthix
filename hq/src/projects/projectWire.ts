@@ -22,7 +22,7 @@ export function projectFields(p: Project): ProjectFields {
 
 export function boardFields(b: Board): BoardFields {
   return {
-    id: b.id, name: b.name, projectId: b.projectId, kind: b.kind, templateId: b.templateId,
+    id: b.id, name: b.name, projectId: b.projectId, kind: b.kind, templateId: b.madeFromVersionId,
     columns: wireColumns(b.columns), archivedAt: b.archivedAt, createdAt: b.createdAt, updatedAt: b.updatedAt,
   }
 }

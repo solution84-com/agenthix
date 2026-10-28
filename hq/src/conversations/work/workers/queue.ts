@@ -7,6 +7,7 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import type { Agent, Prisma } from '@prisma/client'
+import { pickedSkillOf, type PickedSkill } from '@agenthix/core'
 import * as dispatchService from '../../../agents/dispatchService'
 import * as siteRuntimeStore from '../../../sessions/siteRuntimeStore'
 import { chooseBoundaryRun } from '../../../agents/runModel'
@@ -76,6 +77,10 @@ async function briefInput(op: { brief: string | null; authorisedById: string; bo
   return withOpening(openText(op.brief ?? ''), opening)
 }
 
+function pickedSkillOfArgs(args: string | null): PickedSkill | null {
+  return args ? pickedSkillOf(openJson<WorkerArgs>(args).skill) : null
+}
+
 type ChoiceOp = { boundaryType: string | null; boundaryId: string | null; authorisedById: string; args?: string | null }
 
 /** The model a brief runs on and the runtime that can be given it: work's, in its boundary, for its person. */
@@ -112,9 +117,12 @@ export async function dispatchAccepted(operationId: string, input: RunInput = {}
     if (model && session.model !== model) await prisma.agentSession.update({ where: { id: session.id }, data: { model } })
     const siteId = await dispatchService.resolveSiteIdForSession(session)
     const text = input.text ?? await briefInput(op, agent.name, boundaryName)
+    // The picked skill goes with the brief itself, never with a run that carries it on (an approval's).
+    const skill = input.text === undefined ? pickedSkillOfArgs(op.args) : null
     const { runId } = await dispatchService.dispatchChatRun(session.id, text, agent, model, {
       hideUserMessage: input.hidden ?? false,
       senderId: input.senderId ?? op.authorisedById,
+      ...(skill ? { skill } : {}),
     })
     await recordRun(op.id, siteId, runId)
     return true

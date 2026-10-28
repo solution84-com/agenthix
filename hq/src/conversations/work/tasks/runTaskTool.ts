@@ -15,6 +15,7 @@ import { refusedBy, taskToolRefusal } from './gate'
 import { taskIdFor } from '../../../server/controlplane/taskKey'
 import { pendingWithKey } from './taskOperations'
 import { queueAsPerson, startTaskOperation } from './startRun'
+import { pickedSkillOfTurn } from '../pickedSkill'
 
 const logger = new Logger('ConversationTasks')
 
@@ -72,6 +73,7 @@ export async function runTaskCall(capability: TurnCapability, raw: unknown): Pro
     idempotencyKey: key,
     continuation: continuationFor(capability, then),
     brief,
+    skill: brief ? await pickedSkillOfTurn(capability.turnId) : null,
   })
 }
 

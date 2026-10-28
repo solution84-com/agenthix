@@ -30,7 +30,7 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import type { Agent } from '@prisma/client'
-import type { RunDispatchPayload, RunStartedBy } from '@agenthix/core'
+import type { PickedSkill, RunDispatchPayload, RunStartedBy } from '@agenthix/core'
 import { Logger } from '../server/utils/logger'
 import { resolvePrimaryLocation } from '../storage/primaryLocationService'
 import type { LocationRef } from '@agenthix/core'
@@ -44,7 +44,7 @@ import { runBoundary } from './overrides/agentOverrideService'
 import { chooseBoundaryRun, chooseKeptSessionRun } from './runModel'
 import { buildContext, grantTargetOf } from './runContext'
 import { runLimitsFor } from './runLimits/runLimitsService'
-import { briefForTaskRun, withBrief } from '../conversations/taskThread/brief'
+import { askForTaskRun, withBrief } from '../conversations/taskThread/brief'
 import { personMayWorkInProject, OnBehalfOfLostAccessError } from '../projects/taskOnBehalfOf'
 import { placeStorageOf } from '../projects/personalProject'
 import { taskCommentsForRun } from './taskCommentsForRun'
@@ -75,7 +75,7 @@ export async function dispatchChatRun(
   inputText: string,
   agent: Agent,
   sessionModel?: string | null,
-  opts?: { hideUserMessage?: boolean; senderId?: string },
+  opts?: { hideUserMessage?: boolean; senderId?: string; skill?: PickedSkill },
 ): Promise<{ runId: string }> {
   const session = await prisma.agentSession.findUnique({ where: { id: sessionId } })
   if (!session) throw new Error(`DispatchService: session ${sessionId} not found`)
@@ -135,6 +135,7 @@ export async function dispatchChatRun(
     capabilityJwt,
     session: toSeed(session),
     inputText,
+    ...(opts?.skill ? { skill: opts.skill } : {}),
     model: choice.model || sessionModel || '',
     hideUserMessage: opts?.hideUserMessage ?? false,
     context,
@@ -323,13 +324,15 @@ export async function dispatchTaskRun(
   )
   const { token: capabilityJwt } = await signCapability(claims)
 
+  const ask = startedBy === 'person' ? await askForTaskRun(taskId) : null
   const payload: RunDispatchPayload = {
     kind: 'task',
     startedBy,
     capabilityJwt,
     session: toSeed(agentSession),
     // A run asked for in the task's thread carries the person's ask as its brief.
-    inputText: paused ? TASK_CONTINUE_MESSAGE : withBrief(TASK_INPUT_MESSAGE, startedBy === 'person' ? await briefForTaskRun(taskId) : null),
+    inputText: paused ? TASK_CONTINUE_MESSAGE : withBrief(TASK_INPUT_MESSAGE, ask?.brief ?? null),
+    ...(ask?.skill && !paused ? { skill: ask.skill } : {}),
     model: choice.model || agentSession.model || '',
     hideUserMessage: false,
     context,

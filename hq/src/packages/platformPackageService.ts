@@ -1,13 +1,12 @@
-/** The platform's built-in skills (ruling P12), written from hq's own image whenever they change. */
-import path from 'node:path'
+/**
+ * The platform package every run loads (ruling P12). It no longer carries the built-in skills: hq installs those as
+ * `agenthix/<name>` assets and gives each run the ones that apply to it (`assets/builtins/`, adr-0156), so a skill
+ * switched off or meant only for a repository is never staged by this package. The package itself stays, empty, for
+ * sites that expect one.
+ */
 import { PLATFORM_PACKAGE_KEY } from '@agenthix/core'
-import { assertAssetDir, getHqAssetsRoot } from '../server/hqAssets'
 import { writePackage, type WriteResult } from './packageStore'
-import { readSkillTree, SKILLS_DIR } from './skillFiles'
 
 export async function writePlatformPackage(): Promise<WriteResult> {
-  const dir = path.join(getHqAssetsRoot(), 'platform', 'skills')
-  await assertAssetDir(dir)
-  const files = await readSkillTree(dir, SKILLS_DIR)
-  return writePackage({ kind: 'platform', key: PLATFORM_PACKAGE_KEY, files, updatedById: null })
+  return writePackage({ kind: 'platform', key: PLATFORM_PACKAGE_KEY, files: [], updatedById: null })
 }

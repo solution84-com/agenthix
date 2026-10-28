@@ -1,0 +1,42 @@
+{
+  "name": "Sprint Board",
+  "description": "Scrum-style board for time-boxed development sprints.",
+  "columns": [
+    {
+      "name": "todo",
+      "label": "To Do",
+      "status": "TODO",
+      "color": "#6b7280",
+      "order": 0,
+      "description": "Tasks accepted into this sprint but not yet started.",
+      "hint": "Move here when a task is committed to the sprint scope and ready to be picked up."
+    },
+    {
+      "name": "in_progress",
+      "label": "In Progress",
+      "status": "IN_PROGRESS",
+      "color": "#f59e0b",
+      "order": 1,
+      "description": "Tasks actively being implemented.",
+      "hint": "Move here when you begin work on the task."
+    },
+    {
+      "name": "in_review",
+      "label": "In Review",
+      "status": "IN_PROGRESS",
+      "color": "#8b5cf6",
+      "order": 2,
+      "description": "Implementation complete, awaiting code review or QA.",
+      "hint": "Move here when your implementation is done and needs human review or testing."
+    },
+    {
+      "name": "done",
+      "label": "Done",
+      "status": "DONE",
+      "color": "#10b981",
+      "order": 3,
+      "description": "Reviewed, approved, and merged.",
+      "hint": "Move here after review passes and the work is merged or deployed."
+    }
+  ]
+}

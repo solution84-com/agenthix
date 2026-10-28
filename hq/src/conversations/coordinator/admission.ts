@@ -14,6 +14,7 @@ import { appendMessageIn } from '../store/messages'
 import { conversationEvents } from './events'
 import { scheduleConversation, stopRunningTurn } from './scheduler'
 import { voiceSession } from '../voice/registry'
+import { requirePickedSkill } from '../work/pickedSkill'
 
 /** The longest client message id taken: a UUID, with room to spare (as startConversation.ts). */
 const CLIENT_ID_MAX = 100
@@ -32,6 +33,7 @@ function requireMessage(args: SendConversationMessageArgs): { text: string; clie
 export async function admitMessage(args: SendConversationMessageArgs, userId: string): Promise<SendConversationMessageResult> {
   const ref = await requireConversationSpeaker(args?.conversationId, userId)
   const { text, clientMessageId } = requireMessage(args)
+  const skill = requirePickedSkill(args?.skill)
 
   const { message, duplicate } = await prisma.$transaction(async (tx) => {
     // Under the row lock the claim also takes: a turn either holds the conversation now or it does not.
@@ -42,7 +44,7 @@ export async function admitMessage(args: SendConversationMessageArgs, userId: st
       conversationId: ref.id,
       role: 'PERSON',
       kind: 'TEXT',
-      body: { text },
+      body: { text, ...(skill && { skill }) },
       authorId: userId,
       clientMessageId,
       queueState: busy ? 'WAITING' : null,

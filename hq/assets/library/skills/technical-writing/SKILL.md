@@ -1,6 +1,8 @@
 ---
 name: Technical Writing
 description: Write changelogs, API docs, and internal guides in plain language
+version: 2
+suitedTo: [technical-writer, developer]
 ---
 
 # Technical Writing

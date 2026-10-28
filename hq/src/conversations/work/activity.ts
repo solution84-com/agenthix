@@ -25,6 +25,8 @@ import { toMessageView } from '../store/messages'
 import { orderActivity, runHrefOf, taskWaitingLine, toActivityView, type ActivityRow } from './activityLines'
 import { contextUseByOperation } from './activityContext'
 import { mayAdministerPlace, type WorkflowPlace } from '../../workflows/placeAccess'
+import { usedSkillSteps } from '../../assets/conversation/usedSkillView'
+import { isProjectMember } from '../../projects/membership'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -139,7 +141,7 @@ export const getConversationActivity = async (args: GetConversationActivityArgs,
 const SITE_PROBLEM = "The place this ran is not reachable now, so its work can't be shown. The result above is kept."
 
 /** The run's work as the run screen draws it, from its site; null with a plain problem line when it cannot be read. */
-async function runWork(siteId: string, runId: string): Promise<Pick<OperationResultView, 'work' | 'problem' | 'runUrl'>> {
+async function runWork(siteId: string, runId: string, viewerId: string): Promise<Pick<OperationResultView, 'work' | 'problem' | 'runUrl'>> {
   try {
     const run = await siteRuntimeStore.getRun(siteId, runId)
     if (!run) return { work: null, problem: 'This run is no longer on its site, so its work cannot be shown.', runUrl: null }
@@ -147,7 +149,7 @@ async function runWork(siteId: string, runId: string): Promise<Pick<OperationRes
     const mine = rows.filter((r) => r.runId === runId)
     const line = workLine(mine as TranscriptRow[], { startedAt: run.startedAt, endedAt: run.endedAt })
     return {
-      work: { steps: line.steps.map((s) => ({ text: [s.verb, s.text].filter(Boolean).join(' ') })), summary: line.summary },
+      work: { steps: await usedSkillSteps({ db: prisma, sees: isProjectMember }, viewerId, line.steps, run.skillsUsed), summary: line.summary },
       problem: null,
       runUrl: `/runs/${runId}?session=${run.sessionId}`,
     }
@@ -165,7 +167,7 @@ export const getOperationResult = async (args: GetOperationResultArgs, context: 
 
   const result = row.resultSummary ? openJson<OperationResult>(row.resultSummary) : null
   const runId = result?.runId ?? row.runId
-  const detail = row.siteId && runId ? await runWork(row.siteId, runId) : { work: null, problem: null, runUrl: null }
+  const detail = row.siteId && runId ? await runWork(row.siteId, runId, userId) : { work: null, problem: null, runUrl: null }
   return {
     title: openText(row.title),
     state: row.state,

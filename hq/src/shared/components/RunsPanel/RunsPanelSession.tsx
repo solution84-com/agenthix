@@ -112,7 +112,7 @@ export function RunsPanelSession({ sessionId }: { sessionId: string }) {
           agentName={agentName}
           avatarUrl={avatarUrl}
           renderMarkdown={p => <MarkdownMessage content={p.content} className={p.className} />}
-          actions={{ onOpenRun: links.onOpenRun, onOpenTarget: links.onOpenTarget, canOpenTarget: links.canOpenTarget }}
+          actions={{ onOpenRun: links.onOpenRun, onOpenTarget: links.onOpenTarget, canOpenTarget: links.canOpenTarget, skillLabel: links.skillLabel }}
           emptyState={
             <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
               <AgentAvatar name={agentName} avatarUrl={avatarUrl} size="sm" />

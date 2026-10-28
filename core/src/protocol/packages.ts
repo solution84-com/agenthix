@@ -139,6 +139,18 @@ export const MAX_SKILL_SLUG_LENGTH = MAX_SKILL_NAME_LENGTH - Math.max(
 
 const SKILL_SLUG = /^[a-z0-9][a-z0-9-]*$/
 
+/**
+ * The skill a person picked with `/`, read off an untrusted value (a client's argument, a stored message, a dispatch):
+ * `{ name }` with a name a run could stage a skill under, or null. Only its shape: whether a skill of that name is
+ * staged for the turn is the site's to decide.
+ */
+export function pickedSkillOf(value: unknown): { name: string } | null {
+  if (!value || typeof value !== 'object') return null
+  const name = (value as { name?: unknown }).name
+  if (typeof name !== 'string' || name.length > MAX_SKILL_NAME_LENGTH || !SKILL_SLUG.test(name)) return null
+  return { name }
+}
+
 function boundedSkillName(prefix: string, slug: string): string | null {
   if (slug.length > MAX_SKILL_SLUG_LENGTH || !SKILL_SLUG.test(slug)) return null
   return `${prefix}-${slug}`

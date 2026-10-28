@@ -29,8 +29,9 @@ import * as dispatch from '../../../../test/fakes/dispatchService'
 import * as siteStore from '../../../../test/fakes/siteRuntimeStore'
 import { SiteUnreachableError } from '../../../../storage/workspaceStore'
 import { mailbox } from '../../../coordinator/mailbox'
+import { sealJson } from '../../../sealing'
 import { createStartWorkTool } from '../startWork'
-import { pump } from '../queue'
+import { dispatchAccepted, pump } from '../queue'
 import { handleWorkerRunStatus } from '../runEvents'
 import { NEVER_ABORTED, briefOf, world, type World } from './workerFixtures'
 
@@ -78,6 +79,19 @@ describe("one standing worker's briefs @SC-960", () => {
     expect(briefOf(input)).toBe('Check the README')
     expect(agent.id).toBe(w.agent.id)
     expect(opts).toEqual({ hideUserMessage: false, senderId: w.person.id })
+  })
+
+  it('run with the skill the person picked for the message it answers, and an approval\'s run without it', async () => {
+    await prisma.conversationMessage.create({
+      data: { conversationId: w.conversation.id, seq: 1, role: 'PERSON', kind: 'TEXT', body: sealJson({ text: 'review', skill: { name: 'org-code-review' } }), authorId: w.person.id, turnId: w.capability.turnId },
+    })
+    const op = await brief('Review the change')
+    await pump(op.workerSessionId!)
+    expect(dispatch.dispatchChatRun.mock.calls[0][4]).toEqual({ hideUserMessage: false, senderId: w.person.id, skill: { name: 'org-code-review' } })
+
+    await prisma.operation.update({ where: { id: op.id }, data: { state: 'ACCEPTED' } })
+    await dispatchAccepted(op.id, { text: 'Carry on.', hidden: true })
+    expect(dispatch.dispatchChatRun.mock.calls[1][4]).toEqual({ hideUserMessage: true, senderId: w.person.id })
   })
 
   it("run on the agent's default worker model, else the organisation's, whatever effort the brief names @SC-955", async () => {

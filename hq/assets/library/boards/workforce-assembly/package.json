@@ -1,0 +1,8 @@
+{
+  "format": 2,
+  "kind": "board",
+  "publisher": "agenthix",
+  "name": "workforce-assembly",
+  "version": "1.0.0",
+  "description": "Track the creation of agents, teams, and projects when building out an agent workforce."
+}

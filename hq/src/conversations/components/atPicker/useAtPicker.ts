@@ -1,19 +1,27 @@
 import { useCallback, useEffect, useId, useState, type KeyboardEvent, type RefObject } from 'react'
 import type { MessageFieldHandle } from '../MessageField'
-import { atQueryAt, type PickerItem } from './atQuery'
+import { atQueryAt, type AtQuery, type PickerItem } from './atQuery'
 
 /**
  * The `@` picker's state in the message box: open while the caret ends an `@…` and Escape hasn't closed it, the item
  * the keys are on, and what choosing does. The field keeps the focus throughout; the keys reach the picker through it.
+ * The `/` skill picker is the same with its own trigger (`queryAt`) and its own choice (`onChoose`).
  */
-export function useAtPicker({ enabled, field }: { enabled: boolean; field: RefObject<MessageFieldHandle | null> }) {
+export function useAtPicker({ enabled, field, queryAt = atQueryAt, onChoose }: {
+  enabled: boolean
+  /** The message field, which the default choice writes its chip into; not needed with `onChoose`. */
+  field?: RefObject<MessageFieldHandle | null>
+  queryAt?: (text: string, caret: number | null) => AtQuery | null
+  /** What choosing does; by default the item's reference replaces the typed text as a chip. */
+  onChoose?: (item: PickerItem, query: AtQuery) => void
+}) {
   const listId = useId()
   const [at, setAt] = useState<{ text: string; caret: number | null }>({ text: '', caret: null })
   const [dismissed, setDismissed] = useState<number | null>(null)
   const [items, setItems] = useState<PickerItem[]>([])
   const [active, setActive] = useState(0)
 
-  const query = enabled ? atQueryAt(at.text, at.caret) : null
+  const query = enabled ? queryAt(at.text, at.caret) : null
   const open = query !== null && query.start !== dismissed
 
   useEffect(() => { setActive(0) }, [query?.start, query?.fragment])
@@ -25,10 +33,11 @@ export function useAtPicker({ enabled, field }: { enabled: boolean; field: RefOb
 
   const choose = (item: PickerItem) => {
     if (!query) return
-    field.current?.mentionAt(query.start, query.end, item.reference)
+    if (onChoose) onChoose(item, query)
+    else field?.current?.mentionAt(query.start, query.end, item.reference)
   }
 
-  const onKeyFirst = (e: KeyboardEvent<HTMLDivElement>): boolean => {
+  const onKeyFirst = (e: KeyboardEvent<HTMLElement>): boolean => {
     if (!open || !query) return false
     const n = items.length
     switch (e.key) {

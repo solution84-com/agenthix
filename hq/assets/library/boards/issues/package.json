@@ -1,0 +1,8 @@
+{
+  "format": 2,
+  "kind": "board",
+  "publisher": "agenthix",
+  "name": "issues",
+  "version": "1.0.0",
+  "description": "Track bugs, feature requests, and support issues through to resolution."
+}

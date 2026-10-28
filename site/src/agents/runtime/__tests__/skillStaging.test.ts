@@ -58,6 +58,20 @@ async function delivered(key: string, files: Record<string, string>) {
 }
 
 describe('staging what hq named', () => {
+  it("marks a skill that sets user-invocable: false as one a person can't pick", async () => {
+    await writeTree(path.join(platformDir, 'skills', 'plan'), { 'SKILL.md': MD })
+    await writeTree(path.join(platformDir, 'skills', 'quiet'), { 'SKILL.md': '---\nname: quiet\ndescription: x\nuser-invocable: false\n---\nBody\n' })
+    const result = await stageSkills(platformDir, null, dest)
+    expect(result.staged.map(s => [s.name, s.userInvocable])).toEqual([['platform-plan', true], ['platform-quiet', false]])
+  })
+
+  it('marks a skill that sets disable-model-invocation: true as one the model may not load itself', async () => {
+    await writeTree(path.join(platformDir, 'skills', 'plan'), { 'SKILL.md': MD })
+    await writeTree(path.join(platformDir, 'skills', 'by-hand'), { 'SKILL.md': '---\nname: by-hand\ndescription: x\ndisable-model-invocation: true\n---\nBody\n' })
+    const result = await stageSkills(platformDir, null, dest)
+    expect(result.staged.map(s => [s.name, s.userInvocable, s.modelInvocable])).toEqual([['platform-by-hand', true, false], ['platform-plan', true, true]])
+  })
+
   it('stages only the platform package when the dispatch names nothing', async () => {
     await writeTree(path.join(platformDir, 'skills', 'plan'), { 'SKILL.md': MD })
     const result = await stageSkills(platformDir, null, dest)
@@ -71,7 +85,7 @@ describe('staging what hq named', () => {
     const result = await stageSkills(platformDir, inputs({
       installed: [{ identity: 'fernhill/review', version: '1.2.0', digest: ref.digest, level: 'org', ref }],
     }), dest)
-    expect(result.staged).toEqual([{ source: 'org', slug: 'review', name: 'org-review', fingerprint: ref.digest, identity: 'fernhill/review', version: '1.2.0' }])
+    expect(result.staged).toEqual([{ source: 'org', slug: 'review', name: 'org-review', fingerprint: ref.digest, userInvocable: true, modelInvocable: true, identity: 'fernhill/review', version: '1.2.0' }])
     expect((await fs.readdir(path.join(dest, 'org-review'))).sort()).toEqual(['SKILL.md', 'scripts'])
   })
 
@@ -93,7 +107,7 @@ describe('staging what hq named', () => {
   it("stages the person's own skill under person-, marked as theirs", async () => {
     const ref = await delivered('pv1', { 'SKILL.md': MD })
     const result = await stageSkills(platformDir, inputs({ person: [{ identity: 'u1/notes', version: '1.0.0', digest: ref.digest, ref }] }), dest)
-    expect(result.staged).toEqual([{ source: 'person', slug: 'notes', name: 'person-notes', fingerprint: ref.digest, identity: 'u1/notes', version: '1.0.0', personId: 'u1' }])
+    expect(result.staged).toEqual([{ source: 'person', slug: 'notes', name: 'person-notes', fingerprint: ref.digest, userInvocable: true, modelInvocable: true, identity: 'u1/notes', version: '1.0.0', personId: 'u1' }])
   })
 })
 
@@ -103,8 +117,8 @@ describe('skills in files (security review H3)', () => {
     const own = await placeSkill('.agents/agents/agent-1/skills/deploy', { 'SKILL.md': MD }, 'agent')
     const result = await stageSkills(platformDir, inputs({ files: [shared, own] }), dest)
     expect(result.staged).toEqual([
-      { source: 'shared', slug: 'review', name: 'shared-review', fingerprint: shared.fingerprint, placeId: 'p1', path: '.agents/skills/review' },
-      { source: 'boundary', slug: 'deploy', name: 'boundary-deploy', fingerprint: own.fingerprint, placeId: 'p1', path: '.agents/agents/agent-1/skills/deploy' },
+      { source: 'shared', slug: 'review', name: 'shared-review', fingerprint: shared.fingerprint, userInvocable: true, modelInvocable: true, placeId: 'p1', path: '.agents/skills/review' },
+      { source: 'boundary', slug: 'deploy', name: 'boundary-deploy', fingerprint: own.fingerprint, userInvocable: true, modelInvocable: true, placeId: 'p1', path: '.agents/agents/agent-1/skills/deploy' },
     ])
     expect(await fs.readFile(path.join(dest, 'shared-review', 'notes.md'), 'utf-8')).toBe('n')
   })

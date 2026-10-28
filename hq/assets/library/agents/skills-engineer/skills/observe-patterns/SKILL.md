@@ -42,7 +42,7 @@ For each candidate, check whether the owning agent already has a skill covering 
 
 If a matching skill exists and it matches what was observed: discard the candidate.
 If a matching skill exists but diverges from what was observed: flag it as a staleness issue for `audit-skills`.
-If no matching skill exists: keep the candidate and proceed to `propose-skill`.
+If no matching skill exists: keep the candidate, confirm it with the user, and propose it as the built-in `skill-creator` skill says.
 
 ## Step 4: Rank Candidates
 

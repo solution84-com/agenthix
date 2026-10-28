@@ -19,7 +19,7 @@ export function AddAgentDialog({ templateId, onClose }: { templateId: string | n
     if (!template) return
     setBusy(true)
     setError('')
-    try { setMade((await apply({ slug: template.slug, handle: handle.trim() })).handle) } catch (err) { setError(err instanceof Error ? err.message : 'Could not add the agent') } finally { setBusy(false) }
+    try { setMade((await apply({ id: template.id, handle: handle.trim() })).handle) } catch (err) { setError(err instanceof Error ? err.message : 'Could not add the agent') } finally { setBusy(false) }
   }
 
   return (

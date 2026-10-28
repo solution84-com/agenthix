@@ -1,0 +1,8 @@
+{
+  "format": 2,
+  "kind": "board",
+  "publisher": "agenthix",
+  "name": "kanban",
+  "version": "1.0.0",
+  "description": "Simple general-purpose board for continuous flow work."
+}

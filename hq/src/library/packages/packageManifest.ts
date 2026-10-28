@@ -76,25 +76,3 @@ export function parseManifest(raw: unknown): PackageManifest {
     publisher: publisher === '' ? null : publisher,
   }
 }
-
-/** A library row's source as shown: anything shipped with hq is Built in, whatever its column says. */
-export function effectiveSource(row: { source: LibrarySource; isSystem?: boolean; scope?: string }): LibrarySource {
-  return row.isSystem || row.scope === 'PLATFORM' ? 'BUILT_IN' : row.source
-}
-
-export function manifestSource(source: LibrarySource): PackageSource {
-  return source === 'BUILT_IN' ? 'built_in' : source === 'MARKETPLACE' ? 'marketplace' : 'made_here'
-}
-
-/**
- * What an imported package becomes here. Built in means shipped with this hq,
- * which an upload never is: an item another hq built in arrives as one made
- * by its publisher. A marketplace item stays one.
- */
-export function importedSource(source: PackageSource): LibrarySource {
-  return source === 'marketplace' ? 'MARKETPLACE' : 'MADE_HERE'
-}
-
-export function publisherOf(row: { source: LibrarySource; publisher: string | null; isSystem?: boolean; scope?: string }): string | null {
-  return row.publisher ?? (effectiveSource(row) === 'BUILT_IN' ? BUILT_IN_PUBLISHER : null)
-}

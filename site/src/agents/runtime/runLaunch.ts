@@ -367,6 +367,7 @@ export async function assembleRunLaunch(
     isNewSession: priorEntryCount === 0,
     prompt: run.inputText,
     summarise: options.summarise,
+    ...(options.pickedSkill ? { pickedSkill: options.pickedSkill } : {}),
     agent: {
       id: agent.id,
       handle: agent.handle,

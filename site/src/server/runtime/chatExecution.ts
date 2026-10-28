@@ -10,7 +10,7 @@
  * shared with taskExecution.ts — see deferredManifestReport.ts.
  */
 import { prisma } from '#db'
-import { SUMMARISE_NOW_INPUT, type RunDispatchPayload } from '@agenthix/core'
+import { SUMMARISE_NOW_INPUT, pickedSkillOf, type RunDispatchPayload } from '@agenthix/core'
 import type { DeferredManifest } from '../../agents/runtime/types'
 import { agentEngine } from '../../agents/runtime/AgentEngine'
 import { buildApprovedManifest } from '../../agents/runtime/manifestParser'
@@ -33,6 +33,7 @@ export async function runChat(payload: RunDispatchPayload): Promise<string> {
   const agent = context.agent
   // Summarise now: a hidden message asking the runtime to summarise its memory (core's SUMMARISE_NOW_INPUT).
   const summarise = hideUserMessage && inputText === SUMMARISE_NOW_INPUT
+  const pickedSkill = pickedSkillOf(payload.skill)?.name
 
   /**
    * The person's message, written once its run exists so it names that run —
@@ -101,7 +102,7 @@ export async function runChat(payload: RunDispatchPayload): Promise<string> {
     logger.info(`bypassed run ${run.id} (session: ${session.id})`)
     const sessionTitle = await recordMessage(run.id)
     void agentEngine
-      .run(run.id, { queued: true, chatContext, dispatchContext: context, capabilityJwt, sessionTitle, runLimits, startedBy, summarise })
+      .run(run.id, { queued: true, chatContext, dispatchContext: context, capabilityJwt, sessionTitle, runLimits, startedBy, summarise, pickedSkill })
       .catch(err => logger.error(`bypassed run ${run.id} failed:`, err))
     return run.id
   }
@@ -137,7 +138,7 @@ export async function runChat(payload: RunDispatchPayload): Promise<string> {
   const sessionTitle = await recordMessage(run.id)
 
   void agentEngine
-    .run(run.id, { queued: true, chatContext, deferredManifest, dispatchContext: context, capabilityJwt, sessionTitle, runLimits, startedBy, summarise })
+    .run(run.id, { queued: true, chatContext, deferredManifest, dispatchContext: context, capabilityJwt, sessionTitle, runLimits, startedBy, summarise, pickedSkill })
     .then(outcome =>
       reportDeferredManifestIfAny({
         runId: run.id,

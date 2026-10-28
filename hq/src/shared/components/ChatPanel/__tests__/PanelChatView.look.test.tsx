@@ -18,6 +18,8 @@ const h = vi.hoisted(() => ({
   getProject: vi.fn(),
   navigate: vi.fn(),
 }))
+// A used skill's line is hq's to give (useSessionSkillLines.test.ts); none here.
+vi.mock('../useSessionSkillLines', () => ({ useSessionSkillLines: () => () => null }))
 vi.mock('wasp/client/operations', () => ({
   useQuery: vi.fn(),
   useAction: () => vi.fn(),

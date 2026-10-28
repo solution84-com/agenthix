@@ -65,6 +65,11 @@ export type RunContext = {
   prompt: string           // the user message or task description
   /** The turn asks the runtime to summarise its memory of the conversation (Summarise now), and says nothing else. */
   summarise?: boolean
+  /**
+   * The skill the person picked with `/`, by staged name, as hq sent it. Each runtime keeps it only when it names a
+   * skill staged for the turn that a person may invoke (pickedSkill.ts), and then tells the agent to load it.
+   */
+  pickedSkill?: string
   agent: {
     id: string
     handle: string
@@ -268,6 +273,8 @@ export interface RunOptions {
   startedBy?: RunStartedBy
   /** A Summarise now run (`SUMMARISE_NOW_INPUT`): the runtime summarises its memory, and no reply is expected. */
   summarise?: boolean
+  /** The skill the person picked with `/` for this message, by staged name, as hq sent it: not yet checked. */
+  pickedSkill?: string
 }
 
 /**

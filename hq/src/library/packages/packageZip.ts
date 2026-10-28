@@ -174,11 +174,12 @@ export async function readPackageZip(buffer: Buffer): Promise<ReadPackage> {
 }
 
 /** `manifest` is a format 1 manifest for a template, or an asset's format 2 manifest. */
-export async function writePackageZip(root: string, manifest: PackageManifest | object, files: PackageFile[]): Promise<Buffer> {
+/** `manifest` null: the files already hold it, byte for byte, so the package's fingerprint is unchanged. */
+export async function writePackageZip(root: string, manifest: PackageManifest | object | null, files: PackageFile[]): Promise<Buffer> {
   const zip = new JSZip()
   const folder = zip.folder(root)!
-  folder.file(PACKAGE_MANIFEST_FILE, JSON.stringify(manifest, null, 2))
-  for (const file of files) if (file.path !== PACKAGE_MANIFEST_FILE) folder.file(file.path, file.content)
+  if (manifest !== null) folder.file(PACKAGE_MANIFEST_FILE, JSON.stringify(manifest, null, 2))
+  for (const file of files) if (manifest === null || file.path !== PACKAGE_MANIFEST_FILE) folder.file(file.path, file.content)
   return zip.generateAsync({ type: 'nodebuffer' })
 }
 

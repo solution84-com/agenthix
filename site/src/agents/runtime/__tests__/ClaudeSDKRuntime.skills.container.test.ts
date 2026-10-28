@@ -26,6 +26,7 @@ import type { RunContext, RunEvent } from '../types'
 import { claudeTestContext } from './claudeTestContext'
 import { cacheInstalledSkills, installedOnly } from './installedSkillFixture'
 import type { RunSkillInputs } from '../skillSources'
+import { PLAIN_TEXT_LINE, pickedSkillInstruction, pickedSkillReadInstruction } from '../pickedSkill'
 
 const run = promisify(execFile)
 const IMAGE = process.env.AGENT_IMAGE ?? 'agenthix-agent:latest'
@@ -93,6 +94,12 @@ async function turn(prompt: string, overrides: Partial<RunContext> = {}): Promis
 
 const toolNames = (r: Request) => (r.body.tools ?? []).map(t => t.name)
 const text = (r: Request) => JSON.stringify(r.body.messages ?? [])
+// The turn's own message: a kept process sends the conversation's earlier turns too, so a check about this turn
+// reads only the newest message from the person.
+const lastUserText = (r: Request) => {
+  const messages = (r.body.messages ?? []) as Array<{ role?: string }>
+  return JSON.stringify(messages.filter(m => m.role === 'user').at(-1) ?? null)
+}
 /** The skill list Claude Code puts in a reminder, one `name: description` per line. */
 const listed = (r: Request) => [...text(r).matchAll(/\\n- (\S+?): /g)].map(m => m[1])
   .filter(() => text(r).includes('skills are available for use with the Skill tool'))
@@ -172,22 +179,57 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     }
   }, 120_000)
 
-  it("loads a staged skill's instructions by its name, and by a person's /name", async () => {
+  it("loads a staged skill's instructions by its name", async () => {
     const called = await turn('TURN DO:SKILL agent-hello-claude', { isNewSession: true, ...restricted })
     expect(results(called.events)).toEqual(['Launching skill: agent-hello-claude'])
     expect(text(called.sent.at(-1)!)).toContain(INSTRUCTIONS)
-
-    const typed = await turn('/agent-hello-claude', restricted)
-    expect(typed.sent).toHaveLength(1)
-    expect(text(typed.sent[0]!)).toContain(INSTRUCTIONS)
   }, 120_000)
 
-  it('says so when a person types a /name the run has no skill for, instead of ending silently', async () => {
-    const { events, sent } = await turn('/no-such-skill', restricted)
-    expect(sent).toHaveLength(0)
-    expect(events.filter(e => e.type === 'text_delta')).toEqual([{ type: 'text_delta', textDelta: 'Unknown command: /no-such-skill' }])
-    expect(events.find(e => e.type === 'status')).toMatchObject({ status: 'completed' })
-  }, 60_000)
+  it('tells the model to load a skill the person picked, which then loads by its name (security review M7)', async () => {
+    const picked = await turn('TURN DO:SKILL agent-hello-claude', { ...restricted, pickedSkill: 'agent-hello-claude' })
+    expect(text(picked.sent[0]!)).toContain(pickedSkillInstruction('agent-hello-claude'))
+    expect(results(picked.events)).toEqual(['Launching skill: agent-hello-claude'])
+    expect(text(picked.sent.at(-1)!)).toContain(INSTRUCTIONS)
+
+    const notStaged = await turn('TURN hello', { ...restricted, pickedSkill: 'agent-no-such-skill' })
+    expect(lastUserText(notStaged.sent[0]!)).not.toContain('The person picked the skill')
+  }, 120_000)
+
+  it('tells the model to read the file of a picked skill it may not load itself, from the folder its process reads', async () => {
+    const BY_HAND = 'BY-HAND-INSTRUCTIONS-8812'
+    const byHand = {
+      ...restricted,
+      sessionId: randomUUID(),
+      skills: installedOnly(await cacheInstalledSkills({
+        'by-hand': { 'SKILL.md': `---\nname: by-hand\ndescription: Run only when a person picks it.\ndisable-model-invocation: true\n---\n\n${BY_HAND}\n` },
+      })),
+    }
+    const picked = await turn('TURN hello', { ...byHand, isNewSession: true, pickedSkill: 'agent-by-hand' })
+    const file = text(picked.sent[0]!).match(/Read the file (\S+?\/agent-by-hand\/SKILL\.md) first/)?.[1]
+    expect(file).toMatch(/^\/home\/appuser\/\.claude\/\.tmp\/skills-[^/]+\/\.claude\/skills\/agent-by-hand\/SKILL\.md$/)
+    expect(text(picked.sent[0]!)).toContain(pickedSkillReadInstruction('agent-by-hand', file!))
+
+    // The same skills keep the process, and with it the folder the instruction named: the read runs there.
+    const read = await turn(`TURN DO:READ ${file}`, { ...byHand, pickedSkill: 'agent-by-hand' })
+    expect(text(read.sent[0]!)).toContain(pickedSkillReadInstruction('agent-by-hand', file!))
+    expect(results(read.events)).toEqual([expect.stringContaining(BY_HAND)])
+    await runtime.endConversation({ sessionId: byHand.sessionId, containerName: CONTAINER }).catch(() => {})
+  }, 180_000)
+
+  it.each([
+    ['a staged skill', '/agent-hello-claude', INSTRUCTIONS],
+    ['a skill the run has none of', '/no-such-skill', 'Unknown command'],
+    // What each bundled command would put before the model, had it run.
+    ["Claude Code's /init", '/init', 'Please analyze this codebase'],
+    ["Claude Code's /compact", '/compact', 'Your task is to create a detailed summary'],
+  ])("sends a typed /name for %s to the model as plain text, never running it", async (_label, typed, neverSeen) => {
+    const { events, sent } = await turn(`${typed} TURN`, restricted)
+    expect(sent).toHaveLength(1)
+    expect(text(sent[0]!)).toContain(PLAIN_TEXT_LINE.replaceAll('"', '\\"'))
+    expect(lastUserText(sent[0]!)).not.toContain(neverSeen)
+    expect(events.filter(e => e.type === 'text_delta')).toEqual([{ type: 'text_delta', textDelta: 'stand-in reply 0' }])
+    expect(events.filter(e => e.type === 'compacted')).toEqual([])
+  }, 120_000)
 
   it("refuses one of Claude Code's own bundled skills", async () => {
     const { events } = await turn('TURN DO:SKILL update-config', restricted)

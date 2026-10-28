@@ -1,6 +1,8 @@
 ---
 name: Research Methodology
 description: Frame research questions, define scope, review findings for validity
+version: 2
+suitedTo: [researcher, analyst]
 ---
 
 # Research Methodology

@@ -11,7 +11,8 @@ import { siteChannelRegistry } from '../../sites/channel'
 import { Logger } from '../../server/utils/logger'
 import { settleClashes, skillKey, type SetAsideSkill, type SkillCandidate } from './clashOrder'
 import { SAME_NAME_REASON, settleStagedNames, type NamedItem } from './stagedNames'
-import { builtInSkillsFor, installedSkillsFor } from './installed'
+import { installedSkillsFor } from './installed'
+import { builtInSkillsFor, locationIsRepository, type RepositoryCheck } from '../builtins/delivery'
 import { fileSkillsFor, placeDefaultOf, scanPlaceOnSite, type FileSkillsResult, type ScanPlace } from './fileSkills'
 import { placeSkillPath } from '../places/scan'
 import { personalSkillsApply, personSkillsFor, type RunFor } from './personSkills'
@@ -37,13 +38,18 @@ export type RunSkills = {
   notes: string[]
 }
 
-export async function resolveRunSkills(input: RunSkillsInput, db: Db = prisma, scan: ScanPlace = scanPlaceOnSite): Promise<RunSkills> {
+export async function resolveRunSkills(
+  input: RunSkillsInput,
+  db: Db = prisma,
+  scan: ScanPlace = scanPlaceOnSite,
+  inRepository: RepositoryCheck = runLocationIsRepository(input),
+): Promise<RunSkills> {
   const org = await db.org.findFirst({ select: { fileSkillsDefault: true, personalSkillsOutsideSpace: true } })
   const orgDefault = org?.fileSkillsDefault ?? 'OFF'
   const withPerson = personalSkillsApply(input, org?.personalSkillsOutsideSpace ?? true)
 
   const [builtIn, installed, files, person] = await Promise.all([
-    builtInSkillsFor(db, input.agentId),
+    builtInSkillsFor(db, inRepository),
     installedSkillsFor(db, input.agentId),
     fileSkillsFor(db, { siteId: input.siteId, place: input.place, agentId: input.agentId, workspaceIds: input.workspaceIds, orgDefault }, scan),
     withPerson
@@ -88,6 +94,12 @@ async function markSetAsideByOrganisation(db: Db, files: FileSkillsResult, orgId
     const reason = everyAgent.has(key) ? `Set aside: the organisation's installed ${key} is used instead (an installed skill comes first).` : null
     if (row.setAsideReason !== reason) await db.placeSkill.update({ where: { id: row.id }, data: { setAsideReason: reason } })
   }
+}
+
+/** The run's own location: the primary workspace when it has one, else the place's files. */
+function runLocationIsRepository(input: RunSkillsInput): RepositoryCheck {
+  const loc = { ownerType: input.place.placeType, ownerId: input.place.placeId, workspaceId: input.workspaceIds[0] ?? null }
+  return locationIsRepository(input.siteId, loc)
 }
 
 /** Whether a site is sent a run's skills: only one that speaks the protocol that carries them. */

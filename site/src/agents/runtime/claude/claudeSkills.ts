@@ -22,10 +22,12 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { Logger } from '../../../server/utils/logger'
 import { stageSkills } from '../skillStaging'
+import { SKILL_FILE } from '../skillTree'
 import { recordSkillsUsed } from '../skillUseRecord'
 import { SKILLS_STAGING_DIRNAME } from '../skillsStagingDir'
 import { SKILLS_PLUGIN_NAME } from '../sdkNames'
 import type { RunContext } from '../types'
+import type { InvocableSkill } from '../pickedSkill'
 
 const logger = new Logger('ClaudeSDKRuntime')
 
@@ -41,6 +43,8 @@ export type StagedTurnSkills = {
   visiblePluginDir: string
   /** The staged skills' names, as the model calls them. */
   names: string[]
+  /** Each staged skill as a person's pick is checked and told to the model (pickedSkill.ts), its file in this folder. */
+  invocable: InvocableSkill[]
   /** The staged content, so an unchanged set keeps the running process. */
   hash: string
 }
@@ -71,7 +75,20 @@ export async function stageTurnSkills(context: RunContext): Promise<StagedTurnSk
   const visibleDir = context.claudeHome.visibleDir + serverDir.slice(context.claudeHome.serverDir.length)
   // A tree that cannot be read back counts as changed: it replaces the process.
   const hash = await hashTree(pluginDir).catch(() => `unread:${serverDir}`)
-  return { serverDir, visibleDir, visiblePluginDir: path.posix.join(visibleDir, PLUGIN_DIRNAME), names: staged.map(s => s.name), hash }
+  const visiblePluginDir = path.posix.join(visibleDir, PLUGIN_DIRNAME)
+  return {
+    serverDir,
+    visibleDir,
+    visiblePluginDir,
+    names: staged.map(s => s.name),
+    invocable: staged.map(s => ({
+      name: s.name,
+      userInvocable: s.userInvocable,
+      modelInvocable: s.modelInvocable,
+      skillFile: path.posix.join(visiblePluginDir, 'skills', s.name, SKILL_FILE),
+    })),
+    hash,
+  }
 }
 
 export async function removeStagedSkills(serverDir: string): Promise<void> {

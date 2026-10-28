@@ -1,14 +1,7 @@
-/**
- * A library item's folder, read into package files and written back from them.
- * Links and hidden names are skipped on reading; writing goes only inside hq's
- * own storage, checked against its real path (`server/realPathWithin.ts`),
- * whatever folder the caller names.
- */
+/** A folder read into package files: links and hidden names are skipped. */
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { isValidPackagePath } from '@agenthix/core'
-import { getHqStorageRoot } from '../../server/hqStoragePaths'
-import { resolveRealWriteTargetWithin } from '../../server/realPathWithin'
 import type { PackageFile } from './packageZip'
 
 export async function readFileTree(dir: string): Promise<PackageFile[]> {
@@ -25,18 +18,4 @@ export async function readFileTree(dir: string): Promise<PackageFile[]> {
   }
   await walk(dir, [])
   return out
-}
-
-/** Replaces the folder at `relativeDir` (under hq's storage) with exactly these files. */
-export async function replaceStorageTree(relativeDir: string, files: PackageFile[]): Promise<void> {
-  const root = getHqStorageRoot()
-  const dir = path.resolve(root, relativeDir)
-  if (!dir.startsWith(root + path.sep)) throw new Error('Path not allowed')
-  await fs.rm(dir, { recursive: true, force: true })
-  for (const file of files) {
-    const target = await resolveRealWriteTargetWithin(root, path.join(dir, file.path))
-    if (!target) throw new Error('Path not allowed')
-    await fs.mkdir(path.dirname(target), { recursive: true })
-    await fs.writeFile(target, file.content)
-  }
 }

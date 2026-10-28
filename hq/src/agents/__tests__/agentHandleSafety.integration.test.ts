@@ -31,7 +31,8 @@ import { createAgent, updateAgent } from '../actions'
 import { createAgentOp } from '../../server/controlplane/agentOps'
 import { importAgentZip } from '../agentZipService'
 import { applyAgentTemplate } from '../../library/agentTemplateService'
-import { applyTemplate } from '../../library/workforceTemplateService'
+import { agentPackage, seedTemplate, teamPackage } from '../../assets/templates/__tests__/templateFixtures'
+import { applyTeamTemplate } from '../../library/workforceTemplateService'
 import * as siteStore from '../../test/fakes/siteRuntimeStore'
 import { contextWithRole, snapshotTree, useTempRoots, writeTextFile, type TempRoots } from './definitionFixtures'
 import type { CallerContext } from '../../server/controlplane/types'
@@ -107,8 +108,7 @@ describe('creating an agent refuses an invalid handle before touching disk', () 
   })
 
   it('applyAgentTemplate refuses the handle it is given', async () => {
-    await writeTextFile(path.join(sandbox.assets, 'library/agents/dev/agent.json'), JSON.stringify({ name: 'Dev', role: 'Dev', skills: [] }))
-    await prisma.agentTemplate.create({ data: { slug: 'dev', name: 'Dev', version: 1, handle: 'dev', assetPath: 'library/agents/dev', isSystem: true } as any })
+    await seedTemplate(prisma, 'AGENT', 'dev', agentPackage('dev'))
     const before = await tree()
     await expect(applyAgentTemplate('dev', '../../escape', null)).rejects.toMatchObject({ statusCode: 400 })
     expect(await tree()).toEqual(before)
@@ -116,27 +116,17 @@ describe('creating an agent refuses an invalid handle before touching disk', () 
   })
 
   it('applyWorkforceTemplate refuses a resolved handle', async () => {
-    const content = {
-      teams: [{
-        name: 'Eng',
-        purpose: 'Build',
-        agents: [{
-          handle: 'dev', name: 'Dev', role: 'Dev', responsibilities: 'Code',
-          skills: [{ slug: 'notes', name: 'Notes', description: 'd', content: 'body' }],
-        }],
-      }],
-      projects: [],
-    }
+    await seedTemplate(prisma, 'TEAM', 'eng', teamPackage('eng', { agents: [{ handle: 'dev', skills: ['notes'] }], roleSkills: ['notes'] }))
     const selections = {
       teams: [{
-        name: 'Eng',
+        name: 'Crew',
         include: true,
         agents: [{ handle: 'dev', resolvedHandle: '../../escape', include: true, skills: [{ slug: 'notes', include: true }] }],
       }],
       projects: [],
     }
     const before = await tree()
-    await expect(applyTemplate(content as any, selections as any, null)).rejects.toMatchObject({ statusCode: 400 })
+    await expect(applyTeamTemplate('eng', selections as any, null)).rejects.toMatchObject({ statusCode: 400 })
     expect(await tree()).toEqual(before)
     expect(await prisma.agent.count()).toBe(0)
   })

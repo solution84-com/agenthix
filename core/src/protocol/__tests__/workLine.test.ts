@@ -75,6 +75,13 @@ describe('a skill used, as a step', () => {
   it('points at nothing when the call names no skill', () => {
     expect(toolStep('Skill', {}).target).toBeNull()
   })
+
+  it('points at the staged name when Claude names it within its plugin', () => {
+    expect(toolStep('Skill', { skill: 'staged:org-code-review' })).toMatchObject({
+      text: 'org-code-review', target: { type: 'skill', name: 'org-code-review' },
+    })
+    expect(toolStep('Skill', { skill: 'staged:' }).target).toBeNull()
+  })
 })
 
 describe('the work line @SC-756', () => {

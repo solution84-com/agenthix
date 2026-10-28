@@ -8,11 +8,11 @@
 
 // ── Template spec types ──────────────────────────────────────────────────────
 
+/** A skill the template carries for one of its agents: `slug` is its folder in the package. */
 export interface AgentSkillSpec {
   slug: string
   name: string
   description: string
-  content: string
 }
 
 export interface AgentSpec {
@@ -20,8 +20,6 @@ export interface AgentSpec {
   name: string
   role: string
   responsibilities: string
-  /** @deprecated Older templates carry it; ignored. The resolver decides the model. */
-  defaultModel?: string
   approval?: string
   allowedTools?: Array<{ name: string; state: string }>
   allowedBashPatterns?: Array<{ pattern: string; state: string }>
@@ -36,7 +34,8 @@ export interface TeamSpec {
 
 export interface BoardSpec {
   name: string
-  templateId: string
+  /** The board template it starts from, by name or identity (`kanban`, `agenthix/sprint`). */
+  template: string
 }
 
 export interface ProjectSpec {

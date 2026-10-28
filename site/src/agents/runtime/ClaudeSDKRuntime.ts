@@ -11,6 +11,7 @@ import { harnessMemoryCeilingMb } from './claude/claudeProcessProbe'
 import { removeStagedSkills, stageTurnSkills, type StagedTurnSkills } from './claude/claudeSkills'
 import { buildClaudeStart, type ClaudeStart } from './claude/claudeStart'
 import { requireLandlock } from './landlockCheck'
+import { turnPrompt } from './pickedSkill'
 
 const logger = new Logger('ClaudeSDKRuntime')
 
@@ -49,10 +50,11 @@ export class ClaudeSDKRuntime implements AgentRuntime {
 
   async *run(context: RunContext): AsyncIterable<RunEvent> {
     const sdkSessionId = context.sessionId
-    const turn = withConversationToken(context)
     let skills: StagedTurnSkills | null = null
     try {
       skills = await stageTurnSkills(context)
+      // The process this turn goes to has these skills: a running one is kept only when its skills are the same.
+      const turn = withConversationToken(context)
       const start = buildClaudeStart(turn, skills)
       logLaunch(turn, sdkSessionId, skills)
       const { process: claude, adoptedSkills } = await this.processFor(turn, start, skills, sdkSessionId)
@@ -91,7 +93,7 @@ export class ClaudeSDKRuntime implements AgentRuntime {
 
   private async *runTurn(claude: ClaudeProcess, context: RunContext, start: ClaudeStart, sdkSessionId: string): AsyncIterable<RunEvent> {
     try {
-      yield* claude.turn(context, sdkSessionId)
+      yield* claude.turn(withTurnPrompt(context, claude), sdkSessionId)
       return
     } catch (err) {
       if (context.abortSignal?.aborted) return
@@ -106,7 +108,7 @@ export class ClaudeSDKRuntime implements AgentRuntime {
     const skills = await stageTurnSkills(context)
     const retry = startProcess(context, skills ? buildClaudeStart(context, skills) : start, skills, { resume: sdkSessionId })
     try {
-      yield* retry.turn(context, sdkSessionId)
+      yield* retry.turn(withTurnPrompt(context, retry), sdkSessionId)
     } catch (err) {
       if (context.abortSignal?.aborted) return
       await closeClaudeProcess(context.sessionId)
@@ -151,6 +153,15 @@ function startProcess(
   })
   keepClaudeProcess(claude)
   return claude
+}
+
+/**
+ * The turn's message as the process taking it is given it. A picked skill's instruction may name a staged file, and
+ * the file is in that process's own skills folder: a running process kept for the turn has the same skills, staged
+ * in a folder of its own.
+ */
+function withTurnPrompt(context: RunContext, claude: ClaudeProcess): RunContext {
+  return { ...context, prompt: turnPrompt(context, claude.skills?.invocable ?? []) }
 }
 
 /** Why the running process cannot take this turn, or null when it can. */

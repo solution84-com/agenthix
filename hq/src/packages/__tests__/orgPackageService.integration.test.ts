@@ -1,11 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { prisma } from '../../test/db'
 
-// The org's package against the real test DB (ADR-0094), reading hq's real bundled assets (or an empty temp
-// root where a test needs the library skills directory missing).
+// The org's package against the real test DB (ADR-0094), reading hq's real bundled assets.
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -31,49 +29,16 @@ describe('org package', () => {
     expect(await prisma.package.count()).toBe(0)
   })
 
-  it("first content: ORG.md from the org row over the template body, and every skill on Agenthix's shelf copied in", async () => {
+  it("first content: ORG.md from the org row over the template body, and no skill: a new organisation installs none by itself", async () => {
     const org = await makeOrg()
 
     await ensureOrgPackage()
 
     expect(await getCurrentPackage('org', org.id)).toMatchObject({ updatedById: null })
     const files = await readCurrentFiles('org', org.id)
-    expect(text(files, ORG_FILE)).toMatch(/^---\nname: Acme\nvision: Ship\nmission: Daily\n---\n\n## About/)
-    expect(text(files, 'skills/qa-test-planning/SKILL.md')).toContain('slug: qa-test-planning')
-    expect(text(files, 'skills/qa-test-planning/SKILL.md')).toContain('installed_from: agenthix/qa-test-planning')
+    expect(text(files, ORG_FILE)).toMatch(/^---\nname: Acme\nvision: Ship\nmission: Daily\n---\n\n## About\n\n_Add any additional context about your organisation here. This file/)
+    expect(files?.map(f => f.path)).toEqual([ORG_FILE])
     expect(await prisma.asset.count()).toBe(0)
-  })
-
-  it('refuses a first write when hq\'s library skills directory is missing, naming the path and HQ_ASSETS_ROOT', async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'hq-assets-'))
-    process.env.HQ_ASSETS_ROOT = root
-    try {
-      const org = await makeOrg()
-      const err = await ensureOrgPackage().catch(e => e)
-      expect(err).toBeInstanceOf(Error)
-      expect(err.message).toContain(path.join(root, 'library', 'skills'))
-      expect(err.message).toContain('HQ_ASSETS_ROOT')
-      expect(await getCurrentPackage('org', org.id)).toBeNull()
-
-      await fs.mkdir(path.join(root, 'library', 'skills'), { recursive: true })
-      await ensureOrgPackage()
-      expect(await getCurrentPackage('org', org.id)).not.toBeNull()
-    } finally {
-      await fs.rm(root, { recursive: true, force: true })
-    }
-  })
-
-  it('copies no shelf folder that is not a skill, and still writes the org file', async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'hq-assets-'))
-    process.env.HQ_ASSETS_ROOT = root
-    try {
-      await fs.mkdir(path.join(root, 'library', 'skills', 'ghost'), { recursive: true })
-      const org = await makeOrg()
-      await ensureOrgPackage()
-      expect((await readCurrentFiles('org', org.id))?.map(f => f.path)).toEqual([ORG_FILE])
-    } finally {
-      await fs.rm(root, { recursive: true, force: true })
-    }
   })
 
   it('does nothing at boot once the org has content', async () => {
@@ -105,10 +70,8 @@ describe('prepareOrgPackage — disk reads done before a transaction opens', () 
   it('reads the initial files when the org exists but has no content yet', async () => {
     await makeOrg()
     const files = await prepareOrgPackage()
-    expect(files).not.toBeNull()
-    expect(text(files, 'skills/qa-test-planning/SKILL.md')).toContain('slug: qa-test-planning')
-    expect(text(files, 'skills/qa-test-planning/SKILL.md')).toContain('installed_from: agenthix/qa-test-planning')
-    expect(await prisma.asset.count()).toBe(0)
+    expect(files?.map(f => f.path)).toEqual([ORG_FILE])
+    expect(text(files, ORG_FILE)).toContain('This file is read by agents')
   })
 
   it('reads the initial files when the org row does not exist yet (its first-ever creation)', async () => {
@@ -126,13 +89,12 @@ describe('prepareOrgPackage — disk reads done before a transaction opens', () 
     const org = await makeOrg()
     const initialFiles = await prepareOrgPackage()
 
-    // With the assets gone, only the prepared files can supply the skill.
+    // With the assets gone, only the prepared files can supply the template's body.
     process.env.HQ_ASSETS_ROOT = path.join(os.tmpdir(), 'no-such-hq-assets')
     await changeOrgPackage(files => files, 'u1', undefined, initialFiles ?? undefined)
 
     const files = await readCurrentFiles('org', org.id)
-    expect(text(files, 'skills/qa-test-planning/SKILL.md')).toContain('slug: qa-test-planning')
-    expect(text(files, 'skills/qa-test-planning/SKILL.md')).toContain('installed_from: agenthix/qa-test-planning')
-    expect(await prisma.asset.count()).toBe(0)
+    expect(text(files, ORG_FILE)).toContain('This file is read by agents')
+    expect(files?.map(f => f.path)).toEqual([ORG_FILE])
   })
 })

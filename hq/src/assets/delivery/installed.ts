@@ -2,7 +2,7 @@
  * The installed skills a run is given (spec part 5 *Delivery per turn*; L2, L3): every skill every agent has and every
  * skill granted to this agent, at its pinned version, not removed and not set aside for the organisation's own copy
  * (D18). Each carries a `skill` package ref keyed by its version row, so package delivery sends it once per version per
- * site (adr-0072). Built-in skills come from `builtInSkillsFor`.
+ * site (adr-0072). Built-in skills come from `builtins/delivery.ts`.
  */
 import type { InstalledSkillEntry } from '@agenthix/core'
 import type { Db } from '../../packages/packageStore'
@@ -44,9 +44,4 @@ export async function installedSkillsFor(db: Db, agentId: string): Promise<Insta
     orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   })
   return rows.map(installedEntry).filter((e): e is InstalledSkillEntry => e !== null)
-}
-
-/** Built-in skills not switched off (L1a, D6): phase 4 ships them. Until then there are none. */
-export async function builtInSkillsFor(_db: Db, _agentId: string): Promise<InstalledSkillEntry[]> {
-  return []
 }

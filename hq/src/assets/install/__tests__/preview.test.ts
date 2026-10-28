@@ -93,7 +93,7 @@ describe('previewing an install', () => {
 
   it('refuses an unsigned package when the organisation allows none (P2)', async () => {
     const p = await previewInstall(upload(undefined, null), admin, deps(fakeDb({ unsignedAllowed: false }), verifierSigning(null, null)))
-    expect(p.refusal).toMatch(/doesn't allow unsigned skills/)
+    expect(p.refusal).toMatch(/doesn't allow unsigned packages/)
   })
 
   it('refuses a package claiming agenthix that is not Agenthix-signed', async () => {

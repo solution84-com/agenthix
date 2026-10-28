@@ -65,3 +65,19 @@ export function stagedSkillMd(skillMd: string, name: string): string {
   // Without closed front matter the whole text is the body, never reinterpreted.
   return `---\n${header.join('\n')}\n---${parts ? parts.body : `\n\n${text}`}`
 }
+
+/** Whether a person may invoke the skill: unless its front matter sets `user-invocable: false`. */
+export function isUserInvocable(skillMd: string): boolean {
+  return flagIn(skillMd, 'user-invocable') !== false
+}
+
+/** Whether the model may load the skill itself: unless its front matter sets `disable-model-invocation: true`. */
+export function isModelInvocable(skillMd: string): boolean {
+  return flagIn(skillMd, 'disable-model-invocation') !== true
+}
+
+function flagIn(skillMd: string, key: (typeof FLAG_KEYS)[number]): boolean | undefined {
+  const text = skillMd.startsWith(BOM) ? skillMd.slice(BOM.length) : skillMd
+  const parts = split(text)
+  return parts ? flagOf(parts.header, key) : undefined
+}

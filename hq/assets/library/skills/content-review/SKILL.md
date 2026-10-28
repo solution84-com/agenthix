@@ -1,6 +1,8 @@
 ---
 name: Content Review
 description: Review drafts for tone, clarity, factual accuracy, and brand alignment
+version: 2
+suitedTo: [editor, writer]
 ---
 
 # Content Review

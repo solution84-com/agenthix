@@ -1,0 +1,42 @@
+{
+  "name": "Product Roadmap",
+  "description": "Plan and track features from concept to release.",
+  "columns": [
+    {
+      "name": "planned",
+      "label": "Planned",
+      "status": "TODO",
+      "color": "#6b7280",
+      "order": 0,
+      "description": "Features committed to the roadmap but work has not started.",
+      "hint": "Move here when a feature is scoped and added to the roadmap."
+    },
+    {
+      "name": "in_development",
+      "label": "In Development",
+      "status": "IN_PROGRESS",
+      "color": "#f59e0b",
+      "order": 1,
+      "description": "Features actively being built.",
+      "hint": "Move here when engineering work begins on the feature."
+    },
+    {
+      "name": "in_review",
+      "label": "In Review",
+      "status": "IN_PROGRESS",
+      "color": "#8b5cf6",
+      "order": 2,
+      "description": "Development complete \u2014 in QA, design review, or stakeholder sign-off.",
+      "hint": "Move here when development is done and the feature needs validation before release."
+    },
+    {
+      "name": "released",
+      "label": "Released",
+      "status": "DONE",
+      "color": "#10b981",
+      "order": 3,
+      "description": "Feature shipped to production and available to users.",
+      "hint": "Move here when the feature is live and the release is announced."
+    }
+  ]
+}

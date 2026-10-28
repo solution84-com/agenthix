@@ -63,6 +63,8 @@ export interface PanelChatViewProps {
   /** Opens what a change changed; `canOpenTarget` says which changes can be opened. */
   onOpenTarget?: (target: WorkTarget) => void
   canOpenTarget?: (target: WorkTarget) => boolean
+  /** A used skill's step as people read it; see `WorkLineActions.skillLabel`. */
+  skillLabel?: (name: string, runId: string | null) => string | null
   /** "This conversation's runs ›" in the conversation's popup. */
   onOpenConversationRuns?: (latestRunId: string | null) => void
   /** The conversation's popup, opened from the page's header; without it the view keeps its own. */

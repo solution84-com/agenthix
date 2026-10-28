@@ -1,6 +1,8 @@
 ---
 name: Bug Reporting
 description: File structured bug reports with repro steps, expected vs actual, and severity
+version: 2
+suitedTo: [qa, tester, developer]
 ---
 
 # Bug Reporting

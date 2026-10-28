@@ -36,6 +36,14 @@ export function placeSkillPath(skill: ScannedSkill): string | null {
   return `workspace/${skill.workspaceId}/${skill.workspaceFolder}/${skill.path}`
 }
 
+/** The scan's front matter text, bounded: the site reports it, so it is shown as text and never trusted further. */
+export const SCANNED_NAME_MAX = 200
+export const SCANNED_DESCRIPTION_MAX = 1024
+
+function scannedText(value: unknown, max: number): string {
+  return typeof value === 'string' ? value.replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '').trim().slice(0, max) : ''
+}
+
 export async function recordScan(
   place: Place,
   scan: LocationScanSkillsResult,
@@ -54,6 +62,8 @@ export async function recordScan(
       workspaceId: skill.group === 'workspace' ? skill.workspaceId ?? null : null,
       lastFingerprint: skill.fingerprint,
       lastSeenAt: now,
+      name: scannedText(skill.name, SCANNED_NAME_MAX),
+      description: scannedText(skill.description, SCANNED_DESCRIPTION_MAX),
       goneAt: null,
     }
     rows.push(await prisma.placeSkill.upsert({

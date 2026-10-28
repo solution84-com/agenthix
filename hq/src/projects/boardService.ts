@@ -84,7 +84,8 @@ export async function createBoard(params: {
   name: string
   /** Workflow unless it has sprints; Project Tasks is never made here. */
   kind?: 'WORKFLOW' | 'SPRINTS'
-  templateId?: string
+  /** The board template version it is made from, kept read-only (adr-0072). */
+  madeFromVersionId?: string
   columns?: ColumnInput[]
   /** A sprint board's sprint length, in days. */
   sprintDays?: number
@@ -102,7 +103,7 @@ export async function createBoard(params: {
       projectId: params.projectId,
       kind,
       columns: columns as unknown as Prisma.InputJsonValue,
-      templateId: params.templateId,
+      madeFromVersionId: params.madeFromVersionId,
       ...(sprint ? { sprints: { create: { number: 1, ...sprint } } } : {}),
     },
   })

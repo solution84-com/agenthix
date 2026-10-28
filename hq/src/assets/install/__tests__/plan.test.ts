@@ -60,6 +60,18 @@ describe('what comes with a package (I6)', () => {
     expect(summarise(main, items)).toBe('This team template brings 4 skills: 2 new, 1 you already have, 1 newer than yours, update offered.')
   })
 
+  it("counts a template's role skills apart from the shared ones it brings", () => {
+    const main = classify(null, { ...input, kind: 'agent', name: 'project-manager' }, 'agenthix', null)
+    const items = [
+      classify(null, { ...input, name: 'project-manager/read-context' }, 'agenthix', null),
+      classify(null, { ...input, name: 'project-manager/assign-work' }, 'agenthix', null),
+      classify(null, input, 'agenthix', null),
+      classify(existing(), input, 'agenthix', null),
+      classify(existing(), { ...input, version: '1.4.0', fingerprint: FP('b') }, 'agenthix', null),
+    ]
+    expect(summarise(main, items)).toBe('This agent template brings 5 skills: 2 for its role, 1 new, 1 you already have, 1 newer than yours, update offered.')
+  })
+
   it('says what installing one skill does', () => {
     expect(summarise(classify(null, input, 'acme', null), [])).toBe('Installs Code Review 1.3.0 as acme/code-review.')
   })

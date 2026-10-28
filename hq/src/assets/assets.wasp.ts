@@ -20,6 +20,12 @@ import {
     publishPlaceSkillDraft, publishPlaceSkillFiles, rollBackPlaceSkillVersion, putBackPlaceSkillVersion,
     addSkillToPlace, removePlaceSkill,
 } from "./places/operations" with { type: "ref" };
+import {
+    getSkillProposal, getSkillDraftCard, listSkillProposals, acceptSkillProposal, rejectSkillProposal, aimSkillProposal,
+} from "./proposals/operations" with { type: "ref" };
+import { getBuiltInSkills, setBuiltInSkillSwitch } from "./builtins/switch" with { type: "ref" };
+import { getUsedSkill } from "./conversation/usedSkillOperations" with { type: "ref" };
+import { getSessionSkillSteps } from "./conversation/sessionSkillSteps" with { type: "ref" };
 
 const INSTALL_ENTITIES = ["Asset", "AssetVersion", "AssetPinChange", "TrustedPublisher", "Org", "PackageContent"] as const;
 const LIFECYCLE_ENTITIES = [
@@ -29,6 +35,8 @@ const PLACE_ENTITIES = [
     "PlaceSkill", "PlaceSkillVersion", "Draft", "DraftRevision", "PackageContent", "Project", "ProjectMember", "Org",
     "Asset", "AssetVersion", "Agent", "User", "UserSettings", "LibraryMaintainer",
 ] as const;
+const PROPOSAL_ENTITIES = [...PLACE_ENTITIES, "Proposal", "AssetPinChange", "AssetGrant", "Conversation", "ConversationMessage"] as const;
+const BUILT_IN_ENTITIES = ["Asset", "AssetVersion", "PackageContent", "Org", "User", "UserSettings", "LibraryMaintainer"] as const;
 const PEOPLE_ENTITIES = ["TrustedPublisher", "Org", "LibraryMaintainer", "User", "UserSettings"] as const;
 
 /** The asset layer's operations (skills spec parts 2 and 3). Stage B lanes add theirs in their own block below. */
@@ -89,4 +97,20 @@ export const assetsSpec: Spec = [
     action(putBackPlaceSkillVersion, { entities: [...PLACE_ENTITIES] }),
     action(addSkillToPlace, { entities: [...PLACE_ENTITIES] }),
     action(removePlaceSkill, { entities: [...PLACE_ENTITIES] }),
+
+    // Proposals (lane 4d): the conversation's card, the review, aiming one elsewhere, and a level's open proposals.
+    query(getSkillProposal, { entities: [...PROPOSAL_ENTITIES] }),
+    query(getSkillDraftCard, { entities: [...PROPOSAL_ENTITIES] }),
+    query(listSkillProposals, { entities: [...PROPOSAL_ENTITIES] }),
+    action(acceptSkillProposal, { entities: [...PROPOSAL_ENTITIES] }),
+    action(rejectSkillProposal, { entities: [...PROPOSAL_ENTITIES] }),
+    action(aimSkillProposal, { entities: [...PROPOSAL_ENTITIES] }),
+
+    // Built-in skills (lane 4e): each one's switch for the organisation.
+    query(getBuiltInSkills, { entities: [...BUILT_IN_ENTITIES] }),
+    action(setBuiltInSkillSwitch, { entities: [...BUILT_IN_ENTITIES] }),
+
+    // A used skill opened beside the conversation (lane 4c): at the version the run used, access checked at view time.
+    query(getUsedSkill, { entities: ["Conversation", "Operation", ...PLACE_ENTITIES] }),
+    query(getSessionSkillSteps, { entities: ["AgentSession", ...PLACE_ENTITIES] }),
 ];

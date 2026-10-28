@@ -30,6 +30,16 @@ export async function librarySkill(db: Db, assetId: unknown) {
 
 export type LibrarySkill = Awaited<ReturnType<typeof librarySkill>>
 
+/**
+ * Any Library asset, not removed: a skill or a template. Its versions, updates and roll backs work the same for every
+ * kind (adr-0157); drafts, copies and who has it stay with skills (`librarySkill`).
+ */
+export async function libraryAsset(db: Db, assetId: unknown) {
+  const asset = typeof assetId === 'string' ? await db.asset.findUnique({ where: { id: assetId }, include: WITH_CURRENT }) : null
+  if (!asset || asset.removedAt) throw new LifecycleError(`That isn't in the Library. ${NOTHING}`, 404)
+  return asset
+}
+
 export const identityOf = (asset: { publisher: string; name: string }) => formatAssetIdentity(asset)
 
 /** Who is recorded as doing it: the person, and the agent that asked for it when a person approved its request (D31). */

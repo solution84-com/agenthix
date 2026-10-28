@@ -34,36 +34,19 @@ afterEach(async () => {
 })
 
 describe('platform package', () => {
-  it('writes the built-in skills from hq\'s assets, as the system', async () => {
+  it('is written empty, as the system: the built-in skills in hq\'s assets reach runs as assets, never through it', async () => {
     await fs.mkdir(path.join(root, 'platform', 'skills', 'example-skill'), { recursive: true })
     await fs.writeFile(path.join(root, 'platform', 'skills', 'example-skill', 'SKILL.md'), 'read')
-    await fs.writeFile(path.join(root, 'platform', 'skills', '.gitkeep'), '')
 
     const { ref, changed } = await writePlatformPackage()
 
     expect(changed).toBe(true)
     expect(ref).toMatchObject({ kind: 'platform', key: 'platform' })
     expect(await getCurrentPackage('platform', 'platform')).toMatchObject({ updatedById: null })
-    const files = await readCurrentFiles('platform', 'platform')
-    expect(files?.map(f => [f.path, f.content.toString()])).toEqual([['skills/example-skill/SKILL.md', 'read']])
-  })
-
-  it('refuses to write when the platform skills directory is missing, naming the path and HQ_ASSETS_ROOT', async () => {
-    const err = await writePlatformPackage().catch(e => e)
-    expect(err).toBeInstanceOf(Error)
-    expect(err.message).toContain(path.join(root, 'platform', 'skills'))
-    expect(err.message).toContain('HQ_ASSETS_ROOT')
-    expect(await prisma.package.count()).toBe(0)
-  })
-
-  it('still writes a present but empty platform skills directory', async () => {
-    await fs.mkdir(path.join(root, 'platform', 'skills'), { recursive: true })
-    await writePlatformPackage()
     expect(await readCurrentFiles('platform', 'platform')).toEqual([])
   })
 
-  it('changes nothing when written again with the same skills', async () => {
-    await fs.mkdir(path.join(root, 'platform', 'skills'), { recursive: true })
+  it('changes nothing when written again', async () => {
     await writePlatformPackage()
     expect((await writePlatformPackage()).changed).toBe(false)
   })

@@ -54,7 +54,7 @@ describe('createBoard staleTemplate @SC-165', () => {
       { projectId: project.id, name: 'B', templateId: 'does-not-exist' },
       await memberCtx(project),
     )
-    expect(board.templateId).toBeNull()
+    expect(board.madeFromVersionId).toBeNull()
     const columns = parseColumns(board.columns)
     expect(columns.map((s: any) => s.status)).toEqual(['TODO', 'IN_PROGRESS', 'DONE'])
   })

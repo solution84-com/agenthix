@@ -8,6 +8,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
 const useQuery = vi.hoisted(() => vi.fn())
+// A used skill's line is hq's to give (useSessionSkillLines.test.ts); none here.
+vi.mock('../../ChatPanel/useSessionSkillLines', () => ({ useSessionSkillLines: () => () => null }))
 vi.mock('wasp/client/operations', () => ({ useQuery, getActivitySession: 'getActivitySession' }))
 vi.mock('wasp/client/webSocket', () => ({
   useSocket: () => ({ socket: null, isConnected: false }),

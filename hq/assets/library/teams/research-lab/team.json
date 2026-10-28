@@ -1,0 +1,43 @@
+{
+  "name": "Research Lab",
+  "description": "Investigative work — research teams, data science, academic contexts.",
+  "tags": [
+    "research",
+    "data",
+    "analysis"
+  ],
+  "teams": [
+    {
+      "name": "Research",
+      "purpose": "Conduct rigorous research and publish findings",
+      "agents": [
+        "research-lead",
+        "analyst",
+        "docs"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Active Research",
+      "description": "Current research investigations",
+      "defaultAgentHandle": "research-lead",
+      "boards": [
+        {
+          "name": "Research Board",
+          "template": "ideation"
+        }
+      ]
+    },
+    {
+      "name": "Published Work",
+      "description": "Completed and published research outputs",
+      "boards": [
+        {
+          "name": "Kanban",
+          "template": "kanban"
+        }
+      ]
+    }
+  ]
+}

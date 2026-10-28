@@ -24,13 +24,16 @@ vi.mock('../../../sites/channel', async () => {
 })
 
 import * as workforceOps from '../workforceOps'
-import { SYSTEM_TEMPLATE_IDS } from '../../../library/systemTemplates'
+import { MADE_FROM_WORKFORCE_ASSEMBLY } from '../../../library/systemTemplates'
+import { boardPackage, seedTemplate, teamPackage } from '../../../assets/templates/__tests__/templateFixtures'
 import { NO_EXECUTION_SITE_MESSAGE } from '../../../shared/noExecutionSite'
 import { ControlPlaneError } from '../types'
 import { connectionCaller } from '../../../shared/testing/connectionCaller'
 import { chatCtx, runCtx } from './controlPlaneFixtures'
 
 let adminId: string
+let assemblyVersionId: string
+let teamId: string
 let operatorId: string
 beforeEach(async () => {
   vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -38,23 +41,23 @@ beforeEach(async () => {
   operatorId = (await createUserWithRole('MEMBER')).id
   await prisma.agent.create({ data: { id: 'agent-1', name: 'Kernel', handle: 'agent-1' } })
   await prisma.agentSession.create({ data: { id: 's1', userId: adminId, agentId: 'agent-1', sessionType: 'chat' } })
-  await prisma.workforceTemplate.create({ data: { id: 'wft-1', name: 'Dev Team', description: 'd', assetPath: 'p' } })
-  await prisma.boardTemplate.create({ data: { id: SYSTEM_TEMPLATE_IDS.WORKFORCE_ASSEMBLY, name: 'Workforce Assembly', assetPath: 'x', isSystem: true } })
+  teamId = (await seedTemplate(prisma, 'TEAM', 'dev-team', teamPackage('dev-team', { agents: [{ handle: 'dev' }] }))).assetId
+  assemblyVersionId = (await seedTemplate(prisma, 'BOARD', 'workforce-assembly', boardPackage('workforce-assembly'))).versionId
 })
 
 const admin = () => chatCtx(adminId, 'ADMIN')
-const propose = (ctx: Parameters<typeof workforceOps.proposeWorkforceTemplateOp>[0], templateId = 'wft-1') =>
+const propose = (ctx: Parameters<typeof workforceOps.proposeWorkforceTemplateOp>[0], templateId = 'agenthix/dev-team') =>
   workforceOps.proposeWorkforceTemplateOp(ctx, { templateId, reason: 'because' })
 async function assemblyBoard() {
   const site = await ensureExecutionSite()
   const project = await createProject({ name: 'Workforce Assembly', executionSiteId: site.id, accessLevel: 'OPEN' })
   await prisma.projectMember.create({ data: { projectId: project.id, userId: adminId } })
-  return prisma.board.create({ data: { name: 'Assembly', projectId: project.id, templateId: SYSTEM_TEMPLATE_IDS.WORKFORCE_ASSEMBLY } })
+  return prisma.board.create({ data: { name: 'Assembly', projectId: project.id, madeFromVersionId: assemblyVersionId } })
 }
 
 describe('list_workforce_templates', () => {
-  it('returns the available templates, to any caller', async () => {
-    expect(await workforceOps.listWorkforceTemplatesOp(runCtx(null), {})).toEqual([{ id: 'wft-1', name: 'Dev Team', description: 'd', tags: [] }])
+  it('returns the available templates by identity, to any caller', async () => {
+    expect(await workforceOps.listWorkforceTemplatesOp(runCtx(null), {})).toEqual([{ id: 'agenthix/dev-team', name: 'The dev-team', description: 'dev-team team', tags: ['test'] }])
   })
 })
 
@@ -89,10 +92,10 @@ describe('propose_workforce_template happy path @SC-085', () => {
     const board = await assemblyBoard()
     const result = await propose(admin()) as { success: true; taskId: string; reviewUrl: string }
 
-    expect(result.reviewUrl).toBe(`https://site.example.com/workforce-templates/review?taskId=${result.taskId}&templateId=wft-1`)
+    expect(result.reviewUrl).toBe(`https://site.example.com/workforce-templates/review?taskId=${result.taskId}&templateId=${teamId}`)
     expect(await prisma.task.findUniqueOrThrow({ where: { id: result.taskId } })).toMatchObject({
       column: 'in_review', boardId: board.id, projectId: board.projectId, onBehalfOfUserId: adminId,
-      applicationData: { templateId: 'wft-1' }, title: 'Proposed: Dev Team',
+      applicationData: { templateId: teamId }, title: 'Proposed: The dev-team',
     })
   })
 
@@ -108,7 +111,7 @@ describe('propose_workforce_template happy path @SC-085', () => {
     await propose(admin())
     await propose(admin())
     expect(await prisma.project.findMany({ select: { name: true } })).toEqual([{ name: 'Workforce Assembly' }])
-    expect(await prisma.board.count({ where: { templateId: SYSTEM_TEMPLATE_IDS.WORKFORCE_ASSEMBLY } })).toBe(1)
+    expect(await prisma.board.count({ where: MADE_FROM_WORKFORCE_ASSEMBLY })).toBe(1)
     expect(await prisma.task.count()).toBe(2)
   })
 

@@ -22,19 +22,12 @@ vi.mock('../../socket', () => ({ emitTaskUpdated: vi.fn() }))
 vi.mock('../../../agents/TaskRunner', () => import('../../../test/fakes/TaskRunner'))
 vi.mock('../../../sessions/siteRuntimeStore', () => import('../../../test/fakes/siteRuntimeStore'))
 vi.mock('../../../agents/dispatchService', () => import('../../../test/fakes/dispatchService'))
-// A board template whose column starts work by itself, without a template file on disk.
-vi.mock('../../../library/boardTemplateService', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../library/boardTemplateService')>()),
-  readBoardColumns: vi.fn(async () => [
-    { name: 'ready', label: 'Ready', status: 'TODO', order: 0, color: 'x', autoQueue: true },
-    { name: 'done', label: 'Done', status: 'DONE', order: 1, color: 'x' },
-  ]),
-}))
 
 import { callOperation } from '../operations'
 import { createBoard } from '../../../projects/boardService'
 import { createMilestone } from '../../../projects/taskPlanService'
 import type { CallerContext } from '../types'
+import { boardPackage, seedTemplate } from '../../../assets/templates/__tests__/templateFixtures'
 import { claims, expectForbidden } from './controlPlaneFixtures'
 
 let viewer: { id: string }
@@ -61,7 +54,12 @@ beforeEach(async () => {
   task = await createTestTask({ data: { title: 'T', projectId: project.id, number: 1, onBehalfOfUserId: member.id } })
   sprintBoardId = (await createBoard({ projectId: project.id, name: 'Sprints', kind: 'SPRINTS' })).id
   milestoneId = (await createMilestone({ projectId: project.id, name: 'Beta', date: '2026-11-01' })).id
-  await prisma.boardTemplate.create({ data: { id: 'tpl-auto', name: 'Auto', assetPath: 'auto.json', isSystem: false } })
+  // A board template whose column starts work by itself.
+  await seedTemplate(prisma, 'BOARD', 'tpl-auto', boardPackage('tpl-auto', [
+    { name: 'ready', label: 'Ready', status: 'TODO', color: '#6b7280', autoQueue: true },
+    { name: 'doing', label: 'Doing', status: 'IN_PROGRESS', color: '#f59e0b' },
+    { name: 'done', label: 'Done', status: 'DONE', color: '#10b981' },
+  ]))
   await prisma.agentSession.create({ data: { id: 'task-session', userId: routingAdmin.id, agentId: 'agent-1', sessionType: 'task', taskId: task.id } })
 })
 

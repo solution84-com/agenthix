@@ -1,0 +1,8 @@
+{
+  "format": 2,
+  "kind": "team",
+  "publisher": "agenthix",
+  "name": "solo-dev",
+  "version": "1.0.0",
+  "description": "Minimal footprint — one dev agent and one QA agent to validate work."
+}

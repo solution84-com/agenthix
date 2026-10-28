@@ -35,7 +35,7 @@ export type { PanelChatViewQueries, PanelChatViewActions, PanelChatViewProps } f
 export function PanelChatView({
   sessionId, socket, queries, actions, renderMarkdown, mode = 'panel', hideHeader, agentName: agentNameProp,
   onBack, onMaximizeToggle, onClose, agentStatsBar, sendDisabledReason, composerReplacement, placeholder,
-  onOpenRun, onOpenTarget, canOpenTarget, onOpenConversationRuns, conversationPopup,
+  onOpenRun, onOpenTarget, canOpenTarget, skillLabel, onOpenConversationRuns, conversationPopup,
 }: PanelChatViewProps) {
   const isConnected = socket?.connected ?? false
 
@@ -127,7 +127,7 @@ export function PanelChatView({
     return () => { cancelAnimationFrame(r1); cancelAnimationFrame(r2); ro.disconnect() }
   }, [sessionId, hasMessages, isLoading])
 
-  const workActions: WorkLineActions = { onOpenRun, onOpenTarget: t => onOpenTarget?.(t), canOpenTarget: canOpenTarget ?? (() => false) }
+  const workActions: WorkLineActions = { onOpenRun, onOpenTarget: t => onOpenTarget?.(t), canOpenTarget: canOpenTarget ?? (() => false), skillLabel }
   const total = {
     inputTokens: sessionData?.totalInputTokens ?? 0,
     outputTokens: sessionData?.totalOutputTokens ?? 0,

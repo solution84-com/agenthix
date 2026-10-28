@@ -12,6 +12,8 @@ import { publisherNameProblem, suggestedPublisherName } from '../publisherNames'
 import { canonicalSigner, describeSigner, trustedPublisherRecord } from '../signing/signer'
 import type { SignatureVerifier, TrustedPublisherRecord, VerifyOutcome } from '../signing/types'
 import { validateSkill } from '../validation'
+import { validateTemplate } from './templateFiles'
+import { validateTeamTemplate } from './teamTemplateFile'
 import { decide, type Decision } from './decide'
 import { findExisting } from './lookup'
 import { readParts, type PackagePart, type PackageParts } from './parts'
@@ -25,10 +27,13 @@ const NOTHING = 'Nothing was changed.'
 function validationOf(parts: PackageParts): { errors: string[]; warnings: string[] } {
   const skills: PackagePart[] = parts.kind === 'skill' ? [parts] : parts.embedded
   const results = skills.map(s => {
-    const v = validateSkill(s.name, s.files)
+    // A role skill runs under its own last part (`template/skill` stages as `skill`), so that part is what is checked.
+    const v = validateSkill(s.name.slice(s.name.lastIndexOf('/') + 1), s.files)
     const prefix = parts.kind === 'skill' ? '' : `${s.name}: `
     return { errors: v.errors.map(e => prefix + e), warnings: v.warnings.map(w => prefix + w) }
   })
+  if (parts.kind === 'agent' || parts.kind === 'board') results.unshift(validateTemplate(parts.kind, parts.files))
+  if (parts.kind === 'team') results.unshift(validateTeamTemplate(parts.files))
   return { errors: results.flatMap(r => r.errors), warnings: results.flatMap(r => r.warnings) }
 }
 
@@ -61,9 +66,28 @@ async function newSignerPublisher(d: Decision, db: Db, organisation: string | nu
   return { publisher: name, fixed: false, refusal: null }
 }
 
+type OrgSettings = { unsignedAssetsAllowed: boolean; outsideInstallers: 'ADMINS' | 'ADMINS_AND_MAINTAINERS'; publisherName: string | null } | null
+
+async function orgSettings(db: Db): Promise<OrgSettings> {
+  return db.org.findFirst({ select: { unsignedAssetsAllowed: true, outsideInstallers: true, publisherName: true } })
+}
+
 export async function previewInstall(arrival: Arrival, actor: Actor, deps: PipelineDeps): Promise<InstallPreview> {
-  const org = await deps.db.org.findFirst({ select: { unsignedAssetsAllowed: true, outsideInstallers: true, publisherName: true } })
+  const org = await orgSettings(deps.db)
   assertMay(actor, arrival.source === 'image' ? 'install' : 'installFromOutside', { level: 'organisation', outsideInstallers: org?.outsideInstallers ?? 'ADMINS' })
+  return planArrival(arrival, deps, org)
+}
+
+/**
+ * Agenthix's own templates in hq's image, installed by hq itself at boot (`templates/imageTemplates.ts`): the same
+ * plan with no person, so no policy. Only the image may be planned this way; it is trusted by where it is (adr-0117).
+ */
+export async function previewImageInstall(arrival: Arrival, deps: PipelineDeps): Promise<InstallPreview> {
+  if (arrival.source !== 'image') throw new Error('Only a package from hq\'s image is installed without a person.')
+  return planArrival(arrival, deps, await orgSettings(deps.db))
+}
+
+async function planArrival(arrival: Arrival, deps: PipelineDeps, org: OrgSettings): Promise<InstallPreview> {
   const parts = readParts(arrival.arrived)
   const fingerprint = fingerprintOf(parts.files)
   const { errors, warnings } = validationOf(parts)
@@ -82,7 +106,7 @@ export async function previewInstall(arrival: Arrival, actor: Actor, deps: Pipel
     fixed = chosen.fixed
   }
   if (!refusal && decision.state === 'unsigned' && org && !org.unsignedAssetsAllowed) {
-    refusal = `Your organisation doesn't allow unsigned skills. An administrator can allow them in the organisation's settings. ${NOTHING}`
+    refusal = `Your organisation doesn't allow unsigned packages. An administrator can allow them in the organisation's settings. ${NOTHING}`
   }
   if (!refusal && errors.length) refusal = `This can't be installed: ${errors.slice(0, 3).join(' ')} ${NOTHING}`
 

@@ -14,10 +14,10 @@ beforeEach(() => {
 const F = 'a'.repeat(64)
 const result: StagingResult = {
   staged: [
-    { source: 'platform', slug: 'plan', name: 'platform-plan', fingerprint: F },
-    { source: 'org', slug: 'review', name: 'org-review', fingerprint: F, identity: 'acme/review', version: '1.2.0' },
-    { source: 'shared', slug: 'team', name: 'shared-team', fingerprint: F, placeId: 'p1', path: '.agents/skills/team' },
-    { source: 'person', slug: 'notes', name: 'person-notes', fingerprint: F, identity: 'u1/notes', version: '1.0.0', personId: 'u1' },
+    { source: 'platform', slug: 'plan', name: 'platform-plan', fingerprint: F, userInvocable: true, modelInvocable: true },
+    { source: 'org', slug: 'review', name: 'org-review', fingerprint: F, userInvocable: true, modelInvocable: true, identity: 'acme/review', version: '1.2.0' },
+    { source: 'shared', slug: 'team', name: 'shared-team', fingerprint: F, userInvocable: true, modelInvocable: true, placeId: 'p1', path: '.agents/skills/team' },
+    { source: 'person', slug: 'notes', name: 'person-notes', fingerprint: F, userInvocable: true, modelInvocable: true, identity: 'u1/notes', version: '1.0.0', personId: 'u1' },
   ],
   refused: [
     { source: 'shared', name: 'shared-old', fingerprint: F, origin: { placeId: 'p1', path: '.agents/skills/old' }, reason: 'it has changed since it was switched on' },

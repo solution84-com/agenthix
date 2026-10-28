@@ -11,6 +11,8 @@ vi.mock('../../../../../../ui/node_modules/lucide-react/dist/esm/lucide-react.mj
 vi.mock('../../../../../../ui/node_modules/lucide-react/dist/cjs/lucide-react.js', async () => await import('lucide-react'))
 
 const h = vi.hoisted(() => ({ useQuery: vi.fn(), navigate: vi.fn() }))
+// A used skill's line is hq's to give (useSessionSkillLines.test.ts); none here.
+vi.mock('../../ChatPanel/useSessionSkillLines', () => ({ useSessionSkillLines: () => () => null }))
 vi.mock('wasp/client/operations', () => ({ useQuery: h.useQuery, getActivitySession: 'getActivitySession' }))
 vi.mock('wasp/client/webSocket', () => ({ useSocket: () => ({ socket: null, isConnected: false }) }))
 vi.mock('react-router', () => ({ useNavigate: () => h.navigate }))

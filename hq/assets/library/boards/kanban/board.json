@@ -1,0 +1,33 @@
+{
+  "name": "Kanban",
+  "description": "Simple general-purpose board for continuous flow work.",
+  "columns": [
+    {
+      "name": "todo",
+      "label": "To Do",
+      "status": "TODO",
+      "color": "#6b7280",
+      "order": 0,
+      "description": "Work that has not started yet.",
+      "hint": "Move here when a task is defined and ready to be picked up."
+    },
+    {
+      "name": "in_progress",
+      "label": "In Progress",
+      "status": "IN_PROGRESS",
+      "color": "#f59e0b",
+      "order": 1,
+      "description": "Work actively being done right now.",
+      "hint": "Move here as soon as you begin working on the task."
+    },
+    {
+      "name": "done",
+      "label": "Done",
+      "status": "DONE",
+      "color": "#10b981",
+      "order": 2,
+      "description": "Completed and verified work.",
+      "hint": "Move here only when the task is fully complete and verified."
+    }
+  ]
+}

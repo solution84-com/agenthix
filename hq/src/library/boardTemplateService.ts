@@ -1,148 +1,162 @@
 /**
- * Board Template Service
- * ======================
- * CRUD for BoardTemplate records. Columns live in JSON files on disk;
- * DB records store only metadata + assetPath.
+ * Board templates as Library assets (adr-0157): `board` assets whose pinned version holds `board.json`. Agenthix's
+ * come from hq's image (`assets/templates/imageTemplates.ts`); the organisation's own are made here, under its
+ * publisher name, as version 1.0.0 and then each next minor version, with history. A board made from one copies its
+ * columns and keeps a read-only link to that version (adr-0072): it never follows the template.
  *
- * System templates: assetPath resolved via getHqAssetsRoot() (read-only)
- * Org templates:    assetPath resolved via getHqStorageRoot() (hq's own storage)
- *
- * assetPath already carries its own root-relative prefix (`org/boards/<id>.json`
- * for an org template, `library/boards/<id>.json` for a system one), so both
- * branches join it straight onto their root rather than re-deriving a filename
- * — the same idiom skillsLibraryService.ts uses for its own assetPath.
- * getBoardTemplatesDir() (hqStoragePaths.ts) holds the bare directory an org
- * template's assetPath resolves under.
+ * Today's screen has no drafts, so each save publishes the next version directly; another publisher's template is not
+ * edited here (editing it makes the organisation's own copy, which the asset's page offers).
  */
 import { prisma } from 'wasp/server'
-import path from 'node:path'
-import fs from 'node:fs/promises'
-import { randomUUID } from 'node:crypto'
-import { getHqStorageRoot } from '../server/hqStoragePaths'
-import { resolveHqAssetPath } from '../server/hqAssets'
+import { formatAssetIdentity, parseSemVer } from '@agenthix/core'
+import type { PackageFile } from './packages/packageZip'
+import { storeContent } from '../assets/content'
+import { organisationPublisher } from '../assets/organisationPublisher'
+import { slugOf } from '../assets/publisherNames'
+import { BOARD_FILE, readBoardTemplate, TemplateFileError, type BoardTemplateColumn } from '../assets/install/templateFiles'
+import { findTemplate, listTemplates, templateFiles, type TemplateAsset } from '../assets/templates/templateAssets'
+import type { Db } from '../packages/packageStore'
 
-export interface BoardTemplateColumn {
-  name: string        // slug, e.g. "in_review"
-  label: string       // display label, e.g. "In Review"
-  status: 'TODO' | 'IN_PROGRESS' | 'DONE'
-  color: string       // hex, e.g. "#a855f7"
-  order: number
-  description: string // agent-readable semantic description
-  hint?: string       // transition hint: "move here when X"
-  autoQueue?: boolean
-}
+export type { BoardTemplateColumn }
+
+const NOTHING = 'Nothing was changed.'
+const FIRST_VERSION = '1.0.0'
 
 export class TemplateValidationError extends Error {
-  constructor(message: string) {
+  constructor(message: string, readonly status: 400 | 403 | 404 | 409 = 400) {
     super(message)
     this.name = 'TemplateValidationError'
   }
 }
 
-function validateColumns(columns: BoardTemplateColumn[]) {
-  if (columns.some(c => c.name.toLowerCase() === 'backlog')) {
-    throw new TemplateValidationError('Every board has a Backlog already; name the column something else')
-  }
-  const statuses = new Set(columns.map(s => s.status))
-  const missing = (['TODO', 'IN_PROGRESS', 'DONE'] as const).filter(s => !statuses.has(s))
-  if (missing.length > 0) {
-    throw new TemplateValidationError(
-      `Template must have at least one column for each status: missing ${missing.join(', ')}`
-    )
+export type BoardTemplateSummary = {
+  id: string
+  identity: string
+  name: string
+  description: string
+  version: string
+  publisher: string
+  /** Agenthix's, from hq's image: read-only here. */
+  isSystem: boolean
+}
+
+async function boardFile(db: Db, t: TemplateAsset) {
+  return readBoardTemplate(await templateFiles(db, t))
+}
+
+function summary(t: TemplateAsset, file: { name: string; description: string }): BoardTemplateSummary {
+  return {
+    id: t.id, identity: formatAssetIdentity(t), name: file.name, description: file.description,
+    version: t.currentVersion.version, publisher: t.publisher, isSystem: t.currentVersion.source === 'BUILT_IN',
   }
 }
 
-export function parseBoardTemplateColumns(raw: unknown): BoardTemplateColumn[] {
-  try {
-    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-    if (!Array.isArray(parsed)) return []
-    return parsed as BoardTemplateColumn[]
-  } catch {
-    return []
+export async function listBoardTemplates(db: Db = prisma): Promise<BoardTemplateSummary[]> {
+  const out: BoardTemplateSummary[] = []
+  for (const t of await listTemplates(db, 'BOARD')) {
+    try {
+      out.push(summary(t, await boardFile(db, t)))
+    } catch {
+      continue
+    }
   }
+  return out.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export async function getBoardTemplate(ref: string, db: Db = prisma) {
+  const t = await findTemplate(db, 'BOARD', ref)
+  if (!t) return null
+  const file = await boardFile(db, t)
+  return { ...summary(t, file), columns: file.columns }
 }
 
 /**
- * Read columns from a board template's assetPath.
- * Returns [] if the file cannot be read.
+ * What a board made from a template starts with: the template's columns at its pinned version, and that version's
+ * id to keep. Null for a template that isn't in the Library, so the board starts with the default columns.
  */
-export async function readBoardColumns(
-  assetPath: string,
-  isSystem: boolean,
-): Promise<BoardTemplateColumn[]> {
-  const filePath = isSystem ? resolveHqAssetPath(assetPath) : path.join(getHqStorageRoot(), assetPath)
+export async function boardTemplateColumns(ref: string | undefined | null, db: Db = prisma): Promise<{ madeFromVersionId: string; columns: BoardTemplateColumn[] } | null> {
+  if (!ref) return null
+  const t = await findTemplate(db, 'BOARD', ref)
+  if (!t) return null
   try {
-    const raw = await fs.readFile(filePath, 'utf-8')
-    const data = JSON.parse(raw)
-    return Array.isArray(data.columns) ? data.columns : []
+    return { madeFromVersionId: t.currentVersion.id, columns: (await boardFile(db, t)).columns }
   } catch {
-    return []
+    return null
   }
 }
 
-export async function listBoardTemplates() {
-  return prisma.boardTemplate.findMany({ orderBy: { createdAt: 'asc' } })
+function boardFiles(input: { name: string; description: string; columns: unknown[] }): PackageFile[] {
+  const raw = { name: input.name, description: input.description, columns: input.columns.map((c, order) => ({ ...(c as object), order })) }
+  const files = [{ path: BOARD_FILE, content: Buffer.from(JSON.stringify(raw, null, 2) + '\n', 'utf-8') }]
+  try {
+    readBoardTemplate(files)
+  } catch (err) {
+    if (err instanceof TemplateFileError) throw new TemplateValidationError(`${err.message} ${NOTHING}`)
+    throw err
+  }
+  return files
 }
 
-export async function getBoardTemplate(id: string) {
-  const tpl = await prisma.boardTemplate.findUnique({ where: { id } })
-  if (!tpl) return null
-  const columns = await readBoardColumns(tpl.assetPath, tpl.isSystem)
-  return { ...tpl, columns }
-}
-
-export async function createBoardTemplate(params: {
-  name: string
-  description?: string
-  columns: BoardTemplateColumn[]
-}) {
-  validateColumns(params.columns)
-  const numbered = params.columns.map((s, i) => ({ ...s, order: i }))
-  const id = randomUUID()
-  const assetPath = `org/boards/${id}.json`
-  const filePath = path.join(getHqStorageRoot(), assetPath)
-  await fs.mkdir(path.dirname(filePath), { recursive: true })
-  await fs.writeFile(filePath, JSON.stringify({ id, name: params.name, description: params.description ?? '', columns: numbered }, null, 2), 'utf-8')
-  return prisma.boardTemplate.create({
-    data: { id, name: params.name, description: params.description ?? '', assetPath, isSystem: false },
+export async function createBoardTemplate(
+  params: { name: string; description?: string; columns: unknown[]; byId: string },
+  db = prisma,
+): Promise<BoardTemplateSummary> {
+  const files = boardFiles({ name: params.name ?? '', description: params.description ?? '', columns: params.columns ?? [] })
+  const publisher = await organisationPublisher(db)
+  const name = slugOf(params.name).slice(0, 64).replace(/-+$/, '') || 'board'
+  const taken = await db.asset.findUnique({ where: { kind_publisher_name: { kind: 'BOARD', publisher, name } }, select: { id: true } })
+  if (taken) throw new TemplateValidationError(`The Library already has a board template called ${name}. Choose another name. ${NOTHING}`, 409)
+  const id = await db.$transaction(async tx => {
+    const asset = await tx.asset.create({ data: { kind: 'BOARD', publisher, name } })
+    const version = await tx.assetVersion.create({
+      data: { assetId: asset.id, version: FIRST_VERSION, digest: await storeContent(files, tx), source: 'MADE_HERE', byId: params.byId, note: 'Made here' },
+    })
+    await tx.asset.update({ where: { id: asset.id }, data: { currentVersionId: version.id } })
+    await tx.assetPinChange.create({ data: { assetId: asset.id, toVersionId: version.id, byId: params.byId, reason: 'Published' } })
+    return asset.id
   })
+  return (await getBoardTemplate(id, db))!
 }
 
-export async function updateBoardTemplate(params: {
-  id: string
-  name?: string
-  description?: string
-  columns?: BoardTemplateColumn[]
-}) {
-  const { id, columns, ...rest } = params
-  const existing = await prisma.boardTemplate.findUnique({ where: { id } })
-  if (!existing) throw new TemplateValidationError('Template not found.')
-  if (existing.isSystem) throw new TemplateValidationError('System templates cannot be modified.')
-  if (columns !== undefined) validateColumns(columns)
-  const numbered = columns?.map((s, i) => ({ ...s, order: i }))
-
-  // Keep the on-disk JSON in sync with the DB for any field that lives in both
-  // (F-031). A name/description-only edit still has to be written to disk —
-  // previously the file was only updated when columns changed, causing DB/file
-  // drift.
-  if (numbered !== undefined || rest.name !== undefined || rest.description !== undefined) {
-    const filePath = path.join(getHqStorageRoot(), existing.assetPath)
-    const current = await fs.readFile(filePath, 'utf-8').then(JSON.parse).catch(() => ({}))
-    const next = { ...current }
-    if (rest.name !== undefined) next.name = rest.name
-    if (rest.description !== undefined) next.description = rest.description
-    if (numbered !== undefined) next.columns = numbered
-    await fs.writeFile(filePath, JSON.stringify(next, null, 2), 'utf-8')
+async function ownTemplate(db: Db, id: string): Promise<TemplateAsset> {
+  const t = await findTemplate(db, 'BOARD', id)
+  if (!t) throw new TemplateValidationError(`That board template isn't in the Library. ${NOTHING}`, 404)
+  if (t.publisher !== (await organisationPublisher(db))) {
+    throw new TemplateValidationError(`${formatAssetIdentity(t)} is published by ${t.publisher}, so it can't be changed here. ${NOTHING}`, 409)
   }
-
-  return prisma.boardTemplate.update({ where: { id }, data: rest })
+  return t
 }
 
-export async function deleteBoardTemplate(id: string) {
-  const existing = await prisma.boardTemplate.findUnique({ where: { id } })
-  if (!existing) return
-  if (existing.isSystem) throw new TemplateValidationError('System templates cannot be deleted.')
-  const filePath = path.join(getHqStorageRoot(), existing.assetPath)
-  await fs.rm(filePath, { force: true })
-  return prisma.boardTemplate.delete({ where: { id } })
+function nextVersion(version: string): string {
+  const v = parseSemVer(version)
+  return v ? `${v.major}.${v.minor + 1}.0` : FIRST_VERSION
+}
+
+export async function updateBoardTemplate(
+  params: { id: string; name?: string; description?: string; columns?: unknown[]; byId: string },
+  db = prisma,
+): Promise<BoardTemplateSummary> {
+  const t = await ownTemplate(db, params.id)
+  const current = await boardFile(db, t)
+  const files = boardFiles({
+    name: params.name ?? current.name, description: params.description ?? current.description, columns: params.columns ?? current.columns,
+  })
+  const from = t.currentVersion
+  await db.$transaction(async tx => {
+    const digest = await storeContent(files, tx)
+    if (digest === from.digest) return
+    const row = await tx.assetVersion.create({ data: { assetId: t.id, version: nextVersion(from.version), digest, source: 'MADE_HERE', byId: params.byId, note: 'Edited' } })
+    const { count } = await tx.asset.updateMany({ where: { id: t.id, currentVersionId: from.id }, data: { currentVersionId: row.id } })
+    if (count === 0) throw new TemplateValidationError(`Someone changed this board template at the same moment. Reload it and edit again. ${NOTHING}`, 409)
+    await tx.assetPinChange.create({ data: { assetId: t.id, fromVersionId: from.id, toVersionId: row.id, byId: params.byId, reason: 'Published' } })
+  })
+  return (await getBoardTemplate(t.id, db))!
+}
+
+/** Removed from the Library, its history kept; boards made from it keep their columns and their link. */
+export async function deleteBoardTemplate(id: string, byId: string, db = prisma): Promise<void> {
+  const t = await findTemplate(db, 'BOARD', id)
+  if (!t) return
+  if (t.currentVersion.source === 'BUILT_IN') throw new TemplateValidationError(`Agenthix's board templates can't be removed. ${NOTHING}`, 409)
+  await db.asset.update({ where: { id: t.id }, data: { removedAt: new Date(), removedById: byId } })
 }

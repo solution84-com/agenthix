@@ -114,7 +114,7 @@ describe('staging a turn', () => {
   })
 
   it('has no section when nothing was staged', async () => {
-    expect(await stageOpenCodeSkills(context(), 'conv-a')).toEqual({ skills: [], systemSection: null })
+    expect(await stageOpenCodeSkills(context(), 'conv-a')).toEqual({ skills: [], systemSection: null, invocable: [] })
   })
 
   it("says none are available when no staged skill has a description, as OpenCode does", () => {

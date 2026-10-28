@@ -41,6 +41,8 @@ export interface CreateAgentParams {
   settings?: AgentSettings
   /** Who wrote the first content; null for a system caller. */
   createdById?: string | null
+  /** Made from a template (adr-0157): the version it was made from, kept read-only, and the skills it carries, granted. */
+  madeFrom?: { versionId: string; skillAssetIds: string[] }
 }
 
 /** Identity. */
@@ -75,9 +77,16 @@ export async function createAgent(params: CreateAgentParams) {
         name: params.name,
         handle,
         role: params.role,
+        madeFromVersionId: params.madeFrom?.versionId ?? null,
         ...settings,
       },
     })
+    if (params.madeFrom?.skillAssetIds.length) {
+      await tx.assetGrant.createMany({
+        data: params.madeFrom.skillAssetIds.map(assetId => ({ assetId, agentId: created.id, grantedById: params.createdById ?? null })),
+        skipDuplicates: true,
+      })
+    }
     await writeAgentContent(created.id, content, params.createdById ?? null, tx)
     return created
   })

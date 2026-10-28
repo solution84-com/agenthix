@@ -1,337 +1,235 @@
 /**
- * Workforce Template Service (server-only)
- * =========================================
- *
- * Seed, query, and apply workforce templates.
- *
- * Templates are directory bundles in assets/library/workforce/<slug>/ and
- * seeded into the WorkforceTemplate table on startup. Each bundle contains
- * template.json (structure), agents/<handle>/agent.json (runtime config),
- * and a shared skills/ pool. readWorkforceContent() hydrates the full
- * AgentSpec tree from disk at query/apply time.
- *
- * Apply logic creates agents (with runtime config), teams, projects, and
- * boards based on caller-supplied selections (include flags + resolved handles).
+ * Team templates as Library assets (adr-0157): `team` assets whose pinned version holds `team.json`, each agent's
+ * `agent.json` and the skills they carry. Applying one makes the agents, teams, projects and boards a person chose on
+ * the review page. What it makes is its own (adr-0072): each team and agent keeps a read-only link to the template
+ * version it came from, and each agent has the skills the template carries for it, installed when the template is
+ * first used and granted rather than copied (D14, D23).
  *
  * ⚠ This file imports from wasp/server — do NOT import it in client code.
  *   Import types and utilities from workforceTemplateTypes instead.
  */
-import { prisma } from 'wasp/server'
-import path from 'node:path'
-import fs from 'node:fs/promises'
-import { getHqAssetsRoot } from '../server/hqAssets'
-import { builtIn } from './packages/builtIn'
-import { itemDir } from './packages/itemDir'
+import { HttpError, prisma } from 'wasp/server'
+import { formatAssetIdentity } from '@agenthix/core'
 import { createAgent, deleteAgent } from '../agents/agentService'
+import { INVALID_AGENT_HANDLE_MESSAGE, isValidAgentHandle } from '../agents/agentHandle'
 import { createProject, createBoard, deleteProject } from '../projects/projectService'
 import { findProjectStorageSite, removeProjectStorageOnSite } from '../projects/projectStorageRemoval'
 import { requireDefaultExecutionSiteId } from '../sites/localSite'
 import { defaultAgentSettings, type AgentSettings } from '../packages/agentPackageService'
-import type { PackageFileInput } from '../packages/packageStore'
 import { coerceToolPermissions, coerceBashPatternPermissions } from '../agents/toolPermissions'
+import { readTeamTemplate, type TeamTemplateAgent, type TeamTemplateFile } from '../assets/install/teamTemplateFile'
+import { TemplateFileError } from '../assets/install/templateFiles'
+import { installCarriedSkills } from '../assets/templates/carried'
+import { carriedSkillName, carriedSkills, findTemplate, listTemplates, templateFiles, type TemplateAsset } from '../assets/templates/templateAssets'
+import type { PackageFile } from './packages/packageZip'
+import { skillDescription, skillMdOf, skillTitle } from '../assets/skillFile'
+import { boardTemplateColumns } from './boardTemplateService'
+import type { WorkforceTemplateContent, ApplicationSelections, AgentSkillSpec } from './workforceTemplateTypes'
 
-// Re-export everything from the client-safe types module so server code can
-// import from a single place.
 export type {
-  AgentSkillSpec,
-  AgentSpec,
-  TeamSpec,
-  BoardSpec,
-  ProjectSpec,
-  WorkforceTemplateContent,
-  AgentSelection,
-  TeamSelection,
-  BoardSelection,
-  ProjectSelection,
-  ApplicationSelections,
+  AgentSkillSpec, AgentSpec, TeamSpec, BoardSpec, ProjectSpec, WorkforceTemplateContent,
+  AgentSelection, TeamSelection, BoardSelection, ProjectSelection, ApplicationSelections,
 } from './workforceTemplateTypes'
 export { suggestHandle, buildInitialSelections } from './workforceTemplateTypes'
 
-import type { WorkforceTemplateContent, ApplicationSelections, AgentSpec, AgentSkillSpec, ProjectSpec } from './workforceTemplateTypes'
+export type TeamTemplateSummary = {
+  /** The template's asset id. */
+  id: string
+  identity: string
+  name: string
+  description: string
+  tags: string[]
+  version: string
+  publisher: string
+}
 
-// ── Seeding ──────────────────────────────────────────────────────────────────
+type Read = { template: TemplateAsset; files: PackageFile[]; file: TeamTemplateFile }
 
-export async function ensureWorkforceTemplates(): Promise<void> {
-  const dir = path.join(getHqAssetsRoot(), 'library', 'workforce')
-  let names: string[]
-  try {
-    names = await fs.readdir(dir)
-  } catch {
-    // Assets directory not present (e.g. test environment) — skip silently
-    return
+async function readOne(template: TemplateAsset): Promise<Read> {
+  const files = await templateFiles(prisma, template)
+  return { template, files, file: readTeamTemplate(files) }
+}
+
+function summary({ template, file }: Read): TeamTemplateSummary {
+  return {
+    id: template.id, identity: formatAssetIdentity(template), name: file.name, description: file.description, tags: file.tags,
+    version: template.currentVersion.version, publisher: template.publisher,
   }
+}
 
-  const templateDirs = await Promise.all(
-    names.map(async (n) => {
-      const stat = await fs.stat(path.join(dir, n)).catch(() => null)
-      return stat?.isDirectory() ? n : null
-    })
-  ).then((results) => results.filter((n): n is string => n !== null))
-
-  for (const slug of templateDirs) {
-    const templateDir = path.join(dir, slug)
-    let data: Record<string, any>
+export async function listTeamTemplates(): Promise<TeamTemplateSummary[]> {
+  const out: TeamTemplateSummary[] = []
+  for (const t of await listTemplates(prisma, 'TEAM')) {
     try {
-      const raw = await fs.readFile(path.join(templateDir, 'template.json'), 'utf-8')
-      data = JSON.parse(raw)
+      out.push(summary(await readOne(t)))
     } catch {
-      continue // skip dirs without a valid template.json
-    }
-    const { id, name, description = '', tags = [], version = 1 } = data
-    const assetPath = `library/workforce/${slug}`
-
-    const existing = await prisma.workforceTemplate.findUnique({ where: { id } })
-    if (!existing) {
-      await prisma.workforceTemplate.create({ data: { id, name, description, tags, assetPath, isSystem: true, version, ...builtIn(version) } })
-    } else if (existing.version < version) {
-      await prisma.workforceTemplate.update({ where: { id }, data: { name, description, tags, assetPath, version, ...builtIn(version) } })
+      continue
     }
   }
+  return out.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/** A team template by its asset id, identity or name; null when the Library has none that can be read. */
+async function findTeamTemplate(ref: unknown): Promise<Read | null> {
+  const template = await findTemplate(prisma, 'TEAM', ref)
+  if (!template) return null
+  try {
+    return await readOne(template)
+  } catch (err) {
+    if (err instanceof TemplateFileError) return null
+    throw err
+  }
+}
+
+function skillSpec(files: PackageFile[], folder: string): AgentSkillSpec {
+  const md = skillMdOf(files.filter(f => f.path.startsWith(`skills/${folder}/`)).map(f => ({ path: f.path.slice(`skills/${folder}/`.length), content: f.content })))
+  return { slug: folder, name: skillTitle(md, folder), description: skillDescription(md) }
+}
+
+/** What the review page shows: the teams with their agents and the skills each brings, and the projects with their boards. */
+export function contentOf(files: PackageFile[], file: TeamTemplateFile): WorkforceTemplateContent {
+  return {
+    teams: file.teams.map(team => ({
+      name: team.name,
+      purpose: team.purpose,
+      agents: team.agents.map(handle => {
+        const a = file.agents[handle]
+        return {
+          handle, name: a.name, role: a.role, responsibilities: a.responsibilities, approval: a.approval,
+          allowedTools: a.allowedTools as WorkforceTemplateContent['teams'][number]['agents'][number]['allowedTools'],
+          allowedBashPatterns: a.allowedBashPatterns as WorkforceTemplateContent['teams'][number]['agents'][number]['allowedBashPatterns'],
+          skills: a.skills.map(s => skillSpec(files, s)),
+        }
+      }),
+    })),
+    projects: file.projects.map(p => ({
+      name: p.name, description: p.description || undefined, defaultAgentHandle: p.defaultAgentHandle ?? undefined,
+      boards: p.boards.map(b => ({ name: b.name, template: b.template })),
+    })),
+  }
+}
+
+export type TeamTemplateView = TeamTemplateSummary & { content: WorkforceTemplateContent }
+
+export async function getTeamTemplate(ref: unknown): Promise<TeamTemplateView | null> {
+  const read = await findTeamTemplate(ref)
+  return read && { ...summary(read), content: contentOf(read.files, read.file) }
 }
 
 /**
- * Read and hydrate a WorkforceTemplateContent from a bundle directory.
- * Reads template.json for structure, then loads each agent's config and skills from disk.
- * teams[].agents in template.json is string[] (handles); this expands them to AgentSpec[].
+ * Installing grants no capability (R10): a template from anywhere but hq's image can't make an agent whose tools all
+ * run with nobody asked. Its `bypassed` starts the agent on Deferred, which an administrator can change on its page.
  */
-export async function readWorkforceContent(template: { assetPath: string; isSystem: boolean }): Promise<WorkforceTemplateContent> {
-  // A built-in template lives in hq's assets; one imported into the library, in hq's own storage.
-  const templateDir = itemDir(template.assetPath, template.isSystem)
-  const raw = await fs.readFile(path.join(templateDir, 'template.json'), 'utf-8')
-  const { teams: teamSpecs, projects } = JSON.parse(raw) as {
-    teams: Array<{ name: string; purpose: string; agents: string[] }>
-    projects: ProjectSpec[]
+function settingsOf(agent: TeamTemplateAgent, fromImage: boolean): AgentSettings {
+  return {
+    ...defaultAgentSettings(),
+    approval: agent.approval === 'bypassed' && !fromImage ? 'deferred' : agent.approval,
+    permissions: {
+      tools: agent.allowedTools ? coerceToolPermissions(agent.allowedTools) : null,
+      bashPatterns: agent.allowedBashPatterns ? coerceBashPatternPermissions(agent.allowedBashPatterns) : null,
+    },
   }
-
-  const teams = await Promise.all(
-    teamSpecs.map(async (teamSpec) => {
-      const agents = await Promise.all(
-        teamSpec.agents.map(async (handle) => {
-          const agentDir = path.join(templateDir, 'agents', handle)
-          const agentData = JSON.parse(
-            await fs.readFile(path.join(agentDir, 'agent.json'), 'utf-8')
-          ) as Record<string, any>
-
-          const skills: AgentSkillSpec[] = await Promise.all(
-            (agentData.skills ?? []).map(async (slug: string) => {
-              const skillPath = path.join(templateDir, 'skills', slug, 'SKILL.md')
-              const skillRaw = await fs.readFile(skillPath, 'utf-8')
-              const fmMatch = skillRaw.match(/^---\n([\s\S]*?)\n---\n\n?([\s\S]*)$/)
-              let name = slug
-              let description = ''
-              let content = skillRaw
-              if (fmMatch) {
-                const fm = fmMatch[1]
-                content = fmMatch[2]
-                const nameMatch = fm.match(/^name:\s*(.+)$/m)
-                const descMatch = fm.match(/^description:\s*(.+)$/m)
-                if (nameMatch) name = nameMatch[1].trim()
-                if (descMatch) description = descMatch[1].trim()
-              }
-              return { slug, name, description, content }
-            })
-          )
-
-          return {
-            handle,
-            name: agentData.name,
-            role: agentData.role,
-            responsibilities: agentData.responsibilities,
-            approval: agentData.approval,
-            allowedTools: agentData.allowedTools,
-            allowedBashPatterns: agentData.allowedBashPatterns,
-            skills,
-          } as AgentSpec
-        })
-      )
-      return { name: teamSpec.name, purpose: teamSpec.purpose, agents }
-    })
-  )
-
-  return { teams, projects }
 }
-
-// ── Apply ─────────────────────────────────────────────────────────────────────
 
 export interface ApplyResult {
   agentCount: number
   teamCount: number
   projectCount: number
+  /** Skills the template carries that the Library no longer holds; the agents are made without them. */
+  missingSkills: string[]
+}
+
+/** Applies a team template named by its asset id, identity or name. */
+export async function applyTeamTemplate(ref: unknown, selections: ApplicationSelections, createdById: string | null): Promise<ApplyResult> {
+  const read = await findTeamTemplate(ref)
+  if (!read) throw new HttpError(404, `Team template '${String(ref).slice(0, 100)}' not found`)
+  // Checked before anything is installed: a handle the agents can't take refuses the whole template.
+  const handles = selections.teams.flatMap(t => (t.include ? t.agents : []).filter(a => a.include).map(a => a.resolvedHandle))
+  if (!handles.every(isValidAgentHandle)) throw new HttpError(400, `${INVALID_AGENT_HANDLE_MESSAGE}. Nothing was changed.`)
+  await installCarriedSkills(prisma, read.template, read.files, createdById)
+  return applyTemplate(read, selections, createdById)
 }
 
 /**
- * Creates all included agents, teams, projects, and boards.
+ * Creates every included agent, team, project and board.
  *
- * Atomicity (F-022): apply provisions across the DB *and* the filesystem
- * (agent/project workspaces), so a single `prisma.$transaction` cannot cover
- * it — the helper functions interleave their own DB writes with filesystem
- * work and do not accept a transaction client. Instead this uses a
- * compensating-transaction pattern: every entity created is recorded, and on
- * any failure the records are undone in reverse order via the existing delete
- * helpers, which clean up both the DB row and its workspace directory.
- * Skills are part of an agent's package content now (5b.12), not a separate
- * disk write, so rollback deletes agents, teams and projects and there is no
- * skill directory left to separately clean up. A package keys on `Agent.id`
- * as a plain string, not a foreign key, so nothing cascades to it — but
- * deleteAgent removes the agent's package itself, in the same transaction as
- * the row, so rollback leaves none behind. Cleanup is
- * best-effort — a failure mid-rollback is swallowed so the original error
- * still surfaces — but in the normal case nothing DB-visible is left partly
- * created.
+ * Atomicity (F-022): apply provisions across the database *and* the filesystem (project storage), so a single
+ * transaction cannot cover it. Every entity created is recorded, and on any failure the records are undone in reverse
+ * order through the delete helpers, which clean up both the row and its storage. Cleanup is best-effort: a failure
+ * mid-rollback is swallowed so the original error still surfaces.
  */
-export async function applyTemplate(
-  template: WorkforceTemplateContent,
-  selections: ApplicationSelections,
-  createdById: string | null,
-): Promise<ApplyResult> {
+async function applyTemplate({ template, files, file }: Read, selections: ApplicationSelections, createdById: string | null): Promise<ApplyResult> {
+  const versionId = template.currentVersion.id
+  const fromImage = template.currentVersion.source === 'BUILT_IN'
   const agentIdByResolvedHandle: Record<string, string> = {}
-  let agentCount = 0
-  let teamCount = 0
-  let projectCount = 0
-
-  // Undo log — populated as we go, replayed in reverse on failure.
-  const createdAgentIds: string[] = []
-  const createdTeamIds: string[] = []
-  const createdProjectIds: string[] = []
+  const missing = new Set<string>()
+  const created = { agents: [] as string[], teams: [] as string[], projects: [] as string[] }
 
   async function rollback() {
-    // Reverse order: projects (cascade their boards) → teams → agents.
-    for (const id of [...createdProjectIds].reverse()) {
+    for (const id of [...created.projects].reverse()) {
       // The site is read before the delete removes the row; the folder goes after it commits.
       const siteId = await findProjectStorageSite(id)
       await deleteProject(id).then(() => removeProjectStorageOnSite(id, siteId)).catch(() => {})
     }
-    for (const id of [...createdTeamIds].reverse()) {
-      await prisma.team.delete({ where: { id } }).catch(() => {})
-    }
-    for (const id of [...createdAgentIds].reverse()) {
-      await deleteAgent(id).catch(() => {})
-    }
+    for (const id of [...created.teams].reverse()) await prisma.team.delete({ where: { id } }).catch(() => {})
+    for (const id of [...created.agents].reverse()) await deleteAgent(id).catch(() => {})
   }
 
-  // Resolved before anything is written: with no site connected, a template
-  // that includes projects is refused whole rather than half-applied. A
-  // template with no projects needs no site.
-  const executionSiteId = selections.projects.some((p) => p.include)
-    ? await requireDefaultExecutionSiteId()
-    : undefined
+  // Resolved before anything is written: with no site connected, a template that includes projects is refused whole.
+  const executionSiteId = selections.projects.some(p => p.include) ? await requireDefaultExecutionSiteId() : undefined
 
   try {
-    // Step 1 — agents (must be created before teams reference their IDs)
     for (const teamSel of selections.teams) {
-      if (!teamSel.include) continue
-      const teamSpec = template.teams.find((t) => t.name === teamSel.name)
-      if (!teamSpec) continue
-
+      const team = file.teams.find(t => t.name === teamSel.name)
+      if (!teamSel.include || !team) continue
       for (const agentSel of teamSel.agents) {
-        if (!agentSel.include) continue
-        const agentSpec = teamSpec.agents.find((a) => a.handle === agentSel.handle)
-        if (!agentSpec) continue
-
-        const skillFiles: PackageFileInput[] = []
-        for (const skillSel of agentSel.skills) {
-          if (!skillSel.include) continue
-          const skillSpec = agentSpec.skills?.find((s) => s.slug === skillSel.slug)
-          if (!skillSpec) continue
-          const frontmatter = `---\nname: ${skillSpec.name}\ndescription: ${skillSpec.description}\n---\n\n`
-          skillFiles.push({ path: `skills/${skillSel.slug}/SKILL.md`, content: Buffer.from(frontmatter + skillSpec.content, 'utf-8') })
-        }
-
-        const base = defaultAgentSettings()
-        const settings: AgentSettings = agentSpec.approval || agentSpec.allowedTools
-          ? {
-              ...base,
-              approval: agentSpec.approval ?? 'deferred',
-              permissions: {
-                tools: agentSpec.allowedTools ? coerceToolPermissions(agentSpec.allowedTools) : null,
-                bashPatterns: agentSpec.allowedBashPatterns ? coerceBashPatternPermissions(agentSpec.allowedBashPatterns) : null,
-              },
-            }
-          : base
-
-        const agent = await createAgent({
-          name: agentSpec.name,
+        const agent = team.agents.includes(agentSel.handle) ? file.agents[agentSel.handle] : undefined
+        if (!agentSel.include || !agent) continue
+        const chosen = agent.skills.filter(s => agentSel.skills.some(sel => sel.slug === s && sel.include))
+        const skills = await carriedSkills(prisma, template, files, chosen.map(s => carriedSkillName(template, files, s)))
+        skills.missing.forEach(m => missing.add(m))
+        const made = await createAgent({
+          name: agent.name,
           handle: agentSel.resolvedHandle,
-          role: agentSpec.role,
-          responsibilities: agentSpec.responsibilities,
-          initialContent: { skillFiles },
-          settings,
+          role: agent.role || undefined,
+          responsibilities: agent.responsibilities || undefined,
+          initialContent: { skillFiles: [] },
+          settings: settingsOf(agent, fromImage),
           createdById,
+          madeFrom: { versionId, skillAssetIds: skills.assetIds },
         })
-        createdAgentIds.push(agent.id)
-        agentIdByResolvedHandle[agentSel.resolvedHandle] = agent.id
-        agentCount++
+        created.agents.push(made.id)
+        agentIdByResolvedHandle[agentSel.resolvedHandle] = made.id
       }
     }
 
-    // Step 2 — teams
     for (const teamSel of selections.teams) {
-      if (!teamSel.include) continue
-      const teamSpec = template.teams.find((t) => t.name === teamSel.name)
-      if (!teamSpec) continue
-
-      const agentIds = teamSel.agents
-        .filter((a) => a.include)
-        .map((a) => agentIdByResolvedHandle[a.resolvedHandle])
-        .filter((id): id is string => !!id)
-
-      const team = await prisma.team.create({
-        data: { name: teamSpec.name, purpose: teamSpec.purpose, createdBy: createdById, agents: { create: agentIds.map((agentId) => ({ agentId })) } },
+      const team = file.teams.find(t => t.name === teamSel.name)
+      if (!teamSel.include || !team) continue
+      const agentIds = teamSel.agents.filter(a => a.include).map(a => agentIdByResolvedHandle[a.resolvedHandle]).filter((id): id is string => !!id)
+      const row = await prisma.team.create({
+        data: { name: team.name, purpose: team.purpose, createdBy: createdById, madeFromVersionId: versionId, agents: { create: agentIds.map(agentId => ({ agentId })) } },
       })
-      createdTeamIds.push(team.id)
-      teamCount++
+      created.teams.push(row.id)
     }
 
-    // Step 3 — projects + boards
     for (const projectSel of selections.projects) {
-      if (!projectSel.include) continue
-      const projectSpec = template.projects.find((p) => p.name === projectSel.name)
-      if (!projectSpec) continue
-
-      const defaultAgentId = projectSel.defaultAgentHandle
-        ? agentIdByResolvedHandle[projectSel.defaultAgentHandle]
-        : undefined
-
-      const project = await createProject({
-        name: projectSpec.name,
-        description: projectSpec.description,
-        defaultAgentId,
-        executionSiteId,
-      })
-      createdProjectIds.push(project.id)
-      projectCount++
-
+      const spec = file.projects.find(p => p.name === projectSel.name)
+      if (!projectSel.include || !spec) continue
+      const defaultAgentId = projectSel.defaultAgentHandle ? agentIdByResolvedHandle[projectSel.defaultAgentHandle] : undefined
+      const project = await createProject({ name: spec.name, description: spec.description || undefined, defaultAgentId, executionSiteId })
+      created.projects.push(project.id)
       for (const boardSel of projectSel.boards) {
-        if (!boardSel.include) continue
-        const boardSpec = projectSpec.boards.find((b) => b.name === boardSel.name)
-        if (!boardSpec) continue
-
-        // Look up the board template's columns so the board is created with the
-        // correct column configuration (createBoard does not do this itself).
-        let resolvedColumns: any[] | undefined
-        let resolvedTemplateId: string | undefined = boardSpec.templateId
-        if (boardSpec.templateId) {
-          const tpl = await prisma.boardTemplate.findUnique({ where: { id: boardSpec.templateId } })
-          if (tpl) {
-            const { readBoardColumns } = await import('./boardTemplateService')
-            resolvedColumns = await readBoardColumns(tpl.assetPath, tpl.isSystem)
-          } else {
-            resolvedTemplateId = undefined
-          }
-        }
-
-        // Boards are cleaned up with their project (deleteProject cascades
-        // boards), so they need no separate undo-log entry.
-        await createBoard({
-          projectId: project.id,
-          name: boardSpec.name,
-          templateId: resolvedTemplateId,
-          columns: resolvedColumns,
-        })
+        const board = spec.boards.find(b => b.name === boardSel.name)
+        if (!boardSel.include || !board) continue
+        // A board template the Library doesn't hold starts the board on the default columns.
+        const from = await boardTemplateColumns(board.template)
+        // Boards are removed with their project, so they need no undo entry of their own.
+        await createBoard({ projectId: project.id, name: board.name, madeFromVersionId: from?.madeFromVersionId, columns: from?.columns })
       }
     }
 
-    return { agentCount, teamCount, projectCount }
+    return { agentCount: created.agents.length, teamCount: created.teams.length, projectCount: created.projects.length, missingSkills: [...missing].sort() }
   } catch (err) {
     await rollback()
     throw err
