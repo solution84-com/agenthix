@@ -28,6 +28,8 @@ import { answerRequest } from '../../../conversations/work/toolCalls/answer'
 import { sealText } from '../../../conversations/sealing'
 import { createSkillDraft, publishAssetDraft, saveAssetDraft } from '../../lifecycle/operations'
 import { installAsset, previewAssetInstall } from '../../operations'
+import { fingerprintOf, readContent } from '../../content'
+import { withSkillMetadata } from '../../places/metadata'
 import { installPackage } from '../../install/commit'
 import { previewInstall } from '../../install/preview'
 import { personActor } from '../../policyActors'
@@ -92,7 +94,9 @@ describe('an agent\'s publish @D31', () => {
     const { operationId } = await requestAssetChange(requester(), { kind: 'publish', assetId, revision: 1, note: 'Clearer steps', bump: 'patch' })
     await approve(operationId)
     const asset = await prisma.asset.findUniqueOrThrow({ where: { id: assetId }, include: { currentVersion: true, draft: true } })
-    expect(asset.currentVersion).toMatchObject({ version: '1.0.1', digest: draft.digest, note: 'Clearer steps', byId: person.id, requestedByAgentId: agent.id })
+    expect(asset.currentVersion).toMatchObject({ version: '1.0.1', note: 'Clearer steps', byId: person.id, requestedByAgentId: agent.id })
+    // The named revision's files, with the version publishing writes into SKILL.md.
+    expect(asset.currentVersion!.digest).toBe(fingerprintOf(withSkillMetadata(await readContent(draft.digest, prisma), { version: '1.0.1' })))
     expect(asset.draft).toBeNull()
     const pin = await prisma.assetPinChange.findFirstOrThrow({ where: { assetId, toVersionId: asset.currentVersionId! } })
     expect(pin).toMatchObject({ byId: person.id, requestedByAgentId: agent.id })

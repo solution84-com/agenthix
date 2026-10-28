@@ -16,10 +16,12 @@ vi.mock('wasp/server', async () => {
 import { installAsset, previewAssetInstall } from '../../operations'
 import {
   addAssetCredit, addAssetToAgents, createSkillDraft, discardAssetDraft, editLibraryAsset, getAssetCopyNews, getAssetCredit,
-  getAssetDraft, publishAssetDraft, saveAssetDraft, switchToOriginalAsset, switchToOwnCopy,
+  getAssetDraft, publishAssetDraft, removeLibraryAsset, saveAssetDraft, switchToOriginalAsset, switchToOwnCopy,
 } from '../operations'
 import { contextWithRole, useTempRoots, type TempRoots } from '../../../agents/__tests__/definitionFixtures'
 import { createAgent } from '../../../test/factories'
+import { fingerprintOf, readContent } from '../../content'
+import { skillMdOf, skillMdVersion } from '../../skillFile'
 
 let roots: TempRoots
 beforeEach(async () => {
@@ -56,6 +58,25 @@ describe('New skill, drafts and publishing', () => {
     const asset = await prisma.asset.findUniqueOrThrow({ where: { id: made.assetId }, include: { currentVersion: true, draft: true } })
     expect(asset.currentVersion).toMatchObject({ version: '1.0.0', source: 'MADE_HERE', note: 'First', byId: user.id })
     expect(asset.draft).toBeNull()
+  })
+
+  it('writes the version it makes into SKILL.md before the fingerprint, so the stored files say what the record says', async () => {
+    const { ctx } = await contextWithRole('ADMIN')
+    const { assetId } = await createSkillDraft({ name: 'release-notes', description: 'Writes release notes' }, ctx)
+    await publishAssetDraft({ assetId, revision: 1, note: 'First' }, ctx)
+    await saveAssetDraft({ assetId, files: [{ path: 'SKILL.md', text: '---\nname: release-notes\ndescription: Notes\nversion: 2\n---\nBody\n' }], revision: null }, ctx)
+    await publishAssetDraft({ assetId, revision: 1, note: 'Second', bump: 'major' }, ctx)
+
+    for (const row of await prisma.assetVersion.findMany({ where: { assetId } })) {
+      const stored = await readContent(row.digest, prisma)
+      expect(fingerprintOf(stored)).toBe(row.digest)
+      expect(skillMdVersion(skillMdOf(stored))).toBe(row.version)
+    }
+    const newest = await prisma.asset.findUniqueOrThrow({ where: { id: assetId }, include: { currentVersion: true } })
+    expect(newest.currentVersion!.version).toBe('2.0.0')
+    const md = (await readContent(newest.currentVersion!.digest, prisma)).find(f => f.path === 'SKILL.md')!.content.toString()
+    expect(md).toContain('version: 2.0.0')
+    expect(await prisma.packageContent.count({ where: { digest: newest.currentVersion!.digest, releasedAt: null } })).toBe(1)
   })
 
   it('keeps one shared draft, each revision with its author, and publishes only the revision the publisher saw', async () => {
@@ -122,6 +143,23 @@ describe("editing another publisher's skill", () => {
     expect(await prisma.assetGrant.findMany({ where: { agentId: ada.id } })).toMatchObject([{ assetId: original.assetId }])
     await switchToOwnCopy({ assetId: copy.assetId }, ctx)
     expect(await prisma.assetGrant.findMany({ where: { agentId: ada.id } })).toMatchObject([{ assetId: copy.assetId }])
+  })
+
+  it('removing the copy in use gives its agents the original back, never leaving the original set aside', async () => {
+    const { ctx } = await contextWithRole('ADMIN')
+    const original = await install(await upload('1.3.0'), ctx)
+    const ada = await createAgent({ name: 'Ada' })
+    await addAssetToAgents({ assetId: original.assetId, agentIds: [ada.id] }, ctx)
+    const copy = await editLibraryAsset({ assetId: original.assetId }, ctx)
+    await saveAssetDraft({ assetId: copy.assetId, files: files('code-review', 'Our way.'), revision: null }, ctx)
+    await publishAssetDraft({ assetId: copy.assetId, revision: 1, note: 'Our way' }, ctx)
+
+    const asked = await removeLibraryAsset({ assetId: copy.assetId }, ctx)
+    expect(asked).toMatchObject({ removed: false })
+    expect((asked as { confirm: string }).confirm).toContain('unsigned/code-review goes back to them')
+    await expect(removeLibraryAsset({ assetId: copy.assetId, confirmed: true }, ctx)).resolves.toEqual({ removed: true })
+    expect(await prisma.assetGrant.findMany({ where: { agentId: ada.id } })).toMatchObject([{ assetId: original.assetId }])
+    expect(await prisma.asset.findUniqueOrThrow({ where: { id: original.assetId! } })).toMatchObject({ setAsideById: null, removedAt: null })
   })
 
   it('shows a newer original as news with what changed, never merged', async () => {

@@ -10,16 +10,17 @@ import { SPACE_PATH } from '../../../chat/chatPlacePaths'
 import { useAct } from './useAct'
 import { newPlaceSkillPath } from './placeSkillRoutes'
 import {
-  DEFAULT_WORDS, countsLine, groupFolders, groupSkills, pageCounts, skillTitle,
+  countsLine, groupFolders, groupSkills, pageCounts, skillTitle,
   type PlaceSkillsData, type PlaceSkillView, type SkillGroup,
 } from './placeSkillsModel'
 import { PlaceSkillRow, type RowHandlers } from './PlaceSkillRow'
 import { SkillFilesDialog, type FilesMode } from './SkillFilesDialog'
 import { SkillHistoryDialog } from './SkillHistoryDialog'
-import { PlaceDefaultDialog } from './PlaceDefaultDialog'
+import { PlaceDefaultSetting } from './PlaceDefaultSetting'
 import { ConfirmRemove, ConfirmSwitchAll } from './PlaceSkillConfirms'
 import { AddToPlaceDialog } from './AddToPlaceDialog'
 import { LibraryUpdateDialog } from './LibraryUpdateDialog'
+import { ProjectProposalsWaiting } from '../review/ProposalsWaiting'
 import { WhereLine, YoursBanner, YoursInProject, type YoursView } from './YoursGroup'
 
 export type SkillsPlace = {
@@ -33,7 +34,6 @@ export type SkillsPlace = {
 type Dialog =
   | { kind: 'files'; skill: PlaceSkillView; mode: FilesMode }
   | { kind: 'history'; skill: PlaceSkillView }
-  | { kind: 'default' }
   | { kind: 'add' }
   | { kind: 'confirmAll'; on: boolean; group?: SkillGroup }
   | { kind: 'remove'; skill: PlaceSkillView }
@@ -114,7 +114,7 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
     onChanges: (s) => setDialog({ kind: 'files', skill: s, mode: { kind: 'changes' } }),
     onPublish: (s) => setDialog({
       kind: 'files', skill: s,
-      mode: { kind: 'publish', version: (s.newestVersion ?? 0) + 1, confirm: (fingerprint) => publishPlaceSkillFiles({ placeSkillId: s.id, fingerprint }) },
+      mode: { kind: 'publish', version: (s.newestVersion ?? 0) + 1, confirm: (fingerprint, note) => publishPlaceSkillFiles({ placeSkillId: s.id, fingerprint, note }) },
     }),
     onPutBack: (s) => setDialog({
       kind: 'files', skill: s,
@@ -125,8 +125,6 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
     onUpdate: (s) => setDialog({ kind: 'update', skill: s }),
   }
 
-  const defaultWord = DEFAULT_WORDS[effective].title
-  const stricter = view.defaults.placeDefault && view.defaults.effective === view.defaults.placeDefault && view.defaults.placeDefault !== view.defaults.orgDefault
   const canAct = view.may.settings
 
   return (
@@ -145,18 +143,14 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
         </div>
       </header>
 
+      {!isSpace && <ProjectProposalsWaiting projectId={projectId} />}
       {isSpace && yours && <div className="mt-3"><YoursBanner outside={yours.outsideYourSpace} /></div>}
       <p className="mt-3 text-small text-text-muted">
         {isSpace
           ? 'You edit, publish and switch these skills: Your space is yours.'
           : 'Anyone who can write the project\'s files edits these skills. The project\'s administrators publish and switch them. Viewers read.'}
       </p>
-      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 text-small text-text-secondary" data-testid="place-default-line">
-        <strong className="text-text-primary">{defaultWord}</strong>
-        <span>{stricter ? "for this place · the organisation's is " + DEFAULT_WORDS[view.defaults.orgDefault].title.toLowerCase() : "set by the organisation"}</span>
-        {canAct && <button type="button" className="text-accent hover:text-accent-hover" onClick={() => setDialog({ kind: 'default' })}>Change</button>}
-      </div>
-      <p className="text-small text-text-muted">{DEFAULT_WORDS[effective].says}</p>
+      <PlaceDefaultSetting projectId={projectId} effective={effective} org={view.defaults.orgDefault} placeDefault={view.defaults.placeDefault} canChange={canAct} />
 
       {actError && <p role="alert" className="mt-2 text-small text-danger">{actError} <button type="button" className="underline" onClick={clear}>Dismiss</button></p>}
       {scanNote && <p role="status" className="mt-2 text-small text-text-muted">{scanNote}</p>}
@@ -201,9 +195,6 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
       )}
       {dialog?.kind === 'history' && (
         <SkillHistoryDialog placeSkillId={dialog.skill.id} name={skillTitle(dialog.skill)} mayRollBack={view.may.rollBack} onClose={() => setDialog(null)} />
-      )}
-      {dialog?.kind === 'default' && (
-        <PlaceDefaultDialog projectId={projectId} placeName={place.name} current={effective} org={view.defaults.orgDefault} onClose={() => setDialog(null)} />
       )}
       {dialog?.kind === 'add' && <AddToPlaceDialog projectId={projectId} placeName={place.name} agents={place.agents} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'confirmAll' && (

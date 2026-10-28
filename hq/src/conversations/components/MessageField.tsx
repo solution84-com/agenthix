@@ -1,4 +1,5 @@
 import { useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type Ref } from 'react'
+import { markSkill } from './atPicker/skillMark'
 import { DraftChip } from '../../shared/components/markdownEmbed/FileChip'
 import type { TextField } from '../hooks/useDictation'
 import {
@@ -37,7 +38,7 @@ function drawPieces(pieces: FieldPiece[]) {
  * The browser edits the field directly while the person types. When the chips must change, the field is drawn anew
  * (a new element, keyed), since its contents are no longer what React drew.
  */
-export function MessageField({ text, onText, onSubmit, onFocus, placeholder, twoLines, handle, onCaret, onKeyFirst, listbox }: {
+export function MessageField({ text, onText, onSubmit, onFocus, placeholder, twoLines, handle, onCaret, onKeyFirst, listbox, mark = null }: {
   text: string
   onText: (text: string) => void
   onSubmit: () => void
@@ -51,6 +52,8 @@ export function MessageField({ text, onText, onSubmit, onFocus, placeholder, two
   onKeyFirst?: (e: KeyboardEvent<HTMLDivElement>) => boolean
   /** A list the field is typing into, such as the `@` picker, and its option the keys are on. */
   listbox?: { id: string; activeId: string | undefined } | null
+  /** The skill picked with `/`, as it reads at the start of the text: shown highlighted. */
+  mark?: string | null
 }) {
   const el = useRef<HTMLDivElement>(null)
   const [shown, setShown] = useState({ version: 0, text, hold: null as number | null })
@@ -59,6 +62,7 @@ export function MessageField({ text, onText, onSubmit, onFocus, placeholder, two
   const pending = useRef<Caret | null>(null)
   const redrawing = useRef(false)
   const composing = useRef(false)
+  const marked = useRef<HTMLDivElement | null>(null)
   const onTextNow = useRef(onText)
   onTextNow.current = onText
   const onCaretNow = useRef(onCaret)
@@ -112,6 +116,15 @@ export function MessageField({ text, onText, onSubmit, onFocus, placeholder, two
       if (caret) place(caret)
     } else redraw(text, null, caret)
   }, [text])
+
+  // After every draw, since the browser may have replaced the text nodes the mark is painted over.
+  useLayoutEffect(() => {
+    const root = el.current
+    if (marked.current && marked.current !== root) markSkill(marked.current, null)
+    marked.current = root
+    if (root) markSkill(root, mark && text.startsWith(mark) ? mark.length : null)
+  })
+  useEffect(() => () => { if (marked.current) markSkill(marked.current, null) }, [])
 
   useLayoutEffect(() => {
     redrawing.current = false
@@ -244,6 +257,7 @@ export function MessageField({ text, onText, onSubmit, onFocus, placeholder, two
         aria-autocomplete={listbox ? 'list' : undefined}
         aria-controls={listbox?.id}
         aria-activedescendant={listbox?.activeId}
+        data-picked-skill={mark ?? undefined}
         tabIndex={0}
         contentEditable
         suppressContentEditableWarning

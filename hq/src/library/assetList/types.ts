@@ -29,8 +29,25 @@ export type LibraryAssetRow = {
   draftBy: string | null
   /** Who proposed it, for a proposal. */
   proposedBy: string | null
-  /** The own copy that replaced it, for a set-aside asset. */
+  /** The own copy that replaced it, for a set-aside asset that is still a row of its own. */
   setAsideFor: string | null
+  /**
+   * What this entry stands for besides itself (spec part 2 *Editing makes your own copy*, D18): the set-aside original
+   * under the copy that replaced it, or the organisation's copy not in use under the original. Not rows of their own.
+   */
+  partners: LibraryPartner[]
+}
+
+export type LibraryPartner = {
+  assetId: string
+  relation: 'original' | 'copy'
+  identity: string
+  version: string | null
+  /** "Agenthix's Code Review 2.0.0" for an original; the identity and version for a copy. */
+  words: string
+  /** Its own states, which find the entry too: Set aside, Draft. */
+  statuses: LibraryStatus[]
+  draftBy: string | null
 }
 
 export type LibraryAssets = {

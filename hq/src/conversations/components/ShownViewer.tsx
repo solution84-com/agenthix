@@ -61,7 +61,7 @@ export function FileViewer({ file, placePath, onOpen, onOpenFolder, onClose }: {
   const top = file.space === 'artefact' ? 'Artefacts' : file.space === 'place' && file.loc.workspaceId ? 'Workspace' : 'Files'
   return (
     <Beside label={name} testId="file-viewer">
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col">
         <OpenedFile
           key={reference}
           file={file} kind={file.space === 'artefact' ? 'artefacts' : 'files'} path={path}
@@ -86,7 +86,7 @@ export function TaskFileViewer({ opened, onOpen, onClose }: {
   const name = opened.file.kind === 'working' ? opened.file.path.split('/').pop() ?? opened.file.path : opened.taskKey
   return (
     <Beside label={name} testId="task-file-viewer">
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col">
         <TaskOpenedFile
           key={JSON.stringify(opened.file)}
           file={opened.file} taskId={opened.taskId} taskKey={opened.taskKey} loc={opened.loc} layout="narrow"

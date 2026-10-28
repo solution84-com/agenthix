@@ -53,7 +53,7 @@ export function FilesTool({ owner }: { owner: Owner }) {
             {search}
             <FolderTree target={owner} query={query} selected={file} onOpenFile={openFile} />
           </div>
-          <section className="min-w-0 flex-1 overflow-y-auto">
+          <section className="flex min-h-0 min-w-0 flex-1 flex-col">
             {opened || <FilesQuietLine>Select a file to read it.</FilesQuietLine>}
           </section>
         </div>
@@ -61,7 +61,7 @@ export function FilesTool({ owner }: { owner: Owner }) {
     )
   }
 
-  if (file) return <div ref={root}>{opened}</div>
+  if (file) return <div ref={root} className="flex min-h-0 flex-1 flex-col">{opened}</div>
 
   const rows = newestFirst(filterByName(visibleEntries(folder.data ?? []), query))
   const now = new Date()

@@ -25,6 +25,12 @@ export interface FileFrameProps {
   back?: { label: string; onBack: () => void }
   /** Opened fills its area inside the frame; embedded sits in a page or a message, with no controls. */
   mode?: RendererMode
+  /**
+   * By default an opened file fills the space its container gives the frame, and the file scrolls inside it, so the
+   * header, facts line and actions stay in place. `grow` lets the frame take the height of its file instead, for a
+   * caller whose page scrolls as a whole.
+   */
+  grow?: boolean
   registry?: RendererRegistry
   /** The caller's words after an action: "Path copied." */
   notice?: string
@@ -97,7 +103,7 @@ function FrameForView({ view, ...props }: FileFrameProps & { view: FrameView }) 
   const partial = view.phase === 'render' && !notice ? partialWords(report, view.facts) : null
 
   return (
-    <>
+    <div className={props.grow ? 'min-w-0' : 'flex h-full min-h-0 min-w-0 flex-1 flex-col'} data-testid="file-frame">
       <FrameHeader title={title} breadcrumb={props.breadcrumb} layout={props.layout ?? 'wide'} back={props.back} actions={actions} />
       {(line || props.notice) && (
         <p role="status" className="px-4 pt-3 text-small text-text-muted">{[line, props.notice].filter(Boolean).join(' · ')}</p>
@@ -111,7 +117,11 @@ function FrameForView({ view, ...props }: FileFrameProps & { view: FrameView }) 
           {partial} <DownloadButton link={downloadLink} quiet />
         </p>
       )}
-      {renderer && <div className="min-w-0 px-4 py-4">{renderer}</div>}
-    </>
+      {renderer && (
+        <div className={props.grow ? 'min-w-0 px-4 py-4' : 'min-h-0 min-w-0 flex-1 overflow-auto px-4 py-4'} data-testid="file-frame-view">
+          {renderer}
+        </div>
+      )}
+    </div>
   )
 }

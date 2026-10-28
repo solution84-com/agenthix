@@ -96,12 +96,29 @@ describe("the Overview's item @board-R1", () => {
   it('stands for the proposals aimed at the organisation, and goes when they are handled', async () => {
     expect(await skillProposalsItem(prisma, orgAdmin.id)).toBeNull()
     const p = await proposed('release-notes', 'organisation')
-    await proposed('checkout-review', 'project')
     const item = await skillProposalsItem(prisma, orgAdmin.id)
     expect(item).toMatchObject({ title: '1 skill proposal waiting', actionLabel: 'Review', actionUrl: `/library/proposals/${p.id}` })
     expect(item!.body).toContain('From Ada')
     expect(await skillProposalsItem(prisma, member.id)).toBeNull()
     await acceptProposal(prisma, orgAdmin.id, { proposalId: p.id, digest: p.digest })
     expect(await skillProposalsItem(prisma, orgAdmin.id)).toBeNull()
+  })
+
+  it("counts a project's proposals for its administrator only, and the queue opens when there are several", async () => {
+    const forProject = await proposed('checkout-review', 'project')
+    expect(await skillProposalsItem(prisma, orgAdmin.id)).toBeNull()
+    expect(await skillProposalsItem(prisma, member.id)).toBeNull()
+    expect(await skillProposalsItem(prisma, projectAdmin.id)).toMatchObject({ title: '1 skill proposal waiting', actionUrl: `/library/proposals/${forProject.id}` })
+    await proposed('release-notes', 'organisation')
+    expect(await skillProposalsItem(prisma, orgAdmin.id)).toMatchObject({ title: '1 skill proposal waiting' })
+    expect(await skillProposalsItem(prisma, projectAdmin.id)).toMatchObject({ title: '1 skill proposal waiting', actionUrl: `/library/proposals/${forProject.id}` })
+  })
+
+  it('counts every level the person reviews together, and opens the queue', async () => {
+    await proposed('release-notes', 'organisation')
+    await proposed('checkout-review', 'project')
+    expect(await skillProposalsItem(prisma, orgAdmin.id)).toMatchObject({ title: '1 skill proposal waiting' })
+    await joinProjectAs(project.id, orgAdmin.id, 'ADMIN')
+    expect(await skillProposalsItem(prisma, orgAdmin.id)).toMatchObject({ title: '2 skill proposals waiting', actionUrl: '/library/proposals' })
   })
 })

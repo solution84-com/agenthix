@@ -101,7 +101,7 @@ export function TaskOpenedFile({ file, taskId, taskKey, loc, layout, onClose, on
 function Closable({ layout, onClose, children }: { layout: 'narrow' | 'wide'; onClose: () => void; children: React.ReactNode }) {
   // One element at every width, so the renderer isn't drawn afresh when the width is first known.
   return (
-    <div className={layout === 'wide' ? 'relative [&>div:first-child]:pr-11' : undefined}>
+    <div className={`flex h-full min-h-0 flex-1 flex-col${layout === 'wide' ? ' relative [&>div>div:first-child]:pr-11' : ''}`}>
       {children}
       {layout === 'wide' && (
         <button type="button" aria-label="Close" onClick={onClose} className={`${FILES_BUTTON} absolute right-3 top-2.5`}>
@@ -125,7 +125,7 @@ function FileGone({ name, where, layout, back, onClose }: {
       {layout === 'narrow' ? (
         <FilesViewHeader back={back.label} onBack={back.onBack} title={name} />
       ) : (
-        <div className="border-b border-border-subtle px-4 py-2">
+        <div className="border-b border-border-subtle py-2 pl-4 pr-11">
           <h3 className="truncate text-h3 font-semibold text-text-primary">{name}</h3>
         </div>
       )}

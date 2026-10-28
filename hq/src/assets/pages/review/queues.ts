@@ -55,20 +55,28 @@ async function level(
   return { ...head, open: await Promise.all(open.map(p => entryOf(db, p))), decided: await Promise.all(decided.map(p => entryOf(db, p))) }
 }
 
-export async function proposalQueues(db: PrismaClient, userId: string, now = new Date()): Promise<QueueLevel[]> {
-  const levels: QueueLevel[] = []
+type Scope = { head: Omit<QueueLevel, 'open' | 'decided'>; where: { aim: Proposal['aim']; placeId: string | null } }
+
+/** The levels this person reviews, with the proposals that aim at each: the one rule for what a person sees and counts. */
+export async function reviewScopes(db: PrismaClient, userId: string): Promise<Scope[]> {
+  const scopes: Scope[] = []
   const person = await personActor(userId, db)
-  if (person.role === null) return levels
+  if (person.role === null) return scopes
   if (may(person, 'reviewProposal', await libraryTarget(db))) {
-    levels.push(await level(db, { level: 'organisation', label: "The organisation's Library", projectId: null }, { aim: 'ORGANISATION', placeId: null }, now))
+    scopes.push({ head: { level: 'organisation', label: "The organisation's Library", projectId: null }, where: { aim: 'ORGANISATION', placeId: null } })
   }
   const administered = await db.projectMember.findMany({
     where: { userId, role: 'ADMIN', project: { personalOwnerId: null } },
     select: { project: { select: { id: true, name: true } } },
   })
   for (const { project } of administered.sort((a, b) => a.project.name.localeCompare(b.project.name))) {
-    levels.push(await level(db, { level: 'project', label: project.name, projectId: project.id }, { aim: 'PROJECT', placeId: project.id }, now))
+    scopes.push({ head: { level: 'project', label: project.name, projectId: project.id }, where: { aim: 'PROJECT', placeId: project.id } })
   }
-  levels.push(await level(db, { level: 'person', label: 'Your space', projectId: null }, { aim: 'PERSON', placeId: userId }, now))
-  return levels
+  scopes.push({ head: { level: 'person', label: 'Your space', projectId: null }, where: { aim: 'PERSON', placeId: userId } })
+  return scopes
+}
+
+export async function proposalQueues(db: PrismaClient, userId: string, now = new Date()): Promise<QueueLevel[]> {
+  const scopes = await reviewScopes(db, userId)
+  return Promise.all(scopes.map(s => level(db, s.head, s.where, now)))
 }

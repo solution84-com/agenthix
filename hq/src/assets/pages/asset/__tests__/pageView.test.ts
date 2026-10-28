@@ -26,7 +26,8 @@ function dbOf(over: { asset?: object; versions?: object[] } = {}) {
     setAsideBy: null, draft: null, ...over.asset,
   }
   return {
-    asset: { findUnique: async () => asset, findUniqueOrThrow: async () => asset },
+    asset: { findUnique: async () => asset, findUniqueOrThrow: async () => asset, findMany: async () => [] },
+    assetVersion: { findFirst: async () => null, count: async () => 1 },
     org: { findFirst: async () => ({ publisherName: 'fernhill', outsideInstallers: 'ADMINS' }) },
     assetPinChange: { findMany: async () => [{ byId: 'u3' }] },
     user: { findMany: async () => [user('u3', 'Avery Chen')] },
@@ -68,6 +69,7 @@ describe("an asset's page", () => {
   it('names the copy that replaced it when it is set aside, and cannot be edited when built in', async () => {
     const page = await assetPageView(dbOf({ asset: { setAsideBy: { id: 'c1', publisher: 'fernhill', name: 'code-review' } } }), admin, 'a1')
     expect(page.setAsideFor).toEqual({ assetId: 'c1', identity: 'fernhill/code-review' })
+    expect(page).toMatchObject({ original: null, copies: [] })
     const builtIn = await assetPageView(dbOf({ asset: { builtIn: true, publisher: 'agenthix' } }), admin, 'a1')
     expect(builtIn.can.edit).toBe(false)
     expect(builtIn.can.remove).toBe(false)

@@ -25,7 +25,7 @@ async function open(page: Page): Promise<void> {
 test.describe('the / picker', () => {
   test.skip(!CONVERSATION, "needs the operator's conversation: run seed-e2e-knowledge.mjs and set E2E_PLACES_CONVERSATION_ID")
 
-  test('opens at the start of the message, narrows, and a choice becomes a chip that Backspace removes @SC-1548', async ({ page }) => {
+  test('opens at the start of the message, narrows, and a choice stays in the message as highlighted text that editing un-picks @SC-1548', async ({ page }) => {
     await open(page)
     const field = page.getByRole('textbox').last()
     await field.click()
@@ -33,10 +33,11 @@ test.describe('the / picker', () => {
     const list = page.getByRole('listbox', { name: 'Skills' })
     await expect(list.getByRole('option')).toHaveCount(2)
     await page.keyboard.press('Enter')
-    await expect(page.getByTestId('skill-chip')).toContainText('Code review')
+    await expect(field).toHaveAttribute('data-picked-skill', /^\/.+/)
     await expect(page.getByTestId('skill-picker')).toHaveCount(0)
     await page.keyboard.press('Backspace')
-    await expect(page.getByTestId('skill-chip')).toHaveCount(0)
+    await page.keyboard.press('Backspace')
+    await expect(field).not.toHaveAttribute('data-picked-skill', /.+/)
   })
 
   test('a / later in the message is text and opens nothing @SC-1548', async ({ page }) => {

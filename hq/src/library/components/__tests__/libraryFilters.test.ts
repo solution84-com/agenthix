@@ -17,16 +17,17 @@ describe('the Library’s filters', () => {
 
   it('narrows to a state, each state to what has it', () => {
     expect(keys({ status: 'update' })).toEqual(['s1'])
-    expect(keys({ status: 'draft' })).toEqual(['s2'])
+    expect(keys({ status: 'draft' })).toEqual(['s2', 's7'])
     expect(keys({ status: 'waiting' })).toEqual(['proposal:p1'])
-    expect(keys({ status: 'setAside' })).toEqual(['s5'])
+    expect(keys({ status: 'setAside' })).toEqual(['s5', 's6', 's7'])
     expect(keys({ status: 'unsigned' })).toEqual(['s4'])
     expect(keys({ status: 'noAgent' })).toEqual(['s3'])
   })
 
   it('searches every kind by words in its name, identity, signer or who has it', () => {
     expect(keys({ search: 'sprint' })).toEqual(['b1'])
-    expect(keys({ search: 'acme' })).toEqual(['s3'])
+    expect(keys({ search: 'acme' })).toEqual(['s3', 's6'])
+    expect(keys({ search: 'fernhill/changelog' })).toEqual(['s7'])
     expect(keys({ search: 'ada has' })).toEqual(['s2'])
     expect(keys({ search: 'CODE review' })).toEqual(['s1', 's5'])
     expect(keys({ search: 'nothing like this' })).toEqual([])
@@ -45,6 +46,8 @@ describe('the Library’s filters', () => {
     expect(c.statuses.update).toBe(1)
     expect(c.statuses.unsigned).toBe(1)
     expect(chipCounts(SAMPLE, { ...all, type: 'board' }).statuses.update).toBe(0)
+    expect(chipCounts(SAMPLE, all).statuses.setAside).toBe(3)
+    expect(chipCounts(SAMPLE, all).types.skill).toBe(SAMPLE.length - 2)
   })
 
   it('reads a filter out of an address only when it names one', () => {

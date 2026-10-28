@@ -87,7 +87,7 @@ export async function editAsset(db: PrismaClient, actor: Actor, input: { assetId
 }
 
 /** Moves every agent that has `from` onto `to`: every-agent and each grant. */
-async function moveHolders(tx: Db, from: { id: string; givenToAll: boolean }, toId: string, byId: string): Promise<void> {
+export async function moveHolders(tx: Db, from: { id: string; givenToAll: boolean }, toId: string, byId: string): Promise<void> {
   const grants = await tx.assetGrant.findMany({ where: { assetId: from.id }, select: { agentId: true } })
   if (grants.length) {
     await tx.assetGrant.createMany({ data: grants.map(g => ({ assetId: toId, agentId: g.agentId, grantedById: byId })), skipDuplicates: true })

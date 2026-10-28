@@ -7,6 +7,7 @@ import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { LIBRARY_PATH } from '../../../library/components/libraryRoutes'
 import { DESCRIPTION_MAX } from '../../validation'
 import { useAskAgent } from './askAgent'
+import { AskWho } from './AskWho'
 import { assetEditPath, placeSkillEditPath } from './editorRoutes'
 import { newSkillProblems, newSkillRequest, type StartingPoint } from './newSkill'
 
@@ -91,11 +92,12 @@ export function NewSkillPage() {
             ))}
           </div>
         </fieldset>
+        {start === 'agent' && <div className="mt-2"><AskWho asking={agent} disabled={agent.sending} /></div>}
 
         {(error || agent.error) && <p role="alert" className="mt-3 text-small text-danger">{error || agent.error}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <Link to={LIBRARY_PATH} className="rounded-button border border-border px-4 py-2 text-body text-text-primary hover:bg-surface-hover">Cancel</Link>
-          <Button type="submit" disabled={!ready || busy || agent.sending}>{start === 'agent' ? 'Ask an agent' : 'Create draft'}</Button>
+          <Button type="submit" disabled={!ready || busy || agent.sending || (start === 'agent' && !agent.agent)}>{start === 'agent' ? `Ask ${agent.agent?.name ?? 'an agent'}` : 'Create draft'}</Button>
         </div>
       </form>
     </AppLayout>

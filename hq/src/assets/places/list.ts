@@ -41,6 +41,9 @@ export type PlaceSkillView = {
   switch: 'ON' | 'OFF' | null
   /** Whether the switch was set for what the files hold now. */
   switchHolds: boolean
+  /** Who set the switch and when, kept after the switch stopped holding so the row can say why it went off. */
+  switchedBy: string | null
+  switchedAt: Date | null
   status: PlaceSkillStatus
   /** The version its files are, and the newest published. */
   version: number | null
@@ -76,6 +79,8 @@ async function viewOf(db: PrismaClient, actor: Actor, ctx: PlaceContext): Promis
     include: { versions: { select: { number: true, digest: true, originIdentity: true, originVersion: true }, orderBy: { number: 'desc' } }, draft: { select: { revision: true } } },
     orderBy: [{ group: 'asc' }, { path: 'asc' }],
   })
+  const switchers = await db.user.findMany({ where: { id: { in: rows.flatMap(r => r.switchedById ?? []) } }, select: { id: true, displayName: true } })
+  const switcherName = new Map(switchers.map(u => [u.id, u.displayName]))
   const offers = await libraryOffers(db, rows.flatMap(r => originOf(r.versions[0]) ?? []))
   const skills = rows.map((row): PlaceSkillView => {
     const origin = row.group === 'WORKSPACE' ? null : originOf(row.versions[0])
@@ -87,6 +92,8 @@ async function viewOf(db: PrismaClient, actor: Actor, ctx: PlaceContext): Promis
       state: row.goneAt ? 'off' : switchState(row, ctx.placeDefault, ctx.orgDefault),
       switch: row.switch,
       switchHolds: row.switch !== null && row.switchFingerprint === row.lastFingerprint,
+      switchedBy: row.switchedById ? switcherName.get(row.switchedById)?.trim() || null : null,
+      switchedAt: row.switchedAt,
       status: matching ? 'published' : newest !== null && !row.goneAt ? 'changed' : 'unpublished',
       version: matching?.number ?? null,
       newestVersion: newest,

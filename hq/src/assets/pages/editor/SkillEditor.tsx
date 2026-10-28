@@ -7,11 +7,12 @@ import { EditorTree } from './EditorTree'
 import { FilePane } from './FilePane'
 import { PublishDialog } from './PublishDialog'
 import { changeSummary } from './changeSet'
+import { publishBlock, saveStatus } from './editorWords'
 import type { EditorView } from './editorTypes'
 import type { EditorApi } from './useEditorApi'
 import { useEditorState } from './useEditorState'
 
-/** Hand the person's first reading of the checks to assistive technology only once; typing is not announced line by line. */
+/** Leaving with a change not yet saved asks first. */
 function useLeaveGuard(dirty: boolean) {
   useEffect(() => {
     if (!dirty) return
@@ -33,38 +34,47 @@ export interface SkillEditorProps {
 
 /**
  * The editor for one skill (skills spec part 6, board U3b): its files in a tree with change markers, the open file in
- * View, Edit or Changes, checks as the person edits, saving as a draft revision, and publishing the revision seen.
- * Agents draft, people publish: nothing here reaches an agent until Publish.
+ * View, Edit or Changes, checks as the person edits, the draft saving itself a moment after they stop typing, and
+ * publishing the revision seen, which a pending save holds back. Agents draft, people publish: nothing here reaches an
+ * agent until Publish.
  */
 export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy }: SkillEditorProps) {
   const state = useEditorState(view, api, reload)
   const [publishing, setPublishing] = useState(false)
   const [asking, setAsking] = useState(false)
   const [discarding, setDiscarding] = useState(false)
-  useLeaveGuard(state.dirty)
+  useLeaveGuard(state.dirty || state.saving)
 
   const readOnly = !view.editsHere
   const published = view.inUse !== null
-  const nothing = state.changes.length === 0
-  const publishable = view.mayPublish && !readOnly && !state.dirty && view.revision !== null && !nothing && !state.blocked
+  const place = view.target.kind === 'place'
+  const why = publishBlock({
+    mayPublish: view.mayPublish, place, dirty: state.dirty, saving: state.saving, failed: state.failed, moved: state.moved,
+    nothing: state.changes.length === 0 || view.revision === null, blocked: state.blocked, inUse: view.inUse,
+  })
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-4 lg:px-8" data-testid="skill-editor">
+    <div className="mx-auto flex max-w-6xl flex-col px-4 py-4 md:h-full lg:px-8" data-testid="skill-editor">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="min-w-0 text-h1 font-semibold text-text-primary">{view.name}</h1>
         {view.revision !== null && <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-small font-medium text-warning">Draft</span>}
         <span className="flex-1" />
         {!readOnly && <Button variant="secondary" onClick={() => setAsking(a => !a)}>Ask an agent to edit</Button>}
         {!readOnly && view.revision !== null && <Button variant="secondary" onClick={() => setDiscarding(true)}>Discard draft</Button>}
-        {view.mayPublish && !readOnly && (
-          <Button
-            disabled={!publishable} onClick={() => setPublishing(true)}
-            title={state.dirty ? 'Save the draft first' : nothing ? 'Nothing has changed' : state.blocked ? 'Fix the problems in the checks first' : undefined}
-          >
+        {!readOnly && (
+          <Button disabled={why !== null} onClick={() => setPublishing(true)} title={why ?? undefined} aria-describedby={why ? 'publish-why' : undefined}>
             Publish…
           </Button>
         )}
       </div>
+      {!readOnly && (
+        <div className="mt-1 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-small">
+          <span role="status" data-testid="draft-state" className={state.failed && state.dirty ? 'text-danger' : 'text-text-secondary'}>
+            {saveStatus({ dirty: state.dirty, saving: state.saving, failed: state.failed, moved: state.moved, revision: view.revision })}
+          </span>
+          {why && <span id="publish-why" data-testid="publish-why" className="text-text-secondary">{why}</span>}
+        </div>
+      )}
       <p className="mt-1 text-small text-text-secondary" data-testid="editor-subline">
         {[
           view.identity,
@@ -80,34 +90,23 @@ export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy }: Skil
           {onMakeCopy && <Button className="mt-2" onClick={onMakeCopy}>Edit as the organisation’s own copy</Button>}
         </div>
       )}
-      {!view.mayPublish && !readOnly && (
-        <p className="mt-2 text-small text-text-secondary">You can edit and save this draft. Publishing it is for {view.target.kind === 'library' ? 'administrators and Library maintainers' : 'this place’s administrators'}.</p>
-      )}
       {state.moved && (
         <p role="status" className="mt-3 rounded-lg border border-warning bg-surface-2 p-3 text-small text-text-primary">
           The draft changed while you were editing (an agent or a colleague saved it).{' '}
           <button type="button" className="text-accent underline" onClick={state.reloadFromServer}>Load their version</button>
-          {' '}to see it; your unsaved edits will be dropped.
+          {' '}to see it, which drops your unsaved edits, or{' '}
+          <button type="button" className="text-accent underline" onClick={() => void state.save()}>keep yours</button>, which saves them over theirs.
         </p>
       )}
-      {asking && <div className="mt-3"><AskAgentBox identity={view.identity} where={view.where} onClose={() => setAsking(false)} onAsked={() => setAsking(false)} /></div>}
+      {asking && <AskAgentBox identity={view.identity} where={view.where} onClose={() => setAsking(false)} onAsked={() => setAsking(false)} />}
       {state.error && <p role="alert" className="mt-3 text-small text-danger">{state.error}</p>}
 
-      <div className="mt-3 grid min-h-[380px] overflow-hidden rounded-lg border border-border-subtle md:grid-cols-[230px_1fr]">
+      <div className="mt-3 grid min-h-[380px] flex-1 overflow-hidden rounded-lg border border-border-subtle md:grid-cols-[230px_1fr] md:grid-rows-[minmax(0,1fr)]">
         <EditorTree state={state} />
         <FilePane state={state} baseLabel={view.baseLabel} />
       </div>
 
       <ChecksPanel checks={state.checks} />
-
-      {!readOnly && (
-        <div className="mt-4 flex items-center gap-3">
-          <Button disabled={!state.dirty || state.saving} onClick={() => void state.save()}>{state.saving ? 'Saving…' : 'Save draft'}</Button>
-          <span className="text-small text-text-secondary" role="status">
-            {state.dirty ? 'You have unsaved changes.' : view.revision !== null ? `Saved as revision ${view.revision}.` : 'Nothing saved yet.'}
-          </span>
-        </div>
-      )}
 
       {publishing && (
         <PublishDialog

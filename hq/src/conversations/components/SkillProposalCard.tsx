@@ -120,18 +120,31 @@ export function SkillProposalCard({ proposal: p, actions }: { proposal: SkillPro
   )
 }
 
-/** A change an agent made to the person's own draft (D24): no agent sees it until it is published. */
-export function SkillDraftCard({ name, shownRevision, draft, busy, error, onPublish }: {
+/**
+ * A change an agent made to the person's own draft (D24): no agent sees it until it is published. Once the draft is
+ * gone the card stops asking for a note: it says it was published (and by whom, when it was published from here) or
+ * that it was discarded.
+ */
+export function SkillDraftCard({ name, shownRevision, draft, busy, error, onPublish, publishedHere = false, addHref }: {
   name: string
   shownRevision: number
   draft: SkillDraftCardView
   busy: boolean
   error: string | null
   onPublish: (note: string) => void
+  /** This card's own Publish made the version now in use. */
+  publishedHere?: boolean
+  /** Where the published skill is given to agents, when that is a step the person takes. */
+  addHref?: string
 }) {
   const [note, setNote] = useState('')
   const [asking, setAsking] = useState(false)
+  const gone = draft.revision === null
   const current = draft.revision === shownRevision
+  const outcome = !gone ? null
+    : publishedHere && draft.published ? `Published as ${draft.published} by you.`
+    : draft.published ? `No draft now: it was published or discarded. In use: ${draft.published}.`
+    : 'No draft now: it was discarded.'
   return (
     <div className="bg-accent/5 px-3 py-2" data-testid="skill-draft-card">
       <div className="flex items-start gap-2">
@@ -139,22 +152,23 @@ export function SkillDraftCard({ name, shownRevision, draft, busy, error, onPubl
         <div className="min-w-0 flex-1 space-y-1 text-small">
           <p className="break-words font-semibold text-text-primary">Draft of {draft.name}{draft.revision !== null && `, revision ${draft.revision}`}</p>
           <p className="text-micro text-text-muted" data-testid="skill-draft-state">
-            {draft.revision === null
-              ? `No draft now: it was published or discarded.${draft.published ? ` In use: ${draft.published}.` : ''}`
-              : `Your draft of ${name}. No agent sees it until it's published.`}
+            {outcome ?? `Your draft of ${name}. No agent sees it until it's published.`}
           </p>
-          {draft.revision !== null && !current && <p className="text-micro text-text-muted">The draft has changed since this card; open it to see what is in it now.</p>}
-          {asking && (
+          {!gone && !current && <p className="text-micro text-text-muted">The draft has changed since this card; open it to see what is in it now.</p>}
+          {asking && !gone && (
             <input aria-label="What changed" value={note} onChange={(e) => setNote(e.target.value)} placeholder="What changed, for the history"
               className="w-full rounded-lg border border-border bg-surface-1 px-2 py-1 text-small text-text-primary" />
           )}
-          {draft.revision !== null && (
+          {!gone && (
             <div className="flex flex-wrap gap-2 pt-1">
               <a href={draft.openHref} className={PLAIN}>Open draft</a>
               {draft.mayPublish && current && (asking
                 ? <button type="button" className={MAIN} disabled={busy || !note.trim()} onClick={() => onPublish(note)}>Publish</button>
                 : <button type="button" className={MAIN} disabled={busy} onClick={() => setAsking(true)}>Publish…</button>)}
             </div>
+          )}
+          {gone && publishedHere && addHref && (
+            <div className="flex flex-wrap gap-2 pt-1"><a href={addHref} className={MAIN}>Add to agents…</a></div>
           )}
           <RefusedAction reason={error} />
         </div>

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
+import { Plus } from 'lucide-react'
 import { useAction, useQuery, getLibraryAssets, removeLibraryAsset } from 'wasp/client/operations'
+import { LibraryReviewLink } from '../../assets/pages/review/ProposalsWaiting'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { AddAgentDialog } from '../components/AddAgentDialog'
 import { LibraryAssetList } from '../components/LibraryAssetList'
@@ -9,7 +11,11 @@ import { isStatusFilter, isTypeFilter, type LibraryFilter } from '../components/
 import { LIBRARY_ADD_PATH, LIBRARY_MARKETPLACE_PATH, LIBRARY_NEW_SKILL_PATH, LIBRARY_SETTINGS_PATH } from '../components/libraryRoutes'
 import type { LibraryAssetRow } from '../assetList/types'
 
-const BUTTON = 'rounded-lg border border-border px-3 py-1.5 text-body text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary'
+// The header's buttons, as ui's Button draws them (they are links here): quiet ones for where to go, one outlined for
+// making, and the primary for adding.
+const QUIET = 'whitespace-nowrap rounded-button px-3 py-2 text-body font-button text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary'
+const SECONDARY = 'whitespace-nowrap rounded-button border border-border bg-button-secondary px-4 py-2 text-body font-button text-text-primary transition-colors hover:bg-surface-hover'
+const PRIMARY = 'flex items-center gap-1.5 whitespace-nowrap rounded-button bg-accent px-4 py-2 text-body font-button text-on-accent shadow-primary transition-colors hover:bg-accent-hover'
 
 /**
  * The Library (skills spec part 6; board U2): everything the organisation has installed for its agents, as one searched
@@ -63,10 +69,11 @@ export function LibraryPage() {
       subtitle="Everything your organisation has installed for its agents. Each item is checked when it comes in, and stays at its version until you publish or update it."
       action={data ? (
         <>
-          {data.marketplace && <Link to={LIBRARY_MARKETPLACE_PATH} className={BUTTON}>Marketplace</Link>}
-          {data.isAdmin && <Link to={LIBRARY_SETTINGS_PATH} className={BUTTON}>Settings</Link>}
-          <Link to={LIBRARY_NEW_SKILL_PATH} className={BUTTON}>New skill</Link>
-          {data.mayAdd && <Link to={LIBRARY_ADD_PATH} className="rounded-lg bg-accent px-3 py-1.5 text-body font-medium text-on-accent hover:bg-accent-hover">＋ Add</Link>}
+          <LibraryReviewLink className={QUIET} />
+          {data.marketplace && <Link to={LIBRARY_MARKETPLACE_PATH} className={QUIET}>Marketplace</Link>}
+          {data.isAdmin && <Link to={LIBRARY_SETTINGS_PATH} className={QUIET}>Settings</Link>}
+          <Link to={LIBRARY_NEW_SKILL_PATH} className={SECONDARY}>New skill</Link>
+          {data.mayAdd && <Link to={LIBRARY_ADD_PATH} className={PRIMARY}><Plus size={14} aria-hidden />Add skill</Link>}
         </>
       ) : undefined}
     >

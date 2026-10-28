@@ -88,13 +88,61 @@ test.describe('the Library view', () => {
     await expect(page.getByTestId('library-row').first()).toBeVisible()
   })
 
-  test('the administrator sees Add, New skill and Settings; the Marketplace button is a development button', async ({ page }) => {
+  test('the administrator sees Add skill, New skill and Settings; the Marketplace button is a development button', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'New skill' })).toBeVisible()
-    await expect(page.getByRole('link', { name: /Add$/ })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Add skill', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible()
     // The e2e server runs in development, where the flag is on (adr-0116).
     await page.getByRole('link', { name: 'Marketplace' }).click()
     await expect(page).toHaveURL(at('/library/marketplace'))
     await expect(page.getByTestId('marketplace-page')).toContainText('The Marketplace is not available yet')
+  })
+
+  test('Add skill is named for what it adds today, on the button and on its page', async ({ page }) => {
+    await page.getByRole('link', { name: 'Add skill', exact: true }).click()
+    await expect(page).toHaveURL(at('/library/add'))
+    await expect(page.getByRole('heading', { name: 'Add skill', level: 1 })).toBeVisible()
+  })
+
+  test('a copy and the original it replaced are one row, found under Set aside', async ({ page }) => {
+    const copy = page.getByTestId('library-row').filter({ hasText: 'Your copy of' })
+    if (!(await copy.count())) test.skip(true, 'the seeded organisation has no copy in use in place of an original')
+    await expect(copy.first().getByTestId('library-row-states')).toContainText('Original set aside')
+    await page.getByRole('group', { name: 'Show' }).getByRole('button', { name: /^Set aside/ }).click()
+    await expect(page.getByTestId('library-row').filter({ hasText: 'Your copy of' }).first()).toBeVisible()
+    await expect(page.getByTestId('library-row').filter({ hasText: 'replaced by your copy' })).toHaveCount(0)
+  })
+
+  test("a row's actions are in its menu, and its states are on a line of their own", async ({ page }) => {
+    const row = page.getByTestId('library-row').first()
+    await expect(row).toBeVisible()
+    await expect(row.getByRole('link')).toHaveCount(1)
+    await expect(row.getByRole('button')).toHaveCount(1)
+    await row.getByRole('button', { name: /^More about/ }).click()
+    await expect(page.getByRole('menu').getByRole('menuitem', { name: 'Export' })).toBeVisible()
+    const withStates = page.getByTestId('library-row').filter({ has: page.getByTestId('library-row-states') }).first()
+    if (await withStates.count()) {
+      const text = await withStates.locator('div.min-w-0').boundingBox()
+      const states = await withStates.getByTestId('library-row-states').boundingBox()
+      expect(states!.y).toBeGreaterThan(text!.y)
+    }
+  })
+})
+
+// A proposal aimed at a project is reachable by the people who review it (walkthrough finding 31). The seeded
+// organisation holds no proposal, so this skips unless one waits for the signed-in administrator.
+test.describe('proposals aimed at a project', () => {
+  test("the project's Skills page says how many wait, and Review opens the queue with the project's level", async ({ page }) => {
+    await page.goto('/projects')
+    await page.locator('a[href^="/projects/"]').first().click()
+    await expect(page.getByTestId('place-panel-header')).toBeVisible()
+    await nav(page).getByRole('link', { name: /^Skills/ }).click()
+    await expect(page.getByTestId('place-skills')).toBeVisible()
+    const line = page.getByTestId('place-skills-proposals')
+    if (!(await line.count())) test.skip(true, 'no proposal waits on the first project of the seeded organisation')
+    await expect(line).toContainText(/\d+ proposals? waiting/)
+    await line.getByRole('link', { name: 'Review' }).click()
+    await expect(page).toHaveURL(at('/library/proposals'))
+    await expect(page.getByRole('region').filter({ has: page.getByTestId('proposal-entry') }).first()).toBeVisible()
   })
 })

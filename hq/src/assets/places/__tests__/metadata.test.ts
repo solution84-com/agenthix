@@ -9,7 +9,7 @@ const header = (files: { path: string; content: Buffer }[]) => {
   return { meta: parse(yaml), body: text.split('\n---\n')[1] }
 }
 
-describe("writing hq's metadata into a place skill's SKILL.md", () => {
+describe("writing hq's metadata into a skill's SKILL.md", () => {
   it('writes the version into metadata, keeping every other key, the body and the other files', () => {
     const out = withSkillMetadata(file('---\nname: review\ndescription: Reviews\nmetadata:\n  owner: ada\n---\n\n# Review\nDo it.\n'), { version: '4' })
     expect(header(out).meta).toEqual({ name: 'review', description: 'Reviews', metadata: { owner: 'ada', version: '4' } })
@@ -38,5 +38,22 @@ describe("writing hq's metadata into a place skill's SKILL.md", () => {
     expect(() => withSkillMetadata(file('---\nname: x\n'), { version: '1' })).toThrow(/never closed/)
     expect(() => withSkillMetadata(file('---\nname: [x\n---\n'), { version: '1' })).toThrow(/not valid YAML/)
     expect(() => withSkillMetadata(file('---\nmetadata: 3\n---\n'), { version: '1' })).toThrow(/metadata is not a list/)
+  })
+
+  it('writes the version into a top-level version: too when the file has one, since that one is read first', () => {
+    const out = withSkillMetadata(file('---\nname: code-review\ndescription: Reviews\nversion: 2\n---\nBody\n'), { version: '2.1.0' })
+    expect(header(out).meta).toEqual({ name: 'code-review', description: 'Reviews', version: '2.1.0', metadata: { version: '2.1.0' } })
+  })
+
+  it('writes a SemVer version into a package.json beside SKILL.md, keeping its other keys', () => {
+    const files = [...file('---\nname: x\n---\nBody\n'), { path: 'package.json', content: Buffer.from('{"name":"x","version":"1.0.0","licence":"MIT"}') }]
+    const out = withSkillMetadata(files, { version: '1.1.0' })
+    expect(JSON.parse(out[2].content.toString())).toEqual({ name: 'x', version: '1.1.0', licence: 'MIT' })
+  })
+
+  it("leaves a package.json alone for a place's plain number, and refuses one that is not JSON", () => {
+    const manifest = { path: 'package.json', content: Buffer.from('{"version":"1.0.0"}') }
+    expect(withSkillMetadata([...file('---\nname: x\n---\n'), manifest], { version: '4' })[2]).toBe(manifest)
+    expect(() => withSkillMetadata([...file('---\nname: x\n---\n'), { path: 'package.json', content: Buffer.from('{') }], { version: '1.1.0' })).toThrow(/package.json .* not valid JSON/)
   })
 })

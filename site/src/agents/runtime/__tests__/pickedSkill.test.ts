@@ -30,7 +30,7 @@ describe('the picked skill', () => {
   })
 
   it('becomes one instruction before the message, the same words on both runtimes; anything else leaves the message', () => {
-    expect(pickedSkillInstruction('org-review')).toBe('The person picked the skill org-review. Load it with your skill tool first and follow it.')
+    expect(pickedSkillInstruction('org-review')).toBe('The person picked the skill org-review (the "/" word in their message means this skill). Load it with your skill tool first and follow it.')
     expect(withPickedSkill('Review it', 'org-review', staged, 'r')).toBe(`${pickedSkillInstruction('org-review')}\n\nReview it`)
     expect(withPickedSkill('Review it', 'org-hidden', staged, 'r')).toBe('Review it')
     expect(withPickedSkill('Review it', undefined, staged, 'r')).toBe('Review it')
@@ -38,7 +38,7 @@ describe('the picked skill', () => {
 
   it('for a skill the model may not load itself, names its staged file to read instead', () => {
     expect(pickedSkillReadInstruction('org-by-hand', '/run/skills/org-by-hand/SKILL.md')).toBe(
-      'The person picked the skill org-by-hand. Read the file /run/skills/org-by-hand/SKILL.md first and follow its instructions. ' +
+      'The person picked the skill org-by-hand (the "/" word in their message means this skill). Read the file /run/skills/org-by-hand/SKILL.md first and follow its instructions. ' +
       'Do not load this skill with your skill tool.')
     expect(withPickedSkill('Do it', 'org-by-hand', staged, 'r'))
       .toBe(`${pickedSkillReadInstruction('org-by-hand', '/run/skills/org-by-hand/SKILL.md')}\n\nDo it`)

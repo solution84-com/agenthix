@@ -78,4 +78,34 @@ describe('PlaceSkillRow', () => {
     expect(screen.queryByText('Edit')).toBeNull()
     expect(screen.queryByRole('button', { name: /Publish/ })).toBeNull()
   })
+
+  it('says why a switch went off: its files changed since a person switched it on (finding 16)', () => {
+    const when = new Date('2026-10-27T10:00:00Z')
+    draw(skill({ status: 'changed', version: null, newestVersion: 1, state: 'off', switch: 'ON', switchHolds: false, switchedBy: 'Sam Rivera', switchedAt: when }))
+    expect(screen.getByTestId('place-skill-switched-off').textContent).toBe(`Switched off: its files changed since Sam Rivera switched it on, ${when.toLocaleDateString()}.`)
+    expect(screen.getByRole('button', { name: 'What changed' })).toBeTruthy()
+  })
+
+  it('says it for a skill never published too, and offers What changed', () => {
+    const h = draw(skill({ status: 'unpublished', version: null, newestVersion: null, state: 'off', switch: 'ON', switchHolds: false, switchedBy: null, switchedAt: null }))
+    expect(screen.getByTestId('place-skill-switched-off').textContent).toBe('Switched off: its files changed since someone switched it on.')
+    fireEvent.click(screen.getByRole('button', { name: 'What changed' }))
+    expect(h.onChanges).toHaveBeenCalled()
+  })
+
+  it('says nothing of a switch for a skill nobody switched on, or whose switch holds', () => {
+    draw(skill({ status: 'unpublished', version: null, newestVersion: null, state: 'off', switch: null, switchHolds: false }))
+    expect(screen.queryByTestId('place-skill-switched-off')).toBeNull()
+    cleanup()
+    draw()
+    expect(screen.queryByTestId('place-skill-switched-off')).toBeNull()
+  })
+
+  it('keeps the text apart from the actions: the switch beside it, the actions under it', () => {
+    draw(skill({ status: 'changed', version: null, newestVersion: 4, state: 'off', switchHolds: false, origin: { identity: 'a/b', version: '1' }, libraryUpdate: '2' }))
+    const actions = screen.getByTestId('place-skill-actions')
+    expect(actions.contains(screen.getByRole('button', { name: 'Publish as version 5' }))).toBe(true)
+    expect(actions.contains(screen.getByRole('switch'))).toBe(false)
+    expect(screen.getByTestId('place-skill-words').closest('[data-testid="place-skill-actions"]')).toBeNull()
+  })
 })

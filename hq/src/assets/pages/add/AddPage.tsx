@@ -24,7 +24,7 @@ const CHOICES: Array<{ from: From; title: string; hint: string }> = [
 ]
 
 /**
- * Add (skills spec part 6; board U4): how an asset comes into the Library. From Agenthix's shelf, an upload, or a
+ * Add skill (skills spec part 6; board U4): how an asset comes into the Library, named for what it adds today. From Agenthix's shelf, an upload, or a
  * link; each goes through the same check and ends in one of four states, told in the dialog. Making one here is
  * *New skill*, in the editor.
  */
@@ -47,8 +47,8 @@ export function AddPage() {
 
   return (
     <AppLayout
-      breadcrumbs={[{ label: 'Library', href: LIBRARY_PATH }, { label: 'Add' }]}
-      title="Add"
+      breadcrumbs={[{ label: 'Library', href: LIBRARY_PATH }, { label: 'Add skill' }]}
+      title="Add skill"
       subtitle="Every package is checked when it comes in: who signed it, and whether it was changed on the way."
     >
       <div className="mx-auto max-w-3xl space-y-5 px-4 py-5 lg:px-8">

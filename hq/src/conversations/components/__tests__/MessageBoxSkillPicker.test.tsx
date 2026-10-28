@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * Skills spec part 5, *Picking a skill*: `/` at the start of the message box opens a picker of the conversation's agent's
- * skills, narrowed as the person types; choosing one takes the `/…` out of the text and shows a chip, and the skill is
- * sent beside the text, never in it. A `/` anywhere else is text.
+ * skills, narrowed as the person types; choosing one leaves `/name` in the text, highlighted, and the skill is
+ * sent beside the text, never parsed from it; changing the mark lets the skill go. A `/` anywhere else is text.
  */
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -28,7 +28,14 @@ const LABEL = 'Message Kernel…'
 const skill = (name: string, title: string, source: string, sourceName: string, description = '') =>
   ({ name, title, description, source, sourceName, detail: `${name} tag` })
 
+class FakeHighlight {
+  ranges: Range[]
+  constructor(...ranges: Range[]) { this.ranges = ranges }
+}
+
 beforeEach(() => {
+  vi.stubGlobal('Highlight', FakeHighlight)
+  ;(globalThis as unknown as { CSS: object }).CSS = { highlights: new Map() }
   query.skills = [
     skill('platform-git', 'Working with git', 'builtin', 'Built in', 'Branch and commit'),
     skill('org-code-review', 'Code review', 'every-agent', 'Fernhill', 'Review a change'),
@@ -37,7 +44,7 @@ beforeEach(() => {
   // Stable between renders, as the real query's data is.
   query.answer = { data: { skills: query.skills }, isLoading: false, error: undefined }
 })
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 function box(props: Partial<React.ComponentProps<typeof MessageBox>> = {}) {
   const onSend = vi.fn(async (_text: string, _skill?: { name: string }) => true)
@@ -48,6 +55,8 @@ const listbox = () => screen.queryByRole('listbox', { name: 'Skills' })
 const options = () => within(listbox()!).getAllByRole('option')
 const key = (k: string, init: Partial<KeyboardEventInit> = {}) => fireEvent.keyDown(fieldOf(LABEL), { key: k, ...init })
 const chip = () => screen.queryByTestId('skill-chip')
+/** What the browser's text highlight paints now (jsdom has none, so the test brings a small one). */
+const highlighted = () => [...((CSS as unknown as { highlights: Map<string, { ranges: Range[] }> }).highlights.get('skill-pick')?.ranges ?? [])].map(r => r.toString())
 
 describe('the / picker @SC-1548', () => {
   it('opens for a / at the start with the agent\'s skills in groups, the field keeping the focus', () => {
@@ -87,13 +96,15 @@ describe('the / picker @SC-1548', () => {
     expect(screen.getByText('No skill matches “zzz”')).toBeTruthy()
   })
 
-  it('chooses with Enter: the /… leaves the text, a chip shows, nothing is sent, and the picker closes', () => {
+  it('chooses with Enter: /name stays in the text, highlighted where it was typed, and nothing is sent', () => {
     const { onSend } = box()
     typeInto(LABEL, '/rev')
     key('ArrowDown')
     key('Enter')
-    expect(valueOf(LABEL)).toBe('')
-    expect(chip()!.textContent).toContain('My review notes')
+    expect(valueOf(LABEL)).toBe('/person-notes ')
+    expect(fieldOf(LABEL).getAttribute('data-picked-skill')).toBe('/person-notes')
+    expect(highlighted()).toEqual(['/person-notes'])
+    expect(chip()).toBeNull()
     expect(onSend).not.toHaveBeenCalled()
     expect(screen.queryByTestId('skill-picker')).toBeNull()
   })
@@ -102,68 +113,68 @@ describe('the / picker @SC-1548', () => {
     box()
     typeInto(LABEL, '/')
     key('Tab')
-    expect(chip()!.textContent).toContain('Working with git')
+    expect(valueOf(LABEL)).toBe('/platform-git ')
     cleanup()
     box()
     typeInto(LABEL, '/')
     fireEvent.click(options()[1]!)
-    expect(chip()!.textContent).toContain('Code review')
+    expect(valueOf(LABEL)).toBe('/org-code-review ')
+    expect(highlighted()).toEqual(['/org-code-review'])
   })
 
-  it('sends the skill\'s staged name beside the text, which stays the person\'s words', async () => {
+  it('sends the skill beside the text, which stays the person\'s words without the mark', async () => {
     const { onSend } = box()
     typeInto(LABEL, '/code')
     key('Enter')
-    typeInto(LABEL, 'the checkout form changes')
+    typeInto(LABEL, '/org-code-review the checkout form changes')
+    expect(highlighted()).toEqual(['/org-code-review'])
     key('Enter')
     await waitFor(() => expect(onSend).toHaveBeenCalledWith('the checkout form changes', { name: 'org-code-review' }))
-    await waitFor(() => expect(chip()).toBeNull())
-    expect(valueOf(LABEL)).toBe('')
+    await waitFor(() => expect(valueOf(LABEL)).toBe(''))
+    expect(highlighted()).toEqual([])
   })
 
-  it('sends no skill when none was chosen, and a typed /word is plain text', async () => {
+  it('sends no skill when none was chosen, and a typed /word is plain text, not highlighted', async () => {
     const { onSend } = box()
     typeInto(LABEL, '/update-config please')
+    expect(highlighted()).toEqual([])
     key('Enter')
     await waitFor(() => expect(onSend).toHaveBeenCalledWith('/update-config please'))
   })
 
-  it('keeps the chip when sending is refused, and clears it when sent', async () => {
+  it('keeps the pick when sending is refused', async () => {
     const onSend = vi.fn(async () => false)
     box({ onSend })
     typeInto(LABEL, '/code')
     key('Enter')
-    typeInto(LABEL, 'hello')
+    typeInto(LABEL, '/org-code-review hello')
     key('Enter')
     await waitFor(() => expect(onSend).toHaveBeenCalled())
-    expect(chip()).toBeTruthy()
-    expect(valueOf(LABEL)).toBe('hello')
+    expect(highlighted()).toEqual(['/org-code-review'])
+    expect(valueOf(LABEL)).toBe('/org-code-review hello')
   })
 
-  it('removes the chip with its button, and with Backspace at the start of the text', () => {
+  it('lets the skill go when its text is changed or deleted, and typing the same name again does not pick it again', async () => {
+    const { onSend } = box()
+    typeInto(LABEL, '/code')
+    key('Enter')
+    typeInto(LABEL, '/org-code-revie hello')
+    expect(highlighted()).toEqual([])
+    typeInto(LABEL, '/org-code-review hello')
+    expect(highlighted()).toEqual([])
+    key('Enter')
+    await waitFor(() => expect(onSend).toHaveBeenCalledWith('/org-code-review hello'))
+  })
+
+  it('lets the skill go when the whole text is deleted, and opens no second picker while one skill is picked', () => {
     box()
     typeInto(LABEL, '/code')
     key('Enter')
-    fireEvent.click(screen.getByRole('button', { name: 'Remove the skill Code review' }))
-    expect(chip()).toBeNull()
-
-    typeInto(LABEL, '/code')
-    key('Enter')
-    typeInto(LABEL, 'hello', 0)
-    key('Backspace')
-    expect(chip()).toBeNull()
-    expect(valueOf(LABEL)).toBe('hello')
-  })
-
-  it('keeps the chip on Backspace elsewhere in the text, and opens no second picker while one skill is chosen', () => {
-    box()
-    typeInto(LABEL, '/code')
-    key('Enter')
-    typeInto(LABEL, 'hello')
-    key('Backspace')
-    expect(chip()).toBeTruthy()
-    typeInto(LABEL, '/')
+    typeInto(LABEL, '/org-code-review hello /')
     expect(screen.queryByTestId('skill-picker')).toBeNull()
+    typeInto(LABEL, '')
+    expect(highlighted()).toEqual([])
+    expect(fieldOf(LABEL).getAttribute('data-picked-skill')).toBeNull()
   })
 
   it('closes on Escape and leaves the text', () => {

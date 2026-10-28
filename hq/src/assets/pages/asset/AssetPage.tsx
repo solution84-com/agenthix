@@ -16,7 +16,8 @@ import { RemoveDialog } from './dialogs/RemoveDialog'
 import { AboutSection } from './sections/AboutSection'
 import { CreditSection } from './sections/CreditSection'
 import { HoldersSection } from './sections/HoldersSection'
-import { NewsSection } from './sections/NewsSection'
+import { OriginalSection } from './sections/OriginalSection'
+import { CopiesSection } from './sections/CopiesSection'
 import { TemplateSection } from './sections/TemplateSection'
 import { UpdateCard } from './sections/UpdateCard'
 import { VersionsSection } from './sections/VersionsSection'
@@ -93,12 +94,13 @@ export function AssetPage() {
             )}
           </section>
         )}
+        {skill && page.original && <OriginalSection key={`o${revision}`} page={page} onChanged={changed} />}
+        {skill && <CopiesSection page={page} onChanged={changed} />}
         {page.update && <UpdateCard key={`u${revision}`} page={page} onChanged={changed} />}
         <Section title="Content" testId="asset-content"><AssetFiles key={`c${revision}`} assetId={page.assetId} /></Section>
         {page.kind !== 'skill' && <TemplateSection page={page} />}
         {skill && !page.builtIn && <HoldersSection key={`h${revision}`} page={page} />}
         <VersionsSection key={`v${revision}`} page={page} onChanged={changed} />
-        {skill && page.own && <NewsSection key={`n${revision}`} page={page} onChanged={changed} />}
         {skill && <CreditSection key={`k${revision}`} page={page} />}
         <WhoCanEdit page={page} />
         <AboutSection page={page} />

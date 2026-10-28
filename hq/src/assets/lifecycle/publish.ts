@@ -1,14 +1,17 @@
 /**
  * Publishing a draft (spec part 2 *Editing: draft, then publish*, D24; security review H5). The publisher names the
  * draft revision they looked at, and nothing else is published: a newer revision refuses it. It asks for a note,
- * validates, makes the next version (the publisher chooses patch, minor or major; minor by default), keeps the
- * based-on list and licence the asset already holds, moves the pin, and ends the draft. A copy's first publish takes
- * its original's place (`ownCopy.ts`).
+ * validates, makes the next version (the publisher chooses patch, minor or major; minor by default), writes that version
+ * into the files (`places/metadata.ts`, the same writer a place skill's publish uses) and only then fingerprints and
+ * stores them, so the stored content, its fingerprint and the record agree; keeps the based-on list and licence the
+ * asset already holds, moves the pin, and ends the draft. A copy's first publish takes its original's place
+ * (`ownCopy.ts`).
  */
 import type { PrismaClient } from '@prisma/client'
 import type { Db } from '../../packages/packageStore'
-import { readContent, releaseContent } from '../content'
+import { readContent, releaseContent, storeContent } from '../content'
 import type { Actor } from '../policy'
+import { withSkillMetadata } from '../places/metadata'
 import { validateSkill } from '../validation'
 import { bumpOf, DraftError, publishNote, publishRefusal } from './drafts'
 import { assertEditedInPlace } from './draftStore'
@@ -56,15 +59,16 @@ export async function publishDraft(db: PrismaClient, actor: Actor, input: Publis
     const versions = await tx.assetVersion.findMany({ where: { assetId: asset.id }, orderBy: { createdAt: 'desc' } })
     const version = nextVersion(versions.map(v => v.version), bump)
     const newest = versions[0]
+    const digest = await storeContent(withSkillMetadata(files, { version }), tx)
     const row = await tx.assetVersion.create({
       data: {
-        assetId: asset.id, version, digest: draft!.digest, source: 'MADE_HERE', note,
+        assetId: asset.id, version, digest, source: 'MADE_HERE', note,
         basedOn: newest ? heldLines(newest.basedOn) : [], licence: newest?.licence ?? null, ...by,
       },
     })
     await movePin(tx, { assetId: asset.id, fromVersionId: current?.id ?? null, toVersionId: row.id, reason: `Published: ${note}`, ...by })
     const tookPlaceOf = await firstPublishOfCopy(tx, asset, versions.length, by.byId)
-    for (const digest of new Set(draft!.revisions.map(r => r.digest))) if (digest !== draft!.digest) await releaseContent(digest, tx)
+    for (const held of new Set([draft!.digest, ...draft!.revisions.map(r => r.digest)])) if (held !== digest) await releaseContent(held, tx)
     return { identity: identityOf(asset), version, tookPlaceOf }
   }, TRANSACTION)
 }

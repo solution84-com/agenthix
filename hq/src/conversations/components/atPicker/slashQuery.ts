@@ -18,6 +18,20 @@ export function slashQueryAt(text: string, caret: number | null): AtQuery | null
   return { start: 0, end: caret, fragment: match[1] }
 }
 
+/** How a picked skill reads in the message: `/name`, where it was typed. */
+export const skillMark = (name: string): string => `/${name}`
+
+/** Whether the text still begins with the picked skill's mark as a word of its own; if not, the skill is no longer picked. */
+export function holdsSkill(text: string, name: string): boolean {
+  const mark = skillMark(name)
+  return text.startsWith(mark) && (text.length === mark.length || /\s/.test(text[mark.length]))
+}
+
+/** The person's words: the text without the mark of the skill picked. */
+export function withoutSkill(text: string, name: string | null): string {
+  return name && holdsSkill(text, name) ? text.slice(skillMark(name).length).trim() : text.trim()
+}
+
 /** What listConversationSkills answers for one skill. */
 export type SkillRow = {
   name: string

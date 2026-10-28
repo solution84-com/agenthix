@@ -75,7 +75,7 @@ export function WorkspaceView({ workspaceId, siteLabel, previewId, connecting, o
       onOpenFile={ref => { if (ref.space === 'place') url.set({ wfile: ref.path }) }}
     />
   )
-  if (file && !wide) return <div ref={root}>{opened}</div>
+  if (file && !wide) return <div ref={root} className="flex min-h-0 flex-1 flex-col">{opened}</div>
 
   const header = (
     <FilesViewHeader
@@ -116,7 +116,7 @@ export function WorkspaceView({ workspaceId, siteLabel, previewId, connecting, o
       {wide ? (
         <div className="mx-4 my-3 flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border-subtle">
           <div className="w-64 shrink-0 overflow-y-auto border-r border-border-subtle py-2">{tree}</div>
-          <section className="min-w-0 flex-1 overflow-y-auto">{opened || <FilesQuietLine>Select a file to read it.</FilesQuietLine>}</section>
+          <section className="flex min-h-0 min-w-0 flex-1 flex-col">{opened || <FilesQuietLine>Select a file to read it.</FilesQuietLine>}</section>
         </div>
       ) : (
         <div className="pt-2">{tree}</div>

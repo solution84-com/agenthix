@@ -40,11 +40,24 @@ export function BuiltInRow({ line }: { line: AgentBuiltInLine }) {
   )
 }
 
-export function GroupHeading({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
+export function GroupHeading({ children, count, note }: { children: ReactNode; count?: ReactNode; note?: ReactNode }) {
   return (
-    <div className="mt-5 flex items-baseline justify-between gap-3 first:mt-0">
-      <h4 className="text-small font-semibold text-text-primary">{children}</h4>
-      {aside && <span className="text-micro text-text-muted">{aside}</span>}
+    <div className="mt-6 first:mt-0">
+      <div className="flex items-baseline justify-between gap-3 border-b border-border-subtle pb-1">
+        <h4 className="text-body font-semibold text-text-primary">{children}</h4>
+        {count && <span className="text-small text-text-muted">{count}</span>}
+      </div>
+      {note && <p className="mt-1 text-small text-text-muted">{note}</p>}
     </div>
+  )
+}
+
+/** A skill listed by name only: one of the person's own, or one set aside. */
+export function PlainRow({ title, children }: { title: string; children?: ReactNode }) {
+  return (
+    <li className="py-2" data-testid="agent-skill-row">
+      <p className="text-body font-medium text-text-primary">{title}</p>
+      {children}
+    </li>
   )
 }

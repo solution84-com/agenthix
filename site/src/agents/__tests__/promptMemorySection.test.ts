@@ -37,4 +37,12 @@ describe('the Memory section @SC-992', () => {
   it('says nothing of a file when the run has none', () => {
     expect(buildMemoryContent(null)).toBe(buildMemoryContent())
   })
+
+  it('says what a skill name means: it starts with where it comes from, and the rest is its name', () => {
+    const section = buildMemoryContent()
+    expect(section).toContain('## Skills')
+    for (const prefix of ['`platform-`', '`org-`', '`agent-`', '`person-`', '`workspace-N-`']) expect(section).toContain(prefix)
+    expect(section).toContain('the rest is its name')
+    expect(section).toContain('`/code-review`')
+  })
 })

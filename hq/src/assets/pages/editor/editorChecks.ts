@@ -13,6 +13,10 @@ export type EditorCheck = { level: 'ok' | 'warning' | 'error'; text: string }
 
 /** Folders the Agent Skills format lays out; a path under one of these in SKILL.md is a file the skill names. */
 const KNOWN_FOLDERS = ['scripts', 'references', 'assets', 'templates']
+/** Keys HQ writes on publish (`places/metadata.ts`): the version, top-level and under `metadata`. */
+const SET_ON_PUBLISH = ['version', 'metadata']
+export const VERSION_ON_PUBLISH = 'The version in the header is written when you publish; what is there now is replaced'
+
 const TRAILING = /[.,;:!?)\]}'"`>]+$/
 
 /** The files a SKILL.md body points to, as written: paths under a folder of the skill, and relative links. */
@@ -69,9 +73,11 @@ export function checkSkill(name: string, files: readonly EditorFile[]): EditorCh
     if (typeof md.header.name === 'string' && md.header.name.trim() !== name) {
       checks.push({ level: 'warning', text: `${SKILL_FILE_NAME} calls itself \u201c${md.header.name.trim()}\u201d; it runs as ${name}.` })
     }
-    for (const key of Object.keys(md.header)) {
-      if (!(KEPT_WHEN_RUN as readonly string[]).includes(key)) checks.push({ level: 'warning', text: `${key} in the header is ignored when run` })
+    const keys = Object.keys(md.header)
+    for (const key of keys) {
+      if (!(KEPT_WHEN_RUN as readonly string[]).includes(key) && !SET_ON_PUBLISH.includes(key)) checks.push({ level: 'warning', text: `${key} in the header is ignored when run` })
     }
+    if (keys.some(k => SET_ON_PUBLISH.includes(k))) checks.push({ level: 'ok', text: VERSION_ON_PUBLISH })
   }
   const lines = md.body.split('\n').length
   if (lines > BODY_LINES_WARNING) checks.push({ level: 'warning', text: `${SKILL_FILE_NAME} is ${lines} lines long; agents follow a skill best under ${BODY_LINES_WARNING}.` })

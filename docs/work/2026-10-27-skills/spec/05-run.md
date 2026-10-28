@@ -21,7 +21,9 @@ version moved (versioning.md).
 
 Typing `/` at the start of the message box opens a picker of the skills this conversation's agent has, with name,
 description and where each comes from, narrowed as the person types. It reuses the `@` picker's hook and key
-handling. The choice travels as a **structured field** beside the message, never as rewritten text. The site turns
+handling. The picked skill stays in the message as highlighted text (`/code-review`) where it was typed, part of the text the
+person edits; changing or deleting that text un-picks it. The choice travels as a **structured field** beside the
+message, never parsed from the text. The site turns
 it into the runtime's own form: a skill invocation on Claude, and an instruction to load that skill first on
 OpenCode. **The site validates the field** (security review M7): it accepts it only if it equals a name staged for
 this turn whose skill doesn't set `user-invocable: false`; otherwise it drops the field and keeps the text. Message
@@ -47,12 +49,17 @@ and optionally the skill it edits), is the agent's only way to write a skill. Wh
 - **Any other run** (a task, a scheduled or automated run, a run someone else started): always a proposal, never a
   draft (security review H5).
 - **They may not:** it is a proposal, aimed at a level the person can change on the card, and reviewed by that
-  level's maintainers (D27): the organisation's administrators and Library maintainers; a project's administrators; or the person, for Your space. Review
+  level's maintainers (D27), and reaches them wherever they look: the Overview counts proposals at every level the
+  person reviews, a project's Skills page says how many wait for it, and the Library leads to the queue: the organisation's administrators and Library maintainers; a project's administrators; or the person, for Your space. Review
   accepts, edits then accepts, or rejects with a note; the agent is told the outcome on its next turn.
 
 **An agent's publish always goes through a person's approval** (D31). An agent may ask to publish, roll back, switch
 a skill on or install; each such call becomes an approval card for the person it acts for, runs only when that person
 approves it and holds the right at that level, and is recorded with the person as publisher, "requested by" the agent.
+A run is told what a staged skill's name means, once: it starts with where the skill comes from (`platform-`, `org-`,
+`agent-`, `person-`, `workspace-N-`) and the rest is its name, so a person's `/code-review` is the skill ending in
+`code-review`; a picked skill's instruction names both. The staged names stay namespaced (security review M2).
+
 No agent setting skips this gate, *Bypassed* included (today a bypassed agent runs even tools set to Never). Trust
 settings and naming Library maintainers have no agent tool.
 

@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test'
 import { signIn, ADMIN } from './fixtures/auth'
 
 // The editor (skills spec part 6, board U3b): New skill, the file tree with change markers, View / Edit / Changes,
-// checks as the person edits, and Publish. Written against the seeded e2e organisation; run by the lead.
+// checks as the person edits, the draft saving itself, Publish saying why it can't be used, the version written into
+// SKILL.md on publish, and Ask an agent naming who answers. Written against the seeded e2e organisation; run by the lead.
 
 test.use({ viewport: { width: 1280, height: 800 } })
 
@@ -36,8 +37,63 @@ test('editing a file marks it modified, shows its changes, and flags a file SKIL
   await expect(page.getByTestId('editor-checks')).toContainText('names scripts/format.py, which isn’t in the skill')
   await page.getByRole('tab', { name: 'Changes' }).click()
   await expect(page.getByTestId('editor-changes')).toContainText('format.py')
-  await page.getByRole('button', { name: 'Save draft' }).click()
-  await expect(page.getByText(/Saved as revision/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Save draft' })).toHaveCount(0)
+  await expect(page.getByTestId('draft-state')).toHaveText('Saved')
+})
+
+test('Publish says why it can’t be used while a change is saving, and once nothing changed', async ({ page }) => {
+  await page.goto('/library/new-skill')
+  await page.getByLabel('Name').fill(`e2e-why-${Date.now() % 100000}`)
+  await page.getByLabel('What it does, and when to use it').fill('Does a thing. Use when asked.')
+  await page.getByRole('button', { name: 'Create draft' }).click()
+  await page.getByRole('tab', { name: 'Edit' }).click()
+  await page.getByTestId('edit-file').locator('.cm-content').click()
+  await page.keyboard.press('Control+End')
+  await page.keyboard.type('\nOne more step.\n')
+  await expect(page.getByRole('button', { name: 'Publish…' })).toBeDisabled()
+  await expect(page.getByTestId('publish-why')).toContainText('once they are saved')
+  await expect(page.getByTestId('draft-state')).toHaveText('Saved')
+  await expect(page.getByRole('button', { name: 'Publish…' })).toBeEnabled()
+  await expect(page.getByTestId('publish-why')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Publish…' }).click()
+  await page.getByLabel(/Note/).fill('First version')
+  await page.getByRole('button', { name: 'Publish version 1.0.0' }).click()
+  await page.getByRole('button', { name: 'Close' }).click()
+  await expect(page.getByTestId('publish-why')).toHaveText('Nothing has changed since version 1.0.0, the version in use.')
+})
+
+test('publishing writes the version it makes into SKILL.md, and the editor says it will', async ({ page }) => {
+  await page.goto('/library/new-skill')
+  await page.getByLabel('Name').fill(`e2e-ver-${Date.now() % 100000}`)
+  await page.getByLabel('What it does, and when to use it').fill('Does a thing. Use when asked.')
+  await page.getByRole('button', { name: 'Create draft' }).click()
+  await page.getByRole('tab', { name: 'Edit' }).click()
+  await expect(page.getByTestId('version-on-publish')).toBeVisible()
+  await page.getByRole('button', { name: 'Publish…' }).click()
+  await page.getByLabel(/Note/).fill('First version')
+  await page.getByRole('button', { name: 'Publish version 1.0.0' }).click()
+  await page.getByRole('button', { name: 'Close' }).click()
+  await page.getByRole('tab', { name: 'Edit' }).click()
+  await expect(page.getByTestId('edit-file')).toContainText('version: 1.0.0')
+})
+
+test('Ask an agent names the agent that will answer and where, and lets the person pick another', async ({ page }) => {
+  await page.goto('/library/new-skill')
+  await page.getByLabel('Name').fill(`e2e-ask-${Date.now() % 100000}`)
+  await page.getByLabel('What it does, and when to use it').fill('Does a thing. Use when asked.')
+  await page.getByRole('radio', { name: /Ask an agent to write it/ }).check()
+  await expect(page.getByTestId('ask-who')).toHaveText(/^.+ will answer, in a new conversation in Your space\.$/)
+  await expect(page.getByRole('button', { name: 'Agent' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Ask .+/ })).toBeEnabled()
+
+  await page.getByRole('radio', { name: /A plain skill/ }).check()
+  await page.getByRole('button', { name: 'Create draft' }).click()
+  await page.getByRole('button', { name: 'Ask an agent to edit' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Ask an agent to edit' })
+  await expect(dialog.getByTestId('ask-who')).toContainText('will answer, in a new conversation in Your space.')
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(dialog).toHaveCount(0)
 })
 
 test('Publish shows every changed file, asks for a note, and the first publish is version 1.0.0', async ({ page }) => {

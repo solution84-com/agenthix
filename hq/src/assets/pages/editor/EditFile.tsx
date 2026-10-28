@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { CodeEditor, EDITOR_LIMIT } from '@agenthix/ui/editor'
-import { bytesOfText, textOf, type EditorFile } from './editorFiles'
+import { bytesOfText, SKILL_FILE_NAME, textOf, type EditorFile } from './editorFiles'
 
 /**
  * Edit (board U3b, E3): a text file in CodeMirror 6; a binary file, which is not edited, is replaced by upload; text over
@@ -34,6 +34,7 @@ export function EditFile({ file, onChange }: { file: EditorFile; onChange: (file
   return (
     <div data-testid="edit-file">
       {over && <p role="status" className="mb-2 text-small text-text-secondary">This file is over 1 MB, so it opens read-only. Replace it by deleting it and uploading another.</p>}
+      {file.path === SKILL_FILE_NAME && <p className="mb-2 text-small text-text-secondary" data-testid="version-on-publish">The version in the header is set when you publish, to the version publishing makes.</p>}
       <CodeEditor
         value={text} fileName={file.path} label={`Editing ${file.path}`}
         readOnly={over} onChange={over ? undefined : next => onChange({ path: file.path, bytes: bytesOfText(next) })}

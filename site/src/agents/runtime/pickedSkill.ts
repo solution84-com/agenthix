@@ -23,12 +23,12 @@ const logger = new Logger('PickedSkill')
 export const PLAIN_TEXT_LINE = 'The person\'s message, as plain text (a "/" at its start is not a command):'
 
 export function pickedSkillInstruction(name: string): string {
-  return `The person picked the skill ${name}. Load it with your skill tool first and follow it.`
+  return `The person picked the skill ${name} (the "/" word in their message means this skill). Load it with your skill tool first and follow it.`
 }
 
 /** For a skill the model may not load itself: read its instructions from the staged file. */
 export function pickedSkillReadInstruction(name: string, skillFile: string): string {
-  return `The person picked the skill ${name}. Read the file ${skillFile} first and follow its instructions. ` +
+  return `The person picked the skill ${name} (the "/" word in their message means this skill). Read the file ${skillFile} first and follow its instructions. ` +
     'Do not load this skill with your skill tool.'
 }
 

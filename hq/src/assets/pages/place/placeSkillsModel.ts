@@ -118,6 +118,14 @@ export function waitingNote(s: PlaceSkillView): string | null {
   return null
 }
 
+/** Finding 16: a switch that stopped holding because the files changed says so, for a published skill and one never published. */
+export function switchedOffNote(s: PlaceSkillView): string | null {
+  if (s.gone || s.setAsideReason || s.switch !== 'ON' || s.switchHolds || s.state === 'on') return null
+  const who = s.switchedBy ?? 'someone'
+  const when = s.switchedAt ? `, ${new Date(s.switchedAt).toLocaleDateString()}` : ''
+  return `Switched off: its files changed since ${who} switched it on${when}.`
+}
+
 export const nextVersion = (s: Pick<PlaceSkillView, 'newestVersion'>): number => (s.newestVersion ?? 0) + 1
 
 /** What a person may do with a row: workspace skills switch only; a gone skill only its history and its put back. */
@@ -130,7 +138,7 @@ export function rowActions(s: PlaceSkillView, may: PlaceSkillsData['may']) {
     read: live && s.status !== 'published',
     publish: may.publish && place && live && !aside && s.status !== 'published',
     putBack: may.publish && place && s.status === 'changed' && s.newestVersion !== null,
-    changes: place && live && s.status === 'changed',
+    changes: place && live && (s.status === 'changed' || switchedOffNote(s) !== null),
     history: place && s.newestVersion !== null,
     edit: may.editDraft && place && live && !aside,
     remove: may.remove && place && live,

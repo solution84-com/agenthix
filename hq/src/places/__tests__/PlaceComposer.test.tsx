@@ -6,11 +6,18 @@ import { MemoryRouter, Routes, Route } from 'react-router'
 
 const startConversation = vi.fn()
 const role = { value: 'MEMBER' }
+const skillAnswer = {
+  data: { skills: [{ name: 'org-code-review', title: 'Code review', description: 'Review a change', source: 'every-agent', sourceName: 'Fernhill', detail: '' }] },
+  isLoading: false, error: undefined,
+}
 
 vi.mock('wasp/client/operations', () => ({
   startConversation: { name: 'startConversation' },
   getProjects: { name: 'getProjects' },
-  useQuery: () => ({ data: [{ id: 'p1', isMember: true, myRole: role.value }] }),
+  listStartSkills: { name: 'listStartSkills' },
+  useQuery: (op: { name: string }) => op.name === 'listStartSkills'
+    ? skillAnswer
+    : { data: [{ id: 'p1', isMember: true, myRole: role.value }] },
   useAction: () => startConversation,
 }))
 
@@ -138,5 +145,32 @@ describe('PlaceComposer, as the place’s agents and default arrive @SC-496', ()
 describe('startingAgentId @SC-496', () => {
   it('takes the first agent when the default cannot be talked to here', () => {
     expect(startingAgentId({ agents: [{ id: 'a1', name: 'A', avatarUrl: null }], defaultAgentId: 'gone' })).toBe('a1')
+  })
+})
+
+describe('the / pick in the place\'s box', () => {
+  it('leaves /name in the text, highlighted, and sends the skill beside the words without it', async () => {
+    renderComposer()
+    const box = screen.getByRole('textbox') as HTMLTextAreaElement
+    fireEvent.change(box, { target: { value: '/' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    expect(box.value).toBe('/org-code-review ')
+    expect(screen.getByTestId('skill-mark').textContent).toBe('/org-code-review')
+    fireEvent.change(box, { target: { value: '/org-code-review the checkout form' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    await waitFor(() => expect(startConversation).toHaveBeenCalled())
+    expect(startConversation.mock.calls[0]![0]).toMatchObject({ text: 'the checkout form', skill: { name: 'org-code-review' } })
+  })
+
+  it('lets the skill go when the mark is changed', async () => {
+    renderComposer()
+    const box = screen.getByRole('textbox') as HTMLTextAreaElement
+    fireEvent.change(box, { target: { value: '/' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    fireEvent.change(box, { target: { value: '/org-code hello' } })
+    expect(screen.queryByTestId('skill-mark')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    await waitFor(() => expect(startConversation).toHaveBeenCalled())
+    expect(startConversation.mock.calls[0]![0].skill).toBeUndefined()
   })
 })

@@ -54,6 +54,10 @@ export type AssetPageView = {
   draftBy: string | null
   /** The organisation's copy that replaced it (this one is set aside). */
   setAsideFor: { assetId: string; identity: string } | null
+  /** For the organisation's own copy: the original it was made from, shown under it (D18). */
+  original: OriginalView | null
+  /** For an original: the organisation's copies of it (D18). */
+  copies: CopyView[]
   can: PageCan
   /** People by id, for who made each version and who moved the pin. */
   names: Record<string, string>
@@ -65,6 +69,32 @@ export type AssetPageView = {
   madeFrom: MadeFrom[] | null
   /** "Last used by Ada, today 11:05, in Website rebuild": the place only when the viewer may see it. */
   lastUsed: LastUsed | null
+}
+
+export type OriginalView = {
+  assetId: string
+  identity: string
+  /** "Agenthix's Code Review", or the identity when nobody signed it. */
+  name: string
+  /** Its version in use, and the one the copy was made from. */
+  version: string | null
+  copiedFrom: string | null
+  signedBy: string
+  /** The original serves the agents: the copy is set aside, or not published yet. */
+  inUse: boolean
+  /** The copy was published since it was made: the first publish takes the original's place. */
+  copyPublished: boolean
+}
+
+export type CopyView = {
+  assetId: string
+  identity: string
+  version: string | null
+  /** It serves the agents that had the original, which is set aside. */
+  inUse: boolean
+  /** Published since it was copied; a copy never published is still being made. */
+  published: boolean
+  draftBy: string | null
 }
 
 export type LastUsed = { by: string | null; at: string; where: string | null }

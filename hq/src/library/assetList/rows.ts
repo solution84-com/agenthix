@@ -87,7 +87,7 @@ export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryA
       key: a.id, assetId: a.id, proposalId: null, kind, title, description, identity, version: v.version, signer, has,
       builtIn: a.builtIn, switchedOff: a.switchedOff, statuses, updateTo: newer,
       draftBy: draftAuthor ? names.get(draftAuthor) ?? null : null, proposedBy: null,
-      setAsideFor: a.setAsideBy ? formatAssetIdentity(a.setAsideBy) : null,
+      setAsideFor: a.setAsideBy ? formatAssetIdentity(a.setAsideBy) : null, partners: [],
     })
   }
   for (const p of visible) {
@@ -98,7 +98,7 @@ export async function libraryRows(db: Db, viewer: PersonActor): Promise<LibraryA
       identity: p.name, version: null, signer: 'Made here', has: 'Proposed for the organisation', builtIn: false, switchedOff: false,
       statuses: ['waiting'], updateTo: null, draftBy: null,
       proposedBy: agent ? `Proposed by ${agent}${person ? ` for ${person}` : ''}` : `Proposed by ${person ?? 'a member'}`,
-      setAsideFor: null,
+      setAsideFor: null, partners: [],
     })
   }
   return rows.sort((x, y) => Number(y.builtIn) - Number(x.builtIn) || x.title.localeCompare(y.title))

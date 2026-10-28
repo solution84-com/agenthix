@@ -15,7 +15,9 @@ import { may, type PersonActor } from '../../policy'
 import { organisationTarget } from '../../policyActors'
 import { skillDescription, skillMdOf, skillTitle } from '../../skillFile'
 import { PERSON_SELECT, personSummary } from '../../../server/identity/personSummary'
-import { signedByText, titleOfName } from '../../../library/assetList/words'
+import { titleOfName } from '../../../library/assetList/words'
+import { signedByWords } from './signedBy'
+import { assetRelatives } from './relatives'
 import type { AssetPageView, CarriedSkill, LastUsed, MadeFrom, PageKind } from './pageTypes'
 
 const KIND: Record<string, PageKind> = { SKILL: 'skill', AGENT: 'agent', BOARD: 'board', TEAM: 'team' }
@@ -24,14 +26,7 @@ const SOURCE_WORDS: Record<string, string> = {
   BUILT_IN: 'Agenthix, in the HQ image', UPLOAD: 'An upload', URL: 'A link', MADE_HERE: 'Made in the editor',
 }
 
-/** How the page says who vouches for it, in the words of the install states (spec part 3). */
-export function signedByWords(v: { source: string; trustedPublisher: { displayName: string; repository: string | null } | null }, publisher: string, builtIn: boolean, own: boolean): string {
-  if (builtIn) return 'Built in to HQ: it never leaves HQ, so it needs no signature'
-  if (own || v.source === 'MADE_HERE') return 'Made here: it never left HQ, so it needs no signature'
-  if (v.trustedPublisher) return signedByText(v.trustedPublisher.displayName, v.trustedPublisher.repository)
-  if (v.source === 'BUILT_IN' && publisher === AGENTHIX_PUBLISHER) return 'Signed by Agenthix'
-  return 'Unsigned: nobody vouches for who made it or whether it was changed'
-}
+export { signedByWords }
 
 async function carriedBy(db: Db, template: { publisher: string; name: string }, digest: string): Promise<CarriedSkill[]> {
   const parts = readParts({ root: template.name, files: await readContent(digest, db) })
@@ -127,6 +122,7 @@ export async function assetPageView(db: Db, viewer: PersonActor, assetId: unknow
     update: newer ? { versionId: newer.id, version: newer.version } : null,
     draftBy: asset.draft ? nameOf(draftAuthor) ?? 'someone' : null,
     setAsideFor: asset.setAsideBy ? { assetId: asset.setAsideBy.id, identity: formatAssetIdentity(asset.setAsideBy) } : null,
+    ...(kind === 'skill' && !asset.builtIn ? await assetRelatives(db, asset, own, org?.publisherName ?? null) : { original: null, copies: [] }),
     can,
     names: Object.fromEntries(users.map((u: Parameters<typeof personSummary>[0]) => [u.id, personSummary(u).name])),
     maintainers: maintainers.map((m: { user: Parameters<typeof personSummary>[0] }) => personSummary(m.user).name),

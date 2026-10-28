@@ -24,13 +24,16 @@ export const isStatusFilter = (v: string | null): v is LibraryStatus => STATUS_C
 export type LibraryFilter = { search: string; type: TypeFilter; status: LibraryStatus | null }
 
 const haystack = (r: LibraryAssetRow) =>
-  [r.title, r.description, r.identity, r.signer, r.has, r.kind, r.proposedBy ?? ''].join(' ').toLowerCase()
+  [r.title, r.description, r.identity, r.signer, r.has, r.kind, r.proposedBy ?? '', ...r.partners.flatMap(p => [p.identity, p.words])].join(' ').toLowerCase()
+
+/** An entry is found by its own states and by those of the copy or original shown under it (D18). */
+export const hasStatus = (r: LibraryAssetRow, s: LibraryStatus) => r.statuses.includes(s) || r.partners.some(p => p.statuses.includes(s))
 
 export function filterRows(rows: LibraryAssetRow[], f: LibraryFilter): LibraryAssetRow[] {
   const words = f.search.trim().toLowerCase().split(/\s+/).filter(Boolean)
   return rows.filter(r =>
     (f.type === 'all' || r.kind === f.type)
-    && (f.status === null || r.statuses.includes(f.status))
+    && (f.status === null || hasStatus(r, f.status))
     && words.every(w => haystack(r).includes(w)))
 }
 
@@ -40,6 +43,6 @@ export function chipCounts(rows: LibraryAssetRow[], f: LibraryFilter) {
   const byStatus = filterRows(rows, { ...f, status: null })
   return {
     types: { all: byType.length, ...Object.fromEntries(TYPE_CHIPS.map(t => [t.id, byType.filter(r => r.kind === t.id).length])) } as Record<TypeFilter, number>,
-    statuses: Object.fromEntries(STATUS_CHIPS.map(s => [s.id, byStatus.filter(r => r.statuses.includes(s.id)).length])) as Record<LibraryStatus, number>,
+    statuses: Object.fromEntries(STATUS_CHIPS.map(s => [s.id, byStatus.filter(r => hasStatus(r, s.id)).length])) as Record<LibraryStatus, number>,
   }
 }

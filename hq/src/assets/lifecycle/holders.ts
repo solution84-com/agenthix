@@ -8,6 +8,7 @@ import type { PrismaClient } from '@prisma/client'
 import type { Db } from '../../packages/packageStore'
 import type { Actor } from '../policy'
 import { LifecycleError } from './errors'
+import { moveHolders } from './ownCopy'
 import { assertLibrary, byOf, identityOf, libraryAsset, librarySkill } from './records'
 
 const NOTHING = 'Nothing was changed.'
@@ -92,16 +93,25 @@ export async function removeAsset(db: PrismaClient, actor: Actor, input: { asset
   const asset = await libraryAsset(db, input.assetId)
   if (asset.builtIn) throw new LifecycleError(`Built-in skills are switched off, not removed. ${NOTHING}`, 409)
   const holders = await holdersOf(db, asset.id)
+  // A copy in use stands in for an original set aside for it: removing the copy gives its agents the original back.
+  const original = await db.asset.findFirst({ where: { setAsideById: asset.id, removedAt: null } })
   if (input.confirmed !== true && holders.agents.length > 0) {
     const who = holders.everyAgent ? 'Every agent has it' : `${holders.agents.map(a => a.name).join(', ')} ${holders.agents.length === 1 ? 'has' : 'have'} it`
-    return { removed: false, confirm: `${who}. Removing ${identityOf(asset)} takes it from them; their pages will show it as missing.`, holders }
+    const after = original ? `${identityOf(original)} goes back to them in its place.` : 'their pages will show it as missing.'
+    return { removed: false, confirm: `${who}. Removing ${identityOf(asset)} takes it from them; ${after}`, holders }
   }
   if (input.confirmed !== true && holders.made.length > 0) {
     const made = holders.made.map(m => m.name).join(', ')
     return { removed: false, confirm: `${made} ${holders.made.length === 1 ? 'was' : 'were'} made from ${identityOf(asset)}. Removing it doesn't change them.`, holders }
   }
-  const { count } = await db.asset.updateMany({ where: { id: asset.id, removedAt: null }, data: { removedAt: now, removedById: by.byId } })
-  if (count === 0) throw new LifecycleError(`That isn't in the Library. ${NOTHING}`, 404)
+  await db.$transaction(async tx => {
+    const { count } = await tx.asset.updateMany({ where: { id: asset.id, removedAt: null }, data: { removedAt: now, removedById: by.byId } })
+    if (count === 0) throw new LifecycleError(`That isn't in the Library. ${NOTHING}`, 404)
+    if (original) {
+      await moveHolders(tx, asset, original.id, by.byId)
+      await tx.asset.update({ where: { id: original.id }, data: { setAsideById: null } })
+    }
+  })
   return { removed: true }
 }
 

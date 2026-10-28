@@ -6,7 +6,7 @@ import { HttpError, prisma } from 'wasp/server'
 import { isFeatureOn } from '@agenthix/core'
 import { may } from '../../assets/policy'
 import { organisationTarget, personActor } from '../../assets/policyActors'
-import { libraryRows } from './rows'
+import { libraryEntries } from './entries'
 import type { LibraryAssets } from './types'
 
 type Ctx = { user?: { id: string } | null }
@@ -17,7 +17,7 @@ export const getLibraryAssets = async (_args: unknown, context: Ctx): Promise<Li
   if (viewer.role === null) throw new HttpError(403, 'The Library is for people in this organisation. Nothing was changed.')
   const target = await organisationTarget(prisma)
   return {
-    rows: await libraryRows(prisma, viewer),
+    rows: await libraryEntries(prisma, viewer),
     isAdmin: viewer.role === 'ADMIN',
     mayAdd: may(viewer, 'install', target) || may(viewer, 'installFromOutside', target),
     marketplace: isFeatureOn('marketplace', process.env),

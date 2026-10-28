@@ -85,4 +85,27 @@ describe('a draft change\'s card (D24)', () => {
     render(<SkillDraftCard name="code-review" shownRevision={3} draft={draft({ mayPublish: false })} busy={false} error={null} onPublish={vi.fn()} />)
     expect(screen.queryByRole('button', { name: /Publish/ })).toBeNull()
   })
+
+  it('after it was published from the card, drops the note field and says what was published, with Add to agents', () => {
+    const { rerender } = render(<SkillDraftCard name="code-review" shownRevision={3} draft={draft()} busy={false} error={null} onPublish={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Publish…' }))
+    fireEvent.change(screen.getByLabelText('What changed'), { target: { value: 'test' } })
+    rerender(<SkillDraftCard name="code-review" shownRevision={3} draft={draft({ revision: null, published: '1.0.0' })} busy={false} error={null} onPublish={vi.fn()} publishedHere addHref="/library/a1" />)
+    expect(screen.queryByLabelText('What changed')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Publish/ })).toBeNull()
+    expect(screen.getByTestId('skill-draft-state').textContent).toBe('Published as 1.0.0 by you.')
+    expect(screen.getByRole('link', { name: 'Add to agents…' }).getAttribute('href')).toBe('/library/a1')
+  })
+
+  it('says the draft was discarded when it is gone and nothing was published, and offers no field', () => {
+    render(<SkillDraftCard name="code-review" shownRevision={3} draft={draft({ revision: null, published: null })} busy={false} error={null} onPublish={vi.fn()} />)
+    expect(screen.getByTestId('skill-draft-state').textContent).toBe('No draft now: it was discarded.')
+    expect(screen.queryByLabelText('What changed')).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Add to agents…' })).toBeNull()
+  })
+
+  it('without knowing who published it, says it was published or discarded and what is in use', () => {
+    render(<SkillDraftCard name="code-review" shownRevision={3} draft={draft({ revision: null })} busy={false} error={null} onPublish={vi.fn()} />)
+    expect(screen.getByTestId('skill-draft-state').textContent).toBe('No draft now: it was published or discarded. In use: 1.2.0.')
+  })
 })

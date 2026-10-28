@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { MoreMenu, type MenuItem } from '../../org/components/menus'
 import type { LibraryAssetRow as Row, LibraryKindId } from '../assetList/types'
 import { libraryAssetPath, libraryProposalPath } from './libraryRoutes'
@@ -13,7 +13,24 @@ export function statusLine(r: Row): string[] {
   if (r.statuses.includes('draft')) out.push(r.draftBy ? `Draft by ${r.draftBy}` : 'Draft')
   if (r.statuses.includes('setAside')) out.push('Set aside')
   if (r.statuses.includes('unsigned')) out.push('Unsigned')
+  for (const p of r.partners) {
+    if (p.statuses.includes('setAside')) out.push(p.relation === 'original' ? 'Original set aside' : 'Your copy set aside')
+    if (p.statuses.includes('draft')) out.push(p.draftBy ? `Draft of your copy by ${p.draftBy}` : 'Draft of your copy')
+  }
   return out
+}
+
+/** What the row says about who has it, with the copy or original it stands for besides itself (D18). */
+export function whoLine(r: Row): string[] {
+  const original = r.partners.find(p => p.relation === 'original')
+  const copies = r.partners.filter(p => p.relation === 'copy').map(p =>
+    `Your copy ${p.words} ${p.statuses.includes('setAside') ? 'is set aside' : "isn't published yet"}`)
+  return [
+    r.proposedBy ?? r.signer,
+    ...(original ? [`Your copy of ${original.words}`] : []),
+    r.setAsideFor ? `replaced by your copy, ${r.setAsideFor}` : r.has,
+    ...copies,
+  ]
 }
 
 function action(r: Row): { label: string; to: string } | 'createAgent' | null {
@@ -27,9 +44,13 @@ function action(r: Row): { label: string; to: string } | 'createAgent' | null {
   return null
 }
 
-const BUTTON = 'shrink-0 rounded-lg border border-border bg-surface-1 px-3 py-1 text-small font-medium text-text-primary hover:bg-surface-hover'
+/** The title's link, whose ::after covers the whole row, so the row is the tap target; the ⋯ menu comes after it, so it sits above it without a z-index that would put the next row over an open menu. */
+const ROW_LINK = [
+  'rounded-lg after:absolute after:inset-0 after:rounded-lg after:content-[\'\']',
+  'focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-accent',
+].join(' ')
 
-/** One asset of the Library (skills spec part 6; board U2): what it is, who vouches for it, who has it, its state. */
+/** One asset of the Library (skills spec part 6; board U2): what it is, who vouches for it, who has it, its state. The row is one target, which opens the asset; every action is in its ⋯ menu. */
 export function LibraryAssetRow({ row, isAdmin, onCreateAgent, onExport, onRemove }: {
   row: Row
   isAdmin: boolean
@@ -37,12 +58,19 @@ export function LibraryAssetRow({ row, isAdmin, onCreateAgent, onExport, onRemov
   onExport: (row: Row) => void
   onRemove: (row: Row) => void
 }) {
+  const navigate = useNavigate()
   const states = statusLine(row)
   const main = action(row)
-  const menu: MenuItem[] = row.assetId && !row.builtIn ? [
-    { label: 'Export', hint: 'Save it as a package', disabled: !isAdmin, onSelect: () => onExport(row) },
-    { label: 'Remove', hint: 'Takes it out of the Library', danger: true, disabled: !isAdmin, separatorBefore: true, onSelect: () => onRemove(row) },
-  ] : []
+  const mainItem: MenuItem[] = main === 'createAgent' && row.assetId
+    ? [{ label: 'Create an agent', onSelect: () => onCreateAgent(row.assetId!) }]
+    : main && main !== 'createAgent' ? [{ label: main.label, onSelect: () => navigate(main.to) }] : []
+  const menu: MenuItem[] = [
+    ...mainItem,
+    ...(row.assetId && !row.builtIn ? [
+      { label: 'Export', hint: 'Save it as a package', disabled: !isAdmin, onSelect: () => onExport(row), separatorBefore: mainItem.length > 0 },
+      { label: 'Remove', hint: 'Takes it out of the Library', danger: true, disabled: !isAdmin, separatorBefore: true, onSelect: () => onRemove(row) },
+    ] : []),
+  ]
   const identity = [row.kind, row.version ? `${row.identity} · ${row.version}` : row.identity].join(' · ')
   const target = row.proposalId ? libraryProposalPath(row.proposalId) : row.assetId ? libraryAssetPath(row.assetId) : null
   const heading = (
@@ -52,27 +80,23 @@ export function LibraryAssetRow({ row, isAdmin, onCreateAgent, onExport, onRemov
     </>
   )
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border-subtle py-3 first:border-t-0" data-testid="library-row">
+    <div className={`relative flex items-start gap-x-3 border-t border-border-subtle py-3 first:border-t-0${target ? ' -mx-2 rounded-lg px-2 hover:bg-surface-hover' : ''}`} data-testid="library-row">
       <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-small font-semibold text-accent">{MARK[row.kind]}</span>
-      <div className="min-w-0 flex-1 basis-56">
+      <div className="min-w-0 flex-1">
         <div className="truncate">
-          {target ? <Link to={target} className="hover:underline">{heading}</Link> : heading}
+          {target ? <Link to={target} className={ROW_LINK}>{heading}</Link> : heading}
         </div>
         <div className="truncate text-small text-text-muted">
-          {[row.proposedBy ?? row.signer, row.setAsideFor ? `replaced by your copy, ${row.setAsideFor}` : row.has].join(' · ')}
+          {whoLine(row).join(' · ')}
           {row.builtIn && row.switchedOff ? ' · switched off' : ''}
         </div>
+        {states.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1" data-testid="library-row-states">
+            {states.map(s => <span key={s} className="rounded-full bg-accent-subtle px-2 py-0.5 text-micro font-medium text-accent">{s}</span>)}
+          </div>
+        )}
       </div>
-      {states.length > 0 && (
-        <span className="flex shrink-0 flex-wrap gap-1" data-testid="library-row-states">
-          {states.map(s => <span key={s} className="rounded-full bg-accent-subtle px-2 py-0.5 text-micro font-medium text-accent">{s}</span>)}
-        </span>
-      )}
-      {main === 'createAgent' && row.assetId && (
-        <button type="button" onClick={() => onCreateAgent(row.assetId!)} className={BUTTON}>Create an agent</button>
-      )}
-      {main && main !== 'createAgent' && <Link to={main.to} className={BUTTON}>{main.label}</Link>}
-      {menu.length > 0 && <MoreMenu items={menu} label={`More about ${row.title}`} />}
+      {menu.length > 0 && <span className="relative shrink-0"><MoreMenu items={menu} label={`More about ${row.title}`} /></span>}
     </div>
   )
 }

@@ -13,7 +13,7 @@ import { StartModelPicker } from './StartModelPicker'
 import { randomId } from '../../shared/randomId'
 import { microphonePossible, SECURE_PAGE_WORDS } from '../../shared/securePage'
 import { StartSkillPicker } from './atPicker/SkillPicker'
-import { SkillChip } from './atPicker/SkillChip'
+import { SkillBackdrop } from './atPicker/SkillBackdrop'
 import { useStartSkillPicker } from './atPicker/useStartSkillPicker'
 
 /**
@@ -77,7 +77,7 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
   }, [autoFocus, reason, choices])
 
   const send = async () => {
-    const value = text.trim()
+    const value = skills.wordsOf(text)
     if (!value || !agentId || sending || reason) return
     setSending(true)
     setError('')
@@ -128,7 +128,7 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
         onSubmit={(e) => { e.preventDefault(); void send() }}
         className="relative flex flex-col gap-1 rounded-xl border border-border bg-surface-1 p-2 focus-within:border-accent"
       >
-        {skills.skill && <div className="flex px-1"><SkillChip skill={skills.skill} onRemove={skills.clear} /></div>}
+        <SkillBackdrop text={text} skill={skills.skill?.name ?? null}>
         <textarea
           ref={box}
           value={text}
@@ -144,19 +144,20 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
           aria-label={placeholder}
           disabled={sending}
           rows={1}
-          className="max-h-32 min-h-[36px] w-full resize-none bg-transparent px-2 py-1.5 text-body text-text-primary placeholder:text-text-muted focus:outline-none"
+          className="relative max-h-32 min-h-[36px] w-full resize-none bg-transparent px-2 py-1.5 text-body text-text-primary placeholder:text-text-muted focus:outline-none"
         />
+        </SkillBackdrop>
         {skills.open && current && <StartSkillPicker start={{ home, ...(projectId ? { projectId } : {}), agentId }} picker={skills} left={0} />}
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-1">
             {choices && <AgentPicker agents={choices} selectedId={agentId} onSelect={setPicked} disabled={sending} above />}
             <StartModelPicker home={home} projectId={projectId} picked={model} onPick={setModel} disabled={sending} />
           </div>
-          {text.trim() || !current ? (
+          {skills.wordsOf(text) || !current ? (
             <button
               type="submit"
               aria-label="Send"
-              disabled={!text.trim() || sending || !agentId}
+              disabled={!skills.wordsOf(text) || sending || !agentId}
               className="flex shrink-0 items-center justify-center rounded-lg bg-accent p-2 text-on-accent hover:bg-accent-hover disabled:opacity-50"
             >
               <Send size={14} />

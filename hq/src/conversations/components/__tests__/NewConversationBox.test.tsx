@@ -80,11 +80,12 @@ describe('the / picker in the box that starts a conversation (skills spec part 5
     expect(screen.getByRole('listbox', { name: 'Skills' }).textContent).toContain('Code review')
     expect(h.skillsAsked.at(-1)).toEqual({ home: 'PERSON', agentId: 'k' })
     fireEvent.keyDown(box, { key: 'Enter' })
-    expect(screen.getByTestId('skill-chip').textContent).toContain('Code review')
-    expect(box.value).toBe('')
+    expect(box.value).toBe('/org-code-review ')
+    expect(screen.getByTestId('skill-mark').textContent).toBe('/org-code-review')
     expect(h.start).not.toHaveBeenCalled()
 
-    fireEvent.change(box, { target: { value: 'Review the checkout change' } })
+    fireEvent.change(box, { target: { value: '/org-code-review Review the checkout change' } })
+    expect(screen.getByTestId('skill-mark').textContent).toBe('/org-code-review')
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
     await waitFor(() => expect(h.start).toHaveBeenCalled())
     expect(h.start.mock.calls[0]![0]).toMatchObject({ text: 'Review the checkout change', skill: { name: 'org-code-review' } })
@@ -95,9 +96,28 @@ describe('the / picker in the box that starts a conversation (skills spec part 5
     const box = screen.getByLabelText('Ask your agent…') as HTMLTextAreaElement
     fireEvent.change(box, { target: { value: '/' } })
     fireEvent.keyDown(box, { key: 'Enter' })
-    expect(screen.getByTestId('skill-chip')).toBeTruthy()
+    expect(screen.getByTestId('skill-mark')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'agent:Writer' }))
-    expect(screen.queryByTestId('skill-chip')).toBeNull()
+    expect(screen.queryByTestId('skill-mark')).toBeNull()
+  })
+
+  it('lets the skill go when its text is changed, and sends the words as typed', async () => {
+    renderBox()
+    const box = screen.getByLabelText('Ask your agent…') as HTMLTextAreaElement
+    fireEvent.change(box, { target: { value: '/' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    fireEvent.change(box, { target: { value: '/org-code-revie hello' } })
+    expect(screen.queryByTestId('skill-mark')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    await waitFor(() => expect(h.start).toHaveBeenCalled())
+    expect(h.start.mock.calls[0]![0].text).toBe('/org-code-revie hello')
+    expect(h.start.mock.calls[0]![0].skill).toBeUndefined()
+  })
+
+  it('a typed /name that was never picked stays plain text', () => {
+    renderBox()
+    fireEvent.change(screen.getByLabelText('Ask your agent…'), { target: { value: '/org-code-review hello' } })
+    expect(screen.queryByTestId('skill-mark')).toBeNull()
   })
 
   it('opens for a / at the start only', () => {

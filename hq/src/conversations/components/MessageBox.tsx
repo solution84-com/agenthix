@@ -8,7 +8,7 @@ import { AtPicker } from './atPicker/AtPicker'
 import { useAtPicker } from './atPicker/useAtPicker'
 import { SkillPicker } from './atPicker/SkillPicker'
 import { useSkillPicker } from './atPicker/useSkillPicker'
-import { SkillChip } from './atPicker/SkillChip'
+import { skillMark } from './atPicker/slashQuery'
 import { handRaiseWords, rightButton, SPEAKER_RING, type Speaker } from '../voiceClient/voiceUi'
 
 export type MessageBoxVoice = {
@@ -91,7 +91,7 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
     const box = pill.current?.getBoundingClientRect()
     if (caret && box) setPickerLeft(Math.max(0, Math.min(caret.left - box.left, box.width - 320)))
   }, [open, picker.fragment, skills.fragment])
-  const hasText = text.trim().length > 0
+  const hasText = skills.wordsOf(text).length > 0
 
   useEffect(() => {
     if (!menu) return
@@ -119,7 +119,7 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
   // Send ends dictation first: the words still being heard are asked for, and sent as they stand.
   const submit = async () => {
     if (sending) return
-    const value = (dictation.listening ? await dictation.finish() : text).trim()
+    const value = skills.wordsOf(dictation.listening ? await dictation.finish() : text)
     if (!value) return
     const sent = skills.skill ? await onSend(value, { name: skills.skill.name }) : await onSend(value)
     if (sent) { setText(''); skills.reset() }
@@ -161,12 +161,12 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
       onFocus={dictation.prefetch}
       placeholder={placeholder}
       twoLines={twoLines}
+      mark={skills.skill ? skillMark(skills.skill.name) : null}
       onCaret={(t, c) => { picker.onCaret(t, c); skills.onCaret(t, c) }}
       onKeyFirst={(e) => skills.onKeyFirst(e) || picker.onKeyFirst(e)}
       listbox={skills.open ? { id: skills.listId, activeId: skills.activeId } : picker.open ? { id: picker.listId, activeId: picker.activeId } : null}
     />
   )
-  const chip = skills.skill && <SkillChip key="skill" skill={skills.skill} onRemove={skills.clear} />
   const mic = !voice.inVoice && (
     <button
       type="button"
@@ -193,12 +193,10 @@ export function MessageBox({ agentId, conversationId, placeholder, running, send
           className={`relative flex min-w-0 flex-1 rounded-3xl border border-border bg-surface-1 transition-shadow focus-within:border-accent ${twoLines ? 'flex-col px-1.5 pb-1.5 pt-2' : 'items-end gap-1 p-1.5'} ${ring}`}
         >
           {twoLines ? [
-            chip,
             textField,
             <div key="buttons" className="flex items-center gap-1">{more}<span aria-hidden className="flex-1" />{mic}{right}</div>,
           ] : [
             <Fragment key="more">{more}</Fragment>,
-            chip,
             textField,
             <Fragment key="mic">{mic}</Fragment>,
             <Fragment key="right">{right}</Fragment>,

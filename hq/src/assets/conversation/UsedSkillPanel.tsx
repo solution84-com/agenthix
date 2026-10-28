@@ -36,7 +36,11 @@ function UsedSkillFile({ file, base64, fingerprint }: { file: UsedSkillFileView;
       ? { state: 'no-files-address', facts, downloadLink: link, expiresAt: NEVER }
       : { state: 'ready', facts, previewLink: link, downloadLink: link, expiresAt: NEVER }
   }, [link, name, file, fingerprint])
-  return <FileFrame answer={answer} name={name} breadcrumb={file.path.split('/').slice(0, -1)} layout="narrow" mode="opened" registry={registry} onReopen={() => undefined} />
+  return (
+    <div className="flex min-h-64 flex-1 flex-col">
+      <FileFrame answer={answer} name={name} breadcrumb={file.path.split('/').slice(0, -1)} layout="narrow" mode="opened" registry={registry} onReopen={() => undefined} />
+    </div>
+  )
 }
 
 function Tags({ view }: { view: UsedSkillView }) {
@@ -67,7 +71,7 @@ export function UsedSkillPanel({ conversationId, skill, onClose }: { conversatio
           <X size={16} aria-hidden />
         </button>
       </div>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
         {error && <p role="alert" className="text-small text-danger">{error.message}</p>}
         {isLoading && !view && <p className="text-small text-text-muted">Loading…</p>}
         {view && (

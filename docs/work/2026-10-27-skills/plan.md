@@ -287,6 +287,15 @@ de-duplicate them on install.
 - [ ] 6.12 Review: proposals by level, line by line, accept, edit then accept, reject with a note; the Overview item
 - [ ] 6.13 Settings: *Library and skills* in the admin area
 - [ ] 6.14 The approval card for an agent's publish request
+- [x] 6.15 The editor and publishing, from the walkthrough: drafts save themselves; Publish says why it can't be used; publishing writes the version into `SKILL.md`; *Ask an agent* names the agent and the place, and lets the person pick; *Add skill*; a place's roll back asks a reason
+- [x] 6.16 A copy and the original it replaced are one Library entry
+- [x] 6.17 Every file view fills its space and scrolls inside, with a setting to grow with its content
+- [x] 6.18 A place's Skills page: why a switch went off, rows that keep their text's width, the default as a labelled setting, an end-to-end spec for publishing from files and putting back
+- [x] 6.19 The agent's Skills page read as rows under where each skill comes from
+- [x] 6.20 A Library row keeps every action in its menu; proposals reach their reviewers from the Overview, a project's Skills page and the Library
+- [x] 6.21 *Ask an agent* as a dialog; the draft card after publishing; the `/` pick as highlighted text in the message
+- [x] 6.22 A run is told what a staged skill's name means
+- [x] 6.23 The design's state recorded for the design pass (`design-state.md`)
 
 ### Phase 7 — Proof and documents
 **Delivers:** the unit proved against its spec and the security review, and described where people and agents read it.
@@ -327,3 +336,5 @@ read; the branch ready to merge.
 | 2 | A keyless signer's identity is the certificate's identity less the ref it ran from, with the ref checked on its own; an unknown key-pair signer is refused as unverifiable, not offered as a new publisher (spec part 3 *Who signs*, amended) | A workflow's certificate identity ends in its ref, so comparing it whole made every tag release a different signer; a key-pair bundle doesn't carry its key, so there's nothing to verify until it is trusted |
 | 3 | A person's skills reach the agents their own conversation hands work to, not only the conversation's own turns (spec part 4 *The person's skills*, amended) | A conversation's lead answers in hq and every agent turn runs as work it hands on; excluding that work meant personal skills, and the `/` picker for them, reached almost nothing. It is still the person's own request, within their access |
 | 3 | Publishing, adding and removing a place's skill go through a new site call that writes or removes a whole skill folder (spec part 4 amended); site protocol 1.11 | The spec assumed a general site file write existed; the only one writes new files and never replaces, so no place skill could be published |
+| 6 | The owner's walkthrough changed the design (spec parts 2 and 6, amended): a draft saves itself; publishing writes the version into the skill's files; *Ask an agent* says which agent and where; *Add* is *Add skill* until other kinds can be added; a copy and its original are one Library entry; every file view fills its space and scrolls; a place's switch says why it went off and its default is a labelled setting; the agent's page lists skills as rows. Tasks 6.15–6.19 | Found walking through the built screens: a draft left unsaved blocked Publish with no reason, the file and the record disagreed on the version, two Library rows for one skill, file views pushed their buttons off screen, and the agent's page and the place's default read as quiet text nobody would act on |
+| 6 | The walkthrough's second round (spec parts 2, 5 and 6, amended): a Library row's actions all in its menu; proposals at every level reach their reviewers; *Ask an agent* in a dialog; the draft card says what was published; the `/` pick is highlighted text, not a chip; a run is told what staged names mean. Several screens' look is left for a design pass of every feature before release, recorded in `design-state.md`. Tasks 6.20–6.23 | A project's proposals had no way in; a row's buttons competed with opening it; a chip read as a menu, not part of the message; the model spent steps working out staged names. The look was judged a first go, to be reviewed across features rather than one screen at a time |

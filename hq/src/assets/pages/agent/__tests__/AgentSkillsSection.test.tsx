@@ -39,7 +39,8 @@ describe("the agent's Skills on its manage page (board A1)", () => {
     h.data = view()
     renderSection()
     const headings = screen.getAllByRole('heading', { level: 4 }).map(e => e.textContent)
-    expect(headings).toEqual(['Built in', 'Every agent has these', 'Ada has these', 'Where Ada works', "People's own skills"])
+    expect(headings).toEqual(['Built in', 'Every agent has these', 'Ada has these', 'Where Ada works', 'Your own skills', 'Set aside'])
+    expect(screen.getByTestId('agent-skills-summary').textContent).toBe('2 built in · 1 given to every agent · 2 given to Ada · 4 skills switched on in 1 project')
     expect(screen.getByTestId('agent-place-line').textContent).toContain('4 on · 1 off · 1 set aside')
     expect(screen.getByTestId('agent-set-aside').textContent).toContain("The organisation installs agenthix/code-review 1.4, so the project's copy isn't used.")
     expect(screen.getByText('1.1 available')).toBeTruthy()
@@ -68,18 +69,45 @@ describe("the agent's Skills on its manage page (board A1)", () => {
     renderSection()
     expect(screen.queryByRole('button', { name: 'Add a skill' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Remove from Ada' })).toBeNull()
-    expect(screen.getByText(/also works in 2 places you aren't in/)).toBeTruthy()
+    expect(screen.getByText(/also works in 2 projects you aren't in/)).toBeTruthy()
   })
 })
 
-describe("the agent's Skills as a member reads them (board A1)", () => {
-  it('is read only: what is given everywhere, the member\'s projects, and their own skills', () => {
-    h.data = view({ mayManage: false })
-    render(<MemoryRouter><AgentSkillsTool agentId="ag1" /></MemoryRouter>)
-    expect(screen.getByText(/Read only/)).toBeTruthy()
-    expect(screen.getByText('brand-voice · content-writing · seo-research')).toBeTruthy()
-    expect(screen.getByText(/Ada has 3 and 2 built in: skill-creator, working-with-git/)).toBeTruthy()
+describe("the agent's Skills on its own page (board A1)", () => {
+  const renderTool = () => render(<MemoryRouter><AgentSkillsTool agentId="ag1" /></MemoryRouter>)
+
+  it('gives a member the same rows as the manage page, read only, with their own skills as rows', () => {
+    h.data = view({ mayManage: false, addable: [] })
+    renderTool()
+    expect(screen.getAllByRole('heading', { level: 4 }).map(e => e.textContent)).toEqual(['Built in', 'Every agent has these', 'Ada has these', 'Where Ada works', 'Your own skills', 'Set aside'])
+    expect(screen.getAllByTestId('agent-skill-row').length).toBe(7)
+    expect(screen.getByText('brand-voice')).toBeTruthy()
+    expect(screen.getByText('brand-voice does a thing.')).toBeTruthy()
     expect(screen.getByText('weekly-summary')).toBeTruthy()
     expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('gives an administrator Add and Remove here too', async () => {
+    h.data = view()
+    renderTool()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove from Ada' })[0]!)
+    await waitFor(() => expect(h.take).toHaveBeenCalledWith({ assetId: 'a-content-writing', agentId: 'ag1' }))
+    expect(screen.getByRole('button', { name: 'Add a skill' })).toBeTruthy()
+  })
+
+  it('says why no project is listed, instead of "None of your projects"', () => {
+    h.data = view({ places: [], hiddenPlaces: 0 })
+    renderTool()
+    expect(screen.getByTestId('agent-no-places').textContent).toBe("Ada isn't assigned to any project you're in, so no project's skills apply to it yet.")
+    cleanup()
+    h.data = view({ places: [], hiddenPlaces: 1 })
+    renderTool()
+    expect(screen.getByTestId('agent-no-places').textContent).toContain('works in 1 project you aren\'t in')
+  })
+
+  it('leaves out Set aside when nothing was', () => {
+    h.data = view({ setAside: [] })
+    renderTool()
+    expect(screen.queryByText('Set aside')).toBeNull()
   })
 })

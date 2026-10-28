@@ -4,6 +4,7 @@ import {
   publishPlaceSkillDraft, rejectSkillProposal,
 } from 'wasp/client/operations'
 import type { SkillCardRef } from '../../assets/proposals/types'
+import { libraryAssetPath } from '../../library/components/libraryRoutes'
 import { actionErrorText } from '../hooks/threadState'
 import { SkillDraftCard, SkillProposalCard } from './SkillProposalCard'
 
@@ -60,6 +61,7 @@ function DraftRow({ card }: { card: Extract<SkillCardRef, { kind: 'draft' }> }) 
   const publishAsset = useAction(publishAssetDraft)
   const publishPlace = useAction(publishPlaceSkillDraft)
   const [state, setState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null })
+  const [publishedHere, setPublishedHere] = useState(false)
   if (readError) return <Unavailable text={`A draft of ${card.name} was changed here.`} />
   if (!data) return null
   const onPublish = async (note: string) => {
@@ -67,11 +69,15 @@ function DraftRow({ card }: { card: Extract<SkillCardRef, { kind: 'draft' }> }) 
     try {
       if (card.draft.kind === 'asset') await publishAsset({ assetId: card.draft.id, revision: card.revision, note })
       else await publishPlace({ placeSkillId: card.draft.id, revision: card.revision, note })
+      setPublishedHere(true)
       setState({ busy: false, error: null })
     } catch (err) {
       setState({ busy: false, error: actionErrorText(err, 'Could not publish it') })
     }
     void refetch()
   }
-  return <SkillDraftCard name={card.name} shownRevision={card.revision} draft={data} busy={state.busy} error={state.error} onPublish={(n) => void onPublish(n)} />
+  return (
+    <SkillDraftCard name={card.name} shownRevision={card.revision} draft={data} busy={state.busy} error={state.error} onPublish={(n) => void onPublish(n)}
+      publishedHere={publishedHere} addHref={card.draft.kind === 'asset' ? libraryAssetPath(card.draft.id) : undefined} />
+  )
 }

@@ -20,6 +20,11 @@ export interface ChangesListProps {
   files: readonly FileChange[]
   /** Actions for one file (Open, Undo this file's changes, Restore): the screen supplies them. */
   actions?: (file: FileChange) => ReactNode
+  /**
+   * By default the list fills the height its container gives it and scrolls inside. `grow` lets it take the height of
+   * its changes, for a page that scrolls as a whole.
+   */
+  grow?: boolean
 }
 
 const statsOf = (f: FileChange) => (f.binary ? { added: 0, removed: 0 } : diffStats(diffLines(f.before ?? '', f.after ?? '')))
@@ -63,10 +68,10 @@ function ChangeRow({ file, actions }: { file: FileChange; actions?: ChangesListP
 }
 
 /** A whole asset's changes, file by file: A added, M modified, ✕ removed, R renamed with its old name. */
-export function ChangesList({ files, actions }: ChangesListProps) {
+export function ChangesList({ files, actions, grow }: ChangesListProps) {
   if (files.length === 0) return <p className="text-small text-text-secondary">No files changed.</p>
   return (
-    <div className="flex flex-col gap-3">
+    <div className={`flex flex-col gap-3${grow ? '' : ' min-h-0 flex-1 overflow-y-auto'}`} data-testid="changes-list">
       {files.map(f => <ChangeRow key={f.path} file={f} actions={actions} />)}
     </div>
   )

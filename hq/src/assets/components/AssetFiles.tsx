@@ -46,9 +46,9 @@ export function AssetFiles({ assetId, versionId }: { assetId: string; versionId?
   if (!data?.opened) return <p className="text-small text-text-secondary">This version has no files to show.</p>
   const opened = data.files.find(f => f.path === data.opened!.path)
   return (
-    <div className="space-y-3" data-testid="asset-files">
+    <div className="flex h-[70vh] min-h-72 flex-col gap-3" data-testid="asset-files">
       {data.files.length > 1 && (
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Its files">
+        <div className="flex shrink-0 flex-wrap gap-1.5" role="group" aria-label="Its files">
           {data.files.map(f => (
             <button key={f.path} type="button" aria-pressed={f.path === data.opened!.path} onClick={() => setPath(f.path)}
               className={`rounded-md border px-2 py-0.5 text-micro ${f.path === data.opened!.path ? 'border-accent text-accent' : 'border-border-subtle text-text-muted hover:text-text-primary'}`}>

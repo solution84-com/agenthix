@@ -51,28 +51,30 @@ export function FilePane({ state, baseLabel }: { state: EditorState; baseLabel: 
   const file = state.current
   const only = state.selected
   return (
-    <section className="min-w-0 p-4" aria-label="File">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+    <section className="flex min-h-0 min-w-0 flex-col p-4" aria-label="File">
+      <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">
         {file
           ? <h2 className="min-w-0 flex-1 truncate font-mono text-body text-text-primary">{file.path}</h2>
           : <h2 className="min-w-0 flex-1 text-body text-text-primary">{state.gone ? state.gone.path : 'Every file’s changes'}</h2>}
         <Modes state={state} />
       </div>
-      {state.mode === 'changes' ? (
-        <ChangesOf state={state} baseLabel={baseLabel} onlyPath={file || state.gone ? only : null} />
-      ) : state.gone ? (
-        <div className="flex items-center gap-2 text-small text-text-secondary">
-          <ChangeMarker status="removed" />
-          <span>{state.gone.path} is deleted, and stays listed until the skill is published.</span>
-          <button type="button" className={ACTION} onClick={() => state.undo(state.gone!)}>Restore</button>
-        </div>
-      ) : !file ? (
-        <p className="text-small text-text-secondary">Choose a file on the left.</p>
-      ) : state.mode === 'view' ? (
-        <ViewFile file={file} />
-      ) : (
-        <EditFile file={file} onChange={state.edit} />
-      )}
+      <div className="md:min-h-0 md:flex-1 md:overflow-auto">
+        {state.mode === 'changes' ? (
+          <ChangesOf state={state} baseLabel={baseLabel} onlyPath={file || state.gone ? only : null} />
+        ) : state.gone ? (
+          <div className="flex items-center gap-2 text-small text-text-secondary">
+            <ChangeMarker status="removed" />
+            <span>{state.gone.path} is deleted, and stays listed until the skill is published.</span>
+            <button type="button" className={ACTION} onClick={() => state.undo(state.gone!)}>Restore</button>
+          </div>
+        ) : !file ? (
+          <p className="text-small text-text-secondary">Choose a file on the left.</p>
+        ) : state.mode === 'view' ? (
+          <ViewFile file={file} />
+        ) : (
+          <EditFile file={file} onChange={state.edit} />
+        )}
+      </div>
     </section>
   )
 }

@@ -50,9 +50,12 @@ Different versions side by side, such as one project held on an older version, c
 **Agents draft, people publish**, the same rule as workflows (`propose_workflow`). *Publish* shows the full difference
 since the last version, every file including `scripts/`, and publishes only the draft revision the publisher saw: it
 is refused if the draft changed since. Each change to a draft records its author, or the run that proposed it. *Edit* makes a **draft** of the
-asset that no agent sees: one draft per asset, shared by everyone who may edit it (collaboration). *Publish* asks for
-a note and makes the next version; every agent that has it gets it on its next turn, and roll back stays one click.
-*Ask an agent to edit* opens a conversation with the asset attached: the agent's `propose_skill` edit updates the
+asset that no agent sees: one draft per asset, shared by everyone who may edit it (collaboration). A draft saves itself a moment after the person stops typing; *Discard draft* is the way back, and *Publish*,
+when it can't be used yet, says why. *Publish* asks for
+a note and makes the next version, writing that version into `SKILL.md`'s `version:` (and a `package.json` beside it)
+so the files and hq's record of the version agree; every agent that has it gets it on its next turn, and roll back stays one click.
+*Ask an agent to edit* opens a dialog that names, before anything is sent, the agent that will answer (the person's main agent unless they
+pick another) and where the conversation will be (their own space), and opens a conversation with the asset attached: the agent's `propose_skill` edit updates the
 person's draft when that person may edit the asset, and is a proposal for review when they may not. The editor is
 drawn on board U3b and described in [part 6](06-screens.md#the-editor).
 
@@ -64,7 +67,9 @@ version 1; it then offers *Add to agents…*.
 
 Editing an installed asset that another publisher signed makes the organisation's own copy: `agenthix/code-review
 1.3` edited by Fernhill becomes `fernhill/code-review`, made here. The copy takes the original's place for the agents
-that had it; the original stays installed but set aside, one click to switch back. A newer upstream version shows on
+that had it; the original stays installed but set aside, one click to switch back. In the Library the two are **one entry**, the
+copy's: the original is not a row of its own, but shows on the copy's row and page as what it replaced, with its
+version and *Use the original again*. A newer upstream version shows on
 the copy as news, with what changed, and is never merged automatically. An asset the organisation made itself is
 edited in place, with history.
 

@@ -8,7 +8,7 @@ import type { Place } from '../placeTypes'
 import { actionErrorText, clientIdFor } from '../../conversations/hooks/threadState'
 import { threadPath } from '../../conversations/threadPaths'
 import { StartSkillPicker } from '../../conversations/components/atPicker/SkillPicker'
-import { SkillChip } from '../../conversations/components/atPicker/SkillChip'
+import { SkillBackdrop } from '../../conversations/components/atPicker/SkillBackdrop'
 import { useStartSkillPicker } from '../../conversations/components/atPicker/useStartSkillPicker'
 
 /** The agent a new conversation starts with: the place's default when it may be talked to here, else the first. */
@@ -58,7 +58,7 @@ export const PlaceComposer = forwardRef<HTMLTextAreaElement, { place: ComposerPl
   }, [autoFocus, disabledReason])
 
   const send = async () => {
-    const inputText = text.trim()
+    const inputText = skills.wordsOf(text)
     if (!inputText || !agentId || sending || disabledReason) return
     setSending(true)
     setError('')
@@ -89,7 +89,7 @@ export const PlaceComposer = forwardRef<HTMLTextAreaElement, { place: ComposerPl
         onSubmit={(e) => { e.preventDefault(); void send() }}
         className="relative flex items-end gap-2 rounded-xl border border-border bg-surface-1 p-2 focus-within:border-accent"
       >
-        {skills.skill && <SkillChip skill={skills.skill} onRemove={skills.clear} />}
+        <SkillBackdrop text={text} skill={skills.skill?.name ?? null} className="min-w-0 flex-1">
         <textarea
           ref={box}
           value={text}
@@ -105,8 +105,9 @@ export const PlaceComposer = forwardRef<HTMLTextAreaElement, { place: ComposerPl
           aria-label={place.composerPlaceholder}
           disabled={!!disabledReason || sending}
           rows={1}
-          className="max-h-32 min-h-[36px] flex-1 resize-none bg-transparent px-2 py-1.5 text-body text-text-primary placeholder:text-text-muted focus:outline-none"
+          className="relative max-h-32 min-h-[36px] w-full resize-none bg-transparent px-2 py-1.5 text-body text-text-primary placeholder:text-text-muted focus:outline-none"
         />
+        </SkillBackdrop>
         {place.agents.length > 0 && (
           <label className="relative shrink-0">
             <span className="sr-only">Agent</span>
@@ -127,7 +128,7 @@ export const PlaceComposer = forwardRef<HTMLTextAreaElement, { place: ComposerPl
         <button
           type="submit"
           aria-label="Send"
-          disabled={!text.trim() || !!disabledReason || sending}
+          disabled={!skills.wordsOf(text) || !!disabledReason || sending}
           className="flex shrink-0 items-center justify-center rounded-lg bg-accent p-2 text-on-accent hover:bg-accent-hover disabled:opacity-50"
         >
           <Send size={14} />

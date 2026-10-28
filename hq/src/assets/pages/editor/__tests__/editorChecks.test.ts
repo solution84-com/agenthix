@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { bytesOfText, type EditorFile } from '../editorFiles'
-import { checkSkill, hasError, namedFiles } from '../editorChecks'
+import { checkSkill, hasError, namedFiles, VERSION_ON_PUBLISH } from '../editorChecks'
 
 const f = (path: string, text: string): EditorFile => ({ path, bytes: bytesOfText(text) })
 const md = (header: string, body = '# Notes\n') => f('SKILL.md', `---\n${header}\n---\n\n${body}`)
@@ -39,6 +39,12 @@ describe('checkSkill', () => {
     const checks = checkSkill('a', [md('description: Does it\nallowed-tools: Bash')])
     expect(hasError(checks)).toBe(false)
     expect(texts(checks)).toContain('warning: allowed-tools in the header is ignored when run')
+  })
+
+  it('marks the version in the header as written on publish, not as a key the run drops (finding 13)', () => {
+    const checks = checkSkill('a', [md('description: Does it\nversion: 2\nmetadata:\n  version: "2"')])
+    expect(texts(checks)).toContain(`ok: ${VERSION_ON_PUBLISH}`)
+    expect(texts(checks).filter(t => t.startsWith('warning'))).toEqual([])
   })
 
   it('needs a SKILL.md, and a front matter that closes', () => {

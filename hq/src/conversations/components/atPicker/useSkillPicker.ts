@@ -1,15 +1,15 @@
-import { useRef, useState, type KeyboardEvent, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useAtPicker } from './useAtPicker'
-import { slashQueryAt } from './slashQuery'
+import { holdsSkill, skillMark, slashQueryAt, withoutSkill } from './slashQuery'
 
 export type PickedSkillChip = { name: string; title: string }
 
 /**
  * The `/` skill picker in the message box (skills spec part 5, *Picking a skill*): the `@` picker's keys and list with
- * the trigger at the start of the message. Choosing takes the `/…` out of the text and holds the skill as a chip, which
- * is sent beside the text and never in it; Backspace at the start of the text, or the chip's own button, removes it.
- * One skill per message: while one is chosen the picker stays closed. The field is the message box's own or a plain
- * text area; either moves the caret to the start when the chip goes.
+ * the trigger at the start of the message. Choosing leaves `/name` in the text, shown highlighted where it was typed
+ * and edited like any other words; the skill is sent beside the text and never parsed from it. The skill stays picked
+ * only while the text still begins with that mark, so deleting or changing it lets the skill go. One skill per
+ * message: while one is picked the picker stays closed. The field is the message box's own or a plain text area.
  */
 export function useSkillPicker({ enabled, field, text, setText }: {
   enabled: boolean
@@ -17,36 +17,37 @@ export function useSkillPicker({ enabled, field, text, setText }: {
   text: string
   setText: (text: string) => void
 }) {
-  const [skill, setSkill] = useState<PickedSkillChip | null>(null)
-  const caret = useRef<number | null>(null)
+  const [chosen, setChosen] = useState<PickedSkillChip | null>(null)
+  const [caretTo, setCaretTo] = useState<number | null>(null)
+  const skill = chosen && holdsSkill(text, chosen.name) ? chosen : null
   const picker = useAtPicker({
     enabled: enabled && skill === null,
     queryAt: slashQueryAt,
     onChoose: (item, query) => {
-      setSkill({ name: item.reference, title: item.label })
-      setText(text.slice(0, query.start) + text.slice(query.end))
+      const mark = skillMark(item.reference)
+      const rest = text.slice(query.end)
+      const gap = /^\s/.test(rest) ? '' : ' '
+      setChosen({ name: item.reference, title: item.label })
+      setText(mark + gap + rest)
+      setCaretTo(mark.length + 1)
     },
   })
 
-  const clear = () => {
-    setSkill(null)
-    field.current?.setSelectionRange(0, 0)
-  }
-  const { onCaret: pickerCaret, onKeyFirst: pickerKeys } = picker
+  // The mark was changed or deleted: the skill is let go for good, so typing the same name again is plain text.
+  useEffect(() => { if (chosen && !skill) setChosen(null) }, [chosen, skill])
+  // The caret goes after the mark once the field shows the new text.
+  useEffect(() => {
+    if (caretTo === null) return
+    field.current?.setSelectionRange(caretTo, caretTo)
+    setCaretTo(null)
+  }, [caretTo])
+
   return {
     ...picker,
     skill,
-    clear,
-    reset: () => setSkill(null),
-    onCaret: (t: string, c: number | null) => { caret.current = c; pickerCaret(t, c) },
-    onKeyFirst: (e: KeyboardEvent<HTMLElement>): boolean => {
-      if (skill && e.key === 'Backspace' && caret.current === 0) {
-        e.preventDefault()
-        clear()
-        return true
-      }
-      return pickerKeys(e)
-    },
+    /** The person's words, without the mark. */
+    wordsOf: (value: string) => withoutSkill(value, skill?.name ?? null),
+    reset: () => setChosen(null),
   }
 }
 
