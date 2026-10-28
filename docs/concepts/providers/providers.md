@@ -55,7 +55,8 @@ its key. An admin can:
 - **Replace a key**. The new key is checked before the old one is dropped; nothing else about the provider changes.
 - **Rename** one.
 - **Remove** one. The confirmation says which defaults and which agents' own choices used it and what each falls to.
-  It is refused only when it would leave no working LLM, STT or TTS provider at all, and only once setup is finished.
+  It is never refused: removing the last provider of a type says that type is down until another is added
+  ([ADR-0160](../../adr/adr-0160-setup-defines-the-organisation-first-and-ai-may-come-later.md)).
 - **Revoke** one at once, for a key that may have leaked. It is never refused, whatever it leaves without a provider,
   and it reminds the admin to revoke the key at the vendor too, which HQ cannot do.
 - **Check now**, and open its **history**: every add, key replacement, rename, removal, revocation and change of state,

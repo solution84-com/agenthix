@@ -2985,9 +2985,9 @@ As the person who runs an organisation's HQ, I want one command to install it an
 As the first admin, I want a short setup that names the organisation and gets agents answering, so that I end on a working conversation.
 
 **Acceptance criteria:**
-- AC-271a: setup is You, how my agents reach AI, a model provider and voice or Agenthix Cloud, the organisation and a last look; the step is in the address so a refresh and Back keep it (AC-357c). *(Changed 2026-10-23)*
+- AC-271a: setup is You, the organisation, how my agents reach AI (a model provider and voice, Agenthix Cloud, or later) and a last look; the step is in the address so a refresh and Back keep it, and the buttons stay in reach on a long step (AC-357c). *(Changed 2026-10-28)*
 - AC-271b: the organisation needs a name; vision, mission, picture and cover are optional, and the sign-in page it makes follows what I type.
-- AC-271c: a line about HQ's own site shows only when it is not connected, and never holds setup open; models and voice cannot be skipped (AC-357d). *(Changed 2026-10-23)*
+- AC-271c: a line about HQ's own site shows only when it is not connected, and never holds setup open; models and voice can be left for later (AC-357d). *(Changed 2026-10-28)*
 - AC-271d: the review shows what HQ holds, lets me edit a step, and finishing lands me on Home.
 - AC-271e: setup runs once for the first admin; an admin invited later is never sent through it.
 
@@ -3539,7 +3539,7 @@ As an organisation admin, I want to add, replace, rename, check and remove the s
 - AC-355b: I replace a key and the new one is checked before the old one is dropped; I rename a provider.
 - AC-355c: a key is stored encrypted and never shown to me or anyone, only its last four characters.
 - AC-355d: only an organisation admin, HQ's machine and Agenthix Cloud on a machine it runs may change providers; a member may not.
-- AC-355e: before I remove a provider I am told what falls to what, I cannot remove the last of a type, and I can revoke one at once.
+- AC-355e: before I remove a provider I am told what falls to what, and that a type goes down when I remove its last provider; I can revoke one at once. *(Changed 2026-10-28)*
 - AC-355f: every change is recorded with who made it and when, and every organisation admin is told.
 - AC-355g: I am told when a provider stops working, in the vendor's words and with what depends on it, and everyone else sees it only where they are choosing a model or using voice.
 - AC-355h: the Providers page shows each provider's state, what uses it, the end of its key and, for a custom endpoint, its address.
@@ -3549,13 +3549,13 @@ As an organisation admin, I want to add, replace, rename, check and remove the s
 
 ### US-357 — Set up HQ with models and voice
 
-As the person who installed HQ, I want one setup, opened from the link the installer printed, that makes my account, gives my agents a model and a voice, and describes the organisation, so that the first conversation works.
+As the person who installed HQ, I want one setup, opened from the link the installer printed, that makes my account, describes the organisation, and gives my agents a model and a voice now or later, so that I can start even before I have the keys.
 
 **Acceptance criteria:**
 - AC-357a: setup opens at the first step that is still needed, whether I stopped there or came back.
 - AC-357b: before setup is finished HQ's address shows no organisation: it says it is not set up yet and how to get a new link, or that it is almost ready.
-- AC-357c: setup takes me through my account, how my agents reach AI (Agenthix Cloud or my own keys), a model provider and voice for my own keys, the organisation and a last look, and no step can be skipped.
-- AC-357d: setup cannot finish until a model, listening and speech provider work, and finishing writes the organisation's defaults for models and voice.
+- AC-357c: setup takes me through my account, the organisation, how my agents reach AI (Agenthix Cloud, my own keys, or later), a model provider and voice for my own keys, each of which I can skip, and a last look. *(Changed 2026-10-28)*
+- AC-357d: setup finishes with or without models and voice, says plainly what is not set up yet, and writes the organisation's defaults for what was added; a provider added later fills the defaults still empty, and until then HQ says models or voice are not set up rather than down. *(Changed 2026-10-28)*
 - AC-357e: the defaults are chosen for me from what I added, I can change each on the last look, and a preview plays the voice.
 - AC-357f: I give the organisation a name, a picture, a cover and a time zone, and a default billing profile is made, named after it.
 
