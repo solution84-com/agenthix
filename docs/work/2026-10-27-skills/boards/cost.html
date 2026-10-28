@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cost · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="cost.html"><main>
+<div class="top"><div><h1>10 · Cost: what the model reads per request</h1>
+<p class="sub">Every skill an agent has puts its name and description into every request of every turn. This board is how that stays small, how it's shown, and how it's measured before anything more is built.</p></div></div>
+
+<h2 id="today">Today</h2>
+<div class="kpi">
+<div><b>~11k</b><span>tokens per OpenCode request in the walkthrough, mostly skill listings and tool descriptions</span></div>
+<div><b>19</b><span>skills staged for one agent: all 18 library skills plus its own</span></div>
+<div><b>every</b><span>request of a turn with tool calls pays it again, on a paid model</span></div>
+</div>
+<div class="box"><p>Why: a new organisation installs all 18 library skills into its package at first write (<code>orgPackageService.ts</code>), so every agent lists them. On OpenCode the list is written into the system prompt (<code>opencode/openCodeSkills.ts</code>); on Claude, Claude Code lists the plugin's skills itself.</p></div>
+
+<h2 id="after">After</h2>
+<div class="box"><table><tr><th></th><th>Change</th><th>Effect</th></tr>
+<tr><td class="n">1</td><td><b>Agents have only what they're given</b> (D14, D23): nothing is installed by itself; templates bring their role skills</td><td>The main cut. A typical agent: 2 built-ins, its role skills (3–5), a few given ones</td></tr>
+<tr><td class="n">2</td><td><b>Built-ins staged only where they apply</b>: <code>working-with-git</code> only when the run works in a workspace with a repository (D14)</td><td>One fewer listing for most runs</td></tr>
+<tr><td class="n">3</td><td><b>Off by default for skills in files</b> (D13, shipped default)</td><td>A repository with many skills adds nothing until switched on</td></tr>
+<tr><td class="n">4</td><td><b>Descriptions within the format's limit</b> (R8: 1–1024 characters)</td><td>No single skill dominates the list</td></tr>
+<tr><td class="n">5</td><td><b>Processes in knowledge</b> (D29): skills stay short and point to knowledge</td><td>Bodies load only when used; knowledge costs nothing until read</td></tr>
+</table></div>
+
+<h2 id="shown">How it's shown (R9, PQ10)</h2>
+<div class="box"><ul>
+<li><b>Per run:</b> the agent's own levels plus one place's switched-on skills: what a turn there actually lists. The agent's page shows "11 skills · about 1,900 tokens per request" for its usual places (A1).</li>
+<li><b>Estimate:</b> the characters of each listed name and description, divided by four, plus the runtime's fixed framing. Labelled an estimate.</li>
+<li><b>Warning</b> above about <b>20 skills or 4,000 tokens</b> for a run: the point where recall drops (Anthropic's enterprise guidance; Claude Code keeps its own listing to about 1% of the context window). It suggests what to take away: skills never used in the last 30 days, from the runs' records.</li></ul></div>
+
+<h2 id="measure">Measurement, before anything more</h2>
+<div class="box"><table><tr><th>Part of a request</th><th>Claude</th><th>OpenCode</th></tr>
+<tr><td>System prompt and instructions</td><td colspan="2" rowspan="4">Measured on both runtimes, before and after, on the baseline model (DeepSeek Flash) with one agent in one project: 19 skills today against a typical after set. Recorded in the unit's results, per part</td></tr>
+<tr><td>Skill listing</td></tr>
+<tr><td>Tool descriptions</td></tr>
+<tr><td>Conversation so far</td></tr>
+</table>
+<p class="sub"><b>A search tool over skills is not built</b> unless the measurement shows the listing still dominates after the changes above (D22: later, recorded for follow-up work). Model checks confirm the agent still finds the right skill with the smaller list.</p></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th><th>Recommended</th></tr>
+<tr><td class="n">XQ5</td><td><b>Hard cap:</b> refuse to stage beyond a number of skills, or only warn?</td><td>Only warn; a cap would silently drop skills a person chose. The warning names what to take away</td></tr>
+</table></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

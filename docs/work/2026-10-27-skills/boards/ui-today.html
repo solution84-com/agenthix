@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skills in hq today · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-today.html"><main>
+<div class="top"><div><h1>U1 · Skills in hq today, numbered</h1>
+<p class="sub">Read from <code>hq/src/library/pages/LibraryPage.tsx</code>, <code>LibraryKindList.tsx</code>, <code>libraryWords.ts</code>, <code>SkillDialog.tsx</code>, <code>SkillParts.tsx</code>, <code>ui/src/agents/tabs/SkillsTab.tsx</code> and <code>hq/src/agents/pages/place/AgentInstructionsTool.tsx</code> at <code>684d00b1</code>. Four places a person meets a skill. The numbers match the list under each screen.</p></div></div>
+
+<h2 id="library">The Library's Skills tab</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock"><div class="desk"><div class="mnav"><div class="logo"><i></i>Fernhill</div><a class="on">Home</a><a class="">Chat</a><a class="">Your space</a><a class="">Projects</a><a class="">Agents</a><a class="">Tasks</a></div>
+<div class="mcentre">
+<div class="crumb"><a>Organisation</a> › Library</div>
+<div class="row"><div class="mh grow">Library</div><span class="btn">⤒ Import</span><span class="btn pri">＋ New</span></div>
+<div class="ml">Ready-made things to start from. Using one makes your own copy</div>
+<div class="tabs"><span>Agents 6</span><span>Boards 4</span><span class="on">Skills 18</span><span>Teams 5</span><span>Marketplace</span></div>
+<div class="row" style="margin-bottom:8px"><div class="field" style="margin:0;width:220px"><div class="in" style="color:var(--t3)">Search skills</div></div><span class="btn">Built in · Made here · Marketplace ▾</span></div>
+<div class="mcard"><div class="ic" style="background:var(--macc)">S</div><div class="b"><div class="t">Code Review</div><div class="s">Review PRs for correctness, architecture fit, and test coverage</div></div><span class="tag">Built in</span><span class="btn">Use <span class="num">2</span></span><span class="btn">⋯</span></div>
+<div class="mcard"><div class="ic" style="background:var(--macc)">S</div><div class="b"><div class="t">GitHub Operations</div><div class="s">Work with GitHub from inside a run — commit locally, then push…</div></div><span class="tag">Built in</span><span class="btn">Use</span><span class="btn">⋯</span></div>
+<div class="mcard"><div class="ic" style="background:var(--mok)">S</div><div class="b"><div class="t">Release Notes</div><div class="s">Write release notes the Fernhill way</div></div><span class="tag">Made here</span><span class="btn">Use</span><span class="btn">⋯</span></div>
+<p class="sub" style="margin-top:6px">No entry in the sidebar <span class="num">1</span></p>
+</div></div></div>
+<ol>
+<li><b>Hard to find.</b> The Library is reached only from the <i>Library</i> card on the organisation's Overview (<code>WorkplaceSection.tsx:99</code>) and from <code>/skills</code>, which redirects here. The sidebar has Home, Chat, Your space, Projects, Agents and Tasks.</li>
+<li><b><i>Use</i> doesn't say what happens.</b> For a skill it only opens the dialog below (<code>USE_LABEL</code> in <code>libraryWords.ts</code>).</li>
+<li><b>Built in, Made here, Marketplace</b> is the only fact shown about where a skill came from. There is no publisher for built-in items, no signer, and no version unless it came from the marketplace.</li></ol></div>
+
+<h2 id="dialog">A skill opened</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock" style="position:relative;min-height:380px"><div class="desk"><div class="mnav"><div class="logo"><i></i>Fernhill</div><a class="on">Home</a><a class="">Chat</a><a class="">Your space</a><a class="">Projects</a><a class="">Agents</a><a class="">Tasks</a></div><div class="mcentre"><div class="mh">Library</div></div></div>
+<div class="scrimbox"><div class="dialog" style="width:560px">
+<h4>Code Review</h4>
+<div class="preview" style="min-height:120px"><b>description:</b> Review PRs for correctness, architecture fit, and test coverage<br><br># Code Review<br>When asked to review code, follow these steps…</div>
+<div class="row end" style="margin-top:12px"><span class="btn">Install to Org <span class="num">4</span></span><span class="btn">Close</span></div>
+<p class="sub" style="margin:8px 0 0">A skill made here also shows <span class="btn">Edit</span> <span class="btn danger">Delete</span>, and its install reads <i>Install to Org Active</i> <span class="num">5</span></p>
+</div></div></div>
+<ol start="4">
+<li><b>Install to Org copies the skill into the organisation's package</b> (<code>installSkill</code>, target <code>ORG</code>), for every agent. The dialog stays as it was: nothing confirms it happened. The organisation's package already holds all 18 from its first write, so for a built-in skill this usually changes nothing.</li>
+<li><b>"Install to Org Active"</b> is the label for a skill made here. Once installed, a skill can't be seen as installed or taken out: <code>uninstallSkill</code> exists but no screen calls it.</li>
+<li><b>No way to give a skill to one agent from here.</b> That's on the agent's page, and only for built-in skills.</li></ol></div>
+
+<h2 id="agent">The agent's page: Skills</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock"><div class="desk"><div class="mnav"><div class="logo"><i></i>Fernhill</div><a class="">Home</a><a class="">Chat</a><a class="">Your space</a><a class="">Projects</a><a class="on">Agents</a><a class="">Tasks</a></div>
+<div class="mcentre">
+<div class="crumb"><a>Manage organisation</a> › <a>Agents</a> › Ada</div>
+<div class="mh">Ada</div>
+<div class="msec">Skills <span class="btn" style="float:right">Add</span></div>
+<div class="row" style="align-items:flex-start;gap:14px;margin-top:10px">
+<div style="width:220px"><div class="row"><span class="btn">📖 <span class="num">7</span></span><span class="btn">＋</span></div>
+<div class="mcard hl" style="margin-top:8px"><div class="b"><div class="t">dev-code-review</div></div></div>
+<div class="mcard"><div class="b"><div class="t">deploy-checklist</div></div></div></div>
+<div class="grow"><div class="row"><b class="grow">dev-code-review</b><span class="tag acc">Library</span><span class="btn">Update <span class="num">8</span></span></div>
+<div class="editor" style="min-height:90px">---
+name: Code Review
+description: Review PRs for correctness…
+---</div></div></div>
+<p class="sub">Add a skill to give this agent domain knowledge injected at runtime. Platform skills (Task Management) are always active. <span class="num">9</span></p>
+</div></div></div>
+<ol start="7">
+<li><b>The book icon opens the skill library, built-in skills only</b> (<code>getSkillLibrary({ scope: 'PLATFORM' })</code>). Skills made here can't be picked. <b>＋</b> makes a <i>Custom</i> skill that lives only in this agent's package.</li>
+<li><b>Update</b> lights when the library's version number is higher than this copy's: the only stale-copy check in hq, and only for an agent's own copies.</li>
+<li><b>The list shows only this agent's own copies.</b> The organisation's 18, and a place's files, are not shown, so nobody can see what Ada will actually use. The note about an always-on Task Management skill is out of date: no such skill ships.</li></ol></div>
+
+<h2 id="place">An agent's page in a place: Your skills</h2>
+<div class="box"><span class="lbl before">Before · today</span>
+<div class="frame mock"><div class="desk" style="grid-template-columns:200px 1fr 330px"><div class="mnav"><div class="logo"><i></i>Fernhill</div><a class="">Home</a><a class="">Chat</a><a class="">Your space</a><a class="">Projects</a><a class="on">Agents</a><a class="">Tasks</a></div>
+<div class="mcentre"><div class="mh">Ada</div><div class="ml">Your agent, in Your space</div></div>
+<div class="dockcol"><div class="dh">Instructions</div>
+<div style="font-size:12px;color:var(--t3);text-transform:uppercase">The organisation's</div><div class="preview">Be concise…</div>
+<div style="font-size:12px;color:var(--t3);text-transform:uppercase">Yours · for every agent in your Chat · AGENTS.md</div><div class="preview">Use British spelling.</div>
+<div style="font-weight:600;margin-top:6px">Your skills <span class="num">10</span></div><div>meeting-notes · weekly-report</div>
+<p style="color:var(--t3);font-size:12px">To change them, ask it in a conversation — it can edit your instructions — or open them in Files. <span class="num">11</span></p></div>
+</div></div>
+<ol start="10">
+<li><b>Names only</b>, read from <code>.agents/skills/</code> and <code>.agents/agents/&lt;id&gt;/skills/</code> in the person's own space. They can't be opened, switched off, or told apart from skills an agent wrote.</li>
+<li><b>Managing them means editing files</b>, or asking an agent to. A skill an agent writes there is live on its next turn, with nothing shown. A project's skills in files have no screen at all.</li></ol></div>
+
+<h2 id="summary">What the new screens fix</h2>
+<div class="box"><table><tr><th>Today</th><th>Fixed on</th></tr>
+<tr><td>1 Hard to find</td><td>U2: the Library in the sidebar (D21)</td></tr>
+<tr><td>2, 4 Unclear actions, no confirmation</td><td>U2, U4: <i>Add</i> with the install check and a confirmation (I6)</td></tr>
+<tr><td>3 Source is the only provenance</td><td>U3: identity, signer, version, provenance (D9, D19)</td></tr>
+<tr><td>5 No remove</td><td>U3: <i>Remove</i>, naming the agents it reaches</td></tr>
+<tr><td>6, 7 Giving is split and partial</td><td>U3: <i>Given to</i>; A1 the agent's full list</td></tr>
+<tr><td>8 Stale copies</td><td>U5: one installed copy per identity, update offered (D10, D11)</td></tr>
+<tr><td>9 No full picture</td><td>A1: everything the agent will see</td></tr>
+<tr><td>10, 11 Files unmanaged</td><td>P1, P2: Skills pages with switches (D13, D15)</td></tr>
+</table></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

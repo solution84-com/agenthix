@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Library · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-library.html"><main>
+<div class="top"><div><h1>U2 · The Library in the sidebar: every asset</h1>
+<p class="sub">The single home for every installed asset (D21): skills, agent templates, board templates and team templates, one layer for all of them (D20). One searched view with a filter by type, not tabs (D26). This is an administrator's view. Numbers match the notes below the screen.</p></div></div>
+
+<h2 id="screen">The screen</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk">
+<div class="anav" data-on="library"></div>
+<div class="mcentre">
+<div class="row"><div class="mh grow">Library <span class="num">1</span></div><span class="btn">Marketplace <span class="tag warn" style="font-size:11px">development only</span> <span class="num">8</span></span><span class="btn">⚙ Settings <span class="num">9</span></span><span class="btn pri">＋ Add ▾ <span class="num">7</span></span></div>
+<div class="ml">Everything your organisation has installed for its agents. Each item is checked when it comes in, and stays at its version until you publish or update it.</div>
+<div class="row" style="margin-bottom:8px"><div class="field grow" style="margin:0"><div class="in" style="color:var(--t3)">Search the Library: skills, agents, boards, teams</div></div></div>
+<div class="row" style="margin-bottom:10px;flex-wrap:wrap">
+<span class="fm" style="margin-right:2px">Type</span><span class="chip" style="background:var(--macc-sub);color:var(--t1)">All 29</span><span class="chip">Skills 14</span><span class="chip">Agents 6</span><span class="chip">Boards 4</span><span class="chip">Teams 5</span><span class="num">5</span>
+<span class="fm" style="margin:0 2px 0 10px">Show</span><span class="chip">Waiting for review 2</span><span class="chip">Update available 1</span><span class="chip">Draft 1</span><span class="chip">No agent yet</span><span class="num">6</span></div>
+
+<div class="mcard"><div class="ic" style="background:var(--t3)">⚙</div><div class="b"><div class="t">Working with git <span class="fm">skill · agenthix/working-with-git · 1.0</span></div><div class="s">Built in · on for every agent working in a repository</div></div><span class="tag">Built in</span><span class="switch on"></span></div>
+<div class="mcard"><div class="ic" style="background:var(--macc)">S</div><div class="b"><div class="t">Code Review <span class="fm">skill · agenthix/dev-code-review · 1.3</span> <span class="num">2</span></div><div class="s">Signed by Agenthix · Every agent has it</div></div><span class="tag warn">Update available · 1.4 <span class="num">4</span></span><span class="btn">⋯</span></div>
+<div class="mcard"><div class="ic" style="background:var(--mok)">S</div><div class="b"><div class="t">Release Notes <span class="fm">skill · fernhill/release-notes · 3</span></div><div class="s">Made here · Ada has it</div></div><span class="tag warn">Draft by Sam</span><span class="btn">⋯</span></div>
+<div class="mcard"><div class="ic" style="background:var(--mwarn)">S</div><div class="b"><div class="t">SEO Audit <span class="fm">skill · acme/seo-audit · 2.0</span></div><div class="s">Signed by Acme (github.com/acme) · No agent has it yet</div></div><span class="btn">Add to agents…</span><span class="btn">⋯</span></div>
+<div class="mcard"><div class="ic" style="background:var(--macc)">A</div><div class="b"><div class="t">Project manager <span class="fm">agent · agenthix/project-manager · 2.0</span> <span class="num">3</span></div><div class="s">Signed by Agenthix · brings 5 skills · Priya was made from it</div></div><span class="btn">Create an agent</span><span class="btn">⋯</span></div>
+<div class="mcard"><div class="ic" style="background:var(--macc)">B</div><div class="b"><div class="t">Sprint board <span class="fm">board · agenthix/sprint-board · 1.1</span></div><div class="s">Signed by Agenthix · used by 2 projects</div></div><span class="btn">⋯</span></div>
+<div class="mcard"><div class="ic" style="background:var(--s3);color:var(--t2)">S</div><div class="b"><div class="t">Legal Review <span class="fm">skill · legal-review · 1</span></div><div class="s">Unsigned · uploaded by Avery Chen · Ada has it</div></div><span class="tag">Unsigned</span><span class="btn">⋯</span></div>
+<div class="mcard"><div class="ic" style="background:var(--mok)">S</div><div class="b"><div class="t">Accessibility Check <span class="fm">skill · proposed</span></div><div class="s">Proposed by Ada in a conversation with Avery Chen · for the organisation</div></div><span class="tag acc">Waiting for review</span><span class="btn">Review</span></div>
+<div class="mcard dim"><div class="ic" style="background:var(--macc)">S</div><div class="b"><div class="t">Code Review <span class="fm">skill · agenthix/code-review · 1.3</span></div><div class="s">Set aside: replaced by your copy, fernhill/code-review</div></div><span class="tag">Set aside</span><span class="btn">Use this again</span></div>
+</div></div></div>
+<ol>
+<li><b>In the sidebar, for everyone</b> (D21), after Tasks and Agents (D26: Home, Chat, Your space, Projects, Tasks, Agents, Library). It replaces the Overview card and the <code>/skills</code> redirect. Members read; administrators and Library maintainers act (D28).</li>
+<li><b>Each row shows its type, identity and version</b> (<code>skill · publisher/name · version</code>, D10), and who signed it: <i>Signed by Agenthix</i>, <i>Signed by Acme (github.com/acme)</i>, <i>Unsigned</i>, or <i>Made here</i> (D8, D9).</li>
+<li><b>Who has it</b> (D23): <i>Every agent has it</i>, named agents, or <i>No agent has it yet</i>. Built-in skills show a switch instead (D6). A template says what it brings and which agents or projects were made from it.</li>
+<li><b>Status, in words:</b> <i>Update available · 1.4</i> (V2), <i>Draft by Sam</i> (D24), <i>Waiting for review</i> (R1), <i>Set aside</i> (D18), <i>Unsigned</i>.</li>
+<li><b>Type is a filter, not a tab</b> (D26). One search covers every asset; the type chips narrow it.</li>
+<li><b>Show</b> filters by status: waiting for review, update available, draft, no agent yet. Proposals are rows with <i>Waiting for review</i>, not a tab of their own.</li>
+<li><b>Add</b> opens the sources (U4) and <i>New skill</i> (U3b). Library maintainers see <i>New skill</i>; installing from outside stays with administrators unless the organisation allows maintainers (R2, P3).</li>
+<li><b>Marketplace</b> is a button that opens its own page, behind a feature flag: on in development only, off in production, and refused by the server too, until it is built later (D26, adr-0116).</li>
+<li><b>Settings</b> opens the organisation's settings (R2).</li></ol></div>
+
+<h2 id="features">Before, after, why</h2>
+
+<h3 id="f-place">Where it lives</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>An Overview card and a redirect from <code>/skills</code> (U1 ①). Labelled "Ready-made things to start from".</p></div>
+<div class="box"><span class="lbl after">After</span><p>A sidebar entry, <b>Library</b>, after Agents; Tasks moves before Agents because it is used more (D26). Described as what the organisation has <i>installed</i>. <code>/skills</code> opens the Library filtered to skills.</p></div></div>
+<div class="why"><b>Why:</b> people didn't find it (T1). One home for the one asset layer (D20, D21).</div>
+
+<h3 id="f-view">One view, filtered by type</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>Tabs: Agents, Boards, Skills, Teams and Marketplace (<i>Coming soon</i>).</p></div>
+<div class="box"><span class="lbl after">After</span><p>One searched list of every asset, with <b>Type</b> chips (skills, agents, boards, teams) and <b>Show</b> chips for status. No Marketplace tab: a <b>Marketplace</b> button, shown only in development (D26).</p></div></div>
+<div class="why"><b>Why:</b> every kind shares one layer (D20), so they share one list, one row and one set of statuses. A search across everything finds a skill and the template that brings it together. The marketplace is designed for later and must not appear in production (adr-0116).</div>
+
+<h3 id="f-row">A row</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>Name, description, <i>Built in</i> or <i>Made here</i>, and <b>Use</b>, which only opens a dialog.</p></div>
+<div class="box"><span class="lbl after">After</span><p>Type, name, identity and version, signer, who has it, and status. The row opens the asset's page (U3). The ⋯ menu has <i>Add to agents…</i>, <i>Edit</i> (U3b), <i>Export</i> and <i>Remove</i>, for those allowed.</p></div></div>
+<div class="why"><b>Why:</b> the row answers "what is it, who vouches for it, who has it, is it current" without opening anything. <i>Use</i> said none of that.</div>
+
+<h3 id="f-member">What a member sees</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>The same list, with no Import or New. The dialog is read-only.</p></div>
+<div class="box"><span class="lbl after">After</span><p>The same list, with no <i>Add</i>, <i>Settings</i>, switches or <i>Add to agents…</i>. A Library maintainer (D28) sees <i>Edit</i>, <i>Publish</i>, <i>Update</i> and <i>Roll back</i> on every asset. Any member can propose a skill: their <i>New skill</i> becomes a proposal (D27).</p></div></div>
+<div class="why"><b>Why:</b> reading answers "what can our agents do?" for everyone. The actions follow the role rules (D17, D27), checked on the server for every role and action.</div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><p><b>None.</b> UQ1 and UQ3 were answered by D26 (Marketplace behind a development-only flag; Library after Agents, Tasks before Agents). UQ2 was applied as a default: built-in skills listed first with a switch and a <i>Built in</i> tag.</p></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

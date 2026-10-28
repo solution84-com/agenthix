@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delivery · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="delivery.html"><main>
+<div class="top"><div><h1>6 · Delivery: hq to site to runtime, per turn</h1>
+<p class="sub">How one turn gets exactly the skills it should, and nothing else. Numbers match the sequence. Staging itself stays as adr-0084 built it; what changes is what hq names and what the site checks before copying.</p></div></div>
+
+<h2 id="today">Today</h2>
+<div class="box"><ul>
+<li>A run's dispatch carries <code>RunPackages</code>: the agent's, the organisation's and the platform's package by digest (<code>core/src/protocol/packages.ts</code>). The site fetches missing ones (<code>packages.missing</code>, <code>packages.put</code>) and caches them.</li>
+<li>Staging (<code>site/src/agents/runtime/skillStaging.ts</code>) copies five sources (<code>platform, org, agent, boundary, shared</code>) into a fresh folder as <code>&lt;source&gt;-&lt;slug&gt;</code>, rebuilding each header (<code>skillFrontmatter.ts</code>). File sources are copied as they are at that moment, unchecked against anything hq approved.</li>
+<li>Claude gets a local plugin and a name allowlist (<code>claude/claudeSkills.ts</code>); OpenCode gets a list in the system prompt and Agenthix's <code>skill</code> tool (<code>opencode/openCodeSkills.ts</code>). A typed <code>/name</code> goes through untouched (<code>claude/turnInput.ts</code>).</li></ul></div>
+
+<h2 id="sequence">One turn</h2>
+<div class="box"><div class="mmd" data-src="seq"></div></div>
+
+<h2 id="steps">The steps</h2>
+<div class="kbox">
+<div><h4><span class="n">1</span>hq resolves the set</h4><p>Built-ins not switched off (D6); installed assets every agent has or this agent has, at the pinned version (V1, D23); the place's switched-on file skills; the person's skills at a version they published, only for a turn of their own conversation (D15, H4). Clashes of one identity settle installed, then project, then person (D12, D16); the loser is recorded as set aside.</p></div>
+<div><h4><span class="n">2</span>The dispatch</h4><p>Installed and personal content as package refs by digest, as today. File skills as <code>{place, path, fingerprint}</code> triples, never fingerprint alone (H3). An optional <code>skill</code> field when the person picked one with <code>/</code> (R3).</p></div>
+<div><h4><span class="n">3</span>Fetch missing</h4><p><code>packages.missing</code> / <code>packages.put</code>, unchanged. The cache is bounded and outside every container (L4).</p></div>
+<div><h4><span class="n">4</span>Re-fingerprint and stage</h4><p>The site reads each named file-skill folder into memory under staging's bounds, fingerprints exactly those bytes, and stages it only if the fingerprint equals the one hq named for that place and path; a mismatch is skipped and reported (H3). Names are unique per run: <code>workspace-&lt;n&gt;-&lt;slug&gt;</code>, <code>person-&lt;slug&gt;</code>; two folders never merge, and a clash stages neither (M2).</p></div>
+<div><h4><span class="n">5</span>The runtime</h4><p>Claude: the staged folder as the <code>agenthix</code> plugin with the name allowlist, as now. OpenCode: the list and the <code>skill</code> tool, as now. Headers rebuilt, hooks and inline shell off (adr-0084).</p></div>
+<div><h4><span class="n">6</span>The picked skill</h4><p>The site accepts the <code>skill</code> field only if it equals a name staged this turn whose skill allows people to invoke it; otherwise it drops the field and keeps the text. Text starting with <code>/</code> is escaped so the runtime never reads it as a command (M7). Accepted: Claude gets a skill invocation, OpenCode an instruction to load it first.</p></div>
+<div><h4><span class="n">7</span>Record what was used</h4><p>The run records each staged skill's name, identity or place + path, version and fingerprint (data board 13), so the work step opens the exact version (R4) and the sweep keeps its content (D26).</p></div>
+</div>
+
+<h2 id="protocol">Protocol changes (docs/architecture/versioning.md)</h2>
+<div class="box"><table><tr><th>Change</th><th>How it moves</th></tr>
+<tr><td>Dispatch gains file-skill triples, personal skill refs, and the <code>skill</code> field</td><td>Additive: the site protocol's minor version moves (today <code>1.8</code>, <code>core/src/protocol/connection.ts</code>)</td></tr>
+<tr><td>New staging sources <code>workspace</code>, <code>person</code>; slug length limit from the longest prefix (M2)</td><td>Additive in <code>SKILL_SOURCES</code></td></tr>
+<tr><td><code>agent</code> source and the agent package's <code>skills/</code></td><td>Marked deprecated first, then removed in a later version: installed assets arrive as their own refs</td></tr>
+<tr><td>A site scan request (place skill folders and fingerprints)</td><td>New read on the control channel, bounded (L1)</td></tr>
+</table></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th><th>Recommended</th></tr>
+<tr><td class="n">XQ3</td><td><b>How installed assets travel:</b> one package per asset version, or one package per agent per turn bundling its whole installed set?</td><td>One per asset version, by its digest: shared across agents and turns, so a site fetches each version once</td></tr>
+<tr><td class="n">XQ4</td><td><b>When the site scans a place:</b> at every turn, or when hq asks (opening the Skills page, before a dispatch whose last scan is stale)?</td><td>When hq asks; staging's own re-fingerprint (step 4) is the safety, so the scan only drives the list</td></tr>
+</table></div>
+
+<script>
+window.SRC = { seq: `sequenceDiagram
+  participant P as Person
+  participant H as hq
+  participant S as Site
+  participant R as Runtime
+  P->>H: message (+ skill field if picked)
+  H->>H: 1 resolve set, clash order
+  H->>S: 2 dispatch: package refs, file triples, skill field
+  S->>H: 3 packages.missing
+  H->>S: packages.put
+  S->>S: 4 re-fingerprint file skills, stage unique names
+  S->>R: 5 plugin + allowlist / list + skill tool
+  S->>S: 6 validate skill field, escape leading slash
+  R-->>S: turn runs
+  S->>H: 7 used skills: name, identity, version, fingerprint
+` }
+</script>
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

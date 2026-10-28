@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Update, roll back, edit · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-update.html"><main>
+<div class="top"><div><h1>U5 · Update, roll back, edit makes your copy</h1>
+<p class="sub">How an installed asset changes, always on purpose. The version is pinned at install (V1). Updates are offered with what changed (V2). Roll back goes to any earlier version. Editing another publisher's asset makes the organisation's own copy (D18). A template brings its skills de-duplicated (I3). Numbers match the notes.</p></div></div>
+
+<h2 id="update">Update available</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre">
+<div class="crumb"><a>Library</a> › <a>Skills</a> › Code Review</div>
+<div class="row"><div class="mh grow">Code Review</div><span class="tag warn">Update available · 1.4</span></div>
+<div class="ml"><span class="fm">agenthix/dev-code-review · 1.3 in use</span> · Signed by Agenthix · Every agent</div>
+<div class="msec">What changes in 1.4 <span class="num">1</span></div>
+<pre class="code"><span class="diffdel">- 4. Approve when the tests pass.</span>
+<span class="diffadd">+ 4. Approve only when the tests pass and the change matches the task's acceptance criteria.</span>
+<span class="diffadd">+ 5. Never merge: leave merging to the workflow the place approved.</span></pre>
+<div class="ml">✓ Signed by <b>Agenthix</b>, as 1.3 was <span class="num">2</span> · from hq's image, arrived with this hq release</div>
+<div class="row"><span class="btn pri">Update to 1.4</span><span class="btn">Not now</span><span class="btn link">Skip 1.4</span> <span class="num">3</span></div>
+</div></div>
+<ol>
+<li><b>What changed</b>, as a difference between the version in use and the new one, file by file.</li>
+<li><b>The signer must stay the same.</b> A newer version from a different signer, or one that's newly unsigned, is not shown as an update. It's shown as a <b>change of publisher</b> (below), and asks again (spec/03, After installing).</li>
+<li><b>Update to 1.4</b> pins 1.4 for every agent that has the skill, from their next turn (V1, V4). <b>Not now</b> keeps the mark. <b>Skip 1.4</b> hides it until a later version. Administrators and Library maintainers can do this (D28).</li></ol></div>
+
+<h2 id="publisher">A change of publisher</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="position:relative;min-height:260px"><div class="scrimbox"><div class="dialog" style="width:520px">
+<h4>SEO Audit 2.1 has a different signer</h4>
+<p>You have <span class="fm">acme/seo-audit 2.0</span>, signed by <b>Acme</b> (github.com/acme, workflow <code>release.yml</code>).</p>
+<div class="warnbox"><b>2.1 is signed by github.com/acme-tools/skills.</b> That's not the publisher you trusted. Install it only if you know why it changed.</div>
+<div class="row end"><span class="btn pri">Keep 2.0</span><span class="btn">Treat as a new publisher…</span></div></div></div></div>
+<p class="sub">"Treat as a new publisher" leads into the S2 dialog (U4). Keeping 2.0 is the default.</p></div>
+
+<h2 id="rollback">Roll back</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="position:relative;min-height:240px"><div class="scrimbox"><div class="dialog">
+<h4>Go back to Code Review 1.3?</h4>
+<p>Every agent that has it uses 1.3 from its next turn. 1.4 stays in the history, so you can return to it.</p>
+<p style="font-size:13px;color:var(--t2)">Recorded as: rolled back by Avery Chen, today 14:10.</p>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri">Go back to 1.3</span></div></div></div></div>
+<p class="sub">From the Versions section of the asset's page (U3). Any earlier installed version, its content kept by hq (V2, V6). Going back to a version that isn't in the history means installing it on purpose from its package, and hq says "This is older than the one you have" (V3).</p></div>
+
+<h2 id="edit">Editing another publisher's skill makes your own copy</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock" style="position:relative;min-height:320px"><div class="scrimbox"><div class="dialog" style="width:540px">
+<h4>Edit Code Review?</h4>
+<p><span class="fm">agenthix/dev-code-review 1.3</span> is signed by Agenthix. Your edits can't carry Agenthix's signature, so editing makes <b>your own copy</b>: <span class="fm">fernhill/code-review</span>, made here. <span class="num">4</span></p>
+<ul style="font-size:13.5px"><li>Your copy takes its place for Ada and Priya. <span class="num">5</span></li>
+<li>Agenthix's stays installed, set aside. You can switch back at any time.</li>
+<li>Your copy records that it's based on agenthix/dev-code-review 1.3. That credit can't be removed. <span class="num">6</span></li>
+<li>When Agenthix ships a newer version, you'll see it as news on your copy. It's never merged into your copy by itself.</li></ul>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri">Make my copy and edit</span></div></div></div></div>
+<ol start="4">
+<li><b>The copy gets the organisation's publisher name</b> (from the organisation's settings) and the same skill name. Its version starts again at 1.</li>
+<li><b>It takes the original's place</b>: every agent that had the original now has the copy (D18). The original shows <i>Set aside</i> in the Library (U2), with <i>Use this again</i>.</li>
+<li><b>Provenance is written once, now</b> (D19): the original's own <code>basedOn</code> list, plus one line for the original, with its fingerprint (<i>verified</i>).</li></ol>
+<p class="sub">An asset made here is edited in place: each save is a new version, with no copy (D18).</p></div>
+
+<h2 id="news">News on your copy</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre">
+<div class="row"><div class="mh grow">Code Review</div><span class="btn">Edit</span></div>
+<div class="ml"><span class="fm">fernhill/code-review · version 2</span> · Made here, based on agenthix/dev-code-review 1.3</div>
+<div class="flag"><b>News:</b>&nbsp;agenthix/dev-code-review 1.4 is out. Your copy is based on 1.3.</div>
+<pre class="code"><span class="diffadd">+ 5. Never merge: leave merging to the workflow the place approved.</span></pre>
+<div class="row"><span class="btn">Open 1.4 beside my copy</span><span class="btn link">Dismiss</span></div>
+<p class="sub">Shows what changed between 1.3 and 1.4 in the original, not against your copy. Bringing a change across is done by hand in the editor, with both open (D18).</p>
+</div></div></div>
+
+<h2 id="dedupe">A template that brings skills you have</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre">
+<div class="mh">Installed: Dev team 1.0</div>
+<table><tr><th>Skill it carries</th><th>You had</th><th>What happened</th></tr>
+<tr><td><span class="fm">agenthix/dev-code-quality 1.0</span></td><td>Nothing</td><td>Installed</td></tr>
+<tr><td><span class="fm">agenthix/pm-sprint-planning 1.3</span></td><td>1.3</td><td>Shared: the one you have</td></tr>
+<tr><td><span class="fm">agenthix/dev-code-review 1.4</span></td><td>1.3</td><td>Kept 1.3. <span class="btn link">Update to 1.4</span></td></tr>
+<tr><td><span class="fm">agenthix/qa-test-planning 1.0</span></td><td>1.1</td><td>Kept your newer 1.1</td></tr>
+<tr><td><span class="fm">agenthix/dev-code-review</span></td><td>Your copy, fernhill/code-review</td><td>Your copy stays in its place</td></tr>
+</table></div></div>
+<p class="sub">One identity, installed once, shared by every agent that has it (I3). The same rules for every kind of template (D20). The last row is the clash order (spec/04): the organisation's own copy keeps its place.</p></div>
+
+<h2 id="features">Before, after, why</h2>
+<h3 id="f-stale">Stale copies</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>Each install is a copy. Only an agent's own copies show <i>Update</i> (U1 ⑧). The organisation's copies never learn their library version moved on.</p></div>
+<div class="box"><span class="lbl after">After</span><p>One installed version per identity, pinned. <i>Update available</i>, with what changed, wherever it's installed.</p></div></div>
+<div class="why"><b>Why:</b> an out-of-date copy once told agents to push directly (T2). Pinning keeps behaviour stable; offering updates with the difference keeps it current on purpose (D11).</div>
+<h3 id="f-edit">Editing</h3>
+<div class="ba"><div class="box"><span class="lbl before">Before</span><p>Built-in skills can't be edited. Skills made here are overwritten in place, with no history.</p></div>
+<div class="box"><span class="lbl after">After</span><p>Another publisher's asset: your own copy, with credit kept. Your own: versions, with roll back.</p></div></div>
+<div class="why"><b>Why:</b> edited content can't carry the original signer's name (D10, D18), and whoever shared it keeps their credit (D19).</div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th><th>Recommended</th></tr>
+<tr><td class="n">UQ10</td><td><b>Skip a version:</b> offer <i>Skip 1.4</i> beside <i>Not now</i>, or only <i>Not now</i>?</td><td>Offer both. Skipping stops a version the organisation decided against from nagging</td></tr>
+<tr><td class="n">UQ11</td><td><b>A copy's version numbering:</b> start again at 1, or continue from the original (1.3 → 1.3-fernhill.1)?</td><td>Start at 1. The credit line already says which version it's based on</td></tr>
+<tr><td class="n">UQ12</td><td><b>Bringing an upstream change into your copy:</b> by hand in the editor with both open, or a "copy this change" action per changed part?</td><td>By hand for now. A merge aid can follow if people ask</td></tr>
+</table></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proposing a skill · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-propose.html"><main>
+<div class="top"><div><h1>C3 · "Make this a skill": proposing</h1>
+<p class="sub">Agents propose, people accept (R6). A person asks an agent to turn a way of working into a skill. The agent writes it with the built-in <i>skill-creator</i> and proposes it with the <code>propose_skill</code> tool. A card in the conversation shows the draft until someone reviews it. A draft reaches no agent.</p></div></div>
+
+<h2 id="today">Today, numbered</h2>
+<div class="box"><table><tr><th></th><th>Today</th><th>Where</th></tr>
+<tr><td class="n">1</td><td>An agent has <b>no tool to propose a skill</b>. Its only way is to write a folder into a place's files with its file tools</td><td>—</td></tr>
+<tr><td class="n">2</td><td>That folder is <b>live on the next turn</b> for everyone using that agent there, with nobody having read it</td><td><code>site/src/agents/runtime/skillStaging.ts</code> (T6)</td></tr>
+<tr><td class="n">3</td><td>The skills engineer template's <code>codify-skill</code> describes a "proposal to an org admin" that doesn't exist</td><td><code>hq/assets/library/agents/skills-engineer/</code></td></tr>
+<tr><td class="n">4</td><td>The conversation already has cards an agent raises for a person to answer, such as <i>Add a place to this conversation</i></td><td><code>SuggestPlaceCard.tsx</code></td></tr>
+</table></div>
+
+<h2 id="ask">1 · Asking, and the agent proposing</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>"Make this a skill" leads an agent to write a folder that is live at once, or to explain it can't.</p></div>
+<div class="box"><span class="lbl after">After</span><p>The agent loads the built-in <b>skill-creator</b> (format, a description that says when to use it, short steps), writes the skill, and calls <code>propose_skill</code>. The conversation shows a <b>proposal card</b>.</p></div>
+</div>
+
+<div class="frame mock"><div class="desk">
+<div class="anav" data-on="chat"></div>
+<div class="mcentre" style="min-height:560px">
+<div class="mhdr" style="margin:-16px -32px 12px;padding-left:32px">Ada <span class="chip">Website rebuild</span></div>
+<div class="bubble me">That checkout review worked well. Make it a skill for the project, so every review goes like that.</div>
+<div style="margin-top:14px;font-weight:600">Ada <span class="chip" style="font-weight:400">Thought for 18 s ›</span></div>
+<ol style="list-style:none;padding-left:10px;border-left:2px solid var(--mborder);margin:6px 0;font-size:13px;color:var(--t2)">
+<li><span style="color:var(--mok)">✓</span> Used the skill <span style="color:var(--macc)">Skill creator</span> · Built in</li>
+<li><span style="color:var(--macc)">↳</span> Proposed a skill · Checkout review</li></ol>
+<div class="bubble" style="max-width:none">I've written it up as a skill and proposed it for Website rebuild. It needs a project administrator to accept it before any agent uses it.</div>
+<div class="mcard" style="display:block;margin-top:12px;max-width:620px">
+<div class="row"><span>⚡</span><b>Proposed skill · Checkout review</b><span class="grow"></span><span class="tag warn">Waiting for review</span></div>
+<div class="s" style="margin:6px 0">Review a checkout change: errors shown to the buyer, every payment path tested, the expired-card case covered. Use when a change touches <code>src/checkout</code>.</div>
+<div class="row" style="flex-wrap:wrap;gap:6px"><span class="tag">For Website rebuild</span><span class="tag">New skill</span><span class="tag">3 files</span><span class="tag">Proposed by Ada, for Avery Chen</span></div>
+<details style="margin-top:8px"><summary style="color:var(--macc);cursor:pointer">Preview</summary><div class="preview" style="margin-top:6px">1. Read the change and the payment paths it touches…</div></details>
+<div class="s" style="margin-top:8px;font-size:12.5px;color:var(--t2)">Reviewed by Website rebuild's administrator: Avery Chen · <a style="color:var(--macc)">Aim it elsewhere ▾</a> (the organisation, or you)</div>
+<div class="row" style="margin-top:6px"><span class="btn">Review</span><span class="sub">Opens the proposal on Website rebuild's Skills page</span></div>
+</div>
+</div></div></div>
+
+<div class="kbox">
+<div><h4><span class="n">1</span>The tool</h4><p><code>propose_skill</code>, a platform tool on hq's side of the channel, gated like the other platform tools. Arguments: <code>name</code>, <code>description</code>, <code>body</code>, <code>files</code> (bounded as staging is), <code>why</code>, <code>for</code> (<code>organisation</code>, <code>project</code> or <code>mine</code>), and optionally <code>edits</code> (the identity of the skill it changes).</p></div>
+<div><h4><span class="n">2</span>What hq does</h4><p>It checks the draft against the Agent Skills specification (R8) and keeps it as a <b>proposal</b>: the content by fingerprint, who proposed it (agent, person, conversation) and for which level. It writes nothing into any place's files and gives it to no agent.</p></div>
+<div><h4><span class="n">3</span>Who reviews (D27)</h4><p>The maintainers of the level it aims at. <b>organisation:</b> administrators and Library maintainers, in the Library (R1). <b>project:</b> the project's administrators. <b>mine:</b> the person, in the card itself. The card names them, and the person can aim it elsewhere. If the person asking may already publish at that level, it is their draft instead (3b).</p></div>
+</div>
+<div class="why"><b>Why a proposal and not a file:</b> a skill is standing instructions for everyone who uses that agent there. A person should read it first. The place's default already keeps agent-written files off (D13); the tool gives agents the right path, and the built-in skill-creator tells them to use it.</div>
+
+<h2 id="mine">2 · A skill for yourself: accepted in the card</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>Nothing. A person's own skills exist only as files in Your space.</p></div>
+<div class="box"><span class="lbl after">After</span><p>When the skill is for the person (<code>for: mine</code>), they are the reviewer, so the card offers <b>Add to my skills</b>, <b>Edit first</b> and <b>Not now</b>. Accepting writes it into Your space's skills, switched on, and it follows them (D15).</p></div>
+</div>
+<div class="frame mock"><div class="mcentre" style="max-width:640px">
+<div class="mcard" style="display:block">
+<div class="row"><span>⚡</span><b>Proposed skill · My review notes</b><span class="grow"></span><span class="tag">For you</span></div>
+<div class="s" style="margin:6px 0">Write review notes the way Avery likes them: short, numbered, one fix each.</div>
+<div class="row" style="margin-top:8px"><span class="btn pri">Add to my skills</span><span class="btn">Edit first</span><span class="btn link">Not now</span></div>
+</div></div></div>
+
+<h2 id="edit">3 · Proposing a change to an existing skill</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>An agent that finds a skill wrong can only work around it.</p></div>
+<div class="box"><span class="lbl after">After</span><p>With <code>edits</code> set, the card shows the <b>difference</b> from the current version. Accepting saves a new version. For a skill another publisher signed, accepting makes the organisation's own copy, based on the original (D18, D19).</p></div>
+</div>
+<div class="frame mock"><div class="mcentre" style="max-width:640px">
+<div class="mcard" style="display:block">
+<div class="row"><span>⚡</span><b>Proposed change · Review code</b><span class="grow"></span><span class="tag warn">Waiting for review</span></div>
+<div class="row" style="gap:6px;margin:6px 0"><span class="tag">agenthix/dev-code-review 1.3</span><span class="tag">Accepting makes Fernhill's own copy</span><span class="tag">Reviewed by administrators and Library maintainers</span></div>
+<pre class="code"><span class="diffdel">- 3. Every new path has a test.</span>
+<span class="diffadd">+ 3. Every new path has a test, including the failure case.</span>
+<span class="diffadd">+ 4. For payment code, check the expired-card path.</span></pre>
+<div class="s">Why: "Two reviews this week missed failure-case tests."</div>
+<div class="row" style="margin-top:8px"><span class="btn">Review</span></div>
+</div></div></div>
+
+<h2 id="maintainer">3b · When the person asking can edit the skill: it lands as their draft (D24)</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre">
+<div class="bubble me" style="margin-left:auto">Add a step to Code Review that checks accessibility.</div>
+<div class="stepcard" style="margin-top:8px"><b>Draft of Code Review, version 3</b> · <span class="fm">fernhill/code-review</span><br>
+<span class="diffadd">+ 3. Check accessibility: labels, contrast, keyboard paths.</span><br>
+<span style="color:var(--t2)">Sam is a Library maintainer, so this is Sam's draft. No agent sees it until it's published.</span>
+<div class="row" style="margin-top:6px"><span class="btn">Open draft</span><span class="btn pri">Publish…</span></div></div>
+</div></div>
+<ul><li><b>Mechanism:</b> the agent calls <code>propose_skill</code> with <code>edits: fernhill/code-review</code>. hq checks whether the conversation's person may edit that skill (an administrator or a Library maintainer, D28). If they may, it becomes their draft (U3 E1–E4). If not, it's a proposal for review (R1).</li>
+<li><b>Agents draft, people publish:</b> the agent never publishes, as with <code>propose_workflow</code>.</li></ul></div>
+
+<h2 id="outcome">4 · The outcome comes back to the card</h2>
+<div class="box"><table><tr><th>Outcome</th><th>The card then says</th></tr>
+<tr><td>Accepted</td><td><span class="tag ok">Accepted by Sam Rivera</span> "Now <b>Checkout review</b> in Website rebuild's skills, switched on." The name opens it (C2's panel)</td></tr>
+<tr><td>Accepted with edits</td><td><span class="tag ok">Accepted with changes by Sam Rivera</span> with a link to the difference between what was proposed and what was saved</td></tr>
+<tr><td>Rejected</td><td><span class="tag">Not accepted by Sam Rivera</span> with the note: "We already have Review a release; add these steps there."</td></tr>
+<tr><td>Still waiting</td><td><span class="tag warn">Waiting for review</span> and when it was proposed</td></tr>
+</table>
+<ul><li><b>The agent learns the outcome</b> on its next turn in that conversation, as one line of context ("Your proposed skill Checkout review was accepted"), so it doesn't propose it again.</li>
+<li><b>History:</b> an accepted proposal's first version records <i>proposed by Ada for Avery Chen in "Checkout changes", accepted by Sam Rivera</i> (D17). That's history, not provenance: provenance is only for copies (D19).</li></ul></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><p><b>None.</b> CQ8, CQ9 and CQ10 (where a proposal is aimed, and who reviews) were answered by D27: three targets, each reviewed at that level, and an accepted project proposal is published into the project's files. CQ11 and CQ12 were applied as defaults.</p></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

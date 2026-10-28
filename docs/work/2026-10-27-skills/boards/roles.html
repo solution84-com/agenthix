@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Who does what · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="roles.html"><main>
+<div class="top"><div><h1>9 · Who does what: roles and actions</h1>
+<p class="sub">Every role against every action, as decided in D17, D24–D28 and D30. This table is what the role-by-action tests check, one test per cell. Screens: U2–U5, P1, R1, R2.</p></div></div>
+
+<h2 id="today">Today</h2>
+<div class="box"><ul>
+<li><b>Organisation roles:</b> <code>ADMIN</code> and <code>MEMBER</code> (<code>hq/src/server/identity/rolePolicy.ts</code>), checked by <code>requireRole</code> (<code>requireRole.ts</code>). Every skill action today needs <code>ADMIN</code> (<code>hq/src/agents/actions.ts</code>).</li>
+<li><b>Project roles:</b> <code>ADMIN</code>, <code>MEMBER</code>, <code>VIEWER</code> (<code>ProjectRole</code>, <code>hq/schema.prisma</code>).</li>
+<li><b>Agents hold no authority of their own:</b> an agent's call is checked as its person's browser request would be (<code>rolePolicy.ts</code>), and a run with no person fails every floor.</li></ul></div>
+
+<h2 id="matrix">The matrix</h2>
+<div class="box"><table>
+<tr><th>Action</th><th>Administrator</th><th>Library maintainer</th><th>Project administrator</th><th>Project member</th><th>Viewer</th><th>Person, Your space</th><th>Agent</th></tr>
+<tr><td colspan="8"><b>The Library</b> (installed assets)</td></tr>
+<tr><td>Install from outside (image, upload, link)</td><td>Yes</td><td>If P3 allows</td><td>—</td><td>—</td><td>—</td><td>—</td><td>No</td></tr>
+<tr><td>Add to agents, remove from agents</td><td>Yes</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>No</td></tr>
+<tr><td>Remove an asset</td><td>Yes</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>No</td></tr>
+<tr><td>New skill, edit (draft)</td><td>Yes</td><td>Yes</td><td>Propose</td><td>Propose</td><td>—</td><td>Propose</td><td>Draft or propose (board 8)</td></tr>
+<tr><td>Publish, accept an update, roll back, any version (D30)</td><td>Yes</td><td>Yes</td><td>—</td><td>—</td><td>—</td><td>—</td><td>No</td></tr>
+<tr><td>Review proposals aimed at the organisation</td><td>Yes</td><td>Yes</td><td>—</td><td>—</td><td>—</td><td>—</td><td>No</td></tr>
+<tr><td colspan="8"><b>A project's skills</b> (files)</td></tr>
+<tr><td>Edit (draft, or the files directly)</td><td>As its member</td><td>As its member</td><td>Yes</td><td>Yes</td><td>—</td><td>—</td><td>Writes files; proposes</td></tr>
+<tr><td>Publish, switch on and off, roll back, the place's default</td><td>Only as its administrator</td><td>—</td><td>Yes</td><td>—</td><td>—</td><td>—</td><td>No</td></tr>
+<tr><td>Review proposals aimed at the project</td><td>Only as its administrator</td><td>—</td><td>Yes</td><td>—</td><td>—</td><td>—</td><td>No</td></tr>
+<tr><td>See the Skills page</td><td>As its member</td><td>As its member</td><td>Yes</td><td>Yes</td><td>Yes</td><td>—</td><td>—</td></tr>
+<tr><td colspan="8"><b>Your space</b></td></tr>
+<tr><td>Everything for their own skills</td><td>Own only</td><td>Own only</td><td>Own only</td><td>Own only</td><td>Own only</td><td>Yes</td><td>Writes files; proposes</td></tr>
+<tr><td colspan="8"><b>The organisation's settings</b></td></tr>
+<tr><td>Trusted publishers, unsigned assets, P3, files default, personal skills outside Your space, built-in switches</td><td>Yes</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>No</td></tr>
+<tr><td>Name Library maintainers (reach shown, D28)</td><td>Yes</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>No</td></tr>
+<tr><td colspan="8"><b>Seeing</b></td></tr>
+<tr><td>See the Library, open an installed asset</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>—</td></tr>
+<tr><td>Open a used skill from a work step (M6)</td><td colspan="6">Installed: any member. A place's: whoever can see that place. Personal: only its person</td><td>—</td></tr>
+</table>
+<p class="sub"><b>Propose</b> means through <code>propose_skill</code> or a person's own <i>New skill</i>, which becomes a proposal at a level where they can't publish (D27). <b>No</b> for agents means refused whatever the person's role (YQ3).</p></div>
+
+<h2 id="history">History, reach and departure</h2>
+<div class="box"><ul>
+<li><b>History records every action above:</b> who (a person, or an agent with its person and run), when, and the note or reason. Installed assets keep it in hq; a place's skills in hq's per-place record (FV2).</li>
+<li><b>Reach (D28):</b> naming a Library maintainer shows once that their published versions run for every agent in every project, including ones they can't access. Accepted risk, stated in the decision record.</li>
+<li><b>Departure:</b> removing a member drops their Library maintainer role and their personal skills' kept content (M6); the history still names them.</li></ul></div>
+
+<h2 id="ba">Before, after, why</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>Administrators do everything; nobody else can touch a skill (T9).</p></div>
+<div class="box"><span class="lbl after">After</span><p>Administrators govern; Library maintainers look after the Library; projects publish their own; everyone can propose.</p></div>
+</div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th><th>Recommended</th></tr>
+<tr><td class="n">YQ6</td><td><b>Where the Library maintainer role is stored:</b> a third value of the organisation role, or a separate flag beside it?</td><td>A separate flag: an administrator needn't also be named, and <code>roleAtLeast</code>'s order stays as it is</td></tr>
+<tr><td class="n">YQ7</td><td><b>An organisation administrator in a project they're not an administrator of:</b> can they publish or switch that project's skills?</td><td>No, as in the matrix: a project's skills belong to the project; the administrator can still switch files off organisation-wide (C1 <i>Never</i>)</td></tr>
+</table></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>An agent's skills · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-agent.html"><main>
+<div class="top"><div><h1>A1 · An agent's page: everything it will see</h1>
+<p class="sub">An agent's Skills section lists every skill the agent will use, by level, with anything set aside and why, and what the list costs per request (spec part 6, D21, R9). Administrators add and remove; everyone else reads (D23). Shown for the agent <b>Ada</b> in Fernhill.</p></div></div>
+
+<h2 id="today">Today, numbered</h2>
+<div class="box"><ol>
+<li><b>One level only.</b> The manage page (<code>/admin/agents/ada</code>, <code>ManageEditors.tsx</code>) summarises Skills as names joined by " · ", from Ada's own package. Skills installed for the organisation, built-ins and the places' files aren't shown (T4).</li>
+<li><b>Add offers library skills only.</b> The editor (<code>ui/src/agents/tabs/SkillsTab.tsx</code>) picks from the built-in library (scope <code>PLATFORM</code>), so one agent can't have a skill made here.</li>
+<li><b>A copy each time.</b> <i>Add</i> copies the skill into Ada's package; <i>Update</i> appears when the library moved on (T2).</li>
+<li><b>Members see less.</b> The member page (<code>/agents/ada</code>) shows only <i>Your skills</i>, names from their own space.</li>
+<li><b>No sense of cost.</b> Every skill listed adds to every request; nothing says how much (T3).</li></ol></div>
+
+<h2 id="manage">The manage page's Skills section</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk">
+<div class="anav" data-on="agents"></div>
+<div class="mcentre">
+<div class="crumb"><a>Admin</a> › <a>Agents</a> › Ada</div>
+<div class="mh">Ada</div><p class="ml">Content writer · @ada</p>
+<div class="row"><div class="grow"><div class="msec">Skills</div><p class="msecl">What Ada will see. <b>11 skills · about 1,900 tokens per request</b></p></div><span class="btn pri">Add a skill</span></div>
+
+<div class="msec" style="font-size:13px">Built in · every agent</div>
+<div class="mcard"><div class="b"><div class="t">skill-creator <span class="tag">agenthix · built in</span></div><div class="s">How to write a good skill and propose it.</div></div><span class="tag ok">on</span></div>
+<div class="mcard"><div class="b"><div class="t">working-with-git <span class="tag">agenthix · built in</span></div><div class="s">Only in runs inside a workspace with a repository.</div></div><span class="tag ok">on</span></div>
+
+<div class="msec" style="font-size:13px">Every agent has these <span class="fm">from the Library</span></div>
+<div class="mcard"><div class="b"><div class="t">brand-voice <span class="tag">fernhill 3</span></div><div class="s">Fernhill's tone for anything customers read.</div></div><span class="btn link">In the Library</span></div>
+
+<div class="msec" style="font-size:13px">Ada has these</div>
+<div class="mcard"><div class="b"><div class="t">content-writing <span class="tag">agenthix 1.1</span></div><div class="s">Draft articles and copy from briefs, in the brand's voice.</div></div><span class="btn link danger">Remove from Ada</span></div>
+<div class="mcard"><div class="b"><div class="t">seo-research <span class="tag">agenthix 1.0</span> <span class="tag acc">1.1 available</span></div><div class="s">Research keywords and search intent, recommend on-page changes.</div></div><span class="btn link danger">Remove from Ada</span></div>
+
+<div class="msec" style="font-size:13px">Where Ada works <span class="fm">skills in files, as each place switches them</span></div>
+<div class="mcard"><div class="b"><div class="t">Website rebuild <span class="tag">4 on · 1 off · 1 set aside</span></div><div class="s">release-checklist · pm-sprint-planning · deploy-preview · component-conventions</div></div><span class="btn link">Open</span></div>
+<div class="mcard"><div class="b"><div class="t">Spring campaign <span class="tag">2 on</span></div><div class="s">campaign-calendar · landing-copy</div></div><span class="btn link">Open</span></div>
+<div class="mcard dim"><div class="b"><div class="t">code-review, in Website rebuild <span class="tag">set aside</span></div><div class="s">The organisation installs agenthix/code-review 1.4, so the project's copy isn't used (D12).</div></div></div>
+
+<div class="msec" style="font-size:13px">People's own skills</div>
+<p class="msecl">When someone talks to Ada, their own switched-on skills join that conversation (D15). They're each person's, so they aren't listed here.</p>
+</div></div></div>
+<ol class="sub">
+<li><b>Grouped by why Ada has it</b>, in the clash order (D16): built in, every agent has, Ada has, then each place Ada works in. hq builds the list from the installed set, the grants and each place's switched-on fingerprints, the same inputs it resolves for a run (spec part 5).</li>
+<li><b>Built-ins</b> show <i>on</i>. Switching one off is for every agent, in the Library (R7: no per-agent exceptions).</li>
+<li><b>Every agent has these</b> links to the Library, where it's taken away for all agents.</li>
+<li><b>Add a skill</b> opens a picker over the Library's installed skills and the offered shelf; an offered one is installed through the install check (U4) and added to Ada in one step. <b>Remove from Ada</b> takes it from Ada only.</li>
+<li><b>Places</b> are collapsed to a line each, with counts; <i>Open</i> goes to that place's Skills page (P1), where its administrator switches them.</li>
+<li><b>Cost</b>: the estimate adds each listed skill's name and description, as the runtimes list them, for Ada's own levels, plus the skills of the place a run would be in (PQ10).</li></ol>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><ul><li>Ada's own copies, as names.</li><li>Library skills only, as copies.</li><li>No idea of cost.</li></ul></div>
+<div class="box"><span class="lbl after">After</span><ul><li>Everything Ada will see, and why.</li><li>Ada has any installed skill by reference to the installed one, pinned (D11).</li><li>The listing's cost, with a warning when it grows.</li></ul></div></div>
+<div class="why"><b>Why:</b> "what can this agent do?" needs every level in one view. The order on the page is the order a clash is settled in, so <i>set aside</i> reads naturally.</div></div>
+
+<h2 id="cost">The cost warning</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre">
+<div class="msec">Skills</div>
+<div class="flag"><b>Long list.</b>&nbsp;Priya sees 24 skills, about 4,600 tokens on every request. Above about 20 skills or 4,000 tokens, agents choose less well and every request costs more. Remove from Ada the ones Priya doesn't need.</div>
+</div></div>
+<ol class="sub"><li>R9: shown above about 20 skills or 4,000 tokens of listing, on the manage page and when giving a skill would cross it. The thresholds are revised once the unit has measured each part of a request on both runtimes.</li></ol></div>
+
+<h2 id="member">The member's view</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk">
+<div class="mnav"><div class="logo"><i></i>Ada</div><a>Conversations</a><div class="sec">At work</div><a>Now</a><a>Projects<span class="cnt">2</span></a><a>Runs</a><a>Usage</a><div class="sec">About it</div><a>Your instructions</a><a class="on">Skills<span class="cnt">11</span></a><a>Memory</a><a>Your settings</a></div>
+<div class="mcentre">
+<div class="crumb"><a>Agents</a> › Ada › Skills</div>
+<div class="mh">What Ada can do</div><p class="ml">Read only. An administrator gives Ada skills; each project switches its own.</p>
+<div class="msec" style="font-size:13px">Everywhere</div>
+<div class="mcard"><div class="b"><div class="t">content-writing · seo-research · brand-voice <span class="tag">Ada has 3</span></div><div class="s">and 2 built in: skill-creator, working-with-git</div></div></div>
+<div class="msec" style="font-size:13px">In your projects</div>
+<div class="mcard"><div class="b"><div class="t">Website rebuild <span class="tag">4 on</span></div><div class="s">release-checklist · pm-sprint-planning · deploy-preview · component-conventions</div></div></div>
+<div class="msec" style="font-size:13px">Yours, in your conversations</div>
+<div class="mcard"><div class="b"><div class="t">weekly-summary · code-review · draft-in-my-voice <span class="tag ok">yours</span></div></div><span class="btn link">Manage in Your space</span></div>
+<p class="ml" style="margin-top:12px"><a style="color:var(--macc)">Manage ›</a> <span class="fm">administrators</span></p>
+</div></div></div>
+<ol class="sub"><li>A <i>Skills</i> tool joins <i>About it</i> (<code>useAgentPlace.tsx</code>), and takes over the "Your skills" line from <i>Your instructions</i>.</li>
+<li>Places are limited to those the member can see (PQ9). Their own skills show as theirs, with a link to Your space (P2).</li></ol></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><p><b>None.</b> PQ7, PQ8 and PQ10 were applied as defaults. PQ9 (a member sees only the places they can see, plus their own skills) was answered by D27.</p></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

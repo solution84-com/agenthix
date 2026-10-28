@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A place's Skills page · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-place.html"><main>
+<div class="top"><div><h1>P1 · A place's Skills page: switches</h1>
+<p class="sub">A project lists every skill found in its files and its workspaces' repositories, and switches each one on or off (D13, spec part 4). Files stay where skills are kept; hq lists, installs into and switches them. Shown for the project <b>Website rebuild</b> in Fernhill.</p></div></div>
+
+<h2 id="today">Today, numbered</h2>
+<div class="box"><ol>
+<li><b>No Skills section.</b> A project's left panel (<code>useProjectPlace.tsx</code>) has Work, Agents at work, Files and Settings, and nothing for skills. A skill exists only as a folder in Files, under <code>files/.agents/skills/</code>.</li>
+<li><b>Everything found is live.</b> Staging reads the place's two folders every turn (<code>skillStaging.ts</code>), so a skill an agent wrote yesterday runs today, for everyone using that agent here (T6).</li>
+<li><b>Repositories are ignored.</b> <code>site-repo</code>'s <code>.claude/skills/</code> never reaches a run (T12).</li>
+<li><b>Nobody can tell what's on.</b> There's no list of what an agent will use here, and nothing records that a skill changed.</li></ol></div>
+
+<h2 id="page">The Skills page</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk">
+<div class="mnav"><div class="logo"><i></i>Website rebuild</div><a>Overview</a>
+<div class="sec">Work</div><a>Tasks<span class="cnt">12</span></a><a>Boards<span class="cnt">2</span></a><a>Timeline</a>
+<div class="sec">Agents at work</div><a>Runs<span class="cnt">1</span></a><a>Automation<span class="cnt">On</span></a><a>Workflows</a><a class="on new">Skills<span class="cnt" style="color:var(--mwarn)">2 waiting</span></a>
+<div class="sec">Files</div><a>Files</a><a>Artefacts</a><a>Knowledge</a><a>Workspaces<span class="cnt">1</span></a>
+<div class="sec">&nbsp;</div><a>Members<span class="cnt">3</span></a><a>Settings</a></div>
+<div class="mcentre">
+<div class="crumb"><a>Projects</a> › <a>Website rebuild</a> › Skills</div>
+<div class="row"><div class="grow"><div class="mh">Skills</div><p class="ml">Skills agents find in this project's files and repositories. <b>7 on · 2 waiting · 1 set aside</b></p></div>
+<span class="btn">All on</span><span class="btn">All off</span><span class="btn">New skill</span><span class="btn pri">Add to this place</span></div>
+<div class="ml" style="margin-top:-6px">Anyone who can write the project's files edits these skills. <b>Avery Chen</b>, the administrator, publishes and switches them (D27). Viewers read.</div>
+<div class="preview"><b>Off by default</b> for this project <span class="fm">· the organisation's is on by default</span> · <a style="color:var(--macc)">Change</a><br>New or changed skills stay off until someone switches them on.</div>
+
+<div class="row"><div class="msec grow">This place · every agent <span class="fm">files/.agents/skills/</span></div><span class="btn link">All on</span>&nbsp;<span class="btn link">All off</span></div>
+<div class="mcard"><div class="b"><div class="t">release-checklist <span class="tag">made here · version 3</span></div><div class="s">Steps before tagging a release of the site: changelog, screenshots, smoke test.</div></div><span class="switch on"></span></div>
+<div class="mcard"><div class="b"><div class="t">pm-sprint-planning <span class="tag">version 2 · based on agenthix/pm-sprint-planning 1.3</span> <span class="tag acc">1.4 available</span></div><div class="s">Plan sprint scope, break epics into tasks, communicate capacity.</div></div><span class="btn link">Update…</span><span class="switch on"></span></div>
+<div class="mcard hl"><div class="b"><div class="t">seo-audit <span class="tag warn">in files, not published · off</span></div><div class="s">Written into the folder by Ada on 26 Oct, in a conversation with Avery Chen. Not run until published and switched on.</div></div><span class="btn link">Read</span><span class="btn">Publish as version 1</span></div>
+<div class="mcard dim"><div class="b"><div class="t">code-review <span class="tag">set aside</span></div><div class="s">The organisation installs <b>agenthix/code-review 1.4</b>, so this copy isn't used here (D12).</div></div><span class="btn link">Why</span></div>
+
+<div class="msec">Ada only <span class="fm">files/.agents/agents/ada/skills/</span></div>
+<div class="mcard hl"><div class="b"><div class="t">landing-copy <span class="tag">version 4</span> <span class="tag warn">changed in files, not published · off</span></div><div class="s">Changed in the folder 27 Oct, 09:14, outside the editor. Off until someone publishes it or puts version 4 back (off by default, FV4).</div></div><span class="btn link">What changed</span><span class="btn">Publish as version 5</span><span class="btn">Put back version 4</span></div>
+
+<div class="row"><div class="msec grow">Workspace site-repo <span class="fm">.claude/skills/ · .agents/skills/ · .github/skills/</span></div><span class="btn link">All on</span>&nbsp;<span class="btn link">All off</span></div>
+<div class="mcard"><div class="b"><div class="t">deploy-preview <span class="tag">from .claude/skills</span> <span class="tag">repository · read-only</span></div><div class="s">Build and publish a preview of the branch. Commit a3f9c21.</div></div><span class="switch on"></span></div>
+<div class="mcard"><div class="b"><div class="t">component-conventions <span class="tag">from .github/skills</span> <span class="tag">repository · read-only</span></div><div class="s">How components are named and tested in this codebase.</div></div><span class="switch on"></span></div>
+
+<div class="msec">Yours, in your conversations <span class="fm">private to you</span></div>
+<div class="mcard"><div class="b"><div class="t">my-review-habits <span class="tag">version 2 · from Your space</span></div><div class="s">Only you see this group. It applies when you talk to an agent here; the project's skills win a clash (D16).</div></div><span class="switch on"></span></div>
+</div></div></div>
+<ol class="sub">
+<li><b>The list</b>: hq asks the place's site to scan <code>files/.agents/skills/</code>, <code>files/.agents/agents/&lt;id&gt;/skills/</code> and each workspace's three repository folders. The site reports each skill folder's name, description and <b>fingerprint</b> (F1), bounded and with links refused, as staging already reads them.</li>
+<li><b>The switch</b>: hq records <i>on</i> against the fingerprint. Each dispatch names the switched-on fingerprints, and the site stages only those (D13). Switched and published by the project's administrators; anyone with write access edits (D27).</li>
+<li><b>Versions and outside changes</b> (D25, FV1–FV4): each place skill has a version, given when it is published from the editor (U3b), recorded by hq and written into its <code>metadata</code>. A folder written outside the editor, by an agent's file tools, Files or anyone, is <i>in files, not published</i>; a published one changed that way is <i>changed in files, not published</i>, with <i>What changed</i>, <i>Publish as version 5</i> and <i>Put back version 4</i>. Under off by default it stays off until then. The nav's count draws the project administrators' eye.</li>
+<li><b>Origin</b>: a skill added with <i>Add to this place</i> carries its identity, version and <code>basedOn</code> credit (D19). hq compares it with the installed asset and shows <i>edited here</i> or <i>1.4 available</i>. <i>Update…</i> offers to overwrite the folder, never automatically (F3).</li>
+<li><b>Set aside</b>: the same identity installed by the organisation wins; the file copy is shown dimmed with the reason (D12).</li>
+<li><b>All on / All off</b>: for the whole page, and for each group. All off on a workspace's group is how a repository's skills are kept out (D13).</li>
+<li><b>New skill</b> and <b>Edit</b> open the editor (<a href="/files/ui-edit.html">U3b</a>) on a draft for this place; publishing writes the folder (FV1). A workspace's repository skills are read-only: their versions are their commits (FV6).</li></ol>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><ul><li>Skills hidden in Files.</li><li>Live the moment they're written.</li><li>Repository skills ignored.</li></ul></div>
+<div class="box"><span class="lbl after">After</span><ul><li>One page per place, grouped by where each was found.</li><li>Off by default until someone looks, where the organisation or the place chooses that.</li><li>Repository skills listed and switchable.</li></ul></div></div>
+<div class="why"><b>Why:</b> the switch is the only control hq has over files (F4). Putting it beside each skill, with the reason it's on, off or set aside, answers "what will agents use here?" in one place, and closes the gap where an agent-written skill went live unseen.</div></div>
+
+<h2 id="skill">A skill opened</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk dock" style="grid-template-columns:200px 1fr 360px">
+<div class="mnav"><div class="logo"><i></i>Website rebuild</div><div class="sec">Agents at work</div><a class="on">Skills</a></div>
+<div class="mcentre"><div class="mh">Skills</div><div class="mcard hl"><div class="b"><div class="t">landing-copy <span class="tag warn">not published · off</span></div></div><span class="switch"></span></div><div class="mcard dim"><div class="b"><div class="t">release-checklist</div></div><span class="switch on"></span></div></div>
+<div class="dockcol"><div class="dh">landing-copy</div>
+<div class="fm">files/.agents/agents/ada/skills/landing-copy/SKILL.md</div>
+<div><span class="chip">For Ada only</span><span class="chip">Version 4</span><span class="chip">Off</span></div>
+<div class="tabs"><span class="on">What changed</span><span>Skill</span><span>Files (2)</span><span>History</span></div>
+<pre class="code"><span class="diffdel">- Keep headlines under 8 words.</span>
+<span class="diffadd">+ Keep headlines under 6 words.</span>
+<span class="diffadd">+ Always end with the signup link.</span></pre>
+<div class="s">Compared with version 4, published 20 Oct by Avery Chen · changed in files 27 Oct, 09:14</div>
+<div class="row"><span class="btn pri">Publish as version 5</span><span class="btn">Put back version 4</span><span class="btn">Edit</span><span class="grow"></span><span class="btn danger">Remove</span></div></div>
+</div></div>
+<ol class="sub"><li>Opens beside the list, as a file opens beside a task. <i>Skill</i> renders <code>SKILL.md</code> through the same renderer as Files; <i>Files</i> lists the folder's other files.</li>
+<li><i>What changed</i> compares with the last published version, whose content hq keeps (D26). <i>Edit</i> opens the editor (U3b); <i>History</i> lists versions with roll back (FV3).</li>
+<li><b>Remove</b> deletes the folder through the site's existing file write, after a confirmation. A workspace's skill has no Remove: its repository decides what it holds, so it can only be switched off.</li></ol></div>
+
+<h2 id="default">This place's default</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre" style="max-width:560px">
+<div class="dialog" style="width:auto;box-shadow:none"><h4>Skills found in this project's files</h4>
+<p class="msecl">Fernhill's default is <b>on by default</b>. Set by the project's administrator. A project can be stricter, never looser.</p>
+<div class="radio"><span class="dot"></span><div><b>On by default</b><div class="s">Everything found runs; switch off what you don't want.</div></div></div>
+<div class="radio on"><span class="dot"></span><div><b>Off by default</b><div class="s">Everything found is listed and stays off until switched on. A changed skill goes off again.</div></div></div>
+<div class="radio"><span class="dot"></span><div><b>Never</b><div class="s">Agents here use only installed skills; files and repositories aren't read.</div></div></div>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri">Save</span></div></div></div></div>
+<ol class="sub"><li>C1b: the project's administrator chooses. Choices looser than the organisation's are greyed out with the reason, the same narrowing rule as every override (adr-0072).</li>
+<li>Switching to off by default leaves today's switched-on skills on; it changes what happens to new and changed ones.</li></ol></div>
+
+<h2 id="add">Add to this place</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre" style="position:relative;min-height:440px">
+<div class="mh">Skills</div>
+<div class="menu" style="left:32px;top:50px;width:420px">
+<div class="field" style="margin:4px 8px"><div class="in">Search the Library…</div></div>
+<div class="gh">Installed in Fernhill</div>
+<div class="it on"><div class="t">qa-bug-reporting <span class="tag">agenthix 1.2</span></div><div class="s">File structured bug reports with steps, expected and actual results.</div></div>
+<div class="it"><div class="t">brand-voice <span class="tag">fernhill 3</span></div><div class="s">Fernhill's tone for anything customers read.</div></div>
+<div class="gh">Add for</div>
+<div class="it"><div class="t"><span class="chk on"></span> Every agent in this project</div></div>
+<div class="it off"><div class="t"><span class="chk"></span> One agent: Ada</div></div>
+<div class="row end" style="padding:6px 8px"><span class="btn pri">Add</span></div></div></div></div>
+<ol class="sub"><li>Lists the organisation's installed skills (the Library, U2). Choosing one copies its folder into <code>files/.agents/skills/</code>, or the chosen agent's folder, through the site's file write, with its identity and version in <code>metadata</code> (F3). It arrives switched on, since a person chose it.</li>
+<li>Installing something new from outside happens in the Library, through the install check (U4); this page only copies what is already installed.</li></ol></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><p><b>None.</b> Answered: PQ1 and PQ2 by D26 and D27 (content kept; project administrators publish, members read-only, private group for each person). PQ3 and PQ4 were applied as defaults.</p></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

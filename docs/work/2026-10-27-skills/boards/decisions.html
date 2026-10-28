@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Questions and decisions · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="decisions.html"><main>
+<div class="top"><div><h1>Questions and decisions</h1>
+<p class="sub">The questions raised while designing, how each was decided, and the defaults the design applies. The spec is written from these boards.</p></div></div>
+
+<h2 id="status">Status</h2>
+<div class="box"><ul>
+<li><b>Goal:</b> at release, a person can find, give, use and look after their agents' skills, and can see when an agent used one.</li>
+<li><b>How the boards work:</b> the architecture boards are numbered 1–8. The UI boards are grouped by where people meet them (S, A, C, R). Each side feeds the other. A UI board that needs something new adds it to an architecture board, and an architecture choice shows up in the UI boards it touches.</li>
+<li><b>Board 4, <i>The model</i>, is redrawn</b> from everything decided (27 Oct). Next: the spec is corrected in place, then the UI boards.</li>
+<li><b>Drawn so far:</b> this page, 1 <i>Today</i>, and 2 <i>Where a skill can live</i> (being discussed). 3 <i>Installing</i>. Board 4, <i>The model</i>, is withdrawn and will be redrawn from 2 and 3. Boards not yet drawn are greyed out on the left.</li>
+<li><b>Source:</b> the draft spec, <code>docs/work/2026-10-27-skills/spec.md</code>. It is corrected in place as decisions land.</li></ul></div>
+
+<h2 id="open">Open questions</h2>
+<div class="box"><p>Every architecture question was closed on 27 Oct (D5–D22). The UI boards raised their own: A1–A7 were answered on 27 Oct (D26, D27), and the rest are applied unless you object.</p></div>
+
+<h2 id="arch-q">Questions from architecture boards 5–10</h2>
+<div class="box"><h3 id="arch-call">Need your call</h3><p>None. B1 and B2 were answered on 27 Oct (D31, D32).</p>
+<h3 id="arch-defaults">Applied unless you object</h3>
+<table><tr><th>From</th><th>Default</th><th>Board</th></tr>
+<tr><td class="n">XQ1</td><td>Drafts and versions of a place's skills are kept in hq, never on the site</td><td>5</td></tr>
+<tr><td class="n">XQ2</td><td>An agent, board or team made from a template keeps a read-only "made from version" link, never followed</td><td>5</td></tr>
+<tr><td class="n">XQ3</td><td>Each installed asset version is delivered once by its digest and shared across agents and turns</td><td>6</td></tr>
+<tr><td class="n">XQ4</td><td>The site scans a place when hq asks, not every turn; staging's fingerprint check is the safety</td><td>6</td></tr>
+<tr><td class="n">XQ5</td><td>Many skills: a warning, never a cap</td><td>10</td></tr>
+<tr><td class="n">YQ1</td><td>A picked skill runs as an explicit "use skill X" instruction on both runtimes, never through a <code>/</code> command path (M7)</td><td>7</td></tr>
+<tr><td class="n">YQ2</td><td>A run's record of skills used (identity, version, fingerprint) is sent to hq with the run's record, for view-time access checks and kept content</td><td>7</td></tr>
+<tr><td class="n">YQ4</td><td>When a skill file an agent wrote runs at once (on by default), the conversation shows it as a work step linking to the place's Skills page</td><td>8</td></tr>
+<tr><td class="n">YQ5</td><td>Drafts last until discarded; proposals as RQ5 (rejected ones removed after 90 days)</td><td>8</td></tr>
+<tr><td class="n">YQ6</td><td>Library maintainer is stored as a flag beside the organisation role, not a third role, so the role order stays as it is</td><td>9</td></tr>
+</table></div>
+
+<h2 id="ui-q">Questions from the UI boards</h2>
+<div class="box"><p>The UI boards raised 44 questions, each with a recommendation. Duplicates are merged. They're split into the few that need your call and the rest, which are applied unless you object.</p>
+<h3 id="ui-call">Need your call</h3>
+<table><tr><th></th><th>Question</th><th>Recommended</th><th>Board</th></tr>
+</table>
+<h3 id="ui-defaults">Applied unless you object</h3>
+<table><tr><th>From</th><th>Default</th><th>Board</th></tr>
+<tr><td class="n">UQ2</td><td>Built-in skills listed first in the Skills tab, with a switch and a <i>Built in</i> tag</td><td>U2</td></tr>
+<tr><td class="n">UQ4</td><td>An asset's page shows "last used by", from the fingerprints runs record</td><td>U3</td></tr>
+<tr><td class="n">UQ5</td><td>A template's page lists the agents made from it, read-only, with the version each came from</td><td>U3</td></tr>
+<tr><td class="n">UQ6</td><td>A skill a template brought can be removed, with the warning, not blocked</td><td>U3</td></tr>
+<tr><td class="n">UQ8</td><td>Install and give to agents are separate steps; giving is offered in the confirmation</td><td>U4</td></tr>
+<tr><td class="n">UQ9 · RQ6</td><td>Trusted publishers are managed in the organisation's settings, <i>Library and skills</i> under Settings (<code>/admin/settings/library</code>), linked from each signer line</td><td>U3, R2</td></tr>
+<tr><td class="n">UQ10</td><td>An update offers <i>Skip this version</i> and <i>Not now</i></td><td>U5</td></tr>
+<tr><td class="n">UQ11</td><td>A copy's versions start at 1; its credit line names the original's version</td><td>U5</td></tr>
+<tr><td class="n">UQ12</td><td>An upstream change is brought into your copy by hand, with both versions open; a merge aid only if asked</td><td>U5</td></tr>
+<tr><td class="n">PQ3</td><td>Skills sits in a project's panel under <i>Agents at work</i>, after Workflows</td><td>P1</td></tr>
+<tr><td class="n">PQ4</td><td>A "2 new" count on the place's Skills entry, for its administrators; no notification per skill</td><td>P1</td></tr>
+<tr><td class="n">PQ5</td><td>Every switched-on personal skill follows the person; no second choice per skill</td><td>P2</td></tr>
+<tr><td class="n">PQ7 · RQ7</td><td>A built-in is switched off for the whole organisation only, in the Library or settings, never per agent (R7)</td><td>A1, R2</td></tr>
+<tr><td class="n">PQ8</td><td>The agent's page shows one line per place it works in, with counts, opening that place's page</td><td>A1</td></tr>
+<tr><td class="n">PQ10</td><td>The cost estimate is per run: the agent's own levels plus one place's skills</td><td>A1</td></tr>
+<tr><td class="n">CQ1 · CQ2</td><td><code>/</code> opens the picker only as the first character, and one skill per message</td><td>C1</td></tr>
+<tr><td class="n">CQ3</td><td>The picker shows only the agent's skills, with a <i>Browse the Library</i> footer</td><td>C1</td></tr>
+<tr><td class="n">CQ4</td><td>In a new conversation, the picker shows the lead's skills</td><td>C1</td></tr>
+<tr><td class="n">CQ7</td><td>The step says a skill was used, and makes no judgement that it wasn't followed</td><td>C2</td></tr>
+<tr><td class="n">CQ11</td><td>The agent is told a proposal's outcome on its next turn</td><td>C3</td></tr>
+<tr><td class="n">CQ12</td><td>One open proposal per skill name per place; a second call updates it</td><td>C3</td></tr>
+<tr><td class="n">RQ2</td><td>A newly accepted skill is given to the agent that proposed it, preselected and changeable</td><td>R1</td></tr>
+<tr><td class="n">RQ5</td><td>Accepted proposals stay with the skill's history; rejected ones are removed after 90 days</td><td>R1</td></tr>
+<tr><td class="n">RQ8</td><td>Removing a trusted publisher leaves its installed assets pinned; its next update asks again; the count is shown first</td><td>R2</td></tr>
+<tr><td class="n">RQ9</td><td>Changing the files default from on to off leaves skills already on; it applies from then on, with an <i>All off now</i> action</td><td>R2</td></tr>
+<tr><td class="n">RQ10</td><td>Keep the setting that lets maintainers install from outside, defaulting to administrators</td><td>R2</td></tr>
+</table></div>
+
+<h2 id="defaults">Recommended defaults</h2>
+<div class="box"><p>Applied unless a decision says otherwise.</p><table><tr><th></th><th>Default</th><th>Board</th></tr>
+<tr><td class="n">R1</td><td><b>Offered skills (L1b) are offered, not handed out.</b> The library skills shipped in hq's image appear under <i>Add from Agenthix</i>. Nothing reaches an agent until it is installed. Built-in skills (L1a) are the exception, on for every agent (Q11).</td><td>2, S5</td></tr>
+<tr><td class="n">R11</td><td><b>Present means on, as in Claude.</b> Installing a skill at any level makes it present; the control afterwards is switching it off for an organisation, an agent or a place. Files written without an install are the exception in question (Q3).</td><td>2, 3</td></tr>
+<tr><td class="n">R2</td><td><b>Updates to built-in skills are offered, never applied by themselves.</b> <i>Update available</i>, with the difference shown, including edits made here. New built-ins are marked <i>New</i> and are never added automatically.</td><td>S5</td></tr>
+<tr><td class="n">R3</td><td><b>A picked skill travels as a structured field</b> beside the message, never as rewritten text. A typed <code>/word</code> that is not a staged skill is plain text, so the runtime's own bundled commands are never reached.</td><td>5, C1</td></tr>
+<tr><td class="n">R4</td><td><b>A used skill opens at the version the run used</b>, found from the run's recorded fingerprint, in the panel beside the conversation.</td><td>5, C2</td></tr>
+<tr><td class="n">R5</td><td><b>Every save is a version</b>, with who saved it (or which proposal it came from), when, and a note. Any version can be viewed and restored. Removing a skill keeps its history.</td><td>3, 7, S3</td></tr>
+<tr><td class="n">R6</td><td><b>Agents propose, people accept.</b> A platform tool, <code>propose_skill</code>, makes a draft that reaches no agent. Agent instructions say to use it, not to write skill folders.</td><td>6, C3, R1</td></tr>
+<tr><td class="n">R7</td><td><b>No per-agent exceptions.</b> A skill given to every agent is taken away from all of them, from the catalogue. YAGNI until someone needs it.</td><td>A1</td></tr>
+<tr><td class="n">R8</td><td><b>Checked against the Agent Skills specification on save.</b>
+<ul><li>The name is 1–64 lowercase letters, digits and hyphens, and is unique.</li>
+<li>The description is 1–1024 characters.</li>
+<li>A long body gets a warning, not a refusal.</li>
+<li>Header keys that staging drops are flagged <i>ignored when run</i>.</li></ul></td><td>S4</td></tr>
+<tr><td class="n">R9</td><td><b>A cost warning per agent</b> above about 20 skills or 4,000 tokens of listing. The unit measures each part of a request on both runtimes before deciding anything more.</td><td>8, A1</td></tr>
+<tr><td class="n">R10</td><td><b>Installing grants nothing.</b> A skill is words and files. Keys such as <code>allowed-tools</code> stay ignored, as staging does today (adr-0084).</td><td>4, 7</td></tr>
+</table></div>
+
+<h2 id="decided">Decided</h2>
+<div class="box"><table><tr><th></th><th>Decision</th><th>When</th></tr>
+<tr><td class="n" id="d1">D1</td><td><b>Skills get a unit of work of their own, for the release.</b> The broader work on every asset an organisation owns and publishes stays separate, and skills are its first local consumer. The unit holds the whole vision, and what ships for the release is cut after the design.</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d2">D2</td><td><b>Revised by D20.</b> <span style="color:var(--muted)">Was:</span> <b>Skill management first.</b> Agents and templates are out of scope unless moving them onto the same shape is easy. Anything reshaped for them is not surfaced until it is tested. Before the first release candidate nothing is carried forward, so moving them is a question of code, never of data.</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d3">D3</td><td><b>Out of scope:</b> publishing between organisations (publisher identity, signatures, a registry, verification) and a marketplace.</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d5">D5</td><td><b>Map where a skill can live before choosing a model.</b> Owning a skill (the organisation, always) is a separate question from where it is kept (platform, organisation, agent, place, workspace). The first model proposal mixed the two up and is withdrawn.</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d6">D6</td><td><b>Built-in skills stay, beside platform knowledge.</b> A skill is written <i>for the agent</i>: it tells it directly what to do. The guide is written about the platform, for people and agents alike. They work hand in hand. A built-in ships with hq and updates with it, so it can't go stale. To keep duplication small, a built-in gives the steps and points to guide pages for what things are, rather than describing the product again. This narrows adr-0149, which rejected a platform skill as a second description of the product. A decision record is needed. (Q11, Q13)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d7">D7</td><td><b>Agenthix isn't prescriptive about where a skill comes from.</b> A skill can be installed from anywhere, through one open protocol, without tying anyone to Agenthix's service. A signed package shows who signed it. An unsigned one is allowed after a clear warning. (Owner, building on Q15 and Q16.)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d8">D8</td><td><b>The install protocol</b> (board 2d): the package ZIP, a fingerprint over its files, a Sigstore bundle signature (keyless or with a key), and four states. A signed package from a trusted publisher installs. One from a new publisher asks whether to trust it. An unsigned one is allowed after a warning. A tampered one is refused. Agenthix vouches that a signer is who they say they are, never that a skill is safe. The person installing is always asked about the two things that matter: unsigned, or who signed it. (Q17)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d9">D9</td><td><b>An organisation signs.</b>
+<ul><li><b>Its release workflow, keyless (W1),</b> is the recommended way: no keys to lose, a public record, and the same verifier as the platform's images.</li>
+<li><b>Its own key (W2)</b> is for offline use or to stay out of the public log.</li>
+<li><b>A person's own signature (W3)</b> is accepted, because refusing it would only push them to unsigned, but it is labelled as a person.</li>
+<li><b>Never both (W4):</b> who inside an organisation released something stays internal.</li></ul>
+The organisation signs because it outlives its people: trust doesn't reset when a maintainer leaves. hq shows exactly what a signature proves (a repository and workflow, or a key), the administrator names the publisher when trusting it, and "Verified organisation" is kept for a hosted registry's later check. (Q18)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d10">D10</td><td><b>Every package is self-contained; installing de-duplicates by identity</b> (I1–I6). There are no references between packages, for anyone. Each skill keeps <code>publisher/name</code> and a version. The same version is reused, a newer one is offered, and an older one leaves the installed skill alone. The same name from a different signer is a different skill. Agenthix's build copies each skill from one source, ending the hand-kept copies. (Q14)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d11">D11</td><td><b>Installed skills are pinned, one version per organisation</b> (V1–V6). Installing pins the version. Upgrade and roll back are explicit, and any version can be installed on purpose. Sites cache by fingerprint, as they already do. Different versions side by side come later. This holds for installed skills only; skills in files are observed, not controlled (F1–F5). (Q19)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d12">D12</td><td><b>The organisation's installed version wins</b> over a skill in files with the same identity. The file copy is set aside and shown as such. A person can't override it, though renaming the skill makes it a different skill, which is a deliberate choice. (Q20)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d13">D13</td><td><b>Skills in files: files stay the store; hq lists them, installs into them and switches them.</b> The organisation's default, <i>Skills found in files</i>, is On by default, Off by default or Never, with Off by default recommended. A place may choose a stricter default, never a looser one. Each skill has its own switch, with All on and All off for the page and for each group. (Q21, settles Q10 as B and Q3. Amended the same day: on or off by default, as two starting points, and a place's stricter default)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d14">D14</td><td><b>Settled by the decisions above</b>, listed so you can object:
+<ul><li><b>Q9:</b> yes, a workspace's repository skills are read, in all three folders teams use (<code>.agents/skills</code>, <code>.claude/skills</code>, <code>.github/skills</code>), under D13's controls.</li>
+<li><b>Q12:</b> the sort of what Agenthix ships stands. There are 2 built-ins, Kernel's 3, and 17 offered, and templates keep their role skills inside (D10). Template copies come from one source in the build.</li>
+<li><b>Q15, Q16:</b> Agenthix runs the only registry, later, as a hosted service. hq installs from any source and never publishes (D7, D8).</li>
+<li><b>Q5:</b> a new organisation installs no offered skills by itself. Built-ins are on, and templates bring what they need (R1).</li></ul></td><td>27 Oct</td></tr>
+<tr><td class="n" id="d15">D15</td><td><b>A person's skills follow them</b> into their own conversations everywhere, projects included. People bring their own way of working to a project and apply it within the project's procedures and standards.
+<ul><li><b>Where they live:</b> Your space's files.</li>
+<li><b>How they arrive:</b> hq delivers the turned-on ones by fingerprint, across sites.</li>
+<li><b>Where they don't apply:</b> runs other people start, and scheduled or automated runs.</li>
+<li><b>Organisation setting:</b> <i>Personal skills outside Your space</i>, on by default.</li>
+<li><b>Safe:</b> a skill adds no capability, and the conversation stays within the person's access (adr-0152).</li></ul>
+On a clash, the organisation's installed version wins (D12). Between a person's and a project's skill, see Q22. (Q8)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d16">D16</td><td><b>The project wins over the person</b> for the same skill. A person's way of working adds to the project's. To change how the project works, they write a skill that complements the project's, or update the project's knowledge or memory. The order for the same identity is: installed, then the project, then the person. (Q22)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d17">D17</td><td><b>Maintainers are in this unit.</b> An administrator names members as maintainers of an installed skill.
+<ul><li><b>A maintainer may:</b> edit it, accept an update, roll back, and review proposals for it.</li>
+<li><b>A maintainer may not:</b> install, remove, or choose which agents get it. Those stay with administrators.</li>
+<li><b>When a member leaves:</b> their assignments are dropped, and the skill's history still names them.</li></ul>
+Every role and action pair gets a test, since this decides who changes what agents follow. If the release cut moves it out, it is recorded for later work. (Q4)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d18">D18</td><td><b>Editing an installed skill makes the organisation's own copy.</b> For example, <code>fernhill/code-review</code>, made here.
+<ul><li>The copy takes the original's place for the agents that had it. The original stays installed but set aside, one click to switch back.</li>
+<li>A newer upstream version shows on the copy as news, with what changed, and is never merged automatically.</li>
+<li>Skills the organisation made itself are edited in place, with history.</li></ul>
+(Q23)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d19">D19</td><td><b>Provenance: a dated "based on" list in the package's manifest</b> (<code>basedOn</code>), written once when a copy is made and never changed.
+<ul><li>A copy inherits its original's list and adds the original as one line: identity, version, fingerprint, date, <code>recorded: hq</code>.</li>
+<li>Editing never touches the list. hq's editor edits the skill, never the manifest.</li>
+<li>People can only add <code>stated</code> credits for sources hq never saw.</li>
+<li>A line is shown as <i>verified</i> where hq can match the original's fingerprint, and as <i>stated</i> otherwise.</li>
+<li>The licence is carried forward and shown.</li>
+<li>Removing a line outside hq is on whoever does it.</li></ul>
+Credit is recorded and shown, never required or certified. (Q24)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d20">D20</td><td><b>One asset layer for every package kind, built in this unit.</b> The kinds are skills, agent templates, board templates and team templates. Identity, the install check, provenance, pinning, update and roll back, history, maintainers and own copies on edit apply to every <b>library item</b>. Agents, boards and teams already made from a template are their own definitions and are untouched (adr-0072). Skills in files, switches and the person's skills stay skills-only. The work is ordered so skills become usable first: (1) the layer with skills; (2) templates on the layer; (3) screens and walkthrough. If the cut has to move step 2, it moves whole. Why now: before <code>0.1.0-rc.1</code> nothing is carried forward, so it costs only the build; after it, every reshape needs migrations. Revises D2. (Q6)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d21">D21</td><td><b>Where it lives.</b>
+<ul><li><b>The Library</b> moves into the main sidebar and is the single home for every installed asset, by kind (Skills, Agents, Boards, Teams). It holds updates, history, maintainers, provenance, and <i>Add</i> from any source.</li>
+<li><b>Each place</b>, a project and Your space, gets a <b>Skills</b> page for the skills in its files and workspaces, with switches. Your space's page also holds the person's own skills that follow them.</li>
+<li><b>Each agent's page</b> lists everything it will see, by level, with anything set aside and why.</li></ul>
+(Q1)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d22">D22</td><td><b>The release cut: all of it is required for 0.1.0.</b>
+<ul><li><b>In:</b> (1) the asset layer with skills; (2) templates on the layer; (3) the screens, including the conversation side; sources from hq's image, upload and a URL; the three known faults in what this unit touches (typed bundled commands, a taken name before an organisation exists, the listing's cost measured).</li>
+<li><b>Later, recorded for follow-up work:</b> git repositories as a source, the hosted registry with publishing and verified organisations, side-by-side versions, and a search tool over skills if measuring calls for it.</li></ul>
+(Q7)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d23">D23</td><td><b>"Has", not "given to".</b> <i>Ada has Code Review</i>. On a skill's page the heading is <b>Agents with this skill</b>, with <i>Add to agents…</i> and <i>Remove from Ada</i>. On an agent's page: <i>Ada has 9 skills</i>.</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d24">D24</td><td><b>Editing a Library asset: draft, then publish.</b> <b>Agents draft, people publish</b>, as with <code>propose_workflow</code>.
+<ul><li><b>Edit</b> makes a draft that no agent sees.</li>
+<li><b>Publish</b> asks for a note and makes the next version. Every agent with it gets it on its next turn, and roll back stays one click.</li>
+<li><b>Ask an agent to edit</b> opens a conversation with the skill attached. The agent's <code>propose_skill</code> edit lands as the person's own draft if they can edit that skill, or as a proposal for review if they can't.</li>
+<li>Editing a skill another publisher signed drafts the organisation's own copy (D18).</li></ul></td><td>27 Oct</td></tr>
+<tr><td class="n" id="d25">D25</td><td><b>The editor</b> (U3b):
+<ul><li><b>CodeMirror 6</b> in <code>ui/</code> for every text file (EQ1).</li>
+<li><b>One diff component</b> for every "what changed", as a renderer behind the file frame's boundary (EQ2), in a single column (EQ3).</li>
+<li><b>One draft per Library skill</b>, shared: editing is collaboration. That's the stance unless much feedback says otherwise (EQ4).</li>
+<li><b>Skills in a place's files are versioned by publishing too</b> (EQ5, FV1–FV6). hq keeps the draft. Publish writes the files and records the version, which is also written into the skill's <code>metadata</code>. A change made outside the editor shows as <i>changed in files, not published</i>, with publish it or put back. A workspace's repository skills stay read-only.</li>
+<li><b>Limits:</b> staging's bounds, and text over 1 MB read-only (EQ6).</li></ul></td><td>27 Oct</td></tr>
+<tr><td class="n" id="d26">D26</td><td><b>UI calls from the boards</b>, 27 Oct:
+<ul><li><b>Unsigned installs</b> need an "I've read it" tick (A1).</li>
+<li><b>Content of every published version, and of every version a run used, is kept</b> as long as the run's record, and cached in both hq and sites for fast retrieval. Sites already cache by fingerprint (V5); hq keeps the content (A4).</li>
+<li><b>The Library is one view of every asset</b>, searched, with a filter by type (skills, agents, boards, teams) instead of tabs. <b>Marketplace</b> is a button that opens its own page, behind a feature flag: on in development only, off in production, refused where it runs (adr-0116), until it is built later (A6).</li>
+<li><b>Sidebar order:</b> Home, Chat, Your space, Projects, Tasks, Agents, Library. Tasks is used more often than Agents or the Library, so Tasks moves before Agents (A7).</li></ul></td><td>27 Oct</td></tr>
+<tr><td class="n" id="d27">D27</td><td><b>Maintainers at three levels</b>, and proposals go to the maintainers of the level they aim at.
+<ul><li><b>One Library asset:</b> its maintainers, named by an administrator (D17). They edit and publish it, accept updates, roll back, and review edits proposed to it.</li>
+<li><b>The Library as a whole:</b> <b>Library maintainers</b>, named by an administrator. They have the same powers for every asset, plus creating new skills and reviewing proposed new ones. Installing from outside (unless P3 allows it), removing, and choosing which agents have a skill stay with administrators.</li>
+<li><b>A project's skills:</b> <i>amended the same day:</i> no project skill maintainers. Project skills are files, so <b>anyone with write access edits them</b>: members in the editor as a draft or directly in the files, and agents. <b>Only the project's administrators publish</b>, switch on and off, roll back, review proposals aimed at the project, and set its default. Viewers read. Each person sees their own skills there as a private group. Writing is open; publishing is the control.</li>
+<li><b>Your space:</b> the person.</li></ul>
+<b>A proposal</b> aimed at the organisation goes to administrators and Library maintainers, plus the skill's own maintainers for an edit. One aimed at a project goes to its administrators. One aimed at the person goes to the person. A member's own <i>New skill</i> is a proposal, unless they maintain that level. Any member may propose. (A2, A3, A5)</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d28">D28</td><td><b>One maintainer role: Library maintainer</b>, an organisation role, because every Library asset belongs to the organisation. Administrators name Library maintainers in settings. They create, edit and publish every asset, accept updates, roll back and review proposals; installing from outside (unless P3), removing, choosing agents, trust and naming stay with administrators. There are <b>no maintainers per asset</b>, which replaces the per-asset half of D17 and D27. <b>Reach is shown when someone is named</b> (security review M1), and is an accepted risk. Maintainers per team or department, like a department's process specialist, may come later.</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d29">D29</td><td><b>Instructions, skills and knowledge.</b>
+<ul><li><b>Instructions</b> always steer.</li>
+<li><b>A skill steers one kind of task</b>, explicitly: it instructs.</li>
+<li><b>Knowledge informs</b>, and doesn't steer by itself: policies, guidance, processes, reference.</li></ul>
+Processes are where skills and knowledge overlap. A process lives in knowledge, and a skill enforces it, as instructions or a skill enforce a policy. The user guide and the built-in skill-creator teach this rule.</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d30">D30</td><td><b>Going back a version stays open</b> (security review M4). Administrators and Library maintainers may install any version, newer or older, after a confirmation. The history records who, when and why, and that record is the main safeguard: the Library's people are trusted and accountable. Versions compare as SemVer. <b>A withdrawn version gets a warning, not a refusal</b>, which guards against mistakes. Agenthix's withdrawn versions ship in hq's image.</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d31">D31</td><td><b>An agent's publish always goes through a person's approval</b>, with no permission switch (B1, YQ3). An agent may <i>ask</i> to publish, roll back, switch a skill on, or install. Each such call becomes an approval card for the person the agent acts for, and runs only when that person approves it. The person must hold the right at that level. The history records the person as publisher, "requested by Ada". No agent setting skips this gate, <b>Bypassed included</b>: today a bypassed agent runs even tools set to Never, which is why a plain refusal isn't enough. Trust settings and naming Library maintainers have no agent tool at all.</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d32">D32</td><td><b>An organisation administrator doesn't act inside a project's skills</b> they don't administer (B2, YQ7). They govern through the organisation's default (on, off, never).</td><td>27 Oct</td></tr>
+<tr><td class="n" id="d4">D4</td><td><b>The local half of organisation ownership comes in, applied to skills:</b> the organisation owns every skill, maintainers look after them, there is a history of who changed what, all of it works on the organisation's own hq, and installing grants no capability.</td><td>27 Oct</td></tr>
+</table></div>
+
+<h2 id="notes">Notes for the spec</h2>
+<div class="box"><ul>
+<li><b>Decision records</b>, accepted on the unit's branch once each is made:
+<ul><li>built-in skills beside platform knowledge (D6; narrows adr-0149);</li><li>one catalogue, with agents holding references (narrows adr-0072 for skills);</li>
+<li>a skill in a place's files runs only when a person turned that content on;</li>
+<li>an asset the organisation owns keeps its saved versions and who saved them.</li></ul></li>
+<li><b>Research:</b> the Agent Skills specification, Claude and Claude Code, ChatGPT, Devin, Cursor, GitHub Copilot and Copilot Studio. Notes are in the unit's <code>execution/research/</code>.</li></ul></div>
+
+<script type="module" src="/files/shell.js?v=8"></script>
+</body></html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The / picker · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-pick.html"><main>
+<div class="top"><div><h1>C1 · The <code>/</code> picker in the message box</h1>
+<p class="sub">A person picks one of this agent's skills at the start of a message, the way <code>/name</code> works in Claude Code. The choice travels beside the message as a structured field, never as rewritten text, so a typed <code>/word</code> can never reach a runtime's own commands (R3, spec part 5).</p></div></div>
+
+<h2 id="today">Today, numbered</h2>
+<div class="box"><table><tr><th></th><th>Today</th><th>Where</th></tr>
+<tr><td class="n">1</td><td>The message box is a content-editable field, with <b>＋</b> (model), the microphone and Send</td><td><code>MessageBox.tsx</code>, <code>MessageField.tsx</code></td></tr>
+<tr><td class="n">2</td><td><b><code>@</code> opens a picker</b> of the conversation's places' files. It is triggered by <code>(^|\s)@(\S*)$</code> before the caret, narrowed as the person types, with groups and headings, arrow keys, Enter or Tab, and Escape. A choice becomes a file chip, and the message is sent as plain text</td><td><code>atPicker/atQuery.ts</code>, <code>useAtPicker.ts</code>, <code>AtPicker.tsx</code></td></tr>
+<tr><td class="n">3</td><td><b>Nothing handles <code>/</code>.</b> A message starting <code>/code-review</code> goes to the site unchanged and into the Claude process as a user message</td><td><code>site/src/agents/runtime/claude/turnInput.ts</code></td></tr>
+<tr><td class="n">4</td><td>So <b>Claude Code's own bundled commands</b> are reachable by typing, for example <code>/update-config</code>, though the model is never shown them</td><td>The skills allowlist in <code>claudeStart.ts</code> hides them from the list only</td></tr>
+<tr><td class="n">5</td><td>A person can only get a skill used by describing the task and hoping the model matches its description</td><td>—</td></tr>
+</table></div>
+
+<h2 id="open-picker">1 · Typing <code>/</code> opens the agent's skills</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>Typing <code>/</code> does nothing (3). The person can't see what skills Ada has.</p></div>
+<div class="box"><span class="lbl after">After</span><p><code>/</code> as the <b>first character</b> of the message opens a picker of <b>the skills this conversation's agent will see</b>, grouped by where each comes from, and narrowed as the person types.</p></div>
+</div>
+
+<div class="frame mock"><div class="desk">
+<div class="anav" data-on="chat"></div>
+<div class="mcentre" style="display:flex;flex-direction:column;min-height:700px">
+<div class="mhdr" style="margin:-16px -32px 12px;padding-left:32px">Ada <span class="chip">Website rebuild</span><span class="grow"></span><span class="tag">DeepSeek Flash</span></div>
+<div class="bubble" style="max-width:70%">I've finished the checkout form changes in <span class="chip" style="color:var(--macc)">📄 src/checkout/Form.tsx</span>. Want me to open a pull request?</div>
+<div class="grow"></div>
+<div style="position:relative;margin-top:12px">
+<div class="menu" style="bottom:52px;left:14px;width:420px">
+<div class="gh">Built in</div>
+<div class="it"><div class="t">⚡ Working with git</div><div class="s">Branch, commit, then push and open pull requests through approved workflows</div></div>
+<div class="gh">Fernhill</div>
+<div class="it on"><div class="t">⚡ <b>Rev</b>iew code <span class="tag" style="float:right">agenthix/dev-code-review 1.3</span></div><div class="s">Review a change for correctness, architecture fit and test coverage</div></div>
+<div class="gh">Website rebuild</div>
+<div class="it"><div class="t">⚡ <b>Rev</b>iew a release <span class="tag" style="float:right">.agents/skills</span></div><div class="s">The project's checklist before a release: changelog, screenshots, sign-off</div></div>
+<div class="gh">Yours</div>
+<div class="it"><div class="t">⚡ My <b>rev</b>iew notes</div><div class="s">How Avery likes review notes written: short, numbered, one fix each</div></div>
+<div class="s" style="padding:6px 10px;color:var(--t3);font-size:12px">↑↓ to move · Enter to choose · Esc to close · <span style="color:var(--macc)">Browse the Library</span></div>
+</div>
+<div class="field" style="margin:0"><div class="in" style="border-radius:24px;padding:10px 16px;display:flex;align-items:center;gap:8px"><span style="color:var(--t3)">＋</span><span>/rev<span style="border-left:2px solid var(--macc);margin-left:1px"></span></span><span class="grow"></span><span style="color:var(--t3)">🎙</span><span class="btn pri" style="border-radius:999px">➤</span></div></div>
+</div>
+</div></div></div>
+<ol class="sub">
+<li><b>Trigger:</b> a second rule beside the <code>@</code> picker's, <code>^/(\S*)$</code>, meaning only the first word of the message. It reuses <code>useAtPicker</code>'s keys, active row, listbox roles and placement above the field. A new group kind (<code>skills</code>) joins <code>files</code> in <code>PickerGroup</code>.</li>
+<li><b>The list:</b> a new hq query, <code>listConversationSkills(conversationId)</code>. hq resolves what this run would stage (spec part 5): built-ins not switched off, installed skills every agent has or Ada has, the place's switched-on file skills, and Avery's own skills, after the clash order (D12, D16). Nothing is asked of the site while typing; the place's file skills come from the last scan hq holds.</li>
+<li><b>Each row:</b> the skill's person-facing name, the first line of its description, and where it comes from. The group heading says the level (Built in, the organisation's name, the project's name, Yours). The tag gives the identity and version, or the folder for a file skill.</li>
+<li><b>Narrowed</b> on the name and description, in the browser: the list is the agent's set, tens of skills at most.</li></ol>
+<div class="why"><b>Why at the start only:</b> one skill per message, as in Claude Code, and the message reads as "do this, this way". A <code>/</code> later in a sentence ("and/or", a path like <code>src/app</code>) stays text.</div>
+
+<h2 id="chosen">2 · Choosing puts a skill chip at the start</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>A typed <code>/code-review</code> is plain text, which Claude Code may treat as a command and OpenCode won't.</p></div>
+<div class="box"><span class="lbl after">After</span><p>The chosen skill becomes a <b>skill chip</b> at the start of the message. The person writes the rest. Backspace on the chip removes it.</p></div>
+</div>
+
+<div class="frame mock"><div class="desk">
+<div class="anav" data-on="chat"></div>
+<div class="mcentre" style="display:flex;flex-direction:column;min-height:300px">
+<div class="bubble" style="max-width:70%">I've finished the checkout form changes in <span class="chip" style="color:var(--macc)">📄 src/checkout/Form.tsx</span>. Want me to open a pull request?</div>
+<div class="bubble me" style="margin-top:10px"><span class="chip" style="color:var(--macc);background:var(--macc-sub)">⚡ Review code</span> the checkout form changes before the pull request, especially error handling</div>
+<div class="grow"></div>
+<div class="field" style="margin:12px 0 0"><div class="in" style="border-radius:24px;padding:10px 16px;display:flex;align-items:center;gap:8px"><span style="color:var(--t3)">＋</span><span class="chip" style="color:var(--macc);background:var(--macc-sub)">⚡ Review code</span><span style="color:var(--t3)">Ask Ada…</span><span class="grow"></span><span style="color:var(--t3)">🎙</span><span class="btn pri" style="border-radius:999px">➤</span></div></div>
+</div></div></div>
+
+<div class="kbox">
+<div><h4><span class="n">1</span>What hq sends</h4><p>The message text stays the person's words. Beside it, a structured field: <code>skill: { name: 'org-dev-code-review', identity: 'agenthix/dev-code-review', version: '1.3' }</code>, with the staged name the run will use. hq checks the skill is still in the agent's set before sending; if it isn't, Send says so and keeps the message.</p></div>
+<div><h4><span class="n">2</span>What the site does</h4><p>It turns the field into the runtime's own form. <b>Claude:</b> the turn starts with the plugin skill's invocation, then the words. <b>OpenCode:</b> an instruction to load that skill with the <code>skill</code> tool first, then the words. Both arrive at the same place: the model loads the skill's body and follows it.</p></div>
+<div><h4><span class="n">3</span>In the thread</h4><p>The person's bubble shows the same chip. Clicking it opens the skill beside the thread (C2), as a file chip opens a file.</p></div>
+</div>
+<div class="why"><b>Why a field and not text:</b> the person's words are never rewritten, the choice survives the trip unambiguously, and the site, not the text, decides what becomes an invocation (R3).</div>
+
+<h2 id="typed">3 · A typed <code>/word</code> is just words</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>Typing <code>/update-config</code> and sending reaches Claude Code's bundled command (4).</p></div>
+<div class="box"><span class="lbl after">After</span><p>Anything typed is text. If the person ignores the picker and sends <code>/update-config please</code>, the agent receives those words as a request, the same on both runtimes.</p></div>
+</div>
+<div class="box"><ul>
+<li><b>Mechanism:</b> the site's turn input never passes a message that starts with <code>/</code> to Claude Code as it stands. It is sent so the runtime reads it as words, not a command, for example quoted as the person's message. Only the structured field (2) produces an invocation.</li>
+<li><b>Typing a skill's exact name</b> and pressing Enter while the picker is open chooses it, so people who know their skills type <code>/rev</code> ↵ quickly.</li>
+<li>Closes the known fault: Claude Code's bundled commands can no longer be typed.</li></ul></div>
+
+<h2 id="hidden">4 · What the picker leaves out</h2>
+<div class="box"><table><tr><th>Not listed</th><th>Why</th></tr>
+<tr><td>A skill <b>set aside</b> by the clash order: the project's copy when the organisation installs the same identity, or yours when the project has it</td><td>The run won't stage it (D12, D16). The one that wins is listed</td></tr>
+<tr><td>A file skill that is <b>switched off</b>, or new and not yet switched on</td><td>It doesn't reach the run (D13)</td></tr>
+<tr><td>A skill whose header says <code>user-invocable: false</code></td><td>Its author meant it for the model only; Claude Code hides it from <code>/</code> too</td></tr>
+<tr><td>Skills installed but <b>that Ada doesn't have</b></td><td>Ada can't use them here. <i>Browse the Library</i> in the picker's footer is the way to find and give them</td></tr>
+</table>
+<p class="sub">A skill whose header says <code>disable-model-invocation: true</code> <i>is</i> listed: it's meant to be picked by a person, and only the picker reaches it.</p></div>
+
+<h2 id="phone">On a phone</h2>
+<div class="box"><p>The same list, above the keyboard, at most 40% of the screen's height, as the <code>@</code> picker already sizes itself (<code>AtPicker.tsx</code> <code>maxHeight</code>). Rows are 40 px tall to tap.</p></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th><th>Recommended</th></tr>
+<tr><td class="n">CQ1</td><td><b>Where <code>/</code> opens the picker:</b> only as the first character, or anywhere after a space?</td><td>First character only: one skill per message, as in Claude Code, and slashes in sentences and paths stay text</td></tr>
+<tr><td class="n">CQ2</td><td><b>More than one skill in a message?</b></td><td>No, one. Two skills at once is rare, and the agent can still load another skill itself when the task calls for it</td></tr>
+<tr><td class="n">CQ3</td><td><b>Show skills Ada doesn't have</b>, greyed, with <i>Add to Ada</i> for administrators?</td><td>No. Only what Ada will use, with <i>Browse the Library</i> in the footer. Mixing in skills the agent can't use makes the list lie about what will happen</td></tr>
+<tr><td class="n">CQ4</td><td><b>The picker in a conversation with no agent chosen yet</b> (a new conversation with the lead)?</td><td>The lead's skills, like any agent's: the lead is the conversation's agent</td></tr>
+</table></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

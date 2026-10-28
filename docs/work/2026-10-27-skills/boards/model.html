@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The model · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="model.html"><main>
+<div class="top"><div><h1>4 · The model: everything decided, in one picture</h1>
+<p class="sub">Redrawn 27 Oct from boards 2–3 and decisions D5–D16. Two worlds: <b>installed</b> skills, which hq holds, pins and versions, and <b>skills in files</b>, which their owners hold and hq observes and switches. Numbers match the diagram.</p></div></div>
+
+<h2 id="picture">The picture</h2>
+<div class="box"><div class="mmd" data-src="model"></div></div>
+
+<h2 id="parts">The parts</h2>
+<div class="kbox">
+<div><h4><span class="n">1</span>Sources: anywhere</h4><p>hq's image (Agenthix's packages), an upload, a URL, later a git repository or a hosted registry. Agenthix isn't prescriptive about where a skill comes from (D7).</p></div>
+<div><h4><span class="n">2</span>The check</h4><p>The package ZIP, the fingerprint, a Sigstore signature, and four states: trusted, new publisher (asked), unsigned (warned), tampered (refused). The signer is an organisation; a person's signature is labelled as such (D8, D9).</p></div>
+<div><h4><span class="n">3</span>Installed skills</h4><p>Held by hq for the organisation. <b>One per identity</b> (<code>publisher/name</code>), de-duplicated when installed (D10). <b>Pinned</b> to a version, with explicit update and roll back and a kept history (D11). Packages are self-contained: a template brings its role skills inside it.</p></div>
+<div><h4><span class="n">4</span>Given to agents</h4><p>An installed skill is given to <b>every agent</b> (the organisation level, L2) or to <b>chosen agents</b> (L3). A template's role skills are given to the agent made from it. Built-in skills (L1a) are on for every agent, can be switched off, and are never edited.</p></div>
+<div><h4><span class="n">5</span>Skills in files</h4><p>A place's <code>files/.agents/skills</code> (L4), one agent's folder there (L5), and each workspace's repository in all three folders (L6). Owned by whoever owns the files; their version is their content (F1–F3).</p></div>
+<div><h4><span class="n">6</span>Listed and switched</h4><p>The site reports each skill folder and its fingerprint, and hq lists them on the place's Skills page. The organisation's default is on by default, off by default (recommended) or never; a place may be stricter. Each skill has a switch, with all on and all off (D13).</p></div>
+<div><h4><span class="n">7</span>The person's skills</h4><p>Your space's skills follow the person into <b>their own conversations</b> everywhere, delivered by hq by fingerprint. Never in runs others start or scheduled ones. The organisation can turn this off (D15).</p></div>
+<div><h4><span class="n">8</span>The run</h4><p>hq names everything by fingerprint, and the site stages it per turn, as now (adr-0084). A clash of the same identity is settled by the order below. Each run records what it used.</p></div>
+</div>
+
+<h2 id="order">When the same skill comes from two places</h2>
+<div class="box"><table><tr><th>Order</th><th>Level</th><th>Why it wins</th></tr>
+<tr><td class="n">1</td><td><b>Installed</b> by the organisation (built in, every agent, or this agent)</td><td>The organisation always uses the same version (D11, D12)</td></tr>
+<tr><td class="n">2</td><td><b>The project</b>: its files and workspaces</td><td>A project's procedures and standards prevail (D16)</td></tr>
+<tr><td class="n">3</td><td><b>The person</b>: their own skills</td><td>They add to the project. To change how the project works, the person writes a skill that complements it, or updates the project's knowledge or memory (D16)</td></tr>
+</table>
+<p class="sub">Only the same identity clashes. Different skills all apply. The one set aside is shown on its Skills page as <i>set aside</i>, with the reason.</p></div>
+
+<h2 id="ba">Before, after, why</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before (board 1)</span><ul>
+<li>Copies in packages go stale silently (T2).</li>
+<li>All 18 skills go to every agent (T3).</li>
+<li>No list of what an agent will see, and no remove (T4, T5).</li>
+<li>A place's files are live at once, unseen (T6).</li>
+<li>A repository's skills are ignored.</li>
+<li>Your skills stay in Your space.</li></ul></div>
+<div class="box"><span class="lbl after">After</span><ul>
+<li>One installed copy per identity, pinned, with updates offered.</li>
+<li>Agents get only what they're given; built-ins are the exception.</li>
+<li>Every level is listed, with switches.</li>
+<li>Files are off by default until switched on (organisation's choice).</li>
+<li>Repository skills are read, under the same switches.</li>
+<li>Your skills follow you.</li></ul></div>
+</div>
+<div class="why"><b>Compared with the withdrawn version:</b> that draft put every skill into one organisation list. Now only <i>installed</i> skills are one per identity. Skills in files stay where their owners keep them, and the person's travel with the person. Who owns a skill and where it is kept are separate questions (D5).</div>
+
+<script>
+window.SRC = { model: `flowchart LR
+  S["1 · Sources<br/>image · upload · URL<br/>git · registry (later)"] --> K{"2 · The check<br/>fingerprint + signature"}
+  K -->|"trusted / asked / warned"| I["3 · Installed skills<br/>one per identity, pinned"]
+  K -->|"tampered"| X["refused"]
+  I -->|"every agent (L2)<br/>or chosen agents (L3)"| G["4 · An agent's installed skills<br/>+ built-ins (L1a)"]
+  F["5 · Skills in files<br/>place · one agent · workspaces"] --> L["6 · Listed and switched<br/>default + each skill"]
+  P["7 · The person's skills<br/>Your space, follows them"] --> L
+  G --> R["8 · The run<br/>staged per turn by fingerprint<br/>order: installed, project, person"]
+  L --> R
+` }
+</script>
+<script type="module" src="/files/shell.js?v=8"></script>
+</body></html>

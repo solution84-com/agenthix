@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="today.html"><main>
+<div class="top"><div><h1>1 · Today: where skills live, how they reach a run</h1>
+<p class="sub">How skills work in hq and the site now, before any change. The numbers in the diagram match the table below.</p></div></div>
+
+<h2 id="diagram">The path today</h2>
+<div class="box"><div class="mmd" data-src="today"></div></div>
+
+<h3 id="boxes">What each box is</h3>
+<div class="kbox">
+<div><h4><span class="n">1</span>Library skills</h4><p>18 <code>SKILL.md</code> folders in hq's image (<code>hq/assets/library/skills/</code>), seeded into the <code>Skill</code> table at start, scope <code>PLATFORM</code>. Shown on the Library's Skills tab.</p></div>
+<div><h4><span class="n">2</span>Skills made here</h4><p>Made in the Library by an administrator, kept in hq's storage under <code>org/skills/</code>, scope <code>ORG</code>. They can go to the organisation, but not to one agent.</p></div>
+<div><h4><span class="n">3</span>The organisation's package</h4><p>A <b>copy</b> of each installed skill, with <code>installed_from</code> in its header. On its first write it gets every library skill, so every agent has all 18. Nothing in the interface removes one.</p></div>
+<div><h4><span class="n">4</span>An agent's package</h4><p>A <b>copy</b> of each skill installed for that agent, or written on its page. Library skills only. <i>Update</i> shows when the library is newer.</p></div>
+<div><h4><span class="n">5</span>A place's files</h4><p>A project's or a person's own storage: <code>.agents/skills/</code> for every agent working there, and <code>.agents/agents/&lt;id&gt;/skills/</code> for one. Plain files. Anything that can write files, an agent included, adds a skill here.</p></div>
+<div><h4><span class="n">6</span>Staging, per turn</h4><p>The site copies all five sources into a fresh folder, as <code>&lt;source&gt;-&lt;slug&gt;</code>. Each header is rebuilt from an allowlist, links are refused and the reads are bounded (adr-0084).</p></div>
+<div><h4><span class="n">7</span>The runtime</h4><p><b>Claude:</b> a local plugin, a name allowlist and the <code>Skill</code> tool. <b>OpenCode:</b> the list goes in the system prompt, and Agenthix's plugin replaces the <code>skill</code> tool. The model sees each skill's name and description, then loads the body when the task matches.</p></div>
+<div><h4><span class="n">8</span>The conversation</h4><p>A typed <code>/name</code> goes through untouched. A step reads "Used the skill org-dev-code-review", with the staged name, and opens nothing.</p></div>
+</div>
+
+<h2 id="problems">What that costs, numbered</h2>
+<div class="box"><table><tr><th></th><th>Today</th><th>Effect</th><th>Box</th></tr>
+<tr><td class="n">T1</td><td>The Library's Skills tab is reached only from an Overview card. Its row action reads <i>Use</i>, and its only install is <i>Install to Org</i>.</td><td>People don't find skills, and the words don't say what happens.</td><td>1, 2</td></tr>
+<tr><td class="n">T2</td><td>Installing makes a <b>copy</b>.</td><td>Copies go stale silently, and one fix has to be repeated in every copy. A real case: an out-of-date <i>GitHub Operations</i> skill told agents to push directly.</td><td>3, 4</td></tr>
+<tr><td class="n">T3</td><td>A new organisation gets all 18 skills for every agent.</td><td>About 11k tokens of listings and tool descriptions on every request, and agents carry skills they don't need.</td><td>3, 7</td></tr>
+<tr><td class="n">T4</td><td>An agent's page lists only its own copies, and its picker offers only library skills.</td><td>No one sees an agent's whole set. A skill made here can't go to one agent.</td><td>4</td></tr>
+<tr><td class="n">T5</td><td>There is no view of what the organisation installed, and no remove.</td><td>A skill that is wrong for the organisation can't be taken out.</td><td>3</td></tr>
+<tr><td class="n">T6</td><td>A skill an agent writes into a place's files is live on its next turn.</td><td>Standing instructions that nobody reviewed, for everyone using that agent there.</td><td>5</td></tr>
+<tr><td class="n">T7</td><td>The message box can't pick a skill, and a typed <code>/name</code> reaches the runtime, its bundled commands included.</td><td>People can only ask for a skill by describing it.</td><td>8</td></tr>
+<tr><td class="n">T8</td><td>A used skill shows under its staged name, and the step opens nothing.</td><td>People can't see what the agent followed.</td><td>8</td></tr>
+<tr><td class="n">T9</td><td>Only administrators touch skills, and nothing records who changed what.</td><td>No one else can look after a skill, and a bad edit can't be undone.</td><td>2, 3, 4</td></tr>
+<tr><td class="n">T10</td><td>Before an organisation exists, a taken name can overwrite another skill's file.</td><td>A skill's content is silently lost.</td><td>2</td></tr>
+</table></div>
+
+<h2 id="works">What already works, and stays</h2>
+<div class="box"><ul>
+<li><b>Staging per turn (box 6)</b> works on both runtimes. A skill edited since the last turn is picked up on the next one, with no restart.</li>
+<li><b>Safety in staging:</b> a rebuilt header, no hooks, no inline shell, no links, bounded reads, and a read-only folder in the container.</li>
+<li><b>Content by fingerprint</b> (adr-0072): a run records exactly what it received.</li></ul>
+<p class="sub">The design changes what goes <i>into</i> staging and how people reach it, not staging itself.</p></div>
+
+<script>
+window.SRC = { today: `flowchart LR
+  L["1 · Library skills<br/>hq's image, 18"] -->|"Install to Org (copy)"| O["3 · Organisation's package<br/>copies, all 18 at first write"]
+  M["2 · Skills made here<br/>hq's storage"] -->|"Install to Org (copy)"| O
+  L -->|"Add on the agent's page (copy)"| A["4 · An agent's package<br/>copies"]
+  F["5 · A place's files<br/>.agents/skills, written by anyone"]
+  O --> S["6 · Staging per turn<br/>on the site, as source-slug"]
+  A --> S
+  F --> S
+  S --> R["7 · Runtime<br/>Claude: plugin + Skill tool<br/>OpenCode: list + skill tool"]
+  C["8 · Conversation<br/>typed /name passes through"] --> R
+` }
+</script>
+<script type="module" src="/files/shell.js?v=8"></script>
+</body></html>

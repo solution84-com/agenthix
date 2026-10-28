@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proposals, drafts and the files gate · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="proposals.html"><main>
+<div class="top"><div><h1>8 · Proposals, drafts and the files gate</h1>
+<p class="sub">Every way an agent can change what agents follow, and the one gate each passes before it runs. Agents draft, people publish (D24). Screens: U3b, C3, R1, P1. Spec parts 2, 4, 5.</p></div></div>
+
+<h2 id="tool">propose_skill: the contract</h2>
+<div class="box"><table><tr><th>Argument</th><th>Means</th></tr>
+<tr><td><code>name</code>, <code>description</code></td><td>Checked against the Agent Skills rules (R8)</td></tr>
+<tr><td><code>files</code></td><td><code>SKILL.md</code> and any others, as path → content; bounded like staging</td></tr>
+<tr><td><code>why</code></td><td>Shown to the reviewer</td></tr>
+<tr><td><code>aim</code></td><td><code>organisation</code>, <code>project</code> or <code>person</code>; the person can change it on the card</td></tr>
+<tr><td><code>edits</code> (optional)</td><td>The identity of an existing skill it changes</td></tr>
+</table>
+<ul><li><b>Who asked</b> comes from the run's record, never an argument: the person the run acts for, as <code>propose_workflow</code> takes its <code>Proposer</code> (<code>hq/src/workflows/propose.ts</code>: agent, run, on-behalf-of person).</li>
+<li><b>Checks, as <code>propose_workflow</code>'s plain checks:</b> R8 rules, size, ignored header keys flagged, files named by <code>SKILL.md</code> present, a limit on proposals per run (H5). The same content proposed again answers the open one rather than adding another (CQ12).</li></ul></div>
+
+<h2 id="route">Where it lands</h2>
+<div class="box"><div class="mmd" data-src="route"></div>
+<table><tr><th></th><th>Case</th><th>Lands as</th><th>Who decides</th></tr>
+<tr><td class="n">1</td><td>The person's <b>own interactive conversation</b>, and they may publish at the aimed level</td><td>Their <b>draft</b> (one per skill, shared, D25); card: <i>Open draft</i>, <i>Publish</i></td><td>That person, or anyone who may publish there</td></tr>
+<tr><td class="n">2</td><td>Any other run: a task, scheduled or automated run, a run someone else started (H5); or a person who may not publish there</td><td>A <b>proposal</b></td><td>By the aimed level (D27, D28): organisation → administrators and Library maintainers; project → its administrators; person → the person</td></tr>
+<tr><td class="n">3</td><td>An agent's file tools writing a skill folder directly</td><td>A file skill, <b>changed in files, not published</b> (FV4)</td><td>The place's publishers; under <i>off by default</i> it doesn't run until then</td></tr>
+</table></div>
+
+<h2 id="states">States</h2>
+<div class="box"><h3 style="margin-top:0">A Library asset or a place's skill</h3><div class="mmd" data-src="asset"></div>
+<ul><li><b>Publish takes the exact revision the publisher saw</b>, refused if the draft changed since (H5); every draft change records its author or proposing run.</li>
+<li><b>Withdrawn</b> is the publisher's mark on a version: hq warns before installing it, never refuses (D30).</li></ul>
+<h3>A skill found in files</h3><div class="mmd" data-src="file"></div>
+<ul><li><b>Switches are keyed by place, path and fingerprint</b> (H3); staging re-reads the folder and stages it only if its fingerprint equals the one switched on.</li>
+<li><b>The organisation ships <i>off by default</i></b> (H4, C1); a place may only be stricter (C1b). Under <i>on by default</i>, <i>new</i> and <i>changed</i> run at once.</li>
+<li><b>A person's skills follow them only at a version they published</b> (H4); an unpublished change stays in Your space.</li></ul></div>
+
+<h2 id="ba">Before, after, why</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><ul><li>An agent writes a folder and it runs next turn, for everyone (T6).</li><li>The skills engineer's <i>codify-skill</i> promises a proposal nothing receives.</li></ul></div>
+<div class="box"><span class="lbl after">After</span><ul><li>Every agent change is a draft, a proposal, or a file change that waits for a publish.</li><li>One tool, routed by who asked and where it aims.</li></ul></div>
+</div>
+<div class="why"><b>Why one gate:</b> whatever path an agent takes, a person who may publish at that level is the one who makes it run, and the history says who.</div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th><th>Recommended</th></tr>
+<tr><td class="n">YQ3</td><td><b>Agents never publish, whoever they act for.</b> hq's rule is that an agent acts with the same check as its person's browser request (<code>rolePolicy.ts</code>), so an agent in an administrator's conversation would pass a publish check. Make publish (and roll back, switch on, install) refuse every agent call, whatever the person's role?</td><td>Yes: these are person-only actions, like approving a workflow</td></tr>
+<tr><td class="n">YQ4</td><td><b>Case 3 under <i>on by default</i>:</b> an agent's file write runs at once in a place that chose that. Show it in the conversation ("Ada changed the skill <i>x</i> in this project's files")?</td><td>Yes, as a work step linking to P1</td></tr>
+<tr><td class="n">YQ5</td><td><b>Draft lifetime:</b> how long does an unpublished draft or proposal live?</td><td>Drafts until discarded; proposals as RQ5 (rejected removed after 90 days)</td></tr>
+</table></div>
+
+<script>
+window.SRC = { route: `flowchart LR
+  T["propose_skill<br/>(who asked: from the run record)"] --> Q{"Own interactive<br/>conversation, and may<br/>publish at that level?"}
+  Q -->|"yes"| D["1 · Their draft<br/>Open draft · Publish"]
+  Q -->|"no"| PR["2 · Proposal"]
+  PR --> O["organisation: administrators<br/>+ Library maintainers"]
+  PR --> J["project: its administrators"]
+  PR --> ME["person: themselves"]
+  W["Agent's file tools<br/>write a folder"] --> F["3 · Changed in files,<br/>not published"]
+`, asset: `stateDiagram-v2
+  [*] --> Draft: Edit / propose (case 1)
+  [*] --> Proposal: propose (case 2)
+  Proposal --> Draft: accepted, or edit then accept
+  Proposal --> Rejected: reject with a note
+  Draft --> Published: Publish (exact revision)
+  Draft --> [*]: Discard
+  Published --> Draft: Edit
+  Published --> Published: Roll back / install another version
+  Published --> Withdrawn: the publisher withdraws it
+`, file: `stateDiagram-v2
+  [*] --> New: found in files
+  New --> On: switched on / published
+  New --> Off: left off (off by default)
+  On --> Changed: written outside the editor
+  Changed --> On: Publish as next version
+  Changed --> On: Put back last version
+  On --> Off: switched off
+  Off --> On: switched on
+` }
+</script>
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

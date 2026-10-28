@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proposals waiting for review · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="ui-review.html"><main>
+<div class="top"><div><h1>R1 · Proposals waiting for review</h1>
+<p class="sub">Agents propose and people accept (R6, spec part 5). A proposal is a draft that reaches no agent. It is a new skill, or an edit to an installed one shown as the difference. Each proposal is reviewed at the level it aims at (D27, D28): the organisation's administrators and Library maintainers; a project's administrators; or the person, for Your space. This board covers where proposals surface, the review screen, and what accepting does.</p></div></div>
+
+<h2 id="today">Today, numbered</h2>
+<div class="box"><span class="lbl before">Before</span>
+<table><tr><th></th><th>Today</th><th>Where</th></tr>
+<tr><td class="n">1</td><td><b>No proposal exists.</b> An agent that learns a way of working writes a skill folder into the place's files with its file tools, and the next turn runs it (T6).</td><td><code>site/src/agents/runtime/skillStaging.ts</code></td></tr>
+<tr><td class="n">2</td><td>The skills engineer template's <code>codify-skill</code> says it writes "a proposal to an org admin". Nothing receives that proposal: it can only write files.</td><td><code>hq/assets/library/agents/skills-engineer/skills/codify-skill/</code></td></tr>
+<tr><td class="n">3</td><td>The Overview's <b>Needs attention</b> list already gathers an admin's notifications, each with one action. Nothing about skills appears there.</td><td><code>hq/src/org/components/NeedsAttentionSection.tsx</code></td></tr>
+<tr><td class="n">4</td><td>Only administrators can change a skill, and nothing records who changed it (T9).</td><td><code>hq/src/agents/actions.ts</code></td></tr>
+</table></div>
+
+<h2 id="surfaces">Where a proposal shows up</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><ul><li>Nowhere. A skill an agent writes is live, unseen (1).</li></ul></div>
+<div class="box"><span class="lbl after">After</span><ol>
+<li><b>The Library:</b> a <i>Waiting for review · 2</i> filter, and a chip on the skill an edit targets.</li>
+<li><b>The Overview's Needs attention:</b> "2 skill proposals waiting", with <i>Review</i>. It's the reviewer's own notification, so handling the proposal clears it (3).</li>
+<li><b>The proposer's conversation:</b> a card that follows the proposal's state (board C3).</li></ol></div>
+</div>
+<div class="why"><b>Mechanism:</b> <code>propose_skill</code> creates a proposal record holding the draft's content by fingerprint, the agent, the person, the conversation and, for an edit, the identity it targets. It notifies the reviewers of the level it aims at (D27): for the organisation, administrators and Library maintainers; for a project, its administrators; for the person, only them. The Library filter, the Overview item and the card all read the same record.</div>
+
+<h3 id="overview-mock">The Overview, for Avery (administrator)</h3>
+<div class="frame mock"><div class="desk"><div class="anav" data-on="home"></div><div class="mcentre">
+<div class="mh">Fernhill</div><div class="ml">Overview</div>
+<div class="msec">Needs attention · 2</div>
+<div class="mcard"><div class="b"><div class="t">2 skill proposals waiting</div><div class="s">From Ada: "Release notes", and an edit to "Code review"</div></div><span class="btn">Review</span></div>
+<div class="mcard"><div class="b"><div class="t">1 update available in the Library</div><div class="s">agenthix/qa-bug-reporting 1.4</div></div><span class="btn">Open Library</span></div>
+</div></div></div>
+
+<h2 id="routing">Who reviews: by the level a proposal aims at (D27)</h2>
+<div class="box"><table><tr><th>Aimed at</th><th>Reviewed by</th><th>Where</th><th>Accepting</th></tr>
+<tr><td><b>The organisation</b>: a new skill</td><td>Administrators and <b>Library maintainers</b></td><td>The Library, <i>Waiting for review</i></td><td>Publishes it as the organisation's own, version 1 (A1 below)</td></tr>
+<tr><td><b>The organisation</b>: an edit to one skill</td><td>Administrators and <b>Library maintainers</b></td><td>The Library, and a chip on the skill</td><td>Publishes the next version, or the organisation's own copy (A2, A3)</td></tr>
+<tr><td><b>A project</b></td><td>The project's <b>administrators</b></td><td>The project's Skills page (P1)</td><td>Publishes it into the project's <code>files/.agents/skills/</code> as version 1, switched on (FV1)</td></tr>
+<tr><td><b>The person</b></td><td>The person alone</td><td>The card in their conversation (C3)</td><td>Publishes it into Your space</td></tr>
+</table>
+<p class="sub">The person can change the aim on the card before anyone reviews it. Someone who may already publish at the level they aim at gets a draft, not a proposal (D24, U3b): an administrator or Library maintainer for the organisation, a project administrator for a project. Any member may propose; a member's <i>New skill</i> is a proposal unless they may publish at that level.</p></div>
+
+<h2 id="list">The review list</h2>
+<div class="frame mock"><div class="desk"><div class="anav" data-on="library"></div><div class="mcentre">
+<div class="crumb"><a>Library</a> › Waiting for review</div>
+<div class="mh">Waiting for review</div><div class="ml">Drafts proposed by agents or people. None reaches an agent until it's accepted.</div>
+<div class="row" style="margin-bottom:10px;flex-wrap:wrap"><span class="fm">Type</span><span class="chip" style="background:var(--macc-sub);color:var(--t1)">All</span><span class="chip">Skills</span><span class="chip">Agents</span><span class="chip">Boards</span><span class="chip">Teams</span><span class="fm" style="margin-left:10px">Show</span><span class="chip" style="background:var(--macc-sub);color:var(--t1)">Waiting for review · 2</span><span class="fm">· the Library's one view, filtered (D26)</span></div>
+<div class="mcard hl"><div class="ic" style="background:var(--macc)">N</div><div class="b"><div class="t">Release notes <span class="tag acc">new skill</span></div><div class="s">Proposed by <b>Ada</b> for Sam, in "Ship the October release" · Website rebuild · 2 hours ago</div><div class="s">"Sam asked me to keep this way of writing notes for every release."</div></div><span class="btn pri">Review</span></div>
+<div class="mcard"><div class="ic" style="background:var(--mwarn)">E</div><div class="b"><div class="t">Code review <span class="tag warn">edit · fernhill/code-review 3</span></div><div class="s">Proposed by <b>Ada</b> for Avery Chen, in "Review the auth change" · Platform · yesterday</div><div class="s">Adds a step: check new endpoints for rate limits. +6 lines, −1</div></div><span class="btn">Review</span></div>
+<div class="msecl" style="margin-top:14px">Decided in the last 30 days · 3 <a style="color:var(--macc)">Show</a></div>
+</div></div></div>
+
+<h2 id="review">Reviewing one</h2>
+<div class="box"><span class="lbl after">After</span><p class="sub">An edit to an installed skill, opened by Sam, a Library maintainer.</p></div>
+<div class="frame mock"><div class="desk"><div class="anav" data-on="library"></div><div class="mcentre">
+<div class="crumb"><a>Library</a> › <a>Waiting for review</a> › Code review</div>
+<div class="row"><div class="mh grow">Edit to Code review</div><span class="tag warn">waiting</span></div>
+<div class="ml">fernhill/code-review 3 → 4 if accepted · proposed by Ada for Avery Chen · <a style="color:var(--macc)">Open the conversation</a></div>
+<div class="stepcard"><b>Why, from Ada:</b> "Avery asked me to always check new endpoints for rate limits during review."</div>
+<div class="msec">The change</div>
+<pre class="code">## Steps
+ 1. Read the change and its description.
+ 2. Check it builds and its tests pass.
+<span class="diffdel">-3. Look for missing tests.</span>
+<span class="diffadd">+3. Look for missing tests, and name each one.</span>
+<span class="diffadd">+4. For every new endpoint, check it has a rate limit, and say which
++   limit applies. If none does, flag it as a finding.</span></pre>
+<div class="flag"><b>Checked:</b> the name and description pass the Agent Skills rules; 41 lines.</div>
+<div class="row" style="margin-top:12px"><span class="btn pri">Accept as version 4</span><span class="btn">Edit, then accept</span><span class="btn danger">Reject…</span></div>
+<p class="sub" style="margin-top:8px">Accepting saves a new version of <code>fernhill/code-review</code>, with Sam as the one who accepted it and Ada's proposal as its source. Every agent that has it uses version 4 from its next turn.</p>
+</div></div></div>
+
+<div class="frame mock" style="margin-top:12px"><div class="desk"><div class="anav" data-on="library"></div><div class="mcentre" style="min-height:300px">
+<div class="mh">Edit to Code review</div><div class="ml">…</div>
+<div class="scrimbox"><div class="dialog"><h4>Reject this proposal?</h4>
+<div class="field"><label>A note for Avery Chen and Ada</label><div class="in" style="min-height:60px">Rate limits are checked by the security review, not code review. Keep this out.</div></div>
+<div class="row end"><span class="btn">Cancel</span><span class="btn danger">Reject</span></div></div></div>
+</div></div></div>
+
+<h2 id="accept">What accepting does</h2>
+<div class="box"><table><tr><th></th><th>Proposal</th><th>Accepting</th><th>Who may</th></tr>
+<tr><td class="n">A1</td><td><b>A new skill</b></td><td>Installs it as the organisation's own, made here (<code>fernhill/release-notes 1</code>), with the proposal as its source. Before saving, the reviewer chooses <i>Add to agents</i>: the proposing agent (preselected, RQ2), every agent, chosen agents, or no agent yet</td><td>Administrators (RQ1)</td></tr>
+<tr><td class="n">A2</td><td><b>An edit to the organisation's own skill</b></td><td>Saves the next version, which every agent that has it uses on its next turn (D11). Roll back stays one click away</td><td>Administrators and Library maintainers (D28)</td></tr>
+<tr><td class="n">A3</td><td><b>An edit to another publisher's skill</b> (for example <code>agenthix/code-review</code>)</td><td>Makes the organisation's own copy, <code>fernhill/code-review</code>, which takes the original's place, with a <code>basedOn</code> line written once (D18, D19). The review screen says so before saving</td><td>Administrators and Library maintainers</td></tr>
+<tr><td class="n">A4</td><td><b>Reject</b></td><td>Keeps the draft and the note under <i>Decided</i>. The conversation's card shows the note</td><td>Whoever may accept it</td></tr>
+</table>
+<div class="why"><b>Why:</b> the proposal is the only way an agent's learning reaches a skill that other runs follow. Every path ends in a person's decision, and the result is an ordinary version with history, so nothing about it is special after it is accepted.</div></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><p><b>None.</b> RQ1, RQ3 and RQ4 (who proposes, who reviews, where a proposal is aimed) were answered by D27. RQ2 and RQ5 were applied as defaults.</p></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>

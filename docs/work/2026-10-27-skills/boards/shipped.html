@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Agenthix ships · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4"></head>
+<body data-board="shipped.html"><main>
+<div class="top"><div><h1>2b · What Agenthix ships: every skill, sorted</h1>
+<p class="sub">Every skill in hq's image today, where it sits now, and the kind proposed for it: built in for every agent, built into one agent, offered on the shelf, or folded into another.</p></div></div>
+
+<h2 id="today">Today: 68 skill folders</h2>
+<div class="kpi">
+<div><b>0</b><span>built in (the platform package is empty)</span></div>
+<div><b>18</b><span>library skills, installed into every new organisation</span></div>
+<div><b>24</b><span>role skills inside 6 agent templates</span></div>
+<div><b>26</b><span>copies inside 5 team templates: 23 identical to library skills, 3 identical git guides</span></div>
+<div><b>3</b><span>different git guides: the library's, the wasp developer's, and the team templates' one</span></div>
+</div>
+
+<h2 id="rule">The rule proposed</h2>
+<div class="box"><table><tr><th>Kind</th><th>Test</th><th>Behaves like</th></tr>
+<tr><td><b>Built in</b> (L1a)</td><td><b>Every agent needs it to work in Agenthix, whatever its role.</b> It is about the platform, not a trade.</td><td>On for every agent; an administrator can switch it off; nobody edits it; it updates with hq. Like Claude Code's bundled skills.</td></tr>
+<tr><td><b>Built into one agent</b></td><td>It <i>is</i> that agent's job, and makes no sense for any other.</td><td>Ships inside the agent's template (L3), never on the shelf. For Kernel, the platform's own agent, kept up to date by hq.</td></tr>
+<tr><td><b>Offered</b> (L1b)</td><td>Trade know-how that suits some agents and not others.</td><td>On the shelf; nothing runs until it's given to an agent, a place or the organisation. Each carries a <i>suited to</i> hint (developer, product, QA, content, research) that the picker uses to suggest it. A hint, not a lock.</td></tr>
+<tr><td><b>Folded</b></td><td>A copy, or a near-copy, of another skill.</td><td>Removed. Templates name offered skills instead of carrying copies.</td></tr>
+</table>
+<div class="why"><b>"Some skills shouldn't be offered to some agents":</b> the hard case is Kernel's own skills, and those never reach the shelf. For the rest, a hint is enough, since an administrator chooses who gets what. A lock would be a rule nobody needs yet (YAGNI). Q12 asks.</div></div>
+
+<h2 id="built-in">Built in, for every agent</h2>
+<div class="box"><table><tr><th>Skill</th><th>From</th><th>Why built in</th></tr>
+<tr><td><b>working-with-git</b></td><td>Three different guides, in five places, become one: the library's <code>dev-github-operations</code> (139 lines), plus <code>git-workflow</code> in wasp-developer, solo-dev, dev-team and ai-startup</td><td>Any agent working in a repository must commit locally and push, pull and open pull requests <i>only through approved workflows</i>. That's a platform rule, not a trade. Built in, it can't go stale: an out-of-date copy is exactly what once told agents to push directly. <b>Staged only when the run works in a workspace with a repository</b>, so it costs nothing elsewhere.</td></tr>
+<tr><td><b>skill-creator</b></td><td>Skills-engineer's <code>codify-skill</code> and <code>propose-skill</code>, made general</td><td>Every agent can be asked to "make this a skill". It needs to know the format, a good description, and to propose rather than write a skill live. Claude ships the same thing.</td></tr>
+</table>
+<div class="why"><b>Beside platform knowledge (D6):</b> a built-in tells the agent what to do, step by step. For what things are, it points to the guide's pages (the <code>platform:</code> knowledge level) rather than describing the product again. Task management, knowledge and workflows also reach agents as tools and instructions. The guide's line calling task management an always-on skill is out of date.</div></div>
+
+<h2 id="one-agent">Built into one agent: its role</h2>
+<div class="box"><table><tr><th>Agent template</th><th>Its skills</th><th>Note</th></tr>
+<tr><td><b>Kernel</b> (the platform's own agent)</td><td>assembly · orchestrate · planning</td><td>Never offered: they build workforces and dispatch work, and are Kernel's alone. Written from hq's image (<code>ensureKernelDefinition</code>), so they update with hq, like built-in skills.</td></tr>
+<tr><td><b>Product manager</b></td><td>understand-vision · write-brief · write-roadmap · review-roadmap · process-feedback</td><td>Travel with the agent when it's used or exported</td></tr>
+<tr><td><b>Project manager</b></td><td>read-context · write-implementation-plan · write-sprint-plan · assign-work · review-work</td><td></td></tr>
+<tr><td><b>QA</b></td><td>explore-feature · run-tests · verify-task</td><td></td></tr>
+<tr><td><b>Wasp developer</b></td><td>implement-wasp-feature · fix-bug · write-tests</td><td>Its <code>git-workflow</code> folds into built-in working-with-git</td></tr>
+<tr><td><b>Skills engineer</b></td><td>observe-patterns · audit-skills</td><td>Its <code>codify-skill</code> and <code>propose-skill</code> become the built-in skill-creator</td></tr>
+</table></div>
+
+<h2 id="offered">Offered on the shelf</h2>
+<div class="box"><table><tr><th>Suited to</th><th>Skills</th></tr>
+<tr><td>Developer</td><td>dev-api-development · dev-code-quality · dev-code-review · dev-ui-development</td></tr>
+<tr><td>Product</td><td>pm-backlog-management · pm-sprint-planning · pm-stakeholder-comms</td></tr>
+<tr><td>QA</td><td>qa-bug-reporting · qa-test-planning</td></tr>
+<tr><td>Content</td><td>content-writing · content-review · editorial-planning · seo-research · technical-writing</td></tr>
+<tr><td>Research</td><td>research-methodology · research-reporting · data-analysis</td></tr>
+</table><p class="sub">17 skills. <code>dev-github-operations</code> leaves the shelf for built-in working-with-git. None is installed into a new organisation by itself.</p></div>
+
+<h2 id="folded">Folded: the team templates' copies</h2>
+<div class="box"><table><tr><th>Team template</th><th>Carries today (copies)</th><th>Proposed</th></tr>
+<tr><td>AI startup</td><td>api-development · backlog-management · bug-reporting · git-workflow · stakeholder-comms · technical-writing · test-planning · ui-development</td><td rowspan="5">Names the offered skills its agents get, and installing the team gives them those. git-workflow is built in. No copies in templates, so nothing drifts.</td></tr>
+<tr><td>Content studio</td><td>content-review · content-writing · editorial-planning · seo-research</td></tr>
+<tr><td>Dev team</td><td>backlog-management · bug-reporting · code-quality · code-review · git-workflow · sprint-planning · test-planning</td></tr>
+<tr><td>Research lab</td><td>data-analysis · research-methodology · research-reporting</td></tr>
+<tr><td>Solo dev</td><td>bug-reporting · code-quality · git-workflow · test-planning</td></tr>
+</table><p class="sub">Checked: all 23 copies match their library skill byte for byte below the header; the three <code>git-workflow</code> copies match each other.</p></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><table><tr><th></th><th>Question</th></tr>
+<tr><td class="n">Q12</td><td><b>The sort:</b> the four kinds and the rule above, with two built-ins (working-with-git, staged only in a repository workspace; skill-creator), Kernel's skills built into Kernel alone, 17 offered with a <i>suited to</i> hint (a hint, not a lock), and template copies folded?</td></tr>
+
+</table></div>
+
+<script type="module" src="/files/shell.js?v=8"></script>
+</body></html>

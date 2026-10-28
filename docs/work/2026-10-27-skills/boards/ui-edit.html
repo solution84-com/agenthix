@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Making and editing a skill · Skills</title><link rel="stylesheet" href="/files/shell.css?v=4">
+<style>
+.ed{display:grid;grid-template-columns:230px 1fr;border:1px solid var(--msub);border-radius:10px;overflow:hidden;margin-top:10px;min-height:380px}
+.ed.dockd{grid-template-columns:210px 1fr 300px}
+.tree{background:var(--s0);border-right:1px solid var(--msub);padding:8px 0;font-size:13px}
+.tree .h{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);padding:4px 12px 6px}
+.tree .f{display:flex;align-items:center;gap:6px;padding:4px 12px;color:var(--t1)}
+.tree .f.on{background:var(--macc-sub)}
+.tree .f .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tree .d{padding-left:24px}
+.mk{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;width:16px;text-align:center;border-radius:4px}
+.mk.a{color:var(--mok)}.mk.m{color:var(--mwarn)}.mk.del{color:var(--mdanger)}.mk.r{color:var(--macc)}
+.f.gone .nm{text-decoration:line-through;color:var(--t3)}
+.cnt2{font-size:11px;color:var(--t3);font-family:ui-monospace,Menlo,monospace}
+.pane{padding:10px 14px;min-width:0}
+.modes{display:inline-flex;border:1px solid var(--mborder);border-radius:8px;overflow:hidden;font-size:12.5px}
+.modes span{padding:4px 12px;color:var(--t2)}.modes span.on{background:var(--macc);color:#fff}
+.diff{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;border:1px solid var(--msub);border-radius:8px;overflow:hidden;margin-top:8px}
+.diff .fh{background:var(--s2);padding:6px 10px;display:flex;gap:8px;align-items:center;font-family:Inter,system-ui,sans-serif;font-size:13px}
+.diff .ln{display:grid;grid-template-columns:34px 34px 16px 1fr;padding:1px 0}
+.diff .ln span{color:var(--t3);text-align:right;padding-right:6px}
+.diff .add{background:color-mix(in srgb,var(--mok) 12%,transparent)}.diff .add b{color:var(--mok)}
+.diff .del{background:color-mix(in srgb,var(--mdanger) 12%,transparent)}.diff .del b{color:var(--mdanger)}
+.diff .ln b{font-weight:400}
+.vcheck{font-size:12.5px;margin-top:8px}.vcheck div{padding:2px 0}
+</style></head>
+<body data-board="ui-edit.html"><main>
+<div class="top"><div><h1>U3b · Making and editing a skill</h1>
+<p class="sub">A skill can be a folder of files: <code>SKILL.md</code>, plus scripts, references, templates and assets. So making and editing one works like a small file explorer, with three modes: <b>View</b>, <b>Edit</b> and <b>Changes</b>. A person edits, or asks an agent to. Nothing reaches an agent until a person publishes (D24).</p></div></div>
+
+<h2 id="today">Today, numbered</h2>
+<div class="box"><ol>
+<li><b>One file only.</b> A skill is edited as its <code>SKILL.md</code> in <code>MdFileEditor</code> (<code>hq/src/shared/components/MdFileEditor.tsx</code>): the header and the body, in sections. Its other files can't be seen or changed in hq.</li>
+<li><b>New skill is a name and nothing else</b>, on the agent's page or in the Library's dialog. It saves straight away, live for that agent.</li>
+<li><b>No changes view.</b> An edit replaces the file. Nothing shows what changed, and there's no diff anywhere in hq: the git diffs on the seeing-the-work boards were stretch work, not built.</li>
+<li><b>What exists to reuse:</b> the Files explorer's tree (<code>hq/src/storage/pages/FolderTree.tsx</code>) and the file frame with its renderers for Markdown, code, text, JSON, tables, images and PDF (<code>ui/src/files/</code>). The renderer boundary was designed to take diffs later.</li></ol></div>
+
+<h2 id="new">1 · New skill</h2>
+<div class="ba">
+<div class="box"><span class="lbl before">Before</span><p>Type a name, and the skill exists, live for that agent, with an empty body (2).</p></div>
+<div class="box"><span class="lbl after">After</span><p><b>Library › Add › New skill</b> asks for what a good skill needs, then opens the editor on a draft. No agent sees it until it's published as version 1.</p></div>
+</div>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="desk"><div class="anav" data-on="library"></div><div class="mcentre">
+<div class="crumb"><a>Library</a> › <a>Skills</a> › New skill</div>
+<div class="mh">New skill</div><div class="ml">Made here, as <span class="fm">fernhill/…</span>. You can change everything later.</div>
+<div class="field"><label>Name</label><div class="in">release-notes</div><div class="s" style="font-size:12px;color:var(--t3)">Lowercase letters, digits and hyphens. It's also the skill's folder name.</div></div>
+<div class="field"><label>What it does, and when to use it</label><div class="in">Write release notes from the merged pull requests since the last tag. Use when asked for release notes or a changelog.</div><div class="s" style="font-size:12px;color:var(--t3)">Agents read this to decide when the skill fits. 118 of 1,024 characters.</div></div>
+<div class="field"><label>Start from</label>
+<div class="radio on"><div class="dot"></div><div><b>A plain skill</b><div class="s" style="font-size:13px;color:var(--t2)"><code>SKILL.md</code> with the usual headings</div></div></div>
+<div class="radio"><div class="dot"></div><div><b>A skill with scripts</b><div class="s" style="font-size:13px;color:var(--t2)">Adds <code>scripts/</code> and <code>references/</code>, as the Agent Skills format lays out</div></div></div>
+<div class="radio"><div class="dot"></div><div><b>Ask an agent to write it</b><div class="s" style="font-size:13px;color:var(--t2)">Opens a conversation with the skill creator; the agent fills the draft (3)</div></div></div></div>
+<div class="row end"><span class="btn">Cancel</span><span class="btn pri">Create draft</span></div>
+</div></div></div>
+<ul><li><b>Mechanism:</b> the name and description are checked as they're typed, against the Agent Skills rules (R8): name 1–64 characters and unique by identity, description 1–1024. <i>Create draft</i> writes the scaffold into a draft. Nothing is installed until <i>Publish</i>.</li>
+<li><b>Other ways in stay:</b> <i>Upload</i> a folder or ZIP, and <i>From a link</i> (U4), and an agent's proposal (C3). Each of these can be opened in this editor before it's published.</li></ul></div>
+
+<h2 id="edit">2 · Editing: the files, three modes</h2>
+<div class="box"><span class="lbl after">After · proposed · Edit mode</span>
+<div class="frame mock"><div class="desk"><div class="anav" data-on="library"></div><div class="mcentre">
+<div class="crumb"><a>Library</a> › <a>Skills</a> › Release Notes</div>
+<div class="row"><div class="mh grow">Release Notes <span class="tag warn">Draft</span></div><span class="btn">Ask an agent to edit</span><span class="btn">Discard draft</span><span class="btn pri">Publish…</span></div>
+<div class="ml"><span class="fm">fernhill/release-notes</span> · version 3 in use · draft by Sam · <b>4 files changed</b>: 1 added, 2 modified, 1 deleted</div>
+<div class="ed">
+<div class="tree"><div class="h">Files</div>
+<div class="f on"><span class="mk m">M</span><span class="nm">SKILL.md</span><span class="cnt2">+3 −1</span></div>
+<div class="f"><span class="mk"></span><span class="nm">▾ scripts</span></div>
+<div class="f d"><span class="mk m">M</span><span class="nm">collect-prs.sh</span><span class="cnt2">+6 −2</span></div>
+<div class="f d"><span class="mk a">A</span><span class="nm">format.py</span><span class="cnt2">+40</span></div>
+<div class="f"><span class="mk"></span><span class="nm">▾ references</span></div>
+<div class="f d"><span class="mk r">R</span><span class="nm">style.md <span style="color:var(--t3)">← voice.md</span></span></div>
+<div class="f d gone"><span class="mk del">✕</span><span class="nm">old-template.md</span></div>
+<div class="f" style="color:var(--macc)">＋ New file · ＋ Folder · Upload</div>
+</div>
+<div class="pane">
+<div class="row"><div class="grow fm">SKILL.md</div><div class="modes"><span>View</span><span class="on">Edit</span><span>Changes</span></div></div>
+<div class="editor" style="margin-top:8px">---
+name: release-notes
+description: Write release notes from the merged pull requests since the last tag. Use when asked for release notes or a changelog.
+---
+# Release Notes
+1. Run <b>scripts/collect-prs.sh</b> to list the merged pull requests since the last tag.
+2. Group them with <b>scripts/format.py</b>, using the headings in references/style.md.
+3. Keep each line to one sentence, in the past tense.</div>
+<div class="vcheck"><div>✓ Name and description fit the Agent Skills rules</div><div>✓ Every file this skill names exists: scripts/collect-prs.sh, scripts/format.py, references/style.md</div><div style="color:var(--mwarn)">! <code>allowed-tools</code> in the header is ignored when run (R8)</div></div>
+</div></div>
+</div></div></div>
+<table><tr><th></th><th>Part</th><th>Mechanism</th></tr>
+<tr><td class="n">E1</td><td><b>The tree</b> of the skill's files, with a change marker on each</td><td>The Files explorer's tree (<code>FolderTree.tsx</code>), given the draft's files instead of a place's. Markers compare the draft with the published version in use</td></tr>
+<tr><td class="n">E2</td><td><b>View</b>: the file as it reads</td><td>The file frame and its renderers (<code>ui/src/files/</code>): Markdown, code highlighted, JSON, tables, images, PDF</td></tr>
+<tr><td class="n">E3</td><td><b>Edit</b>: change the file</td><td><code>SKILL.md</code> and any text or code file. Binary files (images, PDFs) are replaced by upload, not edited. Saving writes to the draft only</td></tr>
+<tr><td class="n">E4</td><td><b>Changes</b>: this file's difference from the version in use</td><td>A new diff renderer behind the same boundary, the kind the renderer boundary was designed to take (3)</td></tr>
+<tr><td class="n">E5</td><td><b>Checks as you go</b></td><td>The Agent Skills rules (R8), plus a check that every file <code>SKILL.md</code> names exists in the skill</td></tr>
+<tr><td class="n">E6</td><td><b>New file, folder, upload, rename, delete</b> in the tree</td><td>All in the draft; a deletion stays listed, struck through, until published or undone</td></tr>
+</table></div>
+
+<h3 id="markers">The change markers</h3>
+<div class="box"><table><tr><th>Marker</th><th>Means</th><th>Shown as</th></tr>
+<tr><td><span class="mk a">A</span></td><td><b>Added</b>: new in the draft</td><td>The letter A in the success colour, with <code>+n</code> lines</td></tr>
+<tr><td><span class="mk m">M</span></td><td><b>Modified</b></td><td>The letter M in the warning colour (amber, as in VS Code and most editors), with <code>+n −m</code></td></tr>
+<tr><td><span class="mk del">✕</span></td><td><b>Deleted</b></td><td>A cross in the danger colour, and the name struck through</td></tr>
+<tr><td><span class="mk r">R</span></td><td><b>Renamed</b> or moved</td><td>The letter R in the accent colour, with the old name: <i>style.md ← voice.md</i>. Renamed and changed shows R, plus <code>+n −m</code></td></tr>
+</table>
+<p class="sub">Never colour alone: each marker has its letter or cross, and its name for screen readers ("modified, 3 lines added, 1 removed"). Colours come from the design tokens (<code>--color-success</code>, <code>--color-warning</code>, <code>--color-danger</code>, <code>--color-accent</code>).</p></div>
+
+<h2 id="changes">3 · Changes mode: per file, like a git diff</h2>
+<div class="box"><span class="lbl after">After · proposed · Changes mode</span>
+<div class="frame mock"><div class="mcentre">
+<div class="row"><div class="grow fm">scripts/collect-prs.sh · compared with version 3, in use</div><div class="modes"><span>View</span><span>Edit</span><span class="on">Changes</span></div></div>
+<div class="diff">
+<div class="fh"><span class="mk m">M</span> scripts/collect-prs.sh <span class="cnt2">+6 −2</span><span class="grow"></span><span class="btn link">Undo this file's changes</span></div>
+<div class="ln"><span>4</span><span>4</span><b> </b><b>set -euo pipefail</b></div>
+<div class="ln del"><span>5</span><span></span><b>−</b><b>since=$(git describe --tags --abbrev=0)</b></div>
+<div class="ln add"><span></span><span>5</span><b>+</b><b>since=$(git describe --tags --abbrev=0 2&gt;/dev/null || echo "")</b></div>
+<div class="ln add"><span></span><span>6</span><b>+</b><b>if [ -z "$since" ]; then echo "No tag yet: listing every merged pull request"; fi</b></div>
+<div class="ln"><span>6</span><span>7</span><b> </b><b>gh pr list --state merged --search "merged:&gt;$since"</b></div>
+</div>
+<div class="diff"><div class="fh"><span class="mk a">A</span> scripts/format.py <span class="cnt2">+40</span><span class="grow"></span><span class="btn link">Open</span></div></div>
+<div class="diff"><div class="fh"><span class="mk del">✕</span> references/old-template.md <span class="cnt2">−22</span><span class="grow"></span><span class="btn link">Restore</span></div></div>
+</div></div>
+<ul><li><b>Per file</b>, as a git diff reads: unchanged lines for context, removed lines marked <code>−</code>, added lines <code>+</code>, old and new line numbers. All the draft's changes can be read in one long list, or one file at a time from the tree.</li>
+<li><b>Compared with:</b> the version in use, by default. The same view shows <i>what changed</i> in an update (U5), in a proposal (R1, C3), and in a file skill since it was switched on (P1). That's one component for every "what changed" in this design.</li>
+<li><b>Undo per file</b>, and <i>Restore</i> for a deleted one.</li></ul></div>
+
+<h2 id="agent">4 · Asking an agent: the draft fills as it works</h2>
+<div class="box"><span class="lbl after">After · proposed</span>
+<div class="frame mock"><div class="mcentre">
+<div class="row"><div class="mh grow">Release Notes <span class="tag warn">Draft</span></div><span class="btn pri">Publish…</span></div>
+<div class="ed dockd">
+<div class="tree"><div class="h">Files</div>
+<div class="f"><span class="mk m">M</span><span class="nm">SKILL.md</span></div>
+<div class="f d on"><span class="mk a">A</span><span class="nm">scripts/format.py</span></div></div>
+<div class="pane"><div class="row"><div class="grow fm">scripts/format.py</div><div class="modes"><span>View</span><span>Edit</span><span class="on">Changes</span></div></div>
+<div class="diff"><div class="ln add"><span></span><span>1</span><b>+</b><b>"""Group merged pull requests under release headings."""</b></div><div class="ln add"><span></span><span>2</span><b>+</b><b>import json, sys</b></div><div class="ln add"><span></span><span>3</span><b>+</b><b>…</b></div></div></div>
+<div class="dockcol"><div class="dh">Ada · editing Release Notes</div>
+<div class="bubble me">Add a script that groups the pull requests by label, and use it from SKILL.md.</div>
+<div class="stepcard"><b>Used the skill</b> Skill creator</div>
+<div class="stepcard"><b>Changed the draft:</b> added scripts/format.py, changed SKILL.md</div>
+<div class="bubble">I've added <code>format.py</code> and a step in SKILL.md that uses it. It's in your draft. Have a look at the changes, then publish when you're happy.</div></div>
+</div></div></div>
+<ul><li><b>Mechanism:</b> <i>Ask an agent to edit</i> opens a conversation docked beside the editor, with the skill attached. The agent writes with <code>propose_skill</code> as an edit. Because Sam can edit this skill, each call updates <b>Sam's draft</b>, and the tree and the changes refresh (D24). Someone who can't edit it gets a proposal for review instead (R1).</li>
+<li><b>Agents draft, people publish:</b> the agent has no publish, as with <code>propose_workflow</code>.</li>
+<li>Person and agent can both work on the draft. Each save is kept in the draft's own history until it's published.</li></ul></div>
+
+<h2 id="publish">5 · Publish</h2>
+<div class="box"><p>The dialog lists the files changed, with their markers, and asks for a note: "Publish version 4: 4 files changed. Ada and Priya use it from their next turn." A new skill's first publish is version 1, and then offers <i>Add to agents…</i> (D23).</p></div>
+
+<h2 id="files">6 · A skill in a place's files: versioned by publishing too</h2>
+<div class="box"><p><b>Raised 27 Oct:</b> files have no versions, but the skill itself should. Publishing is what versions it, in a place as in the Library.</p>
+<table><tr><th></th><th>Rule</th><th>Mechanism</th></tr>
+<tr><td class="n">FV1</td><td><b>The same editor, the same draft and publish</b></td><td>The draft is kept by hq, never in the place's live folder, so no agent sees it. <i>Publish</i> writes the files into <code>files/.agents/…/skills/&lt;name&gt;/</code> through the site, as writing in Files does</td></tr>
+<tr><td class="n">FV2</td><td><b>Publishing gives it a version</b></td><td>hq records version → fingerprint → content for that place's skill, and writes the number into the skill's own <code>metadata</code> (<code>version: "4"</code>), so it travels with the files</td></tr>
+<tr><td class="n">FV3</td><td><b>History and roll back</b></td><td>From hq's record (A4 keeps the content). <i>Roll back</i> writes the older version's files back and publishes them as the next version</td></tr>
+<tr><td class="n">FV4</td><td><b>Changed outside the editor</b>: an agent's file tools, Files, or anyone writing the folder</td><td>The site reports a fingerprint hq didn't publish. The page shows <i>Changed in files, not published</i>, with <b>Changes</b> against the last version and two actions: <i>Publish as version 5</i> or <i>Put back version 4</i>. Under <i>Off by default</i> it's off until then (D13)</td></tr>
+<tr><td class="n">FV5</td><td><b>Your space</b></td><td>The same, with the person as the one who publishes</td></tr>
+<tr><td class="n">FV6</td><td><b>A workspace's repository</b></td><td>Read-only here. Its versions are its commits, and the repository decides what it holds</td></tr>
+</table></div>
+
+<h2 id="open">Open on this board</h2>
+<div class="box"><p><b>None.</b> EQ1–EQ6 were answered on 27 Oct (D25).</p></div>
+
+<script type="module" src="/files/shell.js?v=9"></script>
+</body></html>
