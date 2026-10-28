@@ -10,6 +10,7 @@ GROUP="Agenthix Platform"
 FILES=(
   ".env.release|.env.release"
   ".env.testing|.env.testing"
+  ".env.dev|.env.dev"
 )
 
 SETTINGS="$ROOT/.env.vault"
