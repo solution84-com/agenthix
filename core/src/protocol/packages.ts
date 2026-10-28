@@ -12,6 +12,7 @@
  * settings (model, runtime, tools, approval) are not package content: they
  * live on hq's agent record and reach a run through its dispatch payload.
  */
+import { parseAssetIdentity } from '../assets/identity.js'
 
 /** The format of a package's contents list, which the digest covers. A site loads exactly this format. */
 export const PACKAGE_FORMAT_VERSION = 1
@@ -26,7 +27,8 @@ export const PACKAGE_METHODS = {
   put: 'packages.put',
 } as const
 
-export const PACKAGE_KINDS = ['agent', 'org', 'platform'] as const
+/** `skill`: an installed or personal skill's one published version; its key is that version row's id. */
+export const PACKAGE_KINDS = ['agent', 'org', 'platform', 'skill'] as const
 export type PackageKind = (typeof PACKAGE_KINDS)[number]
 
 export const PLATFORM_PACKAGE_KEY = 'platform'
@@ -113,7 +115,17 @@ export const SKILL_SOURCES = ['platform', 'org', 'agent', 'boundary', 'shared', 
  */
 export type AgentPackageSkillSource = 'agent'
 
-export type SkillSource = Exclude<(typeof SKILL_SOURCES)[number], AgentPackageSkillSource> | AgentPackageSkillSource
+/**
+ * The org package's own `skills/`: the organisation's skills now reach a run as `installedSkills` at the `org` level.
+ *
+ * @deprecated since 1.10; stops working in 3.0. Use `installedSkills` instead.
+ */
+export type OrgPackageSkillSource = 'org'
+
+export type SkillSource =
+  | Exclude<(typeof SKILL_SOURCES)[number], AgentPackageSkillSource | OrgPackageSkillSource>
+  | AgentPackageSkillSource
+  | OrgPackageSkillSource
 
 export const MAX_SKILL_NAME_LENGTH = 64
 
@@ -152,6 +164,20 @@ export function workspaceSkillName(n: number, slug: string): string | null {
   return boundedSkillName(`workspace-${n}`, slug)
 }
 
+/** The source an installed skill stages under, by its level: names stay as they were before installing (adr-0084). */
+export const INSTALLED_SKILL_SOURCE: Readonly<Record<InstalledSkillLevel, SkillSource>> = { builtin: 'platform', org: 'org', agent: 'agent' }
+
+/**
+ * `<source>-<last part of the identity's name>`: the name an installed or personal skill stages under, so hq can see
+ * two that would share one before it sends them (security review M2). Null when the identity is not one, or its name
+ * does not make a skill name.
+ */
+export function deliveredSkillName(source: SkillSource, identity: string): string | null {
+  const parsed = parseAssetIdentity(identity)
+  if (!parsed) return null
+  return namespacedSkillName(source, parsed.name.slice(parsed.name.lastIndexOf('/') + 1))
+}
+
 /**
  * The skills hq names in a run's dispatch beside its packages (spec part 4 *Defaults and switches*, part 5
  * *Delivery*). Installed and personal skills are content by digest, delivered as packages are; file skills are named
@@ -161,7 +187,14 @@ export function workspaceSkillName(n: number, slug: string): string | null {
 export type InstalledSkillLevel = 'builtin' | 'org' | 'agent'
 
 /** `identity` is `publisher/name` (assets/identity.ts); `version` its pinned SemVer version. */
-export type InstalledSkillEntry = { identity: string; version: string; digest: string; level: InstalledSkillLevel }
+export type InstalledSkillEntry = {
+  identity: string
+  version: string
+  digest: string
+  level: InstalledSkillLevel
+  /** The content to deliver: kind `skill`, key the version row id, the same digest. Optional only so 1.9 stays valid; hq always sends it from 1.10, and a site stages no entry without it. */
+  ref?: PackageRef
+}
 
 /** Where in a place's files a skill was found: the place's own, one agent's, or a workspace repository's. */
 export type FileSkillGroup = 'place' | 'agent' | 'workspace'
@@ -170,12 +203,13 @@ export type FileSkillGroup = 'place' | 'agent' | 'workspace'
 export type FileSkillEntry = { placeId: string; path: string; fingerprint: string; group: FileSkillGroup }
 
 /** A published version of the person's own skill, for the turns of their own conversation only. */
-export type PersonSkillEntry = { identity: string; version: string; digest: string }
+export type PersonSkillEntry = { identity: string; version: string; digest: string; ref?: PackageRef }
 
 /**
  * One skill a run had staged, as the site records it on the run (`AgentRun.skillsUsed`): its staged name and source,
  * the fingerprint of what was staged, and what it was, so hq can show it at the version used. `personId` marks a
- * person's own skill, which opens only for that person (security review M6).
+ * person's own skill, which opens only for that person (security review M6). A skill hq named that was not staged is
+ * recorded too, with `refused`: it was not used, and its `name` is empty when no staged name could be formed.
  */
 export type RunSkillUse = {
   name: string
@@ -186,4 +220,6 @@ export type RunSkillUse = {
   placeId?: string
   path?: string
   personId?: string
+  /** Set when hq named the skill and the site did not stage it, saying why (security review H3, M2). Since 1.10. */
+  refused?: string
 }

@@ -222,18 +222,18 @@ publishing and checked as they are staged, and a person's published skills follo
 **Starts when:** phase 2's install pipeline and versions (2.1–2.7) are merged.
 **Execution plan:** none — lanes. The staging check runs on Opus.
 
-- [ ] 3.1 hq resolves an agent's skills per run, with the clash order (installed, project, person)
-- [ ] 3.2 Installed and personal content delivered by digest, once per version; caches bounded
-- [ ] 3.3 The site scans a place and its workspaces' three folders when asked, under bounds
-- [ ] 3.4 Staging re-fingerprints each file skill and stages only what hq named, by place and path
-- [ ] 3.5 Unique staged names per run, workspace and folder; a clash stages neither
-- [ ] 3.6 The organisation's default (shipped off by default), a place's stricter default, switches, all on and all off
-- [ ] 3.7 Place skills versioned by publishing: drafts in hq, publish through the site, `metadata` version, roll back
-- [ ] 3.8 Changed in files, not published: detected, shown, publish or put back
-- [ ] 3.9 A person's published skills follow them into their own conversations; the organisation's switch
-- [ ] 3.10 Project administrators publish; organisation administrators govern through the default only
-- [ ] 3.11 Site protocol minor version, and the `agent` source and agent package skills marked deprecated
-- [ ] 3.12 Claude's plugin and allowlist and OpenCode's list and skill tool fed from the new sets
+- [x] 3.1 hq resolves an agent's skills per run, with the clash order (installed, project, person)
+- [x] 3.2 Installed and personal content delivered by digest, once per version; caches bounded
+- [x] 3.3 The site scans a place and its workspaces' three folders when asked, under bounds
+- [x] 3.4 Staging re-fingerprints each file skill and stages only what hq named, by place and path
+- [x] 3.5 Unique staged names per run, workspace and folder; a clash stages neither
+- [x] 3.6 The organisation's default (shipped off by default), a place's stricter default, switches, all on and all off
+- [x] 3.7 Place skills versioned by publishing: drafts in hq, publish through the site, `metadata` version, roll back
+- [x] 3.8 Changed in files, not published: detected, shown, publish or put back
+- [x] 3.9 A person's published skills follow them into their own conversations; the organisation's switch
+- [x] 3.10 Project administrators publish; organisation administrators govern through the default only
+- [x] 3.11 Site protocol minor version, and the `agent` source and agent package skills marked deprecated
+- [x] 3.12 Claude's plugin and allowlist and OpenCode's list and skill tool fed from the new sets
 
 ### Phase 4 — The conversation and the built-ins
 **Delivers:** people pick a skill with `/`, see the skill a run used, and get agents' proposals as drafts or
@@ -325,3 +325,5 @@ read; the branch ready to merge.
 |---|---|---|
 | 1 | Task 1.7 adds the new records but leaves `Skill` and `SkillScope` in place; they are removed in phase 2 with the code that reads them (2.6) | Removing the table in phase 1 would leave the Library's skill actions broken until phase 2 rewrites them; the removal belongs with their replacement |
 | 2 | A keyless signer's identity is the certificate's identity less the ref it ran from, with the ref checked on its own; an unknown key-pair signer is refused as unverifiable, not offered as a new publisher (spec part 3 *Who signs*, amended) | A workflow's certificate identity ends in its ref, so comparing it whole made every tag release a different signer; a key-pair bundle doesn't carry its key, so there's nothing to verify until it is trusted |
+| 3 | A person's skills reach the agents their own conversation hands work to, not only the conversation's own turns (spec part 4 *The person's skills*, amended) | A conversation's lead answers in hq and every agent turn runs as work it hands on; excluding that work meant personal skills, and the `/` picker for them, reached almost nothing. It is still the person's own request, within their access |
+| 3 | Publishing, adding and removing a place's skill go through a new site call that writes or removes a whole skill folder (spec part 4 amended); site protocol 1.11 | The spec assumed a general site file write existed; the only one writes new files and never replaces, so no place skill could be published |

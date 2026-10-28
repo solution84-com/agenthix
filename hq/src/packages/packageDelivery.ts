@@ -9,7 +9,7 @@
 import { prisma } from 'wasp/server'
 import {
   PACKAGE_METHODS,
-  type PackageRef, type PackagesMissingResult, type RunPackages,
+  type PackageRef, type PackagesMissingResult, type RunContextPayload, type RunPackages,
 } from '@agenthix/core'
 import { siteChannelRegistry, ChannelRequestFailed } from '../sites/channel'
 import { openContentStream, ContentStreamFailed, type ContentStream } from '../sites/content'
@@ -32,6 +32,17 @@ const UNREACHABLE = new Set(['offline', 'timeout', 'disconnected'])
 
 export function refsOf(packages: RunPackages): PackageRef[] {
   return [packages.agent, ...(packages.org ? [packages.org] : []), packages.platform]
+}
+
+/**
+ * The installed and personal skill content a run names (skills spec part 5, *Delivery per turn*): one `skill` ref per
+ * version, delivered like any package, so a site fetches each version once and reuses it for every agent and turn.
+ */
+export function skillRefsOf(context: Pick<RunContextPayload, 'installedSkills' | 'personSkills'>): PackageRef[] {
+  const refs = [...(context.installedSkills ?? []), ...(context.personSkills ?? [])]
+    .map(e => e.ref)
+    .filter((r): r is PackageRef => r !== undefined)
+  return [...new Map(refs.map(r => [r.digest, r])).values()]
 }
 
 async function siteRow(siteId: string) {
@@ -108,8 +119,9 @@ async function putPackage(siteId: string, ref: PackageRef): Promise<void> {
   }
 }
 
-export async function deliverPackages(siteId: string, packages: RunPackages): Promise<void> {
-  const refs = refsOf(packages)
+/** Every package the run loads, and `skills` beside them; each digest the site lacks is sent once. */
+export async function deliverPackages(siteId: string, packages: RunPackages, skills: PackageRef[] = []): Promise<void> {
+  const refs = [...new Map([...refsOf(packages), ...skills].map(r => [r.digest, r])).values()]
   let missing: string[]
   try {
     ;({ missing } = await siteChannelRegistry.request(siteId, PACKAGE_METHODS.missing, { refs }))

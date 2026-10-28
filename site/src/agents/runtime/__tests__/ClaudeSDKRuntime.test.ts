@@ -43,8 +43,7 @@ vi.mock('../claude/claudeProcessProbe', () => ({
 // covered on its own in skillStaging.test.ts — here it's a stand-in so
 // ClaudeSDKRuntime's tmpdir wiring can be tested independently of it.
 vi.mock('../skillStaging', () => ({
-  stageSkills: vi.fn(async () => []),
-  skillRootsFor: vi.fn(() => []),
+  stageSkills: vi.fn(async () => ({ staged: [], refused: [] })),
 }))
 
 import { ClaudeSDKRuntime } from '../ClaudeSDKRuntime'
@@ -95,7 +94,7 @@ const baseContext: RunContext = {
     platformDir: '/cache/platform',
   },
   boundaryOverride: null,
-  boundarySharedSkills: null,
+  skills: null,
   // The Claude home belongs to the storage boundary the run's container serves
   // — never to the agent. Both views of one directory; the second is what the
   // SDK is told.
@@ -337,7 +336,7 @@ describe('ClaudeSDKRuntime @SC-119', () => {
   })
 
   it('passes additionalDirectories when custom agent skills exist', async () => {
-    mockStageSkills.mockResolvedValueOnce([{ source: 'org', slug: 'x', name: 'org-x' }])
+    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }], refused: [] })
 
     mockQuery.mockReturnValue(makeSDKStream([
       { type: 'result', subtype: 'success' },
@@ -355,7 +354,7 @@ describe('ClaudeSDKRuntime @SC-119', () => {
 
   it('hands the staged skills over as a local plugin, allowlisted, with inline skill commands off', async () => {
     const fsMod = (await import('node:fs/promises')).default as any
-    mockStageSkills.mockResolvedValueOnce([{ source: 'org', slug: 'x', name: 'org-x' }, { source: 'agent', slug: 'y', name: 'agent-y' }])
+    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }, { source: 'agent', slug: 'y', name: 'agent-y', fingerprint: 'f' }], refused: [] })
     mockQuery.mockReturnValue(makeSDKStream([{ type: 'result', subtype: 'success' }]) as any)
 
     for await (const _ of new ClaudeSDKRuntime().run(baseContext)) { /* drain */ }
@@ -443,7 +442,7 @@ describe('skills are staged where the run can reach them', () => {
   it("creates the skills tmpdir on the site's own view of the boundary home", async () => {
     process.env.AGENT_CONTAINER_ISOLATION = 'true'
     const fsMod = (await import('node:fs/promises')).default as any
-    mockStageSkills.mockResolvedValueOnce([{ source: 'org', slug: 'x', name: 'org-x' }])
+    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }], refused: [] })
     mockQuery.mockReturnValue(makeSDKStream([{ type: 'result', subtype: 'success' }]) as any)
 
     for await (const _ of new ClaudeSDKRuntime().run(containerizedContext)) { /* drain */ }
@@ -459,7 +458,7 @@ describe('skills are staged where the run can reach them', () => {
 
     // Container mode: the site's own path -> the fixed container path.
     process.env.AGENT_CONTAINER_ISOLATION = 'true'
-    mockStageSkills.mockResolvedValueOnce([{ source: 'org', slug: 'x', name: 'org-x' }])
+    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }], refused: [] })
     fsMod.mkdtemp.mockImplementation(async (prefix: string) => `${prefix}xyz`)
     mockQuery.mockReturnValue(makeSDKStream([{ type: 'result', subtype: 'success' }]) as any)
 
@@ -472,7 +471,7 @@ describe('skills are staged where the run can reach them', () => {
     process.env.ANTHROPIC_API_KEY = 'test-key'
     process.env.SITE_ROOT = '/site'
     delete process.env.AGENT_CONTAINER_ISOLATION
-    mockStageSkills.mockResolvedValueOnce([{ source: 'org', slug: 'x', name: 'org-x' }])
+    mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }], refused: [] })
     fsMod.mkdtemp.mockImplementation(async (prefix: string) => `${prefix}xyz`)
     mockQuery.mockReturnValue(makeSDKStream([{ type: 'result', subtype: 'success' }]) as any)
 

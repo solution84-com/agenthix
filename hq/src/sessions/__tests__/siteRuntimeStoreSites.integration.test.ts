@@ -110,7 +110,7 @@ const PACKAGES: RunPackages = {
 
 /** The packages were delivered to the site, and strictly before the one channel request. */
 function expectDeliveredBefore(method: string): void {
-  expect(deliverPackages).toHaveBeenCalledWith(SITE, PACKAGES)
+  expect(deliverPackages).toHaveBeenCalledWith(SITE, PACKAGES, [])
   expect(request).toHaveBeenCalledTimes(1)
   expect(request.mock.calls[0][1]).toBe(method)
   expect(deliverPackages.mock.invocationCallOrder[0]).toBeLessThan(request.mock.invocationCallOrder[0])

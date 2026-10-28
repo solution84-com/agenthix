@@ -19,7 +19,7 @@ store; hq lists them, installs into them and switches them (D13).
 
 | | Rule |
 |---|---|
-| FV1 | The same editor, draft and publish as the Library. hq keeps the draft, never in the place's live folder, so no agent sees it; *Publish* writes the files through the site |
+| FV1 | The same editor, draft and publish as the Library. hq keeps the draft, never in the place's live folder, so no agent sees it; *Publish* writes the skill's folder through the site |
 | FV2 | Publishing gives the skill a version: hq records version, fingerprint and content, and writes the number into the skill's `metadata` (`version: "4"`) |
 | FV3 | History and roll back from hq's record; rolling back publishes the older files as the next version |
 | FV4 | A change made outside the editor (an agent's file tools, Files, anyone writing the folder) shows as *changed in files, not published*, with its changes and two actions: *Publish as version 5* or *Put back version 4*. Under *off by default* it is off until then |
@@ -52,9 +52,10 @@ dispatch, keyed by **place, path and fingerprint**. **Staging checks what it cop
 reads each file-skill folder into memory under staging's bounds, computes its fingerprint over exactly those bytes, and
 stages it only if it equals the fingerprint hq named for that place and path; a mismatch is not staged and is reported.
 Switching a skill on shows every one of its files, `scripts/` and references included, not only `SKILL.md`. *Add to this
-place* copies an installed asset's skill into the place's folder, through the same site call that writes files today.
-*Remove* deletes a place's skill folder; a workspace's skill can only be switched off, since its repository decides
-what it holds.
+place* copies an installed asset's skill into the place's folder. *Remove* deletes a place's skill folder; a
+workspace's skill can only be switched off, since its repository decides what it holds. Publishing, rolling back,
+putting back, adding and removing go through one site call that writes or removes a whole skill folder at once, only
+in a place's skill folders (never a workspace's repository), bounded like staging, with links refused.
 
 ## The person's skills (D15)
 
@@ -62,8 +63,10 @@ A person's own skills live in Your space's files and **follow them into their ow
 projects included. hq reads the switched-on ones through the person's site and delivers them by fingerprint, so it
 works when Your space and the project sit on different sites. **Only a version the person published follows them**
 (FV5), whatever the place's default; an unpublished change in Your space never leaves it (security review H4). They
-apply to the turns of the person's own conversation only: not to runs someone else started, to scheduled or automated
-runs, or to worker runs started from the conversation.
+apply to the person's own conversation only: its turns, and the work it hands to an agent on the person's behalf
+(a conversation's lead answers in hq and hands work to agents running on a site, so that work *is* the conversation
+for this purpose); not to runs someone else started, to tasks, or to scheduled or automated runs (security review
+L5).
 
 Safe because a skill adds no capability: in the person's own conversation it can only make the agent do what the
 person could ask by typing the same words, and the conversation stays within the person's access (adr-0152). The

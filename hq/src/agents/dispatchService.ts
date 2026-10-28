@@ -52,6 +52,7 @@ import { RunPersonLostAccessError } from './taskExecutionReasons'
 import { scheduledChangeHold } from '../sites/scheduled/runHold'
 import { chooseTaskRun, readyTaskSession } from './taskRunModel'
 import { resolveSiteIdForSession } from './dispatchSiteResolution'
+import { isOwnConversation } from '../assets/delivery/personSkills'
 
 const logger = new Logger('DispatchService')
 
@@ -118,6 +119,13 @@ export async function dispatchChatRun(
     startedBy: 'person',
     choice,
     grantTo: grantTargetOf(claims),
+    // The person's own chat, or a worker their own conversation briefed on their behalf (skills spec part 4).
+    ownConversation: isOwnConversation({
+      taskId: session.taskId, sessionUserId: session.userId, senderId, conversationId: session.conversationId,
+      conversation: session.conversationId
+        ? await prisma.conversation.findUnique({ where: { id: session.conversationId }, select: { openedById: true, home: true } })
+        : null,
+    }),
   })
   const { token: capabilityJwt } = await signCapability(claims)
 

@@ -14,7 +14,8 @@ vi.mock('#db', () => ({ prisma: {} }))
 import { listFiles, statFile } from '../locationFileMethods'
 import { removeLocation } from '../locationRemove'
 import { ownerDir } from '../paths'
-import { resolveBoundaryOverrideDir, resolveBoundarySharedSkillsDir } from '../../../packages/boundaryOverrides'
+import { resolveBoundaryOverrideDir } from '../../../packages/boundaryOverrides'
+import { placeFilesHome, workspaceHome } from '../../../packages/placeSkillHomes'
 
 const mine = { ownerType: 'project' as const, ownerId: 'proj-mine' }
 const theirs = { ownerType: 'project' as const, ownerId: 'proj-theirs' }
@@ -58,7 +59,12 @@ describe('a location whose folder was replaced by a link', () => {
   it('reads no override or shared skills through a linked files folder', async () => {
     await linkMine('files')
     expect(await resolveBoundaryOverrideDir(mine, 'agent-1')).toBeNull()
-    expect(await resolveBoundarySharedSkillsDir(mine)).toBeNull()
+    expect(await placeFilesHome(mine)).toBeNull()
+  })
+
+  it('reads no workspace skills through a linked workspaces folder', async () => {
+    await linkMine('workspaces')
+    expect(await workspaceHome(mine, 'ws-1')).toBeNull()
   })
 
   it('refuses to remove a workspace through a linked workspaces folder, and leaves the other one alone', async () => {

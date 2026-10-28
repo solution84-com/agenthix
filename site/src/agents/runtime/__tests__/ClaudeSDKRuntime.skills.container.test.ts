@@ -24,6 +24,8 @@ vi.mock('#db', () => ({ prisma: { toolCallLog: { create: vi.fn().mockResolvedVal
 import { ClaudeSDKRuntime } from '../ClaudeSDKRuntime'
 import type { RunContext, RunEvent } from '../types'
 import { claudeTestContext } from './claudeTestContext'
+import { cacheInstalledSkills, installedOnly } from './installedSkillFixture'
+import type { RunSkillInputs } from '../skillSources'
 
 const run = promisify(execFile)
 const IMAGE = process.env.AGENT_IMAGE ?? 'agenthix-agent:latest'
@@ -36,6 +38,8 @@ const PROBE_INSTRUCTIONS = 'PROBE-INSTRUCTIONS-5520'
 let dir: string
 let standin: ChildProcess | undefined
 let port = ''
+let skills: RunSkillInputs | null = null
+const siteRootBefore = process.env.SITE_ROOT
 const runtime = new ClaudeSDKRuntime()
 const sessionId = randomUUID()
 const docker = async (...args: string[]) => (await run('docker', args, { timeout: 60_000 })).stdout
@@ -57,6 +61,7 @@ function context(overrides: Partial<RunContext> = {}): RunContext {
     containerName: CONTAINER,
     credential: null,
     claudeHome: { serverDir: path.join(dir, 'home', '.claude'), visibleDir: '/home/appuser/.claude' },
+    skills,
     packages: {
       refs: { agent: { kind: 'agent', key: 'a', digest: 'a'.repeat(64) }, org: null, platform: { kind: 'platform', key: 'platform', digest: 'b'.repeat(64) } },
       agentDir: path.join(dir, 'pkg', 'agent'),
@@ -101,17 +106,20 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     await fs.mkdir(path.join(dir, 'project', 'files'), { recursive: true })
     await fs.writeFile(path.join(dir, 'project', 'files', 'x.txt'), 'x\n')
     await fs.mkdir(path.join(dir, 'pkg', 'platform', 'skills'), { recursive: true })
-    const skill = async (slug: string, md: string) => {
-      await fs.mkdir(path.join(dir, 'pkg', 'agent', 'skills', slug), { recursive: true })
-      await fs.writeFile(path.join(dir, 'pkg', 'agent', 'skills', slug, 'SKILL.md'), md)
-    }
-    await skill('hello-claude', `---\nname: hello-claude\ndescription: Greets the user the Agenthix way.\n---\n\n${INSTRUCTIONS}\n`)
-    // A command hook while the skill is active, and an inline command in its body.
-    await skill('shell-probe', [
-      '---', 'name: shell-probe', 'description: Probes what a skill can run.', 'hooks:', '  PreToolUse:', '    - matcher: "Read"', '      hooks:',
-      '        - type: command', '          command: "id > /tmp/hook-ran"', '---', '',
-      PROBE_INSTRUCTIONS, 'Inline: !`echo INLINE-RAN-$((6*7))`', '',
-    ].join('\n'))
+    await fs.mkdir(path.join(dir, 'pkg', 'agent'), { recursive: true })
+    // The agent's skills come as hq gives them: installed for the agent, their content in the site's package cache.
+    process.env.SITE_ROOT = path.join(dir, 'site')
+    skills = installedOnly(await cacheInstalledSkills({
+      'hello-claude': { 'SKILL.md': `---\nname: hello-claude\ndescription: Greets the user the Agenthix way.\n---\n\n${INSTRUCTIONS}\n` },
+      // A command hook while the skill is active, and an inline command in its body.
+      'shell-probe': {
+        'SKILL.md': [
+          '---', 'name: shell-probe', 'description: Probes what a skill can run.', 'hooks:', '  PreToolUse:', '    - matcher: "Read"', '      hooks:',
+          '        - type: command', '          command: "id > /tmp/hook-ran"', '---', '',
+          PROBE_INSTRUCTIONS, 'Inline: !`echo INLINE-RAN-$((6*7))`', '',
+        ].join('\n'),
+      },
+    }))
 
     standin = spawn('node', [fileURLToPath(new URL('./fixtures/standinAnthropic.mjs', import.meta.url))], {
       env: { ...process.env, PORT: '0', LOG: path.join(dir, 'anthropic.jsonl'), BODY_LOG: path.join(dir, 'bodies.jsonl') },
@@ -132,6 +140,8 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     await runtime.endConversation({ sessionId, containerName: CONTAINER }).catch(() => {})
     await docker('rm', '-f', CONTAINER).catch(() => '')
     standin?.kill()
+    if (siteRootBefore === undefined) delete process.env.SITE_ROOT
+    else process.env.SITE_ROOT = siteRootBefore
     await fs.rm(dir, { recursive: true, force: true })
   }, 60_000)
 
@@ -153,7 +163,7 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     const none = path.join(dir, 'pkg', 'none')
     const { sent } = await turn('TURN hello', {
       isNewSession: true, sessionId: randomUUID(), ...restricted,
-      packages: { ...context().packages, agentDir: none, platformDir: none },
+      packages: { ...context().packages, agentDir: none, platformDir: none }, skills: null,
     })
     expect(sent.length).toBeGreaterThan(0)
     for (const request of sent) {

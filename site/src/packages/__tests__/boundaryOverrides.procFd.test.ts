@@ -14,7 +14,7 @@ vi.mock('node:os', async () => {
 })
 
 import { readFileNoFollow, realpathOfFd } from '../boundaryOverrides'
-import { stageSkills, skillRootsFor } from '../../agents/runtime/skillStaging'
+import { readSkillTree, newSkillTreeBudget } from '../../agents/runtime/skillTree'
 
 let dir: string
 let readlink: MockInstance<typeof fs.readlink>
@@ -62,16 +62,10 @@ describe('a failed /proc/self/fd readlink on Linux', () => {
     expect(await readFileNoFollow(path.join(dir, 'a.md'))).toEqual({ ok: true, buf: Buffer.from('a') })
   })
 
-  it('stages no boundary skill whose directories cannot be confirmed', async () => {
-    const override = path.join(dir, 'home', '.agents', 'agents', 'a1')
-    await fs.mkdir(path.join(override, 'skills', 'ok'), { recursive: true })
-    await fs.writeFile(path.join(override, 'skills', 'ok', 'SKILL.md'), '---\nname: Ok\n---\n')
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    try {
-      const roots = skillRootsFor({ platformDir: path.join(dir, 'p'), orgDir: null, agentDir: path.join(dir, 'a') }, { dir: override, filesHome: path.join(dir, 'home') })
-      expect(await stageSkills(roots, path.join(dir, 'out'))).toEqual([])
-    } finally {
-      warnSpy.mockRestore()
-    }
+  it('reads no skill in files whose directories cannot be confirmed', async () => {
+    const skill = path.join(dir, 'home', '.agents', 'skills', 'ok')
+    await fs.mkdir(skill, { recursive: true })
+    await fs.writeFile(path.join(skill, 'SKILL.md'), '---\nname: Ok\n---\n')
+    expect(await readSkillTree(skill, { home: path.join(dir, 'home'), budget: newSkillTreeBudget() })).toMatchObject({ ok: false, reason: 'link' })
   })
 })

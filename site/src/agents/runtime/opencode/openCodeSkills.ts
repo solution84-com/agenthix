@@ -19,7 +19,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { OPENCODE_SKILLS_DIRNAME, conversationStagingDirName } from '@agenthix/core'
 import { Logger } from '../../../server/utils/logger'
-import { skillRootsFor, stageSkills } from '../skillStaging'
+import { stageSkills, type StagingResult } from '../skillStaging'
 import { recordSkillsUsed } from '../skillUseRecord'
 import { SKILLS_STAGING_DIRNAME } from '../skillsStagingDir'
 import type { RunContext } from '../types'
@@ -40,7 +40,7 @@ export type OpenCodeTurnSkills = {
   systemSection: string | null
 }
 
-type StagingContext = Pick<RunContext, 'runId' | 'claudeHome' | 'packages' | 'boundaryOverride' | 'boundarySharedSkills'>
+type StagingContext = Pick<RunContext, 'runId' | 'claudeHome' | 'skills'> & { packages: Pick<RunContext['packages'], 'platformDir'> }
 
 function stagingDirName(conversationId: string): string {
   const name = conversationStagingDirName(conversationId)
@@ -103,9 +103,9 @@ export async function stageOpenCodeSkills(context: StagingContext, conversationI
   const old = path.join(parent, `${OPENCODE_SKILLS_DIRNAME}.old-${randomUUID()}`)
   await fs.mkdir(next)
 
-  let staged
+  let result: StagingResult
   try {
-    staged = await stageSkills(skillRootsFor(context.packages, context.boundaryOverride, context.boundarySharedSkills), next)
+    result = await stageSkills(context.packages.platformDir, context.skills, next)
     await fs.rename(dirs.serverDir, old).catch((err: NodeJS.ErrnoException) => {
       if (err.code !== 'ENOENT') throw err
     })
@@ -117,9 +117,9 @@ export async function stageOpenCodeSkills(context: StagingContext, conversationI
     await fs.rm(old, { recursive: true, force: true }).catch(() => {})
   }
 
-  await recordSkillsUsed(context.runId, staged)
+  await recordSkillsUsed(context.runId, result)
   const skills: OpenCodeSkill[] = []
-  for (const s of staged) {
+  for (const s of result.staged) {
     const markdown = await fs.readFile(path.join(dirs.serverDir, s.name, 'SKILL.md'), 'utf-8').catch(() => null)
     if (markdown === null) continue
     skills.push({

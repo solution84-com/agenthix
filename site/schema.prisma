@@ -269,6 +269,9 @@ model AgentRun {
   agentPackageDigest     String?
   orgPackageDigest       String?
   platformPackageDigest  String?
+  // The installed and personal skill content the run was dispatched with, so eviction keeps it while the run is
+  // queued or running.
+  skillDigests           String[]  @default([])
 
   // HITL manifest fields
   manifestStatus     ManifestStatus?

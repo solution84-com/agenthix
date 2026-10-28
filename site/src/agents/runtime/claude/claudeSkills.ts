@@ -21,7 +21,7 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { Logger } from '../../../server/utils/logger'
-import { stageSkills, skillRootsFor } from '../skillStaging'
+import { stageSkills } from '../skillStaging'
 import { recordSkillsUsed } from '../skillUseRecord'
 import { SKILLS_STAGING_DIRNAME } from '../skillsStagingDir'
 import { SKILLS_PLUGIN_NAME } from '../sdkNames'
@@ -54,8 +54,9 @@ export async function stageTurnSkills(context: RunContext): Promise<StagedTurnSk
   const skillsDir = path.join(pluginDir, 'skills')
   await fs.mkdir(skillsDir, { recursive: true })
 
-  const staged = await stageSkills(skillRootsFor(context.packages, context.boundaryOverride, context.boundarySharedSkills), skillsDir)
-  await recordSkillsUsed(context.runId, staged)
+  const result = await stageSkills(context.packages.platformDir, context.skills, skillsDir)
+  await recordSkillsUsed(context.runId, result)
+  const staged = result.staged
   if (staged.length === 0) {
     await removeStagedSkills(serverDir)
     return null

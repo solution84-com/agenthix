@@ -51,12 +51,19 @@ import type {
 
 export * from './locationKnowledge.js'
 export * from './locationFind.js'
+export * from './locationSkills.js'
 
 export const LOCATION_FILE_METHODS = {
   /** Control channel: the entries directly under a location, or under one directory inside it. */
   listFiles: 'location.listFiles',
   /** Control channel (1.8): a location's files whose names hold a fragment, best first — `./locationFind.ts`. */
   findFiles: 'location.findFiles',
+  /** Control channel (1.10): the skill folders in a place's files and its workspaces — `./locationSkills.ts`. */
+  scanSkills: 'location.scanSkills',
+  /** Content transport (1.11): one of a place's skill folders made to hold exactly the files streamed — `./locationSkills.ts`. */
+  writeSkill: 'location.writeSkill',
+  /** Control channel (1.11): one of a place's skill folders removed — `./locationSkills.ts`. */
+  removeSkill: 'location.removeSkill',
   /** Control channel: one entry's kind, size and modification time. */
   statFile: 'location.statFile',
   /** Control channel: write a new location's starter documents, each saying whether it may replace one. */

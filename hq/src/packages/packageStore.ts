@@ -18,7 +18,7 @@ import {
 
 export type PackageFileInput = { path: string; content: Buffer }
 export type PackageWrite = {
-  kind: PackageKind
+  kind: StoredPackageKind
   key: string
   files: PackageFileInput[]
   updatedById: string | null
@@ -42,15 +42,18 @@ export class PackageNotFoundError extends Error {
   }
 }
 export class PackageWriteConflictError extends Error {
-  constructor(kind: PackageKind, key: string) {
+  constructor(kind: StoredPackageKind, key: string) {
     super(`The ${kind} package ${key} was changed by someone else at the same moment — reload and try again`)
     this.name = 'PackageWriteConflictError'
   }
 }
 
+/** Skill content is held with its version row, not in the package store. */
+export type StoredPackageKind = Exclude<PackageKind, 'skill'>
+
 const PRISMA_KIND = { agent: 'AGENT', org: 'ORG', platform: 'PLATFORM' } as const
 
-export function toPrismaKind(kind: PackageKind): (typeof PRISMA_KIND)[PackageKind] {
+export function toPrismaKind(kind: StoredPackageKind): (typeof PRISMA_KIND)[StoredPackageKind] {
   return PRISMA_KIND[kind]
 }
 
@@ -104,11 +107,11 @@ function validateFiles(files: PackageFileInput[]): void {
   }
 }
 
-function kindKey(kind: PackageKind, key: string) {
+function kindKey(kind: StoredPackageKind, key: string) {
   return { kind_key: { kind: toPrismaKind(kind), key } }
 }
 
-export async function getCurrentPackage(kind: PackageKind, key: string, db: Db = prisma): Promise<CurrentPackage | null> {
+export async function getCurrentPackage(kind: StoredPackageKind, key: string, db: Db = prisma): Promise<CurrentPackage | null> {
   const row = await db.package.findUnique({ where: kindKey(kind, key), select: { digest: true, updatedById: true } })
   if (!row) return null
   return { ref: { kind, key, digest: row.digest }, updatedById: row.updatedById }
@@ -185,7 +188,7 @@ export async function writePackage(input: PackageWrite, db: Db = prisma): Promis
  * content is released, not deleted — a run that already started may still need
  * it — and the sweep removes it later. A key with no package is not an error.
  */
-export async function deletePackage(kind: PackageKind, key: string, db: Db = prisma): Promise<void> {
+export async function deletePackage(kind: StoredPackageKind, key: string, db: Db = prisma): Promise<void> {
   const current = await getCurrentPackage(kind, key, db)
   if (!current) return
   await db.package.deleteMany({ where: { kind: toPrismaKind(kind), key } })
@@ -209,7 +212,7 @@ export async function readPackage(ref: PackageRef, db: Db = prisma): Promise<Loa
 }
 
 /** The current files of a package, or null when it has none yet. */
-export async function readCurrentFiles(kind: PackageKind, key: string, db: Db = prisma): Promise<PackageFileInput[] | null> {
+export async function readCurrentFiles(kind: StoredPackageKind, key: string, db: Db = prisma): Promise<PackageFileInput[] | null> {
   const row = await db.package.findUnique({
     where: kindKey(kind, key),
     select: { content: { select: { files: { select: { path: true, bytes: true }, orderBy: { path: 'asc' } } } } },

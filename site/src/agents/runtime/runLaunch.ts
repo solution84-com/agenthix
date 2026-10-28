@@ -25,7 +25,8 @@ import { CLAUDE_SDK_RUNTIME, type AgentRuntime, type ApprovedManifest, type RunC
 import { AgentPromptBuilder } from '../AgentPromptBuilder'
 import type { ContainerMounts } from '../AgentPromptBuilder'
 import { resolveRunPackageDirs } from '../../packages/runPackages'
-import { resolveBoundaryOverrideDir, resolveBoundarySharedSkillsDir } from '../../packages/boundaryOverrides'
+import { resolveBoundaryOverrideDir } from '../../packages/boundaryOverrides'
+import { runSkillInputs } from './runSkillInputs'
 import { loadPromptContent } from '../promptContent'
 import { getAgentFacingSiteUrl } from '../../server/siteConfig'
 import { runAccessOf } from '../../server/modelRelay/runAccess'
@@ -206,7 +207,8 @@ export async function assembleRunLaunch(
 
   // 3b. A boundary's disk overrides (P18).
   const boundaryOverride = await resolveBoundaryOverrideDir(primaryLoc, agent.id)
-  const boundarySharedSkills = await resolveBoundarySharedSkillsDir(primaryLoc)
+  // 3b-1. The skills hq named beside the packages, staged at each turn's start.
+  const skills = runSkillInputs(ctx, primaryLoc, agent.id, typeof verified.userId === 'string' ? verified.userId : null)
 
   // One source of truth: a run inside a task session is task-scoped even when the
   // AgentRun row carries no taskId (chat/voice turns into a task session) — the
@@ -394,7 +396,7 @@ export async function assembleRunLaunch(
     riskRules: ctx.riskRules,
     packages,
     boundaryOverride,
-    boundarySharedSkills,
+    skills,
     claudeHome,
     workingTreeDir,
   }

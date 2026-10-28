@@ -22,6 +22,7 @@ import { resolveRunPackages } from '../packages/runPackages'
 import { toAgentConfigPayload } from './dispatchPayloads'
 import { applyBoundaryOverride, type OverrideBoundary } from './overrides/agentOverrideService'
 import type { GrantTarget } from '../sites/subscriptionGrants'
+import { resolveRunSkills, siteTakesRunSkills, type RunSkills } from '../assets/delivery/runSkills'
 
 /** The site's name for the OpenCode runtime (site `runtime/types.ts`). */
 const OPENCODE_RUNTIME = 'opencode'
@@ -90,6 +91,11 @@ export async function buildContext(
      * (subscriptionGrants.ts). Every dispatch passes it.
      */
     grantTo?: GrantTarget
+    /**
+     * A turn of the on-behalf-of person's own conversation — their chat, or a worker their own conversation briefed
+     * on their behalf, never a task's — which alone takes the person's own skills (skills spec part 4).
+     */
+    ownConversation?: boolean
   },
   precomputedPrimaryOwnerSlug?: string,
 ): Promise<RunContextPayload> {
@@ -116,11 +122,12 @@ export async function buildContext(
   ])
   const problem = choice.problem ?? (modelAccess ? null : NOT_GIVEN)
 
-  const [person, pinnedMemory] = await Promise.all([
+  const [person, pinnedMemory, skills] = await Promise.all([
     personContext(extras?.personUserId),
     pinnedMemoryForRun({
       agentId: agent.id, personId: extras?.personUserId ?? null, startedBy: extras?.startedBy ?? null, boundary, runnerPersonId,
     }),
+    runSkills(agent.id, kind, primaryLoc, extras),
   ])
 
   const ownerSlugs: Record<string, string> =
@@ -141,7 +148,32 @@ export async function buildContext(
     packages,
     ...(person ? { person } : {}),
     ...(pinnedMemory.length > 0 ? { pinnedMemory } : {}),
+    ...(skills ? { installedSkills: skills.installedSkills, fileSkills: skills.fileSkills, personSkills: skills.personSkills } : {}),
   }
+}
+
+/**
+ * The run's skills, resolved where the run is dispatched (skills spec part 5, *Delivery per turn*). Null when the
+ * dispatch names no site or the site speaks a protocol without them; it then stages as before.
+ */
+async function runSkills(
+  agentId: string,
+  kind: 'chat' | 'task',
+  primaryLoc: LocationRef,
+  extras: { personUserId?: string | null; startedBy?: RunStartedBy; grantTo?: GrantTarget; ownConversation?: boolean } | undefined,
+): Promise<RunSkills | null> {
+  const siteId = extras?.grantTo?.siteId
+  if (!siteId || !siteTakesRunSkills(siteId)) return null
+  return resolveRunSkills({
+    agentId,
+    siteId,
+    kind,
+    startedBy: extras?.startedBy ?? 'agent',
+    personId: extras?.personUserId ?? null,
+    ownConversation: kind === 'chat' && extras?.ownConversation === true,
+    place: { placeType: primaryLoc.ownerType, placeId: primaryLoc.ownerId },
+    workspaceIds: primaryLoc.workspaceId ? [primaryLoc.workspaceId] : [],
+  })
 }
 
 /** The person's timezone for the agent, or undefined when there is no person or they have set none. */

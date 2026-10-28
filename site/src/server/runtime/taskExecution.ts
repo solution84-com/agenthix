@@ -99,7 +99,7 @@ export async function runTask(payload: RunDispatchPayload): Promise<string> {
     )
     const run = await prisma.agentRun.create({
       data: {
-        ...runPackageColumns(context.packages),
+        ...runPackageColumns(context.packages, context),
         agentId: agent.id,
         sessionId: session.id,
         status: 'PENDING',
@@ -135,7 +135,7 @@ export async function runTask(payload: RunDispatchPayload): Promise<string> {
 
   const run = await prisma.agentRun.create({
     data: {
-      ...runPackageColumns(context.packages),
+      ...runPackageColumns(context.packages, context),
       agentId: agent.id,
       sessionId: session.id,
       status: 'PENDING',

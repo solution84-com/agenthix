@@ -30,7 +30,7 @@ function context(over: Partial<RunContext> = {}): RunContext {
     mcpServers: { platform: { type: 'http', url: 'http://site/mcp', headers: { Authorization: 'Bearer run-token' } } },
     capability: { jwt: 'jwt', expiresAt: Date.now() + 600_000 },
     credential: { kind: 'apiKey', provider: 'openrouter', apiKey: 'or-key' },
-    riskRules: null, packages: {} as RunContext['packages'], boundaryOverride: null, boundarySharedSkills: null,
+    riskRules: null, packages: {} as RunContext['packages'], boundaryOverride: null, skills: null,
     claudeHome: { serverDir: '/h', visibleDir: '/home/appuser' }, workingTreeDir: '/w',
     abortSignal: new AbortController().signal,
     ...over,

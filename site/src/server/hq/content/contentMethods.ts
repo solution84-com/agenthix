@@ -5,6 +5,7 @@ import type { ContentStream } from './contentStream'
 import { handlePackagesPut } from '../../../packages/packageMethods'
 import { handleArtefactRead, handleKnowledgeRead, handleLocationRead } from './locationReadHandler'
 import { handlePreviewConnect } from './previewConnectHandler'
+import { handleWriteSkill } from '../../storage/skillFolderWrite'
 import { refuseFilesServeFromHq } from '../../relay/filesServeFromHq'
 
 /**
@@ -27,6 +28,8 @@ export const contentMethods: Readonly<Record<SiteContentMethodName, ContentHandl
   // location, so each gets its own name rather than a flag on the read above.
   [LOCATION_FILE_METHODS.readArtefact]: handleArtefactRead,
   [LOCATION_FILE_METHODS.readKnowledge]: handleKnowledgeRead,
+  // One of a place's skill folders replaced by the files streamed (1.11); removing one is a control method.
+  [LOCATION_FILE_METHODS.writeSkill]: handleWriteSkill,
   // A running preview's own traffic, in both directions, for as long as
   // somebody is watching it. Its params name a preview this site minted and
   // nothing else — the container and the port are resolved from this site's

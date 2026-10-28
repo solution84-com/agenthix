@@ -25,6 +25,8 @@ import * as workspaceRows from '../storage/workspaceRows'
 import * as locationFiles from '../storage/locationFileMethods'
 import { listArtefacts, listKnowledge } from '../storage/ownerFolderMethods'
 import { findFiles } from '../storage/findFiles'
+import { scanSkills } from '../storage/scanSkills'
+import { removeSkillFolder } from '../storage/skillFolderWrite'
 import {
   deleteKnowledge, editKnowledge, knowledgeVersions, restoreKnowledge, writeKnowledge,
 } from '../knowledge/changeMethods'
@@ -160,6 +162,8 @@ export const channelMethods: ChannelHandlers = {
   // and this site checks containment.
   [LOCATION_FILE_METHODS.listFiles]: (params) => locationFiles.listFiles(params),
   [LOCATION_FILE_METHODS.findFiles]: (params) => findFiles(params),
+  [LOCATION_FILE_METHODS.scanSkills]: (params) => scanSkills(params),
+  [LOCATION_FILE_METHODS.removeSkill]: (params) => removeSkillFolder(params),
   [LOCATION_FILE_METHODS.statFile]: (params) => locationFiles.statFile(params),
   [LOCATION_FILE_METHODS.seedFiles]: (params) => locationFiles.seedFiles(params),
   [LOCATION_FILE_METHODS.ensureDir]: (params) => locationFiles.ensureDir(params),

@@ -11,6 +11,7 @@ import type { RelayCredential, SiteRunCredential } from '../../server/modelRelay
 import type { ApprovedManifest, AuditSummary, PendingManifest, ToolPermissionState, ToolPermission, BashPatternPermission, RunContextPayload, SessionClosedReasonValue, RunLimits, RunStartedBy, TaskCommentForRun, ContextUse } from '@agenthix/core'
 import type { ResolvedRunPackages } from '../../packages/runPackages'
 import type { BoundaryOverride } from '../../packages/boundaryOverrides'
+import type { RunSkillInputs } from './skillSources'
 export type { ToolPermissionState, ToolPermission, BashPatternPermission }
 
 /**
@@ -112,9 +113,10 @@ export type RunContext = {
    *  launch — every actual read under it (promptContent.ts, skillStaging.ts)
    *  rechecks containment again at the moment it happens (P18's TOCTOU note). */
   boundaryOverride: BoundaryOverride | null
-  /** The boundary's skills for every agent working in it (`.agents/skills/`),
-   *  resolved and rechecked the same way as `boundaryOverride`, or null. */
-  boundarySharedSkills: BoundaryOverride | null
+  /** The skills hq named for this run beside its packages (installed, in the
+   *  place's files, the person's), or null when the dispatch named none
+   *  (skillStaging.ts stages only what is named here, and the platform's). */
+  skills: RunSkillInputs | null
   /** The Claude home this run's container has — keyed by the storage boundary
    *  the container is named for, never by the agent (spec §6.1, §6.3). Both
    *  views of one directory: `serverDir` is where this process stages the

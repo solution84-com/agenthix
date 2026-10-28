@@ -10,9 +10,9 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { randomUUID, createHash } from 'node:crypto'
 import {
-  PACKAGE_FORMAT_VERSION, PACKAGE_MAX_BYTES, PACKAGE_DIGEST_PATTERN,
-  isPackageRef, isValidPackagePath, packageDigestInput,
-  type PackageRef, type PackageTransfer,
+  PACKAGE_FORMAT_VERSION, PACKAGE_MAX_BYTES, PACKAGE_DIGEST_PATTERN, SKILL_TREE_MAX_DEPTH, SKILL_TREE_MAX_ENTRIES,
+  checkAssetFileList, isPackageRef, isValidPackagePath, packageDigestInput,
+  type PackageContents, type PackageRef, type PackageTransfer,
 } from '@agenthix/core'
 import { getSiteRoot } from '../agents/agentDiskPaths'
 
@@ -91,6 +91,18 @@ function sameRef(a: PackageRef, b: PackageRef): boolean {
   return a.kind === b.kind && a.key === b.key && a.digest === b.digest
 }
 
+/**
+ * A skill's content is held to the bounds a skill in files is (security review L4): unsigned uploads and personal
+ * skills now arrive here, so the cache's own trust in hq is not enough to stage it unbounded.
+ */
+function checkSkillContents(contents: PackageContents): void {
+  const paths = contents.files.map(f => f.path)
+  if (paths.length + 1 > SKILL_TREE_MAX_ENTRIES) throw new PackageVerificationError(`A skill may hold at most ${SKILL_TREE_MAX_ENTRIES - 1} files`)
+  if (paths.some(p => p.split('/').length - 1 > SKILL_TREE_MAX_DEPTH)) throw new PackageVerificationError(`A skill's folders may be at most ${SKILL_TREE_MAX_DEPTH} deep`)
+  if (!paths.includes('SKILL.md')) throw new PackageVerificationError('A skill package has no SKILL.md')
+  if (checkAssetFileList(paths).length > 0) throw new PackageVerificationError('A skill package names two files one disk would store as one')
+}
+
 export async function storeVerifiedPackage(expected: PackageRef, body: Buffer): Promise<void> {
   // base64 grows content by a third; the JSON around it is small.
   if (body.length > PACKAGE_MAX_BYTES * 2) throw new PackageVerificationError('Package transfer is larger than any package may be')
@@ -128,6 +140,7 @@ export async function storeVerifiedPackage(expected: PackageRef, body: Buffer): 
   }
   if (Object.keys(data).length !== decoded.size) throw new PackageVerificationError('Package transfer carries data for files it does not list')
   if (sha256(packageDigestInput(contents)) !== ref.digest) throw new PackageVerificationError('Package digest does not match its contents')
+  if (ref.kind === 'skill') checkSkillContents(contents)
 
   if (await hasPackage(ref)) return
 

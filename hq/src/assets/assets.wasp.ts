@@ -13,10 +13,21 @@ import {
 } from "./people/trustedPublishers" with { type: "ref" };
 import { getAssetSettings, updateAssetSettings } from "./people/settings" with { type: "ref" };
 import { listLibraryMaintainers, nameLibraryMaintainer, removeLibraryMaintainer } from "./people/maintainers" with { type: "ref" };
+import {
+    getPlaceSkills, scanPlaceSkills, getPlaceSkillFiles, getPlaceSkillVersions,
+    setPlaceSkillsDefault, switchPlaceSkill, switchAllPlaceSkills,
+    getPlaceSkillDraft, savePlaceSkillDraft, discardPlaceSkillDraft, createPlaceSkillDraft,
+    publishPlaceSkillDraft, publishPlaceSkillFiles, rollBackPlaceSkillVersion, putBackPlaceSkillVersion,
+    addSkillToPlace, removePlaceSkill,
+} from "./places/operations" with { type: "ref" };
 
 const INSTALL_ENTITIES = ["Asset", "AssetVersion", "AssetPinChange", "TrustedPublisher", "Org", "PackageContent"] as const;
 const LIFECYCLE_ENTITIES = [
     "Asset", "AssetVersion", "AssetPinChange", "AssetGrant", "Draft", "DraftRevision", "Agent", "Org", "PackageContent",
+] as const;
+const PLACE_ENTITIES = [
+    "PlaceSkill", "PlaceSkillVersion", "Draft", "DraftRevision", "PackageContent", "Project", "ProjectMember", "Org",
+    "Asset", "AssetVersion", "Agent", "User", "UserSettings", "LibraryMaintainer",
 ] as const;
 const PEOPLE_ENTITIES = ["TrustedPublisher", "Org", "LibraryMaintainer", "User", "UserSettings"] as const;
 
@@ -59,4 +70,23 @@ export const assetsSpec: Spec = [
     query(listLibraryMaintainers, { entities: [...PEOPLE_ENTITIES] }),
     action(nameLibraryMaintainer, { entities: [...PEOPLE_ENTITIES] }),
     action(removeLibraryMaintainer, { entities: [...PEOPLE_ENTITIES] }),
+
+    // A place's skills (lane 3c): the page, the default and switches, drafts and versions by publishing, add and remove.
+    query(getPlaceSkills, { entities: [...PLACE_ENTITIES] }),
+    action(scanPlaceSkills, { entities: [...PLACE_ENTITIES] }),
+    query(getPlaceSkillFiles, { entities: [...PLACE_ENTITIES] }),
+    query(getPlaceSkillVersions, { entities: [...PLACE_ENTITIES] }),
+    action(setPlaceSkillsDefault, { entities: [...PLACE_ENTITIES] }),
+    action(switchPlaceSkill, { entities: [...PLACE_ENTITIES] }),
+    action(switchAllPlaceSkills, { entities: [...PLACE_ENTITIES] }),
+    query(getPlaceSkillDraft, { entities: [...PLACE_ENTITIES] }),
+    action(savePlaceSkillDraft, { entities: [...PLACE_ENTITIES] }),
+    action(discardPlaceSkillDraft, { entities: [...PLACE_ENTITIES] }),
+    action(createPlaceSkillDraft, { entities: [...PLACE_ENTITIES] }),
+    action(publishPlaceSkillDraft, { entities: [...PLACE_ENTITIES] }),
+    action(publishPlaceSkillFiles, { entities: [...PLACE_ENTITIES] }),
+    action(rollBackPlaceSkillVersion, { entities: [...PLACE_ENTITIES] }),
+    action(putBackPlaceSkillVersion, { entities: [...PLACE_ENTITIES] }),
+    action(addSkillToPlace, { entities: [...PLACE_ENTITIES] }),
+    action(removePlaceSkill, { entities: [...PLACE_ENTITIES] }),
 ];

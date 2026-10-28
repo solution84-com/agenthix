@@ -223,4 +223,8 @@ export const WASP_QUERIES: readonly string[] = [
   'getAssetCopyNews',
   'getAssetCredit',
   'getAssetHolders',
+  'getPlaceSkillDraft',
+  'getPlaceSkillFiles',
+  'getPlaceSkillVersions',
+  'getPlaceSkills',
 ]

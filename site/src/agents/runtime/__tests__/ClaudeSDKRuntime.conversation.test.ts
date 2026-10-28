@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@anthropic-ai/claude-agent-sdk', () => ({ query: vi.fn() }))
 vi.mock('#db', () => ({ prisma: { toolCallLog: { create: vi.fn().mockResolvedValue({}) } } }))
-vi.mock('../skillStaging', () => ({ stageSkills: vi.fn(async () => []), skillRootsFor: vi.fn(() => []) }))
+vi.mock('../skillStaging', () => ({ stageSkills: vi.fn(async () => ({ staged: [], refused: [] })) }))
 vi.mock('../landlockCheck', () => ({ requireLandlock: vi.fn(async () => {}) }))
 vi.mock('../DockerSpawner', () => ({
   spawnDockerClaude: vi.fn(() => ({ once: vi.fn((_event: string, onExit: () => void) => onExit()), stderr: null })),
@@ -183,10 +183,10 @@ describe('one claude process per conversation', () => {
 
   it('keeps the process while its skills are unchanged, and replaces it when one changes', async () => {
     let body = 'v1'
-    vi.mocked(stageSkills).mockImplementation(async (_roots, dest) => {
+    vi.mocked(stageSkills).mockImplementation(async (_platform, _inputs, dest) => {
       await fs.mkdir(path.join(dest, 'org-x'), { recursive: true })
       await fs.writeFile(path.join(dest, 'org-x', 'SKILL.md'), body)
-      return [{ source: 'org', slug: 'x', name: 'org-x' }]
+      return { staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }], refused: [] }
     })
     const fake = useFake()
     await turn()
@@ -201,7 +201,7 @@ describe('one claude process per conversation', () => {
     expect(optionsOf(fake.started[1]!).additionalDirectories).not.toEqual(optionsOf(fake.started[0]!).additionalDirectories)
     // The replaced process's folder went with it.
     expect(await fs.readdir(path.join(home, '.tmp'))).toHaveLength(1)
-    vi.mocked(stageSkills).mockImplementation(async () => [])
+    vi.mocked(stageSkills).mockImplementation(async () => ({ staged: [], refused: [] }))
   })
 
   it('measures memory after a turn, not at the start of the next', async () => {
@@ -309,14 +309,14 @@ describe('one claude process per conversation', () => {
   })
 
   it("gives the key, the tag and the command launcher to the process's own exec, in a container", async () => {
-    vi.mocked(stageSkills).mockImplementation(async (_roots, dest) => {
+    vi.mocked(stageSkills).mockImplementation(async (_platform, _inputs, dest) => {
       await fs.mkdir(path.join(dest, 'org-x'), { recursive: true })
       await fs.writeFile(path.join(dest, 'org-x', 'SKILL.md'), 'x')
-      return [{ source: 'org', slug: 'x', name: 'org-x' }]
+      return { staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f' }], refused: [] }
     })
     const fake = useFake()
     await turn({ containerName: 'c1', credential: { kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-run' }, gitCredEnv: { AGENT_HANDLE: 'coder', USE_BUILTIN_RIPGREP: '1' } })
-    vi.mocked(stageSkills).mockImplementation(async () => [])
+    vi.mocked(stageSkills).mockImplementation(async () => ({ staged: [], refused: [] }))
 
     const env = execEnvOf(fake.started[0]!)
     expect(env).toMatchObject({

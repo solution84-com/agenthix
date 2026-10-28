@@ -7,6 +7,8 @@ import { AGENT_CONTAINER_CLAUDE_HOME } from '../../../agentDiskPaths'
 import { SKILLS_STAGING_DIRNAME } from '../../skillsStagingDir'
 import { openCodeSkillsDirs, openCodeSkillsSection, stageOpenCodeSkills } from '../openCodeSkills'
 import { skillDescription } from '../skillDescription'
+import { storeVerifiedPackage } from '../../../../packages/packageCache'
+import { makeTransfer } from '../../../../packages/__tests__/transferFixture'
 
 vi.mock('#db', () => ({ prisma: { agentRun: { update: vi.fn(async () => ({})) } } }))
 
@@ -21,13 +23,12 @@ async function skill(pkg: string, slug: string, md: string) {
   await fs.writeFile(path.join(dir, pkg, 'skills', slug, 'SKILL.md'), md)
 }
 
-function context(agentPkg = 'agent') {
+function context(platformPkg = 'platform') {
   return {
     runId: 'run-1',
     claudeHome: { serverDir: path.join(dir, 'home', '.claude'), visibleDir: AGENT_CONTAINER_CLAUDE_HOME },
-    packages: { agentDir: path.join(dir, agentPkg), orgDir: null, platformDir: path.join(dir, 'platform'), refs: {} as never },
-    boundaryOverride: null,
-    boundarySharedSkills: null,
+    packages: { platformDir: path.join(dir, platformPkg) },
+    skills: null,
   }
 }
 
@@ -46,56 +47,70 @@ describe('where OpenCode skills are staged', () => {
 
 describe('staging a turn', () => {
   it("stages with Claude's namespaces and lists each skill in OpenCode's words", async () => {
-    await skill('agent', 'review', '---\nname: Review\ndescription: Review a change.\n---\nBody')
+    await skill('platform', 'review', '---\nname: Review\ndescription: Review a change.\n---\nBody')
     await skill('platform', 'plan', '---\nname: plan\ndescription: >-\n  Plan work\n  in steps.\n---\nBody')
     const staged = await stageOpenCodeSkills(context(), 'conv-a')
     const base = '/home/appuser/.claude/.tmp/conversation-conv-a/skills'
     expect(staged.skills).toEqual([
       { name: 'platform-plan', description: 'Plan work in steps.', location: `${base}/platform-plan/SKILL.md` },
-      { name: 'agent-review', description: 'Review a change.', location: `${base}/agent-review/SKILL.md` },
+      { name: 'platform-review', description: 'Review a change.', location: `${base}/platform-review/SKILL.md` },
     ])
     expect(staged.systemSection).toBe([
       'Skills provide specialized instructions and workflows for specific tasks.',
       'Use the skill tool to load a skill when a task matches its description.',
       '<available_skills>',
       '  <skill>',
-      '    <name>agent-review</name>',
-      '    <description>Review a change.</description>',
-      `    <location>${base}/agent-review/SKILL.md</location>`,
-      '  </skill>',
-      '  <skill>',
       '    <name>platform-plan</name>',
       '    <description>Plan work in steps.</description>',
       `    <location>${base}/platform-plan/SKILL.md</location>`,
       '  </skill>',
+      '  <skill>',
+      '    <name>platform-review</name>',
+      '    <description>Review a change.</description>',
+      `    <location>${base}/platform-review/SKILL.md</location>`,
+      '  </skill>',
       '</available_skills>',
     ].join('\n'))
-    const onDisk = await fs.readFile(path.join(openCodeSkillsDirs(context().claudeHome, 'conv-a').serverDir, 'agent-review', 'SKILL.md'), 'utf-8')
-    expect(onDisk).toContain('name: agent-review')
+    const onDisk = await fs.readFile(path.join(openCodeSkillsDirs(context().claudeHome, 'conv-a').serverDir, 'platform-review', 'SKILL.md'), 'utf-8')
+    expect(onDisk).toContain('name: platform-review')
   })
 
   it('shows a skill edited between turns on the next turn, and drops one removed', async () => {
-    await skill('agent', 'review', '---\ndescription: First.\n---\nOld body')
-    await skill('agent', 'gone', '---\ndescription: Soon gone.\n---\nx')
+    await skill('platform', 'review', '---\ndescription: First.\n---\nOld body')
+    await skill('platform', 'gone', '---\ndescription: Soon gone.\n---\nx')
     await stageOpenCodeSkills(context(), 'conv-a')
-    await skill('agent', 'review', '---\ndescription: Second.\n---\nNew body')
-    await fs.rm(path.join(dir, 'agent', 'skills', 'gone'), { recursive: true })
+    await skill('platform', 'review', '---\ndescription: Second.\n---\nNew body')
+    await fs.rm(path.join(dir, 'platform', 'skills', 'gone'), { recursive: true })
     const next = await stageOpenCodeSkills(context(), 'conv-a')
-    expect(next.skills.map(s => [s.name, s.description])).toEqual([['agent-review', 'Second.']])
+    expect(next.skills.map(s => [s.name, s.description])).toEqual([['platform-review', 'Second.']])
     const folder = path.dirname(openCodeSkillsDirs(context().claudeHome, 'conv-a').serverDir)
     expect((await fs.readdir(folder)).sort()).toEqual(['skills'])
-    const body = await fs.readFile(path.join(folder, 'skills', 'agent-review', 'SKILL.md'), 'utf-8')
+    const body = await fs.readFile(path.join(folder, 'skills', 'platform-review', 'SKILL.md'), 'utf-8')
     expect(body).toContain('New body')
   })
 
-  it("gives two conversations of two agents with a same-named skill each their own", async () => {
-    await skill('agent-1', 'deploy', '---\ndescription: One.\n---\nOne')
-    await skill('agent-2', 'deploy', '---\ndescription: Two.\n---\nTwo')
-    const a = await stageOpenCodeSkills(context('agent-1'), 'conv-a')
-    const b = await stageOpenCodeSkills(context('agent-2'), 'conv-b')
-    expect(a.skills[0]).toMatchObject({ name: 'agent-deploy', description: 'One.' })
-    expect(b.skills[0]).toMatchObject({ name: 'agent-deploy', description: 'Two.' })
+  it("gives two conversations with a same-named skill each their own", async () => {
+    await skill('platform-1', 'deploy', '---\ndescription: One.\n---\nOne')
+    await skill('platform-2', 'deploy', '---\ndescription: Two.\n---\nTwo')
+    const a = await stageOpenCodeSkills(context('platform-1'), 'conv-a')
+    const b = await stageOpenCodeSkills(context('platform-2'), 'conv-b')
+    expect(a.skills[0]).toMatchObject({ name: 'platform-deploy', description: 'One.' })
+    expect(b.skills[0]).toMatchObject({ name: 'platform-deploy', description: 'Two.' })
     expect(a.skills[0].location).not.toBe(b.skills[0].location)
+  })
+
+  it('lists an installed skill hq named, from its delivered content', async () => {
+    process.env.SITE_ROOT = dir
+    const { ref, body } = makeTransfer('skill', 'v1', { 'SKILL.md': '---\nname: x\ndescription: Review well.\n---\nBody' })
+    await storeVerifiedPackage(ref, body)
+    const staged = await stageOpenCodeSkills({
+      ...context(),
+      skills: {
+        place: { ownerType: 'project', ownerId: 'p1' }, agentId: 'a1', personId: null, files: [], person: [],
+        installed: [{ identity: 'acme/review', version: '1.0.0', digest: ref.digest, level: 'agent', ref }],
+      },
+    }, 'conv-a')
+    expect(staged.skills.map(s => [s.name, s.description])).toEqual([['agent-review', 'Review well.']])
   })
 
   it('has no section when nothing was staged', async () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   PACKAGE_METHODS, PACKAGE_FORMAT_VERSION, MAX_SKILL_SLUG_LENGTH, MAX_SKILL_NAME_LENGTH, MAX_WORKSPACE_SKILL_INDEX, SKILL_SOURCES,
-  workspaceSkillName,
+  workspaceSkillName, deliveredSkillName, INSTALLED_SKILL_SOURCE,
   isValidPackagePath, isPackageRef, canonicalJson, packageDigestInput, namespacedSkillName,
   type PackageContents,
 } from '../packages.js'
@@ -97,5 +97,22 @@ describe('package contracts', () => {
 
   it('still accepts the deprecated agent source', () => {
     expect(namespacedSkillName('agent', 'review')).toBe('agent-review')
+  })
+})
+
+describe('the name an installed or personal skill stages under', () => {
+  it('is its source and the last part of its identity\'s name', () => {
+    expect(deliveredSkillName(INSTALLED_SKILL_SOURCE.org, 'acme/review')).toBe('org-review')
+    expect(deliveredSkillName(INSTALLED_SKILL_SOURCE.agent, 'acme/starter/review')).toBe('agent-review')
+    expect(deliveredSkillName(INSTALLED_SKILL_SOURCE.builtin, 'agenthix/tasks')).toBe('platform-tasks')
+    expect(deliveredSkillName('person', 'acme/review')).toBe('person-review')
+  })
+
+  it('is the same for two publishers\' skills of one name', () => {
+    expect(deliveredSkillName('org', 'acme/review')).toBe(deliveredSkillName('org', 'other/review'))
+  })
+
+  it('is none for what is not an identity', () => {
+    for (const bad of ['review', '', 'a/b/c/d', 'Acme/review', '../x', 'a//b']) expect(deliveredSkillName('org', bad)).toBeNull()
   })
 })
