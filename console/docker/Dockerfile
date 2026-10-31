@@ -9,7 +9,7 @@
 #     --sysctl net.ipv4.conf.all.rp_filter=1 -e CONSOLE_HQ_ADDRESS=… agenthix-console
 # Never publish it on another address, and never put another container on its network.
 
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS build
+FROM node:26.12.1-alpine3.23@sha256:bc2b334006f15c7167bbeb2f08f28c2df883f7594a0470e04454ebe7560cfe68 AS build
 WORKDIR /repo
 COPY core/package.json core/package-lock.json core/
 RUN cd core && npm ci --no-audit --no-fund
@@ -31,7 +31,7 @@ COPY console console
 # @agenthix/core is bundled into dist/console.js, so pruning drops it with the other development dependencies.
 RUN cd console && npm run build && npm prune --omit=dev --no-audit --no-fund
 
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS console
+FROM node:26.12.1-alpine3.23@sha256:bc2b334006f15c7167bbeb2f08f28c2df883f7594a0470e04454ebe7560cfe68 AS console
 RUN apk --no-cache -U upgrade && apk add --no-cache tini
 ENV NODE_ENV=production
 WORKDIR /app
