@@ -22,6 +22,11 @@ import { WORKFLOW_RESULT_EVENT, WORKFLOW_RUN_METHODS, WORKFLOW_STEP_EVENT } from
 import { BRANCH_BACK_EVENT, BRANCH_WORK_METHODS } from '../branchWork.js'
 import { BRANCH_READ_METHODS } from '../branchReads.js'
 import { MAIN_WORK_METHODS } from '../mainWork.js'
+import { LIVE_PREVIEW_EVENTS, LIVE_PREVIEW_METHODS, SITE_LIVE_PREVIEWS_METHOD } from '../livePreviews.js'
+import { LIVE_PREVIEW_APP_EVENTS, LIVE_PREVIEW_APP_METHODS } from '../livePreviewApps.js'
+import { BRANCH_BRING_BACK_BUNDLE_METHOD, BUNDLE_EVENTS, BUNDLE_METHODS } from '../branchBundles.js'
+import { APP_SERVE_METHOD } from '../appStream.js'
+import { BRANCH_PACKAGE_BLOCKED_EVENT, BRANCH_PACKAGE_USE_METHOD } from '../branchPackages.js'
 
 // The lists are checked against the maps' names by type, so a name the map has and a list lacks, or the other way
 // round, fails the typecheck (`npm test` runs it first); the runtime checks below hold every method constant to them.
@@ -38,6 +43,8 @@ const CONTROL_LIST = [
   ...Object.values(SITE_DIAGNOSTICS_METHODS), ...Object.values(SITE_RESTORE_METHODS), ...Object.values(CLAUDE_LOGIN_METHODS),
   ...Object.values(WORKFLOW_RUN_METHODS),
   ...Object.values(BRANCH_WORK_METHODS), ...Object.values(BRANCH_READ_METHODS), ...Object.values(MAIN_WORK_METHODS),
+  ...Object.values(LIVE_PREVIEW_METHODS), ...Object.values(LIVE_PREVIEW_APP_METHODS), SITE_LIVE_PREVIEWS_METHOD,
+  BUNDLE_METHODS.make, BUNDLE_METHODS.drop, BRANCH_BRING_BACK_BUNDLE_METHOD, BRANCH_PACKAGE_USE_METHOD,
 ] as const
 type Listed = (typeof CONTROL_LIST)[number]
 const listsEveryMethod: [Exclude<SiteMethodName, Listed>] extends [never] ? true : never = true
@@ -48,19 +55,28 @@ const CONTROL = new Set<string>(CONTROL_LIST)
 const CONTENT: Record<SiteContentMethodName, true> = {
   'packages.put': true, 'location.readFile': true, 'location.readArtefact': true, 'location.readKnowledge': true,
   'location.writeSkill': true, 'preview.connect': true, [FILES_SERVE_METHOD]: true,
+  [APP_SERVE_METHOD]: true, [BUNDLE_METHODS.read]: true, [BUNDLE_METHODS.write]: true,
 }
 
 const EVENTS: Record<SiteEventName, true> = {
   'run.status': true, 'run.stream': true, 'site.credentialHealth': true, 'site.subscriptionRefreshed': true,
   [SESSION_PATCH_EVENT]: true, [RUN_WAITING_EVENT]: true, [SITE_HEALTH_EVENT]: true, [SCHEDULED_CHANGE_EVENT]: true,
   [WORKFLOW_STEP_EVENT]: true, [WORKFLOW_RESULT_EVENT]: true, [BRANCH_BACK_EVENT]: true,
+  [LIVE_PREVIEW_EVENTS.state]: true, [LIVE_PREVIEW_EVENTS.guard]: true, [LIVE_PREVIEW_EVENTS.guardReport]: true,
+  [LIVE_PREVIEW_EVENTS.branchMoved]: true, [LIVE_PREVIEW_APP_EVENTS.appState]: true,
+  [LIVE_PREVIEW_APP_EVENTS.services]: true, [LIVE_PREVIEW_APP_EVENTS.packageBlocked]: true, [BUNDLE_EVENTS.landed]: true,
+  [BRANCH_PACKAGE_BLOCKED_EVENT]: true,
 }
 
 const EVERY_METHOD_CONSTANT = [
   SITE_DATA_METHODS, RUNTIME_METHODS, MEMBERSHIP_METHODS, PACKAGE_METHODS, LOCATION_FILE_METHODS, REPO_WORK_METHODS,
   PREVIEW_METHODS, SITE_DIAGNOSTICS_METHODS, SITE_RESTORE_METHODS, CLAUDE_LOGIN_METHODS, WORKFLOW_RUN_METHODS,
-  BRANCH_WORK_METHODS, BRANCH_READ_METHODS, MAIN_WORK_METHODS,
-].flatMap(group => Object.values(group) as string[]).concat(SITE_HQ_ADDRESS_METHOD, RELAY_ASSIGN_METHOD, FILES_SERVE_METHOD, FILE_ABOUT_METHOD, GIT_STATUS_METHOD)
+  BRANCH_WORK_METHODS, BRANCH_READ_METHODS, MAIN_WORK_METHODS, LIVE_PREVIEW_METHODS, LIVE_PREVIEW_APP_METHODS,
+  BUNDLE_METHODS,
+].flatMap(group => Object.values(group) as string[]).concat(
+  SITE_HQ_ADDRESS_METHOD, RELAY_ASSIGN_METHOD, FILES_SERVE_METHOD, FILE_ABOUT_METHOD, GIT_STATUS_METHOD,
+  SITE_LIVE_PREVIEWS_METHOD, BRANCH_BRING_BACK_BUNDLE_METHOD, APP_SERVE_METHOD, BRANCH_PACKAGE_USE_METHOD,
+)
 
 describe('the site connection declared whole @SC-1128', () => {
   it('declares every method a constant names, once: on the control channel or the content transport', () => {
@@ -78,8 +94,10 @@ describe('the site connection declared whole @SC-1128', () => {
 
   it('declares each event a site sends', () => {
     expect(Object.keys(EVENTS).sort()).toEqual([
-      'branch.back', 'run.status', 'run.stream', 'run.waiting', 'session.patch', 'site.credentialHealth', 'site.health',
-      'site.scheduledChange', 'site.subscriptionRefreshed', 'workflow.result', 'workflow.step',
+      'branch.back', 'branch.packageBlocked', 'bundle.landed', 'livePreview.appState', 'livePreview.branchMoved', 'livePreview.guard',
+      'livePreview.guardReport', 'livePreview.packageBlocked', 'livePreview.services', 'livePreview.state', 'run.status',
+      'run.stream', 'run.waiting', 'session.patch', 'site.credentialHealth', 'site.health', 'site.scheduledChange',
+      'site.subscriptionRefreshed', 'workflow.result', 'workflow.step',
     ])
   })
 })

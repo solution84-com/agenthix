@@ -4,7 +4,7 @@ import {
   isWorkBranchName, WORK_BRANCH_NAME_MAX,
 } from '../gitNames.js'
 
-describe('the names hq gives a branch', () => {
+describe('the names hq gives a branch @SC-1670', () => {
   it('takes lowercase words joined by hyphens, at most 50 characters', () => {
     for (const name of ['add-login-page', 'fix', 'v2-api', 'add-login-page-2']) expect(isWorkBranchName(name), name).toBe(true)
     for (const name of ['Add-login', 'add--login', '-add', 'add-', 'feature/login', 'add_login', '', 'a'.repeat(51)]) {
@@ -34,7 +34,7 @@ describe('the names hq gives a branch', () => {
   })
 })
 
-describe('any branch a method may name', () => {
+describe('any branch a method may name @SC-1760', () => {
   it('takes what Git takes, an agent\'s backups and GitHub\'s branches included', () => {
     for (const name of ['main', 'backup/login-page-2026-11-01', 'feature/Login_Form', 'release/1.0.1', 'a.b']) {
       expect(isGitBranchName(name), name).toBe(true)
@@ -54,7 +54,7 @@ describe('any branch a method may name', () => {
   })
 })
 
-describe('commits, copies and paths', () => {
+describe('commits, copies and paths @SC-1760', () => {
   it('takes only a full lowercase commit id', () => {
     expect(isCommitId('a'.repeat(40))).toBe(true)
     expect(isCommitId('b'.repeat(64))).toBe(true)
@@ -79,7 +79,7 @@ describe('commits, copies and paths', () => {
   })
 })
 
-describe('who and what a commit says', () => {
+describe('who and what a commit says @SC-1760', () => {
   it('takes a name and address Git can write between its brackets', () => {
     expect(isGitPersonName('Mia Chen')).toBe(true)
     expect(isGitEmail('mia@example.org')).toBe(true)

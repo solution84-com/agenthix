@@ -28,6 +28,7 @@
  */
 
 import { parseEffectiveCeilings, type EffectiveCeilings } from '../host/figures.js'
+import { parseLivePreviewsCapacity, type LivePreviewsCapacity } from '../livePreview/capacity.js'
 
 export const SITE_HEALTH_EVENT = 'site.health'
 
@@ -66,8 +67,10 @@ export type SiteHealth = {
   ceilings: EffectiveCeilings | null
   /** Whether the machine is nearly out of memory (`machineMemoryNearlyFull`). */
   memoryNearlyFull: boolean
-  /** The disk the branches' working copies use (`clones/` across owners); absent from a site before 1.13, null when unreadable. Added in site protocol 1.13. */
+  /** The disk the branches' working copies use (`clones/` across owners); absent from a site before 1.12, null when unreadable. Added in site protocol 1.12. */
   branchCopies?: { usedBytes: number } | null
+  /** Since 1.12: what the site's live previews use (`LivePreviewsCapacity`); absent from a site from before. */
+  livePreviews?: LivePreviewsCapacity
 }
 
 export type ExecutorImageReport = {
@@ -168,6 +171,7 @@ export function parseSiteHealth(data: unknown): SiteHealth | null {
   const totalBytes = bytes(disk?.totalBytes)
   if (typeof d.memoryNearlyFull !== 'boolean') return null
   const copies = bytes(record(d.branchCopies)?.usedBytes)
+  const livePreviews = d.livePreviews === undefined ? null : parseLivePreviewsCapacity(d.livePreviews)
   return {
     takenAt,
     runs: { running, maxAtOnce },
@@ -179,5 +183,6 @@ export function parseSiteHealth(data: unknown): SiteHealth | null {
     ceilings: parseEffectiveCeilings(d.ceilings),
     memoryNearlyFull: d.memoryNearlyFull,
     ...(copies !== null ? { branchCopies: { usedBytes: copies } } : {}),
+    ...(livePreviews ? { livePreviews } : {}),
   }
 }

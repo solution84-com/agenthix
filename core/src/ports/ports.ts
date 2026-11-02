@@ -16,6 +16,12 @@ export const SERVICE_PORTS = {
   relay: { server: 4401 },
 } as const
 
+/**
+ * What the agent's harness listens on inside an agent's container, on its loopback address only (the OpenCode server).
+ * A live app may not take it.
+ */
+export const HARNESS_PORTS = { openCode: 4096 } as const
+
 /** Inside containers, every database keeps PostgreSQL's own port: each is on a private network of its own. */
 export const CONTAINER_DATABASE_PORT = 5432
 
@@ -55,3 +61,11 @@ export const AGENT_SLICE_BITS = 20
 
 /** Each agent container's own network: a /29, 8 addresses, so 512 agent containers at once per slice. */
 export const AGENT_CONTAINER_BITS = 29
+
+/**
+ * Live previews' networks: the upper half of each installation's agent slice, a /21, so 256 networks of
+ * AGENT_CONTAINER_BITS (a live preview's own and its services'). The host service closes this part to private addresses
+ * and the machine's own public address on every machine, so a live preview reaches only the public internet and its own
+ * site.
+ */
+export const LIVE_PREVIEW_PART_BITS = 21

@@ -57,6 +57,14 @@ export function refusalHead(refusal: FileServeRefusal, size?: number): FileServe
 /** The bytes a site writes first on the stream. Throws for a head that would not decode. */
 export function encodeStreamHead(head: FileServeHead): Uint8Array {
   if (!isFileServeHead(head)) throw new Error('Not a valid stream head')
+  return encodeJsonHead(head)
+}
+
+/**
+ * Any head in this framing: four bytes, big-endian, giving the length of a UTF-8 JSON object, then the object. Used
+ * by every stream on a relay line whose answer starts with a head (a live app's, a copy's).
+ */
+export function encodeJsonHead(head: object): Uint8Array {
   const json = utf8(JSON.stringify(head))
   if (json.length > MAX_STREAM_HEAD_BYTES) throw new Error('The stream head is too large')
   const out = new Uint8Array(LENGTH_BYTES + json.length)
@@ -81,16 +89,23 @@ export function isFileServeHead(v: unknown): v is FileServeHead {
   return !!r && size(r.start) && size(r.end) && (r.start as number) <= (r.end as number) && (r.end as number) < h.size
 }
 
-export type StreamHeadRead =
+export type JsonHeadRead<H> =
   | { state: 'need-more' }
-  | { state: 'head'; head: FileServeHead; rest: Uint8Array }
+  | { state: 'head'; head: H; rest: Uint8Array }
   | { state: 'invalid'; reason: string }
+
+export type StreamHeadRead = JsonHeadRead<FileServeHead>
 
 /**
  * Reads the head from chunks as they arrive, however the stream split them. Once it has answered `head` (with any
  * bytes after the head as `rest`) or `invalid`, it is done: the caller handles the rest of the stream itself.
  */
 export function createStreamHeadReader(): { push(chunk: Uint8Array): StreamHeadRead } {
+  return createJsonHeadReader(isFileServeHead)
+}
+
+/** `createStreamHeadReader` for any head, which `isHead` checks whole. */
+export function createJsonHeadReader<H>(isHead: (v: unknown) => v is H): { push(chunk: Uint8Array): JsonHeadRead<H> } {
   let held = new Uint8Array(0)
   let done = false
   return {
@@ -114,7 +129,7 @@ export function createStreamHeadReader(): { push(chunk: Uint8Array): StreamHeadR
       } catch {
         return { state: 'invalid', reason: 'the head is not JSON' }
       }
-      if (!isFileServeHead(head)) return { state: 'invalid', reason: 'the head is not a valid head' }
+      if (!isHead(head)) return { state: 'invalid', reason: 'the head is not a valid head' }
       return { state: 'head', head, rest: held.slice(LENGTH_BYTES + length) }
     },
   }

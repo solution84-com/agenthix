@@ -23,9 +23,16 @@ export type FleetActivityPage = { entries: FleetActivityEntry[]; next: string | 
 /**
  * What a fleet admin is told: a machine that left by itself, one not heard from for 10 minutes (both clear themselves
  * and cannot be dismissed), something a fleet admin did that is announced (an export, an erase, a site added or
- * disconnected, a move), and the role given or removed.
+ * disconnected, a move), and the role given or removed. Since 1.3, for live previews on the organisation's sites
+ * (`LivePreviewsCapacity`): a site whose memory passed `LIVE_PREVIEWS_MEMORY_HIGH_PERCENT` (`siteMemoryHigh`), the
+ * same site back under `LIVE_PREVIEWS_MEMORY_RECOVERED_PERCENT` (`siteMemoryRecovered`), and a live preview stopped
+ * because its machine ran out of memory (`livePreviewStoppedForResources`, saying whose and which branch, never what
+ * was in it). `hostId` names the site's machine.
  */
-export const FLEET_NOTICE_KINDS = ['machineLeft', 'machineNotHeardFrom', 'activity', 'roleGranted', 'roleRemoved'] as const
+export const FLEET_NOTICE_KINDS = [
+  'machineLeft', 'machineNotHeardFrom', 'activity', 'roleGranted', 'roleRemoved',
+  'siteMemoryHigh', 'siteMemoryRecovered', 'livePreviewStoppedForResources',
+] as const
 export type FleetNoticeKind = (typeof FLEET_NOTICE_KINDS)[number]
 
 export type FleetNotice = {

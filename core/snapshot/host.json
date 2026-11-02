@@ -240,6 +240,7 @@
                               {"literal":"move"},
                               {"literal":"organisation.connect"},
                               {"literal":"organisation.key"},
+                              {"literal":"previews.set"},
                               {"literal":"remoteAccess.authenticator.add"},
                               {"literal":"remoteAccess.csr"},
                               {"literal":"remoteAccess.off"},
@@ -293,6 +294,7 @@
                               {"literal":"move"},
                               {"literal":"organisation.connect"},
                               {"literal":"organisation.key"},
+                              {"literal":"previews.set"},
                               {"literal":"remoteAccess.authenticator.add"},
                               {"literal":"remoteAccess.csr"},
                               {"literal":"remoteAccess.off"},
@@ -380,6 +382,7 @@
                               {"fields":{"on":{"type":{"literal":false}}}},
                               {"fields":{"on":{"type":{"literal":true}},"until":{"type":{"type":"string"}}}},
                               {"fields":{"on":{"type":{"type":"boolean"}}}},
+                              {"fields":{"previews":{"type":{"ref":"PreviewsFigures"}}}},
                               {"fields":{"purgeAfter":{"type":{"type":"string"}}}},
                               {"fields":{"removed":{"type":{"type":"boolean"}}}},
                               {"fields":{"removed":{"type":{"type":"boolean"}}}},
@@ -690,6 +693,7 @@
           {"literal":"move"},
           {"literal":"organisation.connect"},
           {"literal":"organisation.key"},
+          {"literal":"previews.set"},
           {"literal":"remoteAccess.authenticator.add"},
           {"literal":"remoteAccess.csr"},
           {"literal":"remoteAccess.off"},
@@ -855,6 +859,9 @@
               "siteName": {"type":{"type":"string"}}
             }
           },
+          {
+            "fields": {"domain":{"type":{"union":[{"type":"null"},{"type":"string"}]}},"op":{"type":{"literal":"previews.set"}}}
+          },
           {"fields":{"executionSiteId":{"type":{"type":"string"}},"op":{"type":{"literal":"site.unregister"}}}},
           {
             "fields": {
@@ -1004,6 +1011,7 @@
               }
             }
           },
+          "previews.set": {"type":{"fields":{"previews":{"type":{"ref":"PreviewsFigures"}}}}},
           "remoteAccess.authenticator.add": {"type":{"fields":{"added":{"type":{"type":"boolean"}}}}},
           "remoteAccess.csr": {"type":{"fields":{"csr":{"type":{"type":"string"}}}}},
           "remoteAccess.off": {"type":{"fields":{"on":{"type":{"literal":false}}}}},
@@ -1328,9 +1336,14 @@
                     {"fields":{"removed":{"type":{"type":"boolean"}}}},
                     {"fields":{"revoked":{"type":{"type":"boolean"}}}},
                     {"fields":{"sites":{"type":{"array":{"ref":"SiteLoad"}}}}},
+                    {
+                      "fields": {"stopped":{"type":{"array":{"type":"string"}}},"view":{"type":{"ref":"SiteLivePreviewsView"}}}
+                    },
+                    {"fields":{"stopped":{"type":{"type":"boolean"}}}},
                     {"ref":"FleetActivityPage"},
                     {"ref":"HqAbout"},
-                    {"ref":"HqCloudState"}
+                    {"ref":"HqCloudState"},
+                    {"ref":"SiteLivePreviewsView"}
                   ]
                 }
               },
@@ -1378,6 +1391,9 @@
           {"literal":"site.move"},
           {"literal":"site.register"},
           {"literal":"site.remove"},
+          {"literal":"sites.livePreviews.set"},
+          {"literal":"sites.livePreviews.stop"},
+          {"literal":"sites.livePreviews"},
           {"literal":"transfer.close"},
           {"literal":"transfer.open"}
         ]
@@ -1707,6 +1723,54 @@
               }
             }
           },
+          "sites.livePreviews": {
+            "type": {
+              "fields": {
+                "params": {
+                  "type": {"fields":{"byUserId":{"type":{"type":"string"}},"executionSiteId":{"type":{"type":"string"}}}}
+                },
+                "result": {"type":{"ref":"SiteLivePreviewsView"}}
+              }
+            }
+          },
+          "sites.livePreviews.set": {
+            "type": {
+              "fields": {
+                "params": {
+                  "type": {
+                    "fields": {
+                      "allowed": {"type":{"type":"boolean"}},
+                      "byUserId": {"type":{"type":"string"}},
+                      "executionSiteId": {"type":{"type":"string"}},
+                      "idleMinutes": {"type":{"type":"number"}},
+                      "limit": {"type":{"ref":"LivePreviewLimit"}}
+                    }
+                  }
+                },
+                "result": {
+                  "type": {
+                    "fields": {"stopped":{"type":{"array":{"type":"string"}}},"view":{"type":{"ref":"SiteLivePreviewsView"}}}
+                  }
+                }
+              }
+            }
+          },
+          "sites.livePreviews.stop": {
+            "type": {
+              "fields": {
+                "params": {
+                  "type": {
+                    "fields": {
+                      "byUserId": {"type":{"type":"string"}},
+                      "executionSiteId": {"type":{"type":"string"}},
+                      "livePreviewId": {"type":{"type":"string"}}
+                    }
+                  }
+                },
+                "result": {"type":{"fields":{"stopped":{"type":{"type":"boolean"}}}}}
+              }
+            }
+          },
           "transfer.close": {
             "type": {
               "fields": {
@@ -1953,6 +2017,42 @@
           },
           {
             "fields": {
+              "method": {"type":{"literal":"sites.livePreviews.set"}},
+              "params": {
+                "type": {
+                  "fields": {
+                    "allowed": {"type":{"type":"boolean"}},
+                    "byUserId": {"type":{"type":"string"}},
+                    "executionSiteId": {"type":{"type":"string"}},
+                    "idleMinutes": {"type":{"type":"number"}},
+                    "limit": {"type":{"ref":"LivePreviewLimit"}}
+                  }
+                }
+              }
+            }
+          },
+          {
+            "fields": {
+              "method": {"type":{"literal":"sites.livePreviews.stop"}},
+              "params": {
+                "type": {
+                  "fields": {
+                    "byUserId": {"type":{"type":"string"}},
+                    "executionSiteId": {"type":{"type":"string"}},
+                    "livePreviewId": {"type":{"type":"string"}}
+                  }
+                }
+              }
+            }
+          },
+          {
+            "fields": {
+              "method": {"type":{"literal":"sites.livePreviews"}},
+              "params": {"type":{"fields":{"byUserId":{"type":{"type":"string"}},"executionSiteId":{"type":{"type":"string"}}}}}
+            }
+          },
+          {
+            "fields": {
               "method": {"type":{"literal":"transfer.close"}},
               "params": {"type":{"fields":{"transferId":{"type":{"type":"string"}}}}}
             }
@@ -2069,6 +2169,21 @@
         }
       }
     },
+    "FleetLivePreview": {
+      "file": "host/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "branch": {"type":{"type":"string"}},
+          "lastUsedAt": {"type":{"type":"string"}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "openedAt": {"type":{"type":"string"}},
+          "person": {"type":{"fields":{"id":{"type":{"type":"string"}},"name":{"type":{"type":"string"}}}}},
+          "projectName": {"type":{"type":"string"}},
+          "state": {"type":{"union":[{"literal":"paused"},{"literal":"running"},{"literal":"starting"}]}},
+          "workspaceName": {"type":{"type":"string"}}
+        }
+      }
+    },
     "FleetNotice": {
       "file": "host/fleetRecord.ts",
       "shape": {
@@ -2082,10 +2197,13 @@
             "type": {
               "union": [
                 {"literal":"activity"},
+                {"literal":"livePreviewStoppedForResources"},
                 {"literal":"machineLeft"},
                 {"literal":"machineNotHeardFrom"},
                 {"literal":"roleGranted"},
-                {"literal":"roleRemoved"}
+                {"literal":"roleRemoved"},
+                {"literal":"siteMemoryHigh"},
+                {"literal":"siteMemoryRecovered"}
               ]
             }
           },
@@ -2098,10 +2216,13 @@
       "shape": {
         "union": [
           {"literal":"activity"},
+          {"literal":"livePreviewStoppedForResources"},
           {"literal":"machineLeft"},
           {"literal":"machineNotHeardFrom"},
           {"literal":"roleGranted"},
-          {"literal":"roleRemoved"}
+          {"literal":"roleRemoved"},
+          {"literal":"siteMemoryHigh"},
+          {"literal":"siteMemoryRecovered"}
         ]
       }
     },
@@ -2206,6 +2327,7 @@
               }
             }
           },
+          "previews": {"optional":true,"type":{"ref":"PreviewsFigures"}},
           "protections": {"type":{"ref":"ProtectionFigures"}},
           "resources": {"type":{"ref":"ResourceUse"}},
           "scheduledChanges": {"type":{"type":"number"}},
@@ -2346,6 +2468,15 @@
           },
           {
             "fields": {
+              "payload": {"type":{"ref":"HqSeenFromFrame"}},
+              "replyTo": {"optional":true,"type":{"type":"string"}},
+              "requestId": {"optional":true,"type":{"type":"string"}},
+              "type": {"type":{"literal":"hq.seenFrom"}},
+              "version": {"type":{"type":"string"}}
+            }
+          },
+          {
+            "fields": {
               "payload": {"type":{"ref":"JoinRequest"}},
               "replyTo": {"optional":true,"type":{"type":"string"}},
               "requestId": {"optional":true,"type":{"type":"string"}},
@@ -2466,6 +2597,7 @@
           {"literal":"install"},
           {"literal":"logs.read"},
           {"literal":"move"},
+          {"literal":"previews.set"},
           {"literal":"remove"},
           {"literal":"resume"},
           {"literal":"schedule.cancel"},
@@ -2579,6 +2711,9 @@
             }
           },
           {
+            "fields": {"domain":{"type":{"union":[{"type":"null"},{"type":"string"}]}},"op":{"type":{"literal":"previews.set"}}}
+          },
+          {
             "fields": {
               "exportId": {"type":{"type":"string"}},
               "offset": {"type":{"type":"number"}},
@@ -2687,6 +2822,7 @@
           },
           "logs.read": {"type":{"fields":{"lines":{"type":{"array":{"ref":"LogLineFigure"}}}}}},
           "move": {"type":{"fields":{"transferId":{"type":{"type":"string"}}}}},
+          "previews.set": {"type":{"fields":{"previews":{"type":{"ref":"PreviewsFigures"}}}}},
           "remove": {"type":{"fields":{"state":{"type":{"literal":"removed"}}}}},
           "resume": {"type":{"fields":{"state":{"type":{"literal":"started"}}}}},
           "schedule": {"type":{"fields":{"change":{"type":{"ref":"ScheduledChange"}}}}},
@@ -2855,6 +2991,7 @@
         }
       }
     },
+    "HqSeenFromFrame": {"file":"host/relay.ts","shape":{"fields":{"address":{"type":{"type":"string"}}}}},
     "InstallFigures": {
       "file": "host/figures.ts",
       "shape": {
@@ -2958,6 +3095,18 @@
     "JoinRestoreClaim": {
       "file": "host/join.ts",
       "shape": {"fields":{"siteName":{"type":{"type":"string"}},"takenAt":{"type":{"type":"string"}}}}
+    },
+    "LivePreviewLimit": {"file":"livePreview/livePreview.ts","shape":{"union":[{"type":"null"},{"type":"number"}]}},
+    "LivePreviewsCapacity": {
+      "file": "livePreview/capacity.ts",
+      "shape": {
+        "fields": {
+          "cpuPercent": {"type":{"union":[{"type":"null"},{"type":"number"}]}},
+          "limit": {"type":{"ref":"LivePreviewLimit"}},
+          "memoryPercent": {"type":{"union":[{"type":"null"},{"type":"number"}]}},
+          "open": {"type":{"type":"number"}}
+        }
+      }
     },
     "LogLineFigure": {
       "file": "host/operations.ts",
@@ -3088,20 +3237,80 @@
         ]
       }
     },
+    "PreviewCheck": {
+      "file": "host/previews.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "addresses": {"type":{"array":{"type":"string"}}},
+              "expected": {"type":{"array":{"type":"string"}}},
+              "name": {"type":{"literal":"dns"}},
+              "ok": {"type":{"type":"boolean"}}
+            }
+          },
+          {
+            "fields": {
+              "name": {"type":{"literal":"certificate"}},
+              "ok": {"type":{"type":"boolean"}},
+              "problem": {"type":{"union":[{"type":"null"},{"type":"string"}]}}
+            }
+          },
+          {
+            "fields": {
+              "name": {"type":{"literal":"testApp"}},
+              "ok": {"type":{"type":"boolean"}},
+              "problem": {"type":{"union":[{"type":"null"},{"type":"string"}]}}
+            }
+          }
+        ]
+      }
+    },
+    "PreviewCheckName": {"file":"host/previews.ts","shape":{"union":[{"literal":"certificate"},{"literal":"dns"},{"literal":"testApp"}]}},
+    "PreviewsFigures": {
+      "file": "host/previews.ts",
+      "shape": {
+        "fields": {
+          "checkedAt": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "checks": {"type":{"array":{"ref":"PreviewCheck"}}},
+          "domain": {"type":{"union":[{"type":"null"},{"type":"string"}]}}
+        }
+      }
+    },
+    "ProtectionDrop": {
+      "file": "host/figures.ts",
+      "shape": {
+        "fields": {
+          "dropped": {"type":{"type":"number"}},
+          "rule": {"type":{"ref":"ProtectionRule"}},
+          "source": {"type":{"type":"string"}}
+        }
+      }
+    },
     "ProtectionFigures": {
       "file": "host/figures.ts",
       "shape": {
         "fields": {
           "checkedAt": {"type":{"type":"string"}},
+          "drops": {"optional":true,"type":{"array":{"ref":"ProtectionDrop"}}},
           "holding": {"type":{"type":"boolean"}},
           "problem": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "publicAddressKnown": {"optional":true,"type":{"type":"boolean"}},
           "rules": {"type":{"array":{"ref":"ProtectionRule"}}}
         }
       }
     },
     "ProtectionRule": {
       "file": "host/figures.ts",
-      "shape": {"union":[{"literal":"machine-ports"},{"literal":"metadata-address"},{"literal":"published-ports"}]}
+      "shape": {
+        "union": [
+          {"literal":"machine-ports"},
+          {"literal":"metadata-address"},
+          {"literal":"private-addresses"},
+          {"literal":"public-address"},
+          {"literal":"published-ports"}
+        ]
+      }
     },
     "PublishedPortChoice": {
       "file": "host/operations.ts",
@@ -3252,6 +3461,7 @@
       "shape": {
         "fields": {
           "cpuLoad": {"type":{"type":"number"}},
+          "cpus": {"optional":true,"type":{"type":"number"}},
           "disk": {"type":{"fields":{"freeBytes":{"type":{"type":"number"}},"totalBytes":{"type":{"type":"number"}}}}},
           "memory": {"type":{"fields":{"totalBytes":{"type":{"type":"number"}},"usedBytes":{"type":{"type":"number"}}}}}
         }
@@ -3459,6 +3669,7 @@
                               {"literal":"move"},
                               {"literal":"organisation.connect"},
                               {"literal":"organisation.key"},
+                              {"literal":"previews.set"},
                               {"literal":"remoteAccess.authenticator.add"},
                               {"literal":"remoteAccess.csr"},
                               {"literal":"remoteAccess.off"},
@@ -3512,6 +3723,7 @@
                               {"literal":"move"},
                               {"literal":"organisation.connect"},
                               {"literal":"organisation.key"},
+                              {"literal":"previews.set"},
                               {"literal":"remoteAccess.authenticator.add"},
                               {"literal":"remoteAccess.csr"},
                               {"literal":"remoteAccess.off"},
@@ -3599,6 +3811,7 @@
                               {"fields":{"on":{"type":{"literal":false}}}},
                               {"fields":{"on":{"type":{"literal":true}},"until":{"type":{"type":"string"}}}},
                               {"fields":{"on":{"type":{"type":"boolean"}}}},
+                              {"fields":{"previews":{"type":{"ref":"PreviewsFigures"}}}},
                               {"fields":{"purgeAfter":{"type":{"type":"string"}}}},
                               {"fields":{"removed":{"type":{"type":"boolean"}}}},
                               {"fields":{"removed":{"type":{"type":"boolean"}}}},
@@ -3651,6 +3864,20 @@
           {"literal":"unreachable"},
           {"literal":"versionMismatch"}
         ]
+      }
+    },
+    "SiteLivePreviewsView": {
+      "file": "host/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "allowed": {"type":{"type":"boolean"}},
+          "capacity": {"type":{"union":[{"ref":"LivePreviewsCapacity"},{"type":"null"}]}},
+          "executionSiteId": {"type":{"type":"string"}},
+          "idleMinutes": {"type":{"type":"number"}},
+          "limit": {"type":{"ref":"LivePreviewLimit"}},
+          "livePreviews": {"type":{"array":{"ref":"FleetLivePreview"}}},
+          "problems": {"type":{"array":{"type":"string"}}}
+        }
       }
     },
     "SiteLoad": {

@@ -1930,6 +1930,7 @@
           "lines": {"type":{"array":{"type":"string"}}},
           "mergeCard": {"optional":true,"type":{"union":[{"ref":"MergeApprovalCard"},{"type":"null"}]}},
           "operationId": {"type":{"type":"string"}},
+          "packageCard": {"optional":true,"type":{"union":[{"ref":"PackageApprovalCard"},{"type":"null"}]}},
           "request": {
             "optional": true,
             "type": {
@@ -2038,6 +2039,20 @@
       }
     },
     "OrgRoleName": {"file":"client/people.ts","shape":{"union":[{"literal":"ADMIN"},{"literal":"MEMBER"}]}},
+    "PackageApprovalCard": {
+      "file": "client/conversationWork.ts",
+      "shape": {
+        "fields": {
+          "agentName": {"type":{"type":"string"}},
+          "branch": {"type":{"type":"string"}},
+          "canAnswer": {"type":{"type":"boolean"}},
+          "name": {"type":{"type":"string"}},
+          "question": {"type":{"type":"string"}},
+          "version": {"type":{"type":"string"}},
+          "workspaceId": {"type":{"type":"string"}}
+        }
+      }
+    },
     "PendingManifestView": {
       "file": "client/runs.ts",
       "shape": {

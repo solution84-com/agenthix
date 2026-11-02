@@ -16,7 +16,7 @@ const work = (over: Partial<RunCodeWork> = {}): RunCodeWork => ({
   ...over,
 })
 
-describe('codeWorkPromptText', () => {
+describe('codeWorkPromptText @SC-1674', () => {
   it('names the branch, main, and that main is read only', () => {
     const text = codeWorkPromptText(work())
     expect(text).toContain('`add-login-page`')
@@ -52,6 +52,15 @@ describe('codeWorkPromptText', () => {
     expect(text).toContain('Never call it when nobody asked')
     expect(MERGE_TOOL_DECLARATION.description).toMatch(/as soon as the person asks you to merge into main/)
     expect(MERGE_TOOL_DECLARATION.description).toMatch(/do not tell them to press Merge themselves/)
+  })
+
+  it('says the run has the app tools, how they reach the live preview, and that an earlier "none" no longer holds', () => {
+    const text = codeWorkPromptText(work())
+    expect(text).toContain('`start_app`, `stop_app`, `list_apps`, `reload_view` and `set_auto_reload`')
+    expect(text).toContain('call `start_app` yourself')
+    expect(text).toContain('it opens one first')
+    expect(text).toContain('offered on every run of yours, this one included')
+    expect(text).toContain('that no longer holds')
   })
 
   it('names update_from_main for bringing main in, and commit to finish a merge that clashed', () => {

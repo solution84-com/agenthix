@@ -112,7 +112,7 @@ describe('the executor image a site reports @SC-1366', () => {
   })
 })
 
-describe('the disk branch copies use and the 80% notice (site protocol 1.13)', () => {
+describe('the disk branch copies use and the 80% notice (site protocol 1.13) @SC-1730', () => {
   it('keeps the copies figure, and a report from before it reads as it did', () => {
     const withCopies = { ...report, branchCopies: { usedBytes: 3 * GIB } }
     expect(parseSiteHealth(JSON.parse(JSON.stringify(withCopies)))?.branchCopies).toEqual({ usedBytes: 3 * GIB })

@@ -17,7 +17,7 @@ describe('the branch methods\' budgets', () => {
   })
 })
 
-describe('the branch refusals', () => {
+describe('the branch refusals @SC-1673', () => {
   it('round-trip every code, and are not read as a repository-work refusal or the other way round', () => {
     for (const code of BRANCH_WORK_ERROR_CODES) {
       expect(BranchWorkError.fromWire(new BranchWorkError(code, 'branch.create for workspace w1').message))

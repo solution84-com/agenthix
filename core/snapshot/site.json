@@ -86,6 +86,150 @@
         }
       }
     },
+    "AppHeader": {"file":"protocol/appStream.ts","shape":{"tuple":[{"type":"string"},{"type":"string"}]}},
+    "AppRequestHead": {
+      "file": "protocol/appStream.ts",
+      "shape": {
+        "fields": {
+          "headers": {"type":{"array":{"ref":"AppHeader"}}},
+          "method": {"type":{"type":"string"}},
+          "target": {"type":{"type":"string"}},
+          "websocket": {"optional":true,"type":{"fields":{"protocols":{"type":{"array":{"type":"string"}}}}}}
+        }
+      }
+    },
+    "AppResponseHead": {
+      "file": "protocol/appStream.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "headers": {"type":{"array":{"ref":"AppHeader"}}},
+              "status": {"type":{"type":"number"}},
+              "websocket": {"optional":true,"type":{"fields":{"protocol":{"type":{"union":[{"type":"null"},{"type":"string"}]}}}}}
+            }
+          },
+          {
+            "fields": {
+              "refusal": {
+                "type": {
+                  "union": [
+                    {"literal":"app-not-running"},
+                    {"literal":"app-starting"},
+                    {"literal":"app-unreachable"},
+                    {"literal":"busy"},
+                    {"literal":"failed"},
+                    {"literal":"preview-not-running"},
+                    {"literal":"ticket-expired"},
+                    {"literal":"ticket-invalid"},
+                    {"literal":"ticket-used"}
+                  ]
+                }
+              },
+              "status": {"type":{"union":[{"literal":403},{"literal":409},{"literal":500},{"literal":502},{"literal":503}]}}
+            }
+          }
+        ]
+      }
+    },
+    "AppRun": {
+      "file": "livePreview/apps.ts",
+      "shape": {
+        "fields": {
+          "agentId": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "appId": {"type":{"type":"string"}},
+          "endedAt": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "ending": {
+            "type": {
+              "union": [
+                {"literal":"exited"},
+                {"literal":"guard"},
+                {"literal":"noAnswer"},
+                {"literal":"previewPaused"},
+                {"literal":"previewStopped"},
+                {"literal":"replaced"},
+                {"literal":"stopped"},
+                {"type":"null"}
+              ]
+            }
+          },
+          "lastLines": {"type":{"array":{"type":"string"}}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "personId": {"type":{"type":"string"}},
+          "runId": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "startedAt": {"type":{"type":"string"}}
+        }
+      }
+    },
+    "AppServeParams": {
+      "file": "protocol/appStream.ts",
+      "shape": {"fields":{"request":{"type":{"ref":"AppRequestHead"}},"ticket":{"type":{"type":"string"}}}}
+    },
+    "AppServeRefusal": {
+      "file": "protocol/appStream.ts",
+      "shape": {
+        "union": [
+          {"literal":"app-not-running"},
+          {"literal":"app-starting"},
+          {"literal":"app-unreachable"},
+          {"literal":"busy"},
+          {"literal":"failed"},
+          {"literal":"preview-not-running"},
+          {"literal":"ticket-expired"},
+          {"literal":"ticket-invalid"},
+          {"literal":"ticket-used"}
+        ]
+      }
+    },
+    "AppSpec": {
+      "file": "livePreview/apps.ts",
+      "shape": {
+        "fields": {
+          "appId": {"type":{"type":"string"}},
+          "command": {"type":{"type":"string"}},
+          "folder": {"type":{"type":"string"}},
+          "name": {"type":{"type":"string"}},
+          "port": {"type":{"type":"number"}}
+        }
+      }
+    },
+    "AppStatus": {
+      "file": "livePreview/apps.ts",
+      "shape": {
+        "fields": {
+          "appId": {"type":{"type":"string"}},
+          "command": {"type":{"type":"string"}},
+          "detail": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "folder": {"type":{"type":"string"}},
+          "lastLines": {"type":{"array":{"type":"string"}}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "name": {"type":{"type":"string"}},
+          "port": {"type":{"type":"number"}},
+          "since": {"type":{"type":"string"}},
+          "state": {
+            "type": {
+              "union": [
+                {"literal":"failed"},
+                {"literal":"paused"},
+                {"literal":"running"},
+                {"literal":"starting"},
+                {"literal":"stopped"}
+              ]
+            }
+          }
+        }
+      }
+    },
+    "AppWsKind": {"file":"protocol/appStream.ts","shape":{"union":[{"literal":"binary"},{"literal":"close"},{"literal":"text"}]}},
+    "AppWsMessage": {
+      "file": "protocol/appStream.ts",
+      "shape": {
+        "fields": {
+          "kind": {"type":{"union":[{"literal":"binary"},{"literal":"close"},{"literal":"text"}]}},
+          "payload": {"type":{"text":"Uint8Array<ArrayBufferLike>"}}
+        }
+      }
+    },
     "Approval": {
       "file": "protocol/capability.ts",
       "shape": {"union":[{"literal":"bypassed"},{"literal":"deferred"},{"literal":"immediate"}]}
@@ -163,6 +307,16 @@
         "index": {"key":"string","value":{"type":"string"}}
       }
     },
+    "BlockedPackageRef": {
+      "file": "protocol/branchPackages.ts",
+      "shape": {
+        "fields": {
+          "ecosystem": {"type":{"literal":"npm"}},
+          "name": {"type":{"type":"string"}},
+          "version": {"type":{"type":"string"}}
+        }
+      }
+    },
     "BranchBackCause": {
       "file": "protocol/branchWork.ts",
       "shape": {"union":[{"literal":"run_end"},{"literal":"site_back"},{"literal":"sweep"}]}
@@ -189,6 +343,32 @@
           "moved": {"type":{"type":"boolean"}},
           "previous": {"type":{"union":[{"type":"null"},{"type":"string"}]}}
         }
+      }
+    },
+    "BranchBringBackBundleParams": {
+      "file": "protocol/branchBundles.ts",
+      "shape": {
+        "fields": {
+          "branch": {"type":{"type":"string"}},
+          "bundleId": {"type":{"type":"string"}},
+          "expectedPrevious": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "workspace": {"type":{"ref":"WorkspaceRepoRef"}}
+        }
+      }
+    },
+    "BranchBringBackBundleResult": {
+      "file": "protocol/branchBundles.ts",
+      "shape": {
+        "union": [
+          {"fields":{"back":{"type":{"ref":"BranchBackResult"}},"brought":{"type":{"literal":true}}}},
+          {
+            "fields": {
+              "brought": {"type":{"literal":false}},
+              "head": {"type":{"type":"string"}},
+              "reason": {"type":{"literal":"moved_meanwhile"}}
+            }
+          }
+        ]
       }
     },
     "BranchBringBackParams": {"file":"protocol/branchWork.ts","shape":{"ref":"BranchCopyRef"}},
@@ -372,6 +552,56 @@
       "file": "protocol/branchReads.ts",
       "shape": {"fields":{"mergedCommit":{"type":{"type":"string"}},"mergedVersion":{"type":{"type":"string"}}}}
     },
+    "BranchPackageBlockedEvent": {
+      "file": "protocol/branchPackages.ts",
+      "shape": {
+        "fields": {
+          "at": {"type":{"type":"string"}},
+          "branch": {"type":{"type":"string"}},
+          "copyId": {"type":{"type":"string"}},
+          "facts": {"type":{"union":[{"ref":"PackageFacts"},{"type":"null"}]}},
+          "package": {"type":{"ref":"BlockedPackageRef"}},
+          "question": {"type":{"type":"string"}},
+          "runId": {"type":{"type":"string"}},
+          "verdict": {"type":{"ref":"InstallScriptVerdict"}},
+          "workspace": {"type":{"ref":"WorkspaceRepoRef"}}
+        }
+      }
+    },
+    "BranchPackageRefusalCode": {
+      "file": "protocol/branchPackages.ts",
+      "shape": {"union":[{"literal":"malformed"},{"literal":"noCopy"},{"literal":"noPackage"}]}
+    },
+    "BranchPackageUseParams": {
+      "file": "protocol/branchPackages.ts",
+      "shape": {
+        "fields": {
+          "branch": {"type":{"type":"string"}},
+          "copyId": {"type":{"type":"string"}},
+          "package": {"type":{"ref":"BlockedPackageRef"}},
+          "personId": {"type":{"type":"string"}},
+          "workspace": {"type":{"ref":"WorkspaceRepoRef"}}
+        }
+      }
+    },
+    "BranchPackageUseResult": {
+      "file": "protocol/branchPackages.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "ok": {"type":{"literal":false}},
+              "refusal": {
+                "type": {
+                  "fields": {"code":{"type":{"union":[{"literal":"malformed"},{"literal":"noCopy"},{"literal":"noPackage"}]}}}
+                }
+              }
+            }
+          },
+          {"fields":{"ok":{"type":{"literal":true}}}}
+        ]
+      }
+    },
     "BranchRemoveCopyParams": {
       "file": "protocol/branchWork.ts",
       "shape": {"fields":{"copyId":{"type":{"type":"string"}},"workspace":{"type":{"ref":"WorkspaceRepoRef"}}}}
@@ -444,6 +674,148 @@
         ]
       }
     },
+    "BundleDropParams": {"file":"protocol/branchBundles.ts","shape":{"fields":{"bundleId":{"type":{"type":"string"}}}}},
+    "BundleDropResult": {"file":"protocol/branchBundles.ts","shape":{"fields":{"dropped":{"type":{"type":"boolean"}}}}},
+    "BundleLandedEvent": {
+      "file": "protocol/branchBundles.ts",
+      "shape": {
+        "fields": {
+          "at": {"type":{"type":"string"}},
+          "bundleId": {"type":{"type":"string"}},
+          "result": {"type":{"ref":"BundleWriteHead"}},
+          "transferId": {"type":{"type":"string"}}
+        }
+      }
+    },
+    "BundleMakeParams": {
+      "file": "protocol/branchBundles.ts",
+      "shape": {
+        "fields": {
+          "bundleId": {"type":{"type":"string"}},
+          "prerequisites": {"type":{"array":{"type":"string"}}},
+          "source": {"type":{"ref":"BundleSource"}}
+        }
+      }
+    },
+    "BundleMakeResult": {
+      "file": "protocol/branchBundles.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "bundleId": {"type":{"type":"string"}},
+              "head": {"type":{"type":"string"}},
+              "made": {"type":{"literal":true}},
+              "sha256": {"type":{"type":"string"}},
+              "size": {"type":{"type":"number"}}
+            }
+          },
+          {
+            "fields": {
+              "head": {"type":{"type":"string"}},
+              "made": {"type":{"literal":false}},
+              "reason": {"type":{"literal":"nothing_new"}}
+            }
+          },
+          {
+            "fields": {
+              "made": {"type":{"literal":false}},
+              "reason": {"type":{"literal":"too_large"}},
+              "size": {"type":{"type":"number"}}
+            }
+          }
+        ]
+      }
+    },
+    "BundleReadHead": {
+      "file": "protocol/branchBundles.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "ok": {"type":{"literal":false}},
+              "refusal": {
+                "type": {
+                  "union": [
+                    {"literal":"busy"},
+                    {"literal":"failed"},
+                    {"literal":"hash-mismatch"},
+                    {"literal":"not-found"},
+                    {"literal":"ticket-expired"},
+                    {"literal":"ticket-invalid"},
+                    {"literal":"ticket-used"},
+                    {"literal":"too-large"}
+                  ]
+                }
+              }
+            }
+          },
+          {"fields":{"ok":{"type":{"literal":true}},"size":{"type":{"type":"number"}}}}
+        ]
+      }
+    },
+    "BundleReadParams": {"file":"protocol/branchBundles.ts","shape":{"fields":{"ticket":{"type":{"type":"string"}}}}},
+    "BundleServeRefusal": {
+      "file": "protocol/branchBundles.ts",
+      "shape": {
+        "union": [
+          {"literal":"busy"},
+          {"literal":"failed"},
+          {"literal":"hash-mismatch"},
+          {"literal":"not-found"},
+          {"literal":"ticket-expired"},
+          {"literal":"ticket-invalid"},
+          {"literal":"ticket-used"},
+          {"literal":"too-large"}
+        ]
+      }
+    },
+    "BundleSource": {
+      "file": "protocol/branchBundles.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "branch": {"type":{"type":"string"}},
+              "kind": {"type":{"literal":"branch"}},
+              "workspace": {"type":{"ref":"WorkspaceRepoRef"}}
+            }
+          },
+          {"fields":{"kind":{"type":{"literal":"livePreview"}},"livePreviewId":{"type":{"type":"string"}}}},
+          {"fields":{"kind":{"type":{"literal":"main"}},"workspace":{"type":{"ref":"WorkspaceRepoRef"}}}}
+        ]
+      }
+    },
+    "BundleWriteHead": {
+      "file": "protocol/branchBundles.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "ok": {"type":{"literal":false}},
+              "refusal": {
+                "type": {
+                  "union": [
+                    {"literal":"busy"},
+                    {"literal":"failed"},
+                    {"literal":"hash-mismatch"},
+                    {"literal":"not-found"},
+                    {"literal":"ticket-expired"},
+                    {"literal":"ticket-invalid"},
+                    {"literal":"ticket-used"},
+                    {"literal":"too-large"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "fields": {"ok":{"type":{"literal":true}},"sha256":{"type":{"type":"string"}},"size":{"type":{"type":"number"}}}
+          }
+        ]
+      }
+    },
+    "BundleWriteParams": {"file":"protocol/branchBundles.ts","shape":{"fields":{"ticket":{"type":{"type":"string"}}}}},
     "ByIdParams": {"file":"protocol/runtimeParams.ts","shape":{"fields":{"id":{"type":{"type":"string"}}}}},
     "ByRunIdParams": {"file":"protocol/runtimeParams.ts","shape":{"fields":{"runId":{"type":{"type":"string"}}}}},
     "CapabilityClaims": {
@@ -451,6 +823,7 @@
       "shape": {
         "fields": {
           "agentId": {"type":{"type":"string"}},
+          "livePreview": {"optional":true,"type":{"ref":"CapabilityLivePreview"}},
           "onBehalfOfUserId": {"optional":true,"type":{"type":"string"}},
           "permissions": {"type":{"ref":"CapabilityEffectivePermissions"}},
           "personalProject": {"optional":true,"type":{"ref":"CapabilityPersonalProject"}},
@@ -462,6 +835,7 @@
           "startedBy": {"type":{"ref":"RunStartedBy"}},
           "taskId": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
           "tokenType": {"type":{"literal":"capability"}},
+          "trustedPackageScopes": {"optional":true,"type":{"array":{"type":"string"}}},
           "userId": {"type":{"type":"string"}},
           "workspaceId": {"type":{"union":[{"type":"null"},{"type":"string"}]}}
         }
@@ -475,6 +849,16 @@
           "allowedTools": {"type":{"array":{"ref":"ToolPermission"}}},
           "bypassed": {"type":{"type":"boolean"}},
           "neverTools": {"type":{"array":{"type":"string"}}}
+        }
+      }
+    },
+    "CapabilityLivePreview": {
+      "file": "protocol/capability.ts",
+      "shape": {
+        "fields": {
+          "branch": {"type":{"type":"string"}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "workspaceId": {"type":{"type":"string"}}
         }
       }
     },
@@ -538,6 +922,12 @@
           },
           {"fields":{"method":{"type":{"literal":"agent.stop"}},"params":{"type":{"ref":"AgentHandleParams"}}}},
           {"fields":{"method":{"type":{"literal":"branch.bringBack"}},"params":{"type":{"ref":"BranchCopyRef"}}}},
+          {
+            "fields": {
+              "method": {"type":{"literal":"branch.bringBackBundle"}},
+              "params": {"type":{"ref":"BranchBringBackBundleParams"}}
+            }
+          },
           {"fields":{"method":{"type":{"literal":"branch.changes"}},"params":{"type":{"ref":"BranchChangesParams"}}}},
           {"fields":{"method":{"type":{"literal":"branch.commit"}},"params":{"type":{"ref":"BranchCommitParams"}}}},
           {"fields":{"method":{"type":{"literal":"branch.commits"}},"params":{"type":{"ref":"BranchCommitsParams"}}}},
@@ -545,6 +935,9 @@
           {"fields":{"method":{"type":{"literal":"branch.create"}},"params":{"type":{"ref":"BranchCreateParams"}}}},
           {"fields":{"method":{"type":{"literal":"branch.delete"}},"params":{"type":{"ref":"BranchDeleteParams"}}}},
           {"fields":{"method":{"type":{"literal":"branch.list"}},"params":{"type":{"ref":"BranchListParams"}}}},
+          {
+            "fields": {"method":{"type":{"literal":"branch.packageUse"}},"params":{"type":{"ref":"BranchPackageUseParams"}}}
+          },
           {
             "fields": {"method":{"type":{"literal":"branch.removeCopy"}},"params":{"type":{"ref":"BranchRemoveCopyParams"}}}
           },
@@ -555,6 +948,8 @@
               "params": {"type":{"ref":"BranchUpdateFromMainParams"}}
             }
           },
+          {"fields":{"method":{"type":{"literal":"bundle.drop"}},"params":{"type":{"ref":"BundleDropParams"}}}},
+          {"fields":{"method":{"type":{"literal":"bundle.make"}},"params":{"type":{"ref":"BundleMakeParams"}}}},
           {
             "fields": {"method":{"type":{"literal":"claudeLogin.cancel"}},"params":{"type":{"ref":"ClaudeLoginCancelParams"}}}
           },
@@ -574,6 +969,37 @@
           {"fields":{"method":{"type":{"literal":"git.restore"}},"params":{"type":{"ref":"GitRestoreParams"}}}},
           {"fields":{"method":{"type":{"literal":"git.status"}},"params":{"type":{"ref":"GitStatusParams"}}}},
           {"fields":{"method":{"type":{"literal":"git.versions"}},"params":{"type":{"ref":"GitVersionsParams"}}}},
+          {
+            "fields": {"method":{"type":{"literal":"livePreview.act"}},"params":{"type":{"ref":"LivePreviewActParams"}}}
+          },
+          {
+            "fields": {"method":{"type":{"literal":"livePreview.appList"}},"params":{"type":{"ref":"LivePreviewAppListParams"}}}
+          },
+          {
+            "fields": {
+              "method": {"type":{"literal":"livePreview.appStart"}},
+              "params": {"type":{"ref":"LivePreviewAppStartParams"}}
+            }
+          },
+          {
+            "fields": {"method":{"type":{"literal":"livePreview.appStop"}},"params":{"type":{"ref":"LivePreviewAppStopParams"}}}
+          },
+          {
+            "fields": {"method":{"type":{"literal":"livePreview.commit"}},"params":{"type":{"ref":"LivePreviewCommitParams"}}}
+          },
+          {"fields":{"method":{"type":{"literal":"livePreview.list"}},"params":{"type":{"ref":"NoParams"}}}},
+          {
+            "fields": {"method":{"type":{"literal":"livePreview.open"}},"params":{"type":{"ref":"LivePreviewOpenParams"}}}
+          },
+          {
+            "fields": {"method":{"type":{"literal":"livePreview.refresh"}},"params":{"type":{"ref":"LivePreviewRefreshParams"}}}
+          },
+          {
+            "fields": {"method":{"type":{"literal":"livePreview.resume"}},"params":{"type":{"ref":"LivePreviewResumeParams"}}}
+          },
+          {
+            "fields": {"method":{"type":{"literal":"livePreview.stop"}},"params":{"type":{"ref":"LivePreviewStopParams"}}}
+          },
           {
             "fields": {
               "method": {"type":{"literal":"location.deleteKnowledge"}},
@@ -725,6 +1151,9 @@
           {"fields":{"method":{"type":{"literal":"site.describe"}},"params":{"type":{"ref":"NoParams"}}}},
           {"fields":{"method":{"type":{"literal":"site.healthNow"}},"params":{"type":{"ref":"NoParams"}}}},
           {"fields":{"method":{"type":{"literal":"site.hqAddress"}},"params":{"type":{"ref":"SiteHqAddressParams"}}}},
+          {
+            "fields": {"method":{"type":{"literal":"site.livePreviews"}},"params":{"type":{"ref":"SiteLivePreviewsParams"}}}
+          },
           {"fields":{"method":{"type":{"literal":"site.readLogs"}},"params":{"type":{"ref":"LogQuery"}}}},
           {"fields":{"method":{"type":{"literal":"site.restoreReport"}},"params":{"type":{"ref":"NoParams"}}}},
           {"fields":{"method":{"type":{"literal":"toolcall.list"}},"params":{"type":{"ref":"ByRunIdParams"}}}},
@@ -873,6 +1302,37 @@
           },
           {
             "fields": {
+              "duplex": {"optional":true,"type":{"literal":true}},
+              "id": {"type":{"type":"number"}},
+              "method": {"type":{"literal":"app.serve"}},
+              "params": {"type":{"ref":"AppServeParams"}},
+              "t": {"type":{"literal":"open"}},
+              "window": {"optional":true,"type":{"type":"number"}}
+            }
+          },
+          {
+            "fields": {
+              "duplex": {"optional":true,"type":{"literal":true}},
+              "id": {"type":{"type":"number"}},
+              "method": {"type":{"literal":"bundle.read"}},
+              "params": {"type":{"ref":"BundleReadParams"}},
+              "t": {"type":{"literal":"open"}},
+              "window": {"optional":true,"type":{"type":"number"}}
+            }
+          },
+          {
+            "fields": {
+              "duplex": {"optional":true,"type":{"literal":true}},
+              "id": {"type":{"type":"number"}},
+              "method": {"type":{"literal":"bundle.write"}},
+              "params": {"type":{"ref":"BundleWriteParams"}},
+              "t": {"type":{"literal":"open"}},
+              "window": {"optional":true,"type":{"type":"number"}}
+            }
+          },
+          {
+            "fields": {
+              "duplex": {"optional":true,"type":{"literal":true}},
               "id": {"type":{"type":"number"}},
               "method": {"type":{"literal":"files.serve"}},
               "params": {"type":{"ref":"FilesServeParams"}},
@@ -882,6 +1342,7 @@
           },
           {
             "fields": {
+              "duplex": {"optional":true,"type":{"literal":true}},
               "id": {"type":{"type":"number"}},
               "method": {"type":{"literal":"location.readArtefact"}},
               "params": {"type":{"ref":"LocationReadArtefactParams"}},
@@ -891,6 +1352,7 @@
           },
           {
             "fields": {
+              "duplex": {"optional":true,"type":{"literal":true}},
               "id": {"type":{"type":"number"}},
               "method": {"type":{"literal":"location.readFile"}},
               "params": {"type":{"ref":"LocationReadFileParams"}},
@@ -900,6 +1362,7 @@
           },
           {
             "fields": {
+              "duplex": {"optional":true,"type":{"literal":true}},
               "id": {"type":{"type":"number"}},
               "method": {"type":{"literal":"location.readKnowledge"}},
               "params": {"type":{"ref":"LocationReadKnowledgeParams"}},
@@ -909,6 +1372,7 @@
           },
           {
             "fields": {
+              "duplex": {"optional":true,"type":{"literal":true}},
               "id": {"type":{"type":"number"}},
               "method": {"type":{"literal":"location.writeSkill"}},
               "params": {"type":{"ref":"LocationWriteSkillParams"}},
@@ -918,6 +1382,7 @@
           },
           {
             "fields": {
+              "duplex": {"optional":true,"type":{"literal":true}},
               "id": {"type":{"type":"number"}},
               "method": {"type":{"literal":"packages.put"}},
               "params": {"type":{"fields":{"ref":{"type":{"ref":"PackageRef"}}}}},
@@ -927,6 +1392,7 @@
           },
           {
             "fields": {
+              "duplex": {"optional":true,"type":{"literal":true}},
               "id": {"type":{"type":"number"}},
               "method": {"type":{"literal":"preview.connect"}},
               "params": {"type":{"ref":"PreviewConnectParams"}},
@@ -959,6 +1425,9 @@
       "file": "protocol/content.ts",
       "shape": {
         "union": [
+          {"fields":{"method":{"type":{"literal":"app.serve"}},"params":{"type":{"ref":"AppServeParams"}}}},
+          {"fields":{"method":{"type":{"literal":"bundle.read"}},"params":{"type":{"ref":"BundleReadParams"}}}},
+          {"fields":{"method":{"type":{"literal":"bundle.write"}},"params":{"type":{"ref":"BundleWriteParams"}}}},
           {"fields":{"method":{"type":{"literal":"files.serve"}},"params":{"type":{"ref":"FilesServeParams"}}}},
           {
             "fields": {
@@ -1470,6 +1939,38 @@
         }
       }
     },
+    "InstallScriptVerdict": {
+      "file": "livePreview/installScripts.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "allowed": {"type":{"literal":false}},
+              "reasons": {
+                "type": {
+                  "array": {
+                    "union": [
+                      {"literal":"advisories"},
+                      {"literal":"fewDownloads"},
+                      {"literal":"publisherChanged"},
+                      {"literal":"tooNew"},
+                      {"literal":"unknown"}
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {"fields":{"allowed":{"type":{"literal":false}},"registryUnreachable":{"type":{"literal":true}}}},
+          {
+            "fields": {
+              "allowed": {"type":{"literal":true}},
+              "why": {"type":{"union":[{"literal":"builtIn"},{"literal":"rule"},{"literal":"trustedScope"}]}}
+            }
+          }
+        ]
+      }
+    },
     "InstalledSkillEntry": {
       "file": "protocol/packages.ts",
       "shape": {
@@ -1732,6 +2233,618 @@
           "message": {"type":{"type":"string"}},
           "reason": {"type":{"type":"string"}},
           "runId": {"type":{"union":[{"type":"null"},{"type":"string"}]}}
+        }
+      }
+    },
+    "LivePreviewActOutcome": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "accepted": {"type":{"literal":true}},
+              "kind": {"type":{"union":[{"literal":"package.use"},{"literal":"service.start"}]}}
+            }
+          },
+          {"fields":{"kind":{"type":{"literal":"app.open"}},"ticket":{"type":{"ref":"LivePreviewTicket"}}}}
+        ]
+      }
+    },
+    "LivePreviewActParams": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "livePreviewId": {"type":{"type":"string"}},
+          "personId": {"type":{"type":"string"}},
+          "request": {"type":{"ref":"LivePreviewRequest"}}
+        }
+      }
+    },
+    "LivePreviewActResult": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "union": [
+          {"fields":{"ok":{"type":{"literal":false}},"refusal":{"type":{"ref":"LivePreviewRefusal"}}}},
+          {"fields":{"ok":{"type":{"literal":true}},"outcome":{"type":{"ref":"LivePreviewActOutcome"}}}}
+        ]
+      }
+    },
+    "LivePreviewAnswer": {
+      "file": "protocol/livePreviews.ts",
+      "params": ["T"],
+      "shape": {
+        "union": [
+          {"fields":{"ok":{"type":{"literal":false}},"refusal":{"type":{"ref":"LivePreviewRefusal"}}}},
+          {"intersection":[{"fields":{"ok":{"type":{"literal":true}}}},{"param":"T"}]}
+        ]
+      }
+    },
+    "LivePreviewAppListParams": {"file":"protocol/livePreviewApps.ts","shape":{"fields":{"livePreviewId":{"type":{"type":"string"}}}}},
+    "LivePreviewAppListResult": {
+      "file": "protocol/livePreviewApps.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "apps": {"type":{"array":{"ref":"AppStatus"}}},
+              "ok": {"type":{"literal":true}},
+              "services": {"type":{"array":{"ref":"ServiceStatus"}}}
+            }
+          },
+          {"fields":{"ok":{"type":{"literal":false}},"refusal":{"type":{"ref":"LivePreviewRefusal"}}}}
+        ]
+      }
+    },
+    "LivePreviewAppRefusalCode": {
+      "file": "protocol/livePreviewApps.ts",
+      "shape": {
+        "union": [
+          {"literal":"badSpec"},
+          {"literal":"portTaken"},
+          {"literal":"servicesRefused"},
+          {"literal":"tooManyApps"},
+          {"literal":"unknownApp"}
+        ]
+      }
+    },
+    "LivePreviewAppRefused": {
+      "file": "protocol/livePreviewApps.ts",
+      "shape": {
+        "fields": {
+          "detail": {"type":{"type":"string"}},
+          "problems": {"optional":true,"type":{"array":{"ref":"ServiceProblem"}}},
+          "refused": {
+            "type": {
+              "union": [
+                {"literal":"badSpec"},
+                {"literal":"portTaken"},
+                {"literal":"servicesRefused"},
+                {"literal":"tooManyApps"},
+                {"literal":"unknownApp"}
+              ]
+            }
+          }
+        }
+      }
+    },
+    "LivePreviewAppStartParams": {
+      "file": "protocol/livePreviewApps.ts",
+      "shape": {
+        "fields": {
+          "app": {"type":{"ref":"AppSpec"}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "personId": {"type":{"type":"string"}},
+          "startedBy": {
+            "type": {
+              "union": [{"fields":{"agentId":{"type":{"type":"string"}},"runId":{"type":{"type":"string"}}}},{"type":"null"}]
+            }
+          }
+        }
+      }
+    },
+    "LivePreviewAppStartResult": {
+      "file": "protocol/livePreviewApps.ts",
+      "shape": {
+        "union": [
+          {"fields":{"ok":{"type":{"literal":false}},"refusal":{"type":{"ref":"LivePreviewRefusal"}}}},
+          {
+            "fields": {
+              "ok": {"type":{"literal":true}},
+              "result": {"type":{"union":[{"fields":{"app":{"type":{"ref":"AppStatus"}}}},{"ref":"LivePreviewAppRefused"}]}}
+            }
+          }
+        ]
+      }
+    },
+    "LivePreviewAppStateEvent": {
+      "file": "protocol/livePreviewApps.ts",
+      "shape": {
+        "fields": {
+          "app": {"type":{"ref":"AppStatus"}},
+          "at": {"type":{"type":"string"}},
+          "run": {"type":{"union":[{"ref":"AppRun"},{"type":"null"}]}}
+        }
+      }
+    },
+    "LivePreviewAppStopParams": {
+      "file": "protocol/livePreviewApps.ts",
+      "shape": {
+        "fields": {
+          "appId": {"type":{"type":"string"}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "personId": {"type":{"type":"string"}}
+        }
+      }
+    },
+    "LivePreviewAppStopResult": {
+      "file": "protocol/livePreviewApps.ts",
+      "shape": {
+        "union": [
+          {"fields":{"ok":{"type":{"literal":false}},"refusal":{"type":{"ref":"LivePreviewRefusal"}}}},
+          {
+            "fields": {
+              "ok": {"type":{"literal":true}},
+              "result": {"type":{"union":[{"fields":{"app":{"type":{"ref":"AppStatus"}}}},{"ref":"LivePreviewAppRefused"}]}}
+            }
+          }
+        ]
+      }
+    },
+    "LivePreviewBranchMovedEvent": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "branch": {"type":{"type":"string"}},
+          "cause": {"type":{"ref":"BranchBackCause"}},
+          "head": {"type":{"type":"string"}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "previous": {"type":{"type":"string"}},
+          "runId": {"type":{"union":[{"type":"null"},{"type":"string"}]}}
+        }
+      }
+    },
+    "LivePreviewCommitParams": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "author": {"type":{"ref":"GitPerson"}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "message": {"type":{"type":"string"}},
+          "onBehalfOf": {"type":{"union":[{"ref":"GitPerson"},{"type":"null"}]}},
+          "runId": {"type":{"type":"string"}}
+        }
+      }
+    },
+    "LivePreviewCommitResult": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "union": [
+          {"fields":{"ok":{"type":{"literal":false}},"refusal":{"type":{"ref":"LivePreviewRefusal"}}}},
+          {
+            "fields": {
+              "ok": {"type":{"literal":true}},
+              "result": {
+                "type": {
+                  "union": [
+                    {
+                      "fields": {
+                        "commit": {"type":{"type":"string"}},
+                        "committed": {"type":{"literal":true}},
+                        "files": {"type":{"type":"number"}}
+                      }
+                    },
+                    {
+                      "fields": {"committed":{"type":{"literal":false}},"reason":{"type":{"literal":"nothing_to_commit"}}}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "LivePreviewCopyRef": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "bundleId": {"type":{"type":"string"}},
+              "copyId": {"type":{"type":"string"}},
+              "kind": {"type":{"literal":"bundle"}}
+            }
+          },
+          {"fields":{"copyId":{"type":{"type":"string"}},"kind":{"type":{"literal":"branch"}}}},
+          {"fields":{"copyId":{"type":{"type":"string"}},"kind":{"type":{"literal":"main"}}}}
+        ]
+      }
+    },
+    "LivePreviewGuardEvent": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "at": {"type":{"type":"string"}},
+          "detail": {"type":{"type":"string"}},
+          "livePreviewId": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "projectId": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "signal": {
+            "type": {
+              "union": [
+                {"literal":"blockedAddresses"},
+                {"literal":"guardDown"},
+                {"literal":"linkRefused"},
+                {"literal":"notMadeBySite"},
+                {"literal":"offTemplate"},
+                {"literal":"privilegeChange"},
+                {"literal":"protectionsDown"},
+                {"literal":"readOnlyWrite"},
+                {"literal":"relayRefusals"},
+                {"literal":"unexpectedPort"},
+                {"literal":"unexpectedProcess"},
+                {"literal":"unusualUse"}
+              ]
+            }
+          },
+          "steps": {
+            "type": {
+              "array": {
+                "union": [
+                  {"literal":"alerted"},
+                  {"literal":"appStopped"},
+                  {"literal":"asked"},
+                  {"literal":"paused"},
+                  {"literal":"previewStopped"},
+                  {"literal":"processKilled"},
+                  {"literal":"refused"}
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "LivePreviewGuardReportEvent": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {"fields":{"at":{"type":{"type":"string"}},"livePreviewIds":{"type":{"array":{"type":"string"}}}}}
+    },
+    "LivePreviewLimit": {"file":"livePreview/livePreview.ts","shape":{"union":[{"type":"null"},{"type":"number"}]}},
+    "LivePreviewListResult": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "livePreviews": {"type":{"array":{"ref":"LivePreviewSummary"}}},
+          "settings": {"type":{"ref":"SiteLivePreviewsParams"}}
+        }
+      }
+    },
+    "LivePreviewOpenParams": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "branch": {"type":{"type":"string"}},
+          "copy": {"type":{"ref":"LivePreviewCopyRef"}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "onMain": {"type":{"type":"boolean"}},
+          "personId": {"type":{"type":"string"}},
+          "projectId": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "workspace": {"type":{"ref":"WorkspaceRepoRef"}}
+        }
+      }
+    },
+    "LivePreviewPackageBlockedEvent": {
+      "file": "protocol/livePreviewApps.ts",
+      "shape": {
+        "fields": {
+          "at": {"type":{"type":"string"}},
+          "facts": {"type":{"union":[{"ref":"PackageFacts"},{"type":"null"}]}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "package": {
+            "type": {
+              "fields": {
+                "ecosystem": {"type":{"type":"string"}},
+                "name": {"type":{"type":"string"}},
+                "version": {"type":{"type":"string"}}
+              }
+            }
+          },
+          "question": {"type":{"type":"string"}},
+          "runId": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "verdict": {"type":{"ref":"InstallScriptVerdict"}}
+        }
+      }
+    },
+    "LivePreviewRefreshParams": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "bundleId": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "head": {"type":{"type":"string"}},
+          "livePreviewId": {"type":{"type":"string"}}
+        }
+      }
+    },
+    "LivePreviewRefreshResult": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "union": [
+          {"fields":{"head":{"type":{"type":"string"}},"ok":{"type":{"literal":true}}}},
+          {"fields":{"ok":{"type":{"literal":false}},"refusal":{"type":{"ref":"LivePreviewRefusal"}}}}
+        ]
+      }
+    },
+    "LivePreviewRefusal": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "code": {
+            "type": {
+              "union": [
+                {"literal":"appNotRunning"},
+                {"literal":"atLimit"},
+                {"literal":"branchOpen"},
+                {"literal":"guardDown"},
+                {"literal":"malformed"},
+                {"literal":"noBundle"},
+                {"literal":"noCopy"},
+                {"literal":"noPackage"},
+                {"literal":"noRun"},
+                {"literal":"notGuardPaused"},
+                {"literal":"paused"},
+                {"literal":"protectionsDown"},
+                {"literal":"serviceChanged"},
+                {"literal":"stopped"},
+                {"literal":"turnedOff"},
+                {"literal":"unknownPreview"}
+              ]
+            }
+          },
+          "livePreviewIds": {"optional":true,"type":{"array":{"type":"string"}}},
+          "message": {"type":{"type":"string"}}
+        }
+      }
+    },
+    "LivePreviewRefusalCode": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "union": [
+          {"literal":"appNotRunning"},
+          {"literal":"atLimit"},
+          {"literal":"branchOpen"},
+          {"literal":"guardDown"},
+          {"literal":"malformed"},
+          {"literal":"noBundle"},
+          {"literal":"noCopy"},
+          {"literal":"noPackage"},
+          {"literal":"noRun"},
+          {"literal":"notGuardPaused"},
+          {"literal":"paused"},
+          {"literal":"protectionsDown"},
+          {"literal":"serviceChanged"},
+          {"literal":"stopped"},
+          {"literal":"turnedOff"},
+          {"literal":"unknownPreview"}
+        ]
+      }
+    },
+    "LivePreviewRequest": {
+      "file": "livePreview/livePreviewRequest.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "appId": {"type":{"type":"string"}},
+              "entry": {"type":{"union":[{"literal":"frame"},{"literal":"renew"},{"literal":"tab"}]}},
+              "kind": {"type":{"literal":"app.open"}}
+            }
+          },
+          {
+            "fields": {
+              "declaration": {"type":{"type":"string"}},
+              "kind": {"type":{"literal":"service.start"}},
+              "service": {"type":{"type":"string"}}
+            }
+          },
+          {
+            "fields": {
+              "ecosystem": {"type":{"type":"string"}},
+              "kind": {"type":{"literal":"package.use"}},
+              "name": {"type":{"type":"string"}},
+              "version": {"type":{"type":"string"}}
+            }
+          }
+        ]
+      }
+    },
+    "LivePreviewResult": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "union": [
+          {"fields":{"livePreview":{"type":{"ref":"LivePreviewSummary"}},"ok":{"type":{"literal":true}}}},
+          {"fields":{"ok":{"type":{"literal":false}},"refusal":{"type":{"ref":"LivePreviewRefusal"}}}}
+        ]
+      }
+    },
+    "LivePreviewResumeParams": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {"fields":{"livePreviewId":{"type":{"type":"string"}},"personId":{"type":{"type":"string"}}}}
+    },
+    "LivePreviewServicesEvent": {
+      "file": "protocol/livePreviewApps.ts",
+      "shape": {
+        "fields": {
+          "at": {"type":{"type":"string"}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "problems": {"type":{"array":{"ref":"ServiceProblem"}}},
+          "services": {"type":{"array":{"ref":"ServiceStatus"}}}
+        }
+      }
+    },
+    "LivePreviewState": {
+      "file": "livePreview/livePreview.ts",
+      "shape": {
+        "union": [
+          {
+            "fields": {
+              "detail": {"type":{"type":"string"}},
+              "reason": {
+                "type": {
+                  "union": [
+                    {"literal":"failed"},
+                    {"literal":"fleetAdmin"},
+                    {"literal":"guard"},
+                    {"literal":"idle"},
+                    {"literal":"merged"},
+                    {"literal":"person"},
+                    {"literal":"projectAdmin"},
+                    {"literal":"resources"},
+                    {"literal":"turnedOff"}
+                  ]
+                }
+              },
+              "signal": {
+                "type": {
+                  "union": [
+                    {"literal":"blockedAddresses"},
+                    {"literal":"guardDown"},
+                    {"literal":"linkRefused"},
+                    {"literal":"notMadeBySite"},
+                    {"literal":"offTemplate"},
+                    {"literal":"privilegeChange"},
+                    {"literal":"protectionsDown"},
+                    {"literal":"readOnlyWrite"},
+                    {"literal":"relayRefusals"},
+                    {"literal":"unexpectedPort"},
+                    {"literal":"unexpectedProcess"},
+                    {"literal":"unusualUse"},
+                    {"type":"null"}
+                  ]
+                }
+              },
+              "since": {"type":{"type":"string"}},
+              "state": {"type":{"literal":"stopped"}}
+            }
+          },
+          {
+            "fields": {
+              "detail": {"type":{"type":"string"}},
+              "reason": {"type":{"union":[{"literal":"guard"},{"literal":"lineLost"}]}},
+              "signal": {
+                "type": {
+                  "union": [
+                    {"literal":"blockedAddresses"},
+                    {"literal":"guardDown"},
+                    {"literal":"linkRefused"},
+                    {"literal":"notMadeBySite"},
+                    {"literal":"offTemplate"},
+                    {"literal":"privilegeChange"},
+                    {"literal":"protectionsDown"},
+                    {"literal":"readOnlyWrite"},
+                    {"literal":"relayRefusals"},
+                    {"literal":"unexpectedPort"},
+                    {"literal":"unexpectedProcess"},
+                    {"literal":"unusualUse"},
+                    {"type":"null"}
+                  ]
+                }
+              },
+              "since": {"type":{"type":"string"}},
+              "state": {"type":{"literal":"paused"}}
+            }
+          },
+          {"fields":{"since":{"type":{"type":"string"}},"state":{"type":{"literal":"running"}}}},
+          {"fields":{"since":{"type":{"type":"string"}},"state":{"type":{"literal":"starting"}}}}
+        ]
+      }
+    },
+    "LivePreviewStateEvent": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {"fields":{"at":{"type":{"type":"string"}},"livePreview":{"type":{"ref":"LivePreviewSummary"}}}}
+    },
+    "LivePreviewStopParams": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "by": {
+            "type": {
+              "union": [
+                {"literal":"fleetAdmin"},
+                {"literal":"idle"},
+                {"literal":"merged"},
+                {"literal":"person"},
+                {"literal":"projectAdmin"},
+                {"literal":"turnedOff"}
+              ]
+            }
+          },
+          "livePreviewId": {"type":{"type":"string"}}
+        }
+      }
+    },
+    "LivePreviewStopResult": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "union": [
+          {"fields":{"ok":{"type":{"literal":false}},"refusal":{"type":{"ref":"LivePreviewRefusal"}}}},
+          {
+            "fields": {
+              "ok": {"type":{"literal":true}},
+              "pendingBack": {"type":{"type":"boolean"}},
+              "stopped": {"type":{"type":"boolean"}}
+            }
+          }
+        ]
+      }
+    },
+    "LivePreviewStopper": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "union": [
+          {"literal":"fleetAdmin"},
+          {"literal":"idle"},
+          {"literal":"merged"},
+          {"literal":"person"},
+          {"literal":"projectAdmin"},
+          {"literal":"turnedOff"}
+        ]
+      }
+    },
+    "LivePreviewSummary": {
+      "file": "livePreview/livePreview.ts",
+      "shape": {
+        "fields": {
+          "branch": {"type":{"type":"string"}},
+          "copy": {
+            "type": {
+              "fields": {
+                "copyId": {"type":{"type":"string"}},
+                "kind": {"type":{"union":[{"literal":"branch"},{"literal":"bundle"},{"literal":"main"}]}}
+              }
+            }
+          },
+          "head": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "livePreviewId": {"type":{"type":"string"}},
+          "onMain": {"type":{"type":"boolean"}},
+          "openedAt": {"type":{"type":"string"}},
+          "personId": {"type":{"type":"string"}},
+          "projectId": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "state": {"type":{"ref":"LivePreviewState"}},
+          "workspaceId": {"type":{"type":"string"}}
+        }
+      }
+    },
+    "LivePreviewTicket": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {"fields":{"expiresAt":{"type":{"type":"string"}},"ticket":{"type":{"type":"string"}}}}
+    },
+    "LivePreviewsCapacity": {
+      "file": "livePreview/capacity.ts",
+      "shape": {
+        "fields": {
+          "cpuPercent": {"type":{"union":[{"type":"null"},{"type":"number"}]}},
+          "limit": {"type":{"ref":"LivePreviewLimit"}},
+          "memoryPercent": {"type":{"union":[{"type":"null"},{"type":"number"}]}},
+          "open": {"type":{"type":"number"}}
         }
       }
     },
@@ -2203,7 +3316,12 @@
     "MuxRole": {"file":"protocol/contentMux.ts","shape":{"union":[{"literal":"opener"},{"literal":"server"}]}},
     "NoParams": {"file":"protocol/siteMethods.ts","shape":{"fields":{},"index":{"key":"string","value":{"type":"never"}}}},
     "OkResult": {"file":"protocol/runtimeParams.ts","shape":{"fields":{"ok":{"type":{"literal":true}}}}},
-    "OpenOptions": {"file":"protocol/contentMux.ts","shape":{"fields":{"window":{"optional":true,"type":{"type":"number"}}}}},
+    "OpenOptions": {
+      "file": "protocol/contentMux.ts",
+      "shape": {
+        "fields": {"duplex":{"optional":true,"type":{"type":"boolean"}},"window":{"optional":true,"type":{"type":"number"}}}
+      }
+    },
     "OrgPackageSkillSource": {
       "deprecated": "since 1.10; stops working in 3.0. Use `installedSkills` instead.",
       "file": "protocol/packages.ts",
@@ -2218,6 +3336,21 @@
     "PackageContents": {
       "file": "protocol/packages.ts",
       "shape": {"fields":{"files":{"type":{"array":{"ref":"PackageFileEntry"}}},"formatVersion":{"type":{"type":"number"}}}}
+    },
+    "PackageFacts": {
+      "file": "livePreview/installScripts.ts",
+      "shape": {
+        "fields": {
+          "advisories": {"type":{"union":[{"array":{"type":"string"}},{"type":"null"}]}},
+          "ecosystem": {"type":{"literal":"npm"}},
+          "name": {"type":{"type":"string"}},
+          "previousPublisher": {"type":{"union":[{"type":"null"},{"type":"string"},{"type":"undefined"}]}},
+          "publishedAt": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "publisher": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "version": {"type":{"type":"string"}},
+          "weeklyDownloads": {"type":{"union":[{"type":"null"},{"type":"number"}]}}
+        }
+      }
     },
     "PackageFileEntry": {
       "file": "protocol/packages.ts",
@@ -2578,6 +3711,7 @@
           "behindMain": {"type":{"type":"number"}},
           "branch": {"type":{"type":"string"}},
           "copyId": {"type":{"type":"string"}},
+          "livePreviewId": {"optional":true,"type":{"type":"string"}},
           "main": {"type":{"type":"string"}},
           "onBehalfOf": {"type":{"union":[{"ref":"GitPerson"},{"type":"null"}]}},
           "otherBranches": {"type":{"array":{"ref":"RunOtherBranch"}}},
@@ -3446,6 +4580,113 @@
         ]
       }
     },
+    "ServiceDeclaration": {
+      "file": "livePreview/services.ts",
+      "shape": {
+        "fields": {
+          "command": {"type":{"union":[{"array":{"type":"string"}},{"type":"null"}]}},
+          "dependsOn": {
+            "type": {
+              "array": {
+                "tuple": [
+                  {"type":"string"},
+                  {
+                    "union": [
+                      {"literal":"service_completed_successfully"},
+                      {"literal":"service_healthy"},
+                      {"literal":"service_started"}
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "environment": {"type":{"array":{"tuple":[{"type":"string"},{"type":"string"}]}}},
+          "expose": {"type":{"array":{"type":"number"}}},
+          "healthcheck": {"type":{"union":[{"ref":"ServiceHealthcheck"},{"type":"null"}]}},
+          "image": {"type":{"type":"string"}},
+          "name": {"type":{"type":"string"}},
+          "volume": {
+            "type": {
+              "union": [
+                {
+                  "fields": {
+                    "name": {"type":{"type":"string"}},
+                    "readOnly": {"type":{"type":"boolean"}},
+                    "target": {"type":{"type":"string"}}
+                  }
+                },
+                {"type":"null"}
+              ]
+            }
+          }
+        }
+      }
+    },
+    "ServiceHealthcheck": {
+      "file": "livePreview/services.ts",
+      "shape": {
+        "fields": {
+          "intervalMs": {"type":{"type":"number"}},
+          "retries": {"type":{"type":"number"}},
+          "startPeriodMs": {"type":{"type":"number"}},
+          "test": {"type":{"array":{"type":"string"}}},
+          "timeoutMs": {"type":{"type":"number"}}
+        }
+      }
+    },
+    "ServiceProblem": {
+      "file": "livePreview/services.ts",
+      "shape": {
+        "fields": {
+          "at": {"type":{"type":"string"}},
+          "code": {
+            "type": {
+              "union": [
+                {"literal":"badImage"},
+                {"literal":"badName"},
+                {"literal":"badValue"},
+                {"literal":"dependsCycle"},
+                {"literal":"hostPath"},
+                {"literal":"interpolation"},
+                {"literal":"notAFile"},
+                {"literal":"notAllowed"},
+                {"literal":"oneVolume"},
+                {"literal":"tooMany"},
+                {"literal":"unknownService"},
+                {"literal":"unknownVolume"},
+                {"literal":"volumeOptions"},
+                {"literal":"volumeShared"},
+                {"literal":"widens"}
+              ]
+            }
+          },
+          "message": {"type":{"type":"string"}}
+        }
+      }
+    },
+    "ServiceStatus": {
+      "file": "livePreview/services.ts",
+      "shape": {
+        "fields": {
+          "declaration": {"type":{"ref":"ServiceDeclaration"}},
+          "declarationHash": {"type":{"type":"string"}},
+          "detail": {"type":{"union":[{"type":"null"},{"type":"string"}]}},
+          "name": {"type":{"type":"string"}},
+          "state": {
+            "type": {
+              "union": [
+                {"literal":"failed"},
+                {"literal":"running"},
+                {"literal":"starting"},
+                {"literal":"stopped"},
+                {"literal":"waiting"}
+              ]
+            }
+          }
+        }
+      }
+    },
     "SessionClosedReasonValue": {
       "file": "protocol/sessionState.ts",
       "shape": {
@@ -3577,6 +4818,9 @@
       "file": "protocol/siteMethods.ts",
       "shape": {
         "union": [
+          {"literal":"app.serve"},
+          {"literal":"bundle.read"},
+          {"literal":"bundle.write"},
           {"literal":"files.serve"},
           {"literal":"location.readArtefact"},
           {"literal":"location.readFile"},
@@ -3591,6 +4835,9 @@
       "file": "protocol/siteMethods.ts",
       "shape": {
         "fields": {
+          "app.serve": {"type":{"fields":{"params":{"type":{"ref":"AppServeParams"}}}}},
+          "bundle.read": {"type":{"fields":{"params":{"type":{"ref":"BundleReadParams"}}}}},
+          "bundle.write": {"type":{"fields":{"params":{"type":{"ref":"BundleWriteParams"}}}}},
           "files.serve": {"type":{"fields":{"params":{"type":{"ref":"FilesServeParams"}}}}},
           "location.readArtefact": {
             "deprecated": "since 1.8; stops working in 3.0. Use `files.serve` instead.",
@@ -3600,7 +4847,10 @@
           "location.readKnowledge": {"type":{"fields":{"params":{"type":{"ref":"LocationReadKnowledgeParams"}}}}},
           "location.writeSkill": {"type":{"fields":{"params":{"type":{"ref":"LocationWriteSkillParams"}}}}},
           "packages.put": {"type":{"fields":{"params":{"type":{"fields":{"ref":{"type":{"ref":"PackageRef"}}}}}}}},
-          "preview.connect": {"type":{"fields":{"params":{"type":{"ref":"PreviewConnectParams"}}}}}
+          "preview.connect": {
+            "deprecated": "since 1.12; stops working in 3.0. Use `app.serve` instead.",
+            "type": {"fields":{"params":{"type":{"ref":"PreviewConnectParams"}}}}
+          }
         }
       }
     },
@@ -3667,6 +4917,15 @@
       "shape": {
         "union": [
           {"literal":"branch.back"},
+          {"literal":"branch.packageBlocked"},
+          {"literal":"bundle.landed"},
+          {"literal":"livePreview.appState"},
+          {"literal":"livePreview.branchMoved"},
+          {"literal":"livePreview.guard"},
+          {"literal":"livePreview.guardReport"},
+          {"literal":"livePreview.packageBlocked"},
+          {"literal":"livePreview.services"},
+          {"literal":"livePreview.state"},
           {"literal":"run.status"},
           {"literal":"run.stream"},
           {"literal":"run.waiting"},
@@ -3686,7 +4945,41 @@
         "union": [
           {"fields":{"data":{"type":{"ref":"BranchBackEvent"}},"event":{"type":{"literal":"branch.back"}}}},
           {
+            "fields": {"data":{"type":{"ref":"BranchPackageBlockedEvent"}},"event":{"type":{"literal":"branch.packageBlocked"}}}
+          },
+          {"fields":{"data":{"type":{"ref":"BundleLandedEvent"}},"event":{"type":{"literal":"bundle.landed"}}}},
+          {
             "fields": {"data":{"type":{"ref":"CredentialHealthEvent"}},"event":{"type":{"literal":"site.credentialHealth"}}}
+          },
+          {
+            "fields": {"data":{"type":{"ref":"LivePreviewAppStateEvent"}},"event":{"type":{"literal":"livePreview.appState"}}}
+          },
+          {
+            "fields": {
+              "data": {"type":{"ref":"LivePreviewBranchMovedEvent"}},
+              "event": {"type":{"literal":"livePreview.branchMoved"}}
+            }
+          },
+          {
+            "fields": {"data":{"type":{"ref":"LivePreviewGuardEvent"}},"event":{"type":{"literal":"livePreview.guard"}}}
+          },
+          {
+            "fields": {
+              "data": {"type":{"ref":"LivePreviewGuardReportEvent"}},
+              "event": {"type":{"literal":"livePreview.guardReport"}}
+            }
+          },
+          {
+            "fields": {
+              "data": {"type":{"ref":"LivePreviewPackageBlockedEvent"}},
+              "event": {"type":{"literal":"livePreview.packageBlocked"}}
+            }
+          },
+          {
+            "fields": {"data":{"type":{"ref":"LivePreviewServicesEvent"}},"event":{"type":{"literal":"livePreview.services"}}}
+          },
+          {
+            "fields": {"data":{"type":{"ref":"LivePreviewStateEvent"}},"event":{"type":{"literal":"livePreview.state"}}}
           },
           {"fields":{"data":{"type":{"ref":"RunStatusEvent"}},"event":{"type":{"literal":"run.status"}}}},
           {"fields":{"data":{"type":{"ref":"RunStreamEvent"}},"event":{"type":{"literal":"run.stream"}}}},
@@ -3712,6 +5005,15 @@
       "shape": {
         "fields": {
           "branch.back": {"type":{"ref":"BranchBackEvent"}},
+          "branch.packageBlocked": {"type":{"ref":"BranchPackageBlockedEvent"}},
+          "bundle.landed": {"type":{"ref":"BundleLandedEvent"}},
+          "livePreview.appState": {"type":{"ref":"LivePreviewAppStateEvent"}},
+          "livePreview.branchMoved": {"type":{"ref":"LivePreviewBranchMovedEvent"}},
+          "livePreview.guard": {"type":{"ref":"LivePreviewGuardEvent"}},
+          "livePreview.guardReport": {"type":{"ref":"LivePreviewGuardReportEvent"}},
+          "livePreview.packageBlocked": {"type":{"ref":"LivePreviewPackageBlockedEvent"}},
+          "livePreview.services": {"type":{"ref":"LivePreviewServicesEvent"}},
+          "livePreview.state": {"type":{"ref":"LivePreviewStateEvent"}},
           "run.status": {"type":{"ref":"RunStatusEvent"}},
           "run.stream": {"type":{"ref":"RunStreamEvent"}},
           "run.waiting": {"type":{"ref":"RunWaitingEvent"}},
@@ -3758,6 +5060,7 @@
             }
           },
           "executorImage": {"optional":true,"type":{"union":[{"ref":"ExecutorImageReport"},{"type":"null"}]}},
+          "livePreviews": {"optional":true,"type":{"ref":"LivePreviewsCapacity"}},
           "memoryNearlyFull": {"type":{"type":"boolean"}},
           "runs": {"type":{"fields":{"maxAtOnce":{"type":{"type":"number"}},"running":{"type":{"type":"number"}}}}},
           "takenAt": {"type":{"type":"string"}}
@@ -3769,6 +5072,17 @@
       "file": "protocol/hqAddress.ts",
       "shape": {"fields":{"problem":{"optional":true,"type":{"type":"string"}},"taken":{"type":{"type":"boolean"}}}}
     },
+    "SiteLivePreviewsParams": {
+      "file": "protocol/livePreviews.ts",
+      "shape": {
+        "fields": {
+          "allowed": {"type":{"type":"boolean"}},
+          "idleMinutes": {"type":{"type":"number"}},
+          "limit": {"type":{"ref":"LivePreviewLimit"}}
+        }
+      }
+    },
+    "SiteLivePreviewsResult": {"file":"protocol/livePreviews.ts","shape":{"fields":{"ok":{"type":{"literal":true}}}}},
     "SiteMethodName": {
       "file": "protocol/siteMethods.ts",
       "shape": {
@@ -3777,6 +5091,7 @@
           {"literal":"agent.removeDirectory"},
           {"literal":"agent.stop"},
           {"literal":"branch.bringBack"},
+          {"literal":"branch.bringBackBundle"},
           {"literal":"branch.changes"},
           {"literal":"branch.commit"},
           {"literal":"branch.commits"},
@@ -3784,9 +5099,12 @@
           {"literal":"branch.create"},
           {"literal":"branch.delete"},
           {"literal":"branch.list"},
+          {"literal":"branch.packageUse"},
           {"literal":"branch.removeCopy"},
           {"literal":"branch.rename"},
           {"literal":"branch.updateFromMain"},
+          {"literal":"bundle.drop"},
+          {"literal":"bundle.make"},
           {"literal":"claudeLogin.cancel"},
           {"literal":"claudeLogin.finish"},
           {"literal":"claudeLogin.start"},
@@ -3800,6 +5118,16 @@
           {"literal":"git.restore"},
           {"literal":"git.status"},
           {"literal":"git.versions"},
+          {"literal":"livePreview.act"},
+          {"literal":"livePreview.appList"},
+          {"literal":"livePreview.appStart"},
+          {"literal":"livePreview.appStop"},
+          {"literal":"livePreview.commit"},
+          {"literal":"livePreview.list"},
+          {"literal":"livePreview.open"},
+          {"literal":"livePreview.refresh"},
+          {"literal":"livePreview.resume"},
+          {"literal":"livePreview.stop"},
           {"literal":"location.deleteKnowledge"},
           {"literal":"location.editKnowledge"},
           {"literal":"location.ensureDir"},
@@ -3851,6 +5179,7 @@
           {"literal":"site.describe"},
           {"literal":"site.healthNow"},
           {"literal":"site.hqAddress"},
+          {"literal":"site.livePreviews"},
           {"literal":"site.readLogs"},
           {"literal":"site.restoreReport"},
           {"literal":"toolcall.list"},
@@ -3888,6 +5217,14 @@
           },
           "agent.stop": {"type":{"fields":{"params":{"type":{"ref":"AgentHandleParams"}},"result":{"type":{"ref":"OkResult"}}}}},
           "branch.bringBack": {"type":{"fields":{"params":{"type":{"ref":"BranchCopyRef"}},"result":{"type":{"ref":"BranchBackResult"}}}}},
+          "branch.bringBackBundle": {
+            "type": {
+              "fields": {
+                "params": {"type":{"ref":"BranchBringBackBundleParams"}},
+                "result": {"type":{"ref":"BranchBringBackBundleResult"}}
+              }
+            }
+          },
           "branch.changes": {
             "type": {
               "fields": {"params":{"type":{"ref":"BranchChangesParams"}},"result":{"type":{"ref":"BranchChangesResult"}}}
@@ -3911,6 +5248,11 @@
           "branch.list": {
             "type": {"fields":{"params":{"type":{"ref":"BranchListParams"}},"result":{"type":{"ref":"BranchListResult"}}}}
           },
+          "branch.packageUse": {
+            "type": {
+              "fields": {"params":{"type":{"ref":"BranchPackageUseParams"}},"result":{"type":{"ref":"BranchPackageUseResult"}}}
+            }
+          },
           "branch.removeCopy": {
             "type": {
               "fields": {"params":{"type":{"ref":"BranchRemoveCopyParams"}},"result":{"type":{"ref":"BranchRemoveCopyResult"}}}
@@ -3924,6 +5266,24 @@
               "fields": {
                 "params": {"type":{"ref":"BranchUpdateFromMainParams"}},
                 "result": {"type":{"ref":"BranchUpdateFromMainResult"}}
+              }
+            }
+          },
+          "bundle.drop": {
+            "type": {"fields":{"params":{"type":{"ref":"BundleDropParams"}},"result":{"type":{"ref":"BundleDropResult"}}}}
+          },
+          "bundle.make": {
+            "type": {
+              "fields": {
+                "params": {"type":{"ref":"BundleMakeParams"}},
+                "result": {
+                  "type": {
+                    "union": [
+                      {"fields":{"ok":{"type":{"literal":false}},"refusal":{"type":{"ref":"LivePreviewRefusal"}}}},
+                      {"fields":{"ok":{"type":{"literal":true}},"result":{"type":{"ref":"BundleMakeResult"}}}}
+                    ]
+                  }
+                }
               }
             }
           },
@@ -3971,6 +5331,67 @@
           },
           "git.versions": {
             "type": {"fields":{"params":{"type":{"ref":"GitVersionsParams"}},"result":{"type":{"ref":"GitVersionsResult"}}}}
+          },
+          "livePreview.act": {
+            "type": {
+              "fields": {"params":{"type":{"ref":"LivePreviewActParams"}},"result":{"type":{"ref":"LivePreviewActResult"}}}
+            }
+          },
+          "livePreview.appList": {
+            "type": {
+              "fields": {
+                "params": {"type":{"ref":"LivePreviewAppListParams"}},
+                "result": {"type":{"ref":"LivePreviewAppListResult"}}
+              }
+            }
+          },
+          "livePreview.appStart": {
+            "type": {
+              "fields": {
+                "params": {"type":{"ref":"LivePreviewAppStartParams"}},
+                "result": {"type":{"ref":"LivePreviewAppStartResult"}}
+              }
+            }
+          },
+          "livePreview.appStop": {
+            "type": {
+              "fields": {
+                "params": {"type":{"ref":"LivePreviewAppStopParams"}},
+                "result": {"type":{"ref":"LivePreviewAppStopResult"}}
+              }
+            }
+          },
+          "livePreview.commit": {
+            "type": {
+              "fields": {
+                "params": {"type":{"ref":"LivePreviewCommitParams"}},
+                "result": {"type":{"ref":"LivePreviewCommitResult"}}
+              }
+            }
+          },
+          "livePreview.list": {"type":{"fields":{"params":{"type":{"ref":"NoParams"}},"result":{"type":{"ref":"LivePreviewListResult"}}}}},
+          "livePreview.open": {
+            "type": {
+              "fields": {"params":{"type":{"ref":"LivePreviewOpenParams"}},"result":{"type":{"ref":"LivePreviewResult"}}}
+            }
+          },
+          "livePreview.refresh": {
+            "type": {
+              "fields": {
+                "params": {"type":{"ref":"LivePreviewRefreshParams"}},
+                "result": {"type":{"ref":"LivePreviewRefreshResult"}}
+              }
+            }
+          },
+          "livePreview.resume": {
+            "type": {
+              "fields": {"params":{"type":{"ref":"LivePreviewResumeParams"}},"result":{"type":{"ref":"LivePreviewResult"}}}
+            }
+          },
+          "livePreview.stop": {
+            "type": {
+              "fields": {"params":{"type":{"ref":"LivePreviewStopParams"}},"result":{"type":{"ref":"LivePreviewStopResult"}}}
+            }
           },
           "location.deleteKnowledge": {
             "type": {
@@ -4108,9 +5529,11 @@
             }
           },
           "preview.start": {
+            "deprecated": "since 1.12; stops working in 3.0. Use `livePreview.appStart` instead.",
             "type": {"fields":{"params":{"type":{"ref":"PreviewStartParams"}},"result":{"type":{"ref":"PreviewStartResult"}}}}
           },
           "preview.stop": {
+            "deprecated": "since 1.12; stops working in 3.0. Use `livePreview.appStop` instead.",
             "type": {"fields":{"params":{"type":{"ref":"PreviewStopParams"}},"result":{"type":{"ref":"PreviewStopResult"}}}}
           },
           "relay.assign": {
@@ -4213,6 +5636,11 @@
           "site.hqAddress": {
             "type": {
               "fields": {"params":{"type":{"ref":"SiteHqAddressParams"}},"result":{"type":{"ref":"SiteHqAddressResult"}}}
+            }
+          },
+          "site.livePreviews": {
+            "type": {
+              "fields": {"params":{"type":{"ref":"SiteLivePreviewsParams"}},"result":{"type":{"ref":"SiteLivePreviewsResult"}}}
             }
           },
           "site.readLogs": {"type":{"fields":{"params":{"type":{"ref":"LogQuery"}},"result":{"type":{"ref":"LogPage"}}}}},
@@ -4973,6 +6401,7 @@
                     {"literal":"hash_mismatch"},
                     {"literal":"image_missing"},
                     {"literal":"invalid_instruction"},
+                    {"literal":"live_preview_unavailable"},
                     {"literal":"workspace_missing"}
                   ]
                 }
@@ -5018,6 +6447,7 @@
           "github": {"type":{"union":[{"ref":"WorkflowRunGitHub"},{"type":"null"}]}},
           "githubSecretNames": {"type":{"array":{"type":"string"}}},
           "limits": {"type":{"ref":"WorkflowContainerLimits"}},
+          "livePreview": {"optional":true,"type":{"ref":"WorkflowRunLivePreview"}},
           "masking": {"type":{"ref":"WorkflowMaskingMaterial"}},
           "parameters": {"type":{"fields":{},"index":{"key":"string","value":{"type":"string"}}}},
           "runId": {"type":{"type":"string"}},
@@ -5028,6 +6458,7 @@
         }
       }
     },
+    "WorkflowRunLivePreview": {"file":"protocol/workflowRuns.ts","shape":{"fields":{"livePreviewId":{"type":{"type":"string"}}}}},
     "WorkflowRunRefusal": {
       "file": "protocol/workflowRuns.ts",
       "shape": {
@@ -5037,6 +6468,7 @@
           {"literal":"hash_mismatch"},
           {"literal":"image_missing"},
           {"literal":"invalid_instruction"},
+          {"literal":"live_preview_unavailable"},
           {"literal":"workspace_missing"}
         ]
       }

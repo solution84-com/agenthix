@@ -9,9 +9,9 @@ import { FILE_TICKET_TTL_SECONDS, LATER_TICKET_PURPOSES, RELAY_PASS_TTL_SECONDS,
 import * as core from '../../index.js'
 
 describe('the relay protocol @SC-1461', () => {
-  it('starts at 1.0, with a header named after the relay', () => {
-    expect(RELAY_PROTOCOL_VERSION).toBe('1.0')
-    expect(parseProtocolVersion(RELAY_PROTOCOL_VERSION)).toEqual({ major: 1, minor: 0 })
+  it('is at 1.1 (live apps and bundles), with a header named after the relay', () => {
+    expect(RELAY_PROTOCOL_VERSION).toBe('1.1')
+    expect(parseProtocolVersion(RELAY_PROTOCOL_VERSION)).toEqual({ major: 1, minor: 1 })
     expect(RELAY_PROTOCOL_VERSION_HEADER).toBe('X-Relay-Protocol-Version')
   })
 

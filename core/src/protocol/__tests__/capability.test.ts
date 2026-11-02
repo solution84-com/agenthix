@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  livePreviewCapabilityMismatch, parseCapabilityLivePreview, parseCapabilityPackageScopes,
   CAPABILITY_TTL_SECONDS, CAPABILITY_RENEWAL_FRACTION, IDENTITY_TOKEN_TTL_SECONDS,
   HQ_TOKEN_ISSUER, HQ_JWKS_PATH, HQ_DATA_PATH,
   parseCapabilityRunner, sameRunner, runnerBoundaryMismatch, parseCapabilityOnBehalfOf, APPROVALS, isApproval,
@@ -176,5 +177,37 @@ describe("an agent's approval @SC-750", () => {
   it('knows its own values and nothing else — no alias for the old autonomy', () => {
     for (const a of APPROVALS) expect(isApproval(a)).toBe(true)
     for (const junk of ['unrestricted', 'strict', '', null, undefined, 1]) expect(isApproval(junk)).toBe(false)
+  })
+})
+
+describe("a run's live-preview claim @SC-1701", () => {
+  const claim = { livePreviewId: 'lp1', workspaceId: 'w1', branch: 'add-login-page' }
+
+  it('reads the live preview, workspace and branch, and nothing else', () => {
+    expect(parseCapabilityLivePreview(claim)).toEqual(claim)
+    expect(parseCapabilityLivePreview({ ...claim, trustedPackageScopes: ['@fernhill'] })).toEqual(claim)
+    for (const junk of [null, 'lp1', { ...claim, branch: '' }, { livePreviewId: 'lp1', workspaceId: 'w1' }]) {
+      expect(parseCapabilityLivePreview(junk)).toBeNull()
+    }
+  })
+
+  it('lets a run act only in the very live preview it names, while it runs', () => {
+    const preview = { ...claim, stopped: false }
+    expect(livePreviewCapabilityMismatch(claim, preview)).toBeNull()
+    expect(livePreviewCapabilityMismatch(null, preview)).toMatch(/not bound/)
+    expect(livePreviewCapabilityMismatch(claim, { ...preview, livePreviewId: 'lp2' })).toMatch(/another live preview/)
+    expect(livePreviewCapabilityMismatch(claim, { ...preview, workspaceId: 'w2' })).toMatch(/another workspace/)
+    expect(livePreviewCapabilityMismatch(claim, { ...preview, branch: 'other' })).toMatch(/another branch/)
+    expect(livePreviewCapabilityMismatch(claim, { ...preview, stopped: true })).toMatch(/stopped/)
+  })
+})
+
+describe("a run's trusted package scopes @SC-1711", () => {
+  it('reads a list of scopes, and trusts none for anything else', () => {
+    expect(parseCapabilityPackageScopes(['@fernhill', '@acme-co'])).toEqual(['@fernhill', '@acme-co'])
+    expect(parseCapabilityPackageScopes(undefined)).toEqual([])
+    for (const junk of [null, '@fernhill', ['@fernhill', 'not a scope'], ['@fernhill', '@fernhill'], [1], {}]) {
+      expect(parseCapabilityPackageScopes(junk)).toEqual([])
+    }
   })
 })

@@ -16,6 +16,10 @@ export const WORKSPACE_SOCKET = {
   branch: 'workspace:branch',
   /** `main` has a new version. */
   main: 'workspace:main',
+  /** A live preview on one of its branches, or on `main`, changed: its state, its apps or services, or a question. */
+  livePreview: 'workspace:livePreview',
+  /** The agent or a person asked a live preview's view to reload, or switched *Auto*. */
+  livePreviewReload: 'workspace:livePreviewReload',
 } as const
 
 /** What `subscribe` and `unsubscribe` send: the workspace's id, as a plain string. */
@@ -49,3 +53,27 @@ export type WorkspaceMainEvent = {
   /** The branch whose merge made it, for `merged`. */
   branchId: string | null
 }
+
+/**
+ * - `state`: started, running, paused, resumed or stopped (the screen reads the live preview again).
+ * - `apps`: an app started, stopped or failed, or printed lines the screen shows.
+ * - `services`: a service changed, or one waits for a person's yes.
+ * - `question`: a blocked install script waits for a person's yes, or was answered.
+ */
+export type WorkspaceLivePreviewChange = 'state' | 'apps' | 'services' | 'question'
+
+export type WorkspaceLivePreviewEvent = {
+  workspaceId: string
+  livePreviewId: string
+  /** hq's id for the branch; null for `main`'s live preview. */
+  branchId: string | null
+  change: WorkspaceLivePreviewChange
+}
+
+/**
+ * `reload`: reload the live preview's view now, `by` naming who asked (*Reloaded by Kernel*). `auto`: *Auto* was
+ * switched on or off for this live preview.
+ */
+export type WorkspaceLivePreviewReloadEvent =
+  | { workspaceId: string; livePreviewId: string; kind: 'reload'; by: string }
+  | { workspaceId: string; livePreviewId: string; kind: 'auto'; auto: boolean }

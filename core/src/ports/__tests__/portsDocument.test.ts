@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import document from '../../../../docs/architecture/ports.md?raw'
 import {
   ADDRESS_BLOCKS, AGENT_CONTAINER_BITS, AGENT_SLICE_BITS, CHOSEN_PORT_RANGE, CONTAINER_DATABASE_PORT,
-  DEV_TAILSCALE_PORTS, FRONT_DOOR_PORTS, HQ_STANDARD_PORTS, PUBLISHED_DEFAULTS, SERVICE_PORTS,
+  DEV_TAILSCALE_PORTS, FRONT_DOOR_PORTS, HARNESS_PORTS, HQ_STANDARD_PORTS, LIVE_PREVIEW_PART_BITS, PUBLISHED_DEFAULTS,
+  SERVICE_PORTS,
 } from '../ports.js'
 
 /** The rows of the first table after `<!-- ports:name -->`, each as its cells, header and rule rows left out. */
@@ -46,6 +47,11 @@ describe('docs/architecture/ports.md @SC-1250', () => {
     expect(Object.fromEntries(tableAfter('constants'))).toEqual(expected)
   })
 
+  it("lists the harness's ports inside an agent's container", () => {
+    expect(Object.fromEntries(tableAfter('harness'))).toEqual(
+      Object.fromEntries(Object.entries(HARNESS_PORTS).map(([name, port]) => [`HARNESS_PORTS.${name}`, String(port)])))
+  })
+
   it('lists the published defaults', () => {
     const rows = Object.fromEntries(tableAfter('published'))
     expect(rows).toEqual({ hq: String(PUBLISHED_DEFAULTS.hq), 'Fleet Console': String(PUBLISHED_DEFAULTS.console) })
@@ -69,6 +75,7 @@ describe('docs/architecture/ports.md @SC-1250', () => {
     expect(Object.fromEntries(tableAfter('slice'))).toEqual({
       AGENT_SLICE_BITS: String(AGENT_SLICE_BITS),
       AGENT_CONTAINER_BITS: String(AGENT_CONTAINER_BITS),
+      LIVE_PREVIEW_PART_BITS: String(LIVE_PREVIEW_PART_BITS),
     })
   })
 
@@ -77,5 +84,7 @@ describe('docs/architecture/ports.md @SC-1250', () => {
     expect(document).toContain(`${(2 ** (32 - AGENT_SLICE_BITS)).toLocaleString('en')} addresses`)
     expect(document).toContain(`${2 ** (AGENT_SLICE_BITS - agentsBits)} slices`)
     expect(document).toContain(`${2 ** (AGENT_CONTAINER_BITS - AGENT_SLICE_BITS)} agent containers`)
+    expect(document).toContain(
+      `${(2 ** (32 - LIVE_PREVIEW_PART_BITS)).toLocaleString('en')} addresses, so ${2 ** (AGENT_CONTAINER_BITS - LIVE_PREVIEW_PART_BITS)} live-preview networks`)
   })
 })

@@ -13,6 +13,12 @@ import type { SiteHealth } from './siteHealth.js'
 import type { ScheduledChangeNotice } from '../host/scheduledChange.js'
 import type { WorkflowRunResult, WorkflowStepEvent } from './workflowRuns.js'
 import type { BranchBackEvent } from './branchWork.js'
+import type {
+  LivePreviewBranchMovedEvent, LivePreviewGuardEvent, LivePreviewGuardReportEvent, LivePreviewStateEvent,
+} from './livePreviews.js'
+import type { LivePreviewAppStateEvent, LivePreviewPackageBlockedEvent, LivePreviewServicesEvent } from './livePreviewApps.js'
+import type { BundleLandedEvent } from './branchBundles.js'
+import type { BranchPackageBlockedEvent } from './branchPackages.js'
 
 export type HQConnectionMessageType =
   | 'ping'
@@ -80,6 +86,17 @@ export type SiteEvents = {
   'workflow.result': WorkflowRunResult
   /** Since 1.12: the site brought a branch back on its own (`branchWork.ts`). */
   'branch.back': BranchBackEvent
+  /** Since 1.12: live previews (`livePreviews.ts`, `livePreviewApps.ts`) and bundles (`branchBundles.ts`). */
+  'livePreview.state': LivePreviewStateEvent
+  'livePreview.guard': LivePreviewGuardEvent
+  'livePreview.guardReport': LivePreviewGuardReportEvent
+  'livePreview.branchMoved': LivePreviewBranchMovedEvent
+  'livePreview.appState': LivePreviewAppStateEvent
+  'livePreview.services': LivePreviewServicesEvent
+  'livePreview.packageBlocked': LivePreviewPackageBlockedEvent
+  'bundle.landed': BundleLandedEvent
+  /** Since 1.12: a package asked about in a branch's copy with no live preview open (`branchPackages.ts`). */
+  'branch.packageBlocked': BranchPackageBlockedEvent
 }
 
 export type SiteEventName = keyof SiteEvents

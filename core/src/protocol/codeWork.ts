@@ -28,4 +28,10 @@ export type RunCodeWork = BranchCopyRef & {
    */
   author: GitPerson
   onBehalfOf: GitPerson | null
+  /**
+   * Set when the branch has a live preview on another site and the run works there, in the live preview's own copy
+   * (copy kind `bundle`; `copyId` is that copy's). The site finds the copy by its live-preview record, not its branch
+   * copies, and reports commits with `livePreview.branchMoved` instead of bringing them back itself. Added inside 1.12.
+   */
+  livePreviewId?: string
 }

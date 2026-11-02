@@ -37,6 +37,14 @@ export const STREAM_CREDIT_STEP_BYTES = 256 * 1024
 /** The largest a window may grow, HTTP/2's own bound; a credit carrying it past this is a protocol error. */
 export const MAX_STREAM_WINDOW_BYTES = 2 ** 31 - 1
 
+/**
+ * Since site protocol 1.12, a stream may be opened `duplex`: the opener's own bytes are flow-controlled too, for a
+ * stream whose opener sends as much as it reads (a live app's request bodies and WebSocket messages, a bundle's write).
+ * Each end then starts able to send `STREAM_INITIAL_WINDOW_BYTES` toward the other, and each grants more with `credit`
+ * as its reader takes what arrived. The server holds what the opener sends before it accepts, which the window bounds.
+ */
+export const DUPLEX_INITIAL_WINDOW_BYTES = STREAM_INITIAL_WINDOW_BYTES
+
 /** How long a site has to accept a stream hq opened. Matches the control channel's request timeout. */
 export const CONTENT_OPEN_TIMEOUT_MS = 15_000
 
@@ -54,7 +62,7 @@ export type ContentOpen = {
 }[SiteContentMethodName]
 
 export type ContentControlFrame =
-  | ({ t: 'open'; id: number; window?: number } & ContentOpen)
+  | ({ t: 'open'; id: number; window?: number; duplex?: true } & ContentOpen)
   | { t: 'accept'; id: number }
   | { t: 'end'; id: number }
   | { t: 'error'; id: number; code: ContentErrorCode; message: string }
@@ -68,7 +76,7 @@ export type ContentControlFrame =
  */
 type TransportControlFrame =
   | Exclude<ContentControlFrame, { t: 'open' }>
-  | { t: 'open'; id: number; method: string; params: unknown; window?: number }
+  | { t: 'open'; id: number; method: string; params: unknown; window?: number; duplex?: true }
 
 const MAX_STREAM_ID = 2 ** 32 - 1
 const ID_BYTES = 4
@@ -103,8 +111,12 @@ export function parseControlFrame(text: string): TransportControlFrame | null {
   switch (f.t) {
     case 'open': {
       if (typeof f.method !== 'string' || f.method.length === 0) return null
-      if (f.window === undefined) return { t: 'open', id: f.id, method: f.method, params: f.params }
-      return isWindowSize(f.window, 0) ? { t: 'open', id: f.id, method: f.method, params: f.params, window: f.window } : null
+      if (f.window !== undefined && !isWindowSize(f.window, 0)) return null
+      if (f.duplex !== undefined && f.duplex !== true) return null
+      return {
+        t: 'open', id: f.id, method: f.method, params: f.params,
+        ...(f.window === undefined ? {} : { window: f.window }), ...(f.duplex ? { duplex: true as const } : {}),
+      }
     }
     case 'credit':
       return isWindowSize(f.bytes, 1) ? { t: 'credit', id: f.id, bytes: f.bytes } : null
