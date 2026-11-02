@@ -5,6 +5,7 @@ name: Publish release
 # pre-release of one, v<major>.<minor>.<patch>-alpha.<n>, -beta.<n> or -rc.<n>, and is never started by hand.
 #
 # 0. The version is the tag's alone: its form is checked, and nothing in the repository carries a version.
+#    No flag released in an earlier minor release may still be listed in core (scripts/release/flags-overdue.mjs).
 # 1. The tagged commit's Checks must have passed ("All checks passed"), and so must the latest release build for it:
 #    a run of release-build.yml started by a push to a release branch, or by hand from main or a release branch
 #    (scripts/release/proven-run.mjs). It waits while either runs. That run's candidate record names each part's two
@@ -74,6 +75,13 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+      # A released flag lives for one minor release (adr-0172); the rehearsal makes the same check.
+      - name: No released flag outlives its minor release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          node scripts/release/flags-overdue.mjs "$VERSION"
       - name: The commit's Checks passed
         env:
           GH_TOKEN: ${{ github.token }}
