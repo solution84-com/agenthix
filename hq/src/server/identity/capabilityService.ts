@@ -14,6 +14,8 @@ import * as store from '../../storage/workspaceStore'
 import { runBoundary, runPermissions, type OverrideBoundary } from '../../agents/overrides/agentOverrideService'
 import { isSpaceProject, taskRunOwner } from '../../projects/personalProject'
 import { resolveRunner } from './capabilityRunner'
+import { runSiteAndClaim } from '../../livePreviews/runs'
+import { orgTrustedPackageScopes } from '../../livePreviews/packageScopes'
 
 export interface CapabilityAgentFields {
   id: string
@@ -49,6 +51,8 @@ export async function resolveCapabilityClaims(args: {
    * chain from a tool call. Says who the work is for; grants nothing.
    */
   onBehalfOfUserId?: string | null
+  /** For a renewal: the site the run is on, which a renewal never moves (`livePreviews/runs.ts`). */
+  runSiteId?: string | null
 }): Promise<CapabilityClaims> {
   const { agent, session, primaryLoc, taskId, startedBy, onBehalfOfUserId } = args
   const workspaceId = primaryLoc.workspaceId ?? null
@@ -65,7 +69,9 @@ export async function resolveCapabilityClaims(args: {
     { ownerType: primaryLoc.ownerType, ownerId: primaryLoc.ownerId, ...(personalProject ? { personalOwnerId: personalProject.personalOwnerId } : {}) },
     boundary,
   )
-  const siteId = await resolveExecutionSiteId(primaryLoc)
+  // A branch whose live preview runs on another site has its runs there, in the live preview's own copy; and a run
+  // on a branch with a live preview on its own site carries the claim its app tools are answered by.
+  const { siteId, livePreview } = await runSiteAndClaim(session.id, await resolveExecutionSiteId(primaryLoc), args.runSiteId ?? null)
 
   // The project this run acts as: a task's current project, or the project a
   // chat is working in. Null for a run that acts as a person.
@@ -131,6 +137,10 @@ export async function resolveCapabilityClaims(args: {
     role = settings?.role ?? null
   }
 
+  // Signed into every run, so they apply wherever it installs packages (adr-0170): in a live preview or in its
+  // branch's copy. hq decides whether a run is code work after the mint, and a renewal does not know it.
+  const trustedPackageScopes = await orgTrustedPackageScopes()
+
   return {
     tokenType: 'capability',
     userId: session.userId,
@@ -145,6 +155,8 @@ export async function resolveCapabilityClaims(args: {
     taskId,
     role,
     siteId,
+    ...(livePreview ? { livePreview } : {}),
+    ...(trustedPackageScopes.length ? { trustedPackageScopes } : {}),
     permissions: {
       bypassed,
       allowedTools: bypassed ? [] : toolPermissions,
@@ -219,7 +231,7 @@ async function requireProjectExists(projectId: string): Promise<void> {
  * capability audienced to a site other than the one that asked for it.
  */
 export async function renewCapability(
-  current: Pick<CapabilityClaims, 'sessionId' | 'agentId' | 'taskId' | 'runner' | 'startedBy' | 'onBehalfOfUserId'>,
+  current: Pick<CapabilityClaims, 'sessionId' | 'agentId' | 'taskId' | 'runner' | 'startedBy' | 'onBehalfOfUserId'> & { siteId?: string },
 ) {
   const [agent, session] = await Promise.all([
     prisma.agent.findUnique({
@@ -238,6 +250,7 @@ export async function renewCapability(
     startedBy: current.startedBy,
     // Nor who it is for: carried as minted, never added by a renewal.
     onBehalfOfUserId: current.onBehalfOfUserId,
+    runSiteId: current.siteId ?? null,
   })
   // The runner is carried unchanged: a renewal never moves a run to another
   // person's or project's home. It re-derives from fields that do not change,

@@ -25,6 +25,10 @@ vi.mock('wasp/client/operations', () => ({
   mergeBranch: 'mergeBranch', restoreVersion: 'restoreVersion', turnGitOn: 'turnGitOn',
   startWorkspaceConversation: 'startWorkspaceConversation', markConversationRead: vi.fn(), listLocationFiles: 'listLocationFiles',
   getPlaceWorkflows: 'getPlaceWorkflows', startWorkflowRun: 'startWorkflowRun', startTaskConversation: 'startTaskConversation',
+  getLivePreviewPlaces: 'getLivePreviewPlaces', getLivePreview: 'getLivePreview', markLivePreviewInUse: 'markLivePreviewInUse',
+  startLivePreview: 'startLivePreview', stopLivePreview: 'stopLivePreview', resumeLivePreview: 'resumeLivePreview',
+  reloadLivePreview: 'reloadLivePreview', setLivePreviewAuto: 'setLivePreviewAuto', openLiveApp: 'openLiveApp',
+  answerLivePreviewQuestion: 'answerLivePreviewQuestion', runLivePreviewWorkflow: 'runLivePreviewWorkflow',
 }))
 vi.mock('../../conversations/components/ConversationThread', () => ({
   ConversationThread: ({ conversationId }: { conversationId: string }) => <div>thread {conversationId}</div>,
@@ -102,7 +106,7 @@ const deployWorkflow = (over: Record<string, unknown> = {}) => ({
   ...over,
 })
 
-describe('a task\'s branch whose task has no thread yet', () => {
+describe('a task\'s branch whose task has no thread yet @SC-1685', () => {
   it('offers the box whose first message starts the task\'s thread', async () => {
     answers.value.getTaskConversation = { conversation: null, lead: { id: 'a1', name: 'Ivy' }, canStart: true, refusal: null }
     show(codeView(), '/workspaces/w1/view?branch=fix-cart-total')
@@ -121,7 +125,7 @@ describe('a task\'s branch whose task has no thread yet', () => {
   })
 })
 
-describe('Deploy…', () => {
+describe('Deploy… @SC-1691', () => {
   const openDeploy = () => {
     show(codeView())
     fireEvent.click(within(screen.getByTestId('main-git')).getByRole('button', { name: 'Deploy…' }))
@@ -155,7 +159,7 @@ describe('Deploy…', () => {
   })
 })
 
-describe('the tablet\'s panel and drawer', () => {
+describe('the tablet\'s panel and drawer @SC-1689', () => {
   beforeEach(() => { Object.defineProperty(window, 'innerWidth', { configurable: true, value: 820 }) })
 
   it('Escape closes Files or Git open over the middle', () => {
@@ -179,7 +183,7 @@ describe('the tablet\'s panel and drawer', () => {
   })
 })
 
-describe('main\'s versions', () => {
+describe('main\'s versions @SC-1691', () => {
   it('wrap a long summary to two lines instead of cutting it to a few words', () => {
     show(codeView())
     const summary = within(screen.getByTestId('main-git')).getByText('Ada · Fix the README links')

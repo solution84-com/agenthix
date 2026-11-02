@@ -63,6 +63,18 @@ describe('resolveCapabilityClaims @SC-272', () => {
   })
 })
 
+describe("the organisation's trusted package scopes (adr-0170) @SC-1711", () => {
+  it('are signed into every run, live preview or not, as the setting holds them now', async () => {
+    expect(await mint()).not.toHaveProperty('trustedPackageScopes')
+    await prisma.org.create({ data: { name: 'Fernhill', trustedPackageScopes: ['@fernhill', '@garden'] } })
+    const claims = await mint()
+    expect(claims.trustedPackageScopes).toEqual(['@fernhill', '@garden'])
+    expect(claims).not.toHaveProperty('livePreview')
+    await prisma.org.updateMany({ data: { trustedPackageScopes: [] } })
+    expect(await mint()).not.toHaveProperty('trustedPackageScopes')
+  })
+})
+
 describe("a workspace's allowed tools guard only runs working in it @SC-301 (ADR-0079)", () => {
   const defaultAgent = { ...agent, allowedTools: null }
 

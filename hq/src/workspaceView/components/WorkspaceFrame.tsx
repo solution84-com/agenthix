@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
+import type { LivePreviewStateName } from '@agenthix/core'
 import type { ThreadActivity } from '../../conversations/components/ConversationThread'
 import { useViewSize } from '../hooks/useViewSize'
 import type { ViewSection } from '../viewAddress'
@@ -24,6 +25,9 @@ export interface FrameParts {
   middle: (layout: 'wide' | 'narrow') => ReactNode
   /** A file or a file's changes is chosen. */
   middleShown: boolean
+  /** The chosen branch's live preview, shown in the middle when *Live preview* is chosen. */
+  preview: (layout: 'wide' | 'narrow') => ReactNode
+  previewState: LivePreviewStateName
   status: ReactNode
   conversation: ReactNode
   branchTitle: string
@@ -36,7 +40,8 @@ export interface FrameParts {
 /**
  * Lays the view out for the window (spec part 1, *Narrow screens*): wide, the panel, the middle and the conversation
  * side by side; on a laptop the panel folds to its strip and *Files* or *Git* opens over the middle; on a tablet the
- * conversation becomes a drawer from the right, opened from the top bar; on a phone, one thing at a time.
+ * conversation becomes a drawer from the right, opened from the top bar, below the live preview's own bar; on a phone,
+ * one thing at a time. Choosing *Live preview* narrows the left panel to its strip at every width.
  */
 export function WorkspaceFrame(p: FrameParts) {
   const size = useViewSize()
@@ -52,9 +57,12 @@ export function WorkspaceFrame(p: FrameParts) {
   }, [over])
   if (size === 'phone') return <PhoneFrame {...p} />
 
-  const strip = size !== 'wide'
+  const previewShown = p.section === 'preview' && !p.noGit
+  const strip = size !== 'wide' || previewShown
   // One thing over the middle at a time: the panel or the conversation's drawer.
   const chooseFromStrip = (s: ViewSection) => {
+    // Live preview shows in the middle, and on a wide window Files and Git open the whole panel again.
+    if (s === 'preview' || size === 'wide') { setOver(false); p.onSection(s); return }
     if (s === p.section && over) { setOver(false); return }
     if (s !== p.section) p.onSection(s)
     setOver(true)
@@ -79,14 +87,14 @@ export function WorkspaceFrame(p: FrameParts) {
         onToggleConversation={size === 'tablet' ? undefined : () => setConversationShown(s => !s)} />
       <div className="relative flex min-h-0 flex-1">
         {strip ? (
-          <LeftStrip branchSelect={p.select(true)} section={p.section} open={over} onChoose={chooseFromStrip} git={!p.noGit} />
+          <LeftStrip branchSelect={p.select(true)} section={p.section} open={over} onChoose={chooseFromStrip} git={!p.noGit} previewState={p.previewState} />
         ) : (
           <aside aria-label="Branch, files and Git" className="flex w-[290px] shrink-0 flex-col border-r border-border-subtle bg-surface-1">
             <LeftPanel branchSelect={p.select(false)} section={p.section} onSection={p.onSection} filesNote={p.filesNote} gitNote={p.gitNote}
-              files={p.filesBody} git={p.gitBody} noGit={p.noGit} />
+              files={p.filesBody} git={p.gitBody} noGit={p.noGit} previewState={p.previewState} />
           </aside>
         )}
-        {strip && over && (
+        {strip && over && !previewShown && (
           <aside aria-label={p.section === 'git' ? 'Git' : 'Files'} data-testid="workspace-over"
             className="absolute bottom-0 left-12 top-0 z-30 flex w-[300px] flex-col overflow-y-auto border-r border-border bg-surface-1 shadow-xl">
             {p.noGit && <div className="p-2">{p.noGit}</div>}
@@ -95,12 +103,12 @@ export function WorkspaceFrame(p: FrameParts) {
         )}
         <main onMouseDown={() => setOver(false)} className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface-1">
           <Notice text={p.notice} onDismiss={p.onDismissNotice} />
-          <div className="flex min-h-0 flex-1 flex-col overflow-auto">{p.middle('wide')}</div>
+          {previewShown ? p.preview('wide') : <div className="flex min-h-0 flex-1 flex-col overflow-auto">{p.middle('wide')}</div>}
           {p.status}
         </main>
         {size === 'tablet' ? (
           <aside aria-label="Conversation" data-testid="workspace-conversation"
-            className={`${drawer ? 'flex' : 'hidden'} absolute bottom-0 right-0 top-0 z-30 w-[min(400px,90vw)] flex-col border-l border-border bg-surface-1 shadow-xl`}>
+            className={`${drawer ? 'flex' : 'hidden'} absolute bottom-0 right-0 ${previewShown ? 'top-11' : 'top-0'} z-30 w-[min(400px,90vw)] flex-col border-l border-border bg-surface-1 shadow-xl`}>
             {p.conversation}
           </aside>
         ) : (

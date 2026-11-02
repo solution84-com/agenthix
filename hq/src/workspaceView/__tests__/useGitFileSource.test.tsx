@@ -21,7 +21,7 @@ beforeEach(() => {
 })
 afterEach(() => { vi.useRealTimers() })
 
-describe('useGitFileSource', () => {
+describe('useGitFileSource @SC-1686', () => {
   it('keeps the link of the first open through a strict-mode remount, and lets it go when the file leaves', async () => {
     // The viewer opens from an effect on its first mount and takes that open over across the remount (useOpenFile).
     let opening: Promise<unknown> | null = null

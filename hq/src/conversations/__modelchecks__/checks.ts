@@ -8,6 +8,7 @@ import type { CheckSetup } from './setup'
 import { PROJECT, PROJECT_LEVEL, RELEASE_PAGE, levelOf } from './world'
 import { FILE_CHECKS } from './fileChecks'
 import { CODE_WORK_CHECKS } from './codeWorkChecks'
+import { LIVE_PREVIEW_CHECKS } from './livePreviewChecks'
 
 export type Grade = { passed: true } | { passed: false; why: string }
 
@@ -127,4 +128,5 @@ export const CHECKS: readonly Check[] = [
   },
   ...FILE_CHECKS,
   ...CODE_WORK_CHECKS,
+  ...LIVE_PREVIEW_CHECKS,
 ]

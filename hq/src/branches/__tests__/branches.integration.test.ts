@@ -100,7 +100,7 @@ const ask = (taskId: string, agentId = 'no-such-agent') => ({
   work: { taskId }, workspaceId, owner: { type: 'project' as const, id: projectId }, personId: member.id, agentId, nameFrom: 'Add a login page', runSiteId: logicalSiteId,
 })
 
-describe('a branch and its copy when code work first runs', () => {
+describe('a branch and its copy when code work first runs @SC-1669', () => {
   it('makes the branch, named from the work, and its copy, through the site', async () => {
     const { task, agent } = await taskOnWorkspace()
     const made = await prepareCodeWork(ask(task.id, agent.id))
@@ -138,7 +138,7 @@ describe('a branch and its copy when code work first runs', () => {
     expect(fresh!.codeWork.copyId).not.toBe(first!.codeWork.copyId)
   })
 
-  it('takes the next name when the repository has the name already', async () => {
+  it('takes the next name when the repository has the name already @SC-1670', async () => {
     site.answer['branch.list'] = listAnswer([{ name: 'add-login-page' }])
     const { task } = await taskOnWorkspace()
     const made = await prepareCodeWork(ask(task.id)); made!.release()
@@ -176,7 +176,7 @@ async function openBranch() {
   return { task, agent, branch }
 }
 
-describe('merging into main', () => {
+describe('merging into main @SC-1679', () => {
   it('merges as one version and closes the branch when no agent works on it', async () => {
     const { branch } = await openBranch()
     site.answer['git.merge'] = () => ({ merged: true, version: { number: 2, commit: V2, subject: 's', author: { name: 'M', email: 'm@a.b' }, files: 1, at: '' }, mergedCommit: TIP })
@@ -220,14 +220,14 @@ describe('merging into main', () => {
     expect((await prisma.workspaceBranch.findUniqueOrThrow({ where: { id: branch.id } })).lastMergedCommit).toBeNull()
   })
 
-  it('refuses a Viewer with 403, before the site is asked', async () => {
+  it('refuses a Viewer with 403, before the site is asked @SC-1692', async () => {
     const { branch } = await openBranch()
     await expect(mergeBranchAction({ branchId: branch.id, message: 'Login', expectedMain: MAIN }, ctx(viewer))).rejects.toMatchObject({ statusCode: 403 })
     expect(callsOf('git.merge')).toHaveLength(0)
   })
 })
 
-describe('deleting and renaming a branch', () => {
+describe('deleting and renaming a branch @SC-1676', () => {
   it('deletes an unmerged branch whose work is over, and says how many commits are lost', async () => {
     const { branch } = await openBranch()
     expect(await deleteBranchAction({ branchId: branch.id }, ctx(member))).toEqual({ lostCommits: 2 })
@@ -257,7 +257,7 @@ describe('deleting and renaming a branch', () => {
   })
 })
 
-describe("the workspace's branches, as the branch select reads them", () => {
+describe("the workspace's branches, as the branch select reads them @SC-1678", () => {
   it('lists main and the open branches, with whose they are, for a Viewer too', async () => {
     const { branch } = await openBranch()
     site.answer['branch.list'] = listAnswer([{ name: 'add-login-page', ahead: 3, behind: 1 }])
@@ -271,7 +271,7 @@ describe("the workspace's branches, as the branch select reads them", () => {
   })
 })
 
-describe("the agent's commit tool", () => {
+describe("the agent's commit tool @SC-1671", () => {
   it('commits in the calling run\'s own copy, as the agent on behalf of the person', async () => {
     const { task, agent, branch } = await openBranch()
     const session = await prisma.agentSession.create({ data: { userId: member.id, agentId: agent.id, taskId: task.id, sessionType: 'task' } })
@@ -295,7 +295,7 @@ describe("the agent's commit tool", () => {
   })
 })
 
-describe("the agent's update_from_main tool", () => {
+describe("the agent's update_from_main tool @SC-1672", () => {
   async function onBranch() {
     const { task, agent, branch } = await openBranch()
     const session = await prisma.agentSession.create({ data: { userId: member.id, agentId: agent.id, taskId: task.id, sessionType: 'task' } })
@@ -323,7 +323,7 @@ describe("the agent's update_from_main tool", () => {
   })
 })
 
-describe("the agent's merge tool asks the person, and a press merges", () => {
+describe("the agent's merge tool asks the person, and a press merges @SC-1681", () => {
   async function runOnBranch() {
     const { task, agent, branch } = await openBranch()
     const session = await prisma.agentSession.create({ data: { userId: member.id, agentId: agent.id, taskId: task.id, sessionType: 'task' } })

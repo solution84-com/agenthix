@@ -1,6 +1,6 @@
 /** Everything the Files tools read, behind one module (every screen reviewed spec §3). */
 import {
-  useQuery, listLocationFiles, getMyStorage, listArtefacts, listKnowledgePages, listPlacePreviews,
+  useQuery, listLocationFiles, getMyStorage, listArtefacts, listKnowledgePages,
 } from 'wasp/client/operations'
 import type { SiteSilence } from '@agenthix/core'
 import type { ListedEntry } from '@agenthix/ui/projects'
@@ -37,17 +37,6 @@ export function useKnowledge(owner: Owner, enabled = true): Read<unknown[]> {
   const { data, isLoading, error } = useQuery(listKnowledgePages, { owner }, { enabled })
   return { data: (data as { pages?: unknown[] } | undefined)?.pages, isLoading, error }
 }
-
-/** The running preview of each workspace in a place, by workspace id. */
-export function usePlacePreviews(owner: Owner): Map<string, string> {
-  const { data } = useQuery(listPlacePreviews, { ownerType: owner.ownerType, ownerId: owner.ownerId })
-  const byWorkspace = new Map<string, string>()
-  for (const p of data?.previews ?? []) if (p.workspaceId && !byWorkspace.has(p.workspaceId)) byWorkspace.set(p.workspaceId, p.id)
-  return byWorkspace
-}
-
-/** Where a running preview opens, through hq's access check (`OpenPreviewPage`). */
-export const previewAddress = (previewId: string) => `/open-preview/${previewId}`
 
 export interface WorkspaceListItem {
   id: string

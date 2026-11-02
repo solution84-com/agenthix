@@ -18,6 +18,8 @@ import { answerWorkflowCard, isWorkflowCard } from '../../../workflows/review/ca
 import { answerAssetCard, isAssetCard } from '../../../assets/approvals/answer'
 import { isMergeCard } from '../../../branches/mergeCardArgs'
 import { answerMergeCard } from '../../../branches/mergeCardAnswer'
+import { isPackageCard } from '../../../branches/packageCardArgs'
+import { answerPackageCard } from '../../../branches/packageCardAnswer'
 
 export const NOT_WAITING = 'This request is not waiting for an answer.'
 
@@ -68,6 +70,8 @@ export function createToolCallOwner(deps: ToolCallOwnerDeps): OperationOwner {
       if (isAssetCard(row.toolName)) return answerAssetCard(row, answer, byUserId, deps)
       // An agent's ask to merge its branch: merged only by a person's own press, as them.
       if (isMergeCard(row.toolName)) return answerMergeCard(row, answer, byUserId, deps)
+      // An agent's ask about a blocked package in its branch's copy: allowed only by a person's own press.
+      if (isPackageCard(row.toolName)) return answerPackageCard(row, answer, byUserId, deps)
       if (answer === 'decline') {
         if (!(await deps.settle(operationId, { state: 'CANCELLED', noReport: true, result: { summary: declinedLine(note) } }))) {
           throw new HttpError(409, NOT_WAITING)

@@ -26,6 +26,7 @@
  */
 import { z, type ZodRawShape } from 'zod'
 import { CODE_WORK_TOOL_SCHEMAS } from './codeWorkToolSchemas'
+import { APP_TOOL_SCHEMAS } from './appToolSchemas'
 import { PLANNING_TOOLS } from './planningToolSchemas'
 import { KNOWLEDGE_DATA_PATH_TOOLS } from './knowledgeToolSchemas'
 import { WORKFLOW_TOOL_SCHEMAS } from '../../workflows/agentToolsSchemas'
@@ -416,13 +417,6 @@ export const DATA_PATH_ONLY_TOOLS: ControlPlaneTool[] = [
     },
   },
   {
-    name: 'start_preview',
-    schema: {
-      command: z.string().describe('Dev-server command, run from the workspace root'),
-      port: z.number().int().describe('Port the dev server binds inside the container'),
-    },
-  },
-  {
     name: 'remember',
     description:
       'Remember one thing you learned, so it can be recalled later by meaning. It must stand alone: a title that ' +
@@ -472,6 +466,8 @@ export const ALL_CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   PROPOSE_SKILL_SCHEMA,
   // Data-path-only too: a run's site forwards them with the calling run's id; only a run on a branch has them.
   ...CODE_WORK_TOOL_SCHEMAS,
+  // Data-path-only too: only a run on a branch with a live preview has them (appToolSchemas.ts).
+  ...APP_TOOL_SCHEMAS,
 ]
 
 export { COMMIT_TOOL_SCHEMA, MERGE_TOOL_SCHEMA, UPDATE_TOOL_SCHEMA } from './codeWorkToolSchemas'

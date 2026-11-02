@@ -31,6 +31,7 @@ import { backupRoutes } from './routes/backups'
 import { fleetAdminRoutes } from './routes/fleetAdmins'
 import { activityRoutes } from './routes/activity'
 import { moveRoutes } from './routes/moves'
+import { livePreviewRoutes } from './routes/livePreviews'
 import { MoveError, type Moves } from '../move/moves'
 import { cloudRoutes } from './routes/cloud'
 import { remoteSignInRoutes } from './routes/remoteSignIn'
@@ -83,7 +84,7 @@ export function createApp(ctx: ConsoleContext, options: AppOptions = {}): expres
   app.use('/api', remoteSignInRoutes(ctx))
   app.use('/api', sessionRoutes(ctx, authed))
   app.use('/api', cloudRoutes(ctx, authed))
-  app.use('/api', authed, fleetRoutes(ctx), joinRoutes(ctx), commandRoutes(ctx), backupRoutes(ctx), fleetAdminRoutes(ctx), moveRoutes(ctx), activityRoutes(ctx), exportRoutes(ctx, downloads))
+  app.use('/api', authed, fleetRoutes(ctx), joinRoutes(ctx), commandRoutes(ctx), backupRoutes(ctx), fleetAdminRoutes(ctx), moveRoutes(ctx), activityRoutes(ctx), livePreviewRoutes(ctx), exportRoutes(ctx, downloads))
   app.use('/api', notFound)
   app.use(webRoutes(options.webRoot ?? defaultWebRoot()))
   app.use(notFound)

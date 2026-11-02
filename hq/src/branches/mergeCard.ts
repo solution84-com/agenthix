@@ -38,7 +38,7 @@ export class NoOneToAsk extends Error {}
 const NOTHING = 'Nothing was merged.'
 
 /** The conversation the card goes in: the branch's own, or its task's thread, started now when it has none. */
-async function cardConversation(work: WorkOf, personId: string): Promise<string> {
+export async function cardConversation(work: WorkOf, personId: string): Promise<string> {
   if ('conversationId' in work) {
     const c = await prisma.conversation.findUnique({ where: { id: work.conversationId }, select: { status: true } })
     if (!c || c.status === 'CLOSED') throw new NoOneToAsk(`This work's conversation is closed, so there is nobody to ask. ${NOTHING}`)

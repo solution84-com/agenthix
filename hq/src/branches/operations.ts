@@ -17,8 +17,11 @@ import { reachWorkspace, requireUser } from './workspaceAccess'
 import { mergeBranch, requireMergeInput } from './merge'
 import { asBranchHttp } from './refusals'
 import { getWorkspaceRemoval } from './workspaceRemoval'
+import { bringBackBeforeMerge } from '../livePreviews/branchHooks'
 // Registers the site's branch.back and the run status listener with the site channel, as the server starts.
 import './branchBack'
+// Registers the site's branch.packageBlocked: a card for a blocked package in a branch's copy.
+import './packageCard'
 import type { WorkspaceRemovalView } from './views'
 
 type Ctx = { user?: { id: string } }
@@ -46,6 +49,8 @@ export const mergeBranchAction = async (a: MergeBranchInput, c: Ctx): Promise<Me
   if (!branch) throw new HttpError(404, 'That branch is not open any more. Reload to see where it stands. Nothing was changed.')
   const ws = await reachWorkspace(branch.workspaceId, userId, 'work')
   const { message, expectedMain } = requireMergeInput(a.message, a.expectedMain)
+  // Commits a live preview on another site holds come back first, so the merge takes everything committed.
+  await bringBackBeforeMerge(branch.id)
   return asBranchHttp(() => mergeBranch({ branch, logicalSiteId: ws.logicalSiteId, personId: userId, message, expectedMain }))
 }
 

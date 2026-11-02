@@ -5,6 +5,7 @@ import { voiceLength } from '../voiceClient/voiceUi'
 import type { ReplyView } from './ReplyBody'
 import { SummarisedMarker } from './SummarisedMarker'
 import { NewConversationOffer } from './NewConversationOffer'
+import { LivePreviewOffer, livePreviewOfferOf } from '../../workspaceView/components/LivePreviewOffer'
 import { ActionLine } from './ActionLine'
 import { SuggestPlaceCardRow } from './SuggestPlaceCard'
 import { placeSuggestionOf } from '../placesProtocol'
@@ -93,6 +94,10 @@ export function MessageItem({ message, agent, work, reply }: {
         const skill = skillCardOf(message.body)
         if (skill) return <SkillCardRow card={skill} />
         if (message.body.target?.kind === SKILL_OUTCOME_TARGET) return null
+      }
+      {
+        const offer = livePreviewOfferOf(message.body)
+        if (offer) return <LivePreviewOffer card={offer} />
       }
       if (message.body.toolName === 'offer_new_conversation' && work?.newConversationHref) {
         return <NewConversationOffer text={message.body.text} href={work.newConversationHref} />

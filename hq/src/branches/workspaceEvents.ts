@@ -23,4 +23,6 @@ export function emitBranchChange(b: { workspaceId: string; id: string; name: str
 export function emitMainChange(workspaceId: string, change: WorkspaceMainChange, version: number, branchId: string | null = null): void {
   const event: WorkspaceMainEvent = { workspaceId, change, version, branchId }
   io()?.to(workspaceRoom(workspaceId)).emit(WORKSPACE_SOCKET.main, event)
+  // `main`'s live preview, and the live previews' own copies on other sites, follow `main` (live preview spec 4, 5).
+  if (change !== 'git_on') void import('../livePreviews/branchHooks').then(m => m.mainMoved(workspaceId)).catch(() => {})
 }

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, GitBranch, Lock } from 'lucide-react'
+import { ChevronDown, GitBranch, Lock, Monitor } from 'lucide-react'
 import type { BranchLineView } from '../../branches/views'
 import { MAIN } from '../viewAddress'
 import { agentOf, aheadText, branchSubLine, whoseLabel } from '../words'
+import { PREVIEW_STATE_LABEL } from '../livePreviewWords'
 
 /**
  * The branch select (spec part 1, *Layout* 2): it sets the branch for everything in the view. Opened, it lists
@@ -64,6 +65,7 @@ export function BranchSelect({ main, branches, chosen, onChoose, me = null, comp
               <Option key={b.id} on={b.name === chosen} onChoose={() => choose(b.name)} icon={<GitBranch size={14} aria-hidden className={b.name === chosen ? 'text-accent' : 'text-text-muted'} />}
                 name={b.name} whose={whoseLabel(b.whose, agentOf(b), me)}
                 state={b.working ? `${b.working.agentName} is working here` : null}
+                preview={b.livePreview ? `Live preview ${PREVIEW_STATE_LABEL[b.livePreview.state].toLowerCase()}` : null}
                 right={aheadText(b.ahead, b.behind)} warn={b.behind > 0} />
             ))}
           </ul>
@@ -74,13 +76,15 @@ export function BranchSelect({ main, branches, chosen, onChoose, me = null, comp
   )
 }
 
-function Option({ on, onChoose, icon, name, whose, state, right, warn = false }: {
+function Option({ on, onChoose, icon, name, whose, state, preview = null, right, warn = false }: {
   on: boolean
   onChoose: () => void
   icon: ReactNode
   name: string
   whose: string
   state: string | null
+  /** The branch's live preview while it is live: "Live preview running". */
+  preview?: string | null
   right: string
   warn?: boolean
 }) {
@@ -93,6 +97,7 @@ function Option({ on, onChoose, icon, name, whose, state, right, warn = false }:
           <span className="block truncate font-mono font-semibold text-text-primary">{name}</span>
           <span className="block truncate text-micro text-text-muted">
             {whose}{state && <span className="text-success"> · ● {state}</span>}
+            {preview && <span className="text-text-secondary" data-testid="branch-live-preview"> · <Monitor size={11} aria-hidden className="inline align-[-1px]" /> {preview}</span>}
           </span>
         </span>
         <span className={`text-micro ${warn ? 'text-warning' : 'text-text-secondary'}`}>{right}</span>

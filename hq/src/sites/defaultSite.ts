@@ -54,6 +54,8 @@ export async function ensureDefaultSite(): Promise<'created' | 'updated' | 'unch
         status: 'REGISTERED',
         isDefault: true,
         credentialHash,
+        // HQ's own site runs live previews unless a fleet admin turns them off; every other new site starts with them off.
+        livePreviewsAllowed: true,
       },
     })
     return 'created'
@@ -105,7 +107,7 @@ export async function adoptSiteId<T extends { id: string; siteId: string }>(row:
 }
 
 /**
- * The old id is held as a plain string, with no foreign key, by two tables.
+ * The old id is held as a plain string, with no foreign key, by WorkspacePlacement.
  * What they describe lived on the site that id named, so it goes with it.
  * Rows that follow the ExecutionSite row's own id (UserStoragePlacement,
  * Project) are not touched.
@@ -114,7 +116,6 @@ async function clearRowsNamingSite(tx: Prisma.TransactionClient, siteId: string)
   const where = { siteId }
   const results = [
     await tx.workspacePlacement.deleteMany({ where }),
-    await tx.previewSession.deleteMany({ where }),
   ]
   return results.reduce((total, r) => total + r.count, 0)
 }

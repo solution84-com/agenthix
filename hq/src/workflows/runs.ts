@@ -44,6 +44,11 @@ export type StartRunInput = {
   workflow: { id: string } | { name: string }
   parameters: Record<string, unknown>
   starter: RunStarter
+  /**
+   * A place's *Start live preview* or *Reload live preview* (`livePreviews/workflowSecrets.ts`): the run goes to the
+   * site the live preview runs on, works on its copy, and hands the secrets its steps name to its app's container.
+   */
+  livePreview?: { id: string; siteId: string }
 }
 
 export type RunDeps = { site: RunSiteCalls; stop: Pick<SiteCalls, 'stop'>; guard?: typeof guardStarterRun }
@@ -87,7 +92,8 @@ export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = def
     contentMatches: await storedVersionMatches(version, version.hash),
   } : null
   const [secretNames, variableNames] = await Promise.all([listPlaceSecretNames(wPlace), listPlaceVariableNames(wPlace)])
-  const siteId = await resolveStorageSite({ ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.workspaceId })
+  const siteId = input.livePreview?.siteId
+    ?? await resolveStorageSite({ ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.workspaceId })
 
   const recorded = await prisma.$transaction(async (tx) => {
     // Writing the workflow's row first serialises runs of it, so the count below is the count when this one is made.
@@ -151,6 +157,7 @@ export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = def
       variables: await variableValuesForRun(wPlace, definition!.variables),
       parameters: recorded.parameters,
       github: minted.github,
+      livePreview: input.livePreview ? { livePreviewId: input.livePreview.id } : undefined,
     })
     outcome = await deps.site.run(siteId, instruction)
   } catch (err) {

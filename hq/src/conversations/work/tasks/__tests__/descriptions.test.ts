@@ -25,7 +25,7 @@ describe('the task tools on starting work @SC-968 @SC-969', () => {
   })
 })
 
-describe("create_task's workspace", () => {
+describe("create_task's workspace @SC-1675", () => {
   it('is asked for on every call, a code workspace or null, and a call without it reads as null', () => {
     const schema = z.toJSONSchema(createTaskTool.input, { io: 'input' }) as { required: string[]; properties: Record<string, { type: unknown }> }
     expect(schema.required).toContain('workspaceId')

@@ -37,7 +37,7 @@ beforeEach(() => {
   refetchChanges.mockClear()
 })
 
-describe('useWorkspaceViewModel', () => {
+describe('useWorkspaceViewModel @SC-1687', () => {
   it('with main chosen, a workspace event asks for no branch changes', () => {
     rendered('/workspaces/w1/view?branch=main').bump()
     expect(refetchChanges).not.toHaveBeenCalled()

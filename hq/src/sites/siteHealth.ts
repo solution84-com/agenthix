@@ -21,6 +21,10 @@ export async function handleSiteHealthEvent(siteId: string, data: unknown): Prom
   const previous = before?.health ? parseSiteHealth(before.health) : null
   await recordSiteHealth(siteId, health)
   await reconcileSiteNotifications()
+  // Fleet admins are told when a site's memory passes 80% and when it is back (live preview spec section 5). Loaded
+  // when first needed: live previews reach the channel this module is part of.
+  await (await import('../livePreviews/notices')).watchMemory(siteId, health.livePreviews)
+    .catch((err) => logger.error(`site ${siteId}: memory notice not raised`, err))
   // A new executor image carries the place's approved workflow versions to it (workflows spec part 1, Image upgrades).
   // Loaded when first needed, as the workflow runs are: they reach the channel this module is part of.
   const { carryApprovedVersionsToImage, executorImageChanged } = await import('../workflows/executorImage')

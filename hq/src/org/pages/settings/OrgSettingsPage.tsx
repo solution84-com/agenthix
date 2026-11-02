@@ -4,6 +4,7 @@ import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
 import { OrgEntryGroup, OrgEntryRow } from '../OrgEntryRow'
 import { SignInPageSetting } from './SignInPageSetting'
 import { UploadedFilesSetting } from './UploadedFilesSetting'
+import { TrustedPackageScopesSetting } from './TrustedPackageScopesSetting'
 
 function githubLine(status: Awaited<ReturnType<typeof getGithubAppStatus>> | undefined): string {
   if (!status) return "Installing the GitHub App on the organisation's accounts"
@@ -23,6 +24,7 @@ export function OrgSettingsPage() {
       <OrgAdminHeading title="Settings">The organisation's, changed by its admins.</OrgAdminHeading>
       <SignInPageSetting />
       <UploadedFilesSetting />
+      <TrustedPackageScopesSetting />
       <OrgEntryGroup title="Access to models and tools">
         <OrgEntryRow to="/admin/settings/model-access" title="Web search" line="The key agents search the web with" />
         <OrgEntryRow to="/admin/settings/github" title="GitHub" line={githubLine(github)} />

@@ -3,7 +3,7 @@
  * commits, `main`'s versions, and a folder or a file of `main` or a branch. All read access: a project's Viewer
  * included. Read from the workspace's own repository on its site, never from a copy.
  */
-import { HttpError } from 'wasp/server'
+import { HttpError, prisma } from 'wasp/server'
 import {
   BRANCH_COMMITS_MAX, BRANCH_READ_METHODS, GIT_VERSIONS_MAX, BranchWorkError, isRepoPath, type BranchListResult, type GitRev,
 } from '@agenthix/core'
@@ -38,7 +38,9 @@ export async function getWorkspaceBranches(args: { workspaceId: string }, contex
       if (err instanceof BranchWorkError && err.code === 'not_repository') return { git: false, canAct: ws.canAct }
       throw err
     }
-    const [whose, working, agents] = await Promise.all([whoseOf(rows), agentsWorking(ws.logicalSiteId, ws.ref, rows), workAgents(rows)])
+    const [whose, working, agents, previews] = await Promise.all([
+      whoseOf(rows), agentsWorking(ws.logicalSiteId, ws.ref, rows), workAgents(rows), livePreviewsOf(rows.map(r => r.id)),
+    ])
     const branches: BranchLineView[] = rows.flatMap(r => {
       const w = whose.get(r.id)
       if (!w) return []
@@ -49,11 +51,28 @@ export async function getWorkspaceBranches(args: { workspaceId: string }, contex
         working: agent ? { agentName: agent } : null,
         ahead: line?.ahead ?? 0, behind: line?.behind ?? 0,
         lastCommitAt: line?.lastCommit.at ?? null,
-        livePreview: null,
+        livePreview: previews.get(r.id) ?? null,
       }]
     })
     return { git: true, canAct: ws.canAct, main: { name: list.main.name, head: list.main.head, versionCount: list.main.versions }, branches }
   })
+}
+
+const PREVIEW_STATE = { STARTING: 'starting', RUNNING: 'running', PAUSED: 'paused' } as const
+
+/** Each branch's live preview while it is live, by the branch's id. */
+async function livePreviewsOf(branchIds: string[]): Promise<Map<string, NonNullable<BranchLineView['livePreview']>>> {
+  const out = new Map<string, NonNullable<BranchLineView['livePreview']>>()
+  if (branchIds.length === 0) return out
+  const rows = await prisma.livePreview.findMany({
+    where: { branchId: { in: branchIds }, state: { in: ['STARTING', 'RUNNING', 'PAUSED'] } },
+    select: { id: true, branchId: true, state: true },
+    orderBy: { openedAt: 'asc' },
+  })
+  for (const r of rows) {
+    if (r.branchId && r.state !== 'STOPPED') out.set(r.branchId, { livePreviewId: r.id, state: PREVIEW_STATE[r.state] })
+  }
+  return out
 }
 
 async function branchIn(workspaceId: string, branchId: unknown): Promise<BranchWithCopies> {

@@ -12,6 +12,9 @@ import { agentsWorking, isStarting } from './working'
 import { emitBranchChange } from './workspaceEvents'
 import { asBranchHttp } from './refusals'
 
+/** Live previews' side of branch work, loaded when first needed: live previews reach branch work themselves. */
+const livePreviews = () => import('../livePreviews/branchHooks')
+
 type Ctx = { user?: { id: string } | null }
 
 async function requireOpenBranch(branchId: unknown) {
@@ -35,10 +38,13 @@ export async function renameBranch(args: { branchId: string; name: string }, con
       const taken = await tx.workspaceBranch.findFirst({ where: { workspaceId: b.workspaceId, state: 'OPEN', name: to }, select: { id: true } })
       if (taken) throw new HttpError(409, `This workspace already has a branch called ${to}. Choose another name. Nothing was changed.`)
     })
+    // Its live preview runs under the old name: stopped first, and its apps keep their addresses under the new one.
+    await (await livePreviews()).stopBranchPreview(b.workspaceId, b.id, 'person')
     const done = await siteCall(ws.logicalSiteId, BRANCH_WORK_METHODS.rename, {
       workspace: ws.ref, from: b.name, to, copyId: liveCopyOf(b)?.folderId ?? null,
     })
     await prisma.workspaceBranch.updateMany({ where: { id: b.id, name: b.name }, data: { name: done.name } })
+    await (await livePreviews()).renamedBranch(b.workspaceId, b.name, done.name)
     emitBranchChange({ ...b, name: done.name }, 'renamed')
     return { name: done.name }
   })
@@ -59,6 +65,7 @@ export async function deleteBranch(args: { branchId: string }, context: Ctx): Pr
       return count === 1
     })
     if (!marked) throw new HttpError(409, 'An agent has just started on this branch. Stop its work first, then delete the branch. Nothing was changed.')
+    await (await livePreviews()).stopBranchPreview(b.workspaceId, b.id, 'person')
     try {
       const done = await siteCall(ws.logicalSiteId, BRANCH_WORK_METHODS.delete, {
         workspace: refOfBranch(b), branch: b.name, copyId: liveCopyOf(b)?.folderId ?? null,

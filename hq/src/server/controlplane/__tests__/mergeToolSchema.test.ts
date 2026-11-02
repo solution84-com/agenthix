@@ -5,7 +5,7 @@ import { ALL_CONTROL_PLANE_TOOLS, MERGE_TOOL_SCHEMA, UPDATE_TOOL_SCHEMA } from '
 import { operations } from '../operations'
 import { ADMINISTRATIVE_MCP_TOOLS, ALWAYS_INJECTED_MCP_TOOLS, DEFAULT_ON_MCP_TOOLS, SYSTEM_MCP_TOOLS } from '../../../shared/mcpTools'
 
-describe("the agent's merge_into_main tool", () => {
+describe("the agent's merge_into_main tool @SC-1681", () => {
   const parse = (args: unknown) => z.object(MERGE_TOOL_SCHEMA.schema).safeParse(args)
 
   it("is core's declaration, on the data path, with an operation behind it", () => {
@@ -34,7 +34,7 @@ describe("the agent's merge_into_main tool", () => {
   })
 })
 
-describe("the agent's update_from_main tool", () => {
+describe("the agent's update_from_main tool @SC-1672", () => {
   it("is core's declaration, on the data path, in no access tier, taking nothing but the run", () => {
     expect(SYSTEM_MCP_TOOLS.CODE.UPDATE_FROM_MAIN).toBe('update_from_main')
     expect(UPDATE_TOOL_SCHEMA.description).toBe(UPDATE_TOOL_DECLARATION.description)

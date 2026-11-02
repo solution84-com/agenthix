@@ -21,8 +21,11 @@ export const PROJECT_LEVEL = PROJECT.slug
 export const PROJECT_PLACE: PlaceSummary = { kind: 'project', projectId: PROJECT.id, name: PROJECT.name, level: PROJECT_LEVEL }
 export const YOUR_SPACE_PLACE: PlaceSummary = { kind: 'user', name: YOUR_SPACE_NAME, level: PERSONAL_LEVEL }
 
-/** Where a check's conversation lives. */
-export type Home = 'project' | 'your-space'
+/** Where a check's conversation lives: a project's, Your space's, or the thread of the project's task (TASK). */
+export type Home = 'project' | 'your-space' | 'task'
+
+/** Whether the conversation is in the project: its own or its task's thread. */
+export const inProject = (home: Home): boolean => home !== 'your-space'
 
 export const RELEASE_PAGE = `${PROJECT_LEVEL}:processes/release-process.md`
 export const PROVIDERS_PAGE = 'platform:your-tools/providers.md'
@@ -110,11 +113,11 @@ export function levelOf(name: string): string {
 
 /** The levels a conversation's knowledge tools reach: its own place, the organisation and the guide. */
 export function heldLevels(home: Home): string[] {
-  return [home === 'project' ? PROJECT_LEVEL : PERSONAL_LEVEL, 'org', 'platform']
+  return [inProject(home) ? PROJECT_LEVEL : PERSONAL_LEVEL, 'org', 'platform']
 }
 
 /** A task of the project with one attachment, as get_task_details answers it. */
-export const TASK = { id: '0b9f6a52-3c1d-4e8a-9f27-5d6c1b2a7e40', key: 'WEB-3', title: 'Fix the sign-up form', attachment: 'signup-error.png' }
+export const TASK = { id: '0b9f6a52-3c1d-4e8a-9f27-5d6c1b2a7e40', key: 'WEB-3', number: 3, title: 'Fix the sign-up form', attachment: 'signup-error.png' }
 
 /** The project's workspaces, as create_task's description lists them: one with Git, one without. */
 export const WORKSPACES = [

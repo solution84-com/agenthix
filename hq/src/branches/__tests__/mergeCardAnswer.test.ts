@@ -68,7 +68,7 @@ beforeEach(() => {
   outcome = { outcome: 'merged', versionNumber: 15, branchClosed: true }
 })
 
-describe('who may answer a merge card', () => {
+describe('who may answer a merge card @SC-1681', () => {
   it('a Member or Admin, by their own press', async () => {
     expect(await mergeAnswerRefusal({ boundaryType: 'project', boundaryId: 'p1' }, 'approve', 'member', 'card')).toBeNull()
     expect(await mergeAnswerRefusal({ boundaryType: 'project', boundaryId: 'p1' }, 'decline', 'member', 'turn')).toBeNull()
@@ -84,7 +84,7 @@ describe('who may answer a merge card', () => {
   })
 })
 
-describe('pressing Merge', () => {
+describe('pressing Merge @SC-1681', () => {
   it('merges as the person who pressed, onto the main the card was made against', async () => {
     await answerMergeCard(row, 'approve', 'member', deps())
     expect(merges).toHaveLength(1)
@@ -128,7 +128,7 @@ describe('pressing Merge', () => {
   })
 })
 
-describe('pressing Not now', () => {
+describe('pressing Not now @SC-1681', () => {
   it('merges nothing and ends the card, with no report of its own: the lead answers it', async () => {
     await answerMergeCard(row, 'decline', 'member', deps())
     expect(merges).toHaveLength(0)

@@ -6,7 +6,7 @@ import {
   ADMINISTRATIVE_MCP_TOOLS, ALWAYS_INJECTED_MCP_TOOLS, DEFAULT_ON_MCP_TOOLS, SYSTEM_MCP_TOOLS,
 } from '../../../shared/mcpTools'
 
-describe('the agent\'s commit tool', () => {
+describe('the agent\'s commit tool @SC-1671', () => {
   const parse = (args: unknown) => z.object(COMMIT_TOOL_SCHEMA.schema).safeParse(args)
 
   it('is core\'s declaration, on the data path', () => {

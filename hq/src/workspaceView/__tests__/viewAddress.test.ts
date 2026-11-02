@@ -10,7 +10,7 @@ function memory(): Pick<Storage, 'getItem' | 'setItem'> & { data: Map<string, st
   return { data, getItem: k => data.get(k) ?? null, setItem: (k, v) => { data.set(k, v) } }
 }
 
-describe('the address', () => {
+describe('the address @SC-1688', () => {
   it('carries the branch, the section and the file, and leaves main out', () => {
     expect(viewAddressOf({ branch: 'login-page', section: 'files', file: 'src/App.tsx', diff: null })).toBe('?branch=login-page&section=files&file=src%2FApp.tsx')
     expect(viewAddressOf({ branch: 'main', section: 'git', file: null, diff: 'README.md' })).toBe('?section=git&diff=README.md')
@@ -35,7 +35,7 @@ describe('the address', () => {
   })
 })
 
-describe('what the browser remembers', () => {
+describe('what the browser remembers @SC-1688', () => {
   it('remembers the place per person and per workspace', () => {
     const store = memory()
     remember(store, 'u1', 'w1', { branch: 'login-page', section: 'files', file: 'a.ts', diff: null })
@@ -52,7 +52,7 @@ describe('what the browser remembers', () => {
     expect(readRemembered(store, 'u1', 'w1')).toEqual({})
   })
 
-  it('lists workspaces most recently opened first', () => {
+  it('lists workspaces most recently opened first @SC-1683', () => {
     const store = memory()
     noteOpened(store, 'u1', 'a')
     noteOpened(store, 'u1', 'b')

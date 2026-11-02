@@ -37,24 +37,11 @@ describe('get_site_info tool @SC-111', () => {
   })
 })
 
-describe('start_preview tool gating @SC-303', () => {
-  it("is absent for a person's connection, which is no run (adr-0090)", () => {
+describe('the old preview tool @SC-1716', () => {
+  it('is gone: a live preview\'s app tools replace it', () => {
     const server = createMcpServer({ caller: connectionCaller() })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tools = (server as any)._registeredTools as Record<string, unknown>
     expect(tools['start_preview']).toBeUndefined()
-  })
-
-  it('is present when the server is built with verified capability claims', () => {
-    const claims = {
-      tokenType: 'capability' as const,
-      userId: 'u1', runner: { kind: 'person' as const, userId: 'u1' }, startedBy: 'person' as const, agentId: 'agent-1', sessionId: 's1',
-      projectId: null, workspaceId: null, taskId: null, role: null, siteId: 'site-local',
-      permissions: { bypassed: false, allowedTools: [], allowedBashPatterns: [], neverTools: [] },
-    }
-    const server = createMcpServer({ caller: { kind: 'run', claims } })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tools = (server as any)._registeredTools as Record<string, unknown>
-    expect(tools['start_preview']).toBeDefined()
   })
 })

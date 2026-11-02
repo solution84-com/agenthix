@@ -3,6 +3,7 @@ import { FilesQuietLine } from '@agenthix/ui/projects'
 import type { WorkspaceBranchesView } from '../../branches/views'
 import { FolderTree } from '../../storage/pages/FolderTree'
 import { OpenedFile } from '../../storage/pages/OpenedFile'
+import { useLivePreview } from '../hooks/useLivePreview'
 import { useWorkspaceViewModel } from '../hooks/useWorkspaceViewModel'
 import { workspaceViewPath } from '../viewAddress'
 import { aheadText, agentOf, mergedNotice, plural, whenText } from '../words'
@@ -12,6 +13,7 @@ import { ConversationPanel } from './ConversationPanel'
 import { DiffMiddle } from './DiffMiddle'
 import { FilesPanel } from './FilesPanel'
 import { GitFileMiddle, type ViewWorkspace } from './GitFileMiddle'
+import { LivePreviewMiddle } from './LivePreviewMiddle'
 import { MainGitPanel } from './MainGitPanel'
 import { MergeDialog } from './MergeDialog'
 import { TurnGitOn } from './TurnGitOn'
@@ -19,8 +21,8 @@ import { WorkspaceFrame } from './WorkspaceFrame'
 import type { SwitcherItem } from './TopBar'
 
 /**
- * The full-screen workspace view's parts (spec part 1): the branch select, Files and Git for the chosen branch, the
- * middle (a file, or a file's changes), and the conversation. `WorkspaceFrame` lays them out for the window's width.
+ * The full-screen workspace view's parts (spec part 1): the branch select, *Live preview*, Files and Git for the chosen
+ * branch, the middle (the live preview, a file, or a file's changes), and the conversation. `WorkspaceFrame` lays them out for the window's width.
  */
 export function WorkspaceViewBody({ workspace, view, userId, back, workspaces, refetchBranches }: {
   workspace: ViewWorkspace
@@ -35,6 +37,8 @@ export function WorkspaceViewBody({ workspace, view, userId, back, workspaces, r
   const files = m.changes?.files ?? []
   const change = m.state.diff ? files.find(f => f.path === m.state.diff) ?? null : null
   const target = { ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.id }
+  const previewChosen = m.git && m.state.section === 'preview'
+  const preview = useLivePreview(workspace.id, m.line?.id ?? null, { enabled: m.git, shown: previewChosen })
 
   const select = (compact: boolean) => m.mainLine && (
     <BranchSelect main={m.mainLine} branches={m.branches} chosen={m.line?.name ?? 'main'} onChoose={m.chooseBranch} me={userId} compact={compact} />
@@ -94,9 +98,13 @@ export function WorkspaceViewBody({ workspace, view, userId, back, workspaces, r
     <>
       <WorkspaceFrame
         back={back} aboutHref={`${back.href}&workspace=${encodeURIComponent(workspace.id)}&wabout=1`} workspaceName={workspace.name} workspaces={workspaces}
-        section={m.state.section} onSection={section => m.set({ section })}
+        section={m.state.section} onSection={section => m.set(section === 'preview' ? { section, file: null, diff: null } : { section })}
         select={select} filesBody={filesBody} gitBody={gitBody} filesNote={filesNote} gitNote={gitNote} noGit={noGit}
         middle={middle} middleShown={!!(m.state.file || m.state.diff)} status={status} conversation={conversation}
+        preview={layout => (
+          <LivePreviewMiddle workspaceId={workspace.id} branchId={m.line?.id ?? null} branchName={m.branchName} model={preview} canAct={canAct} layout={layout} />
+        )}
+        previewState={preview.view?.state ?? 'stopped'}
         branchTitle={m.branchName} activity={m.activity}
         agentName={m.line ? agentOf(m.line) : null}
         notice={m.notice} onDismissNotice={() => m.setNotice(null)}

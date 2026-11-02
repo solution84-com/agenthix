@@ -11,7 +11,7 @@ import type { Page, Route } from '@playwright/test'
 import type { HostResults } from '@agenthix/core'
 import { capture, type CaptureOptions } from './capture'
 import {
-  ACTIVITY, ARRIVED_JOIN, AUTHENTICATOR, CLOUD_VIEW, CONSOLE_ORIGIN, FLEET, FLEET_ADMINS, HOSTS, HQ_ADDRESS, NOTICES, OPENED_JOIN, ORGANISATION, REMOTE_ACCESS, SAM, STATUS, nightsOf,
+  ACTIVITY, ARRIVED_JOIN, AUTHENTICATOR, CLOUD_VIEW, CONSOLE_ORIGIN, FLEET, FLEET_ADMINS, HOSTS, HQ_ADDRESS, NOTICES, livePreviewsOf, OPENED_JOIN, ORGANISATION, REMOTE_ACCESS, SAM, STATUS, nightsOf,
 } from './consoleSample'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -40,6 +40,7 @@ function answer(route: Route, pathname: string, search: string, screen: ConsoleS
   const method = route.request().method()
   const host = /^\/hosts\/([0-9a-f]{64})$/.exec(path)
   const nights = /^\/hosts\/([0-9a-f]{64})\/backups$/.exec(path)
+  const livePreviews = /^\/sites\/([0-9a-f]{64})\/live-previews$/.exec(path)
 
   if (path === '/status') return json(route, STATUS)
   if (path === '/session' && method === 'GET') {
@@ -58,6 +59,7 @@ function answer(route: Route, pathname: string, search: string, screen: ConsoleS
     const list: HostResults['backup.list'] = nightsOf(nights[1])
     return json(route, list)
   }
+  if (livePreviews && method === 'GET') return json(route, { view: livePreviewsOf(livePreviews[1]) })
   if (path === '/notices') return json(route, { notices: NOTICES })
   if (path === '/fleet-admins') return json(route, { admins: FLEET_ADMINS })
   if (path === '/activity') return json(route, search.includes('after=') ? { entries: [], next: null } : ACTIVITY)

@@ -28,7 +28,7 @@ import { LOST_ACCESS_REASON } from '../../projects/taskOnBehalfOf'
 
 const ask = () => askAgentAboutClash({ taskId: 't1' }, 'mia', 'the clash')
 
-describe('a clash on a task', () => {
+describe('a clash on a task @SC-1680', () => {
   beforeEach(() => {
     db.updates = []
     db.updated = 1

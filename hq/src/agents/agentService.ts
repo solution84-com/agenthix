@@ -11,7 +11,6 @@ import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { recordActivity } from '../server/dashboard/activity'
 import { sitesForSessions, SESSION_SITE_SELECT } from './agentSite'
 import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
-import { expirePreviewsForSessions } from '../preview/previewRegistry'
 import { initialAgentContent } from '../packages/agentAssets'
 import {
   writeAgentContent, settingsColumns, defaultAgentSettings, type AgentContent, type AgentSettings,
@@ -148,9 +147,6 @@ export async function deleteAgent(agentId: string) {
     for (const siteId of siteIds) {
       await siteRuntimeStore.deleteSessionsBy(siteId, { agentId })
     }
-    // Nothing cascades to a PreviewSession — it names its session by id, with
-    // no relation — so a deleted session would leave its previews resolving.
-    await expirePreviewsForSessions(sessions.map(s => s.id))
     await prisma.agentSession.deleteMany({ where: { id: { in: sessions.map(s => s.id) } } })
   }
 

@@ -11,7 +11,7 @@ const site = (status: string, disk: { freeBytes: number; totalBytes: number } | 
   health: { disk, ...(copies !== undefined ? { branchCopies: { usedBytes: copies } } : {}) },
 }) as unknown as SiteFacts
 
-describe('the notice that a machine\'s disk is 80% used', () => {
+describe('the notice that a machine\'s disk is 80% used @SC-1717', () => {
   it('is raised from 80% used, and names what branch copies take', () => {
     const n = diskFillingNotice(site('ONLINE', { freeBytes: 20 * GB, totalBytes: 100 * GB }, 12 * GB), 'office')
     expect(n).toMatchObject({ type: 'site_disk_filling', subjectKey: 's1', title: "office's disk is 80% used" })

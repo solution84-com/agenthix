@@ -61,6 +61,8 @@ export type ActivityRow = {
   workflowCard?: OperationActivityView['workflowCard']
   /** An agent's ask to merge its branch, with whether the viewer may answer it. */
   mergeCard?: OperationActivityView['mergeCard']
+  /** An agent's ask about a blocked package in its branch's copy, with whether the viewer may answer it. */
+  packageCard?: OperationActivityView['packageCard']
   runHref?: string | null
 }
 
@@ -95,6 +97,7 @@ export function toActivityView(row: ActivityRow, canStop: boolean): OperationAct
     request: row.state === 'WAITING_FOR_APPROVAL' ? row.request ?? null : null,
     ...(row.state === 'WAITING_FOR_APPROVAL' && row.workflowCard ? { workflowCard: row.workflowCard } : {}),
     ...(row.state === 'WAITING_FOR_APPROVAL' && row.mergeCard ? { mergeCard: row.mergeCard } : {}),
+    ...(row.state === 'WAITING_FOR_APPROVAL' && row.packageCard ? { packageCard: row.packageCard } : {}),
     runHref: row.runHref ?? null,
   }
 }

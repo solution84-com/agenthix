@@ -5,12 +5,13 @@
  *   on its return. Everything in it is checked against hq's own records: the copy must be one hq made, on the site
  *   that sent it, for that workspace and branch. Then the room hears `commits`.
  * - A run on a branch's work starting or ending: the room hears `working` or `stopped`. When the work is over (its
- *   task done or archived), its copy is removed (live preview spec, *Defaults for review* 8).
+ *   task done or archived), its copy is removed (live preview spec, *Defaults for review* 8), unless a live preview
+ *   runs from it (`copies.ts`).
  */
 import { prisma } from 'wasp/server'
 import { BRANCH_BACK_EVENT, isCommitId, isCopyId, isGitBranchName, type RunStatusEvent } from '@agenthix/core'
 import { emitBranchChange } from './workspaceEvents'
-import { removeCopiesOf, retryRemovals } from './copies'
+import { livePreviewOnBranch, removeCopiesOf, retryRemovals } from './copies'
 import { branchOfSession, liveCopyOf } from './branchRows'
 import { onRunStatus, onSiteEvent } from '../sites/channel/siteEventHandler'
 import { Logger } from '../server/utils/logger'
@@ -76,7 +77,7 @@ export async function branchRunChanged(e: Pick<RunStatusEvent, 'sessionId' | 'st
   emitBranchChange(branch, ended ? 'stopped' : 'working')
   if (ended && branch.taskId) {
     const task = await prisma.task.findUnique({ where: { id: branch.taskId }, select: { status: true, archived: true } })
-    if (task && (task.status === 'DONE' || task.archived)) await removeCopiesOf(branch.id)
+    if (task && (task.status === 'DONE' || task.archived) && !(await livePreviewOnBranch(branch.id))) await removeCopiesOf(branch.id)
   }
 }
 

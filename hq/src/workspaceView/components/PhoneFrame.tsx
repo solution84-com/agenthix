@@ -1,10 +1,12 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ChevronLeft, Folder, GitBranch, MessageSquare, Play } from 'lucide-react'
-import { LivePreviewRow } from './LeftPanel'
 import { Notice, type FrameParts } from './WorkspaceFrame'
 
 type Tab = 'conversation' | 'preview' | 'files' | 'git'
+
+/** The line under a running live preview on a phone while its agent works (board `narrow-phone`). */
+export const phonePreviewLine = (agentName: string | null) => `${agentName ?? 'The agent'} is working · reloads when it saves`
 
 /**
  * The view on a phone (spec part 1, *Narrow screens*; board `narrow-phone`): one thing at a time, as HQ's mobile
@@ -13,10 +15,12 @@ type Tab = 'conversation' | 'preview' | 'files' | 'git'
  * The conversation stays mounted while another tab shows, so its thread and unsent text are kept.
  */
 export function PhoneFrame(p: FrameParts) {
-  const [tab, setTab] = useState<Tab>(p.middleShown ? (p.section === 'git' ? 'git' : 'files') : 'conversation')
+  const [tab, setTab] = useState<Tab>(
+    p.section === 'preview' && !p.noGit ? 'preview' : p.middleShown ? (p.section === 'git' ? 'git' : 'files') : 'conversation',
+  )
   const choose = (t: Tab) => {
     setTab(t)
-    if (t === 'files' || t === 'git') p.onSection(t)
+    if (t === 'files' || t === 'git' || t === 'preview') p.onSection(t)
   }
   const tabs: { id: Tab; label: string; icon: ReactNode; hidden?: boolean }[] = [
     { id: 'conversation', label: 'Conversation', icon: <MessageSquare size={18} aria-hidden /> },
@@ -42,7 +46,13 @@ export function PhoneFrame(p: FrameParts) {
       </header>
       <Notice text={p.notice} onDismiss={p.onDismissNotice} />
       <div className={tab === 'conversation' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'} data-testid="workspace-conversation">{p.conversation}</div>
-      {tab === 'preview' && <div className="p-3"><LivePreviewRow /></div>}
+      {tab === 'preview' && <div className="flex min-h-0 flex-1 flex-col">{p.preview('narrow')}</div>}
+      {tab === 'preview' && p.previewState === 'running' && p.activity.working && (
+        <p role="status" className="flex shrink-0 items-center gap-1.5 border-t border-border-subtle px-3 py-1.5 text-micro text-text-secondary" data-testid="phone-preview-footer">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-success" />
+          {phonePreviewLine(p.agentName)}
+        </p>
+      )}
       {(tab === 'files' || tab === 'git') && (
         <>
           {p.noGit && <div className="p-2">{p.noGit}</div>}

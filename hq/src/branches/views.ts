@@ -2,7 +2,7 @@
  * What the workspace view reads and sends for code work on branches (spec parts 1–3). Shared by the client and the
  * server; no server code here. The operations are in `operations.ts`.
  */
-import type { BranchFileChange, GitCommitLine, GitTreeEntry, MainVersion, MergeClash } from '@agenthix/core'
+import type { BranchFileChange, GitCommitLine, GitTreeEntry, LivePreviewStateName, MainVersion, MergeClash } from '@agenthix/core'
 
 /** Whose work a branch is, as the branch select's line says it. */
 export type BranchWhose =
@@ -20,8 +20,8 @@ export type BranchLineView = {
   ahead: number
   behind: number
   lastCommitAt: string | null
-  /** Phase 2 fills this; null until live previews exist. */
-  livePreview: null
+  /** The branch's live preview while one is starting, running or paused; null when none is. */
+  livePreview: { livePreviewId: string; state: Exclude<LivePreviewStateName, 'stopped'> } | null
 }
 
 export type WorkspaceBranchesView =

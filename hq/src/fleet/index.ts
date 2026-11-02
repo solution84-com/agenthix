@@ -20,6 +20,7 @@ import { reconcileMachineNotices, startMachineNotices } from '../sites/machineNo
 import { moveSite, openTransfer } from './siteMove'
 import { hqAbout, siteLoads } from './consoleFacts'
 import { relayFacts } from './relayFacts'
+import { setSiteLivePreviews, siteLivePreviewsView, stopFleetLivePreview } from '../livePreviews/fleet'
 import { cloudConsoleServices } from '../cloud'
 import {
   acceptHandover, claimHandover, closeHandover, completeHandover, completeHandoverWithCredential, handoverCertificates,
@@ -92,6 +93,10 @@ export function consoleServices(hub: RelayHub): ConsoleServices {
       if (kept) void reconcileMachineNotices()
       return { kept }
     },
+    // Live previews per site (live preview spec section 5): each only for a fleet admin.
+    'sites.livePreviews': ({ byUserId, executionSiteId }) => siteLivePreviewsView(byUserId, executionSiteId),
+    'sites.livePreviews.set': params => setSiteLivePreviews(params),
+    'sites.livePreviews.stop': params => stopFleetLivePreview(params),
     // hq's connection to Agenthix Cloud: hq decides who may connect it (cloud/index.ts).
     ...cloudConsoleServices(),
   }

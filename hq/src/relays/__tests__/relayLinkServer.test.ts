@@ -13,16 +13,19 @@ let port: number
 let links: RelayLinks
 let seen: string[]
 let reports: Array<{ relayId: string; load: RelayLoad }>
+let bundleReports: Array<{ relayId: string; frame: Record<string, unknown> }>
 const clients: WebSocket[] = []
 
 beforeEach(async () => {
   seen = []
   reports = []
+  bundleReports = []
   server = http.createServer((_q, r) => r.end())
   links = attachRelayLink(server, {
     authenticate: async secret => (secret === SECRET ? { relayId: 'relay-hq' } : null),
     recordSeen: async relayId => { seen.push(relayId) },
     recordReport: async (relayId, load) => { reports.push({ relayId, load }) },
+    bundleReport: (relayId, frame) => { bundleReports.push({ relayId, frame }) },
   })
   await new Promise<void>(r => server.listen(0, '127.0.0.1', r))
   port = (server.address() as { port: number }).port
@@ -113,5 +116,18 @@ describe("a relay's link to hq @SC-1526", () => {
     await until(() => other)
     expect(other).toBe(true)
     expect(links.isConnected('relay-hq')).toBe(false)
+  })
+
+  it('orders a bundle on a connected relay\'s link, and hands its bundle report on with the relay it came from @SC-1715', async () => {
+    const ws = dial(good())
+    await nextMessage(ws)
+    expect(links.send('relay-other', { type: 'relay.bundle' })).toBe(false)
+    const order = nextMessage(ws)
+    expect(links.send('relay-hq', { type: 'relay.bundle', transferId: 't1' })).toBe(true)
+    expect(await order).toEqual({ type: 'relay.bundle', transferId: 't1' })
+    ws.send(JSON.stringify({ type: 'relay.bundleReport', version: RELAY_PROTOCOL_VERSION, transferId: 't1', outcome: { done: true } }))
+    await until(() => bundleReports.length > 0)
+    expect(bundleReports).toEqual([{ relayId: 'relay-hq', frame: expect.objectContaining({ transferId: 't1' }) }])
+    expect(reports).toEqual([])
   })
 })

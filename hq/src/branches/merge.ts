@@ -22,6 +22,9 @@ import { removeCopiesOf } from './copies'
 import type { MergeBranchResult } from './views'
 import { Logger } from '../server/utils/logger'
 
+/** Live previews' side of branch work, loaded when first needed: live previews reach branch work themselves. */
+const livePreviews = () => import('../livePreviews/branchHooks')
+
 const logger = new Logger('BranchMerge')
 
 export type MergeAsk = {
@@ -96,6 +99,7 @@ async function closeAfterMerge(b: BranchWithCopies, logicalSiteId: string, perso
     return count === 1
   })
   if (!closed) return false
+  await (await livePreviews()).stopBranchPreview(b.workspaceId, b.id, 'merged')
   await leaveRepository(b, logicalSiteId)
   emitBranchChange(b, 'closed')
   await sayMerged(work, personId, b.name, await mainName(logicalSiteId, refOfBranch(b)), version)

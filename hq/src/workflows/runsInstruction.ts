@@ -9,6 +9,7 @@ import {
   type WorkflowDefinition,
   type WorkflowRunGitHub,
   type WorkflowRunInstruction,
+  type WorkflowRunLivePreview,
   type WorkflowRunWorkspace,
 } from '@agenthix/core'
 import { buildMaskingMaterial } from './runsMasking'
@@ -32,6 +33,7 @@ export type InstructionInput = {
   variables: Record<string, string>
   parameters: Record<string, string>
   github: WorkflowRunGitHub | null
+  livePreview?: WorkflowRunLivePreview
 }
 
 export function buildRunInstruction(input: InstructionInput): WorkflowRunInstruction {
@@ -63,5 +65,6 @@ export function buildRunInstruction(input: InstructionInput): WorkflowRunInstruc
     limits: WORKFLOW_CONTAINER_LIMITS,
     masking,
     github: input.github,
+    ...(input.livePreview ? { livePreview: input.livePreview } : {}),
   }
 }

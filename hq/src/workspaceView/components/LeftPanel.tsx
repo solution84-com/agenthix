@@ -1,14 +1,15 @@
 import type { ReactNode } from 'react'
 import { ChevronDown, ChevronRight, Folder, GitBranch, Play } from 'lucide-react'
+import type { LivePreviewStateName } from '@agenthix/core'
 import type { ViewSection } from '../viewAddress'
-import { PREVIEW_LATER } from '../words'
+import { PREVIEW_STATE_LABEL } from '../livePreviewWords'
 
 /**
  * The left panel (spec part 1, *Layout* 2–4): the branch select, then *Live preview* with its state, then *Files* and
- * *Git* as an accordion, one open at a time. In phase 1 a live preview is always *Stopped*: its place is kept, and
- * choosing it does nothing yet. Without Git, *Live preview* and *Git* offer *Turn Git on* instead.
+ * *Git* as an accordion, one open at a time. Choosing *Live preview* shows it in the middle. Without Git, *Live
+ * preview* and *Git* offer *Turn Git on* instead.
  */
-export function LeftPanel({ branchSelect, section, onSection, filesNote, gitNote, files, git, noGit }: {
+export function LeftPanel({ branchSelect, section, onSection, filesNote, gitNote, files, git, noGit, previewState }: {
   branchSelect: ReactNode
   section: ViewSection
   onSection: (section: ViewSection) => void
@@ -19,11 +20,12 @@ export function LeftPanel({ branchSelect, section, onSection, filesNote, gitNote
   git: ReactNode
   /** The workspace has no Git: what stands where *Live preview* and *Git* would be. */
   noGit?: ReactNode
+  previewState: LivePreviewStateName
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 p-2" data-testid="workspace-left">
       {branchSelect}
-      {noGit ?? <LivePreviewRow />}
+      {noGit ?? <LivePreviewRow state={previewState} chosen={section === 'preview'} onChoose={() => onSection('preview')} />}
       <div className="flex min-h-0 flex-1 flex-col border-t border-border-subtle">
         <Fold title="Files" icon={<Folder size={15} aria-hidden />} note={filesNote} open={section === 'files'} onOpen={() => onSection('files')}>{files}</Fold>
         {!noGit && <Fold title="Git" icon={<GitBranch size={15} aria-hidden />} note={gitNote} open={section === 'git'} onOpen={() => onSection('git')}>{git}</Fold>}
@@ -32,17 +34,20 @@ export function LeftPanel({ branchSelect, section, onSection, filesNote, gitNote
   )
 }
 
-export function LivePreviewRow() {
+const STATE_DOT: Record<LivePreviewStateName, string> = {
+  running: 'bg-success', starting: 'bg-warning', paused: 'bg-warning', stopped: 'bg-text-muted',
+}
+
+/** *Live preview* with its state (*Running*, *Starting*, *Paused*, *Stopped*), always first in the panel. */
+export function LivePreviewRow({ state, chosen, onChoose }: { state: LivePreviewStateName; chosen: boolean; onChoose: () => void }) {
   return (
-    <div className="rounded-lg border border-border-subtle px-2 py-1.5" data-testid="live-preview-row">
-      <div className="flex items-center gap-2 text-small font-medium text-text-primary">
-        <Play size={14} aria-hidden className="text-text-muted" /> Live preview
-        <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-micro text-text-secondary">
-          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-text-muted" /> Stopped
-        </span>
-      </div>
-      <p className="mt-0.5 text-micro text-text-muted">{PREVIEW_LATER}</p>
-    </div>
+    <button type="button" aria-pressed={chosen} onClick={onChoose} data-testid="live-preview-row"
+      className={`flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-small font-medium text-text-primary hover:bg-surface-hover ${chosen ? 'border-accent bg-accent-subtle' : 'border-border-subtle'}`}>
+      <Play size={14} aria-hidden className="text-text-muted" /> Live preview
+      <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-micro text-text-secondary">
+        <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${STATE_DOT[state]}`} /> {PREVIEW_STATE_LABEL[state]}
+      </span>
+    </button>
   )
 }
 
@@ -70,17 +75,19 @@ function Fold({ title, icon, note, open, onOpen, children }: {
 }
 
 /** The panel folded to its strip (about 900–1280 px wide): the branch, *Live preview*, *Files* and *Git* as icons. */
-export function LeftStrip({ branchSelect, section, open, onChoose, git }: {
+export function LeftStrip({ branchSelect, section, open, onChoose, git, previewState }: {
   branchSelect: ReactNode
   section: ViewSection
   /** Files or Git open over the middle. */
   open: boolean
   onChoose: (section: ViewSection) => void
   git: boolean
+  previewState: LivePreviewStateName
 }) {
+  const on = (s: ViewSection) => (s === 'preview' ? section === 'preview' : open && section === s)
   const icon = (s: ViewSection, label: string, node: ReactNode) => (
-    <button type="button" aria-label={label} title={label} aria-pressed={open && section === s} onClick={() => onChoose(s)}
-      className={`flex h-9 w-9 items-center justify-center rounded-lg hover:bg-surface-hover ${open && section === s ? 'bg-accent-subtle text-accent' : 'text-text-secondary'}`}>
+    <button type="button" aria-label={label} title={label} aria-pressed={on(s)} onClick={() => onChoose(s)}
+      className={`relative flex h-9 w-9 items-center justify-center rounded-lg hover:bg-surface-hover ${on(s) ? 'bg-accent-subtle text-accent' : 'text-text-secondary'}`}>
       {node}
     </button>
   )
@@ -88,7 +95,12 @@ export function LeftStrip({ branchSelect, section, open, onChoose, git }: {
     <nav aria-label="Workspace" className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-border-subtle py-2" data-testid="workspace-strip">
       {branchSelect}
       <span className="my-1 h-px w-6 bg-border-subtle" aria-hidden />
-      {git && <span title={`Live preview · Stopped. ${PREVIEW_LATER}`} className="flex h-9 w-9 items-center justify-center text-text-muted"><Play size={16} aria-hidden /><span className="sr-only">Live preview · Stopped</span></span>}
+      {git && icon('preview', `Live preview · ${PREVIEW_STATE_LABEL[previewState]}`, (
+        <>
+          <Play size={16} aria-hidden />
+          <span aria-hidden className={`absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full ${STATE_DOT[previewState]}`} />
+        </>
+      ))}
       {icon('files', 'Files', <Folder size={16} aria-hidden />)}
       {git && icon('git', 'Git', <GitBranch size={16} aria-hidden />)}
     </nav>

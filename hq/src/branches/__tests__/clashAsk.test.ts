@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { clashAskText } from '../clashAsk'
 
-describe('what the agent is asked after a clash', () => {
+describe('what the agent is asked after a clash @SC-1680', () => {
   it('names the files, the version of main that changed each, and what to do', () => {
     const text = clashAskText('add-login-page', 'main', [
       { path: 'src/login.ts', version: { number: 12, commit: 'b'.repeat(40), subject: 'Ada for Mia · Sign-up form' } },

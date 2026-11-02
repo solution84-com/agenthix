@@ -5,7 +5,7 @@ import { asBranchHttp, asBranchTool, branchRefusalWords } from '../refusals'
 import { ControlPlaneError } from '../../server/controlplane/types'
 import { SiteUnreachableError } from '../../storage/workspaceStore'
 
-describe("a site's refusal of branch work, in words", () => {
+describe("a site's refusal of branch work, in words @SC-1673", () => {
   it('says every code in words a person can act on, ending that nothing was changed', () => {
     for (const code of BRANCH_WORK_ERROR_CODES) {
       expect(branchRefusalWords(code)).toMatch(/Nothing was changed\.$/)

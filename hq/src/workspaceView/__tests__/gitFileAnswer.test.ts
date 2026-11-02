@@ -4,7 +4,7 @@ import { gitFileAnswer } from '../gitFileAnswer'
 
 afterEach(() => vi.restoreAllMocks())
 
-describe('a file read from Git', () => {
+describe('a file read from Git @SC-1686', () => {
   it('is a ready answer whose links are a blob of the page’s own, with the kind its name gives', async () => {
     const made: Blob[] = []
     vi.spyOn(URL, 'createObjectURL').mockImplementation(b => { made.push(b as Blob); return 'blob:here/1' })

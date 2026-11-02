@@ -3,7 +3,7 @@ import { withBranches } from '../workspaceDeleteWords'
 
 const branch = (name: string, over: Record<string, unknown> = {}) => ({ name, whose: { personName: 'Mia' }, ahead: 6, working: null, ...over })
 
-describe("the workspace delete's confirm, with its branches (Default 5)", () => {
+describe("the workspace delete's confirm, with its branches (Default 5) @SC-1677", () => {
   it('leaves the confirm as it is when there are no branches', () => {
     expect(withBranches('Delete — it holds no files', [])).toBe('Delete — it holds no files')
     expect(withBranches('Delete — it holds no files', undefined)).toBe('Delete — it holds no files')

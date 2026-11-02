@@ -5,7 +5,7 @@
  * domain group — matching the canonical tool reference in docs/domains/tools/tools.md.
  *
  * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW,
- * KNOWLEDGE, SKILL, PLACE, CODE
+ * KNOWLEDGE, SKILL, PLACE, CODE, APPS
  *
  * Access tiers (cross-cutting):
  *   ALWAYS_INJECTED  — PLATFORM tools + task execution lifecycle; never user-configurable
@@ -13,12 +13,16 @@
  *   ADMINISTRATIVE   — off by default; must be explicitly granted
  *
  * A group in no tier is defined, not offered: PLACE, until a conversation's places are served; CODE, which only a run
- * on a code workspace is given, by its dispatch rather than by a tier.
+ * on a code workspace is given, by its dispatch rather than by a tier; APPS, which only a run on a branch with a live
+ * preview is given, the same way.
  *
  * Tool names are stored and passed around in our raw format (e.g. 'create_task').
  * Runtime adapters are responsible for translating to their own naming scheme.
  */
-import { COMMIT_TOOL_NAME, MERGE_TOOL_NAME, PROPOSE_SKILL_TOOL, UPDATE_TOOL_NAME, WORKFLOW_TOOL_NAMES } from '@agenthix/core'
+import {
+  COMMIT_TOOL_NAME, LIST_APPS_TOOL, MERGE_TOOL_NAME, PROPOSE_SKILL_TOOL, RELOAD_VIEW_TOOL, SET_AUTO_RELOAD_TOOL, START_APP_TOOL,
+  STOP_APP_TOOL, UPDATE_TOOL_NAME, WORKFLOW_TOOL_NAMES,
+} from '@agenthix/core'
 import { ALL_RUNTIME_TOOL_NAMES } from './runtimeTools'
 
 // ── Tool registry (by domain) ─────────────────────────────────────────────────
@@ -31,7 +35,6 @@ export const SYSTEM_MCP_TOOLS = {
   PLATFORM: {
     PING:               'ping',
     GET_SITE_INFO:      'get_site_info',
-    START_PREVIEW:      'start_preview',
     STOP_PROCESSES:     'stop_processes',
   },
 
@@ -190,6 +193,19 @@ export const SYSTEM_MCP_TOOLS = {
     UPDATE_FROM_MAIN: UPDATE_TOOL_NAME,
   },
 
+  /**
+   * A live preview's app tools (live preview spec section 4, *The app*), declared in core (livePreview/appTools.ts).
+   * Given only to a run on a branch (or `main`) with a live preview, so in no access tier below: starting the live
+   * preview is the permission for them, with no *Allow*.
+   */
+  APPS: {
+    START_APP: START_APP_TOOL,
+    STOP_APP: STOP_APP_TOOL,
+    LIST_APPS: LIST_APPS_TOOL,
+    RELOAD_VIEW: RELOAD_VIEW_TOOL,
+    SET_AUTO_RELOAD: SET_AUTO_RELOAD_TOOL,
+  },
+
 } as const
 
 // ── Access tier views ─────────────────────────────────────────────────────────
@@ -198,7 +214,6 @@ export const SYSTEM_MCP_TOOLS = {
 export const ALWAYS_INJECTED_MCP_TOOLS: string[] = [
   SYSTEM_MCP_TOOLS.PLATFORM.PING,
   SYSTEM_MCP_TOOLS.PLATFORM.GET_SITE_INFO,
-  SYSTEM_MCP_TOOLS.PLATFORM.START_PREVIEW,
   // Stops only the calling conversation's own processes, which a sandboxed
   // command cannot signal (served by the site itself, siteTools.ts there)
   SYSTEM_MCP_TOOLS.PLATFORM.STOP_PROCESSES,
@@ -294,3 +309,4 @@ export type SystemMcpTool =
   | typeof SYSTEM_MCP_TOOLS.KNOWLEDGE[keyof typeof SYSTEM_MCP_TOOLS.KNOWLEDGE]
   | typeof SYSTEM_MCP_TOOLS.PLACE[keyof typeof SYSTEM_MCP_TOOLS.PLACE]
   | typeof SYSTEM_MCP_TOOLS.CODE[keyof typeof SYSTEM_MCP_TOOLS.CODE]
+  | typeof SYSTEM_MCP_TOOLS.APPS[keyof typeof SYSTEM_MCP_TOOLS.APPS]

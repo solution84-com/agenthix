@@ -282,7 +282,7 @@ describe('the tools the lead is given @SC-958', () => {
   it("are the quick tools the agent may use in the place, without the ones that start work or the data path's", async () => {
     const names = (await adapter.toolsFor(capability)).map(t => t.name)
     expect(names).toEqual(expect.arrayContaining(['list_tasks', 'get_task_details', 'create_task', 'add_comment']))
-    for (const absent of ['set_task_schedule', 'create_routine', 'update_routine', 'remember', 'forget', 'recall', 'start_preview', 'tick_subtask', 'set_result']) {
+    for (const absent of ['set_task_schedule', 'create_routine', 'update_routine', 'remember', 'forget', 'recall', 'start_app', 'tick_subtask', 'set_result']) {
       expect(names).not.toContain(absent)
     }
   })

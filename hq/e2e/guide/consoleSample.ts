@@ -9,7 +9,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { AuthenticatorView, CloudView, FleetActivityPage, HostFigures, HostResults, RemoteAccessView, ScheduledChangeNotice } from '@agenthix/core'
+import type { AuthenticatorView, CloudView, FleetActivityPage, HostFigures, HostResults, RemoteAccessView, ScheduledChangeNotice, SiteLivePreviewsView } from '@agenthix/core'
 import type { ConsoleStatus, FleetAdmin, SessionUser } from '../../../console-web/src/api/session'
 import type { OpenedJoin, JoinView } from '../../../console-web/src/pages/add/joinWords'
 import type { DisconnectedMachine, FleetHost, FleetResponse } from '../../../console-web/src/pages/dashboard/types'
@@ -153,6 +153,31 @@ export const ACTIVITY: FleetActivityPage = {
     { id: 'sample-activity-1', at: ago(40 * DAY), by: null, action: 'site.registered', subject: 'office-server' },
     { id: 'sample-activity-0', at: ago(60 * DAY), by: { id: SAM.id, name: SAM.name }, action: 'fleetAdmin.granted', subject: SAM.name },
   ],
+}
+
+/**
+ * Each machine's *Live previews* as HQ lists them: HQ's own site allows them (its default) with none open; office-server
+ * allows six at once and has two open, Sam's of the About page and Priya's of the case studies.
+ */
+export function livePreviewsOf(fp: string): SiteLivePreviewsView {
+  if (fp !== OFFICE_SERVER) {
+    return { executionSiteId: 'sample-site-hq', allowed: true, limit: 2, idleMinutes: 120, livePreviews: [], capacity: { open: 0, limit: 2, memoryPercent: 28, cpuPercent: 9 }, problems: [] }
+  }
+  return {
+    executionSiteId: 'sample-site-office', allowed: true, limit: 6, idleMinutes: 120,
+    livePreviews: [
+      {
+        livePreviewId: 'sample-live-preview', projectName: 'Website relaunch', workspaceName: 'website-code', branch: 'about-page-intro',
+        person: { id: SAM.id, name: SAM.name }, state: 'running', openedAt: ago(25 * MINUTE), lastUsedAt: ago(MINUTE),
+      },
+      {
+        livePreviewId: 'sample-live-preview-2', projectName: 'Website relaunch', workspaceName: 'website-code', branch: 'case-study-layout',
+        person: { id: 'sample-user-priya', name: 'Priya Nair' }, state: 'running', openedAt: ago(3 * HOUR), lastUsedAt: ago(40 * MINUTE),
+      },
+    ],
+    capacity: { open: 2, limit: 6, memoryPercent: 41, cpuPercent: 23 },
+    problems: [],
+  }
 }
 
 /** The nights a machine lists, the newest first: a nightly backup at about 02:00 on each of the last seven nights. */

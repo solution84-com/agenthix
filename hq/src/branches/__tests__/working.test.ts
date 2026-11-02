@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { __resetStartingForTests, doneStarting, isStarting, markStarting } from '../working'
 
-describe('a branch a run is starting on', () => {
+describe('a branch a run is starting on @SC-1676', () => {
   beforeEach(() => __resetStartingForTests())
 
   it('is starting until every dispatch that marked it is done', () => {

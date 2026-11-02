@@ -1,6 +1,7 @@
 /**
  * Every workspace in the places a person may reach, for the Projects screen's Workspaces view (every screen
- * reviewed spec §3): one row per workspace with its place, repository, site and whether a preview is running.
+ * reviewed spec §3): one row per workspace with its place, repository, site and whether a live preview of
+ * it (on any branch, or `main`) is running.
  * The listing is `getMyStorage`'s, so who may see what is as it was; a site that does not answer is named beside
  * the rows, never mistaken for an empty place.
  */
@@ -29,8 +30,8 @@ export const getWorkspacesAcrossPlacesQuery = async (_args: unknown, context: { 
   // Adding a workspace is working in the place (adr-0102): a Viewer reads and adds nothing.
   const mayWork = new Set(roles.filter(r => r.role !== 'VIEWER').map(r => r.projectId))
   const ids = groups.flatMap(g => g.workspaces.map(w => w.id))
-  const previews = await prisma.previewSession.findMany({
-    where: { workspaceId: { in: ids }, status: 'running', expiresAt: { gt: new Date() } },
+  const previews = await prisma.livePreview.findMany({
+    where: { workspaceId: { in: ids }, state: 'RUNNING' },
     select: { workspaceId: true },
   })
   const running = new Set(previews.map(p => p.workspaceId))

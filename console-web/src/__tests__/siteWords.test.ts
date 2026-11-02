@@ -68,7 +68,7 @@ describe('how long ago', () => {
   })
 })
 
-describe('the disk branch copies use', () => {
+describe('the disk branch copies use @SC-1755', () => {
   const disk = { freeBytes: 200 * GB, totalBytes: 500 * GB }
   it('is shown against the machine\'s disk', () => {
     expect(copiesWords(disk, 50 * GB)).toBe('50 GB of 500 GB · 10% of the disk')

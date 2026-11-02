@@ -42,7 +42,6 @@ import { setupSpec } from "./src/setup/setup.wasp";
 import { onboardingSpec } from "./src/onboarding/onboarding.wasp";
 import { orgSpec } from "./src/org/org.wasp";
 import { pinsSpec } from "./src/pins/pins.wasp";
-import { previewSpec } from "./src/preview/preview.wasp";
 import { productsSpec } from "./src/products/products.wasp";
 import { projectsSpec } from "./src/projects/projects.wasp";
 import { providersSpec } from "./src/providers/providers.wasp";
@@ -53,6 +52,7 @@ import { settingsSpec } from "./src/settings/settings.wasp";
 import { sitesSpec } from "./src/sites/sites.wasp";
 import { storageSpec } from "./src/storage/storage.wasp";
 import { branchesSpec } from "./src/branches/branches.wasp";
+import { livePreviewsSpec } from "./src/livePreviews/livePreviews.wasp";
 import { workspaceViewSpec } from "./src/workspaceView/workspaceView.wasp";
 import { voiceSpec } from "./src/voice/voice.wasp";
 import { workflowsSpec } from "./src/workflows/workflows.wasp";
@@ -92,6 +92,7 @@ export default app({
     authSpec,
     billingSpec,
     branchesSpec,
+    livePreviewsSpec,
     workspaceViewSpec,
     automationSpec,
     chatSpec,
@@ -117,7 +118,6 @@ export default app({
     orgSpec,
     adminSpec,
     pinsSpec,
-    previewSpec,
     productsSpec,
     projectsSpec,
     providersSpec,

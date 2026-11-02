@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { isGitEmail, isGitPersonName } from '@agenthix/core'
 import { gitName, gitPersonOf, hqHost } from '../gitPeople'
 
-describe('who a commit names', () => {
+describe('who a commit names @SC-1671', () => {
   it("takes HQ's host name from the address it serves at", () => {
     expect(hqHost('https://hq.fernhill.example:8443')).toBe('hq.fernhill.example')
     expect(hqHost('http://localhost:3001')).toBe('hq.invalid')

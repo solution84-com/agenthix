@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { generateKeyPair, exportJWK, calculateJwkThumbprint, type CryptoKey } from 'jose'
 import {
-  verifyRelayToken, FILE_TICKET_TOKEN_TYPE, RELAY_PASS_TOKEN_TYPE, FILE_TICKET_TTL_SECONDS, RELAY_PASS_TTL_SECONDS,
+  verifyRelayToken, APP_TICKET_TOKEN_TYPE, BUNDLE_TICKET_TOKEN_TYPE, newAppId, FILE_TICKET_TOKEN_TYPE, RELAY_PASS_TOKEN_TYPE, FILE_TICKET_TTL_SECONDS, RELAY_PASS_TTL_SECONDS,
   type JsonWebKeySet,
 } from '@agenthix/core'
 
@@ -12,7 +12,7 @@ vi.mock('../../server/identity/signingKeyService', () => ({
   getSigningKey: async () => ({ kid: keys.kid, key: keys.key }),
 }))
 
-import { signFileTicket, signRelayPass, type FileTicketInput } from '../relayTokens'
+import { signAppTicket, signBundleTicket, signFileTicket, signRelayPass, type FileTicketInput } from '../relayTokens'
 
 beforeAll(async () => {
   const pair = await generateKeyPair('RS256', { extractable: true })
@@ -159,5 +159,57 @@ describe('relay passes @SC-1522', () => {
       .toMatchObject({ refusal: 'wrong-type' })
     expect(await verifyRelayToken(ticket.token, { type: RELAY_PASS_TOKEN_TYPE, keys: jwks(), audience: 'site-1', nowMs: Date.now() }))
       .toMatchObject({ refusal: 'wrong-type' })
+  })
+})
+
+describe('app tickets @SC-1705', () => {
+  const app = {
+    site: 'site-1', relay: 'relay-1', person: 'u1', livePreviewId: 'lp-1', workspaceId: 'w1', appId: newAppId(),
+    entry: 'frame' as const, cookie: 'frame' as const, siteTicket: 'st',
+  }
+
+  it('signs one the relay accepts at entry, for the site that serves the app, entered within a minute', async () => {
+    const a = await signAppTicket(app)
+    const b = await signAppTicket(app)
+    expect(a.jti).not.toBe(b.jti)
+    const verdict = await verifyRelayToken(a.token, {
+      type: APP_TICKET_TOKEN_TYPE, keys: jwks(), audience: 'site-1', relay: 'relay-1', entering: true, nowMs: Date.now(),
+    })
+    expect(verdict).toMatchObject({ ok: true, claims: { jti: a.jti, livePreviewId: 'lp-1', siteTicket: 'st', enterBy: a.enterBy } })
+    if (verdict.ok) expect(a.enterBy - verdict.claims.iat).toBe(60)
+    const elsewhere = await verifyRelayToken(a.token, { type: APP_TICKET_TOKEN_TYPE, keys: jwks(), audience: 'site-1', relay: 'relay-2', nowMs: Date.now() })
+    expect(elsewhere.ok).toBe(false)
+  })
+
+  it('refuses to sign one without the site\'s own ticket, an app\'s id, or with entry and cookie apart', async () => {
+    await expect(signAppTicket({ ...app, siteTicket: '' })).rejects.toThrow(/siteTicket/)
+    await expect(signAppTicket({ ...app, appId: 'web' })).rejects.toThrow(/app/)
+    await expect(signAppTicket({ ...app, entry: 'tab' })).rejects.toThrow(/agree/)
+  })
+})
+
+describe('bundle tickets @SC-1715', () => {
+  const bundle = {
+    relay: 'relay-1', person: 'u1', bundleId: 'b1', direction: 'toPreview' as const, workspaceId: 'w1', branch: 'add-login',
+    from: { site: 'site-a' }, to: { site: 'site-b' }, sha256: 'c'.repeat(64), size: 12,
+  }
+
+  it('signs one each end accepts as itself, with a fresh id each time', async () => {
+    const a = await signBundleTicket(bundle)
+    const b = await signBundleTicket(bundle)
+    expect(a.jti).not.toBe(b.jti)
+    expect(a.jti.length).toBeGreaterThanOrEqual(22)
+    const from = await verifyRelayToken(a.token, { type: BUNDLE_TICKET_TOKEN_TYPE, keys: jwks(), audience: 'site-a', nowMs: Date.now(), side: 'from', relay: 'relay-1' })
+    expect(from).toMatchObject({ ok: true, claims: { jti: a.jti, sha256: bundle.sha256, size: 12 } })
+    const to = await verifyRelayToken(a.token, { type: BUNDLE_TICKET_TOKEN_TYPE, keys: jwks(), audience: 'site-b', nowMs: Date.now(), side: 'to', relay: 'relay-1' })
+    expect(to.ok).toBe(true)
+    const wrongEnd = await verifyRelayToken(a.token, { type: BUNDLE_TICKET_TOKEN_TYPE, keys: jwks(), audience: 'site-b', nowMs: Date.now(), side: 'from', relay: 'relay-1' })
+    expect(wrongEnd.ok).toBe(false)
+  })
+
+  it('refuses to sign one without a hash, or from a site to itself', async () => {
+    await expect(signBundleTicket({ ...bundle, sha256: 'x' })).rejects.toThrow(/hash/)
+    await expect(signBundleTicket({ ...bundle, size: 0 })).rejects.toThrow(/hash/)
+    await expect(signBundleTicket({ ...bundle, to: { site: 'site-a' } })).rejects.toThrow(/another/)
   })
 })

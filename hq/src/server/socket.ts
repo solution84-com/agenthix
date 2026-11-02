@@ -44,6 +44,7 @@ import type {
 import type {
   ManifestPendingApprovalClientEvent, ManifestRejectedClientEvent, RunStatusClientEvent, RunStreamDeltaClientEvent,
   TaskCommentAddedClientEvent, TaskSessionStartedClientEvent, TaskUpdatedClientEvent, WorkspaceBranchEvent, WorkspaceMainEvent,
+  WorkspaceLivePreviewEvent, WorkspaceLivePreviewReloadEvent,
 } from '@agenthix/core'
 
 const logger = new Logger('socket')
@@ -87,6 +88,8 @@ interface ServerToClientEvents {
   // A workspace's room (branches/workspaceEvents.ts): WORKSPACE_SOCKET's names.
   'workspace:branch': (data: WorkspaceBranchEvent) => void
   'workspace:main':   (data: WorkspaceMainEvent) => void
+  'workspace:livePreview':       (data: WorkspaceLivePreviewEvent) => void
+  'workspace:livePreviewReload': (data: WorkspaceLivePreviewReloadEvent) => void
 }
 
 interface ClientToServerEvents {

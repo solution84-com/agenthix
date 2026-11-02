@@ -13,8 +13,6 @@ export const data = {
   useFolder: vi.fn(),
   useArtefacts: vi.fn(),
   useWorkspaces: vi.fn(),
-  usePlacePreviews: vi.fn(() => new Map<string, string>()),
-  previewAddress: (id: string) => `/open-preview/${id}`,
 }
 
 /** hq's *open* action, and the relay a ready answer points at. */

@@ -12,7 +12,7 @@ const frame = (over: Record<string, unknown> = {}) => ({
   ...over,
 })
 
-describe("a site's branch.back frame", () => {
+describe("a site's branch.back frame @SC-1725", () => {
   it('reads the fields hq uses', () => {
     expect(parseBranchBack(frame())).toEqual({
       workspace: { ownerType: 'project', ownerId: 'p1', workspaceId: 'w1' },

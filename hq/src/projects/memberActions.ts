@@ -26,6 +26,7 @@ import { checkOpenTasksDestination, handOverOpenTasks } from './openTaskHandover
 import { writePerson } from '../org/teams/writeThrough'
 import { personRow } from '../org/teams/teamRoles'
 import { closeProjectConversations, declineWaitingInProject } from '../conversations/closing'
+import { appTickets } from '../relays'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -154,6 +155,8 @@ async function endMembership(projectId: string, userId: string) {
   // gets the held instruction when it next connects.
   void deliverHeldInstructionsTo(siteIds)
   void declineWaitingInProject(projectId)
+  // Their open live apps end at every relay at once (live preview spec section 6); a new stream is refused anyway.
+  appTickets.revoke({ person: userId })
   return removed
 }
 

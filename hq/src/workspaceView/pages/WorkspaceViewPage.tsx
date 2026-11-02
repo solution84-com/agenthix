@@ -5,7 +5,7 @@ import { useQuery, getWorkspace, getWorkspaceBranches } from 'wasp/client/operat
 import type { WorkspaceBranchesView } from '../../branches/views'
 import { useWorkspaces } from '../../storage/pages/filesToolData'
 import { WorkspaceViewBody } from '../components/WorkspaceViewBody'
-import { WorkspaceChangesContext, useWorkspaceLive, useOnWorkspaceChange } from '../hooks/useWorkspaceLive'
+import { WorkspaceChangesContext, WorkspaceEventContext, useWorkspaceLive, useOnWorkspaceChange } from '../hooks/useWorkspaceLive'
 import { byRecent, noteOpened, recentWorkspaces } from '../viewAddress'
 
 /**
@@ -28,7 +28,7 @@ function WorkspaceViewScreen({ workspaceId }: { workspaceId: string }) {
   const userId = me?.id ?? null
   const { data: ws, error } = useQuery(getWorkspace, { workspaceId })
   const branches = useQuery(getWorkspaceBranches, { workspaceId }, { enabled: !!ws })
-  const changes = useWorkspaceLive(workspaceId)
+  const { changes, event } = useWorkspaceLive(workspaceId)
   const owner = ws ? { ownerType: ws.ownerType as 'project' | 'user', ownerId: ws.ownerId } : { ownerType: 'user' as const, ownerId: '' }
   const { workspaces } = useWorkspaces(owner)
 
@@ -50,12 +50,14 @@ function WorkspaceViewScreen({ workspaceId }: { workspaceId: string }) {
 
   return (
     <WorkspaceChangesContext.Provider value={changes}>
+      <WorkspaceEventContext.Provider value={event}>
       <Refetch refetch={branches.refetch} />
       <WorkspaceViewBody
         workspace={{ id: ws.id, name: ws.name, ownerType: owner.ownerType, ownerId: ws.ownerId }}
         view={view} userId={userId} back={placeOf(ws)} workspaces={switcher}
         refetchBranches={() => { void branches.refetch() }}
       />
+      </WorkspaceEventContext.Provider>
     </WorkspaceChangesContext.Provider>
   )
 }

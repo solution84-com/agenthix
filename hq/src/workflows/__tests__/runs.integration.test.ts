@@ -133,6 +133,23 @@ describe('starting a run', () => {
     expect(run.steps.map((s) => s.name).sort()).toEqual(['Build', 'Upload'])
   })
 
+  it('aimed at a live preview, goes to the site it runs on and names it, recorded there', async () => {
+    const { deps, sent } = standInSite()
+    const { runId } = await startWorkflowRun({
+      place, workspace: workspace(), workflow: { name: 'deploy' }, parameters: { ref: 'main' }, starter: asPerson(member.id),
+      livePreview: { id: 'lp-1', siteId: 'preview-site' },
+    }, deps)
+    expect(sent.map(x => x.siteId)).toEqual(['preview-site'])
+    expect(sent[0].instruction.livePreview).toEqual({ livePreviewId: 'lp-1' })
+    expect(await prisma.workflowRun.findUniqueOrThrow({ where: { id: runId } })).toMatchObject({ siteId: 'preview-site' })
+  })
+
+  it('aimed at no live preview, names none', async () => {
+    const { deps, sent } = standInSite()
+    await start(asPerson(member.id), deps)
+    expect(sent[0].instruction).not.toHaveProperty('livePreview')
+  })
+
   it('masks every secret of the place, but sends no other secret in any form @SC-1293', async () => {
     const { deps, sent } = standInSite()
     await start(asPerson(member.id), deps)

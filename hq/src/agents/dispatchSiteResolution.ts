@@ -14,6 +14,7 @@ import { HttpError } from 'wasp/server'
 import { resolvePrimaryLocation, type SessionLocationFields } from '../storage/primaryLocationService'
 import { resolveExecutionSiteId } from '../server/identity/capabilityService'
 import { taskRunOwner } from '../projects/personalProject'
+import { previewSiteOfSession, previewSiteOfTask } from '../livePreviews/runs'
 
 /**
  * Resolves the logical siteId a TASK's runs dispatch to, for callers that
@@ -32,6 +33,9 @@ export async function resolveSiteIdForTask(taskId: string): Promise<string> {
   // person's own storage, any other in its project's, and lands on the site holding that.
   const owner = await taskRunOwner(taskId)
   if (!owner) throw new HttpError(400, `Task ${taskId} not found`)
+  // While the task's branch has a live preview on another site, its runs are there (livePreviews/runs.ts).
+  const preview = await previewSiteOfTask(taskId)
+  if (preview) return preview
   return resolveExecutionSiteId({ ownerType: owner.storage.ownerType, ownerId: owner.storage.ownerId, taskId })
 }
 
@@ -40,6 +44,8 @@ export async function resolveSiteIdForTask(taskId: string): Promise<string> {
  * cannot disagree with the mint: from the session row's own primary location,
  * which is what `resolveCapabilityClaims` is handed at dispatch.
  */
-export async function resolveSiteIdForSession(session: SessionLocationFields): Promise<string> {
+export async function resolveSiteIdForSession(session: SessionLocationFields & { id?: string }): Promise<string> {
+  const preview = session.taskId ? await previewSiteOfTask(session.taskId) : session.id ? await previewSiteOfSession(session.id) : null
+  if (preview) return preview
   return resolveExecutionSiteId(resolvePrimaryLocation(session))
 }

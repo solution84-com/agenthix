@@ -10,7 +10,7 @@
  * - `merge_into_main`: as the person the work is for, and only when they may merge here (a Member or Admin, or the
  *   owner of their own storage). The tool's description says to use it only when the person asked.
  */
-import { BRANCH_WORK_METHODS, isCommitMessage, type CommitToolResult, type MergeToolResult, type UpdateToolResult } from '@agenthix/core'
+import { BRANCH_WORK_METHODS, LIVE_PREVIEW_METHODS, isCommitMessage, type CommitToolResult, type MergeToolResult, type UpdateToolResult } from '@agenthix/core'
 import { prisma } from 'wasp/server'
 import { ControlPlaneError, type CallerContext } from '../server/controlplane/types'
 import { personOfRun } from '../server/controlplane/runOnBehalfOf'
@@ -18,14 +18,27 @@ import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
 import { branchOfSession, liveCopyOf, refOfBranch, type BranchWithCopies } from './branchRows'
 import { gitPersonForAgent, gitPersonForUser } from './gitPeople'
 import { siteCall } from './siteCalls'
+import { locateWorkspace } from './workspaceLocation'
 import { emitBranchChange } from './workspaceEvents'
 import { askToMerge, NoOneToAsk } from './mergeCard'
 import { mainName } from './merge'
 import { clashesLeftNote, updateNote } from './updateWords'
 import { asBranchTool } from './refusals'
 import { whoseOf } from './whose'
+import { livePreviewOfSession, runsGoToPreviewSite } from '../livePreviews/runs'
+import { bringBack } from '../livePreviews/back'
+import { askSite } from '../livePreviews/siteAsk'
+import { refusalWords } from '../livePreviews/words'
 
-type CallingBranch = { branch: BranchWithCopies; copyId: string; siteId: string; agentId: string; runId: string; person: string | null }
+/**
+ * `siteId` is the site the run is on, where its copy is; `homeSiteId` the site holding the workspace. They differ
+ * only while the branch's live preview runs on another site: the run then works in the live preview's own copy
+ * (`livePreviewId`), and its commits come back by bundle (livePreviews/back.ts).
+ */
+type CallingBranch = {
+  branch: BranchWithCopies; copyId: string; siteId: string; homeSiteId: string; livePreviewId: string | null
+  agentId: string; runId: string; person: string | null
+}
 
 async function callingBranch(ctx: CallerContext, runId: unknown, tool: string): Promise<CallingBranch> {
   if (ctx.kind !== 'run') throw new ControlPlaneError('forbidden', `${tool} is for an agent's run`)
@@ -38,20 +51,29 @@ async function callingBranch(ctx: CallerContext, runId: unknown, tool: string): 
     throw new ControlPlaneError('forbidden', `${tool} names a run that is not this one. Nothing was changed.`)
   }
   if (run.status !== 'RUNNING' && run.status !== 'PENDING') throw new ControlPlaneError('invalid', 'This run has already ended. Nothing was changed.')
+  const onNone = new ControlPlaneError('invalid', `${tool} works only in a run on a code workspace's branch, and this run is on none. Nothing was changed.`)
   const branch = await branchOfSession(claims.sessionId)
-  const copy = branch ? liveCopyOf(branch) : null
-  if (!branch || !copy || copy.state !== 'READY') {
-    throw new ControlPlaneError('invalid', `${tool} works only in a run on a code workspace's branch, and this run is on none. Nothing was changed.`)
+  if (!branch) throw onNone
+  const live = liveCopyOf(branch)
+  const copy = live?.state === 'READY' ? live : null
+  const home = copy ? (await prisma.executionSite.findUnique({ where: { id: copy.siteId }, select: { siteId: true } }))?.siteId ?? null : null
+  // A run in a live preview's own copy on another site needs no copy on the workspace's site: a done task's is removed.
+  const homeSiteId = home ?? (await locateWorkspace(branch.workspaceId))?.logicalSiteId ?? ''
+  const common = { branch, agentId: claims.agentId, runId, person: await personOfRun(claims), homeSiteId }
+  if (copy && home === claims.siteId) return { ...common, copyId: copy.folderId, siteId: claims.siteId, livePreviewId: null }
+  const lp = await livePreviewOfSession(claims.sessionId)
+  if (runsGoToPreviewSite(lp) && lp.logicalSiteId === claims.siteId) {
+    return { ...common, copyId: lp.row.copyId, siteId: claims.siteId, livePreviewId: lp.row.id }
   }
-  const site = await prisma.executionSite.findUnique({ where: { id: copy.siteId }, select: { siteId: true } })
-  if (site?.siteId !== claims.siteId) throw new ControlPlaneError('forbidden', `${tool}: this run is not on the site its branch's copy is on. Nothing was changed.`)
-  return { branch, copyId: copy.folderId, siteId: claims.siteId, agentId: claims.agentId, runId, person: await personOfRun(claims) }
+  if (!copy) throw onNone
+  throw new ControlPlaneError('forbidden', `${tool}: this run is not on the site its branch's copy is on. Nothing was changed.`)
 }
 
 export async function commitOp(ctx: CallerContext, args: { message: string; runId?: string }): Promise<CommitToolResult> {
   const at = await callingBranch(ctx, args?.runId, 'commit')
   const message = typeof args.message === 'string' ? args.message.trim() : ''
   if (!isCommitMessage(message)) throw new ControlPlaneError('invalid', 'commit needs a message saying what changed. Nothing was committed.')
+  if (at.livePreviewId) return commitInPreview(at, message)
   return asBranchTool(async () => {
     const result = await siteCall(at.siteId, BRANCH_WORK_METHODS.commit, {
       workspace: refOfBranch(at.branch), copyId: at.copyId, branch: at.branch.name, message,
@@ -68,6 +90,18 @@ export async function commitOp(ctx: CallerContext, args: { message: string; runI
   })
 }
 
+/** `commit` in a live preview's own copy on another site; its commits are then brought back by bundle. */
+async function commitInPreview(at: CallingBranch, message: string): Promise<CommitToolResult> {
+  const answer = await askSite(at.siteId, LIVE_PREVIEW_METHODS.commit, {
+    livePreviewId: at.livePreviewId!, message, author: await gitPersonForAgent(at.agentId),
+    onBehalfOf: at.person ? await gitPersonForUser(at.person) : null, runId: at.runId,
+  }).catch(() => { throw new ControlPlaneError('unavailable', 'The site this run is on is not answering. Nothing was committed.') })
+  if (!answer.ok) throw new ControlPlaneError('conflict', refusalWords(answer.refusal, 'The site this run is on', at.branch.name))
+  if (!answer.result.committed) return { committed: false, reason: 'nothing_to_commit' }
+  void bringBack(at.livePreviewId!).catch(() => {})
+  return { committed: true, commit: answer.result.commit, branch: at.branch.name, files: answer.result.files }
+}
+
 export async function updateFromMainOp(ctx: CallerContext, args: { runId?: string }): Promise<UpdateToolResult> {
   const at = await callingBranch(ctx, args?.runId, 'update_from_main')
   return asBranchTool(async () => {
@@ -77,7 +111,7 @@ export async function updateFromMainOp(ctx: CallerContext, args: { runId?: strin
       onBehalfOf: at.person ? await gitPersonForUser(at.person) : null,
       runId: at.runId,
     })
-    const words = { branch: at.branch.name, main: await mainName(at.siteId, refOfBranch(at.branch)) }
+    const words = { branch: at.branch.name, main: await mainName(at.homeSiteId, refOfBranch(at.branch)) }
     switch (result.outcome) {
       case 'updated':
         emitBranchChange(at.branch, 'commits')
@@ -111,7 +145,9 @@ export async function mergeIntoMainOp(ctx: CallerContext, args: { summary?: stri
   if (!isCommitMessage(message)) throw new ControlPlaneError('invalid', 'merge_into_main needs a one-line summary. Nothing was merged.')
   return asBranchTool(async () => {
     try {
-      return await askToMerge({ branch: at.branch, logicalSiteId: at.siteId, agentId: at.agentId, personId: person, message })
+      // A live preview on another site holds commits that may not be back yet: they come back first.
+      if (at.livePreviewId) await bringBack(at.livePreviewId)
+      return await askToMerge({ branch: at.branch, logicalSiteId: at.homeSiteId, agentId: at.agentId, personId: person, message })
     } catch (err) {
       if (err instanceof NoOneToAsk) throw new ControlPlaneError('invalid', err.message)
       throw err

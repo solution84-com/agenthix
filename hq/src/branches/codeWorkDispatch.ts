@@ -16,9 +16,9 @@ import {
   type BranchListResult, type RunCodeWork, type RunOtherBranch,
 } from '@agenthix/core'
 import { siteCall } from './siteCalls'
-import { locateWorkspace } from './workspaceLocation'
+import { locateWorkspace, type LocatedWorkspace } from './workspaceLocation'
 import {
-  liveCopyOf, lockWork, lockWorkspaceNames, mergeBaseOf, openBranchOfWork, openBranches, type WorkOf,
+  liveCopyOf, lockWork, lockWorkspaceNames, mergeBaseOf, openBranchById, openBranchOfWork, openBranches, workOfBranch, type WorkOf,
 } from './branchRows'
 import { agentsWorking, doneStarting, markStarting } from './working'
 import { emitBranchChange } from './workspaceEvents'
@@ -54,6 +54,9 @@ export async function prepareCodeWork(ask: CodeWorkAsk): Promise<PreparedCodeWor
   const list = await branchList(ws.logicalSiteId, ws.ref)
   if (!list) return null
   if (ws.logicalSiteId !== ask.runSiteId) {
+    // A branch whose live preview runs on another site works there, in the live preview's own copy.
+    const there = await previewCodeWork(ask, ws, list)
+    if (there) return there
     throw new HttpError(409, `This work's workspace ${ws.name} is on another site than the one its run goes to, so it cannot work on its branch there. Nothing was changed.`)
   }
 
@@ -79,6 +82,28 @@ export async function prepareCodeWork(ask: CodeWorkAsk): Promise<PreparedCodeWor
   const release = once(() => doneStarting(made.branchId))
   try {
     return { codeWork: await codeWorkFacts(ws.logicalSiteId, ws.ref, list, made, ask), branchId: made.branchId, release }
+  } catch (err) {
+    release()
+    throw err
+  }
+}
+
+/** The run goes to its branch's live preview on another site: no copy is made here, the live preview's is used. */
+async function previewCodeWork(ask: CodeWorkAsk, ws: LocatedWorkspace, list: BranchListResult): Promise<PreparedCodeWork | null> {
+  const open = await openBranchOfWork(prisma, ask.workspaceId, ask.work)
+  if (!open) return null
+  const lp = await prisma.livePreview.findFirst({
+    where: { branchId: open.id, copyKind: 'BUNDLE', state: { in: ['RUNNING', 'PAUSED'] } },
+    select: { id: true, copyId: true, executionSiteId: true },
+  })
+  const site = lp ? await prisma.executionSite.findUnique({ where: { id: lp.executionSiteId }, select: { siteId: true } }) : null
+  if (!lp || site?.siteId !== ask.runSiteId) return null
+  markStarting(open.id)
+  const release = once(() => doneStarting(open.id))
+  try {
+    const made: Made = { branchId: open.id, name: open.name, copyRowId: '', copyId: lp.copyId, isNew: false, branchExisted: true }
+    const codeWork = await codeWorkFacts(ws.logicalSiteId, ws.ref, list, made, ask)
+    return { codeWork: { ...codeWork, livePreviewId: lp.id }, branchId: open.id, release }
   } catch (err) {
     release()
     throw err
@@ -151,6 +176,38 @@ async function askSite(logicalSiteId: string, ref: RunCodeWork['workspace'], mad
   if (made.isNew) await siteCall(logicalSiteId, BRANCH_WORK_METHODS.create, { workspace: ref, copyId: made.copyId, branch: made.name })
   else await siteCall(logicalSiteId, BRANCH_WORK_METHODS.copy, { workspace: ref, copyId: made.copyId, branch: made.name })
   await prisma.branchCopy.update({ where: { id: made.copyRowId }, data: { state: 'READY' } })
+}
+
+/**
+ * A copy of an open branch on its workspace's site, made as a run makes one when it has none (`branch.copy`, in the
+ * branch's last folder there when that one is gone): for a live preview started on a branch whose copy was removed,
+ * such as a done task's. Answers the copy's folder id.
+ */
+export async function copyForBranch(ws: LocatedWorkspace, branchId: string): Promise<string> {
+  const made = await prisma.$transaction(async (tx): Promise<Made> => {
+    const open = await openBranchById(ws.ref.workspaceId, branchId)
+    const work = open ? workOfBranch(open) : null
+    if (!open || !work) throw new HttpError(404, 'That branch is not open any more. Reload to see where it stands. Nothing was changed.')
+    await lockWork(tx, work)
+    const again = await openBranchOfWork(tx, ws.ref.workspaceId, work)
+    if (!again || again.id !== open.id) throw new HttpError(404, 'That branch is not open any more. Reload to see where it stands. Nothing was changed.')
+    const live = liveCopyOf(again)
+    if (live?.state === 'READY' && live.siteId === ws.executionSiteId) return { branchId: again.id, name: again.name, copyRowId: live.id, copyId: live.folderId, isNew: false, branchExisted: true }
+    if (live?.state === 'MAKING' && Date.now() - live.createdAt.getTime() < BRANCH_WORK_TIMEOUT_MS) {
+      throw new HttpError(409, `${again.name}'s working copy is still being made on its site. Try again in a moment. Nothing was changed.`)
+    }
+    // A copy asked for long ago and never confirmed: asked to go when its site is next heard, and a fresh one made.
+    if (live?.state === 'MAKING') await tx.branchCopy.update({ where: { id: live.id }, data: { state: 'REMOVING' } })
+    const copy = await freshCopyOf(tx, again.id, ws.executionSiteId)
+    return { branchId: again.id, name: again.name, copyRowId: copy.id, copyId: copy.folderId, isNew: false, branchExisted: true }
+  })
+  try {
+    await askSite(ws.logicalSiteId, ws.ref, made)
+  } catch (err) {
+    await undo(made)
+    throw err
+  }
+  return made.copyId
 }
 
 /** The site made nothing: the copy's row goes, and a branch made for this attempt with it. */

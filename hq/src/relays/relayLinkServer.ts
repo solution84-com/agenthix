@@ -2,10 +2,10 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import type { Server as HttpServer, IncomingMessage } from 'node:http'
 import {
   RELAY_HQ_LINK_PATH, RELAY_PROTOCOL_VERSION, RELAY_PROTOCOL_VERSION_HEADER, CONTENT_PING_INTERVAL_MS,
-  checkProtocolCompatibility, protocolRefusalMessage, type RelayLinkWelcome,
+  checkProtocolCompatibility, protocolRefusalMessage, type RelayAnswer, type RelayAsk, type RelayLinkFrame, type RelayLinkWelcome,
 } from '@agenthix/core'
 import { refuseUpgrade } from '../sites/siteUpgrade'
-import { readRelayReport, type RelayLoad } from './relayReport'
+import { readAppRefusals, readRelayReportFrame, type AppRefusalCounts, type RelayLoad } from './relayReport'
 import { Logger } from '../server/utils/logger'
 
 const logger = new Logger('RelayLink')
@@ -18,7 +18,16 @@ export type RelayLinkDeps = {
   authenticate(secret: string): Promise<{ relayId: string } | null>
   recordSeen(relayId: string): Promise<void>
   recordReport(relayId: string, load: RelayLoad): Promise<void>
+  /** Since relay protocol 1.1: what the relay saw of a bundle it carried (`relay.bundleReport`), unread. */
+  bundleReport?(relayId: string, frame: Record<string, unknown>): void
+  /** Whether an app ticket still stands (`relay.ask`, relay protocol 1.1); absent: none does. */
+  answerAsk?(relayId: string, ask: Omit<RelayAsk, 'type' | 'version'>): Promise<boolean>
+  /** The refusals a report counted for each app. */
+  onAppRefusals?(relayId: string, counts: AppRefusalCounts): void
 }
+
+const askId = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(v)
+const askText = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 512
 
 /** One live link per relay: a relay that dials again replaces its old link. */
 export class RelayLinks {
@@ -36,6 +45,20 @@ export class RelayLinks {
 
   isConnected(relayId: string): boolean {
     return this.links.has(relayId)
+  }
+
+  /** One frame to a connected relay; false when it holds no link. */
+  send(relayId: string, frame: object): boolean {
+    const ws = this.links.get(relayId)
+    if (!ws || ws.readyState !== ws.OPEN) return false
+    ws.send(JSON.stringify(frame))
+    return true
+  }
+
+  /** A frame to every relay connected now: what one relay must stop carrying, any of them might carry. */
+  broadcast(frame: RelayLinkFrame): void {
+    const text = JSON.stringify(frame)
+    for (const ws of this.links.values()) if (ws.readyState === ws.OPEN) ws.send(text)
   }
 }
 
@@ -97,14 +120,25 @@ export function attachRelayLink(server: HttpServer, deps: RelayLinkDeps, links: 
     ws.on('pong', () => { awaitingPong = false })
 
     ws.on('message', (data, isBinary) => {
-      // Nothing on the link is binary; a frame that is not a report is dropped, and its content is never logged.
+      // Nothing on the link is binary; a frame hq does not read is dropped, and its content is never logged.
       if (isBinary) return
-      const load = readRelayReport(data.toString())
+      let frame: unknown
+      try {
+        frame = JSON.parse(data.toString())
+      } catch {
+        frame = null
+      }
+      const f = (typeof frame === 'object' && frame !== null && !Array.isArray(frame) ? frame : {}) as Record<string, unknown>
+      if (f.type === 'relay.bundleReport') return deps.bundleReport?.(relayId, f)
+      if (f.type === 'relay.ask') return onAsk(ws, relayId, version, f)
+      const load = readRelayReportFrame(frame)
       if (!load) {
-        logger.warn(`relay ${relayId}: dropped a frame that is not a report`)
+        logger.warn(`relay ${relayId}: dropped a frame it does not read`)
         return
       }
       void deps.recordReport(relayId, load).catch(err => logger.error(`could not record relay ${relayId}'s report:`, err))
+      const refusals = readAppRefusals(frame)
+      if (refusals.length) deps.onAppRefusals?.(relayId, refusals)
     })
 
     ws.on('close', () => {
@@ -112,6 +146,21 @@ export function attachRelayLink(server: HttpServer, deps: RelayLinkDeps, links: 
       links.remove(relayId, ws)
     })
     ws.on('error', err => logger.warn(`relay ${relayId}:`, err.message))
+  }
+
+  /** hq's answer to one ask: no, unless every field reads and hq says the ticket stands. */
+  function onAsk(ws: WebSocket, relayId: string, version: string, f: Record<string, unknown>): void {
+    if (!askId(f.askId)) return
+    const send = (stands: boolean) => {
+      const answer: RelayAnswer = { type: 'relay.answer', version, askId: f.askId as string, stands }
+      if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(answer))
+    }
+    if (!deps.answerAsk || !askText(f.ticketId) || !askText(f.person) || !askText(f.appId) || !askText(f.livePreviewId)) return send(false)
+    deps.answerAsk(relayId, { askId: f.askId, ticketId: f.ticketId, person: f.person, appId: f.appId, livePreviewId: f.livePreviewId })
+      .then(send, err => {
+        logger.error(`could not answer relay ${relayId}'s ask:`, err)
+        send(false)
+      })
   }
 
   return links

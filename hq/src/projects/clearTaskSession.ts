@@ -2,7 +2,6 @@ import { type ClearTaskSession } from 'wasp/server/operations'
 import { HttpError } from 'wasp/server'
 import * as dispatchService from '../agents/dispatchService'
 import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
-import { expirePreviewsForSessions } from '../preview/previewRegistry'
 import { rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
 import { requireTaskAccess } from './resourceEntitlement'
 
@@ -25,10 +24,5 @@ export const clearTaskSession: ClearTaskSession<{ taskId: string }, void> = asyn
   } catch (err) {
     rethrowSiteUnreachableAsHttp(err)
   }
-  // Read before the delete, because the preview rows are found by the session
-  // ids and nothing cascades to them: `PreviewSession.sessionId` carries no
-  // relation, so a deleted session leaves its previews resolving.
-  const cleared = await context.entities.AgentSession.findMany({ where: { taskId }, select: { id: true } })
-  await expirePreviewsForSessions(cleared.map((s: { id: string }) => s.id))
   await context.entities.AgentSession.deleteMany({ where: { taskId } })
 }

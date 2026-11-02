@@ -23,18 +23,13 @@ describe('archiveTaskSessionOnHq — R-059', () => {
     const where = await agentInProject()
     const task = await addTask(where)
     const session = await createSession({ agentId: where.agent.id, userId: where.person.id, sessionType: 'task', taskId: task.id, status })
-    await prisma.previewSession.create({
-      data: { token: `tok-${session.id}`, agentId: where.agent.id, sessionId: session.id, siteId: 'site-1', previewId: 'p', command: 'npm run dev', status: 'running', expiresAt: new Date(Date.now() + 3_600_000) },
-    })
     return { task, session }
   }
-  const previewOf = async (sessionId: string) => (await prisma.previewSession.findFirstOrThrow({ where: { sessionId } })).status
 
-  it("archives hq's copy of the task's session and ends its previews, without asking any site", async () => {
+  it("archives hq's copy of the task's session, without asking any site", async () => {
     const { task, session } = await taskWithSession()
     await archiveTaskSessionOnHq(task.id)
     expect((await prisma.agentSession.findUniqueOrThrow({ where: { id: session.id } })).status).toBe('ARCHIVED')
-    expect(await previewOf(session.id)).toBe('stopping')
     expect(siteStore.archiveSession).not.toHaveBeenCalled()
   })
 
@@ -43,19 +38,6 @@ describe('archiveTaskSessionOnHq — R-059', () => {
     await expect(archiveTaskSessionOnHq((await addTask(where)).id)).resolves.toBeUndefined()
     const { task, session } = await taskWithSession('ARCHIVED')
     await archiveTaskSessionOnHq(task.id)
-    expect(await previewOf(session.id)).toBe('running')
-  })
-
-  it('a preview that will not end does not undo the archive or throw', async () => {
-    const { task, session } = await taskWithSession()
-    const previews = vi.spyOn(prisma.previewSession, 'findMany').mockRejectedValueOnce(new Error('registry down'))
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    try {
-      await expect(archiveTaskSessionOnHq(task.id)).resolves.toBeUndefined()
-    } finally {
-      previews.mockRestore()
-      warn.mockRestore()
-    }
     expect((await prisma.agentSession.findUniqueOrThrow({ where: { id: session.id } })).status).toBe('ARCHIVED')
   })
 })

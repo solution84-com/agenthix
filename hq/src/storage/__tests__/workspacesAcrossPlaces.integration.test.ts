@@ -66,12 +66,12 @@ describe('the Workspaces view @SC-657', () => {
     expect(view.unanswered.map(s => s.label)).toEqual(['Build server'])
   })
 
-  it('marks a workspace whose preview is running', async () => {
+  it('marks a workspace with a live preview running', async () => {
     const me = await createUser()
     h.listAllWorkspaces.mockResolvedValue([workspace('w1', 'scratch', 'user', me.id), workspace('w2', 'other', 'user', me.id)])
-    const live = { token: 't1', agentId: 'a', siteId: 'site-local', previewId: 'p1', command: 'x', ownerType: 'user', ownerId: me.id, workspaceId: 'w1' } as const
-    await prisma.previewSession.create({ data: { ...live, status: 'running', expiresAt: new Date(Date.now() + 60_000) } })
-    await prisma.previewSession.create({ data: { ...live, token: 't2', workspaceId: 'w2', status: 'running', expiresAt: new Date(Date.now() - 60_000) } })
+    const live = { executionSiteId: 'site-local', ownerType: 'user', ownerId: me.id, branch: 'main', onMain: true, copyKind: 'MAIN', userId: me.id } as const
+    await prisma.livePreview.create({ data: { ...live, workspaceId: 'w1', copyId: 'c1', state: 'RUNNING' } })
+    await prisma.livePreview.create({ data: { ...live, workspaceId: 'w2', copyId: 'c2', state: 'STOPPED' } })
 
     const view = await getWorkspacesAcrossPlacesQuery(undefined, ctx(me))
 

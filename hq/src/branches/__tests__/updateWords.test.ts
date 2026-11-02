@@ -3,7 +3,7 @@ import { clashesLeftNote, updateNote } from '../updateWords'
 
 const w = { branch: 'add-login-page', main: 'main' }
 
-describe('what the agent is told after update_from_main', () => {
+describe('what the agent is told after update_from_main @SC-1672', () => {
   it('says what happened and the one thing to do next', () => {
     expect(updateNote('updated', w)).toContain('main is merged into add-login-page')
     expect(updateNote('up_to_date', w)).toContain('Nothing was changed.')

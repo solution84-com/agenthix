@@ -42,7 +42,9 @@ export function describeRunTask(capability: Pick<TurnCapability, 'home'>): strin
     'Run, with what they asked for as `brief` — everything the run needs, since it sees nothing of this ' +
     'conversation. Leave `taskId` out. It returns at once; the run goes on in the background and its result comes ' +
     'back here when it ends: do not wait for it. When you start it, say in one short line, in the first person and ' +
-    'in the same step as the call, what you are doing.'
+    'in the same step as the call, what you are doing. Use it for anything the task\'s own work does, whatever the ' +
+    'task\'s state, a done task too: changing its code, or starting, changing or reloading its app in the live ' +
+    'preview, since its run works on the task\'s branch and has the app tools.'
 }
 
 export async function runTaskCall(capability: TurnCapability, raw: unknown): Promise<ToolCallOutcome> {

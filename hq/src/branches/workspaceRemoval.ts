@@ -61,6 +61,8 @@ async function hasGit(logicalSiteId: string, ref: WorkspaceRepoRef): Promise<boo
  * asked to go. Called by the workspace's removal after its own access check; `byUserId` is who removed it.
  */
 export async function stopBranchesOfWorkspace(workspaceId: string, byUserId: string): Promise<void> {
+  // Every live preview of it stops, `main`'s included, and its apps are forgotten.
+  await (await import('../livePreviews/branchHooks')).workspaceRemoved(workspaceId)
   const rows = await openBranches(workspaceId)
   if (rows.length === 0) return
   const ws = await locateWorkspace(workspaceId)

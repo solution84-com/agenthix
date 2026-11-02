@@ -100,4 +100,3 @@ export const DEPLOY_NONE =
   'No deploy workflow is set up for this workspace yet. To add one, ask an agent in a conversation to write a workflow that deploys main; once a person approves it, Deploy… runs it from here.'
 export const TURN_GIT_ON_WORDS = (name: string) =>
   `${name} isn't a Git repository yet. Turning Git on keeps its files as they are and records them as the first version. From then on agents work on branches, and changes reach the files by merging.`
-export const PREVIEW_LATER = "Live previews aren't available yet"

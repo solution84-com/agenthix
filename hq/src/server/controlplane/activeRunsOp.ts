@@ -4,9 +4,8 @@
  * entirely from the verified capability, never from an argument: a project
  * run sees Project X's runs because its capability's `projectId` names
  * Project X, and a personal run sees only its own because a chat capability's
- * `projectId` is null (spec §1a) — the same two facts `resolveGitCredentialOp`
- * and `startPreviewOp` already trust from the same claims, never from the
- * model. There is nothing for an argument to narrow, so the schema is empty
+ * `projectId` is null (spec §1a) — facts read from the verified claims, never
+ * from the model. There is nothing for an argument to narrow, so the schema is empty
  * (toolSchemas.ts, forwardedToolSchemas.ts).
  *
  * A person's connection (adr-0090) sees what that person's own chat run would:

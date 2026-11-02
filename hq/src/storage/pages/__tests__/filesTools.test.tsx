@@ -239,14 +239,6 @@ describe('the Workspaces tool @SC-1025', () => {
     expect(screen.queryByText(/branch|last push|created by/i)).toBeNull()
   })
 
-  it('marks a workspace whose preview is running, with Open preview as its action', () => {
-    data.useWorkspaces.mockReturnValue({ workspaces, unanswered: [], isLoading: false })
-    data.usePlacePreviews.mockReturnValueOnce(new Map([['w1', 'pv1']]))
-    render(<WorkspacesTool owner={owner} siteLabel="Office Mac" />)
-    expect(screen.getByText('Preview running')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Open preview' }).getAttribute('href')).toBe('/open-preview/pv1')
-  })
-
   it('opens a workspace from anywhere on its tile, not only its name', () => {
     data.useWorkspaces.mockReturnValue({ workspaces, unanswered: [], isLoading: false })
     render(<WorkspacesTool owner={owner} siteLabel="Office Mac" />)

@@ -25,6 +25,10 @@ vi.mock('wasp/client/operations', () => ({
   mergeBranch: 'mergeBranch', restoreVersion: 'restoreVersion', turnGitOn: 'turnGitOn',
   startWorkspaceConversation: 'startWorkspaceConversation', markConversationRead: vi.fn(), listLocationFiles: 'listLocationFiles',
   getPlaceWorkflows: 'getPlaceWorkflows', startWorkflowRun: 'startWorkflowRun', startTaskConversation: 'startTaskConversation',
+  getLivePreviewPlaces: 'getLivePreviewPlaces', getLivePreview: 'getLivePreview', markLivePreviewInUse: 'markLivePreviewInUse',
+  startLivePreview: 'startLivePreview', stopLivePreview: 'stopLivePreview', resumeLivePreview: 'resumeLivePreview',
+  reloadLivePreview: 'reloadLivePreview', setLivePreviewAuto: 'setLivePreviewAuto', openLiveApp: 'openLiveApp',
+  answerLivePreviewQuestion: 'answerLivePreviewQuestion', runLivePreviewWorkflow: 'runLivePreviewWorkflow',
 }))
 vi.mock('../../conversations/components/ConversationThread', () => ({
   ConversationThread: ({ conversationId }: { conversationId: string }) => <div>thread {conversationId}</div>,
@@ -93,17 +97,16 @@ beforeEach(() => {
 })
 
 describe('the workspace view', () => {
-  it('has the back link, the workspace switcher, and Live preview kept in its place, stopped, until live previews come', () => {
+  it('has the back link, the workspace switcher, and Live preview first in the panel with its state @SC-1683', () => {
     show(codeView())
     expect(screen.getByRole('link', { name: /Fernhill Shop/ }).getAttribute('href')).toBe('/projects/SHOP?tool=workspaces')
     fireEvent.click(screen.getByRole('button', { name: 'Workspace: shop-app' }))
     expect(screen.getByRole('menuitem', { name: 'docs' }).getAttribute('href')).toBe('/workspaces/w2/view')
     const row = screen.getByTestId('live-preview-row')
     expect(row.textContent).toContain('Stopped')
-    expect(row.textContent).toContain("Live previews aren't available yet")
   })
 
-  it('opens on main, protected, with its versions, Restore and a quiet Deploy… that says none is set up', () => {
+  it('opens on main, protected, with its versions, Restore and a quiet Deploy… that says none is set up @SC-1691', () => {
     show(codeView())
     expect(screen.getByRole('button', { name: 'Branch: main' })).toBeTruthy()
     const git = screen.getByTestId('main-git')
@@ -116,7 +119,7 @@ describe('the workspace view', () => {
     expect(screen.getByTestId('main-conversation').textContent).toContain('main has no conversation of its own')
   })
 
-  it('lists main first and each branch on one line, with whose, what works on it, and how far ahead and behind', () => {
+  it('lists main first and each branch on one line, with whose, what works on it, and how far ahead and behind @SC-1684', () => {
     show(codeView())
     fireEvent.click(screen.getByRole('button', { name: 'Branch: main' }))
     const options = screen.getAllByRole('option')
@@ -134,7 +137,7 @@ describe('the workspace view', () => {
     expect(screen.queryByText(/New branch/)).toBeNull()
   })
 
-  it('choosing a branch sets the address, its Git, and its conversation on the right', async () => {
+  it('choosing a branch sets the address, its Git, and its conversation on the right @SC-1684', async () => {
     show(codeView())
     fireEvent.click(screen.getByRole('button', { name: 'Branch: main' }))
     fireEvent.click(screen.getAllByRole('option')[1].querySelector('button')!)
@@ -143,12 +146,22 @@ describe('the workspace view', () => {
     expect(await screen.findByText('thread c1')).toBeTruthy()
   })
 
-  it('a task’s branch shows the task’s thread', async () => {
+  it('a task’s branch shows the task’s thread @SC-1685', async () => {
     show(codeView(), '/workspaces/w1/view?branch=fix-cart-total&section=git')
     expect(await screen.findByText('thread tc1')).toBeTruthy()
   })
 
-  it('a change opens its diff in the middle, base against tip', () => {
+  it('the conversation follows the branch, whatever conversation the address’s c= names @SC-1685', async () => {
+    show(codeView(), '/workspaces/w1/view?branch=fix-cart-total&section=git&c=other')
+    expect(await screen.findByText('thread tc1')).toBeTruthy()
+    expect(screen.queryByText('thread other')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /^Branch: / }))
+    fireEvent.click(screen.getAllByRole('option')[1].querySelector('button')!)
+    expect(await screen.findByText('thread c1')).toBeTruthy()
+    expect(screen.queryByText('thread other')).toBeNull()
+  })
+
+  it('a change opens its diff in the middle, base against tip @SC-1687', () => {
     show(codeView(), '/workspaces/w1/view?branch=login-page&section=git')
     fireEvent.click(within(screen.getByTestId('branch-git')).getByText('App.tsx'))
     expect(screen.getByTestId('where').textContent).toContain('diff=src%2FApp.tsx')
@@ -158,7 +171,7 @@ describe('the workspace view', () => {
     expect(screen.getByText(/changes compared with main at v12/)).toBeTruthy()
   })
 
-  it('Files lists the branch’s tree with each file marked, a deleted file kept where it was', () => {
+  it('Files lists the branch’s tree with each file marked, a deleted file kept where it was @SC-1686', () => {
     show(codeView(), '/workspaces/w1/view?branch=login-page&section=files')
     fireEvent.click(screen.getByRole('button', { name: /^src/ }))
     expect(screen.getByRole('img', { name: 'modified' })).toBeTruthy()
@@ -168,7 +181,7 @@ describe('the workspace view', () => {
   })
 })
 
-describe('Merge into main', () => {
+describe('Merge into main @SC-1690', () => {
   const open = () => {
     show(codeView(), '/workspaces/w1/view?branch=login-page&section=git')
     fireEvent.click(screen.getByRole('button', { name: /Merge into main…/ }))
@@ -219,7 +232,7 @@ describe('Merge into main', () => {
 })
 
 describe('who sees what, and a workspace without Git', () => {
-  it('a Viewer sees everything and acts on nothing, with the reason', async () => {
+  it('a Viewer sees everything and acts on nothing, with the reason @SC-1692', async () => {
     show(codeView(false), '/workspaces/w1/view?branch=login-page&section=git')
     const merge = screen.getByRole('button', { name: /Merge into main…/ }) as HTMLButtonElement
     expect(merge.disabled).toBe(true)
@@ -227,13 +240,13 @@ describe('who sees what, and a workspace without Git', () => {
     expect(await screen.findByText('thread c1')).toBeTruthy()
   })
 
-  it('a Viewer on main gets no Restore and no New conversation', () => {
+  it('a Viewer on main gets no Restore and no New conversation @SC-1692', () => {
     show(codeView(false))
     expect(screen.queryByRole('button', { name: /Restore/ })).toBeNull()
     expect((screen.getByRole('button', { name: /New conversation/ }) as HTMLButtonElement).disabled).toBe(true)
   })
 
-  it('without Git: Files only, and Turn Git on where Live preview and Git would be', async () => {
+  it('without Git: Files only, and Turn Git on where Live preview and Git would be @SC-1693', async () => {
     show({ git: false, canAct: true })
     expect(screen.getByText('workspace folder')).toBeTruthy()
     expect(screen.queryByTestId('live-preview-row')).toBeNull()
@@ -251,7 +264,7 @@ describe('who sees what, and a workspace without Git', () => {
     expect(screen.getByText(/big\.bin/)).toBeTruthy()
   })
 
-  it('New conversation on main starts one in this workspace and shows it', async () => {
+  it('New conversation on main starts one in this workspace and shows it @SC-1685', async () => {
     show(codeView())
     actions.startWorkspaceConversation!.mockResolvedValue({ conversationId: 'new1' })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: /New conversation/ })) })
@@ -260,7 +273,7 @@ describe('who sees what, and a workspace without Git', () => {
   })
 })
 
-describe('narrow screens', () => {
+describe('narrow screens @SC-1689', () => {
   it('on a laptop the panel folds to its strip, and Git opens over the middle', () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1180 })
     show(codeView(), '/workspaces/w1/view?branch=login-page&section=files')

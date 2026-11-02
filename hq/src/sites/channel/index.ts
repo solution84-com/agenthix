@@ -67,6 +67,9 @@ function onSiteConnected(siteId: string): void {
   // first needed: branch work reaches the channel itself, and a static import would be a cycle.
   void import('../../branches/branchBack').then(m => m.retryCopyRemovals(siteId))
     .catch(err => logger.error(`retryCopyRemovals failed for site ${siteId}:`, err))
+  // Its live-preview setting, and its live previews brought into step with hq's (livePreviews/reconcile.ts).
+  void import('../../livePreviews/reconcile').then(m => m.onSiteConnected(siteId))
+    .catch(err => logger.error(`live previews not reconciled for site ${siteId}:`, err))
   void (async () => {
     try {
       await reconcileSite(siteId, (sid, e) => handleSiteEvent(sid, 'run.status', e))

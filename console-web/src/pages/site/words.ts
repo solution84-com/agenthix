@@ -56,6 +56,8 @@ const RULE: Record<ProtectionRule, string> = {
   'machine-ports': "the machine's ports",
   'published-ports': "other containers' ports",
   'metadata-address': 'the metadata address',
+  'private-addresses': 'private network addresses from live previews',
+  'public-address': "the machine's own public address from live previews",
 }
 
 const list = (items: string[], and = 'and') => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} ${and} ${items[items.length - 1]}`)

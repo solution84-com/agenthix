@@ -8,6 +8,7 @@ import { siteTag } from '../dashboard/dashboardWords'
 import type { FleetHost } from '../dashboard/types'
 import { describeHost, runsSite, whenIs } from '../dashboard/words'
 import { DisconnectModal } from './DisconnectModal'
+import { LivePreviewsSection } from './LivePreviewsSection'
 import { NotifySetting } from './NotifySetting'
 import { BackupsCard, HealthCard, NotifyCard, ProtectionsCard, RunsCard, SystemCard, VersionCard } from './SiteCards'
 import { useHost } from './useHost'
@@ -102,6 +103,7 @@ function SiteView({ host, now, failure, refresh }: { host: FleetHost; now: Date;
           <BackupsCard host={host} now={now} backupsTo={`${sitePath(host.fingerprint)}/backups`} />
         </FactGroup>
       )}
+      {site && host.siteRegistered && host.online && <LivePreviewsSection host={host} now={now} />}
       {f && (
         <FactGroup tag="The machine" aside="what stays with the hardware" tinted>
           <HealthCard figures={f} copiesBytes={host.agents?.copiesBytes} />
