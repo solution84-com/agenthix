@@ -11,8 +11,9 @@ Build [the spec](spec.md): every piece of code work on its own branch with its o
 full-screen workspace view and merged into a protected `main`, with a live preview of any branch beside its
 conversation.
 
-**In scope:** everything in the spec, in two phases; and fourteen small fixes found while building the earlier
-attempt, which do not depend on it (*Approach*).
+**In scope:** everything in the spec, in four phases; fourteen small fixes found while building the earlier attempt,
+which do not depend on it (*Approach*); a flag system with stages, designed and built here; and the live preview put
+behind that flag, off, until it is reshaped.
 
 **Out of scope:**
 
@@ -26,6 +27,8 @@ attempt, which do not depend on it (*Approach*).
   live previews; only the viewer frame the live app needs comes over. The rest becomes an issue at the close.
 - **Copies and the shelf, *Stop everything*, the whole-workspace lock, *Wait*/*Cancel*.** The earlier design needed
   them; branches with their own copies remove the need.
+- **Reshaping the live preview into a development environment** (a container of its own that runs the project's own
+  services): written up as a proposal in phase 4 and taken up after the first release, not in this unit.
 
 ## Approach
 
@@ -69,6 +72,17 @@ window and stale-command retry; each password attempt counted before it is check
 record after joining; e2e harness fixes; the protocol snapshot comparer; the site answering only methods it has. One
 more, release attestation and withdrawn versions, is a feature rather than a fix and is held for the owner's decision.
 
+**Phases 3 and 4 park the live preview behind a flag.** The owner's walk found the live preview works but asks too much
+of a person, and that its shape is wrong for a development environment: it runs one fixed image with no Docker inside,
+where a real project needs its own services running together. Reshaping it is a change of architecture, too large to
+finish before the first release. So the unit ships code work on branches, which the walk passed, and parks the live
+preview under a flag, off, with everything built kept. The flag system that exists (ADR-0116) has one level, on in
+development and off in production, so an experimental feature would be on for every developer and in every test run.
+Phase 3 designs and builds a flag system with stages, and phase 4 puts the live preview behind it, writes the proposal
+for its reshaping, and queues that work for after the release. The general changes phase 2 made (install scripts off
+for every agent command, sites removing only their own containers, the helper cap, the host's network rules) stay on:
+they serve every feature, and the reshaping keeps them.
+
 **How the work is carried out.** Each phase runs as lanes (`running-lanes`): one purpose, one agent, one worktree, a
 short brief, and one shared rules file. The contract lanes build against (core's protocol shapes and the schema) is
 committed on the unit's branch first, by the lead, so every lane is cut from it. Lanes run in parallel where their
@@ -76,9 +90,9 @@ files are disjoint, and merge into the unit's branch one at a time in the order 
 the integration, cross-application and container suites after each merge where the lane changed what they test, and
 writes the migrations. The owner walks each phase. **Phase 1** is walked on `feature/live-preview`; its fixes are
 folded in and its history regrouped; then `feature/live-preview-phase-2` is cut from it, and phase 1's branch is left
-as it was walked. **Phase 2** is built and walked on the phase-2 branch, which is the one that merges to `main`, once,
-with `--no-ff`, after the full regression (the unit changes core's protocol shapes, the schema and the host service's
-images), and only on the owner's say-so.
+as it was walked. **Phase 2** is built and walked on the phase-2 branch, then regrouped onto `feature/live-preview`. **Phases 3 and 4**
+are built on `feature/live-preview`, which merges to `main` once, with `--no-ff`, after phase 4 and the full regression
+(the unit changes core's protocol shapes, the schema and the host service's images), and only on the owner's say-so.
 
 ## Decision records
 
@@ -86,7 +100,7 @@ images), and only on the owner's say-so.
 |---|---|
 | **Depends on** | ADR-0167 (agents and live previews only on the organisation's sites), ADR-0147 (a secret is used only by an approved workflow), ADR-0079 (access to a boundary is access to all of it), ADR-0074 (a container is keyed on its boundary and its runner), ADR-0039 (files and workspaces). All Accepted |
 | **Implements** | ADR-0167; and four new records, written at the start of the phase that needs them: *code work on branches* (phase 1), *live apps travel through relays*, *install scripts are blocked by default*, *secrets reach a live preview only through an approved workflow* (phase 2). Each gets a note at the close |
-| **Revisits** | ADR-0030 (task-scoped agent sessions: a code task's working folder becomes its branch's copy) and ADR-0039 (a code workspace's folder becomes read-only to agents): each gets a dated note, or is superseded in part if the work shows its decision no longer holds |
+| **Revisits** | ADR-0116 (a feature not ready ships behind a flag): superseded by adr-0172 (a flag has a stage). ADR-0030 (task-scoped agent sessions: a code task's working folder becomes its branch's copy) and ADR-0039 (a code workspace's folder becomes read-only to agents): each gets a dated note, or is superseded in part if the work shows its decision no longer holds |
 
 ## Key decisions
 
@@ -108,11 +122,15 @@ images), and only on the owner's say-so.
 | **Not** merging the earlier branch | It carries the person's-computer design ADR-0167 dropped, through most of its files |
 | One unit, two phases, one merge, with a checkpoint branch between | The live preview is why the unit exists; if phase 2 changes shape, it starts again from the checkpoint with nothing on `main` to undo |
 | The fourteen small fixes travel on this unit's branch | One merge to `main`, and phase 2 needs some of them (IPv6 off, the Modal) |
+| The live preview ships behind a flag, off | It works but is not yet the right experience or shape; parked, it can't affect other features, and nothing built is lost |
+| **Not** removing the live preview, or reshaping it before the release | Removing loses the relay, tickets, guard and secrets work the reshaping reuses; reshaping is an architecture change the release can't wait for |
+| One flag list with stages, designed in phase 3 | One place every program reads; a stage says how far a feature is from shipping, so experimental work can be off even in development |
 
 ## Work breakdown
 
-Two phases. The seam is the live preview: phase 1 delivers code work on branches, usable and walkable without any
-running app; phase 2 needs phase 1's branches and copies to have something to run.
+Four phases. The seam between 1 and 2 is the live preview: phase 1 delivers code work on branches, usable and walkable
+without any running app; phase 2 needs phase 1's branches and copies to have something to run. Phase 3 builds the flag
+system phase 4 needs to park the live preview.
 
 ### Phase 1 — Code work on branches
 
@@ -154,29 +172,70 @@ allowed to run them, with the Fleet Console's limits.
 **Execution plan:** none — lanes. The parts come over from the earlier branch, placed file by file in the porting list;
 the briefs name the files.
 
-- [ ] 2.1 Decision records: live apps travel through relays; install scripts blocked by default; secrets through an
+- [x] 2.1 Decision records: live apps travel through relays; install scripts blocked by default; secrets through an
   approved workflow
-- [ ] 2.2 Core contract: live preview and app messages, the live-preview part of the agent address range; protocol
+- [x] 2.2 Core contract: live preview and app messages, the live-preview part of the agent address range; protocol
   versions set afresh from `main`
-- [ ] 2.3 Schema: `LivePreview`, `LiveApp` known by workspace, branch and name; the per-site settings
-- [ ] 2.4 The live preview's container, binding one branch's copy, with its template and ceilings
-- [ ] 2.5 The guard, trimmed of what only a person's computer needed
-- [ ] 2.6 Network: firewall rules for the live-preview range, IPv6 off, private addresses blocked
-- [ ] 2.7 The relay's app doors, addresses, tickets and cookies; preview domains and `front-door --previews`; `localhost`
+- [x] 2.3 Schema: `LivePreview`, `LiveApp` known by workspace, branch and name; the per-site settings
+- [x] 2.4 The live preview's container, binding one branch's copy, with its template and ceilings
+- [x] 2.5 The guard, trimmed of what only a person's computer needed
+- [x] 2.6 Network: firewall rules for the live-preview range, IPv6 off, private addresses blocked
+- [x] 2.7 The relay's app doors, addresses, tickets and cookies; preview domains and `front-door --previews`; `localhost`
   previews
-- [ ] 2.8 Apps that listen only on `localhost` reachable from inside the live preview's network
-- [ ] 2.9 App tools (`start_app`, `stop_app`, `list_apps`, `reload_view`, `set_auto_reload`) with no *Allow*
-- [ ] 2.10 Services from `.agents/services.yaml`; the install-script rule; both asking only with a named reason
-- [ ] 2.11 Secrets: *Start live preview* and *Reload live preview* workflows into the app's own container
-- [ ] 2.12 `main`'s live preview from a copy of its own, brought up to date as `main` moves
-- [ ] 2.13 States, the idle stop and the line-loss pause
-- [ ] 2.14 Live preview in the workspace view: the panel item, the app in the middle, its fixed bar, the strip
-- [ ] 2.15 The Fleet Console: live previews on or off per site, the limit, the idle stop, capacity and memory notices
-- [ ] 2.16 Picking the site; a full site; another site by bundle
-- [ ] 2.17 The lead's live-preview offer and its model checks on the baseline model
-- [ ] 2.18 The old preview path removed
-- [ ] 2.19 The user guide for live previews, and the Fleet Console's settings
-- [ ] 2.20 QA stories and scenarios for the unit, and the tests that cover them tagged
+- [x] 2.8 Apps that listen only on `localhost` reachable from inside the live preview's network
+- [x] 2.9 App tools (`start_app`, `stop_app`, `list_apps`, `reload_view`, `set_auto_reload`) with no *Allow*
+- [x] 2.10 Services from `.agents/services.yaml`; the install-script rule; both asking only with a named reason
+- [x] 2.11 Secrets: *Start live preview* and *Reload live preview* workflows into the app's own container
+- [x] 2.12 `main`'s live preview from a copy of its own, brought up to date as `main` moves
+- [x] 2.13 States, the idle stop and the line-loss pause
+- [x] 2.14 Live preview in the workspace view: the panel item, the app in the middle, its fixed bar, the strip
+- [x] 2.15 The Fleet Console: live previews on or off per site, the limit, the idle stop, capacity and memory notices
+- [x] 2.16 Picking the site; a full site; another site by bundle
+- [x] 2.17 The lead's live-preview offer and its model checks on the baseline model
+- [x] 2.18 The old preview path removed
+- [x] 2.19 The user guide for live previews, and the Fleet Console's settings
+- [x] 2.20 QA stories and scenarios for the unit, and the tests that cover them tagged
+- [x] 2.21 The owner's walk's fixes: the agent and the live preview, secrets and apps on the strip, tasks and Deploy
+
+### Phase 3 — A flag system with stages
+
+**Delivers:** a flag system the platform can keep experimental work behind safely: each flag has a stage, an
+experimental feature is off everywhere until a developer turns it on, and the suites prove a feature off as well as on.
+**Starts when:** the owner has walked phase 2 and asked to park the live preview (done).
+**Execution plan:** none — the design is worked out with the owner, then built in one lane.
+
+- [x] 3.1 Design the flag system with the owner, written into the spec (section 7)
+- [x] 3.2 The decision record for flag stages (adr-0172, superseding ADR-0116)
+- [x] 3.3 Core: stages in the flag list, `isFeatureOn` from the stage, the build and the switches; the two flags there at
+  preview
+- [x] 3.4 hq: the organisation's switches stored, `requireFeature`, `getFeatures` and `useFeature`, agents' tools and
+  instructions by flag, and the *Features* screen (beta for admins in production; every flag in development)
+- [x] 3.5 The site and the Fleet Console: switches sent with each instruction (site protocol 1.12) and the site's guard;
+  the Fleet Console asking hq
+- [x] 3.6 Tests: `withFeature` in every suite, experimental failures reported and not blocking, the all-on run in the full
+  regression, and the existing flagged tests moved to it
+- [x] 3.7 The stages explained: the architecture and `AGENTS.md` for contributors, the *Features* screen, and the guide's
+  beta page
+- [x] 3.8 A released flag's life: `releasedIn` on its entry, its admin switch for that minor release, and the release
+  rehearsal refusing a later minor or major release while it is listed
+
+### Phase 4 — The live preview behind its flag
+
+**Delivers:** the live preview off and out of sight unless its flag is on, with everything built kept; code work on
+branches unchanged; the reshaping written up and queued for after the first release.
+**Starts when:** phase 3's flag system is in.
+**Execution plan:** none — one lane, from the list of gates in this phase.
+
+- [x] 4.1 The live preview's flag, experimental
+- [x] 4.2 hq: the workspace view's *Live preview*, the lead's offer, and the Fleet Console's section hidden while it is
+  off; every live-preview operation refusing
+- [x] 4.3 Agents: the app tools not offered, and runs not told about live previews, while it is off
+- [x] 4.4 The site: its live-preview methods and the relay's app doors refusing while it is off
+- [x] 4.5 The guide's live-preview pages marked as not yet available, and the QA scenarios marked as behind the flag
+- [x] 4.6 Tests that the flag off hides and refuses every entry point, and that code work on branches is unchanged
+- [x] 4.7 The proposal for reshaping the live preview into a development environment of its own (raised outside this
+  repository)
+- [x] 4.8 The work queued for after the first release
 
 ## Deviations
 
@@ -186,3 +245,12 @@ the briefs name the files.
 | 1 | An agent's `merge_into_main` asks the person to confirm in the conversation, and merges only on their press; the spec is corrected in place | HQ cannot check that a person asked for the merge from the agent's words, so a merge started by text in the repository could reach `main` |
 | 1 | Phase 1's history is regrouped once, with phase 2's, before the unit merges, not before the phase-2 branch is cut. `feature/live-preview` stays as the checkpoint as built | Regrouping twice rewrites what phase 2 is built on; one regroup at the end gives the same result |
 | 1 | The owner walks the unit once, at the end, not after phase 1. Phase 1 is proved by the lead (its suites and a scripted run of its walk) before the phase-2 branch is cut | The owner asked to automate the build and walk it once at the end |
+| 2 | Install scripts are off for every agent command, and a blocked package outside a live preview is asked about with a card in the branch's thread; the spec is corrected in place | ADR-0170 binds every install in a branch's copy, and any run in a project's container can reach one, so an agent's own install was the unguarded path |
+| 2 | A workflow aimed at a live preview runs its steps on the live preview's copy, then hands the named secrets to the app's container; it doesn't start the app | The steps run in executor containers like any workflow's; the agent starts the app, which reads its secrets from files |
+| 2 | The app tools are offered to every code-work run and find the branch's live preview at each call; the spec is corrected in place | A harness keeps a conversation's tool list across runs, so tools chosen per run went missing once a live preview opened between runs (the proof's Q9) |
+| 2 | A person can start a known app from the strip, so `main`'s live preview can show one; the spec is corrected in place | No run works on `main`, so `start_app` could never reach its live preview (the proof's Q8) |
+| 2 | Starting a live preview on a branch with no copy makes one, and a copy stays while a live preview runs from it | A done task's branch had lost its copy, so no live preview could start there (the proof's Q2) |
+| 2 | A site limits its helper containers and app execs, and live preview reads come from hq's own rows | A render loop made one site start about 1,100 helper containers in a minute, and Docker's engine ran out of memory |
+| 2 | The owner's walk's fixes are added as 2.21 | The walk found the agent unaware of its live preview, secrets with no feedback, no way to restart an app, and tasks made without a workspace |
+| 3, 4 | Two phases added: a flag system with stages, then the live preview behind its flag, off, with its reshaping proposed and queued for after the first release | The walk showed the live preview works but is the wrong shape for a development environment (one fixed image, no Docker inside); reshaping it is an architecture change the release can't wait for, so it is parked rather than shipped or removed |
+| 3 | The flag system designed with the owner: four stages (beta added, for an organisation admin's opt-in), one *Features* screen as the only switch, one rule in core and a gate per program, tests as shipped with experimental failures not blocking, and a released flag switchable off for one minor release then removed (the rehearsal enforces it); the spec gains section 7 and phase 3's tasks are redrawn (3.3–3.8) | The owner asked for end users to be able to opt in, for developers who break an experiment they don't know to have a way through, and for a strict rule on how long a released flag lives |

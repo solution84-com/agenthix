@@ -349,8 +349,14 @@ moves, because the workspace's own folder is read-only and an app writes build o
 
 ### The app
 
-- **The agent's app tools**: `start_app`, `stop_app`, `list_apps`, `reload_view` and `set_auto_reload`, offered to runs
-  on a branch with a live preview, and acting on that live preview's container.
+- **The agent's app tools**: `start_app`, `stop_app`, `list_apps`, `reload_view` and `set_auto_reload`, offered to every
+  run on a branch, since a harness keeps a conversation's tool list across its runs, and answered only for the live
+  preview of the run's own branch on the run's site, found at each call. `start_app` on a branch with no live preview
+  opens one first, as the run's person, with the same rules as a person's *Start live preview*.
+- **A person can start, stop and restart an app too**: the strip offers *Start* for each app known on the branch (on
+  `main`, the latest of each name across the workspace), with the command it was last started with, so `main`'s live
+  preview, where no agent works, can show one. A person's *Start live preview* opens with the app started most recently
+  there.
 - **An app that listens only on `localhost` works**, as it would on the developer's own machine: the site reaches it
   from inside the live preview's own network, so a development server needs no change.
 - **No *Allow* for a live preview's own tools.** Starting a live preview is the permission for its app tools. Only an
@@ -364,7 +370,10 @@ moves, because the workspace's own folder is read-only and an app writes build o
 - **Reloading:** by the agent (`reload_view`), automatically (*Auto*), or *Reload*.
 - **Services** the app needs (a database, say) are declared in `.agents/services.yaml` and run beside it, on an internal
   network of their own. A new or changed service waits for a person's yes in HQ.
-- **Install scripts** of packages are blocked by default; a person's yes in HQ lets a named one run.
+- **Install scripts** of packages are blocked by default, in every agent command and not only in a live preview, since
+  any run can reach a branch's copy. Agents install with `install_packages`, which runs the scripts of packages that
+  pass the rule. A person's yes in HQ lets a named one run: on the live preview's strip, or with a card in the branch's
+  thread when no live preview is open.
 
 ### Secrets
 
@@ -482,14 +491,158 @@ most 15 minutes, the app's frame sandboxed, the site checking each stream again.
 
 ---
 
+## 7. Feature flags with stages
+
+A feature that is not ready ships behind a flag (ADR-0116). Until now a flag had two states: on in development and
+tests, off in production. That cannot hold an experiment: a flag was on in every developer's setup and every test run,
+so unfinished work could break work that ships, and no test saw the product as it is released. This section replaces
+the two states with **stages**, adds **an organisation's opt-in** for features in beta, and gives each program **one
+gate**. The live preview is the first flag at the first stage (*The live preview's flag*).
+
+### Stages
+
+**Every flag has a stage**, named in the one list in `@agenthix/core` that every program reads, beside what the flag
+holds back and when it is removed. Moving a flag to another stage is a release decision, made by a commit to that list.
+A **release** here is a minor or major release (`0.2.0`, `1.0.0`); patches and pre-releases (`-alpha.N`, `-rc.N`) do
+not count.
+
+| Stage | Means | Development build | Production |
+|---|---|---|---|
+| **experimental** | Being tried; may change shape or be dropped | Off, unless a developer switches it on | Off, and cannot be switched on |
+| **preview** | Built, waiting on something outside it (another service, a release) | On, unless a developer switches it off | Off |
+| **beta** | Usable, unfinished; an organisation may choose to use it | On, unless a developer switches it off | Off, unless the organisation's admin switches it on |
+| **released** | Done | On, unless a developer switches it off | On, unless the organisation's admin switches it off, for the rest of the minor release it went live in. The flag is removed by the next minor release, with the feature left on |
+
+A flag need not pass through every stage: an experiment may go straight to beta. **A flag leaves experimental only with
+all its tests passing** (*Tests*). A beta may go back to preview if it proves unready; the organisations' switches for
+it are then ignored. When a flag is released, an admin's earlier choice to switch it on is ignored: it is on, and the
+admin may switch it off.
+
+**The rules a release follows:**
+
+- **Only a minor or major release moves a flag forward.** A patch holds fixes only; it may move a flag **back** (released
+  to beta, for example) when stopping a broken feature reaching everyone is the fix, never forward.
+- **A released flag lives for one minor release.** Its entry records the minor it went live in (`releasedIn: '0.2'`).
+  The release rehearsal refuses to prove a later minor or major release (`0.3.0` on) while that flag is still in the
+  list, and names it. So the flag is removed, its gates, its switch and its hidden-while-off tests with it, before the
+  next minor release.
+- **Why one minor release:** the feature reaches every organisation at once on upgrade, which is when a problem nobody
+  foresaw shows. Its admin can switch it off at once and keep working while a patch comes, with no rollback. Its off
+  path is already built and tested from its earlier stages, so keeping it one release costs little. Kept longer, flags
+  pile up and nobody knows which are safe to remove.
+
+A development build is one whose `NODE_ENV` is `development` or `test`, as today; anything else is production, so a
+deployment that forgets to say fails closed. **A test run** (`test`) starts from production's defaults, so every test runs as
+shipped, and lets a test switch any flag, as a development build does (*Tests*).
+
+**Not stages, on purpose:**
+
+- **An "internal" stage**, on in production for some people only: that is targeting by person, which waits for remote
+  configuration (ADR-0130).
+- **A setting a person changes on a machine** (an environment variable, a file): there is one switch, on the screen.
+- **A kill switch for a released feature beyond its first minor release:** that is an operational setting of the
+  feature, decided for it, not a flag left in place.
+- **A hosted flag service:** an organisation's hq depends on no central service (ADR-0042).
+
+### The *Features* screen
+
+**One screen manages features: *Features*, in the organisation's settings.** Its switches are stored on the
+organisation's own record in hq (one per hq), each with who changed it and when, shown beside it.
+
+- **In production** it lists flags in **beta**, and flags **released** in this minor release, for **organisation
+  admins**: each with what it is, a *Beta* or *New in this release* label, and a switch (a beta off by default, a
+  released feature on). Switching one on applies to the whole organisation; no person opts in for themselves. Switching it off
+  hides the feature and makes it refuse again; what it stored is kept, and switching it back on finds it. With no flag
+  listed, the screen says there is nothing to try.
+- **In a development build** it lists **every flag, grouped by stage**, and a developer may switch any of them:
+  experimental on to build it, preview or beta off to see what ships. The choices live in that developer's own hq
+  database, so nobody else's setup or test run changes.
+- **The screen explains the stages it shows**, one line each, above the list: in production, what *beta* means (usable,
+  unfinished, may change, can be switched off again); in development, all four.
+
+### How each program checks a flag
+
+There is **one rule**, `isFeatureOn(flag, facts)` in core: a pure function of the flag's stage, whether this is a
+development build, and the organisation's switches. Every program asks it; none decides on its own.
+
+| Program | The check | Where the switches come from |
+|---|---|---|
+| **hq's server** | `requireFeature(flag)` first in each of the feature's operations, routes and socket handlers; off answers *not available* (404) and does nothing | The organisation's record, read and cached for a few seconds |
+| **hq's screens** | `useFeature(flag)`, from one query, `getFeatures`, that answers which flags are on. A convenience only: the server is the protection | hq's server |
+| **Agents** | When hq puts a run together, a feature's tools are added and its instructions written only while it is on | The organisation's record |
+| **The site** | Its guard before each of the feature's methods, and the relay's doors | **hq sends the organisation's switches with each instruction.** The site applies the same rule with its own `NODE_ENV`, so in production hq's word can turn on a beta or turn off a newly released feature, and nothing else |
+| **The Fleet Console** | Shows a feature's section only when hq says it is on | hq, which applies the same check before answering |
+
+Sending the switches with each instruction changes a channel message, so the site protocol's version moves
+([versioning](../../architecture/versioning.md)).
+
+### Tests
+
+**Every test runs as shipped**: each flag at its production value, no beta switched on. **A feature's own tests switch
+its flag on**, with one helper, `withFeature(flag, () => { … })`, around a group of tests, never globally. Inside the
+group the flag is on; outside it is off.
+
+| Suite | What `withFeature` does before each test, and undoes after |
+|---|---|
+| Unit tests (hq, site, core) | Hands `isFeatureOn` the switch, in memory |
+| hq integration, hq end-to-end, cross-app | Sets the switch on the test organisation's record, as the screen does; the site follows hq |
+
+So three kinds of test, and none written twice:
+
+- **Tests of anything else** run with the feature off, as shipped, and catch it leaking into what ships.
+- **Tests that the feature is hidden while off**: no button, operations refusing, agents not given its tools. They sit
+  outside `withFeature`, one per entry point, table-driven where they can be. In the suites the full regression also
+  runs with every flag on (end-to-end, cross-app), they sit inside `withFeatureOff(flag, …)`, which switches the flag
+  off for the group whatever the run's default.
+- **Tests of the feature working** sit inside `withFeature`.
+
+**What blocks.** A failing test blocks a merge, except **a test inside `withFeature` for a flag at experimental**: it is
+reported, not blocking, and the run's summary lists it under *Experimental failures* with the flag's name. A developer
+whose change breaks an experiment they do not know is not stuck; the experiment's owner sees it in every summary, and a
+maintainer fixes an experiment's failures in a batch when they pile up. From preview on, a feature's tests block like
+any other, which is why a flag leaves experimental only with all of them passing. There is no "critical" marker: what
+protects the release already runs outside `withFeature` and always blocks.
+
+**When.** These rules hold for every run: while working, a unit's regression, and CI's checks. **The full regression
+adds one run** of the end-to-end and cross-app suites with every flag on, to catch features that clash; its seed
+switches every flag on from a variable only the test seed reads.
+
+**Removing a flag is checked by the compiler.** Flag names are typed from the list, so deleting a released flag turns
+each `withFeature` and each hidden-while-off test for it into a compile error, which lists what to remove.
+
+### Where the stages are explained
+
+- **For contributors:** the architecture's page on flags and the root `AGENTS.md`: the four stages, how a flag moves
+  between them, `withFeature`, and what blocks.
+- **On the *Features* screen**, as above.
+- **In the user guide, beta and released only**: what a beta is and how an admin switches one on, and that a feature
+  new in a release can be switched off until the next minor release. Experimental and preview are not described to
+  users.
+
+### The live preview's flag
+
+**The live preview is behind `livePreview`, at experimental.** Off, it is out of sight and refuses everywhere: the
+workspace view's *Live preview*, the lead's offer of one, the Fleet Console's section, every live-preview operation, the
+agents' app tools and what runs are told about live previews, the site's live-preview methods and the relay's app doors.
+Code work on branches, merging and everything in sections 1 to 3 do not depend on it. The general improvements made while
+building it stay on for everyone: install scripts off for every agent command, sites removing only their own
+containers, the cap on commit helpers, and the host's network rules. The guide's live-preview pages say it is not yet
+available.
+
+The two flags already in the list, `usageBilling` and `marketplace`, are at **preview**: they behave as they do today.
+
+---
+
 ## Phases
 
-One unit, two phases, one merge to `main`.
+One unit, four phases, one merge to `main`.
 
 | Phase | Delivers | Proved by |
 |---|---|---|
 | **1 · Code work on branches** | Turning Git on; a task's workspace; a copy and branch per task and per code conversation; commits back to the workspace; `main` read-only to agents; what agents are told; the full-screen workspace view (branch select, Files, Git, changes, the conversation, narrow screens, Viewer rules); *Merge into main* (checkpoints and clashes included); versions and *Restore*; *Deploy…*; GitHub push | The owner's walk: two tasks at once on one workspace, each on its own branch; one merged cleanly, one clashing and brought up to date by its agent; a checkpoint merge while an agent works; a restore |
 | **2 · Live preview** | The live preview's container, app tools, services and install-script rule; the relay, addresses and tickets; `localhost` apps; secrets through workflows; `main`'s live preview; the Fleet Console's settings and capacity; idle stop; a full site; another site by bundle; the guard | The owner's walk on a one-machine install, on `preview.localhost` and on a preview domain: a live preview on a task's branch, steered while the agent works; a second on another branch at the same time; a full site; one on a second site |
+| **3 · Feature flags with stages** | Stages in core's list; the *Features* screen; `isFeatureOn` and one gate per program; the switches sent to sites; `withFeature` and experimental failures reported, not blocking; the all-on run; the stages explained (section 7) | Tests of the rule and each gate; the owner switching a flag on the *Features* screen in development and as an admin in a production build |
+| **4 · The live preview behind its flag** | `livePreview` at experimental, and every entry point hidden and refusing while it is off | The full regression as shipped, with code work on branches unchanged; the live preview's own tests with it on |
 
 Phase 2 is built on a branch cut from the end of phase 1, so phase 1 stays as it was walked.
 
@@ -504,6 +657,9 @@ Written on the unit's branch as the phases start:
   tickets.
 - **Install scripts are blocked by default** on the organisation's sites; a person's yes in HQ lets a named one run.
 - **Secrets reach a live preview only through an approved workflow**, with the accepted risk above in its *Risks*.
+- **A flag has a stage** (section 7): experimental, preview, beta or released; an organisation's admin may switch on a
+  beta, or switch off a feature for the minor release it went live in; the flag is removed by the next minor release; one
+  rule in core decides, and a site takes hq's word for those two only. It supersedes ADR-0116.
 
 Records changed by this unit get a dated note: ADR-0039 and ADR-0030 (a code task's working folder is its branch's
 copy), ADR-0079 (a code workspace's own folder is read-only inside the boundary), ADR-0074 (paths by id hold for

@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0172`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0173`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -251,7 +251,7 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0113](adr-0113-a-moved-hqs-sites-follow-it-by-challenge-response.md) | A Moved HQ's Sites Follow It by Challenge–Response | Accepted |
 | [ADR-0114](adr-0114-uploaded-files-are-served-from-their-own-origin.md) | Uploaded Files Are Served From Their Own Origin | Accepted |
 | [ADR-0115](adr-0115-a-site-takes-part-when-a-fleet-admin-or-cloud-adds-it.md) | A Site Takes Part When a Fleet Admin or Cloud Adds It | Accepted |
-| [ADR-0116](adr-0116-a-feature-not-ready-ships-behind-a-flag.md) | A Feature Not Ready Ships Behind a Flag | Accepted |
+| [ADR-0116](adr-0116-a-feature-not-ready-ships-behind-a-flag.md) | A Feature Not Ready Ships Behind a Flag | Superseded by `adr-0172` |
 | [ADR-0117](adr-0117-a-host-service-runs-only-signed-published-images.md) | A Host Service Runs Only Signed, Published Images | Accepted |
 | [ADR-0118](adr-0118-a-host-service-replaces-itself-through-a-launcher.md) | A Host Service Replaces Itself Through a Launcher | Accepted |
 | [ADR-0119](adr-0119-a-sites-backup-carries-its-authority.md) | A Site's Backup Carries Its Authority | Accepted |
@@ -305,3 +305,4 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0169](adr-0169-live-apps-travel-through-relays.md) | Live Apps Travel Through Relays | Accepted |
 | [ADR-0170](adr-0170-install-scripts-are-blocked-by-default.md) | Install Scripts Are Blocked by Default | Accepted |
 | [ADR-0171](adr-0171-secrets-reach-a-live-preview-only-through-an-approved-workflow.md) | Secrets Reach a Live Preview Only Through an Approved Workflow | Accepted |
+| [ADR-0172](adr-0172-a-flag-has-a-stage.md) | A Flag Has a Stage | Accepted |
