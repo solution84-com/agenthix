@@ -305,6 +305,12 @@ export type ConsoleLinkMethods = {
   /** The offers this person has dismissed; an offer dismissed stays gone for them, wherever it appears. */
   'cloud.offers': { params: { byUserId: string }; result: { dismissed: CloudOfferName[] } }
   'cloud.dismissOffer': { params: { byUserId: string; offer: CloudOfferName }; result: { dismissed: CloudOfferName[] } }
+  /**
+   * The flagged features on for the organisation (adr-0172), by core's rule with its switches: the Fleet Console shows a
+   * flagged feature's section only while it is listed. Flags travel as names, so adding or removing one changes no
+   * protocol; the Fleet Console keeps only names it knows. An hq older than 1.3 answers `unknown_method`, read as none.
+   */
+  'features.on': { params: Record<string, never>; result: { on: string[] } }
 }
 
 /** The places Cloud removes a limit a fleet admin has hit: no site available, backups kept on the machine, domain and HTTPS. */
@@ -322,7 +328,7 @@ export const CONSOLE_LINK_METHODS = [
   'hq.about', 'site.loads', 'relay.facts', 'activity.list', 'notices.list', 'notices.dismiss', 'account.find',
   'host.silenceFacts', 'sites.livePreviews', 'sites.livePreviews.set', 'sites.livePreviews.stop',
   'cloud.state', 'cloud.connect', 'cloud.disconnect',
-  'cloud.askCount', 'cloud.offers', 'cloud.dismissOffer',
+  'cloud.askCount', 'cloud.offers', 'cloud.dismissOffer', 'features.on',
 ] as const satisfies readonly ConsoleLinkMethod[]
 
 /** A request on the console link: one of `ConsoleLinkMethods`, with that method's params. */

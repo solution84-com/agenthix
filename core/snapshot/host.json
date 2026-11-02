@@ -1328,6 +1328,7 @@
                         }
                       }
                     },
+                    {"fields":{"on":{"type":{"array":{"type":"string"}}}}},
                     {"fields":{"opened":{"type":{"type":"boolean"}}}},
                     {"fields":{"passed":{"type":{"type":"boolean"}}}},
                     {"fields":{"recorded":{"type":{"type":"boolean"}}}},
@@ -1369,6 +1370,7 @@
           {"literal":"cloud.dismissOffer"},
           {"literal":"cloud.offers"},
           {"literal":"cloud.state"},
+          {"literal":"features.on"},
           {"literal":"fleetAdmin.grant"},
           {"literal":"fleetAdmin.list"},
           {"literal":"fleetAdmin.revoke"},
@@ -1505,6 +1507,14 @@
               "fields": {
                 "params": {"type":{"fields":{"byUserId":{"type":{"type":"string"}}}}},
                 "result": {"type":{"ref":"HqCloudState"}}
+              }
+            }
+          },
+          "features.on": {
+            "type": {
+              "fields": {
+                "params": {"type":{"fields":{},"index":{"key":"string","value":{"type":"never"}}}},
+                "result": {"type":{"fields":{"on":{"type":{"array":{"type":"string"}}}}}}
               }
             }
           },
@@ -1874,6 +1884,12 @@
             "fields": {
               "method": {"type":{"literal":"cloud.state"}},
               "params": {"type":{"fields":{"byUserId":{"type":{"type":"string"}}}}}
+            }
+          },
+          {
+            "fields": {
+              "method": {"type":{"literal":"features.on"}},
+              "params": {"type":{"fields":{},"index":{"key":"string","value":{"type":"never"}}}}
             }
           },
           {

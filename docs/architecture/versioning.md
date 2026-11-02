@@ -123,7 +123,7 @@ deprecated the old preview methods,
 Cloud protocol at `1.1` (which added [the AI contract](cloud-connection.md#the-ai-contract)) and the host protocol at `1.3` (which added `copiesBytes` to a site's runs in `site.loads`: the disk its branch copies use;
 `previews.set` and the preview address in the figures; the protections' `private-addresses` and `public-address` rules
 and their drops; the machine's processors in its figures; `hq.seenFrom`; the Fleet Console's `sites.livePreviews`,
-`sites.livePreviews.set` and `sites.livePreviews.stop`; and the fleet notices for a site's memory and a live preview
+`sites.livePreviews.set` and `sites.livePreviews.stop`; `features.on` on the console link, the flagged features on for the organisation; and the fleet notices for a site's memory and a live preview
 stopped for it; 1.1 added the ports an installation publishes to the operations that install HQ or receive a move; 1.2 added `relay.facts` on the console link, hq's relay as the Fleet Console's page for HQ shows it). A protocol is named after the party hq
 or the host service talks to, so each constant is `<PARTY>_PROTOCOL_VERSION` and each header
 `X-<Party>-Protocol-Version`; no name carries the product's. hq's one web server receives both the host protocol and

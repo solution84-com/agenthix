@@ -148,6 +148,7 @@ const READ: { [M in ConsoleLinkMethod]: (p: Record<string, unknown>) => Params<M
   'hq.about': () => ({}),
   'site.loads': () => ({}),
   'relay.facts': () => ({}),
+  'features.on': () => ({}),
   'activity.list': p => ({
     byUserId: text(p, 'byUserId', 64, ID),
     ...(p.after === undefined ? {} : { after: text(p, 'after', 64, ID) }),

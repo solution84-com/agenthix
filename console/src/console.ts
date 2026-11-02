@@ -43,7 +43,7 @@ export type ConsoleOptions = {
   containerPeer?: ContainerPeer | null
   /** The port it is published on, for the words that tell a person where to open it. */
   publishedPort?: number
-  /** How to ask hq which flagged features are on; without it, none is (hqFeatures.ts). */
+  /** How to ask hq which flagged features are on: hq's `features.on` unless given; `null`, none is (hqFeatures.ts). */
   askFeatures?: AskFeatures | null
 }
 
@@ -65,7 +65,7 @@ export async function createConsole(o: ConsoleOptions): Promise<{ ctx: ConsoleCo
   const sessions = new Sessions(o.state)
   const ctx: ConsoleContext = {
     link: o.link, hosts, presence, figures: new FiguresRefresh(hosts, presence, commands), hqFacts: new HqFacts(o.link),
-    features: new HqFeatures(o.link, o.askFeatures ?? null),
+    features: new HqFeatures(o.link, o.askFeatures === undefined ? () => o.link.call('features.on', {}) : o.askFeatures),
     commands, joins, moves, handoverOut, handoverIn, activity, sessions, silence,
     roles: new RoleCheck(o.link, sessions),
     signIn: new SignIn(o.link, activity, o.machineName),

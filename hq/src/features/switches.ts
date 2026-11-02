@@ -68,3 +68,9 @@ export async function featureFacts(): Promise<FlagFacts> {
 export async function isOrgFeatureOn(flag: FeatureFlag): Promise<boolean> {
   return isFeatureOn(flag, await featureFacts())
 }
+
+/** Every flag on for this organisation, by the one rule: the Fleet Console's `features.on`. */
+export async function featuresOn(): Promise<{ on: FeatureFlag[] }> {
+  const facts = await featureFacts()
+  return { on: FEATURE_FLAG_NAMES.filter(flag => isFeatureOn(flag, facts)) }
+}
