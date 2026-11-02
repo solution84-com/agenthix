@@ -21,8 +21,9 @@ services:
       # Uploaded files' own host name, such as files.hq.example.com (adr-0114). Its
       # DNS points at this machine too; set FILES_ORIGIN=https://<it> in hq/compose.env.
       FILES_DOMAIN: ${FILES_DOMAIN:-}
-      # Optional: turns on live previews (see Caddyfile). Needs wildcard DNS and a
-      # wildcard certificate, which needs a DNS-provider challenge.
+      # Optional: the preview domain, which turns on live previews (see Caddyfile)
+      # with PREVIEW_PATTERN=https://p-{id}.<this domain> in hq/compose.env. Needs
+      # wildcard DNS and a wildcard certificate, which needs a DNS-provider challenge.
       PREVIEW_DOMAIN: ${PREVIEW_DOMAIN:-}
       DNS_API_TOKEN: ${DNS_API_TOKEN:-}
     ports:

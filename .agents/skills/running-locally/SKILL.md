@@ -1,6 +1,6 @@
 ---
 name: running-locally
-description: Use when starting, stopping or reaching the development servers of this repository — hq and its site, the dev databases, pairing hq with its site, reaching hq from another device over Tailscale or the local network, or registering a further site. Also use when hq reports that an Execution Site is unreachable during development.
+description: Use when starting, stopping or reaching the development servers of this repository — hq and its site, the dev databases, pairing hq with its site, reaching hq from another device over Tailscale or the local network, or joining a further development site. Also use when hq reports that an Execution Site is unreachable during development.
 ---
 
 # Running Agenthix locally
@@ -127,9 +127,32 @@ creates repositories, such as a test or a walkthrough.
 
 ## A further site
 
-A further site registers with an admin's consent (ADR-0064): from that site's `site/`,
-`npm run site -- register <hq-url>` prints a code that an admin approves at **Execution Sites → Connect a site**
-in hq. The site has no operator page (ADR-0065).
+A site joins any installed hq when a fleet admin adds its machine in the Fleet Console, whose host service starts the
+site with a credential of its own; hq keeps only the credential's hash (ADR-0115). A site has no command that asks to
+join, and no operator page (ADR-0065). The Fleet Console needs a host service, which development does not run, so a
+**second development site** joins the development hq with `scripts/dev/add-site.sh` instead. It writes into the
+development database only the row a fleet admin's adding would, and refuses any database container that is not a
+development one.
+
+1. Make the site a checkout of its own, for example `git worktree add ../agenthix-site2`, and in its `site/`, run
+   `npm install` and copy `.env.server.example` to `.env.server`.
+2. In that file, give it its own `HOST_NAMESPACE` (for example `agenthix-dev2`), so its containers' names don't clash
+   with the first site's; its own `PORT` and `SITE_ROOT` (its control socket is under it); and its own `DATABASE_URL`, a
+   database of its own on the site's database container (`docker exec agenthix-dev-site-db createdb -U agenthix
+   agenthix_site2`). Leave `HQ_PAIRING_SECRET` and `HQ_URL` empty.
+3. Give it its secrets key, which a first start needs: `SITE_ENV_FILE=../agenthix-site2/site/.env.server bash
+   site/scripts/dev/ensure-secrets-key.sh` from this checkout's root. Then start it once (`npm run db:deploy`, then
+   `npm run dev`), so its database holds its site id, and stop it.
+4. From this checkout's root: `scripts/dev/add-site.sh ../agenthix-site2/site/.env.server --live-previews`. It gives
+   the site a credential of its own (never hq's own site's), `HQ_URL` and a `SECRETS_MASTER_KEY`, and gives hq the
+   site's id, its name (`--name`, or the namespace) and the credential's hash. `--live-previews` turns *Live previews
+   on this site* on, which the Fleet Console would otherwise set; leave it out to keep them off. A second run changes
+   nothing but those two. It writes into the database named in `hq/.env.server`; against a fresh HQ
+   (`hq/scripts/dev/fresh.sh`), set `HQ_DATABASE_NAME=agenthix_fresh` for it.
+5. Start the site again. It connects as any added site does, and shows under its name wherever a site is picked.
+
+It may share `AGENT_NETWORK_RANGE` with the first site, because allocating a subnet skips blocks already in use on the
+machine, and each site removes only containers labelled with its own site id, so neither touches the other's.
 
 ## Reaching hq from another device
 
