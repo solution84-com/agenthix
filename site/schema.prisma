@@ -332,6 +332,7 @@ model Workspace {
   siteId       String
   allowedTools Json?              // string[] — this workspace's contribution to the run's tool intersection (spec §H6); null = no cap, [] = no tools
   repo         RepoAttachment?
+  branchCopies BranchCopy[]
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
@@ -360,6 +361,30 @@ model RepoAttachment {
   createdAt   DateTime           @default(now())
 
   @@index([ownerType, ownerId])
+}
+
+// A branch's working copy on this site (live preview spec, part 2): `clones/<id>/` of the owner's storage, a clone
+// of the workspace's repository. The site's own record of which workspace and branch each copy is for, because the
+// copy's `.git` is written by an agent and names nothing the site may trust: every branch call is checked against
+// this row, and the sweep, the end of a run and a start after the site was down bring back only `branch`, by it.
+// The folder's path is derived from the id, never stored (ADR-0039).
+model BranchCopy {
+  /// hq's copy id: a uuid, the folder's name.
+  id          String             @id
+  ownerType   WorkspaceOwnerType
+  ownerId     String
+  workspaceId String
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /// The branch's name in the workspace's repository; a rename changes it.
+  branch      String
+  /// Set when commits may be in the copy that are not yet back (a run is going, or ended while bringing back
+  /// failed); cleared once they are. A start of the site brings back every copy that has it.
+  backPending Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([workspaceId])
+  @@index([backPending])
 }
 
 // ──────────────────────────────────────────────

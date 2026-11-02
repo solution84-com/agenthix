@@ -27,6 +27,7 @@
  * The constructor now takes the run's package content directly (PromptContent)
  * instead of reading disk itself for instructions/ORG.md.
  */
+import { codeWorkPromptText, type RunCodeWork } from '@agenthix/core'
 import fs from 'node:fs/promises'
 import type { TaskCommentForRun } from '@agenthix/core'
 import { PromptSection } from '../shared/promptSections'
@@ -141,6 +142,8 @@ export class AgentPromptBuilder {
     person?: PersonClock | null
     /** The pinned memory file as the run sees it, when the run has one (`pinnedMemoryFiles.ts`). */
     pinnedMemoryPath?: string | null
+    /** A run on a branch's copy: what it is told about its branch (core's `codeWorkPromptText`). */
+    codeWork?: RunCodeWork | null
     now?: Date
   }): Promise<PromptResult> {
     const sections = buildIdentitySection(this.agent, this.content, context.pinnedMemoryPath)
@@ -161,6 +164,7 @@ export class AgentPromptBuilder {
     if (context.containerMounts) {
       sections.push(buildFilesystemSection(context.containerMounts))
     }
+    if (context.codeWork) sections.push(codeWorkPromptText(context.codeWork))
 
     return {
       systemPrompt: joinSections(sections),
@@ -182,6 +186,7 @@ export class AgentPromptBuilder {
     /** The person the task is on behalf of, from the run's dispatch context. */
     person?: PersonClock | null
     pinnedMemoryPath?: string | null
+    codeWork?: RunCodeWork | null
     now?: Date
   }): Promise<PromptResult> {
     const sections = buildIdentitySection(this.agent, this.content, context.pinnedMemoryPath)
@@ -208,6 +213,7 @@ export class AgentPromptBuilder {
     if (context.containerMounts) {
       sections.push(buildFilesystemSection(context.containerMounts))
     }
+    if (context.codeWork) sections.push(codeWorkPromptText(context.codeWork))
 
     return {
       systemPrompt: joinSections(sections),

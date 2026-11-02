@@ -54,7 +54,7 @@ import { readPin } from './link/pin'
 import { sealEnvelope } from '@agenthix/core/host-crypto'
 import { deliver, setTransferWire } from './move/wire'
 import { moveEndedHeard, receiveMoves, settleAfterRestart } from './move/receive'
-import { moveCodeAnswered } from './move/code'
+import { awaitsMoveCode, moveCodeAnswered } from './move/code'
 import { sayStopping } from './link/stopping'
 import { reportBlockedAfterStart } from './status/portsBlocked'
 
@@ -118,6 +118,7 @@ async function main(): Promise<void> {
       now: () => Date.now(),
       log: line => console.warn(line),
       onMessage: message => (message.kind === 'moveEnded' ? moveEndedHeard(ctx, message) : moveCodeAnswered(message)),
+      awaitsMoveCode,
     }),
     onTransfer: (type, payload) => deliver(ctx, type, payload),
     onRevoke: async () => {

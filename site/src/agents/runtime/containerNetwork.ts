@@ -96,6 +96,22 @@ async function create(name: string): Promise<void> {
   }
 }
 
+/**
+ * The site joins an agent network below its own in gateway priority: Docker otherwise may make the agent network's
+ * gateway the site's default route, and the site's own connections out (to HQ at its public address) would leave from
+ * an agent address, where the agents' protections drop them. This holds on any machine whose agent rules drop the
+ * site's own way out. An engine older than gateway priorities is connected without one.
+ */
+async function connectSite(network: string, self: string): Promise<void> {
+  const tolerated = (err: unknown) => {
+    if (!/already exists|already attached/i.test(String(err))) throw err
+  }
+  await docker(['network', 'connect', '--gw-priority', '-1', network, self]).catch(async err => {
+    if (!/gw-priority|unknown flag/i.test(String(err))) return tolerated(err)
+    await docker(['network', 'connect', network, self]).catch(tolerated)
+  })
+}
+
 async function ensure(containerName: string): Promise<string> {
   const name = agentNetworkName(containerName)
   pending.add(containerName)
@@ -109,9 +125,7 @@ async function ensure(containerName: string): Promise<string> {
     if (!exists) await create(name)
     const self = process.env.SITE_CONTAINER_NAME
     if (self) {
-      await docker(['network', 'connect', name, self]).catch(err => {
-        if (!/already exists|already attached/i.test(String(err))) throw err
-      })
+      await connectSite(name, self)
     }
     return name
   } catch (err) {

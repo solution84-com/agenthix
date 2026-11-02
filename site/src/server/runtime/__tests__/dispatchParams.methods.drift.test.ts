@@ -70,6 +70,16 @@ const fullContext: Required<RunContextPayload> = {
   installedSkills: [{ identity: 'agenthix/code-review', version: '1.3.0', digest: 'd'.repeat(64), level: 'agent' }],
   fileSkills: [{ placeId: 'p1', path: '.agents/skills/release', fingerprint: 'e'.repeat(64), group: 'place' }],
   personSkills: [{ identity: 'fernhill/my-notes', version: '1.0.0', digest: 'f'.repeat(64) }],
+  codeWork: {
+    workspace: { ownerType: 'project', ownerId: 'p1', workspaceId: 'w1' },
+    copyId: '11111111-1111-4111-8111-111111111111',
+    branch: 'add-login-page',
+    main: 'main',
+    behindMain: 2,
+    otherBranches: [{ name: 'signup', whose: 'Ada · Sign-up', ahead: 3, agentWorking: 'Kernel' }],
+    author: { name: 'Kernel', email: 'kernel@agents.hq.example' },
+    onBehalfOf: null,
+  },
 }
 
 function seed(sessionType: SessionSeed['sessionType']): SessionSeed {

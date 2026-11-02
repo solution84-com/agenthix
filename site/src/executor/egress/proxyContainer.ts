@@ -9,6 +9,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { executorImageName } from '../../agents/runtime/agentImage'
 import { composeProjectLabelArgs, labelKey } from '../../agents/runtime/containerLabels'
 import { docker, dockerWithin } from '../../agents/runtime/containerLifecycle'
+import { ipv6OffArgs } from '../../agents/runtime/ipv6Off'
 import { STEP_UID } from '../stepContainer'
 import { removeContainer } from '../stepRunner'
 import type { EgressProxyConfig } from './program/proxyMain'
@@ -46,6 +47,7 @@ export function proxyCreateArgs(s: ProxyContainerSpec, image: string): string[] 
     '--read-only',
     // An unprivileged user binds the approved ports and DNS's own, below 1024, without a capability.
     '--sysctl', 'net.ipv4.ip_unprivileged_port_start=0',
+    ...ipv6OffArgs(),
     '--memory', '256m',
     '--memory-swap', '256m',
     '--pids-limit', '64',

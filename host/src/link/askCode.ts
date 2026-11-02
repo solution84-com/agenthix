@@ -52,6 +52,12 @@ export async function askHandoverCode(d: AskDeps): Promise<HandoverCode> {
   return answer
 }
 
+/** Whether an ask made since the host service started still waits on this answer, from the Fleet Console it went to. */
+export function awaitsHandoverCode(from: string, message: { replyTo?: unknown }): boolean {
+  const w = typeof message.replyTo === 'string' ? waiting.get(message.replyTo) : undefined
+  return w?.consoleFingerprint === from
+}
+
 /** An answer opened against the pin (envelopes.ts): settles the ask it names, if it went to that Fleet Console. */
 export function deliverHandoverCode(from: string, message: { replyTo?: unknown; answer?: unknown }): void {
   const w = typeof message.replyTo === 'string' ? waiting.get(message.replyTo) : undefined

@@ -55,6 +55,13 @@ export interface AgentMounts {
   boundary: LocationMount
   folders: LocationMount[]
   locationMode: 'rw' | 'ro'
+  /**
+   * Each code workspace's own folder (one whose folder is a Git repository), bound read-only over its place in the
+   * boundary (live preview spec, *Where the copy lives*): agents read `main` but never write it. The kernel enforces
+   * it on the mount, whatever the agent runs. Part of the mount signature: turning Git on for a workspace changes it,
+   * and the container is recreated once its runs have ended.
+   */
+  readOnly?: LocationMount[]
 }
 
 /**
@@ -125,6 +132,13 @@ export interface ContainerContext {
   invokerUserId?: string | null
   taskId?: string | null
   credential: SiteRunCredential | null
+  /** A run on a branch's copy: it never joins a container whose binds are not the current ones (`readOnly`); it waits
+   *  for the runs in it to end, and the container is made again. */
+  codeWork?: boolean
+  /** Told when this run starts and stops waiting for that (`run.waiting`, reason `branch`). */
+  onWaitForBinds?: (waiting: boolean) => void
+  /** Asked while it waits: false once the run was stopped, and it waits no more. */
+  stillWanted?: () => Promise<boolean>
 }
 
 /**
@@ -148,6 +162,9 @@ export interface ContainerState {
   mountSig?: string
   /** Count of runs currently exec-ing in this container. Never goes below 0. */
   activeRuns: number
+  /** A run on a branch waits for this container's runs to end so it is made again with the current binds: no new
+   *  run joins it meanwhile, or it might never empty (`bindsDrain.ts`). Cleared when it is started again. */
+  draining?: boolean
   /** Live previews serving out of this container. A preview is not a run: it
    *  holds no concurrency slot, but it IS work
    *  somebody is watching, so neither sweep may take the container out from

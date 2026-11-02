@@ -94,3 +94,25 @@ describe('disabledTools patches out a tool entirely', () => {
     expect(registrations.has('list_agents')).toBe(true)
   })
 })
+
+describe('the commit tool — offered only to a run on a branch\'s copy', () => {
+  const context = (codeWork?: { branch: string }) =>
+    ({ runId: 'run-7', sessionId: 's1', ...(codeWork ? { codeWork } : {}) }) as unknown as import('../../../agents/runtime/types').RunContext
+
+  it('a run that is not code work is not offered it', () => {
+    registrations.clear()
+    createMcpServer({ capabilityJwt: 'jwt-1', siteTools: { context: context(), openCode: false } })
+    expect(registrations.has('commit')).toBe(false)
+    expect(registrations.has('merge_into_main')).toBe(false)
+  })
+
+  it('a code-work run is, and its call goes to hq with the run filled in by the site', async () => {
+    registrations.clear()
+    createMcpServer({ capabilityJwt: 'jwt-1', siteTools: { context: context({ branch: 'add-login-page' }), openCode: false } })
+    mockCallHqData.mockResolvedValue({ committed: true, commit: 'a'.repeat(40), branch: 'add-login-page', files: 2 })
+    await registrations.get('commit')!({ message: 'Add the login form', runId: 'someone-else' })
+    expect(mockCallHqData).toHaveBeenCalledWith('commit', { message: 'Add the login form', runId: 'run-7' }, 'jwt-1')
+    await registrations.get('merge_into_main')!({ summary: 'Login page' })
+    expect(mockCallHqData).toHaveBeenCalledWith('merge_into_main', { summary: 'Login page', runId: 'run-7' }, 'jwt-1')
+  })
+})

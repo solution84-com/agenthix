@@ -138,6 +138,8 @@ export type RunContext = {
    *  for a boundary's overrides of an agent — the two share no lineage beyond
    *  both being resolved per run. */
   workingTreeDir: string
+  /** Set for a run on a branch's copy (live preview spec part 2): it is offered the `commit` tool. */
+  codeWork?: { branch: string }
 }
 
 /**

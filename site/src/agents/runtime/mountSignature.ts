@@ -28,8 +28,10 @@ export function mountSignature(
   homeBind: string | null,
   boundary: LocationMount,
   locationMode: 'rw' | 'ro',
+  readOnly: LocationMount[] = [],
 ): string {
   const binds: string[] = homeBind ? [homeBind] : []
   binds.push(`${boundary.hostDir}:${boundary.containerDir}`)
+  for (const m of readOnly) binds.push(`${m.hostDir}:${m.containerDir}:ro`)
   return `${binds.sort().join('|')}|mode=${locationMode}`
 }

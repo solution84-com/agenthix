@@ -23,6 +23,7 @@ import { FORWARDED_PLANNING_TOOLS } from './forwardedPlanningSchemas'
 import { FORWARDED_WORKFLOW_TOOLS } from './forwardedWorkflowSchemas'
 import { FORWARDED_SKILL_TOOLS } from './forwardedSkillSchemas'
 import { FORWARDED_KNOWLEDGE_TOOLS } from './forwardedKnowledgeSchemas'
+import { FORWARDED_CODE_TOOLS } from './forwardedCodeSchemas'
 
 /** A routine's repeat: every N minutes, hours or days (at least 5 minutes), or a time of day on given weekdays. */
 const ROUTINE_RULE = z.discriminatedUnion('kind', [
@@ -114,6 +115,7 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
       boardId: z.string().optional().describe("Move the task to this board: it lands in the board's Backlog unless `column` is given too"),
       column: z.string().nullable().optional().describe('Move the task to this column name (e.g. "in_progress", "done"), or null for its board\'s Backlog'),
       planStart: z.string().nullable().optional().describe('Plan: the day the work is meant to start (YYYY-MM-DD), or null to clear. Moves no work: it is not the start time'),
+      workspaceId: z.string().nullable().optional().describe("One of the project's workspaces for the task to work in, or null for the project's files"),
       planFinish: z.string().nullable().optional().describe('Plan: the day the work is meant to finish (YYYY-MM-DD), or null to clear'),
       isEpic: z.boolean().optional().describe('true makes it an epic: a task that groups other tasks. An epic belongs to no epic'),
       epicId: z.string().nullable().optional().describe('The epic it belongs to (at most one), or null to take it out'),
@@ -134,6 +136,7 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
       priority: z.enum(['low', 'medium', 'high']).optional().describe('Task priority'),
       subtasks: z.array(z.object({ title: z.string(), done: z.boolean() })).optional(),
       planStart: z.string().nullable().optional().describe('Plan: the day the work is meant to start (YYYY-MM-DD), or null to clear. Moves no work: it is not the start time'),
+      workspaceId: z.string().optional().describe("One of the project's workspaces for the task to work in; omit for the project's files. In a code workspace (Git) it works on a branch of its own"),
       planFinish: z.string().nullable().optional().describe('Plan: the day the work is meant to finish (YYYY-MM-DD), or null to clear'),
       isEpic: z.boolean().optional().describe('true makes it an epic: a task that groups other tasks. An epic belongs to no epic'),
       epicId: z.string().nullable().optional().describe('The epic it belongs to (at most one), or null to take it out'),
@@ -277,6 +280,7 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
   ...FORWARDED_WORKFLOW_TOOLS,
   ...FORWARDED_SKILL_TOOLS,
   ...FORWARDED_KNOWLEDGE_TOOLS,
+  ...FORWARDED_CODE_TOOLS,
   {
     name: 'add_comment',
     schema: {

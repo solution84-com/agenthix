@@ -44,6 +44,7 @@ import ts from 'typescript'
 import { FORWARDED_TOOLS } from '../forwardedToolSchemas'
 import { WORKFLOW_TOOL_NAME_SET } from '../forwardedWorkflowSchemas'
 import { FORWARDED_SKILL_TOOLS } from '../forwardedSkillSchemas'
+import { CODE_TOOL_NAME_SET } from '../forwardedCodeSchemas'
 
 interface ToolInfo { fields: string[]; description: string | undefined }
 
@@ -157,7 +158,7 @@ describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts field-set drift @SC
 
   // The workflow tools and propose_skill are built on both sides from core's one declaration, so they can't drift;
   // forwardedWorkflowSchemas.test.ts and forwardedSkillSchemas.test.ts.
-  const declaredInCore = new Set([...WORKFLOW_TOOL_NAME_SET, ...FORWARDED_SKILL_TOOLS.map(t => t.name)])
+  const declaredInCore = new Set([...WORKFLOW_TOOL_NAME_SET, ...CODE_TOOL_NAME_SET, ...FORWARDED_SKILL_TOOLS.map(t => t.name)])
   it.each(FORWARDED_TOOLS.map(t => t.name).filter(n => !declaredInCore.has(n)))('%s has the same field-name set on both sides', (name) => {
     const site = siteFields.get(name)
     const hq = hqFields.get(name)

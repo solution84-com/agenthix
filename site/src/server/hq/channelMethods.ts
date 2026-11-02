@@ -1,9 +1,12 @@
 import { prisma } from '#db'
 import {
+  BRANCH_READ_METHODS,
+  BRANCH_WORK_METHODS,
   CLAUDE_LOGIN_METHODS,
   FILE_ABOUT_METHOD,
   GIT_STATUS_METHOD,
   LOCATION_FILE_METHODS,
+  MAIN_WORK_METHODS,
   MEMBERSHIP_METHODS,
   PACKAGE_METHODS,
   PREVIEW_METHODS,
@@ -47,6 +50,9 @@ import { readWorkflowFiles } from '../../executor/readFiles'
 import { relayLines } from '../relay/relayLines'
 import { fileAbout } from '../files/fileAbout'
 import { gitStatus } from '../storage/gitStatusMethod'
+import * as branchWork from '../branches/branchWorkMethods'
+import * as branchReads from '../branches/branchReadMethods'
+import * as mainWork from '../branches/mainWorkMethods'
 
 const startedAt = new Date()
 
@@ -190,6 +196,29 @@ export const channelMethods: ChannelHandlers = {
   [REPO_WORK_METHODS.connect]: (params) => repoWork.repoConnect(params),
   [REPO_WORK_METHODS.state]: (params) => repoWork.repoState(params),
   [GIT_STATUS_METHOD]: (params) => gitStatus(params),
+
+  // Code work on branches (site protocol 1.12, `../branches/`): every Git command on a code workspace's repository
+  // and its branches' copies runs in the commit helper, and every call naming a copy is checked against this site's
+  // own record of it.
+  [BRANCH_WORK_METHODS.create]: (params) => branchWork.branchCreate(params),
+  [BRANCH_WORK_METHODS.copy]: (params) => branchWork.branchCopy(params),
+  [BRANCH_WORK_METHODS.commit]: (params) => branchWork.branchCommit(params),
+  [BRANCH_WORK_METHODS.bringBack]: (params) => branchWork.branchBringBack(params),
+  [BRANCH_WORK_METHODS.updateFromMain]: (params) => branchWork.branchUpdateFromMain(params),
+  [BRANCH_WORK_METHODS.rename]: (params) => branchWork.branchRename(params),
+  [BRANCH_WORK_METHODS.delete]: (params) => branchWork.branchDelete(params),
+  [BRANCH_WORK_METHODS.removeCopy]: (params) => branchWork.branchRemoveCopy(params),
+  [BRANCH_READ_METHODS.list]: (params) => branchReads.branchList(params),
+  [BRANCH_READ_METHODS.changes]: (params) => branchReads.branchChanges(params),
+  [BRANCH_READ_METHODS.commits]: (params) => branchReads.branchCommits(params),
+  [BRANCH_READ_METHODS.readFile]: (params) => branchReads.gitReadFile(params),
+  [BRANCH_READ_METHODS.listTree]: (params) => branchReads.gitListTree(params),
+  [BRANCH_READ_METHODS.versions]: (params) => branchReads.gitVersions(params),
+  [MAIN_WORK_METHODS.init]: (params) => mainWork.gitInit(params),
+  [MAIN_WORK_METHODS.merge]: (params) => mainWork.gitMerge(params),
+  [MAIN_WORK_METHODS.restore]: (params) => mainWork.gitRestore(params),
+  [MAIN_WORK_METHODS.pushMain]: (params) => mainWork.gitPushMain(params),
+  [MAIN_WORK_METHODS.pullMain]: (params) => mainWork.gitPullMain(params),
 
   // A dev server somebody is watching. Both are control methods — a command,
   // a port, an id — because a preview's own traffic crosses the content

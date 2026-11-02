@@ -27,6 +27,7 @@ vi.mock('../proxyContainer', async importOriginal => ({
 
 import { RunNetworkRefused } from '../../seams'
 import { proxyCreateArgs } from '../proxyContainer'
+import { setKernelIpv6ForTests } from '../../../agents/runtime/ipv6Off'
 import { startRunNetwork, sweepEgress } from '../runNetwork'
 
 const HOSTS = [{ host: 'registry.npmjs.org', port: 443 }, { host: 'staging.example.com', port: 22 }]
@@ -99,7 +100,8 @@ describe('a run\'s network @SC-1347', () => {
 })
 
 describe('the proxy\'s container @SC-1347', () => {
-  it('is hardened as a step is, with no log and its program on standard input', () => {
+  it('is hardened as a step is, with IPv6 off, no log and its program on standard input', () => {
+    setKernelIpv6ForTests(true)
     const args = proxyCreateArgs({
       runId: 'r1', name: 'p', internalNetwork: 'in', egressNetwork: 'out',
       config: { address: '10.211.0.10', dnsPort: 53, hosts: HOSTS },
@@ -109,8 +111,10 @@ describe('the proxy\'s container @SC-1347', () => {
       expect(args[args.indexOf(flag[0]!) + 1]).toBe(flag[1])
     }
     expect(args).toContain('--read-only')
+    expect(args.flatMap((a, i) => (a === '--sysctl' ? [args[i + 1]] : []))).toEqual(expect.arrayContaining(['net.ipv6.conf.all.disable_ipv6=1', 'net.ipv6.conf.default.disable_ipv6=1']))
     expect(args.slice(-4)).toEqual(['sha256:abc', 'node', '--input-type=module', '-'])
     expect(args).not.toContain('-v')
     expect(args.join(' ')).not.toContain('docker.sock')
+    setKernelIpv6ForTests(null)
   })
 })

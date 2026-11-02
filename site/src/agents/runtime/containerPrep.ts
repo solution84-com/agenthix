@@ -9,7 +9,7 @@
 import type { CapabilityRunner, RunContextPayload } from '@agenthix/core'
 import type { SiteRunCredential } from '../../server/modelRelay/runAccess'
 import { agentContainerManager } from './AgentContainerManager'
-import type { AgentMounts, ContainerKey, StorageBoundaryKey } from './containerTypes'
+import type { AgentMounts, ContainerContext, ContainerKey, StorageBoundaryKey } from './containerTypes'
 import type { LocationRef } from '../../server/storage/paths'
 import { listWorkspacesByOwner } from '../../server/storage/workspaceRows'
 import { getSiteRoot } from '../agentDiskPaths'
@@ -22,6 +22,7 @@ import {
 } from './locationResolver'
 import { runHasWriteTools, type RunWritePermissions } from './toolPermissions'
 import { assertRunnerFitsKey } from './harnessHomes'
+import { codeWorkspaceMounts, copyContainerDir } from './codeWorkspaceMounts'
 
 /**
  * Which container a run gets: the storage it works in, the mode that storage
@@ -91,6 +92,10 @@ export async function prepareAgentContainer(
    *  (`resolveContainerKey`) so the key the home is built from and the key the
    *  container is named for are the same object, not two derivations of it. */
   key: ContainerKey,
+  /** A run on a branch's copy: its working folder is the copy (live preview spec, *Where the copy lives*). */
+  codeWork: { copyId: string } | null = null,
+  /** Told when the run waits for its container's other runs to end before using it (`bindsDrain.ts`). */
+  bindsWait: Pick<ContainerContext, 'onWaitForBinds' | 'stillWanted'> = {},
 ): Promise<{ containerName: string; mounts: AgentMounts; primaryContainerPath: string } | null> {
   if (process.env.AGENT_CONTAINER_ISOLATION !== 'true') return null
 
@@ -103,6 +108,8 @@ export async function prepareAgentContainer(
     invokerUserId: session.sessionType === 'chat' ? session.userId : null,
     taskId: effectiveTaskId,
     credential: ctx.credential,
+    codeWork: codeWork !== null,
+    ...bindsWait,
   }
 
   // Read off the key rather than recomputed: `resolveContainerKey` decided it,
@@ -131,12 +138,14 @@ export async function prepareAgentContainer(
     throw new Error(`Workspace ${primaryLoc.workspaceId} no longer exists — cannot work in its path`)
   }
 
+  const boundary = resolveBoundaryMount(owner, getSiteRoot())
   const mounts: AgentMounts = {
-    boundary: resolveBoundaryMount(owner, getSiteRoot()),
+    boundary,
     folders: resolveAccessibleLocations(owner, getSiteRoot(), ownerWorkspaces),
     locationMode,
+    readOnly: await codeWorkspaceMounts(boundary, ownerWorkspaces),
   }
-  const primaryContainerDir = resolvePrimaryContainerDir(primaryLoc)
+  const primaryContainerDir = codeWork ? copyContainerDir(boundary, codeWork.copyId) : resolvePrimaryContainerDir(primaryLoc)
 
   const containerName = await agentContainerManager.ensureRunning(key, containerContext, mounts)
 

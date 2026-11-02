@@ -20,7 +20,7 @@ import {
 import { openEnvelope, sealEnvelope, type EnvelopeReplayGuard, type HostKeys } from '@agenthix/core/host-crypto'
 import type { StateFolder } from '../state/folder'
 import { readPin, type ConsolePin } from './pin'
-import { deliverHandoverCode } from './askCode'
+import { awaitsHandoverCode, deliverHandoverCode } from './askCode'
 import { isFromCloudController } from './cloudController'
 import { heldNotices } from '../scheduled/notices'
 
@@ -39,6 +39,8 @@ export type EnvelopeDeps = {
    * why a move this machine was armed for ended before it came.
    */
   onMessage?: (message: Record<string, unknown>) => void
+  /** Whether a `moveCode` answers an ask still waiting here (move/code.ts). */
+  awaitsMoveCode?: (message: Record<string, unknown>) => boolean
 }
 
 const TEXT = /^[^\u0000-\u001f\u007f]{1,256}$/
@@ -88,6 +90,13 @@ export function envelopeHandler(d: EnvelopeDeps): (data: unknown) => Promise<voi
         pinned: fp => (pin && fp === pin.consoleFingerprint ? pin.console : null),
         replay: d.replay,
         now: d.now(),
+        // An answer to an ask made since this service started is taken in its first moments too; a request is not.
+        awaited: (message, from) => {
+          const m = message as Record<string, unknown> | null
+          if (m?.kind === 'handoverCode') return awaitsHandoverCode(from, m)
+          if (m?.kind === 'moveCode') return d.awaitsMoveCode?.(m) ?? false
+          return false
+        },
       })
       if (!opened.ok) {
         d.log?.(`An envelope was refused: ${opened.reason}.`)

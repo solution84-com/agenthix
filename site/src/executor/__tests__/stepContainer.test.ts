@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { afterAll, beforeAll, describe, it, expect } from 'vitest'
 import { WORKFLOW_CONTAINER_LIMITS } from '@agenthix/core'
 import { buildStepRunCommand, valuesArchive, type StepContainerSpec } from '../stepContainer'
 import { commandForStep } from '../approvedFiles'
 import { CANARY } from './fixtures'
+import { setKernelIpv6ForTests } from '../../agents/runtime/ipv6Off'
 
 const spec = (over: Partial<StepContainerSpec> = {}): StepContainerSpec => ({
   runId: 'run-1', index: 1, image: `sha256:${'c'.repeat(64)}`,
@@ -15,8 +16,15 @@ const spec = (over: Partial<StepContainerSpec> = {}): StepContainerSpec => ({
 
 const pair = (args: string[], flag: string) => args.flatMap((a, i) => (a === flag ? [args[i + 1]] : []))
 
+beforeAll(() => setKernelIpv6ForTests(true))
+afterAll(() => setKernelIpv6ForTests(null))
+
 describe('how an executor container is started @SC-1342', () => {
   const { args, clientEnv } = buildStepRunCommand(spec())
+
+  it('has IPv6 off on every interface it has and gets', () => {
+    expect(pair(args, '--sysctl')).toEqual(['net.ipv6.conf.all.disable_ipv6=1', 'net.ipv6.conf.default.disable_ipv6=1'])
+  })
 
   it('has every setting the spec lists', () => {
     expect(args.slice(0, 2)).toEqual(['run', '-i'])
@@ -36,6 +44,13 @@ describe('how an executor container is started @SC-1342', () => {
     expect(tmpfs.some(t => t!.startsWith('/run/params:'))).toBe(true)
     expect(pair(args, '-e')).toEqual(expect.arrayContaining(['HOME=/tmp/home', 'XDG_CONFIG_HOME=/tmp/home/.config', 'GH_CONFIG_DIR=/tmp/home/.config/gh']))
     expect(pair(args, '-w')).toEqual(['/projects/p/workspaces/w'])
+  })
+
+  it("runs every git with no hook and no file-system monitor, whatever the workspace's repository names", () => {
+    expect(pair(args, '-e')).toContain("GIT_CONFIG_PARAMETERS='core.hooksPath=/dev/null' 'core.fsmonitor=false'")
+    const named = buildStepRunCommand(spec({ variables: { GIT_CONFIG_PARAMETERS: "'core.hooksPath=.git/hooks'" } }))
+    expect(pair(named.args, '-e').filter(e => e!.startsWith('GIT_CONFIG_PARAMETERS'))).toEqual(["GIT_CONFIG_PARAMETERS='core.hooksPath=/dev/null' 'core.fsmonitor=false'"])
+    expect(named.clientEnv).not.toHaveProperty('GIT_CONFIG_PARAMETERS')
   })
 
   it('binds the approved files read-only and the scratch folder writable', () => {

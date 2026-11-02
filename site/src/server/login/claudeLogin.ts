@@ -8,6 +8,7 @@ import { dockerWithin } from '../../agents/runtime/containerLifecycle'
 import { AGENT_CONTAINER_CLAUDE_HOME } from '../../agents/agentDiskPaths'
 import { agentImageName } from '../../agents/runtime/agentImage'
 import { ensureAgentNetwork, releaseAgentNetwork } from '../../agents/runtime/containerNetwork'
+import { ipv6OffArgs } from '../../agents/runtime/ipv6Off'
 import { composeProjectLabelArgs, siteNamespace } from '../../agents/runtime/containerLabels'
 import { Logger } from '../utils/logger'
 
@@ -113,6 +114,7 @@ function args(login: Login, scratch: string, image: string, network: string): st
     '--network', network,
     '--cap-drop', 'ALL',
     '--security-opt', 'no-new-privileges',
+    ...ipv6OffArgs(),
     '--memory', '512m',
     '--pids-limit', '256',
     '-v', `${scratch}:${AGENT_CONTAINER_CLAUDE_HOME}`,

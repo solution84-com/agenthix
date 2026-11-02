@@ -20,6 +20,7 @@ import { callHqData, HqDataError } from '../hq/dataClient'
 import type { ZodRawShape } from 'zod'
 import { FORWARDED_TOOLS, type ForwardedTool } from './forwardedToolSchemas'
 import { registerSiteTools } from './siteTools'
+import { CODE_TOOL_NAME_SET } from './forwardedCodeSchemas'
 import type { SiteToolsOptions } from './siteTools'
 
 function mcpOk(data: unknown) {
@@ -116,6 +117,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): McpServer {
 
   for (const tool of FORWARDED_TOOLS) {
     const { name, description } = tool
+    if (CODE_TOOL_NAME_SET.has(name) && !opts.siteTools?.context?.codeWork) continue
     const schema = agentSchema(tool)
     const handler = async (args: unknown) => {
       if (tool.runIdFromCaller && !callingRunId) return mcpError(NO_RUN)

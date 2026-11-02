@@ -7,6 +7,7 @@ import { maxConcurrentRuns } from '../../agents/runtime/AgentEngine'
 import { siteCeilings } from '../../agents/runtime/containerLimits'
 import { getStorageRoot } from '../storage/paths'
 import { readMacAvailableBytes } from './macMemory'
+import { branchCopiesReport } from './branchCopiesSize'
 import { runtimeCheck } from './runtimeCheck'
 import { executorImageReport } from './executorImageReport'
 import { executorImageName } from '../../agents/runtime/agentImage'
@@ -22,6 +23,7 @@ export type HealthDeps = {
   disk?: (path: string) => Promise<{ freeBytes: number; totalBytes: number }>
   memory?: () => { availableBytes: number; totalBytes: number }
   now?: () => Date
+  branchCopies?: () => Promise<{ usedBytes: number } | null>
 }
 
 /**
@@ -85,6 +87,7 @@ export async function takeHealth(deps: HealthDeps = {}): Promise<SiteHealth> {
     ceilings: siteCeilings(),
     // A condition, never a figure (spec §10).
     memoryNearlyFull: memoryCondition((deps.memory ?? machineMemory)()),
+    branchCopies: await (deps.branchCopies ?? (() => branchCopiesReport(getStorageRoot())))(),
   }
 }
 

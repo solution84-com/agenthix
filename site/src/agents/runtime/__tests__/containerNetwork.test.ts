@@ -93,12 +93,24 @@ describe('ensureAgentNetwork', () => {
     releaseAgentNetwork('c3')
   })
 
-  it('connects the site container when the site runs in one', async () => {
+  it('connects the site container when the site runs in one, never as its way out, which stays its own network\'s', async () => {
     process.env.SITE_CONTAINER_NAME = 'agenthix-site'
     mockDocker(() => ({}))
     await ensureAgentNetwork('c4')
-    expect(calls()).toContain('network connect c4-net agenthix-site')
+    // The agent network's gateway as the site's default route would send the site's own traffic out from an agent
+    // address, where the agents' protections drop it.
+    expect(calls()).toContain('network connect --gw-priority -1 c4-net agenthix-site')
     releaseAgentNetwork('c4')
+  })
+
+  it('connects without a gateway priority on an engine that has none', async () => {
+    process.env.SITE_CONTAINER_NAME = 'agenthix-site'
+    mockDocker(args => args.includes('--gw-priority')
+      ? { err: new Error('"gw-priority" requires API version 1.48, but the Docker daemon API version is 1.45') }
+      : {})
+    await expect(ensureAgentNetwork('c6')).resolves.toBe('c6-net')
+    expect(calls()).toContain('network connect c6-net agenthix-site')
+    releaseAgentNetwork('c6')
   })
 
   it('treats an already-connected site as success', async () => {
@@ -218,7 +230,7 @@ describe('sweepAgentNetworks', () => {
     mockExecFile.mockImplementation(((_cmd: string, args: string[], cb: any) => {
       const line = args.join(' ')
       const answer = (err: Error | null, stdout = '') => cb(err, stdout, err ? err.message : '')
-      if (line === 'network connect c8-net agenthix-site') { connectHeld.then(() => answer(null)); return }
+      if (line === 'network connect --gw-priority -1 c8-net agenthix-site') { connectHeld.then(() => answer(null)); return }
       if (args[1] === 'ls') return answer(null, 'c8-net\n')
       if (args[0] === 'container') return answer(new Error('No such container'))
       answer(null)
@@ -260,7 +272,7 @@ describe('sweepAgentNetworks', () => {
     await expect(sweeping).resolves.toBe(1)
     await expect(ensuring).resolves.toBe('c9-net')
     const c = calls()
-    expect(c.indexOf('network connect c9-net agenthix-site')).toBeGreaterThan(c.indexOf('network rm c9-net'))
+    expect(c.indexOf('network connect --gw-priority -1 c9-net agenthix-site')).toBeGreaterThan(c.indexOf('network rm c9-net'))
     expect(c.some(x => x.startsWith('network create'))).toBe(true)
     releaseAgentNetwork('c9')
   })

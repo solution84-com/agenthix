@@ -19,6 +19,7 @@ import { listAgentHandles } from '../agents/agentDiskPaths'
 import { listStorageBoundaries } from './storage/storageBoundaries'
 import { setAsideSupersededMemory } from '../agents/memorySupersede'
 import { runCrashRecoverySweep, flushBootSweepBuffer } from './runtime/bootSweep'
+import { bringBackPending } from './branches/codeWorkRun'
 import { sweepExecutorLeftovers } from '../executor/runCleanup'
 import { sweepExpiredRunTokens } from './runtime/runTokens'
 import { setAfterPackageStored } from '../packages/packageMethods'
@@ -101,6 +102,15 @@ export async function setupServer(): Promise<void> {
   await connectFromPairingSecretIfConfigured()
   // A move of hq that a restart interrupted: carry on checking the new address (host-management spec §13).
   await addressFollower.resume()
+
+  // Branches whose copies had commits not yet back when the site stopped (live preview spec, *Commits, and the
+  // branch coming back*): brought back once hq is reachable, so it hears that they moved. Once per process.
+  let broughtBack = false
+  hqConnectionManager.onOpen(() => {
+    if (broughtBack) return
+    broughtBack = true
+    void bringBackPending().catch(() => 0)
+  })
 
   // Package cache hygiene: periodic eviction + `.incoming` sweep. Every site
   // holds a package cache regardless of whether it also runs containers, so

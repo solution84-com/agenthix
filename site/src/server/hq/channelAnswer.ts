@@ -20,7 +20,8 @@ export async function answerChannelRequest(
     send({ version: SITE_PROTOCOL_VERSION, type, siteId, replyTo: requestId, payload })
 
   const method = msg.payload?.method ?? ''
-  const handler = methods[method]
+  // Only a method the map itself has: a name like `toString` or `__proto__` is not one.
+  const handler = Object.prototype.hasOwnProperty.call(methods, method) ? methods[method] : undefined
   if (!handler) {
     reply('channel.error', { message: `Unknown method: ${method}`, code: 'unknown_method' })
     return

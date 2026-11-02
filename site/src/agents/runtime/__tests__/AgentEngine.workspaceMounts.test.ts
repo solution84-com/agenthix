@@ -31,6 +31,8 @@ import type { RunContextPayload } from '@agenthix/core'
 vi.mock('node:fs/promises', () => ({
   default: {
     mkdir: vi.fn().mockResolvedValue(undefined),
+    // No workspace here is a Git repository (codeWorkspaceMounts.ts looks for a `.git`).
+    lstat: vi.fn().mockRejectedValue(Object.assign(new Error('ENOENT'), { code: 'ENOENT' })),
   },
 }))
 

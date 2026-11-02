@@ -4,6 +4,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { startLogin, finishLogin, cancelLogin, _resetForTests, type LoginDeps } from '../claudeLogin'
+import { setKernelIpv6ForTests } from '../../../agents/runtime/ipv6Off'
 
 const URL_OUT = 'https://claude.ai/oauth/authorize?code=true&client_id=abc&state=SECRETSTATE'
 const OAUTH = { claudeAiOauth: { accessToken: 'sk-ant-oat-AAA', refreshToken: 'sk-ant-ort-BBB', expiresAt: 1790000000000 } }
@@ -118,8 +119,10 @@ describe('startLogin', () => {
     expect((await p).url).toBe('https://claude.ai/oauth/authorize?state=x')
   })
 
-  it('spawns exactly the container command, as an array', async () => {
+  it('spawns exactly the container command, as an array, with IPv6 off', async () => {
+    setKernelIpv6ForTests(true)
     await begin()
+    setKernelIpv6ForTests(null)
     const { cmd, args } = spawnCalls[0]
     expect(cmd).toBe('docker')
     const name = args[args.indexOf('--name') + 1]
@@ -132,6 +135,7 @@ describe('startLogin', () => {
     expect(args[args.indexOf('--security-opt') + 1]).toBe('no-new-privileges')
     expect(args).toContain('--memory')
     expect(args).toContain('--pids-limit')
+    expect(args.flatMap((a, i) => (a === '--sysctl' ? [args[i + 1]] : []))).toEqual(['net.ipv6.conf.all.disable_ipv6=1', 'net.ipv6.conf.default.disable_ipv6=1'])
     expect(args[args.indexOf('-v') + 1]).toBe(`${scratches[0]}:/home/appuser/.claude`)
     expect(args.filter(a => a === '-v')).toHaveLength(1)
     expect(args.slice(-4)).toEqual(['claude', 'agenthix-agent', 'auth', 'login'])
