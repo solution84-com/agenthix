@@ -81,7 +81,7 @@ and the same role floors — and a run in a project is refused the tools that ac
 
 | Domain | Tool | Tier |
 |---|---|---|
-| **Platform** | `ping` · `get_site_info` · `start_preview` · `stop_processes` | always |
+| **Platform** | `ping` · `get_site_info` · `stop_processes` | always |
 | **Org** | `get_org` · `list_teams` | default |
 | | `update_org` · `create_team` | administrative |
 | **Product** | `list_products` · `get_product` | default |
@@ -102,10 +102,23 @@ and the same role floors — and a run in a project is refused the tools that ac
 | **Library** | `list_workforce_templates` · `propose_workforce_template` | administrative |
 | **Git** | `get_github_config` | administrative |
 | **Workflow** | `list_workflows` · `propose_workflow` · `run_workflow` · `workflow_run` | always |
+| **Live preview** | `start_app` · `stop_app` · `list_apps` · `reload_view` · `set_auto_reload` | always, to every code-work run; answered while its branch has a live preview on its site |
+| | `install_packages` · `ask_to_use_package` | always, to a code-work run |
+| | `offer_live_preview` | the lead only |
 | **Memory** | `remember` · `forget` · `recall` | always |
 | **Knowledge** | `search_knowledge` · `read_knowledge` · `write_knowledge` · `edit_knowledge` · `delete_knowledge` | always (the last three only to a run that may change files) |
 
 **`run_task` is the task-delegation tool** — `adr-0020` chose delegation through a tool over sub-agent spawning, and this is the surface that decision rests on.
+
+## What the live preview tools do
+
+The app tools act on the live preview of the branch the run works on, on the run's own site; hq reads it from its rows at
+each call, and the workspace and branch are never arguments, so a run cannot reach another branch's. `start_app` on a branch
+with none opens it first, as the run's person and on the run's site, through the same checks as a person's *Live preview*
+(their role, the site's limits); a refusal starts nothing. The other app tools are refused then. Starting the live preview is the permission, so they are
+not asked for. `install_packages` installs npm packages with scripts off and runs the scripts of those that pass the rule;
+`ask_to_use_package` asks a person about one that failed it. `offer_live_preview` puts a card with a button in the lead's
+reply; the person's press starts the live preview. See [site_live_preview.md](../sites/site_live_preview.md).
 
 ## What the board and milestone tools do
 

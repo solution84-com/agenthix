@@ -414,11 +414,22 @@ server {
 For Caddy on `agenthix-edge`, `hq.example.com, files.hq.example.com { reverse_proxy agenthix-hq-web:4100 }`; Traefik,
 Nginx Proxy Manager or a Cloudflare Tunnel route the same two hosts the same way.
 
-**Live previews** need a wildcard host name of their own and a wildcard certificate
-([ADR-0071](../adr/adr-0071-a-preview-is-served-from-its-own-host-name.md),
-[sites/site_live_preview.md](sites/site_live_preview.md)). The host service's front door does not hold one, and an
-install the host service makes sets no `PREVIEW_DOMAIN` (`host/src/compose/projects.ts`), so previews are off there:
-an agent's `start_preview` is refused, and the rest of hq is unaffected.
+**Live previews** need a wildcard host name of their own and a certificate for each app
+([ADR-0169](../adr/adr-0169-live-apps-travel-through-relays.md),
+[sites/site_live_preview.md](sites/site_live_preview.md)). A live app is reached at `p-<id>.<preview domain>`, built from
+the pattern `PREVIEW_PATTERN`, which the host service sets for hq-server, hq's relay and hq-web from the preview domain:
+
+- **A server with a domain.** One wildcard DNS record, then `agenthix front-door on --previews <preview domain>`. The front
+  door asks for one certificate per app on its first open, after asking hq (`/preview-certificate-ask`), which says yes
+  only for an app id it has recorded and for the check name. The command runs three checks (DNS, port 443 with a
+  certificate a browser accepts, the relay answering behind it) and puts everything back if one fails.
+- **hq-web** sends the preview names to the relay, not to hq-server.
+- **A laptop with hq at `http://localhost:<port>`** needs nothing: the pattern is `p-<id>.preview.localhost:<port>`.
+- **A bare network address** has no pattern, so no live previews; the rest of hq is unaffected.
+- **Your own web server** sends the wildcard name to hq's address and holds a certificate covering it.
+
+Live previews are also per site: a fleet admin switches them on in the Fleet Console, and the machine's firewall rules for
+the live-preview part of the agent address range must hold ([ports.md](ports.md)).
 
 ## The Fleet Console
 

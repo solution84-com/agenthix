@@ -17,3 +17,4 @@ These pages use a project on **HQ**, your organisation's home in Agenthix, and t
 8. [Files in conversations](files-in-conversations.md): chips, Mention and `@`, and how agents point at files and tasks.
 9. [Images in pages](images-in-pages.md): show a picture in a knowledge page, a task or a reply.
 10. [Code workspaces and branches](code-workspaces.md): turn Git on, a working copy for each branch, the full-screen workspace view, merging into main and restoring a version.
+11. [Live previews](live-previews.md): see the app an agent is building run beside the conversation, with its services, packages and secrets.

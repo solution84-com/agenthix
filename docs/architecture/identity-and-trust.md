@@ -202,8 +202,7 @@ intersection, never a union.
   a chat in a person's own storage may use them, with that person's role; a run in a project is refused them
   whatever its person may do.
 - **A run on behalf of no one** — a task run whose task is gone, a session that is neither a task's nor a
-  chat — is refused every operation but its boundary's own runtime support (a preview, its repository's
-  credential).
+  chat — is refused every operation but its boundary's own runtime support (its repository's credential).
 - **The agent's permissions never enter into it.** Bypassed widens nothing here.
 
 **Renewed while the run lasts.** The site renews a capability before it expires, through

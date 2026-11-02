@@ -82,3 +82,7 @@ HQ's page carries a card for hq's relay, and a relay that is not answering is on
 
 - **SC-1592** — HQ's page shows a card for HQ's relay: its address, the sites it serves, today's traffic as people read it and its open streams; with no files address it says it answers on HQ's own address, that PDF preview is off, and links to the guide; it says what is not reported yet and warns when the relay is not answering; and it is left out when HQ has no relay, has not said, or is an older HQ. · fulfils AC-396a
 - **SC-1593** — A relay that is not answering is listed on *Needs you* with the words people see and opens HQ; it is not listed while it answers, when HQ has none, or when HQ itself is not answering. · fulfils AC-396b
+
+## Live previews on a site (added 2026-11-02)
+
+- **SC-1755** — A site's page shows *Live previews on this site*, its capacity against the machine and the live previews open, with whose, which branch and when last used; it marks the site busy past 80% of its memory and shows why live previews cannot start; it changes the limit and the idle stop, rejecting what is out of range without asking; turning live previews off lists the ones it stops and asks first, turning them on is one press, and one live preview is stopped after a confirmation; it says so when HQ cannot be read; the disk branch copies use is shown against the machine's disk, and left out while the site has not said. · fulfils AC-422a, AC-422b, AC-422c, AC-422d

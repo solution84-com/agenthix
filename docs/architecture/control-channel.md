@@ -33,9 +33,9 @@ that need no answer. When the site needs something from hq (a platform tool call
 makes an ordinary HTTPS request instead, because hq does not serve requests on the channel.
 
 A second WebSocket, the **content transport** (`/hq-content`), runs beside the control channel with the
-same credential. It carries the bytes hq itself needs (a place's instruction file, a knowledge page, agent packages,
-live preview traffic) so a large transfer never delays a control message
-([ADR-0063](../adr/adr-0063-preview-traffic-crosses-on-its-own-transport.md)). **The bytes of a file a person opens do
+same credential. It carries the bytes hq itself needs (a place's instruction file, a knowledge page, agent packages)
+so a large transfer never delays a control message
+([ADR-0063](../adr/adr-0063-preview-traffic-crosses-on-its-own-transport.md); a live app's traffic has since moved to relays, [ADR-0169](../adr/adr-0169-live-apps-travel-through-relays.md)). **The bytes of a file a person opens do
 not cross it**: the site serves them to its relay, on a third WebSocket it dials to the relay, which reuses the same
 frames and stream multiplexer ([files-and-relays.md](files-and-relays.md#the-sites-line)).
 
@@ -144,7 +144,8 @@ sequenceDiagram
 | Git | `repoWork.ts`, `gitStatus.ts` | `repo.connect`, `repo.state`; `git.status`, a folder's branch, changed count and last commit, read without running anything the repository holds (since 1.8) |
 | Workflow runs | `workflowRuns.ts` (`WORKFLOW_RUN_METHODS`) | `workflow.run`, the one message that carries secret values, answered at once and followed by `workflow.step` and `workflow.result` events; `workflow.stop`, `workflow.get`; `workflow.readFiles`, a proposal's files, refusing any link. See [workflows.md](workflows.md) |
 | Agent packages, and the skills a run names | `packages.ts` | `packages.missing`, `packages.put`; the `skill` package kind carries an installed or personal skill's published version (since 1.10) |
-| Previews | `preview.ts` | `preview.start`, `preview.stop` |
+| Live previews | `livePreviews.ts`, `livePreviewApps.ts` | `livePreview.open`, `.resume`, `.stop`, `.list`, `.act` (apps, services and package answers), `.refresh` (a copy of `main`), `.commit`; the events `livePreview.state`, `.appState`, `.services`, `.guard`, `.guardReport`, `.branchMoved` and `.packageBlocked`; `site.livePreviews`, a site's setting and capacity (since 1.12). `app.serve`, a content stream a relay opens, carries an app's bytes. See [sites/site_live_preview.md](sites/site_live_preview.md) |
+| Branches between sites | `branchBundles.ts`, `branchPackages.ts` | `bundle.make`, `bundle.drop`, `branch.bringBackBundle`; the streams `bundle.read` and `bundle.write` a relay opens; `branch.packageBlocked` and `branch.packageUse` for an install script asked about in a branch's thread (since 1.12). `preview.start`, `preview.stop` and `preview.connect` are deprecated since 1.12 and answer as gone |
 | A person leaving | `membership.ts` | `membership.memberLeftProject`, `membership.personLeftOrganisation` |
 | What is running in one boundary | `activeRuns.ts` | `run.listActive`: each `PENDING` or `RUNNING` run's ids, status and times, never its content; hq resolves the names. The platform tool `list_active_runs` is built on it |
 | What runs add up to | `runUsage.ts` | `run.usage`: run counts and tokens summed on the site, grouped by session, agent or storage owner, for a period; hq resolves each session's person and project |
@@ -383,11 +384,11 @@ person is an admin and asks the one site, turning a failed request into a `409` 
 state ("offline") rather than as a server error. For a figure from every site at once, use `askEverySite` in
 `hq/src/sites/combinedRead.ts`, which never fails because one site did.
 
-The places a new method touches, using `preview.stop` as the example:
+The places a new method touches, using `livePreview.stop` as the example:
 
-1. **The contract, in `core`.** Add the method name and its parameter and result types to the right file in `core/src/protocol/` (here `preview.ts`), export it from
+1. **The contract, in `core`.** Add the method name and its parameter and result types to the right file in `core/src/protocol/` (here `livePreviews.ts`), export it from
    `core/src/protocol/index.ts`, and bump `SITE_PROTOCOL_VERSION`'s minor.
-2. **The site's handler.** Write it beside its peers (here `site/src/server/hq/previewMethods.ts`),
+2. **The site's handler.** Write it beside its peers (here `site/src/server/livePreviews/livePreviewMethods.ts`),
    validating its parameters with zod, and add it to the closed map in
    `site/src/server/hq/channelMethods.ts`. A method missing from the map is answered `unknown_method`.
 3. **hq's caller.** Call `siteChannelRegistry.request(siteId, method, params)` from a typed store, so a

@@ -134,5 +134,17 @@ each caller really came from. Nothing else needs setting.
 
 ## Live previews
 
-An agent can serve the app it is building as a live preview, each from a host name of its own. An install made with
-`agenthix install` has live previews off, and no setting turns them on. Everything else works.
+An agent can serve the app it is building as a live preview (see [Live previews](../projects/live-previews.md)), each app
+from a host name of its own, `p-<id>.<preview domain>`. That needs:
+
+- **A domain for HQ.** An HQ reached by a bare network address has no live previews, and says a domain is needed.
+  On a laptop, HQ at `http://localhost` works with no setting: apps open at `http://p-<id>.preview.localhost:<port>`, for that
+  laptop's own browser only.
+- **A preview domain and one wildcard DNS record** pointing at the machine, then
+  `agenthix front-door on --previews <preview domain>` with the host service's front door. Each app gets its certificate the first
+  time it is opened.
+- **Live previews switched on for each site** that should run them, in the Fleet Console.
+
+The steps, the checks and the settings are on [Live previews on a site](live-previews-on-a-site.md). With your own web server,
+send the wildcard name to HQ's address with a certificate that covers the wildcard. Everything else in HQ works without any
+of this.

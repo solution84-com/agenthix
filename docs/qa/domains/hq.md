@@ -1,12 +1,12 @@
 ---
 name: Domain map — hq
 description: Feature-domain carving of the hq module for a QA audit's accuracy code pass. Stable domain order keeps US-numbering stable across runs. Regenerated 2026-09-26 from main.wasp (221 operations); domains 21 and 22 and the operation changes of the agents-own-schedule unit added 2026-10-05 (254 operations); domains 23 to 25 and the operation changes of the unit *every screen reviewed* added 2026-10-12 (350 operations) and the src/ tree, after the hq/site split; domain 27 and the operation changes of the agent knowledge unit added 2026-10-26 (470 operations). Update only when the operation set changes.
-updated: 2026-10-26
+updated: 2026-11-02
 ---
 
 # Domain map — `hq/`
 
-27 domains (17 from the 2026-06-19 map, one added beside 16, three added at the end so existing numbers stay stable, two more on 2026-10-05 three more on 2026-10-12, one on 2026-10-17 and one on 2026-10-26). Each subagent reads only its files; the one-line scope is what every other subagent receives for overlap awareness. Operation names are the Wasp declarations in `main.wasp.ts`; `main.wasp` declared 221 (117 actions, 88 queries, 16 api). Since 2026-10-12 each feature folder declares its own operations in `src/<folder>/<folder>.wasp.ts`, `main.wasp.ts` gathers them, and the total was 350 (180 actions, 150 queries, 20 api); on 2026-10-26 it is 470 (234 actions, 207 queries, 29 api).
+28 domains (17 from the 2026-06-19 map, one added beside 16, three added at the end so existing numbers stay stable, two more on 2026-10-05 three more on 2026-10-12, one on 2026-10-17, one on 2026-10-26 and one on 2026-11-02). Each subagent reads only its files; the one-line scope is what every other subagent receives for overlap awareness. Operation names are the Wasp declarations in `main.wasp.ts`; `main.wasp` declared 221 (117 actions, 88 queries, 16 api). Since 2026-10-12 each feature folder declares its own operations in `src/<folder>/<folder>.wasp.ts`, `main.wasp.ts` gathers them, and the total was 350 (180 actions, 150 queries, 20 api); on 2026-10-26 it is 470 (234 actions, 207 queries, 29 api).
 
 This map was named `site.md` until 2026-09-26. After the split, hq holds the control plane and the whole browser UI; the agent runtime, session drivers, workspace storage, MCP serving and the control-channel client live in the separate `site/` module, which has no domain map yet.
 
@@ -133,8 +133,8 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 - **Ops:** getModelCredentialStatus, setModelCredential, deleteModelCredential, startClaudeLogin, completeClaudeLogin, cancelClaudeLogin, getMyModelAccess, getWebSearchKeyStatus, setWebSearchKey, deleteWebSearchKey
 
 ### 19. Storage, workspaces & repositories
-- **Files:** `src/storage/` (actions.ts, queries.ts, locationAccess.ts, workspaceStore.ts, repoAttachmentService.ts); `src/github/` (actions.ts, queries.ts); `src/storage/pages/`; `src/preview/` (open a project's files as a page)
-- **Ops:** createWorkspace, deleteWorkspace, setWorkspaceAllowedTools, connectRepo, disconnectRepo, getRepoState, getMyStorage, getWorkspace, listLocationFiles, getFileContent, getWorkflows, getRuns, getRepoSecrets, getWorkspacesAcrossPlaces, getMyStorageSite, listArtefacts, getArtefactContent, getPlaceInstructions, listPlacePreviews, openPreview
+- **Files:** `src/storage/` (actions.ts, queries.ts, locationAccess.ts, workspaceStore.ts, repoAttachmentService.ts); `src/github/` (actions.ts, queries.ts); `src/storage/pages/`
+- **Ops:** createWorkspace, deleteWorkspace, setWorkspaceAllowedTools, connectRepo, disconnectRepo, getRepoState, getMyStorage, getWorkspace, listLocationFiles, getFileContent, getWorkflows, getRuns, getRepoSecrets, getWorkspacesAcrossPlaces, getMyStorageSite, listArtefacts, getArtefactContent, getPlaceInstructions
 
 ### 20. Memory
 - **Files:** `src/memory/` (memoryService.ts, scopes.ts, items.ts, ranking.ts, embedding/, maintenance.ts, tidy.ts, barTuner.ts, runPinnedMemory.ts, knowledge/); `src/memory/screen/` (the memory screen and its pages); `src/conversations/memory/` (the probe and the agent's memory tools)
@@ -176,6 +176,11 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 - **Files:** `src/knowledge/` (the knowledge service for agents: search across levels, pages, the change record, the platform guide and its build in `guideBuild/`); `src/knowledge/people/` (the operations for people); `src/storage/pages/knowledge/` (the Knowledge tool's screens: browse, page, editor, history, Recently deleted, search); `src/storage/pages/KnowledgeTool.tsx`; `src/org/pages/OrgKnowledgePage.tsx`, `src/org/components/OrgKnowledgeTool.tsx`; `src/storage/storageSite.ts` (the organisation's knowledge placement); `src/server/controlplane/` (knowledgeOps.ts, knowledgeReach.ts, knowledgeToolSchemas.ts); `src/conversations/memory/leadKnowledgeTools.ts`; `src/conversations/coordinator/knowledgeSteps.ts`, `src/conversations/components/knowledge/`; `src/projects/reservedNames.ts`
 - **Ops:** listKnowledgePages, getKnowledgePage, knowledgePageVersions, recentlyDeletedKnowledge, searchKnowledgePages, saveKnowledgePage, moveKnowledgePage, deleteKnowledgePage, restoreKnowledgeVersion
 - **Note:** added 2026-10-26 at the close of the agent knowledge unit. The knowledge tools agents call are not operations but are in the contract (**SC-1397** to **SC-1416**); the page rules are core's and the gate the site's.
+
+### 28. Code workspaces, branches & live previews
+- **Files:** `src/branches/` (a branch and its copy, the agent's Git tools, merging, the merge and package cards, `main`'s versions, GitHub); `src/workspaceView/` (the full-screen workspace view at `/workspaces/:workspaceId/view`); `src/livePreviews/` (opening, stopping, the app tools, site picking, the idle stop, bundles, the Fleet Console's settings, trusted package scopes); `src/relays/` (app and bundle tickets, the relay link)
+- **Ops:** getWorkspaceBranches, getBranchChanges, getBranchCommits, getMainVersions, getGitTree, getGitFile, getWorkspaceRemoval, getTaskWorkspaces, turnGitOn, mergeBranch, restoreVersion, renameBranch, deleteBranch, startWorkspaceConversation, getLivePreviewPlaces, getLivePreview, startLivePreview, stopLivePreview, resumeLivePreview, reloadLivePreview, setLivePreviewAuto, markLivePreviewInUse, answerLivePreviewQuestion, openLiveApp, startLiveApp, runLivePreviewWorkflow, getTrustedPackageScopes, setTrustedPackageScopes
+- **Note:** added 2026-11-02 at the close of the live preview unit. The agent's tools (`commit`, `update_from_main`, `merge_into_main`, the app tools, `offer_live_preview`) are not operations but are in the contract (**SC-1669** to **SC-1719**).
 
 ---
 

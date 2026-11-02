@@ -23,7 +23,7 @@ on a workspace called `shop-app`.
 ## Turn Git on
 
 A workspace that is a Git repository, including one connected to GitHub, is already a code workspace. For any other, open it
-and select **Turn Git on**. The first live preview, when those arrive, offers it too.
+and select **Turn Git on**. Choosing **Live preview** on a workspace without Git offers it too.
 
 The confirmation says what happens first: *shop-app isn't a Git repository yet. Turning Git on keeps its files as they are
 and records them as the first version. From then on agents work on branches, and changes reach the files by merging.*
@@ -90,7 +90,7 @@ has an address of its own, so you can share a link to it.
 
 **Nothing here edits a file.** You change code by telling the agent, or with your own tools through Git.
 
-A **Live preview** item is coming with live previews.
+**Live preview** in the left panel runs the branch's app in the middle: see [Live previews](live-previews.md).
 
 ### Narrow screens
 

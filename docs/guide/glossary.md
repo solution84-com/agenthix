@@ -111,6 +111,11 @@ Also said: dashboard, start page, landing page.
 Your organisation's home in Agenthix: its people, projects, agents, boards and tasks, and who may do what. It is the only part people open in a browser. Where: your organisation's own web address.
 Also said: headquarters, the platform, the app, the web app, the control plane.
 
+## Install script
+
+A script a package runs when it installs. Agenthix turns them off in every agent command, and runs those of packages that pass a fixed rule, or that a person allows. Where: the question in a live preview's strip, **Allow**, or a card in a branch's thread.
+Also said: postinstall script, lifecycle script.
+
 ## Kernel
 
 The agent every new HQ comes with, which helps you use Agenthix. Where: **Agents** (`/agents`); it answers in **Home**'s starting suggestions and in a new conversation.
@@ -130,6 +135,11 @@ Also said: templates, starter kit, marketplace, gallery, skill library, shelf.
 
 A member an administrator names to look after the Library without being an administrator: they create, edit and publish skills, accept updates, roll back and review proposals aimed at the organisation. Choosing which agents have a skill, removing, the trust settings and naming maintainers stay with administrators. Where: **Manage › Settings › Library and skills** (`/admin/settings/library`). See [Library and skills settings](skills/library-settings.md#library-maintainers).
 Also said: maintainer, skill owner, skill editor.
+
+## Live preview
+
+A running copy of the app a branch is building, shown in the middle of the workspace view while the agent keeps working. Where: **Live preview** in the left panel of a code workspace (`/workspaces`), and **Live previews on this site** on a site's page in the Fleet Console.
+Also said: preview, demo, test site, running app.
 
 ## Manage
 
@@ -190,11 +200,6 @@ Also said: favourites, bookmarks, shortcuts.
 
 A project, **Your space** included. A conversation starts in one place and reaches only the places you add to it; agents search the knowledge of each place a conversation reaches. Where: **Places** under a conversation's title, with **Add place…** (see [Places in a conversation](getting-started/first-conversation.md#places-in-a-conversation)).
 Also said: area, project, where we are.
-
-## Preview
-
-A running copy of an app an agent is building, opened in a new tab. Where: **Open preview** on a workspace's card, in **Workspaces** (`/workspaces`).
-Also said: live preview, demo, test site, running app.
 
 ## Product
 
@@ -280,6 +285,11 @@ Also said: ticket, card, to-do, issue, job.
 
 A group of people who can be added to a project together. Where: **Teams** (`/org/teams`); admins also at `/admin/teams`.
 Also said: group, department.
+
+## Trusted package scopes
+
+The npm scopes, such as `@fernhill`, whose packages may run their install scripts without the usual checks, wherever an agent installs packages. Where: **Organisation** > **Settings** (an Admin).
+Also said: trusted scopes.
 
 ## Unsigned
 

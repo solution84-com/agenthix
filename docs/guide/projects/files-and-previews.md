@@ -50,10 +50,9 @@ Or ask in a conversation: "set up a docs site in a new workspace".
 
 ### Open one
 
-Each card shows the workspace's name, its repository and its site. If it has no repository and no preview running, **Connect GitHub** is on the card. Select a card to open it as a file explorer. At the top:
+Each card shows the workspace's name, its repository and its site. If it has no repository, **Connect GitHub** is on the card. Select a card to open it as a file explorer. At the top:
 
-- **Open preview** appears while a preview is running.
-- **About** shows its repository, preview and site, **Tools agents may use** (**Change** to narrow them), and, once a repository is connected, the **Workflows that reach GitHub**, the **GitHub workflows in the repository** and the **Secrets on GitHub**. See [Connect GitHub](../workflows/connect-github.md#what-a-connected-workspace-shows).
+- **About** shows its repository and site, **Tools agents may use** (**Change** to narrow them), and, once a repository is connected, the **Workflows that reach GitHub**, the **GitHub workflows in the repository** and the **Secrets on GitHub**. See [Connect GitHub](../workflows/connect-github.md#what-a-connected-workspace-shows).
 
 The **⋯** menu has **Delete workspace**. The repository isn't affected.
 
@@ -77,10 +76,11 @@ The line only reports: it has nothing to select, and Agenthix never commits, fet
 a git repository has no line, and neither does one whose machine isn't answering. This is separate from **Backed up to**, which
 is about GitHub.
 
-## Previews
+## Live previews
 
-An agent can run the app it is building and show it to you as a **preview**. While one runs, its workspace's card says **Preview running** with **Open preview**. It opens in a new tab at an address of its own.
+An agent can run the app it is building so you see it working beside the conversation. A live preview belongs to a branch of a
+code workspace, or to `main`, and opens from **Live preview** in the workspace view. See [Live previews](live-previews.md) for
+opening one, working with the agent while it runs, services, install scripts, secrets and who may do what.
 
-Anyone who can open the project's files can open its previews, once signed in. A preview ends after a while. Ask the agent to start it again.
-
-An install made with `agenthix install` has previews off, so an agent's request for one is refused. See [Live previews](../running-agenthix/domain-and-https.md#live-previews).
+An install reached only by a network address has no live previews, because each app needs an address of its own. See
+[Live previews](../running-agenthix/domain-and-https.md#live-previews).

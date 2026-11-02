@@ -239,6 +239,31 @@ gate with the permissions that work needs. The App, its accounts and which place
 
 ---
 
+## A run aimed at a live preview
+
+[ADR-0171](../adr/adr-0171-secrets-reach-a-live-preview-only-through-an-approved-workflow.md). A place's workflows named
+`start-live-preview` and `reload-live-preview`, once approved and switched on, can be run by a Member or Admin from a live
+preview's strip (`runLivePreviewWorkflow`, `hq/src/livePreviews/workflowSecrets.ts`). hq runs it as any person's run
+(`hq/src/workflows/livePreviewRuns.ts`) but names the live preview in the instruction
+(`WorkflowRunInstruction.livePreview`, `core/src/protocol/workflowRuns.ts`) and sends it to the live preview's site.
+
+- **The steps run as any run's do**, in executor containers, on the live preview's copy of the branch; the snapshot, scan and
+  write-back are unchanged. A run is taken only while the site's own record has that live preview running, on the
+  instruction's owner and workspace (`live_preview_unavailable` otherwise).
+- **The secrets go to the app's container, once, after the steps passed**, the scan found nothing and the write-back ended: a
+  failed step, a leak, a stop or a live preview that stopped meanwhile hands nothing over. They are the union of the secrets
+  the steps name, without values minted for the run (`GITHUB_TOKEN`).
+- **How they go in.** A fixed script, run as uid 1001, empties `/run/secrets` (a tmpfs of the container's own, `noexec`) and unpacks
+  a tar archive read from standard input into mode 0400 files, `/run/secrets/<NAME>`. No value is on a command line, in an
+  environment or on the machine's disk, and the exec is one the guard knows. The agent's container never sees them.
+- **Masking.** From the hand-off on, the site masks every line an app prints that it sends on (state events, `list_apps`, the
+  `install_packages` report), with the run's masking material, so an app printing its database address does not put it in the
+  agent's context. The material lives in a closure registered at the hand-off, never in a module the agent's routes import.
+- **Nothing restarts the app.** The hand-off changes files; an app that read its values at start needs `stop_app` and `start_app`.
+  A pause that removes the container loses the secrets, and *Reload with secrets* hands them over again.
+- **The accepted risk** is that the approved workflow runs the app's code, which the agent keeps changing, so code that sends a
+  secret elsewhere can only be caught by a person reading the changes.
+
 ## Key files
 
 | What | Where |

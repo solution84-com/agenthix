@@ -140,6 +140,7 @@ For fleet admins, in the order you are likely to need them:
 - [Backups and restoring](backups-and-restoring.md): the nightly backup, where copies go, and bringing a lost site back.
 - [Maintenance and upgrades](back-up-and-upgrade.md): upgrade, move or suspend now or later, and what people see.
 - [Add, move or remove a site](add-a-site.md): run agents on another machine, and move or take it out later.
+- [Live previews on a site](live-previews-on-a-site.md): switch them on, set the limit and idle stop, watch capacity, give apps an address.
 - [When nobody can sign in](recover-admin.md): get back in, and get the fleet admin role back.
 
 For machine admins, and whoever sets up HQ's machine:

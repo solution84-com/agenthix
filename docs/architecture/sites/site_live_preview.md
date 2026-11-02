@@ -1,165 +1,149 @@
-# Site Live Preview
+# Live Previews
 
-How an operator sees the web app an agent is building **before it deploys** — a generic, preview-before-deploy capability reachable from any browser, including a phone. The agent's working tree is served live and never copied. A preview is always reached through hq, but never from hq's own address: each preview has a host name of its own, `p-<id>.<preview domain>`, on hq's own port.
+How a person sees the web app an agent is building **before it is deployed**: a container of its own on an Execution Site
+runs the app from a branch's working copy, and the browser reaches it through a relay on an address of its own. hq decides
+and signs; the relay carries every byte; the site holds the container and checks again
+([ADR-0169](../../adr/adr-0169-live-apps-travel-through-relays.md)). This replaces the earlier preview path, in which hq
+proxied a dev server running in the agent's own container (`start_preview`, `PreviewSession`), which is gone.
 
----
-
-## What it is
-
-When an agent builds or changes a web application, the operator needs to *see and verify the running result* before anything goes live — the way a client reviews a developer's work. Live Preview gives that: the agent serves its working tree, and hq relays a host name of the preview's own to the running dev server through the site, with hot-reload intact.
-
-It is **generic** — it works for any app that serves over HTTP, with no base path to configure, because the dev server runs at its host's root — and it is **safe**: the preview's script cannot read or use the viewer's hq sign-in, every request is checked against the person viewing, and the preview is throwaway (it ends at a fixed expiry, or with its session). It is the operator-facing half of "operate remotely"; the agent pushes code to GitHub but **never deploys production** (promotion stays human-gated).
-
----
-
-## Architecture
+The people's view is in the user guide, [Live previews](../../guide/projects/live-previews.md); the trust boundary is
+[ADR-0167](../../adr/adr-0167-agenthix-acts-only-on-machines-the-organisation-runs.md).
 
 ```mermaid
-graph LR
-    Browser["Operator browser (incl. mobile)"]
-
-    subgraph HQ["hq — one port"]
-        App["hq's own app hq address"]
-        Check["Access check /open-preview/:id + openPreview action"]
-        Host["Preview host p-id.preview-domain (cookie + requester check)"]
-        Registry["PreviewSession row id → site, site's preview id, boundary"]
-        Tool["start_preview tool"]
-    end
-
-    subgraph Site["Execution Site — no inbound port"]
-        subgraph Box["The preview session's runner's container in that boundary"]
-            Dev["Dev server npm run dev / vite / …"]
-        end
-    end
-
-    Browser -->|no cookie: redirect| Check
-    Check -->|one-time ticket| Browser
-    Browser -->|HTTP + WebSocket, host cookie| Host
-    Host -->|reads| Registry
-    Host -->|stream the site opened outward| Dev
-    Tool -->|preview.start over the control channel| Site
-    Tool -->|records| Registry
-    App --- Check
+flowchart LR
+    B["1 · Browser<br/>HQ's page, the app's frame"] -- "form POST: single-use ticket" --> R["2 · hq's relay<br/>p-id.preview-domain"]
+    HQ["3 · hq<br/>decides, signs tickets,<br/>holds LivePreview rows"] -- "livePreview.* over the control channel" --> S
+    R -- "app.serve stream on the site's line" --> S["4 · The site<br/>checks the ticket again,<br/>guard, copies, apps"]
+    S --> C["5 · Live preview container<br/>the branch's copy, apps"]
+    C --> SV["6 · Services<br/>own internal network"]
 ```
 
-hq is a **reverse proxy** in front of the dev server, reaching it over a stream the site opens outward (ADR-0063). Nothing about the app is copied or rebuilt for preview — the dev server runs as a process inside the container of the preview's session's own runner, in that boundary (ADR-0074), so it serves exactly what the run sees.
+1. **The browser** loads the app in a sandboxed frame (or a new tab) by posting a form from HQ's page; the ticket is never in a link.
+2. **The relay** (`relay/src/apps/`) answers `p-<id>.<preview domain>`. It admits an entry only as a `POST` from HQ's origin with fetch metadata, exchanges the ticket for a host-only `__Host-` cookie of at most 15 minutes, refuses requests made from any other page (sibling apps included) and WebSockets opened by any page but the app's own, and strips `Domain=` from the cookies an app sets.
+3. **hq** (`hq/src/livePreviews/`) holds the `LivePreview` and `LiveApp` rows, picks the site, signs tickets, answers the relay's `relay.ask` before every new stream, and sends the site its orders. It never carries an app's bytes.
+4. **The site** (`site/src/server/livePreviews/`) makes and inspects the container, runs the guard, serves the app stream (`app.serve`) and checks the site's own single-use ticket for each new stream.
+5. **The live preview's container** binds the branch's copy and nothing else; apps run inside it through the sandbox launcher.
+6. **Services** (`.agents/services.yaml`) run beside it on an internal network of their own.
 
----
+## Opening one
 
-## Components
+`startLivePreview` (hq) checks the person is a Member or Admin of the project, that HQ has a preview address
+(`livePreviewsHaveAnAddress`: none on an install reached by a bare network address), picks a site, and takes an
+advisory lock so two opens make one live preview per branch. It asks the site `livePreview.open`.
 
-- **Preview process** — the dev server, started with `docker exec` inside the existing container of the boundary and the runner the preview's session runs for (ADR-0074), and in a session of its own so it can be stopped. The site never creates a second container or a second mount for it — it refuses if that container is not up rather than starting one. It is stopped when the preview ends or its container is destroyed.
-- **`start_preview` tool** — the agent's only role: request a preview by declaring `{ command, port }`. hq asks the site holding the boundary to start the dev server, records the preview, and returns its address. The agent never controls lifecycle or networking. With previews off, it refuses before anything is started.
-- **Preview host** — every request whose host name is `p-<id>.<preview domain>`, HTTP **and** WebSocket upgrade (for hot-reload), is routed to the preview by host on hq's own http server, before any of hq's own routes or sockets, and relayed with its path unchanged. Nothing of hq is served on a preview host, and no preview is served on hq's own address.
-- **Access check** — a signed-in page on hq's own address, `/open-preview/<id>`, whose action checks the person and mints a one-time ticket for the preview host.
-- **Preview registry** — hq's `PreviewSession` row, keyed by its id, records the site, the site's own preview id, the storage boundary being served, its expiry and last access. The site keeps a separate in-memory registry of running previews, which is empty after a restart.
+- **A copy of the branch.** On the workspace's own site the container binds the branch's own working copy, which the site
+  checks against its `BranchCopy` record. `main` gets a copy of its own, made by the commit helper and refreshed by
+  `livePreview.refresh` when `main` moves.
+- **Another site.** hq asks the workspace's site for a Git bundle of the branch (`bundle.make`, which also carries `main`),
+  and the bundle crosses a relay on a bundle ticket (`bundle.read` on the source, `bundle.write` on the destination, a
+  single take of the ticket's `jti`, the size and SHA-256 checked before anything is kept). The destination makes a copy of
+  its own; the branch's runs then go to that site, and each commit comes back (`livePreview.commit`, `bundle.make`,
+  `branch.bringBackBundle`), which writes only that branch's name and refuses with `moved_meanwhile` if the branch moved.
+- **Choosing the site.** The workspace's own, if it allows live previews, its guard has reported within a minute and it
+  has room; else the allowed site with the most room. A site with live previews off is never listed. A full site answers
+  with the list of open ones, so a person can stop one of theirs.
 
----
+## Entering an app
 
-## How the preview is reached
+`openLiveApp` (`hq/src/relays/appEntry.ts`) signs a ticket naming one person, one live preview, one app and one relay, records
+it in the ticket book (`appTickets`), and answers the form HQ's page posts into a named frame or a new tab
+(`hq/src/workspaceView/appFrame.ts`). The relay takes the ticket once and sets the cookie. Before each new stream the relay
+asks hq (`relay.ask`; a yes is reused for 2 seconds); hq says yes only while the ticket is in its book, nothing revoked it,
+the live preview is `RUNNING`, and the person is still a member of its project. A pause, a stop or a person leaving a
+project revokes tickets (`relay.revoke`), which ends open streams.
 
-A preview's address is `p-<id>.<preview domain>` with hq's own scheme and port. The `<id>` is the preview row's id, which is not a credential: nothing is served on it without the access check, so it may appear in logs and DNS queries.
+An app's address comes from the pattern `PREVIEW_PATTERN` (`hq/src/relays/appAddress.ts`) and an id of at least 128 bits
+given once per app and branch. On a laptop with hq at `http://localhost:<port>` the pattern is `p-<id>.preview.localhost:<port>`.
+The host service sets the pattern from the preview domain (`agenthix front-door on --previews`), and its front door asks hq
+(`/preview-certificate-ask`) before getting a certificate, which hq grants only for an app id it has recorded. See
+[deployment.md](../deployment.md#in-front-of-hq).
 
-- **On a developer's machine** the preview domain is `preview.localhost` with no setting, so a preview is at `http://p-<id>.preview.localhost:4101`; browsers resolve every `*.localhost` name to the machine itself.
-- **On a deployed hq** the operator sets `PREVIEW_DOMAIN`, and the front door sends `*.<preview domain>` to hq's one port, where its web container forwards it to hq's server. This needs a wildcard DNS entry and a wildcard certificate. A deployed hq with no preview domain has previews off — which is every hq the host service installs today, since it sets no `PREVIEW_DOMAIN` and its front door holds no wildcard certificate ([the deployment guide](../deployment.md#in-front-of-hq)).
+## States
 
----
+`LivePreview.state` is `STARTING`, `RUNNING`, `PAUSED` or `STOPPED`, and hq owns every move: a site's events
+(`livePreview.state`, `livePreview.appState`, `livePreview.services`, `livePreview.guard`) count only for a live preview hq
+opened on the site they came from. hq's sweep, every minute, stops one unused for the site's idle time (default 2 hours;
+"in use" is `lastUsedAt`, touched by the screen once a minute while shown, an open, an app tool, and a run starting or
+ending on the branch); at every connect hq reconciles both ways, stopping what the site runs and hq does not hold live, and
+marking stopped what hq holds and the site no longer runs. A site restart removes every live preview container and pauses
+the open ones as `lineLost`, and they return with fresh containers when the line does; apps do not survive it.
 
-## Request lifecycle
+## The agent's tools
 
-1. **Create** — agent calls `start_preview`; the site starts the dev server and hq records a `PreviewSession` with its expiry (the earlier of the preview's lifetime and its session's end). The address appears in chat as a plain link.
-2. **Enter** — the operator opens the link. The preview host sees no cookie of its own and redirects to hq's access check. hq's sign-in applies there: someone already signed in passes straight through; someone who is not signs in first and is brought back to the check afterwards. The check confirms the preview is live and that this person may reach its storage boundary, and mints a ticket — single use, valid for about a minute, bound to that person and that preview. The browser goes to `/__agenthix/enter?ticket=…` on the preview host, which redeems it, sets a cookie for that host alone, and redirects to the root.
-3. **Serve** — every request to the preview host carries that cookie. The host checks its signature, that it names this preview and has not expired, and then re-runs the requester check, so revoking access or ending the preview refuses the next request. It removes its own cookie from the request, leaving the app's own cookies and any authorization header, and relays. While the dev server is still starting, the host answers with a "starting preview…" page.
-4. **Hot-reload** — WebSocket upgrades on the preview host pass the same checks and are relayed, so HMR works as if local.
-5. **End** — at its expiry, or when its session is archived, deleted or cleared, the preview stops resolving, and hq's sweep asks the site to stop the dev server. Each request records last access; it does not extend the expiry.
+`start_app`, `stop_app`, `list_apps`, `reload_view` and `set_auto_reload` (`core/src/livePreview/appTools.ts`) are offered to
+every code-work run, and to a run whose signed capability carries a live preview claim (`CapabilityLivePreview`). A
+harness lists a conversation's platform tools once, when it connects, and keeps that list for the conversation's later
+runs, so the offer cannot follow a live preview that opens or stops between them. hq answers a call only while the branch
+the run's session works on has a live preview on the run's site, read from its rows at the call; the site then checks that
+the run is going on that branch. `start_app` on a branch with none first opens it, as the run's person, on the run's site,
+through `startLivePreview` (hq's `livePreviews/runOpening.ts`), so the person's role, the site's limits and the copy rules
+apply and the person is its starter; a refusal reaches the agent in hq's words and nothing is started. The other app tools
+are refused while the branch has none. The
+workspace and branch are never arguments. Starting a live preview is
+the permission; they are not asked for. `install_packages` and `ask_to_use_package` are offered to every code-work run and
+install in the live preview's container, or in the run's own container in the branch's copy (`RunContext.codeWork`, from the
+site's checked record). `offer_live_preview` is the lead's: a card with a button, which calls `startLivePreview` as the
+person who pressed it ([mcp/tools.md](../mcp/tools.md)).
 
-```mermaid
-sequenceDiagram
-    actor Op as Operator browser
-    participant Agent
-    participant App as hq (own address)
-    participant Host as hq (preview host)
-    participant Dev as Dev server (on the site)
+## Install scripts
 
-    Agent->>App: start_preview({ command, port })
-    App->>Dev: preview.start over the control channel
-    App-->>Op: https://p-id.preview-domain/ in chat
+[ADR-0170](../../adr/adr-0170-install-scripts-are-blocked-by-default.md). Every agent command runs with scripts off
+(`npm_config_ignore_scripts`, `YARN_IGNORE_SCRIPTS`, `YARN_ENABLE_SCRIPTS`), set in the agent's exec environment, and the
+environment outranks the `.npmrc` and `.yarnrc` files a repository carries. `install_packages` then runs the scripts of
+packages that pass the rule in `core/src/livePreview/installScripts.ts`: published at least 30 days ago, more than 1,000
+downloads a week, no advisory in the OSV database, the same publisher as the version before; a built-in list and the
+organisation's trusted scopes (`Org.trustedPackageScopes`, at most 20, carried in every run's capability) skip it. Facts are
+looked up once per version. A blocked package is asked about as a question on the live preview's strip, or, when no live
+preview is open, as a card in the branch's thread (`branch.packageBlocked` from the site, `branch.packageUse` back, checked
+by hq against its records and again by the site). The press is the person's own: a yes through the lead is refused.
 
-    Op->>Host: GET / (no preview cookie)
-    Host-->>Op: 302 to hq /open-preview/id
-    Op->>App: open-preview page (signed in to hq)
-    App->>App: preview live? person may reach its boundary?
-    App-->>Op: one-time ticket
-    Op->>Host: GET /__agenthix/enter?ticket=…
-    Host->>Host: redeem ticket, re-check access
-    Host-->>Op: Set-Cookie (this host only, HttpOnly) + 302 to /
+## Secrets
 
-    Op->>Host: GET / (cookie)
-    Host->>Host: verify cookie + requester check, remove the preview cookie
-    opt still starting
-        Host-->>Op: "starting preview…"
-    end
-    Host->>Dev: relay HTTP, path unchanged
-    Dev-->>Op: app response
-    Op->>Host: WebSocket upgrade (cookie)
-    Host->>Dev: relay WS (HMR)
-    Dev-->>Op: hot-reload stream
-```
+[ADR-0171](../../adr/adr-0171-secrets-reach-a-live-preview-only-through-an-approved-workflow.md). See
+[workflows.md](../workflows.md#a-run-aimed-at-a-live-preview).
 
-The `PreviewSession` is a small state machine, and hq owns every transition:
+## The container and the guard
 
-```mermaid
-stateDiagram-v2
-    [*] --> starting: start_preview
-    starting --> running: dev server answered
-    running --> stopping: expiry passed, or its session ended
-    stopping --> expired: site confirmed the stop
-    running --> expired: site no longer knows the preview
-    expired --> [*]
-```
+The container runs with no capability, `no-new-privileges`, a read-only root, IPv6 off, no published port and no Docker socket, as
+uid 1001, and is created and inspected before it starts and re-inspected on every look; any difference from its template stops
+it. It binds the branch's copy and nothing else: never the workspace's folder, another copy, any storage or the site's data.
+Its network is made only in the live-preview part of the agent address range ([ports.md](../ports.md)), where the host
+service's firewall rules (`private-addresses` always, `public-address` once the machine's public address is known from
+`hq.seenFrom`) close private addresses, the machine's own and public addresses and cloud metadata. A site starts no live
+preview until both rules hold.
 
----
+The guard (`site/src/server/livePreviews/guard/`) looks at least every 5 seconds and on every Docker event: template
+differences, containers or processes the site did not make, ports no app opened, privilege changes, blocked-address rates,
+unusual use, protections that stop holding, and any Docker exec, attach or copy-in the site did not make. It stops or pauses
+within 2 seconds, and fails closed.
 
-## Security model
+A site reaches an app through one long-lived forwarder per live preview: a `docker exec` of a small program inside the
+container's network namespace, which carries every stream of that live preview over its standard input and output, each
+stream under its own credit, so an app that listens only on `localhost` works, no port is published, and a page of hundreds
+of modules costs one exec. While the forwarder cannot answer, a stream gets an exec of its own, at most 4 at once across the
+site.
 
-- **Its own origin** — a preview's script runs on the preview's host, never on hq's origin, so it cannot read the sign-in hq keeps in the browser's storage for its own origin, nor act as the viewer (ADR-0071).
-- **Checked per person, per request** — the cookie says who is viewing; every request, live reload included, re-runs the requester check: the person must be able to reach the storage boundary whose files the preview serves. A row with no boundary is refused (`hq/src/preview/previewAuth.ts`, `assertLocationAccess`).
-- **The cookie** — issued only in exchange for a one-time ticket from hq's access check; signed with a key derived from `SECRETS_MASTER_KEY`; bound to the one preview host (no `Domain` attribute), `HttpOnly`, `SameSite=Lax`, `Secure` over HTTPS; never valid past the preview's expiry.
-- **Nothing of hq's reaches the dev server** — the preview cookie is removed from the `Cookie` header before relaying, and the ticket exchange is answered by hq, never relayed. The app's own cookies and any `Authorization` header pass through: hq's own bearer is sent only to hq's address, never to a preview host.
-- **Single gateway** — the dev server is never exposed directly; only hq's preview host reaches it, through the site's outward stream.
-- **Same container as the run** — the dev server runs inside the same container a run of that session would use: the one keyed to the boundary and the runner (ADR-0063, ADR-0074); there is no separate credential-free container for it. The container is the *execution-isolation* boundary; the run/session context is the *permission* boundary (ADR-0036).
+Commit helpers run at most 4 at once across the site; one beyond that waits up to half its budget, then is refused having
+started nothing. Identical reads of a workspace asked together (`branch.list`, say) share one helper, and their answer for
+2 seconds, unless a helper wrote the workspace meanwhile.
 
-A preview domain under hq's own domain still receives that domain's cookies from the browser; that is harmless while hq keeps its sign-in out of cookies, and a second domain avoids it entirely.
+## Capacity and the Fleet Console
 
----
+Per site, set in the Fleet Console (`sites.livePreviews`, `sites.livePreviews.set`, `sites.livePreviews.stop`): live previews
+on or off (on for hq's own site, off for others), *Live previews at once* (none by default) and *Stop when unused for*. The
+site reports capacity in `site.health`; hq raises a notice to fleet admins when memory passes 80% and when it is back under
+70%, and when a live preview is stopped for resources.
 
-## Constraints & trade-offs
+## Versions
 
-- **Wildcard DNS and certificate** — a deployment that offers previews needs both for the preview domain, which usually means a DNS-provider challenge at the front door.
-- **Cold start** — the first request pays install/build/boot; mitigated by a "starting" state and by keeping the server warm thereafter.
-- **Bandwidth** — every byte of a preview passes through hq (ADR-0063).
-
----
-
-## Boundaries — what this is *not*
-
-- **Not a deployment.** A preview serves the live working tree; it never promotes anything to production. Production deploy stays human-gated.
-- **Not mobile/native preview.** This is web/HTTP only. Mobile preview (Expo/EAS) and store distribution are deferred.
-- **Not a built-artifact preview deploy** — serving built artifacts on real infrastructure is not built and has no plan in this repository; this serves the live in-container working tree.
-
----
-
-## Evolution
-
-- **A separate relay** — because previews are told apart by host name, their traffic can move to something other than hq's own process — a relay service, or a direct path to a reachable site — with the same addresses and the same access check (ADR-0071).
-- **Mobile live preview** — the same relay fronting a Metro dev server, with a QR/`exp://` handoff.
-- **Built-artifact preview environments** — per-PR deployed previews on real infrastructure, complementary to this live working-tree preview. Not built; no plan in this repository.
-
----
+Site protocol 1.12 added `livePreview.*`, `site.livePreviews`, `app.serve`, duplex streams, `bundle.*` and
+`branch.bringBackBundle`, and deprecated `preview.start`, `preview.stop` and `preview.connect`, which answer as gone. See
+[versioning.md](../versioning.md).
 
 ## Related
 
-- [The container runtime](../container-runtime.md) — the container a preview's dev server runs in
-- [The control channel](../control-channel.md) — how `preview.start` reaches the site, and the content transport preview traffic crosses
-- [Deployment](../deployment.md#in-front-of-hq) — previews on a deployed hq
-- [Platform tools](../mcp/tools.md) — the platform tool catalogue; `start_preview` is one of the tools every agent has
+- [The container runtime](../container-runtime.md): the agent's container.
+- [The control channel](../control-channel.md): how the `livePreview.*` methods cross.
+- [Files and relays](../files-and-relays.md): the relay, tickets and lines.
+- [Deployment](../deployment.md#in-front-of-hq): the preview domain and the front door.
+- [Platform tools](../mcp/tools.md): the agent's tools.
