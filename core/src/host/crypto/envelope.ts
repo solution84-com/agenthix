@@ -6,7 +6,8 @@
  * Ed25519 signature over the header and the ciphertext.
  *
  * Open checks, in order and before decrypting anything: the shape, that it is for us, its times, that the sender is
- * pinned, the signature, and that its id is new. Only then is it decrypted.
+ * pinned, the signature, and that its id is new. Only then is it decrypted. The one exception is an envelope inside the
+ * recipient's start window that may be an answer it awaits (`awaited`): it is decrypted, signature checked, to tell.
  */
 import {
   HOST_ENVELOPE_CLOCK_SKEW_MS, HOST_ENVELOPE_DEFAULT_LIFETIME_MS, HOST_ENVELOPE_MAX_BODY_BYTES,
@@ -77,6 +78,12 @@ export type OpenOptions = {
   pinned: (fingerprint: string) => HostIdentity | null | Promise<HostIdentity | null>
   replay: EnvelopeReplayGuard
   now?: number
+  /**
+   * Whether a message answers something the recipient made at random since it started and still waits on (a request
+   * id, an envelope id, an ask id), from that sender. Only such a message is opened inside the replay guard's start
+   * window; it is decrypted to tell, and its id is still recorded, so a second copy is refused as replayed.
+   */
+  awaited?: (message: unknown, fromFingerprint: string) => boolean
 }
 
 /**
@@ -87,7 +94,7 @@ export type OpenResult =
   | { ok: true; from: HostIdentity; fromFingerprint: string; envelopeId: string; message: unknown }
   | { ok: false; reason: EnvelopeRefusal; envelopeId: string | null }
 
-export async function openEnvelope(data: unknown, { recipient, pinned, replay, now = Date.now() }: OpenOptions): Promise<OpenResult> {
+export async function openEnvelope(data: unknown, { recipient, pinned, replay, now = Date.now(), awaited }: OpenOptions): Promise<OpenResult> {
   const env = parseHostEnvelope(data)
   if (!env) {
     const v = data && typeof data === 'object' ? (data as Record<string, unknown>).v : undefined
@@ -113,8 +120,12 @@ export async function openEnvelope(data: unknown, { recipient, pinned, replay, n
   const verifyKey = await importSigningPublicKey(sender)
   if (!(await subtle().verify({ name: 'Ed25519' }, verifyKey, sigBytes, signed(header, ct)))) return refuse('bad_signature')
 
-  const admitted = replay.admit(env.id, env.sentAt, env.expiresAt, now)
-  if (admitted !== 'ok') return refuse(admitted)
+  // Inside the start window only an awaited answer may pass, which takes reading it; everything else is decided here.
+  const early = awaited !== undefined && replay.inStartWindow(env.sentAt)
+  if (!early) {
+    const admitted = replay.admit(env.id, env.sentAt, env.expiresAt, now)
+    if (admitted !== 'ok') return refuse(admitted)
+  }
 
   let plaintext: Bytes
   try {
@@ -128,9 +139,16 @@ export async function openEnvelope(data: unknown, { recipient, pinned, replay, n
     return refuse('undecryptable')
   }
   if (plaintext.length > HOST_ENVELOPE_MAX_BODY_BYTES) return refuse('too_large')
+  let message: unknown
   try {
-    return { ok: true, from: sender, fromFingerprint: env.from, envelopeId: env.id, message: JSON.parse(fromUtf8(plaintext)) }
+    message = JSON.parse(fromUtf8(plaintext))
   } catch {
     return refuse('malformed')
   }
+  if (early) {
+    if (!awaited(message, env.from)) return refuse('stale')
+    const admitted = replay.admit(env.id, env.sentAt, env.expiresAt, now, true)
+    if (admitted !== 'ok') return refuse(admitted)
+  }
+  return { ok: true, from: sender, fromFingerprint: env.from, envelopeId: env.id, message }
 }

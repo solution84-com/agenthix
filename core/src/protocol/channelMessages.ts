@@ -12,6 +12,7 @@ import type {
 import type { SiteHealth } from './siteHealth.js'
 import type { ScheduledChangeNotice } from '../host/scheduledChange.js'
 import type { WorkflowRunResult, WorkflowStepEvent } from './workflowRuns.js'
+import type { BranchBackEvent } from './branchWork.js'
 
 export type HQConnectionMessageType =
   | 'ping'
@@ -77,6 +78,8 @@ export type SiteEvents = {
   'site.scheduledChange': ScheduledChangeNotice
   'workflow.step': WorkflowStepEvent
   'workflow.result': WorkflowRunResult
+  /** Since 1.12: the site brought a branch back on its own (`branchWork.ts`). */
+  'branch.back': BranchBackEvent
 }
 
 export type SiteEventName = keyof SiteEvents

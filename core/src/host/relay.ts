@@ -21,7 +21,7 @@ import type { FleetActivityPage, FleetNotice, HqAccount } from './fleetRecord.js
 import type { CloudConnecting, HqCloudState } from './cloud.js'
 
 /** The host protocol: both links' version, and that of Cloud's host link. */
-export const HOST_PROTOCOL_VERSION = '1.2'
+export const HOST_PROTOCOL_VERSION = '1.3'
 
 export const HQ_HOST_LINK_PATH = '/host-link'
 export const HQ_CONSOLE_LINK_PATH = '/console-link'

@@ -34,9 +34,18 @@ export type OperationActivityView = {
    * workflow's place, the only people its buttons are for.
    */
   workflowCard?: (WorkflowApprovalCard & { canAnswer: boolean }) | null
+  /**
+   * From 1.9, while it waits: an agent's ask to merge its branch into `main`, answered *Merge* or *Not now* (approve
+   * or decline). `canAnswer` is whether the viewer may merge there: a Member or Admin of the project, or the person
+   * whose own storage it is.
+   */
+  mergeCard?: MergeApprovalCard | null
   /** Where its run opens on the Runs screen, once it has one. */
   runHref?: string | null
 }
+/** An agent's ask to merge its branch: which workspace and branch, for the link to the workspace view. */
+export type MergeApprovalCard = { workspaceId: string; branch: string; main: string; agentName: string; canAnswer: boolean }
+
 /** The live operations, newest first. */
 export type ConversationActivity = { outstanding: number; operations: OperationActivityView[] }
 export type GetConversationActivityArgs = { conversationId: string }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { diskNearlyFull, machineMemoryNearlyFull, parseSiteHealth, type SiteHealth } from '../siteHealth.js'
+import { diskFilling, diskNearlyFull, machineMemoryNearlyFull, parseSiteHealth, type SiteHealth } from '../siteHealth.js'
 
 const GIB = 1024 ** 3
 
@@ -109,5 +109,27 @@ describe('the executor image a site reports @SC-1366', () => {
   it('drops a tools key that is not a key, and the image that is not one', () => {
     expect(parseSiteHealth({ ...report, executorImage: { ...image, toolsKey: 'a b' } })?.executorImage?.toolsKey).toBeNull()
     expect(parseSiteHealth({ ...report, executorImage: { present: true } })).not.toHaveProperty('executorImage')
+  })
+})
+
+describe('the disk branch copies use and the 80% notice (site protocol 1.13)', () => {
+  it('keeps the copies figure, and a report from before it reads as it did', () => {
+    const withCopies = { ...report, branchCopies: { usedBytes: 3 * GIB } }
+    expect(parseSiteHealth(JSON.parse(JSON.stringify(withCopies)))?.branchCopies).toEqual({ usedBytes: 3 * GIB })
+    expect(parseSiteHealth(JSON.parse(JSON.stringify(report)))).not.toHaveProperty('branchCopies')
+    expect(parseSiteHealth({ ...report, branchCopies: { usedBytes: -1 } })).not.toHaveProperty('branchCopies')
+  })
+
+  it('is filling at 80% used', () => {
+    expect(diskFilling({ freeBytes: 21 * GIB, totalBytes: 100 * GIB })).toBe(false)
+    expect(diskFilling({ freeBytes: 20 * GIB, totalBytes: 100 * GIB })).toBe(true)
+    expect(diskFilling(null)).toBe(false)
+  })
+
+  it('once warned, holds until usage is below 75%', () => {
+    expect(diskFilling({ freeBytes: 23 * GIB, totalBytes: 100 * GIB }, true)).toBe(true)
+    expect(diskFilling({ freeBytes: 25 * GIB, totalBytes: 100 * GIB }, true)).toBe(true)
+    expect(diskFilling({ freeBytes: 26 * GIB, totalBytes: 100 * GIB }, true)).toBe(false)
+    expect(diskFilling({ freeBytes: 23 * GIB, totalBytes: 100 * GIB }, false)).toBe(false)
   })
 })

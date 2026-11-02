@@ -59,6 +59,22 @@ import type { FileAboutParams, FileAboutResult } from './fileAbout.js'
 import { GIT_STATUS_METHOD } from './gitStatus.js'
 import type { GitStatusParams, GitStatusResult } from './gitStatus.js'
 import type { FilesServeParams, RelayAssignParams, RelayAssignResult } from './relayFiles.js'
+import { BRANCH_WORK_METHODS } from './branchWork.js'
+import type {
+  BranchBringBackParams, BranchBackResult, BranchUpdateFromMainParams, BranchUpdateFromMainResult, BranchCommitParams, BranchCommitResult, BranchCopyParams, BranchCopyResult,
+  BranchCreateParams, BranchDeleteParams, BranchDeleteResult, BranchRemoveCopyParams, BranchRemoveCopyResult,
+  BranchRenameParams, BranchRenameResult,
+} from './branchWork.js'
+import { BRANCH_READ_METHODS } from './branchReads.js'
+import type {
+  BranchChangesParams, BranchChangesResult, BranchCommitsParams, BranchCommitsResult, BranchListParams,
+  BranchListResult, GitReadFileParams, GitReadFileResult, GitVersionsParams, GitVersionsResult, GitListTreeParams, GitListTreeResult,
+} from './branchReads.js'
+import { MAIN_WORK_METHODS } from './mainWork.js'
+import type {
+  GitInitParams, GitInitResult, GitMergeParams, GitMergeResult, GitPullMainParams, GitPullMainResult,
+  GitPushMainParams, GitPushMainResult, GitRestoreParams, GitRestoreResult,
+} from './mainWork.js'
 import { CLAUDE_LOGIN_METHODS } from './claudeLogin.js'
 import type {
   ClaudeLoginCancelParams, ClaudeLoginCancelResult, ClaudeLoginFinishParams, ClaudeLoginFinishResult,
@@ -155,6 +171,27 @@ export type SiteMethods = {
   [REPO_WORK_METHODS.state]: { params: RepoStateParams; result: RepoStateResult }
   /** Read only: a folder's branch, changed files and last commit. */
   [GIT_STATUS_METHOD]: { params: GitStatusParams; result: GitStatusResult }
+
+  // Since 1.12: code work on branches (branchWork.ts, branchReads.ts, mainWork.ts).
+  [BRANCH_WORK_METHODS.create]: { params: BranchCreateParams; result: BranchCopyResult }
+  [BRANCH_WORK_METHODS.copy]: { params: BranchCopyParams; result: BranchCopyResult }
+  [BRANCH_WORK_METHODS.commit]: { params: BranchCommitParams; result: BranchCommitResult }
+  [BRANCH_WORK_METHODS.bringBack]: { params: BranchBringBackParams; result: BranchBackResult }
+  [BRANCH_WORK_METHODS.updateFromMain]: { params: BranchUpdateFromMainParams; result: BranchUpdateFromMainResult }
+  [BRANCH_WORK_METHODS.rename]: { params: BranchRenameParams; result: BranchRenameResult }
+  [BRANCH_WORK_METHODS.delete]: { params: BranchDeleteParams; result: BranchDeleteResult }
+  [BRANCH_WORK_METHODS.removeCopy]: { params: BranchRemoveCopyParams; result: BranchRemoveCopyResult }
+  [BRANCH_READ_METHODS.list]: { params: BranchListParams; result: BranchListResult }
+  [BRANCH_READ_METHODS.changes]: { params: BranchChangesParams; result: BranchChangesResult }
+  [BRANCH_READ_METHODS.commits]: { params: BranchCommitsParams; result: BranchCommitsResult }
+  [BRANCH_READ_METHODS.readFile]: { params: GitReadFileParams; result: GitReadFileResult }
+  [BRANCH_READ_METHODS.versions]: { params: GitVersionsParams; result: GitVersionsResult }
+  [BRANCH_READ_METHODS.listTree]: { params: GitListTreeParams; result: GitListTreeResult }
+  [MAIN_WORK_METHODS.init]: { params: GitInitParams; result: GitInitResult }
+  [MAIN_WORK_METHODS.merge]: { params: GitMergeParams; result: GitMergeResult }
+  [MAIN_WORK_METHODS.restore]: { params: GitRestoreParams; result: GitRestoreResult }
+  [MAIN_WORK_METHODS.pushMain]: { params: GitPushMainParams; result: GitPushMainResult }
+  [MAIN_WORK_METHODS.pullMain]: { params: GitPullMainParams; result: GitPullMainResult }
 
   [PREVIEW_METHODS.start]: { params: PreviewStartParams; result: PreviewStartResult }
   [PREVIEW_METHODS.stop]: { params: PreviewStopParams; result: PreviewStopResult }

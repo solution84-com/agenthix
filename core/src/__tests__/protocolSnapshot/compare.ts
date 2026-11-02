@@ -133,6 +133,11 @@ function fields(ctx: Ctx, at: string, a: FieldsShape, b: FieldsShape): void {
 function union(ctx: Ctx, at: string, a: Shape[], b: Shape[]): void {
   const ka = keyed(a)
   const kb = keyed(b)
+  for (const [k, kNew, ma, mb] of samePlaceMessages(ka, kb)) {
+    shape(ctx, `${at}<${k}>`, ma, mb)
+    ka.delete(k)
+    kb.delete(kNew)
+  }
   for (const [k, ma] of ka) {
     const mb = kb.get(k)
     if (mb) shape(ctx, `${at}<${k}>`, ma, mb)
@@ -150,6 +155,37 @@ function union(ctx: Ctx, at: string, a: Shape[], b: Shape[]): void {
     const level = 'literal' in mb || 'fields' in mb || 'ref' in mb ? 'minor' : 'major'
     ctx.changes.push({ at, what: `\`${describeShape(mb)}\` was added to its values`, level })
   }
+}
+
+/**
+ * Messages no key tells apart (two that share their tag, and no second field splits them), matched when the union
+ * keyed them by value and one of them changed: an old message and a new one left unmatched are the same message when
+ * they carry the same fields with the same literal values, and no other unmatched message does. So a change inside
+ * such a message is classed as that change, not as the message replaced.
+ */
+function samePlaceMessages(ka: Map<string, Shape>, kb: Map<string, Shape>): [string, string, Shape, Shape][] {
+  const loose = (from: Map<string, Shape>, other: Map<string, Shape>) =>
+    [...from].filter((e): e is [string, FieldsShape] => !other.has(e[0]) && 'fields' in e[1])
+  const olds = loose(ka, kb)
+  const news = loose(kb, ka)
+  const pairs: [string, string, Shape, Shape][] = []
+  for (const [k, ma] of olds) {
+    const candidates = news.filter(([, mb]) => sameFrame(ma, mb))
+    if (candidates.length !== 1) continue
+    const [kNew, mb] = candidates[0]
+    if (olds.filter(([, other]) => sameFrame(other, mb)).length === 1) pairs.push([k, kNew, ma, mb])
+  }
+  return pairs
+}
+
+function sameFrame(a: FieldsShape, b: FieldsShape): boolean {
+  const names = Object.keys(a.fields).sort()
+  if (canonical(names) !== canonical(Object.keys(b.fields).sort())) return false
+  return names.every(n => {
+    const fa = a.fields[n].type
+    const fb = b.fields[n].type
+    return 'literal' in fa || 'literal' in fb ? canonical(fa) === canonical(fb) : true
+  })
 }
 
 function keyed(members: Shape[]): Map<string, Shape> {

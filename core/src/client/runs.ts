@@ -25,6 +25,8 @@ export type RunWaitNote =
   /** Its site is at its containers-at-once ceiling; `siteName` as people read it. */
   | { kind: 'slot'; siteName: string | null }
   | { kind: 'noAgent' }
+  /** From 1.9: a run on a branch waits for the other runs in its project's container to end. */
+  | { kind: 'branch' }
 
 /** One row of the Runs panel: a task's run, or a run in one of the person's conversations. */
 export type MyRun = {

@@ -32,7 +32,7 @@ export const CONNECTIONS: Connection[] = [
     modules: ['host/index.ts'],
     version: 'host/relay.ts#HOST_PROTOCOL_VERSION',
     previousMajor: [],
-    methodMaps: ['ConsoleLinkMethods'],
+    methodMaps: ['ConsoleLinkMethods', 'HostResults', 'CloudResults'],
   },
   {
     name: 'client',

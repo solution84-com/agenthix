@@ -227,6 +227,22 @@ describe('what a difference requires of the version @SC-1133', () => {
     })
   })
 
+  it('a message that shares its tag with another, and no second field tells them apart, is matched by its fields when it changes', () => {
+    const sealed = (ops: string) => snapshotOf({
+      'index.ts': `
+        export type HostResult = { ok: boolean }
+        export type Sealed =
+          | { kind: 'result'; replyTo: string; result: HostResult }
+          | { kind: 'result'; replyTo: string; result: { ok: true; op: ${ops} } }
+          | { kind: 'hello' }
+      `,
+    })
+    const v = judge(sealed(`'a' | 'b'`), sealed(`'a' | 'b' | 'c'`))
+    expect(v.needed).toBe('minor')
+    expect(v.changes.map(c => c.what)).toEqual(['`"c"` was added to its values'])
+    expect(judge(sealed(`'a' | 'b'`), sealed(`'a'`)).needed).toBe('major')
+  })
+
   it('refuses a version that went back', () => {
     const later = withRun(RUN, '1.2')
     expect(judge(later, withRun(RUN, '1.1')).problems.join()).toMatch(/went back from 1\.2 to 1\.1/)
