@@ -915,190 +915,463 @@
       "shape": {
         "union": [
           {
-            "fields": {"method":{"type":{"literal":"agent.promptPreview"}},"params":{"type":{"ref":"AgentPromptPreviewParams"}}}
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"agent.promptPreview"}},
+              "params": {"type":{"ref":"AgentPromptPreviewParams"}}
+            }
           },
-          {
-            "fields": {"method":{"type":{"literal":"agent.removeDirectory"}},"params":{"type":{"ref":"AgentHandleParams"}}}
-          },
-          {"fields":{"method":{"type":{"literal":"agent.stop"}},"params":{"type":{"ref":"AgentHandleParams"}}}},
-          {"fields":{"method":{"type":{"literal":"branch.bringBack"}},"params":{"type":{"ref":"BranchCopyRef"}}}},
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"agent.removeDirectory"}},
+              "params": {"type":{"ref":"AgentHandleParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"agent.stop"}},
+              "params": {"type":{"ref":"AgentHandleParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"branch.bringBack"}},
+              "params": {"type":{"ref":"BranchCopyRef"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"branch.bringBackBundle"}},
               "params": {"type":{"ref":"BranchBringBackBundleParams"}}
             }
           },
-          {"fields":{"method":{"type":{"literal":"branch.changes"}},"params":{"type":{"ref":"BranchChangesParams"}}}},
-          {"fields":{"method":{"type":{"literal":"branch.commit"}},"params":{"type":{"ref":"BranchCommitParams"}}}},
-          {"fields":{"method":{"type":{"literal":"branch.commits"}},"params":{"type":{"ref":"BranchCommitsParams"}}}},
-          {"fields":{"method":{"type":{"literal":"branch.copy"}},"params":{"type":{"ref":"BranchCopyRef"}}}},
-          {"fields":{"method":{"type":{"literal":"branch.create"}},"params":{"type":{"ref":"BranchCreateParams"}}}},
-          {"fields":{"method":{"type":{"literal":"branch.delete"}},"params":{"type":{"ref":"BranchDeleteParams"}}}},
-          {"fields":{"method":{"type":{"literal":"branch.list"}},"params":{"type":{"ref":"BranchListParams"}}}},
-          {
-            "fields": {"method":{"type":{"literal":"branch.packageUse"}},"params":{"type":{"ref":"BranchPackageUseParams"}}}
-          },
-          {
-            "fields": {"method":{"type":{"literal":"branch.removeCopy"}},"params":{"type":{"ref":"BranchRemoveCopyParams"}}}
-          },
-          {"fields":{"method":{"type":{"literal":"branch.rename"}},"params":{"type":{"ref":"BranchRenameParams"}}}},
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"branch.changes"}},
+              "params": {"type":{"ref":"BranchChangesParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"branch.commit"}},
+              "params": {"type":{"ref":"BranchCommitParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"branch.commits"}},
+              "params": {"type":{"ref":"BranchCommitsParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"branch.copy"}},
+              "params": {"type":{"ref":"BranchCopyRef"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"branch.create"}},
+              "params": {"type":{"ref":"BranchCreateParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"branch.delete"}},
+              "params": {"type":{"ref":"BranchDeleteParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"branch.list"}},
+              "params": {"type":{"ref":"BranchListParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"branch.packageUse"}},
+              "params": {"type":{"ref":"BranchPackageUseParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"branch.removeCopy"}},
+              "params": {"type":{"ref":"BranchRemoveCopyParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"branch.rename"}},
+              "params": {"type":{"ref":"BranchRenameParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"branch.updateFromMain"}},
               "params": {"type":{"ref":"BranchUpdateFromMainParams"}}
             }
           },
-          {"fields":{"method":{"type":{"literal":"bundle.drop"}},"params":{"type":{"ref":"BundleDropParams"}}}},
-          {"fields":{"method":{"type":{"literal":"bundle.make"}},"params":{"type":{"ref":"BundleMakeParams"}}}},
           {
-            "fields": {"method":{"type":{"literal":"claudeLogin.cancel"}},"params":{"type":{"ref":"ClaudeLoginCancelParams"}}}
-          },
-          {
-            "fields": {"method":{"type":{"literal":"claudeLogin.finish"}},"params":{"type":{"ref":"ClaudeLoginFinishParams"}}}
-          },
-          {
-            "fields": {"method":{"type":{"literal":"claudeLogin.start"}},"params":{"type":{"ref":"ClaudeLoginStartParams"}}}
-          },
-          {"fields":{"method":{"type":{"literal":"file.about"}},"params":{"type":{"ref":"SiteFileRef"}}}},
-          {"fields":{"method":{"type":{"literal":"git.init"}},"params":{"type":{"ref":"GitInitParams"}}}},
-          {"fields":{"method":{"type":{"literal":"git.listTree"}},"params":{"type":{"ref":"GitListTreeParams"}}}},
-          {"fields":{"method":{"type":{"literal":"git.merge"}},"params":{"type":{"ref":"GitMergeParams"}}}},
-          {"fields":{"method":{"type":{"literal":"git.pullMain"}},"params":{"type":{"ref":"GitPullMainParams"}}}},
-          {"fields":{"method":{"type":{"literal":"git.pushMain"}},"params":{"type":{"ref":"GitPushMainParams"}}}},
-          {"fields":{"method":{"type":{"literal":"git.readFile"}},"params":{"type":{"ref":"GitReadFileParams"}}}},
-          {"fields":{"method":{"type":{"literal":"git.restore"}},"params":{"type":{"ref":"GitRestoreParams"}}}},
-          {"fields":{"method":{"type":{"literal":"git.status"}},"params":{"type":{"ref":"GitStatusParams"}}}},
-          {"fields":{"method":{"type":{"literal":"git.versions"}},"params":{"type":{"ref":"GitVersionsParams"}}}},
-          {
-            "fields": {"method":{"type":{"literal":"livePreview.act"}},"params":{"type":{"ref":"LivePreviewActParams"}}}
-          },
-          {
-            "fields": {"method":{"type":{"literal":"livePreview.appList"}},"params":{"type":{"ref":"LivePreviewAppListParams"}}}
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"bundle.drop"}},
+              "params": {"type":{"ref":"BundleDropParams"}}
+            }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"bundle.make"}},
+              "params": {"type":{"ref":"BundleMakeParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"claudeLogin.cancel"}},
+              "params": {"type":{"ref":"ClaudeLoginCancelParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"claudeLogin.finish"}},
+              "params": {"type":{"ref":"ClaudeLoginFinishParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"claudeLogin.start"}},
+              "params": {"type":{"ref":"ClaudeLoginStartParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"file.about"}},
+              "params": {"type":{"ref":"SiteFileRef"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"git.init"}},
+              "params": {"type":{"ref":"GitInitParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"git.listTree"}},
+              "params": {"type":{"ref":"GitListTreeParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"git.merge"}},
+              "params": {"type":{"ref":"GitMergeParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"git.pullMain"}},
+              "params": {"type":{"ref":"GitPullMainParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"git.pushMain"}},
+              "params": {"type":{"ref":"GitPushMainParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"git.readFile"}},
+              "params": {"type":{"ref":"GitReadFileParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"git.restore"}},
+              "params": {"type":{"ref":"GitRestoreParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"git.status"}},
+              "params": {"type":{"ref":"GitStatusParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"git.versions"}},
+              "params": {"type":{"ref":"GitVersionsParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"livePreview.act"}},
+              "params": {"type":{"ref":"LivePreviewActParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"livePreview.appList"}},
+              "params": {"type":{"ref":"LivePreviewAppListParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"livePreview.appStart"}},
               "params": {"type":{"ref":"LivePreviewAppStartParams"}}
             }
           },
           {
-            "fields": {"method":{"type":{"literal":"livePreview.appStop"}},"params":{"type":{"ref":"LivePreviewAppStopParams"}}}
-          },
-          {
-            "fields": {"method":{"type":{"literal":"livePreview.commit"}},"params":{"type":{"ref":"LivePreviewCommitParams"}}}
-          },
-          {"fields":{"method":{"type":{"literal":"livePreview.list"}},"params":{"type":{"ref":"NoParams"}}}},
-          {
-            "fields": {"method":{"type":{"literal":"livePreview.open"}},"params":{"type":{"ref":"LivePreviewOpenParams"}}}
-          },
-          {
-            "fields": {"method":{"type":{"literal":"livePreview.refresh"}},"params":{"type":{"ref":"LivePreviewRefreshParams"}}}
-          },
-          {
-            "fields": {"method":{"type":{"literal":"livePreview.resume"}},"params":{"type":{"ref":"LivePreviewResumeParams"}}}
-          },
-          {
-            "fields": {"method":{"type":{"literal":"livePreview.stop"}},"params":{"type":{"ref":"LivePreviewStopParams"}}}
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"livePreview.appStop"}},
+              "params": {"type":{"ref":"LivePreviewAppStopParams"}}
+            }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"livePreview.commit"}},
+              "params": {"type":{"ref":"LivePreviewCommitParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"livePreview.list"}},
+              "params": {"type":{"ref":"NoParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"livePreview.open"}},
+              "params": {"type":{"ref":"LivePreviewOpenParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"livePreview.refresh"}},
+              "params": {"type":{"ref":"LivePreviewRefreshParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"livePreview.resume"}},
+              "params": {"type":{"ref":"LivePreviewResumeParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"livePreview.stop"}},
+              "params": {"type":{"ref":"LivePreviewStopParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"location.deleteKnowledge"}},
               "params": {"type":{"ref":"LocationDeleteKnowledgeParams"}}
             }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"location.editKnowledge"}},
               "params": {"type":{"ref":"LocationEditKnowledgeParams"}}
             }
           },
           {
-            "fields": {"method":{"type":{"literal":"location.ensureDir"}},"params":{"type":{"ref":"LocationEnsureDirParams"}}}
-          },
-          {
-            "fields": {"method":{"type":{"literal":"location.findFiles"}},"params":{"type":{"ref":"LocationFindFilesParams"}}}
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"location.ensureDir"}},
+              "params": {"type":{"ref":"LocationEnsureDirParams"}}
+            }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"location.findFiles"}},
+              "params": {"type":{"ref":"LocationFindFilesParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"location.knowledgeVersions"}},
               "params": {"type":{"ref":"LocationKnowledgeVersionsParams"}}
             }
           },
           {
-            "fields": {"method":{"type":{"literal":"location.listArtefacts"}},"params":{"type":{"ref":"StorageOwnerRef"}}}
-          },
-          {
-            "fields": {"method":{"type":{"literal":"location.listFiles"}},"params":{"type":{"ref":"LocationListFilesParams"}}}
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"location.listArtefacts"}},
+              "params": {"type":{"ref":"StorageOwnerRef"}}
+            }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"location.listFiles"}},
+              "params": {"type":{"ref":"LocationListFilesParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"location.listKnowledge"}},
               "params": {"type":{"ref":"LocationListKnowledgeParams"}}
             }
           },
           {
-            "fields": {"method":{"type":{"literal":"location.remove"}},"params":{"type":{"ref":"LocationRemoveParams"}}}
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"location.remove"}},
+              "params": {"type":{"ref":"LocationRemoveParams"}}
+            }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"location.removeSkill"}},
               "params": {"type":{"ref":"LocationRemoveSkillParams"}}
             }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"location.restoreKnowledge"}},
               "params": {"type":{"ref":"LocationRestoreKnowledgeParams"}}
             }
           },
           {
-            "fields": {"method":{"type":{"literal":"location.scanSkills"}},"params":{"type":{"ref":"LocationScanSkillsParams"}}}
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"location.scanSkills"}},
+              "params": {"type":{"ref":"LocationScanSkillsParams"}}
+            }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"location.searchKnowledge"}},
               "params": {"type":{"ref":"LocationSearchKnowledgeParams"}}
             }
           },
           {
-            "fields": {"method":{"type":{"literal":"location.seedFiles"}},"params":{"type":{"ref":"LocationSeedFilesParams"}}}
-          },
-          {
-            "fields": {"method":{"type":{"literal":"location.statFile"}},"params":{"type":{"ref":"LocationStatFileParams"}}}
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"location.seedFiles"}},
+              "params": {"type":{"ref":"LocationSeedFilesParams"}}
+            }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"location.statFile"}},
+              "params": {"type":{"ref":"LocationStatFileParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"location.writeKnowledge"}},
               "params": {"type":{"ref":"LocationWriteKnowledgeParams"}}
             }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"membership.memberLeftProject"}},
               "params": {"type":{"ref":"MemberLeftProjectParams"}}
             }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"membership.personLeftOrganisation"}},
               "params": {"type":{"ref":"PersonLeftOrganisationParams"}}
             }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"membership.projectDeleted"}},
               "params": {"type":{"ref":"ProjectDeletedParams"}}
             }
           },
           {
-            "fields": {"method":{"type":{"literal":"packages.missing"}},"params":{"type":{"ref":"PackagesMissingParams"}}}
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"packages.missing"}},
+              "params": {"type":{"ref":"PackagesMissingParams"}}
+            }
           },
-          {"fields":{"method":{"type":{"literal":"preview.start"}},"params":{"type":{"ref":"PreviewStartParams"}}}},
-          {"fields":{"method":{"type":{"literal":"preview.stop"}},"params":{"type":{"ref":"PreviewStopParams"}}}},
-          {"fields":{"method":{"type":{"literal":"relay.assign"}},"params":{"type":{"ref":"RelayAssignParams"}}}},
-          {"fields":{"method":{"type":{"literal":"repo.connect"}},"params":{"type":{"ref":"RepoConnectParams"}}}},
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"preview.start"}},
+              "params": {"type":{"ref":"PreviewStartParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"preview.stop"}},
+              "params": {"type":{"ref":"PreviewStopParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"relay.assign"}},
+              "params": {"type":{"ref":"RelayAssignParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"repo.connect"}},
+              "params": {"type":{"ref":"RepoConnectParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"repo.create"}},
               "params": {
                 "type": {
@@ -1116,58 +1389,254 @@
               }
             }
           },
-          {"fields":{"method":{"type":{"literal":"repo.delete"}},"params":{"type":{"ref":"ByIdParams"}}}},
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"repo.delete"}},
+              "params": {"type":{"ref":"ByIdParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"repo.findByUrl"}},
               "params": {"type":{"fields":{"repoUrl":{"type":{"type":"string"}}}}}
             }
           },
           {
-            "fields": {"method":{"type":{"literal":"repo.getForTarget"}},"params":{"type":{"ref":"RepoAttachmentTarget"}}}
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"repo.getForTarget"}},
+              "params": {"type":{"ref":"RepoAttachmentTarget"}}
+            }
           },
-          {"fields":{"method":{"type":{"literal":"repo.list"}},"params":{"type":{"ref":"NoParams"}}}},
-          {"fields":{"method":{"type":{"literal":"repo.state"}},"params":{"type":{"ref":"RepoStateParams"}}}},
-          {"fields":{"method":{"type":{"literal":"run.approve"}},"params":{"type":{"ref":"RunApproveParams"}}}},
-          {"fields":{"method":{"type":{"literal":"run.cancel"}},"params":{"type":{"ref":"RunCancelParams"}}}},
-          {"fields":{"method":{"type":{"literal":"run.count"}},"params":{"type":{"ref":"RunListFilter"}}}},
-          {"fields":{"method":{"type":{"literal":"run.dispatch"}},"params":{"type":{"ref":"RunDispatchPayload"}}}},
-          {"fields":{"method":{"type":{"literal":"run.get"}},"params":{"type":{"ref":"ByIdParams"}}}},
-          {"fields":{"method":{"type":{"literal":"run.list"}},"params":{"type":{"ref":"RunListFilter"}}}},
-          {"fields":{"method":{"type":{"literal":"run.listActive"}},"params":{"type":{"ref":"ActiveRunsParams"}}}},
-          {"fields":{"method":{"type":{"literal":"run.listPage"}},"params":{"type":{"ref":"RunListPageParams"}}}},
-          {"fields":{"method":{"type":{"literal":"run.reject"}},"params":{"type":{"ref":"RunRejectParams"}}}},
-          {"fields":{"method":{"type":{"literal":"run.stats"}},"params":{"type":{"ref":"NoParams"}}}},
-          {"fields":{"method":{"type":{"literal":"run.usage"}},"params":{"type":{"ref":"RunUsageParams"}}}},
-          {"fields":{"method":{"type":{"literal":"session.archive"}},"params":{"type":{"ref":"ByIdParams"}}}},
-          {"fields":{"method":{"type":{"literal":"session.clearRuns"}},"params":{"type":{"ref":"ByIdParams"}}}},
-          {"fields":{"method":{"type":{"literal":"session.create"}},"params":{"type":{"ref":"SessionSeed"}}}},
-          {"fields":{"method":{"type":{"literal":"session.delete"}},"params":{"type":{"ref":"ByIdParams"}}}},
-          {
-            "fields": {"method":{"type":{"literal":"session.deleteMany"}},"params":{"type":{"ref":"SessionDeleteManyParams"}}}
-          },
-          {"fields":{"method":{"type":{"literal":"session.get"}},"params":{"type":{"ref":"ByIdParams"}}}},
-          {"fields":{"method":{"type":{"literal":"session.rename"}},"params":{"type":{"ref":"SessionRenameParams"}}}},
-          {"fields":{"method":{"type":{"literal":"site.describe"}},"params":{"type":{"ref":"NoParams"}}}},
-          {"fields":{"method":{"type":{"literal":"site.healthNow"}},"params":{"type":{"ref":"NoParams"}}}},
-          {"fields":{"method":{"type":{"literal":"site.hqAddress"}},"params":{"type":{"ref":"SiteHqAddressParams"}}}},
-          {
-            "fields": {"method":{"type":{"literal":"site.livePreviews"}},"params":{"type":{"ref":"SiteLivePreviewsParams"}}}
-          },
-          {"fields":{"method":{"type":{"literal":"site.readLogs"}},"params":{"type":{"ref":"LogQuery"}}}},
-          {"fields":{"method":{"type":{"literal":"site.restoreReport"}},"params":{"type":{"ref":"NoParams"}}}},
-          {"fields":{"method":{"type":{"literal":"toolcall.list"}},"params":{"type":{"ref":"ByRunIdParams"}}}},
-          {
-            "fields": {"method":{"type":{"literal":"transcript.list"}},"params":{"type":{"ref":"TranscriptListParams"}}}
-          },
-          {"fields":{"method":{"type":{"literal":"workflow.get"}},"params":{"type":{"ref":"WorkflowGetParams"}}}},
-          {
-            "fields": {"method":{"type":{"literal":"workflow.readFiles"}},"params":{"type":{"ref":"WorkflowReadFilesParams"}}}
-          },
-          {"fields":{"method":{"type":{"literal":"workflow.run"}},"params":{"type":{"ref":"WorkflowRunInstruction"}}}},
-          {"fields":{"method":{"type":{"literal":"workflow.stop"}},"params":{"type":{"ref":"WorkflowStopParams"}}}},
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"repo.list"}},
+              "params": {"type":{"ref":"NoParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"repo.state"}},
+              "params": {"type":{"ref":"RepoStateParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"run.approve"}},
+              "params": {"type":{"ref":"RunApproveParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"run.cancel"}},
+              "params": {"type":{"ref":"RunCancelParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"run.count"}},
+              "params": {"type":{"ref":"RunListFilter"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"run.dispatch"}},
+              "params": {"type":{"ref":"RunDispatchPayload"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"run.get"}},
+              "params": {"type":{"ref":"ByIdParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"run.list"}},
+              "params": {"type":{"ref":"RunListFilter"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"run.listActive"}},
+              "params": {"type":{"ref":"ActiveRunsParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"run.listPage"}},
+              "params": {"type":{"ref":"RunListPageParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"run.reject"}},
+              "params": {"type":{"ref":"RunRejectParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"run.stats"}},
+              "params": {"type":{"ref":"NoParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"run.usage"}},
+              "params": {"type":{"ref":"RunUsageParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"session.archive"}},
+              "params": {"type":{"ref":"ByIdParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"session.clearRuns"}},
+              "params": {"type":{"ref":"ByIdParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"session.create"}},
+              "params": {"type":{"ref":"SessionSeed"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"session.delete"}},
+              "params": {"type":{"ref":"ByIdParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"session.deleteMany"}},
+              "params": {"type":{"ref":"SessionDeleteManyParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"session.get"}},
+              "params": {"type":{"ref":"ByIdParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"session.rename"}},
+              "params": {"type":{"ref":"SessionRenameParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"site.describe"}},
+              "params": {"type":{"ref":"NoParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"site.healthNow"}},
+              "params": {"type":{"ref":"NoParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"site.hqAddress"}},
+              "params": {"type":{"ref":"SiteHqAddressParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"site.livePreviews"}},
+              "params": {"type":{"ref":"SiteLivePreviewsParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"site.readLogs"}},
+              "params": {"type":{"ref":"LogQuery"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"site.restoreReport"}},
+              "params": {"type":{"ref":"NoParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"toolcall.list"}},
+              "params": {"type":{"ref":"ByRunIdParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"transcript.list"}},
+              "params": {"type":{"ref":"TranscriptListParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"workflow.get"}},
+              "params": {"type":{"ref":"WorkflowGetParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"workflow.readFiles"}},
+              "params": {"type":{"ref":"WorkflowReadFilesParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"workflow.run"}},
+              "params": {"type":{"ref":"WorkflowRunInstruction"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"workflow.stop"}},
+              "params": {"type":{"ref":"WorkflowStopParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"workspace.create"}},
               "params": {
                 "type": {
@@ -1180,17 +1649,37 @@
               }
             }
           },
-          {"fields":{"method":{"type":{"literal":"workspace.delete"}},"params":{"type":{"ref":"ByIdParams"}}}},
-          {"fields":{"method":{"type":{"literal":"workspace.get"}},"params":{"type":{"ref":"ByIdParams"}}}},
-          {"fields":{"method":{"type":{"literal":"workspace.list"}},"params":{"type":{"ref":"NoParams"}}}},
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"workspace.delete"}},
+              "params": {"type":{"ref":"ByIdParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"workspace.get"}},
+              "params": {"type":{"ref":"ByIdParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
+              "method": {"type":{"literal":"workspace.list"}},
+              "params": {"type":{"ref":"NoParams"}}
+            }
+          },
+          {
+            "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"workspace.listByIds"}},
               "params": {"type":{"fields":{"ids":{"type":{"array":{"type":"string"}}},"select":{"type":{"literal":"caps"}}}}}
             }
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"workspace.listByOwner"}},
               "params": {
                 "type": {
@@ -1205,6 +1694,7 @@
           },
           {
             "fields": {
+              "features": {"optional":true,"type":{"ref":"FeatureSwitchesOnWire"}},
               "method": {"type":{"literal":"workspace.setAllowedTools"}},
               "params": {
                 "type": {
@@ -1536,6 +2026,7 @@
         }
       }
     },
+    "FeatureSwitchesOnWire": {"file":"protocol/channelMessages.ts","shape":{"fields":{},"index":{"key":"string","value":{"type":"boolean"}}}},
     "FileAboutParams": {"file":"protocol/fileAbout.ts","shape":{"ref":"SiteFileRef"}},
     "FileAboutRefusal": {"file":"protocol/fileAbout.ts","shape":{"union":[{"literal":"not-a-file"},{"literal":"not-found"}]}},
     "FileAboutResult": {

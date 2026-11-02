@@ -3,7 +3,7 @@
  * Hosted in `library.wasp.ts`. Reading is for the organisation's people.
  */
 import { HttpError, prisma } from 'wasp/server'
-import { isFeatureOn } from '@agenthix/core'
+import { isFeatureOn, NO_FEATURE_SWITCHES } from '@agenthix/core'
 import { may } from '../../assets/policy'
 import { organisationTarget, personActor } from '../../assets/policyActors'
 import { libraryEntries } from './entries'
@@ -20,13 +20,13 @@ export const getLibraryAssets = async (_args: unknown, context: Ctx): Promise<Li
     rows: await libraryEntries(prisma, viewer),
     isAdmin: viewer.role === 'ADMIN',
     mayAdd: may(viewer, 'install', target) || may(viewer, 'installFromOutside', target),
-    marketplace: isFeatureOn('marketplace', process.env),
+    marketplace: isFeatureOn('marketplace', { env: process.env, switches: NO_FEATURE_SWITCHES }),
   }
 }
 
 /** The Marketplace page's one read: refused where the flag is off, so the route is closed in production, not hidden. */
 export const getMarketplace = async (_args: unknown, context: Ctx): Promise<{ available: false }> => {
   if (!context.user) throw new HttpError(401)
-  if (!isFeatureOn('marketplace', process.env)) throw new HttpError(404, 'The Marketplace is not available. Nothing was changed.')
+  if (!isFeatureOn('marketplace', { env: process.env, switches: NO_FEATURE_SWITCHES })) throw new HttpError(404, 'The Marketplace is not available. Nothing was changed.')
   return { available: false }
 }
