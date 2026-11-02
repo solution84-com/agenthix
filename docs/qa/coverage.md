@@ -172,6 +172,8 @@ These are not yet counted in the summary below; the full audit before the first 
 
 ### Journeys added at the close of *live preview* (2026-11-02)
 
+> **Behind the `livePreview` flag, at experimental, so not in the release:** OPR-49 to OPR-53, ADM-25 and FLT-17, and the live-preview part of VWR-9. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
 These are not yet counted in the summary below; the full audit before the first release counts them. Most citations are on a whole group of tests (a `describe`) or on each test of an end-to-end spec, so the audit re-reads them. Some promises are also asserted by tests that need Docker or a running HQ and are run by hand or by the lead: the commit helper's and the live preview's container tests (`*.container.test.ts` in `site/`), hq's integration tests, and the two end-to-end specs, which need a workspace named in `E2E_WORKSPACE_ID`. SC-1682 (GitHub) is cited only for its refusal; pulling and pushing `main` have no test of their own.
 
 | Journey | Weight | What "works" means | Scenarios | Tests cite | Status |

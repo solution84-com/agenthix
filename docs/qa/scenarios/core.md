@@ -223,6 +223,8 @@ What `core/` fixes for every part that opens, serves or carries a file: which ki
 
 ## Code work and live previews: limits and shapes (added 2026-11-02)
 
+> **Behind the `livePreview` flag, at experimental, so not in the release:** SC-1759 and SC-1760. The product does not keep these promises while the flag is off. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
 Written at the close of the unit *live preview*, from the finished code.
 
 - **SC-1759** — Live previews at once have no limit by default, a limit is a whole number in range or none, and lowering it stops none; the idle stop is two hours unless the fleet admin sets another; a live preview is live until it stops and says why it stopped; the guard has one response for every signal and reads only the signals it knows; what live previews use is worked out in whole percents, high above the high mark and recovered only under the recovered one. · fulfils AC-420c, AC-422a, AC-422d

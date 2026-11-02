@@ -230,6 +230,8 @@ As a fleet admin, I want to see hq's relay beside hq and be told at once when it
 
 Written on 2026-11-02 from the finished code at the close of the unit *live preview*.
 
+> **Behind the `livePreview` flag, at experimental, so not in the release:** US-422. The product does not keep these promises while the flag is off. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
 ### US-422 — Decide which sites run live previews
 
 As a fleet admin, I want to switch live previews on or off per site and set how many run at once and when an unused one stops, so that live previews do not crowd out the agents' work.

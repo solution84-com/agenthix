@@ -113,7 +113,7 @@ Also said: headquarters, the platform, the app, the web app, the control plane.
 
 ## Install script
 
-A script a package runs when it installs. Agenthix turns them off in every agent command, and runs those of packages that pass a fixed rule, or that a person allows. Where: the question in a live preview's strip, **Allow**, or a card in a branch's thread.
+A script a package runs when it installs. Agenthix turns them off in every agent command, and runs those of packages that pass a fixed rule, or that a person allows. Where: a card in a branch's thread, **Allow**. (A live preview's strip will ask the same question; live previews are not available yet.)
 Also said: postinstall script, lifecycle script.
 
 ## Kernel
@@ -138,7 +138,7 @@ Also said: maintainer, skill owner, skill editor.
 
 ## Live preview
 
-A running copy of the app a branch is building, shown in the middle of the workspace view while the agent keeps working. Where: **Live preview** in the left panel of a code workspace (`/workspaces`), and **Live previews on this site** on a site's page in the Fleet Console.
+Not available yet. A running copy of the app a branch is building, shown in the middle of the workspace view while the agent keeps working. Where: **Live preview** in the left panel of a code workspace (`/workspaces`), and **Live previews on this site** on a site's page in the Fleet Console.
 Also said: preview, demo, test site, running app.
 
 ## Manage

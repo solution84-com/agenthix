@@ -85,4 +85,6 @@ HQ's page carries a card for hq's relay, and a relay that is not answering is on
 
 ## Live previews on a site (added 2026-11-02)
 
+> **Behind the `livePreview` flag, at experimental, so not in the release:** SC-1755. The product does not keep these promises while the flag is off. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
 - **SC-1755** — A site's page shows *Live previews on this site*, its capacity against the machine and the live previews open, with whose, which branch and when last used; it marks the site busy past 80% of its memory and shows why live previews cannot start; it changes the limit and the idle stop, rejecting what is out of range without asking; turning live previews off lists the ones it stops and asks first, turning them on is one press, and one live preview is stopped after a confirmation; it says so when HQ cannot be read; the disk branch copies use is shown against the machine's disk, and left out while the site has not said. · fulfils AC-422a, AC-422b, AC-422c, AC-422d

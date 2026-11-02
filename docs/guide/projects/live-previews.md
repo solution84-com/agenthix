@@ -5,6 +5,11 @@ sidebar:
   order: 11
 ---
 
+> **Live previews are not available yet.** Nothing on this page can be done today: the **Live preview** entry in the
+> workspace view is not shown, Kernel does not offer one, and the agent has no tools to run an app. Code work on
+> branches, merging and restoring a version work as described in [Code workspaces and branches](code-workspaces.md).
+> This page describes what live previews will do.
+
 A **live preview** runs the app a branch is building, in a container of its own on an **Execution Site** (the machine
 that runs agents), and shows it in the middle of the [workspace view](code-workspaces.md#the-workspace-view). The agent
 keeps working on the same branch, so a change it saves reaches the running app at once.

@@ -134,7 +134,7 @@ each caller really came from. Nothing else needs setting.
 
 ## Live previews
 
-An agent can serve the app it is building as a live preview (see [Live previews](../projects/live-previews.md)), each app
+**Live previews are not available yet, so none of this needs setting up today.** When they are, an agent can serve the app it is building as a live preview (see [Live previews](../projects/live-previews.md)), each app
 from a host name of its own, `p-<id>.<preview domain>`. That needs:
 
 - **A domain for HQ.** An HQ reached by a bare network address has no live previews, and says a domain is needed.

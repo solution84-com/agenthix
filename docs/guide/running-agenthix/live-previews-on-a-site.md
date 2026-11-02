@@ -5,6 +5,9 @@ sidebar:
   order: 6
 ---
 
+> **Live previews are not available yet.** The **Live previews on this site** section is not shown in the Fleet Console,
+> and no site runs a live preview. Nothing on this page needs doing today. It describes what the section will offer.
+
 This page is for fleet admins. A **live preview** runs the app an agent is building in a container of its own, on an
 **Execution Site**, and shows it to a person in HQ: see [Live previews](../projects/live-previews.md). **HQ** is your
 organisation's home in Agenthix, and a site is where agents run. A live preview needs two things from you: a site that

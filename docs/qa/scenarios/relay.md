@@ -37,6 +37,8 @@ A relay is a fleet member that carries bytes between browsers and the sites assi
 
 ## Live apps and bundles (added 2026-11-02)
 
+> **Behind the `livePreview` flag, at experimental, so not in the release:** SC-1749 to SC-1753. The product does not keep these promises while the flag is off. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
 Written at the close of the unit *live preview*, from the finished code. The relay carries a live app's requests and WebSockets, and a branch's bundle between two sites; HQ signs every ticket and the site checks each stream again ([`hq.md`](hq.md), [`site.md`](site.md), under "Live preview").
 
 - **SC-1749** — A live app is entered only by a POST navigation from HQ's page, with a ticket HQ signed for that app and this relay, within its time to enter: in HQ's viewer it sets a partitioned host-only cookie holding a handle, never the ticket, and for a new tab a strict cookie entered at the top level; a renewal does not move the page; a ticket is taken once and a replay of a real one counted; an entry from a sibling app's page, a link or with no `Origin`, a ticket for another app or relay, past its time or not signed by HQ, a viewer's ticket entered at the top level and a tab's entered in a frame are refused; a ticket signed before HQ cut its person, its live preview or its app off is refused, and one signed after (it paused and resumed, or started again) is taken. Every `Domain` comes off a cookie the app sets, and one named as the relay's own is dropped. · fulfils AC-416d, AC-421c

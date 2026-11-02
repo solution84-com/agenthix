@@ -98,6 +98,8 @@ The Fleet Console asks hq about hq's own relay as it asks about hq and its sites
 
 ## Live previews on a site (added 2026-11-02)
 
+> **Behind the `livePreview` flag, at experimental, so not in the release:** SC-1754. The product does not keep these promises while the flag is off. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
 Written at the close of the unit *live preview*, from the finished code. The Fleet Console reads and sets a site's live previews through HQ, as the signed-in fleet admin; HQ holds the settings.
 
 - **SC-1754** — The Fleet Console refuses a site's live previews to someone not signed in and passes on HQ's refusal of an account without the fleet admin role; it reads them as the signed-in fleet admin for the site HQ knows by its id (HQ's own site by the default site it reports), says so for a site HQ does not know, drops an answer not in its shape and says an older HQ is older; it sets *Live previews on this site*, the limit and the idle stop only to values HQ accepts; turning live previews off lists the ones it stops and asks first, without asking when none is open; it stops one live preview by its id and nothing that is not an id; a notice about a site's memory or a live preview stopped for it opens the site's page. · fulfils AC-422a, AC-422b, AC-422d

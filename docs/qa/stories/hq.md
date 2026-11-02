@@ -4028,7 +4028,7 @@ As a developer, I want every task and conversation in a code workspace to work o
 - AC-410a: a task given a code workspace, or a conversation started in one, works on its own branch, named from the work, in a working copy that its later runs keep; whether work is code work is decided from the workspace's folder, never by an agent.
 - AC-410b: every commit reaches the workspace's repository: at once with the agent's commit tool, while the run goes when the agent uses its own `git`, and at the end of a run, which commits anything left as *Work in progress*; the agent can bring `main` into its branch.
 - AC-410c: agents read the workspace's own folder but never write it, nothing an agent writes in a copy (a Git hook, setting, filter or link) runs or is followed on the site, and only a merge, a restore, turning Git on or a pull from GitHub moves `main`.
-- AC-410d: a run on a branch is told its branch, how far behind `main` it is, the other branches and who works on them, and which tools it has for Git and for the live preview.
+- AC-410d: a run on a branch is told its branch, how far behind `main` it is, the other branches and who works on them, and which tools it has for Git and for the live preview. *(The live-preview part is behind the `livePreview` flag, at experimental, so not in the release.)*
 - AC-410e: the lead is told the place's workspaces and which are code workspaces, and names one when it makes a task.
 - AC-410f: a Member or Admin renames a branch, and deletes an unmerged branch whose work is over, told how many commits are lost; removing a workspace lists its branches first.
 
@@ -4038,7 +4038,7 @@ As a member, I want to make a plain workspace a Git repository with one confirma
 
 **Acceptance criteria:**
 - AC-411a: the confirmation says what happens; the files are recorded as the first version, by me, with a standard `.gitignore` when there is none, and files over 50 MB are left out and named.
-- AC-411b: a workspace without Git shows its files only, with *Turn Git on* where Live preview and Git would be.
+- AC-411b: a workspace without Git shows its files only, with *Turn Git on* where Live preview and Git would be. *(The live-preview part is behind the `livePreview` flag, at experimental, so not in the release.)*
 
 ### US-412 — Review a branch in the workspace view
 
@@ -4078,7 +4078,9 @@ As a member, I want to see `main`'s versions, restore any of them and deploy `ma
 As a viewer, I want to see a code workspace's files, branches, changes, versions and live previews, so that I can follow the work without being able to change it.
 
 **Acceptance criteria:**
-- AC-415a: I see everything in the workspace view, and every action — merge, restore, delete a branch, start or stop a live preview, reload, start an app, message the agent, *New conversation* — is greyed with the reason or absent, and refused by the server.
+- AC-415a: I see everything in the workspace view, and every action — merge, restore, delete a branch, start or stop a live preview, reload, start an app, message the agent, *New conversation* — is greyed with the reason or absent, and refused by the server. *(The live-preview part is behind the `livePreview` flag, at experimental, so not in the release.)*
+
+> **Behind the `livePreview` flag, at experimental, so not in the release:** US-416 to US-421 (the live preview itself). The product does not keep these promises while the flag is off. The QA model has no mark for a promise outside the release, so this note stands in for one. What stays on with the flag off in US-418: install scripts are off in every agent command, and a blocked package outside a live preview gets a card in the task's thread.
 
 ### US-416 — See the app running beside the conversation
 
@@ -4097,7 +4099,7 @@ As a developer, I want the branch's agent to start, stop and reload the app, and
 **Acceptance criteria:**
 - AC-417a: every run on a branch has the app tools, which act only on its own branch's live preview on its site; `start_app` on a branch with none opens one first, with the rules a person's start has; nobody is asked to allow them.
 - AC-417b: the strip offers *Start* for each app known on the workspace, as it was last started.
-- AC-417c: the lead can offer a live preview of a task's branch with a card that opens it.
+- AC-417c: the lead can offer a live preview of a task's branch with a card that opens it. *(The live-preview part is behind the `livePreview` flag, at experimental, so not in the release.)*
 - AC-417d: an app that listens only on `localhost` works without change.
 - AC-417e: `main`'s live preview runs from a copy of its own that follows `main` as it moves.
 

@@ -9,6 +9,9 @@ proxied a dev server running in the agent's own container (`start_preview`, `Pre
 The people's view is in the user guide, [Live previews](../../guide/projects/live-previews.md); the trust boundary is
 [ADR-0167](../../adr/adr-0167-agenthix-acts-only-on-machines-the-organisation-runs.md).
 
+**It is behind the `livePreview` flag, at experimental** ([feature flags](../feature-flags.md)): everything below is
+built, and refuses or is hidden unless the flag is on. Code work on branches does not depend on it.
+
 ```mermaid
 flowchart LR
     B["1 · Browser<br/>HQ's page, the app's frame"] -- "form POST: single-use ticket" --> R["2 · hq's relay<br/>p-id.preview-domain"]

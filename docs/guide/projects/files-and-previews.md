@@ -78,7 +78,7 @@ is about GitHub.
 
 ## Live previews
 
-An agent can run the app it is building so you see it working beside the conversation. A live preview belongs to a branch of a
+**Live previews are not available yet.** When they are, an agent can run the app it is building so you see it working beside the conversation. A live preview belongs to a branch of a
 code workspace, or to `main`, and opens from **Live preview** in the workspace view. See [Live previews](live-previews.md) for
 opening one, working with the agent while it runs, services, install scripts, secrets and who may do what.
 

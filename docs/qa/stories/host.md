@@ -291,6 +291,8 @@ As a contributor, I want to switch a development host service to another image b
 
 Written on 2026-11-02 from the finished code at the close of the unit *live preview*.
 
+> **Behind the `livePreview` flag, at experimental, so not in the release:** US-423. The product does not keep these promises while the flag is off. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
 ### US-423 — Give live apps their own addresses
 
 As a machine admin, I want to give live apps a preview domain with one command, so that each app opens at an address of its own.

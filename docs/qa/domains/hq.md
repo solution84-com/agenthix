@@ -178,6 +178,9 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 - **Note:** added 2026-10-26 at the close of the agent knowledge unit. The knowledge tools agents call are not operations but are in the contract (**SC-1397** to **SC-1416**); the page rules are core's and the gate the site's.
 
 ### 28. Code workspaces, branches & live previews
+
+> The live-preview scenarios and stories in this area are behind the `livePreview` flag, at experimental, so not in the release; the notes in the scenarios and stories files list which.
+
 - **Files:** `src/branches/` (a branch and its copy, the agent's Git tools, merging, the merge and package cards, `main`'s versions, GitHub); `src/workspaceView/` (the full-screen workspace view at `/workspaces/:workspaceId/view`); `src/livePreviews/` (opening, stopping, the app tools, site picking, the idle stop, bundles, the Fleet Console's settings, trusted package scopes); `src/relays/` (app and bundle tickets, the relay link)
 - **Ops:** getWorkspaceBranches, getBranchChanges, getBranchCommits, getMainVersions, getGitTree, getGitFile, getWorkspaceRemoval, getTaskWorkspaces, turnGitOn, mergeBranch, restoreVersion, renameBranch, deleteBranch, startWorkspaceConversation, getLivePreviewPlaces, getLivePreview, startLivePreview, stopLivePreview, resumeLivePreview, reloadLivePreview, setLivePreviewAuto, markLivePreviewInUse, answerLivePreviewQuestion, openLiveApp, startLiveApp, runLivePreviewWorkflow, getTrustedPackageScopes, setTrustedPackageScopes
 - **Note:** added 2026-11-02 at the close of the live preview unit. The agent's tools (`commit`, `update_from_main`, `merge_into_main`, the app tools, `offer_live_preview`) are not operations but are in the contract (**SC-1669** to **SC-1719**).
