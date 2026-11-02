@@ -1,8 +1,9 @@
 import { SITE_PROTOCOL_VERSION, type HQConnectionMessage } from '@agenthix/core'
 import { channelMethods, type ChannelMethod } from './channelMethods'
+import { withRequestSwitches } from '../features/siteFeatures'
 
 /** A request as it arrives: its method is looked up here, its params read by the handler. */
-export type ReceivedRequest = HQConnectionMessage<{ method?: string; params?: unknown } | undefined>
+export type ReceivedRequest = HQConnectionMessage<{ method?: string; params?: unknown; features?: unknown } | undefined>
 
 /**
  * hq asks, this site answers on the same socket. Every path here ends in a reply — an unknown method and a thrown
@@ -27,7 +28,8 @@ export async function answerChannelRequest(
     return
   }
   try {
-    reply('channel.response', await handler(msg.payload?.params))
+    // The organisation's switches hq sent are the current ones while this request is answered (siteFeatures.ts).
+    reply('channel.response', await withRequestSwitches(msg.payload?.features, () => handler(msg.payload?.params)))
   } catch (err) {
     // The message, not the stack: hq logs this and an operator reads it there.
     reply('channel.error', { message: err instanceof Error ? err.message : 'Handler failed', code: 'handler_failed' })

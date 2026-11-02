@@ -11,7 +11,7 @@
     "#db": "./src/server/db.ts"
   },
   "scripts": {
-    "dev": "tsx watch --clear-screen=false --env-file-if-exists=.env.server src/server/main.ts",
+    "dev": "NODE_ENV=${NODE_ENV:-development} tsx watch --clear-screen=false --env-file-if-exists=.env.server src/server/main.ts",
     "build": "node scripts/build.mjs",
     "start": "node --enable-source-maps dist/server.js",
     "typecheck": "tsc --noEmit",

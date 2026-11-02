@@ -8,6 +8,7 @@ import zlib from 'node:zlib'
 import type { AddressInfo } from 'node:net'
 import express from 'express'
 import type { UsageReport } from '@agenthix/core'
+import { withFeature } from '@agenthix/core/testing'
 import { createModelRelayHandler } from '../modelRelayApi'
 import { issueRelayToken, pointRelayToken, resetRelayTokensForTests } from '../relayTokens'
 import { resetGateRunsForTests } from '../../../agents/runtime/toolGateRuns'
@@ -132,19 +133,39 @@ describe('each call through the relay is reported @SC-1228', () => {
 })
 
 describe('Agenthix Cloud through the relay @SC-1230', () => {
-  it("presents hq's Cloud token, never a call id or billing profile the harness sent", async () => {
+  it("presents hq's Cloud token, and while usage billing is off tells the gateway no call id or billing profile", async () => {
     pointRelayToken(token, 'run-1', [CLOUD], 'bp-1')
     answer = res => { res.writeHead(200, { 'content-type': 'text/event-stream' }); res.end(stream) }
     await (await post('/anthropic/v1/messages', { 'x-call-id': 'chosen-by-harness', 'x-billing-profile-id': 'someone-elses' })).text()
     expect(seen[0].url).toBe('/gateway/anthropic/v1/messages')
     expect(seen[0].headers['x-api-key']).toBe('cloud-token-fake')
-    expect(seen[0].headers['x-call-id']).not.toBe('chosen-by-harness')
-    expect(seen[0].headers['x-billing-profile-id']).not.toBe('someone-elses')
+    expect(seen[0].headers['x-call-id']).toBeUndefined()
+    expect(seen[0].headers['x-billing-profile-id']).toBeUndefined()
+    expect((await reported(1))[0].providerId).toBe('prov-cloud')
+  })
+
+  it('tells the gateway the call and its profile when the run was started with usage billing switched on', async () => {
+    pointRelayToken(token, 'run-1', [CLOUD], 'bp-1', { usageBilling: true })
+    answer = res => { res.writeHead(200, { 'content-type': 'text/event-stream' }); res.end(stream) }
+    await (await post('/anthropic/v1/messages')).text()
     const [report] = await reported(1)
-    expect(report.providerId).toBe('prov-cloud')
-    // In a test run `usageBilling` is on (core's feature flags), so the gateway is told the call and its profile.
     expect(seen[0].headers['x-call-id']).toBe(report.callId)
     expect(seen[0].headers['x-billing-profile-id']).toBe('bp-1')
+  })
+
+  withFeature('usageBilling', () => {
+    it("presents hq's Cloud token, never a call id or billing profile the harness sent", async () => {
+      pointRelayToken(token, 'run-1', [CLOUD], 'bp-1')
+      answer = res => { res.writeHead(200, { 'content-type': 'text/event-stream' }); res.end(stream) }
+      await (await post('/anthropic/v1/messages', { 'x-call-id': 'chosen-by-harness', 'x-billing-profile-id': 'someone-elses' })).text()
+      expect(seen[0].headers['x-api-key']).toBe('cloud-token-fake')
+      expect(seen[0].headers['x-call-id']).not.toBe('chosen-by-harness')
+      expect(seen[0].headers['x-billing-profile-id']).not.toBe('someone-elses')
+      const [report] = await reported(1)
+      expect(report.providerId).toBe('prov-cloud')
+      expect(seen[0].headers['x-call-id']).toBe(report.callId)
+      expect(seen[0].headers['x-billing-profile-id']).toBe('bp-1')
+    })
   })
 
   it('refuses the call, without reaching the gateway, while hq has no Cloud token to give', async () => {

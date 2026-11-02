@@ -8,6 +8,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    globalSetup: ['./src/test/experimental-failures-setup.ts'],
     include: ['**/*.integration.test.ts'],
     exclude: ['**/node_modules/**', 'dist/**', '.wasp/**'],
     setupFiles: ['./src/test/provider-guard-setup.ts', './src/test/integration-setup.ts'],

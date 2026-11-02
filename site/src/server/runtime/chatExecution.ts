@@ -22,6 +22,7 @@ import { runPackageColumns } from '../../packages/runPackages'
 import { generateSessionTitle } from '../../sessions/namingService'
 import { UNTITLED_SESSION_TITLE } from '../../agents/runtime/currentSessionTitle'
 import { Logger } from '../utils/logger'
+import { currentSwitches } from '../features/siteFeatures'
 
 const logger = new Logger('ChatExecution')
 
@@ -30,6 +31,8 @@ const logger = new Logger('ChatExecution')
  *  timeout; the run itself reports by frames). Returns the created run's id. */
 export async function runChat(payload: RunDispatchPayload): Promise<string> {
   const { session, context, inputText, model, hideUserMessage, capabilityJwt, startedBy, runLimits, onBehalfOfUserId } = payload
+  // The switches of the instruction that starts this run: every turn of it is checked against them.
+  const features = currentSwitches()
   const agent = context.agent
   // Summarise now: a hidden message asking the runtime to summarise its memory (core's SUMMARISE_NOW_INPUT).
   const summarise = hideUserMessage && inputText === SUMMARISE_NOW_INPUT
@@ -102,7 +105,7 @@ export async function runChat(payload: RunDispatchPayload): Promise<string> {
     logger.info(`bypassed run ${run.id} (session: ${session.id})`)
     const sessionTitle = await recordMessage(run.id)
     void agentEngine
-      .run(run.id, { queued: true, chatContext, dispatchContext: context, capabilityJwt, sessionTitle, runLimits, startedBy, summarise, pickedSkill })
+      .run(run.id, { queued: true, chatContext, dispatchContext: context, features, capabilityJwt, sessionTitle, runLimits, startedBy, summarise, pickedSkill })
       .catch(err => logger.error(`bypassed run ${run.id} failed:`, err))
     return run.id
   }
@@ -138,7 +141,7 @@ export async function runChat(payload: RunDispatchPayload): Promise<string> {
   const sessionTitle = await recordMessage(run.id)
 
   void agentEngine
-    .run(run.id, { queued: true, chatContext, deferredManifest, dispatchContext: context, capabilityJwt, sessionTitle, runLimits, startedBy, summarise, pickedSkill })
+    .run(run.id, { queued: true, chatContext, deferredManifest, dispatchContext: context, features, capabilityJwt, sessionTitle, runLimits, startedBy, summarise, pickedSkill })
     .then(outcome =>
       reportDeferredManifestIfAny({
         runId: run.id,

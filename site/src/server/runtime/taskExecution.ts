@@ -30,11 +30,14 @@ import { reportDeferredManifestIfAny } from './deferredManifestReport'
 import { commentsSinceLastRun } from './taskComments'
 import { approvalForNextRun, approvalNote, replaceUnansweredRequests } from './nextRunApproval'
 import { Logger } from '../utils/logger'
+import { currentSwitches } from '../features/siteFeatures'
 
 const logger = new Logger('TaskExecution')
 
 export async function runTask(payload: RunDispatchPayload): Promise<string> {
   const { session, context, capabilityJwt } = payload
+  // The switches of the instruction that starts this run: every turn of it is checked against them.
+  const features = currentSwitches()
   const agent = context.agent
   const task = context.task
   if (!task) throw new Error('runTask: dispatch payload for a task run carries no task context')
@@ -114,7 +117,7 @@ export async function runTask(payload: RunDispatchPayload): Promise<string> {
     })
     logger.info(`bypassed run ${run.id} started (task: ${task.taskId})`)
     void agentEngine
-      .run(run.id, { queued: false, taskContext, dispatchContext: context, capabilityJwt, runLimits: payload.runLimits, startedBy: payload.startedBy, pickedSkill: pickedSkillOf(payload.skill)?.name })
+      .run(run.id, { queued: false, taskContext, dispatchContext: context, features, capabilityJwt, runLimits: payload.runLimits, startedBy: payload.startedBy, pickedSkill: pickedSkillOf(payload.skill)?.name })
       .catch(err => logger.error(`bypassed run ${run.id} failed:`, err))
     return run.id
   }
@@ -152,7 +155,7 @@ export async function runTask(payload: RunDispatchPayload): Promise<string> {
 
   // The run's time limit is the engine's (runLimitWatch.ts), not a timer here or on hq.
   void agentEngine
-    .run(run.id, { taskContext, deferredManifest, dispatchContext: context, capabilityJwt, runLimits: payload.runLimits, startedBy: payload.startedBy, pickedSkill: pickedSkillOf(payload.skill)?.name })
+    .run(run.id, { taskContext, deferredManifest, dispatchContext: context, features, capabilityJwt, runLimits: payload.runLimits, startedBy: payload.startedBy, pickedSkill: pickedSkillOf(payload.skill)?.name })
     .then(outcome =>
       reportDeferredManifestIfAny({
         runId: run.id,

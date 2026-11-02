@@ -99,7 +99,7 @@ export class OpenCodeRuntime implements AgentRuntime {
     const token = pointConversationToken(context.sessionId, context.runId, capability)
     registerGateRun(context)
     const relayToken = issueRelayToken(containerName, context.sessionId)
-    pointRelayToken(relayToken, context.runId, turnModelCredentials(context), context.billingProfileId ?? null)
+    pointRelayToken(relayToken, context.runId, turnModelCredentials(context), context.billingProfileId ?? null, context.features)
     const connectionName = openCodeConnectionName(context.sessionId)
     let openCodeSessionId: string | null = null
     try {

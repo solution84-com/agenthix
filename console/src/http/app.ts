@@ -16,6 +16,7 @@ import type { Presence } from '../hosts/presence'
 import type { Silence } from '../hosts/silence'
 import type { FiguresRefresh } from '../hosts/figuresRefresh'
 import type { HqFacts } from '../hq/hqFacts'
+import type { HqFeatures } from '../hq/hqFeatures'
 import { JoinError, type Joins } from '../join/joins'
 import type { HandoverIn } from '../handover/incoming'
 import type { HandoverOut } from '../handover/outgoing'
@@ -32,6 +33,7 @@ import { fleetAdminRoutes } from './routes/fleetAdmins'
 import { activityRoutes } from './routes/activity'
 import { moveRoutes } from './routes/moves'
 import { livePreviewRoutes } from './routes/livePreviews'
+import { featureRoutes } from './routes/features'
 import { MoveError, type Moves } from '../move/moves'
 import { cloudRoutes } from './routes/cloud'
 import { remoteSignInRoutes } from './routes/remoteSignIn'
@@ -46,6 +48,8 @@ export type ConsoleContext = {
   silence: Silence
   figures: FiguresRefresh
   hqFacts: HqFacts
+  /** Which flagged features hq says are on (adr-0172). */
+  features: HqFeatures
   commands: HostCommands
   joins: Joins
   moves: Moves
@@ -84,7 +88,7 @@ export function createApp(ctx: ConsoleContext, options: AppOptions = {}): expres
   app.use('/api', remoteSignInRoutes(ctx))
   app.use('/api', sessionRoutes(ctx, authed))
   app.use('/api', cloudRoutes(ctx, authed))
-  app.use('/api', authed, fleetRoutes(ctx), joinRoutes(ctx), commandRoutes(ctx), backupRoutes(ctx), fleetAdminRoutes(ctx), moveRoutes(ctx), activityRoutes(ctx), livePreviewRoutes(ctx), exportRoutes(ctx, downloads))
+  app.use('/api', authed, fleetRoutes(ctx), joinRoutes(ctx), commandRoutes(ctx), backupRoutes(ctx), fleetAdminRoutes(ctx), moveRoutes(ctx), activityRoutes(ctx), featureRoutes(ctx), livePreviewRoutes(ctx), exportRoutes(ctx, downloads))
   app.use('/api', notFound)
   app.use(webRoutes(options.webRoot ?? defaultWebRoot()))
   app.use(notFound)

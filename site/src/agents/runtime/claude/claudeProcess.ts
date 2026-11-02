@@ -186,7 +186,7 @@ export class ClaudeProcess {
     let lastTokens: number | null = null
     this.compactSummary = null
     this.gate = buildPreToolUseHook(context, { skillsDir: this.skills?.visibleDir ?? null, skillNames: this.skills?.names ?? [] })
-    if (this.relayToken) pointRelayToken(this.relayToken, context.runId, turnModelCredentials(context), context.billingProfileId ?? null)
+    if (this.relayToken) pointRelayToken(this.relayToken, context.runId, turnModelCredentials(context), context.billingProfileId ?? null, context.features)
     this.turnAnswered = false
     signal?.addEventListener('abort', onAbort, { once: true })
     try {

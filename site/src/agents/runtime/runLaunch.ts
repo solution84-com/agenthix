@@ -415,6 +415,7 @@ export async function assembleRunLaunch(
     credential: access.credential,
     fallbackCredentials: access.others,
     ...(access.billingProfileId ? { billingProfileId: access.billingProfileId } : {}),
+    ...(options.features ? { features: options.features } : {}),
     webSearchKey: ctx.webSearchKey,
     riskRules: ctx.riskRules,
     packages,

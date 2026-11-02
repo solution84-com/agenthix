@@ -2,6 +2,7 @@
 import http from 'node:http'
 import { EnvelopeReplayGuard } from '@agenthix/core/host-crypto'
 import { createConsole, listen } from '../console'
+import type { AskFeatures } from '../hq/hqFeatures'
 import type { ConsoleContext } from '../http/app'
 import { FakeHqLink, tempState } from './fakes'
 import type { StateFolder } from '../state/folder'
@@ -23,6 +24,8 @@ export async function startHarness(options: {
   version?: string; commandTimeouts?: { short?: number; long?: number; staleRetry?: number }; hqCode?: string; machineName?: string
   /** A guard that began now, as a real start's does; by default one from long ago. */
   replay?: EnvelopeReplayGuard
+  /** How the Fleet Console asks hq which flagged features are on. */
+  askFeatures?: AskFeatures
 } = {}): Promise<Harness> {
   const link = new FakeHqLink()
   link.handle('signIn.check', ({ username, password }) =>
@@ -36,6 +39,7 @@ export async function startHarness(options: {
   const { ctx, app } = await createConsole({
     state, link, machineName: options.machineName ?? 'hq-box', version: options.version ?? '0.2.0',
     replay: options.replay ?? new EnvelopeReplayGuard(0), commandTimeouts: options.commandTimeouts, hqCode: options.hqCode ?? null,
+    askFeatures: options.askFeatures ?? null,
   })
   const server: http.Server = await listen(app, '127.0.0.1', 0)
   await ctx.remoteAccess.start(app, '127.0.0.1')

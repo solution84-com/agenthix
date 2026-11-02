@@ -20,6 +20,7 @@ import { HelpPage } from './pages/help/HelpPage'
 import { navigate, usePath } from './router'
 import { HOME, JOBS, sitePath } from './shell/menu'
 import { Shell } from './shell/Shell'
+import { FeaturesProvider } from './features/features'
 
 // The page of every component in both themes, for checking against the boards: development builds only.
 const ComponentsPage = import.meta.env.DEV ? lazy(() => import('./dev/ComponentsPage')) : null
@@ -46,9 +47,11 @@ function Screens({ path }: { path: string }) {
   if (state.phase === 'checking') return null
   if (state.phase === 'signedOut') return <SignInPage status={status} />
   return (
-    <Shell path={path} machineName={status.phase === 'ready' ? status.status.machineName : null}>
-      <Page path={path} />
-    </Shell>
+    <FeaturesProvider>
+      <Shell path={path} machineName={status.phase === 'ready' ? status.status.machineName : null}>
+        <Page path={path} />
+      </Shell>
+    </FeaturesProvider>
   )
 }
 
