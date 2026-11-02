@@ -5,6 +5,8 @@
  * and are neither removed again nor reported. Fake Docker: no Docker here.
  */
 import { describe, expect, it, vi } from 'vitest'
+import { withFeature } from '@agenthix/core/testing'
+import { isSiteFeatureOn } from '../../features/siteFeatures'
 import type { DockerEvent } from '../guard/guardDocker'
 import type { LivePreviewTemplate } from '../container/template'
 import { LivePreviewGuard } from '../guard/guard'
@@ -38,6 +40,7 @@ function guarded() {
     running: async () => [],
     stopForMemory: async () => {},
     hqLineUp: () => true,
+    livePreviewOn: () => isSiteFeatureOn('livePreview'),
     report: () => {},
     setInterval: () => 0,
     clearInterval: () => {},
@@ -58,34 +61,36 @@ async function streaming() {
   return t
 }
 
-describe("the guard and a live preview it no longer watches @SC-1748", () => {
-  it("takes the site's own stop removing its container as no stray: nothing removed again, nothing logged", async () => {
-    const errors = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
-    const { w, guard, send } = await streaming()
-    for (const action of ['kill', 'die', 'stop', 'destroy']) await send(action)
-    expect(w.killed).toEqual([])
-    expect(errors.mock.calls.filter(([m]) => /which is not open/.test(String(m)))).toEqual([])
-    guard.stop()
-    errors.mockRestore()
-  })
+withFeature('livePreview', () => {
+  describe("the guard and a live preview it no longer watches @SC-1748", () => {
+    it("takes the site's own stop removing its container as no stray: nothing removed again, nothing logged", async () => {
+      const errors = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
+      const { w, guard, send } = await streaming()
+      for (const action of ['kill', 'die', 'stop', 'destroy']) await send(action)
+      expect(w.killed).toEqual([])
+      expect(errors.mock.calls.filter(([m]) => /which is not open/.test(String(m)))).toEqual([])
+      guard.stop()
+      errors.mockRestore()
+    })
 
-  it('removes and reports a container that turns up for a live preview that is not open', async () => {
-    const errors = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
-    const { w, guard, send } = await streaming()
-    await send('create')
-    await send('start')
-    expect(w.killed).toEqual([['c9'], ['c9']])
-    expect(errors).toHaveBeenCalledWith(expect.stringMatching(/live preview stopped, which is not open, was found and removed/))
-    guard.stop()
-    errors.mockRestore()
-  })
+    it('removes and reports a container that turns up for a live preview that is not open', async () => {
+      const errors = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
+      const { w, guard, send } = await streaming()
+      await send('create')
+      await send('start')
+      expect(w.killed).toEqual([['c9'], ['c9']])
+      expect(errors).toHaveBeenCalledWith(expect.stringMatching(/live preview stopped, which is not open, was found and removed/))
+      guard.stop()
+      errors.mockRestore()
+    })
 
-  it('removes a command run in such a container', async () => {
-    const { w, guard, send } = await streaming()
-    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
-    await send('exec_create: sh -c id')
-    expect(w.killed).toEqual([['c9']])
-    guard.stop()
-    vi.restoreAllMocks()
+    it('removes a command run in such a container', async () => {
+      const { w, guard, send } = await streaming()
+      vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {})
+      await send('exec_create: sh -c id')
+      expect(w.killed).toEqual([['c9']])
+      guard.stop()
+      vi.restoreAllMocks()
+    })
   })
 })

@@ -4,6 +4,9 @@
  * use, and *Stop*. hq holds and decides all of it, asking the role of the signed-in account again on every call; the
  * Fleet Console never reaches a live preview and never sees inside one. A site is named here by its machine's
  * fingerprint, as everywhere on the screens, and found in hq by the id hq gave it.
+ *
+ * Every route is the live preview's (`livePreview` flag, adr-0172): answered only while hq says it is on, and 404,
+ * doing nothing, otherwise. The guard is mounted on their path only, since this router is mounted beside others.
  */
 import { Router, type Response } from 'express'
 import {
@@ -14,11 +17,13 @@ import type { ConsoleContext } from '../app'
 import type { PinnedHost } from '../../state/hosts'
 import { actorOf } from './fleet'
 import { askNewerHq, notUnderstood } from './newerHq'
+import { requireFeature } from './features'
 
 const ID = /^[A-Za-z0-9_-]{1,64}$/
 
 export function livePreviewRoutes(ctx: ConsoleContext): Router {
   const r = Router()
+  r.use('/sites/:fingerprint/live-previews', requireFeature(ctx, 'livePreview'))
 
   /** hq's id for the site a machine carries; hq's own machine carries its default site. Null: hq has no such site to ask. */
   const siteIdOf = async (h: PinnedHost): Promise<string | null> => {

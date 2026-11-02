@@ -8,6 +8,9 @@
  * destination reads that head, checks the ticket, writes the bytes to a file of its own under a name nothing else
  * uses, and keeps it as the bundle only when its size and SHA-256 are the ticket's. A refusal or a broken stream leaves
  * nothing. Whatever the outcome, hq is told (`bundle.landed`). Nothing here logs a ticket.
+ *
+ * Bundles carry only a live preview's own copy: while the live preview is off for the organisation by the latest
+ * switches hq sent (adr-0172), both ends refuse every stream as `ticket-invalid`, before a ticket is verified.
  */
 import { createHash } from 'node:crypto'
 import { createReadStream, createWriteStream } from 'node:fs'
@@ -21,6 +24,7 @@ import type { ContentStream } from '../../hq/content/contentStream'
 import type { ContentHandler } from '../../hq/content/contentMethods'
 import type { KeySetSource } from '../../relay/hqKeySet'
 import { hqConnectionManager } from '../../hq/hqConnection'
+import { isSiteFeatureOn, latestSwitches } from '../../features/siteFeatures'
 import { Logger } from '../../utils/logger'
 import { bundleDir, bundleFile, bundleSize, freshBundleDir, hashFile, incomingFile } from './bundleStore'
 
@@ -72,10 +76,13 @@ function endWith(stream: ContentStream, bytes: Uint8Array): Promise<void> {
   })
 }
 
+const livePreviewOff = () => !isSiteFeatureOn('livePreview', latestSwitches())
+
 const refuseRead = (stream: ContentStream, refusal: BundleServeRefusal) => endWith(stream, encodeBundleReadHead({ ok: false, refusal }))
 
 export function createBundleRead(o: BundleStreamOptions): ContentHandler {
   return async (stream, params) => {
+    if (livePreviewOff()) return refuseRead(stream, 'ticket-invalid')
     const ticket = readTicket(params)
     if (!ticket) return refuseRead(stream, 'ticket-invalid')
     const claims = await verify(ticket, 'from', o).catch(() => 'failed' as const)
@@ -166,7 +173,7 @@ export function createBundleWrite(o: BundleStreamOptions): ContentHandler {
     }
     const ticket = readTicket(params)
     const source = await readSourceHead(stream)
-    if (!ticket) return answer({ ok: false, refusal: 'ticket-invalid' }, null)
+    if (livePreviewOff() || !ticket) return answer({ ok: false, refusal: 'ticket-invalid' }, null)
     const claims = await verify(ticket, 'to', o).catch(() => 'failed' as const)
     if (typeof claims === 'string') return answer({ ok: false, refusal: claims }, null)
     if (!takeOnce(claims.jti, claims.exp * 1000, (o.now ?? Date.now)())) return answer({ ok: false, refusal: 'ticket-used' }, null)

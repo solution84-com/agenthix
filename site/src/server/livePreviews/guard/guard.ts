@@ -10,6 +10,10 @@
  *
  * Fail closed: a live preview it cannot look at, or an event stream it cannot keep, is stopped (`guardDown`); and while
  * it cannot watch, it stops reporting, so hq starts no more.
+ *
+ * While the live preview is off for the organisation (`livePreviewOn`, adr-0172) it starts nothing: it sends no
+ * report, and resumes nothing it paused for the line until the live preview is on again. What it watches it still
+ * watches, and a stray container it still removes: those only ever stop things.
  */
 import {
   GUARD_CHECK_EVERY_MS, GUARD_REPORT_EVERY_MS, LIVE_PREVIEW_LINE_LOSS_PAUSE_MS,
@@ -38,6 +42,8 @@ export type GuardDeps = LookDeps & {
   running(): Promise<string[]>
   stopForMemory(id: string): Promise<unknown>
   hqLineUp(): boolean
+  /** Whether the live preview is on for the organisation, by the latest switches hq sent. */
+  livePreviewOn(): boolean
   report(event: LivePreviewGuardReportEvent): void
   setInterval(fn: () => void, ms: number): unknown
   clearInterval(handle: unknown): void
@@ -119,7 +125,7 @@ export class LivePreviewGuard {
   }
 
   private sendReport(): void {
-    if (!this.healthy) return
+    if (!this.healthy || !this.deps.livePreviewOn()) return
     this.deps.report({ at: new Date(this.deps.now()).toISOString(), livePreviewIds: this.watching() })
   }
 
@@ -219,6 +225,7 @@ export class LivePreviewGuard {
     const now = this.deps.now()
     if (this.deps.hqLineUp()) {
       this.lineDownSince = null
+      if (!this.deps.livePreviewOn()) return
       const paused = [...this.pausedForLine]
       this.pausedForLine.clear()
       for (const id of paused) await this.deps.resumeAfterLineLoss(id).catch(err => logger.error(`Could not resume live preview ${id}: ${String(err)}`))

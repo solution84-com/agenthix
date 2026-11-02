@@ -246,7 +246,7 @@ export async function assembleRunLaunch(
   // rather than through the container.
   //
   // A run on a code workspace works in its branch's copy instead, checked against the site's own record of it.
-  const codeWork = ctx.codeWork ? await resolveCodeWork(runId, ctx.codeWork, primaryLoc) : null
+  const codeWork = ctx.codeWork ? await resolveCodeWork(runId, ctx.codeWork, primaryLoc, options.features) : null
   if (codeWork) {
     await startCodeWork(codeWork)
     sink.codeWork = codeWork
@@ -401,7 +401,7 @@ export async function assembleRunLaunch(
     mcpServers,
     bypassed,
     immediateApproval,
-    allowedTools: bypassed ? undefined : codeWork ? withAppTools(withCodeWorkTools(toolPermissions)) : toolPermissions,
+    allowedTools: bypassed ? undefined : codeWork ? withAppTools(withCodeWorkTools(toolPermissions), options.features) : toolPermissions,
     allowedBashPatterns: bashPermissions,
     neverTools,
     approvedManifest,

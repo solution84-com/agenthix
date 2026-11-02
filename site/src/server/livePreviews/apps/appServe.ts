@@ -11,6 +11,9 @@
  *  4. The stream goes only to that app's port in that live preview's container, through that live preview's one
  *     forwarder (`appStreams.ts`).
  *
+ * Before all of it, the live preview must be on for the organisation by the latest switches hq sent (adr-0172): while
+ * it is off, every stream is refused as no live preview running, and nothing is read or verified.
+ *
  * A refusal is a head with a code. Nothing here logs a ticket, a path or a header.
  */
 import {
@@ -19,6 +22,7 @@ import {
 } from '@agenthix/core'
 import type { ContentHandler } from '../../hq/content/contentMethods'
 import type { KeySetSource } from '../../relay/hqKeySet'
+import { isSiteFeatureOn, latestSwitches } from '../../features/siteFeatures'
 import { Logger } from '../../utils/logger'
 import { livePreviewRow, onLivePreviewChange } from '../livePreviewStore'
 import { redeemTicket } from '../livePreviewTickets'
@@ -106,6 +110,7 @@ export function admit(claims: AppTicketClaims, now: number): { livePreviewId: st
 
 export function createAppServe(o: AppServeOptions): ContentHandler {
   return async (stream, params) => {
+    if (!isSiteFeatureOn('livePreview', latestSwitches())) return endWith(stream, appRefusalHead('preview-not-running'))
     const p = readParams(params)
     if (!p) return endWith(stream, appRefusalHead('ticket-invalid'))
     let claims: AppTicketClaims | AppServeRefusal

@@ -32,7 +32,7 @@ export default defineConfig({
     fileParallelism: false,
     sequence: { concurrent: false, sequencer: FilenameSequencer },
     // suites run in filename order (00-canary → 01-registration → 01b-unregister
-    // → 02-dispatch → 03-heldTasks → 04-pairing → 05-relay → 06-model-usage → 07-knowledge-levels → 08-file-relay → 09-upload-relay → 10-propose-skill → 12-skills-* → 13-feature-flags), enforced by FilenameSequencer above, and deliberately
+    // → 02-dispatch → 03-heldTasks → 04-pairing → 05-relay → 06-model-usage → 07-knowledge-levels → 08-file-relay → 09-upload-relay → 10-propose-skill → 12-skills-* → 13-feature-flags → 14-live-preview-flag), enforced by FilenameSequencer above, and deliberately
     // share state; a full run boots two wasp apps once.
     testTimeout: 120_000,
     // Does NOT bound globalSetup — vitest has no separate timeout for that

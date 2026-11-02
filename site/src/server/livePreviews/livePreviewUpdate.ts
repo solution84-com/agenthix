@@ -13,12 +13,17 @@ import { copyPlaceOf, ownCopyHead } from './livePreviewCopies'
 import { reportMoved } from './livePreviewLife'
 import { livePreviewRow } from './livePreviewStore'
 import { runHelper } from '../branches/helperContainer'
+import { requireFeature } from '../features/siteFeatures'
 
-/** Null when the copy is no live preview's own copy here; the caller then treats it as a branch's copy. */
+/**
+ * Null when the copy is no live preview's own copy here; the caller then treats it as a branch's copy. A live
+ * preview's own copy is refused while the live preview is off for the request (adr-0172).
+ */
 export async function updateOwnCopyFromMain(q: BranchUpdateFromMainParams, message: string): Promise<BranchUpdateFromMainResult | null> {
   const found = await prisma.livePreview.findFirst({ where: { copyId: q.copyId, copyKind: 'bundle', live: true }, select: { id: true } })
   const row = found ? await livePreviewRow(found.id) : null
   if (!row || row.state.state === 'stopped') return null
+  requireFeature('livePreview')
   const ref = q.workspace
   if (row.workspaceId !== ref.workspaceId || row.ownerType !== ref.ownerType || row.ownerId !== ref.ownerId || row.branch !== q.branch) {
     throw new RepoWorkError('refused', `branch.updateFromMain: copy ${q.copyId} is not this branch's here. Nothing was changed.`)

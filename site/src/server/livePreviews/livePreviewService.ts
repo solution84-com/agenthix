@@ -7,6 +7,7 @@
 import { LIVE_PREVIEW_EVENTS, type GuardSignal } from '@agenthix/core'
 import { hqConnectionManager } from '../hq/hqConnection'
 import { hostFigures } from '../host/hostFigures'
+import { isSiteFeatureOn, latestSwitches } from '../features/siteFeatures'
 import { Logger } from '../utils/logger'
 import { listed, lpDocker } from './container/docker'
 import { anyLivePreviewFilters } from './container/labels'
@@ -72,6 +73,7 @@ export function guardDeps(): GuardDeps {
     running: async () => (await liveLivePreviews()).filter(r => r.state.state === 'running').map(r => r.id),
     stopForMemory: id => stopPreview(id, 'resources', OUT_OF_MEMORY),
     hqLineUp: () => hqConnectionManager.connectionState() === 'connected',
+    livePreviewOn: () => isSiteFeatureOn('livePreview', latestSwitches()),
     report: event => hqConnectionManager.sendEvent(LIVE_PREVIEW_EVENTS.guardReport, event),
     setInterval: (fn, ms) => { const t = setInterval(fn, ms); t.unref(); return t },
     clearInterval: handle => clearInterval(handle as NodeJS.Timeout),

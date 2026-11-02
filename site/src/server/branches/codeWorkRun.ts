@@ -8,7 +8,8 @@
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import {
-  BRANCH_BACK_EVENT, type BranchBackCause, type BranchBackResult, type GitPerson, type RunCodeWork, type WorkspaceRepoRef,
+  BRANCH_BACK_EVENT, NO_FEATURE_SWITCHES,
+  type BranchBackCause, type BranchBackResult, type FeatureSwitches, type GitPerson, type RunCodeWork, type WorkspaceRepoRef,
 } from '@agenthix/core'
 import { prisma } from '#db'
 import { ReadableRunError } from '../../agents/runtime/readableRunError'
@@ -40,11 +41,12 @@ export type CodeWorkRun = {
 /**
  * The run's code work, checked: the copy is in the storage the run works in, the site's record says it is this
  * workspace's copy of this branch, and its folder is there. A refusal fails the run with words a person can read.
+ * A run in a live preview's own copy is refused while the live preview is off for the run's switches (`features`).
  */
 export async function resolveCodeWork(
-  runId: string, codeWork: RunCodeWork, boundary: { ownerType: string; ownerId: string },
+  runId: string, codeWork: RunCodeWork, boundary: { ownerType: string; ownerId: string }, features: FeatureSwitches = NO_FEATURE_SWITCHES,
 ): Promise<CodeWorkRun> {
-  if (codeWork.livePreviewId) return resolveLivePreviewCopy(runId, codeWork, boundary)
+  if (codeWork.livePreviewId) return resolveLivePreviewCopy(runId, codeWork, boundary, features)
   const ref: WorkspaceRepoRef = codeWork.workspace
   const refused = new ReadableRunError(
     `The working copy of branch ${codeWork.branch} is not on this site, or is not this work's. ` +

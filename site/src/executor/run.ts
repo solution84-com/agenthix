@@ -31,6 +31,7 @@ import { resolveWorkspaceTarget, type WorkspaceTarget } from './workspaceTarget'
 import { writeBack } from './writeBack'
 import { handOverToLivePreview, type HandOver } from './livePreviewHandOver'
 import { livePreviewRunTarget } from '../server/livePreviews/secrets/runTarget'
+import { isSiteFeatureOn } from '../server/features/siteFeatures'
 
 const logger = new Logger('executor')
 
@@ -104,6 +105,10 @@ export async function startRun(raw: unknown): Promise<WorkflowRunAcceptance> {
 /** The workspace and the image id to run on, or the refusal. */
 async function admit(ins: WorkflowRunInstruction): Promise<{ target: WorkspaceTarget; imageId: string } | WorkflowRunAcceptance> {
   if (await record.isKnownRun(ins.runId)) return refuse('already_known', `This site already has run ${ins.runId}. Nothing was changed.`)
+  // A run aimed at a live preview is the live preview's, refused while it is off for the request (adr-0172).
+  if (ins.livePreview && !isSiteFeatureOn('livePreview')) {
+    return refuse('live_preview_unavailable', 'Live previews are not available: the feature is not on for the organisation. An organisation admin can switch it on in HQ, under Settings, Features. Nothing was changed.')
+  }
   const target = ins.livePreview ? await executorDeps.resolveLivePreview(ins) : await executorDeps.resolveWorkspace(ins.workspace)
   if (!target && ins.livePreview) {
     return refuse('live_preview_unavailable', 'This site does not have that live preview running on the run\'s workspace, so its secrets were not handed to it. Start the live preview from HQ, then run the workflow again. Nothing was changed.')

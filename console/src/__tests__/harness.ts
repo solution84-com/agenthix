@@ -1,6 +1,7 @@
 /** A Fleet Console on 127.0.0.1 with a fake hq link, and a client that speaks to it as the screens will. */
 import http from 'node:http'
 import { EnvelopeReplayGuard } from '@agenthix/core/host-crypto'
+import { FEATURE_FLAG_NAMES, isFeatureOn } from '@agenthix/core'
 import { createConsole, listen } from '../console'
 import type { AskFeatures } from '../hq/hqFeatures'
 import type { ConsoleContext } from '../http/app'
@@ -8,6 +9,14 @@ import { FakeHqLink, tempState } from './fakes'
 import type { StateFolder } from '../state/folder'
 
 export const SAM = { id: 'u-sam', name: 'Sam Rivera', username: 'sam', password: 'correct horse battery' }
+
+/**
+ * hq's answer to which features are on, as a stand-in hq gives it: core's rule with no organisation switch, so each
+ * flag is as shipped, and a feature's own tests switch theirs on with `withFeature` (adr-0172).
+ */
+export const askAsShipped: AskFeatures = async () => ({
+  on: FEATURE_FLAG_NAMES.filter(flag => isFeatureOn(flag, { env: process.env, switches: {} })),
+})
 
 export type Harness = {
   ctx: ConsoleContext

@@ -7,7 +7,7 @@
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { BRANCH_WORK_SITE_BUDGET_MS, type RunCodeWork } from '@agenthix/core'
+import { BRANCH_WORK_SITE_BUDGET_MS, type FeatureSwitches, type RunCodeWork } from '@agenthix/core'
 import { ReadableRunError } from '../../agents/runtime/readableRunError'
 import { ownerDir } from '../storage/paths'
 import type { CodeWorkRun } from '../branches/codeWorkRun'
@@ -16,10 +16,17 @@ import { runEnded, runStarted } from './livePreviewActivity'
 import { copyPlaceOf, ownCopyHead, previewHelper } from './livePreviewCopies'
 import { reportMoved } from './livePreviewLife'
 import { liveOnBranch, livePreviewRow, trackRun } from './livePreviewStore'
+import { isSiteFeatureOn } from '../features/siteFeatures'
 
 export async function resolveLivePreviewCopy(
-  runId: string, codeWork: RunCodeWork, boundary: { ownerType: string; ownerId: string },
+  runId: string, codeWork: RunCodeWork, boundary: { ownerType: string; ownerId: string }, features: FeatureSwitches,
 ): Promise<CodeWorkRun> {
+  if (!isSiteFeatureOn('livePreview', features)) {
+    throw new ReadableRunError(
+      'Live previews are not available: the feature is not on for the organisation, so this work cannot run in a live ' +
+      'preview\'s copy. Start the work again from HQ. Nothing was changed.',
+    )
+  }
   const refused = new ReadableRunError(
     `The live preview of branch ${codeWork.branch} is not on this site, or is not this work's. Start the work again from HQ. Nothing was changed.`,
   )

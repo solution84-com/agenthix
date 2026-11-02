@@ -5,6 +5,7 @@
  * guard's finding.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { withFeature } from '@agenthix/core/testing'
 import type { LivePreviewState } from '@agenthix/core'
 import type { LivePreviewRow } from '../livePreviewRows'
 
@@ -80,39 +81,41 @@ beforeEach(() => {
   guard.watch.mockClear()
 })
 
-describe('a live preview coming back after a restart @SC-1739', () => {
-  it('makes its container again as the site\'s own, until the guard watches it, and runs', async () => {
-    const back = await resumePreview(paused('a', true))
-    expect(docker.seenWhileMaking).toEqual([true])
-    expect(guard.watch).toHaveBeenCalledWith({ id: 'a', projectId: 'pr1', paused: false })
-    expect(containersExpected('a')).toBe(false)
-    expect(back?.state.state).toBe('running')
-    expect(back?.containersRemoved).toBe(false)
-  })
+withFeature('livePreview', () => {
+  describe('a live preview coming back after a restart @SC-1739', () => {
+    it('makes its container again as the site\'s own, until the guard watches it, and runs', async () => {
+      const back = await resumePreview(paused('a', true))
+      expect(docker.seenWhileMaking).toEqual([true])
+      expect(guard.watch).toHaveBeenCalledWith({ id: 'a', projectId: 'pr1', paused: false })
+      expect(containersExpected('a')).toBe(false)
+      expect(back?.state.state).toBe('running')
+      expect(back?.containersRemoved).toBe(false)
+    })
 
-  it('brings two back, each running', async () => {
-    await Promise.all([resumePreview(paused('a', true)), resumePreview(paused('b', true))])
-    expect(stateOf('a').state).toBe('running')
-    expect(stateOf('b').state).toBe('running')
-    expect(docker.seenWhileMaking).toEqual([true, true])
-  })
+    it('brings two back, each running', async () => {
+      await Promise.all([resumePreview(paused('a', true)), resumePreview(paused('b', true))])
+      expect(stateOf('a').state).toBe('running')
+      expect(stateOf('b').state).toBe('running')
+      expect(docker.seenWhileMaking).toEqual([true, true])
+    })
 
-  it('stops as failed, not as the guard\'s, when its container cannot be made again', async () => {
-    docker.start.mockRejectedValueOnce(new Error('docker start: container is marked for removal and cannot be started'))
-    expect(await resumePreview(paused('a', true))).toBeNull()
-    expect(stateOf('a')).toMatchObject({ state: 'stopped', reason: 'failed', signal: null })
-    expect(containersExpected('a')).toBe(false)
-  })
+    it('stops as failed, not as the guard\'s, when its container cannot be made again', async () => {
+      docker.start.mockRejectedValueOnce(new Error('docker start: container is marked for removal and cannot be started'))
+      expect(await resumePreview(paused('a', true))).toBeNull()
+      expect(stateOf('a')).toMatchObject({ state: 'stopped', reason: 'failed', signal: null })
+      expect(containersExpected('a')).toBe(false)
+    })
 
-  it('stops as the guard\'s when its paused container no longer matches its template', async () => {
-    docker.unpause.mockRejectedValueOnce(new ContainerRefused(['mounts'], 'changed while paused'))
-    expect(await resumePreview(paused('a', false))).toBeNull()
-    expect(stateOf('a')).toMatchObject({ state: 'stopped', reason: 'guard', signal: 'offTemplate' })
-  })
+    it('stops as the guard\'s when its paused container no longer matches its template', async () => {
+      docker.unpause.mockRejectedValueOnce(new ContainerRefused(['mounts'], 'changed while paused'))
+      expect(await resumePreview(paused('a', false))).toBeNull()
+      expect(stateOf('a')).toMatchObject({ state: 'stopped', reason: 'guard', signal: 'offTemplate' })
+    })
 
-  it('stops as failed when Docker will not let a paused container run again', async () => {
-    docker.unpause.mockRejectedValueOnce(new Error('Cannot connect to the Docker daemon'))
-    await resumePreview(paused('a', false))
-    expect(stateOf('a')).toMatchObject({ state: 'stopped', reason: 'failed' })
+    it('stops as failed when Docker will not let a paused container run again', async () => {
+      docker.unpause.mockRejectedValueOnce(new Error('Cannot connect to the Docker daemon'))
+      await resumePreview(paused('a', false))
+      expect(stateOf('a')).toMatchObject({ state: 'stopped', reason: 'failed' })
+    })
   })
 })

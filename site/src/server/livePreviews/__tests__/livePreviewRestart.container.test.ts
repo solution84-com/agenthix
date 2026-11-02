@@ -16,6 +16,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { withFeature } from '@agenthix/core/testing'
+import { isSiteFeatureOn } from '../../features/siteFeatures'
 import type { LivePreviewRow } from '../livePreviewRows'
 
 process.env.HOST_NAMESPACE = process.env.LIVE_PREVIEW_TEST_NAMESPACE?.trim() || 'lp-restart-test'
@@ -88,6 +90,7 @@ function testGuard(): InstanceType<typeof LivePreviewGuard> {
     protectionsProblem: async () => null,
     report: () => {},
     hqLineUp: () => true,
+    livePreviewOn: () => isSiteFeatureOn('livePreview'),
     actions: {
       ...real.actions,
       pause: async (id, detail, signal) => { acted.push(`pause ${id} ${signal}: ${detail}`); return real.actions.pause(id, detail, signal) },
@@ -108,62 +111,64 @@ async function until(check: () => boolean, ms: number): Promise<boolean> {
   return check()
 }
 
-describe.skipIf(!ready)('two live previews and a site restart @SC-1739', () => {
-  let guard: InstanceType<typeof LivePreviewGuard>
+withFeature('livePreview', () => {
+  describe.skipIf(!ready)('two live previews and a site restart @SC-1739', () => {
+    let guard: InstanceType<typeof LivePreviewGuard>
 
-  beforeAll(async () => {
-    process.env.AGENT_IMAGE = image
-    for (const id of IDS) {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-restart-'))
-      fs.writeFileSync(path.join(dir, 'index.html'), `${id}\n`)
-      copies.set(id, { hostDir: fs.realpathSync(dir), containerDir: `/projects/pr1/clones/c-${id}` })
-      rows.set(id, row(id))
-    }
-    guard = testGuard()
-    installGuard(guard)
-    guard.start()
-    for (const id of IDS) {
-      await startContainers(rows.get(id) as LivePreviewRow)
-      rows.set(id, { ...(rows.get(id) as LivePreviewRow), state: { state: 'running', since: new Date().toISOString() } })
-    }
-  })
+    beforeAll(async () => {
+      process.env.AGENT_IMAGE = image
+      for (const id of IDS) {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lp-restart-'))
+        fs.writeFileSync(path.join(dir, 'index.html'), `${id}\n`)
+        copies.set(id, { hostDir: fs.realpathSync(dir), containerDir: `/projects/pr1/clones/c-${id}` })
+        rows.set(id, row(id))
+      }
+      guard = testGuard()
+      installGuard(guard)
+      guard.start()
+      for (const id of IDS) {
+        await startContainers(rows.get(id) as LivePreviewRow)
+        rows.set(id, { ...(rows.get(id) as LivePreviewRow), state: { state: 'running', since: new Date().toISOString() } })
+      }
+    })
 
-  afterAll(async () => {
-    guard?.stop()
-    for (const id of IDS) await stopContainers(id).catch(() => {})
-    for (const c of copies.values()) fs.rmSync(c.hostDir, { recursive: true, force: true })
-  })
+    afterAll(async () => {
+      guard?.stop()
+      for (const id of IDS) await stopContainers(id).catch(() => {})
+      for (const c of copies.values()) fs.rmSync(c.hostDir, { recursive: true, force: true })
+    })
 
-  it('runs both before the restart', async () => {
-    for (const id of IDS) expect(await containerDifferences(id)).toEqual([])
-  })
+    it('runs both before the restart', async () => {
+      for (const id of IDS) expect(await containerDifferences(id)).toEqual([])
+    })
 
-  it('brings both back after the restart, each with a fresh container as its template says, and stops neither', async () => {
-    guard.stop()
-    forgetMadeForTests()
-    guard = testGuard()
-    installGuard(guard)
-    expect(await recoverAfterRestart(guard)).toBe(2)
-    for (const id of IDS) {
-      expect(stateOf(id)).toMatchObject({ state: 'paused', reason: 'lineLost' })
-      expect(await leftovers(id)).toEqual([])
-    }
+    it('brings both back after the restart, each with a fresh container as its template says, and stops neither', async () => {
+      guard.stop()
+      forgetMadeForTests()
+      guard = testGuard()
+      installGuard(guard)
+      expect(await recoverAfterRestart(guard)).toBe(2)
+      for (const id of IDS) {
+        expect(stateOf(id)).toMatchObject({ state: 'paused', reason: 'lineLost' })
+        expect(await leftovers(id)).toEqual([])
+      }
 
-    guard.start()
-    const back = await until(() => IDS.every(id => stateOf(id)?.state === 'running'), 120_000)
-    expect({ back, states: IDS.map(stateOf), acted }).toMatchObject({ back: true, acted: [] })
-    for (const id of IDS) {
-      expect(await containerDifferences(id)).toEqual([])
-      expect((rows.get(id) as LivePreviewRow).containersRemoved).toBe(false)
-    }
-    expect(guard.watching().sort()).toEqual([...IDS].sort())
-  })
+      guard.start()
+      const back = await until(() => IDS.every(id => stateOf(id)?.state === 'running'), 120_000)
+      expect({ back, states: IDS.map(stateOf), acted }).toMatchObject({ back: true, acted: [] })
+      for (const id of IDS) {
+        expect(await containerDifferences(id)).toEqual([])
+        expect((rows.get(id) as LivePreviewRow).containersRemoved).toBe(false)
+      }
+      expect(guard.watching().sort()).toEqual([...IDS].sort())
+    })
 
-  it('leaves nothing behind when both stop', async () => {
-    guard.stop()
-    for (const id of IDS) {
-      await stopContainers(id)
-      expect(await leftovers(id)).toEqual([])
-    }
+    it('leaves nothing behind when both stop', async () => {
+      guard.stop()
+      for (const id of IDS) {
+        await stopContainers(id)
+        expect(await leftovers(id)).toEqual([])
+      }
+    })
   })
 })

@@ -70,20 +70,22 @@ export const mcpHandler: ApiHandler = async (req, res) => {
   // has nothing to do with the verified claims object, only the two values
   // derived from it above (disabledTools) and the raw JWT (capabilityJwt).
   const context = resolved.runId ? gateRunContext(resolved.runId) : null
+  const turn = context && context.sessionId === claims.sessionId ? context : null
   const mcpServer = createMcpServer({
     disabledTools,
     capabilityJwt: holder.jwt,
     livePreview: parseCapabilityLivePreview(claims.livePreview),
     trustedPackageScopes: parseCapabilityPackageScopes(claims.trustedPackageScopes),
+    // The switches the turn was started with; with no turn running, none.
+    features: turn?.features,
     siteTools: {
       // The turn's context, only while it runs and only as the conversation the capability names.
-      context: context && context.sessionId === claims.sessionId ? context : null,
+      context: turn,
       openCode: req.headers[PLATFORM_TOOLS_HARNESS_HEADER] === OPENCODE_HARNESS,
     },
   })
   // A harness keeps the tools it lists for the conversation's later runs: which ones a listing offered is logged, so a
   // run's tools can be told from its log (the names only, never an argument).
-  const turn = context && context.sessionId === claims.sessionId ? context : null
   if ((req.body as { method?: unknown } | undefined)?.method === 'tools/list') {
     logger.info(`tools listed for run ${resolved.runId ?? 'none'}: ${turn?.codeWork ? 'with' : 'without'} the code and app tools`)
   }

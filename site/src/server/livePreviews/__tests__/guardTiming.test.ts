@@ -4,6 +4,8 @@
  * something, tells why, and tells hq it runs only while it can watch. Fake timers and a fake Docker: no Docker here.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { withFeature } from '@agenthix/core/testing'
+import { isSiteFeatureOn } from '../../features/siteFeatures'
 import {
   GUARD_ACT_WITHIN_MS, GUARD_CHECK_EVERY_MS, GUARD_REPORT_EVERY_MS,
   type GuardSignal, type LivePreviewGuardEvent, type LivePreviewGuardReportEvent,
@@ -17,7 +19,7 @@ vi.mock('../container/inspect', async importOriginal => ({
   templateDifferences: () => [],
 }))
 
-const { LivePreviewGuard, EVENT_RESTARTS_PER_MINUTE } = await import('../guard/guard')
+const { LivePreviewGuard, EVENT_RESTARTS_PER_MINUTE, LINE_CHECK_EVERY_MS } = await import('../guard/guard')
 
 const LP = 'lp1'
 const OWN = 'lp-lp1'
@@ -50,6 +52,7 @@ function world() {
     acted: [] as Acted[],
     told: [] as LivePreviewGuardEvent[],
     reports: [] as LivePreviewGuardReportEvent[],
+    resumed: [] as string[],
     onEvent: null as null | ((e: DockerEvent) => void),
     onEnd: null as null | ((why: string) => void),
   }
@@ -89,10 +92,11 @@ function world() {
     watched: async id => ({ id, projectId: 'pr1', paused: w.paused }),
     isLive: async () => true,
     pauseForLineLoss: async () => {},
-    resumeAfterLineLoss: async () => {},
+    resumeAfterLineLoss: async id => { w.resumed.push(id) },
     running: async () => [LP],
     stopForMemory: async () => {},
     hqLineUp: () => true,
+    livePreviewOn: () => isSiteFeatureOn('livePreview'),
     report: e => { w.reports.push(e) },
     setInterval: (fn, ms) => setInterval(fn, ms),
     clearInterval: h => clearInterval(h as ReturnType<typeof setInterval>),
@@ -125,96 +129,124 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe("the guard's timing @SC-1748", () => {
-  it('looks at each live preview it watches every 5 seconds', async () => {
-    const { w, guard } = await watching()
-    const startedAt = Date.now() - DOCKER_CALL_MS * 8
-    // The first check falls 5 s after the guard started.
-    await vi.advanceTimersByTimeAsync(startedAt + GUARD_CHECK_EVERY_MS - Date.now() - 1)
-    expect(w.looks).toBe(1)
-    await vi.advanceTimersByTimeAsync(1)
-    expect(w.looks).toBe(2)
-    await vi.advanceTimersByTimeAsync(GUARD_CHECK_EVERY_MS * 3)
-    expect(w.looks).toBe(5)
-    guard.stop()
-  })
-
-  it('looks at once on a Docker event for its container, not at the next check', async () => {
-    const { w, guard, event } = await watching()
-    event('restart')
-    await vi.advanceTimersByTimeAsync(0)
-    expect(w.looks).toBe(2)
-    guard.stop()
-  })
-
-  it('pauses within 2 seconds of the check that finds a port no app of it opened', async () => {
-    const { w, guard } = await watching()
-    const appeared = Date.now()
-    w.ports = [4000]
-    await vi.advanceTimersByTimeAsync(GUARD_CHECK_EVERY_MS + GUARD_ACT_WITHIN_MS)
-    const paused = firstOf(w.acted, 'pause')
-    expect(paused).toMatchObject({ signal: 'unexpectedPort' })
-    expect(paused!.at - appeared).toBeLessThanOrEqual(GUARD_CHECK_EVERY_MS + GUARD_ACT_WITHIN_MS)
-    expect(w.told[0]).toMatchObject({ livePreviewId: LP, projectId: 'pr1', signal: 'unexpectedPort', steps: ['paused', 'alerted'] })
-    guard.stop()
-  })
-
-  it('stops it within 2 seconds of Docker telling of a container it did not start, killing its containers first', async () => {
-    const { w, guard, event } = await watching()
-    const appeared = Date.now()
-    w.containers.push(container('c9', 'stranger'))
-    event('create', 'c9', 'stranger')
-    await vi.advanceTimersByTimeAsync(GUARD_ACT_WITHIN_MS)
-    const killed = firstOf(w.acted, 'killContainers')
-    expect(killed).toBeDefined()
-    expect(killed!.at - appeared).toBeLessThanOrEqual(GUARD_ACT_WITHIN_MS)
-    expect(w.acted.map(a => a.what)).toEqual(['killContainers', 'stop'])
-    expect(firstOf(w.acted, 'stop')).toMatchObject({ signal: 'notMadeBySite' })
-    expect(w.told[0]).toMatchObject({ livePreviewId: LP, signal: 'notMadeBySite', steps: ['previewStopped', 'alerted'] })
-    guard.stop()
-  })
-
-  it('stops it at once on a command run in its container that the site did not run', async () => {
-    const { w, guard, event } = await watching()
-    const ran = Date.now()
-    event('exec_start: sh -c curl http://10.0.0.1')
-    await vi.advanceTimersByTimeAsync(0)
-    expect(w.acted.map(a => a.what)).toEqual(['killContainers', 'stop'])
-    expect(firstOf(w.acted, 'killContainers')!.at - ran).toBeLessThanOrEqual(GUARD_ACT_WITHIN_MS)
-    guard.stop()
-  })
-
-  it('stops a live preview it cannot look at, by the third check', async () => {
-    const { w, guard } = await watching()
-    w.lookFails = true
-    await vi.advanceTimersByTimeAsync(GUARD_CHECK_EVERY_MS * 3 + GUARD_ACT_WITHIN_MS)
-    expect(firstOf(w.acted, 'stop')).toMatchObject({ signal: 'guardDown' })
+// Outside the feature's own group the live preview is off, as shipped (adr-0172).
+describe('the guard while the live preview is off', () => {
+  it('tells hq nothing and resumes nothing it paused for the line, until the live preview is on', async () => {
+    const { w, guard } = world()
+    guard.start()
+    guard.markPausedForLine(LP)
+    await vi.advanceTimersByTimeAsync(Math.max(GUARD_REPORT_EVERY_MS, LINE_CHECK_EVERY_MS) * 3)
+    guard.reportNow()
+    expect(w.reports).toEqual([])
+    expect(w.resumed).toEqual([])
     guard.stop()
   })
 })
 
-describe('the guard telling hq it runs @SC-1748', () => {
-  it('tells hq every 15 seconds while it can watch, naming what it watches', async () => {
-    const { w, guard } = await watching()
-    const before = w.reports.length
-    await vi.advanceTimersByTimeAsync(GUARD_REPORT_EVERY_MS * 4)
-    expect(w.reports.length - before).toBe(4)
-    expect(w.reports.at(-1)).toMatchObject({ livePreviewIds: [LP] })
-    guard.stop()
+withFeature('livePreview', () => {
+  describe('the guard while the live preview is on', () => {
+    it('resumes what it paused for the line once the line is up', async () => {
+      const { w, guard } = world()
+      guard.start()
+      guard.markPausedForLine(LP)
+      await vi.advanceTimersByTimeAsync(LINE_CHECK_EVERY_MS * 2)
+      expect(w.resumed).toEqual([LP])
+      expect(w.reports.length).toBeGreaterThan(0)
+      guard.stop()
+    })
   })
 
-  it("stops telling once it cannot keep Docker's events, stops what it watches, and watches nothing new", async () => {
-    const { w, guard } = await watching()
-    for (let i = 0; i <= EVENT_RESTARTS_PER_MINUTE; i++) {
-      w.onEnd?.('docker went away')
-      await vi.advanceTimersByTimeAsync(DOCKER_CALL_MS * 8)
-    }
-    expect(guard.healthy).toBe(false)
-    expect(w.acted.some(a => a.what === 'stop' && a.signal === 'guardDown')).toBe(true)
-    const reported = w.reports.length
-    await vi.advanceTimersByTimeAsync(GUARD_REPORT_EVERY_MS * 5)
-    expect(w.reports.length).toBe(reported)
-    await expect(guard.watch({ id: 'lp2', projectId: 'pr1', paused: false })).rejects.toThrow(/not running/)
-    guard.stop()
+  describe("the guard's timing @SC-1748", () => {
+    it('looks at each live preview it watches every 5 seconds', async () => {
+      const { w, guard } = await watching()
+      const startedAt = Date.now() - DOCKER_CALL_MS * 8
+      // The first check falls 5 s after the guard started.
+      await vi.advanceTimersByTimeAsync(startedAt + GUARD_CHECK_EVERY_MS - Date.now() - 1)
+      expect(w.looks).toBe(1)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(w.looks).toBe(2)
+      await vi.advanceTimersByTimeAsync(GUARD_CHECK_EVERY_MS * 3)
+      expect(w.looks).toBe(5)
+      guard.stop()
+    })
+
+    it('looks at once on a Docker event for its container, not at the next check', async () => {
+      const { w, guard, event } = await watching()
+      event('restart')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(w.looks).toBe(2)
+      guard.stop()
+    })
+
+    it('pauses within 2 seconds of the check that finds a port no app of it opened', async () => {
+      const { w, guard } = await watching()
+      const appeared = Date.now()
+      w.ports = [4000]
+      await vi.advanceTimersByTimeAsync(GUARD_CHECK_EVERY_MS + GUARD_ACT_WITHIN_MS)
+      const paused = firstOf(w.acted, 'pause')
+      expect(paused).toMatchObject({ signal: 'unexpectedPort' })
+      expect(paused!.at - appeared).toBeLessThanOrEqual(GUARD_CHECK_EVERY_MS + GUARD_ACT_WITHIN_MS)
+      expect(w.told[0]).toMatchObject({ livePreviewId: LP, projectId: 'pr1', signal: 'unexpectedPort', steps: ['paused', 'alerted'] })
+      guard.stop()
+    })
+
+    it('stops it within 2 seconds of Docker telling of a container it did not start, killing its containers first', async () => {
+      const { w, guard, event } = await watching()
+      const appeared = Date.now()
+      w.containers.push(container('c9', 'stranger'))
+      event('create', 'c9', 'stranger')
+      await vi.advanceTimersByTimeAsync(GUARD_ACT_WITHIN_MS)
+      const killed = firstOf(w.acted, 'killContainers')
+      expect(killed).toBeDefined()
+      expect(killed!.at - appeared).toBeLessThanOrEqual(GUARD_ACT_WITHIN_MS)
+      expect(w.acted.map(a => a.what)).toEqual(['killContainers', 'stop'])
+      expect(firstOf(w.acted, 'stop')).toMatchObject({ signal: 'notMadeBySite' })
+      expect(w.told[0]).toMatchObject({ livePreviewId: LP, signal: 'notMadeBySite', steps: ['previewStopped', 'alerted'] })
+      guard.stop()
+    })
+
+    it('stops it at once on a command run in its container that the site did not run', async () => {
+      const { w, guard, event } = await watching()
+      const ran = Date.now()
+      event('exec_start: sh -c curl http://10.0.0.1')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(w.acted.map(a => a.what)).toEqual(['killContainers', 'stop'])
+      expect(firstOf(w.acted, 'killContainers')!.at - ran).toBeLessThanOrEqual(GUARD_ACT_WITHIN_MS)
+      guard.stop()
+    })
+
+    it('stops a live preview it cannot look at, by the third check', async () => {
+      const { w, guard } = await watching()
+      w.lookFails = true
+      await vi.advanceTimersByTimeAsync(GUARD_CHECK_EVERY_MS * 3 + GUARD_ACT_WITHIN_MS)
+      expect(firstOf(w.acted, 'stop')).toMatchObject({ signal: 'guardDown' })
+      guard.stop()
+    })
+  })
+
+  describe('the guard telling hq it runs @SC-1748', () => {
+    it('tells hq every 15 seconds while it can watch, naming what it watches', async () => {
+      const { w, guard } = await watching()
+      const before = w.reports.length
+      await vi.advanceTimersByTimeAsync(GUARD_REPORT_EVERY_MS * 4)
+      expect(w.reports.length - before).toBe(4)
+      expect(w.reports.at(-1)).toMatchObject({ livePreviewIds: [LP] })
+      guard.stop()
+    })
+
+    it("stops telling once it cannot keep Docker's events, stops what it watches, and watches nothing new", async () => {
+      const { w, guard } = await watching()
+      for (let i = 0; i <= EVENT_RESTARTS_PER_MINUTE; i++) {
+        w.onEnd?.('docker went away')
+        await vi.advanceTimersByTimeAsync(DOCKER_CALL_MS * 8)
+      }
+      expect(guard.healthy).toBe(false)
+      expect(w.acted.some(a => a.what === 'stop' && a.signal === 'guardDown')).toBe(true)
+      const reported = w.reports.length
+      await vi.advanceTimersByTimeAsync(GUARD_REPORT_EVERY_MS * 5)
+      expect(w.reports.length).toBe(reported)
+      await expect(guard.watch({ id: 'lp2', projectId: 'pr1', paused: false })).rejects.toThrow(/not running/)
+      guard.stop()
+    })
   })
 })

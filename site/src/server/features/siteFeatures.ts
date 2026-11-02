@@ -29,6 +29,15 @@ export function currentSwitches(): FeatureSwitches {
   return requestSwitches.getStore() ?? latest
 }
 
+/**
+ * The switches the latest hq request brought, whatever request is being answered now: for a door that no request
+ * opens (the relay's) and the site's own work outside any request. Asked for explicitly there, since work started
+ * while answering a request (a relay's line, opened on `relay.assign`) would otherwise keep that request's switches.
+ */
+export function latestSwitches(): FeatureSwitches {
+  return latest
+}
+
 /** Whether a feature is on here, by core's rule: with the switches its work carries, or the current ones. */
 export function isSiteFeatureOn(flag: FeatureFlag, switches: FeatureSwitches = currentSwitches()): boolean {
   return isFeatureOn(flag, { env: process.env, switches })

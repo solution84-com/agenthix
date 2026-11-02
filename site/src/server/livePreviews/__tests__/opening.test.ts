@@ -3,6 +3,7 @@
  * checked against the site's own record, one per branch, its limit, and a failed start leaving nothing behind.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { withFeature } from '@agenthix/core/testing'
 
 const db = vi.hoisted(() => ({
   previews: new Map<string, Record<string, unknown>>(),
@@ -67,37 +68,39 @@ beforeEach(() => {
   setLivePreviewSettings({ allowed: true, limit: null, idleMinutes: 120 })
 })
 
-describe('opening a live preview on this site @SC-1733', () => {
-  it('starts one on the branch\'s own copy, as the site\'s record holds it', async () => {
-    const answer = await open()
-    expect(answer).toMatchObject({ ok: true, livePreview: { branch: 'login-page', copy: { kind: 'branch', copyId: COPY }, state: { state: 'running' } } })
-    expect(life.started).toHaveLength(1)
-  })
+withFeature('livePreview', () => {
+  describe('opening a live preview on this site @SC-1733', () => {
+    it('starts one on the branch\'s own copy, as the site\'s record holds it', async () => {
+      const answer = await open()
+      expect(answer).toMatchObject({ ok: true, livePreview: { branch: 'login-page', copy: { kind: 'branch', copyId: COPY }, state: { state: 'running' } } })
+      expect(life.started).toHaveLength(1)
+    })
 
-  it('refuses a copy its own record does not hold for that branch, whatever hq names', async () => {
-    db.copies.set(COPY, { id: COPY, ownerType: 'project', ownerId: 'pr1', workspaceId: 'w1', branch: 'other-branch' })
-    expect(await open()).toMatchObject({ ok: false, refusal: { code: 'noCopy' } })
-    expect(life.started).toEqual([])
-  })
+    it('refuses a copy its own record does not hold for that branch, whatever hq names', async () => {
+      db.copies.set(COPY, { id: COPY, ownerType: 'project', ownerId: 'pr1', workspaceId: 'w1', branch: 'other-branch' })
+      expect(await open()).toMatchObject({ ok: false, refusal: { code: 'noCopy' } })
+      expect(life.started).toEqual([])
+    })
 
-  it('refuses while live previews are off here, and malformed params', async () => {
-    setLivePreviewSettings({ allowed: false, limit: null, idleMinutes: 120 })
-    expect(await open()).toMatchObject({ ok: false, refusal: { code: 'turnedOff' } })
-    expect(await open({ extra: true })).toMatchObject({ ok: false, refusal: { code: 'malformed' } })
-    expect(await open({ onMain: true })).toMatchObject({ ok: false, refusal: { code: 'malformed' } })
-  })
+    it('refuses while live previews are off here, and malformed params', async () => {
+      setLivePreviewSettings({ allowed: false, limit: null, idleMinutes: 120 })
+      expect(await open()).toMatchObject({ ok: false, refusal: { code: 'turnedOff' } })
+      expect(await open({ extra: true })).toMatchObject({ ok: false, refusal: { code: 'malformed' } })
+      expect(await open({ onMain: true })).toMatchObject({ ok: false, refusal: { code: 'malformed' } })
+    })
 
-  it('keeps one per branch, and the site\'s limit', async () => {
-    await open()
-    expect(await open()).toMatchObject({ ok: false, refusal: { code: 'branchOpen' } })
-    setLivePreviewSettings({ allowed: true, limit: 1, idleMinutes: 120 })
-    expect(await open({ branch: 'other' , copy: { kind: 'branch', copyId: COPY } })).toMatchObject({ ok: false, refusal: { code: 'atLimit' } })
-  })
+    it('keeps one per branch, and the site\'s limit', async () => {
+      await open()
+      expect(await open()).toMatchObject({ ok: false, refusal: { code: 'branchOpen' } })
+      setLivePreviewSettings({ allowed: true, limit: 1, idleMinutes: 120 })
+      expect(await open({ branch: 'other' , copy: { kind: 'branch', copyId: COPY } })).toMatchObject({ ok: false, refusal: { code: 'atLimit' } })
+    })
 
-  it('stops one whose container could not start, saying why', async () => {
-    life.fail = true
-    const answer = await open()
-    expect(answer).toMatchObject({ ok: true, livePreview: { state: { state: 'stopped', reason: 'failed' } } })
-    expect(life.stopped).toHaveLength(1)
+    it('stops one whose container could not start, saying why', async () => {
+      life.fail = true
+      const answer = await open()
+      expect(answer).toMatchObject({ ok: true, livePreview: { state: { state: 'stopped', reason: 'failed' } } })
+      expect(life.stopped).toHaveLength(1)
+    })
   })
 })

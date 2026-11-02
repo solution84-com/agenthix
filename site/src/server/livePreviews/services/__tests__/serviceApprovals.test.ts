@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { withFeature } from '@agenthix/core/testing'
 import { serviceDeclarationHash, type ServiceDeclaration } from '@agenthix/core'
 
 vi.mock('#db', () => ({ prisma: {} }))
@@ -34,39 +35,41 @@ const stateOf = async (deps: ServicesDeps) => {
   return ensured.services[0]
 }
 
-describe('a service\'s yes @SC-1742', () => {
-  beforeEach(() => resetPreviewServicesForTests())
+withFeature('livePreview', () => {
+  describe('a service\'s yes @SC-1742', () => {
+    beforeEach(() => resetPreviewServicesForTests())
 
-  it('is asked for a declaration nobody approved', async () => {
-    const s = await stateOf(depsWith(memoryServiceApprovals(), [redis()]))
-    expect(s.state).toBe('waiting')
-    expect(s.detail).toBe(WAITING)
-  })
+    it('is asked for a declaration nobody approved', async () => {
+      const s = await stateOf(depsWith(memoryServiceApprovals(), [redis()]))
+      expect(s.state).toBe('waiting')
+      expect(s.detail).toBe(WAITING)
+    })
 
-  it('survives the site restarting: only what the store holds decides', async () => {
-    const store = memoryServiceApprovals()
-    const deps = depsWith(store, [redis()])
-    await expect(approveService(lp, 'redis', await serviceDeclarationHash(redis()), deps)).resolves.toEqual({ ok: true })
-    resetPreviewServicesForTests()
-    const s = await stateOf(deps)
-    expect(s.state).not.toBe('waiting')
-  })
+    it('survives the site restarting: only what the store holds decides', async () => {
+      const store = memoryServiceApprovals()
+      const deps = depsWith(store, [redis()])
+      await expect(approveService(lp, 'redis', await serviceDeclarationHash(redis()), deps)).resolves.toEqual({ ok: true })
+      resetPreviewServicesForTests()
+      const s = await stateOf(deps)
+      expect(s.state).not.toBe('waiting')
+    })
 
-  it('is asked again for a changed declaration, and an earlier approved one stays approved', async () => {
-    const store = memoryServiceApprovals()
-    await store.approve('w1', 'redis', await serviceDeclarationHash(redis()))
-    expect((await stateOf(depsWith(store, [redis('redis:8-alpine')]))).state).toBe('waiting')
-    resetPreviewServicesForTests()
-    expect((await stateOf(depsWith(store, [redis()]))).state).not.toBe('waiting')
-  })
+    it('is asked again for a changed declaration, and an earlier approved one stays approved', async () => {
+      const store = memoryServiceApprovals()
+      await store.approve('w1', 'redis', await serviceDeclarationHash(redis()))
+      expect((await stateOf(depsWith(store, [redis('redis:8-alpine')]))).state).toBe('waiting')
+      resetPreviewServicesForTests()
+      expect((await stateOf(depsWith(store, [redis()]))).state).not.toBe('waiting')
+    })
 
-  it('is the workspace\'s own, and goes with it', async () => {
-    const store = memoryServiceApprovals()
-    await store.approve('w2', 'redis', await serviceDeclarationHash(redis()))
-    expect((await stateOf(depsWith(store, [redis()]))).state).toBe('waiting')
-    await store.approve('w1', 'redis', await serviceDeclarationHash(redis()))
-    await store.forgetWorkspace('w1')
-    resetPreviewServicesForTests()
-    expect((await stateOf(depsWith(store, [redis()]))).state).toBe('waiting')
+    it('is the workspace\'s own, and goes with it', async () => {
+      const store = memoryServiceApprovals()
+      await store.approve('w2', 'redis', await serviceDeclarationHash(redis()))
+      expect((await stateOf(depsWith(store, [redis()]))).state).toBe('waiting')
+      await store.approve('w1', 'redis', await serviceDeclarationHash(redis()))
+      await store.forgetWorkspace('w1')
+      resetPreviewServicesForTests()
+      expect((await stateOf(depsWith(store, [redis()]))).state).toBe('waiting')
+    })
   })
 })
