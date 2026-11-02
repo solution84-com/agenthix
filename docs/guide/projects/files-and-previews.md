@@ -61,6 +61,8 @@ A file in a workspace opens in the same view as any other file: see [Open and do
 
 ### Git at a glance
 
+For branches, merging into main and the full-screen workspace view of a workspace with Git, see [Code workspaces and branches](code-workspaces.md).
+
 If the workspace is a git repository, one line above its files says where it stands, read when you open it and again when
 you return to the page:
 

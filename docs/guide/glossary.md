@@ -56,6 +56,11 @@ Also said: cost centre, billing account, who pays.
 A project's tasks laid out in columns that you move them along. A project can have several. Where: **Boards** in a project (`/projects/<key>/boards`), or all boards together at `/boards`.
 Also said: kanban, task board, backlog.
 
+## Branch
+
+One piece of work on a code workspace, with a working copy of its own that an agent changes and you review. A conversation or task on the workspace makes it. Where: the branch select in the workspace view. See [Code workspaces and branches](projects/code-workspaces.md).
+Also said: working branch, worktree.
+
 ## Chat
 
 The list of your conversations in **Your space**, newest first. Where: **Chat** in the side bar (`/chat`).
@@ -291,6 +296,11 @@ Also said: spend, cost, bill, tokens used.
 A plain named setting, such as a host name, that a project or person keeps for workflows. Its value is shown to everyone in the place and to agents. Never put a secret in one. Where: next to **Secrets** (`/projects/<key>?tool=secrets`).
 Also said: environment variable, setting, config.
 
+## Version
+
+One finished piece of work on a code workspace's `main`, numbered from the first (*v1*, *v2*, …). **Merge into main** makes one, and **Restore** makes a new one from an older one. Where: **Git** in the workspace view, with `main` chosen. See [Code workspaces and branches](projects/code-workspaces.md#mains-versions-and-restore).
+Also said: commit on main, release.
+
 ## Voice
 
 Speaking with an agent aloud, and agents speaking back. Where: the call button in a conversation; its providers under **Manage › Models and billing › Providers** (`/admin/providers`).
@@ -308,7 +318,7 @@ Also said: task folder, outputs, run files, files the agent wrote.
 
 ## Workspace
 
-A project's working copy of its code, kept on its Execution Site, where agents build and run things. Where: **Workspaces** in a project (`/projects/<key>/workspaces`), and all of yours at `/workspaces`.
+A project's working copy of its code, kept on its Execution Site, where agents build and run things. With Git on it is a code workspace: see [Code workspaces and branches](projects/code-workspaces.md). Where: **Workspaces** in a project (`/projects/<key>/workspaces`), and all of yours at `/workspaces`.
 Also said: repo, checkout, code, working folder, sandbox.
 
 ## Your space

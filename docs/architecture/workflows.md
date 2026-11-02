@@ -131,6 +131,7 @@ from the live workspace:
 | Secrets and parameters | A tar archive on the container's standard input, unpacked into two tmpfs folders, `/run/secrets/<NAME>` (this step's secrets only) and `/run/params/<name>`, before the step starts. Never on the machine's disk, a command line or the container's environment |
 | Variables | Environment variables, the ones the workflow names; names that change how programs run are refused when a variable is made |
 | GitHub | `GITHUB_REPOSITORY` and `GITHUB_REPOSITORY_URL`, set from hq's connection when the workspace has a repository, never from the workspace's `remote.origin.url` |
+| Git | Every git a step runs has the workspace's hooks and file-system monitor off (`GIT_CONFIG_PARAMETERS`, `stepContainer.ts`), which outranks every configuration file and a script's own `GIT_CONFIG_COUNT` |
 | Docker socket | Never |
 | Network | `--network none` without hosts; with hosts, the run's own internal network, whose only other member is its egress proxy, which is also its name server |
 | Limits | `WORKFLOW_CONTAINER_LIMITS` (`core/src/protocol/workflowRuns.ts`): 1 GB of memory and no swap, 256 processes, one processor; the step's and the run's time limits |
