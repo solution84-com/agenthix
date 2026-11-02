@@ -9,7 +9,7 @@ import { PREVIEW_STATE_LABEL } from '../livePreviewWords'
  * *Git* as an accordion, one open at a time. Choosing *Live preview* shows it in the middle. Without Git, *Live
  * preview* and *Git* offer *Turn Git on* instead.
  */
-export function LeftPanel({ branchSelect, section, onSection, filesNote, gitNote, files, git, noGit, previewState }: {
+export function LeftPanel({ branchSelect, section, onSection, filesNote, gitNote, files, git, noGit, preview = true, previewState }: {
   branchSelect: ReactNode
   section: ViewSection
   onSection: (section: ViewSection) => void
@@ -20,12 +20,14 @@ export function LeftPanel({ branchSelect, section, onSection, filesNote, gitNote
   git: ReactNode
   /** The workspace has no Git: what stands where *Live preview* and *Git* would be. */
   noGit?: ReactNode
+  /** Whether *Live preview* is shown: not while its flag is off. */
+  preview?: boolean
   previewState: LivePreviewStateName
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 p-2" data-testid="workspace-left">
       {branchSelect}
-      {noGit ?? <LivePreviewRow state={previewState} chosen={section === 'preview'} onChoose={() => onSection('preview')} />}
+      {noGit ?? (preview && <LivePreviewRow state={previewState} chosen={section === 'preview'} onChoose={() => onSection('preview')} />)}
       <div className="flex min-h-0 flex-1 flex-col border-t border-border-subtle">
         <Fold title="Files" icon={<Folder size={15} aria-hidden />} note={filesNote} open={section === 'files'} onOpen={() => onSection('files')}>{files}</Fold>
         {!noGit && <Fold title="Git" icon={<GitBranch size={15} aria-hidden />} note={gitNote} open={section === 'git'} onOpen={() => onSection('git')}>{git}</Fold>}
@@ -75,13 +77,15 @@ function Fold({ title, icon, note, open, onOpen, children }: {
 }
 
 /** The panel folded to its strip (about 900–1280 px wide): the branch, *Live preview*, *Files* and *Git* as icons. */
-export function LeftStrip({ branchSelect, section, open, onChoose, git, previewState }: {
+export function LeftStrip({ branchSelect, section, open, onChoose, git, preview = true, previewState }: {
   branchSelect: ReactNode
   section: ViewSection
   /** Files or Git open over the middle. */
   open: boolean
   onChoose: (section: ViewSection) => void
   git: boolean
+  /** Whether *Live preview* is shown: not while its flag is off. */
+  preview?: boolean
   previewState: LivePreviewStateName
 }) {
   const on = (s: ViewSection) => (s === 'preview' ? section === 'preview' : open && section === s)
@@ -95,7 +99,7 @@ export function LeftStrip({ branchSelect, section, open, onChoose, git, previewS
     <nav aria-label="Workspace" className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-border-subtle py-2" data-testid="workspace-strip">
       {branchSelect}
       <span className="my-1 h-px w-6 bg-border-subtle" aria-hidden />
-      {git && icon('preview', `Live preview · ${PREVIEW_STATE_LABEL[previewState]}`, (
+      {git && preview && icon('preview', `Live preview · ${PREVIEW_STATE_LABEL[previewState]}`, (
         <>
           <Play size={16} aria-hidden />
           {/* The dot means a live preview runs; its other states are in the label. */}

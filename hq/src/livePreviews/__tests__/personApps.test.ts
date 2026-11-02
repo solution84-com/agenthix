@@ -3,6 +3,7 @@
  * each app known on the workspace is offered with the command it was last started with, and *Start* runs it the way
  * `start_app` does, through HQ, for a Member or Admin only.
  */
+import { withFeature } from '@agenthix/core/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { HttpError } = vi.hoisted(() => ({
@@ -42,6 +43,7 @@ beforeEach(() => {
   reach.reachLivePreview.mockResolvedValue({ row: MAIN, site: { siteId: 's1', name: 'Mac' }, canAct: true })
 })
 
+withFeature('livePreview', () => {
 describe('the apps a live preview offers to start @SC-1703', () => {
   it("offers main the apps last started on any branch, each once, with its latest command", async () => {
     db.liveApp.findMany.mockResolvedValue([
@@ -84,7 +86,9 @@ describe('the apps a live preview offers to start @SC-1703', () => {
     expect(await appToOpenWith(BRANCH)).toBeNull()
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('Start on the strip @SC-1703', () => {
   it('starts it in this live preview as it was last started, as the person, with no run', async () => {
     db.liveApp.findMany.mockResolvedValue([known({ id: 'a1', branch: 'shop-1', folder: 'web', command: 'npm run dev', port: 3000 })])
@@ -118,7 +122,9 @@ describe('Start on the strip @SC-1703', () => {
     await expect(startLiveApp('u1', 'lp-main', 'shop')).rejects.toMatchObject({ statusCode: 409, message: 'The folder web is not in the copy. Nothing was started.' })
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe("a person's start opens with the app @SC-1703", () => {
   it('starts the known app as the person who started the live preview, with no run', async () => {
     db.liveApp.findMany.mockResolvedValue([known({ id: 'a1', folder: 'web', runs: [{ startedAt: at('2026-11-01T12:00:00Z') }] })])
@@ -141,7 +147,9 @@ describe("a person's start opens with the app @SC-1703", () => {
     await expect(startAppOnOpen(BRANCH as never, { siteId: 's1', name: 'Mac' })).resolves.toBeUndefined()
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('Stop and Restart on the strip @SC-1703', () => {
   const APP = { id: 'a1', workspaceId: 'w1', branch: 'shop-1', name: 'shop', folder: 'web', command: 'npm run dev', port: 3000 }
   beforeEach(() => {
@@ -189,4 +197,5 @@ describe('Stop and Restart on the strip @SC-1703', () => {
     site.askSite.mockResolvedValue({ ok: true, result: { refused: 'busy', detail: 'The app is starting.' } })
     await expect(stopLiveApp('u1', 'lp1', 'a1')).rejects.toMatchObject({ statusCode: 409, message: 'The app is starting. Nothing was changed.' })
   })
+})
 })

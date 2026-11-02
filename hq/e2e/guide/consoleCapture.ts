@@ -29,6 +29,8 @@ const SAMPLE_CSRF_TOKEN = 'guide-sample-token'
 export type ConsoleScreen = {
   /** Where the join stands when the Add a site screens ask: just opened (waiting) or a machine used the code (confirming). */
   join?: 'waiting' | 'confirming'
+  /** The flagged features hq says are on (`GET /api/features`): none, as shipped, unless the screen is a feature's own. */
+  features?: readonly string[]
 }
 
 const json = (route: Route, body: unknown, status = 200) =>
@@ -43,6 +45,7 @@ function answer(route: Route, pathname: string, search: string, screen: ConsoleS
   const livePreviews = /^\/sites\/([0-9a-f]{64})\/live-previews$/.exec(path)
 
   if (path === '/status') return json(route, STATUS)
+  if (path === '/features') return json(route, { on: screen.features ?? [] })
   if (path === '/session' && method === 'GET') {
     return json(route, {
       user: SAM,
@@ -113,8 +116,8 @@ export type ConsoleCaptureOptions = Omit<CaptureOptions, 'as' | 'path'> & Consol
  * Opens one Fleet Console screen, signed in as Sam, and saves its screenshot as `capture` does for hq. The server's
  * clock text is not blanked: nothing on these screens comes from a server clock, the sample follows the fixed date.
  */
-export async function captureConsole(page: Page, { path, join, ...options }: ConsoleCaptureOptions): Promise<string> {
-  const unanswered = await serveConsole(page, { join })
+export async function captureConsole(page: Page, { path, join, features, ...options }: ConsoleCaptureOptions): Promise<string> {
+  const unanswered = await serveConsole(page, { join, features })
   const file = await capture(page, { ...options, as: null, path: `${CONSOLE_ORIGIN}${path}`, maskServerText: false })
   if (unanswered.length > 0) console.warn(`[console recipe] requests the sample does not answer: ${[...new Set(unanswered)].join(', ')}`)
   return file

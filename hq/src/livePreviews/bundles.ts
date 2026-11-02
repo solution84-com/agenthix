@@ -14,6 +14,7 @@ import { askSite } from './siteAsk'
 import { bundleRelayFor, carryBundle as carryThroughRelay, onBundleReport } from '../relays'
 import { NOTHING, refusalError } from './words'
 import { Logger } from '../server/utils/logger'
+import { requireFeature } from '../features/requireFeature'
 
 const logger = new Logger('LivePreviewBundles')
 
@@ -76,6 +77,7 @@ export type Carried =
 
 /** Makes the bundle on the source and has it carried to the destination; throws hq's words when it cannot. */
 export async function carryBundle(a: CarryAsk, timeoutMs = BUNDLE_WORK_TIMEOUT_MS): Promise<Carried> {
+  await requireFeature('livePreview')
   const relayId = await bundleRelayFor(a.from.executionSiteId, a.to.executionSiteId)
   if (!relayId) {
     throw new HttpError(503, `${a.from.name} and ${a.to.name} do not share a connected relay now, so ${a.branch} cannot go there. Pick ${a.from.name}, or try again in a minute. ${NOTHING}`, { code: 'noRelay' })

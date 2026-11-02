@@ -7,6 +7,7 @@
  * - Starting a live preview on a branch whose copy was removed makes one, as a run would.
  * - A done task's copy stays while a live preview runs from it, and goes once it stops.
  */
+import { withFeature } from '../../test/withFeature'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LivePreviewSummary } from '@agenthix/core'
 import { prisma } from '../../test/db'
@@ -134,6 +135,7 @@ beforeEach(async () => {
 
 const readyCopy = () => prisma.branchCopy.create({ data: { branchId, siteId: executionSiteId, folderId: `copy-sturdy-${n}`, state: 'READY' } })
 
+withFeature('livePreview', () => {
 describe("Live preview's reads @SC-1700", () => {
   it("a branch's reads ask the site nothing, however many come at once", async () => {
     await readyCopy()
@@ -153,7 +155,9 @@ describe("Live preview's reads @SC-1700", () => {
     expect(branchCallsOf('branch.list')).toHaveLength(1)
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('telling HQ a live preview is in use @SC-1699', () => {
   it('counts once per person in 30 seconds, and reads nothing for the repeats', async () => {
     await readyCopy()
@@ -170,7 +174,9 @@ describe('telling HQ a live preview is in use @SC-1699', () => {
     expect((await prisma.livePreview.findUniqueOrThrow({ where: { id: view.livePreviewId } })).lastUsedAt.getTime()).toBe(t0 + 30_000)
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe("a done task's branch @SC-1695", () => {
   it('with no copy gets one when its live preview starts, made as a run makes one', async () => {
     const view = await startLivePreview(member.id, { workspaceId, branchId })
@@ -207,4 +213,5 @@ describe("a done task's branch @SC-1695", () => {
     expect(view.state).toBe('running')
     expect(branchCallsOf('branch.copy')).toHaveLength(1)
   })
+})
 })

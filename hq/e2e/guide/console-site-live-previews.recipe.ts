@@ -7,6 +7,8 @@ import { OFFICE_SERVER } from './consoleSample'
 test('console-site-live-previews', async ({ page }) => {
   await captureConsole(page, {
     path: `/sites/${OFFICE_SERVER}`,
+    // The live preview is behind its flag (adr-0172): its section shows only while hq says it is on.
+    features: ['livePreview'],
     ready: async (p) => {
       const open = p.getByRole('list', { name: 'Live previews open' })
       await expect(open.getByRole('listitem')).toHaveCount(2)

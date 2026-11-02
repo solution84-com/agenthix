@@ -2,6 +2,7 @@
  * Opening a live preview for `start_app` (live preview spec section 4, *Opening one*): as the run's person, on the run's
  * site, through a person's own path; each refusal comes back in hq's words, ending with what was left as it was.
  */
+import { withFeature } from '@agenthix/core/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { FakeHttpError, db } = vi.hoisted(() => ({
@@ -26,6 +27,7 @@ beforeEach(() => {
   mocks.start.mockResolvedValue({})
 })
 
+withFeature('livePreview', () => {
 describe('opening a live preview for a run\'s start_app @SC-1702', () => {
   it('opens it as the run\'s person, on the branch the run works on, on the run\'s site', async () => {
     await openLivePreviewForRun(CLAIMS)
@@ -63,4 +65,5 @@ describe('opening a live preview for a run\'s start_app @SC-1702', () => {
     mocks.start.mockRejectedValue(new FakeHttpError(409, 'That site does not run live previews. Pick one of the sites listed. Nothing was changed.'))
     await expect(openLivePreviewForRun(CLAIMS)).rejects.toThrow(/does not run live previews.*Nothing was started\.$/)
   })
+})
 })

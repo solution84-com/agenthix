@@ -26,6 +26,8 @@ import { servicesOf } from './questions'
 import { appAddress } from '../relays'
 import { emitLivePreviewAuto, emitLivePreviewReload } from './socket'
 import { refusalWords } from './words'
+import { livePreviewFeatureOn } from './flag'
+import { notAvailable } from '../features/requireFeature'
 
 type Calling = { row: LivePreview; siteId: string; siteName: string; agentId: string; runId: string; personId: string }
 
@@ -158,10 +160,18 @@ export async function setAutoReloadOp(ctx: CallerContext, args: { auto?: unknown
   }
 }
 
+/** The tool, behind the live preview's flag: off, it answers *not available* before anything else (adr-0172). */
+function gated<A, R>(op: (ctx: CallerContext, args: A) => Promise<R>): (ctx: CallerContext, args: A) => Promise<R> {
+  return async (ctx, args) => {
+    if (!(await livePreviewFeatureOn())) throw new ControlPlaneError('not_found', notAvailable('livePreview').message)
+    return op(ctx, args)
+  }
+}
+
 export const APP_TOOL_OPERATIONS = {
-  start_app: startAppOp,
-  stop_app: stopAppOp,
-  list_apps: listAppsOp,
-  reload_view: reloadViewOp,
-  set_auto_reload: setAutoReloadOp,
+  start_app: gated(startAppOp),
+  stop_app: gated(stopAppOp),
+  list_apps: gated(listAppsOp),
+  reload_view: gated(reloadViewOp),
+  set_auto_reload: gated(setAutoReloadOp),
 } as const

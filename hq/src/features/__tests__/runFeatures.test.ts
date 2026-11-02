@@ -35,7 +35,9 @@ describe("a run's tools and instructions by flag", () => {
     expect((await runFeatures(flagged)).withheldTools).toEqual(['browse_marketplace', 'install_from_marketplace'])
   })
 
-  it('withholds nothing while no feature has tools', async () => {
-    expect((await runFeatures()).withheldTools).toEqual([])
+  it("withholds the live preview's app tools and the lead's offer of one while its flag is off", async () => {
+    expect([...(await runFeatures()).withheldTools].sort()).toEqual(
+      ['list_apps', 'offer_live_preview', 'reload_view', 'set_auto_reload', 'start_app', 'stop_app'],
+    )
   })
 })

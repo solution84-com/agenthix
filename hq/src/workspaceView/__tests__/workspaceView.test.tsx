@@ -7,7 +7,9 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router'
+import { withFeature } from '@agenthix/core/testing'
 import type { BranchLineView, WorkspaceBranchesView } from '../../branches/views'
+import { featuresAnswer } from '../../test/featuresAnswer'
 
 const answers = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
 const actions = vi.hoisted(() => ({} as Record<string, ReturnType<typeof vi.fn>>))
@@ -29,6 +31,7 @@ vi.mock('wasp/client/operations', () => ({
   startLivePreview: 'startLivePreview', stopLivePreview: 'stopLivePreview', resumeLivePreview: 'resumeLivePreview',
   reloadLivePreview: 'reloadLivePreview', setLivePreviewAuto: 'setLivePreviewAuto', openLiveApp: 'openLiveApp',
   answerLivePreviewQuestion: 'answerLivePreviewQuestion', runLivePreviewWorkflow: 'runLivePreviewWorkflow',
+  getFeatures: 'getFeatures',
 }))
 vi.mock('../../conversations/components/ConversationThread', () => ({
   ConversationThread: ({ conversationId }: { conversationId: string }) => <div>thread {conversationId}</div>,
@@ -93,17 +96,33 @@ beforeEach(() => {
     getTaskConversation: { conversation: { id: 'tc1' }, lead: null, canStart: false, refusal: null },
     getAgents: [],
     getPlaceWorkflows: { workflows: [], mayRun: true, mayAdminister: false },
+    getFeatures: featuresAnswer,
   }
 })
 
 describe('the workspace view', () => {
-  it('has the back link, the workspace switcher, and Live preview first in the panel with its state @SC-1683', () => {
+  it('has the back link and the workspace switcher, and no Live preview while its flag is off @SC-1683', () => {
     show(codeView())
     expect(screen.getByRole('link', { name: /Fernhill Shop/ }).getAttribute('href')).toBe('/projects/SHOP?tool=workspaces')
     fireEvent.click(screen.getByRole('button', { name: 'Workspace: shop-app' }))
     expect(screen.getByRole('menuitem', { name: 'docs' }).getAttribute('href')).toBe('/workspaces/w2/view')
-    const row = screen.getByTestId('live-preview-row')
-    expect(row.textContent).toContain('Stopped')
+    expect(screen.queryByTestId('live-preview-row')).toBeNull()
+    expect(screen.queryByText(/Live preview/)).toBeNull()
+    expect(asked.some(a => a.name === 'getLivePreviewPlaces' || a.name === 'getLivePreview')).toBe(false)
+  })
+
+  it('opens Git where an address names Live preview while its flag is off', () => {
+    show(codeView(), '/workspaces/w1/view?branch=login-page&section=preview')
+    expect(screen.getByTestId('branch-git')).toBeTruthy()
+    expect(screen.queryByTestId('live-preview-row')).toBeNull()
+  })
+
+  withFeature('livePreview', () => {
+    it('has Live preview first in the panel with its state @SC-1683', () => {
+      show(codeView())
+      const row = screen.getByTestId('live-preview-row')
+      expect(row.textContent).toContain('Stopped')
+    })
   })
 
   it('opens on main, protected, with its versions, Restore and a quiet Deploy… that says none is set up @SC-1691', () => {
@@ -296,8 +315,17 @@ describe('narrow screens @SC-1689', () => {
     show(codeView(), '/workspaces/w1/view?branch=login-page')
     expect(await screen.findByText('thread c1')).toBeTruthy()
     const nav = screen.getByRole('navigation', { name: 'Workspace' })
-    expect(within(nav).getAllByRole('button').map(b => b.textContent)).toEqual(['Conversation', 'Live preview', 'Files', 'Git'])
+    expect(within(nav).getAllByRole('button').map(b => b.textContent)).toEqual(['Conversation', 'Files', 'Git'])
     fireEvent.click(within(nav).getByRole('button', { name: 'Git' }))
     expect(screen.getByTestId('branch-git')).toBeTruthy()
+  })
+
+  withFeature('livePreview', () => {
+    it('on a phone Live preview is one of the switch', async () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 })
+      show(codeView(), '/workspaces/w1/view?branch=login-page')
+      const nav = screen.getByRole('navigation', { name: 'Workspace' })
+      expect(within(nav).getAllByRole('button').map(b => b.textContent)).toEqual(['Conversation', 'Live preview', 'Files', 'Git'])
+    })
   })
 })

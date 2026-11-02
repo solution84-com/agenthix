@@ -3,6 +3,7 @@
  * The workspace view's *Live preview* (live preview spec, part 4, and part 5's site choice), against the live-preview
  * operations' types with their answers given here.
  */
+import { withFeature } from '@agenthix/core/testing'
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within, act, cleanup } from '@testing-library/react'
@@ -29,6 +30,7 @@ vi.mock('wasp/client/operations', () => ({
   reloadLivePreview: 'reloadLivePreview', setLivePreviewAuto: 'setLivePreviewAuto', openLiveApp: 'openLiveApp',
   answerLivePreviewQuestion: 'answerLivePreviewQuestion', runLivePreviewWorkflow: 'runLivePreviewWorkflow',
   startLiveApp: 'startLiveApp', stopLiveApp: 'stopLiveApp', restartLiveApp: 'restartLiveApp',
+  getFeatures: 'getFeatures',
 }))
 vi.mock('../../conversations/components/ConversationThread', () => ({
   ConversationThread: ({ conversationId }: { conversationId: string }) => <div>thread {conversationId}</div>,
@@ -36,6 +38,7 @@ vi.mock('../../conversations/components/ConversationThread', () => ({
 vi.mock('../../storage/pages/FolderTree', () => ({ FolderTree: () => <div>workspace folder</div> }))
 
 import { WorkspaceViewBody } from '../components/WorkspaceViewBody'
+import { featuresAnswer } from '../../test/featuresAnswer'
 import { WorkspaceEventContext, type WorkspaceViewEvent } from '../hooks/useWorkspaceLive'
 
 const workspace = { id: 'w1', name: 'shop-app', ownerType: 'project' as const, ownerId: 'p1' }
@@ -79,10 +82,11 @@ beforeEach(() => {
   vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(function (this: HTMLFormElement) { submitted.push(this.cloneNode(true) as HTMLFormElement) })
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1440 })
   answers.readAt = {}
-  answers.value = { getTaskConversation: { conversation: { id: 'tc1' }, lead: null, canStart: false, refusal: null }, getAgents: [], getLivePreviewPlaces: places() }
+  answers.value = { getTaskConversation: { conversation: { id: 'tc1' }, lead: null, canStart: false, refusal: null }, getAgents: [], getLivePreviewPlaces: places(), getFeatures: featuresAnswer }
 })
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
+withFeature('livePreview', () => {
 describe('Live preview, before one runs @SC-1696', () => {
   it('says why the branch\'s last live preview stopped, though this screen did not see it stop', () => {
     answers.value.getLivePreviewPlaces = places({
@@ -179,7 +183,9 @@ describe('Live preview, before one runs @SC-1696', () => {
     expect(screen.getByText(/needs a Member or Admin/)).toBeTruthy()
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('Live preview, running', () => {
   beforeEach(() => {
     answers.value.getLivePreviewPlaces = places({ current: running() })
@@ -343,4 +349,5 @@ describe('Live preview, running', () => {
     expect(screen.getByTestId('live-preview-bar')).toBeTruthy()
     await waitFor(() => expect(submitted).toHaveLength(1))
   })
+})
 })

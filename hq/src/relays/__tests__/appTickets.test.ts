@@ -2,6 +2,7 @@
  * hq's word on an app ticket when a relay asks, the refusal threshold, and a live app's address: a ticket stands only
  * while nothing revoked it and its live preview runs and is open to its person.
  */
+import { withFeature } from '@agenthix/core/testing'
 import { describe, it, expect, vi } from 'vitest'
 import { DEV_PREVIEW_PATTERN, type RelayRevoke } from '@agenthix/core'
 
@@ -31,6 +32,7 @@ function book(open = true) {
 }
 const ask = (ticketId: string, over: object = {}) => ({ ticketId, person: 'mia', appId: APP, livePreviewId: 'lp1', ...over })
 
+withFeature('livePreview', () => {
 describe("hq's word on an app ticket @SC-1706", () => {
   it('stands for a ticket it signed, for that person, app and live preview, while it runs and is open to them', async () => {
     const { b, state, opened } = book()
@@ -68,14 +70,18 @@ describe("hq's word on an app ticket @SC-1706", () => {
     expect(sent.map(f => f.livePreviews ?? f.apps ?? f.tickets)).toEqual([['lp1'], [APP], [three.jti]])
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('relay refusals over the threshold @SC-1706', () => {
   it('cuts off an app another page hammers, not one whose page is merely stale', () => {
     expect(overRefusalThreshold([{ appId: 'a', refusal: 'cross-site', count: 60 }, { appId: 'a', refusal: 'navigation', count: 40 }])).toEqual(['a'])
     expect(overRefusalThreshold([{ appId: 'a', refusal: 'no-cookie', count: 500 }, { appId: 'b', refusal: 'cross-site', count: 99 }])).toEqual([])
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe("a live app's address @SC-1707", () => {
   it("is built from the pattern, development's on localhost, and none on a bare address", () => {
     expect(appAddress(APP, 'https://p-{id}.preview.example.com')).toBe(`https://p-${APP}.preview.example.com`)
@@ -87,4 +93,5 @@ describe("a live app's address @SC-1707", () => {
     expect(livePreviewPattern({ PREVIEW_PATTERN: 'not a pattern' }, 'https://hq.example.com')).toBeNull()
     expect(appAddress(APP, null)).toBeNull()
   })
+})
 })

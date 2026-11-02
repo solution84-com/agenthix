@@ -46,7 +46,7 @@ export function taskRunContext(setup: TaskRunSetup): { system: PromptPart[]; mes
     system: [
       { text: frame(setup) },
       { text: PLATFORM_TOOLS_INSTRUCTIONS },
-      { text: codeWorkPromptText(codeWork(setup.openLivePreview, setup.behindMain ?? 0)) },
+      { text: codeWorkPromptText(codeWork(setup.openLivePreview, setup.behindMain ?? 0), { livePreview: true }) },
     ],
     messages: [{ role: 'user', content: withBrief(FIRST_MESSAGE, setup.brief ?? null) }],
   }

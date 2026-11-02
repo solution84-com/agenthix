@@ -3,6 +3,7 @@
  * preview is in use counts at most once per person in 30 seconds, the site is asked whether Git is on once for many
  * reads at once, and a done task's run ending leaves the copy a live preview runs from.
  */
+import { withFeature } from '@agenthix/core/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const db = vi.hoisted(() => ({
@@ -40,6 +41,7 @@ beforeEach(() => {
   db.livePreview.updateMany.mockResolvedValue({ count: 1 })
 })
 
+withFeature('livePreview', () => {
 describe('telling HQ a live preview is in use @SC-1699', () => {
   it('counts once per person and live preview in 30 seconds', async () => {
     for (let i = 0; i < 100; i++) await markLivePreviewInUse('u1', 'lp1', 1_000 + i)
@@ -58,7 +60,9 @@ describe('telling HQ a live preview is in use @SC-1699', () => {
     expect(db.livePreview.findUnique).toHaveBeenCalledTimes(2)
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('whether Git is on @SC-1700', () => {
   it('is asked of the site once for many reads at once, and a yes is kept', async () => {
     const ask = vi.fn(async () => { await new Promise(r => setTimeout(r, 5)); return true })
@@ -79,7 +83,9 @@ describe('whether Git is on @SC-1700', () => {
     expect(fails).toHaveBeenCalledTimes(2)
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe("a done task's run ending @SC-1695", () => {
   const branch = { id: 'b1', workspaceId: 'w1', name: 'add-banner', taskId: 't1', copies: [] }
   beforeEach(() => {
@@ -100,4 +106,5 @@ describe("a done task's run ending @SC-1695", () => {
     await branchRunChanged({ sessionId: 'sess', status: 'COMPLETED' }, 's1')
     expect(branchMocks.removeCopiesOf).toHaveBeenCalledWith('b1')
   })
+})
 })

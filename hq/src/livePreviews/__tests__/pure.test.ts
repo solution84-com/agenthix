@@ -1,4 +1,5 @@
 /** The pure rules of live previews: picking a site, a summary as a row, what the agent may give as an app. */
+import { withFeature } from '@agenthix/core/testing'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../sites/channel', () => ({ siteChannelRegistry: { isOnline: () => true }, ChannelRequestFailed: class extends Error {} }))
@@ -14,6 +15,7 @@ const choice = (o: Partial<SiteChoice>): SiteChoice => ({
   executionSiteId: 'x', siteId: 'x', name: 'x', open: 0, limit: null, blocked: null, isWorkspaceSite: false, ...o,
 })
 
+withFeature('livePreview', () => {
 describe('picking a site @SC-1713', () => {
   it("takes the workspace's own site when it may and has room", () => {
     const own = choice({ executionSiteId: 'own', isWorkspaceSite: true, open: 2, limit: 6 })
@@ -37,7 +39,9 @@ describe('picking a site @SC-1713', () => {
     expect(settingOf({ livePreviewsAllowed: true, livePreviewLimit: 0, livePreviewIdleMinutes: 1 })).toEqual({ allowed: true, limit: null, idleMinutes: 120 })
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('a summary as a row @SC-1713', () => {
   const base: LivePreviewSummary = {
     livePreviewId: 'lp', projectId: 'p', personId: 'u', workspaceId: 'w', branch: 'b', onMain: false,
@@ -58,7 +62,9 @@ describe('a summary as a row @SC-1713', () => {
     expect((move.since as Date).getTime()).toBeGreaterThan(Date.now() - 5000)
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('what the agent gives as an app @SC-1760', () => {
   it('takes a port as text or a number, and a folder with its slashes trimmed', () => {
     expect(readToolSpec({ name: 'web', folder: './web/', command: 'npm run dev', port: '5173' })).toEqual({ name: 'web', folder: 'web', command: 'npm run dev', port: 5173 })
@@ -71,7 +77,9 @@ describe('what the agent gives as an app @SC-1760', () => {
     expect(() => readToolSpec({ name: 'web', folder: '', command: 'x', port: '80' })).toThrow(/port/)
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('words @SC-1713', () => {
   it('ends every refusal with what was changed', () => {
     for (const code of ['turnedOff', 'atLimit', 'guardDown', 'noCopy', 'branchOpen'] as const) {
@@ -83,4 +91,5 @@ describe('words @SC-1713', () => {
   it('says why a live preview stopped', () => {
     expect(stoppedDetail('resources', 'preview-box')).toContain('ran out of memory')
   })
+})
 })

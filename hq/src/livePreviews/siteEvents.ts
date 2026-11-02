@@ -1,7 +1,7 @@
 /**
  * What a site tells hq of its live previews (core's `LIVE_PREVIEW_EVENTS`, `LIVE_PREVIEW_APP_EVENTS`,
  * `BUNDLE_EVENTS`). Each event counts only for a live preview hq opened on the site it came from, and is read field by
- * field; anything else is dropped. A site's own sentences are never shown: hq words what happened itself. Registered
+ * field; anything else is dropped. While the live preview's flag is off, every one is dropped unread (adr-0172). A site's own sentences are never shown: hq words what happened itself. Registered
  * with the site channel when this module loads, as branch work registers `branch.back`.
  */
 import { prisma } from 'wasp/server'
@@ -24,6 +24,7 @@ import { keepAppState } from './appStore'
 import { tellGuard, tellPerson, tellStoppedForResources } from './notices'
 import { askSite } from './siteAsk'
 import { guardFound } from './words'
+import { whileLivePreviewOn } from './flag'
 
 const logger = new Logger('LivePreviewEvents')
 
@@ -152,12 +153,12 @@ export async function handleAppsCutOff(appIds: string[]): Promise<void> {
   }
 }
 
-onAppsCutOff(handleAppsCutOff)
-onSiteEvent(LIVE_PREVIEW_EVENTS.state, handleState)
-onSiteEvent(LIVE_PREVIEW_EVENTS.guard, handleGuard)
-onSiteEvent(LIVE_PREVIEW_EVENTS.guardReport, handleGuardReport)
-onSiteEvent(LIVE_PREVIEW_EVENTS.branchMoved, handleBranchMoved)
-onSiteEvent(LIVE_PREVIEW_APP_EVENTS.appState, handleAppState)
-onSiteEvent(LIVE_PREVIEW_APP_EVENTS.services, handleServices)
-onSiteEvent(LIVE_PREVIEW_APP_EVENTS.packageBlocked, handlePackageBlocked)
-onSiteEvent(BUNDLE_EVENTS.landed, handleLanded)
+onAppsCutOff(whileLivePreviewOn(handleAppsCutOff))
+onSiteEvent(LIVE_PREVIEW_EVENTS.state, whileLivePreviewOn(handleState))
+onSiteEvent(LIVE_PREVIEW_EVENTS.guard, whileLivePreviewOn(handleGuard))
+onSiteEvent(LIVE_PREVIEW_EVENTS.guardReport, whileLivePreviewOn(handleGuardReport))
+onSiteEvent(LIVE_PREVIEW_EVENTS.branchMoved, whileLivePreviewOn(handleBranchMoved))
+onSiteEvent(LIVE_PREVIEW_APP_EVENTS.appState, whileLivePreviewOn(handleAppState))
+onSiteEvent(LIVE_PREVIEW_APP_EVENTS.services, whileLivePreviewOn(handleServices))
+onSiteEvent(LIVE_PREVIEW_APP_EVENTS.packageBlocked, whileLivePreviewOn(handlePackageBlocked))
+onSiteEvent(BUNDLE_EVENTS.landed, whileLivePreviewOn(handleLanded))

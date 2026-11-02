@@ -4,7 +4,7 @@
  * Only what a turn reads from the database is supplied here: the place's name, the conversation's places, and the
  * three tools whose offer or description reads it.
  */
-import { CAPABILITY_TTL_SECONDS } from '@agenthix/core'
+import { CAPABILITY_TTL_SECONDS, type FeatureFlag } from '@agenthix/core'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { resolveEffectivePermissions } from '../../agents/permissions/effectivePermissions'
 import type { ConversationTool, LeadMessage, LeadToolDefinition, PromptPart, TurnCapability } from '../contract'
@@ -16,6 +16,7 @@ import { describeStartWork } from '../work/workers/startWork'
 import { personalBoundary } from '../work/boundaries'
 import { ANSWER_APPROVAL, CANCEL_OPERATION } from '../work/toolCalls/leadTools'
 import { CREATE_TASK, CREATE_TASK_DESCRIPTION } from '../work/tasks/createTaskTool'
+import { RUN_TASK, describeRunTask } from '../work/tasks/runTaskTool'
 import { describeWorkspaces } from '../../branches/leadWorkspaces'
 import { OFFER_LIVE_PREVIEW_TOOL } from '../../livePreviews/offer'
 import { AGENT_ID, AGENT_NAME, PERSON_ID, PROJECT, PROJECT_PLACE, TASK, WORKSPACES, YOUR_SPACE_PLACE, inProject, type Home } from './world'
@@ -30,6 +31,8 @@ export interface CheckSetup {
   /** What was said before this turn, oldest first. */
   before?: readonly Said[]
   message: string
+  /** The flagged features on, as shipped when none: a feature's own checks name it (adr-0172). */
+  features?: readonly FeatureFlag[]
 }
 
 const CONVERSATION_ID = 'conversation-check'
@@ -59,6 +62,7 @@ export function contextOf(setup: CheckSetup, now = new Date()): { system: Prompt
       placeLabel: placeLabelFor(setup.home),
       agentInstructions: null,
       orgInstructions: null,
+      featuresOn: setup.features ?? [],
     },
     segments: [],
     history,
@@ -98,7 +102,8 @@ export function capabilityOf(home: Home): TurnCapability {
 }
 
 /** The offers that read the database, as a new conversation in this world has them. */
-function scriptedOffer(tool: ConversationTool, home: Home): ConversationTool {
+function scriptedOffer(tool: ConversationTool, home: Home, features: readonly FeatureFlag[]): ConversationTool {
+  const livePreview = features.includes('livePreview')
   switch (tool.name) {
     // In a task's thread, work is a run of the task (run_task): start_work is not offered there, as in a turn.
     case 'start_work': {
@@ -113,9 +118,12 @@ function scriptedOffer(tool: ConversationTool, home: Home): ConversationTool {
       const places = inProject(home) ? [{ key: PROJECT.key, workspaces: WORKSPACES }] : []
       return { ...tool, describe: async () => [CREATE_TASK_DESCRIPTION, ...describeWorkspaces(places)].join('\n') }
     }
-    // The project has a code workspace and live apps have an address, as offer.ts reads them.
+    // The project has a code workspace and live apps have an address, as offer.ts reads them, while the flag is on.
     case OFFER_LIVE_PREVIEW_TOOL:
-      return { ...tool, offered: async () => inProject(home) }
+      return { ...tool, offered: async () => livePreview && inProject(home) }
+    // Its description names the live preview only while the flag is on.
+    case RUN_TASK:
+      return { ...tool, describe: async capability => describeRunTask(capability, livePreview) }
     // Nothing waits for an answer and nothing runs in a new conversation, so neither is offered.
     case ANSWER_APPROVAL:
     case CANCEL_OPERATION:
@@ -125,6 +133,6 @@ function scriptedOffer(tool: ConversationTool, home: Home): ConversationTool {
   }
 }
 
-export async function toolsOf(capability: TurnCapability, home: Home): Promise<LeadToolDefinition[]> {
-  return leadToolDefinitions(capability, conversationTools().map(t => scriptedOffer(t, home)))
+export async function toolsOf(capability: TurnCapability, home: Home, features: readonly FeatureFlag[] = []): Promise<LeadToolDefinition[]> {
+  return leadToolDefinitions(capability, conversationTools().map(t => scriptedOffer(t, home, features)))
 }

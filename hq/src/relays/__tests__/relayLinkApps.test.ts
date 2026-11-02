@@ -1,4 +1,5 @@
 /** The relay link's part in live apps (relay protocol 1.1): hq answers asks, reads refusal counts, pushes revocations. */
+import { withFeature } from '@agenthix/core/testing'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import http from 'node:http'
 import WebSocket from 'ws'
@@ -50,6 +51,7 @@ async function relay(): Promise<{ ws: WebSocket; frames: Record<string, unknown>
 
 const ask = (askId: string, ticketId: unknown) => JSON.stringify({ type: 'relay.ask', version: V, askId, ticketId, person: 'mia', appId: 'a', livePreviewId: 'r1' })
 
+withFeature('livePreview', () => {
 describe('hq on the relay link, for live apps @SC-1706', () => {
   it('answers each ask with hq\'s word, and no for an ask it cannot read', async () => {
     const { ws, frames } = await relay()
@@ -79,4 +81,5 @@ describe('hq on the relay link, for live apps @SC-1706', () => {
     links.broadcast({ type: 'relay.revoke', version: V, livePreviews: ['r1'] })
     await vi.waitFor(() => expect(frames).toContainEqual({ type: 'relay.revoke', version: V, livePreviews: ['r1'] }))
   })
+})
 })

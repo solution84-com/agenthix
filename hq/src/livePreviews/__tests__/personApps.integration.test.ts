@@ -3,6 +3,7 @@
  * branch's app, *Start* offers the branch's own apps (on `main`, each name once), and *Stop* and *Restart* act on one
  * app of the live preview as the person, for a Member or Admin only. The site's answers are replaced: they leave hq.
  */
+import { withFeature } from '../../test/withFeature'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LivePreviewSummary } from '@agenthix/core'
 import { prisma } from '../../test/db'
@@ -121,6 +122,7 @@ beforeEach(async () => {
   await prisma.branchCopy.create({ data: { branchId, siteId: s.id, folderId: `copy-apps-${n}`, state: 'READY' } })
 })
 
+withFeature('livePreview', () => {
 describe("a person's start opens with the branch's app @SC-1703", () => {
   it('starts the app started last on the branch, as the person, so it shows', async () => {
     await knownApp('free-delivery', 'shop', new Date('2026-11-02T07:00:00Z'))
@@ -138,7 +140,9 @@ describe("a person's start opens with the branch's app @SC-1703", () => {
     expect(callsOf('livePreview.appStart')).toEqual([])
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('the apps Start offers @SC-1703', () => {
   it("on a branch only its own; on main each name once, the latest, with no second name for one app", async () => {
     await knownApp('free-delivery', 'shop', new Date('2026-11-02T07:00:00Z'))
@@ -150,7 +154,9 @@ describe('the apps Start offers @SC-1703', () => {
     expect(await startableApps(mainRow)).toEqual([{ name: 'shop', folder: 'web', command: 'npm start', port: 3000, fromBranch: 'other-branch' }])
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('Stop and Restart from the strip @SC-1703', () => {
   it('stops and restarts an app of this live preview as the person, keeping the live preview', async () => {
     const view = await startLivePreview(member.id, { workspaceId, branchId })
@@ -172,4 +178,5 @@ describe('Stop and Restart from the strip @SC-1703', () => {
     await expect(restartLiveApp(member.id, view.livePreviewId, theirs.id)).rejects.toMatchObject({ statusCode: 404 })
     expect(site.calls).toEqual([])
   })
+})
 })

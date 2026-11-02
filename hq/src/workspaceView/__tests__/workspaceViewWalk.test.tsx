@@ -4,6 +4,7 @@
  * live preview runs, a closed branch leaves nothing behind in the address or the notice, and *New task* makes a task
  * on this workspace and shows its branch once its run makes it.
  */
+import { withFeature } from '@agenthix/core/testing'
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within, act } from '@testing-library/react'
@@ -30,6 +31,7 @@ vi.mock('wasp/client/operations', () => ({
   startLivePreview: 'startLivePreview', stopLivePreview: 'stopLivePreview', resumeLivePreview: 'resumeLivePreview',
   reloadLivePreview: 'reloadLivePreview', setLivePreviewAuto: 'setLivePreviewAuto', openLiveApp: 'openLiveApp',
   answerLivePreviewQuestion: 'answerLivePreviewQuestion', runLivePreviewWorkflow: 'runLivePreviewWorkflow',
+  getFeatures: 'getFeatures',
 }))
 vi.mock('../../conversations/components/ConversationThread', () => ({
   ConversationThread: ({ conversationId }: { conversationId: string }) => <div>thread {conversationId}</div>,
@@ -38,6 +40,7 @@ vi.mock('../../storage/pages/OpenedFile', () => ({ OpenedFile: ({ path }: { path
 vi.mock('../../storage/pages/FolderTree', () => ({ FolderTree: () => <div>workspace folder</div> }))
 
 import { WorkspaceViewBody } from '../components/WorkspaceViewBody'
+import { featuresAnswer } from '../../test/featuresAnswer'
 
 const workspace = { id: 'w1', name: 'shop-app', ownerType: 'project' as const, ownerId: 'p1' }
 const footer: BranchLineView = {
@@ -77,6 +80,7 @@ beforeEach(() => {
   for (const k of Object.keys(actions)) delete actions[k]
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1440 })
   answers.value = {
+    getFeatures: featuresAnswer,
     getBranchChanges: { base: 'h4', head: 'h9', overflow: false, baseVersion: 5, files: [] },
     getMainVersions: { hasMore: false, versions: [] },
     getGitTree: { exists: true, overflow: false, entries: [] },
@@ -107,6 +111,16 @@ describe('Deploy… on main', () => {
   })
 })
 
+describe("the strip while the live preview's flag is off", () => {
+  it('has no Live preview, only Files and Git', () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1180 })
+    show(view([footer]), '/workspaces/w1/view?branch=footer-wording&section=files')
+    expect(screen.queryByRole('button', { name: /^Live preview/ })).toBeNull()
+    expect(within(screen.getByTestId('workspace-strip')).getByRole('button', { name: 'Git' })).toBeTruthy()
+  })
+})
+
+withFeature('livePreview', () => {
 describe("the strip's Live preview dot", () => {
   it('shows only while a live preview runs', () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1180 })
@@ -123,6 +137,7 @@ describe("the strip's Live preview dot", () => {
     show(view([footer]), '/workspaces/w1/view?branch=footer-wording&section=files')
     expect(screen.queryByTestId('strip-preview-dot') !== null).toBe(state === 'running')
   })
+})
 })
 
 describe('a branch that closes leaves nothing behind', () => {

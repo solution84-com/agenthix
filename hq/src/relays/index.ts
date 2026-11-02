@@ -11,6 +11,7 @@ import type { AppEntryDeps } from './appEntry'
 import { createBundleCarrier, readBundleReport } from './bundles'
 import { siteChannelRegistry } from '../sites/channel'
 import { Logger } from '../server/utils/logger'
+import { isOrgFeatureOn } from '../features/switches'
 
 const logger = new Logger('RelayApps')
 
@@ -29,9 +30,10 @@ export function isRelayConnected(relayId: string): boolean {
 
 /**
  * Whether a live preview is running and `person` may see it: any member of its project (a Viewer included, who sees
- * everything), or the owner of a person's own workspace.
+ * everything), or the owner of a person's own workspace. No ticket stands while the live preview's flag is off.
  */
 async function livePreviewOpenTo(livePreviewId: string, person: string): Promise<boolean> {
+  if (!(await isOrgFeatureOn('livePreview'))) return false
   const lp = await prisma.livePreview.findUnique({
     where: { id: livePreviewId }, select: { state: true, projectId: true, ownerType: true, ownerId: true },
   })

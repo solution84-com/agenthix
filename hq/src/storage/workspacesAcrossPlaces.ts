@@ -8,6 +8,7 @@
 import { HttpError, prisma } from 'wasp/server'
 import type { SiteSilence } from '@agenthix/core'
 import { getMyStorageQuery } from './queries'
+import { isOrgFeatureOn } from '../features/switches'
 
 export type WorkspaceAcrossPlaces = {
   id: string
@@ -30,10 +31,10 @@ export const getWorkspacesAcrossPlacesQuery = async (_args: unknown, context: { 
   // Adding a workspace is working in the place (adr-0102): a Viewer reads and adds nothing.
   const mayWork = new Set(roles.filter(r => r.role !== 'VIEWER').map(r => r.projectId))
   const ids = groups.flatMap(g => g.workspaces.map(w => w.id))
-  const previews = await prisma.livePreview.findMany({
-    where: { workspaceId: { in: ids }, state: 'RUNNING' },
-    select: { workspaceId: true },
-  })
+  // A workspace is marked as having a live preview running only while the live preview's flag is on (adr-0172).
+  const previews = (await isOrgFeatureOn('livePreview'))
+    ? await prisma.livePreview.findMany({ where: { workspaceId: { in: ids }, state: 'RUNNING' }, select: { workspaceId: true } })
+    : []
   const running = new Set(previews.map(p => p.workspaceId))
 
   const places: PlaceOption[] = groups.map(g => ({

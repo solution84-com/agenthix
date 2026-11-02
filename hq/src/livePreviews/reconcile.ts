@@ -8,6 +8,8 @@
  * - **Every minute**, the idle stop: a running live preview nobody has had open, with no run going on its branch, for
  *   its site's *Stop when unused for*, stops. An opening the site never answered is given up. Commits still to come
  *   back from another site are tried again.
+ *
+ * None of it runs while the live preview's flag is off (adr-0172).
  */
 import { prisma } from 'wasp/server'
 import type { LivePreview } from '@prisma/client'
@@ -27,6 +29,7 @@ import { detailFor } from './opening'
 import { afterStopped, releaseCopyAfterStop, stopAs, stopOnSite } from './stopping'
 import { bringBackPending } from './back'
 import { followSiteApps } from './appSync'
+import { livePreviewFeatureOn, whileLivePreviewOn } from './flag'
 
 const logger = new Logger('LivePreviewReconcile')
 
@@ -80,6 +83,7 @@ export async function reconcileSite(siteId: string, now = Date.now()): Promise<v
 }
 
 export async function onSiteConnected(siteId: string): Promise<void> {
+  if (!(await livePreviewFeatureOn())) return
   await sendSiteSetting(siteId)
   try {
     await reconcileSite(siteId)
@@ -137,10 +141,20 @@ export async function sweepOnce(now = new Date()): Promise<number> {
 }
 
 export function startLivePreviewSweep(intervalMs = 60_000): void {
-  setInterval(() => {
-    void sweepOnce().catch(err => logger.error('live preview sweep failed', err))
-    void bringBackPending().catch(() => {})
-  }, intervalMs).unref()
+  setInterval(() => { void sweepTick() }, intervalMs).unref()
+}
+
+/** One minute's work: nothing while the live preview's flag is off. */
+export async function sweepTick(): Promise<void> {
+  try {
+    if (!(await livePreviewFeatureOn())) return
+  } catch (err) {
+    return logger.error('live preview sweep: the feature switches could not be read', err)
+  }
+  await Promise.all([
+    sweepOnce().catch(err => logger.error('live preview sweep failed', err)),
+    bringBackPending().catch(() => {}),
+  ])
 }
 
 /** A run starting or ending on a branch keeps its live preview in use. */
@@ -151,4 +165,4 @@ async function runChanged(e: Pick<RunStatusEvent, 'sessionId' | 'status'>): Prom
   if (row) await touchLivePreview(row.id)
 }
 
-onRunStatus('livePreviews', e => runChanged(e))
+onRunStatus('livePreviews', whileLivePreviewOn(runChanged))

@@ -18,7 +18,8 @@ export const CODE_WORK_PROMPT_BRANCHES_MAX = 20
 
 const commits = (n: number) => `${n} commit${n === 1 ? '' : 's'}`
 
-export function codeWorkPromptText(work: RunCodeWork): string {
+/** `livePreview`: whether the live preview's flag is on for this run (adr-0172); off, the prompt says nothing of it. */
+export function codeWorkPromptText(work: RunCodeWork, { livePreview }: { livePreview: boolean }): string {
   const lines = [
     '# Your branch',
     '',
@@ -28,7 +29,7 @@ export function codeWorkPromptText(work: RunCodeWork): string {
       `\`${work.main}\` only when a person merges your branch.`,
     `- Commit your work yourself with the \`${COMMIT_TOOL_NAME}\` tool (or git in your working folder) each time a ` +
       'piece of it is done and works, and always before you finish: each commit goes straight back to the workspace, ' +
-      'where people see it, and reloads the live preview when Auto is on. Do not leave it to the end of the run: what ' +
+      `where people see it${livePreview ? ', and reloads the live preview when Auto is on' : ''}. Do not leave it to the end of the run: what ` +
       'is left uncommitted then is only saved as "Work in progress".',
     `- To bring \`${work.main}\` into your branch, call \`${UPDATE_TOOL_NAME}\`. If it names clashing files, edit ` +
       `each to remove Git's conflict markers, then call \`${COMMIT_TOOL_NAME}\` to finish the merge. You may also use git ` +
@@ -40,8 +41,7 @@ export function codeWorkPromptText(work: RunCodeWork): string {
     '- Install npm packages with `install_packages`. Packages install with their install scripts off, then the ' +
       'scripts of well-known, widely used packages run. An install you run yourself runs no install scripts.',
     '',
-    ...appToolLines(work.openLivePreview ?? null),
-    '',
+    ...(livePreview ? [...appToolLines(work.openLivePreview ?? null), ''] : []),
     work.behindMain === 0
       ? `Your branch has everything \`${work.main}\` has.`
       : `\`${work.main}\` has ${commits(work.behindMain)} your branch does not have. Bringing them in is your call ` +

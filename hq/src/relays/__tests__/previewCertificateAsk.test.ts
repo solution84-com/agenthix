@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { withFeature } from '@agenthix/core/testing'
 import { describe, expect, it } from 'vitest'
 import type { Request, Response } from 'express'
 import { DEV_PREVIEW_PATTERN, newAppId, previewPatternForDomain } from '@agenthix/core'
@@ -10,6 +11,7 @@ const deps = (over: Partial<CertificateAskDeps> = {}): CertificateAskDeps => ({
   pattern: () => PATTERN, appExists: async id => id === KNOWN, ...over,
 })
 
+withFeature('livePreview', () => {
 describe("the front door's question before a live app's certificate @SC-1757", () => {
   it('allows a recorded app and the check name, under the pattern only', async () => {
     expect(await certificateAllowed(`p-${KNOWN}.preview.acme.net`, deps())).toBe(true)
@@ -59,4 +61,5 @@ describe("the front door's question before a live app's certificate @SC-1757", (
     expect(previewPatternFromEnv({ PREVIEW_PATTERN: 'https://preview.acme.net' })).toBeNull()
     expect(previewPatternFromEnv({})).toBeNull()
   })
+})
 })

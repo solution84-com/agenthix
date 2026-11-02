@@ -2,6 +2,7 @@
  * `commit` in a run on another site, in its branch's live preview's own copy: it works when the workspace's site no
  * longer holds a copy of the branch (a done task's copy is removed), and refuses a run on no branch.
  */
+import { withFeature } from '@agenthix/core/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const state = vi.hoisted(() => ({ branch: null as null | Record<string, unknown>, askedSite: [] as { siteId: string; method: string }[], open: true }))
@@ -42,6 +43,7 @@ const branch = (copies: unknown[]) => ({ id: 'b1', name: 'add-contact-line', wor
 
 beforeEach(() => { state.askedSite.length = 0; state.open = true })
 
+withFeature('livePreview', () => {
 describe('commit in a run on its live preview\'s site @SC-1671', () => {
   it('commits in the live preview\'s copy when the workspace\'s site holds no copy of the branch', async () => {
     state.branch = branch([])
@@ -62,4 +64,5 @@ describe('commit in a run on its live preview\'s site @SC-1671', () => {
     state.branch = null
     await expect(commitOp(ctx, { message: 'x', runId: 'r1' })).rejects.toMatchObject({ code: 'invalid' })
   })
+})
 })

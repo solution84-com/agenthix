@@ -1,4 +1,5 @@
 /** Opening a live app: hq's checks first, then the site's own ticket, then the app ticket, posted by a form. */
+import { withFeature } from '@agenthix/core/testing'
 import { describe, it, expect, vi } from 'vitest'
 import { APP_ENTRY_FIELD, APP_ENTRY_PATH, type LivePreviewActResult } from '@agenthix/core'
 
@@ -25,6 +26,7 @@ function deps(over: Partial<AppEntryDeps> = {}, answer: LivePreviewActResult = {
   return { d, issued, asked }
 }
 
+withFeature('livePreview', () => {
 describe('opening a live app @SC-1705', () => {
   it("asks the site for its own ticket, signs the app ticket with it, and answers the form for the app's address", async () => {
     const { d, issued, asked } = deps()
@@ -64,4 +66,5 @@ describe('opening a live app @SC-1705', () => {
     await expect(openLiveApp('mia', { livePreviewId: 'lp1', appId: APP, entry: 'frame' }, odd.d)).rejects.toThrow(/could not read/)
     expect(odd.issued).toEqual([])
   })
+})
 })

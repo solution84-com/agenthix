@@ -6,6 +6,7 @@ import { FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import type { ActionBody } from '../../shared/conversations/protocol'
 import { refusalOf } from '../livePreviewWords'
 import { MAIN, viewAddressOf, workspaceViewPath } from '../viewAddress'
+import { useFeature } from '../../features/useFeature'
 
 /** The tool and target kind of the lead's offer (`livePreviews/offer.ts`), as the card reads them. */
 export const OFFER_LIVE_PREVIEW_TOOL = 'offer_live_preview'
@@ -25,13 +26,15 @@ export function livePreviewOfferOf(body: ActionBody): LivePreviewOfferCard | nul
 /**
  * The lead's offer of a live preview (spec part 4, *Opening one*): a card in the conversation with *Live preview*. It
  * starts nothing by itself; the person's press starts it, as from the workspace view, then opens the workspace view
- * on that branch's *Live preview*. A refusal (a Viewer, a full site, no domain) is shown as HQ worded it.
+ * on that branch's *Live preview*. A refusal (a Viewer, a full site, no domain) is shown as HQ worded it. Not drawn
+ * while the live preview's flag is off.
  */
 export function LivePreviewOffer({ card }: { card: LivePreviewOfferCard }) {
   const start = useAction(startLivePreview)
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
+  const on = useFeature('livePreview')
   const where = card.branch ?? MAIN
   const go = async () => {
     setBusy(true)
@@ -45,6 +48,7 @@ export function LivePreviewOffer({ card }: { card: LivePreviewOfferCard }) {
       setBusy(false)
     }
   }
+  if (!on) return null
   return (
     <div className="mx-auto w-full max-w-[720px] px-4" data-testid="live-preview-offer">
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border-subtle bg-surface-1 px-3 py-2.5">

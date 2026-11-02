@@ -3,6 +3,7 @@
  * site, two opens at once, a stop racing a start, a site going silent mid-start, who may stop one, the idle stop, and
  * the Fleet Console turning live previews off on a site. The site's answers are replaced: they leave hq.
  */
+import { withFeature } from '../../test/withFeature'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LivePreviewSummary } from '@agenthix/core'
 import { prisma } from '../../test/db'
@@ -79,6 +80,7 @@ import { sweepOnce } from '../reconcile'
 import { setSiteLivePreviews } from '../fleet'
 import { getLivePreviewPlaces } from '../places'
 import { workspaceRemoved } from '../branchHooks'
+import { getLivePreviewPlacesQuery, startLivePreviewAction } from '../operations'
 
 let member: { id: string }
 let other: { id: string }
@@ -116,6 +118,26 @@ beforeEach(async () => {
   await prisma.branchCopy.create({ data: { branchId, siteId: s.id, folderId: `copy-${n}`, state: 'READY' } })
 })
 
+describe("the workspace view's operations while the live preview's flag is off, as shipped", () => {
+  it('refuse as not available, for a member who could otherwise open one, and open nothing', async () => {
+    const ctx = { user: { id: member.id } }
+    await expect(getLivePreviewPlacesQuery({ workspaceId, branchId }, ctx)).rejects.toMatchObject({ statusCode: 404 })
+    await expect(startLivePreviewAction({ workspaceId, branchId }, ctx)).rejects.toMatchObject({ statusCode: 404 })
+    expect(site.calls).toEqual([])
+    expect(await prisma.livePreview.count()).toBe(0)
+  })
+})
+
+withFeature('livePreview', () => {
+describe('the operations while the flag is on', () => {
+  it('open one through the same path', async () => {
+    const view = await startLivePreviewAction({ workspaceId, branchId }, { user: { id: member.id } })
+    expect(view).toMatchObject({ state: 'running', branch: 'add-login-page' })
+  })
+})
+})
+
+withFeature('livePreview', () => {
 describe('opening a live preview @SC-1694', () => {
   it('opens one on the branch, binding its own copy, on the workspace\'s site', async () => {
     const view = await startLivePreview(member.id, { workspaceId, branchId })
@@ -190,7 +212,9 @@ describe('opening a live preview @SC-1694', () => {
     expect(callsOf('livePreview.stop').length).toBeGreaterThanOrEqual(2)
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('stopping a live preview', () => {
   it('lets its starter and a project Admin stop it, and nobody else @SC-1698', async () => {
     const view = await startLivePreview(member.id, { workspaceId, branchId })
@@ -215,7 +239,9 @@ describe('stopping a live preview', () => {
     await expect(startLivePreview(member.id, { workspaceId, branchId })).rejects.toMatchObject({ statusCode: 409, data: { code: 'noSite' } })
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('removing a workspace @SC-1714', () => {
   it('tells every other site that ran one of its live previews, and not its own site', async () => {
     const away = await prisma.executionSite.create({
@@ -229,4 +255,5 @@ describe('removing a workspace @SC-1714', () => {
     await workspaceRemoved(workspaceId, { deleteAt: async (siteId: string) => { told.push(siteId) } })
     expect(told).toEqual([`away-${n}`])
   })
+})
 })

@@ -2,6 +2,7 @@
  * A site whose guard has not told hq it runs in the last minute starts no live previews (live preview spec section 6,
  * *The guard*): it is offered as blocked, with why, and HQ picks another site or none.
  */
+import { withFeature } from '@agenthix/core/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GUARD_REPORT_STALE_MS } from '@agenthix/core'
 
@@ -38,6 +39,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
+withFeature('livePreview', () => {
 describe("a site's guard gone quiet @SC-1748", () => {
   it('counts as running for a minute after its last report, and not after', async () => {
     reports.set('es1', new Date(NOW - GUARD_REPORT_STALE_MS))
@@ -64,4 +66,5 @@ describe("a site's guard gone quiet @SC-1748", () => {
     reports.set('es1', new Date(NOW - 2 * GUARD_REPORT_STALE_MS))
     expect(pickSite(await siteChoices('es1'))).toBeNull()
   })
+})
 })

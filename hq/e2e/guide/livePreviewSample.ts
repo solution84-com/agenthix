@@ -96,6 +96,13 @@ export async function openLivePreview(page: Page, live: { places: LivePreviewPla
     await page.route(`**/operations/${name}`, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ json }) }))
   }
   await page.route(`${APP_ADDRESS}/**`, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: APP_PAGE }))
+  // The live preview is behind its flag (adr-0172): HQ's answer of which features are on, with it on for these screens.
+  await page.route('**/operations/get-features', async (route) => {
+    const response = await route.fetch()
+    const body = (await response.json()) as { json: { flags: Array<{ flag: string; on: boolean }> } }
+    body.json.flags = body.json.flags.map((f) => (f.flag === 'livePreview' ? { ...f, on: true } : f))
+    await route.fulfill({ response, json: body })
+  })
 
   await page.goto(`/workspaces/${workspaceId}/view?branch=${BRANCH}&section=preview`)
 }

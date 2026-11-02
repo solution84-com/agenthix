@@ -3,6 +3,7 @@
  * call, so a run whose live preview started after its capability was signed has its app tools, and a run without one
  * is told to have the person open it.
  */
+import { withFeature } from '@agenthix/core/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const db = vi.hoisted(() => ({
@@ -54,6 +55,7 @@ beforeEach(() => {
   site.askSite.mockResolvedValue({ ok: true, result: { app: null } })
 })
 
+withFeature('livePreview', () => {
 describe('the live preview an app tool acts on @SC-1701', () => {
   it('is the run\'s branch\'s live preview on its site, even when the capability was signed before it started', async () => {
     await expect(reloadViewOp(ctx(), { runId: 'run-1' })).resolves.toMatchObject({ reloaded: true })
@@ -89,7 +91,9 @@ describe('the live preview an app tool acts on @SC-1701', () => {
     expect(db.livePreview.findFirst).not.toHaveBeenCalled()
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('start_app on a branch with no live preview open @SC-1702', () => {
   const START = { name: 'web', folder: '', command: 'npm start', port: '3000', runId: 'run-1' }
 
@@ -119,4 +123,5 @@ describe('start_app on a branch with no live preview open @SC-1702', () => {
     await expect(reloadViewOp(ctx(), { runId: 'run-1' })).rejects.toThrow(/no live preview open/)
     expect(site.open).not.toHaveBeenCalled()
   })
+})
 })

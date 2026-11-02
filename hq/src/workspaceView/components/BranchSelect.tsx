@@ -10,7 +10,7 @@ import { PREVIEW_STATE_LABEL } from '../livePreviewWords'
  * `main` first, then one line per branch: its name, whose work it is, what is working on it, how far ahead and
  * behind `main`. There is no *New branch*: work makes its own.
  */
-export function BranchSelect({ main, branches, chosen, onChoose, me = null, compact = false }: {
+export function BranchSelect({ main, branches, chosen, onChoose, me = null, compact = false, livePreviews = true }: {
   main: { name: string; versionCount: number }
   branches: readonly BranchLineView[]
   /** `main`, or a branch's name. */
@@ -20,6 +20,8 @@ export function BranchSelect({ main, branches, chosen, onChoose, me = null, comp
   me?: string | null
   /** Drawn as an icon only (the left panel's strip). */
   compact?: boolean
+  /** Whether a branch's live preview is said: not while the live preview's flag is off. */
+  livePreviews?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
@@ -65,7 +67,7 @@ export function BranchSelect({ main, branches, chosen, onChoose, me = null, comp
               <Option key={b.id} on={b.name === chosen} onChoose={() => choose(b.name)} icon={<GitBranch size={14} aria-hidden className={b.name === chosen ? 'text-accent' : 'text-text-muted'} />}
                 name={b.name} whose={whoseLabel(b.whose, agentOf(b), me)}
                 state={b.working ? `${b.working.agentName} is working here` : null}
-                preview={b.livePreview ? `Live preview ${PREVIEW_STATE_LABEL[b.livePreview.state].toLowerCase()}` : null}
+                preview={livePreviews && b.livePreview ? `Live preview ${PREVIEW_STATE_LABEL[b.livePreview.state].toLowerCase()}` : null}
                 right={aheadText(b.ahead, b.behind)} warn={b.behind > 0} />
             ))}
           </ul>

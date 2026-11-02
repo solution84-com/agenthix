@@ -5,6 +5,7 @@
  * an installation with no address for live apps, a start is refused while merging works. The sites' answers are
  * replaced: they leave hq.
  */
+import { withFeature } from '../../test/withFeature'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GUARD_REPORT_STALE_MS } from '@agenthix/core'
 import { prisma } from '../../test/db'
@@ -143,6 +144,7 @@ beforeEach(async () => {
   branchId = branch.id
 })
 
+withFeature('livePreview', () => {
 describe('main moving @SC-1718', () => {
   it("brings main's live preview to main's new tip and keeps it; a branch's on another site gets main sent first", async () => {
     const onMain = await preview({})
@@ -167,7 +169,9 @@ describe('main moving @SC-1718', () => {
     expect((await prisma.livePreview.findUniqueOrThrow({ where: { id: stopped.id } })).headCommit).toBe(MAIN)
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('merging a branch whose live preview runs on another site @SC-1718', () => {
   const merge = () => mergeBranchAction({ branchId, message: 'Add a login page', expectedMain: MAIN }, { user: member })
 
@@ -201,7 +205,9 @@ describe('merging a branch whose live preview runs on another site @SC-1718', ()
     expect(callsOf('git.merge')).toHaveLength(1)
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe("a site whose guard has gone quiet @SC-1748", () => {
   it('starts no live preview there, says why on Live preview, and asks it nothing', async () => {
     const stale = new Date(Date.now() - GUARD_REPORT_STALE_MS - 1_000)
@@ -214,7 +220,9 @@ describe("a site whose guard has gone quiet @SC-1748", () => {
     expect(await prisma.livePreview.count({ where: { workspaceId } })).toBe(0)
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('an installation with no address for live apps @SC-1719', () => {
   it('refuses a live preview in words and makes no row, while a merge goes in', async () => {
     address.has = false
@@ -222,4 +230,5 @@ describe('an installation with no address for live apps @SC-1719', () => {
     expect(await prisma.livePreview.count({ where: { workspaceId } })).toBe(0)
     expect(await mergeBranchAction({ branchId, message: 'Add a login page', expectedMain: MAIN }, { user: member })).toMatchObject({ outcome: 'merged' })
   })
+})
 })

@@ -30,9 +30,10 @@ async function switchFeature(request: Parameters<typeof adminOperations>[0], fla
 /** A test whose failure is recorded and turned into a skip: the group's tests of an experimental flag. */
 function experimentalTest(flag: FeatureFlag): Base {
   const guarded = (title: string, body: (args: never, info: TestInfo) => Promise<void> | void) =>
-    base(title, async (args, info) => {
+    // Playwright reads which fixtures a test needs from its first parameter's pattern, so it is spelt out here.
+    base(title, async ({ page, context, request }, info) => {
       try {
-        await body(args as never, info)
+        await body({ page, context, request } as never, info)
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err)
         recordExperimentalFailure({ flag, test: [...info.titlePath].join(' > '), error })

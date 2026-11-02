@@ -45,12 +45,12 @@ test.describe('the workspace view', () => {
 
   test.beforeEach(async ({ page }) => { await signIn(page, ADMIN) })
 
-  test('takes the whole screen: no HQ navigation, the back link, the switcher and Live preview stopped @SC-1683', async ({ page }) => {
+  // Live preview in the panel and the strip, and hidden while its flag is off: workspaceLivePreview.spec.ts.
+  test('takes the whole screen: no HQ navigation, the back link and the switcher @SC-1683', async ({ page }) => {
     await answerBranchOperations(page)
     await page.goto(`/workspaces/${WORKSPACE}/view`)
     await expect(page.getByTestId('workspace-view')).toBeVisible()
     await expect(page.getByTestId('sidebar-foot')).toHaveCount(0)
-    await expect(page.getByTestId('live-preview-row')).toContainText('Stopped')
     await expect(page.getByRole('button', { name: /^Workspace: / })).toBeVisible()
   })
 
@@ -119,14 +119,6 @@ test.describe('the workspace view', () => {
     await page.goto(`/workspaces/${WORKSPACE}/view?branch=closed-long-ago&section=git`)
     await expect(page.getByRole('button', { name: 'Branch: main' })).toBeVisible()
     await expect(page).not.toHaveURL(/branch=/)
-  })
-
-  test("at laptop width the strip's Live preview has no dot while stopped", async ({ page }) => {
-    await page.setViewportSize({ width: 1180, height: 800 })
-    await answerBranchOperations(page)
-    await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page&section=files`)
-    await expect(page.getByRole('button', { name: /^Live preview · Stopped/ })).toBeVisible()
-    await expect(page.getByTestId('strip-preview-dot')).toHaveCount(0)
   })
 
   test('New task on main makes a task on this workspace, starts it, and waits for its branch', async ({ page }) => {

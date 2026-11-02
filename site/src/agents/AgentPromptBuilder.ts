@@ -33,6 +33,7 @@ import type { TaskCommentForRun } from '@agenthix/core'
 import { PromptSection } from '../shared/promptSections'
 import type { PromptContent } from './promptContent'
 import { chatPreviewSections, taskPreviewSections } from './promptSectionLists'
+import { isSiteFeatureOn } from '../server/features/siteFeatures'
 import {
   type AgentLike,
   buildAgentIdentityContent,
@@ -164,7 +165,7 @@ export class AgentPromptBuilder {
     if (context.containerMounts) {
       sections.push(buildFilesystemSection(context.containerMounts))
     }
-    if (context.codeWork) sections.push(codeWorkPromptText(context.codeWork))
+    if (context.codeWork) sections.push(codeWorkPromptText(context.codeWork, { livePreview: isSiteFeatureOn('livePreview') }))
 
     return {
       systemPrompt: joinSections(sections),
@@ -213,7 +214,7 @@ export class AgentPromptBuilder {
     if (context.containerMounts) {
       sections.push(buildFilesystemSection(context.containerMounts))
     }
-    if (context.codeWork) sections.push(codeWorkPromptText(context.codeWork))
+    if (context.codeWork) sections.push(codeWorkPromptText(context.codeWork, { livePreview: isSiteFeatureOn('livePreview') }))
 
     return {
       systemPrompt: joinSections(sections),

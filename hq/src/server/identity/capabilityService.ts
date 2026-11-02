@@ -72,7 +72,7 @@ export async function resolveCapabilityClaims(args: {
   )
   // A branch whose live preview runs on another site has its runs there, in the live preview's own copy; and a run
   // on a branch with a live preview on its own site carries the claim its app tools are answered by.
-  const { siteId, livePreview } = await runSiteAndClaim(session.id, await resolveExecutionSiteId(primaryLoc), args.runSiteId ?? null)
+  const { siteId, livePreview: previewClaim } = await runSiteAndClaim(session.id, await resolveExecutionSiteId(primaryLoc), args.runSiteId ?? null)
 
   // The project this run acts as: a task's current project, or the project a
   // chat is working in. Null for a run that acts as a person.
@@ -121,6 +121,8 @@ export async function resolveCapabilityClaims(args: {
   }
   // A flagged feature's tools reach the run only while it is on (adr-0172), whatever the agent's permissions say.
   const features = await runFeatures()
+  // The claim its app tools are answered by, only while the live preview's flag is on.
+  const livePreview = features.isOn('livePreview') ? previewClaim : null
   const neverTools = [...new Set([
     ...toolPermissions.filter(p => p.state === 'never').map(p => p.name),
     ...features.withheldTools,

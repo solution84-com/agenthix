@@ -7,6 +7,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma } from '../../test/db'
 import { createProject, createUser, joinProjectAs } from '../../test/factories'
+import { withFeature } from '../../test/withFeature'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -133,15 +134,27 @@ describe('starting a run', () => {
     expect(run.steps.map((s) => s.name).sort()).toEqual(['Build', 'Upload'])
   })
 
-  it('aimed at a live preview, goes to the site it runs on and names it, recorded there', async () => {
+  withFeature('livePreview', () => {
+    it('aimed at a live preview, goes to the site it runs on and names it, recorded there', async () => {
+      const { deps, sent } = standInSite()
+      const { runId } = await startWorkflowRun({
+        place, workspace: workspace(), workflow: { name: 'deploy' }, parameters: { ref: 'main' }, starter: asPerson(member.id),
+        livePreview: { id: 'lp-1', siteId: 'preview-site' },
+      }, deps)
+      expect(sent.map(x => x.siteId)).toEqual(['preview-site'])
+      expect(sent[0].instruction.livePreview).toEqual({ livePreviewId: 'lp-1' })
+      expect(await prisma.workflowRun.findUniqueOrThrow({ where: { id: runId } })).toMatchObject({ siteId: 'preview-site' })
+    })
+  })
+
+  it("aimed at a live preview while its flag is off, is refused as not available, and records and sends nothing", async () => {
     const { deps, sent } = standInSite()
-    const { runId } = await startWorkflowRun({
+    await expect(startWorkflowRun({
       place, workspace: workspace(), workflow: { name: 'deploy' }, parameters: { ref: 'main' }, starter: asPerson(member.id),
       livePreview: { id: 'lp-1', siteId: 'preview-site' },
-    }, deps)
-    expect(sent.map(x => x.siteId)).toEqual(['preview-site'])
-    expect(sent[0].instruction.livePreview).toEqual({ livePreviewId: 'lp-1' })
-    expect(await prisma.workflowRun.findUniqueOrThrow({ where: { id: runId } })).toMatchObject({ siteId: 'preview-site' })
+    }, deps)).rejects.toMatchObject({ statusCode: 404 })
+    expect(sent).toEqual([])
+    expect(await prisma.workflowRun.count()).toBe(0)
   })
 
   it('aimed at no live preview, names none', async () => {

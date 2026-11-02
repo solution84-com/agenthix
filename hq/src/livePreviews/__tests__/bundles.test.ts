@@ -1,7 +1,12 @@
 /** Waiting for a bundle to land: only the destination's word ends a wait, and only for that transfer. */
+import { withFeature } from '@agenthix/core/testing'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const relays = vi.hoisted(() => ({ listener: null as null | ((r: { transferId: string; outcome: { done: boolean } }) => void) }))
+// No organisation record: the live preview's flag is as shipped, and on only inside withFeature.
+vi.mock('wasp/server', async () => ({
+  ...(await vi.importActual<object>('wasp/server')), prisma: { org: { findFirst: async () => null } },
+}))
 vi.mock('../../sites/channel', () => ({ siteChannelRegistry: {}, ChannelRequestFailed: class extends Error {} }))
 vi.mock('../../relays', () => ({
   bundleRelayFor: vi.fn(async () => 'relay-1'),
@@ -11,6 +16,7 @@ vi.mock('../../relays', () => ({
 const asks = vi.hoisted(() => ({ make: { ok: true, result: { made: true, bundleId: 'b', head: 'a'.repeat(40), sha256: 'f'.repeat(64), size: 10 } } as unknown }))
 vi.mock('../siteAsk', () => ({ askSite: vi.fn(async (_s: string, method: string) => (method === 'bundle.make' ? asks.make : { dropped: true })) }))
 
+import { askSite } from '../siteAsk'
 import { __resetBundlesForTests, bundleLanded, carryBundle } from '../bundles'
 
 const ask = {
@@ -21,6 +27,7 @@ const ask = {
 
 afterEach(() => __resetBundlesForTests())
 
+withFeature('livePreview', () => {
 describe('carrying a bundle @SC-1715', () => {
   it('ends when the destination says it landed', async () => {
     const carried = carryBundle(ask, 5000)
@@ -39,5 +46,14 @@ describe('carrying a bundle @SC-1715', () => {
 
   it('fails when nothing lands in time', async () => {
     await expect(carryBundle(ask, 20)).rejects.toMatchObject({ statusCode: 502 })
+  })
+})
+})
+
+describe("carrying a bundle while the live preview's flag is off", () => {
+  it('is refused as not available, and no site is asked', async () => {
+    vi.mocked(askSite).mockClear()
+    await expect(carryBundle(ask, 1000)).rejects.toMatchObject({ statusCode: 404 })
+    expect(askSite).not.toHaveBeenCalled()
   })
 })

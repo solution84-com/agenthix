@@ -4,6 +4,7 @@ import type { WorkspaceBranchesView } from '../../branches/views'
 import { FolderTree } from '../../storage/pages/FolderTree'
 import { OpenedFile } from '../../storage/pages/OpenedFile'
 import { useLivePreview } from '../hooks/useLivePreview'
+import { useFeature } from '../../features/useFeature'
 import { useWorkspaceViewModel } from '../hooks/useWorkspaceViewModel'
 import { workspaceViewPath } from '../viewAddress'
 import { aheadText, agentOf, mergedNotice, plural, whenText } from '../words'
@@ -24,6 +25,7 @@ import type { SwitcherItem } from './TopBar'
 /**
  * The full-screen workspace view's parts (spec part 1): the branch select, *Live preview*, Files and Git for the chosen
  * branch, the middle (the live preview, a file, or a file's changes), and the conversation. `WorkspaceFrame` lays them out for the window's width.
+ * While the live preview's flag is off there is no *Live preview*: an address naming it opens Git.
  */
 export function WorkspaceViewBody({ workspace, view, userId, back, workspaces, refetchBranches }: {
   workspace: ViewWorkspace
@@ -38,14 +40,16 @@ export function WorkspaceViewBody({ workspace, view, userId, back, workspaces, r
   const files = m.changes?.files ?? []
   const change = m.state.diff ? files.find(f => f.path === m.state.diff) ?? null : null
   const target = { ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.id }
-  const previewChosen = m.git && m.state.section === 'preview'
+  const livePreviewOn = useFeature('livePreview')
+  const section = m.state.section === 'preview' && !livePreviewOn ? 'git' : m.state.section
+  const previewChosen = m.git && section === 'preview'
   const [newTask, setNewTask] = useState(false)
   // Tasks are a project's: a person's own space makes none here.
   const projectId = workspace.ownerType === 'project' ? workspace.ownerId : null
-  const preview = useLivePreview(workspace.id, m.line?.id ?? null, { enabled: m.git, shown: previewChosen })
+  const preview = useLivePreview(workspace.id, m.line?.id ?? null, { enabled: m.git && livePreviewOn, shown: previewChosen })
 
   const select = (compact: boolean) => m.mainLine && (
-    <BranchSelect main={m.mainLine} branches={m.branches} chosen={m.line?.name ?? 'main'} onChoose={m.chooseBranch} me={userId} compact={compact} />
+    <BranchSelect main={m.mainLine} branches={m.branches} chosen={m.line?.name ?? 'main'} onChoose={m.chooseBranch} me={userId} compact={compact} livePreviews={livePreviewOn} />
   )
 
   const filesBody = m.git
@@ -103,12 +107,12 @@ export function WorkspaceViewBody({ workspace, view, userId, back, workspaces, r
     <>
       <WorkspaceFrame
         back={back} aboutHref={`${back.href}&workspace=${encodeURIComponent(workspace.id)}&wabout=1`} workspaceName={workspace.name} workspaces={workspaces}
-        section={m.state.section} onSection={section => m.set(section === 'preview' ? { section, file: null, diff: null } : { section })}
+        section={section} onSection={section => m.set(section === 'preview' ? { section, file: null, diff: null } : { section })}
         select={select} filesBody={filesBody} gitBody={gitBody} filesNote={filesNote} gitNote={gitNote} noGit={noGit}
         middle={middle} middleShown={!!(m.state.file || m.state.diff)} status={status} conversation={conversation}
-        preview={layout => (
+        preview={livePreviewOn ? layout => (
           <LivePreviewMiddle workspaceId={workspace.id} branchId={m.line?.id ?? null} branchName={m.branchName} model={preview} canAct={canAct} layout={layout} />
-        )}
+        ) : undefined}
         previewState={preview.view?.state ?? 'stopped'}
         branchTitle={m.branchName} activity={m.activity}
         agentName={m.line ? agentOf(m.line) : null}

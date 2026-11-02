@@ -3,7 +3,8 @@
  * running, the lead leaves a card in the conversation with *Live preview* on a code workspace, on a task's branch or on
  * `main`. The card opens nothing by itself: the person starts the live preview from it, as from the workspace view, and
  * the lead never starts an app for them to see any other way. Offered to a turn that answers a person, when the
- * conversation's project has a code workspace and live apps have an address on this install.
+ * conversation's project has a code workspace and live apps have an address on this install, and only while the live
+ * preview's flag is on.
  */
 import { z } from 'zod'
 import { prisma } from 'wasp/server'
@@ -14,6 +15,7 @@ import { conversationEvents } from '../conversations/coordinator/events'
 import { placeWorkspaces, type PlaceWorkspace } from '../branches/leadWorkspaces'
 import { livePreviewsHaveAnAddress } from '../relays'
 import { taskIdFor } from '../server/controlplane/taskKey'
+import { livePreviewFeatureOn } from './flag'
 
 export const OFFER_LIVE_PREVIEW_TOOL = 'offer_live_preview'
 /** The card's target kind: a code workspace by id; `params` names the branch (`branchId`, `branch`), none for `main`. */
@@ -38,6 +40,8 @@ export type OfferDeps = {
   /** The open branch of the project's task by its key, in that workspace; null when it has none. */
   branchOfTask(projectId: string, workspaceId: string, key: string): Promise<{ id: string; name: string } | null>
   liveAppsHaveAddress(): boolean
+  /** Whether the live preview's flag is on for the organisation (adr-0172). */
+  featureOn(): Promise<boolean>
   card(capability: TurnCapability, body: ActionBody): Promise<void>
 }
 
@@ -46,6 +50,7 @@ const refused = (reason: string): ToolCallOutcome => ({ status: 'refused', reaso
 async function offerable(capability: TurnCapability, deps: OfferDeps): Promise<readonly PlaceWorkspace[]> {
   if (!capability.actingUserId || !capability.projectId || capability.trigger === 'REPORT' || capability.expiresAt <= Date.now()) return []
   if (capability.permissions.neverTools.includes(OFFER_LIVE_PREVIEW_TOOL) || !deps.liveAppsHaveAddress()) return []
+  if (!(await deps.featureOn())) return []
   return (await deps.codeWorkspaces(capability.projectId)).filter(w => w.git)
 }
 
@@ -86,6 +91,7 @@ export const offerLivePreviewTool = createOfferLivePreviewTool({
     return prisma.workspaceBranch.findFirst({ where: { taskId: task.id, workspaceId, state: 'OPEN' }, select: { id: true, name: true } })
   },
   liveAppsHaveAddress: () => livePreviewsHaveAnAddress(),
+  featureOn: livePreviewFeatureOn,
   async card(capability, body) {
     const { message } = await appendMessage({
       conversationId: capability.conversationId, role: 'PLATFORM', kind: 'ACTION', body, agentId: capability.agentId, turnId: capability.turnId,

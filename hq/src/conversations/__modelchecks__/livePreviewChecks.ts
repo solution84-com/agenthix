@@ -54,7 +54,7 @@ const DONE_ON_BRANCH = [
   { role: 'agent' as const, text: `Yes: ${TASK.key} is done. The sign-up form is fixed and committed on its branch in ${CODE_WORKSPACE.name}.` },
 ]
 
-export const LIVE_PREVIEW_CHECKS: readonly Check[] = [
+const CHECKS_WITH_IT_ON: readonly Check[] = [
   {
     id: 'preview-task-branch',
     title: 'Seeing a task\'s work running is a live preview of its branch',
@@ -111,3 +111,6 @@ export const LIVE_PREVIEW_CHECKS: readonly Check[] = [
     },
   },
 ]
+
+/** The live preview's own checks, with its flag on (adr-0172). */
+export const LIVE_PREVIEW_CHECKS: readonly Check[] = CHECKS_WITH_IT_ON.map(c => (c.setup ? { ...c, setup: { ...c.setup, features: ['livePreview'] } } : c))

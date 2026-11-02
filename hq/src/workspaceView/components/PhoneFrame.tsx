@@ -16,7 +16,7 @@ export const phonePreviewLine = (agentName: string | null) => `${agentName ?? 'T
  */
 export function PhoneFrame(p: FrameParts) {
   const [tab, setTab] = useState<Tab>(
-    p.section === 'preview' && !p.noGit ? 'preview' : p.middleShown ? (p.section === 'git' ? 'git' : 'files') : 'conversation',
+    p.section === 'preview' && !p.noGit && p.preview ? 'preview' : p.middleShown ? (p.section === 'git' ? 'git' : 'files') : 'conversation',
   )
   const choose = (t: Tab) => {
     setTab(t)
@@ -24,7 +24,7 @@ export function PhoneFrame(p: FrameParts) {
   }
   const tabs: { id: Tab; label: string; icon: ReactNode; hidden?: boolean }[] = [
     { id: 'conversation', label: 'Conversation', icon: <MessageSquare size={18} aria-hidden /> },
-    { id: 'preview', label: 'Live preview', icon: <Play size={18} aria-hidden />, hidden: !!p.noGit },
+    { id: 'preview', label: 'Live preview', icon: <Play size={18} aria-hidden />, hidden: !!p.noGit || !p.preview },
     { id: 'files', label: 'Files', icon: <Folder size={18} aria-hidden /> },
     { id: 'git', label: 'Git', icon: <GitBranch size={18} aria-hidden />, hidden: !!p.noGit },
   ]
@@ -46,7 +46,7 @@ export function PhoneFrame(p: FrameParts) {
       </header>
       <Notice text={p.notice} onDismiss={p.onDismissNotice} />
       <div className={tab === 'conversation' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'} data-testid="workspace-conversation">{p.conversation}</div>
-      {tab === 'preview' && <div className="flex min-h-0 flex-1 flex-col">{p.preview('narrow')}</div>}
+      {tab === 'preview' && p.preview && <div className="flex min-h-0 flex-1 flex-col">{p.preview('narrow')}</div>}
       {tab === 'preview' && p.previewState === 'running' && p.activity.working && (
         <p role="status" className="flex shrink-0 items-center gap-1.5 border-t border-border-subtle px-3 py-1.5 text-micro text-text-secondary" data-testid="phone-preview-footer">
           <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-success" />

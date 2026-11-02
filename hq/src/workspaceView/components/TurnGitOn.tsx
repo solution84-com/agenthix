@@ -5,6 +5,7 @@ import { GIT_INIT_LARGE_FILE_BYTES } from '@agenthix/core'
 import { Modal } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import { TURN_GIT_ON_WORDS, VIEWER_REASON } from '../words'
+import { useFeature } from '../../features/useFeature'
 
 /**
  * *Turn Git on* (spec part 3, *Turning Git on*), where *Live preview* and *Git* stand in a workspace without Git. The
@@ -16,6 +17,7 @@ export function TurnGitOn({ workspaceId, name, canAct, onDone }: { workspaceId: 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [leftOut, setLeftOut] = useState<string[] | null>(null)
+  const livePreviewOn = useFeature('livePreview')
 
   const go = async () => {
     setBusy(true)
@@ -34,7 +36,7 @@ export function TurnGitOn({ workspaceId, name, canAct, onDone }: { workspaceId: 
 
   return (
     <div className="space-y-1 rounded-lg border border-border-subtle px-2 py-2 text-small" data-testid="turn-git-on">
-      <p className="text-text-secondary">Live preview and Git need {name} to be a Git repository.</p>
+      <p className="text-text-secondary">{livePreviewOn ? 'Live preview and Git need' : 'Git needs'} {name} to be a Git repository.</p>
       <button type="button" className={FILES_BUTTON} disabled={!canAct} title={canAct ? undefined : VIEWER_REASON} onClick={() => setAsking(true)}>
         <GitBranch size={14} aria-hidden /> Turn Git on
       </button>

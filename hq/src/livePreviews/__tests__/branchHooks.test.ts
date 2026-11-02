@@ -3,6 +3,7 @@
  * each live preview's own copy on another site, are brought to `main`'s new tip; a merge first brings back the commits
  * a live preview on another site holds, or is refused in words.
  */
+import { withFeature } from '@agenthix/core/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const db = vi.hoisted(() => ({
@@ -50,6 +51,7 @@ beforeEach(() => {
   m.carryBundle.mockResolvedValue({ carried: true, bundleId: 'bundle-1', head: NEW_MAIN })
 })
 
+withFeature('livePreview', () => {
 describe('main moving @SC-1718', () => {
   it("brings main's live preview on the workspace's site to main's new tip, and keeps that tip", async () => {
     db.livePreview.findMany.mockResolvedValue([row({ id: 'lp-main' })])
@@ -101,7 +103,9 @@ describe('main moving @SC-1718', () => {
     expect(db.livePreview.updateMany).not.toHaveBeenCalled()
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('a merge of a branch whose live preview runs on another site @SC-1718', () => {
   it('brings its commits back first', async () => {
     db.livePreview.findFirst.mockResolvedValue(row({ id: 'lp-b', executionSiteId: 'lab', copyKind: 'BUNDLE', onMain: false, branch: 'login', branchId: 'b1' }))
@@ -124,4 +128,5 @@ describe('a merge of a branch whose live preview runs on another site @SC-1718',
     await bringBackBeforeMerge('b1')
     expect(m.bringBack).not.toHaveBeenCalled()
   })
+})
 })

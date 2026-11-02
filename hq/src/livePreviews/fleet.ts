@@ -20,8 +20,12 @@ import { livePreviewsOnSite } from './store'
 import { sendSiteSetting } from './reconcile'
 import { stopAs } from './stopping'
 import { tellStoppedBy } from './notices'
+import { livePreviewFeatureOn } from './flag'
+import { notAvailable } from '../features/requireFeature'
 
-async function mustBeFleetAdmin(userId: string): Promise<void> {
+/** Each method refuses first while the live preview's flag is off (adr-0172), so the console's section has nothing to do. */
+async function mayManage(userId: string): Promise<void> {
+  if (!(await livePreviewFeatureOn())) throw new ConsoleRefusal('not_found', notAvailable('livePreview').message)
   if (!(await isFleetAdmin(userId))) throw new ConsoleRefusal('not_allowed', 'Only a fleet admin manages live previews on a site.')
 }
 
@@ -68,14 +72,14 @@ async function viewOf(site: SiteRow): Promise<SiteLivePreviewsView> {
 }
 
 export async function siteLivePreviewsView(byUserId: string, executionSiteId: string): Promise<SiteLivePreviewsView> {
-  await mustBeFleetAdmin(byUserId)
+  await mayManage(byUserId)
   return viewOf(await siteOf(executionSiteId))
 }
 
 export async function setSiteLivePreviews(p: {
   byUserId: string; executionSiteId: string; allowed: boolean; limit: LivePreviewLimit; idleMinutes: number
 }): Promise<{ view: SiteLivePreviewsView; stopped: string[] }> {
-  await mustBeFleetAdmin(p.byUserId)
+  await mayManage(p.byUserId)
   const before = await siteOf(p.executionSiteId)
   const was = settingOf(before)
   await prisma.executionSite.update({
@@ -107,7 +111,7 @@ export async function setSiteLivePreviews(p: {
 }
 
 export async function stopFleetLivePreview(p: { byUserId: string; executionSiteId: string; livePreviewId: string }): Promise<{ stopped: boolean }> {
-  await mustBeFleetAdmin(p.byUserId)
+  await mayManage(p.byUserId)
   const site = await siteOf(p.executionSiteId)
   const row = await prisma.livePreview.findUnique({ where: { id: p.livePreviewId } })
   if (!row || row.executionSiteId !== site.id) throw new ConsoleRefusal('not_found', 'HQ has no live preview by that id on this site.')

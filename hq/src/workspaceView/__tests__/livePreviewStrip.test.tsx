@@ -4,6 +4,7 @@
  * sees what *Start with secrets* handed (names only) or why it did not, cannot press it again while it runs, and is
  * offered to restart the apps that started before the hand-off. A line about an app starting goes once it shows.
  */
+import { withFeature } from '@agenthix/core/testing'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
@@ -44,6 +45,7 @@ function strip(v: LivePreviewView, canAct = true, onChanged = vi.fn()) {
 beforeEach(() => { for (const k of Object.keys(actions)) delete actions[k] })
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
+withFeature('livePreview', () => {
 describe('stopping and restarting an app from the strip @SC-1703', () => {
   it('stops and restarts the chosen app through HQ', async () => {
     strip(view())
@@ -72,7 +74,9 @@ describe('stopping and restarting an app from the strip @SC-1703', () => {
     expect(screen.getByText('No app is running yet. Start one:')).toBeTruthy()
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('"is starting" goes once the app shows @SC-1703', () => {
   it('keeps the line while the app starts, and drops it once it runs', async () => {
     actions.startLiveApp = vi.fn().mockResolvedValue({ appId: 'a1' })
@@ -86,7 +90,9 @@ describe('"is starting" goes once the app shows @SC-1703', () => {
     expect(screen.queryByText('shop is starting.')).toBeNull()
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('Start with secrets on the strip @SC-1712', () => {
   it('shows the run going, cannot be pressed again meanwhile, and reads HQ again until it ends', async () => {
     vi.useFakeTimers()
@@ -117,4 +123,5 @@ describe('Start with secrets on the strip @SC-1712', () => {
     strip(view({ secrets: handed({ state: 'failed', names: [], message: 'The run passed, but the live preview stopped or paused meanwhile, so its secrets were not handed to the app.' }) }))
     expect(screen.getByRole('alert').textContent).toMatch(/stopped or paused meanwhile/)
   })
+})
 })

@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SITE_PROTOCOL_VERSION } from '@agenthix/core'
 import { prisma } from '../../test/db'
 import { createProject, createUser, joinProjectAs } from '../../test/factories'
+import { withFeature } from '../../test/withFeature'
 
 const h = vi.hoisted(() => ({ askEverySite: vi.fn(), listAllWorkspaces: vi.fn(), listAllRepos: vi.fn() }))
 
@@ -66,16 +67,25 @@ describe('the Workspaces view @SC-657', () => {
     expect(view.unanswered.map(s => s.label)).toEqual(['Build server'])
   })
 
-  it('marks a workspace with a live preview running', async () => {
+  async function withPreviews() {
     const me = await createUser()
     h.listAllWorkspaces.mockResolvedValue([workspace('w1', 'scratch', 'user', me.id), workspace('w2', 'other', 'user', me.id)])
     const live = { executionSiteId: 'site-local', ownerType: 'user', ownerId: me.id, branch: 'main', onMain: true, copyKind: 'MAIN', userId: me.id } as const
     await prisma.livePreview.create({ data: { ...live, workspaceId: 'w1', copyId: 'c1', state: 'RUNNING' } })
     await prisma.livePreview.create({ data: { ...live, workspaceId: 'w2', copyId: 'c2', state: 'STOPPED' } })
+    return me
+  }
 
-    const view = await getWorkspacesAcrossPlacesQuery(undefined, ctx(me))
+  withFeature('livePreview', () => {
+    it('marks a workspace with a live preview running', async () => {
+      const view = await getWorkspacesAcrossPlacesQuery(undefined, ctx(await withPreviews()))
+      expect(Object.fromEntries(view.workspaces.map(w => [w.id, w.previewRunning]))).toEqual({ w1: true, w2: false })
+    })
+  })
 
-    expect(Object.fromEntries(view.workspaces.map(w => [w.id, w.previewRunning]))).toEqual({ w1: true, w2: false })
+  it("marks none while the live preview's flag is off", async () => {
+    const view = await getWorkspacesAcrossPlacesQuery(undefined, ctx(await withPreviews()))
+    expect(Object.fromEntries(view.workspaces.map(w => [w.id, w.previewRunning]))).toEqual({ w1: false, w2: false })
   })
 
   it('offers to add a workspace in Chat and in the projects the person works in, not where they are a Viewer @SC-658', async () => {

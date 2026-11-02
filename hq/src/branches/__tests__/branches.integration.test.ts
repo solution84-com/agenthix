@@ -1,7 +1,8 @@
 /**
  * Code work on branches, against the real test database (ADR-0094): a branch and its copy when work first runs, the
  * same copy after, merging (clean, checkpoint, clash), deleting, a Viewer's refusal, and the agent's commit tool.
- * The site's answers are replaced: they leave hq.
+ * The site's answers are replaced: they leave hq. Every test here runs as shipped, with the live preview's flag off
+ * (adr-0172): code work on branches does not depend on it.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BranchWorkError, type SiteMethodName } from '@agenthix/core'
@@ -42,6 +43,7 @@ import { markStarting, __resetStartingForTests } from '../working'
 import { commitOp, mergeIntoMainOp, updateFromMainOp } from '../agentTools'
 import { answerMergeCard } from '../mergeCardAnswer'
 import { openJson } from '../../conversations/sealing'
+import { isOrgFeatureOn } from '../../features/switches'
 
 const MAIN = 'a'.repeat(40)
 const TIP = 'b'.repeat(40)
@@ -98,6 +100,12 @@ async function taskOnWorkspace(title = 'Add a login page') {
 
 const ask = (taskId: string, agentId = 'no-such-agent') => ({
   work: { taskId }, workspaceId, owner: { type: 'project' as const, id: projectId }, personId: member.id, agentId, nameFrom: 'Add a login page', runSiteId: logicalSiteId,
+})
+
+describe("code work on branches with the live preview's flag off", () => {
+  it('is how this whole file runs', async () => {
+    expect(await isOrgFeatureOn('livePreview')).toBe(false)
+  })
 })
 
 describe('a branch and its copy when code work first runs @SC-1669', () => {

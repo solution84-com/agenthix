@@ -4,6 +4,7 @@
  * signed before the live preview started still reaches it, and a branch with none, or with one on another site, is
  * refused in words that say what to do. The site's answers are replaced: they leave hq.
  */
+import { withFeature } from '../../test/withFeature'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma } from '../../test/db'
 import { createAgent, createProject, createSession, createTestTask, createUserWithRole, ensureExecutionSite, joinProjectAs } from '../../test/factories'
@@ -124,6 +125,7 @@ function ctx(livePreview?: unknown, startedBy = 'person') {
   return { kind: 'run' as const, claims: { sessionId, taskId, siteId, agentId: 'agent-x', startedBy, ...(livePreview ? { livePreview } : {}) } } as never
 }
 
+withFeature('livePreview', () => {
 describe('the live preview an app tool acts on @SC-1701', () => {
   it('is the branch\'s live preview on the run\'s site, though the run\'s capability names none', async () => {
     const lp = await prisma.livePreview.create({ data: row as never })
@@ -150,7 +152,9 @@ describe('the live preview an app tool acts on @SC-1701', () => {
     await expect(reloadViewOp(ctx(), { runId: 'run-1' })).rejects.toThrow(/runs on another site/)
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('start_app on a branch with no live preview open @SC-1702', () => {
   const START = { name: 'web', folder: '', command: 'npm start', port: '3000', runId: 'run-1' }
   const opened = () => asked.filter(a => a.method === 'livePreview.open')
@@ -194,5 +198,6 @@ describe('start_app on a branch with no live preview open @SC-1702', () => {
     await expect(startAppOp(ctx(), START)).rejects.toThrow(/Nothing was started\./)
     expect(asked).toEqual([])
   })
+})
 })
 

@@ -3,6 +3,7 @@
  * under, so live previews are off. *Live preview* says a domain is needed, a start is refused in those words before
  * any site is asked, and the lead offers none; branches and merging do not depend on it.
  */
+import { withFeature } from '@agenthix/core/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEV_PREVIEW_PATTERN } from '@agenthix/core'
 
@@ -43,6 +44,7 @@ beforeEach(() => {
   address.has = false
 })
 
+withFeature('livePreview', () => {
 describe('an installation reached by a bare network address @SC-1719', () => {
   it('has no address for live apps; a domain, a preview address set, or development on localhost has one', () => {
     expect(livePreviewPattern({}, 'http://192.168.1.20:3000')).toBeNull()
@@ -72,4 +74,5 @@ describe('an installation reached by a bare network address @SC-1719', () => {
     expect(asked.site).not.toHaveBeenCalled()
     expect(asked.choices).not.toHaveBeenCalled()
   })
+})
 })

@@ -25,8 +25,8 @@ export interface FrameParts {
   middle: (layout: 'wide' | 'narrow') => ReactNode
   /** A file or a file's changes is chosen. */
   middleShown: boolean
-  /** The chosen branch's live preview, shown in the middle when *Live preview* is chosen. */
-  preview: (layout: 'wide' | 'narrow') => ReactNode
+  /** The chosen branch's live preview, shown in the middle when *Live preview* is chosen; none while its flag is off. */
+  preview?: (layout: 'wide' | 'narrow') => ReactNode
   previewState: LivePreviewStateName
   status: ReactNode
   conversation: ReactNode
@@ -57,7 +57,7 @@ export function WorkspaceFrame(p: FrameParts) {
   }, [over])
   if (size === 'phone') return <PhoneFrame {...p} />
 
-  const previewShown = p.section === 'preview' && !p.noGit
+  const previewShown = p.section === 'preview' && !p.noGit && !!p.preview
   const strip = size !== 'wide' || previewShown
   // One thing over the middle at a time: the panel or the conversation's drawer.
   const chooseFromStrip = (s: ViewSection) => {
@@ -87,11 +87,11 @@ export function WorkspaceFrame(p: FrameParts) {
         onToggleConversation={size === 'tablet' ? undefined : () => setConversationShown(s => !s)} />
       <div className="relative flex min-h-0 flex-1">
         {strip ? (
-          <LeftStrip branchSelect={p.select(true)} section={p.section} open={over} onChoose={chooseFromStrip} git={!p.noGit} previewState={p.previewState} />
+          <LeftStrip branchSelect={p.select(true)} section={p.section} open={over} onChoose={chooseFromStrip} git={!p.noGit} preview={!!p.preview} previewState={p.previewState} />
         ) : (
           <aside aria-label="Branch, files and Git" className="flex w-[290px] shrink-0 flex-col border-r border-border-subtle bg-surface-1">
             <LeftPanel branchSelect={p.select(false)} section={p.section} onSection={p.onSection} filesNote={p.filesNote} gitNote={p.gitNote}
-              files={p.filesBody} git={p.gitBody} noGit={p.noGit} previewState={p.previewState} />
+              files={p.filesBody} git={p.gitBody} noGit={p.noGit} preview={!!p.preview} previewState={p.previewState} />
           </aside>
         )}
         {strip && over && !previewShown && (
@@ -103,7 +103,7 @@ export function WorkspaceFrame(p: FrameParts) {
         )}
         <main onMouseDown={() => setOver(false)} className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface-1">
           <Notice text={p.notice} onDismiss={p.onDismissNotice} />
-          {previewShown ? p.preview('wide') : <div className="flex min-h-0 flex-1 flex-col overflow-auto">{p.middle('wide')}</div>}
+          {previewShown ? p.preview?.('wide') : <div className="flex min-h-0 flex-1 flex-col overflow-auto">{p.middle('wide')}</div>}
           {p.status}
         </main>
         {size === 'tablet' ? (

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 /** The line under a running live preview on a phone while its agent works (board `narrow-phone`). */
+import { withFeature } from '@agenthix/core/testing'
 import React from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
@@ -22,6 +23,7 @@ function parts(over: Partial<FrameParts>): FrameParts {
 
 const show = (over: Partial<FrameParts>) => render(<MemoryRouter><PhoneFrame {...parts(over)} /></MemoryRouter>)
 
+withFeature('livePreview', () => {
 describe('the phone\'s live preview footer @SC-1697', () => {
   it('says the agent is working and the app reloads when it saves', () => {
     show({})
@@ -35,4 +37,5 @@ describe('the phone\'s live preview footer @SC-1697', () => {
     show({ previewState: 'stopped' })
     expect(screen.queryByTestId('phone-preview-footer')).toBeNull()
   })
+})
 })

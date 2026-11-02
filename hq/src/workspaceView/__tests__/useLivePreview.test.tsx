@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 /** HQ is told a shown live preview is in use about once a minute, however often the view renders. */
+import { withFeature } from '@agenthix/core/testing'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 
@@ -22,6 +23,7 @@ beforeEach(() => {
 })
 afterEach(() => vi.useRealTimers())
 
+withFeature('livePreview', () => {
 describe('useLivePreview @SC-1699', () => {
   it('tells HQ once when shown, not again on each render', async () => {
     const hook = renderHook(() => useLivePreview('w1', 'b1', { enabled: true, shown: true }))
@@ -42,4 +44,5 @@ describe('useLivePreview @SC-1699', () => {
     await vi.advanceTimersByTimeAsync(IN_USE_EVERY_MS)
     expect(marked).not.toHaveBeenCalled()
   })
+})
 })

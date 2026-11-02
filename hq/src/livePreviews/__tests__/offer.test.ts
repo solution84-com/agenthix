@@ -1,4 +1,5 @@
 /** The lead's offer: only a code workspace of the project, a task's branch or main, and a card that starts nothing. */
+import { withFeature } from '@agenthix/core/testing'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../relays', () => ({ livePreviewsHaveAnAddress: () => true }))
@@ -21,6 +22,7 @@ function tool(over: Partial<Parameters<typeof createOfferLivePreviewTool>[0]> = 
       codeWorkspaces: async () => [{ id: 'ws-app', name: 'site-app', git: true }, { id: 'ws-docs', name: 'docs', git: false }],
       branchOfTask: async (_p, _w, key) => (key === 'WEB-3' ? { id: 'br', name: 'fix-sign-up' } : null),
       liveAppsHaveAddress: () => true,
+      featureOn: async () => true,
       card,
       ...over,
     }),
@@ -29,6 +31,7 @@ function tool(over: Partial<Parameters<typeof createOfferLivePreviewTool>[0]> = 
 
 const run = (t: ReturnType<typeof tool>['tool'], args: unknown) => t.run(capability, args, { signal: new AbortController().signal })
 
+withFeature('livePreview', () => {
 describe(`${OFFER_LIVE_PREVIEW_TOOL} @SC-1708`, () => {
   it("leaves a card for a task's branch", async () => {
     const t = tool()
@@ -49,5 +52,15 @@ describe(`${OFFER_LIVE_PREVIEW_TOOL} @SC-1708`, () => {
     expect(await tool({ codeWorkspaces: async () => [] }).tool.offered(capability)).toBe(false)
     expect(await tool({ liveAppsHaveAddress: () => false }).tool.offered(capability)).toBe(false)
     expect(await tool().tool.offered(capability)).toBe(true)
+  })
+})
+})
+
+describe(`${OFFER_LIVE_PREVIEW_TOOL} while the live preview's flag is off`, () => {
+  it('is not offered, and leaves no card when called', async () => {
+    const t = tool({ featureOn: async () => false })
+    expect(await t.tool.offered(capability)).toBe(false)
+    expect(await run(t.tool, { workspaceId: 'ws-app', why: 'See it running' })).toMatchObject({ status: 'refused' })
+    expect(t.card).not.toHaveBeenCalled()
   })
 })

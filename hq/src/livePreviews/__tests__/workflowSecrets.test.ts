@@ -4,6 +4,7 @@
  * the site the live preview runs on, aimed at it. The screen offers each workflow only when the place has it approved
  * and switched on.
  */
+import { withFeature } from '@agenthix/core/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const db = vi.hoisted(() => ({
@@ -65,6 +66,7 @@ beforeEach(() => {
   provideLivePreviewWorkflowDelivery(null)
 })
 
+withFeature('livePreview', () => {
 describe('running a live preview\'s workflow @SC-1712', () => {
   it('goes through the workflows\' run path to the site the live preview runs on, aimed at it', async () => {
     provideLivePreviewWorkflowDelivery(deliverLivePreviewWorkflow)
@@ -128,7 +130,9 @@ describe('running a live preview\'s workflow @SC-1712', () => {
     expect(started.calls).toEqual([])
   })
 })
+})
 
+withFeature('livePreview', () => {
 describe('which workflows the screen offers @SC-1712', () => {
   it('only those the place has approved and switched on', async () => {
     db.found = [{ name: 'reload-live-preview' }]
@@ -137,4 +141,5 @@ describe('which workflows the screen offers @SC-1712', () => {
       where: expect.objectContaining({ placeType: 'project', placeId: 'p1', enabled: true, versions: { some: { state: 'APPROVED' } } }),
     }))
   })
+})
 })

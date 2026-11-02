@@ -1,4 +1,5 @@
 /** A bundle carried through a relay: hq signs the ticket and orders the relay; it reads the relay's report field by field. */
+import { withFeature } from '@agenthix/core/testing'
 import { describe, it, expect } from 'vitest'
 import { RELAY_PROTOCOL_VERSION, type RelayBundleOrder } from '@agenthix/core'
 import { createBundleCarrier, readBundleReport } from '../bundles'
@@ -8,6 +9,7 @@ const input = {
   from: { site: 'site-a' }, to: { site: 'site-b' }, sha256: 'c'.repeat(64), size: 12,
 }
 
+withFeature('livePreview', () => {
 describe('carrying a bundle @SC-1715', () => {
   it('orders the relay with the ticket, between the two sites it names', async () => {
     const sent: Array<[string, RelayBundleOrder]> = []
@@ -30,4 +32,5 @@ describe('carrying a bundle @SC-1715', () => {
     expect(readBundleReport({ ...base, transferId: '' , outcome: { done: true } })).toBeNull()
     expect(readBundleReport({ ...base, outcome: null })).toBeNull()
   })
+})
 })

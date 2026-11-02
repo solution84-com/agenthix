@@ -4,13 +4,18 @@
  * when it signs a run's capability (`capabilityService.ts`), and the tools of every feature that is off are withheld
  * from the run there, whatever the agent's own permissions say.
  */
-import { FEATURE_FLAG_NAMES, isFeatureOn, type FeatureFlag, type FlagFacts } from '@agenthix/core'
+import { APP_TOOL_DECLARATIONS, FEATURE_FLAG_NAMES, isFeatureOn, type FeatureFlag, type FlagFacts } from '@agenthix/core'
 import { featureFacts } from './switches'
+
+export { instructionsFor } from './instructionsFor'
 
 /** Each flagged feature's tools, by the names agents call them. A tool named here is never given while its flag is off. */
 export type FlaggedTools = { readonly [F in FeatureFlag]?: readonly string[] }
 
-export const FLAGGED_TOOLS: FlaggedTools = {}
+export const FLAGGED_TOOLS: FlaggedTools = {
+  // The app tools a code-work run is given, and the lead's offer of a live preview (`livePreviews/offer.ts`).
+  livePreview: [...APP_TOOL_DECLARATIONS.map(d => d.name), 'offer_live_preview'],
+}
 
 /** One reading of the rule for a run: which flags are on, and the tools withheld because theirs is off. */
 export type RunFeatures = {
@@ -29,7 +34,3 @@ export async function runFeatures(flagged: FlaggedTools = FLAGGED_TOOLS): Promis
   return runFeaturesFrom(await featureFacts(), flagged)
 }
 
-/** A run's instructions, each part kept only while the flag it names is on; a part naming none is always kept. */
-export function instructionsFor(features: RunFeatures, parts: ReadonlyArray<{ flag?: FeatureFlag; text: string }>): string[] {
-  return parts.filter(p => !p.flag || features.isOn(p.flag)).map(p => p.text)
-}

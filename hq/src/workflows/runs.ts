@@ -32,6 +32,7 @@ import { storedVersionMatches } from './versionContent'
 import { rememberRunSession } from './runsLive'
 import { guardStarterRun } from './starters/runGuards'
 import { livePreviewWorkflowRefusal } from './livePreviewRefusal'
+import { requireFeature } from '../features/requireFeature'
 
 export { livePreviewWorkflowRefusal }
 
@@ -80,6 +81,8 @@ export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = def
   const { place, workspace, starter } = input
   refuseAgentLivePreviewWorkflow(starter, 'name' in input.workflow ? input.workflow.name : null)
   if (starter.kind === 'agent' && input.livePreview) throw new HttpError(403, livePreviewWorkflowRefusal('A live preview\'s workflow'))
+  // A run into a live preview's container (its secrets with it) only while the live preview's flag is on (adr-0172).
+  if (input.livePreview) await requireFeature('livePreview')
   if (workspace.ownerType !== place.type || workspace.ownerId !== place.id) {
     throw new HttpError(400, 'A workflow runs on a workspace of its own place. Nothing was changed.')
   }

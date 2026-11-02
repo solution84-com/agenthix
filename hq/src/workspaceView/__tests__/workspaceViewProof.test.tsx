@@ -29,6 +29,7 @@ vi.mock('wasp/client/operations', () => ({
   startLivePreview: 'startLivePreview', stopLivePreview: 'stopLivePreview', resumeLivePreview: 'resumeLivePreview',
   reloadLivePreview: 'reloadLivePreview', setLivePreviewAuto: 'setLivePreviewAuto', openLiveApp: 'openLiveApp',
   answerLivePreviewQuestion: 'answerLivePreviewQuestion', runLivePreviewWorkflow: 'runLivePreviewWorkflow',
+  getFeatures: 'getFeatures',
 }))
 vi.mock('../../conversations/components/ConversationThread', () => ({
   ConversationThread: ({ conversationId }: { conversationId: string }) => <div>thread {conversationId}</div>,
@@ -42,6 +43,7 @@ vi.mock('../../projects/components/TaskThreadSection', () => ({
 }))
 
 import { WorkspaceViewBody } from '../components/WorkspaceViewBody'
+import { featuresAnswer } from '../../test/featuresAnswer'
 
 const workspace = { id: 'w1', name: 'shop-app', ownerType: 'project' as const, ownerId: 'p1' }
 const login: BranchLineView = {
@@ -84,6 +86,7 @@ beforeEach(() => {
   asked.length = 0
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1440 })
   answers.value = {
+    getFeatures: featuresAnswer,
     getBranchChanges: changes,
     getGitTree: (a: { path: string }) => (a.path === ''
       ? { exists: true, overflow: false, entries: [{ name: 'src', path: 'src', kind: 'dir', bytes: null }, { name: 'README.md', path: 'README.md', kind: 'file', bytes: 10 }] }

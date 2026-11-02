@@ -2,6 +2,7 @@
  * After a site restart, hq's app rows follow what the site reports (live preview phase 2's proof, Q10): an app the site
  * no longer runs reads as stopped, never as running.
  */
+import { withFeature } from '@agenthix/core/testing'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const db = vi.hoisted(() => ({ liveApp: { findMany: vi.fn(), update: vi.fn() } }))
@@ -22,6 +23,7 @@ beforeEach(() => {
   db.liveApp.update.mockResolvedValue({})
 })
 
+withFeature('livePreview', () => {
 describe("hq's app rows after a site is heard again @SC-1704", () => {
   it('marks an app the site no longer runs as stopped, saying where', async () => {
     db.liveApp.findMany.mockResolvedValue([app('a1', 'running'), app('a2', 'stopped'), app('a3', 'failed')])
@@ -63,4 +65,5 @@ describe("hq's app rows after a site is heard again @SC-1704", () => {
     expect(db.liveApp.update).not.toHaveBeenCalled()
     expect(socket.emitLivePreviewChange).not.toHaveBeenCalled()
   })
+})
 })
