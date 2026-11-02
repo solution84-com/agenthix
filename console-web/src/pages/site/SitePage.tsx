@@ -104,7 +104,7 @@ function SiteView({ host, now, failure, refresh }: { host: FleetHost; now: Date;
       )}
       {f && (
         <FactGroup tag="The machine" aside="what stays with the hardware" tinted>
-          <HealthCard figures={f} />
+          <HealthCard figures={f} copiesBytes={host.agents?.copiesBytes} />
           <ProtectionsCard figures={f} now={now} />
           <SystemCard figures={f} now={now} />
           <NotifyCard host={host} />

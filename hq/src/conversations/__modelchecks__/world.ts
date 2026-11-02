@@ -10,6 +10,8 @@ import type { PlaceSummary } from '../placesProtocol'
 export const PERSON_ID = 'person-sam'
 export const AGENT_ID = 'agent-kernel'
 export const AGENT_NAME = 'Kernel'
+/** The organisation, as get_org answers it. */
+export const ORG = { id: 'org-local', name: 'My Organisation' }
 
 export const PROJECT = { id: 'project-website', key: 'WEB', name: 'Website Rebuild', slug: 'website-rebuild' }
 /** Your space as list_projects stores it: the person's default personal project. */
@@ -113,3 +115,10 @@ export function heldLevels(home: Home): string[] {
 
 /** A task of the project with one attachment, as get_task_details answers it. */
 export const TASK = { id: '0b9f6a52-3c1d-4e8a-9f27-5d6c1b2a7e40', key: 'WEB-3', title: 'Fix the sign-up form', attachment: 'signup-error.png' }
+
+/** The project's workspaces, as create_task's description lists them: one with Git, one without. */
+export const WORKSPACES = [
+  { id: 'workspace-site-app', name: 'site-app', git: true },
+  { id: 'workspace-copy', name: 'copy-drafts', git: false },
+] as const
+export const CODE_WORKSPACE = WORKSPACES[0]

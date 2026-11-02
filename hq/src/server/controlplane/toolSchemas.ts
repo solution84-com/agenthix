@@ -25,6 +25,7 @@
  * same class of issue otherwise.
  */
 import { z, type ZodRawShape } from 'zod'
+import { CODE_WORK_TOOL_SCHEMAS } from './codeWorkToolSchemas'
 import { PLANNING_TOOLS } from './planningToolSchemas'
 import { KNOWLEDGE_DATA_PATH_TOOLS } from './knowledgeToolSchemas'
 import { WORKFLOW_TOOL_SCHEMAS } from '../../workflows/agentToolsSchemas'
@@ -125,6 +126,7 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
     schema: {
       taskId: z.string().describe('The task to update: its key (e.g. WAL-2) or its ID'),
       title: z.string().optional().describe('New title'),
+      workspaceId: z.string().nullable().optional().describe("One of the project's workspaces for the task to work in, or null for the project's files"),
       description: z.string().optional().describe('New description'),
       subtasks: z.array(z.object({ title: z.string(), done: z.boolean() })).optional()
         .describe('Full replacement subtask list'),
@@ -150,6 +152,7 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
       boardId: z.string().optional().describe("Board to place the task on; omit for the project's Project Tasks"),
       column: z.string().optional().describe("Column to place it in, by name or state; omit for the board's Backlog (its first column when queue is true)"),
       assignedAgentId: z.string().optional().describe('Agent ID to assign this task to'),
+      workspaceId: z.string().optional().describe("One of the project's workspaces for the task to work in; omit for the project's files. In a code workspace (Git) it works on a branch of its own"),
       description: z.string().optional().describe('Task description'),
       labels: z.array(z.string()).optional().describe('Labels to attach'),
       priority: z.enum(['low', 'medium', 'high']).optional().describe('Task priority'),
@@ -467,7 +470,11 @@ export const ALL_CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   ...KNOWLEDGE_DATA_PATH_TOOLS,
   // Data-path-only too: a run's site forwards it with the calling run's id (assets/proposals/tool.ts).
   PROPOSE_SKILL_SCHEMA,
+  // Data-path-only too: a run's site forwards them with the calling run's id; only a run on a branch has them.
+  ...CODE_WORK_TOOL_SCHEMAS,
 ]
+
+export { COMMIT_TOOL_SCHEMA, MERGE_TOOL_SCHEMA, UPDATE_TOOL_SCHEMA } from './codeWorkToolSchemas'
 
 /** The knowledge tools as an agent sees them, and `suggest_place`, the lead's alone (knowledgeToolSchemas.ts). */
 export { KNOWLEDGE_TOOLS, PLACE_TOOLS } from './knowledgeToolSchemas'

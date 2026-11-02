@@ -35,7 +35,9 @@ export async function adminOperations(request: APIRequestContext) {
   }
 }
 
-export type StandInRecord = { providerId: string; conversation: string | null; worker: string | null }
+/** An agent's own models before the run, which the setup set aside so that the agent talks on the stand-in too. */
+export type AgentChoices = { agentId: string; conversation: string | null; worker: string | null }
+export type StandInRecord = { providerId: string; conversation: string | null; worker: string | null; agents: AgentChoices[] }
 export const writeRecord = (record: StandInRecord) => fs.writeFileSync(RECORD, JSON.stringify(record))
 export function takeRecord(): StandInRecord | null {
   if (!fs.existsSync(RECORD)) return null

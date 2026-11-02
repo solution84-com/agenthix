@@ -21,6 +21,7 @@ import { registerConversationRoom } from '../conversations/coordinator/socketRoo
 import { requireConversationReader } from '../conversations/readingRule'
 import { registerConversationVoice } from '../conversations/voice/handlers'
 import { startConversationVoice } from '../conversations/voice/service'
+import { registerWorkspaceRoom } from '../branches/workspaceRoom'
 import type {
   ConversationDeltaEvent,
   ConversationMessageEvent,
@@ -42,7 +43,7 @@ import type {
 } from '../shared/conversations/protocol'
 import type {
   ManifestPendingApprovalClientEvent, ManifestRejectedClientEvent, RunStatusClientEvent, RunStreamDeltaClientEvent,
-  TaskCommentAddedClientEvent, TaskSessionStartedClientEvent, TaskUpdatedClientEvent,
+  TaskCommentAddedClientEvent, TaskSessionStartedClientEvent, TaskUpdatedClientEvent, WorkspaceBranchEvent, WorkspaceMainEvent,
 } from '@agenthix/core'
 
 const logger = new Logger('socket')
@@ -83,6 +84,9 @@ interface ServerToClientEvents {
   'conversationVoice:silenceWarning': (data: VoiceSilenceWarningEvent) => void
   'conversationVoice:ended':          (data: VoiceEndedEvent) => void
   'conversationVoice:error':          (data: VoiceErrorEvent) => void
+  // A workspace's room (branches/workspaceEvents.ts): WORKSPACE_SOCKET's names.
+  'workspace:branch': (data: WorkspaceBranchEvent) => void
+  'workspace:main':   (data: WorkspaceMainEvent) => void
 }
 
 interface ClientToServerEvents {
@@ -93,12 +97,14 @@ interface ClientToServerEvents {
   'hq:version':              (ack?: (reply: { ok: boolean; version?: string; built?: string }) => void) => void
   subscribeToDashboard:      () => void
   unsubscribeFromDashboard:  () => void
-  subscribeToConversation:     (conversationId: unknown) => void
+  subscribeToConversation:     (conversationId: unknown, answer?: (joined: boolean) => void) => void
   unsubscribeFromConversation: (conversationId: unknown) => void
   'conversationVoice:start':     (data: VoiceStartPayload) => void
   'conversationVoice:end':       (data: VoiceEndPayload) => void
   'conversationVoice:interrupt': (data: VoiceInterruptPayload) => void
   'conversationVoice:activity':  (data: VoiceActivityPayload) => void
+  subscribeToWorkspace:     (workspaceId: unknown) => void
+  unsubscribeFromWorkspace: (workspaceId: unknown) => void
 }
 
 interface InterServerEvents {
@@ -274,5 +280,8 @@ export const webSocketFn: WebSocketDefinition<
 
     // Voice: who may take it is decided per event, against the speaking rule (conversations/voice/).
     registerConversationVoice(socket as unknown as Parameters<typeof registerConversationVoice>[0], logger)
+
+    // A workspace's branches and main: who may join is the workspace's read rule (branches/workspaceAccess.ts).
+    registerWorkspaceRoom(socket as unknown as Parameters<typeof registerWorkspaceRoom>[0], logger)
   })
 }

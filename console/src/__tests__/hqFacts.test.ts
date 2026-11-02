@@ -68,8 +68,8 @@ describe('agents running, per site @SC-888', () => {
   it('are each site’s runs as hq last heard them: the default site on HQ’s machine, the others by their id', async () => {
     h.link.handle('site.loads', () => ({ sites: LOADS }))
     const f = await fleet()
-    expect(agentsOf(f, 'hq-box')).toEqual({ running: 2, maxAtOnce: 4, reportedAt: at })
-    expect(agentsOf(f, 'office-server')).toEqual({ running: 1, maxAtOnce: 6, reportedAt: at })
+    expect(agentsOf(f, 'hq-box')).toEqual({ running: 2, maxAtOnce: 4, reportedAt: at, copiesBytes: null })
+    expect(agentsOf(f, 'office-server')).toEqual({ running: 1, maxAtOnce: 6, reportedAt: at, copiesBytes: null })
   })
 
   it('are not known for a site hq has no report of, or while hq does not answer', async () => {

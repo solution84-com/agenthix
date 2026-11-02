@@ -10,7 +10,7 @@ import type { Place } from '../places'
 import { turnToolAsks } from '../../server/controlplane/turnCaller'
 import { attachmentReference } from '../../shared/taskReferences'
 import {
-  PAGES, PERSON_ID, PERSONAL_PROJECT, PROJECT, PROJECT_LEVEL, SEARCH_HITS, TASK, YOUR_SPACE_PLACE, heldLevels, levelOf, type Home,
+  AGENT_ID, AGENT_NAME, ORG, PAGES, PERSON_ID, PERSONAL_PROJECT, PROJECT, PROJECT_LEVEL, SEARCH_HITS, TASK, YOUR_SPACE_PLACE, heldLevels, levelOf, type Home,
 } from './world'
 
 type Args = Record<string, unknown>
@@ -80,6 +80,10 @@ function listProjects(home: Home): unknown {
   return { projects: projects.map(asListed), source: 'local' }
 }
 
+/** get_org and list_agents in the real tools' shapes (orgOps.ts, agentOps.ts): create_task asks for the org's id and an agent. */
+const ORG_ANSWER = { orgId: ORG.id, name: ORG.name, vision: '', mission: '', mode: 'standalone' }
+const AGENTS_ANSWER = { agents: [{ agentId: AGENT_ID, name: AGENT_NAME, handle: AGENT_NAME.toLowerCase(), isKernel: true }], source: 'local' }
+
 /** get_task_details for the world's one task, in the real tool's shape (taskOps.ts); any other task is not found. */
 function taskDetails(args: Args): unknown {
   const asked = str(args.taskId)
@@ -105,6 +109,8 @@ function outcomeOf(name: string, args: Args, capability: TurnCapability, home: H
     case 'delete_knowledge': return done(change(name, args, home))
     case 'suggest_place': return suggestPlace(home).run(capability, args, { signal: new AbortController().signal })
     case 'list_projects': return done(listProjects(home))
+    case 'get_org': return done(ORG_ANSWER)
+    case 'list_agents': return done(AGENTS_ANSWER)
     case 'get_task_details': return done(taskDetails(args))
     case 'remember': return done({ remembered: str(args.key) ?? 'note' })
     case 'start_work':

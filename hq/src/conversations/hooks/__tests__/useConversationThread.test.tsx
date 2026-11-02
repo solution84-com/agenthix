@@ -75,7 +75,19 @@ describe('a conversation\'s thread @SC-1004', () => {
   it('shows the latest page oldest first and joins the conversation\'s room', async () => {
     const { result } = await mounted()
     expect(result.current.messages.map((m) => m.seq)).toEqual([1, 2])
-    expect(h.emitted).toContainEqual(['subscribeToConversation', 'c1'])
+    expect(h.emitted.some((e) => e[0] === 'subscribeToConversation' && e[1] === 'c1')).toBe(true)
+  })
+
+  it('reads the conversation again once the room has it, so a reply that ended before the join does not stay running', async () => {
+    h.view.data = { ...view, activeTurnId: 't1' }
+    await mounted()
+    const join = h.emitted.find((e) => e[0] === 'subscribeToConversation')!
+    expect(typeof join[2]).toBe('function')
+    const reads = h.getMessages.mock.calls.length
+    h.view.refetch.mockClear()
+    await act(async () => { (join[2] as (ok: boolean) => void)(true) })
+    expect(h.view.refetch).toHaveBeenCalled()
+    expect(h.getMessages.mock.calls.length).toBe(reads + 1)
   })
 
   it('pages back from the oldest message held, and keeps what it had', async () => {
@@ -104,7 +116,7 @@ describe('a conversation\'s thread @SC-1004', () => {
     const { result } = await mounted()
     h.emitted.length = 0
     fire('conversation:delta', { conversationId: 'c1', turnId: 't1', offset: 40, text: 'late' })
-    expect(h.emitted).toContainEqual(['subscribeToConversation', 'c1'])
+    expect(h.emitted.some((e) => e[0] === 'subscribeToConversation' && e[1] === 'c1')).toBe(true)
     fire('conversation:replay', { conversationId: 'c1', turnId: 't1', text: 'All that was written so far' })
     expect(result.current.stream?.text).toBe('All that was written so far')
   })

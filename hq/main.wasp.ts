@@ -52,6 +52,8 @@ import { sessionsSpec } from "./src/sessions/sessions.wasp";
 import { settingsSpec } from "./src/settings/settings.wasp";
 import { sitesSpec } from "./src/sites/sites.wasp";
 import { storageSpec } from "./src/storage/storage.wasp";
+import { branchesSpec } from "./src/branches/branches.wasp";
+import { workspaceViewSpec } from "./src/workspaceView/workspaceView.wasp";
 import { voiceSpec } from "./src/voice/voice.wasp";
 import { workflowsSpec } from "./src/workflows/workflows.wasp";
 
@@ -89,6 +91,8 @@ export default app({
     agentsSpec,
     authSpec,
     billingSpec,
+    branchesSpec,
+    workspaceViewSpec,
     automationSpec,
     chatSpec,
     cloudSpec,

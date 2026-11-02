@@ -5,7 +5,7 @@
  */
 import { prisma } from 'wasp/server'
 import { verifyPassword } from 'wasp/auth/password'
-import { consumeRateLimit, isRateLimited } from '../server/rateLimit'
+import { consumeRateLimit, giveBackRateLimit } from '../server/rateLimit'
 import { notificationsChanged } from '../server/personEvents'
 import { affectedMembers } from '../sites/scheduled/scheduledChanges'
 import type { CloudLinkStore } from './cloudSignIn'
@@ -53,11 +53,12 @@ const WRONG_PASSWORD_RULE = { max: 5, windowMs: 15 * 60 * 1000 }
 
 export async function passwordIsRight(userId: string, password: string): Promise<boolean> {
   const key = `cloud-link:${userId}`
-  if (await isRateLimited(key, WRONG_PASSWORD_RULE)) return false
+  // Counted before the check, so guesses sent at once can't all be checked before any is counted.
+  if (!(await consumeRateLimit(key, WRONG_PASSWORD_RULE))) return false
   const identity = await prisma.authIdentity.findFirst({ where: { providerName: 'username', auth: { userId } }, select: { providerData: true } })
   const hashed = identity ? (JSON.parse(identity.providerData) as { hashedPassword?: unknown }).hashedPassword : undefined
   const right = typeof hashed === 'string' && await verifyPassword(hashed, password).then(() => true, () => false)
-  if (!right) await consumeRateLimit(key, WRONG_PASSWORD_RULE)
+  if (right) await giveBackRateLimit(key)
   return right
 }
 

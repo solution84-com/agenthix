@@ -61,6 +61,10 @@ describe('why a queued or throttled task has not started, in words (spec §6)', 
     expect(runWaitText({ kind: 'automationOff' })).toMatch(/Automation is off/)
   })
 
+  it('a run on a branch waiting for the other runs in its project to end', () => {
+    expect(runWaitText({ kind: 'branch' })).toBe("Waiting for this project's other runs to finish before working on a branch")
+  })
+
   it('a run its site holds for a free place: the site is at capacity', () => {
     expect(runWaitText({ kind: 'slot', siteName: 'office-server' })).toBe('Runs are waiting: office-server is at capacity')
     expect(runWaitText({ kind: 'slot', siteName: null })).toBe('Runs are waiting: its site is at capacity')

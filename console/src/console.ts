@@ -33,7 +33,7 @@ export type ConsoleOptions = {
   link: HqLink
   machineName: string
   version: string
-  commandTimeouts?: { short?: number; long?: number }
+  commandTimeouts?: { short?: number; long?: number; staleRetry?: number }
   /** Tests pass a guard that began in the past; a real start refuses envelopes from before it (replay.ts). */
   replay?: EnvelopeReplayGuard
   /** The one-time code it was started with elsewhere (`CONSOLE_HQ_CODE`), normalised; it may be a handover code. */

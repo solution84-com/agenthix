@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react'
+import { Navigate } from 'react-router'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY, FilesQuietLine, FilesToolNote, FilesViewHeader, WorkspaceCard } from '@agenthix/ui/projects'
 import { NoExecutionSiteNotice, useNoExecutionSite } from '../../shared/components/NoExecutionSiteNotice'
 import { NewWorkspaceForm } from './NewWorkspaceForm'
@@ -8,6 +9,7 @@ import { previewAddress, usePlacePreviews, useWorkspaces, type Owner } from './f
 import { silentSitesLine } from './workspaceNotices'
 import { SilentSitesLine } from './SilentSitesLine'
 import { useToolParams } from './useToolParams'
+import { workspaceViewPath } from '../../workspaceView/viewAddress'
 
 /**
  * The Workspaces tool (every screen reviewed spec §3): one card per codebase, a workspace opening inside the tool,
@@ -24,6 +26,8 @@ export function WorkspacesTool({ owner, siteLabel }: { owner: Owner; siteLabel: 
   if (url.get('new')) {
     return <NewWorkspaceForm owner={owner} siteLabel={siteLabel} onBack={back} onCreated={ws => url.set({ new: null, workspace: ws })} />
   }
+  // A workspace opens full screen (live preview spec, part 1). Its About and Connect GitHub stay here, in the tool.
+  if (id && !url.get('wabout') && url.get('connect') !== '1') return <Navigate to={workspaceViewPath(id)} replace />
   if (id) return <WorkspaceView workspaceId={id} siteLabel={siteLabel} previewId={previews.get(id) ?? null} connecting={url.get('connect') === '1'} onBack={back} />
 
   const silent = silentSitesLine(unanswered)

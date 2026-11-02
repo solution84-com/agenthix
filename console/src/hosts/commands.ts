@@ -6,6 +6,7 @@
  */
 import { randomUUID } from 'node:crypto'
 import {
+  HOST_ENVELOPE_CLOCK_SKEW_MS,
   type EnvelopeRefusal, type HostActor, type HostMessage, type HostRequest, type HostResult,
   type RelayUndeliverableReason, isHostFigures, parseHostStopping, parseScheduledChangeNotice,
 } from '@agenthix/core'
@@ -22,9 +23,20 @@ const LONG_OPERATIONS = new Set<HostRequest['op']>([
 const ASK_ID = /^[A-Za-z0-9_-]{1,64}$/
 const SHORT_TIMEOUT_MS = 60_000
 const LONG_TIMEOUT_MS = 20 * 60_000
+/**
+ * A host service refuses every request in its first `HOST_ENVELOPE_CLOCK_SKEW_MS` as `stale`, having acted on none
+ * (a request answers nothing it asked, so its replay guard's start window holds it): the command is sent again in a new
+ * envelope, every few seconds, for a little longer than that.
+ */
+const STALE_RETRY_MS = 5_000
+const STALE_RETRIES = Math.ceil((HOST_ENVELOPE_CLOCK_SKEW_MS + 10_000) / STALE_RETRY_MS)
 
 export class HostCommandError extends Error {
-  constructor(readonly code: 'not_pinned' | 'undeliverable' | 'refused_envelope' | 'no_answer', message: string) {
+  constructor(
+    readonly code: 'not_pinned' | 'undeliverable' | 'refused_envelope' | 'no_answer',
+    message: string,
+    readonly envelopeRefusal: EnvelopeRefusal | null = null,
+  ) {
     super(message)
     this.name = 'HostCommandError'
   }
@@ -57,7 +69,7 @@ export class HostCommands {
     private readonly hosts: PinnedHosts,
     private readonly presence: Presence,
     private readonly replay: EnvelopeReplayGuard,
-    private readonly timeouts: { short?: number; long?: number } = {},
+    private readonly timeouts: { short?: number; long?: number; staleRetry?: number } = {},
   ) {
     link.on('envelope', envelope => {
       this.receive(envelope).catch(err => console.error('[console] envelope handling failed:', err instanceof Error ? err.message : err))
@@ -92,6 +104,23 @@ export class HostCommands {
   }
 
   async send(fingerprint: string, request: HostRequest, by: HostActor): Promise<HostResult> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.sendOnce(fingerprint, request, by)
+      } catch (err) {
+        if (!(err instanceof HostCommandError) || err.envelopeRefusal !== 'stale') throw err
+        const name = this.hosts.byFingerprint(fingerprint)?.machineName ?? 'The machine'
+        if (attempt >= STALE_RETRIES) {
+          throw new HostCommandError('refused_envelope',
+            `${name} keeps refusing commands as sent before its host service started. Check that its clock is right, wait a minute, then try again. Nothing was changed.`,
+            'stale')
+        }
+        await new Promise(resolve => setTimeout(resolve, this.timeouts.staleRetry ?? STALE_RETRY_MS))
+      }
+    }
+  }
+
+  private async sendOnce(fingerprint: string, request: HostRequest, by: HostActor): Promise<HostResult> {
     const host = this.hosts.byFingerprint(fingerprint)
     if (!host) throw new HostCommandError('not_pinned', 'That machine is not connected to this Fleet Console.')
     const requestId = randomUUID()
@@ -124,6 +153,7 @@ export class HostCommands {
       recipient: this.keys,
       pinned: fp => this.hosts.identity(fp),
       replay: this.replay,
+      awaited: (message, from) => this.awaits(message, from),
     })
     if (!opened.ok) {
       this.drop({ reason: opened.reason, envelopeId: opened.envelopeId })
@@ -167,6 +197,20 @@ export class HostCommands {
     }
   }
 
+  /**
+   * Whether a message answers a command still waiting here, from the machine it went to: it names a request id or an
+   * envelope id this console made at random, so it is fresh even inside the replay guard's start window.
+   */
+  private awaits(message: unknown, from: string): boolean {
+    const m = message as Record<string, unknown> | null
+    if (m?.kind === 'result') {
+      const pending = typeof m.replyTo === 'string' ? this.pending.get(m.replyTo) : undefined
+      return pending?.fingerprint === from
+    }
+    if (m?.kind === 'refused') return [...this.pending.values()].some(p => p.envelopeId === m.envelopeId && p.fingerprint === from)
+    return false
+  }
+
   private result(from: string, envelopeId: string, replyTo: unknown, result: unknown): void {
     const pending = typeof replyTo === 'string' ? this.pending.get(replyTo) : undefined
     if (!pending || pending.fingerprint !== from || !isResultFor(result, pending.op)) {
@@ -186,7 +230,8 @@ export class HostCommands {
       return
     }
     this.settle(entry[0])
-    entry[1].reject(new HostCommandError('refused_envelope', `The machine refused the command (${String(reason)}).`))
+    entry[1].reject(new HostCommandError('refused_envelope', `The machine refused the command (${String(reason)}).`,
+      typeof reason === 'string' ? (reason as EnvelopeRefusal) : null))
   }
 
   private undeliverable(envelopeId: string, reason: RelayUndeliverableReason): void {

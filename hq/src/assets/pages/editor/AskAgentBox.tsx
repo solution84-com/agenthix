@@ -11,7 +11,6 @@ export function AskAgentBox({ identity, where, onClose, onAsked }: { identity: s
   return (
     <Modal open onClose={onClose} title="Ask an agent to edit" maxWidth="max-w-xl">
       <form
-        role="dialog" aria-modal="true" aria-label="Ask an agent to edit"
         onSubmit={async e => { e.preventDefault(); if (ask.trim() && (await send(editRequest(identity, where, ask)))) onAsked() }}
       >
         <label htmlFor="ask-agent" className="block text-small font-medium text-text-secondary">What should the agent change in {identity}?</label>

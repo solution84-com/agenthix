@@ -63,6 +63,10 @@ function onSiteConnected(siteId: string): void {
   reconcileAfterRestore(siteId).catch(err => logger.error(`reconcileAfterRestore failed for site ${siteId}:`, err))
   // A site back on a matching version clears its upgrade, not-connected and HQ-site notifications.
   void reconcileSiteNotifications()
+  // Branches' working copies asked to go while it was away are asked again (branches/copies.ts). Loaded when
+  // first needed: branch work reaches the channel itself, and a static import would be a cycle.
+  void import('../../branches/branchBack').then(m => m.retryCopyRemovals(siteId))
+    .catch(err => logger.error(`retryCopyRemovals failed for site ${siteId}:`, err))
   void (async () => {
     try {
       await reconcileSite(siteId, (sid, e) => handleSiteEvent(sid, 'run.status', e))

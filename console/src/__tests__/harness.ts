@@ -20,7 +20,7 @@ export type Harness = {
 }
 
 export async function startHarness(options: {
-  version?: string; commandTimeouts?: { short?: number; long?: number }; hqCode?: string; machineName?: string
+  version?: string; commandTimeouts?: { short?: number; long?: number; staleRetry?: number }; hqCode?: string; machineName?: string
   /** A guard that began now, as a real start's does; by default one from long ago. */
   replay?: EnvelopeReplayGuard
 } = {}): Promise<Harness> {

@@ -15,6 +15,7 @@ import * as resultOps from './resultOps'
 import * as knowledgeOps from './knowledgeOps'
 import { WORKFLOW_TOOL_OPERATIONS } from '../../workflows/agentTools'
 import { proposeSkillOp } from '../../assets/proposals/agentTool'
+import { commitOp, mergeIntoMainOp, updateFromMainOp } from '../../branches/agentTools'
 import { ControlPlaneError, type CallerContext } from './types'
 import { requireConnectionGroup } from './connectionGroups'
 import { actingPerson } from './runPerson'
@@ -96,6 +97,10 @@ export const operations: Record<string, (ctx: CallerContext, args: any) => Promi
   ...WORKFLOW_TOOL_OPERATIONS,
   // skills (skills spec part 5) — data-path-only: an agent's run drafts or proposes a skill, never publishes one
   propose_skill: proposeSkillOp,
+  // code work on branches (live preview spec, part 2) — data-path-only: the branch is the calling run's own
+  commit: commitOp,
+  merge_into_main: mergeIntoMainOp,
+  update_from_main: updateFromMainOp,
 }
 
 /** Runtime support for the run's own boundary — its preview (adr-0060) — which acts on no one's behalf. */

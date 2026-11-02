@@ -11,7 +11,7 @@ vi.mock('../../../conversations/sealing', () => ({ openText: (s: string) => s })
 import type { RunStatusEvent } from '@agenthix/core'
 import type { ConversationEvents } from '../../../conversations/coordinator/events'
 import {
-  __resetForTests, __setEventsForTests, forwardRunFrame, handleOperationRunStatus, liveActivityOf,
+  __resetForTests, __setEventsForTests, forwardRunFrame, handleOperationRunStatus, liveActivityOf, setRunWaitingLine,
 } from '../operationLinesForward'
 
 const sent = { lines: [] as unknown[], operations: [] as unknown[] }
@@ -81,5 +81,24 @@ describe('a run starting @SC-972', () => {
     h.findFirst.mockResolvedValue(null)
     await handleOperationRunStatus({ runId: 'run1', status: 'RUNNING' } as RunStatusEvent, 'site1')
     expect(sent.operations).toEqual([])
+  })
+})
+
+describe('a worker\'s run waiting before it starts', () => {
+  it('shows why on its row, before its helpers, and drops it when it stops waiting', async () => {
+    await setRunWaitingLine('site1', 'run1', 'Waiting for this project\'s other runs to finish before working on a branch')
+    expect(sent.lines.at(-1)).toEqual({
+      conversationId: 'c1', operationId: 'op1', lines: ['Waiting for this project\'s other runs to finish before working on a branch'], endedHelpers: 0,
+    })
+    await call('t1', 'One')
+    expect(liveActivityOf('op1').lines).toEqual(['Waiting for this project\'s other runs to finish before working on a branch', 'Shop · One'])
+    await setRunWaitingLine('site1', 'run1', null)
+    expect(liveActivityOf('op1').lines).toEqual(['Shop · One'])
+  })
+
+  it('shows nothing for a run that is no conversation\'s work', async () => {
+    h.findFirst.mockResolvedValue(null)
+    await setRunWaitingLine('site1', 'run1', 'Waiting')
+    expect(sent.lines).toEqual([])
   })
 })

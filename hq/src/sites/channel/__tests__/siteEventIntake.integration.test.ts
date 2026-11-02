@@ -18,7 +18,7 @@ import { sessionOwnedBy, __resetSessionOwnerCacheForTests, OWNER_RECHECK_MIN_MS 
 import { handleSessionPatch } from '../sessionPatchEvent'
 import { handleRunWaiting } from '../runWaitingEvent'
 import { SLOT_TAKEN_REASON } from '../../../agents/taskSlotClaim'
-import { WAITING_FOR_SLOT_REASON } from '../../../agents/taskExecutionReasons'
+import { WAITING_FOR_SLOT_REASON, WAITING_FOR_BRANCH_REASON } from '../../../agents/taskExecutionReasons'
 
 let seq = 0
 function makeSite() {
@@ -198,6 +198,16 @@ describe('run.waiting intake', () => {
 
     expect(await reasonOf(waitingTask.id)).toBe(SLOT_TAKEN_REASON)
     expect(await reasonOf(otherReason.id)).toBe('something else')
+  })
+
+  it('says a run on a branch waits for the project\'s other runs, and clears only that reason when it starts', async () => {
+    const site = await makeSite()
+    const task = await runningTask(site)
+
+    await handleRunWaiting(site.siteId, { ...waiting(task.id, true), reason: 'branch' })
+    expect(await reasonOf(task.id)).toBe(WAITING_FOR_BRANCH_REASON)
+    await handleRunWaiting(site.siteId, { ...waiting(task.id, false), reason: 'branch' })
+    expect(await reasonOf(task.id)).toBe(SLOT_TAKEN_REASON)
   })
 
   it('applies nothing from a site that does not own the task', async () => {

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useAction, useQuery, deleteWorkspace, disconnectRepo, getWorkspace, getRepoState } from 'wasp/client/operations'
+import { useAction, useQuery, deleteWorkspace, disconnectRepo, getWorkspace, getRepoState, getWorkspaceRemoval } from 'wasp/client/operations'
 import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import { FILES_BUTTON, FilesQuietLine, FilesViewHeader } from '@agenthix/ui/projects'
 import { repoName } from './BackupLine'
@@ -7,7 +7,7 @@ import { OpenedFile } from './OpenedFile'
 import { FolderTree } from './FolderTree'
 import { GitLine } from './GitLine'
 import { RepoPanel } from './RepoPanel'
-import { workspaceDeleteConfirm } from './workspaceDeleteWords'
+import { withBranches, workspaceDeleteConfirm } from './workspaceDeleteWords'
 import { WorkspaceAbout } from './WorkspaceAbout'
 import { previewAddress, useFolder } from './filesToolData'
 import { useToolParams, useWide } from './useToolParams'
@@ -35,6 +35,8 @@ export function WorkspaceView({ workspaceId, siteLabel, previewId, connecting, o
   const owner = ws ? { ownerType: ws.ownerType as 'project' | 'user', ownerId: ws.ownerId } : null
   const target = owner && ws ? { ...owner, workspaceId: ws.id } : { ownerType: 'user' as const, ownerId: '', workspaceId }
   const { data: repoState } = useQuery(getRepoState, { target }, { enabled: !!ws })
+  // The branches a delete takes with it; a Viewer, who cannot delete, is refused this and sees none.
+  const { data: removal } = useQuery(getWorkspaceRemoval, { workspaceId }, { enabled: !!ws, retry: false })
   const top = useFolder(target, '', !!ws)
   const chosen = url.get('wfile')
   // Wide, the explorer opens on the README when there is one, as a repository's home page does.
@@ -55,7 +57,7 @@ export function WorkspaceView({ workspaceId, siteLabel, previewId, connecting, o
     try { await fn() } catch (e: unknown) { setNotice(e instanceof Error ? e.message : 'That did not work') }
   }
   const menu: OverflowItem[] = [
-    { label: 'Delete workspace', danger: true, confirmLabel: workspaceDeleteConfirm(ws.repoUrl ?? null, typeof repoState?.hasFiles === 'boolean' ? repoState : null), onSelect: act(async () => { await remove({ workspaceId: ws.id }); onBack() }) },
+    { label: 'Delete workspace', danger: true, confirmLabel: withBranches(workspaceDeleteConfirm(ws.repoUrl ?? null, typeof repoState?.hasFiles === 'boolean' ? repoState : null), removal?.branches), onSelect: act(async () => { await remove({ workspaceId: ws.id }); onBack() }) },
   ]
 
   if (url.get('wabout')) {

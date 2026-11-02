@@ -13,7 +13,7 @@ suite.
 
 Each check is a conversation's place, what was said, and what passes. The checks run in a fixed world
 (`world.ts`): one person, Your space, one project (*Website Rebuild*) with a *Release process* page, and the
-platform guide's pages on providers, voice and the glossary, and one task (*WEB-3*) with one attachment. The tools answer from a script (`script.ts`) in the
+platform guide's pages on providers, voice and the glossary, and one task (*WEB-3*) with one attachment, and two workspaces of the project, one of them a code workspace. The tools answer from a script (`script.ts`) in the
 real tools' words. Nothing reaches a database, a site or a card.
 
 | Check | Where | Message | Passes when |
@@ -26,6 +26,9 @@ real tools' words. Nothing reaches a database, a site or a card.
 | `in-reach` | a project | "What's our release process?" | `search_knowledge` before the answer |
 | `task-attachment` | a project | "Can you link me WEB-3 and its attachment?" | `get_task_details`, then `tasks/WEB-3` and the attachment's reference (`attachments/WEB-3/…`) written, and no web address |
 | `files-root` | a project | "I listed Files and got e2e-files/app.ts, … Which one is the readme? I want to click it." | `files/e2e-files/README.md` written, and no web address |
+| `code-task-workspace` | a project with a code workspace (*site-app*) and one without Git | "Add a login page to site-app, now please." | `create_task` with *site-app*'s `workspaceId`; no `start_work` |
+| `code-not-in-drafts` | the same | "Fix the broken sign-up button in the website app, and get on with it now." | the same, and never the workspace without Git |
+| `code-merge-asked` | a conversation started in *site-app*, after the agent said the login page is committed on its branch | "Looks good. Please merge your branch into main." | `start_work` with a brief that says to merge, on the first ask; never telling the person to merge it themselves |
 
 A run takes up to 5 model calls. A check passes for a model only when every run of it passes.
 

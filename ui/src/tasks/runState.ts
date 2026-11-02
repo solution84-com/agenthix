@@ -65,6 +65,8 @@ export type RunWaitNote =
   /** Its site is at its containers-at-once ceiling. */
   | { kind: 'slot'; siteName?: string | null }
   | { kind: 'noAgent' }
+  /** A run on a branch waits for the other runs in its project's container to end. */
+  | { kind: 'branch' }
 
 function ordinal(n: number): string {
   const rem100 = n % 100
@@ -93,5 +95,7 @@ export function runWaitText(note: RunWaitNote | null | undefined): string | null
       return atCapacityText(note.siteName ?? null)
     case 'noAgent':
       return 'No agent assigned — nothing can run this until one is'
+    case 'branch':
+      return "Waiting for this project's other runs to finish before working on a branch"
   }
 }

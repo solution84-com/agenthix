@@ -31,6 +31,7 @@ vi.mock('react-router', async () => {
       }
       return [address.params, set]
     },
+    Navigate: ({ to }: { to: string }) => react.createElement('div', null, `navigated to ${to}`),
   }
 })
 vi.mock('../filesToolData', async () => (await import('./filesToolsTestKit')).data)
@@ -251,6 +252,13 @@ describe('the Workspaces tool @SC-1025', () => {
     render(<WorkspacesTool owner={owner} siteLabel="Office Mac" />)
     fireEvent.click(screen.getByText('acme/web'))
     expect(address.params.get('workspace')).toBe('w1')
+  })
+
+  it('opens a workspace full screen, in the workspace view at its own address', () => {
+    data.useWorkspaces.mockReturnValue({ workspaces, unanswered: [], isLoading: false })
+    render(<WorkspacesTool owner={owner} siteLabel="Office Mac" />)
+    fireEvent.click(screen.getByText('acme/web'))
+    expect(screen.getByText('navigated to /workspaces/w1/view')).toBeTruthy()
   })
 
   it('opens a workspace, and Connect GitHub opens it ready to connect', () => {

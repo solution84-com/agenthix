@@ -515,6 +515,11 @@ model Conversation {
   /// What must survive compaction (long conversations spec): kept by the
   /// coordinator from events, never by a summariser. Shape: protocol.ts LedgerEntry[].
   ledger        Json                 @default("[]")
+  /// The workspace it was started in (live preview spec, part 2), from the workspace view or as where it works: a
+  /// logical reference, since workspaces live in the site's database. In a code workspace it works on a branch of its
+  /// own. Null for every other conversation.
+  workspaceId   String?
+  branches      WorkspaceBranch[]
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
   messages      ConversationMessage[]
@@ -526,6 +531,7 @@ model Conversation {
 
   @@index([openedById, home, status, lastMessageAt])
   @@index([projectId, openedById, status])
+  @@index([workspaceId])
 }
 
 enum ConversationRole {
@@ -989,6 +995,7 @@ model ExecutionSite {
 
   projects              Project[]
   userStoragePlacements UserStoragePlacement[]
+  branchCopies          BranchCopy[]
   orgKnowledgePlacements OrgKnowledgePlacement[]
   heldInstructions      HeldSiteInstruction[]
   scheduledChanges      ScheduledChange[]
@@ -1486,6 +1493,11 @@ model Task {
   /// An epic's milestone; only an epic has one.
   milestone        Milestone?         @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
   milestoneId      String?
+  /// The workspace its work is done in (live preview spec, part 2): a logical reference, since workspaces live in
+  /// the site's database. A code workspace makes its runs code work, on a branch of their own. Null: the project's
+  /// own files, as before.
+  workspaceId      String?
+  branches         WorkspaceBranch[]
   session          AgentSession?                // back-relation to the task's session (ADR-0030)
   attachments      TaskAttachment[]
   comments         TaskComment[]
@@ -1501,6 +1513,7 @@ model Task {
   @@index([onBehalfOfUserId])
   @@index([doneAt])
   @@index([routineId])
+  @@index([workspaceId])
   @@unique([projectId, number])
 }
 
@@ -2126,6 +2139,87 @@ model UserStoragePlacement {
   site      ExecutionSite @relation(fields: [siteId], references: [id], onDelete: Restrict)
   createdAt DateTime      @default(now())
   @@index([siteId])
+}
+
+// ──────────────────────────────────────────────
+// Module: Code work on branches (live preview spec, parts 2 and 3). Git holds the branches and their commits; hq
+// holds whose work each branch is, its last merge, and where its working copy is.
+// ──────────────────────────────────────────────
+
+enum WorkspaceBranchState {
+  /// Its work goes on; it may have been merged as a checkpoint.
+  OPEN
+  /// Merged with no agent working on it, and closed: its copy is removed.
+  MERGED
+  /// Deleted by a person, unmerged.
+  DELETED
+}
+
+/// One branch of a code workspace's repository, made by hq for one piece of work: a task's or a conversation's.
+/// Branches an agent makes with its own git (a backup) are read from the repository and have no row. At most one
+/// OPEN branch per task, per conversation, and per workspace and name: checked in code, since Prisma has no partial
+/// unique index.
+model WorkspaceBranch {
+  id                String               @id @default(uuid())
+  /// A logical reference: workspaces live in the site's database. Its storage owner is beside it, so a call to the
+  /// site needs no lookup first.
+  workspaceId       String
+  ownerType         WorkspaceOwnerType
+  ownerId           String
+  /// The branch's name in the repository now; a rename changes it.
+  name              String
+  /// Whose work it is: a task's or a conversation's, never both.
+  task              Task?                @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  taskId            String?
+  conversation      Conversation?        @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  conversationId    String?
+  /// The person the work is for. Not a relation, as with Task.onBehalfOfUserId.
+  userId            String
+  /// The branch's commit its last merge took in: the merge base for the next (`git merge-tree --merge-base`). Null
+  /// until it is first merged.
+  lastMergedCommit  String?
+  /// The version of main that merge made, so the branch is not counted behind by its own merge.
+  lastMergedVersion String?
+  state             WorkspaceBranchState @default(OPEN)
+  copies            BranchCopy[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  mergedAt          DateTime?
+  deletedAt         DateTime?
+
+  @@index([workspaceId, state])
+  @@index([taskId])
+  @@index([conversationId])
+  @@index([userId])
+}
+
+enum BranchCopyState {
+  /// Asked of the site, not yet confirmed.
+  MAKING
+  READY
+  /// Asked to be removed, not yet confirmed: the site is asked again when it is back.
+  REMOVING
+  REMOVED
+}
+
+/// A branch's working copy: a clone in `clones/<folderId>/` of the owner's storage on one site. One live copy per
+/// branch (checked in code); a removed one keeps its row.
+model BranchCopy {
+  id        String          @id @default(uuid())
+  branch    WorkspaceBranch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branchId  String
+  /// The ExecutionSite whose disk holds it.
+  siteId    String
+  site      ExecutionSite   @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  /// The copy's folder id on the site (`copyId` on the wire), minted by hq.
+  folderId  String          @unique
+  state     BranchCopyState @default(MAKING)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  removedAt DateTime?
+
+  @@index([branchId, state])
+  @@index([siteId, state])
 }
 
 // ──────────────────────────────────────────────

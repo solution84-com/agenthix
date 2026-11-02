@@ -9,7 +9,7 @@
 import { prisma } from 'wasp/server'
 import type { RunWaitNote } from '@agenthix/core'
 import { IN_LINE } from '../agents/taskSlotClaim'
-import { WAITING_FOR_SLOT_REASON } from '../agents/taskExecutionReasons'
+import { WAITING_FOR_BRANCH_REASON, WAITING_FOR_SLOT_REASON } from '../agents/taskExecutionReasons'
 import { effectiveAutomation } from './automationSettings'
 import { choiceOf, loadOrgAutomation } from './automationStore'
 import { displaySiteName } from '../shared/siteName'
@@ -58,7 +58,7 @@ const pairKey = (projectId: string, agentId: string | null) => `${projectId}:${a
 
 function needsNote(t: NoteTask): boolean {
   if (t.runState === 'RUN_THROTTLED') return true
-  if (t.runState === 'RUN_ACTIVE') return t.runStateReason === WAITING_FOR_SLOT_REASON
+  if (t.runState === 'RUN_ACTIVE') return t.runStateReason === WAITING_FOR_SLOT_REASON || t.runStateReason === WAITING_FOR_BRANCH_REASON
   // A reason already given (held, no agent...) is shown as it is.
   return t.runState === 'RUN_QUEUED' && (!!t.assignedAgentId || !t.runStateReason)
 }
@@ -93,6 +93,7 @@ export async function withRunWaitNotes<T extends NoteTask>(tasks: T[]): Promise<
 
   const noteFor = (t: T): RunWaitNote | null => {
     if (!needsNote(t)) return null
+    if (t.runState === 'RUN_ACTIVE' && t.runStateReason === WAITING_FOR_BRANCH_REASON) return { kind: 'branch' }
     if (t.runState === 'RUN_ACTIVE') return { kind: 'slot', siteName: sites.get(t.projectId) ?? null }
     if (!t.assignedAgentId) return { kind: 'noAgent' }
     const row = rowOf.get(t.projectId) ?? null

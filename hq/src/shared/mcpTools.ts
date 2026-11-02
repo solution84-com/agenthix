@@ -5,19 +5,20 @@
  * domain group — matching the canonical tool reference in docs/domains/tools/tools.md.
  *
  * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW,
- * KNOWLEDGE, SKILL, PLACE
+ * KNOWLEDGE, SKILL, PLACE, CODE
  *
  * Access tiers (cross-cutting):
  *   ALWAYS_INJECTED  — PLATFORM tools + task execution lifecycle; never user-configurable
  *   DEFAULT_ON       — included when allowedTools is null
  *   ADMINISTRATIVE   — off by default; must be explicitly granted
  *
- * A group in no tier is defined, not offered: PLACE, until a conversation's places are served.
+ * A group in no tier is defined, not offered: PLACE, until a conversation's places are served; CODE, which only a run
+ * on a code workspace is given, by its dispatch rather than by a tier.
  *
  * Tool names are stored and passed around in our raw format (e.g. 'create_task').
  * Runtime adapters are responsible for translating to their own naming scheme.
  */
-import { PROPOSE_SKILL_TOOL, WORKFLOW_TOOL_NAMES } from '@agenthix/core'
+import { COMMIT_TOOL_NAME, MERGE_TOOL_NAME, PROPOSE_SKILL_TOOL, UPDATE_TOOL_NAME, WORKFLOW_TOOL_NAMES } from '@agenthix/core'
 import { ALL_RUNTIME_TOOL_NAMES } from './runtimeTools'
 
 // ── Tool registry (by domain) ─────────────────────────────────────────────────
@@ -179,6 +180,16 @@ export const SYSTEM_MCP_TOOLS = {
     SUGGEST_PLACE: 'suggest_place',
   },
 
+  /**
+   * Code work on branches (live preview spec, parts 2 and 3): committing in the run's own copy of its branch, bringing
+   * main into it, and merging it when the person asks, declared in core (codeWork/). Given only to a run on a code workspace, so in no access tier below.
+   */
+  CODE: {
+    COMMIT: COMMIT_TOOL_NAME,
+    MERGE_INTO_MAIN: MERGE_TOOL_NAME,
+    UPDATE_FROM_MAIN: UPDATE_TOOL_NAME,
+  },
+
 } as const
 
 // ── Access tier views ─────────────────────────────────────────────────────────
@@ -282,3 +293,4 @@ export type SystemMcpTool =
   | typeof SYSTEM_MCP_TOOLS.MEMORY[keyof typeof SYSTEM_MCP_TOOLS.MEMORY]
   | typeof SYSTEM_MCP_TOOLS.KNOWLEDGE[keyof typeof SYSTEM_MCP_TOOLS.KNOWLEDGE]
   | typeof SYSTEM_MCP_TOOLS.PLACE[keyof typeof SYSTEM_MCP_TOOLS.PLACE]
+  | typeof SYSTEM_MCP_TOOLS.CODE[keyof typeof SYSTEM_MCP_TOOLS.CODE]

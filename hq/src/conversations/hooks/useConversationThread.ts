@@ -90,7 +90,14 @@ export function useConversationThread(conversationId: string) {
 
   useEffect(() => {
     const s = socket as unknown as LooseSocket
-    const join = () => s.emit(CONVERSATION_SOCKET.subscribe, conversationId)
+    // Once the room has the socket, the record is read again: a reply that ended before the join sent its end to
+    // no one, and the first read may still show it running.
+    const joined = (ok: unknown) => {
+      if (ok !== true) return
+      loadLatest(false).catch(() => undefined)
+      void refetchView()
+    }
+    const join = () => s.emit(CONVERSATION_SOCKET.subscribe, conversationId, joined)
     const mine = (e: { conversationId: string }) => e.conversationId === conversationId
 
     const onMessage = (e: ConversationMessageEvent) => {

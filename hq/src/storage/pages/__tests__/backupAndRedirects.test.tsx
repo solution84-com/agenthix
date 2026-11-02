@@ -69,22 +69,10 @@ describe('the old addresses @SC-659', () => {
     expect(to()).toBe('/projects?view=workspaces')
   })
 
-  it('a workspace opens the place that holds it, with that workspace open', () => {
+  it('a workspace’s own address opens it full screen, in the workspace view', () => {
     params.value = { workspaceId: 'w1' }
-    useQuery.mockReturnValue({ data: { id: 'w1', ownerType: 'project', ownerKey: 'AGX' }, error: null })
-    const { unmount } = render(<WorkspaceDetailPage />)
-    expect(to()).toBe('/projects/AGX?tool=workspaces&workspace=w1')
-    unmount()
-    useQuery.mockReturnValue({ data: { id: 'w2', ownerType: 'user', ownerKey: null }, error: null })
     render(<WorkspaceDetailPage />)
-    expect(to()).toBe('/chat?tool=workspaces&workspace=w2')
-  })
-
-  it('a workspace on a site that does not answer says so instead of loading forever', () => {
-    params.value = { workspaceId: 'w1' }
-    useQuery.mockReturnValue({ data: undefined, error: new Error('Execution Site "Laptop" is unreachable') })
-    render(<WorkspaceDetailPage />)
-    expect(screen.getByRole('alert').textContent).toContain('unreachable')
+    expect(to()).toBe('/workspaces/w1/view')
   })
 
   it('an owner’s Files address opens the project’s, or the person’s own space', () => {

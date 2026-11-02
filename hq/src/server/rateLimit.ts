@@ -67,3 +67,11 @@ export async function resetRateLimit(key?: string): Promise<void> {
     await prisma.rateLimit.deleteMany({})
   }
 }
+
+/** Gives back one attempt counted in the current window: for a check that counts first and turns out right. */
+export async function giveBackRateLimit(key: string): Promise<void> {
+  await prisma.rateLimit.updateMany({
+    where: { ip: key, resetAt: { gt: new Date() }, count: { gt: 0 } },
+    data: { count: { decrement: 1 } },
+  })
+}

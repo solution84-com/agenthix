@@ -10,3 +10,23 @@ export function workspaceDeleteConfirm(repoUrl: string | null, state: { hasFiles
     ? 'Delete — files not yet pushed to GitHub go with it; the repository is not affected'
     : 'Delete — any files not yet pushed to GitHub go with it; the repository is not affected'
 }
+
+type RemovalBranch = { name: string; whose: { personName: string | null }; ahead: number; working: { agentName: string } | null }
+
+/** The most branches named in the confirm; the rest are counted. */
+const BRANCHES_NAMED = 5
+
+/**
+ * The open branches the delete takes with it (live preview spec, *Defaults for review* 5): each one's name, whose it
+ * is and how far ahead of main, and the agent working on it, which stops.
+ */
+export function withBranches(confirm: string, branches: readonly RemovalBranch[] | null | undefined): string {
+  if (!branches || branches.length === 0) return confirm
+  const line = (b: RemovalBranch) => {
+    const facts = [b.whose.personName, `${b.ahead} commit${b.ahead === 1 ? '' : 's'} ahead of main`, b.working ? `${b.working.agentName} is working on it and stops` : null]
+    return `${b.name} (${facts.filter(Boolean).join(', ')})`
+  }
+  const named = branches.slice(0, BRANCHES_NAMED).map(line)
+  if (branches.length > BRANCHES_NAMED) named.push(`${branches.length - BRANCHES_NAMED} more`)
+  return `${confirm}. Its ${branches.length === 1 ? 'branch goes' : `${branches.length} branches go`} too, with work not merged into main: ${named.join('; ')}`
+}

@@ -55,6 +55,16 @@ export function onRunStatus(name: string, l: StatusListener): void {
   statusListeners.set(name, l)
 }
 
+/**
+ * Handlers of a site event a feature registers for itself at module scope, as TaskRunner registers its status
+ * listener: so the feature's module, which reaches the channel itself, is never imported from here.
+ */
+type EventHandler = (siteId: string, data: unknown) => Promise<void>
+const eventHandlers = new Map<string, EventHandler>()
+export function onSiteEvent(event: string, handler: EventHandler): void {
+  eventHandlers.set(event, handler)
+}
+
 /** Same name/shape as dashboard/activity.ts's __resetForTests — test-only reset. */
 export function __resetForTests(): void {
   statusListeners.clear()
@@ -85,6 +95,8 @@ export async function handleSiteEvent(siteId: string, event: string, data: unkno
   // Loaded when first needed: the workflow runs reach the channel themselves, and a static import would be a cycle.
   if (event === WORKFLOW_STEP_EVENT) return (await import('../../workflows/runsEvents')).handleWorkflowStepEvent(siteId, data)
   if (event === WORKFLOW_RESULT_EVENT) return (await import('../../workflows/runsEvents')).handleWorkflowResultEvent(siteId, data)
+  const registered = eventHandlers.get(event)
+  if (registered) return registered(siteId, data)
   warnUnknownEventOnce(siteId, event)
 }
 

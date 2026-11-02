@@ -7,6 +7,7 @@ import type { RecordedCall, RunRecord } from './run'
 import type { CheckSetup } from './setup'
 import { PROJECT, PROJECT_LEVEL, RELEASE_PAGE, levelOf } from './world'
 import { FILE_CHECKS } from './fileChecks'
+import { CODE_WORK_CHECKS } from './codeWorkChecks'
 
 export type Grade = { passed: true } | { passed: false; why: string }
 
@@ -125,4 +126,5 @@ export const CHECKS: readonly Check[] = [
     grade: run => searchedFirst(run, inReach, 'search_knowledge'),
   },
   ...FILE_CHECKS,
+  ...CODE_WORK_CHECKS,
 ]

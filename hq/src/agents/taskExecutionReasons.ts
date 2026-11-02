@@ -19,6 +19,12 @@ export const WAITING_FOR_AGENT_REASON = "waiting for this agent's running task i
 /** RUN_ACTIVE, but its run is waiting for a free run slot on its Execution Site (the site's limit on runs at once). */
 export const WAITING_FOR_SLOT_REASON = 'waiting for a free run slot on its Execution Site'
 
+/**
+ * RUN_ACTIVE, but its run, on a branch, waits for the other runs in its project's container to end, so the container
+ * is made again with the project's code workspaces read-only (live preview spec, *Where the copy lives*).
+ */
+export const WAITING_FOR_BRANCH_REASON = "waiting for this project's other runs to finish before working on a branch"
+
 /** A scheduled task that fell due while its project's automation was off (spec §3). */
 export const AUTOMATION_OFF_REASON = "scheduled time reached while this project's automation is off — waiting for a person or the pulse"
 

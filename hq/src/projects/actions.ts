@@ -39,6 +39,7 @@ import { requireDefaultSiteRef } from '../sites/localSite'
 import { requireProjectAdmin, requireMayWorkInProject, requireMayAssignAgents } from './membership'
 import { requireTaskAccess, requireBoardAccess, requireAgentOnProject } from './resourceEntitlement'
 import { originByPerson, personQueuer } from './taskOnBehalfOf'
+import { checkedTaskWorkspace } from '../branches/taskWorkspace'
 import { askedToStart } from './taskQueueing'
 import { rethrowLocationFileErrorAsHttp } from '../storage/httpErrors'
 import { findProjectStorageSite, removeProjectStorageOnSite } from './projectStorageRemoval'
@@ -210,7 +211,9 @@ export const createTask: CreateTask<CreateTaskArgs, TaskFields> = async (given, 
   if (args.assignedAgentId) await requireAgentOnProject(args.projectId, args.assignedAgentId)
   // The model a task names is not part of the mobile app's contract: it is read off the request here.
   const modelChoice = await checkedTaskModel((given as { modelChoice?: unknown }).modelChoice, { projectId: args.projectId, agentId: args.assignedAgentId, userId: context.user.id })
-  return taskFields(await createTaskRecord({ ...args, modelChoice, origin: originByPerson(context.user.id) }))
+  // So is its workspace (live preview spec, part 2): read off the request, and checked to be one of the project's.
+  const workspaceId = await checkedTaskWorkspace(args.projectId, (given as { workspaceId?: unknown }).workspaceId)
+  return taskFields(await createTaskRecord({ ...args, modelChoice, ...(workspaceId ? { workspaceId } : {}), origin: originByPerson(context.user.id) }))
 }
 
 export const updateTask: UpdateTask<
@@ -222,6 +225,8 @@ export const updateTask: UpdateTask<
     priority?: string
     labels?: string[]
     modelChoice?: string | null
+    /** One of the project's workspaces, or null for the project's files. */
+    workspaceId?: string | null
     status?: string
     result?: string | null
   },
@@ -236,7 +241,11 @@ export const updateTask: UpdateTask<
     projectId, userId: context.user.id,
     agentId: assignedAgentId ?? (await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgentId: true } }))?.assignedAgentId,
   })
-  return updateTaskRecord({ taskId, title, description, assignedAgentId, priority, labels, status, result, ...(modelChoice !== undefined ? { modelChoice } : {}) })
+  const workspaceId = await checkedTaskWorkspace(projectId, args.workspaceId)
+  return updateTaskRecord({
+    taskId, title, description, assignedAgentId, priority, labels, status, result,
+    ...(modelChoice !== undefined ? { modelChoice } : {}), ...(workspaceId !== undefined ? { workspaceId } : {}),
+  })
 }
 
 export const runTask: RunTask<{ taskId: string }, void> = async ({ taskId }, context) => {

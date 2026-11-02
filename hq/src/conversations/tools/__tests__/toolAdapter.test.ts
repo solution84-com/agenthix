@@ -352,7 +352,7 @@ describe('a call of a tool at Ask @SC-959', () => {
   })
 
   it("asks for the conversation's own tool at Ask, such as create_task, without running it", async () => {
-    const input = { title: 'Fix it', projectId: 'p1', orgId: 'o1', when: 'now', assignedAgentId: 'a1', reason: 'so it gets done today' }
+    const input = { title: 'Fix it', projectId: 'p1', orgId: 'o1', when: 'now', assignedAgentId: 'a1', workspaceId: null, reason: 'so it gets done today' }
     const outcome = await adapter.call(asking, { id: 'c1', name: 'create_task', input }, options())
     expect(outcome.status).toBe('waitingApproval')
     const { reason: _reason, ...args } = input

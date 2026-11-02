@@ -17,7 +17,8 @@ import {
   helperEnded, helperStarted, liveLinesOf, noLiveLines, type LiveLines,
 } from '../../conversations/work/activityLines'
 
-type Tracked = { operationId: string; conversationId: string; boundary: string | null; live: LiveLines }
+/** `waitLine`: why the run has not started, shown before its helpers' lines while it waits. */
+type Tracked = { operationId: string; conversationId: string; boundary: string | null; live: LiveLines; waitLine?: string }
 
 /** Runs being followed, by run id; and the same by operation, for the sheet's query. */
 const byRun = new Map<string, Tracked>()
@@ -38,7 +39,12 @@ export function __resetForTests(): void {
 /** The live lines and the count of ended helpers of an operation, as the sheet shows them now. */
 export function liveActivityOf(operationId: string): { lines: string[]; endedHelpers: number } {
   const tracked = byOperation.get(operationId)
-  return tracked ? { lines: liveLinesOf(tracked.boundary, tracked.live), endedHelpers: tracked.live.ended } : { lines: [], endedHelpers: 0 }
+  return tracked ? { lines: linesOf(tracked), endedHelpers: tracked.live.ended } : { lines: [], endedHelpers: 0 }
+}
+
+function linesOf(t: Tracked): string[] {
+  const lines = liveLinesOf(t.boundary, t.live)
+  return t.waitLine ? [t.waitLine, ...lines] : lines
 }
 
 async function followRun(siteId: string, runId: string): Promise<Tracked | null> {
@@ -66,7 +72,16 @@ async function followRun(siteId: string, runId: string): Promise<Tracked | null>
 }
 
 function emitLines(t: Tracked): void {
-  events.operationLines({ conversationId: t.conversationId, operationId: t.operationId, lines: liveLinesOf(t.boundary, t.live), endedHelpers: t.live.ended })
+  events.operationLines({ conversationId: t.conversationId, operationId: t.operationId, lines: linesOf(t), endedHelpers: t.live.ended })
+}
+
+/** A run of an operation waits before it starts, or has stopped waiting (`null`): its row says why. */
+export async function setRunWaitingLine(siteId: string, runId: string, line: string | null): Promise<void> {
+  const tracked = line ? await followRun(siteId, runId) : byRun.get(runId)
+  if (!tracked || (tracked.waitLine ?? null) === line) return
+  if (line) tracked.waitLine = line
+  else delete tracked.waitLine
+  emitLines(tracked)
 }
 
 type ToolFrame = { name: string; runId: string; data: unknown }

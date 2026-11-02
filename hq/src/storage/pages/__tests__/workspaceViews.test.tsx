@@ -22,6 +22,7 @@ vi.mock('wasp/client/operations', () => ({
   useAction: (name: string) => (actions[name] ??= vi.fn()),
   getWorkspace: 'getWorkspace', getRepoState: 'getRepoState', deleteWorkspace: 'deleteWorkspace', disconnectRepo: 'disconnectRepo',
   createWorkspace: 'createWorkspace', connectRepo: 'connectRepo', setWorkspaceAllowedTools: 'setWorkspaceAllowedTools',
+  getWorkspaceRemoval: 'getWorkspaceRemoval',
 }))
 vi.mock('react-router', () => ({ useSearchParams: () => [new URLSearchParams(), vi.fn()] }))
 vi.mock('../../../github/connect/ConnectRepoFlow', () => ({ ConnectRepoFlow: ({ target, defaultName, onCancel }: { target: { workspaceId: string }; defaultName: string; onCancel: () => void }) => <div>connect flow {target.workspaceId} {defaultName}<button type="button" onClick={onCancel}>Cancel</button></div> }))

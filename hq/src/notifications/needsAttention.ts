@@ -39,7 +39,7 @@ const INFRASTRUCTURE = new Set<string>([...Object.values(SITE_NOTIFICATION_TYPES
 
 /** The order an admin acts in: what is broken, then who is waiting to get in, then the rest. */
 const ORDER: string[] = [
-  SITE_NOTIFICATION_TYPES.hqSiteDown, SITE_NOTIFICATION_TYPES.health, RUN_SHORT_NOTIFICATION, SITE_NOTIFICATION_TYPES.offlineWithWork,
+  SITE_NOTIFICATION_TYPES.hqSiteDown, SITE_NOTIFICATION_TYPES.health, SITE_NOTIFICATION_TYPES.diskFilling, RUN_SHORT_NOTIFICATION, SITE_NOTIFICATION_TYPES.offlineWithWork,
   SITE_NOTIFICATION_TYPES.upgrade, 'credential_health', SITE_NOTIFICATION_TYPES.requests, SITE_NOTIFICATION_TYPES.requestExpired,
   'tool_approval', ORG_NOTIFICATION_TYPES.invitations, ORG_NOTIFICATION_TYPES.teamProposed, SKILL_PROPOSALS_ITEM_TYPE,
   ORG_NOTIFICATION_TYPES.bypassed,

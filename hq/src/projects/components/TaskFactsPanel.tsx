@@ -6,6 +6,7 @@ import { TaskPlanFacts } from './TaskPlanFacts'
 import { TaskOnBehalfOfSection } from './TaskOnBehalfOfSection'
 import { TaskAttachments } from './TaskAttachments'
 import { TaskWorkingFiles } from './TaskWorkingFiles'
+import { TaskWorkspaceSelect } from './TaskWorkspaceField'
 import type { LocationRef } from '@agenthix/core'
 import type { OpenTaskFile } from '../pages/useTasksToolUrl'
 import type { useTaskDetail } from '../hooks/useTaskDetail'
@@ -46,6 +47,9 @@ export function TaskFactsPanel({ detail, project, files }: { detail: Detail; pro
             </NativeSelect>
           )}
         </div>
+      </TaskFact>
+      <TaskFact label="Workspace">
+        <TaskWorkspaceSelect projectId={task.projectId} taskId={task.id} onChange={detail.handleWorkspaceChange} />
       </TaskFact>
       <TaskFact label="Priority">
         <NativeSelect size="sm" aria-label="Priority" value={task.priority} onChange={e => detail.handlePriorityChange(e.target.value)}>

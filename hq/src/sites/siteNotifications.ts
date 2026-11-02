@@ -33,7 +33,7 @@ import { readSiteFacts, type SiteFacts } from './siteFacts'
 import { awayWithinGrace, siteStanding, type SiteProblem } from './siteStanding'
 import { recordSiteProblems } from '../diagnostics/siteConditions'
 import { displaySiteName } from '../shared/siteName'
-import { BRANDING, type MachineShortage } from '@agenthix/core'
+import { BRANDING, diskFilling, type MachineShortage } from '@agenthix/core'
 import { fleetAdminRecipients } from './fleetAdmins'
 import { syncNearlyOutNotices, type NearlyOut } from './resources/nearlyOutNotices'
 import { registerRunResourceNotices } from './resources/runResourceNotice'
@@ -81,6 +81,22 @@ export function healthNotice(siteId: string, label: string, dockerDown: boolean,
       `Every run there fails until Docker is started on that machine.${nearly ? ` It is also ${nearly}.` : ''}`)
   }
   return open(T.health, siteId, `${label} is ${nearly}`, short.map(s => WHAT_TO_DO[s]).join(' '))
+}
+
+const GB = 1024 ** 3
+
+/**
+ * The disk is 80% used: earlier than nearly full, because many branches of a large repository can fill a machine.
+ * Once open it stays until the disk is below 75% used. Only for a connected site, whose report says how it is; a nearly-full disk has the notice of its own.
+ */
+export function diskFillingNotice(site: SiteFacts, label: string, warned = false): PersistentNotice | null {
+  const disk = site.health?.disk
+  if (site.status !== 'ONLINE' || !disk || !diskFilling(disk, warned)) return null
+  const used = Math.round(((disk.totalBytes - disk.freeBytes) / disk.totalBytes) * 100)
+  const copies = site.health?.branchCopies
+  const by = copies ? ` Branch copies take ${Math.round((copies.usedBytes / GB) * 10) / 10} GB of it.` : ''
+  return open(T.diskFilling, site.siteId, `${label}'s disk is ${used}% used`,
+    `Branches keep a working copy each; delete branches whose work is over, free space on that machine, or give it a larger disk.${by}`)
 }
 
 async function orgAdmins(): Promise<string[]> {
@@ -131,20 +147,26 @@ async function pass(): Promise<void> {
   const now = new Date()
   const [admins, fleet, sites] = await Promise.all([orgAdmins(), fleetAdminRecipients(), readSiteFacts()])
   const byType = new Map<string, PersistentNotice[]>(
-    [T.upgrade, T.hqSiteDown, T.offlineWithWork, T.health, T.requests, T.requestExpired].map(t => [t, [] as PersistentNotice[]]))
+    [T.upgrade, T.hqSiteDown, T.offlineWithWork, T.health, T.diskFilling, T.requests, T.requestExpired].map(t => [t, [] as PersistentNotice[]]))
   // Sites away for less than the grace: their not-connected notifications, if open, stay as they are.
   const undecided: string[] = []
   const nearlyOut: NearlyOut[] = []
+  const fillingOpen = new Set((await prisma.notification.findMany({
+    where: { type: T.diskFilling, status: { in: ['unread', 'read'] }, subjectKey: { not: null } },
+    select: { subjectKey: true },
+  })).map(n => n.subjectKey))
   for (const site of sites) {
     const { problems } = siteStanding(site, now, hqStartedAt)
     for (const [type, notice] of Object.entries(noticesFor(site, problems))) if (notice) byType.get(type)!.push(notice)
+    const filling = diskFillingNotice(site, name(displaySiteName(site)), fillingOpen.has(site.siteId))
+    if (filling) byType.get(T.diskFilling)!.push(filling)
     for (const shortage of machineShortages(problems)) nearlyOut.push({ siteId: site.siteId, siteName: name(displaySiteName(site)), shortage })
     if (awayWithinGrace(site, now, hqStartedAt)) undecided.push(site.siteId)
     await recordSiteProblems(site, problems, now)
   }
   for (const [type, notices] of byType) {
     const keep = type === T.hqSiteDown || type === T.offlineWithWork ? undecided : []
-    await syncPersistentNotifications(type, notices, type === T.health ? fleet : admins, { keep })
+    await syncPersistentNotifications(type, notices, type === T.health || type === T.diskFilling ? fleet : admins, { keep })
   }
   await syncNearlyOutNotices(nearlyOut)
 }

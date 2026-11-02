@@ -15,13 +15,17 @@ import { conversationTools } from '../work/registry'
 import { describeStartWork } from '../work/workers/startWork'
 import { personalBoundary } from '../work/boundaries'
 import { ANSWER_APPROVAL, CANCEL_OPERATION } from '../work/toolCalls/leadTools'
-import { AGENT_ID, AGENT_NAME, PERSON_ID, PROJECT, PROJECT_PLACE, YOUR_SPACE_PLACE, type Home } from './world'
+import { CREATE_TASK, CREATE_TASK_DESCRIPTION } from '../work/tasks/createTaskTool'
+import { describeWorkspaces } from '../../branches/leadWorkspaces'
+import { AGENT_ID, AGENT_NAME, PERSON_ID, PROJECT, PROJECT_PLACE, WORKSPACES, YOUR_SPACE_PLACE, type Home } from './world'
 
 /** One message of what was said before, then the person's message the turn answers. */
 export interface Said { role: 'person' | 'agent'; text: string }
 
 export interface CheckSetup {
   home: Home
+  /** The workspace the conversation was started in, for a conversation started in one. */
+  workspace?: { name: string; git: boolean }
   /** What was said before this turn, oldest first. */
   before?: readonly Said[]
   message: string
@@ -55,7 +59,7 @@ export function contextOf(setup: CheckSetup, now = new Date()): { system: Prompt
     awaiting: new Set(),
     turn: { trigger: 'MESSAGE', inputIds: [input.id] },
     memory: null,
-    places: { own: setup.home === 'project' ? PROJECT_PLACE : YOUR_SPACE_PLACE, added: [] },
+    places: { own: setup.home === 'project' ? PROJECT_PLACE : YOUR_SPACE_PLACE, added: [], ...(setup.workspace ? { workspace: setup.workspace } : {}) },
     listening: null,
   })
   // As a turn adds the time when it knows the person's: here with no timezone.
@@ -95,6 +99,11 @@ function scriptedOffer(tool: ConversationTool, home: Home): ConversationTool {
         ? { key: PROJECT.key, type: 'project' as const, id: PROJECT.id, name: PROJECT.name }
         : personalBoundary(PERSON_ID)
       return { ...tool, offered: async () => true, describe: async () => describeStartWork({ admitted: [boundary] }) }
+    }
+    // The project's workspaces, as the real description reads them from its site (branches/leadWorkspaces.ts).
+    case CREATE_TASK: {
+      const places = home === 'project' ? [{ key: PROJECT.key, workspaces: WORKSPACES }] : []
+      return { ...tool, describe: async () => [CREATE_TASK_DESCRIPTION, ...describeWorkspaces(places)].join('\n') }
     }
     // Nothing waits for an answer and nothing runs in a new conversation, so neither is offered.
     case ANSWER_APPROVAL:

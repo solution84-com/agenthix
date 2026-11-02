@@ -18,7 +18,7 @@ export interface ConversationSocket {
   join(room: string): unknown
   leave(room: string): unknown
   emit(event: string, payload: unknown): unknown
-  on(event: string, listener: (payload: unknown) => void): unknown
+  on(event: string, listener: (...args: unknown[]) => void): unknown
 }
 
 interface Log { info(message: string): void; warn(message: string): void }
@@ -52,8 +52,12 @@ export async function joinConversationRoom(
 }
 
 export function registerConversationRoom(socket: ConversationSocket, requireReader: RequireConversationReader, log: Log): void {
-  socket.on(CONVERSATION_SOCKET.subscribe, (conversationId) => {
-    void joinConversationRoom(socket, conversationId, requireReader, log)
+  // A join may ask to be answered once the socket is in the room: what the screen reads after that answer misses
+  // nothing, a reply that ended between its first read and the join included.
+  socket.on(CONVERSATION_SOCKET.subscribe, (conversationId, answer) => {
+    void joinConversationRoom(socket, conversationId, requireReader, log).then((joined) => {
+      if (typeof answer === 'function') answer(joined)
+    })
   })
   socket.on(CONVERSATION_SOCKET.unsubscribe, (conversationId) => {
     if (typeof conversationId === 'string') socket.leave(conversationRoom(conversationId))
