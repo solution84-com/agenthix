@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0160`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0169`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -299,3 +299,6 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0158](adr-0158-an-asset-is-installed-from-anywhere-through-one-signed-protocol.md) | An Asset Is Installed From Anywhere Through One Signed Protocol | Accepted |
 | [ADR-0159](adr-0159-agents-draft-skills-people-publish-them.md) | Agents Draft Skills, People Publish Them | Accepted |
 | [ADR-0160](adr-0160-setup-defines-the-organisation-first-and-ai-may-come-later.md) | Setup Defines the Organisation First, and AI May Come Later | Accepted |
+| ADR-0161 – ADR-0166 | Claimed by a unit that was replanned before it merged; never in force, and not reused | — |
+| [ADR-0167](adr-0167-agenthix-acts-only-on-machines-the-organisation-runs.md) | Agenthix Acts Only on Machines the Organisation Runs | Accepted |
+| [ADR-0168](adr-0168-code-work-runs-on-its-own-branch-and-only-a-merge-changes-main.md) | Code Work Runs on Its Own Branch, and Only a Merge Changes Main | Accepted |
