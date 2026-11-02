@@ -29,6 +29,8 @@ export type LineServerDeps = {
   log: Log
   now?: () => number
   pingIntervalMs?: number
+  /** Takes an upgrade that is not a line (a live app's WebSocket); true when it did. */
+  otherUpgrade?(req: IncomingMessage, socket: Duplex, head: Buffer): boolean
 }
 
 export function attachSiteLines(server: HttpServer, deps: LineServerDeps): void {
@@ -36,6 +38,7 @@ export function attachSiteLines(server: HttpServer, deps: LineServerDeps): void 
 
   server.on('upgrade', (req, socket, head) => {
     socket.on('error', () => {})
+    if (deps.otherUpgrade?.(req, socket, head)) return
     if ((req.url ?? '').split('?')[0] !== RELAY_SITE_LINE_PATH) {
       refuseUpgrade(socket, 404, 'Not Found')
       return
