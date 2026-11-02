@@ -13,6 +13,7 @@ import { reconcileSiteNotifications, startSiteNotifications } from '../siteNotif
 import { reconcileAfterRestore } from '../restoreReconcile'
 import { relayAssigner } from '../../relays/assigner'
 import { Logger } from '../../server/utils/logger'
+import { freshFeatureSwitches, orgFeatureSwitches } from '../../features/switches'
 
 const logger = new Logger('SiteChannel')
 
@@ -21,7 +22,10 @@ const logger = new Logger('SiteChannel')
  * needs to reach a site. Same process, so a module-level singleton is the
  * whole of it.
  */
-export const siteChannelRegistry = new SiteChannelRegistry(prismaSiteStatusStore)
+export const siteChannelRegistry = new SiteChannelRegistry(prismaSiteStatusStore, {
+  fresh: () => freshFeatureSwitches(),
+  read: orgFeatureSwitches,
+})
 
 /**
  * Reconcile-on-reconnect wiring (plan 5d-2 task 9a): fires once a site's

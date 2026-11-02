@@ -1629,6 +1629,10 @@ model Org {
   /// doesn't hold: their install scripts run in a live preview without the rule's lookups (live preview spec section
   /// 4). Carried to the site in each live-preview run's capability; at most core's MAX_TRUSTED_PACKAGE_SCOPES.
   trustedPackageScopes       String[]          @default([])
+  /// The organisation's feature switches (adr-0172), changed on Organisation › Settings › Features:
+  /// `{ [flag]: { on, byUserId, at } }`, each with who changed it and when. A flag not named keeps its stage's
+  /// default; one no longer in core's list is ignored. Read only through src/features/switches.ts.
+  featureSwitches            Json              @default("{}")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

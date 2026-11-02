@@ -16,6 +16,7 @@ import { isSpaceProject, taskRunOwner } from '../../projects/personalProject'
 import { resolveRunner } from './capabilityRunner'
 import { runSiteAndClaim } from '../../livePreviews/runs'
 import { orgTrustedPackageScopes } from '../../livePreviews/packageScopes'
+import { runFeatures } from '../../features/runFeatures'
 
 export interface CapabilityAgentFields {
   id: string
@@ -118,7 +119,12 @@ export async function resolveCapabilityClaims(args: {
       toolPermissions = toolPermissions.map(p => list.includes(p.name) ? p : { ...p, state: 'never' as const })
     }
   }
-  const neverTools = toolPermissions.filter(p => p.state === 'never').map(p => p.name)
+  // A flagged feature's tools reach the run only while it is on (adr-0172), whatever the agent's permissions say.
+  const features = await runFeatures()
+  const neverTools = [...new Set([
+    ...toolPermissions.filter(p => p.state === 'never').map(p => p.name),
+    ...features.withheldTools,
+  ])]
 
   // The role marks a chat in its person's own storage (ADR-0060, spec §6.3), the
   // one kind of run that acts as its person; memory and personal git access read

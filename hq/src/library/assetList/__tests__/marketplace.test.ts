@@ -1,23 +1,28 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { withFeature } from '@agenthix/core/testing'
+
+vi.mock('wasp/server', async () => {
+  const { HttpError } = await vi.importActual<typeof import('wasp/server')>('wasp/server')
+  return { HttpError, prisma: { org: { findFirst: async () => ({ featureSwitches: {} }) } } }
+})
+
 import { getMarketplace } from '../operations'
 
 const as = { user: { id: 'u1' } }
 
 /*
- * The Marketplace is behind a flag that is on only in development (adr-0116). Hiding its button is not enough: its
- * server route must refuse where the flag is off (security review L2). The flag is read on each call, from NODE_ENV.
+ * The Marketplace is behind a flag at preview (adr-0172). Hiding its button is not enough: its server route must
+ * refuse where the flag is off (security review L2). Tests run as shipped, so outside its group the flag is off.
  */
 describe("the Marketplace's server route @security-L2 @SC-1631", () => {
-  afterEach(() => { vi.unstubAllEnvs() })
-
-  it('refuses in production, whoever asks', async () => {
-    vi.stubEnv('NODE_ENV', 'production')
+  it('refuses as shipped, whoever asks', async () => {
     await expect(getMarketplace({}, as)).rejects.toMatchObject({ statusCode: 404 })
   })
 
-  it('answers in development, and only to someone signed in', async () => {
-    vi.stubEnv('NODE_ENV', 'development')
-    await expect(getMarketplace({}, as)).resolves.toEqual({ available: false })
-    await expect(getMarketplace({}, {})).rejects.toMatchObject({ statusCode: 401 })
+  withFeature('marketplace', () => {
+    it('answers with the feature on, and only to someone signed in', async () => {
+      await expect(getMarketplace({}, as)).resolves.toEqual({ available: false })
+      await expect(getMarketplace({}, {})).rejects.toMatchObject({ statusCode: 401 })
+    })
   })
 })

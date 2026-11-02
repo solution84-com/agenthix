@@ -40,6 +40,9 @@ export function OrgSettingsPage() {
         <OrgEntryRow to="/admin/settings/library" title="Library and skills" line="Whom the organisation trusts to sign what it installs, and how skills reach agents" />
         <OrgEntryRow to="/admin/settings/risk-rules" title="Tool risk rules" line="Patterns that label a command's risk" />
       </OrgEntryGroup>
+      <OrgEntryGroup title="Features">
+        <OrgEntryRow to="/admin/settings/features" title="Features" line="Try a feature in beta, or switch off one new in this release" />
+      </OrgEntryGroup>
       <p className="mt-6 text-small text-text-muted">
         HQ itself, its sites and storage are under{' '}
         <Link to="/admin/infrastructure" className="text-accent hover:text-accent-hover">Manage organisation › Infrastructure</Link>, kept apart from these.

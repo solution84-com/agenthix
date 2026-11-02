@@ -74,6 +74,18 @@ checked at their own address, so the specs and recipes that add them answer the 
 obviously fake key (`fixtures/add-provider.mjs`, which reads `DATABASE_URL`, else `.env.server`). Such a provider is dated
 so that HQ never re-checks it with its vendor.
 
+## Feature flags: as shipped, and a feature's own group
+
+Every spec runs as shipped (adr-0172). The e2e server is a development build, where a flag at preview or beta is on
+with no switch, so the seed (`fixtures/seed-e2e-users.mjs`) sets the organisation's switches to production's values:
+only a released flag on. A feature's own specs switch its flag on around their group with
+`withFeature(flag, test => { … })` (`fixtures/withFeature.ts`), through the *Features* screen's operation as the e2e
+administrator, and put it back after each test. The switch is the organisation's, so a spec file with such a group
+runs its tests in one worker, in order, with the feature's hidden-while-off tests beside the group.
+
+A failing test in the group of a flag at experimental is recorded and reported as skipped; the run's end lists it under
+*Experimental failures*. The full regression's extra run seeds with `TEST_ALL_FEATURES=1`, which switches every flag on.
+
 ## At an address that is not secure (the `not-secure` project)
 
 A browser gives some features (`crypto.randomUUID`, the clipboard, the microphone) only to a secure page: https, or

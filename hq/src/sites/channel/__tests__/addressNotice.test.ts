@@ -35,7 +35,7 @@ describe("telling sites hq's new address", () => {
     await registry.add('hq-box', own.ws as never)
 
     expect(await tellSitesNewAddress(registry, 'http://198.51.100.24:4100', 'hq-box')).toEqual({ told: 1, online: 2 })
-    expect(office.asked).toEqual([{ method: SITE_HQ_ADDRESS_METHOD, params: { address: 'http://198.51.100.24:4100' } }])
+    expect(office.asked).toEqual([{ method: SITE_HQ_ADDRESS_METHOD, params: { address: 'http://198.51.100.24:4100' }, features: {} }])
     expect(own.asked).toEqual([])
   })
 })

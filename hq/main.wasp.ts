@@ -27,6 +27,7 @@ import { conversationsSpec } from "./src/conversations/conversations.wasp";
 import { dashboardSpec } from "./src/dashboard/dashboard.wasp";
 import { filesSpec } from "./src/files/files.wasp";
 import { fleetSpec } from "./src/fleet/fleet.wasp";
+import { featuresSpec } from "./src/features/features.wasp";
 import { diagnosticsSpec } from "./src/diagnostics/diagnostics.wasp";
 import { githubSpec } from "./src/github/github.wasp";
 import { homeSpec } from "./src/home/home.wasp";
@@ -102,6 +103,7 @@ export default app({
     dashboardSpec,
     filesSpec,
     fleetSpec,
+    featuresSpec,
     diagnosticsSpec,
     githubSpec,
     homeSpec,

@@ -54,6 +54,7 @@ export const WASP_QUERIES: readonly string[] = [
   'getEnvStatus',
   'getExecutionSites',
   'getExistingAgentHandles',
+  'getFeatures',
   'getFileFacts',
   'getFilesPlace',
   'getFleetAccess',

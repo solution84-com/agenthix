@@ -16,7 +16,7 @@ export default defineConfig({
     globals: true,
     include: ['**/*.integration.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/.agenthix/**', '**/.wasp/**'],
-    globalSetup: ['./src/test/storage-root.ts'],
+    globalSetup: ['./src/test/storage-root.ts', './src/test/experimental-failures.ts'],
     setupFiles: ['./src/test/environment-setup.ts', './src/test/provider-guard-setup.ts', './src/test/integration-setup.ts'],
     maxWorkers: workers,
     fileParallelism: workers > 1,

@@ -1,6 +1,7 @@
 // Throwaway end-to-end test accounts. Uses the app's real password hashing so the
 // UI login path is genuinely exercised. Removed again by cleanup-smoke-users.mjs.
 import { PrismaClient } from '@prisma/client'
+import { FEATURE_FLAGS } from '@agenthix/core'
 import { hashPassword } from '../../.wasp/out/sdk/wasp/dist/auth/password.js'
 
 const prisma = new PrismaClient()
@@ -14,6 +15,18 @@ if (process.env.E2E_SEED_NO_ORG !== '1' && (await prisma.org.count()) === 0) {
   await prisma.org.create({ data: { name: 'My Organisation' } })
   console.log('org: created (none existed)')
 }
+
+// Every test runs as shipped (adr-0172), but the e2e suite runs against `wasp start`, a development build, where a
+// flag at preview or beta is on with no switch. So the organisation's switches are set to production's values: only a
+// released flag on. A feature's own specs switch it on around their group (fixtures/withFeature.ts). The full
+// regression's extra run sets TEST_ALL_FEATURES=1, read only here, to switch every flag on.
+const allOn = process.env.TEST_ALL_FEATURES === '1'
+const at = new Date().toISOString()
+const featureSwitches = Object.fromEntries(Object.entries(FEATURE_FLAGS)
+  .map(([flag, entry]) => [flag, { on: allOn || entry.stage === 'released', byUserId: null, at }]))
+const { count } = await prisma.org.updateMany({ data: { featureSwitches } })
+if (count > 0) console.log(`features: ${allOn ? 'every flag on' : "production's values"}`)
+
 const USERS = [
   { username: 'e2e-operator', password: 'E2eOperator!2026', role: 'MEMBER' },
   { username: 'e2e-admin', password: 'E2eAdmin!2026', role: 'ADMIN' },

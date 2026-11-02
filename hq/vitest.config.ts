@@ -26,7 +26,7 @@ export default defineConfig({
     // exhausted a 10-core machine's memory.
     maxWorkers: Number(process.env.VITEST_MAX_WORKERS) || 4,
     exclude,
-    globalSetup: ['./src/test/storage-root.ts'],
+    globalSetup: ['./src/test/storage-root.ts', './src/test/experimental-failures.ts'],
     setupFiles: ['./src/test/environment-setup.ts', './src/test/provider-guard-setup.ts'],
     projects: [
       { extends: true, test: { name: 'isolated', exclude: [...exclude, ...sharedProcessFiles] } },

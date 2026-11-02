@@ -2,12 +2,15 @@ import { test, expect, type Page } from '@playwright/test'
 import { signIn, ADMIN } from './fixtures/auth'
 import { at } from './fixtures/address'
 import { memberProjectKey } from './fixtures/memberProject'
+import { withFeature } from './fixtures/withFeature'
 
 // The Library in the navigation (skills spec part 6): its place among the places, the one searched view with its
-// Type and Show filters, and the Marketplace button behind its flag. Written against the seeded e2e organisation;
+// Type and Show filters, and the Marketplace button behind its flag (off as shipped; on in its own group). Written against the seeded e2e organisation;
 // run by the lead against a running hq.
 
 test.use({ viewport: { width: 1280, height: 800 } })
+// One worker, in order: the Marketplace's tests switch the organisation's flag, and its as-shipped test needs it off.
+test.describe.configure({ mode: 'default' })
 
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Main' })
 
@@ -89,14 +92,23 @@ test.describe('the Library view', () => {
     await expect(page.getByTestId('library-row').first()).toBeVisible()
   })
 
-  test('the administrator sees Add skill, New skill and Settings; the Marketplace button is a development button @SC-1609', async ({ page }) => {
+  test('the administrator sees Add skill, New skill and Settings; as shipped there is no Marketplace @SC-1609', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'New skill' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Add skill', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible()
-    // The e2e server runs in development, where the flag is on (adr-0116).
-    await page.getByRole('link', { name: 'Marketplace' }).click()
-    await expect(page).toHaveURL(at('/library/marketplace'))
-    await expect(page.getByTestId('marketplace-page')).toContainText('The Marketplace is not available yet')
+    // The Marketplace's flag is at preview, off as shipped (adr-0172): no button, and its address refuses.
+    await expect(page.getByRole('link', { name: 'Marketplace' })).toHaveCount(0)
+    await page.goto('/library/marketplace')
+    await expect(page.getByTestId('marketplace-page')).toContainText('The Marketplace is not available. Nothing was changed.')
+  })
+
+  withFeature('marketplace', test => {
+    test('with the Marketplace on, its button opens its page @SC-1609', async ({ page }) => {
+      await page.goto('/library')
+      await page.getByRole('link', { name: 'Marketplace' }).click()
+      await expect(page).toHaveURL(at('/library/marketplace'))
+      await expect(page.getByTestId('marketplace-page')).toContainText('The Marketplace is not available yet')
+    })
   })
 
   test('Add skill is named for what it adds today, on the button and on its page @SC-1609', async ({ page }) => {

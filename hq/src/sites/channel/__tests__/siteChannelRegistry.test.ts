@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SITE_PROTOCOL_VERSION } from '@agenthix/core'
 import { SiteChannelRegistry } from '../siteChannelRegistry'
 import type { SiteStatusStore } from '../siteStatusStore'
@@ -203,5 +203,49 @@ describe('closeForRotation — R-132', () => {
 
   it('does nothing for a site that is not connected', () => {
     expect(() => registry.closeForRotation('nobody')).not.toThrow()
+  })
+})
+
+describe("the organisation's switches on every request (adr-0172, site protocol 1.12)", () => {
+  const switchesSource = (fresh: Record<string, boolean> | null, read: Record<string, boolean> = {}) => ({
+    fresh: () => fresh,
+    read: async () => read,
+  })
+
+  it('sends the switches at once when they are fresh', async () => {
+    const reg = new SiteChannelRegistry(store, switchesSource({ marketplace: true }))
+    const ws = fakeSocket()
+    await reg.add('s1', ws as never)
+    reg.request('s1', 'site.describe', {}, 50).catch(() => {})
+    expect(JSON.parse(ws.sent[0]).payload).toEqual({ method: 'site.describe', params: {}, features: { marketplace: true } })
+  })
+
+  it('reads them first when they are not', async () => {
+    const reg = new SiteChannelRegistry(store, switchesSource(null, { usageBilling: false }))
+    const ws = fakeSocket()
+    await reg.add('s1', ws as never)
+    reg.request('s1', 'site.describe', {}, 50).catch(() => {})
+    await vi.waitFor(() => expect(ws.sent).toHaveLength(1))
+    expect(JSON.parse(ws.sent[0]).payload.features).toEqual({ usageBilling: false })
+  })
+
+  it('sends none to a site speaking a protocol before 1.12', async () => {
+    const reg = new SiteChannelRegistry(store, switchesSource({ marketplace: true }))
+    const ws = fakeSocket()
+    await reg.add('s1', ws as never, { major: 1, minor: 11 })
+    reg.request('s1', 'site.describe', {}, 50).catch(() => {})
+    expect(JSON.parse(ws.sent[0]).payload).toEqual({ method: 'site.describe', params: {} })
+  })
+
+  it('fails as offline when the site went away while the switches were read', async () => {
+    let release: (v: Record<string, boolean>) => void = () => {}
+    const reg = new SiteChannelRegistry(store, { fresh: () => null, read: () => new Promise(r => { release = r }) })
+    const ws = fakeSocket()
+    await reg.add('s1', ws as never)
+    const answer = reg.request('s1', 'site.describe', {})
+    await reg.remove('s1', ws as never)
+    release({})
+    await expect(answer).rejects.toMatchObject({ code: 'offline' })
+    expect(ws.sent).toHaveLength(0)
   })
 })

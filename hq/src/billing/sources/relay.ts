@@ -79,7 +79,7 @@ async function drain(now: () => Date): Promise<number> {
       const row = relayCallRow(r, costing, providerOf.get(r.providerId) ?? null)
       try {
         await prisma.$transaction(async tx => {
-          await ledger(tx).writeCall(row)
+          await (await ledger(tx)).writeCall(row)
           await tx.relayUsageReport.update({ where: { callId: r.callId }, data: { ledgeredAt: now() } })
         })
         written++

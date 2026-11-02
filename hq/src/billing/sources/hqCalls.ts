@@ -27,7 +27,7 @@ export function hqCallRow(access: ResolvedAccess, usage: TurnUsage, at: Date, ca
 export function recordHqCall(access: ResolvedAccess, usage: TurnUsage): void {
   const row = hqCallRow(access, usage, new Date())
   if (!row) return
-  void ledger().writeCall(row).catch(err => logger.warn(`A call's ledger row was not written: ${err instanceof Error ? err.message : String(err)}`))
+  void ledger().then(l => l.writeCall(row)).catch(err => logger.warn(`A call's ledger row was not written: ${err instanceof Error ? err.message : String(err)}`))
 }
 
 /** The same access, its calls costed for another purpose: a title or a summary on the turn's own access. */

@@ -33,7 +33,7 @@ export function ttsCallRow(access: VoiceCallAccess, characters: number, at: Date
 /** Writes a text-to-speech call's row in the background; a row that cannot be written is logged. */
 export function recordTts(access: VoiceCallAccess, characters: number, place: { conversationId?: string | null; userId?: string | null } = {}): void {
   if (characters <= 0) return
-  void ledger().writeCall(ttsCallRow(access, characters, new Date(), place))
+  void ledger().then(l => l.writeCall(ttsCallRow(access, characters, new Date(), place)))
     .catch(err => logger.warn(`A text-to-speech call's ledger row was not written: ${err instanceof Error ? err.message : String(err)}`))
 }
 
@@ -85,5 +85,5 @@ export async function recordSttSession(ticket: string, byUserId: string, audioMs
     logger.warn(`A speech-to-text session's usage was refused: ${answer.reason}`)
     return false
   }
-  return ledger().writeCall(answer.row)
+  return (await ledger()).writeCall(answer.row)
 }

@@ -1,9 +1,10 @@
 /**
- * The Library's view as Wasp operations (skills spec part 6 *The Library*; adr-0116 for the Marketplace's flag).
+ * The Library's view as Wasp operations (skills spec part 6 *The Library*; adr-0172 for the Marketplace's flag).
  * Hosted in `library.wasp.ts`. Reading is for the organisation's people.
  */
 import { HttpError, prisma } from 'wasp/server'
-import { isFeatureOn, NO_FEATURE_SWITCHES } from '@agenthix/core'
+import { isOrgFeatureOn } from '../../features/switches'
+import { requireFeature } from '../../features/requireFeature'
 import { may } from '../../assets/policy'
 import { organisationTarget, personActor } from '../../assets/policyActors'
 import { libraryEntries } from './entries'
@@ -20,13 +21,13 @@ export const getLibraryAssets = async (_args: unknown, context: Ctx): Promise<Li
     rows: await libraryEntries(prisma, viewer),
     isAdmin: viewer.role === 'ADMIN',
     mayAdd: may(viewer, 'install', target) || may(viewer, 'installFromOutside', target),
-    marketplace: isFeatureOn('marketplace', { env: process.env, switches: NO_FEATURE_SWITCHES }),
+    marketplace: await isOrgFeatureOn('marketplace'),
   }
 }
 
-/** The Marketplace page's one read: refused where the flag is off, so the route is closed in production, not hidden. */
+/** The Marketplace page's one read: refused where the flag is off, so the route is closed, not only hidden. */
 export const getMarketplace = async (_args: unknown, context: Ctx): Promise<{ available: false }> => {
   if (!context.user) throw new HttpError(401)
-  if (!isFeatureOn('marketplace', { env: process.env, switches: NO_FEATURE_SWITCHES })) throw new HttpError(404, 'The Marketplace is not available. Nothing was changed.')
+  await requireFeature('marketplace')
   return { available: false }
 }
