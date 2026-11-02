@@ -26,7 +26,7 @@ export type Command =
   | { kind: 'inviteAdmin'; yes: boolean }
   | { kind: 'resetPassword'; user: string }
   | { kind: 'logs'; target: 'hq' | 'site'; service?: string; lines: number }
-  | { kind: 'frontDoor'; action: 'show' | 'on' | 'off'; takePorts: boolean; filesHost?: string }
+  | { kind: 'frontDoor'; action: 'show' | 'on' | 'off'; takePorts: boolean; filesHost?: string; previewsHost?: string }
   | { kind: 'backupNow' }
   | { kind: 'backupExport'; to?: string }
   | { kind: 'backupLocation'; path?: string }
@@ -56,7 +56,9 @@ export const HELP: HelpRow[] = [
     detail: "With nothing after it: whether the front door is on, and how to point this machine's own web server at HQ instead. " +
       'on: the host service serves HQ and its uploaded files over https itself, with certificates it gets and renews. It takes ports 80 and 443, ' +
       'and is refused while either is in use. It asks first; from a script, add --take-ports-80-and-443. --files <host> names the uploaded ' +
-      "files' host, files.<HQ's host> by default. If a certificate cannot be had, everything is put back as it was. off: stops it and frees the ports." },
+      "files' host, files.<HQ's host> by default. --previews <domain> gives live apps their address, one name for each app under it, with a " +
+      'certificate each on first open; point *.<domain> at this machine first, and prefer a domain of their own to one under HQ\'s. ' +
+      'If a certificate cannot be had, everything is put back as it was. off: stops it and frees the ports.' },
   { group: 'machine', usage: 'backup [export]', does: 'Take a sealed backup now, or export one',
     detail: 'Takes a sealed backup of everything the site here holds, HQ included on HQ\'s machine, as the nightly one does. With export, takes one and seals it to a key made for it alone, shown once: the file is useless without it. The file is written to the exports folder in the state folder, or to --to <folder> on this machine.' },
   { group: 'machine', usage: 'backup location [<path>]', does: 'Show or choose the folder for backup copies',
@@ -154,8 +156,14 @@ function frontDoor(action: string | undefined, args: string[]): Command {
   if (action !== 'on') return { kind: 'usage', message: 'front-door takes on or off, or nothing to show how it is.' }
   const take = flag(args, '--take-ports-80-and-443')
   const files = option(take.rest, '--files')
-  if (files.bad || files.rest.length) return { kind: 'usage', message: 'front-door on takes --files <host> and --take-ports-80-and-443, nothing else.' }
-  return { kind: 'frontDoor', action: 'on', takePorts: take.set, filesHost: files.value }
+  const previews = option(files.rest, '--previews')
+  if (files.bad || previews.bad || previews.rest.length) {
+    return { kind: 'usage', message: 'front-door on takes --files <host>, --previews <domain> and --take-ports-80-and-443, nothing else.' }
+  }
+  return {
+    kind: 'frontDoor', action: 'on', takePorts: take.set, filesHost: files.value,
+    ...(previews.value !== undefined ? { previewsHost: previews.value } : {}),
+  }
 }
 
 function backup(args: string[]): Command {

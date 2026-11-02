@@ -16,6 +16,7 @@ import { hqConnectionManager } from '../hq/hqConnection'
 import { Logger } from '../utils/logger'
 import { copyDirOf, inTurn, placeWorkspace, requireCopy, type Placed } from './branchCalls'
 import { bringBackCopy, commitInCopy, withOnBehalfOf } from './branchWorkMethods'
+import { livePreviewRunEnds, livePreviewRunStarts, resolveLivePreviewCopy, sweepLivePreviewCopy } from '../livePreviews/livePreviewRuns'
 
 const logger = new Logger('branches')
 
@@ -32,6 +33,8 @@ export type CodeWorkRun = {
   /** Whom the *Work in progress* commit at the run's end names, as hq gave them: the run's agent, for the person. */
   author: GitPerson
   onBehalfOf: GitPerson | null
+  /** Set when the run works in a live preview's own copy on this site (copy kind `bundle`): see `livePreviewRuns.ts`. */
+  livePreviewId?: string
 }
 
 /**
@@ -41,6 +44,7 @@ export type CodeWorkRun = {
 export async function resolveCodeWork(
   runId: string, codeWork: RunCodeWork, boundary: { ownerType: string; ownerId: string },
 ): Promise<CodeWorkRun> {
+  if (codeWork.livePreviewId) return resolveLivePreviewCopy(runId, codeWork, boundary)
   const ref: WorkspaceRepoRef = codeWork.workspace
   const refused = new ReadableRunError(
     `The working copy of branch ${codeWork.branch} is not on this site, or is not this work's. ` +
@@ -85,6 +89,8 @@ const going = new Map<string, Going>()
 
 /** The run has started on its copy: the copy is marked, and swept every minute while any run on it goes. */
 export async function startCodeWork(run: CodeWorkRun, sweepMs: number = SWEEP_MS): Promise<void> {
+  await livePreviewRunStarts(run)
+  if (run.livePreviewId) return startLivePreviewSweep(run, sweepMs)
   await prisma.branchCopy.update({ where: { id: run.copyId }, data: { backPending: true } })
   const now = going.get(run.copyId)
   if (now) { now.runs++; return }
@@ -104,7 +110,12 @@ export async function startCodeWork(run: CodeWorkRun, sweepMs: number = SWEEP_MS
  * copy is no longer marked once that worked. Never throws: a failure leaves the mark, for the next run or start.
  */
 export async function endCodeWork(run: CodeWorkRun): Promise<void> {
+  await livePreviewRunEnds(run).catch(err => logger.warn(`Ending the run on live preview ${run.livePreviewId ?? ''} failed: ${String(err)}`))
   const entry = going.get(run.copyId)
+  if (run.livePreviewId) {
+    if (entry && --entry.runs <= 0) { clearInterval(entry.timer); going.delete(run.copyId) }
+    return
+  }
   const last = !entry || --entry.runs <= 0
   if (last && entry) { clearInterval(entry.timer); going.delete(run.copyId) }
   try {
@@ -113,6 +124,19 @@ export async function endCodeWork(run: CodeWorkRun): Promise<void> {
   } catch (err) {
     logger.warn(`Bringing back branch ${run.branch} at the run's end failed: ${err instanceof Error ? err.message : String(err)}`)
   }
+}
+
+/** A run in a live preview's own copy: every minute, a moved branch is told to hq, which brings it back by bundle. */
+function startLivePreviewSweep(run: CodeWorkRun, sweepMs: number): void {
+  const now = going.get(run.copyId)
+  if (now) { now.runs++; return }
+  const entry: Going = { runs: 1, busy: false, timer: setInterval(() => {
+    if (entry.busy) return
+    entry.busy = true
+    sweepLivePreviewCopy(run).catch(() => {}).finally(() => { entry.busy = false })
+  }, sweepMs) }
+  entry.timer.unref?.()
+  going.set(run.copyId, entry)
 }
 
 /** After a start of the site: every copy whose commits may not all be back is brought back. */

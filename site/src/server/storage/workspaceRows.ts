@@ -19,6 +19,22 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '#db'
 import { WORKSPACE_OWNER_TYPES, type OkResult } from '@agenthix/core'
 import { canonicalGitHubRepoUrl } from './canonicalRepoUrl'
+import { removeWorkspaceServices } from '../livePreviews/services/previewServices'
+import { dbServiceApprovals } from '../livePreviews/services/serviceApprovals'
+import { cliServiceDocker, type ServiceDocker } from '../livePreviews/services/serviceDocker'
+import { Logger } from '../utils/logger'
+
+const logger = new Logger('workspaceRows')
+
+/**
+ * A workspace removed from this site: its live previews' services lose their approvals, and, where the site makes
+ * containers, their volumes, which hold the services' data.
+ */
+export async function forgetWorkspaceServices(workspaceId: string, docker: ServiceDocker = cliServiceDocker): Promise<void> {
+  await dbServiceApprovals.forgetWorkspace(workspaceId)
+  if (process.env.AGENT_CONTAINER_ISOLATION !== 'true') return
+  await removeWorkspaceServices(workspaceId, docker)
+}
 
 /** A row as core declares it: `allowedTools` holds only what `parseAllowedToolsShape` below lets through. */
 type WithTools<T extends { allowedTools: Prisma.JsonValue }> = Omit<T, 'allowedTools'> & { allowedTools: string[] | null }
@@ -140,6 +156,7 @@ export async function setWorkspaceAllowedTools(params: unknown): Promise<OkResul
 export async function deleteWorkspace(params: unknown): Promise<OkResult> {
   const { id } = idParams.parse(params)
   await prisma.workspace.deleteMany({ where: { id } })
+  await forgetWorkspaceServices(id).catch(err => logger.warn(`The services' volumes of removed workspace ${id} were not all removed: ${err instanceof Error ? err.message : String(err)}`))
   return { ok: true }
 }
 

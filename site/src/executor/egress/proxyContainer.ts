@@ -7,7 +7,7 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process'
 import { executorImageName } from '../../agents/runtime/agentImage'
-import { composeProjectLabelArgs, labelKey } from '../../agents/runtime/containerLabels'
+import { composeProjectLabelArgs, labelKey, siteIdFilterArgs } from '../../agents/runtime/containerLabels'
 import { docker, dockerWithin } from '../../agents/runtime/containerLifecycle'
 import { ipv6OffArgs } from '../../agents/runtime/ipv6Off'
 import { STEP_UID } from '../stepContainer'
@@ -127,6 +127,6 @@ function parse(line: string): { ready?: unknown; failed?: unknown } | null {
 
 /** The proxy containers on this machine of this site's namespace, of every run. */
 export async function listProxyContainers(): Promise<string[]> {
-  const { stdout } = await dockerWithin(['ps', '-a', '--filter', `label=${proxyLabel()}`, '--format', '{{.Names}}'], INSPECT_TIMEOUT_MS)
+  const { stdout } = await dockerWithin(['ps', '-a', '--filter', `label=${proxyLabel()}`, ...siteIdFilterArgs(), '--format', '{{.Names}}'], INSPECT_TIMEOUT_MS)
   return stdout.split('\n').map(s => s.trim()).filter(Boolean)
 }

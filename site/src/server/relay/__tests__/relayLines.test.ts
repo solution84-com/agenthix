@@ -44,14 +44,14 @@ function harness(where: { hqWsUrl: string; siteId: string } | null = { hqWsUrl: 
 const assign = (relayId: string, lineUrl = '/relay-line', pass = 'pass-1') => ({ relayId, lineUrl, pass, passExpiresAt: Date.now() + 3_600_000 })
 
 describe('relay.assign @SC-1500 @SC-1565', () => {
-  it('opens a line to the address resolved against hq\'s, serving files.serve only', async () => {
+  it('opens a line to the address resolved against hq\'s, serving files, live apps and bundles only', async () => {
     const { lines, made } = harness()
     expect(await lines.assign(assign('relay-1'))).toEqual({ taken: true })
     expect(made).toHaveLength(1)
     expect(made[0].url).toBe('wss://hq.example.com/relay-line')
     expect(made[0].started).toBe(true)
     expect(made[0].options.siteId).toBe('site-1')
-    expect(Object.keys(made[0].options.methods)).toEqual([FILES_SERVE_METHOD])
+    expect(Object.keys(made[0].options.methods)).toEqual([FILES_SERVE_METHOD, 'app.serve', 'bundle.read', 'bundle.write'])
     made[0].options.onUp?.()
     expect(lines.line).toBe(made[0])
   })

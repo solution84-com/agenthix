@@ -1,7 +1,7 @@
 /**
  * The reads the workspace view is drawn from (site protocol 1.12, `core/src/protocol/branchReads.ts`), each from the
  * workspace's own repository, mounted read-only into the commit helper. Reads take no turn: they change nothing, so
- * they never wait behind a merge.
+ * they never wait behind a merge. Identical reads asked together share one run.
  */
 import {
   BRANCH_CHANGES_MAX, BRANCH_LIST_MAX, BRANCH_READ_METHODS, BRANCH_READ_SITE_BUDGET_MS, GIT_FILE_TEXT_MAX_BYTES,
@@ -10,13 +10,17 @@ import {
   type GitReadFileResult, type GitVersionsResult, type WorkspaceRepoRef,
 } from '@agenthix/core'
 import { helperCall, parse, placeWorkspace } from './branchCalls'
+import { sharedRead } from './helperSlots'
 import { changesParams, commitsParams, listParams, listTreeParams, readFileParams, versionsParams } from './branchSchemas'
 
 const M = BRANCH_READ_METHODS
 
+/** The same read of the same workspace, asked at the same moment, runs once (`helperSlots.ts`). */
 async function read(ref: WorkspaceRepoRef, method: string, request: Record<string, unknown>): Promise<Record<string, unknown>> {
   const p = await placeWorkspace(ref, method)
-  return helperCall({ workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: true }, network: false, timeoutMs: BRANCH_READ_SITE_BUDGET_MS }, request, method, p.ref)
+  const key = JSON.stringify([p.ref.ownerType, p.ref.ownerId, method, request])
+  return sharedRead(p.ref.workspaceId, key, () =>
+    helperCall({ workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: true }, network: false, timeoutMs: BRANCH_READ_SITE_BUDGET_MS }, request, method, p.ref))
 }
 
 export async function branchList(params: unknown): Promise<BranchListResult> {

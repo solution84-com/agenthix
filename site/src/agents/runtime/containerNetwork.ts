@@ -17,8 +17,9 @@
  * attaching a container to it, when the sweep would otherwise see an empty
  * network and take it.
  */
+import { LIVE_PREVIEW_PART_BITS, livePreviewPartOf } from '@agenthix/core'
 import { docker, dockerWithin, DOCKER_SWEEP_TIMEOUT_MS } from './containerLifecycle'
-import { labelKey, resolveComposeProjectName } from './containerLabels'
+import { labelKey, resolveComposeProjectName, siteIdFilterArgs, siteIdLabelArgs } from './containerLabels'
 import { Logger } from '../../server/utils/logger'
 
 const logger = new Logger('containerNetwork')
@@ -55,11 +56,43 @@ function toAddress(n: number): string {
   return [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.')
 }
 
-export function allocateSubnet(used: Set<string>, range: string = process.env.AGENT_NETWORK_RANGE || DEFAULT_RANGE): string {
+/**
+ * Which part of the agents' range a network is made in: an agent's anywhere but the live-preview part, a live
+ * preview's only there (`livePreviewPartOf`, where the host service closes the range off from private addresses).
+ */
+export type NetworkPart = 'agents' | 'livePreview'
+
+export function agentRange(): string {
+  return process.env.AGENT_NETWORK_RANGE || DEFAULT_RANGE
+}
+
+/**
+ * The live-preview part of `range`: its upper /LIVE_PREVIEW_PART_BITS, only when the range is larger than that, so
+ * agents keep the rest. Null when there is none, and then no live preview runs here.
+ */
+export function livePreviewPart(range: string = agentRange()): string | null {
+  const { bits } = parseRange(range)
+  return bits < LIVE_PREVIEW_PART_BITS ? livePreviewPartOf(range) : null
+}
+
+export function allocateSubnet(used: Set<string>, range: string = agentRange(), part: NetworkPart = 'agents'): string {
   const { base, bits } = parseRange(range)
+  const lp = livePreviewPart(range)
+  if (part === 'livePreview') {
+    if (!lp) throw new Error(`AGENT_NETWORK_RANGE ${range} is too small to have a part for live previews`)
+    const p = parseRange(lp)
+    for (let i = 0; i < 2 ** (BLOCK_BITS - p.bits); i++) {
+      const subnet = `${toAddress(p.base + i * BLOCK_SIZE)}/${BLOCK_BITS}`
+      if (!used.has(subnet)) return subnet
+    }
+    throw new Error(`AGENT_NETWORK_RANGE ${range} has no free /${BLOCK_BITS} left for another live preview`)
+  }
   const blocks = 2 ** (BLOCK_BITS - bits)
+  const lpStart = lp ? parseRange(lp).base : Infinity
   for (let i = 0; i < blocks; i++) {
-    const subnet = `${toAddress(base + i * BLOCK_SIZE)}/${BLOCK_BITS}`
+    const start = base + i * BLOCK_SIZE
+    if (start >= lpStart) break
+    const subnet = `${toAddress(start)}/${BLOCK_BITS}`
     if (!used.has(subnet)) return subnet
   }
   throw new Error(`AGENT_NETWORK_RANGE ${range} has no free /${BLOCK_BITS} left for another agent container`)
@@ -73,10 +106,10 @@ async function subnetsInUse(): Promise<Set<string>> {
   return new Set(out.stdout.split(/\s+/).filter(Boolean))
 }
 
-async function create(name: string): Promise<void> {
+async function create(name: string, part: NetworkPart): Promise<void> {
   const used = await subnetsInUse()
   for (let attempt = 1; ; attempt++) {
-    const subnet = allocateSubnet(used)
+    const subnet = allocateSubnet(used, agentRange(), part)
     try {
       await docker([
         'network', 'create', '--driver', 'bridge', '--subnet', subnet,
@@ -85,6 +118,7 @@ async function create(name: string): Promise<void> {
         '--ipv6=false',
         '--label', `${agentNetworkLabel()}=agent`,
         '--label', `com.docker.compose.project=${resolveComposeProjectName()}`,
+        ...siteIdLabelArgs(),
         name,
       ])
       return
@@ -112,7 +146,7 @@ async function connectSite(network: string, self: string): Promise<void> {
   })
 }
 
-async function ensure(containerName: string): Promise<string> {
+async function ensure(containerName: string, part: NetworkPart): Promise<string> {
   const name = agentNetworkName(containerName)
   pending.add(containerName)
   // A caller whose `ensureAgentNetwork` rejects never reaches `_start`'s
@@ -122,7 +156,7 @@ async function ensure(containerName: string): Promise<string> {
   // is left pending to attach to it.
   try {
     const exists = await docker(['network', 'inspect', name]).then(() => true, () => false)
-    if (!exists) await create(name)
+    if (!exists) await create(name, part)
     const self = process.env.SITE_CONTAINER_NAME
     if (self) {
       await connectSite(name, self)
@@ -141,8 +175,8 @@ function serialised<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 /** Serialised, so two containers starting together cannot pick the same block. */
-export function ensureAgentNetwork(containerName: string): Promise<string> {
-  return serialised(() => ensure(containerName))
+export function ensureAgentNetwork(containerName: string, part: NetworkPart = 'agents'): Promise<string> {
+  return serialised(() => ensure(containerName, part))
 }
 
 export function releaseAgentNetwork(containerName: string): void {
@@ -162,6 +196,7 @@ async function sweep(): Promise<number> {
     'network', 'ls',
     '--filter', `label=${agentNetworkLabel()}=agent`,
     '--filter', `label=com.docker.compose.project=${resolveComposeProjectName()}`,
+    ...siteIdFilterArgs(),
     '--format', '{{.Name}}',
   ], DOCKER_SWEEP_TIMEOUT_MS)
   let removed = 0
@@ -184,4 +219,55 @@ async function sweep(): Promise<number> {
     if (ok) removed++
   }
   return removed
+}
+
+function overlaps(a: { base: number; bits: number }, b: { base: number; bits: number }): boolean {
+  const aEnd = a.base + 2 ** (32 - a.bits), bEnd = b.base + 2 ** (32 - b.bits)
+  return a.base < bEnd && b.base < aEnd
+}
+
+/**
+ * An internal network (no way out) of a /`bits` in the live-preview part of the agents' range: a live preview's
+ * services' network, which its own container joins. Serialised with the agents' networks, so no two pick one block.
+ */
+export function createInternalPreviewNetwork(name: string, bits: number, labels: Record<string, string>): Promise<string> {
+  return serialised(async () => {
+    const lp = livePreviewPart()
+    if (!lp) throw new Error(`AGENT_NETWORK_RANGE ${agentRange()} is too small to have a part for live previews`)
+    const part = parseRange(lp)
+    if (bits < part.bits || bits > 30) throw new Error(`A /${bits} does not fit the part for live previews`)
+    const taken = [...await subnetsInUse()].flatMap(s => { try { return [parseRange(s)] } catch { return [] } })
+    for (let attempt = 1; attempt <= CREATE_ATTEMPTS; attempt++) {
+      let subnet: string | null = null
+      for (let i = 0; i < 2 ** (bits - part.bits); i++) {
+        const block = { base: part.base + i * 2 ** (32 - bits), bits }
+        if (!taken.some(t => overlaps(t, block))) { subnet = `${toAddress(block.base)}/${bits}`; break }
+      }
+      if (!subnet) throw new Error(`The part for live previews has no free /${bits} left`)
+      try {
+        await docker([
+          'network', 'create', '--driver', 'bridge', '--internal', '--subnet', subnet, '--ipv6=false',
+          ...Object.entries(labels).flatMap(([k, v]) => ['--label', `${k}=${v}`]), name,
+        ])
+        return subnet
+      } catch (err) {
+        if (!/overlap/i.test(String(err))) throw err
+        taken.push(parseRange(subnet))
+      }
+    }
+    throw new Error(`Could not make the network ${name}: every block tried was taken`)
+  })
+}
+
+/** True when every one of `subnets` lies inside the agents' range, and there is at least one. */
+export function insideAgentRange(subnets: string[], range: string = agentRange()): boolean {
+  const r = parseRange(range)
+  return subnets.length > 0 && subnets.every(s => {
+    try {
+      const c = parseRange(s)
+      return c.bits >= r.bits && overlaps(c, r)
+    } catch {
+      return false
+    }
+  })
 }

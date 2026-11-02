@@ -10,7 +10,8 @@
 import type { ProtectionFigures, ProtectionRule } from '@agenthix/core'
 import type { RunResult } from '../docker/docker'
 import { Firewall, nftCli } from './firewall'
-import { RULES, nftScript, rulesInPlace, tableFor, type RuleSet } from './rules'
+import { nftScript, rulesFor, rulesInPlace, tableFor, type RuleSet } from './rules'
+import { dropsIn } from './drops'
 
 export const CHECK_INTERVAL_MS = 60_000
 
@@ -138,18 +139,22 @@ export class AgentProtections {
     if (set === null) return { ...NO_AGENTS, checkedAt: checkedAt() }
     if ('problem' in set) return { holding: false, rules: [], checkedAt: checkedAt(), problem: set.problem }
 
+    const wanted = rulesFor(set)
     let rules = await this.inPlace(set)
-    if (rules.length < RULES.length) {
+    if (!wanted.every(r => rules.includes(r))) {
       const applied = await this.firewall.apply(nftScript(set))
       if (applied.code !== 0) return { holding: false, rules: await this.inPlace(set), checkedAt: checkedAt(), problem: applyProblem(applied) }
       rules = await this.inPlace(set)
     }
-    const holding = RULES.every(r => rules.includes(r))
+    const holding = wanted.every(r => rules.includes(r))
+    const listed = set.livePreview ? await this.firewall.list(set.table) : null
     return {
       holding,
-      rules: RULES.filter(r => rules.includes(r)),
+      rules: wanted.filter(r => rules.includes(r)),
       checkedAt: checkedAt(),
       problem: holding ? null : 'The rules that keep agents out of this machine were applied, but do not hold.',
+      ...(listed && listed.code === 0 ? { drops: dropsIn(listed.stdout, set) } : {}),
+      ...(set.livePreview ? { publicAddressKnown: set.livePreview.publicAddresses.length > 0 } : {}),
     }
   }
 
@@ -179,6 +184,11 @@ export function useProtections(p: AgentProtections): void {
 /** Called once the installation records its agents' range (`compose/agentSlice.ts`). */
 export function agentRangeRecorded(): void {
   current?.rangeChanged()
+}
+
+/** A new public address the machine is seen from was recorded: the rules are checked, and written, at once. */
+export function publicAddressRecorded(): void {
+  void current?.check()
 }
 
 export function protectionFigures(now: Date): ProtectionFigures {

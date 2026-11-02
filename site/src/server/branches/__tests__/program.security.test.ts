@@ -58,7 +58,7 @@ function plant(gitDir: string): void {
   fs.writeFileSync(path.join(gitDir, 'info', 'attributes'), '* filter=evil merge=evil diff=evil\n')
 }
 
-describe('settings, hooks and filters planted in a copy', () => {
+describe('settings, hooks and filters planted in a copy @SC-1721', () => {
   it('do run for an ordinary git, so the tests below would see them run', async () => {
     const copy = await withCopy()
     plant(path.join(copy, '.git'))
@@ -79,7 +79,7 @@ describe('settings, hooks and filters planted in a copy', () => {
   })
 })
 
-describe('settings, hooks and filters planted in the workspace repository', () => {
+describe('settings, hooks and filters planted in the workspace repository @SC-1721', () => {
   it('none runs for a merge, a restore, the reads or a new copy', async () => {
     const copy = await withCopy()
     write(copy, '.gitattributes', '* filter=evil merge=evil diff=evil\n')
@@ -98,7 +98,7 @@ describe('settings, hooks and filters planted in the workspace repository', () =
   })
 })
 
-describe('links in a copy', () => {
+describe('links in a copy @SC-1721', () => {
   it('a branch ref that is a link outside the copy is not followed', async () => {
     const copy = await withCopy()
     const before = sh(owner.ws, ['rev-parse', 'login-page'])
@@ -140,7 +140,7 @@ describe('links in a copy', () => {
   })
 })
 
-describe('main moves only by a merge, a restore, turning Git on or a pull', () => {
+describe('main moves only by a merge, a restore, turning Git on or a pull @SC-1722', () => {
   it('a copy cannot move main: its own main, a branch named main, and every other operation leave it', async () => {
     const copy = await withCopy()
     const main = sh(owner.ws, ['rev-parse', 'main'])

@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import { Logger } from '../../server/utils/logger'
 import type { CapabilityRunner } from '@agenthix/core'
-import { containerNameFor, labelKey, resolveComposeProjectName } from './containerLabels'
+import { containerNameFor, labelKey, resolveComposeProjectName, siteIdFilterArgs } from './containerLabels'
 import { checkAgentCredentials } from './agentCredentials'
 import { harnessHomeBind, prepareHarnessHome, runnerClaudeHome, runnerSkillsStagingDir, writeRunCredential } from './boundaryClaudeHome'
 import type { AgentMounts, ContainerKey, ContainerContext, ContainerState } from './containerTypes'
@@ -351,6 +351,7 @@ export class AgentContainerManager {
         'ps', '-a',
         '--filter', `label=${labelKey('agent')}=${handle}`,
         '--filter', `label=com.docker.compose.project=${project}`,
+        ...siteIdFilterArgs(),
         '--format', '{{.Names}}',
       ])
       const names = stdout.trim().split('\n').filter(Boolean)

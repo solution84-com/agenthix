@@ -36,7 +36,7 @@ import {
 import { searchKnowledge } from '../storage/knowledgeSearch'
 import { removeLocation } from '../storage/locationRemove'
 import * as repoWork from '../storage/repoWorkMethods'
-import * as preview from './previewMethods'
+import { previewGone } from './previewGone'
 import * as runtimeMethods from './runtimeChannelMethods'
 import * as dispatchHandler from '../runtime/dispatchHandler'
 import * as membershipEnding from '../runtime/membershipEnding'
@@ -53,6 +53,7 @@ import { gitStatus } from '../storage/gitStatusMethod'
 import * as branchWork from '../branches/branchWorkMethods'
 import * as branchReads from '../branches/branchReadMethods'
 import * as mainWork from '../branches/mainWorkMethods'
+import { livePreviewChannelMethods } from '../livePreviews/livePreviewChannel'
 
 const startedAt = new Date()
 
@@ -220,13 +221,13 @@ export const channelMethods: ChannelHandlers = {
   [MAIN_WORK_METHODS.pushMain]: (params) => mainWork.gitPushMain(params),
   [MAIN_WORK_METHODS.pullMain]: (params) => mainWork.gitPullMain(params),
 
-  // A dev server somebody is watching. Both are control methods — a command,
-  // a port, an id — because a preview's own traffic crosses the content
-  // transport under `preview.connect`, for the same reason a file's bytes do.
-  // Neither creates a container: a preview is a process inside the one the
-  // boundary already has, and a boundary with none up is refused.
-  [PREVIEW_METHODS.start]: (params) => preview.previewStart(params),
-  [PREVIEW_METHODS.stop]: (params) => preview.previewStop(params),
+  // Live previews (site protocol 1.12, `../livePreviews/`): the app's container binding one copy, its apps, the
+  // guard, and branches carried between sites as bundles.
+  ...livePreviewChannelMethods,
+
+  // The old preview path, deprecated since 1.12 and answered as gone (`./previewGone.ts`).
+  [PREVIEW_METHODS.start]: (params) => previewGone(params),
+  [PREVIEW_METHODS.stop]: (params) => previewGone(params),
 
   // The logs and diagnostics page (adr-0106): a page of this site's own log,
   // and its health report taken now for Check again. Reads only.

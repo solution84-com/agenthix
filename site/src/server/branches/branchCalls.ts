@@ -84,6 +84,7 @@ const BRANCH_WORDS: Record<BranchWorkErrorCode, string> = {
 const SPECIAL: Record<string, { code: RepoWorkErrorCode; words: string }> = {
   invalid: { code: 'invalid', words: 'was called with parameters it does not accept' },
   timedOut: { code: 'git_timeout', words: 'ran past this site\'s budget and was stopped' },
+  busy: { code: 'git_timeout', words: 'waited past this site\'s budget for a free commit helper, and did not start' },
   protections: { code: 'refused', words: 'needs the machine\'s network protections for agents, which are not in place' },
   folderChanged: { code: 'refused', words: 'found files in the workspace\'s folder changed since main\'s last version; the site\'s administrator can look at the folder' },
   badObjects: { code: 'refused', words: 'found commits in the copy that fail Git\'s checks, so the branch was not brought back' },

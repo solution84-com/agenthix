@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const workspaceFindUnique = vi.hoisted(() => vi.fn())
 const workspaceFindMany = vi.hoisted(() => vi.fn())
@@ -31,6 +31,12 @@ vi.mock('#db', () => ({
     siteConfig: { findFirst: siteConfigFindFirst },
   },
 }))
+
+const removeWorkspaceServices = vi.hoisted(() => vi.fn())
+vi.mock('../../livePreviews/services/previewServices', () => ({ removeWorkspaceServices }))
+vi.mock('../../livePreviews/services/serviceDocker', () => ({ cliServiceDocker: { name: 'docker' } }))
+const forgetApprovals = vi.hoisted(() => vi.fn())
+vi.mock('../../livePreviews/services/serviceApprovals', () => ({ dbServiceApprovals: { forgetWorkspace: forgetApprovals } }))
 
 import { Prisma } from '@prisma/client'
 import * as rows from '../workspaceRows'
@@ -282,5 +288,34 @@ describe('repo attachment row params @SC-320', () => {
     repoDelete.mockResolvedValue({})
     await expect(rows.deleteRepoAttachment({ id: 'r1' })).resolves.toEqual({ ok: true })
     expect(repoDelete).toHaveBeenCalledWith({ where: { id: 'r1' } })
+  })
+})
+
+describe('removing a workspace removes its live previews\' services @SC-1742', () => {
+  const was = process.env.AGENT_CONTAINER_ISOLATION
+  afterEach(() => { process.env.AGENT_CONTAINER_ISOLATION = was })
+
+  it('removes the services\' volumes and approvals of the workspace, where the site makes containers', async () => {
+    process.env.AGENT_CONTAINER_ISOLATION = 'true'
+    workspaceDeleteMany.mockResolvedValue({ count: 1 })
+    await expect(rows.deleteWorkspace({ id: 'w1' })).resolves.toEqual({ ok: true })
+    expect(removeWorkspaceServices).toHaveBeenCalledWith('w1', { name: 'docker' })
+    expect(forgetApprovals).toHaveBeenCalledWith('w1')
+  })
+
+  it('still answers the workspace removed when Docker fails: the row is gone either way', async () => {
+    process.env.AGENT_CONTAINER_ISOLATION = 'true'
+    workspaceDeleteMany.mockResolvedValue({ count: 1 })
+    removeWorkspaceServices.mockRejectedValueOnce(new Error('docker gone'))
+    await expect(rows.deleteWorkspace({ id: 'w1' })).resolves.toEqual({ ok: true })
+  })
+
+  it('touches no Docker where the site makes no containers, but still forgets the approvals', async () => {
+    process.env.AGENT_CONTAINER_ISOLATION = 'false'
+    workspaceDeleteMany.mockResolvedValue({ count: 1 })
+    removeWorkspaceServices.mockClear()
+    await rows.deleteWorkspace({ id: 'w1' })
+    expect(removeWorkspaceServices).not.toHaveBeenCalled()
+    expect(forgetApprovals).toHaveBeenCalledWith('w1')
   })
 })

@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
 import { Logger } from '../../server/utils/logger'
-import { labelKey, resolveComposeProjectName, resolveContainerPrefix } from './containerLabels'
+import { labelKey, resolveComposeProjectName, siteIdFilterArgs } from './containerLabels'
 import { notifyContainerDestroyed } from './containerDestroyed'
 import type { ContainerState } from './containerTypes'
 
@@ -138,6 +138,7 @@ export class ContainerLifecycle {
     return [
       '--filter', `label=${labelKey('owner')}`,
       '--filter', `label=com.docker.compose.project=${project}`,
+      ...siteIdFilterArgs(),
     ]
   }
 
@@ -152,30 +153,16 @@ export class ContainerLifecycle {
    * location, so what makes one an orphan is that its location is gone, not
    * that some agent is.
    *
-   * Two branches, most-specific first:
-   *  1. Label-based — any name shape, scoped to THIS install's compose project
-   *     (`resolveComposeProjectName()`, the resolution `composeProjectLabelArgs`
-   *     stamps at start) so two installs sharing one Docker daemon can't
-   *     cross-delete each other's agent containers via the daemon-wide
-   *     `<namespace>.owner` label alone.
-   *  2. Prefix-based fallback — sweeps any prefix-matching container without the
-   *     boundary label: one from before this labelling, or from before the
-   *     boundary key itself (a `<prefix>-<handle>-<sessionId>` name, whose
-   *     segments cannot be trusted as a boundary). Not project-scoped:
-   *     the prefix comes from the install's namespace.
-   *
-   * IMPORTANT: `labeledNames.add(name)` must run BEFORE the `activeBoundaries.has`
-   * check, not after — a live boundary's container still needs to be recorded
-   * as "seen" so branch 2 skips it too, or branch 2 would `rm -f` a live
-   * container at boot. Pinned by "a live boundary's container, listed by both
-   * branches, is swept by neither" in __tests__/containerLifecycle.test.ts —
-   * do not reorder without checking it still fails under that mutation.
+   * Found by label alone, never by a name prefix two sites could share: this
+   * install's compose project (`resolveComposeProjectName()`), the boundary
+   * label `<namespace>.owner`, and this site's own id (`<namespace>.site`,
+   * `siteIdFilterArgs`), so two sites sharing one Docker daemon, even with one
+   * namespace, never remove each other's agent containers. A container without
+   * those labels is not this site's to remove.
    */
   async removeOrphans(activeBoundaries: Set<string>): Promise<number> {
-    const prefix = resolveContainerPrefix()
     try {
       let removed = 0
-      const labeledNames = new Set<string>()
 
       const { stdout: labeled } = await dockerWithin([
         'ps', '-a',
@@ -185,15 +172,9 @@ export class ContainerLifecycle {
       for (const line of labeled.trim().split('\n').filter(Boolean)) {
         const [name, owner] = line.split('\t')
         if (!name) continue
-        labeledNames.add(name)
-        // An empty owner label is treated like a missing one — removed, the
-        // same judgement branch 2 makes about every container whose boundary
-        // cannot be established. Skipping it here would strand it: `name` is
-        // already in `labeledNames`, so branch 2 would pass over it too.
+        // An empty owner label is treated like a missing one — removed: its
+        // boundary cannot be established.
         if (owner && activeBoundaries.has(owner)) continue
-        // AFTER the label check, like everything else here, and after
-        // `labeledNames.add` for the same reason that check is: a container
-        // kept back must still be recorded as seen, or branch 2 takes it.
         if (this.hasPreview(name)) continue
 
         const ok = await dockerWithin(['rm', '-f', name], DOCKER_SWEEP_TIMEOUT_MS).then(() => true).catch(() => false)
@@ -204,24 +185,6 @@ export class ContainerLifecycle {
           removed++
         } else {
           logger.warn(`[container] failed to remove orphan ${name}`)
-        }
-      }
-
-      const { stdout: prefixed } = await dockerWithin([
-        'ps', '-a', '--filter', `name=^${prefix}-`, '--format', '{{.Names}}',
-      ], DOCKER_SWEEP_TIMEOUT_MS)
-      for (const name of prefixed.trim().split('\n').filter(Boolean)) {
-        if (labeledNames.has(name)) continue // already handled above
-        if (this.hasPreview(name)) continue
-
-        const ok = await dockerWithin(['rm', '-f', name], DOCKER_SWEEP_TIMEOUT_MS).then(() => true).catch(() => false)
-        if (ok) {
-          this.containerStates.delete(name)
-          notifyContainerDestroyed(name)
-          logger.info(`[container] removed orphan (no boundary label) ${name}`)
-          removed++
-        } else {
-          logger.warn(`[container] failed to remove orphan (no boundary label) ${name}`)
         }
       }
 

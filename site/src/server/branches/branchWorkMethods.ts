@@ -10,6 +10,7 @@ import {
   type BranchRemoveCopyResult, type BranchRenameResult, type BranchUpdateFromMainResult, type GitPerson,
 } from '@agenthix/core'
 import { prisma } from '#db'
+import { updateOwnCopyFromMain } from '../livePreviews/livePreviewUpdate'
 import { PLURAL_OWNER } from '../../agents/runtime/locationResolver'
 import {
   copyDirOf, describeWorkspace, freshCopyDir, helperCall, inTurn, parse, placeWorkspace, removeCopyDir, requireCopy,
@@ -123,6 +124,10 @@ export const mergeFromMainMessage = (branch: string) => `Merge main into ${branc
 
 export async function branchUpdateFromMain(params: unknown): Promise<BranchUpdateFromMainResult> {
   const q = parse(updateFromMainParams, params, M.updateFromMain)
+  if (!(await prisma.branchCopy.findUnique({ where: { id: q.copyId }, select: { id: true } }))) {
+    const own = await updateOwnCopyFromMain(q, withOnBehalfOf(mergeFromMainMessage(q.branch), q.onBehalfOf))
+    if (own) return own
+  }
   const p = await placeWorkspace(q.workspace, M.updateFromMain)
   const message = withOnBehalfOf(mergeFromMainMessage(q.branch), q.onBehalfOf)
   return inTurn(p.ref.workspaceId, async () => {

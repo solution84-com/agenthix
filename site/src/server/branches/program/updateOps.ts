@@ -56,18 +56,36 @@ function checkOut(R, cg, at, from, to) {
   fs.renameSync(kept, path.join(cg, 'index'))
 }
 
+/** The one branch under the copy's \`refs/remotes/origin\`: main, as a bundle brought it; none or several refuses. */
+function originMain(cg, branch) {
+  let names = []
+  try { names = fs.readdirSync(path.join(cg, 'refs', 'remotes', 'origin')) } catch (e) { names = [] }
+  const found = names.filter((n) => isBranch(n) && n !== branch)
+  if (found.length !== 1) throw new Refusal('not_found', 'no single main in the copy')
+  return found[0]
+}
+
+function originTip(cg, main) {
+  const abs = walkTo(cg, 'refs/remotes/origin/' + main, false)
+  const id = ((abs && readRegular(abs)) || '').trim()
+  if (!COMMIT_ID.test(id)) throw new Refusal('not_found', 'no main in the copy')
+  return id
+}
+
 Object.assign(ops, {
   updateFromMain(q, R) {
     const cg = gitDirOf(R.copy, 'no_copy')
-    const wg = gitDirOf(R.ws)
-    const main = notMain(wg, needBranch(q.branch))
-    const mainTip = tipOf(wg, main)
+    // A live preview's own copy on another site has no workspace beside it: main is what its bundle carried, kept as
+    // origin's main in the copy.
+    const wg = R.ws ? gitDirOf(R.ws) : null
+    const main = wg ? notMain(wg, needBranch(q.branch)) : originMain(cg, needBranch(q.branch))
+    const mainTip = wg ? tipOf(wg, main) : originTip(cg, main)
     const index = path.join(TMP, 'index-u-' + Date.now())
     const at = over(R.copy, { index, work: R.copy, cwd: R.copy })
     const under = mergeUnderWay(at, cg)
     if (under) return { mergeUnderWay: under.paths }
     const before = readBranch(cg, q.branch)
-    const tip = before || readBranch(wg, q.branch)
+    const tip = before || (wg ? readBranch(wg, q.branch) : null)
     if (!tip) throw new Refusal('not_found')
     if (text(git(at, ['cat-file', '-t', tip], { failAs: 'not_found' })) !== 'commit') throw new Refusal('not_found')
     git(at, ['read-tree', tip])

@@ -7,7 +7,7 @@
  * Written as JSON, which is YAML, so no value needs YAML quoting. Compose still interpolates `$` in every string,
  * so each is escaped as `$$` (`composeJson`).
  */
-import { CLOUD_URL_SETTING, CONTAINER_DATABASE_PORT, SERVICE_PORTS } from '@agenthix/core'
+import { CLOUD_URL_SETTING, CONTAINER_DATABASE_PORT, SERVICE_PORTS, previewPatternForDomain, previewPatternForLoopback } from '@agenthix/core'
 import type { InstallNames } from '../state/namespace'
 import type { ImagePins } from '../images/images'
 import { imageRef, isPublishedVersion, POSTGRES_IMAGE, type PublishedPart } from '../images/published'
@@ -15,6 +15,7 @@ import type { InstallSecrets } from '../state/secrets'
 import { cloudSettings, type CloudSettings } from '../config'
 import { ipam, type InstallSubnets } from './subnets'
 import { installationLabels, type Installation } from '../state/installation'
+import { isLocalAddress } from '../install/address'
 
 /** Where the host service's state folder is on the machine, which bind mounts must name (the CLI runs inside). */
 export type MachinePaths = { state: string }
@@ -30,6 +31,11 @@ export type HqSettings = {
   trustedProxies: number
   /** Uploaded files' own origin (adr-0114); null where HQ's address can have no subdomain, so uploads are downloads only. */
   filesOrigin?: string | null
+  /**
+   * Live apps' preview domain (live preview spec section 5): every app is answered at `p-<id>.<it>` by hq's relay.
+   * Absent or null: live apps are off on an https address.
+   */
+  previewDomain?: string | null
   version: string
   /** What each image runs as, set when install checked its signature. */
   images?: ImagePins
@@ -101,6 +107,19 @@ export function labels(names: InstallNames, role: string, installation: Installa
   return { [names.label('role')]: role, [names.label('managed-by')]: 'host', ...installationLabels(names, installation), ...(version ? versionLabel(names, version) : {}) }
 }
 
+/**
+ * The pattern live apps' addresses are made from, which hq-server builds them by, the relay answers and hq-web passes
+ * on; empty, live apps are off. An app's cookies and its entry need a secure context: HQ at an https address has them
+ * at its preview domain, and HQ at a loopback http address under `preview.localhost` on its own port, which browsers
+ * resolve to the machine and treat as secure, for the machine's own browser. A bare network address has none.
+ */
+export function previewPatternOf(hq: Pick<HqSettings, 'address' | 'previewDomain'>): string {
+  if (hq.address.startsWith('https://')) return hq.previewDomain ? previewPatternForDomain(hq.previewDomain) : ''
+  if (!hq.address.startsWith('http://') || !isLocalAddress(hq.address)) return ''
+  // A plain http address is published on the port it names.
+  return previewPatternForLoopback(Number(new URL(hq.address).port || 80)) ?? ''
+}
+
 /** HQ's published port, which only `installation.json` holds. */
 export function hqPortOf(installation: Installation): number {
   if (installation.ports.hq === null) throw new Error("HQ's published port is not recorded in installation.json.")
@@ -141,6 +160,7 @@ export function hqProject(
           HQ_MACHINE_NAME: machineName,
           HQ_CONTROL_SOCKET,
           FILES_ORIGIN: hq.filesOrigin ?? '',
+          PREVIEW_PATTERN: previewPatternOf(hq),
           ...(cloud ? { HQ_RUN_BY_CLOUD: 'true', [CLOUD_URL_SETTING]: cloud.url } : {}),
           ...versionEnv('APP_VERSION', hq.version),
         },
@@ -163,6 +183,7 @@ export function hqProject(
           HQ_RELAY_SECRET: secrets.relaySecret,
           HQ_URL: hq.address,
           FILES_ORIGIN: hq.filesOrigin ?? '',
+          PREVIEW_PATTERN: previewPatternOf(hq),
           RELAY_PORT: String(SERVICE_PORTS.relay.server),
           HQ_UPLOADS_ROOT: '/hq-storage',
         },
@@ -182,7 +203,8 @@ export function hqProject(
         container_name: names.container('hq-web'),
         // hq-web's browser app takes HQ's address when it starts (adr-0111).
         environment: {
-          HQ_URL: hq.address, HQ_TRUSTED_PROXIES: String(hq.trustedProxies), PREVIEW_DOMAIN: '', FILES_ORIGIN: hq.filesOrigin ?? '',
+          HQ_URL: hq.address, HQ_TRUSTED_PROXIES: String(hq.trustedProxies), FILES_ORIGIN: hq.filesOrigin ?? '',
+          PREVIEW_PATTERN: previewPatternOf(hq),
         },
         ports: [`${hq.bind}:${hqPortOf(installation)}:${HQ_WEB_PORT}`],
         networks: ['internal', 'edge', 'link'],

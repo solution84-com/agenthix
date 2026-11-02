@@ -7,6 +7,7 @@
 import dns from 'node:dns/promises'
 import fs from 'node:fs'
 import os from 'node:os'
+import { LIVE_PREVIEW_PART_BITS, livePreviewPartOf } from '@agenthix/core'
 import { isIpv4, parseRange, tableFor } from './rules'
 import type { RuleSource } from './protections'
 
@@ -46,7 +47,24 @@ export function isDockerDesktop(kernel: string): boolean {
  * `agentRange`: the installation's recorded agent slice, read at every check; null while it has none (no site here),
  * and then there are no rules to write.
  */
-export function machineRules(namespace: string, agentRange: () => string | null, facts: MachineFacts = realMachine): RuleSource {
+/**
+ * The live-preview part of the agents' range: its upper /LIVE_PREVIEW_PART_BITS, only when the range is larger, as the
+ * site reckons it (`containerNetwork.ts`), so the two agree on where live previews are. Null where there is none.
+ */
+export function livePreviewPart(range: string): { addr: string; len: number } | null {
+  const r = parseRange(range)
+  if (r.len >= LIVE_PREVIEW_PART_BITS) return null
+  const part = livePreviewPartOf(range)
+  return part ? parseRange(part) : null
+}
+
+/**
+ * `publicAddresses`: the public addresses HQ said it sees this machine from, as recorded; none until one is, when
+ * `public-address` is not written.
+ */
+export function machineRules(
+  namespace: string, agentRange: () => string | null, facts: MachineFacts = realMachine, publicAddresses: () => string[] = () => [],
+): RuleSource {
   return async () => {
     const range = agentRange()
     if (range === null) return null
@@ -64,6 +82,10 @@ export function machineRules(namespace: string, agentRange: () => string | null,
           'so agents could reach it. Restart Docker Desktop, then the host service.',
       }
     }
-    return { table: tableFor(namespace), range: parseRange(range), machineAddresses: [...found].sort() }
+    const part = livePreviewPart(range)
+    return {
+      table: tableFor(namespace), range: parseRange(range), machineAddresses: [...found].sort(),
+      ...(part ? { livePreview: { part, publicAddresses: publicAddresses().filter(isIpv4) } } : {}),
+    }
   }
 }

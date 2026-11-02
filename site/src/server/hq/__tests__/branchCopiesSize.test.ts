@@ -8,7 +8,7 @@ let root: string
 beforeEach(async () => { root = await mkdtemp(path.join(os.tmpdir(), 'copies-')); __forgetBranchCopiesForTests() })
 afterEach(async () => { await rm(root, { recursive: true, force: true }) })
 
-describe('the disk branch copies use', () => {
+describe('the disk branch copies use @SC-1730', () => {
   it('counts every owner\'s clones folder and nothing else, and follows no link', async () => {
     await mkdir(path.join(root, 'projects', 'p1', 'clones', 'c1'), { recursive: true })
     await mkdir(path.join(root, 'users', 'u1', 'clones', 'c2'), { recursive: true })

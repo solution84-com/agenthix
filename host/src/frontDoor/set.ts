@@ -1,5 +1,5 @@
 /**
- * `frontDoor.set` from whoever asked. A certificate and its private key (given.ts) are accepted from Cloud's controller
+ * `frontDoor.set` from whoever asked, with live apps' preview domain when one is named. A certificate and its private key (given.ts) are accepted from Cloud's controller
  * alone: the dispatch records who asked, and this refuses anyone else, whatever the request claims.
  */
 import type { HostActor, HostRequest } from '@agenthix/core'
@@ -20,12 +20,13 @@ async function setOn(ctx: Context, request: FrontDoorOn, by: HostActor, progress
   if (given && by.kind !== 'cloud') {
     throw new Refusal('conflict', "Only Agenthix Cloud gives the front door a certificate; this machine's front door asks for its own. Nothing changed.")
   }
-  if (request.previewsHost) {
-    throw new Refusal('conflict', "Previews keep their own setup: a wildcard certificate needs your DNS provider's challenge, which the front door does not hold. The guide's page \"Run it on a server\" shows how. Nothing changed.")
+  // A given certificate covers only the names it was made for, and the front door then asks no certificate authority.
+  if (given && request.previewsHost) {
+    throw new Refusal('conflict', "A front door given its certificate asks for no other, so it cannot get one for each live app. Nothing changed.")
   }
   const certificate = request.certificate !== undefined && request.privateKey !== undefined
     ? { certificate: request.certificate, privateKey: request.privateKey }
     : undefined
   if (given && !certificate) throw new Refusal('malformed', 'A certificate comes with its private key. Nothing changed.')
-  return frontDoorOn(ctx, request.filesHost, progress, certificate)
+  return frontDoorOn(ctx, request.filesHost, progress, certificate, request.previewsHost)
 }

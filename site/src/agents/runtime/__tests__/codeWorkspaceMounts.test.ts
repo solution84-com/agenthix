@@ -13,7 +13,7 @@ afterEach(() => { fs.rmSync(root, { recursive: true, force: true }) })
 
 const boundary = () => ({ hostDir: path.join(root, 'projects', 'p1'), containerDir: '/projects/p1' })
 
-describe('a code workspace\'s own folder is read-only to every run in its boundary', () => {
+describe('a code workspace\'s own folder is read-only to every run in its boundary @SC-1723', () => {
   it('each workspace whose folder holds a .git is bound read-only; the others are not', async () => {
     for (const id of ['plain', 'code', 'linked']) fs.mkdirSync(path.join(boundary().hostDir, 'workspaces', id), { recursive: true })
     fs.mkdirSync(path.join(boundary().hostDir, 'workspaces', 'code', '.git'))

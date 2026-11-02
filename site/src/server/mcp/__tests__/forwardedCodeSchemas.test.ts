@@ -3,7 +3,7 @@ import type { ToolPermission } from '@agenthix/core'
 import { getToolState } from '../../../agents/runtime/toolPermissions'
 import { withCodeWorkTools } from '../forwardedCodeSchemas'
 
-describe('withCodeWorkTools', () => {
+describe('withCodeWorkTools @SC-1732', () => {
   const deferred: ToolPermission[] = [
     { name: 'edit_file', state: 'always' },
     { name: 'bash', state: 'never' },
@@ -22,5 +22,11 @@ describe('withCodeWorkTools', () => {
     expect(getToolState('edit_file', given)).toBe('always')
     expect(getToolState('bash', given)).toBe('never')
     expect(given.filter(p => p.name === 'commit')).toEqual([{ name: 'commit', state: 'always' }])
+  })
+
+  it('gives a code-work run the package tools without asking: only scripts that pass the rule run (adr-0170)', () => {
+    const given = withCodeWorkTools(deferred)
+    expect(getToolState('install_packages', given)).toBe('always')
+    expect(getToolState('ask_to_use_package', given)).toBe('always')
   })
 })

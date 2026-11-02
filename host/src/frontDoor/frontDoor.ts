@@ -22,6 +22,8 @@ import {
 import { givenCertificateProblem, readGivenCertificate, writeGiven, type GivenCertificate } from './given'
 import { machineProbes, type FrontDoorProbes } from './probes'
 import { installSubnets } from '../compose/subnets'
+import { previewDomainProblem } from '@agenthix/core'
+import { checkPreviews } from '../previews/previewChecks'
 import { EVERY_ADDRESS, portProblems } from '../install/portCheck'
 
 /** How long a certificate may take: the certificate authority checks the host name over port 80 first. */
@@ -105,7 +107,7 @@ function defaultFilesHost(hq: StoredHq): string | null {
   return hq.address.startsWith('https://') ? `files.${hostOf(hq.address)}` : null
 }
 
-async function step<T>(progress: (p: Progress) => void, name: string, run: () => Promise<{ value: T; outcome: string }>): Promise<T> {
+export async function step<T>(progress: (p: Progress) => void, name: string, run: () => Promise<{ value: T; outcome: string }>): Promise<T> {
   progress({ event: 'step', step: name })
   try {
     const { value, outcome } = await run()
@@ -118,7 +120,7 @@ async function step<T>(progress: (p: Progress) => void, name: string, run: () =>
 }
 
 /** Reads every file a change may write, so a failure can put each back as it was, or remove it. */
-function snapshot(ctx: Context): [string[], string | null][] {
+export function snapshot(ctx: Context): [string[], string | null][] {
   const files = [
     ...FRONT_DOOR_FILES.map(f => ['front-door', f]), [...GIVEN_FILES.certificate], [...GIVEN_FILES.privateKey],
     ['hq', 'settings.json'], ['hq', 'compose.json'],
@@ -132,7 +134,7 @@ function snapshot(ctx: Context): [string[], string | null][] {
   })
 }
 
-function restore(ctx: Context, kept: [string[], string | null][]): void {
+export function restore(ctx: Context, kept: [string[], string | null][]): void {
   for (const [parts, value] of kept) {
     if (value === null) fs.rmSync(ctx.state.path(...parts), { force: true })
     else ctx.state.writePrivate(parts, value)
@@ -141,17 +143,27 @@ function restore(ctx: Context, kept: [string[], string | null][]): void {
 
 let busy = false
 
-export async function frontDoorOn(ctx: Context, filesHost: string | undefined, progress: (p: Progress) => void, given?: GivenCertificate): Promise<{ on: true }> {
+/** One change at a time to the front door, HQ's addresses and the preview address, which all write its files. */
+export async function oneFrontDoorChange<T>(run: () => Promise<T>): Promise<T> {
   if (busy) throw new Refusal('busy', 'The front door is already being changed on this machine. Wait for it to finish.')
   busy = true
   try {
-    return await turnOn(ctx, filesHost, progress, given)
+    return await run()
   } finally {
     busy = false
   }
 }
 
-async function turnOn(ctx: Context, requestedFiles: string | undefined, progress: (p: Progress) => void, given?: GivenCertificate): Promise<{ on: true }> {
+/** `previewsHost`: live apps' preview domain, set with the front door (none keeps the one HQ has). */
+export function frontDoorOn(
+  ctx: Context, filesHost: string | undefined, progress: (p: Progress) => void, given?: GivenCertificate, previewsHost?: string,
+): Promise<{ on: true }> {
+  return oneFrontDoorChange(() => turnOn(ctx, filesHost, progress, given, previewsHost))
+}
+
+async function turnOn(
+  ctx: Context, requestedFiles: string | undefined, progress: (p: Progress) => void, given?: GivenCertificate, previewsHost?: string,
+): Promise<{ on: true }> {
   const check = await frontDoorCheck(ctx, requestedFiles, given !== undefined)
   if (check.refusal) throw new Refusal(check.refusal.code, check.refusal.message)
   const found = installed(ctx).hq!
@@ -164,11 +176,16 @@ async function turnOn(ctx: Context, requestedFiles: string | undefined, progress
     const problem = givenCertificateProblem(given, hosts, ctx.now())
     if (problem) throw new Refusal('malformed', `${problem} Nothing changed.`)
   }
-  const config = caddyfile(ctx.names, hosts, given !== undefined)
+  const previewDomain = given ? null : previewsHost ?? hq.previewDomain ?? null
+  if (previewsHost) {
+    const problem = previewDomainProblem(previewsHost, { hqHost, filesHost })
+    if (problem) throw new Refusal('malformed', `The preview address cannot be ${previewsHost}: ${problem}. Nothing changed.`)
+  }
+  const config = caddyfile(ctx.names, hosts, given !== undefined, previewDomain)
   await step(progress, 'Checking the configuration', async () => {
     // hq-web is Caddy too: it checks the front door's configuration before anything is written or started. It does not
     // hold a given certificate, so what it checks is the configuration without the line that names it.
-    const r = await ctx.docker.exec(ctx.names.container('hq-web'), ['caddy', 'validate', '--config', '/dev/stdin', '--adapter', 'caddyfile'], caddyfile(ctx.names, hosts))
+    const r = await ctx.docker.exec(ctx.names.container('hq-web'), ['caddy', 'validate', '--config', '/dev/stdin', '--adapter', 'caddyfile'], caddyfile(ctx.names, hosts, false, previewDomain))
     if (r.code !== 0) {
       const why = (r.stderr || r.stdout).trim().split('\n').pop() ?? ''
       throw new Refusal('failed', `The front door's configuration does not pass Caddy's check${why ? ` (${why})` : ''}. Nothing changed.`)
@@ -187,7 +204,8 @@ async function turnOn(ctx: Context, requestedFiles: string | undefined, progress
   const before = frontDoorSettings(ctx)
   const kept = snapshot(ctx)
   const filesOrigin = filesHost ? `https://${filesHost}` : null
-  const hqChanged = (hq.filesOrigin ?? null) !== filesOrigin
+  const filesChanged = (hq.filesOrigin ?? null) !== filesOrigin
+  const hqChanged = filesChanged || (!given && (hq.previewDomain ?? null) !== previewDomain)
   const project = frontDoorProject(ctx.names)
   const file = ctx.state.path('front-door', 'compose.json')
   const rollBack = async (why: string): Promise<never> => {
@@ -201,7 +219,7 @@ async function turnOn(ctx: Context, requestedFiles: string | undefined, progress
   }
 
   if (hqChanged) {
-    const next: StoredHq = { ...hq, filesOrigin }
+    const next: StoredHq = { ...hq, filesOrigin, ...(given ? {} : { previewDomain }) }
     ctx.state.writeJson(['hq', 'settings.json'], next)
     ctx.state.writePrivate(['hq', 'compose.json'], composeJson(hqProject(ctx.names, next, installSecrets(ctx.state), ctx.machine.name, await installSubnets(ctx), installationOf(ctx.state))))
   }
@@ -213,7 +231,9 @@ async function turnOn(ctx: Context, requestedFiles: string | undefined, progress
 
   try {
     if (hqChanged) {
-      await step(progress, filesHost ? `Giving uploaded files their address, ${filesHost}` : 'Serving uploaded files as downloads only', async () => {
+      const what = !filesChanged ? `Giving live apps their address, ${previewDomain}`
+        : filesHost ? `Giving uploaded files their address, ${filesHost}` : 'Serving uploaded files as downloads only'
+      await step(progress, what, async () => {
         await ctx.docker.composeUp(found.project, found.file)
         return { value: undefined, outcome: 'done' }
       })
@@ -239,6 +259,8 @@ async function turnOn(ctx: Context, requestedFiles: string | undefined, progress
       return rollBack(`Point ${host} at ${ctx.machine.name}, then run this again.`)
     }
   }
+  // Live apps' checks never roll the front door back: the Fleet Console shows what each needs.
+  if (previewDomain) await checkPreviews(ctx, previewDomain, hqHost, progress)
   return { on: true }
 }
 

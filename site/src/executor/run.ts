@@ -29,6 +29,8 @@ import { runStepContainer } from './stepRunner'
 import { sendResult, sendStepEvent } from './runEvents'
 import { resolveWorkspaceTarget, type WorkspaceTarget } from './workspaceTarget'
 import { writeBack } from './writeBack'
+import { handOverToLivePreview, type HandOver } from './livePreviewHandOver'
+import { livePreviewRunTarget } from '../server/livePreviews/secrets/runTarget'
 
 const logger = new Logger('executor')
 
@@ -49,6 +51,9 @@ export const executorDeps = {
   runStep: runStepContainer,
   resolveImage: resolveExecutorImage,
   resolveWorkspace: resolveWorkspaceTarget,
+  /** For a run aimed at a live preview: its copy, when this site holds it running on the run's workspace. */
+  resolveLivePreview: livePreviewRunTarget,
+  handOver: handOverToLivePreview as HandOver,
   prepareRunNetwork: (runId: string, hosts: WorkflowRunInstruction['definition']['hosts']) => seams.prepareRunNetwork(runId, hosts),
   createMasker: (m: WorkflowRunInstruction['masking']) => seams.createMasker(m),
   scanRunChanges: (input: seams.ScanRunChangesInput) => seams.scanRunChanges(input),
@@ -99,7 +104,10 @@ export async function startRun(raw: unknown): Promise<WorkflowRunAcceptance> {
 /** The workspace and the image id to run on, or the refusal. */
 async function admit(ins: WorkflowRunInstruction): Promise<{ target: WorkspaceTarget; imageId: string } | WorkflowRunAcceptance> {
   if (await record.isKnownRun(ins.runId)) return refuse('already_known', `This site already has run ${ins.runId}. Nothing was changed.`)
-  const target = await executorDeps.resolveWorkspace(ins.workspace)
+  const target = ins.livePreview ? await executorDeps.resolveLivePreview(ins) : await executorDeps.resolveWorkspace(ins.workspace)
+  if (!target && ins.livePreview) {
+    return refuse('live_preview_unavailable', 'This site does not have that live preview running on the run\'s workspace, so its secrets were not handed to it. Start the live preview from HQ, then run the workflow again. Nothing was changed.')
+  }
   if (!target) return refuse('workspace_missing', 'This site does not hold the workspace the run is for. Nothing was changed.')
   const imageId = await executorDeps.resolveImage(ins.executorImageDigest)
   if (!imageId) {
@@ -180,6 +188,9 @@ async function carryOut(
   await record.recordProgress(ins.runId, { state: 'WRITING_BACK' })
   try {
     const written = await writeBack({ runId: ins.runId, workspaceDir: target.hostDir, snapshotDir: folders.snapshot, start: snapshot.manifest, end, changes })
+    const handOff = ins.livePreview && !run.stopReason ? await executorDeps.handOver(ins) : null
+    if (handOff) return { ...base, state: 'failed', endedAt: ended(), writeBack: written, failure: { code: 'site_error', message: handOff } }
+    if (ins.livePreview && run.stopReason) return { ...base, state: 'stopped', endedAt: ended(), writeBack: written, failure: { code: run.stopReason, message: 'The run was stopped after its changes were written back, so no secrets were handed to the live preview.' } }
     return { ...base, state: 'passed', endedAt: ended(), failure: null, writeBack: written }
   } catch (err) {
     logger.error(`run ${ins.runId}: write-back failed`, { error: err instanceof Error ? err.message : String(err) })

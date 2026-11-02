@@ -93,7 +93,7 @@ export async function prepareAgentContainer(
    *  container is named for are the same object, not two derivations of it. */
   key: ContainerKey,
   /** A run on a branch's copy: its working folder is the copy (live preview spec, *Where the copy lives*). */
-  codeWork: { copyId: string } | null = null,
+  codeWork: { copyId: string; livePreview?: boolean } | null = null,
   /** Told when the run waits for its container's other runs to end before using it (`bindsDrain.ts`). */
   bindsWait: Pick<ContainerContext, 'onWaitForBinds' | 'stillWanted'> = {},
 ): Promise<{ containerName: string; mounts: AgentMounts; primaryContainerPath: string } | null> {
@@ -134,7 +134,8 @@ export async function prepareAgentContainer(
   // A primary workspace absent from its own owner's workspaces has been
   // deleted: fail closed, since a run must not work in a path derived from an
   // id nothing backs.
-  if (primaryLoc.workspaceId && !ownerWorkspaces.some(ws => ws.id === primaryLoc.workspaceId)) {
+  // A run in a live preview's own copy on another site works there without its workspace, which stays on its own site.
+  if (primaryLoc.workspaceId && !codeWork?.livePreview && !ownerWorkspaces.some(ws => ws.id === primaryLoc.workspaceId)) {
     throw new Error(`Workspace ${primaryLoc.workspaceId} no longer exists — cannot work in its path`)
   }
 

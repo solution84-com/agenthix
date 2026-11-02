@@ -17,6 +17,7 @@ import type { SiteRunCredential } from '../../../server/modelRelay/runAccess'
 import { CREDENTIAL_PROVIDERS, HARNESS_SERVER_KEY_ENV, OPENCODE_PLUGIN_CONFIG_ENV } from '@agenthix/core'
 import { HARNESS_SECRET_ENV, OPENCODE_COMMAND_SHELL, OPENCODE_MODELS_FILE, OPENCODE_PLUGIN_URL } from '../agentImage'
 import { openCodeProviderBaseUrl } from '../../../server/modelRelay/relayProviders'
+import { INSTALL_ENV } from '../../../server/livePreviews/installs/installCommand'
 
 /** The server's port on the container's loopback address. */
 export const OPENCODE_SERVER_PORT = 4096
@@ -121,8 +122,9 @@ export function renderPluginConfig(siteUrl: string): OpenCodePluginConfig {
     // and nothing a command needs.
     secretEnv: [...HARNESS_SECRET_ENV, OPENCODE_PLUGIN_CONFIG_ENV],
     // The server runs npm offline so OpenCode installs nothing; an agent's
-    // own installs follow the site's network policy instead.
-    commandEnv: { npm_config_offline: 'false' },
+    // own installs follow the site's network policy instead, with install
+    // scripts off (adr-0170): `install_packages` runs those that pass the rule.
+    commandEnv: { npm_config_offline: 'false', ...INSTALL_ENV },
   }
 }
 

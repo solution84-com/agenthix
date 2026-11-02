@@ -251,7 +251,7 @@ describe("the person's local time", () => {
   })
 })
 
-describe('a run on a branch\'s copy is told about its branch', () => {
+describe('a run on a branch\'s copy is told about its branch @SC-1674', () => {
   const codeWork = {
     workspace: { ownerType: 'project' as const, ownerId: 'p1', workspaceId: 'w1' },
     copyId: '11111111-1111-4111-8111-111111111111', branch: 'add-login-page', main: 'main', behindMain: 2,

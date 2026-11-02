@@ -19,7 +19,7 @@
  */
 import type { ApiHandler } from '../http/apiHandler'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
-import type { CapabilityClaims } from '@agenthix/core'
+import { parseCapabilityLivePreview, parseCapabilityPackageScopes, type CapabilityClaims } from '@agenthix/core'
 import { resolvePlatformToken } from '../runtime/runTokens'
 import { gateRunContext } from '../../agents/runtime/toolGateRuns'
 import { verifyHqToken } from '../identity/verifyHqToken'
@@ -73,6 +73,8 @@ export const mcpHandler: ApiHandler = async (req, res) => {
   const mcpServer = createMcpServer({
     disabledTools,
     capabilityJwt: holder.jwt,
+    livePreview: parseCapabilityLivePreview(claims.livePreview),
+    trustedPackageScopes: parseCapabilityPackageScopes(claims.trustedPackageScopes),
     siteTools: {
       // The turn's context, only while it runs and only as the conversation the capability names.
       context: context && context.sessionId === claims.sessionId ? context : null,

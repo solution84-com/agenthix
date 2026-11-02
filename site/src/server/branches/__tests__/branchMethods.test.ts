@@ -58,7 +58,7 @@ beforeEach(async () => {
 })
 afterEach(() => { fs.rmSync(root, { recursive: true, force: true }) })
 
-describe('turning Git on, then a branch from making to merging', () => {
+describe('turning Git on, then a branch from making to merging @SC-1726', () => {
   it('works through every method hq calls', async () => {
     const init = await call('git.init', { workspace, author: AUTHOR })
     expect(init).toMatchObject({ main: 'main', gitignoreAdded: true, version: { number: 1, author: AUTHOR } })
@@ -94,7 +94,7 @@ describe('turning Git on, then a branch from making to merging', () => {
   })
 })
 
-describe('branch.updateFromMain', () => {
+describe('branch.updateFromMain @SC-1727', () => {
   const update = (branch: string, copyId = COPY_B) =>
     call('branch.updateFromMain', { workspace, copyId, branch, author: AGENT, onBehalfOf: AUTHOR, runId: 'run-1' })
   const copyOf = (id: string) => path.join(root, 'projects', 'p1', 'clones', id)
@@ -143,7 +143,7 @@ describe('branch.updateFromMain', () => {
   })
 })
 
-describe('the site\'s own record of a copy decides, never the copy', () => {
+describe('the site\'s own record of a copy decides, never the copy @SC-1724', () => {
   beforeEach(async () => {
     await call('git.init', { workspace, author: AUTHOR })
     await call('branch.create', { workspace, copyId: COPY_A, branch: 'add-login-page' })
@@ -182,7 +182,7 @@ describe('the site\'s own record of a copy decides, never the copy', () => {
 })
 
 describe('refusals', () => {
-  it('a workspace this site does not hold, params it does not take, and a workspace without Git', async () => {
+  it('a workspace this site does not hold, params it does not take, and a workspace without Git @SC-1728', async () => {
     const outside = await call('branch.list', { workspace: { ...workspace, workspaceId: 'nope' }, merged: [] }).catch((e: unknown) => e)
     expect((outside as RepoWorkError).code).toBe('outside')
     const bad = await call('git.readFile', { workspace, rev: { branch: 'main' }, path: '../etc/passwd' }).catch((e: unknown) => e)
@@ -197,7 +197,7 @@ describe('refusals', () => {
     expect((again as BranchWorkError).code).toBe('already_repository')
   })
 
-  it('pushing a workspace not connected to GitHub refuses, and never echoes the token', async () => {
+  it('pushing a workspace not connected to GitHub refuses, and never echoes the token @SC-1682', async () => {
     await call('git.init', { workspace, author: AUTHOR })
     const err = await call('git.pushMain', { workspace, token: 'ghs_secret' }).catch((e: unknown) => e)
     expect((err as RepoWorkError).code).toBe('invalid')

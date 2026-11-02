@@ -10,7 +10,7 @@
  */
 import { allocateSubnet, agentNetworkLabel } from '../../agents/runtime/containerNetwork'
 import { docker, dockerWithin, DOCKER_SWEEP_TIMEOUT_MS } from '../../agents/runtime/containerLifecycle'
-import { resolveComposeProjectName, siteNamespace } from '../../agents/runtime/containerLabels'
+import { resolveComposeProjectName, siteIdFilterArgs, siteIdLabelArgs, siteNamespace } from '../../agents/runtime/containerLabels'
 import { runLabel } from '../stepContainer'
 
 const NETWORK_KIND = 'workflow'
@@ -61,6 +61,7 @@ export function createRunNetwork(name: string, runId: string, internal: boolean)
           '--label', `${agentNetworkLabel()}=${NETWORK_KIND}`,
           '--label', `${runLabel()}=${runId}`,
           '--label', `com.docker.compose.project=${resolveComposeProjectName()}`,
+          ...siteIdLabelArgs(),
           name,
         ])
         return subnet
@@ -85,6 +86,7 @@ export async function listRunNetworks(): Promise<string[]> {
     'network', 'ls',
     '--filter', `label=${agentNetworkLabel()}=${NETWORK_KIND}`,
     '--filter', `label=com.docker.compose.project=${resolveComposeProjectName()}`,
+    ...siteIdFilterArgs(),
     '--format', '{{.Name}}',
   ], DOCKER_SWEEP_TIMEOUT_MS)
   return stdout.split('\n').map(s => s.trim()).filter(Boolean)

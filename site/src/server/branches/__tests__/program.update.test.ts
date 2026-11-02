@@ -25,7 +25,7 @@ async function mainChanges(file: string, body: string): Promise<string> {
   return (m.version as { commit: string }).commit
 }
 
-describe('bringing main into a branch\'s copy', () => {
+describe('bringing main into a branch\'s copy @SC-1727', () => {
   beforeEach(async () => {
     await gitOn(owner, { 'README.md': 'hello\n', 'shared.txt': 'one\ntwo\nthree\n' })
     await create(COPY_A)

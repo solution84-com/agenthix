@@ -123,7 +123,7 @@ describe('a site the host service runs', () => {
   })
 })
 
-describe('a workspace made a Git repository while runs go', () => {
+describe('a workspace made a Git repository while runs go @SC-1723', () => {
   const CODE = { ...MOUNTS, readOnly: [{ hostDir: '/site/projects/proj-alpha/workspaces/w1', containerDir: '/projects/proj-alpha/workspaces/w1' }] }
 
   it('a run on a branch never joins the container that still has the workspace writable: it waits, and starts once runs end', async () => {

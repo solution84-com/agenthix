@@ -8,7 +8,7 @@
  * never  — invisible to Claude; removed from SDK context via disallowedTools.
  */
 import type { RelayCredential, SiteRunCredential } from '../../server/modelRelay/runAccess'
-import type { ApprovedManifest, AuditSummary, PendingManifest, ToolPermissionState, ToolPermission, BashPatternPermission, RunContextPayload, SessionClosedReasonValue, RunLimits, RunStartedBy, TaskCommentForRun, ContextUse } from '@agenthix/core'
+import type { ApprovedManifest, AuditSummary, PendingManifest, ToolPermissionState, ToolPermission, BashPatternPermission, RunContextPayload, SessionClosedReasonValue, RunLimits, RunStartedBy, TaskCommentForRun, ContextUse, WorkspaceRepoRef } from '@agenthix/core'
 import type { ResolvedRunPackages } from '../../packages/runPackages'
 import type { BoundaryOverride } from '../../packages/boundaryOverrides'
 import type { RunSkillInputs } from './skillSources'
@@ -138,8 +138,11 @@ export type RunContext = {
    *  for a boundary's overrides of an agent — the two share no lineage beyond
    *  both being resolved per run. */
   workingTreeDir: string
-  /** Set for a run on a branch's copy (live preview spec part 2): it is offered the `commit` tool. */
-  codeWork?: { branch: string }
+  /**
+   * Set for a run on a branch's copy (live preview spec part 2): it is offered the `commit` tool and `install_packages`.
+   * `workspace` and `copyId` are the site's own record of the copy, checked when the run started.
+   */
+  codeWork?: { branch: string; copyId: string; workspace: WorkspaceRepoRef }
 }
 
 /**

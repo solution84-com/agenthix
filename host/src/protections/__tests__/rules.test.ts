@@ -7,6 +7,7 @@ import { listing } from './nftListing'
 const SLICE = '10.213.16.0/20'
 const set: RuleSet = { table: 'agenthix_agents', range: { addr: '10.213.16.0', len: 20 }, machineAddresses: [] }
 const desktop: RuleSet = { ...set, machineAddresses: ['192.168.65.254'] }
+const PART = { part: { addr: '10.213.24.0', len: 21 }, publicAddresses: [] }
 
 describe('the rules built @SC-824', () => {
   it('replaces one table of its own whole, in one transaction', () => {
@@ -109,7 +110,7 @@ describe('this machine @SC-824', () => {
   })
 
   it('on Linux, is the installation’s own agent slice and nothing else @SC-1247', async () => {
-    expect(await machineRules('agenthix', () => SLICE, facts())()).toEqual(set)
+    expect(await machineRules('agenthix', () => SLICE, facts())()).toEqual({ ...set, livePreview: PART })
     const script = nftScript(set)
     expect(script).not.toContain('10.213.0.0/16')
     expect(script.match(/ip saddr (\S+)/g)!.every(m => m === `ip saddr ${SLICE}`)).toBe(true)
@@ -127,13 +128,13 @@ describe('this machine @SC-824', () => {
     const rules = machineRules('agenthix', () => range, facts())
     expect(await rules()).toBeNull()
     range = SLICE
-    expect(await rules()).toEqual(set)
+    expect(await rules()).toEqual({ ...set, livePreview: PART })
   })
 
   it('on Docker Desktop, adds the computer Docker runs on', async () => {
     expect(isDockerDesktop('6.10.14-linuxkit')).toBe(true)
     const lookup = async (name: string) => (name === 'host.docker.internal' ? ['192.168.65.254'] : ['192.168.65.254', '127.0.0.1'])
-    expect(await machineRules('agenthix', () => SLICE, facts({ kernel: () => '6.10.14-linuxkit', lookup }))()).toEqual(desktop)
+    expect(await machineRules('agenthix', () => SLICE, facts({ kernel: () => '6.10.14-linuxkit', lookup }))()).toEqual({ ...desktop, livePreview: PART })
   })
 
   it('on Docker Desktop, does not hold without that address', async () => {

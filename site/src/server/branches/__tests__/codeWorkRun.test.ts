@@ -64,7 +64,7 @@ afterEach(() => {
 })
 
 describe('a run on a branch\'s copy', () => {
-  it('starts only on a copy the site\'s record says is this workspace\'s copy of this branch, in this storage', async () => {
+  it('starts only on a copy the site\'s record says is this workspace\'s copy of this branch, in this storage @SC-1724', async () => {
     await expect(resolveCodeWork('r', { ...codeWork, branch: 'signup' }, boundary)).rejects.toBeInstanceOf(ReadableRunError)
     await expect(resolveCodeWork('r', codeWork, { ownerType: 'project', ownerId: 'other' })).rejects.toBeInstanceOf(ReadableRunError)
     await expect(resolveCodeWork('r', { ...codeWork, copyId: '33333333-3333-4333-8333-333333333333' }, boundary)).rejects.toBeInstanceOf(ReadableRunError)
@@ -72,7 +72,7 @@ describe('a run on a branch\'s copy', () => {
     expect(run).toMatchObject({ copyDir: copy(), branch: 'add-login-page', author, onBehalfOf: person })
   })
 
-  it('at its end commits what was left as Work in progress, brings the branch back and tells hq', async () => {
+  it('at its end commits what was left as Work in progress, brings the branch back and tells hq @SC-1725', async () => {
     const run = await resolveCodeWork('run-1', codeWork, boundary)
     await startCodeWork(run)
     expect(db.copies.get(COPY_A)?.backPending).toBe(true)
@@ -85,7 +85,7 @@ describe('a run on a branch\'s copy', () => {
     expect(db.copies.get(COPY_A)?.backPending).toBe(false)
   })
 
-  it('brings back what the agent committed with its own git on the sweep while it goes', async () => {
+  it('brings back what the agent committed with its own git on the sweep while it goes @SC-1725', async () => {
     const run = await resolveCodeWork('run-2', codeWork, boundary)
     await startCodeWork(run, 50)
     write(copy(), 'a.txt', 'a\n')
@@ -97,7 +97,7 @@ describe('a run on a branch\'s copy', () => {
     expect(sent.filter(s => s.data.cause === 'run_end')).toEqual([])
   })
 
-  it('after a start of the site, brings back every copy still marked', async () => {
+  it('after a start of the site, brings back every copy still marked @SC-1725', async () => {
     write(copy(), 'a.txt', 'a\n')
     sh(copy(), ['add', '-A']); sh(copy(), ['commit', '-qm', 'before the site stopped'])
     db.copies.get(COPY_A)!.backPending = true

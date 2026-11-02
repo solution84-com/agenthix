@@ -8,6 +8,7 @@
  * result, or `{ refused, detail }`. Kept as plain JavaScript in strings, since the container has Node and none of the
  * site's code; the tests run it with Node directly against real repositories.
  */
+import { PROGRAM_BUNDLE_OPS } from './bundleOps'
 import { PROGRAM_CORE } from './core'
 import { PROGRAM_COPY_OPS } from './copyOps'
 import { PROGRAM_MAIN_OPS } from './mainOps'
@@ -32,4 +33,4 @@ process.stdin.on('end', () => {
 })
 `
 
-export const GIT_PROGRAM = [PROGRAM_CORE, 'const ops = {}', PROGRAM_COPY_OPS, PROGRAM_MAIN_OPS, PROGRAM_READ_OPS, PROGRAM_UPDATE_OPS, DISPATCH].join('\n')
+export const GIT_PROGRAM = [PROGRAM_CORE, 'const ops = {}', PROGRAM_COPY_OPS, PROGRAM_MAIN_OPS, PROGRAM_READ_OPS, PROGRAM_UPDATE_OPS, PROGRAM_BUNDLE_OPS, DISPATCH].join('\n')

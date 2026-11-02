@@ -110,3 +110,18 @@ describe('reading a run instruction @SC-1336', () => {
     expect(await checkInstruction({ ...good, github })).toMatchObject({ ok: false, reason: 'invalid_instruction' })
   })
 })
+
+describe('the live preview a run is aimed at @SC-1746', () => {
+  it('is read when it names a live preview by id', async () => {
+    const check = await checkInstruction(await instruction({ livePreview: { livePreviewId: 'lp-1' } }))
+    expect(check.ok).toBe(true)
+    if (check.ok) expect(check.checked.instruction.livePreview).toEqual({ livePreviewId: 'lp-1' })
+  })
+
+  it('is refused when it is not a plain id or carries anything more', async () => {
+    const good = await instruction()
+    for (const livePreview of [{ livePreviewId: '../lp' }, { livePreviewId: '' }, { livePreviewId: 'lp-1', copy: '/etc' }, 'lp-1']) {
+      expect(await checkInstruction({ ...good, livePreview })).toMatchObject({ ok: false, reason: 'invalid_instruction' })
+    }
+  })
+})

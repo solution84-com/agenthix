@@ -21,6 +21,9 @@ import type { ZodRawShape } from 'zod'
 import { FORWARDED_TOOLS, type ForwardedTool } from './forwardedToolSchemas'
 import { registerSiteTools } from './siteTools'
 import { CODE_TOOL_NAME_SET } from './forwardedCodeSchemas'
+import { APP_TOOL_NAME_SET } from './forwardedAppSchemas'
+import { registerPreviewInstallTools } from './previewInstallTools'
+import type { CapabilityLivePreview } from '@agenthix/core'
 import type { SiteToolsOptions } from './siteTools'
 
 function mcpOk(data: unknown) {
@@ -45,6 +48,10 @@ export interface CreateMcpServerOptions {
   capabilityJwt: string
   /** The turn the caller acts for, for the tools the site serves itself (siteTools.ts). */
   siteTools?: SiteToolsOptions
+  /** The live preview the run's verified capability names: its package tools install there, and a run that is not code work is offered the app tools only with it. */
+  livePreview?: CapabilityLivePreview | null
+  /** The organisation's trusted npm scopes, read off the verified capability: the package tools' rule trusts these. */
+  trustedPackageScopes?: readonly string[]
 }
 
 const NO_RUN = 'No run of this conversation is running, so nothing was recorded.'
@@ -110,6 +117,13 @@ export function createMcpServer(opts: CreateMcpServerOptions): McpServer {
   server.tool('get_site_info', {}, async () => mcpOk({ status: 'standalone', mode: 'standalone' }))
 
   registerSiteTools(server, opts.siteTools ?? { context: null, openCode: false })
+  // Every code-work run installs through the rule (adr-0170): in its live preview when its capability names one, else in its own container.
+  const turn = opts.siteTools?.context ?? null
+  if (opts.livePreview || turn?.codeWork) {
+    registerPreviewInstallTools(server, {
+      claim: opts.livePreview ?? null, trustedPackageScopes: opts.trustedPackageScopes ?? [], runId: turn?.runId ?? null, context: turn,
+    })
+  }
 
   // ── Forwarded tools — thin callHqData(name, args, capabilityJwt) forwards ──
 
@@ -118,6 +132,10 @@ export function createMcpServer(opts: CreateMcpServerOptions): McpServer {
   for (const tool of FORWARDED_TOOLS) {
     const { name, description } = tool
     if (CODE_TOOL_NAME_SET.has(name) && !opts.siteTools?.context?.codeWork) continue
+    // Every code-work run is offered the app tools, whether or not its branch has a live preview now: a harness lists
+    // a conversation's tools once and keeps them for its later runs, while a live preview opens and stops at any time.
+    // hq answers each call only while the run's branch has a live preview on the run's site, and refuses it otherwise.
+    if (APP_TOOL_NAME_SET.has(name) && !opts.livePreview && !opts.siteTools?.context?.codeWork) continue
     const schema = agentSchema(tool)
     const handler = async (args: unknown) => {
       if (tool.runIdFromCaller && !callingRunId) return mcpError(NO_RUN)

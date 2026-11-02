@@ -191,6 +191,8 @@ export const runContextParams = z
         // Whom the run-end commit names: the agent, and the person in an `On-behalf-of:` line.
         author: gitPerson,
         onBehalfOf: gitPerson.nullable(),
+        // A run on a branch whose live preview is on this site, in that live preview's own copy (`livePreviewRuns.ts`).
+        livePreviewId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).optional(),
       })
       .optional(),
   })

@@ -9,9 +9,7 @@
  * argument hints), never a security hole.
  *
  * DELIBERATE DUPLICATION, not a shared module: this is structurally the same
- * table as hq's `toolSchemas.ts`'s `CONTROL_PLANE_TOOLS` + `WORKFORCE_TOOLS`,
- * plus `start_preview` (a NEW hq registry op this task adds — see
- * `hq/src/server/controlplane/toolSchemas.ts`'s `DATA_PATH_ONLY_TOOLS`).
+ * table as hq's `toolSchemas.ts`'s `CONTROL_PLANE_TOOLS` + `WORKFORCE_TOOLS`.
  * Moving the canonical table into `@agenthix/core` so both sides import one
  * copy would remove this drift risk, but touches hq's control-plane module
  * beyond the two registry-op edits this task calls for — left as a follow-up,
@@ -24,6 +22,7 @@ import { FORWARDED_WORKFLOW_TOOLS } from './forwardedWorkflowSchemas'
 import { FORWARDED_SKILL_TOOLS } from './forwardedSkillSchemas'
 import { FORWARDED_KNOWLEDGE_TOOLS } from './forwardedKnowledgeSchemas'
 import { FORWARDED_CODE_TOOLS } from './forwardedCodeSchemas'
+import { FORWARDED_APP_TOOLS } from './forwardedAppSchemas'
 
 /** A routine's repeat: every N minutes, hours or days (at least 5 minutes), or a time of day on given weekdays. */
 const ROUTINE_RULE = z.discriminatedUnion('kind', [
@@ -281,6 +280,7 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
   ...FORWARDED_SKILL_TOOLS,
   ...FORWARDED_KNOWLEDGE_TOOLS,
   ...FORWARDED_CODE_TOOLS,
+  ...FORWARDED_APP_TOOLS,
   {
     name: 'add_comment',
     schema: {
@@ -367,19 +367,6 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
     },
   },
 
-  // ── Preview (runs in the boundary's container here, served through hq — ADR-0063)
-  {
-    name: 'start_preview',
-    description:
-      'Start a live web preview of your working tree and return a URL the operator can open. ' +
-      'The command runs from your workspace ROOT, so if your app is in a subfolder you MUST cd into it first. ' +
-      'Bind the dev server to 0.0.0.0 (not localhost) or it will be unreachable. ' +
-      'Present the returned URL to the operator as a plain or markdown link — do NOT wrap it in bold, which stops it rendering as a clickable link.',
-    schema: {
-      command: z.string().describe('Dev-server command, run from the workspace root. cd into the app folder if it is in a subdirectory and bind 0.0.0.0 — e.g. "cd myapp && npm run dev -- --host 0.0.0.0 --port 5173"'),
-      port: z.number().int().describe('Port the dev server binds inside the container, e.g. 5173'),
-    },
-  },
   // ── The run's result (workers and results spec, Results) ───────────────
   {
     name: 'set_result',

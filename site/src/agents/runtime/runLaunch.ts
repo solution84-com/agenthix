@@ -51,6 +51,7 @@ import { readContainerCounters, type ContainerCounters } from './runResourceCaus
 import { homeIsShared, writePinnedMemory } from './pinnedMemoryFiles'
 import { resolveCodeWork, startCodeWork, type CodeWorkRun } from '../../server/branches/codeWorkRun'
 import { withCodeWorkTools } from '../../server/mcp/forwardedCodeSchemas'
+import { withAppTools } from '../../server/mcp/forwardedAppSchemas'
 
 const logger = new Logger('AgentEngine')
 
@@ -282,7 +283,7 @@ export async function assembleRunLaunch(
     primaryLoc,
     { mounts: ctx.mounts, credential: access.credential },
     containerKey,
-    codeWork ? { copyId: codeWork.copyId } : null,
+    codeWork ? { copyId: codeWork.copyId, livePreview: !!codeWork.livePreviewId } : null,
     {
       // A run that has to wait for its container to be made again says why (live preview spec, *Where the copy lives*).
       onWaitForBinds: (waiting) => siteStream.waiting({ runId, sessionId: session.id, taskId: effectiveTaskId, waiting, reason: 'branch' }),
@@ -398,7 +399,7 @@ export async function assembleRunLaunch(
     mcpServers,
     bypassed,
     immediateApproval,
-    allowedTools: bypassed ? undefined : codeWork ? withCodeWorkTools(toolPermissions) : toolPermissions,
+    allowedTools: bypassed ? undefined : codeWork ? withAppTools(withCodeWorkTools(toolPermissions)) : toolPermissions,
     allowedBashPatterns: bashPermissions,
     neverTools,
     approvedManifest,
@@ -419,7 +420,7 @@ export async function assembleRunLaunch(
     skills,
     claudeHome,
     workingTreeDir,
-    ...(codeWork ? { codeWork: { branch: codeWork.branch } } : {}),
+    ...(codeWork ? { codeWork: { branch: codeWork.branch, copyId: codeWork.copyId, workspace: codeWork.placed.ref } } : {}),
   }
 
   logger.info(`Run ${runId} | runtime=${runtimeName} model=${resolvedModel}`)

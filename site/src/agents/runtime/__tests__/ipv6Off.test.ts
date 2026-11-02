@@ -4,7 +4,7 @@ import { ipv6OffArgs, ipv6OffSysctls, setKernelIpv6ForTests, sysctlsMatch } from
 
 afterEach(() => setKernelIpv6ForTests(null))
 
-describe('IPv6 off in a container', () => {
+describe('IPv6 off in a container @SC-1734', () => {
   it('turns it off on every interface the container has and every one it gets later', () => {
     setKernelIpv6ForTests(true)
     expect(ipv6OffSysctls()).toEqual({ 'net.ipv6.conf.all.disable_ipv6': '1', 'net.ipv6.conf.default.disable_ipv6': '1' })

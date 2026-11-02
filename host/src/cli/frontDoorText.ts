@@ -25,9 +25,10 @@ export const NO_ONE_TO_ASK = wrap(`Not on: this needs an answer and there is no 
 
 export const LEFT_OFF = 'Left off. Nothing changed.'
 
-export function frontDoorOnText(c: FrontDoorCheck): string {
+export function frontDoorOnText(c: FrontDoorCheck, previewsHost?: string): string {
   return [
     wrap(`The front door is on. It serves HQ at ${c.address} and uploaded files at https://${c.filesHost}, and renews their certificates on its own.`),
+    ...(previewsHost ? [wrap(`Live apps open at their own address under ${previewsHost}. Each gets its certificate the first time it is opened; the checks above say what any needs.`)] : []),
     nextStep('To turn it off and free ports 80 and 443:', cmd('front-door off')),
   ].join('\n')
 }

@@ -11,12 +11,19 @@ const codeWork = {
   author: { name: 'Kernel', email: 'kernel@agents.hq.example' }, onBehalfOf: { name: 'Mia', email: 'mia@people.hq.example' },
 }
 
-describe('a run\'s code work, as dispatch carries it', () => {
+describe('a run\'s code work, as dispatch carries it @SC-1731', () => {
   it('is accepted in core\'s shape', () => {
     expect(runContextParams.safeParse({ ...base, codeWork }).success).toBe(true)
   })
 
+  it("keeps the live preview whose own copy a run on another site works in", () => {
+    const livePreviewId = 'e78fcb41-6a6a-40fd-a080-771bf7c75b89'
+    const parsed = runContextParams.safeParse({ ...base, codeWork: { ...codeWork, livePreviewId } })
+    expect(parsed.success && parsed.data.codeWork?.livePreviewId).toBe(livePreviewId)
+  })
+
   it.each([
+    ['a live preview id with a path in it', { livePreviewId: '../lp' }],
     ['a copy id that is not a uuid', { copyId: '../../etc' }],
     ['a branch name Git would read as an option', { branch: '--upload-pack=x' }],
     ['a main that is an expression', { main: 'HEAD~1' }],

@@ -15,6 +15,7 @@ import { connectFromPairingSecretIfConfigured } from './registration/pairing'
 import { addressFollower } from './hq/addressFollow'
 import { hqConnectionManager } from './hq/hqConnection'
 import { ensureSiteConfig } from './siteConfig'
+import { setContainerSiteId } from '../agents/runtime/containerLabels'
 import { listAgentHandles } from '../agents/agentDiskPaths'
 import { listStorageBoundaries } from './storage/storageBoundaries'
 import { setAsideSupersededMemory } from '../agents/memorySupersede'
@@ -43,7 +44,7 @@ export async function setupServer(): Promise<void> {
 
   // Before anything else: registration needs this installation's siteId, and
   // nothing else creates it.
-  await ensureSiteConfig()
+  setContainerSiteId((await ensureSiteConfig()).siteId)
 
   // The site's command reaches it here (ADR-0065); started before registration
   // from the environment so a failed one can be retried by hand at once.
@@ -161,6 +162,11 @@ export async function setupServer(): Promise<void> {
     // start, and asked again before the first agent command if this could not.
     const { checkLandlockAtStartup } = await import('../agents/runtime/landlockCheck')
     void checkLandlockAtStartup()
+
+    // Live previews (live preview spec sections 4 and 6): the guard runs from here, and what a restart left of any
+    // live preview is put right before hq can ask for one.
+    const { startLivePreviews } = await import('./livePreviews/livePreviewService')
+    await startLivePreviews().catch(err => logger.error(`Live previews could not start on this site: ${err instanceof Error ? err.message : String(err)}`))
 
     const idleMinutes = positiveNumberEnv('AGENT_CONTAINER_IDLE_MINUTES', 30)
     // Networks swept after containers: a container removed by this same tick

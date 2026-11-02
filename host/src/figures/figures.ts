@@ -11,6 +11,7 @@ import { partState, type PartState } from '../status/machineStatus'
 import { installed, STATE_MOUNT, type Context } from '../service/context'
 import { protectionFigures } from '../protections/protections'
 import { frontDoorFigures } from '../frontDoor/frontDoor'
+import { previewsFigures } from '../previews/previewChecks'
 import { scheduledCount } from '../scheduled/notices'
 import { BackupStore } from '../backups/store'
 import { blockedParts } from '../status/portsBlocked'
@@ -103,6 +104,13 @@ export async function collectFigures(ctx: Context): Promise<HostFigures> {
     installs,
     backups: backupFigures(ctx),
     frontDoor: await frontDoorFigures(ctx),
+    ...withPreviews(ctx),
     scheduledChanges: scheduledCount(ctx),
   }
+}
+
+/** Live apps' preview address, on HQ's machine only. */
+function withPreviews(ctx: Context): { previews?: ReturnType<typeof previewsFigures> } {
+  const previews = previewsFigures(ctx)
+  return previews ? { previews } : {}
 }

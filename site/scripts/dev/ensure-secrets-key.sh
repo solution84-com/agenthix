@@ -54,4 +54,4 @@ KEY="$KEY_NAME" VALUE="$new_key" awk '
 # Write through the existing file so its permissions stay.
 cat "$tmp" > "$ENV_FILE"
 rm -f "$tmp"
-echo "secrets key: generated $KEY_NAME in site/.env.server"
+echo "secrets key: generated $KEY_NAME in $ENV_FILE"

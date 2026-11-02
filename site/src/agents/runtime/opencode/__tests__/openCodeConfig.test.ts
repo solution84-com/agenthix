@@ -48,7 +48,9 @@ describe("the OpenCode server's environment", () => {
     expect(plugin).not.toBeNull()
     expect(plugin!.siteUrl).toBe('http://host.docker.internal:4201')
     expect(plugin!.secretEnv).toEqual([...HARNESS_SECRET_ENV, 'SITE_PLUGIN_CONFIG'])
-    expect(plugin!.commandEnv).toEqual({ npm_config_offline: 'false' })
+    expect(plugin!.commandEnv).toMatchObject({ npm_config_offline: 'false' })
+    // adr-0170: every command installs with scripts off, whichever package manager.
+    expect(plugin!.commandEnv).toMatchObject({ npm_config_ignore_scripts: 'true', YARN_IGNORE_SCRIPTS: 'true', YARN_ENABLE_SCRIPTS: 'false' })
     expect(plugin!.commandEnv).not.toHaveProperty('HOME')
   })
 })

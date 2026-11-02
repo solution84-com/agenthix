@@ -14,8 +14,8 @@ const bringBack = (id: string) =>
 const create = (id: string, branch: string) =>
   op(owner, { op: 'create', branch, originUrl: '/projects/p/workspaces/w1' }, { id, readOnly: false })
 
-describe('the commit helper, end to end on real repositories', () => {
-  it('turns Git on with a .gitignore, leaving large files out', async () => {
+describe('the commit helper, end to end on real repositories @SC-1726', () => {
+  it('turns Git on with a .gitignore, leaving large files out @SC-1693', async () => {
     write(owner.ws, 'big.bin', 'x'.repeat(2048))
     write(owner.ws, 'node_modules/a.js', 'x')
     const r = await op(owner, { op: 'init', author: AUTHOR, at: at(), message: 'First version', large: 1024, ignored: ['node_modules'] })
@@ -48,7 +48,7 @@ describe('the commit helper, end to end on real repositories', () => {
     expect(await bringBack(COPY_A)).toMatchObject({ moved: false })
   })
 
-  it('brings back commits the agent made with its own git, and keeps a backup of a rewritten branch', async () => {
+  it('brings back commits the agent made with its own git, and keeps a backup of a rewritten branch @SC-1725', async () => {
     await gitOn(owner)
     await create(COPY_A, 'login-page')
     const copy = owner.copyDir(COPY_A)

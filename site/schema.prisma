@@ -388,6 +388,62 @@ model BranchCopy {
 }
 
 // ──────────────────────────────────────────────
+// Module: Live previews (live preview spec sections 4 and 5): the site's own record of each live preview it runs,
+// checked again on every call hq makes and every stream a relay opens. *Live previews on this site*, its limit and
+// its idle stop have no column: hq sends them at every connect (`site.livePreviews`) and the site holds them in memory.
+// ──────────────────────────────────────────────
+
+model LivePreview {
+  /// hq's id for it.
+  id                String             @id
+  projectId         String?
+  personId          String
+  /// The workspace and its owner (logical references: on another site, the workspace is not here).
+  ownerType         WorkspaceOwnerType
+  ownerId           String
+  workspaceId       String
+  /// The branch's name, or `main`'s for `main`'s live preview.
+  branch            String
+  onMain            Boolean            @default(false)
+  /// core's LivePreviewCopyKind: `branch` binds the branch's BranchCopy here (`copyId` is its id); `main` binds a copy
+  /// of its own outside every storage; `bundle` a copy of its own in `clones/<copyId>/` of the owner's storage here, so
+  /// the branch's runs on this site work in it. Both are made for it and removed with it.
+  copyKind          String
+  copyId            String
+  /// The commit its copy was on when it started (`main`'s tip, or the bundle's head), and is on now.
+  baseCommit        String?
+  headCommit        String?
+  openedAt          DateTime
+  /// core's LivePreviewState.
+  state             Json
+  /// The runs that worked on its branch here (string[], newest last, bounded), for `noRun` and the idle stop.
+  runs              Json               @default("[]")
+  /// Work left to finish after a restart, in the site's own shape: a stop the site had begun (with who stopped it), or,
+  /// for a `bundle` copy, commits in the copy not yet reported to hq (`livePreview.branchMoved`). Null when none.
+  pending           Json?
+  /// True when its containers were removed while it was paused (a restart): resuming makes them again.
+  containersRemoved Boolean            @default(false)
+  live              Boolean            @default(true)
+  updatedAt         DateTime           @updatedAt
+
+  @@index([workspaceId, live])
+  @@index([live])
+}
+
+// A person's yes in hq to a live preview's service (live preview spec section 4, *Services*): exactly the declaration
+// they approved, by its hash, for the workspace. Kept across the site's restarts, so only a new or changed service asks
+// again; removed with the workspace, as the services' volumes are. The workspace is a logical reference: a live preview
+// may run on a site that does not hold its workspace.
+model LivePreviewServiceApproval {
+  workspaceId     String
+  service         String
+  declarationHash String
+  approvedAt      DateTime @default(now())
+
+  @@id([workspaceId, service, declarationHash])
+}
+
+// ──────────────────────────────────────────────
 // Module: Executor — workflow runs on this site (workflows spec part 2).
 //
 // Only what the site needs to clean up after a crash and to answer `workflow.get`: which runs it had, their

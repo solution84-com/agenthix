@@ -44,7 +44,7 @@ const op = (q: Record<string, unknown>, ws: boolean, copy?: boolean) => {
   }, q, contained)
 }
 
-describe.skipIf(!available)('the commit helper in its container', () => {
+describe.skipIf(!available)('the commit helper in its container @SC-1720', () => {
   it('starts with no network, no capability, a read-only root and only the folders named', () => {
     const args = buildHelperArgs({ workspaceId: 'w1', ws: { dir: '/s/w', readOnly: true }, network: false, timeoutMs: 1 }, 'n', 'none')
     for (const flag of [['--network', 'none'], ['--cap-drop', 'ALL'], ['--security-opt', 'no-new-privileges']]) {

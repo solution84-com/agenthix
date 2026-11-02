@@ -11,7 +11,9 @@
  * by a host service (development, or the old compose install), and keeps its own ceilings and no protections.
  */
 import net from 'node:net'
-import { BRANDING, parseHostCeilings, type HostCeilings, type ScheduledChangeNotice } from '@agenthix/core'
+import {
+  BRANDING, parseHostCeilings, percentOf, type HostCeilings, type ProtectionDrop, type ProtectionRule, type ScheduledChangeNotice,
+} from '@agenthix/core'
 import { parseScheduledNotices } from './scheduledRelay'
 import { Logger } from '../utils/logger'
 
@@ -26,8 +28,39 @@ export const PROTECTIONS_FRESH_MS = 3 * 60_000
 
 export type HostReading = {
   ceilings: HostCeilings
-  protections: { holding: boolean; checkedAt: number }
+  protections: { holding: boolean; checkedAt: number; rules: ProtectionRule[]; drops: ProtectionDrop[] | null; publicAddressKnown: boolean }
+  /** The machine's memory and processor use, as whole percents only (live preview capacity); null when not given. */
+  use: { memoryPercent: number | null; cpuPercent: number | null }
   readAt: number
+}
+
+/**
+ * The rules a live preview needs beyond an agent's (live preview spec section 6): `public-address` too, once the
+ * machine knows a public address it is seen from.
+ */
+export const LIVE_PREVIEW_RULES: readonly ProtectionRule[] = ['private-addresses']
+
+export function livePreviewRules(publicAddressKnown: boolean): readonly ProtectionRule[] {
+  return publicAddressKnown ? [...LIVE_PREVIEW_RULES, 'public-address'] : LIVE_PREVIEW_RULES
+}
+
+const RULE_NAMES: readonly ProtectionRule[] = ['machine-ports', 'published-ports', 'metadata-address', 'private-addresses', 'public-address']
+
+function readDrops(v: unknown): ProtectionDrop[] | null {
+  if (!Array.isArray(v)) return null
+  return v.flatMap((d): ProtectionDrop[] => {
+    const o = d as { rule?: unknown; source?: unknown; dropped?: unknown } | null
+    if (!o || !RULE_NAMES.includes(o.rule as ProtectionRule) || typeof o.source !== 'string' || !Number.isSafeInteger(o.dropped)) return []
+    return [{ rule: o.rule as ProtectionRule, source: o.source, dropped: o.dropped as number }]
+  })
+}
+
+function readUse(v: unknown): HostReading['use'] {
+  const r = v as { cpuLoad?: unknown; cpus?: unknown; memory?: { usedBytes?: unknown; totalBytes?: unknown } } | null | undefined
+  const memoryPercent = typeof r?.memory?.usedBytes === 'number' && typeof r.memory.totalBytes === 'number'
+    ? percentOf(r.memory.usedBytes, r.memory.totalBytes) : null
+  const cpuPercent = typeof r?.cpuLoad === 'number' && typeof r.cpus === 'number' ? percentOf(r.cpuLoad, r.cpus) : null
+  return { memoryPercent: memoryPercent === null ? null : Math.min(100, memoryPercent), cpuPercent }
 }
 
 export type FiguresRead = (socket: string) => Promise<unknown>
@@ -64,12 +97,13 @@ export function parseReading(answer: unknown, readAt: number): HostReading | nul
   if (!answer || typeof answer !== 'object') return null
   const a = answer as { ok?: unknown; result?: unknown }
   if (a.ok !== true || !a.result || typeof a.result !== 'object') return null
-  const r = a.result as { ceilings?: unknown; protections?: unknown }
+  const r = a.result as { ceilings?: unknown; protections?: unknown; resources?: unknown }
   const ceilings = parseHostCeilings(r.ceilings)
-  const p = r.protections as { holding?: unknown; checkedAt?: unknown } | null | undefined
+  const p = r.protections as { holding?: unknown; checkedAt?: unknown; rules?: unknown; drops?: unknown; publicAddressKnown?: unknown } | null | undefined
   const checkedAt = typeof p?.checkedAt === 'string' ? Date.parse(p.checkedAt) : NaN
   if (!ceilings || typeof p?.holding !== 'boolean' || Number.isNaN(checkedAt)) return null
-  return { ceilings, protections: { holding: p.holding, checkedAt }, readAt }
+  const rules = Array.isArray(p.rules) ? RULE_NAMES.filter(n => (p.rules as unknown[]).includes(n)) : []
+  return { ceilings, protections: { holding: p.holding, checkedAt, rules, drops: readDrops(p.drops), publicAddressKnown: p.publicAddressKnown === true }, use: readUse(r.resources), readAt }
 }
 
 /** What a run that did not start says, in the words the person reads in its conversation. */
@@ -150,6 +184,32 @@ export class HostFigures {
     if (!fresh) return PROTECTIONS_MISSING
     const { holding, checkedAt } = fresh.protections
     return holding && this.now() - checkedAt <= PROTECTIONS_FRESH_MS ? null : PROTECTIONS_MISSING
+  }
+
+  /**
+   * Why no live preview may run now; null when one may. A live preview needs the agents' protections and, for the
+   * live-preview part of the range, the rules that keep it off private addresses and, once known, the machine's public
+   * address. Without a host service (development)
+   * nothing protects agents either, and nothing is asked.
+   */
+  async livePreviewProtectionsProblem(): Promise<string | null> {
+    const agents = await this.protectionsProblem()
+    if (agents || !this.socket) return agents
+    const rules = this.last?.protections.rules ?? []
+    const missing = livePreviewRules(this.last?.protections.publicAddressKnown ?? false).filter(r => !rules.includes(r))
+    return missing.length
+      ? `the host service does not apply the rule${missing.length === 1 ? '' : 's'} ${missing.join(', ')} for live previews. Upgrade the host service on this machine.`
+      : null
+  }
+
+  /** What each rule dropped, by agent address, as last read; null where the host service does not count them. */
+  drops(): ProtectionDrop[] | null {
+    return this.last?.protections.drops ?? null
+  }
+
+  /** The machine's memory and processor use as last read, in whole percents. */
+  use(): HostReading['use'] {
+    return this.last?.use ?? { memoryPercent: null, cpuPercent: null }
   }
 
   /** Every `HOST_FIGURES_REFRESH_MS`, after the first reading at boot. Returns the stop function. */

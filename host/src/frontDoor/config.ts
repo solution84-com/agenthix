@@ -5,7 +5,7 @@
  * no admin API and no Docker socket.
  */
 import { createHash } from 'node:crypto'
-import { FRONT_DOOR_PORTS } from '@agenthix/core'
+import { FRONT_DOOR_PORTS, PREVIEW_CERTIFICATE_ASK_PATH } from '@agenthix/core'
 import type { HqSettings, MachinePaths } from '../compose/projects'
 import { HQ_WEB_PORT } from '../compose/projects'
 import type { InstallNames } from '../state/namespace'
@@ -50,25 +50,43 @@ export const frontDoorProject = (names: InstallNames) => `${names.namespace}-fro
 export const GIVEN_IN_CONTAINER = { certificate: '/etc/caddy/tls/certificate.pem', privateKey: '/etc/caddy/tls/private-key.pem' } as const
 export const GIVEN_FILES = { certificate: ['front-door', 'tls', 'certificate.pem'], privateKey: ['front-door', 'tls', 'private-key.pem'] } as const
 
-/** `givenCertificate`: serve the certificate in the state folder, and never try a certificate authority. */
-export function caddyfile(names: InstallNames, hosts: string[], givenCertificate = false): string {
-  for (const host of hosts) {
+/**
+ * `givenCertificate`: serve the certificate in the state folder, and never try a certificate authority.
+ * `previewDomain`: every name directly under it is passed to hq-web too, which passes it to hq's relay. Each gets a
+ * certificate of its own the first time it is opened, and only once hq has answered that the app exists, so nobody can
+ * make the front door ask for certificates for names they made up; no key for the domain's DNS is kept here.
+ */
+export function caddyfile(names: InstallNames, hosts: string[], givenCertificate = false, previewDomain: string | null = null): string {
+  for (const host of [...hosts, ...(previewDomain ? [previewDomain] : [])]) {
     const problem = hostNameProblem(host)
     if (problem) throw new Error(`${host} cannot be served by the front door: ${problem}.`)
   }
+  if (previewDomain && givenCertificate) throw new Error('A front door given its certificate asks for none, so it cannot serve live apps.')
+  const hqWeb = `${names.container('hq-web')}:${HQ_WEB_PORT}`
   return [
     '# Written by the host service; changed only through its front-door command.',
     '{',
     '\tadmin off',
     ...(givenCertificate ? ['\tauto_https disable_certs'] : []),
+    ...(previewDomain ? ['\ton_demand_tls {', `\t\task http://${hqWeb}${PREVIEW_CERTIFICATE_ASK_PATH}`, '\t}'] : []),
     '}',
     '',
     // hq-web tells HQ's host and the files host apart by name, so the request's own Host is passed on unchanged.
     `${hosts.join(', ')} {`,
     ...(givenCertificate ? [`\ttls ${GIVEN_IN_CONTAINER.certificate} ${GIVEN_IN_CONTAINER.privateKey}`] : []),
-    `\treverse_proxy ${names.container('hq-web')}:${HQ_WEB_PORT}`,
+    `\treverse_proxy ${hqWeb}`,
     '}',
     '',
+    ...(previewDomain ? [
+      // One label only: `*.` matches a single label, as every app's name is, and never HQ's or the files host.
+      `*.${previewDomain} {`,
+      '\ttls {',
+      '\t\ton_demand',
+      '\t}',
+      `\treverse_proxy ${hqWeb}`,
+      '}',
+      '',
+    ] : []),
   ].join('\n')
 }
 

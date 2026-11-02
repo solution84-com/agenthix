@@ -28,7 +28,8 @@ import { DEVELOPMENT, ownVersion } from './images/ownVersion'
 import { machineStatus } from './status/machineStatus'
 import { Firewall, nftCli } from './protections/firewall'
 import { machineRules } from './protections/machine'
-import { AgentProtections, useProtections } from './protections/protections'
+import { readPublicAddresses, recordPublicAddress } from './protections/publicAddress'
+import { AgentProtections, publicAddressRecorded, useProtections } from './protections/protections'
 import { dockerBackupIO } from './backups/io'
 import { startNightlyBackups } from './backups/nightly'
 import { startHeldExportSweep } from './backups/exportDownload'
@@ -126,6 +127,8 @@ async function main(): Promise<void> {
       console.warn('HQ says this machine was disconnected in the Fleet Console: it no longer answers it.')
     },
     onHqAddress: address => follower.take(address),
+    // Live previews are kept from the public address hq sees this machine from; a new one is written at once.
+    onSeenFrom: address => { if (recordPublicAddress(state, address, new Date())) publicAddressRecorded() },
     log: line => console.warn(line),
   })
   // hq moving to a new address: this machine follows once the address passes the move check (spec §13).
@@ -158,7 +161,9 @@ async function main(): Promise<void> {
   const stopLocalConsole = keepLocalConsoleJoined(ctx, 60_000, line => console.warn(line))
   // A machine that disconnected itself while HQ did not answer tells HQ it left once HQ does (spec §6).
   const stopLeaving = startLeavingNotices(state, 60_000, line => console.warn(line))
-  const protections = new AgentProtections(new Firewall(nftCli), machineRules(names.namespace, () => readInstallation(state)?.agentRange ?? null))
+  const protections = new AgentProtections(new Firewall(nftCli), machineRules(
+    names.namespace, () => readInstallation(state)?.agentRange ?? null, undefined, () => readPublicAddresses(state),
+  ))
   useProtections(protections)
   const stopProtections = protections.start(undefined, line => console.log(line))
   const owner = await listen(OWNER_SOCKET, PRIVATE, ownerHandler(ctx))

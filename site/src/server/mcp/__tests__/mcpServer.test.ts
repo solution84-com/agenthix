@@ -62,11 +62,8 @@ describe('forwarded tools — thin callHqData forwards', () => {
     expect(textOf(result as any)).toEqual({ orgId: 'org-1', name: 'Acme' })
   })
 
-  it('start_preview forwards too — the preview subsystem stays hq-owned (D6)', async () => {
-    mockCallHqData.mockResolvedValue({ url: 'http://localhost:1234', status: 'running' })
-    const result = await registrations.get('start_preview')!({ command: 'npm run dev', port: 5173 })
-    expect(mockCallHqData).toHaveBeenCalledWith('start_preview', { command: 'npm run dev', port: 5173 }, 'jwt-1')
-    expect(textOf(result as any)).toEqual({ url: 'http://localhost:1234', status: 'running' })
+  it('offers no start_preview: live apps are started with start_app in a live preview @SC-1716', () => {
+    expect(registrations.has('start_preview')).toBe(false)
   })
 
   it('a forward that fails with HqDataError renders as an MCP tool error, not a thrown exception', async () => {
@@ -95,7 +92,7 @@ describe('disabledTools patches out a tool entirely', () => {
   })
 })
 
-describe('the commit tool — offered only to a run on a branch\'s copy', () => {
+describe('the commit tool — offered only to a run on a branch\'s copy @SC-1732', () => {
   const context = (codeWork?: { branch: string }) =>
     ({ runId: 'run-7', sessionId: 's1', ...(codeWork ? { codeWork } : {}) }) as unknown as import('../../../agents/runtime/types').RunContext
 
@@ -114,5 +111,42 @@ describe('the commit tool — offered only to a run on a branch\'s copy', () => 
     expect(mockCallHqData).toHaveBeenCalledWith('commit', { message: 'Add the login form', runId: 'run-7' }, 'jwt-1')
     await registrations.get('merge_into_main')!({ summary: 'Login page' })
     expect(mockCallHqData).toHaveBeenCalledWith('merge_into_main', { summary: 'Login page', runId: 'run-7' }, 'jwt-1')
+  })
+})
+
+describe('the app tools — offered to every code-work run, checked by hq at each call @SC-1701', () => {
+  const APP_TOOLS = ['start_app', 'stop_app', 'list_apps', 'reload_view', 'set_auto_reload']
+  const context = (codeWork?: { branch: string }) =>
+    ({ runId: 'run-9', sessionId: 's1', ...(codeWork ? { codeWork } : {}) }) as unknown as import('../../../agents/runtime/types').RunContext
+  const claim = { livePreviewId: 'lp-1', workspaceId: 'ws-1', branch: 'add-banner' }
+
+  // A harness lists a conversation's tools once, when it connects, and keeps that list for the conversation's later
+  // runs: a run on a branch whose live preview started after the first listing must still have them.
+  it('a code-work run whose capability names no live preview is offered them all the same', () => {
+    registrations.clear()
+    createMcpServer({ capabilityJwt: 'jwt-1', siteTools: { context: context({ branch: 'add-banner' }), openCode: true } })
+    for (const name of APP_TOOLS) expect(registrations.has(name), name).toBe(true)
+  })
+
+  it('a code-work run with a live preview is offered them', () => {
+    registrations.clear()
+    createMcpServer({ capabilityJwt: 'jwt-1', livePreview: claim, siteTools: { context: context({ branch: 'add-banner' }), openCode: true } })
+    for (const name of APP_TOOLS) expect(registrations.has(name), name).toBe(true)
+  })
+
+  it('a run that is not code work and names no live preview is not', () => {
+    registrations.clear()
+    createMcpServer({ capabilityJwt: 'jwt-1', siteTools: { context: context(), openCode: true } })
+    for (const name of APP_TOOLS) expect(registrations.has(name), name).toBe(false)
+  })
+
+  it('a call goes to hq, which answers it, with the run filled in by the site', async () => {
+    registrations.clear()
+    createMcpServer({ capabilityJwt: 'jwt-1', siteTools: { context: context({ branch: 'add-banner' }), openCode: true } })
+    mockCallHqData.mockRejectedValue(new FakeHqDataError(400, 'This branch has no live preview open. Nothing was changed.'))
+    const result = await registrations.get('start_app')!({ name: 'web', folder: '', command: 'npm start', port: '3000' }) as { content: Array<{ text: string }>; isError?: boolean }
+    expect(mockCallHqData).toHaveBeenCalledWith('start_app', { name: 'web', folder: '', command: 'npm start', port: '3000', runId: 'run-9' }, 'jwt-1')
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toEqual({ error: 'This branch has no live preview open. Nothing was changed.' })
   })
 })
