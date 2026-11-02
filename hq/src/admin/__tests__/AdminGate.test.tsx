@@ -3,10 +3,12 @@
 import React from 'react'
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, Route, Routes } from 'react-router'
 
 const ops = vi.hoisted(() => ({ settings: { data: undefined, isLoading: true } as { data: { role: string } | undefined; isLoading: boolean }, drawn: vi.fn() }))
 vi.mock('wasp/client/operations', () => ({ useQuery: () => ops.settings, getUserSettings: 'getUserSettings' }))
+const auth = vi.hoisted(() => ({ value: { data: { id: 'u-1' }, isLoading: false } as { data: { id: string } | null | undefined; isLoading: boolean } }))
+vi.mock('wasp/client/auth', () => ({ useAuth: () => auth.value }))
 
 import { AdminGate, ADMIN_REFUSAL } from '../components/AdminGate'
 
@@ -17,7 +19,7 @@ function Page() {
 const show = () => render(<MemoryRouter><AdminGate><Page /></AdminGate></MemoryRouter>)
 const role = (r: string | undefined) => { ops.settings = r ? { data: { role: r }, isLoading: false } : { data: undefined, isLoading: true } }
 
-afterEach(() => { cleanup(); ops.drawn.mockClear() })
+afterEach(() => { cleanup(); ops.drawn.mockClear(); auth.value = { data: { id: 'u-1' }, isLoading: false } })
 
 describe('the admin area route guard @SC-1188', () => {
   it('draws the page for an admin', () => {
@@ -38,6 +40,21 @@ describe('the admin area route guard @SC-1188', () => {
     role(undefined)
     show()
     expect(screen.queryByRole('alert')).toBeNull()
+    expect(ops.drawn).not.toHaveBeenCalled()
+  })
+
+  it('sends someone who is not signed in to the sign-in page, instead of waiting for a role that never comes', () => {
+    auth.value = { data: null, isLoading: false }
+    role(undefined)
+    render(
+      <MemoryRouter initialEntries={['/admin/settings/features']}>
+        <Routes>
+          <Route path="/login" element={<p>sign in</p>} />
+          <Route path="*" element={<AdminGate><Page /></AdminGate>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('sign in')).toBeTruthy()
     expect(ops.drawn).not.toHaveBeenCalled()
   })
 })

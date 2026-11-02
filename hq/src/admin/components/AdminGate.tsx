@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router'
+import { Link, Navigate } from 'react-router'
+import { useAuth } from 'wasp/client/auth'
 import { useOrgAdminState } from '../useOrgAdminState'
 
 export const ADMIN_REFUSAL = 'Only organisation admins can manage the organisation. Ask an admin if you need something changed.'
@@ -10,7 +11,10 @@ export const ADMIN_REFUSAL = 'Only organisation admins can manage the organisati
  * operation behind it; this is the first guard, not the only one.
  */
 export function AdminGate({ children }: { children: ReactNode }) {
+  const auth = useAuth()
   const state = useOrgAdminState()
+  // The admin frame is drawn around the page, so the page's own sign-in redirect never runs: the gate makes it.
+  if (!auth.isLoading && auth.data === null) return <Navigate to="/login" replace />
   if (state === 'admin') return <>{children}</>
   return (
     <main className="flex-1 min-w-0 overflow-y-auto px-6 py-16 text-center">
