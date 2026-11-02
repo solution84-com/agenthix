@@ -75,7 +75,7 @@ A version tag publishes the images: `v<major>.<minor>.<patch>` for a release, an
 or `-rc.<n>` for a pre-release, while features still land or once the scope is frozen (`-beta.<n>` is accepted too,
 ordered between them). **A release is a tag on a commit of `main` that has been proved**
 ([ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md)); a release branch exists only for a patch
-([versioning.md](versioning.md#the-product-version), `AGENTS.md`, *Git*). Nothing is built at the tag, and no image
+([versioning.md](versioning.md#the-product-version), the `releasing` skill). Nothing is built at the tag, and no image
 carries a version: the tag gives a name to images already built and proved.
 
 **The release build** (`.github/workflows/release-build.yml`) builds and proves everything a release ships except

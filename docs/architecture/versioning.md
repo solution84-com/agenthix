@@ -322,4 +322,4 @@ hq). Where the product's name appears on a machine, it comes from the recorded n
 | `core/snapshot/` and its test | Version moves, deprecation marks, and removals at the right major |
 | `scripts/images/parts.json` and `scripts/__tests__/image-parts.test.mjs` | The image parts and their inputs, held to what each Dockerfile copies, so a content key cannot miss an input |
 | `.github/workflows/publish-images.yml`, `scripts/release/verify-candidate.mjs` | The tag's checks: its form, *Checks* and the release build passed for the commit, each image's attestation and recomputed content key, the index annotation, the signature as a host service checks it |
-| [ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md) and `AGENTS.md`, *Git* | How a release is made: a tag on a proven commit, the version given at publish |
+| [ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md) and the `releasing` skill | How a release is made: a tag on a proven commit, the version given at publish |
