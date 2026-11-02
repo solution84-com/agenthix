@@ -12,14 +12,10 @@ import { HttpError, prisma } from 'wasp/server'
 import { requireMayStartRunsInPlace } from '../workflows/placeAccess'
 import { reachLivePreview } from './personActions'
 import { NOTHING } from './words'
+import { LIVE_PREVIEW_WORKFLOW_NAMES, type LivePreviewWorkflowKind } from './workflowNames'
+import { claimSecretsRun, releaseSecretsRun } from './secretsRuns'
 
-export type LivePreviewWorkflowKind = 'start' | 'reload'
-
-/** The workflow names a place gives its live-preview workflows. */
-export const LIVE_PREVIEW_WORKFLOW_NAMES: Record<LivePreviewWorkflowKind, string> = {
-  start: 'start-live-preview',
-  reload: 'reload-live-preview',
-}
+export { LIVE_PREVIEW_WORKFLOW_NAMES, type LivePreviewWorkflowKind }
 
 /**
  * Runs the approved workflow with the live preview as where its steps run, so the secrets it names reach the app's
@@ -73,5 +69,15 @@ export async function runLivePreviewWorkflow(userId: string, livePreviewId: unkn
   if (!deliver) {
     throw new HttpError(409, `This HQ's sites cannot run ${name} into a live preview yet, so its secrets were not handed to the app. ${NOTHING}`, { code: 'noDelivery' })
   }
-  return deliver({ place, workspaceId: row.workspaceId, workflowName: name, livePreviewId: row.id, siteId: site.siteId, userId })
+  const run = deliver
+  if (!(await claimSecretsRun(row.id))) {
+    throw new HttpError(409, `${name} is already running on this live preview. Its result shows on the strip when it ends. ${NOTHING}`, { code: 'running' })
+  }
+  let started: { runId: string } | null = null
+  try {
+    started = await run({ place, workspaceId: row.workspaceId, workflowName: name, livePreviewId: row.id, siteId: site.siteId, userId })
+    return started
+  } finally {
+    releaseSecretsRun(row.id, started ? { runId: started.runId, kind } : null)
+  }
 }

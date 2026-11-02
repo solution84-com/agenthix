@@ -4,7 +4,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const state = vi.hoisted(() => ({ branch: null as null | Record<string, unknown>, askedSite: [] as { siteId: string; method: string }[] }))
+const state = vi.hoisted(() => ({ branch: null as null | Record<string, unknown>, askedSite: [] as { siteId: string; method: string }[], open: true }))
 
 vi.mock('wasp/server', () => ({ prisma: { executionSite: { findUnique: vi.fn(async () => ({ siteId: 'home-site' })) } } }))
 vi.mock('../../sessions/siteRuntimeStore', () => ({
@@ -24,6 +24,7 @@ vi.mock('../../livePreviews/runs', () => ({
   livePreviewOfSession: vi.fn(async () => ({ row: { id: 'lp1', copyId: 'c-preview', copyKind: 'BUNDLE', state: 'RUNNING' }, logicalSiteId: 'preview-site' })),
   runsGoToPreviewSite: (lp: { row: { copyKind: string; state: string } } | null) => !!lp && lp.row.copyKind === 'BUNDLE' && lp.row.state === 'RUNNING',
 }))
+vi.mock('../../livePreviews/store', () => ({ livePreviewOn: vi.fn(async () => (state.open ? { id: 'lp1' } : null)) }))
 vi.mock('../../livePreviews/back', () => ({ bringBack: vi.fn(async () => undefined) }))
 vi.mock('../../livePreviews/siteAsk', () => ({
   askSite: vi.fn(async (siteId: string, method: string) => {
@@ -32,14 +33,14 @@ vi.mock('../../livePreviews/siteAsk', () => ({
   }),
 }))
 
-import { LIVE_PREVIEW_METHODS } from '@agenthix/core'
+import { COMMIT_RELOAD_NOTE, LIVE_PREVIEW_METHODS } from '@agenthix/core'
 import { commitOp } from '../agentTools'
 import type { CallerContext } from '../../server/controlplane/types'
 
 const ctx = { kind: 'run', claims: { siteId: 'preview-site', sessionId: 's1', taskId: 't1', agentId: 'a1' } } as unknown as CallerContext
 const branch = (copies: unknown[]) => ({ id: 'b1', name: 'add-contact-line', workspaceId: 'w1', ownerType: 'project', ownerId: 'p1', copies })
 
-beforeEach(() => { state.askedSite.length = 0 })
+beforeEach(() => { state.askedSite.length = 0; state.open = true })
 
 describe('commit in a run on its live preview\'s site @SC-1671', () => {
   it('commits in the live preview\'s copy when the workspace\'s site holds no copy of the branch', async () => {
@@ -47,6 +48,14 @@ describe('commit in a run on its live preview\'s site @SC-1671', () => {
     const result = await commitOp(ctx, { message: 'Change the contact line', runId: 'r1' })
     expect(result).toMatchObject({ committed: true, branch: 'add-contact-line' })
     expect(state.askedSite).toEqual([{ siteId: 'preview-site', method: LIVE_PREVIEW_METHODS.commit }])
+  })
+
+  it('tells the agent to reload the person\'s view while the branch\'s live preview is open, and not otherwise', async () => {
+    state.branch = branch([])
+    await expect(commitOp(ctx, { message: 'Orange banner', runId: 'r1' })).resolves.toMatchObject({ note: COMMIT_RELOAD_NOTE })
+    state.open = false
+    expect(await commitOp(ctx, { message: 'Orange banner', runId: 'r1' })).not.toHaveProperty('note')
+    expect(COMMIT_RELOAD_NOTE).toContain('call reload_view')
   })
 
   it('refuses a run on no branch', async () => {

@@ -105,7 +105,7 @@ export class OpenCodeRuntime implements AgentRuntime {
     try {
       const platform = context.mcpServers?.platform
       if (platform) {
-        await servers.ensureConnection(containerName, context.sessionId, { name: connectionName, token, directory: context.cwd, url: platform.url })
+        await servers.ensureConnection(containerName, context.sessionId, { name: connectionName, token, directory: context.cwd, url: platform.url, toolSet: context.codeWork ? 'code' : 'plain' })
       }
       const staged = await (this.deps.stageSkills ?? stageOpenCodeSkills)(context, context.sessionId)
       setOpenCodeSkillsDir(context.sessionId, staged.skills.length ? openCodeSkillsDirs(context.claudeHome, context.sessionId).visibleDir : null)

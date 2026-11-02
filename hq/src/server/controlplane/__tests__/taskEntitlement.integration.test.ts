@@ -165,6 +165,7 @@ describe("a personal project's tasks and boards are its person's alone", () => {
     await prisma.project.update({ where: { id: w.project.id }, data: { personalOwnerId: owner.id } })
     await prisma.task.update({ where: { id: w.task.id }, data: { onBehalfOfUserId: owner.id } })
     await prisma.agentSession.create({ data: { id: 's-owner', userId: owner.id, agentId: w.agentId, sessionType: 'chat' } })
+    await createTestTask({ data: { id: 'another-task', title: 'another', projectId: w.project.id, number: 99, onBehalfOfUserId: owner.id } })
   })
 
   const calls = (): Call[] => [
@@ -176,14 +177,16 @@ describe("a personal project's tasks and boards are its person's alone", () => {
   it.each([0, 1, 2, 3, 4, 5])(
     "call %i refuses anyone else, their connections and other boundaries' runs, and serves its owner, their connection and its own run",
     async (i) => {
-      const [, call] = calls()[i]
+      const [name, call] = calls()[i]
       // w.member keeps a member row, which must not matter.
       await expectForbidden(call(chatCtx(w.member.id, 'ADMIN')))
       await expectForbidden(call(connCtx(w.member.id, { role: 'ADMIN' })))
       await expectForbidden(call(runCtx('some-other-project', { userId: w.member.id })))
       await expect(call(connCtx(owner.id))).resolves.toBeDefined()
       await expect(call(chatCtx(owner.id, 'MEMBER', { sessionId: 's-owner' }))).resolves.toBeDefined()
-      await expect(call(runCtx(w.project.id, { userId: owner.id, taskId: w.task.id }))).resolves.toBeDefined()
+      // run_task never starts the run's own task, so its run works on another.
+      const ownRunTask = name === 'run_task' ? 'another-task' : w.task.id
+      await expect(call(runCtx(w.project.id, { userId: owner.id, taskId: ownRunTask }))).resolves.toBeDefined()
     },
   )
 })

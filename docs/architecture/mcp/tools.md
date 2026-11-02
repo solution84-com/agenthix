@@ -115,7 +115,11 @@ and the same role floors — and a run in a project is refused the tools that ac
 The app tools act on the live preview of the branch the run works on, on the run's own site; hq reads it from its rows at
 each call, and the workspace and branch are never arguments, so a run cannot reach another branch's. `start_app` on a branch
 with none opens it first, as the run's person and on the run's site, through the same checks as a person's *Live preview*
-(their role, the site's limits); a refusal starts nothing. The other app tools are refused then. Starting the live preview is the permission, so they are
+(their role, the site's limits), and only for a run a person started; a refusal starts nothing. The other app tools are
+refused then. A code-work run's prompt says whether its branch's live preview was open when it was dispatched, and which
+apps ran in it (`RunCodeWork.openLivePreview`): with one open, it calls `list_apps` first and, after changing what the
+app shows, commits and calls `reload_view`; with none open, it calls `start_app` only when the person asked for the app
+in its request. *Auto* reloads the view on every commit to the branch, the run-end commit included. Starting the live preview is the permission, so they are
 not asked for. `install_packages` installs npm packages with scripts off and runs the scripts of those that pass the rule;
 `ask_to_use_package` asks a person about one that failed it. `offer_live_preview` puts a card with a button in the lead's
 reply; the person's press starts the live preview. See [site_live_preview.md](../sites/site_live_preview.md).

@@ -27,7 +27,7 @@ const image = process.env.AGENT_IMAGE?.trim() || 'agenthix-agent:latest'
 const ready = spawnSync('docker', ['image', 'inspect', image], { stdio: 'ignore' }).status === 0
 
 const { containerDifferences, startContainer, stopContainers, leftovers } = await import('../container/container')
-const { helperInPreview, spawnHelper } = await import('../container/exec')
+const { helperInPreview, spawnHelper, spawnInPreview } = await import('../container/exec')
 const { connectToApp } = await import('../apps/appConnect')
 const { AppStreams } = await import('../apps/appStreams')
 const { readSnapshot, snapshotArgv } = await import('../guard/processes')
@@ -39,6 +39,17 @@ const { material } = await import('../../../executor/masking/__tests__/material'
 const ID = `ct${Date.now().toString(36)}`
 const LP = { id: ID, workspaceId: 'w1', personId: 'p1', projectId: 'pr1' }
 let copy: string
+
+const ROOT = '/projects/pr1/clones/c1'
+// An app that reads its secret once, as it starts, the way most read their settings.
+const READS_AT_START = "const v = (() => { try { return require('fs').readFileSync('/run/secrets/SHOP_API_KEY', 'utf8') } catch { return 'none' } })(); require('http').createServer((q, s) => s.end(v)).listen(5174, '127.0.0.1')"
+
+async function answers(port: number): Promise<string> {
+  for (let i = 0; i < 40; i++) {
+    try { return await get(port) } catch { await new Promise(r => setTimeout(r, 250)) }
+  }
+  return get(port)
+}
 
 const APP = "require('http').createServer((q, s) => s.end('hello from localhost')).listen(5173, '127.0.0.1')"
 
@@ -142,6 +153,27 @@ describe.skipIf(!ready)("a live preview's container", () => {
     expect((await helperInPreview(ID, ['grep', '-r', KEY, '/projects/pr1/clones/c1'], 10_000)).exitCode).not.toBe(0)
     expect(fs.readdirSync(copy)).toEqual(['index.html'])
     expect(await containerDifferences(ID)).toEqual([])
+  })
+
+  it('hands secrets to an app through the launcher: not read by one started before, read once it restarts @SC-1746', async () => {
+    const KEY = 'shop_canary_2b9d41'
+    const before = await spawnInPreview(ID, ROOT, ['node', '-e', READS_AT_START], { cwd: ROOT }, () => {})
+    try {
+      expect(await answers(5174)).toBe('none')
+      await handSecrets(ID, { SHOP_API_KEY: Buffer.from(KEY) }, material({ SHOP_API_KEY: KEY }))
+      expect(await get(5174)).toBe('none')
+    } finally {
+      before.detach()
+      // Ending the docker client leaves the app running: it is stopped as an app is, and gone before the restart.
+      await helperInPreview(ID, ['sh', '-c', 'pkill -f "listen.517[4]" || true'], 10_000)
+      for (let i = 0; i < 40 && await get(5174).then(() => true, () => false); i++) await new Promise(r => setTimeout(r, 250))
+    }
+    const after = await spawnInPreview(ID, ROOT, ['node', '-e', READS_AT_START], { cwd: ROOT }, () => {})
+    try {
+      expect(await answers(5174)).toBe(KEY)
+    } finally {
+      after.detach()
+    }
   })
 
   it('leaves nothing behind when it stops @SC-1734', async () => {

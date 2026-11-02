@@ -38,3 +38,18 @@ describe('a code workspace\'s own folder is read-only to every run in its bounda
     expect(mountSignature(null, boundary(), 'rw', readOnly)).not.toBe(mountSignature(null, boundary(), 'rw', []))
   })
 })
+
+describe('what a run that is not code work is told of a code workspace\'s folder', () => {
+  it('marks it as main, read-only, and changed only by a task given it or a conversation started in it', async () => {
+    const { markCodeWorkspaceFolders, CODE_WORKSPACE_FOLDER_NOTE } = await import('../codeWorkspaceMounts')
+    const marked = markCodeWorkspaceFolders(
+      [{ containerDir: '/projects/p1/workspaces/w1', description: 'workspace shop-app' }, { containerDir: '/projects/p1/files' }],
+      [{ hostDir: '/h/w1', containerDir: '/projects/p1/workspaces/w1' }],
+    )
+    expect(marked[0]!.description).toBe(`workspace shop-app; ${CODE_WORKSPACE_FOLDER_NOTE}`)
+    expect(marked[1]).toEqual({ containerDir: '/projects/p1/files' })
+    expect(CODE_WORKSPACE_FOLDER_NOTE).toContain('`main`')
+    expect(CODE_WORKSPACE_FOLDER_NOTE).toContain('read-only')
+    expect(CODE_WORKSPACE_FOLDER_NOTE).toContain('a task given this workspace, or a conversation started in the workspace')
+  })
+})

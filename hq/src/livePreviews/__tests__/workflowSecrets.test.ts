@@ -10,6 +10,7 @@ const db = vi.hoisted(() => ({
   workflow: null as null | { enabled: boolean; versions: { id: string }[] },
   found: [] as { name: string }[],
   findMany: vi.fn(),
+  runs: new Map<string, { state: string; failureMessage: string | null; endedAt: Date | null; createdAt: Date; version: { definition: unknown } }>(),
 }))
 vi.mock('wasp/server', () => ({
   HttpError: class HttpError extends Error {
@@ -20,6 +21,7 @@ vi.mock('wasp/server', () => ({
       findUnique: async () => db.workflow,
       findMany: async (q: unknown) => { db.findMany(q); return db.found },
     },
+    workflowRun: { findUnique: async (q: { where: { id: string } }) => db.runs.get(q.where.id) ?? null },
   },
 }))
 const reached = vi.hoisted(() => ({ state: 'RUNNING' }))
@@ -32,10 +34,24 @@ vi.mock('../personActions', () => ({
 }))
 vi.mock('../../workflows/placeAccess', () => ({ requireMayStartRunsInPlace: async () => {} }))
 const started = vi.hoisted(() => ({ calls: [] as unknown[] }))
-vi.mock('../../workflows/runs', () => ({ startWorkflowRun: async (input: unknown) => { started.calls.push(input); return { runId: 'run-1' } } }))
+const gate = vi.hoisted(() => ({ wait: null as null | Promise<void> }))
+vi.mock('../../workflows/runs', () => ({
+  startWorkflowRun: async (input: unknown) => {
+    started.calls.push(input)
+    if (gate.wait) await gate.wait
+    return { runId: `run-${started.calls.length}` }
+  },
+}))
 
 import { liveWorkflowsOf, provideLivePreviewWorkflowDelivery, runLivePreviewWorkflow } from '../workflowSecrets'
 import { deliverLivePreviewWorkflow } from '../../workflows/livePreviewRuns'
+import { forgetSecretsRunsForTests, secretsRunOf } from '../secretsRuns'
+
+const STEPS = { steps: [{ secrets: ['SHOP_API_KEY'] }, { secrets: ['GITHUB_TOKEN', 'DB_URL', 'SHOP_API_KEY'] }] }
+const ranAs = (state: string, failureMessage: string | null = null) => ({
+  state, failureMessage, endedAt: state === 'RUNNING' ? null : new Date('2026-11-02T07:11:10Z'),
+  createdAt: new Date('2026-11-02T07:11:03Z'), version: { definition: STEPS },
+})
 
 beforeEach(() => {
   db.workflow = { enabled: true, versions: [{ id: 'v1' }] }
@@ -43,6 +59,9 @@ beforeEach(() => {
   db.findMany.mockClear()
   reached.state = 'RUNNING'
   started.calls = []
+  gate.wait = null
+  db.runs.clear()
+  forgetSecretsRunsForTests()
   provideLivePreviewWorkflowDelivery(null)
 })
 
@@ -58,6 +77,35 @@ describe('running a live preview\'s workflow @SC-1712', () => {
       starter: { kind: 'person', userId: 'u1' },
       livePreview: { id: 'lp-1', siteId: 'site-preview' },
     }])
+  })
+
+  it("goes on the strip: going, then the names handed (never a minted one), or the run's own words for a failure", async () => {
+    provideLivePreviewWorkflowDelivery(deliverLivePreviewWorkflow)
+    expect(await secretsRunOf('lp-1')).toBeNull()
+    await runLivePreviewWorkflow('u1', 'lp-1', 'start')
+    db.runs.set('run-1', ranAs('RUNNING'))
+    expect(await secretsRunOf('lp-1')).toMatchObject({ runId: 'run-1', kind: 'start', state: 'going', names: [], message: null })
+    db.runs.set('run-1', ranAs('PASSED'))
+    expect(await secretsRunOf('lp-1')).toMatchObject({ state: 'passed', names: ['DB_URL', 'SHOP_API_KEY'], at: '2026-11-02T07:11:10.000Z' })
+    db.runs.set('run-1', ranAs('FAILED', 'The run passed, but the live preview stopped or paused meanwhile.'))
+    expect(await secretsRunOf('lp-1')).toMatchObject({ state: 'failed', names: [], message: 'The run passed, but the live preview stopped or paused meanwhile.' })
+    expect(await secretsRunOf('lp-other')).toBeNull()
+  })
+
+  it('cannot be started again while one runs on the live preview, and can once it ended', async () => {
+    provideLivePreviewWorkflowDelivery(deliverLivePreviewWorkflow)
+    let letGo = () => {}
+    gate.wait = new Promise<void>(r => { letGo = r })
+    const first = runLivePreviewWorkflow('u1', 'lp-1', 'start')
+    await expect(runLivePreviewWorkflow('u1', 'lp-1', 'start')).rejects.toMatchObject({ statusCode: 409, data: { code: 'running' } })
+    letGo()
+    await first
+    gate.wait = null
+    db.runs.set('run-1', ranAs('RUNNING'))
+    await expect(runLivePreviewWorkflow('u1', 'lp-1', 'reload')).rejects.toMatchObject({ data: { code: 'running' } })
+    expect(started.calls).toHaveLength(1)
+    db.runs.set('run-1', ranAs('PASSED'))
+    expect(await runLivePreviewWorkflow('u1', 'lp-1', 'reload')).toEqual({ runId: 'run-2' })
   })
 
   it('runs reload-live-preview for a reload', async () => {

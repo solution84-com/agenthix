@@ -57,10 +57,35 @@ describe('codeWorkPromptText @SC-1674', () => {
   it('says the run has the app tools, how they reach the live preview, and that an earlier "none" no longer holds', () => {
     const text = codeWorkPromptText(work())
     expect(text).toContain('`start_app`, `stop_app`, `list_apps`, `reload_view` and `set_auto_reload`')
-    expect(text).toContain('call `start_app` yourself')
-    expect(text).toContain('it opens one first')
     expect(text).toContain('offered on every run of yours, this one included')
     expect(text).toContain('that no longer holds')
+  })
+
+  it('with no live preview open, opens one only when the person asked for the app in this run\'s request', () => {
+    const text = codeWorkPromptText(work())
+    expect(text).toContain('Your branch has no live preview open.')
+    expect(text).toContain("When the person asked, in this run's request, to see, run, start or show the app: call `start_app` yourself")
+    expect(text).toContain('Otherwise never call `start_app`: nobody asked for a live preview')
+    expect(text).not.toContain('Call `list_apps` first')
+  })
+
+  it('with the live preview open, says so, names the running apps, and has the run list them first, commit and reload', () => {
+    const text = codeWorkPromptText(work({ openLivePreview: { paused: false, runningApps: ['shop', 'web'] } }))
+    expect(text).toContain("Your branch's live preview is open now. Apps running in it: `shop`, `web`.")
+    expect(text).toContain('Call `list_apps` first')
+    expect(text).toContain('`commit`, then `reload_view`')
+    expect(text).not.toContain('no live preview open')
+    expect(codeWorkPromptText(work({ openLivePreview: { paused: false, runningApps: [] } }))).toContain('No app runs in it yet.')
+    expect(codeWorkPromptText(work({ openLivePreview: { paused: true, runningApps: [] } }))).toContain('but paused')
+  })
+
+  it('keeps the live preview\'s own workflows for the person, and the run commits its work itself', () => {
+    const text = codeWorkPromptText(work())
+    expect(text).toContain('`start-live-preview` and `reload-live-preview` belong to the person')
+    expect(text).toContain('never to start the app')
+    expect(text).toContain('Commit your work yourself')
+    expect(text).toContain('always before you finish')
+    expect(text).not.toContain('is committed for you')
   })
 
   it('names update_from_main for bringing main in, and commit to finish a merge that clashed', () => {

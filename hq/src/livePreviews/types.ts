@@ -44,6 +44,22 @@ export type LivePreviewQuestion =
   | { kind: 'service.start'; service: string; declaration: string; image: string | null; question: string }
   | { kind: 'package.use'; ecosystem: string; name: string; version: string; question: string }
 
+/**
+ * The live preview's last *Start with secrets* or *Reload with secrets* run: going, then the names it handed to the
+ * app's container (never a value), or why it did not.
+ */
+export type LivePreviewSecretsView = {
+  runId: string
+  kind: 'start' | 'reload'
+  state: 'going' | 'passed' | 'failed' | 'stopped'
+  /** The secrets' names the app's container holds from it; empty until it passed. */
+  names: string[]
+  /** Why it failed or stopped, in the run's own words. */
+  message: string | null
+  /** When it ended, or when it was asked for while it goes. */
+  at: string
+}
+
 export type LivePreviewView = {
   livePreviewId: string
   workspaceId: string
@@ -74,6 +90,8 @@ export type LivePreviewView = {
   questions: LivePreviewQuestion[]
   /** The place's *Start live preview* and *Reload live preview* workflows that are there, approved and switched on. */
   workflows: { start: boolean; reload: boolean }
+  /** Its last secrets run since HQ started, for a person who may work here; null when none ran in it. */
+  secrets: LivePreviewSecretsView | null
 }
 
 /** A live preview open on a full site, as *Live preview* lists them: whose, which branch, when last used. */

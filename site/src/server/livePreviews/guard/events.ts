@@ -38,6 +38,17 @@ export function execCommand(event: DockerEvent): string | null {
   return exec ? event.action.slice(exec[0].length) : null
 }
 
+/** A container going away or held still: what the site's own stop and pause do, and what removing a stray does. */
+const LEAVING = new Set(['pause', 'die', 'oom', 'kill', 'destroy', 'stop'])
+
+/**
+ * Whether the event is a container leaving: for a live preview no longer watched, that is its own stop removing it
+ * (the watch ends before the removal), never a container turning up, so there is nothing to remove or report.
+ */
+export function leaving(event: DockerEvent): boolean {
+  return execCommand(event) === null && LEAVING.has(event.action.split(':')[0]?.trim() ?? '')
+}
+
 export function meaningOf(event: DockerEvent): EventMeaning {
   const command = execCommand(event)
   if (command !== null) {

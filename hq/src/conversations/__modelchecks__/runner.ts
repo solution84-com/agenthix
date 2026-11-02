@@ -7,6 +7,7 @@ import { createModelAdapter } from '../model'
 import { CHECKS, type Check, type Grade } from './checks'
 import { checkAccess } from './env'
 import { runCheck } from './run'
+import { runTaskRunCheck } from './taskRun/run'
 import { errorGrade, outcomeLine, type Outcome } from './report'
 
 export interface RunnerDeps {
@@ -37,7 +38,7 @@ export async function runModelChecks(
       for (let run = 1; run <= access.runs; run++) {
         let grade: Grade
         try {
-          grade = check.grade(await runCheck(adapter, model, check.setup))
+          grade = check.grade(await (check.taskRun ? runTaskRunCheck(adapter, model, check.taskRun) : runCheck(adapter, model, check.setup)))
         } catch (err) {
           grade = errorGrade(err)
         }

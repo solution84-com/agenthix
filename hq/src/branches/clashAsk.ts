@@ -29,7 +29,8 @@ export function clashAskText(branch: string, main: string, clashes: readonly Mer
     `I tried to merge the branch ${branch} into ${main}, and nothing was merged: these files changed on ${main} too.`,
     ...named,
     `Please bring ${branch} up to date with ${main}: call update_from_main, resolve the clashes it names, check the ` +
-      'work still works, and call commit to finish the merge. Then tell me here that it is ready to merge. Do not merge it yourself.',
+      'work still works, and call commit to finish the merge. Then tell me here that it is ready to merge. Do not merge it yourself, ' +
+      'and do not start the app or open a live preview for this: I only need the branch ready to merge.',
   ].join('\n')
 }
 

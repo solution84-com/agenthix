@@ -34,4 +34,17 @@ export type RunCodeWork = BranchCopyRef & {
    * copies, and reports commits with `livePreview.branchMoved` instead of bringing them back itself. Added inside 1.12.
    */
   livePreviewId?: string
+  /**
+   * The branch's live preview when the run was dispatched, so its prompt says whether one is open and which apps run in
+   * it: present only while one is starting, running or paused on the site the run goes to; absent otherwise. A snapshot
+   * for the prompt only; the app tools find the live preview again at each call. Since 1.12.
+   */
+  openLivePreview?: RunOpenLivePreview
+}
+
+export type RunOpenLivePreview = {
+  /** Paused by the guard or a lost line: the app tools answer only once a person resumes it. */
+  paused: boolean
+  /** The apps running in it, by name. */
+  runningApps: string[]
 }

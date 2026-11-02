@@ -15,6 +15,11 @@ export const COMMIT_TOOL_NAME = 'commit'
 /** The longest message the tool takes; the site adds the `On-behalf-of:` line after it. */
 export const COMMIT_TOOL_MESSAGE_MAX = 2000
 
+/** What a commit answers when the branch's live preview is open, so the agent shows the person its change. */
+export const COMMIT_RELOAD_NOTE =
+  "This branch's live preview is open: if this commit changed what the app shows, call reload_view now so the person " +
+  'sees it (restart the app with start_app first if it only reads its files when it starts).'
+
 export type CommitToolDeclaration = {
   name: typeof COMMIT_TOOL_NAME
   description: string
@@ -42,7 +47,8 @@ export const COMMIT_TOOL_DECLARATION: CommitToolDeclaration = {
 export type CommitToolArgs = { message: string }
 
 export type CommitToolResult =
-  | { committed: true; commit: CommitId; branch: string; files: number }
+  /** `note`, added inside 1.12: set when the branch's live preview is open, saying to reload the person's view. */
+  | { committed: true; commit: CommitId; branch: string; files: number; note?: string }
   | { committed: false; reason: 'nothing_to_commit' }
   /** A merge from main (`update_from_main`) is under way and these files still hold conflict markers; `note` says so. */
   | { committed: false; reason: 'clashes_left'; paths: string[]; note: string }

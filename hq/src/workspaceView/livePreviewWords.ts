@@ -4,7 +4,7 @@
  * sentence is HQ's own, already saying what is wrong and what to do; the screen shows it as it came.
  */
 import type { AppState, LivePreviewLimit, LivePreviewStateName, ServiceState } from '@agenthix/core'
-import type { LiveAppView, LivePreviewSiteView } from '../livePreviews/types'
+import type { LiveAppView, LivePreviewSecretsView, LivePreviewSiteView, LivePreviewView } from '../livePreviews/types'
 
 export const PREVIEW_STATE_LABEL: Record<LivePreviewStateName, string> = {
   starting: 'Starting', running: 'Running', paused: 'Paused', stopped: 'Stopped',
@@ -62,12 +62,52 @@ export function refusalCode(err: unknown): string | null {
   return typeof nested === 'string' ? nested : null
 }
 
-/** The strip's line when no app has run in this live preview yet. */
+/** The strip's line when no app runs in this live preview. */
 export function noAppLine(onMain: boolean, startable: boolean): string {
-  if (startable) return 'No app running here yet. Start one:'
+  if (startable) return 'No app is running yet. Start one:'
   return onMain
-    ? 'No app yet. An app an agent started on any branch of this workspace can be started here.'
-    : 'No app yet: the agent starts one with start_app. Once an app has run on any branch, you can start it here too.'
+    ? 'No app is running yet, and none has run on this workspace. An agent on a branch starts one with start_app.'
+    : 'No app is running yet. Ask the agent in the conversation to start the app.'
+}
+
+/**
+ * The middle's line while no app shows (spec part 4, *States*): a running live preview with no app says so plainly,
+ * and how to start one.
+ */
+export function waitingWords(
+  view: Pick<LivePreviewView, 'state' | 'onMain' | 'startable'>,
+  app: Pick<LiveAppView, 'name' | 'state'> | null,
+  canAct: boolean,
+): string {
+  if (view.state === 'starting') return 'Starting the live preview: installing what it needs and starting its container.'
+  if (view.state === 'paused') return 'The live preview is paused.'
+  if (app?.state === 'starting') return `${app.name} is starting. It shows here once it answers.`
+  if (app?.state === 'failed') return `${app.name} did not start. Its last lines are on the strip above: Restart tries again, or ask the agent to fix it.`
+  if (app?.state === 'running') return `${app.name} is not answering yet. It shows here once it does.`
+  const first = view.startable[0]?.name
+  if (!canAct) return 'No app is running in this live preview yet. A Member or Admin of the project starts one.'
+  if (first) return `No app is running in this live preview yet. Press Start ${first} on the strip above, or ask the agent in the conversation to start it.`
+  if (view.onMain) return 'No app is running in this live preview yet, and no app has run on this workspace. Ask an agent on a branch to start the app with start_app; once it has run, you can start it here.'
+  return 'No app is running in this live preview yet. Ask the agent in the conversation to start the app; once it has run on this branch, you can start it again from the strip.'
+}
+
+/** What the strip says of the live preview's last secrets run. */
+export function secretsLine(s: LivePreviewSecretsView): string {
+  const name = s.kind === 'start' ? 'start-live-preview' : 'reload-live-preview'
+  if (s.state === 'going') return `${name} is running. Its secrets go to the app's container only.`
+  if (s.state === 'passed') {
+    return s.names.length
+      ? `${name} passed and handed ${s.names.join(', ')} to the app's container. An app reads each at /run/secrets/<NAME>.`
+      : `${name} passed, but its steps name no secrets, so nothing was handed to the app.`
+  }
+  const why = s.message?.trim() || (s.state === 'stopped' ? `${name} was stopped.` : `${name} failed.`)
+  return /secret/i.test(why) ? why : `${why} No secrets were handed to the app.`
+}
+
+/** The apps still running from before the secrets were handed: they read them only once restarted. */
+export function appsToRestart(apps: Pick<LiveAppView, 'appId' | 'name' | 'state' | 'since'>[], s: LivePreviewSecretsView | null): Pick<LiveAppView, 'appId' | 'name'>[] {
+  if (!s || s.state !== 'passed' || s.names.length === 0) return []
+  return apps.filter(a => (a.state === 'running' || a.state === 'starting') && a.since < s.at)
 }
 
 /** What *Start* runs, shown on its button. */

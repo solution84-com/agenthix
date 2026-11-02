@@ -5,7 +5,8 @@ import {
   aheadText, branchSubLine, clashesByVersion, mergeRefusal, mergeSummary, mergedNotice, restoreNotice, whenText, whoseLabel,
 } from '../words'
 import { viewSizeOf } from '../hooks/useViewSize'
-import { noAppLine } from '../livePreviewWords'
+import { appsToRestart, noAppLine, secretsLine, waitingWords } from '../livePreviewWords'
+import type { LivePreviewSecretsView } from '../../livePreviews/types'
 
 const line = (over: Partial<BranchLineView> = {}): BranchLineView => ({
   id: 'b1', name: 'login-page', ahead: 6, behind: 0, lastCommitAt: null, livePreview: null, agentName: 'Kernel',
@@ -79,9 +80,53 @@ describe('times and widths', () => {
 })
 
 describe("the live preview strip's line with no app @SC-1703", () => {
-  it("says on main's live preview how an app comes to start there", () => {
-    expect(noAppLine(true, false)).toBe('No app yet. An app an agent started on any branch of this workspace can be started here.')
-    expect(noAppLine(false, false)).toMatch(/start_app/)
-    expect(noAppLine(true, true)).toBe('No app running here yet. Start one:')
+  it("says plainly that no app is running, and how one starts", () => {
+    expect(noAppLine(true, false)).toMatch(/^No app is running yet, .*start_app/)
+    expect(noAppLine(false, false)).toBe('No app is running yet. Ask the agent in the conversation to start the app.')
+    expect(noAppLine(true, true)).toBe('No app is running yet. Start one:')
+  })
+})
+
+describe('the middle while no app shows @SC-1703', () => {
+  const view = (over: Partial<Parameters<typeof waitingWords>[0]> = {}) => ({ state: 'running' as const, onMain: false, startable: [], ...over })
+  it('a running live preview with no app says so, and how to start one', () => {
+    expect(waitingWords(view({ startable: [{ name: 'shop', folder: '', command: 'npm start', port: 3000, fromBranch: null }] }), null, true))
+      .toBe('No app is running in this live preview yet. Press Start shop on the strip above, or ask the agent in the conversation to start it.')
+    expect(waitingWords(view(), null, true)).toMatch(/^No app is running in this live preview yet\. Ask the agent in the conversation/)
+    expect(waitingWords(view({ onMain: true }), null, true)).toMatch(/no app has run on this workspace/)
+    expect(waitingWords(view(), null, false)).toMatch(/A Member or Admin of the project starts one/)
+  })
+
+  it('an app on its way says which, and one that failed says what to do', () => {
+    expect(waitingWords(view(), { name: 'shop', state: 'starting' }, true)).toBe('shop is starting. It shows here once it answers.')
+    expect(waitingWords(view(), { name: 'shop', state: 'failed' }, true)).toMatch(/^shop did not start\. .*Restart tries again/)
+  })
+})
+
+describe("the strip's secrets line @SC-1712", () => {
+  const run = (over: Partial<LivePreviewSecretsView> = {}): LivePreviewSecretsView => ({
+    runId: 'r1', kind: 'start', state: 'passed', names: ['SHOP_API_KEY'], message: null, at: '2026-11-02T07:11:10.000Z', ...over,
+  })
+  it('says the run goes, then the names it handed, never a value', () => {
+    expect(secretsLine(run({ state: 'going', names: [] }))).toBe("start-live-preview is running. Its secrets go to the app's container only.")
+    expect(secretsLine(run())).toBe("start-live-preview passed and handed SHOP_API_KEY to the app's container. An app reads each at /run/secrets/<NAME>.")
+    expect(secretsLine(run({ names: [] }))).toMatch(/name no secrets, so nothing was handed/)
+  })
+
+  it("says why one failed in the run's words, and that nothing was handed", () => {
+    expect(secretsLine(run({ state: 'failed', names: [], message: 'Step prepare failed.' }))).toBe('Step prepare failed. No secrets were handed to the app.')
+    expect(secretsLine(run({ state: 'failed', names: [], message: 'The run passed, but its secrets were not handed to the app.' })))
+      .toBe('The run passed, but its secrets were not handed to the app.')
+  })
+
+  it('offers a restart only to the apps running from before the hand-off', () => {
+    const apps = [
+      { appId: 'a1', name: 'shop', state: 'running' as const, since: '2026-11-02T07:00:00.000Z' },
+      { appId: 'a2', name: 'api', state: 'running' as const, since: '2026-11-02T07:12:00.000Z' },
+      { appId: 'a3', name: 'web', state: 'stopped' as const, since: '2026-11-02T07:00:00.000Z' },
+    ]
+    expect(appsToRestart(apps, run()).map(a => a.name)).toEqual(['shop'])
+    expect(appsToRestart(apps, run({ state: 'going' }))).toEqual([])
+    expect(appsToRestart(apps, null)).toEqual([])
   })
 })

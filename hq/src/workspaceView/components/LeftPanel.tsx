@@ -98,7 +98,10 @@ export function LeftStrip({ branchSelect, section, open, onChoose, git, previewS
       {git && icon('preview', `Live preview · ${PREVIEW_STATE_LABEL[previewState]}`, (
         <>
           <Play size={16} aria-hidden />
-          <span aria-hidden className={`absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full ${STATE_DOT[previewState]}`} />
+          {/* The dot means a live preview runs; its other states are in the label. */}
+          {previewState === 'running' && (
+            <span aria-hidden data-testid="strip-preview-dot" className={`absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full ${STATE_DOT.running}`} />
+          )}
         </>
       ))}
       {icon('files', 'Files', <Folder size={16} aria-hidden />)}

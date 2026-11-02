@@ -20,6 +20,18 @@ export const LIST_APPS_TOOL = 'list_apps'
 export const RELOAD_VIEW_TOOL = 'reload_view'
 export const SET_AUTO_RELOAD_TOOL = 'set_auto_reload'
 
+/**
+ * The names a place gives its live-preview workflows (*Start with secrets*, *Reload with secrets* on the strip). They are
+ * the person's: `run_workflow` refuses them to an agent, whose way to start or reload the app is the app tools.
+ */
+export const LIVE_PREVIEW_WORKFLOW_NAMES = { start: 'start-live-preview', reload: 'reload-live-preview' } as const
+
+/** Whether a workflow's name is one of the live preview's own, compared as a person would read it. */
+export function isLivePreviewWorkflowName(name: string): boolean {
+  const n = name.trim().toLowerCase()
+  return n === LIVE_PREVIEW_WORKFLOW_NAMES.start || n === LIVE_PREVIEW_WORKFLOW_NAMES.reload
+}
+
 export type AppToolName =
   | typeof START_APP_TOOL | typeof STOP_APP_TOOL | typeof LIST_APPS_TOOL | typeof RELOAD_VIEW_TOOL | typeof SET_AUTO_RELOAD_TOOL
 
@@ -47,8 +59,8 @@ export const APP_TOOL_DECLARATIONS: readonly AppToolDeclaration[] = [
       'localhost works. If an app of the same name is running, it is stopped first, and its address stays the same. ' +
       'Answers once the app is starting; call list_apps to see when it runs, or why it failed. Dependencies are not in ' +
       'your working folder until you install them: install them first (npm install, for example). If this branch has ' +
-      'no live preview open, it opens one first, for the person you work for; if that is refused, it says why and ' +
-      'starts nothing.',
+      'no live preview open, it opens one first, for the person you work for, so call it then only when they asked ' +
+      'to see, run or start the app; if opening is refused, it says why and starts nothing.',
     args: {
       name: APP_NAME,
       folder: { type: 'string', maxLength: 1024, description: 'The folder inside your working folder the command runs in, such as web; empty for the working folder itself' },
@@ -75,18 +87,18 @@ export const APP_TOOL_DECLARATIONS: readonly AppToolDeclaration[] = [
     name: RELOAD_VIEW_TOOL,
     description:
       'Reload the live preview the person sees, so they see your latest changes. Use it when they ask ("reload it", ' +
-      '"show me the changes"), or after you changed the app while automatic reloading is off. It takes no arguments.',
+      '"show me the changes"), and after you commit a change to what the app shows. It takes no arguments.',
     args: {},
     runIdFromCaller: true,
   },
   {
     name: SET_AUTO_RELOAD_TOOL,
     description:
-      'Switch automatic reloading of this branch\'s live preview. By default it reloads by itself each time you ' +
-      'finish changing a file. Call it with auto false when the person asks you to stop reloading; changes then wait ' +
+      'Switch automatic reloading of this branch\'s live preview. By default it reloads by itself each time a ' +
+      'commit reaches your branch. Call it with auto false when the person asks you to stop reloading; changes then wait ' +
       'for them to press Reload. Call it with auto true when they ask you to go back to reloading.',
     args: {
-      auto: { type: 'boolean', description: 'true to reload the live preview whenever you change a file; false to stop, and let the person reload it' },
+      auto: { type: 'boolean', description: 'true to reload the live preview whenever a commit reaches the branch; false to stop, and let the person reload it' },
     },
     runIdFromCaller: true,
   },

@@ -38,6 +38,7 @@ import { requireRunnerForBoundary } from '../../server/identity/runnerClaim'
 import type { CapabilityHolder } from './capabilityRenewal'
 import { issueRunToken } from '../../server/runtime/runTokens'
 import { registerGateRun } from './toolGateRuns'
+import { markCodeWorkspaceFolders } from './codeWorkspaceMounts'
 import type { AgentSession } from '@prisma/client'
 import type { CapabilityClaims, RunContextPayload } from '@agenthix/core'
 import { prepareAgentContainer, resolveContainerKey } from './containerPrep'
@@ -308,7 +309,8 @@ export async function assembleRunLaunch(
   // container mounts. See ADR-0001.
   const containerMounts: ContainerMounts | undefined = containerResult
     ? {
-        locations: containerResult.mounts.folders,
+        // A run on a branch is told of main in its own section (codeWorkPromptText).
+        locations: codeWork ? containerResult.mounts.folders : markCodeWorkspaceFolders(containerResult.mounts.folders, containerResult.mounts.readOnly ?? []),
         primaryContainerPath: containerResult.primaryContainerPath,
         // Task runs: label the cwd as the task working directory so the agent knows its role.
         ...(codeWork

@@ -29,7 +29,7 @@ export const RUNNING: LivePreviewView = {
     appId: 'a7f3a9c', name: 'website', folder: '', command: 'npm run dev', port: 4321, state: 'running', since: ago(24),
     detail: null, lastLines: [], address: APP_ADDRESS,
   }],
-  startable: [], services: [], questions: [], workflows: { start: false, reload: false },
+  startable: [], services: [], questions: [], workflows: { start: false, reload: false }, secrets: null,
 }
 
 export const PLACES: LivePreviewPlaces = {

@@ -16,6 +16,16 @@ import {
 import { hqDb, siteDb, truncateAll, seedBase } from './harness/db'
 import { startHq, startRelay, startSite, stopAll, waitForHq, waitForRelay, waitForSite, markAsProcessOwner } from './harness/apps'
 import { acquireRunLock, releaseRunLock } from './harness/runLock'
+import { recordedSiteIds, removeSiteLeftovers } from './harness/siteLeftovers'
+
+/** Every id this run's site had: each recorded as it came up, and what either database still names. */
+async function runSiteIds(): Promise<string[]> {
+  const [registered, config]: [{ siteId: string }[], { siteId: string }[]] = await Promise.all([
+    hqDb.executionSite.findMany({ select: { siteId: true } }).catch(() => []),
+    siteDb.siteConfig.findMany({ select: { siteId: true } }).catch(() => []),
+  ])
+  return [...new Set([...recordedSiteIds(), ...registered.map(r => r.siteId), ...config.map(c => c.siteId)])]
+}
 
 function runWrapperNoop(cwd: string, env: NodeJS.ProcessEnv): Promise<void> {
   return new Promise((resolvePromise, reject) => {
@@ -48,6 +58,8 @@ function buildRelay(): void {
 
 async function cleanup(): Promise<void> {
   await stopAll()
+  // With the site stopped, what it made is removed by its ids: a site's own sweep keeps to its current id only.
+  removeSiteLeftovers(await runSiteIds())
   await Promise.all([hqDb.$disconnect(), siteDb.$disconnect()])
   releaseRunLock()
   // A temp folder left behind never fails a run whose tests passed. A run that reaches an agent's start leaves its

@@ -72,7 +72,11 @@ On a phone the bar shows the state and the address, and the *Live preview* tab r
 **The strip** shows what is in the live preview:
 
 - **Apps**: choose which one the middle shows. An app that did not start says so, with its last lines of output, which the
-  agent also sees and usually fixes.
+  agent also sees and usually fixes. **Stop** and **Restart** act on the chosen app; the live preview keeps running.
+- **Start**, for each app that has run on this branch and is not running now, with the command it last ran with. On
+  `main`'s live preview, it offers each app that ran on any branch of the workspace.
+  When you start a live preview, the app that ran last on its branch starts with it. Until an app runs, the middle says
+  that none is running yet and how to start one.
 - **Services**, with their state: *Waiting for a yes*, *Starting*, *Running*, *Stopped* or *Failed*.
 - **Questions** that wait for a yes: see [Services](#services) and [Install scripts](#install-scripts).
 - **Start with secrets** and **Reload with secrets**, when the project has those workflows: see [Secrets](#secrets).
@@ -169,7 +173,8 @@ workflow that a person approved**, never through the agent: see [Workflows](../w
    that branch is merged.
 2. A person approves it, as for any workflow, and it is switched on.
 3. The strip then shows **Start with secrets** and **Reload with secrets** to Members and Admins. Select one to run that
-   workflow.
+   workflow. The strip shows that it is running, and you can't start another until it ends. Then it names the secrets it
+   handed to the app, or says why it did not.
 
 When the run passes, the platform hands the secrets to **the app's own container**. The agent's container never holds
 them, and the output the agent sees is masked. The app reads each one from the file `/run/secrets/<NAME>`, for example
@@ -177,9 +182,10 @@ them, and the output the agent sees is masked. The app reads each one from the f
 
 - The workflow's steps run on the live preview's working copy, so a step can prepare something the app needs. The steps
   do not start the app: the agent does, with `start_app`.
-- Nothing restarts a running app after the secrets arrive. An app that read its values when it started needs to be
-  stopped and started again, which the agent does when you ask.
-- If the site restarts, the secrets are gone with the container. Select **Reload with secrets** again.
+- An app that was already running read its values when it started, so it doesn't have the new ones. The strip names
+  it and offers **Restart**, which keeps the container and what it holds.
+- Stopping the live preview, or a site restart, removes the container and the secrets with it. After you start it
+  again, select **Start with secrets** again.
 - An app that needs no secrets starts with the agent's `start_app` alone.
 
 **Read the code before you merge it.** The approved workflow hands the secrets to the app, and the agent keeps changing the

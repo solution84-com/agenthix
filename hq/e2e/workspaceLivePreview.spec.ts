@@ -19,7 +19,7 @@ const now = new Date().toISOString()
 const running = {
   livePreviewId: 'lp1', workspaceId: WORKSPACE ?? 'w', branchId: 'b1', branch: 'login-page', onMain: false, state: 'running', reason: null,
   detail: null, since: now, site, startedBy: { id: 'u1', name: 'Mia' }, yours: true, mayStop: true, mayResume: false, autoReload: true,
-  openedAt: now, lastUsedAt: now, startable: [], services: [], questions: [], workflows: { start: false, reload: false },
+  openedAt: now, lastUsedAt: now, startable: [], services: [], questions: [], workflows: { start: false, reload: false }, secrets: null,
   apps: [{ appId: 'a7f3a', name: 'web', folder: '', command: 'npm run dev', port: 5173, state: 'running', since: now, detail: null, lastLines: [], address: APP }],
 }
 const places = { current: null, mayStart: true, blocked: null, needsGit: false, picked: site, others: [], full: null, lastStopped: null }

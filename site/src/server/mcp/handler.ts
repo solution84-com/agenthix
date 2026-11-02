@@ -81,6 +81,12 @@ export const mcpHandler: ApiHandler = async (req, res) => {
       openCode: req.headers[PLATFORM_TOOLS_HARNESS_HEADER] === OPENCODE_HARNESS,
     },
   })
+  // A harness keeps the tools it lists for the conversation's later runs: which ones a listing offered is logged, so a
+  // run's tools can be told from its log (the names only, never an argument).
+  const turn = context && context.sessionId === claims.sessionId ? context : null
+  if ((req.body as { method?: unknown } | undefined)?.method === 'tools/list') {
+    logger.info(`tools listed for run ${resolved.runId ?? 'none'}: ${turn?.codeWork ? 'with' : 'without'} the code and app tools`)
+  }
   await mcpServer.connect(transport)
   await transport.handleRequest(req, res, req.body)
 }

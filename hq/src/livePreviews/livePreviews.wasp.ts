@@ -6,6 +6,7 @@ import {
     setLivePreviewAutoAction as setLivePreviewAuto, markLivePreviewInUseAction as markLivePreviewInUse,
     answerLivePreviewQuestionAction as answerLivePreviewQuestion, openLiveAppAction as openLiveApp,
     runLivePreviewWorkflowAction as runLivePreviewWorkflow, startLiveAppAction as startLiveApp,
+    stopLiveAppAction as stopLiveApp, restartLiveAppAction as restartLiveApp,
 } from "./operations" with { type: "ref" };
 import { getTrustedPackageScopes, setTrustedPackageScopes } from "./packageScopes" with { type: "ref" };
 
@@ -24,6 +25,8 @@ export const livePreviewsSpec: Spec = [
     action(answerLivePreviewQuestion, { entities: ["LivePreview"] }),
     action(openLiveApp, { entities: [...LIVE_PREVIEWS] }),
     action(startLiveApp, { entities: ["LivePreview", "LiveApp", "LiveAppRun", "ExecutionSite"] }),
+    action(stopLiveApp, { entities: ["LivePreview", "LiveApp", "LiveAppRun", "ExecutionSite"] }),
+    action(restartLiveApp, { entities: ["LivePreview", "LiveApp", "LiveAppRun", "ExecutionSite"] }),
     action(runLivePreviewWorkflow, { entities: ["LivePreview", "Workflow"] }),
     query(getTrustedPackageScopes, { entities: ["Org", "UserSettings"] }),
     action(setTrustedPackageScopes, { entities: ["Org", "UserSettings"] }),

@@ -12,6 +12,7 @@ describe('what the agent is asked after a clash @SC-1680', () => {
     expect(text).toContain('- README.md\n')
     expect(text).toContain('tell me here that it is ready to merge')
     expect(text).toContain('Do not merge it yourself')
+    expect(text).toContain('do not start the app or open a live preview for this')
   })
 
   it('counts the clashes past twenty', () => {

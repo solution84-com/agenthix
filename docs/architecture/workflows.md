@@ -243,7 +243,8 @@ gate with the permissions that work needs. The App, its accounts and which place
 
 [ADR-0171](../adr/adr-0171-secrets-reach-a-live-preview-only-through-an-approved-workflow.md). A place's workflows named
 `start-live-preview` and `reload-live-preview`, once approved and switched on, can be run by a Member or Admin from a live
-preview's strip (`runLivePreviewWorkflow`, `hq/src/livePreviews/workflowSecrets.ts`). hq runs it as any person's run
+preview's strip (`runLivePreviewWorkflow`, `hq/src/livePreviews/workflowSecrets.ts`). They are the person's: an agent's `run_workflow` of either is
+refused (`hq/src/workflows/runs.ts`), and its way to start or reload the app is the app tools. hq runs it as any person's run
 (`hq/src/workflows/livePreviewRuns.ts`) but names the live preview in the instruction
 (`WorkflowRunInstruction.livePreview`, `core/src/protocol/workflowRuns.ts`) and sends it to the live preview's site.
 

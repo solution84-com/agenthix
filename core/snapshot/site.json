@@ -3714,6 +3714,7 @@
           "livePreviewId": {"optional":true,"type":{"type":"string"}},
           "main": {"type":{"type":"string"}},
           "onBehalfOf": {"type":{"union":[{"ref":"GitPerson"},{"type":"null"}]}},
+          "openLivePreview": {"optional":true,"type":{"ref":"RunOpenLivePreview"}},
           "otherBranches": {"type":{"array":{"ref":"RunOtherBranch"}}},
           "workspace": {"type":{"ref":"WorkspaceRepoRef"}}
         }
@@ -3917,6 +3918,10 @@
           "provider": {"type":{"ref":"RunProviderDescriptor"}}
         }
       }
+    },
+    "RunOpenLivePreview": {
+      "file": "protocol/codeWork.ts",
+      "shape": {"fields":{"paused":{"type":{"type":"boolean"}},"runningApps":{"type":{"array":{"type":"string"}}}}}
     },
     "RunOtherBranch": {
       "file": "protocol/codeWork.ts",

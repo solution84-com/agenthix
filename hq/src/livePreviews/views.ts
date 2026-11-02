@@ -14,6 +14,7 @@ import { LIVE } from './store'
 import { settingOf, SITE_SELECT } from './sites'
 import { liveWorkflowsOf } from './workflowSecrets'
 import { startableApps } from './knownApps'
+import { secretsRunOf } from './secretsRuns'
 
 const STATE: Record<LivePreview['state'], LivePreviewStateName> = {
   STARTING: 'starting', RUNNING: 'running', PAUSED: 'paused', STOPPED: 'stopped',
@@ -49,7 +50,7 @@ export async function siteViewOf(executionSiteId: string): Promise<LivePreviewSi
 
 export async function viewOf(row: LivePreview, userId: string, mayWork: boolean): Promise<LivePreviewView> {
   const live = row.state !== 'STOPPED'
-  const [site, people, apps, stopper, workflows, startable] = await Promise.all([
+  const [site, people, apps, stopper, workflows, startable, secrets] = await Promise.all([
     siteViewOf(row.executionSiteId),
     peopleByIds([row.userId]),
     // Only what this live preview ran: an app of the branch it never started reads as not here.
@@ -57,6 +58,7 @@ export async function viewOf(row: LivePreview, userId: string, mayWork: boolean)
     mayWork ? stopperOf(row, userId) : Promise.resolve(null),
     live ? liveWorkflowsOf({ type: row.ownerType, id: row.ownerId }) : Promise.resolve({ start: false, reload: false }),
     live ? startableApps(row) : Promise.resolve([]),
+    live && mayWork ? secretsRunOf(row.id) : Promise.resolve(null),
   ])
   return {
     livePreviewId: row.id,
@@ -81,5 +83,6 @@ export async function viewOf(row: LivePreview, userId: string, mayWork: boolean)
     services: live ? servicesOf(row.id) : [],
     questions: live && mayWork ? questionsOf(row.id) : [],
     workflows,
+    secrets,
   }
 }

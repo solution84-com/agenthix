@@ -28,7 +28,7 @@ vi.mock('wasp/client/operations', () => ({
   startLivePreview: 'startLivePreview', stopLivePreview: 'stopLivePreview', resumeLivePreview: 'resumeLivePreview',
   reloadLivePreview: 'reloadLivePreview', setLivePreviewAuto: 'setLivePreviewAuto', openLiveApp: 'openLiveApp',
   answerLivePreviewQuestion: 'answerLivePreviewQuestion', runLivePreviewWorkflow: 'runLivePreviewWorkflow',
-  startLiveApp: 'startLiveApp',
+  startLiveApp: 'startLiveApp', stopLiveApp: 'stopLiveApp', restartLiveApp: 'restartLiveApp',
 }))
 vi.mock('../../conversations/components/ConversationThread', () => ({
   ConversationThread: ({ conversationId }: { conversationId: string }) => <div>thread {conversationId}</div>,
@@ -54,7 +54,7 @@ const running = (over: Partial<LivePreviewView> = {}): LivePreviewView => ({
   detail: null, since: new Date().toISOString(), site, startedBy: { id: 'u1', name: 'Mia' }, yours: true, mayStop: true,
   mayResume: false, autoReload: true, openedAt: new Date().toISOString(), lastUsedAt: new Date().toISOString(),
   apps: [{ appId: 'a7f3a', name: 'web', folder: '', command: 'npm run dev', port: 5173, state: 'running', since: new Date().toISOString(), detail: null, lastLines: [], address: 'https://p-7f3a.preview.example.com' }],
-  startable: [], services: [], questions: [], workflows: { start: false, reload: false }, ...over,
+  startable: [], services: [], questions: [], workflows: { start: false, reload: false }, secrets: null, ...over,
 })
 const form = { action: 'https://p-7f3a.preview.example.com/__relay/enter', field: 'ticket', ticket: 't1', origin: 'https://p-7f3a.preview.example.com', target: 'frame', expiresAt: Date.now() + 15 * 60_000 }
 
@@ -228,7 +228,7 @@ describe('Live preview, running', () => {
 
   it('Stop, Auto and Reload ask HQ @SC-1698', async () => {
     show(codeView())
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Stop/ })) })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Stop' })) })
     expect(actions.stopLivePreview).toHaveBeenCalledWith({ livePreviewId: 'lp1' })
     await act(async () => { fireEvent.click(screen.getByRole('checkbox', { name: /Auto/ })) })
     expect(actions.setLivePreviewAuto).toHaveBeenCalledWith({ livePreviewId: 'lp1', auto: false })
@@ -286,7 +286,7 @@ describe('Live preview, running', () => {
     answers.value.getLivePreviewPlaces = places({ current: lp })
     actions.startLiveApp = vi.fn().mockResolvedValue({ appId: 'a-new' })
     show(codeView())
-    expect(screen.getByText('No app running here yet. Start one:')).toBeTruthy()
+    expect(screen.getByText('No app is running yet. Start one:')).toBeTruthy()
     const start = screen.getByRole('button', { name: /Start\s*shop/ })
     expect(start.getAttribute('title')).toBe('npm run dev in web, on port 3000, as last started on shop-1')
     await act(async () => { fireEvent.click(start) })

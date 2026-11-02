@@ -17,7 +17,11 @@ export const handOverToLivePreview: HandOver = async ins => {
   const row = await runningPreviewFor(ins)
   if (!row) return 'The run passed, but the live preview stopped or paused meanwhile, so its secrets were not handed to the app. Run the workflow again once it is running.'
   try {
-    await handSecrets(row.id, secretsToHand(ins.steps), ins.masking)
+    const secrets = secretsToHand(ins.steps)
+    const names = Object.keys(secrets).sort()
+    await handSecrets(row.id, secrets, ins.masking)
+    // Names only: what the app's container holds can be told apart from a hand-off that never happened.
+    logger.info(`run ${ins.runId} handed ${names.length ? names.join(', ') : 'no secrets'} to live preview ${row.id}`)
     return null
   } catch (err) {
     if (err instanceof HandOffFailed) return `The run passed, but ${err.message.charAt(0).toLowerCase()}${err.message.slice(1)}`

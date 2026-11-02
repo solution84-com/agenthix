@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { FilesQuietLine } from '@agenthix/ui/projects'
 import type { WorkspaceBranchesView } from '../../branches/views'
 import { FolderTree } from '../../storage/pages/FolderTree'
@@ -16,6 +16,7 @@ import { GitFileMiddle, type ViewWorkspace } from './GitFileMiddle'
 import { LivePreviewMiddle } from './LivePreviewMiddle'
 import { MainGitPanel } from './MainGitPanel'
 import { MergeDialog } from './MergeDialog'
+import { NewTaskDialog } from './NewTaskDialog'
 import { TurnGitOn } from './TurnGitOn'
 import { WorkspaceFrame } from './WorkspaceFrame'
 import type { SwitcherItem } from './TopBar'
@@ -38,6 +39,9 @@ export function WorkspaceViewBody({ workspace, view, userId, back, workspaces, r
   const change = m.state.diff ? files.find(f => f.path === m.state.diff) ?? null : null
   const target = { ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.id }
   const previewChosen = m.git && m.state.section === 'preview'
+  const [newTask, setNewTask] = useState(false)
+  // Tasks are a project's: a person's own space makes none here.
+  const projectId = workspace.ownerType === 'project' ? workspace.ownerId : null
   const preview = useLivePreview(workspace.id, m.line?.id ?? null, { enabled: m.git, shown: previewChosen })
 
   const select = (compact: boolean) => m.mainLine && (
@@ -87,7 +91,8 @@ export function WorkspaceViewBody({ workspace, view, userId, back, workspaces, r
 
   const conversation = (
     <ConversationPanel workspaceId={workspace.id} workspaceName={workspace.name} git={m.git} line={m.line} listPath={back.href} canAct={canAct}
-      pending={m.isMain ? m.pending : null} onStarted={m.setPending} onActivity={m.setActivity} />
+      pending={m.isMain ? m.pending : null} onStarted={m.setPending} onActivity={m.setActivity} onTaskThread={m.setTaskThread}
+      onNewTask={projectId ? () => setNewTask(true) : undefined} pendingTask={m.isMain ? m.pendingTask : null} />
   )
 
   const filesNote = m.line ? (files.length ? `${files.length} changed` : '') : ''
@@ -107,15 +112,19 @@ export function WorkspaceViewBody({ workspace, view, userId, back, workspaces, r
         previewState={preview.view?.state ?? 'stopped'}
         branchTitle={m.branchName} activity={m.activity}
         agentName={m.line ? agentOf(m.line) : null}
-        notice={m.notice} onDismissNotice={() => m.setNotice(null)}
+        notice={m.notice} onDismissNotice={m.dismissNotice}
       />
+      {newTask && projectId && (
+        <NewTaskDialog projectId={projectId} workspaceId={workspace.id} workspaceName={workspace.name} onClose={() => setNewTask(false)}
+          onStarted={task => { setNewTask(false); m.setPendingTask(task) }} />
+      )}
       {m.merging && m.line && m.mainLine && (
         <MergeDialog line={m.line} mainHead={m.mainLine.head} mainVersion={m.mainLine.versionCount} changes={files}
           summary={m.summary} onSummary={m.setSummary} onClose={() => m.setMerging(false)}
           onMerged={result => {
             m.setMerging(false)
             if (result.branchClosed) m.chooseBranch('main')
-            m.setNotice(mergedNotice(result))
+            m.showNotice(mergedNotice(result), result.versionNumber)
             refetchBranches()
           }} />
       )}

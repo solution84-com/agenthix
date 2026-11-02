@@ -4,7 +4,7 @@ import { FilesQuietLine } from '@agenthix/ui/projects'
 import type { LivePreviewView } from '../../livePreviews/types'
 import type { LivePreviewModel } from '../hooks/useLivePreview'
 import { useWorkspaceViewEvent } from '../hooks/useWorkspaceLive'
-import { RELOADED_BY, refusalOf } from '../livePreviewWords'
+import { RELOADED_BY, refusalOf, waitingWords } from '../livePreviewWords'
 import { LiveAppFrame, useOpenInTab } from './LiveAppFrame'
 import { LivePreviewBar } from './LivePreviewBar'
 import { LivePreviewStart } from './LivePreviewStart'
@@ -65,7 +65,7 @@ export function LivePreviewMiddle({ workspaceId, branchId, branchName, model, ca
   }
 
   const running = shown.apps.filter(a => a.state === 'running')
-  const app = shown.apps.find(a => a.appId === chosenId) ?? running[0] ?? shown.apps[0] ?? null
+  const app = shown.apps.find(a => a.appId === chosenId) ?? running[0] ?? shown.apps.find(a => a.state !== 'stopped') ?? null
   const act = async (work: () => Promise<unknown>, failed: string) => {
     setBusy(true)
     setProblem(null)
@@ -91,17 +91,8 @@ export function LivePreviewMiddle({ workspaceId, branchId, branchName, model, ca
       {shown.state === 'running' && app?.state === 'running' && app.address ? (
         <LiveAppFrame key={`${id}:${app.appId}`} livePreviewId={id} app={app} reloads={reloads} onProblem={setProblem} />
       ) : (
-        <FilesQuietLine role="status">{waitingWords(shown, app !== null)}</FilesQuietLine>
+        <FilesQuietLine role="status">{waitingWords(shown, app?.state === 'stopped' ? null : app, canAct)}</FilesQuietLine>
       )}
     </div>
   )
-}
-
-function waitingWords(view: LivePreviewView, hasApp: boolean): string {
-  if (view.state === 'starting') return 'Starting the live preview: installing what it needs and starting its container.'
-  if (view.state === 'paused') return 'The live preview is paused.'
-  if (!hasApp && view.startable.length > 0) return 'The live preview is running. Start an app from the strip above, or ask the agent to start one.'
-  if (!hasApp && view.onMain) return 'The live preview is running. An app an agent started on any branch of this workspace can be started here from the strip.'
-  if (!hasApp) return 'The live preview is running. The agent starts the app in it; ask it to if it has not.'
-  return 'The app is not answering yet. It shows here once it does.'
 }

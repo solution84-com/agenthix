@@ -64,7 +64,9 @@ export const WORKFLOW_TOOL_DECLARATIONS: WorkflowToolDeclaration[] = [
     name: WORKFLOW_TOOL_NAMES.run,
     description:
       'Run the approved version of a workflow on one of this place\'s workspaces, and wait for it. Answers each step\'s result and the last lines of its ' +
-      'output, with every secret masked. A long run can be checked later with workflow_run.',
+      'output, with every secret masked. A long run can be checked later with workflow_run. The live preview\'s own ' +
+      'workflows (start-live-preview, reload-live-preview) are the person\'s and are refused: start or reload the app ' +
+      'with the app tools.',
     args: {
       name: { type: 'string', description: 'The workflow\'s name, such as push', maxLength: 64 },
       parameters: { type: 'stringMap', description: 'A value for each of the workflow\'s parameters, by name', optional: true },

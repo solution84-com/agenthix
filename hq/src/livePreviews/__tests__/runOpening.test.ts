@@ -14,9 +14,9 @@ vi.mock('../../server/controlplane/runOnBehalfOf', () => ({ personOfRun: mocks.p
 vi.mock('../../branches/branchRows', () => ({ branchOfSession: mocks.branch }))
 vi.mock('../opening', () => ({ startLivePreview: mocks.start }))
 
-import { NO_BRANCH, NO_PERSON, NOT_ALLOWED, openLivePreviewForRun } from '../runOpening'
+import { NO_BRANCH, NO_PERSON, NOT_A_PERSONS_RUN, NOT_ALLOWED, openLivePreviewForRun } from '../runOpening'
 
-const CLAIMS = { sessionId: 'session-1', siteId: 'site-1', taskId: 'task-1', userId: 'admin-1' }
+const CLAIMS = { sessionId: 'session-1', siteId: 'site-1', taskId: 'task-1', userId: 'admin-1', startedBy: 'person' as const }
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -30,6 +30,12 @@ describe('opening a live preview for a run\'s start_app @SC-1702', () => {
   it('opens it as the run\'s person, on the branch the run works on, on the run\'s site', async () => {
     await openLivePreviewForRun(CLAIMS)
     expect(mocks.start).toHaveBeenCalledWith('person-1', { workspaceId: 'ws-1', branchId: 'b-1', executionSiteId: 'es-1' })
+  })
+
+  it.each(['pulse', 'schedule', 'agent', undefined])('refuses a run started by %s, before anything is read', async startedBy => {
+    await expect(openLivePreviewForRun({ ...CLAIMS, startedBy: startedBy as never })).rejects.toThrow(NOT_A_PERSONS_RUN)
+    expect(mocks.person).not.toHaveBeenCalled()
+    expect(mocks.start).not.toHaveBeenCalled()
   })
 
   it('refuses a run that works for no person', async () => {

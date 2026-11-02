@@ -20,7 +20,10 @@ test.describe('chat streaming', () => {
     // model of an earlier run that is gone. Copy buttons are counted from what the dock shows once it has loaded.
     const thread = page.getByRole('complementary', { name: 'Conversation' })
     await page.waitForLoadState('networkidle')
-    await thread.getByRole('button', { name: 'New conversation' }).click()
+    // A person with no conversation yet finds the dock already on a new one, with no button to start another.
+    if (!(await thread.getByRole('heading', { name: 'New conversation' }).isVisible())) {
+      await thread.getByRole('button', { name: 'New conversation' }).click()
+    }
     const copies = thread.getByRole('button', { name: 'Copy', exact: true })
     const input = thread.getByRole('textbox', { name: 'Ask any agent…' })
     await expect(input).toBeVisible()

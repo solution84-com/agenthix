@@ -17,7 +17,7 @@ import {
 } from '@agenthix/core'
 import { Logger } from '../../utils/logger'
 import type { DockerEvent, EventStream } from './guardDocker'
-import { execCommand, meaningOf } from './events'
+import { execCommand, leaving, meaningOf } from './events'
 import { LOOK_FAILURES_ALLOWED, PreviewWatch, type LookDeps, type WatchedPreview } from './look'
 import { GuardResponder, type GuardTarget, type ResponseActions, type SignalFacts } from './respond'
 
@@ -150,7 +150,9 @@ export class LivePreviewGuard {
     if (meaning.kind === 'none') return
     const watch = this.watches.get(event.livePreviewId)
     if (!watch) {
-      // A container made before its watch starts is expected; one for no live preview is no one's.
+      // A container made before its watch starts is expected; one for no live preview is no one's. One going away is
+      // the site's own stop removing it after the watch ended, or a removal already under way: nothing turned up.
+      if (leaving(event)) return
       if (await this.deps.isLive(event.livePreviewId).catch(() => false)) return
       logger.error(`A container with the label of live preview ${event.livePreviewId}, which is not open, was found and removed.`)
       await this.deps.docker.kill([event.containerId])

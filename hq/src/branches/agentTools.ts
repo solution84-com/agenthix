@@ -10,7 +10,7 @@
  * - `merge_into_main`: as the person the work is for, and only when they may merge here (a Member or Admin, or the
  *   owner of their own storage). The tool's description says to use it only when the person asked.
  */
-import { BRANCH_WORK_METHODS, LIVE_PREVIEW_METHODS, isCommitMessage, type CommitToolResult, type MergeToolResult, type UpdateToolResult } from '@agenthix/core'
+import { BRANCH_WORK_METHODS, COMMIT_RELOAD_NOTE, LIVE_PREVIEW_METHODS, isCommitMessage, type CommitToolResult, type MergeToolResult, type UpdateToolResult } from '@agenthix/core'
 import { prisma } from 'wasp/server'
 import { ControlPlaneError, type CallerContext } from '../server/controlplane/types'
 import { personOfRun } from '../server/controlplane/runOnBehalfOf'
@@ -29,6 +29,7 @@ import { livePreviewOfSession, runsGoToPreviewSite } from '../livePreviews/runs'
 import { bringBack } from '../livePreviews/back'
 import { askSite } from '../livePreviews/siteAsk'
 import { refusalWords } from '../livePreviews/words'
+import { livePreviewOn } from '../livePreviews/store'
 
 /**
  * `siteId` is the site the run is on, where its copy is; `homeSiteId` the site holding the workspace. They differ
@@ -86,7 +87,7 @@ export async function commitOp(ctx: CallerContext, args: { message: string; runI
       return { committed: false, reason: 'nothing_to_commit' }
     }
     emitBranchChange(at.branch, 'commits')
-    return { committed: true, commit: result.commit, branch: at.branch.name, files: result.files }
+    return { committed: true, commit: result.commit, branch: at.branch.name, files: result.files, ...(await reloadNote(at)) }
   })
 }
 
@@ -99,7 +100,13 @@ async function commitInPreview(at: CallingBranch, message: string): Promise<Comm
   if (!answer.ok) throw new ControlPlaneError('conflict', refusalWords(answer.refusal, 'The site this run is on', at.branch.name))
   if (!answer.result.committed) return { committed: false, reason: 'nothing_to_commit' }
   void bringBack(at.livePreviewId!).catch(() => {})
-  return { committed: true, commit: answer.result.commit, branch: at.branch.name, files: answer.result.files }
+  return { committed: true, commit: answer.result.commit, branch: at.branch.name, files: answer.result.files, ...(await reloadNote(at)) }
+}
+
+/** The commit's note while the branch's live preview is open (W14 of the live preview walk). */
+async function reloadNote(at: CallingBranch): Promise<{ note?: string }> {
+  const open = await livePreviewOn(prisma, { workspaceId: at.branch.workspaceId, branchId: at.branch.id }).catch(() => null)
+  return open ? { note: COMMIT_RELOAD_NOTE } : {}
 }
 
 export async function updateFromMainOp(ctx: CallerContext, args: { runId?: string }): Promise<UpdateToolResult> {

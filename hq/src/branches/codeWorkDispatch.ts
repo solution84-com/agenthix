@@ -25,6 +25,7 @@ import { emitBranchChange } from './workspaceEvents'
 import { whoseLines } from './whose'
 import { gitPersonForAgent, gitPersonForUser } from './gitPeople'
 import { Logger } from '../server/utils/logger'
+import { livePreviewForPrompt } from '../livePreviews/runPrompt'
 
 const logger = new Logger('CodeWork')
 
@@ -224,15 +225,16 @@ async function undo(made: Made): Promise<void> {
 
 /** What the run's prompt says of its branch and the others (`codeWorkPromptText`), and whom its last commit names. */
 async function codeWorkFacts(
-  logicalSiteId: string, ref: RunCodeWork['workspace'], list: BranchListResult, made: Made, ask: Pick<CodeWorkAsk, 'agentId' | 'personId'>,
+  logicalSiteId: string, ref: RunCodeWork['workspace'], list: BranchListResult, made: Made, ask: Pick<CodeWorkAsk, 'agentId' | 'personId' | 'runSiteId'>,
 ): Promise<RunCodeWork> {
   const line = list.branches.find(b => b.name === made.name)
   const others = (await openBranches(ref.workspaceId)).filter(b => b.id !== made.branchId)
-  const [whose, working, author, onBehalfOf] = await Promise.all([
+  const [whose, working, author, onBehalfOf, openLivePreview] = await Promise.all([
     whoseLines(others),
     agentsWorking(logicalSiteId, ref, others).catch(() => new Map<string, string>()),
     gitPersonForAgent(ask.agentId),
     ask.personId ? gitPersonForUser(ask.personId) : Promise.resolve(null),
+    livePreviewForPrompt(ref.workspaceId, made.branchId, ask.runSiteId),
   ])
   const otherBranches: RunOtherBranch[] = others.map(b => ({
     name: b.name,
@@ -251,6 +253,7 @@ async function codeWorkFacts(
     // The same names as hq's own `branch.commit`, so every commit of the agent's reads alike.
     author,
     onBehalfOf,
+    ...(openLivePreview ? { openLivePreview } : {}),
   }
 }
 

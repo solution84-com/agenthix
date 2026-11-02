@@ -120,8 +120,8 @@ beforeEach(async () => {
   }
 })
 
-function ctx(livePreview?: unknown) {
-  return { kind: 'run' as const, claims: { sessionId, taskId, siteId, agentId: 'agent-x', ...(livePreview ? { livePreview } : {}) } } as never
+function ctx(livePreview?: unknown, startedBy = 'person') {
+  return { kind: 'run' as const, claims: { sessionId, taskId, siteId, agentId: 'agent-x', startedBy, ...(livePreview ? { livePreview } : {}) } } as never
 }
 
 describe('the live preview an app tool acts on @SC-1701', () => {
@@ -181,6 +181,12 @@ describe('start_app on a branch with no live preview open @SC-1702', () => {
     expect(asked).toEqual([])
     expect(await prisma.livePreview.count({ where: { workspaceId: row.workspaceId as string } })).toBe(0)
     expect(await prisma.liveApp.count()).toBe(0)
+  })
+
+  it('refuses a run no person started, and opens and starts nothing', async () => {
+    await expect(startAppOp(ctx(undefined, 'pulse'), START)).rejects.toThrow(/No person started this run.*Nothing was started\./)
+    expect(asked).toEqual([])
+    expect(await prisma.livePreview.count()).toBe(0)
   })
 
   it('refuses when live previews are off on the run\'s site', async () => {

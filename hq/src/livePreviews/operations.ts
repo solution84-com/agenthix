@@ -11,7 +11,7 @@ import {
   answerLivePreviewQuestion, getLivePreview, markLivePreviewInUse, reloadLivePreview, resumeLivePreview, setLivePreviewAuto,
 } from './personActions'
 import { openLiveApp } from './appEntry'
-import { startLiveApp } from './personApps'
+import { restartLiveApp, startLiveApp, stopLiveApp } from './personApps'
 import { runLivePreviewWorkflow, type LivePreviewWorkflowKind } from './workflowSecrets'
 import type { LiveAppEntryForm, LivePreviewPlaces, LivePreviewView, OpenLiveAppInput, StartLivePreviewInput } from './types'
 // Registers the site's live-preview events and the run listener with the site channel, as the server starts.
@@ -54,6 +54,14 @@ export const answerLivePreviewQuestionAction = (a: { livePreviewId: string; requ
 /** *Start* on the strip: an app known on the workspace, as it was last started, in this live preview. */
 export const startLiveAppAction = (a: { livePreviewId: string; name: string }, c: Ctx): Promise<{ appId: string }> =>
   startLiveApp(me(c), a?.livePreviewId, a?.name)
+
+/** *Stop* on the strip: one app of this live preview stops; the live preview goes on. */
+export const stopLiveAppAction = (a: { livePreviewId: string; appId: string }, c: Ctx): Promise<void> =>
+  stopLiveApp(me(c), a?.livePreviewId, a?.appId)
+
+/** *Restart* on the strip: one app stops and starts again as it was, in the same container. */
+export const restartLiveAppAction = (a: { livePreviewId: string; appId: string }, c: Ctx): Promise<{ appId: string }> =>
+  restartLiveApp(me(c), a?.livePreviewId, a?.appId)
 
 export const openLiveAppAction = (a: OpenLiveAppInput, c: Ctx): Promise<LiveAppEntryForm> => openLiveApp(me(c), a ?? ({} as OpenLiveAppInput))
 

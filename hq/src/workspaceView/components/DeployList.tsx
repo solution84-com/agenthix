@@ -5,7 +5,8 @@ import { useAction, useQuery, getPlaceWorkflows, startWorkflowRun } from 'wasp/c
 import { FILES_BUTTON } from '@agenthix/ui/projects'
 import type { ListedWorkflow, WorkflowPlace } from '../../workflows/pages/workflowTypes'
 import { RunDialog } from '../../workflows/components/RunDialog'
-import { DEPLOY_NONE, VIEWER_REASON } from '../words'
+import { isLivePreviewWorkflow } from '../../livePreviews/workflowNames'
+import { DEPLOY_NONE, DEPLOY_PREVIEW_ONLY, VIEWER_REASON } from '../words'
 
 type PlaceWorkflows = { workflows: ListedWorkflow[]; mayRun: boolean }
 
@@ -13,6 +14,7 @@ type PlaceWorkflows = { workflows: ListedWorkflow[]; mayRun: boolean }
  * What *Deploy…* opens (spec part 3, *Deploying*): the place's workflows that are on and approved, each run on this
  * workspace, whose folder is `main`, through the ordinary workflow runs. One that asks for parameters asks first. A
  * person who may not start runs in the place sees the list and runs nothing; with none, the line says how to add one.
+ * The live preview's own workflows are left out: they run from the live preview, never on `main`.
  */
 export function DeployList({ place, workspaceId }: { place: WorkflowPlace; workspaceId: string }) {
   const { data, error } = useQuery(getPlaceWorkflows, { place })
@@ -25,8 +27,16 @@ export function DeployList({ place, workspaceId }: { place: WorkflowPlace; works
   if (error) return <p role="status" className={box}>{error.message}</p>
   const read = data as PlaceWorkflows | undefined
   if (!read) return <p className={box}>Loading…</p>
-  const runnable = read.workflows.filter(w => w.enabled && w.approved)
-  if (runnable.length === 0) return <p role="status" className={box}>{DEPLOY_NONE}</p>
+  const approved = read.workflows.filter(w => w.enabled && w.approved)
+  const runnable = approved.filter(w => !isLivePreviewWorkflow(w.name))
+  if (runnable.length === 0) {
+    return (
+      <div role="status" className={box} data-testid="deploy-none">
+        <p>{DEPLOY_NONE}</p>
+        {approved.length > 0 && <p className="text-micro text-text-muted">{DEPLOY_PREVIEW_ONLY}</p>}
+      </div>
+    )
+  }
 
   const run = async (w: ListedWorkflow) => {
     setFailed(null)

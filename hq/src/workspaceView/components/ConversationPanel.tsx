@@ -1,8 +1,8 @@
-import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react'
-import { MessageSquarePlus } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ListPlus, MessageSquarePlus } from 'lucide-react'
 import { Link } from 'react-router'
 import { useAction, useQuery, getAgents, getTaskConversation, markConversationRead, startWorkspaceConversation } from 'wasp/client/operations'
-import { FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
+import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import type { ConversationAgentView } from '../../shared/conversations/protocol'
 import type { ThreadActivity } from '../../conversations/components/ConversationThread'
 import type { BranchLineView } from '../../branches/views'
@@ -18,7 +18,7 @@ const loading = <p className="px-4 py-6 text-small text-text-muted">Loading…</
  * that conversation, a task's branch the task's thread (with the box that starts it, when it has none yet). `main` has none of its own; *New conversation* starts one in
  * this workspace, which makes its own branch at its first run, and it shows here until then.
  */
-export function ConversationPanel({ workspaceId, workspaceName, git, line, listPath, canAct, pending, onStarted, onActivity }: {
+export function ConversationPanel({ workspaceId, workspaceName, git, line, listPath, canAct, pending, onStarted, onActivity, onTaskThread, onNewTask, pendingTask }: {
   workspaceId: string
   workspaceName: string
   /** Whether the workspace has Git: without it there is no `main` and no branch, and a conversation works in its files. */
@@ -31,16 +31,22 @@ export function ConversationPanel({ workspaceId, workspaceName, git, line, listP
   pending: string | null
   onStarted: (conversationId: string) => void
   onActivity: (activity: ThreadActivity) => void
+  /** Told which conversation is a task's thread while its branch shows, and null when it no longer shows. */
+  onTaskThread?: (conversationId: string | null) => void
+  /** Opens *New task* on this workspace; absent where no task can be made (a person's own space, no Git). */
+  onNewTask?: () => void
+  /** A task made here whose first run has not made its branch yet. */
+  pendingTask?: { id: string; title: string } | null
 }) {
   if (line?.whose.kind === 'conversation') {
     return <Thread conversationId={line.whose.conversationId} listPath={listPath} onActivity={onActivity} />
   }
   if (line?.whose.kind === 'task') {
-    return <TaskThread taskId={line.whose.taskId} taskKey={line.whose.taskKey} onActivity={onActivity} />
+    return <TaskThread taskId={line.whose.taskId} taskKey={line.whose.taskKey} onActivity={onActivity} onThread={onTaskThread} />
   }
   if (pending) return <Thread conversationId={pending} listPath={listPath} onActivity={onActivity} />
-  return <MainConversation workspaceId={workspaceId} canAct={canAct} onStarted={onStarted}
-    words={git ? 'main has no conversation of its own. A new conversation here works on a new branch of its own.' : `A new conversation here works in ${workspaceName}'s files.`} />
+  return <MainConversation workspaceId={workspaceId} canAct={canAct} onStarted={onStarted} onNewTask={git ? onNewTask : undefined} pendingTask={pendingTask ?? null}
+    words={git ? 'main has no conversation of its own. A new conversation or a new task here works on a new branch of its own.' : `A new conversation here works in ${workspaceName}'s files.`} />
 }
 
 function Thread({ conversationId, listPath, onActivity, agentsById, onSeen }: {
@@ -60,11 +66,21 @@ function Thread({ conversationId, listPath, onActivity, agentsById, onSeen }: {
   )
 }
 
-function TaskThread({ taskId, taskKey, onActivity }: { taskId: string; taskKey: string | null; onActivity: (a: ThreadActivity) => void }) {
+function TaskThread({ taskId, taskKey, onActivity, onThread }: {
+  taskId: string
+  taskKey: string | null
+  onActivity: (a: ThreadActivity) => void
+  onThread?: (conversationId: string | null) => void
+}) {
   const { data, error } = useQuery(getTaskConversation, { taskId })
   const { data: agents } = useQuery(getAgents)
   const readThrough = useRef(0)
   const conversationId = data?.conversation?.id ?? null
+  useEffect(() => {
+    if (!onThread || !conversationId) return
+    onThread(conversationId)
+    return () => onThread(null)
+  }, [onThread, conversationId])
   const agentsById = useMemo(() => {
     const byId: Record<string, ConversationAgentView> = {}
     for (const a of agents ?? []) byId[a.id] = a
@@ -92,7 +108,14 @@ function TaskThread({ taskId, taskKey, onActivity }: { taskId: string; taskKey: 
   return <Thread conversationId={data.conversation.id} listPath={taskPath} agentsById={agentsById} onSeen={markRead} onActivity={onActivity} />
 }
 
-function MainConversation({ workspaceId, canAct, onStarted, words }: { workspaceId: string; canAct: boolean; onStarted: (id: string) => void; words: string }) {
+function MainConversation({ workspaceId, canAct, onStarted, onNewTask, pendingTask, words }: {
+  workspaceId: string
+  canAct: boolean
+  onStarted: (id: string) => void
+  onNewTask?: () => void
+  pendingTask: { id: string; title: string } | null
+  words: string
+}) {
   const start = useAction(startWorkspaceConversation)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -107,6 +130,14 @@ function MainConversation({ workspaceId, canAct, onStarted, words }: { workspace
       <button type="button" className={FILES_BUTTON_PRIMARY} disabled={!canAct || busy} onClick={() => void go()} title={canAct ? undefined : VIEWER_REASON}>
         <MessageSquarePlus size={14} aria-hidden /> New conversation
       </button>
+      {onNewTask && (
+        <button type="button" className={`${FILES_BUTTON} ml-2`} disabled={!canAct} onClick={onNewTask} title={canAct ? undefined : VIEWER_REASON}>
+          <ListPlus size={14} aria-hidden /> New task
+        </button>
+      )}
+      {pendingTask && (
+        <p role="status" data-testid="pending-task">The task “{pendingTask.title}” is starting. Its branch shows here when its run begins.</p>
+      )}
       {!canAct && <p className="text-micro text-text-muted">{VIEWER_REASON}</p>}
       {error && <p role="alert" className="text-danger">{error}</p>}
     </div>

@@ -105,6 +105,44 @@ test.describe('the workspace view', () => {
     await expect(page.getByTestId('dock')).toBeHidden()
   })
 
+  test("Deploy… leaves out the live preview's own workflows and says how to add a deploy workflow", async ({ page }) => {
+    const wf = (name: string) => ({ id: name, name, description: null, enabled: true, approved: { definition: { parameters: [] } } })
+    await answerBranchOperations(page, { 'get-place-workflows': { workflows: [wf('start-live-preview'), wf('reload-live-preview')], mayRun: true, mayAdminister: false } })
+    await page.goto(`/workspaces/${WORKSPACE}/view?section=git`)
+    await page.getByRole('button', { name: 'Deploy…' }).click()
+    await expect(page.getByTestId('deploy-none')).toContainText('No deploy workflow is set up')
+    await expect(page.getByRole('button', { name: /Run start-live-preview/ })).toHaveCount(0)
+  })
+
+  test('an address naming a branch that is closed opens main and no longer names it', async ({ page }) => {
+    await answerBranchOperations(page)
+    await page.goto(`/workspaces/${WORKSPACE}/view?branch=closed-long-ago&section=git`)
+    await expect(page.getByRole('button', { name: 'Branch: main' })).toBeVisible()
+    await expect(page).not.toHaveURL(/branch=/)
+  })
+
+  test("at laptop width the strip's Live preview has no dot while stopped", async ({ page }) => {
+    await page.setViewportSize({ width: 1180, height: 800 })
+    await answerBranchOperations(page)
+    await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page&section=files`)
+    await expect(page.getByRole('button', { name: /^Live preview · Stopped/ })).toBeVisible()
+    await expect(page.getByTestId('strip-preview-dot')).toHaveCount(0)
+  })
+
+  test('New task on main makes a task on this workspace, starts it, and waits for its branch', async ({ page }) => {
+    await answerBranchOperations(page)
+    // Answered here, so nothing is made or run.
+    await page.route('**/operations/create-task', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ json: { id: 't-e2e', title: 'Free delivery over $50', number: 99 } }) }))
+    await page.route('**/operations/run-task', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ json: null }) }))
+    await page.goto(`/workspaces/${WORKSPACE}/view?section=git`)
+    await page.getByRole('button', { name: /New task/ }).click()
+    const dialog = page.getByTestId('new-task-dialog')
+    await dialog.getByLabel('Title').fill('Free delivery over $50')
+    test.skip(await dialog.getByRole('button', { name: 'Make and start' }).isDisabled(), "the workspace's project has no agent to assign")
+    await dialog.getByRole('button', { name: 'Make and start' }).click()
+    await expect(page.getByTestId('pending-task')).toContainText('Free delivery over $50')
+  })
+
   for (const [width, shown] of [[1180, 'workspace-strip'], [820, 'workspace-strip'], [390, 'workspace-conversation']] as const) {
     test(`at ${width} px it folds as the boards show @SC-1689`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 })

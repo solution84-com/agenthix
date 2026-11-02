@@ -11,6 +11,8 @@
  *    A branch with no copy on its workspace's site (a done task's, whose copy went when its run ended) has one made
  *    first, as a run would make it (`copyForBranch`).
  *
+ * 4. Once it runs, the app started last on the branch (on `main`, on any branch) starts with it (`startAppOnOpen`).
+ *
  * A stop that lands while the site is still opening it leaves the row STOPPED; the site's late answer is then followed
  * by a stop. A site that refuses, or goes silent, leaves the row STOPPED with why, and any container it may have
  * started is stopped when the site is back (`reconcile.ts`).
@@ -35,6 +37,7 @@ import { emitLivePreviewChange } from './socket'
 import { NOTHING, pausedDetail, refusalError, siteAnswerUnreadable, siteSilent, stoppedDetail } from './words'
 import { releaseCopyAfterStop, stopOnSite } from './stopping'
 import { viewOf } from './views'
+import { startAppOnOpen } from './personApps'
 import type { LivePreviewView, StartLivePreviewInput } from './types'
 
 export type Target = Slot & { branch: string; onMain: boolean; branchCopyId: string | null }
@@ -230,5 +233,7 @@ export async function startLivePreview(userId: string, input: StartLivePreviewIn
     throw err
   }
   const now = await prisma.livePreview.findUnique({ where: { id: row.id } })
+  // The person sees the app they started it for, not an empty live preview.
+  if (now) await startAppOnOpen(now, { siteId: site.siteId, name: site.name })
   return viewOf(now ?? row, userId, true)
 }
