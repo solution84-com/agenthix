@@ -63,6 +63,10 @@ reaching hq from another device) and **`database-migrations`** (schema changes i
 - **Colours come from the design tokens**, never a hex value in a component — see [`ui/AGENTS.md`](ui/AGENTS.md).
 - **Comments** only where the logic is not obvious. No docstrings on simple functions, no comment restating the code.
 - **Match the surrounding code** — naming, idiom, comment density.
+- **A feature that is not ready ships behind a flag with a stage** (experimental, preview, beta or released), listed
+  once in core: [`docs/architecture/feature-flags.md`](docs/architecture/feature-flags.md). Every server entry point of
+  a flagged feature checks `requireFeature` before it acts, on hq and on the site; its tests switch the flag on with
+  `withFeature` around their own group, never globally.
 - **A change to anything another part receives** — a channel message, an HTTP route or its answer, a socket event,
   a stored format — follows [`docs/architecture/versioning.md`](docs/architecture/versioning.md): its version moves,
   and nothing is removed without a deprecation mark first.
@@ -89,7 +93,8 @@ reaching hq from another device) and **`database-migrations`** (schema changes i
   with the install test (`scripts/install-test/run.sh`, which installs from those images at the machine's network
   address and walks through it in a browser, beside any installation already there) when any did. **The
   full regression** — every module, every suite, every image — runs for a unit that changes core's protocol shapes,
-  a database migration, a Dockerfile, the host service or the install, and in every release rehearsal. CI's *Checks*
+  a database migration, a Dockerfile, the host service or the install, and in every release rehearsal, and adds one run
+  of the end-to-end and cross-app suites with every flag on (`TEST_ALL_FEATURES=1`). CI's *Checks*
   select by the same map (once per tree), and a release build proves the images (see *Git*).
 
 **Until the first release candidate, `0.1.0-rc.1`: a clean slate.** No install needs its data carried forward yet.

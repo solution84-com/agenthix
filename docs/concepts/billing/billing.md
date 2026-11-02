@@ -50,8 +50,8 @@ directly, so HQ issues each listening token with a sealed ticket and counts the 
 session ends, never more than the time since the token was issued. Prices are never entered by hand.
 
 Agenthix Cloud is the one provider whose costs are measured by whoever bills them. Reading its figures back into the
-ledger waits on the hosted service's metering, behind a flag (`usageBilling`) that is on in development and off in
-production ([cloud connection](../../architecture/cloud-connection.md#the-ai-contract)). With it off, a call through
+ledger waits on the hosted service's metering, behind a flag (`usageBilling`, at the preview stage) that is on in development and off in
+tests and in production ([cloud connection](../../architecture/cloud-connection.md#the-ai-contract)). With it off, a call through
 Cloud is written from Cloud's catalogue as an estimate; with it on, as awaiting Cloud until its actual figure comes.
 
 ## The ledger's rules
