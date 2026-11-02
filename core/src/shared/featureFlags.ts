@@ -55,6 +55,14 @@ export const FEATURE_FLAGS = {
     removeWhen: 'The hosted registry and the Marketplace page are built.',
     stage: 'preview',
   },
+  livePreview: {
+    feature:
+      "Live previews: running a branch's app on a site beside the conversation, the app tools and what runs are told " +
+      "about them, the relay's app addresses, and the Fleet Console's live preview settings. Code work on branches is " +
+      'not behind it.',
+    removeWhen: 'The live preview is reshaped into a development environment of its own and released.',
+    stage: 'experimental',
+  },
 } as const satisfies Record<string, FeatureFlagEntry>
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS

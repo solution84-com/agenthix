@@ -13,6 +13,10 @@ export const FEATURE_WORDS: Record<FeatureFlag, { title: string; line: string }>
     title: 'Marketplace',
     line: "The Library's Marketplace, for finding and installing skills and templates from a hosted registry.",
   },
+  livePreview: {
+    title: 'Live preview',
+    line: "Run a branch's app on a site and see it beside the conversation while the agent works on it.",
+  },
 }
 
 /** One line per stage, shown above the list: production explains only the stages it lists. */
