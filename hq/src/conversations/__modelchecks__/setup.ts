@@ -4,7 +4,7 @@
  * Only what a turn reads from the database is supplied here: the place's name, the conversation's places, and the
  * three tools whose offer or description reads it.
  */
-import { CAPABILITY_TTL_SECONDS } from '@agenthix/core'
+import { CAPABILITY_TTL_SECONDS, type FeatureFlag } from '@agenthix/core'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { resolveEffectivePermissions } from '../../agents/permissions/effectivePermissions'
 import type { ConversationTool, LeadMessage, LeadToolDefinition, PromptPart, TurnCapability } from '../contract'
@@ -15,16 +15,24 @@ import { conversationTools } from '../work/registry'
 import { describeStartWork } from '../work/workers/startWork'
 import { personalBoundary } from '../work/boundaries'
 import { ANSWER_APPROVAL, CANCEL_OPERATION } from '../work/toolCalls/leadTools'
-import { AGENT_ID, AGENT_NAME, PERSON_ID, PROJECT, PROJECT_PLACE, YOUR_SPACE_PLACE, type Home } from './world'
+import { CREATE_TASK, CREATE_TASK_DESCRIPTION } from '../work/tasks/createTaskTool'
+import { RUN_TASK, describeRunTask } from '../work/tasks/runTaskTool'
+import { describeWorkspaces } from '../../branches/leadWorkspaces'
+import { OFFER_LIVE_PREVIEW_TOOL } from '../../livePreviews/offer'
+import { AGENT_ID, AGENT_NAME, PERSON_ID, PROJECT, PROJECT_PLACE, TASK, WORKSPACES, YOUR_SPACE_PLACE, inProject, type Home } from './world'
 
 /** One message of what was said before, then the person's message the turn answers. */
 export interface Said { role: 'person' | 'agent'; text: string }
 
 export interface CheckSetup {
   home: Home
+  /** The workspace the conversation was started in, for a conversation started in one. */
+  workspace?: { name: string; git: boolean }
   /** What was said before this turn, oldest first. */
   before?: readonly Said[]
   message: string
+  /** The flagged features on, as shipped when none: a feature's own checks name it (adr-0172). */
+  features?: readonly FeatureFlag[]
 }
 
 const CONVERSATION_ID = 'conversation-check'
@@ -38,6 +46,11 @@ function view(seq: number, said: Said): ConversationMessageView {
   } as ConversationMessageView
 }
 
+function placeLabelFor(home: Home): string {
+  if (home === 'task') return placeLabelOf({ task: { number: TASK.number, title: TASK.title, project: PROJECT } })
+  return home === 'project' ? placeLabelOf({ project: PROJECT }) : placeLabelOf({})
+}
+
 export function contextOf(setup: CheckSetup, now = new Date()): { system: PromptPart[]; messages: LeadMessage[] } {
   const said = [...(setup.before ?? []), { role: 'person' as const, text: setup.message }]
   const history = said.map((s, i) => view(i + 1, s))
@@ -46,16 +59,17 @@ export function contextOf(setup: CheckSetup, now = new Date()): { system: Prompt
     instructions: {
       agentName: AGENT_NAME,
       agentRole: null,
-      placeLabel: setup.home === 'project' ? placeLabelOf({ project: PROJECT }) : placeLabelOf({}),
+      placeLabel: placeLabelFor(setup.home),
       agentInstructions: null,
       orgInstructions: null,
+      featuresOn: setup.features ?? [],
     },
     segments: [],
     history,
     awaiting: new Set(),
     turn: { trigger: 'MESSAGE', inputIds: [input.id] },
     memory: null,
-    places: { own: setup.home === 'project' ? PROJECT_PLACE : YOUR_SPACE_PLACE, added: [] },
+    places: { own: inProject(setup.home) ? PROJECT_PLACE : YOUR_SPACE_PLACE, added: [], ...(setup.workspace ? { workspace: setup.workspace } : {}) },
     listening: null,
   })
   // As a turn adds the time when it knows the person's: here with no timezone.
@@ -69,9 +83,9 @@ export function capabilityOf(home: Home): TurnCapability {
     conversationId: CONVERSATION_ID,
     turnId: 'turn-check',
     agentId: AGENT_ID,
-    home: home === 'project' ? 'PROJECT' : 'PERSON',
-    projectId: home === 'project' ? PROJECT.id : null,
-    taskId: null,
+    home: home === 'task' ? 'TASK' : home === 'project' ? 'PROJECT' : 'PERSON',
+    projectId: inProject(home) ? PROJECT.id : null,
+    taskId: home === 'task' ? TASK.id : null,
     actingUserId: PERSON_ID,
     readerUserId: PERSON_ID,
     trigger: 'MESSAGE',
@@ -88,14 +102,28 @@ export function capabilityOf(home: Home): TurnCapability {
 }
 
 /** The offers that read the database, as a new conversation in this world has them. */
-function scriptedOffer(tool: ConversationTool, home: Home): ConversationTool {
+function scriptedOffer(tool: ConversationTool, home: Home, features: readonly FeatureFlag[]): ConversationTool {
+  const livePreview = features.includes('livePreview')
   switch (tool.name) {
+    // In a task's thread, work is a run of the task (run_task): start_work is not offered there, as in a turn.
     case 'start_work': {
+      if (home === 'task') return { ...tool, offered: async () => false }
       const boundary = home === 'project'
         ? { key: PROJECT.key, type: 'project' as const, id: PROJECT.id, name: PROJECT.name }
         : personalBoundary(PERSON_ID)
       return { ...tool, offered: async () => true, describe: async () => describeStartWork({ admitted: [boundary] }) }
     }
+    // The project's workspaces, as the real description reads them from its site (branches/leadWorkspaces.ts).
+    case CREATE_TASK: {
+      const places = inProject(home) ? [{ key: PROJECT.key, workspaces: WORKSPACES }] : []
+      return { ...tool, describe: async () => [CREATE_TASK_DESCRIPTION, ...describeWorkspaces(places)].join('\n') }
+    }
+    // The project has a code workspace and live apps have an address, as offer.ts reads them, while the flag is on.
+    case OFFER_LIVE_PREVIEW_TOOL:
+      return { ...tool, offered: async () => livePreview && inProject(home) }
+    // Its description names the live preview only while the flag is on.
+    case RUN_TASK:
+      return { ...tool, describe: async capability => describeRunTask(capability, livePreview) }
     // Nothing waits for an answer and nothing runs in a new conversation, so neither is offered.
     case ANSWER_APPROVAL:
     case CANCEL_OPERATION:
@@ -105,6 +133,6 @@ function scriptedOffer(tool: ConversationTool, home: Home): ConversationTool {
   }
 }
 
-export async function toolsOf(capability: TurnCapability, home: Home): Promise<LeadToolDefinition[]> {
-  return leadToolDefinitions(capability, conversationTools().map(t => scriptedOffer(t, home)))
+export async function toolsOf(capability: TurnCapability, home: Home, features: readonly FeatureFlag[] = []): Promise<LeadToolDefinition[]> {
+  return leadToolDefinitions(capability, conversationTools().map(t => scriptedOffer(t, home, features)))
 }

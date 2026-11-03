@@ -62,7 +62,7 @@ flowchart LR
 Every install brings hq, one site and the Fleet Console to one machine; an organisation may add more sites, each on a
 machine of its own, through the Fleet Console ([host-management.md](host-management.md)).
 Each site dials out to hq; hq never connects to a site. Control messages cross that connection, the bytes hq itself
-needs (agent packages, a page of knowledge, a live preview) cross a second socket the site also opens, and the site
+needs (agent packages, a page of knowledge) cross a second socket the site also opens, and the site
 calls hq's HTTPS endpoints for the little it needs from hq ([control-channel.md](control-channel.md)). **The bytes of a
 file a person opens never pass through hq**: hq checks access and signs a short-lived ticket, and **hq's relay**, which
 runs beside hq behind its one door, carries the bytes from a line the site dials to it
@@ -100,7 +100,7 @@ repository's `AGENTS.md` has the stack, the conventions and how to run them.
 | **Harness home** | A runner's private folder on the site for the harness's own state: its session files and, for a Claude subscription, its login |
 | **Package** | A versioned bundle hq holds and sends to a site by its digest: an agent's instructions, the organisation's, the platform's, and a skill's published version |
 | **Asset** | A Library item (a skill, or an agent, board or team template): one identity `publisher/name`, pinned to one version for the organisation, its content held by digest ([skills-and-assets.md](skills-and-assets.md)) |
-| **Platform tools** | The tools Agenthix itself gives every agent (tasks, boards, memory, previews), served over MCP, the Model Context Protocol |
+| **Platform tools** | The tools Agenthix itself gives every agent (tasks, boards, memory, live previews), served over MCP, the Model Context Protocol |
 | **Run capability** | The token hq signs for one run, carrying what it may do |
 | **Gate** | The site's check on every tool call an agent makes, against the agent's permissions |
 | **Approval** | How an agent's calls that need a person's say-so are handled: `deferred` (carry on, decide after the run), `immediate` (explain and end the turn) or `bypassed` (not checked against the agent's permissions). Permissions are set at three levels, the strictest winning |
@@ -236,7 +236,7 @@ sequenceDiagram
 | [sites/agent-runtimes.md](sites/agent-runtimes.md) | How each harness is started, driven, kept warm and ended |
 | [model-resolution.md](model-resolution.md) | How every model and voice call gets its provider, its key and its cost record: the resolver, the provider descriptors a run is given, the relay's usage reports, the ledger |
 | [sites/model-relay.md](sites/model-relay.md) | How model requests reach a provider without the key entering the container, and how their usage is reported |
-| [sites/site_live_preview.md](sites/site_live_preview.md) | How a person views the web app an agent is building |
+| [sites/site_live_preview.md](sites/site_live_preview.md) | How a person sees the web app an agent is building, running in a live preview |
 | [tools/tool-control.md](tools/tool-control.md) | The gate, permission states, the command sandbox, tool names |
 | [tools/tool-manifest.md](tools/tool-manifest.md) | Approving tool calls that need a person's say-so |
 | [tools/claude-tools.md](tools/claude-tools.md), [tools/opencode-tools.md](tools/opencode-tools.md) | Each harness's own tools, and which are shown, hidden or replaced |
@@ -245,6 +245,7 @@ sequenceDiagram
 | [cloud-connection.md](cloud-connection.md) | How hq connects to Agenthix Cloud, signing in to hq with an Agenthix account, the email before planned downtime, and the contract for Cloud as a provider of models and voice |
 | [deployment.md](deployment.md) | What an install puts on a machine, how hq and the Fleet Console are reached, a front door, capacity, upgrading and backing up |
 | [ports.md](ports.md) | Every port and address block: our own convention inside containers and in dev, what an installation publishes and why, the check before publishing, the agent slice. The numbers come from `core/src/ports/ports.ts` |
+| [feature-flags.md](feature-flags.md) | The four stages of a feature flag and what each does in development, a test run and production; moving a flag and the release check; the *Features* screen; the one rule every program asks and the site taking hq's word for two things only; testing with `withFeature` |
 | [versioning.md](versioning.md) | The product version and each connection's protocol version: when two parts on different versions still talk, deprecating and removing something, the shape snapshot, stored formats. Read it before changing anything another part receives |
 
 **Elsewhere:**

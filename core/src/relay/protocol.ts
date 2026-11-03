@@ -12,9 +12,16 @@
  *   `RELAY_REPORT_INTERVAL_MS`. It fetches hq's key set from `HQ_JWKS_PATH`, and again on an unknown key id.
  * - **A browser** fetches `GET` or `HEAD` `RELAY_TICKET_PATH_PREFIX` + ticket on the relay's files address, or, on an
  *   installation with no name for files, `RELAY_BARE_TICKET_PATH_PREFIX` + ticket on hq's own address (door.ts).
+ * - **Since 1.1, a live app's address** (previewAddress.ts, appDoor.ts): every request and WebSocket on its own
+ *   `app.serve` stream on the site's line, after the relay asked hq (`relay.ask`) whether the ticket behind the
+ *   cookie still stands. hq pushes `relay.revoke` when an app, a live preview or a person is cut off.
+ * - **Since 1.1, bundles** between two sites' lines (`bundle.read`, `bundle.write`): hq hands the relay a bundle ticket
+ *   with `relay.bundle`; the relay reports with `relay.bundleReport` only what the sites cannot (an end offline, a
+ *   stream broken). The destination site reports what it kept to hq itself (`bundle.landed`).
  */
+import type { RelayAppRefusal } from './appDoor.js'
 
-export const RELAY_PROTOCOL_VERSION = '1.0'
+export const RELAY_PROTOCOL_VERSION = '1.1'
 export const RELAY_PROTOCOL_VERSION_HEADER = 'X-Relay-Protocol-Version'
 
 export const RELAY_SITE_LINE_PATH = '/relay-line'
@@ -48,6 +55,73 @@ export type RelayLinkReport = {
   sites: string[]
   openStreams: number
   bytesCarried: number
+  /** Since 1.1: the refusals for each app since the last report, for the guard's threshold. */
+  appRefusals?: { appId: string; refusal: RelayAppRefusal; count: number }[]
 }
 
-export type RelayLinkFrame = RelayLinkWelcome | RelayLinkReport
+/**
+ * relay → hq, before every new stream to an app: does the ticket behind this cookie still stand? `askId` is the
+ * relay's own, to match the answer. The relay carries nothing until hq answers yes, and refuses when no answer comes
+ * within `RELAY_ASK_TIMEOUT_MS`.
+ */
+export type RelayAsk = {
+  type: 'relay.ask'
+  version: string
+  askId: string
+  /** The app ticket's `jti`. */
+  ticketId: string
+  person: string
+  appId: string
+  livePreviewId: string
+}
+
+/** hq → relay: the answer to one `relay.ask`. */
+export type RelayAnswer = { type: 'relay.answer'; version: string; askId: string; stands: boolean }
+
+export const RELAY_ASK_TIMEOUT_MS = 5_000
+
+/**
+ * hq → relay when something is cut off: every open stream it covers ends at once, and every cookie whose ticket it
+ * covers is forgotten. `person`: every ticket of theirs (they lost access to the project, or were removed).
+ * `apps`, `livePreviews`, `tickets`: those, whoever's.
+ */
+export type RelayRevoke = {
+  type: 'relay.revoke'
+  version: string
+  person?: string
+  apps?: string[]
+  livePreviews?: string[]
+  tickets?: string[]
+}
+
+/** hq → relay: carry one bundle, opening `bundle.read` on `from`'s line and `bundle.write` on `to`'s. */
+export type RelayBundleOrder = {
+  type: 'relay.bundle'
+  version: string
+  /** The bundle ticket's `jti`. */
+  transferId: string
+  /** The bundle ticket, untouched; the sites verify it. Never logged. */
+  ticket: string
+  from: string
+  to: string
+}
+
+/**
+ * Why a bundle did not get as far as the destination's answer, as the relay saw it:
+ * - `offline`: an end's site holds no line to this relay (`site` names it);
+ * - `source-refused`: the source answered a refusal (`refusal` says which, core's `BundleServeRefusal`);
+ * - `broken`: a stream failed part-way; the destination keeps nothing of it.
+ */
+export const RELAY_BUNDLE_FAILURES = ['offline', 'source-refused', 'broken'] as const
+export type RelayBundleFailure = (typeof RELAY_BUNDLE_FAILURES)[number]
+
+/** relay → hq once a transfer ends: `done` once the destination answered (what it answered is its own `bundle.landed`). */
+export type RelayBundleReport = {
+  type: 'relay.bundleReport'
+  version: string
+  transferId: string
+  outcome: { done: true } | { done: false; failure: RelayBundleFailure; site?: string; refusal?: string }
+}
+
+export type RelayLinkFrame =
+  | RelayLinkWelcome | RelayLinkReport | RelayAsk | RelayAnswer | RelayRevoke | RelayBundleOrder | RelayBundleReport

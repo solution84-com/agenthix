@@ -40,6 +40,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: 'list',
+  // A failing test of an experimental feature's own group is recorded and reported, not failed (adr-0172).
+  globalSetup: './e2e/fixtures/experimentalFailures.global.ts',
   use: {
     baseURL: CLIENT_URL,
     trace: 'on-first-retry',

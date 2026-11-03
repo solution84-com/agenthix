@@ -6,6 +6,7 @@ vi.mock('../../../server/utils/logger', () => ({
 vi.mock('../../../server/hq/hqConnection', () => ({ hqConnectionManager: { sendEvent: vi.fn() } }))
 
 import { buildContainerRunCommand, WRITABLE_TMP, WRITABLE_COMMAND_HOME } from '../containerRunArgs'
+import { setKernelIpv6ForTests } from '../ipv6Off'
 import type { AgentMounts, ContainerContext, ContainerKey } from '../containerTypes'
 
 const SITE_ROOT = '/site'
@@ -26,6 +27,7 @@ beforeEach(() => {
   delete process.env.AGENT_CONTAINER_PIDS_LIMIT
   delete process.env.AGENT_CONTAINER_CPUS
   delete process.env.AGENT_IMAGE
+  setKernelIpv6ForTests(true)
 })
 
 describe('the agent image a container starts from', () => {
@@ -78,6 +80,8 @@ describe('buildContainerRunCommand', () => {
       '--restart', 'no',
       '--cap-drop', 'ALL',
       '--security-opt', 'no-new-privileges',
+      '--sysctl', 'net.ipv6.conf.all.disable_ipv6=1',
+      '--sysctl', 'net.ipv6.conf.default.disable_ipv6=1',
       '--read-only',
       '--tmpfs', WRITABLE_TMP,
       '--tmpfs', WRITABLE_COMMAND_HOME,
@@ -92,6 +96,7 @@ describe('buildContainerRunCommand', () => {
     const at = (flag: string) => args.flatMap((a, i) => (a === flag ? [args[i + 1]] : []))
     expect(at('--cap-drop')).toEqual(['ALL'])
     expect(at('--security-opt')).toEqual(['no-new-privileges'])
+    expect(at('--sysctl')).toEqual(['net.ipv6.conf.all.disable_ipv6=1', 'net.ipv6.conf.default.disable_ipv6=1'])
     expect(args).toContain('--read-only')
     expect(at('--tmpfs').map(t => t.split(':')[0]).sort()).toEqual(['/home/agent', '/tmp'])
     expect(WRITABLE_COMMAND_HOME).toContain('uid=1001')

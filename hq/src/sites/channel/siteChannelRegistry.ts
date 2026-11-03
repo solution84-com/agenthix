@@ -4,6 +4,7 @@ import {
   parseProtocolVersion,
   type HQConnectionMessage,
   type ChannelRequestPayload,
+  type FeatureSwitches,
   type ProtocolVersion,
   type SiteMethodName,
   type SiteMethodParams,
@@ -27,6 +28,24 @@ export interface SiteConnection {
 
 const OWN_PROTOCOL = parseProtocolVersion(SITE_PROTOCOL_VERSION)!
 
+/** `features` on a request came in site protocol 1.12; a site speaking less is never sent it. */
+const FIRST_WITH_FEATURES = { major: 1, minor: 12 }
+
+export function speaksFeatures(v: ProtocolVersion): boolean {
+  return v.major > FIRST_WITH_FEATURES.major || (v.major === FIRST_WITH_FEATURES.major && v.minor >= FIRST_WITH_FEATURES.minor)
+}
+
+/**
+ * Where the organisation's switches come from: the ones read in the last few seconds, at once, else a read. A site
+ * applies them with the same rule (adr-0172), so every request carries them.
+ */
+export type FeatureSwitchesSource = {
+  fresh(): FeatureSwitches | null
+  read(): Promise<FeatureSwitches>
+}
+
+const NO_SWITCHES_SOURCE: FeatureSwitchesSource = { fresh: () => ({}), read: async () => ({}) }
+
 /** A connection's version as a frame's `version` field carries it. */
 export function spokenVersion(conn: Pick<SiteConnection, 'protocol'>): string {
   return `${conn.protocol.major}.${conn.protocol.minor}`
@@ -40,7 +59,10 @@ export function spokenVersion(conn: Pick<SiteConnection, 'protocol'>): string {
 export class SiteChannelRegistry {
   private readonly connections = new Map<string, SiteConnection>()
 
-  constructor(private readonly store: SiteStatusStore) {}
+  constructor(
+    private readonly store: SiteStatusStore,
+    private readonly switches: FeatureSwitchesSource = NO_SWITCHES_SOURCE,
+  ) {}
 
   async add(siteId: string, ws: WebSocket, protocol: ProtocolVersion = OWN_PROTOCOL): Promise<SiteConnection> {
     // A site that reconnects before hq noticed the old socket died would leave
@@ -133,9 +155,16 @@ export class SiteChannelRegistry {
     params: SiteMethodParams<M>,
     timeoutMs: number = DEFAULT_REQUEST_TIMEOUT_MS,
   ): Promise<SiteMethodResult<M>> {
-    const conn = this.connections.get(siteId)
+    let conn = this.connections.get(siteId)
     if (!conn) {
       throw new ChannelRequestFailed(`Execution Site ${siteId} is not connected`, 'offline')
+    }
+    // Sent at once when the switches are fresh; otherwise read first, and the connection looked up again after.
+    let features = speaksFeatures(conn.protocol) ? this.switches.fresh() : null
+    if (speaksFeatures(conn.protocol) && !features) {
+      features = await this.switches.read()
+      conn = this.connections.get(siteId)
+      if (!conn) throw new ChannelRequestFailed(`Execution Site ${siteId} is not connected`, 'offline')
     }
     const { requestId, promise } = conn.pending.next(timeoutMs)
     const msg: HQConnectionMessage<ChannelRequestPayload> = {
@@ -144,7 +173,7 @@ export class SiteChannelRegistry {
       siteId,
       requestId,
       // The method and its params are correlated by `M`, which TypeScript does not carry into the union.
-      payload: { method, params } as ChannelRequestPayload,
+      payload: { method, params, ...(features && speaksFeatures(conn.protocol) ? { features } : {}) } as ChannelRequestPayload,
     }
     conn.ws.send(JSON.stringify(msg))
     return (await promise) as SiteMethodResult<M>

@@ -15,7 +15,7 @@ const SKILLS = [
 ]
 
 async function open(page: Page): Promise<void> {
-  await page.route('**/operations/listConversationSkills', route =>
+  await page.route('**/operations/list-conversation-skills', route =>
     route.fulfill({ contentType: 'application/json', body: JSON.stringify({ json: { skills: SKILLS } }) }))
   await signIn(page, MEMBER)
   await page.goto(`/chat/t/${CONVERSATION}`)

@@ -1,16 +1,16 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-10-28
+updated: 2026-11-03
 verified: 2026-06-19
-next-us: US-410
+next-us: US-430
 ---
 
 # User Stories — `hq/`
 
 > Business-level requirements for hq's users, and for the person who owns an Execution Site machine (stories US-182 to US-185).
 > Audience: business readers — no implementation detail.
-> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*.
+> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*.
 > A retired story or criterion keeps its number; nothing is renumbered. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/hq.md`](../scenarios/hq.md), [`../scenarios/site.md`](../scenarios/site.md)), never here.
 
 ---
@@ -1638,15 +1638,17 @@ As an operator away from my desk, I want HQ to work in my phone's browser, so th
 - AC-146g: the Notifications and Runs buttons sit beside the logo on a wide screen and in the header on a phone; there is no top bar and no right rail.
 - ~~AC-146h: on a phone, a place's facts and tools open as a full-screen page, and each tool as its own screen.~~ *(Retired 2026-10-18 — a place shows the same sections in the drawer on a phone; US-329)*
 
-## US-147 — Preview an agent's web app before it deploys
+## US-147 — ~~Preview an agent's web app before it deploys~~ *(Retired 2026-11-02)*
+
+> **Retired 2026-11-02.** The old preview, a process in the boundary's container served through hq, is gone. A live preview of a branch replaces it: US-416 to US-421. Its criteria are retired with it.
 
 As an operator, I want to open a private URL and see the running web app the agent is building, so that I can review its work from anywhere before anything goes live.
 
 **Acceptance criteria:**
-- AC-147a: starting a preview returns a private, unguessable URL surfaced in chat.
-- AC-147b: opening the URL serves the live app with hot-reload; an unauthorized requester is refused.
-- AC-147c: the preview runs as a process inside its storage boundary's existing container, never in a second container, and publishes no port.
-- AC-147d: idle previews are torn down automatically.
+- ~~AC-147a: starting a preview returns a private, unguessable URL surfaced in chat.~~ *(Retired 2026-11-02 — an app's address is its own and cannot be guessed, AC-416d)*
+- ~~AC-147b: opening the URL serves the live app with hot-reload; an unauthorized requester is refused.~~ *(Retired 2026-11-02 — the app shows beside the conversation and reloads, AC-416b, AC-416c, AC-416d)*
+- ~~AC-147c: the preview runs as a process inside its storage boundary's existing container, never in a second container, and publishes no port.~~ *(Retired 2026-11-02 — a live preview runs in a container of its own that binds only the branch's copy, AC-421a)*
+- ~~AC-147d: idle previews are torn down automatically.~~ *(Retired 2026-11-02 — an unused live preview stops after its site's idle time, AC-420c)*
 
 ---
 
@@ -3570,6 +3572,7 @@ As an organisation admin, I want a separate area for what only I manage, reached
 - AC-358b: it has its own menu — Overview, People, Agents, Models and billing, Settings, and Where work runs — with a way back to the organisation, and no conversation docked beside it.
 - AC-358c: the old addresses of what moved lead to where it went.
 - AC-358d: its Overview shows what needs me and the day's figures.
+- AC-358e: if I am not signed in, an address in it sends me to the sign-in page instead of leaving me waiting.
 
 ---
 
@@ -4013,3 +4016,151 @@ As an administrator, I want a small set of skills every agent has, so that agent
 
 **Acceptance criteria:**
 - AC-409a: working with git and creating a skill are built in and on for every agent, git only in a run that works in a repository; I can switch a built-in off and on again, the switch holds across upgrades, and members read the list.
+
+---
+
+## Code work on branches, and live previews (added 2026-11-02)
+
+### US-410 — Let every piece of code work run on its own branch
+
+As a developer, I want every task and conversation in a code workspace to work on a branch of its own, in a working copy of its own, so that many can run at once on one workspace without getting in each other's way.
+
+**Acceptance criteria:**
+- AC-410a: a task given a code workspace, or a conversation started in one, works on its own branch, named from the work, in a working copy that its later runs keep; whether work is code work is decided from the workspace's folder, never by an agent.
+- AC-410b: every commit reaches the workspace's repository: at once with the agent's commit tool, while the run goes when the agent uses its own `git`, and at the end of a run, which commits anything left as *Work in progress*; the agent can bring `main` into its branch.
+- AC-410c: agents read the workspace's own folder but never write it, nothing an agent writes in a copy (a Git hook, setting, filter or link) runs or is followed on the site, and only a merge, a restore, turning Git on or a pull from GitHub moves `main`.
+- AC-410d: a run on a branch is told its branch, how far behind `main` it is, the other branches and who works on them, and which tools it has for Git and for the live preview. *(The live-preview part is behind the `livePreview` flag, at experimental, so not in the release.)*
+- AC-410e: the lead is told the place's workspaces and which are code workspaces, and names one when it makes a task.
+- AC-410f: a Member or Admin renames a branch, and deletes an unmerged branch whose work is over, told how many commits are lost; removing a workspace lists its branches first.
+
+### US-411 — Turn Git on for a workspace
+
+As a member, I want to make a plain workspace a Git repository with one confirmation, so that its work can go on branches.
+
+**Acceptance criteria:**
+- AC-411a: the confirmation says what happens; the files are recorded as the first version, by me, with a standard `.gitignore` when there is none, and files over 50 MB are left out and named.
+- AC-411b: a workspace without Git shows its files only, with *Turn Git on* where Live preview and Git would be. *(The live-preview part is behind the `livePreview` flag, at experimental, so not in the release.)*
+
+### US-412 — Review a branch in the workspace view
+
+As a developer, I want a full-screen, read-only view of a workspace that shows a branch's files, its changes and its agent's conversation, so that I can review the work as in a light IDE.
+
+**Acceptance criteria:**
+- AC-412a: opening a workspace takes the whole screen, with a way back to the project and a switcher of the project's workspaces, most recently opened first.
+- AC-412b: the branch select lists `main` first, then each branch with whose it is, what works on it, how far ahead and behind it is, and whether it has a live preview.
+- AC-412c: Files shows the branch's tree with each changed file marked and opens a file read-only; Git lists the changed files and shows each one's changes against `main`; nothing in the view edits a file.
+- AC-412d: the conversation beside the view is the branch's: a task's thread for a task's branch, the conversation for a conversation's; on `main`, *New conversation* starts one on a branch of its own.
+- AC-412e: a link opens the view at a branch, a section and a file, and the view remembers where I was, per workspace.
+- AC-412f: on a laptop, a tablet and a phone the view folds so that the conversation and the middle stay usable.
+
+### US-413 — Merge a branch into main
+
+As a member, I want to take a branch's work into `main` as one version, even while its agent is still working, so that `main` holds finished pieces of work.
+
+**Acceptance criteria:**
+- AC-413a: *Merge into main* shows the changed files, a summary from the work and the version it goes in as; the branch goes in as one version and, with no agent working on it, closes.
+- AC-413b: while an agent works on the branch, a merge takes what is committed so far, and the next merge brings what came after without clashing with itself.
+- AC-413c: a clash merges nothing and names the files and the versions of `main` that changed them; a dialog made against an older `main` changes nothing.
+- AC-413d: after a clash, the branch's agent is asked at once, on my behalf, to bring the branch up to date.
+- AC-413e: an agent merges only when I press *Merge* on the card it puts in the conversation, and as me.
+- AC-413f: with the workspace connected to GitHub, versions pushed there arrive first, and `main` is pushed after.
+
+### US-414 — Keep main's versions, restore one, and deploy main
+
+As a member, I want to see `main`'s versions, restore any of them and deploy `main` with an approved workflow, so that nothing is lost and deploying stays the organisation's choice.
+
+**Acceptance criteria:**
+- AC-414a: `main` lists its versions newest first, each with its number, summary, who merged it, how many files and when.
+- AC-414b: *Restore* makes a new version with exactly the files of the one restored, deleting nothing from the history.
+- AC-414c: *Deploy…* lists the place's approved workflows that are on and runs the one chosen; with none, it says how to add one.
+
+### US-415 — Read a code workspace as a Viewer, and change nothing
+
+As a viewer, I want to see a code workspace's files, branches, changes, versions and live previews, so that I can follow the work without being able to change it.
+
+**Acceptance criteria:**
+- AC-415a: I see everything in the workspace view, and every action — merge, restore, delete a branch, start or stop a live preview, reload, start an app, message the agent, *New conversation* — is greyed with the reason or absent, and refused by the server. *(The live-preview part is behind the `livePreview` flag, at experimental, so not in the release.)*
+
+> **Behind the `livePreview` flag, at experimental, so not in the release:** US-416 to US-421 (the live preview itself). The product does not keep these promises while the flag is off. The QA model has no mark for a promise outside the release, so this note stands in for one. What stays on with the flag off in US-418: install scripts are off in every agent command, and a blocked package outside a live preview gets a card in the task's thread.
+
+### US-416 — See the app running beside the conversation
+
+As a developer, I want to open a live preview of any branch and see the app running beside the agent's conversation, so that I can try it while the agent works.
+
+**Acceptance criteria:**
+- AC-416a: *Live preview* on a branch starts one on the branch's copy, making a copy when the branch has none, on a site HQ picks, saying where and how full it is; a second person sees the same one.
+- AC-416b: the app shows in the middle with the live preview's own bar fixed at the top — its state, *Reload*, the address, *New tab*, *Stop*, the site and how full it is — and the conversation is never covered, on a tablet or a phone either.
+- AC-416c: the app reloads when the agent asks, by itself with *Auto* when the branch gets commits, or with *Reload*; the person who started it or a project Admin stops it.
+- AC-416d: each app has an address of its own that cannot be guessed, a separate origin, opened only with a single-use ticket HQ signs for one person and one app, and a short-lived cookie.
+
+### US-417 — Have the agent run the app, or start it myself
+
+As a developer, I want the branch's agent to start, stop and reload the app, and to start a known app myself, so that a live preview shows the app even where no agent works.
+
+**Acceptance criteria:**
+- AC-417a: every run on a branch has the app tools, which act only on its own branch's live preview on its site; `start_app` on a branch with none opens one first, with the rules a person's start has; nobody is asked to allow them.
+- AC-417b: the strip offers *Start* for each app known on the workspace, as it was last started.
+- AC-417c: the lead can offer a live preview of a task's branch with a card that opens it. *(The live-preview part is behind the `livePreview` flag, at experimental, so not in the release.)*
+- AC-417d: an app that listens only on `localhost` works without change.
+- AC-417e: `main`'s live preview runs from a copy of its own that follows `main` as it moves.
+
+### US-418 — Decide which services and install scripts run
+
+As a member, I want services and package install scripts to run only after a person's yes, named and explained, so that an agent's choice of package cannot run code on the site unasked.
+
+**Acceptance criteria:**
+- AC-418a: services declared in `.agents/services.yaml` run beside the app on an internal network of their own; a new or changed one waits for a yes in HQ, which holds across a site restart.
+- AC-418b: install scripts are off in every agent command; the agent's `install_packages` runs the scripts of packages that pass the rule; a blocked one is asked about by name, on the strip or with a card in the branch's thread, and a yes lets that one version run on that branch.
+- AC-418c: an organisation admin names the organisation's own npm scopes, whose packages are trusted.
+
+### US-419 — Give a live preview its secrets through an approved workflow
+
+As a member, I want an app that needs secrets to get them only through a workflow a person approved, so that the agent never holds them.
+
+**Acceptance criteria:**
+- AC-419a: *Start live preview* and *Reload live preview* workflows that the place approved and switched on are offered, run aimed at the live preview, and hand the secrets they name to the app's own container, never to the agent's container or into the copy.
+- AC-419b: what the agent reads from a live preview that holds secrets is masked.
+
+### US-420 — Know where a live preview runs, and why it stopped
+
+As a developer, I want to see which site runs my live preview and why it stopped, so that I can start it again, stop another, or pick another site.
+
+**Acceptance criteria:**
+- AC-420a: HQ picks the workspace's own site when it allows live previews and has room, else the allowed site with the most room, and I may pick another allowed site.
+- AC-420b: on a full site I see the open ones, whose and which branch, and can stop one of mine; on another site the branch goes there as a bundle, its runs follow it there, and its commits come back.
+- AC-420c: one unused for its site's idle time stops, and stopping never loses work.
+- AC-420d: a stopped or paused live preview says why; after the guard pauses one, a person resumes it.
+- AC-420e: after a site restart, live previews come back with fresh containers, and HQ shows their apps as stopped.
+
+### US-421 — Trust that an app an agent wrote is held apart
+
+As an organisation admin, I want a live preview's app to reach only its own copy, its services and the public internet, so that code an agent wrote cannot reach the organisation's other data or its network.
+
+**Acceptance criteria:**
+- AC-421a: a live preview's container binds only the branch's copy, with no added capability, no Docker socket, a read-only root and no IPv6, on a network of its own, and the machine's firewall closes private addresses and the machine's own address to it.
+- AC-421b: a guard checks that the container matches its template and that nothing appears that the live preview did not start, and stops or pauses it, saying why.
+- AC-421c: the relay lets through only the app's own requests, from its own page or the person's own navigation, and cuts a person or an app off as soon as HQ says so.
+
+## Features: trying what is not finished (added 2026-11-03)
+
+Written at the close of the unit *live preview*, from the finished code. A feature that is not ready ships behind a flag with a stage: experimental (being tried), preview (waiting on something outside it), beta (usable, unfinished) or released (done, and switchable off for the rest of the minor release it went live in). What it does for everyone, and for the maintainers, is under *Features that are not on* in [`cross-cutting.md`](cross-cutting.md).
+
+### US-424 — Try a feature in beta, or switch off one that is new
+
+As an organisation admin, I want one screen where I switch a feature in beta on for the organisation, or switch off one that is new in this release, so that we try what is unfinished only if we choose to, and can stop a new feature at once if it causes trouble.
+
+**Acceptance criteria:**
+- AC-424a: *Features*, in the organisation's settings, lists the features in beta and those new in this release, each with what it is, a *Beta* or *New in this release* label and a switch, and says what *beta* means: usable, unfinished, may change, and can be switched off again.
+- AC-424b: switching one on applies to the whole organisation and no person opts in for themself; switching it off hides the feature and makes it refuse again, and what it stored is kept for when it is switched back on.
+- AC-424c: with no feature to list, the screen says there is nothing to try.
+- AC-424d: beside each I see who last switched it and when, or that it is on or off by default.
+- AC-424e: only an organisation admin switches a feature; a member is told who to ask, and a refusal says what is wrong and that nothing was changed.
+
+### US-425 — See and switch every feature while building
+
+As a developer of Agenthix, I want to see every feature by stage and switch any of them in my own copy of HQ, so that I can build an experiment without it reaching anyone else, and see the product as it ships.
+
+**Acceptance criteria:**
+- AC-425a: in a development build, *Features* lists every flag grouped by stage and explains all four stages.
+- AC-425b: a switch is kept in my own HQ's database, so nobody else's setup and no test run changes; in production only a beta can be switched on and only a feature new in this release switched off.
+- AC-425c: an experimental feature is off until I switch it on, a preview or beta feature is on until I switch it off, and in production an experimental feature cannot be switched on.

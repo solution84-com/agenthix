@@ -88,6 +88,17 @@ describe('the OpenCode server manager', () => {
     expect(relays[0].calls.filter(c => c.path.startsWith('/mcp?'))).toHaveLength(2)
   })
 
+  it('adds the connection again when the turn\'s tools change, so OpenCode lists them anew', async () => {
+    const { deps, relays } = fakeDeps(connected)
+    const servers = new OpenCodeServers(deps)
+    await servers.ensureServer(C, null)
+    const conn = { name: 'agxaaa', token: 'tok-1', directory: '/copy', url: 'http://site/mcp', toolSet: 'plain' }
+    await servers.ensureConnection(C, 'conv-a', conn)
+    await servers.ensureConnection(C, 'conv-a', { ...conn, toolSet: 'code' })
+    await servers.ensureConnection(C, 'conv-a', { ...conn, toolSet: 'code' })
+    expect(relays[0].calls.filter(c => c.path.startsWith('/mcp?'))).toHaveLength(2)
+  })
+
   it('refuses a connection OpenCode could not connect', async () => {
     const { deps } = fakeDeps(c => (c.path.startsWith('/mcp?') ? json(200, { agxaaa: { status: 'failed', error: 'refused' } }) : undefined))
     const servers = new OpenCodeServers(deps)

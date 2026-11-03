@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useAction, useQuery, deleteWorkspace, disconnectRepo, getWorkspace, getRepoState } from 'wasp/client/operations'
+import { useAction, useQuery, deleteWorkspace, disconnectRepo, getWorkspace, getRepoState, getWorkspaceRemoval } from 'wasp/client/operations'
 import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import { FILES_BUTTON, FilesQuietLine, FilesViewHeader } from '@agenthix/ui/projects'
 import { repoName } from './BackupLine'
@@ -7,21 +7,19 @@ import { OpenedFile } from './OpenedFile'
 import { FolderTree } from './FolderTree'
 import { GitLine } from './GitLine'
 import { RepoPanel } from './RepoPanel'
-import { workspaceDeleteConfirm } from './workspaceDeleteWords'
+import { withBranches, workspaceDeleteConfirm } from './workspaceDeleteWords'
 import { WorkspaceAbout } from './WorkspaceAbout'
-import { previewAddress, useFolder } from './filesToolData'
+import { useFolder } from './filesToolData'
 import { useToolParams, useWide } from './useToolParams'
 
 /**
  * A workspace opened inside the Workspaces tool (spec §3): it opens as its file explorer. A box at the top says
- * what it is and offers a conversation in it and its preview; below, the folders beside the open file (wide) or
+ * what it is and offers a conversation in it; below, the folders beside the open file (wide) or
  * as a list (narrow). Its facts, runs and secrets are one step away in About. Only what hq knows is shown.
  */
-export function WorkspaceView({ workspaceId, siteLabel, previewId, connecting, onBack }: {
+export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
   workspaceId: string
   siteLabel: string | null
-  /** The workspace's running preview, if it has one. */
-  previewId: string | null
   connecting: boolean
   onBack: () => void
 }) {
@@ -35,6 +33,8 @@ export function WorkspaceView({ workspaceId, siteLabel, previewId, connecting, o
   const owner = ws ? { ownerType: ws.ownerType as 'project' | 'user', ownerId: ws.ownerId } : null
   const target = owner && ws ? { ...owner, workspaceId: ws.id } : { ownerType: 'user' as const, ownerId: '', workspaceId }
   const { data: repoState } = useQuery(getRepoState, { target }, { enabled: !!ws })
+  // The branches a delete takes with it; a Viewer, who cannot delete, is refused this and sees none.
+  const { data: removal } = useQuery(getWorkspaceRemoval, { workspaceId }, { enabled: !!ws, retry: false })
   const top = useFolder(target, '', !!ws)
   const chosen = url.get('wfile')
   // Wide, the explorer opens on the README when there is one, as a repository's home page does.
@@ -55,13 +55,13 @@ export function WorkspaceView({ workspaceId, siteLabel, previewId, connecting, o
     try { await fn() } catch (e: unknown) { setNotice(e instanceof Error ? e.message : 'That did not work') }
   }
   const menu: OverflowItem[] = [
-    { label: 'Delete workspace', danger: true, confirmLabel: workspaceDeleteConfirm(ws.repoUrl ?? null, typeof repoState?.hasFiles === 'boolean' ? repoState : null), onSelect: act(async () => { await remove({ workspaceId: ws.id }); onBack() }) },
+    { label: 'Delete workspace', danger: true, confirmLabel: withBranches(workspaceDeleteConfirm(ws.repoUrl ?? null, typeof repoState?.hasFiles === 'boolean' ? repoState : null), removal?.branches), onSelect: act(async () => { await remove({ workspaceId: ws.id }); onBack() }) },
   ]
 
   if (url.get('wabout')) {
     return (
       <div ref={root}>
-        <WorkspaceAbout ws={ws} target={target} siteLabel={siteLabel} previewId={previewId} onDisconnect={act(() => disconnect({ target }))} onBack={() => url.set({ wabout: null })} />
+        <WorkspaceAbout ws={ws} target={target} siteLabel={siteLabel} onDisconnect={act(() => disconnect({ target }))} onBack={() => url.set({ wabout: null })} />
       </div>
     )
   }
@@ -94,11 +94,9 @@ export function WorkspaceView({ workspaceId, siteLabel, previewId, connecting, o
     <div className="mx-4 mt-3 rounded-xl border border-border-subtle p-3">
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-small text-text-secondary">
         <span className="whitespace-nowrap font-mono">{ws.repoUrl ? repoName(ws.repoUrl) : 'No repository'}</span>
-        {previewId && <span className="inline-flex items-center gap-1 whitespace-nowrap"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-success" />Preview running</span>}
         {siteLabel && <span className="whitespace-nowrap text-text-muted">{siteLabel}</span>}
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        {previewId && <a href={previewAddress(previewId)} target="_blank" rel="noopener noreferrer" className={FILES_BUTTON}>Open preview</a>}
         {!ws.repoUrl && !connecting && <button type="button" className={FILES_BUTTON} onClick={() => url.set({ connect: '1' })}>Connect GitHub</button>}
       </div>
       {notice && <p role="alert" className="mt-2 text-small text-danger">{notice}</p>}

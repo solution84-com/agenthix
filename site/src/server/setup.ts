@@ -15,10 +15,12 @@ import { connectFromPairingSecretIfConfigured } from './registration/pairing'
 import { addressFollower } from './hq/addressFollow'
 import { hqConnectionManager } from './hq/hqConnection'
 import { ensureSiteConfig } from './siteConfig'
+import { setContainerSiteId } from '../agents/runtime/containerLabels'
 import { listAgentHandles } from '../agents/agentDiskPaths'
 import { listStorageBoundaries } from './storage/storageBoundaries'
 import { setAsideSupersededMemory } from '../agents/memorySupersede'
 import { runCrashRecoverySweep, flushBootSweepBuffer } from './runtime/bootSweep'
+import { bringBackPending } from './branches/codeWorkRun'
 import { sweepExecutorLeftovers } from '../executor/runCleanup'
 import { sweepExpiredRunTokens } from './runtime/runTokens'
 import { setAfterPackageStored } from '../packages/packageMethods'
@@ -42,7 +44,7 @@ export async function setupServer(): Promise<void> {
 
   // Before anything else: registration needs this installation's siteId, and
   // nothing else creates it.
-  await ensureSiteConfig()
+  setContainerSiteId((await ensureSiteConfig()).siteId)
 
   // The site's command reaches it here (ADR-0065); started before registration
   // from the environment so a failed one can be retried by hand at once.
@@ -102,6 +104,15 @@ export async function setupServer(): Promise<void> {
   // A move of hq that a restart interrupted: carry on checking the new address (host-management spec §13).
   await addressFollower.resume()
 
+  // Branches whose copies had commits not yet back when the site stopped (live preview spec, *Commits, and the
+  // branch coming back*): brought back once hq is reachable, so it hears that they moved. Once per process.
+  let broughtBack = false
+  hqConnectionManager.onOpen(() => {
+    if (broughtBack) return
+    broughtBack = true
+    void bringBackPending().catch(() => 0)
+  })
+
   // Package cache hygiene: periodic eviction + `.incoming` sweep. Every site
   // holds a package cache regardless of whether it also runs containers, so
   // this interval is registered unconditionally — never inside the
@@ -151,6 +162,11 @@ export async function setupServer(): Promise<void> {
     // start, and asked again before the first agent command if this could not.
     const { checkLandlockAtStartup } = await import('../agents/runtime/landlockCheck')
     void checkLandlockAtStartup()
+
+    // Live previews (live preview spec sections 4 and 6): the guard runs from here, and what a restart left of any
+    // live preview is put right before hq can ask for one.
+    const { startLivePreviews } = await import('./livePreviews/livePreviewService')
+    await startLivePreviews().catch(err => logger.error(`Live previews could not start on this site: ${err instanceof Error ? err.message : String(err)}`))
 
     const idleMinutes = positiveNumberEnv('AGENT_CONTAINER_IDLE_MINUTES', 30)
     // Networks swept after containers: a container removed by this same tick

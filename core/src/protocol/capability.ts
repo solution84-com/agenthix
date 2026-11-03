@@ -7,6 +7,7 @@
 
 import type { RunStartedBy } from './runtimeData.js'
 import type { JsonValue } from '../client/json.js'
+import { readPackageScopes } from '../livePreview/installScripts.js'
 
 export const IDENTITY_TOKEN_TTL_SECONDS = 60 * 60      // 1 hour  (ADR-0040)
 export const CAPABILITY_TTL_SECONDS = 15 * 60          // 15 min  (ADR-0040)
@@ -208,6 +209,51 @@ export function parseCapabilityOnBehalfOf(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
+/**
+ * The live preview a run's app tools act on (live preview spec section 4, *The app*), signed by hq: set only for a run
+ * on a branch (or `main`) that has a live preview, while it is open. The app tools and the install-script rule are
+ * authorised by this, never by who the run acts for.
+ */
+export interface CapabilityLivePreview {
+  livePreviewId: string
+  workspaceId: string
+  /** The branch's name, or `main`'s. */
+  branch: string
+}
+
+/** Reads the live-preview claim off a verified token's payload, or null when it is absent or malformed. */
+export function parseCapabilityLivePreview(value: unknown): CapabilityLivePreview | null {
+  if (typeof value !== 'object' || value === null) return null
+  const v = value as Record<string, unknown>
+  const nonEmpty = (s: unknown): s is string => typeof s === 'string' && s.length > 0
+  if (!nonEmpty(v.livePreviewId) || !nonEmpty(v.workspaceId) || !nonEmpty(v.branch)) return null
+  return { livePreviewId: v.livePreviewId, workspaceId: v.workspaceId, branch: v.branch }
+}
+
+/**
+ * Reads the organisation's trusted package scopes off a verified token's payload (`CapabilityClaims.trustedPackageScopes`).
+ * Anything that is not a list of scopes (`readPackageScopes`) trusts none.
+ */
+export function parseCapabilityPackageScopes(value: unknown): string[] {
+  return readPackageScopes(value) ?? []
+}
+
+/**
+ * Whether a run may act in a live preview: its signed claim names that very live preview, workspace and branch, and
+ * the live preview has not stopped. Returns why not, or null when it may. The site holds the live preview; this is its
+ * one rule.
+ */
+export function livePreviewCapabilityMismatch(
+  claim: CapabilityLivePreview | null,
+  preview: { livePreviewId: string; workspaceId: string; branch: string; stopped: boolean } | null,
+): string | null {
+  if (!claim) return 'the run is not bound to a live preview'
+  if (!preview || preview.livePreviewId !== claim.livePreviewId) return 'the run is bound to another live preview'
+  if (preview.workspaceId !== claim.workspaceId) return "the run's live preview is on another workspace"
+  if (preview.branch !== claim.branch) return "the run's live preview is on another branch"
+  return preview.stopped ? 'the live preview has stopped' : null
+}
+
 /** Capability payload (§2a claim shape). exp is the JWT `exp` claim. */
 export interface CapabilityClaims {
   tokenType: 'capability'
@@ -247,4 +293,12 @@ export interface CapabilityClaims {
   role: 'ADMIN' | 'MEMBER' | null
   siteId: string              // the site holding the workspace (logical ref, §2b)
   permissions: CapabilityEffectivePermissions
+  /** Since 1.12: set only for a run on a branch with a live preview, while it is open. */
+  livePreview?: CapabilityLivePreview
+  /**
+   * Since 1.12: the npm scopes the organisation's admins trust (`@fernhill`), whose packages' install scripts run
+   * without the install-script rule's lookups (adr-0170), wherever the run installs packages. Read from hq's setting
+   * at every mint and renewal. Absent: none.
+   */
+  trustedPackageScopes?: string[]
 }

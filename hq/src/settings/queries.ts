@@ -121,9 +121,9 @@ export const getEnvStatus: GetEnvStatus<void, EnvStatusResult> = async (_args, c
           { key: 'WASP_SERVER_URL',    set: isSet('WASP_SERVER_URL'),    required: 'production' },
           { key: 'WASP_WEB_CLIENT_URL',set: isSet('WASP_WEB_CLIENT_URL'),required: 'production' },
           { key: 'HQ_TRUSTED_PROXIES', set: isSet('HQ_TRUSTED_PROXIES'), required: 'optional' },
-          // Optional because previews are optional: a deployment that sets none has
-          // them off, and a developer machine uses *.preview.localhost (adr-0071).
-          { key: 'PREVIEW_DOMAIN',     set: isSet('PREVIEW_DOMAIN'),     required: 'optional' },
+          // Optional because live previews are optional: a deployment that sets none has
+          // them off, and HQ on localhost uses p-<id>.preview.localhost (adr-0169).
+          { key: 'PREVIEW_PATTERN',    set: isSet('PREVIEW_PATTERN'),    required: 'optional' },
           // Optional because HQ on localhost needs none, and without one uploads are downloads only (adr-0114).
           { key: 'FILES_ORIGIN',       set: isSet('FILES_ORIGIN'),       required: 'optional' },
         ],

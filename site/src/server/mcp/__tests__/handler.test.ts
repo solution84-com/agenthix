@@ -81,8 +81,26 @@ describe('MCP handler — the one auth branch', () => {
     expect(h.createMcpServer).toHaveBeenCalledWith({
       disabledTools: undefined,
       capabilityJwt: 'holder-jwt',
+      livePreview: null,
+      trustedPackageScopes: [],
       siteTools: { context: null, openCode: false },
     })
+  })
+
+  it("hands the package tools the organisation's trusted scopes from the verified capability only, and none for a bad value (adr-0170)", async () => {
+    h.resolvePlatformToken.mockReturnValue({ holder: { jwt: 'holder-jwt', expiresAt: Date.now() + 60_000 }, runId: null })
+    for (const [signed, given] of [
+      [['@fernhill', '@garden'], ['@fernhill', '@garden']],
+      [['@fernhill', 'not a scope'], []],
+      ['@fernhill', []],
+      [['@fernhill', '@fernhill'], []],
+    ] as const) {
+      h.createMcpServer.mockClear()
+      h.verifyHqToken.mockResolvedValue({ ...CLAIMS, trustedPackageScopes: signed })
+      const { req, res } = makeReqRes({ authorization: 'Bearer run-token-abc' })
+      await mcpHandler(req, res)
+      expect(h.createMcpServer).toHaveBeenCalledWith(expect.objectContaining({ trustedPackageScopes: given }))
+    }
   })
 
   it('@SC-348 — a capability audienced to a sibling site fails verifyHqToken (its own audience pin) and is refused with 401', async () => {

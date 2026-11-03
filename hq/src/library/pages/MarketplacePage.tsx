@@ -4,7 +4,7 @@ import { AppLayout } from '../../shared/layouts/AppLayout'
 import { retryUnlessDenied } from '../../projects/place/retryUnlessDenied'
 
 /**
- * The Marketplace's own page (skills spec part 6; adr-0116). It exists only where the `marketplace` flag is on; the
+ * The Marketplace's own page (skills spec part 6; adr-0172). It exists only where the `marketplace` flag is on; the
  * server refuses its one read elsewhere, and the page then says it is not there. Where it is on, it says what is
  * not built yet.
  */

@@ -197,8 +197,8 @@ How it is installed and routed is [deployment.md](deployment.md#hqs-address); it
 
 hq reads a file's content through the content transport only for its own work, never to hand it to a browser:
 `location.readFile` for a place's instruction file the lead reads, `location.readKnowledge` for knowledge pages (the
-Knowledge tool's reader and editor and the lead's knowledge tools), `packages.put` and live previews
-([ADR-0063](../adr/adr-0063-preview-traffic-crosses-on-its-own-transport.md)). `location.readArtefact` has no caller
+Knowledge tool's reader and editor and the lead's knowledge tools), and `packages.put`. A live app's bytes and a branch carried to another site cross a relay, never hq
+([ADR-0169](../adr/adr-0169-live-apps-travel-through-relays.md)). `location.readArtefact` has no caller
 in hq and is deprecated since site protocol 1.8.
 
 ## Where things are in the code

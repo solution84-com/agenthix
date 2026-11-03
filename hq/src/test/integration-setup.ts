@@ -2,6 +2,7 @@ import { beforeEach, afterAll } from 'vitest'
 import { prisma } from './db'
 import { truncateAll, retryOnDeadlock } from './truncateAll'
 import { childrenFirst, emptyStatement, type ForeignKey } from './emptyTables'
+import { forgetFeatureSwitches } from '../features/switchesCache'
 
 // Empty every table (except Prisma's migration ledger) before each test, so
 // each test starts from an empty database and order never matters (ADR-0035).
@@ -33,6 +34,8 @@ async function buildEmptyStatement(): Promise<string | null> {
 let statement: Promise<string | null> | undefined
 
 beforeEach(async () => {
+  // The organisation's switches are kept for a few seconds; a test never sees the one before's.
+  forgetFeatureSwitches()
   statement ??= buildEmptyStatement()
   const sql = await statement
   if (sql) {

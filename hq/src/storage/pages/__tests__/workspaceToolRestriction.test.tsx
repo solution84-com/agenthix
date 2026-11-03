@@ -58,7 +58,7 @@ describe('workspace tool restriction @SC-311', () => {
     const checkbox = (name: string) => screen.getByText(name).closest('label')?.querySelector('input') as HTMLInputElement
     // Always-injected (spec H5/H6) — pre-checked so restricting doesn't default to
     // locking an agent out of its own task lifecycle.
-    for (const name of ['ping', 'get_site_info', 'start_preview', 'stop_processes', 'fetch_my_queued_tasks', 'get_task_details', 'add_comment', 'run_task']) {
+    for (const name of ['ping', 'get_site_info', 'stop_processes', 'fetch_my_queued_tasks', 'get_task_details', 'add_comment', 'run_task']) {
       expect(checkbox(name).checked).toBe(true)
     }
     // Not pre-checked — an ordinary configurable tool.
@@ -78,7 +78,7 @@ describe('workspace tool restriction @SC-311', () => {
       allowedTools: [
         'add_comment', 'delete_knowledge', 'edit_knowledge', 'fetch_my_queued_tasks', 'forget', 'get_site_info', 'get_task_details',
         'list_workflows', 'ping', 'propose_skill', 'propose_workflow', 'read_knowledge', 'recall', 'remember', 'run_task', 'run_workflow',
-        'search_knowledge', 'set_result', 'start_preview', 'stop_processes', 'workflow_run', 'write_knowledge',
+        'search_knowledge', 'set_result', 'stop_processes', 'workflow_run', 'write_knowledge',
       ],
     })
   })
@@ -98,7 +98,7 @@ describe('workspace tool restriction @SC-311', () => {
       allowedTools: [
         'add_comment', 'bash', 'create_task', 'delete_knowledge', 'edit_knowledge', 'fetch_my_queued_tasks', 'forget',
         'get_site_info', 'get_task_details', 'list_workflows', 'ping', 'propose_skill', 'propose_workflow', 'read_knowledge', 'recall',
-        'remember', 'run_task', 'run_workflow', 'search_knowledge', 'set_result', 'start_preview', 'stop_processes',
+        'remember', 'run_task', 'run_workflow', 'search_knowledge', 'set_result', 'stop_processes',
         'workflow_run', 'write_knowledge',
       ],
     })
@@ -137,7 +137,7 @@ describe('workspace tool restriction @SC-311', () => {
     renderForm()
 
     const checkbox = (name: string) => screen.getByText(name).closest('label')?.querySelector('input') as HTMLInputElement
-    for (const name of ['ping', 'get_site_info', 'start_preview', 'fetch_my_queued_tasks', 'get_task_details', 'add_comment', 'run_task', 'create_task']) {
+    for (const name of ['ping', 'get_site_info', 'fetch_my_queued_tasks', 'get_task_details', 'add_comment', 'run_task', 'create_task']) {
       expect(checkbox(name).checked).toBe(false)
     }
   })

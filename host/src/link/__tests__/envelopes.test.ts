@@ -141,3 +141,38 @@ describe('an envelope that is refused, with nothing acting on it @SC-847', () =>
     expect(asked).toEqual([])
   })
 })
+
+describe('in the host service\'s first moments', () => {
+  const heard: Record<string, unknown>[] = []
+  const justStarted = (waiting: string[]) => envelopeHandler({
+    state: m.ctx.state, keys: () => hostKeys(m.ctx.state), replay: new EnvelopeReplayGuard(t0),
+    operate: async (req, by): Promise<HostResult> => { asked.push({ request: req, by }); return { ok: true, op: 'figures.read', result: {} as never } },
+    send: e => { sent.push(e) }, now: () => now,
+    onMessage: message => { heard.push(message) },
+    awaitsMoveCode: message => waiting.includes(message.replyTo as string),
+  })
+  const moveCode = (replyTo: string) => ({ kind: 'moveCode', replyTo, code: 'M-CODE' }) as unknown as HostMessage
+
+  beforeEach(() => { heard.length = 0; now = t0 + 2_000 })
+
+  it('a request is refused as stale, unacted, and the refusal goes back sealed to the Fleet Console', async () => {
+    const env = await fleetConsole.seal(await host(), request({ op: 'figures.read' }), now)
+    await justStarted([])(env)
+    expect(asked).toEqual([])
+    const [opened] = await answers()
+    expect(opened).toMatchObject({ ok: true, message: { kind: 'refused', envelopeId: env.id, reason: 'stale' } })
+  })
+
+  it('an answer to an ask made since it started is taken at once, and only once', async () => {
+    const handler = justStarted(['ask-1'])
+    const env = await fleetConsole.seal(await host(), moveCode('ask-1'), now)
+    await handler(env)
+    await handler(env)
+    expect(heard).toEqual([{ kind: 'moveCode', replyTo: 'ask-1', code: 'M-CODE' }])
+  })
+
+  it('an answer to nothing it asked since it started is refused as stale', async () => {
+    await justStarted(['ask-1'])(await fleetConsole.seal(await host(), moveCode('ask-from-before'), now))
+    expect(heard).toEqual([])
+  })
+})

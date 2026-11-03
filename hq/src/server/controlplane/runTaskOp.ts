@@ -12,11 +12,15 @@ import { loadTaskScoped } from './taskScoped'
 import { taskRunner } from '../../agents/TaskRunner'
 import { startedByOf } from './runStarter'
 import { effectiveForProject } from '../../automation/automationStore'
+import { OWN_TASK } from './runTaskWords'
+
+export { OWN_TASK }
 
 export async function runTaskOp(ctx: CallerContext, args: { taskId: string }) {
   // A conversation starts a run as an operation of its own, never as a quick call (turnCaller.ts).
   if (ctx.kind === 'turn') throw new ControlPlaneError('forbidden', 'run_task is not available in a conversation')
-  await loadTaskScoped(ctx, args.taskId, 'run_task', 'work')
+  const scoped = await loadTaskScoped(ctx, args.taskId, 'run_task', 'work')
+  if (ctx.kind === 'run' && ctx.claims.taskId === scoped.id) throw new ControlPlaneError('forbidden', OWN_TASK)
 
   const task = await prisma.task.findUnique({
     where: { id: args.taskId },

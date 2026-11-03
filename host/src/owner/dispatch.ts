@@ -20,6 +20,7 @@ import { Refusal, type HqLinkResult, type OwnerAnswer } from './results'
 import { cmd } from '../cli/words'
 import { frontDoorCheck, frontDoorSettings } from '../frontDoor/frontDoor'
 import { frontDoorSet } from '../frontDoor/set'
+import { previewsSet } from '../previews/previewsSet'
 import { backupOperation, machineBackupOperation } from '../backups/operations'
 import { backupsStatus } from '../backups/status'
 import { cancelScheduled, changeScheduled, listScheduled, scheduleChange } from '../scheduled/scheduler'
@@ -124,6 +125,8 @@ export async function hostOperation(ctx: Context, request: HostRequest, progress
       return { state: 'started' }
     case 'frontDoor.set':
       return frontDoorSet(ctx, request, by, progress)
+    case 'previews.set':
+      return previewsSet(ctx, request.domain, progress)
     case 'backup.take':
     case 'backup.list':
     case 'backup.export':

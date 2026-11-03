@@ -29,7 +29,7 @@ describe("a site's health report @SC-766", () => {
   it('says what runs, the limit, the disk, Docker and the image', async () => {
     process.env.APP_VERSION = '0.4.0'
     process.env.AGENT_MAX_CONCURRENT_RUNS = '4'
-    const health = await takeHealth({ docker: dockerAnswering(), countRunning: async () => 1, disk, memory: roomy, now })
+    const health = await takeHealth({ docker: dockerAnswering(), countRunning: async () => 1, disk, memory: roomy, now, branchCopies: async () => ({ usedBytes: 7 * GIB }) })
     expect(health).toEqual({
       takenAt: '2026-10-09T10:00:00.000Z',
       runs: { running: 1, maxAtOnce: 4 },
@@ -43,6 +43,7 @@ describe("a site's health report @SC-766", () => {
         ceilings: { memoryBytesPerContainer: 8 * GIB, cpusPerContainer: 2, processesPerContainer: 4096, containersAtOnce: 4 },
       },
       memoryNearlyFull: false,
+      branchCopies: { usedBytes: 7 * GIB },
     })
   })
 
@@ -126,7 +127,7 @@ describe("a site's health report @SC-766", () => {
 
 describe('the machine nearly out of memory', () => {
   const report = (availableGib: number) =>
-    takeHealth({ docker: dockerAnswering(), countRunning: async () => 0, disk, memory: () => ({ availableBytes: availableGib * GIB, totalBytes: 64 * GIB }), now })
+    takeHealth({ docker: dockerAnswering(), countRunning: async () => 0, disk, memory: () => ({ availableBytes: availableGib * GIB, totalBytes: 64 * GIB }), now, branchCopies: async () => null })
 
   it('is a condition with no figure in it, held until memory is back with room to spare', async () => {
     expect((await report(20)).memoryNearlyFull).toBe(false)

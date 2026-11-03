@@ -24,7 +24,6 @@ import { requireRole } from '../server/identity/requireRole'
 import * as dispatchService from '../agents/dispatchService'
 import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
 import { rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
-import { expirePreviewsForSessions } from '../preview/previewRegistry'
 import { removeLocationOnSite } from '../storage/locationFileStore'
 import { removeProjectStorageOnSite } from '../projects/projectStorageRemoval'
 import { resolveStorageSite } from '../storage/storageSite'
@@ -128,7 +127,6 @@ export const erasePerson = async (
   const ownProjects = await ownProjectsToErase(userId)
   const instructSites = new Set<string>()
   for (const p of ownProjects) for (const site of await sitesForProject(p.id, p.siteId)) instructSites.add(site)
-  await expirePreviewsForSessions(sessions.map(s => s.id))
 
   const ownProject = { personalOwnerId: userId }
   const ownProjectIds = ownProjects.map(p => p.id)

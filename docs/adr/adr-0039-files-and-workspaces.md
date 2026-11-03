@@ -161,3 +161,5 @@ Implementation note (presentation, not a decision): products and programs render
 - [ADR-0038 — Workspace as the Storage Entity](./adr-0038-workspace-as-storage-entity.md) — **superseded by this ADR.** Its build remains on `feature/workspace-storage-entity` (unmerged) as reference.
 - [ADR-0036 — Context-Centric Security](./adr-0036-context-centric-security.md) — the owner is the access boundary; permanent ownership + subtree mounts.
 - [ADR-0037 — Connectors, Environments, and Approved Workflows](./adr-0037-connectors-environments-and-scripts.md) — the GitHub/Operations surface, now a reusable attachment.
+
+> **A code workspace's own folder is read-only to agents.** *(annotated 2026-11-03)* In a workspace with Git, agents write only their branch's copy; the workspace's folder changes only by a merge or a restore (adr-0168; unit of work [`2026-11-01-live-preview`](../work/2026-11-01-live-preview/plan.md)). The two storage kinds stand.

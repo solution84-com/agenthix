@@ -122,3 +122,47 @@ describe('a site the host service runs', () => {
     expect(flag(runs[1], '--memory')).toBe(`${6 * GIB}b`)
   })
 })
+
+describe('a workspace made a Git repository while runs go @SC-1723', () => {
+  const CODE = { ...MOUNTS, readOnly: [{ hostDir: '/site/projects/proj-alpha/workspaces/w1', containerDir: '/projects/proj-alpha/workspaces/w1' }] }
+
+  it('a run on a branch never joins the container that still has the workspace writable: it waits, and starts once runs end', async () => {
+    const manager = new AgentContainerManager(5)
+    const name = await manager.ensureRunning(KEY, CTX, MOUNTS)
+    manager.markRunStart(name)
+    const told: boolean[] = []
+    const code = manager.ensureRunning(KEY, { ...CTX, codeWork: true, onWaitForBinds: (w) => told.push(w) }, CODE)
+    await vi.waitFor(() => expect(told).toEqual([true]))
+    // While it waits, no other run joins the old container either, or it might never empty.
+    let otherDone = false
+    const other = manager.ensureRunning(KEY, CTX, CODE).then((n) => { otherDone = true; return n })
+    await new Promise((r) => setTimeout(r, 30))
+    expect(otherDone).toBe(false)
+    expect(runs).toHaveLength(1)
+    manager.markRunEnd(name)
+    await expect(code).resolves.toBe(name)
+    await expect(other).resolves.toBe(name)
+    expect(told).toEqual([true, false])
+    expect(runs).toHaveLength(2)
+    expect(runs[1]).toContain('/site/projects/proj-alpha/workspaces/w1:/projects/proj-alpha/workspaces/w1:ro')
+  })
+
+  it('a run that is not on a branch still joins the old container while nothing waits for it to empty', async () => {
+    const manager = new AgentContainerManager(5)
+    const name = await manager.ensureRunning(KEY, CTX, MOUNTS)
+    manager.markRunStart(name)
+    await expect(manager.ensureRunning(KEY, CTX, CODE)).resolves.toBe(name)
+    expect(runs).toHaveLength(1)
+  })
+
+  it('stops waiting, with words a person can read, once its run was stopped', async () => {
+    const manager = new AgentContainerManager(5)
+    const name = await manager.ensureRunning(KEY, CTX, MOUNTS)
+    manager.markRunStart(name)
+    let wanted = true
+    const code = manager.ensureRunning(KEY, { ...CTX, codeWork: true, stillWanted: async () => wanted }, CODE)
+    wanted = false
+    await expect(code).rejects.toBeInstanceOf(ReadableRunError)
+    expect(runs).toHaveLength(1)
+  })
+})

@@ -11,8 +11,8 @@ vi.mock('wasp/server', async () => {
   return { prisma }
 })
 
-// The middleware counts a wrong password after the response has finished, without waiting for the write. Each
-// count it starts is kept here, so an attempt waits for exactly that write rather than for a guess at its time.
+// The middleware gives a count back after the response has finished, without waiting for the write. Each
+// write it starts is kept here, so an attempt waits for exactly that write rather than for a guess at its time.
 const countsStarted = vi.hoisted(() => [] as Promise<unknown>[])
 vi.mock('../../server/rateLimit', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../server/rateLimit')>()
@@ -20,6 +20,11 @@ vi.mock('../../server/rateLimit', async (importOriginal) => {
     ...real,
     consumeRateLimit: (...args: Parameters<typeof real.consumeRateLimit>) => {
       const write = real.consumeRateLimit(...args)
+      countsStarted.push(write)
+      return write
+    },
+    giveBackRateLimit: (...args: Parameters<typeof real.giveBackRateLimit>) => {
+      const write = real.giveBackRateLimit(...args)
       countsStarted.push(write)
       return write
     },
@@ -74,6 +79,11 @@ describe('signInLimit @SC-713', () => {
     for (let i = 0; i < SIGN_IN_LIMIT; i++) await attempt(401)
     expect(await attempt(200)).toMatchObject({ reachedRoute: false, status: 429, body: { message: TOO_MANY_SIGN_INS } })
     expect((await attempt(200, '1.2.3.4')).reachedRoute).toBe(true)
+  })
+
+  it(`lets at most ${SIGN_IN_LIMIT} attempts sent at once reach the route`, async () => {
+    const results = await Promise.all(Array.from({ length: 30 }, () => attempt(401)))
+    expect(results.filter(r => r.reachedRoute)).toHaveLength(SIGN_IN_LIMIT)
   })
 
   it('lets every other request through untouched', async () => {

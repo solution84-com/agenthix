@@ -25,6 +25,7 @@ const examples: Record<(typeof HOST_OPERATIONS)[number], unknown> = {
   'capacity.set': { op: 'capacity.set', ceilings },
   'address.set': { op: 'address.set', target: 'site', address: 'https://hq.acme.example' },
   'frontDoor.set': { op: 'frontDoor.set', on: false },
+  'previews.set': { op: 'previews.set', domain: 'preview.acme.example' },
   schedule: { op: 'schedule', at: '2026-10-15T02:00:00Z', change: { op: 'upgrade', target: 'site', version: '0.2.1' } },
   'schedule.change': { op: 'schedule.change', changeId: 'c1', at: '2026-10-16T02:00:00Z' },
   'schedule.cancel': { op: 'schedule.cancel', changeId: 'c1' },
@@ -158,5 +159,14 @@ describe('the closed set of host operations', () => {
     expect(parseHostRequest({ ...base, certificate }).ok).toBe(false)
     expect(parseHostRequest({ ...base, privateKey }).ok).toBe(false)
     expect(parseHostRequest({ ...base, certificate: 'not pem', privateKey }).ok).toBe(false)
+  })
+
+  it('reads the preview address as it is kept, null to turn live apps off, and never schedules it', () => {
+    expect(parseHostRequest({ op: 'previews.set', domain: ' Preview.Acme.Example. ' }))
+      .toEqual({ ok: true, request: { op: 'previews.set', domain: 'preview.acme.example' } })
+    expect(parseHostRequest({ op: 'previews.set', domain: null })).toEqual({ ok: true, request: { op: 'previews.set', domain: null } })
+    expect(parseHostRequest({ op: 'previews.set', domain: '' }).ok).toBe(false)
+    expect(parseHostRequest({ op: 'previews.set' }).ok).toBe(false)
+    expect(parseHostRequest({ op: 'schedule', at: '2026-10-15T02:00:00Z', change: { op: 'previews.set', domain: null } }).ok).toBe(false)
   })
 })

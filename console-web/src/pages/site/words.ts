@@ -28,6 +28,12 @@ export function diskWords(d: HostFigures['resources']['disk']): MeterWords {
   }
 }
 
+/** The disk branches' working copies use, against the machine's disk; null while the site has not said. */
+export function copiesWords(disk: HostFigures['resources']['disk'], copiesBytes: number | null | undefined): string | null {
+  if (copiesBytes === null || copiesBytes === undefined) return null
+  return `${gbOf(copiesBytes)} GB of ${gbOf(disk.totalBytes)} GB · ${percent(copiesBytes, disk.totalBytes)}% of the disk`
+}
+
 export function memoryWords(m: HostFigures['resources']['memory']): MeterWords {
   const used = percent(m.usedBytes, m.totalBytes)
   const warn = used >= NEAR_CAPACITY
@@ -50,6 +56,8 @@ const RULE: Record<ProtectionRule, string> = {
   'machine-ports': "the machine's ports",
   'published-ports': "other containers' ports",
   'metadata-address': 'the metadata address',
+  'private-addresses': 'private network addresses from live previews',
+  'public-address': "the machine's own public address from live previews",
 }
 
 const list = (items: string[], and = 'and') => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} ${and} ${items[items.length - 1]}`)

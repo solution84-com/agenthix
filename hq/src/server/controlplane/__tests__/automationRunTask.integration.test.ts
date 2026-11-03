@@ -86,7 +86,8 @@ describe("run_task: only at a person's request, and what it starts is the agent'
     await runTaskOp(taskRun(w, { startedBy: 'person' }), { taskId: 't1' })
     const startedAs = runTask.mock.calls[0][2] as CapabilityClaims['startedBy']
     runTask.mockClear()
-    await expectCode(runTaskOp(taskRun(w, { startedBy: startedAs, taskId: 't1' }), { taskId: 't1' }), 'forbidden', /agent started/)
+    // The started run works on another task, so the refusal is the chain's, not the own-task rule's.
+    await expectCode(runTaskOp(taskRun(w, { startedBy: startedAs, taskId: 't0' }), { taskId: 't1' }), 'forbidden', /agent started/)
     expect(runTask).not.toHaveBeenCalled()
   })
 

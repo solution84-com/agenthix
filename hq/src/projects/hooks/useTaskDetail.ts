@@ -136,6 +136,8 @@ export function useTaskDetail(taskId: string | undefined) {
 
   const handlePriorityChange = (p: string) => void patch({ priority: p })
 
+  const handleWorkspaceChange = (workspaceId: string | null) => void patch({ workspaceId })
+
   const handleAgentChange = (agentId: string | null) =>
     void patch({ assignedAgentId: agentId || null })
 
@@ -249,6 +251,7 @@ export function useTaskDetail(taskId: string | undefined) {
     handleStageChange,
     handleStatusChange,
     handlePriorityChange,
+    handleWorkspaceChange,
     handleAgentChange,
     handleBoardChange,
     handleSaveTitle,

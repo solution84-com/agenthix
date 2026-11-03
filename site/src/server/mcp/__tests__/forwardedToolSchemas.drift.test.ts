@@ -22,10 +22,7 @@
  * model actually reads has exactly one source of truth per tool, and the
  * other side's copy exists only for hq's own listing to stay meaningful —
  * there is no reason for the two to say something different about the same
- * tool. `start_preview` is the one declared exception (see
- * DESCRIPTION_DRIFT_ALLOWED below): site's description is deliberately
- * container-specific (the dev-server/bind-address instructions in this
- * file's `start_preview` entry), and hq's own copy carries none at all.
+ * tool. DESCRIPTION_DRIFT_ALLOWED below holds any declared exception.
  *
  * Real TS-AST parsing (the `typescript` package, already a site devDependency)
  * rather than brace-counting: these two files' formatting genuinely differs
@@ -33,9 +30,7 @@
  * so a textual/brace-based comparator would either need to be format-blind in
  * a way that risks false negatives, or fail on the very asymmetry this test
  * exists to tolerate. The AST walk finds every object literal with `name` and
- * `schema` properties, anywhere in the file (both of hq's arrays included, so
- * `start_preview` — declared in hq's DATA_PATH_ONLY_TOOLS, not
- * CONTROL_PLANE_TOOLS — is found without special-casing).
+ * `schema` properties, anywhere in the file (all of hq's arrays included).
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -44,6 +39,8 @@ import ts from 'typescript'
 import { FORWARDED_TOOLS } from '../forwardedToolSchemas'
 import { WORKFLOW_TOOL_NAME_SET } from '../forwardedWorkflowSchemas'
 import { FORWARDED_SKILL_TOOLS } from '../forwardedSkillSchemas'
+import { CODE_TOOL_NAME_SET } from '../forwardedCodeSchemas'
+import { APP_TOOL_NAME_SET } from '../forwardedAppSchemas'
 
 interface ToolInfo { fields: string[]; description: string | undefined }
 
@@ -157,7 +154,7 @@ describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts field-set drift @SC
 
   // The workflow tools and propose_skill are built on both sides from core's one declaration, so they can't drift;
   // forwardedWorkflowSchemas.test.ts and forwardedSkillSchemas.test.ts.
-  const declaredInCore = new Set([...WORKFLOW_TOOL_NAME_SET, ...FORWARDED_SKILL_TOOLS.map(t => t.name)])
+  const declaredInCore = new Set([...WORKFLOW_TOOL_NAME_SET, ...CODE_TOOL_NAME_SET, ...APP_TOOL_NAME_SET, ...FORWARDED_SKILL_TOOLS.map(t => t.name)])
   it.each(FORWARDED_TOOLS.map(t => t.name).filter(n => !declaredInCore.has(n)))('%s has the same field-name set on both sides', (name) => {
     const site = siteFields.get(name)
     const hq = hqFields.get(name)
@@ -180,12 +177,10 @@ describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts field-set drift @SC
 
 /**
  * Tools whose description is allowed to differ (or exist on only one side).
- * `start_preview` is site-only-with-a-description by design — see the file
- * header above — and is exactly the situation this allowlist exists for. A
- * new entry here should carry the same kind of justification, not just a
+ * None today; a new entry here should carry its justification, not just a
  * name.
  */
-const DESCRIPTION_DRIFT_ALLOWED = new Set(['start_preview'])
+const DESCRIPTION_DRIFT_ALLOWED = new Set<string>()
 
 describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts description drift @SC-348 @SC-1394', () => {
   const toolNamesWithADescription = [...new Set([...siteInfo.keys(), ...hqInfo.keys()])]

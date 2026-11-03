@@ -332,6 +332,7 @@ model Workspace {
   siteId       String
   allowedTools Json?              // string[] — this workspace's contribution to the run's tool intersection (spec §H6); null = no cap, [] = no tools
   repo         RepoAttachment?
+  branchCopies BranchCopy[]
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
@@ -360,6 +361,86 @@ model RepoAttachment {
   createdAt   DateTime           @default(now())
 
   @@index([ownerType, ownerId])
+}
+
+// A branch's working copy on this site (live preview spec, part 2): `clones/<id>/` of the owner's storage, a clone
+// of the workspace's repository. The site's own record of which workspace and branch each copy is for, because the
+// copy's `.git` is written by an agent and names nothing the site may trust: every branch call is checked against
+// this row, and the sweep, the end of a run and a start after the site was down bring back only `branch`, by it.
+// The folder's path is derived from the id, never stored (ADR-0039).
+model BranchCopy {
+  /// hq's copy id: a uuid, the folder's name.
+  id          String             @id
+  ownerType   WorkspaceOwnerType
+  ownerId     String
+  workspaceId String
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /// The branch's name in the workspace's repository; a rename changes it.
+  branch      String
+  /// Set when commits may be in the copy that are not yet back (a run is going, or ended while bringing back
+  /// failed); cleared once they are. A start of the site brings back every copy that has it.
+  backPending Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([workspaceId])
+  @@index([backPending])
+}
+
+// ──────────────────────────────────────────────
+// Module: Live previews (live preview spec sections 4 and 5): the site's own record of each live preview it runs,
+// checked again on every call hq makes and every stream a relay opens. *Live previews on this site*, its limit and
+// its idle stop have no column: hq sends them at every connect (`site.livePreviews`) and the site holds them in memory.
+// ──────────────────────────────────────────────
+
+model LivePreview {
+  /// hq's id for it.
+  id                String             @id
+  projectId         String?
+  personId          String
+  /// The workspace and its owner (logical references: on another site, the workspace is not here).
+  ownerType         WorkspaceOwnerType
+  ownerId           String
+  workspaceId       String
+  /// The branch's name, or `main`'s for `main`'s live preview.
+  branch            String
+  onMain            Boolean            @default(false)
+  /// core's LivePreviewCopyKind: `branch` binds the branch's BranchCopy here (`copyId` is its id); `main` binds a copy
+  /// of its own outside every storage; `bundle` a copy of its own in `clones/<copyId>/` of the owner's storage here, so
+  /// the branch's runs on this site work in it. Both are made for it and removed with it.
+  copyKind          String
+  copyId            String
+  /// The commit its copy was on when it started (`main`'s tip, or the bundle's head), and is on now.
+  baseCommit        String?
+  headCommit        String?
+  openedAt          DateTime
+  /// core's LivePreviewState.
+  state             Json
+  /// The runs that worked on its branch here (string[], newest last, bounded), for `noRun` and the idle stop.
+  runs              Json               @default("[]")
+  /// Work left to finish after a restart, in the site's own shape: a stop the site had begun (with who stopped it), or,
+  /// for a `bundle` copy, commits in the copy not yet reported to hq (`livePreview.branchMoved`). Null when none.
+  pending           Json?
+  /// True when its containers were removed while it was paused (a restart): resuming makes them again.
+  containersRemoved Boolean            @default(false)
+  live              Boolean            @default(true)
+  updatedAt         DateTime           @updatedAt
+
+  @@index([workspaceId, live])
+  @@index([live])
+}
+
+// A person's yes in hq to a live preview's service (live preview spec section 4, *Services*): exactly the declaration
+// they approved, by its hash, for the workspace. Kept across the site's restarts, so only a new or changed service asks
+// again; removed with the workspace, as the services' volumes are. The workspace is a logical reference: a live preview
+// may run on a site that does not hold its workspace.
+model LivePreviewServiceApproval {
+  workspaceId     String
+  service         String
+  declarationHash String
+  approvedAt      DateTime @default(now())
+
+  @@id([workspaceId, service, declarationHash])
 }
 
 // ──────────────────────────────────────────────

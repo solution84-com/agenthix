@@ -14,6 +14,8 @@ import type { JoinRequestPayload, RelayHub, RelayPeer } from './relayHub'
 import { bearerOf, headerOf, pathOf, precheckUpgrade, refuseUpgrade } from './upgrade'
 import { readJoinRequest } from './joinRequest'
 import { isTransferFrame } from './transfers'
+import { seenFromAddress } from './seenFrom'
+import { trustedProxyCount } from '../../server/trustedProxies'
 
 const logger = new Logger('HostLink')
 
@@ -32,6 +34,8 @@ export interface HostLinkDeps {
   touchHost?(hostId: string): Promise<void>
   /** Every finished move of the Fleet Console, oldest first: a machine that slept through one follows it now. */
   handoverCertificates?(): Promise<ConsoleHandoverCertificate[]>
+  /** The proxies in front of hq-server; `HQ_TRUSTED_PROXIES` when absent. */
+  trustedProxies?: number
   now?(): Date
 }
 
@@ -53,11 +57,12 @@ export function attachHostLink(server: HttpServer, deps: HostLinkDeps): void {
 
   async function accept(req: IncomingMessage, socket: Duplex, head: Buffer): Promise<void> {
     if (!precheckUpgrade(req, socket)) return
+    const seenFrom = seenFromAddress(req, deps.trustedProxies ?? trustedProxyCount())
     const credential = bearerOf(req)
     if (credential) {
       const peer = await deps.authenticateHost(credential)
       if (!peer) return refuseUpgrade(socket, 401, 'Unauthorized')
-      wss.handleUpgrade(req, socket, head, ws => serve(ws, { kind: 'host', peer }))
+      wss.handleUpgrade(req, socket, head, ws => serve(ws, { kind: 'host', peer }, seenFrom))
       return
     }
     const lookup = headerOf(req, HOST_JOIN_LOOKUP_HEADER).toLowerCase()
@@ -71,17 +76,21 @@ export function attachHostLink(server: HttpServer, deps: HostLinkDeps): void {
         ws.close(4002, 'Join ended')
         return
       }
-      serve(ws, { kind: 'joining', joinId: claim.joinId, lookup, asked: false }, claim.expiresAt)
+      serve(ws, { kind: 'joining', joinId: claim.joinId, lookup, asked: false }, seenFrom, claim.expiresAt)
     })
   }
 
-  function serve(ws: WebSocket, initial: LinkState, joinExpiresAt?: Date): void {
+  function serve(ws: WebSocket, initial: LinkState, seenFrom: string | null, joinExpiresAt?: Date): void {
     let state = initial
     let quiet = false
     let expiry: NodeJS.Timeout | undefined
+    // A machine keeps its live previews from the public address it is seen from (core's `HqSeenFromFrame`): told on
+    // every connection, so a new address reaches it with the connection that comes from it. Never to a join not yet done.
+    const tellSeenFrom = () => { if (seenFrom) send(ws, frame('hq.seenFrom', { address: seenFrom })) }
 
     if (state.kind === 'host') {
       deps.hub.addHost(state.peer, ws)
+      tellSeenFrom()
       void handCertificates(ws)
     } else {
       const joinId = state.joinId
@@ -89,6 +98,7 @@ export function attachHostLink(server: HttpServer, deps: HostLinkDeps): void {
         clearTimeout(expiry)
         state = { kind: 'host', peer }
         deps.hub.addHost(peer, ws)
+        tellSeenFrom()
       })
       expiry = setTimeout(() => deps.hub.endJoin(joinId, 'expired'), Math.max(0, (joinExpiresAt?.getTime() ?? 0) - now().getTime()))
       expiry.unref?.()

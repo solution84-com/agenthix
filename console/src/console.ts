@@ -17,6 +17,7 @@ import { Presence } from './hosts/presence'
 import { FiguresRefresh } from './hosts/figuresRefresh'
 import { Silence } from './hosts/silence'
 import { HqFacts } from './hq/hqFacts'
+import { HqFeatures, type AskFeatures } from './hq/hqFeatures'
 import { createApp, type ConsoleContext } from './http/app'
 import { CONTAINER_PEER, PUBLISHED_PORT, type ContainerPeer } from './http/guards'
 import { CommandRuns } from './http/commandRuns'
@@ -33,7 +34,7 @@ export type ConsoleOptions = {
   link: HqLink
   machineName: string
   version: string
-  commandTimeouts?: { short?: number; long?: number }
+  commandTimeouts?: { short?: number; long?: number; staleRetry?: number }
   /** Tests pass a guard that began in the past; a real start refuses envelopes from before it (replay.ts). */
   replay?: EnvelopeReplayGuard
   /** The one-time code it was started with elsewhere (`CONSOLE_HQ_CODE`), normalised; it may be a handover code. */
@@ -42,6 +43,8 @@ export type ConsoleOptions = {
   containerPeer?: ContainerPeer | null
   /** The port it is published on, for the words that tell a person where to open it. */
   publishedPort?: number
+  /** How to ask hq which flagged features are on: hq's `features.on` unless given; `null`, none is (hqFeatures.ts). */
+  askFeatures?: AskFeatures | null
 }
 
 export async function createConsole(o: ConsoleOptions): Promise<{ ctx: ConsoleContext; app: http.RequestListener }> {
@@ -62,6 +65,7 @@ export async function createConsole(o: ConsoleOptions): Promise<{ ctx: ConsoleCo
   const sessions = new Sessions(o.state)
   const ctx: ConsoleContext = {
     link: o.link, hosts, presence, figures: new FiguresRefresh(hosts, presence, commands), hqFacts: new HqFacts(o.link),
+    features: new HqFeatures(o.link, o.askFeatures === undefined ? () => o.link.call('features.on', {}) : o.askFeatures),
     commands, joins, moves, handoverOut, handoverIn, activity, sessions, silence,
     roles: new RoleCheck(o.link, sessions),
     signIn: new SignIn(o.link, activity, o.machineName),

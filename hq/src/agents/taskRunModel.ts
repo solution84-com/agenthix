@@ -18,7 +18,6 @@ import type { OverrideBoundary } from './overrides/agentOverrideService'
 import { chooseBoundaryRun, type RunChoice } from './runModel'
 import { parseChoiceValue } from '../conversations/access/talkingModel'
 import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
-import { expirePreviewsForSessions } from '../preview/previewRegistry'
 import { takePausedMark } from '../sites/scheduled/runHold'
 import { resolveSiteIdForTask } from './dispatchSiteResolution'
 import { Logger } from '../server/utils/logger'
@@ -57,7 +56,6 @@ async function newestRunOf(taskId: string, sessionId: string): Promise<NewestRun
 /** Removes the task's session, the site's first, as a person's Clear does. */
 async function replaceTaskSession(taskId: string, session: AgentSession): Promise<void> {
   await siteRuntimeStore.deleteSessionsBy(await resolveSiteIdForTask(taskId), { taskId })
-  await expirePreviewsForSessions([session.id])
   await prisma.agentSession.deleteMany({ where: { taskId } })
 }
 

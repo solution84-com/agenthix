@@ -79,6 +79,10 @@ export type SessionPatchEvent = {
  * sends `waiting: true` and, when a slot frees, `waiting: false`; until then hq
  * sees nothing of it, since the wait happens before the run's RUNNING frame.
  * Lost like any event: hq clears the wait on the run's own status frames too.
+ *
+ * `reason` (inside 1.12): `branch` is a run on a branch's copy waiting for the
+ * other runs in its container to end, so the container is made again with the
+ * storage's code workspaces read-only. Absent means `slot`.
  */
 export const RUN_WAITING_EVENT = 'run.waiting'
 
@@ -87,7 +91,10 @@ export type RunWaitingEvent = {
   sessionId: string
   taskId: string | null
   waiting: boolean
+  reason?: RunWaitReason
 }
+
+export type RunWaitReason = 'slot' | 'branch'
 
 /** Single source for the run.stream event-name vocabulary — hq's intake
  *  validation (siteEventHandler.ts's validateRunStreamFrame) feeds from this

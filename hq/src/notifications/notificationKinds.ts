@@ -27,6 +27,8 @@ export const SITE_NOTIFICATION_TYPES = {
   hqSiteDown: 'site_hq_down',
   /** Docker not running, or the machine nearly out of disk or memory; to the people who look after machines. */
   health: 'site_health',
+  /** The machine's disk is 80% used, which branches' working copies can fill; to fleet admins, until it is below that. */
+  diskFilling: 'site_disk_filling',
 } as const
 
 /**

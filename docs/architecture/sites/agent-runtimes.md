@@ -249,7 +249,7 @@ it ([adr-0083](../../adr/adr-0083-a-process-belongs-to-the-conversation-that-sta
   OpenCode command gets it from the plugin's `shell.env` hook. The OpenCode server carries none.
 - **Idle.** When a turn ends, the conversation's idle timer starts: `AGENT_SESSION_IDLE_MINUTES`, a
   machine setting in the site's environment, 30 by default. The next turn stops it, and a running turn is
-  never idle. A preview held open for the conversation keeps it from going idle.
+  never idle.
 - **Ended.** Closed because its harness state is gone (adr-0076), deleted, or its person leaving
   (`server/runtime/conversationEnding.ts`, `membershipEnding.ts`): released at once.
 

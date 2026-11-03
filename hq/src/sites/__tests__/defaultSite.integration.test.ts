@@ -49,7 +49,9 @@ describe('the default site against a real database', () => {
     expect(await ensureDefaultSite()).toBe('unchanged')
     const rows = await prisma.executionSite.findMany()
     expect(rows).toHaveLength(1)
-    expect(rows[0]).toMatchObject({ isDefault: true, label: 'hq-box', status: 'REGISTERED', credentialHash: hashCredential(SECRET) })
+    expect(rows[0]).toMatchObject({
+      isDefault: true, label: 'hq-box', status: 'REGISTERED', credentialHash: hashCredential(SECRET), livePreviewsAllowed: true,
+    })
     expect(JSON.stringify(rows)).not.toContain(SECRET)
 
     process.env.HQ_PAIRING_SECRET = '8'.repeat(64)
@@ -123,31 +125,20 @@ describe('the default site against a real database', () => {
     await ensureDefaultSite()
     const row = await prisma.executionSite.findFirstOrThrow()
     const oldId = row.siteId
-    const expiresAt = new Date(Date.now() + 60_000)
-    const stale = (siteId: string, tag: string) => Promise.all([
-      prisma.workspacePlacement.create({ data: { workspaceId: `ws-${tag}`, siteId } }),
-      prisma.previewSession.create({
-        data: { token: `tok-${tag}`, agentId: 'agent', siteId, previewId: `pv-${tag}`, command: 'npm run dev', expiresAt },
-      }),
-    ])
+    const stale = (siteId: string, tag: string) => prisma.workspacePlacement.create({ data: { workspaceId: `ws-${tag}`, siteId } })
     await stale(oldId, 'old')
     await stale('some-other-site', 'other')
 
     await authenticateSite('new-id', SECRET)
 
     expect((await prisma.executionSite.findFirstOrThrow()).siteId).toBe('new-id')
-    for (const count of [
-      prisma.workspacePlacement.count({ where: { siteId: oldId } }),
-      prisma.previewSession.count({ where: { siteId: oldId } }),
-    ]) expect(await count).toBe(0)
+    expect(await prisma.workspacePlacement.count({ where: { siteId: oldId } })).toBe(0)
     expect(await prisma.workspacePlacement.findMany()).toMatchObject([{ workspaceId: 'ws-other', siteId: 'some-other-site' }])
-    expect(await prisma.previewSession.count({ where: { siteId: 'some-other-site' } })).toBe(1)
 
     // The same id again is a reconnect: it deletes nothing further.
     await stale('new-id', 'new')
     await authenticateSite('new-id', SECRET)
     expect(await prisma.workspacePlacement.count({ where: { siteId: 'new-id' } })).toBe(1)
-    expect(await prisma.previewSession.count({ where: { siteId: 'new-id' } })).toBe(1)
     expect(await prisma.workspacePlacement.count()).toBe(2)
   })
 

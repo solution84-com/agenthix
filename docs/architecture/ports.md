@@ -39,9 +39,10 @@ the web page, 01 the server, 09 the database.**
   server, which also serves those screens once built, listens on 4301 in development and inside its container.
 - Tailscale serve, for reaching a development copy from your other devices, uses the two ports in the next table. It
   listens on the tailnet address only.
-- The relay carries file bytes between browsers and the sites assigned to it. It has no web page and no database: its
-  server answers browsers on the files address and the lines sites dial to it, on 4401 in development and inside its
-  container.
+- The relay carries file bytes, live apps' traffic and branches sent between sites, for the sites assigned to it. It
+  has no web page and no database: its server answers browsers on the files address and on the preview address, and
+  the lines sites dial to it, on 4401 in development and inside its container. In development a live app is at
+  `http://p-<id>.preview.localhost:4401`, a name browsers resolve to the machine itself.
 
 <!-- ports:constants -->
 | Name | Value |
@@ -60,12 +61,24 @@ the web page, 01 the server, 09 the database.**
 | site server | 4201, and a control socket | hq's server; agent containers, for models | not published |
 | site database | 5432 | the site's server | not published |
 | Fleet Console | 4301: its server, which also serves its screens; a control socket; on a machine Agenthix Cloud runs, the remote-access port | fleet admins' browsers, through the published port; Agenthix Cloud | the Fleet Console's published port, on 127.0.0.1 only; the remote-access port as Agenthix Cloud names it |
-| hq's relay | 4401: browsers' requests on the files address, and the lines sites dial | hq web, which sends it the files address and the sites' lines | not published |
+| hq's relay | 4401: browsers' requests on the files address and on every live app's address (the preview address), and the lines sites dial | hq web, which sends it the files address, the preview address's names and the sites' lines | not published |
 | Front door (Caddy), when on | 80 and 443 | anyone opening an https address | 80 and 443 |
 | Host service | none: sockets only | its command line, the Fleet Console | not published |
 | Agent containers | 4096 on the container's own loopback address (the OpenCode server); an agent's own preview, on whatever port its app uses | only from inside the container: the site reaches both through `docker exec` | not published |
+| A live preview's container | each live app on the port the agent's `start_app` names, on the container's own address | the site, only for a stream carrying an app ticket; the app is never published | not published |
+| A live preview's service | the image's own port (`postgres:5432`), on the live preview's services network | the live preview's container, by the service's name | not published |
 
 A site publishes no port at all, so any number of sites on one machine never clash on ports.
+
+### Ports inside an agent's container
+
+What the agent's harness listens on in an agent's container, on its loopback address only. A live app may not take
+it: an app's port is 1024 to 65535 except these (`LIVE_PREVIEW_RESERVED_PORTS` is built from this table's source).
+
+<!-- ports:harness -->
+| Name | Value |
+|---|---|
+| `HARNESS_PORTS.openCode` | 4096 |
 
 ## Tests take free ports
 
@@ -169,13 +182,15 @@ their own, so none overlaps another.
 
 Each installation with a site gets a **/20 slice** of the agents' block: 4,096 addresses, which is 16 slices in the
 /16, so up to 16 installations with a site per machine. Within its slice the site gives each agent container its own
-network, a /29 of 8 addresses, so at most 512 agent containers run at once per site.
+network, a /29 of 8 addresses: room for 512 agent containers per slice, of which the lower half, 256, is for ordinary
+agent containers and the upper half for live previews (*The live-preview part*, below).
 
 <!-- ports:slice -->
 | Name | Value |
 |---|---|
 | `AGENT_SLICE_BITS` | 20 |
 | `AGENT_CONTAINER_BITS` | 29 |
+| `LIVE_PREVIEW_PART_BITS` | 21 |
 
 The slice is picked when an installation's site is first installed: the first of the 16 that overlaps no Docker
 network, no address of the machine and no other installation's recorded slice. It is recorded in `installation.json`,
@@ -183,5 +198,14 @@ given to the site as `AGENT_NETWORK_RANGE`, and the firewall rules that keep age
 cover that slice alone. When no slice is free the install is refused before anything is written. An installation
 without a site, such as a Fleet Console alone, takes none.
 
-512 agent containers at once is more than one machine's CPU and memory run, and sixteen installations leaves room
+**The live-preview part.** The upper half of the slice, its last /21 (`LIVE_PREVIEW_PART_BITS`, `livePreviewPartOf`
+in `core/src/ports/livePreviewPart.ts`), is for live previews' networks on every machine:
+2,048 addresses, so 256 live-preview networks of a /29. A live preview's own network and its services network (a /28 of 16 addresses, for the live preview's container and up
+to ten services) are both allocated there and nowhere else, and ordinary agents take the lower half. The host service
+closes the live-preview part to private addresses, the machine's own and public addresses and cloud metadata addresses
+on every machine, so a live preview reaches only the public internet and its own site; ordinary agents keep reaching
+what they reach today. In development, where `AGENT_NETWORK_RANGE` is a /16, the live-preview part is the range's last
+/21.
+
+256 ordinary agent containers at once is more than one machine's CPU and memory run, and sixteen installations leaves room
 for test installations beside the real one.

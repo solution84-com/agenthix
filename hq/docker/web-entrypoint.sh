@@ -14,6 +14,14 @@ if [ -n "$files_host" ]; then
 else
   unset FILES_HOST
 fi
+# Live apps' addresses (web-previews.sh), which the Caddyfile passes to hq's relay alone; likewise exported only when set.
+preview_hosts="$(/usr/local/bin/hq-web-previews)"
+if [ -n "$preview_hosts" ]; then
+  export PREVIEW_HOSTS="$preview_hosts"
+  echo "hq-web: live apps are passed to the relay on $PREVIEW_HOSTS."
+else
+  unset PREVIEW_HOSTS
+fi
 n="${HQ_TRUSTED_PROXIES:-1}"
 case "$n" in ''|*[!0-9]*) echo "HQ_TRUSTED_PROXIES must be a whole number (got '$n')" >&2; exit 1 ;; esac
 if [ "$n" -gt 1 ]; then

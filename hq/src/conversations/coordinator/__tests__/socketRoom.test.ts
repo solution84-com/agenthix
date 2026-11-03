@@ -5,20 +5,21 @@
 import { describe, it, expect } from 'vitest'
 import { HttpError } from 'wasp/server'
 import { CONVERSATION_SOCKET } from '../../../shared/conversations/protocol'
-import { joinConversationRoom, replayFor } from '../socketRoom'
+import { joinConversationRoom, registerConversationRoom, replayFor } from '../socketRoom'
 import { endLive, startLive } from '../liveTurns'
 
 function socket(userId: string | null = 'u1') {
   const joined: string[] = []
   const emitted: { event: string; payload: unknown }[] = []
+  const handlers = new Map<string, (...args: unknown[]) => void>()
   return {
-    joined, emitted,
+    joined, emitted, handlers,
     id: 's1',
     data: userId ? { user: { id: userId } } : {},
     join(room: string) { joined.push(room) },
     leave() {},
     emit(event: string, payload: unknown) { emitted.push({ event, payload }) },
-    on() {},
+    on(event: string, listener: (...args: unknown[]) => void) { handlers.set(event, listener) },
   }
 }
 
@@ -65,5 +66,21 @@ describe('joining a conversation room', () => {
     } finally {
       endLive('c3', 'turn-8')
     }
+  })
+
+  it('answers a join that asks, once the socket is in the room, so the screen reads the record after it @SC-1004', async () => {
+    const s = socket()
+    registerConversationRoom(s, reads, log)
+    const answered = await new Promise<unknown>((resolve) => s.handlers.get(CONVERSATION_SOCKET.subscribe)!('c1', resolve))
+    expect(answered).toBe(true)
+    expect(s.joined).toEqual(['conversation:c1'])
+
+    const refused = socket()
+    registerConversationRoom(refused, refuses, log)
+    expect(await new Promise<unknown>((resolve) => refused.handlers.get(CONVERSATION_SOCKET.subscribe)!('c1', resolve))).toBe(false)
+    // A join that does not ask, as the mobile app's, is joined all the same.
+    s.handlers.get(CONVERSATION_SOCKET.subscribe)!('c4')
+    await new Promise((r) => setTimeout(r, 0))
+    expect(s.joined).toContain('conversation:c4')
   })
 })

@@ -27,6 +27,8 @@ import {
   SITE_TEST_DATABASE_URL,
   SITE_URL,
 } from './env'
+import { siteDb } from './db'
+import { recordSiteId } from './siteLeftovers'
 
 type AppHandle = { child: ChildProcess; logPath: string }
 type AppName = 'hq' | 'site' | 'relay'
@@ -485,4 +487,7 @@ export async function waitForSite(): Promise<void> {
     const res = await fetch(`${SITE_URL}/health`, { signal: AbortSignal.timeout(5000) })
     return res.ok
   }, siteHandle, 'site')
+  // The id the site labels what it makes with, for teardown (siteLeftovers.ts).
+  const config: { siteId: string } | null = await siteDb.siteConfig.findFirst({ select: { siteId: true } }).catch(() => null)
+  if (config) recordSiteId(config.siteId)
 }

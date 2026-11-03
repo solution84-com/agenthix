@@ -5,7 +5,7 @@ import { Link } from '../../router'
 import { changeWords, pendingChanges } from '../dashboard/overview'
 import type { FleetHost } from '../dashboard/types'
 import { notifies, spanOf, whenIs } from '../dashboard/words'
-import { ceilingWords, healthWords, protectionWords } from './words'
+import { ceilingWords, copiesWords, healthWords, protectionWords } from './words'
 
 const Sub = ({ children }: { children: React.ReactNode }) => <p className="text-small text-text-secondary">{children}</p>
 const tidy = 'normal-case tracking-normal'
@@ -59,11 +59,13 @@ export function BackupsCard({ host, now, backupsTo, next = false }: { host: Flee
 }
 
 /** The machine's health: what fills up, and a verdict. */
-export function HealthCard({ figures }: { figures: HostFigures }) {
+export function HealthCard({ figures, copiesBytes }: { figures: HostFigures; copiesBytes?: number | null }) {
   const w = healthWords(figures)
+  const copies = copiesWords(figures.resources.disk, copiesBytes)
   return (
     <FactCard title="Health" aside={<StatePill tone={w.tone}>{w.verdict}</StatePill>}>
       <KeyValueRow label="Disk">{w.disk}</KeyValueRow>
+      {copies && <KeyValueRow label="Branch copies">{copies}</KeyValueRow>}
       <KeyValueRow label="Memory">{w.memory}</KeyValueRow>
       {w.say && <Say warn lead={w.say.lead}>{w.say.rest}</Say>}
     </FactCard>

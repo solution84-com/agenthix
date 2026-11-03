@@ -1,7 +1,7 @@
 ---
 name: User Stories — cross-cutting
 description: Business-level requirements that span more than one module. Each story maps to acceptance criteria in multiple modules' scenarios files.
-updated: 2026-10-27
+updated: 2026-11-03
 ---
 
 # User Stories — cross-cutting
@@ -150,3 +150,36 @@ As an organisation that runs hq, I want every file an agent made to open through
 - AC-397e: a file an agent wrote cannot act as the person opening it: it is served from another address that holds no hq session, with the browser told not to run or sniff it, and no other page can read it.
 - AC-397f: limits keep a flood away: what is drawn of a file is bounded by kind, a person has a bounded number of streams, a site a bounded number of reads at once, and a slow reader holds only its own stream.
 - AC-397g: hq records who opened which file, at which version and when, and whether to preview or download.
+
+## Features that are not on (added 2026-11-03)
+
+Written at the close of the unit *live preview*, from the finished code. A feature that is not ready is behind a flag with a stage; one rule decides whether it is on, every program asks that rule, and an organisation's admin may switch a beta on or a feature new in this release off (stories US-424 and US-425 are the admin's and the developer's side, in [`hq.md`](hq.md)). The live preview is the first flag, at experimental, so a release that has it off keeps everything else.
+
+### US-426 — Know that a feature that is off is closed everywhere
+
+As an organisation that runs hq, I want a feature that is off to be out of sight and to refuse everywhere, so that unfinished work cannot be reached, run or billed by accident, and code work on branches is unaffected.
+
+**Acceptance criteria:**
+- AC-426a: one rule in core decides from the feature's stage, the kind of build and the organisation's switches; every program asks it; a deployment that forgets to say what it is counts as production.
+- AC-426b: hq's screens hide what is off, and hq's server refuses its operations, routes and socket handlers as not available, doing nothing and saying nothing was changed.
+- AC-426c: an agent is given no tool of a feature that is off, and what it is told says nothing of the feature.
+- AC-426d: a site refuses the feature's methods and a relay its addresses, taking hq's word for two things only: a beta switched on and a new feature switched off; an agent cannot reach the switches.
+- AC-426e: with live previews off, the workspace view, the lead's offer, the Fleet Console, the agents' app tools, the site's methods and the relay's app addresses show and do nothing of them, while branches, Git, merging, versions and *Restore* work as without them.
+
+### US-427 — Test what ships, and see experiments apart
+
+As a maintainer, I want every test to run as the product ships and a feature's own tests to switch it on, so that unfinished work cannot break what ships and nobody is stuck by an experiment they do not know.
+
+**Acceptance criteria:**
+- AC-427a: each test runs with every flag at its production value; a feature's own tests switch its flag on for their group with one helper and nothing switches a flag on globally.
+- AC-427b: the tests that a feature is hidden and refuses while off always block a merge, and hold in the run with every flag on.
+- AC-427c: a failing test of a feature at experimental is reported, not blocking, and the run's summary lists it by the flag's name; from preview on a feature's tests block like any other.
+- AC-427d: the full regression adds one run of the end-to-end and cross-app suites with every flag on, to catch features that clash.
+
+### US-428 — Remove a flag in time
+
+As a maintainer, I want a release refused while a feature released in an earlier minor release still has its flag, so that flags do not pile up and the off path of a finished feature is not kept for ever.
+
+**Acceptance criteria:**
+- AC-428a: the release rehearsal and the tag's publishing refuse a version while a flag released in an earlier minor or major release is still listed, naming each flag and what to do.
+- AC-428b: a patch or pre-release of the flag's own minor release does not count; a pre-release of a later minor does.

@@ -14,12 +14,16 @@
  * (spec §7.2). `ping`/`get_site_info` are genuinely local: they touch no
  * data at all. Full classification list is in this task's completion report.
  */
-import { BRANDING } from '@agenthix/core'
+import { PLATFORM_TOOLS_INSTRUCTIONS } from '@agenthix/core'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { callHqData, HqDataError } from '../hq/dataClient'
 import type { ZodRawShape } from 'zod'
 import { FORWARDED_TOOLS, type ForwardedTool } from './forwardedToolSchemas'
 import { registerSiteTools } from './siteTools'
+import { CODE_TOOL_NAME_SET } from './forwardedCodeSchemas'
+import { APP_TOOL_NAME_SET, appToolsOn } from './forwardedAppSchemas'
+import { registerPreviewInstallTools } from './previewInstallTools'
+import type { CapabilityLivePreview, FeatureSwitches } from '@agenthix/core'
 import type { SiteToolsOptions } from './siteTools'
 
 function mcpOk(data: unknown) {
@@ -44,6 +48,15 @@ export interface CreateMcpServerOptions {
   capabilityJwt: string
   /** The turn the caller acts for, for the tools the site serves itself (siteTools.ts). */
   siteTools?: SiteToolsOptions
+  /** The live preview the run's verified capability names: its package tools install there, and a run that is not code work is offered the app tools only with it. */
+  livePreview?: CapabilityLivePreview | null
+  /** The organisation's trusted npm scopes, read off the verified capability: the package tools' rule trusts these. */
+  trustedPackageScopes?: readonly string[]
+  /**
+   * The organisation's switches the run was started with (adr-0172); absent means none. While the live preview is off
+   * for them, the app tools are not offered and the capability's live preview is not used.
+   */
+  features?: FeatureSwitches
 }
 
 const NO_RUN = 'No run of this conversation is running, so nothing was recorded.'
@@ -65,28 +78,7 @@ export function createMcpServer(opts: CreateMcpServerOptions): McpServer {
   const server = new McpServer(
     { name: 'agenthix-site', version: process.env.APP_VERSION || 'dev' },
     {
-      instructions: [
-        `${BRANDING.displayName} task management tools are available in this session.`,
-        '',
-        'Key concepts:',
-        '- A task is always on one board (its project\'s Project Tasks unless put on another), and either in one of the board\'s columns (`column`, e.g. "todo", "in_progress", "done") or in the board\'s Backlog (`column` null).',
-        '- `status` = the task\'s state (TODO | IN_PROGRESS | DONE), following its column; move a task by its column, never by its status.',
-        '- `runState` = whether a run of the task is pending or going now (RUN_NONE | RUN_QUEUED | RUN_THROTTLED | RUN_ACTIVE | RUN_BLOCKED | RUN_FAILED). Set by the system only, never by you; independent of column/status. Whether a task is done is its column.',
-        '- The Backlog starts nothing: a task there cannot be executed. To make it executable: update_task(column="..."). Moved to another board, a task lands in that board\'s Backlog.',
-        '- A task\'s plan (planStart, planFinish) is when its work is meant to happen; setting it starts nothing. Its start time (set_task_schedule) is when its agent starts. An epic groups tasks; a milestone is a dated goal an epic belongs to.',
-        '- On a sprint board, a task in a column is in the current sprint. finish_sprint needs you to say where the unfinished tasks go.',
-        '',
-        'Rules for using these tools:',
-        '- Call set_result once at the end with what this run achieved, or why it could not. Use add_comment for what others working on the task should see.',
-        '- Update subtasks via update_task as you complete each step, not just at the end. Humans may be watching progress in real time.',
-        '- Move the task to the appropriate board column via update_task(column="...") when done, or when it needs review. That is how you say a task is finished, blocked or needs a person — with a comment saying why.',
-        '- Only create a follow-up task via create_task for work that is clearly out of scope. If it is small enough to mention in the result summary, do that instead.',
-        '- When creating tasks via create_task: pass queue: true if the task should wait to be started by the project\'s pulse; leave it out (the default) for backlog tasks or follow-up work that a human should review first.',
-        '- Do not call run_task on a task you just created in the same session — leave it queued, or wait for a human to review it first.',
-        '',
-        'Processes you leave running:',
-        '- Each command you run is sandboxed on its own, so `kill` or `pkill` from a command cannot stop a process an earlier command started (a dev server, a watcher). Call stop_processes with text from its command line instead; it stops only this conversation\'s own processes.',
-      ].join('\n'),
+      instructions: PLATFORM_TOOLS_INSTRUCTIONS,
     },
   )
 
@@ -109,6 +101,16 @@ export function createMcpServer(opts: CreateMcpServerOptions): McpServer {
   server.tool('get_site_info', {}, async () => mcpOk({ status: 'standalone', mode: 'standalone' }))
 
   registerSiteTools(server, opts.siteTools ?? { context: null, openCode: false })
+  // Every code-work run installs through the rule (adr-0170): in its live preview when its capability names one, else in
+  // its own container. While the live preview is off for the run, a live preview named is not used.
+  const turn = opts.siteTools?.context ?? null
+  const livePreviewOn = appToolsOn(opts.features)
+  const livePreview = livePreviewOn ? opts.livePreview ?? null : null
+  if (livePreview || turn?.codeWork) {
+    registerPreviewInstallTools(server, {
+      claim: livePreview, trustedPackageScopes: opts.trustedPackageScopes ?? [], runId: turn?.runId ?? null, context: turn,
+    })
+  }
 
   // ── Forwarded tools — thin callHqData(name, args, capabilityJwt) forwards ──
 
@@ -116,6 +118,13 @@ export function createMcpServer(opts: CreateMcpServerOptions): McpServer {
 
   for (const tool of FORWARDED_TOOLS) {
     const { name, description } = tool
+    if (CODE_TOOL_NAME_SET.has(name) && !opts.siteTools?.context?.codeWork) continue
+    // Every code-work run is offered the app tools, whether or not its branch has a live preview now: a harness lists
+    // a conversation's tools once and keeps them for its later runs, while a live preview opens and stops at any time.
+    // hq answers each call only while the run's branch has a live preview on the run's site, and refuses it otherwise.
+    // None is offered while the live preview is off for the run: a harness that kept them from an earlier listing finds
+    // no such tool here.
+    if (APP_TOOL_NAME_SET.has(name) && (!livePreviewOn || (!livePreview && !opts.siteTools?.context?.codeWork))) continue
     const schema = agentSchema(tool)
     const handler = async (args: unknown) => {
       if (tool.runIdFromCaller && !callingRunId) return mcpError(NO_RUN)

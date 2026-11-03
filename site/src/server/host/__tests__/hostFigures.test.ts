@@ -15,7 +15,7 @@ const ceilings = { memoryBytesPerContainer: 4 * GIB, cpusPerContainer: 2, proces
 const T0 = Date.parse('2026-10-14T09:00:00Z')
 
 /** What the host service's figures socket answers: every figure, of which the site keeps two. */
-function answer(over: { holding?: boolean; checkedAt?: string; ceilings?: unknown } = {}) {
+function answer(over: { holding?: boolean; checkedAt?: string; ceilings?: unknown; rules?: string[]; publicAddressKnown?: boolean } = {}) {
   return {
     event: 'result', ok: true, op: 'figures.read',
     result: {
@@ -23,7 +23,10 @@ function answer(over: { holding?: boolean; checkedAt?: string; ceilings?: unknow
       machine: { name: 'hq-box', system: 'Linux', dockerVersion: '29.0.0', hostServiceVersion: '0.2.0', upSince: '2026-10-01T00:00:00Z' },
       resources: { cpuLoad: 0.4, memory: { usedBytes: 3 * GIB, totalBytes: 16 * GIB }, disk: { freeBytes: 1, totalBytes: 2 } },
       ceilings: over.ceilings ?? ceilings,
-      protections: { holding: over.holding ?? true, rules: [], checkedAt: over.checkedAt ?? '2026-10-14T09:00:00Z', problem: null },
+      protections: {
+        holding: over.holding ?? true, rules: over.rules ?? [], checkedAt: over.checkedAt ?? '2026-10-14T09:00:00Z', problem: null,
+        ...(over.publicAddressKnown === undefined ? {} : { publicAddressKnown: over.publicAddressKnown }),
+      },
       installs: [], scheduledChanges: 0,
     },
   }
@@ -32,7 +35,7 @@ function answer(over: { holding?: boolean; checkedAt?: string; ceilings?: unknow
 describe('what the site takes from the figures', () => {
   it('keeps the ceilings and whether the protections hold, and nothing else', () => {
     const r = parseReading(answer(), T0)
-    expect(r).toEqual({ ceilings, protections: { holding: true, checkedAt: T0 }, readAt: T0 })
+    expect(r).toEqual({ ceilings, protections: { holding: true, checkedAt: T0, rules: [], drops: null, publicAddressKnown: false }, use: expect.objectContaining({}), readAt: T0 })
     expect(JSON.stringify(r)).not.toMatch(/29\.0\.0|cpuLoad|usedBytes|hq-box/)
   })
 
@@ -98,6 +101,20 @@ describe('whether an agent may start', () => {
     c = { ...ceilings, containersAtOnce: 2 }
     await f.refresh()
     expect(changed).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('whether a live preview may start @SC-1747', () => {
+  const figures = (over: Parameters<typeof answer>[0]) => new HostFigures('/run/host-figures/figures.sock', async () => answer(over), () => T0)
+
+  it('needs private-addresses while the machine knows no public address', async () => {
+    expect(await figures({ rules: ['private-addresses'] }).livePreviewProtectionsProblem()).toBeNull()
+    expect(await figures({ rules: [] }).livePreviewProtectionsProblem()).toMatch(/private-addresses/)
+  })
+
+  it('needs public-address too once the machine knows one', async () => {
+    expect(await figures({ rules: ['private-addresses'], publicAddressKnown: true }).livePreviewProtectionsProblem()).toMatch(/public-address/)
+    expect(await figures({ rules: ['private-addresses', 'public-address'], publicAddressKnown: true }).livePreviewProtectionsProblem()).toBeNull()
   })
 })
 

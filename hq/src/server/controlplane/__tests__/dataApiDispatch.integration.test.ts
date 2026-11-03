@@ -161,14 +161,14 @@ describe('what comes back', () => {
 })
 
 describe('a capability outliving its project', () => {
-  it('403s every call, start_preview included, once its project is deleted', async () => {
+  it('403s every call once its project is deleted', async () => {
     const h = await headers()
     await prisma.task.deleteMany()
     await prisma.board.deleteMany({ where: { projectId: project.id } })
     await prisma.project.delete({ where: { id: project.id } })
     const r = await call(h, {
-      operation: 'start_preview',
-      args: { command: 'npm run dev', port: 5173 },
+      operation: 'list_products',
+      args: {},
     })
     expect(r).toMatchObject({ code: 403, body: { error: "This run's project no longer exists" } })
   })

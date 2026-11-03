@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SERVICE_PORTS } from '@agenthix/core'
+import { DEV_PREVIEW_PATTERN, SERVICE_PORTS } from '@agenthix/core'
 import { ConfigError, loadConfig } from '../config'
 import { filesHostOf, isFilesHost } from '../filesHost'
 
@@ -34,6 +34,15 @@ describe('the relay\'s configuration @SC-1468', () => {
     expect(loadConfig({ ...base, HQ_URL: 'http://localhost:4100' }).filesHost).toBe('files.localhost')
     expect(loadConfig({ ...base, HQ_URL: 'https://hq.example.com' }).filesHost).toBeNull()
     expect(() => loadConfig({ ...base, FILES_ORIGIN: 'https://files.example.com/path' })).toThrow(/FILES_ORIGIN/)
+  })
+
+  it('takes live apps\' pattern from PREVIEW_PATTERN, defaults it only for hq on localhost, and refuses one that is not @SC-1751', () => {
+    expect(loadConfig({ ...base, HQ_URL: 'https://hq.example.com', PREVIEW_PATTERN: 'https://p-{id}.preview.example.com' }).previewPattern)
+      .toBe('https://p-{id}.preview.example.com')
+    expect(loadConfig({ ...base, HQ_URL: 'http://localhost:4100' }).previewPattern).toBe(DEV_PREVIEW_PATTERN)
+    expect(loadConfig({ ...base, HQ_URL: 'https://hq.example.com' }).previewPattern).toBeNull()
+    expect(loadConfig({ ...base, HQ_URL: 'http://192.168.1.4:4100' }).previewPattern).toBeNull()
+    expect(() => loadConfig({ ...base, PREVIEW_PATTERN: 'http://p-{id}.preview.example.com' })).toThrow(/PREVIEW_PATTERN/)
   })
 })
 

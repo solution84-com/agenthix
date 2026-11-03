@@ -36,6 +36,19 @@
  *
  * Events may be lost, like every site event: hq recovers a run's state with `workflow.get`.
  *
+ * ## A run aimed at a live preview
+ *
+ * Since 1.12, `livePreview` names a live preview the run is for: a place's *Start live preview* or *Reload live
+ * preview* workflow (live preview spec section 4, *Secrets*; adr-0171). hq sends it to the site the live preview runs
+ * on, which must hold that live preview, running, on the instruction's workspace; else it refuses with
+ * `live_preview_unavailable`. The steps run as any run's do, in executor containers, on the live preview's copy
+ * rather than the workspace's folder. Once every step has passed and the scan found nothing, the site hands the
+ * secrets the steps name to the live preview's app container alone, as files in `LIVE_PREVIEW_SECRETS_DIR` its apps
+ * read, replacing any an earlier run handed. A value minted for the run (`INTEGRATION_SECRET_NAMES`) is never
+ * handed. The files go when the container does: at a stop, or a pause that removed it. While they are there, every
+ * line of the live preview's apps and installs the site sends on is masked against `masking`, as a run's output is.
+ * A run that passed but whose secrets could not be handed fails with `site_error`.
+ *
  * Type aliases rather than interfaces, for the reason `runtimeData.ts` gives.
  */
 import type { StorageOwnerType } from '../storage/locationRef.js'
@@ -139,10 +152,20 @@ export type WorkflowRunInstruction = {
   masking: WorkflowMaskingMaterial
   /** Set when a step names `GITHUB_TOKEN`. */
   github: WorkflowRunGitHub | null
+  /** Added in site protocol 1.12: the live preview the run hands its secrets to (see the module's note). */
+  livePreview?: WorkflowRunLivePreview
 }
+
+/** The live preview a run is aimed at: hq's id, as `livePreview.open` named it. */
+export type WorkflowRunLivePreview = { livePreviewId: string }
+
+/** Where a live preview's app container has the secrets a run handed it, one file per name. */
+export const LIVE_PREVIEW_SECRETS_DIR = '/run/secrets'
 
 export const WORKFLOW_RUN_REFUSALS = [
   'hash_mismatch', 'invalid_instruction', 'workspace_missing', 'image_missing', 'already_known', 'busy',
+  /** Since 1.12: the run names a live preview this site does not hold running, on that workspace. */
+  'live_preview_unavailable',
 ] as const
 export type WorkflowRunRefusal = (typeof WORKFLOW_RUN_REFUSALS)[number]
 

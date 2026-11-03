@@ -27,6 +27,8 @@ export type LinkDeps = {
   onRevoke: () => Promise<void>
   /** hq moves to a new address (addressFollow.ts): the machine follows once the address passes the move check. */
   onHqAddress?: (address: unknown) => void
+  /** The address hq sees this connection from (`hq.seenFrom`): live previews are kept from it when it is public. */
+  onSeenFrom?: (address: unknown) => void
   /** A site's move: a transfer's frames from the other machine, or hq dropping it (move/wire.ts). */
   onTransfer?: (type: string, payload: Record<string, unknown>) => void
   log: (line: string) => void
@@ -161,6 +163,9 @@ export class HostLink implements LinkHandle {
         return
       case 'hq.address':
         this.d.onHqAddress?.(f.payload.address)
+        return
+      case 'hq.seenFrom':
+        this.d.onSeenFrom?.(f.payload.address)
         return
       case 'transfer.chunk':
       case 'transfer.ack':

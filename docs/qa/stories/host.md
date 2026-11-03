@@ -1,7 +1,7 @@
 ---
 name: User Stories — host
 description: Business-level requirements for the host service — what a machine admin, whoever can use Docker on a machine, needs from Agenthix on that machine. Written for business readers.
-updated: 2026-10-23
+updated: 2026-11-02
 ---
 
 # User Stories — `host/`
@@ -284,3 +284,20 @@ As a contributor, I want to switch a development host service to another image b
 **Acceptance criteria:**
 - AC-374a: a development host service switches to another image built on the machine, and puts the old one back when the new does not answer.
 - AC-374b: a published host service is not given this: it switches only forward, to an image signed for the newer version.
+
+---
+
+## Live apps' addresses (added 2026-11-02)
+
+Written on 2026-11-02 from the finished code at the close of the unit *live preview*.
+
+> **Behind the `livePreview` flag, at experimental, so not in the release:** US-423. The product does not keep these promises while the flag is off. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
+### US-423 — Give live apps their own addresses
+
+As a machine admin, I want to give live apps a preview domain with one command, so that each app opens at an address of its own.
+
+**Acceptance criteria:**
+- AC-423a: `agenthix front-door on --previews <domain>` sets the preview domain and checks the wildcard DNS record, the certificate and an answer from the relay, saying what failed.
+- AC-423b: with HQ at `http://localhost`, live apps are under `preview.localhost`; at a bare network address there are none, and *Live preview* says a domain is needed.
+- AC-423c: each app gets its certificate on first open, only for an app HQ recorded.

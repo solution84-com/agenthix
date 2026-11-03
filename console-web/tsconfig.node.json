@@ -4,6 +4,6 @@
   "compilerOptions": {
     "types": ["node", "vite/client"]
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "vitest.setup.ts", "src/__tests__"],
+  "include": ["vite.config.ts", "vitest.config.ts", "vitest.setup.ts", "vitest.experimental-failures-setup.ts", "src/__tests__"],
   "exclude": []
 }

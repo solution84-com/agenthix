@@ -28,6 +28,7 @@
  */
 
 import { parseEffectiveCeilings, type EffectiveCeilings } from '../host/figures.js'
+import { parseLivePreviewsCapacity, type LivePreviewsCapacity } from '../livePreview/capacity.js'
 
 export const SITE_HEALTH_EVENT = 'site.health'
 
@@ -66,6 +67,10 @@ export type SiteHealth = {
   ceilings: EffectiveCeilings | null
   /** Whether the machine is nearly out of memory (`machineMemoryNearlyFull`). */
   memoryNearlyFull: boolean
+  /** The disk the branches' working copies use (`clones/` across owners); absent from a site before 1.12, null when unreadable. Added in site protocol 1.12. */
+  branchCopies?: { usedBytes: number } | null
+  /** Since 1.12: what the site's live previews use (`LivePreviewsCapacity`); absent from a site from before. */
+  livePreviews?: LivePreviewsCapacity
 }
 
 export type ExecutorImageReport = {
@@ -90,6 +95,18 @@ const GIB = 1024 ** 3
 export function diskNearlyFull(disk: SiteHealth['disk']): boolean {
   if (!disk || disk.totalBytes <= 0) return false
   return disk.freeBytes < Math.min(10 * GIB, disk.totalBytes * 0.1)
+}
+
+/** Fleet admins are told when the disk is 80% used, which is earlier than nearly full: many branches of a large repository fill a machine. */
+export const DISK_FILLING_PERCENT = 80
+
+/** A warning already given holds until usage is below this, so a disk hovering at 80% is not warned of again and again. */
+export const DISK_RECOVERED_PERCENT = 75
+
+export function diskFilling(disk: SiteHealth['disk'], warned = false): boolean {
+  if (!disk || disk.totalBytes <= 0) return false
+  const percent = ((disk.totalBytes - disk.freeBytes) / disk.totalBytes) * 100
+  return percent >= (warned ? DISK_RECOVERED_PERCENT : DISK_FILLING_PERCENT)
 }
 
 /**
@@ -153,6 +170,8 @@ export function parseSiteHealth(data: unknown): SiteHealth | null {
   const freeBytes = bytes(disk?.freeBytes)
   const totalBytes = bytes(disk?.totalBytes)
   if (typeof d.memoryNearlyFull !== 'boolean') return null
+  const copies = bytes(record(d.branchCopies)?.usedBytes)
+  const livePreviews = d.livePreviews === undefined ? null : parseLivePreviewsCapacity(d.livePreviews)
   return {
     takenAt,
     runs: { running, maxAtOnce },
@@ -163,5 +182,7 @@ export function parseSiteHealth(data: unknown): SiteHealth | null {
     ...(executorImage ? { executorImage } : {}),
     ceilings: parseEffectiveCeilings(d.ceilings),
     memoryNearlyFull: d.memoryNearlyFull,
+    ...(copies !== null ? { branchCopies: { usedBytes: copies } } : {}),
+    ...(livePreviews ? { livePreviews } : {}),
   }
 }

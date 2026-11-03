@@ -16,6 +16,10 @@ import { Logger } from '../../../server/utils/logger'
 import { runApprovedCall, type ApprovedCall } from './runApproved'
 import { answerWorkflowCard, isWorkflowCard } from '../../../workflows/review/cardAnswer'
 import { answerAssetCard, isAssetCard } from '../../../assets/approvals/answer'
+import { isMergeCard } from '../../../branches/mergeCardArgs'
+import { answerMergeCard } from '../../../branches/mergeCardAnswer'
+import { isPackageCard } from '../../../branches/packageCardArgs'
+import { answerPackageCard } from '../../../branches/packageCardAnswer'
 
 export const NOT_WAITING = 'This request is not waiting for an answer.'
 
@@ -64,6 +68,10 @@ export function createToolCallOwner(deps: ToolCallOwnerDeps): OperationOwner {
       if (isWorkflowCard(row.toolName)) return answerWorkflowCard(row, answer, byUserId, deps.settle)
       // An agent's asset request runs as its own kind, never as the lead's call, whatever the agent's approval mode.
       if (isAssetCard(row.toolName)) return answerAssetCard(row, answer, byUserId, deps)
+      // An agent's ask to merge its branch: merged only by a person's own press, as them.
+      if (isMergeCard(row.toolName)) return answerMergeCard(row, answer, byUserId, deps)
+      // An agent's ask about a blocked package in its branch's copy: allowed only by a person's own press.
+      if (isPackageCard(row.toolName)) return answerPackageCard(row, answer, byUserId, deps)
       if (answer === 'decline') {
         if (!(await deps.settle(operationId, { state: 'CANCELLED', noReport: true, result: { summary: declinedLine(note) } }))) {
           throw new HttpError(409, NOT_WAITING)

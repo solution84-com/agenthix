@@ -51,6 +51,7 @@ E2E_CLIENT_URL=<hq's web address> E2E_SERVER_URL=<hq's server address> npm run e
 | `orgKnowledge.spec.ts` | The organisation's Knowledge (an admin writes and changes, a member reads), and a project's search over This project, Organisation or Both with each result marked; same seed | Yes |
 | `filesFrame.spec.ts` | A file opened in the Files tool through HQ's open action and the relay: Markdown with a relative image and a sized image tag, code, a CSV table, an image and a PDF in its viewer; needs `E2E_FILES_FOLDER` from `fixtures/seed-e2e-files.mjs` (run on the site's machine), the development relay (`scripts/dev/relay.sh`) and, for the PDF, the files address | Writes its files into the administrator's own Files |
 | `fileLinks.spec.ts` | A file's stable link: Copy link gives the place's address with the file and opens it in place; a gone file says so with its folder; a place someone can't see answers its usual "not found" without the file's name; uses the same seeded files as `filesFrame.spec.ts` | Reads the administrator's seeded Files |
+| `workspaceView.spec.ts` | The full-screen workspace view: no HQ navigation, Live preview kept stopped, main's versions and Deploy…, a branch's changes and its diff, the Merge dialog's clash, a Viewer's disabled actions, a workspace without Git, and the laptop, tablet and phone widths; opens a real workspace (`E2E_WORKSPACE_ID`, skips without it) and answers the branch operations itself | No |
 | `conversationPlaces.spec.ts` | A conversation's places: the header, Add place… with its notice, the cross, the lead's card, the phone sheet; needs `E2E_PLACES_CONVERSATION_ID` and `E2E_PLACES_PROJECT_NAME` from the same seed | Yes |
 | `install/walkthrough.spec.ts` | HQ as installed, run by `scripts/install-test/run.sh` — see below | On the test's own install |
 
@@ -72,6 +73,20 @@ checked at their own address, so the specs and recipes that add them answer the 
 (a route intercept, `fixtures/voiceProviders.ts`) or leave the form unsaved, and put the provider in the database with an
 obviously fake key (`fixtures/add-provider.mjs`, which reads `DATABASE_URL`, else `.env.server`). Such a provider is dated
 so that HQ never re-checks it with its vendor.
+
+## Feature flags: as shipped, and a feature's own group
+
+Every spec runs as shipped (adr-0172). The e2e server is a development build, where a flag at preview or beta is on
+with no switch, so the seed (`fixtures/seed-e2e-users.mjs`) sets the organisation's switches to production's values:
+only a released flag on. A feature's own specs switch its flag on around their group with
+`withFeature(flag, test => { … })` (`fixtures/withFeature.ts`), through the *Features* screen's operation as the e2e
+administrator, and put it back after each test. The switch is the organisation's, so a spec file with such a group
+runs its tests in one worker, in order, with the feature's hidden-while-off tests beside the group, inside
+`withFeatureOff(flag, test => { … })`, so they hold in the run with every flag on too. A group's test opens its own page:
+the file's own `beforeEach` runs before the group switches the flag, so a page it opened shows the flag as it was.
+
+A failing test in the group of a flag at experimental is recorded and reported as skipped; the run's end lists it under
+*Experimental failures*. The full regression's extra run seeds with `TEST_ALL_FEATURES=1`, which switches every flag on.
 
 ## At an address that is not secure (the `not-secure` project)
 

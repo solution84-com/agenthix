@@ -201,8 +201,8 @@ is a refusal for money, shown with its own message, and is not a provider failin
 protocol version (426) are read as for every call.
 
 **The flag.** The call id, the billing profile and the reading of actual costs wait on Cloud's metering and billing, behind
-the `usageBilling` feature flag ([ADR-0116](../adr/adr-0116-a-feature-not-ready-ships-behind-a-flag.md)): on in development and
-tests, off in production. With it off, a call through Cloud is costed from Cloud's catalogue as an estimate. The
+the `usageBilling` feature flag, at the preview stage ([feature-flags.md](feature-flags.md)): on in development, off in
+tests and in production. With it off, a call through Cloud is costed from Cloud's catalogue as an estimate. The
 [ledger](model-resolution.md#the-ledger) keeps each figure on its own basis.
 
 ### The key rolls over

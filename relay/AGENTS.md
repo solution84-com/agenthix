@@ -1,4 +1,4 @@
-# relay — the fleet's door for files
+# relay — the fleet's door for files and live apps
 
 Read the repository's [`AGENTS.md`](../AGENTS.md) first; this file adds what applies to work in `relay/`.
 
@@ -63,6 +63,22 @@ path, a query string or any request header: a ticket travels in the path.
 - `npm run build` bundles `dist/relay.js` with esbuild, and the viewer into `dist/viewer/pdf` (pdf.js, pinned, bundled
   in; its worker, fonts, character maps and image decoders copied beside it; ui's design tokens ahead of its style).
   `npm run typecheck` checks the server and the viewer, and needs `core/` built first.
+- `src/apps/`: live apps (live preview spec sections 4 and 6, adr-0169). Every name under the preview pattern
+  (`PREVIEW_PATTERN`, development's `p-<id>.preview.localhost` when hq is on localhost; none: live
+  apps off) is answered here and nowhere else, before the files door drops cookies. `appRules.ts` decides from fetch
+  metadata and `Origin` alone: the entry is a `POST` from hq's page; WebSockets from the app's own page; navigations
+  the app's own or the person's typed one; everything else same-origin only; no fetch metadata fails closed. The entry
+  (`appEntry.ts`) verifies the app ticket with core's verifier (the site it names as audience, this relay, before
+  `enterBy`), takes it once and sets the `__Host-` cookie it names, its value a random handle (`appJar.ts`, memory
+  only). Before every new stream the relay asks hq (`relay.ask`); a no, or no answer, forgets the cookie. Each request
+  and WebSocket is its own duplex `app.serve` stream (`appHttp.ts`, `appSocket.ts`), where the site checks the ticket
+  again; app cookies lose `Domain`, the relay's own names are dropped, and every answer may be framed only by hq or
+  the app. `relay.revoke` (a person, apps, live previews or tickets) ends what it covers at once. Refusals are counted
+  per app and reported to hq. `p-check` answers the Fleet Console's check.
+- `src/bundles/carryBundle.ts`: a Git bundle carried between two sites' lines on hq's `relay.bundle` order
+  (`bundle.read` on the source, `bundle.write` on the destination, flow-controlled at both ends). Each site checks the
+  bundle ticket itself, and the destination checks the size and SHA-256 before it keeps anything; the relay reports
+  only what the sites cannot (`relay.bundleReport`).
 - The image is `docker/Dockerfile`, built from the repository root.
 
 Its environment:
@@ -75,6 +91,7 @@ Its environment:
 | `FILES_ORIGIN` | The files address it answers browsers on; unset, `files.localhost` when hq is on localhost, else none (as hq-web decides) |
 | `RELAY_PORT` | Its port; the relay's server port by default ([`docs/architecture/ports.md`](../docs/architecture/ports.md)) |
 | `RELAY_LISTEN_HOST` | `127.0.0.1` by default; `0.0.0.0` in its image |
+| `PREVIEW_PATTERN` | Live apps' address pattern, such as `https://p-{id}.preview.example.com`, set by the host service from the preview domain. Unset: development's pattern when hq is on localhost, else live apps are off |
 | `HQ_UPLOADS_ROOT` | hq's relay only: hq's storage folder (hq's `HQ_STORAGE_ROOT`), mounted read-only. Unset or not a folder: the relay starts, says plainly that it does not serve uploads, and answers an upload's ticket 503 |
 
 ## Testing

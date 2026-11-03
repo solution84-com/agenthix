@@ -250,3 +250,25 @@ describe("the person's local time", () => {
     expect((await new AgentPromptBuilder(agent, content).buildChatPrompt({ person: null, now })).systemPrompt).not.toContain('## Local time')
   })
 })
+
+describe('a run on a branch\'s copy is told about its branch @SC-1674', () => {
+  const codeWork = {
+    workspace: { ownerType: 'project' as const, ownerId: 'p1', workspaceId: 'w1' },
+    copyId: '11111111-1111-4111-8111-111111111111', branch: 'add-login-page', main: 'main', behindMain: 2,
+    otherBranches: [{ name: 'signup', whose: 'Ada · Sign-up', ahead: 3, agentWorking: 'Kernel' }],
+    author: { name: 'Kernel', email: 'kernel@agents.hq.example' },
+    onBehalfOf: null,
+  }
+
+  it('in a chat and in a task, and not otherwise', async () => {
+    const chat = await new AgentPromptBuilder(agent, content).buildChatPrompt({ codeWork })
+    const task = await new AgentPromptBuilder(agent, content).buildTaskPrompt({
+      projectId: 'p1', boardName: 'Main', columns: 'todo', taskId: 't1', title: 'T', description: 'D', roadmapPath: '/r', codeWork,
+    })
+    for (const p of [chat.systemPrompt, task.systemPrompt]) {
+      expect(p).toContain('`add-login-page`')
+      expect(p).toContain('`signup`')
+    }
+    expect((await new AgentPromptBuilder(agent, content).buildChatPrompt({})).systemPrompt).not.toContain('# Your branch')
+  })
+})

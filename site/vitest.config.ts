@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    globalSetup: ['./src/test/experimental-failures-setup.ts'],
     setupFiles: ['./src/test/provider-guard-setup.ts'],
     // At most 4 test processes at once (VITEST_MAX_WORKERS overrides). Vitest's
     // default is one per CPU core less one, and a few overlapping runs of that

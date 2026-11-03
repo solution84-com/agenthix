@@ -29,7 +29,6 @@ export const SYSTEM_MCP_TOOLS = {
   PLATFORM: {
     PING:               'ping',
     GET_SITE_INFO:      'get_site_info',
-    START_PREVIEW:      'start_preview',
     STOP_PROCESSES:     'stop_processes',
   },
 
@@ -178,7 +177,6 @@ export const SYSTEM_MCP_TOOLS = {
 export const ALWAYS_INJECTED_MCP_TOOLS: string[] = [
   SYSTEM_MCP_TOOLS.PLATFORM.PING,
   SYSTEM_MCP_TOOLS.PLATFORM.GET_SITE_INFO,
-  SYSTEM_MCP_TOOLS.PLATFORM.START_PREVIEW,
   // Stops only the calling conversation's own processes, which a sandboxed
   // command cannot signal (served by the site itself, siteTools.ts there)
   SYSTEM_MCP_TOOLS.PLATFORM.STOP_PROCESSES,

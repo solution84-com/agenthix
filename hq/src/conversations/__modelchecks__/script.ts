@@ -10,7 +10,7 @@ import type { Place } from '../places'
 import { turnToolAsks } from '../../server/controlplane/turnCaller'
 import { attachmentReference } from '../../shared/taskReferences'
 import {
-  PAGES, PERSON_ID, PERSONAL_PROJECT, PROJECT, PROJECT_LEVEL, SEARCH_HITS, TASK, YOUR_SPACE_PLACE, heldLevels, levelOf, type Home,
+  AGENT_ID, AGENT_NAME, CODE_WORKSPACE, ORG, PAGES, PERSON_ID, PERSONAL_PROJECT, PROJECT, PROJECT_LEVEL, SEARCH_HITS, TASK, YOUR_SPACE_PLACE, heldLevels, inProject, levelOf, type Home,
 } from './world'
 
 type Args = Record<string, unknown>
@@ -59,7 +59,7 @@ function change(name: string, args: Args, home: Home): string {
 
 /** suggest_place as it runs, its lookups answered from the world: the same words findOpenPlace finds. */
 function suggestPlace(home: Home) {
-  const own: Place = home === 'project' ? { type: 'project', id: PROJECT.id } : { type: 'user', id: PERSON_ID }
+  const own: Place = inProject(home) ? { type: 'project', id: PROJECT.id } : { type: 'user', id: PERSON_ID }
   return createSuggestPlaceTool({
     conversation: async () => ({ personId: PERSON_ID, held: [own] }),
     async find(_personId, words) {
@@ -76,17 +76,25 @@ function suggestPlace(home: Home) {
 function listProjects(home: Home): unknown {
   const asListed = (p: { id: string; key: string; name: string }) => ({ projectId: p.id, key: p.key, name: p.name, description: null, defaultAgentId: null })
   // A project's turn sees that project alone; a turn in Your space sees every project the person may open.
-  const projects = home === 'project' ? [PROJECT] : [PROJECT, PERSONAL_PROJECT]
+  const projects = inProject(home) ? [PROJECT] : [PROJECT, PERSONAL_PROJECT]
   return { projects: projects.map(asListed), source: 'local' }
 }
 
-/** get_task_details for the world's one task, in the real tool's shape (taskOps.ts); any other task is not found. */
-function taskDetails(args: Args): unknown {
-  const asked = str(args.taskId)
+/** get_org and list_agents in the real tools' shapes (orgOps.ts, agentOps.ts): create_task asks for the org's id and an agent. */
+const ORG_ANSWER = { orgId: ORG.id, name: ORG.name, vision: '', mission: '', mode: 'standalone' }
+const AGENTS_ANSWER = { agents: [{ agentId: AGENT_ID, name: AGENT_NAME, handle: AGENT_NAME.toLowerCase(), isKernel: true }], source: 'local' }
+
+/**
+ * get_task_details for the world's one task, in the real tool's shape (taskOps.ts); any other task is not found. In its
+ * thread it is done, as a task usually is when the person asks to try its work.
+ */
+function taskDetails(args: Args, home: Home): unknown {
+  const asked = str(args.taskId) ?? (home === 'task' ? TASK.id : undefined)
   if (asked !== TASK.key && asked !== TASK.id) return { status: 'refused', reason: `Task ${asked ?? ''} not found` }
+  const done = home === 'task'
   return {
     taskId: TASK.id, taskKey: TASK.key, title: TASK.title, description: 'The form fails on submit; the screenshot shows the error.',
-    priority: 'HIGH', status: 'IN_PROGRESS', column: 'In progress', projectId: PROJECT.id, comments: [],
+    priority: 'HIGH', status: done ? 'DONE' : 'IN_PROGRESS', column: done ? 'Done' : 'In progress', projectId: PROJECT.id, comments: [],
     attachments: [{ name: TASK.attachment, sizeBytes: 48213, label: null, reference: attachmentReference(TASK.key, TASK.attachment) }],
     source: 'local',
   }
@@ -105,8 +113,15 @@ function outcomeOf(name: string, args: Args, capability: TurnCapability, home: H
     case 'delete_knowledge': return done(change(name, args, home))
     case 'suggest_place': return suggestPlace(home).run(capability, args, { signal: new AbortController().signal })
     case 'list_projects': return done(listProjects(home))
-    case 'get_task_details': return done(taskDetails(args))
+    case 'get_org': return done(ORG_ANSWER)
+    case 'list_agents': return done(AGENTS_ANSWER)
+    case 'get_task_details': return done(taskDetails(args, home))
     case 'remember': return done({ remembered: str(args.key) ?? 'note' })
+    // In offer.ts's words, with the card written nowhere.
+    case 'offer_live_preview': return done({
+      offered: true,
+      note: `The person sees a card with Live preview for ${str(args.task) ? `${str(args.task)}'s branch` : 'main'} in ${CODE_WORKSPACE.name}. Nothing runs until they choose it. Do not repeat the offer.`,
+    })
     case 'start_work':
     case 'run_task':
     case 'create_task': return { status: 'accepted', operationId: `operation-${name}` }

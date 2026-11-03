@@ -38,6 +38,7 @@ import { requireRunnerForBoundary } from '../../server/identity/runnerClaim'
 import type { CapabilityHolder } from './capabilityRenewal'
 import { issueRunToken } from '../../server/runtime/runTokens'
 import { registerGateRun } from './toolGateRuns'
+import { markCodeWorkspaceFolders } from './codeWorkspaceMounts'
 import type { AgentSession } from '@prisma/client'
 import type { CapabilityClaims, RunContextPayload } from '@agenthix/core'
 import { prepareAgentContainer, resolveContainerKey } from './containerPrep'
@@ -49,6 +50,9 @@ import { requireResumableSession } from './sessionExistenceCheck'
 import { ReadableRunError } from './readableRunError'
 import { readContainerCounters, type ContainerCounters } from './runResourceCause'
 import { homeIsShared, writePinnedMemory } from './pinnedMemoryFiles'
+import { resolveCodeWork, startCodeWork, type CodeWorkRun } from '../../server/branches/codeWorkRun'
+import { withCodeWorkTools } from '../../server/mcp/forwardedCodeSchemas'
+import { withAppTools } from '../../server/mcp/forwardedAppSchemas'
 
 const logger = new Logger('AgentEngine')
 
@@ -73,6 +77,8 @@ export interface RunLaunchSink {
   resourceBaseline: Promise<ContainerCounters | null> | null
   /** The run's pinned memory file, which `releaseRunResources` removes when the run ends (pinnedMemoryFiles.ts). */
   pinnedMemory?: { home: string; sessionId: string } | null
+  /** A run on a branch's copy: swept while it goes, and its branch brought back at its end (codeWorkRun.ts). */
+  codeWork?: CodeWorkRun | null
 }
 
 export type RunLaunchResult =
@@ -238,7 +244,14 @@ export async function assembleRunLaunch(
   // `workingTreeDir` is the run's working tree on this machine — the same
   // directory, read by the parts of the server that touch the disk themselves
   // rather than through the container.
-  const workingTreeDir = await getLocationCwd(primaryLoc)
+  //
+  // A run on a code workspace works in its branch's copy instead, checked against the site's own record of it.
+  const codeWork = ctx.codeWork ? await resolveCodeWork(runId, ctx.codeWork, primaryLoc, options.features) : null
+  if (codeWork) {
+    await startCodeWork(codeWork)
+    sink.codeWork = codeWork
+  }
+  const workingTreeDir = codeWork ? codeWork.copyDir : await getLocationCwd(primaryLoc)
 
   // 3d-1. Which container this run belongs to — boundary × runner (ADR-0074)
   // — and therefore which harness home it gets. Resolved here rather than
@@ -271,6 +284,12 @@ export async function assembleRunLaunch(
     primaryLoc,
     { mounts: ctx.mounts, credential: access.credential },
     containerKey,
+    codeWork ? { copyId: codeWork.copyId, livePreview: !!codeWork.livePreviewId } : null,
+    {
+      // A run that has to wait for its container to be made again says why (live preview spec, *Where the copy lives*).
+      onWaitForBinds: (waiting) => siteStream.waiting({ runId, sessionId: session.id, taskId: effectiveTaskId, waiting, reason: 'branch' }),
+      stillWanted: async () => (await prisma.agentRun.findUnique({ where: { id: runId }, select: { status: true } }))?.status === 'RUNNING',
+    },
   )
   const containerName = containerResult?.containerName ?? null
   sink.containerName = containerName
@@ -290,10 +309,13 @@ export async function assembleRunLaunch(
   // container mounts. See ADR-0001.
   const containerMounts: ContainerMounts | undefined = containerResult
     ? {
-        locations: containerResult.mounts.folders,
+        // A run on a branch is told of main in its own section (codeWorkPromptText).
+        locations: codeWork ? containerResult.mounts.folders : markCodeWorkspaceFolders(containerResult.mounts.folders, containerResult.mounts.readOnly ?? []),
         primaryContainerPath: containerResult.primaryContainerPath,
         // Task runs: label the cwd as the task working directory so the agent knows its role.
-        ...(primaryLoc.taskId
+        ...(codeWork
+          ? { primaryPathDescription: `your working copy of branch ${codeWork.branch}: work and commit here. The workspace's own folder is main and is read-only` }
+          : primaryLoc.taskId
           ? { primaryPathDescription: 'task working directory — create and edit task files here. Project files and workspaces are also mounted.' }
           : {}),
       }
@@ -320,8 +342,8 @@ export async function assembleRunLaunch(
   )
   const builder = new AgentPromptBuilder(agent, await loadPromptContent(packages, boundaryOverride, primaryLoc))
   const { systemPrompt } = await (() => {
-    if (options.taskContext) return builder.buildTaskPrompt({ ...options.taskContext, containerMounts, person: ctx.person, pinnedMemoryPath })
-    return builder.buildChatPrompt({ ...options.chatContext, containerMounts, agenda, person: ctx.person, pinnedMemoryPath })
+    if (options.taskContext) return builder.buildTaskPrompt({ ...options.taskContext, containerMounts, person: ctx.person, pinnedMemoryPath, codeWork: codeWork ? ctx.codeWork : null })
+    return builder.buildChatPrompt({ ...options.chatContext, containerMounts, agenda, person: ctx.person, pinnedMemoryPath, codeWork: codeWork ? ctx.codeWork : null })
   })()
 
   // Resolve MCP config
@@ -379,7 +401,7 @@ export async function assembleRunLaunch(
     mcpServers,
     bypassed,
     immediateApproval,
-    allowedTools: bypassed ? undefined : toolPermissions,
+    allowedTools: bypassed ? undefined : codeWork ? withAppTools(withCodeWorkTools(toolPermissions), options.features) : toolPermissions,
     allowedBashPatterns: bashPermissions,
     neverTools,
     approvedManifest,
@@ -393,6 +415,7 @@ export async function assembleRunLaunch(
     credential: access.credential,
     fallbackCredentials: access.others,
     ...(access.billingProfileId ? { billingProfileId: access.billingProfileId } : {}),
+    ...(options.features ? { features: options.features } : {}),
     webSearchKey: ctx.webSearchKey,
     riskRules: ctx.riskRules,
     packages,
@@ -400,6 +423,7 @@ export async function assembleRunLaunch(
     skills,
     claudeHome,
     workingTreeDir,
+    ...(codeWork ? { codeWork: { branch: codeWork.branch, copyId: codeWork.copyId, workspace: codeWork.placed.ref } } : {}),
   }
 
   logger.info(`Run ${runId} | runtime=${runtimeName} model=${resolvedModel}`)

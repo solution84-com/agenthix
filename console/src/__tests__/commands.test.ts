@@ -28,7 +28,7 @@ async function sendFiguresRead() {
 const FIGURES = { ok: true, op: 'figures.read', result: { machine: 'office-server' } } as const
 
 beforeEach(async () => {
-  h = await startHarness({ commandTimeouts: { short: 300, long: 300 } })
+  h = await startHarness({ commandTimeouts: { short: 300, long: 300, staleRetry: 5 } })
   host = await FakeHost.create()
   await pin(host, 'h-office')
 })
@@ -106,6 +106,40 @@ describe('commands to a host service', () => {
     }))
     expect(h.ctx.commands.dropped.at(-1)?.reason).toBe('unexpected')
     await expect(answer).rejects.toThrow()
+  })
+
+  it('are sent again in a new envelope while a host service that has just started refuses them as stale', async () => {
+    const { answer, envelope } = await sendFiguresRead()
+    await h.ctx.commands.receive(await host.seal({ kind: 'refused', envelopeId: envelope.id, reason: 'stale' }))
+    await until(() => h.link.envelopes.length > 1)
+    const again = h.link.envelopes.at(-1)!
+    expect(again.id).not.toBe(envelope.id)
+    const opened = await host.open(again)
+    if (!opened.ok) throw new Error('not opened')
+    const requestId = (opened.message as { requestId: string }).requestId
+    await h.ctx.commands.receive(await host.seal({ kind: 'result', replyTo: requestId, result: FIGURES as never }))
+    await expect(answer).resolves.toEqual(FIGURES)
+  })
+
+  it('stop sending again after a bounded number of stale refusals, with words to act on', async () => {
+    const answer = h.ctx.commands.send(host.fingerprint, { op: 'figures.read' }, SAM)
+    answer.catch(() => {})
+    let refused = 0
+    for (let sent = 1; sent <= 20; sent++) {
+      await until(() => h.link.envelopes.length >= sent)
+      await h.ctx.commands.receive(await host.seal({ kind: 'refused', envelopeId: h.link.envelopes[sent - 1]!.id, reason: 'stale' }))
+      refused++
+      if (await Promise.race([answer.then(() => true, () => true), new Promise(r => setTimeout(() => r(false), 20))])) break
+    }
+    await expect(answer).rejects.toThrow(/keeps refusing commands.*try again\. Nothing was changed\./)
+    expect(refused).toBeLessThan(20)
+  })
+
+  it('fail at once on any other refusal of the envelope', async () => {
+    const { answer, envelope } = await sendFiguresRead()
+    await h.ctx.commands.receive(await host.seal({ kind: 'refused', envelopeId: envelope.id, reason: 'bad_signature' }))
+    await expect(answer).rejects.toThrow(/refused the command \(bad_signature\)/)
+    expect(h.link.envelopes).toHaveLength(1)
   })
 
   it('are refused for a machine that is not pinned @SC-866', async () => {

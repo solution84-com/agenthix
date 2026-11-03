@@ -1,0 +1,111 @@
+/**
+ * What a run on a code workspace is told in its prompt (live preview spec, *What agents are told*): its own branch,
+ * how far behind `main` it is, and the other branches of the workspace, so it can see what others are already
+ * changing before it repeats their work; and that it has the app tools, every run, so a long conversation does not go
+ * on believing an earlier reply that said it had none. Built from the run's `codeWork` (protocol/codeWork.ts) by whoever builds the
+ * prompt, so the words are the same wherever they are shown. Written for the baseline model: short, plain sentences.
+ */
+import type { RunCodeWork, RunOpenLivePreview } from '../protocol/codeWork.js'
+import { COMMIT_TOOL_NAME } from './commitTool.js'
+import { MERGE_TOOL_NAME } from './mergeTool.js'
+import { UPDATE_TOOL_NAME } from './updateTool.js'
+import {
+  LIST_APPS_TOOL, LIVE_PREVIEW_WORKFLOW_NAMES, RELOAD_VIEW_TOOL, SET_AUTO_RELOAD_TOOL, START_APP_TOOL, STOP_APP_TOOL,
+} from '../livePreview/appTools.js'
+
+/** The most other branches named; the rest are counted. */
+export const CODE_WORK_PROMPT_BRANCHES_MAX = 20
+
+const commits = (n: number) => `${n} commit${n === 1 ? '' : 's'}`
+
+/** `livePreview`: whether the live preview's flag is on for this run (adr-0172); off, the prompt says nothing of it. */
+export function codeWorkPromptText(work: RunCodeWork, { livePreview }: { livePreview: boolean }): string {
+  const lines = [
+    '# Your branch',
+    '',
+    `You work on the branch \`${work.branch}\` of this workspace's Git repository, in a working copy of your own: your ` +
+      'working folder. Everything you change there is on your branch only.',
+    `- The workspace's own folder is \`${work.main}\`, which you can read but not write. Your work reaches ` +
+      `\`${work.main}\` only when a person merges your branch.`,
+    `- Commit your work yourself with the \`${COMMIT_TOOL_NAME}\` tool (or git in your working folder) each time a ` +
+      'piece of it is done and works, and always before you finish: each commit goes straight back to the workspace, ' +
+      `where people see it${livePreview ? ', and reloads the live preview when Auto is on' : ''}. Do not leave it to the end of the run: what ` +
+      'is left uncommitted then is only saved as "Work in progress".',
+    `- To bring \`${work.main}\` into your branch, call \`${UPDATE_TOOL_NAME}\`. If it names clashing files, edit ` +
+      `each to remove Git's conflict markers, then call \`${COMMIT_TOOL_NAME}\` to finish the merge. You may also use git ` +
+      `as you need in your working folder: squash or reword commits, rebase onto \`${work.main}\`. Never try to change ` +
+      `\`${work.main}\` itself.`,
+    `- When the person asks you to merge into \`${work.main}\` (directly, or passed on to you in a brief), call ` +
+      `\`${MERGE_TOOL_NAME}\` at once, in that step: it shows them a confirmation, and the merge happens when they ` +
+      'press Merge. Do not tell them to merge it themselves. Never call it when nobody asked.',
+    '- Install npm packages with `install_packages`. Packages install with their install scripts off, then the ' +
+      'scripts of well-known, widely used packages run. An install you run yourself runs no install scripts.',
+    '',
+    ...(livePreview ? [...appToolLines(work.openLivePreview ?? null), ''] : []),
+    work.behindMain === 0
+      ? `Your branch has everything \`${work.main}\` has.`
+      : `\`${work.main}\` has ${commits(work.behindMain)} your branch does not have. Bringing them in is your call ` +
+        `(\`${UPDATE_TOOL_NAME}\`): do it when your work touches the same files, or when the person asks.`,
+  ]
+  const others = work.otherBranches
+  if (others.length === 0) {
+    lines.push('', 'No other branch of this workspace has work on it.')
+  } else {
+    lines.push('', 'Other branches of this workspace, so you can see what is already being changed:')
+    for (const b of others.slice(0, CODE_WORK_PROMPT_BRANCHES_MAX)) {
+      const who = b.agentWorking ? `; ${b.agentWorking} is working on it now` : ''
+      lines.push(`- \`${b.name}\`: ${b.whose}; ${commits(b.ahead)} ahead of \`${work.main}\`${who}`)
+    }
+    const more = others.length - CODE_WORK_PROMPT_BRANCHES_MAX
+    if (more > 0) lines.push(`- and ${more} more`)
+    lines.push(
+      'If your task repeats work one of them already does, say so to the person before you do it again ' +
+        '(for example: "Ada\'s branch login-form already changes the login form").',
+    )
+  }
+  return lines.join('\n')
+}
+
+/**
+ * The app tools, and the branch's live preview as it was when the run was dispatched (W12 of the live preview walk: a run
+ * that is not told its live preview runs reaches for something else). Opening one is the person's call: `start_app`
+ * opens it only when they asked for the app in this run's request.
+ */
+function appToolLines(open: RunOpenLivePreview | null): string[] {
+  const tools = `\`${START_APP_TOOL}\`, \`${STOP_APP_TOOL}\`, \`${LIST_APPS_TOOL}\`, \`${RELOAD_VIEW_TOOL}\` and \`${SET_AUTO_RELOAD_TOOL}\``
+  const lines = [
+    '# Your app tools',
+    '',
+    `This run has the app tools: ${tools}. They act on your branch's live preview: your app, running from your working ` +
+      'folder, which the person sees beside your conversation. They are offered on every run of yours, this one ' +
+      'included. If an earlier reply in this conversation said you have no app tools, that no longer holds: call the ' +
+      'tool instead of saying so again.',
+    '',
+  ]
+  if (open) {
+    const apps = open.runningApps.length
+      ? `Apps running in it: ${open.runningApps.map(a => `\`${a}\``).join(', ')}.`
+      : 'No app runs in it yet.'
+    lines.push(
+      `Your branch's live preview is open now${open.paused ? ', but paused: the person must resume it before the app tools answer' : ''}. ${apps}`,
+      `- Call \`${LIST_APPS_TOOL}\` first, before you change anything, to see what runs and how it was started.`,
+      `- After you change what the app shows: \`${COMMIT_TOOL_NAME}\`, then \`${RELOAD_VIEW_TOOL}\`, so the person sees it. ` +
+        `If the app has to restart to pick the change up, call \`${START_APP_TOOL}\` again with the same name.`,
+      `- When the person asks to see, run or start the app and none runs, call \`${START_APP_TOOL}\` yourself.`,
+    )
+  } else {
+    lines.push(
+      'Your branch has no live preview open.',
+      `- When the person asked, in this run's request, to see, run, start or show the app: call \`${START_APP_TOOL}\` ` +
+        'yourself, with the command that starts it and its port (read them from the project, such as package.json). ' +
+        `It opens a live preview first, in their name, then starts the app; then call \`${LIST_APPS_TOOL}\` to see it run.`,
+      `- Otherwise never call \`${START_APP_TOOL}\`: nobody asked for a live preview. Say in your result that they can ` +
+        'open Live preview to see the work.',
+    )
+  }
+  lines.push(
+    `- The workflows named \`${LIVE_PREVIEW_WORKFLOW_NAMES.start}\` and \`${LIVE_PREVIEW_WORKFLOW_NAMES.reload}\` belong to ` +
+      'the person, on the live preview\'s strip: never run them yourself, and never to start the app.',
+  )
+  return lines
+}

@@ -42,10 +42,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import { registerWorkforceTools } from './workforceTools'
-import { runStartPreview } from '../../preview/startPreviewTool'
-import { resolvePreviewBoundary } from '../../preview/previewBoundary'
-import { createPreview, markStatus } from '../../preview/previewRegistry'
-import { hqBaseUrl, previewDomain, PREVIEW_TTL_MS } from '../../preview/previewWiring'
 import { siteChannelRegistry } from '../../sites/channel'
 import { callOperation } from '../controlplane/operations'
 import { ControlPlaneError, type CallerContext } from '../controlplane/types'
@@ -127,9 +123,8 @@ export function createMcpServer(opts: { caller: CallerContext; disabledTools?: S
     }
   }
 
-  // ping, get_site_info and start_preview stay wired directly (not via runOp):
-  // the first two touch no control-plane data at all, and start_preview is
-  // site-local — it moves to site's own MCP surface in plan 5d, not here.
+  // ping and get_site_info stay wired directly (not via runOp): they touch no
+  // control-plane data at all.
 
   server.tool('ping', {}, async () =>
     mcpOk({ pong: true, timestamp: new Date().toISOString() })
@@ -138,46 +133,6 @@ export function createMcpServer(opts: { caller: CallerContext; disabledTools?: S
   server.tool('get_site_info', {}, async () =>
     mcpOk({ status: 'standalone', mode: 'standalone' })
   )
-
-  // start_preview — only available to agent-run callers (verified capability
-  // claims). A person's connection is not a run and never gets it. The agent and the session both come from the
-  // claims, NOT from the model, so a run can only ever preview the working tree
-  // of the storage it works in; it cannot name another agent's or another
-  // boundary's. (ADR-0036 isolation.) That is what makes it safe for hq to ask
-  // a site to run this command inside the boundary's container: the caller is
-  // already in that container — see previewBoundary.ts. The rows behind those
-  // ids are read at call time rather than here at construction, keeping
-  // createMcpServer itself synchronous.
-  if (callerCtx.kind === 'run') {
-    const { agentId, sessionId } = callerCtx.claims
-    server.tool(
-      'start_preview',
-      'Start a live web preview of your working tree and return a URL the operator can open. ' +
-        'The command runs from your workspace ROOT, so if your app is in a subfolder you MUST cd into it first. ' +
-        'Bind the dev server to 0.0.0.0 (not localhost) or it will be unreachable. ' +
-        'Present the returned URL to the operator as a plain or markdown link — do NOT wrap it in bold, which stops it rendering as a clickable link.',
-      {
-        command: z.string().describe('Dev-server command, run from the workspace root. cd into the app folder if it is in a subdirectory and bind 0.0.0.0 — e.g. "cd myapp && npm run dev -- --host 0.0.0.0 --port 5173"'),
-        port: z.number().int().describe('Port the dev server binds inside the container, e.g. 5173'),
-      },
-      async ({ command, port }: { command: string; port: number }) => {
-        try {
-          const result = await runStartPreview({ command, port }, {
-            resolveTarget: () => resolvePreviewBoundary({ agentId, sessionId }),
-            request: (siteId, method, params) => siteChannelRegistry.request(siteId, method, params),
-            createPreview,
-            markStatus,
-            hqUrl: hqBaseUrl(),
-            previewDomain: previewDomain(),
-            ttlMs: PREVIEW_TTL_MS,
-          })
-          return mcpOk(result)
-        } catch (e) {
-          return mcpError(e instanceof Error ? e.message : 'preview failed')
-        }
-      },
-    )
-  }
 
   // Every control-plane tool's {name, description?, schema} lives in
   // toolSchemas.ts (file-size rule); every one dispatches through runOp,

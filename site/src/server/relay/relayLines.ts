@@ -9,7 +9,9 @@
  * The site dials only the address hq gave (`resolveLineUrl`), and never listens.
  */
 import { prisma } from '#db'
-import { FILES_SERVE_METHOD, type RelayAssignParams, type RelayAssignResult } from '@agenthix/core'
+import { APP_SERVE_METHOD, BUNDLE_METHODS, FILES_SERVE_METHOD, type RelayAssignParams, type RelayAssignResult } from '@agenthix/core'
+import { createAppServe } from '../livePreviews/apps/appServe'
+import { createBundleRead, createBundleWrite } from '../livePreviews/bundles/bundleStreams'
 import { createFilesServe } from './filesServe'
 import { hqKeySet, type KeySetSource } from './hqKeySet'
 import { resolveLineUrl } from './lineUrl'
@@ -100,6 +102,7 @@ export class RelayLines {
   }
 
   private newLine(p: RelayAssignParams, url: string, siteId: string): RelayLine {
+    const ticketed = { siteId, relayId: p.relayId, keys: this.deps.keys ?? hqKeySet }
     const options: RelayLineOptions = {
       url,
       relayId: p.relayId,
@@ -112,6 +115,9 @@ export class RelayLines {
           keys: this.deps.keys ?? hqKeySet,
           slots: this.deps.slots ?? fileReadSlots,
         }),
+        [APP_SERVE_METHOD]: createAppServe(ticketed),
+        [BUNDLE_METHODS.read]: createBundleRead(ticketed),
+        [BUNDLE_METHODS.write]: createBundleWrite(ticketed),
       },
       onUp: () => this.promote(line),
     }

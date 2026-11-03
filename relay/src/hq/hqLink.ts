@@ -2,13 +2,22 @@
  * The hq link: one WebSocket the relay dials to hq's `RELAY_HQ_LINK_PATH` with the shared secret, and keeps open,
  * reconnecting with backoff when it drops. hq greets it with `relay.welcome`, which tells the relay its own id (the
  * audience of the passes it accepts); the relay reports its load every `RELAY_REPORT_INTERVAL_MS`. Nothing dials
- * the relay's link, and nothing on it is a request the relay obeys.
+ * the relay's link.
+ *
+ * Since relay protocol 1.1, for live apps: before every new stream to an app the relay asks hq whether the ticket
+ * behind the cookie still stands (`relay.ask`, answered by `relay.answer` within `RELAY_ASK_TIMEOUT_MS`, or taken as
+ * no), and hq tells it what is cut off (`relay.revoke`), which it only ever narrows: a revocation ends streams and
+ * forgets tickets, never opens anything. hq's one order is `relay.bundle`: carry a bundle between two sites' lines
+ * (`../bundles/carryBundle.ts`), which each site checks itself.
  */
+import { randomBytes } from 'node:crypto'
 import WebSocket from 'ws'
 import {
-  RELAY_HQ_LINK_PATH, RELAY_PROTOCOL_VERSION, RELAY_PROTOCOL_VERSION_HEADER, RELAY_REPORT_INTERVAL_MS,
-  checkProtocolCompatibility, peerRefusalMessage, type RelayLinkReport,
+  RELAY_ASK_TIMEOUT_MS, RELAY_HQ_LINK_PATH, RELAY_PROTOCOL_VERSION, RELAY_PROTOCOL_VERSION_HEADER, RELAY_REPORT_INTERVAL_MS,
+  checkProtocolCompatibility, peerRefusalMessage, type RelayAsk, type RelayLinkReport, type RelayRevoke,
 } from '@agenthix/core'
+import type { AppRefusals } from '../apps/appRefusals'
+import { readRevoke } from './revokeFrame'
 import type { Load } from '../load'
 import type { Log } from '../log'
 import { RELAY_CHANGED_CLOSE_CODE, type SiteLines } from '../lines/siteLines'
@@ -26,7 +35,18 @@ export type HqLinkOptions = {
   log: Log
   reportIntervalMs?: number
   firstReconnectMs?: number
+  /** hq's orders on the link, beside its welcome: since relay protocol 1.1, `relay.bundle`. */
+  onOrder?: (frame: Record<string, unknown>) => void
+  /** Apps' streams, reported with files' as the open streams. */
+  appLoad?: Load
+  refusals?: AppRefusals
+  /** What hq cut off, read and checked. */
+  onRevoke?(frame: RelayRevoke): void
+  askTimeoutMs?: number
 }
+
+/** Asks waiting for hq's answer; past this many a new ask is answered no at once. */
+const MAX_PENDING_ASKS = 10_000
 
 export function relayLinkUrl(hqAddress: string): string {
   const url = new URL(hqAddress)
@@ -46,6 +66,7 @@ export class HqLink {
   private reportTimer: ReturnType<typeof setInterval> | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
   private lastProblem: string | null = null
+  private readonly pending = new Map<string, (stands: boolean) => void>()
 
   constructor(private readonly options: HqLinkOptions) {
     this.reconnectDelay = options.firstReconnectMs ?? FIRST_RECONNECT_MS
@@ -63,6 +84,25 @@ export class HqLink {
   start(): void {
     this.stopped = false
     this.connect()
+  }
+
+  /** Whether the app ticket still stands, by hq's word; no when hq does not answer in time, or the link is down. */
+  ask(q: { ticketId: string; person: string; appId: string; livePreviewId: string }): Promise<boolean> {
+    const ws = this.ws
+    if (!ws || ws.readyState !== WebSocket.OPEN || this.pending.size >= MAX_PENDING_ASKS) return Promise.resolve(false)
+    const askId = randomBytes(16).toString('base64url')
+    const frame: RelayAsk = { type: 'relay.ask', version: RELAY_PROTOCOL_VERSION, askId, ...q }
+    return new Promise(resolve => {
+      const timer = setTimeout(() => settle(false), this.options.askTimeoutMs ?? RELAY_ASK_TIMEOUT_MS)
+      timer.unref?.()
+      const settle = (stands: boolean) => {
+        clearTimeout(timer)
+        this.pending.delete(askId)
+        resolve(stands)
+      }
+      this.pending.set(askId, settle)
+      ws.send(JSON.stringify(frame))
+    })
   }
 
   stop(): void {
@@ -116,6 +156,7 @@ export class HqLink {
     })
     ws.on('close', () => {
       if (this.ws !== ws) return
+      for (const settle of [...this.pending.values()]) settle(false)
       this.ws = null
       this.clearTimers()
       this.scheduleReconnect()
@@ -132,7 +173,21 @@ export class HqLink {
     }
     if (typeof frame !== 'object' || frame === null) return
     const f = frame as Record<string, unknown>
-    if (f.type !== 'relay.welcome') return
+    if (f.type === 'relay.answer') {
+      if (typeof f.askId === 'string') this.pending.get(f.askId)?.(f.stands === true)
+      return
+    }
+    if (f.type === 'relay.revoke') {
+      const revoke = readRevoke(f)
+      if (revoke) this.options.onRevoke?.(revoke)
+      else this.options.log('dropped a revocation from hq that it could not read')
+      return
+    }
+    if (f.type !== 'relay.welcome') {
+      // An order needs to know which relay it is for, so none is taken before hq has named this one.
+      if (this.id !== null) this.options.onOrder?.(f)
+      return
+    }
     if (!checkProtocolCompatibility(RELAY_PROTOCOL_VERSION, typeof f.version === 'string' ? f.version : null).ok) return
     if (typeof f.relayId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(f.relayId)) return
     if (this.id !== null && this.id !== f.relayId) {
@@ -143,17 +198,25 @@ export class HqLink {
     this.id = f.relayId
   }
 
+  /** One frame to hq, when the link is up; dropped otherwise (a bundle's end is reported by its destination too). */
+  send(frame: object): void {
+    const ws = this.ws
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(frame))
+  }
+
   private report(): void {
     const ws = this.ws
     if (!ws || ws.readyState !== WebSocket.OPEN) return
-    const { load, lines } = this.options
+    const { load, lines, appLoad, refusals } = this.options
+    const appRefusals = refusals?.drain() ?? []
     const frame: RelayLinkReport = {
       type: 'relay.report',
       version: RELAY_PROTOCOL_VERSION,
       startedAt: load.startedAt.toISOString(),
       sites: lines.sites(),
-      openStreams: load.openStreams,
-      bytesCarried: load.bytesCarried,
+      openStreams: load.openStreams + (appLoad?.openStreams ?? 0),
+      bytesCarried: load.bytesCarried + (appLoad?.bytesCarried ?? 0),
+      ...(appRefusals.length ? { appRefusals } : {}),
     }
     ws.send(JSON.stringify(frame))
   }

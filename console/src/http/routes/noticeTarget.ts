@@ -55,6 +55,13 @@ export function noticeTarget(n: Pick<FleetNotice, 'kind' | 'title' | 'body' | 'h
     case 'roleGranted':
     case 'roleRemoved':
       return { page: 'fleetAdmins' }
+    case 'siteMemoryHigh':
+    case 'siteMemoryRecovered':
+    case 'livePreviewStoppedForResources': {
+      // Live previews live on the site, so these open the site's page, HQ's own machine included.
+      const host = n.hostId ? fleet.hosts.find(h => h.hostId === n.hostId) : undefined
+      return host ? { page: 'site', fingerprint: host.fingerprint } : { page: 'dashboard' }
+    }
     case 'activity':
       break
   }

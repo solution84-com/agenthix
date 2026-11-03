@@ -5,7 +5,6 @@ import * as siteRuntimeStore from './siteRuntimeStore'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
 import { requireTaskAccess } from '../projects/resourceEntitlement'
-import { expirePreviewsForSession } from '../preview/previewRegistry'
 import { isSessionClosed, SessionClosedError } from './closedSession'
 import { personalSessionOwner, requireOrphanedSessionAdmin } from './sessionEntitlement'
 
@@ -77,12 +76,6 @@ export const updateSession: UpdateSession<UpdateSessionArgs, any> = async (args,
       ...(args.model !== undefined && { model: args.model }),
     },
   })
-  // The twin of archiveSession below: this action can end a session too, and a
-  // preview that outlived the work behind it is a window onto that work's
-  // files left open.
-  if (args.status === 'ARCHIVED' || args.status === 'EXPIRED') {
-    await expirePreviewsForSession(args.id)
-  }
   return updated
 }
 
@@ -120,10 +113,6 @@ export const archiveSession: ArchiveSession<ArchiveSessionArgs, any> = async (ar
     where: { id: args.id },
     data: { status: 'ARCHIVED' },
   })
-  // A preview is a window onto the files this session was working in, so it
-  // ends with the session rather than at its own TTL — which can be half an
-  // hour after the person archived the thing behind it.
-  await expirePreviewsForSession(args.id)
   triggerSnapshotPush()
   return archived
 }
@@ -168,8 +157,6 @@ export const deleteTaskSession = async (args: { sessionId: string }, context: an
   } catch (err) {
     rethrowSiteUnreachableAsHttp(err)
   }
-
-  await expirePreviewsForSession(args.sessionId)
   await context.entities.AgentSession.delete({ where: { id: args.sessionId } })
 }
 

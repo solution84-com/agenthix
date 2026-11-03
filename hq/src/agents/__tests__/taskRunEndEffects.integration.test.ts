@@ -95,26 +95,21 @@ describe('a task blocked because its person lost access', () => {
 })
 
 describe("a task's run end archives only that task's session", () => {
-  /** A running task with its session on hq and on the site, and a live preview in that session. */
+  /** A running task with its session on hq and on the site. */
   async function withSession() {
     const made = await running()
     const session = await createSession({ agentId: made.agent.id, userId: made.person.id, sessionType: 'task', taskId: made.task.id })
     siteStore.addSession(SITE, { id: session.id, taskId: made.task.id, sessionType: 'task' })
-    await prisma.previewSession.create({
-      data: { token: `tok-${session.id}`, agentId: made.agent.id, sessionId: session.id, siteId: SITE, previewId: 'p', command: 'npm run dev', status: 'running', expiresAt: new Date(Date.now() + 3_600_000) },
-    })
     return { ...made, session }
   }
   const hqStatus = async (id: string) => (await prisma.agentSession.findUniqueOrThrow({ where: { id } })).status
   const siteStatus = async (id: string) => (await siteStore.getSession(SITE, id))?.status
-  const previewStatus = async (sessionId: string) => (await prisma.previewSession.findFirstOrThrow({ where: { sessionId } })).status
 
-  it.each(['COMPLETED', 'FAILED'] as const)('a %s run archives the session on both sides and ends its previews', async (status) => {
+  it.each(['COMPLETED', 'FAILED'] as const)('a %s run archives the session on both sides', async (status) => {
     const { task, session } = await withSession()
     await listen(frame(task.id, 'run-1', { status, sessionId: session.id }))
     expect(await siteStatus(session.id)).toBe('ARCHIVED')
     expect(await hqStatus(session.id)).toBe('ARCHIVED')
-    expect(await previewStatus(session.id)).toBe('stopping')
   })
 
   it('a stopped run leaves the session open for the run that follows', async () => {

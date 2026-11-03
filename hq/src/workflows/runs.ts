@@ -17,7 +17,7 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import { Prisma } from '@prisma/client'
-import type { WorkflowDefinition, WorkflowRunWorkspace } from '@agenthix/core'
+import { isLivePreviewWorkflowName, type WorkflowDefinition, type WorkflowRunWorkspace } from '@agenthix/core'
 import { resolveStorageSite } from '../storage/storageSite'
 import { listPlaceSecretNames, listPlaceVariableNames, recordUse, valuesForRun } from '../secrets/store'
 import { variableValuesForRun } from '../secrets/variables'
@@ -31,6 +31,10 @@ import { siteCalls, type SiteCalls } from './siteWorkflows'
 import { storedVersionMatches } from './versionContent'
 import { rememberRunSession } from './runsLive'
 import { guardStarterRun } from './starters/runGuards'
+import { livePreviewWorkflowRefusal } from './livePreviewRefusal'
+import { requireFeature } from '../features/requireFeature'
+
+export { livePreviewWorkflowRefusal }
 
 /** Who presses Run: a person, or an agent's run on behalf of one. */
 export type RunStarter =
@@ -44,6 +48,11 @@ export type StartRunInput = {
   workflow: { id: string } | { name: string }
   parameters: Record<string, unknown>
   starter: RunStarter
+  /**
+   * A place's *Start live preview* or *Reload live preview* (`livePreviews/workflowSecrets.ts`): the run goes to the
+   * site the live preview runs on, works on its copy, and hands the secrets its steps name to its app's container.
+   */
+  livePreview?: { id: string; siteId: string }
 }
 
 export type RunDeps = { site: RunSiteCalls; stop: Pick<SiteCalls, 'stop'>; guard?: typeof guardStarterRun }
@@ -51,6 +60,10 @@ const defaultDeps: RunDeps = { site: runSiteCalls, stop: siteCalls, guard: guard
 
 const HOUR_MS = 60 * 60 * 1000
 const IN_PROGRESS = ['WAITING', 'RUNNING'] as const
+
+function refuseAgentLivePreviewWorkflow(starter: RunStarter, name: string | null): void {
+  if (starter.kind === 'agent' && name !== null && isLivePreviewWorkflowName(name)) throw new HttpError(403, livePreviewWorkflowRefusal(name))
+}
 
 const personOf = (s: RunStarter) => (s.kind === 'person' ? s.userId : s.onBehalfOfUserId)
 
@@ -66,6 +79,10 @@ function loadWorkflow(place: WorkflowPlace, ref: StartRunInput['workflow']) {
 
 export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = defaultDeps): Promise<{ runId: string }> {
   const { place, workspace, starter } = input
+  refuseAgentLivePreviewWorkflow(starter, 'name' in input.workflow ? input.workflow.name : null)
+  if (starter.kind === 'agent' && input.livePreview) throw new HttpError(403, livePreviewWorkflowRefusal('A live preview\'s workflow'))
+  // A run into a live preview's container (its secrets with it) only while the live preview's flag is on (adr-0172).
+  if (input.livePreview) await requireFeature('livePreview')
   if (workspace.ownerType !== place.type || workspace.ownerId !== place.id) {
     throw new HttpError(400, 'A workflow runs on a workspace of its own place. Nothing was changed.')
   }
@@ -77,6 +94,7 @@ export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = def
     const name = 'name' in input.workflow ? input.workflow.name : 'that workflow'
     throw new HttpError(404, `There is no workflow ${name} in this place; list_workflows shows its workflows. Nothing was changed.`)
   }
+  refuseAgentLivePreviewWorkflow(starter, workflow.name)
   const wPlace: WorkflowPlace = { type: workflow.placeType, id: workflow.placeId }
   const version = workflow.versions[0] ?? null
   const definition = version ? (version.definition as unknown as WorkflowDefinition) : null
@@ -87,7 +105,8 @@ export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = def
     contentMatches: await storedVersionMatches(version, version.hash),
   } : null
   const [secretNames, variableNames] = await Promise.all([listPlaceSecretNames(wPlace), listPlaceVariableNames(wPlace)])
-  const siteId = await resolveStorageSite({ ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.workspaceId })
+  const siteId = input.livePreview?.siteId
+    ?? await resolveStorageSite({ ownerType: workspace.ownerType, ownerId: workspace.ownerId, workspaceId: workspace.workspaceId })
 
   const recorded = await prisma.$transaction(async (tx) => {
     // Writing the workflow's row first serialises runs of it, so the count below is the count when this one is made.
@@ -151,6 +170,7 @@ export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = def
       variables: await variableValuesForRun(wPlace, definition!.variables),
       parameters: recorded.parameters,
       github: minted.github,
+      livePreview: input.livePreview ? { livePreviewId: input.livePreview.id } : undefined,
     })
     outcome = await deps.site.run(siteId, instruction)
   } catch (err) {

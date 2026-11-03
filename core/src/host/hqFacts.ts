@@ -21,6 +21,8 @@ export type SiteLoad = {
   running: number
   maxAtOnce: number
   reportedAt: string
+  /** The disk the site's branch copies use; null when it does not say. */
+  copiesBytes?: number | null
 }
 
 /**
@@ -94,7 +96,8 @@ export function parseSiteLoads(v: unknown): SiteLoad[] | null {
     const maxAtOnce = count(s.maxAtOnce)
     const reportedAt = time(s.reportedAt)
     if (!executionSiteId || running === null || maxAtOnce === null || !reportedAt || typeof s.isDefault !== 'boolean') continue
-    out.push({ executionSiteId, isDefault: s.isDefault, running, maxAtOnce, reportedAt })
+    const copies = typeof s.copiesBytes === 'number' && Number.isFinite(s.copiesBytes) && s.copiesBytes >= 0 ? s.copiesBytes : null
+    out.push({ executionSiteId, isDefault: s.isDefault, running, maxAtOnce, reportedAt, ...(copies !== null ? { copiesBytes: copies } : {}) })
   }
   return out
 }

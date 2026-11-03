@@ -49,7 +49,7 @@ export type SessionListener = { onEvent(e: OpenCodeEvent): void; onServerStopped
 /** A turn's need of the server: an OpenAI-compatible model name it must be configured for. */
 export type ServerNeed = { compatibleModel?: string }
 
-type Connection = { name: string; token: string; directory: string; generation: number }
+type Connection = { name: string; token: string; directory: string; toolSet: string; generation: number }
 
 type ServerState = {
   relay: Relay | null
@@ -104,13 +104,18 @@ export class OpenCodeServers {
    * added when missing — first turn, after a restart, or in a project folder
    * the server has not seen it in — or when its token changed.
    */
-  async ensureConnection(containerName: string, conversationId: string, c: { name: string; token: string; directory: string; url: string }): Promise<void> {
+  /**
+   * `toolSet` names which tools the platform's server offers this turn (code work's or not): OpenCode lists a
+   * connection's tools only when it is added, so a change of it adds the connection again and the tools are listed anew.
+   */
+  async ensureConnection(containerName: string, conversationId: string, c: { name: string; token: string; directory: string; url: string; toolSet?: string }): Promise<void> {
     const state = this.state(containerName)
     for (const [other, conn] of state.connections) {
       if (other !== conversationId && conn.name === c.name) throw new Error('Two conversations on one OpenCode server were given the same connection name')
     }
     const current = state.connections.get(conversationId)
-    if (current && current.generation === state.generation && current.token === c.token && current.directory === c.directory) return
+    const toolSet = c.toolSet ?? ''
+    if (current && current.generation === state.generation && current.token === c.token && current.directory === c.directory && current.toolSet === toolSet) return
     const res = await this.request(containerName, 'POST', `/mcp?directory=${encodeURIComponent(c.directory)}`, {
       name: c.name,
       config: { type: 'remote', url: c.url, headers: { Authorization: `Bearer ${c.token}`, [PLATFORM_TOOLS_HARNESS_HEADER]: OPENCODE_HARNESS }, oauth: false, enabled: true },
@@ -119,7 +124,7 @@ export class OpenCodeServers {
     if (status?.status !== 'connected') {
       throw new Error(`The platform's tools could not be connected to OpenCode (${status?.error ?? status?.status ?? res.error ?? `status ${res.status}`})`)
     }
-    state.connections.set(conversationId, { name: c.name, token: c.token, directory: c.directory, generation: state.generation })
+    state.connections.set(conversationId, { name: c.name, token: c.token, directory: c.directory, toolSet, generation: state.generation })
   }
 
   turnStarted(containerName: string, conversationId: string): void {

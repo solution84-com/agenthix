@@ -17,6 +17,7 @@ import { queueGate } from './queueGate'
 import { createTask, updateTask, moveTaskToBoard, moveTaskToColumn, parseColumns, findColumn } from '../../projects/projectService'
 import { setTaskPlan, hasPlanChange, type PlanChange } from '../../projects/taskPlanService'
 import { landsInAutoQueueColumn } from '../../projects/autoQueueColumns'
+import { checkedTaskWorkspace } from '../../branches/taskWorkspace'
 
 type PlanArgs = {
   planStart?: string | null
@@ -43,13 +44,20 @@ interface UpdateTaskArgs extends PlanArgs {
   boardId?: string
   /** A column of its board (or of `boardId`'s); null for the Backlog. */
   column?: string | null
+  /** One of the project's workspaces, or null for the project's files. */
+  workspaceId?: string | null
 }
 
 export async function updateTaskOp(ctx: CallerContext, args: UpdateTaskArgs) {
   const { taskId, title, description, labels, priority, subtasks, boardId, column } = args
   await loadTaskScoped(ctx, taskId, 'update_task', 'work')
+  const workspaceId = args.workspaceId === undefined ? undefined : await asControlPlane(async () => {
+    const task = await prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true } })
+    if (!task) throw new ControlPlaneError('not_found', `Task ${taskId} not found`)
+    return checkedTaskWorkspace(task.projectId, args.workspaceId)
+  })
 
-  const contentFields = { title, description, labels, priority, subtasks }
+  const contentFields = { title, description, labels, priority, subtasks, workspaceId }
   const contentProvided = Object.fromEntries(
     Object.entries(contentFields).filter(([, v]) => v !== undefined)
   )
@@ -124,6 +132,8 @@ interface CreateTaskArgs extends PlanArgs {
   priority?: 'low' | 'medium' | 'high'
   /** Queue a run of it: it waits for the project's pulse, or a person. */
   queue?: boolean
+  /** One of the project's workspaces for it to work in. */
+  workspaceId?: string
 }
 
 export async function createTaskOp(ctx: CallerContext, args: CreateTaskArgs) {
@@ -136,6 +146,7 @@ export async function createTaskOp(ctx: CallerContext, args: CreateTaskArgs) {
     if (!board) throw new ControlPlaneError('not_found', `Board ${args.boardId} not found`)
     await requireProjectEntitlement(ctx, board.projectId, 'create_task', 'work')
   }
+  const workspaceId = await asControlPlane(() => checkedTaskWorkspace(args.projectId, args.workspaceId))
   const origin = await originOfRun(ctx, args.projectId, 'create_task')
   // The depth and the queue limit (spec §2) apply to agents only: past either,
   // the task is still created, but not queued, and the result says so.
@@ -145,7 +156,7 @@ export async function createTaskOp(ctx: CallerContext, args: CreateTaskArgs) {
     const task = await createTask({
       title: args.title, projectId: args.projectId, boardId: args.boardId, column: args.column,
       assignedAgentId: args.assignedAgentId, description: args.description, labels: args.labels,
-      priority: args.priority,
+      priority: args.priority, ...(workspaceId ? { workspaceId } : {}),
       queue: !gate.refusal && args.queue === true,
       origin,
       queueDepth: gate.depth,

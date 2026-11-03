@@ -8,13 +8,14 @@ import * as orgOps from './orgOps'
 import * as agentOps from './agentOps'
 import * as productOps from './productOps'
 import * as workforceOps from './workforceOps'
-import * as runtimeOps from './runtimeOps'
 import * as memoryOps from './memoryOps'
 import * as activeRunsOps from './activeRunsOp'
 import * as resultOps from './resultOps'
 import * as knowledgeOps from './knowledgeOps'
 import { WORKFLOW_TOOL_OPERATIONS } from '../../workflows/agentTools'
 import { proposeSkillOp } from '../../assets/proposals/agentTool'
+import { commitOp, mergeIntoMainOp, updateFromMainOp } from '../../branches/agentTools'
+import { APP_TOOL_OPERATIONS } from '../../livePreviews/appTools'
 import { ControlPlaneError, type CallerContext } from './types'
 import { requireConnectionGroup } from './connectionGroups'
 import { actingPerson } from './runPerson'
@@ -76,9 +77,6 @@ export const operations: Record<string, (ctx: CallerContext, args: any) => Promi
   add_comment: taskOps.addCommentOp,
   // run visibility (person-scoped execution spec §3)
   list_active_runs: activeRunsOps.listActiveRunsOp,
-  // runtime support — data-path-only; see runtimeOps.ts's header for why these
-  // are absent from hq's own MCP surface.
-  start_preview: runtimeOps.startPreviewOp,
   // memory (memory and knowledge spec) — data-path-only; who it is for is
   // memory/principal.ts's one rule.
   remember: memoryOps.rememberOp,
@@ -96,10 +94,13 @@ export const operations: Record<string, (ctx: CallerContext, args: any) => Promi
   ...WORKFLOW_TOOL_OPERATIONS,
   // skills (skills spec part 5) — data-path-only: an agent's run drafts or proposes a skill, never publishes one
   propose_skill: proposeSkillOp,
+  // code work on branches (live preview spec, part 2) — data-path-only: the branch is the calling run's own
+  commit: commitOp,
+  merge_into_main: mergeIntoMainOp,
+  update_from_main: updateFromMainOp,
+  // a live preview's app tools (live preview spec section 4) — data-path-only: the live preview is the run's signed one
+  ...APP_TOOL_OPERATIONS,
 }
-
-/** Runtime support for the run's own boundary — its preview (adr-0060) — which acts on no one's behalf. */
-const BOUNDARY_ONLY: ReadonlySet<string> = new Set(['start_preview'])
 
 /** Memory, which a run nobody commissioned still reaches for its place: its tools check their own principal. */
 const OWN_PRINCIPAL: ReadonlySet<string> = new Set(['remember', 'forget', 'recall'])
@@ -120,8 +121,8 @@ export async function callOperation(name: string, ctx: CallerContext, args: unkn
     if (ctx.kind === 'turn') requireTurnTool(ctx, name)
     // Every run's and turn's call needs a person behind it who is still in the
     // organisation (adr-0101); each operation then checks what that person may
-    // do. Only the boundary's own runtime support is the boundary's alone.
-    if (ctx.kind === 'turn' || !(BOUNDARY_ONLY.has(name) || OWN_PRINCIPAL.has(name))) await actingPerson(ctx, name)
+    // do. Memory checks its own principal.
+    if (ctx.kind === 'turn' || !OWN_PRINCIPAL.has(name)) await actingPerson(ctx, name)
   }
   try {
     return await operations[name](ctx, await withTaskId(args))

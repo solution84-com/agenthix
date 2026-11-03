@@ -25,6 +25,7 @@ export function siteLoadsOf(rows: SiteLoadRow[]): SiteLoad[] {
       running: health.runs.running,
       maxAtOnce: health.runs.maxAtOnce,
       reportedAt: r.healthReportedAt.toISOString(),
+      copiesBytes: health.branchCopies?.usedBytes ?? null,
     }]
   })
 }

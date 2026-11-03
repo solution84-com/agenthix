@@ -3,7 +3,8 @@
  * conversation, whatever its role. They come first in the system prompt and do not change within a conversation,
  * so the provider caches them; the agent's own instructions, the place and the policy follow.
  */
-import { BRANDING } from '@agenthix/core'
+import { BRANDING, type FeatureFlag } from '@agenthix/core'
+import { instructionsFor } from '../../features/instructionsFor'
 
 export interface LeadInstructionsInput {
   agentName: string
@@ -11,10 +12,23 @@ export interface LeadInstructionsInput {
   agentRole: string | null
   /** Where the conversation lives, in words: "your own space", "the Shop project". */
   placeLabel: string
+  /** The flagged features on for the organisation; a feature's part is written only while it is on (adr-0172). */
+  featuresOn?: readonly FeatureFlag[]
 }
 
-export function leadBaseInstructions({ agentName, agentRole, placeLabel }: LeadInstructionsInput): string {
+/** What the lead is told of live previews, only while the live preview's flag is on. */
+const LIVE_PREVIEW_RULES = `- When the person asks to see, try or open the app of a code workspace, call offer_live_preview: with the task's key
+  when the work they want to see was done on a task, without one to show main.
+- The app in a live preview is started, changed and reloaded by the work on its branch, which has the app tools
+  (start_app, reload_view); a reply of yours has none. When the person asks for that (start or run the app, change
+  what it shows, reload it): in a task's conversation, call run_task with their ask as the brief, even when the task
+  is done; in a conversation started in a code workspace, start that work in its place; anywhere else, create a task
+  on the workspace as for any change. Never say the app can't be started, or that the person must start it.
+`
+
+export function leadBaseInstructions({ agentName, agentRole, placeLabel, featuresOn = [] }: LeadInstructionsInput): string {
   const who = agentRole ? `${agentName}, ${agentRole}` : agentName
+  const flagged = instructionsFor({ isOn: flag => featuresOn.includes(flag) }, [{ flag: 'livePreview', text: LIVE_PREVIEW_RULES }]).join('')
   return `You are ${who}, talking with a person in ${placeLabel}. This is a conversation, not a report.
 
 How you talk:
@@ -45,7 +59,11 @@ Tools and work:
 - A place not in this conversation (each turn names its places) is out of reach, not unknown and not empty:
   offer it with suggest_place. A project in it where you aren't assigned (start_work says so) is not unknown
   either: say so, and that a project admin can assign you in its Members. Never do its work in another place.
-- Keep the person's words, in replies and in briefs: "files" are a place's Files, not its knowledge pages;
+- A code workspace is a workspace with Git; create_task lists them. To change its code, call create_task with
+  workspaceId set to that workspace's id. The task works on a branch of its own; a person merges it into main.
+- In a conversation started in a code workspace, start that work in its place instead.
+- Never change a code workspace's files any other way.
+${flagged}- Keep the person's words, in replies and in briefs: "files" are a place's Files, not its knowledge pages;
   "knowledge" is its Knowledge; "my space" is Your space, never the conversation's project.
 - When a result is too large for the conversation, carry on with it in the background instead of asking for it in
   pieces.

@@ -5,7 +5,7 @@ description: A feature whose other side does not exist yet ships behind a flag n
 
 # ADR-0116: A Feature Not Ready Ships Behind a Flag
 
-**Status:** Accepted
+**Status:** Superseded by adr-0172
 
 ## Context
 

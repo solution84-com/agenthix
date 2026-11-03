@@ -8,6 +8,8 @@ import { barHeading, workBar } from '../hooks/workBarState'
 import type { ConversationRunCard } from '../../workflows/conversationRuns'
 import { AssetRequestDetails } from '../../assets/pages/card/AssetRequestDetails'
 import { WorkflowRequestRow } from './WorkflowRequestRow'
+import { MergeRequestRow } from './MergeRequestRow'
+import { PackageRequestRow } from './PackageRequestRow'
 import { isRunActive, WorkflowRunRow } from './WorkflowRunRow'
 
 /** How much of the background session's context its work has filled, as the runtime last reported it. */
@@ -168,7 +170,11 @@ export function WorkBar({ rows, liveLines, actions, workflowRuns = [] }: {
         <ul className="max-h-80 divide-y divide-border-subtle overflow-y-auto border-t border-border-subtle" data-testid="work-bar-list">
           {bar.requests.map((r) => (r.workflowCard
             ? <WorkflowRequestRow key={r.operationId} row={r} card={r.workflowCard} actions={actions} />
-            : <RequestRow key={r.operationId} row={r} actions={actions} />))}
+            : r.mergeCard
+              ? <MergeRequestRow key={r.operationId} row={r} card={r.mergeCard} actions={actions} />
+              : r.packageCard
+                ? <PackageRequestRow key={r.operationId} row={r} card={r.packageCard} actions={actions} />
+                : <RequestRow key={r.operationId} row={r} actions={actions} />))}
           {bar.others.map((r) => <WorkRow key={r.operationId} row={r} live={liveLines[r.operationId]} actions={actions} />)}
           {runs.map((c) => <WorkflowRunRow key={c.runId} card={c} />)}
         </ul>

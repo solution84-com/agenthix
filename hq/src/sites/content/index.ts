@@ -7,15 +7,15 @@ import { attachContentChannel } from './contentChannelServer'
 import type { ContentStream } from './contentStream'
 
 /**
- * The one content registry. Three production methods open their streams
+ * The one content registry. Two production methods open their streams
  * through `openContentStream`:
  *
- *  - `packages.put` (../../../packages/packageDelivery.ts);
+ *  - `packages.put` (../../../packages/packageDelivery.ts); and
  *  - `location.readFile` (../../../storage/locationFileStore.ts), which is how
  *    every byte of a location's files crosses — there is no size threshold
- *    sending a small file the other way; and
- *  - `preview.connect` (../../../preview/previewRelay.ts), a running preview's
- *    own traffic in both directions, opened once per browser connection.
+ *    sending a small file the other way.
+ *
+ * A live app's bytes go through a relay (adr-0169), never this registry.
  */
 export const contentChannelRegistry = new ContentChannelRegistry()
 

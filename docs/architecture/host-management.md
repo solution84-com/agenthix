@@ -176,8 +176,8 @@ connects to Cloud ([cloud-connection.md](cloud-connection.md)), which the Fleet 
 No blanket flag gates either: each feature is governed by its own condition (this machine enrolled with Cloud, this
 HQ connected, the person's account linked), and until that is true it says so where it runs and does nothing else
 ([ADR-0130](../adr/adr-0130-cloud-features-are-gated-by-their-own-conditions.md)). A feature held back at a release
-ships behind a flag of its own, held in `core/src/naming/features.ts`
-([ADR-0116](../adr/adr-0116-a-feature-not-ready-ships-behind-a-flag.md)). Still scaffolds, answering that the
+ships behind a flag of its own, with a stage, listed in `core/src/shared/featureFlags.ts`
+([feature-flags.md](feature-flags.md), [ADR-0172](../adr/adr-0172-a-flag-has-a-stage.md)). Still scaffolds, answering that the
 organisation is not connected: remote access through Cloud's relay for a self-hosted Fleet Console, the authenticator
 code's setup on the Fleet Console, a fleet admin's own Cloud sign-in to it, and the listing of Cloud's sites and fleet
 admins there (`console/src/http/routes/cloud.ts`).
@@ -530,7 +530,7 @@ machine passes the cause through hq's control socket (`hq/src/sites/defaultSiteC
 [ADR-0112](../adr/adr-0112-every-backup-is-sealed-its-key-held-by-a-machine.md) ·
 [ADR-0113](../adr/adr-0113-a-moved-hqs-sites-follow-it-by-challenge-response.md) ·
 [ADR-0115](../adr/adr-0115-a-site-takes-part-when-a-fleet-admin-or-cloud-adds-it.md) ·
-[ADR-0116](../adr/adr-0116-a-feature-not-ready-ships-behind-a-flag.md) ·
+[ADR-0172](../adr/adr-0172-a-flag-has-a-stage.md) ·
 [ADR-0117](../adr/adr-0117-a-host-service-runs-only-signed-published-images.md) ·
 [ADR-0118](../adr/adr-0118-a-host-service-replaces-itself-through-a-launcher.md) ·
 [ADR-0119](../adr/adr-0119-a-sites-backup-carries-its-authority.md) ·

@@ -11,7 +11,7 @@ import type { Page, Route } from '@playwright/test'
 import type { HostResults } from '@agenthix/core'
 import { capture, type CaptureOptions } from './capture'
 import {
-  ACTIVITY, ARRIVED_JOIN, AUTHENTICATOR, CLOUD_VIEW, CONSOLE_ORIGIN, FLEET, FLEET_ADMINS, HOSTS, HQ_ADDRESS, NOTICES, OPENED_JOIN, ORGANISATION, REMOTE_ACCESS, SAM, STATUS, nightsOf,
+  ACTIVITY, ARRIVED_JOIN, AUTHENTICATOR, CLOUD_VIEW, CONSOLE_ORIGIN, FLEET, FLEET_ADMINS, HOSTS, HQ_ADDRESS, NOTICES, livePreviewsOf, OPENED_JOIN, ORGANISATION, REMOTE_ACCESS, SAM, STATUS, nightsOf,
 } from './consoleSample'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -29,6 +29,8 @@ const SAMPLE_CSRF_TOKEN = 'guide-sample-token'
 export type ConsoleScreen = {
   /** Where the join stands when the Add a site screens ask: just opened (waiting) or a machine used the code (confirming). */
   join?: 'waiting' | 'confirming'
+  /** The flagged features hq says are on (`GET /api/features`): none, as shipped, unless the screen is a feature's own. */
+  features?: readonly string[]
 }
 
 const json = (route: Route, body: unknown, status = 200) =>
@@ -40,8 +42,10 @@ function answer(route: Route, pathname: string, search: string, screen: ConsoleS
   const method = route.request().method()
   const host = /^\/hosts\/([0-9a-f]{64})$/.exec(path)
   const nights = /^\/hosts\/([0-9a-f]{64})\/backups$/.exec(path)
+  const livePreviews = /^\/sites\/([0-9a-f]{64})\/live-previews$/.exec(path)
 
   if (path === '/status') return json(route, STATUS)
+  if (path === '/features') return json(route, { on: screen.features ?? [] })
   if (path === '/session' && method === 'GET') {
     return json(route, {
       user: SAM,
@@ -58,6 +62,7 @@ function answer(route: Route, pathname: string, search: string, screen: ConsoleS
     const list: HostResults['backup.list'] = nightsOf(nights[1])
     return json(route, list)
   }
+  if (livePreviews && method === 'GET') return json(route, { view: livePreviewsOf(livePreviews[1]) })
   if (path === '/notices') return json(route, { notices: NOTICES })
   if (path === '/fleet-admins') return json(route, { admins: FLEET_ADMINS })
   if (path === '/activity') return json(route, search.includes('after=') ? { entries: [], next: null } : ACTIVITY)
@@ -111,8 +116,8 @@ export type ConsoleCaptureOptions = Omit<CaptureOptions, 'as' | 'path'> & Consol
  * Opens one Fleet Console screen, signed in as Sam, and saves its screenshot as `capture` does for hq. The server's
  * clock text is not blanked: nothing on these screens comes from a server clock, the sample follows the fixed date.
  */
-export async function captureConsole(page: Page, { path, join, ...options }: ConsoleCaptureOptions): Promise<string> {
-  const unanswered = await serveConsole(page, { join })
+export async function captureConsole(page: Page, { path, join, features, ...options }: ConsoleCaptureOptions): Promise<string> {
+  const unanswered = await serveConsole(page, { join, features })
   const file = await capture(page, { ...options, as: null, path: `${CONSOLE_ORIGIN}${path}`, maskServerText: false })
   if (unanswered.length > 0) console.warn(`[console recipe] requests the sample does not answer: ${[...new Set(unanswered)].join(', ')}`)
   return file

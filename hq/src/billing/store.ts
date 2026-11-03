@@ -4,7 +4,7 @@
  */
 import { prisma } from 'wasp/server'
 import type { Prisma, PrismaClient } from '@prisma/client'
-import { isFeatureOn } from '@agenthix/core'
+import { isOrgFeatureOn } from '../features/switches'
 import { createLedger, type Ledger, type LedgerStore } from './writer'
 import { ensureDefaultBillingProfile } from './defaultProfile'
 import type { StoredCall } from './types'
@@ -31,12 +31,12 @@ export function ledgerStore(db: Db = prisma): LedgerStore {
   }
 }
 
-/** Whether Agenthix Cloud reports actual costs (the `usageBilling` flag). */
-export function usageBillingOn(): boolean {
-  return isFeatureOn('usageBilling', process.env)
+/** Whether Agenthix Cloud reports actual costs (the `usageBilling` flag), with the organisation's switches. */
+export function usageBillingOn(): Promise<boolean> {
+  return isOrgFeatureOn('usageBilling')
 }
 
 /** The writer on the database, or inside a transaction. Cloud's catalogue is read in phase 5. */
-export function ledger(db: Db = prisma): Ledger {
-  return createLedger(ledgerStore(db), { usageBilling: usageBillingOn(), cloudCatalogue: null })
+export async function ledger(db: Db = prisma): Promise<Ledger> {
+  return createLedger(ledgerStore(db), { usageBilling: await usageBillingOn(), cloudCatalogue: null })
 }

@@ -12,7 +12,6 @@
 import { prisma } from 'wasp/server'
 import { Logger } from '../server/utils/logger'
 import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
-import { expirePreviewsForSession } from '../preview/previewRegistry'
 
 const logger = new Logger('TaskRunner')
 
@@ -42,12 +41,6 @@ export async function archiveTaskSession(siteId: string, taskId: string, session
   await prisma.agentSession
     .update({ where: { id: sessionId }, data: { status: 'ARCHIVED' } })
     .catch((err: unknown) => logger.warn(`TaskRunner: hq-copy session archive failed for ${sessionId}: ${describeError(err)}`))
-  // The automatic end of a task session, and the only one nobody touches. A
-  // preview the task's agent started would otherwise go on serving that
-  // project's working tree until its own TTL ran out, with the task finished.
-  await expirePreviewsForSession(sessionId).catch((err: unknown) =>
-    logger.warn(`TaskRunner: could not end session ${sessionId}'s previews: ${describeError(err)}`),
-  )
   logger.info(`TaskRunner: session ${sessionId} archived — task ${taskId} finished as ${finalState}`)
 }
 
@@ -62,8 +55,5 @@ export async function archiveTaskSessionOnHq(taskId: string): Promise<void> {
   const session = await prisma.agentSession.findUnique({ where: { taskId }, select: { id: true, status: true } })
   if (!session || session.status === 'ARCHIVED') return
   await prisma.agentSession.update({ where: { id: session.id }, data: { status: 'ARCHIVED' } })
-  await expirePreviewsForSession(session.id).catch((err: unknown) =>
-    logger.warn(`TaskRunner: could not end session ${session.id}'s previews: ${describeError(err)}`),
-  )
   logger.info(`TaskRunner: session ${session.id} archived on hq alone — task ${taskId}'s site was revoked`)
 }

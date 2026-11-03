@@ -8,6 +8,9 @@ import {
   CLOUD_OFFER_NAMES,
   CONSOLE_LINK_METHODS,
   parseHostEnvelope,
+  parseLivePreviewIdleMinutes,
+  parseLivePreviewLimit,
+  type LivePreviewLimit,
   type JoinAcceptance,
   type JoinPurpose,
   type CloudOfferName,
@@ -59,6 +62,18 @@ function time(p: Record<string, unknown>, key: string): string {
   const v = text(p, key, 40)
   if (Number.isNaN(Date.parse(v))) throw new Malformed(`'${key}' is a time.`)
   return new Date(v).toISOString()
+}
+
+function limit(p: Record<string, unknown>): LivePreviewLimit {
+  const v = parseLivePreviewLimit(p.limit)
+  if (v === undefined) throw new Malformed("'limit' is a whole number of live previews, or null for none.")
+  return v
+}
+
+function idleMinutes(p: Record<string, unknown>): number {
+  const v = parseLivePreviewIdleMinutes(p.idleMinutes)
+  if (v === undefined) throw new Malformed("'idleMinutes' is a whole number of minutes.")
+  return v
 }
 
 function purpose(v: unknown): JoinPurpose {
@@ -133,6 +148,7 @@ const READ: { [M in ConsoleLinkMethod]: (p: Record<string, unknown>) => Params<M
   'hq.about': () => ({}),
   'site.loads': () => ({}),
   'relay.facts': () => ({}),
+  'features.on': () => ({}),
   'activity.list': p => ({
     byUserId: text(p, 'byUserId', 64, ID),
     ...(p.after === undefined ? {} : { after: text(p, 'after', 64, ID) }),
@@ -145,6 +161,15 @@ const READ: { [M in ConsoleLinkMethod]: (p: Record<string, unknown>) => Params<M
     hostId: text(p, 'hostId', 64, ID),
     notifyIfSilent: bool(p, 'notifyIfSilent'),
     stoppedAt: p.stoppedAt === null ? null : time(p, 'stoppedAt'),
+  }),
+  'sites.livePreviews': p => ({ byUserId: text(p, 'byUserId', 64, ID), executionSiteId: text(p, 'executionSiteId', 64, ID) }),
+  'sites.livePreviews.set': p => ({
+    byUserId: text(p, 'byUserId', 64, ID), executionSiteId: text(p, 'executionSiteId', 64, ID),
+    allowed: bool(p, 'allowed'), limit: limit(p), idleMinutes: idleMinutes(p),
+  }),
+  'sites.livePreviews.stop': p => ({
+    byUserId: text(p, 'byUserId', 64, ID), executionSiteId: text(p, 'executionSiteId', 64, ID),
+    livePreviewId: text(p, 'livePreviewId', 64, ID),
   }),
   'cloud.state': p => ({ byUserId: text(p, 'byUserId', 64, ID) }),
   'cloud.connect': p => ({ byUserId: text(p, 'byUserId', 64, ID) }),

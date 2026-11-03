@@ -24,6 +24,40 @@ export function labelKey(key: string): string {
   return `${siteNamespace()}.${key}`
 }
 
+const SITE_ID = /^[A-Za-z0-9_.-]{1,64}$/
+let containerSiteId: string | null = null
+
+/**
+ * This site's own id (`SiteConfig.siteId`), set once at boot before any container is made. Every container and network
+ * the site makes carries it as `<namespace>.site`, and every sweep removes only what carries it, so two sites sharing
+ * one Docker, even with one namespace, never remove each other's. Unset (in tests), nothing is labelled or filtered by it.
+ */
+export function setContainerSiteId(siteId: string): void {
+  if (!SITE_ID.test(siteId)) throw new Error(`Not a site id a label can carry: ${JSON.stringify(siteId)}`)
+  containerSiteId = siteId
+}
+
+export function clearContainerSiteIdForTests(): void {
+  containerSiteId = null
+}
+
+export const siteIdLabelKey = (): string => labelKey('site')
+
+/** The site's own label, as a label map; empty before the site's id is set. */
+export function siteIdLabel(): Record<string, string> {
+  return containerSiteId ? { [siteIdLabelKey()]: containerSiteId } : {}
+}
+
+/** `--label` arguments for the site's own label. */
+export function siteIdLabelArgs(): string[] {
+  return containerSiteId ? ['--label', `${siteIdLabelKey()}=${containerSiteId}`] : []
+}
+
+/** `--filter` arguments that keep a `docker ps` / `network ls` / `events` to what this site made. */
+export function siteIdFilterArgs(): string[] {
+  return containerSiteId ? ['--filter', `label=${siteIdLabelKey()}=${containerSiteId}`] : []
+}
+
 /**
  * The group the agents a site starts are in: `<namespace>-agents`, set as their `com.docker.compose.project` label,
  * which Docker Desktop groups containers by. They are started with `docker run`, so nothing sets it for them.
@@ -41,13 +75,14 @@ export function composeProjectLabelArgs(service: string): string[] {
   return [
     '--label', `com.docker.compose.project=${project}`,
     '--label', `com.docker.compose.service=${service}`,
+    ...siteIdLabelArgs(),
   ]
 }
 
 /**
- * The agent containers' name prefix, `<namespace>-agent` (`agenthix-dev-agent` in development). Shared by
- * `AgentContainerManager.containerName` (the stamp) and its `removeOrphans` prefix-fallback branch (the sweep) so
- * the two can never disagree about what counts as this install's containers.
+ * The agent containers' name prefix, `<namespace>-agent` (`agenthix-dev-agent` in development). Only names them: no
+ * sweep finds a container by it, since two sites on one Docker can share it. A second development site beside the
+ * first sets its own HOST_NAMESPACE, so its names differ too.
  */
 export function resolveContainerPrefix(): string {
   return `${siteNamespace()}-agent`

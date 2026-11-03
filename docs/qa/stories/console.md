@@ -1,7 +1,7 @@
 ---
 name: User Stories — Fleet Console
 description: Business-level requirements for the Fleet Console (console/ and console-web/) — what a fleet admin needs to look after the machines Agenthix runs on. Written for business readers.
-updated: 2026-10-27
+updated: 2026-11-03
 ---
 
 # User Stories — the Fleet Console (`console/`, `console-web/`)
@@ -223,3 +223,33 @@ As a fleet admin, I want to see hq's relay beside hq and be told at once when it
 **Acceptance criteria:**
 - AC-396a: HQ's page shows a card for hq's relay: the address people reach it at, the sites it serves, today's traffic and its open streams; with no files address it says so and that PDF preview is off, and links to the guide; what is not reported yet is said.
 - AC-396b: a relay that is not answering is on the Dashboard's *Needs you* in the words people see and takes me to HQ; it is not listed while it answers.
+
+---
+
+## Live previews on the fleet (added 2026-11-02)
+
+Written on 2026-11-02 from the finished code at the close of the unit *live preview*.
+
+> **Behind the `livePreview` flag, at experimental, so not in the release:** US-422. The product does not keep these promises while the flag is off. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
+### US-422 — Decide which sites run live previews
+
+As a fleet admin, I want to switch live previews on or off per site and set how many run at once and when an unused one stops, so that live previews do not crowd out the agents' work.
+
+**Acceptance criteria:**
+- AC-422a: each site's page has *Live previews on this site*, a limit and an idle stop; turning live previews off lists the ones it stops and asks first; lowering the limit stops none.
+- AC-422b: I see the live previews open on a site, whose, which branch and when last used, and stop one after a confirmation.
+- AC-422c: the page shows the site's memory and disk against the machine, with the disk branch copies use.
+- AC-422d: I am told when a site passes 80% of its memory or its disk, and when it recovers.
+
+## Features on the fleet (added 2026-11-03)
+
+Written at the close of the unit *live preview*, from the finished code.
+
+### US-429 — See a feature's section only when the organisation has it on
+
+As a fleet admin, I want the Fleet Console to show a feature's section only while the organisation's HQ says the feature is on, so that I am never offered a setting that does nothing, and a feature switched off in HQ is closed here too.
+
+**Acceptance criteria:**
+- AC-429a: a flagged feature's section is drawn only once HQ says its feature is on, and left out when HQ is not asked, does not answer or refuses.
+- AC-429b: the Fleet Console refuses that section's routes while the feature is off, saying it is not available and that nothing was changed, and does nothing for them.

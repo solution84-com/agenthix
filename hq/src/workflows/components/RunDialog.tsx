@@ -11,7 +11,7 @@ import { ErrorLine } from './ErrorLine'
  * Run (workflows spec part 5, U3): each parameter with its rule in words, refused here when the value doesn't match,
  * and where to run it. A workflow with no parameters and no workspace to choose runs at once, from its button.
  */
-export function RunDialog({ open, onClose, place, workflowId, name, definition, onStarted }: {
+export function RunDialog({ open, onClose, place, workflowId, name, definition, onStarted, runOn }: {
   open: boolean
   onClose: () => void
   place: WorkflowPlace
@@ -19,11 +19,14 @@ export function RunDialog({ open, onClose, place, workflowId, name, definition, 
   name: string
   definition: WorkflowDefinition
   onStarted: (runId: string) => void
+  /** The workspace it runs on, fixed, as *Deploy…* runs one on `main`: then nothing asks where. */
+  runOn?: string
 }) {
   const start = useAction(startWorkflowRun)
-  const { workspaces } = useWorkspaces({ ownerType: place.type, ownerId: place.id })
+  const { workspaces: listed } = useWorkspaces({ ownerType: place.type, ownerId: place.id })
+  const workspaces = runOn ? [] : listed
   const [values, setValues] = useState<Record<string, string>>({})
-  const [workspaceId, setWorkspaceId] = useState('')
+  const [workspaceId, setWorkspaceId] = useState(runOn ?? '')
   const [tried, setTried] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)

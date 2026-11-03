@@ -1,11 +1,13 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { withFeature } from '@agenthix/core/testing'
 import type { HostFigures } from '@agenthix/core'
 import { forgetCsrfToken } from '../api/csrf'
 import { SitePage } from '../pages/site/SitePage'
 import { MaintenancePanelHost } from '../shell/MaintenancePanelHost'
 import type { FleetHost } from '../pages/dashboard/types'
-import { fakeServer, fleetRoute } from './fakeServer'
+import { FeaturesProvider } from '../features/features'
+import { fakeServer, featuresAsShipped, fleetRoute } from './fakeServer'
 
 const GB = 1000 ** 3
 const GIB = 1024 ** 3
@@ -181,3 +183,35 @@ describe('notify the fleet admins if this machine stops answering, from Notifyâ€
   })
 })
 
+/** The page as the Fleet Console draws it, with hq's answer of which features are on (adr-0172). */
+function withFeatures() {
+  const asked = fakeServer({
+    'GET /features': featuresAsShipped,
+    [`GET /hosts/${FP}`]: { status: 200, body: { host: host() } },
+    [`GET /sites/${FP}/live-previews`]: {
+      status: 200,
+      body: { view: { executionSiteId: 'es-1', allowed: true, limit: null, idleMinutes: 120, problems: [], capacity: null, livePreviews: [] } },
+    },
+  })
+  render(<FeaturesProvider><SitePage fingerprint={FP} /></FeaturesProvider>)
+  return asked
+}
+
+describe("a site's page while the live preview is off @SC-1779", () => {
+  it('has no live preview section, and never asks for one', async () => {
+    const asked = withFeatures()
+    await screen.findByRole('heading', { name: 'office-server', level: 1 })
+    await waitFor(() => expect(asked.some(r => r.path === '/features')).toBe(true))
+    expect(screen.queryByRole('region', { name: 'Live previews on this site' })).toBeNull()
+    expect(asked.filter(r => r.path.endsWith('/live-previews'))).toEqual([])
+  })
+})
+
+withFeature('livePreview', () => {
+  describe("a site's page while the live preview is on", () => {
+    it('shows the live preview section', async () => {
+      withFeatures()
+      expect(await screen.findByRole('region', { name: 'Live previews on this site' })).toBeTruthy()
+    })
+  })
+})

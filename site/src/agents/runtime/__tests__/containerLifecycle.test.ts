@@ -49,6 +49,7 @@ vi.mock('../../../server/hq/hqConnection', () => ({
 // these tests exercise the exact public API a caller (setup.ts) sees, not the
 // lifecycle class in isolation.
 import { AgentContainerManager } from '../AgentContainerManager'
+import { clearContainerSiteIdForTests, setContainerSiteId } from '../containerLabels'
 import type { AgentMounts, ContainerKey, ContainerContext } from '../containerTypes'
 const { execFile } = await import('node:child_process')
 const mockExecFile = vi.mocked(execFile)
@@ -202,63 +203,37 @@ describe('removeOrphans @SC-325', () => {
     expect(removed).toBe(0)
   })
 
-  it('prefix fallback branch removes unlabeled containers regardless of activeBoundaries', async () => {
+  it('never removes a container by its name prefix alone: another site on the same Docker may share it', async () => {
     const mgr = new AgentContainerManager()
-    // A pre-boundary container — the session-keyed name shape, no owner label.
+    // Another site's container, or one from before the labels: it carries this install's name prefix but none of
+    // this site's labels, so it is not this site's to remove.
     mockDockerRemoveOrphans({ prefixed: 'agenthix-agent-coder-sess-1\n' })
 
-    // No boundary can be confirmed for it (no owner label to read), so it is swept.
-    const removed = await mgr.removeOrphans(new Set(['project:proj-alpha']))
-
-    expect(removed).toBe(1)
-    const rmCall = mockExecFile.mock.calls.find(c => (c[1] as string[])[0] === 'rm')
-    expect(rmCall?.[1]).toEqual(['rm', '-f', 'agenthix-agent-coder-sess-1'])
-  })
-
-  it('prefix fallback branch: a failed rm is not counted as removed, and logs a warning instead', async () => {
-    const mgr = new AgentContainerManager()
-    mockDockerRemoveOrphans({ prefixed: 'agenthix-agent-coder-sess-1\n', rmFails: true })
-
     const removed = await mgr.removeOrphans(new Set(['project:proj-alpha']))
 
     expect(removed).toBe(0)
+    expect(mockExecFile.mock.calls.filter(c => (c[1] as string[])[0] === 'rm')).toEqual([])
+    expect(mockExecFile.mock.calls.some(c => (c[1] as string[]).some(a => a.startsWith('name=')))).toBe(false)
   })
 
-  it('a container present in both branches is only removed once', async () => {
-    const mgr = new AgentContainerManager()
-    // Same name resurfaces in the prefix-based listing — already handled, must be skipped
-    mockDockerRemoveOrphans({
-      labeled: 'agenthix-agent-project-proj-gone-rw\tproject:proj-gone\n',
-      prefixed: 'agenthix-agent-project-proj-gone-rw\n',
-    })
+  it("keeps to this site's own containers by its site id label, once the site's id is set", async () => {
+    setContainerSiteId('site-a')
+    try {
+      const mgr = new AgentContainerManager()
+      mockDockerRemoveOrphans({})
 
-    const removed = await mgr.removeOrphans(new Set(['project:proj-alpha']))
+      await mgr.removeOrphans(new Set(['project:proj-alpha']))
 
-    expect(removed).toBe(1)
-    const rmCalls = mockExecFile.mock.calls.filter(c => (c[1] as string[])[0] === 'rm')
-    expect(rmCalls.length).toBe(1)
-  })
-
-  // Pins the "seen" bookkeeping order: labeledNames.add(name) must run BEFORE the
-  // activeBoundaries.has(owner) check, not after — otherwise a LIVE boundary's
-  // container is never recorded as "seen", and the prefix fallback branch (which
-  // also lists it, since name-only matching can't see labels) sweeps it as if it
-  // were unlabeled — `rm -f`-ing a live container at boot. The "only removed
-  // once" test above can't catch this: there the boundary is gone, so the
-  // continue is reached the same way either ordering runs. Pinned here —
-  // do not "simplify" this test away.
-  it('a live boundary\'s container, listed by both branches, is swept by neither', async () => {
-    const mgr = new AgentContainerManager()
-    mockDockerRemoveOrphans({
-      labeled: 'agenthix-agent-project-proj-alpha-rw\tproject:proj-alpha\n',
-      prefixed: 'agenthix-agent-project-proj-alpha-rw\n',
-    })
-
-    const removed = await mgr.removeOrphans(new Set(['project:proj-alpha']))
-
-    expect(removed).toBe(0)
-    const rmCalls = mockExecFile.mock.calls.filter(c => (c[1] as string[])[0] === 'rm')
-    expect(rmCalls).toEqual([])
+      expect(mockExecFile.mock.calls[0][1]).toEqual([
+        'ps', '-a',
+        '--filter', 'label=agenthix.owner',
+        '--filter', 'label=com.docker.compose.project=agenthix-agents',
+        '--filter', 'label=agenthix.site=site-a',
+        '--format', '{{.Names}}\t{{.Label "agenthix.owner"}}',
+      ])
+    } finally {
+      clearContainerSiteIdForTests()
+    }
   })
 
   it('returns 0 when no containers exist', async () => {

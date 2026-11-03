@@ -13,6 +13,7 @@ import type { HostCeilings, HostFigures, HostTarget } from './figures.js'
 import type { ScheduledBy, ScheduledChange } from './scheduledChange.js'
 import type { HostIdentity } from './envelope.js'
 import type { ExportChunk } from './exportDownload.js'
+import type { PreviewsFigures } from './previews.js'
 
 /** A published version, `major.minor.patch`. */
 export type PublishedVersion = string
@@ -115,6 +116,11 @@ export type HostRequest =
    */
   | { op: 'frontDoor.set'; on: true; confirmPorts: true; filesHost?: string; previewsHost?: string; certificate?: string; privateKey?: string }
   | { op: 'frontDoor.set'; on: false }
+  /**
+   * Since 1.3: HQ's preview address, the domain every live app is answered under (live preview spec section 5); null
+   * keeps live apps off. Asked again with the same domain, it changes nothing and runs the three checks again.
+   */
+  | { op: 'previews.set'; domain: string | null }
   | { op: 'schedule'; at: string; change: ChangeRequest }
   | { op: 'schedule.change'; changeId: string; at: string }
   | { op: 'schedule.cancel'; changeId: string }
@@ -125,7 +131,7 @@ export type HostOperation = HostRequest['op']
 export const HOST_OPERATIONS = [
   'figures.read', 'logs.read', 'install', 'start', 'stop', 'remove', 'upgrade',
   'backup.take', 'backup.list', 'backup.export', 'backup.exportRead', 'backup.exportDone', 'backup.store', 'backup.fetch', 'backup.restore',
-  'capacity.set', 'address.set', 'frontDoor.set', 'schedule', 'schedule.change', 'schedule.cancel',
+  'capacity.set', 'address.set', 'frontDoor.set', 'previews.set', 'schedule', 'schedule.change', 'schedule.cancel',
   'suspend', 'resume', 'erase', 'move',
 ] as const satisfies readonly HostOperation[]
 
@@ -193,6 +199,7 @@ export type HostResults = {
   'capacity.set': { ceilings: HostCeilings }
   'address.set': { address: string }
   'frontDoor.set': { on: boolean }
+  'previews.set': { previews: PreviewsFigures }
   schedule: { change: ScheduledChange }
   'schedule.change': { change: ScheduledChange }
   'schedule.cancel': { change: ScheduledChange }

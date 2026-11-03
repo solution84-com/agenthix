@@ -41,6 +41,8 @@ services:
       # Shared with the relay below (adr-0153): without it HQ's relay cannot connect and files cannot be opened.
       HQ_RELAY_SECRET: ${HQ_RELAY_SECRET:-}
       FILES_ORIGIN: ${FILES_ORIGIN:-}
+      # Live apps' address pattern (adr-0169), the same in hq-server, the relay and hq-web.
+      PREVIEW_PATTERN: ${PREVIEW_PATTERN:-}
     volumes:
       - hq_storage:/hq-storage
     networks: [internal]
@@ -63,6 +65,7 @@ services:
       HQ_RELAY_SECRET: ${HQ_RELAY_SECRET:?Set HQ_RELAY_SECRET in hq/compose.env (openssl rand -hex 32)}
       HQ_URL: ${HQ_URL}
       FILES_ORIGIN: ${FILES_ORIGIN:-}
+      PREVIEW_PATTERN: ${PREVIEW_PATTERN:-}
       HQ_UPLOADS_ROOT: /hq-storage
     volumes:
       - hq_storage:/hq-storage:ro
@@ -86,8 +89,8 @@ services:
       # Set into the browser app when hq-web starts (adr-0111).
       HQ_URL: ${HQ_URL}
       HQ_TRUSTED_PROXIES: ${HQ_TRUSTED_PROXIES:-1}
-      # Which hosts are previews, forwarded whole to hq-server (adr-0071).
-      PREVIEW_DOMAIN: ${PREVIEW_DOMAIN:-}
+      # Live apps' addresses, passed whole to the relay (adr-0169).
+      PREVIEW_PATTERN: ${PREVIEW_PATTERN:-}
       # Uploaded files' own origin, whose host it answers with files alone (adr-0114).
       FILES_ORIGIN: ${FILES_ORIGIN:-}
     ports:

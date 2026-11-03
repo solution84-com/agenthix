@@ -7,15 +7,19 @@ import type { RecordedCall, RunRecord } from './run'
 import type { CheckSetup } from './setup'
 import { PROJECT, PROJECT_LEVEL, RELEASE_PAGE, levelOf } from './world'
 import { FILE_CHECKS } from './fileChecks'
+import { CODE_WORK_CHECKS } from './codeWorkChecks'
+import { LIVE_PREVIEW_CHECKS } from './livePreviewChecks'
+import { TASK_RUN_CHECKS } from './taskRun/checks'
+import type { TaskRunSetup } from './taskRun/setup'
 
 export type Grade = { passed: true } | { passed: false; why: string }
 
-export interface Check {
+/** A check of the lead's turn (`setup`), or of a task's run on a branch (`taskRun`): one of the two. */
+export type Check = {
   id: string
   title: string
-  setup: CheckSetup
   grade(run: RunRecord): Grade
-}
+} & ({ setup: CheckSetup; taskRun?: never } | { taskRun: TaskRunSetup; setup?: never })
 
 type Args = Record<string, unknown>
 const argsOf = (c: RecordedCall): Args => (c.input && typeof c.input === 'object' ? (c.input as Args) : {})
@@ -125,4 +129,7 @@ export const CHECKS: readonly Check[] = [
     grade: run => searchedFirst(run, inReach, 'search_knowledge'),
   },
   ...FILE_CHECKS,
+  ...CODE_WORK_CHECKS,
+  ...LIVE_PREVIEW_CHECKS,
+  ...TASK_RUN_CHECKS,
 ]

@@ -22,6 +22,14 @@ describe('a relay token @SC-1226', () => {
     expect(turn.credentials.get('openai')).toEqual(openai)
   })
 
+  it("carries the feature switches the run was started with, and none when it was given none @SC-1775", () => {
+    const token = issueRelayToken('c1', 'conv-1')
+    pointRelayToken(token, 'run-1', [openrouter], null, { usageBilling: true })
+    expect(resolveRelayToken(token)!.features).toEqual({ usageBilling: true })
+    pointRelayToken(token, 'run-2', [openrouter])
+    expect(resolveRelayToken(token)!.features).toEqual({})
+  })
+
   it('names nothing between turns, and a late clear never takes a later turn', () => {
     const token = issueRelayToken('c1', 'conv-1')
     pointRelayToken(token, 'run-1', [openrouter])

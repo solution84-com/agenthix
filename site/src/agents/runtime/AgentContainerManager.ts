@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import { Logger } from '../../server/utils/logger'
 import type { CapabilityRunner } from '@agenthix/core'
-import { containerNameFor, labelKey, resolveComposeProjectName } from './containerLabels'
+import { containerNameFor, labelKey, resolveComposeProjectName, siteIdFilterArgs } from './containerLabels'
 import { checkAgentCredentials } from './agentCredentials'
 import { harnessHomeBind, prepareHarnessHome, runnerClaudeHome, runnerSkillsStagingDir, writeRunCredential } from './boundaryClaudeHome'
 import type { AgentMounts, ContainerKey, ContainerContext, ContainerState } from './containerTypes'
@@ -14,6 +14,7 @@ import { mountSignature } from './mountSignature'
 import { removeContainersFor, type ContainerRemovalFilter } from './containerRemoval'
 import { resolveContainerLimits, type ContainerLimits } from './containerLimits'
 import { ReadableRunError } from './readableRunError'
+import { mustWaitForBinds, waitForRunsToEnd, BINDS_DRAIN_POLL_MS } from './bindsDrain'
 import { hostFigures } from '../../server/host/hostFigures'
 
 const logger = new Logger('AgentContainerManager')
@@ -29,6 +30,8 @@ export class AgentContainerManager {
   // than by conversations, but a boundary that goes away must still not leave
   // one behind.
   private containerStates = new Map<string, ContainerState>()
+
+  constructor(private readonly bindsDrainPollMs: number = BINDS_DRAIN_POLL_MS) {}
 
   // The id `docker run` printed for each container this process started, by
   // name — what an end-of-run command addresses instead of the name, so a
@@ -106,7 +109,7 @@ export class AgentContainerManager {
     // ceilings is recreated for the next run once no run is left in it — and
     // reused, with what it started with, while runs are.
     const limits = resolveContainerLimits()
-    const sig = `${mountSignature(harnessHomeBind(key), mounts.boundary, mounts.locationMode)}|${limits.memory}|${limits.cpus}|${limits.pidsLimit}`
+    const sig = `${mountSignature(harnessHomeBind(key), mounts.boundary, mounts.locationMode, mounts.readOnly)}|${limits.memory}|${limits.cpus}|${limits.pidsLimit}`
 
     // Every run, not only the ones that start a container. A runner's
     // container is reused across runs, and the credential hq decided for THIS
@@ -135,6 +138,7 @@ export class AgentContainerManager {
       // Deduplicate concurrent starts for the same container name (pre-check)
       if (state.starting) {
         await state.starting
+        if (await this.waitedForBinds(name, sig, ctx)) return this.ensureRunning(key, ctx, mounts)
         await checkAgentCredentials({ home, key, containerName: name, credential: ctx.credential, agentHandle: ctx.handle, runtime: ctx.runtime })
         return name
       }
@@ -164,6 +168,7 @@ export class AgentContainerManager {
         // while we were awaiting.
         if (state.starting) {
           await state.starting
+          if (await this.waitedForBinds(name, sig, ctx)) return this.ensureRunning(key, ctx, mounts)
           await checkAgentCredentials({ home, key, containerName: name, credential: ctx.credential, agentHandle: ctx.handle, runtime: ctx.runtime })
           return name
         }
@@ -187,6 +192,7 @@ export class AgentContainerManager {
         // Another caller may have started it while that was asked.
         if (stillUp || state.starting) {
           if (state.starting) await state.starting
+          if (await this.waitedForBinds(name, sig, ctx)) return this.ensureRunning(key, ctx, mounts)
           await checkAgentCredentials({ home, key, containerName: name, credential: ctx.credential, agentHandle: ctx.handle, runtime: ctx.runtime })
           return name
         }
@@ -207,6 +213,17 @@ export class AgentContainerManager {
       // run's own markRunStart takes over.
       state.lastActivity = Date.now()
     }
+  }
+
+  /**
+   * A run on a branch's copy never joins a container started with other binds: it waits for the runs in it to end
+   * (`bindsDrain.ts`), and true tells the caller to start over, so the container is made again with the current binds.
+   * Runs already in it keep it until they end (spec, *Turning Git on*).
+   */
+  private async waitedForBinds(name: string, sig: string, ctx: ContainerContext): Promise<boolean> {
+    if (!mustWaitForBinds(this.containerStates.get(name), sig, ctx)) return false
+    await waitForRunsToEnd(this.containerStates, name, ctx, this.bindsDrainPollMs)
+    return true
   }
 
   private async _isRunning(containerName: string): Promise<boolean> {
@@ -272,6 +289,7 @@ export class AgentContainerManager {
     if (/^[0-9a-f]{12,64}$/.test(id)) this.containerIds.set(containerName, id)
     const started = this.getOrCreateState(containerName)
     started.mountSig = sig
+    delete started.draining
     logger.info(`[container] started ${containerName}`)
   }
 
@@ -333,6 +351,7 @@ export class AgentContainerManager {
         'ps', '-a',
         '--filter', `label=${labelKey('agent')}=${handle}`,
         '--filter', `label=com.docker.compose.project=${project}`,
+        ...siteIdFilterArgs(),
         '--format', '{{.Names}}',
       ])
       const names = stdout.trim().split('\n').filter(Boolean)

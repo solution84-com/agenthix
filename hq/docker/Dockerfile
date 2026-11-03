@@ -87,6 +87,7 @@ COPY hq/docker/Caddyfile /etc/caddy/Caddyfile
 COPY --chmod=0755 hq/docker/web-address.sh /usr/local/bin/hq-web-address
 COPY --chmod=0755 hq/docker/web-entrypoint.sh /usr/local/bin/hq-web-entrypoint
 COPY --chmod=0755 hq/docker/web-files.sh /usr/local/bin/hq-web-files
+COPY --chmod=0755 hq/docker/web-previews.sh /usr/local/bin/hq-web-previews
 EXPOSE 4100
 ENTRYPOINT ["/usr/local/bin/hq-web-entrypoint"]
 

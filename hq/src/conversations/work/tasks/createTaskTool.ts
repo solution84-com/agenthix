@@ -25,7 +25,8 @@ import { operationRows } from '../../tools/operationRows'
 import { continuationFor, THEN_DESCRIPTION } from '../continuation'
 import { refusedBy, taskToolRefusal } from './gate'
 import { createSetTaskOperation, pendingWithKey } from './taskOperations'
-import { placeLine, placesNamed, projectWords } from '../boundaries'
+import { admittedBoundaries, placeLine, placesNamed, projectWords } from '../boundaries'
+import { workspaceLines } from '../../../branches/leadWorkspaces'
 import { queueAsPerson, queueRefusal, startTaskOperation } from './startRun'
 import { LATER_LINE, readWhen, WHEN_DESCRIPTION, type TaskWhen } from './when'
 
@@ -38,10 +39,15 @@ export const NO_THEN_AT_A_TIME =
 export const CREATE_TASK = 'create_task'
 
 // Today's fields, less `queue`: whether it runs is what `when` says.
-const { queue: _queue, ...fields } = CONTROL_PLANE_TOOLS.find(t => t.name === CREATE_TASK)!.schema
+// workspaceId is asked for on every call, null allowed, so a model decides it rather than leaving it out; a call
+// without it reads as null, and null as no workspace.
+const { queue: _queue, workspaceId: _workspaceId, ...fields } = CONTROL_PLANE_TOOLS.find(t => t.name === CREATE_TASK)!.schema
 const input = z.object({
   ...fields,
   projectId: z.string().describe("The project this task belongs to: its key (the letters before a task's number), its name, or its id"),
+  workspaceId: z.preprocess(v => v ?? null, z.string().nullable()).describe(
+    'The workspace the task works in: the workspaceId of a code workspace for work that changes its code, or null for work in the project\'s files',
+  ),
   when: z.string().describe(WHEN_DESCRIPTION),
   timezone: z.string().optional().describe('IANA timezone an offset-less `when` time is read in; omit it for the person\'s own'),
   then: z.string().optional().describe(THEN_DESCRIPTION),
@@ -127,8 +133,9 @@ export async function createTaskCall(capability: TurnCapability, raw: unknown): 
   }
   const project = await projectIdFor(person, parsed.data.projectId)
   if ('refusal' in project) return { status: 'refused', reason: project.refusal }
-  // The shared schema is untyped (ZodRawShape); its own fields are checked by the parse above.
-  const args = { ...parsed.data, projectId: project.projectId } as Args
+  // The shared schema is untyped (ZodRawShape); its own fields are checked by the parse above. No workspace is no field.
+  const { workspaceId, ...rest } = parsed.data
+  const args = { ...rest, ...(workspaceId ? { workspaceId } : {}), projectId: project.projectId } as Args
   const turn: Person = { ...capability, actingUserId: person }
   const when = readWhen(args.when)
   const { then, ...asked } = args
@@ -165,8 +172,12 @@ export async function createTaskCall(capability: TurnCapability, raw: unknown): 
 export const createTaskTool: ConversationTool = {
   name: CREATE_TASK,
   input,
-  async describe() {
-    return CREATE_TASK_DESCRIPTION
+  async describe(capability) {
+    // The places' workspaces, and which are code workspaces (live preview spec, part 2).
+    const personId = capability.actingUserId ?? capability.readerUserId
+    if (!personId) return CREATE_TASK_DESCRIPTION
+    const places = await admittedBoundaries(personId, capability.agentId, 'start_work', capability.conversationId).catch(() => [])
+    return [CREATE_TASK_DESCRIPTION, ...(await workspaceLines(places))].join('\n')
   },
   async offered(capability) {
     return taskToolRefusal(capability, CREATE_TASK) === null

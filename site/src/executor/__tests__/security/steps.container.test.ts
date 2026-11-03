@@ -1,12 +1,14 @@
 /**
  * Control checks for a run's steps, in real executor containers (workflows spec part 6): A2, a step that installs
  * packages holds no secret it does not name; A3, nothing one step leaves running reaches the next; A8, the approved
- * files are read-only inside every step. Each step checks its control itself and exits with a number of its own
+ * files are read-only inside every step; A9, no git a step runs starts the hooks or file-system monitor a workspace's
+ * repository names, as an agent may have written them; and IPv6 is off inside a step (X32). Each step checks its control itself and exits with a number of its own
  * when it does not hold; the run is the site's own (`startRun`), with canaries for secrets.
  *
  * Run with `npm run test:container` from site/. Needs Docker and the executor image (EXECUTOR_TEST_IMAGE,
  * `imgtest/executor:dev` by default); skipped when either is missing.
  */
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest'
@@ -114,6 +116,17 @@ describe.skipIf(!IMAGE_ID)('control checks for a run\'s steps, in real container
     expect(await listStepContainers()).toEqual([])
   })
 
+  it('IPv6 is off inside a step: both kernel settings say so, and no interface has an IPv6 address', async () => {
+    const check = [
+      'test "$(cat /proc/sys/net/ipv6/conf/all/disable_ipv6)" = 1 || exit 61',
+      'test "$(cat /proc/sys/net/ipv6/conf/default/disable_ipv6)" = 1 || exit 62',
+      'test -z "$(cat /proc/net/if_inet6 2>/dev/null)" || exit 63',
+    ].join('; ')
+    const d = definition({ steps: [{ name: 'Plain', run: check, secrets: [], timeoutSeconds: 60 }], files: [] })
+    const r = await runToEnd(await instruction({ runId: 'run-v6', executorImageDigest: IMAGE_ID, definition: d, files: [] }))
+    expect(r.steps.map(s => [s.state, s.exitCode])).toEqual([['passed', 0]])
+  })
+
   it('A8: /run/workflow is read-only inside a step, with a secret or without', async () => {
     const check = [
       'grep -qE "^[^ ]+ /run/workflow [^ ]+ ro[, ]" /proc/mounts || exit 51',
@@ -128,6 +141,27 @@ describe.skipIf(!IMAGE_ID)('control checks for a run\'s steps, in real container
       files: ['deploy/upload.sh'],
     })
     const r = await runToEnd(await instruction({ runId: 'run-a8', executorImageDigest: IMAGE_ID, definition: d }))
+    expect(r.steps.map(s => [s.state, s.exitCode])).toEqual([['passed', 0], ['passed', 0]])
+  })
+
+  it("A9: no git a step runs starts the workspace's hooks or file-system monitor, with a secret or without", async () => {
+    const ws = path.join(siteRoot, 'projects/proj-1/workspaces/ws-1')
+    execFileSync('git', ['init', '-q', ws])
+    const ran = (what: string) => `#!/bin/sh\ntouch /run/out/${what}-ran\n`
+    await fs.writeFile(path.join(ws, '.git/hooks/pre-commit'), ran('hook'), { mode: 0o755 })
+    await fs.writeFile(path.join(ws, '.git/hooks/post-commit'), ran('hook'), { mode: 0o755 })
+    await fs.writeFile(path.join(ws, 'monitor.sh'), ran('monitor'), { mode: 0o755 })
+    execFileSync('git', ['-C', ws, 'config', 'core.fsmonitor', '/projects/proj-1/workspaces/ws-1/monitor.sh'])
+    // As the pull starter does: its own GIT_CONFIG_COUNT for safe.directory must not bring the hooks back.
+    const git = 'export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0="$PWD"'
+    const commit = {
+      name: 'Commit',
+      run: `${git}; git status >/dev/null; git -c user.name=a -c user.email=a@example.com commit -q --allow-empty -m x; test ! -e /run/out/hook-ran || exit 61; test ! -e /run/out/monitor-ran || exit 62`,
+      secrets: [], timeoutSeconds: 60,
+    }
+    const status = { ...holdsKey, run: `${git}; git status >/dev/null; git log -1 >/dev/null; test ! -e /run/out/monitor-ran || exit 63` }
+    const d = definition({ steps: [commit, status], files: [] })
+    const r = await runToEnd(await instruction({ runId: 'run-a9', executorImageDigest: IMAGE_ID, definition: d, files: [] }))
     expect(r.steps.map(s => [s.state, s.exitCode])).toEqual([['passed', 0], ['passed', 0]])
   })
 })

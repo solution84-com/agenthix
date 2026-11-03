@@ -10,6 +10,7 @@ import { isFingerprint, type HostIdentity } from './envelope.js'
 import { isTransferId } from './transfer.js'
 import { isExportId } from './exportDownload.js'
 import { isPublishedVersion } from './versions.js'
+import { normalisePreviewDomain } from './previews.js'
 
 export type ParsedHostRequest = { ok: true; request: HostRequest } | { ok: false; refusal: HostRefusal }
 
@@ -149,9 +150,12 @@ function request(r: Record<string, unknown>): HostRequest | null {
       if ((r.certificate === undefined) !== (r.privateKey === undefined)) fail('certificate and its private key, which come together')
       return {
         op: 'frontDoor.set', on: true, confirmPorts: true,
-        filesHost: optStr(r.filesHost, 'files host'), previewsHost: optStr(r.previewsHost, 'previews host'),
+        filesHost: optStr(r.filesHost, 'files host'), previewsHost: r.previewsHost === undefined ? undefined : normalisePreviewDomain(str(r.previewsHost, 'preview address')),
         ...(r.certificate === undefined ? {} : { certificate: pem(r.certificate, 'certificate', 64 * 1024), privateKey: pem(r.privateKey, 'private key', 16 * 1024) }),
       }
+    case 'previews.set':
+      if (r.domain === null) return { op: 'previews.set', domain: null }
+      return { op: 'previews.set', domain: normalisePreviewDomain(str(r.domain, 'preview address')) }
     case 'schedule': {
       const inner = change(record(r.change, 'change'))
       // The backup a joining machine holds is restored as the fleet admin confirms it, never at a later time.

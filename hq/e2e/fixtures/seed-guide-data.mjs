@@ -72,7 +72,7 @@ if (!defaultSite) {
 // TRUNCATE ... CASCADE follows foreign keys *to* these tables, which covers Wasp's own auth tables (they
 // reference User), boards, tasks and comments (Project), and notifications and pins (User).
 await hq.$executeRawUnsafe(`TRUNCATE TABLE "User", "Project", "Product", "Program", "Team", "Invite", "PasswordReset",
-  "RateLimit", "RecordedError", "PreviewSession", "HeldSiteInstruction",
+  "RateLimit", "RecordedError", "LivePreview", "LiveApp", "HeldSiteInstruction",
   "WorkspacePlacement", "UserStoragePlacement", "UsageEntry", "BillingProfile", "GitHubApp", "GitHubInstallation", "MobileAuthToken"
   CASCADE`)
 await hq.agent.deleteMany({ where: { isKernel: false } })

@@ -28,6 +28,8 @@ import { mayAdministerPlace, type WorkflowPlace } from '../../workflows/placeAcc
 import { usedSkillSteps } from '../../assets/conversation/usedSkillView'
 import { noteSkillUses, type RunPlace } from '../../assets/conversation/lastUsed'
 import { isProjectMember } from '../../projects/membership'
+import { mergeCardView } from '../../branches/mergeCardView'
+import { packageCardView } from '../../branches/packageCardView'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -132,6 +134,8 @@ export const getConversationActivity = async (args: GetConversationActivityArgs,
       contextUse: contextUse.get(row.id) ?? null,
       createdAt: row.createdAt,
       ...requestFields(requests.get(row.id)),
+      ...(row.state === 'WAITING_FOR_APPROVAL' ? await mergeCardView(row, userId) : {}),
+      ...(row.state === 'WAITING_FOR_APPROVAL' ? await packageCardView(row, userId) : {}),
       runHref: runHrefOf({ runId: row.runId, sessionId: task ? task.sessionId : row.workerSessionId }, ref.id),
     })
   }

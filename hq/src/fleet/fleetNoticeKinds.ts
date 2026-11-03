@@ -5,6 +5,9 @@
  */
 import type { FleetNotice, FleetNoticeKind } from '@agenthix/core'
 import { FLEET_MACHINE_NOTIFICATION_TYPES } from '../notifications/notificationKinds'
+import {
+  FLEET_LIVE_PREVIEW_STOPPED_FOR_RESOURCES, FLEET_SITE_MEMORY_HIGH, FLEET_SITE_MEMORY_RECOVERED,
+} from '../livePreviews/noticeKinds'
 
 /** An announced fleet admin action (`activity.ts`). */
 export const FLEET_ACTIVITY_NOTIFICATION = 'fleet_activity'
@@ -17,6 +20,9 @@ const KIND_OF_TYPE: Record<string, FleetNoticeKind> = {
   [FLEET_ACTIVITY_NOTIFICATION]: 'activity',
   [FLEET_ADMIN_GRANTED]: 'roleGranted',
   [FLEET_ADMIN_REMOVED]: 'roleRemoved',
+  [FLEET_SITE_MEMORY_HIGH]: 'siteMemoryHigh',
+  [FLEET_SITE_MEMORY_RECOVERED]: 'siteMemoryRecovered',
+  [FLEET_LIVE_PREVIEW_STOPPED_FOR_RESOURCES]: 'livePreviewStoppedForResources',
 }
 
 export const FLEET_NOTICE_TYPES: readonly string[] = Object.keys(KIND_OF_TYPE)
@@ -27,7 +33,8 @@ type Row = { id: string; type: string; title: string; body: string; createdAt: D
 export function fleetNoticeOf(row: Row): FleetNotice | null {
   const kind = KIND_OF_TYPE[row.type]
   if (!kind) return null
-  const machine = kind === 'machineLeft' || kind === 'machineNotHeardFrom'
+  const machine = kind === 'machineLeft' || kind === 'machineNotHeardFrom' || kind === 'siteMemoryHigh' ||
+    kind === 'siteMemoryRecovered' || kind === 'livePreviewStoppedForResources'
   return {
     id: row.id,
     kind,

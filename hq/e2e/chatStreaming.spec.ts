@@ -8,32 +8,33 @@ test.describe('chat streaming', () => {
   test('assistant reply streams token-by-token over the socket @SC-077', async ({ page }) => {
     // The seeded e2e admin, and the default agent on HQ's own site.
     await signIn(page, ADMIN)
+    // The reply's pieces, as the socket carries them: the stand-in answers in a moment, faster than the thread's
+    // text could be sampled, so its growth is counted where it arrives.
+    let deltas = 0
+    page.on('websocket', (ws) => ws.on('framereceived', ({ payload }) => {
+      if (typeof payload === 'string' && payload.includes('"conversation:delta"')) deltas += 1
+    }))
     await page.goto('/chat')
 
-    // The dock is never empty: it holds the conversation last written in, or a new one in your space. The prompt
-    // goes to whichever it is, and the thread's Copy buttons are counted from what was there before.
+    // A new conversation, so the reply comes from the model the run talks on: the one the dock last held may name a
+    // model of an earlier run that is gone. Copy buttons are counted from what the dock shows once it has loaded.
     const thread = page.getByRole('complementary', { name: 'Conversation' })
-    const copies = thread.getByRole('button', { name: 'Copy', exact: true })
-    const input = thread.getByRole('textbox').last()
-    await expect(input).toBeVisible()
-    // Counted once what the dock holds has loaded, or every earlier reply would pass for the new one.
     await page.waitForLoadState('networkidle')
+    // A person with no conversation yet finds the dock already on a new one, with no button to start another.
+    if (!(await thread.getByRole('heading', { name: 'New conversation' }).isVisible())) {
+      await thread.getByRole('button', { name: 'New conversation' }).click()
+    }
+    const copies = thread.getByRole('button', { name: 'Copy', exact: true })
+    const input = thread.getByRole('textbox', { name: 'Ask any agent…' })
+    await expect(input).toBeVisible()
     const before = await copies.count()
     await input.fill('Say hello in three short sentences.')
     await input.press('Enter')
 
-    // The conversation is in the address (/chat?c=<id>) and the reply grows in it. The messages carry no test
-    // hooks, so the thread's text is sampled: it must change more than once (the prompt, then the reply growing)
-    // and end when the finished reply shows its actions (Copy, Usage, Details).
+    // The conversation is in the address (/chat?c=<id>), the reply arrives in more than one piece, and it ends when
+    // the finished reply shows its actions (Copy, Usage, Details).
     await expect(page).toHaveURL(/\/chat\?c=/, { timeout: 15_000 })
-    const lengths = new Set<number>()
-    await expect
-      .poll(async () => {
-        lengths.add((await thread.innerText()).length)
-        // Only a finished reply has a Copy button: the new one adds one.
-        return (await copies.count()) >= before + 1
-      }, { timeout: 90_000, intervals: [250] })
-      .toBe(true)
-    expect(lengths.size).toBeGreaterThanOrEqual(2)
+    await expect(copies).toHaveCount(before + 1, { timeout: 90_000 })
+    expect(deltas).toBeGreaterThanOrEqual(2)
   })
 })

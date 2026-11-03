@@ -25,6 +25,10 @@ import { ledger } from '../../long/ledger'
 import { leadAgentId } from '../../taskThread/lead'
 import { isWorkflowCard, workflowAnswerRefusal } from '../../../workflows/review/cardAnswer'
 import { assetAnswerRefusal, isAssetCard } from '../../../assets/approvals/answer'
+import { isMergeCard } from '../../../branches/mergeCardArgs'
+import { mergeAnswerRefusal } from '../../../branches/mergeCardAnswer'
+import { isPackageCard } from '../../../branches/packageCardArgs'
+import { packageAnswerRefusal } from '../../../branches/packageCardAnswer'
 
 const logger = new Logger('ConversationApprovals')
 
@@ -137,11 +141,17 @@ export async function answerRequest(input: AnswerInput): Promise<Answered> {
   // In a task's thread anyone who may speak there may answer, held to the asker's checks with the task's agent now.
   // A workflow's card is answered by the place's administrators only, and approved only by their own tap.
   // An agent's asset request is answered by the person it acts for only, and approved only by their own tap.
+  // An agent's ask to merge is answered by whoever may merge there, and merged only by their own press.
+  // An agent's ask about a blocked package likewise: allowed only by their own press.
   const refusal = isWorkflowCard(op.toolName)
     ? await workflowAnswerRefusal(op, input.answer, input.answererId, input.via.kind)
     : isAssetCard(op.toolName)
       ? assetAnswerRefusal(op, input.answer, input.answererId, input.via.kind)
-      : await answererRefusal(op, input.answererId, await leadAgentId(op.conversation))
+      : isMergeCard(op.toolName)
+        ? await mergeAnswerRefusal(op, input.answer, input.answererId, input.via.kind)
+        : isPackageCard(op.toolName)
+          ? await packageAnswerRefusal(op, input.answer, input.answererId, input.via.kind)
+          : await answererRefusal(op, input.answererId, await leadAgentId(op.conversation))
   if (refusal) throw new HttpError(403, refusal)
 
   const filedUnder = input.via.kind === 'card' && !answerNeedsReply(op.kind, input.answer) ? await presentingTurn(op.id, op.turnId) : null

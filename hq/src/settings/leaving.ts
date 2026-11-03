@@ -20,7 +20,6 @@ import { requireRole } from '../server/identity/requireRole'
 import { projectsLeftWithoutAnAdmin } from '../projects/membership'
 import { heldInstructionRows, deliverHeldInstructionsTo } from '../sites/heldInstructions'
 import { sitesForPerson } from '../sites/membershipEnding'
-import { expirePreviewsForSessions } from '../preview/previewRegistry'
 import { blockTasksForLostAccess } from '../projects/lossOfAccess'
 import { parseDestinationsByProject, type OpenTasksDestination, type ProjectDestination } from '../projects/openTasksDestination'
 import { checkOpenTasksDestination, handOverOpenTasks, openTaskCountsOf } from '../projects/openTaskHandover'
@@ -124,8 +123,6 @@ export const removePerson = async (args: RemovePersonArgs, context: Ctx): Promis
     }),
   ])
   void deliverHeldInstructionsTo(instructSites)
-  // A PreviewSession names its session with no relation, so nothing above reaches one.
-  await expirePreviewsForSessions(ownChats.map(s => s.id))
 
   let moved = 0
   for (const [projectId, destination] of destinations) {

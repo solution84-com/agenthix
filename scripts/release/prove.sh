@@ -2,6 +2,9 @@
 # The release rehearsal on this machine, for its own architecture: what the release build (release-build.yml) runs on
 # the release branch, except the registry and the other architecture.
 #   scripts/release/prove.sh [<part> ...]
+#   RELEASE_VERSION=0.3.0 scripts/release/prove.sh   names the version to be tagged, so the rehearsal also refuses while a
+#   flag released in an earlier minor release is still listed in core (scripts/release/flags-overdue.mjs, adr-0172).
+#   The tag's own workflow makes the same check whether or not the rehearsal did.
 # 1. The content keys of the working tree (scripts/images/keys.mjs), and the images: each part whose local image does not
 #    carry its key is built and started (scripts/images/start-test-all.sh); the others are only started. With parts
 #    named, only those are built and started; the install test still needs every image.
@@ -25,6 +28,12 @@ command -v docker >/dev/null || refuse 'Docker is not on this machine.'
 docker info >/dev/null 2>&1 || refuse 'Docker is not running.'
 command -v node >/dev/null || refuse 'Node is not on this machine.'
 trust_root="$(node scripts/release/trust-root.mjs 2>&1)" || refuse "$trust_root"
+if [ -n "${RELEASE_VERSION:-}" ]; then
+  [ -f core/dist/shared/featureFlagReleases.js ] || refuse 'core is not built: cd core && npm run build.'
+  overdue="$(node scripts/release/flags-overdue.mjs "$RELEASE_VERSION" 2>&1)" || refuse "$overdue"
+else
+  echo 'RELEASE_VERSION is not set, so released flags are not checked against the version to be tagged.'
+fi
 
 
 [ -d hq/node_modules ] && [ -d site/node_modules ] || refuse 'hq/ and site/ are not installed (the guide screenshots start both): run npm install in each.'

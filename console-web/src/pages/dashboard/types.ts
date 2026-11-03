@@ -22,7 +22,7 @@ export type FleetHost = {
   figures: HostFigures | null
   figuresAt: string | null
   /** The runs of the site it carries, as HQ last heard them; null when HQ has not said. */
-  agents: { running: number; maxAtOnce: number; reportedAt: string } | null
+  agents: { running: number; maxAtOnce: number; reportedAt: string; copiesBytes?: number | null } | null
   scheduled: ScheduledChangeNotice[]
   move: { moveId: string; role: 'sending' | 'receiving'; siteName: string; state: string; at: string | null } | null
   /** The last move to this machine ended without happening: it carries no site, and can take the next move. */

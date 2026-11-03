@@ -1,12 +1,13 @@
 import {
-  FILES_SERVE_METHOD, LOCATION_FILE_METHODS, PACKAGE_METHODS, PREVIEW_METHODS, type SiteContentMethodName,
+  APP_SERVE_METHOD, BUNDLE_METHODS, FILES_SERVE_METHOD, LOCATION_FILE_METHODS, PACKAGE_METHODS, PREVIEW_METHODS,
+  type SiteContentMethodName,
 } from '@agenthix/core'
 import type { ContentStream } from './contentStream'
 import { handlePackagesPut } from '../../../packages/packageMethods'
 import { handleArtefactRead, handleKnowledgeRead, handleLocationRead } from './locationReadHandler'
-import { handlePreviewConnect } from './previewConnectHandler'
+import { previewConnectGone } from '../previewGone'
 import { handleWriteSkill } from '../../storage/skillFolderWrite'
-import { refuseFilesServeFromHq } from '../../relay/filesServeFromHq'
+import { refuseFilesServeFromHq, refuseRelayStreamFromHq } from '../../relay/filesServeFromHq'
 
 /**
  * The streams this site serves (ADR-0051: named methods, never a generic
@@ -30,12 +31,14 @@ export const contentMethods: Readonly<Record<SiteContentMethodName, ContentHandl
   [LOCATION_FILE_METHODS.readKnowledge]: handleKnowledgeRead,
   // One of a place's skill folders replaced by the files streamed (1.11); removing one is a control method.
   [LOCATION_FILE_METHODS.writeSkill]: handleWriteSkill,
-  // A running preview's own traffic, in both directions, for as long as
-  // somebody is watching it. Its params name a preview this site minted and
-  // nothing else — the container and the port are resolved from this site's
-  // registry, never sent.
-  [PREVIEW_METHODS.connect]: handlePreviewConnect,
+  // The old preview path's stream, deprecated since 1.12: ended unread (`../previewGone.ts`).
+  [PREVIEW_METHODS.connect]: previewConnectGone,
   // A file for a browser, on a ticket (adr-0153). Served only on a relay's line, where the handler knows which relay
   // the ticket must name (`../../relay/relayLines.ts`); hq carries no file bytes, so here it is refused.
   [FILES_SERVE_METHOD]: refuseFilesServeFromHq,
+  // A live app's traffic and a bundle's bytes travel only on a relay's line, whose relay the ticket must name
+  // (`../../relay/relayLines.ts`); asked on hq's own channel, each is refused unread.
+  [APP_SERVE_METHOD]: refuseRelayStreamFromHq,
+  [BUNDLE_METHODS.read]: refuseRelayStreamFromHq,
+  [BUNDLE_METHODS.write]: refuseRelayStreamFromHq,
 })

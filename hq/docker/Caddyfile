@@ -1,7 +1,7 @@
-# hq-web (ADR-0067): serves the browser app and forwards every server path and
-# every preview host (ADR-0071) to hq-server. Every byte of a file, a site's or an
-# upload hq keeps, goes to hq's relay (ADR-0153) on a ticket, as does the line a
-# site dials to serve it; hq-server serves no file. The one port hq publishes;
+# hq-web (ADR-0067): serves the browser app and forwards every server path to
+# hq-server. Every byte of a file, a site's or an upload hq keeps, goes to hq's
+# relay (ADR-0153) on a ticket, as does the line a site dials to serve it, and
+# every live app's address (ADR-0169); hq-server serves no file and no app. The one port hq publishes;
 # HTTPS is the machine's front door's.
 {
 	admin off
@@ -13,16 +13,19 @@
 :4100 {
 	# A file's bytes are never compressed here: a PDF is read by byte range, and a range of a gzipped answer is
 	# not a range of the file.
-	@compressible not path /t/* /relay/*
+	# Nor is a live app's answer: the relay passes it on as the app's server sent it.
+	@compressible {
+		not path /t/* /relay/*
+		not host {$PREVIEW_HOSTS:previews-off.invalid}
+	}
 	encode @compressible gzip
 
-	# A preview host (adr-0071) is forwarded whole — every path, live reload
-	# included — and hq-server tells it apart by host name. Its placeholder
-	# default is a name nothing resolves, so with PREVIEW_DOMAIN unset no host
-	# matches and previews are off. Nothing of hq is served on a preview host.
-	@preview host *.{$PREVIEW_DOMAIN:previews-off.invalid}
+	# Live apps' addresses (one label under the preview domain): every request, WebSocket upgrades included, goes to
+	# hq's relay and nowhere else, which reads the app from the name. Nothing of hq is served on them. PREVIEW_HOSTS
+	# comes from PREVIEW_PATTERN (web-previews.sh); unset, its placeholder matches nothing.
+	@preview host {$PREVIEW_HOSTS:previews-off.invalid}
 	handle @preview {
-		reverse_proxy hq-server:4101
+		reverse_proxy relay:4401
 	}
 
 	# The files host (adr-0114) answers a ticket for a file (adr-0153) and the PDF viewer
@@ -63,8 +66,9 @@
 		reverse_proxy relay:4401
 	}
 
-	# /file-link answers a JSON link (a ticket's address), never a file.
-	@server path /api /api/* /auth /auth/* /operations/* /socket.io/* /hq-link /hq-content /host-link /console-link /file-link /presets/* /health /mcp /.well-known/*
+	# /file-link answers a JSON link (a ticket's address), never a file. /preview-certificate-ask answers the
+	# front door whether a live app's name may have a certificate, yes or no.
+	@server path /api /api/* /auth /auth/* /operations/* /socket.io/* /hq-link /hq-content /host-link /console-link /file-link /presets/* /health /mcp /.well-known/* /preview-certificate-ask
 	handle @server {
 		reverse_proxy hq-server:4101
 	}

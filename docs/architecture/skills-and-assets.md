@@ -356,7 +356,7 @@ The two deprecated sources stop working in 3.0.
 [ADR-0042](../adr/adr-0042-hq-is-the-orgs-own.md) ·
 [ADR-0072](../adr/adr-0072-an-agent-is-defined-once-in-hq-and-overridden-per-boundary.md) ·
 [ADR-0084](../adr/adr-0084-an-agents-skills-are-staged-by-agenthix-per-turn.md) ·
-[ADR-0116](../adr/adr-0116-a-feature-not-ready-ships-behind-a-flag.md) ·
+[ADR-0172](../adr/adr-0172-a-flag-has-a-stage.md) ·
 [ADR-0117](../adr/adr-0117-a-host-service-runs-only-signed-published-images.md) ·
 [ADR-0149](../adr/adr-0149-platform-knowledge-is-the-user-guide.md) ·
 [ADR-0152](../adr/adr-0152-a-conversation-reaches-only-its-own-place-and-the-places-its-person-added.md) ·

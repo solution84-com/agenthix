@@ -17,10 +17,11 @@
 	reverse_proxy hq-web:4100
 }
 
-# Live previews (adr-0071), when PREVIEW_DOMAIN is set in front-door/.env and in
-# hq/compose.env: every p-<id>.<preview domain> goes to hq-web, which forwards
-# it to hq-server. Unset, this block answers only a placeholder name nothing
-# resolves, and previews stay off.
+# Live previews (adr-0169), when PREVIEW_DOMAIN is set in front-door/.env and
+# PREVIEW_PATTERN=https://p-{id}.<that domain> in hq/compose.env: every
+# p-<id>.<preview domain> goes to hq-web, which forwards it to hq's relay. Unset,
+# this block answers only a placeholder name nothing resolves, and live previews
+# stay off.
 #
 # A wildcard certificate cannot be had with the HTTP check the block above uses:
 # it needs a DNS-provider challenge, which means a Caddy built with your DNS
@@ -29,7 +30,7 @@
 #   tls {
 #       dns cloudflare {env.DNS_API_TOKEN}
 #   }
-# Without one, Caddy keeps retrying the certificate and previews do not load.
+# Without one, Caddy keeps retrying the certificate and live previews do not load.
 *.{$PREVIEW_DOMAIN:previews-off.localhost} {
 	reverse_proxy hq-web:4100
 }

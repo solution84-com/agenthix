@@ -13,7 +13,6 @@ import { HttpError, prisma } from 'wasp/server'
 import { OUTSTANDING_OPERATION_STATES, type ConversationDeletePreview, type DeleteConversationArgs } from '../../shared/conversations/protocol'
 import * as dispatchService from '../../agents/dispatchService'
 import * as siteRuntimeStore from '../../sessions/siteRuntimeStore'
-import { expirePreviewsForSession } from '../../preview/previewRegistry'
 import { rethrowSiteUnreachableAsHttp } from '../../storage/httpErrors'
 import { requireConversationReader } from '../readingRule'
 import { openJson, openText } from '../sealing'
@@ -105,7 +104,6 @@ async function endWorkerSession(session: Parameters<typeof dispatchService.resol
   } catch (err) {
     rethrowSiteUnreachableAsHttp(err)
   }
-  await expirePreviewsForSession(session.id)
   await prisma.agentSession.delete({ where: { id: session.id } })
 }
 

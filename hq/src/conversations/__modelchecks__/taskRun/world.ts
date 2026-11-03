@@ -1,0 +1,56 @@
+/**
+ * The task runs' world (W7, W12–W14 of the live preview walk): a shop app in a code workspace, its task on a branch,
+ * and the branch's live preview, open with the shop running or not open at all. Fixed, so every run meets the same
+ * answers.
+ */
+import type { RunCodeWork, RunOpenLivePreview } from '@agenthix/core'
+
+export const SHOP_TASK = {
+  id: '5d1c7a40-8b2e-4f63-a9d1-2c4e6b8f0a17',
+  key: 'SHOP-7',
+  title: 'Free delivery over $50',
+  description: 'Add a banner to the shop\'s home page saying deliveries over $50 are free.',
+}
+
+export const WORKING_FOLDER = '/projects/shop/clones/7a1f'
+export const PAGE = 'public/index.html'
+
+export const PAGE_TEXT = [
+  '<!doctype html>',
+  '<html><head><title>Fernhill Shop</title>',
+  '<style>.banner { background: #2e7d32; color: white; padding: 8px; }</style></head>',
+  '<body>',
+  '  <div class="banner">Free delivery over $50</div>',
+  '  <h1>Fernhill Shop</h1>',
+  '  <ul id="products"><li>Oak chopping board, $45</li><li>Wool blanket, $60</li></ul>',
+  '</body></html>',
+].join('\n')
+
+export const PACKAGE_JSON = JSON.stringify({ name: 'shop', version: '1.0.0', scripts: { start: 'node server.js' } }, null, 2)
+
+export const SERVER_JS = [
+  "const http = require('node:http')",
+  "const fs = require('node:fs')",
+  "http.createServer((req, res) => res.end(fs.readFileSync(__dirname + '/public/index.html'))).listen(3000)",
+].join('\n')
+
+/** The branch's files at the start of every run, by their path in the working folder. */
+export const FILES: Readonly<Record<string, string>> = { [PAGE]: PAGE_TEXT, 'package.json': PACKAGE_JSON, 'server.js': SERVER_JS }
+
+export const SHOP_APP = { name: 'shop', folder: '', command: 'npm start', port: 3000 }
+
+export const RUNNING: RunOpenLivePreview = { paused: false, runningApps: [SHOP_APP.name] }
+
+export function codeWork(openLivePreview: RunOpenLivePreview | null, behindMain = 0): RunCodeWork {
+  return {
+    workspace: { ownerType: 'project', ownerId: 'project-shop', workspaceId: 'workspace-shop-app' },
+    copyId: '7a1f0000-0000-4000-8000-000000000007',
+    branch: 'add-free-delivery-over-50-banner-to-shop-s-home',
+    main: 'main',
+    behindMain,
+    otherBranches: [],
+    author: { name: 'Kernel', email: 'kernel@agents.hq.invalid' },
+    onBehalfOf: { name: 'Mia Novak', email: 'mia@fernhill.example' },
+    ...(openLivePreview ? { openLivePreview } : {}),
+  }
+}

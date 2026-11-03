@@ -12,6 +12,8 @@ import { signIn, sessionToken, callOperation, MEMBER, ADMIN, SERVER_URL } from '
 /** Sealed into the operator's conversation by seed-e2e-data.mjs. */
 const PRIVATE_MARKER = 'E2E-PRIVATE-TRANSCRIPT-MARKER'
 
+test.skip(!process.env.E2E_CONVERSATION_ID || !process.env.E2E_AGENT_ID, 'needs the operator\'s conversation: run seed-e2e-data.mjs and set E2E_CONVERSATION_ID and E2E_AGENT_ID')
+
 test.describe('a conversation is readable only by the person who opened it @SC-278', () => {
   test('an ADMIN gets a not-found and never sees its messages', async ({ page }) => {
     const conversationId = process.env.E2E_CONVERSATION_ID!

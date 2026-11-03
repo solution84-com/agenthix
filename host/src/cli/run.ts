@@ -2,7 +2,7 @@
  * Runs one CLI command against the owner socket and prints what a person reads. Every exit code means one
  * thing: 0 done, 1 refused or failed, 2 not a command, 3 the host service does not answer.
  */
-import type { HostRefusal, LogLineFigure } from '@agenthix/core'
+import { normalisePreviewDomain, previewDomainProblem, type HostRefusal, type LogLineFigure } from '@agenthix/core'
 import type { Progress } from '../sockets/lineServer'
 import type { MachineStatus } from '../status/machineStatus'
 import type { HqLinkResult, InstallResult } from '../owner/results'
@@ -152,6 +152,11 @@ async function frontDoor(send: Send, io: Io, command: Extract<Command, { kind: '
   }
   // A refusal needs no question, so it comes first; the service makes the same checks again before it acts.
   if (check.refusal) throw new Refused(check.refusal)
+  const previewsHost = command.previewsHost === undefined ? undefined : normalisePreviewDomain(command.previewsHost)
+  if (previewsHost !== undefined) {
+    const problem = previewDomainProblem(previewsHost, { hqHost: new URL(check.address!).hostname, filesHost: check.filesHost })
+    if (problem) throw new Refused({ code: 'malformed', message: `The preview address cannot be ${previewsHost}: ${problem}. Nothing was changed.` })
+  }
   if (!check.on) {
     io.out(frontDoorWarning(check, status.machine.name))
     if (!command.takePorts) {
@@ -166,8 +171,8 @@ async function frontDoor(send: Send, io: Io, command: Extract<Command, { kind: '
       }
     }
   }
-  await call(send, io, { op: 'frontDoor.set', on: true, confirmPorts: true, filesHost: command.filesHost })
-  io.out(frontDoorOnText(check))
+  await call(send, io, { op: 'frontDoor.set', on: true, confirmPorts: true, filesHost: command.filesHost, ...(previewsHost ? { previewsHost } : {}) })
+  io.out(frontDoorOnText(check, previewsHost))
   return 0
 }
 

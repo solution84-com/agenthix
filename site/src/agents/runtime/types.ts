@@ -8,7 +8,7 @@
  * never  — invisible to Claude; removed from SDK context via disallowedTools.
  */
 import type { RelayCredential, SiteRunCredential } from '../../server/modelRelay/runAccess'
-import type { ApprovedManifest, AuditSummary, PendingManifest, ToolPermissionState, ToolPermission, BashPatternPermission, RunContextPayload, SessionClosedReasonValue, RunLimits, RunStartedBy, TaskCommentForRun, ContextUse } from '@agenthix/core'
+import type { FeatureSwitches, ApprovedManifest, AuditSummary, PendingManifest, ToolPermissionState, ToolPermission, BashPatternPermission, RunContextPayload, SessionClosedReasonValue, RunLimits, RunStartedBy, TaskCommentForRun, ContextUse, WorkspaceRepoRef } from '@agenthix/core'
 import type { ResolvedRunPackages } from '../../packages/runPackages'
 import type { BoundaryOverride } from '../../packages/boundaryOverrides'
 import type { RunSkillInputs } from './skillSources'
@@ -104,6 +104,8 @@ export type RunContext = {
   fallbackCredentials?: RelayCredential[]
   /** The billing profile every model call of the run is costed to; absent from an hq that sends none. */
   billingProfileId?: string
+  /** The organisation's feature switches hq sent with the instruction that started the run; absent means none. */
+  features?: FeatureSwitches
   /** The org's web-search (Exa) key for this turn (RunContextPayload.webSearchKey),
    *  absent when the org has none. Held here for the `web_search` platform tool
    *  and never put in a container's environment. */
@@ -138,6 +140,11 @@ export type RunContext = {
    *  for a boundary's overrides of an agent — the two share no lineage beyond
    *  both being resolved per run. */
   workingTreeDir: string
+  /**
+   * Set for a run on a branch's copy (live preview spec part 2): it is offered the `commit` tool and `install_packages`.
+   * `workspace` and `copyId` are the site's own record of the copy, checked when the run started.
+   */
+  codeWork?: { branch: string; copyId: string; workspace: WorkspaceRepoRef }
 }
 
 /**
@@ -275,6 +282,11 @@ export interface RunOptions {
   summarise?: boolean
   /** The skill the person picked with `/` for this message, by staged name, as hq sent it: not yet checked. */
   pickedSkill?: string
+  /**
+   * The organisation's feature switches, as hq sent them with the instruction that started the run
+   * (siteFeatures.ts). Every turn of the run is checked against these, not whatever a later request brings.
+   */
+  features?: FeatureSwitches
 }
 
 /**

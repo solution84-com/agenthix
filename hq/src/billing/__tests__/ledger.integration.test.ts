@@ -34,33 +34,37 @@ const call = (over: Partial<LedgerCall> = {}): LedgerCall => ({
   usage: { ...NO_USAGE, inputTokens: 1_000_000 }, ...over,
 })
 
+import { withFeature } from '../../test/withFeature'
 describe('the ledger', () => {
   it('writes a call once, however often it is reported @SC-1211', async () => {
     await org()
-    expect(await ledger().writeCall(call())).toBe(true)
-    expect(await ledger().writeCall(call())).toBe(false)
+    expect(await (await ledger()).writeCall(call())).toBe(true)
+    expect(await (await ledger()).writeCall(call())).toBe(false)
     const rows = await prisma.usageEntry.findMany()
     expect(rows).toHaveLength(1)
     expect(rows[0].amountMicros).toBe(3_000_000n)
   })
 
-  it("gives each call its latest cost: Cloud's actual over the guide, a correction over both @SC-1211", async () => {
-    await org()
-    await ledger().writeCall(call({ vendor: 'cloud', basis: 'AWAITING_ACTUAL' }))
-    let report = await usageReport('2026-10', 'profile', null)
-    expect(report.rows[0].totals.map(t => t.basis)).toEqual(['AWAITING_ACTUAL'])
-    await ledger().writeActual({ callId: 'call-0001', amountMicros: 4_000_000n, currency: 'USD', at: new Date('2026-10-10T10:05:00Z') })
-    report = await usageReport('2026-10', 'profile', null)
-    expect(report.rows[0].totals).toMatchObject([{ basis: 'ACTUAL', amountMicros: 4_000_000, calls: 1 }])
-    await ledger().writeCorrection({ callId: 'call-0001', amountMicros: 3_500_000n, currency: 'USD' })
-    report = await usageReport('2026-10', 'profile', null)
-    expect(report.rows[0].totals).toMatchObject([{ amountMicros: 3_500_000, calls: 1 }])
-    expect(await prisma.usageEntry.count()).toBe(3)
+  // Cloud's actual cost is read back only while usage billing is on.
+  withFeature('usageBilling', () => {
+    it("gives each call its latest cost: Cloud's actual over the guide, a correction over both @SC-1211", async () => {
+      await org()
+      await (await ledger()).writeCall(call({ vendor: 'cloud', basis: 'AWAITING_ACTUAL' }))
+      let report = await usageReport('2026-10', 'profile', null)
+      expect(report.rows[0].totals.map(t => t.basis)).toEqual(['AWAITING_ACTUAL'])
+      await (await ledger()).writeActual({ callId: 'call-0001', amountMicros: 4_000_000n, currency: 'USD', at: new Date('2026-10-10T10:05:00Z') })
+      report = await usageReport('2026-10', 'profile', null)
+      expect(report.rows[0].totals).toMatchObject([{ basis: 'ACTUAL', amountMicros: 4_000_000, calls: 1 }])
+      await (await ledger()).writeCorrection({ callId: 'call-0001', amountMicros: 3_500_000n, currency: 'USD' })
+      report = await usageReport('2026-10', 'profile', null)
+      expect(report.rows[0].totals).toMatchObject([{ amountMicros: 3_500_000, calls: 1 }])
+      expect(await prisma.usageEntry.count()).toBe(3)
+    })
   })
 
   it('cuts the month in the organisation time zone @SC-1219', async () => {
     await prisma.org.create({ data: { name: 'Fernhill', timeZone: 'Asia/Tokyo' } as never })
-    await ledger().writeCall(call({ at: new Date('2026-10-31T16:00:00Z') }))
+    await (await ledger()).writeCall(call({ at: new Date('2026-10-31T16:00:00Z') }))
     expect((await usageReport('2026-10', 'profile', null)).rows).toHaveLength(0)
     expect((await usageReport('2026-11', 'profile', null)).rows).toHaveLength(1)
   })
@@ -68,7 +72,7 @@ describe('the ledger', () => {
   it('keeps an erased person’s rows, named Former member @SC-1219', async () => {
     await org()
     const person = await createUserWithRole('MEMBER')
-    await ledger().writeCall(call({ userId: person.id }))
+    await (await ledger()).writeCall(call({ userId: person.id }))
     await prisma.user.update({ where: { id: person.id }, data: { displayName: null, erasedAt: new Date() } })
     const report = await usageReport('2026-10', 'person', null)
     expect(report.rows.map(r => r.name)).toEqual(['Former member'])

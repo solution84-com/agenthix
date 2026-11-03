@@ -25,7 +25,7 @@ export interface RunRecord {
 export async function runCheck(model: ModelAdapter, access: ResolvedAccess, setup: CheckSetup, signal = AbortSignal.timeout(RUN_TIME_LIMIT_MS)): Promise<RunRecord> {
   const capability = capabilityOf(setup.home)
   const { system, messages: start } = contextOf(setup)
-  const tools = await toolsOf(capability, setup.home)
+  const tools = await toolsOf(capability, setup.home, setup.features ?? [])
   const messages: LeadMessage[] = [...start]
   const record: RunRecord = { calls: [], texts: [], answer: null }
   for (let round = 0; round < MAX_ROUNDS; round++) {

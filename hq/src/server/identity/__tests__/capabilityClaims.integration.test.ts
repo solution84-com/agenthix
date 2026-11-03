@@ -9,6 +9,7 @@ process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 7).toString('base64')
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../../test/db'
+import { withFeature } from '../../../test/withFeature'
 
 vi.mock('wasp/server', async () => {
   const { prisma } = await import('../../../test/db')
@@ -23,6 +24,7 @@ vi.mock('../../../storage/workspaceStore', async (importOriginal) => {
 import { resolveCapabilityClaims } from '../capabilityService'
 import { getWorkspace, listWorkspacesByOwner, SiteUnreachableError } from '../../../storage/workspaceStore'
 import { WRITE_TOOLS } from '../../../agents/toolPermissions'
+import { FLAGGED_TOOLS } from '../../../features/runFeatures'
 import { agent, chatSession, chatLoc, userFilesLoc, projectTaskLoc, seedOrganisation, override } from './capabilityFixtures'
 
 const siteWorkspaces = vi.mocked(getWorkspace)
@@ -45,7 +47,10 @@ describe('resolveCapabilityClaims @SC-272', () => {
     expect(claims).toMatchObject({ userId: 'u1', agentId: 'a1', sessionId: 's1', projectId: null, workspaceId: 'w1', taskId: null, siteId: 'site-1' })
     expect(claims.permissions.bypassed).toBe(false)
     expect(claims.permissions.allowedTools.some(t => t.name === 'read_file' && t.state === 'always')).toBe(true)
-    expect(claims.permissions.neverTools).toEqual(claims.permissions.allowedTools.filter(t => t.state === 'never').map(t => t.name))
+    // The agent's own Never tools, then the tools of every flagged feature that is off (adr-0172).
+    expect(claims.permissions.neverTools).toEqual([...new Set([
+      ...claims.permissions.allowedTools.filter(t => t.state === 'never').map(t => t.name), ...FLAGGED_TOOLS.livePreview!,
+    ])])
   })
 
   it('carries no workspace-access claims — the access policy is gone (ADR-0079)', async () => {
@@ -60,6 +65,33 @@ describe('resolveCapabilityClaims @SC-272', () => {
 
   it.each(['person', 'pulse', 'schedule'] as const)('signs in that a run started by the %s says so (adr-0087)', async (startedBy) => {
     expect((await mint({ startedBy })).startedBy).toBe(startedBy)
+  })
+})
+
+describe("the live preview's app tools in a run's capability @SC-1769 @SC-1772", () => {
+  it('are never given while its flag is off, and no live preview is claimed', async () => {
+    const claims = await mint()
+    for (const tool of FLAGGED_TOOLS.livePreview!) expect(claims.permissions.neverTools).toContain(tool)
+    expect(claims).not.toHaveProperty('livePreview')
+  })
+
+  withFeature('livePreview', () => {
+    it('are not withheld while it is on', async () => {
+      const claims = await mint()
+      for (const tool of FLAGGED_TOOLS.livePreview!) expect(claims.permissions.neverTools).not.toContain(tool)
+    })
+  })
+})
+
+describe("the organisation's trusted package scopes (adr-0170) @SC-1711", () => {
+  it('are signed into every run, live preview or not, as the setting holds them now', async () => {
+    expect(await mint()).not.toHaveProperty('trustedPackageScopes')
+    await prisma.org.create({ data: { name: 'Fernhill', trustedPackageScopes: ['@fernhill', '@garden'] } })
+    const claims = await mint()
+    expect(claims.trustedPackageScopes).toEqual(['@fernhill', '@garden'])
+    expect(claims).not.toHaveProperty('livePreview')
+    await prisma.org.updateMany({ data: { trustedPackageScopes: [] } })
+    expect(await mint()).not.toHaveProperty('trustedPackageScopes')
   })
 })
 
@@ -114,8 +146,8 @@ describe("a workspace's allowed tools guard only runs working in it @SC-301 (ADR
     workspaceList({ w1: [] })
     const claims = await mint({ agent: defaultAgent })
     expect(claims.permissions.allowedTools.every(t => t.state === 'never')).toBe(true)
-    expect(claims.permissions.neverTools).toEqual(claims.permissions.allowedTools.map(t => t.name))
-    expect(claims.permissions.neverTools.length).toBeGreaterThan(0)
+    expect(claims.permissions.neverTools).toEqual([...new Set([...claims.permissions.allowedTools.map(t => t.name), ...FLAGGED_TOOLS.livePreview!])])
+    expect(claims.permissions.allowedTools.length).toBeGreaterThan(0)
   })
 
   it('a bypassed agent with a restrictive workspace: allowedTools is [] but the removed tools land in neverTools', async () => {
@@ -266,7 +298,8 @@ describe("bypassed switches off the agent's own permissions, platform tools incl
   it("carries none of the organisation's Never in neverTools", async () => {
     const claims = await mint({ agent: { ...agent, allowedTools: saved, approval: 'bypassed' }, ...personalChat })
     expect(claims.permissions.bypassed).toBe(true)
-    expect(claims.permissions.neverTools).toEqual([])
+    // Only the tools of a flagged feature that is off, which bind whatever the agent's approval (adr-0172).
+    expect(claims.permissions.neverTools).toEqual(FLAGGED_TOOLS.livePreview)
   })
 
   it("still carries a workspace's cap, after everything", async () => {
@@ -280,6 +313,6 @@ describe("bypassed switches off the agent's own permissions, platform tools incl
     await override('user', 'u1', { approval: 'deferred', allowedTools: [{ name: 'create_agent', state: 'never' }] })
     const claims = await mint({ agent: { ...agent, allowedTools: saved, approval: 'bypassed' }, ...personalChat })
     expect(claims.permissions.bypassed).toBe(false)
-    expect(claims.permissions.neverTools).toEqual(['create_agent'])
+    expect(claims.permissions.neverTools).toEqual(['create_agent', ...FLAGGED_TOOLS.livePreview!])
   })
 })

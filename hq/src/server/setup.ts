@@ -42,12 +42,15 @@ import { startSiteChannel, markAllOfflineAtBoot } from '../sites/channel'
 import { startContentChannel } from '../sites/content'
 import { startFleetLinks } from '../fleet'
 import { ensureHqRelay, NO_HQ_RELAY_MESSAGE, placeUnplacedSites, startRelayLink } from '../relays'
+import { registerCertificateAskRoute } from '../relays/previewCertificateAsk'
+import { certificateAskDeps } from '../relays/previewCertificateAskDeps'
 import { reconcileDanglingSessionsForOnlineSites } from '../sessions/danglingSessionReconciler'
 import { whenWaspHttpServerReady } from './waspHttpServer'
 import { registerUploadLinkRoute } from './files/uploadLinkDeps'
 import { listPresets, servePreset } from './presetHandlers'
-import { registerPreviewHost } from '../preview/previewHostWiring'
-import { startPreviewSweep } from '../preview/previewSweep'
+import { startLivePreviewSweep } from '../livePreviews/reconcile'
+import { provideLivePreviewWorkflowDelivery } from '../livePreviews/workflowSecrets'
+import { deliverLivePreviewWorkflow } from '../workflows/livePreviewRuns'
 import { startScheduler } from '../automation/scheduler'
 import { cloudConnection } from '../cloud'
 import { startProviderHealth } from '../providers/health'
@@ -351,23 +354,18 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   // relay serves it from hq's storage folder, mounted read-only.
   registerUploadLinkRoute(app)
 
+  // The front door asks before it gets a live app's address a certificate (on-demand TLS); hq answers yes or no.
+  registerCertificateAskRoute(app, certificateAskDeps)
+
   // Preset endpoints — serves files directly from assets/{avatars,covers}/
   app.get('/presets/:type', listPresets)
   app.get('/presets/:type/:filename', servePreset)
 
   logger.info(`File serving endpoints registered.`)
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Live preview — served from p-<id>.<preview domain>, routed by Host on
-  // Wasp's underlying http server, never from hq's own origin (adr-0071)
-  // ═══════════════════════════════════════════════════════════════════
-  startPreviewSweep()
-  whenWaspHttpServerReady('Live preview host', server => {
-    const domain = registerPreviewHost(server)
-    logger.info(
-      domain
-        ? `Live preview served on *.${domain}.`
-        : `Live preview is off: set PREVIEW_DOMAIN to turn it on.`,
-    )
-  })
+  // Live previews' idle stop and the openings never answered (livePreviews/reconcile.ts). Their apps are served
+  // through the relays, never from hq's own origin (adr-0169).
+  startLivePreviewSweep()
+  // A live preview's secrets reach its app's container only through the workflows' own run path (adr-0171).
+  provideLivePreviewWorkflowDelivery(deliverLivePreviewWorkflow)
 }

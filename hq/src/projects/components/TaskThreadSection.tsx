@@ -59,7 +59,7 @@ export function TaskThreadSection({ taskId, taskKey }: { taskId: string; taskKey
           </div>
         </>
       ) : data.canStart ? (
-        <FirstMessage taskId={taskId} agentName={data.lead?.name ?? null} />
+        <TaskFirstMessage taskId={taskId} agentName={data.lead?.name ?? null} />
       ) : (
         <p role="status" className="text-small text-text-muted">{data.refusal}</p>
       )}
@@ -67,8 +67,11 @@ export function TaskThreadSection({ taskId, taskKey }: { taskId: string; taskKey
   )
 }
 
-/** The box before the thread exists: its first message creates it, and the query then brings the thread in its place. */
-function FirstMessage({ taskId, agentName }: { taskId: string; agentName: string | null }) {
+/**
+ * The box before the thread exists: its first message creates it, and the query then brings the thread in its place.
+ * Also where a task's branch shows its thread in the workspace view.
+ */
+export function TaskFirstMessage({ taskId, agentName }: { taskId: string; agentName: string | null }) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const attempt = useRef<{ text: string; id: string } | null>(null)

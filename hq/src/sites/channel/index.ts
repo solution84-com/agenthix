@@ -13,6 +13,7 @@ import { reconcileSiteNotifications, startSiteNotifications } from '../siteNotif
 import { reconcileAfterRestore } from '../restoreReconcile'
 import { relayAssigner } from '../../relays/assigner'
 import { Logger } from '../../server/utils/logger'
+import { freshFeatureSwitches, orgFeatureSwitches } from '../../features/switches'
 
 const logger = new Logger('SiteChannel')
 
@@ -21,7 +22,10 @@ const logger = new Logger('SiteChannel')
  * needs to reach a site. Same process, so a module-level singleton is the
  * whole of it.
  */
-export const siteChannelRegistry = new SiteChannelRegistry(prismaSiteStatusStore)
+export const siteChannelRegistry = new SiteChannelRegistry(prismaSiteStatusStore, {
+  fresh: () => freshFeatureSwitches(),
+  read: orgFeatureSwitches,
+})
 
 /**
  * Reconcile-on-reconnect wiring (plan 5d-2 task 9a): fires once a site's
@@ -63,6 +67,13 @@ function onSiteConnected(siteId: string): void {
   reconcileAfterRestore(siteId).catch(err => logger.error(`reconcileAfterRestore failed for site ${siteId}:`, err))
   // A site back on a matching version clears its upgrade, not-connected and HQ-site notifications.
   void reconcileSiteNotifications()
+  // Branches' working copies asked to go while it was away are asked again (branches/copies.ts). Loaded when
+  // first needed: branch work reaches the channel itself, and a static import would be a cycle.
+  void import('../../branches/branchBack').then(m => m.retryCopyRemovals(siteId))
+    .catch(err => logger.error(`retryCopyRemovals failed for site ${siteId}:`, err))
+  // Its live-preview setting, and its live previews brought into step with hq's (livePreviews/reconcile.ts).
+  void import('../../livePreviews/reconcile').then(m => m.onSiteConnected(siteId))
+    .catch(err => logger.error(`live previews not reconciled for site ${siteId}:`, err))
   void (async () => {
     try {
       await reconcileSite(siteId, (sid, e) => handleSiteEvent(sid, 'run.status', e))

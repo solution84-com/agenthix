@@ -1,4 +1,5 @@
 import { vi } from 'vitest'
+import { FEATURE_FLAG_NAMES, isFeatureOn } from '@agenthix/core'
 
 export type Route = { status: number; body?: unknown }
 export type Request = { method: string; path: string; headers: Record<string, string>; body: unknown }
@@ -28,4 +29,13 @@ export const SAM = { id: 'u1', name: 'Sam Rivera' }
 export const fleetRoute = (hosts: unknown[], hq: { organisationName: string | null; address: string | null } | null = null): Route => ({
   status: 200,
   body: { console: { machineName: 'hq-box', version: '0.2.0', fingerprintShort: 'cccc', hq: 'connected' }, hq, hosts, disconnected: [] },
+})
+
+/**
+ * `GET /features` as the Fleet Console's server answers it from hq: core's rule with no organisation switch, so each
+ * flag is as shipped, and a feature's own tests switch theirs on with `withFeature` (adr-0172).
+ */
+export const featuresAsShipped = (): Route => ({
+  status: 200,
+  body: { on: FEATURE_FLAG_NAMES.filter(flag => isFeatureOn(flag, { env: process.env, switches: {} })) },
 })

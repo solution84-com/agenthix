@@ -14,7 +14,7 @@
  * disk; the lead, in hq, does not read them.
  */
 import { prisma } from 'wasp/server'
-import { pickedSkillOf } from '@agenthix/core'
+import { pickedSkillOf, type FeatureFlag } from '@agenthix/core'
 import type { LeadMessage, PromptPart } from '../contract'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { MESSAGE_PAGE_SIZE } from '../../shared/conversations/protocol'
@@ -36,6 +36,7 @@ import { madeForLead } from './startedWords'
 import { pickedSkillNote } from '../work/pickedSkill'
 import { placesForLead, placesTurnBlock, type PlacesForLead } from '../lead/placesBlock'
 import { outcomeForLead } from '../../assets/proposals/types'
+import { featuresOn } from '../../features/switches'
 
 export interface LeadContext {
   system: PromptPart[]
@@ -50,6 +51,8 @@ export interface Instructions {
   placeLabel: string
   agentInstructions: string | null
   orgInstructions: string | null
+  /** The flagged features on for the organisation, whose parts of the instructions are written (adr-0172). */
+  featuresOn?: readonly FeatureFlag[]
 }
 
 export function systemParts(i: Instructions): PromptPart[] {
@@ -263,11 +266,12 @@ export async function awaitingCardIds(conversationId: string): Promise<Set<strin
 export type ContextTurn = Pick<ClaimedTurn, 'turnId' | 'trigger' | 'actingUserId' | 'inputIds' | 'continuations'>
 
 async function instructionsFor(conversation: Place, agentId: string): Promise<Instructions> {
-  const [agent, content, org, place] = await Promise.all([
+  const [agent, content, org, place, features] = await Promise.all([
     prisma.agent.findUnique({ where: { id: agentId }, select: { name: true, role: true } }),
     readAgentContent(agentId),
     orgInstructions(),
     placeLabel(conversation),
+    featuresOn(),
   ])
   return {
     agentName: agent?.name ?? 'the agent',
@@ -275,6 +279,7 @@ async function instructionsFor(conversation: Place, agentId: string): Promise<In
     placeLabel: place,
     agentInstructions: content?.instructions.trim() || null,
     orgInstructions: org,
+    featuresOn: features.on,
   }
 }
 

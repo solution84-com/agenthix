@@ -19,6 +19,8 @@ import { isRunId } from './runFolders'
 /** One secret's bytes: a private key is about 4 KB, a whole certificate chain a few tens of KB. */
 export const SECRET_BYTES_MAX = 1024 * 1024
 const HASH_RE = /^[0-9a-f]{64}$/
+/** hq's id for a live preview, as the site's live-preview methods read it. */
+const LIVE_PREVIEW_ID = /^[A-Za-z0-9_-]{1,64}$/
 
 const base64 = z.string().refine(isStrictBase64, 'is not base64')
 const noNul = (s: string) => !s.includes('\0')
@@ -81,6 +83,7 @@ const instructionSchema = z.object({
     tagBase: z.number().int().min(1).max(2 ** 32 - 1).optional(),
   }).strict(),
   github: z.object({ repository: z.string(), repositoryId: z.number().int().positive(), cloneUrl: z.string() }).strict().nullable(),
+  livePreview: z.object({ livePreviewId: z.string().regex(LIVE_PREVIEW_ID) }).strict().optional(),
 }).strict()
 
 export type CheckedInstruction = {

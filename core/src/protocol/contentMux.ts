@@ -1,4 +1,5 @@
 import {
+  DUPLEX_INITIAL_WINDOW_BYTES,
   MAX_STREAM_WINDOW_BYTES,
   type ContentErrorCode,
   encodeControlFrame,
@@ -15,7 +16,8 @@ import {
  * and a site cannot drift on the protocol — only a thin adapter each side.
  *
  * hq is the opener and a site the server: a site answers streams, never opens
- * them. Site-to-hq calls stay on ordinary HTTPS.
+ * them. Site-to-hq calls stay on ordinary HTTPS. On a site's relay line the
+ * relay is the opener.
  */
 export type MuxRole = 'opener' | 'server'
 
@@ -45,19 +47,28 @@ type StreamState = {
   receiveWindow: number | null
   /** Writes waiting for credit; woken by credit or by the stream going away. */
   waiting: Array<() => void>
+  /** A duplex stream's bytes that arrived before the server accepted it (the server's view); the window bounds them. */
+  early: Uint8Array[] | null
 }
 
 export interface OpenOptions {
   /** Bytes the server may send before it waits for `credit`; omitted, the stream is unlimited. */
   window?: number
+  /**
+   * The opener's own bytes are flow-controlled too (content.ts, `DUPLEX_INITIAL_WINDOW_BYTES`): it may send that many
+   * before the server grants more, and may send before the server accepts.
+   */
+  duplex?: boolean
 }
 
 function isWindow(value: number, min: number): boolean {
   return Number.isInteger(value) && value >= min && value <= MAX_STREAM_WINDOW_BYTES
 }
 
-function newStream(events: StreamEvents | null, sendWindow: number | null, receiveWindow: number | null): StreamState {
-  return { events, localEnded: false, remoteEnded: false, sendWindow, receiveWindow, waiting: [] }
+function newStream(
+  events: StreamEvents | null, sendWindow: number | null, receiveWindow: number | null, early: Uint8Array[] | null = null,
+): StreamState {
+  return { events, localEnded: false, remoteEnded: false, sendWindow, receiveWindow, waiting: [], early }
 }
 
 export class StreamMux {
@@ -74,19 +85,21 @@ export class StreamMux {
 
   open(method: string, params: unknown, events: StreamEvents, options: OpenOptions = {}): number {
     if (this.role !== 'opener') throw new Error('Only the opener opens streams; a site answers them')
-    const { window } = options
+    const { window, duplex } = options
     if (window !== undefined && !isWindow(window, 0)) throw new Error(`A stream window is 0 to ${MAX_STREAM_WINDOW_BYTES} bytes`)
     const id = this.nextId++
-    this.streams.set(id, newStream(events, null, window ?? null))
-    this.out.sendText(encodeControlFrame(
-      window === undefined ? { t: 'open', id, method, params } : { t: 'open', id, method, params, window },
-    ))
+    this.streams.set(id, newStream(events, duplex ? DUPLEX_INITIAL_WINDOW_BYTES : null, window ?? null))
+    this.out.sendText(encodeControlFrame({
+      t: 'open', id, method, params, ...(window === undefined ? {} : { window }), ...(duplex ? { duplex: true as const } : {}),
+    }))
     return id
   }
 
-  /** Lets the server send `bytes` more on a stream opened with a window: call it as the reader takes what arrived. */
+  /**
+   * Lets the other end send `bytes` more on a stream whose bytes toward this end are windowed: the server's on a stream
+   * opened with a window, the opener's on a duplex stream. Call it as the reader takes what arrived.
+   */
   credit(id: number, bytes: number): void {
-    if (this.role !== 'opener') throw new Error('Only the opener grants credit; it is the one reading')
     const stream = this.streams.get(id)
     if (!stream || stream.receiveWindow === null || stream.remoteEnded) return
     if (!isWindow(bytes, 1) || !isWindow(stream.receiveWindow + bytes, 0)) {
@@ -102,6 +115,15 @@ export class StreamMux {
     if (!stream) return
     stream.events = events
     this.out.sendText(encodeControlFrame({ t: 'accept', id }))
+    // A duplex stream's opener may have sent, and even ended its half, before this.
+    const early = stream.early
+    if (early === null) return
+    stream.early = null
+    for (const chunk of early) if (this.streams.get(id) === stream) events.onData(chunk)
+    if (stream.remoteEnded && this.streams.get(id) === stream) {
+      events.onEnd()
+      this.forgetIfDone(id, stream)
+    }
   }
 
   async write(id: number, payload: Uint8Array): Promise<void> {
@@ -154,18 +176,20 @@ export class StreamMux {
     const stream = this.streams.get(frame.id)
     // Data for a stream that has failed, been cancelled, or never existed is
     // dropped: it is either late or wrong, and neither is worth closing over.
-    if (!stream?.events || stream.remoteEnded) return
+    // So is data before a stream is accepted, unless it is duplex.
+    if (!stream || (!stream.events && !stream.early) || stream.remoteEnded) return
     if (stream.receiveWindow !== null) {
       if (frame.payload.length > stream.receiveWindow) {
         // A peer that ignores the window: its bytes would otherwise be held without bound.
         const message = `Stream ${frame.id} sent past the window it was given`
         this.fail(frame.id, 'protocol', message)
-        stream.events.onError('protocol', message)
+        stream.events?.onError('protocol', message)
         return
       }
       stream.receiveWindow -= frame.payload.length
     }
-    stream.events.onData(frame.payload)
+    if (stream.events) stream.events.onData(frame.payload)
+    else stream.early?.push(frame.payload.slice())
   }
 
   closeAll(code: ContentErrorCode, message: string): void {
@@ -187,7 +211,9 @@ export class StreamMux {
           return
         }
         if (this.streams.has(frame.id)) return
-        this.streams.set(frame.id, newStream(null, frame.window ?? null, null))
+        this.streams.set(frame.id, frame.duplex
+          ? newStream(null, frame.window ?? null, DUPLEX_INITIAL_WINDOW_BYTES, [])
+          : newStream(null, frame.window ?? null, null))
         if (this.onOpen) this.onOpen(frame.id, frame.method, frame.params)
         else this.fail(frame.id, 'unknown_method', `Unknown method: ${frame.method}`)
         return
@@ -221,8 +247,9 @@ export class StreamMux {
       }
       case 'credit': {
         // Late credit for a stream already over is normal, and credit for a stream without a window means nothing.
+        // An opener's sends are windowed only on a duplex stream, so credit to an opener counts only there.
         const stream = this.streams.get(frame.id)
-        if (!stream || this.role !== 'server' || stream.sendWindow === null) return
+        if (!stream || stream.sendWindow === null) return
         if (stream.sendWindow + frame.bytes > MAX_STREAM_WINDOW_BYTES) {
           const message = `Credit took stream ${frame.id}'s window past ${MAX_STREAM_WINDOW_BYTES} bytes`
           this.fail(frame.id, 'protocol', message)

@@ -30,7 +30,7 @@ export function fleetRoutes(ctx: ConsoleContext): Router {
    */
   const agentsOf = (h: PinnedHost, loads: SiteLoad[] | null) => {
     const load = loads?.find(l => (h.hqMachine === true && l.isDefault) || (h.executionSiteId !== null && l.executionSiteId === h.executionSiteId))
-    return load ? { running: load.running, maxAtOnce: load.maxAtOnce, reportedAt: load.reportedAt } : null
+    return load ? { running: load.running, maxAtOnce: load.maxAtOnce, reportedAt: load.reportedAt, copiesBytes: load.copiesBytes ?? null } : null
   }
 
   const hostView = (h: PinnedHost, loads: SiteLoad[] | null) => {

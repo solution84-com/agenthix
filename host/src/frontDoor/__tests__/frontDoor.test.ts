@@ -120,12 +120,6 @@ describe('agenthix front-door on @SC-857', () => {
       other.cleanup()
     }
   })
-
-  it('leaves previews to their own setup', async () => {
-    const answer = await on({ previewsHost: 'preview.acme.example' })
-    expect((answer.refusal as { message: string }).message).toContain('Previews keep their own setup')
-    expect(m.calls).toEqual([])
-  })
 })
 
 describe('agenthix front-door off @SC-857', () => {

@@ -153,7 +153,7 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
       <CloudConnection org={org ?? null} />
       {f && (
         <FactGroup tag="The machine HQ runs on" name={machine} aside="what stays with the hardware" tinted>
-          <HealthCard figures={f} />
+          <HealthCard figures={f} copiesBytes={host.agents?.copiesBytes} />
           <ProtectionsCard figures={f} now={now} />
           <SystemCard figures={f} now={now} />
         </FactGroup>

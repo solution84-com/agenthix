@@ -1,7 +1,7 @@
 ---
 name: User-journey coverage map
 description: For each kind of person who uses Agenthix, the journeys that matter to them, what "works" means, which scenarios cover each, and whether a test backs them. Written from users' expectations, not from the code.
-updated: 2026-10-28
+updated: 2026-11-03
 ---
 
 # User-journey coverage map
@@ -169,6 +169,41 @@ These are not yet counted in the summary below; the full audit before the first 
 | **OPR-43** Keep my own skills with me | Important | Skills published in Your space follow the person into their own conversations, projects included, and into no one else's run. | SC-1648, SC-1649 | 2 of 2 | Covered by a scenario and a test |
 | **OPR-44** Review what an agent proposes | Important | A proposal or a draft by who asked; reviewers at each level are counted and see it; accept, edit then accept, or reject with a note; the card in the conversation shows the outcome. | SC-1661 to SC-1663, SC-1666 | 4 of 4 | Covered by a scenario and a test |
 | **OPR-45** Decide which skills found in a place's files run | Important | The place's Skills page lists them grouped, with defaults, switches by fingerprint, versions by publishing, changes made in files, and who may do what. | SC-1641 to SC-1647 | 7 of 7 | Covered by a scenario and a test |
+
+### Journeys added at the close of *live preview* (2026-11-02)
+
+> **Behind the `livePreview` flag, at experimental, so not in the release:** OPR-49 to OPR-53, ADM-25 and FLT-17, and the live-preview part of VWR-9. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
+These are not yet counted in the summary below; the full audit before the first release counts them. Most citations are on a whole group of tests (a `describe`) or on each test of an end-to-end spec, so the audit re-reads them. Some promises are also asserted by tests that need Docker or a running HQ and are run by hand or by the lead: the commit helper's and the live preview's container tests (`*.container.test.ts` in `site/`), hq's integration tests, and the two end-to-end specs, which need a workspace named in `E2E_WORKSPACE_ID`. SC-1682 (GitHub) is cited only for its refusal; pulling and pushing `main` have no test of their own.
+
+| Journey | Weight | What "works" means | Scenarios | Tests cite | Status |
+|---|---|---|---|---|---|
+| **OPR-46** Code work runs on its own branch, and `main` stays protected | Critical | Every task and conversation in a code workspace gets its own branch and working copy; every commit reaches the workspace's repository; agents never write the workspace's folder or `main`, and nothing they plant runs on the site; a run is told its branch. | SC-1669 to SC-1677, SC-1720 to SC-1725, SC-1727, SC-1728, SC-1732 | 18 of 18 | Covered by a scenario and a test |
+| **OPR-47** Review a branch in the workspace view | Important | The whole screen; the branch select; Files and Git, read-only, with each change's diff; the branch's conversation beside it; a link that opens it again; usable on a laptop, a tablet and a phone. | SC-1678, SC-1683 to SC-1689 | 8 of 8 | Covered by a scenario and a test |
+| **OPR-48** Merge into `main`, restore a version, turn Git on | Critical | One version per merge, checkpoints while an agent works, a clash merges nothing and goes back to the agent, an agent merges only on a person's press; restoring makes a new version and deletes nothing; turning Git on records the first version. | SC-1679 to SC-1682, SC-1690, SC-1691, SC-1693, SC-1726 | 8 of 8 | Covered by a scenario and a test |
+| **OPR-49** See the app running beside the conversation | Important | A live preview on any branch, the same one for everyone; the app in the middle under its own fixed bar; reload, *Auto* and *Stop*; an address of its own, opened with a single-use ticket. | SC-1694 to SC-1699, SC-1705, SC-1707, SC-1737, SC-1749 | 10 of 10 | Covered by a scenario and a test |
+| **OPR-50** Have the agent run the app, or start it myself | Important | The agent's app tools act only on its branch's live preview and open one if needed; *Start* on the strip; the lead's offer; `localhost` apps; `main`'s live preview follows `main`. | SC-1701 to SC-1703, SC-1708, SC-1716, SC-1718, SC-1736, SC-1741 | 7 of 8 | Scenario only (no automated test) |
+| **OPR-51** Services and install scripts run only after a person's yes | Critical | Install scripts off in every agent command; the rule lets known-good ones run; a blocked package or a new service is asked about by name; a yes holds for that version on that branch. | SC-1709, SC-1710, SC-1742 to SC-1745 | 6 of 6 | Covered by a scenario and a test |
+| **OPR-52** Secrets reach a live preview only through an approved workflow | Critical | Only approved, switched-on workflows are offered; secrets go to the app's own container, never the agent's or the copy; what the agent reads is masked. | SC-1712, SC-1746 | 2 of 2 | Covered by a scenario and a test |
+| **OPR-53** Know where a live preview runs, and why it stopped | Important | The site picked and how full it is; a full site and another site by bundle; idle stop, pause and resume; after a site restart the apps read stopped. | SC-1704, SC-1713 to SC-1715, SC-1733, SC-1739, SC-1740, SC-1753 | 8 of 8 | Covered by a scenario and a test |
+| **ADM-25** An app an agent wrote is held apart from everything else | Critical | The live preview's container binds only its copy, has its own network and no IPv6, and the firewall closes private addresses and the machine's own; the guard stops what it did not start; the relay lets through only the app's own requests and cuts off at HQ's word. | SC-1706, SC-1734, SC-1735, SC-1738, SC-1747, SC-1748, SC-1750, SC-1752, SC-1758 | 8 of 9 | Scenario only (no automated test) |
+| **ADM-26** Name the organisation's trusted package scopes | Important | Set on Organisation › Settings, checked, carried to every run. | SC-1711, SC-1744 | 2 of 2 | Covered by a scenario and a test |
+| **VWR-9** Read a code workspace and change nothing | Critical | A Viewer sees files, branches, changes, versions and live previews; every action is greyed with the reason and refused by the server. | SC-1678, SC-1692, SC-1696, SC-1698, SC-1703 | 5 of 5 | Covered by a scenario and a test |
+| **FLT-17** Decide which sites run live previews | Important | *Live previews on this site*, the limit and the idle stop, turning off after a list of what stops, the open ones listed and stopped one at a time. | SC-1714, SC-1754, SC-1755, SC-1759 | 4 of 4 | Covered by a scenario and a test |
+| **FLT-18** Be told when a site's memory or disk fills | Important | A notice past 80% of memory or disk, naming what branch copies take, until it recovers. | SC-1717, SC-1730, SC-1754, SC-1755, SC-1759 | 5 of 5 | Covered by a scenario and a test |
+| **MCH-18** Give live apps their own addresses | Important | One command sets the preview domain and checks it; `preview.localhost` on a laptop; none on a bare address, said on screen; a certificate per app on first open. | SC-1707, SC-1719, SC-1751, SC-1756, SC-1757 | 4 of 5 | Scenario only (no automated test) |
+
+SC-1718 (`main`'s live preview brought up to date when `main` moves, and a branch's commits brought back before a merge from another site), SC-1719 (*Live preview* on a bare address) and SC-1748 (the guard's timing, its reach to the people who have it open, and a site whose guard is silent) have no citing test yet.
+
+### Journeys added at the close of *feature flags with stages* (2026-11-03)
+
+These are not yet counted in the summary below; the full audit before the first release counts them. Citations are on a whole group of tests (a `describe`) or on a test of an end-to-end spec, so the audit re-reads them. Some are asserted by integration, end-to-end and cross-app tests that need the test databases or running apps and are run by the lead. The maintainers' own journeys have no role in this map: running tests as shipped and keeping a feature's own tests apart (**SC-1764**, **SC-1774**) and refusing a release while a released flag outlives its minor release (**SC-1763**) are covered by scenarios and tests but listed by none of the journeys below.
+
+| Journey | Weight | What "works" means | Scenarios | Tests cite | Status |
+|---|---|---|---|---|---|
+| **ADM-27** Try a feature in beta, or switch off one that is new | Important | *Features* in the organisation's settings lists the betas and the features new in this release for admins, with a label, a switch and who last switched it; a switch applies to the whole organisation and a refusal says nothing was changed; a member is told who to ask. | SC-1765 to SC-1768 | 4 of 4 | Covered by a scenario and a test |
+| **ADM-28** A feature that is off is closed everywhere | Critical | One rule decides; hq's server refuses its entry points as not available, agents are given none of its tools or words, a site refuses its methods and the relay its addresses taking hq's word for two things only; with live previews off, code work on branches is unchanged. | SC-1761, SC-1762, SC-1769 to SC-1773, SC-1775, SC-1776, SC-1780 | 10 of 10 | Covered by a scenario and a test |
+| **FLT-19** See a feature's section only when the organisation has it on | Important | The Fleet Console draws a flagged section only while HQ says its feature is on, and refuses its routes otherwise; none is on while HQ is not asked. | SC-1777 to SC-1780 | 4 of 4 | Covered by a scenario and a test |
 
 ## Viewer
 

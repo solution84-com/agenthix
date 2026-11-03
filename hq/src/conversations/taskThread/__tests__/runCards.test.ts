@@ -40,9 +40,10 @@ describe("a run's end, as the thread's card @SC-977", () => {
 })
 
 describe("the run's first message @SC-977", () => {
-  it("carries the thread's brief after it", () => {
+  it("carries the thread's brief after it, as this run's work whatever the task's state", () => {
     expect(withBrief('Execute your assigned task.', 'Only the thumbnails')).toBe(
-      "Execute your assigned task.\n\nWhat was asked for in the task's conversation:\n\nOnly the thumbnails",
+      "Execute your assigned task.\n\nA person asked for this in the task's conversation. Do it now, in this run, even if " +
+      'the task is already done or in review: it is new work on the same task.\n\nOnly the thumbnails',
     )
   })
 

@@ -10,3 +10,11 @@ export const refuseFilesServeFromHq: ContentHandler = stream =>
     stream.once('close', () => resolve())
     stream.end(Buffer.from(encodeStreamHead(refusalHead('ticket-invalid'))), () => resolve())
   })
+
+/** `app.serve`, `bundle.read` or `bundle.write` asked on hq's own channel: refused, ended, never read. */
+export const refuseRelayStreamFromHq: ContentHandler = stream =>
+  new Promise(resolve => {
+    stream.once('close', () => resolve())
+    stream.destroy()
+    resolve()
+  })

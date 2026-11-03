@@ -42,9 +42,10 @@ import http from 'node:http'
 import https from 'node:https'
 import type { ConnectionOptions as TlsOptions } from 'node:tls'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { CREDENTIAL_PROVIDERS, isFeatureOn, type CredentialProvider, type UsageReport } from '@agenthix/core'
+import { CREDENTIAL_PROVIDERS, type CredentialProvider, type UsageReport } from '@agenthix/core'
 import type { ApiHandler } from '../http/apiHandler'
 import { Logger } from '../utils/logger'
+import { isSiteFeatureOn } from '../features/siteFeatures'
 import { MODEL_RELAY_PATH, cloudKeyHeaders, providerKeyHeaders, upstreamBase } from './relayProviders'
 import { CallMeter } from './callMeter'
 import { cloudToken } from './cloudToken'
@@ -134,7 +135,7 @@ export function createModelRelayHandler(deps: ModelRelayDeps = defaultDeps) {
     if (credential.kind === 'cloud') {
       const answer = await (deps.cloudToken ?? cloudToken)()
       if (!answer.ok) return turnAway(503, `Agenthix Cloud is not available to this run (${answer.refusal})`)
-      const billing = meter && isFeatureOn('usageBilling', process.env) ? { callId: meter.callId, billingProfileId: turn.billingProfileId } : null
+      const billing = meter && isSiteFeatureOn('usageBilling', turn.features) ? { callId: meter.callId, billingProfileId: turn.billingProfileId } : null
       keyHeaders = cloudKeyHeaders(credential, answer.token.token, billing)
     } else {
       keyHeaders = providerKeyHeaders(credential)

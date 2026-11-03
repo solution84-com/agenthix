@@ -53,6 +53,8 @@ import { scheduledChangeHold } from '../sites/scheduled/runHold'
 import { chooseTaskRun, readyTaskSession } from './taskRunModel'
 import { resolveSiteIdForSession } from './dispatchSiteResolution'
 import { isOwnConversation } from '../assets/delivery/personSkills'
+import { codeWorkForRun } from '../branches/runCodeWork'
+import type { PreparedCodeWork } from '../branches/codeWorkDispatch'
 
 const logger = new Logger('DispatchService')
 
@@ -143,8 +145,22 @@ export async function dispatchChatRun(
     ...(senderId ? { onBehalfOfUserId: senderId } : {}),
   }
 
-  const result = await siteRuntimeStore.dispatchRun(claims.siteId, payload)
+  // A run on a code workspace works on its work's own branch (live preview spec, part 2).
+  const code = await codeWorkForRun({
+    session, primaryLoc, personId: session.taskId ? senderId : session.userId, agentId: agent.id, runSiteId: claims.siteId, inputText,
+  })
+  if (code) context.codeWork = code.codeWork
+  const result = await dispatchHolding(code, () => siteRuntimeStore.dispatchRun(claims.siteId, payload))
   return { runId: result.runId }
+}
+
+/** Dispatches, holding the run's branch as starting until the site has the run (`branches/working.ts`). */
+async function dispatchHolding<T>(code: PreparedCodeWork | null, dispatch: () => Promise<T>): Promise<T> {
+  try {
+    return await dispatch()
+  } finally {
+    code?.release()
+  }
 }
 
 async function requireSenderOnTaskProject(taskId: string, senderId: string): Promise<void> {
@@ -340,7 +356,9 @@ export async function dispatchTaskRun(
     ...(runPersonId ? { onBehalfOfUserId: runPersonId } : {}),
   }
 
-  const result = await siteRuntimeStore.dispatchRun(claims.siteId, payload)
+  const code = await codeWorkForRun({ session: agentSession, primaryLoc, personId: runPersonId, agentId: agent.id, runSiteId: claims.siteId })
+  if (code) context.codeWork = code.codeWork
+  const result = await dispatchHolding(code, () => siteRuntimeStore.dispatchRun(claims.siteId, payload))
   return { runId: result.runId, sessionId: result.sessionId }
 }
 

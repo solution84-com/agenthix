@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { HostFigures } from '@agenthix/core'
-import { agoWords, ceilingWords, diskWords, gbOf, memoryWords, protectionWords } from '../pages/site/words'
+import { agoWords, ceilingWords, copiesWords, diskWords, gbOf, memoryWords, protectionWords } from '../pages/site/words'
 
 const NOW = new Date(2026, 9, 15, 12, 0, 0)
 const GB = 1000 ** 3
@@ -65,5 +65,16 @@ describe('how long ago', () => {
     expect(agoWords(new Date(NOW.getTime() - 60_000).toISOString(), NOW)).toBe('1 minute ago')
     expect(agoWords(new Date(NOW.getTime() - 3 * 3600_000).toISOString(), NOW)).toBe('3 hours ago')
     expect(agoWords(new Date(NOW.getTime() - 41 * 86400_000).toISOString(), NOW)).toBe('41 days ago')
+  })
+})
+
+describe('the disk branch copies use @SC-1755', () => {
+  const disk = { freeBytes: 200 * GB, totalBytes: 500 * GB }
+  it('is shown against the machine\'s disk', () => {
+    expect(copiesWords(disk, 50 * GB)).toBe('50 GB of 500 GB · 10% of the disk')
+  })
+  it('is left out while the site has not said', () => {
+    expect(copiesWords(disk, null)).toBeNull()
+    expect(copiesWords(disk, undefined)).toBeNull()
   })
 })

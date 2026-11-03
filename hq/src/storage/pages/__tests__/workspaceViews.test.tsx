@@ -22,6 +22,7 @@ vi.mock('wasp/client/operations', () => ({
   useAction: (name: string) => (actions[name] ??= vi.fn()),
   getWorkspace: 'getWorkspace', getRepoState: 'getRepoState', deleteWorkspace: 'deleteWorkspace', disconnectRepo: 'disconnectRepo',
   createWorkspace: 'createWorkspace', connectRepo: 'connectRepo', setWorkspaceAllowedTools: 'setWorkspaceAllowedTools',
+  getWorkspaceRemoval: 'getWorkspaceRemoval',
 }))
 vi.mock('react-router', () => ({ useSearchParams: () => [new URLSearchParams(), vi.fn()] }))
 vi.mock('../../../github/connect/ConnectRepoFlow', () => ({ ConnectRepoFlow: ({ target, defaultName, onCancel }: { target: { workspaceId: string }; defaultName: string; onCancel: () => void }) => <div>connect flow {target.workspaceId} {defaultName}<button type="button" onClick={onCancel}>Cancel</button></div> }))
@@ -55,7 +56,7 @@ beforeEach(() => {
 
 describe('a workspace opened', () => {
   it('opens as its file explorer: a box saying what it is, then its files — nothing hq does not know', () => {
-    render(<WorkspaceView workspaceId="w1" siteLabel="Office Mac" previewId={null} connecting={false} onBack={vi.fn()} />)
+    render(<WorkspaceView workspaceId="w1" siteLabel="Office Mac" connecting={false} onBack={vi.fn()} />)
     expect(screen.getByText('acme/web')).toBeTruthy()
     expect(screen.getByText('Office Mac')).toBeTruthy()
     expect(screen.getByText('folder tree')).toBeTruthy()
@@ -68,16 +69,10 @@ describe('a workspace opened', () => {
     expect(screen.queryByRole('link', { name: 'Open preview' })).toBeNull()
   })
 
-  it('opens a running preview through hq\'s own access check', () => {
-    render(<WorkspaceView workspaceId="w1" siteLabel="Office Mac" previewId="pv1" connecting={false} onBack={vi.fn()} />)
-    expect(screen.getByRole('link', { name: 'Open preview' }).getAttribute('href')).toBe('/open-preview/pv1')
-    expect(screen.getByText('Preview running')).toBeTruthy()
-  })
-
   it('keeps Delete under ⋯, asking first', async () => {
     const onBack = vi.fn()
     actions.deleteWorkspace = vi.fn().mockResolvedValue(undefined)
-    render(<WorkspaceView workspaceId="w1" siteLabel={null} previewId={null} connecting={false} onBack={onBack} />)
+    render(<WorkspaceView workspaceId="w1" siteLabel={null} connecting={false} onBack={onBack} />)
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete workspace' }))
     expect(actions.deleteWorkspace).not.toHaveBeenCalled()
@@ -88,7 +83,7 @@ describe('a workspace opened', () => {
 
   it('names what the delete loses once the site has said what it holds', () => {
     useQuery.mockImplementation((op: unknown) => ({ data: op === 'getRepoState' ? { repoUrl: ws.repoUrl, isGitRepo: true, hasFiles: true } : ws, error: null }))
-    render(<WorkspaceView workspaceId="w1" siteLabel={null} previewId={null} connecting={false} onBack={vi.fn()} />)
+    render(<WorkspaceView workspaceId="w1" siteLabel={null} connecting={false} onBack={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete workspace' }))
     expect(screen.getByRole('menuitem', { name: 'Delete — files not yet pushed to GitHub go with it; the repository is not affected' })).toBeTruthy()
@@ -96,12 +91,12 @@ describe('a workspace opened', () => {
 
   it('says No repository with Connect GitHub, and shows the connect flow only once connecting starts @SC-1321', () => {
     useQuery.mockReturnValue({ data: { ...ws, repoUrl: null }, error: null })
-    const { unmount } = render(<WorkspaceView workspaceId="w1" siteLabel={null} previewId={null} connecting={false} onBack={vi.fn()} />)
+    const { unmount } = render(<WorkspaceView workspaceId="w1" siteLabel={null} connecting={false} onBack={vi.fn()} />)
     expect(screen.getByText('No repository')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Connect GitHub' })).toBeTruthy()
     expect(screen.queryByText('repo panel')).toBeNull()
     unmount()
-    render(<WorkspaceView workspaceId="w1" siteLabel={null} previewId={null} connecting onBack={vi.fn()} />)
+    render(<WorkspaceView workspaceId="w1" siteLabel={null} connecting onBack={vi.fn()} />)
     expect(screen.getByText('repo panel')).toBeTruthy()
   })
 
@@ -109,7 +104,7 @@ describe('a workspace opened', () => {
     topFolder.entries = [{ name: 'src', isDir: true }, { name: 'README.md', isDir: false }]
     const observers: Array<(e: { contentRect: { width: number } }[]) => void> = []
     vi.stubGlobal('ResizeObserver', class { constructor(cb: never) { observers.push(cb) } observe() {} disconnect() {} })
-    render(<WorkspaceView workspaceId="w1" siteLabel={null} previewId={null} connecting={false} onBack={vi.fn()} />)
+    render(<WorkspaceView workspaceId="w1" siteLabel={null} connecting={false} onBack={vi.fn()} />)
     act(() => observers.forEach(cb => cb([{ contentRect: { width: 900 } }])))
     expect(screen.getByText('file opened README.md in place w1, linked as w1/README.md')).toBeTruthy()
     vi.unstubAllGlobals()
@@ -117,22 +112,21 @@ describe('a workspace opened', () => {
 
   it('says why it cannot be shown when its site does not answer, rather than waiting forever', () => {
     useQuery.mockReturnValue({ data: undefined, error: new Error('Execution Site "Laptop" is unreachable') })
-    render(<WorkspaceView workspaceId="w1" siteLabel={null} previewId={null} connecting={false} onBack={vi.fn()} />)
+    render(<WorkspaceView workspaceId="w1" siteLabel={null} connecting={false} onBack={vi.fn()} />)
     expect(screen.getByRole('status').textContent).toContain('unreachable')
     expect(screen.queryByText('Loading…')).toBeNull()
   })
 })
 
 describe('a workspace\'s About', () => {
-  const about = (previewId: string | null = null) => render(
-    <WorkspaceAbout ws={ws} target={{ ownerType: 'project', ownerId: 'p1', workspaceId: 'w1' }} siteLabel="Office Mac" previewId={previewId} onDisconnect={vi.fn()} onBack={vi.fn()} />,
+  const about = () => render(
+    <WorkspaceAbout ws={ws} target={{ ownerType: 'project', ownerId: 'p1', workspaceId: 'w1' }} siteLabel="Office Mac" onDisconnect={vi.fn()} onBack={vi.fn()} />,
   )
 
   it('holds the facts and the GitHub section @SC-1321', () => {
     about()
     expect(screen.getByText('acme/web')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy()
-    expect(screen.getByText('Not running')).toBeTruthy()
     expect(screen.getByText('Office Mac', { selector: 'dd' })).toBeTruthy()
     expect(screen.getByText(/^All/)).toBeTruthy()
     expect(screen.getByText('secrets')).toBeTruthy()

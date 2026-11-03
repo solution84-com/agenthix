@@ -14,6 +14,7 @@ import { harnessHomeBind, runnerSkillsStagingBind } from './boundaryClaudeHome'
 import { resolveContainerLimits, type ContainerLimits } from './containerLimits'
 import { openCodeConfigMountArgs } from './openCodeConfigMounts'
 import { agentImageName } from './agentImage'
+import { ipv6OffArgs } from './ipv6Off'
 import type { AgentMounts, ContainerContext, ContainerKey } from './containerTypes'
 
 
@@ -64,6 +65,9 @@ export function buildContainerRunCommand(
   // mode decided in containerPrep.ts (runHasWriteTools). Everything in it —
   // every workspace included — arrives with it.
   const locationMountArgs = ['-v', `${mounts.boundary.hostDir}:${mounts.boundary.containerDir}:${mounts.locationMode}`]
+  // Each code workspace's own folder, read-only over its place in the boundary (containerTypes.ts, `readOnly`).
+  // Docker mounts a bind inside another after it, whatever the order given.
+  for (const m of mounts.readOnly ?? []) locationMountArgs.push('-v', `${m.hostDir}:${m.containerDir}:ro`)
 
   // Sized for a container that serves a whole storage boundary rather than
   // one conversation — the host service's ceilings where one runs this site,
@@ -94,6 +98,8 @@ export function buildContainerRunCommand(
     // (agenthix-contain sets HOME to it), which the image creates 0700 for uid 1001 and a tmpfs recreates the same.
     '--cap-drop', 'ALL',
     '--security-opt', 'no-new-privileges',
+    // Its network is IPv4 only, and so are the machine's protections for agents: IPv6 is off inside it too.
+    ...ipv6OffArgs(),
     '--read-only',
     '--tmpfs', WRITABLE_TMP,
     '--tmpfs', WRITABLE_COMMAND_HOME,

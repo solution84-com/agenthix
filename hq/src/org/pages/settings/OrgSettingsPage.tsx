@@ -4,6 +4,7 @@ import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
 import { OrgEntryGroup, OrgEntryRow } from '../OrgEntryRow'
 import { SignInPageSetting } from './SignInPageSetting'
 import { UploadedFilesSetting } from './UploadedFilesSetting'
+import { TrustedPackageScopesSetting } from './TrustedPackageScopesSetting'
 
 function githubLine(status: Awaited<ReturnType<typeof getGithubAppStatus>> | undefined): string {
   if (!status) return "Installing the GitHub App on the organisation's accounts"
@@ -23,6 +24,7 @@ export function OrgSettingsPage() {
       <OrgAdminHeading title="Settings">The organisation's, changed by its admins.</OrgAdminHeading>
       <SignInPageSetting />
       <UploadedFilesSetting />
+      <TrustedPackageScopesSetting />
       <OrgEntryGroup title="Access to models and tools">
         <OrgEntryRow to="/admin/settings/model-access" title="Web search" line="The key agents search the web with" />
         <OrgEntryRow to="/admin/settings/github" title="GitHub" line={githubLine(github)} />
@@ -37,6 +39,9 @@ export function OrgSettingsPage() {
         <OrgEntryRow to="/admin/settings/memory" title="Memory" line="How well recall works, and the model that reads what agents remember" />
         <OrgEntryRow to="/admin/settings/library" title="Library and skills" line="Whom the organisation trusts to sign what it installs, and how skills reach agents" />
         <OrgEntryRow to="/admin/settings/risk-rules" title="Tool risk rules" line="Patterns that label a command's risk" />
+      </OrgEntryGroup>
+      <OrgEntryGroup title="Features">
+        <OrgEntryRow to="/admin/settings/features" title="Features" line="Try a feature in beta, or switch off one new in this release" />
       </OrgEntryGroup>
       <p className="mt-6 text-small text-text-muted">
         HQ itself, its sites and storage are under{' '}

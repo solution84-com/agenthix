@@ -17,6 +17,7 @@ import { assertLocationAccess, type LocationUse } from './locationAccess'
 import { requireProjectAdmin } from '../projects/membership'
 import { checkConnect, type ConnectCheck } from '../github/connectChecks'
 import { proposeStartersFor, type StarterOutcome } from '../github/connectStarters'
+import { stopBranchesOfWorkspace } from '../branches/workspaceRemoval'
 
 type Ctx = { user?: { id: string } }
 
@@ -164,6 +165,8 @@ export const deleteWorkspaceAction = async (
   // project's workspace.
   await assertWorkspaceReachable(workspaceId, context.user.id, 'work')
   try {
+    // Its branches' agents stop and their copies go first (live preview spec, Defaults for review 5).
+    await stopBranchesOfWorkspace(workspaceId, context.user.id)
     await deleteWorkspace(workspaceId)
   } catch (err) {
     rethrowSiteUnreachableAsHttp(err)

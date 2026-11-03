@@ -28,9 +28,16 @@ describe('what hq tells the Fleet Console’s screens @SC-938', () => {
       { id: 's-hq', isDefault: true, status: 'ONLINE', health: health(2, 4), healthReportedAt: at },
       { id: 's-office', isDefault: false, status: 'ONLINE', health: health(1, 6), healthReportedAt: at },
     ])).toEqual([
-      { executionSiteId: 's-hq', isDefault: true, running: 2, maxAtOnce: 4, reportedAt: at.toISOString() },
-      { executionSiteId: 's-office', isDefault: false, running: 1, maxAtOnce: 6, reportedAt: at.toISOString() },
+      { executionSiteId: 's-hq', isDefault: true, running: 2, maxAtOnce: 4, reportedAt: at.toISOString(), copiesBytes: null },
+      { executionSiteId: 's-office', isDefault: false, running: 1, maxAtOnce: 6, reportedAt: at.toISOString(), copiesBytes: null },
     ])
+  })
+
+  it('passes on the disk a site\'s branch copies use', () => {
+    const [load] = siteLoadsOf([
+      { id: 's', isDefault: false, status: 'ONLINE', health: { ...health(0, 4), branchCopies: { usedBytes: 5000 } }, healthReportedAt: at },
+    ])
+    expect(load.copiesBytes).toBe(5000)
   })
 
   it('leaves out a site that is away, has not reported, or reported something else', () => {

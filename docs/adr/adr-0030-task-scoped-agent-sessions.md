@@ -55,3 +55,5 @@ Concretely:
 
 - [ADR-0019 — Agent Runtime Abstraction](./adr-0019-agent-runtime-abstraction.md) — defines the `AgentRuntime` interface this session model operates within
 - [ADR-0020 — Task Delegation](./adr-0020-task-delegation-over-spawn-agent.md) — each delegated task runs in the target agent's own workspace and its own session
+
+> **A code task's working folder is its branch's copy.** *(annotated 2026-11-03)* In a code workspace, a task's session works in its branch's own working copy, not the workspace's folder (adr-0168; unit of work [`2026-11-01-live-preview`](../work/2026-11-01-live-preview/plan.md)). The task-scoped session itself stands.

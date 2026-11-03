@@ -121,6 +121,7 @@ export const renewCapabilityHandler: RenewCapabilityApi = async (req, res) => {
       runner,
       startedBy,
       onBehalfOfUserId: parseCapabilityOnBehalfOf(payload.onBehalfOfUserId) ?? undefined,
+      siteId,
     })
     if (claims.siteId !== siteId) {
       logger.warn(`capability renewal refused: resolved site ${claims.siteId} does not match authenticated site ${siteId}`)

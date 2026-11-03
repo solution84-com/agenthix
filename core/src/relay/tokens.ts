@@ -6,14 +6,21 @@
  * - a **relay pass**, which lets one site hold a line to one relay. hq gives it to the site with `relay.assign` and
  *   renews it before it ends.
  *
- * Neither a site nor a relay can make either: only hq holds the private key. Both are verified in one place,
+ * Since relay protocol 1.1, also an **app ticket** and a **bundle ticket**, for a live preview's apps and for a
+ * branch sent between two sites (appTickets.ts).
+ *
+ * Neither a site nor a relay can make any of them: only hq holds the private key. All are verified in one place,
  * `verifyRelayToken` (verifyToken.ts).
  */
 import type { SiteFileRef, UploadFileRef } from '../files/refs.js'
+import type {
+  APP_TICKET_TOKEN_TYPE, AppTicketClaims, BUNDLE_TICKET_TOKEN_TYPE, BundleTicketClaims,
+} from './appTickets.js'
 
 export const FILE_TICKET_TOKEN_TYPE = 'file-ticket'
 export const RELAY_PASS_TOKEN_TYPE = 'relay-pass'
-export type RelayTokenType = typeof FILE_TICKET_TOKEN_TYPE | typeof RELAY_PASS_TOKEN_TYPE
+export type RelayTokenType =
+  | typeof FILE_TICKET_TOKEN_TYPE | typeof RELAY_PASS_TOKEN_TYPE | typeof APP_TICKET_TOKEN_TYPE | typeof BUNDLE_TICKET_TOKEN_TYPE
 
 /** As the files address's signed links: long enough for a PDF viewer to read by range, short enough to leak little. */
 export const FILE_TICKET_TTL_SECONDS = 5 * 60
@@ -43,6 +50,8 @@ export interface HqTokenRegisteredClaims {
   iat: number
   exp: number
   sub?: string
+  /** A token's own id: random, at least 128 bits, so a party can take it once. App and bundle tickets carry one. */
+  jti?: string
 }
 
 /** What every file ticket carries, whichever space its file is in. */
@@ -86,7 +95,11 @@ export interface RelayPassClaims extends HqTokenRegisteredClaims {
   sub: string
 }
 
-export type RelayTokenClaims<T extends RelayTokenType> = T extends typeof FILE_TICKET_TOKEN_TYPE ? FileTicketClaims : RelayPassClaims
+export type RelayTokenClaims<T extends RelayTokenType> =
+  T extends typeof FILE_TICKET_TOKEN_TYPE ? FileTicketClaims
+    : T extends typeof APP_TICKET_TOKEN_TYPE ? AppTicketClaims
+      : T extends typeof BUNDLE_TICKET_TOKEN_TYPE ? BundleTicketClaims
+        : RelayPassClaims
 
 /**
  * Why a token was refused. A refusal never carries the token, and a caller never logs one.
@@ -100,10 +113,11 @@ export type RelayTokenClaims<T extends RelayTokenType> = T extends typeof FILE_T
  *   hq's relay);
  * - `wrong-relay`: a ticket that arrived on a line to a relay it does not name;
  * - `wrong-site`: a pass presented by a site it was not given to.
+ * - `entry-closed`: an app ticket presented to enter at or after its `enterBy`.
  */
 export type RelayTokenRefusal =
   | 'malformed' | 'forged' | 'unknown-key' | 'expired' | 'wrong-issuer' | 'wrong-type' | 'wrong-audience'
-  | 'wrong-purpose' | 'wrong-space' | 'wrong-relay' | 'wrong-site'
+  | 'wrong-purpose' | 'wrong-space' | 'wrong-relay' | 'wrong-site' | 'entry-closed'
 
 export type RelayTokenVerdict<C> =
   | { ok: true; claims: C }

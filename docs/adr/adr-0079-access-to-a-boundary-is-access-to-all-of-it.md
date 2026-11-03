@@ -110,3 +110,5 @@ rebuilds are the ones that failed parallel runs.
 - adr-0040: the capability's lifetime, which still bounds how long a change to a workspace's settings
   takes to reach a running session
 - [Design spec: person-scoped execution](../work/2026-09-28-person-scoped-execution/spec.md), §1
+
+> **One folder inside the boundary is read-only.** *(annotated 2026-11-03)* A run reaches all of its boundary as before, except a code workspace's own folder, which it may read but not write (adr-0168; unit of work [`2026-11-01-live-preview`](../work/2026-11-01-live-preview/plan.md)).

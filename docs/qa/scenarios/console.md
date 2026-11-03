@@ -95,3 +95,18 @@ The Fleet Console has no accounts and no authority of its own: a fleet admin sig
 The Fleet Console asks hq about hq's own relay as it asks about hq and its sites; it holds no files and no tickets.
 
 - **SC-1591** — The Fleet Console reads hq's own relay from hq over its link (`relay.facts`, host protocol 1.2) and gives it as hq gives it — address, the sites it serves, traffic, open streams and whether it answers — dropping an address that is not a web address, giving none for a relay not in its shape, and none from an hq older than the method or while hq does not answer. · fulfils AC-396a
+
+## Live previews on a site (added 2026-11-02)
+
+> **Behind the `livePreview` flag, at experimental, so not in the release:** SC-1754. The product does not keep these promises while the flag is off. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
+Written at the close of the unit *live preview*, from the finished code. The Fleet Console reads and sets a site's live previews through HQ, as the signed-in fleet admin; HQ holds the settings.
+
+- **SC-1754** — The Fleet Console refuses a site's live previews to someone not signed in and passes on HQ's refusal of an account without the fleet admin role; it reads them as the signed-in fleet admin for the site HQ knows by its id (HQ's own site by the default site it reports), says so for a site HQ does not know, drops an answer not in its shape and says an older HQ is older; it sets *Live previews on this site*, the limit and the idle stop only to values HQ accepts; turning live previews off lists the ones it stops and asks first, without asking when none is open; it stops one live preview by its id and nothing that is not an id; a notice about a site's memory or a live preview stopped for it opens the site's page. · fulfils AC-422a, AC-422b, AC-422d
+
+## Features on the Fleet Console (added 2026-11-03)
+
+Written at the close of the unit *live preview*, from the finished code. The Fleet Console has no switches of its own: hq decides and the Fleet Console shows a flagged feature's section only while hq says it is on.
+
+- **SC-1777** — The Fleet Console asks hq which flagged features are on (`features.on`, host protocol 1.3), keeps only the flags it knows, keeps the answer briefly and then asks again, and fails closed: none is on while hq is not asked, does not answer or refuses. It tells a signed-in screen which are on and nobody else, and a flagged route answers 404, *not available* ending "Nothing was changed.", before its handler while the feature is off, and goes through while hq says it is on. · fulfils AC-429a, AC-429b · tests `console/src/__tests__/features.test.ts`
+- **SC-1779** — While the live preview's flag is off, every route for a site's live previews answers 404 and asks hq nothing about them, the screens are told it is off, and a site's page has no live-preview section. · fulfils AC-429b, AC-426e · tests `console/src/__tests__/siteLivePreviews.test.ts`, `console-web/src/__tests__/sitePage.test.tsx`

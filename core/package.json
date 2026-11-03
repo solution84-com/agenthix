@@ -25,6 +25,10 @@
     "./cloud-crypto": {
       "types": "./dist/cloud/crypto/index.d.ts",
       "default": "./dist/cloud/crypto/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
     }
   },
   "files": [

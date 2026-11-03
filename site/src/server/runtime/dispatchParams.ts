@@ -5,7 +5,9 @@
  */
 import { z } from 'zod'
 import { APPROVALS, CREDENTIAL_PROVIDERS, SESSION_TYPES, WORKSPACE_OWNER_TYPES, PACKAGE_KINDS, PACKAGE_KEY_PATTERN, PACKAGE_DIGEST_PATTERN, RUN_TIME_LIMIT_MINUTES_BOUNDS, RUN_TURN_LIMIT_BOUNDS, TASK_COMMENTS_FOR_RUN_MAX, TASK_COMMENT_TEXT_MAX } from '@agenthix/core'
+import { BRANCH_LIST_MAX, isCopyId, isGitBranchName } from '@agenthix/core'
 import type { AiProviderVendor, RunCancelReason } from '@agenthix/core'
+import { gitPerson, workspaceRef } from '../branches/branchSchemas'
 
 export const packageRefParams = z
   .object({
@@ -168,6 +170,30 @@ export const runContextParams = z
         body: z.string().max(2000),
       }))
       .max(200)
+      .optional(),
+    // Since 1.12, a run on a code workspace: its branch's copy is its working folder (core's RunCodeWork). Checked
+    // again against the site's own record of the copy when the run starts (`codeWorkRun.ts`).
+    codeWork: z
+      .object({
+        workspace: workspaceRef,
+        copyId: z.string().refine(isCopyId),
+        branch: z.string().refine(isGitBranchName),
+        main: z.string().refine(isGitBranchName),
+        behindMain: z.number().int().min(0),
+        otherBranches: z
+          .array(z.object({
+            name: z.string().refine(isGitBranchName),
+            whose: z.string().max(300),
+            ahead: z.number().int().min(0),
+            agentWorking: z.string().max(200).nullable(),
+          }))
+          .max(BRANCH_LIST_MAX),
+        // Whom the run-end commit names: the agent, and the person in an `On-behalf-of:` line.
+        author: gitPerson,
+        onBehalfOf: gitPerson.nullable(),
+        // A run on a branch whose live preview is on this site, in that live preview's own copy (`livePreviewRuns.ts`).
+        livePreviewId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).optional(),
+      })
       .optional(),
   })
   .passthrough()

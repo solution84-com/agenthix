@@ -20,6 +20,7 @@ import { relayProviderUrl } from '../../../server/modelRelay/relayProviders'
 import { isRelayed } from '../../../server/modelRelay/runAccess'
 import type { RunContext } from '../types'
 import type { StagedTurnSkills } from './claudeSkills'
+import { INSTALL_ENV } from '../../../server/livePreviews/installs/installCommand'
 
 export type ClaudeStart = {
   fingerprint: string
@@ -133,10 +134,13 @@ export function apiKeyHelperCommand(siteUrl: string = getAgentFacingSiteUrl()): 
  * - for an API key, the site's model relay as Anthropic's address — Anthropic's
  *   documented gateway pattern — and the helper's cache lifetime; the ticket
  *   it trades for a relay token is added when the process starts. The key is
- *   never in the container at all: the relay adds it to each request (spec §6).
+ *   never in the container at all: the relay adds it to each request (spec §6);
+ * - packages install with their scripts off (adr-0170): every command inherits npm's, pnpm's and Yarn's setting,
+ *   which outranks a repository's own configuration; `install_packages` runs the scripts that pass the rule.
  */
 function claudeExecEnv(context: RunContext, skills: StagedTurnSkills | null, relayed: boolean): Record<string, string> {
   return {
+    ...INSTALL_ENV,
     ...context.gitCredEnv,
     ...HARNESS_ENV,
     ...conversationProcessTag(context.sessionId),

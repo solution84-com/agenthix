@@ -14,6 +14,7 @@ import type { Installed } from '../status/machineStatus'
 import type { SignatureCheck } from '../images/signatures'
 import type { Signer } from '../images/published'
 import type { RegistryEnv } from '../images/registryAuth'
+import type { PreviewProbes } from '../previews/previewProbes'
 import type { FrontDoorProbes, PortInUse } from '../frontDoor/probes'
 import type { BackupIO } from '../backups/io'
 import type { TagLister } from '../upgrades/versions'
@@ -46,6 +47,8 @@ export type Context = {
   waits: { hqMs: number; siteMs: number; pollMs: number }
   /** What the front door asks of the machine (its certificates); the machine's own when absent. */
   frontDoorProbes?: FrontDoorProbes
+  /** What the preview address's checks ask of the machine (DNS, the relay's answer); the machine's own when absent. */
+  previewProbes?: PreviewProbes
   /** Whether a port is held on the machine, for the port check; a bind probe on the machine when absent. */
   portInUse?: PortInUse
   /** What backing up and restoring asks of Docker and of the folders the machine admin names. */

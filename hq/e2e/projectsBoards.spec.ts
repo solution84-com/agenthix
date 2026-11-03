@@ -105,7 +105,7 @@ test.describe('boards view filter and search @SC-166', () => {
 })
 
 test.describe('workspaces view lists every workspace in the person\'s places', () => {
-  test('a workspace row opens its place with the Workspaces tool and that workspace open', async ({ page }) => {
+  test('a workspace row opens that workspace full screen', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto('/projects?view=workspaces')
     const rows = page.locator('li a[href*="tool=workspaces"]')
@@ -113,6 +113,7 @@ test.describe('workspaces view lists every workspace in the person\'s places', (
     await page.waitForLoadState('networkidle')
     test.skip((await rows.count()) === 0, 'needs a workspace in one of the admin\'s places')
     await rows.first().click()
-    await expect(page).toHaveURL(/tool=workspaces&workspace=/)
+    // The row names the place's Workspaces tool and the workspace; the tool opens a workspace in its own view.
+    await expect(page).toHaveURL(/\/workspaces\/[^/?]+\/view/)
   })
 })

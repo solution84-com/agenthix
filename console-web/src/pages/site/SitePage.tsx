@@ -7,7 +7,9 @@ import { useShellPanel } from '../../shell/useShellPanel'
 import { siteTag } from '../dashboard/dashboardWords'
 import type { FleetHost } from '../dashboard/types'
 import { describeHost, runsSite, whenIs } from '../dashboard/words'
+import { useFeature } from '../../features/features'
 import { DisconnectModal } from './DisconnectModal'
+import { LivePreviewsSection } from './LivePreviewsSection'
 import { NotifySetting } from './NotifySetting'
 import { BackupsCard, HealthCard, NotifyCard, ProtectionsCard, RunsCard, SystemCard, VersionCard } from './SiteCards'
 import { useHost } from './useHost'
@@ -35,6 +37,8 @@ export function SitePage({ fingerprint }: { fingerprint: string }) {
 }
 
 function SiteView({ host, now, failure, refresh }: { host: FleetHost; now: Date; failure: string | null; refresh: () => void }) {
+  // The live preview's section only while hq says it is on (adr-0172); the Fleet Console's server refuses it otherwise.
+  const livePreviews = useFeature('livePreview')
   const [dialog, setDialog] = useState<'disconnect' | 'notify' | null>(null)
   const words = describeHost(host, now)
   const site = runsSite(host)
@@ -102,9 +106,10 @@ function SiteView({ host, now, failure, refresh }: { host: FleetHost; now: Date;
           <BackupsCard host={host} now={now} backupsTo={`${sitePath(host.fingerprint)}/backups`} />
         </FactGroup>
       )}
+      {livePreviews && site && host.siteRegistered && host.online && <LivePreviewsSection host={host} now={now} />}
       {f && (
         <FactGroup tag="The machine" aside="what stays with the hardware" tinted>
-          <HealthCard figures={f} />
+          <HealthCard figures={f} copiesBytes={host.agents?.copiesBytes} />
           <ProtectionsCard figures={f} now={now} />
           <SystemCard figures={f} now={now} />
           <NotifyCard host={host} />

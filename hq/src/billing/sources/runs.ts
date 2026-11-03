@@ -89,5 +89,5 @@ export async function ledgerSubscriptionRun(e: RunStatusEvent, siteId: string): 
     ? await prisma.aiProvider.findUnique({ where: { id: costing.providerId }, select: { name: true } })
     : null
   const row = subscriptionRunRow(costing, e, provider?.name ?? 'Claude subscription', new Date())
-  if (row) await ledger().writeCall(row)
+  if (row) await (await ledger()).writeCall(row)
 }

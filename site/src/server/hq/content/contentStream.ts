@@ -24,6 +24,8 @@ export class ContentStreamFailed extends Error {
  */
 export class ContentStream extends Duplex {
   private failed = false
+  /** Bytes taken off the wire not yet credited back: on a duplex stream (a relay's), the opener waits for credit. */
+  private owed = 0
 
   private constructor(private readonly mux: StreamMux, readonly id: number) {
     super({ allowHalfOpen: true })
@@ -39,7 +41,8 @@ export class ContentStream extends Duplex {
     const events: StreamEvents = {
       onData: payload => {
         if (stream.failed) return
-        stream.push(Buffer.from(payload.buffer, payload.byteOffset, payload.byteLength))
+        stream.owed += payload.byteLength
+        if (stream.push(Buffer.from(payload.buffer, payload.byteOffset, payload.byteLength))) stream.credit()
         if (stream.readableLength > MAX_STREAM_BUFFER_BYTES) {
           stream.failWith('buffer_exceeded', `Stream ${id} buffered more than ${MAX_STREAM_BUFFER_BYTES} unread bytes`)
         }
@@ -62,8 +65,21 @@ export class ContentStream extends Duplex {
     this.destroy(new ContentStreamFailed(message, code))
   }
 
+  /** Credits back what was read, so a duplex opener sends more only as fast as the handler takes it. */
+  private credit(): void {
+    if (this.owed <= 0 || this.failed) return
+    const bytes = this.owed
+    this.owed = 0
+    try {
+      this.mux.credit(this.id, bytes)
+    } catch {
+      // The stream is over, or its window full: nothing more is owed on it.
+    }
+  }
+
   override _read(): void {
-    // Data is pushed as frames arrive; there is nothing to pull.
+    // Data is pushed as frames arrive; asking for more is the moment to credit what was taken.
+    this.credit()
   }
 
   override _write(chunk: Buffer, _encoding: BufferEncoding, callback: (error?: Error | null) => void): void {

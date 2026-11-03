@@ -25,6 +25,7 @@ import type { Approval, BashPatternPermission, ToolPermission } from './capabili
 import type { ApprovedManifest, AuditSummary, PendingManifest, RiskRule } from './runManifest.js'
 import type { JsonValue } from '../client/json.js'
 import type { ContextUse } from './contextUse.js'
+import type { RunCodeWork } from './codeWork.js'
 
 /**
  * Result shapes for the read, dispatch, and delete methods below, so hq and
@@ -214,6 +215,8 @@ export type RunContextPayload = {
     /** The newest comments not by this agent, oldest first (`sharedSessions.ts`); the site keeps those since its last run. */
     comments?: TaskCommentForRun[]
   }
+  /** Since 1.12: set when the run's workspace is a code workspace (`codeWork.ts`). */
+  codeWork?: RunCodeWork
   /**
    * Mount inputs, pre-resolved by hq. A run reaches one owner's storage — its
    * own — so this carries slugs, not a set of owners: the mount set follows

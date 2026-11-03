@@ -20,6 +20,7 @@ import { endRunWindowMs } from './containerRuns'
 import type { RunLaunchSink } from './runLaunch'
 import { leaveSubscriptionLogin } from './subscriptionLogins'
 import { releasePinnedMemory } from './pinnedMemoryFiles'
+import { endCodeWork } from '../../server/branches/codeWorkRun'
 
 const logger = new Logger('AgentEngine')
 
@@ -67,6 +68,8 @@ export async function releaseRunResources(sink: RunLaunchSink, renewal: { stop()
   if (sink.pinnedMemory) await releasePinnedMemory(sink.pinnedMemory.home, sink.pinnedMemory.sessionId)
   const home = sink.claudeHome
   const lastInHome = home ? leaveCredentialHome(home) : false
+  // A run on a branch's copy: what it left is committed and its branch brought back (codeWorkRun.ts). Never throws.
+  if (sink.codeWork) await endCodeWork(sink.codeWork)
   if (sink.containerName) agentContainerManager.markRunEnd(sink.containerName)
   // The credential leaves the home only with the last run using it (spec §2):
   // the document is bound into every run in the home, and a credential must

@@ -16,7 +16,7 @@
  * In memory: a site restart ends every harness that could hold one.
  */
 import { randomBytes } from 'node:crypto'
-import type { CredentialProvider } from '@agenthix/core'
+import { NO_FEATURE_SWITCHES, type CredentialProvider, type FeatureSwitches } from '@agenthix/core'
 import { gateRunStopped } from '../../agents/runtime/toolGateRuns'
 import type { RelayCredential } from './runAccess'
 
@@ -27,6 +27,8 @@ type TurnBinding = {
   credentials: ReadonlyMap<CredentialProvider, RelayCredential>
   /** The billing profile every call of the run is costed to; null from an hq that sends none. */
   billingProfileId: string | null
+  /** The organisation's feature switches the run was started with (siteFeatures.ts). */
+  features: FeatureSwitches
 }
 
 export type RelayTurn = TurnBinding & { containerName: string; conversationId: string }
@@ -47,12 +49,18 @@ export function issueRelayToken(containerName: string, conversationId: string): 
 }
 
 /** The token names this run's turn now, with these providers. The first given for a relay path wins. */
-export function pointRelayToken(token: string, runId: string, credentials: readonly RelayCredential[], billingProfileId: string | null = null): void {
+export function pointRelayToken(
+  token: string,
+  runId: string,
+  credentials: readonly RelayCredential[],
+  billingProfileId: string | null = null,
+  features: FeatureSwitches = NO_FEATURE_SWITCHES,
+): void {
   const binding = bindings.get(token)
   if (!binding) throw new Error('A relay token was pointed at a turn after it was revoked')
   const byProvider = new Map<CredentialProvider, RelayCredential>()
   for (const c of credentials) if (!byProvider.has(c.provider)) byProvider.set(c.provider, c)
-  binding.turn = { runId, credentials: byProvider, billingProfileId }
+  binding.turn = { runId, credentials: byProvider, billingProfileId, features }
 }
 
 /** The run's turn is over: the token names nothing, and its requests still running are cut off. Only that run's clear counts. */

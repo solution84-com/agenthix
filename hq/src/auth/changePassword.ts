@@ -1,13 +1,10 @@
 import { HttpError, prisma } from 'wasp/server'
 import type { ChangePasswordApi } from 'wasp/server/api'
 import { hashPassword, verifyPassword } from 'wasp/auth/password'
-import { consumeRateLimit, isRateLimited } from '../server/rateLimit'
 import { passwordProblem } from './passwordRules'
+import { guessPassword } from './passwordGuess'
 
-/** Wrong current passwords allowed per person in a window, so a session left open cannot be used to guess it. */
-export const WRONG_PASSWORD_LIMIT = 5
-const WRONG_PASSWORD_RULE = { max: WRONG_PASSWORD_LIMIT, windowMs: 15 * 60 * 1000 }
-const limitKey = (userId: string) => `change-password:${userId}`
+export { WRONG_PASSWORD_LIMIT } from './passwordGuess'
 
 export type ChangePasswordInput = {
   userId: string
@@ -36,10 +33,6 @@ export async function changePassword(input: ChangePasswordInput): Promise<Change
   const problem = passwordProblem(newPassword)
   if (problem) throw new HttpError(400, problem)
 
-  if (await isRateLimited(limitKey(userId), WRONG_PASSWORD_RULE)) {
-    throw new HttpError(429, 'Too many wrong passwords. Try again in 15 minutes.')
-  }
-
   const auth = await prisma.auth.findUnique({
     where: { userId },
     select: { id: true, identities: { where: { providerName: 'username' } } },
@@ -48,12 +41,11 @@ export async function changePassword(input: ChangePasswordInput): Promise<Change
   if (!auth || !identity) throw new HttpError(400, 'This account has no password to change')
 
   const providerData = JSON.parse(identity.providerData) as Record<string, unknown> & { hashedPassword?: string }
-  const rightPassword = typeof providerData.hashedPassword === 'string'
-    && await verifyPassword(providerData.hashedPassword, currentPassword).then(() => true, () => false)
-  if (!rightPassword) {
-    await consumeRateLimit(limitKey(userId), WRONG_PASSWORD_RULE)
-    throw new HttpError(400, 'Your current password is not right')
-  }
+  const hashed = providerData.hashedPassword
+  const guess = await guessPassword(userId, async () =>
+    typeof hashed === 'string' && verifyPassword(hashed, currentPassword).then(() => true, () => false))
+  if (guess === 'too-many') throw new HttpError(429, 'Too many wrong passwords. Try again in 15 minutes.')
+  if (guess === 'wrong') throw new HttpError(400, 'Your current password is not right')
 
   const hashedPassword = await hashPassword(newPassword)
   const [, signedOut] = await prisma.$transaction([

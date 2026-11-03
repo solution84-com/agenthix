@@ -9,6 +9,8 @@
  * with the value in the docker client's environment, as the agent containers' values are.
  */
 import { composeProjectLabelArgs, labelKey, siteNamespace } from '../agents/runtime/containerLabels'
+import { HARNESS_GIT_CONFIG } from '../agents/runtime/agentImage'
+import { ipv6OffArgs } from '../agents/runtime/ipv6Off'
 import type { WorkflowContainerLimits } from '@agenthix/core'
 import { OUT_MOUNT, WORKFLOW_MOUNT } from './approvedFiles'
 
@@ -18,6 +20,14 @@ export const PARAMS_MOUNT = '/run/params'
 const STEP_HOME = '/tmp/home'
 
 export const runLabel = () => labelKey('workflow-run')
+
+/**
+ * Every git a step runs, with no hook and no file-system monitor: the workspace's repositories are the agents', so what they name is not run by a step, which may hold secrets. Given as command-line
+ * settings through `GIT_CONFIG_PARAMETERS`, which outrank every configuration file, and which a script's own
+ * `GIT_CONFIG_COUNT` or `-c` of other settings adds to rather than replaces. A step that names a hooks folder itself
+ * with `-c` gets it: that is the approved command's own choice.
+ */
+export const STEP_GIT_PARAMETERS = HARNESS_GIT_CONFIG.map(setting => `'${setting}'`).join(' ')
 
 /** `<namespace>-workflow-<run>-<step>`: found again by its label, so the name only has to be unique. */
 export function stepContainerName(runId: string, index: number): string {
@@ -67,6 +77,7 @@ export function buildStepRunCommand(s: StepContainerSpec): StepRunCommand {
     HOME: STEP_HOME,
     XDG_CONFIG_HOME: `${STEP_HOME}/.config`,
     GH_CONFIG_DIR: `${STEP_HOME}/.config/gh`,
+    GIT_CONFIG_PARAMETERS: STEP_GIT_PARAMETERS,
     ...(s.github ? { GITHUB_REPOSITORY: s.github.repository, GITHUB_REPOSITORY_URL: s.github.cloneUrl } : {}),
   }
   const clientEnv: Record<string, string> = {}
@@ -87,6 +98,7 @@ export function buildStepRunCommand(s: StepContainerSpec): StepRunCommand {
     '--cap-drop', 'ALL',
     '--security-opt', 'no-new-privileges',
     '--read-only',
+    ...ipv6OffArgs(),
     // /tmp may hold programs a build makes and runs (push-bundle's askpass among them), so it alone allows running
     // them; Docker mounts a tmpfs noexec unless told otherwise.
     '--tmpfs', `/tmp:rw,exec,nosuid,nodev,size=256m,mode=1777`,

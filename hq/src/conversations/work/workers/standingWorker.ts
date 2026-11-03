@@ -17,6 +17,7 @@ import { chooseBoundaryRun } from '../../../agents/runModel'
 import * as siteRuntimeStore from '../../../sessions/siteRuntimeStore'
 import { Logger } from '../../../server/utils/logger'
 import type { SharedBoundary } from '../../contract'
+import { workspaceForWorker } from '../../../branches/workspaceLocation'
 
 const logger = new Logger('StandingWorker')
 
@@ -55,6 +56,8 @@ export function workerClosedReason(session: Pick<AgentSession, 'status' | 'close
  */
 async function createWorker(slot: Slot, agent: { id: string; runtime: string | null }, title: string, generation: number): Promise<AgentSession> {
   let session: AgentSession
+  // A conversation started in a workspace works there, on its own branch when the workspace has Git (live preview spec, part 2).
+  const primaryWorkspaceId = await workspaceForWorker(slot.conversationId, slot.boundary)
   try {
     session = await prisma.agentSession.create({
       data: {
@@ -68,7 +71,7 @@ async function createWorker(slot: Slot, agent: { id: string; runtime: string | n
         conversationId: slot.conversationId,
         primaryOwnerType: slot.boundary.type,
         primaryOwnerId: slot.boundary.id,
-        primaryWorkspaceId: null,
+        primaryWorkspaceId,
         workerGeneration: generation,
       },
     })

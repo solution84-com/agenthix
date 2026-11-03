@@ -17,7 +17,7 @@
  */
 import type { CapabilityRunner } from '@agenthix/core'
 import { Logger } from '../../server/utils/logger'
-import { labelKey, resolveComposeProjectName, runnerLabelValue } from './containerLabels'
+import { labelKey, resolveComposeProjectName, runnerLabelValue, siteIdFilterArgs } from './containerLabels'
 import { DOCKER_SWEEP_TIMEOUT_MS, dockerWithin } from './containerLifecycle'
 import type { ContainerState } from './containerTypes'
 
@@ -52,6 +52,7 @@ async function listMatching(filter: ContainerRemovalFilter): Promise<string[]> {
       'ps', '-a',
       '--filter', `label=${labelKey('owner')}`,
       '--filter', `label=com.docker.compose.project=${resolveComposeProjectName()}`,
+      ...siteIdFilterArgs(),
       '--format', `{{.Names}}\t{{.Label "${labelKey('owner')}"}}\t{{.Label "${labelKey('runner')}"}}`,
     ], DOCKER_SWEEP_TIMEOUT_MS))
   } catch (err) {

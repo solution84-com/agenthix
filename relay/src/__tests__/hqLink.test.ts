@@ -41,7 +41,7 @@ describe('the hq link @SC-1471', () => {
     await until(() => link!.relayId === 'relay-7' && reports.length >= 2)
     expect(seen.authorization).toBe(`Bearer ${SECRET}`)
     expect(seen['x-relay-protocol-version']).toBe(RELAY_PROTOCOL_VERSION)
-    expect(reports[0]).toMatchObject({ type: 'relay.report', version: '1.0', sites: [], openStreams: 0, bytesCarried: 0 })
+    expect(reports[0]).toMatchObject({ type: 'relay.report', version: RELAY_PROTOCOL_VERSION, sites: [], openStreams: 0, bytesCarried: 0 })
   })
 
   it('ignores a welcome it cannot read or of a protocol too far apart', async () => {
@@ -100,5 +100,25 @@ describe('the hq link @SC-1471', () => {
   it('makes the link address from hq\'s', () => {
     expect(relayLinkUrl('https://hq.example.com/x?y')).toBe('wss://hq.example.com/relay-link')
     expect(relayLinkUrl('http://hq-server:4101')).toBe('ws://hq-server:4101/relay-link')
+  })
+
+  it('hands hq\'s orders on only once hq has named it, and sends a report back on the link', async () => {
+    const back: unknown[] = []
+    const address = await fakeHq(ws => {
+      ws.send(JSON.stringify({ type: 'relay.bundle', version: RELAY_PROTOCOL_VERSION, transferId: 'early' }))
+      ws.send(JSON.stringify({ type: 'relay.welcome', version: RELAY_PROTOCOL_VERSION, relayId: 'relay-7' }))
+      ws.send(JSON.stringify({ type: 'relay.bundle', version: RELAY_PROTOCOL_VERSION, transferId: 'later' }))
+      ws.on('message', d => {
+        const f = JSON.parse(d.toString())
+        if (f.type === 'relay.bundleReport') back.push(f)
+      })
+    })
+    const orders: Record<string, unknown>[] = []
+    link = new HqLink({ hqAddress: address, secret: SECRET, lines: new SiteLines(), load: new Load(), log: () => {}, onOrder: f => { orders.push(f) } })
+    link.start()
+    await until(() => orders.length === 1)
+    expect(orders[0]).toMatchObject({ transferId: 'later' })
+    link.send({ type: 'relay.bundleReport', version: RELAY_PROTOCOL_VERSION, transferId: 'later', outcome: { done: true } })
+    await until(() => back.length === 1)
   })
 })

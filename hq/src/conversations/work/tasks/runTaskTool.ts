@@ -16,6 +16,7 @@ import { taskIdFor } from '../../../server/controlplane/taskKey'
 import { pendingWithKey } from './taskOperations'
 import { queueAsPerson, startTaskOperation } from './startRun'
 import { pickedSkillOfTurn } from '../pickedSkill'
+import { livePreviewFeatureOn } from '../../../livePreviews/flag'
 
 const logger = new Logger('ConversationTasks')
 
@@ -36,13 +37,18 @@ export const RUN_TASK_DESCRIPTION =
   'conversation when it ends: do not wait for it. When you start it, say in one short line, in the first person ' +
   'and in the same step as the call, what you are doing. The task needs an agent assigned to it.'
 
-export function describeRunTask(capability: Pick<TurnCapability, 'home'>): string {
+/** `livePreview`: whether the live preview's flag is on; off, the description says nothing of its app (adr-0172). */
+export function describeRunTask(capability: Pick<TurnCapability, 'home'>, livePreview = false): string {
   if (capability.home !== 'TASK') return RUN_TASK_DESCRIPTION
   return 'Start work on this conversation\'s task: a new run of it, as the person you are talking to would press ' +
     'Run, with what they asked for as `brief` — everything the run needs, since it sees nothing of this ' +
     'conversation. Leave `taskId` out. It returns at once; the run goes on in the background and its result comes ' +
     'back here when it ends: do not wait for it. When you start it, say in one short line, in the first person and ' +
-    'in the same step as the call, what you are doing.'
+    'in the same step as the call, what you are doing. Use it for anything the task\'s own work does, whatever the ' +
+    (livePreview
+      ? 'task\'s state, a done task too: changing its code, or starting, changing or reloading its app in the live ' +
+        'preview, since its run works on the task\'s branch and has the app tools.'
+      : 'task\'s state, a done task too, such as changing its code, since its run works on the task\'s branch.')
 }
 
 export async function runTaskCall(capability: TurnCapability, raw: unknown): Promise<ToolCallOutcome> {
@@ -81,7 +87,7 @@ export const runTaskTool: ConversationTool = {
   name: RUN_TASK,
   input,
   async describe(capability) {
-    return describeRunTask(capability)
+    return describeRunTask(capability, capability.home === 'TASK' && (await livePreviewFeatureOn()))
   },
   async offered(capability) {
     return taskToolRefusal(capability, RUN_TASK) === null

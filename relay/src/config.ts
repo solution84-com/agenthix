@@ -2,8 +2,9 @@
  * The relay's settings, all from its environment, which the host service sets when it starts the relay's container
  * (and `scripts/dev` in development). A relay holds nothing, so this is all it knows before hq greets it.
  */
-import { SERVICE_PORTS } from '@agenthix/core'
+import { SERVICE_PORTS, parsePreviewPattern } from '@agenthix/core'
 import { filesHostOf } from './filesHost'
+import { devPreviewPattern } from './apps/previewHost'
 
 export const RELAY_DEFAULT_PORT: number = SERVICE_PORTS.relay.server
 /** Outside a container the relay listens on the machine's loopback; its image sets `0.0.0.0`. */
@@ -28,6 +29,11 @@ export type RelayConfig = {
    * plainly that it does not serve uploads.
    */
   uploadsRoot: string | null
+  /**
+   * The pattern live apps' addresses are made from (`p-{id}.<preview domain>`), as hq builds them. Null: live apps are
+   * off, and the relay answers no preview address.
+   */
+  previewPattern: string | null
 }
 
 export class ConfigError extends Error {}
@@ -55,6 +61,8 @@ export function originOf(raw: string | undefined): string | null {
  * - `FILES_ORIGIN`: the files address; unset, `files.localhost` when hq is on localhost, as hq-web decides.
  * - `RELAY_PORT`, `RELAY_LISTEN_HOST`.
  * - `HQ_UPLOADS_ROOT`: hq's storage folder, mounted read-only, on hq's relay only.
+ * - `PREVIEW_PATTERN`: live apps' address pattern; unset or empty, `p-<id>.preview.localhost` when hq is on localhost,
+ *   and otherwise live apps are off (`apps/previewHost.ts`).
  */
 export function loadConfig(env: NodeJS.ProcessEnv): RelayConfig {
   const hqAddress = env.RELAY_HQ_ADDRESS?.trim()
@@ -76,6 +84,10 @@ export function loadConfig(env: NodeJS.ProcessEnv): RelayConfig {
   if (env.FILES_ORIGIN?.trim() && !originOf(env.FILES_ORIGIN)) {
     throw new ConfigError(`FILES_ORIGIN is a scheme and a host name, perhaps with a port, and nothing more (got ${env.FILES_ORIGIN}). Nothing was started.`)
   }
+  const previewPattern = env.PREVIEW_PATTERN?.trim() || devPreviewPattern(hqUrl)
+  if (previewPattern && !parsePreviewPattern(previewPattern)) {
+    throw new ConfigError(`PREVIEW_PATTERN is an origin with {id} in its first label, such as https://p-{id}.preview.example.com (got ${previewPattern}). Nothing was started.`)
+  }
   return {
     listenHost: env.RELAY_LISTEN_HOST?.trim() || RELAY_DEFAULT_LISTEN_HOST,
     port,
@@ -84,6 +96,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): RelayConfig {
     appOrigin,
     filesHost: filesHostOf(env.FILES_ORIGIN, hqUrl),
     uploadsRoot: env.HQ_UPLOADS_ROOT?.trim() || null,
+    previewPattern,
   }
 }
 

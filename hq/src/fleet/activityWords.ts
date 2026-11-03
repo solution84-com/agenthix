@@ -26,6 +26,11 @@ function siteNamed(subject: string): string {
 export function activityNotice(who: string, action: string, subject: string): ActivityNotice {
   const body = subject
   switch (action) {
+    case 'livePreviews.on': return { title: `${who} turned live previews on for ${siteNamed(subject)}`, body }
+    case 'livePreviews.off': return { title: `${who} turned live previews off for ${siteNamed(subject)}`, body: 'Every live preview open there was stopped, and its person told.' }
+    case 'livePreviews.limit': return { title: `${who} changed how many live previews ${siteNamed(subject)} runs at once`, body }
+    case 'livePreviews.idle': return { title: `${who} changed when unused live previews stop on ${siteNamed(subject)}`, body }
+    case 'livePreviews.stopped': return { title: `${who} stopped a live preview on ${siteNamed(subject)}`, body }
     case 'site.added': return { title: `${who} added the site ${siteNamed(subject)}`, body }
     case 'site.disconnected': return { title: `${who} disconnected ${siteNamed(subject)}`, body }
     case 'site.moveMachineJoined':

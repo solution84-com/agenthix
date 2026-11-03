@@ -1,11 +1,11 @@
 import { useMemo, useRef, useState } from 'react'
-import type { SiteFileRef } from '@agenthix/core'
+import type { FileOpenAnswer, SiteFileRef } from '@agenthix/core'
 import { FileFrame, withMarkdown, type FileFrameProps } from '@agenthix/ui/files'
 import { mentionInMessage } from '@agenthix/ui/sessions'
 import { changedLabel, type ListedEntry } from '@agenthix/ui/projects'
 import { renderMarkdownIn, type MarkdownEmbedContext } from '../../shared/components/MarkdownMessage'
 import { copyText as copy } from '../../shared/copyText'
-import { useOpenFile } from '../../files/useOpenFile'
+import { useOpenAnswer, useOpenFile } from '../../files/useOpenFile'
 import { mentionReference, referenceOf, type FilesToolKind } from './fileReferences'
 import { FileGone, FullScreenFile, OpenFailed, stableLink } from './openedFileParts'
 
@@ -32,6 +32,11 @@ export interface OpenedFileProps {
   linkBase?: string
   /** Opens the folder a file that's gone was in; ‹ back when absent. */
   onOpenFolder?: () => void
+  /**
+   * Where the answer comes from when it is not hq's *open* (a file at a commit, read through Git): `key` names that
+   * file and version, so a new key opens it afresh.
+   */
+  source?: { key: string; open: () => Promise<FileOpenAnswer> }
 }
 
 function embedPlace(file: SiteFileRef, path: string): Pick<MarkdownEmbedContext, 'place' | 'folder'> {
@@ -49,7 +54,10 @@ function embedPlace(file: SiteFileRef, path: string): Pick<MarkdownEmbedContext,
  */
 export function OpenedFile(props: OpenedFileProps) {
   const { file, kind, path, entry, breadcrumb, backLabel, onBack, layout, link } = props
-  const { answer, error, reopen } = useOpenFile(file)
+  const { source } = props
+  const throughHq = useOpenFile(source ? null : file)
+  const own = useOpenAnswer(source?.key ?? '', source?.open ?? null)
+  const { answer, error, reopen } = source ? own : throughHq
   const [notice, setNotice] = useState('')
   const [full, setFull] = useState(false)
   const onOpenFile = useRef(props.onOpenFile)

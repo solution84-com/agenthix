@@ -19,9 +19,11 @@ import type { TransferChunk, TransferClosedReason } from './transfer.js'
 import type { HqAbout, HqRelay, SiteLoad } from './hqFacts.js'
 import type { FleetActivityPage, FleetNotice, HqAccount } from './fleetRecord.js'
 import type { CloudConnecting, HqCloudState } from './cloud.js'
+import type { SiteLivePreviewsView } from './livePreviews.js'
+import type { LivePreviewLimit } from '../livePreview/livePreview.js'
 
 /** The host protocol: both links' version, and that of Cloud's host link. */
-export const HOST_PROTOCOL_VERSION = '1.2'
+export const HOST_PROTOCOL_VERSION = '1.3'
 
 export const HQ_HOST_LINK_PATH = '/host-link'
 export const HQ_CONSOLE_LINK_PATH = '/console-link'
@@ -117,6 +119,8 @@ export type HostLinkFrame =
   | RelayFrame<'console.handover', { certificates: ConsoleHandoverCertificate[] }>
   /** hq → host, before hq stops to move: the address it moves to (`HqAddressFrame`). */
   | RelayFrame<'hq.address', HqAddressFrame>
+  /** hq → host, as each connection of the link opens (since 1.3): the address hq sees it from (`HqSeenFromFrame`). */
+  | RelayFrame<'hq.seenFrom', HqSeenFromFrame>
   /**
    * Host → hq → host, only between the two machines of a transfer the Fleet Console opened (transfer.ts): a signed
    * chunk of the sealed backup, the receiver's acknowledgement of one, and the steps around it, sealed between the
@@ -135,6 +139,15 @@ export type HostLinkFrame =
  * takes no notice.
  */
 export type HqAddressFrame = { address: string }
+
+/**
+ * The address hq sees a host link's connection from: the connection's own remote address, or, behind hq's trusted
+ * proxies, the one they say it came from. On a machine behind a router that is the router's public address, whose
+ * forwarded ports lead back into the organisation's network, so the host service keeps live previews from reaching it
+ * (`public-address`). An address that is not public (hq on the same network, a tailnet, a VPN) tells the machine
+ * nothing, and it asks a STUN server instead.
+ */
+export type HqSeenFromFrame = { address: string }
 
 /** A host service as the Fleet Console sees it through hq. */
 export type RelayedHost = {
@@ -246,6 +259,25 @@ export type ConsoleLinkMethods = {
    */
   'host.silenceFacts': { params: HostSilenceFacts; result: { kept: boolean } }
 
+  // ── Live previews on the organisation's sites (livePreviews.ts), since 1.3 ──
+  // Each is answered only when `byUserId` holds the fleet admin role (`not_allowed` otherwise).
+  /** The site's *Live previews on this site*, its limit and idle stop, its open live previews, and what they use. */
+  'sites.livePreviews': { params: { byUserId: string; executionSiteId: string }; result: SiteLivePreviewsView }
+  /**
+   * Sets *Live previews on this site*, its limit (null: none) and *Stop when unused for* in minutes. Turning it off
+   * stops every live preview open there, each person told, `stopped` naming them; lowering the limit stops none.
+   * Announced.
+   */
+  'sites.livePreviews.set': {
+    params: { byUserId: string; executionSiteId: string; allowed: boolean; limit: LivePreviewLimit; idleMinutes: number }
+    result: { view: SiteLivePreviewsView; stopped: string[] }
+  }
+  /** Stops one live preview on the site; its people are told a fleet admin stopped it. `stopped` is false for one already stopped. Announced. */
+  'sites.livePreviews.stop': {
+    params: { byUserId: string; executionSiteId: string; livePreviewId: string }
+    result: { stopped: boolean }
+  }
+
   // ── hq's connection to Agenthix Cloud (the connection protocol, core/src/cloud) ──
   // hq holds the connection and its key, and is the only party that talks to Cloud about it; the Fleet Console starts
   // and ends it for a fleet admin. Each is answered only when `byUserId` holds the fleet admin role (`not_allowed`
@@ -273,6 +305,12 @@ export type ConsoleLinkMethods = {
   /** The offers this person has dismissed; an offer dismissed stays gone for them, wherever it appears. */
   'cloud.offers': { params: { byUserId: string }; result: { dismissed: CloudOfferName[] } }
   'cloud.dismissOffer': { params: { byUserId: string; offer: CloudOfferName }; result: { dismissed: CloudOfferName[] } }
+  /**
+   * The flagged features on for the organisation (adr-0172), by core's rule with its switches: the Fleet Console shows a
+   * flagged feature's section only while it is listed. Flags travel as names, so adding or removing one changes no
+   * protocol; the Fleet Console keeps only names it knows. An hq older than 1.3 answers `unknown_method`, read as none.
+   */
+  'features.on': { params: Record<string, never>; result: { on: string[] } }
 }
 
 /** The places Cloud removes a limit a fleet admin has hit: no site available, backups kept on the machine, domain and HTTPS. */
@@ -288,9 +326,9 @@ export const CONSOLE_LINK_METHODS = [
   'site.register', 'site.remove', 'fleetAdmin.grant', 'activity.record', 'fleetAdmin.revoke', 'fleetAdmin.list',
   'handover.open', 'handover.accept', 'handover.close', 'transfer.open', 'transfer.close', 'site.move',
   'hq.about', 'site.loads', 'relay.facts', 'activity.list', 'notices.list', 'notices.dismiss', 'account.find',
-  'host.silenceFacts',
+  'host.silenceFacts', 'sites.livePreviews', 'sites.livePreviews.set', 'sites.livePreviews.stop',
   'cloud.state', 'cloud.connect', 'cloud.disconnect',
-  'cloud.askCount', 'cloud.offers', 'cloud.dismissOffer',
+  'cloud.askCount', 'cloud.offers', 'cloud.dismissOffer', 'features.on',
 ] as const satisfies readonly ConsoleLinkMethod[]
 
 /** A request on the console link: one of `ConsoleLinkMethods`, with that method's params. */

@@ -21,6 +21,10 @@ const waiting = new Map<string, (answer: Answer) => void>()
 
 const TEXT = /^[^\u0000-\u001f\u007f]{1,500}$/
 
+/** Whether an ask made since the host service started still waits on this answer. */
+export const awaitsMoveCode = (message: Record<string, unknown>): boolean =>
+  typeof message.replyTo === 'string' && waiting.has(message.replyTo)
+
 /** The Fleet Console's `moveCode` answer, from link/envelopes.ts once it opened it from the pinned Fleet Console. */
 export function moveCodeAnswered(message: Record<string, unknown>): void {
   const done = typeof message.replyTo === 'string' ? waiting.get(message.replyTo) : undefined

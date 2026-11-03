@@ -34,9 +34,34 @@ export type OperationActivityView = {
    * workflow's place, the only people its buttons are for.
    */
   workflowCard?: (WorkflowApprovalCard & { canAnswer: boolean }) | null
+  /**
+   * From 1.9, while it waits: an agent's ask to merge its branch into `main`, answered *Merge* or *Not now* (approve
+   * or decline). `canAnswer` is whether the viewer may merge there: a Member or Admin of the project, or the person
+   * whose own storage it is.
+   */
+  mergeCard?: MergeApprovalCard | null
+  /**
+   * From 1.9, while it waits: an agent's ask to let a package whose install script the rule blocked run it in its
+   * branch's copy, with no live preview open (adr-0170), answered *Allow* or *Not now*. `canAnswer` as for `mergeCard`.
+   */
+  packageCard?: PackageApprovalCard | null
   /** Where its run opens on the Runs screen, once it has one. */
   runHref?: string | null
 }
+/** An agent's ask to merge its branch: which workspace and branch, for the link to the workspace view. */
+export type MergeApprovalCard = { workspaceId: string; branch: string; main: string; agentName: string; canAnswer: boolean }
+
+/** An agent's ask about a blocked package: HQ's question, which names the package and its risk in plain words. */
+export type PackageApprovalCard = {
+  workspaceId: string
+  branch: string
+  name: string
+  version: string
+  question: string
+  agentName: string
+  canAnswer: boolean
+}
+
 /** The live operations, newest first. */
 export type ConversationActivity = { outstanding: number; operations: OperationActivityView[] }
 export type GetConversationActivityArgs = { conversationId: string }
