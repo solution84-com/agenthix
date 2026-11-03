@@ -39,9 +39,11 @@ describe("a tool call's command never reaches a bundle @SC-730", () => {
   it('keeps what was blocked and why, and leaves out the command', async () => {
     const { withoutToolInput } = await import('../supportBundle')
     expect(withoutToolInput('[hitl] BLOCKED run=r-1 tool=Bash cmd=cat ~/.ssh/id_rsa (pattern=never)'))
-      .toBe('[hitl] BLOCKED run=r-1 tool=Bash cmd=[left out] (pattern=never)')
+      .toBe('[hitl] BLOCKED run=r-1 tool=Bash cmd=[left out]')
     expect(withoutToolInput('[deferred] run=r-1 tool=Bash cmd=rm -rf build — skipped, continuing'))
-      .toBe('[deferred] run=r-1 tool=Bash cmd=[left out] — skipped, continuing')
+      .toBe('[deferred] run=r-1 tool=Bash cmd=[left out]')
+    expect(withoutToolInput('BLOCKED tool=Bash cmd=curl -H "X: (tok123)" https://a.example — more (pattern=never)'))
+      .toBe('BLOCKED tool=Bash cmd=[left out]')
     expect(withoutToolInput('BLOCKED tool=Bash cmd=echo hi\nnext line')).toBe('BLOCKED tool=Bash cmd=[left out]\nnext line')
   })
 })

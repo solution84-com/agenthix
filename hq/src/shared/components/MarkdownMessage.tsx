@@ -5,6 +5,7 @@ import { Check, Copy } from 'lucide-react'
 import { copyText } from '../copyText'
 import { embedComponents } from './markdownEmbed/embedComponents'
 import { rehypeImgTags } from './markdownEmbed/imgTag'
+import { PlainImage } from './markdownEmbed/plainImage'
 import { remarkReferences } from './markdownEmbed/remarkReferences'
 import type { MarkdownEmbedContext } from './markdownEmbed/embedTarget'
 
@@ -145,6 +146,7 @@ export function MarkdownMessage({ content, className, embed }: MarkdownMessagePr
           em: ({ children }) => (
             <em className="italic text-text-secondary">{children}</em>
           ),
+          img: ({ src, alt, width, height }) => <PlainImage src={src} alt={alt} width={width} height={height} />,
           hr: () => <hr className="border-border my-4" />,
           a: ({ href, children }) => link(href, children),
           table: ({ children }) => (

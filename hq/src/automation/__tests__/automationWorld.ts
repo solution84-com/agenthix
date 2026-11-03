@@ -52,6 +52,10 @@ export async function routineIn(projectId: string, onBehalfOfUserId: string, dat
   })
 }
 
+/** Puts an agent on a project's roster, as a routine's agent must be. */
+export const assignAgent = (projectId: string, agentId: string) =>
+  prisma.projectAgent.create({ data: { projectId, agentId } as any })
+
 /** An open project and the people a test casts in it: its routine's person, an admin and a plain member (none added to it yet). */
 export async function createProjectWithUsers() {
   const project = await createProject()

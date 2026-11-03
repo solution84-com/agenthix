@@ -20,13 +20,18 @@ function voiceDir(voiceId: string): string {
   return path.join(cacheDir(), voiceId.replace(/[^a-zA-Z0-9_-]/g, '_'))
 }
 
-function phraseFile(voiceId: string, lang: string): string {
-  return path.join(voiceDir(voiceId), `phrase-${lang}.json`)
+/** A language in a file name: only letters, digits and hyphens, so it can never name a place outside the folder. */
+function langPart(lang: string): string {
+  return lang.replace(/[^a-zA-Z0-9-]/g, '_')
 }
 
-function audioFile(voiceId: string, lang: string, phrase: string, model: string): string {
+export function phraseFile(voiceId: string, lang: string): string {
+  return path.join(voiceDir(voiceId), `phrase-${langPart(lang)}.json`)
+}
+
+export function audioFile(voiceId: string, lang: string, phrase: string, model: string): string {
   const hash = crypto.createHash('sha1').update(phrase + '|' + model).digest('hex').slice(0, 12)
-  return path.join(voiceDir(voiceId), `phrase-${lang}-${hash}.raw`)
+  return path.join(voiceDir(voiceId), `phrase-${langPart(lang)}-${hash}.raw`)
 }
 
 function descriptionHash(description: string): string {
@@ -96,7 +101,7 @@ export async function getCachedPhrase(voiceId: string, description: string, lang
   // Purge stale audio files for this language only
   try {
     for (const f of fs.readdirSync(dir)) {
-      if (f.startsWith(`phrase-${lang}-`) && f.endsWith('.raw')) fs.unlinkSync(path.join(dir, f))
+      if (f.startsWith(`phrase-${langPart(lang)}-`) && f.endsWith('.raw')) fs.unlinkSync(path.join(dir, f))
     }
   } catch {}
 

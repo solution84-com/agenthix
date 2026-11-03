@@ -22,7 +22,7 @@ import {
 } from '../routines'
 import { RoutineError, type RoutineTemplate } from '../routineTemplate'
 import { LOST_ACCESS_REASON } from '../../projects/taskOnBehalfOf'
-import { DAILY, addMember, boardOf, createProjectWithUsers, routineIn, taskIn } from './automationWorld'
+import { DAILY, addMember, assignAgent, boardOf, createProjectWithUsers, routineIn, taskIn } from './automationWorld'
 
 const NOW = new Date('2026-10-05T08:00:00Z')
 const NINE = '2026-10-01T09:00:00Z'
@@ -37,8 +37,9 @@ const roundsOf = (routineId: string) => prisma.task.findMany({ where: { routineI
 const routineRow = (id: string) => prisma.routine.findUnique({ where: { id } })
 
 /** A routine set up through the service, at `NOW`, with its first round waiting for 09:00. */
-async function setUp(template: Partial<RoutineTemplate> = {}) {
+async function setUp(template: Partial<RoutineTemplate> = {}, agentId?: string) {
   const { project } = await createProjectWithUsers()
+  if (agentId) await assignAgent(project.id, agentId)
   const routine = await createRoutine(project.id, { ...TEMPLATE, ...template }, { rule: DAILY, at: NINE, timezone: 'UTC' }, person('dana'), NOW)
   return { project, routine }
 }
@@ -83,9 +84,35 @@ describe('setting a routine up', () => {
 
   it('keeps its agent on the routine and its first round', async () => {
     const agent = await createAgent()
-    const { routine } = await setUp({ assignedAgentId: agent.id })
+    const { routine } = await setUp({ assignedAgentId: agent.id }, agent.id)
     expect((await routineRow(routine.id))!.assignedAgentId).toBe(agent.id)
     expect((await roundsOf(routine.id))[0].assignedAgentId).toBe(agent.id)
+  })
+})
+
+describe("a routine's agent is on its project's roster", () => {
+  it('refuses an agent that exists but is not assigned to the project, creating nothing', async () => {
+    const agent = await createAgent()
+    const { project } = await createProjectWithUsers()
+    await expect(createRoutine(project.id, { ...TEMPLATE, assignedAgentId: agent.id }, { rule: DAILY }, person('dana'), NOW))
+      .rejects.toThrow(/not assigned to this project/)
+    expect(await prisma.routine.count()).toBe(0)
+  })
+
+  it('refuses it on an edit too', async () => {
+    const agent = await createAgent()
+    const { routine } = await setUp()
+    await expect(updateRoutine(routine.id, { template: { assignedAgentId: agent.id } }, NOW)).rejects.toBeInstanceOf(RoutineError)
+  })
+
+  it('leaves the round unassigned when the agent has left the roster since', async () => {
+    const agent = await createAgent()
+    const { project, routine } = await setUp({ assignedAgentId: agent.id }, agent.id)
+    await prisma.projectAgent.deleteMany({ where: { projectId: project.id, agentId: agent.id } })
+    await prisma.routine.update({ where: { id: routine.id }, data: { assignedAgentId: agent.id } })
+    await prisma.task.deleteMany({ where: { routineId: routine.id } })
+    await resumeRoutine(routine.id, NOW)
+    expect((await roundsOf(routine.id))[0].assignedAgentId).toBeNull()
   })
 })
 
@@ -147,7 +174,8 @@ describe('its waiting round follows the routine', () => {
 
   it("editing its agent updates the waiting round's agent", async () => {
     const agent = await createAgent()
-    const { routine } = await setUp()
+    const { project, routine } = await setUp()
+    await assignAgent(project.id, agent.id)
     await updateRoutine(routine.id, { template: { assignedAgentId: agent.id } }, NOW)
     expect((await routineRow(routine.id))!.assignedAgentId).toBe(agent.id)
     expect((await roundsOf(routine.id))[0].assignedAgentId).toBe(agent.id)

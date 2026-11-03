@@ -24,7 +24,7 @@ vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRu
 import { createRoutine, runRoutineNow, skipRoutineRound } from '../routineActions'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
 import { ctx as projectsCtx } from '../../projects/__tests__/projectsHarness'
-import { DAILY, addMember, boardOf, privateProject, refusedWith } from './automationWorld'
+import { DAILY, addMember, assignAgent, boardOf, privateProject, refusedWith } from './automationWorld'
 
 const HOUR = 3_600_000
 const IN_30H = () => new Date(Math.floor((Date.now() + 30 * HOUR) / 60_000) * 60_000)
@@ -37,6 +37,7 @@ async function world(withAgent = true) {
   await addMember(project.id, other.id)
   const board = await boardOf(project.id)
   const agent = await createAgent()
+  await assignAgent(project.id, agent.id)
   const at = IN_30H()
   const made = await createRoutine({
     projectId: project.id,

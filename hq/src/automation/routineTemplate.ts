@@ -82,13 +82,17 @@ export function nextRoundAfter(r: Pick<Routine, 'scheduleAt' | 'scheduleRule' | 
 /**
  * Checks a template against its project: the board must be one of the
  * project's own, the column one of its board's (Project Tasks' when no board is
- * named), and the agent must exist.
+ * named), and the agent must be one assigned to the project.
  */
 export async function checkTemplate(projectId: string, t: RoutineTemplateInput): Promise<RoutineTemplate> {
   if (!t.title.trim()) throw new RoutineError('A routine needs a title for its rounds')
   if (t.assignedAgentId) {
     const agent = await prisma.agent.findUnique({ where: { id: t.assignedAgentId }, select: { id: true } })
     if (!agent) throw new RoutineError('That agent does not exist')
+    const assigned = await prisma.projectAgent.findUnique({
+      where: { projectId_agentId: { projectId, agentId: t.assignedAgentId } }, select: { agentId: true },
+    })
+    if (!assigned) throw new RoutineError('That agent is not assigned to this project')
   }
   const boardId = t.boardId ?? (await ensureProjectTasks(projectId))
   const board = await prisma.board.findUnique({ where: { id: boardId }, select: { projectId: true, columns: true, archivedAt: true } })
@@ -100,21 +104,24 @@ export async function checkTemplate(projectId: string, t: RoutineTemplateInput):
   return { ...t, title: t.title.trim(), column: wanted, modelChoice: t.modelChoice ?? null }
 }
 
-type Db = Pick<Prisma.TransactionClient, 'board' | 'agent' | 'sprint'>
+type Db = Pick<Prisma.TransactionClient, 'board' | 'agent' | 'sprint' | 'projectAgent'>
 
 /**
  * Where a round starts, read at the moment it is created: the template's board
  * and column, the board's first column if that column has gone, or Project
  * Tasks' Backlog if the board has (or is archived). On a sprint board a round
  * in a column is in the current sprint. An agent deleted since leaves the
- * round unassigned.
+ * round unassigned, as does one no longer on the project's roster.
  */
 export async function roundFields(db: Db, r: Routine): Promise<{
   boardId: string; column: string | null; status: TaskState; sprintId: string | null
   assignedAgentId: string | null
 }> {
   const agent = r.assignedAgentId ? await db.agent.findUnique({ where: { id: r.assignedAgentId }, select: { id: true } }) : null
-  const assignedAgentId = agent ? r.assignedAgentId : null
+  const onRoster = agent && r.assignedAgentId
+    ? await db.projectAgent.findUnique({ where: { projectId_agentId: { projectId: r.projectId, agentId: r.assignedAgentId } }, select: { agentId: true } })
+    : null
+  const assignedAgentId = onRoster ? r.assignedAgentId : null
   const board = r.boardId ? await db.board.findUnique({ where: { id: r.boardId }, select: { projectId: true, columns: true, kind: true, archivedAt: true } }) : null
   if (!board || board.projectId !== r.projectId || board.archivedAt) {
     const projectTasks = await ensureProjectTasks(r.projectId, db)

@@ -18,7 +18,7 @@ vi.mock('../../server/socket', () => socket)
 import { createRoutine, makeTaskRoutine, updateRoutine } from '../routineActions'
 import { ROUTINE_LOST_ACCESS_REASON } from '../routines'
 import { LOST_ACCESS_REASON } from '../../projects/taskOnBehalfOf'
-import { DAILY, addMember, boardOf, ctx, privateProject, refusedWith, routineIn, taskIn } from './automationWorld'
+import { DAILY, addMember, assignAgent, boardOf, ctx, privateProject, refusedWith, routineIn, taskIn } from './automationWorld'
 
 const HOUR = 3_600_000
 const IN_30H = () => new Date(Math.floor((Date.now() + 30 * HOUR) / 60_000) * 60_000)
@@ -75,11 +75,21 @@ describe('createRoutine', () => {
     expect(await prisma.routine.count()).toBe(0)
   })
 
+  it('refuses an agent that exists but is not assigned to the project, creating nothing', async () => {
+    const project = await privateProject()
+    const person = await createUserWithRole('MEMBER')
+    await addMember(project.id, person.id)
+    const agent = await createAgent()
+    await refusedWith(createRoutine({ ...args(project.id), template: { title: 'x', assignedAgentId: agent.id } } as any, ctx(person)), 400)
+    expect(await prisma.routine.count()).toBe(0)
+  })
+
   it('sets the routine up on, for its creator, with its first round waiting at its first time', async () => {
     const project = await privateProject()
     const person = await createUserWithRole('MEMBER')
     await addMember(project.id, person.id)
     const agent = await createAgent()
+    await assignAgent(project.id, agent.id)
     const board = await boardOf(project.id)
     const at = IN_30H()
     const { id } = await createRoutine({
@@ -181,8 +191,9 @@ describe('updateRoutine', () => {
   })
 
   it('updates the routine and its waiting round together; a new schedule moves the round to the new time', async () => {
-    const { routine, owner } = await world()
+    const { project, routine, owner } = await world()
     const agent = await createAgent()
+    await assignAgent(project.id, agent.id)
     const at = new Date(IN_30H().getTime() + 5 * HOUR)
     expect(await updateRoutine({
       routineId: routine.id,

@@ -22,7 +22,7 @@ import { startSchedulesDue, AUTOMATION_OFF_REASON, NO_AGENT_REASON } from '../sc
 import { createRoutine } from '../routines'
 import { ORG_AUTOMATION_DEFAULTS } from '../automationSettings'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
-import { boardOf, DAILY } from './automationWorld'
+import { assignAgent, boardOf, DAILY } from './automationWorld'
 
 const runner = taskRunnerFake.taskRunner
 const SET_UP = new Date('2026-10-05T08:00:00Z')
@@ -41,6 +41,7 @@ async function setUp(opts: { column?: string; agent?: boolean; automation?: bool
   if (opts.automation !== false) await prisma.projectAutomation.create({ data: { projectId: project.id, enabled: true } as any })
   const board = await boardOf(project.id)
   const agent = await createAgent()
+  await assignAgent(project.id, agent.id)
   const routine = await createRoutine(
     project.id,
     {

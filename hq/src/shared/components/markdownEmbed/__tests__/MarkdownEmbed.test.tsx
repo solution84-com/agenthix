@@ -63,9 +63,11 @@ function setup(content: string, over: Partial<MarkdownEmbedContext> = {}) {
 afterEach(cleanup)
 
 describe('Markdown with no place @SC-1550', () => {
-  it('draws as before: an image tag stays text and an image loads as written', () => {
+  it('an image tag stays text and another website\'s image waits for Load', () => {
     const { container } = render(<MarkdownMessage content={'<img src="a.png" width="60">\n\n![x](https://example.org/a.png)'} />)
     expect(container.textContent).toContain('<img src="a.png" width="60">')
+    expect(container.querySelector('img')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Load/ }))
     expect(container.querySelector('img')!.getAttribute('src')).toBe('https://example.org/a.png')
   })
 })
@@ -189,5 +191,18 @@ describe('links to files @SC-1554', () => {
     const { container } = setup('[site](https://example.org) and [here](#top)')
     const links = [...container.querySelectorAll('a')].map(a => a.getAttribute('href'))
     expect(links).toEqual(['https://example.org', '#top'])
+  })
+})
+
+describe('Markdown with no place holds outside images', () => {
+  it("holds another website's image behind Load", () => {
+    const { container } = render(<MarkdownMessage content="![x](https://other.example/?d=secret)" />)
+    expect(container.querySelector('img')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Load/ }))
+    expect(container.querySelector('img')?.getAttribute('src')).toBe('https://other.example/?d=secret')
+  })
+  it('does not draw an image that is not a web address', () => {
+    const { container } = render(<MarkdownMessage content="![x](data:image/png;base64,AAAA)" />)
+    expect(container.querySelector('img')).toBeNull()
   })
 })

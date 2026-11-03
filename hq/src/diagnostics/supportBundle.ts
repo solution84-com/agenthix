@@ -54,9 +54,10 @@ function slug(label: string, taken: Set<string>): string {
 
 /**
  * A command a site's tool gate quotes when it blocks one (`cmd=npm test (pattern=never)`): a tool call's input,
- * which a bundle never holds. The line keeps what was blocked and why.
+ * which a bundle never holds. The command may itself contain " (" or " — ", so nothing after `cmd=` on the line is
+ * kept; the line keeps the tool and the run.
  */
-const TOOL_COMMAND = /\bcmd=.*?(?= \(| — |$)/gm
+const TOOL_COMMAND = /\bcmd=.*$/gm
 
 export function withoutToolInput(text: string): string {
   return text.replace(TOOL_COMMAND, 'cmd=[left out]')
