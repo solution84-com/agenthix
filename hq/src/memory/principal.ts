@@ -14,6 +14,7 @@ import { ControlPlaneError, type CallerContext, type TurnCaller } from '../serve
 import { personOfRun } from '../server/controlplane/runOnBehalfOf'
 import { personalOwnerOf } from '../projects/personalProject'
 import type { MemoryPrincipal, Place } from './contract'
+import { personOfTurnHome } from './scopes'
 
 /** A project's place, or its person's own space for a personal project, whose work is that person's. */
 async function placeOfProject(projectId: string): Promise<Place> {
@@ -63,7 +64,8 @@ export async function memoryPrincipalOf(ctx: CallerContext, tool: string): Promi
     throw new ControlPlaneError('forbidden', `${tool} is an agent's memory of its work, and a connection is no agent`)
   }
   if (ctx.kind === 'turn') {
-    return { personId: await stillHere(ctx.turn.actingUserId), agentId: ctx.turn.agentId, place: await turnPlace(ctx.turn) }
+    const place = await turnPlace(ctx.turn)
+    return { personId: await stillHere(personOfTurnHome(ctx.turn.home, place, ctx.turn.actingUserId)), agentId: ctx.turn.agentId, place }
   }
   const { claims } = ctx
   if (!claims.agentId) throw new ControlPlaneError('forbidden', `${tool} needs a run acting as an agent`)

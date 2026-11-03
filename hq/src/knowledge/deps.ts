@@ -61,10 +61,15 @@ export interface KnowledgeChangeEntry {
   reach: Pick<KnowledgeReach, 'userId' | 'agent'>
 }
 
+/** What a person may do in a place now: change its knowledge, only read it, or nothing. */
+export type PlaceStanding = 'works' | 'reads' | 'none'
+
 export interface KnowledgeDeps {
   sites: KnowledgeSites
   guide: KnowledgeGuide
   isOrgAdmin(userId: string): Promise<boolean>
+  /** The person's standing in a place (a project's, or their own space), read at the call. */
+  standing(owner: KnowledgeOwnerRef, userId: string): Promise<PlaceStanding>
   recordChange(entry: KnowledgeChangeEntry): Promise<void>
   /** The one time limit a search across levels answers within. */
   searchTimeLimitMs: number

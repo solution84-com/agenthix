@@ -3,10 +3,12 @@
  * spec, Turns that answer no person): the agent's memory of the conversation's place, and the scopes of the person
  * the turn is for — the author of the messages it answers; for a continuation, who authorised it; for a report, the
  * person the operation was for, who commissioned it. A report on the work of several people at once is for none of
- * them, and searches the place's memory only.
+ * them, and searches the place's memory only; so is any turn in a task's thread outside its person's own space,
+ * which the project's members all read (`personOfTurnHome`).
  */
 import { prisma } from 'wasp/server'
 import type { MemoryPrincipal, Place } from '../../memory/contract'
+import { personOfTurnHome } from '../../memory/scopes'
 import { personalOwnerOf, taskRunOwner } from '../../projects/personalProject'
 import type { ConversationHomeRef } from '../contract'
 
@@ -47,6 +49,7 @@ export async function turnPrincipal(input: {
   operationIds: readonly string[]
 }): Promise<MemoryPrincipal> {
   const person = input.trigger === 'REPORT' ? await commissionedBy(input.operationIds) : input.actingUserId
-  const [personId, place] = await Promise.all([stillHere(person), conversationPlace(input.conversation)])
+  const place = await conversationPlace(input.conversation)
+  const personId = await stillHere(personOfTurnHome(input.conversation.home, place, person))
   return { personId, agentId: input.agentId, place }
 }

@@ -171,6 +171,8 @@ export function fakeDeps(over: Partial<KnowledgeDeps> = {}) {
   const sites = new FakeSites()
   const records: KnowledgeChangeEntry[] = []
   const admins = new Set<string>()
+  /** A person's standing in a place, by `ownerType:ownerId|userId`; anyone not listed works there. */
+  const standings = new Map<string, 'works' | 'reads' | 'none'>()
   const warnings: { message: string; fields?: Record<string, unknown> }[] = []
   let guideMissing = false
   const deps: KnowledgeDeps = {
@@ -189,6 +191,7 @@ export function fakeDeps(over: Partial<KnowledgeDeps> = {}) {
       read: ({ page }) => ({ ok: true, text: `GUIDE ${page}` }),
     },
     isOrgAdmin: async userId => admins.has(userId),
+    standing: async (owner, userId) => standings.get(`${keyOf(owner)}|${userId}`) ?? 'works',
     recordChange: async entry => {
       records.push(entry)
     },
@@ -196,5 +199,5 @@ export function fakeDeps(over: Partial<KnowledgeDeps> = {}) {
     log: { warn: (message, fields) => warnings.push({ message, fields }) },
     ...over,
   }
-  return { deps, sites, records, admins, warnings, setGuideMissing: (m: boolean) => (guideMissing = m) }
+  return { deps, sites, records, admins, standings, warnings, setGuideMissing: (m: boolean) => (guideMissing = m) }
 }

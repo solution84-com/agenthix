@@ -4,6 +4,7 @@ import { KnowledgePages } from './pages'
 import type { KnowledgeReach } from './reach'
 import { ReadRecord } from './readRecord'
 import { searchKnowledgeIn } from './search'
+import { reachNow } from './standing'
 
 export type KnowledgeTool = (reach: KnowledgeReach, params: unknown) => Promise<string>
 
@@ -21,7 +22,7 @@ export function createKnowledgeService(deps: KnowledgeDeps, reads = new ReadReco
   const pages = new KnowledgePages(deps, reads)
   const safe = (tool: string, call: KnowledgeTool): KnowledgeTool => async (reach, params) => {
     try {
-      return await call(reach, params)
+      return await call(await reachNow(deps, reach), params)
     } catch (err) {
       deps.log.warn('knowledge tool failed', { tool, error: err instanceof Error ? err.name : 'unknown' })
       return FAILED

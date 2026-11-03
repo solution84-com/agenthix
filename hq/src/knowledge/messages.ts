@@ -46,6 +46,9 @@ export const MESSAGES = {
     `Only an organisation admin, or an agent acting for one, can change org: pages. Ask an organisation admin of HQ to make this change. ${UNCHANGED}`,
   mayNotChange: () =>
     `Knowledge cannot be changed from here: only a turn answering a person, or a run that has write tools, may change it. Tell the person what should change, and they can ask for it. ${UNCHANGED}`,
+  viewerOnly: (level: string) =>
+    `${level}: is a project the person this acts for only reads: a Viewer reads its knowledge and changes nothing. ` +
+    `Tell the person what should change, and one of its Members or Admins can change it. ${UNCHANGED}`,
   tooLarge: (maxKb: number) => `The page is over ${maxKb} KB, the most a page may be. Split it into smaller pages. ${UNCHANGED}`,
   readFirst: (name: string) =>
     `There is already a page ${name}. Read it with read_knowledge first, then write it, or change one passage with edit_knowledge. ${UNCHANGED}`,

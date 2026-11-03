@@ -4,7 +4,7 @@
  * commissioned — agent × place only. Reading and writing reach the same scopes.
  */
 import type { MemoryScopeValue } from '../shared/memory/protocol'
-import type { MemoryPrincipal } from './contract'
+import type { MemoryPrincipal, Place } from './contract'
 
 export const MEMORY_SCOPES: readonly MemoryScopeValue[] = ['PERSON', 'AGENT_PERSON', 'AGENT_PLACE']
 
@@ -45,10 +45,20 @@ export function reachableTargets(principal: MemoryPrincipal, only?: readonly Mem
     .filter((target): target is ScopeTarget => target !== null)
 }
 
+/**
+ * The person a conversation's turn reads and writes memory for, given its home: a task's thread is read by every
+ * member of its project, so a person's own scopes are used there only when the task is in that person's own space,
+ * which nobody else reads — as a run in a project's shared home is for no person. Every other home is its opener's.
+ */
+export function personOfTurnHome(home: 'PERSON' | 'PROJECT' | 'TASK', place: Place | null, personId: string | null): string | null {
+  if (!personId || home !== 'TASK') return personId
+  return place?.type === 'user' && place.id === personId ? personId : null
+}
+
 /** Why a principal may not reach a scope, in words for whoever asked. */
 export function scopeRefusal(principal: MemoryPrincipal, scope: MemoryScopeValue): string {
   if (scope === 'AGENT_PLACE') return 'This work has no place, so there is no memory of a place to use.'
   return principal.personId
     ? 'This memory is not reachable from here.'
-    : 'This work is not for any person, so only what the agent learned about this place can be used.'
+    : 'This work is not for any person, or happens where others read it, so only what the agent learned about this place can be used.'
 }

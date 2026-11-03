@@ -8,6 +8,7 @@ import { Logger } from '../server/utils/logger'
 import { recordKnowledgeChange } from './changeRecord'
 import { guideSource } from './guideSource'
 import { createKnowledgeService } from './service'
+import { placeStanding } from './placeStanding'
 import { siteKnowledge } from './siteKnowledge'
 
 export type { KnowledgeReach } from './reach'
@@ -22,6 +23,7 @@ const service = createKnowledgeService({
   sites: siteKnowledge,
   guide: guideSource(),
   isOrgAdmin,
+  standing: placeStanding,
   recordChange: recordKnowledgeChange,
   searchTimeLimitMs: KNOWLEDGE_SEARCH_TIME_LIMIT_MS,
   log: { warn: (message, fields) => logger.warn(message, fields ?? {}) },

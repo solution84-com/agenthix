@@ -8,8 +8,11 @@ import { KNOWLEDGE_ORG_OWNER_ID, type KnowledgeOwnerRef, type KnowledgeStepView 
 
 /** What one caller may reach: built from a run's capability or a conversation's turn. */
 export interface KnowledgeReach {
-  /** The places, most specific first: the run's one place, or the places a conversation reaches. */
-  places: { level: string; owner: KnowledgeOwnerRef }[]
+  /**
+   * The places, most specific first: the run's one place, or the places a conversation reaches. `readOnly` is set
+   * by the service from the person's standing at each call (`./standing.ts`); a caller never sets it.
+   */
+  places: { level: string; owner: KnowledgeOwnerRef; readOnly?: boolean }[]
   /** The person the call acts for. */
   userId: string
   /** Set for an agent: who to record (G5). */
@@ -32,7 +35,8 @@ export const ORG_OWNER: KnowledgeOwnerRef = { ownerType: 'org', ownerId: KNOWLED
 /** A level a call may reach: the platform guide, or a site-held owner's pages (a place, or the organisation's). */
 export type Level =
   | { kind: 'platform'; name: typeof PLATFORM_LEVEL }
-  | { kind: 'org' | 'place'; name: string; owner: KnowledgeOwnerRef }
+  | { kind: 'org'; name: string; owner: KnowledgeOwnerRef }
+  | { kind: 'place'; name: string; owner: KnowledgeOwnerRef; readOnly?: boolean }
 
 /**
  * Every level the reach may see, in the order a search answers: its places as given, then the organisation, then the
@@ -45,7 +49,7 @@ export function levelsOf(reach: KnowledgeReach): Level[] {
   for (const p of reach.places) {
     if (RESERVED.has(p.level) || seen.has(p.level) || !p.level) continue
     seen.add(p.level)
-    places.push({ kind: 'place', name: p.level, owner: p.owner })
+    places.push({ kind: 'place', name: p.level, owner: p.owner, ...(p.readOnly ? { readOnly: true } : {}) })
   }
   return [...places, { kind: 'org', name: ORG_LEVEL, owner: ORG_OWNER }, { kind: 'platform', name: PLATFORM_LEVEL }]
 }

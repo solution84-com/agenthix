@@ -1,7 +1,8 @@
 /**
  * `read_knowledge`, `write_knowledge`, `edit_knowledge` and `delete_knowledge` (K2–K5): a page's name picks the one
  * level it goes to, among those the caller holds (B2). A change is decided here before it reaches the gate —
- * `platform:` is read-only, `org:` changes only for an organisation admin, a caller that may not change refuses
+ * `platform:` is read-only, `org:` changes only for an organisation admin, a place its person only reads (a
+ * project's Viewer) changes nothing, a caller that may not change refuses
  * (places.md, *Who reaches what*) — and every change the gate accepts is recorded with who made it (G5).
  */
 import { KNOWLEDGE_LIMITS, type KnowledgeChangeResult } from '@agenthix/core'
@@ -59,6 +60,7 @@ function pageText(name: string, text: string, version: string, offset?: number, 
 async function mayChange(deps: KnowledgeDeps, reach: KnowledgeReach, level: Level): Promise<string | null> {
   if (level.kind === 'platform') return MESSAGES.platformReadOnly()
   if (!reach.mayChange) return MESSAGES.mayNotChange()
+  if (level.kind === 'place' && level.readOnly) return MESSAGES.viewerOnly(level.name)
   if (level.kind === 'org' && !(await deps.isOrgAdmin(reach.userId))) return MESSAGES.orgAdminOnly()
   return null
 }

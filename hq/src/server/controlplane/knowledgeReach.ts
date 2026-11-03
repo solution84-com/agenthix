@@ -3,6 +3,8 @@
  * signed: a run's capability, or a conversation turn's. A run reaches its one place; a turn its conversation's places
  * (conversations/places.ts): its own, then those its person added. The organisation's knowledge and the platform guide are every
  * agent's, and the knowledge service adds them itself; nothing an agent passes in a call widens what is built here.
+ * What is built here is the most a call reaches: the service narrows it at every call to the person's standing in
+ * each place (knowledge/standing.ts), so a project they left is gone and one they only view is read-only.
  *
  * A place is where its files live (adr-0060): a project's own storage, named by the project's slug, or the person's
  * own, named `personal`, for their space.

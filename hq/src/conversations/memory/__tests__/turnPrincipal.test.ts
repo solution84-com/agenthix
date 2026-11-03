@@ -65,4 +65,18 @@ describe('turnPrincipal @SC-986', () => {
     expect((await turnPrincipal({ conversation: task, agentId: 'a1', trigger: 'MESSAGE', actingUserId: 'carol', operationIds: [] })).place)
       .toEqual({ type: 'project', id: 'p2' })
   })
+
+  it('reads no person\'s own memory in a task\'s thread, which its project\'s members read @SC-986', async () => {
+    db.task = { projectId: 'p2', ownerType: 'project', ownerId: 'p2' }
+    expect(await turnPrincipal({ conversation: task, agentId: 'a1', trigger: 'MESSAGE', actingUserId: 'carol', operationIds: [] }))
+      .toEqual({ personId: null, agentId: 'a1', place: { type: 'project', id: 'p2' } })
+    expect((await turnPrincipal({ conversation: task, agentId: 'a1', trigger: 'REPORT', actingUserId: null, operationIds: ['op1'] })).personId)
+      .toBeNull()
+  })
+
+  it('reads the person\'s own memory in a task\'s thread in their own space, which nobody else reads', async () => {
+    db.task = { projectId: 'p3', ownerType: 'user', ownerId: 'carol' }
+    expect((await turnPrincipal({ conversation: task, agentId: 'a1', trigger: 'MESSAGE', actingUserId: 'carol', operationIds: [] })).personId)
+      .toBe('carol')
+  })
 })
