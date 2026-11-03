@@ -197,7 +197,7 @@ function withFeatures() {
   return asked
 }
 
-describe("a site's page while the live preview is off", () => {
+describe("a site's page while the live preview is off @SC-1779", () => {
   it('has no live preview section, and never asks for one', async () => {
     const asked = withFeatures()
     await screen.findByRole('heading', { name: 'office-server', level: 1 })

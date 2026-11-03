@@ -30,7 +30,7 @@ describe('answering a channel request', () => {
   })
 })
 
-describe('the switches hq sends with a request', () => {
+describe('the switches hq sends with a request @SC-1775', () => {
   it("are the handler's current switches, read with core's parser", async () => {
     const sent: HQConnectionMessage[] = []
     let seen: unknown = null

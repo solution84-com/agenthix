@@ -10,7 +10,7 @@ const FLAGS: Record<string, FeatureFlagEntry> = {
   stillExperimental: { ...about, stage: 'experimental' },
 }
 
-describe('released flags overdue for removal (adr-0172)', () => {
+describe('released flags overdue for removal (adr-0172) @SC-1763', () => {
   it('a patch or pre-release of the flag\'s own minor does not count', () => {
     for (const version of ['0.2.0', '0.2.1', '0.2.7', '0.2.1-rc.1', '0.2.0-alpha.3']) {
       expect(flagsOverdue(version, FLAGS)).toEqual([])

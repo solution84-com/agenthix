@@ -11,7 +11,7 @@ import {
 beforeEach(() => { forgetFeatureSwitches(); db.findFirst.mockReset() })
 afterEach(() => { vi.useRealTimers() })
 
-describe("the organisation's stored switches", () => {
+describe("the organisation's stored switches @SC-1768", () => {
   it('keeps a listed flag with a boolean, and who changed it and when', () => {
     const at = '2026-11-03T10:00:00.000Z'
     expect(readStoredSwitches({ marketplace: { on: true, byUserId: 'u1', at } }))
@@ -31,7 +31,7 @@ describe("the organisation's stored switches", () => {
   })
 })
 
-describe('reading the switches', () => {
+describe('reading the switches @SC-1768', () => {
   it('reads the database once every few seconds, and shares a read under way', async () => {
     vi.useFakeTimers()
     db.findFirst.mockResolvedValue({ featureSwitches: { marketplace: { on: true } } })

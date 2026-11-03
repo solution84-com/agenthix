@@ -56,7 +56,7 @@ describe(`${OFFER_LIVE_PREVIEW_TOOL} @SC-1708`, () => {
 })
 })
 
-describe(`${OFFER_LIVE_PREVIEW_TOOL} while the live preview's flag is off`, () => {
+describe(`${OFFER_LIVE_PREVIEW_TOOL} while the live preview's flag is off @SC-1772`, () => {
   it('is not offered, and leaves no card when called', async () => {
     const t = tool({ featureOn: async () => false })
     expect(await t.tool.offered(capability)).toBe(false)

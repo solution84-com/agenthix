@@ -104,7 +104,7 @@ describe('codeWorkPromptText @SC-1674', () => {
     expect(codeWorkPromptText(work(), ON)).toContain('the merge happens when they press Merge')
   })
 
-  it('says nothing of live previews or app tools while the live preview is off (adr-0172)', () => {
+  it('says nothing of live previews or app tools while the live preview is off (adr-0172) @SC-1772', () => {
     const text = codeWorkPromptText(work({ openLivePreview: { paused: false, runningApps: ['web'] } }), { livePreview: false })
     expect(text).not.toMatch(/live preview|app tools|start_app|reload_view/i)
     expect(text).toContain('# Your branch')

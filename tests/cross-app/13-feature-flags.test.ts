@@ -14,7 +14,7 @@ async function flagsOn(): Promise<Record<string, boolean>> {
   return Object.fromEntries((res.json.flags as { flag: string; on: boolean }[]).map(f => [f.flag, f.on]))
 }
 
-describe('feature flags in the cross-app tier', () => {
+describe('feature flags in the cross-app tier @SC-1774', () => {
   it('runs each file with every flag as shipped, though hq runs as a development build', async () => {
     const on = await flagsOn()
     for (const flag of FEATURE_FLAG_NAMES) expect(on[flag], flag).toBe(onAsShipped(flag))

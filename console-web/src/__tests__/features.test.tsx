@@ -16,7 +16,7 @@ afterEach(() => {
   forgetCsrfToken()
 })
 
-describe('useFeature', () => {
+describe('useFeature @SC-1778', () => {
   it('draws a flagged section once the server says its feature is on', async () => {
     const requests = fakeServer({ 'GET /features': { status: 200, body: { on: ['usageBilling'] } } })
     render(<FeaturesProvider><Section /></FeaturesProvider>)

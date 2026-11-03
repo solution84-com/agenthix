@@ -58,7 +58,7 @@ describe("the lead's live preview offer @SC-1708", () => {
 })
 })
 
-describe("the lead's live preview offer while its flag is off", () => {
+describe("the lead's live preview offer while its flag is off @SC-1773", () => {
   it('is not drawn, so nothing can start one from it', () => {
     render(<MemoryRouter><LivePreviewOffer card={livePreviewOfferOf(body)!} /></MemoryRouter>)
     expect(screen.queryByTestId('live-preview-offer')).toBeNull()

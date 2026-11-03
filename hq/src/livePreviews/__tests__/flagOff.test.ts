@@ -65,7 +65,7 @@ function nothingTouched() {
   expect(seen.asked).toEqual([])
 }
 
-describe("the live preview's operations while its flag is off", () => {
+describe("the live preview's operations while its flag is off @SC-1771", () => {
   const ops = Object.entries(operations) as Array<[string, (a: unknown, c: unknown) => Promise<unknown>]>
 
   it('are every operation the workspace view calls', () => {
@@ -84,7 +84,7 @@ describe("the live preview's operations while its flag is off", () => {
   })
 })
 
-describe("the agent's app tools while the live preview's flag is off", () => {
+describe("the agent's app tools while the live preview's flag is off @SC-1772", () => {
   const ctx = { kind: 'run', claims: { siteId: 's1', sessionId: 'sess', taskId: null, agentId: 'ag' } } as unknown as CallerContext
 
   it.each(Object.entries(APP_TOOL_OPERATIONS))('%s is not available, and reads nothing', async (_name, op) => {
@@ -95,7 +95,7 @@ describe("the agent's app tools while the live preview's flag is off", () => {
   })
 })
 
-describe("the Fleet Console's live preview methods while the flag is off", () => {
+describe("the Fleet Console's live preview methods while the flag is off @SC-1771", () => {
   const calls: Array<[string, () => Promise<unknown>]> = [
     ['sites.livePreviews', () => siteLivePreviewsView('u1', 'es1')],
     ['sites.livePreviews.set', () => setSiteLivePreviews({ byUserId: 'u1', executionSiteId: 'es1', allowed: true, limit: null, idleMinutes: 30 })],
@@ -110,7 +110,7 @@ describe("the Fleet Console's live preview methods while the flag is off", () =>
   })
 })
 
-describe("what runs are told and given while the live preview's flag is off", () => {
+describe("what runs are told and given while the live preview's flag is off @SC-1772", () => {
   it("a run's prompt names no live preview", async () => {
     await expect(livePreviewForPrompt('w1', 'b1', 's1')).resolves.toBeNull()
     nothingTouched()
@@ -126,7 +126,7 @@ describe("what runs are told and given while the live preview's flag is off", ()
   })
 })
 
-describe("hq's background work for live previews while the flag is off", () => {
+describe("hq's background work for live previews while the flag is off @SC-1771", () => {
   it('registers its site events, each dropped unread', async () => {
     const events = [...Object.values(LIVE_PREVIEW_EVENTS), ...Object.values(LIVE_PREVIEW_APP_EVENTS), BUNDLE_EVENTS.landed].map(e => `event:${e}`)
     for (const key of events) expect(seen.handlers.has(key), key).toBe(true)
@@ -160,7 +160,7 @@ describe("hq's background work for live previews while the flag is off", () => {
   })
 })
 
-describe("the relays' app doors hq answers while the live preview's flag is off", () => {
+describe("the relays' app doors hq answers while the live preview's flag is off @SC-1771", () => {
   it('no app ticket stands, even one hq signed', async () => {
     const signed = await appTickets.issue({ relay: 'r1', person: 'u1', appId: 'a1', livePreviewId: 'lp1' } as Parameters<typeof appTickets.issue>[0])
     await expect(appTickets.stands('r1', { ticketId: signed.jti, person: 'u1', appId: 'a1', livePreviewId: 'lp1' })).resolves.toBe(false)

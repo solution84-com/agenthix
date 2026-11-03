@@ -22,7 +22,7 @@ afterEach(() => { vi.unstubAllEnvs() })
 const org = () => prisma.org.create({ data: { name: 'Fernhill' } })
 const as = (user: { id: string }) => ({ user: { id: user.id } })
 
-describe('switching a feature', () => {
+describe('switching a feature @SC-1767', () => {
   it("stores an admin's switch on the organisation's record, with who and when, and the gate follows it at once", async () => {
     await org()
     const admin = await createUserWithRole('ADMIN', { displayName: 'Sam' })
@@ -79,7 +79,7 @@ describe('switching a feature', () => {
   })
 })
 
-describe("which features are on, for screens", () => {
+describe("which features are on, for screens @SC-1767", () => {
   it("answers everyone signed in, and only an admin is told who switched each", async () => {
     await org()
     const admin = await createUserWithRole('ADMIN', { displayName: 'Sam' })
@@ -98,7 +98,7 @@ describe("which features are on, for screens", () => {
   })
 })
 
-describe('withFeature in the integration suite', () => {
+describe('withFeature in the integration suite @SC-1774', () => {
   withFeature('marketplace', () => {
     it('is on inside its group', async () => {
       expect(await isOrgFeatureOn('marketplace')).toBe(true)

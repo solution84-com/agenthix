@@ -32,7 +32,7 @@ afterAll(() => {
 const setting = () => ({ byUserId, executionSiteId, allowed: true, limit: null, idleMinutes: 120 })
 
 withFeatureOff('livePreview', () => {
-  describe('the live preview as shipped: off', () => {
+  describe('the live preview as shipped: off @SC-1780', () => {
     it('is not among the features hq tells the Fleet Console are on', async () => {
       const { on } = await fleetConsole.call('features.on', {})
       expect(on).not.toContain('livePreview')
@@ -55,7 +55,7 @@ withFeatureOff('livePreview', () => {
 })
 
 withFeature('livePreview', () => {
-  describe('the live preview switched on for the organisation', () => {
+  describe('the live preview switched on for the organisation @SC-1780', () => {
     it('is among the features on, and its methods are answered through to the site', async () => {
       const { on } = await fleetConsole.call('features.on', {})
       expect(on).toContain('livePreview')

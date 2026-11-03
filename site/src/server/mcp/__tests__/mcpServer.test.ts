@@ -115,7 +115,7 @@ describe('the commit tool — offered only to a run on a branch\'s copy @SC-1732
   })
 })
 
-describe('the live preview off: no app tools, and no live preview used (adr-0172)', () => {
+describe('the live preview off: no app tools, and no live preview used (adr-0172) @SC-1776', () => {
   const APP_TOOLS = ['start_app', 'stop_app', 'list_apps', 'reload_view', 'set_auto_reload']
   const context = (codeWork?: { branch: string }) =>
     ({ runId: 'run-9', sessionId: 's1', ...(codeWork ? { codeWork } : {}) }) as unknown as import('../../../agents/runtime/types').RunContext

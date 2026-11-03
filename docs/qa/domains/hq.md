@@ -1,7 +1,7 @@
 ---
 name: Domain map — hq
 description: Feature-domain carving of the hq module for a QA audit's accuracy code pass. Stable domain order keeps US-numbering stable across runs. Regenerated 2026-09-26 from main.wasp (221 operations); domains 21 and 22 and the operation changes of the agents-own-schedule unit added 2026-10-05 (254 operations); domains 23 to 25 and the operation changes of the unit *every screen reviewed* added 2026-10-12 (350 operations) and the src/ tree, after the hq/site split; domain 27 and the operation changes of the agent knowledge unit added 2026-10-26 (470 operations). Update only when the operation set changes.
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Domain map — `hq/`
@@ -186,6 +186,12 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 - **Note:** added 2026-11-02 at the close of the live preview unit. The agent's tools (`commit`, `update_from_main`, `merge_into_main`, the app tools, `offer_live_preview`) are not operations but are in the contract (**SC-1669** to **SC-1719**).
 
 ---
+
+### 29. Features
+
+- **Files:** `src/features/` (the organisation's switches and their cache, `requireFeature`, `useFeature`, what a run is given by flag, the *Features* screen); `src/shared/features.ts` (the words for each flag and stage).
+- **Ops:** getFeatures, setFeature.
+- **Note:** added 2026-11-03 at the close of the live preview unit. The rule is core's (**SC-1761**); the contract is **SC-1765** to **SC-1774** and, for the live preview behind its flag, **SC-1771** to **SC-1773** and **SC-1780**.
 
 ## Excluded from all domains (no human actor / pure internal runtime)
 

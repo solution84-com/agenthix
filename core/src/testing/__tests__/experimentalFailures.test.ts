@@ -11,7 +11,7 @@ let dir: string
 beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), 'experimental-failures-')) })
 afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }) })
 
-describe('the experimental failures record', () => {
+describe('the experimental failures record @SC-1764', () => {
   it('reads back what was written, from every process\'s file', () => {
     recordExperimentalFailure({ flag: 'livePreview', test: 'a > b', error: 'boom' }, dir)
     fs.writeFileSync(path.join(dir, '1.jsonl'), `${JSON.stringify({ flag: 'other', test: 'c', error: 'bang' })}\n`)

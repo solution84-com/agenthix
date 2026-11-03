@@ -111,7 +111,7 @@ describe('Deploy… on main', () => {
   })
 })
 
-describe("the strip while the live preview's flag is off", () => {
+describe("the strip while the live preview's flag is off @SC-1773", () => {
   it('has no Live preview, only Files and Git', () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1180 })
     show(view([footer]), '/workspaces/w1/view?branch=footer-wording&section=files')

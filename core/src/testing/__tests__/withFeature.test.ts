@@ -9,7 +9,7 @@ import { readExperimentalFailures } from '../experimentalFailures.js'
 
 const inThisRun = (flag: 'usageBilling' | 'marketplace') => isFeatureOn(flag, { env: process.env, switches: NO_FEATURE_SWITCHES })
 
-describe('withFeature in a unit test (adr-0172)', () => {
+describe('withFeature in a unit test (adr-0172) @SC-1764', () => {
   it('runs as shipped outside the group', () => {
     expect(process.env.NODE_ENV).toBe('test')
     expect(inThisRun('usageBilling')).toBe(false)
@@ -68,7 +68,7 @@ function runFixture(file: string) {
   }
 }
 
-describe('a failing test of a feature in its group (adr-0172)', () => {
+describe('a failing test of a feature in its group (adr-0172) @SC-1764', () => {
   it('at experimental, is recorded and reported, and does not fail the run', () => {
     const { status, output, records } = runFixture('experimental.fixture.ts')
     expect(status, output).toBe(0)

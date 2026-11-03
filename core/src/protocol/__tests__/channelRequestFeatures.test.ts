@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { parseFeatureSwitches, type FeatureSwitches } from '../../shared/featureFlags.js'
 import type { ChannelRequestPayload, FeatureSwitchesOnWire } from '../channelMessages.js'
 
-describe('the switches on a request to a site (site protocol 1.12)', () => {
+describe('the switches on a request to a site (site protocol 1.12) @SC-1762', () => {
   it('carries hq\'s typed switches, and the site reads back only what it lists', () => {
     const held: FeatureSwitches = { marketplace: true, usageBilling: false }
     const payload: ChannelRequestPayload = { method: 'site.describe', params: {}, features: held }

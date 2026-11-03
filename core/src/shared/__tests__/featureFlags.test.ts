@@ -13,7 +13,7 @@ const PRODUCTION = { NODE_ENV: 'production' }
 const on = (stage: FeatureStage, env: { NODE_ENV?: string }, choice?: unknown) =>
   isFeatureOnAt('trial', stage, { env, switches: (choice === undefined ? {} : { trial: choice }) as FeatureSwitches })
 
-describe('the flag list (adr-0172)', () => {
+describe('the flag list (adr-0172) @SC-1761', () => {
   it('gives every flag a stage, what it holds back and when it goes, and a released one its minor release', () => {
     for (const flag of FEATURE_FLAG_NAMES) {
       const entry = FEATURE_FLAGS[flag] as FeatureFlagEntry
@@ -25,7 +25,7 @@ describe('the flag list (adr-0172)', () => {
     }
   })
 
-  it('holds usageBilling and marketplace at preview', () => {
+  it('holds usageBilling and marketplace at preview @SC-1240', () => {
     expect(FEATURE_FLAGS.usageBilling.stage).toBe('preview')
     expect(FEATURE_FLAGS.usageBilling.feature).toMatch(/Cloud/)
     expect(FEATURE_FLAGS.marketplace.stage).toBe('preview')
@@ -33,7 +33,7 @@ describe('the flag list (adr-0172)', () => {
   })
 })
 
-describe('the rule, stage by stage (spec 7, Stages)', () => {
+describe('the rule, stage by stage (spec 7, Stages) @SC-1761', () => {
   it('experimental: off in development unless switched on; off in production and cannot be switched on', () => {
     expect(on('experimental', DEVELOPMENT)).toBe(false)
     expect(on('experimental', DEVELOPMENT, true)).toBe(true)
@@ -115,7 +115,7 @@ describe('the rule, stage by stage (spec 7, Stages)', () => {
   })
 })
 
-describe('each stage\'s default and switch', () => {
+describe('each stage\'s default and switch @SC-1761', () => {
   it('defaults: development on from preview; production and a test run only released', () => {
     expect(FEATURE_STAGES.map(s => isOnByDefault(s, DEVELOPMENT))).toEqual([false, true, true, true])
     expect(FEATURE_STAGES.map(s => isOnByDefault(s, PRODUCTION))).toEqual([false, false, false, true])
@@ -130,7 +130,7 @@ describe('each stage\'s default and switch', () => {
   })
 })
 
-describe('every flag at once', () => {
+describe('every flag at once @SC-1761', () => {
   it('answers each listed flag: its stage, whether it is on and by default, its switch, and the production screen', () => {
     const facts = { env: DEVELOPMENT, switches: { usageBilling: false } }
     const states = featureStates(facts)
@@ -148,7 +148,7 @@ describe('every flag at once', () => {
   })
 })
 
-describe('switches received from another program', () => {
+describe('switches received from another program @SC-1762', () => {
   it('keeps a listed flag\'s boolean and drops everything else', () => {
     expect(parseFeatureSwitches({ marketplace: true, usageBilling: false })).toEqual({ marketplace: true, usageBilling: false })
     expect(parseFeatureSwitches({ marketplace: 'true', usageBilling: 1, unknownFlag: true })).toEqual({})

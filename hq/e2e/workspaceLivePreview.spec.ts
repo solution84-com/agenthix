@@ -52,7 +52,7 @@ test.describe("the workspace view's Live preview", () => {
   test.beforeEach(async ({ page }) => { await signIn(page, ADMIN) })
 
   withFeatureOff('livePreview', test => {
-    test('is not there while its flag is off, as shipped: no row, no strip icon, and an address naming it opens Git', async ({ page }) => {
+    test('is not there while its flag is off, as shipped: no row, no strip icon, and an address naming it opens Git @SC-1773', async ({ page }) => {
       let asked = false
       await answer(page, {})
       await page.route('**/operations/get-live-preview*', async route => { asked = true; await route.fallback() })

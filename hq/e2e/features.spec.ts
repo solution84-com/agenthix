@@ -14,7 +14,7 @@ const marketplaceSwitch = (page: Page) => page.getByTestId('feature-marketplace'
 
 // The Marketplace starts off in each test, in the run with every flag on too.
 withFeatureOff('marketplace', test => {
-  test('lists every flag by stage in a development build, with each stage explained', async ({ page }) => {
+  test('lists every flag by stage in a development build, with each stage explained @SC-1766', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto('/admin/settings/features')
     await expect(page.getByRole('heading', { name: 'Features' }).first()).toBeVisible()
@@ -24,7 +24,7 @@ withFeatureOff('marketplace', test => {
     await expect(marketplaceSwitch(page)).toHaveAttribute('aria-checked', 'false')
   })
 
-  test('switching a feature on shows it for the organisation, and switching it off hides it again', async ({ page }) => {
+  test('switching a feature on shows it for the organisation, and switching it off hides it again @SC-1767', async ({ page }) => {
     await signIn(page, ADMIN)
     await page.goto('/admin/settings/features')
     await marketplaceSwitch(page).click()
@@ -42,7 +42,7 @@ withFeatureOff('marketplace', test => {
   })
 })
 
-test('a member cannot open the Features screen', async ({ page }) => {
+test('a member cannot open the Features screen @SC-1765', async ({ page }) => {
   await signIn(page, MEMBER)
   await page.goto('/admin/settings/features')
   await expect(page.getByTestId('feature-marketplace')).toHaveCount(0)

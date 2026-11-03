@@ -42,7 +42,7 @@ const api = (path: string, method = 'GET', body?: unknown) => h.request(path, { 
 const previews = (fp = () => office.fingerprint) => `/api/sites/${fp()}/live-previews`
 const setting = { allowed: true, limit: null, idleMinutes: 120 }
 
-describe('Live previews on a site while the live preview is off (adr-0172)', () => {
+describe('Live previews on a site while the live preview is off (adr-0172) @SC-1779', () => {
   it('answers every route 404, saying it is not available, and asks hq nothing about live previews', async () => {
     for (const [path, method, body] of [[previews(), 'GET'], [previews(), 'PUT', setting], [`${previews()}/lp1`, 'DELETE']] as const) {
       const res = await api(path, method, body)

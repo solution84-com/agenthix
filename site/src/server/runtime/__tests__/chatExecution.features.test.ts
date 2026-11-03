@@ -50,7 +50,7 @@ beforeEach(() => {
   h.engineRun.mockResolvedValue({ status: 'COMPLETED' })
 })
 
-describe("a run's feature switches", () => {
+describe("a run's feature switches @SC-1775", () => {
   it('are the switches of the request that started it, handed to the engine for every turn', async () => {
     await withRequestSwitches({ usageBilling: true }, () => runChat(payload()))
     expect(h.engineRun).toHaveBeenCalledWith('run-1', expect.objectContaining({ features: { usageBilling: true } }))

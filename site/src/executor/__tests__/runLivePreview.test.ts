@@ -100,7 +100,7 @@ async function holds(dir: string, value: string): Promise<boolean> {
   return false
 }
 
-describe('a run aimed at a live preview while the live preview is off', () => {
+describe('a run aimed at a live preview while the live preview is off @SC-1776', () => {
   it('is refused before anything is resolved or made, saying it is not available', async () => {
     const resolve = vi.fn(executorDeps.resolveLivePreview)
     executorDeps.resolveLivePreview = resolve

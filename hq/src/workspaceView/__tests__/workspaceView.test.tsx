@@ -101,7 +101,7 @@ beforeEach(() => {
 })
 
 describe('the workspace view', () => {
-  it('has the back link and the workspace switcher, and no Live preview while its flag is off @SC-1683', () => {
+  it('has the back link and the workspace switcher, and no Live preview while its flag is off @SC-1683 @SC-1773', () => {
     show(codeView())
     expect(screen.getByRole('link', { name: /Fernhill Shop/ }).getAttribute('href')).toBe('/projects/SHOP?tool=workspaces')
     fireEvent.click(screen.getByRole('button', { name: 'Workspace: shop-app' }))
@@ -111,7 +111,7 @@ describe('the workspace view', () => {
     expect(asked.some(a => a.name === 'getLivePreviewPlaces' || a.name === 'getLivePreview')).toBe(false)
   })
 
-  it('opens Git where an address names Live preview while its flag is off', () => {
+  it('opens Git where an address names Live preview while its flag is off @SC-1773', () => {
     show(codeView(), '/workspaces/w1/view?branch=login-page&section=preview')
     expect(screen.getByTestId('branch-git')).toBeTruthy()
     expect(screen.queryByTestId('live-preview-row')).toBeNull()

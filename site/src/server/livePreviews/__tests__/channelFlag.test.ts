@@ -53,7 +53,7 @@ async function ask(method: string, features?: Record<string, boolean>): Promise<
 
 const called = () => Object.values(handlers).filter(h => h.mock.calls.length > 0).length
 
-describe('the live preview off: every method of it refused, nothing done', () => {
+describe('the live preview off: every method of it refused, nothing done @SC-1776', () => {
   it('names every live-preview method the channel answers, and only branch.packageUse beside them', () => {
     expect(Object.keys(livePreviewChannelMethods).sort()).toEqual([...LIVE_PREVIEW_FLAGGED_METHODS, BRANCH_PACKAGE_USE_METHOD].sort())
   })

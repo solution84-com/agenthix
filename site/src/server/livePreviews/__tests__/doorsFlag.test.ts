@@ -55,7 +55,7 @@ async function serveApp(k = keys()): Promise<{ refusal?: string; keysAsked: bool
   return { refusal: h?.refusal, keysAsked: k.get.mock.calls.length > 0 }
 }
 
-describe("the relay's doors while the live preview is off", () => {
+describe("the relay's doors while the live preview is off @SC-1776", () => {
   it('app.serve answers that no live preview runs, and verifies nothing', async () => {
     expect(await serveApp()).toEqual({ refusal: 'preview-not-running', keysAsked: false })
   })
@@ -88,7 +88,7 @@ describe("the relay's doors while the live preview is off", () => {
 const codeWork = { livePreviewId: 'lp-1', branch: 'login-page', copyId: 'c1', workspace: { workspaceId: 'w1', ownerType: 'project', ownerId: 'p1' } } as unknown as RunCodeWork
 const boundary = { ownerType: 'project', ownerId: 'p1' }
 
-describe("a live preview's own copy while the live preview is off", () => {
+describe("a live preview's own copy while the live preview is off @SC-1776", () => {
   it("refuses a run in it, by the run's switches", async () => {
     await expect(resolveLivePreviewCopy('run-1', codeWork, boundary, {})).rejects.toThrow(/Live previews are not available.*Nothing was changed\.$/)
     vi.stubEnv('NODE_ENV', 'production')

@@ -206,7 +206,7 @@ describe('closeForRotation — R-132', () => {
   })
 })
 
-describe("the organisation's switches on every request (adr-0172, site protocol 1.12)", () => {
+describe("the organisation's switches on every request (adr-0172, site protocol 1.12) @SC-1770", () => {
   const switchesSource = (fresh: Record<string, boolean> | null, read: Record<string, boolean> = {}) => ({
     fresh: () => fresh,
     read: async () => read,

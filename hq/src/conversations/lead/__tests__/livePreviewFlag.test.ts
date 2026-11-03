@@ -10,7 +10,7 @@ const LIVE_PREVIEW = /live preview|offer_live_preview|start_app|reload_view|app 
 const lead = (featuresOn?: readonly 'livePreview'[]) =>
   leadBaseInstructions({ agentName: 'Kernel', agentRole: null, placeLabel: 'the Shop project', ...(featuresOn ? { featuresOn } : {}) })
 
-describe("the lead's instructions and run_task while the live preview's flag is off", () => {
+describe("the lead's instructions and run_task while the live preview's flag is off @SC-1772", () => {
   it('say nothing of live previews, and keep the rules for code work', () => {
     expect(lead()).not.toMatch(LIVE_PREVIEW)
     expect(lead([])).not.toMatch(LIVE_PREVIEW)

@@ -13,7 +13,7 @@ afterEach(() => {
 
 const ALL_ON = Object.fromEntries(FEATURE_FLAG_NAMES.map(f => [f, true]))
 
-describe("the site's feature gate", () => {
+describe("the site's feature gate @SC-1775", () => {
   it('runs as shipped in a test run: no flag before preview is on without a switch', () => {
     for (const flag of FEATURE_FLAG_NAMES) {
       expect(isSiteFeatureOn(flag)).toBe(stageOf(flag) === 'released')

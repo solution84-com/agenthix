@@ -1,9 +1,9 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-11-02
+updated: 2026-11-03
 verified: 2026-06-19
-next-us: US-424
+next-us: US-430
 ---
 
 # User Stories — `hq/`
@@ -3572,6 +3572,7 @@ As an organisation admin, I want a separate area for what only I manage, reached
 - AC-358b: it has its own menu — Overview, People, Agents, Models and billing, Settings, and Where work runs — with a way back to the organisation, and no conversation docked beside it.
 - AC-358c: the old addresses of what moved lead to where it went.
 - AC-358d: its Overview shows what needs me and the day's figures.
+- AC-358e: if I am not signed in, an address in it sends me to the sign-in page instead of leaving me waiting.
 
 ---
 
@@ -4139,3 +4140,27 @@ As an organisation admin, I want a live preview's app to reach only its own copy
 - AC-421a: a live preview's container binds only the branch's copy, with no added capability, no Docker socket, a read-only root and no IPv6, on a network of its own, and the machine's firewall closes private addresses and the machine's own address to it.
 - AC-421b: a guard checks that the container matches its template and that nothing appears that the live preview did not start, and stops or pauses it, saying why.
 - AC-421c: the relay lets through only the app's own requests, from its own page or the person's own navigation, and cuts a person or an app off as soon as HQ says so.
+
+## Features: trying what is not finished (added 2026-11-03)
+
+Written at the close of the unit *live preview*, from the finished code. A feature that is not ready ships behind a flag with a stage: experimental (being tried), preview (waiting on something outside it), beta (usable, unfinished) or released (done, and switchable off for the rest of the minor release it went live in). What it does for everyone, and for the maintainers, is under *Features that are not on* in [`cross-cutting.md`](cross-cutting.md).
+
+### US-424 — Try a feature in beta, or switch off one that is new
+
+As an organisation admin, I want one screen where I switch a feature in beta on for the organisation, or switch off one that is new in this release, so that we try what is unfinished only if we choose to, and can stop a new feature at once if it causes trouble.
+
+**Acceptance criteria:**
+- AC-424a: *Features*, in the organisation's settings, lists the features in beta and those new in this release, each with what it is, a *Beta* or *New in this release* label and a switch, and says what *beta* means: usable, unfinished, may change, and can be switched off again.
+- AC-424b: switching one on applies to the whole organisation and no person opts in for themself; switching it off hides the feature and makes it refuse again, and what it stored is kept for when it is switched back on.
+- AC-424c: with no feature to list, the screen says there is nothing to try.
+- AC-424d: beside each I see who last switched it and when, or that it is on or off by default.
+- AC-424e: only an organisation admin switches a feature; a member is told who to ask, and a refusal says what is wrong and that nothing was changed.
+
+### US-425 — See and switch every feature while building
+
+As a developer of Agenthix, I want to see every feature by stage and switch any of them in my own copy of HQ, so that I can build an experiment without it reaching anyone else, and see the product as it ships.
+
+**Acceptance criteria:**
+- AC-425a: in a development build, *Features* lists every flag grouped by stage and explains all four stages.
+- AC-425b: a switch is kept in my own HQ's database, so nobody else's setup and no test run changes; in production only a beta can be switched on and only a feature new in this release switched off.
+- AC-425c: an experimental feature is off until I switch it on, a preview or beta feature is on until I switch it off, and in production an experimental feature cannot be switched on.

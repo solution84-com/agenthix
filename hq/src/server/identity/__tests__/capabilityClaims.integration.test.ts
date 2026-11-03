@@ -68,7 +68,7 @@ describe('resolveCapabilityClaims @SC-272', () => {
   })
 })
 
-describe("the live preview's app tools in a run's capability", () => {
+describe("the live preview's app tools in a run's capability @SC-1769 @SC-1772", () => {
   it('are never given while its flag is off, and no live preview is claimed', async () => {
     const claims = await mint()
     for (const tool of FLAGGED_TOOLS.livePreview!) expect(claims.permissions.neverTools).toContain(tool)

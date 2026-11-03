@@ -7,7 +7,7 @@ import { instructionsFor, runFeatures, runFeaturesFrom, type FlaggedTools } from
 const production = { NODE_ENV: 'production' }
 const flagged: FlaggedTools = { marketplace: ['browse_marketplace', 'install_from_marketplace'] }
 
-describe("a run's tools and instructions by flag", () => {
+describe("a run's tools and instructions by flag @SC-1769", () => {
   it("withholds a feature's tools while it is off", () => {
     const off = runFeaturesFrom({ env: production, switches: {} }, flagged)
     expect(off.isOn('marketplace')).toBe(false)

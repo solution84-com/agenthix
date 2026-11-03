@@ -43,7 +43,7 @@ describe('the live preview a run is told of', () => {
 })
 })
 
-describe("the live preview a run is told of, while the live preview's flag is off", () => {
+describe("the live preview a run is told of, while the live preview's flag is off @SC-1772", () => {
   it('is none, and nothing is read', async () => {
     await expect(livePreviewForPrompt('ws-1', 'b-1', 'site-1')).resolves.toBeNull()
     expect(on).not.toHaveBeenCalled()

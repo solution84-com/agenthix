@@ -1,7 +1,7 @@
 ---
 name: User-journey coverage map
 description: For each kind of person who uses Agenthix, the journeys that matter to them, what "works" means, which scenarios cover each, and whether a test backs them. Written from users' expectations, not from the code.
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # User-journey coverage map
@@ -194,6 +194,16 @@ These are not yet counted in the summary below; the full audit before the first 
 | **MCH-18** Give live apps their own addresses | Important | One command sets the preview domain and checks it; `preview.localhost` on a laptop; none on a bare address, said on screen; a certificate per app on first open. | SC-1707, SC-1719, SC-1751, SC-1756, SC-1757 | 4 of 5 | Scenario only (no automated test) |
 
 SC-1718 (`main`'s live preview brought up to date when `main` moves, and a branch's commits brought back before a merge from another site), SC-1719 (*Live preview* on a bare address) and SC-1748 (the guard's timing, its reach to the people who have it open, and a site whose guard is silent) have no citing test yet.
+
+### Journeys added at the close of *feature flags with stages* (2026-11-03)
+
+These are not yet counted in the summary below; the full audit before the first release counts them. Citations are on a whole group of tests (a `describe`) or on a test of an end-to-end spec, so the audit re-reads them. Some are asserted by integration, end-to-end and cross-app tests that need the test databases or running apps and are run by the lead. The maintainers' own journeys have no role in this map: running tests as shipped and keeping a feature's own tests apart (**SC-1764**, **SC-1774**) and refusing a release while a released flag outlives its minor release (**SC-1763**) are covered by scenarios and tests but listed by none of the journeys below.
+
+| Journey | Weight | What "works" means | Scenarios | Tests cite | Status |
+|---|---|---|---|---|---|
+| **ADM-27** Try a feature in beta, or switch off one that is new | Important | *Features* in the organisation's settings lists the betas and the features new in this release for admins, with a label, a switch and who last switched it; a switch applies to the whole organisation and a refusal says nothing was changed; a member is told who to ask. | SC-1765 to SC-1768 | 4 of 4 | Covered by a scenario and a test |
+| **ADM-28** A feature that is off is closed everywhere | Critical | One rule decides; hq's server refuses its entry points as not available, agents are given none of its tools or words, a site refuses its methods and the relay its addresses taking hq's word for two things only; with live previews off, code work on branches is unchanged. | SC-1761, SC-1762, SC-1769 to SC-1773, SC-1775, SC-1776, SC-1780 | 10 of 10 | Covered by a scenario and a test |
+| **FLT-19** See a feature's section only when the organisation has it on | Important | The Fleet Console draws a flagged section only while HQ says its feature is on, and refuses its routes otherwise; none is on while HQ is not asked. | SC-1777 to SC-1780 | 4 of 4 | Covered by a scenario and a test |
 
 ## Viewer
 

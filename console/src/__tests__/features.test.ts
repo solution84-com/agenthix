@@ -8,7 +8,7 @@ import { startHarness, type Harness } from './harness'
 let h: Harness | null = null
 afterEach(async () => { await h?.close(); h = null })
 
-describe("hq's answer of which features are on", () => {
+describe("hq's answer of which features are on @SC-1777", () => {
   it('keeps only the flags this Fleet Console knows', () => {
     expect(parseFeaturesOn({ on: ['usageBilling', 'notAFlag', 3, 'usageBilling'] })).toEqual(['usageBilling'])
     expect(parseFeaturesOn({ on: 'usageBilling' })).toEqual([])
@@ -36,7 +36,7 @@ describe("hq's answer of which features are on", () => {
   })
 })
 
-describe('the screens and the guard', () => {
+describe('the screens and the guard @SC-1777', () => {
   it('tells a signed-in screen which features are on, and nobody else', async () => {
     h = await startHarness({ askFeatures: async () => ({ on: ['marketplace'] }) })
     expect((await h.request('/api/features')).status).toBe(401)
