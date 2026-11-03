@@ -27,13 +27,12 @@ import type { RunCredential, SubscriptionRefreshedEvent } from '@agenthix/core'
 import type { SiteRunCredential } from '../../server/modelRelay/runAccess'
 import { hqConnectionManager } from '../../server/hq/hqConnection'
 import { Logger } from '../../server/utils/logger'
-import { parseCredentialExpiresAt, readCredentialExpiresAt, serialiseCredentialHome } from './agentCredentials'
-import { writeFileAtomic } from './credentialFile'
+import { homeDocumentExpiresAt, parseCredentialExpiresAt, readCredentialExpiresAt, serialiseCredentialHome } from './agentCredentials'
+import { CREDENTIALS_FILE, readCredentialFile, withCredentialFolder, writeFileAtomicIn } from './credentialFile'
 import { KeyedAsyncQueue } from './runQueue'
 
 const logger = new Logger('SubscriptionLogins')
 
-const CREDENTIALS_FILE = '.credentials.json'
 /**
  * The directory Claude Code creates as its lock while it refreshes a token in
  * this home. Taken here too, around a copy, so a copy never lands between the
@@ -145,9 +144,13 @@ async function sweepLogin(loginId: string, copies: LoginCopies): Promise<void> {
   const homes = [...copies.homes].filter(([home]) => loginOfHome.get(home) === loginId)
 
   for (const [home, { grantId }] of homes) {
-    const oauthJson = await fs.readFile(path.join(home, CREDENTIALS_FILE), 'utf-8').catch(() => null)
-    if (oauthJson === null) continue
-    const expiresAt = parseCredentialExpiresAt(oauthJson)
+    // The run writes its home: only a plain file holding a usable document,
+    // whose expiry is within reach, is taken as a refresh (credentialFile.ts).
+    const read = await readCredentialFile(home)
+    if (read.state !== 'read') continue
+    const oauthJson = read.text
+    const expiresAt = homeDocumentExpiresAt(oauthJson)
+    if (expiresAt === 0) continue
     if (!copies.freshest || expiresAt > copies.freshest.expiresAt) copies.freshest = { oauthJson, expiresAt, grantId }
   }
   const freshest = copies.freshest
@@ -175,22 +178,23 @@ async function sweepLogin(loginId: string, copies: LoginCopies): Promise<void> {
  */
 async function copyInto(home: string, loginId: string, freshest: Document): Promise<void> {
   if (loginOfHome.get(home) !== loginId) return
-  const dest = path.join(home, CREDENTIALS_FILE)
-  const onDisk = await readCredentialExpiresAt(dest)
+  const onDisk = await readCredentialExpiresAt(home)
   if (onDisk === null || onDisk >= freshest.expiresAt) return
 
-  const lock = path.join(home, HARNESS_REFRESH_LOCK)
-  try {
-    await fs.mkdir(lock)
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'EEXIST') return
-    throw err
-  }
-  try {
-    await writeFileAtomic(dest, freshest.oauthJson)
-  } finally {
-    await fs.rmdir(lock).catch(() => {})
-  }
+  await withCredentialFolder(home, async dir => {
+    const lock = path.join(dir, HARNESS_REFRESH_LOCK)
+    try {
+      await fs.mkdir(lock)
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'EEXIST') return
+      throw err
+    }
+    try {
+      await writeFileAtomicIn(dir, CREDENTIALS_FILE, freshest.oauthJson)
+    } finally {
+      await fs.rmdir(lock).catch(() => {})
+    }
+  })
 }
 
 function startSweeper(): void {

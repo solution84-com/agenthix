@@ -28,6 +28,7 @@ import type { RunContextPayload } from '@agenthix/core'
 // assembleRunLaunch (runLaunch.ts) is real in this file — only AgentContainerManager
 // is mocked below. Mocked here so these tests never touch the real filesystem,
 // and so the mkdir assertions below can see every directory a run asks for.
+vi.mock('../credentialFile', () => import('./fakeCredentialFile'))
 vi.mock('node:fs/promises', () => ({
   default: {
     mkdir: vi.fn().mockResolvedValue(undefined),

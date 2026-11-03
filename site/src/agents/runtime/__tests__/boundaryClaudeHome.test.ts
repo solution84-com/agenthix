@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+vi.mock('../credentialFile', () => import('./fakeCredentialFile'))
 vi.mock('node:fs/promises', () => ({
   default: {
     mkdir: vi.fn().mockResolvedValue(undefined),
@@ -250,7 +251,8 @@ describe('the run\'s own credential is what lands in the home', () => {
   })
 
   it('does not clobber a token the container refreshed in place — freshest wins', async () => {
-    mockFs.readFile.mockResolvedValue(JSON.stringify({ claudeAiOauth: { expiresAt: 9_000 } }) as any)
+    // A refresh carries both tokens; a document without them is not taken as one.
+    mockFs.readFile.mockResolvedValue(JSON.stringify({ claudeAiOauth: { accessToken: 'at', refreshToken: 'rt', expiresAt: 9_000 } }) as any)
 
     await writeRunCredential(HOME, {
       kind: 'subscription', provider: 'anthropic',

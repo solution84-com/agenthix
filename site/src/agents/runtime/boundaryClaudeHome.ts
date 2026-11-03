@@ -27,7 +27,7 @@ import {
   takeUnreportedCredentialHold,
 } from './agentCredentials'
 import { SKILLS_STAGING_DIRNAME } from './skillsStagingDir'
-import { writeFileAtomic } from './credentialFile'
+import { removeCredentialDocument, writeCredentialFile } from './credentialFile'
 import { freshestDocumentFor, homeHoldsAnotherLogin, noteHomeLogin } from './subscriptionLogins'
 import { HARNESS_HOME_CONTAINER_DIR, harnessHomeFor } from './harnessHomes'
 import type { ContainerKey } from './containerTypes'
@@ -116,7 +116,7 @@ export async function clearRunCredential(home: string): Promise<void> {
 }
 
 async function removeCredentialFile(home: string): Promise<void> {
-  await fs.rm(path.join(home, '.credentials.json'), { force: true })
+  await removeCredentialDocument(home)
   noteHomeLogin(home, undefined)
 }
 
@@ -184,12 +184,13 @@ export async function writeRunCredential(home: string, credential: SiteRunCreden
     // home holding another sign-in's document is overwritten however fresh
     // that document is, or the run would use a login it was not given.
     const document = freshestDocumentFor(credential)
-    const dest = path.join(home, '.credentials.json')
-    const onDisk = await readCredentialExpiresAt(dest)
+    // Read as the run left it: a document that is not a plain file, or claims
+    // an expiry no refresh gives, reads as stale and is replaced (agentCredentials.ts).
+    const onDisk = await readCredentialExpiresAt(home)
     const keep = onDisk !== null
       && !homeHoldsAnotherLogin(home, credential.loginId)
       && parseCredentialExpiresAt(document) <= onDisk
-    if (!keep) await writeFileAtomic(dest, document)
+    if (!keep) await writeCredentialFile(home, document)
     noteHomeLogin(home, credential.loginId)
   })
 }

@@ -239,10 +239,12 @@ function deleteBranch(gd, name, expected) {
   }
 }
 
+/** Points HEAD at \`name\`. The lock is written fresh: a link planted in its place is removed, never followed. */
 function setHead(gd, name) {
   needBranch(name)
   const tmp = path.join(gd, 'HEAD.lock')
-  fs.writeFileSync(tmp, 'ref: refs/heads/' + name + '\n', { flag: 'w' })
+  try { fs.unlinkSync(tmp) } catch (e) { if (e.code !== 'ENOENT') throw new Refusal('refConflict') }
+  fs.writeFileSync(tmp, 'ref: refs/heads/' + name + '\n', { flag: 'wx' })
   fs.renameSync(tmp, path.join(gd, 'HEAD'))
 }
 

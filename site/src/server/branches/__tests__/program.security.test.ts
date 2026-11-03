@@ -129,6 +129,15 @@ describe('links in a copy @SC-1721', () => {
     expect(fs.readFileSync(path.join(outside, 'index'), 'utf8')).toBe('untouched')
   })
 
+  it('a HEAD.lock that is a link outside the copy is replaced when a branch is renamed, not written through', async () => {
+    const copy = await withCopy()
+    write(outside, 'target', 'untouched')
+    fs.symlinkSync(path.join(outside, 'target'), path.join(copy, '.git', 'HEAD.lock'))
+    expect(await op(owner, { op: 'rename', from: 'login-page', to: 'sign-in' }, { id: COPY_A, readOnly: false })).toEqual({ name: 'sign-in' })
+    expect(fs.readFileSync(path.join(outside, 'target'), 'utf8')).toBe('untouched')
+    expect(fs.readFileSync(path.join(copy, '.git', 'HEAD'), 'utf8')).toBe('ref: refs/heads/sign-in\n')
+  })
+
   it('a link in the working tree is committed as a link, never as what it points at', async () => {
     const copy = await withCopy()
     write(outside, 'secret', 'do not read')

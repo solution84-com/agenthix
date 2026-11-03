@@ -4,6 +4,7 @@ vi.mock('node:child_process', () => ({
   execFile: vi.fn(),
 }))
 
+vi.mock('../credentialFile', () => import('./fakeCredentialFile'))
 vi.mock('node:fs/promises', () => ({
   default: {
     readFile: vi.fn().mockRejectedValue(Object.assign(new Error('ENOENT'), { code: 'ENOENT' })),

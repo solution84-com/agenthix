@@ -4,6 +4,7 @@ vi.mock('node:child_process', () => ({
   execFile: vi.fn(),
 }))
 
+vi.mock('../credentialFile', () => import('./fakeCredentialFile'))
 vi.mock('node:fs/promises', () => ({
   default: {
     mkdir: vi.fn().mockResolvedValue(undefined),
@@ -353,7 +354,7 @@ describe('AgentContainerManager @SC-121', () => {
     // before it can be reported back to hq.
     mockFs.readFile.mockImplementation((async (filePath: string) => {
       if (filePath === `${ALPHA_CLAUDE}/.credentials.json`) {
-        return JSON.stringify({ claudeAiOauth: { expiresAt: Date.now() + 60 * 60_000 } })
+        return JSON.stringify({ claudeAiOauth: { accessToken: 'at', refreshToken: 'rt', expiresAt: Date.now() + 60 * 60_000 } })
       }
       throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
     }) as any)

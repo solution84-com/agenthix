@@ -13,8 +13,12 @@
  * nothing else, so it can never point at a login hq did not give that site:
  *
  *  - the grant must exist, belong to the reporting site, and be unexpired;
+ *  - the grant must have been made to a run of the login's own holder: a
+ *    login is only ever replaced by its holder's runs;
  *  - the document must be a usable OAuth credentials document whose own
- *    `expiresAt` agrees with the report's and lies in the future;
+ *    `expiresAt` agrees with the report's, lies in the future, and no further
+ *    off than an access token lasts (`REFRESHED_EXPIRY_CEILING_MS`), so a
+ *    document claiming a far expiry cannot outrank every real refresh after it;
  *  - the stored login must still be the sign-in that was handed over
  *    (`termsAcceptedAt`, set at every sign-in and never by a refresh), so a
  *    late report cannot put an earlier account back after someone signed in
@@ -47,6 +51,13 @@ const logger = new Logger('SubscriptionGrants')
  * the connection is back.
  */
 export const SUBSCRIPTION_GRANT_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+/**
+ * The furthest from now a refreshed token's expiry may lie. An access token
+ * lasts hours; the site applies the same bound before it copies or reports a
+ * document.
+ */
+export const REFRESHED_EXPIRY_CEILING_MS = 7 * 24 * 60 * 60 * 1000
 
 /** Where a run handed a subscription goes: the site, its session, and who it runs for. */
 export type GrantTarget = { siteId: string; sessionId: string; runner: CapabilityRunner }
@@ -103,12 +114,12 @@ export async function grantSubscription(
 
 /**
  * A refreshed document hq would hand to the next run: it parses, carries an
- * access and a refresh token, and its expiry agrees with the report's and has
- * not passed. A refresh that is already expired is not one.
+ * access and a refresh token, and its expiry agrees with the report's, has not
+ * passed, and is within the ceiling. A refresh that is already expired is not one.
  */
 export function isUsableRefreshedDocument(oauthJson: string, declaredExpiresAt: number, now: number): boolean {
   if (!isPlausibleOauthDocument(oauthJson, declaredExpiresAt)) return false
-  if (declaredExpiresAt <= now) return false
+  if (declaredExpiresAt <= now || declaredExpiresAt > now + REFRESHED_EXPIRY_CEILING_MS) return false
   const oauth = (JSON.parse(oauthJson) as { claudeAiOauth: Record<string, unknown> }).claudeAiOauth
   const nonEmpty = (v: unknown) => typeof v === 'string' && v.length > 0
   return nonEmpty(oauth.accessToken) && nonEmpty(oauth.refreshToken)
@@ -118,6 +129,7 @@ export type RefreshOutcome =
   | 'accepted'
   | 'unknown-grant'
   | 'grant-expired'
+  | 'not-the-holder'
   | 'not-a-usable-document'
   | 'not-fresher-or-signed-in-again'
 
@@ -133,12 +145,15 @@ export async function acceptSubscriptionRefresh(
 ): Promise<RefreshOutcome> {
   const grant = await prisma.subscriptionGrant.findUnique({
     where: { id: event.grantId },
-    select: { siteId: true, providerId: true, signedInAt: true, expiresAt: true },
+    select: { siteId: true, providerId: true, signedInAt: true, expiresAt: true, runnerKind: true, runnerId: true },
   })
   // A grant made to another site answers exactly as a grant that does not
   // exist: a site learns nothing about what hq handed to its siblings.
   if (!grant || grant.siteId !== siteId) return 'unknown-grant'
   if (grant.expiresAt.getTime() <= now) return 'grant-expired'
+  if (grant.runnerKind !== 'person' || !grant.runnerId) return 'not-the-holder'
+  const login = await prisma.aiProvider.findUnique({ where: { id: grant.providerId }, select: { ownerUserId: true } })
+  if (!login || login.ownerUserId !== grant.runnerId) return 'not-the-holder'
   if (!isUsableRefreshedDocument(event.oauthJson, event.expiresAt, now)) return 'not-a-usable-document'
 
   const refreshedExpiresAt = new Date(event.expiresAt)
@@ -146,7 +161,7 @@ export async function acceptSubscriptionRefresh(
     where: {
       id: grant.providerId,
       credentialKind: 'subscription',
-      ownerUserId: { not: null },
+      ownerUserId: grant.runnerId,
       termsAcceptedAt: grant.signedInAt,
       OR: [{ expiresAt: null }, { expiresAt: { lt: refreshedExpiresAt } }],
     },

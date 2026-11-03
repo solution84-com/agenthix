@@ -187,6 +187,9 @@ export async function resolveBoundaryOverrideDir(
   return { dir: realDir, filesHome: realHome }
 }
 
+/** The most a file under a boundary override is read: generous for instructions, the same bound as a place's. */
+export const BOUNDARY_FILE_MAX_BYTES = 128 * 1024
+
 /**
  * Reads a file under a boundary override, rechecking containment at the
  * moment of the read (a TOCTOU concern) rather than trusting
@@ -198,6 +201,6 @@ export async function readBoundaryFile(override: BoundaryOverride, relPath: stri
   const file = path.join(override.dir, relPath)
   const realParent = await realpathOrNull(path.dirname(file))
   if (!realParent || !isInsideHome(override.filesHome, realParent)) return null
-  const result = await readFileNoFollow(file, { sandboxHome: override.filesHome })
+  const result = await readFileNoFollow(file, { sandboxHome: override.filesHome, maxBytes: BOUNDARY_FILE_MAX_BYTES })
   return result.ok ? result.buf.toString('utf-8') : null
 }

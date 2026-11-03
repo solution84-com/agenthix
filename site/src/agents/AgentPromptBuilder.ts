@@ -28,7 +28,8 @@
  * instead of reading disk itself for instructions/ORG.md.
  */
 import { codeWorkPromptText, type RunCodeWork } from '@agenthix/core'
-import fs from 'node:fs/promises'
+import { readAgentWritableFile } from './runtime/containedFile'
+import { getStorageRoot } from '../server/storage/paths'
 import type { TaskCommentForRun } from '@agenthix/core'
 import { PromptSection } from '../shared/promptSections'
 import type { PromptContent } from './promptContent'
@@ -51,12 +52,17 @@ import {
 
 // ─── File helpers ─────────────────────────────────────────────────────────────
 
-async function readFile(filePath: string): Promise<string | null> {
-  try {
-    return await fs.readFile(filePath, 'utf-8')
-  } catch {
-    return null
-  }
+/** An agenda is a few short lists; anything past this is not one, and is left out of the prompt. */
+export const AGENDA_MAX_BYTES = 64 * 1024
+
+/**
+ * The run writes the agenda's folder, so the file may be a link, a device or a
+ * huge file by the time it is read: only a plain file of its own, under the
+ * storage root with no link on the way, is read (`readAgentWritableFile`).
+ */
+async function readAgenda(filePath: string): Promise<string | null> {
+  const result = await readAgentWritableFile(getStorageRoot(), filePath, AGENDA_MAX_BYTES)
+  return result.ok ? result.buf.toString('utf-8') : null
 }
 
 // ─── Base sections (Identity group) ──────────────────────────────────────────
@@ -152,7 +158,7 @@ export class AgentPromptBuilder {
 
     // One section: the person's own file, then the guidance about it.
     sections.push(context.agenda
-      ? buildAgendaSection(context.agenda.visiblePath, await readFile(context.agenda.hostPath))
+      ? buildAgendaSection(context.agenda.visiblePath, await readAgenda(context.agenda.hostPath))
       : buildNoAgendaSection())
 
     const place = buildPlaceInstructionsSection(this.content.place)

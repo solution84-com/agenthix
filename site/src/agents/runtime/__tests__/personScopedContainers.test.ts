@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('node:child_process', () => ({ execFile: vi.fn() }))
+vi.mock('../credentialFile', () => import('./fakeCredentialFile'))
 vi.mock('node:fs/promises', () => ({
   default: {
     mkdir: vi.fn().mockResolvedValue(undefined),

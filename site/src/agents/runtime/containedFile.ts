@@ -46,7 +46,7 @@ import { constants as fsConstants, type Stats } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { WorkspaceService } from '../agentDiskPaths'
-import { realpathOfFd, isInsideHome } from '../../packages/boundaryOverrides'
+import { realpathOfFd, isInsideHome, readFileNoFollow, realpathOrNull, type NoFollowRead } from '../../packages/boundaryOverrides'
 
 export type FileHandle = Awaited<ReturnType<typeof fs.open>>
 export type Resolved = { realRoot: string; realTarget: string }
@@ -192,4 +192,25 @@ export async function writeContainedFile(root: string, relPath: string, content:
   } finally {
     await handle.close().catch(() => {})
   }
+}
+
+/**
+ * Reads a file the site does not write, in a folder an agent can: a person's
+ * agenda, a harness home's credentials document. `root` is a folder the site
+ * made and no agent can replace; `file` lies under it.
+ *
+ * Refused (never thrown) unless the folders from `root` to the file are real
+ * folders where the path says, with no link among them, and the file itself is
+ * a regular file with one name, no link, and at most `maxBytes`: opened once
+ * without following a link and checked on the descriptor (`readFileNoFollow`).
+ * A link, `/dev/zero`, a pipe or a huge file is never read.
+ */
+export async function readAgentWritableFile(root: string, file: string, maxBytes: number): Promise<NoFollowRead> {
+  const dir = path.dirname(path.resolve(file))
+  const lexicalRoot = path.resolve(root)
+  if (!isInsideHome(lexicalRoot, dir)) return { ok: false, reason: 'outside-sandbox' }
+  const [realRoot, realDir] = await Promise.all([realpathOrNull(lexicalRoot), realpathOrNull(dir)])
+  if (!realRoot || !realDir) return { ok: false, reason: 'missing' }
+  if (realDir !== path.join(realRoot, path.relative(lexicalRoot, dir))) return { ok: false, reason: 'link' }
+  return readFileNoFollow(path.join(realDir, path.basename(file)), { sandboxHome: realDir, maxBytes })
 }

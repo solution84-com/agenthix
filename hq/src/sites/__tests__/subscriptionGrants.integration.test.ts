@@ -25,6 +25,7 @@ import {
   handleSubscriptionRefreshedEvent,
   isUsableRefreshedDocument,
   loginIdOf,
+  REFRESHED_EXPIRY_CEILING_MS,
   SUBSCRIPTION_GRANT_TTL_MS,
   type UngrantedSubscription,
 } from '../subscriptionGrants'
@@ -178,6 +179,27 @@ describe('acceptSubscriptionRefresh — only a site that ran with the login @SC-
 
     expect(outcome).toBe('not-fresher-or-signed-in-again')
     expect(await storedDocument(row)).toBe(doc(T0 + 9 * HOUR))
+  })
+
+  it("refuses a report against a grant made to anyone but the login's holder", async () => {
+    const row = await storeLogin(T0 + 8 * HOUR)
+    const other = await createUser()
+    const credential: UngrantedSubscription = { kind: 'subscription', provider: 'anthropic', oauthJson: (await storedDocument(row))! }
+    const { grantId } = await grantSubscription(credential, { providerId: row.id, signedInAt: SIGNED_IN }, { siteId: 'site-1', sessionId: 's1', runner: { kind: 'person', userId: other.id } }, new Date(T0))
+
+    const outcome = await acceptSubscriptionRefresh('site-1', { grantId: grantId!, oauthJson: doc(T0 + 16 * HOUR), expiresAt: T0 + 16 * HOUR }, T0)
+
+    expect(outcome).toBe('not-the-holder')
+    expect(await storedDocument(row)).toBe(doc(T0 + 8 * HOUR))
+  })
+
+  it('refuses a document whose expiry lies further off than an access token lasts', async () => {
+    const row = await storeLogin(T0 + 8 * HOUR)
+    const { grantId } = await supply(row)
+    const far = T0 + REFRESHED_EXPIRY_CEILING_MS + HOUR
+
+    expect(await acceptSubscriptionRefresh('site-1', { grantId: grantId!, oauthJson: doc(far), expiresAt: far }, T0)).toBe('not-a-usable-document')
+    expect(await storedDocument(row)).toBe(doc(T0 + 8 * HOUR))
   })
 
   it('refuses a document that is not a usable credential', async () => {

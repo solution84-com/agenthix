@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { TurnInput } from '../claude/turnInput'
 import { pickedSkillInstruction, pickedSkillReadInstruction } from '../pickedSkill'
+vi.mock('../credentialFile', () => import('./fakeCredentialFile'))
 vi.mock('node:fs/promises', () => ({
   default: {
     mkdtemp: vi.fn().mockResolvedValue('/site/homes/project-proj-alpha/.tmp/skills-123'),

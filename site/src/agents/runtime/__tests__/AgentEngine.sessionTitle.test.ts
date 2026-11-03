@@ -38,6 +38,7 @@ vi.mock('../../agentDiskPaths', () => ({
 // The site now creates the agent's workspace directory itself at launch
 // (hq no longer provisions a site's disk) — mkdir is mocked so this doesn't
 // touch the real filesystem.
+vi.mock('../credentialFile', () => import('./fakeCredentialFile'))
 vi.mock('node:fs/promises', () => ({
   default: { mkdir: vi.fn().mockResolvedValue(undefined) },
 }))

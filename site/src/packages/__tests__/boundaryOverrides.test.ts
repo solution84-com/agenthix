@@ -3,7 +3,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { boundaryOverridePath, resolveBoundaryOverrideDir, readRegularFile, readBoundaryFile, readFileNoFollow } from '../boundaryOverrides'
+import { boundaryOverridePath, resolveBoundaryOverrideDir, readRegularFile, readBoundaryFile, readFileNoFollow, BOUNDARY_FILE_MAX_BYTES } from '../boundaryOverrides'
 
 let root: string
 beforeEach(async () => { root = await fs.mkdtemp(path.join(os.tmpdir(), 'site-root-')); process.env.SITE_ROOT = root })
@@ -160,6 +160,16 @@ describe('boundary overrides', () => {
       await fs.writeFile(path.join(dir, 'instructions.md'), 'In Atlas, cite the ADR.')
       const override = { dir: await fs.realpath(dir), filesHome: await fs.realpath(filesHome) }
       expect(await readBoundaryFile(override, 'instructions.md')).toBe('In Atlas, cite the ADR.')
+    })
+
+    it('refuses an instructions file larger than the limit, and reads one at it', async () => {
+      const { dir, filesHome } = boundaryOverridePath(project, 'agent-1')
+      await fs.mkdir(dir, { recursive: true })
+      const override = { dir: await fs.realpath(dir), filesHome: await fs.realpath(filesHome) }
+      await fs.writeFile(path.join(dir, 'instructions.md'), 'x'.repeat(BOUNDARY_FILE_MAX_BYTES))
+      expect(await readBoundaryFile(override, 'instructions.md')).toHaveLength(BOUNDARY_FILE_MAX_BYTES)
+      await fs.writeFile(path.join(dir, 'instructions.md'), 'x'.repeat(BOUNDARY_FILE_MAX_BYTES + 1))
+      expect(await readBoundaryFile(override, 'instructions.md')).toBeNull()
     })
 
     it('refuses an instructions file that is a hard link to a file elsewhere', async () => {

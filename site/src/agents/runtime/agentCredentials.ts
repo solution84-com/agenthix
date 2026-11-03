@@ -23,14 +23,13 @@
  * survives in both directions; the shared seed it arbitrated does not.
  */
 import { execFile } from 'node:child_process'
-import fs from 'node:fs/promises'
-import path from 'node:path'
 import type { CredentialHealthEvent } from '@agenthix/core'
 import { isRelayed, type SiteRunCredential } from '../../server/modelRelay/runAccess'
 import { Logger } from '../../server/utils/logger'
 import { hqConnectionManager } from '../../server/hq/hqConnection'
 import { CLAUDE_SDK_RUNTIME } from './types'
 import { KeyedAsyncQueue } from './runQueue'
+import { readCredentialFile } from './credentialFile'
 import type { ContainerKey } from './containerTypes'
 
 const logger = new Logger('AgentContainerManager')
@@ -57,11 +56,36 @@ export function parseCredentialExpiresAt(raw: string): number {
 }
 
 /**
- * The same value read off a file. FILE ABSENT (ENOENT) returns `null` —
- * "nothing here at all", distinct from a file that exists but carries no
- * usable `expiresAt`. An unreadable file (permission error, `EISDIR`, etc.) or
- * a present-but-unparseable one both fold to `0`: as stale as possible, but
- * still a REAL file.
+ * The longest an access token is taken to last from now. Claude's run for hours;
+ * a document claiming more is not a refresh the harness made, and one taken at
+ * its word would win every freshest-wins comparison until it lapsed. hq refuses
+ * the same (`subscriptionGrants.ts`).
+ */
+export const REFRESHED_EXPIRY_CEILING_MS = 7 * 24 * 60 * 60 * 1000
+
+/**
+ * The expiry of a document read out of a harness home, which the run can
+ * write: `0`, as stale as possible, unless it carries both tokens and an
+ * expiry no further off than the ceiling. Only that value is compared, copied
+ * between homes, kept over what hq handed out, or reported to hq.
+ */
+export function homeDocumentExpiresAt(raw: string, now: number = Date.now()): number {
+  const expiresAt = parseCredentialExpiresAt(raw)
+  if (expiresAt === 0 || expiresAt > now + REFRESHED_EXPIRY_CEILING_MS) return 0
+  try {
+    const oauth = JSON.parse(raw)?.claudeAiOauth
+    const nonEmpty = (v: unknown) => typeof v === 'string' && v.length > 0
+    return nonEmpty(oauth?.accessToken) && nonEmpty(oauth?.refreshToken) ? expiresAt : 0
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * The same value read off the home's document (`readCredentialFile`). NOTHING
+ * THERE returns `null` — distinct from something there that is not a usable
+ * document, or is not a plain file at all (a link, a device, too large), which
+ * folds to `0`: as stale as possible, but still something in the way.
  *
  * The null/0 split is what lets `writeRunCredential` tell "this home has no
  * credential yet, write whatever we were given" apart from "this home holds
@@ -69,22 +93,15 @@ export function parseCredentialExpiresAt(raw: string): number {
  * present-but-unparseable document indistinguishable from an empty home, and
  * a `0 <= 0` comparison then wrote nothing at all.
  */
-export async function readCredentialExpiresAt(filePath: string): Promise<number | null> {
-  let raw: string
-  try {
-    raw = await fs.readFile(filePath, 'utf-8')
-  } catch (err: any) {
-    return err?.code === 'ENOENT' ? null : 0
-  }
-  return parseCredentialExpiresAt(raw)
+export async function readCredentialExpiresAt(claudeHome: string): Promise<number | null> {
+  const read = await readCredentialFile(claudeHome)
+  if (read.state === 'missing') return null
+  return read.state === 'read' ? homeDocumentExpiresAt(read.text) : 0
 }
 
-async function readCredentialDocument(filePath: string): Promise<string | null> {
-  try {
-    return await fs.readFile(filePath, 'utf-8')
-  } catch {
-    return null
-  }
+async function readCredentialDocument(claudeHome: string): Promise<string | null> {
+  const read = await readCredentialFile(claudeHome)
+  return read.state === 'read' ? read.text : null
 }
 
 function hasRefreshToken(raw: string): boolean {
@@ -282,7 +299,7 @@ export async function checkAgentCredentials(args: {
     throw new Error(`OAuth credentials not found in agent container "${containerName}". ${advice}`)
   }
 
-  const document = await readCredentialDocument(path.join(home, '.credentials.json'))
+  const document = await readCredentialDocument(home)
   const expiresAt = document === null ? 0 : parseCredentialExpiresAt(document)
   // An expired access token is not an expired login: Claude Code renews it from
   // the refresh token when it starts. Only a document with nothing to renew from

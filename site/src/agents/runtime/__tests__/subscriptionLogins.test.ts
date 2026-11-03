@@ -25,7 +25,8 @@ const mockSendEvent = vi.mocked(hqConnectionManager.sendEvent)
 const mockConnectionState = vi.mocked(hqConnectionManager.connectionState)
 
 const HOUR = 60 * 60 * 1000
-const T0 = 1_900_000_000_000
+// From the real clock: a document read out of a home counts only with an expiry within reach of now.
+const T0 = Date.now()
 
 /** A Claude Code credentials document; the refresh token changes with every refresh, as if the provider rotates it. */
 const doc = (expiresAt: number) =>

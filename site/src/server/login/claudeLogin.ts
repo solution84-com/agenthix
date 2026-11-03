@@ -1,15 +1,15 @@
 import { spawn as nodeSpawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs/promises'
-import os from 'node:os'
 import path from 'node:path'
 import type { ClaudeLoginCancelResult, ClaudeLoginFinishResult, ClaudeLoginStartResult } from '@agenthix/core'
 import { dockerWithin } from '../../agents/runtime/containerLifecycle'
-import { AGENT_CONTAINER_CLAUDE_HOME } from '../../agents/agentDiskPaths'
+import { AGENT_CONTAINER_CLAUDE_HOME, getSiteRoot } from '../../agents/agentDiskPaths'
 import { agentImageName } from '../../agents/runtime/agentImage'
 import { ensureAgentNetwork, releaseAgentNetwork } from '../../agents/runtime/containerNetwork'
 import { ipv6OffArgs } from '../../agents/runtime/ipv6Off'
 import { composeProjectLabelArgs, siteNamespace } from '../../agents/runtime/containerLabels'
+import { readCredentialFile } from '../../agents/runtime/credentialFile'
 import { Logger } from '../utils/logger'
 
 const logger = new Logger('ClaudeLogin')
@@ -44,14 +44,30 @@ export interface LoginDeps {
   network: { ensure: (name: string) => Promise<string>; release: (name: string) => void }
 }
 
+/** Where sign-ins hold Claude's folder while they run: under the site's data folder. */
+export function signInScratchRoot(): string {
+  return path.join(getSiteRoot(), 'sign-ins')
+}
+
+/**
+ * The folder bound as Claude's in the sign-in container. Docker resolves a
+ * bind's source on the machine, not in the site's container, so it must be
+ * under the data folder, which the installed site sees at the same path as the
+ * machine does (deployment.md); the site's own `/tmp` is not there. Only the
+ * site's user may open it: the sign-in container runs as the same user
+ * (agent.Dockerfile, Dockerfile), and the person's tokens sit in it until the
+ * sign-in ends.
+ */
+export async function makeSignInScratch(): Promise<string> {
+  const root = signInScratchRoot()
+  await fs.mkdir(root, { recursive: true, mode: 0o700 })
+  await fs.chmod(root, 0o700)
+  return fs.mkdtemp(path.join(root, 'claude-'))
+}
+
 const realDeps = (): LoginDeps => ({
   spawn: (command, args) => nodeSpawn(command, args, { stdio: ['pipe', 'pipe', 'pipe'] }),
-  mkScratch: async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'agenthix-claude-login-'))
-    // The container user is not this process's user; mkdtemp's 0700 would lock it out.
-    await fs.chmod(dir, 0o777)
-    return dir
-  },
+  mkScratch: makeSignInScratch,
   rmScratch: dir => fs.rm(dir, { recursive: true, force: true }),
   killContainer: async name => {
     await dockerWithin(['kill', name], KILL_TIMEOUT_MS)
@@ -232,7 +248,9 @@ function checkCode(code: unknown): string {
 }
 
 async function readCredentials(scratch: string): Promise<string> {
-  const text = await fs.readFile(path.join(scratch, '.credentials.json'), 'utf8')
+  const read = await readCredentialFile(scratch)
+  if (read.state !== 'read') throw new Error('no credentials')
+  const text = read.text
   const parsed: unknown = JSON.parse(text)
   const oauth = typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>).claudeAiOauth : undefined
   if (typeof oauth !== 'object' || oauth === null) throw new Error('no credentials')
