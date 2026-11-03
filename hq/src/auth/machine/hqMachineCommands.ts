@@ -98,7 +98,7 @@ export async function inviteAdminCommand(now = new Date()): Promise<CommandResul
 export async function resetPasswordCommand(username: string | undefined, now = new Date()): Promise<CommandResult> {
   if (!username) return { ok: false, error: 'Usage: reset-password <username>', code: 'usage' }
   const identity = await prisma.authIdentity.findUnique({
-    where: { providerName_providerUserId: { providerName: 'username', providerUserId: username } },
+    where: { providerName_providerUserId: { providerName: 'username', providerUserId: username.toLowerCase() } },
     select: { auth: { select: { userId: true } } },
   })
   const userId = identity?.auth.userId

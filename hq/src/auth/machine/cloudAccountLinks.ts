@@ -77,7 +77,7 @@ export async function cloudFirstLink(ref: string, now = new Date()): Promise<Fir
 export async function cloudResetLink(username: string, now = new Date()): Promise<CloudLink> {
   requireHttps()
   const identity = await prisma.authIdentity.findUnique({
-    where: { providerName_providerUserId: { providerName: 'username', providerUserId: username } },
+    where: { providerName_providerUserId: { providerName: 'username', providerUserId: username.toLowerCase() } },
     select: { auth: { select: { userId: true } } },
   })
   const userId = identity?.auth.userId

@@ -76,6 +76,11 @@ describe('reset-password @SC-721', () => {
     expect(notes).toEqual([expect.objectContaining({ userId: sam.id, actionUrl: `/admin/people/${avery.id}` })])
   })
 
+  it('finds a person whatever letter case the username is typed in', async () => {
+    await person('avery', 'ADMIN')
+    expect(await runHqMachineCommand('reset-password', ['Avery'])).toMatchObject({ ok: true })
+  })
+
   it('says so for an unknown username or none, making nothing', async () => {
     expect(await runHqMachineCommand('reset-password', ['nobody'])).toEqual({ ok: false, error: "No one signs in as 'nobody'.", code: 'not_found' })
     expect(await runHqMachineCommand('reset-password', [])).toMatchObject({ ok: false, code: 'usage' })

@@ -130,6 +130,7 @@ export async function acceptInviteToken(input: AcceptInput): Promise<AcceptResul
   if (problem) return { error: problem.error, status: problem.status, reason: problem.reason }
 
   // Hashed before the transaction — CPU work, not a database operation.
-  const account = { username: input.username, hashedPassword: await hashPassword(input.password), displayName }
+  // Wasp's login looks the typed name up lower-cased, so it is stored that way.
+  const account = { username: input.username.toLowerCase(), hashedPassword: await hashPassword(input.password), displayName }
   return invite.kind === 'FIRST_ADMIN' ? acceptFirstAdmin(invite, account) : acceptInvitation(invite, account)
 }

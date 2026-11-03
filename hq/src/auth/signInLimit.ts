@@ -22,7 +22,7 @@ export const signInLimitKey = (ip: string) => `sign-in:${ip}`
 export const TOO_MANY_SIGN_INS = 'Too many wrong passwords from here. Try again in 15 minutes.'
 
 export function isSignInRequest(req: Pick<Request, 'method' | 'originalUrl'>): boolean {
-  return req.method === 'POST' && req.originalUrl.split('?')[0].replace(/\/+$/, '') === LOGIN_PATH
+  return req.method === 'POST' && req.originalUrl.split('?')[0].replace(/\/+$/, '').toLowerCase() === LOGIN_PATH
 }
 
 export function signInLimit(req: Request, res: Response, next: NextFunction): void {

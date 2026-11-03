@@ -54,6 +54,16 @@ const accept = (token: string, username: string, password = 'password123', name 
 beforeEach(() => resetRateLimiter())
 
 describe('acceptInviteToken @SC-007 @SC-719', () => {
+  it('stores a capitalised username lower-cased, as Wasp\'s login looks it up, and the taken check agrees', async () => {
+    const invite = await createInvite()
+    expect(await accept(invite.token, 'Dana')).toEqual({ success: true, landAt: '/' })
+    expect(await prisma.authIdentity.findUnique({ where: { providerName_providerUserId: { providerName: 'username', providerUserId: 'dana' } } })).not.toBeNull()
+    expect(await prisma.authIdentity.findUnique({ where: { providerName_providerUserId: { providerName: 'username', providerUserId: 'Dana' } } })).toBeNull()
+
+    const second = await createInvite()
+    expect(await accept(second.token, 'DANA')).toMatchObject({ status: 400, reason: 'taken' })
+  })
+
   it('redeems a valid invite: an account with the invite role and their name, the invite consumed', async () => {
     const invite = await createInvite({ role: 'ADMIN' })
 
