@@ -260,10 +260,9 @@ describe('repo.connect never lets the token back out', () => {
    */
   it('and a credential in the URL never reaches the command git is run with or the log', async () => {
     const credentialled = `https://x-access-token:${TOKEN}@github.invalid/acme/store`
-    // A location left holding a `.git` from an earlier attempt and nothing
-    // else: the emptiness rule ignores `.git`, so the pull proceeds, and
-    // `git remote add origin <url>` then fails because origin is already
-    // there. That failure's command is quoted into the log.
+    // A location left holding a `.git` from an earlier attempt, with another origin, and nothing else: the
+    // emptiness rule ignores `.git`, so the pull proceeds, and the fetch from the given address fails. git names that
+    // address in what it says, which is logged.
     const staleDir = locationDir(emptyLoc)
     await fs.mkdir(staleDir, { recursive: true })
     await execFileAsync('git', ['-C', staleDir, 'init', '-q', '-b', 'main'])
@@ -274,7 +273,8 @@ describe('repo.connect never lets the token back out', () => {
     )
 
     const logged = logs.join('\n')
-    expect(logged).toContain('remote add origin https://github.invalid/acme/store')
+    expect(logged).toContain('https://github.invalid/acme/store')
+    expect(logged).not.toContain('example.invalid')
     expect(logged).not.toContain('x-access-token')
     expect(surfaceOf(err, logs)).not.toContain(TOKEN)
     // And the refusal itself carries neither the marker nor the remote: it is

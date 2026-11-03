@@ -13,6 +13,10 @@
  * is never embedded in the remote URL or persisted in .git/config (closes SC-259 /
  * PAT-leak Finding 1).
  *
+ * Nothing the location's `.git` holds runs or decides where anything goes: every command runs through
+ * `./repoGit.ts`, over a git directory of the site's own, with the remote the site was given. That module's header
+ * has the rest.
+ *
  * Every invocation goes through `./gitRunner.ts` rather than `execFile`, and
  * every one of them shares ONE deadline for the whole call. Nine commands with
  * a timeout each would add up past the budget hq is holding; and without a
@@ -24,7 +28,10 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import os from 'node:os'
 import { RepoWorkError } from '@agenthix/core'
-import { GitDeadline, runGit } from './gitRunner'
+import { GitDeadline } from './gitRunner'
+import { createRepository, openRepository, remoteAddress, type Repository } from './repoGit'
+
+export { openRepository } from './repoGit'
 
 const GIT_IDENTITY = ['-c', 'user.name=Agenthix', '-c', 'user.email=noreply@agenthix.dev']
 
@@ -36,7 +43,8 @@ export const cleanUrl = (repoUrl: string) =>
     .replace(/\.git$/, '')
 
 interface GitAuthEnv {
-  env: NodeJS.ProcessEnv & { GIT_ASKPASS: string; GIT_TERMINAL_PROMPT: string }
+  /** Added to the environment of the commands that reach the remote. */
+  env: { GIT_ASKPASS: string; GIT_TERMINAL_PROMPT: string }
   _cleanup: () => Promise<void>
 }
 
@@ -49,10 +57,12 @@ export async function withGitAuth(token: string): Promise<GitAuthEnv> {
   const script = path.join(dir, 'askpass.sh')
   // The username is not a secret and must not be the token (a proxy or a log may record it);
   // only a password prompt is answered with the token, and anything else is refused.
-  const body = `#!/bin/sh\ncase "$1" in\n  Username*) echo "x-access-token" ;;\n  Password*) echo "${token}" ;;\n  *) exit 1 ;;\nesac\n`
+  // Single-quoted, so nothing in the token is read by the shell.
+  const quoted = `'${token.split("'").join(`'\\''`)}'`
+  const body = `#!/bin/sh\ncase "$1" in\n  Username*) echo "x-access-token" ;;\n  Password*) printf '%s\\n' ${quoted} ;;\n  *) exit 1 ;;\nesac\n`
   await fs.writeFile(script, body, { mode: 0o700 })
   return {
-    env: { ...process.env, GIT_ASKPASS: script, GIT_TERMINAL_PROMPT: '0' },
+    env: { GIT_ASKPASS: script, GIT_TERMINAL_PROMPT: '0' },
     _cleanup: () => fs.rm(dir, { recursive: true, force: true }),
   }
 }
@@ -82,28 +92,50 @@ export async function linkAndPullRepo(dir: string, repoUrl: string, token: strin
   if ((await listContent(dir)).length > 0) {
     throw new Error('This location already has files — linking would overwrite them. Use Back up / Init to push these up instead, or link into an empty location.')
   }
-  const url = cleanUrl(repoUrl)
-  await runGit(['-C', dir, 'init', '-q'], { deadline })
-  await runGit(['-C', dir, 'remote', 'add', 'origin', url], { deadline })
-  const auth = await withGitAuth(token)
-  let branch: string | null
+  const url = remoteAddress(cleanUrl(repoUrl))
+  if (!(await hasDotGit(dir))) await createRepository(dir, deadline)
+  await withRepository(dir, url, deadline, async repo => {
+    await repo.setConfig('remote.origin.url', url)
+    await repo.setConfig('remote.origin.fetch', '+refs/heads/*:refs/remotes/origin/*')
+    const auth = await withGitAuth(token)
+    let branch: string | null
+    try {
+      await repo.git(['fetch', 'origin'], auth.env)
+      // A private repository answers set-head only to a caller with the credential.
+      branch = await remoteDefaultBranch(repo, auth.env)
+    } finally {
+      await auth._cleanup()
+    }
+    // An empty repository has no branch to check out: the location is initialised and waits for its first push.
+    if (branch) {
+      await repo.git(['checkout', '-B', branch, `origin/${branch}`])
+      await setUpstream(repo, branch)
+    }
+  })
+}
+
+const hasDotGit = (dir: string) => fs.lstat(path.join(dir, '.git')).then(() => true, () => false)
+
+async function withRepository(dir: string, url: string, deadline: GitDeadline, work: (repo: Repository) => Promise<void>) {
+  const repo = await openRepository(dir, url, deadline)
   try {
-    await runGit(['-C', dir, 'fetch', 'origin'], { deadline, env: auth.env })
-    // A private repository answers set-head only to a caller with the credential.
-    branch = await remoteDefaultBranch(dir, deadline, auth.env)
+    await work(repo)
   } finally {
-    await auth._cleanup()
+    await repo.close()
   }
-  // An empty repository has no branch to check out: the location is initialised and waits for its first push.
-  if (branch) await runGit(['-C', dir, 'checkout', '-B', branch, `origin/${branch}`], { deadline })
+}
+
+async function setUpstream(repo: Repository, branch: string): Promise<void> {
+  await repo.setConfig(`branch.${branch}.remote`, 'origin')
+  await repo.setConfig(`branch.${branch}.merge`, `refs/heads/${branch}`)
 }
 
 /** The remote's default branch, or null when the repository is empty. */
-async function remoteDefaultBranch(dir: string, deadline: GitDeadline, env: NodeJS.ProcessEnv): Promise<string | null> {
-  const { stdout: heads } = await runGit(['-C', dir, 'ls-remote', '--heads', 'origin'], { deadline, env })
+async function remoteDefaultBranch(repo: Repository, env: NodeJS.ProcessEnv): Promise<string | null> {
+  const { stdout: heads } = await repo.git(['ls-remote', '--heads', 'origin'], env)
   if (!heads.trim()) return null
-  await runGit(['-C', dir, 'remote', 'set-head', 'origin', '-a'], { deadline, env })
-  const { stdout } = await runGit(['-C', dir, 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], { deadline })
+  await repo.git(['remote', 'set-head', 'origin', '-a'], env)
+  const { stdout } = await repo.git(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'])
   return stdout.trim().replace(/^origin\//, '') || 'main'
 }
 
@@ -112,13 +144,13 @@ async function remoteDefaultBranch(dir: string, deadline: GitDeadline, env: Node
  * repository is empty, or some branch of it shares a commit with the location's. Nothing is fetched into the
  * working tree, and nothing is ever forced.
  */
-async function requireSharedHistory(dir: string, deadline: GitDeadline, env: NodeJS.ProcessEnv): Promise<void> {
-  const { stdout: heads } = await runGit(['-C', dir, 'ls-remote', '--heads', 'origin'], { deadline, env })
+async function requireSharedHistory(repo: Repository, env: NodeJS.ProcessEnv): Promise<void> {
+  const { stdout: heads } = await repo.git(['ls-remote', '--heads', 'origin'], env)
   if (!heads.trim()) return
-  await runGit(['-C', dir, 'fetch', '-q', 'origin', '+refs/heads/*:refs/remotes/origin/*'], { deadline, env })
-  const { stdout: refs } = await runGit(['-C', dir, 'for-each-ref', '--format=%(refname)', 'refs/remotes/origin'], { deadline })
+  await repo.git(['fetch', '-q', 'origin', '+refs/heads/*:refs/remotes/origin/*'], env)
+  const { stdout: refs } = await repo.git(['for-each-ref', '--format=%(refname)', 'refs/remotes/origin'])
   for (const ref of refs.split('\n').filter(Boolean)) {
-    const shared = await runGit(['-C', dir, 'merge-base', 'refs/heads/main', ref], { deadline }).then(() => true).catch(() => false)
+    const shared = await repo.git(['merge-base', 'refs/heads/main', ref]).then(() => true).catch(() => false)
     if (shared) return
   }
   throw new RepoWorkError(
@@ -134,32 +166,31 @@ async function requireSharedHistory(dir: string, deadline: GitDeadline, env: Nod
  */
 export async function initAndPushRepo(dir: string, repoUrl: string, token: string, deadline: GitDeadline): Promise<void> {
   await fs.mkdir(dir, { recursive: true })
-  const isGitRepo = await fs.access(path.join(dir, '.git')).then(() => true).catch(() => false)
-  if (!isGitRepo) await runGit(['-C', dir, 'init', '-q'], { deadline })
-
-  const hasHead = await runGit(['-C', dir, 'rev-parse', '--verify', 'HEAD'], { deadline }).then(() => true).catch(() => false)
-  const branch = hasHead
-    ? (await runGit(['-C', dir, 'branch', '--show-current'], { deadline })).stdout.trim()
-    : null
-  if (!hasHead || branch === 'main') {
-    await runGit(['-C', dir, 'add', '-A'], { deadline })
-    const { stdout: status } = await runGit(['-C', dir, 'status', '--porcelain'], { deadline })
-    if (status.trim() || !hasHead) {
-      await runGit(['-C', dir, ...GIT_IDENTITY, 'commit', '--allow-empty', '-m', 'Initial commit'], { deadline })
+  const url = remoteAddress(cleanUrl(repoUrl))
+  if (!(await hasDotGit(dir))) await createRepository(dir, deadline)
+  await withRepository(dir, url, deadline, async repo => {
+    const hasHead = await repo.git(['rev-parse', '--verify', 'HEAD']).then(() => true).catch(() => false)
+    const branch = hasHead ? (await repo.git(['branch', '--show-current'])).stdout.trim() : null
+    if (!hasHead || branch === 'main') {
+      await repo.git(['add', '-A'])
+      const { stdout: status } = await repo.git(['status', '--porcelain'])
+      if (status.trim() || !hasHead) {
+        await repo.git([...GIT_IDENTITY, 'commit', '--allow-empty', '-m', 'Initial commit'])
+      }
+      if (!hasHead) await repo.git(['branch', '-M', 'main'])
     }
-    if (!hasHead) await runGit(['-C', dir, 'branch', '-M', 'main'], { deadline })
-  }
-  const hasMain = await runGit(['-C', dir, 'rev-parse', '--verify', 'refs/heads/main'], { deadline }).then(() => true).catch(() => false)
+    const hasMain = await repo.git(['rev-parse', '--verify', 'refs/heads/main']).then(() => true).catch(() => false)
 
-  const url = cleanUrl(repoUrl)
-  const hasOrigin = await runGit(['-C', dir, 'remote', 'get-url', 'origin'], { deadline }).then(() => true).catch(() => false)
-  await runGit(['-C', dir, 'remote', hasOrigin ? 'set-url' : 'add', 'origin', url], { deadline })
-  if (!hasMain) return
-  const auth = await withGitAuth(token)
-  try {
-    await requireSharedHistory(dir, deadline, auth.env)
-    await runGit(['-C', dir, 'push', '-u', 'origin', 'main'], { deadline, env: auth.env })
-  } finally {
-    await auth._cleanup()
-  }
+    await repo.setConfig('remote.origin.url', url)
+    await repo.setConfig('remote.origin.fetch', '+refs/heads/*:refs/remotes/origin/*')
+    if (!hasMain) return
+    const auth = await withGitAuth(token)
+    try {
+      await requireSharedHistory(repo, auth.env)
+      await repo.git(['push', 'origin', 'main'], auth.env)
+    } finally {
+      await auth._cleanup()
+    }
+    await setUpstream(repo, 'main')
+  })
 }

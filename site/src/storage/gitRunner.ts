@@ -153,7 +153,33 @@ class CappedOutput {
 export interface RunGitOptions {
   /** The whole call's budget. A command started with none left fails immediately. */
   deadline: GitDeadline
+  /** `cleanGitEnv()` when not given: git never inherits the site's own environment. */
   env?: NodeJS.ProcessEnv
+}
+
+/** What git may see of this process's environment: its search path, temporary folder and proxy and certificate settings. */
+const PASSED_ENV = [
+  'PATH', 'HOME', 'TMPDIR', 'HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'NO_PROXY', 'no_proxy',
+  'ALL_PROXY', 'all_proxy', 'SSL_CERT_FILE', 'SSL_CERT_DIR', 'CURL_CA_BUNDLE',
+]
+
+/**
+ * The environment every git here runs in: none of the site's own settings or secrets, no system or global git
+ * configuration, no prompt, and no replacement objects or grafts.
+ */
+export function cleanGitEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {}
+  for (const key of PASSED_ENV) if (process.env[key] !== undefined) env[key] = process.env[key]
+  return {
+    ...env,
+    GIT_CONFIG_NOSYSTEM: '1',
+    GIT_CONFIG_GLOBAL: '/dev/null',
+    GIT_ATTR_NOSYSTEM: '1',
+    GIT_TERMINAL_PROMPT: '0',
+    GIT_NO_REPLACE_OBJECTS: '1',
+    GIT_GRAFT_FILE: '/dev/null',
+    LC_ALL: 'C',
+  }
 }
 
 /**
@@ -174,7 +200,7 @@ export async function runGit(
 
   installShutdownHandlers()
   const child = spawn('git', args, {
-    env: opts.env ?? process.env,
+    env: opts.env ?? cleanGitEnv(),
     stdio: ['ignore', 'pipe', 'pipe'],
     // Its own process group, so one signal reaches git AND the helper that is
     // actually holding the stalled connection — and so a signal to the SITE
