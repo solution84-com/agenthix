@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0173`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0174`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -306,3 +306,4 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0170](adr-0170-install-scripts-are-blocked-by-default.md) | Install Scripts Are Blocked by Default | Accepted |
 | [ADR-0171](adr-0171-secrets-reach-a-live-preview-only-through-an-approved-workflow.md) | Secrets Reach a Live Preview Only Through an Approved Workflow | Accepted |
 | [ADR-0172](adr-0172-a-flag-has-a-stage.md) | A Flag Has a Stage | Accepted |
+| [ADR-0173](adr-0173-nothing-outside-a-container-acts-on-a-path-a-container-can-change.md) | Nothing Outside a Container Acts on a Path a Container Can Change | Accepted |
