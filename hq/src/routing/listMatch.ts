@@ -14,17 +14,32 @@ export type AppliedList = { mode: ModelListMode; entries: readonly ModelListEntr
 
 const normalise = (s: string) => s.trim().toLowerCase().replace(/\./g, '-')
 
-function globToRegExp(pattern: string): RegExp {
-  const parts = normalise(pattern).split('*').map(p => p.replace(/[\\^$+?.()|[\]{}]/g, '\\$&'))
-  return new RegExp(`^${parts.join('.*')}$`)
+/**
+ * Whether `key` is the pieces between the stars in order, the first at its start and the last at its end. Each piece
+ * is taken at its earliest place, which never loses a match, so nothing is tried twice: a person's pattern of any
+ * shape costs at most its length times the key's.
+ */
+function globMatches(pieces: readonly string[], key: string): boolean {
+  if (pieces.length === 1) return key === pieces[0]
+  const first = pieces[0]
+  const last = pieces[pieces.length - 1]
+  if (key.length < first.length + last.length || !key.startsWith(first) || !key.endsWith(last)) return false
+  let at = first.length
+  const end = key.length - last.length
+  for (const piece of pieces.slice(1, -1)) {
+    const found = key.indexOf(piece, at)
+    if (found < 0 || found + piece.length > end) return false
+    at = found + piece.length
+  }
+  return true
 }
 
 export function patternMatches(pattern: string, makerAndName: string): boolean {
-  const re = globToRegExp(pattern)
+  const pieces = normalise(pattern).split('*')
   const key = normalise(makerAndName)
-  if (re.test(key)) return true
+  if (globMatches(pieces, key)) return true
   const slash = key.indexOf('/')
-  return !pattern.includes('/') && slash >= 0 && re.test(key.slice(slash + 1))
+  return !pattern.includes('/') && slash >= 0 && globMatches(pieces, key.slice(slash + 1))
 }
 
 function lets(list: AppliedList, makerAndName: string): boolean {

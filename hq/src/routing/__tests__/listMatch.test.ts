@@ -37,6 +37,24 @@ describe('patternMatches @SC-1194', () => {
   })
 })
 
+describe('patternMatches with many stars @SC-1194', () => {
+  it('reads a run of stars as one, and keeps the pieces between them in order', () => {
+    expect(patternMatches('**', 'openai/gpt-5')).toBe(true)
+    expect(patternMatches('a**b*c', 'x/aXbYc')).toBe(true)
+    expect(patternMatches('*b*a*', 'x/ab')).toBe(false)
+    expect(patternMatches('ab*ba', 'x/aba')).toBe(false)
+    expect(patternMatches('*gpt*5*', 'openai/gpt-5')).toBe(true)
+  })
+
+  it('answers at once for the longest pattern a person may save, however many stars it has', () => {
+    const started = performance.now()
+    for (const pattern of ['*'.repeat(199) + 'z', '*a'.repeat(100), 'a*'.repeat(100)]) {
+      expect(patternMatches(pattern, `x/${'a'.repeat(200)}`)).toBe(!pattern.endsWith('z'))
+    }
+    expect(performance.now() - started).toBeLessThan(100)
+  })
+})
+
 describe('allowedByLists @SC-1194', () => {
   it('allows everything with no list', () => {
     expect(allowedByLists([], 'openai/gpt-5')).toBe(true)

@@ -23,6 +23,17 @@ describe('PendingRequests @SC-295', () => {
     await expect(promise).rejects.toMatchObject({ code: 'unknown_method' })
   })
 
+  it('fails with a refusal of its own when the error the site sent is not one it can read', async () => {
+    for (const payload of [undefined, null, 'boom', 7, [], {}, { message: 1, code: 'x' }, { message: 'x', code: {} }]) {
+      const p = new PendingRequests()
+      const { requestId, promise } = p.next(1000)
+      expect(() => p.fail(requestId, payload)).not.toThrow()
+      await expect(promise, JSON.stringify(payload)).rejects.toMatchObject({
+        code: 'handler_failed', message: 'The site answered with an error HQ could not read.',
+      })
+    }
+  })
+
   it('ignores a reply that names nothing in flight', () => {
     const p = new PendingRequests()
     expect(p.settle('99', {})).toBe(false)

@@ -43,6 +43,14 @@ describe('checkProtocolCompatibility @SC-291 @SC-1127', () => {
     expect(checkProtocolCompatibility('1.2', ' 1.1 ')).toEqual({ ok: true, peer: 'same', speak: { major: 1, minor: 1 } })
   })
 
+  it('refuses, never throws, when the peer states a version that is not text, as a frame off the wire may', () => {
+    for (const peer of [1, 1.2, true, {}, [], { trim: 1 }, { toString: 1 }]) {
+      const c = checkProtocolCompatibility('1.2', peer)
+      expect(c, JSON.stringify(peer)).toMatchObject({ ok: false, reason: 'malformed', own: { major: 1, minor: 2 } })
+    }
+    expect(checkProtocolCompatibility('1.2', null)).toMatchObject({ ok: false, reason: 'absent' })
+  })
+
   it('throws on a malformed own version: that is ours, a programming error', () => {
     expect(() => checkProtocolCompatibility('1', '1.0')).toThrow(/major\.minor/)
   })

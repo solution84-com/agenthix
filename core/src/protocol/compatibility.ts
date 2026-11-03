@@ -25,12 +25,15 @@ export type ProtocolCompatibility =
 export type ProtocolRefusal = Extract<ProtocolCompatibility, { ok: false }>
 
 /**
- * `own` is this side's constant, so a malformed one is a programming error and throws; `peer` comes off the wire.
+ * `own` is this side's constant, so a malformed one is a programming error and throws; `peer` comes off the wire, so
+ * it may be anything a frame can hold, and anything that is not text is refused as malformed.
  */
-export function checkProtocolCompatibility(own: string, peer: string | null | undefined): ProtocolCompatibility {
+export function checkProtocolCompatibility(own: string, peer: unknown): ProtocolCompatibility {
   const o = parseProtocolVersion(own)
   if (!o) throw new Error(`A protocol version must be "major.minor"; this side's is ${JSON.stringify(own)}.`)
-  if (peer == null || peer.trim() === '') return { ok: false, reason: 'absent', own: o }
+  if (peer == null) return { ok: false, reason: 'absent', own: o }
+  if (typeof peer !== 'string') return { ok: false, reason: 'malformed', own: o, presented: shownValue(peer) }
+  if (peer.trim() === '') return { ok: false, reason: 'absent', own: o }
   const p = parseProtocolVersion(peer)
   if (!p) return { ok: false, reason: 'malformed', own: o, presented: peer }
 
@@ -51,6 +54,12 @@ export function protocolRefusalMessage(refusal: ProtocolRefusal, names: { own: s
   return refusal.reason === 'absent'
     ? `${names.peer} stated no protocol version${tail}`
     : `${names.peer} stated the protocol version ${JSON.stringify(refusal.presented)}, which is not one${tail}`
+}
+
+/** Never `String()` on an object: one off the wire may carry a `toString` that is not a function. */
+function shownValue(v: unknown): string {
+  if (typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint') return String(v)
+  return Array.isArray(v) ? '(a list)' : `(${typeof v === 'object' ? 'an object' : typeof v})`
 }
 
 function show(v: ProtocolVersion): string {

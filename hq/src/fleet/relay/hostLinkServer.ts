@@ -62,14 +62,15 @@ export function attachHostLink(server: HttpServer, deps: HostLinkDeps): void {
     if (credential) {
       const peer = await deps.authenticateHost(credential)
       if (!peer) return refuseUpgrade(socket, 401, 'Unauthorized')
-      wss.handleUpgrade(req, socket, head, ws => serve(ws, { kind: 'host', peer }, seenFrom))
+      wss.handleUpgrade(req, socket, head, ws => serve(listened(ws), { kind: 'host', peer }, seenFrom))
       return
     }
     const lookup = headerOf(req, HOST_JOIN_LOOKUP_HEADER).toLowerCase()
     if (!LOOKUP.test(lookup)) return refuseUpgrade(socket, 401, 'Unauthorized')
     const claim = await deps.claimJoin(lookup)
     if (!claim) return refuseUpgrade(socket, 401, 'Unauthorized')
-    wss.handleUpgrade(req, socket, head, ws => {
+    wss.handleUpgrade(req, socket, head, opened => {
+      const ws = listened(opened)
       // A lookup that matched a join no longer open is told why in a frame, so the machine can say it in words.
       if (!claim.ok) {
         send(ws, frame('host.joinRefused', { reason: claim.reason }))
@@ -78,6 +79,15 @@ export function attachHostLink(server: HttpServer, deps: HostLinkDeps): void {
       }
       serve(ws, { kind: 'joining', joinId: claim.joinId, lookup, asked: false }, seenFrom, claim.expiresAt)
     })
+  }
+
+  /**
+   * Every socket listens for 'error' from the moment it opens, whichever way it goes on: ws emits one for a bad frame
+   * even while it closes, and one with no listener would throw out of hq. 'error' is always followed by 'close'.
+   */
+  function listened(ws: WebSocket): WebSocket {
+    ws.on('error', err => logger.warn(err.message))
+    return ws
   }
 
   function serve(ws: WebSocket, initial: LinkState, seenFrom: string | null, joinExpiresAt?: Date): void {
@@ -147,7 +157,6 @@ export function attachHostLink(server: HttpServer, deps: HostLinkDeps): void {
       if (state.kind === 'host') deps.hub.removeHost(state.peer.hostId, ws)
       else deps.hub.removeJoining(state.joinId, ws)
     })
-    ws.on('error', err => logger.warn(err.message))
   }
 
   async function handCertificates(ws: WebSocket): Promise<void> {

@@ -26,6 +26,31 @@ describe('a parameter pattern @SC-1361', () => {
     }
   })
 
+  // Worst cases from the review: repeats side by side, with no group, backtrack in polynomial or exponential time.
+  const slow = ['[a-z]*[a-z]*[a-z]*[a-z]*[a-z]*[a-z]*-x', '[a-z]*'.repeat(8) + '-x', '.*a.*a.*b', '\\w+\\w+\\w+x',
+    'a?'.repeat(25) + 'a'.repeat(25), '[a-z]{0,600}[a-z]{0,600}[a-z]{0,600}x']
+
+  it('is refused when repeats side by side could take too many ways to match a value', () => {
+    for (const p of slow) {
+      const r = readParameterPattern(p)
+      expect(r.ok, p).toBe(false)
+      if (!r.ok) expect(r.reason, p).toMatch(/too many ways/)
+    }
+  })
+
+  it('matches the worst value against the worst pattern it accepts quickly', () => {
+    const accepted = ['.*a.*b', '[a-z]*[a-z]*-x', '\\w+\\.\\w+', 'a?'.repeat(19) + 'a'.repeat(19), '[a-z]{0,600}[a-z]{0,600}x']
+    for (const p of accepted) expect(readParameterPattern(p).ok, p).toBe(true)
+    const values = ['a'.repeat(1024), 'a'.repeat(1023) + '\n', 'a'.repeat(38)]
+    const started = performance.now()
+    for (const p of accepted) for (const v of values) matchesParameterPattern(p, v)
+    expect(performance.now() - started).toBeLessThan(1000)
+  })
+
+  it('does not match a value longer than any parameter may be', () => {
+    expect(matchesParameterPattern('a*', 'a'.repeat(1025))).toBe(false)
+  })
+
   it('is refused with back-references or lookarounds', () => {
     for (const p of ['(a)\\1', '(?<n>a)\\k<n>', '(?=a)a', '(?!-)x', '(?<=a)b', '(?<!a)b']) expect(readParameterPattern(p).ok, p).toBe(false)
   })

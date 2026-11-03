@@ -4,11 +4,20 @@
  *
  * - **Whether it may be a pattern at all.** An agent writes it and an agent chooses the values, and hq matches one
  *   against the other on its own event loop, so a pattern that can backtrack without end (`(a+)+$`) is refused:
- *   no back-references or lookarounds, and no repeated group that holds a repeat or an alternation.
+ *   no back-references or lookarounds, and no repeated group that holds a repeat or an alternation. Repeats side by
+ *   side backtrack too, in time that grows as the value's length to the power of their number (`\w*\w*\w*x`), so a
+ *   pattern whose repeats and alternatives together give more ways to match a value than two unbounded repeats do
+ *   is refused as well.
  * - **Whether it can match a value starting with `-`**, which a command would read as an option. That is reported,
  *   not refused (R1 rule 11). The reading is conservative: anything this module can't follow counts as "can".
  */
+import { WORKFLOW_LIMITS } from './definition.js'
+
 export const PARAMETER_PATTERN_MAX = 200
+
+const VALUE_MAX = WORKFLOW_LIMITS.parameterValueMax
+/** Ways a value may be split among a pattern's repeats and alternatives: two unbounded repeats over the longest value. */
+const WAYS_MAX = (VALUE_MAX + 1) ** 2
 
 type Item = { atom: Atom; min: number; max: number }
 type Atom =
@@ -34,6 +43,9 @@ export function readParameterPattern(pattern: string): PatternReading {
   }
   try {
     const alt = new Reader(pattern).alternation()
+    if (altWays(alt) > WAYS_MAX) {
+      return { ok: false, reason: 'A pattern cannot have this many repeats side by side: there are too many ways to match a value, and it could take hq too long to check. Use fewer *, + or ? and {m,n}.' }
+    }
     return { ok: true, canStartWithDash: altStartsWithDash(alt) }
   } catch (e) {
     if (e instanceof Refused) return { ok: false, reason: e.message }
@@ -43,6 +55,8 @@ export function readParameterPattern(pattern: string): PatternReading {
 
 /** Whether `value` matches all of `pattern`. Call only on a pattern `readParameterPattern` accepted. */
 export function matchesParameterPattern(pattern: string, value: string): boolean {
+  // The bound on ways above holds for values up to this length only.
+  if (value.length > VALUE_MAX) return false
   return new RegExp(`^(?:${pattern})$`, 'u').test(value)
 }
 
@@ -170,6 +184,24 @@ class Reader {
 function repeats(alt: Item[][]): boolean {
   if (alt.length > 1) return true
   return alt[0].some(it => it.max > 1 || it.min !== it.max || (it.atom.kind === 'group' && repeats(it.atom.alt)))
+}
+
+/**
+ * An upper bound on the ways a backtracking engine may try to match one value: a repeat may take each count from its
+ * least to its most (no more than the longest value), repeats in sequence multiply and alternatives add. Capped as it
+ * goes so it stays a finite number.
+ */
+function altWays(alt: Item[][]): number {
+  let ways = 0
+  for (const seq of alt) {
+    let seqWays = 1
+    for (const it of seq) {
+      const counts = Math.max(1, Math.min(it.max, VALUE_MAX) - Math.min(it.min, VALUE_MAX) + 1)
+      seqWays = Math.min(seqWays * counts * (it.atom.kind === 'group' ? altWays(it.atom.alt) : 1), WAYS_MAX + 1)
+    }
+    ways = Math.min(ways + seqWays, WAYS_MAX + 1)
+  }
+  return ways
 }
 
 function nullable(atom: Atom): boolean {

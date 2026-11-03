@@ -6,10 +6,10 @@ import {
   HQ_SITE_CHANNEL_PATH,
   checkProtocolCompatibility,
   type HQConnectionMessage,
-  type ChannelErrorPayload,
   type ProtocolVersion,
 } from '@agenthix/core'
 import { spokenVersion, type SiteChannelRegistry, type SiteConnection } from './siteChannelRegistry'
+import { readChannelFrame } from './channelFrame'
 import { checkSiteUpgrade } from '../siteUpgrade'
 import { Logger } from '../../server/utils/logger'
 import { holdWhileReadOnly } from '../../server/readOnly'
@@ -57,18 +57,29 @@ export function attachSiteChannel(server: HttpServer, deps: SiteChannelDeps): vo
 
   server.on('upgrade', (req, socket, head) => {
     if (pathOf(req.url) !== HQ_SITE_CHANNEL_PATH) return // not ours
-    void accept(req, socket, head)
+    void accept(req, socket, head).catch(err => {
+      logger.error('upgrade failed', err)
+      socket.destroy()
+    })
   })
 
   async function accept(req: IncomingMessage, socket: Duplex, head: Buffer): Promise<void> {
     const accepted = await checkSiteUpgrade(req, socket, deps)
     if (!accepted) return
-    wss.handleUpgrade(req, socket, head, ws => void onConnection(ws, accepted.siteId, accepted.speak))
+    wss.handleUpgrade(req, socket, head, ws => {
+      // From the moment it opens: a socket fault emitted with no listener would throw out of hq.
+      // 'error' is always followed by 'close', which does the cleanup.
+      ws.on('error', err => logger.warn(`${accepted.siteId}:`, err.message))
+      void onConnection(ws, accepted.siteId, accepted.speak).catch(err => {
+        logger.error(`${accepted.siteId}: connection setup failed:`, err)
+        ws.terminate()
+        void deps.registry.remove(accepted.siteId, ws).catch(() => {})
+      })
+    })
   }
 
   async function onConnection(ws: WebSocket, siteId: string, speak: ProtocolVersion): Promise<void> {
     const conn = await deps.registry.add(siteId, ws, speak)
-    deps.onSiteConnected?.(siteId)
     let quiet = false
 
     const heartbeat = setInterval(() => {
@@ -84,13 +95,17 @@ export function attachSiteChannel(server: HttpServer, deps: SiteChannelDeps): vo
     }, PING_INTERVAL_MS)
     heartbeat.unref?.()
 
+    const closed = () => {
+      clearInterval(heartbeat)
+      void deps.registry.remove(siteId, ws).catch(err => logger.error(`${siteId}: marking it offline failed:`, err))
+    }
+    // It closed while the registry recorded it: no 'close' is coming to take it out again.
+    if (ws.readyState === ws.CLOSED) return closed()
+    ws.on('close', closed)
+
     ws.on('message', raw => {
-      let msg: HQConnectionMessage
-      try {
-        msg = JSON.parse(raw.toString()) as HQConnectionMessage
-      } catch {
-        return
-      }
+      const msg = readChannelFrame(raw.toString())
+      if (!msg) return
       // The connection's rule, frame by frame: a frame of a major this hq does
       // not talk to is dropped. A peer one minor ahead may name a message type
       // this hq does not know; the switch below ignores it, which is what makes
@@ -100,16 +115,10 @@ export function attachSiteChannel(server: HttpServer, deps: SiteChannelDeps): vo
       // dropped, so a compromised site cannot answer for its sibling.
       if (msg.siteId !== siteId) return
       quiet = false
-      void onMessage(conn, msg)
+      void onMessage(conn, msg).catch(err => logger.error(`${siteId}: ${msg.type} frame failed:`, err))
     })
 
-    ws.on('close', () => {
-      clearInterval(heartbeat)
-      void deps.registry.remove(siteId, ws)
-    })
-
-    // 'error' is always followed by 'close', which does the cleanup.
-    ws.on('error', err => logger.warn(`${siteId}:`, err.message))
+    deps.onSiteConnected?.(siteId)
   }
 
   async function onMessage(conn: SiteConnection, msg: HQConnectionMessage): Promise<void> {
@@ -123,7 +132,7 @@ export function attachSiteChannel(server: HttpServer, deps: SiteChannelDeps): vo
         return
 
       case 'channel.error':
-        if (msg.replyTo) conn.pending.fail(msg.replyTo, msg.payload as ChannelErrorPayload)
+        if (msg.replyTo) conn.pending.fail(msg.replyTo, msg.payload)
         return
 
       case 'site.event': {

@@ -1,5 +1,3 @@
-import type { ChannelErrorPayload } from '@agenthix/core'
-
 export const DEFAULT_REQUEST_TIMEOUT_MS = 15_000
 
 export class ChannelRequestFailed extends Error {
@@ -44,10 +42,14 @@ export class PendingRequests {
     return true
   }
 
-  fail(replyTo: string, payload: ChannelErrorPayload): boolean {
+  /** `payload` is what the site sent, unchecked: a `ChannelErrorPayload` when the site keeps to the protocol. */
+  fail(replyTo: string, payload: unknown): boolean {
     const entry = this.take(replyTo)
     if (!entry) return false
-    entry.reject(new ChannelRequestFailed(payload.message, payload.code))
+    const { message, code } = (payload ?? {}) as { message?: unknown; code?: unknown }
+    entry.reject(typeof message === 'string' && typeof code === 'string'
+      ? new ChannelRequestFailed(message, code)
+      : new ChannelRequestFailed('The site answered with an error HQ could not read.', 'handler_failed'))
     return true
   }
 
