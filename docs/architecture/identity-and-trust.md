@@ -281,7 +281,9 @@ sequenceDiagram
   ([ADR-0082](../adr/adr-0082-a-conversation-acts-with-its-current-turns-authority.md) ·
 [ADR-0089](../adr/adr-0089-every-task-runs-on-behalf-of-a-person.md) ·
 [ADR-0090](../adr/adr-0090-a-connection-to-hq-is-a-persons-own.md)). It is revoked when
-  the conversation is released. The harness receives it as `SITE_MCP_KEY`.
+  the conversation is released. The harness receives it as `SITE_MCP_KEY`; its platform connection names
+  that variable rather than holding the token, and the command launcher removes it from every command's
+  environment, so a command cannot reach the platform tools except through the harness.
 - **Platform tools** (`/mcp`, `site/src/server/mcp/handler.ts`): the site resolves the token, verifies the
   capability, hides the tools it never allows, and forwards each data tool to hq's `POST /api/v1/data`
   (`site/src/server/hq/dataClient.ts`). hq authenticates the site, verifies the capability against that
@@ -289,7 +291,8 @@ sequenceDiagram
   (`hq/src/server/controlplane/dataApi.ts`, `authorize.ts`). The site holds no authorization policy for
   platform data. The tools themselves are in [mcp/tools.md](mcp/tools.md).
 - **The relay token** is for model requests only; see [the model relay](sites/model-relay.md).
-- Every tool call, whether platform or built in, also passes the site's gate
+- Every tool call, whether platform or built in, also passes the site's gate, a call at `/mcp` included, which
+  is decided and recorded there as one made through the harness is
   ([tools/tool-control.md](tools/tool-control.md)).
 
 ---

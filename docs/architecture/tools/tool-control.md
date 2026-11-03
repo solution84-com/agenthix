@@ -168,7 +168,7 @@ Every tool and every bash pattern has one of three states, used in both the UI a
 | `never` | Refused in every run; hidden from the model wherever the harness allows (table above). |
 
 How an `ask` call is handled depends on the agent's approval. With `deferred` the call is
-refused with text telling the agent to carry on, and collected for a batch review after the run. With
+refused with text telling the agent the call was not run and its work is not finished until what waits is approved and run, and collected for a batch review after the run. With
 `immediate` it is refused with text telling the agent to explain why it needs the tool and end its
 turn. With `bypassed` no call is checked against the agent's permissions, and the run's capability names no
 tool `never` but those a workspace's allowed list leaves out, platform tools included. See
@@ -194,13 +194,24 @@ create_agent  → ask         git push *   → ask
 update_org    → never       rm -rf *     → never
 ```
 
-**Bash is judged on the whole command**, the `command` argument, against the agent's bash patterns by
-prefix. A compound command is judged by its start: `cd x && git push` matches `cd`, not `git`. The first
-pattern that matches decides: `always` runs it without approval, `ask` needs the manifest's approval, and
-`never` refuses it in every run, whatever bash's own state and whatever the manifest approves. **A command
-matching no pattern follows "Any other command"**, bash's own state: `always` runs it, `ask` needs the
+**Bash is judged command by command.** The `command` argument is read as the shell would run it, and every simple
+command in it is judged against the agent's bash patterns (`bashCommandRules.ts`): `cd x && git push` is two
+commands, `cd x` and `git push`, and the line takes the strictest state of its commands. A pattern is a command's
+first words and matches whole words: `ls` matches `ls -l` and not `lsof`; a word ending in `*` matches any word it
+starts. `never` and `ask` bind whatever the order of the patterns: any `never` pattern that matches refuses the
+command in every run, whatever bash's own state and whatever the manifest approves, and an `ask` pattern wins over
+an `always` one. They are matched past leading assignments, a path to the program, a wrapper such as `env`, `nohup`
+or `sudo`, and the script of `sh -c` or `eval`. Otherwise the first pattern that matches the command as written
+decides: `always` runs it without approval, and `ask` needs the manifest's approval. A command whose name is worked
+out when it runs (`$CMD`, `$(…)`), and a line that cannot be read, are asked about wherever a `never` pattern exists.
+**A command matching no pattern follows "Any other command"**, bash's own state: `always` runs it, `ask` needs the
 manifest's approval, and with bash `never` no command runs at all. A tool missing from the agent's
 permissions counts as `ask`, bash included.
+
+**An approval grants exactly the command it shows, for the next run.** A deferred request holds the whole command,
+and the manifest's approval for it matches that command only: no prefix and no `*`. The same decision is made for
+every tool call that reaches the site through `/mcp`, so a call made there is refused, asked about or paused exactly
+as one made through the harness.
 
 ---
 
@@ -315,7 +326,7 @@ name. Call ids are opaque strings in each provider's own format.
 | `site/src/server/mcp/handler.ts` | Verifies the run's capability and leaves its `never` tools out of the MCP tool list |
 | `hq/src/server/controlplane/authorize.ts`, `runPerson.ts` | Checks each platform tool call against the run's boundary and its person |
 | `core/src/protocol/capability.ts` | `ToolPermission`, `BashPatternPermission`, `ToolPermissionState` |
-| `site/src/agents/runtime/toolPermissions.ts` | `getToolState`, `getBashPatternState`, defaults |
+| `site/src/agents/runtime/toolPermissions.ts`, `bashCommandRules.ts` | `getToolState`, defaults; `getBashPatternState` and `commandApproved`, the bash rules |
 | `site/src/agents/runtime/manifestParser.ts` | `buildApprovedManifest`, `manifestNeedsApproval` |
 | `hq/src/agents/manifestActions.ts` | `approveManifest`, `rejectManifest` |
 | `ui/src/agents/permissions/AgentPermissionsView.tsx`, `permissionsModel.ts`; `ui/src/agents/tabs/permissionPresets.ts` | Permissions UI (shown by `hq/src/agents/pages/manage/PermissionsSection.tsx`), its pure rules, and named presets |

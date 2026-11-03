@@ -88,7 +88,9 @@ which the CLI reads again on its next request; a subscription is never relayed.
 (`SITE_SESSION`), so the process and everything it starts end with the conversation;
 `CLAUDE_CODE_SHELL_PREFIX` and `USE_BUILTIN_RIPGREP=0`, so its commands and searches run in the command
 sandbox ([claude-tools.md](../tools/claude-tools.md)); `SITE_COMMAND_READABLE`, naming the staged
-skills folder; the platform token and the agent's handle (`SITE_MCP_KEY`, `AGENT_HANDLE`); and
+skills folder; the platform token and the agent's handle (`SITE_MCP_KEY`, `AGENT_HANDLE`), where the platform
+connection names the token's variable rather than holding the token, and the command launcher removes it from every
+command's environment; and
 `ENABLE_CLAUDEAI_MCP_SERVERS=false`. Nothing git-related: the container holds no git credential
 ([workflows.md](../workflows.md)).
 

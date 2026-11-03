@@ -27,11 +27,15 @@ An organisation administrator sets these on the agent's page, and they apply whe
      what the person it works for may do. Saving this asks you to confirm with **Bypass approval**, and the agent is
      marked **⚠ Approval bypassed** wherever it is listed. Use it only for agents you trust completely.
 4. Under **Start from a preset**, choose **Safe**, **Read only**, **Developer**, **Product manager** or
-   **Project manager**, or leave it as **Custom**. A preset sets many tools at once.
+   **Project manager**, or leave it as **Custom**. A preset sets many tools at once, and shows what it grants, including the commands it
+   runs without asking, once you choose it.
 5. Adjust any tool (the list is not shown while approval is **⚠ Bypassed**). They are grouped as **Files**, **Commands**, **Web** and **Platform**, each **Always**, **Ask**
    or **Never**. **Platform** is the tools that act on Agenthix itself, such as creating tasks; a button under its
    heading shows them. A command that no pattern matches follows **Any other command**; select
-   **＋ Add a command pattern** to treat a start such as `git` or `npm run` differently.
+   **＋ Add a command pattern** to treat a start such as `git` or `npm run` differently. A pattern matches whole
+   words, so `ls` covers `ls -l` and not `lsof`. A command line is judged one command at a time: `cd x && git push`
+   is `cd x` and `git push`, and the strictest setting among them applies. **Never** and **Ask** patterns apply
+   whatever their order; otherwise the first pattern that matches decides.
 6. Select **Save**.
 
 ![An agent's permissions open for editing, with the three approval choices and the presets](screenshot:agent-permissions)
@@ -62,7 +66,9 @@ behind your name: see [Models](../your-tools/models.md#which-models-may-run).
 
 When a run reaches a tool set to **Ask**, it asks a person: at the end under **Deferred**, or at once under
 **Immediate**. You are told in the conversation, on the task and in **Notifications**, and you choose **Approve** or
-**Deny**. **Decline** in a conversation, and **Reject** on the task, take a reason the agent reads; **Deny** in
+**Deny**. Approving allows each command exactly as shown, for the next run only. A typed reply does not approve;
+the request's **Approve** button does, and when you talk to the lead by voice, a spoken yes does after the read-back.
+**Decline** in a conversation, and **Reject** on the task, take a reason the agent reads; **Deny** in
 Notifications and on the **Runs** screen send a fixed one. In a personal or project conversation only its owner can
 answer; on a task, and in a task's conversation, anyone in the project who isn't a viewer. See
 [Your first task](../getting-started/first-task.md#4-run-it), and

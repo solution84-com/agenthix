@@ -113,18 +113,3 @@ export function getToolState(
   const entry = permissions.find(p => p.name === toolName)
   return entry?.state ?? 'ask'
 }
-
-/**
- * Return the effective ToolPermissionState for a bash command.
- * Matches against the first pattern where pattern === '*' or cmd starts with pattern.
- * If no pattern matches, returns 'ask' (unmatched commands require approval).
- */
-export function getBashPatternState(
-  cmd: string,
-  patterns: BashPatternPermission[],
-): ToolPermissionState {
-  const match = patterns.find(
-    p => p.pattern.trim() === '*' || cmd.startsWith(p.pattern.trim()),
-  )
-  return match?.state ?? 'ask'
-}
