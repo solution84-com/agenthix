@@ -520,8 +520,9 @@ admin may switch it off.
 
 **The rules a release follows:**
 
-- **Only a minor or major release moves a flag forward.** A patch holds fixes only; it may move a flag **back** (released
-  to beta, for example) when stopping a broken feature reaching everyone is the fix, never forward.
+- **Only a minor or major release moves a flag forward.** A patch carries fixes, and code behind a flag that is off in
+  production; it may move a flag **back** (released to beta, for example) when stopping a broken feature reaching
+  everyone is the fix, never forward.
 - **A released flag lives for one minor release.** Its entry records the minor it went live in (`releasedIn: '0.2'`).
   The release rehearsal refuses to prove a later minor or major release (`0.3.0` on) while that flag is still in the
   list, and names it. So the flag is removed, its gates, its switch and its hidden-while-off tests with it, before the

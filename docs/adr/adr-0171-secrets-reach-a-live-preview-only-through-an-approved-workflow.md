@@ -57,3 +57,5 @@ Undoing it means either the agent can read the secrets, or live previews can't r
 
 adr-0147 (a secret is used only by an approved workflow), adr-0148 (an agent runs approved workflows and reads masked
 output), adr-0168 (code work on branches).
+
+> **Acted on, behind a flag.** *(annotated 2026-11-03)* Carried out by the unit of work [`2026-11-01-live-preview`](../work/2026-11-01-live-preview/plan.md), phase 2, through the *Start* and *Reload live preview* workflows. Like the live preview, it is behind the `livePreview` flag at experimental (adr-0172).

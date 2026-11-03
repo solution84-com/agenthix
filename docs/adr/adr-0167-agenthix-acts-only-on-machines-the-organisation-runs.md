@@ -79,3 +79,5 @@ Undoing it means designing again everything listed in the context above, with th
 ## References
 
 adr-0042 (HQ is the organisation's own).
+
+> **Acted on.** *(annotated 2026-11-03)* By the unit of work [`2026-11-01-live-preview`](../work/2026-11-01-live-preview/plan.md): code work on branches and live previews run only on the organisation's own sites, and nothing reaches into a person's computer.

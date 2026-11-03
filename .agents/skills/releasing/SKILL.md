@@ -25,14 +25,17 @@ commit sets a version: every `package.json` stays at `0.0.0`.
    unless *Checks* and the release build passed for the commit and no released flag is overdue; it verifies each
    image's attestation and recomputed key, then makes and signs each version's index, publishes core and makes the
    release page.
-4. **A release branch exists only for a patch while `main` has moved on**, cut from the newest tag of its line
+4. **A patch is cut from `main`.** It carries fixes, and any code behind a flag that is off in production
+   (experimental or preview); it never moves a flag forward, which only a minor or major release does
+   ([ADR-0172](../../../docs/adr/adr-0172-a-flag-has-a-stage.md)). **A release branch exists only for a patch while
+   `main` holds a change that may not go out in one**, behaviour not behind a flag, cut from the newest tag of its line
    (`release/1.0.1` from `v1.0.0`, `release/1.0.2` from `v1.0.1`).
    - On it: the fix, the release rehearsal, the release build (its push starts it), and the tag on its last commit.
      Then it is merged into `main` with `--no-ff` and deleted.
    - When `main` has not moved since the release, the fix goes on `main` and is tagged there.
    - `main` never flows into a patch branch. Where `main` has rewritten the code a fix touches, the fix is ported to
      `main` by hand with `git cherry-pick -x` instead of merged.
-   - A patch holds fixes only.
+   - A patch on a release branch holds fixes only.
 5. **If anything fails after the tag is pushed**, the tag and whatever that attempt published are deleted, the fix is
    made, and the same version is tagged again; a retry promotes the same images.
    - **A version that published is never published again**, even when it turns out not to work: someone may already

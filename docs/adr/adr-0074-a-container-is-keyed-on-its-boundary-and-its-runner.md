@@ -123,3 +123,5 @@ record closes.
 - adr-0075 — work in a boundary runs in parallel
 - adr-0076 — a conversation whose harness state is gone is closed
 - [Design spec — person-scoped execution](../work/2026-09-28-person-scoped-execution/spec.md)
+
+> **Branch copies share the boundary's container.** *(annotated 2026-11-03)* A branch's working copy lives in `clones/<copyId>/` inside the owner's storage the container already binds, so the container stays keyed on its boundary and runner and is shared across runs as before (unit of work [`2026-11-01-live-preview`](../work/2026-11-01-live-preview/plan.md)).

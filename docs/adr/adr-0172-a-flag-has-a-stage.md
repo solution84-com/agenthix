@@ -53,7 +53,8 @@ site cannot check each person's choice. It can be added on top of the organisati
   minor or major release while it is still listed.
 
 A release here is a minor or major release. **Only a minor or major release moves a flag forward**; a patch may move one
-back (to stop a broken feature reaching everyone), never forward.
+back (to stop a broken feature reaching everyone), never forward. A patch may carry code behind a flag that is off in
+production, so feature work on `main` never waits for a fix, or a fix for it.
 
 **The switches are stored on the organisation's record in hq**, changed on one *Features* screen: beta flags only in
 production, beta and newly released flags; in a development build, every flag. **One rule in core** (`isFeatureOn`) decides from the stage, whether the
@@ -95,3 +96,5 @@ read separately.
 
 Supersedes adr-0116. adr-0042 (hq is the organisation's own), adr-0130 (Cloud features are gated by their own
 conditions).
+
+> **Acted on.** *(annotated 2026-11-03)* Carried out by the unit of work [`2026-11-01-live-preview`](../work/2026-11-01-live-preview/plan.md), phases 3 and 4: the stages in core's list, the *Features* screen, the gate in every program, `withFeature` and `withFeatureOff`, and the release check; the live preview is the first flag at experimental.

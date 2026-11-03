@@ -63,3 +63,7 @@ Undoing it means install scripts run unchecked on the organisation's sites, or p
 ## References
 
 adr-0167 (only the organisation's machines), adr-0168 (code work on branches).
+
+> **Acted on.** *(annotated 2026-11-03)* Carried out by the unit of work [`2026-11-01-live-preview`](../work/2026-11-01-live-preview/plan.md): install scripts are off for every agent command, with a person's yes in HQ for a named package. This stays on whatever the live preview's flag says.
+
+> **The rule's limit.** *(annotated 2026-11-03)* Install scripts are off for every agent command through its environment; an agent that deliberately turns them back on for its own command can do so. That accepted limit leaves the threat this record addresses, a package's script running unasked, met for every install the agent does not deliberately subvert, and the agent's container bounds what such a script reaches.

@@ -68,3 +68,5 @@ Undoing it puts heavy traffic back on hq, or gives every site a public address.
 
 adr-0153 (relays carry every file byte), adr-0154 (a machine carries a site or a relay), adr-0063 and adr-0071
 (revisited), adr-0167 (only the organisation's machines).
+
+> **Acted on, behind a flag.** *(annotated 2026-11-03)* Carried out by the unit of work [`2026-11-01-live-preview`](../work/2026-11-01-live-preview/plan.md), phase 2. The live preview is behind the `livePreview` flag at experimental (adr-0172), so its app addresses and the relay's app doors refuse unless the flag is on; the decision stands for when it is released.

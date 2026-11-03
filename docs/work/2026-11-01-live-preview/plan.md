@@ -254,3 +254,37 @@ branches unchanged; the reshaping written up and queued for after the first rele
 | 2 | The owner's walk's fixes are added as 2.21 | The walk found the agent unaware of its live preview, secrets with no feedback, no way to restart an app, and tasks made without a workspace |
 | 3, 4 | Two phases added: a flag system with stages, then the live preview behind its flag, off, with its reshaping proposed and queued for after the first release | The walk showed the live preview works but is the wrong shape for a development environment (one fixed image, no Docker inside); reshaping it is an architecture change the release can't wait for, so it is parked rather than shipped or removed |
 | 3 | The flag system designed with the owner: four stages (beta added, for an organisation admin's opt-in), one *Features* screen as the only switch, one rule in core and a gate per program, tests as shipped with experimental failures not blocking, and a released flag switchable off for one minor release then removed (the rehearsal enforces it); the spec gains section 7 and phase 3's tasks are redrawn (3.3–3.8) | The owner asked for end users to be able to opt in, for developers who break an experiment they don't know to have a way through, and for a strict rule on how long a released flag lives |
+| 3 | A test run starts from production's defaults, and lets a test switch any flag; the spec is corrected in place | "Every test runs as shipped" needed a precise meaning for `NODE_ENV=test`, which the table had counted as development |
+| 3 | The admin area sends someone not signed in to the sign-in page | The owner found `/admin/settings/features` loading for ever signed out; the gate around every admin page waited for a role that never came. Older than the unit, fixed in it |
+| 4 | A code-work run's prompt in core says nothing of live previews while the flag is off | The prompt's app-tools section is written on the site from core's text, so hq alone could not withhold it |
+| 4 | The Fleet Console's `features.on` answers flag names as plain strings | Typed to the flag list, adding a flag changed the host protocol's shape |
+| 4 | `withFeatureOff` in the end-to-end and cross-app suites; the spec is corrected in place | The full regression's run with every flag on failed the tests that a feature is hidden while off, which assumed the flag was off |
+| 3 | A patch carries fixes and code behind a flag that is off in production, cut from `main`; the spec, adr-0172 and the `releasing` skill are corrected | At the close the owner set how the platform releases after 0.1.0: fixes first, features built alongside behind their flags, a minor when a flag moves forward |
+
+## Closing note
+
+**Closed 2026-11-03.** Accepted by the owner after the walkthrough of phase 2 (2 November), the decision to park the
+live preview behind a flag, and the owner's look at the *Features* screen and the live preview switched on
+(3 November).
+
+**What it delivered:** code work on branches (phase 1); the live preview, built and parked behind the `livePreview`
+flag at experimental (phases 2 and 4); feature flags with stages, the *Features* screen, a gate in every program and
+the release's check for an overdue flag (phase 3). Its reshaping into a development environment of its own is planned
+outside this repository.
+
+**Open items:** 54 gathered from the reports, the walk and the handover; 31 closed in the unit or confirmed no longer
+true; 23 deferred. On this repository, as issues #145 to #160: the `propose-skill` model check, a task page's dock and
+`c=`, the e2e seed's site database, `useAction`'s wait, three flaky test groups, the guide seed's secrets key, deleting
+a branch from the view, an archived conversation's copies, a shared package cache, a branch's images, the live
+preview's workflow names, the model checks' fidelity, the guide's Settings row, and commits brought back while hq is
+away. Planned work and the live preview's remaining items are tracked outside this repository; one of them, a design
+pass for the workspace view, blocks `0.1.0`. ADR-0170's limit is noted in the record instead. **No critical item is
+open.**
+
+**Regression:** the full regression passed on the final tree, as shipped and with every flag on, with fixes folded in;
+three timing flakes older than the unit pass alone and are issues above. **QA:** the unit's stories and scenarios are
+written (phases 1–2 in 2.20, phases 3–4 at the close) and their tests tagged; no QA audit ran, so they await the audit
+before the release.
+
+**Decision records:** adr-0168 to adr-0172 written on the branch, each with a note of what acted on it; ADR-0116
+superseded by adr-0172; notes on ADR-0030, ADR-0039, ADR-0074, ADR-0079 and ADR-0167. The plan is frozen from here.

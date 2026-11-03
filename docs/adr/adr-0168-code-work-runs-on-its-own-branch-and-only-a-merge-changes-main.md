@@ -78,3 +78,5 @@ Undoing it means bringing back one shared working folder and a way to keep runs 
 adr-0039 (files and workspaces), adr-0079 (access to a boundary is access to all of it), adr-0074 (a container is
 keyed on its boundary and its runner), adr-0030 (task-scoped agent sessions), adr-0167 (Agenthix acts only on machines
 the organisation runs).
+
+> **Acted on.** *(annotated 2026-11-03)* Carried out by the unit of work [`2026-11-01-live-preview`](../work/2026-11-01-live-preview/plan.md), phase 1: a branch and working copy per task and code conversation, commits brought back to the workspace, *Merge into main*, versions and *Restore*; proved by the owner's walk and the unit's full regression.
