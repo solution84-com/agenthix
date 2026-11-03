@@ -6,8 +6,10 @@
  * nothing else joins, and in it the Fleet Console accepts a connection only from that network's gateway, through
  * which Docker forwards the published port (console/src/http/guards.ts).
  *
- * On HQ's machine it also joins HQ's link network, to dial hq-web by its container name as HQ's default site does;
- * it never answers on that network. Elsewhere it dials HQ's own address. It holds its keys in a volume of its own,
+ * On HQ's machine it also joins HQ's link network, to dial hq-web by its container name as HQ's default site does.
+ * Docker Desktop for macOS may deliver the published port through that network instead, so there it answers that
+ * network's gateway alone, as on its own; every service on the link network drops raw packets (`LINK_NETWORK_CAPS`),
+ * so no other container there can pass for that gateway. Elsewhere it dials HQ's own address. It holds its keys in a volume of its own,
  * and has no Docker socket.
  */
 import { PUBLISHED_DEFAULTS, SERVICE_PORTS } from '@agenthix/core'
@@ -15,7 +17,7 @@ import type { InstallNames } from '../state/namespace'
 import { installationLabels, type Installation } from '../state/installation'
 import type { ImagePins } from '../images/images'
 import { imageRef } from '../images/published'
-import { defaultSiteHqUrl, versionEnv, versionLabel } from './projects'
+import { defaultSiteHqUrl, LINK_NETWORK_CAPS, versionEnv, versionLabel } from './projects'
 import { ipam, type InstallSubnets } from './subnets'
 
 /** Where it listens inside its container; Docker publishes the installation's console port onto it. */
@@ -89,6 +91,7 @@ export function consoleProject(
         environment,
         ports: [`127.0.0.1:${published}:${CONSOLE_PORT}`, ...(remotePort === null ? [] : [`${remotePort}:${remotePort}`])],
         networks: m.onHqMachine ? ['console', 'link'] : ['console'],
+        ...(m.onHqMachine ? LINK_NETWORK_CAPS : {}),
         // A packet is taken only on the network its source is reached through, so none claiming to come from its
         // network's gateway is taken from HQ's link network.
         sysctls: { 'net.ipv4.conf.all.rp_filter': '1', 'net.ipv4.conf.default.rp_filter': '1' },

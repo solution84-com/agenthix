@@ -64,7 +64,9 @@ const ipv4 = (address: string | undefined) => (address ?? '').replace(/^::ffff:/
  * network's gateway, and on HQ's link network the same holds for the gateway, which is the host's end of the
  * network. The pair must match: a gateway's address on the wrong network, or another network's gateway, is refused.
  * The container also checks the source of what it receives against its routes (`rp_filter`, set in its compose
- * project), so a packet claiming a gateway as its source is dropped unless it arrives on that gateway's network.
+ * project), so a packet claiming a gateway as its source is dropped unless it arrives on that gateway's network; and
+ * every service on HQ's link network runs without raw packets (host/src/compose/projects.ts, `LINK_NETWORK_CAPS`), so
+ * none there can forge the gateway's address and answer for it.
  */
 export function peerAllowed(socket: { remoteAddress?: string; localAddress?: string }, container: ContainerPeer | undefined): boolean {
   const peer = ipv4(socket.remoteAddress)

@@ -83,10 +83,10 @@ afterAll(() => {
 })
 
 describe('the Fleet Console on its own network, published to 127.0.0.1 @SC-861', () => {
-  it('listens on its own network’s address, taking that network’s gateway as its one peer', () => {
+  it('listens on its own network’s address, taking the gateway of each network it is on as its one peer there', () => {
     const inspect = JSON.parse(docker('inspect', names.consoleContainer))[0]
     const own = inspect.NetworkSettings.Networks[names.consoleNetwork]
-    expect(docker('logs', names.consoleContainer)).toContain(`listening on ${own.IPAddress}:${CONSOLE_PORT} in its container, from its network's gateway ${own.Gateway} only`)
+    expect(docker('logs', names.consoleContainer)).toContain(`listening on ${own.IPAddress}:${CONSOLE_PORT} in its container, from the gateway of each network it is on only`)
     expect(inspect.HostConfig.NetworkMode).not.toBe('host')
   })
 
@@ -120,5 +120,10 @@ describe('the Fleet Console on its own network, published to 127.0.0.1 @SC-861',
 
   it('takes a packet only on the network its source is reached through', () => {
     expect(consoleExec('cat', '/proc/sys/net/ipv4/conf/all/rp_filter').trim()).toBe('1')
+  })
+
+  it('runs without raw packets, as every service on HQ’s link network does', () => {
+    const inspect = JSON.parse(docker('inspect', names.consoleContainer))[0]
+    expect(inspect.HostConfig.CapDrop).toContain('NET_RAW')
   })
 })

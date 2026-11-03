@@ -3,6 +3,7 @@ import { namesFor } from '../../state/namespace'
 import type { InstallSecrets } from '../../state/secrets'
 import { composeJson, defaultSiteProject, hqProject, imageRef, siteProject } from '../projects'
 import { chooseSubnets } from '../subnets'
+import { consoleProject } from '../console'
 import type { InstallNames } from '../../state/namespace'
 import type { Installation } from '../../state/installation'
 
@@ -154,6 +155,24 @@ describe('the compose projects', () => {
     expect(h.networks.link.name).toBe('agenthix-hq-link')
     expect(s.networks.link).toEqual({ name: 'agenthix-hq-link', external: true })
     expect(h.services['hq-web'].networks).toContain('link')
+  })
+
+  it('lets no container on HQ’s link network send raw packets, so none can pass for the network’s gateway', () => {
+    // The Fleet Console takes the link network's gateway as Docker's forwarding of its published port; a container
+    // there that could forge that address and answer ARP for it would pass for it (console/src/http/guards.ts).
+    for (const ns of ['agenthix', 'acme']) {
+      const names = namesFor(ns)
+      const fleetConsole = consoleProject(names, { version: '0.2.0', hqAddress: 'http://127.0.0.1:4100', onHqMachine: true, installedAt: inst.recordedAt },
+        'hq-box', {}, any(names), inst)
+      const services: [string, { networks: string[]; cap_drop?: string[] }][] = [
+        ...Object.entries(hqProject(names, hq, secrets, 'hq-box', any(names), inst).services),
+        ...Object.entries(defaultSiteProject(names, site, secrets, paths, any(names), inst).services),
+        ...Object.entries(fleetConsole.services),
+      ].map(([name, s]) => [name, s as { networks: string[]; cap_drop?: string[] }])
+      const onLink = services.filter(([, s]) => s.networks.includes('link'))
+      expect(onLink.map(([name]) => name).sort()).toEqual(['console', 'hq-web', 'site'])
+      for (const [name, s] of onLink) expect({ name, capDrop: s.cap_drop }).toEqual({ name, capDrop: expect.arrayContaining(['NET_RAW']) })
+    }
   })
 
   it('mounts the site’s data at the same path inside and out, under the state folder on the machine', () => {

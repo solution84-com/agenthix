@@ -74,6 +74,14 @@ const image = (settings: { version: string; images?: ImagePins }, part: Publishe
  */
 export const versionEnv = (name: string, version: string): Record<string, string> => (isPublishedVersion(version) ? { [name]: version } : {})
 
+/**
+ * Every service on HQ's link network drops the right to send raw packets, which Docker otherwise grants. The Fleet
+ * Console takes that network's gateway, on its own address there, as Docker's forwarding of its published port
+ * (console/src/http/guards.ts); without raw packets no container there can forge the gateway's address or answer ARP
+ * for it, so none can complete a connection that passes for it. None of them needs raw packets.
+ */
+export const LINK_NETWORK_CAPS = { cap_drop: ['NET_RAW'] }
+
 export const siteDataPath = (paths: MachinePaths) => `${paths.state.replace(/\/+$/, '')}/site/data`
 
 /** The address hq's default site dials: hq-web by its container name, over the private network they share. */
@@ -208,6 +216,7 @@ export function hqProject(
         },
         ports: [`${hq.bind}:${hqPortOf(installation)}:${HQ_WEB_PORT}`],
         networks: ['internal', 'edge', 'link'],
+        ...LINK_NETWORK_CAPS,
         depends_on: ['hq-server'],
         restart: 'unless-stopped',
         labels: labels(names, 'hq', installation, hq.version),
@@ -276,6 +285,7 @@ export function siteProject(
         ],
         extra_hosts: ['host.docker.internal:host-gateway'],
         networks: hq.onHqLinkNetwork ? ['internal', 'link'] : ['internal'],
+        ...(hq.onHqLinkNetwork ? LINK_NETWORK_CAPS : {}),
         depends_on: { 'site-db': { condition: 'service_healthy' } },
         restart: 'unless-stopped',
         labels: labels(names, 'site', installation, site.version),
