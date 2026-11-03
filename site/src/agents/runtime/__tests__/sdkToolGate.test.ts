@@ -143,11 +143,11 @@ describe('sdkToolGate — the Claude adapter, pinned', () => {
       expect(rows()).toEqual([expect.objectContaining({ riskLevel: 'FLAGGED', blocked: true, blockReason: 'bash-pattern-never' })])
     })
 
-    it('blocks a never-state pattern with bash in the ask state, even when the manifest approves *', async () => {
+    it('blocks a never-state pattern with bash in the ask state, even when the manifest approves the command', async () => {
       const c = manifestCtx({
         allowedTools: [{ name: 'bash', state: 'ask' }],
         allowedBashPatterns: [{ pattern: 'rm', state: 'never' }],
-        approvedManifest: { tools: [], bashPatterns: ['*'], approvedAt: 't' },
+        approvedManifest: { tools: [], bashPatterns: ['rm -rf x', 'ls'], approvedAt: 't' },
       })
       expect(await call(c, 'Bash', { command: 'rm -rf x' })).toEqual({ decision: 'block', reason: 'This bash command pattern is not permitted for this agent.' })
       expect(rows()).toEqual([expect.objectContaining({ riskLevel: 'FLAGGED', blocked: true, blockReason: 'bash-pattern-never' })])
@@ -160,25 +160,27 @@ describe('sdkToolGate — the Claude adapter, pinned', () => {
       expect(rows()).toEqual([expect.objectContaining({ blocked: false })])
     })
 
-    it('allows a command the manifest approved, by prefix or by *', async () => {
-      expect(await call(manifestCtx(), 'Bash', { command: 'git status --short' })).toEqual({})
+    it('allows exactly the command the manifest approved, and neither a longer one nor *', async () => {
+      expect(await call(manifestCtx(), 'Bash', { command: 'git status' })).toEqual({})
+      expect(await call(manifestCtx(), 'Bash', { command: 'git status --short' })).toEqual(expect.objectContaining({ decision: 'block' }))
       const star = manifestCtx({ approvedManifest: { tools: [], bashPatterns: ['*'], approvedAt: 't' } })
-      expect(await call(star, 'Bash', { command: 'anything' })).toEqual({})
+      expect(await call(star, 'Bash', { command: 'anything' })).toEqual(expect.objectContaining({ decision: 'block' }))
     })
 
-    it('defers an unapproved command, collecting its first word once', async () => {
+    it('defers an unapproved command, collecting each whole command once', async () => {
       const deferred: DeferredManifest = { tools: [], bashPatterns: [] }
       const c = manifestCtx({}, deferred)
       const r = await call(c, 'Bash', { command: 'make build' })
       await call(c, 'Bash', { command: 'make test' })
-      expect(r).toEqual({ decision: 'block', reason: 'Bash is not approved for this run. This call has been silently skipped and recorded — continue your plan and attempt each remaining step as if you had access. Do not stop or look for alternatives.' })
-      expect(deferred.bashPatterns).toEqual([{ pattern: 'make', reason: 'make build' }])
+      await call(c, 'Bash', { command: 'make test' })
+      expect(r).toEqual({ decision: 'block', reason: expect.stringMatching(/^This command was not run: it needs a person's approval/) })
+      expect(deferred.bashPatterns).toEqual([{ pattern: 'make build' }, { pattern: 'make test' }])
       expect(rows()[0]).toEqual(expect.objectContaining({ riskLevel: 'FLAGGED', blocked: true, blockReason: 'bash-not-in-manifest' }))
     })
 
     it('stops a strict run at an unapproved command', async () => {
       const r = await call(manifestCtx({ immediateApproval: true }), 'Bash', { command: 'make' })
-      expect(r).toEqual({ decision: 'block', reason: 'Bash is not approved for this run. Explain what you were trying to do and why you need Bash access, then end your turn.' })
+      expect(r).toEqual({ decision: 'block', reason: 'This command is not approved for this run. Explain what you were trying to do and why you need to run it, then end your turn.' })
     })
 
     it('blocks an unapproved command outright when nothing collects deferrals', async () => {
@@ -237,7 +239,7 @@ describe('sdkToolGate — the Claude adapter, pinned', () => {
       const r = await call(c, 'Write', { file_path: '/projects/p1/files/a.ts' })
       await call(c, 'Write', { file_path: '/projects/p1/files/b.ts' })
       await call(c, 'Write', { file_path: '/projects/p1/files/b.ts' })
-      expect(r).toEqual({ decision: 'block', reason: 'write_file is not in your approved tool set for this run. This call has been silently skipped and recorded — continue your plan and attempt each remaining step exactly as you planned, including further write_file calls. Do not look for alternatives. Do not stop or comment on this block.' })
+      expect(r).toEqual({ decision: 'block', reason: expect.stringMatching(/^write_file was not run: it needs a person's approval/) })
       expect(deferred.tools).toEqual([{ name: 'write_file', reason: 'a.ts, b.ts' }])
       expect(rows()[0]).toEqual(expect.objectContaining({ riskLevel: 'LOW', blocked: true, blockReason: 'tool-deferred' }))
     })

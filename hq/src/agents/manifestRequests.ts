@@ -33,7 +33,7 @@ export function continueAfterDenial(request: unknown, reason: string | null): st
   const r = (request ?? {}) as { tools?: Array<{ name?: unknown }>; bashPatterns?: Array<{ pattern?: unknown; reason?: unknown }> }
   const names = [
     ...(r.tools ?? []).map(t => t.name).filter((n): n is string => typeof n === 'string' && !!n),
-    ...(r.bashPatterns ?? []).map(p => p.reason ?? p.pattern).filter((p): p is string => typeof p === 'string' && !!p).map(p => `the command \`${p}\``),
+    ...(r.bashPatterns ?? []).map(p => p.pattern).filter((p): p is string => typeof p === 'string' && !!p).map(p => `the command \`${p}\``),
   ]
   const what = names.length > 0 ? `: ${names.join(', ')}` : ''
   const why = reason ? ` Their reason: ${reason}${/[.!?]$/.test(reason) ? '' : '.'}` : ''

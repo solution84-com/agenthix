@@ -32,7 +32,7 @@ import { mailbox } from '../../../coordinator/mailbox'
 import { openJson, sealText } from '../../../sealing'
 import type { TurnCapability } from '../../../contract'
 import { askFirst } from '../ask'
-import { answerApprovalTool, cancelOperationTool } from '../leadTools'
+import { answerApprovalTool, cancelOperationTool, TYPED_APPROVAL_REFUSED } from '../leadTools'
 import { answerConversationApproval, cancelConversationOperation } from '../../answerAndStop'
 import { appendMessage } from '../../../store/messages'
 import { forgetReadBacks } from '../../../voice/readBack'
@@ -194,9 +194,17 @@ describe('answered through the lead @SC-959', () => {
     expect((await operation(id)).state).toBe('CANCELLED')
   })
 
+  it('takes no approval from a typed message: the person approves with the button, and nothing changes', async () => {
+    const id = await asked()
+    const outcome = await answerApprovalTool.run({ ...capability, turnId: 'turn-2' }, { operationId: id, answer: 'approve' }, NEVER)
+    expect(outcome).toEqual({ status: 'refused', reason: TYPED_APPROVAL_REFUSED })
+    expect((await operation(id)).state).toBe('WAITING_FOR_APPROVAL')
+    expect(await messages('APPROVAL_ANSWER')).toHaveLength(0)
+  })
+
   it('never answers a request the lead asked in the same reply', async () => {
     const id = await asked()
-    const outcome = await answerApprovalTool.run(capability, { operationId: id, answer: 'approve' }, NEVER)
+    const outcome = await answerApprovalTool.run(capability, { operationId: id, answer: 'decline' }, NEVER)
     expect(outcome).toMatchObject({ status: 'refused', reason: expect.stringContaining('only the person') })
     expect((await operation(id)).state).toBe('WAITING_FOR_APPROVAL')
     expect(await messages('APPROVAL_ANSWER')).toHaveLength(0)

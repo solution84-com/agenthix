@@ -11,20 +11,21 @@ export interface ApprovalCardActions {
 
 const SHOWN = 2
 
-function Items({ items }: { items: ApprovalItem[] }) {
-  const [all, setAll] = useState(false)
+/** `whole`: every item at once, for a request still waiting: Approve grants each one, so none is folded away. */
+function Items({ items, whole = false }: { items: ApprovalItem[]; whole?: boolean }) {
+  const [all, setAll] = useState(whole)
   const shown = all ? items : items.slice(0, SHOWN)
   return (
     <div>
       <ul className="space-y-1">
         {shown.map((item, i) => (
           <li key={i} className="text-small">
-            <span className={item.command ? 'font-mono text-micro' : 'font-medium'}>{item.does}</span>
+            <span className={item.command ? 'font-mono text-micro whitespace-pre-wrap break-all' : 'font-medium'}>{item.does}</span>
             {item.why && <span className="text-text-muted"> — {item.why}</span>}
           </li>
         ))}
       </ul>
-      {items.length > SHOWN && (
+      {!whole && items.length > SHOWN && (
         <button type="button" onClick={() => setAll(v => !v)} className="mt-1 text-micro text-text-muted hover:text-text-primary">
           {all ? 'Show less' : `+ ${items.length - SHOWN} more`}
         </button>
@@ -65,7 +66,7 @@ function WaitingCard({ card, agentName, runId, sessionId, actions, onAnswered }:
   return (
     <div className="space-y-3 rounded-xl border border-border bg-surface-1 p-3" role="group" aria-label="Approval needed">
       <p className="text-small font-semibold text-text-primary">{agentName} needs your approval to go on</p>
-      <Items items={card.items} />
+      <Items items={card.items} whole />
       {error && <p className="text-small text-danger">{error}</p>}
       {denying ? (
         <div className="flex items-center gap-2">
@@ -88,7 +89,7 @@ function WaitingCard({ card, agentName, runId, sessionId, actions, onAnswered }:
             <button type="button" disabled={busy} onClick={() => void run(() => actions.approveManifest({ runId, sessionId }), 'Failed to approve')} className="rounded-lg bg-accent px-3 py-1.5 text-small font-medium text-on-accent hover:bg-accent-hover disabled:opacity-50">Approve</button>
             <button type="button" disabled={busy} onClick={() => setDenying(true)} className="rounded-lg border border-border px-3 py-1.5 text-small font-medium text-text-primary hover:bg-surface-hover disabled:opacity-50">Deny</button>
           </div>
-          {card.items.length > SHOWN && <p className="mt-1.5 text-micro text-text-muted">Approve allows all {card.items.length}</p>}
+          {card.items.some(i => i.command) && <p className="mt-1.5 text-micro text-text-muted">Approve allows each command exactly as shown, for the next run only</p>}
         </div>
       )}
     </div>
@@ -115,7 +116,7 @@ export function ApprovalCard({ card, agentName, runId, sessionId, actions, onAns
       return (
         <div className="space-y-2 rounded-xl border border-border bg-surface-1 p-3" role="group" aria-label="Approval needed">
           <p className="text-small font-semibold text-text-primary">{agentName} is waiting for an approval to go on</p>
-          <Items items={card.items} />
+          <Items items={card.items} whole />
         </div>
       )
     }

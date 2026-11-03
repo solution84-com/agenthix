@@ -27,6 +27,7 @@ import { createMcpServer } from './mcpServer'
 import { KNOWLEDGE_CHANGE_TOOLS } from './forwardedKnowledgeSchemas'
 import { runHasWriteTools } from '../../agents/runtime/toolPermissions'
 import { OPENCODE_HARNESS, PLATFORM_TOOLS_HARNESS_HEADER } from './siteTools'
+import { refusePlatformCall } from './mcpCallGate'
 import { Logger } from '../utils/logger'
 
 const logger = new Logger('mcp')
@@ -65,14 +66,24 @@ export const mcpHandler: ApiHandler = async (req, res) => {
   ]
   const disabledTools = withheld.length > 0 ? new Set(withheld) : undefined
 
+  // Every tool call passes the gate here too (mcpCallGate.ts), so it needs one call per request to decide on.
+  const body = req.body as { method?: unknown; params?: { name?: unknown; arguments?: unknown } } | unknown[] | undefined
+  if (Array.isArray(body) && body.some(m => (m as { method?: unknown } | null)?.method === 'tools/call')) {
+    res.status(400).json({ error: 'Send each tool call in a request of its own. Nothing was run.' })
+    return
+  }
+  const context = resolved.runId ? gateRunContext(resolved.runId) : null
+  const turn = context && context.sessionId === claims.sessionId ? context : null
+  const call = !Array.isArray(body) && body?.method === 'tools/call' && typeof body.params?.name === 'string' ? body.params : null
+  const callRefusal = call ? await refusePlatformCall(turn, resolved.runId, call.name as string, call.arguments ?? {}) : null
+
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
   // claims itself is not passed through — createMcpServer
   // has nothing to do with the verified claims object, only the two values
   // derived from it above (disabledTools) and the raw JWT (capabilityJwt).
-  const context = resolved.runId ? gateRunContext(resolved.runId) : null
-  const turn = context && context.sessionId === claims.sessionId ? context : null
   const mcpServer = createMcpServer({
     disabledTools,
+    callRefusal,
     capabilityJwt: holder.jwt,
     livePreview: parseCapabilityLivePreview(claims.livePreview),
     trustedPackageScopes: parseCapabilityPackageScopes(claims.trustedPackageScopes),

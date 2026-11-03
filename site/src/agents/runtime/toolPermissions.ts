@@ -220,19 +220,3 @@ export function runHasWriteTools(p: RunWritePermissions): boolean {
     return entry?.state === 'always' || entry?.state === 'ask'
   })
 }
-
-/**
- * Return the effective ToolPermissionState for a bash command.
- * Matches against the first pattern where pattern === '*' or cmd starts with pattern.
- * A command no pattern matches follows "Any other command" — the bash tool's own state.
- */
-export function getBashPatternState(
-  cmd: string,
-  patterns: BashPatternPermission[],
-  anyOtherCommand: ToolPermissionState,
-): ToolPermissionState {
-  const match = patterns.find(
-    p => p.pattern.trim() === '*' || cmd.startsWith(p.pattern.trim()),
-  )
-  return match?.state ?? anyOtherCommand
-}

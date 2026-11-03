@@ -62,6 +62,7 @@ const READ_ONLY_MCP_TOOLS = [
 export interface PermissionPreset {
   id: string
   label: string
+  /** What the preset grants, in words a person reads before picking it: never more than its tools and patterns allow. */
   description: string
   dot: string  // tailwind bg color for the indicator dot
   tools: ToolPermission[]
@@ -93,7 +94,7 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
   {
     id: 'developer',
     label: 'Developer',
-    description: 'Full filesystem, git & npm bash, standard MCP.',
+    description: 'Reads and changes files, and uses the standard platform tools. Runs git, npm run, pnpm and ls without asking: these run the project\'s own scripts and Git hooks. Any other command is asked about.',
     dot: 'bg-amber-500',
     tools: perms([
       { names: DEFAULT_RUNTIME_TOOLS, state: 'always' },
@@ -103,16 +104,16 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
       { names: ADMINISTRATIVE_MCP_TOOLS, state: 'never' },
     ]),
     bashPatterns: [
-      { pattern: 'git ',     state: 'always' },
-      { pattern: 'npm run ', state: 'always' },
-      { pattern: 'pnpm ',    state: 'always' },
-      { pattern: 'ls ',      state: 'always' },
+      { pattern: 'git',     state: 'always' },
+      { pattern: 'npm run', state: 'always' },
+      { pattern: 'pnpm',    state: 'always' },
+      { pattern: 'ls',      state: 'always' },
     ],
   },
   {
     id: 'product-manager',
     label: 'Product manager',
-    description: 'Docs, tasks, product wiki. No code execution.',
+    description: 'Writes documents, and manages tasks and products. Runs git without asking, which can run the repository\'s own Git hooks. Any other command, and the web, is asked about.',
     dot: 'bg-purple-500',
     tools: perms([
       { names: [RUNTIME_TOOLS.FILESYSTEM.READ_FILE, RUNTIME_TOOLS.FILESYSTEM.GLOB_FILES, RUNTIME_TOOLS.FILESYSTEM.GREP_FILES, RUNTIME_TOOLS.FILESYSTEM.EDIT_FILE, RUNTIME_TOOLS.FILESYSTEM.WRITE_FILE], state: 'always' },
@@ -138,8 +139,7 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
       { names: [SYSTEM_MCP_TOOLS.GIT.GET_GITHUB_CONFIG], state: 'never' },
     ]),
     bashPatterns: [
-      { pattern: 'git ',            state: 'always' },
-      { pattern: 'GIT_SSH_COMMAND=', state: 'always' },
+      { pattern: 'git', state: 'always' },
     ],
   },
   {

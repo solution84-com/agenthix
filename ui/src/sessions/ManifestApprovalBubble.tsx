@@ -102,7 +102,7 @@ export function ManifestApprovalBubble({
               <span className="text-small font-mono text-text-primary shrink-0">{t.name}</span>
               {t.reason && <>
                 <span className="text-small text-text-muted shrink-0">—</span>
-                <span className="text-small text-text-muted truncate">{t.reason}</span>
+                <span className="text-small text-text-muted break-all">{t.reason}</span>
               </>}
             </div>
           ))}
@@ -112,16 +112,10 @@ export function ManifestApprovalBubble({
       {bashPatterns.length > 0 && (
         <div className="space-y-1">
           <p className="text-micro uppercase tracking-wide text-text-muted flex items-center gap-1">
-            <Terminal size={10} /> Bash prefixes
+            <Terminal size={10} /> Commands, each allowed exactly as shown
           </p>
           {bashPatterns.map((p: ManifestItem, i: number) => (
-            <div key={i} className="flex items-baseline gap-2 min-w-0">
-              <span className="text-small font-mono text-text-primary shrink-0">{p.pattern}</span>
-              {p.reason && <>
-                <span className="text-small text-text-muted shrink-0">—</span>
-                <span className="text-small text-text-muted truncate">{p.reason}</span>
-              </>}
-            </div>
+            <p key={i} className="text-small font-mono text-text-primary whitespace-pre-wrap break-all">{p.pattern}</p>
           ))}
         </div>
       )}

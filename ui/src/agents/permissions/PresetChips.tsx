@@ -1,10 +1,11 @@
-/** "Start from a preset": chips, the one that matches selected, Custom once a tool has been changed. */
+/** "Start from a preset": chips, the one that matches selected, Custom once a tool has been changed, and what the selected one grants. */
 export function PresetChips({ presets, selected, readOnly, onPick }: {
-  presets: { id: string; label: string }[]
+  presets: { id: string; label: string; description?: string }[]
   selected: string
   readOnly: boolean
   onPick: (id: string) => void
 }) {
+  const description = presets.find(p => p.id === selected)?.description
   return (
     <div>
       <p className="text-micro font-medium uppercase tracking-wide text-text-muted">Start from a preset</p>
@@ -22,6 +23,7 @@ export function PresetChips({ presets, selected, readOnly, onPick }: {
           )
         })}
       </div>
+      {description && <p className="mt-2 text-small text-text-secondary">{description}</p>}
     </div>
   )
 }

@@ -58,7 +58,7 @@ function readRequest(request: unknown) {
     tools: strings((r.tools ?? []).map(t => t.name)),
     commands: strings((r.bashPatterns ?? []).map(p => p.pattern)),
     /** The command lines it tried, as the site recorded them. */
-    tried: strings((r.bashPatterns ?? []).map(p => p.reason)),
+    tried: strings((r.bashPatterns ?? []).map(p => p.reason ?? p.pattern)),
   }
 }
 

@@ -7,7 +7,7 @@
  * conversation and in Notifications.
  *
  * What a request records today is the tool and what the call named (a path, a
- * web address), or the command. The agent's own reason for asking is not
+ * web address), or the whole command. The agent's own reason for asking is not
  * collected, so `why` is what the call named, when it named anything.
  */
 import type { TranscriptApproval } from './transcript.js'
@@ -35,9 +35,9 @@ export function approvalItems(request: unknown): ApprovalItem[] {
     const name = text(t.name)
     return name ? [{ does: toolAsk(name), why: text(t.reason), command: false }] : []
   })
-  // A command request names its first word; the call it came from is the whole command.
+  // A command request is the whole command, and approving it grants exactly that command: the card shows what is granted.
   const commands = (r.bashPatterns ?? []).flatMap(p => {
-    const command = text(p.reason) ?? text(p.pattern)
+    const command = text(p.pattern)
     return command ? [{ does: command, why: null, command: true }] : []
   })
   return [...tools, ...commands]

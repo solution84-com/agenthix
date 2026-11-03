@@ -145,9 +145,9 @@ export function organisationsPreset(d: PermissionsDraft): PermissionsDraft {
   }
 }
 
-export const presetsFor = (d: PermissionsDraft): { id: string; label: string }[] => [
+export const presetsFor = (d: PermissionsDraft): { id: string; label: string; description?: string }[] => [
   ...(d.level === 'narrowing' ? [{ id: ORGANISATION_PRESET, label: "The organisation's" }] : []),
-  ...PERMISSION_PRESETS.map(p => ({ id: p.id, label: p.label })),
+  ...PERMISSION_PRESETS.map(p => ({ id: p.id, label: p.label, description: p.description })),
   { id: CUSTOM_PRESET, label: 'Custom' },
 ]
 

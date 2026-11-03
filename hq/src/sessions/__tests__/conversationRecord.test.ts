@@ -7,7 +7,7 @@ vi.mock('../../projects/onBehalfOfOperations', () => ({ usernames }))
 import { withConversationRecord, conversationRows, namedPeople, tryAgainPrompt } from '../conversationRecord'
 
 const at = (m: number) => new Date(Date.UTC(2026, 9, 10, 10, m)).toISOString()
-const request = { tools: [{ name: 'web_fetch', reason: 'https://example.com/notes' }], bashPatterns: [{ pattern: 'npm', reason: 'npm install sdk@0.9.2' }] }
+const request = { tools: [{ name: 'web_fetch', reason: 'https://example.com/notes' }], bashPatterns: [{ pattern: 'npm install sdk@0.9.2' }] }
 
 beforeEach(() => {
   usernames.mockReset()

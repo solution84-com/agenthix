@@ -16,12 +16,14 @@ const h = vi.hoisted(() => ({
   gateRunContext: vi.fn(),
   verifyHqToken: vi.fn(),
   createMcpServer: vi.fn(),
+  refusePlatformCall: vi.fn(),
 }))
 
 vi.mock('../../runtime/runTokens', () => ({ resolvePlatformToken: h.resolvePlatformToken }))
 vi.mock('../../../agents/runtime/toolGateRuns', () => ({ gateRunContext: h.gateRunContext }))
 vi.mock('../../identity/verifyHqToken', () => ({ verifyHqToken: h.verifyHqToken }))
 vi.mock('../mcpServer', () => ({ createMcpServer: h.createMcpServer }))
+vi.mock('../mcpCallGate', () => ({ refusePlatformCall: h.refusePlatformCall }))
 
 vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
   StreamableHTTPServerTransport: vi.fn().mockImplementation(() => ({
@@ -84,7 +86,32 @@ describe('MCP handler — the one auth branch', () => {
       livePreview: null,
       trustedPackageScopes: [],
       siteTools: { context: null, openCode: false },
+      callRefusal: null,
     })
+    expect(h.refusePlatformCall).not.toHaveBeenCalled()
+  })
+
+  it('puts a tool call through the gate, with the arguments as sent, and hands its refusal to the server', async () => {
+    const turn = { runId: 'run-1', sessionId: 's1' }
+    h.resolvePlatformToken.mockReturnValue({ holder: { jwt: 'holder-jwt', expiresAt: Date.now() + 60_000 }, runId: 'run-1' })
+    h.verifyHqToken.mockResolvedValue(CLAIMS)
+    h.gateRunContext.mockReturnValue(turn)
+    h.refusePlatformCall.mockResolvedValue('Not approved.')
+    const { req, res } = makeReqRes({ authorization: 'Bearer t' })
+    req.body = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'deploy', arguments: { to: 'prod' } } }
+    await mcpHandler(req, res)
+    expect(h.refusePlatformCall).toHaveBeenCalledWith(turn, 'run-1', 'deploy', { to: 'prod' })
+    expect(h.createMcpServer).toHaveBeenCalledWith(expect.objectContaining({ callRefusal: 'Not approved.' }))
+  })
+
+  it('refuses a batch that carries a tool call, so no call escapes the gate', async () => {
+    h.resolvePlatformToken.mockReturnValue({ holder: { jwt: 'holder-jwt', expiresAt: Date.now() + 60_000 }, runId: 'run-1' })
+    h.verifyHqToken.mockResolvedValue(CLAIMS)
+    const { req, res } = makeReqRes({ authorization: 'Bearer t' })
+    req.body = [{ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'deploy' } }]
+    await mcpHandler(req, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(h.createMcpServer).not.toHaveBeenCalled()
   })
 
   it("hands the package tools the organisation's trusted scopes from the verified capability only, and none for a bad value (adr-0170)", async () => {

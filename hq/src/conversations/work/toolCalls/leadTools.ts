@@ -49,6 +49,15 @@ function refused(tool: string, err: unknown): ToolCallOutcome {
   return { status: 'refused', reason: `${tool} failed` }
 }
 
+/**
+ * A typed message approves nothing through the lead: the lead may have been misled into reading a yes the person
+ * never gave, or into naming a request they never saw. A person who types approves with the request's own Approve
+ * button, which shows exactly what it allows. A spoken yes still counts, after a read-back (voice/readBack.ts), and a
+ * no in words still declines.
+ */
+export const TYPED_APPROVAL_REFUSED =
+  "A typed approval is not taken from your reply: the person approves with the request's Approve button, which shows exactly what it allows. Ask them to use it. Nothing was changed."
+
 const answerInput = z.object({
   operationId: z.string().min(1).describe('The id of the waiting request, from the list in this tool\'s description.'),
   answer: z.enum(['approve', 'decline']),
@@ -65,10 +74,11 @@ export const answerApprovalTool: ConversationTool = {
   async describe(capability) {
     const waiting = await listed(capability.conversationId, ['WAITING_FOR_APPROVAL'])
     return [
-      'Answer a request waiting for the person\'s approval, when they answer it in words ("yes, go ahead", "no, not',
-      'on the shared machine"). Call it only on their clear answer to that request; read it back first if it is not',
-      'clear which request they mean. Approve runs the work; decline ends it, with their note. A yes said aloud',
-      'counts only after a read-back: when this asks for one, say it and wait for their yes, then call it again.',
+      'Answer a request waiting for the person\'s approval, when they answer it in words ("no, not on the shared',
+      'machine", or a spoken "yes, go ahead"). Call it only on their clear answer to that request; read it back first',
+      'if it is not clear which request they mean. Decline ends it, with their note. Approve runs the work, and counts',
+      'only when they said yes aloud, after a read-back: when this asks for one, say it and wait for their yes, then',
+      'call it again. A typed yes is not taken here: ask them to use the request\'s Approve button.',
       '',
       'Waiting for an answer:',
       ...waiting.map(w => `- ${w.id}: ${w.title}`),
@@ -82,6 +92,7 @@ export const answerApprovalTool: ConversationTool = {
     try {
       await requireConversationSpeaker(capability.conversationId, capability.actingUserId)
       const transcript = await spokenInput(capability.turnId)
+      if (transcript === null && answer === 'approve') return { status: 'refused', reason: TYPED_APPROVAL_REFUSED }
       if (transcript !== null && answer === 'approve') {
         const readBack = readBackFirst(operationId, capability.turnId, await operationTitle(operationId))
         if (readBack) return { status: 'done', operationId, result: { answered: null, readBackFirst: readBack } }

@@ -98,8 +98,14 @@ describe("the agent's memory @SC-755", () => {
 describe('an approval in plain words @SC-751', () => {
   const request = {
     tools: [{ name: 'web_fetch', reason: 'https://example.com/releases' }],
-    bashPatterns: [{ pattern: 'npm', reason: 'npm install sdk@0.9.2' }],
+    bashPatterns: [{ pattern: 'npm install sdk@0.9.2' }],
   }
+
+  it('shows a command as the whole command the approval grants, never a reason beside it', () => {
+    expect(approvalItems({ bashPatterns: [{ pattern: 'cd x && npm install sdk@0.9.2', reason: 'npm install' }] })).toEqual([
+      { does: 'cd x && npm install sdk@0.9.2', why: null, command: true },
+    ])
+  })
 
   it('says what each item will do, never the tool or the pattern', () => {
     expect(approvalItems(request)).toEqual([

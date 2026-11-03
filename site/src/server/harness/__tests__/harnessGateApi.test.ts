@@ -133,7 +133,7 @@ describe('each OpenCode tool, allowed and refused', () => {
     ['grep', { pattern: 'TODO' }],
     ['edit', { filePath: 'a.ts', oldString: 'a', newString: 'b' }],
     ['apply_patch', { patchText: '*** Begin Patch\n*** Update File: a.ts\n@@\n-a\n+b\n*** End Patch' }],
-    ['bash', { command: 'git status --short' }],
+    ['bash', { command: 'git status' }],
     [`${conn}_create_task`, { title: 't' }],
     ['todowrite', { todos: [] }],
     ['skill', { name: 'platform-review' }],
@@ -143,11 +143,11 @@ describe('each OpenCode tool, allowed and refused', () => {
   })
 
   it.each([
-    ['write', { filePath: 'a.ts', content: 'x' }, 'write_file is not in your approved tool set'],
-    ['apply_patch', { patchText: '*** Begin Patch\n*** Add File: n.ts\n+x\n*** End Patch' }, 'write_file is not in your approved tool set'],
-    ['bash', { command: 'make build' }, 'Bash is not approved for this run.'],
+    ['write', { filePath: 'a.ts', content: 'x' }, 'write_file was not run: it needs a person\'s approval'],
+    ['apply_patch', { patchText: '*** Begin Patch\n*** Add File: n.ts\n+x\n*** End Patch' }, 'write_file was not run: it needs a person\'s approval'],
+    ['bash', { command: 'git status --short' }, 'This command was not run: it needs a person\'s approval'],
     ['webfetch', { url: 'https://example.com' }, 'web_fetch is not available for this agent.'],
-    [`${conn}_delete_task`, { taskId: 't' }, 'delete_task is not in your approved tool set'],
+    [`${conn}_delete_task`, { taskId: 't' }, 'delete_task was not run: it needs a person\'s approval'],
   ])('refuses %s with the gate\'s steering text', async (tool, args, text) => {
     const deferred: DeferredManifest = { tools: [], bashPatterns: [] }
     startTurn(restricted(deferred))

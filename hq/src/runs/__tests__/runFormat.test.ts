@@ -32,9 +32,10 @@ describe('the Runs screen\'s wording @SC-530 @SC-649 @SC-652', () => {
   })
 
   it('tells a call that was approved after asking from one that was not', () => {
-    const given = { tools: ['web_fetch'], bashPatterns: ['git push*'], by: 'Ana', at: '2026-10-09T09:10:00Z' }
+    const given = { tools: ['web_fetch'], bashPatterns: ['git push origin web-24'], by: 'Ana', at: '2026-10-09T09:10:00Z' }
     expect(askedFirst({ toolName: 'web_fetch', toolInput: {}, blocked: false }, given)).toBe(true)
     expect(askedFirst({ toolName: 'bash', toolInput: { command: 'git push origin web-24' }, blocked: false }, given)).toBe(true)
+    expect(askedFirst({ toolName: 'bash', toolInput: { command: 'git push origin web-24 --force' }, blocked: false }, given)).toBe(false)
     expect(askedFirst({ toolName: 'bash', toolInput: { command: 'git status' }, blocked: false }, given)).toBe(false)
     expect(askedFirst({ toolName: 'web_fetch', toolInput: {}, blocked: true }, given)).toBe(false)
     expect(askedFirst({ toolName: 'web_fetch', toolInput: {}, blocked: false }, null)).toBe(false)

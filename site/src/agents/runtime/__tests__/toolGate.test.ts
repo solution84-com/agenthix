@@ -190,12 +190,12 @@ describe('toolGate — never, in a run with no manifest @SC-768', () => {
 describe('toolGate — a never bash pattern in a run with a manifest @SC-768', () => {
   beforeEach(() => { h.create.mockReset(); h.create.mockResolvedValue({}); resetGateRunsForTests() })
 
-  it('refuses it with bash in the ask state, even when the manifest approves *', async () => {
+  it('refuses it with bash in the ask state, even when the manifest approves the command', async () => {
     const over: Partial<RunContext> = {
       bypassed: false,
       allowedTools: [{ name: 'bash', state: 'ask' }],
       allowedBashPatterns: [{ pattern: 'rm', state: 'never' }],
-      approvedManifest: { tools: [], bashPatterns: ['*'], approvedAt: 't' },
+      approvedManifest: { tools: [], bashPatterns: ['rm -rf x', 'make'], approvedAt: 't' },
       deferredManifest: { tools: [], bashPatterns: [] },
     }
     expect(await decide({ toolName: 'bash', input: { command: 'rm -rf x' } }, identity, over)).toEqual({ allow: false, reason: 'This bash command pattern is not permitted for this agent.' })

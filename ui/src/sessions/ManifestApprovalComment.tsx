@@ -158,12 +158,10 @@ export function ManifestApprovalComment({ content, sessionId, queries, actions, 
       {extendedBashPatterns.length > 0 && (
         <div className="space-y-1">
           <p className="text-micro uppercase tracking-wide text-text-muted flex items-center gap-1">
-            <Terminal size={10} /> Bash prefixes
+            <Terminal size={10} /> Commands, each allowed exactly as shown
           </p>
           {extendedBashPatterns.map((p, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="text-small font-mono text-text-primary shrink-0">{p.pattern}</span>
-            </div>
+            <p key={i} className="text-small font-mono text-text-primary whitespace-pre-wrap break-all">{p.pattern}</p>
           ))}
         </div>
       )}

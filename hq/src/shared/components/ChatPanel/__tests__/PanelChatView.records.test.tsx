@@ -92,16 +92,11 @@ describe('an approval asked mid-run @SC-696', () => {
     await waitFor(() => expect(h.actions.approveManifest).toHaveBeenCalledWith({ runId: 'r1', sessionId: 's1' }))
   })
 
-  it('shows two items, then "+ N more", and says Approve allows all', async () => {
+  it('shows every item while it waits, since Approve allows each one, and folds them once answered', async () => {
     const many = Array.from({ length: 5 }, (_, i) => ({ does: `Step ${i + 1}`, why: null, command: false }))
     await open(asked(card('waiting', { items: many })))
-    expect(await screen.findByText('Step 2')).toBeTruthy()
-    expect(screen.queryByText('Step 3')).toBeNull()
-    expect(screen.getByText('Approve allows all 5')).toBeTruthy()
-    fireEvent.click(screen.getByText('+ 3 more'))
-    expect(screen.getByText('Step 5')).toBeTruthy()
-    fireEvent.click(screen.getByText('Show less'))
-    expect(screen.queryByText('Step 5')).toBeNull()
+    expect(await screen.findByText('Step 5')).toBeTruthy()
+    expect(screen.queryByText(/more/)).toBeNull()
   })
 
   it('folds to one line once answered, opening to the same card with a link to the run', async () => {

@@ -93,6 +93,18 @@ describe('disabledTools patches out a tool entirely', () => {
   })
 })
 
+describe('a tool call the gate refused at /mcp', () => {
+  it('is answered with the refusal by whichever tool it names, and nothing is forwarded', async () => {
+    registrations.clear()
+    createMcpServer({ capabilityJwt: 'jwt-1', callRefusal: 'This run is pausing here.' })
+    for (const name of ['get_org', 'ping', 'stop_processes']) {
+      const result = await registrations.get(name)!({}) as { isError: boolean; content: Array<{ text: string }> }
+      expect(result).toEqual({ isError: true, content: [{ type: 'text', text: 'This run is pausing here.' }] })
+    }
+    expect(mockCallHqData).not.toHaveBeenCalled()
+  })
+})
+
 describe('the commit tool — offered only to a run on a branch\'s copy @SC-1732', () => {
   const context = (codeWork?: { branch: string }) =>
     ({ runId: 'run-7', sessionId: 's1', ...(codeWork ? { codeWork } : {}) }) as unknown as import('../../../agents/runtime/types').RunContext

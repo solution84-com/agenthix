@@ -50,12 +50,12 @@ export function outputPreview(output: string, limit = OUTPUT_PREVIEW_LINES): { t
 
 export type ApprovalGiven = { tools: string[]; bashPatterns: string[]; by: string | null; at: string | null }
 
-/** Whether a call used what an earlier run asked for and a person approved for this one: its tool, or a command its pattern covers. */
+/** Whether a call used what an earlier run asked for and a person approved for this one: its tool, or exactly the command approved. */
 export function askedFirst(call: { toolName: string; toolInput: unknown; blocked: boolean }, given: ApprovalGiven | null): boolean {
   if (!given || call.blocked) return false
   if (given.tools.includes(call.toolName)) return true
   const command = (call.toolInput as { command?: unknown } | null)?.command
-  return typeof command === 'string' && given.bashPatterns.some((p) => command.startsWith(p.replace(/\*+$/, '').trimEnd()))
+  return typeof command === 'string' && given.bashPatterns.some((p) => p.trim() === command.trim())
 }
 
 /** What a call was, in one line: the command for a shell call, else its first argument. */

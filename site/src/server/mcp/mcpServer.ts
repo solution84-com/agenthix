@@ -57,6 +57,13 @@ export interface CreateMcpServerOptions {
    * for them, the app tools are not offered and the capability's live preview is not used.
    */
   features?: FeatureSwitches
+  /** The gate's refusal of the tool call this request carries (mcpCallGate.ts): every tool answers with it instead. */
+  callRefusal?: string | null
+}
+
+/** A gate refusal, as text the model reads, like the harness's own refusals. */
+function mcpRefusal(reason: string) {
+  return { content: [{ type: 'text' as const, text: reason }], isError: true as const }
 }
 
 const NO_RUN = 'No run of this conversation is running, so nothing was recorded.'
@@ -83,15 +90,17 @@ export function createMcpServer(opts: CreateMcpServerOptions): McpServer {
   )
 
   // Same disabledTools patch as hq's mcpServer.ts — §H6's workspace-intersection
-  // can push an otherwise always-injected tool into neverTools for this run.
-  if (opts.disabledTools?.size) {
-    const disabledTools = opts.disabledTools
-    const orig = server.tool.bind(server)
-    ;(server as any).tool = (...args: unknown[]) => {
-      const name = args[0] as string
-      if (disabledTools.has(name)) return
-      return (orig as (...a: unknown[]) => unknown)(...args)
-    }
+  // can push an otherwise always-injected tool into neverTools for this run. A
+  // tool call the gate refused (callRefusal) is answered with the refusal.
+  const disabledTools = opts.disabledTools ?? new Set<string>()
+  const callRefusal = opts.callRefusal ?? null
+  const orig = server.tool.bind(server)
+  // `any`: McpServer.tool is overloaded; this patch forwards whichever form was called.
+  ;(server as any).tool = (...args: unknown[]) => {
+    const name = args[0] as string
+    if (disabledTools.has(name)) return
+    if (callRefusal !== null) args[args.length - 1] = async () => mcpRefusal(callRefusal)
+    return (orig as (...a: unknown[]) => unknown)(...args)
   }
 
   // ── Genuinely site-local tools — touch no control-plane data at all ────────

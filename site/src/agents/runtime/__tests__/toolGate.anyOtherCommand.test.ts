@@ -44,7 +44,7 @@ describe('toolGate — a command matching no pattern follows Any other command @
     const ctx = context('ask')
     const d = await bash(ctx, 'make build')
     expect(d.allow).toBe(false)
-    expect(ctx.deferredManifest!.bashPatterns).toEqual([{ pattern: 'make', reason: 'make build' }])
+    expect(ctx.deferredManifest!.bashPatterns).toEqual([{ pattern: 'make build' }])
     expect(rows()).toEqual([expect.objectContaining({ blocked: true, blockReason: 'bash-not-in-manifest' })])
   })
 
@@ -55,7 +55,7 @@ describe('toolGate — a command matching no pattern follows Any other command @
   })
 
   it('runs it when Bash is Ask and the run has already approved it', async () => {
-    const ctx = context('ask', { approvedManifest: { tools: [], bashPatterns: ['make'], approvedAt: 't' } })
+    const ctx = context('ask', { approvedManifest: { tools: [], bashPatterns: ['make build'], approvedAt: 't' } })
     expect(await bash(ctx, 'make build')).toEqual({ allow: true })
   })
 
@@ -83,7 +83,7 @@ describe('toolGate — a matching pattern still wins over Any other command @SC-
   it('asks about a command an Ask pattern matches while Bash is Always', async () => {
     const ctx = context('always')
     expect((await bash(ctx, 'npm install')).allow).toBe(false)
-    expect(ctx.deferredManifest!.bashPatterns).toEqual([{ pattern: 'npm', reason: 'npm install' }])
+    expect(ctx.deferredManifest!.bashPatterns).toEqual([{ pattern: 'npm install' }])
   })
 
   it('refuses a command a Never pattern matches while Bash is Always', async () => {

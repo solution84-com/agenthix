@@ -4,13 +4,19 @@
  * for the approval card, the run's page and the notification text.
  */
 
-/** A deferred run's request: the tools and bash patterns it was refused and asks to be approved for its next run. */
+/**
+ * A deferred run's request: the tools and commands it was refused and asks to be approved for its next run. Each
+ * `bashPatterns` entry's `pattern` is a whole command as the agent ran it, and approving it grants exactly that command.
+ */
 export type PendingManifest = {
   tools: { name: string; reason?: string }[]
   bashPatterns: { pattern: string; reason?: string }[]
 }
 
-/** What the run was approved for, enforced during the run: the full tool set and bash patterns, and when. */
+/**
+ * What the run was approved for, enforced during the run: the full tool set, the commands a person approved (each
+ * allowed only as written, never as a prefix), and when.
+ */
 export type ApprovedManifest = {
   tools: string[]
   bashPatterns: string[]
