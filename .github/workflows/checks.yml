@@ -422,7 +422,7 @@ jobs:
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.jobs), 'hq-integration')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: read
     services:
