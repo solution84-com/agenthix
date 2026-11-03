@@ -294,7 +294,8 @@ describe('the new Fleet Console @SC-877', () => {
     const binding = await oldConsoleBinding(fresh, await fingerprintOf(hqKeys.identity), await fingerprintOf(own))
     await h.ctx.handoverIn.onAcceptance({ identity: hqKeys.identity, binding, envelope })
     h.link.setState('connected')
-    await until(() => h.ctx.handoverIn.status().state === 'fresh')
+    // The key's fingerprint is worked out in the background at start, so wait for it as well as the state.
+    await until(() => h.ctx.handoverIn.status().state === 'fresh' && h.ctx.handoverIn.status().fingerprint !== undefined)
     expect(h.ctx.hosts.list()).toEqual([])
     expect(h.link.handoverFrames).toEqual([])
     expect(h.ctx.handoverIn.status()).toEqual({ state: 'fresh', fingerprint: h.ctx.consoleFingerprint })
@@ -303,7 +304,8 @@ describe('the new Fleet Console @SC-877', () => {
   it('says it started with no machines when hq’s own code gave it a credential at once', async () => {
     const h = await startNext('H7QM4XPD93TB')
     h.link.setState('connected')
-    await until(() => h.ctx.handoverIn.status().state === 'fresh')
+    // The key's fingerprint is worked out in the background at start, so wait for it as well as the state.
+    await until(() => h.ctx.handoverIn.status().state === 'fresh' && h.ctx.handoverIn.status().fingerprint !== undefined)
     expect(h.ctx.handoverIn.status()).toEqual({ state: 'fresh', fingerprint: h.ctx.consoleFingerprint })
     expect(h.ctx.hosts.list()).toEqual([])
   })
