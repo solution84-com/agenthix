@@ -48,7 +48,7 @@ Cloud has remote access on, the Fleet Console there answers on one more publishe
 | **Fleet admin** | A role on an hq account (`User.fleetAdmin`) | Signing in to the Fleet Console, and so asking host services to act ([ADR-0110](../adr/adr-0110-fleet-admin-is-a-role-on-hq-accounts.md)) |
 | **Agenthix Cloud's controller** | The hosted service's own identity, pinned by a host service when the machine enrolls with Cloud. Only on a machine Cloud runs | The machine admin's, **for that machine alone**, over a link of its own that never passes through hq ([ADR-0130](../adr/adr-0130-cloud-features-are-gated-by-their-own-conditions.md), [below](#agenthix-clouds-controller)). A machine has one controller: a Fleet Console's or Cloud's |
 
-**A machine carries at most one hq and at most one site**; hq's machine carries hq and its site
+**The supported setup is one hq and one site on a machine** (several installations are allowed for testing, [deployment](deployment.md#several-installations-on-one-machine)); hq's machine carries hq and its site
 ([ADR-0108](../adr/adr-0108-a-machine-carries-at-most-one-hq-and-one-site.md)). A second organisation is a second
 machine.
 

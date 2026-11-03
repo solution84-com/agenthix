@@ -158,7 +158,7 @@ If another program takes a port while the installation is stopped, the container
 
 ## Several installations on one machine, for testing
 
-Supported for people is one hq and one site per machine ([ADR-0108](../adr/adr-0108-a-machine-carries-at-most-one-hq-and-one-site.md)).
+Supported for people is one hq and one site per machine; more are not refused ([ADR-0108](../adr/adr-0108-a-machine-carries-at-most-one-hq-and-one-site.md)).
 For tests, a machine can run more installations, each one host service with a namespace and a state folder of its
 own. The namespace is set at the host service's first start by `INSTALL_NAMESPACE`, and what the installation chose
 is recorded in `<state>/installation.json` and as labels on every container it runs. Another installation's check

@@ -8,7 +8,7 @@
    - Web: use Tailwind token utilities (bg-accent, text-accent, etc.)
      or CSS custom properties (var(--color-accent)) in inline styles.
    - Mobile: use Colors from useColors() / ThemeContext — never hardcode.
-   - When tokens change here, update mobile/src/theme.ts in the same commit.
+   - When tokens change here, update the mobile app's copy of the theme in the same change.
    ────────────────────────────────────────────── */
 @theme {
   --color-surface-0: #0a0a0f;

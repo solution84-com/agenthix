@@ -50,7 +50,7 @@ it; agents dial their site over a private network ([ADR-0066](../adr/adr-0066-a-
 nothing dials a site, a host service or the Fleet Console. HTTPS is the job of a **front door**: the one web server on a
 machine that holds ports 80 and 443 and the certificates — the machine's own, or one the host service runs.
 
-**A machine carries at most one hq and at most one site** ([ADR-0108](../adr/adr-0108-a-machine-carries-at-most-one-hq-and-one-site.md)).
+**The supported setup is one hq and one site on a machine** ([ADR-0108](../adr/adr-0108-a-machine-carries-at-most-one-hq-and-one-site.md)); the install does not refuse a further installation, which runs for testing ([below](#several-installations-on-one-machine)).
 hq's machine always carries hq and its site, connected by a shared secret
 ([ADR-0070](../adr/adr-0070-hq-and-its-own-site-are-connected-by-configuration.md)); every further site is on a machine
 of its own, added by a fleet admin in the Fleet Console

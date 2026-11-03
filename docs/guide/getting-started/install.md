@@ -106,6 +106,7 @@ address. [Address and front door](../running-agenthix/domain-and-https.md) has t
    ```sh
    docker build -f hq/docker/Dockerfile --target server -t agenthix-hq-server .
    docker build -f hq/docker/Dockerfile --target web -t agenthix-hq-web .
+   docker build -f relay/docker/Dockerfile --target relay -t agenthix-relay .
    docker build -f site/docker/Dockerfile -t agenthix-site-server .
    docker build -f site/docker/agent.Dockerfile -t agenthix-agent .
    docker build -f console/docker/Dockerfile -t agenthix-console .
