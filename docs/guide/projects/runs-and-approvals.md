@@ -36,12 +36,10 @@ Select a run to open it. The top shows its title, how it ended and when, and **O
 
 An agent can only use the tools and commands it has been allowed. When it wants to do something its permissions leave to a person, it asks: by default when it has done everything else, or at once if its approval is set to **Immediate**. The task shows **Wants approval**, and the request appears on the task, under **Needs you** in the project's **Tasks**, and in the **Notifications** of the person the task is done on behalf of. How much an agent may do before it asks is set in [Permissions and approvals](../agents/permissions.md).
 
-A request shows what the agent wants to run, as **Additional tools** or **Commands**, and why in the agent's own words. Each command is shown whole.
+A request shows what the agent wants to run, as **Additional tools** or **Bash prefixes**, and why in the agent's own words.
 
-- **Approve** lets the work go on with the access it asked for, for the next run only. A command is allowed exactly as shown: approving `npm run build` does not allow `npm run test`, or the same command with anything added.
+- **Approve** lets the work go on with the access it asked for, for this run only.
 - **Deny** in Notifications or on the Runs screen, **Decline** in a conversation's work bar, or **Reject** on the task, refuses it. In a conversation or on the task you can give a reason, which the agent reads.
-
-A typed reply such as "yes" does not approve a request. Select the request's **Approve** button, which shows exactly what it allows. Typing a refusal still declines it, and when you talk to the lead by voice, a spoken yes approves after it reads the request back to you.
 
 In a conversation the request is a row in the bar above the message box, as in [Your first conversation](../getting-started/first-conversation.md#when-an-agent-asks-to-do-something). On a task, and in a task's conversation, anyone who works in the project, as a member or administrator, can answer; a viewer sees the request but can't. In a personal or project conversation, only the person having it can.
 

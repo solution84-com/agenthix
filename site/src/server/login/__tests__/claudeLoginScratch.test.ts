@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { makeSignInScratch, signInScratchRoot } from '../claudeLogin'
+import { clearSignInScratch, makeSignInScratch, signInScratchRoot } from '../claudeLogin'
 
 let root: string
 beforeEach(async () => {
@@ -36,5 +36,13 @@ describe('the sign-in scratch folder', () => {
 
   it('gives every sign-in a folder of its own', async () => {
     expect(await makeSignInScratch()).not.toBe(await makeSignInScratch())
+  })
+
+  it('a sign-in the site never saw end leaves nothing behind once the site starts again', async () => {
+    const dir = await makeSignInScratch()
+    await fs.writeFile(path.join(dir, '.credentials.json'), '{}')
+    await clearSignInScratch()
+    await expect(fs.stat(signInScratchRoot())).rejects.toMatchObject({ code: 'ENOENT' })
+    await clearSignInScratch()
   })
 })

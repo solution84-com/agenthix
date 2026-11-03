@@ -248,6 +248,14 @@ function setHead(gd, name) {
   fs.renameSync(tmp, path.join(gd, 'HEAD'))
 }
 
+/** Keeps the index Git just wrote as the copy's own. The helper file is made fresh: a link planted under its name is removed, never followed. */
+function keepIndex(cg, from) {
+  const kept = path.join(cg, 'index.helper')
+  try { fs.unlinkSync(kept) } catch (e) { if (e.code !== 'ENOENT') throw new Refusal('refConflict') }
+  fs.copyFileSync(from, kept, fs.constants.COPYFILE_EXCL)
+  fs.renameSync(kept, path.join(cg, 'index'))
+}
+
 /** A clean Git folder whose \`packed-refs\` mirrors \`branches\`, so Git can read them by name. */
 function mirrorRefs(dir, branches) {
   const body = ['# pack-refs with: peeled fully-peeled sorted']

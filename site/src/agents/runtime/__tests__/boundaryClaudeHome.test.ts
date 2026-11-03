@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../credentialFile', () => import('./fakeCredentialFile'))
+vi.mock('../homeFolder', () => import('./fakeHomeFolder'))
 vi.mock('node:fs/promises', () => ({
   default: {
     mkdir: vi.fn().mockResolvedValue(undefined),
@@ -83,11 +84,11 @@ describe('the Claude folder sits inside the runner\'s harness home', () => {
 })
 
 describe('prepareHarnessHome', () => {
-  it('creates `.claude/` and seeds `~/.claude.json` only when it is absent', async () => {
+  it('creates `.claude/` with its staging folder, and seeds `~/.claude.json` only when it is absent', async () => {
     await prepareHarnessHome(ADA_IN_ALPHA)
 
     const home = `${SITE_ROOT}/homes/users/user-ada/proj-alpha`
-    expect(mockFs.mkdir).toHaveBeenCalledWith(`${home}/.claude`, { recursive: true })
+    expect(mockFs.mkdir).toHaveBeenCalledWith(`${home}/.claude/.tmp`, { recursive: true })
     // 'wx': never overwrites what Claude Code has already written there.
     expect(mockFs.writeFile).toHaveBeenCalledWith(`${home}/.claude.json`, '{}', { flag: 'wx', mode: 0o600 })
   })

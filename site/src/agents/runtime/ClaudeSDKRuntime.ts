@@ -30,13 +30,15 @@ function isSessionInUseError(error: unknown): boolean {
 export class ClaudeSDKRuntime implements AgentRuntime {
   async sessionExists(query: SessionExistenceQuery): Promise<boolean> {
     if (process.env.AGENT_CONTAINER_ISOLATION === 'true') {
-      return claudeSessionFileExists(query.harnessHomeDir, query.workingDirectory, query.sessionId)
+      return claudeSessionFileExists(query.harnessHomeDir, query.workingDirectory, query.sessionId, path.dirname(query.harnessHomeDir))
     }
     // Without a container, Claude Code runs as a child of this process with
     // this process's environment, so it keeps its sessions in this process's
     // own Claude config dir — not in the runner's home — and files them under
     // the real path of its working directory, which is on this machine.
-    const configDir = process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude')
+    const ownConfigDir = process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude')
+    // This process's own folder, which may be reached through a link of its user's: read from its real path.
+    const configDir = await fs.realpath(ownConfigDir).catch(() => ownConfigDir)
     const cwd = await fs.realpath(query.workingDirectory).catch(() => query.workingDirectory)
     return claudeSessionFileExists(configDir, cwd, query.sessionId)
   }

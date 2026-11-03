@@ -28,6 +28,7 @@ import {
 } from './agentCredentials'
 import { SKILLS_STAGING_DIRNAME } from './skillsStagingDir'
 import { removeCredentialDocument, writeCredentialFile } from './credentialFile'
+import { ensureRealFolders } from './homeFolder'
 import { freshestDocumentFor, homeHoldsAnotherLogin, noteHomeLogin } from './subscriptionLogins'
 import { HARNESS_HOME_CONTAINER_DIR, harnessHomeFor } from './harnessHomes'
 import type { ContainerKey } from './containerTypes'
@@ -55,7 +56,7 @@ export function harnessHomeBind(key: ContainerKey): string {
 }
 
 /**
- * Creates the home and what Claude Code expects in it, before `docker run`:
+ * Creates the home, its staging folder and what Claude Code expects in it, before `docker run`:
  * Docker makes a missing bind source root-owned, and the run (appuser) then
  * cannot write into its own home. `~/.claude.json` is seeded empty only when
  * absent — Claude Code warns on every run without it, and once written it is
@@ -63,7 +64,9 @@ export function harnessHomeBind(key: ContainerKey): string {
  */
 export async function prepareHarnessHome(key: ContainerKey): Promise<void> {
   const home = harnessHomeFor(key)
-  await fs.mkdir(path.join(home, CLAUDE_DIRNAME), { recursive: true })
+  await fs.mkdir(home, { recursive: true })
+  // `.claude` and its staging folder as real folders: Docker binds whatever a link there leads to on this machine.
+  await ensureRealFolders(home, `${CLAUDE_DIRNAME}/${SKILLS_STAGING_DIRNAME}`)
   await fs.writeFile(path.join(home, '.claude.json'), '{}', { flag: 'wx', mode: 0o600 }).catch((err: NodeJS.ErrnoException) => {
     if (err.code !== 'EEXIST') throw err
   })

@@ -51,9 +51,7 @@ function hasMarkers(at, tree, p) {
 /** The copy's working folder and its index brought from \`from\` to \`to\`, the index kept as Git's own. */
 function checkOut(R, cg, at, from, to) {
   git(at, ['read-tree', '-m', '-u', from, to])
-  const kept = path.join(cg, 'index.helper')
-  fs.copyFileSync(at.index, kept)
-  fs.renameSync(kept, path.join(cg, 'index'))
+  keepIndex(cg, at.index)
 }
 
 /** The one branch under the copy's \`refs/remotes/origin\`: main, as a bundle brought it; none or several refuses. */

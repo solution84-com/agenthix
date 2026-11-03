@@ -7,10 +7,25 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { LocationMount } from './containerTypes'
 
+/**
+ * Whether `workspaces/<id>` in the boundary is a real folder all the way, with no link on the way. Runs write the
+ * boundary, and Docker binds whatever a link there leads to on this machine, another project's storage included.
+ */
+async function isOwnFolder(boundaryDir: string, id: string): Promise<boolean> {
+  let current = boundaryDir
+  for (const part of ['workspaces', id]) {
+    current = path.join(current, part)
+    const entry = await fs.lstat(current).catch(() => null)
+    if (!entry?.isDirectory()) return false
+  }
+  return true
+}
+
 export async function codeWorkspaceMounts(boundary: LocationMount, workspaces: { id: string }[]): Promise<LocationMount[]> {
   const mounts: LocationMount[] = []
   for (const ws of [...workspaces].sort((a, b) => (a.id < b.id ? -1 : 1))) {
     const hostDir = `${boundary.hostDir}/workspaces/${ws.id}`
+    if (!(await isOwnFolder(boundary.hostDir, ws.id))) continue
     if (await fs.lstat(path.join(hostDir, '.git')).then(() => true, () => false)) {
       mounts.push({ hostDir, containerDir: `${boundary.containerDir}/workspaces/${ws.id}` })
     }

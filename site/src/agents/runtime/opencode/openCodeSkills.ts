@@ -21,6 +21,7 @@ import { OPENCODE_SKILLS_DIRNAME, conversationStagingDirName } from '@agenthix/c
 import { Logger } from '../../../server/utils/logger'
 import { stageSkills, type StagingResult } from '../skillStaging'
 import { recordSkillsUsed } from '../skillUseRecord'
+import { closeDir, inDir, openFolderIn, readFileUnder, removeEntryIn, withStagingFolder } from '../homeFolder'
 import { SKILLS_STAGING_DIRNAME } from '../skillsStagingDir'
 import type { RunContext } from '../types'
 import type { InvocableSkill } from '../pickedSkill'
@@ -100,34 +101,56 @@ export function openCodeSkillsSection(skills: OpenCodeSkill[]): string {
  */
 export async function stageOpenCodeSkills(context: StagingContext, conversationId: string): Promise<OpenCodeTurnSkills> {
   const dirs = openCodeSkillsDirs(context.claudeHome, conversationId)
-  const parent = path.dirname(dirs.serverDir)
-  await fs.mkdir(parent, { recursive: true })
-  const next = path.join(parent, `${OPENCODE_SKILLS_DIRNAME}.next-${randomUUID()}`)
-  const old = path.join(parent, `${OPENCODE_SKILLS_DIRNAME}.old-${randomUUID()}`)
-  await fs.mkdir(next)
-
-  let result: StagingResult
-  try {
-    result = await stageSkills(context.skills, next)
-    await fs.rename(dirs.serverDir, old).catch((err: NodeJS.ErrnoException) => {
-      if (err.code !== 'ENOENT') throw err
-    })
-    await fs.rename(next, dirs.serverDir)
-  } catch (err) {
-    await fs.rm(next, { recursive: true, force: true }).catch(() => {})
-    throw err
-  } finally {
-    await fs.rm(old, { recursive: true, force: true }).catch(() => {})
-  }
+  // Through the staging folder as opened from the harness home, never by path (homeFolder.ts): a `.claude`, `.tmp`
+  // or conversation folder the run replaced with a link is refused, and nothing is written or read through one.
+  const { result, markdown } = await withStagingFolder(context.claudeHome.serverDir, async tmp => {
+    const parent = await openFolderIn(tmp, stagingDirName(conversationId))
+    try {
+      const next = `${OPENCODE_SKILLS_DIRNAME}.next-${randomUUID()}`
+      const old = `${OPENCODE_SKILLS_DIRNAME}.old-${randomUUID()}`
+      await fs.mkdir(inDir(parent, next))
+      let staged: StagingResult
+      try {
+        const nextDir = await openFolderIn(parent, next)
+        try {
+          staged = await stageSkills(context.skills, nextDir)
+        } finally {
+          await closeDir(nextDir)
+        }
+        await fs.rename(inDir(parent, OPENCODE_SKILLS_DIRNAME), inDir(parent, old)).catch((err: NodeJS.ErrnoException) => {
+          if (err.code !== 'ENOENT') throw err
+        })
+        await fs.rename(inDir(parent, next), inDir(parent, OPENCODE_SKILLS_DIRNAME))
+      } catch (err) {
+        await removeEntryIn(parent, next).catch(() => {})
+        throw err
+      } finally {
+        await removeEntryIn(parent, old).catch(() => {})
+      }
+      const skillsDir = await openFolderIn(parent, OPENCODE_SKILLS_DIRNAME)
+      try {
+        const texts = new Map<string, string>()
+        for (const s of staged.staged) {
+          const text = await readFileUnder(skillsDir, `${s.name}/SKILL.md`).catch(() => null)
+          if (text !== null) texts.set(s.name, text.toString('utf-8'))
+        }
+        return { result: staged, markdown: texts }
+      } finally {
+        await closeDir(skillsDir)
+      }
+    } finally {
+      await closeDir(parent)
+    }
+  }, { create: true })
 
   await recordSkillsUsed(context.runId, result)
   const skills: OpenCodeSkill[] = []
   for (const s of result.staged) {
-    const markdown = await fs.readFile(path.join(dirs.serverDir, s.name, 'SKILL.md'), 'utf-8').catch(() => null)
-    if (markdown === null) continue
+    const text = markdown.get(s.name)
+    if (text === undefined) continue
     skills.push({
       name: s.name,
-      description: skillDescription(markdown),
+      description: skillDescription(text),
       location: path.posix.join(dirs.visibleDir, s.name, 'SKILL.md'),
     })
   }

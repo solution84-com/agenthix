@@ -65,6 +65,15 @@ export async function makeSignInScratch(): Promise<string> {
   return fs.mkdtemp(path.join(root, 'claude-'))
 }
 
+/**
+ * At the site's start: no sign-in is running yet, so every folder under the
+ * sign-ins folder is one a sign-in the site never saw end left behind, with a
+ * person's tokens possibly still in it.
+ */
+export async function clearSignInScratch(): Promise<void> {
+  await fs.rm(signInScratchRoot(), { recursive: true, force: true })
+}
+
 const realDeps = (): LoginDeps => ({
   spawn: (command, args) => nodeSpawn(command, args, { stdio: ['pipe', 'pipe', 'pipe'] }),
   mkScratch: makeSignInScratch,

@@ -138,6 +138,16 @@ describe('links in a copy @SC-1721', () => {
     expect(fs.readFileSync(path.join(copy, '.git', 'HEAD'), 'utf8')).toBe('ref: refs/heads/sign-in\n')
   })
 
+  it('an index.helper that is a link outside the copy is replaced when a commit keeps its index, not written through', async () => {
+    const copy = await withCopy()
+    write(outside, 'target', 'untouched')
+    fs.symlinkSync(path.join(outside, 'target'), path.join(copy, '.git', 'index.helper'))
+    write(copy, 'a.txt', 'a\n')
+    expect(await commit()).toHaveProperty('commit')
+    expect(fs.readFileSync(path.join(outside, 'target'), 'utf8')).toBe('untouched')
+    expect(fs.existsSync(path.join(copy, '.git', 'index.helper'))).toBe(false)
+  })
+
   it('a link in the working tree is committed as a link, never as what it points at', async () => {
     const copy = await withCopy()
     write(outside, 'secret', 'do not read')

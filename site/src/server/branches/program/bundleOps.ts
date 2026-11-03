@@ -50,9 +50,7 @@ function setTree(root, cg, from, to) {
   const at = over(root, { index, work: root, cwd: root })
   if (from) git(at, ['read-tree', from])
   git(at, ['read-tree', '--reset', '-u', to])
-  const kept = path.join(cg, 'index.helper')
-  fs.copyFileSync(index, kept)
-  fs.renameSync(kept, path.join(cg, 'index'))
+  keepIndex(cg, index)
 }
 
 /** A bundle file the helper was given: a real file, never a link. */
@@ -221,9 +219,7 @@ Object.assign(ops, {
     const commit = text(git(at, ['commit-tree', tree, '-p', tip, '-F', '-'], { env: who(q.author, q.at), input: q.message }))
     writeBranch(cg, branch, commit, tip)
     setHead(cg, branch)
-    const kept = path.join(cg, 'index.helper')
-    fs.copyFileSync(index, kept)
-    fs.renameSync(kept, path.join(cg, 'index'))
+    keepIndex(cg, index)
     return { commit, files }
   },
 

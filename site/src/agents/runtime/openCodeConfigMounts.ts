@@ -23,6 +23,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { getSiteRoot } from '../agentDiskPaths'
 import { HARNESS_HOME_CONTAINER_DIR, harnessHomeFor } from './harnessHomes'
+import { ensureRealFolders } from './homeFolder'
 import type { ContainerKey } from './containerTypes'
 
 /** The two folders, relative to the harness home. */
@@ -45,32 +46,6 @@ export function openCodeConfigSourceDir(): string {
 export function openCodeConfigMountArgs(): string[] {
   const source = openCodeConfigSourceDir()
   return OPENCODE_CONFIG_CONTAINER_DIRS.flatMap(target => ['-v', `${source}:${target}:ro`])
-}
-
-function isMissing(err: unknown): boolean {
-  return (err as NodeJS.ErrnoException | null)?.code === 'ENOENT'
-}
-
-/**
- * Makes `home/<relative>` a chain of real folders. Whatever else stands at one
- * of its parts — a symbolic link, a file — is removed, never followed: a link
- * the agent left in its home points where the container sees things, not
- * where this machine does.
- */
-async function ensureRealFolders(home: string, relative: string): Promise<void> {
-  let current = home
-  for (const part of relative.split('/')) {
-    current = path.join(current, part)
-    const stat = await fs.lstat(current).catch((err: unknown) => {
-      if (isMissing(err)) return null
-      throw err
-    })
-    if (stat?.isDirectory()) continue
-    if (stat) await fs.rm(current, { force: true })
-    await fs.mkdir(current).catch((err: NodeJS.ErrnoException) => {
-      if (err.code !== 'EEXIST') throw err
-    })
-  }
 }
 
 /**

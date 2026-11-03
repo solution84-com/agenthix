@@ -53,6 +53,7 @@ vi.mock('../../agentDiskPaths', () => ({
 // (hq no longer provisions a site's disk) — mkdir is mocked so this doesn't
 // touch the real filesystem.
 vi.mock('../credentialFile', () => import('./fakeCredentialFile'))
+vi.mock('../homeFolder', () => import('./fakeHomeFolder'))
 vi.mock('node:fs/promises', () => ({
   default: { mkdir: vi.fn().mockResolvedValue(undefined) },
 }))

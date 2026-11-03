@@ -5,6 +5,7 @@ vi.mock('node:child_process', () => ({
 }))
 
 vi.mock('../credentialFile', () => import('./fakeCredentialFile'))
+vi.mock('../homeFolder', () => import('./fakeHomeFolder'))
 vi.mock('node:fs/promises', () => ({
   default: {
     mkdir: vi.fn().mockResolvedValue(undefined),

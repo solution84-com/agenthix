@@ -30,6 +30,7 @@ import { startKnowledgePruning } from './knowledge/pruning'
 import { usageOutbox } from './modelRelay/usageOutbox'
 import { startControlSocket } from './control/controlSocket'
 import { validateEnv } from './validateEnv'
+import { clearSignInScratch } from './login/claudeLogin'
 import { hostFigures } from './host/hostFigures'
 import { Logger } from './utils/logger'
 
@@ -80,6 +81,10 @@ export async function setupServer(): Promise<void> {
   } catch (err) {
     logger.warn(`Could not clean up after earlier workflow runs: ${err instanceof Error ? err.message : String(err)}`)
   }
+
+  // Sign-ins a crash cut short: their folders may still hold a person's tokens.
+  await clearSignInScratch().catch(err =>
+    logger.warn(`Could not clear sign-ins left by an earlier run: ${err instanceof Error ? err.message : String(err)}`))
 
   // Package cache hygiene: nothing can
   // legitimately still be mid-put before this boot has even opened a channel,

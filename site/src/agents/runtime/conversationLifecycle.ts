@@ -33,7 +33,6 @@
  * is known about earlier turns; a container reached again is recreated
  * (mountSignature.ts), which takes their processes with it.
  */
-import fs from 'node:fs/promises'
 import path from 'node:path'
 import { revokeConversationToken } from '../../server/runtime/conversationTokens'
 import { Logger } from '../../server/utils/logger'
@@ -42,6 +41,7 @@ import { conversationHeld } from './conversationHolds'
 import { endConversationProcesses, type EndConversationProcessesResult } from './conversationProcesses'
 import { selectRuntime } from './selectRuntime'
 import { SKILLS_STAGING_DIRNAME } from './skillsStagingDir'
+import { removeFromStaging } from './homeFolder'
 import type { AgentRuntime, ConversationRef } from './types'
 
 const logger = new Logger('ConversationLifecycle')
@@ -96,7 +96,7 @@ const realDeps: ConversationLifecycleDeps = {
   idleMs: conversationIdleMs,
   endProcesses: (containerName, conversationId) => endConversationProcesses(containerName, conversationId),
   revokeToken: revokeConversationToken,
-  removeDir: dir => fs.rm(dir, { recursive: true, force: true }),
+  removeDir: removeFromStaging,
   resolveRuntime: selectRuntime,
   isHeld: conversationHeld,
 }

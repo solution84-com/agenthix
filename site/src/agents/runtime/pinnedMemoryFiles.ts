@@ -10,12 +10,11 @@
  * A project's own home is shared by the task runs of every member of the project, so nothing about a person is
  * written there: those runs reach the person's items with `recall`, which hq answers for that person alone.
  */
-import { randomUUID } from 'node:crypto'
-import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { CapabilityRunner, PinnedMemoryItem } from '@agenthix/core'
 import { Logger } from '../../server/utils/logger'
 import { SKILLS_STAGING_DIRNAME } from './skillsStagingDir'
+import { closeDir, namesIn, openFolderIn, removeEntryIn, withStagingFolder, writeFileAtomicInDir, type Dir } from './homeFolder'
 
 const logger = new Logger('PinnedMemory')
 
@@ -69,20 +68,16 @@ function leave(claudeHomeDir: string, sessionId: string): boolean {
 }
 
 /** Removes the folders of sessions with no run going in this home, which only a run that never ended leaves. */
-async function clearLeftBehind(claudeHomeDir: string): Promise<void> {
-  const staging = path.join(claudeHomeDir, SKILLS_STAGING_DIRNAME)
-  const entries = await fs.readdir(staging).catch(() => [] as string[])
-  for (const entry of entries) {
+async function clearLeftBehind(claudeHomeDir: string, staging: Dir): Promise<void> {
+  for (const entry of await namesIn(staging)) {
     const session = SESSION_FOLDER.exec(entry)?.[1]
-    if (session && !running.get(claudeHomeDir)?.has(session)) {
-      await fs.rm(path.join(staging, entry), { recursive: true, force: true })
-    }
+    if (session && !running.get(claudeHomeDir)?.has(session)) await removeEntryIn(staging, entry)
   }
 }
 
-function folderOf(claudeHomeDir: string, sessionId: string): string {
+function folderName(sessionId: string): string {
   if (!SESSION_ID.test(sessionId)) throw new Error('Refusing a pinned memory folder for an unexpected session id')
-  return path.join(claudeHomeDir, SKILLS_STAGING_DIRNAME, `memory-${sessionId}`)
+  return `memory-${sessionId}`
 }
 
 /**
@@ -98,20 +93,31 @@ export async function writePinnedMemory(
   // Counted before anything is awaited, so a start in the same home never takes this run's folder for one left behind.
   enter(claudeHome.serverDir, sessionId)
   try {
-    await clearLeftBehind(claudeHome.serverDir)
-    const dir = folderOf(claudeHome.serverDir, sessionId)
+    const name = folderName(sessionId)
     const items = claudeHome.shared ? pinned?.filter(item => item.scope === 'agent_place') : pinned
-    if (!items || items.length === 0) {
-      await fs.rm(dir, { recursive: true, force: true })
-      return null
-    }
-    await fs.mkdir(dir, { recursive: true })
-    const target = path.join(dir, PINNED_MEMORY_FILENAME)
-    const next = path.join(dir, `.${PINNED_MEMORY_FILENAME}.${randomUUID()}`)
-    await fs.writeFile(next, pinnedMemoryText(items), { mode: 0o644 })
-    await fs.rename(next, target)
+    // Inside the staging folder as opened from the harness home: a `.claude` or `.tmp` the run replaced with a link
+    // is refused, never written through (homeFolder.ts).
+    const none = !items || items.length === 0
+    const written = await withStagingFolder(claudeHome.serverDir, async staging => {
+      await clearLeftBehind(claudeHome.serverDir, staging)
+      if (none) {
+        await removeEntryIn(staging, name)
+        return false
+      }
+      const dir = await openFolderIn(staging, name)
+      try {
+        await writeFileAtomicInDir(dir, PINNED_MEMORY_FILENAME, pinnedMemoryText(items), 0o644)
+      } finally {
+        await closeDir(dir)
+      }
+      return true
+    }, { create: !none }).catch((err: NodeJS.ErrnoException) => {
+      if (none && err.code === 'ENOENT') return false
+      throw err
+    })
+    if (!written) return null
     return path.posix.join(
-      claudeHome.visibleDir.split(path.sep).join('/'), SKILLS_STAGING_DIRNAME, `memory-${sessionId}`, PINNED_MEMORY_FILENAME,
+      claudeHome.visibleDir.split(path.sep).join('/'), SKILLS_STAGING_DIRNAME, name, PINNED_MEMORY_FILENAME,
     )
   } catch (err) {
     logger.warn(`Could not write the pinned memory: ${err instanceof Error ? err.message : String(err)}`)
@@ -123,8 +129,9 @@ export async function writePinnedMemory(
 export async function releasePinnedMemory(claudeHomeDir: string, sessionId: string): Promise<void> {
   if (!leave(claudeHomeDir, sessionId) || !SESSION_ID.test(sessionId)) return
   try {
-    await fs.rm(folderOf(claudeHomeDir, sessionId), { recursive: true, force: true })
+    await withStagingFolder(claudeHomeDir, staging => removeEntryIn(staging, folderName(sessionId)))
   } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return
     logger.warn(`Could not remove the pinned memory: ${err instanceof Error ? err.message : String(err)}`)
   }
 }

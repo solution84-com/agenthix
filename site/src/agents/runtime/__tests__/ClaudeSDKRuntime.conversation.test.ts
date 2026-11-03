@@ -186,7 +186,8 @@ describe('one claude process per conversation', () => {
 
   it('keeps the process while its skills are unchanged, and replaces it when one changes', async () => {
     let body = 'v1'
-    vi.mocked(stageSkills).mockImplementation(async (_inputs, dest) => {
+    vi.mocked(stageSkills).mockImplementation(async (_inputs, to) => {
+      const dest = typeof to === 'string' ? to : to.real
       await fs.mkdir(path.join(dest, 'org-x'), { recursive: true })
       await fs.writeFile(path.join(dest, 'org-x', 'SKILL.md'), body)
       return { staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f', userInvocable: true, modelInvocable: true }], refused: [] }
@@ -313,7 +314,8 @@ describe('one claude process per conversation', () => {
   })
 
   it("gives the key, the tag and the command launcher to the process's own exec, in a container", async () => {
-    vi.mocked(stageSkills).mockImplementation(async (_inputs, dest) => {
+    vi.mocked(stageSkills).mockImplementation(async (_inputs, to) => {
+      const dest = typeof to === 'string' ? to : to.real
       await fs.mkdir(path.join(dest, 'org-x'), { recursive: true })
       await fs.writeFile(path.join(dest, 'org-x', 'SKILL.md'), 'x')
       return { staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f', userInvocable: true, modelInvocable: true }], refused: [] }

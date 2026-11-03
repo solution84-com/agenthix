@@ -107,9 +107,7 @@ Object.assign(ops, {
     writeBranch(cg, q.branch, commit, before)
     setHead(cg, q.branch)
     if (merging) clearMerge(cg)
-    const kept = path.join(cg, 'index.helper')
-    fs.copyFileSync(index, kept)
-    fs.renameSync(kept, path.join(cg, 'index'))
+    keepIndex(cg, index)
     return { commit, files }
   },
 

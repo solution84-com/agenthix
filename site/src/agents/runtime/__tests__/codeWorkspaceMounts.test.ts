@@ -26,6 +26,17 @@ describe('a code workspace\'s own folder is read-only to every run in its bounda
     expect(copyContainerDir(boundary(), 'c1')).toBe('/projects/p1/clones/c1')
   })
 
+  it('a workspace folder, or the workspaces folder, that a run replaced with a link is never bound', async () => {
+    const other = path.join(root, 'projects', 'p2', 'workspaces', 'secret')
+    fs.mkdirSync(path.join(other, '.git'), { recursive: true })
+    fs.mkdirSync(path.join(boundary().hostDir, 'workspaces'), { recursive: true })
+    fs.symlinkSync(other, path.join(boundary().hostDir, 'workspaces', 'w1'))
+    expect(await codeWorkspaceMounts(boundary(), [{ id: 'w1' }])).toEqual([])
+    fs.rmSync(path.join(boundary().hostDir, 'workspaces'), { recursive: true })
+    fs.symlinkSync(path.dirname(other), path.join(boundary().hostDir, 'workspaces'))
+    expect(await codeWorkspaceMounts(boundary(), [{ id: 'secret' }])).toEqual([])
+  })
+
   it('the container binds them read-only over the boundary, and turning Git on changes its signature', () => {
     process.env.SITE_ROOT = root
     const key: ContainerKey = { scope: 'storage', ownerType: 'project', ownerId: 'p1', mode: 'rw', runner: { kind: 'project', projectId: 'p1' } }

@@ -12,21 +12,15 @@
  *  - a read goes through `readAgentWritableFile`: `.claude` a real folder with no
  *    link on the way, the document a regular file with one name, not a link,
  *    no larger than `CREDENTIAL_DOCUMENT_MAX_BYTES`;
- *  - a write or a removal opens `.claude` once, refusing a link, confirms the
- *    descriptor (`containedFile.ts`) and acts through it: on Linux by its
+ *  - a write or a removal opens `.claude` from the harness home, refusing a
+ *    link, and acts through the open folder (`homeFolder.ts`): on Linux by its
  *    `/proc/self/fd` path, which no later rename can re-point; elsewhere by its
  *    real path, confirmed again afterwards.
  */
 import fs from 'node:fs/promises'
-import { constants as fsConstants } from 'node:fs'
 import path from 'node:path'
-import {
-  confirmDescriptor,
-  descriptorPath,
-  DESCRIPTOR_PATHS_PINNED,
-  openContained,
-  readAgentWritableFile,
-} from './containedFile'
+import { readAgentWritableFile } from './containedFile'
+import { folderPath, harnessHomeOfClaudeFolder as harnessHomeOf, withHomeFolder } from './homeFolder'
 
 export const CREDENTIALS_FILE = '.credentials.json'
 
@@ -39,11 +33,6 @@ export const CREDENTIAL_DOCUMENT_MAX_BYTES = 64 * 1024
  */
 export type CredentialRead = { state: 'missing' } | { state: 'refused' } | { state: 'read'; text: string }
 
-/** The harness home a Claude folder sits in: the folder the site trusts. */
-function harnessHomeOf(claudeHome: string): string {
-  return path.dirname(path.resolve(claudeHome))
-}
-
 export async function readCredentialFile(claudeHome: string): Promise<CredentialRead> {
   const result = await readAgentWritableFile(harnessHomeOf(claudeHome), path.join(claudeHome, CREDENTIALS_FILE), CREDENTIAL_DOCUMENT_MAX_BYTES)
   if (result.ok) return { state: 'read', text: result.buf.toString('utf-8') }
@@ -52,21 +41,12 @@ export async function readCredentialFile(claudeHome: string): Promise<Credential
 
 /**
  * Runs `work` with a path naming the Claude folder as it was opened and
- * checked. Throws `Forbidden: …` when the folder is a link or leads out of the
- * harness home; `ENOENT` when it is not there.
+ * checked (`homeFolder.ts`). Throws `Forbidden: …` when the folder is a link;
+ * `ENOENT` when it is not there, unless `create`.
  */
-export async function withCredentialFolder<T>(claudeHome: string, work: (dir: string) => Promise<T>): Promise<T> {
-  const root = harnessHomeOf(claudeHome)
+export async function withCredentialFolder<T>(claudeHome: string, work: (dir: string) => Promise<T>, opts: { create?: boolean } = {}): Promise<T> {
   const label = 'the run\'s Claude folder is not a folder of its own'
-  const handle = await openContained(root, claudeHome, fsConstants.O_RDONLY | fsConstants.O_DIRECTORY, label)
-  try {
-    const [realRoot, realDir] = await Promise.all([fs.realpath(root), fs.realpath(claudeHome)])
-    const result = await work(descriptorPath(handle, realDir))
-    if (!DESCRIPTOR_PATHS_PINNED) await confirmDescriptor(handle, realRoot, realDir, label)
-    return result
-  } finally {
-    await handle.close().catch(() => {})
-  }
+  return withHomeFolder(harnessHomeOf(claudeHome), path.basename(path.resolve(claudeHome)), label, dir => work(folderPath(dir)), opts)
 }
 
 /**
@@ -79,8 +59,7 @@ export async function withCredentialFolder<T>(claudeHome: string, work: (dir: st
  * removed before rethrowing.
  */
 export async function writeCredentialFile(claudeHome: string, contents: string): Promise<void> {
-  await fs.mkdir(claudeHome, { recursive: true })
-  await withCredentialFolder(claudeHome, dir => writeFileAtomicIn(dir, CREDENTIALS_FILE, contents))
+  await withCredentialFolder(claudeHome, dir => writeFileAtomicIn(dir, CREDENTIALS_FILE, contents), { create: true })
 }
 
 /** The same atomic write into a folder only the site writes (the usage outbox). */

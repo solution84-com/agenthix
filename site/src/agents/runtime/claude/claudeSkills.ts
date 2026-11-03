@@ -21,7 +21,10 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { Logger } from '../../../server/utils/logger'
-import { stageSkills } from '../skillStaging'
+import { stageSkills, type StagingResult } from '../skillStaging'
+import {
+  closeDir, inDir, lstatIn, namesIn, openFolderIn, readFileUnder, removeFromStaging, withStagingFolder, writeNewFileUnder, type Dir,
+} from '../homeFolder'
 import { SKILL_FILE } from '../skillTree'
 import { recordSkillsUsed } from '../skillUseRecord'
 import { SKILLS_STAGING_DIRNAME } from '../skillsStagingDir'
@@ -51,68 +54,89 @@ export type StagedTurnSkills = {
 
 /** Stages the turn's skills, or returns null when no source has any. */
 export async function stageTurnSkills(context: RunContext): Promise<StagedTurnSkills | null> {
-  const tmpBase = path.join(context.claudeHome.serverDir, SKILLS_STAGING_DIRNAME)
-  await fs.mkdir(tmpBase, { recursive: true })
-  const serverDir = await fs.mkdtemp(path.join(tmpBase, 'skills-'))
-  const pluginDir = path.join(serverDir, PLUGIN_DIRNAME)
-  const skillsDir = path.join(pluginDir, 'skills')
-  await fs.mkdir(skillsDir, { recursive: true })
+  // Through the staging folder as opened from the harness home, never by path (homeFolder.ts): a `.claude` or
+  // `.tmp` the run replaced with a link is refused, and nothing is written or read through one.
+  const staged = await withStagingFolder(context.claudeHome.serverDir, async tmp => {
+    const name = path.basename(await fs.mkdtemp(inDir(tmp, 'skills-')))
+    const folder = await openFolderIn(tmp, name)
+    try {
+      const plugin = await openFolderIn(folder, PLUGIN_DIRNAME)
+      try {
+        const skills = await openFolderIn(plugin, 'skills')
+        let result: StagingResult
+        try {
+          result = await stageSkills(context.skills, skills)
+        } finally {
+          await closeDir(skills)
+        }
+        await recordSkillsUsed(context.runId, result)
+        if (result.staged.length === 0) return { name, result, hash: '' }
+        await writeNewFileUnder(plugin, '.claude-plugin/plugin.json', PLUGIN_MANIFEST)
+        // A tree that cannot be read back counts as changed: it replaces the process.
+        const hash = await hashTree(plugin).catch(() => `unread:${name}`)
+        return { name, result, hash }
+      } finally {
+        await closeDir(plugin)
+      }
+    } finally {
+      await closeDir(folder)
+    }
+  }, { create: true })
 
-  const result = await stageSkills(context.skills, skillsDir)
-  await recordSkillsUsed(context.runId, result)
-  const staged = result.staged
-  if (staged.length === 0) {
+  const serverDir = path.join(context.claudeHome.serverDir, SKILLS_STAGING_DIRNAME, staged.name)
+  if (staged.result.staged.length === 0) {
     await removeStagedSkills(serverDir)
     return null
   }
-  await fs.mkdir(path.join(pluginDir, '.claude-plugin'), { recursive: true })
-  await fs.writeFile(path.join(pluginDir, '.claude-plugin', 'plugin.json'), PLUGIN_MANIFEST)
-  logger.info(`[launch]   skills     = ${staged.map(s => s.name).join(', ')}`)
+  const names = staged.result.staged.map(s => s.name)
+  logger.info(`[launch]   skills     = ${names.join(', ')}`)
   // Re-rooted onto the run-visible view by slicing off the shared prefix,
   // never a string replace: an id that recurs elsewhere in the path would be
   // rewritten too. Both views name one directory, and the folder was built
   // from `serverDir`, so what follows it is the same under either view.
   const visibleDir = context.claudeHome.visibleDir + serverDir.slice(context.claudeHome.serverDir.length)
-  // A tree that cannot be read back counts as changed: it replaces the process.
-  const hash = await hashTree(pluginDir).catch(() => `unread:${serverDir}`)
   const visiblePluginDir = path.posix.join(visibleDir, PLUGIN_DIRNAME)
   return {
     serverDir,
     visibleDir,
     visiblePluginDir,
-    names: staged.map(s => s.name),
-    invocable: staged.map(s => ({
+    names,
+    invocable: staged.result.staged.map(s => ({
       name: s.name,
       userInvocable: s.userInvocable,
       modelInvocable: s.modelInvocable,
       skillFile: path.posix.join(visiblePluginDir, 'skills', s.name, SKILL_FILE),
     })),
-    hash,
+    hash: staged.hash,
   }
 }
 
 export async function removeStagedSkills(serverDir: string): Promise<void> {
-  await fs.rm(serverDir, { recursive: true, force: true }).catch(() => {})
+  await removeFromStaging(serverDir).catch(() => {})
 }
 
-/** Every file's path and content, in a fixed order. Staging copies files and makes no links. */
-async function hashTree(root: string): Promise<string> {
+/** Every file's path and content, in a fixed order, read through the open folders. Staging copies files and makes no links. */
+async function hashTree(root: Dir): Promise<string> {
   const hash = createHash('sha256')
-  const walk = async (dir: string): Promise<void> => {
-    const entries = (await fs.readdir(dir, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name)
-      const rel = path.relative(root, full)
-      if (entry.isDirectory()) {
-        hash.update(`d:${rel}\0`)
-        await walk(full)
-      } else if (entry.isFile()) {
-        hash.update(`f:${rel}\0`)
-        hash.update(await fs.readFile(full))
+  const walk = async (dir: Dir, rel: string): Promise<void> => {
+    for (const name of await namesIn(dir)) {
+      const entryRel = rel ? path.join(rel, name) : name
+      const entry = await lstatIn(dir, name)
+      if (entry?.isDirectory()) {
+        hash.update(`d:${entryRel}\0`)
+        const child = await openFolderIn(dir, name)
+        try {
+          await walk(child, entryRel)
+        } finally {
+          await closeDir(child)
+        }
+      } else if (entry?.isFile()) {
+        hash.update(`f:${entryRel}\0`)
+        hash.update(await readFileUnder(dir, name))
         hash.update('\0')
       }
     }
   }
-  await walk(root)
+  await walk(root, '')
   return hash.digest('hex')
 }

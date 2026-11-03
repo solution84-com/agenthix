@@ -8,12 +8,12 @@
  * staged is refused, never a failed run.
  */
 import fs from 'node:fs/promises'
-import path from 'node:path'
 import type { SkillSource } from '@agenthix/core'
 import { Logger } from '../../server/utils/logger'
 import { isModelInvocable, isUserInvocable, stagedSkillMd } from './skillFrontmatter'
 import { runSkillSources, type RunSkillInputs, type SkillCandidate, type SkillOrigin, type SkillRefusal } from './skillSources'
 import { SKILL_FILE } from './skillTree'
+import { closeDir, openTreeRoot, removeEntryIn, writeNewFileUnder, type Dir } from './homeFolder'
 
 const logger = new Logger('SkillStaging')
 
@@ -31,18 +31,30 @@ export type StagingResult = { staged: StagedSkill[]; refused: SkillRefusal[] }
 
 const CLASH = 'another skill in this run would have the same name'
 
-async function writeSkill(candidate: SkillCandidate, destSkillsDir: string): Promise<void> {
-  const dest = path.join(destSkillsDir, candidate.name)
-  await fs.mkdir(dest, { recursive: true })
+/** Written through the open destination folder (homeFolder.ts): every folder made fresh, no file over anything. */
+async function writeSkill(candidate: SkillCandidate, dest: Dir): Promise<void> {
   for (const file of candidate.files) {
-    const to = path.join(dest, ...file.path.split('/'))
-    await fs.mkdir(path.dirname(to), { recursive: true })
     const content = file.path === SKILL_FILE ? stagedSkillMd(file.content.toString('utf-8'), candidate.name) : file.content
-    await fs.writeFile(to, content)
+    await writeNewFileUnder(dest, `${candidate.name}/${file.path}`, content)
   }
 }
 
-export async function stageSkills(inputs: RunSkillInputs | null, destSkillsDir: string): Promise<StagingResult> {
+/**
+ * `dest` is the open folder to stage into, inside a run's staging folder; a path is opened as the root of a tree
+ * (for a folder only the site writes).
+ */
+export async function stageSkills(inputs: RunSkillInputs | null, dest: Dir | string): Promise<StagingResult> {
+  if (typeof dest !== 'string') return stageInto(inputs, dest)
+  await fs.mkdir(dest, { recursive: true })
+  const opened = await openTreeRoot(dest)
+  try {
+    return await stageInto(inputs, opened)
+  } finally {
+    await closeDir(opened)
+  }
+}
+
+async function stageInto(inputs: RunSkillInputs | null, dest: Dir): Promise<StagingResult> {
   const { candidates, refused } = await runSkillSources(inputs)
   const byName = new Map<string, SkillCandidate[]>()
   for (const c of candidates) byName.set(c.name, [...(byName.get(c.name) ?? []), c])
@@ -55,12 +67,12 @@ export async function stageSkills(inputs: RunSkillInputs | null, destSkillsDir: 
       continue
     }
     try {
-      await writeSkill(candidate, destSkillsDir)
+      await writeSkill(candidate, dest)
       const skillMd = candidate.files.find(f => f.path === SKILL_FILE)?.content.toString('utf-8') ?? ''
       staged.push({ source, slug, name, fingerprint, userInvocable: isUserInvocable(skillMd), modelInvocable: isModelInvocable(skillMd), ...origin })
     } catch (err) {
       logger.warn(`skill ${name} could not be staged: ${(err as Error).message}`)
-      await fs.rm(path.join(destSkillsDir, name), { recursive: true, force: true }).catch(() => {})
+      await removeEntryIn(dest, name).catch(() => {})
       refused.push({ source, name, fingerprint, origin, reason: 'it could not be written for the run' })
     }
   }

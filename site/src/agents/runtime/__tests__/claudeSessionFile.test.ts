@@ -44,6 +44,30 @@ describe('claudeSessionFileExists', () => {
     expect(await claudeSessionFileExists(home, cwd, SESSION_ID)).toBe(true)
   })
 
+  it('answers from the harness home only: a `.claude`, `projects` or transcript replaced by a link counts as not there', async () => {
+    const other = path.join(home, 'other', '.claude')
+    await fileSession(other, claudeProjectFolderName(cwd))
+    const mine = path.join(home, 'mine')
+    await fs.mkdir(mine)
+    await fs.symlink(other, path.join(mine, '.claude'))
+    expect(await claudeSessionFileExists(path.join(mine, '.claude'), cwd, SESSION_ID, mine)).toBe(false)
+
+    await fs.rm(path.join(mine, '.claude'))
+    await fs.mkdir(path.join(mine, '.claude'))
+    await fs.symlink(path.join(other, 'projects'), path.join(mine, '.claude', 'projects'))
+    expect(await claudeSessionFileExists(path.join(mine, '.claude'), cwd, SESSION_ID, mine)).toBe(false)
+
+    await fs.rm(path.join(mine, '.claude', 'projects'))
+    const folder = path.join(mine, '.claude', 'projects', claudeProjectFolderName(cwd))
+    await fs.mkdir(folder, { recursive: true })
+    await fs.symlink(path.join(other, 'projects', claudeProjectFolderName(cwd), `${SESSION_ID}.jsonl`), path.join(folder, `${SESSION_ID}.jsonl`))
+    expect(await claudeSessionFileExists(path.join(mine, '.claude'), cwd, SESSION_ID, mine)).toBe(false)
+
+    await fs.rm(path.join(folder, `${SESSION_ID}.jsonl`))
+    await fileSession(path.join(mine, '.claude'), claudeProjectFolderName(cwd))
+    expect(await claudeSessionFileExists(path.join(mine, '.claude'), cwd, SESSION_ID, mine)).toBe(true)
+  })
+
   it('answers false when the home holds nothing', async () => {
     expect(await claudeSessionFileExists(home, cwd, SESSION_ID)).toBe(false)
   })

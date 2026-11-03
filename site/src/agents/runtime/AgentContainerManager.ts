@@ -3,7 +3,7 @@ import { Logger } from '../../server/utils/logger'
 import type { CapabilityRunner } from '@agenthix/core'
 import { containerNameFor, labelKey, resolveComposeProjectName, siteIdFilterArgs } from './containerLabels'
 import { checkAgentCredentials } from './agentCredentials'
-import { harnessHomeBind, prepareHarnessHome, runnerClaudeHome, runnerSkillsStagingDir, writeRunCredential } from './boundaryClaudeHome'
+import { harnessHomeBind, prepareHarnessHome, runnerClaudeHome, writeRunCredential } from './boundaryClaudeHome'
 import type { AgentMounts, ContainerKey, ContainerContext, ContainerState } from './containerTypes'
 import { docker, ContainerLifecycle } from './containerLifecycle'
 import { ensureAgentNetwork, releaseAgentNetwork } from './containerNetwork'
@@ -250,7 +250,6 @@ export class AgentContainerManager {
     // sources and mount points must exist first, or docker
     // creates them root-owned and neither the run nor the site can write there.
     await prepareHarnessHome(key)
-    await fs.mkdir(runnerSkillsStagingDir(key), { recursive: true })
     await prepareOpenCodeConfigMounts(key)
 
     // Pre-create the boundary's folder and the standard folders inside it as
