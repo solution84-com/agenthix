@@ -41,6 +41,8 @@ describe('the agent image and the site agree', () => {
     expect(new Set(HARNESS_SECRET_ENV).size).toBe(HARNESS_SECRET_ENV.length)
     expect([...list].sort()).toEqual([...HARNESS_SECRET_ENV].sort())
     expect(HARNESS_SECRET_ENV).toEqual(expect.arrayContaining(['OPENCODE_SERVER_PASSWORD', 'SITE_HARNESS_KEY', 'ANTHROPIC_API_KEY']))
+    // A command reaches the platform tools only through its harness's gate, never with the harness's token.
+    expect(list).toContain('SITE_MCP_KEY')
   })
 
   it('gives git no credential: its helper names the push workflow and tells git to stop (A12) @SC-1354', () => {

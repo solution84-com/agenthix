@@ -300,15 +300,16 @@ describe('one claude process per conversation', () => {
 
   it("starts the process with the conversation's token, pointed at each turn and at nothing between", async () => {
     const fake = useFake()
-    const platform = (token: string) => ({ platform: { type: 'http' as const, url: 'http://site/mcp', headers: { Authorization: `Bearer ${token}` } } })
+    const platform = { platform: { type: 'http' as const, url: 'http://site/mcp', headers: { Authorization: 'Bearer ${SITE_MCP_KEY}' } } }
     const holder = { jwt: 'jwt', expiresAt: Date.now() + 60_000 }
-    await turn({ capability: holder, mcpServers: platform('run-token-1'), gitCredEnv: { SITE_MCP_KEY: 'run-token-1' } })
-    await turn({ runId: 'run-2', isNewSession: false, capability: holder, mcpServers: platform('run-token-2'), gitCredEnv: { SITE_MCP_KEY: 'run-token-2' } })
+    await turn({ capability: holder, mcpServers: platform, gitCredEnv: { SITE_MCP_KEY: 'run-token-1' } })
+    await turn({ runId: 'run-2', isNewSession: false, capability: holder, mcpServers: platform, gitCredEnv: { SITE_MCP_KEY: 'run-token-2' } })
 
     expect(fake.started).toHaveLength(1)
-    const header: string = optionsOf(fake.started[0]!).mcpServers.platform.headers.Authorization
-    expect(header).not.toContain('run-token')
-    expect(resolveConversationToken(header.slice('Bearer '.length))).toBeNull()
+    expect(optionsOf(fake.started[0]!).mcpServers.platform.headers.Authorization).toBe('Bearer ${SITE_MCP_KEY}')
+    const token: string = optionsOf(fake.started[0]!).env.SITE_MCP_KEY
+    expect(token).not.toContain('run-token')
+    expect(resolveConversationToken(token)).toBeNull()
   })
 
   it("gives the key, the tag and the command launcher to the process's own exec, in a container", async () => {

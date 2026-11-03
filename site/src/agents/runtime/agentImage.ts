@@ -108,6 +108,18 @@ export const COMMAND_HOME = '/home/agent'
 export const COMMAND_READABLE_ENV = 'SITE_COMMAND_READABLE'
 
 /**
+ * The variable a harness finds its platform token in. The `claude` process's
+ * platform-tool connection names it (`PLATFORM_AUTHORIZATION`) rather than
+ * holding the token, because the SDK puts that connection on the CLI's command
+ * line, which every process in the container can read; the CLI expands it from
+ * its own environment, which commands cannot read and do not inherit.
+ */
+export const PLATFORM_TOKEN_ENV = 'SITE_MCP_KEY'
+
+/** The platform connection's `Authorization` header, as the CLI's `--mcp-config` carries it. */
+export const PLATFORM_AUTHORIZATION = `Bearer \${${PLATFORM_TOKEN_ENV}}`
+
+/**
  * Every variable the launcher removes from a command's environment, whatever
  * the harness passed down. The launcher's own copy is
  * `site/docker/launcher/secret-env.list`; lane code that blanks secrets
@@ -118,6 +130,7 @@ export const HARNESS_SECRET_ENV: readonly string[] = [
   'OPENCODE_CONFIG_CONTENT',
   'OPENCODE_AUTH_CONTENT',
   HARNESS_SERVER_KEY_ENV,
+  PLATFORM_TOKEN_ENV,
   'ANTHROPIC_API_KEY',
   'ANTHROPIC_AUTH_TOKEN',
   'CLAUDE_CODE_OAUTH_TOKEN',

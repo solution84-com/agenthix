@@ -38,6 +38,7 @@ import { requireRunnerForBoundary } from '../../server/identity/runnerClaim'
 import type { CapabilityHolder } from './capabilityRenewal'
 import { issueRunToken } from '../../server/runtime/runTokens'
 import { registerGateRun } from './toolGateRuns'
+import { PLATFORM_AUTHORIZATION, PLATFORM_TOKEN_ENV } from './agentImage'
 import { markCodeWorkspaceFolders } from './codeWorkspaceMounts'
 import type { AgentSession } from '@prisma/client'
 import type { CapabilityClaims, RunContextPayload } from '@agenthix/core'
@@ -361,13 +362,14 @@ export async function assembleRunLaunch(
         'platform': {
           type: 'http' as const,
           url: `${siteUrl}/mcp`,
-          headers: { Authorization: `Bearer ${sink.runToken}` },
+          // Names the token's variable: the connection goes on the harness's command line (PLATFORM_TOKEN_ENV).
+          headers: { Authorization: PLATFORM_AUTHORIZATION },
         },
       }
-      // The container's environment carries the run token so a process that lives across turns can be pointed at
-      // the conversation's (ClaudeSDKRuntime's withConversationToken). git gets no credential from it: the
-      // container holds no GitHub token, and sharing commits is the push workflow's.
-      gitCredEnv.SITE_MCP_KEY = sink.runToken
+      // The harness's own environment carries the run token, which its platform connection reads, and which a
+      // process that lives across turns has pointed at the conversation's (ClaudeSDKRuntime's
+      // withConversationToken). The command launcher removes it from every command's environment.
+      gitCredEnv[PLATFORM_TOKEN_ENV] = sink.runToken
       gitCredEnv.AGENT_HANDLE = agent.handle
     }
   }

@@ -55,6 +55,7 @@ import { CLAUDE_KEY_PATH } from '../../../server/runtime/claudeKeyTickets'
 import { claudeKeyHandler } from '../../../server/runtime/claudeKeyApi'
 import { modelRelayHandler } from '../../../server/modelRelay/modelRelayApi'
 import { agentNetworkName } from '../containerNetwork'
+import { PLATFORM_AUTHORIZATION, PLATFORM_TOKEN_ENV } from '../agentImage'
 import type { RunContext, RunEvent } from '../types'
 import { claudeTestContext } from './claudeTestContext'
 
@@ -65,6 +66,8 @@ const CONTAINER = process.env.AGENT_CLAUDE_TEST_CONTAINER ?? 'ovi-lane4-claude-t
 const NETWORK = agentNetworkName(CONTAINER)
 const CWD = '/projects/p1/files'
 const KEY = 'sk-standin-lane4'
+// The platform token as a run gives it: in the harness's environment, named by its connection, which nothing serves here.
+const PLATFORM_TOKEN = 'platform-token-standin-lane4'
 
 let dir: string
 let siteServer: http.Server
@@ -93,7 +96,9 @@ function context(overrides: Partial<RunContext> = {}): RunContext {
     gitCredEnv: {
       HTTPS_PROXY: 'http://127.0.0.1:9', HTTP_PROXY: 'http://127.0.0.1:9', NO_PROXY: '127.0.0.1,localhost,host.docker.internal',
       DISABLE_AUTOUPDATER: '1', CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+      [PLATFORM_TOKEN_ENV]: PLATFORM_TOKEN,
     },
+    mcpServers: { platform: { type: 'http', url: 'http://127.0.0.1:9/mcp', headers: { Authorization: PLATFORM_AUTHORIZATION } } },
     ...overrides,
   })
 }
@@ -158,8 +163,10 @@ describe.skipIf(!enabled)('a real claude process per conversation, in the agent 
   it('runs two turns in one process, which a command can neither read, signal, trace nor reach the home of', async () => {
     const probe = [
       'echo TAG=$SITE_SESSION',
-      "env | grep -E '^(SITE_HARNESS_KEY|ANTHROPIC_API_KEY)=' || echo no-secrets",
+      "env | grep -E '^(SITE_HARNESS_KEY|ANTHROPIC_API_KEY|SITE_MCP_KEY)=' || echo no-secrets",
       'p=$(pgrep -x claude | head -1)',
+      // The command line is readable by every process in the container: the platform connection only names the token.
+      `grep -a -o 'Bearer [^"]*' /proc/$p/cmdline | sed 's/^/CMDLINE /'`,
       'cat /proc/$p/environ >/dev/null 2>&1 && echo environ-read || echo environ-denied',
       'head -c1 /proc/$p/mem >/dev/null 2>&1 && echo mem-read || echo mem-denied',
       'kill -0 $p 2>/dev/null && echo signal-sent || echo signal-denied',
@@ -173,6 +180,7 @@ describe.skipIf(!enabled)('a real claude process per conversation, in the agent 
     const out = results(first).join('\n')
     expect(out).toContain(`TAG=${sessionId}`)
     for (const line of ['no-secrets', 'environ-denied', 'mem-denied', 'signal-denied', 'home-denied']) expect(out).toContain(line)
+    expect(out.split('\n').filter(l => l.startsWith('CMDLINE '))).toEqual([`CMDLINE ${PLATFORM_AUTHORIZATION}`])
     expect(await claudeCount()).toBe(1)
     // One ticket trade for the process; every model request went through the
     // relay, and reached the model with the key the relay added. Token counts
@@ -203,6 +211,9 @@ describe.skipIf(!enabled)('a real claude process per conversation, in the agent 
       `echo ${Buffer.from(KEY).toString('base64')} | base64 -d > /tmp/key-pattern`,
       'grep -r -l -a -F -f /tmp/key-pattern /home/appuser 2>/dev/null',
       'for f in /proc/[0-9]*/environ /proc/[0-9]*/cmdline; do grep -l -a -F -f /tmp/key-pattern "$f" 2>/dev/null; done',
+      // The platform token is the harness's own, in its environment, and on no process's command line.
+      `echo ${Buffer.from(PLATFORM_TOKEN).toString('base64')} | base64 -d > /tmp/token-pattern`,
+      'for f in /proc/[0-9]*/cmdline; do grep -l -a -F -f /tmp/token-pattern "$f" 2>/dev/null; done',
       // The scan can read the process's environment: it finds the relay there.
       'grep -c -a -F model-relay/anthropic /proc/$(pgrep -x claude | head -1)/environ',
       'echo scanned',

@@ -11,6 +11,7 @@ import { harnessMemoryCeilingMb } from './claude/claudeProcessProbe'
 import { removeStagedSkills, stageTurnSkills, type StagedTurnSkills } from './claude/claudeSkills'
 import { buildClaudeStart, type ClaudeStart } from './claude/claudeStart'
 import { requireLandlock } from './landlockCheck'
+import { PLATFORM_TOKEN_ENV } from './agentImage'
 import { turnPrompt } from './pickedSkill'
 
 const logger = new Logger('ClaudeSDKRuntime')
@@ -178,23 +179,14 @@ function replacementReason(running: ClaudeProcess, start: ClaudeStart): string |
 /**
  * The turn's context with the conversation's platform token in place of the
  * run's (adr-0082, spec §2). A process that lives across turns is started with
- * its token once — in its platform-tool connection and, for git, in its
- * environment — so that token must be the conversation's, pointed at this
- * turn's capability now and at nothing once the turn ends.
+ * its token once, in its environment, where its platform-tool connection reads
+ * it, so that token must be the conversation's, pointed at this turn's
+ * capability now and at nothing once the turn ends.
  */
 function withConversationToken(context: RunContext): RunContext {
-  const runToken = context.gitCredEnv?.SITE_MCP_KEY
-  if (!runToken || !context.capability) return context
+  if (!context.gitCredEnv?.[PLATFORM_TOKEN_ENV] || !context.capability) return context
   const token = pointConversationToken(context.sessionId, context.runId, context.capability)
-  const mcpServers = context.mcpServers
-    ? Object.fromEntries(Object.entries(context.mcpServers).map(([name, server]) => [name, {
-        ...server,
-        ...(server.headers ? {
-          headers: Object.fromEntries(Object.entries(server.headers).map(([k, v]) => [k, v === `Bearer ${runToken}` ? `Bearer ${token}` : v])),
-        } : {}),
-      }]))
-    : undefined
-  return { ...context, mcpServers, gitCredEnv: { ...context.gitCredEnv, SITE_MCP_KEY: token } }
+  return { ...context, gitCredEnv: { ...context.gitCredEnv, [PLATFORM_TOKEN_ENV]: token } }
 }
 
 function logLaunch(context: RunContext, sdkSessionId: string, skills: StagedTurnSkills | null): void {

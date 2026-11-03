@@ -104,7 +104,7 @@ vi.mock('../selectRuntime', () => ({
       h.capturedContext = context
       // Resolve the bearer THE RUNTIME WAS HANDED, from inside the run — this is
       // the point at which a real container would present it to the MCP handler.
-      const bearer = context.mcpServers?.platform?.headers?.Authorization?.replace('Bearer ', '')
+      const bearer = context.gitCredEnv?.SITE_MCP_KEY
       h.midRunHolder = bearer ? resolveRunToken(bearer) : null
       yield { type: 'status', status: 'completed' }
     },
@@ -169,9 +169,8 @@ describe('AgentEngine — run token replaces the static MCP key (spec §H4) @SC-
   it('mints an opaque run token — not the capability JWT — and it resolves to the run holder while the run is live', async () => {
     await agentEngine.run('run-1', { dispatchContext: DISPATCH_CONTEXT, capabilityJwt: CAPABILITY_JWT, runLimits: DEFAULT_RUN_LIMITS })
 
-    const headers = h.capturedContext.mcpServers.platform.headers
-    expect(headers.Authorization).toMatch(/^Bearer .+/)
-    const bearer = headers.Authorization.replace('Bearer ', '')
+    const bearer = h.capturedContext.gitCredEnv.SITE_MCP_KEY
+    expect(bearer).toMatch(/.+/)
     expect(bearer).not.toBe(CAPABILITY_JWT)
 
     // Resolved from inside the mocked runtime, i.e. while the run was still active.
@@ -187,17 +186,17 @@ describe('AgentEngine — run token replaces the static MCP key (spec §H4) @SC-
     expect(Object.keys(headers)).toEqual(['Authorization'])
   })
 
-  it('sets gitCredEnv.SITE_MCP_KEY to the same run token as the MCP bearer', async () => {
+  it("names the run token's variable in the MCP connection, which goes on the CLI's command line, and never holds the token there", async () => {
     await agentEngine.run('run-1', { dispatchContext: DISPATCH_CONTEXT, capabilityJwt: CAPABILITY_JWT, runLimits: DEFAULT_RUN_LIMITS })
 
-    const bearer = h.capturedContext.mcpServers.platform.headers.Authorization.replace('Bearer ', '')
-    expect(h.capturedContext.gitCredEnv.SITE_MCP_KEY).toBe(bearer)
+    expect(h.capturedContext.mcpServers.platform.headers.Authorization).toBe('Bearer ${SITE_MCP_KEY}')
+    expect(JSON.stringify(h.capturedContext.mcpServers)).not.toContain(h.capturedContext.gitCredEnv.SITE_MCP_KEY)
   })
 
   it('revokes the run token once the run completes successfully', async () => {
     await agentEngine.run('run-1', { dispatchContext: DISPATCH_CONTEXT, capabilityJwt: CAPABILITY_JWT, runLimits: DEFAULT_RUN_LIMITS })
 
-    const bearer = h.capturedContext.mcpServers.platform.headers.Authorization.replace('Bearer ', '')
+    const bearer = h.capturedContext.gitCredEnv.SITE_MCP_KEY
     expect(resolveRunToken(bearer)).toBeNull()
   })
 
@@ -213,7 +212,7 @@ describe('AgentEngine — run token replaces the static MCP key (spec §H4) @SC-
 
     await agentEngine.run('run-1', { dispatchContext: DISPATCH_CONTEXT, capabilityJwt: CAPABILITY_JWT, runLimits: DEFAULT_RUN_LIMITS }) // processRun swallows the error internally
 
-    const bearer = h.capturedContext.mcpServers.platform.headers.Authorization.replace('Bearer ', '')
+    const bearer = h.capturedContext.gitCredEnv.SITE_MCP_KEY
     expect(resolveRunToken(bearer)).toBeNull()
     expect(mockPrisma.agentRun.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED' }) }),

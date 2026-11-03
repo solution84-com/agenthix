@@ -11,7 +11,7 @@
  */
 import { createHash } from 'node:crypto'
 import { HARNESS_ENV, buildSdkBuiltinTools, buildSdkDisallowedTools } from '../sdkNames'
-import { CLAUDE_COMMAND_SHELL_PREFIX, COMMAND_READABLE_ENV } from '../agentImage'
+import { CLAUDE_COMMAND_SHELL_PREFIX, COMMAND_READABLE_ENV, PLATFORM_TOKEN_ENV } from '../agentImage'
 import { conversationProcessTag } from '../conversationProcesses'
 import { HARNESS_SERVER_KEY_ENV } from '@agenthix/core'
 import { getAgentFacingSiteUrl } from '../../../server/siteConfig'
@@ -53,6 +53,7 @@ export function buildClaudeStart(context: RunContext, skills: StagedTurnSkills |
   const apiKey = context.credential?.kind === 'apiKey' ? context.credential.apiKey : null
   // An API key or Agenthix Cloud: the relay presents it, so the process holds neither.
   const relayed = !!context.containerName && isRelayed(context.credential)
+  refuseTokenOnCommandLine(context)
   const execEnv = context.containerName ? claudeExecEnv(context, skills, relayed) : {}
 
   const options: Record<string, unknown> = {
@@ -60,8 +61,12 @@ export function buildClaudeStart(context: RunContext, skills: StagedTurnSkills |
     pathToClaudeCodeExecutable: process.env.CLAUDE_CODE_PATH ?? 'claude',
     // In a container only the exec's own variables reach the harness
     // (DockerSpawner); without one it inherits this process's environment,
-    // and the run's key.
-    env: { ...process.env, ...HARNESS_ENV, ...(!context.containerName && apiKey ? { ANTHROPIC_API_KEY: apiKey } : {}) },
+    // the platform token its connection names, and the run's key.
+    env: {
+      ...process.env, ...HARNESS_ENV,
+      ...(!context.containerName ? context.gitCredEnv : {}),
+      ...(!context.containerName && apiKey ? { ANTHROPIC_API_KEY: apiKey } : {}),
+    },
     systemPrompt,
     // The run-visible skills folder, named explicitly so Claude Code trusts it.
     ...(skills ? { additionalDirectories: [skills.visibleDir] } : {}),
@@ -92,12 +97,27 @@ export function buildClaudeStart(context: RunContext, skills: StagedTurnSkills |
     systemPrompt: systemPrompt ?? null,
     skills: skills?.hash ?? null,
     mcpServers: context.mcpServers ?? null,
+    // Without a container the token is in no exec environment: a changed one still needs a new process.
+    platformToken: context.gitCredEnv?.[PLATFORM_TOKEN_ENV] ?? null,
     // The skills folder is compared by content, above, and the key by its hash.
     execEnv: Object.fromEntries(Object.entries(execEnv).filter(([k]) => k !== COMMAND_READABLE_ENV)),
     credential: credentialIdentity(context),
   })).digest('hex')
 
   return { fingerprint, options, execEnv, relayed }
+}
+
+/**
+ * The SDK puts the platform connection on the CLI's command line, which every
+ * process in the container can read through /proc: the connection names the
+ * token's variable (PLATFORM_AUTHORIZATION), and the CLI expands it from its
+ * own environment.
+ */
+function refuseTokenOnCommandLine(context: RunContext): void {
+  const token = context.gitCredEnv?.[PLATFORM_TOKEN_ENV]
+  if (token && context.mcpServers && JSON.stringify(context.mcpServers).includes(token)) {
+    throw new Error("The platform connection holds the run's token, which would put it on the harness's command line.")
+  }
 }
 
 /**
@@ -130,7 +150,8 @@ export function apiKeyHelperCommand(siteUrl: string = getAgentFacingSiteUrl()): 
  *   leads nowhere (spec, "Tools Agenthix owns on OpenCode", on Claude);
  * - the staged skills folder as one commands may read, so a skill's scripts
  *   run although the folder is inside the harness home, and Grep may search it;
- * - the git credential helper's endpoint and token;
+ * - the platform token, which the platform connection names rather than holds,
+ *   and the agent's handle;
  * - for an API key, the site's model relay as Anthropic's address — Anthropic's
  *   documented gateway pattern — and the helper's cache lifetime; the ticket
  *   it trades for a relay token is added when the process starts. The key is
