@@ -10,6 +10,7 @@ import fs from 'node:fs'
 import type { HostKeys } from '@agenthix/core/host-crypto'
 import { composeJson } from '../compose/projects'
 import { checkImages, fetchImages } from '../images/images'
+import { siteImagesWanted, sitePins, siteRefs } from '../images/siteImages'
 import { POSTGRES_IMAGE } from '../images/published'
 import { installed, type Context, type StoredSite } from '../service/context'
 import { Refusal } from '../owner/results'
@@ -51,15 +52,15 @@ export async function restoreMovedSite(ctx: Context, file: string, keys: HostKey
 
     const manifest = await readManifest(records)
     const agentSlice = await pickAgentSlice(ctx)
-    const { pins } = await checkImages(ctx, [{ part: 'site-server', version: manifest.site.version }, { part: 'agent', version: manifest.site.version }])
-    await fetchImages(ctx, [POSTGRES_IMAGE, pins['site-server']!, pins.agent!])
+    const { pins } = await checkImages(ctx, siteImagesWanted(manifest.site.version))
+    await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(pins)])
     keepAgentSlice(ctx.state, agentSlice)
     // The site's stored secrets are sealed with its master key: it comes with the site. The rest are this machine's.
     ctx.state.writeJson(['secrets.json'], { ...installSecrets(ctx.state), siteMasterKey: manifest.secrets.siteMasterKey })
     const site: StoredSite = {
       ...manifest.site,
       name: ctx.machine.name,
-      images: { 'site-server': pins['site-server'], agent: pins.agent },
+      images: sitePins(pins),
       hqUrl: hqAddress,
     }
     ctx.state.writeJson(['site', 'settings.json'], site)

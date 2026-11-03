@@ -25,9 +25,12 @@ export const CSRF_HEADER = 'x-csrf-token'
 
 /**
  * In its container: its address on its own network, and that network's gateway, both read inside the container at
- * start (net/containerNetwork.ts). Kept in the app's `locals` under `CONTAINER_PEER`; absent, only the loopback.
+ * start (net/containerNetwork.ts). On HQ's machine it is on HQ's link network too, and Docker Desktop for macOS may
+ * deliver the published port through either, so `also` lists each further network by the same two addresses
+ * (`otherNetworks` in console.ts). Kept in the app's `locals` under `CONTAINER_PEER`; absent, only the loopback.
  */
-export type ContainerPeer = { address: string; gateway: string }
+export type NetworkPeer = { address: string; gateway: string }
+export type ContainerPeer = NetworkPeer & { also?: NetworkPeer[] }
 export const CONTAINER_PEER = 'containerPeer'
 /** Kept in the app's `locals`: the port this installation publishes the console on, for the words of a refusal. */
 export const PUBLISHED_PORT = 'publishedPort'
@@ -56,16 +59,19 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
 const ipv4 = (address: string | undefined) => (address ?? '').replace(/^::ffff:/i, '')
 
 /**
- * The loopback, or the gateway of its own network on its address there. Any other peer on that network, and
- * anything arriving on another network it is on (HQ's link network), is refused: nothing else joins its network,
- * so only Docker's forwarding of the published port comes from the gateway — and the container checks the source
- * of what it receives against its routes (`rp_filter`, set in its compose project), so a packet claiming the gateway
- * as its source is dropped unless it arrives on that network.
+ * The loopback, or the gateway of a network it is on, on its address there. Any other peer on those networks is
+ * refused: nothing else joins its own network, so only Docker's forwarding of the published port comes from that
+ * network's gateway, and on HQ's link network the same holds for the gateway, which is the host's end of the
+ * network. The pair must match: a gateway's address on the wrong network, or another network's gateway, is refused.
+ * The container also checks the source of what it receives against its routes (`rp_filter`, set in its compose
+ * project), so a packet claiming a gateway as its source is dropped unless it arrives on that gateway's network.
  */
 export function peerAllowed(socket: { remoteAddress?: string; localAddress?: string }, container: ContainerPeer | undefined): boolean {
   const peer = ipv4(socket.remoteAddress)
   if (peer === '127.0.0.1') return true
-  return !!container && peer === container.gateway && ipv4(socket.localAddress) === container.address
+  if (!container) return false
+  const local = ipv4(socket.localAddress)
+  return [container, ...(container.also ?? [])].some(n => peer === n.gateway && local === n.address)
 }
 
 const hostIsName = (host: string | undefined, name: string) => {

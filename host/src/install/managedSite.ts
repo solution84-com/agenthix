@@ -8,6 +8,7 @@
 import type { Progress } from '../sockets/lineServer'
 import { composeJson } from '../compose/projects'
 import { checkImages, fetchImages } from '../images/images'
+import { siteImagesWanted, sitePins, siteRefs } from '../images/siteImages'
 import { POSTGRES_IMAGE } from '../images/published'
 import { installSecrets } from '../state/secrets'
 import { installed, type Context, type StoredSite } from '../service/context'
@@ -48,14 +49,14 @@ async function run(ctx: Context, request: { version: string }, pin: ConsolePin, 
   const kept = here.site?.settings
   const version = kept?.version ?? request.version
   progress({ event: 'step', step: `Checking the images are signed by ${product}` })
-  const { pins } = await checkImages(ctx, [{ part: 'site-server', version }, { part: 'agent', version }])
-  await fetchImages(ctx, [POSTGRES_IMAGE, pins['site-server']!, pins.agent!])
+  const { pins } = await checkImages(ctx, siteImagesWanted(version))
+  await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(pins)])
   progress({ event: 'stepDone', outcome: 'passes' })
 
   const site: StoredSite = {
     name: ctx.machine.name,
     version,
-    images: { 'site-server': pins['site-server'], agent: pins.agent },
+    images: sitePins(pins),
     hqUrl: pin.hqAddress,
     installedAt: kept?.installedAt ?? ctx.now().toISOString(),
   }

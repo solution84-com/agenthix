@@ -7,6 +7,7 @@
 import fs from 'node:fs'
 import type { Progress } from '../sockets/lineServer'
 import { checkImages, fetchImages } from '../images/images'
+import { siteImagesWanted, sitePins, siteRefs } from '../images/siteImages'
 import { POSTGRES_IMAGE } from '../images/published'
 import { installed, type Context, type StoredSite } from '../service/context'
 import { Refusal } from '../owner/results'
@@ -42,14 +43,14 @@ export async function restoreSiteInPlace(ctx: Context, { header, manifest, recor
     const paths = await ctx.machinePaths()
     if (!paths) throw new Refusal('failed', 'The host service cannot find its state folder on this machine, so it cannot restore.')
     const { pins } = await step('Checking the images are signed', async () => {
-      const checked = await checkImages(ctx, [{ part: 'site-server', version: manifest.site.version }, { part: 'agent', version: manifest.site.version }])
-      await fetchImages(ctx, [POSTGRES_IMAGE, checked.pins['site-server']!, checked.pins.agent!])
+      const checked = await checkImages(ctx, siteImagesWanted(manifest.site.version))
+      await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(checked.pins)])
       return checked
     }, 'passes')
     await step(`Stopping the site ${now.settings.name}`, () => stopTarget(ctx, 'site'))
     stopped = true
     // The same site: its own settings and credential, at the version the backup was taken from.
-    const site: StoredSite = { ...now.settings, version: manifest.site.version, images: { 'site-server': pins['site-server'], agent: pins.agent } }
+    const site: StoredSite = { ...now.settings, version: manifest.site.version, images: sitePins(pins) }
     await writeProjects(ctx, null, site, paths)
     await step("Starting the site's database", () => startDatabases(ctx, 'site'))
     const src = sources(ctx.names, paths)

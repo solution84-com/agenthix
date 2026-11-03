@@ -33,10 +33,14 @@
  */
 import type { ProtectionRule } from '@agenthix/core'
 
-/** The addresses a cloud provider's machine answers with its metadata and credentials. A short list, by name. */
+/**
+ * What an ordinary agent is refused in addition to the machine's ports: the whole link-local range, where every
+ * cloud provider puts its metadata and credential services (AWS, Google Cloud, Azure, Tencent Cloud, container task
+ * credentials and others), and the two addresses outside it that providers use. A range, so no provider's address
+ * has to be known by name.
+ */
 export const METADATA_ADDRESSES: readonly string[] = [
-  // AWS, Google Cloud, Azure, DigitalOcean, Oracle Cloud, Hetzner and most others: the link-local metadata service.
-  '169.254.169.254',
+  '169.254.0.0/16',
   // Azure: the WireServer, which hands a machine its configuration and certificates.
   '168.63.129.16',
   // Alibaba Cloud: its metadata service.
@@ -93,6 +97,12 @@ function livePreviewLines(rules: RuleSet): { sets: string[]; forward: string[] }
       ...(lp.publicAddresses.length ? [`\t\tip saddr ${part} ip daddr { ${lp.publicAddresses.join(', ')} } ${count('public-address')}`] : []),
     ],
   }
+}
+
+/** An entry of `METADATA_ADDRESSES` as `nft -j` prints it: a bare address, or a prefix object for a range. */
+const asListed = (entry: string): string => {
+  const [addr, len] = entry.split('/')
+  return len === undefined ? `"${addr}"` : `{"prefix":{"addr":"${addr}","len":${len}}}`
 }
 
 const IPV4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
@@ -177,7 +187,7 @@ export function rulesInPlace(listing: string, rules: RuleSet): ProtectionRule[] 
   const machineElsewhere = rules.machineAddresses.every(a => forward && drops('forward', 'machine-ports', `"${a}"`))
   if (input && drops('input', 'machine-ports') && machineElsewhere) inPlace.push('machine-ports')
   if (forward && drops('forward', 'published-ports', '"dnat"', '"original"')) inPlace.push('published-ports')
-  if (forward && drops('forward', 'metadata-address', ...METADATA_ADDRESSES.map(a => `"${a}"`))) inPlace.push('metadata-address')
+  if (forward && drops('forward', 'metadata-address', ...METADATA_ADDRESSES.map(asListed))) inPlace.push('metadata-address')
   const lp = rules.livePreview
   if (lp && forward) {
     const fromPart = `{"prefix":{"addr":"${lp.part.addr}","len":${lp.part.len}}}`

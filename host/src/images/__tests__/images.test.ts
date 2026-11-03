@@ -23,14 +23,14 @@ describe('a release build of the host service @SC-820', () => {
     const check = m.ctx.signatures
     m.ctx.signatures = async (ref, signer) => { m.calls.push(['cosign', ref]); return check(ref, signer) }
     await run()
-    expect(m.checked).toEqual(['hq-server', 'hq-web', 'relay', 'site-server', 'agent', 'console'].map(p => [published(p), SIGNER]))
+    expect(m.checked).toEqual(['hq-server', 'hq-web', 'relay', 'site-server', 'agent', 'executor', 'console'].map(p => [published(p), SIGNER]))
     const lastCheck = m.calls.map(c => c[0]).lastIndexOf('cosign')
     const firstImage = m.calls.findIndex(c => c[0] === 'image' || c[0] === 'pull')
     expect(lastCheck).toBeLessThan(firstImage)
     expect(progress[0]).toEqual({ event: 'step', step: 'Checking the images are signed by Agenthix' })
     expect(progress[1]).toEqual({ event: 'stepDone', outcome: 'passes' })
     expect(progress[2]).toEqual({ event: 'step', step: 'Pulling HQ 0.2.0 (4 images)' })
-    expect(progress[4]).toEqual({ event: 'step', step: 'Pulling the site 0.2.0 and the agent image' })
+    expect(progress[4]).toEqual({ event: 'step', step: 'Pulling the site 0.2.0, the agent image and the workflow executor' })
   })
 
   it('fetches and runs each image by the digest its signature covers', async () => {
@@ -44,8 +44,9 @@ describe('a release build of the host service @SC-820', () => {
     expect(hq.services.relay.image).toBe(pinned('relay'))
     expect(site.services.site.image).toBe(pinned('site-server'))
     expect(site.services.site.environment.AGENT_IMAGE).toBe(pinned('agent'))
+    expect(site.services.site.environment.EXECUTOR_IMAGE).toBe(pinned('executor'))
     const inspected = m.calls.filter(c => c[0] === 'image').map(c => c[c.length - 1])
-    expect(inspected).toEqual(expect.arrayContaining([pinned('hq-server'), pinned('hq-web'), pinned('relay'), pinned('site-server'), pinned('agent')]))
+    expect(inspected).toEqual(expect.arrayContaining([pinned('hq-server'), pinned('hq-web'), pinned('relay'), pinned('site-server'), pinned('agent'), pinned('executor')]))
     expect(inspected.some(ref => ref.endsWith(':0.2.0'))).toBe(false)
   })
 
@@ -73,6 +74,12 @@ describe('a release build of the host service @SC-820', () => {
   it('fails closed when a signature cannot be checked, naming the next step', async () => {
     m.signatures.set(published('agent'), { kind: 'unchecked', reason: 'no such host' })
     await expect(run()).rejects.toMatchObject({ code: 'failed', message: expect.stringMatching(/could not be checked \(no such host\).*internet connection/) })
+    expect(pulls()).toEqual([])
+  })
+
+  it('refuses an executor image that is unsigned, before anything is fetched', async () => {
+    m.signatures.set(published('executor'), { kind: 'unsigned' })
+    await expect(run()).rejects.toMatchObject({ code: 'unsigned_image', message: expect.stringContaining(published('executor')) })
     expect(pulls()).toEqual([])
   })
 

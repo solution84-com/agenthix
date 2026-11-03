@@ -27,7 +27,7 @@ const cli = (...argv: string[]) => runCommand(parseCommand(argv), send, io, '0.2
 const flat = (s: string) => s.replace(/\s+/g, ' ')
 
 function publish(versions: string[]): void {
-  for (const part of ['hq-server', 'hq-web', 'relay', 'site-server', 'agent', 'host']) m.tags.set(`solution84-com/agenthix-${part}`, versions)
+  for (const part of ['hq-server', 'hq-web', 'relay', 'site-server', 'agent', 'executor', 'host']) m.tags.set(`solution84-com/agenthix-${part}`, versions)
 }
 function hqAnswersAs(version: string): void {
   const data = (m.hq.status as unknown as { data: HqStatusData }).data

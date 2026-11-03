@@ -7,7 +7,7 @@
  * helper and the pinned postgres image, sealed and opened on the way.
  *
  * The second part, with HOST_E2E=1, backs up a real HQ and its site and restores them on a fresh state folder: it
- * needs the images a development build installs (hq-server, hq-web, site-server and agent, built on the machine).
+ * needs the images a development build installs (hq-server, hq-web, site-server, agent and executor, built on the machine).
  * HQ is installed at http://localhost on a free port the test chooses, and the Fleet Console beside it publishes
  * 127.0.0.1 on another, so it runs beside an installation.
  *

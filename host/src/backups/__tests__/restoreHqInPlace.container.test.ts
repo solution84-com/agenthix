@@ -4,7 +4,7 @@
  * `from: 'machine'`.
  *
  * Build the host service's image first, at the repository root: `docker build -f host/docker/Dockerfile -t
- * agenthix-host .` (or name another with HOST_IMAGE); the hq-server, hq-web, site-server, agent and console images of a
+ * agenthix-host .` (or name another with HOST_IMAGE); the hq-server, hq-web, site-server, agent, executor and console images of a
  * development build must be on the machine. It installs HQ at http://localhost on a free port it chooses, with the
  * Fleet Console on another, so it runs beside an installation. Everything it makes carries a namespace of its own for
  * the run, the host service's container being `<namespace>-host`; every docker command goes through the guard

@@ -95,6 +95,23 @@ describe('who may connect @SC-862', () => {
     expect(peerAllowed({ remoteAddress: undefined, localAddress: undefined }, container)).toBe(false)
   })
 
+  describe('on HQ’s machine, where Docker Desktop may deliver the port through HQ’s link network', () => {
+    const both = { ...container, also: [{ address: '172.29.0.3', gateway: '172.29.0.1' }] }
+
+    it('lets in the gateway of either network, on its address there', () => {
+      expect(peerAllowed({ remoteAddress: '172.28.0.1', localAddress: '172.28.0.2' }, both)).toBe(true)
+      expect(peerAllowed({ remoteAddress: '172.29.0.1', localAddress: '172.29.0.3' }, both)).toBe(true)
+    })
+
+    it('still refuses every other container on the link network, and a gateway on the wrong network', () => {
+      expect(peerAllowed({ remoteAddress: '172.29.0.5', localAddress: '172.29.0.3' }, both)).toBe(false)
+      expect(peerAllowed({ remoteAddress: '172.29.0.2', localAddress: '172.29.0.3' }, both)).toBe(false)
+      expect(peerAllowed({ remoteAddress: '172.29.0.1', localAddress: '172.28.0.2' }, both)).toBe(false)
+      expect(peerAllowed({ remoteAddress: '172.28.0.1', localAddress: '172.29.0.3' }, both)).toBe(false)
+      expect(peerAllowed({ remoteAddress: '192.168.1.20', localAddress: '172.29.0.3' }, both)).toBe(false)
+    })
+  })
+
   it('answers a peer it refuses with 403, and a gateway with the wrong Host header with 421 naming the published port @SC-1254', () => {
     const run = (remoteAddress: string, host: string, published?: number) => {
       const res = { code: 0, body: {} as Record<string, unknown>, status(c: number) { this.code = c; return this }, json(b: Record<string, unknown>) { this.body = b } }

@@ -10,6 +10,7 @@ import { siteComposeProject } from './siteCompose'
 import { consoleHere, startLocalConsole } from './console'
 import { joinLocalConsole } from '../link/localConsole'
 import { checkImages, fetchImages, type ImagePins } from '../images/images'
+import { siteImagesWanted, sitePins, siteRefs } from '../images/siteImages'
 import { POSTGRES_IMAGE } from '../images/published'
 import { installSecrets } from '../state/secrets'
 import { installed, type Context, type StoredHq, type StoredSite } from '../service/context'
@@ -51,7 +52,7 @@ async function getImages(progress: (p: Progress) => void, ctx: Context, hq: Stor
   const pins = await step(progress, `Checking the images are signed by ${product}`, async () => {
     const { pins, checked } = await checkImages(ctx, [
       { part: 'hq-server', version: hq.version }, { part: 'hq-web', version: hq.version }, { part: 'relay', version: hq.version },
-      { part: 'site-server', version: site.version }, { part: 'agent', version: site.version },
+      ...siteImagesWanted(site.version),
       { part: 'console', version: hq.version },
     ])
     return { value: pins, outcome: checked ? 'passes' : 'not checked: images built here (development build)' }
@@ -60,8 +61,8 @@ async function getImages(progress: (p: Progress) => void, ctx: Context, hq: Stor
     await fetchImages(ctx, [POSTGRES_IMAGE, pins['hq-server']!, pins['hq-web']!, pins.relay!])
     return { value: undefined, outcome: 'done' }
   })
-  await step(progress, `Pulling the site ${site.version} and the agent image`, async () => {
-    await fetchImages(ctx, [pins['site-server']!, pins.agent!])
+  await step(progress, `Pulling the site ${site.version}, the agent image and the workflow executor`, async () => {
+    await fetchImages(ctx, siteRefs(pins))
     return { value: undefined, outcome: 'done' }
   })
   await step(progress, `Pulling the Fleet Console ${hq.version}`, async () => {
@@ -70,7 +71,7 @@ async function getImages(progress: (p: Progress) => void, ctx: Context, hq: Stor
   })
   return {
     hq: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'], relay: pins.relay },
-    site: { 'site-server': pins['site-server'], agent: pins.agent },
+    site: sitePins(pins),
     console: { console: pins.console },
   }
 }

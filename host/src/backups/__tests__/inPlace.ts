@@ -184,7 +184,7 @@ export class Machine {
       if (secrets) local.writePrivate(['secrets.json'], secrets)
       const site: StoredSite = {
         name: this.name, version: 'dev', hqUrl: 'http://hq.invalid', installedAt,
-        images: { 'site-server': imageRef('site-server', 'dev'), agent: imageRef('agent', 'dev') },
+        images: { 'site-server': imageRef('site-server', 'dev'), agent: imageRef('agent', 'dev'), executor: imageRef('executor', 'dev') },
       }
       makeSiteCredential(local, new Date())
       const made = installSecrets(local)

@@ -15,7 +15,7 @@ export function listing(set: RuleSet, drop: { without?: string[]; metadata?: str
     rule('input', 'machine-ports', from(set)),
     chain('forward'),
     rule('forward', 'published-ports', from(set), ct('direction', 'original'), ct('status', 'dnat', 'in')),
-    rule('forward', 'metadata-address', from(set), to({ set: drop.metadata ?? [...METADATA_ADDRESSES] })),
+    rule('forward', 'metadata-address', from(set), to({ set: (drop.metadata ?? [...METADATA_ADDRESSES]).map(a => (a.includes('/') ? { prefix: { addr: a.split('/')[0], len: Number(a.split('/')[1]) } } : a)) })),
   ]
   if (set.machineAddresses.length) {
     items.push(rule('forward', 'machine-ports', from(set), to(set.machineAddresses.length === 1 ? set.machineAddresses[0] : { set: set.machineAddresses })))

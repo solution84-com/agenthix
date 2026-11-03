@@ -33,9 +33,9 @@ describe('the rules built @SC-824', () => {
   })
 
   it('shuts the cloud providers’ metadata addresses, every one on the list', () => {
-    expect(METADATA_ADDRESSES).toEqual(['169.254.169.254', '168.63.129.16', '100.100.100.200'])
+    expect(METADATA_ADDRESSES).toEqual(['169.254.0.0/16', '168.63.129.16', '100.100.100.200'])
     expect(nftScript(set)).toContain(
-      'ip saddr 10.213.16.0/20 ip daddr { 169.254.169.254, 168.63.129.16, 100.100.100.200 } drop comment "metadata-address"',
+      'ip saddr 10.213.16.0/20 ip daddr { 169.254.0.0/16, 168.63.129.16, 100.100.100.200 } drop comment "metadata-address"',
     )
   })
 
@@ -86,6 +86,13 @@ describe('which rules hold @SC-824', () => {
 
   it('not the metadata rule, when it leaves out an address on the list', () => {
     expect(rulesInPlace(listing(set, { metadata: ['169.254.169.254', '168.63.129.16'] }), set)).toEqual(['machine-ports', 'published-ports'])
+  })
+
+  it('refuses the whole link-local range, not three addresses: 169.254.170.2 and 169.254.0.23 are inside it', () => {
+    const script = nftScript(set)
+    expect(script).toContain('ip daddr { 169.254.0.0/16,')
+    expect(rulesInPlace(listing(set, { metadata: ['169.254.169.254/32', '168.63.129.16', '100.100.100.200'] }), set)).not.toContain('metadata-address')
+    expect(rulesInPlace(listing(set), set)).toContain('metadata-address')
   })
 
   it('not the computer Docker runs on, when its rule names another address', () => {

@@ -9,6 +9,7 @@ import fs from 'node:fs'
 import type { Progress } from '../sockets/lineServer'
 import { composeJson, defaultSiteProject, hqPortOf, hqProject, type MachinePaths } from '../compose/projects'
 import { checkImages, fetchImages } from '../images/images'
+import { siteImagesWanted, sitePins, siteRefs } from '../images/siteImages'
 import { POSTGRES_IMAGE } from '../images/published'
 import { installed, type Context, type StoredHq, type StoredSite } from '../service/context'
 import { Refusal } from '../owner/results'
@@ -195,15 +196,15 @@ async function images(ctx: Context, m: Manifest): Promise<{ hq: StoredHq; site: 
   const hq = m.hq!
   const { pins } = await checkImages(ctx, [
     { part: 'hq-server', version: hq.version }, { part: 'hq-web', version: hq.version }, { part: 'relay', version: hq.version },
-    { part: 'site-server', version: m.site.version }, { part: 'agent', version: m.site.version },
+    ...siteImagesWanted(m.site.version),
     ...(m.console ? [{ part: 'console' as const, version: m.console.version }] : []),
   ])
-  await fetchImages(ctx, [POSTGRES_IMAGE, pins['hq-server']!, pins['hq-web']!, pins.relay!, pins['site-server']!, pins.agent!, ...(m.console ? [pins.console!] : [])])
+  await fetchImages(ctx, [POSTGRES_IMAGE, pins['hq-server']!, pins['hq-web']!, pins.relay!, ...siteRefs(pins), ...(m.console ? [pins.console!] : [])])
   const fleetConsole = m.console ? { ...m.console, images: { console: pins.console } } : null
   return {
     hq: { ...hq, images: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'], relay: pins.relay } },
     // A site is named after the machine it runs on, so a restore onto another machine renames it.
-    site: { ...m.site, name: ctx.machine.name, images: { 'site-server': pins['site-server'], agent: pins.agent } },
+    site: { ...m.site, name: ctx.machine.name, images: sitePins(pins) },
     console: fleetConsole,
   }
 }

@@ -61,6 +61,16 @@ ownership_ignored() {
   rm -f "$probe"
   [ "${kept:-1001}" != "1001" ]
 }
+# The folder is mounted at its host path, so the folders above it exist only in this container's own file system
+# (the image's /root is mode 0700): without them enterable, appuser cannot reach the data folder at all. Only the
+# right to enter them is added, for others; nothing on the host changes.
+open_ancestors() {
+  dir=$(dirname "$1")
+  while [ "$dir" != "/" ] && [ "$dir" != "." ]; do
+    su-exec appuser test -x "$dir" || chmod o+x "$dir"
+    dir=$(dirname "$dir")
+  done
+}
 if [ ! -e "$root" ]; then
   mkdir -p "$root"
   chown appuser:appuser "$root"
@@ -77,4 +87,5 @@ else
   echo "  Point SITE_ROOT at an empty folder, or give this one to uid 1001: sudo chown 1001 $SITE_ROOT" >&2
   exit 1
 fi
+open_ancestors "$root"
 exec su-exec appuser "$@"

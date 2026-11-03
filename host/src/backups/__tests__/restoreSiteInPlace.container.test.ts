@@ -3,7 +3,7 @@
  * HOST_E2E=1), through the request the Fleet Console's Restore… sends: `backup.restore` with `from: 'machine'`.
  *
  * Build the host service's image first, at the repository root: `docker build -f host/docker/Dockerfile -t
- * agenthix-host .` (or name another with HOST_IMAGE); the site-server and agent images of a development build must be
+ * agenthix-host .` (or name another with HOST_IMAGE); the site-server, agent and executor images of a development build must be
  * on the machine. It needs no port and no other part of an install: it can run beside a real install. Everything it
  * makes carries a namespace of its own for the run, the host service's container being `<namespace>-host`; every
  * docker command goes through the guard (`containerGuard.ts`), and teardown removes only that namespace's.

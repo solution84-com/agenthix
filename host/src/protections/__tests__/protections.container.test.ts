@@ -92,7 +92,7 @@ describe('the agent protections on this machine @SC-824', () => {
     expect(probe(NET, 'http://169.254.169.254/latest/meta-data/')).toBe('refused')
     const forward = docker('exec', HOST, 'nft', 'list', 'chain', 'inet', TABLE, 'forward')
     const line = forward.split('\n').find(l => l.includes('"metadata-address"')) ?? ''
-    for (const a of ['169.254.169.254', '168.63.129.16', '100.100.100.200']) expect(line).toContain(a)
+    for (const a of ['169.254.0.0/16', '168.63.129.16', '100.100.100.200']) expect(line).toContain(a)
   })
 
   it('leave ordinary internet access (set HOST_TEST_INTERNET=1 where the machine has it)', () => {

@@ -11,7 +11,8 @@ import { consoleLinkUrl } from './hq/addressPolicy'
 import { HqCredentials } from './hq/credentials'
 import { ConsoleAddressFollower } from './hq/addressFollow'
 import { WsHqLink } from './hq/wsLink'
-import { createConsole, listen } from './console'
+import { createConsole, listen, otherNetworks } from './console'
+import { readNetworkView } from './net/containerNetwork'
 import { StateFolder } from './state/folder'
 
 // Fixed into the bundle when it is built (scripts/build.mjs); `dev` for a development build.
@@ -34,7 +35,8 @@ async function main(): Promise<void> {
   })
   link = new WsHqLink({ url: consoleLinkUrl(follower.current()), credentials })
   link.on('hqAddress', address => follower.take(address))
-  const containerPeer = config.containerGateway ? { address: config.listenHost, gateway: config.containerGateway } : null
+  const own = config.containerGateway ? { address: config.listenHost, gateway: config.containerGateway } : null
+  const containerPeer = own ? { ...own, also: otherNetworks(readNetworkView(), own) } : null
   const { app, ctx } = await createConsole({
     state, link, version: config.version, hqCode, containerPeer, publishedPort: config.publishedPort,
     machineName: process.env.CONSOLE_MACHINE_NAME?.trim() || 'this machine',
@@ -46,7 +48,7 @@ async function main(): Promise<void> {
   link.start()
   follower.resume()
   console.log(containerPeer
-    ? `[console] Fleet Console ${VERSION} listening on ${config.listenHost}:${config.port} in its container, from its network's gateway ${containerPeer.gateway} only`
+    ? `[console] Fleet Console ${VERSION} listening on ${config.listenHost}:${config.port} in its container, from the gateway of ${containerPeer.also?.length ? 'each network it is on' : 'its network'} only`
     : `[console] Fleet Console ${VERSION} listening on http://${config.listenHost}:${config.port}`)
 
   const stop = () => {

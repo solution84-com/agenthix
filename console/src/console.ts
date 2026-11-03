@@ -3,6 +3,7 @@
  * commands, joins and sessions, and the API. `main.ts` gives it the real link; the tests give it a fake one.
  */
 import http from 'node:http'
+import net from 'node:net'
 import { EnvelopeReplayGuard, fingerprintOf } from '@agenthix/core/host-crypto'
 import { Activity } from './activity'
 import { RoleCheck } from './auth/roleCheck'
@@ -19,7 +20,8 @@ import { Silence } from './hosts/silence'
 import { HqFacts } from './hq/hqFacts'
 import { HqFeatures, type AskFeatures } from './hq/hqFeatures'
 import { createApp, type ConsoleContext } from './http/app'
-import { CONTAINER_PEER, PUBLISHED_PORT, type ContainerPeer } from './http/guards'
+import { CONTAINER_PEER, PUBLISHED_PORT, type ContainerPeer, type NetworkPeer } from './http/guards'
+import type { NetworkView } from './net/containerNetwork'
 import { CommandRuns } from './http/commandRuns'
 import { Joins } from './join/joins'
 import { Moves } from './move/moves'
@@ -84,8 +86,9 @@ export async function createConsole(o: ConsoleOptions): Promise<{ ctx: ConsoleCo
 }
 
 /**
- * Listens on the loopback, or — in its container — on its own network's address and nowhere else, and checks that
- * is where it ended up.
+ * Listens on the loopback, or — in its container — on its own network's address and, on HQ's machine, its address on
+ * HQ's link network, and nowhere else, and checks that is where it ended up. One HTTP server answers on both: a
+ * connection to the second address is handed to it, and `peerAllowed` decides per connection which peer is let in.
  */
 export async function listen(app: http.RequestListener, host: string, port: number, containerPeer: ContainerPeer | null = null): Promise<http.Server> {
   const expected = containerPeer ? containerPeer.address : CONSOLE_LISTEN_HOST
@@ -106,13 +109,54 @@ export async function listen(app: http.RequestListener, host: string, port: numb
     server.close()
     throw new ConfigError(`The Fleet Console ended up listening on ${JSON.stringify(address)}, not ${expected}; it stopped.`)
   }
+  const bound = address.port
+  try {
+    for (const other of containerPeer?.also ?? []) {
+      const extra = net.createServer(socket => server.emit('connection', socket))
+      await new Promise<void>((resolve, reject) => {
+        extra.once('error', reject)
+        extra.listen(bound, other.address, () => { extra.off('error', reject); resolve() })
+      })
+      server.once('close', () => extra.close())
+    }
+  } catch (err) {
+    server.close()
+    throw err
+  }
   return server
 }
 
+/**
+ * The networks it is on besides its own, each by its address there and its gateway: Docker's default gateway of a
+ * network whose subnet was given, which is the first address in it. Read from the container's interfaces; what
+ * the request says never takes part.
+ */
+export function otherNetworks(view: NetworkView, own: NetworkPeer): NetworkPeer[] {
+  const others: NetworkPeer[] = []
+  for (const list of Object.values(view.interfaces)) {
+    for (const a of list ?? []) {
+      if (a.family !== 'IPv4' || a.internal || a.address === own.address || a.address === '127.0.0.1') continue
+      const mask = toInt(a.netmask)
+      const gateway = fromInt(((toInt(a.address) & mask) >>> 0) + 1)
+      if (gateway !== a.address) others.push({ address: a.address, gateway })
+    }
+  }
+  return others
+}
+
+const toInt = (a: string) => a.split('.').reduce((n, o) => ((n << 8) | Number(o)) >>> 0, 0)
+const fromInt = (n: number) => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.')
+
 const UNSPECIFIED = new Set(['', '0.0.0.0', '::', '::0'])
+const ADDRESS = /^\d{1,3}(\.\d{1,3}){3}$/
 
 function assertContainerListen(host: string, peer: ContainerPeer): void {
-  if (host !== peer.address || UNSPECIFIED.has(host) || !/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+  if (host !== peer.address || UNSPECIFIED.has(host) || !ADDRESS.test(host)) {
     throw new ConfigError(`The Fleet Console listens in its container only on its own network's address ${peer.address}, never on ${host || 'every address'}.`)
+  }
+  for (const other of peer.also ?? []) {
+    if (UNSPECIFIED.has(other.address) || !ADDRESS.test(other.address)) {
+      throw new ConfigError(`The Fleet Console listens in its container only on the addresses of the networks it is on, never on ${other.address || 'every address'}.`)
+    }
   }
 }

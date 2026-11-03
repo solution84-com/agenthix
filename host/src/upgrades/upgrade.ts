@@ -15,6 +15,7 @@ import { Refusal } from '../owner/results'
 import { cmd, product } from '../cli/words'
 import { checkPorts } from '../install/portCheck'
 import { checkImages, fetchImages } from '../images/images'
+import { sitePins } from '../images/siteImages'
 import { exclusive, exclusiveWhenFree, takeBackup, type OnWait } from '../backups/take'
 import { checkUpgrade, whoText, type Target } from './rules'
 import { healthProblem } from './health'
@@ -160,7 +161,7 @@ async function run(ctx: Context, target: Target, version: string, progress: Repo
   progress({ event: 'step', step: `Starting ${version}` })
   try {
     const hq = target === 'hq' && u.hq ? { ...u.hq, version, images: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'], relay: pins.relay } } : null
-    await writeProjects(ctx, hq, { ...u.site, version, images: { 'site-server': pins['site-server'], agent: pins.agent } }, paths)
+    await writeProjects(ctx, hq, { ...u.site, version, images: sitePins(pins) }, paths)
     await startTarget(ctx, target)
     progress({ event: 'stepDone', outcome: 'done' })
   } catch {

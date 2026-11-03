@@ -12,7 +12,7 @@ import { instantOf } from '../zoned'
 import '../operations'
 
 let m: FakeMachine
-const HQ_PARTS = ['hq-server', 'hq-web', 'relay', 'site-server', 'agent']
+const HQ_PARTS = ['hq-server', 'hq-web', 'relay', 'site-server', 'agent', 'executor']
 const window = (over: object = {}) => ({ day: null, startMinute: 120, endMinute: 240, timeZone: 'America/New_York', ...over })
 const ask = (r: object) => cloudOperation(m.ctx, r)
 

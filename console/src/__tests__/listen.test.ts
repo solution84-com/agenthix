@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assertLoopbackListen, ConfigError, loadConfig } from '../config'
-import { listen } from '../console'
+import { listen, otherNetworks } from '../console'
 
 const env = { CONSOLE_HQ_ADDRESS: 'https://hq.example.com' }
 const app = (_req: unknown, res: { end: () => void }) => res.end()
@@ -79,5 +79,23 @@ describe('in its container, it listens on its own network only @SC-861', () => {
     await expect(listen(app as never, '0.0.0.0', 0, peer)).rejects.toThrow(ConfigError)
     await expect(listen(app as never, '172.29.0.3', 0, peer)).rejects.toThrow(ConfigError)
     await expect(listen(app as never, '0.0.0.0', 0, { address: '0.0.0.0', gateway: '172.28.0.1' })).rejects.toThrow(ConfigError)
+  })
+})
+
+describe('the networks it is on besides its own @SC-861', () => {
+  const nic = (address: string, netmask = '255.255.0.0', internal = false) => [{ address, netmask, family: 'IPv4' as const, mac: '02:42:00:00:00:00', internal, cidr: null }]
+  const own = { address: '172.28.0.2', gateway: '172.28.0.1' }
+
+  it('lists HQ’s link network by its address and its gateway, the first address of its subnet', () => {
+    const view = { routes: '', interfaces: { lo: nic('127.0.0.1', '255.0.0.0', true), eth0: nic('172.28.0.2'), eth1: nic('172.29.0.3') } }
+    expect(otherNetworks(view, own)).toEqual([{ address: '172.29.0.3', gateway: '172.29.0.1' }])
+  })
+
+  it('lists nothing where the console is on its own network only', () => {
+    expect(otherNetworks({ routes: '', interfaces: { eth0: nic('172.28.0.2') } }, own)).toEqual([])
+  })
+
+  it('will not start a server on an unspecified address as a further network', async () => {
+    await expect(listen(app as never, '172.28.0.2', 0, { ...own, also: [{ address: '0.0.0.0', gateway: '10.0.0.1' }] })).rejects.toThrow(ConfigError)
   })
 })

@@ -13,6 +13,7 @@ import type { JoinRestoreClaim } from '@agenthix/core'
 import type { Progress } from '../sockets/lineServer'
 import { composeJson } from '../compose/projects'
 import { checkImages, fetchImages } from '../images/images'
+import { siteImagesWanted, sitePins, siteRefs } from '../images/siteImages'
 import { POSTGRES_IMAGE } from '../images/published'
 import { installed, type Context, type StoredSite } from '../service/context'
 import { Refusal } from '../owner/results'
@@ -97,8 +98,8 @@ export function restoreJoinedSite(ctx: Context, source: JoinedSource, pin: Conso
       }, 'yes')
 
       const { pins } = await step(progress, 'Checking the images are signed', async () => {
-        const checkedImages = await checkImages(ctx, [{ part: 'site-server', version: manifest.site.version }, { part: 'agent', version: manifest.site.version }])
-        await fetchImages(ctx, [POSTGRES_IMAGE, checkedImages.pins['site-server']!, checkedImages.pins.agent!])
+        const checkedImages = await checkImages(ctx, siteImagesWanted(manifest.site.version))
+        await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(checkedImages.pins)])
         return checkedImages
       }, 'passes')
 
@@ -107,7 +108,7 @@ export function restoreJoinedSite(ctx: Context, source: JoinedSource, pin: Conso
       // The site's stored secrets are sealed with its master key: it comes with the site. The rest are this machine's.
       ctx.state.writeJson(['secrets.json'], { ...installSecrets(ctx.state), siteMasterKey: manifest.secrets.siteMasterKey })
       // Named after this machine, as every site is: the lost machine's name goes with it.
-      const site: StoredSite = { ...manifest.site, name: ctx.machine.name, images: { 'site-server': pins['site-server'], agent: pins.agent }, hqUrl: pin.hqAddress }
+      const site: StoredSite = { ...manifest.site, name: ctx.machine.name, images: sitePins(pins), hqUrl: pin.hqAddress }
       ctx.state.writeJson(['site', 'settings.json'], site)
       // Without its credential yet, the compose file starts nothing connected; it is written again once HQ renewed it.
       ctx.state.writePrivate(['site', 'compose.json'], composeJson(siteComposeProject(ctx.state, ctx.names, site, installSecrets(ctx.state), paths, await installSubnets(ctx))))
