@@ -33,7 +33,11 @@ export function attachContentChannel(server: HttpServer, deps: ContentChannelDep
       const accepted = await checkSiteUpgrade(req, socket, deps)
       if (!accepted) return
       wss.handleUpgrade(req, socket, head, ws => onConnection(ws, accepted.siteId))
-    })()
+    })().catch(err => {
+      // A failed check (a database call that rejects) must not end hq's process.
+      logger.error('upgrade failed', err)
+      socket.destroy()
+    })
   })
 
   function onConnection(ws: WebSocket, siteId: string): void {
