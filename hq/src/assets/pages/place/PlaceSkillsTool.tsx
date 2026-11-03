@@ -10,7 +10,7 @@ import { SPACE_PATH } from '../../../chat/chatPlacePaths'
 import { useAct } from './useAct'
 import { newPlaceSkillPath } from './placeSkillRoutes'
 import {
-  countsLine, groupFolders, groupSkills, pageCounts, skillTitle,
+  countsLine, groupFolders, groupSkills, pageCounts, removeNote, skillTitle,
   type PlaceSkillsData, type PlaceSkillView, type SkillGroup,
 } from './placeSkillsModel'
 import { PlaceSkillRow, type RowHandlers } from './PlaceSkillRow'
@@ -205,8 +205,8 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
       )}
       {dialog?.kind === 'remove' && (
         <ConfirmRemove
-          name={skillTitle(dialog.skill)} busy={busy} onCancel={() => setDialog(null)}
-          onConfirm={async () => { await run(() => removePlaceSkill({ placeSkillId: dialog.skill.id })); setDialog(null) }}
+          name={skillTitle(dialog.skill)} note={removeNote(dialog.skill)} busy={busy} onCancel={() => setDialog(null)}
+          onConfirm={async () => { await run(() => removePlaceSkill({ placeSkillId: dialog.skill.id, fingerprint: dialog.skill.fingerprint })); setDialog(null) }}
         />
       )}
     </div>

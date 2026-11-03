@@ -88,6 +88,26 @@ describe('versions by publishing (FV1–FV3) @SC-1644', () => {
     expect(history.map(v => [v.number, v.note, v.inFiles])).toEqual([[3, 'Rolled back to version 1: Two broke it', true], [2, 'Second', false], [1, 'First', false]])
   })
 
+  it('refuses publishing a draft or rolling back over files changed since HQ last looked, and writes nothing', async () => {
+    const { project, admin, loc } = await aPlace()
+    const made = await createPlaceSkillDraft({ projectId: project.id, name: 'review', description: 'Reviews code' }, as(admin))
+    await publishPlaceSkillDraft({ placeSkillId: made.placeSkillId, revision: 1, note: 'First' }, as(admin))
+    await savePlaceSkillDraft({ placeSkillId: made.placeSkillId, revision: null, files: [{ path: 'SKILL.md', text: SKILL('Two.') }] }, as(admin))
+    await publishPlaceSkillDraft({ placeSkillId: made.placeSkillId, revision: 1, note: 'Second' }, as(admin))
+    await savePlaceSkillDraft({ placeSkillId: made.placeSkillId, revision: null, files: [{ path: 'SKILL.md', text: SKILL('Three.') }] }, as(admin))
+    // An agent changes the folder, and no scan has seen it yet.
+    const outside = { 'SKILL.md': SKILL('Edited by an agent.'), 'notes.md': 'Only here.' }
+    put(loc, '.agents/skills/review', outside)
+
+    await expect(publishPlaceSkillDraft({ placeSkillId: made.placeSkillId, revision: 1, note: 'Third' }, as(admin)))
+      .rejects.toMatchObject({ statusCode: 409, message: expect.stringMatching(/changed since HQ last looked/) })
+    const first = (await getPlaceSkillVersions({ placeSkillId: made.placeSkillId }, as(admin))).versions.find(v => v.number === 1)!
+    await expect(rollBackPlaceSkillVersion({ placeSkillId: made.placeSkillId, versionId: first.id }, as(admin))).rejects.toMatchObject({ statusCode: 409 })
+    expect(get(loc, '.agents/skills/review')).toEqual(outside)
+    expect(await prisma.placeSkillVersion.count({ where: { placeSkillId: made.placeSkillId } })).toBe(2)
+    expect(await prisma.draft.count({ where: { placeSkillId: made.placeSkillId } })).toBe(1)
+  })
+
   it('records nothing when the site cannot write the files', async () => {
     const { project, admin } = await aPlace()
     const made = await createPlaceSkillDraft({ projectId: project.id, name: 'review', description: 'Reviews code' }, as(admin))
@@ -183,11 +203,26 @@ describe('Add to this place, and Remove (F3) @SC-1647', () => {
     expect((await getPlaceSkills({ projectId: project.id }, as(member))).skills[0]).toMatchObject({ state: 'off', status: 'published' })
     await expect(addSkillToPlace({ projectId: project.id, assetId: asset.id }, as(member))).rejects.toMatchObject({ statusCode: 409 })
 
-    await expect(removePlaceSkill({ placeSkillId: added.placeSkillId }, as(member))).rejects.toMatchObject({ statusCode: 403 })
-    await removePlaceSkill({ placeSkillId: added.placeSkillId }, as(admin))
+    const { fingerprint } = (await getPlaceSkills({ projectId: project.id }, as(admin))).skills[0]
+    await expect(removePlaceSkill({ placeSkillId: added.placeSkillId, fingerprint }, as(member))).rejects.toMatchObject({ statusCode: 403 })
+    await removePlaceSkill({ placeSkillId: added.placeSkillId, fingerprint }, as(admin))
     expect(get(loc, '.agents/skills/pm-sprint-planning')).toBeUndefined()
     expect((await getPlaceSkills({ projectId: project.id }, as(admin))).skills).toHaveLength(0)
     expect(await prisma.placeSkillVersion.count({ where: { placeSkillId: added.placeSkillId } })).toBe(1)
+  })
+
+  it('removes only the files the person was shown, while the folder still holds them', async () => {
+    const { project, admin, loc } = await aPlace()
+    const asset = await librarySkill()
+    const added = await addSkillToPlace({ projectId: project.id, assetId: asset.id }, as(admin))
+    const { fingerprint } = (await getPlaceSkills({ projectId: project.id }, as(admin))).skills[0]
+    await expect(removePlaceSkill({ placeSkillId: added.placeSkillId }, as(admin))).rejects.toMatchObject({ statusCode: 409 })
+    await expect(removePlaceSkill({ placeSkillId: added.placeSkillId, fingerprint: 'c'.repeat(64) }, as(admin))).rejects.toMatchObject({ statusCode: 409 })
+    // Changed outside since HQ last looked: the change is never deleted unseen.
+    put(loc, '.agents/skills/pm-sprint-planning', { 'SKILL.md': 'Changed by an agent.' })
+    await expect(removePlaceSkill({ placeSkillId: added.placeSkillId, fingerprint }, as(admin))).rejects.toMatchObject({ statusCode: 409 })
+    expect(get(loc, '.agents/skills/pm-sprint-planning')).toEqual({ 'SKILL.md': 'Changed by an agent.' })
+    expect((await prisma.placeSkill.findUniqueOrThrow({ where: { id: added.placeSkillId } })).goneAt).toBeNull()
   })
 
   it('never writes over a folder HQ has not looked at, whether adding or publishing a new skill', async () => {

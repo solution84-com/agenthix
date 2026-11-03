@@ -28,7 +28,7 @@ export function agentPackage(name: string, opts: { handle?: string; roleSkills?:
   ]
 }
 
-export type TeamAgentFixture = { handle: string; skills?: string[]; approval?: string }
+export type TeamAgentFixture = { handle: string; skills?: string[]; approval?: string; allowedTools?: unknown[]; allowedBashPatterns?: unknown[] }
 
 /**
  * A team template: one team of these agents, the role skills named under it, and shared skills each with its own
@@ -52,6 +52,7 @@ export function teamPackage(name: string, opts: {
     })),
     ...opts.agents.map(a => f(`agents/${a.handle}/agent.json`, JSON.stringify({
       name: `Agent ${a.handle}`, role: `${a.handle} role`, responsibilities: `Does ${a.handle} work.`, approval: a.approval ?? 'deferred', skills: a.skills ?? [],
+      allowedTools: a.allowedTools, allowedBashPatterns: a.allowedBashPatterns,
     }))),
     ...(opts.roleSkills ?? []).map(s => f(`skills/${s}/SKILL.md`, SKILL(s))),
     ...(opts.shared ?? []).flatMap(s => [

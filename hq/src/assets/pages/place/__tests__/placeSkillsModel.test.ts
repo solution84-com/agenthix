@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countsLine, groupSkills, isWaiting, looserThanOrganisation, pageCounts, rowActions, stateWords, waitingNote } from '../placeSkillsModel'
+import { countsLine, groupSkills, isWaiting, looserThanOrganisation, pageCounts, removeNote, rowActions, stateWords, waitingNote } from '../placeSkillsModel'
 import { MAY_ALL, MAY_NONE, skill } from './fixtures'
 
 describe('the words of a row @SC-1642 @SC-1645 @SC-1646', () => {
@@ -66,5 +66,21 @@ describe('the default @SC-1642', () => {
     expect(looserThanOrganisation('ON', 'OFF')).toMatch(/stricter, never looser/)
     expect(looserThanOrganisation('NEVER', 'OFF')).toBeNull()
     expect(looserThanOrganisation('OFF', 'OFF')).toBeNull()
+  })
+})
+
+describe('what Remove says it loses @SC-1647', () => {
+  it('a published skill can be put back from its history', () => {
+    expect(removeNote(skill())).toMatch(/published versions stay in the history, so it can be put back/)
+  })
+  it('a skill never published cannot be put back, and says so', () => {
+    const s = skill({ status: 'unpublished', version: null, newestVersion: null })
+    expect(removeNote(s)).toMatch(/never published, so it can't be put back/)
+    expect(removeNote(s)).not.toMatch(/can be put back/)
+  })
+  it('a changed skill loses its change and can be put back only as its newest version', () => {
+    const s = skill({ status: 'changed', version: null, newestVersion: 4 })
+    expect(removeNote(s)).toMatch(/change made since version 4 was never published and can't be put back/)
+    expect(removeNote(s)).toMatch(/Version 4 stays in the history/)
   })
 })

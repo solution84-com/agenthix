@@ -45,6 +45,8 @@ export async function publishFiles(
   tx: Db, ctx: PlaceContext, skill: PlaceSkill, files: PackageFile[], by: By, note: string,
   from: { copied?: Origin; origin?: Origin | null } = {},
 ): Promise<Published> {
+  const { loc, dir } = folderOf(ctx, skill)
+  await assertFolderAsSeen(loc, dir, skill)
   const newest = await newestVersion(tx, skill.id)
   const number = (newest?.number ?? 0) + 1
   const held = newest?.originIdentity && newest.originVersion ? { identity: newest.originIdentity, version: newest.originVersion } : null
@@ -54,25 +56,47 @@ export async function publishFiles(
   const fingerprint = await storeContent(written, tx)
   const kept = { originIdentity: origin?.identity ?? null, originVersion: origin?.version ?? null }
   await tx.placeSkillVersion.create({ data: { placeSkillId: skill.id, number, digest: fingerprint, note, ...by, ...kept } })
-  const { loc, dir } = folderOf(ctx, skill)
-  if ((skill.goneAt || skill.lastFingerprint === null) && await folderHoldsFiles(loc, dir)) {
-    throw new LifecycleError(`The place's files hold a folder there that HQ hasn't looked at. Look at the place again. ${NOTHING}`, 409)
-  }
-  await writeSkillFolder(loc, dir, written)
-  await tx.placeSkill.update({
-    where: { id: skill.id },
+  const { count } = await tx.placeSkill.updateMany({
+    where: { id: skill.id, lastFingerprint: skill.lastFingerprint },
     data: { lastFingerprint: fingerprint, lastSeenAt: new Date(), goneAt: null, ...(skill.switch ? { switchFingerprint: fingerprint } : {}) },
   })
+  if (count === 0) throw new LifecycleError(`The skill changed as you published it. Look at it again. ${NOTHING}`, 409)
+  await writeSkillFolder(loc, dir, written)
   return { number, fingerprint }
 }
 
-/** A folder last seen missing, or never seen, is written only while it still holds nothing: nothing unseen is written over. */
-async function folderHoldsFiles(loc: LocationRef, dir: string): Promise<boolean> {
+/** The skill's folder as the site holds it now; null when there is none. */
+async function folderNow(loc: LocationRef, dir: string): Promise<PackageFile[] | null> {
   try {
-    return (await readSkillFolder(loc, dir)).length > 0
+    return await readSkillFolder(loc, dir)
   } catch (err) {
-    if (err instanceof LocationFileError && err.code === 'not_found') return false
+    if (err instanceof LocationFileError && err.code === 'not_found') return null
     throw err
+  }
+}
+
+/** A folder whose file list no package could hold has no fingerprint, and so never matches one hq saw. */
+function fingerprintOrNull(files: PackageFile[]): string | null {
+  try {
+    return fingerprintOf(files)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Writing a skill's folder replaces everything in it, so it is written only while it holds what hq last saw there:
+ * nothing, for a folder last seen missing or never seen; otherwise exactly the files of `lastFingerprint`. A change
+ * made in the files since is never written over unseen.
+ */
+export async function assertFolderAsSeen(loc: LocationRef, dir: string, skill: PlaceSkill): Promise<void> {
+  const now = await folderNow(loc, dir)
+  if (!now || now.length === 0) return
+  if (skill.goneAt || skill.lastFingerprint === null) {
+    throw new LifecycleError(`The place's files hold a folder there that HQ hasn't looked at. Look at the place again. ${NOTHING}`, 409)
+  }
+  if (fingerprintOrNull(now) !== skill.lastFingerprint) {
+    throw new LifecycleError(`The skill's files changed since HQ last looked at them. Look at the place again. ${NOTHING}`, 409)
   }
 }
 
@@ -164,9 +188,7 @@ export async function putBackPlaceSkill(
   if (!skill.goneAt && newest.digest === skill.lastFingerprint) throw new LifecycleError(`The files are version ${newest.number} already. ${NOTHING}`, 409)
   const files = await readContent(newest.digest, db)
   const { loc, dir } = folderOf(ctx, skill)
-  if (skill.goneAt && await folderHoldsFiles(loc, dir)) {
-    throw new LifecycleError(`The place's files hold a folder there that HQ hasn't looked at. Look at the place again. ${NOTHING}`, 409)
-  }
+  await assertFolderAsSeen(loc, dir, skill)
   await db.$transaction(async tx => {
     const { count } = await tx.placeSkill.updateMany({
       where: { id: skill.id, lastFingerprint: skill.lastFingerprint },

@@ -126,6 +126,16 @@ export function switchedOffNote(s: PlaceSkillView): string | null {
   return `Switched off: its files changed since ${who} switched it on${when}.`
 }
 
+/** What *Remove* says the person loses: only what a published version holds can be put back. */
+export function removeNote(s: Pick<PlaceSkillView, 'status' | 'newestVersion'>): string {
+  const deletes = "This deletes the skill's folder from the place's files."
+  if (s.newestVersion === null) return `${deletes} It was never published, so it can't be put back.`
+  if (s.status === 'changed') {
+    return `${deletes} The change made since version ${s.newestVersion} was never published and can't be put back. Version ${s.newestVersion} stays in the history.`
+  }
+  return `${deletes} Its published versions stay in the history, so it can be put back.`
+}
+
 export const nextVersion = (s: Pick<PlaceSkillView, 'newestVersion'>): number => (s.newestVersion ?? 0) + 1
 
 /** What a person may do with a row: workspace skills switch only; a gone skill only its history and its put back. */

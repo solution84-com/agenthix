@@ -34,11 +34,11 @@ export function ConfirmSwitchAll({ on, group, names, busy, onCancel, onConfirm }
   )
 }
 
-export function ConfirmRemove({ name, busy, onCancel, onConfirm }: { name: string; busy: boolean; onCancel: () => void; onConfirm: () => void }) {
+export function ConfirmRemove({ name, note, busy, onCancel, onConfirm }: { name: string; note: string; busy: boolean; onCancel: () => void; onConfirm: () => void }) {
   return (
     <Modal open onClose={onCancel} title={`Remove ${name}?`} maxWidth="max-w-md">
       <div className="space-y-3" data-testid="confirm-remove-skill">
-        <p className="text-small text-text-secondary">This deletes the skill's folder from the place's files. Its published versions stay in the history, so it can be put back.</p>
+        <p className="text-small text-text-secondary">{note}</p>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onCancel}>Cancel</Button>
           <Button variant="danger" onClick={onConfirm} disabled={busy}>Remove</Button>

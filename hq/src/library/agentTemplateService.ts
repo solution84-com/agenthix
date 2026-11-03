@@ -8,12 +8,11 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import { formatAssetIdentity } from '@agenthix/core'
-import { defaultAgentSettings, type AgentSettings } from '../packages/agentPackageService'
 import { createAgent } from '../agents/agentService'
-import { coerceToolPermissions, coerceBashPatternPermissions } from '../agents/toolPermissions'
 import { agentInstructions, readAgentTemplate, TemplateFileError, type AgentTemplateFile } from '../assets/install/templateFiles'
 import { carriedSkills, findTemplate, listTemplates, templateFiles } from '../assets/templates/templateAssets'
 import { installCarriedSkills } from '../assets/templates/carried'
+import { templateAgentSettings } from '../assets/templates/templateSettings'
 
 export type AgentTemplateSummary = {
   id: string
@@ -51,22 +50,6 @@ export type ApplyAgentTemplateResult = {
   missingSkills: string[]
 }
 
-/**
- * Installing grants no capability (R10): a template from anywhere but hq's image can't make an agent whose tools all
- * run with nobody asked. Its `bypassed` starts the agent on Deferred, which an administrator can change on its page.
- */
-function settingsOf(file: AgentTemplateFile, fromImage: boolean): AgentSettings {
-  return {
-    ...defaultAgentSettings(),
-    approval: file.approval === 'bypassed' && !fromImage ? 'deferred' : file.approval,
-    permissions: {
-      // A legacy string[] (before tool states) is coerced as archive imports do.
-      tools: file.allowedTools ? coerceToolPermissions(file.allowedTools) : null,
-      bashPatterns: file.allowedBashPatterns ? coerceBashPatternPermissions(file.allowedBashPatterns) : null,
-    },
-  }
-}
-
 /** Makes an agent from a template named by its asset id, identity or name (`templateAssets.findTemplate`). */
 export async function applyAgentTemplate(
   ref: string,
@@ -92,7 +75,7 @@ export async function applyAgentTemplate(
     handle,
     role: file.role ?? undefined,
     initialContent: { instructions, skillFiles: [] },
-    settings: settingsOf(file, template.currentVersion.source === 'BUILT_IN'),
+    settings: templateAgentSettings(file, template.currentVersion.source === 'BUILT_IN'),
     createdById,
     madeFrom: { versionId: template.currentVersion.id, skillAssetIds: skills.assetIds },
   })

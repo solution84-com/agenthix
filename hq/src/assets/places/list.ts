@@ -15,7 +15,7 @@ import { scanOnSite } from './siteSkills'
 import { defaultsOf, type PlaceDefaults } from './switches'
 import { libraryOffers, offerKey, originOf } from './libraryUpdate'
 import type { Origin } from './placeVersions'
-import { switchState } from './switchState'
+import { switchHolds, switchState } from './switchState'
 
 const NOTHING = 'Nothing was changed.'
 
@@ -91,7 +91,7 @@ async function viewOf(db: PrismaClient, actor: Actor, ctx: PlaceContext): Promis
       fingerprint: row.lastFingerprint,
       state: row.goneAt ? 'off' : switchState(row, ctx.placeDefault, ctx.orgDefault),
       switch: row.switch,
-      switchHolds: row.switch !== null && row.switchFingerprint === row.lastFingerprint,
+      switchHolds: switchHolds(row),
       switchedBy: row.switchedById ? switcherName.get(row.switchedById)?.trim() || null : null,
       switchedAt: row.switchedAt,
       status: matching ? 'published' : newest !== null && !row.goneAt ? 'changed' : 'unpublished',

@@ -131,9 +131,9 @@ export const addSkillToPlace = async (a: unknown, c: Ctx) => {
   return places(() => addToPlace(prisma, actor, { projectId, assetId, agentId }))
 }
 export const removePlaceSkill = async (a: unknown, c: Ctx) => {
-  const { placeSkillId } = args(a)
+  const { placeSkillId, fingerprint } = args(a)
   const actor = await personForSkill(c, placeSkillId)
-  return places(() => removeFromPlace(prisma, actor, { placeSkillId }))
+  return places(() => removeFromPlace(prisma, actor, { placeSkillId, fingerprint }))
 }
 
 // Update… on a skill added from the Library (F3): what it would change, then the update itself

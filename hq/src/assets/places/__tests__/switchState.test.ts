@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { effectiveDefault, switchState, type PlaceSkillSwitchRow } from '../switchState'
+import { effectiveDefault, switchHolds, switchState, type PlaceSkillSwitchRow } from '../switchState'
 
 const row = (over: Partial<PlaceSkillSwitchRow> = {}): PlaceSkillSwitchRow => ({
   switch: null, switchFingerprint: null, lastFingerprint: 'a'.repeat(64), ...over,
@@ -28,6 +28,13 @@ describe('whether a skill found in files runs @SC-1642', () => {
   it('drops a switch once the files change, so a changed skill goes off under Off by default @security-H3', () => {
     const changed = row({ switch: 'ON', switchFingerprint: 'b'.repeat(64) })
     expect(switchState(changed, null, 'OFF')).toBe('off')
+  })
+
+  it('keeps an explicit Off when the files change, so a changed skill stays off under On by default @security-H3', () => {
+    const changed = row({ switch: 'OFF', switchFingerprint: 'b'.repeat(64) })
+    expect(switchState(changed, null, 'ON')).toBe('off')
+    expect(switchHolds(changed)).toBe(true)
+    expect(switchHolds(row({ switch: 'ON', switchFingerprint: 'b'.repeat(64) }))).toBe(false)
   })
 
   it('runs nothing under Never, whatever was switched', () => {

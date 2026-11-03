@@ -15,11 +15,10 @@ import { INVALID_AGENT_HANDLE_MESSAGE, isValidAgentHandle } from '../agents/agen
 import { createProject, createBoard, deleteProject } from '../projects/projectService'
 import { findProjectStorageSite, removeProjectStorageOnSite } from '../projects/projectStorageRemoval'
 import { requireDefaultExecutionSiteId } from '../sites/localSite'
-import { defaultAgentSettings, type AgentSettings } from '../packages/agentPackageService'
-import { coerceToolPermissions, coerceBashPatternPermissions } from '../agents/toolPermissions'
-import { readTeamTemplate, type TeamTemplateAgent, type TeamTemplateFile } from '../assets/install/teamTemplateFile'
+import { readTeamTemplate, type TeamTemplateFile } from '../assets/install/teamTemplateFile'
 import { TemplateFileError } from '../assets/install/templateFiles'
 import { installCarriedSkills } from '../assets/templates/carried'
+import { templateAgentSettings } from '../assets/templates/templateSettings'
 import { carriedSkillName, carriedSkills, findTemplate, listTemplates, templateFiles, type TemplateAsset } from '../assets/templates/templateAssets'
 import type { PackageFile } from './packages/packageZip'
 import { skillDescription, skillMdOf, skillTitle } from '../assets/skillFile'
@@ -116,21 +115,6 @@ export async function getTeamTemplate(ref: unknown): Promise<TeamTemplateView | 
   return read && { ...summary(read), content: contentOf(read.files, read.file) }
 }
 
-/**
- * Installing grants no capability (R10): a template from anywhere but hq's image can't make an agent whose tools all
- * run with nobody asked. Its `bypassed` starts the agent on Deferred, which an administrator can change on its page.
- */
-function settingsOf(agent: TeamTemplateAgent, fromImage: boolean): AgentSettings {
-  return {
-    ...defaultAgentSettings(),
-    approval: agent.approval === 'bypassed' && !fromImage ? 'deferred' : agent.approval,
-    permissions: {
-      tools: agent.allowedTools ? coerceToolPermissions(agent.allowedTools) : null,
-      bashPatterns: agent.allowedBashPatterns ? coerceBashPatternPermissions(agent.allowedBashPatterns) : null,
-    },
-  }
-}
-
 export interface ApplyResult {
   agentCount: number
   teamCount: number
@@ -194,7 +178,7 @@ async function applyTemplate({ template, files, file }: Read, selections: Applic
           role: agent.role || undefined,
           responsibilities: agent.responsibilities || undefined,
           initialContent: { skillFiles: [] },
-          settings: settingsOf(agent, fromImage),
+          settings: templateAgentSettings(agent, fromImage),
           createdById,
           madeFrom: { versionId, skillAssetIds: skills.assetIds },
         })

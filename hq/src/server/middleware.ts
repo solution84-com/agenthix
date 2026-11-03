@@ -37,12 +37,19 @@ import { clientProtocolGuard, clientStatedOf, describeClient } from './clientPro
 const logger = new Logger('HTTP')
 
 /**
- * Wasp reads every JSON body with Express's default limit (100 kB), far under a picture sent as a data URL.
- * The four image-upload actions and a task attachment's upload get room for a 10 MB file as base64 (about 13.4 MB);
- * every other route keeps the default.
+ * Wasp reads every JSON body with Express's default limit (100 kB), far under a picture sent as a data URL or a skill
+ * sent as its files. These operations get room for a 10 MB file as base64 (about 13.4 MB): the four image uploads and
+ * a task attachment's; a package's preview, its files read first, and its install, which carry an uploaded ZIP or
+ * folder (at most `PACKAGE_MAX_BYTES`, 8 MB, as base64); and a draft's save, which carries every file of the skill.
+ * Every other route keeps the default.
  */
 export const UPLOAD_BODY_LIMIT = '15mb'
-const UPLOAD_PATH = /^\/operations\/(upload-org-image|upload-team-image|upload-agent-image|upload-person-picture|upload-task-attachment)\/?$/
+export const LARGE_BODY_OPERATIONS = [
+  'upload-org-image', 'upload-team-image', 'upload-agent-image', 'upload-person-picture', 'upload-task-attachment',
+  'preview-asset-install', 'get-package-files', 'install-asset',
+  'save-asset-draft', 'save-place-skill-draft',
+] as const
+const UPLOAD_PATH = new RegExp(`^/operations/(${LARGE_BODY_OPERATIONS.join('|')})/?$`)
 const defaultJson = express.json()
 const uploadJson = express.json({ limit: UPLOAD_BODY_LIMIT })
 export const jsonBody: express.RequestHandler = (req, res, next) =>

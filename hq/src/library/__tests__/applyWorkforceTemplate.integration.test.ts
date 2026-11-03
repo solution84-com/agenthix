@@ -111,6 +111,19 @@ describe('applyTeamTemplate: settings (R10)', () => {
     expect((await prisma.agent.findUniqueOrThrow({ where: { handle: 'free' } })).approval).toBe('deferred')
   })
 
+  it("ignores the tool and Bash permissions of a template not from hq's image: its agents get the defaults", async () => {
+    const asks = { allowedTools: [{ name: 'Bash', state: 'always' }], allowedBashPatterns: ['*'] }
+    await seedTeam({ agents: [{ handle: 'free', ...asks }], publisher: 'acme' }, 'UPLOAD')
+    await applyTeamTemplate('acme/crew', await allOf('acme/crew'), 'admin-1')
+    expect(await prisma.agent.findUniqueOrThrow({ where: { handle: 'free' } })).toMatchObject({ allowedTools: null, allowedBashPatterns: null })
+  })
+
+  it("keeps the tool permissions of a template from hq's image", async () => {
+    await seedTeam({ agents: [{ handle: 'free', allowedTools: [{ name: 'read_file', state: 'always' }] }] })
+    await applyTeamTemplate('crew', await allOf(), 'admin-1')
+    expect((await prisma.agent.findUniqueOrThrow({ where: { handle: 'free' } })).allowedTools).toEqual([{ name: 'read_file', state: 'always' }])
+  })
+
   it('keeps bypassed for a template from hq\'s image', async () => {
     await seedTeam({ agents: [{ handle: 'free', approval: 'bypassed' }] })
     await applyTeamTemplate('crew', await allOf(), 'admin-1')

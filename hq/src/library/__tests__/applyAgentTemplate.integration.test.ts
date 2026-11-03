@@ -93,6 +93,18 @@ describe('applyAgentTemplate @SC-065', () => {
     expect((await prisma.agent.findUniqueOrThrow({ where: { id } })).approval).toBe('deferred')
   })
 
+  it("ignores the tool permissions of a template not from hq's image: the agent gets the defaults (R10)", async () => {
+    await seedDeveloper({ source: 'UPLOAD' })
+    const { id } = await applyAgentTemplate('wasp-developer', 'wasp-dev', null)
+    expect(await prisma.agent.findUniqueOrThrow({ where: { id } })).toMatchObject({ allowedTools: null, allowedBashPatterns: null })
+  })
+
+  it("keeps the tool permissions of a template from hq's image", async () => {
+    await seedDeveloper()
+    const { id } = await applyAgentTemplate('wasp-developer', 'wasp-dev', null)
+    expect((await prisma.agent.findUniqueOrThrow({ where: { id } })).allowedTools).toEqual([{ name: 'read_file', state: 'always' }])
+  })
+
   it('lists the templates by their agent name', async () => {
     const { assetId } = await seedDeveloper()
     expect(await listAgentTemplates()).toEqual([expect.objectContaining({ id: assetId, slug: 'wasp-developer', name: 'The wasp-developer', handle: 'wasp-dev', identity: 'agenthix/wasp-developer' })])

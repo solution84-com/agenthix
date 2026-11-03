@@ -1,6 +1,6 @@
 /**
- * How large a JSON body hq-server reads: the upload actions take a 10 MB file as a data URL; every other route keeps
- * Express's 100 kB default. Served on an ephemeral port in front of a stand-in operation.
+ * How large a JSON body hq-server reads: the upload actions take a 10 MB file as a data URL, and a package's install
+ * and a draft's save take a package at its limit; every other route keeps Express's 100 kB default. Served on an ephemeral port in front of a stand-in operation.
  */
 import http from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -39,6 +39,12 @@ describe('JSON body limits @SC-1531', () => {
   it('lets a picture through', async () => {
     expect((await post('upload-person-picture', 1024 * 1024)).status).toBe(200)
   })
+
+  // A package of 8 MB is about 10.7 MB as base64; a draft of the same size likewise.
+  it.each(['preview-asset-install', 'get-package-files', 'install-asset', 'save-asset-draft', 'save-place-skill-draft'])(
+    'lets a package or a draft of several megabytes through %s',
+    async name => { expect((await post(name, 11 * 1024 * 1024)).status).toBe(200) },
+  )
 
   it('keeps the default for every other operation', async () => {
     expect((await post('update-task', 200 * 1024)).status).toBe(413)

@@ -13,7 +13,7 @@ import type { Actor } from '../policy'
 import { LifecycleError } from '../lifecycle/errors'
 import { byOf } from '../lifecycle/records'
 import { assertNotWorkspace, assertPlace, folderOf, placeOfProject, placeOfSkill } from './place'
-import { publishFiles } from './placeVersions'
+import { assertFolderAsSeen, publishFiles } from './placeVersions'
 import { removeSkillFolder } from './siteSkills'
 
 const NOTHING = 'Nothing was changed.'
@@ -51,17 +51,29 @@ export async function addToPlace(db: PrismaClient, actor: Actor, input: AddInput
   }, TRANSACTION)
 }
 
-export async function removeFromPlace(db: PrismaClient, actor: Actor, input: { placeSkillId: unknown }): Promise<{ removed: true }> {
+/**
+ * Remove deletes the folder for good, so it is done only for the files the person was shown, and only while the
+ * folder still holds them: a change made since is never deleted unseen. What was never published is not kept; the
+ * confirm says so.
+ */
+export async function removeFromPlace(
+  db: PrismaClient, actor: Actor, input: { placeSkillId: unknown; fingerprint: unknown },
+): Promise<{ removed: true }> {
   const { ctx, skill } = await placeOfSkill(db, input.placeSkillId)
   assertPlace(actor, 'remove', ctx)
   assertNotWorkspace(skill, 'Removing')
   if (skill.goneAt) throw new LifecycleError(`That skill's folder is already gone from the place's files. ${NOTHING}`, 409)
+  if (typeof input.fingerprint !== 'string' || input.fingerprint !== skill.lastFingerprint) {
+    throw new LifecycleError(`The skill's files changed since you looked at them. Look at the place again. ${NOTHING}`, 409)
+  }
   const { loc, dir } = folderOf(ctx, skill)
+  await assertFolderAsSeen(loc, dir, skill)
   await db.$transaction(async tx => {
-    await tx.placeSkill.update({
-      where: { id: skill.id },
+    const { count } = await tx.placeSkill.updateMany({
+      where: { id: skill.id, lastFingerprint: skill.lastFingerprint, goneAt: null },
       data: { goneAt: new Date(), switch: null, switchFingerprint: null, switchedById: byOf(actor).byId, switchedAt: new Date() },
     })
+    if (count === 0) throw new LifecycleError(`The skill changed as you removed it. Look at it again. ${NOTHING}`, 409)
     await removeSkillFolder(loc, dir)
   }, TRANSACTION)
   return { removed: true }
