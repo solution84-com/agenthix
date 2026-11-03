@@ -3,7 +3,7 @@
 #   docker compose -f site/compose.yml build
 # A plain Node server, built natively on every architecture.
 
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS build
+FROM node:26.13.0-alpine3.23@sha256:e6c03d42b46af3b1e98207e59f06a43cfe5efd3ec4b4d3d9802bddf04f833374 AS build
 # Alpine 3.21 and later no longer bring openssl with Node; Prisma's engine
 # needs it, here to generate the client and in the final stage to run.
 RUN apk add --no-cache openssl python3 build-base
@@ -23,7 +23,7 @@ RUN cd site && npm run build \
  && npm prune --omit=dev --no-audit --no-fund \
  && node node_modules/prisma/build/index.js generate
 
-FROM node:24.14.1-alpine3.23@sha256:8510330d3eb72c804231a834b1a8ebb55cb3796c3e4431297a24d246b8add4d5 AS server
+FROM node:26.13.0-alpine3.23@sha256:e6c03d42b46af3b1e98207e59f06a43cfe5efd3ec4b4d3d9802bddf04f833374 AS server
 # git: the site server runs it itself, for a workspace's git status and for connecting and backing up repositories.
 RUN apk --no-cache -U upgrade && apk add --no-cache openssl python3 docker-cli su-exec ripgrep git
 ENV NODE_ENV=production
