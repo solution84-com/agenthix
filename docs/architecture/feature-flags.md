@@ -106,7 +106,9 @@ Three kinds of test, and none is written twice:
 
 - **Tests of anything else** run with the feature off, as shipped, and catch it leaking into what ships.
 - **Tests that the feature is hidden while off** (no button, operations refusing, agents not given its tools) sit outside
-  `withFeature`, one per entry point.
+  `withFeature`, one per entry point. In the end-to-end and cross-app suites, which the full regression also runs with
+  every flag on, they sit inside `withFeatureOff(flag, …)`, which switches the flag off for the group whatever the
+  run's default, so they hold in that run too and always block.
 - **Tests of the feature working** sit inside `withFeature`.
 
 **An end-to-end spec that uses `withFeature` runs its group in one worker, in order** (`test.describe.configure({ mode:

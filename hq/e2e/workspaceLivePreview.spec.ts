@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { signIn, ADMIN } from './fixtures/auth'
-import { withFeature } from './fixtures/withFeature'
+import { withFeature, withFeatureOff } from './fixtures/withFeature'
 
 /**
  * The workspace view's *Live preview* (live preview spec, part 4). It opens a real workspace (E2E_WORKSPACE_ID, as the
@@ -51,17 +51,19 @@ test.describe("the workspace view's Live preview", () => {
 
   test.beforeEach(async ({ page }) => { await signIn(page, ADMIN) })
 
-  test('is not there while its flag is off, as shipped: no row, no strip icon, and an address naming it opens Git', async ({ page }) => {
-    let asked = false
-    await answer(page, {})
-    await page.route('**/operations/get-live-preview*', async route => { asked = true; await route.fallback() })
-    await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page&section=preview`)
-    await expect(page.getByTestId('branch-git')).toBeVisible()
-    await expect(page.getByTestId('live-preview-row')).toHaveCount(0)
-    await page.setViewportSize({ width: 1180, height: 800 })
-    await expect(page.getByTestId('workspace-strip')).toBeVisible()
-    await expect(page.getByRole('button', { name: /^Live preview/ })).toHaveCount(0)
-    expect(asked).toBe(false)
+  withFeatureOff('livePreview', test => {
+    test('is not there while its flag is off, as shipped: no row, no strip icon, and an address naming it opens Git', async ({ page }) => {
+      let asked = false
+      await answer(page, {})
+      await page.route('**/operations/get-live-preview*', async route => { asked = true; await route.fallback() })
+      await page.goto(`/workspaces/${WORKSPACE}/view?branch=login-page&section=preview`)
+      await expect(page.getByTestId('branch-git')).toBeVisible()
+      await expect(page.getByTestId('live-preview-row')).toHaveCount(0)
+      await page.setViewportSize({ width: 1180, height: 800 })
+      await expect(page.getByTestId('workspace-strip')).toBeVisible()
+      await expect(page.getByRole('button', { name: /^Live preview/ })).toHaveCount(0)
+      expect(asked).toBe(false)
+    })
   })
 
   withFeature('livePreview', test => {

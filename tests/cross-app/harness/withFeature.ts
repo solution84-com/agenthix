@@ -39,3 +39,16 @@ export function withFeature(flag: FeatureFlag, body: () => void): void {
     body()
   })
 }
+
+/**
+ * `withFeatureOff(flag, () => { … })`: the group's tests run with the flag switched off, whatever the run's default, and
+ * the switch goes back to its value as shipped after each. For the tests that check a feature hidden and refused while
+ * off: they protect the release, so they always block, and still hold in the run with every flag on.
+ */
+export function withFeatureOff(flag: FeatureFlag, body: () => void): void {
+  describe(`with the ${flag} feature off`, () => {
+    beforeEach(async () => { await setOrgFeature(flag, false) })
+    afterEach(async () => { await setOrgFeature(flag, onAsShipped(flag)) })
+    body()
+  })
+}

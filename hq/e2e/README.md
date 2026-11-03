@@ -81,7 +81,9 @@ with no switch, so the seed (`fixtures/seed-e2e-users.mjs`) sets the organisatio
 only a released flag on. A feature's own specs switch its flag on around their group with
 `withFeature(flag, test => { … })` (`fixtures/withFeature.ts`), through the *Features* screen's operation as the e2e
 administrator, and put it back after each test. The switch is the organisation's, so a spec file with such a group
-runs its tests in one worker, in order, with the feature's hidden-while-off tests beside the group.
+runs its tests in one worker, in order, with the feature's hidden-while-off tests beside the group, inside
+`withFeatureOff(flag, test => { … })`, so they hold in the run with every flag on too. A group's test opens its own page:
+the file's own `beforeEach` runs before the group switches the flag, so a page it opened shows the flag as it was.
 
 A failing test in the group of a flag at experimental is recorded and reported as skipped; the run's end lists it under
 *Experimental failures*. The full regression's extra run seeds with `TEST_ALL_FEATURES=1`, which switches every flag on.

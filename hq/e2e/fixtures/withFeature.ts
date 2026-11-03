@@ -53,3 +53,18 @@ export function withFeature(flag: FeatureFlag, body: (test: Base) => void): void
     body(stageOf(flag) === 'experimental' ? experimentalTest(flag) : base)
   })
 }
+
+/**
+ * `withFeatureOff(flag, test => { … })`: the group's tests run with the flag switched off, whatever the run's default,
+ * and the switch is put back after each. For the tests that check a feature hidden and refused while off: they protect
+ * the release, so they always block, and they still hold in the full regression's run with every flag on.
+ */
+export function withFeatureOff(flag: FeatureFlag, body: (test: Base) => void): void {
+  base.describe(`with the ${flag} feature off`, () => {
+    base.describe.configure({ mode: 'default' })
+    let before = false
+    base.beforeEach(async ({ request }) => { before = await switchFeature(request, flag, false) })
+    base.afterEach(async ({ request }) => { await switchFeature(request, flag, before) })
+    body(base)
+  })
+}

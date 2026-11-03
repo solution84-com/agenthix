@@ -9,7 +9,7 @@ import { hqDb } from './harness/db'
 import { runHqMachineCommand } from './harness/hqMachine'
 import { ensureDefaultSite } from './harness/knowledgeSetup'
 import { StandInConsole } from './harness/fleetConsole'
-import { withFeature } from './harness/withFeature'
+import { withFeature, withFeatureOff } from './harness/withFeature'
 
 let fleetConsole: StandInConsole
 let byUserId: string
@@ -31,24 +31,26 @@ afterAll(() => {
 
 const setting = () => ({ byUserId, executionSiteId, allowed: true, limit: null, idleMinutes: 120 })
 
-describe('the live preview as shipped: off', () => {
-  it('is not among the features hq tells the Fleet Console are on', async () => {
-    const { on } = await fleetConsole.call('features.on', {})
-    expect(on).not.toContain('livePreview')
-  })
+withFeatureOff('livePreview', () => {
+  describe('the live preview as shipped: off', () => {
+    it('is not among the features hq tells the Fleet Console are on', async () => {
+      const { on } = await fleetConsole.call('features.on', {})
+      expect(on).not.toContain('livePreview')
+    })
 
-  it("refuses a fleet admin's live-preview methods, and changes nothing", async () => {
-    const before = await hqDb.executionSite.findUniqueOrThrow({ where: { id: executionSiteId } })
-    for (const [method, params] of [
-      ['sites.livePreviews', { byUserId, executionSiteId }],
-      ['sites.livePreviews.set', { ...setting(), idleMinutes: 30 }],
-      ['sites.livePreviews.stop', { byUserId, executionSiteId, livePreviewId: 'lp-none' }],
-    ] as const) {
-      const answer = await fleetConsole.ask(method, params)
-      expect(answer.ok, method).toBe(false)
-    }
-    const after = await hqDb.executionSite.findUniqueOrThrow({ where: { id: executionSiteId } })
-    expect(after.livePreviewIdleMinutes).toBe(before.livePreviewIdleMinutes)
+    it("refuses a fleet admin's live-preview methods, and changes nothing", async () => {
+      const before = await hqDb.executionSite.findUniqueOrThrow({ where: { id: executionSiteId } })
+      for (const [method, params] of [
+        ['sites.livePreviews', { byUserId, executionSiteId }],
+        ['sites.livePreviews.set', { ...setting(), idleMinutes: 30 }],
+        ['sites.livePreviews.stop', { byUserId, executionSiteId, livePreviewId: 'lp-none' }],
+      ] as const) {
+        const answer = await fleetConsole.ask(method, params)
+        expect(answer.ok, method).toBe(false)
+      }
+      const after = await hqDb.executionSite.findUniqueOrThrow({ where: { id: executionSiteId } })
+      expect(after.livePreviewIdleMinutes).toBe(before.livePreviewIdleMinutes)
+    })
   })
 })
 
