@@ -2,7 +2,8 @@
  * Erasing (host-management spec §15, diagram 9; adr-0112): a final sealed backup, then the running data removed —
  * each compose project down with its volumes, the agents' group, the site's workspaces, and the settings and
  * secrets — while that backup, the ones before it and the copies in the backup location are kept in the bin for
- * the grace period (`bin.ts`). If the final backup does not complete, nothing is removed.
+ * the grace period (`bin.ts`). If the final backup does not complete, nothing is removed. If the removal stops
+ * partway, the erase says what is gone; asking again finishes it, with the final backup it already took.
  *
  * Erasing HQ takes its site with it, since the site carries HQ on HQ's machine; a site on its own machine is
  * erased by itself. Confirming HQ's erase needs its address typed in; the CLI asks for a site's name.
@@ -13,13 +14,13 @@ import { installed, type Context } from '../service/context'
 import type { Progress } from '../sockets/lineServer'
 import { Refusal } from '../owner/results'
 import { cmd } from '../cli/words'
-import { size } from '../cli/backupWords'
+import { fullDate, size } from '../cli/backupWords'
 import { BackupStore, fileNameOf, nightlyOf } from '../backups/store'
 import { exclusiveWhenFree, takeBackup, type OnWait } from '../backups/take'
 import { frontDoorOff, frontDoorSettings } from '../frontDoor/frontDoor'
 import { frontDoorProject } from '../frontDoor/config'
-import { endChangesOfWhatIsGone } from '../scheduled/scheduler'
-import { purgeAfterOf, putInBin, type BinEntry } from './bin'
+import { EndedPartway, endChangesOfWhatIsGone } from '../scheduled/scheduler'
+import { eraseCompleted, purgeAfterOf, putInBin, unfinishedErase, type BinEntry } from './bin'
 import { forgetSuspended } from './suspend'
 import { waitForSiteToTellHq } from './siteTold'
 
@@ -77,12 +78,15 @@ async function finalBackup(ctx: Context): Promise<{ name: string; inLocation: bo
   }
 }
 
-async function removeRunningData(ctx: Context): Promise<void> {
+/** Removes the running data, adding to `gone` what is removed as each step ends. */
+async function removeRunningData(ctx: Context, gone: string[]): Promise<void> {
   const { hq, site } = installed(ctx)
   if (site) {
     await ctx.docker.composeDownWithVolumes(site.project, site.file)
+    gone.push("the site's containers and database")
     // The agents are a group of their own, which the site's project never removes.
     await ctx.docker.removeGroup(ctx.names.agentsProject)
+    gone.push("the agents' containers")
   }
   if (hq) {
     // The front door serves HQ's address only, so it goes with HQ; its certificates are not kept.
@@ -90,13 +94,26 @@ async function removeRunningData(ctx: Context): Promise<void> {
     if (frontDoorSettings(ctx) && fs.existsSync(door)) {
       await frontDoorOff(ctx)
       await ctx.docker.composeDownWithVolumes(frontDoorProject(ctx.names), door)
+      gone.push('the front door')
     }
     await ctx.docker.composeDownWithVolumes(hq.project, hq.file)
+    gone.push("HQ's containers and database")
   }
   // The site's workspaces are a folder in the state folder; the settings and secrets go with them.
   for (const part of hq ? ['site', 'hq', 'front-door'] : ['site']) fs.rmSync(ctx.state.path(part), { recursive: true, force: true })
   fs.rmSync(ctx.state.path('secrets.json'), { force: true })
   forgetSuspended(ctx)
+}
+
+function stoppedPartway(target: EraseRequest['target'], entry: BinEntry, gone: string[], err: unknown): EndedPartway {
+  const why = (err instanceof Error ? err.message : String(err)).replace(/\.?$/, '.')
+  const what = target === 'hq' ? 'HQ and its site' : 'the site'
+  const removed = gone.length ? `Already removed: ${gone.join(', ')}.` : `Nothing was removed yet, though ${what} may be stopped.`
+  const again = cmd(target === 'hq' ? 'hq erase' : 'site erase')
+  return new EndedPartway(
+    `The erase of ${what} stopped partway: ${why} ${removed} The final backup taken before anything was removed is kept until ${fullDate(new Date(entry.purgeAfter))}. ` +
+    `To finish the erase, ask again (${again}): it takes no new backup. Once it has finished, ${cmd(target === 'hq' ? 'hq restore' : 'site restore')} brings everything back from that backup.`,
+  )
 }
 
 /**
@@ -120,27 +137,44 @@ export function eraseRun(
     eraseCheck(ctx, request)
     const since = ctx.now()
     const { hq, site } = installed(ctx)
-    const store = new BackupStore(ctx.state)
-    const location = store.location()
-    const final = await step(progress, 'Taking the final sealed backup', () => finalBackup(ctx), f => `done (${size(f.sizeBytes)})`)
-    const onMachine = (await store.list()).map(b => b.name)
-    const copies = location ? await locationCopies(ctx, location.path, onMachine) : null
-    const erasedAt = ctx.now()
-    const entry = putInBin(ctx, {
-      target: request.target,
-      hqAddress: hq?.settings.address ?? null,
-      siteName: site?.settings.name ?? ctx.machine.name,
-      erasedAt: erasedAt.toISOString(),
-      purgeAfter: purgeAfterOf(erasedAt).toISOString(),
-      finalBackup: final.name,
-      location: copies,
-    }, onMachine)
+    const installedAt = installed(ctx)[request.target]?.settings.installedAt
+    // An erase of this install that stopped partway already took the final backup, before anything was removed; one
+    // taken now would hold what is left.
+    let entry = unfinishedErase(ctx, request.target, installedAt)
+    if (entry) {
+      progress({ event: 'step', step: 'Finishing the erase that stopped partway' })
+      progress({ event: 'stepDone', outcome: 'its final backup is kept' })
+    } else {
+      const store = new BackupStore(ctx.state)
+      const location = store.location()
+      const final = await step(progress, 'Taking the final sealed backup', () => finalBackup(ctx), f => `done (${size(f.sizeBytes)})`)
+      const onMachine = (await store.list()).map(b => b.name)
+      const copies = location ? await locationCopies(ctx, location.path, onMachine) : null
+      const erasedAt = ctx.now()
+      entry = putInBin(ctx, {
+        target: request.target,
+        hqAddress: hq?.settings.address ?? null,
+        siteName: site?.settings.name ?? ctx.machine.name,
+        erasedAt: erasedAt.toISOString(),
+        purgeAfter: purgeAfterOf(erasedAt).toISOString(),
+        finalBackup: final.name,
+        location: copies,
+        ...(installedAt ? { installedAt } : {}),
+        complete: false,
+      }, onMachine)
+    }
     const hqTold = request.target === 'site' ? await waitForSiteToTellHq(ctx, since) : null
-    await step(progress, request.target === 'hq' ? 'Stopping HQ and its site' : 'Stopping the site', async () => {
-      if (site) await ctx.docker.composeStop(site.project, site.file)
-      if (hq) await ctx.docker.composeStop(hq.project, hq.file)
-    })
-    await step(progress, 'Removing the running data', () => removeRunningData(ctx))
+    const gone: string[] = []
+    try {
+      await step(progress, request.target === 'hq' ? 'Stopping HQ and its site' : 'Stopping the site', async () => {
+        if (site) await ctx.docker.composeStop(site.project, site.file)
+        if (hq) await ctx.docker.composeStop(hq.project, hq.file)
+      })
+      await step(progress, 'Removing the running data', () => removeRunningData(ctx, gone))
+    } catch (err) {
+      throw stoppedPartway(request.target, entry, gone, err)
+    }
+    entry = eraseCompleted(ctx, entry)
     // What else was scheduled for what is gone would only fail at its time: it ends now, saying why.
     await endChangesOfWhatIsGone(ctx)
     return { entry, hqTold }

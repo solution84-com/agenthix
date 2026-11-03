@@ -18,6 +18,7 @@ import { openChecked, type Checked, type SourceRef } from './restoreSource'
 import { exclusive, takeBackup } from './take'
 import { checkSameSite, restoreSiteInPlace } from './siteInPlace'
 import { consoleProject } from '../compose/console'
+import { refuseWhileReceiving } from '../move/record'
 import { localHqAddress, type StoredConsole } from '../install/console'
 import { installSubnets, type InstallSubnets } from '../compose/subnets'
 import { keepAgentSlice, pickAgentSlice } from '../compose/agentSlice'
@@ -106,6 +107,7 @@ export function restoreDoor(ctx: Context, hq: boolean): string {
  * a fleet admin's, from the Fleet Console. A machine admin has no command for it.
  */
 export function refuseWhereSomethingRuns(ctx: Context): void {
+  refuseWhileReceiving(ctx)
   const here = installed(ctx)
   if (here.hq) {
     throw new Refusal('already_installed', `Not restored: HQ already runs on ${ctx.machine.name}. To go back to an earlier night, a fleet admin restores it ${restoreDoor(ctx, true)}.`)

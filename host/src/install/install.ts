@@ -24,6 +24,7 @@ import { keepAgentSlice, pickAgentSlice } from '../compose/agentSlice'
 import { choosePorts, refuseOtherPort, type PortChoice } from './ports'
 import { readInstallation, recordPorts } from '../state/installation'
 import { checkPorts, CONSOLE_BIND } from './portCheck'
+import { refuseWhileReceiving } from '../move/record'
 
 async function step<T>(progress: (p: Progress) => void, name: string, run: () => Promise<{ value: T; outcome: string }>): Promise<T> {
   progress({ event: 'step', step: name })
@@ -93,6 +94,7 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
   const { address } = ask
   const problem = addressProblem(address)
   if (problem) throw new Refusal('malformed', `HQ cannot be at ${address}: ${problem}.`)
+  refuseWhileReceiving(ctx)
 
   const before = installed(ctx)
   if (before.hq && before.hq.settings.address !== address) {

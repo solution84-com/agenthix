@@ -5,7 +5,9 @@
  * do not, everything is put back — the previous images and the backup — and the outcome says so in words.
  *
  * What was there is written down before the switch (`underWay`), so an upgrade a restart cut short is finished, or
- * put back, by whatever runs next: the scheduler running it again, or the next upgrade.
+ * put back, by whatever runs next: the scheduler running it again, or the next upgrade. Before that, from the moment
+ * anything stops until `underWay` is written, `stopping` says what was stopped, so a restart while the backup is taken
+ * starts it again.
  */
 import type { Progress } from '../sockets/lineServer'
 import { installed, type Context } from '../service/context'
@@ -17,7 +19,7 @@ import { exclusive, exclusiveWhenFree, takeBackup, type OnWait } from '../backup
 import { checkUpgrade, whoText, type Target } from './rules'
 import { healthProblem } from './health'
 import { putBack, startDatabases, startTarget, stopTarget, writeProjects } from './rollback'
-import { readUpgrades, writeUpgrades, type UnderWay } from './settings'
+import { readUpgrades, writeUpgrades, type Stopping, type UnderWay } from './settings'
 import { PARTS_OF } from './versions'
 
 export type UpgradeOutcome =
@@ -74,12 +76,26 @@ async function settle(ctx: Context, u: UnderWay, progress: Report): Promise<Upgr
   return { version: u.from, rolledBack: true, reason }
 }
 
+/** Starts again what an upgrade stopped before its backup was taken: nothing else had changed. */
+async function startStopped(ctx: Context, s: Stopping, progress: Report): Promise<UpgradeOutcome> {
+  const who = s.target === 'hq' ? 'HQ and its site' : whoText(ctx, s.target)
+  await step(progress, `Starting ${who} again on ${s.from}`, () => startTarget(ctx, s.target))
+  const reason = `The upgrade to ${s.to} stopped before its backup was taken, so nothing was changed; ${who} ${s.target === 'hq' ? 'are' : 'is'} started again on ${s.from}.`
+  writeUpgrades(ctx.state, u => {
+    u.stopping = null
+    u.last = { target: s.target, to: s.to, endedAt: ctx.now().toISOString(), rolledBack: true, reason }
+  })
+  return { version: s.from, rolledBack: true, reason }
+}
+
 /** Finishes, or puts back, an upgrade a restart cut short; null when none was under way. */
 export function finishUnderWay(ctx: Context, progress: Report = () => {}): Promise<UpgradeOutcome | null> {
-  if (!readUpgrades(ctx.state).underWay) return Promise.resolve(null)
+  const s = readUpgrades(ctx.state)
+  if (!s.underWay && !s.stopping) return Promise.resolve(null)
   return whenFree(ctx, () => {}, async () => {
-    const u = readUpgrades(ctx.state).underWay
-    return u ? settle(ctx, u, progress) : null
+    const { underWay: u, stopping } = readUpgrades(ctx.state)
+    if (u) return settle(ctx, u, progress)
+    return stopping ? startStopped(ctx, stopping, progress) : null
   })
 }
 
@@ -88,7 +104,8 @@ export function upgrade(
   opts: { onBusy?: OnWait } = {},
 ): Promise<UpgradeOutcome> {
   return whenFree(ctx, opts.onBusy ?? null, async () => {
-    const pending = readUpgrades(ctx.state).underWay
+    const { underWay: pending, stopping } = readUpgrades(ctx.state)
+    if (!pending && stopping) await startStopped(ctx, stopping, progress)
     if (pending) {
       const settled = await settle(ctx, pending, progress)
       if (pending.target === target && pending.to === version) return settled
@@ -115,13 +132,15 @@ async function run(ctx: Context, target: Target, version: string, progress: Repo
 
   const before = installed(ctx)
   const who = whoText(ctx, target, true)
+  writeUpgrades(ctx.state, s => { s.stopping = { target, to: version, from, at: ctx.now().toISOString() } })
   await step(progress, target === 'hq' ? 'Stopping HQ and its site' : 'Stopping the site', () => stopTarget(ctx, target))
   const backup = await step(progress, 'Taking a sealed backup', async () => {
     try {
       await startDatabases(ctx, target)
       return await takeBackup(ctx, 'beforeUpgrade')
     } catch (err) {
-      await startTarget(ctx, target).catch(() => {})
+      // Once started again, nothing is left for a restart to start.
+      await startTarget(ctx, target).then(() => writeUpgrades(ctx.state, s => { s.stopping = null })).catch(() => {})
       const why = err instanceof Error ? err.message : String(err)
       throw new Refusal('failed', `Not upgraded, since an upgrade takes a backup first: ${why.replace(/\.?$/, '.')} ${who} is started again on ${from}.`)
     }
@@ -134,7 +153,10 @@ async function run(ctx: Context, target: Target, version: string, progress: Repo
     backupId: backup.id,
     backupTakenAt: backup.takenAt,
   }
-  writeUpgrades(ctx.state, s => { s.underWay = u })
+  writeUpgrades(ctx.state, s => {
+    s.underWay = u
+    s.stopping = null
+  })
   progress({ event: 'step', step: `Starting ${version}` })
   try {
     const hq = target === 'hq' && u.hq ? { ...u.hq, version, images: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'], relay: pins.relay } } : null

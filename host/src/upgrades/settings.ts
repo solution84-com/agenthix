@@ -38,6 +38,12 @@ export type UnderWay = {
   backupTakenAt: string
 }
 
+/**
+ * An upgrade that stopped HQ or the site and has not yet written `underWay`: written before anything stops, so a
+ * restart while the backup is taken starts them again instead of leaving them stopped.
+ */
+export type Stopping = { target: 'hq' | 'site'; to: string; from: string; at: string }
+
 export type UpgradeSettings = {
   auto: boolean
   /** Whether the host service switches itself to a new version through the launcher (ADR-0118); on by default. */
@@ -49,6 +55,7 @@ export type UpgradeSettings = {
   /** `<target>@<version>` that rolled back: offered on request, never applied by themselves again. */
   rolledBack: string[]
   underWay: UnderWay | null
+  stopping: Stopping | null
   /** How the last upgrade ended, so `status` can say one was rolled back after the person who asked has gone. */
   last: LastUpgrade | null
 }
@@ -67,6 +74,7 @@ export function readUpgrades(state: StateFolder): UpgradeSettings {
     automatic: Array.isArray(s.automatic) ? s.automatic : [],
     rolledBack: Array.isArray(s.rolledBack) ? s.rolledBack : [],
     underWay: s.underWay ?? null,
+    stopping: s.stopping ?? null,
     last: s.last ?? null,
   }
 }

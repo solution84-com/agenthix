@@ -10,6 +10,7 @@ import { moveCodeAnswered } from '../code'
 import { parseCommand } from '../../cli/commands'
 import { runCommand, type Send } from '../../cli/run'
 import { ownerHandler } from '../../owner/dispatch'
+import { restoreOnNewMachine } from '../../backups/restore'
 import { deliver } from '../wire'
 import { siteAnswersHq, twoMachines, until, type Two } from './twoMachines'
 import { gate, hold, openAt } from '../../backups/__tests__/held'
@@ -113,6 +114,38 @@ describe('the new machine, while it waits @SC-858', () => {
     expect(two.fresh.up.size).toBe(0)
     expect(two.fresh.ctx.state.readJson('site', 'settings.json')).toBeNull()
     expect(two.fresh.calls.some(c => c[0] === 'compose')).toBe(false)
+  })
+
+  it("refuses its machine admin's install and restore until the move ends", async () => {
+    await two.arm()
+    const ask = (data: unknown) => ownerHandler(two.fresh.ctx)(data, () => {}) as Promise<Record<string, unknown>>
+    const words = 'new-server is waiting to receive the site office-server from office-server'
+    const refused = { ok: false, refusal: { code: 'conflict', message: expect.stringContaining(words) } }
+    expect(await ask({ op: 'install', target: 'hq', version: two.fresh.ctx.machine.hostServiceVersion, address: 'https://hq.acme.example' })).toMatchObject(refused)
+    fs.mkdirSync(two.fresh.backups.onMachine('/mnt/nas/agenthix'), { recursive: true })
+    expect(await ask({ op: 'restore.list', from: '/mnt/nas/agenthix' })).toMatchObject(refused)
+    await expect(restoreOnNewMachine(two.fresh.ctx, { kind: 'machine', name: 'any.sealed' }, '', () => {})).rejects.toThrow(words)
+    expect(two.fresh.calls.some(c => c[0] === 'compose')).toBe(false)
+  })
+
+  it('leaves a site installed since it was armed as it is when the move then arrives', async () => {
+    siteAnswersHq(two.fresh, true)
+    await two.arm()
+    const armed = readReceive(two.fresh.ctx.state)!
+    // Installed meanwhile, as a host service before this check let a machine admin do.
+    fs.rmSync(two.fresh.ctx.state.path('move', 'receive.json'))
+    expect(await two.as(two.fresh, { op: 'install', target: 'site', version: '0.2.0' })).toMatchObject({ ok: true })
+    writeReceive(two.fresh.ctx.state, armed)
+    two.fresh.backups.databases.set('agenthix_site', Buffer.from('its own rows'))
+    await two.sendNow()
+    await two.run()
+    expect(moveEntry()?.change.state).toBe('rolledBack')
+    expect(readReceive(two.fresh.ctx.state)?.phase).toBe('failed')
+    expect(two.old.up.has(SITE)).toBe(true)
+    expect(two.fresh.up.has(SITE)).toBe(true)
+    expect(two.fresh.ctx.state.readJson('site', 'settings.json')).toMatchObject({ name: 'new-server' })
+    expect(two.fresh.backups.databases.get('agenthix_site')?.toString()).toBe('its own rows')
+    expect(two.fresh.calls.some(c => c.includes('down'))).toBe(false)
   })
 
   it('is never a machine that already carries a site', async () => {

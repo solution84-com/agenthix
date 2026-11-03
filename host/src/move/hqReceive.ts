@@ -78,7 +78,10 @@ export async function runHqReceive(ctx: Context, armed: ReceiveRecord, first: Re
     timers.push(timer)
     return timer
   }
+  // HQ, a site or a Fleet Console installed here since the machine was armed is not the move's: it is left alone.
+  const ownHere = !!(installed(ctx).site || installed(ctx).hq || consoleHere(ctx))
   try {
+    if (ownHere) throw new Failed(`${ctx.machine.name} runs something of its own since it was armed, and takes no HQ in now; what runs there is left as it is.`)
     save({ phase: 'receiving' })
     await takeIn(ctx, channel, file, first, t.idleMs)
     save({ phase: 'restored' })
@@ -138,7 +141,7 @@ export async function runHqReceive(ctx: Context, armed: ReceiveRecord, first: Re
       const here = installed(ctx)
       for (const p of [here.site, here.hq]) if (p) await ctx.docker.composeStop(p.project, p.file).catch(() => { stopped = false })
     }
-    await clearHq(ctx)
+    if (!ownHere) await clearHq(ctx)
     if (record.pinBefore) pointPin(ctx, record.pinBefore)
     save({ phase: 'failed', deadline: null, reason })
     // Before the release, the old hq still passes this; after it, nothing does, and the old machine waits its deadline.

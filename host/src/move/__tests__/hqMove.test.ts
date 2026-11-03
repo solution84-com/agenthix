@@ -10,6 +10,7 @@ import { moveCodeAnswered } from '../code'
 import { parseCommand } from '../../cli/commands'
 import { runCommand, type Send } from '../../cli/run'
 import { ownerHandler } from '../../owner/dispatch'
+import { install } from '../../install/install'
 import { until } from './twoMachines'
 import { HQ, hqMachines, CONSOLE, NEW, OLD, SITE, type HqTwo } from './hqMachines'
 
@@ -134,6 +135,23 @@ describe('when the new machine does not take over @SC-859', () => {
     // Those told the new address are told HQ stays.
     expect(said('old').at(-1)).toEqual(['address-move', OLD])
     expect(reports('old')).toContain('rolledBack')
+  }, 15_000)
+
+  it('leaves an HQ installed on the new machine since it was armed as it is when the move then arrives', async () => {
+    await two.arm()
+    const armed = readReceive(two.fresh.ctx.state)!
+    // Installed meanwhile, as a host service before this check let a machine admin do.
+    fs.rmSync(two.fresh.ctx.state.path('move', 'receive.json'))
+    await install(two.fresh.ctx, { address: 'https://own.example' }, () => {})
+    writeReceive(two.fresh.ctx.state, armed)
+    await two.sendNow()
+    await two.run()
+    expect(moveEntry()?.change.state).toBe('rolledBack')
+    await until(() => readReceive(two.fresh.ctx.state)?.phase === 'failed')
+    expect(two.old.up.has(HQ)).toBe(true)
+    expect(two.fresh.up.has(HQ) && two.fresh.up.has(SITE)).toBe(true)
+    expect(two.fresh.ctx.state.readJson('hq', 'settings.json')).toMatchObject({ address: 'https://own.example' })
+    expect(two.fresh.calls.some(c => c[0] === 'compose' && c.includes('down'))).toBe(false)
   }, 15_000)
 
   it('is refused on the new machine, which keeps nothing, when a port HQ or the Fleet Console would publish is held there @SC-1244', async () => {

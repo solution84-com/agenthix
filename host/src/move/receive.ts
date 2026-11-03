@@ -101,7 +101,10 @@ export async function runReceive(ctx: Context, armed: ReceiveRecord, pin: Consol
   const file = ctx.state.path('move', 'incoming.part')
   ctx.state.folder('move')
   let heartbeat: ReturnType<typeof setInterval> | null = null
+  // HQ or a site installed here since the machine was armed is not the move's: it is refused, and they are left alone.
+  const ownHere = !!(installed(ctx).site || installed(ctx).hq)
   try {
+    if (ownHere) throw new Failed(`${ctx.machine.name} runs HQ or a site of its own since it was armed, and takes no site in now; what runs there is left as it is.`)
     save({ phase: 'receiving' })
     await takeIn(ctx, channel, file, first, t.idleMs)
     save({ phase: 'restored' })
@@ -141,7 +144,7 @@ export async function runReceive(ctx: Context, armed: ReceiveRecord, pin: Consol
     let stopped = true
     const site = installed(ctx).site
     if (started && site) await ctx.docker.composeStop(site.project, site.file).catch(() => { stopped = false })
-    await clearSite(ctx)
+    if (!ownHere) await clearSite(ctx)
     save({ phase: 'failed', deadline: null, reason })
     if (heartbeat) clearInterval(heartbeat)
     heartbeat = null

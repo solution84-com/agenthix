@@ -4,6 +4,10 @@
  * never reaches; the copies in the backup location stay where they are. For the grace period a restore brings
  * the erased HQ back from the bin; after it everything is purged, the backup location's copies included.
  *
+ * Each erase is an entry of its own, purged at its own time: erasing again what was installed since keeps the earlier
+ * entry, and a restore brings back the newest. An erase that stopped partway is an entry not yet `complete`; asking
+ * for the erase again finishes it, with the final backup it took before anything was removed.
+ *
  * A purge that cannot reach the backup location keeps the entry and tries again, saying why in `status`, rather
  * than forgetting copies it was asked to remove.
  */
@@ -33,6 +37,10 @@ export type BinEntry = {
   backups: string[]
   /** The backup location's copies of what was erased, as they were at the erase; null when none is set. */
   location: { path: string; names: string[] } | null
+  /** The `installedAt` of the HQ or site erased, so a retry finishes this erase and not one of a later install. */
+  installedAt?: string
+  /** False while the running data is not all removed: the erase stopped partway, and asking again finishes it. */
+  complete?: boolean
   /** Why the last purge could not finish; it is tried again. */
   purgeProblem?: string
 }
@@ -57,8 +65,22 @@ export function putInBin(ctx: Context, entry: Omit<BinEntry, 'backups'>, others:
   const backups = [entry.finalBackup, ...others.filter(n => n !== entry.finalBackup)]
   for (const name of backups) fs.renameSync(store.path(name), `${dir}/${name}`)
   const full: BinEntry = { ...entry, backups }
-  write(ctx, [...binEntries(ctx).filter(e => e.target !== entry.target), full])
+  write(ctx, [...binEntries(ctx), full])
   return full
+}
+
+const sameEntry = (a: BinEntry, b: BinEntry) => a.finalBackup === b.finalBackup
+
+/** The erase of this install of `target` that stopped partway, if one is in the bin. */
+export function unfinishedErase(ctx: Context, target: HostTarget, installedAt: string | undefined): BinEntry | null {
+  return binEntries(ctx).find(e => e.target === target && e.complete === false && e.installedAt === installedAt) ?? null
+}
+
+/** Records that the erase in `entry` removed all the running data. */
+export function eraseCompleted(ctx: Context, entry: BinEntry): BinEntry {
+  const done = { ...entry, complete: true }
+  write(ctx, binEntries(ctx).map(e => (sameEntry(e, entry) ? done : e)))
+  return done
 }
 
 /** Removes what each entry whose grace period has passed holds, here and in the backup location. */
@@ -103,7 +125,7 @@ export function startBinPurge(ctx: Context, intervalMs = 60 * 60_000, log: (line
  * to the nightly folder first, where a restore reads them, and return to the bin if the restore does not finish.
  */
 export async function restoreFromBin(ctx: Context, target: HostTarget, progress: (p: Progress) => void): Promise<RestoreResult> {
-  const entry = binEntries(ctx).find(e => e.target === target)
+  const entry = binEntries(ctx).filter(e => e.target === target).at(-1)
   if (!entry) {
     throw new Refusal('not_found', target === 'hq'
       ? `No erased HQ is kept on ${ctx.machine.name}. To bring HQ back from a backup location or an export: ${cmd('restore --from <folder or file>')}`
@@ -122,6 +144,6 @@ export async function restoreFromBin(ctx: Context, target: HostTarget, progress:
     throw err
   }
   for (const n of entry.backups.slice(1)) if (fs.existsSync(`${dir}/${n}`)) fs.renameSync(`${dir}/${n}`, store.path(n))
-  write(ctx, binEntries(ctx).filter(e => e.target !== target))
+  write(ctx, binEntries(ctx).filter(e => !sameEntry(e, entry)))
   return result
 }

@@ -114,6 +114,52 @@ describe('erasing HQ @SC-843', () => {
       .toMatchObject({ update: 'cancelled', reason: 'The resize of the site hq-box was cancelled: the site hq-box is no longer on hq-box.' })
   })
 
+  it('stopped partway, says what is gone; asked again, finishes with the first final backup, which then brings HQ back', async () => {
+    const down = m.ctx.docker.composeDownWithVolumes.bind(m.ctx.docker)
+    m.ctx.docker.composeDownWithVolumes = async (project, file) => {
+      if (project === m.ctx.names.hqProject) throw new Error('Docker did not answer')
+      return down(project, file)
+    }
+    const r = await ask({ op: 'erase', target: 'hq', confirmAddress: ADDRESS })
+    expect(r).toMatchObject({ ok: false, refusal: { code: 'failed' } })
+    expect(r.refusal.message).toMatch(/^The erase of HQ and its site stopped partway: Docker did not answer\. Already removed: the site's containers and database, the agents' containers\. The final backup taken before anything was removed is kept until /)
+    expect(r.refusal.message).toContain('agenthix hq erase')
+    const notice = readStore(m.ctx.state).entries.find(e => e.change.kind === 'erase')?.notice
+    expect(notice?.reason).toMatch(/^The erase of HQ did not complete: The erase of HQ and its site stopped partway/)
+    expect(notice?.reason).not.toContain('put back')
+    const [first] = binEntries(m.ctx)
+    expect(first).toMatchObject({ target: 'hq', complete: false })
+    expect(fs.existsSync(m.ctx.state.path('bin', first.finalBackup))).toBe(true)
+
+    m.ctx.docker.composeDownWithVolumes = down
+    m.backups.failDump.add(m.ctx.names.siteDatabase)
+    const steps: string[] = []
+    expect(await ask({ op: 'erase', target: 'hq', confirmAddress: ADDRESS }, steps)).toMatchObject({ ok: true })
+    expect(steps).not.toContain('Taking the final sealed backup')
+    expect(installed(m.ctx)).toEqual({ hq: null, site: null })
+    expect(binEntries(m.ctx)).toEqual([{ ...first, complete: true }])
+
+    m.backups.failDump.clear()
+    expect(await ask({ op: 'erased.restore', target: 'hq' })).toMatchObject({ ok: true, result: { hqAddress: ADDRESS } })
+    expect(binEntries(m.ctx)).toEqual([])
+  })
+
+  it('keeps the earlier entry when what was installed since is erased too, and purges each at its own time', async () => {
+    await ask({ op: 'erase', target: 'hq', confirmAddress: ADDRESS })
+    const [first] = binEntries(m.ctx)
+    await m.ctx.sleep(10 * DAY)
+    await install(m.ctx, { address: ADDRESS }, () => {})
+    expect(await ask({ op: 'erase', target: 'hq', confirmAddress: ADDRESS })).toMatchObject({ ok: true })
+    const entries = binEntries(m.ctx)
+    expect(entries).toHaveLength(2)
+    expect(entries[0]).toEqual(first)
+    await m.ctx.sleep((GRACE_DAYS - 9) * DAY)
+    await purgeDue(m.ctx)
+    expect(binEntries(m.ctx)).toEqual([entries[1]])
+    expect(fs.existsSync(m.ctx.state.path('bin', first.finalBackup))).toBe(false)
+    expect(fs.existsSync(m.ctx.state.path('bin', entries[1].finalBackup))).toBe(true)
+  })
+
   it('is brought back from the bin within the grace period', async () => {
     await ask({ op: 'erase', target: 'hq', confirmAddress: ADDRESS })
     await m.ctx.sleep(9 * DAY)

@@ -6,6 +6,7 @@
 import type { HostIdentity, PublishedPortChoice } from '@agenthix/core'
 import type { StateFolder } from '../state/folder'
 import { installed, type Context } from '../service/context'
+import { Refusal } from '../owner/results'
 
 /** What a move of hq changes about the pin, so giving up puts it back: where the link dials, and whether it is local. */
 export type PinBefore = { hqAddress: string; local: boolean }
@@ -119,6 +120,17 @@ export function writeReceive(state: StateFolder, record: ReceiveRecord): void {
 export function awaitingSite(state: StateFolder): ReceiveRecord | null {
   const r = readReceive(state)
   return r && r.phase !== 'committed' && r.phase !== 'failed' ? r : null
+}
+
+/**
+ * A machine armed to receive installs and restores nothing of its own until the move ends: what it took in would meet
+ * them, and a move that ends without completing clears what it restored.
+ */
+export function refuseWhileReceiving(ctx: Context): void {
+  const waiting = awaitingSite(ctx.state)
+  if (!waiting) return
+  const what = waiting.target === 'hq' ? 'HQ' : `the site ${waiting.siteName}`
+  throw new Refusal('conflict', `${ctx.machine.name} is waiting to receive ${what}${waiting.peerName ? ` from ${waiting.peerName}` : ''}, and installs and restores nothing of its own until that move ends. A fleet admin ends it in the Fleet Console; once it has, try again. Nothing was changed.`)
 }
 
 /**

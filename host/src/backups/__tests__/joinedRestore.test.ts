@@ -108,6 +108,29 @@ describe('restoring a lost site onto a new machine @SC-834', () => {
     expect(fresh.up.size).toBe(0)
   })
 
+  it('keeps the site, its data and its renewed credential when it does not start after HQ renewed it', async () => {
+    const composeUp = fresh.ctx.docker.composeUp.bind(fresh.ctx.docker)
+    fresh.ctx.docker.composeUp = async (project, file) => {
+      if (project.endsWith('-site')) throw new Error('the disk is full.')
+      return composeUp(project, file)
+    }
+    const { connecting } = await startOnMachine()
+    const asked = await askForRestore()
+    expect(asked).toMatchObject({ ok: false, refusal: { message: expect.stringContaining('HQ renewed its credential, but it did not start: the disk is full.') } })
+    expect(asked).toMatchObject({ ok: false, refusal: { message: expect.stringContaining('agenthix site resume') } })
+    expect(asked).not.toMatchObject({ refusal: { message: expect.stringContaining('Nothing is left') } })
+    await connecting
+    const renewed = readSiteCredential(fresh.ctx.state)!
+    expect(renewed).not.toBe(backupCredential)
+    expect(t.hqCalls.at(-1)?.body).toEqual({ credentialHash: sha256(renewed) })
+    expect(fresh.ctx.state.readJson('site', 'settings.json')).toMatchObject({ name: 'new-server' })
+    expect(fresh.backups.databases.get('agenthix_site')?.toString()).toBe('the site rows')
+
+    fresh.ctx.docker.composeUp = composeUp
+    expect(await askOn(fresh, { op: 'resume', target: 'site' })).toMatchObject({ ok: true })
+    expect(fresh.up.has('agenthix-site')).toBe(true)
+  })
+
   it('asks again with the new credential when HQ took the renewal but its answer was lost', async () => {
     t.hqAnswers.push(
       () => ({ status: 200, body: { executionSiteId: 'es-1', siteName: 'office' } }),

@@ -4,7 +4,9 @@
  * site. Before anything is written, HQ is asked whether the site may come back here; then the site's database,
  * workspaces and the master key its stored secrets are sealed with are written back, its credential is renewed at
  * HQ — from then on the backup's credential, and the machine it ran on, are refused — and only then is it started.
- * Whatever fails partway is taken away again, so the machine is left as it was.
+ * Whatever fails before HQ renewed the credential is taken away again, so the machine is left as it was. Once HQ
+ * renewed it, the credential made here is the only one HQ accepts for the site: if the site then does not start, it
+ * is kept — its data, settings and credential — and recorded as suspended, so resuming it starts it.
  */
 import fs from 'node:fs'
 import type { JoinRestoreClaim } from '@agenthix/core'
@@ -23,6 +25,7 @@ import { openChecked, type Checked, type SourceRef } from './restoreSource'
 import { renewAtHq } from './renewal'
 import { exclusive } from './take'
 import { cmd } from '../cli/words'
+import { suspend } from '../lifecycle/suspend'
 import { installSubnets } from '../compose/subnets'
 import { keepAgentSlice, pickAgentSlice } from '../compose/agentSlice'
 
@@ -74,6 +77,7 @@ export function restoreJoinedSite(ctx: Context, source: JoinedSource, pin: Conso
     const checked = await step(progress, 'Checking the key', () => openChecked(ctx, source.ref, source.key), 'passes')
     const { header, manifest, records } = checked
     let written = false
+    let renewedAs: string | null = null
     try {
       checkRestorable(ctx, checked)
       // The backup the machine said it restores when it joined, under its binding; a file swapped since is refused.
@@ -128,6 +132,7 @@ export function restoreJoinedSite(ctx: Context, source: JoinedSource, pin: Conso
           ? `Not restored: ${r.refused}. Nothing is left on ${ctx.machine.name}.`
           : `Not restored: ${r.unknown}. Nothing is left on ${ctx.machine.name}. Run the restore again once HQ answers; if HQ took the new credential before its answer was lost, the site can no longer come back from this backup, and a fleet admin removes it and adds a site anew.`)
       }, 'renewed')
+      renewedAs = site.name
 
       await step(progress, `Starting the site ${site.name}`, async () => {
         ctx.state.writePrivate(['site', 'compose.json'], composeJson(siteComposeProject(ctx.state, ctx.names, site, installSecrets(ctx.state), paths, await installSubnets(ctx))))
@@ -136,6 +141,11 @@ export function restoreJoinedSite(ctx: Context, source: JoinedSource, pin: Conso
       return { backupId: header.id, sizeBytes: source.sizeBytes, siteName: site.name, formerName: header.siteName, night: header.night, takenAt: header.takenAt, executionSiteId: renewed.executionSiteId }
     } catch (err) {
       await records.return(undefined)
+      if (renewedAs) {
+        await suspend(ctx, 'site').catch(() => {})
+        const why = err instanceof Error ? err.message : String(err)
+        throw new Refusal('failed', `The site ${renewedAs} is restored on ${ctx.machine.name} and HQ renewed its credential, but it did not start: ${why} Its data, settings and new credential are kept here. To start it: ${cmd('site resume')}`)
+      }
       if (written) await clearSite(ctx)
       if (err instanceof Refusal) throw err
       throw new Refusal('failed', `The restore stopped partway: ${err instanceof Error ? err.message : String(err)} Nothing is left on ${ctx.machine.name}.`)

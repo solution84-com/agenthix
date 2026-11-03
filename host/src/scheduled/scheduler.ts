@@ -39,6 +39,13 @@ function noticeOf(entry: ScheduledEntry, update: ScheduledChangeUpdate, now: Dat
   entry.toldConsole = false
 }
 
+/** A failure after which the machine is not as it was: recorded in its own words, never as put back. */
+export class EndedPartway extends Refusal {
+  constructor(message: string) {
+    super('failed', message)
+  }
+}
+
 function end(entry: ScheduledEntry, state: ScheduledChange['state'], update: ScheduledChangeUpdate, now: Date, reason: string | null = null): void {
   entry.change.state = state
   entry.endedAt = now.toISOString()
@@ -201,10 +208,11 @@ export async function tickScheduled(ctx: Context): Promise<void> {
       const at = Date.parse(c.at)
       if (c.state !== 'running' && isGone(ctx, entry)) {
         end(entry, 'cancelled', 'cancelled', now, goneReason(ctx, c))
-      } else if (now.getTime() - at > MISSED_AFTER_MS) {
+      } else if (c.state !== 'running' && now.getTime() - at > MISSED_AFTER_MS) {
         end(entry, 'missed', 'missed', now, missedReason(c, now))
       } else if (now.getTime() >= at) {
-        // A change found running is one a restart cut short: run it again, since each runs whole or not at all.
+        // A change found running is one a restart cut short: run it again, however late, since each runs whole or not
+        // at all and may have stopped something it alone starts again.
         if (c.state !== 'running') {
           c.state = 'running'
           // Due while a backup holds the machine, such as the nightly one: it starts by waiting for it, and says so.
@@ -224,6 +232,7 @@ export async function tickScheduled(ctx: Context): Promise<void> {
   for (const { id, request } of due) {
     const key = `${ctx.state.root}\u0000${id}`
     let failure: string | null = null
+    let partway = false
     try {
       const runner = runnerFor(request)
       if (!runner) throw new Error('This version of the host service cannot run it.')
@@ -233,13 +242,14 @@ export async function tickScheduled(ctx: Context): Promise<void> {
       await runner.run(ctx, request, holder => waiting(ctx, id, holder))
     } catch (err) {
       failure = err instanceof Error ? err.message : String(err)
+      partway = err instanceof EndedPartway
     }
     await withStore(ctx.state, file => {
       const entry = file.entries.find(e => e.change.id === id)
       if (!entry) return
       const done = ctx.now()
       if (failure === null) end(entry, 'done', 'completed', done)
-      else end(entry, 'rolledBack', 'failed', done, `${cap(changeName(entry.change, true))} did not complete, and was put back as it was: ${failure}`)
+      else end(entry, 'rolledBack', 'failed', done, `${cap(changeName(entry.change, true))} did not complete${partway ? '' : ', and was put back as it was'}: ${failure}`)
     }).finally(() => running.delete(key))
     await deliverNotices(ctx).catch(() => {})
   }

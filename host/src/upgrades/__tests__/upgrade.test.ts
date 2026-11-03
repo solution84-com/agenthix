@@ -171,6 +171,32 @@ describe('an upgrade a restart cut short @SC-835', () => {
     hqAnswers(null)
     expect(await finishUnderWay(m.ctx)).toMatchObject({ version: '0.2.0', rolledBack: true })
   })
+
+  it('writes down what it stops before it stops anything', async () => {
+    const seen: unknown[] = []
+    const stop = m.ctx.docker.composeStop.bind(m.ctx.docker)
+    m.ctx.docker.composeStop = async (project, file) => {
+      seen.push(readUpgrades(m.ctx.state).stopping)
+      return stop(project, file)
+    }
+    hqAnswers('0.2.1')
+    await upgrade(m.ctx, 'hq', '0.2.1', () => {})
+    expect(seen[0]).toMatchObject({ target: 'hq', from: '0.2.0', to: '0.2.1' })
+    expect(readUpgrades(m.ctx.state).stopping).toBeNull()
+  })
+
+  it('starts HQ and its site again when a restart came while the backup was taken', async () => {
+    m.ctx.docker.composeStop = async () => { throw new Error('the host service stopped') }
+    await expect(upgrade(m.ctx, 'hq', '0.2.1', () => {})).rejects.toThrow('the host service stopped')
+    m.up.clear()
+    expect(await finishUnderWay(m.ctx)).toEqual({
+      version: '0.2.0', rolledBack: true,
+      reason: 'The upgrade to 0.2.1 stopped before its backup was taken, so nothing was changed; HQ and its site are started again on 0.2.0.',
+    })
+    expect(m.up.has('agenthix-hq') && m.up.has('agenthix-site')).toBe(true)
+    expect(readUpgrades(m.ctx.state)).toMatchObject({ stopping: null, underWay: null, rolledBack: [] })
+    expect(installed(m.ctx).hq!.settings.version).toBe('0.2.0')
+  })
 })
 
 describe('a scheduled upgrade @SC-839', () => {
@@ -192,6 +218,23 @@ describe('a scheduled upgrade @SC-839', () => {
   it('is refused when it is scheduled, in words, when it could not run', async () => {
     await expect(scheduleChange(m.ctx, { op: 'upgrade', target: 'hq', version: '0.2.0' }, inMinutes(60), { kind: 'machineAdmin' }))
       .rejects.toThrow('already on 0.2.0')
+  })
+
+  it('runs again after a restart cut it short, however long the host service was down', async () => {
+    await scheduleChange(m.ctx, { op: 'upgrade', target: 'hq', version: '0.2.1' }, inMinutes(60), { kind: 'machineAdmin' })
+    await m.ctx.sleep(60 * MIN)
+    // As a restart leaves it: the change still running, and the upgrade's record of what it stopped.
+    writeUpgrades(m.ctx.state, s => { s.stopping = { target: 'hq', to: '0.2.1', from: '0.2.0', at: m.ctx.now().toISOString() } })
+    const store = readStore(m.ctx.state)
+    store.entries[0].change.state = 'running'
+    m.ctx.state.writeJson(['scheduled.json'], store)
+    m.up.clear()
+    hqAnswers('0.2.1')
+    await m.ctx.sleep(3 * 60 * MIN)
+    await tickScheduled(m.ctx)
+    expect(readStore(m.ctx.state).entries[0].change.state).toBe('done')
+    expect(installed(m.ctx).hq!.settings.version).toBe('0.2.1')
+    expect(m.up.has('agenthix-hq')).toBe(true)
   })
 
   it('tells HQ it failed and was rolled back, with why', async () => {
