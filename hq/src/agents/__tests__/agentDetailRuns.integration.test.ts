@@ -76,19 +76,23 @@ describe('getAgentDetail', () => {
     expect(detail.sessions.map((s: { title: string }) => s.title).sort()).toEqual(['Owner chat title', 'Task session'])
   })
 
-  it('shows a task run whose task was deleted, as org activity', async () => {
+  it('shows nobody a task run whose task is gone, the person its session names included', async () => {
     const { site, other, agent, owner } = await seed()
     const orphan = await createSession({ agentId: agent.id, userId: owner.id, sessionType: 'task', title: null })
     siteStore.addRun(site.siteId, { id: 'r-orphan', agentId: agent.id, sessionId: orphan.id, createdAt: '2026-01-03T00:00:00Z' })
-    const detail = await getAgentDetail({ id: agent.id }, ctxFor(other.id))
-    expect(detail.runs.map((r: { id: string }) => r.id)).toContain('r-orphan')
+    for (const reader of [other, owner]) {
+      const detail = await getAgentDetail({ id: agent.id }, ctxFor(reader.id))
+      expect(detail.runs.map((r: { id: string }) => r.id)).not.toContain('r-orphan')
+    }
   })
 
   it('reads every site the agent has a session on, merging the runs newest first and summing the counts and tokens', async () => {
     const { other, agent, owner } = await seed()
     const far = await secondSite()
     const farProject = await createProject({ name: 'Far', executionSiteId: far.id })
-    const farSession = await createSession({ agentId: agent.id, userId: owner.id, sessionType: 'task', primaryOwnerType: 'project', primaryOwnerId: farProject.id })
+    await prisma.projectMember.create({ data: { projectId: farProject.id, userId: other.id } })
+    const farTask = await createTestTask({ data: { title: 'Far', projectId: farProject.id, number: 1, onBehalfOfUserId: owner.id } })
+    const farSession = await createSession({ agentId: agent.id, userId: owner.id, sessionType: 'task', taskId: farTask.id, primaryOwnerType: 'project', primaryOwnerId: farProject.id })
     siteStore.addRun(far.siteId, {
       id: 'r-far', agentId: agent.id, sessionId: farSession.id, createdAt: '2026-01-05T00:00:00Z',
       usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalTokens: 5 },

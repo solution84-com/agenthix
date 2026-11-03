@@ -4,7 +4,7 @@
  * - A chat is its owner's alone, ADMIN included (ADR-0041, SC-278), and a
  *   refusal is decided from hq's own copy without asking the site (SC-354).
  * - A run feed shows a chat run to its owner, a task run to its project
- *   (ADR-0062), and a task run whose task was deleted to everyone (SC-280).
+ *   (ADR-0062), and a task run whose task is gone to nobody (SC-280).
  * - An Activity panel row whose site could not be asked says so rather
  *   than reading as a session that never ran.
  *
@@ -78,13 +78,14 @@ describe('run feeds show each run only to whom it belongs @SC-280', () => {
 
   it("hides a private project's task run and another person's chat run from an outsider, an org admin included", async () => {
     const { outsiderAdmin } = await feedCast()
-    expect(ids(await getRecentActivity(undefined, ctx(outsiderAdmin)))).toEqual(['r-orphaned'])
+    expect(ids(await getRecentActivity(undefined, ctx(outsiderAdmin)))).toEqual([])
   })
 
   it('shows a member the project\'s task run alongside their own chat run, with the agent and session named', async () => {
     const { member, agent, chat } = await feedCast()
     const feed = await getRecentActivity(undefined, ctx(member))
-    expect(ids(feed)).toEqual(['r-member-chat', 'r-orphaned', 'r-private-task'])
+    // A task run whose task is gone is nobody's, not even the routing admin's its session names.
+    expect(ids(feed)).toEqual(['r-member-chat', 'r-private-task'])
     expect(feed.runs.find((r: { id: string }) => r.id === 'r-member-chat')).toMatchObject({
       agent: { id: agent.id }, session: { id: chat.id },
     })
@@ -106,10 +107,10 @@ describe('run feeds show each run only to whom it belongs @SC-280', () => {
   })
 
   it('makes no entitlement query at all when no run has a project', async () => {
-    const { outsiderAdmin, orphaned, agent } = await seedSessionCast()
-    finished('r-orphaned', orphaned.id, agent.id)
+    const { member, chat, agent } = await seedSessionCast()
+    finished('r-member-chat', chat.id, agent.id)
     const projectQuery = vi.spyOn(prisma.project, 'findMany')
-    expect(ids(await getRecentActivity(undefined, ctx(outsiderAdmin)))).toEqual(['r-orphaned'])
+    expect(ids(await getRecentActivity(undefined, ctx(member)))).toEqual(['r-member-chat'])
     expect(projectQuery).not.toHaveBeenCalled()
     projectQuery.mockRestore()
   })

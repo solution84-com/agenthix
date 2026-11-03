@@ -5,8 +5,8 @@ import {
 } from '../index.js'
 
 describe('the client protocol @SC-1130', () => {
-  it('is 1.9, with its own header and handshake field', () => {
-    expect(CLIENT_PROTOCOL_VERSION).toBe('1.9')
+  it('is 1.10, with its own header and handshake field', () => {
+    expect(CLIENT_PROTOCOL_VERSION).toBe('1.10')
     expect(CLIENT_PROTOCOL_VERSION_HEADER).toBe('X-Client-Protocol-Version')
     expect(CLIENT_PROTOCOL_HANDSHAKE_FIELD).toBe('clientProtocolVersion')
     expect(CLIENT_PROTOCOL_REFUSED).toBe('client_protocol_refused')
@@ -50,8 +50,8 @@ describe('the client protocol @SC-1130', () => {
     expect(decideClientProtocol(presented)).toEqual({
       ok: false,
       refusal: {
-        error: `This app stated the protocol version ${JSON.stringify(presented)}, which is not one; HQ speaks 1.9.`,
-        reason: 'malformed', hqVersion: '1.9', clientVersion: presented, upgrade: 'client',
+        error: `This app stated the protocol version ${JSON.stringify(presented)}, which is not one; HQ speaks 1.10.`,
+        reason: 'malformed', hqVersion: '1.10', clientVersion: presented, upgrade: 'client',
       },
     })
   })

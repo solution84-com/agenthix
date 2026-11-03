@@ -1,6 +1,7 @@
 /**
  * A conversation's socket room, `conversation:<id>` (conversation layer spec, Failure, recovery): joined with
- * the bare conversation id, only after the reading rule. On every join — a first one, or a reconnect — the
+ * the bare conversation id, only after the reading rule, which is applied again for as long as the socket stays
+ * (`server/roomAccess.ts`): someone who can no longer read the conversation leaves its room. On every join — a first one, or a reconnect — the
  * socket is sent what the running turn has streamed so far, and its steps, so a browser that dropped loses nothing; what was
  * committed it reads from the record.
  */

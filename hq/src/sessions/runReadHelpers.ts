@@ -1,7 +1,7 @@
 /**
  * Shared helpers for the READ surface re-point (plan 5d-2 task 9b) —
  * privacy filtering (ADR-0041: chat runs are owner-only, ADMIN included;
- * task runs are org activity), needed by more than one query in
+ * task runs are their project's), needed by more than one query in
  * sessions/queries.ts and agents/queries.ts. Split out rather than duplicated
  * inline, and kept out of those files to stay under the repo's 300/500-line
  * file-size rule.
@@ -30,9 +30,8 @@ export type OwnedSession = {
  * The same three boundaries `sessions/sessionEntitlement.ts` states for a
  * session's content, applied to a run in a listing: a chat run is visible only
  * to its session's own owner (ADR-0041); a task run is visible to the members
- * of its task's project (ADR-0062); a task run whose task was deleted has no project
- * and stays org activity — except a run in a person's own storage, theirs alone
- * (`personalSessionOwner`).
+ * of its task's project (ADR-0062); a run in a person's own storage is theirs alone
+ * (`personalSessionOwner`); a task run whose task was deleted is nobody's.
  *
  * `entitledProjectIds` is the set of projects the viewer may see, out of the
  * projects these runs' sessions actually belong to — `entitledProjectIdsFor`
@@ -48,8 +47,7 @@ export function isRunVisible(
   const owner = personalSessionOwner(session)
   if (owner !== null) return owner === userId
   const projectId = session.task?.projectId
-  if (projectId) return entitledProjectIds.has(projectId)
-  return true
+  return projectId !== undefined && entitledProjectIds.has(projectId)
 }
 
 /**

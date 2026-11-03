@@ -11,8 +11,12 @@ export const ROOM_SOCKET = {
   subscribeToTask: 'subscribeToTask',
   /** Client → server, with the board's id: which of its tasks moved. */
   subscribeToBoard: 'subscribeToBoard',
-  /** Client → server, nothing sent: the person's dashboard, as `dashboard:snapshot`. */
+  /**
+   * Client → server, nothing sent. hq answers it with nothing: no screen shows the dashboard it once sent.
+   * @deprecated since 1.10; stops working in 3.0. Nothing replaces it.
+   */
   subscribeToDashboard: 'subscribeToDashboard',
+  /** @deprecated since 1.10; stops working in 3.0. Nothing replaces it. */
   unsubscribeFromDashboard: 'unsubscribeFromDashboard',
 } as const
 

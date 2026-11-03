@@ -6,13 +6,28 @@
  *
  * Two rules live here because a taskless session is not always a chat.
  * `requireSessionAccess` is for the callers where it is: anything without a
- * task belongs to the person named on it. `canReachSessionContent` is for the
- * reads that also see task activity, and keeps a task session whose task was
- * deleted org-wide — see its own comment.
+ * task belongs to the person named on it. `canReachSessionContent` is the one
+ * rule for reading a session's content, wherever it is read — see its own
+ * comment.
  */
-import { HttpError } from 'wasp/server'
+import { HttpError, prisma } from 'wasp/server'
 import { requireTaskAccess, projectOfTaskOrNull } from '../projects/resourceEntitlement'
 import { entitledProjectsFilter, isProjectMember, projectStanding, requireProjectAdmin, VIEWER_REFUSAL } from '../projects/membership'
+
+async function projectExists(projectId: string): Promise<boolean> {
+  return (await prisma.project.count({ where: { id: projectId } })) > 0
+}
+
+/** Everyone `isProjectMember` lets read the project: its owner for a personal one, otherwise its member rows. */
+async function projectReaders(projectId: string): Promise<string[]> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { personalOwnerId: true, members: { select: { userId: true } } },
+  })
+  if (!project) return []
+  if (project.personalOwnerId) return [project.personalOwnerId]
+  return project.members.map((m) => m.userId)
+}
 import { requireRole } from '../server/identity/requireRole'
 
 export type SessionOwnershipFields = { userId: string; taskId: string | null }
@@ -41,8 +56,7 @@ export type SessionContentFields = {
  * The person a non-chat session belongs to because it works in their own
  * storage — a task run in their personal project (agents own schedule spec
  * §4) — or null. Such a session is that person's alone, like their chats,
- * with its task and after its task is deleted: unlike a project's task
- * session, it is never org activity.
+ * with its task and after its task is deleted.
  */
 export function personalSessionOwner(
   session: { sessionType: string; primaryOwnerType?: string | null; primaryOwnerId?: string | null },
@@ -54,19 +68,19 @@ export function personalSessionOwner(
 /**
  * Who may reach the CONTENT of a session that already exists — transcripts,
  * runs, tool-call logs, pending manifests, and the socket rooms those stream
- * through. Three boundaries, not two:
+ * through. The one rule every read of a session applies:
  *
  *   - a task-scoped session (`taskId` set) belongs to its task's project, and is reachable by that
  *     project's members;
  *   - a chat session belongs to the person it is for, and to nobody else
  *     (ADR-0041, ADMIN included);
- *   - a task session whose task was deleted (no `taskId` left, not a chat) has
- *     no project to check against and stays org-wide activity — unless it
- *     works in a person's own storage (`personalSessionOwner`), when it is
- *     that person's alone, with or without its task. Its `userId` is
- *     whichever admin was picked as a routing identity, so narrowing it to that
- *     one id would hide org activity from everyone else rather than protect
- *     anything.
+ *   - a task session that works in a person's own storage
+ *     (`personalSessionOwner`) is that person's alone, with or without its task;
+ *   - any other task session without a task is nobody's to read. A task's
+ *     session is deleted with its task (`taskSessionDeletion.ts`), so one is
+ *     left only if that failed part-way, and it has no project left to answer
+ *     for it. Its `userId` names the admin picked as a routing identity, which
+ *     grants nothing.
  *
  * `requireSessionAccess` above is the stricter two-way rule, right where every
  * taskless session really is somebody's chat. This one answers with a boolean
@@ -84,20 +98,34 @@ export async function canReachSessionContent(
     const projectId = await projectOfTaskOrNull(session.taskId)
     return projectId !== null && (await isProjectMember(projectId, userId))
   }
-  return session.sessionType !== 'chat' || session.userId === userId
+  return session.sessionType === 'chat' && session.userId === userId
+}
+
+/**
+ * The people `canReachSessionContent` lets read this session, for a push about
+ * it: a chat's person, a personal task session's owner, or the members of a
+ * task's project. Nobody for a task session whose task is gone.
+ */
+export async function sessionReaders(session: SessionContentFields): Promise<string[]> {
+  const owner = personalSessionOwner(session)
+  if (owner !== null) return [owner]
+  if (!session.taskId) return session.sessionType === 'chat' ? [session.userId] : []
+  const projectId = await projectOfTaskOrNull(session.taskId)
+  return projectId === null ? [] : projectReaders(projectId)
 }
 
 /**
  * Acting on a project's task session after its task was deleted — approving its
  * tool request, stopping it, deleting it — is that project's admins'. A session
- * that recorded no project falls back to the organisation's admins.
+ * that recorded no project, or whose project is gone too, falls back to the
+ * organisation's admins, so a leftover is never beyond everyone's reach.
  */
 export async function requireOrphanedSessionAdmin(
   session: { primaryOwnerType?: string | null; primaryOwnerId?: string | null },
   userId: string,
   what: string,
 ): Promise<void> {
-  if (session.primaryOwnerType === 'project' && session.primaryOwnerId) {
+  if (session.primaryOwnerType === 'project' && session.primaryOwnerId && (await projectExists(session.primaryOwnerId))) {
     await requireProjectAdmin(session.primaryOwnerId, userId, what)
     return
   }
@@ -133,22 +161,20 @@ export async function requireStillEntitledToSessionProject(
 
 /**
  * A Prisma `where` that keeps only the sessions a person may be told of by way
- * of the project they work in: one with no task is unaffected, one bound to a
- * task needs the person entitled to that task's project. It says nothing about
- * whose chat a session is — that stays each caller's own owner rule — so the
- * pages that list an agent's sessions, runs and counts add this to that rule
- * rather than replace it (spec §6.4, SC-402).
+ * of the project they work in: a chat is unaffected, a task session needs the
+ * person entitled to its task's project, and a task session in a person's own
+ * storage is theirs alone. A task session with no task is left out, as
+ * `canReachSessionContent` reads it to nobody. It says nothing about whose
+ * chat a session is — that stays each caller's own owner rule — so the pages
+ * that list an agent's sessions, runs and counts add this to that rule rather
+ * than replace it (spec §6.4, SC-402).
  */
 export function sessionsInEntitledProjects(userId: string) {
-  // Spelled as positive branches, not a NOT: a session in somebody else's own
-  // storage that is not a chat (their personal project's task run) is the one
-  // taskless kind left out, and a NOT over the nullable location columns would
-  // drop every location-less row with it.
+  // Spelled as positive branches, not a NOT: a NOT over the nullable location
+  // columns would drop every location-less row with it.
   return {
     OR: [
       { taskId: null, sessionType: 'chat' },
-      { taskId: null, primaryOwnerType: null },
-      { taskId: null, primaryOwnerType: 'project' as const },
       { taskId: null, primaryOwnerType: 'user' as const, primaryOwnerId: userId },
       { task: { project: entitledProjectsFilter(userId) } },
     ],

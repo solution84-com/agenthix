@@ -4,9 +4,12 @@ import { randomUUID } from 'node:crypto'
 export const MAX_ENTRIES = 30
 
 /**
+ * Nothing reads this ring since the dashboard's live feed went; its callers still record to it until they are
+ * taken out with it.
+ *
  * `projectId` is server-side only — deliberately never added to the core
  * `DashboardSnapshotActivity` type, since the browser has no use for it and
- * adding it there would be a protocol change. It exists so `composeSnapshot`
+ * adding it there would be a protocol change. It exists so a reader
  * can tell which entries name a project (project_created, task_closed) and
  * filter those down to viewers entitled to that project before anything is
  * stripped and sent to a client (spec §6.4).
@@ -34,9 +37,8 @@ export function recordActivity(
 
 /**
  * The full ring, newest first, `projectId` included. This module does no
- * filtering and no DB work — composeSnapshot is the only caller with reason
- * to see the internal field, and it is the one place with a viewer to filter
- * against and a database to check entitlement with.
+ * filtering and no DB work: a reader must filter it to the viewer's projects
+ * before anything is sent.
  */
 export function readRecentActivity(): InternalActivityEntry[] {
   return [...ring]

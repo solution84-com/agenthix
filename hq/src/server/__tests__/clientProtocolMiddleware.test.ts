@@ -46,10 +46,10 @@ describe('the client protocol in hq\'s middleware @SC-1138', () => {
   it('answers an app two majors ahead with 426 and the refusal', async () => {
     const res = await post({ 'X-Client-Protocol-Version': '3.0' })
     expect(res.status).toBe(426)
-    expect(res.headers.get('x-client-protocol-version')).toBe('1.9')
+    expect(res.headers.get('x-client-protocol-version')).toBe('1.10')
     expect(await res.json()).toEqual({
-      error: 'This app speaks protocol 3.0 and HQ speaks 1.9, too far apart to work together: upgrade HQ.',
-      reason: 'too_far_apart', hqVersion: '1.9', clientVersion: '3.0', upgrade: 'hq',
+      error: 'This app speaks protocol 3.0 and HQ speaks 1.10, too far apart to work together: upgrade HQ.',
+      reason: 'too_far_apart', hqVersion: '1.10', clientVersion: '3.0', upgrade: 'hq',
     })
   })
 

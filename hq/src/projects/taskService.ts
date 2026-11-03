@@ -21,6 +21,9 @@ import { refuseBoardAcrossPersonalEdge, refuseMoveAcrossPersonalEdge } from './p
 import { type Queuer, type TaskOrigin } from './taskOnBehalfOf'
 import { applyMoveToRunState, queueRunIfNone, withdrawPendingRun } from './taskRunMoves'
 import { taskArchived, taskDeleted, taskLeadChanged } from '../conversations/taskThread/lifecycle'
+import { deleteTaskSessionsOnSites } from '../sessions/taskSessionDeletion'
+import { resolveSiteIdForTask } from '../agents/dispatchSiteResolution'
+import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
 
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 
@@ -208,12 +211,24 @@ export async function updateTask(params: {
   return result
 }
 
+/**
+ * Deletes a task, and its conversation with it (`taskSessionDeletion.ts`): on the site first, then hq's copy in the
+ * same transaction as the task, so nothing of it is left to read. Anyone still in its rooms leaves them.
+ */
 export async function deleteTask(taskId: string) {
-  const result = await prisma.task.delete({ where: { id: taskId } })
+  if ((await prisma.agentSession.count({ where: { taskId } })) > 0) {
+    const fallbackSiteId = await resolveSiteIdForTask(taskId).catch(() => null)
+    await deleteTaskSessionsOnSites({ taskId }, fallbackSiteId)
+  }
+  const [, result] = await prisma.$transaction([
+    prisma.agentSession.deleteMany({ where: { taskId } }),
+    prisma.task.delete({ where: { id: taskId } }),
+  ])
   // A routine's waiting round deleted skips that one time (spec §3).
   await roundDeleted(result)
   await taskDeleted(taskId)
   triggerSnapshotPush()
+  void leaveRoomsNoLongerAllowed()
   return result
 }
 

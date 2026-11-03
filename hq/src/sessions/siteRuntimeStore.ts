@@ -216,9 +216,8 @@ export function listToolCalls(siteId: string, runId: string): Promise<ToolCallRo
 
 /**
  * `run.stats` (finding 3) — an org-wide aggregate over every run on this
- * site, not a page of rows. `getDashboardStats`/`composeSnapshot` use this
- * instead of summing `listRuns({limit: 1000})` themselves, which silently
- * regressed to "newest 1000 runs" once a site's run corpus passed that count.
+ * site, not a page of rows. Nothing in hq reads it since the dashboard's live
+ * feed went; it stays while the site's method does.
  */
 export function runStats(siteId: string): Promise<RunStatsResult> {
   return request(siteId, RUNTIME_METHODS.runStats, {})

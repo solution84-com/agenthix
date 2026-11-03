@@ -57,7 +57,7 @@ function notConfirmed(detail: string, status = 409): HttpError {
 }
 
 /** Which site each of the sessions `where` selects runs on, grouped by site. */
-async function sessionsBySite(where: Prisma.AgentSessionWhereInput, fallbackSiteId: string | null): Promise<Map<string, Set<string>>> {
+export async function sessionsBySite(where: Prisma.AgentSessionWhereInput, fallbackSiteId: string | null): Promise<Map<string, Set<string>>> {
   const sessions = await prisma.agentSession.findMany({
     where,
     select: {

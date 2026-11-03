@@ -24,7 +24,22 @@ describe("a personal project's task session whose task is gone", () => {
     const session = { title: null, ...ORPHANED_PERSONAL }
     expect(isRunVisible(session, OWNER, new Set())).toBe(true)
     expect(isRunVisible(session, ORG_ADMIN, new Set())).toBe(false)
-    // An ordinary task run whose task was deleted stays org activity.
-    expect(isRunVisible({ id: 's-o', title: null, userId: 'usr_routing_admin', sessionType: 'task', taskId: null }, ORG_ADMIN, new Set())).toBe(true)
+  })
+})
+
+describe('a task session whose task is gone, in no person\'s own storage', () => {
+  const ORPHANED = { id: 's-o', title: null, userId: 'usr_routing_admin', sessionType: 'task', taskId: null }
+
+  it('has its runs visible to nobody, the routing admin it names included', () => {
+    expect(isRunVisible(ORPHANED, ORG_ADMIN, new Set())).toBe(false)
+    expect(isRunVisible(ORPHANED, 'usr_routing_admin', new Set())).toBe(false)
+    expect(isRunVisible({ ...ORPHANED, primaryOwnerType: 'project', primaryOwnerId: 'p1' }, ORG_ADMIN, new Set(['p1']))).toBe(false)
+  })
+
+  it('is listed for nobody', () => {
+    const where = sessionsInEntitledProjects(ORG_ADMIN)
+    expect(where.OR).not.toContainEqual({ taskId: null, primaryOwnerType: null })
+    expect(where.OR).not.toContainEqual({ taskId: null, primaryOwnerType: 'project' })
+    expect(where.OR).toContainEqual({ taskId: null, sessionType: 'chat' })
   })
 })

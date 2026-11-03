@@ -46,6 +46,7 @@ import { findProjectStorageSite, removeProjectStorageOnSite } from './projectSto
 import { stopProjectRuns } from './projectRunStop'
 import { refuseOnPersonalProject, requireMayDeleteProject } from './personalProject'
 import { heldInstructionRows, deliverHeldInstructionsTo } from '../sites/heldInstructions'
+import { deleteTaskSessionsOnSites } from '../sessions/taskSessionDeletion'
 import { sitesForProject } from '../sites/membershipEnding'
 import { closeProjectConversations, declineWaitingInProject } from '../conversations/closing'
 import { notifyBoardsOfTasks } from './boardNotify'
@@ -152,6 +153,8 @@ export const deleteProject: DeleteProject<{ projectId: string }, any> = async ({
   // Its running and queued work stops first: a run outliving its project keeps
   // its storage and its credentials. Refuses the delete if that is unconfirmed.
   await stopProjectRuns(projectId, siteId)
+  // Its tasks' conversations are deleted on their sites; hq's copies go with the project below.
+  await deleteTaskSessionsOnSites({ projectId }, siteId)
   // Its homes and containers go too, told to each site that holds any; the
   // instruction is held with the delete, so a site that is down gets it later.
   // Its conversations in hq close with it.

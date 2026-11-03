@@ -28,10 +28,11 @@ export const getSession: GetSession<GetSessionArgs, any> = async (args, context)
     },
   })
 
-  // Ownership decided ENTIRELY from hq's own copy, before any site call
-  // (SC-354 — a non-owner must be refused without the transcript ever being
-  // requested off the wire).
-  if (!session || session.userId !== context.user.id) {
+  // Decided ENTIRELY from hq's own copy, before any site call (SC-354 — a
+  // refused caller must never have the transcript requested off the wire), by
+  // the one reading rule: a task session is its project's, never the routing
+  // admin's its `userId` names.
+  if (!session || !(await canReachSessionContent(session, context.user.id))) {
     throw new HttpError(404, 'Session not found')
   }
 
@@ -101,9 +102,8 @@ export const getTaskSessions: GetTaskSessions<void, any[]> = async (_args, conte
   )
 }
 
-// Task sessions are viewable by any authenticated user who can see the task's
-// project — they are org activity, owned by an arbitrary admin. Chat sessions are the exception:
-// owner-only, ADMIN included (ADR-0041).
+// A task session is read by the members of its task's project; a chat by its
+// person alone, ADMIN included (ADR-0041) — `canReachSessionContent`.
 export const getActivitySession: any = async (args: { sessionId: string }, context: any) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const session = await context.entities.AgentSession.findUnique({
@@ -113,16 +113,8 @@ export const getActivitySession: any = async (args: { sessionId: string }, conte
       task: { select: { id: true, title: true, number: true, project: { select: { key: true } } } },
     },
   })
-  if (!session) throw new HttpError(404, 'Session not found')
-  // Ownership decided from hq's own copy before any site call (SC-354).
-  // A task-scoped session (taskId set) is reachable by its project's members,
-  // not by anyone signed in — the arbitrary-administrator `userId` on the row
-  // grants nothing. A chat session stays owner-only (ADR-0041).
-  if (session.taskId) {
-    await requireTaskVisible(session.taskId, context.user.id, 'Session not found')
-  } else if (!(await canReachSessionContent(session, context.user.id))) {
-    // Taskless: a chat is its owner's, and so is a personal project's task
-    // session whose task was deleted — it never becomes org activity (spec §4).
+  // Decided from hq's own copy before any site call (SC-354).
+  if (!session || !(await canReachSessionContent(session, context.user.id))) {
     throw new HttpError(404, 'Session not found')
   }
 

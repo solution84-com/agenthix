@@ -131,8 +131,8 @@ export const stopTaskSession: StopTaskSession<StopTaskSessionArgs, StopResult> =
   // requireSessionAccess's no-task branch is a plain owner check — right for
   // a chat session, wrong for a task session whose task was deleted: its
   // userId is whichever administrator was picked as a routing identity, not an
-  // owner. Such a session stays org-wide for reads (getActivitySession);
-  // stopping it is its project's admins' (R-196).
+  // owner. Nobody reads such a session (canReachSessionContent); stopping a
+  // leftover is its project's admins' (R-196).
   if (session.taskId) {
     await requireTaskAccess(session.taskId, context.user.id, 'Stopping this session')
   } else if (session.sessionType === 'chat') {

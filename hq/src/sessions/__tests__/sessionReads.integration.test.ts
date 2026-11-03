@@ -20,7 +20,7 @@ vi.mock('../../agents/dispatchService', () => import('../../test/fakes/dispatchS
 vi.mock('../siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
 import { stopTaskSession, deleteTaskSession } from '../actions'
-import { getTaskSession, getTaskRuns, getActivitySession, getTaskSessions } from '../queries'
+import { getSession, getTaskSession, getTaskRuns, getActivitySession, getTaskSessions } from '../queries'
 import { canReachSessionContent } from '../sessionEntitlement'
 import * as siteStore from '../../test/fakes/siteRuntimeStore'
 
@@ -149,12 +149,34 @@ describe('getActivitySession — a task session is not org-wide', () => {
     expect(siteStore.listTranscript).not.toHaveBeenCalled()
   })
 
-  // A task session whose task was deleted has no project to check against:
-  // still org-wide activity, viewable by any signed-in person.
-  it('serves a task session without a task to anyone signed in', async () => {
-    const { member, orphaned } = await seedSessionCast()
-    const result = await getActivitySession({ sessionId: orphaned.id }, ctx(member))
-    expect(result.id).toBe(orphaned.id)
+  // A task's session is deleted with its task; one left without a task has no
+  // project to answer for it, so nobody reads it — not the routing admin it names.
+  it('answers a task session without a task as not found, to everyone', async () => {
+    const { member, routingAdmin, outsiderAdmin, orphaned, orphanedInProject } = await seedSessionCast()
+    for (const session of [orphaned, orphanedInProject]) {
+      for (const reader of [member, routingAdmin, outsiderAdmin]) {
+        await expect(getActivitySession({ sessionId: session.id }, ctx(reader))).rejects.toMatchObject({ statusCode: 404 })
+      }
+    }
+    expect(siteStore.listTranscript).not.toHaveBeenCalled()
+  })
+})
+
+// getSession reads a session by the same rule as getActivitySession — never by
+// the `userId` on the row, which for a task session names a routing admin.
+describe('getSession — one reading rule', () => {
+  it("serves a task session to its project's members and refuses the routing admin outside the project", async () => {
+    const { member, routingAdmin, taskSession } = await seedSessionCast()
+    await expect(getSession({ id: taskSession.id }, ctx(member))).resolves.toMatchObject({ id: taskSession.id })
+    await expect(getSession({ id: taskSession.id }, ctx(routingAdmin))).rejects.toMatchObject({ statusCode: 404 })
+  })
+
+  it('serves a chat to its person alone, and a task session without a task to nobody, before any site call', async () => {
+    const { member, outsiderAdmin, routingAdmin, chat, orphaned } = await seedSessionCast()
+    await expect(getSession({ id: chat.id }, ctx(member))).resolves.toMatchObject({ id: chat.id })
+    await expect(getSession({ id: chat.id }, ctx(outsiderAdmin))).rejects.toMatchObject({ statusCode: 404 })
+    await expect(getSession({ id: orphaned.id }, ctx(routingAdmin))).rejects.toMatchObject({ statusCode: 404 })
+    expect(siteStore.listTranscript).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -185,8 +207,7 @@ describe('getTaskSessions — task sessions are filtered to entitled projects', 
 
 // ── A personal project's task session (agents own schedule spec §4) ────────
 // It works in its person's own storage and is theirs alone — with its task, and
-// after its task is deleted, when an ordinary task session would become org
-// activity. An org admin is refused like anyone else.
+// after its task is deleted. An org admin is refused like anyone else.
 describe("a personal project's task session is its person's alone", () => {
   async function seedPersonal() {
     const owner = await createUserWithRole('MEMBER')

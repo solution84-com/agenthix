@@ -5,6 +5,7 @@ import { refreshInstallations, disconnectApp } from '../github/githubApp'
 import { packageWriteOrHttp } from '../packages/writeErrors'
 import { changeOrgPackage, prepareOrgPackage } from '../packages/orgPackageService'
 import type { OrgRole } from '../server/identity/rolePolicy'
+import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
 
 type UpdateUserSettingsArgs = {
   config?: any
@@ -46,6 +47,8 @@ export const updateUserRole: UpdateUserRole<{ userId: string; role: OrgRole }, v
     create: { userId: args.userId, role: args.role, config: {} },
     update: { role: args.role },
   })
+  // A role taken away may take a room with it.
+  void leaveRoomsNoLongerAllowed([args.userId])
 }
 
 type UpdateSiteConfigArgs = {

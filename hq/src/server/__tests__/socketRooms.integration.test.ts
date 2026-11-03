@@ -5,7 +5,7 @@
  * and a board's moves are its project's — so joining one answers to the same
  * rule. Projects, members, tasks, boards and sessions are real rows.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '../../test/db'
 import { createProject, createSession, createUser, createTestTask } from '../../test/factories'
 
@@ -16,6 +16,7 @@ vi.mock('wasp/server', async () => {
 })
 
 import { isAuthorizedForTaskRoom, isAuthorizedForBoardRoom, isAuthorizedForSessionRoom } from '../socket'
+import { leaveRoomsNoLongerAllowed, type RoomSocket } from '../roomAccess'
 
 let member: { id: string }
 let outsider: { id: string }
@@ -65,9 +66,10 @@ describe('joining a task session room', () => {
     expect(await sessionRoom(session.id, outsider.id)).toBe(false)
   })
 
-  it('allows anyone signed in to a task session with no task, or whose task was deleted', async () => {
+  it('refuses everyone a task session with no task, the person the row names included', async () => {
     const session = await createSession({ userId: member.id, sessionType: 'task' })
-    expect(await sessionRoom(session.id, outsider.id)).toBe(true)
+    expect(await sessionRoom(session.id, outsider.id)).toBe(false)
+    expect(await sessionRoom(session.id, member.id)).toBe(false)
   })
 })
 
@@ -98,5 +100,40 @@ describe('joining a board room', () => {
   it('refuses a socket with no authenticated user, and a board that does not exist', async () => {
     expect(await isAuthorizedForBoardRoom(boardId, undefined)).toBe(false)
     expect(await isAuthorizedForBoardRoom('missing', member.id)).toBe(false)
+  })
+})
+
+// A room is checked again after the join: someone who loses access leaves it
+// rather than keep receiving what it carries.
+describe('a socket already in the rooms of a project its person loses', () => {
+  let socket: RoomSocket
+  let sessionId: string
+
+  beforeEach(async () => {
+    sessionId = (await createSession({ userId: outsider.id, sessionType: 'task', taskId })).id
+    const rooms = new Set(['sock-1', `task:${taskId}`, `board:${boardId}`, `session:${sessionId}`, `person:${member.id}`])
+    socket = { id: 'sock-1', data: { user: { id: member.id } }, rooms, leave: (room) => rooms.delete(room), disconnect: () => undefined }
+    ;(globalThis as { __wasp_io__?: unknown }).__wasp_io__ = { fetchSockets: async () => [socket] }
+  })
+  afterEach(() => { delete (globalThis as { __wasp_io__?: unknown }).__wasp_io__ })
+
+  it('stays in them while its person is a member', async () => {
+    await leaveRoomsNoLongerAllowed([member.id])
+    expect(socket.rooms.size).toBe(5)
+  })
+
+  it('leaves the task, board and session rooms once they are removed from the project, and keeps its own', async () => {
+    await prisma.projectMember.deleteMany({ where: { projectId, userId: member.id } })
+    await leaveRoomsNoLongerAllowed([member.id])
+    expect([...socket.rooms].sort()).toEqual([`person:${member.id}`, 'sock-1'])
+  })
+
+  it('leaves the task and session rooms once the task and its session are deleted', async () => {
+    await prisma.agentSession.delete({ where: { id: sessionId } })
+    await prisma.task.delete({ where: { id: taskId } })
+    await leaveRoomsNoLongerAllowed()
+    expect(socket.rooms.has(`task:${taskId}`)).toBe(false)
+    expect(socket.rooms.has(`session:${sessionId}`)).toBe(false)
+    expect(socket.rooms.has(`board:${boardId}`)).toBe(true)
   })
 })

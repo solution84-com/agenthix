@@ -27,6 +27,7 @@ import { writePerson } from '../org/teams/writeThrough'
 import { personRow } from '../org/teams/teamRoles'
 import { closeProjectConversations, declineWaitingInProject } from '../conversations/closing'
 import { appTickets } from '../relays'
+import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -157,6 +158,8 @@ async function endMembership(projectId: string, userId: string) {
   void declineWaitingInProject(projectId)
   // Their open live apps end at every relay at once (live preview spec section 6); a new stream is refused anyway.
   appTickets.revoke({ person: userId })
+  // Their open screens leave the project's rooms: its tasks, boards, sessions and conversations.
+  void leaveRoomsNoLongerAllowed([userId])
   return removed
 }
 

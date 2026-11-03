@@ -200,12 +200,27 @@ describe('workforce template queries', () => {
     await expect(getExistingAgentHandles(undefined, anon)).rejects.toMatchObject({ statusCode: 401 })
   })
 
-  it('getWorkforceReviewTask returns the proposal task, null for an unknown task, and refuses an anonymous caller', async () => {
+  it('getWorkforceReviewTask answers a member of the task\'s project, null to anyone else, and refuses an anonymous caller', async () => {
     const task = await makeProposalTask({ templateId: 'wft-x' })
-    const result = await getWorkforceReviewTask({ taskId: task.id }, await caller('MEMBER'))
-    expect(result).toEqual({ id: task.id, title: 'Proposal', applicationData: { templateId: 'wft-x' } })
-    expect(await getWorkforceReviewTask({ taskId: 'nope' }, await caller('MEMBER'))).toBeNull()
+    const member = await caller('MEMBER')
+    await prisma.projectMember.create({ data: { projectId: task.projectId, userId: member.user.id } })
+    expect(await getWorkforceReviewTask({ taskId: task.id }, member)).toEqual({ id: task.id, title: 'Proposal', applicationData: { templateId: 'wft-x' } })
+    // Not on the project: neither a member nor an org admin reads a task that is not a team proposal.
+    expect(await getWorkforceReviewTask({ taskId: task.id }, await caller('MEMBER'))).toBeNull()
+    expect(await getWorkforceReviewTask({ taskId: task.id }, await caller('ADMIN'))).toBeNull()
+    expect(await getWorkforceReviewTask({ taskId: 'nope' }, member)).toBeNull()
     await expect(getWorkforceReviewTask({ taskId: task.id }, anon)).rejects.toMatchObject({ statusCode: 401 })
+  })
+
+  it('getWorkforceReviewTask answers every org admin for a proposal on the Workforce Assembly board, and no other member', async () => {
+    const { versionId } = await seedTemplate(prisma, 'BOARD', 'workforce-assembly', boardPackage('workforce-assembly'))
+    const project = await createProject({ name: 'Workforce Assembly', key: 'WFA' })
+    const board = await prisma.board.create({ data: { name: 'Assembly', projectId: project.id, madeFromVersionId: versionId } })
+    const task = await createTestTask({
+      data: { title: 'Proposed: Crew', projectId: project.id, boardId: board.id, number: 1, column: 'in_review', applicationData: { templateId: 'wft-x' }, onBehalfOfUserId: 'person-1' } as any,
+    })
+    expect(await getWorkforceReviewTask({ taskId: task.id }, await caller('ADMIN'))).toMatchObject({ id: task.id, title: 'Proposed: Crew' })
+    expect(await getWorkforceReviewTask({ taskId: task.id }, await caller('MEMBER'))).toBeNull()
   })
 
   it('getAgentTemplates lists the agent templates by name and refuses an anonymous caller', async () => {

@@ -14,6 +14,8 @@ import { provisionProjectFiles } from '../storage/filesService'
 import { deriveProjectKey, deriveSlug } from '../shared/identifiers'
 import { RESERVED_PROJECT_KEYS, reservedKeyRefusal, reservedSlugRefusal } from './reservedNames'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
+import { taskSessionsWhere } from '../sessions/taskSessionDeletion'
+import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
 import { recordActivity } from '../server/dashboard/activity'
 import { entitledProjectsFilter } from './membership'
 import { projectTasksBoardCreate } from './boardColumns'
@@ -263,6 +265,8 @@ export async function deleteProject(
   await prisma.$transaction(async (tx) => {
     await alsoInTransaction?.(tx)
     closedThreads = await closeTaskThreads(tx, { projectId }, 'PROJECT_DELETED')
+    // Its tasks' conversations go with them (sessions/taskSessionDeletion.ts), never left without a project.
+    await tx.agentSession.deleteMany({ where: taskSessionsWhere({ projectId }) })
     await tx.task.deleteMany({ where: { projectId } })
     await tx.board.deleteMany({ where: { projectId } })
     // A project's model list is keyed by its id, not a relation, so it cascades from nothing.
@@ -272,4 +276,5 @@ export async function deleteProject(
   })
   await declineWaitingInThreads(closedThreads)
   triggerSnapshotPush()
+  void leaveRoomsNoLongerAllowed()
 }

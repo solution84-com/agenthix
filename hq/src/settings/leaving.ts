@@ -24,6 +24,7 @@ import { blockTasksForLostAccess } from '../projects/lossOfAccess'
 import { parseDestinationsByProject, type OpenTasksDestination, type ProjectDestination } from '../projects/openTasksDestination'
 import { checkOpenTasksDestination, handOverOpenTasks, openTaskCountsOf } from '../projects/openTaskHandover'
 import { OWN_CONVERSATION_HOMES } from './erasePerson'
+import { disconnectPerson } from '../server/roomAccess'
 
 type Ctx = { user?: { id: string } | null }
 
@@ -123,6 +124,8 @@ export const removePerson = async (args: RemovePersonArgs, context: Ctx): Promis
     }),
   ])
   void deliverHeldInstructionsTo(instructSites)
+  // Their sign-ins are gone; so are the screens they still have open, and every room those were in.
+  void disconnectPerson(userId)
 
   let moved = 0
   for (const [projectId, destination] of destinations) {

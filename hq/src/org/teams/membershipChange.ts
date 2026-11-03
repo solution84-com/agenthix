@@ -22,6 +22,7 @@ import { handOverOpenTasks } from '../../projects/openTaskHandover'
 import type { OpenTasksDestination } from '../../projects/openTasksDestination'
 import { writeAgent, writePerson, type AgentChange, type PersonChange, type Tx } from './writeThrough'
 import { closeProjectConversations, declineWaitingInProject } from '../../conversations/closing'
+import { leaveRoomsNoLongerAllowed } from '../../server/roomAccess'
 
 /** What happens to the work of those who leave a project. */
 export type LeavingChoice = {
@@ -64,6 +65,8 @@ export async function changeMemberships(args: {
   }, { timeout: 30_000 })
 
   await deliverHeldInstructionsTo([...new Set([...sites.values()].flat())])
+  // Anyone a team change took out of a project leaves its rooms.
+  void leaveRoomsNoLongerAllowed(userIds)
   for (const outcome of outcomes) await declineWaitingInProject(outcome.projectId)
   for (const outcome of outcomes) {
     const choice = args.choices?.get(outcome.projectId) ?? UNASKED
