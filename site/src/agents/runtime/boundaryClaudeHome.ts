@@ -26,9 +26,7 @@ import {
   serialiseCredentialHome,
   takeUnreportedCredentialHold,
 } from './agentCredentials'
-import { SKILLS_STAGING_DIRNAME } from './skillsStagingDir'
 import { removeCredentialDocument, writeCredentialFile } from './credentialFile'
-import { ensureRealFolders } from './homeFolder'
 import { freshestDocumentFor, homeHoldsAnotherLogin, noteHomeLogin } from './subscriptionLogins'
 import { HARNESS_HOME_CONTAINER_DIR, harnessHomeFor } from './harnessHomes'
 import type { ContainerKey } from './containerTypes'
@@ -37,7 +35,8 @@ const CLAUDE_DIRNAME = '.claude'
 
 /**
  * The run's Claude folder AS THE SITE SERVER PROCESS SEES IT — where the
- * credential is written and the run's skills are staged. Rooted at SITE_ROOT,
+ * credential is written. What the site stages for a run is not here but in
+ * run staging (runStaging.ts). Rooted at SITE_ROOT,
  * the only path this directory has: spec §6.10 mounts the data folder at the
  * same path inside and outside the container, so the server's own view of it
  * is also the bind source.
@@ -56,7 +55,7 @@ export function harnessHomeBind(key: ContainerKey): string {
 }
 
 /**
- * Creates the home, its staging folder and what Claude Code expects in it, before `docker run`:
+ * Creates the home and what Claude Code expects in it, before `docker run`:
  * Docker makes a missing bind source root-owned, and the run (appuser) then
  * cannot write into its own home. `~/.claude.json` is seeded empty only when
  * absent — Claude Code warns on every run without it, and once written it is
@@ -65,34 +64,15 @@ export function harnessHomeBind(key: ContainerKey): string {
 export async function prepareHarnessHome(key: ContainerKey): Promise<void> {
   const home = harnessHomeFor(key)
   await fs.mkdir(home, { recursive: true })
-  // `.claude` and its staging folder as real folders: Docker binds whatever a link there leads to on this machine.
-  await ensureRealFolders(home, `${CLAUDE_DIRNAME}/${SKILLS_STAGING_DIRNAME}`)
   await fs.writeFile(path.join(home, '.claude.json'), '{}', { flag: 'wx', mode: 0o600 }).catch((err: NodeJS.ErrnoException) => {
     if (err.code !== 'EEXIST') throw err
   })
 }
 
-/** The folder the run's skills are staged into, as the site server sees it. */
-export function runnerSkillsStagingDir(key: ContainerKey): string {
-  return path.join(runnerClaudeHome(key), SKILLS_STAGING_DIRNAME)
-}
-
-/**
- * That folder as a docker bind: read-only, laid
- * over the read-write home bind so the container cannot rewrite what the site
- * staged for it while the site, writing on the host, still can. File modes
- * could not do this — the container's user is the site's own uid and can set
- * them back. The source must exist before `docker run` (see `_start`) or docker
- * creates it root-owned.
- */
-export function runnerSkillsStagingBind(key: ContainerKey): string {
-  return `${runnerSkillsStagingDir(key)}:${path.posix.join(AGENT_CONTAINER_CLAUDE_HOME, SKILLS_STAGING_DIRNAME)}:ro`
-}
-
 /**
  * The Claude folder AS A RUN SEES IT: the fixed container path under isolation,
  * the server-visible directory otherwise. Anything the run is handed a path to
- * — the skills staged for it, for one — must be named this way, never by the
+ * must be named this way, never by the
  * raw server directory: a container must reveal nothing of the site's own
  * layout.
  */

@@ -16,7 +16,7 @@ vi.mock('#db', () => ({ prisma: {} }))
 
 import { removeLocation, REMOVE_LOCATION_PARAMS_SHAPE } from '../locationRemove'
 import { channelMethods } from '../../hq/channelMethods'
-import { getKnowledgeDir, locationDir, ownerDir } from '../paths'
+import { getCodeDir, getKnowledgeDir, locationDir, ownerDir } from '../paths'
 
 let root: string
 let outside: string
@@ -79,6 +79,16 @@ describe('location.remove — a whole owner', () => {
     expect(await exists(other)).toBe(true)
   })
 
+  it("deletes the owner's code space too, where its repositories' main lives (adr-0173)", async () => {
+    await seedProject('proj-1')
+    const main = getCodeDir({ ownerType: 'project', ownerId: 'proj-1', workspaceId: 'ws-1' })
+    const other = getCodeDir({ ownerType: 'project', ownerId: 'proj-2', workspaceId: 'ws-9' })
+    for (const d of [main, other]) await fs.mkdir(path.join(d, '.git'), { recursive: true })
+    expect(await removeLocation({ loc: { ownerType: 'project', ownerId: 'proj-1' }, wholeOwner: true })).toEqual({ removed: true })
+    expect(await exists(main)).toBe(false)
+    expect(await exists(other)).toBe(true)
+  })
+
   it('leaves every other owner alone', async () => {
     await seedProject('proj-1')
     const other = await seedProject('proj-2')
@@ -113,6 +123,14 @@ describe('location.remove — one location', () => {
     expect(result).toEqual({ removed: true })
     expect(await exists(path.join(owner, 'workspaces', 'ws-1'))).toBe(false)
     expect(await exists(path.join(owner, 'files', 'ROADMAP.md'))).toBe(true)
+  })
+
+  it("deletes a repository workspace's main in the code space with it", async () => {
+    await seedProject('proj-1')
+    const main = getCodeDir({ ownerType: 'project', ownerId: 'proj-1', workspaceId: 'ws-1' })
+    await fs.mkdir(path.join(main, '.git'), { recursive: true })
+    expect(await removeLocation({ loc: { ownerType: 'project', ownerId: 'proj-1', workspaceId: 'ws-1' } })).toEqual({ removed: true })
+    expect(await exists(main)).toBe(false)
   })
 
   it('deletes a task directory', async () => {

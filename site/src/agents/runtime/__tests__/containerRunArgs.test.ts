@@ -70,7 +70,7 @@ describe('buildContainerRunCommand', () => {
       '--label', 'agenthix.session=sess-1',
       '--label', 'agenthix.agent=coder',
       '-v', `${HOME}:/home/appuser`,
-      '-v', `${HOME}/.claude/.tmp:/home/appuser/.claude/.tmp:ro`,
+      '-v', `${SITE_ROOT}/run-staging/projects/proj-alpha:/run/staging:ro`,
       '-v', `${CONFIG}:/home/appuser/.config/opencode:ro`,
       '-v', `${CONFIG}:/home/appuser/.opencode:ro`,
       '-v', `${SITE_ROOT}/projects/proj-alpha:/projects/proj-alpha:rw`,

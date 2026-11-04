@@ -41,6 +41,17 @@ starts the right harness in it, gates each tool call, and records what happened.
   ([storage-and-placement.md](storage-and-placement.md)).
 - A **harness home** is the runner's private folder for the harness's own state: its session files and,
   for a Claude subscription, its login. It is outside storage, under `<SITE_ROOT>/homes/`.
+- **Run staging** is what the site checks and hands to a runner's runs, which they may read but never change:
+  the turn's skills and each conversation's pinned memory. It is laid out like the homes, under
+  `<SITE_ROOT>/run-staging/`, and mounted read-only at `/run/staging`, never inside the writable harness home,
+  where a run could move a folder aside and have the harness load a skill the site never checked.
+
+**No path a container can change is acted on from outside it**
+([ADR-0173](../adr/adr-0173-nothing-outside-a-container-acts-on-a-path-a-container-can-change.md)). Docker resolves a
+mount's source on the machine, following any symbolic link (symlink) on the way, and so does the site's own file work
+and git. So every mount's source is a boundary's own folder, mounted whole, or a folder only the site writes (the code
+space, run staging, a harness home); and where the site itself works in a boundary's folder, it goes down from that
+folder through open folders and refuses a symlink on the way.
 
 ---
 
@@ -125,8 +136,9 @@ key (`containerNameFor`, `containerLabels.ts`), for example `agenthix-dev-agent-
 | | |
 |---|---|
 | Image | `agenthix-agent`, built from `site/docker/agent.Dockerfile`: Node, git, ripgrep, the pinned Claude Code and OpenCode versions and the Landlock launcher. Its tools stage is shared with the executor image. git has no credential: its only configured helper refuses and names the `push` workflow. Its user is `appuser` (uid 1001) |
-| Storage | One bind mount: the whole boundary, at `/projects/<id>` or `/users/<id>`, writable only if the run's tools can write ([storage-and-placement.md](storage-and-placement.md#how-a-run-sees-storage)) |
-| Harness home | The runner's harness home, bound at `/home/appuser`; the skills staged for a turn are bound again read-only inside it |
+| Storage | One bind mount: the whole boundary, at `/projects/<id>` or `/users/<id>`, writable only if the run's tools can write; and each repository workspace's `main`, from the code space, mounted read-only over its place in the boundary ([storage-and-placement.md](storage-and-placement.md#how-a-run-sees-storage)) |
+| Harness home | The runner's harness home, bound at `/home/appuser` |
+| Run staging | The runner's run staging, mounted read-only at `/run/staging` on the read-only root, outside the harness home: the turn's checked skills (`skills/`), which the harness loads from there, and each conversation's pinned memory (`pinned-memory/`) (`runStaging.ts`) |
 | Commands' home | `/home/agent`, which lives only in the container; agent commands run with it as `HOME` and cannot reach `/home/appuser` |
 | Network | A private Docker network of its own, whose only other member is the site ([ADR-0066](../adr/adr-0066-a-site-reaches-its-agents-over-a-private-network-per-boundary.md); `containerNetwork.ts`) |
 | Limits | The host service's ceilings for the machine, read from its figures socket (`site/src/server/host/hostFigures.ts`): 8 GB, 2 processors and 4096 processes per container unless set otherwise. `AGENT_CONTAINER_MEMORY`, `AGENT_CONTAINER_PIDS_LIMIT` and `AGENT_CONTAINER_CPUS` may only narrow them, and are the limits themselves where no host service runs the site (`containerLimits.ts`) |
@@ -286,4 +298,5 @@ id. The history stays readable.
 [ADR-0081](../adr/adr-0081-a-harness-runs-the-way-its-vendor-intends.md) ·
 [ADR-0083](../adr/adr-0083-a-process-belongs-to-the-conversation-that-started-it.md) ·
 [ADR-0084](../adr/adr-0084-an-agents-skills-are-staged-by-agenthix-per-turn.md) ·
-[ADR-0085](../adr/adr-0085-agenthix-owns-a-harness-file-tools-where-it-can-be-a-confused-deputy.md)
+[ADR-0085](../adr/adr-0085-agenthix-owns-a-harness-file-tools-where-it-can-be-a-confused-deputy.md) ·
+[ADR-0173](../adr/adr-0173-nothing-outside-a-container-acts-on-a-path-a-container-can-change.md)

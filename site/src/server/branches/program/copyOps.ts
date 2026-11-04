@@ -37,7 +37,8 @@ function makeCopy(R, q, branch, tip, main, mainTip) {
   const cg = gitDirOf(R.copy, 'no_copy')
   const objects = path.join(cg, 'objects')
   fs.mkdirSync(path.join(objects, 'info'), { recursive: true })
-  fs.writeFileSync(path.join(objects, 'info', 'alternates'), path.relative(objects, path.join(R.ws, '.git', 'objects')) + '\n')
+  // Relative, to where an agent's container has \`main\` beside the copy (\`wsSeen\`), so it resolves there.
+  fs.writeFileSync(path.join(objects, 'info', 'alternates'), path.relative(objects, path.join(R.wsSeen || R.ws, '.git', 'objects')) + '\n')
   writeBranch(cg, branch, tip, null)
   const remote = walkTo(cg, 'refs/remotes/origin/' + main, true)
   fs.writeFileSync(remote, mainTip + '\n')
@@ -122,7 +123,7 @@ Object.assign(ops, {
       return { head: wsTip, previous: wsTip, moved: false, backup: null }
     }
     const src = cleanGitDir()
-    fs.writeFileSync(path.join(src, 'objects', 'info', 'alternates'), path.resolve(cg, 'objects') + '\n')
+    fs.writeFileSync(path.join(src, 'objects', 'info', 'alternates'), alternatesFor(path.join(cg, 'objects')))
     mirrorRefs(src, new Map([[q.branch, copyTip]]))
     const dest = over(R.ws)
     mirrorRefs(dest.dir, allBranches(wg))

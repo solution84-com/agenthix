@@ -18,7 +18,9 @@ flowchart LR
         subgraph DISK ["SITE_ROOT"]
             P1["projects/ one folder per project"]
             U1["users/ one folder per person"]
+            C1["code/ (repositories' main)"]
             H1["homes/ (harness homes)"]
+            R1["run-staging/"]
         end
     end
     PRJ -->|"this project is on site A"| P1
@@ -62,7 +64,8 @@ into a path.
 │   ├── files/                 the project's own documents; a run with no workspace works here
 │   │   ├── AGENTS.md          the place's instructions, put into every run's prompt
 │   │   └── .agents/           skills for every agent, and one agent's own instructions and skills
-│   ├── workspaces/<id>/       one folder per workspace
+│   ├── workspaces/<id>/       one folder per workspace; a repository workspace's main is mounted here, not kept here
+│   ├── clones/<copy id>/      a branch's copy of a repository workspace, where its runs work
 │   ├── artefacts/             throwaway things agents made in conversations, one file each
 │   ├── tasks/<task id>/       a task's working folder
 │   └── members/<person id>/   one member's area in the project, holding their agenda.md
@@ -75,10 +78,16 @@ into a path.
 │   ├── projects/<project id>/ pages/ and versions/
 │   ├── users/<person id>/     the same
 │   └── org/                   the organisation's, on its default site only
+├── code/                      the code space: each repository workspace's main, outside every boundary
+│   ├── projects/<project id>/<workspace id>/
+│   ├── users/<person id>/<workspace id>/
+│   └── .work/                 where the site builds a repository, or backs up files/, before putting it in place
 ├── homes/                     harness homes, beside storage and never inside it
 │   ├── users/<person id>/personal/
 │   ├── users/<person id>/<project id>/
 │   └── projects/<project id>/
+├── run-staging/               what the site stages for a runner's runs, laid out like homes/
+│   └── …/skills/, …/pinned-memory/
 └── executor/runs/<run id>/    a workflow run's own folders while it runs: workflow/, out/, snapshot/
 ```
 
@@ -91,11 +100,25 @@ earlier versions and its deleted pages (`site/src/server/storage/paths.ts`, `get
 layout is `site/src/server/knowledge/`). A `knowledge/` folder inside an owner's folder is ignored. The
 [concept](../concepts/knowledge/knowledge.md) says what a page is and how versions are kept.
 
+**Nothing outside a container acts on a path a container can change**
+([ADR-0173](../adr/adr-0173-nothing-outside-a-container-acts-on-a-path-a-container-can-change.md)). A run writes its
+whole boundary, so it can replace any folder in it with a symbolic link (symlink), and Docker, git and the site's own
+file work would follow that symlink on the machine. So what is mounted on its own, or worked on with git from outside a
+container, lives where no container writes: a repository's main in the code space, what is staged for a run in run
+staging. The boundary's own folder is mounted whole, as it is. Where the site must read or write in a boundary itself,
+it goes down from the boundary's folder one folder at a time, opening each without following a symlink, and refuses
+one on the way (`site/src/agents/runtime/safeTree.ts`, `site/src/server/storage/boundaryTreeCopy.ts`).
+
 **Harness homes are not storage.** A harness home holds one runner's private runtime state in one boundary:
 the harness's session files and login. A project's storage is mounted by every container in the project,
 so a home inside it would be readable by all of them; homes therefore sit in `homes/`, grouped by person, so
 removing a person removes one folder (`site/src/agents/runtime/harnessHomes.ts`). Runners and containers
 are in [container-runtime.md](container-runtime.md).
+
+**Run staging is not in the home.** What the site checks and hands to a runner's runs — the turn's skills and each
+conversation's pinned memory — sits in `run-staging/`, laid out like `homes/` and mounted read-only at `/run/staging`
+in the runner's containers (`site/src/agents/runtime/runStaging.ts`). Inside the writable home, a run could move the
+folder above it aside and have the harness load a skill the site never checked.
 
 **A workflow run's folders are not storage either.** The approved files, the run's scratch folder and its
 snapshot of the workspace sit outside every owner's folder, so no agent's container can see them, and on the same
@@ -233,7 +256,8 @@ as these reads are ([files-and-relays.md](files-and-relays.md)).
 
 A run's container mounts **one whole boundary**, at a path that mirrors the site's disk without the site
 root: `/projects/<project id>` or `/users/<person id>`
-([ADR-0079](../adr/adr-0079-access-to-a-boundary-is-access-to-all-of-it.md);
+([ADR-0079](../adr/adr-0079-access-to-a-boundary-is-access-to-all-of-it.md) ·
+[ADR-0173](../adr/adr-0173-nothing-outside-a-container-acts-on-a-path-a-container-can-change.md);
 `resolveBoundaryMount`, `site/src/agents/runtime/locationResolver.ts`). Everything inside it comes with that
 one mount: files, artefacts, every workspace, and a project's tasks and members folders. A
 workspace created while the container runs appears in it at once.
@@ -246,7 +270,11 @@ reached only by a chat that works in it. The runner decides only which harness h
 ([container-runtime.md](container-runtime.md#containers)).
 
 - **The working folder** is a path inside that mount: `tasks/<id>` for a task, `workspaces/<id>` for a
-  workspace, otherwise `files/` (`resolvePrimaryContainerDir`).
+  workspace, otherwise `files/` (`resolvePrimaryContainerDir`). A run on a branch of a repository workspace works
+  in the branch's copy, `clones/<copy id>`.
+- **A repository workspace's main** is mounted read-only from the code space over `workspaces/<id>`, into every
+  container of the boundary (`codeWorkspaceMounts.ts`). A workspace becoming a repository changes the mounts, so
+  each container in the boundary finishes its current runs and is made again before its next one.
 - **Read-only or writable**: the mount is writable when the run's permissions allow `write_file`,
   `edit_file` or `bash` (`runHasWriteTools`, `site/src/agents/runtime/toolPermissions.ts`), and read-only
   otherwise (`containerPrep.ts`).
@@ -262,8 +290,19 @@ reached only by a chat that works in it. The runner decides only which harness h
 ## Git repositories
 
 A repository is **attached** to a location: to a workspace, or to an owner's `files/` folder. The
-attachment is a `RepoAttachment` row on the site holding the repository's GitHub address; the checkout is
-the folder itself.
+attachment is a `RepoAttachment` row on the site holding the repository's GitHub address.
+
+- **A repository workspace's main lives in the code space**, `code/<projects|users>/<owner id>/<workspace id>/`,
+  never in the boundary: a workspace is one when its folder there holds a `.git` (`site/src/server/storage/codeSpace.ts`).
+  Turning Git on, or connecting a workspace to GitHub, builds the repository in `code/.work/` — the workspace's files
+  copied out of the boundary without following a symlink, or nothing for a pull — and renames it into the code space
+  only when it is finished. New runs in the workspace wait meanwhile; then the workspace's old folder in the boundary
+  is removed, and `main` is mounted in its place. Every git command the site runs on the repository runs there, and
+  the commit helper is given `main` and, for a branch's copy, the boundary's whole folder, never a path below it.
+- **`files/` backed up to GitHub is the one exception**: a backup, not a codebase, so it stays in the boundary, shared
+  and writable, with no branches. The first push is made from a copy in `code/.work/`; the finished `.git` is then
+  written into `files/` through open folders. Afterwards the site never commits or pushes there; the git line above it
+  (`git.status`) only reads, over a git directory of the site's own with optional locks off, so it writes nothing.
 
 - **All git runs on the site**, never in hq: connecting a repository (push an existing folder up, or pull a
   repository into an empty one) is `repo.connect`, and its state is `repo.state` (`core/src/protocol/repoWork.ts`;
@@ -282,7 +321,7 @@ the folder itself.
 
 ## When owners go away
 
-- **A project is deleted**: hq sends `location.remove` for the whole project folder, and its knowledge, after the deletion
+- **A project is deleted**: hq sends `location.remove` for the whole project folder, its knowledge and its code space, after the deletion
   commits (`hq/src/projects/projectStorageRemoval.ts`). If the site is down the folder stays and the failure
   is logged.
 - **A person leaves a project or the organisation**: hq sends a membership-ending instruction, held until
@@ -290,7 +329,7 @@ the folder itself.
   storage and every site that ran one of the person's conversations in it; leaving the organisation goes to
   every site that is not revoked, since that is the only set that cannot miss one
   (`hq/src/sites/membershipEnding.ts`). The site closes that person's
-  conversations, removes their containers and deletes their harness homes
+  conversations, removes their containers and deletes their harness homes and run staging, through open folders
   (`site/src/server/runtime/membershipEnding.ts`). Their member folder and stored transcripts stay.
 - **A person is erased** ([ADR-0100](../adr/adr-0100-leaving-deactivates-erasing-is-separate.md)): hq asks
   each site to delete their own conversations by id (`session.deleteMany` with `ids`), never by person, so a
@@ -311,6 +350,8 @@ the folder itself.
   the gate.
 - **Harness homes stay outside storage.** Moving one inside a project would expose one person's sessions
   to every container in the project.
+- **Nothing outside a container acts on a path a container can change.** A mount's source is a boundary's own
+  folder or a folder only the site writes; the site's file work in a boundary goes through open folders.
 - **Placement is decided once, by the same function for dispatch and capability.**
 
 ## Decisions behind this

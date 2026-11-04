@@ -39,7 +39,7 @@ function fetchInto(root, source, refs, failAs) {
 /** A clean Git folder over \`root\`'s objects with \`branches\` as its refs, to fetch from by name. */
 function sourceOf(root, branches) {
   const src = cleanGitDir()
-  fs.writeFileSync(path.join(src, 'objects', 'info', 'alternates'), path.resolve(root, '.git', 'objects') + '\n')
+  fs.writeFileSync(path.join(src, 'objects', 'info', 'alternates'), alternatesFor(path.join(root, '.git', 'objects')))
   mirrorRefs(src, branches)
   return src
 }

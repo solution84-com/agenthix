@@ -4,11 +4,16 @@
  * hook or filter an agent planted runs on the site.
  *
  * One container per operation, removed when it ends. It has no Docker socket, none of the site's environment or
- * credentials, no capability, no new privileges, a read-only root, its own limits and IPv6 off. It mounts only the
- * workspace's folder and, when the operation needs one, one copy, each read-only unless the operation writes it, at
- * the same places relative to each other as on the disk (`/o/workspaces/<id>`, `/o/clones/<id>`), so a copy's
- * relative `alternates` resolves. It has no network unless it pushes to or fetches from GitHub, and then a network of
- * its own like a run's, which the machine's protections for agents cover; hq's token travels on standard input.
+ * credentials, no capability, no new privileges, a read-only root, its own limits and IPv6 off. It has no network
+ * unless it pushes to or fetches from GitHub, and then a network of its own like a run's, which the machine's
+ * protections for agents cover; hq's token travels on standard input.
+ *
+ * **What it mounts (adr-0173): only folders whose path no container can change.** The workspace's `main`, from the
+ * code space, at `/o/main`. A branch's copy lives in the boundary's `clones/`, so the helper is given the boundary's
+ * whole folder at `/o/b` and finds the copy inside it (`/o/b/clones/<id>`): a symbolic link (symlink) a run put on the
+ * way is then followed inside the helper, where it reaches only that boundary, never by Docker on this machine. A
+ * copy that lives in the site's own data (a live preview's copy of `main`) is mounted as it is, at `/o/clones/<id>`.
+ * Each is read-only unless the operation writes it.
  *
  * Every helper runs under the site-wide limit of `helperSlots.ts`, so no storm of requests starts more than a few.
  *
@@ -25,6 +30,7 @@ import { ensureAgentNetwork, releaseAgentNetwork } from '../../agents/runtime/co
 import { docker } from '../../agents/runtime/containerLifecycle'
 import { ipv6OffArgs } from '../../agents/runtime/ipv6Off'
 import { hostFigures } from '../host/hostFigures'
+import { boundaryCopyOf } from '../storage/paths'
 import { GIT_PROGRAM } from './program/program'
 import { helperSlots, wroteWorkspace, type Slots } from './helperSlots'
 
@@ -39,10 +45,13 @@ export type HelperMount = { source: string; target: string; readOnly: boolean }
 export type HelperSpec = {
   /** The workspace it works for, by id: labels the container and names it. */
   workspaceId: string
-  /** The workspace's folder on this disk, and whether the operation writes it; left out only to remove a copy. */
+  /** The workspace's `main` in the code space, and whether the operation writes it; left out when it needs none. */
   ws?: { dir: string; readOnly: boolean }
-  /** A copy's folder on this disk, when the operation reads or writes one. */
-  copy?: { dir: string; readOnly: boolean }
+  /**
+   * A copy the operation reads or writes: one in a boundary's `clones/`, named by the boundary's folder and the copy's
+   * id (the boundary is mounted whole), or a folder in the site's own data, by its path.
+   */
+  copy?: BoundaryCopy | { dir: string; readOnly: boolean }
   /** A Git bundle the operation reads (read-only), and the folder it writes one into: both in the site's own data. */
   bundle?: { file: string }
   out?: { dir: string }
@@ -55,6 +64,24 @@ export type HelperSpec = {
   timeoutMs: number
 }
 
+/** A branch's copy in a boundary: `<boundary>/clones/<copyId>`. */
+export type BoundaryCopy = { boundary: string; copyId: string; readOnly: boolean }
+
+const inBoundary = (copy: HelperSpec['copy']): copy is BoundaryCopy => !!copy && 'boundary' in copy
+
+/** A copy given by its path that is a boundary's copy is given as the boundary and the id, whoever built the spec. */
+function asGiven(spec: HelperSpec): HelperSpec {
+  const copy = spec.copy
+  if (!copy || inBoundary(copy)) return spec
+  const found = boundaryCopyOf(copy.dir)
+  return found ? { ...spec, copy: { boundary: found.boundary, copyId: found.copyId, readOnly: copy.readOnly } } : spec
+}
+
+/** Where a copy is on this disk, as the site sees it; for the local program and the site's own records. */
+export function copyHostDir(copy: NonNullable<HelperSpec['copy']>): string {
+  return inBoundary(copy) ? path.join(copy.boundary, 'clones', copy.copyId) : copy.dir
+}
+
 /** What the program answered, or a refusal the helper itself gave. */
 export type HelperAnswer = Record<string, unknown> & { refused?: string; detail?: string }
 
@@ -64,21 +91,32 @@ export function helperName(workspaceId: string, nonce: string): string {
   return `${siteNamespace()}-commit-helper-${workspaceId.replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 64)}-${nonce}`
 }
 
-/** The paths inside the container, mirroring the disk's `workspaces/` and `clones/` side by side. */
-export function containerRoots(spec: HelperSpec): { ws?: string; copy?: string; bundle?: string; out?: string } {
+/**
+ * The paths inside the container. `within` is the boundary's folder a copy is found in, which the program checks the
+ * copy is still inside; `wsSeen` is where an agent's container has `main` beside the copy, for the copy's relative
+ * `alternates`, so they resolve in the agent's container as they did before.
+ */
+export function containerRoots(given: HelperSpec): { ws?: string; copy?: string; within?: string; wsSeen?: string; bundle?: string; out?: string } {
+  const spec = asGiven(given)
+  const copy = spec.copy
   return {
-    ...(spec.ws ? { ws: `/o/workspaces/${path.basename(spec.ws.dir)}` } : {}),
-    ...(spec.copy ? { copy: `/o/clones/${path.basename(spec.copy.dir)}` } : {}),
+    ...(spec.ws ? { ws: '/o/main' } : {}),
+    ...(inBoundary(copy)
+      ? { copy: `/o/b/clones/${copy.copyId}`, within: '/o/b', wsSeen: `/o/b/workspaces/${spec.workspaceId}` }
+      : copy ? { copy: `/o/clones/${path.basename(copy.dir)}` } : {}),
     ...(spec.bundle ? { bundle: '/o/bundle/in.bundle' } : {}),
     ...(spec.out ? { out: '/o/out' } : {}),
   }
 }
 
-export function helperMounts(spec: HelperSpec): HelperMount[] {
+export function helperMounts(given: HelperSpec): HelperMount[] {
+  const spec = asGiven(given)
   const roots = containerRoots(spec)
   const mounts: HelperMount[] = []
   if (spec.ws && roots.ws) mounts.push({ source: spec.ws.dir, target: roots.ws, readOnly: spec.ws.readOnly })
-  if (spec.copy && roots.copy) mounts.push({ source: spec.copy.dir, target: roots.copy, readOnly: spec.copy.readOnly })
+  const copy = spec.copy
+  if (inBoundary(copy) && roots.within) mounts.push({ source: copy.boundary, target: roots.within, readOnly: copy.readOnly })
+  else if (copy && !inBoundary(copy) && roots.copy) mounts.push({ source: copy.dir, target: roots.copy, readOnly: copy.readOnly })
   if (spec.bundle && roots.bundle) mounts.push({ source: spec.bundle.file, target: roots.bundle, readOnly: true })
   if (spec.out && roots.out) mounts.push({ source: spec.out.dir, target: roots.out, readOnly: false })
   return mounts
@@ -126,6 +164,8 @@ export type HelperDeps = {
   protectionsProblem: () => Promise<string | null>
   /** The site-wide limit every helper runs under (`helperSlots.ts`). */
   slots: Slots
+  /** Whether a folder the helper is to mount is there: Docker would make a missing source, root-owned. */
+  folderThere: (dir: string) => Promise<boolean>
 }
 
 export const helperDeps: HelperDeps = {
@@ -138,10 +178,14 @@ export const helperDeps: HelperDeps = {
   nonce: () => Math.random().toString(36).slice(2, 10),
   protectionsProblem: () => hostFigures.protectionsProblem(),
   slots: helperSlots,
+  folderThere: dir => fs.stat(dir).then(st => st.isDirectory(), () => false),
 }
 
 /** Runs one operation of the program and returns its answer. */
-export async function runHelper(spec: HelperSpec, request: Record<string, unknown>, deps: HelperDeps = helperDeps): Promise<HelperAnswer> {
+export async function runHelper(given: HelperSpec, request: Record<string, unknown>, deps: HelperDeps = helperDeps): Promise<HelperAnswer> {
+  const spec = asGiven(given)
+  // A workspace with no `main` in the code space is not a repository; Docker would make a missing source root-owned.
+  if (spec.ws && !(await deps.folderThere(spec.ws.dir))) return { refused: 'not_repository' }
   const writes = !!spec.ws && !spec.ws.readOnly
   const asked = Date.now()
   // A helper waits at most half its budget for a slot; what it waited comes off its own run, so the whole stays within
@@ -181,10 +225,12 @@ async function runLocal(spec: HelperSpec, request: Record<string, unknown>, deps
     const child = deps.spawnLocal({
       TOOL_GIT: 'git', TOOL_PATH: process.env.PATH ?? '/usr/bin:/bin', TOOL_TMP: tmp,
       TOOL_DEADLINE: String(Date.now() + spec.timeoutMs - PROGRAM_MARGIN_MS),
-      ...(spec.program && spec.copy ? { TOOL_ROOT: spec.copy.dir } : {}),
+      ...(spec.program && spec.copy ? { TOOL_ROOT: copyHostDir(spec.copy) } : {}),
     }, spec.program)
     const roots = {
-      ...(spec.ws ? { ws: spec.ws.dir } : {}), ...(spec.copy ? { copy: spec.copy.dir } : {}),
+      ...(spec.ws ? { ws: spec.ws.dir } : {}),
+      ...(spec.copy ? { copy: copyHostDir(spec.copy) } : {}),
+      ...(inBoundary(spec.copy) ? { within: spec.copy.boundary } : {}),
       ...(spec.bundle ? { bundle: spec.bundle.file } : {}), ...(spec.out ? { out: spec.out.dir } : {}),
     }
     return await collect(child, { ...request, roots }, spec.timeoutMs, () => {})

@@ -32,6 +32,12 @@ const SAFE = [
   '-c', 'push.followTags=false', '-c', 'advice.detachedHead=false', '-c', 'init.defaultBranch=main',
 ]
 const PATH_ENV = process.env.TOOL_PATH || '/usr/bin:/bin'
+/**
+ * \`main\`'s objects, when the operation was given \`main\`. A copy borrows them through an \`alternates\` written for
+ * where an agent's container has \`main\`, which is not where the helper has it, so every git over a copy is told
+ * where they are here too.
+ */
+let MAIN_OBJECTS = null
 
 class Refusal extends Error { constructor(code, detail) { super(code); this.code = code; this.detail = detail || '' } }
 
@@ -56,6 +62,7 @@ function gitEnv(at, extra) {
   }
   if (at.dir) env.GIT_DIR = at.dir
   if (at.objects) env.GIT_OBJECT_DIRECTORY = at.objects
+  if (MAIN_OBJECTS && at.objects && path.resolve(at.objects) !== path.resolve(MAIN_OBJECTS)) env.GIT_ALTERNATE_OBJECT_DIRECTORIES = MAIN_OBJECTS
   if (at.index) env.GIT_INDEX_FILE = at.index
   if (at.work) env.GIT_WORK_TREE = at.work
   return Object.assign(env, extra || {})
@@ -261,6 +268,28 @@ function mirrorRefs(dir, branches) {
   const body = ['# pack-refs with: peeled fully-peeled sorted']
   for (const [name, id] of [...branches].sort((a, b) => (a[0] < b[0] ? -1 : 1))) body.push(id + ' refs/heads/' + name)
   fs.writeFileSync(path.join(dir, 'packed-refs'), body.join('\n') + '\n')
+}
+
+/** The \`alternates\` of a clean Git folder that reads \`objects\`: those, and \`main\`'s when given. */
+function alternatesFor(objects) {
+  const list = [path.resolve(objects)]
+  if (MAIN_OBJECTS && path.resolve(MAIN_OBJECTS) !== list[0]) list.push(path.resolve(MAIN_OBJECTS))
+  return list.join('\n') + '\n'
+}
+
+/**
+ * The roots the site gave, checked: \`main\`'s objects noted, and a copy found in a boundary (\`within\`) still inside
+ * it, whatever a run in that boundary did to the folders on the way.
+ */
+function useRoots(R) {
+  MAIN_OBJECTS = R.ws ? path.join(R.ws, '.git', 'objects') : null
+  if (R.within && R.copy) {
+    let real = null
+    try { real = fs.realpathSync(R.copy) } catch (e) { real = null }
+    const within = fs.realpathSync(R.within)
+    if (real && !real.startsWith(within + path.sep)) throw new Refusal('no_copy', 'the copy is not inside its boundary')
+  }
+  return R
 }
 
 /** The places one git works: a clean Git folder over the repository at \`root\`. */

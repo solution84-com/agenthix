@@ -90,12 +90,11 @@ describe('the site client', () => {
 })
 
 describe('the command environment', () => {
-  it('tags every command with its conversation, blanks the secrets and lets it read the staged skills', async () => {
+  it('tags every command with its conversation and blanks the secrets; the staged skills need no opening', async () => {
     const env: Record<string, string> = {}
     await shellEnvHook(fakeSite({ turns: { ses_A: turnFor('conv-a') } }), config)({ cwd: '/p', sessionID: 'ses_A', callID: 'c' }, { env })
     expect(env).toEqual({
       SITE_SESSION: 'conv-a',
-      SITE_COMMAND_READABLE: '/home/appuser/.claude/.tmp/conversation-conv-a/skills',
       OPENCODE_SERVER_PASSWORD: '',
       [HARNESS_SERVER_KEY_ENV]: '',
       OPENCODE_CONFIG_CONTENT: '',

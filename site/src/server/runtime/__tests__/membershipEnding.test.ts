@@ -326,3 +326,38 @@ describe('membership.projectDeleted', () => {
     expect(again).toEqual({ instructionId: 'i3', acknowledged: true })
   })
 })
+
+describe('run staging and links inside a home (adr-0173)', () => {
+  const staging = (...parts: string[]) => path.join(root, 'run-staging', ...parts)
+
+  it("removes the person's run staging with their home, and leaves everyone else's", async () => {
+    await mkdirWithFile(staging('users', 'alice', 'p1', 'skills'))
+    await mkdirWithFile(staging('users', 'alice', 'p2', 'skills'))
+    await mkdirWithFile(staging('users', 'bob', 'p1', 'skills'))
+    await mkdirWithFile(staging('projects', 'p1', 'skills'))
+
+    await handleMemberLeftProject({ instructionId: 'i5', userId: 'alice', projectId: 'p1' })
+    expect(await exists(staging('users', 'alice', 'p1'))).toBe(false)
+    expect(await exists(staging('users', 'alice', 'p2'))).toBe(true)
+
+    await handleProjectDeleted({ instructionId: 'i6', projectId: 'p1' })
+    expect(await exists(staging('projects', 'p1'))).toBe(false)
+    expect(await exists(staging('users', 'bob', 'p1'))).toBe(false)
+    expect(await exists(staging('users', 'alice', 'p2'))).toBe(true)
+
+    await handlePersonLeftOrganisation({ instructionId: 'i7', userId: 'alice' })
+    expect(await exists(staging('users', 'alice'))).toBe(false)
+  })
+
+  it('never follows a symbolic link a run left in its home: what it points at stays', async () => {
+    const outside = path.join(root, 'projects', 'p9', 'files')
+    await mkdirWithFile(outside)
+    await fs.symlink(outside, path.join(home('users', 'alice', 'p1'), 'escape'))
+    await fs.symlink(path.join(outside, 'state.jsonl'), path.join(home('users', 'alice', 'p1'), 'file-escape'))
+
+    await handleMemberLeftProject({ instructionId: 'i8', userId: 'alice', projectId: 'p1' })
+
+    expect(await exists(home('users', 'alice', 'p1'))).toBe(false)
+    expect(await fs.readFile(path.join(outside, 'state.jsonl'), 'utf8')).toBe('private')
+  })
+})

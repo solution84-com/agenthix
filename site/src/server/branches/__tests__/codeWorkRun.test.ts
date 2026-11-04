@@ -45,6 +45,7 @@ const person = { name: 'Mia', email: 'mia@people.hq.example' }
 const codeWork = { workspace, copyId: COPY_A, branch: 'add-login-page', main: 'main', behindMain: 0, otherBranches: [], author, onBehalfOf: person }
 const boundary = { ownerType: 'project', ownerId: 'p1' }
 const ws = () => path.join(root, 'projects', 'p1', 'workspaces', 'w1')
+const main = () => path.join(root, 'code', 'projects', 'p1', 'w1')
 const copy = () => path.join(root, 'projects', 'p1', 'clones', COPY_A)
 
 beforeEach(async () => {
@@ -79,8 +80,8 @@ describe('a run on a branch\'s copy', () => {
     write(copy(), 'half.txt', 'half done\n')
     await endCodeWork(run)
     // Named as hq names the agent's own commits: the agent as author, the person in an On-behalf-of line.
-    expect(sh(ws(), ['log', '-1', '--format=%an|%ae|%s', 'add-login-page'])).toBe('Kernel|kernel@agents.hq.example|Work in progress')
-    expect(sh(ws(), ['log', '-1', '--format=%b', 'add-login-page'])).toContain('On-behalf-of: Mia <mia@people.hq.example>')
+    expect(sh(main(), ['log', '-1', '--format=%an|%ae|%s', 'add-login-page'])).toBe('Kernel|kernel@agents.hq.example|Work in progress')
+    expect(sh(main(), ['log', '-1', '--format=%b', 'add-login-page'])).toContain('On-behalf-of: Mia <mia@people.hq.example>')
     expect(sent).toEqual([expect.objectContaining({ event: 'branch.back', data: expect.objectContaining({ cause: 'run_end', runId: 'run-1', branch: 'add-login-page', back: expect.objectContaining({ moved: true }) }) })])
     expect(db.copies.get(COPY_A)?.backPending).toBe(false)
   })
@@ -91,7 +92,7 @@ describe('a run on a branch\'s copy', () => {
     write(copy(), 'a.txt', 'a\n')
     sh(copy(), ['add', '-A']); sh(copy(), ['commit', '-qm', 'by its own git'])
     const tip = sh(copy(), ['rev-parse', 'HEAD'])
-    await vi.waitFor(() => expect(sh(ws(), ['rev-parse', 'add-login-page'])).toBe(tip), { timeout: 10_000, interval: 100 })
+    await vi.waitFor(() => expect(sh(main(), ['rev-parse', 'add-login-page'])).toBe(tip), { timeout: 10_000, interval: 100 })
     await vi.waitFor(() => expect(sent.some(s => s.data.cause === 'sweep')).toBe(true))
     await endCodeWork(run)
     expect(sent.filter(s => s.data.cause === 'run_end')).toEqual([])
@@ -102,7 +103,7 @@ describe('a run on a branch\'s copy', () => {
     sh(copy(), ['add', '-A']); sh(copy(), ['commit', '-qm', 'before the site stopped'])
     db.copies.get(COPY_A)!.backPending = true
     expect(await bringBackPending()).toBe(1)
-    expect(sh(ws(), ['rev-parse', 'add-login-page'])).toBe(sh(copy(), ['rev-parse', 'HEAD']))
+    expect(sh(main(), ['rev-parse', 'add-login-page'])).toBe(sh(copy(), ['rev-parse', 'HEAD']))
     expect(sent[0]).toMatchObject({ data: { cause: 'site_back', runId: null } })
     expect(db.copies.get(COPY_A)?.backPending).toBe(false)
   })

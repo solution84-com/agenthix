@@ -65,7 +65,7 @@ export async function releaseRunResources(sink: RunLaunchSink, renewal: { stop()
     if (unreported) holdUnreportedCredential(sink.subscription.home)
   }
   // A person's pinned items do not stay on the disk after the run that was given them.
-  if (sink.pinnedMemory) await releasePinnedMemory(sink.pinnedMemory.home, sink.pinnedMemory.sessionId)
+  if (sink.pinnedMemory) await releasePinnedMemory(sink.pinnedMemory.staging, sink.pinnedMemory.sessionId)
   const home = sink.claudeHome
   const lastInHome = home ? leaveCredentialHome(home) : false
   // A run on a branch's copy: what it left is committed and its branch brought back (codeWorkRun.ts). Never throws.

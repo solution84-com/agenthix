@@ -32,7 +32,7 @@ function context(over: Partial<RunContext> = {}): RunContext {
     capability: { jwt: 'jwt', expiresAt: Date.now() + 600_000 },
     credential: { kind: 'apiKey', provider: 'openrouter', apiKey: 'or-key' },
     riskRules: null, packages: {} as RunContext['packages'], boundaryOverride: null, skills: null,
-    claudeHome: { serverDir: '/h', visibleDir: '/home/appuser' }, workingTreeDir: '/w',
+    claudeHome: { serverDir: '/h', visibleDir: '/home/appuser' }, runStaging: { serverDir: '/s', visibleDir: '/run/staging' }, workingTreeDir: '/w',
     abortSignal: new AbortController().signal,
     ...over,
   }

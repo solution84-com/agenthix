@@ -7,6 +7,7 @@
  * ask    — visible to Claude; calling it triggers HITL manifest approval.
  * never  — invisible to Claude; removed from SDK context via disallowedTools.
  */
+import type { RunStaging } from './runStagingFolders'
 import type { RelayCredential, SiteRunCredential } from '../../server/modelRelay/runAccess'
 import type { FeatureSwitches, ApprovedManifest, AuditSummary, PendingManifest, ToolPermissionState, ToolPermission, BashPatternPermission, RunContextPayload, SessionClosedReasonValue, RunLimits, RunStartedBy, TaskCommentForRun, ContextUse, WorkspaceRepoRef } from '@agenthix/core'
 import type { ResolvedRunPackages } from '../../packages/runPackages'
@@ -132,6 +133,9 @@ export type RunContext = {
    *  path and reveals nothing of the site's layout. Resolved once at launch so
    *  the runtime never re-derives a path the container manager already bound. */
   claudeHome: { serverDir: string; visibleDir: string }
+  /** The runner's run staging (runStaging.ts, adr-0173): where the site stages the run's skills and pinned memory,
+   *  outside the home, and where the run sees them. Resolved once at launch, like `claudeHome`. */
+  runStaging: RunStaging
   /** The run's working tree on this machine — the directory its primary
    *  location resolves to, as the SITE SERVER PROCESS sees it (never the
    *  container-side path `cwd` carries under isolation).

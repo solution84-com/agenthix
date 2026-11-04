@@ -41,7 +41,8 @@ import { constants as fsConstants } from 'node:fs'
 import path from 'node:path'
 import { ZodError } from 'zod'
 import { LocationFileError, type LocationFileErrorCode, type StorageOwnerRef } from '@agenthix/core'
-import { locationDir, ownerDir, type LocationRef } from './paths'
+import { getCodeDir, getCodeOwnerDir, locationDir, ownerDir, type LocationRef } from './paths'
+import { lstatSync } from 'node:fs'
 import { WorkspaceService } from '../../agents/agentDiskPaths'
 import {
   openResolved,
@@ -171,6 +172,11 @@ export function parseParams<T>(schema: { parse: (input: unknown) => T }, params:
  */
 export function baseDir(loc: LocationRef, method: string, relPath?: string | null): string {
   try {
+    // A repository workspace's files are its `main`, in the code space (adr-0173).
+    if (loc.workspaceId && !loc.taskId) {
+      const code = getCodeDir({ ownerType: loc.ownerType, ownerId: loc.ownerId, workspaceId: loc.workspaceId })
+      if (lstatSync(path.join(code, '.git'), { throwIfNoEntry: false })?.isDirectory()) return code
+    }
     return locationDir(loc)
   } catch {
     throw locationFileError('outside', method, loc, relPath)
@@ -204,9 +210,15 @@ async function contained<T>(work: () => Promise<T>, coded: (err: unknown) => nev
  * mount point, which a run cannot replace.
  */
 export async function layoutRealBase(loc: LocationRef, base: string): Promise<string | null> {
-  const home = ownerDir(loc.ownerType, loc.ownerId)
+  const home = layoutHome(loc, base)
   const realHome = await realpathOrMissing(home)
   return realHome === null ? null : path.join(realHome, path.relative(home, base))
+}
+
+/** The folder no run can replace that `base` is laid out under: the owner's folder, or its folder in the code space. */
+function layoutHome(loc: LocationRef, base: string): string {
+  const code = getCodeOwnerDir(loc.ownerType, loc.ownerId)
+  return base.startsWith(code + path.sep) ? code : ownerDir(loc.ownerType, loc.ownerId)
 }
 
 async function realpathOrMissing(p: string): Promise<string | null> {
@@ -224,7 +236,7 @@ async function realpathOrMissing(p: string): Promise<string | null> {
  * through the folder it will be made in.
  */
 async function isAtLayoutPath(loc: LocationRef, base: string): Promise<boolean> {
-  const home = ownerDir(loc.ownerType, loc.ownerId)
+  const home = layoutHome(loc, base)
   const realHome = await realpathOrMissing(home)
   // An owner with no folder yet has nothing in it to have been replaced.
   if (realHome === null) return true

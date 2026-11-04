@@ -43,7 +43,7 @@ export async function readWorkflowFiles(raw: unknown): Promise<WorkflowReadFiles
 
   let root: Dir
   try {
-    root = await openRoot(target.hostDir)
+    root = await openRoot(target.root)
   } catch {
     return refuse('workspace_missing', null, 'This site cannot open that workspace.')
   }

@@ -9,7 +9,8 @@ import fs from 'node:fs/promises'
 import { expect, vi } from 'vitest'
 import type { WorkflowRunInstruction, WorkflowRunResult } from '@agenthix/core'
 import { buildContainerRunCommand } from '../../../agents/runtime/containerRunArgs'
-import { prepareHarnessHome, runnerSkillsStagingDir } from '../../../agents/runtime/boundaryClaudeHome'
+import { prepareHarnessHome } from '../../../agents/runtime/boundaryClaudeHome'
+import { prepareRunStaging } from '../../../agents/runtime/runStaging'
 import { prepareOpenCodeConfigMounts } from '../../../agents/runtime/openCodeConfigMounts'
 import type { ContainerKey } from '../../../agents/runtime/containerTypes'
 import { getRun, startRun } from '../../run'
@@ -48,7 +49,7 @@ export async function startAgent(ownerId: string, boundaryHostDir: string): Prom
   const key: ContainerKey = { scope: 'storage', ownerType: 'project', ownerId, mode: 'rw', runner: { kind: 'project', projectId: ownerId } }
   await prepareHarnessHome(key)
   await prepareOpenCodeConfigMounts(key)
-  await fs.mkdir(runnerSkillsStagingDir(key), { recursive: true })
+  await prepareRunStaging(key)
   const net = sh('docker', ['network', 'create', AGENT_NET])
   if (net.status !== 0) throw new Error(net.stderr)
   process.env.AGENT_IMAGE = AGENT_IMAGE

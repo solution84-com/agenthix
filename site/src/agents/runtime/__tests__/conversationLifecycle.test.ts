@@ -18,7 +18,7 @@ import type { EndConversationProcessesResult } from '../conversationProcesses'
 import type { AgentRuntime, ConversationRef } from '../types'
 
 const CONTAINER = 'agenthix-agent-project-p1-person-u1-rw'
-const HOME = '/site/homes/projects/p1/members/u1/.claude'
+const HOME = '/site/run-staging/users/u1/p1'
 const IDLE_MS = 30 * 60_000
 
 interface Process { pid: number; tag: string | null; what: string }
@@ -87,7 +87,7 @@ function setup(over: Partial<ConversationLifecycleDeps> = {}) {
     ...over,
   }
   const lifecycle = new ConversationLifecycle(deps)
-  const place = { containerName: CONTAINER, runtime, claudeHomeServerDir: HOME }
+  const place = { containerName: CONTAINER, runtime, runStagingServerDir: HOME }
 
   /** One turn of a conversation: its harness served, a process of its own started. */
   async function turn(id: string, what = `dev-server-${id}`): Promise<void> {
@@ -161,7 +161,7 @@ describe('the idle timer', () => {
       'token:conv-a',
       'runtime:conv-a',
       'processes:conv-a',
-      `staging:${HOME}/.tmp/conversation-conv-a`,
+      `staging:${HOME}/skills/conversation-conv-a`,
     ])
     expect(runtime.calls).toEqual(['idle:conv-a'])
   })
@@ -196,7 +196,7 @@ describe('the idle timer', () => {
 
     await vi.advanceTimersByTimeAsync(IDLE_MS)
 
-    expect(removeDir).toHaveBeenCalledWith(`${HOME}/.tmp/conversation-conv-a`)
+    expect(removeDir).toHaveBeenCalledWith(`${HOME}/skills/conversation-conv-a`)
   })
 })
 
@@ -327,12 +327,12 @@ describe('the end of a conversation', () => {
     const { container, lifecycle, runtime, deps, order } = setup()
     container.start('conv-z', 'left-over')
 
-    await lifecycle.endConversation('conv-z', { containerName: CONTAINER, runtimeName: 'opencode', claudeHomeServerDir: HOME })
+    await lifecycle.endConversation('conv-z', { containerName: CONTAINER, runtimeName: 'opencode', runStagingServerDir: HOME })
 
     expect(deps.resolveRuntime).toHaveBeenCalledWith('opencode')
     expect(container.running('left-over')).toBe(false)
     expect(runtime.calls).toEqual(['end:conv-z'])
-    expect(order).toContain(`staging:${HOME}/.tmp/conversation-conv-z`)
+    expect(order).toContain(`staging:${HOME}/skills/conversation-conv-z`)
   })
 
   it('still revokes the token when nothing else is known, and a runtime it cannot name is skipped', async () => {
@@ -347,7 +347,7 @@ describe('the end of a conversation', () => {
 
 describe('conversationStagingDir', () => {
   it('is one folder per conversation inside the read-only staging folder', () => {
-    expect(conversationStagingDir(HOME, 'conv-a')).toBe(`${HOME}/.tmp/conversation-conv-a`)
+    expect(conversationStagingDir(HOME, 'conv-a')).toBe(`${HOME}/skills/conversation-conv-a`)
   })
 
   it('refuses an id that is not one path segment', () => {

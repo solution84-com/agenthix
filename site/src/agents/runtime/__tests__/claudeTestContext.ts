@@ -32,6 +32,7 @@ export function claudeTestContext(overrides: Partial<RunContext> = {}): RunConte
     boundaryOverride: null,
     skills: null,
     claudeHome: { serverDir: '/site/homes/h', visibleDir: '/site/homes/h' },
+    runStaging: { serverDir: '/site/run-staging/h', visibleDir: '/site/run-staging/h' },
     workingTreeDir: '/projects/web/files',
     ...overrides,
   }

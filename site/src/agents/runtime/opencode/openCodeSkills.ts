@@ -3,8 +3,8 @@
  *
  * At the start of each turn the site stages the run's skills with the same
  * code, namespaces and checks as for Claude (`stageSkills`), into one folder
- * per conversation inside the runner's Claude home's staging folder, which the
- * container binds read-only. The turn's system prompt lists each skill's name
+ * per conversation in the `skills/` folder of the runner's run staging
+ * (runStaging.ts, adr-0173), which the container mounts read-only. The turn's system prompt lists each skill's name
  * and description in the words and format of OpenCode's own list; Agenthix's
  * plugin replaces OpenCode's `skill` tool and loads only from this folder, and
  * lets the conversation's commands read it. OpenCode's own skill discovery is
@@ -21,8 +21,8 @@ import { OPENCODE_SKILLS_DIRNAME, conversationStagingDirName } from '@agenthix/c
 import { Logger } from '../../../server/utils/logger'
 import { stageSkills, type StagingResult } from '../skillStaging'
 import { recordSkillsUsed } from '../skillUseRecord'
-import { closeDir, inDir, openFolderIn, readFileUnder, removeEntryIn, withStagingFolder } from '../homeFolder'
-import { SKILLS_STAGING_DIRNAME } from '../skillsStagingDir'
+import { closeDir, inDir, openFolderIn, readFileUnder, removeEntryIn, withRunStaging } from '../homeFolder'
+import { RUN_STAGING_SKILLS } from '../runStagingFolders'
 import type { RunContext } from '../types'
 import type { InvocableSkill } from '../pickedSkill'
 import { skillDescription } from './skillDescription'
@@ -44,7 +44,7 @@ export type OpenCodeTurnSkills = {
   invocable: InvocableSkill[]
 }
 
-type StagingContext = Pick<RunContext, 'runId' | 'claudeHome' | 'skills'>
+type StagingContext = Pick<RunContext, 'runId' | 'runStaging' | 'skills'>
 
 function stagingDirName(conversationId: string): string {
   const name = conversationStagingDirName(conversationId)
@@ -53,11 +53,11 @@ function stagingDirName(conversationId: string): string {
 }
 
 /** The conversation's skills folder: `{ serverDir }` where the site writes it, `{ visibleDir }` as the run sees it. */
-export function openCodeSkillsDirs(claudeHome: RunContext['claudeHome'], conversationId: string) {
-  const suffix = path.join(SKILLS_STAGING_DIRNAME, stagingDirName(conversationId), OPENCODE_SKILLS_DIRNAME)
+export function openCodeSkillsDirs(runStaging: RunContext['runStaging'], conversationId: string) {
+  const suffix = path.join(RUN_STAGING_SKILLS, stagingDirName(conversationId), OPENCODE_SKILLS_DIRNAME)
   return {
-    serverDir: path.join(claudeHome.serverDir, suffix),
-    visibleDir: path.posix.join(claudeHome.visibleDir, suffix.split(path.sep).join('/')),
+    serverDir: path.join(runStaging.serverDir, suffix),
+    visibleDir: path.posix.join(runStaging.visibleDir, suffix.split(path.sep).join('/')),
   }
 }
 
@@ -100,10 +100,8 @@ export function openCodeSkillsSection(skills: OpenCodeSkill[]): string {
  * seen half-written.
  */
 export async function stageOpenCodeSkills(context: StagingContext, conversationId: string): Promise<OpenCodeTurnSkills> {
-  const dirs = openCodeSkillsDirs(context.claudeHome, conversationId)
-  // Through the staging folder as opened from the harness home, never by path (homeFolder.ts): a `.claude`, `.tmp`
-  // or conversation folder the run replaced with a link is refused, and nothing is written or read through one.
-  const { result, markdown } = await withStagingFolder(context.claudeHome.serverDir, async tmp => {
+  const dirs = openCodeSkillsDirs(context.runStaging, conversationId)
+  const { result, markdown } = await withRunStaging(context.runStaging.serverDir, RUN_STAGING_SKILLS, async tmp => {
     const parent = await openFolderIn(tmp, stagingDirName(conversationId))
     try {
       const next = `${OPENCODE_SKILLS_DIRNAME}.next-${randomUUID()}`

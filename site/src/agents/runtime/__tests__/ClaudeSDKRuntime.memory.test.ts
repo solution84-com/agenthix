@@ -31,7 +31,7 @@ const runtime = new ClaudeSDKRuntime()
 async function turn(script: TurnScript, overrides: Partial<RunContext> = {}) {
   const fake = fakeClaudeQueries(script)
   vi.mocked(query).mockImplementation(fake.start)
-  const context = claudeTestContext({ claudeHome: { serverDir: home, visibleDir: home }, ...overrides })
+  const context = claudeTestContext({ claudeHome: { serverDir: home, visibleDir: home }, runStaging: { serverDir: path.join(home, 'run-staging'), visibleDir: path.join(home, 'run-staging') }, ...overrides })
   const events: RunEvent[] = []
   for await (const e of runtime.run(context)) events.push(e)
   return { events, fake }

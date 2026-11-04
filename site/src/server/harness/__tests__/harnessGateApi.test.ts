@@ -39,6 +39,7 @@ function context(over: Partial<RunContext> = {}): RunContext {
     boundaryOverride: null,
     skills: null,
     claudeHome: { serverDir: '/site/homes/x/.claude', visibleDir: '/home/appuser/.claude' },
+    runStaging: { serverDir: '/site/run-staging/x', visibleDir: '/run/staging' },
     workingTreeDir: '/site/projects/p1/files',
     ...over,
   }

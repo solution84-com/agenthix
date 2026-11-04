@@ -54,7 +54,7 @@ import {
   resolveContained,
 } from '../../agents/runtime/containedFile'
 import { describeLocation, locationFileError, parseParams, refuse } from './locationContainment'
-import { getKnowledgeDir, getStorageRoot, locationDir, ownerDir, type LocationRef } from './paths'
+import { getCodeDir, getCodeOwnerDir, getKnowledgeDir, getStorageRoot, locationDir, ownerDir, type LocationRef } from './paths'
 
 const METHOD = LOCATION_FILE_METHODS.removeLocation
 
@@ -99,10 +99,16 @@ export async function removeLocation(params: unknown): Promise<LocationRemoveRes
 
   const target = targetFor(loc, !!wholeOwner)
   const removed = await removeTarget(loc, target, !!wholeOwner)
-  // An owner's knowledge lives outside its folder (so runs never mount it), and goes with it.
-  if (!wholeOwner) return { removed }
+  // A repository workspace's main lives in the code space (adr-0173), outside the owner's folder, and goes with it.
+  if (!wholeOwner) {
+    if (!loc.workspaceId || loc.taskId) return { removed }
+    const main = await removeTarget(loc, getCodeDir({ ownerType: loc.ownerType, ownerId: loc.ownerId, workspaceId: loc.workspaceId }), true)
+    return { removed: removed || main }
+  }
+  // An owner's knowledge and code space live outside its folder (so runs never mount them), and go with it.
   const knowledge = await removeTarget(loc, getKnowledgeDir(loc.ownerType, loc.ownerId), true)
-  return { removed: removed || knowledge }
+  const code = await removeTarget(loc, getCodeOwnerDir(loc.ownerType, loc.ownerId), true)
+  return { removed: removed || knowledge || code }
 }
 
 async function removeTarget(loc: LocationRef, target: string, wholeOwner: boolean): Promise<boolean> {

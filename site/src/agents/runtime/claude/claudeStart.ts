@@ -11,7 +11,7 @@
  */
 import { createHash } from 'node:crypto'
 import { HARNESS_ENV, buildSdkBuiltinTools, buildSdkDisallowedTools } from '../sdkNames'
-import { CLAUDE_COMMAND_SHELL_PREFIX, COMMAND_READABLE_ENV, PLATFORM_TOKEN_ENV } from '../agentImage'
+import { CLAUDE_COMMAND_SHELL_PREFIX, PLATFORM_TOKEN_ENV } from '../agentImage'
 import { conversationProcessTag } from '../conversationProcesses'
 import { HARNESS_SERVER_KEY_ENV } from '@agenthix/core'
 import { getAgentFacingSiteUrl } from '../../../server/siteConfig'
@@ -100,7 +100,7 @@ export function buildClaudeStart(context: RunContext, skills: StagedTurnSkills |
     // Without a container the token is in no exec environment: a changed one still needs a new process.
     platformToken: context.gitCredEnv?.[PLATFORM_TOKEN_ENV] ?? null,
     // The skills folder is compared by content, above, and the key by its hash.
-    execEnv: Object.fromEntries(Object.entries(execEnv).filter(([k]) => k !== COMMAND_READABLE_ENV)),
+    execEnv,
     credential: credentialIdentity(context),
   })).digest('hex')
 
@@ -148,8 +148,6 @@ export function apiKeyHelperCommand(siteUrl: string = getAgentFacingSiteUrl()): 
  *   same launcher, instead of the copy built into the CLI, which runs with
  *   this process's own reach — so a link swapped in after the gate's check
  *   leads nowhere (spec, "Tools Agenthix owns on OpenCode", on Claude);
- * - the staged skills folder as one commands may read, so a skill's scripts
- *   run although the folder is inside the harness home, and Grep may search it;
  * - the platform token, which the platform connection names rather than holds,
  *   and the agent's handle;
  * - for an API key, the site's model relay as Anthropic's address — Anthropic's
@@ -167,7 +165,6 @@ function claudeExecEnv(context: RunContext, skills: StagedTurnSkills | null, rel
     ...conversationProcessTag(context.sessionId),
     CLAUDE_CODE_SHELL_PREFIX: CLAUDE_COMMAND_SHELL_PREFIX,
     USE_BUILTIN_RIPGREP: '0',
-    ...(skills ? { [COMMAND_READABLE_ENV]: skills.visibleDir } : {}),
     ...(relayed ? {
       // Claude Code appends /v1/messages itself.
       ANTHROPIC_BASE_URL: relayProviderUrl(getAgentFacingSiteUrl(), 'anthropic'),

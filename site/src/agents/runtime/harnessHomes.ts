@@ -62,9 +62,30 @@ function homesRoot(): string {
   return path.join(getSiteRoot(), HOMES_DIRNAME)
 }
 
+/**
+ * Run staging (adr-0173): what the site checks and hands to one runner's runs in one boundary, which they may read
+ * but never change — the run's checked skills (`skills/`, which the harness loads) and each conversation's pinned
+ * memory (`pinned-memory/`). Laid out like `homes/`, site-only, and mounted read-only at `RUN_STAGING_CONTAINER_DIR`
+ * on the container's read-only root, never inside the writable harness home: a run could move a folder of its home
+ * aside, and the harness would then load a version of a skill the site never checked.
+ */
+const RUN_STAGING_DIRNAME = 'run-staging'
+
+/** Where a runner's run staging is mounted, read-only, in every container. */
+export const RUN_STAGING_CONTAINER_DIR = '/run/staging'
+
+function runStagingRoot(): string {
+  return path.join(getSiteRoot(), RUN_STAGING_DIRNAME)
+}
+
 /** `homes/users/<person id>/` — every home that belongs to one person. */
 export function personHarnessHomesRoot(userId: string): string {
   return path.join(homesRoot(), 'users', idSegment(userId, 'person id'))
+}
+
+/** `run-staging/users/<person id>/`: every run staging that belongs to one person. */
+export function personRunStagingRoot(userId: string): string {
+  return path.join(runStagingRoot(), 'users', idSegment(userId, 'person id'))
 }
 
 /** The person, running in their own storage. */
@@ -85,16 +106,57 @@ export function projectHarnessHome(projectId: string): string {
 }
 
 /**
+ * A folder of the runner layout (`homes/` or `run-staging/`) as `{ parent, name }`: the site removes it as the entry
+ * `name` of `parent`, a folder no container can write (membershipEnding.ts).
+ */
+export type RunnerFolder = { parent: string; name: string }
+
+export const asEntry = (folder: string): RunnerFolder => ({ parent: path.dirname(folder), name: path.basename(folder) })
+
+/** The person's run staging in a project, as the entry of its parent. */
+export function personProjectRunStaging(userId: string, projectId: string): RunnerFolder {
+  return asEntry(path.join(personRunStagingRoot(userId), path.basename(personProjectHarnessHome(userId, projectId))))
+}
+
+/** Every run staging that belongs to one person, as one entry. */
+export function personRunStagings(userId: string): RunnerFolder {
+  return asEntry(personRunStagingRoot(userId))
+}
+
+/** The person's harness home in a project, and all of a person's homes, as entries. */
+export function personProjectHomeEntry(userId: string, projectId: string): RunnerFolder {
+  return asEntry(personProjectHarnessHome(userId, projectId))
+}
+
+export function personHomesEntry(userId: string): RunnerFolder {
+  return asEntry(personHarnessHomesRoot(userId))
+}
+
+/** The run staging of one container's runner, as the site server sees it: the home's own path under `run-staging/`. */
+export function runStagingFor(key: ContainerKey): string {
+  return path.join(runStagingRoot(), path.relative(homesRoot(), harnessHomeFor(key)))
+}
+
+/**
  * Every home that belongs to one project: the project's own, and each member's
  * `homes/users/<person id>/<project id>/` that exists on this disk. The
  * project's own is always listed, whether or not it exists yet — removing a
  * path that is not there is not an error.
  */
 export async function projectHarnessHomes(projectId: string): Promise<string[]> {
-  const homes = [projectHarnessHome(projectId)]
+  return projectRunnerFolders(homesRoot(), projectId)
+}
+
+/** The same for run staging: the project's own and each member's in the project, as entries to remove. */
+export async function projectRunStagings(projectId: string): Promise<RunnerFolder[]> {
+  return (await projectRunnerFolders(runStagingRoot(), projectId)).map(asEntry)
+}
+
+async function projectRunnerFolders(root: string, projectId: string): Promise<string[]> {
+  const homes = [path.join(root, 'projects', idSegment(projectId, 'project id'))]
   let people: string[]
   try {
-    const entries = await fs.readdir(path.join(homesRoot(), 'users'), { withFileTypes: true })
+    const entries = await fs.readdir(path.join(root, 'users'), { withFileTypes: true })
     people = entries.filter(e => e.isDirectory()).map(e => e.name)
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return homes
@@ -103,7 +165,7 @@ export async function projectHarnessHomes(projectId: string): Promise<string[]> 
   for (const person of people) {
     let home: string
     try {
-      home = personProjectHarnessHome(person, projectId)
+      home = path.join(root, path.relative(homesRoot(), personProjectHarnessHome(person, projectId)))
     } catch {
       continue // a folder no id could have produced; not one of ours to list
     }

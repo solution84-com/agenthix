@@ -1,17 +1,19 @@
 /**
  * What moves a code workspace's `main` (site protocol 1.12, `core/src/protocol/mainWork.ts`): turning Git on, a
  * squashed merge with the stored merge base, a restore, and pushing to and taking in from the workspace's GitHub
- * repository. Each runs in the commit helper in the workspace's own repository, one at a time per workspace.
+ * repository. Each runs in the commit helper on `main` in the code space (adr-0173), one at a time per workspace.
  *
  * The GitHub remote is the one the workspace's attachment on this site names, never one the repository's own
  * settings name; hq's token is used for that one call and goes nowhere else.
  */
 import {
-  GIT_INIT_IGNORED, GIT_INIT_LARGE_FILE_BYTES, MAIN_WORK_METHODS, MAIN_WORK_SITE_BUDGET_MS, RepoWorkError,
+  BranchWorkError, GIT_INIT_IGNORED, GIT_INIT_LARGE_FILE_BYTES, MAIN_WORK_METHODS, MAIN_WORK_SITE_BUDGET_MS, RepoWorkError,
   type GitInitResult, type GitMergeResult, type GitPullMainResult, type GitPushMainResult, type GitRestoreResult,
   type MainVersion, type MergeClash,
 } from '@agenthix/core'
 import { prisma } from '#db'
+import { AlreadyRepository, becomeRepository } from '../storage/codeSpace'
+import { CopyRefused } from '../storage/boundaryTreeCopy'
 import { describeWorkspace, helperCall, inTurn, parse, placeWorkspace, type Placed } from './branchCalls'
 import { initParams, mergeParams, pullMainParams, pushMainParams, restoreParams } from './branchSchemas'
 
@@ -22,13 +24,27 @@ const now = () => new Date().toISOString()
 const writing = (p: Placed, network = false, readOnly = false) =>
   ({ workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly }, network, timeoutMs: budget })
 
+/**
+ * Turning Git on: the workspace's files are copied out of the boundary into a folder of the site's own, made a
+ * repository there by the helper, and switched into the code space as `main` (`codeSpace.ts`, adr-0173).
+ */
 export async function gitInit(params: unknown): Promise<GitInitResult> {
   const q = parse(initParams, params, M.init)
   const p = await placeWorkspace(q.workspace, M.init)
+  const request = {
+    op: 'init', author: q.author, at: now(), message: 'First version\n', large: GIT_INIT_LARGE_FILE_BYTES, ignored: [...GIT_INIT_IGNORED],
+  }
   return inTurn(p.ref.workspaceId, async () => {
-    const a = await helperCall(writing(p), {
-      op: 'init', author: q.author, at: now(), message: 'First version\n', large: GIT_INIT_LARGE_FILE_BYTES, ignored: [...GIT_INIT_IGNORED],
-    }, M.init, p.ref)
+    const a = await becomeRepository(p.ref, 'files', dir => helperCall({ ...writing(p), ws: { dir, readOnly: false } }, request, M.init, p.ref))
+      .catch(err => {
+        if (err instanceof AlreadyRepository) {
+          throw new BranchWorkError('already_repository', `${M.init}: ${describeWorkspace(p.ref)} is already a Git repository. Nothing was changed.`)
+        }
+        if (err instanceof CopyRefused) {
+          throw new RepoWorkError('refused', `${M.init}: ${describeWorkspace(p.ref)} could not be copied: ${err.message}. Nothing was changed.`)
+        }
+        throw err
+      })
     return { main: String(a.main), version: a.version as MainVersion, gitignoreAdded: a.gitignoreAdded === true, leftOut: a.leftOut as GitInitResult['leftOut'] }
   })
 }

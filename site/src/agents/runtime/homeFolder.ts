@@ -1,9 +1,8 @@
 /**
  * The one way the site writes, removes and reads in a run's harness home (harnessHomes.ts).
  *
- * The run writes its whole home, so anything in it may be a link: it can even rename `.claude`, which holds the
- * read-only staging bind (a folder holding a mount point can be renamed on Linux), and put a link or a folder of its
- * own in its place. The harness home itself is the folder the site made and bound at the image user's home
+ * The run writes its whole home, so anything in it may be a link: it can rename `.claude` and put a link or a folder
+ * of its own in its place. The harness home itself is the folder the site made and bound at the image user's home
  * directory, which a run cannot replace, so every operation starts from it and goes down one folder at a time
  * through `safeTree.ts`: each folder opened without following a link, each name looked up in the open folder (on
  * Linux through `/proc/self/fd`, so nothing renamed or linked afterwards can redirect it; on macOS, the development
@@ -26,7 +25,7 @@ import {
   type Dir,
 } from './safeTree'
 import { descriptorPath } from './containedFile'
-import { SKILLS_STAGING_DIRNAME } from './skillsStagingDir'
+import { RUN_STAGING_PINNED_MEMORY, RUN_STAGING_SKILLS, type RunStagingFolder } from './runStagingFolders'
 
 export { closeDir, inDir, lstatIn, namesIn, type Dir } from './safeTree'
 
@@ -178,48 +177,76 @@ export function harnessHomeOfClaudeFolder(claudeHome: string): string {
   return path.dirname(path.resolve(claudeHome))
 }
 
-const STAGING_LABEL = 'the run\'s staging folder is not a folder of its own'
-
 /**
- * Runs `work` on the staging folder (`<home>/.claude/.tmp`) of the Claude folder `claudeHome`, opened as above:
- * the folder the container binds read-only, and the only place the site stages a run's files.
+ * Runs `work` on one folder of a runner's run staging (`runStagingFolders.ts`), made when `create` is set. Run
+ * staging is outside every folder a container can write, so nothing in it can have been replaced; it is opened the
+ * same way as a home only so the staging code has one way to work.
  */
-export async function withStagingFolder<T>(claudeHome: string, work: (staging: Dir) => Promise<T>, opts: { create?: boolean } = {}): Promise<T> {
-  const relPath = `${path.basename(path.resolve(claudeHome))}/${SKILLS_STAGING_DIRNAME}`
-  return withHomeFolder(harnessHomeOfClaudeFolder(claudeHome), relPath, STAGING_LABEL, work, opts)
+export async function withRunStaging<T>(
+  runStaging: string, folder: RunStagingFolder, work: (dir: Dir) => Promise<T>, opts: { create?: boolean } = {},
+): Promise<T> {
+  return withHomeFolder(runStaging, folder, 'run staging is not a folder of its own', work, opts)
 }
 
 /**
- * Removes `<claudeHome>/.tmp/<name>`, named by its full path as the site sees it. Absent, staging folder and all,
- * is success; a path that is not one entry of a staging folder is refused.
+ * Removes `<run staging>/<skills|pinned-memory>/<name>`, named by its full path as the site sees it. Absent is
+ * success; a path that is not one entry of a run staging folder is refused.
  */
-export async function removeFromStaging(entryPath: string): Promise<void> {
-  const staging = path.dirname(path.resolve(entryPath))
-  if (path.basename(staging) !== SKILLS_STAGING_DIRNAME) throw new Error('Refusing to remove something outside a staging folder')
+export async function removeFromRunStaging(entryPath: string): Promise<void> {
+  const folder = path.dirname(path.resolve(entryPath))
+  const kind = path.basename(folder)
+  if (kind !== RUN_STAGING_SKILLS && kind !== RUN_STAGING_PINNED_MEMORY) {
+    throw new Error('Refusing to remove something outside run staging')
+  }
   try {
-    await withStagingFolder(path.dirname(staging), dir => removeEntryIn(dir, path.basename(entryPath)))
+    await withRunStaging(path.dirname(folder), kind, dir => removeEntryIn(dir, path.basename(entryPath)))
   } catch (err) {
     ignoreMissing(err)
   }
 }
 
 /**
- * Makes `home/<relative>` a chain of real folders, before a container binds anything inside it. Whatever else
- * stands at one of its parts — a symbolic link, a file — is removed, never followed: a link the run left in its home
- * points where the container sees things, and Docker would bind whatever it leads to on this machine.
+ * Makes `home/<relative>` a chain of real folders, before a container mounts anything there (Docker would otherwise
+ * make a missing mount point root-owned). Whatever else stands at one of its parts — a symbolic link, a file — is
+ * removed, never followed, and each folder is made and opened from the one above it: another container of the same
+ * runner shares the home, and may change it while this runs.
  */
 export async function ensureRealFolders(home: string, relative: string): Promise<void> {
-  let current = home
-  for (const part of relative.split('/').filter(Boolean)) {
-    current = path.join(current, part)
-    const stat = await fs.lstat(current).catch((err: unknown) => {
-      ignoreMissing(err)
-      return null
-    })
-    if (stat?.isDirectory()) continue
-    if (stat) await fs.rm(current, { force: true })
-    await fs.mkdir(current).catch((err: NodeJS.ErrnoException) => {
-      if (err.code !== 'EEXIST') throw err
-    })
+  await fs.mkdir(home, { recursive: true })
+  let current = await openRoot(home)
+  try {
+    for (const part of relative.split('/').filter(Boolean)) {
+      const entry = await lstatIn(current, part)
+      if (entry && !entry.isDirectory()) await removeEntryIn(current, part)
+      const next = await openChildDir(current, part, { create: true })
+      if (!next) throw missing(part)
+      await closeDir(current)
+      current = next
+    }
+  } finally {
+    await closeDir(current)
+  }
+}
+
+/**
+ * Makes each of `relatives` under `root` where missing, one folder at a time from `root`, which must itself be a
+ * folder no container can replace (a boundary's own folder, a home). A part that is a link, or not a folder, is left
+ * as it is and that folder is not made: a run put it there, and nothing outside a container follows it (adr-0173).
+ */
+export async function ensureFoldersUnder(root: string, relatives: readonly string[]): Promise<void> {
+  await fs.mkdir(root, { recursive: true })
+  const top = await openRoot(root)
+  try {
+    for (const rel of relatives) {
+      if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) continue
+      try {
+        const dir = await openDirPath(top, rel.split(path.sep).join('/'), { create: true })
+        if (dir) await closeDir(dir, top)
+      } catch (err) {
+        if (!(err instanceof LinkRefused)) throw err
+      }
+    }
+  } finally {
+    await closeDir(top)
   }
 }

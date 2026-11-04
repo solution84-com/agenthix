@@ -13,10 +13,11 @@ import {
   type BranchWorkErrorCode, type RepoWorkErrorCode, type WorkspaceRepoRef,
 } from '@agenthix/core'
 import { prisma } from '#db'
-import { ownerDir } from '../storage/paths'
+import { getCodeDir, ownerDir } from '../storage/paths'
+import { closeDir, inDir, LinkRefused, lstatIn, openDirPath, openRoot, type Dir } from '../../agents/runtime/safeTree'
 import { redactToken } from '../storage/repoWorkRefusals'
 import { Logger } from '../utils/logger'
-import { runHelper, type HelperAnswer, type HelperSpec } from './helperContainer'
+import { runHelper, type BoundaryCopy, type HelperAnswer, type HelperSpec } from './helperContainer'
 
 const logger = new Logger('branches')
 
@@ -32,9 +33,10 @@ export function parse<T>(schema: ZodType<T>, params: unknown, method: string): T
   }
 }
 
+/** A workspace this site holds: the boundary's folder (`owner`) and `main` in the code space (`ws`, adr-0173). */
 export type Placed = { ref: WorkspaceRepoRef; owner: string; ws: string }
 
-/** The workspace's folder, when this site holds that workspace for that owner. */
+/** The workspace's folders, when this site holds that workspace for that owner. */
 export async function placeWorkspace(ref: WorkspaceRepoRef, method: string): Promise<Placed> {
   const row = await prisma.workspace.findFirst({ where: { id: ref.workspaceId, ownerType: ref.ownerType, ownerId: ref.ownerId }, select: { id: true } })
   let owner: string | null = null
@@ -42,10 +44,55 @@ export async function placeWorkspace(ref: WorkspaceRepoRef, method: string): Pro
   if (!owner || ref.workspaceId.includes('/') || ref.workspaceId.includes('..')) {
     throw new RepoWorkError('outside', `${method}: this site holds no ${describeWorkspace(ref)}. Nothing was changed.`)
   }
-  return { ref, owner, ws: path.join(owner, 'workspaces', ref.workspaceId) }
+  return { ref, owner, ws: getCodeDir(ref) }
 }
 
+/** Where a copy is on this disk, as the site sees it: for its records and a run's working folder, never to act on. */
 export const copyDirOf = (p: Placed, copyId: string) => path.join(p.owner, 'clones', copyId)
+
+/** A copy as the commit helper is given it: the boundary's folder, mounted whole, and the copy's id inside it. */
+export const copyOf = (p: Placed, copyId: string, readOnly: boolean): BoundaryCopy => ({ boundary: p.owner, copyId, readOnly })
+
+/**
+ * Runs `work` on the boundary's `clones/` folder, opened from the boundary's own folder through open folders, never
+ * through a symbolic link a run put there (adr-0173). `create` makes it where missing; otherwise a missing one is null.
+ */
+export async function withClones<T>(owner: string, create: boolean, work: (clones: Dir | null) => Promise<T>): Promise<T> {
+  if (create) await fs.mkdir(owner, { recursive: true })
+  const top = await openRoot(owner).catch((err: NodeJS.ErrnoException) => {
+    if (err.code === 'ENOENT' && !create) return null
+    throw err
+  })
+  if (!top) return work(null)
+  try {
+    const clones = await openDirPath(top, 'clones', { create })
+    try {
+      return await work(clones)
+    } finally {
+      if (clones) await closeDir(clones, top)
+    }
+  } finally {
+    await closeDir(top)
+  }
+}
+
+/** Whether the copy's folder is there, and holds a `.git` folder; looked at through open folders. */
+export async function copyState(owner: string, copyId: string): Promise<{ present: boolean; git: boolean }> {
+  return withClones(owner, false, async clones => {
+    const entry = clones ? await lstatIn(clones, copyId) : null
+    if (!clones || !entry?.isDirectory()) return { present: !!entry, git: false }
+    const copy = await openDirPath(clones, copyId).catch(() => null)
+    if (!copy) return { present: true, git: false }
+    try {
+      return { present: true, git: !!(await lstatIn(copy, '.git'))?.isDirectory() }
+    } finally {
+      await closeDir(copy, clones)
+    }
+  }).catch(err => {
+    if (err instanceof LinkRefused) return { present: false, git: false }
+    throw err
+  })
+}
 
 /** The site's own record of a copy, which must be of this workspace and, when named, this branch. */
 export async function requireCopy(p: Placed, copyId: string, branch: string | null, method: string) {
@@ -108,28 +155,33 @@ export async function helperCall(spec: HelperSpec, request: Record<string, unkno
   throw new RepoWorkError('git_failed', `${method} failed for ${where}; the reason is in this site's log. Nothing was changed.`)
 }
 
-/** A copy's folder, made empty for the helper to fill; one already there is refused. */
-export async function freshCopyDir(dir: string, method: string, ref: WorkspaceRepoRef): Promise<void> {
-  await fs.mkdir(path.dirname(dir), { recursive: true })
+/** A copy's folder, made empty in the boundary's `clones/` for the helper to fill; one already there is refused. */
+export async function freshCopyDir(p: Placed, copyId: string, method: string): Promise<void> {
   try {
-    await fs.mkdir(dir)
+    await withClones(p.owner, true, async clones => {
+      if (!clones) throw new Error('no clones folder')
+      await fs.mkdir(inDir(clones, copyId))
+    })
   } catch {
-    throw new BranchWorkError('copy_exists', `${method}: ${describeWorkspace(ref)} ${BRANCH_WORDS.copy_exists}. Nothing was changed.`)
+    throw new BranchWorkError('copy_exists', `${method}: ${describeWorkspace(p.ref)} ${BRANCH_WORDS.copy_exists}. Nothing was changed.`)
   }
 }
 
 /** Removes a copy's folder: the helper empties it inside its container, then the site takes the empty folder away. */
 export async function removeCopyDir(p: Placed, copyId: string, method: string, timeoutMs: number): Promise<boolean> {
-  const dir = copyDirOf(p, copyId)
-  try { await fs.lstat(dir) } catch { return false }
+  if (!(await copyState(p.owner, copyId)).present) return false
   for (let attempt = 0; attempt < 2; attempt++) {
-    await helperCall({ workspaceId: p.ref.workspaceId, copy: { dir, readOnly: false }, network: false, timeoutMs }, { op: 'removeCopy' }, method, p.ref)
-    try {
-      await fs.rmdir(dir)
-      return true
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return true
-    }
+    await helperCall({ workspaceId: p.ref.workspaceId, copy: copyOf(p, copyId, false), network: false, timeoutMs }, { op: 'removeCopy' }, method, p.ref)
+    const gone = await withClones(p.owner, false, async clones => {
+      if (!clones) return true
+      try {
+        await fs.rmdir(inDir(clones, copyId))
+        return true
+      } catch (err) {
+        return (err as NodeJS.ErrnoException).code === 'ENOENT'
+      }
+    }).catch(() => false)
+    if (gone) return true
   }
   throw new RepoWorkError('git_failed', `${method} could not remove copy ${copyId} of ${describeWorkspace(p.ref)}: files kept appearing in it. Nothing else was changed.`)
 }

@@ -6,7 +6,7 @@ vi.mock('../credentialFile', () => import('./fakeCredentialFile'))
 vi.mock('../homeFolder', () => import('./fakeHomeFolder'))
 vi.mock('node:fs/promises', () => ({
   default: {
-    mkdtemp: vi.fn().mockResolvedValue('/site/homes/project-proj-alpha/.tmp/skills-123'),
+    mkdtemp: vi.fn().mockResolvedValue('/site/run-staging/projects/proj-alpha/skills/skills-123'),
     mkdir: vi.fn().mockResolvedValue(undefined),
     readdir: vi.fn().mockRejectedValue(Object.assign(new Error('ENOENT'), { code: 'ENOENT' })),
     symlink: vi.fn().mockResolvedValue(undefined),
@@ -103,6 +103,7 @@ const baseContext: RunContext = {
   // — never to the agent. Both views of one directory; the second is what the
   // SDK is told.
   claudeHome: { serverDir: '/site/homes/project-proj-alpha', visibleDir: '/site/homes/project-proj-alpha' },
+  runStaging: { serverDir: '/site/run-staging/projects/proj-alpha', visibleDir: '/site/run-staging/projects/proj-alpha' },
   workingTreeDir: '/projects/web/files',
 }
 
@@ -353,7 +354,7 @@ describe('ClaudeSDKRuntime @SC-119', () => {
     }
 
     const callOptions = mockQuery.mock.calls[0]?.[0].options
-    expect(callOptions?.additionalDirectories).toEqual(['/site/homes/project-proj-alpha/.tmp/skills-123'])
+    expect(callOptions?.additionalDirectories).toEqual(['/site/run-staging/projects/proj-alpha/skills/skills-123'])
   })
 
   it('hands the staged skills over as a local plugin, allowlisted, with inline skill commands off', async () => {
@@ -364,13 +365,13 @@ describe('ClaudeSDKRuntime @SC-119', () => {
     for await (const _ of new ClaudeSDKRuntime().run(baseContext)) { /* drain */ }
 
     const options = mockQuery.mock.calls[0]?.[0].options
-    expect(options?.plugins).toEqual([{ type: 'local', path: '/site/homes/project-proj-alpha/.tmp/skills-123/.claude' }])
+    expect(options?.plugins).toEqual([{ type: 'local', path: '/site/run-staging/projects/proj-alpha/skills/skills-123/.claude' }])
     expect(options?.skills).toEqual(['org-x', 'agent-y'])
     expect(options?.settingSources).toEqual([])
     expect(options?.tools).toContain('Skill')
     expect(options?.settings).toMatchObject({ disableSkillShellExecution: true })
     expect(fsMod.writeFile).toHaveBeenCalledWith(
-      '/site/homes/project-proj-alpha/.tmp/skills-123/.claude/.claude-plugin/plugin.json', JSON.stringify({ name: 'agenthix' }))
+      '/site/run-staging/projects/proj-alpha/skills/skills-123/.claude/.claude-plugin/plugin.json', JSON.stringify({ name: 'agenthix' }))
   })
 
   it('tells the agent to load a picked skill staged for the turn, and drops one a person may not pick', async () => {
@@ -389,7 +390,7 @@ describe('ClaudeSDKRuntime @SC-119', () => {
     expect(pushed.mock.calls.map(c => c[0])).toEqual([
       `${pickedSkillInstruction('org-x')}\n\nFix the bug`, 'Fix the bug', 'Fix the bug',
       // Read from the staged folder of the process that takes the turn, as it sees it.
-      `${pickedSkillReadInstruction('org-w', '/site/homes/project-proj-alpha/.tmp/skills-123/.claude/skills/org-w/SKILL.md')}\n\nFix the bug`,
+      `${pickedSkillReadInstruction('org-w', '/site/run-staging/projects/proj-alpha/skills/skills-123/.claude/skills/org-w/SKILL.md')}\n\nFix the bug`,
     ])
     pushed.mockRestore()
   })
@@ -437,18 +438,17 @@ describe('skills tmpdir location', () => {
 
     const mkdtempMock = vi.mocked(mockFs.default.mkdtemp)
     const mkdtempCall = mkdtempMock.mock.calls[0]?.[0] ?? ''
-    // Staged inside the boundary's Claude home — the directory bound into the
-    // run's container — not os.tmpdir() directly.
-    expect(mkdtempCall).toContain('/site/homes/project-proj-alpha')
-    expect(mkdtempCall).toContain('.tmp')
+    // Staged in the runner's run staging — mounted read-only into the run's
+    // container, outside its home (adr-0173) — not os.tmpdir() directly.
+    expect(mkdtempCall).toContain('/site/run-staging/projects/proj-alpha/skills/')
   })
 })
 
-// A run's skills are staged inside the Claude home bound into its container,
-// which belongs to the storage boundary that container serves rather than to
-// the agent. The path is built twice: through the site server's own view of
-// that directory, where the staging actually happens, and through the run's
-// view of it, which is what the SDK is told about.
+// A run's skills are staged in its runner's run staging, mounted read-only into
+// its container (adr-0173), which belongs to the runner in the storage boundary
+// that container serves rather than to the agent. The path is built twice:
+// through the site server's own view of that directory, where the staging
+// actually happens, and through the run's view of it, which the SDK is told.
 describe('skills are staged where the run can reach them', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -462,9 +462,10 @@ describe('skills are staged where the run can reach them', () => {
     // Under isolation the run is told the fixed container path, and nothing of
     // the site's own layout.
     claudeHome: { serverDir: '/site/homes/project-proj-alpha', visibleDir: '/home/appuser/.claude' },
+    runStaging: { serverDir: '/site/run-staging/projects/proj-alpha', visibleDir: '/run/staging' },
   }
 
-  it("creates the skills tmpdir on the site's own view of the boundary home", async () => {
+  it("creates the skills tmpdir on the site's own view of the runner's run staging", async () => {
     process.env.AGENT_CONTAINER_ISOLATION = 'true'
     const fsMod = (await import('node:fs/promises')).default as any
     mockStageSkills.mockResolvedValueOnce({ staged: [{ source: 'org', slug: 'x', name: 'org-x', fingerprint: 'f', userInvocable: true, modelInvocable: true }], refused: [] })
@@ -473,7 +474,7 @@ describe('skills are staged where the run can reach them', () => {
     for await (const _ of new ClaudeSDKRuntime().run(containerizedContext)) { /* drain */ }
 
     const mkdtempCall = fsMod.mkdtemp.mock.calls[0]?.[0] ?? ''
-    expect(mkdtempCall).toContain('/site/homes/project-proj-alpha/.tmp/skills-')
+    expect(mkdtempCall).toContain('/site/run-staging/projects/proj-alpha/skills/skills-')
     // Not rooted at the container path — this is a server-side fs op on the host.
     expect(mkdtempCall.startsWith('/home/appuser')).toBe(false)
   })
@@ -489,7 +490,7 @@ describe('skills are staged where the run can reach them', () => {
 
     for await (const _ of new ClaudeSDKRuntime().run(containerizedContext)) { /* drain */ }
     const containerCallOptions = mockQuery.mock.calls[0]?.[0].options
-    expect(containerCallOptions?.additionalDirectories).toEqual(['/home/appuser/.claude/.tmp/skills-xyz'])
+    expect(containerCallOptions?.additionalDirectories).toEqual(['/run/staging/skills/skills-xyz'])
 
     // Dev mode: there is no container, so the two views are the same path.
     vi.clearAllMocks()
@@ -502,7 +503,7 @@ describe('skills are staged where the run can reach them', () => {
 
     for await (const _ of new ClaudeSDKRuntime().run(baseContext)) { /* drain */ }
     const devCallOptions = mockQuery.mock.calls[0]?.[0].options
-    expect(devCallOptions?.additionalDirectories).toEqual(['/site/homes/project-proj-alpha/.tmp/skills-xyz'])
+    expect(devCallOptions?.additionalDirectories).toEqual(['/site/run-staging/projects/proj-alpha/skills/skills-xyz'])
   })
 })
 

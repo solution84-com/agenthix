@@ -14,27 +14,32 @@ afterEach(() => { fs.rmSync(root, { recursive: true, force: true }) })
 const boundary = () => ({ hostDir: path.join(root, 'projects', 'p1'), containerDir: '/projects/p1' })
 
 describe('a code workspace\'s own folder is read-only to every run in its boundary @SC-1723', () => {
-  it('each workspace whose folder holds a .git is bound read-only; the others are not', async () => {
-    for (const id of ['plain', 'code', 'linked']) fs.mkdirSync(path.join(boundary().hostDir, 'workspaces', id), { recursive: true })
-    fs.mkdirSync(path.join(boundary().hostDir, 'workspaces', 'code', '.git'))
-    fs.writeFileSync(path.join(boundary().hostDir, 'workspaces', 'linked', '.git'), 'gitdir: /elsewhere\n')
-    const mounts = await codeWorkspaceMounts(boundary(), [{ id: 'plain' }, { id: 'linked' }, { id: 'code' }])
-    expect(mounts).toEqual([
-      { hostDir: `${boundary().hostDir}/workspaces/code`, containerDir: '/projects/p1/workspaces/code' },
-      { hostDir: `${boundary().hostDir}/workspaces/linked`, containerDir: '/projects/p1/workspaces/linked' },
-    ])
+  beforeEach(() => { process.env.SITE_ROOT = root })
+  const code = (owner: string, id: string) => path.join(root, 'code', 'projects', owner, id)
+  const owner = { ownerType: 'project' as const, ownerId: 'p1' }
+
+  it("each workspace whose main is in the code space is mounted read-only from there; the others are not (adr-0173)", async () => {
+    for (const id of ['plain', 'code', 'own-git']) fs.mkdirSync(path.join(boundary().hostDir, 'workspaces', id), { recursive: true })
+    fs.mkdirSync(path.join(code('p1', 'code'), '.git'), { recursive: true })
+    // A `.git` a run made in the boundary does not make a workspace a repository.
+    fs.mkdirSync(path.join(boundary().hostDir, 'workspaces', 'own-git', '.git'))
+    const mounts = await codeWorkspaceMounts(boundary(), owner, [{ id: 'plain' }, { id: 'own-git' }, { id: 'code' }])
+    expect(mounts).toEqual([{ hostDir: code('p1', 'code'), containerDir: '/projects/p1/workspaces/code' }])
     expect(copyContainerDir(boundary(), 'c1')).toBe('/projects/p1/clones/c1')
   })
 
-  it('a workspace folder, or the workspaces folder, that a run replaced with a link is never bound', async () => {
+  it('no mount source runs through the boundary, whatever a run replaced there with a link', async () => {
     const other = path.join(root, 'projects', 'p2', 'workspaces', 'secret')
     fs.mkdirSync(path.join(other, '.git'), { recursive: true })
     fs.mkdirSync(path.join(boundary().hostDir, 'workspaces'), { recursive: true })
     fs.symlinkSync(other, path.join(boundary().hostDir, 'workspaces', 'w1'))
-    expect(await codeWorkspaceMounts(boundary(), [{ id: 'w1' }])).toEqual([])
+    expect(await codeWorkspaceMounts(boundary(), owner, [{ id: 'w1' }])).toEqual([])
+    fs.mkdirSync(path.join(code('p1', 'w2'), '.git'), { recursive: true })
     fs.rmSync(path.join(boundary().hostDir, 'workspaces'), { recursive: true })
     fs.symlinkSync(path.dirname(other), path.join(boundary().hostDir, 'workspaces'))
-    expect(await codeWorkspaceMounts(boundary(), [{ id: 'secret' }])).toEqual([])
+    const mounts = await codeWorkspaceMounts(boundary(), owner, [{ id: 'secret' }, { id: 'w2' }])
+    expect(mounts.map(m => m.hostDir)).toEqual([code('p1', 'w2')])
+    for (const m of mounts) expect(m.hostDir.startsWith(boundary().hostDir)).toBe(false)
   })
 
   it('the container binds them read-only over the boundary, and turning Git on changes its signature', () => {

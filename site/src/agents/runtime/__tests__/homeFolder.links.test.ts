@@ -1,7 +1,7 @@
 /**
- * A run can rename its home's `.claude` folder (the staging bind inside it moves with it) and put a link in its
- * place, or replace `.tmp` or a folder inside it. No write, removal or read the site makes in a harness home may
- * then reach the link's target: another person's home, or anything outside.
+ * A run can rename its home's `.claude` folder and put a link in its place, or replace a folder inside it. No write,
+ * removal or read the site makes in a harness home may then reach the link's target: another person's home, or
+ * anything outside. What the site stages for a run is no longer in the home at all (adr-0173).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import fs from 'node:fs/promises'
@@ -14,20 +14,21 @@ vi.mock('../../../server/utils/logger', () => ({
 
 import type { PinnedMemoryItem } from '@agenthix/core'
 import { releasePinnedMemory, writePinnedMemory } from '../pinnedMemoryFiles'
-import { ensureRealFolders, removeFromStaging, withStagingFolder } from '../homeFolder'
+import { ensureRealFolders, removeFromRunStaging } from '../homeFolder'
 import { writeCredentialFile } from '../credentialFile'
 
 let root: string
 let mine: string
 let other: string
+let staging: string
 beforeEach(async () => {
   root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'home-links-')))
   mine = path.join(root, 'mine')
   other = path.join(root, 'other')
-  await fs.mkdir(path.join(mine, '.claude', '.tmp'), { recursive: true })
-  await fs.mkdir(path.join(other, '.claude', '.tmp', 'memory-s1'), { recursive: true })
-  await fs.writeFile(path.join(other, '.claude', '.tmp', 'memory-s1', 'pinned.md'), 'theirs')
-  await fs.mkdir(path.join(other, '.claude', '.tmp', 'memory-gone'))
+  staging = path.join(root, 'run-staging', 'mine')
+  await fs.mkdir(path.join(mine, '.claude'), { recursive: true })
+  await fs.mkdir(path.join(other, '.claude', 'memory'), { recursive: true })
+  await fs.writeFile(path.join(other, '.claude', 'memory', 'pinned.md'), 'theirs')
 })
 afterEach(async () => {
   await fs.rm(root, { recursive: true, force: true })
@@ -35,7 +36,7 @@ afterEach(async () => {
 
 const claudeOf = (home: string) => path.join(home, '.claude')
 const ITEM: PinnedMemoryItem = { key: 'k', scope: 'agent_person', title: 'Mine', body: 'my pinned item' }
-const home = () => ({ serverDir: claudeOf(mine), visibleDir: '/home/appuser/.claude', shared: false })
+const runStaging = () => ({ serverDir: staging, visibleDir: '/run/staging', shared: false })
 
 /** Every file under `dir`, with its content, so a test can say nothing in it changed. */
 async function snapshot(dir: string): Promise<Record<string, string>> {
@@ -47,89 +48,37 @@ async function snapshot(dir: string): Promise<Record<string, string>> {
   return out
 }
 
-/** The three ways a run can steer the site into `other`'s staging folder. */
+/** What a run can do to its own home: rename `.claude` and put a symlink to another home in its place. */
 const plants: Array<[string, () => Promise<void>]> = [
   ['`.claude` renamed and replaced by a link to another home', async () => {
     await fs.rename(claudeOf(mine), path.join(mine, '.claude-old'))
     await fs.symlink(claudeOf(other), claudeOf(mine))
   }],
-  ['`.tmp` replaced by a link to another home\'s', async () => {
-    await fs.rm(path.join(claudeOf(mine), '.tmp'), { recursive: true })
-    await fs.symlink(path.join(claudeOf(other), '.tmp'), path.join(claudeOf(mine), '.tmp'))
-  }],
-  ['the session\'s own memory folder replaced by a link to another home\'s', async () => {
-    await fs.symlink(path.join(claudeOf(other), '.tmp', 'memory-s1'), path.join(claudeOf(mine), '.tmp', 'memory-s1'))
-  }],
 ]
 
-describe('pinned memory never follows a link the run planted in its home', () => {
-  for (const [what, plant] of plants) {
-    it(`${what}: the write, the clearing of left-behind folders and the removal leave the other home alone`, async () => {
-      await plant()
-      const before = await snapshot(other)
-      await writePinnedMemory(home(), 's1', [ITEM])
-      await writePinnedMemory(home(), 's2', undefined)
-      await releasePinnedMemory(claudeOf(mine), 's1')
-      await releasePinnedMemory(claudeOf(mine), 's2')
-      expect(await snapshot(other)).toEqual(before)
-    })
-  }
-
-  it('a link where the session folder goes is removed when the run has nothing pinned, its target untouched', async () => {
-    await plants[2][1]()
-    await writePinnedMemory(home(), 's1', undefined)
-    await releasePinnedMemory(claudeOf(mine), 's1')
-    await expect(fs.lstat(path.join(claudeOf(mine), '.tmp', 'memory-s1'))).rejects.toMatchObject({ code: 'ENOENT' })
-    expect(await fs.readFile(path.join(claudeOf(other), '.tmp', 'memory-s1', 'pinned.md'), 'utf-8')).toBe('theirs')
-  })
-
-  it('a pinned.md planted as a link is replaced, not written through', async () => {
-    const outside = path.join(root, 'outside.txt')
-    await fs.writeFile(outside, 'untouched')
-    await fs.mkdir(path.join(claudeOf(mine), '.tmp', 'memory-s1'))
-    await fs.symlink(outside, path.join(claudeOf(mine), '.tmp', 'memory-s1', 'pinned.md'))
-    expect(await writePinnedMemory(home(), 's1', [ITEM])).toBe('/home/appuser/.claude/.tmp/memory-s1/pinned.md')
-    expect(await fs.readFile(outside, 'utf-8')).toBe('untouched')
-    expect(await fs.readFile(path.join(claudeOf(mine), '.tmp', 'memory-s1', 'pinned.md'), 'utf-8')).toContain('my pinned item')
-    await releasePinnedMemory(claudeOf(mine), 's1')
-  })
-
-  it('still writes and removes in a home whose folders are its own', async () => {
-    expect(await writePinnedMemory(home(), 's1', [ITEM])).not.toBeNull()
-    await releasePinnedMemory(claudeOf(mine), 's1')
-    expect(await fs.readdir(path.join(claudeOf(mine), '.tmp'))).toEqual([])
+describe('pinned memory is written into run staging, outside the home a run can change (adr-0173)', () => {
+  it('is written, read at /run/staging, cleared when left behind and removed, whatever the run did to its home', async () => {
+    await plants[0][1]()
+    const before = await snapshot(other)
+    expect(await writePinnedMemory(runStaging(), 's1', [ITEM])).toBe('/run/staging/pinned-memory/s1/pinned.md')
+    expect(await fs.readFile(path.join(staging, 'pinned-memory', 's1', 'pinned.md'), 'utf-8')).toContain('my pinned item')
+    await fs.mkdir(path.join(staging, 'pinned-memory', 'gone'))
+    await writePinnedMemory(runStaging(), 's2', undefined)
+    await expect(fs.lstat(path.join(staging, 'pinned-memory', 'gone'))).rejects.toMatchObject({ code: 'ENOENT' })
+    await releasePinnedMemory(staging, 's1')
+    await releasePinnedMemory(staging, 's2')
+    expect(await fs.readdir(path.join(staging, 'pinned-memory'))).toEqual([])
+    expect(await snapshot(other)).toEqual(before)
   })
 })
 
-describe('the staging folder as the site opens it', () => {
-  it('is refused, not followed, when `.claude` is a link', async () => {
-    await plants[0][1]()
-    await expect(withStagingFolder(claudeOf(mine), async () => 'reached', { create: true })).rejects.toThrow(/Forbidden/)
+describe('removing from run staging', () => {
+  it('refuses a path that is not an entry of a run staging folder', async () => {
+    await expect(removeFromRunStaging(path.join(claudeOf(mine), 'projects'))).rejects.toThrow(/outside run staging/)
   })
 
-  it('removing an entry of it leaves another home alone when `.tmp` is a link', async () => {
-    await plants[1][1]()
-    const before = await snapshot(other)
-    await expect(removeFromStaging(path.join(claudeOf(mine), '.tmp', 'memory-s1'))).rejects.toThrow(/Forbidden/)
-    expect(await snapshot(other)).toEqual(before)
-  })
-
-  it('removes a folder whose inner folder is a link without emptying the link\'s target', async () => {
-    await fs.mkdir(path.join(claudeOf(mine), '.tmp', 'skills-x'))
-    await fs.symlink(path.join(claudeOf(other), '.tmp'), path.join(claudeOf(mine), '.tmp', 'skills-x', 'inner'))
-    const before = await snapshot(other)
-    await removeFromStaging(path.join(claudeOf(mine), '.tmp', 'skills-x'))
-    expect(await fs.readdir(path.join(claudeOf(mine), '.tmp'))).toEqual([])
-    expect(await snapshot(other)).toEqual(before)
-  })
-
-  it('refuses a path that is not an entry of a staging folder', async () => {
-    await expect(removeFromStaging(path.join(claudeOf(mine), 'projects'))).rejects.toThrow(/outside a staging folder/)
-  })
-
-  it('a missing staging folder is nothing to remove', async () => {
-    await fs.rm(claudeOf(mine), { recursive: true })
-    await expect(removeFromStaging(path.join(claudeOf(mine), '.tmp', 'memory-s1'))).resolves.toBeUndefined()
+  it('a missing run staging is nothing to remove', async () => {
+    await expect(removeFromRunStaging(path.join(staging, 'skills', 'skills-x'))).resolves.toBeUndefined()
   })
 })
 
@@ -144,9 +93,10 @@ describe('the credentials document is written into a Claude folder made where no
   })
 })
 
-describe('before a container binds the staging folder', () => {
-  it('a `.claude` or `.tmp` that is a link is replaced by a real folder, so Docker never binds what it leads to', async () => {
+describe('before a container mounts anything inside a home', () => {
+  it('a folder on the way that is a link is replaced by a real folder, made from the home down', async () => {
     await plants[0][1]()
+    await fs.mkdir(path.join(claudeOf(other), '.tmp'), { recursive: true })
     const before = await snapshot(other)
     await ensureRealFolders(mine, '.claude/.tmp')
     expect((await fs.lstat(claudeOf(mine))).isDirectory()).toBe(true)

@@ -41,7 +41,7 @@ function fakeDocker() {
 function depsWith(docker: ReturnType<typeof fakeDocker>, slots = new Slots(HELPER_SLOTS)): HelperDeps {
   return {
     ...helperDeps, contained: () => true, spawnDocker: docker.spawnDocker, removeContainer: async () => null,
-    nonce: () => 'n', protectionsProblem: async () => null, slots,
+    nonce: () => 'n', protectionsProblem: async () => null, slots, folderThere: async () => true,
   }
 }
 

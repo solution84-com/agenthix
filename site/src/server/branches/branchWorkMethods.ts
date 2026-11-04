@@ -3,7 +3,6 @@
  * a branch that exists, the `commit` tool's commit, bringing a branch back, renaming, deleting, removing a copy.
  * Every call naming a copy is checked against the site's own `BranchCopy` record first.
  */
-import fs from 'node:fs/promises'
 import {
   BRANCH_WORK_METHODS, BRANCH_WORK_SITE_BUDGET_MS, BranchWorkError, isCommitMessage, RepoWorkError, UPDATE_CLASH_PATHS_MAX,
   type BranchBackResult, type BranchCommitResult, type BranchCopyResult, type BranchDeleteResult,
@@ -13,7 +12,7 @@ import { prisma } from '#db'
 import { updateOwnCopyFromMain } from '../livePreviews/livePreviewUpdate'
 import { PLURAL_OWNER } from '../../agents/runtime/locationResolver'
 import {
-  copyDirOf, describeWorkspace, freshCopyDir, helperCall, inTurn, parse, placeWorkspace, removeCopyDir, requireCopy,
+  copyOf, copyState, describeWorkspace, freshCopyDir, helperCall, inTurn, parse, placeWorkspace, removeCopyDir, requireCopy,
   type Placed,
 } from './branchCalls'
 import {
@@ -32,11 +31,10 @@ async function makeCopy(p: Placed, copyId: string, branch: string, op: 'create' 
   if (await prisma.branchCopy.findUnique({ where: { id: copyId }, select: { id: true } })) {
     throw new BranchWorkError('copy_exists', `${method}: copy ${copyId} is already in use on this site. Nothing was changed.`)
   }
-  const dir = copyDirOf(p, copyId)
-  await freshCopyDir(dir, method, p.ref)
+  await freshCopyDir(p, copyId, method)
   try {
     const answer = await helperCall(
-      { workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: op === 'copy' }, copy: { dir, readOnly: false }, network: false, timeoutMs: budget },
+      { workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: op === 'copy' }, copy: copyOf(p, copyId, false), network: false, timeoutMs: budget },
       { op, branch, originUrl: originUrl(p) }, method, p.ref,
     )
     await prisma.branchCopy.create({ data: { id: copyId, ownerType: p.ref.ownerType, ownerId: p.ref.ownerId, workspaceId: p.ref.workspaceId, branch } })
@@ -65,7 +63,7 @@ export async function branchCopy(params: unknown): Promise<BranchCopyResult> {
  */
 export async function bringBackCopy(p: Placed, copyId: string, branch: string, method: string = M.bringBack): Promise<BranchBackResult> {
   const answer = await helperCall(
-    { workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: false }, copy: { dir: copyDirOf(p, copyId), readOnly: true }, network: false, timeoutMs: budget },
+    { workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: false }, copy: copyOf(p, copyId, true), network: false, timeoutMs: budget },
     { op: 'bringBack', branch, date: today() }, method, p.ref,
   )
   return {
@@ -88,7 +86,7 @@ export async function commitInCopy(
   p: Placed, copyId: string, branch: string, message: string, author: GitPerson, method: string,
 ): Promise<CopyCommit> {
   const answer = await helperCall(
-    { workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: true }, copy: { dir: copyDirOf(p, copyId), readOnly: false }, network: false, timeoutMs: budget },
+    { workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: true }, copy: copyOf(p, copyId, false), network: false, timeoutMs: budget },
     { op: 'commit', branch, message, author, at: new Date().toISOString() }, method, p.ref,
   )
   if (Array.isArray(answer.clashesLeft)) return { made: false, clashesLeft: answer.clashesLeft.map(String) }
@@ -133,7 +131,7 @@ export async function branchUpdateFromMain(params: unknown): Promise<BranchUpdat
   return inTurn(p.ref.workspaceId, async () => {
     await requireCopy(p, q.copyId, q.branch, M.updateFromMain)
     const answer = await helperCall(
-      { workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: true }, copy: { dir: copyDirOf(p, q.copyId), readOnly: false }, network: false, timeoutMs: budget },
+      { workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: true }, copy: copyOf(p, q.copyId, false), network: false, timeoutMs: budget },
       { op: 'updateFromMain', branch: q.branch, message, author: q.author, at: new Date().toISOString() }, M.updateFromMain, p.ref,
     )
     const paths = (v: unknown) => (Array.isArray(v) ? v.map(String).slice(0, UPDATE_CLASH_PATHS_MAX) : [])
@@ -164,7 +162,7 @@ export async function branchRename(params: unknown): Promise<BranchRenameResult>
       await bringBackCopy(p, q.copyId, q.from, M.rename)
     }
     await helperCall(
-      { workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: false }, ...(q.copyId ? { copy: { dir: copyDirOf(p, q.copyId), readOnly: false } } : {}), network: false, timeoutMs: budget },
+      { workspaceId: p.ref.workspaceId, ws: { dir: p.ws, readOnly: false }, ...(q.copyId ? { copy: copyOf(p, q.copyId, false) } : {}), network: false, timeoutMs: budget },
       { op: 'rename', from: q.from, to: q.to }, M.rename, p.ref,
     )
     await prisma.branchCopy.updateMany({ where: { workspaceId: p.ref.workspaceId, branch: q.from }, data: { branch: q.to } })
@@ -198,7 +196,7 @@ export async function branchRemoveCopy(params: unknown): Promise<BranchRemoveCop
       throw new RepoWorkError('invalid', `${M.removeCopy}: copy ${q.copyId} is not one of ${describeWorkspace(p.ref)}. Nothing was changed.`)
     }
     // Commits made with the agent's own git that are not back yet go back first: removing a copy never loses one.
-    const present = await fs.lstat(copyDirOf(p, q.copyId)).then(() => true, () => false)
+    const { present } = await copyState(p.owner, q.copyId)
     if (record && present) await bringBackCopy(p, q.copyId, record.branch, M.removeCopy).catch(err => {
       if (!(err instanceof BranchWorkError && (err.code === 'not_found' || err.code === 'no_copy'))) throw err
     })

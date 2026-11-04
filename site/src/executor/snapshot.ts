@@ -20,7 +20,7 @@ import { promisify } from 'node:util'
 import { DESCRIPTOR_PATHS_PINNED } from '../agents/runtime/containedFile'
 import { copyHandle, hashHandle, plainMode, type Manifest } from './manifest'
 import {
-  closeDir, filePath, inDir, LinkRefused, lstatIn, namesIn, openChildDir, openFileIn, openRoot, type Dir,
+  closeDir, filePath, inDir, LinkRefused, lstatIn, namesIn, openChildDir, openFileIn, openRoot, type Dir, type TreeRoot,
 } from './safeTree'
 
 export type SnapshotKind = 'CLONE' | 'COPY'
@@ -29,7 +29,7 @@ export type Snapshot = { kind: SnapshotKind; manifest: Manifest }
 type CopyMode = { mode: 'probe' | 'clone' | 'copy' }
 
 /** Copies the workspace at `source` to `dest`, which must not exist yet. */
-export async function takeSnapshot(source: string, dest: string): Promise<Snapshot> {
+export async function takeSnapshot(source: TreeRoot, dest: string): Promise<Snapshot> {
   const manifest: Manifest = new Map()
   const how: CopyMode = { mode: 'probe' }
   const top = await openRoot(source)

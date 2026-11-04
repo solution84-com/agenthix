@@ -10,6 +10,7 @@
  * IPC namespace, IPv6 off, no Docker socket, no published port, no extra host. Its network is its own, in the
  * live-preview part of the agents' range, where the host service drops anything bound for a private address.
  */
+import { boundaryCopyOf } from '../../storage/paths'
 import path from 'node:path'
 import { ipv6OffSysctls, sysctlArgs } from '../../../agents/runtime/ipv6Off'
 import { agentNetworkName } from '../../../agents/runtime/containerNetwork'
@@ -45,13 +46,25 @@ export const LIVE_PREVIEW_COMMAND = ['tail', '-f', '/dev/null']
 
 export type CopyBind = { hostDir: string; containerDir: string }
 
+/**
+ * What the app's container mounts for its copy. A branch's copy lives in a boundary's `clones/`, whose path runs through
+ * folders a container writes, so the boundary's whole folder is mounted at its usual place and the copy is found
+ * inside it (adr-0173); a copy in the site's own data (`main`'s) is mounted as it is.
+ */
+export function copyMount(copy: CopyBind): LivePreviewMount {
+  const inBoundary = boundaryCopyOf(copy.hostDir)
+  return inBoundary
+    ? { source: inBoundary.boundary, target: inBoundary.containerRoot, readOnly: false }
+    : { source: copy.hostDir, target: copy.containerDir, readOnly: false }
+}
+
 export function buildTemplate(lp: LabelledPreview, copy: CopyBind, budget: LivePreviewBudget, image: string): LivePreviewTemplate {
   const name = livePreviewContainerName(lp.id)
   return {
     name,
     image,
     labels: livePreviewLabels(lp),
-    mounts: [{ source: copy.hostDir, target: copy.containerDir, readOnly: false }],
+    mounts: [copyMount(copy)],
     user: LIVE_PREVIEW_USER,
     network: agentNetworkName(name),
     readOnlyRoot: true,

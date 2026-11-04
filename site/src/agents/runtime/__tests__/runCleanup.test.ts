@@ -204,16 +204,17 @@ describe("a run's credential leaves the home with the last run using it", () => 
   })
 })
 
-describe("a run's pinned memory leaves the home when the run ends", () => {
+describe("a run's pinned memory leaves run staging when the run ends", () => {
   it('is removed by the end of the run that wrote it, on every exit path', async () => {
     const claudeDir = path.join(home, '.claude')
+    const staging = path.join(home, 'run-staging')
     const sink = createRunLaunchSink()
     sink.claudeHome = claudeDir
-    sink.pinnedMemory = { home: claudeDir, sessionId: 'sess1' }
-    await writePinnedMemory({ serverDir: claudeDir, visibleDir: '/home/appuser/.claude', shared: false }, 'sess1', [
+    sink.pinnedMemory = { staging, sessionId: 'sess1' }
+    await writePinnedMemory({ serverDir: staging, visibleDir: '/run/staging', shared: false }, 'sess1', [
       { key: 'diet', scope: 'person', title: 'Vegetarian', body: 'Eats no meat.' },
     ])
-    const folder = path.join(claudeDir, '.tmp', 'memory-sess1')
+    const folder = path.join(staging, 'pinned-memory', 'sess1')
     expect(await exists(path.join(folder, 'pinned.md'))).toBe(true)
 
     await releaseRunResources(sink, null)

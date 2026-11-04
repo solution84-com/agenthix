@@ -87,8 +87,7 @@ which the CLI reads again on its next request; a subscription is never relayed.
 **Other environment on the process's `docker exec`**: the conversation's process tag
 (`SITE_SESSION`), so the process and everything it starts end with the conversation;
 `CLAUDE_CODE_SHELL_PREFIX` and `USE_BUILTIN_RIPGREP=0`, so its commands and searches run in the command
-sandbox ([claude-tools.md](../tools/claude-tools.md)); `SITE_COMMAND_READABLE`, naming the staged
-skills folder; the platform token and the agent's handle (`SITE_MCP_KEY`, `AGENT_HANDLE`); and
+sandbox ([claude-tools.md](../tools/claude-tools.md)); the platform token and the agent's handle (`SITE_MCP_KEY`, `AGENT_HANDLE`); and
 `ENABLE_CLAUDEAI_MCP_SERVERS=false`. Nothing git-related: the container holds no git credential
 ([workflows.md](../workflows.md)).
 
@@ -262,7 +261,7 @@ it ([adr-0083](../../adr/adr-0083-a-process-belongs-to-the-conversation-that-sta
    user, which alone can read the other processes' environments, one pass matches the exact entry, stops
    the matches with `SIGSTOP` so they cannot fork, kills them, and repeats until a pass finds none, up to
    50 passes.
-4. Its staging folder in the runner's harness home is removed, once nothing can be reading it.
+4. Its staged skills in the runner's run staging are removed, once nothing can be reading them.
 
 A turn starting while a release is under way waits for it, so no harness starts into the finder's kill.
 The conversation stays resumable after an idle release; its next turn starts without what it left

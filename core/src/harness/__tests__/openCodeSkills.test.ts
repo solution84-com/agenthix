@@ -4,7 +4,7 @@ import { conversationStagingDirName, openCodeSkillsContainerDir } from '../openC
 describe("a conversation's staged skills", () => {
   it('sit in one folder per conversation inside the read-only staging folder', () => {
     expect(conversationStagingDirName('cm1abc')).toBe('conversation-cm1abc')
-    expect(openCodeSkillsContainerDir('cm1abc')).toBe('/home/appuser/.claude/.tmp/conversation-cm1abc/skills')
+    expect(openCodeSkillsContainerDir('cm1abc')).toBe('/run/staging/skills/conversation-cm1abc/skills')
   })
 
   it('refuse an id that is not one plain name', () => {

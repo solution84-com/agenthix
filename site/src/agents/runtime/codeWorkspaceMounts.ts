@@ -1,33 +1,21 @@
 /**
- * The code workspaces in a boundary, each bound read-only over its place in the run's container (live preview spec,
- * *Where the copy lives*). A workspace is a code workspace when its folder holds a `.git`, whatever made it: the site
- * decides from the folder, never from what a run says.
+ * The repository workspaces in a boundary, each one's `main` mounted read-only over its place in the run's container
+ * (live preview spec, *Where the copy lives*; adr-0173). `main` lives in the code space, a folder no container can
+ * write, so the mount's source is a path only the site can change; a workspace is a repository workspace when its
+ * folder there holds a `.git` (`codeSpace.ts`), never because of anything in the boundary a run wrote.
  */
-import fs from 'node:fs/promises'
-import path from 'node:path'
+import { getCodeDir } from '../../server/storage/paths'
+import { isCodeWorkspace } from '../../server/storage/codeSpace'
 import type { LocationMount } from './containerTypes'
 
-/**
- * Whether `workspaces/<id>` in the boundary is a real folder all the way, with no link on the way. Runs write the
- * boundary, and Docker binds whatever a link there leads to on this machine, another project's storage included.
- */
-async function isOwnFolder(boundaryDir: string, id: string): Promise<boolean> {
-  let current = boundaryDir
-  for (const part of ['workspaces', id]) {
-    current = path.join(current, part)
-    const entry = await fs.lstat(current).catch(() => null)
-    if (!entry?.isDirectory()) return false
-  }
-  return true
-}
-
-export async function codeWorkspaceMounts(boundary: LocationMount, workspaces: { id: string }[]): Promise<LocationMount[]> {
+export async function codeWorkspaceMounts(
+  boundary: LocationMount, owner: { ownerType: 'project' | 'user'; ownerId: string }, workspaces: { id: string }[],
+): Promise<LocationMount[]> {
   const mounts: LocationMount[] = []
   for (const ws of [...workspaces].sort((a, b) => (a.id < b.id ? -1 : 1))) {
-    const hostDir = `${boundary.hostDir}/workspaces/${ws.id}`
-    if (!(await isOwnFolder(boundary.hostDir, ws.id))) continue
-    if (await fs.lstat(path.join(hostDir, '.git')).then(() => true, () => false)) {
-      mounts.push({ hostDir, containerDir: `${boundary.containerDir}/workspaces/${ws.id}` })
+    const ref = { ...owner, workspaceId: ws.id }
+    if (await isCodeWorkspace(ref)) {
+      mounts.push({ hostDir: getCodeDir(ref), containerDir: `${boundary.containerDir}/workspaces/${ws.id}` })
     }
   }
   return mounts

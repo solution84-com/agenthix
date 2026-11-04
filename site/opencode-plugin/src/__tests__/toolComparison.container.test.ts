@@ -112,7 +112,7 @@ const C = 'ovi-6.7-tool-comparison'
 const PASSWORD = 'pw-comparison'
 const SERVER_KEY = 'server-key-comparison'
 const THEIRS_SKILLS = '/f/skills'
-const oursSkills = (conversationId: string) => `/home/appuser/.claude/.tmp/conversation-${conversationId}/skills`
+const oursSkills = (conversationId: string) => `/run/staging/skills/conversation-${conversationId}/skills`
 
 type Side = 'ours' | 'theirs'
 type ToolPart = { tool: string; status: string; output?: string; error?: string; attachments?: { mime: string; url: string }[] }
@@ -175,7 +175,7 @@ async function writeTree(root: string, files: Record<string, Entry>) {
 async function runCase(side: Side, c: Case): Promise<Run> {
   await sh(`rm -rf ${CMP} && cp -a /f/cases/${c.name} ${CMP} && cd ${CMP} && ${c.after ?? 'true'}`)
   const conversationId = `cmp-${c.name}-${side}`
-  if (c.skills && side === 'ours') await writeTree(path.join(dir, 'home', '.claude', '.tmp', `conversation-${conversationId}`, 'skills', SKILL), SKILL_FILES)
+  if (c.skills && side === 'ours') await writeTree(path.join(dir, 'run-staging', 'skills', `conversation-${conversationId}`, 'skills', SKILL), SKILL_FILES)
   const { sessionId } = await driver<{ sessionId: string }>('session', { conversationId, headers: {} })
   const calls: ToolPart[] = []
   for (const [i, steps] of c.turns.entries()) {
@@ -195,7 +195,7 @@ describe.skipIf(!enabled)("Agenthix's file and skill tools beside OpenCode's own
 
   beforeAll(async () => {
     dir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'ovi-6.7-')))
-    for (const d of ['home/.claude/.tmp', 'oc-config', 'fixtures/logs', 'fixtures/cases']) await fs.mkdir(path.join(dir, d), { recursive: true })
+    for (const d of ['home/.claude', 'run-staging/skills', 'oc-config', 'fixtures/logs', 'fixtures/cases']) await fs.mkdir(path.join(dir, d), { recursive: true })
     await fs.writeFile(path.join(dir, 'oc-config', '.gitignore'), '*\n')
     for (const f of ['standinModel.mjs', 'standinSite.mjs', 'driver.mjs', 'start.mjs', 'snapshot.mjs']) {
       await fs.copyFile(new URL(`./fixtures/${f}`, import.meta.url), path.join(dir, 'fixtures', f))
@@ -206,7 +206,7 @@ describe.skipIf(!enabled)("Agenthix's file and skill tools beside OpenCode's own
     await docker([
       'run', '-d', '--init', '--memory', '2g', '--cpus', '2', '--network', 'none', '--name', C,
       '-v', `${dir}/home:/home/appuser`,
-      '-v', `${dir}/home/.claude/.tmp:/home/appuser/.claude/.tmp:ro`,
+      '-v', `${dir}/run-staging:/run/staging:ro`,
       '-v', `${dir}/oc-config:/home/appuser/.config/opencode:ro`,
       '-v', `${dir}/oc-config:/home/appuser/.opencode:ro`,
       '-v', `${dir}/fixtures:/f`,

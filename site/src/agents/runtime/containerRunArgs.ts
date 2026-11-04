@@ -10,7 +10,8 @@
  * `_start`, because that is the ordering and not the command.
  */
 import { composeProjectLabelArgs, containerRunLabels } from './containerLabels'
-import { harnessHomeBind, runnerSkillsStagingBind } from './boundaryClaudeHome'
+import { harnessHomeBind } from './boundaryClaudeHome'
+import { runStagingBind } from './runStaging'
 import { resolveContainerLimits, type ContainerLimits } from './containerLimits'
 import { openCodeConfigMountArgs } from './openCodeConfigMounts'
 import { agentImageName } from './agentImage'
@@ -42,21 +43,20 @@ export function buildContainerRunCommand(
   // The runner's harness home, bound whole at the image user's home directory
   // — keyed by boundary × runner, never by the agent (ADR-0074, spec §6.1,
   // §6.3). `ensureRunning` has already created it and written this run's
-  // credential into its `.claude/`. Platform and org content does not mount
-  // here either — it arrives as packages the site reads and stages per run
-  // (spec §6.5), staged inside this directory so a run can reach them without
-  // a directory of the agent's own.
+  // credential into its `.claude/`.
   //
-  // The staging folder inside it is bound again, read-only (R-050). Not part
-  // of the mount signature: it is a pure function of the key, and the home
-  // that is in the signature is a pure function of the same key.
+  // What the site stages for the runner's runs — their checked skills and
+  // pinned memory — is the runner's run staging, mounted read-only at
+  // /run/staging on the read-only root, never inside the writable home
+  // (adr-0173, runStaging.ts). Not part of the mount signature: it is a pure
+  // function of the key, as the home in the signature is.
   //
   // OpenCode's two configuration folders in the home are covered read-only
   // (openCodeConfigMounts.ts), in every container: the home is the agent's to
   // write, and OpenCode reads both whatever it is told.
   const sharedMountArgs: string[] = [
     '-v', harnessHomeBind(key),
-    '-v', runnerSkillsStagingBind(key),
+    '-v', runStagingBind(key),
     ...openCodeConfigMountArgs(),
   ]
 

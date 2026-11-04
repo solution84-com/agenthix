@@ -3,8 +3,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OPENCODE_STAGING_CONTAINER_DIR, openCodeSkillsContainerDir } from '@agenthix/core'
-import { AGENT_CONTAINER_CLAUDE_HOME } from '../../../agentDiskPaths'
-import { SKILLS_STAGING_DIRNAME } from '../../skillsStagingDir'
+import { RUN_STAGING_CONTAINER_DIR } from '../../harnessHomes'
+import { RUN_STAGING_SKILLS } from '../../runStagingFolders'
 import { openCodeSkillsDirs, openCodeSkillsSection, stageOpenCodeSkills } from '../openCodeSkills'
 import { skillDescription } from '../skillDescription'
 import { storeVerifiedPackage } from '../../../../packages/packageCache'
@@ -29,21 +29,21 @@ async function given(skills: Record<string, string>): Promise<RunSkillInputs> {
 function context(skills: RunSkillInputs | null = null) {
   return {
     runId: 'run-1',
-    claudeHome: { serverDir: path.join(dir, 'home', '.claude'), visibleDir: AGENT_CONTAINER_CLAUDE_HOME },
+    runStaging: { serverDir: path.join(dir, 'run-staging'), visibleDir: RUN_STAGING_CONTAINER_DIR },
     skills,
   }
 }
 
 describe('where OpenCode skills are staged @SC-1604', () => {
-  it('is the place the plugin reads, under the read-only staging bind', () => {
-    expect(OPENCODE_STAGING_CONTAINER_DIR).toBe(path.posix.join(AGENT_CONTAINER_CLAUDE_HOME, SKILLS_STAGING_DIRNAME))
-    const dirs = openCodeSkillsDirs(context().claudeHome, 'conv-a')
+  it('is the place the plugin reads, in run staging, mounted read-only outside the harness home (adr-0173)', () => {
+    expect(OPENCODE_STAGING_CONTAINER_DIR).toBe(path.posix.join(RUN_STAGING_CONTAINER_DIR, RUN_STAGING_SKILLS))
+    const dirs = openCodeSkillsDirs(context().runStaging, 'conv-a')
     expect(dirs.visibleDir).toBe(openCodeSkillsContainerDir('conv-a'))
-    expect(dirs.serverDir).toBe(path.join(dir, 'home', '.claude', '.tmp', 'conversation-conv-a', 'skills'))
+    expect(dirs.serverDir).toBe(path.join(dir, 'run-staging', 'skills', 'conversation-conv-a', 'skills'))
   })
 
   it('refuses a conversation id that is not one plain name', () => {
-    expect(() => openCodeSkillsDirs(context().claudeHome, '../x')).toThrow()
+    expect(() => openCodeSkillsDirs(context().runStaging, '../x')).toThrow()
   })
 })
 
@@ -54,7 +54,7 @@ describe('staging a turn', () => {
       review: '---\nname: Review\ndescription: Review a change.\n---\nBody',
     })
     const staged = await stageOpenCodeSkills(context(skills), 'conv-a')
-    const base = '/home/appuser/.claude/.tmp/conversation-conv-a/skills'
+    const base = '/run/staging/skills/conversation-conv-a/skills'
     expect(staged.skills).toEqual([
       { name: 'agent-plan', description: 'Plan work in steps.', location: `${base}/agent-plan/SKILL.md` },
       { name: 'agent-review', description: 'Review a change.', location: `${base}/agent-review/SKILL.md` },
@@ -75,7 +75,7 @@ describe('staging a turn', () => {
       '  </skill>',
       '</available_skills>',
     ].join('\n'))
-    const onDisk = await fs.readFile(path.join(openCodeSkillsDirs(context().claudeHome, 'conv-a').serverDir, 'agent-review', 'SKILL.md'), 'utf-8')
+    const onDisk = await fs.readFile(path.join(openCodeSkillsDirs(context().runStaging, 'conv-a').serverDir, 'agent-review', 'SKILL.md'), 'utf-8')
     expect(onDisk).toContain('name: agent-review')
   })
 
@@ -83,7 +83,7 @@ describe('staging a turn', () => {
     await stageOpenCodeSkills(context(await given({ review: '---\ndescription: First.\n---\nOld body', gone: '---\ndescription: Soon gone.\n---\nx' })), 'conv-a')
     const next = await stageOpenCodeSkills(context(await given({ review: '---\ndescription: Second.\n---\nNew body' })), 'conv-a')
     expect(next.skills.map(s => [s.name, s.description])).toEqual([['agent-review', 'Second.']])
-    const folder = path.dirname(openCodeSkillsDirs(context().claudeHome, 'conv-a').serverDir)
+    const folder = path.dirname(openCodeSkillsDirs(context().runStaging, 'conv-a').serverDir)
     expect((await fs.readdir(folder)).sort()).toEqual(['skills'])
     const body = await fs.readFile(path.join(folder, 'skills', 'agent-review', 'SKILL.md'), 'utf-8')
     expect(body).toContain('New body')

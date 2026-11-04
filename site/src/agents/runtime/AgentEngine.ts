@@ -323,7 +323,7 @@ export class AgentEngine {
       launched = true
       const { run, agent, session, context, resolvedModel, runtime, controller } = launch
       conversationLifecycle.turnLaunched(session.id, {
-        containerName: launch.containerName, runtime, claudeHomeServerDir: context.claudeHome.serverDir,
+        containerName: launch.containerName, runtime, runStagingServerDir: context.runStaging.serverDir,
       })
 
       renewal = context.capability
@@ -365,7 +365,7 @@ export class AgentEngine {
       if (conversationId) {
         await conversationLifecycle.turnEnded(conversationId, {
           ended: conversationClosed,
-          fallback: { containerName: sink.containerName, runtimeName: sessionRow?.runtime ?? null, claudeHomeServerDir: sink.claudeHome },
+          fallback: { containerName: sink.containerName, runtimeName: sessionRow?.runtime ?? null, runStagingServerDir: sink.runStaging ?? null },
         })
       }
       await releaseRunResources(sink, renewal)

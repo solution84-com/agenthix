@@ -25,8 +25,8 @@ export async function withHomeFolder<T>(home: string, relPath: string, _label: s
   return work(at(dir))
 }
 
-export async function withStagingFolder<T>(claudeHome: string, work: (staging: Dir) => Promise<T>, opts: { create?: boolean } = {}): Promise<T> {
-  const dir = path.join(claudeHome, '.tmp')
+export async function withRunStaging<T>(runStaging: string, folder: string, work: (dir: Dir) => Promise<T>, opts: { create?: boolean } = {}): Promise<T> {
+  const dir = path.join(runStaging, folder)
   if (opts.create) await fs.mkdir(dir, { recursive: true })
   return work(at(dir))
 }
@@ -55,10 +55,14 @@ export async function removeEntryIn(dir: Dir, name: string): Promise<void> {
   await fs.rm(path.join(dir.real, name), { recursive: true, force: true })
 }
 
-export async function removeFromStaging(entryPath: string): Promise<void> {
+export async function removeFromRunStaging(entryPath: string): Promise<void> {
   await fs.rm(entryPath, { recursive: true, force: true })
 }
 
 export async function ensureRealFolders(home: string, relative: string): Promise<void> {
   await fs.mkdir(path.join(home, relative), { recursive: true })
+}
+
+export async function ensureFoldersUnder(root: string, relatives: readonly string[]): Promise<void> {
+  for (const rel of relatives) await fs.mkdir(path.join(root, rel), { recursive: true })
 }

@@ -251,9 +251,10 @@ Before the command runs, the launcher:
 - removes the harness's secrets from its environment — the list is `site/docker/launcher/secret-env.list`,
   which a unit test holds equal to the site's `HARNESS_SECRET_ENV`;
 - sets `HOME` to the commands' own home, `/home/agent`, which lives in the container and goes with it;
-- restricts itself: no access beneath the harness home, except read-only access to folders named in
-  `SITE_COMMAND_READABLE` (the staged skills, so a skill's scripts run; a name outside the home, or
-  the home itself, makes it refuse); and, with Landlock ABI 6, signals and abstract Unix sockets only
+- restricts itself: no access beneath the harness home, except read-only access to folders inside it named
+  in `SITE_COMMAND_READABLE` (a name outside the home, or the home itself, makes it refuse; the site names
+  none today: the staged skills are in run staging at `/run/staging`, outside the home, which commands read
+  and a skill's scripts run from); and, with Landlock ABI 6, signals and abstract Unix sockets only
   within the sandbox. Landlock also refuses tracing any process outside the sandbox, and with it that
   process's `/proc/<pid>/environ`.
 

@@ -29,6 +29,7 @@ function ctx(over: Partial<RunContext> = {}): RunContext {
     boundaryOverride: null,
     skills: null,
     claudeHome: { serverDir: '/site/homes/x/.claude', visibleDir: '/site/homes/x/.claude' },
+    runStaging: { serverDir: '/site/run-staging/x', visibleDir: '/site/run-staging/x' },
     workingTreeDir: '/projects/p1/files',
     ...over,
   }

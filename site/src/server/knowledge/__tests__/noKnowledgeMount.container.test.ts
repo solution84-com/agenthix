@@ -16,7 +16,8 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { KnowledgeOwnerRef } from '@agenthix/core'
 import { getSiteRoot } from '../../../agents/agentDiskPaths'
-import { prepareHarnessHome, runnerSkillsStagingDir } from '../../../agents/runtime/boundaryClaudeHome'
+import { prepareHarnessHome } from '../../../agents/runtime/boundaryClaudeHome'
+import { prepareRunStaging } from '../../../agents/runtime/runStaging'
 import { buildContainerRunCommand } from '../../../agents/runtime/containerRunArgs'
 import { resolveAccessibleLocations, resolveBoundaryMount } from '../../../agents/runtime/locationResolver'
 import { prepareOpenCodeConfigMounts } from '../../../agents/runtime/openCodeConfigMounts'
@@ -63,7 +64,7 @@ async function startRunContainer(key: StorageBoundaryKey): Promise<AgentMounts> 
   const owner = { ownerType: key.ownerType, ownerId: key.ownerId }
   await prepareHarnessHome(key)
   await prepareOpenCodeConfigMounts(key)
-  await fs.mkdir(runnerSkillsStagingDir(key), { recursive: true })
+  await prepareRunStaging(key)
   const mounts: AgentMounts = {
     boundary: resolveBoundaryMount(owner, getSiteRoot()),
     folders: resolveAccessibleLocations({ ...owner }, getSiteRoot(), []),

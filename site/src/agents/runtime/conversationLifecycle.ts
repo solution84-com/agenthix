@@ -40,8 +40,8 @@ import { positiveNumberEnv } from './containerLimits'
 import { conversationHeld } from './conversationHolds'
 import { endConversationProcesses, type EndConversationProcessesResult } from './conversationProcesses'
 import { selectRuntime } from './selectRuntime'
-import { SKILLS_STAGING_DIRNAME } from './skillsStagingDir'
-import { removeFromStaging } from './homeFolder'
+import { RUN_STAGING_SKILLS } from './runStagingFolders'
+import { removeFromRunStaging } from './homeFolder'
 import type { AgentRuntime, ConversationRef } from './types'
 
 const logger = new Logger('ConversationLifecycle')
@@ -54,23 +54,23 @@ export function conversationIdleMs(): number {
 const CONVERSATION_ID = /^[A-Za-z0-9_-]{1,128}$/
 
 /**
- * The folder a conversation's staged files live in, under the runner's Claude
- * home — inside the staging folder the container binds read-only. Removed when
- * the conversation is released. Refuses an id that is not one path segment.
+ * The folder a conversation's staged skills live in, in the runner's run
+ * staging, which the container mounts read-only. Removed when the
+ * conversation is released. Refuses an id that is not one path segment.
  */
-export function conversationStagingDir(claudeHomeServerDir: string, conversationId: string): string {
+export function conversationStagingDir(runStagingServerDir: string, conversationId: string): string {
   if (!CONVERSATION_ID.test(conversationId)) {
     throw new Error(`Refusing a staging folder for an unexpected conversation id: ${JSON.stringify(conversationId)}`)
   }
-  return path.join(claudeHomeServerDir, SKILLS_STAGING_DIRNAME, `conversation-${conversationId}`)
+  return path.join(runStagingServerDir, RUN_STAGING_SKILLS, `conversation-${conversationId}`)
 }
 
 /** Where a conversation's latest turn ran, recorded when it launched. */
 export interface ConversationPlace {
   containerName: string | null
   runtime: AgentRuntime
-  /** The runner's Claude home as this process sees it, which holds the staging folder. */
-  claudeHomeServerDir: string | null
+  /** The runner's run staging as this process sees it, which holds the conversation's staged skills. */
+  runStagingServerDir: string | null
 }
 
 /**
@@ -80,7 +80,7 @@ export interface ConversationPlace {
 export interface ConversationFallback {
   containerName?: string | null
   runtimeName?: string | null
-  claudeHomeServerDir?: string | null
+  runStagingServerDir?: string | null
 }
 
 export interface ConversationLifecycleDeps {
@@ -96,7 +96,7 @@ const realDeps: ConversationLifecycleDeps = {
   idleMs: conversationIdleMs,
   endProcesses: (containerName, conversationId) => endConversationProcesses(containerName, conversationId),
   revokeToken: revokeConversationToken,
-  removeDir: removeFromStaging,
+  removeDir: removeFromRunStaging,
   resolveRuntime: selectRuntime,
   isHeld: conversationHeld,
 }
@@ -246,8 +246,8 @@ export class ConversationLifecycle {
       }
     }
 
-    const home = place?.claudeHomeServerDir ?? fallback?.claudeHomeServerDir ?? null
-    if (home) await this.deps.removeDir(conversationStagingDir(home, conversationId))
+    const staging = place?.runStagingServerDir ?? fallback?.runStagingServerDir ?? null
+    if (staging) await this.deps.removeDir(conversationStagingDir(staging, conversationId))
     logger.info(`Conversation ${conversationId} released (${kind === 'idle' ? 'idle' : 'ended'})`)
   }
 

@@ -63,6 +63,7 @@ const SITE_ROOT = '/site'
 /** The project's own runs' harness home, and the Claude folder inside it. */
 const ALPHA_HOME = `${SITE_ROOT}/homes/projects/proj-alpha`
 const ALPHA_CLAUDE = `${ALPHA_HOME}/.claude`
+const ALPHA_STAGING = `${SITE_ROOT}/run-staging/projects/proj-alpha`
 const API_KEY = 'sk-test-key'
 const EMPTY_MOUNTS: AgentMounts = { boundary: { hostDir: '/site/projects/proj-alpha', containerDir: '/projects/proj-alpha' }, folders: [], locationMode: 'rw' }
 const RO_MOUNTS: AgentMounts = { boundary: { hostDir: '/site/projects/proj-alpha', containerDir: '/projects/proj-alpha' }, folders: [], locationMode: 'ro' }
@@ -290,12 +291,10 @@ describe('AgentContainerManager @SC-121', () => {
     expect(runArgs).not.toContain('ANTHROPIC_API_KEY')
   })
 
-  // R-050: the skills staged for a run sit under the Claude home, which the
-  // container binds read-write. A read-only bind laid over the staging folder
-  // makes it unwritable from inside while the site, on the host, still writes
-  // it. (Bits set on the files would not do it: the container's user is the
-  // same uid as the site's, and can set them back.)
-  it("binds the skills staging folder read-only over the boundary's read-write home", async () => {
+  // R-050, adr-0173: what the site stages for a run is in the runner's run
+  // staging, outside the read-write home, mounted read-only at /run/staging on
+  // the read-only root, so nothing inside can change it or move it aside.
+  it("mounts the runner's run staging read-only at /run/staging, outside the read-write home", async () => {
     const mgr = new AgentContainerManager()
     mockDockerFirstStart()
 
@@ -303,10 +302,11 @@ describe('AgentContainerManager @SC-121', () => {
 
     const argv = runArgvFor(ALPHA_RW_NAME) ?? []
     expect(argv).toContain(`${ALPHA_HOME}:/home/appuser`)
-    expect(argv).toContain(`${ALPHA_CLAUDE}/.tmp:/home/appuser/.claude/.tmp:ro`)
+    expect(argv).toContain(`${ALPHA_STAGING}:/run/staging:ro`)
+    expect(argv.some(a => a.includes('/.claude/.tmp'))).toBe(false)
     // The source exists before docker sees it, or docker creates it root-owned
     // and the site cannot stage into it.
-    expect(mockFs.mkdir).toHaveBeenCalledWith(`${ALPHA_CLAUDE}/.tmp`, { recursive: true })
+    expect(mockFs.mkdir).toHaveBeenCalledWith(`${ALPHA_STAGING}/skills`, { recursive: true })
   })
 
   it("writes the run's own subscription document into the boundary's home before starting", async () => {

@@ -9,6 +9,7 @@
  */
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { buildHelperArgs, helperDeps, runHelper } from '../helperContainer'
@@ -51,7 +52,7 @@ describe.skipIf(!available)('the commit helper in its container @SC-1720', () =>
       expect(args[args.indexOf(flag[0]) + 1]).toBe(flag[1])
     }
     expect(args).toContain('--read-only')
-    expect(args.filter(a => a.startsWith('type=bind'))).toEqual(['type=bind,source=/s/w,target=/o/workspaces/w,readonly'])
+    expect(args.filter(a => a.startsWith('type=bind'))).toEqual(['type=bind,source=/s/w,target=/o/main,readonly'])
     expect(args.join(' ')).not.toContain('docker.sock')
   })
 
@@ -86,5 +87,27 @@ describe.skipIf(!available)('the commit helper in its container @SC-1720', () =>
     expect(await op({ op: 'merge', branch: 'login-page', base: null, expectedMain: before, message: 'x', author: AUTHOR, at: at() }, false))
       .toHaveProperty('refused')
     expect(sh(owner.ws, ['rev-parse', 'main'])).toBe(before)
+  })
+
+  it("is given a boundary's whole folder for a branch's copy, and a symbolic link there reaches nothing outside it (adr-0173)", async () => {
+    const siteRoot = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'helper-boundary-')))
+    const savedRoot = process.env.SITE_ROOT
+    process.env.SITE_ROOT = siteRoot
+    try {
+      const boundary = path.join(siteRoot, 'projects', 'p1')
+      const other = path.join(siteRoot, 'projects', 'p2', 'clones', COPY_A)
+      fs.mkdirSync(path.join(other, '.git'), { recursive: true })
+      fs.mkdirSync(path.join(boundary, 'clones'), { recursive: true, mode: 0o777 })
+      // Relative, as a run would make it: on this machine it leads to another project's copy.
+      fs.symlinkSync(path.join('..', '..', 'p2', 'clones', COPY_A), path.join(boundary, 'clones', COPY_A))
+      const spec = { workspaceId: 'w1', copy: { dir: path.join(boundary, 'clones', COPY_A), readOnly: true }, network: false, timeoutMs: 60_000 }
+      expect(buildHelperArgs(spec, 'n', 'none').filter(a => a.startsWith('type=bind'))).toEqual([`type=bind,source=${boundary},target=/o/b,readonly`])
+      const answer = await runHelper(spec, { op: 'copyHead', branch: 'main' }, contained)
+      expect(answer.refused).toBeDefined()
+      expect(fs.readdirSync(other)).toEqual(['.git'])
+    } finally {
+      process.env.SITE_ROOT = savedRoot
+      fs.rmSync(siteRoot, { recursive: true, force: true })
+    }
   })
 })

@@ -1,4 +1,4 @@
-import fs from 'node:fs/promises'
+import path from 'node:path'
 import { Logger } from '../../server/utils/logger'
 import type { CapabilityRunner } from '@agenthix/core'
 import { containerNameFor, labelKey, resolveComposeProjectName, siteIdFilterArgs } from './containerLabels'
@@ -9,6 +9,8 @@ import { docker, ContainerLifecycle } from './containerLifecycle'
 import { ensureAgentNetwork, releaseAgentNetwork } from './containerNetwork'
 import { buildContainerRunCommand } from './containerRunArgs'
 import { prepareOpenCodeConfigMounts } from './openCodeConfigMounts'
+import { prepareRunStaging } from './runStaging'
+import { ensureFoldersUnder } from './homeFolder'
 import { ContainerRuns } from './containerRuns'
 import { mountSignature } from './mountSignature'
 import { removeContainersFor, type ContainerRemovalFilter } from './containerRemoval'
@@ -245,21 +247,21 @@ export class AgentContainerManager {
     sig: string,
     limits: ContainerLimits,
   ): Promise<void> {
-    // The home, the staging folder inside it and OpenCode's two configuration
+    // The home, the run staging and OpenCode's two configuration
     // folders are bound into the container (buildContainerRunCommand); their
     // sources and mount points must exist first, or docker
     // creates them root-owned and neither the run nor the site can write there.
     await prepareHarnessHome(key)
+    await prepareRunStaging(key)
     await prepareOpenCodeConfigMounts(key)
 
     // Pre-create the boundary's folder and the standard folders inside it as
     // this process (uid 1001). If Docker has to create a missing `-v` source
     // itself, it makes it root-owned, and the agent (appuser) then can't write
     // into it (e.g. mkdir into a location's tree → EACCES). Creating them first
-    // keeps them 1001-owned.
-    for (const { hostDir } of [mounts.boundary, ...mounts.folders]) {
-      await fs.mkdir(hostDir, { recursive: true }).catch(() => {})
-    }
+    // keeps them 1001-owned. Made from the boundary's folder down, never through a link a run left (adr-0173).
+    await ensureFoldersUnder(mounts.boundary.hostDir, mounts.folders.map(f => path.relative(mounts.boundary.hostDir, f.hostDir)))
+      .catch(err => logger.warn(`[container] could not make the boundary's folders: ${err instanceof Error ? err.message : String(err)}`))
 
     // Remove any stopped (or adopted, unverified) container with the same name
     // before recreating. "Never rebound" is enforced here and nowhere else:

@@ -11,9 +11,12 @@
  * side. `getLocationCwd` below is site's alone: it creates the directory the
  * shared region names, and hq reaches no site's disk.
  */
-import fs from 'node:fs/promises'
+import path from 'node:path'
 import type { WorkspaceOwnerType } from '@prisma/client'
+import { ensureFoldersUnder } from '../../agents/runtime/homeFolder'
+import { isCodeWorkspace } from './codeSpace'
 import { locationDir, type LocationRef } from './paths'
+import { getCodeDir, ownerDir } from './paths'
 
 export interface SessionLocationFields {
   primaryOwnerType: WorkspaceOwnerType | null
@@ -46,9 +49,18 @@ export function resolvePrimaryLocation(session: SessionLocationFields): Location
   return { ownerType: 'user', ownerId: session.userId }
 }
 
-/** Ensure + return the run cwd for a location. */
+/**
+ * Ensure + return the run cwd for a location, as this process sees it. A repository workspace's is its `main` in the
+ * code space. Any other is made from the boundary's own folder down, never through a symlink a run left there
+ * (adr-0173).
+ */
 export async function getLocationCwd(loc: LocationRef): Promise<string> {
+  if (loc.workspaceId && !loc.taskId) {
+    const ws = { ownerType: loc.ownerType, ownerId: loc.ownerId, workspaceId: loc.workspaceId }
+    if (await isCodeWorkspace(ws)) return getCodeDir(ws)
+  }
   const dir = locationDir(loc)
-  await fs.mkdir(dir, { recursive: true })
+  const boundary = ownerDir(loc.ownerType, loc.ownerId)
+  await ensureFoldersUnder(boundary, [path.relative(boundary, dir)])
   return dir
 }

@@ -75,6 +75,32 @@ export function getWorkspaceDir(ws: { ownerType: WorkspaceOwnerType; ownerId: st
 }
 
 /**
+ * The code space (adr-0173): `{STORAGE_ROOT}/code/<projects|users>/<owner id>/<workspace id>/`, where a repository
+ * workspace's `main` lives. Outside every owner's folder, so no container can write it or change the path to it: it
+ * is mounted read-only at the workspace's usual place in the boundary, the commit helper is given it, and every git
+ * command the site runs on the repository runs here.
+ */
+export function getCodeDir(ws: { ownerType: WorkspaceOwnerType; ownerId: string; workspaceId: string }): string {
+  assertSafeId(ws.workspaceId)
+  return path.join(getCodeOwnerDir(ws.ownerType, ws.ownerId), ws.workspaceId)
+}
+
+/** One owner's folder in the code space, holding a folder per repository workspace. */
+export function getCodeOwnerDir(ownerType: WorkspaceOwnerType, ownerId: string): string {
+  assertSafeId(ownerId)
+  return path.join(getStorageRoot(), 'code', PLURAL[ownerType], ownerId)
+}
+
+/**
+ * Where the site works on a copy of a boundary's files before putting a result back (adr-0173): turning a workspace
+ * into a repository builds the repository here first, and backing `files/` up to GitHub makes its first push from
+ * here. Site-only, beside the code space's owners, and on the same disk so a finished repository is renamed into place.
+ */
+export function getCodeWorkDir(): string {
+  return path.join(getStorageRoot(), 'code', '.work')
+}
+
+/**
  * A person's own area inside a project (close-out spec §6.1) — their drafts and
  * their agenda. A project is shared storage, and this is that person's folder on
  * it: visible to the project like everything else there, so someone who wants
@@ -132,4 +158,22 @@ export function knowledgeVersionsDir(owner: KnowledgeOwnerRef): string {
  */
 export function getArtefactsDir(ownerType: WorkspaceOwnerType, ownerId: string): string {
   return path.join(ownerDir(ownerType, ownerId), 'artefacts')
+}
+
+/**
+ * A branch's copy in a boundary's `clones/`, read back from its path as this module builds it: the boundary's folder
+ * and the copy's id, or null for any other path. What mounts a copy into a container mounts the boundary's folder and
+ * finds the copy inside it, never the copy's own path, which runs through folders a container writes (adr-0173).
+ */
+export function boundaryCopyOf(dir: string): { boundary: string; copyId: string; containerRoot: string } | null {
+  const rel = path.relative(getStorageRoot(), path.resolve(dir)).split(path.sep)
+  if (rel.length !== 4 || rel[2] !== 'clones' || !Object.values(PLURAL).includes(rel[0])) return null
+  const [plural, ownerId, , copyId] = rel
+  try {
+    assertSafeId(ownerId)
+    assertSafeId(copyId)
+  } catch {
+    return null
+  }
+  return { boundary: path.join(getStorageRoot(), plural, ownerId), copyId, containerRoot: `/${plural}/${ownerId}` }
 }

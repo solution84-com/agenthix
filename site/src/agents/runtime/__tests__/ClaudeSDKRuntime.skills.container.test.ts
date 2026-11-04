@@ -62,6 +62,7 @@ function context(overrides: Partial<RunContext> = {}): RunContext {
     containerName: CONTAINER,
     credential: null,
     claudeHome: { serverDir: path.join(dir, 'home', '.claude'), visibleDir: '/home/appuser/.claude' },
+    runStaging: { serverDir: path.join(dir, 'run-staging'), visibleDir: '/run/staging' },
     skills,
     packages: {
       refs: { agent: { kind: 'agent', key: 'a', digest: 'a'.repeat(64) }, org: null, platform: { kind: 'platform', key: 'platform', digest: 'b'.repeat(64) } },
@@ -139,9 +140,12 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
       standin!.once('exit', () => reject(new Error('the stand-in Anthropic API exited')))
     })
     await docker('rm', '-f', CONTAINER).catch(() => '')
+    await fs.mkdir(path.join(dir, 'run-staging', 'skills'), { recursive: true })
+    await fs.mkdir(path.join(dir, 'run-staging', 'pinned-memory'), { recursive: true })
     await docker('run', '-d', '--init', '--memory', '2g', '--cpus', '2', '--pids-limit', '4096', '--name', CONTAINER,
       '--add-host', 'host.docker.internal:host-gateway',
       '-v', `${path.join(dir, 'home')}:/home/appuser`, '-v', `${path.join(dir, 'project')}:/projects/p1`,
+      '-v', `${path.join(dir, 'run-staging')}:/run/staging:ro`,
       IMAGE, 'tail', '-f', '/dev/null')
   }, 120_000)
 
@@ -208,7 +212,7 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     }
     const picked = await turn('TURN hello', { ...byHand, isNewSession: true, pickedSkill: 'agent-by-hand' })
     const file = text(picked.sent[0]!).match(/Read the file (\S+?\/agent-by-hand\/SKILL\.md) first/)?.[1]
-    expect(file).toMatch(/^\/home\/appuser\/\.claude\/\.tmp\/skills-[^/]+\/\.claude\/skills\/agent-by-hand\/SKILL\.md$/)
+    expect(file).toMatch(/^\/run\/staging\/skills\/skills-[^/]+\/\.claude\/skills\/agent-by-hand\/SKILL\.md$/)
     expect(lastUserText(picked.sent[0]!)).toContain(asJson(pickedSkillReadInstruction('agent-by-hand', file!)))
 
     // The same skills keep the process, and with it the folder the instruction named: the read runs there.

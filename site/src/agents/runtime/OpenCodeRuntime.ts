@@ -108,7 +108,7 @@ export class OpenCodeRuntime implements AgentRuntime {
         await servers.ensureConnection(containerName, context.sessionId, { name: connectionName, token, directory: context.cwd, url: platform.url, toolSet: context.codeWork ? 'code' : 'plain' })
       }
       const staged = await (this.deps.stageSkills ?? stageOpenCodeSkills)(context, context.sessionId)
-      setOpenCodeSkillsDir(context.sessionId, staged.skills.length ? openCodeSkillsDirs(context.claudeHome, context.sessionId).visibleDir : null)
+      setOpenCodeSkillsDir(context.sessionId, staged.skills.length ? openCodeSkillsDirs(context.runStaging, context.sessionId).visibleDir : null)
       openCodeSessionId = await openCodeSessionForTurn(servers, store, containerName, {
         sessionId: context.sessionId,
         directory: context.cwd,

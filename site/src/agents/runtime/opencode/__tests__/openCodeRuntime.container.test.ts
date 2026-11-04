@@ -107,6 +107,7 @@ function context(sessionId: string, prompt: string, over: Partial<RunContext> = 
     approvedManifest: { tools: [], bashPatterns: ['*'], approvedAt: new Date(0).toISOString() },
     riskRules: null, packages, boundaryOverride: null, skills,
     claudeHome: { serverDir: path.join(home, '.claude'), visibleDir: '/home/appuser/.claude' }, workingTreeDir: '/projects/p1/files',
+    runStaging: { serverDir: path.join(root, 'run-staging'), visibleDir: '/run/staging' },
     abortSignal: new AbortController().signal,
     ...over,
   }
@@ -148,7 +149,7 @@ describe.skipIf(!available)('the OpenCode runtime in an agent container', () => 
     const project = path.join(root, 'project')
     const pkgs = path.join(root, 'packages')
     packages = { platformDir: path.join(pkgs, 'platform'), orgDir: null, agentDir: path.join(pkgs, 'agent'), refs: {} as RunContext['packages']['refs'] }
-    for (const d of [home, path.join(home, '.config', 'opencode'), path.join(home, '.opencode'), path.join(home, '.claude', '.tmp'), logs, config, project, path.join(project, '.opencode'), path.join(pkgs, 'platform', 'skills'), path.join(pkgs, 'agent')]) {
+    for (const d of [home, path.join(home, '.config', 'opencode'), path.join(home, '.opencode'), path.join(root, 'run-staging', 'skills'), path.join(root, 'run-staging', 'pinned-memory'), logs, config, project, path.join(project, '.opencode'), path.join(pkgs, 'platform', 'skills'), path.join(pkgs, 'agent')]) {
       fs.mkdirSync(d, { recursive: true })
       fs.chmodSync(d, 0o777)
     }
@@ -169,7 +170,7 @@ describe.skipIf(!available)('the OpenCode runtime in an agent container', () => 
     spawnSync('docker', ['rm', '-f', NAME], { stdio: 'ignore' })
     docker('run', '-d', '--init', '--name', NAME, '--memory', '2g', '--cpus', '2', '--pids-limit', '4096', '--network', 'none',
       '-v', `${home}:/home/appuser`,
-      '-v', `${path.join(home, '.claude', '.tmp')}:/home/appuser/.claude/.tmp:ro`,
+      '-v', `${path.join(root, 'run-staging')}:/run/staging:ro`,
       '-v', `${config}:/home/appuser/.config/opencode:ro`,
       '-v', `${config}:/home/appuser/.opencode:ro`,
       '-v', `${project}:/projects/p1/files`,
@@ -292,7 +293,7 @@ describe.skipIf(!available)('the OpenCode runtime in an agent container', () => 
     expect(first.tools).not.toContain('websearch')
     expect(first.system).not.toContain('customize-opencode')
     expect(first.system).toContain('<name>agent-probe</name>')
-    expect(first.system).toContain('<location>/home/appuser/.claude/.tmp/')
+    expect(first.system).toContain('<location>/run/staging/skills/')
   })
 
   it('tells the model to load a skill the person picked, which then loads by its name (security review M7) @security-M7 @SC-1607', async () => {

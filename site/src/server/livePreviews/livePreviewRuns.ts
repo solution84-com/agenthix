@@ -5,15 +5,13 @@
  * preview's record, never its branch copies; its commits are told to hq with `livePreview.branchMoved` on the
  * one-minute sweep and at its end, and hq brings them back by bundle.
  */
-import fs from 'node:fs/promises'
-import path from 'node:path'
 import { BRANCH_WORK_SITE_BUDGET_MS, type FeatureSwitches, type RunCodeWork } from '@agenthix/core'
 import { ReadableRunError } from '../../agents/runtime/readableRunError'
-import { ownerDir } from '../storage/paths'
+import { getCodeDir, ownerDir } from '../storage/paths'
 import type { CodeWorkRun } from '../branches/codeWorkRun'
 import { withOnBehalfOf } from '../branches/branchWorkMethods'
 import { runEnded, runStarted } from './livePreviewActivity'
-import { copyPlaceOf, ownCopyHead, previewHelper } from './livePreviewCopies'
+import { copyFolderState, copyPlaceOf, ownCopyHead, previewHelper } from './livePreviewCopies'
 import { reportMoved } from './livePreviewLife'
 import { liveOnBranch, livePreviewRow, trackRun } from './livePreviewStore'
 import { isSiteFeatureOn } from '../features/siteFeatures'
@@ -36,11 +34,10 @@ export async function resolveLivePreviewCopy(
     || row.workspaceId !== ref.workspaceId || row.ownerType !== ref.ownerType || row.ownerId !== ref.ownerId
     || row.branch !== codeWork.branch || ref.ownerType !== boundary.ownerType || ref.ownerId !== boundary.ownerId) throw refused
   const copyDir = copyPlaceOf(row).hostDir
-  const st = await fs.lstat(path.join(copyDir, '.git')).catch(() => null)
-  if (!st?.isDirectory()) throw refused
+  if (!(await copyFolderState(copyDir)).git) throw refused
   const owner = ownerDir(ref.ownerType, ref.ownerId)
   return {
-    runId, placed: { ref, owner, ws: path.join(owner, 'workspaces', ref.workspaceId) }, copyId: row.copyId, branch: row.branch,
+    runId, placed: { ref, owner, ws: getCodeDir(ref) }, copyId: row.copyId, branch: row.branch,
     copyDir, author: codeWork.author, onBehalfOf: codeWork.onBehalfOf, livePreviewId: row.id,
   }
 }

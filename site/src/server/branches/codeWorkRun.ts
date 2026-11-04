@@ -5,8 +5,6 @@
  * back once more. A copy whose commits may not all be back is marked `backPending`, and a start of the site brings
  * each of those back. Every time a branch moves this way, hq is told (`branch.back`).
  */
-import path from 'node:path'
-import fs from 'node:fs/promises'
 import {
   BRANCH_BACK_EVENT, NO_FEATURE_SWITCHES,
   type BranchBackCause, type BranchBackResult, type FeatureSwitches, type GitPerson, type RunCodeWork, type WorkspaceRepoRef,
@@ -15,7 +13,7 @@ import { prisma } from '#db'
 import { ReadableRunError } from '../../agents/runtime/readableRunError'
 import { hqConnectionManager } from '../hq/hqConnection'
 import { Logger } from '../utils/logger'
-import { copyDirOf, inTurn, placeWorkspace, requireCopy, type Placed } from './branchCalls'
+import { copyDirOf, copyState, inTurn, placeWorkspace, requireCopy, type Placed } from './branchCalls'
 import { bringBackCopy, commitInCopy, withOnBehalfOf } from './branchWorkMethods'
 import { livePreviewRunEnds, livePreviewRunStarts, resolveLivePreviewCopy, sweepLivePreviewCopy } from '../livePreviews/livePreviewRuns'
 
@@ -56,8 +54,7 @@ export async function resolveCodeWork(
   const placed = await placeWorkspace(ref, 'run.dispatch').catch(() => { throw refused })
   await requireCopy(placed, codeWork.copyId, codeWork.branch, 'run.dispatch').catch(() => { throw refused })
   const copyDir = copyDirOf(placed, codeWork.copyId)
-  const st = await fs.lstat(path.join(copyDir, '.git')).catch(() => null)
-  if (!st?.isDirectory()) throw refused
+  if (!(await copyState(placed.owner, codeWork.copyId)).git) throw refused
   return { runId, placed, copyId: codeWork.copyId, branch: codeWork.branch, copyDir, author: codeWork.author, onBehalfOf: codeWork.onBehalfOf }
 }
 

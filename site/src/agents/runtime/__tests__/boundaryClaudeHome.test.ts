@@ -27,10 +27,10 @@ import {
   prepareHarnessHome,
   resolveVisibleClaudeHome,
   runnerClaudeHome,
-  runnerSkillsStagingBind,
   writeRunCredential,
 } from '../boundaryClaudeHome'
 import { holdUnreportedCredential } from '../agentCredentials'
+import { runStagingBind } from '../runStaging'
 import type { ContainerKey } from '../containerTypes'
 import fs from 'node:fs/promises'
 
@@ -65,9 +65,8 @@ describe('the Claude folder sits inside the runner\'s harness home', () => {
     expect(harnessHomeBind(ADA_IN_ALPHA)).toBe(`${SITE_ROOT}/homes/users/user-ada/proj-alpha:/home/appuser`)
   })
 
-  it('lays the read-only staging bind over the Claude folder inside that home', () => {
-    expect(runnerSkillsStagingBind(ADA_IN_ALPHA))
-      .toBe(`${SITE_ROOT}/homes/users/user-ada/proj-alpha/.claude/.tmp:/home/appuser/.claude/.tmp:ro`)
+  it("mounts the runner's run staging read-only at /run/staging, outside the home (adr-0173)", () => {
+    expect(runStagingBind(ADA_IN_ALPHA)).toBe(`${SITE_ROOT}/run-staging/users/user-ada/proj-alpha:/run/staging:ro`)
   })
 
   it('shows the run the fixed container path under isolation, and the server path without it', () => {
@@ -84,11 +83,12 @@ describe('the Claude folder sits inside the runner\'s harness home', () => {
 })
 
 describe('prepareHarnessHome', () => {
-  it('creates `.claude/` with its staging folder, and seeds `~/.claude.json` only when it is absent', async () => {
+  it('creates the home, with no staging folder in it, and seeds `~/.claude.json` only when it is absent', async () => {
     await prepareHarnessHome(ADA_IN_ALPHA)
 
     const home = `${SITE_ROOT}/homes/users/user-ada/proj-alpha`
-    expect(mockFs.mkdir).toHaveBeenCalledWith(`${home}/.claude/.tmp`, { recursive: true })
+    expect(mockFs.mkdir).toHaveBeenCalledWith(home, { recursive: true })
+    expect(mockFs.mkdir).not.toHaveBeenCalledWith(`${home}/.claude/.tmp`, expect.anything())
     // 'wx': never overwrites what Claude Code has already written there.
     expect(mockFs.writeFile).toHaveBeenCalledWith(`${home}/.claude.json`, '{}', { flag: 'wx', mode: 0o600 })
   })

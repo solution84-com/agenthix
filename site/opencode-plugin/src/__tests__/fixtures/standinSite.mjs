@@ -61,7 +61,7 @@ function decide(turn, req) {
   }
   if (['read', 'write', 'edit'].includes(tool) && typeof args.filePath === 'string') {
     const real = realOrTail(path.resolve('/projects/p1/files', args.filePath))
-    const skills = `${HOME}/.claude/.tmp/conversation-${turn.conversationId}/skills`
+    const skills = `/run/staging/skills/conversation-${turn.conversationId}/skills`
     const readable = tool === 'read' && under(real, skills)
     if (under(real, '/proc') || (under(real, HOME) && !readable)) return { decision: 'refuse', message: `Agenthix refuses ${tool} of ${real}.` }
     return { decision: 'allow', args: { ...args, filePath: real } }

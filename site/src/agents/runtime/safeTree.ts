@@ -42,8 +42,24 @@ export function inDir(dir: Dir, name: string): string {
   return path.join(descriptorPath(dir.handle, dir.real), name)
 }
 
-/** Opens a tree's root. `root` itself must not be a link; it is resolved to its real path first. */
-export async function openRoot(root: string): Promise<Dir> {
+/**
+ * A tree's root: a path whose every folder only the site can change, or a folder `rel` below such a `base` (a
+ * boundary's own folder), which is then reached through open folders from `base`, never through a link (adr-0173).
+ */
+export type TreeRoot = string | { base: string; rel: string }
+
+/** Opens a tree's root. A path must not itself be a link; it is resolved to its real path first. */
+export async function openRoot(root: TreeRoot): Promise<Dir> {
+  if (typeof root !== 'string') {
+    const base = await openRoot(root.base)
+    try {
+      const dir = await openDirPath(base, root.rel)
+      if (!dir) throw Object.assign(new Error(`ENOENT: no such folder, '${root.rel}'`), { code: 'ENOENT' })
+      return { ...dir, rel: '' }
+    } finally {
+      await closeDir(base)
+    }
+  }
   const entry = await fs.lstat(root)
   if (entry.isSymbolicLink()) throw new LinkRefused('.', 'symbolic')
   const real = await fs.realpath(root)

@@ -6,7 +6,8 @@
  */
 import path from 'node:path'
 import { PLACE_SKILLS_ROOT, WORKSPACE_SKILL_ROOTS, agentSkillsRoot, type LocationRef } from '@agenthix/core'
-import { getFilesDir, getWorkspaceDir, ownerDir } from '../server/storage/paths'
+import { getCodeDir, getFilesDir, getWorkspaceDir, ownerDir } from '../server/storage/paths'
+import { isCodeWorkspace } from '../server/storage/codeSpace'
 import { realFilesHome, realpathOrNull } from './boundaryOverrides'
 
 export type SkillPlace = Pick<LocationRef, 'ownerType' | 'ownerId'>
@@ -24,6 +25,9 @@ export async function placeFilesHome(place: SkillPlace): Promise<string | null> 
 export async function workspaceHome(place: SkillPlace, workspaceId: string): Promise<string | null> {
   if (!ID.test(workspaceId)) return null
   try {
+    // A repository workspace's skills are those of its `main`, in the code space (adr-0173).
+    const repo = { ownerType: place.ownerType, ownerId: place.ownerId, workspaceId }
+    if (await isCodeWorkspace(repo)) return await realpathOrNull(getCodeDir(repo))
     const dir = getWorkspaceDir({ ...place, id: workspaceId })
     const [real, realOwner] = await Promise.all([realpathOrNull(dir), realpathOrNull(ownerDir(place.ownerType, place.ownerId))])
     return real && realOwner && real === path.join(realOwner, 'workspaces', workspaceId) ? real : null

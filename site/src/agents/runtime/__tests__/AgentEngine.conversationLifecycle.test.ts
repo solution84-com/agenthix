@@ -153,7 +153,7 @@ describe('a turn and its conversation', () => {
     expect(h.order).toEqual(['starting', 'harness', 'ended', 'container-end'])
     expect(h.lifecycle.turnStarting).toHaveBeenCalledWith('sess-1')
     expect(h.lifecycle.turnLaunched).toHaveBeenCalledWith('sess-1', {
-      containerName: 'agenthix-agent-c1', runtime: h.sdk, claudeHomeServerDir: expect.stringMatching(/^\/site\/homes\//),
+      containerName: 'agenthix-agent-c1', runtime: h.sdk, runStagingServerDir: expect.stringMatching(/^\/site\/run-staging\//),
     })
     expect(h.lifecycle.turnEnded).toHaveBeenCalledWith('sess-1', expect.objectContaining({ ended: false }))
   })
@@ -166,7 +166,7 @@ describe('a turn and its conversation', () => {
     expect(h.lifecycle.turnLaunched).not.toHaveBeenCalled()
     expect(h.lifecycle.turnEnded).toHaveBeenCalledWith('sess-1', {
       ended: true,
-      fallback: { containerName: 'agenthix-agent-c1', runtimeName: 'claude-sdk', claudeHomeServerDir: expect.stringMatching(/^\/site\/homes\//) },
+      fallback: { containerName: 'agenthix-agent-c1', runtimeName: 'claude-sdk', runStagingServerDir: expect.stringMatching(/^\/site\/run-staging\//) },
     })
   })
 

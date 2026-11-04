@@ -9,7 +9,9 @@
  * - `bundle`: `clones/<copyId>/` in the owner's storage on this site, so the branch's runs here work in it.
  *
  * In the app's container the copy is where an agent's container has it (`/<owners>/<id>/clones/<copyId>`), so paths a
- * tool wrote into it while the agent worked still hold; `main`'s copy is at `/main/<copyId>`.
+ * tool wrote into it while the agent worked still hold; `main`'s copy is at `/main/<copyId>`. A copy in the owner's
+ * storage is reached through the boundary's whole folder, mounted there, and acted on by the site only through open
+ * folders from it, never by its own path, which runs through folders a container writes (adr-0173).
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -20,7 +22,9 @@ import { prisma } from '#db'
 import { getSiteRoot } from '../../agents/agentDiskPaths'
 import { PLURAL_OWNER } from '../../agents/runtime/locationResolver'
 import { ownerDir } from '../storage/paths'
-import { copyDirOf, inTurn, placeWorkspace, type Placed } from '../branches/branchCalls'
+import { copyDirOf, copyState, inTurn, placeWorkspace, withClones, type Placed } from '../branches/branchCalls'
+import { boundaryCopyOf } from '../storage/paths'
+import { inDir } from '../../agents/runtime/safeTree'
 import { runHelper, type HelperAnswer, type HelperSpec } from '../branches/helperContainer'
 import { Logger } from '../utils/logger'
 import { bundleFile, bundleSize } from './bundles/bundleStore'
@@ -53,10 +57,26 @@ export async function previewHelper(spec: HelperSpec, request: Record<string, un
   return null
 }
 
-/** A copy folder made empty for the helper to fill; one already there is refused. */
+/** A copy folder made empty for the helper to fill; one already there is refused. One in a boundary through open folders. */
 async function emptyCopyDir(dir: string): Promise<boolean> {
+  const inBoundary = boundaryCopyOf(dir)
+  if (inBoundary) {
+    return withClones(inBoundary.boundary, true, async clones => {
+      if (!clones) return false
+      return fs.mkdir(inDir(clones, inBoundary.copyId)).then(() => true, () => false)
+    }).catch(() => false)
+  }
   await fs.mkdir(path.dirname(dir), { recursive: true })
   return fs.mkdir(dir).then(() => true, () => false)
+}
+
+/** Whether a copy's folder is there, and holds a `.git` folder; one in a boundary looked at through open folders. */
+export async function copyFolderState(dir: string): Promise<{ present: boolean; git: boolean }> {
+  const inBoundary = boundaryCopyOf(dir)
+  if (inBoundary) return copyState(inBoundary.boundary, inBoundary.copyId)
+  const top = await fs.lstat(dir).catch(() => null)
+  const git = top?.isDirectory() ? await fs.lstat(path.join(dir, '.git')).catch(() => null) : null
+  return { present: !!top, git: !!git?.isDirectory() }
 }
 
 /**
@@ -74,8 +94,7 @@ export async function prepareCopy(p: LivePreviewOpenParams, lp: Of): Promise<{ h
       return NO_COPY(`This site has no copy ${p.copy.copyId} of branch ${p.branch} for that workspace.`)
     }
     if (copyDirOf(placed, copy.id) !== place.hostDir) return NO_COPY('The copy is not where this site keeps it.')
-    const git = await fs.lstat(path.join(place.hostDir, '.git')).catch(() => null)
-    if (!git?.isDirectory()) return NO_COPY('The copy\'s folder is not on this site any more.')
+    if (!(await copyFolderState(place.hostDir)).git) return NO_COPY('The copy\'s folder is not on this site any more.')
     return { head: null }
   }
   if (p.copy.kind === 'main') {
@@ -112,9 +131,13 @@ export async function prepareCopy(p: LivePreviewOpenParams, lp: Of): Promise<{ h
 export async function removeOwnCopy(lp: Of): Promise<void> {
   if (lp.copyKind === 'branch') return
   const dir = copyPlaceOf(lp).hostDir
-  if (!(await fs.lstat(dir).then(() => true, () => false))) return
+  if (!(await copyFolderState(dir)).present) return
   await runHelper({ workspaceId: lp.workspaceId, copy: { dir, readOnly: false }, network: false, timeoutMs: BRANCH_WORK_SITE_BUDGET_MS }, { op: 'removeCopy' })
-  await fs.rmdir(dir).catch(err => logger.warn(`Could not remove the copy of a live preview at ${lp.copyId}: ${String(err)}`))
+  const inBoundary = boundaryCopyOf(dir)
+  const removed = inBoundary
+    ? withClones(inBoundary.boundary, false, async clones => { if (clones) await fs.rmdir(inDir(clones, inBoundary.copyId)) })
+    : fs.rmdir(dir)
+  await removed.catch(err => logger.warn(`Could not remove the copy of a live preview at ${lp.copyId}: ${String(err)}`))
 }
 
 /** The branch's head in a live preview's own copy, read by the helper; null when it cannot be read. */

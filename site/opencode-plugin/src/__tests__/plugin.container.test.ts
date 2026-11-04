@@ -119,7 +119,7 @@ const agentSkills = new Map<string, Record<string, Record<string, string>>>()
 async function stageFor(conversationId: string, agentPkg: string) {
   return stageOpenCodeSkills({
     runId: `run-${conversationId}`,
-    claudeHome: { serverDir: path.join(dir, 'home', '.claude'), visibleDir: '/home/appuser/.claude' },
+    runStaging: { serverDir: path.join(dir, 'run-staging'), visibleDir: '/run/staging' },
     skills: installedOnly(await cacheInstalledSkills(agentSkills.get(agentPkg) ?? {})),
   }, conversationId)
 }
@@ -134,7 +134,7 @@ describe.skipIf(!enabled)("Agenthix's plugin in a real OpenCode server", () => {
   beforeAll(async () => {
     dir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'ovi-lane3-')))
     process.env.SITE_ROOT = path.join(dir, 'site')
-    for (const d of ['home/.claude/.tmp', 'home/.config/opencode', 'home/.opencode', 'oc-config', 'fixtures/logs', 'packages/platform/skills']) {
+    for (const d of ['home/.claude', 'run-staging/skills', 'home/.config/opencode', 'home/.opencode', 'oc-config', 'fixtures/logs', 'packages/platform/skills']) {
       await fs.mkdir(path.join(dir, d), { recursive: true })
     }
     await fs.writeFile(path.join(dir, 'home', 'secret.txt'), SECRET)
@@ -147,7 +147,7 @@ describe.skipIf(!enabled)("Agenthix's plugin in a real OpenCode server", () => {
     await docker([
       'run', '-d', '--init', '--memory', '2g', '--cpus', '2', '--network', 'none', '--name', C,
       '-v', `${dir}/home:/home/appuser`,
-      '-v', `${dir}/home/.claude/.tmp:/home/appuser/.claude/.tmp:ro`,
+      '-v', `${dir}/run-staging:/run/staging:ro`,
       '-v', `${dir}/oc-config:/home/appuser/.config/opencode:ro`,
       '-v', `${dir}/oc-config:/home/appuser/.opencode:ro`,
       '-v', `${dir}/fixtures:/f`,
@@ -220,7 +220,7 @@ describe.skipIf(!enabled)("Agenthix's plugin in a real OpenCode server", () => {
     await stageFor('conv-env', 'agent-env')
     await stageFor('conv-other', 'agent-env')
     const id = await session('conv-env')
-    const skills = (conv: string) => `/home/appuser/.claude/.tmp/conversation-${conv}/skills/agent-probe/SKILL.md`
+    const skills = (conv: string) => `/run/staging/skills/conversation-${conv}/skills/agent-probe/SKILL.md`
     const t = await turn(id, [[bash(
       `env | sort; echo ---; cat ${skills('conv-env')}; echo ---; cat /home/appuser/secret.txt || echo SECRET-REFUSED; cat ${skills('conv-other')} || echo OTHER-REFUSED`,
     )]])

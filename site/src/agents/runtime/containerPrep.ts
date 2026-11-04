@@ -144,7 +144,7 @@ export async function prepareAgentContainer(
     boundary,
     folders: resolveAccessibleLocations(owner, getSiteRoot(), ownerWorkspaces),
     locationMode,
-    readOnly: await codeWorkspaceMounts(boundary, ownerWorkspaces),
+    readOnly: await codeWorkspaceMounts(boundary, owner, ownerWorkspaces),
   }
   const primaryContainerDir = codeWork ? copyContainerDir(boundary, codeWork.copyId) : resolvePrimaryContainerDir(primaryLoc)
 

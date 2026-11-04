@@ -14,7 +14,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { PinnedMemoryItem } from '@agenthix/core'
-import { harnessHomeBind, prepareHarnessHome, runnerClaudeHome, runnerSkillsStagingBind, runnerSkillsStagingDir } from '../boundaryClaudeHome'
+import { harnessHomeBind, prepareHarnessHome } from '../boundaryClaudeHome'
+import { prepareRunStaging, runStagingBind } from '../runStaging'
+import { runStagingFor } from '../harnessHomes'
 import { homeIsShared, releasePinnedMemory, writePinnedMemory } from '../pinnedMemoryFiles'
 import type { ContainerKey } from '../containerTypes'
 
@@ -42,12 +44,12 @@ describe.skipIf(!available)("a person's pinned memory in a project's shared home
     root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'pinned-container-')))
     process.env.SITE_ROOT = root
     await prepareHarnessHome(KEY)
-    await fs.mkdir(runnerSkillsStagingDir(KEY), { recursive: true })
-    home = { serverDir: runnerClaudeHome(KEY), visibleDir: '/home/appuser/.claude', shared: homeIsShared(KEY.runner) }
+    await prepareRunStaging(KEY)
+    home = { serverDir: runStagingFor(KEY), visibleDir: '/run/staging', shared: homeIsShared(KEY.runner) }
     spawnSync('docker', ['rm', '-f', NAME], { stdio: 'ignore' })
     const run = spawnSync('docker', [
       'run', '-d', '--name', NAME, '--network', 'none', '--memory', '512m', '--cpus', '1',
-      '-v', harnessHomeBind(KEY), '-v', runnerSkillsStagingBind(KEY), IMAGE, 'tail', '-f', '/dev/null',
+      '-v', harnessHomeBind(KEY), '-v', runStagingBind(KEY), IMAGE, 'tail', '-f', '/dev/null',
     ], { encoding: 'utf8' })
     if (run.status !== 0) throw new Error(`docker run failed: ${run.stderr}`)
   }, 120_000)
@@ -63,12 +65,12 @@ describe.skipIf(!available)("a person's pinned memory in a project's shared home
     await writePinnedMemory(home, 'second', [SECOND_PERSON])
 
     // Everything any run in this container can find under the staging folder.
-    const everything = inContainer('cat $(find /home/appuser/.claude/.tmp -type f) 2>/dev/null; true').stdout
+    const everything = inContainer('cat $(find /run/staging -type f) 2>/dev/null; true').stdout
     expect(everything).not.toContain('penicillin')
     expect(everything).not.toContain('short answers')
     expect(everything).not.toContain('French')
     // What the place's items are, the run still reads where its prompt says.
-    expect(first).toBe('/home/appuser/.claude/.tmp/memory-first/pinned.md')
+    expect(first).toBe('/run/staging/pinned-memory/first/pinned.md')
     expect(inContainer(`cat ${first}`).stdout).toContain('Data stays in the EU.')
     // And cannot change.
     expect(inContainer(`echo x > ${first}`).status).not.toBe(0)
@@ -76,6 +78,6 @@ describe.skipIf(!available)("a person's pinned memory in a project's shared home
     await releasePinnedMemory(home.serverDir, 'first')
     await releasePinnedMemory(home.serverDir, 'second')
 
-    expect(inContainer('ls -A /home/appuser/.claude/.tmp').stdout.trim()).toBe('')
+    expect(inContainer('ls -A /run/staging/pinned-memory').stdout.trim()).toBe('')
   })
 })

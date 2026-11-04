@@ -3,11 +3,12 @@
  * of every turn, and compared by content with what the running process was
  * started with, since a `claude` process reads its skills once, at start.
  *
- * Staged inside the boundary's Claude home — the directory bound into the
- * run's container — under `.tmp/skills-<random>/.claude/skills`, and bound
- * again read-only there (`boundarySkillsStagingBind`), so what is staged
- * cannot be rewritten from inside the container. Created through the site's
- * own view of that directory; the process is told the run-visible one.
+ * Staged in the runner's run staging (runStaging.ts, adr-0173), under
+ * `skills/skills-<random>/.claude/skills`: a folder outside every folder a
+ * container can write, mounted read-only at `/run/staging`, so what is staged
+ * cannot be rewritten or moved aside from inside the container. Created
+ * through the site's own view of that directory; the process is told the
+ * run-visible one.
  *
  * The `.claude` folder is a local Claude Code plugin (`.claude-plugin/plugin.json`
  * beside `skills/`), because Claude Code loads skills from a plugin whatever
@@ -23,11 +24,11 @@ import path from 'node:path'
 import { Logger } from '../../../server/utils/logger'
 import { stageSkills, type StagingResult } from '../skillStaging'
 import {
-  closeDir, inDir, lstatIn, namesIn, openFolderIn, readFileUnder, removeFromStaging, withStagingFolder, writeNewFileUnder, type Dir,
+  closeDir, inDir, lstatIn, namesIn, openFolderIn, readFileUnder, removeFromRunStaging, withRunStaging, writeNewFileUnder, type Dir,
 } from '../homeFolder'
 import { SKILL_FILE } from '../skillTree'
 import { recordSkillsUsed } from '../skillUseRecord'
-import { SKILLS_STAGING_DIRNAME } from '../skillsStagingDir'
+import { RUN_STAGING_SKILLS } from '../runStagingFolders'
 import { SKILLS_PLUGIN_NAME } from '../sdkNames'
 import type { RunContext } from '../types'
 import type { InvocableSkill } from '../pickedSkill'
@@ -54,9 +55,7 @@ export type StagedTurnSkills = {
 
 /** Stages the turn's skills, or returns null when no source has any. */
 export async function stageTurnSkills(context: RunContext): Promise<StagedTurnSkills | null> {
-  // Through the staging folder as opened from the harness home, never by path (homeFolder.ts): a `.claude` or
-  // `.tmp` the run replaced with a link is refused, and nothing is written or read through one.
-  const staged = await withStagingFolder(context.claudeHome.serverDir, async tmp => {
+  const staged = await withRunStaging(context.runStaging.serverDir, RUN_STAGING_SKILLS, async tmp => {
     const name = path.basename(await fs.mkdtemp(inDir(tmp, 'skills-')))
     const folder = await openFolderIn(tmp, name)
     try {
@@ -83,7 +82,7 @@ export async function stageTurnSkills(context: RunContext): Promise<StagedTurnSk
     }
   }, { create: true })
 
-  const serverDir = path.join(context.claudeHome.serverDir, SKILLS_STAGING_DIRNAME, staged.name)
+  const serverDir = path.join(context.runStaging.serverDir, RUN_STAGING_SKILLS, staged.name)
   if (staged.result.staged.length === 0) {
     await removeStagedSkills(serverDir)
     return null
@@ -94,7 +93,7 @@ export async function stageTurnSkills(context: RunContext): Promise<StagedTurnSk
   // never a string replace: an id that recurs elsewhere in the path would be
   // rewritten too. Both views name one directory, and the folder was built
   // from `serverDir`, so what follows it is the same under either view.
-  const visibleDir = context.claudeHome.visibleDir + serverDir.slice(context.claudeHome.serverDir.length)
+  const visibleDir = context.runStaging.visibleDir + serverDir.slice(context.runStaging.serverDir.length)
   const visiblePluginDir = path.posix.join(visibleDir, PLUGIN_DIRNAME)
   return {
     serverDir,
@@ -112,7 +111,7 @@ export async function stageTurnSkills(context: RunContext): Promise<StagedTurnSk
 }
 
 export async function removeStagedSkills(serverDir: string): Promise<void> {
-  await removeFromStaging(serverDir).catch(() => {})
+  await removeFromRunStaging(serverDir).catch(() => {})
 }
 
 /** Every file's path and content, in a fixed order, read through the open folders. Staging copies files and makes no links. */

@@ -31,6 +31,7 @@ import { loadPromptContent } from '../promptContent'
 import { getAgentFacingSiteUrl } from '../../server/siteConfig'
 import { runAccessOf } from '../../server/modelRelay/runAccess'
 import { resolvePrimaryLocation, getLocationCwd } from '../../server/storage/primaryLocationService'
+import { untilSwitched } from '../../server/storage/codeSpace'
 import { prisma } from '#db'
 import { siteStream } from './SiteStreamEmitter'
 import { verifyHqToken } from '../../server/identity/verifyHqToken'
@@ -51,6 +52,7 @@ import { requireResumableSession } from './sessionExistenceCheck'
 import { ReadableRunError } from './readableRunError'
 import { readContainerCounters, type ContainerCounters } from './runResourceCause'
 import { homeIsShared, writePinnedMemory } from './pinnedMemoryFiles'
+import { runStagingOf } from './runStaging'
 import { resolveCodeWork, startCodeWork, type CodeWorkRun } from '../../server/branches/codeWorkRun'
 import { withCodeWorkTools } from '../../server/mcp/forwardedCodeSchemas'
 import { withAppTools } from '../../server/mcp/forwardedAppSchemas'
@@ -77,7 +79,9 @@ export interface RunLaunchSink {
    *  (runResourceCause.ts). Read without waiting; null before the container is ready. */
   resourceBaseline: Promise<ContainerCounters | null> | null
   /** The run's pinned memory file, which `releaseRunResources` removes when the run ends (pinnedMemoryFiles.ts). */
-  pinnedMemory?: { home: string; sessionId: string } | null
+  pinnedMemory?: { staging: string; sessionId: string } | null
+  /** The runner's run staging as this process sees it, which holds the conversation's staged skills. */
+  runStaging?: string | null
   /** A run on a branch's copy: swept while it goes, and its branch brought back at its end (codeWorkRun.ts). */
   codeWork?: CodeWorkRun | null
 }
@@ -252,6 +256,8 @@ export async function assembleRunLaunch(
     await startCodeWork(codeWork)
     sink.codeWork = codeWork
   }
+  // A workspace becoming a repository holds new runs in it until its main is in place (codeSpace.ts).
+  await untilSwitched(primaryLoc.workspaceId)
   const workingTreeDir = codeWork ? codeWork.copyDir : await getLocationCwd(primaryLoc)
 
   // 3d-1. Which container this run belongs to — boundary × runner (ADR-0074)
@@ -269,6 +275,8 @@ export async function assembleRunLaunch(
     visibleDir: resolveVisibleClaudeHome(containerKey),
   }
   sink.claudeHome = claudeHome.serverDir
+  const runStaging = runStagingOf(containerKey)
+  sink.runStaging = runStaging.serverDir
 
   // A granted subscription is counted into its login's copies before the
   // container is prepared, so the write at launch can hand this run the
@@ -335,11 +343,11 @@ export async function assembleRunLaunch(
   const agenda = session.sessionType === 'chat' && session.userId
     ? resolveRunAgenda(primaryLoc, session.userId)
     : null
-  // The pinned memory hq sent, as a read-only file in the run's home, refreshed at every start (spec, Workers) and
-  // removed at its end. A project's own home holds nothing about a person: every member's task runs share it.
-  sink.pinnedMemory = { home: claudeHome.serverDir, sessionId: session.id }
+  // The pinned memory hq sent, as a read-only file in the runner's run staging, refreshed at every start (spec,
+  // Workers) and removed at its end. A project's own holds nothing about a person: every member's task runs share it.
+  sink.pinnedMemory = { staging: runStaging.serverDir, sessionId: session.id }
   const pinnedMemoryPath = await writePinnedMemory(
-    { ...claudeHome, shared: homeIsShared(containerKey.runner) }, session.id, ctx.pinnedMemory,
+    { ...runStaging, shared: homeIsShared(containerKey.runner) }, session.id, ctx.pinnedMemory,
   )
   const builder = new AgentPromptBuilder(agent, await loadPromptContent(packages, boundaryOverride, primaryLoc))
   const { systemPrompt } = await (() => {
@@ -424,6 +432,7 @@ export async function assembleRunLaunch(
     boundaryOverride,
     skills,
     claudeHome,
+    runStaging,
     workingTreeDir,
     ...(codeWork ? { codeWork: { branch: codeWork.branch, copyId: codeWork.copyId, workspace: codeWork.placed.ref } } : {}),
   }

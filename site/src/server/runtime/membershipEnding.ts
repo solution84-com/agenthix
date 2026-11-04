@@ -11,7 +11,8 @@
  *   3. ends each conversation: its processes, its harness's hold on it, its
  *      staging and its platform token (adr-0083);
  *   4. removes their containers, waiting for cancelled runs to leave them;
- *   5. deletes the harness homes;
+ *   5. deletes the harness homes and the run staging (adr-0173), each as an
+ *      entry of a folder no container can write, never walked by path;
  *   6. tells hq each conversation is closed, since no run frame carries it;
  *   7. answers with the acknowledgement.
  *
@@ -22,7 +23,6 @@
  * transcript, runs and tool calls — are left alone; only a session's status
  * changes.
  */
-import fs from 'node:fs/promises'
 import { z } from 'zod'
 import { prisma } from '#db'
 import type { Prisma } from '@prisma/client'
@@ -38,10 +38,16 @@ import { agentContainerManager } from '../../agents/runtime/AgentContainerManage
 import { conversationLifecycle } from '../../agents/runtime/conversationLifecycle'
 import type { ContainerRemovalFilter } from '../../agents/runtime/containerRemoval'
 import {
-  personHarnessHomesRoot,
-  personProjectHarnessHome,
+  asEntry,
+  personHomesEntry,
+  personProjectHomeEntry,
+  personProjectRunStaging,
+  personRunStagings,
   projectHarnessHomes,
+  projectRunStagings,
+  type RunnerFolder,
 } from '../../agents/runtime/harnessHomes'
+import { closeDir, openTreeRoot, removeEntryIn } from '../../agents/runtime/homeFolder'
 import { hqConnectionManager } from '../hq/hqConnection'
 import { Logger } from '../utils/logger'
 
@@ -55,7 +61,8 @@ type Scope = {
   /** The conversations the instruction ends. */
   sessions: Prisma.AgentSessionWhereInput
   containers: ContainerRemovalFilter
-  homes: () => Promise<string[]>
+  /** The harness homes and run stagings that go, each as an entry of its parent. */
+  homes: () => Promise<RunnerFolder[]>
   reason: SessionClosedReasonValue
 }
 
@@ -79,7 +86,7 @@ export async function handleMemberLeftProject(params: unknown): Promise<Membersh
   await endScope({
     sessions: { userId: p.userId, sessionType: 'chat', primaryOwnerType: 'project', primaryOwnerId: p.projectId },
     containers: { ownerType: 'project', ownerId: p.projectId, runner: { kind: 'person', userId: p.userId } },
-    homes: async () => [personProjectHarnessHome(p.userId, p.projectId)],
+    homes: async () => [personProjectHomeEntry(p.userId, p.projectId), personProjectRunStaging(p.userId, p.projectId)],
     reason: 'LEFT_PROJECT',
   })
   return { instructionId: p.instructionId, acknowledged: true }
@@ -91,7 +98,7 @@ export async function handlePersonLeftOrganisation(params: unknown): Promise<Mem
   await endScope({
     sessions: { userId: p.userId, sessionType: 'chat' },
     containers: { runner: { kind: 'person', userId: p.userId } },
-    homes: async () => [personHarnessHomesRoot(p.userId)],
+    homes: async () => [personHomesEntry(p.userId), personRunStagings(p.userId)],
     reason: 'LEFT_ORGANISATION',
   })
   return { instructionId: p.instructionId, acknowledged: true }
@@ -103,7 +110,7 @@ export async function handleProjectDeleted(params: unknown): Promise<MembershipA
   await endScope({
     sessions: { primaryOwnerType: 'project', primaryOwnerId: p.projectId },
     containers: { ownerType: 'project', ownerId: p.projectId },
-    homes: () => projectHarnessHomes(p.projectId),
+    homes: async () => [...(await projectHarnessHomes(p.projectId)).map(asEntry), ...(await projectRunStagings(p.projectId))],
     reason: 'PROJECT_DELETED',
   })
   return { instructionId: p.instructionId, acknowledged: true }
@@ -129,9 +136,29 @@ async function endScope(scope: Scope): Promise<void> {
   }
 
   await removeContainersOnceIdle(scope.containers)
-  for (const home of await scope.homes()) await fs.rm(home, { recursive: true, force: true })
+  for (const folder of await scope.homes()) await removeRunnerFolder(folder)
 
   if (sessionIds.length > 0) await reportClosed(sessionIds)
+}
+
+/**
+ * Removes a harness home or a run staging. Its parent is a folder only the site writes, so it is opened by path; the
+ * folder itself is removed through open descriptors (`removeEntryIn`), since a container still running could have
+ * put a symbolic link anywhere inside a home. A parent not there is nothing to remove.
+ */
+export async function removeRunnerFolder(folder: RunnerFolder): Promise<void> {
+  let parent
+  try {
+    parent = await openTreeRoot(folder.parent)
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return
+    throw err
+  }
+  try {
+    await removeEntryIn(parent, folder.name)
+  } finally {
+    await closeDir(parent)
+  }
 }
 
 /**

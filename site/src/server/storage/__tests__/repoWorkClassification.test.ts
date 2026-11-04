@@ -151,12 +151,17 @@ describe('a location this site may not read', () => {
    * look. The same failure `location.listFiles` refuses to make.
    */
   it('is refused, not reported as an empty location', async () => {
-    repoOps.getContentState.mockRejectedValue(
-      Object.assign(new Error(`EACCES: permission denied, scandir '${root}/projects/proj-0001/files'`), { code: 'EACCES' }),
-    )
-    const err = await refusalOf(() => repoState({ loc }))
-    expect(err.code).toBe('refused')
-    expect(err.detail).not.toContain(root)
+    // `files/` is read through open folders from the boundary's own (adr-0173), so the folder itself is made unreadable.
+    const files = path.join(root, 'projects', 'proj-0001', 'files')
+    await fs.mkdir(files, { recursive: true })
+    await fs.chmod(files, 0o000)
+    try {
+      const err = await refusalOf(() => repoState({ loc }))
+      expect(err.code).toBe('refused')
+      expect(err.detail).not.toContain(root)
+    } finally {
+      await fs.chmod(files, 0o755)
+    }
   })
 })
 

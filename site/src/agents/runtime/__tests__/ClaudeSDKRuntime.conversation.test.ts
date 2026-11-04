@@ -47,7 +47,7 @@ let home: string
 const runtime = new ClaudeSDKRuntime()
 
 async function turn(overrides: Partial<RunContext> = {}): Promise<RunEvent[]> {
-  const context = claudeTestContext({ claudeHome: { serverDir: home, visibleDir: home }, ...overrides })
+  const context = claudeTestContext({ claudeHome: { serverDir: home, visibleDir: home }, runStaging: { serverDir: path.join(home, 'run-staging'), visibleDir: path.join(home, 'run-staging') }, ...overrides })
   const events: RunEvent[] = []
   for await (const e of runtime.run(context)) events.push(e)
   return events
@@ -197,14 +197,14 @@ describe('one claude process per conversation', () => {
     await turn({ runId: 'run-2', isNewSession: false })
     expect(fake.started).toHaveLength(1)
     // The second turn's copy is gone; the process's own is kept.
-    expect(await fs.readdir(path.join(home, '.tmp'))).toHaveLength(1)
+    expect(await fs.readdir(path.join(home, 'run-staging', 'skills'))).toHaveLength(1)
 
     body = 'v2'
     await turn({ runId: 'run-3', isNewSession: false })
     expect(fake.started).toHaveLength(2)
     expect(optionsOf(fake.started[1]!).additionalDirectories).not.toEqual(optionsOf(fake.started[0]!).additionalDirectories)
     // The replaced process's folder went with it.
-    expect(await fs.readdir(path.join(home, '.tmp'))).toHaveLength(1)
+    expect(await fs.readdir(path.join(home, 'run-staging', 'skills'))).toHaveLength(1)
     vi.mocked(stageSkills).mockImplementation(async () => ({ staged: [], refused: [] }))
   })
 
@@ -330,12 +330,13 @@ describe('one claude process per conversation', () => {
       CLAUDE_CODE_SHELL_PREFIX: '/usr/local/lib/agenthix/bin/claude-shell-prefix',
       // Grep and Glob run the image's rg, which runs the real one through the launcher.
       USE_BUILTIN_RIPGREP: '0',
-      SITE_COMMAND_READABLE: optionsOf(fake.started[0]!).additionalDirectories[0],
       AGENT_HANDLE: 'coder',
     })
     // The key never enters the container: the process's requests go to the
     // site's model relay, and it trades a one-use ticket, through Claude
     // Code's apiKeyHelper, for a relay token it sends as its key.
+    // The staged skills are in run staging, outside the harness home, which commands already read (adr-0173).
+    expect(env).not.toHaveProperty('SITE_COMMAND_READABLE')
     expect(Object.values(env)).not.toContain('sk-run')
     expect(optionsOf(fake.started[0]!).env.ANTHROPIC_API_KEY).not.toBe('sk-run')
     expect(env.ANTHROPIC_BASE_URL).toBe('http://site.test/api/v1/model-relay/anthropic')

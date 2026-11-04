@@ -44,6 +44,8 @@ import { AGENT, AUTHOR, COPY_A, COPY_B, sh, write } from './gitFixture'
 let root: string
 const workspace = { ownerType: 'project' as const, ownerId: 'p1', workspaceId: 'w1' }
 const wsDir = () => path.join(root, 'projects', 'p1', 'workspaces', 'w1')
+/** Where `main` lives once Git is on: the code space, outside the boundary (adr-0173). */
+const mainDir = () => path.join(root, 'code', 'projects', 'p1', 'w1')
 const call = (method: string, params: unknown) => (channelMethods as unknown as Record<string, (p: unknown) => Promise<Record<string, unknown>>>)[method]!(params)
 
 beforeEach(async () => {
@@ -62,6 +64,10 @@ describe('turning Git on, then a branch from making to merging @SC-1726', () => 
   it('works through every method hq calls', async () => {
     const init = await call('git.init', { workspace, author: AUTHOR })
     expect(init).toMatchObject({ main: 'main', gitignoreAdded: true, version: { number: 1, author: AUTHOR } })
+    // The files became main in the code space, and the old folder in the boundary is gone (adr-0173).
+    expect(fs.readFileSync(path.join(mainDir(), 'README.md'), 'utf8')).toBe('hello\n')
+    expect(fs.existsSync(wsDir())).toBe(false)
+    expect((await call('git.init', { workspace, author: AUTHOR }).catch((e: BranchWorkError) => e)).code).toBe('already_repository')
 
     const made = await call('branch.create', { workspace, copyId: COPY_A, branch: 'add-login-page' })
     expect(made).toMatchObject({ branch: 'add-login-page', copyId: COPY_A, head: (init.version as { commit: string }).commit })
@@ -73,7 +79,7 @@ describe('turning Git on, then a branch from making to merging @SC-1726', () => 
       workspace, copyId: COPY_A, branch: 'add-login-page', message: 'Add the login form', author: AGENT, onBehalfOf: AUTHOR, runId: 'run-1',
     })
     expect(committed).toMatchObject({ committed: true, files: 1, back: { moved: true } })
-    expect(sh(wsDir(), ['log', '-1', '--format=%B', 'add-login-page'])).toBe('Add the login form\n\nOn-behalf-of: Ada Lovelace <ada@example.com>')
+    expect(sh(mainDir(), ['log', '-1', '--format=%B', 'add-login-page'])).toBe('Add the login form\n\nOn-behalf-of: Ada Lovelace <ada@example.com>')
     expect(await call('branch.commit', { workspace, copyId: COPY_A, branch: 'add-login-page', message: 'x', author: AGENT, onBehalfOf: null, runId: 'r' }))
       .toEqual({ committed: false, reason: 'nothing_to_commit' })
 
@@ -114,8 +120,8 @@ describe('branch.updateFromMain @SC-1727', () => {
     await call('branch.commit', { workspace, copyId: COPY_B, branch: 'signup', message: 'b', author: AGENT, onBehalfOf: null, runId: 'r' })
     const done = await update('signup')
     expect(done).toMatchObject({ outcome: 'updated', fastForward: false, back: { moved: true } })
-    expect(sh(wsDir(), ['rev-parse', 'signup'])).toBe(done.commit)
-    expect(sh(wsDir(), ['log', '-1', '--format=%B', 'signup'])).toBe('Merge main into signup\n\nOn-behalf-of: Ada Lovelace <ada@example.com>')
+    expect(sh(mainDir(), ['rev-parse', 'signup'])).toBe(done.commit)
+    expect(sh(mainDir(), ['log', '-1', '--format=%B', 'signup'])).toBe('Merge main into signup\n\nOn-behalf-of: Ada Lovelace <ada@example.com>')
 
     write(copyOf(COPY_B), 'x.txt', 'not committed\n')
     expect(await update('signup')).toEqual({ outcome: 'uncommitted' })

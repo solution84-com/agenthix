@@ -91,6 +91,7 @@ function context(overrides: Partial<RunContext> = {}): RunContext {
     containerName: CONTAINER,
     credential: { kind: 'apiKey', provider: 'anthropic', apiKey: KEY },
     claudeHome: { serverDir: path.join(dir, 'home', '.claude'), visibleDir: '/home/appuser/.claude' },
+    runStaging: { serverDir: path.join(dir, 'run-staging'), visibleDir: '/run/staging' },
     // Not what a real run's git helper carries: the way this test gives the
     // process the stand-in's address and keeps anything else from leaving.
     gitCredEnv: {
@@ -144,9 +145,12 @@ describe.skipIf(!enabled)('a real claude process per conversation, in the agent 
     await docker('rm', '-f', CONTAINER).catch(() => '')
     await docker('network', 'rm', NETWORK).catch(() => '')
     await docker('network', 'create', '--driver', 'bridge', '--subnet', '10.214.251.0/29', NETWORK)
+    await fs.mkdir(path.join(dir, 'run-staging', 'skills'), { recursive: true })
+    await fs.mkdir(path.join(dir, 'run-staging', 'pinned-memory'), { recursive: true })
     await docker('run', '-d', '--init', '--memory', '2g', '--cpus', '2', '--pids-limit', '4096', '--name', CONTAINER,
       '--network', NETWORK, '--add-host', 'host.docker.internal:host-gateway',
       '-v', `${path.join(dir, 'home')}:/home/appuser`, '-v', `${path.join(dir, 'project')}:/projects/p1`,
+      '-v', `${path.join(dir, 'run-staging')}:/run/staging:ro`,
       IMAGE, 'tail', '-f', '/dev/null')
   }, 120_000)
 

@@ -15,12 +15,12 @@ import type { WorkflowWriteBack } from '@agenthix/core'
 import { copyHandle, hashHandle, plainMode, sameEntry, type Manifest, type ManifestEntry } from './manifest'
 import type { RunChange } from './seams'
 import {
-  closeDir, confirmDir, inDir, LinkRefused, lstatIn, openDirPath, openFileIn, openRoot, type Dir,
+  closeDir, confirmDir, inDir, LinkRefused, lstatIn, openDirPath, openFileIn, openRoot, type Dir, type TreeRoot,
 } from './safeTree'
 
 export type WriteBackInput = {
   runId: string
-  workspaceDir: string
+  workspaceDir: TreeRoot
   snapshotDir: string
   start: Manifest
   end: Manifest

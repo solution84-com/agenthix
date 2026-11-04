@@ -151,7 +151,7 @@ async function carryOut(
   const ins = checked.instruction
   const folders = await createRunFolders(ins.runId)
   await writeApprovedFiles(folders.workflow, checked.files)
-  const snapshot = await takeSnapshot(target.hostDir, folders.snapshot)
+  const snapshot = await takeSnapshot(target.root, folders.snapshot)
   await record.recordSnapshot(ins.runId, snapshot.kind)
   run.state = 'running'
 
@@ -192,7 +192,7 @@ async function carryOut(
   }
   await record.recordProgress(ins.runId, { state: 'WRITING_BACK' })
   try {
-    const written = await writeBack({ runId: ins.runId, workspaceDir: target.hostDir, snapshotDir: folders.snapshot, start: snapshot.manifest, end, changes })
+    const written = await writeBack({ runId: ins.runId, workspaceDir: target.root, snapshotDir: folders.snapshot, start: snapshot.manifest, end, changes })
     const handOff = ins.livePreview && !run.stopReason ? await executorDeps.handOver(ins) : null
     if (handOff) return { ...base, state: 'failed', endedAt: ended(), writeBack: written, failure: { code: 'site_error', message: handOff } }
     if (ins.livePreview && run.stopReason) return { ...base, state: 'stopped', endedAt: ended(), writeBack: written, failure: { code: run.stopReason, message: 'The run was stopped after its changes were written back, so no secrets were handed to the live preview.' } }

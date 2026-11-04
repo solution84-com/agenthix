@@ -1,8 +1,9 @@
 /**
  * The commit helper's program (live preview spec, *Git on what an agent wrote*): every Git command the site runs on a
  * code workspace's repository or a branch's copy. The helper container (`../helperContainer.ts`) runs it with Node,
- * and it sees only what that container mounts: the workspace at `roots.ws`, the copy at `roots.copy`, its own `/tmp`.
- * So a link an agent planted in a copy can only lead somewhere inside those.
+ * and it sees only what that container mounts: `main` at `roots.ws`, the copy at `roots.copy` (inside the boundary's
+ * folder, `roots.within`, for a branch's copy), its own `/tmp`. So a symlink an agent planted can only lead somewhere
+ * inside those.
  *
  * It reads one JSON request from standard input and writes one JSON answer to standard output: the operation's
  * result, or `{ refused, detail }`. Kept as plain JavaScript in strings, since the container has Node and none of the
@@ -25,7 +26,7 @@ process.stdin.on('end', () => {
     const q = JSON.parse(input)
     const op = Object.prototype.hasOwnProperty.call(ops, q.op) ? ops[q.op] : null
     if (!op) throw new Refusal('unknownOp')
-    answer = op(q, q.roots || {})
+    answer = op(q, useRoots(q.roots || {}))
   } catch (e) {
     answer = e instanceof Refusal ? { refused: e.code, detail: e.detail } : { refused: 'failed', detail: String(e && e.message || e).slice(0, 500) }
   }

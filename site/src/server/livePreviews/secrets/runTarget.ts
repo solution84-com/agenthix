@@ -4,13 +4,15 @@
  * must be this site's, running, on the instruction's workspace; the run's steps then work on the live preview's copy,
  * where its app runs, rather than on the workspace's folder.
  */
-import fs from 'node:fs/promises'
 import type { WorkflowRunInstruction } from '@agenthix/core'
+import { closeDir, openRoot, type TreeRoot } from '../../../agents/runtime/safeTree'
+import { boundaryCopyOf } from '../../storage/paths'
 import { copyPlaceOf } from '../livePreviewCopies'
 import type { LivePreviewRow } from '../livePreviewRows'
 import { livePreviewRow } from '../livePreviewStore'
 
-export type LivePreviewRunTarget = { livePreviewId: string; hostDir: string; containerDir: string }
+/** `root` is how the copy is opened: one in a boundary through open folders from the boundary's own (adr-0173). */
+export type LivePreviewRunTarget = { livePreviewId: string; hostDir: string; root: TreeRoot; containerDir: string }
 
 /** The live preview, when it is this site's, running, and on the run's workspace; null otherwise. */
 export async function runningPreviewFor(ins: Pick<WorkflowRunInstruction, 'livePreview' | 'workspace'>): Promise<LivePreviewRow | null> {
@@ -28,7 +30,10 @@ export async function livePreviewRunTarget(ins: Pick<WorkflowRunInstruction, 'li
   const row = await runningPreviewFor(ins)
   if (!row) return null
   const place = copyPlaceOf(row)
-  const entry = await fs.lstat(place.hostDir).catch(() => null)
-  if (!entry?.isDirectory()) return null
-  return { livePreviewId: row.id, hostDir: place.hostDir, containerDir: place.containerDir }
+  const inBoundary = boundaryCopyOf(place.hostDir)
+  const root: TreeRoot = inBoundary ? { base: inBoundary.boundary, rel: `clones/${inBoundary.copyId}` } : place.hostDir
+  const opened = await openRoot(root).catch(() => null)
+  if (!opened) return null
+  await closeDir(opened)
+  return { livePreviewId: row.id, hostDir: place.hostDir, root, containerDir: place.containerDir }
 }

@@ -46,11 +46,26 @@ import {
   type RepoConnectResult,
   type RepoStateParams,
   type RepoStateResult,
+  type WorkspaceRepoRef,
   type LocationRef as WireLocationRef,
 } from '@agenthix/core'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { getContentState, initAndPushRepo, linkAndPullRepo } from '../../storage/repoOps'
 import { GitDeadline } from '../../storage/gitRunner'
+import { inDir } from '../../agents/runtime/safeTree'
+import { removeEntryIn } from '../../agents/runtime/homeFolder'
+import { Logger } from '../utils/logger'
+import { inTurn } from '../branches/branchCalls'
+import {
+  copyEntriesInto, copyIntoBoundaryFolder, copyOutOfBoundary, CopyRefused, namesInBoundaryFolder, withBoundaryFolder,
+} from './boundaryTreeCopy'
+import { AlreadyRepository, becomeRepository, isCodeWorkspace, withCodeWorkFolder } from './codeSpace'
+import { getCodeDir, ownerDir } from './paths'
 import { detailFor, locationDirFor, parseParams, refuse, UNPARSED_LOCATION } from './repoWorkRefusals'
+
+const logger = new Logger('repoWork')
 
 const locRefSchema = z
   .object({
@@ -87,22 +102,46 @@ const _wireMirrorsCore: [
 void _wireMirrorsCore
 
 /**
+ * Where repository work on a location happens (adr-0173). A workspace's repository is its `main` in the code space,
+ * a folder no container can write: a workspace that is not one yet becomes one there (`codeSpace.ts`). Any other
+ * location (`files/`, a task's folder) stays in the boundary, as a backup rather than a codebase: its git work is done
+ * in a copy of the site's own and only the result is put back, through open folders.
+ */
+type Place =
+  | { kind: 'workspace'; ws: WorkspaceRepoRef }
+  | { kind: 'folder'; boundary: string; rel: string }
+
+function placeOf(loc: WireLocationRef, method: string): Place {
+  const dir = locationDirFor(loc, method)
+  if (loc.workspaceId && !loc.taskId) return { kind: 'workspace', ws: { ownerType: loc.ownerType, ownerId: loc.ownerId, workspaceId: loc.workspaceId } }
+  const boundary = ownerDir(loc.ownerType, loc.ownerId)
+  return { kind: 'folder', boundary, rel: path.relative(boundary, dir).split(path.sep).join('/') }
+}
+
+/** The state of a boundary folder, read through open folders: is there a `.git`, and anything else. */
+async function folderState(boundary: string, rel: string): Promise<RepoStateResult> {
+  const names = (await namesInBoundaryFolder(boundary, rel)) ?? []
+  return { isGitRepo: names.includes('.git'), hasFiles: names.some(n => n !== '.git') }
+}
+
+/**
  * Is this location a git repository, and does it hold anything?
  *
- * No git binary is involved — it is a `.git` probe and a directory listing —
- * but it crosses with the rest of repository work rather than staying on hq,
- * because leaving it behind would keep one filesystem read of this site's disk
- * for no benefit.
+ * No git binary is involved — a `.git` probe and a directory listing. A workspace answers from its `main` in the code
+ * space when it has one, and otherwise from its folder in the boundary, which is not a repository whatever it holds.
  */
 export async function repoState(params: unknown): Promise<RepoStateResult> {
   const method = REPO_WORK_METHODS.state
   const { loc } = parseParams(repoStateParams, params, method, UNPARSED_LOCATION)
-  const dir = locationDirFor(loc, method)
+  const place = placeOf(loc, method)
   try {
-    return await getContentState(dir)
+    if (place.kind === 'folder') return await folderState(place.boundary, place.rel)
+    if (await isCodeWorkspace(place.ws)) return await getContentState(getCodeDir(place.ws))
+    const boundary = ownerDir(place.ws.ownerType, place.ws.ownerId)
+    return { isGitRepo: false, hasFiles: (await folderState(boundary, `workspaces/${place.ws.workspaceId}`)).hasFiles }
   } catch (err) {
     // No token to redact against: this method is never given one.
-    refuse(err, method, loc, '', null)
+    refuse(asRefusal(err, method, loc), method, loc, '', null)
   }
 }
 
@@ -115,37 +154,98 @@ export async function repoState(params: unknown): Promise<RepoStateResult> {
  * `init` and `adopt` are one direction here, for the reason core's
  * `RepoConnectDirection` gives.
  *
- * The emptiness rule is checked here as well as on hq, which is the same
- * belt-and-braces `location.seedFiles` applies to its bounds: a rule only the
+ * The emptiness rule is checked here as well as on hq: a rule only the
  * receiver enforces is one hq discovers by being refused, and a rule only the
- * caller enforces is one a second caller forgets. `linkAndPullRepo` has its
- * own guard inside it too — that one is the git module's, kept as it moved,
- * and it cannot produce a coded refusal.
+ * caller enforces is one a second caller forgets.
  */
 export async function repoConnect(params: unknown): Promise<RepoConnectResult> {
   const method = REPO_WORK_METHODS.connect
   const { loc, direction, repoUrl, token } = parseParams(repoConnectParams, params, method, UNPARSED_LOCATION)
-  const dir = locationDirFor(loc, method)
+  const place = placeOf(loc, method)
   try {
-    // INSIDE the guard. `GitDeadline` throws on a budget that is not a finite
-    // number, and constructed a line above it that plain `Error` crossed the
-    // channel raw — the same escape from this vocabulary that the params parse
-    // had, one function over.
-    //
-    // One deadline for the whole call, shorter than the one hq is holding, so
-    // this site fails the call and says why rather than leaving hq to read a
-    // silence as "unreachable" while git carries on writing here.
+    // INSIDE the guard: `GitDeadline` throws on a budget that is not a finite number. One deadline for the whole
+    // call, shorter than the one hq is holding, so this site fails the call and says why.
     const deadline = new GitDeadline(REPO_CONNECT_SITE_BUDGET_MS)
-    if (direction === 'pull') {
-      if ((await getContentState(dir)).hasFiles) {
-        throw new RepoWorkError('has_files', detailFor('has_files', method, loc))
-      }
-      await linkAndPullRepo(dir, repoUrl, token, deadline)
+    const hasFiles = () => { throw new RepoWorkError('has_files', detailFor('has_files', method, loc)) }
+    if (place.kind === 'workspace') {
+      await inTurn(place.ws.workspaceId, () => connectWorkspace(place.ws, direction, repoUrl, token, deadline, hasFiles))
+    } else if (direction === 'pull') {
+      if ((await folderState(place.boundary, place.rel)).hasFiles) hasFiles()
+      await pullIntoFolder(place.boundary, place.rel, repoUrl, token, deadline)
     } else {
-      await initAndPushRepo(dir, repoUrl, token, deadline)
+      await backUpFolder(place.boundary, place.rel, repoUrl, token, deadline)
     }
   } catch (err) {
-    refuse(err, method, loc, token, direction)
+    refuse(asRefusal(err, method, loc), method, loc, token, direction)
   }
   return { connected: true }
+}
+
+async function connectWorkspace(
+  ws: WorkspaceRepoRef, direction: 'push' | 'pull', repoUrl: string, token: string, deadline: GitDeadline, hasFiles: () => never,
+): Promise<void> {
+  const main = getCodeDir(ws)
+  if (await isCodeWorkspace(ws)) {
+    if (direction === 'pull') {
+      if ((await getContentState(main)).hasFiles) hasFiles()
+      return linkAndPullRepo(main, repoUrl, token, deadline)
+    }
+    return initAndPushRepo(main, repoUrl, token, deadline)
+  }
+  if (direction === 'pull') {
+    const boundary = ownerDir(ws.ownerType, ws.ownerId)
+    if ((await folderState(boundary, `workspaces/${ws.workspaceId}`)).hasFiles) hasFiles()
+    await becomeRepository(ws, 'empty', dir => linkAndPullRepo(dir, repoUrl, token, deadline))
+    return
+  }
+  await becomeRepository(ws, 'files', dir => initAndPushRepo(dir, repoUrl, token, deadline))
+}
+
+/**
+ * Pulls a repository into an empty boundary folder: pulled into a folder of the site's own, then written into the
+ * boundary folder through open folders. A `.git` left there with no files is replaced.
+ */
+async function pullIntoFolder(boundary: string, rel: string, repoUrl: string, token: string, deadline: GitDeadline): Promise<void> {
+  await withCodeWorkFolder(async work => {
+    const repo = path.join(work, 'repo')
+    await fs.mkdir(repo)
+    await linkAndPullRepo(repo, repoUrl, token, deadline)
+    await withBoundaryFolder(boundary, rel, async dir => {
+      await removeEntryIn(dir, '.git')
+      await copyEntriesInto(repo, dir)
+    })
+  })
+}
+
+/**
+ * Backs a boundary folder up to GitHub (adr-0173, the one exception): the folder stays where it is, shared and
+ * writable. The first push is made from a copy of the site's own, taken without following a symlink; then the
+ * finished `.git` is written into the folder through open folders, beside it first and renamed into place. The site
+ * never commits or pushes in the folder itself.
+ */
+async function backUpFolder(boundary: string, rel: string, repoUrl: string, token: string, deadline: GitDeadline): Promise<void> {
+  await withCodeWorkFolder(async work => {
+    const repo = path.join(work, 'repo')
+    await copyOutOfBoundary(boundary, rel, repo)
+    await initAndPushRepo(repo, repoUrl, token, deadline)
+    await withBoundaryFolder(boundary, rel, async dir => {
+      const incoming = `.git.incoming-${randomUUID()}`
+      try {
+        await copyIntoBoundaryFolder(path.join(repo, '.git'), dir, incoming)
+        await removeEntryIn(dir, '.git')
+        await fs.rename(inDir(dir, incoming), inDir(dir, '.git'))
+      } finally {
+        await removeEntryIn(dir, incoming).catch(() => {})
+      }
+    })
+  })
+}
+
+/** A copy refused for what a run left in the location is the location refusing the work; the rest goes on as it is. */
+function asRefusal(err: unknown, method: string, loc: WireLocationRef): unknown {
+  if (err instanceof CopyRefused || err instanceof AlreadyRepository) {
+    logger.error(`${method} for ${loc.ownerType} ${loc.ownerId}: ${err.message}`)
+    return new RepoWorkError('refused', detailFor('refused', method, loc))
+  }
+  return err
 }
