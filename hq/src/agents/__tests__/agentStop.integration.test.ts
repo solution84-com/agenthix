@@ -17,6 +17,7 @@ vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRu
 vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/debouncedPush'))
 
 import { stopAgent } from '../actions'
+import { SiteUnreachableError } from '../../storage/workspaceStore'
 import { stopAllSessions } from '../../sessions/actions'
 import * as siteStore from '../../test/fakes/siteRuntimeStore'
 
@@ -55,6 +56,15 @@ describe('stopAgent @SC-057 @SC-179', () => {
     const result = await stopAgent({ id: agent.id }, ctx(admin))
     expect(result).toEqual({ ok: true, cancelledRuns: 0 })
     expect(siteStore.stopAgent).toHaveBeenCalledWith(expect.any(String), agent.handle)
+  })
+
+  it('answers 503 when a site does not answer, and stops the agent on the others first', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const agent = await createAgent()
+    await createSession({ agentId: agent.id })
+    siteStore.stopAgent.mockRejectedValueOnce(new SiteUnreachableError('Office', 'site-office'))
+
+    await expect(stopAgent({ id: agent.id }, ctx(admin))).rejects.toMatchObject({ statusCode: 503, message: expect.stringContaining('may still be running') })
   })
 
   it('returns 404 for an unknown agent', async () => {

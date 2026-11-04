@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAction, useQuery, applyAgentTemplate, getAgentTemplates } from 'wasp/client/operations'
 import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
+import { MissingSkillsNotice } from '../pages/MissingSkillsNotice'
 
 /** Add to agents: the library's agent becomes the organisation's own copy under a handle. */
 export function AddAgentDialog({ templateId, onClose }: { templateId: string | null; onClose: () => void }) {
@@ -10,7 +11,7 @@ export function AddAgentDialog({ templateId, onClose }: { templateId: string | n
   const [handle, setHandle] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [made, setMade] = useState<string | null>(null)
+  const [made, setMade] = useState<{ handle: string; missingSkills: string[] } | null>(null)
 
   useEffect(() => { setHandle(template?.handle ?? ''); setError(''); setMade(null) }, [template?.id, template?.handle])
 
@@ -19,14 +20,15 @@ export function AddAgentDialog({ templateId, onClose }: { templateId: string | n
     if (!template) return
     setBusy(true)
     setError('')
-    try { setMade((await apply({ id: template.id, handle: handle.trim() })).handle) } catch (err) { setError(err instanceof Error ? err.message : 'Could not add the agent') } finally { setBusy(false) }
+    try { const done = await apply({ id: template.id, handle: handle.trim() }); setMade({ handle: done.handle, missingSkills: done.missingSkills }) } catch (err) { setError(err instanceof Error ? err.message : 'Could not add the agent') } finally { setBusy(false) }
   }
 
   return (
     <Modal open={templateId !== null} onClose={onClose} title={template ? `Add ${template.name} to agents` : 'Add to agents'}>
       {made ? (
         <div className="space-y-4">
-          <p className="text-body text-text-primary">Agent <span className="font-mono">@{made}</span> was added to the organisation's agents.</p>
+          <p className="text-body text-text-primary">Agent <span className="font-mono">@{made.handle}</span> was added to the organisation's agents.</p>
+          <MissingSkillsNotice skills={made.missingSkills} />
           <div className="flex justify-end"><Button onClick={onClose}>Done</Button></div>
         </div>
       ) : (

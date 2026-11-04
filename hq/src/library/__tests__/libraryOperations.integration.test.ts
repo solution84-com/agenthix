@@ -171,8 +171,8 @@ describe('board template operations', () => {
     const admin = await caller('ADMIN')
     const created = await createBoardTemplate({ name: 'One', columns }, admin)
     const found = await getBoardTemplate({ id: created.id }, await caller('MEMBER'))
-    expect(found.name).toBe('One')
-    expect(found.columns.map((s: any) => s.name)).toEqual(['todo', 'doing', 'done'])
+    expect(found!.name).toBe('One')
+    expect(found!.columns.map((s: any) => s.name)).toEqual(['todo', 'doing', 'done'])
     expect(await getBoardTemplate({ id: 'missing' }, admin)).toBeNull()
     await expect(getBoardTemplate({ id: created.id }, anon)).rejects.toThrow('Not authenticated')
   })
@@ -294,6 +294,25 @@ describe('confirmWorkforceTemplate and saveWorkforceDraft refusals', () => {
       .rejects.toMatchObject({ statusCode: 403, message: expect.stringContaining('ADMIN') })
     expect((await prisma.task.findUnique({ where: { id: task.id } }))?.column).toBe('in_review')
     expect(await prisma.agent.count()).toBe(0)
+  })
+
+  it('saveWorkforceDraft refuses a task that proposes no template (400), one already confirmed (409) and a malformed draft (400)', async () => {
+    const admin = await caller('ADMIN')
+    const plain = await makeProposalTask({})
+    await expect(saveWorkforceDraft({ taskId: plain.id, selections: noSelections }, admin)).rejects.toMatchObject({ statusCode: 400 })
+    expect((await prisma.task.findUnique({ where: { id: plain.id } }))?.applicationData).not.toHaveProperty('draftSelections')
+
+    const confirmed = await createTestTask({
+      data: {
+        title: 'Done', projectId: plain.projectId, number: 3, column: 'done',
+        applicationData: { templateId: 'wft-x', confirmedSelections: noSelections }, onBehalfOfUserId: 'person-1',
+      } as any,
+    })
+    await expect(saveWorkforceDraft({ taskId: confirmed.id, selections: noSelections }, admin)).rejects.toMatchObject({ statusCode: 409 })
+
+    const open = await makeProposalTask({ templateId: 'wft-x' })
+    await expect(saveWorkforceDraft({ taskId: open.id, selections: { teams: 'nope', projects: [] } as any }, admin)).rejects.toMatchObject({ statusCode: 400 })
+    expect((await prisma.task.findUnique({ where: { id: open.id } }))?.applicationData).toEqual({ templateId: 'wft-x' })
   })
 
   it('saveWorkforceDraft refuses a Member and a person with no settings row with 403', async () => {

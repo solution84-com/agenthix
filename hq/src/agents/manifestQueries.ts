@@ -100,6 +100,8 @@ async function sessionBehindRun(siteId: string, runId: string): Promise<{ sessio
     where: { id: run.sessionId },
     select: { userId: true, sessionType: true, taskId: true, primaryOwnerType: true, primaryOwnerId: true },
   })
+  // A run whose session row is gone from hq (a half-finished delete) has no owner to check against: it is not shown.
+  if (!session) throw new HttpError(404, 'Not found')
   return { session, sessionId: run.sessionId }
 }
 
@@ -164,6 +166,7 @@ export const getRunManifestStatus = async (
       where: { id: run.sessionId },
       select: { userId: true, sessionType: true, taskId: true, primaryOwnerType: true, primaryOwnerId: true },
     })
+    if (!session) throw new HttpError(404, 'Not found')
     await assertSessionContentVisible(session, context.user.id)
     return { manifestStatus: run.manifestStatus }
   } catch (err) {

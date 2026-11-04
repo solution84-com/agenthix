@@ -1,5 +1,6 @@
 import { HttpError } from 'wasp/server'
 import { prisma } from 'wasp/server'
+import type { Prisma } from '@prisma/client'
 import { requireRole } from '../server/identity/requireRole'
 import type {
   CreateBoardTemplate,
@@ -60,8 +61,15 @@ export const deleteBoardTemplate: DeleteBoardTemplate<{ id: string }, void> = as
 
 // ── Workforce template actions ────────────────────────────────────────────────
 
-import type { ApplicationSelections } from '../library/workforceTemplateService'
-import { applyTeamTemplate } from '../library/workforceTemplateService'
+import { applyTeamTemplate, type ApplyResult } from '../library/workforceTemplateService'
+import { isApplicationSelections, type ApplicationSelections } from '../library/workforceTemplateTypes'
+
+/** What a proposal task keeps in its `applicationData`: the template it proposes, a saved draft, and the confirmed choice. */
+type ProposalData = { templateId?: string; confirmedSelections?: ApplicationSelections; draftSelections?: ApplicationSelections | null }
+
+function proposalDataOf(value: unknown): ProposalData {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as ProposalData : {}
+}
 
 type ApplyWorkforceTemplateArgs = { templateId: string; selections: ApplicationSelections }
 
@@ -69,24 +77,24 @@ function applyStoredTemplate(templateId: string, selections: ApplicationSelectio
   return applyTeamTemplate(templateId, selections, userId)
 }
 
-export const applyWorkforceTemplate: ApplyWorkforceTemplate<any, any> = async ({ templateId, selections }: ApplyWorkforceTemplateArgs, context: any) => {
+export const applyWorkforceTemplate: ApplyWorkforceTemplate<ApplyWorkforceTemplateArgs, ApplyResult> = async ({ templateId, selections }, context) => {
   await requireRole(context, 'ADMIN', 'Applying a workforce template')
-  return applyStoredTemplate(templateId, selections, context.user.id)
+  return applyStoredTemplate(templateId, selections, context.user!.id)
 }
 
 type ConfirmWorkforceTemplateArgs = { taskId: string; selections: ApplicationSelections }
 
 // Confirming a proposal applies the template. The proposal task is a record of
 // the decision, not work for an agent, so it finishes on its board with no run queued.
-export const confirmWorkforceTemplate: ConfirmWorkforceTemplate<any, any> = async ({ taskId, selections }: ConfirmWorkforceTemplateArgs, context: any) => {
+export const confirmWorkforceTemplate: ConfirmWorkforceTemplate<ConfirmWorkforceTemplateArgs, ApplyResult> = async ({ taskId, selections }, context) => {
   await requireRole(context, 'ADMIN', 'Confirming a workforce template')
   const task = await prisma.task.findUnique({ where: { id: taskId } })
   if (!task) throw new HttpError(404, 'Task not found')
-  const data = (task.applicationData as any) ?? {}
+  const data = proposalDataOf(task.applicationData)
   if (!data.templateId) throw new HttpError(400, 'This task does not propose a workforce template')
   if (data.confirmedSelections) throw new HttpError(409, 'This proposal has already been confirmed')
 
-  const result = await applyStoredTemplate(data.templateId, selections, context.user.id)
+  const result = await applyStoredTemplate(data.templateId, selections, context.user!.id)
 
   await prisma.task.update({
     where: { id: taskId },
@@ -94,7 +102,7 @@ export const confirmWorkforceTemplate: ConfirmWorkforceTemplate<any, any> = asyn
       column: 'done',
       status: 'DONE',
       doneAt: new Date(),
-      applicationData: { ...data, confirmedSelections: selections, draftSelections: null },
+      applicationData: { ...data, confirmedSelections: selections, draftSelections: null } as Prisma.InputJsonObject,
     },
   })
   return result
@@ -102,16 +110,19 @@ export const confirmWorkforceTemplate: ConfirmWorkforceTemplate<any, any> = asyn
 
 type SaveWorkforceDraftArgs = { taskId: string; selections: ApplicationSelections }
 
-export const saveWorkforceDraft: SaveWorkforceDraft<any, void> = async ({ taskId, selections }: SaveWorkforceDraftArgs, context: any) => {
+export const saveWorkforceDraft: SaveWorkforceDraft<SaveWorkforceDraftArgs, void> = async ({ taskId, selections }, context) => {
   await requireRole(context, 'ADMIN', 'Saving a workforce template draft')
   const task = await prisma.task.findUnique({ where: { id: taskId } })
   if (!task) throw new HttpError(404, 'Task not found')
+  // The same guards as confirming: only a proposal that is still open takes a draft, and only a well-formed one.
+  const data = proposalDataOf(task.applicationData)
+  if (!data.templateId) throw new HttpError(400, 'This task does not propose a workforce template')
+  if (data.confirmedSelections) throw new HttpError(409, 'This proposal has already been confirmed')
+  if (!isApplicationSelections(selections)) throw new HttpError(400, 'The selections are not in the form of a team template review')
 
   await prisma.task.update({
     where: { id: taskId },
-    data: {
-      applicationData: { ...(task.applicationData as any ?? {}), draftSelections: selections },
-    },
+    data: { applicationData: { ...data, draftSelections: selections } as Prisma.InputJsonObject },
   })
 }
 

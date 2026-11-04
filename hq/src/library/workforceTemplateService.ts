@@ -30,6 +30,7 @@ export type {
   AgentSelection, TeamSelection, BoardSelection, ProjectSelection, ApplicationSelections,
 } from './workforceTemplateTypes'
 export { suggestHandle, buildInitialSelections } from './workforceTemplateTypes'
+import { handleProblems } from './workforceTemplateTypes'
 
 export type TeamTemplateSummary = {
   /** The template's asset id. */
@@ -115,7 +116,7 @@ export async function getTeamTemplate(ref: unknown): Promise<TeamTemplateView | 
   return read && { ...summary(read), content: contentOf(read.files, read.file) }
 }
 
-export interface ApplyResult {
+export type ApplyResult = {
   agentCount: number
   teamCount: number
   projectCount: number
@@ -130,6 +131,13 @@ export async function applyTeamTemplate(ref: unknown, selections: ApplicationSel
   // Checked before anything is installed: a handle the agents can't take refuses the whole template.
   const handles = selections.teams.flatMap(t => (t.include ? t.agents : []).filter(a => a.include).map(a => a.resolvedHandle))
   if (!handles.every(isValidAgentHandle)) throw new HttpError(400, `${INVALID_AGENT_HANDLE_MESSAGE}. Nothing was changed.`)
+  // Also before anything is installed: a handle an agent already has, or two agents given the same one, is refused whole.
+  const taken = new Set((await prisma.agent.findMany({ where: { handle: { in: handles } }, select: { handle: true } })).map(a => a.handle))
+  const clashes = Object.values(handleProblems(selections, taken))
+  if (clashes.length > 0) {
+    const named = clashes.map(c => `@${c.handle} (${c.why})`)
+    throw new HttpError(409, `These handles cannot be used: ${named.join(', ')}. Choose others. Nothing was changed.`)
+  }
   await installCarriedSkills(prisma, read.template, read.files, createdById)
   return applyTemplate(read, selections, createdById)
 }
@@ -201,7 +209,7 @@ async function applyTemplate({ template, files, file }: Read, selections: Applic
       const spec = file.projects.find(p => p.name === projectSel.name)
       if (!projectSel.include || !spec) continue
       const defaultAgentId = projectSel.defaultAgentHandle ? agentIdByResolvedHandle[projectSel.defaultAgentHandle] : undefined
-      const project = await createProject({ name: spec.name, description: spec.description || undefined, defaultAgentId, executionSiteId })
+      const project = await createProject({ name: spec.name, description: spec.description || undefined, defaultAgentId, executionSiteId, createdByUserId: createdById ?? undefined })
       created.projects.push(project.id)
       for (const boardSel of projectSel.boards) {
         const board = spec.boards.find(b => b.name === boardSel.name)

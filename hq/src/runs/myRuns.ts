@@ -10,6 +10,7 @@ import * as dispatchService from '../agents/dispatchService'
 import { readMergedRunFeed } from '../sessions/mergedRunFeed'
 import type { SessionLocationFields } from '../storage/primaryLocationService'
 import { entitledProjectsFilter } from '../projects/membership'
+import { peopleByIds } from '../server/identity/people'
 import { withRunWaitNotes } from '../automation/queueNotes'
 import { groupOf, isRunning, stateText, wantsApproval, type LatestRun } from './runsView'
 import { taskFacts } from './taskFacts'
@@ -75,16 +76,14 @@ export function mineWhere(me: string) {
   }
 }
 
+/** People are named as everywhere else: a display name, else the login name, and a former member once they have left. */
 export async function namesOf(userIds: Set<string>, agentIds: Set<string>) {
-  const [users, agents] = await Promise.all([
-    prisma.user.findMany({
-      where: { id: { in: [...userIds] } },
-      select: { id: true, auth: { select: { identities: { where: { providerName: 'username' }, select: { providerUserId: true } } } } },
-    }),
+  const [people, agents] = await Promise.all([
+    peopleByIds([...userIds]),
     prisma.agent.findMany({ where: { id: { in: [...agentIds] } }, select: { id: true, name: true } }),
   ])
   return {
-    users: new Map(users.map((u): [string, string] => [u.id, u.auth?.identities[0]?.providerUserId ?? u.id.slice(0, 8)])),
+    users: new Map([...people].map(([id, person]): [string, string] => [id, person.name])),
     agents: new Map(agents.map((a): [string, string] => [a.id, a.name])),
   }
 }

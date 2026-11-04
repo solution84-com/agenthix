@@ -89,6 +89,13 @@ describe('startClaudeLogin @SC-1197', () => {
     expect(request).not.toHaveBeenCalled()
   })
 
+  it.each(['http://claude.ai/oauth', 'javascript:alert(1)', 'not a link'])('does not pass on a link that is not https (%s), and abandons the login', async (url) => {
+    request.mockImplementation(async (_site: string, method: string) => (method === CLAUDE_LOGIN_METHODS.start ? { loginId: 'L1', url } : { cancelled: true }))
+    await expect(start(person, { ownerType: 'user', ownerId: person.id })).rejects.toMatchObject({ statusCode: 502, message: expect.stringContaining('Nothing was changed.') })
+    expect(sent(CLAUDE_LOGIN_METHODS.cancel)).toHaveLength(1)
+    expect(peekLoginOwner('L1', person.id)).toBeNull()
+  })
+
   it('is refused with readable text when hq cannot store secrets, before any site call (R-200)', async () => {
     vi.stubEnv('SECRETS_MASTER_KEY', '')
     await expect(start(person, { ownerType: 'user', ownerId: person.id })).rejects.toMatchObject({
@@ -151,6 +158,23 @@ describe('completeClaudeLogin @SC-1197', () => {
     expect(rows).toHaveLength(1)
     expect(decryptSecret(rows[0].secret!)).toBe(oauthJson)
     expect(rows[0].termsAcceptedAt!.getTime()).toBeGreaterThan(new Date('2026-01-01').getTime())
+  })
+
+  it('two sign-ins finished at the same moment both succeed, and leave one subscription', async () => {
+    let n = 0
+    request.mockImplementation(async (_site: string, method: string) => {
+      if (method === CLAUDE_LOGIN_METHODS.start) return { loginId: `L${++n}`, url: 'https://claude.ai/oauth?x=1' }
+      if (method === CLAUDE_LOGIN_METHODS.finish) return { oauthJson }
+      return { cancelled: true }
+    })
+    await start(person, { ownerType: 'user', ownerId: person.id })
+    await start(person, { ownerType: 'user', ownerId: person.id })
+    const done = await Promise.all([
+      completeClaudeLogin({ loginId: 'L1', code: 'a' }, ctx(person)),
+      completeClaudeLogin({ loginId: 'L2', code: 'b' }, ctx(person)),
+    ])
+    expect(done).toEqual([{ ok: true }, { ok: true }])
+    expect(await stored()).toHaveLength(1)
   })
 
   it('checks the secrets key before the code is spent, and spends nothing when it is unusable (R-200)', async () => {

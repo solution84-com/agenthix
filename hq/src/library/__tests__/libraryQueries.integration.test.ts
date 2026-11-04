@@ -146,7 +146,7 @@ describe('confirmWorkforceTemplate @SC-067', () => {
       projects: [],
     } as any
 
-    await expect(confirmWorkforceTemplate({ taskId: task.id, selections }, admin)).rejects.toThrow(/already exists/)
+    await expect(confirmWorkforceTemplate({ taskId: task.id, selections }, admin)).rejects.toMatchObject({ statusCode: 409, message: expect.stringMatching(/@proposed-dev \(already taken\).*Nothing was changed\./) })
 
     const stored = await prisma.task.findUnique({ where: { id: task.id } })
     expect(stored?.column).toBe('in_review')

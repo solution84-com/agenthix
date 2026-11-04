@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { classify, modelIdsOf, probeFor, realVendorChecks } from '../checks'
+import { classify, modelIdsOf, probeFor, realVendorChecks, unreachableDetail } from '../checks'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -63,5 +63,13 @@ describe('listModels @SC-1181', () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('down') }))
     expect(await realVendorChecks.listModels(target)).toEqual([])
     expect(await realVendorChecks.listModels({ ...target, vendor: 'openai' })).toEqual([])
+  })
+})
+
+describe('unreachableDetail', () => {
+  it('tells a custom endpoint that it must be reachable from the site, not only from HQ', () => {
+    expect(unreachableDetail('openai_compatible', false)).toMatch(/could not be reached\..*host\.docker\.internal/)
+    expect(unreachableDetail('openai', false)).toBe('It could not be reached.')
+    expect(unreachableDetail('openai', true)).toBe('It did not answer in time.')
   })
 })

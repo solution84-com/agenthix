@@ -102,7 +102,14 @@ export function checkProvider(providerId: string): Promise<ProviderRow | null> {
 export async function checkDueProviders(): Promise<number> {
   const now = new Date()
   const due = (await providerStore().list()).filter(p => checkDue(p, now))
-  for (const p of due) await checkProvider(p.id)
+  for (const p of due) {
+    // One provider that cannot be checked (a stored key that will not decrypt) must not stop the ones after it.
+    try {
+      await checkProvider(p.id)
+    } catch (err) {
+      logger.warn(`Checking provider ${p.id} failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
   return due.length
 }
 

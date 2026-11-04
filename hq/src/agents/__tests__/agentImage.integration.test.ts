@@ -152,12 +152,19 @@ describe('applyAgentPreset @SC-046', () => {
     expect(await storedFiles(agent.id)).toEqual([])
   })
 
+  it.each(['../avatar', 'avatars', 'AVATAR', ''])('answers 400 for the image type %j, and writes nothing', async (imageType) => {
+    const agent = await createAgent()
+    const { ctx } = await contextWithRole('ADMIN')
+    await expect(applyAgentPreset({ agentId: agent.id, imageType: imageType as 'avatar', filename: 'preset.png' }, ctx)).rejects.toMatchObject({ statusCode: 400 })
+    expect(await storedFiles(agent.id)).toEqual([])
+  })
+
   it('fails for an agent that does not exist, and for a preset that is not there, writing no row', async () => {
     const agent = await createAgent()
     const { ctx } = await contextWithRole('ADMIN')
 
     await expect(applyAgentPreset({ agentId: 'ghost', imageType: 'avatar', filename: 'preset.png' }, ctx)).rejects.toThrow()
-    await expect(applyAgentPreset({ agentId: agent.id, imageType: 'avatar', filename: 'missing.png' }, ctx)).rejects.toThrow(/ENOENT/)
+    await expect(applyAgentPreset({ agentId: agent.id, imageType: 'avatar', filename: 'missing.png' }, ctx)).rejects.toMatchObject({ statusCode: 404 })
 
     expect((await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } })).avatarUrl).toBeNull()
   })

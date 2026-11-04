@@ -57,7 +57,14 @@ describe('getAgentPromptPreview sections', () => {
   it("passes the site's sections through when every one is well formed", async () => {
     const { agent, ctx } = await agentAndCaller()
     siteStore.promptPreview.mockResolvedValueOnce({ prompt: 'flat prompt', sections: [GOOD_SECTION] })
-    expect((await getAgentPromptPreview({ agentId: agent.id, mode: 'chat' }, ctx)).sections).toEqual([GOOD_SECTION])
+    expect((await getAgentPromptPreview({ agentId: agent.id, mode: 'chat' }, ctx)).sections).toEqual([GOOD_SECTION, expect.objectContaining({ key: 'skills' })])
+  })
+
+  it("adds a task preview's new comments and every preview's skills as placeholders", async () => {
+    const { agent, ctx } = await agentAndCaller()
+    siteStore.promptPreview.mockResolvedValueOnce({ prompt: 'flat prompt', sections: [GOOD_SECTION, { ...GOOD_SECTION, key: 'execution' }] })
+    const keys = (await getAgentPromptPreview({ agentId: agent.id, mode: 'task' }, ctx)).sections?.map(s => s.key)
+    expect(keys).toEqual(['identity', 'new_comments', 'execution', 'skills'])
   })
 })
 

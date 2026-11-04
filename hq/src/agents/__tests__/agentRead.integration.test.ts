@@ -114,7 +114,7 @@ describe('getAgentPromptPreview @SC-047', () => {
     ]
     siteStore.promptPreview.mockResolvedValueOnce({ prompt: 'You are Sectioned.\n\n---\n\nBio', sections })
     const preview = await getAgentPromptPreview({ agentId: agent.id, mode: 'chat' }, await signedIn())
-    expect(preview.sections).toEqual(sections)
+    expect(preview.sections).toEqual([...sections, expect.objectContaining({ key: 'skills', editable: false })])
   })
 
   it('falls back to one read-only section when the site sends none', async () => {

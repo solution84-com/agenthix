@@ -118,6 +118,17 @@ describe('getMyRuns @SC-530', () => {
     expect(await getMyRunsGoingCount(undefined, ctx(me))).toBe(1)
   })
 
+  it("names a person by their display name, not their sign-in username", async () => {
+    const { me, other, agent, task } = await cast()
+    await prisma.user.update({ where: { id: other.id }, data: { displayName: 'Ana Lee' } })
+    const forAna = await task({ runState: 'RUN_ACTIVE', runStartedBy: 'pulse', onBehalfOfUserId: other.id, runOnBehalfOfUserId: null, queuedByUserId: me.id })
+    const session = await createSession({ userId: me.id, agentId: agent.id, sessionType: 'task', taskId: forAna.id })
+    siteStore.addRun(SITE, { id: 'r-named', sessionId: session.id, agentId: agent.id, status: 'RUNNING' })
+
+    const rows = await getMyRuns(undefined, ctx(me))
+    expect(rows.find(r => r.task?.id === forAna.id)!.startedByText).toContain('for Ana Lee')
+  })
+
   it('lists no run of a chat from before @SC-1019', async () => {
     const { me, agent } = await cast()
     const chat = await createSession({ userId: me.id, agentId: agent.id, sessionType: 'chat', title: 'An old chat' })

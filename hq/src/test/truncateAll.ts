@@ -36,6 +36,23 @@ export function isDeadlock(error: unknown): boolean {
   )
 }
 
+// SQLSTATE 23503 is foreign_key_violation. The between-test clearing (emptyTables.ts) deletes table by table, each
+// DELETE on its own snapshot, so a background write (the usage ledger) that commits between a child table's delete and
+// its parent's leaves a child row that blocks the parent. The whole clearing is one statement and is undone as one, so
+// trying it again, which sees that row now, is safe.
+export function isForeignKeyViolation(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  const { message, code, meta } = error as {
+    message?: unknown
+    code?: unknown
+    meta?: { code?: unknown; message?: unknown }
+  }
+  if (code === 'P2003' || meta?.code === '23503') return true
+  return [message, meta?.message].some(
+    (text) => typeof text === 'string' && /violates foreign key constraint|23503/i.test(text)
+  )
+}
+
 export async function truncateAll(
   target: TruncateTarget,
   { attempts = DEFAULT_ATTEMPTS, delayMs = DEFAULT_DELAY_MS, sleep = defaultSleep }: RetryOptions = {}
@@ -46,8 +63,8 @@ export async function truncateAll(
   await retryOnDeadlock(() => target.truncate(list), { attempts, delayMs, sleep })
 }
 
-// Runs `statement`, trying it again on a deadlock: a statement aborted by one
-// leaves nothing half done.
+// Runs `statement`, trying it again on a deadlock or a foreign-key violation from a write that landed mid-clearing:
+// a statement aborted by either leaves nothing half done.
 export async function retryOnDeadlock(
   statement: () => Promise<unknown>,
   { attempts = DEFAULT_ATTEMPTS, delayMs = DEFAULT_DELAY_MS, sleep = defaultSleep }: RetryOptions = {}
@@ -57,7 +74,7 @@ export async function retryOnDeadlock(
       await statement()
       return
     } catch (error) {
-      if (!isDeadlock(error) || attempt >= attempts) throw error
+      if (!(isDeadlock(error) || isForeignKeyViolation(error)) || attempt >= attempts) throw error
       await sleep(delayMs * attempt)
     }
   }

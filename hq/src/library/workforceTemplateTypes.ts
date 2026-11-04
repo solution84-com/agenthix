@@ -6,16 +6,18 @@
  * page) and server (service, MCP tools). No server-side imports allowed here.
  */
 
+import { isValidAgentHandle } from '../agents/agentHandle'
+
 // ── Template spec types ──────────────────────────────────────────────────────
 
 /** A skill the template carries for one of its agents: `slug` is its folder in the package. */
-export interface AgentSkillSpec {
+export type AgentSkillSpec = {
   slug: string
   name: string
   description: string
 }
 
-export interface AgentSpec {
+export type AgentSpec = {
   handle: string
   name: string
   role: string
@@ -26,60 +28,88 @@ export interface AgentSpec {
   skills?: AgentSkillSpec[]
 }
 
-export interface TeamSpec {
+export type TeamSpec = {
   name: string
   purpose: string
   agents: AgentSpec[]
 }
 
-export interface BoardSpec {
+export type BoardSpec = {
   name: string
   /** The board template it starts from, by name or identity (`kanban`, `agenthix/sprint`). */
   template: string
 }
 
-export interface ProjectSpec {
+export type ProjectSpec = {
   name: string
   description?: string
   defaultAgentHandle?: string
   boards: BoardSpec[]
 }
 
-export interface WorkforceTemplateContent {
+export type WorkforceTemplateContent = {
   teams: TeamSpec[]
   projects: ProjectSpec[]
 }
 
 // ── Selection types (used by review page and apply logic) ────────────────────
 
-export interface AgentSelection {
+export type AgentSelection = {
   handle: string           // original handle from template
   resolvedHandle: string   // handle after collision resolution
   include: boolean
   skills: Array<{ slug: string; include: boolean }>
 }
 
-export interface TeamSelection {
+export type TeamSelection = {
   name: string
   include: boolean
   agents: AgentSelection[]
 }
 
-export interface BoardSelection {
+export type BoardSelection = {
   name: string
   include: boolean
 }
 
-export interface ProjectSelection {
+export type ProjectSelection = {
   name: string
   include: boolean
   defaultAgentHandle?: string  // updated to resolved handle
   boards: BoardSelection[]
 }
 
-export interface ApplicationSelections {
+export type ApplicationSelections = {
   teams: TeamSelection[]
   projects: ProjectSelection[]
+}
+
+/** Whether a value has the shape of a person's selections, before it is stored as a draft the review page will read. */
+export function isApplicationSelections(v: unknown): v is ApplicationSelections {
+  const rec = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
+  const list = (x: unknown, each: (item: Record<string, unknown>) => boolean) => Array.isArray(x) && x.every(i => rec(i) && each(i))
+  const marked = (i: Record<string, unknown>) => typeof i.name === 'string' && typeof i.include === 'boolean'
+  if (!rec(v)) return false
+  return list(v.teams, t => marked(t) && list(t.agents, a =>
+    typeof a.handle === 'string' && typeof a.resolvedHandle === 'string' && typeof a.include === 'boolean'
+    && list(a.skills, s => typeof s.slug === 'string' && typeof s.include === 'boolean')))
+    && list(v.projects, p => marked(p) && (p.defaultAgentHandle === undefined || typeof p.defaultAgentHandle === 'string') && list(p.boards, marked))
+}
+
+// ── Handle checks ────────────────────────────────────────────────────────────
+
+/** Why an included agent's handle cannot be used, by `<team>/<template handle>`; an agent with no problem is absent. */
+export function handleProblems(selections: ApplicationSelections, existing: ReadonlySet<string>): Record<string, { handle: string; why: string }> {
+  const problems: Record<string, { handle: string; why: string }> = {}
+  const seen = new Map<string, number>()
+  const included = selections.teams.filter(t => t.include).flatMap(t => t.agents.filter(a => a.include).map(a => ({ key: `${t.name}/${a.handle}`, handle: a.resolvedHandle })))
+  for (const { handle } of included) seen.set(handle, (seen.get(handle) ?? 0) + 1)
+  for (const { key, handle } of included) {
+    if (!isValidAgentHandle(handle)) problems[key] = { handle, why: 'not a valid handle' }
+    else if (existing.has(handle)) problems[key] = { handle, why: 'already taken' }
+    else if ((seen.get(handle) ?? 0) > 1) problems[key] = { handle, why: 'used twice here' }
+  }
+  return problems
 }
 
 // ── Collision utilities ──────────────────────────────────────────────────────

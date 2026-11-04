@@ -65,6 +65,11 @@ async function authorise(actor: ProviderActor, vendor: AiProviderVendor | null):
   return { actor, byUserId: null, byName: "HQ's machine" }
 }
 
+/** Agenthix Cloud is connected and disconnected by its own flow, so it is never renamed, removed or revoked here. */
+function notCloud(p: ProviderRow, doing: string): void {
+  if (p.vendor === 'cloud') throw new ProviderRefusal('usage', `Agenthix Cloud cannot be ${doing} here: it is connected and disconnected from its own panel. Nothing was changed.`)
+}
+
 async function found(id: string): Promise<ProviderRow> {
   const p = await providerStore().byId(id)
   if (!p) throw new ProviderRefusal('not_found', 'There is no such provider.')
@@ -179,6 +184,7 @@ export async function replaceProviderKey(actor: ProviderActor, input: { id: stri
 
 export async function renameProvider(actor: ProviderActor, input: { id: string; name: string }): Promise<{ provider: WrittenProvider }> {
   const before = await found(input.id)
+  notCloud(before, 'renamed')
   const by = await authorise(actor, before.vendor)
   const name = nameOf(input.name, '')
   if (!name) throw new ProviderRefusal('usage', 'A provider needs a name.')
@@ -198,7 +204,9 @@ export async function providerImpact(id: string): Promise<ProviderImpact> {
 }
 
 async function takeAway(actor: ProviderActor, id: string, action: 'removed' | 'revoked'): Promise<{ impact: ProviderImpact }> {
-  const by = await authorise(actor, (await found(id)).vendor)
+  const first = await found(id)
+  notCloud(first, action === 'removed' ? 'removed' : 'revoked')
+  const by = await authorise(actor, first.vendor)
   return oneAtATime(async () => {
     const gone = await found(id)
     const impact = await providerImpact(id)

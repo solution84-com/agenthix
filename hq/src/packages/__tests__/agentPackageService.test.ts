@@ -26,6 +26,13 @@ describe('agentPackageService', () => {
 
   it('refuses an invalid approval', () => {
     expect(() => validateAgentSettings({ ...settings, approval: 'yolo' })).toThrow(/approval/)
+    const withTools = (tools: unknown, bashPatterns: unknown = null) => ({ ...settings, permissions: { tools, bashPatterns } }) as never
+    expect(() => validateAgentSettings(withTools([{ name: 'Read', state: 'always' }, { name: 'Bash', state: 'ask' }], [{ pattern: 'git *', state: 'never' }]))).not.toThrow()
+    expect(() => validateAgentSettings(withTools(['Read']))).not.toThrow()
+    expect(() => validateAgentSettings(withTools([{ name: 'Read', state: 'sometimes' }]))).toThrow(/Always, Ask or Never/)
+    expect(() => validateAgentSettings(withTools([{ state: 'always' }]))).toThrow(/needs a name/)
+    expect(() => validateAgentSettings(withTools(null, [{ pattern: 'git *', state: 'x' }]))).toThrow(/Always, Ask or Never/)
+    expect(() => validateAgentSettings(withTools([null]))).toThrow(/needs a name/)
   })
 
   it('reads settings from the Agent row and writes them back as the same columns', () => {

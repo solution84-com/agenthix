@@ -272,8 +272,10 @@ export async function rejectRequest(args: RejectManifestArgs, userId: string): P
         content: `__MANIFEST_REJECTED__: ${args.reason}`,
       },
     })
-    await prisma.task.update({
-      where: { id: run.taskId },
+    // Held only if no newer run has been claimed since this request was read, as approving is: a run under
+    // way keeps its state, and its own end settles the task.
+    await prisma.task.updateMany({
+      where: { id: run.taskId, runState: { notIn: TASK_RUN_UNDER_WAY } },
       data: { runState: 'RUN_BLOCKED', runStateReason: 'manifest rejected — awaiting human review' },
     })
     await notifyBoardsOfTasks([run.taskId])

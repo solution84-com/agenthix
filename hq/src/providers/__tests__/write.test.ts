@@ -238,3 +238,19 @@ describe('remove and revoke', () => {
     expect((await refusal(removeProvider(ADMIN, { id: 'nope' }))).code).toBe('not_found')
   })
 })
+
+describe('Agenthix Cloud is managed by its own flow', () => {
+  it('cannot be renamed, removed or revoked by a direct call', async () => {
+    vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
+    const { provider } = await supplyCloudProvider({ kind: 'cloud_controller' })
+    for (const act of [
+      renameProvider(ADMIN, { id: provider.id, name: 'Mine' }), removeProvider(ADMIN, { id: provider.id }),
+      revokeProvider(ADMIN, { id: provider.id }), removeProvider(MACHINE, { id: provider.id }),
+    ]) {
+      const r = await refusal(act)
+      expect(r.code).toBe('usage')
+      expect(r.message).toContain('Nothing was changed.')
+    }
+    expect(await store.byId(provider.id)).toMatchObject({ name: 'Agenthix Cloud' })
+  })
+})

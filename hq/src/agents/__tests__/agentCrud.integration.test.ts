@@ -41,6 +41,14 @@ describe('createAgent @SC-044', () => {
     expect(await readAgentContent(result.id)).not.toBeNull()
   })
 
+  it('answers 409, not 500, for a handle already taken, and creates nothing', async () => {
+    await createAgent({ handle: 'taken-handle' })
+    await expect(
+      createAgentAction({ name: 'Scout', handle: 'taken-handle' }, await adminCtx()),
+    ).rejects.toMatchObject({ statusCode: 409, message: expect.stringMatching(/already exists/) })
+    expect(await prisma.agent.count({ where: { handle: 'taken-handle' } })).toBe(1)
+  })
+
   it('writes the first content as the caller, and tells the dashboard', async () => {
     const { user, ctx } = await contextWithRole('ADMIN')
     const result = await createAgentAction({ name: 'Scout', handle: 'scout-x' }, ctx)

@@ -6,7 +6,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { AppLayout } from '../../shared/layouts/AppLayout'
 import { Loader2, ChevronDown, ChevronRight, AlertTriangle, Save } from 'lucide-react'
 import type { WorkforceTemplateContent, ApplicationSelections } from '../workforceTemplateTypes'
-import { buildInitialSelections } from '../workforceTemplateTypes'
+import { buildInitialSelections, handleProblems, isApplicationSelections } from '../workforceTemplateTypes'
+import { toggleTeam, toggleAgent, toggleSkill, setResolvedHandle, toggleProject } from './reviewSelectionEdits'
+import { MissingSkillsNotice } from './MissingSkillsNotice'
+
+/** A proposal task keeps the template it proposes and a saved draft in its application data. */
+function applicationDataOf(value: unknown): { templateId?: string; draftSelections?: unknown } {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value : {}
+}
 
 export function WorkforceReviewPage() {
   const [params] = useSearchParams()
@@ -28,7 +35,7 @@ export function WorkforceReviewPage() {
   // This handles proposals where only taskId was linked (e.g. old tasks, Org page banner).
   useEffect(() => {
     if (taskId && !templateId && reviewTask) {
-      const appData = (reviewTask.applicationData as any) ?? {}
+      const appData = applicationDataOf(reviewTask.applicationData)
       if (appData.templateId) setResolvedTemplateId(appData.templateId)
     }
   }, [taskId, templateId, reviewTask])
@@ -49,16 +56,17 @@ export function WorkforceReviewPage() {
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [missingSkills, setMissingSkills] = useState<string[] | null>(null)
 
   // Build initial selections when template + existing handles are loaded.
   // If a draft was saved (agent-initiated path), restore from it instead.
   useEffect(() => {
     if (!template || existingHandles === undefined) return
-    const appData = (reviewTask?.applicationData as any) ?? {}
-    if (appData.draftSelections) {
+    const appData = applicationDataOf(reviewTask?.applicationData)
+    if (isApplicationSelections(appData.draftSelections)) {
       // Restore saved draft
       setSelections(appData.draftSelections)
-      setExpandedTeams(new Set((appData.draftSelections as ApplicationSelections).teams.map((t: any) => t.name)))
+      setExpandedTeams(new Set(appData.draftSelections.teams.map(t => t.name)))
     } else {
       const content = template.content as WorkforceTemplateContent
       const initial = buildInitialSelections(content, new Set(existingHandles))
@@ -68,100 +76,15 @@ export function WorkforceReviewPage() {
     }
   }, [template, existingHandles, reviewTask])
 
-  const hasCollision = useMemo(() => {
-    if (!selections) return false
-    return selections.teams.some((team) =>
-      team.agents.some((agent) => agent.include && agent.handle !== agent.resolvedHandle)
-    )
-  }, [selections])
+  // Every handle the person typed is checked against the agents there are and against each other.
+  const problems = useMemo(() => (selections ? handleProblems(selections, new Set(existingHandles)) : {}), [selections, existingHandles])
+  const hasProblem = Object.keys(problems).length > 0
 
-  const canApply = !!selections && !applying
+  const canApply = !!selections && !applying && !hasProblem
 
   // ── Selection toggles ─────────────────────────────────────────────────────
 
-  function toggleTeam(teamName: string) {
-    setSelections((prev) => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        teams: prev.teams.map((t) =>
-          t.name === teamName ? { ...t, include: !t.include } : t
-        ),
-      }
-    })
-  }
-
-  function toggleAgent(teamName: string, agentHandle: string) {
-    setSelections((prev) => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        teams: prev.teams.map((t) => {
-          if (t.name !== teamName) return t
-          return {
-            ...t,
-            agents: t.agents.map((a) =>
-              a.handle === agentHandle ? { ...a, include: !a.include } : a
-            ),
-          }
-        }),
-      }
-    })
-  }
-
-  function toggleSkill(teamName: string, agentHandle: string, skillSlug: string) {
-    setSelections((prev) => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        teams: prev.teams.map((t) => {
-          if (t.name !== teamName) return t
-          return {
-            ...t,
-            agents: t.agents.map((a) => {
-              if (a.handle !== agentHandle) return a
-              return {
-                ...a,
-                skills: a.skills.map((s) =>
-                  s.slug === skillSlug ? { ...s, include: !s.include } : s
-                ),
-              }
-            }),
-          }
-        }),
-      }
-    })
-  }
-
-  function updateResolvedHandle(teamName: string, agentHandle: string, newHandle: string) {
-    setSelections((prev) => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        teams: prev.teams.map((t) => {
-          if (t.name !== teamName) return t
-          return {
-            ...t,
-            agents: t.agents.map((a) =>
-              a.handle === agentHandle ? { ...a, resolvedHandle: newHandle } : a
-            ),
-          }
-        }),
-      }
-    })
-  }
-
-  function toggleProject(projectName: string) {
-    setSelections((prev) => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        projects: prev.projects.map((p) =>
-          p.name === projectName ? { ...p, include: !p.include } : p
-        ),
-      }
-    })
-  }
+  const edit = (change: (s: ApplicationSelections) => ApplicationSelections) => setSelections(prev => (prev ? change(prev) : prev))
 
   // ── Apply ──────────────────────────────────────────────────────────────────
 
@@ -184,12 +107,12 @@ export function WorkforceReviewPage() {
     setApplying(true)
     setError(null)
     try {
-      if (taskId) {
-        await confirmAction({ taskId, selections })
-      } else {
-        await applyAction({ templateId: resolvedTemplateId, selections })
-      }
-      navigate('/org')
+      const result = taskId
+        ? await confirmAction({ taskId, selections })
+        : await applyAction({ templateId: resolvedTemplateId, selections })
+      // A template that could not bring a skill says so before the person moves on.
+      if (result.missingSkills.length > 0) setMissingSkills(result.missingSkills)
+      else navigate('/org')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -219,6 +142,18 @@ export function WorkforceReviewPage() {
 
   const content = template.content as WorkforceTemplateContent
 
+  if (missingSkills) {
+    return (
+      <AppLayout breadcrumbs={[{ label: 'Library', href: '/library' }, { label: `Review: ${template.name}` }]}>
+        <div className="max-w-2xl mx-auto space-y-4 py-6">
+          <p className="text-body text-text-primary">{template.name} was applied.</p>
+          <MissingSkillsNotice skills={missingSkills} />
+          <button onClick={() => navigate('/org')} className="px-5 py-2 rounded-lg bg-accent text-on-accent text-body font-medium hover:bg-accent/90">Continue</button>
+        </div>
+      </AppLayout>
+    )
+  }
+
   return (
     <AppLayout breadcrumbs={[{ label: 'Library', href: '/library' }, { label: `Review: ${template.name}` }]}>
       <div className="max-w-2xl mx-auto space-y-6 py-6">
@@ -247,7 +182,7 @@ export function WorkforceReviewPage() {
                   <input
                     type="checkbox"
                     checked={teamSel.include}
-                    onChange={() => toggleTeam(teamSel.name)}
+                    onChange={() => edit(sel => toggleTeam(sel, teamSel.name))}
                     className="rounded border-border bg-transparent text-accent cursor-pointer"
                   />
                   <button
@@ -267,7 +202,8 @@ export function WorkforceReviewPage() {
                 {/* Agent rows */}
                 {expanded && teamSel.agents.map((agentSel) => {
                   const agentSpec = teamSpec?.agents.find((a) => a.handle === agentSel.handle)
-                  const isColliding = agentSel.include && agentSel.handle !== agentSel.resolvedHandle
+                  const problem = problems[`${teamSel.name}/${agentSel.handle}`]?.why
+                  const wasRenamed = agentSel.include && agentSel.handle !== agentSel.resolvedHandle
                   return (
                     <div key={agentSel.handle} className="border-t border-border-subtle">
                       <div className="flex items-start gap-3 px-4 py-2.5 pl-8">
@@ -275,17 +211,17 @@ export function WorkforceReviewPage() {
                           type="checkbox"
                           checked={agentSel.include}
                           disabled={!teamSel.include}
-                          onChange={() => toggleAgent(teamSel.name, agentSel.handle)}
+                          onChange={() => edit(sel => toggleAgent(sel, teamSel.name, agentSel.handle))}
                           className="mt-0.5 rounded border-border bg-transparent text-accent cursor-pointer disabled:opacity-30"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-body text-text-primary">{agentSpec?.name}</span>
                             <span className="text-small text-text-muted">{agentSpec?.role}</span>
-                            {isColliding && (
+                            {problem && (
                               <span className="flex items-center gap-1 text-small text-warning">
                                 <AlertTriangle className="w-3 h-3" />
-                                handle collision
+                                {problem}
                               </span>
                             )}
                           </div>
@@ -296,10 +232,10 @@ export function WorkforceReviewPage() {
                               type="text"
                               value={agentSel.resolvedHandle}
                               disabled={!agentSel.include || !teamSel.include}
-                              onChange={(e) => updateResolvedHandle(teamSel.name, agentSel.handle, e.target.value)}
+                              onChange={(e) => edit(sel => setResolvedHandle(sel, teamSel.name, agentSel.handle, e.target.value))}
                               className="text-small bg-surface-2 border border-border rounded px-2 py-0.5 text-text-secondary w-32 disabled:opacity-30"
                             />
-                            {isColliding && (
+                            {wasRenamed && (
                               <span className="text-micro text-warning/70">was: {agentSel.handle}</span>
                             )}
                           </div>
@@ -314,7 +250,7 @@ export function WorkforceReviewPage() {
                                       type="checkbox"
                                       checked={skillSel.include}
                                       disabled={!agentSel.include || !teamSel.include}
-                                      onChange={() => toggleSkill(teamSel.name, agentSel.handle, skillSel.slug)}
+                                      onChange={() => edit(sel => toggleSkill(sel, teamSel.name, agentSel.handle, skillSel.slug))}
                                       className="rounded border-border bg-transparent text-accent cursor-pointer disabled:opacity-30"
                                     />
                                     <span className="text-micro text-text-muted">{skillSpec?.name ?? skillSel.slug}</span>
@@ -344,7 +280,7 @@ export function WorkforceReviewPage() {
                   <input
                     type="checkbox"
                     checked={projectSel.include}
-                    onChange={() => toggleProject(projectSel.name)}
+                    onChange={() => edit(sel => toggleProject(sel, projectSel.name))}
                     className="rounded border-border bg-transparent text-accent cursor-pointer"
                   />
                   <span className="text-body font-medium text-text-primary">{projectSel.name}</span>
@@ -386,7 +322,7 @@ export function WorkforceReviewPage() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-small text-text-muted">
-              {hasCollision ? 'Handle collisions detected — review handles before applying.' : 'All handles are available.'}
+              {hasProblem ? 'Some handles cannot be used — change them before applying.' : 'All handles are available.'}
             </span>
             <button
               onClick={handleApply}

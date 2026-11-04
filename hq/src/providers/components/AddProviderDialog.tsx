@@ -20,6 +20,11 @@ export function addableVendors(type: AiProviderType, existing: readonly AiProvid
   return AI_PROVIDER_VENDORS.filter(v => v !== 'cloud' && !existing.includes(v) && (AI_PROVIDER_VENDOR_INFO[v].types as readonly string[]).includes(type))
 }
 
+/** A vendor with a custom address may run without a key; every other vendor needs one. */
+export function keyIsRequired(vendor: AiProviderVendor): boolean {
+  return !AI_PROVIDER_VENDOR_INFO[vendor].hasAddress
+}
+
 export interface AddProviderFormProps {
   /** Vendors the organisation already has: each is added once. */
   existingVendors: readonly AiProviderVendor[]
@@ -112,21 +117,21 @@ export function AddProviderForm({ existingVendors, onAdded, onCancel, type: star
   return (
     <form onSubmit={e => void submit(e)} className="space-y-4">
       <h3 className="text-body font-semibold text-text-primary">Add {info.label}</h3>
-      <FormField label="Name" htmlFor="provider-name" hint="What admins see. Useful beside a second key of the same vendor.">
+      <FormField label="Name" htmlFor="provider-name" hint="What admins see on the provider’s line.">
         <Input id="provider-name" value={name} onChange={e => setName(e.target.value)} placeholder={info.label} />
       </FormField>
       {info.hasAddress && (
-        <FormField label="Address" htmlFor="provider-address" hint="Prompts are sent to this address, so every organisation admin sees it on the provider’s line.">
+        <FormField label="Address" htmlFor="provider-address" hint="Prompts are sent to this address, so every organisation admin sees it on the provider’s line. It must be reachable from the Execution Site that runs the agents: for a model server on the same machine, use the machine’s own address or host.docker.internal, not localhost.">
           <Input id="provider-address" value={baseUrl} onChange={e => setBaseUrl(e.target.value)} placeholder="https://models.example.org/v1" required />
         </FormField>
       )}
-      <FormField label="API key" htmlFor="provider-key" hint={`Checked with ${info.label} when you save. Stored in HQ, encrypted, and never shown again.`} error={error}>
-        <Input id="provider-key" type="password" autoComplete="off" value={key} onChange={e => setKey(e.target.value)} required />
+      <FormField label="API key" htmlFor="provider-key" hint={`${keyIsRequired(vendor) ? '' : 'Optional: leave it empty for a server that needs no key. '}Checked with ${info.label} when you save. Stored in HQ, encrypted, and never shown again.`} error={error}>
+        <Input id="provider-key" type="password" autoComplete="off" value={key} onChange={e => setKey(e.target.value)} required={keyIsRequired(vendor)} />
       </FormField>
       <p className="text-small text-text-muted">Every organisation admin is told, and the change is recorded.</p>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={back}>Back</Button>
-        <Button type="submit" disabled={saving || !key.trim() || (info.hasAddress && !baseUrl.trim())}>{saving ? 'Checking…' : 'Save'}</Button>
+        <Button type="submit" disabled={saving || (keyIsRequired(vendor) && !key.trim()) || (info.hasAddress && !baseUrl.trim())}>{saving ? 'Checking…' : 'Save'}</Button>
       </div>
     </form>
   )

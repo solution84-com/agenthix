@@ -119,6 +119,18 @@ describe('reading a run: getToolCallLog, getSessionPendingManifest, getRunManife
     await expect(getRunManifestStatus({ runId: run.id, sessionId: session.id }, ctxFor(other.id))).rejects.toMatchObject({ statusCode: 404 })
   })
 
+  it("answer 404 for a run whose own session row is gone, whatever session the caller names", async () => {
+    const owner = await makeUser()
+    const other = await makeUser()
+    const { run, siteId } = await makeChatRun(owner)
+    const { session: mine } = await makeChatRun(other)
+    siteStore.addToolCalls(siteId, run.id, LOG)
+    run.sessionId = 'session-removed-from-hq'
+
+    await expect(getToolCallLog({ runId: run.id, sessionId: mine.id }, ctxFor(other.id))).rejects.toMatchObject({ statusCode: 404 })
+    await expect(getRunManifestStatus({ runId: run.id, sessionId: mine.id }, ctxFor(other.id))).rejects.toMatchObject({ statusCode: 404 })
+  })
+
   it("serve a task run in an open project to its members only, its Viewers included (adr-0099, adr-0102)", async () => {
     const member = await makeUser('MEMBER')
     const outsider = await makeUser('MEMBER')

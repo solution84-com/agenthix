@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
-import { createUser, createAgent, createSession, ensureExecutionSite } from '../../test/factories'
+import { createUser, createAgent, createSession, createProject, ensureExecutionSite } from '../../test/factories'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -46,6 +46,18 @@ describe('deleteAgent @SC-052', () => {
     expect(await prisma.agentSession.findUnique({ where: { id: session.id } })).toBeNull()
     expect(siteStore.deleteSessionsBy).toHaveBeenCalledWith(expect.any(String), { agentId: agent.id })
     expect(siteStore.stopAgent).toHaveBeenCalledWith(expect.any(String), agent.handle)
+  })
+
+  it('clears the ids that pointed at the agent: a project default and a person\'s primary agent', async () => {
+    const agent = await createAgent({ handle: 'pointed-at' })
+    const user = await createUser()
+    await prisma.userSettings.create({ data: { userId: user.id, primaryAgentId: agent.id } })
+    const project = await createProject({ defaultAgentId: agent.id })
+
+    await deleteAgentAction({ id: agent.id }, await adminCtx())
+
+    expect((await prisma.project.findUniqueOrThrow({ where: { id: project.id } })).defaultAgentId).toBeNull()
+    expect((await prisma.userSettings.findUniqueOrThrow({ where: { userId: user.id } })).primaryAgentId).toBeNull()
   })
 
   it('refuses to delete the built-in agent with 403, and deletes nothing', async () => {

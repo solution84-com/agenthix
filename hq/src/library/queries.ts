@@ -1,18 +1,20 @@
 import type { GetBoardTemplates, GetBoardTemplate, GetWorkforceTemplates, GetWorkforceTemplate, GetExistingAgentHandles, GetWorkforceReviewTask, GetAgentTemplates } from 'wasp/server/operations'
 import { HttpError } from 'wasp/server'
 import { prisma } from 'wasp/server'
-import { listBoardTemplates, getBoardTemplate as svcGetBoardTemplate } from './boardTemplateService'
+import type { Prisma } from '@prisma/client'
+import { listBoardTemplates, getBoardTemplate as svcGetBoardTemplate, type BoardTemplateSummary } from './boardTemplateService'
+import type { WorkforceTemplateContent } from './workforceTemplateTypes'
 import { listAgentTemplates, type AgentTemplateSummary } from './agentTemplateService'
 import { MADE_FROM_WORKFORCE_ASSEMBLY } from './systemTemplates'
 import { canSeeTask } from '../projects/resourceEntitlement'
 import { isOrgAdmin } from '../projects/membership'
 
-export const getBoardTemplates: GetBoardTemplates<void, any> = async (_args, context) => {
+export const getBoardTemplates: GetBoardTemplates<void, BoardTemplateSummary[]> = async (_args, context) => {
   if (!context.user) throw new Error('Not authenticated')
   return listBoardTemplates()
 }
 
-export const getBoardTemplate: GetBoardTemplate<{ id: string }, any> = async ({ id }, context) => {
+export const getBoardTemplate: GetBoardTemplate<{ id: string }, Awaited<ReturnType<typeof svcGetBoardTemplate>>> = async ({ id }, context) => {
   if (!context.user) throw new Error('Not authenticated')
   return svcGetBoardTemplate(typeof id === 'string' ? id : '')
 }
@@ -27,7 +29,7 @@ export const getWorkforceTemplates: GetWorkforceTemplates<void, GetWorkforceTemp
   return (await listTeamTemplates()).map(({ id, name, description, tags }) => ({ id, name, description, tags }))
 }
 
-export const getWorkforceTemplate: GetWorkforceTemplate<{ id: string }, { id: string; name: string; description: string; tags: string[]; content: any } | null> = async (args, context) => {
+export const getWorkforceTemplate: GetWorkforceTemplate<{ id: string }, { id: string; name: string; description: string; tags: string[]; content: WorkforceTemplateContent } | null> = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const { getTeamTemplate } = await import('./workforceTemplateService')
   const template = await getTeamTemplate(args?.id)
@@ -46,7 +48,7 @@ export const getExistingAgentHandles: GetExistingAgentHandles<void, string[]> = 
  * admin, and that project's members may be only the one admin it was made with. Anyone else, and any other
  * task, gets null, as for a task that does not exist.
  */
-export const getWorkforceReviewTask: GetWorkforceReviewTask<{ taskId: string }, { id: string; title: string; applicationData: any } | null> = async ({ taskId }, context) => {
+export const getWorkforceReviewTask: GetWorkforceReviewTask<{ taskId: string }, { id: string; title: string; applicationData: Prisma.JsonValue } | null> = async ({ taskId }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   if (typeof taskId !== 'string' || taskId === '') return null
   const task = await prisma.task.findUnique({

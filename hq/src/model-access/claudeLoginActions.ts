@@ -45,6 +45,16 @@ function requireOwn(context: { user?: { id: string } | null }, ownerType: string
   return context.user.id
 }
 
+/** The site's link goes to the person's browser as it is, so only an https address is passed on. */
+export function isHttpsLink(link: unknown): boolean {
+  if (typeof link !== 'string') return false
+  try {
+    return new URL(link).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export const SUBSCRIPTION_NAME = 'Your Claude subscription'
 
 export const startClaudeLogin: StartClaudeLogin<StartArgs, { loginId: string; url: string }> = async (args, context) => {
@@ -54,9 +64,36 @@ export const startClaudeLogin: StartClaudeLogin<StartArgs, { loginId: string; ur
   }
   requireSecretsKey(WHAT)
   try {
-    return await beginLogin({ ownerType: 'user', ownerId: userId }, userId)
+    const login = await beginLogin({ ownerType: 'user', ownerId: userId }, userId)
+    if (!isHttpsLink(login.url)) {
+      await abandonLogin(login.loginId, userId).catch(() => undefined)
+      throw new HttpError(502, 'The sign-in link the site gave is not an https address, so it was not shown. Start again, and if it keeps failing, check the Execution Site. Nothing was changed.')
+    }
+    return login
   } catch (err) {
     return asHttp(err)
+  }
+}
+
+type SubscriptionData = { secret: string; expiresAt: Date; termsAcceptedAt: Date }
+
+/**
+ * One subscription per person (a unique index): a second finish at the same moment finds the first one's row when its
+ * own create meets the index, and replaces it, rather than failing after the code is spent.
+ */
+async function storeSubscription(userId: string, data: SubscriptionData): Promise<void> {
+  const replace = () => prisma.aiProvider.updateMany({
+    where: { ownerUserId: userId, vendor: 'anthropic' },
+    data: { ...data, state: 'works', stateSince: new Date(), stateDetail: null },
+  })
+  if ((await replace()).count > 0) return
+  try {
+    await prisma.aiProvider.create({
+      data: { ...data, name: SUBSCRIPTION_NAME, vendor: 'anthropic', credentialKind: 'subscription', ownerUserId: userId },
+    })
+  } catch (err) {
+    if ((err as { code?: unknown }).code !== 'P2002') throw err
+    await replace()
   }
 }
 
@@ -80,13 +117,7 @@ export const completeClaudeLogin: CompleteClaudeLogin<CompleteArgs, { ok: boolea
       expiresAt: new Date(expiresAt),
       termsAcceptedAt: new Date(),
     }
-    const existing = await prisma.aiProvider.findFirst({ where: { ownerUserId: userId, vendor: 'anthropic' }, select: { id: true } })
-    if (existing) await prisma.aiProvider.update({ where: { id: existing.id }, data: { ...data, state: 'works', stateSince: new Date(), stateDetail: null } })
-    else {
-      await prisma.aiProvider.create({
-        data: { ...data, name: SUBSCRIPTION_NAME, vendor: 'anthropic', credentialKind: 'subscription', ownerUserId: userId },
-      })
-    }
+    await storeSubscription(userId, data)
     return { ok: true }
   } catch (err) {
     return asHttp(err)

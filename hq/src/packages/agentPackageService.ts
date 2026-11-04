@@ -87,10 +87,25 @@ export function mergeSettings(current: AgentSettings, change: AgentSettingsChang
   }
 }
 
+const PERMISSION_STATES: readonly unknown[] = ['always', 'ask', 'never']
+
+/** Every entry is a name (or pattern) with a state the site's gate acts on; an unknown state would run as Always. */
+function checkPermissionEntries(list: unknown, key: 'name' | 'pattern', what: string): void {
+  if (!Array.isArray(list)) return
+  for (const entry of list) {
+    if (typeof entry === 'string' && entry.trim() !== '') continue // the older list of names, each Always
+    const e = (entry ?? {}) as Record<string, unknown>
+    if (typeof e[key] !== 'string' || (e[key] as string).trim() === '') throw new PackageContentError(`Each of the ${what} needs a ${key}`)
+    if (!PERMISSION_STATES.includes(e.state)) throw new PackageContentError(`'${String(e.state)}' is not Always, Ask or Never`)
+  }
+}
+
 export function validateAgentSettings(s: AgentSettings): void {
   if (!isApproval(s.approval)) throw new PackageContentError(`Invalid approval '${s.approval}' — bypassed, deferred or immediate`)
   if (s.permissions.tools !== null && !Array.isArray(s.permissions.tools)) throw new PackageContentError('The tools must be a list or null')
   if (s.permissions.bashPatterns !== null && !Array.isArray(s.permissions.bashPatterns)) throw new PackageContentError('Bash patterns must be a list or null')
+  checkPermissionEntries(s.permissions.tools, 'name', 'tools')
+  checkPermissionEntries(s.permissions.bashPatterns, 'pattern', 'bash patterns')
 }
 
 function json(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { isDeadlock, truncateAll, type TruncateTarget } from './truncateAll'
+import { isDeadlock, isForeignKeyViolation, retryOnDeadlock, truncateAll, type TruncateTarget } from './truncateAll'
 
 const deadlock = () =>
   Object.assign(new Error('Raw query failed. Code: `40P01`. Message: `deadlock detected`'), {
@@ -68,5 +68,31 @@ describe('truncateAll', () => {
     const target = fakeTarget([error])
     await expect(truncateAll(target, { sleep: noSleep })).rejects.toBe(error)
     expect(target.truncate).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('isForeignKeyViolation', () => {
+  const violation = () =>
+    Object.assign(new Error('Raw query failed. Code: `23503`. Message: `update or delete on table "BillingProfile" violates foreign key constraint`'), {
+      code: 'P2010',
+      meta: { code: '23503', message: 'violates foreign key constraint' },
+    })
+
+  it('recognises Postgres foreign_key_violation however Prisma reports it', () => {
+    expect(isForeignKeyViolation(violation())).toBe(true)
+    expect(isForeignKeyViolation({ code: 'P2003' })).toBe(true)
+    expect(isForeignKeyViolation(new Error('ERROR: violates foreign key constraint "x"'))).toBe(true)
+  })
+
+  it('does not treat other errors as one', () => {
+    expect(isForeignKeyViolation(new Error('relation does not exist'))).toBe(false)
+    expect(isForeignKeyViolation(null)).toBe(false)
+  })
+
+  it('is tried again by the clearing, like a deadlock, and the retry succeeds', async () => {
+    const statement = vi.fn()
+    statement.mockRejectedValueOnce(violation()).mockResolvedValueOnce(undefined)
+    await retryOnDeadlock(statement, { sleep: noSleep })
+    expect(statement).toHaveBeenCalledTimes(2)
   })
 })

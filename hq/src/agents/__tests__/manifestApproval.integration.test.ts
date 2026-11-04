@@ -244,6 +244,15 @@ describe('rejecting a task run', () => {
     expect(emit).toHaveBeenCalledWith('manifestRejected', { runId: run.id, taskId: task.id, reason: 'Too broad' })
   })
 
+  it("leaves a newer run's state alone when it is declined after that run was claimed", async () => {
+    const { task, run, project } = await makeTaskRun()
+    await prisma.task.update({ where: { id: task.id }, data: { runState: 'RUN_ACTIVE', runId: 'run-newer' } })
+
+    await expect(rejectManifest({ runId: run.id, reason: 'no' }, ctxFor((await makeMember(project)).id))).resolves.toEqual({ ok: true })
+
+    expect(await taskRow(task.id)).toMatchObject({ runState: 'RUN_ACTIVE', runId: 'run-newer' })
+  })
+
   it("is refused for the project's Viewer, leaving the run pending (adr-0102)", async () => {
     const { run, project } = await makeTaskRun()
     const viewer = await makeMember(project, 'VIEWER')

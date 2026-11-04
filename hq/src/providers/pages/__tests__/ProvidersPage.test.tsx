@@ -130,6 +130,17 @@ describe('adding a provider @SC-1170 @SC-1178', () => {
     await waitFor(() => expect(act('addAiProvider')).toHaveBeenCalledWith({ vendor: 'openai_compatible', key: 'sk-test-fake-key', baseUrl: 'https://x.example/v1' }))
   })
 
+  it('saves a custom endpoint with no key, which the server accepts', async () => {
+    h.data = { getAiProviders: [base] }
+    show()
+    fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+    fireEvent.click(screen.getByText('LLM provider'))
+    fireEvent.click(screen.getByText('Your own OpenAI-compatible endpoint'))
+    fireEvent.change(screen.getByLabelText('Address'), { target: { value: 'http://host.docker.internal:11434/v1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(act('addAiProvider')).toHaveBeenCalledWith({ vendor: 'openai_compatible', key: '', baseUrl: 'http://host.docker.internal:11434/v1' }))
+  })
+
   it('shows the vendor’s reason under the key field when it refuses', async () => {
     act('addAiProvider').mockRejectedValue(new Error('OpenAI refused this key: invalid x-api-key'))
     show()

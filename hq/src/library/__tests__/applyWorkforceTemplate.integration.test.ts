@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../test/db'
+import { createUserWithRole, ensureExecutionSite } from '../../test/factories'
 
 // Team templates as assets (adr-0157), applied against the real test database. Covers SC-187 (teams with their
 // agents, in no project), SC-188 (apply is atomic, F-022), what the team and agents keep from the template version,
@@ -12,6 +13,13 @@ vi.mock('wasp/server', async () => {
 })
 vi.mock('../../server/dashboard/debouncedPush', () => import('../../test/fakes/debouncedPush'))
 vi.mock('../../server/dashboard/activity', () => import('../../test/fakes/activity'))
+vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
+// A project's first files are written on its site; the site is not under test here.
+const site = vi.hoisted(() => ({ seedFilesOnSite: vi.fn(), ensureDirOnSite: vi.fn() }))
+vi.mock('../../storage/locationFileStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../storage/locationFileStore')>()),
+  ...site,
+}))
 
 import { applyTeamTemplate, getTeamTemplate } from '../workforceTemplateService'
 import { buildInitialSelections, type ApplicationSelections } from '../workforceTemplateTypes'
@@ -134,16 +142,40 @@ describe('applyTeamTemplate: settings (R10)', () => {
 describe('applyTeamTemplate @SC-188', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  // F-022: a collision on the second agent throws mid-way; the first agent is rolled back.
+  // F-022: a collision found only while creating (another request took the handle between the check and the create)
+  // throws mid-way; the first agent is rolled back.
   it('rolls back already-created agents when a later agent fails (atomic)', async () => {
     await seedTeam()
     await prisma.agent.create({ data: { name: 'Existing QA', handle: 'qa' } as any })
+    const selections = await allOf()
+    vi.spyOn(prisma.agent, 'findMany').mockResolvedValueOnce([])
 
-    await expect(applyTeamTemplate('crew', await allOf(), 'admin-1')).rejects.toThrow(/already exists/)
+    await expect(applyTeamTemplate('crew', selections, 'admin-1')).rejects.toMatchObject({ statusCode: 409 })
 
     expect(await prisma.agent.findUnique({ where: { handle: 'dev' } })).toBeNull()
     expect((await prisma.agent.findUnique({ where: { handle: 'qa' } }))?.name).toBe('Existing QA')
     expect(await prisma.team.count()).toBe(0)
+  })
+
+  it('refuses a handle an agent already has with 409, naming it, before installing or creating anything', async () => {
+    await seedTeam()
+    await prisma.agent.create({ data: { name: 'Existing QA', handle: 'qa' } as any })
+
+    await expect(applyTeamTemplate('crew', await allOf(), 'admin-1')).rejects.toMatchObject({
+      statusCode: 409, message: expect.stringMatching(/@qa \(already taken\).*Nothing was changed\./),
+    })
+
+    expect(await prisma.agent.count()).toBe(1)
+    expect(await prisma.asset.count({ where: { kind: 'SKILL' } })).toBe(0)
+  })
+
+  it('refuses two agents given the same typed handle', async () => {
+    await seedTeam()
+    const selections = await allOf()
+    selections.teams[0].agents[1].resolvedHandle = selections.teams[0].agents[0].resolvedHandle
+
+    await expect(applyTeamTemplate('crew', selections, 'admin-1')).rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('used twice here') })
+    expect(await prisma.agent.count()).toBe(0)
   })
 })
 
@@ -159,6 +191,20 @@ describe('applyTeamTemplate: with no Execution Site connected', () => {
   it('still applies a template with no projects: agents and teams need no site', async () => {
     await seedTeam()
     expect(await applyTeamTemplate('crew', await allOf(), 'admin-1')).toMatchObject({ agentCount: 2, teamCount: 1, projectCount: 0 })
+  })
+})
+
+describe('applyTeamTemplate: the projects it makes', () => {
+  it('makes the person who applied it the admin of each project', async () => {
+    await ensureExecutionSite()
+    const applier = await createUserWithRole('ADMIN')
+    await createUserWithRole('ADMIN')
+    await seedTeam({ agents: TWO.map(a => ({ ...a, skills: [] })), board: 'kanban' })
+
+    await applyTeamTemplate('crew', await allOf(), applier.id)
+
+    const project = await prisma.project.findFirstOrThrow()
+    expect(await prisma.projectMember.findUnique({ where: { projectId_userId: { projectId: project.id, userId: applier.id } } })).toMatchObject({ role: 'ADMIN' })
   })
 })
 

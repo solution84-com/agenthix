@@ -21,6 +21,7 @@ import { entitledProjectsFilter } from '../projects/membership'
 import { sessionsInEntitledProjects } from '../sessions/sessionEntitlement'
 import { runVisibilityFilter } from '../sessions/runReadHelpers'
 import { Logger } from '../server/utils/logger'
+import { withRunPlaceholders } from './promptPlaceholders'
 
 const logger = new Logger('Agents')
 
@@ -277,7 +278,7 @@ export const getAgentPromptPreview: GetAgentPromptPreview<GetAgentPromptPreviewA
   // The wire result is not validated upstream, so a malformed `sections` falls back like an absent one.
   const wireSections: unknown = result.sections
   const sections = Array.isArray(wireSections) && wireSections.length > 0 && wireSections.every(isPromptSection)
-    ? wireSections.map(({ key, label, content, editable }) => ({ key, label, content, editable }))
+    ? withRunPlaceholders(wireSections.map(({ key, label, content, editable }) => ({ key, label, content, editable })), args.mode)
     : [{ key: 'prompt', label: 'System Prompt', content: result.prompt, editable: false }]
   return { systemPrompt: result.prompt, userMessage, sections }
 }

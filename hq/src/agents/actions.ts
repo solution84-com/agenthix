@@ -12,6 +12,7 @@ import { requireRole } from '../server/identity/requireRole'
 import { sitesForAgent } from './agentSite'
 import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
 import { rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
+import { SiteUnreachableError } from '../storage/workspaceStore'
 import { getHqAssetsRoot } from '../server/hqAssets'
 import { prisma } from 'wasp/server'
 import { createAgent as createAgentRecord, updateAgent as updateAgentRecord, deleteAgent as deleteAgentRecord } from './agentService'
@@ -91,13 +92,23 @@ export const stopAgent: StopAgent<{ id: string }, { ok: boolean; cancelledRuns: 
   // changes nothing about what this action managed to do.
   const { siteIds } = await sitesForAgent(id)
   let cancelledRuns = 0
+  // Every site is tried: one that does not answer must not leave the ones after it unstopped.
+  const unreachable: string[] = []
   for (const siteId of siteIds) {
-    await siteRuntimeStore.stopAgent(siteId, agent.handle)
-    const activeRuns = await siteRuntimeStore.listRuns(siteId, { agentId: id, activeOnly: true })
-    for (const run of activeRuns) {
-      await siteRuntimeStore.cancelRun(siteId, run.id)
+    try {
+      await siteRuntimeStore.stopAgent(siteId, agent.handle)
+      const activeRuns = await siteRuntimeStore.listRuns(siteId, { agentId: id, activeOnly: true })
+      for (const run of activeRuns) {
+        await siteRuntimeStore.cancelRun(siteId, run.id)
+      }
+      cancelledRuns += activeRuns.length
+    } catch (err) {
+      if (!(err instanceof SiteUnreachableError)) throw err
+      unreachable.push(err.message)
     }
-    cancelledRuns += activeRuns.length
+  }
+  if (unreachable.length > 0) {
+    throw new HttpError(503, `${unreachable.join(' ')} The agent was stopped on the other Execution Sites, but may still be running on ${unreachable.length === 1 ? 'that one' : 'those'}. Try again when ${unreachable.length === 1 ? 'it is' : 'they are'} back.`)
   }
 
   return { ok: true, cancelledRuns }
@@ -160,6 +171,7 @@ export const applyAgentPreset: ApplyAgentPreset<ApplyAgentPresetArgs, { url: str
   await requireRole(context, 'ADMIN', 'Applying an agent preset')
   const { agentId, imageType, filename } = args
 
+  if (imageType !== 'avatar' && imageType !== 'cover') throw new HttpError(400, 'A preset is an avatar or a cover')
   // Validate filename — must be a simple name with a known image extension
   if (!/^[a-zA-Z0-9._-]+\.(jpg|jpeg|png|webp)$/i.test(filename) || filename.includes('..')) {
     throw new HttpError(400, 'Invalid preset filename')
@@ -175,7 +187,12 @@ export const applyAgentPreset: ApplyAgentPreset<ApplyAgentPresetArgs, { url: str
   const target = await resolveRealWriteTargetWithin(getHqStorageRoot(), path.join(getAgentImagesDir(agentId), destFilename))
   if (!target) throw new HttpError(403, 'Path not allowed')
   await fs.mkdir(path.dirname(target), { recursive: true })
-  await fs.copyFile(src, target)
+  try {
+    await fs.copyFile(src, target)
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') throw new HttpError(404, 'There is no such preset')
+    throw err
+  }
 
   const url = `/agents/${agentId}/images/${destFilename}`
   const field = imageType === 'avatar' ? 'avatarUrl' : 'coverUrl'

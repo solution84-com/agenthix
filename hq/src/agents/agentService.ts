@@ -63,7 +63,7 @@ export async function createAgent(params: CreateAgentParams) {
   if (!isValidAgentHandle(handle)) throw new HttpError(400, INVALID_AGENT_HANDLE_MESSAGE)
 
   const existing = await prisma.agent.findUnique({ where: { handle } })
-  if (existing) throw new Error(`Agent with handle '${handle}' already exists`)
+  if (existing) throw new HttpError(409, `An agent with handle '${handle}' already exists`)
 
   // Validated before anything touches disk: an invalid setting (e.g. a bad
   // approval) must leave no provisioned workspace behind.
@@ -88,6 +88,9 @@ export async function createAgent(params: CreateAgentParams) {
     }
     await writeAgentContent(created.id, content, params.createdById ?? null, tx)
     return created
+  }).catch((err: unknown) => {
+    if ((err as { code?: unknown }).code === 'P2002') throw new HttpError(409, `An agent with handle '${handle}' already exists`)
+    throw err
   })
   recordActivity('agent_added', `@${agent.handle} added`, agent.id)
   triggerSnapshotPush()
@@ -158,6 +161,9 @@ export async function deleteAgent(agentId: string) {
   // cascades from the delete below.
   await prisma.$transaction(async tx => {
     await deletePackage('agent', agentId, tx)
+    // Plain ids with no relation to the agent: cleared with the row so nothing keeps pointing at it.
+    await tx.project.updateMany({ where: { defaultAgentId: agentId }, data: { defaultAgentId: null } })
+    await tx.userSettings.updateMany({ where: { primaryAgentId: agentId }, data: { primaryAgentId: null } })
     await tx.agent.delete({ where: { id: agentId } })
   })
 

@@ -78,6 +78,15 @@ export function modelIdsOf(body: unknown): string[] {
   return data.flatMap(m => (m && typeof m === 'object' && typeof (m as { id?: unknown }).id === 'string' && (m as { id: string }).id ? [(m as { id: string }).id] : []))
 }
 
+/** A custom endpoint is asked from HQ's machine but used from the Execution Site, so a failure names the likely cause. */
+export function unreachableDetail(vendor: CheckTarget['vendor'], timedOut: boolean): string {
+  const said = timedOut ? 'It did not answer in time.' : 'It could not be reached.'
+  return vendor === 'openai_compatible' ? `${said} ${CUSTOM_ADDRESS_ADVICE}` : said
+}
+
+export const CUSTOM_ADDRESS_ADVICE =
+  'Check the address from the Execution Site that runs the agents: on a model server on the same machine, localhost is the container itself, so give the machine’s own address or host.docker.internal instead.'
+
 export const realVendorChecks: VendorChecks = {
   async check(target) {
     const { url, headers } = probeFor(target)
@@ -86,7 +95,7 @@ export const realVendorChecks: VendorChecks = {
       res = await fetch(url, { headers, signal: AbortSignal.timeout(TIMEOUT_MS), redirect: 'error' })
     } catch (err) {
       const timedOut = err instanceof Error && err.name === 'TimeoutError'
-      return { ok: false, kind: 'unavailable', detail: timedOut ? 'It did not answer in time.' : 'It could not be reached.' }
+      return { ok: false, kind: 'unavailable', detail: unreachableDetail(target.vendor, timedOut) }
     }
     const body: unknown = await res.json().catch(() => null)
     return classify(target.vendor, res.status, body)

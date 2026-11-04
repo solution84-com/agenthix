@@ -121,3 +121,19 @@ describe("Agenthix Cloud's state @SC-1176", () => {
     expect(store.records.at(-1)).toMatchObject({ action: 'state_changed', actor: 'hq' })
   })
 })
+
+describe('checkDueProviders keeps going @SC-1176', () => {
+  it('checks the providers after one whose stored key will not decrypt', async () => {
+    const broken = await provider('anthropic')
+    const other = await store.create({
+      name: 'OpenAI', vendor: 'openai', credentialKind: 'api_key', baseUrl: null, keyHint: 'a3f9', secret: encryptSecret(KEY),
+      state: 'works', stateDetail: null, lastCheckedAt: new Date(), lastWorkedAt: new Date(),
+    })
+    store.rows.get(broken.id)!.secret = 'AAAA.BBBB.CCCC'
+    const old = new Date('2026-10-23T08:00:00Z')
+    await store.update(broken.id, { lastCheckedAt: old })
+    await store.update(other.id, { lastCheckedAt: old })
+    expect(await checkDueProviders()).toBe(2)
+    expect(vendor.asked.map(a => a.vendor)).toEqual(['openai'])
+  })
+})
