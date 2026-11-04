@@ -2,7 +2,7 @@
 // and the runtimes read one source. This file keeps hq's imports short.
 export {
   CLAUDE_SDK_MODELS, CLAUDE_SDK_RUNTIME, OPENCODE_RUNTIME, AGENT_RUNTIMES, OPENCODE_MODELS,
-  modelsForRuntime, isKnownModel, modelCostRank, isEqualOrCheaperModel, providerOfModel,
+  modelsForRuntime, isKnownModel,
   isTypedModel, typedModelValue, isAgentRuntime, DEFAULT_MODELS,
 } from '@agenthix/core'
 import { DEFAULT_MODELS } from '@agenthix/core'

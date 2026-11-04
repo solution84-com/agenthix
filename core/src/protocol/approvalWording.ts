@@ -31,12 +31,14 @@ const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ?
 /** A request's items, in plain words: the tools first, then the commands. */
 export function approvalItems(request: unknown): ApprovalItem[] {
   const r = (request && typeof request === 'object' ? request : {}) as Request
-  const tools = (r.tools ?? []).flatMap(t => {
+  // A stored request may be damaged or from another version: anything not shaped as expected counts as empty.
+  const list = <T extends object>(v: unknown): T[] => (Array.isArray(v) ? v.filter((x): x is T => !!x && typeof x === 'object') : [])
+  const tools = list<{ name?: unknown; reason?: unknown }>(r.tools).flatMap(t => {
     const name = text(t.name)
     return name ? [{ does: toolAsk(name), why: text(t.reason), command: false }] : []
   })
   // A command request is the whole command, and approving it grants exactly that command: the card shows what is granted.
-  const commands = (r.bashPatterns ?? []).flatMap(p => {
+  const commands = list<{ pattern?: unknown; reason?: unknown }>(r.bashPatterns).flatMap(p => {
     const command = text(p.pattern)
     return command ? [{ does: command, why: null, command: true }] : []
   })

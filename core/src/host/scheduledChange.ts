@@ -91,7 +91,10 @@ const STATES: readonly ScheduledChangeState[] = ['scheduled', 'pausing', 'runnin
 const MAX_MINUTES = 24 * 60
 const MAX_TEXT = 300
 
-const iso = (v: unknown): string | null => (typeof v === 'string' && !Number.isNaN(Date.parse(v)) ? v : null)
+const iso = (v: unknown): string | null =>
+  typeof v === 'string' && v.length <= 40 && !Number.isNaN(Date.parse(v)) ? new Date(v).toISOString() : null
+/** An identifier is refused when it is too long, never cut: two long ids must not read as one. */
+const ident = (v: unknown): string | null => (typeof v === 'string' && v.trim() && v.trim().length <= MAX_TEXT ? v.trim() : null)
 const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim().slice(0, MAX_TEXT) : null)
 const record = (v: unknown): Record<string, unknown> | null =>
   v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null
@@ -102,7 +105,7 @@ function parseScheduledBy(v: unknown): ScheduledBy | null {
   if (r?.kind === 'cloud') return { kind: 'cloud' }
   if (r?.kind === 'maintenanceWindow') return { kind: 'maintenanceWindow' }
   if (r?.kind !== 'fleetAdmin') return null
-  const userId = text(r.userId)
+  const userId = ident(r.userId)
   const name = text(r.name)
   return userId && name ? { kind: 'fleetAdmin', userId, name } : null
 }
@@ -114,10 +117,10 @@ function parseChange(v: unknown): ScheduledChange | null {
   const kind = SCHEDULED_CHANGE_KINDS.find((k) => k === r.kind)
   const state = STATES.find((s) => s === r.state)
   const target = r.target === 'hq' || r.target === 'site' ? r.target : null
-  const id = text(r.id)
+  const id = ident(r.id)
   const siteName = text(r.siteName)
   const machineName = text(machine.name)
-  const fingerprint = text(machine.fingerprint)
+  const fingerprint = ident(machine.fingerprint)
   const at = iso(r.at)
   const scheduledAt = iso(r.scheduledAt)
   const scheduledBy = parseScheduledBy(r.scheduledBy)

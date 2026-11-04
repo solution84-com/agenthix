@@ -32,6 +32,15 @@ export async function cloudClientIdOf(publicKey: string): Promise<string> {
   return toBase64url(await sha256(utf8(jwk)))
 }
 
+/**
+ * Whether an `organisation.key` result (`parseOrganisationKeyResult`) names a client id that is its key's thumbprint,
+ * as `parseCloudDeviceApproved` insists of Cloud's. Checked on the side that will register the id, so an id its
+ * assertions can never match is caught before Cloud holds it.
+ */
+export async function organisationKeyResultMatches(result: { publicKey: string; clientId: string }): Promise<boolean> {
+  return isCloudPublicKey(result.publicKey) && (await cloudClientIdOf(result.publicKey)) === result.clientId
+}
+
 const encodePart = (value: object) => toBase64url(utf8(JSON.stringify(value)))
 
 /**

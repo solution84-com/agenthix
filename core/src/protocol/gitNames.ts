@@ -53,15 +53,16 @@ export function isCopyId(id: unknown): id is string {
 }
 
 /**
- * A file's path from the repository's root, `/`-separated: no leading `/`, no empty, `.` or `..` part, no part
- * beginning with `-`, no `.git` part in any letter case, no backslash and no control character.
+ * A file's path from the repository's root, `/`-separated: no leading `/`, no empty, `.` or `..` part, no `.git`
+ * part in any letter case, no backslash and no control character. A part may begin with `-`: every use of a path
+ * follows `--` with a literal pathspec, so a file named `-x` is as readable as any other.
  */
 export function isRepoPath(path: unknown): path is string {
   if (typeof path !== 'string' || path.length === 0 || path.length > REPO_PATH_MAX) return false
   if (CONTROL.test(path) || path.includes('\\')) return false
   return path.split('/').every(part =>
     part.length > 0 && part.length <= REPO_PATH_SEGMENT_MAX && part !== '.' && part !== '..' &&
-    !part.startsWith('-') && part.toLowerCase() !== '.git')
+    part.toLowerCase() !== '.git')
 }
 
 /** A name Git writes into a commit's author line: no `<`, `>` or control character, not blank. */

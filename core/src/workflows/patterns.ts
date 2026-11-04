@@ -136,9 +136,8 @@ class Reader {
     const negated = this.src[this.i] === '^'
     if (negated) this.i++
     let contains: boolean | undefined = false
-    let first = true
-    while (this.src[this.i] !== ']' || first) {
-      first = false
+    // Under the `u` flag `]` closes a class at once: `[]` matches nothing and `[^]` anything.
+    while (this.src[this.i] !== ']') {
       const lo = this.classMember()
       if (this.src[this.i] === '-' && this.src[this.i + 1] !== ']' && this.i + 1 < this.src.length) {
         this.i++

@@ -68,10 +68,10 @@ export function readPackageScopes(value: unknown): string[] | null {
   return new Set(value).size === value.length ? [...value] : null
 }
 
-/** A package name as npm takes it: lower case, at most 214 characters, optionally in a scope. */
+/** A package name as npm reads it: at most 214 characters, optionally in a scope. Older registry packages still have upper-case letters. */
 export function isNpmPackageName(value: unknown): value is string {
   return typeof value === 'string' && value.length <= 214
-    && /^(@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(value)
+    && /^(@[A-Za-z0-9][A-Za-z0-9._-]*\/)?[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value)
 }
 
 const DAY_MS = 86_400_000

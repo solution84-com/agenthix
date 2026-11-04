@@ -4,7 +4,7 @@
  * refuses a change, so pages can be written in any order.
  *
  * Only links to `.md` targets are pages' links. A web address, a mail link, an anchor on the same page or a link to
- * any other file is not checked here. Links inside code (fenced blocks and `inline code`) are not links.
+ * any other file is not checked here. Links inside code (fenced blocks, indented code and `inline code`) are not links.
  */
 import { KNOWLEDGE_PAGE_EXTENSION } from './limits.js'
 import { parseQualifiedPageName, sectionOfPage } from './pageNames.js'
@@ -24,7 +24,8 @@ export interface KnowledgePageLink {
 // step each), and the optional title's leading spaces cannot trade places with the spaces before `)`.
 const INLINE_LINK = /!?\[[^[\]\n]*\]\(\s*<?([^()\s<>]+)>?(?:\s+"[^"\n]*"|\s+'[^'\n]*')?\s*\)/g
 const REFERENCE = /^ {0,3}\[[^\]\n]+\]:\s*<?([^\s<>]+)>?/
-const FENCE = /^ {0,3}(`{3,}|~{3,})/
+const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/
+const INDENTED_CODE = /^(?: {4}|\t)/
 const SCHEME = /^[A-Za-z][A-Za-z0-9+.-]*:\/\//
 // Addresses without `//` that are never a level's name.
 const OTHER_SCHEMES = /^(?:mailto|tel|sms|data|javascript|vbscript|file|news|urn):/i
@@ -35,16 +36,34 @@ const OTHER_SCHEMES = /^(?:mailto|tel|sms|data|javascript|vbscript|file|news|urn
  */
 export function pageLinks(name: string, body: string, firstLine = 1): KnowledgePageLink[] {
   const links: KnowledgePageLink[] = []
-  let fence: string | null = null
+  // An open fence closes on a line of the same character, at least as long, with nothing after it (CommonMark).
+  let fence: { char: string; length: number } | null = null
+  // A line indented four spaces after a blank line is indented code, and so is each one that follows it.
+  let afterBlank = true
+  let indentedCode = false
   body.split(/\r?\n/).forEach((text, i) => {
     const line = firstLine + i
+    const blank = text.trim() === ''
     const f = FENCE.exec(text)
-    if (f) {
-      if (fence === null) fence = f[1][0]
-      else if (f[1][0] === fence) fence = null
+    if (fence !== null) {
+      if (f && f[1][0] === fence.char && f[1].length >= fence.length && f[2].trim() === '') fence = null
       return
     }
-    if (fence !== null) return
+    if (indentedCode && (blank || INDENTED_CODE.test(text))) {
+      afterBlank = blank
+      return
+    }
+    indentedCode = false
+    if (!blank && INDENTED_CODE.test(text) && afterBlank) {
+      indentedCode = true
+      afterBlank = false
+      return
+    }
+    afterBlank = blank
+    if (f && !(f[1][0] === '`' && f[2].includes('`'))) {
+      fence = { char: f[1][0], length: f[1].length }
+      return
+    }
     const visible = text.replace(/`+[^`]*`+/g, '')
     const ref = REFERENCE.exec(visible)
     if (ref) pushLink(links, name, ref[1], line)

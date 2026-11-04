@@ -1,6 +1,6 @@
 /**
  * What the Fleet Console reads of hq's connection to Cloud over the console link (`cloud.state`, `cloud.connect`),
- * checked before a screen shows any of it: a user code that is not one, or a page that is not https, is not shown.
+ * checked before a screen shows any of it: a user code that is not one, or a page that is not http or https (http is the loopback stand-in), is not shown.
  */
 import type { CloudConnectEnded, CloudConnecting, CloudOrganisationConnection, HqCloudState } from '../host/cloud.js'
 import { USER_CODE, isCloudOrganisationId } from './connection.js'

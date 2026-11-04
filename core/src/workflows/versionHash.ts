@@ -57,6 +57,13 @@ export function checkVersionContent(c: WorkflowVersionContent): string[] {
     if (f.bytes.length > L.fileBytesMax) problems.push(`${f.path} is larger than ${L.fileBytesMax} bytes.`)
     total += f.bytes.length
   }
+  for (const p of paths) {
+    const parts = p.split('/')
+    for (let i = 1; i < parts.length; i++) {
+      const folder = parts.slice(0, i).join('/')
+      if (paths.has(folder)) problems.push(`${folder} is a file and also the folder that holds ${p}.`)
+    }
+  }
   if (total > L.filesBytesMax) problems.push(`The files together are larger than ${L.filesBytesMax} bytes.`)
   const named = new Set(c.definition.files)
   for (const p of named) if (!paths.has(p)) problems.push(`${p} is named by the definition but not given.`)

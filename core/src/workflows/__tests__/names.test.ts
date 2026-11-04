@@ -1,3 +1,4 @@
+import { isIP } from 'node:net'
 import { describe, expect, it } from 'vitest'
 import {
   validateParameterName, validateSecretName, validateStoredSecretName, validateVariableName, validateWorkflowName,
@@ -72,6 +73,20 @@ describe('hosts @SC-1362', () => {
     for (const h of ['github.com', 'github.com:0', 'github.com:65536', 'github.com:x', '*.github.com:443', 'a_b.com:443',
       '999.1.1.1:22', '01.1.1.1:22', 'http://github.com:443', '2001:db8::1:22', ':443', 'example.123:80']) {
       expect(parseWorkflowHost(h).ok, h).toBe(false)
+    }
+  })
+})
+
+describe('an IPv6 host is an address, as the proxy reads one @SC-1362', () => {
+  it('agrees with net.isIP, address by address', () => {
+    const addresses = [
+      '::1', '::', '2001:db8::1', '1:2:3:4:5:6:7:8', '1::', '::ffff:1.2.3.4', '::1.2.3.4', '1:2:3:4:5:6:1.2.3.4', 'FE80::1',
+      ':::', '1:2', '::1::2', '1:2:3:4:5:6:7:8:9', '1:2:3:4:5:6:7::8', '12345::1', 'g::1', ':1::', '1:::2', '::1.2.3', '::1.2.3.256',
+      '::01.2.3.4', '1:2:3:4:5:6:7:1.2.3.4', '::.', '1.2.3.4',
+    ]
+    for (const a of addresses) {
+      const wanted = isIP(a.toLowerCase()) === 6
+      expect(parseWorkflowHost(`[${a}]:443`).ok, a).toBe(wanted)
     }
   })
 })

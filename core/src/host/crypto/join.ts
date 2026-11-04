@@ -9,7 +9,7 @@ import {
   type ConsoleCodeKind, type ConsoleHandoverCertificate,
 } from '../join.js'
 import type { HostIdentity } from '../envelope.js'
-import { fingerprintOf, importSigningPrivateKey, importSigningPublicKey, type HostKeys } from './keys.js'
+import { fingerprintOf, importSigningPrivateKey, importSigningPublicKey, isHostIdentity, type HostKeys } from './keys.js'
 import { canonical, fromBase64url, hkdf, hmac, hmacMatches, randomBytes, subtle, toBase64url, toHex, utf8 } from './webCrypto.js'
 
 const LABEL = 'host-join/1'
@@ -210,6 +210,7 @@ export async function verifyHandoverCertificate(value: unknown, pinned: HostIden
   const c = parseHandoverCertificate(value)
   if (!c || pinned.role !== 'console') return null
   if (c.from !== (await fingerprintOf(pinned))) return null
+  if (!isHostIdentity(c.to)) return null
   const fingerprint = await fingerprintOf(c.to)
   if (fingerprint === c.from) return null
   const sig = fromBase64url(c.sig)

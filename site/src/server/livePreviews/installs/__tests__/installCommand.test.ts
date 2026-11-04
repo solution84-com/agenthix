@@ -17,7 +17,7 @@ describe('installing with scripts off @SC-1743', () => {
 
   it.each([
     'github:evil/esbuild', 'esbuild@github:evil/esbuild', 'evil@npm:esbuild', 'file:../x', 'x@file:../x',
-    'https://evil.example/x.tgz', 'x@https://evil.example/x.tgz', '--ignore-scripts=false', '-g', 'x@--foo', 'Esbuild', '../x', 'x@ 1',
+    'https://evil.example/x.tgz', 'x@https://evil.example/x.tgz', '--ignore-scripts=false', '-g', 'x@--foo', '.esbuild', '../x', 'x@ 1',
   ])('refuses %s, which is not a registry name and version', spec => {
     expect(() => readPackageSpec(spec)).toThrow(InstallInputProblem)
   })

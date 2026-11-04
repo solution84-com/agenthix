@@ -1,4 +1,3 @@
-import { CREDENTIAL_PROVIDERS, type CredentialProvider } from '../protocol/credential.js'
 import { OPENCODE_MODELS, CLAUDE_SDK_MODELS, COST_BAND_MAX_RANKS } from './openCodeModels.generated.js'
 
 export const CLAUDE_SDK_RUNTIME = 'claude-sdk'
@@ -43,11 +42,6 @@ export const RUNTIME_LABELS: Record<AgentRuntimeName, string> = {
   [OPENCODE_RUNTIME]: 'OpenCode',
 }
 
-/** A runtime's name for a person; an id this build does not know is shown as it is. */
-export function runtimeLabel(runtime: string): string {
-  return isAgentRuntime(runtime) ? RUNTIME_LABELS[runtime] : runtime
-}
-
 export type CostBand = 'free' | 'low' | 'mid' | 'high'
 
 /** The symbols a picker shows for a band. */
@@ -77,7 +71,6 @@ export const DEFAULT_MODELS: Record<AgentRuntimeName, string> = {
  * person's own hardware or server, so it ranks with the free models.
  */
 export const OPENAI_COMPATIBLE_PREFIX = 'openai_compatible/'
-const TYPED_MODEL_RANK = 0
 
 export function isAgentRuntime(runtime: string): runtime is AgentRuntimeName {
   return (AGENT_RUNTIMES as readonly string[]).includes(runtime)
@@ -97,12 +90,6 @@ export function defaultModelFor(runtime: string | null | undefined): string {
   return runtime && isAgentRuntime(runtime) ? DEFAULT_MODELS[runtime] : DEFAULT_MODELS[CLAUDE_SDK_RUNTIME]
 }
 
-/** The model an agent keeps when its runtime changes: the same one if the new runtime offers it, else that runtime's default. */
-export function modelForRuntimeChange(runtime: string, current: string): string {
-  if (!isAgentRuntime(runtime) || isKnownModel(runtime, current)) return current
-  return DEFAULT_MODELS[runtime]
-}
-
 /** The models a picker offers for a runtime. */
 export function modelsForRuntime(runtime: string): readonly ModelPreset[] {
   if (runtime === CLAUDE_SDK_RUNTIME) return CLAUDE_SDK_MODELS
@@ -114,29 +101,4 @@ export function modelsForRuntime(runtime: string): readonly ModelPreset[] {
 export function isKnownModel(runtime: string, value: string): boolean {
   if (runtime === OPENCODE_RUNTIME && isTypedModel(value)) return true
   return modelsForRuntime(runtime).some(m => m.value === value)
-}
-
-/** The model's cost rank, or null when the runtime does not know the model. */
-export function modelCostRank(runtime: string, value: string): number | null {
-  if (runtime === OPENCODE_RUNTIME && isTypedModel(value)) return TYPED_MODEL_RANK
-  return modelsForRuntime(runtime).find(m => m.value === value)?.costRank ?? null
-}
-
-/** True when `candidate` is a known model that costs no more than `current`. An unranked `current` admits nothing. */
-export function isEqualOrCheaperModel(runtime: string, candidate: string, current: string): boolean {
-  const candidateRank = modelCostRank(runtime, candidate)
-  const currentRank = modelCostRank(runtime, current)
-  return candidateRank !== null && currentRank !== null && candidateRank <= currentRank
-}
-
-/**
- * The provider whose credential a turn on this model needs: Anthropic for the
- * Claude runtime, the prefix of the model's value on OpenCode. Null when the
- * value names no provider Agenthix offers.
- */
-export function providerOfModel(runtime: string, value: string): CredentialProvider | null {
-  if (runtime === CLAUDE_SDK_RUNTIME) return 'anthropic'
-  if (runtime !== OPENCODE_RUNTIME) return null
-  const provider = value.slice(0, Math.max(value.indexOf('/'), 0))
-  return CREDENTIAL_PROVIDERS.find(p => p === provider) ?? null
 }

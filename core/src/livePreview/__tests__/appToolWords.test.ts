@@ -8,6 +8,7 @@ describe('the live preview words agents read', () => {
   it('reads the live preview\'s own workflow names as a person would', () => {
     expect(isLivePreviewWorkflowName(LIVE_PREVIEW_WORKFLOW_NAMES.start)).toBe(true)
     expect(isLivePreviewWorkflowName(' Reload-Live-Preview ')).toBe(true)
+    expect(isLivePreviewWorkflowName(' Start-Live-Preview ')).toBe(true)
     expect(isLivePreviewWorkflowName('deploy-staging')).toBe(false)
   })
 

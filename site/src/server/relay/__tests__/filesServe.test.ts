@@ -168,10 +168,12 @@ describe('files.serve: confinement @SC-1493 @SC-1567', () => {
     expect(opened.count).toBe(0)
   })
 
-  it('refuses an absolute path', async () => {
+  it('refuses an absolute path, as a ticket no hq makes, before opening anything', async () => {
     const abs = path.join(root, 'secret.txt')
-    const { head } = await serve({ ticket: signToken(hqKey, ticketClaims(loc, abs, await versionOf(abs))) })
-    expect(refusalOf(head)).toBe('not-found')
+    const { head, bytes } = await serve({ ticket: signToken(hqKey, ticketClaims(loc, abs, await versionOf(abs))) })
+    expect(refusalOf(head)).toBe('ticket-invalid')
+    expect(bytes.length).toBe(0)
+    expect(opened.count).toBe(0)
   })
 
   it('refuses a symbolic link that leads out of the place', async () => {

@@ -5,8 +5,11 @@
 import { parseLivePreviewRequest } from '../livePreview/livePreviewRequest.js'
 import { parseLivePreviewIdleMinutes, parseLivePreviewLimit } from '../livePreview/livePreview.js'
 import { isCommitId, isCopyId, isGitBranchName } from './gitNames.js'
+import { isAppId } from '../relay/previewAddress.js'
+import type { AppSpec } from '../livePreview/apps.js'
 import { WORKSPACE_OWNER_TYPES } from './siteData.js'
 import type { WorkspaceRepoRef } from './branchWork.js'
+import type { LivePreviewAppListParams, LivePreviewAppStartParams, LivePreviewAppStopParams } from './livePreviewApps.js'
 import {
   LIVE_PREVIEW_STOPPERS,
   type LivePreviewActParams, type LivePreviewCopyRef, type LivePreviewOpenParams, type LivePreviewRefreshParams,
@@ -87,4 +90,33 @@ export function parseSiteLivePreviewsParams(v: unknown): SiteLivePreviewsParams 
   const idleMinutes = parseLivePreviewIdleMinutes(d?.idleMinutes)
   return d && typeof d.allowed === 'boolean' && limit !== undefined && idleMinutes !== undefined
     ? { allowed: d.allowed, limit, idleMinutes } : null
+}
+
+/** An app's spec as it came off the wire: exactly its five fields, each its type. `appSpecProblem` checks the values. */
+function appSpec(v: unknown): AppSpec | null {
+  const d = closed(v, ['appId', 'name', 'folder', 'command', 'port'])
+  if (!d || !isAppId(d.appId) || typeof d.name !== 'string' || typeof d.folder !== 'string' || typeof d.command !== 'string' || typeof d.port !== 'number') return null
+  return { appId: d.appId, name: d.name, folder: d.folder, command: d.command, port: d.port }
+}
+
+export function parseLivePreviewAppStartParams(v: unknown): LivePreviewAppStartParams | null {
+  const d = closed(v, ['livePreviewId', 'personId', 'app', 'startedBy'])
+  const livePreviewId = id(d?.livePreviewId), personId = id(d?.personId)
+  const app = appSpec(d?.app)
+  if (!d || !livePreviewId || !personId || !app) return null
+  if (d.startedBy === null) return { livePreviewId, personId, app, startedBy: null }
+  const by = closed(d.startedBy, ['agentId', 'runId'])
+  const agentId = id(by?.agentId), runId = id(by?.runId)
+  return agentId && runId ? { livePreviewId, personId, app, startedBy: { agentId, runId } } : null
+}
+
+export function parseLivePreviewAppStopParams(v: unknown): LivePreviewAppStopParams | null {
+  const d = closed(v, ['livePreviewId', 'personId', 'appId'])
+  const livePreviewId = id(d?.livePreviewId), personId = id(d?.personId)
+  return d && livePreviewId && personId && isAppId(d.appId) ? { livePreviewId, personId, appId: d.appId } : null
+}
+
+export function parseLivePreviewAppListParams(v: unknown): LivePreviewAppListParams | null {
+  const livePreviewId = id(closed(v, ['livePreviewId'])?.livePreviewId)
+  return livePreviewId ? { livePreviewId } : null
 }

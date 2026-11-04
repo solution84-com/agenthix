@@ -27,6 +27,8 @@ describe('a file is named in one of four spaces @SC-1452', () => {
       { ...place, loc: { ownerType: 'org', ownerId: 'o' } }, { ...place, loc: { ownerType: 'project', ownerId: 'p', workspaceId: 'w', taskId: 't' } },
       { ...place, path: '' }, { ...place, path: 'a\0b' }, { ...place, path: '../outside' }, { ...place, path: 'a/../../b' },
       { ...place, path: 'a\\..\\b' }, { ...place, path: 'x'.repeat(4097) },
+      { ...place, path: '/etc/passwd' }, { ...place, path: '\\windows\\system32' }, { ...place, path: 'C:\\windows' }, { ...place, path: 'c:/x' },
+      { ...knowledge, path: '/processes/release.md' }, { ...knowledge, path: '\\\\server\\share' },
       { ...artefact, name: 'sub/summary.md' }, { ...artefact, name: '..' }, { ...artefact, name: '.' }, { ...artefact, name: 'a\\b' },
       { ...artefact, owner: { ownerType: 'org', ownerId: 'org' } }, { ...artefact, owner: undefined },
       { ...knowledge, owner: { ownerType: 'team', ownerId: 't' } }, { ...knowledge, path: '../secrets.md' },

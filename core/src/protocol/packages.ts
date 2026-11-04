@@ -60,10 +60,13 @@ const PATH_SEGMENT = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/
 export const PACKAGE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/
 export const PACKAGE_DIGEST_PATTERN = /^[0-9a-f]{64}$/
 
-/** A relative, forward-slash path with no empty, hidden, `.` or `..` segment. */
+/** The longest file name a disk stores (255 bytes); a segment is ASCII, so its length is its bytes. */
+export const PACKAGE_PATH_SEGMENT_MAX = 255
+
+/** A relative, forward-slash path with no empty, hidden, `.` or `..` segment, and none longer than a file name can be. */
 export function isValidPackagePath(p: string): boolean {
   if (typeof p !== 'string' || p.length === 0 || p.length > 512) return false
-  return p.split('/').every(segment => PATH_SEGMENT.test(segment))
+  return p.split('/').every(segment => segment.length <= PACKAGE_PATH_SEGMENT_MAX && PATH_SEGMENT.test(segment))
 }
 
 export function isPackageRef(value: unknown): value is PackageRef {

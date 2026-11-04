@@ -30,6 +30,11 @@ describe('checkProtocolCompatibility @SC-291 @SC-1127', () => {
     })
   })
 
+  it('repeats only the start of a malformed version that is long', () => {
+    const c = checkProtocolCompatibility('1.0', 'x'.repeat(5000))
+    expect(c).toMatchObject({ ok: false, reason: 'malformed', presented: `${'x'.repeat(32)}…` })
+  })
+
   it('tells an absent peer version from a malformed one, so each caller chooses', () => {
     for (const absent of [undefined, null, '', '  ']) {
       expect(checkProtocolCompatibility('1.0', absent)).toEqual({ ok: false, reason: 'absent', own: { major: 1, minor: 0 } })

@@ -19,6 +19,13 @@ export const HQ_SITE_CONTENT_PATH = '/hq-content'
  */
 export const MAX_CHUNK_BYTES = 64 * 1024
 
+/**
+ * The most one whole WebSocket message may be on a content line or a relay line: a chunk and its stream id, with room
+ * to spare. Every server that listens on one, and every end that dials one, sets its `maxPayload` to this, so a
+ * message is cut off before it is held whole rather than at the library's 100 MiB.
+ */
+export const CONTENT_LINK_MAX_MESSAGE_BYTES = MAX_CHUNK_BYTES + 64 * 1024
+
 /** The most one stream buffers before its reader consumes it; beyond this it fails rather than grows. */
 export const MAX_STREAM_BUFFER_BYTES = 16 * 1024 * 1024
 

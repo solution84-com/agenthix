@@ -9,6 +9,13 @@
  * platform's canonical one (`read_file`) — and is read under one name here.
  */
 
+import { COMMIT_TOOL_NAME } from '../codeWork/commitTool.js'
+import { MERGE_TOOL_NAME } from '../codeWork/mergeTool.js'
+import { UPDATE_TOOL_NAME } from '../codeWork/updateTool.js'
+import { START_APP_TOOL, STOP_APP_TOOL, LIST_APPS_TOOL, RELOAD_VIEW_TOOL, SET_AUTO_RELOAD_TOOL } from '../livePreview/appTools.js'
+import { WORKFLOW_TOOL_NAMES } from '../workflows/agentTools.js'
+import { PROPOSE_SKILL_TOOL } from '../assets/skillTools.js'
+
 export type WorkStepKind = 'looked' | 'changed' | 'ran' | 'thought' | 'asked' | 'failed' | 'stopped' | 'other'
 
 /**
@@ -146,6 +153,23 @@ const SPECS: Record<string, Spec> = {
   write_knowledge: changed('Wrote the page', 'page', 'Write knowledge pages', a => str(a.page)),
   edit_knowledge: changed('Edited the page', 'page', 'Edit knowledge pages', a => str(a.page)),
   delete_knowledge: changed('Deleted the page', 'page', 'Delete knowledge pages', a => str(a.page)),
+
+  [COMMIT_TOOL_NAME]: changed('Committed', 'commit', 'Commit its changes', a => clip(firstLine(str(a.message)), 120)),
+  [MERGE_TOOL_NAME]: changed('Merged the branch into main', 'branch', 'Merge its branch into main', () => 'its branch'),
+  [UPDATE_TOOL_NAME]: changed('Brought main into the branch', 'branch', 'Bring main into its branch', () => 'its branch'),
+  [START_APP_TOOL]: { kind: 'ran', verb: 'Started', noun: 'app', ask: 'Start an app in the live preview', text: a => str(a.name) || 'an app' },
+  [STOP_APP_TOOL]: { kind: 'ran', verb: 'Stopped', noun: 'app', ask: 'Stop an app in the live preview', text: a => str(a.name) || 'an app' },
+  [LIST_APPS_TOOL]: looked('Listed', 'app', 'List the apps in the live preview', () => 'apps', true),
+  [RELOAD_VIEW_TOOL]: { kind: 'ran', verb: 'Reloaded', noun: null, ask: 'Reload the live preview', text: () => 'the live preview' },
+  [SET_AUTO_RELOAD_TOOL]: { kind: 'ran', verb: 'Changed', noun: null, ask: "Change the live preview's automatic reload", text: () => 'automatic reload' },
+  // The two package tools are named by the site (`site/src/server/mcp/previewInstallTools.ts`), which core cannot import.
+  install_packages: { kind: 'ran', verb: 'Installed', noun: 'package', ask: 'Install packages in the live preview', text: () => 'packages' },
+  ask_to_use_package: { kind: 'asked', verb: 'Asked to use', noun: null, ask: 'Ask to use a package', text: a => str(a.name) || 'a package' },
+  [WORKFLOW_TOOL_NAMES.list]: looked('Listed', 'workflow', 'List workflows', () => 'workflows', true),
+  [WORKFLOW_TOOL_NAMES.propose]: changed('Proposed', 'workflow', 'Propose workflows', a => str(a.name) || 'a workflow'),
+  [WORKFLOW_TOOL_NAMES.run]: { kind: 'ran', verb: 'Ran the workflow', noun: 'workflow', ask: 'Run workflows', text: a => str(a.name) || str(a.workflow) },
+  [WORKFLOW_TOOL_NAMES.runState]: looked('Checked', 'workflow run', 'Check on workflow runs', () => 'a workflow run'),
+  [PROPOSE_SKILL_TOOL]: changed('Proposed the skill', 'skill', 'Propose skills', a => str(a.name)),
 }
 
 /** Harness names for the same tools. */

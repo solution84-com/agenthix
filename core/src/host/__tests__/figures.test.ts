@@ -50,6 +50,17 @@ describe('the scheduled-change notice', () => {
     expect(parseScheduledChangeNotice({ ...notice, change: { ...notice.change, scheduledBy: { kind: 'fleetAdmin' } } })).toBeNull()
   })
 
+  it('refuses an identifier that is too long instead of cutting it, and bounds and normalises times', () => {
+    const long = 'x'.repeat(301)
+    expect(parseScheduledChangeNotice({ ...notice, change: { ...notice.change, id: long } })).toBeNull()
+    expect(parseScheduledChangeNotice({ ...notice, change: { ...notice.change, machine: { name: 'm', fingerprint: long } } })).toBeNull()
+    expect(parseScheduledChangeNotice({ ...notice, change: { ...notice.change, scheduledBy: { kind: 'fleetAdmin', userId: long, name: 'Sam' } } })).toBeNull()
+    expect(parseScheduledChangeNotice({ ...notice, sentAt: `2026-10-14T09:00:00.000Z${' '.repeat(100)}` })).toBeNull()
+    expect(parseScheduledChangeNotice({ ...notice, sentAt: '2026-10-14T11:00:00+02:00' })?.sentAt).toBe('2026-10-14T09:00:00.000Z')
+    // A long name or reason is still shortened: only an identifier is refused.
+    expect(parseScheduledChangeNotice({ ...notice, reason: long })?.reason).toHaveLength(300)
+  })
+
   it('reads a missed change, and drops an expected length that is not a sensible number of minutes', () => {
     const missed = { ...notice, update: 'missed', change: { ...notice.change, state: 'missed' }, reason: 'It was not run.' }
     expect(parseScheduledChangeNotice(missed)?.update).toBe('missed')

@@ -4,6 +4,7 @@ import { LIVE_PREVIEW_APP_METHODS } from '../livePreviewApps.js'
 import {
   parseLivePreviewActParams, parseLivePreviewOpenParams, parseLivePreviewRefreshParams, parseLivePreviewResumeParams,
   parseLivePreviewStopParams, parseSiteLivePreviewsParams,
+  parseLivePreviewAppListParams, parseLivePreviewAppStartParams, parseLivePreviewAppStopParams,
 } from '../livePreviewParse.js'
 
 const COPY = '0b6f3a52-1c1e-4c5a-9d43-2c2f7d3c9e10'
@@ -79,5 +80,31 @@ describe('the params are read closed @SC-1760', () => {
     for (const bad of [{ ...s, limit: 0 }, { ...s, idleMinutes: 0 }, { allowed: true, limit: null }, { ...s, more: 1 }, { ...s, allowed: 'yes' }]) {
       expect(parseSiteLivePreviewsParams(bad), JSON.stringify(bad)).toBeNull()
     }
+  })
+})
+
+describe('the app methods\' params are read closed by core', () => {
+  const app = { appId: 'abcdefghijklmnopqrstuvwxyz', name: 'web', folder: '', command: 'npm run dev', port: 5173 }
+  const start = { livePreviewId: 'lp1', personId: 'u1', app, startedBy: { agentId: 'ag1', runId: 'r1' } }
+
+  it('reads a start, with or without the run that asked', () => {
+    expect(parseLivePreviewAppStartParams(start)).toEqual(start)
+    expect(parseLivePreviewAppStartParams({ ...start, startedBy: null })).toEqual({ ...start, startedBy: null })
+  })
+
+  it('refuses an extra field, a missing one and a value not its shape', () => {
+    for (const bad of [
+      { ...start, extra: 1 }, { ...start, app: { ...app, port: '5173' } }, { ...start, app: { ...app, extra: 1 } },
+      { ...start, startedBy: { agentId: 'ag1' } }, { ...start, startedBy: undefined }, { ...start, personId: '' }, null, [],
+    ]) expect(parseLivePreviewAppStartParams(bad), JSON.stringify(bad)).toBeNull()
+  })
+
+  it('reads a stop and a list, and refuses anything else', () => {
+    const stop = { livePreviewId: 'lp1', personId: 'u1', appId: 'abcdefghijklmnopqrstuvwxyz' }
+    expect(parseLivePreviewAppStopParams(stop)).toEqual(stop)
+    expect(parseLivePreviewAppStopParams({ ...stop, appId: 'x'.repeat(200) })).toBeNull()
+    expect(parseLivePreviewAppStopParams({ ...stop, extra: 1 })).toBeNull()
+    expect(parseLivePreviewAppListParams({ livePreviewId: 'lp1' })).toEqual({ livePreviewId: 'lp1' })
+    expect(parseLivePreviewAppListParams({ livePreviewId: 'lp1', extra: 1 })).toBeNull()
   })
 })

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  HQ_SITE_CONTENT_PATH, MAX_CHUNK_BYTES, MAX_STREAM_WINDOW_BYTES, STREAM_CREDIT_STEP_BYTES, STREAM_INITIAL_WINDOW_BYTES,
+  CONTENT_LINK_MAX_MESSAGE_BYTES, HQ_SITE_CONTENT_PATH, MAX_CHUNK_BYTES, MAX_STREAM_WINDOW_BYTES, STREAM_CREDIT_STEP_BYTES, STREAM_INITIAL_WINDOW_BYTES,
   encodeControlFrame, parseControlFrame,
   encodeDataFrame, decodeDataFrame, chunkPayload,
 } from '../content.js'
@@ -85,6 +85,11 @@ describe('data frames', () => {
 
   it('refuses to encode a payload over the chunk limit', () => {
     expect(() => encodeDataFrame(1, new Uint8Array(MAX_CHUNK_BYTES + 1))).toThrow(/chunk/i)
+  })
+
+  it('has a message limit that holds the largest data frame, and nothing like the library default', () => {
+    expect(encodeDataFrame(0xffffffff, new Uint8Array(MAX_CHUNK_BYTES)).length).toBeLessThanOrEqual(CONTENT_LINK_MAX_MESSAGE_BYTES)
+    expect(CONTENT_LINK_MAX_MESSAGE_BYTES).toBeLessThan(1024 * 1024)
   })
 
   it('reads the id from the frame\'s own offset when it is a view into a larger buffer', () => {

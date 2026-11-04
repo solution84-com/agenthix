@@ -12,7 +12,7 @@
  * and never throw: a log that cannot be written must not take the service
  * down, so the failure goes to `onError` once and writing carries on.
  */
-import { serializeLogLine, parseLogLine, type LogLine } from './logLine.js'
+import { serializeLogLine, parseLogLine, redactedLine, type LogLine } from './logLine.js'
 import { logLineMatches, type LogPage, type LogQuery } from './logQuery.js'
 
 export type LogFs = {
@@ -179,8 +179,10 @@ export class RollingLog {
       const raw = text.split('\n')
       const start = at && at.segment.name === s.name ? Math.min(at.line, raw.length) : raw.length
       for (let i = start - 1; i >= 0; i--) {
-        const line = parseLogLine(raw[i])
-        if (!line) continue
+        const stored = parseLogLine(raw[i])
+        if (!stored) continue
+        // Redacted again as it is read, so a shape added since covers lines already on disk.
+        const line = redactedLine(stored)
         if (q.since && line.at < q.since) return { lines, nextCursor: null }
         if (!logLineMatches(line, q)) continue
         lines.push(line)

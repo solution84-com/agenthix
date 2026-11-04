@@ -28,7 +28,7 @@
     },
     "ActiveRunsResult": {"file":"protocol/activeRuns.ts","shape":{"fields":{"runs":{"type":{"array":{"ref":"ActiveRunRow"}}}}}},
     "AgentConfigPayload": {
-      "file": "protocol/runtimeData.ts",
+      "file": "protocol/runContext.ts",
       "shape": {
         "fields": {
           "allowedBashPatterns": {"type":{"union":[{"array":{"ref":"BashPatternPermission"}},{"array":{"type":"string"}},{"type":"null"}]}},
@@ -3906,7 +3906,7 @@
       }
     },
     "PinnedMemoryItem": {
-      "file": "protocol/runtimeData.ts",
+      "file": "protocol/runContext.ts",
       "shape": {
         "fields": {
           "body": {"type":{"type":"string"}},
@@ -4212,7 +4212,7 @@
       }
     },
     "RunContextPayload": {
-      "file": "protocol/runtimeData.ts",
+      "file": "protocol/runContext.ts",
       "shape": {
         "fields": {
           "agent": {"type":{"ref":"AgentConfigPayload"}},
@@ -4507,7 +4507,7 @@
       }
     },
     "RunRow": {
-      "file": "protocol/runtimeData.ts",
+      "file": "protocol/runRow.ts",
       "shape": {
         "fields": {
           "agentId": {"type":{"type":"string"}},
@@ -6395,7 +6395,7 @@
       }
     },
     "TokenUsage": {
-      "file": "protocol/runtimeData.ts",
+      "file": "protocol/runRow.ts",
       "shape": {
         "fields": {
           "cacheReadTokens": {"optional":true,"type":{"type":"number"}},

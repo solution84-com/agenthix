@@ -10,8 +10,10 @@ import {
 import * as root from '../../index.js'
 
 const T0 = Date.UTC(2026, 9, 14, 10, 0, 0)
+/** Long enough that it cannot turn up by chance in the envelope's random base64url fields. */
+const ACTOR_NAME = 'Visible-Actor-Name-Zq7x'
 const message: HostMessage = {
-  kind: 'request', requestId: 'r1', by: { kind: 'fleetAdmin', userId: 'u1', name: 'Sam' }, request: { op: 'figures.read' },
+  kind: 'request', requestId: 'r1', by: { kind: 'fleetAdmin', userId: 'u1', name: ACTOR_NAME }, request: { op: 'figures.read' },
 }
 
 let fleetConsole: HostKeys
@@ -49,7 +51,9 @@ describe('the host envelope', () => {
   it('carries nothing readable on the wire', async () => {
     const env = await seal()
     expect(JSON.stringify(env)).not.toContain('figures.read')
-    expect(JSON.stringify(env)).not.toContain('Sam')
+    expect(JSON.stringify(env)).not.toContain(ACTOR_NAME)
+    // The content is there, once opened.
+    expect(await open(env)).toMatchObject({ ok: true, message })
   })
 
   it('cannot be read by anyone it was not sealed to, even with the header rewritten for them', async () => {

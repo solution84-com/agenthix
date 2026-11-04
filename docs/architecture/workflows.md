@@ -200,6 +200,9 @@ Before anything leaves the site, every secret value is replaced with `***` (`sit
   the run, and its class; a raw form also carries a short tag of a rolling hash, so the site computes an HMAC only
   where a tag matches. The site never holds more values in plain than the run itself is given. The forms are made in
   one place, `core/src/workflows/maskForms.ts`.
+- **The limit:** a form shorter than four bytes (`MASK_FORM_MIN_BYTES`) is not masked, because it would hide every
+  such letter in ordinary output. So a secret of one to three bytes, and a line of a file secret that short, is not
+  found when printed; a secret is worth masking only if it is longer than that.
 - **Live output** is held back by the length of the longest form, so a value split across chunks is still found.
 - **A find** flags the run *printed a secret* and asks the place's administrators to rotate it.
 

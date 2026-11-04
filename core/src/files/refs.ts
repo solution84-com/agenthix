@@ -40,9 +40,12 @@ const isId = (v: unknown, max = 512): v is string =>
 const optionalId = (v: unknown) => v === undefined || v === null || isId(v)
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 
-/** A path relative to its folder that never steps up out of it. The site still confines the real path. */
+/**
+ * A path relative to its folder: not absolute (no leading `/` or `\`, no drive letter) and never stepping up out of
+ * it. The site still confines the real path.
+ */
 function isRelativePath(v: unknown): v is string {
-  return isId(v, MAX_FILE_PATH_LENGTH) && !v.split(/[\\/]/).includes('..')
+  return isId(v, MAX_FILE_PATH_LENGTH) && !/^(?:[\\/]|[A-Za-z]:)/.test(v) && !v.split(/[\\/]/).includes('..')
 }
 
 function isFileName(v: unknown): v is string {

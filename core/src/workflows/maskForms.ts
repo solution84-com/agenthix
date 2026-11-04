@@ -10,7 +10,11 @@
  */
 import { WORKFLOW_MASK_TAG_BITS, WORKFLOW_MASK_TAG_SPAN_MAX, type WorkflowMaskFormClass } from '../protocol/workflowRuns.js'
 
-/** Shorter than this, a form would mask ordinary output: a one-letter secret would hide every such letter. */
+/**
+ * Shorter than this, a form would mask ordinary output: a one-letter secret would hide every such letter. So a secret
+ * of one to three bytes, and a line of a file secret that short, is never found in output
+ * (`docs/architecture/workflows.md`, *Masking*).
+ */
 export const MASK_FORM_MIN_BYTES = 4
 
 export type MaskFormTag = { tag: number; tagSpan: number }

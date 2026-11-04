@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  cloudAssertionClientId, cloudClientIdOf, generateCloudConnectionKeys, signCloudClientAssertion, verifyCloudClientAssertion,
+  cloudAssertionClientId, cloudClientIdOf, generateCloudConnectionKeys, organisationKeyResultMatches, signCloudClientAssertion, verifyCloudClientAssertion,
 } from '../crypto/index.js'
 import { isCloudClientId, isCloudPublicKey } from '../connection.js'
 import { fromBase64url, fromUtf8, toBase64url, utf8 } from '../../host/crypto/webCrypto.js'
@@ -29,6 +29,17 @@ describe("hq's key and client id @SC-1082", () => {
 
   it('matches RFC 8037 appendix A.3\'s thumbprint', async () => {
     expect(await cloudClientIdOf('11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo')).toBe('kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k')
+  })
+})
+
+describe('an organisation.key result @SC-1082', () => {
+  it('names the key\'s own thumbprint as its client id, or does not match', async () => {
+    const keys = await generateCloudConnectionKeys()
+    const other = await generateCloudConnectionKeys()
+    const clientId = await cloudClientIdOf(keys.publicKey)
+    expect(await organisationKeyResultMatches({ publicKey: keys.publicKey, clientId })).toBe(true)
+    expect(await organisationKeyResultMatches({ publicKey: keys.publicKey, clientId: await cloudClientIdOf(other.publicKey) })).toBe(false)
+    expect(await organisationKeyResultMatches({ publicKey: 'pk', clientId })).toBe(false)
   })
 })
 

@@ -24,6 +24,9 @@ export type ProtocolCompatibility =
 
 export type ProtocolRefusal = Extract<ProtocolCompatibility, { ok: false }>
 
+/** The most of a version that cannot be read that a refusal repeats; it travels in a message and a log line. */
+const PRESENTED_MAX = 32
+
 /**
  * `own` is this side's constant, so a malformed one is a programming error and throws; `peer` comes off the wire, so
  * it may be anything a frame can hold, and anything that is not text is refused as malformed.
@@ -35,7 +38,7 @@ export function checkProtocolCompatibility(own: string, peer: unknown): Protocol
   if (typeof peer !== 'string') return { ok: false, reason: 'malformed', own: o, presented: shownValue(peer) }
   if (peer.trim() === '') return { ok: false, reason: 'absent', own: o }
   const p = parseProtocolVersion(peer)
-  if (!p) return { ok: false, reason: 'malformed', own: o, presented: peer }
+  if (!p) return { ok: false, reason: 'malformed', own: o, presented: peer.length > PRESENTED_MAX ? `${peer.slice(0, PRESENTED_MAX)}…` : peer }
 
   const gap = p.major - o.major
   if (gap === 0) return { ok: true, peer: 'same', speak: { major: o.major, minor: Math.min(o.minor, p.minor) } }

@@ -68,6 +68,17 @@ describe('a failure in plain words @SC-754', () => {
     expect(plainFailureReason('ContextOverflowError: prompt is too long')).toBe("The agent's memory of this conversation was full.")
   })
 
+  it('does not read an unrelated error as a provider failure', () => {
+    expect(plainFailureReason('git: Authentication failed for https://github.com/acme/app.git')).toBe(UNKNOWN_FAILURE_REASON)
+    expect(plainFailureReason('could not read 512 bytes from the file')).toBe(UNKNOWN_FAILURE_REASON)
+    expect(plainFailureReason('Error response from daemon: network agent-net not found')).toBe(UNKNOWN_FAILURE_REASON)
+    expect(plainFailureReason('missing credential file in the folder')).toBe(UNKNOWN_FAILURE_REASON)
+    expect(plainFailureReason('The model provider answered 503: service unavailable')).toBe('The model provider had an error.')
+    expect(plainFailureReason('status code 429')).toBe("The model provider's rate limit was reached.")
+    expect(plainFailureReason('429 rate_limit_error')).toBe("The model provider's rate limit was reached.")
+    expect(plainFailureReason('read failed after 512 bytes')).toBe(UNKNOWN_FAILURE_REASON)
+  })
+
   it('keeps an error already written for a person', () => {
     const closed = 'This conversation was closed because its project was deleted.'
     expect(plainFailureReason(closed)).toBe(closed)
@@ -77,6 +88,16 @@ describe('a failure in plain words @SC-754', () => {
   it('never shows an unrecognised raw error', () => {
     expect(plainFailureReason('TypeError: cannot read properties of undefined')).toBe(UNKNOWN_FAILURE_REASON)
     expect(plainFailureReason(null)).toBe(UNKNOWN_FAILURE_REASON)
+  })
+})
+
+describe('an approval request that is not shaped as expected @SC-754', () => {
+  it('reads as what can be read, and never throws', () => {
+    expect(approvalItems({ tools: 'web_fetch' })).toEqual([])
+    expect(approvalItems({ tools: [null, 5, { name: 'web_fetch' }] })).toEqual([{ does: 'Fetch a web page', why: null, command: false }])
+    expect(approvalItems({ bashPatterns: { pattern: 'ls' } })).toEqual([])
+    expect(approvalItems({ bashPatterns: [undefined, { pattern: 'ls' }] })).toEqual([{ does: 'ls', why: null, command: true }])
+    expect(approvalItems(null)).toEqual([])
   })
 })
 

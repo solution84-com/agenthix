@@ -90,7 +90,7 @@ function readService(p: Problems, at: string, name: string, v: unknown, volumes:
   const before = p.list.length
   for (const key of Object.keys(v)) {
     if ((SERVICE_FIELDS as readonly string[]).includes(key)) continue
-    const why = SERVICE_WIDENING_FIELDS[key]
+    const why = Object.prototype.hasOwnProperty.call(SERVICE_WIDENING_FIELDS, key) ? SERVICE_WIDENING_FIELDS[key] : undefined
     if (why) p.add(`${at}.${key}`, 'widens', `${key} is refused: ${why}.`)
     else p.add(`${at}.${key}`, 'notAllowed', `${key} is not accepted; a service takes only ${SERVICE_FIELDS.join(', ')}.`)
   }

@@ -42,6 +42,14 @@ describe('the services file @SC-1742', () => {
     expect(codes(file({}, { networks: {} }))).toEqual(['notAllowed'])
   })
 
+  it('refuses a field named like an Object member as not accepted, without printing a function', () => {
+    for (const field of ['constructor', 'toString', 'hasOwnProperty']) {
+      const found = problems(file({ [field]: true }))
+      expect(found.map(p => p.code), field).toEqual(['notAllowed'])
+      expect(found[0].message).not.toContain('function')
+    }
+  })
+
   it('refuses host paths, unnamed volumes, options and a volume two services share', () => {
     expect(codes(file({ volumes: ['/home/mia:/data'] }))).toEqual(['hostPath'])
     expect(codes(file({ volumes: ['./src:/data'] }))).toEqual(['hostPath'])

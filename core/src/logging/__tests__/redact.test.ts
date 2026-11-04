@@ -12,6 +12,8 @@ const SECRETS = {
   githubPersonal: 'ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789',
   githubFineGrained: 'github_pat_11ABCDEFG0123456789_abcdefghijklmnopqrstuvwxyz',
   machineCredential: 'smc_1a2b3c4d_0011223344556677889900aabbccddeeff00112233445566',
+  hostLinkCredential: 'hmc_1a2b3c4d_0011223344556677889900aabbccddeeff00112233445566',
+  consoleLinkCredential: 'fcc_1a2b3c4d_0011223344556677889900aabbccddeeff00112233445566',
   connectionToken: 'ahx_conn_Q2xhdWRlIGlzIG5vdCBhIHNlY3JldCBidXQgdGhpcyBpcw',
   jwt: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJydW4tMSIsImF1ZCI6InNpdGUifQ.c2lnbmF0dXJlLWJ5dGVz',
   googleKey: 'AIzaSyA-1234567890abcdefghijklmnopqrstu',
@@ -69,6 +71,21 @@ describe('redactText: the shapes of every credential the codebase carries @SC-76
       }
     }
     expect(redactText('{"apiKey":"plain-looking-value","model":"opus"}')).toContain('"model":"opus"')
+  })
+
+  it('removes a value in the forms the plain name rule used to leave part of', () => {
+    const cases: [string, string][] = [
+      ['{\\"password\\":\\"hunter2hunter2\\",\\"model\\":\\"opus\\"}', 'hunter2hunter2'],
+      ['"password":"ab\\"cdSECRET","model":"opus"', 'cdSECRET'],
+      ['Cookie: a=1; session=SECRETCOOKIE', 'SECRETCOOKIE'],
+      ['Cookie: a=1; session=SECRETCOOKIE', 'a=1'],
+      ['Set-Cookie: sid=SECRETCOOKIE; Path=/; HttpOnly', 'HttpOnly'],
+      ['Authorization: Digest username="u", response="SECRETDIGEST"', 'SECRETDIGEST'],
+      ['Authorization: Token SECRETTOKEN', 'SECRETTOKEN'],
+    ]
+    for (const [text, secret] of cases) expect(redactText(text), text).not.toContain(secret)
+    expect(redactText('{\\"password\\":\\"hunter2hunter2\\",\\"model\\":\\"opus\\"}')).toContain('model')
+    expect(redactText('"password":"ab\\"cdSECRET","model":"opus"')).toContain('"model":"opus"')
   })
 
   it('keeps what is not a secret: ids, counts, project keys, hosts and ordinary words', () => {
@@ -137,5 +154,22 @@ describe('sanitizeLogLine: a line from a site is checked and redacted again @SC-
     expect(sanitizeLogLine({ level: 'error', message: 'no date' })).toBeNull()
     expect(sanitizeLogLine({ at: '2026-10-10T10:00:00.000Z', level: 'debug', source: 's', message: 'm' })).toBeNull()
     expect(sanitizeLogLine('not json')).toBeNull()
+  })
+})
+
+describe('a log line takes no secret in a key, and has a size cap @SC-761', () => {
+  it('removes a token used as an object key, or as a Map key', () => {
+    const token = SECRETS.githubPersonal
+    const line = makeLogLine('info', 'x', 'm', [{ held: { [token]: 1 }, byToken: new Map([[token, 2]]) }])
+    expect(serializeLogLine(line)).not.toContain(token)
+  })
+
+  it('keeps the message and says so when the fields are too large', () => {
+    const big: Record<string, Record<string, string>> = {}
+    for (let i = 0; i < 50; i++) big[`k${i}`] = Object.fromEntries(Array.from({ length: 50 }, (_, j) => [`f${j}`, 'x'.repeat(2000)]))
+    const line = makeLogLine('info', 'x', 'kept', [big])
+    expect(line.message).toBe('kept')
+    expect(serializeLogLine(line).length).toBeLessThan(70_000)
+    expect(Object.keys(line.fields ?? {})).toEqual(['cut'])
   })
 })

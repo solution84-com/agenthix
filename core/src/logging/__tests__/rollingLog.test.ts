@@ -194,3 +194,13 @@ describe('logLineText @SC-763', () => {
     expect(multi[1]).toBe('Error: boom')
   })
 })
+
+describe('RollingLog: reading redacts again @SC-761', () => {
+  it('removes a secret from a line stored before its shape was known', async () => {
+    const { fs, log } = setup()
+    const stored = JSON.stringify({ at: '2026-10-10T12:00:00.000Z', level: 'info', source: 'test', message: 'joined with fcc_1a2b3c4d_0011223344556677889900aabbccddeeff00112233445566' })
+    fs.files.set(`${DIR}/2026-10-10.000.jsonl`, `${stored}\n`)
+    const page = await log.read(parseLogQuery({ levels: 'all' }))
+    expect(page.lines[0].message).not.toContain('fcc_1a2b3c4d')
+  })
+})

@@ -102,10 +102,6 @@ export const PROVIDER_STATE_DETAIL_MAX = 500
  */
 export type ModelViaProvider = { providerId: string; model: string }
 
-export function sameModelViaProvider(a: ModelViaProvider, b: ModelViaProvider): boolean {
-  return a.providerId === b.providerId && a.model === b.model
-}
-
 /** The one line a choice is shown on: `Claude Sonnet 5 · via Anthropic`. */
 export function modelViaProviderLabel(modelLabel: string, providerName: string): string {
   return `${modelLabel} · via ${providerName}`
@@ -163,7 +159,3 @@ export function providerTypesCovered(providers: ReadonlyArray<{ vendor: AiProvid
   return covered
 }
 
-export function providersComplete(providers: ReadonlyArray<{ vendor: AiProviderVendor; state: AiProviderState }>): boolean {
-  const c = providerTypesCovered(providers)
-  return c.llm && c.stt && c.tts
-}

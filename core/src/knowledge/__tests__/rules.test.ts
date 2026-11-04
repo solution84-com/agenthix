@@ -163,6 +163,16 @@ describe('T5: links, at listing @SC-1381', () => {
     ])
   })
 
+  it('reads no link inside indented code, or in a fence a shorter line does not close', () => {
+    const pages = (body: string) => pageLinks('a.md', body).map(l => l.line)
+    expect(pages('Example:\n\n    [x](example.md)\n    [y](other.md)\n\n[real](real.md)')).toEqual([6])
+    expect(pages('````md\n```\n[x](example.md)\n```\n````\n[real](real.md)')).toEqual([6])
+    expect(pages('~~~\n```\n[x](example.md)\n~~~\n[real](real.md)')).toEqual([5])
+    expect(pages('```md\n[x](example.md)\n``` not a close\n[y](example.md)\n```\n[real](real.md)')).toEqual([6])
+    // A line indented four spaces that continues a paragraph is not code.
+    expect(pages('a paragraph\n    [still](text.md)')).toEqual([2])
+  })
+
   it('lists a broken link and a link out of the level as problems, and does not refuse', () => {
     const content = `${RELEASE}\n[gone](gone.md) [up](../../x.md)`
     const check = checkPageForListing('processes/release.md', content, context)

@@ -118,10 +118,15 @@ describe('the version hash @SC-1363', () => {
     const climbing = deployStaging(); climbing.files[0].path = '../upload.sh'
     const digest = deployStaging(); digest.executorImageDigest = 'latest'
     const token = deployStaging(); token.githubSecretNames = ['GITHUB_TOKEN']
-    for (const c of [missing, extra, unnormalised, climbing, digest, token]) {
+    // `a` and `a/b`: the first is written as a file and the second needs it to be a folder.
+    const folder = deployStaging()
+    folder.definition.files = [...folder.definition.files, 'deploy', 'deploy/upload.sh/more.sh'].filter((p, i, all) => all.indexOf(p) === i)
+    folder.files.push({ path: 'deploy', bytes: text(''), executable: false }, { path: 'deploy/upload.sh/more.sh', bytes: text(''), executable: false })
+    for (const c of [missing, extra, unnormalised, climbing, digest, token, folder]) {
       expect(checkVersionContent(c).length).toBeGreaterThan(0)
       expect(() => encodeWorkflowVersion(c)).toThrow()
     }
+    expect(checkVersionContent(folder).join(' ')).toContain('is a file and also the folder that holds')
     expect(checkVersionContent(deployStaging())).toEqual([])
   })
 

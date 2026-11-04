@@ -60,6 +60,9 @@ describe('the install-script rule @SC-1744', () => {
     expect(packageFactsKey('npm', '@a/b', '1.0.0')).toBe('npm:@a/b@1.0.0')
     expect(isNpmPackageName('@fernhill/ui')).toBe(true)
     expect(isNpmPackageName('../evil')).toBe(false)
+    expect(isNpmPackageName('JSONStream')).toBe(true)
+    expect(isNpmPackageName('@Old/Pkg')).toBe(true)
+    expect(isNpmPackageName(`a${'B'.repeat(214)}`)).toBe(false)
   })
 })
 

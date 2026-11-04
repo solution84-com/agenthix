@@ -160,6 +160,19 @@ describe('handover certificates', () => {
     expect(parseHandoverCertificate({ ...cert, v: 2 })).toBeNull()
   })
 
+  it('answers null, not a throw, when the new key is not canonical base64url', async () => {
+    const old = await generateHostKeys('console')
+    const next = await generateHostKeys('console')
+    const cert = await signHandoverCertificate(old, next.identity, 'laptop', 1_000)
+    const key = cert.to.signingKey
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+    // The 43rd character carries two bits past the key's 256: setting one makes the text a different spelling.
+    const spelled = key.slice(0, 42) + alphabet[alphabet.indexOf(key[42]) | 1]
+    const odd = { ...cert, to: { ...cert.to, signingKey: spelled } }
+    expect(parseHandoverCertificate(odd)).not.toBeNull()
+    expect(await verifyHandoverCertificate(odd, old.identity)).toBeNull()
+  })
+
   it('cannot hand a Fleet Console over to itself', async () => {
     const old = await generateHostKeys('console')
     expect(await verifyHandoverCertificate(await signHandoverCertificate(old, old.identity, 'hq-box'), old.identity)).toBeNull()

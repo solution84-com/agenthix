@@ -29,6 +29,8 @@ const MAX_STRING = 4_000
 const MAX_ITEMS = 50
 const MAX_DEPTH = 6
 const MAX_SOURCE = 80
+/** The most a line's fields may take once written as JSON; past it the line keeps its message and says its fields were cut. */
+const MAX_FIELDS_TEXT = 64_000
 
 function clip(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max)}… (${text.length - max} more characters)` : text
@@ -75,17 +77,24 @@ function safeValue(v: unknown, seen: WeakSet<object>, depth: number): unknown {
   if (v instanceof Set) return safeValue([...v], seen, depth)
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(obj).slice(0, MAX_ITEMS)) {
+    // A key is text too: an object keyed by a token, or a Map of them, keeps no token.
+    const safeKey = redactText(clip(key, MAX_STRING))
     if (isSecretKey(key) && value !== null && value !== undefined && value !== '') {
-      out[key] = REDACTED
+      out[safeKey] = REDACTED
       continue
     }
     const safe = safeValue(value, seen, depth + 1)
-    if (safe !== undefined) out[key] = safe
+    if (safe !== undefined) out[safeKey] = safe
   }
   return out
 }
 
 /** Fields from a logger call's extra arguments: plain objects merge in, an error becomes `error`, anything else `args`. */
+function capped(fields: LogFields): LogFields {
+  const size = JSON.stringify(fields).length
+  return size > MAX_FIELDS_TEXT ? { cut: `the fields were ${size} characters, over the ${MAX_FIELDS_TEXT} a line keeps` } : fields
+}
+
 function fieldsOf(args: unknown[]): LogFields | undefined {
   const seen = new WeakSet<object>()
   const fields: Record<string, unknown> = {}
@@ -96,7 +105,7 @@ function fieldsOf(args: unknown[]): LogFields | undefined {
     else if (arg !== undefined) rest.push(safeValue(arg, seen, 0))
   }
   if (rest.length > 0) fields.args = rest
-  return Object.keys(fields).length > 0 ? (fields as LogFields) : undefined
+  return Object.keys(fields).length > 0 ? capped(fields as LogFields) : undefined
 }
 
 export function makeLogLine(level: LogLevel, source: string, message: string, args: unknown[] = [], now: Date = new Date()): LogLine {
@@ -163,13 +172,17 @@ export function sanitizeLogLine(v: unknown): LogLine | null {
     return null
   }
   const line = parseLogLine(text)
-  if (!line) return null
+  return line ? redactedLine(line) : null
+}
+
+/** A line with its secrets removed again: one from another end, or one stored before a shape was added. */
+export function redactedLine(line: LogLine): LogLine {
   const out: LogLine = {
     at: line.at,
     level: line.level,
     source: redactText(clip(line.source, MAX_SOURCE)),
     message: redactText(clip(line.message, MAX_MESSAGE)),
   }
-  if (line.fields) out.fields = safeValue(line.fields, new WeakSet(), 0) as LogFields
+  if (line.fields) out.fields = capped(safeValue(line.fields, new WeakSet(), 0) as LogFields)
   return out
 }

@@ -69,12 +69,12 @@ describe('commits, copies and paths @SC-1760', () => {
   })
 
   it('takes a path from the repository\'s root and nothing that leaves it or reaches .git', () => {
-    for (const p of ['src/app.ts', 'README.md', '.github/workflows/ci.yml', 'a/b c/d.txt', '.gitignore']) {
+    for (const p of ['src/app.ts', 'README.md', '.github/workflows/ci.yml', 'a/b c/d.txt', '.gitignore', '-x', 'a/--output=x']) {
       expect(isRepoPath(p), p).toBe(true)
     }
     for (const p of [
-      '', '/etc/passwd', '../x', 'a/../b', 'a/./b', './a', 'a//b', 'a/', '.git/config', 'a/.GIT/hooks', '-x',
-      'a/--output=x', 'a\\b', 'a\0b', 'a\nb', 'x'.repeat(256),
+      '', '/etc/passwd', '../x', 'a/../b', 'a/./b', './a', 'a//b', 'a/', '.git/config', 'a/.GIT/hooks',
+      'a\\b', 'a\0b', 'a\nb', 'x'.repeat(256),
     ]) expect(isRepoPath(p), JSON.stringify(p)).toBe(false)
   })
 })

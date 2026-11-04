@@ -9,6 +9,7 @@
 import { isAppId } from '../relay/previewAddress.js'
 import { APP_ENTRIES, type AppEntry } from '../relay/appTickets.js'
 import { checkSha256, checkText } from './canonical.js'
+import { parseBlockedPackageRef } from '../protocol/branchPackages.js'
 
 export type LivePreviewRequest =
   /** Opening one of the live preview's apps in the workspace view, in a new tab, or renewing its cookie. */
@@ -39,9 +40,8 @@ function checkRequest(r: LivePreviewRequest): void {
       checkSha256(r.declaration)
       return
     case 'package.use':
-      checkText(r.ecosystem, 'ecosystem')
-      checkText(r.name, 'package')
-      checkText(r.version, 'version')
+      // The same reader as `branch.packageUse`: npm, a registry name and an exact version.
+      if (!parseBlockedPackageRef({ ecosystem: r.ecosystem, name: r.name, version: r.version })) throw new Error('The package is not valid.')
   }
 }
 

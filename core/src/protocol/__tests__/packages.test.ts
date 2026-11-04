@@ -21,6 +21,12 @@ describe('package contracts', () => {
     }
   })
 
+  it('refuses a file name longer than a disk stores, in any segment', () => {
+    expect(isValidPackagePath(`skills/${'a'.repeat(255)}`)).toBe(true)
+    expect(isValidPackagePath(`skills/${'a'.repeat(256)}`)).toBe(false)
+    expect(isValidPackagePath(`${'a'.repeat(300)}/x.md`)).toBe(false)
+  })
+
   it('validates a ref exactly, and a ref names content by digest with no version (ADR-0072)', () => {
     expect(isPackageRef({ kind: 'agent', key: 'a1b2', digest: DIGEST })).toBe(true)
     expect(isPackageRef({ kind: 'team', key: 'a1b2', digest: DIGEST })).toBe(false)

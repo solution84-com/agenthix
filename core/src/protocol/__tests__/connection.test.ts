@@ -5,6 +5,7 @@ import {
   HQ_SITE_CHANNEL_PATH,
   parseProtocolVersion,
 } from '../connection.js'
+import { CHANNEL_ERROR_CODES, isChannelErrorCode, parseConnectionMessage } from '../channelMessages.js'
 import type { HQConnectionMessageType, ChannelRequestMessage, ChannelErrorMessage, SiteEventMessage } from '../channelMessages.js'
 // Namespace import on purpose: the guard below enumerates what the protocol
 // actually exports, so it cannot go stale against a hand-kept list.
@@ -58,6 +59,17 @@ describe('control-channel protocol @SC-291 @SC-1128', () => {
     // that is what makes the role unambiguous without reading `type`.
     expect(req.replyTo).toBeUndefined()
     expect(err.requestId).toBeUndefined()
+  })
+
+  it('reads a frame closed, and drops what is not one', () => {
+    const frame = { version: '1.12', type: 'channel.error', siteId: 's1', replyTo: '1', payload: { message: 'x', code: 'offline' } }
+    expect(parseConnectionMessage(JSON.stringify(frame))).toEqual(frame)
+    for (const bad of [
+      'not json', '[]', 'null', '5', { ...frame, version: 1.12 }, { ...frame, type: 'channel.future' }, { ...frame, type: 7 },
+      { ...frame, siteId: undefined }, { ...frame, replyTo: 1 }, { ...frame, requestId: {} },
+    ]) expect(parseConnectionMessage(typeof bad === 'string' ? bad : JSON.stringify(bad)), JSON.stringify(bad)).toBeNull()
+    expect(CHANNEL_ERROR_CODES.every(isChannelErrorCode)).toBe(true)
+    expect(isChannelErrorCode('something_new')).toBe(false)
   })
 
   it('site.event is a member of the message type union', () => {

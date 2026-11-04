@@ -20,6 +20,13 @@ describe('a parameter pattern @SC-1361', () => {
     for (const p of ['', '(', '[a-', 'a{2,1}', '\\-', 'x'.repeat(201)]) expect(readParameterPattern(p).ok, p).toBe(false)
   })
 
+  it('reads an empty class and an any-character class without throwing', () => {
+    expect(readParameterPattern('[]')).toEqual({ ok: true, canStartWithDash: false })
+    expect(readParameterPattern('[^]')).toEqual({ ok: true, canStartWithDash: true })
+    expect(readParameterPattern('a[]b')).toEqual({ ok: true, canStartWithDash: false })
+    expect(readParameterPattern('[^]+')).toEqual({ ok: true, canStartWithDash: true })
+  })
+
   it('is refused when it could backtrack without end', () => {
     for (const p of ['(a+)+$', '(a*)*', '(a|a)*', '(?:x|y)+z', '([a-z]{2})+', '(a?)+', '((ab)+)+']) {
       expect(readParameterPattern(p).ok, p).toBe(false)

@@ -30,8 +30,13 @@ export type HQConnectionMessageType =
   | 'channel.error'
   | 'site.event'
 
+/** Every `HQConnectionMessageType`. */
+export const HQ_CONNECTION_MESSAGE_TYPES: readonly HQConnectionMessageType[] = [
+  'ping', 'pong', 'site.detach', 'revoke', 'channel.request', 'channel.response', 'channel.error', 'site.event',
+]
+
 export interface HQConnectionMessage<T = unknown> {
-  /** `major.minor`, e.g. "7.0". */
+  /** `major.minor`, such as "1.12". */
   version: string
   type: HQConnectionMessageType
   siteId: string
@@ -49,6 +54,27 @@ export interface HQConnectionMessage<T = unknown> {
    * a response gets matched to the wrong request.
    */
   replyTo?: string
+}
+
+/**
+ * A frame as it came off the wire, checked as both ends need it: an object with a text `version`, a type this
+ * protocol knows, a text `siteId`, and a text `requestId` and `replyTo` when present. Null for anything else, so a
+ * peer that predates a type drops it. The payload is the method's to check.
+ */
+export function parseConnectionMessage(text: string): HQConnectionMessage | null {
+  let value: unknown
+  try {
+    value = JSON.parse(text)
+  } catch {
+    return null
+  }
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  const m = value as Record<string, unknown>
+  if (typeof m.version !== 'string' || typeof m.siteId !== 'string') return null
+  if (typeof m.type !== 'string' || !(HQ_CONNECTION_MESSAGE_TYPES as readonly string[]).includes(m.type)) return null
+  if (m.requestId !== undefined && typeof m.requestId !== 'string') return null
+  if (m.replyTo !== undefined && typeof m.replyTo !== 'string') return null
+  return value as HQConnectionMessage
 }
 
 export type SiteDetachPayload = Record<string, never>
@@ -75,9 +101,20 @@ export type ChannelRequestPayload = {
   [M in SiteMethodName]: { method: M; params: SiteMethodParams<M>; features?: FeatureSwitchesOnWire }
 }[SiteMethodName]
 
+/**
+ * The codes a channel error carries today, for a side to compare against. `unknown_method` and `handler_failed` are a
+ * site's; `offline`, `timeout` and `disconnected` are hq's words for a request it could not carry. The payload's `code`
+ * stays text on the wire: a union type would refuse a code a newer peer adds, which versioning.md makes a new major.
+ */
+export const CHANNEL_ERROR_CODES: readonly string[] = ['unknown_method', 'handler_failed', 'offline', 'timeout', 'disconnected']
+
+export function isChannelErrorCode(code: unknown): boolean {
+  return CHANNEL_ERROR_CODES.includes(code as string)
+}
+
 export interface ChannelErrorPayload {
   message: string
-  /** Machine-readable: 'unknown_method' | 'handler_failed' | 'offline' | 'timeout' | 'disconnected'. */
+  /** Machine-readable: one of `CHANNEL_ERROR_CODES`, or a code a newer peer adds. */
   code: string
 }
 

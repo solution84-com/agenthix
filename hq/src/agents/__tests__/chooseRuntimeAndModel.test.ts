@@ -7,17 +7,16 @@
 import { describe, it, expect } from 'vitest'
 import {
   CLAUDE_SDK_MODELS, OPENCODE_MODELS, DEFAULT_MODELS, RUNTIME_LABELS, AGENT_RUNTIMES, COST_BAND_MAX_RANKS,
-  runtimeLabel, costBand, COST_BAND_MARKERS, modelForRuntimeChange, isKnownModel, modelsForRuntime,
+  costBand, COST_BAND_MARKERS, isKnownModel, modelsForRuntime,
 } from '@agenthix/core'
 import { modelOptionLabel, filterModels, groupByProvider } from '@agenthix/ui/agents'
 import { DEFAULT_MODEL } from '../models'
 
 
 describe('runtime labels', () => {
-  it('names every runtime and falls back to the id for an unknown one', () => {
+  it('names every runtime', () => {
     expect(RUNTIME_LABELS).toEqual({ 'claude-sdk': 'Claude', opencode: 'OpenCode' })
-    for (const r of AGENT_RUNTIMES) expect(runtimeLabel(r)).not.toBe(r)
-    expect(runtimeLabel('mystery')).toBe('mystery')
+    for (const r of AGENT_RUNTIMES) expect(RUNTIME_LABELS[r]).not.toBe(r)
   })
 })
 
@@ -53,12 +52,6 @@ describe('the generated Claude model list', () => {
 })
 
 describe('the runtime of a model', () => {
-  it('resets the model on a runtime change unless the new runtime offers it', () => {
-    expect(modelForRuntimeChange('opencode', 'claude-sonnet-5')).toBe('anthropic/claude-sonnet-5')
-    expect(modelForRuntimeChange('claude-sdk', 'anthropic/claude-sonnet-5')).toBe('claude-sonnet-5')
-    expect(modelForRuntimeChange('opencode', 'openai/gpt-5-nano')).toBe('openai/gpt-5-nano')
-  })
-
   it('offers the models of the chosen runtime', () => {
     expect(modelsForRuntime('opencode').length).toBeGreaterThan(modelsForRuntime('claude-sdk').length)
   })

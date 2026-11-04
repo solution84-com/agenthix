@@ -27,7 +27,7 @@ export function parseWorkflowHost(raw: string): ParsedHost {
   if (hostPart.startsWith('[')) {
     if (!hostPart.endsWith(']')) return bad('an IPv6 address is written in brackets, such as [2001:db8::1]:443.')
     const address = hostPart.slice(1, -1)
-    if (!IPV6_RE.test(address) || !address.includes(':')) return bad('the address in brackets is not IPv6.')
+    if (!IPV6_RE.test(address) || !address.includes(':') || !isIpv6Address(address)) return bad('the address in brackets is not IPv6.')
     return { ok: true, host: { host: hostPart, port } }
   }
   const v4 = IPV4_RE.exec(hostPart)
@@ -40,6 +40,27 @@ export function parseWorkflowHost(raw: string): ParsedHost {
   if (!labels.every(l => LABEL_RE.test(l))) return bad('its name may hold only letters, digits, hyphens and dots.')
   if (/^\d+$/.test(labels[labels.length - 1])) return bad('its name ends in a number.')
   return { ok: true, host: { host: hostPart, port } }
+}
+
+/** Whether text is an IPv6 address as the proxy's `net.isIP` reads one: eight groups, or `::` for the missing ones, with an IPv4 tail allowed. */
+function isIpv6Address(text: string): boolean {
+  let rest = text
+  let groups = 0
+  const tail = /(?:^|:)(\d+\.\d+\.\d+\.\d+)$/.exec(rest)
+  if (tail) {
+    const octets = tail[1].split('.')
+    if (octets.some(o => o.length > 3 || Number(o) > 255 || (o.length > 1 && o.startsWith('0')))) return false
+    rest = rest.slice(0, rest.length - tail[1].length)
+    groups = 2
+    if (rest.endsWith(':') && !rest.endsWith('::')) rest = rest.slice(0, -1)
+    if (rest === '') return false
+  }
+  const halves = rest.split('::')
+  if (halves.length > 2) return false
+  const parts = halves.flatMap(h => (h === '' ? [] : h.split(':')))
+  if (!parts.every(g => /^[0-9a-f]{1,4}$/.test(g))) return false
+  // A single half with no `::` must be exactly eight groups; with one, at least one group is left for it to stand for.
+  return halves.length === 2 ? groups + parts.length <= 7 : groups + parts.length === 8
 }
 
 export function formatWorkflowHost(h: WorkflowHost): string {

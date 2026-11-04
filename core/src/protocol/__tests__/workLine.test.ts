@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { workLine, foldSteps, abridgeWorkLine, type WorkLineEntry, type WorkStep } from '../workLine.js'
 import { toolStep, canonicalToolName, toolAsk } from '../workSteps.js'
+import { COMMIT_TOOL_NAME } from '../../codeWork/commitTool.js'
+import { MERGE_TOOL_NAME } from '../../codeWork/mergeTool.js'
+import { UPDATE_TOOL_NAME } from '../../codeWork/updateTool.js'
+import { APP_TOOL_DECLARATIONS } from '../../livePreview/appTools.js'
+import { WORKFLOW_TOOL_DECLARATIONS } from '../../workflows/agentTools.js'
+import { PROPOSE_SKILL_TOOL } from '../../assets/skillTools.js'
 import type { JsonValue } from '../../client/json.js'
 
 let clock = Date.parse('2026-10-10T10:24:00Z')
@@ -30,6 +36,20 @@ describe('a tool call as a plain step @SC-756', () => {
     const step = toolStep('mcp__platform__brand_new_tool', { x: 1 })
     expect(step).toMatchObject({ kind: 'other', verb: 'Used a tool', text: '' })
     expect(JSON.stringify(step)).not.toContain('brand_new_tool')
+  })
+
+  it('has a row for every tool a Room offers an agent', () => {
+    // The two package tools are named by the site, which core cannot import.
+    const names = [
+      COMMIT_TOOL_NAME, MERGE_TOOL_NAME, UPDATE_TOOL_NAME, PROPOSE_SKILL_TOOL, 'install_packages', 'ask_to_use_package',
+      ...APP_TOOL_DECLARATIONS.map(d => d.name), ...WORKFLOW_TOOL_DECLARATIONS.map(d => d.name),
+    ]
+    expect(names.length).toBe(15)
+    for (const name of names) {
+      expect(toolStep(name, {}).verb, name).not.toBe('Used a tool')
+      expect(toolStep(`mcp__platform__${name}`, {}).verb, name).not.toBe('Used a tool')
+      expect(toolAsk(name), name).not.toBe('Use a tool it is not yet allowed')
+    }
   })
 
   it('shows a command as the command, on one line', () => {
