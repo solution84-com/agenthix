@@ -22,6 +22,7 @@ import {
   landlockAbiSufficient,
   parseLandlockAbi,
 } from '../agentImage'
+import { RUN_STAGING_CONTAINER_DIR } from '../harnessHomes'
 
 const SITE = fileURLToPath(new URL('../../../../', import.meta.url))
 const read = (rel: string) => fs.readFileSync(path.join(SITE, rel), 'utf8')
@@ -100,9 +101,11 @@ describe('the agent image and the site agree', () => {
     expect(wrapper).toContain('if /bin/ls / >/dev/null 2>&1; then')
   })
 
-  it("matches the launcher's own required ABI, command home and readable-folder variable", () => {
+  it("matches the launcher's own required ABI, command home, run staging and readable-folder variable", () => {
     expect(launcher).toMatch(new RegExp(`#define REQUIRED_ABI ${LANDLOCK_REQUIRED_ABI}\\n`))
     expect(launcher).toContain(`#define COMMAND_HOME "${COMMAND_HOME}"`)
+    expect(launcher).toContain(`#define RUN_STAGING "${RUN_STAGING_CONTAINER_DIR}"`)
+    expect(launcher).toContain(`#define RUN_STAGING_NAME "${path.posix.basename(RUN_STAGING_CONTAINER_DIR)}"`)
     expect(launcher).toContain(`#define READABLE_ENV "${COMMAND_READABLE_ENV}"`)
     expect(dockerfile).toContain(COMMAND_HOME)
   })

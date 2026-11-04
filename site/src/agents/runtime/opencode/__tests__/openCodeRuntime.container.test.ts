@@ -310,7 +310,7 @@ describe.skipIf(!available)('the OpenCode runtime in an agent container', () => 
   })
 
   it('tells the model to read the file of a picked skill the model may not load itself, and the read runs @SC-1607', async () => {
-    const skillFile = path.posix.join(openCodeSkillsDirs(context(convA, '').claudeHome, convA).visibleDir, 'agent-by-hand', 'SKILL.md')
+    const skillFile = path.posix.join(openCodeSkillsDirs(context(convA, '').runStaging, convA).visibleDir, 'agent-by-hand', 'SKILL.md')
     const before = modelLog().length
     const prompt = steps([{ name: 'read', args: { filePath: skillFile } }])
     const events = await turn(context(convA, prompt, { pickedSkill: 'agent-by-hand' }))

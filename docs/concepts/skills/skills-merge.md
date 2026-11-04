@@ -37,7 +37,8 @@ Then, in the site:
 
 ```
 5. Make a fresh staging folder in the runner's run staging, a folder only
-   the site writes. The container sees it read-only at /run/staging.
+   the site writes. The container sees it read-only at /run/staging, and a
+   command there reads only its own conversation's staged skills.
 
 6. For each named skill, read its files into memory:
      installed / person   from the package cache; the files must still

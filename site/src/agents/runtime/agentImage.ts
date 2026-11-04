@@ -100,10 +100,12 @@ export const LANDLOCK_REQUIRED_ABI = 6
 export const COMMAND_HOME = '/home/agent'
 
 /**
- * Folders inside the harness home a command may read, colon-separated, set in
- * the harness's environment (for example a run's staged skills). Read by the
- * launcher and removed from the command's environment; an entry outside the
- * harness home makes the launcher refuse to run the command.
+ * Folders of the run staging a command may read, colon-separated, set in the
+ * harness's environment: the command's own conversation's staged skills. The
+ * launcher keeps the rest of the run staging, every other conversation's, out
+ * of a command's reach; it reads this and removes it from the command's
+ * environment, and an entry outside the run staging makes it refuse to run
+ * the command.
  */
 export const COMMAND_READABLE_ENV = 'SITE_COMMAND_READABLE'
 

@@ -56,6 +56,7 @@ import { claudeKeyHandler } from '../../../server/runtime/claudeKeyApi'
 import { modelRelayHandler } from '../../../server/modelRelay/modelRelayApi'
 import { agentNetworkName } from '../containerNetwork'
 import { PLATFORM_AUTHORIZATION, PLATFORM_TOKEN_ENV } from '../agentImage'
+import { HARNESS_SERVER_KEY_ENV } from '@agenthix/core'
 import type { RunContext, RunEvent } from '../types'
 import { claudeTestContext } from './claudeTestContext'
 
@@ -184,7 +185,11 @@ describe.skipIf(!enabled)('a real claude process per conversation, in the agent 
     const out = results(first).join('\n')
     expect(out).toContain(`TAG=${sessionId}`)
     for (const line of ['no-secrets', 'environ-denied', 'mem-denied', 'signal-denied', 'home-denied']) expect(out).toContain(line)
-    expect(out.split('\n').filter(l => l.startsWith('CMDLINE '))).toEqual([`CMDLINE ${PLATFORM_AUTHORIZATION}`])
+    // The command line names variables only: the platform connection's token, and the apiKeyHelper's ticket (the
+    // trailing backslash is the JSON escape of the quote that ends it). Both values are in the process's environment.
+    expect(out.split('\n').filter(l => l.startsWith('CMDLINE '))).toEqual([
+      `CMDLINE ${PLATFORM_AUTHORIZATION}`, `CMDLINE Bearer $${HARNESS_SERVER_KEY_ENV}\\`,
+    ])
     expect(await claudeCount()).toBe(1)
     // One ticket trade for the process; every model request went through the
     // relay, and reached the model with the key the relay added. Token counts

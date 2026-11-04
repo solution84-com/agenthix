@@ -2,8 +2,11 @@
  * Opening a live preview (live preview spec section 4, *Opening one*): the site's own checks after hq's, its copy
  * checked against the site's own record, one per branch, its limit, and a failed start leaving nothing behind.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { withFeature } from '@agenthix/core/testing'
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
 
 const db = vi.hoisted(() => ({
   previews: new Map<string, Record<string, unknown>>(),
@@ -39,13 +42,9 @@ vi.mock('../livePreviewLife', () => ({
   },
   resumePreview: async () => null,
 }))
-vi.mock('node:fs/promises', async importOriginal => {
-  const real = await importOriginal<typeof import('node:fs/promises')>()
-  return { ...real, default: { ...real, lstat: async () => ({ isDirectory: () => true }) } }
-})
 
 process.env.AGENT_CONTAINER_ISOLATION = 'true'
-process.env.SITE_ROOT = '/site'
+process.env.SITE_ROOT = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'lp-opening-')))
 process.env.AGENT_NETWORK_RANGE = '10.213.0.0/20'
 
 const { livePreviewOpen } = await import('../livePreviewOpening')
@@ -57,6 +56,10 @@ const open = (over: Record<string, unknown> = {}) => livePreviewOpen({
   workspace: { ownerType: 'project', ownerId: 'pr1', workspaceId: 'w1' }, branch: 'login-page', onMain: false,
   copy: { kind: 'branch', copyId: COPY }, ...over,
 })
+
+// The branch's copy as the commit helper leaves it: a real folder holding `.git`, inside the project's boundary.
+await fs.mkdir(path.join(process.env.SITE_ROOT, 'projects', 'pr1', 'clones', COPY, '.git'), { recursive: true })
+afterAll(() => fs.rm(process.env.SITE_ROOT!, { recursive: true, force: true }))
 
 beforeEach(() => {
   db.previews.clear()

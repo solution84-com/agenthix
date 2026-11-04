@@ -15,13 +15,14 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { prepareHarnessHome } from '../boundaryClaudeHome'
 import { prepareRunStaging } from '../runStaging'
-import { runStagingFor } from '../harnessHomes'
+import { harnessHomeFor, runStagingFor } from '../harnessHomes'
 import { prepareOpenCodeConfigMounts } from '../openCodeConfigMounts'
 import { buildContainerRunCommand } from '../containerRunArgs'
 import { codeWorkspaceMounts } from '../codeWorkspaceMounts'
 import { resolveBoundaryMount } from '../locationResolver'
 import { getSiteRoot } from '../../agentDiskPaths'
 import type { AgentMounts, ContainerKey } from '../containerTypes'
+import { COMMAND_LAUNCHER_PATH, COMMAND_READABLE_ENV } from '../agentImage'
 
 const IMAGE = process.env.AGENT_IMAGE ?? 'agenthix-agent:latest'
 const NAME = process.env.AGENT_ADR0173_TEST_CONTAINER ?? 'agenthix-adr0173-test'
@@ -50,7 +51,13 @@ describe.skipIf(!available)('paths a container cannot change (adr-0173)', () => 
     await prepareOpenCodeConfigMounts(KEY)
     await fs.mkdir(path.join(runStagingFor(KEY), 'skills', 'conversation-c1', 'skills', 'agent-x'), { recursive: true })
     await fs.writeFile(path.join(runStagingFor(KEY), 'skills', 'conversation-c1', 'skills', 'agent-x', 'SKILL.md'), 'checked\n')
+    await fs.mkdir(path.join(runStagingFor(KEY), 'skills', 'conversation-c2', 'skills', 'agent-x'), { recursive: true })
+    await fs.writeFile(path.join(runStagingFor(KEY), 'skills', 'conversation-c2', 'skills', 'agent-x', 'SKILL.md'), 'other\n')
     for (const d of [root, path.join(root, 'projects'), path.join(root, 'projects', 'p1'), path.join(root, 'projects', 'p1', 'files')]) await fs.chmod(d, 0o777)
+    // The harness home and its `.claude` as a run left them: the site makes them uid 1001's (it runs as that user),
+    // which this test, running as another user, stands in for by opening them to everyone.
+    await fs.mkdir(path.join(harnessHomeFor(KEY), '.claude'), { recursive: true })
+    for (const d of [harnessHomeFor(KEY), path.join(harnessHomeFor(KEY), '.claude')]) await fs.chmod(d, 0o777)
 
     const boundary = resolveBoundaryMount({ ownerType: 'project', ownerId: 'p1' }, getSiteRoot())
     const mounts: AgentMounts = {
@@ -83,4 +90,14 @@ describe.skipIf(!available)('paths a container cannot change (adr-0173)', () => 
     expect(inContainer('mv /home/appuser/.claude /home/appuser/.claude-old && mkdir -p /home/appuser/.claude').status).toBe(0)
     expect(inContainer('cat /run/staging/skills/conversation-c1/skills/agent-x/SKILL.md').stdout).toBe('checked\n')
   })
+
+  it("a command reads its own conversation's staged skills, and no other conversation's", () => {
+    const command = (script: string) => spawnSync('docker', [
+      'exec', '-u', 'appuser', '-e', `${COMMAND_READABLE_ENV}=/run/staging/skills/conversation-c1/skills`,
+      NAME, COMMAND_LAUNCHER_PATH, 'sh', '-c', script,
+    ], { encoding: 'utf8', timeout: 30_000 })
+    expect(command('cat /run/staging/skills/conversation-c1/skills/agent-x/SKILL.md').stdout).toBe('checked\n')
+    expect(command('cat /run/staging/skills/conversation-c2/skills/agent-x/SKILL.md').status).not.toBe(0)
+    expect(command('ls /run/staging').status).not.toBe(0)
+    expect(command('ls /run/staging/pinned-memory').status).not.toBe(0)  })
 })

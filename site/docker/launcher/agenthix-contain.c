@@ -16,12 +16,14 @@
  *   - removes the harness's secrets from the environment (secret-env.list);
  *   - sets HOME to the commands' own home, /home/agent;
  *   - restricts itself and everything it will start, irreversibly:
- *       files      every access beneath each entry of / except /home, and
- *                  beneath each /home/<x> except the harness home
- *                  /home/appuser, so the harness home is out of reach; plus
+ *       files      every access beneath each entry of / except /home and
+ *                  /run, beneath each /home/<x> except the harness home
+ *                  /home/appuser, and beneath each /run/<x> except the run
+ *                  staging /run/staging, so the harness home and what the site
+ *                  staged for every conversation are out of reach; plus
  *                  read-only access beneath each folder named in
- *                  SITE_COMMAND_READABLE (colon-separated, each inside
- *                  the harness home, such as a skills folder);
+ *                  SITE_COMMAND_READABLE (colon-separated, each inside the run
+ *                  staging: the command's own conversation's staged skills);
  *       processes  signals and abstract Unix sockets only within the sandbox
  *                  (ABI 6). Landlock itself refuses ptrace of any process
  *                  outside the sandbox, and with it /proc/<pid>/environ,
@@ -100,6 +102,8 @@ struct ll_path_beneath_attr {
 #define HARNESS_HOME "/home/appuser"
 #define HARNESS_HOME_NAME "appuser"
 #define COMMAND_HOME "/home/agent"
+#define RUN_STAGING "/run/staging"
+#define RUN_STAGING_NAME "staging"
 #define READABLE_ENV "SITE_COMMAND_READABLE"
 
 #define EXIT_REFUSED 126
@@ -144,14 +148,18 @@ static void allow(const char *path, uint64_t rights) {
   close(fd);
 }
 
-/* Grants every right beneath each entry of `dir` but the one named `except`. */
-static void allow_entries_except(const char *dir, const char *except) {
+/* Grants every right beneath each entry of `dir` but those named in `except`
+ * (NULL-terminated). */
+static void allow_entries_except(const char *dir, const char *const *except) {
   DIR *d = opendir(dir);
   if (!d) refuse("cannot list %s: %s", dir, strerror(errno));
   struct dirent *e;
   char path[PATH_MAX];
   while ((e = readdir(d))) {
-    if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, "..") || !strcmp(e->d_name, except)) continue;
+    if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, "..")) continue;
+    int skip = 0;
+    for (const char *const *x = except; *x; x++) skip |= !strcmp(e->d_name, *x);
+    if (skip) continue;
     if (snprintf(path, sizeof path, "%s/%s", strcmp(dir, "/") ? dir : "", e->d_name) >= (int)sizeof path)
       refuse("path too long beneath %s", dir);
     allow(path, LL_FS_ALL);
@@ -159,10 +167,10 @@ static void allow_entries_except(const char *dir, const char *except) {
   closedir(d);
 }
 
-/* Read-only access to folders inside the harness home that commands need,
- * such as a run's staged skills. Each must resolve to a path strictly inside
- * the home: anything else is already reachable, and the home itself is not
- * to be opened. */
+/* Read-only access to the folders of the run staging a command needs: its own
+ * conversation's staged skills. Each must resolve to a path strictly inside
+ * the run staging: anything else is already reachable, and the run staging
+ * itself holds every conversation's. */
 static void allow_readable(void) {
   const char *list = getenv(READABLE_ENV);
   if (!list || !*list) return;
@@ -175,8 +183,8 @@ static void allow_readable(void) {
       if (errno == ENOENT) continue;
       refuse("cannot resolve %s: %s", entry, strerror(errno));
     }
-    if (strncmp(real, HARNESS_HOME "/", sizeof HARNESS_HOME) != 0 || real[sizeof HARNESS_HOME] == '\0')
-      refuse("%s entry %s is not inside %s", READABLE_ENV, entry, HARNESS_HOME);
+    if (strncmp(real, RUN_STAGING "/", sizeof RUN_STAGING) != 0 || real[sizeof RUN_STAGING] == '\0')
+      refuse("%s entry %s is not inside %s", READABLE_ENV, entry, RUN_STAGING);
     allow(real, LL_FS_READ_ONLY);
   }
   free(copy);
@@ -191,8 +199,9 @@ static void restrict_self(void) {
   ruleset_fd = (int)syscall(__NR_landlock_create_ruleset, &attr, sizeof attr, 0);
   if (ruleset_fd < 0) refuse("cannot create the Landlock ruleset: %s", strerror(errno));
 
-  allow_entries_except("/", "home");
-  allow_entries_except("/home", HARNESS_HOME_NAME);
+  allow_entries_except("/", (const char *const[]){"home", "run", NULL});
+  allow_entries_except("/home", (const char *const[]){HARNESS_HOME_NAME, NULL});
+  allow_entries_except("/run", (const char *const[]){RUN_STAGING_NAME, NULL});
   allow_readable();
 
   if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) refuse("cannot set no_new_privs: %s", strerror(errno));

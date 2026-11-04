@@ -76,7 +76,8 @@ beforeEach(async () => {
     scanRunChanges: async () => ({ leaks: [] }),
     runStep: step(async () => {}),
     resolveLivePreview: async (ins: WorkflowRunInstruction) => (ins.livePreview?.livePreviewId === 'lp-1'
-      ? { livePreviewId: 'lp-1', hostDir: copy, containerDir: '/projects/proj-1/clones/copy-1' } : null),
+      ? { livePreviewId: 'lp-1', hostDir: copy, root: { base: path.join(siteRoot, 'projects/proj-1'), rel: 'clones/copy-1' }, containerDir: '/projects/proj-1/clones/copy-1' }
+      : null),
     handOver: async (ins: WorkflowRunInstruction) => { handed.push(ins); return null },
   })
 })

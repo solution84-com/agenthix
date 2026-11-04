@@ -330,13 +330,12 @@ describe('one claude process per conversation', () => {
       CLAUDE_CODE_SHELL_PREFIX: '/usr/local/lib/agenthix/bin/claude-shell-prefix',
       // Grep and Glob run the image's rg, which runs the real one through the launcher.
       USE_BUILTIN_RIPGREP: '0',
+      SITE_COMMAND_READABLE: optionsOf(fake.started[0]!).additionalDirectories[0],
       AGENT_HANDLE: 'coder',
     })
     // The key never enters the container: the process's requests go to the
     // site's model relay, and it trades a one-use ticket, through Claude
     // Code's apiKeyHelper, for a relay token it sends as its key.
-    // The staged skills are in run staging, outside the harness home, which commands already read (adr-0173).
-    expect(env).not.toHaveProperty('SITE_COMMAND_READABLE')
     expect(Object.values(env)).not.toContain('sk-run')
     expect(optionsOf(fake.started[0]!).env.ANTHROPIC_API_KEY).not.toBe('sk-run')
     expect(env.ANTHROPIC_BASE_URL).toBe('http://site.test/api/v1/model-relay/anthropic')

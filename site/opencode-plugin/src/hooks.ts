@@ -26,6 +26,8 @@ import {
 import type { Hooks } from '@opencode-ai/plugin'
 import type { SiteClient } from './site'
 
+/** The folder of the run staging a command may read (the launcher's `SITE_COMMAND_READABLE`): its conversation's skills. */
+export const COMMAND_READABLE_ENV = 'SITE_COMMAND_READABLE'
 
 /** Blanked in every command's environment whatever the configuration lists. */
 const ALWAYS_SECRET = ['OPENCODE_SERVER_PASSWORD', HARNESS_SERVER_KEY_ENV]
@@ -68,8 +70,9 @@ export function shellEnvHook(site: SiteClient | null, config: OpenCodePluginConf
     if (!turn || !config) throw new Error(NO_TURN_FOR_COMMAND)
     for (const name of [...ALWAYS_SECRET, ...config.secretEnv]) output.env[name] = ''
     Object.assign(output.env, config.commandEnv)
-    // The staged skills are in run staging, outside the harness home, so commands read them without being told.
-    if (!openCodeSkillsContainerDir(turn.conversationId)) throw new Error(NO_TURN_FOR_COMMAND)
+    const skills = openCodeSkillsContainerDir(turn.conversationId)
+    if (!skills) throw new Error(NO_TURN_FOR_COMMAND)
+    output.env[COMMAND_READABLE_ENV] = skills
     output.env[CONVERSATION_PROCESS_TAG] = turn.conversationId
   }
 }

@@ -143,7 +143,10 @@ withFeature('livePreview', () => {
     it('is the live preview\'s copy, when this site holds it running on the run\'s workspace', async () => {
       rows.value.set('lp-1', row())
       expect(await livePreviewRunTarget({ livePreview: { livePreviewId: 'lp-1' }, workspace: ws }))
-        .toEqual({ livePreviewId: 'lp-1', hostDir: copy, containerDir: '/projects/proj-1/clones/c1' })
+        .toEqual({
+          livePreviewId: 'lp-1', hostDir: copy, containerDir: '/projects/proj-1/clones/c1',
+          root: { base: path.join(process.env.SITE_ROOT!, 'projects', 'proj-1'), rel: 'clones/c1' },
+        })
     })
 
     it('is nowhere for a live preview this site does not hold, a stopped or paused one, or another workspace\'s', async () => {
