@@ -44,23 +44,36 @@ Thirteen lanes:
 Order: L2 before L1 and L3 (the site's agent runtime); L5 before L6 (HQ's conversation code); L10 before L11 (the host
 service's install and upgrade code). The other lanes run beside them.
 
-### 2. Proofs on real machines
+### 2. Easy wins, re-assessed
+
+Once phase 1 is done, the owner re-assesses the easy Non-critical bugs and the easy Debt and Chores.
+
+### 3. Design pass
+
+The whole platform's user experience, made tight with the owner: its own plan, `design-plan.md`. It starts once phase
+2 is done, so fixes have stopped moving screens around.
+
+### 4. Review the hard items
+
+Every item still open after the quick wins is reviewed with the owner: the hard bugs, Debt and Chores, the easy items
+that turned out hard, and those that needed a manual check. Each gets the owner's decision: fixed in this unit, kept
+open as an issue with its priority checked, or closed. Nothing goes to the backlog without that review. It follows the
+design pass, which may change the shape of these items.
+
+### 5. Proofs on real machines
 
 The release blockers that need a run on a real machine, on the VPS test environment and the dev machine: the Linux
 host and model relay, the executor's controls on Docker Engine, the host service's upgrade end to end (after it learns
 to offer pre-release versions), two machines together, attachments and MCP tools on the current Wasp, and the skills
-model checks on the baseline model.
+model checks on the baseline model. After the design pass: setting up the VPS takes longest, and nothing else waits on
+it.
 
-### 3. Easy wins, re-assessed
+### 6. Readiness check
 
-Once phase 1 is done, the owner re-assesses the easy Non-critical bugs and the easy Debt and Chores.
+Ready to go public: the process for feature requests and moderation, the guide page rename, the changelog, the
+licence, and no open public issue naming a private place.
 
-### 4. Before public
-
-The process for feature requests and moderation, the guide page rename, the changelog, the licence, and no open public
-issue naming a private place.
-
-### 5. Close
+### 7. Close
 
 The full regression; the QA audit's contract changes; closing the triaged issues; raising what is left open.
 
@@ -71,3 +84,7 @@ The full regression; the QA audit's contract changes; closing the triaged issues
 - **Findings fixed in the unit get no issue** (owner, 2026-11-04), in place of the triage design's rule that every new
   Security or Critical finding becomes an issue after the cut.
 - **Lanes land as one squashed commit each**, not a merge commit (owner, 2026-11-04).
+- **The phases were reordered** (owner, 2026-11-04): easy wins, then the design pass, then a review of the hard items
+  with the owner (after the design pass, which may change their shape), then the proofs on real machines, then the
+  readiness check (was *Before public*), then the close. The proofs were phase 2; moved so the VPS set-up holds
+  nothing up.

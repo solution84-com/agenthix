@@ -5,9 +5,9 @@ the table; the work is ordered by priority, the most complex areas first. It is 
 (`plan.md`): the triage fixes what is broken or unsafe; this pass decides how the screens should look and work, and
 builds that.
 
-**It runs at the end, as polish.** It starts once the triage's fixes have landed (its phases 1 and 3), so the security
-and bug fixes have stopped moving screens around, and finishes before the triage's close. It may overlap the proofs on
-real machines and the work before going public, which do not touch screens.
+**It is the triage's phase 3, as polish.** It starts once the triage's fixes have landed (its phases 1 and 2), so the
+security and bug fixes have stopped moving screens around, and finishes before the review of the hard items, the
+proofs on real machines, the readiness check and the close.
 
 ## Approach
 
