@@ -1,7 +1,7 @@
 /**
  * At-rest secret encryption (AES-256-GCM).
- * Dedicated master key from env SECRETS_MASTER_KEY (base64, 32 bytes) — kept separate
- * from SITE_ADMIN_KEY so encryption is decoupled from M2M-auth-key rotation (BL-006).
+ * Dedicated master key from env SECRETS_MASTER_KEY (base64, 32 bytes), kept apart from the
+ * keys that sign tokens so rotating one never touches the other.
  * Env-held (a DB leak alone can't decrypt); decrypt only in server memory at use.
  * Format: base64(iv) . base64(authTag) . base64(ciphertext).
  * Used for every credential hq stores that it must read back: the GitHub App private key,

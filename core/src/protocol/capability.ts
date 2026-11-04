@@ -288,8 +288,9 @@ export interface CapabilityClaims {
   projectId: string | null    // null = personal/global chat (§1a)
   workspaceId: string | null  // primary location's workspace; null = an owner's files/ home
   taskId: string | null       // null = open-ended chat
-  /** Invoking person's role for chat-minted capabilities; null for task
-   *  mints — the absence IS the unattended rule (spec §H2): no role, no org authority. */
+  /** The person's role, set only for a chat in their own storage (the one kind of run that acts as its person);
+   *  null for every other run. It authorises nothing in the control plane, which reads the current role of the
+   *  person the run is for at every call. */
   role: 'ADMIN' | 'MEMBER' | null
   siteId: string              // the site holding the workspace (logical ref, §2b)
   permissions: CapabilityEffectivePermissions

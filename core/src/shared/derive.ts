@@ -6,7 +6,7 @@
  */
 
 import type { Task, TaskStatus, TaskRunState } from '../models/task.js'
-import type { Project, ProjectTaskCounts } from '../models/project.js'
+import type { ProjectTaskCounts } from '../models/project.js'
 
 export interface TasksByStatus {
   todo: Task[]
@@ -58,16 +58,6 @@ export function projectProgress(counts: ProjectTaskCounts): number {
   const total = counts.todo + counts.inProgress + counts.done
   if (total === 0) return 0
   return Math.round((counts.done / total) * 100)
-}
-
-export function projectsWithProgress(
-  projects: readonly Project[],
-): Array<Project & { progress: number }> {
-  return projects.map(p => ({ ...p, progress: projectProgress(p.taskCounts) }))
-}
-
-export function totalOpenTasks(projects: readonly Project[]): number {
-  return projects.reduce((acc, p) => acc + p.taskCounts.todo + p.taskCounts.inProgress, 0)
 }
 
 export function statusBreakdown(

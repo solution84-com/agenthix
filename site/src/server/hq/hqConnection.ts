@@ -3,6 +3,7 @@ import { prisma } from '#db'
 import {
   SITE_PROTOCOL_VERSION,
   SITE_SILENCE_TIMEOUT_MS,
+  parseConnectionMessage,
   type HQConnectionMessage,
   type SiteEventName,
   type SiteEvents,
@@ -193,11 +194,13 @@ class HqConnectionManager {
     // even though this socket still reads as open.
     ws.on('message', (raw) => {
       this.armSilenceTimer(ws)
+      // A frame that is not a well-formed message of a type this protocol knows is dropped.
+      const msg = parseConnectionMessage(raw.toString())
+      if (!msg) return
       try {
-        const msg = JSON.parse(raw.toString()) as HQConnectionMessage
         this.handleMessage(msg)
-      } catch {
-        // ignore malformed messages
+      } catch (err) {
+        logger.error('handling a message from hq failed', err)
       }
     })
 

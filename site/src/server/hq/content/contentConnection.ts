@@ -1,5 +1,5 @@
 import WebSocket from 'ws'
-import { StreamMux, HQ_SITE_REPLACED_HEADER, SITE_SILENCE_TIMEOUT_MS } from '@agenthix/core'
+import { CONTENT_LINK_MAX_MESSAGE_BYTES, StreamMux, HQ_SITE_REPLACED_HEADER, SITE_SILENCE_TIMEOUT_MS } from '@agenthix/core'
 import { isUnknownSite, siteDialOptions, statedHqVersion } from '../hqAnswers'
 import { ContentStream } from './contentStream'
 import { contentMethods, type ContentHandler } from './contentMethods'
@@ -65,7 +65,10 @@ export class ContentConnection {
 
   private connect(): void {
     if (this.stopped || this.ws) return
-    const ws = new WebSocket(this.options.url, siteDialOptions(this.options.token, this.options.siteId))
+    const ws = new WebSocket(this.options.url, {
+      ...siteDialOptions(this.options.token, this.options.siteId),
+      maxPayload: CONTENT_LINK_MAX_MESSAGE_BYTES,
+    })
     this.ws = ws
 
     const mux = new StreamMux('server', {

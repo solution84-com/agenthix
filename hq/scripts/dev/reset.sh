@@ -8,7 +8,7 @@
 # folder (its SITE_ROOT) and the agent containers it runs are the site's to
 # clear, not this script's.
 # The DB reset clears all records — including the GitHub PAT and your admin user.
-# After reset: register the first user at /setup (SITE_ADMIN_KEY), then re-enter
+# After reset: open the first-admin link hq prints when it starts, then re-enter
 # the GitHub PAT in Settings → Git Integration.
 set -euo pipefail
 

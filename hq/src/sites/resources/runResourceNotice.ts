@@ -51,7 +51,7 @@ export function runShortNotice(siteId: string, siteName: string, shortage: RunRe
     type: RUN_SHORT_NOTIFICATION,
     subjectKey: `${siteId}:${shortage.cause}:${dayOf(at)}`,
     ...runShortWords(shortage, siteName),
-    actionLabel: 'Open Execution Sites',
+    actionLabel: 'Open Sites',
     actionUrl: SITES_PAGE_URL,
     dismissible: true,
   }

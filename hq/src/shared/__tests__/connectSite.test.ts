@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { siteStatusMeaning, hqAddressProblem } from '../connectSite'
 
 const RESTART_HINT =
-  'The site service is not running. Runs will fail until it is. Start it with `docker compose -f site/compose.yml --env-file site/compose.env up -d site`, or `[dev] Start All` in development. It reconnects by itself.'
+  "The site service is not running. Runs will fail until it is. On HQ's machine, `agenthix status` says why and what to do next; in development, run `[dev] Start All`. It reconnects by itself."
 
 describe('siteStatusMeaning @SC-814', () => {
   it('says the default site is online and that agents run there', () => {

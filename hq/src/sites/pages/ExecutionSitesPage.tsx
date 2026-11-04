@@ -37,7 +37,7 @@ function SitesList() {
     <div>
       {sites && !sites.some((s) => s.isDefault) && (
         <p className="text-small text-text-secondary bg-surface-1 border border-border rounded-[10px] px-4 py-3 mb-6">
-          HQ has no site of its own — set <code className="font-mono text-text-primary">HQ_PAIRING_SECRET</code> in HQ's and the site's environment.
+          HQ has no site of its own. On HQ's machine, <code className="font-mono text-text-primary">agenthix status</code> says why and what to do next.
         </p>
       )}
       {sites && sites.length === 0 ? (

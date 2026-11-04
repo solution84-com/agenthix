@@ -269,11 +269,10 @@ describe('removeContainersFor', () => {
     expect(removed).toEqual([])
   })
 
-  it('announces each removal, so a preview in it is forgotten', async () => {
+  it('announces each removal, so anything keeping a record of it can drop it', async () => {
     const { mgr, names } = await threeUp()
     const destroyed: string[] = []
     onContainerDestroyed(name => destroyed.push(name))
-    mgr.markPreviewStart(names.alice)
 
     await mgr.removeContainersFor({ runner: ALICE, ownerId: 'proj-x' })
 

@@ -63,7 +63,7 @@ export function useOpenedBoard(boardId: string, opts: { pastSprintsWanted: boole
   const reload = async () => { await Promise.all([refetch(), refetchAlso(), refetchBoards()]) }
   const after = <A extends unknown[]>(fn: (...a: A) => Promise<unknown>) => async (...a: A) => { await fn(...a); await reload() }
 
-  const sprints = sprintsData as unknown as PastSprint[] | undefined
+  const sprints: PastSprint[] | undefined = sprintsData
   const others = useMemo(
     () => (boardsData ?? []).filter(b => b.id !== boardId && !b.archivedAt).map(b => ({ id: b.id, name: b.name })),
     [boardsData, boardId],

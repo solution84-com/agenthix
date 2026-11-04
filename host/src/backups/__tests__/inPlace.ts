@@ -11,7 +11,7 @@
  * the site starts on a data folder that holds files only when it is the site user's.
  */
 import { ADDRESS_BLOCKS } from '@agenthix/core'
-import { execFileSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -143,7 +143,9 @@ export class Machine {
       }
       await pause(1000)
     }
-    throw new Error(`the site did not start: ${execFileSync('sh', ['-c', `docker logs --tail 20 ${this.names.siteContainer} 2>&1`], { encoding: 'utf8' })}`)
+    // A read, so the guard would pass it; both streams are wanted, which a guarded call does not return.
+    const logs = spawnSync('docker', ['logs', '--tail', '20', this.names.siteContainer], { encoding: 'utf8' })
+    throw new Error(`the site did not start: ${logs.stdout}${logs.stderr}`)
   }
 
   running(container: string): boolean {

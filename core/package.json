@@ -18,6 +18,10 @@
       "types": "./dist/host/crypto/index.d.ts",
       "default": "./dist/host/crypto/index.js"
     },
+    "./pdf-viewer": {
+      "types": "./dist/files/pdfViewer.d.ts",
+      "default": "./dist/files/pdfViewer.js"
+    },
     "./file-tools": {
       "types": "./dist/fileTools/index.d.ts",
       "default": "./dist/fileTools/index.js"

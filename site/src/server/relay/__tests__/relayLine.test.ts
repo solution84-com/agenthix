@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest'
 import http from 'node:http'
 import { WebSocketServer, type WebSocket } from 'ws'
 import {
-  LOCATION_FILE_METHODS, RELAY_PROTOCOL_VERSION, SITE_PROTOCOL_VERSION, StreamMux, type StreamEvents,
+  CONTENT_LINK_MAX_MESSAGE_BYTES, LOCATION_FILE_METHODS, RELAY_PROTOCOL_VERSION, SITE_PROTOCOL_VERSION, StreamMux, type StreamEvents,
 } from '@agenthix/core'
 import { RelayLine } from '../relayLine'
 import type { ContentHandler } from '../../hq/content/contentMethods'
@@ -91,6 +91,16 @@ describe('RelayLine @SC-1501 @SC-1566', () => {
     expect(headers['x-site-id']).toBe('site-1')
     expect(headers['x-site-protocol-version']).toBe(SITE_PROTOCOL_VERSION)
     expect(headers['x-relay-protocol-version']).toBe(RELAY_PROTOCOL_VERSION)
+  })
+
+  it('closes the line on a message past the line\'s limit, rather than holding it whole', async () => {
+    const relay = await fakeRelay()
+    startLine(relay.url)
+    await vi.waitFor(() => expect(relay.dials).toHaveLength(1))
+    const { ws } = relay.dials[0]
+    const closed = new Promise<number>(r => ws.on('close', code => r(code)))
+    ws.send(Buffer.alloc(CONTENT_LINK_MAX_MESSAGE_BYTES + 1), { binary: true })
+    expect(await closed).toBe(1009)
   })
 
   it('serves its methods to the relay, as the multiplexer\'s server', async () => {

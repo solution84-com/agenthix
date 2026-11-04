@@ -81,7 +81,7 @@ export interface BoardCardData {
   createdAt?: When
   /** An epic groups tasks and is marked on its card. */
   isEpic?: boolean
-  /** A round of a routine, and when the round arrives. */
+  /** A round of a routine, and its round time, when it starts. */
   routineId?: string | null
   roundAt?: When
   /** The task has a conversation: how many of its messages this viewer has not read (0: none). Absent: no conversation. */

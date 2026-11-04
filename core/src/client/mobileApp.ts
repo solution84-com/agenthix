@@ -2,9 +2,9 @@
  * What the mobile app relies on of hq: each HTTP path it calls outside the operations, each operation (Wasp's
  * `POST /operations/<kebab-name>`, superjson) with what it sends and what it gets back, and each socket.io room and
  * event, in each direction, with what the event carries. hq's tests check that hq still has every one of them, and
- * the client protocol's committed snapshot is to be made from these declarations. Removing one, or changing what it
- * carries, is a change to the client protocol, and its version says so. Every operation's argument and result is
- * declared: a test fails while one is `unknown` or `any`.
+ * the client protocol's committed snapshot (`core/snapshot/client.json`) is made from these declarations. Removing
+ * one, or changing what it carries, is a change to the client protocol, and its version says so. Every operation's
+ * argument and result is declared: a test fails while one is `unknown` or `any`.
  */
 import type {
   ConversationAgentChoicesArgs, ConversationAgentView, ConversationIdArgs, ConversationPage, ConversationSummaryView,

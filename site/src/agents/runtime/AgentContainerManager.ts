@@ -76,15 +76,6 @@ export class AgentContainerManager {
     this.runs.markRunEnd(name)
   }
 
-  /** See ContainerRuns for why these are not run marks. */
-  markPreviewStart(name: string): void {
-    this.runs.markPreviewStart(name)
-  }
-
-  markPreviewEnd(name: string): void {
-    this.runs.markPreviewEnd(name)
-  }
-
   /** See ContainerRuns.forgetWhatDiedWithIt for what a destroyed container's
    *  name has to clear, and why. */
   private forgetWhatDiedWithIt(name: string): void {
@@ -266,9 +257,8 @@ export class AgentContainerManager {
     // Remove any stopped (or adopted, unverified) container with the same name
     // before recreating. "Never rebound" is enforced here and nowhere else:
     // there is no path that hands an existing container new binds.
-    // Gated on the removal LANDING, as the other three removal paths are: a
-    // failed `rm` on a container that is up and holding a preview would
-    // otherwise zero that hold while the dev server is still serving.
+    // Gated on the removal LANDING, as the other removal paths are: a failed
+    // `rm` on a container that is still up must not announce it destroyed.
     const removed = await dockerWithin(['rm', '-f', containerName], DOCKER_SWEEP_TIMEOUT_MS).then(() => true).catch(() => false)
     if (removed) this.forgetWhatDiedWithIt(containerName)
     this.containerIds.delete(containerName)
@@ -361,13 +351,6 @@ export class AgentContainerManager {
         const state = this.containerStates.get(name)
         if (state && state.activeRuns > 0) {
           logger.info(`[container] skipping ${name} — has a live run, leaving it in place`)
-          allRemoved = false
-          continue
-        }
-        // The third removal path, reading the hold for the reason the two
-        // sweeps do: stopping an agent is no reason to end a watched preview.
-        if (this.lifecycle.hasPreview(name)) {
-          logger.info(`[container] skipping ${name} — a preview is serving out of it, leaving it in place`)
           allRemoved = false
           continue
         }

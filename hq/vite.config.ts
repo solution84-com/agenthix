@@ -33,8 +33,6 @@ export default defineConfig({
     proxy: {
       // Proxy all API and socket traffic to the Express backend
       '/api': SERVER,
-      // hq-server serves no file (adr-0153): it answers the request for a link, which is a ticket's address.
-      '/file-link': SERVER,
       '/presets': SERVER,
       // Only a ticket's path, not the React routes that start with t (/tasks). The Host header is kept (no
       // changeOrigin): the relay answers only on the files host, and its check reads it.

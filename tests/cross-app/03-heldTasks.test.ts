@@ -4,7 +4,7 @@
 // site's reconnect hook (onSiteConnected) then drains it through the ordinary
 // dispatch path. Runs last, after 02-dispatch (which pairs its own default
 // site before dispatching anything — see that file's header — and leaves it
-// ONLINE, with an archived chat session left behind) — this suite reuses
+// ONLINE, with an archived task session left behind) — this suite reuses
 // 02's agent and leaves the site ONLINE.
 //
 // Environment invariant: site's SITE_ROOT is an empty temp dir (no credential

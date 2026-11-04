@@ -19,7 +19,7 @@
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { ZodError, type ZodType } from 'zod'
+import { ZodError, type ZodType, type ZodTypeDef } from 'zod'
 import { prisma } from '#db'
 import {
   RUNTIME_METHODS,
@@ -56,7 +56,7 @@ const logger = new Logger('DispatchHandler')
 /** Same collapsing convention as runtimeChannelMethods.ts's parseParams — a raw
  *  ZodError's `.message` is an unreadable multi-issue blob in a `handler_failed`
  *  channel.error; collapse to the first issue's path + message on one line. */
-function parseParams<T>(schema: ZodType<T>, params: unknown, method: string): T {
+function parseParams<T>(schema: ZodType<T, ZodTypeDef, unknown>, params: unknown, method: string): T {
   try {
     return schema.parse(params)
   } catch (err) {
@@ -72,7 +72,7 @@ function parseParams<T>(schema: ZodType<T>, params: unknown, method: string): T 
 // ── run.dispatch ─────────────────────────────────────────────────────────────
 
 export async function handleRunDispatch(params: unknown): Promise<RunDispatchResult> {
-  const payload = parseParams(runDispatchParams, params, RUNTIME_METHODS.runDispatch) as unknown as RunDispatchPayload
+  const payload = parseParams(runDispatchParams, params, RUNTIME_METHODS.runDispatch) as RunDispatchPayload
 
   // Idempotent — the seed's creation-time fields never change on re-dispatch
   // of the same session (sessionRows.ts's upsert: `update: {}`).

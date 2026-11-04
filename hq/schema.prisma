@@ -2365,7 +2365,7 @@ model Notification {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        String   // 'org_setup' | 'credential_health' | 'tool_approval' — extensible
+  type        String   // one of the kinds in src/notifications/notificationKinds.ts — extensible
   title       String
   body        String
   actionLabel String?

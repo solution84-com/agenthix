@@ -10,7 +10,7 @@ import type { IncomingMessage, Server as HttpServer } from 'node:http'
 import type { Duplex } from 'node:stream'
 import { WebSocketServer, type WebSocket } from 'ws'
 import {
-  CONTENT_PING_INTERVAL_MS, MAX_CHUNK_BYTES, RELAY_PASS_TOKEN_TYPE, RELAY_PROTOCOL_VERSION,
+  CONTENT_LINK_MAX_MESSAGE_BYTES, CONTENT_PING_INTERVAL_MS, RELAY_PASS_TOKEN_TYPE, RELAY_PROTOCOL_VERSION,
   RELAY_PROTOCOL_VERSION_HEADER, RELAY_SITE_ID_HEADER, RELAY_SITE_LINE_PATH, SITE_PROTOCOL_VERSION,
   SITE_PROTOCOL_VERSION_HEADER, checkProtocolCompatibility, parseProtocolVersion, verifyRelayToken,
 } from '@agenthix/core'
@@ -34,7 +34,7 @@ export type LineServerDeps = {
 }
 
 export function attachSiteLines(server: HttpServer, deps: LineServerDeps): void {
-  const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_CHUNK_BYTES + 64 * 1024 })
+  const wss = new WebSocketServer({ noServer: true, maxPayload: CONTENT_LINK_MAX_MESSAGE_BYTES })
 
   server.on('upgrade', (req, socket, head) => {
     socket.on('error', () => {})

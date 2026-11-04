@@ -107,30 +107,6 @@ export class ContainerLifecycle {
     return state
   }
 
-  /**
-   * Is a preview serving out of this container?
-   *
-   * Read by BOTH sweeps, and it has to be: a preview is a process inside the
-   * container a boundary already has, so removing the container ends work
-   * somebody is watching — and the idle sweep is not the only way one gets
-   * removed. The orphan sweep decides by whether the boundary is in the live
-   * set it was handed, which is a question about storage rather than about
-   * what is running, so a container serving a preview can be an orphan by that
-   * test and still be in use.
-   *
-   * Asked of the shared state rather than of a registry, so that neither sweep
-   * has to be handed a set by its caller. The caller that would build one
-   * (setup.ts, at boot) is the caller that cannot: previews live in memory and
-   * the memory is empty at boot.
-   *
-   * Public because it is read by a THIRD removal path as well —
-   * `AgentContainerManager.stopAgent` — and one predicate for all three is the
-   * point. A second copy is how one of them forgets.
-   */
-  hasPreview(name: string): boolean {
-    return (this.containerStates.get(name)?.previewHolds ?? 0) > 0
-  }
-
   /** Filters shared with removeOrphans' label branch — one function so the two
    *  scans of "this install's boundary containers" cannot drift apart. */
   private scopedBoundaryLabelFilters(): string[] {
@@ -175,7 +151,6 @@ export class ContainerLifecycle {
         // An empty owner label is treated like a missing one — removed: its
         // boundary cannot be established.
         if (owner && activeBoundaries.has(owner)) continue
-        if (this.hasPreview(name)) continue
 
         const ok = await dockerWithin(['rm', '-f', name], DOCKER_SWEEP_TIMEOUT_MS).then(() => true).catch(() => false)
         if (ok) {
@@ -248,7 +223,7 @@ export class ContainerLifecycle {
         const [name] = line.split('\t')
         if (!name) continue
         const state = this.getOrCreateState(name)
-        if (state.activeRuns > 0 || this.hasPreview(name) || state.starting || state.stopping) continue
+        if (state.activeRuns > 0 || state.starting || state.stopping) continue
         if (now - state.lastActivity < SWEEP_GRACE_FLOOR_MS) continue
         if (now - state.lastActivity <= idleMs) continue
 

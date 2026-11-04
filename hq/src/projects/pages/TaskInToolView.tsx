@@ -65,7 +65,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   const navigate = useNavigate()
   const { data: byKey, isLoading, error } = useQuery(getTaskByKey, { taskKey })
   const detail = useTaskDetail(byKey?.id)
-  const task = detail.task as unknown as TaskView | null | undefined
+  const task: TaskView | null | undefined = detail.task
   const session = detail.taskSession as { id: string; AgentRun?: unknown[] } | null | undefined
   const blocked = task ? runNeedsPerson(task.runState) : false
   const { data: pendingData, refetch: refetchPending } = useQuery(

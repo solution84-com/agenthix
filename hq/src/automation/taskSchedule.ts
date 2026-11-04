@@ -31,8 +31,8 @@ export class ScheduleError extends Error {}
 
 /**
  * Setting or clearing a schedule decides who answers for the task, so it is
- * for the person it is already done on behalf of, or a project admin — the
- * same people who may reassign it (adr-0089). Anyone else asks one of them.
+ * for the person it is already done on behalf of, or a project admin, who alone
+ * may reassign it (adr-0089). Anyone else asks one of them.
  */
 export async function mayScheduleTask(taskId: string, userId: string): Promise<boolean> {
   const task = await prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true, onBehalfOfUserId: true } })

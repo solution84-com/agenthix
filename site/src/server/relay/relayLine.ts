@@ -1,5 +1,6 @@
 import WebSocket from 'ws'
 import {
+  CONTENT_LINK_MAX_MESSAGE_BYTES,
   RELAY_PROTOCOL_VERSION,
   RELAY_PROTOCOL_VERSION_HEADER,
   RELAY_SITE_ID_HEADER,
@@ -127,6 +128,7 @@ export class RelayLine {
         [SITE_PROTOCOL_VERSION_HEADER]: SITE_PROTOCOL_VERSION,
         [RELAY_PROTOCOL_VERSION_HEADER]: RELAY_PROTOCOL_VERSION,
       },
+      maxPayload: CONTENT_LINK_MAX_MESSAGE_BYTES,
     })
     this.ws = ws
     const mux = new StreamMux('server', {

@@ -23,7 +23,7 @@ import { NotificationPanel } from '../NotificationPanel'
 
 const at = new Date().toISOString()
 const notice = (over: Record<string, unknown>) => ({
-  id: 'n', type: 'site_upgrade', title: 'A site needs upgrading', body: 'b', actionLabel: 'Open Execution Sites',
+  id: 'n', type: 'site_upgrade', title: 'A site needs upgrading', body: 'b', actionLabel: 'Open Sites',
   actionUrl: '/admin/where-work-runs', status: 'read', createdAt: at, task: null, detail: 'Approve or deny them', command: null,
   dismissible: false, ...over,
 })

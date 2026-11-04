@@ -127,7 +127,8 @@ export async function accessState(
 export const getConversationMessages = async (args: GetConversationMessagesArgs, context: Ctx): Promise<ConversationPage> => {
   const userId = requireUser(context)
   const ref = await requireConversationReader(args?.conversationId, userId)
-  const limit = Math.min(Math.max(Math.trunc(args.limit ?? MESSAGE_PAGE_SIZE), 1), MESSAGE_PAGE_SIZE)
+  if (args.limit !== undefined && !Number.isInteger(args.limit)) throw new HttpError(400, 'limit is a number of messages')
+  const limit = Math.min(Math.max(args.limit ?? MESSAGE_PAGE_SIZE, 1), MESSAGE_PAGE_SIZE)
   if (args.beforeSeq !== undefined && !Number.isInteger(args.beforeSeq)) throw new HttpError(400, 'beforeSeq is a message number')
   const rows = await readMessages(ref.id, { beforeSeq: args.beforeSeq, limit: limit + 1 })
   return { messages: rows.slice(0, limit), hasMore: rows.length > limit }

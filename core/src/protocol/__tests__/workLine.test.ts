@@ -24,6 +24,12 @@ function reply(thinkingDurationMs: number | null = null): WorkLineEntry {
 }
 
 describe('a tool call as a plain step @SC-756', () => {
+  it('reads set_result as stating the run\'s result, not as "Used a tool"', () => {
+    const step = toolStep('mcp__platform__set_result', { result: 'Fixed the login page.\nTests pass.' })
+    expect(step).toMatchObject({ kind: 'changed', verb: 'Stated the result', text: 'Fixed the login page.' })
+    expect(toolAsk('set_result')).toBe("State a run's result")
+  })
+
   it('reads every harness name for the same tool under one name', () => {
     expect(canonicalToolName('Read')).toBe('read_file')
     expect(canonicalToolName('read')).toBe('read_file')

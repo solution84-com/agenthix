@@ -3,7 +3,7 @@ import http from 'node:http'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { createHash, randomBytes } from 'node:crypto'
 import { Readable } from 'node:stream'
-import { StreamMux, SITE_PROTOCOL_VERSION, SITE_PROTOCOL_VERSION_HEADER, type StreamEvents } from '@agenthix/core'
+import { CONTENT_LINK_MAX_MESSAGE_BYTES, StreamMux, SITE_PROTOCOL_VERSION, SITE_PROTOCOL_VERSION_HEADER, type StreamEvents } from '@agenthix/core'
 import { ContentConnection } from '../content/contentConnection'
 import type { ContentHandler } from '../content/contentMethods'
 
@@ -77,6 +77,16 @@ describe('ContentConnection', () => {
     expect(headers.authorization).toBe('Bearer tok')
     expect(headers['x-site-id']).toBe('s1')
     expect(headers['x-site-protocol-version']).toBe(SITE_PROTOCOL_VERSION)
+  })
+
+  it('closes the line on a message past the content line\'s limit, rather than holding it whole', async () => {
+    const hq = await fakeHq()
+    conn = new ContentConnection({ url: hq.url, token: 't', siteId: 's1', methods: {} })
+    conn.start()
+    const { ws } = await hq.connected
+    const closed = new Promise<number>(r => ws.on('close', code => r(code)))
+    ws.send(Buffer.alloc(CONTENT_LINK_MAX_MESSAGE_BYTES + 1), { binary: true })
+    expect(await closed).toBe(1009)
   })
 
   it('serves a registered method: hq reads what the handler writes, whole', async () => {

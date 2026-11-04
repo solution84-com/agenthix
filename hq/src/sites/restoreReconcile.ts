@@ -35,7 +35,7 @@ async function tellAdminsOnce(type: string, subjectKey: string, notice: { title:
   const admins = await orgAdmins()
   if (admins.length === 0) return
   await prisma.notification.createMany({
-    data: admins.map(userId => ({ userId, type, subjectKey, ...notice, actionLabel: 'Open Execution Sites', actionUrl: SITES_PAGE_URL })),
+    data: admins.map(userId => ({ userId, type, subjectKey, ...notice, actionLabel: 'Open Sites', actionUrl: SITES_PAGE_URL })),
   })
   notificationsChanged(admins)
 }

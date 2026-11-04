@@ -7,8 +7,6 @@
 import type { RendererFailure } from '@agenthix/core'
 
 export const VIEWER_ROOT = '/viewer/pdf'
-/** Part 6, caps: a PDF is previewed up to 50 MB, read by range. */
-export const PDF_PREVIEW_LIMIT = 50 * 1024 * 1024
 const RANGE_CHUNK = 256 * 1024
 
 export const RANGE_CHUNK_SIZE = RANGE_CHUNK

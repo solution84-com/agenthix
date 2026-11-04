@@ -55,50 +55,14 @@ export class ContainerRuns {
   }
 
   /**
-   * A preview has started serving out of this container, or has stopped.
-   *
-   * Beside the run marks rather than folded into them, because a preview is
-   * not a run: it takes no concurrency slot, and What it
-   * shares with a run is the one property both sweeps read — that somebody is
-   * using this container — so both of these bump `lastActivity` too, and a
-   * preview being watched keeps the container warm even while the count sits
-   * still.
-   */
-  markPreviewStart(name: string): void {
-    const state = this.getOrCreateState(name)
-    state.previewHolds = (state.previewHolds ?? 0) + 1
-    state.lastActivity = Date.now()
-  }
-
-  markPreviewEnd(name: string): void {
-    // A pruned entry means the container is gone, which is what took the
-    // preview's process with it — don't resurrect a zombie entry for it.
-    const state = this.containerStates.get(name)
-    if (!state) return
-    state.previewHolds = Math.max(0, (state.previewHolds ?? 0) - 1)
-    state.lastActivity = Date.now()
-  }
-
-  /**
    * A container of this name has just been destroyed, so everything that was
    * running inside it is gone with it.
    *
-   * The hold has to be cleared here rather than left to whoever took it. The
-   * state object SURVIVES a recreate — `getOrCreateState` reuses it — so a
-   * hold carried across would sit on a brand-new container holding no preview,
-   * and all three removal paths read that hold and skip. Nothing would ever
-   * clear it again either: the preview registry's own sweep drops entries
-   * whose container is gone, and the leaked hold is precisely what keeps this
-   * container alive. Only a site restart would.
-   *
-   * Then it announces, so anything holding a record of what was inside can
-   * drop it. Through the seam rather than by calling the preview registry: the
-   * preview modules import this runtime, so a call the other way would close a
-   * cycle.
+   * It announces, so anything holding a record of what was inside can drop it.
+   * Through the seam rather than by calling the preview registry: the preview
+   * modules import this runtime, so a call the other way would close a cycle.
    */
   forgetWhatDiedWithIt(name: string): void {
-    const state = this.containerStates.get(name)
-    if (state) state.previewHolds = 0
     notifyContainerDestroyed(name)
   }
 }

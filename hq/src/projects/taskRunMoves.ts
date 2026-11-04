@@ -17,7 +17,7 @@
  *
  * A column never starts a task early (spec §3): one whose start time or round
  * time is still to come is not queued by landing in a column. At that time it
- * starts, or arrives in its column, then.
+ * starts, then.
  */
 import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'

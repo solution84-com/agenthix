@@ -58,8 +58,6 @@ describe('a docker removal that never answers', () => {
   afterEach(() => { vi.useRealTimers(); _resetSubscribers() })
 
   it('does not hold the idle sweep for good', async () => {
-    manager.markPreviewStart(NAME)
-    manager.markPreviewEnd(NAME)
     vi.setSystemTime(Date.now() + 3_600_000)
 
     const swept = manager.sweepIdle(60_000)

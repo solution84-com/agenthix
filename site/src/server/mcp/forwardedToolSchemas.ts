@@ -126,7 +126,7 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
     schema: {
       title: z.string().describe('Task title'),
       projectId: z.string().describe('Project this task belongs to'),
-      orgId: z.string().describe('Organisation this task belongs to'),
+      orgId: z.string().optional().describe('Not used: there is one organisation. Kept so callers that pass it are not refused'),
       boardId: z.string().optional().describe("Board to place the task on; omit for the project's Project Tasks"),
       column: z.string().optional().describe("Column to place it in, by name or state; omit for the board's Backlog (its first column when queue is true)"),
       assignedAgentId: z.string().optional().describe('Agent ID to assign this task to'),
@@ -311,7 +311,7 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
   // ── Product ─────────────────────────────────────────────────────────────
   {
     name: 'list_products',
-    description: 'List all products this agent is a member of, including name, slug, description, vision, and status.',
+    description: 'List all products of the organisation, including name, slug, description, vision, and status.',
     schema: {
       agentId: z.string().optional().describe(
         'ID of the calling agent. Only honoured for static-key (operator) callers — a claims-bearing ' +

@@ -165,13 +165,7 @@ export interface ContainerState {
   /** A run on a branch waits for this container's runs to end so it is made again with the current binds: no new
    *  run joins it meanwhile, or it might never empty (`bindsDrain.ts`). Cleared when it is started again. */
   draining?: boolean
-  /** Live previews serving out of this container. A preview is not a run: it
-   *  holds no concurrency slot, but it IS work
-   *  somebody is watching, so neither sweep may take the container out from
-   *  under it. Counted separately from `activeRuns` precisely so that it
-   *  cannot be mistaken for one. */
-  previewHolds?: number
-  /** Date.now() at the last run start/end, the last preview start/end, or the
-   *  last ensureRunning touch. */
+  /** Date.now() at the last run start/end or the last ensureRunning
+   *  touch. */
   lastActivity: number
 }

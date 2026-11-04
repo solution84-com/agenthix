@@ -25,20 +25,17 @@ vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRu
 import { uploadTaskAttachment } from '../actions'
 import { getTasks, getAllTasks, getTaskByKey, getTaskAttachments } from '../queries'
 
-const saved = { hqStorageRoot: process.env.HQ_STORAGE_ROOT, serverUrl: process.env.WASP_SERVER_URL }
+const saved = { hqStorageRoot: process.env.HQ_STORAGE_ROOT }
 let root: string
 const dataUrl = (text = 'hello', mime = 'text/plain') => `data:${mime};base64,${Buffer.from(text).toString('base64')}`
 
 beforeAll(async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), 'task-reads-'))
   process.env.HQ_STORAGE_ROOT = root
-  process.env.WASP_SERVER_URL = 'https://hq.example'
 })
 afterAll(async () => {
-  for (const [key, value] of [['HQ_STORAGE_ROOT', saved.hqStorageRoot], ['WASP_SERVER_URL', saved.serverUrl]] as const) {
-    if (value === undefined) delete process.env[key]
-    else process.env[key] = value
-  }
+  if (saved.hqStorageRoot === undefined) delete process.env.HQ_STORAGE_ROOT
+  else process.env.HQ_STORAGE_ROOT = saved.hqStorageRoot
   await fs.rm(root, { recursive: true, force: true })
 })
 beforeEach(async () => {

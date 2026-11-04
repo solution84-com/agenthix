@@ -1,7 +1,7 @@
 export type SiteStatusMeaning = { tone: 'ok' | 'wait' | 'off'; label: string; what: string }
 
 const DEFAULT_SITE_DOWN =
-  'The site service is not running. Runs will fail until it is. Start it with `docker compose -f site/compose.yml --env-file site/compose.env up -d site`, or `[dev] Start All` in development. It reconnects by itself.'
+  "The site service is not running. Runs will fail until it is. On HQ's machine, `agenthix status` says why and what to do next; in development, run `[dev] Start All`. It reconnects by itself."
 
 /** What a site's status means to the person reading the list, and what to do about it. */
 export function siteStatusMeaning(site: { status: string; isDefault: boolean }): SiteStatusMeaning {

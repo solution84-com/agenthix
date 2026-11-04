@@ -105,6 +105,7 @@ const SPECS: Record<string, Spec> = {
   create_task: changed('Created', 'task', 'Create tasks', a => str(a.title), taskTarget),
   update_task: changed('Changed', 'task', 'Change tasks', a => str(a.title) || 'a task', taskTarget),
   tick_subtask: changed('Ticked', 'task', 'Tick subtasks', a => str(a.subtaskTitle), taskTarget),
+  set_result: changed('Stated the result', 'result', "State a run's result", a => clip(firstLine(str(a.result)))),
   add_comment: changed('Commented on', 'task', 'Comment on tasks', () => 'a task', taskTarget),
   attach_file: changed('Attached', 'task', 'Attach files to tasks', a => str(a.filename) || str(a.name), taskTarget),
   archive_task: changed('Archived', 'task', 'Archive tasks', () => 'a task', taskTarget),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readAddress } from '../address'
-import { documentOptions, failureOfError, PDF_PREVIEW_LIMIT } from '../documentOptions'
+import { PDF_PREVIEW_LIMIT } from '@agenthix/core/pdf-viewer'
+import { documentOptions, failureOfError } from '../documentOptions'
 import { fitWidthScale, nextZoom, pageAt, ZOOM_MAX, ZOOM_MIN } from '../layout'
 import { viewerMessage } from '../messages'
 

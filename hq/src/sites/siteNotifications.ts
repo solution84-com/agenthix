@@ -105,7 +105,7 @@ async function orgAdmins(): Promise<string[]> {
 }
 
 const open = (type: string, subjectKey: string, title: string, body: string): PersistentNotice => ({
-  type, subjectKey, title, body, actionLabel: 'Open Execution Sites', actionUrl: SITES_PAGE_URL,
+  type, subjectKey, title, body, actionLabel: 'Open Sites', actionUrl: SITES_PAGE_URL,
 })
 
 function noticesFor(site: SiteFacts, problems: SiteProblem[]): Record<string, PersistentNotice | undefined> {
