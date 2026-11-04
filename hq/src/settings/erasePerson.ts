@@ -26,6 +26,7 @@ import * as siteRuntimeStore from '../sessions/siteRuntimeStore'
 import { rethrowSiteUnreachableAsHttp } from '../storage/httpErrors'
 import { removeLocationOnSite } from '../storage/locationFileStore'
 import { removeProjectStorageOnSite } from '../projects/projectStorageRemoval'
+import { removeTaskAttachmentFolders } from '../projects/taskAttachmentFiles'
 import { resolveStorageSite } from '../storage/storageSite'
 import { getPersonImagesDir } from '../server/hqStoragePaths'
 import { PERSON_SELECT, personSummary } from '../server/identity/personSummary'
@@ -133,6 +134,7 @@ export const erasePerson = async (
   const ownPlaces = [{ type: 'user' as const, id: userId }, ...ownProjectIds.map(id => ({ type: 'project' as const, id }))]
   // Read first: what the transaction then deletes of the skills in their own places, with the content kept for them.
   const skillErasure = await personSkillErasure(prisma, ownPlaces)
+  const ownTaskIds = (await prisma.task.findMany({ where: { project: ownProject }, select: { id: true } })).map(t => t.id)
   await prisma.$transaction([
     // Told to every site that holds any of their projects' homes and containers; a site that is down gets it later.
     prisma.heldSiteInstruction.createMany({
@@ -174,5 +176,6 @@ export const erasePerson = async (
   await removeOwnStorage(userId, storageSite)
   for (const p of ownProjects) await removeProjectStorageOnSite(p.id, p.siteId)
   await fs.rm(getPersonImagesDir(userId), { recursive: true, force: true })
+  await removeTaskAttachmentFolders(ownTaskIds)
   return { ok: true }
 }

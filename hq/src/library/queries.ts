@@ -10,12 +10,12 @@ import { canSeeTask } from '../projects/resourceEntitlement'
 import { isOrgAdmin } from '../projects/membership'
 
 export const getBoardTemplates: GetBoardTemplates<void, BoardTemplateSummary[]> = async (_args, context) => {
-  if (!context.user) throw new Error('Not authenticated')
+  if (!context.user) throw new HttpError(401, 'Not authenticated')
   return listBoardTemplates()
 }
 
 export const getBoardTemplate: GetBoardTemplate<{ id: string }, Awaited<ReturnType<typeof svcGetBoardTemplate>>> = async ({ id }, context) => {
-  if (!context.user) throw new Error('Not authenticated')
+  if (!context.user) throw new HttpError(401, 'Not authenticated')
   return svcGetBoardTemplate(typeof id === 'string' ? id : '')
 }
 

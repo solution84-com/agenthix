@@ -27,7 +27,7 @@ export function AddToProjectDialog({ open, team, onClose, onAdded }: { open: boo
   return (
     <Modal open={open} onClose={onClose} title={`Add ${team.name} to a project`}>
       <form onSubmit={e => void submit(e)} className="space-y-4">
-        <p className="text-small text-text-secondary">Every member of the team joins the project at once, with the role below. Each can still be removed one by one.</p>
+        <p className="text-small text-text-secondary">Every member of the team joins the project at once, with the role below. Who is in the team, and their role here, is changed in the team.</p>
         <FormField label="Project" htmlFor="add-team-project">
           <NativeSelect id="add-team-project" value={projectId} onChange={e => setProjectId(e.target.value)} required>
             <option value="">Choose a project…</option>

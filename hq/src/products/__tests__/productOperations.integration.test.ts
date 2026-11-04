@@ -236,3 +236,45 @@ describe('reading products and programmes @SC-104', () => {
     expect((await getPrograms(undefined as any, as(reader.id))).map((p: any) => p.name)).toEqual(['Earlier', 'Later'])
   })
 })
+
+describe('numbering, format and missing rows (F-hq-12+13-02, F-hq-12+13-03)', () => {
+  it('createProduct numbers the slug of a name whose slug is taken, and refuses a taken slug asked for outright', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    await seedProduct({ name: 'Alpha', slug: 'alpha' })
+
+    const second = await createProduct({ name: 'alpha!' }, as(admin.id))
+    const third = await createProduct({ name: 'ひらがな' }, as(admin.id))
+    const fourth = await createProduct({ name: 'カタカナ' }, as(admin.id))
+
+    expect(second.slug).toBe('alpha-2')
+    expect([third.slug, fourth.slug]).toEqual(['untitled', 'untitled-2'])
+    await expect(createProduct({ name: 'Other', slug: 'alpha' }, as(admin.id))).rejects.toMatchObject({ statusCode: 409 })
+  })
+
+  it('updateProduct and updateProgram refuse a slug of the wrong shape or one another holds, and keep their own', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const a = await seedProduct({ name: 'A', slug: 'a' })
+    await seedProduct({ name: 'B', slug: 'b' })
+    const g = await seedProgram({ name: 'G', slug: 'g' })
+    await seedProgram({ name: 'H', slug: 'h' })
+
+    await expect(updateProduct({ productId: a.id, slug: 'Not A Slug' }, as(admin.id))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(updateProduct({ productId: a.id, slug: 'b' }, as(admin.id))).rejects.toMatchObject({ statusCode: 409 })
+    await expect(updateProgram({ programId: g.id, slug: 'h' }, as(admin.id))).rejects.toMatchObject({ statusCode: 409 })
+    expect((await updateProduct({ productId: a.id, slug: 'a' }, as(admin.id))).slug).toBe('a')
+  })
+
+  it.each([
+    ['getProduct', (id: string, ctx: any) => getProduct({ productId: id }, ctx)],
+    ['getProgram', (id: string, ctx: any) => getProgram({ programId: id }, ctx)],
+    ['getProductBySlug', (_id: string, ctx: any) => getProductBySlug({ slug: 'nope' }, ctx)],
+    ['getProgramBySlug', (_id: string, ctx: any) => getProgramBySlug({ slug: 'nope' }, ctx)],
+    ['updateProduct', (id: string, ctx: any) => updateProduct({ productId: id, name: 'X' }, ctx)],
+    ['deleteProduct', (id: string, ctx: any) => deleteProduct({ productId: id }, ctx)],
+    ['updateProgram', (id: string, ctx: any) => updateProgram({ programId: id, name: 'X' }, ctx)],
+    ['deleteProgram', (id: string, ctx: any) => deleteProgram({ programId: id }, ctx)],
+  ])('%s of one that does not exist answers 404', async (_name, run) => {
+    const admin = await createUserWithRole('ADMIN')
+    await expect(run('no-such-id', as(admin.id))).rejects.toMatchObject({ statusCode: 404 })
+  })
+})

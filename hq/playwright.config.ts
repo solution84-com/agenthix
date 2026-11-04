@@ -53,7 +53,9 @@ export default defineConfig({
     reuseExistingServer: false,
   },
   projects: [
-    { name: 'stand-in', testMatch: /fixtures[\\/]standIn\.setup\.ts$/, teardown: 'stand-in-teardown' },
+    // Checks the seeded accounts before anything signs in, so an unseeded database stops the run instead of tripping the sign-in limit.
+    { name: 'seeded-accounts', testMatch: /fixtures[\\/]seededAccounts\.setup\.ts$/ },
+    { name: 'stand-in', testMatch: /fixtures[\\/]standIn\.setup\.ts$/, teardown: 'stand-in-teardown', dependencies: ['seeded-accounts'] },
     { name: 'stand-in-teardown', testMatch: /fixtures[\\/]standIn\.teardown\.ts$/ },
     { name: 'chromium', testIgnore: ['**/guide/**', '**/install/**', '**/notSecure.spec.ts'], use: { ...devices['Desktop Chrome'] }, dependencies: ['stand-in'] },
     {

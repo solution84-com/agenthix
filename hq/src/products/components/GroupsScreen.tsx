@@ -67,7 +67,7 @@ export function GroupsScreen({ kind, slug }: { kind: GroupKind; slug?: string })
               </li>
             ))}
           </ul>
-          {kind === 'product' && <p className="mt-3 text-small text-text-muted">Programs is the same list, with a goal: <Link to="/programs" className="text-accent hover:text-accent-hover">Programs ›</Link></p>}
+          {kind === 'product' && <p className="mt-3 text-small text-text-muted">Programmes are the same list, with a goal: <Link to="/programs" className="text-accent hover:text-accent-hover">Programmes ›</Link></p>}
         </div>
 
         <div className={slug ? '' : 'hidden lg:block'}>

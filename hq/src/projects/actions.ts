@@ -26,12 +26,13 @@ import {
 } from 'wasp/server/operations'
 import { HttpError, prisma } from 'wasp/server'
 import type { Board } from 'wasp/entities'
-import type { BoardColumn, ColumnInput } from './boardColumns'
+import { checkedColumns, type BoardColumn, type ColumnInput } from './boardColumns'
 import { MEMBERSHIP_METHODS } from '@agenthix/core'
 import type { AddTaskCommentArgs, CreateTaskArgs, MoveTaskToColumnArgs, TaskCommentView, TaskFields } from '@agenthix/core'
 import { taskCommentView, taskFields } from './taskWire'
 import { checkedTaskModel } from '../models-settings/taskModelChoice'
-import { createTaskArgs, requireColumnArg, requireCommentContent } from './taskArgs'
+import { createTaskArgs, requireColumnArg, requireCommentContent, updateTaskArgs } from './taskArgs'
+import { moveForStatusEdit } from './taskStatusChange'
 import { taskRunner } from '../agents/TaskRunner'
 import { replaceTaskRequests } from '../agents/manifestRequests'
 import { requireRole } from '../server/identity/requireRole'
@@ -194,8 +195,9 @@ export const updateBoard: UpdateBoard<
   // Turning auto-queue on queues every idle task in the column, and turning it
   // off releases them — so it is a change to work, not to the board's layout.
   // The board is changed first, so a refused change (Project Tasks) queues nothing.
-  const change = args.columns ? await autoQueueChange(args.boardId, args.columns) : null
-  const updated = await updateBoardRecord({ boardId: args.boardId, name: args.name, columns: args.columns })
+  const columns = args.columns === undefined ? undefined : checkedColumns(args.columns)
+  const change = columns ? await autoQueueChange(args.boardId, columns) : null
+  const updated = await updateBoardRecord({ boardId: args.boardId, name: args.name, columns })
   if (change && changesAutoQueue(change)) {
     await applyAutoQueueChange(args.boardId, projectId, change, personQueuer(context.user.id))
   }
@@ -237,19 +239,24 @@ export const updateTask: UpdateTask<
   any
 > = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
+  // Wasp hands the operation whatever the request carried: each field is checked, and only these are kept.
+  const { taskId, title, description, assignedAgentId, priority, labels, status, result } = updateTaskArgs(args)
   // The run state is not an edit: a person changes it by Run, Stop or Dismiss, which say what they do.
-  const projectId = await requireTaskAccess(args.taskId, context.user.id, 'Changing this task')
-  if (args.assignedAgentId) await requireAgentOnProject(projectId, args.assignedAgentId)
-  const { taskId, title, description, assignedAgentId, priority, labels, status, result } = args
+  const projectId = await requireTaskAccess(taskId, context.user.id, 'Changing this task')
+  if (assignedAgentId) await requireAgentOnProject(projectId, assignedAgentId)
   const modelChoice = args.modelChoice === undefined ? undefined : await checkedTaskModel(args.modelChoice, {
     projectId, userId: context.user.id,
     agentId: assignedAgentId ?? (await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgentId: true } }))?.assignedAgentId,
   })
   const workspaceId = await checkedTaskWorkspace(projectId, args.workspaceId)
-  return updateTaskRecord({
-    taskId, title, description, assignedAgentId, priority, labels, status, result,
+  // A state is a place: it is reached by a move into a column, so the column rules and the run state follow it.
+  const move = status === undefined ? null : await moveForStatusEdit(taskId, status)
+  const updated = await updateTaskRecord({
+    taskId, title, description, assignedAgentId, priority, labels, result,
     ...(modelChoice !== undefined ? { modelChoice } : {}), ...(workspaceId !== undefined ? { workspaceId } : {}),
   })
+  if (!move) return updated
+  return moveTaskToColumnRecord({ taskId, column: move.column, queuer: personQueuer(context.user.id) })
 }
 
 export const runTask: RunTask<{ taskId: string }, void> = async ({ taskId }, context) => {
@@ -280,15 +287,25 @@ export const runTask: RunTask<{ taskId: string }, void> = async ({ taskId }, con
 }
 
 
+/** A running task is stopped first, as the agents' delete and archive require: its run would go on with no task to report to. */
+async function refuseWhileRunning(taskId: string, what: string): Promise<void> {
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { runState: true } })
+  if (task?.runState === 'RUN_ACTIVE') {
+    throw new HttpError(409, `Cannot ${what} a task that is currently running. Stop it first. Nothing was changed.`)
+  }
+}
+
 export const deleteTask: DeleteTask<{ taskId: string }, any> = async ({ taskId }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await requireTaskAccess(taskId, context.user.id, 'Deleting this task')
+  await refuseWhileRunning(taskId, 'delete')
   return deleteTaskRecord(taskId)
 }
 
 export const archiveTask: any = async ({ taskId }: { taskId: string }, context: any) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await requireTaskAccess(taskId, context.user.id, 'Archiving this task')
+  await refuseWhileRunning(taskId, 'archive')
   return archiveTaskRecord(taskId)
 }
 

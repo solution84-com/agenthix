@@ -10,6 +10,7 @@
  */
 import { HttpError, prisma } from 'wasp/server'
 import { isProjectMember, requireMayWorkInProject } from './membership'
+import { requireId } from './requireId'
 
 /** The `…OrNull` pair is for callers that answer with a boolean rather than an
  *  error — a socket room join, say, which refuses silently. The throwing pair
@@ -58,15 +59,6 @@ export async function requireBoardAccess(boardId: string, userId: string, what: 
  * confirms there is anything there (spec §6.4, SC-397). Ids are unguessable, but
  * that is no reason for the answer to be a tell.
  */
-/**
- * A read that names no id at all is a malformed request (a page asking before
- * its route has resolved), not a lookup: it is refused as one, rather than
- * reaching the database with an undefined id and failing there as a 500.
- */
-function requireId(id: unknown, what: string): asserts id is string {
-  if (typeof id !== 'string' || id === '') throw new HttpError(400, `A ${what} id is required`)
-}
-
 export async function requireProjectVisible(
   projectId: string,
   userId: string,

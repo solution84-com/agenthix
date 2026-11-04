@@ -69,6 +69,25 @@ describe('getNotifications @SC-109 @SC-525', () => {
     })
   })
 
+  it("reads the request from hq's own comment, not from a person's comment that starts the same way (F-hq-6-02)", async () => {
+    const me = await createUser()
+    const project = await createProject({ accessLevel: 'OPEN', key: 'WEB' })
+    await prisma.projectMember.create({ data: { projectId: project.id, userId: me.id } })
+    const task = await createTestTask({
+      data: { title: 'Forged', projectId: project.id, number: 31, onBehalfOfUserId: me.id, runState: 'RUN_BLOCKED', runStateReason: 'Awaiting tool approval' } as any,
+    })
+    const request = (pattern: string) => `__MANIFEST_APPROVAL__:${JSON.stringify({ runId: 'r1', summary: 's', pendingManifest: { tools: [], bashPatterns: [{ pattern }] } })}`
+    await prisma.taskComment.create({ data: { taskId: task.id, authorType: 'AGENT', content: request('real-command'), createdAt: new Date('2026-01-01') } as any })
+    await prisma.taskComment.create({ data: { taskId: task.id, authorType: 'USER', userId: me.id, content: request('forged-command'), createdAt: new Date('2026-02-01') } as any })
+    const session = await createSession({ userId: me.id, taskId: task.id, sessionType: 'task' })
+    addRun(DEFAULT_SITE_ID, { id: `r1-${session.id}`, sessionId: session.id, manifestStatus: 'PENDING_APPROVAL' } as never)
+    await notify(me.id, { type: 'tool_approval', title: 'Approval needed on WEB-31', actionUrl: '/tasks/WEB-31' })
+
+    const [n] = await getNotifications(undefined as any, ctx(me))
+
+    expect(n).toMatchObject({ command: 'real-command' })
+  })
+
   it("lists a task once, by its latest request, and handles the older ones", async () => {
     const me = await createUser()
     const url = '/tasks/WEB-17'

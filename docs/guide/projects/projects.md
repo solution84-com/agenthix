@@ -104,7 +104,7 @@ Select a person to change their role, to open the tasks done on their behalf, or
 
 A **product** is something your organisation makes or runs, and a **programme** is a goal several projects work towards. Both only group projects: filing a project under one gives nobody access to anything. Neither is required.
 
-Organisation administrators make them from **Organisation**, on the **Products** or **Programs** card (the card spells it **Programs**; the project's own setting and filter say **Programme**). Select **New**, name it, and use **File a project** on its page to add projects. Or open a project's **Settings** and choose its **Product** or **Programme**.
+Organisation administrators make them from **Organisation**, on the **Products** or **Programmes** card. Select **New**, name it, and use **File a project** on its page to add projects. Or open a project's **Settings** and choose its **Product** or **Programme**.
 
 ## Project settings
 

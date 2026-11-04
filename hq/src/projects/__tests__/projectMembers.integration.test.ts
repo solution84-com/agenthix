@@ -344,3 +344,24 @@ describe('a personal project keeps exactly one member @SC-595', () => {
     expect((await prisma.project.findUniqueOrThrow({ where: { id: project.id } })).accessLevel).toBe('PRIVATE')
   })
 })
+
+describe('the members operations refuse a malformed request with a 400, never a 500', () => {
+  it('names the project or person that is missing', async () => {
+    const { admin, member, project } = await team()
+    const noProject = { message: 'A project id is required', statusCode: 400 }
+    await expect(addProjectMember({ userId: member.id } as never, as(admin))).rejects.toMatchObject(noProject)
+    await expect(setProjectMemberRole({ userId: member.id, role: 'MEMBER' } as never, as(admin))).rejects.toMatchObject(noProject)
+    await expect(joinProject({} as never, as(admin))).rejects.toMatchObject(noProject)
+    await expect(leaveProject({} as never, as(admin))).rejects.toMatchObject(noProject)
+    await expect(setProjectAccessLevel({ accessLevel: 'OPEN' } as never, as(admin))).rejects.toMatchObject(noProject)
+    await expect(addProjectMember({ projectId: project.id } as never, as(admin))).rejects.toMatchObject({ statusCode: 400, message: 'A person id is required' })
+  })
+
+  it('refuses a role or an access level that is not one of the values', async () => {
+    const { admin, member, project } = await team()
+    const newcomer = await createUser()
+    await expect(addProjectMember({ projectId: project.id, userId: newcomer.id, role: 'OWNER' as never }, as(admin))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(setProjectMemberRole({ projectId: project.id, userId: member.id, role: 'OWNER' as never }, as(admin))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(setProjectAccessLevel({ projectId: project.id, accessLevel: 'SECRET' as never }, as(admin))).rejects.toMatchObject({ statusCode: 400 })
+  })
+})

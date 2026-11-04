@@ -4,7 +4,7 @@
  * part 5 *Seeing it used*, security review M6). The runs keep the identity and fingerprint the site recorded, which
  * now open nothing. The content is released for the sweep, which keeps it only while anything else still names it.
  */
-import type { Prisma, PrismaClient } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 
 type Place = { type: 'user' | 'project'; id: string }
 
@@ -13,7 +13,7 @@ const wherePlaces = (places: Place[]): Prisma.PlaceSkillWhereInput => ({
 })
 
 /** Read before the erase's transaction: the writes to put in it. */
-export async function personSkillErasure(db: PrismaClient, places: Place[]): Promise<Prisma.PrismaPromise<unknown>[]> {
+export async function personSkillErasure(db: Prisma.TransactionClient, places: Place[]): Promise<Prisma.PrismaPromise<unknown>[]> {
   if (places.length === 0) return []
   const where = wherePlaces(places)
   const [versions, drafts] = await Promise.all([

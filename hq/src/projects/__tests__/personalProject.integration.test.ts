@@ -17,7 +17,7 @@ vi.mock('wasp/server', async () => {
 })
 
 import {
-  ensurePersonalProject, ensurePersonalProjectsForEveryone, refuseOnPersonalProject, refuseBoardAcrossPersonalEdge, taskRunOwner,
+  ensurePersonalProject, ensurePersonalProjectsForEveryone, refuseOnPersonalProject, refuseBoardOfAnotherProject, taskRunOwner,
   PERSONAL_PROJECT_NAME,
 } from '../personalProject'
 import { DEFAULT_BOARD_COLUMNS } from '../boardColumns'
@@ -111,7 +111,7 @@ describe('what a personal project refuses @SC-1210', () => {
     await expect(refuseOnPersonalProject('gone', 'Deleting')).resolves.toBeUndefined()
   })
 
-  it("refuses a personal project's task onto another project's board and the other way round, and allows the rest", async () => {
+  it("refuses a personal project's task onto another project's board and the other way round, and any task onto another project's board", async () => {
     const mine = await ensurePersonalProject((await createUser()).id)
     const myBoard = await prisma.board.findFirstOrThrow({ where: { projectId: mine.id } })
     const shared = await createProject()
@@ -119,10 +119,12 @@ describe('what a personal project refuses @SC-1210', () => {
     const other = await createProject()
     const otherBoard = await makeBoard(other.id)
 
-    await expect(refuseBoardAcrossPersonalEdge(mine.id, sharedBoard.id)).rejects.toMatchObject({ statusCode: 400 })
-    await expect(refuseBoardAcrossPersonalEdge(shared.id, myBoard.id)).rejects.toMatchObject({ statusCode: 400 })
-    await expect(refuseBoardAcrossPersonalEdge(mine.id, myBoard.id)).resolves.toBeUndefined()
-    await expect(refuseBoardAcrossPersonalEdge(shared.id, otherBoard.id)).resolves.toBeUndefined()
+    await expect(refuseBoardOfAnotherProject(mine.id, sharedBoard.id)).rejects.toMatchObject({ statusCode: 400 })
+    await expect(refuseBoardOfAnotherProject(shared.id, myBoard.id)).rejects.toMatchObject({ statusCode: 400 })
+    await expect(refuseBoardOfAnotherProject(mine.id, myBoard.id)).resolves.toBeUndefined()
+    // Two shared projects as well: the task would show on no board (F-hq-5-02).
+    await expect(refuseBoardOfAnotherProject(shared.id, otherBoard.id)).rejects.toMatchObject({ statusCode: 400 })
+    await expect(refuseBoardOfAnotherProject(shared.id, sharedBoard.id)).resolves.toBeUndefined()
   })
 })
 

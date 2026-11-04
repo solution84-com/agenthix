@@ -99,7 +99,6 @@ export const removePerson = async (args: RemovePersonArgs, context: Ctx): Promis
   const { userId } = args
   const destinations = await plannedDestinations(userId, context.user!.id, args.openTasks)
 
-  const ownChats = await prisma.agentSession.findMany({ where: { userId, sessionType: 'chat' }, select: { id: true } })
   const instructSites = await sitesForPerson()
   const now = new Date()
   await prisma.$transaction([

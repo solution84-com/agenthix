@@ -74,12 +74,16 @@ test.describe('HQ installed at a network address over plain http @SC-1149', () =
     await onStep(page, 'voice')
 
     // The speech vendors cannot be reached from a test: the call is answered here, and the provider put in the install's database.
+    // Each Save is the open form's own, and the next provider is chosen once the first form has given way to its "works" line.
+    const openForm = page.locator('form').filter({ has: page.getByLabel(/^api key/i) })
     await page.getByRole('button', { name: /^AssemblyAI/ }).click()
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
-    await page.getByRole('button', { name: /^save$/i }).click()
+    await openForm.getByRole('button', { name: /^save$/i }).click()
+    await expect(page.getByText(/AssemblyAI works\. Added by you\./)).toBeVisible()
     await page.getByRole('button', { name: /^Inworld/ }).click()
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
-    await page.getByRole('button', { name: /^save$/i }).click()
+    await openForm.getByRole('button', { name: /^save$/i }).click()
+    await expect(page.getByText(/Inworld works\. Added by you\./)).toBeVisible()
     await page.getByRole('button', { name: /^continue$/i }).click()
     await onStep(page, 'review')
     await page.getByRole('button', { name: /^finish$/i }).click()

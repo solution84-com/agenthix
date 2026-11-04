@@ -6,6 +6,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import { requireProjectVisible, requireTaskVisible, requireBoardVisible } from '../resourceEntitlement'
+import { requireProjectAdmin, requireMayManageProjectPeople } from '../membership'
+import { refuseOnPersonalProject, requireMayDeleteProject } from '../personalProject'
 
 describe('a read with no id is refused with a 400, never reaching the database', () => {
   it.each([
@@ -14,5 +16,16 @@ describe('a read with no id is refused with a 400, never reaching the database',
     ['board', () => requireBoardVisible('' as string, 'u1')],
   ])('%s', async (what, call) => {
     await expect(call()).rejects.toMatchObject({ statusCode: 400, message: `A ${what} id is required` })
+  })
+})
+
+describe('a write that names no project is refused with a 400 naming the field, never reaching the database', () => {
+  it.each([
+    ['requireProjectAdmin', () => requireProjectAdmin(undefined as unknown as string, 'u1', 'Changing this project')],
+    ['requireMayManageProjectPeople', () => requireMayManageProjectPeople(undefined as unknown as string, 'u1', 'Adding')],
+    ['refuseOnPersonalProject', () => refuseOnPersonalProject(undefined as unknown as string, 'Filing')],
+    ['requireMayDeleteProject', () => requireMayDeleteProject({ user: { id: 'u1' } }, undefined as unknown as string)],
+  ])('%s', async (_what, call) => {
+    await expect(call()).rejects.toMatchObject({ statusCode: 400, message: 'A project id is required' })
   })
 })

@@ -10,8 +10,7 @@ import { createProject as createProjectRecord } from './projectService'
 import { ensureUserStoragePlacement } from '../storage/storageSite'
 import { deriveProjectKey } from '../shared/identifiers'
 import { rethrowLocationFileErrorAsHttp } from '../storage/httpErrors'
-
-const MAX_NAME_LENGTH = 120
+import { checkedProjectName } from './projectFields'
 
 export const createPersonalProject: CreatePersonalProject<{ name: string; description?: string }, Project> = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
@@ -19,9 +18,7 @@ export const createPersonalProject: CreatePersonalProject<{ name: string; descri
   const person = await prisma.user.findUnique({ where: { id: userId }, select: { deactivatedAt: true, erasedAt: true } })
   if (!person || person.deactivatedAt || person.erasedAt) throw new HttpError(403, 'Only a person in the organisation can make a personal project')
 
-  const name = typeof args?.name === 'string' ? args.name.trim() : ''
-  if (!name) throw new HttpError(400, 'A project needs a name')
-  if (name.length > MAX_NAME_LENGTH) throw new HttpError(400, `A project name is at most ${MAX_NAME_LENGTH} characters`)
+  const name = checkedProjectName(args?.name)
   const description = typeof args.description === 'string' && args.description.trim() ? args.description.trim() : undefined
 
   // On the site that holds the person's own storage, so no site is asked for.

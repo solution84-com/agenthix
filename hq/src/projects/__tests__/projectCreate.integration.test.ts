@@ -232,3 +232,48 @@ describe('createProject — when the site cannot provision the files', () => {
     cleanup.mockRestore()
   })
 })
+
+describe('the name of a project (F-hq-4-01, F-hq-4-03)', () => {
+  const make = (name: string, admin: { id: string }) => createProjectRecord({ name, executionSiteId: SITE_ROW_ID, createdByUserId: admin.id })
+
+  it('numbers the slug of a name whose slug is taken, instead of failing with a server error', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const first = await make('Alpha', admin)
+    const second = await make('alpha!', admin)
+    const third = await make('Alpha', admin)
+    expect([first.slug, second.slug, third.slug]).toEqual(['alpha', 'alpha-2', 'alpha-3'])
+  })
+
+  it('makes every project whose name has no Latin letters or digits, each with its own slug', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const slugs = [(await make('ひらがな', admin)).slug, (await make('カタカナ', admin)).slug, (await make('ភាសាខ្មែរ', admin)).slug]
+    expect(new Set(slugs).size).toBe(3)
+  })
+
+  it('tells the loser of two creates that raced a 409, not a 500', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    await Promise.all([make('Race one', admin), make('Race one', admin)]).then(
+      results => expect(new Set(results.map(r => r.slug)).size).toBe(2),
+      err => expect(err).toMatchObject({ statusCode: 409 }),
+    )
+  })
+
+  it.each([
+    ['empty', ''],
+    ['spaces', '   '],
+    ['not text', 12],
+    ['very long', 'x'.repeat(500)],
+  ])('refuses a name that is %s (400), creating nothing', async (_what, name) => {
+    const admin = await createUserWithRole('ADMIN')
+    await expect(createProject({ name: name as string, siteId: 's1' }, as(admin))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(make(name as string, admin)).rejects.toMatchObject({ statusCode: 400 })
+    expect(await prisma.project.count()).toBe(0)
+  })
+
+  it('refuses a description that is not text or very long (400)', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    await expect(createProject({ name: 'Thing', description: 5 as never, siteId: 's1' }, as(admin))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(createProject({ name: 'Thing', description: 'x'.repeat(20_000), siteId: 's1' }, as(admin))).rejects.toMatchObject({ statusCode: 400 })
+    expect(await prisma.project.count()).toBe(0)
+  })
+})

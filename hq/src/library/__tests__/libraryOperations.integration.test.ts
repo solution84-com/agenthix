@@ -164,7 +164,7 @@ describe('board template operations', () => {
     const created = await createBoardTemplate({ name: 'Listed', columns }, admin)
     const list = await getBoardTemplates(undefined, await caller('MEMBER'))
     expect(list.map((t: any) => t.id)).toEqual([created.id])
-    await expect(getBoardTemplates(undefined, anon)).rejects.toThrow('Not authenticated')
+    await expect(getBoardTemplates(undefined, anon)).rejects.toMatchObject({ statusCode: 401, message: 'Not authenticated' })
   })
 
   it('getBoardTemplate returns the template with its columns, null for an unknown id, and refuses an anonymous caller', async () => {
@@ -174,7 +174,7 @@ describe('board template operations', () => {
     expect(found!.name).toBe('One')
     expect(found!.columns.map((s: any) => s.name)).toEqual(['todo', 'doing', 'done'])
     expect(await getBoardTemplate({ id: 'missing' }, admin)).toBeNull()
-    await expect(getBoardTemplate({ id: created.id }, anon)).rejects.toThrow('Not authenticated')
+    await expect(getBoardTemplate({ id: created.id }, anon)).rejects.toMatchObject({ statusCode: 401, message: 'Not authenticated' })
   })
 })
 

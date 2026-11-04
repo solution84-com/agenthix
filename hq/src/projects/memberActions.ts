@@ -28,6 +28,14 @@ import { personRow } from '../org/teams/teamRoles'
 import { closeProjectConversations, declineWaitingInProject } from '../conversations/closing'
 import { appTickets } from '../relays'
 import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
+import { requireId } from './requireId'
+
+const PROJECT_ROLES: readonly string[] = ['ADMIN', 'MEMBER', 'VIEWER'] satisfies ProjectRole[]
+const ACCESS_LEVELS: readonly string[] = ['OPEN', 'PRIVATE']
+
+function requireProjectRole(role: unknown): void {
+  if (typeof role !== 'string' || !PROJECT_ROLES.includes(role)) throw new HttpError(400, 'A role is ADMIN, MEMBER or VIEWER')
+}
 
 type Ctx = { user?: { id: string } | null }
 
@@ -86,6 +94,9 @@ export const addProjectMember = async (
   context: Ctx,
 ) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
+  requireId(projectId, 'project')
+  requireId(userId, 'person')
+  requireProjectRole(role)
   await requireMayAdd(projectId, context.user.id, userId)
   // A personal project has exactly one member (spec §4).
   await refuseOnPersonalProject(projectId, 'Adding a person')
@@ -107,6 +118,8 @@ export const setProjectMemberRole = async (
   context: Ctx,
 ) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
+  requireId(userId, 'person')
+  requireProjectRole(role)
   await requireMayManageProjectPeople(projectId, context.user.id, "Changing a member's role")
   await refuseOnPersonalProject(projectId, "Changing a member's role")
   const { row, teamRoles, teamNames } = await standingOf(projectId, userId)
@@ -197,6 +210,7 @@ export const removeProjectMember = async (
 /** Anyone in the organisation joins an open project in one step, as a Member (adr-0099). */
 export const joinProject = async ({ projectId }: { projectId: string }, context: Ctx): Promise<{ ok: true }> => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
+  requireId(projectId, 'project')
   const project = await prisma.project.findUnique({ where: { id: projectId }, select: { accessLevel: true, personalOwnerId: true } })
   // A private project answers as a missing one: not seeing it is what being private means.
   if (!project || project.personalOwnerId || project.accessLevel !== 'OPEN') throw new HttpError(404, 'Project not found')
@@ -240,6 +254,7 @@ export const setProjectAccessLevel = async (
   context: Ctx,
 ) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
+  if (typeof accessLevel !== 'string' || !ACCESS_LEVELS.includes(accessLevel)) throw new HttpError(400, 'An access level is OPEN or PRIVATE')
   await requireProjectAdmin(projectId, context.user.id, "Changing this project's access level")
   await refuseOnPersonalProject(projectId, 'Changing the access level')
   return prisma.project.update({ where: { id: projectId }, data: { accessLevel } })

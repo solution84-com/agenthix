@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   DEFAULT_BOARD_COLUMNS, parseColumns, sortedColumns, findColumn, resolveColumn, columnsFromInput,
-  stateOfPlace, refuseBacklogColumn,
+  stateOfPlace, refuseBacklogColumn, checkedColumns,
 } from '../boardColumns'
 
 const COLUMNS = [
@@ -87,5 +87,32 @@ describe('the default columns @SC-542', () => {
   it('are To do, In progress and Done, none starting work', () => {
     expect(DEFAULT_BOARD_COLUMNS.map(c => c.status)).toEqual(['TODO', 'IN_PROGRESS', 'DONE'])
     expect(DEFAULT_BOARD_COLUMNS.some(c => c.autoQueue)).toBe(false)
+  })
+})
+
+describe('checkedColumns — the list a caller sends to change a board (F-hq-5-01)', () => {
+  const col = (name: string, over: Record<string, unknown> = {}) => ({ name, label: name.toUpperCase(), status: 'TODO', order: 0, color: '#000', ...over })
+  const refused = expect.objectContaining({ statusCode: 400 })
+
+  it.each([
+    ['none', []],
+    ['not a list', { a: 1 }],
+    ['a column that is not an object', [null]],
+    ['a column with no name', [col('')]],
+    ['a column with no label', [col('a', { label: ' ' })]],
+    ['a column whose state is none of the three', [col('a', { status: 'BLOCKED' })]],
+    ['a column with no state', [col('a', { status: undefined })]],
+    ['the same name twice', [col('a'), col('a')]],
+    ['a column named Backlog', [col('Backlog')]],
+    ['a column labelled Backlog', [col('a', { label: 'backlog' })]],
+  ])('refuses %s', (_what, input) => {
+    expect(() => checkedColumns(input)).toThrow(refused)
+  })
+
+  it('keeps what was sent, puts the state in capitals and numbers a missing order', () => {
+    expect(checkedColumns([col('a', { status: 'in_progress', hint: 'h', autoQueue: true }), col('b', { order: undefined })])).toEqual([
+      col('a', { status: 'IN_PROGRESS', hint: 'h', autoQueue: true }),
+      col('b', { order: 1 }),
+    ])
   })
 })

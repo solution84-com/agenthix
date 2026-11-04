@@ -87,7 +87,7 @@ function ProgramsCard() {
   const rows = (programs ?? []) as Array<{ id: string; name: string; status: string; _count: { projects: number } }>
   const active = rows.filter(p => p.status === 'active')
   return (
-    <OrgCard title="Programs" to="/programs">
+    <OrgCard title="Programmes" to="/programs">
       <BigNumber value={programs ? active.length : '–'} label="active" />
       {active.slice(0, LIST).map(p => <CardLine key={p.id} left={p.name} right={plural(p._count.projects, 'project')} />)}
       {programs && active.length === 0 && <CardLine left={rows.length === 0 ? 'A goal several projects work towards' : `${plural(rows.length, 'programme')}, none active`} />}

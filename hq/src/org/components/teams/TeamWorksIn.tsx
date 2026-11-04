@@ -15,7 +15,7 @@ export function TeamWorksIn({ team }: { team: TeamDetail }) {
   return (
     <>
       <OrgGroupHeading title={`Works in · ${team.projectCount} ${team.projectCount === 1 ? 'project' : 'projects'}`} />
-      {team.projectCount === 0 && <p className="text-small text-text-muted">Not in a project yet. Add to a project adds every member at once; each can still be removed one by one.</p>}
+      {team.projectCount === 0 && <p className="text-small text-text-muted">Not in a project yet. Add to a project adds every member at once; who is in the team is changed in the team.</p>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {team.projects.map(p => {
           const now = projectCardNow(lineOf.get(p.id), at)

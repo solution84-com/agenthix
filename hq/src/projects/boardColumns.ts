@@ -84,6 +84,30 @@ export function refuseBacklogColumn(columns: Array<{ name: string }>): void {
   }
 }
 
+const isText = (v: unknown): v is string => typeof v === 'string' && v.trim() !== ''
+
+/**
+ * A column list a caller sends to change a board, checked as the screen checks it: at least one column, each with a
+ * name and a label, a state (To do, In progress or Done, in any case), no name twice, and none called Backlog by
+ * name or label. Every field the caller gave stays as given; only the state is put in capitals, and a missing order is
+ * the column's place in the list. Whether a removed column still holds tasks is the board's to check.
+ */
+export function checkedColumns(raw: unknown): BoardColumn[] {
+  const given = parseColumns(raw)
+  if (given.length === 0) throw new HttpError(400, 'A board needs at least one column')
+  const names = new Set<string>()
+  const columns = given.map((c, i) => {
+    if (!c || typeof c !== 'object' || !isText(c.name) || !isText(c.label)) throw new HttpError(400, 'Every column needs a name and a label')
+    const status = typeof c.status === 'string' ? c.status.toUpperCase() : ''
+    if (!STATES.has(status)) throw new HttpError(400, `"${String(c.status)}" is not a state: a column is To do, In progress or Done`)
+    if (names.has(c.name)) throw new HttpError(400, `Two columns are called "${c.name}"; each needs its own name`)
+    names.add(c.name)
+    return { ...c, status, order: typeof c.order === 'number' ? c.order : i }
+  })
+  refuseBacklogColumn(columns.flatMap(c => [{ name: c.name }, { name: c.label }]))
+  return columns
+}
+
 /** The columns a board is made or edited with, numbered in the order given. */
 export function columnsFromInput(input: ColumnInput[] | undefined): BoardColumn[] {
   if (!input || input.length === 0) return DEFAULT_BOARD_COLUMNS

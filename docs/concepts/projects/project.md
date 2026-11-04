@@ -8,12 +8,12 @@ A **Project** is the primary unit of work in Agenthix. It is where tasks are cre
 
 A project is a scoped coordination zone — a bounded space where people define work, assign it to agents, and track progress. It is also a [place](./places.md): it opens on an Overview of its facts and sections, which are tabs across the screen, and a conversation about it is docked beside whatever page is open. It is also one of the two owners of storage, the other being a person ([ADR-0061](../../adr/adr-0061-a-product-and-a-programme-group-work-and-own-nothing.md)): a project's files, artefacts, workspaces and runs belong to the project, and so do its [knowledge](../knowledge/knowledge.md) pages. Storage is described in [workspace.md](../workspace/workspace.md).
 
-Projects are freestanding by default. They can optionally be filed under a Product (what is being built) and/or a Program (what strategic initiative this contributes to), but neither is required, and filing grants nobody anything.
+Projects are freestanding by default. They can optionally be filed under a Product (what is being built) and/or a Programme (what strategic initiative this contributes to), but neither is required, and filing grants nobody anything.
 
 Examples:
-- "Manage my personal life" — standalone, no product, no program
+- "Manage my personal life" — standalone, no product, no programme
 - "Auth overhaul" — linked to Product: *Agenthix Site*
-- "Enterprise SSO" — linked to Product: *Agenthix Site* + Program: *Enterprise Readiness*
+- "Enterprise SSO" — linked to Product: *Agenthix Site* + Programme: *Enterprise Readiness*
 
 ---
 
@@ -37,7 +37,7 @@ erDiagram
 | Relationship | Cardinality | Notes |
 |---|---|---|
 | Project → Product | Many-to-one (optional) | A project contributes to at most one product |
-| Project → Program | Many-to-one (optional) | A project contributes to at most one program |
+| Project → Programme | Many-to-one (optional) | A project contributes to at most one programme |
 | Project → Board | One-to-many | Every project has its **Project Tasks** board, made with it, and may have workflow and sprint boards ([board.md](../tasks/board.md)) |
 | Project → Task | One-to-many | Tasks belong to the project, each on exactly one of its boards — Project Tasks when put on no other |
 | Project → Milestone | One-to-many | Dated goals its epics can belong to ([task.md](../tasks/task.md#plan-epics-and-milestones)) |
@@ -124,7 +124,7 @@ Every person also has a **personal project**, named **My tasks** and shown as **
 ## What it is not
 
 - **Not a Product** — a project is work; a product is the thing being built. Multiple projects can contribute to one product over its lifetime.
-- **Not a Program** — a project is a discrete unit of work; a program is a strategic initiative that may span many projects and products.
+- **Not a Programme** — a project is a discrete unit of work; a programme is a strategic initiative that may span many projects and products.
 - **Not a team** — members belong to a project, not to a product or programme. Anyone in the org may join an open project; a private project admits only the people its admins add.
 
 ---

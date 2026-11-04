@@ -10,7 +10,7 @@ export const WORDS = {
     statuses: [['active', 'Active'], ['sunset', 'Sunset']] as Array<[string, string]>,
   },
   program: {
-    plural: 'Programs', one: 'programme', base: '/programs',
+    plural: 'Programmes', one: 'programme', base: '/programs',
     blurb: 'A goal several projects work towards',
     grouping: 'a programme only groups projects; it owns nothing',
     describe: 'Goal',

@@ -138,6 +138,19 @@ describe('removePerson — their teams @SC-606', () => {
   })
 })
 
+describe('removePerson — their Library maintainer role (#111)', () => {
+  it('ends it with them, and leaves the other maintainers named', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const target = await createUserWithRole('MEMBER')
+    const stays = await createUserWithRole('MEMBER')
+    await prisma.libraryMaintainer.createMany({ data: [{ userId: target.id }, { userId: stays.id }] })
+
+    await removePerson({ userId: target.id }, ctx(admin.id))
+
+    expect((await prisma.libraryMaintainer.findMany()).map(m => m.userId)).toEqual([stays.id])
+  })
+})
+
 describe('removePerson — a project always has an admin @SC-607', () => {
   it('refuses, names every project it would orphan, and changes nothing', async () => {
     const admin = await createUserWithRole('ADMIN')

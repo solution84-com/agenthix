@@ -78,3 +78,18 @@ describe('accepting an invitation that names projects @SC-604', () => {
     expect(rows.filter(r => r.projectId === web.id)).toEqual([{ projectId: web.id, role: 'MEMBER' }])
   })
 })
+
+describe('one invitation accepted by two requests together (F-hq-1-03)', () => {
+  it('makes one account, and the other request is told the invitation is used', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const { token } = await createInvite({ role: 'ADMIN' }, ctx(admin))
+    const accept = (username: string) => acceptInviteToken({ token, name: 'Sam Lee', username, password: 'password123' })
+
+    const results = await Promise.all([accept('sam-one'), accept('sam-two')])
+
+    expect(results.filter(r => 'success' in r)).toHaveLength(1)
+    expect(results.filter(r => 'error' in r && r.status === 410)).toHaveLength(1)
+    expect(await prisma.user.count({ where: { id: { not: admin.id } } })).toBe(1)
+    expect(await prisma.userSettings.count({ where: { role: 'ADMIN' } })).toBe(2)
+  })
+})

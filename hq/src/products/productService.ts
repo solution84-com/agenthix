@@ -1,4 +1,4 @@
-import { prisma } from 'wasp/server'
+import { prisma, HttpError } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
 import { deriveSlug } from '../shared/identifiers'
 import { visibleProjectsFilter } from '../projects/membership'
@@ -48,6 +48,37 @@ const projectsOfProgram = (viewer: ProjectViewer) => ({
   select: { id: true, name: true, key: true, description: true },
 })
 
+// A product or programme that is not there is a 404, never the database's own failure (which answers 500).
+const isMissingRow = (err: unknown): boolean => (err as { code?: string } | null)?.code === 'P2025'
+
+async function orNotFound<T>(what: 'Product' | 'Programme', run: () => Promise<T>): Promise<T> {
+  try {
+    return await run()
+  } catch (err) {
+    if (isMissingRow(err)) throw new HttpError(404, `${what} not found`)
+    throw err
+  }
+}
+
+const SLUG_FORMAT = /^[a-z0-9]+(-[a-z0-9]+)*$/
+
+/** The slug a caller asks for, in the shape a slug has and not taken by another; a name's slug is numbered by the caller instead. */
+function checkedSlug(slug: string, takenByOthers: readonly string[]): string {
+  if (typeof slug !== 'string' || !SLUG_FORMAT.test(slug)) {
+    throw new HttpError(400, 'A slug is lowercase letters and digits, with single hyphens between them')
+  }
+  if (takenByOthers.includes(slug)) throw new HttpError(409, `Slug "${slug}" is already taken`)
+  return slug
+}
+
+const slugsOf = async (kind: 'product' | 'program', exceptId?: string): Promise<string[]> => {
+  const where = exceptId ? { id: { not: exceptId } } : undefined
+  const rows = kind === 'product'
+    ? await prisma.product.findMany({ where, select: { slug: true } })
+    : await prisma.program.findMany({ where, select: { slug: true } })
+  return rows.map(r => r.slug)
+}
+
 // ── Products ──────────────────────────────────────────────────────────────────
 
 export async function listProducts(viewer: ProjectViewer) {
@@ -58,10 +89,12 @@ export async function listProducts(viewer: ProjectViewer) {
 }
 
 export async function getProduct(productId: string, viewer: ProjectViewer) {
-  return prisma.product.findUniqueOrThrow({
+  const product = await prisma.product.findUnique({
     where: { id: productId },
     include: { projects: projectsOfProduct(viewer) },
   })
+  if (!product) throw new HttpError(404, 'Product not found')
+  return product
 }
 
 export async function getProductBySlug(slug: string, viewer: ProjectViewer) {
@@ -69,20 +102,23 @@ export async function getProductBySlug(slug: string, viewer: ProjectViewer) {
     where: { slug },
     include: { projects: projectsOfProduct(viewer) },
   })
-  if (!product) throw new Error(`Product with slug "${slug}" not found`)
+  if (!product) throw new HttpError(404, `Product with slug "${slug}" not found`)
   return product
 }
 
 export async function createProduct(params: {
   name: string
-  slug: string
+  /** Left out, the name's slug is numbered to a free one; given, it must be free. */
+  slug?: string
   description?: string
   vision?: string
   status?: 'active' | 'sunset'
 }) {
   // A product groups projects and owns nothing (ADR-0061) — no files home is
   // provisioned for it. Named fields only: the id is generated.
-  const { name, slug, description, vision, status } = params
+  const { name, description, vision, status } = params
+  const taken = await slugsOf('product')
+  const slug = params.slug && params.slug.trim() ? checkedSlug(deriveSlug(params.slug), taken) : deriveSlug(name, taken)
   return prisma.product.create({ data: { name, slug, description, vision, status } })
 }
 
@@ -95,20 +131,20 @@ export async function updateProduct(params: {
   status?: 'active' | 'sunset'
 }) {
   // Named fields only: the action's args come from the browser.
-  const { productId, name, slug, description, vision, status } = params
-  const product = await prisma.product.update({
+  const { productId, name, description, vision, status } = params
+  const slug = params.slug === undefined ? undefined : checkedSlug(params.slug, await slugsOf('product', productId))
+  return orNotFound('Product', () => prisma.product.update({
     where: { id: productId },
     data: { name, slug, description, vision, status },
     include: { _count: { select: { projects: true } } },
-  })
-  return product
+  }))
 }
 
 export async function deleteProduct(productId: string) {
-  await prisma.$transaction(async (tx) => {
+  await orNotFound('Product', () => prisma.$transaction(async (tx) => {
     await tx.project.updateMany({ where: { productId }, data: { productId: null } })
     await tx.product.delete({ where: { id: productId } })
-  })
+  }))
 }
 
 // ── Programs ──────────────────────────────────────────────────────────────────
@@ -121,10 +157,12 @@ export async function listPrograms(viewer: ProjectViewer) {
 }
 
 export async function getProgram(programId: string, viewer: ProjectViewer) {
-  return prisma.program.findUniqueOrThrow({
+  const program = await prisma.program.findUnique({
     where: { id: programId },
     include: { projects: projectsOfProgram(viewer) },
   })
+  if (!program) throw new HttpError(404, 'Programme not found')
+  return program
 }
 
 export async function getProgramBySlug(slug: string, viewer: ProjectViewer) {
@@ -132,7 +170,7 @@ export async function getProgramBySlug(slug: string, viewer: ProjectViewer) {
     where: { slug },
     include: { projects: projectsOfProgram(viewer) },
   })
-  if (!program) throw new Error(`Program with slug "${slug}" not found`)
+  if (!program) throw new HttpError(404, `Programme with slug "${slug}" not found`)
   return program
 }
 
@@ -142,17 +180,8 @@ export async function createProgram(params: {
   description?: string
   status?: 'planning' | 'active' | 'archived'
 }) {
-  const existingPrograms = await prisma.program.findMany({ select: { slug: true } })
-  const existingSlugs = existingPrograms.map((p: { slug: string }) => p.slug)
-  let slug: string
-  if (params.slug && params.slug.trim()) {
-    slug = deriveSlug(params.slug)
-    if (existingSlugs.includes(slug)) {
-      throw new Error(`Slug "${slug}" is already taken`)
-    }
-  } else {
-    slug = deriveSlug(params.name, existingSlugs)
-  }
+  const existingSlugs = await slugsOf('program')
+  const slug = params.slug && params.slug.trim() ? checkedSlug(deriveSlug(params.slug), existingSlugs) : deriveSlug(params.name, existingSlugs)
   // A programme groups projects and owns nothing (ADR-0061) — no files home is
   // provisioned for it. Named fields only: the id is generated.
   const { name, description, status } = params
@@ -166,18 +195,18 @@ export async function updateProgram(params: {
   description?: string | null
   status?: 'planning' | 'active' | 'archived'
 }) {
-  const { programId, name, slug, description, status } = params
-  const program = await prisma.program.update({
+  const { programId, name, description, status } = params
+  const slug = params.slug === undefined ? undefined : checkedSlug(params.slug, await slugsOf('program', programId))
+  return orNotFound('Programme', () => prisma.program.update({
     where: { id: programId },
     data: { name, slug, description, status },
     include: { _count: { select: { projects: true } } },
-  })
-  return program
+  }))
 }
 
 export async function deleteProgram(programId: string) {
-  await prisma.$transaction(async (tx) => {
+  await orNotFound('Programme', () => prisma.$transaction(async (tx) => {
     await tx.project.updateMany({ where: { programId }, data: { programId: null } })
     await tx.program.delete({ where: { id: programId } })
-  })
+  }))
 }

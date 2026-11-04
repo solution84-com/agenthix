@@ -12,6 +12,10 @@ import { MEMBERSHIP_METHODS } from '@agenthix/core'
 import { prisma } from '../../test/db'
 import { createUser, createUserWithRole, createAgent, createProduct, createProgram, createProject, createSession, ensureExecutionSite } from '../../test/factories'
 import { makeTask } from './projectsHarness'
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import { getTaskAttachmentsDir } from '../../server/hqStoragePaths'
 
 const files = vi.hoisted(() => ({ removeLocationOnSite: vi.fn() }))
 vi.mock('../../storage/locationFileStore', async (importOriginal) => ({
@@ -38,6 +42,7 @@ const SITE = 'site-1'
 const as = (user: { id: string } | null) => ({ user: user ?? undefined }) as any
 
 beforeEach(async () => {
+  process.env.HQ_STORAGE_ROOT = await fs.mkdtemp(path.join(os.tmpdir(), 'project-change-'))
   files.removeLocationOnSite.mockReset().mockResolvedValue({ removed: true })
   channel.isOnline.mockReset().mockReturnValue(false)
   await ensureExecutionSite({ siteId: SITE })
@@ -104,6 +109,74 @@ describe('updateProject — each act is gated by whoever it belongs to @SC-304',
     await updateProject({ projectId: personal.id, name: 'Home' }, as(owner))
 
     expect(await row(personal.id)).toMatchObject({ name: 'Home', productId: null })
+  })
+})
+
+describe('updateProject — arguments are checked (F-hq-4-03)', () => {
+  it('answers 400 naming the project, never a 500, when projectId is missing', async () => {
+    const { orgAdmin } = await projectWithAdmin()
+    await expect(updateProject({ name: 'X' } as never, as(orgAdmin))).rejects.toMatchObject({ statusCode: 400, message: 'A project id is required' })
+    await expect(updateProject({ productId: null } as never, as(orgAdmin))).rejects.toMatchObject({ statusCode: 400, message: 'A project id is required' })
+    await expect(deleteProject({} as never, as(orgAdmin))).rejects.toMatchObject({ statusCode: 400, message: 'A project id is required' })
+  })
+
+  it.each([
+    ['an empty name', { name: '' }],
+    ['a name that is not text', { name: 4 }],
+    ['a very long name', { name: 'x'.repeat(500) }],
+    ['a description that is not text', { description: { a: 1 } }],
+  ])('refuses %s (400) and changes nothing', async (_what, change) => {
+    const { project, projectAdmin } = await projectWithAdmin()
+    await expect(updateProject({ projectId: project.id, ...change } as never, as(projectAdmin))).rejects.toMatchObject({ statusCode: 400 })
+    expect(await row(project.id)).toMatchObject({ name: 'Original' })
+  })
+
+  // Filing is the org admin's act, so who may do it is asked first; the malformed id is refused for the one who may.
+  it('refuses a product id that is not text (400) for an org admin, and a project admin is refused first (403)', async () => {
+    const { project, projectAdmin, orgAdmin } = await projectWithAdmin()
+    await expect(updateProject({ projectId: project.id, productId: 3 } as never, as(orgAdmin))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(updateProject({ projectId: project.id, productId: 3 } as never, as(projectAdmin))).rejects.toMatchObject({ statusCode: 403 })
+    expect(await row(project.id)).toMatchObject({ productId: null })
+  })
+})
+
+describe('deleteProject leaves nothing of the project behind (#98, F-hq-6-05)', () => {
+  it('deletes its place skills with their versions and drafts, its proposals, and releases their content', async () => {
+    const { project, orgAdmin } = await projectWithAdmin()
+    const other = await createProject()
+    const mkContent = (digest: string) => prisma.packageContent.create({ data: { digest, formatVersion: 1 } })
+    for (const d of ['d-version', 'd-draft', 'd-proposal', 'd-other']) await mkContent(d)
+    const skill = await prisma.placeSkill.create({ data: { placeType: 'project', placeId: project.id, path: '.agents/skills/a', group: 'PLACE' } })
+    await prisma.placeSkillVersion.create({ data: { placeSkillId: skill.id, number: 1, digest: 'd-version' } })
+    await prisma.draft.create({ data: { placeSkillId: skill.id, digest: 'd-draft' } })
+    await prisma.proposal.create({ data: { aim: 'PROJECT', placeId: project.id, name: 'a', description: 'b', digest: 'd-proposal' } })
+    const kept = await prisma.placeSkill.create({ data: { placeType: 'project', placeId: other.id, path: '.agents/skills/b', group: 'PLACE' } })
+    await prisma.placeSkillVersion.create({ data: { placeSkillId: kept.id, number: 1, digest: 'd-other' } })
+
+    await deleteProject({ projectId: project.id }, as(orgAdmin))
+
+    expect(await prisma.placeSkill.findMany({ select: { id: true } })).toEqual([{ id: kept.id }])
+    expect(await prisma.placeSkillVersion.count()).toBe(1)
+    expect(await prisma.draft.count()).toBe(0)
+    expect(await prisma.proposal.count()).toBe(0)
+    const released = (await prisma.packageContent.findMany({ where: { releasedAt: { not: null } } })).map(c => c.digest).sort()
+    expect(released).toEqual(['d-draft', 'd-proposal', 'd-version'])
+  })
+
+  it("removes its tasks' attachment files from hq's disk", async () => {
+    const { project, orgAdmin } = await projectWithAdmin()
+    const task = await makeTask(project.id)
+    const kept = await makeTask((await createProject()).id)
+    const dir = (id: string) => getTaskAttachmentsDir(id)
+    for (const id of [task.id, kept.id]) {
+      await fs.mkdir(path.join(dir(id), 'u1'), { recursive: true })
+      await fs.writeFile(path.join(dir(id), 'u1', 'a.txt'), 'x')
+    }
+
+    await deleteProject({ projectId: project.id }, as(orgAdmin))
+
+    await expect(fs.stat(dir(task.id))).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(fs.stat(dir(kept.id))).resolves.toBeTruthy()
   })
 })
 

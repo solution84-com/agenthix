@@ -17,7 +17,7 @@ import {
 } from './productService'
 
 export const createProduct: CreateProduct<
-  { name: string; slug: string; description?: string; vision?: string; status?: 'active' | 'sunset' },
+  { name: string; slug?: string; description?: string; vision?: string; status?: 'active' | 'sunset' },
   any
 > = async (args, context) => {
   await requireRole(context, 'ADMIN', 'Creating a product')

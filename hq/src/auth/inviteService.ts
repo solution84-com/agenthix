@@ -6,7 +6,7 @@
  */
 import { prisma } from 'wasp/server'
 import type { Invite } from '@prisma/client'
-import { consumeRateLimit, isRateLimited, resetRateLimit } from '../server/rateLimit'
+import { resetRateLimit } from '../server/rateLimit'
 import { hashInviteToken } from './inviteToken'
 import { personById } from '../server/identity/people'
 import { openFirstAdminKey } from './firstAdmin'
@@ -14,21 +14,7 @@ import { glimpseOfPeople, invitedProjects, type GlimpsePerson, type InvitedProje
 import { readOrgCard, readPublicOrgIdentity, type PublicOrgIdentity } from '../org/publicIdentity'
 import { BRANDING } from '@agenthix/core'
 
-// ── Rate limiter (DB-backed) ──────────────────────────────────────────
-// Per address, and only failed code attempts count: a person signing up
-// through an invite makes several requests and must not use up the budget,
-// while someone guessing codes (or the first-admin key) does.
-export const RATE_LIMIT_MAX = 10
-export const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000
-const INVITE_RULE = { max: RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS }
-
-export function isInviteRateLimited(ip: string): Promise<boolean> {
-  return isRateLimited(ip, INVITE_RULE)
-}
-
-export async function recordFailedInviteAttempt(ip: string): Promise<void> {
-  await consumeRateLimit(ip, INVITE_RULE)
-}
+export { RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, isInviteRateLimited, recordFailedInviteAttempt } from './inviteLimit'
 
 /** A refusal of the code itself — not found, revoked, used, expired — as opposed to a refusal of the form. */
 export function isCodeRefusal(status: number): boolean {

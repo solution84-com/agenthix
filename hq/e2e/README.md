@@ -128,6 +128,10 @@ seeded accounts (`fixtures/auth.ts`, `fixtures/seed-e2e-users.mjs`) and has no
 browser-level reset. Several specs change data, so never point it at a database
 whose data you need.
 
+A run first checks that both seeded accounts can sign in (the `seeded-accounts` project) and stops with
+what to run if they cannot, so a database that was just reset does not fail every spec at sign-in and trip
+the sign-in limit, which then refuses the whole run for 15 minutes.
+
 ## Test level per finding
 
 Not every audit finding belongs in the browser. Data-path findings are proven

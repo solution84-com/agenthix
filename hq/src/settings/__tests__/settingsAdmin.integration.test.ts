@@ -36,6 +36,24 @@ describe('updateUserRole @SC-096', () => {
     expect((await prisma.userSettings.findUniqueOrThrow({ where: { userId: member.id } })).role).toBe('ADMIN')
   })
 
+  it('refuses a value that is not a role, an unknown id, and a person who has left or been erased, writing nothing (F-hq-24-01)', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    const member = await createUserWithRole('MEMBER')
+    const left = await createUserWithRole('MEMBER')
+    await prisma.user.update({ where: { id: left.id }, data: { deactivatedAt: new Date() } })
+    const erased = await createUser()
+    await prisma.user.update({ where: { id: erased.id }, data: { erasedAt: new Date() } })
+
+    await expect(updateUserRole({ userId: member.id, role: 'OWNER' as never }, ctx(admin))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(updateUserRole({ userId: 'no-such-person', role: 'ADMIN' }, ctx(admin))).rejects.toMatchObject({ statusCode: 404 })
+    await expect(updateUserRole({ userId: left.id, role: 'ADMIN' }, ctx(admin))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(updateUserRole({ userId: erased.id, role: 'ADMIN' }, ctx(admin))).rejects.toMatchObject({ statusCode: 400 })
+
+    expect((await prisma.userSettings.findUniqueOrThrow({ where: { userId: member.id } })).role).toBe('MEMBER')
+    expect((await prisma.userSettings.findUniqueOrThrow({ where: { userId: left.id } })).role).toBe('MEMBER')
+    expect(await prisma.userSettings.findUnique({ where: { userId: erased.id } })).toBeNull()
+  })
+
   it('refuses changing your own role (400)', async () => {
     const admin = await createUserWithRole('ADMIN')
     await expect(updateUserRole({ userId: admin.id, role: 'MEMBER' }, ctx(admin))).rejects.toMatchObject({ statusCode: 400 })

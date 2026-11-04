@@ -20,6 +20,7 @@ import { projectTasksBoardCreate } from './boardColumns'
 import { requireRole } from '../server/identity/requireRole'
 import { Logger } from '../server/utils/logger'
 import { KERNEL_HANDLE } from '../agents/kernelGuards'
+import { requireId } from './requireId'
 
 const logger = new Logger('PersonalProject')
 
@@ -29,6 +30,7 @@ export const PERSONAL_PROJECT_NAME = 'My tasks'
 
 /** The person a project is personal to, or null for any other project (or none). */
 export async function personalOwnerOf(projectId: string): Promise<string | null> {
+  requireId(projectId, 'project')
   const project = await prisma.project.findUnique({ where: { id: projectId }, select: { personalOwnerId: true } })
   return project?.personalOwnerId ?? null
 }
@@ -71,6 +73,7 @@ export async function isSpaceProject(projectId: string): Promise<boolean> {
  */
 export async function requireMayDeleteProject(context: { user?: { id: string } | null }, projectId: string): Promise<void> {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
+  requireId(projectId, 'project')
   const project = await prisma.project.findUnique({ where: { id: projectId }, select: { personalOwnerId: true, personalSpace: true } })
   if (!project?.personalOwnerId) {
     // Destroying a boundary is structure, symmetric with creating one (§6.4's org-admin column).
@@ -89,25 +92,26 @@ export async function refuseOnPersonalProject(projectId: string, act: string): P
 }
 
 /**
- * A task and a board may sit in different projects (`Task.boardId` and
- * `Task.projectId` are independent), and nothing stops that in general. Across
- * a personal project's edge it would show one person's task on a board others
- * see, or put others' work on a board only one person sees, so it is refused.
+ * `Task.boardId` and `Task.projectId` are independent columns, but a board shows only its own project's tasks
+ * (`boardView.ts`), so a task put on another project's board would show on no board at all. Across a personal
+ * project's edge it would also show one person's task on a board others see, or put others' work on a board only
+ * one person sees. Either way it is refused.
  */
-export async function refuseBoardAcrossPersonalEdge(taskProjectId: string, boardId: string | undefined | null): Promise<void> {
+export async function refuseBoardOfAnotherProject(taskProjectId: string, boardId: string | undefined | null): Promise<void> {
   if (!boardId) return
   const board = await prisma.board.findUnique({ where: { id: boardId }, select: { projectId: true } })
   if (!board || board.projectId === taskProjectId) return
-  if ((await isPersonalProject(taskProjectId)) || (await isPersonalProject(board.projectId))) {
-    throw new HttpError(400, "A task cannot be placed on a board in another project when either is a personal project")
-  }
+  const personal = (await isPersonalProject(taskProjectId)) || (await isPersonalProject(board.projectId))
+  throw new HttpError(400, personal
+    ? 'A task cannot be placed on a board in another project when either is a personal project'
+    : 'A task cannot be placed on a board in another project; move it to one of its own project\'s boards')
 }
 
-/** `refuseBoardAcrossPersonalEdge` for an existing task, named by id. */
-export async function refuseMoveAcrossPersonalEdge(taskId: string, boardId: string | undefined | null): Promise<void> {
+/** `refuseBoardOfAnotherProject` for an existing task, named by id. */
+export async function refuseMoveToBoardOfAnotherProject(taskId: string, boardId: string | undefined | null): Promise<void> {
   if (!boardId) return
   const task = await prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true } })
-  if (task) await refuseBoardAcrossPersonalEdge(task.projectId, boardId)
+  if (task) await refuseBoardOfAnotherProject(task.projectId, boardId)
 }
 
 export type TaskRunOwner = {

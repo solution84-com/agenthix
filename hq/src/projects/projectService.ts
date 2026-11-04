@@ -12,12 +12,13 @@ import { HttpError } from 'wasp/server'
 import { SITE_PROTOCOL_VERSION, checkProtocolCompatibility } from '@agenthix/core'
 import { provisionProjectFiles } from '../storage/filesService'
 import { deriveProjectKey, deriveSlug } from '../shared/identifiers'
+import { checkedLinkId, checkedProjectDescription, checkedProjectName } from './projectFields'
+import { requireId } from './requireId'
 import { RESERVED_PROJECT_KEYS, reservedKeyRefusal, reservedSlugRefusal } from './reservedNames'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
 import { taskSessionsWhere } from '../sessions/taskSessionDeletion'
 import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
 import { recordActivity } from '../server/dashboard/activity'
-import { entitledProjectsFilter } from './membership'
 import { projectTasksBoardCreate } from './boardColumns'
 import { startingRoster } from './personalProject'
 import { Logger } from '../server/utils/logger'
@@ -26,6 +27,8 @@ import { upgradeSide } from '../sites/siteStanding'
 import { closeTaskThreads, declineWaitingInThreads } from '../conversations/taskThread/lifecycle'
 import { profileForNewProject } from '../billing/profiles'
 import { deletePlaceRecordsOf } from '../secrets/placeDeletion'
+import { projectSkillErasure } from './projectSkillErase'
+import { removeTaskAttachmentFolders } from './taskAttachmentFiles'
 
 const logger = new Logger('Projects')
 
@@ -37,20 +40,6 @@ export * from './taskPlanService'
 export * from './agentAssignment'
 
 // ── Projects ──────────────────────────────────────────────────────────────────
-
-/**
- * `entitledToUserId` narrows the listing to the projects that person is
- * entitled to, exactly as the browser's own project listing does
- * (`getProjects`'s `entitledProjectsFilter`): not seeing a private project you
- * are not on is what private means. See `listBoards` in boardService for why it is
- * optional.
- */
-export async function listProjects(entitledToUserId?: string) {
-  return prisma.project.findMany({
-    where: entitledToUserId ? entitledProjectsFilter(entitledToUserId) : undefined,
-    orderBy: { createdAt: 'desc' },
-  })
-}
 
 /**
  * `executionSiteId` is required, not optional. A project's workspace is real
@@ -108,6 +97,8 @@ export async function createProject(params: {
   /** A shared project's billing profile, as its creator picked it; the default when absent (billing/profiles.ts). */
   billingProfileId?: string
 }) {
+  const checkedName = checkedProjectName(params.name)
+  const checkedDescription = checkedProjectDescription(params.description) ?? undefined
   if (!params.executionSiteId) {
     throw new HttpError(400, 'Pick an Execution Site to create the project on')
   }
@@ -134,16 +125,20 @@ export async function createProject(params: {
 
   // A personal project names no slug: a slug taken would tell another person the name was in use.
   const personalOwnerId = params.personalOwnerId
-  const slug = personalOwnerId ? null : deriveSlug(params.name)
-  const reserved = slug ? reservedSlugRefusal(slug) : null
+  // The name's slug is numbered to a free one, so a second project named alike (or named in no Latin letters, which all give
+  // the same slug) is made, not refused.
+  const reserved = personalOwnerId ? null : reservedSlugRefusal(deriveSlug(checkedName))
   if (reserved) throw new HttpError(400, reserved)
-  const existing = slug ? await prisma.project.findUnique({ where: { slug } }) : null
-  if (existing) throw new Error(`A project with slug "${slug}" already exists. Choose a different name.`)
+  const takenSlugs = personalOwnerId ? [] : (await prisma.project.findMany({ where: { slug: { not: null } }, select: { slug: true } })).flatMap(p => p.slug ?? [])
+  const slug = personalOwnerId ? null : deriveSlug(checkedName, takenSlugs)
 
   const existingKeys = (await prisma.project.findMany({ select: { key: true } })).map(p => p.key)
+  if (params.key !== undefined && typeof params.key !== 'string') {
+    throw new HttpError(400, 'Project key must be 2–6 uppercase letters')
+  }
   const key = params.key
     ? params.key.toUpperCase()
-    : deriveProjectKey(params.name, [...existingKeys, ...RESERVED_PROJECT_KEYS])
+    : deriveProjectKey(checkedName, [...existingKeys, ...RESERVED_PROJECT_KEYS])
   if (RESERVED_PROJECT_KEYS.includes(key)) throw new HttpError(400, reservedKeyRefusal(key))
 
   if (!/^[A-Z]{2,6}$/.test(key)) {
@@ -157,7 +152,9 @@ export async function createProject(params: {
   const billingProfileId = personalOwnerId ? null : await profileForNewProject(params.billingProfileId)
 
   // Named fields only: the id is generated, and the project's folders are built from it (spec §4.28).
-  const { name, description, productId, programId, defaultAgentId, executionSiteId } = params
+  const { productId, programId, defaultAgentId, executionSiteId } = params
+  const name = checkedName
+  const description = checkedDescription
   // Made with its Project Tasks, so work has somewhere to go from the start (adr-0097).
   const project = await prisma.project.create({
     data: {
@@ -165,6 +162,12 @@ export async function createProject(params: {
       ...(personalOwnerId ? { accessLevel: 'PRIVATE' as const, personalOwnerId, ...(await startingRoster()) } : {}),
       boards: { create: projectTasksBoardCreate() },
     },
+  }).catch((err: unknown) => {
+    // Two creates racing past the checks above meet the unique columns: the loser is told so, not given a 500.
+    if ((err as { code?: string } | null)?.code === 'P2002') {
+      throw new HttpError(409, 'Another project was made with that name or key a moment ago. Try again.')
+    }
+    throw err
   })
   await appointFirstProjectAdmin(project.id, personalOwnerId ?? params.createdByUserId)
   // Provision the project's files/ home with ROADMAP.md bootstrap (ADR-0039 §1 + ADR-0031).
@@ -218,21 +221,29 @@ export async function updateProject(params: {
   // and the client posts whatever it likes. Spreading would let `accessLevel`
   // through, past the project-admin gate setProjectAccessLevel applies to it,
   // and would carry nested relation writes into Prisma.
-  const { projectId, name, description, productId, programId, defaultAgentId } = params
+  const { projectId, productId, programId, defaultAgentId } = params
+  requireId(projectId, 'project')
   const data: {
     name?: string
-    description?: string
+    description?: string | null
     productId?: string | null
     programId?: string | null
     defaultAgentId?: string | null
     key?: string
   } = {}
-  if (name !== undefined) data.name = name
+  if (params.name !== undefined) data.name = checkedProjectName(params.name)
+  const description = checkedProjectDescription(params.description)
   if (description !== undefined) data.description = description
-  if (productId !== undefined) data.productId = productId
-  if (programId !== undefined) data.programId = programId
-  if (defaultAgentId !== undefined) data.defaultAgentId = defaultAgentId
-  if (params.key !== undefined) data.key = params.key
+  const checkedProduct = checkedLinkId(productId, 'product')
+  if (checkedProduct !== undefined) data.productId = checkedProduct
+  const checkedProgram = checkedLinkId(programId, 'programme')
+  if (checkedProgram !== undefined) data.programId = checkedProgram
+  const checkedAgent = checkedLinkId(defaultAgentId, 'agent')
+  if (checkedAgent !== undefined) data.defaultAgentId = checkedAgent
+  if (params.key !== undefined) {
+    if (typeof params.key !== 'string') throw new HttpError(400, 'Project key must be 2–6 uppercase letters')
+    data.key = params.key
+  }
 
   if (data.key !== undefined) {
     const taskCount = await prisma.task.count({ where: { projectId } })
@@ -263,6 +274,7 @@ export async function deleteProject(
   alsoInTransaction?: (tx: Prisma.TransactionClient) => Promise<unknown>,
 ) {
   let closedThreads: string[] = []
+  const taskIds = (await prisma.task.findMany({ where: { projectId }, select: { id: true } })).map(t => t.id)
   await prisma.$transaction(async (tx) => {
     await alsoInTransaction?.(tx)
     closedThreads = await closeTaskThreads(tx, { projectId }, 'PROJECT_DELETED')
@@ -273,8 +285,10 @@ export async function deleteProject(
     // A project's model list is keyed by its id, not a relation, so it cascades from nothing.
     await tx.modelList.deleteMany({ where: { owner: 'project', ownerId: projectId } })
     await Promise.all(deletePlaceRecordsOf(tx, [{ type: 'project', id: projectId }]))
+    await projectSkillErasure(tx, projectId)
     await tx.project.delete({ where: { id: projectId } })
   })
+  await removeTaskAttachmentFolders(taskIds)
   await declineWaitingInThreads(closedThreads)
   triggerSnapshotPush()
   void leaveRoomsNoLongerAllowed()

@@ -94,16 +94,20 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
     await expect(page.getByRole('heading', { name: 'Voice' })).toBeVisible()
     await expect(page.getByRole('button', { name: /^continue$/i })).toBeDisabled()
 
+    // A provider's form stays drawn until the refetched list shows it working, so each Save is the open form's own,
+    // and the next provider is chosen only once the first form has given way to its "works" line.
+    const openForm = page.locator('form').filter({ has: page.getByLabel(/^api key/i) })
+
     await page.getByRole('button', { name: /^AssemblyAI/ }).click()
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
-    await page.getByRole('button', { name: /^save$/i }).click()
-    await expect(page.getByText('AssemblyAI').first()).toBeVisible()
+    await openForm.getByRole('button', { name: /^save$/i }).click()
+    await expect(page.getByText(/AssemblyAI works\. Added by you\./)).toBeVisible()
     // One of the two is not enough to continue; skipping would keep it.
     await expect(page.getByRole('button', { name: /^continue$/i })).toBeDisabled()
 
     await page.getByRole('button', { name: /^Inworld/ }).click()
     await page.getByLabel(/^api key/i).fill('sk-test-fake')
-    await page.getByRole('button', { name: /^save$/i }).click()
+    await openForm.getByRole('button', { name: /^save$/i }).click()
     await expect(page.getByRole('button', { name: /^continue$/i })).toBeEnabled()
     await expect(page.getByRole('button', { name: 'Skip for now' })).toHaveCount(0)
   })

@@ -208,7 +208,7 @@ Also said: offering, line of business.
 
 ## Programme
 
-A goal several projects work towards; projects can be filed under it. The card spells it **Programs**. Where: the **Programs** card on your organisation's **Overview** (`/programs`).
+A goal several projects work towards; projects can be filed under it. Where: the **Programmes** card on your organisation's **Overview** (`/programs`).
 Also said: program, initiative, campaign.
 
 ## Project

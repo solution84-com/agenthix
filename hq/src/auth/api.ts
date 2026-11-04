@@ -4,12 +4,8 @@ import type {
   AcceptInviteApi,
 } from 'wasp/server/api'
 import { prisma } from 'wasp/server'
-import {
-  isInviteRateLimited,
-  recordFailedInviteAttempt,
-  isCodeRefusal,
-  validateToken,
-} from './inviteService'
+import { isCodeRefusal, validateToken } from './inviteService'
+import { attemptInviteCode } from './inviteLimit'
 import { acceptInviteToken } from './inviteAccept'
 import { passwordProblem } from './passwordRules'
 import { personById } from '../server/identity/people'
@@ -18,14 +14,14 @@ const TOO_MANY = { error: 'Too many failed attempts. Try again in 15 minutes.', 
 
 export const validateInviteHandler: ValidateInviteApi = async (req, res) => {
   const ip = req.ip ?? 'unknown'
-  if (await isInviteRateLimited(ip)) return res.status(429).json(TOO_MANY)
   const { token } = req.body
   if (!token || typeof token !== 'string') {
     return res.status(400).json({ error: 'token required' })
   }
-  const result = await validateToken(token)
+  const attempt = await attemptInviteCode(ip, () => validateToken(token), r => !r.valid && isCodeRefusal(r.status))
+  if (attempt.limited) return res.status(429).json(TOO_MANY)
+  const result = attempt.result
   if (!result.valid) {
-    if (isCodeRefusal(result.status)) await recordFailedInviteAttempt(ip)
     const { status, ...body } = result
     return res.status(status).json(body)
   }
@@ -47,16 +43,20 @@ export const acceptInviteApiHandler: AcceptInviteApi = async (req, res, context)
     })
   }
   const ip = req.ip ?? 'unknown'
-  if (await isInviteRateLimited(ip)) return res.status(429).json(TOO_MANY)
   const { token, name, username, password } = req.body ?? {}
   if (![token, name, username, password].every(v => typeof v === 'string' && v !== '')) {
     return res.status(400).json({ error: 'token, name, username and password are required' })
   }
   const problem = passwordProblem(password)
   if (problem) return res.status(400).json({ error: problem, reason: 'password' })
-  const result = await acceptInviteToken({ token, name, username, password })
+  const attempt = await attemptInviteCode(
+    ip,
+    () => acceptInviteToken({ token, name, username, password }),
+    r => 'error' in r && isCodeRefusal(r.status),
+  )
+  if (attempt.limited) return res.status(429).json(TOO_MANY)
+  const result = attempt.result
   if ('error' in result) {
-    if (isCodeRefusal(result.status)) await recordFailedInviteAttempt(ip)
     const { status, ...body } = result
     return res.status(status).json(body)
   }

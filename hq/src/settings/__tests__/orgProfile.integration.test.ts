@@ -75,6 +75,21 @@ describe('updateOrg @SC-095', () => {
     expect(await getCurrentPackage('org', org.id)).not.toBeNull()
   })
 
+  it('refuses an empty or non-text name (400), changing nothing (F-hq-12+13-04)', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    await prisma.org.create({ data: { name: 'My Organisation' } })
+    for (const name of ['', '   ', 7 as never, undefined as never]) {
+      await expect(updateOrg({ ...args, name }, ctx(admin))).rejects.toMatchObject({ statusCode: 400 })
+    }
+    expect((await prisma.org.findFirstOrThrow()).name).toBe('My Organisation')
+  })
+
+  it('writes only the named fields when it creates the row', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    await updateOrg({ ...args, handle: 'sneaky', avatarUrl: 'x' } as never, ctx(admin))
+    expect(await prisma.org.findFirstOrThrow()).toMatchObject({ handle: null, avatarUrl: null })
+  })
+
   it('rolls the org row back when the package write fails (400)', async () => {
     const admin = await createUserWithRole('ADMIN')
     await prisma.org.create({ data: { name: 'My Organisation' } })

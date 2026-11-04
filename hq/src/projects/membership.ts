@@ -16,6 +16,7 @@
  * list, and nothing more. A private project they are not in stays out of reach.
  */
 import { HttpError, prisma } from 'wasp/server'
+import { requireId } from './requireId'
 
 export type ProjectRole = 'ADMIN' | 'MEMBER' | 'VIEWER'
 
@@ -104,6 +105,7 @@ export async function requireProjectMember(projectId: string, userId: string, wh
 }
 
 export async function projectRole(projectId: string, userId: string): Promise<ProjectRole | null> {
+  requireId(projectId, 'project')
   const row = await prisma.projectMember.findUnique({
     where: { projectId_userId: { projectId, userId } },
     select: { role: true },

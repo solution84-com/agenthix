@@ -88,8 +88,15 @@ async function acceptInvitation(invite: Invite, account: { username: string; has
     if (!fresh || fresh.consumedAt || fresh.revokedAt) return 'gone' as const
     if (await usernameTaken(tx, account.username)) return 'taken' as const
 
+    // The invitation is spent before the account is made, by a write only one of two requests arriving
+    // together can win: the other waits for it, finds the invitation spent and makes nothing.
+    const spent = await tx.invite.updateMany({
+      where: { id: fresh.id, consumedAt: null, revokedAt: null },
+      data: { consumedAt: new Date() },
+    })
+    if (spent.count !== 1) return 'gone' as const
     const user = await createUserWithRole(tx, account, fresh.role as Role)
-    await tx.invite.update({ where: { id: fresh.id }, data: { consumedAt: new Date(), consumedBy: user.id } })
+    await tx.invite.update({ where: { id: fresh.id }, data: { consumedBy: user.id } })
 
     // The projects it names, as a Member — those that still exist and are not someone's own —
     // each pinned for them, in the order the admin named them.

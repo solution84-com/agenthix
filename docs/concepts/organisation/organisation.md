@@ -42,7 +42,7 @@ An admin's first screen is the [admin area](admin-area.md)'s **Overview**:
 ## The workplace
 
 A card for each part: **People** (faces, invitations waiting for admins), **Agents** (what needs you, what is
-running), **Teams** (each team's mix), **Products** (each with its projects), **Programs** (the active ones) and
+running), **Teams** (each team's mix), **Products** (each with its projects), **Programmes** (the active ones) and
 **Library** (counts by kind, made here, the marketplace). Each opens its part:
 [Teams](../projects/teams.md), [Products](../projects/product.md), [Programs](../projects/program.md) and the
 [Library](../library/library.md). `getWorkplacePeople` gives everyone the people card; People itself is for admins.

@@ -56,7 +56,9 @@ export function MembersListScreen({ projectId, url }: { projectId: string; url: 
     ...(agentView.canManage ? [{ label: 'An agent', hint: "From the organisation's agents", onSelect: url.toAddAgent }] : []),
     ...(mayManagePeople ? [{ label: 'A team', hint: 'Everyone in it, at once', onSelect: url.toAddTeam }] : []),
   ]
-  const total = (teamsQ.data?.teams.length ?? 0) + view.people.length + agentView.agents.length
+  // People and agents are the members, as the All chip counts them; teams are named beside, not added in.
+  const total = view.people.length + agentView.agents.length
+  const teamCount = teamsQ.data?.teams.length ?? 0
   const chip = (id: Filter, label: string, n: number) => (
     <button
       key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}
@@ -70,13 +72,13 @@ export function MembersListScreen({ projectId, url }: { projectId: string; url: 
     <div className="pb-6" data-testid="members-list">
       <div className="flex items-center justify-between gap-2 px-4 pt-4">
         <p className="text-small text-text-muted">
-          {view.project.accessLevel === 'OPEN' ? 'Open project' : 'Private project'} · {total} {total === 1 ? 'member' : 'members'}
+          {view.project.accessLevel === 'OPEN' ? 'Open project' : 'Private project'} · {total} {total === 1 ? 'member' : 'members'}{teamCount > 0 && ` · ${teamCount} ${teamCount === 1 ? 'team' : 'teams'}`}
         </p>
         {addItems.length > 0 && <MenuButton items={addItems}>＋ Add</MenuButton>}
       </div>
       <div className="flex flex-wrap items-center gap-2 px-4 pt-3">
         <div role="group" aria-label="Show" className="flex gap-1">
-          {chip('all', 'All', view.people.length + agentView.agents.length)}
+          {chip('all', 'All', total)}
           {chip('people', 'People', view.people.length)}
           {chip('agents', 'Agents', agentView.agents.length)}
         </div>

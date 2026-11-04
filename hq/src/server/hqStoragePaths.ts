@@ -59,6 +59,11 @@ export function getTaskAttachmentDir(taskId: string, uuid: string): string {
   return path.join(getHqStorageRoot(), 'tasks', taskId, uuid)
 }
 
+/** Every attachment of one task: the folder that goes when the task does. */
+export function getTaskAttachmentsDir(taskId: string): string {
+  return path.join(getHqStorageRoot(), 'tasks', taskId)
+}
+
 /**
  * Where the cached voice-preview list, sample phrases and synthesised audio
  * live (voice/voiceCache.ts). Org-global — not keyed to anything, since the

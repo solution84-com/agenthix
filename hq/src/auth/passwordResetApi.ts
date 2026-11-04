@@ -5,19 +5,20 @@
  * guessed. Setting is refused while signed in: the page signs out first.
  */
 import type { ReadPasswordResetApi, CompletePasswordResetApi } from 'wasp/server/api'
-import { isCodeRefusal, isInviteRateLimited, recordFailedInviteAttempt } from './inviteService'
+import { isCodeRefusal } from './inviteService'
+import { attemptInviteCode } from './inviteLimit'
 import { completePasswordReset, readPasswordReset } from './passwordReset'
 
 const TOO_MANY = { error: 'Too many failed attempts. Try again in 15 minutes.', reason: 'rate_limited' }
 
 export const readPasswordResetHandler: ReadPasswordResetApi = async (req, res) => {
   const ip = req.ip ?? 'unknown'
-  if (await isInviteRateLimited(ip)) return res.status(429).json(TOO_MANY)
   const token = req.body?.token
   if (typeof token !== 'string' || !token) return res.status(400).json({ error: 'token required' })
-  const result = await readPasswordReset(token)
+  const attempt = await attemptInviteCode(ip, () => readPasswordReset(token), r => 'status' in r && isCodeRefusal(r.status))
+  if (attempt.limited) return res.status(429).json(TOO_MANY)
+  const result = attempt.result
   if ('status' in result) {
-    if (isCodeRefusal(result.status)) await recordFailedInviteAttempt(ip)
     const { status, ...body } = result
     return res.status(status).json(body)
   }
@@ -29,14 +30,14 @@ export const completePasswordResetHandler: CompletePasswordResetApi = async (req
     return res.status(409).json({ reason: 'signed_in', error: 'Sign out first: this link sets the password of the account it names.' })
   }
   const ip = req.ip ?? 'unknown'
-  if (await isInviteRateLimited(ip)) return res.status(429).json(TOO_MANY)
   const { token, password } = req.body ?? {}
   if (typeof token !== 'string' || !token || typeof password !== 'string') {
     return res.status(400).json({ error: 'token and password are required' })
   }
-  const result = await completePasswordReset(token, password)
+  const attempt = await attemptInviteCode(ip, () => completePasswordReset(token, password), r => 'status' in r && isCodeRefusal(r.status))
+  if (attempt.limited) return res.status(429).json(TOO_MANY)
+  const result = attempt.result
   if ('status' in result) {
-    if (isCodeRefusal(result.status)) await recordFailedInviteAttempt(ip)
     const { status, ...body } = result
     return res.status(status).json(body)
   }

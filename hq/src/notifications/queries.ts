@@ -6,11 +6,12 @@ import { describeNotification, firstRequest, type TaskOfNotification } from './n
 import { staleRequestIds } from './staleRequests'
 import { isOrgAdmin } from '../projects/membership'
 import { syncAdminNotices } from './adminNotices'
+import { APPROVAL_COMMENT_PREFIX } from '../projects/taskArgs'
 
 /** How far back Earlier reaches; what needs the person is always listed in full. */
 const EARLIER_LIMIT = 50
 
-const APPROVAL_PREFIX = '__MANIFEST_APPROVAL__:'
+const APPROVAL_PREFIX = APPROVAL_COMMENT_PREFIX
 
 /**
  * The caller's notifications that are not dismissed, newest first: every one
@@ -67,7 +68,8 @@ async function tasksOf(keys: (string | null)[], me: string): Promise<Map<string,
     },
   })
   const requests = await prisma.taskComment.findMany({
-    where: { taskId: { in: rows.map(r => r.id) }, content: { startsWith: APPROVAL_PREFIX } },
+    // hq writes the real request as the agent; a person's comment that starts the same way is no request.
+    where: { taskId: { in: rows.map(r => r.id) }, authorType: 'AGENT', content: { startsWith: APPROVAL_PREFIX } },
     orderBy: { createdAt: 'desc' },
     select: { taskId: true, content: true },
   })

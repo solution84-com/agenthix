@@ -41,6 +41,13 @@ export const updateUserRole: UpdateUserRole<{ userId: string; role: OrgRole }, v
   })
   if (callerSettings?.role !== 'ADMIN') throw new HttpError(403, 'Admin access required')
   if (args.userId === context.user.id) throw new HttpError(400, 'Cannot change your own role')
+  if (args.role !== 'ADMIN' && args.role !== 'MEMBER') throw new HttpError(400, 'A role is ADMIN or MEMBER')
+  // A row is only ever made for someone who is in the organisation: not for an unknown id, nor for a person who has left or been erased.
+  const person = typeof args.userId === 'string'
+    ? await prisma.user.findUnique({ where: { id: args.userId }, select: { deactivatedAt: true, erasedAt: true } })
+    : null
+  if (!person) throw new HttpError(404, 'Person not found')
+  if (person.erasedAt || person.deactivatedAt) throw new HttpError(400, 'This person has left the organisation, so their role cannot be changed')
 
   await context.entities.UserSettings.upsert({
     where: { userId: args.userId },
@@ -79,6 +86,10 @@ type UpdateOrgArgs = { name: string; vision: string; mission: string }
 
 export const updateOrg: UpdateOrg<UpdateOrgArgs, void> = async (args, context) => {
   await requireRole(context, 'ADMIN', 'Updating the organisation')
+  // The browser's arguments are whatever the request carried: the name is text and not empty, and only the named fields are written.
+  const name = typeof args.name === 'string' ? args.name.trim() : ''
+  if (!name) throw new HttpError(400, 'The organisation needs a name')
+  const data = { name, vision: String(args.vision ?? ''), mission: String(args.mission ?? '') }
   // The Org row and the org package it feeds move together: a write failure
   // (bad content, or a concurrent change) rolls the row write back too,
   // rather than leaving the DB and the package disagreeing. A first-ever
@@ -89,12 +100,9 @@ export const updateOrg: UpdateOrg<UpdateOrgArgs, void> = async (args, context) =
   await packageWriteOrHttp(() => prisma.$transaction(async (tx) => {
     const existing = await tx.org.findFirst()
     if (existing) {
-      await tx.org.update({
-        where: { id: existing.id },
-        data: { name: args.name, vision: args.vision, mission: args.mission },
-      })
+      await tx.org.update({ where: { id: existing.id }, data })
     } else {
-      await tx.org.create({ data: args })
+      await tx.org.create({ data })
     }
     return changeOrgPackage(files => files, context.user!.id, tx, initialFiles ?? undefined)
   }))

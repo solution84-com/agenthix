@@ -157,6 +157,40 @@ describe('updateBoard @SC-024', () => {
   })
 })
 
+describe('updateBoard checks the columns it is sent (F-hq-5-01)', () => {
+  it('refuses a column list that drops a column still holding tasks, and keeps the board as it was', async () => {
+    const project = await createProjectRow()
+    const board = await createBoard({ projectId: project.id, name: 'Busy', columns: DONE_COLUMNS })
+    const [first, second] = parseColumns(board.columns)
+    await createTaskRow(project.id, { boardId: board.id, column: second.name })
+    await createTaskRow(project.id, { boardId: board.id, column: null })
+
+    await expect(updateBoard({ boardId: board.id, columns: [first] })).rejects.toMatchObject({ statusCode: 409 })
+    expect(parseColumns((await prisma.board.findUniqueOrThrow({ where: { id: board.id } })).columns)).toHaveLength(parseColumns(board.columns).length)
+
+    await expect(updateBoard({ boardId: board.id, columns: parseColumns(board.columns) })).resolves.toBeTruthy()
+  })
+
+  it('refuses a list with a column that has no name or an unknown state', async () => {
+    const project = await createProjectRow()
+    const board = await createBoard({ projectId: project.id, name: 'Bad' })
+    await expect(updateBoard({ boardId: board.id, columns: [{ name: '', label: 'x', status: 'TODO', order: 0, color: '#000' }] })).rejects.toMatchObject({ statusCode: 400 })
+    await expect(updateBoard({ boardId: board.id, columns: [{ name: 'x', label: 'x', status: 'NOPE', order: 0, color: '#000' }] })).rejects.toMatchObject({ statusCode: 400 })
+  })
+})
+
+describe('a task cannot be put on another project\'s board (F-hq-5-02)', () => {
+  it('moveTaskToColumn refuses a board of another project, leaving the task where it was', async () => {
+    const project = await createProjectRow()
+    const other = await createProjectRow()
+    const foreign = await createBoard({ projectId: other.id, name: 'Foreign', columns: DONE_COLUMNS })
+    const task = await createTaskRow(project.id)
+
+    await expect(moveTaskToColumn({ taskId: task.id, column: 'todo', boardId: foreign.id })).rejects.toMatchObject({ statusCode: 400 })
+    expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).boardId).toBe(task.boardId)
+  })
+})
+
 describe('moveTaskToColumn @SC-031', () => {
   // SC-031 — drag a task between columns; the server performs no cross-board
   // rejection (prevention is UI-only). Asserting current behaviour.

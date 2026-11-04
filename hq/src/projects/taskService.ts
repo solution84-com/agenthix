@@ -17,13 +17,14 @@ import { sprintForPlace } from './sprintService'
 import { nudgeScheduler } from '../automation/schedulerNudge'
 import { notifyBoardsOfTasks } from './boardNotify'
 import { roundDeleted } from '../automation/routines'
-import { refuseBoardAcrossPersonalEdge, refuseMoveAcrossPersonalEdge } from './personalProject'
+import { refuseBoardOfAnotherProject, refuseMoveToBoardOfAnotherProject } from './personalProject'
 import { type Queuer, type TaskOrigin } from './taskOnBehalfOf'
 import { applyMoveToRunState, queueRunIfNone, withdrawPendingRun } from './taskRunMoves'
 import { taskArchived, taskDeleted, taskLeadChanged } from '../conversations/taskThread/lifecycle'
 import { deleteTaskSessionsOnSites } from '../sessions/taskSessionDeletion'
 import { resolveSiteIdForTask } from '../agents/dispatchSiteResolution'
 import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
+import { removeTaskAttachmentFolders } from './taskAttachmentFiles'
 
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 
@@ -114,7 +115,7 @@ export async function createTask(params: {
   queueDepth?: number
 }) {
   const { priority, labels, queue, column: wanted, suppressAutoQueue, origin, queueDepth, boardId: givenBoard, ...rest } = params
-  await refuseBoardAcrossPersonalEdge(params.projectId, givenBoard)
+  await refuseBoardOfAnotherProject(params.projectId, givenBoard)
   if (givenBoard) await refuseArchivedBoard(givenBoard)
   const boardId = await boardForNewTask(params.projectId, givenBoard)
 
@@ -227,6 +228,7 @@ export async function deleteTask(taskId: string) {
   // A routine's waiting round deleted skips that one time (spec §3).
   await roundDeleted(result)
   await taskDeleted(taskId)
+  await removeTaskAttachmentFolders([taskId])
   triggerSnapshotPush()
   void leaveRoomsNoLongerAllowed()
   return result
@@ -243,7 +245,7 @@ export async function archiveTask(taskId: string) {
  * column and no sprint there, so a queued or throttled run is withdrawn.
  */
 export async function moveTaskToBoard(taskId: string, boardId: string) {
-  await refuseMoveAcrossPersonalEdge(taskId, boardId)
+  await refuseMoveToBoardOfAnotherProject(taskId, boardId)
   await refuseArchivedBoard(boardId)
   const result = await prisma.task.update({
     where: { id: taskId },
@@ -282,7 +284,7 @@ export async function moveTaskToColumn(params: {
   /** How deep in a chain of agent-queued work the move would queue it (adr-0091); 0 for a person. */
   queueDepth?: number
 }) {
-  await refuseMoveAcrossPersonalEdge(params.taskId, params.boardId)
+  await refuseMoveToBoardOfAnotherProject(params.taskId, params.boardId)
   const current = await prisma.task.findUnique({
     where: { id: params.taskId },
     select: { boardId: true, projectId: true, status: true, doneAt: true, sprintId: true },

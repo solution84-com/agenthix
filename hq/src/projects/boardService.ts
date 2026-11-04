@@ -9,7 +9,7 @@
 import { prisma, HttpError } from 'wasp/server'
 import type { Prisma, BoardKind } from '@prisma/client'
 import { triggerSnapshotPush } from '../server/dashboard/debouncedPush'
-import { columnsFromInput, parseColumns, refuseBacklogColumn, projectTasksBoardCreate, type ColumnInput } from './boardColumns'
+import { columnsFromInput, checkedColumns, projectTasksBoardCreate, type ColumnInput } from './boardColumns'
 import { DEFAULT_SPRINT_DAYS, firstSprintDates } from './sprintDates'
 import { withdrawPendingRun } from './taskRunMoves'
 
@@ -121,9 +121,13 @@ export async function updateBoard(params: { boardId: string; name?: string; colu
     data.name = params.name.trim()
   }
   if (params.columns !== undefined) {
-    const columns = parseColumns(params.columns)
-    if (columns.length === 0) throw new HttpError(400, 'A board needs at least one column')
-    refuseBacklogColumn(columns)
+    const columns = checkedColumns(params.columns)
+    // A column that goes cannot hold tasks: they would sit in a column that matches nothing, and show on no board.
+    const names = columns.map(c => c.name)
+    const stranded = await prisma.task.count({ where: { boardId: params.boardId, AND: [{ column: { not: null } }, { column: { notIn: names } }] } })
+    if (stranded > 0) {
+      throw new HttpError(409, `${stranded === 1 ? 'A task is' : `${stranded} tasks are`} still in a column this change removes. Move them first.`)
+    }
     data.columns = columns as unknown as Prisma.InputJsonValue
   }
   return prisma.board.update({ where: { id: params.boardId }, data })

@@ -80,6 +80,12 @@ describe('Members @SC-676', () => {
     expect(within(card).getByText(/2 people · 1 agent · added by Avery/)).toBeTruthy()
   })
 
+  it('counts the heading as the All chip does, people and agents, and names the teams beside it', () => {
+    show()
+    expect(screen.getByText(/Private project · 5 members · 1 team$/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^All 5/ })).toBeTruthy()
+  })
+
   it('names the team beside someone there through it, and says it is changed in the team', () => {
     show()
     expect(screen.getByText(/Through Marketing — change in the team/)).toBeTruthy()

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useAction, createProduct, updateProduct, createProgram, updateProgram } from 'wasp/client/operations'
-import { deriveSlug } from '@agenthix/core'
 import { Button, FormField, Input, Modal, NativeSelect, Textarea } from '@agenthix/ui/primitives'
 import { WORDS, type Group, type GroupKind } from './groupKinds'
 
@@ -38,7 +37,7 @@ export function GroupDialog({ kind, open, group, onClose, onSaved }: {
       if (kind === 'product') {
         slug = group
           ? (await updateProductFn({ productId: group.id, name: name.trim(), description: text || null, status: status as 'active' | 'sunset' })).slug
-          : (await createProductFn({ name: name.trim(), slug: deriveSlug(name), description: text || undefined, status: status as 'active' | 'sunset' })).slug
+          : (await createProductFn({ name: name.trim(), description: text || undefined, status: status as 'active' | 'sunset' })).slug
       } else {
         slug = group
           ? (await updateProgramFn({ programId: group.id, name: name.trim(), description: text || null, status: status as 'planning' | 'active' | 'archived' })).slug

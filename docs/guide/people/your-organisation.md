@@ -20,9 +20,9 @@ Everyone sees **The workplace**, a card each for:
 - **People**, which only administrators can open
 - **Agents** and **Teams**
 - **Knowledge**
-- **Products** and **Programs**
+- **Products** and **Programmes**
 
-The **Library** is in the side bar. **Knowledge** is the organisation's own pages: every member reads them and admins change them (see [Organisation knowledge](../projects/knowledge.md#organisation-knowledge)). **Products** and **Programs** group projects: see [Filing projects under products and programmes](../projects/projects.md#filing-projects-under-products-and-programmes).
+The **Library** is in the side bar. **Knowledge** is the organisation's own pages: every member reads them and admins change them (see [Organisation knowledge](../projects/knowledge.md#organisation-knowledge)). **Products** and **Programmes** group projects: see [Filing projects under products and programmes](../projects/projects.md#filing-projects-under-products-and-programmes).
 
 ## The admin area
 
