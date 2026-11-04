@@ -1,7 +1,7 @@
 import { HttpError, prisma } from 'wasp/server'
 import type { RunLimits } from '@agenthix/core'
 import { requireRole } from '../../server/identity/requireRole'
-import { requireProjectAdmin } from '../../projects/membership'
+import { requireProjectAdmin, requireProjectMember } from '../../projects/membership'
 import {
   RunLimitsValidationError,
   getOrgRunLimits,
@@ -45,6 +45,7 @@ export const getProjectRunLimitsQuery = async (
   context: Ctx,
 ): Promise<ProjectRunLimitsResult> => {
   if (!context.user) throw new HttpError(401)
+  await requireProjectMember(projectId, context.user.id, "Reading this project's run limits")
   return { org: await getOrgRunLimits(), own: await getProjectRunLimits(projectId) }
 }
 

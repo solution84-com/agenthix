@@ -9,7 +9,7 @@ import { ApproveGitHubSecretDialog } from './ApproveGitHubSecretDialog'
 import { SecretValueFields, type SecretInput } from './SecretValueFields'
 
 /**
- * Add a secret (secrets spec part 3): name, what it is and what it reaches, where to get a new one, the value, an
+ * Add a secret (secrets spec part 3): name, what it is and what it reaches, who issues it, where to get a new one, the value, an
  * optional rotate-by date, and *Also set it on GitHub* where the place has a repository. Ticked, saving proposes the
  * secret's name to `set-github-secrets` and the approval follows at once (`ApproveGitHubSecretDialog`).
  */
@@ -23,6 +23,7 @@ export function AddSecretDialog({ open, onClose, place, repository, initialName 
   const add = useAction(addPlaceSecret)
   const [name, setName] = useState(initialName)
   const [description, setDescription] = useState('')
+  const [issuer, setIssuer] = useState('')
   const [renewAt, setRenewAt] = useState('')
   const [rotateBy, setRotateBy] = useState('')
   const [value, setValue] = useState<SecretInput | null>(null)
@@ -39,7 +40,7 @@ export function AddSecretDialog({ open, onClose, place, repository, initialName 
     setBusy(true)
     setError(null)
     try {
-      const added = await add({ place, name, value: value!, description, renewAt, rotateBy: rotateBy || null, alsoOnGitHub })
+      const added = await add({ place, name, value: value!, description, issuer, renewAt, rotateBy: rotateBy || null, alsoOnGitHub })
       if (!alsoOnGitHub || !added.github) { onClose(); return }
       setFollowUp(added.github.proposed ? { number: added.github.version, message: null } : { number: null, message: added.github.message })
     } catch (e) {
@@ -61,6 +62,9 @@ export function AddSecretDialog({ open, onClose, place, repository, initialName 
         </FormField>
         <FormField label="What it is and what it reaches" htmlFor="secret-description" error={tried ? problems.description ?? undefined : undefined}>
           <Input id="secret-description" value={description} onChange={(e) => setDescription(e.target.value)} autoComplete="off" />
+        </FormField>
+        <FormField label="Who issues it" htmlFor="secret-issuer">
+          <Input id="secret-issuer" value={issuer} onChange={(e) => setIssuer(e.target.value)} autoComplete="off" placeholder="For example: the staging server" />
         </FormField>
         <FormField label="Where to get a new one" htmlFor="secret-renew">
           <Input id="secret-renew" value={renewAt} onChange={(e) => setRenewAt(e.target.value)} autoComplete="off" placeholder="For example: ssh-keygen on the server" />

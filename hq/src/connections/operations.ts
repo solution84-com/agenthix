@@ -83,10 +83,7 @@ export const createConnection: CreateConnection<CreateConnectionArgs, { token: s
   const now = new Date()
   const expiresAt = expiryFrom(now, args.expiresInDays)
 
-  const active = await prisma.personConnection.count({ where: { userId, revokedAt: null, expiresAt: { gt: now } } })
-  if (active >= MAX_ACTIVE_CONNECTIONS) {
-    throw new HttpError(400, `You already have ${MAX_ACTIVE_CONNECTIONS} connections; revoke one you no longer use first`)
-  }
+  await requireRoomForAnother(userId, now)
 
   const { token, tokenHash, tokenPrefix } = generateConnectionToken()
   const row = await prisma.personConnection.create({
@@ -102,6 +99,13 @@ export const createConnection: CreateConnection<CreateConnectionArgs, { token: s
   })
   const [connection] = await toViews([row])
   return { token, connection }
+}
+
+async function requireRoomForAnother(userId: string, now: Date): Promise<void> {
+  const active = await prisma.personConnection.count({ where: { userId, revokedAt: null, expiresAt: { gt: now } } })
+  if (active >= MAX_ACTIVE_CONNECTIONS) {
+    throw new HttpError(400, `You already have ${MAX_ACTIVE_CONNECTIONS} connections; revoke one you no longer use first`)
+  }
 }
 
 /** A project list can name only projects its person reaches today; null keeps it to all of them. */
@@ -128,9 +132,12 @@ export const renewConnection: RenewConnection<{ id: string; expiresInDays?: numb
   const userId = requireUser(context)
   const row = await ownConnection(args.id, userId)
   if (row.revokedAt) throw new HttpError(400, 'A revoked connection cannot be renewed; create a new one')
+  const now = new Date()
+  // Renewing an expired connection makes another active one, so it counts against the cap as a new one does.
+  if (row.expiresAt.getTime() <= now.getTime()) await requireRoomForAnother(userId, now)
   const updated = await prisma.personConnection.update({
     where: { id: row.id },
-    data: { expiresAt: expiryFrom(new Date(), args.expiresInDays) },
+    data: { expiresAt: expiryFrom(now, args.expiresInDays) },
   })
   const [view] = await toViews([updated])
   return view

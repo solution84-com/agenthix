@@ -9,6 +9,7 @@ import type { Routine } from '@prisma/client'
 import { usernames } from '../projects/onBehalfOfOperations'
 import { DEFAULT_BOARD_COLUMNS, PROJECT_TASKS_NAME, findColumn, parseColumns } from '../projects/boardColumns'
 import { LAST_ROUNDS, type RoundState, type RoutineSummary } from '../shared/routineTypes'
+import { mayWorkInProject } from '../projects/membership'
 import { mayManageRoutine } from './routines'
 import { roundState } from './roundState'
 import { parseScheduleRule } from './scheduleRule'
@@ -48,7 +49,8 @@ export async function summarise(routines: Routine[], userId: string, now: Date =
     onBehalfOf: { userId: r.onBehalfOfUserId, username: names.get(r.onBehalfOfUserId) ?? null },
     agentName: r.assignedAgentId ? agentName.get(r.assignedAgentId) ?? null : null,
     place: placeOf(r, boardOf),
-    canManage: await mayManageRoutine(r, userId),
+    // A Viewer changes nothing, whoever the routine is for: the server refuses them, so the switch is not shown live.
+    canManage: (await mayWorkInProject(r.projectId, userId)) && (await mayManageRoutine(r, userId)),
     lastRounds: await lastRoundStates(r.id, now),
   })))
 }

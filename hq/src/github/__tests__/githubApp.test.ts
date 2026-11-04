@@ -39,3 +39,27 @@ describe('buildManifest (R-166) @SC-1307', () => {
     expect(m.setup_on_update).toBe(true)
   })
 })
+
+describe('listAllInstallations', () => {
+  const page = (ids: number[], next?: string) => new Response(
+    JSON.stringify(ids.map((id) => ({ id, account: { id, login: `a${id}`, type: 'Organization' } }))),
+    { status: 200, headers: next ? { link: `<${next}>; rel="next", <https://api.github.com/x>; rel="last"` } : {} },
+  )
+
+  it('reads every page, 100 at a time, so nothing past the first page is pruned', async () => {
+    const { listAllInstallations } = await import('../githubApp')
+    const get = vi.fn()
+      .mockResolvedValueOnce(page([1, 2], 'https://api.github.com/app/installations?per_page=100&page=2'))
+      .mockResolvedValueOnce(page([3]))
+    const all = await listAllInstallations('jwt', get as unknown as typeof fetch)
+    expect(all.map((i) => i.id)).toEqual([1, 2, 3])
+    expect(get.mock.calls[0][0]).toBe('https://api.github.com/app/installations?per_page=100')
+  })
+
+  it('does not follow a next page that points off GitHub', async () => {
+    const { listAllInstallations } = await import('../githubApp')
+    const get = vi.fn().mockResolvedValueOnce(page([1], 'https://example.com/steal'))
+    expect(await listAllInstallations('jwt', get as unknown as typeof fetch)).toHaveLength(1)
+    expect(get).toHaveBeenCalledTimes(1)
+  })
+})

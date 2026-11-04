@@ -77,11 +77,19 @@ export async function replaceSecret(
   return existing(place, name)
 }
 
-/** What it is, who issues it, where to renew it and when to rotate it: the value is untouched. */
+/**
+ * What it is, who issues it, where to renew it and when to rotate it: the value is untouched. A field left out keeps
+ * what the secret has; only one sent empty (or a `rotateBy` of null) clears it.
+ */
 export async function describeSecret(place: Place, byUserId: string, name: string, d: Partial<SecretDescription>): Promise<SecretMeta> {
   await requireAdministerPlace(place, byUserId, 'Changing a secret’s description')
   const row = await existing(place, name)
-  const desc = checkDescription(d)
+  const desc = checkDescription({
+    description: d.description ?? row.description,
+    issuer: d.issuer ?? row.issuer,
+    renewAt: d.renewAt ?? row.renewAt,
+    rotateBy: d.rotateBy === undefined ? row.rotateBy : d.rotateBy,
+  })
   if (desc.rotateBy?.getTime() !== row.rotateBy?.getTime()) checkRotateBy(desc.rotateBy, new Date())
   await secretsDb().describeSecret(row.id, desc)
   if (desc.rotateBy?.getTime() !== row.rotateBy?.getTime()) await clearRotationNotice(row.id)

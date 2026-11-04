@@ -17,6 +17,12 @@ describe('secretCrypto @SC-260', () => {
   it('produces a different ciphertext each call (random IV)', () => {
     expect(encryptSecret('x')).not.toBe(encryptSecret('x'))
   })
+
+  it('refuses a stored value whose authentication tag was cut short', () => {
+    const [iv, tag, ct] = encryptSecret('x').split('.')
+    const shortened = Buffer.from(tag, 'base64').subarray(0, 4).toString('base64')
+    expect(() => decryptSecret(`${iv}.${shortened}.${ct}`)).toThrow()
+  })
 })
 
 describe('decryptStoredSecret — a value stored in the clear', () => {

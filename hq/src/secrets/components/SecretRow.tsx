@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Lock } from 'lucide-react'
 import { Button, StatePill } from '@agenthix/ui/primitives'
-import { KIND_WORDS, dayWords, rotationWords, usedByWords } from '../pages/secretsWords'
+import { KIND_WORDS, dayWords, rotationWords, sourceWords, usedByWords } from '../pages/secretsWords'
 import type { SecretView, SecretsPlace } from '../pages/secretsTypes'
 import { DeleteDialog } from './DeleteDialog'
 import { HistoryDialog } from './HistoryDialog'
@@ -20,6 +20,7 @@ export function SecretRow({ place, secret, mayChange }: { place: SecretsPlace; s
   const close = () => setDialog(null)
   const fromGithub = secret.kind === 'from_github'
   const rotation = rotationWords(secret)
+  const source = sourceWords(secret)
   const items: RowMenuItem[] = [
     { label: 'History', onPick: () => setDialog('history') },
     ...(mayChange ? [
@@ -33,6 +34,7 @@ export function SecretRow({ place, secret, mayChange }: { place: SecretsPlace; s
       <div className="min-w-0">
         <div className="flex items-center gap-1.5 text-body font-semibold text-text-primary"><Lock size={13} aria-hidden className="shrink-0 text-text-muted" /><code className="truncate">{secret.name}</code></div>
         <p className="break-words text-small text-text-secondary">{secret.description}</p>
+        {source && <p className="break-words text-small text-text-muted" data-testid="secret-source">{source}</p>}
       </div>
       <p className="mt-1 text-small text-text-secondary lg:mt-0" data-testid="secret-kind">{KIND_WORDS[secret.kind]}</p>
       <p className="break-words text-small text-text-secondary">{usedByWords(secret.usedBy.map((w) => w.name))}</p>

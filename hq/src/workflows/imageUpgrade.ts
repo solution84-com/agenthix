@@ -42,6 +42,9 @@ export async function upgradeApprovedVersion(versionId: string, from: ExecutorIm
 
   return prisma.$transaction(async (tx) => {
     await tx.workflow.update({ where: { id: old.workflowId }, data: { updatedAt: new Date() } })
+    // Someone may have decided on it since it was read, and the lock is held now: carry it only if it is still the approved one.
+    const current = await tx.workflowVersion.findUnique({ where: { id: old.id }, select: { state: true } })
+    if (current?.state !== 'APPROVED') return { skipped: 'already_made' as const }
     if (await tx.workflowVersion.findUnique({ where: { workflowId_hash: { workflowId: old.workflowId, hash } }, select: { id: true } })) {
       return { skipped: 'already_made' as const }
     }
@@ -69,6 +72,13 @@ export async function upgradeApprovedVersion(versionId: string, from: ExecutorIm
       },
       select: { id: true },
     })
+    if (!kept) {
+      // A second image change replaces the upgrade still waiting from the first, not a person's own proposal.
+      await tx.workflowVersion.updateMany({
+        where: { workflowId: old.workflowId, state: 'PROPOSED', origin: 'IMAGE_UPGRADE', id: { not: made.id } },
+        data: { state: 'SUPERSEDED' },
+      })
+    }
     if (kept) {
       await tx.workflowVersion.update({ where: { id: old.id }, data: { state: 'SUPERSEDED' } })
       await tx.workflowApproval.create({

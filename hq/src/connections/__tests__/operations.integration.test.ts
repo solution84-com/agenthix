@@ -163,6 +163,16 @@ describe('renewConnection and revokeConnection', () => {
     expect((await revokeConnection({ id: connection.id }, as(me))).revokedAt).toBe(first.revokedAt)
   })
 
+  it('renewing an expired connection counts against the 25 active ones (400)', async () => {
+    const me = await createUserWithRole('MEMBER')
+    const { connection } = await createConnection({ name: 'Old', groups: ['read'] }, as(me))
+    await prisma.personConnection.update({ where: { id: connection.id }, data: { expiresAt: new Date(Date.now() - DAY) } })
+    for (let i = 0; i < 25; i++) await createConnection({ name: `C${i}`, groups: ['read'] }, as(me))
+
+    await expect(renewConnection({ id: connection.id }, as(me))).rejects.toMatchObject({ statusCode: 400 })
+    expect((await prisma.personConnection.findUniqueOrThrow({ where: { id: connection.id } })).expiresAt.getTime()).toBeLessThan(Date.now())
+  })
+
   it('refuses a caller who is not signed in (401)', async () => {
     await expect(renewConnection({ id: 'x' }, as())).rejects.toMatchObject({ statusCode: 401 })
     await expect(revokeConnection({ id: 'x' }, as())).rejects.toMatchObject({ statusCode: 401 })

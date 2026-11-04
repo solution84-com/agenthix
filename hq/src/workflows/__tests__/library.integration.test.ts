@@ -82,7 +82,9 @@ describe('proposals @SC-1277', () => {
     const second = await propose(place, deploy('false'))
     expect([first.version, again.version, second.version]).toEqual([1, 1, 2])
     const row = await prisma.workflowVersion.findFirstOrThrow({ where: { hash: first.hash } })
-    expect(row).toMatchObject({ state: 'PROPOSED', proposedByAgentId: 'agent-1', proposedByRunId: 'run-1', proposedForUserId: 'user-1' })
+    // A newer proposal replaces the one still waiting, so a person decides on the latest only.
+    expect(row).toMatchObject({ state: 'SUPERSEDED', proposedByAgentId: 'agent-1', proposedByRunId: 'run-1', proposedForUserId: 'user-1' })
+    expect(await prisma.workflowVersion.findFirstOrThrow({ where: { hash: second.hash } })).toMatchObject({ state: 'PROPOSED', number: 2 })
   })
 })
 

@@ -27,13 +27,13 @@ export async function authenticateConnection(token: string, now: Date = new Date
   if (row.revokedAt !== null) return null
   if (row.expiresAt.getTime() <= now.getTime()) return null
 
-  // The person must still be in the org: a connection never outlives them.
+  // The person must still be in the org and active: a connection never outlives them, even if removal missed it.
   const user = await prisma.user.findUnique({
     where: { id: row.userId },
-    select: { id: true, settings: { select: { role: true } } },
+    select: { id: true, deactivatedAt: true, settings: { select: { role: true } } },
   })
   const role = user?.settings?.role
-  if (!user || !role || !ROLES.includes(role as OrgRole)) return null
+  if (!user || user.deactivatedAt !== null || !role || !ROLES.includes(role as OrgRole)) return null
 
   recordUse(row.id, row.lastUsedAt, now)
   return {

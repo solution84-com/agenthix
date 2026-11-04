@@ -19,7 +19,8 @@ import { HttpError, prisma } from 'wasp/server'
 import { Prisma } from '@prisma/client'
 import { isLivePreviewWorkflowName, type WorkflowDefinition, type WorkflowRunWorkspace } from '@agenthix/core'
 import { resolveStorageSite } from '../storage/storageSite'
-import { listPlaceSecretNames, listPlaceVariableNames, recordUse, valuesForRun } from '../secrets/store'
+import { listPlaceSecretNames, listPlaceVariableNames, valuesForRun } from '../secrets/store'
+import { recordUseOfAcceptedRun } from './runsUse'
 import { variableValuesForRun } from '../secrets/variables'
 import { SecretsRefusal } from '../secrets/refusal'
 import { requireMayStartRunsInPlace, type WorkflowPlace } from './placeAccess'
@@ -188,7 +189,7 @@ export async function startWorkflowRun(input: StartRunInput, deps: RunDeps = def
       : 'The Execution Site that holds this place\'s storage can\'t be reached; try again once it is back. Nothing was changed.')
   }
   const used = runSecretNames.filter((n) => secretNames.includes(n))
-  await recordUse(wPlace, runId, used, person)
+  await recordUseOfAcceptedRun(wPlace, runId, used, person)
   if (starter.kind === 'agent') rememberRunSession(runId, starter.sessionId)
   if (outcome.sent === 'unknown') {
     await prisma.workflowRun.updateMany({

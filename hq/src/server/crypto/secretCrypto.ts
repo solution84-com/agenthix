@@ -39,7 +39,7 @@ export function encryptSecret(plaintext: string): string {
 export function decryptSecret(stored: string): string {
   const [ivB64, tagB64, ctB64] = stored.split('.')
   if (!ivB64 || !tagB64 || !ctB64) throw new Error('Malformed encrypted secret.')
-  const decipher = createDecipheriv(ALGO, masterKey(), Buffer.from(ivB64, 'base64'))
+  const decipher = createDecipheriv(ALGO, masterKey(), Buffer.from(ivB64, 'base64'), { authTagLength: TAG_BYTES })
   decipher.setAuthTag(Buffer.from(tagB64, 'base64'))
   return Buffer.concat([decipher.update(Buffer.from(ctB64, 'base64')), decipher.final()]).toString('utf8')
 }

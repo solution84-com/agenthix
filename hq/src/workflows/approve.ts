@@ -13,6 +13,7 @@ import { isOrgAdmin } from '../projects/membership'
 import { mayAdministerPlace, AGENT_REFUSAL, type WorkflowActor, type WorkflowPlace } from './placeAccess'
 import { afterApproval, mayApproveVersion, mayDecideVersion, mayDeclineVersion, type Decision, type VersionFacts } from './rules'
 import { storedVersionMatches } from './versionContent'
+import { closeCardsOf } from './closeCards'
 
 export type DecideInput = { workflowId: string; hash: string }
 export type ApproveInput = DecideInput & { via: 'review' | 'card' }
@@ -125,16 +126,4 @@ export async function declineWorkflowVersion(input: DecideInput, actor: Workflow
   if (moved.count !== 1) throw new HttpError(409, `Version ${version.number} was decided by someone else just now. Nothing was changed.`)
   await closeCardsOf([version.id])
   return { number: version.number }
-}
-
-/**
- * Takes away the conversation cards of versions just decided here. Loaded when needed: the conversation coordinator
- * imports this module's callers, and a static import would make a cycle.
- */
-async function closeCardsOf(versionIds: string[]): Promise<void> {
-  const [{ closeWorkflowCards }, { settleOperation }] = await Promise.all([
-    import('./review/cardAnswer'),
-    import('../conversations/coordinator/mailbox'),
-  ])
-  await closeWorkflowCards(versionIds, settleOperation)
 }

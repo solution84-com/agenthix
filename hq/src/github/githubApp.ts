@@ -6,7 +6,7 @@ import { prisma } from 'wasp/server'
 import { encryptSecret, decryptStoredSecret } from '../server/crypto/secretCrypto'
 import { SignJWT, importPKCS8 } from 'jose'
 import { createPrivateKey } from 'node:crypto'
-import { parsePermissions, rememberFacts } from './permissionFacts'
+import { forgetFacts, parsePermissions, rememberFacts } from './permissionFacts'
 import type { GitHubPermissions } from '@agenthix/core'
 
 const APP_NAME_PREFIX = 'agenthix'
@@ -120,6 +120,27 @@ export async function getAppJwt(): Promise<string> {
     .sign(key)
 }
 
+type ListedInstallation = {
+  id: number; account: { id: number; login: string; type: string }; repository_selection?: string; permissions?: unknown
+}
+
+/** Every page GitHub has: the App is public, so the list can pass one page, and what is not read would be pruned. */
+export async function listAllInstallations(jwt: string, get: typeof fetch = fetch): Promise<ListedInstallation[]> {
+  const all: ListedInstallation[] = []
+  let url: string | null = 'https://api.github.com/app/installations?per_page=100'
+  for (let page = 0; url; page++) {
+    if (page >= MAX_INSTALLATION_PAGES) throw new Error('Listing App installations passed its page limit; nothing was changed.')
+    const res: Response = await get(url, { headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/vnd.github.v3+json' } })
+    if (!res.ok) throw new Error(`Listing App installations failed (${res.status}): ${await res.text()}`)
+    all.push(...(await res.json() as ListedInstallation[]))
+    const next = /<([^>]+)>;\s*rel="next"/.exec(res.headers.get('link') ?? '')?.[1] ?? null
+    url = next?.startsWith('https://api.github.com/') ? next : null
+  }
+  return all
+}
+
+const MAX_INSTALLATION_PAGES = 100
+
 /**
  * Sync GitHubInstallation with GitHub's current installation list: upsert what GitHub
  * reports and PRUNE rows it no longer reports (so uninstalling on GitHub + refresh
@@ -127,13 +148,7 @@ export async function getAppJwt(): Promise<string> {
  */
 export async function refreshInstallations(): Promise<void> {
   const jwt = await getAppJwt()
-  const res = await fetch('https://api.github.com/app/installations', {
-    headers: { Authorization: `Bearer ${jwt}`, Accept: 'application/vnd.github.v3+json' },
-  })
-  if (!res.ok) throw new Error(`Listing App installations failed (${res.status}): ${await res.text()}`)
-  const installs = await res.json() as Array<{
-    id: number; account: { id: number; login: string; type: string }; repository_selection?: string; permissions?: unknown
-  }>
+  const installs = await listAllInstallations(jwt)
   const accepted = new Map<number, GitHubPermissions>()
   for (const i of installs) {
     const seen = {
@@ -152,4 +167,6 @@ export async function refreshInstallations(): Promise<void> {
 export async function disconnectApp(): Promise<void> {
   await prisma.gitHubInstallation.deleteMany({})
   await prisma.gitHubApp.deleteMany({})
+  // What was remembered of the old App's permissions and owner would be used for the next one for five minutes.
+  forgetFacts()
 }

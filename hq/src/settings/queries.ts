@@ -2,6 +2,8 @@ import { type GetUserSettings, type GetSiteConfig, type GetOrg, type GetEnvStatu
 import { HttpError, prisma } from 'wasp/server'
 import { BUILD_INFO } from '../server/buildInfo'
 import { getApp } from '../github/githubApp'
+import { githubAppStatusView, type GithubAppStatusResult } from '../github/appStatusView'
+import { isOrgAdmin } from '../projects/membership'
 import { filesPlace } from '../server/files/filesOrigin'
 import type { UserSettingsView } from '@agenthix/core'
 import { userSettingsView } from './userSettingsView'
@@ -57,18 +59,12 @@ export const getOrg: GetOrg<void, OrgResult> = async (_args, context) => {
   return { id: org.id, name: org.name, vision: org.vision, mission: org.mission }
 }
 
-type GithubAppStatusResult =
-  | { registered: false }
-  | { registered: true; slug: string; installations: { login: string; type: string }[]; canCreateRepos: boolean }
-
-export const getGithubAppStatus = async (_args: unknown, context: { user?: unknown }): Promise<GithubAppStatusResult> => {
+export const getGithubAppStatus = async (_args: unknown, context: { user?: { id: string } }): Promise<GithubAppStatusResult> => {
   if (!context.user) throw new HttpError(401)
   const app = await getApp()
-  if (!app) return { registered: false }
+  if (!app) return githubAppStatusView(null, [], false)
   const installations = await prisma.gitHubInstallation.findMany({ select: { accountLogin: true, accountType: true } })
-  const list = installations.map(i => ({ login: i.accountLogin, type: i.accountType }))
-  // Repo creation needs an organisation install (POST /orgs/{org}/repos); personal installs can only link.
-  return { registered: true, slug: app.slug, installations: list, canCreateRepos: list.some(i => i.type === 'Organization') }
+  return githubAppStatusView(app, installations, await isOrgAdmin(context.user.id))
 }
 
 type EnvKey = {

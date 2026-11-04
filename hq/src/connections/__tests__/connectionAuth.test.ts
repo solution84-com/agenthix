@@ -43,7 +43,7 @@ beforeEach(() => {
   token = generateConnectionToken().token
   h.connectionFindUnique.mockImplementation(async ({ where }: { where: { tokenHash: string } }) =>
     where.tokenHash === sha256(token) ? rowFor(token) : null)
-  h.userFindUnique.mockResolvedValue({ id: 'u1', settings: { role: 'MEMBER' } })
+  h.userFindUnique.mockResolvedValue({ id: 'u1', settings: { role: 'MEMBER' }, deactivatedAt: null })
   h.connectionUpdateMany.mockResolvedValue({ count: 1 })
 })
 
@@ -61,6 +61,11 @@ describe('a token', () => {
 describe('authenticateConnection — defensive refusals', () => {
   it('refuses a row whose stored hash does not match the token, even if the lookup returned it', async () => {
     h.connectionFindUnique.mockResolvedValue(rowFor(token, { tokenHash: sha256('something else') }))
+    expect(await authenticateConnection(token, NOW)).toBeNull()
+  })
+
+  it('refuses a deactivated person, even when their connections were not revoked', async () => {
+    h.userFindUnique.mockResolvedValue({ id: 'u1', settings: { role: 'MEMBER' }, deactivatedAt: NOW })
     expect(await authenticateConnection(token, NOW)).toBeNull()
   })
 

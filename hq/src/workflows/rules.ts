@@ -68,7 +68,7 @@ export function mayApproveVersion(
   if (givenHash !== v.hash) return no(409, 'This version has changed since you opened it. Open it again to see what it is now. Nothing was changed.')
   if (v.state === 'APPROVED') return no(409, `Version ${v.number} is already approved. Nothing was changed.`)
   if (v.state === 'DECLINED') return no(409, `Version ${v.number} was declined; the agent can propose a new one. Nothing was changed.`)
-  if (v.state === 'SUPERSEDED') return no(409, `Version ${v.number} was replaced by a newer approved version. Nothing was changed.`)
+  if (v.state === 'SUPERSEDED') return no(409, `Version ${v.number} was replaced by a newer version. Nothing was changed.`)
   if (approvedNumber !== null && v.number < approvedNumber) {
     return no(409, `Version ${v.number} is older than the approved version ${approvedNumber}. Nothing was changed.`)
   }

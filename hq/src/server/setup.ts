@@ -63,6 +63,7 @@ import { registerRunResultListener } from './controlplane/runResults'
 import { registerWorkerRunListener } from '../conversations/work/workers'
 import { reconcileSiteWork } from '../conversations/work/reconcile'
 import { onSiteReconciled } from '../agents/reconcileService'
+import { refreshRunsOfSite } from '../workflows/runsEvents'
 import { onRunStatus } from '../sites/channel/siteEventHandler'
 import { handleOperationRunStatus } from '../sites/channel/operationLinesForward'
 import { startScheduledChangeSweep } from '../sites/scheduled/scheduledChanges'
@@ -265,6 +266,8 @@ export const setupServer: ServerSetupFn = async ({ app }) => {
   onRunStatus('conversation-activity', handleOperationRunStatus)
   // When a site connects: its conversations' briefs and task runs, read against what it holds.
   onSiteReconciled('conversation-work', reconcileSiteWork)
+  // Workflow runs it lost the end of while the site was away.
+  onSiteReconciled('workflow-runs', (siteId) => refreshRunsOfSite(siteId))
 
   // Runs held around scheduled changes, by hq's own clock as well as their notices (host-management spec §14).
   startScheduledChangeSweep()

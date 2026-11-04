@@ -96,18 +96,25 @@ describe('getProjectRunLimitsQuery', () => {
     await prisma.org.create({ data: { name: 'Acme', runTimeLimitMinutes: 90, runTurnLimit: 200 } })
     const project = await createProject({ runTimeLimitMinutes: 10 })
 
-    expect(await getProjectRunLimitsQuery({ projectId: project.id }, ctxFor(await createUser()))).toEqual({
+    const { user } = await projectAdmin(project)
+    expect(await getProjectRunLimitsQuery({ projectId: project.id }, ctxFor(user))).toEqual({
       org: { timeLimitMinutes: 90, turnLimit: 200 },
       own: { timeLimitMinutes: 10, turnLimit: null },
     })
   })
 
-  it('shows no choice for a project that has none, or does not exist', async () => {
-    const project = await createProject()
-    const caller = ctxFor(await createUser())
-    const none = { org: orgDefaults, own: { timeLimitMinutes: null, turnLimit: null } }
-    expect(await getProjectRunLimitsQuery({ projectId: project.id }, caller)).toEqual(none)
-    expect(await getProjectRunLimitsQuery({ projectId: 'ghost' }, caller)).toEqual(none)
+  it('shows no choice for a project that has none', async () => {
+    const { user, project } = await projectAdmin()
+    expect(await getProjectRunLimitsQuery({ projectId: project.id }, ctxFor(user))).toEqual({
+      org: orgDefaults, own: { timeLimitMinutes: null, turnLimit: null },
+    })
+  })
+
+  it('refuses someone who is not a member of the project (403), and a project that does not exist', async () => {
+    const project = await createProject({ runTimeLimitMinutes: 10 })
+    const outsider = ctxFor(await createUser())
+    await expect(getProjectRunLimitsQuery({ projectId: project.id }, outsider)).rejects.toMatchObject({ statusCode: 403 })
+    await expect(getProjectRunLimitsQuery({ projectId: 'ghost' }, outsider)).rejects.toMatchObject({ statusCode: 403 })
   })
 
   it('answers 401 when nobody is signed in', async () => {

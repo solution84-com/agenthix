@@ -136,4 +136,17 @@ export async function refreshRunFromSite(runId: string, sites: Pick<RunSiteCalls
     const e = parseStepEvent(step)
     if (e && e.runId === runId) await applyStep(runId, e)
   }
+  // The first step event may be the one that was lost: the run is running, so say so as the event handler does.
+  if (run.state === 'WAITING' && report.state === 'running') {
+    await prisma.workflowRun.updateMany({ where: { id: runId, state: 'WAITING' }, data: { state: 'RUNNING', startedAt: new Date() } })
+    await emitWorkflowRunChanged({ ...run, state: 'RUNNING' })
+  }
+}
+
+/** When a site reconnects: the runs it holds that hq still shows in progress, read against what the site says. */
+export async function refreshRunsOfSite(siteId: string, sites: Pick<RunSiteCalls, 'get'> = runSiteCalls): Promise<void> {
+  const runs = await prisma.workflowRun.findMany({ where: { siteId, state: { in: ['WAITING', 'RUNNING'] } }, select: { id: true } })
+  for (const { id } of runs) {
+    await refreshRunFromSite(id, sites).catch((err) => logger.warn(`run ${id}: not refreshed on its site's return: ${err instanceof Error ? err.message : String(err)}`))
+  }
 }

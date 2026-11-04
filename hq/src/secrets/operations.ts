@@ -72,7 +72,8 @@ function valueOf(args: unknown): SecretValueInput {
 function descriptionOf(args: DescriptionArgs): Partial<SecretDescription> {
   return {
     description: args.description, issuer: args.issuer, renewAt: args.renewAt,
-    rotateBy: args.rotateBy == null || args.rotateBy === '' ? null : new Date(args.rotateBy),
+    // Left out keeps the date a secret has; null or empty clears it.
+    rotateBy: args.rotateBy === undefined ? undefined : args.rotateBy === null || args.rotateBy === '' ? null : new Date(args.rotateBy),
   }
 }
 

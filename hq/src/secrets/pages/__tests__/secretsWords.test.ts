@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bytesToBase64, fileProblem, nameProblem, rotationWords, usedByWords } from '../secretsWords'
+import { bytesToBase64, fileProblem, nameProblem, rotationWords, sourceWords, usedByWords } from '../secretsWords'
 
 describe('secretsWords', () => {
   it('says what is wrong with a name before sending it @SC-1335', () => {
@@ -13,6 +13,12 @@ describe('secretsWords', () => {
     expect(rotationWords({ rotation: 'due_soon', rotateBy })).toEqual({ words: 'Rotate by 1 Nov', tone: 'warning' })
     expect(rotationWords({ rotation: 'overdue', rotateBy })).toEqual({ words: 'Overdue', tone: 'danger' })
     expect(rotationWords({ rotation: 'none', rotateBy: null })).toBeNull()
+  })
+
+  it('says who issues a secret and where to get a new one, so a person told to replace it can find it', () => {
+    expect(sourceWords({ issuer: 'the staging server', renewAt: 'ssh-keygen on the server' })).toBe('Issued by the staging server · New one: ssh-keygen on the server')
+    expect(sourceWords({ issuer: '', renewAt: 'ops runbook' })).toBe('New one: ops runbook')
+    expect(sourceWords({ issuer: ' ', renewAt: '' })).toBeNull()
   })
 
   it('names what uses a value, or says it is not used @SC-1333', () => {

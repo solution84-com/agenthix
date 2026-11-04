@@ -38,4 +38,14 @@ describe('getRoutinesAcrossProjects @SC-688', () => {
     expect(list[0]).toMatchObject({ title: 'Daily site audit', project: { id: mine.id, key: 'WRX', name: 'Website Redesign' }, canManage: true, lastRounds: [] })
     expect(list[1].project).toEqual({ id: chat.id, key: null, name: 'Chat' })
   })
+
+  it('does not let a Viewer manage a routine that is on their behalf, since the server refuses them', async () => {
+    const viewer = await createUser()
+    const project = await createProject({ name: 'Docs', key: 'DOC' })
+    await addMember(project.id, viewer.id, 'VIEWER')
+    await routineIn(project.id, viewer.id, { title: 'Weekly digest' })
+
+    const [routine] = await getRoutinesAcrossProjects(undefined, ctx(viewer))
+    expect(routine.canManage).toBe(false)
+  })
 })

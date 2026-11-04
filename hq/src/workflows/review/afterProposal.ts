@@ -53,6 +53,9 @@ export async function reviewAndPresent(versionId: string, deps: AfterProposalDep
   await store(outcome, true)
 
   const decision = cardDecision(content, approved?.content ?? null, flags)
+  // The reviewer takes minutes; a person may have decided, or a newer version replaced this one, meanwhile.
+  const now = await prisma.workflowVersion.findUnique({ where: { id: versionId }, select: { state: true } })
+  if (now?.state !== 'PROPOSED') return
   const agent = v.proposedByAgentId
     ? await prisma.agent.findUnique({ where: { id: v.proposedByAgentId }, select: { name: true } })
     : null

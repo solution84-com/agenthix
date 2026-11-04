@@ -21,6 +21,7 @@ import { githubCeilingFor } from './checks/ceiling'
 import { runPlainChecks } from './checks'
 import { contentOf } from './versionContent'
 import { startReview } from './review/afterProposal'
+import { closeCardsOf } from './closeCards'
 
 /** Who proposed it: an agent's run, on behalf of a person (ADR-0095), or hq itself for a starter workflow. */
 export type Proposer =
@@ -80,7 +81,7 @@ export async function storeVersion(
           where: { workflowId_hash: { workflowId: workflow.id, hash } },
           select: { number: true, state: true, checkFlags: true },
         })
-        if (same) return { result: answerForSame(name, same, hash), versionId: null }
+        if (same) return { result: answerForSame(name, same, hash), versionId: null, superseded: [] as string[] }
         const approved = await tx.workflowVersion.findFirst({ where: { workflowId: workflow.id, state: 'APPROVED' }, include: { files: true } })
         // The plain checks (R1) run as it is stored, against the version approved now: approving waits for them.
         const checks = runPlainChecks(content, approved ? { number: approved.number, content: contentOf(approved) } : null, ceiling)
@@ -105,9 +106,17 @@ export async function storeVersion(
             files: { create: content.files.map((f) => ({ path: f.path, content: Buffer.from(f.bytes), executable: f.executable })) },
           },
         })
-        return { result: { workflow: name, version: number, hash, flags: checks.flags, waitsForPerson: true as const }, versionId: created.id }
+        // A newer proposal replaces the ones still waiting, so a person decides on the latest only.
+        const waiting = await tx.workflowVersion.findMany({
+          where: { workflowId: workflow.id, state: 'PROPOSED', id: { not: created.id } },
+          select: { id: true },
+        })
+        const superseded = waiting.map((w) => w.id)
+        if (superseded.length) await tx.workflowVersion.updateMany({ where: { id: { in: superseded } }, data: { state: 'SUPERSEDED' } })
+        return { result: { workflow: name, version: number, hash, flags: checks.flags, waitsForPerson: true as const }, versionId: created.id, superseded }
       })
       // The reviewer (R2) and the card follow on their own; neither holds up the answer or decides approval.
+      if (stored.superseded.length) await closeCardsOf(stored.superseded)
       if (stored.versionId) follow(stored.versionId)
       return stored.result
     } catch (err) {
@@ -127,7 +136,7 @@ function answerForSame(
     throw new HttpError(409, `This is version ${same.number} of ${name}, which a person declined. Change it before proposing again. Nothing was changed.`)
   }
   if (same.state === 'SUPERSEDED') {
-    throw new HttpError(409, `This is version ${same.number} of ${name}, which a newer approved version replaced. Nothing was changed.`)
+    throw new HttpError(409, `This is version ${same.number} of ${name}, which a newer version replaced. Nothing was changed.`)
   }
   const flags = Array.isArray(same.checkFlags) ? (same.checkFlags as ProposeWorkflowResult['flags']) : []
   return { workflow: name, version: same.number, hash, flags, waitsForPerson: true }

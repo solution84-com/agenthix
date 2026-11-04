@@ -32,6 +32,8 @@ export interface Schedule {
   timezone: string
 }
 
+/** A repeat longer than a year is out of the range of dates the schedule is worked out in. */
+const INTERVAL_CEILING_MINUTES = 365 * 24 * 60
 const UNIT_MINUTES: Record<IntervalUnit, number> = { minutes: 1, hours: 60, days: 24 * 60 }
 const TIME_OF_DAY = /^([01]\d|2[0-3]):([0-5]\d)$/
 
@@ -69,6 +71,7 @@ export function scheduleProblem(s: Schedule, now: Date): string | null {
     if (rule.every * UNIT_MINUTES[rule.unit] < AUTOMATION_INTERVAL_FLOOR_MINUTES) {
       return `A task cannot repeat more often than every ${AUTOMATION_INTERVAL_FLOOR_MINUTES} minutes`
     }
+    if (rule.every * UNIT_MINUTES[rule.unit] > INTERVAL_CEILING_MINUTES) return 'A task cannot repeat less often than every 365 days'
     return null
   }
   if (!TIME_OF_DAY.test(rule.time)) return 'The time of day must be HH:MM on the 24-hour clock'

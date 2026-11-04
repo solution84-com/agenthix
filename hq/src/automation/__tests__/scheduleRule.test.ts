@@ -96,3 +96,21 @@ describe('reading a stored rule and timezone', () => {
     expect(parseScheduleRule('daily')).toBeNull()
   })
 })
+
+describe('how long a repeat may be', () => {
+  const every = (n: number, unit: 'minutes' | 'hours' | 'days'): Schedule =>
+    ({ at: utc('2026-10-03T09:00:00'), rule: { kind: 'interval', every: n, unit }, timezone: 'UTC' })
+  const now = utc('2026-10-03T08:00:00')
+
+  it('allows up to a year in any unit', () => {
+    expect(scheduleProblem(every(365, 'days'), now)).toBeNull()
+    expect(scheduleProblem(every(8760, 'hours'), now)).toBeNull()
+    expect(scheduleProblem(every(525_600, 'minutes'), now)).toBeNull()
+  })
+
+  it('refuses a repeat past a year, which would run out of valid dates', () => {
+    expect(scheduleProblem(every(366, 'days'), now)).toMatch(/365 days/)
+    expect(scheduleProblem(every(1e15, 'days'), now)).toMatch(/365 days/)
+    expect(scheduleProblem(every(Number.MAX_SAFE_INTEGER, 'minutes'), now)).toMatch(/365 days/)
+  })
+})

@@ -6,6 +6,7 @@ import { SettingsSubpage } from '../../settings/pages/SettingsSubpage'
 import { CreateConnectionForm } from './CreateConnectionForm'
 import { ConnectionList } from './ConnectionList'
 import { NewConnectionToken } from './NewConnectionToken'
+import { connectionProjectOptions } from './projectOptions'
 import { BRANDING } from '@agenthix/core'
 
 /**
@@ -18,7 +19,7 @@ export function ConnectionsPage() {
   const [creating, setCreating] = useState(false)
   const [issued, setIssued] = useState<{ token: string; connection: ConnectionView } | null>(null)
 
-  const projectOptions = (projects ?? []).map((p: { id: string; name: string }) => ({ id: p.id, name: p.name }))
+  const projectOptions = connectionProjectOptions(projects)
 
   return (
     <SettingsSubpage title="Connections">

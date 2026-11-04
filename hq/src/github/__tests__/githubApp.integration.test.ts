@@ -13,6 +13,7 @@ vi.mock('wasp/server', async () => {
 beforeAll(() => { process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 7).toString('base64') })
 
 import { storeAppFromConversion, getApp, getAppPrivateKey, disconnectApp } from '../githubApp'
+import { recalledFacts, rememberAppOwner, rememberAppPermissions } from '../permissionFacts'
 import { decryptSecret, encryptSecret } from '../../server/crypto/secretCrypto'
 
 describe('githubApp registration @SC-256', () => {
@@ -57,5 +58,12 @@ describe('disconnect @SC-262', () => {
 
     expect(await prisma.gitHubApp.count()).toBe(0)
     expect(await prisma.gitHubInstallation.count()).toBe(0)
+  })
+
+  it('forgets the remembered permissions and owner, so a newly registered App is read afresh', async () => {
+    rememberAppPermissions({ contents: 'write' })
+    rememberAppOwner({ login: 'acme', type: 'Organization' })
+    await disconnectApp()
+    expect(recalledFacts()).toMatchObject({ app: null, owner: null, at: 0 })
   })
 })

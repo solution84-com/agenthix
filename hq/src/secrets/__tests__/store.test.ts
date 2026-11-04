@@ -136,6 +136,24 @@ describe('who writes @SC-1328', () => {
   })
 })
 
+describe('describing', () => {
+  it('keeps the issuer, where to get a new one and the rotate-by date when only the description is sent', async () => {
+    const rotateBy = new Date(Date.now() + 40 * 86_400_000)
+    await addSecret(P, ADMIN, { name: 'KEY', value: text(CANARY), ...DESC, rotateBy })
+    await describeSecret(P, ADMIN, 'KEY', { description: 'Deploys to production' })
+    const [row] = await listSecrets(P)
+    expect(row).toMatchObject({ description: 'Deploys to production', issuer: DESC.issuer, renewAt: DESC.renewAt })
+    expect(row.rotateBy?.getTime()).toBe(rotateBy.getTime())
+  })
+
+  it('clears a field sent empty, and the rotate-by date sent as null', async () => {
+    await addSecret(P, ADMIN, { name: 'KEY', value: text(CANARY), ...DESC, rotateBy: new Date(Date.now() + 40 * 86_400_000) })
+    await describeSecret(P, ADMIN, 'KEY', { issuer: '', rotateBy: null })
+    const [row] = await listSecrets(P)
+    expect(row).toMatchObject({ issuer: '', renewAt: DESC.renewAt, rotateBy: null })
+  })
+})
+
 describe('replacing @SC-1329', () => {
   it('keeps the name, description and record; the next run gets the new value', async () => {
     const first = await addSecret(P, ADMIN, { name: 'KEY', value: text(CANARY), ...DESC, rotateBy: new Date(Date.now() + 86_400_000) })

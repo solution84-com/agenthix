@@ -26,6 +26,12 @@ export function rotationWords(s: Pick<SecretView, 'rotation' | 'rotateBy'>): { w
   return { words: `Rotate by ${dayWords(s.rotateBy)}`, tone: s.rotation === 'due_soon' ? 'warning' : 'neutral' }
 }
 
+/** Who issues a secret and where to get a new one, for the row; null when neither is known. */
+export function sourceWords(s: Pick<SecretView, 'issuer' | 'renewAt'>): string | null {
+  const parts = [s.issuer.trim() && `Issued by ${s.issuer.trim()}`, s.renewAt.trim() && `New one: ${s.renewAt.trim()}`].filter(Boolean)
+  return parts.length ? parts.join(' · ') : null
+}
+
 export function usedByWords(names: string[]): string {
   return names.length ? names.join(', ') : 'Not used'
 }
