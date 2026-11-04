@@ -1,7 +1,7 @@
 /**
  * hq's connection to Agenthix Cloud, wired to the database and to Cloud's address, and the console link's methods for
- * it. Who may do what is decided here: reading the state needs the fleet admin role; connecting and disconnecting need
- * the fleet admin role and the organisation admin role together, since the connection is the organisation's.
+ * it. Who may do what is decided here: reading the state needs the fleet admin role; connecting and disconnecting are
+ * the organisation admin's alone, in hq's admin area (adminCloud.ts), since the connection is the organisation's.
  */
 import { prisma } from 'wasp/server'
 import { configuredCloudUrl, parseCloudBaseUrl, type CloudOrganisationConnection, type CloudUrl } from '@agenthix/core'

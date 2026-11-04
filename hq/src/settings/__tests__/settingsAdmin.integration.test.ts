@@ -54,6 +54,17 @@ describe('updateUserRole @SC-096', () => {
     expect(await prisma.userSettings.findUnique({ where: { userId: erased.id } })).toBeNull()
   })
 
+  it('two admins demoting each other at once leave one admin', async () => {
+    const a = await createUserWithRole('ADMIN')
+    const b = await createUserWithRole('ADMIN')
+    const results = await Promise.allSettled([
+      updateUserRole({ userId: b.id, role: 'MEMBER' }, ctx(a)),
+      updateUserRole({ userId: a.id, role: 'MEMBER' }, ctx(b)),
+    ])
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
+    expect(await prisma.userSettings.count({ where: { userId: { in: [a.id, b.id] }, role: 'ADMIN' } })).toBe(1)
+  })
+
   it('refuses changing your own role (400)', async () => {
     const admin = await createUserWithRole('ADMIN')
     await expect(updateUserRole({ userId: admin.id, role: 'MEMBER' }, ctx(admin))).rejects.toMatchObject({ statusCode: 400 })
@@ -131,13 +142,22 @@ describe('updateSiteConfig and getSiteConfig @SC-086', () => {
 describe('updateRiskRules @SC-087', () => {
   it('creates a default site config holding the rules, then updates the same row', async () => {
     const admin = await createUserWithRole('ADMIN')
-    await updateRiskRules({ rules: [{ pattern: 'curl', riskLevel: 'medium' }] }, ctx(admin))
-    expect(await prisma.siteConfig.findFirstOrThrow()).toMatchObject({ name: 'default', riskRules: [{ pattern: 'curl', riskLevel: 'medium' }] })
+    await updateRiskRules({ rules: [{ pattern: 'curl', riskLevel: 'MEDIUM' }] }, ctx(admin))
+    expect(await prisma.siteConfig.findFirstOrThrow()).toMatchObject({ name: 'default', riskRules: [{ pattern: 'curl', riskLevel: 'MEDIUM' }] })
 
-    await updateRiskRules({ rules: [{ pattern: 'rm -rf', riskLevel: 'high' }] }, ctx(admin))
+    await updateRiskRules({ rules: [{ pattern: 'rm -rf', riskLevel: 'HIGH' }] }, ctx(admin))
     const rows = await prisma.siteConfig.findMany()
     expect(rows).toHaveLength(1)
-    expect(rows[0].riskRules).toEqual([{ pattern: 'rm -rf', riskLevel: 'high' }])
+    expect(rows[0].riskRules).toEqual([{ pattern: 'rm -rf', riskLevel: 'HIGH' }])
+  })
+
+  it('refuses rules that are not a list of known rules (400), keeping what was stored', async () => {
+    const admin = await createUserWithRole('ADMIN')
+    await updateRiskRules({ rules: [{ pattern: 'curl', riskLevel: 'MEDIUM' }] }, ctx(admin))
+    for (const rules of ['rm -rf', { pattern: 'x' }, [{ pattern: '', riskLevel: 'HIGH' }], [{ pattern: 'x', riskLevel: 'severe' }]]) {
+      await expect(updateRiskRules({ rules } as Parameters<typeof updateRiskRules>[0], ctx(admin))).rejects.toMatchObject({ statusCode: 400 })
+    }
+    expect((await prisma.siteConfig.findFirstOrThrow()).riskRules).toEqual([{ pattern: 'curl', riskLevel: 'MEDIUM' }])
   })
 
   it('refuses a non-admin (403) and a caller who is not signed in (401)', async () => {

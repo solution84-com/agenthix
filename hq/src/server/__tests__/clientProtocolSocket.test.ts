@@ -37,6 +37,14 @@ describe('a socket.io client refused for its version @SC-1139', () => {
     expect(await dial({ clientProtocolVersion: '1.0' })).toEqual({ connected: true })
   })
 
+  it('refuses a version that is not text, even one that would read as a version if it were', async () => {
+    for (const value of [1.1, ['1.0'], { v: '1.0' }, true]) {
+      const result = await dial({ clientProtocolVersion: value })
+      expect(result.connected, JSON.stringify(value)).toBe(false)
+      if (!result.connected) expect(result.err.data).toMatchObject({ reason: 'malformed' })
+    }
+  })
+
   it('receives connect_error with the refusal as its data', async () => {
     const result = await dial({ clientProtocolVersion: '3.0' })
     expect(result.connected).toBe(false)

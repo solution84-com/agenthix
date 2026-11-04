@@ -63,6 +63,17 @@ describe('forwarding a run\'s work to its conversation @SC-972', () => {
     expect(h.findFirst).toHaveBeenCalledTimes(1)
   })
 
+  it('does not let another site add to, clear or end a run\'s lines', async () => {
+    await call('t1', 'One')
+    await forwardRunFrame('site2', { name: 'agentToolCall', runId: 'run1', data: { runId: 'run1', toolUseId: 't9', toolName: 'Task', toolInput: { description: 'Planted' } } })
+    await forwardRunFrame('site2', { name: 'agentToolResult', runId: 'run1', data: { runId: 'run1', toolUseId: 't1', output: 'ok' } })
+    await setRunWaitingLine('site2', 'run1', 'Waiting')
+    await setRunWaitingLine('site2', 'run1', null)
+    await handleOperationRunStatus({ runId: 'run1', status: 'COMPLETED' } as RunStatusEvent, 'site2')
+    expect(liveActivityOf('op1')).toEqual({ lines: ['Shop · One'], endedHelpers: 0 })
+    expect(sent.lines).toHaveLength(1)
+  })
+
   it('forgets a run\'s lines when the run ends', async () => {
     await call('t1', 'One')
     await handleOperationRunStatus({ runId: 'run1', status: 'COMPLETED' } as RunStatusEvent, 'site1')

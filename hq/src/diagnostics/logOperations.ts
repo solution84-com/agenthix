@@ -1,6 +1,6 @@
 /**
  * The logs of one source at a time, their download, and the support bundle
- * (logs and diagnostics spec), for organisation admins only. A site's lines
+ * (logs and diagnostics spec), for fleet admins only (`assertFleetAdmin`). A site's lines
  * are read from the site when asked and kept nowhere in HQ (adr-0106).
  */
 import { HttpError } from 'wasp/server'
@@ -11,7 +11,7 @@ import type {
   BuildSupportBundle,
 } from 'wasp/server/operations'
 import { assertFleetAdmin } from '../sites/assertAdmin'
-import { getEnvStatus } from '../settings/queries'
+import { readEnvStatus } from '../settings/queries'
 import { findLogSource, linesAsText, listLogSources, readAllLines, readLogsPage, type LogSource, type LogsPage } from './logSources'
 import { buildSupportBundle as build, type BundleOptions, type SupportBundle } from './supportBundle'
 import { BRANDING } from '@agenthix/core'
@@ -58,9 +58,9 @@ export const buildSupportBundle: BuildSupportBundle<Partial<BundleOptions> | voi
     logs: args && args.logs === '7d' ? '7d' : '24h',
     levels: args && args.levels === 'problems' ? 'problems' : 'all',
   }
-  // The settings HQ checks for Infrastructure › HQ, by the same operation, so the list cannot drift.
-  // Its context type names its own entities; this context carries the one it reads.
-  const env = await getEnvStatus(undefined, context as unknown as Parameters<typeof getEnvStatus>[1])
+  // The settings HQ checks for Infrastructure › HQ, from the same function, so the list cannot drift. The fleet
+  // admin check above is this operation's own; the organisation admin check of that screen is not repeated.
+  const env = readEnvStatus()
   const settings = env.sections.flatMap(s => s.keys.map(k => ({ name: k.key, set: k.set })))
   return build(me, opts, settings)
 }

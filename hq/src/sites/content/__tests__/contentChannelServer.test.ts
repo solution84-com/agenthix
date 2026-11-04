@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest'
 import http from 'node:http'
 import WebSocket from 'ws'
 import { createHash, randomBytes } from 'node:crypto'
@@ -11,6 +11,10 @@ import { attachContentChannel } from '../contentChannelServer'
 import { ContentChannelRegistry } from '../contentChannelRegistry'
 import { attachSiteChannel } from '../../channel/siteChannelServer'
 import { SiteChannelRegistry } from '../../channel/siteChannelRegistry'
+
+// Real sockets on a machine that may be running a whole suite: the logic is quick, the scheduling is not.
+beforeAll(() => { vi.setConfig({ testTimeout: 20_000, hookTimeout: 20_000 }) })
+afterAll(() => { vi.resetConfig() })
 
 let server: http.Server
 let port: number
@@ -58,7 +62,7 @@ async function dialSite(serve: (mux: StreamMux, id: number, method: string) => v
   })
   await new Promise<void>((resolve, reject) => { ws.once('open', () => resolve()); ws.once('error', reject) })
   // Registration happens on the server's side of the upgrade; wait for it.
-  for (let i = 0; i < 50 && !registry.isConnected('s1'); i++) await new Promise(r => setTimeout(r, 10))
+  await vi.waitFor(() => expect(registry.isConnected('s1')).toBe(true), { timeout: 10_000 })
   return { ws, mux }
 }
 
@@ -96,7 +100,7 @@ describe('content channel server', () => {
     const content = await dialSite(() => {})
     const controlWs = new WebSocket(`ws://127.0.0.1:${port}${HQ_SITE_CHANNEL_PATH}`, { headers })
     await new Promise<void>((resolve, reject) => { controlWs.once('open', () => resolve()); controlWs.once('error', reject) })
-    for (let i = 0; i < 50 && !control.isOnline('s1'); i++) await new Promise(r => setTimeout(r, 10))
+    await vi.waitFor(() => expect(control.isOnline('s1')).toBe(true), { timeout: 10_000 })
 
     expect(control.isOnline('s1')).toBe(true)
     expect(registry.isConnected('s1')).toBe(true)
@@ -145,7 +149,8 @@ describe('content channel server', () => {
     ws.on('message', (data, isBinary) => { if (isBinary) sizes.push((data as Buffer).length) })
     const stream = await registry.open('s1', 'files.write', {})
     await new Promise<void>((resolve, reject) => stream.end(randomBytes(1024 * 1024), (err?: Error) => (err ? reject(err) : resolve())))
-    await new Promise(r => setTimeout(r, 50))
+    // Every byte has reached the site: each message is a chunk behind its 4-byte stream id.
+    await vi.waitFor(() => expect(sizes.reduce((total, size) => total + size - 4, 0)).toBeGreaterThanOrEqual(1024 * 1024), { timeout: 10_000 })
     expect(Math.max(...sizes)).toBeLessThanOrEqual(64 * 1024 + 4)
     ws.close()
   })
@@ -156,7 +161,7 @@ describe('content channel server', () => {
     const failed = new Promise<{ code: string }>(resolve => stream.on('error', e => resolve(e as unknown as { code: string })))
     ws.terminate()
     expect((await failed).code).toBe('disconnected')
-    for (let i = 0; i < 50 && registry.isConnected('s1'); i++) await new Promise(r => setTimeout(r, 10))
+    await vi.waitFor(() => expect(registry.isConnected('s1')).toBe(false), { timeout: 10_000 })
     expect(registry.isConnected('s1')).toBe(false)
   })
 
@@ -171,7 +176,7 @@ describe('content channel server', () => {
     process.on('uncaughtException', onUncaught)
     try {
       ws.terminate()
-      for (let i = 0; i < 50 && registry.isConnected('s1'); i++) await new Promise(r => setTimeout(r, 10))
+      await vi.waitFor(() => expect(registry.isConnected('s1')).toBe(false), { timeout: 10_000 })
       await new Promise(r => setTimeout(r, 20))
       expect(registry.isConnected('s1')).toBe(false)
       expect(stream.destroyed).toBe(true)
@@ -195,7 +200,7 @@ describe('content channel server', () => {
       source.pipe(stream)
       await new Promise(r => setTimeout(r, 20))
       ws.terminate()
-      for (let i = 0; i < 50 && registry.isConnected('s1'); i++) await new Promise(r => setTimeout(r, 10))
+      await vi.waitFor(() => expect(registry.isConnected('s1')).toBe(false), { timeout: 10_000 })
       await new Promise(r => setTimeout(r, 50))
       expect(stream.destroyed).toBe(true)
       expect(uncaught).toEqual([])

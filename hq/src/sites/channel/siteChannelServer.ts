@@ -5,11 +5,11 @@ import {
   SITE_PROTOCOL_VERSION,
   HQ_SITE_CHANNEL_PATH,
   checkProtocolCompatibility,
+  parseConnectionMessage,
   type HQConnectionMessage,
   type ProtocolVersion,
 } from '@agenthix/core'
 import { spokenVersion, type SiteChannelRegistry, type SiteConnection } from './siteChannelRegistry'
-import { readChannelFrame } from './channelFrame'
 import { checkSiteUpgrade } from '../siteUpgrade'
 import { Logger } from '../../server/utils/logger'
 import { holdWhileReadOnly } from '../../server/readOnly'
@@ -104,7 +104,7 @@ export function attachSiteChannel(server: HttpServer, deps: SiteChannelDeps): vo
     ws.on('close', closed)
 
     ws.on('message', raw => {
-      const msg = readChannelFrame(raw.toString())
+      const msg = parseConnectionMessage(raw.toString())
       if (!msg) return
       // The connection's rule, frame by frame: a frame of a major this hq does
       // not talk to is dropped. A peer one minor ahead may name a message type

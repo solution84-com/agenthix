@@ -8,7 +8,7 @@ const db = vi.hoisted(() => ({
 vi.mock('wasp/server', () => ({ prisma: db }))
 
 import {
-  cleanDeviceName, slidePhoneSession, forgetSlidSessions, signOutPhone, bearerSessionId,
+  cleanDeviceName, phoneHandle, slidePhoneSession, forgetSlidSessions, signOutPhone, bearerSessionId,
   DEVICE_SESSION_TTL_MS, SLIDE_INTERVAL_MS,
 } from '../deviceSessions'
 
@@ -54,11 +54,11 @@ describe('a phone session slides forward with use @SC-1100', () => {
 
 describe('signing a phone out @SC-1101', () => {
   it('ends it, and closes its sockets', async () => {
-    db.deviceSession.findUnique.mockResolvedValue({ sessionId: 's1', userId: 'u1' })
+    db.deviceSession.findMany.mockResolvedValue([{ sessionId: 's1' }])
     const disconnectSockets = vi.fn()
     const inRoom = vi.fn(() => ({ disconnectSockets }))
     ;(globalThis as any).__wasp_io__ = { in: inRoom }
-    expect(await signOutPhone('u1', 's1')).toBe(true)
+    expect(await signOutPhone('u1', phoneHandle('s1'))).toBe(true)
     expect(db.session.deleteMany).toHaveBeenCalledWith({ where: { id: 's1' } })
     expect(inRoom).toHaveBeenCalledWith('device:s1')
     expect(disconnectSockets).toHaveBeenCalledWith(true)
@@ -66,8 +66,20 @@ describe('signing a phone out @SC-1101', () => {
   })
 
   it("refuses another person's phone", async () => {
-    db.deviceSession.findUnique.mockResolvedValue({ sessionId: 's1', userId: 'someone-else' })
-    expect(await signOutPhone('u1', 's1')).toBe(false)
+    db.deviceSession.findMany.mockResolvedValue([])
+    expect(await signOutPhone('u1', phoneHandle('s1'))).toBe(false)
+    expect(db.deviceSession.findMany.mock.calls[0][0].where).toMatchObject({ userId: 'u1' })
+    expect(db.session.deleteMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('a phone is named to the browser by a handle, not its session id @SC-1101', () => {
+  it('is a digest that does not contain the session id, and the session id itself does not sign a phone out', async () => {
+    const handle = phoneHandle('secret-session-id')
+    expect(handle).not.toContain('secret-session-id')
+    expect(handle).toMatch(/^[0-9a-f]{64}$/)
+    db.deviceSession.findMany.mockResolvedValue([{ sessionId: 'secret-session-id' }])
+    expect(await signOutPhone('u1', 'secret-session-id')).toBe(false)
     expect(db.session.deleteMany).not.toHaveBeenCalled()
   })
 })

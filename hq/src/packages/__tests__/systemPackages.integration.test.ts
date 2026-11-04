@@ -136,6 +136,9 @@ describe('resolveRunPackages @SC-445 @SC-446', () => {
   it('refuses an agent with no content, naming it, and a platform package hq has not written', async () => {
     await put('platform', 'platform')
     await expect(resolveRunPackages('a1')).rejects.toBeInstanceOf(AgentPackageMissingError)
+    await expect(resolveRunPackages('a1')).rejects.toThrow(/^That agent has no instructions yet/)
+    const named = await createAgent({ name: 'Scout' })
+    await expect(resolveRunPackages(named.id)).rejects.toThrow(/^"Scout" has no instructions yet/)
     await prisma.package.deleteMany({ where: { kind: 'PLATFORM' } })
     await put('agent', 'a1')
     await expect(resolveRunPackages('a1')).rejects.toBeInstanceOf(SystemPackageMissingError)

@@ -21,6 +21,7 @@ import { requireConnectionGroup } from './connectionGroups'
 import { actingPerson } from './runPerson'
 import { requireTurnTool } from './turnCaller'
 import { withTaskId } from './taskKey'
+import { withProjectId } from './projectKey'
 import { isNoExecutionSiteError } from '../../shared/noExecutionSite'
 
 /** Registry keyed by MCP tool name — the single dispatch table for the MCP
@@ -125,7 +126,7 @@ export async function callOperation(name: string, ctx: CallerContext, args: unkn
     if (ctx.kind === 'turn' || !OWN_PRINCIPAL.has(name)) await actingPerson(ctx, name)
   }
   try {
-    return await operations[name](ctx, await withTaskId(args))
+    return await operations[name](ctx, await withProjectId(await withTaskId(args)))
   } catch (err) {
     // An operation that needs a site throws the shared HTTP error; an agent or
     // the data API caller must read it as what it is, not as an internal fault.

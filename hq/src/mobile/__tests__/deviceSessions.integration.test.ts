@@ -12,7 +12,7 @@ vi.mock('wasp/server', async () => {
 })
 
 import { exchangeMobileAuthToken, generateMobileAuthToken } from '../actions'
-import { forgetSlidSessions, listPhones, signOutPhone, slidePhoneSession, SLIDE_INTERVAL_MS } from '../deviceSessions'
+import { forgetSlidSessions, listPhones, phoneHandle, signOutPhone, slidePhoneSession, SLIDE_INTERVAL_MS } from '../deviceSessions'
 
 const ctx = (user?: { id: string }) => ({ user, entities: { MobileAuthToken: prisma.mobileAuthToken } }) as any
 
@@ -28,7 +28,7 @@ describe('a paired phone', () => {
   it('is marked as a phone with the name it gave, and listed for its person only @SC-1100 @SC-1101', async () => {
     const { user, sessionId } = await pairedPhone("Sam's phone")
     const other = await pairedPhone()
-    expect((await listPhones(user.id)).map(p => [p.sessionId, p.deviceName])).toEqual([[sessionId, "Sam's phone"]])
+    expect((await listPhones(user.id)).map(p => [p.id, p.deviceName])).toEqual([[phoneHandle(sessionId), "Sam's phone"]])
     expect((await listPhones(other.user.id))[0].deviceName).toBe('Phone')
   })
 
@@ -56,9 +56,9 @@ describe('a paired phone', () => {
   it('is signed out by its person at once, and by no one else @SC-1101', async () => {
     const { user, sessionId } = await pairedPhone()
     const stranger = await createUser()
-    expect(await signOutPhone(stranger.id, sessionId)).toBe(false)
+    expect(await signOutPhone(stranger.id, phoneHandle(sessionId))).toBe(false)
     expect(await prisma.session.findUnique({ where: { id: sessionId } })).not.toBeNull()
-    expect(await signOutPhone(user.id, sessionId)).toBe(true)
+    expect(await signOutPhone(user.id, phoneHandle(sessionId))).toBe(true)
     expect(await prisma.session.findUnique({ where: { id: sessionId } })).toBeNull()
     expect(await listPhones(user.id)).toEqual([])
   })

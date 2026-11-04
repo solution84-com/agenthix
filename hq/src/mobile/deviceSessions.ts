@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { prisma } from 'wasp/server'
 
 export const DEVICE_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
@@ -51,7 +52,13 @@ export function forgetSlidSessions(): void {
   touchedAt.clear()
 }
 
-export type PhoneRow = { sessionId: string; deviceName: string; lastUsedAt: Date; signedInAt: Date }
+/**
+ * What the browser is given to name a phone: a one-way digest of its session id, which is the phone's sign-in
+ * credential and so never leaves the server.
+ */
+export const phoneHandle = (sessionId: string) => createHash('sha256').update(`phone-handle:${sessionId}`).digest('hex')
+
+export type PhoneRow = { id: string; deviceName: string; lastUsedAt: Date; signedInAt: Date }
 
 /** The phones signed in as this person. A row whose session has ended (password change, lapse) is dropped. */
 export async function listPhones(userId: string): Promise<PhoneRow[]> {
@@ -69,13 +76,14 @@ export async function listPhones(userId: string): Promise<PhoneRow[]> {
   if (gone.length > 0) await prisma.deviceSession.deleteMany({ where: { sessionId: { in: gone } } })
   return rows
     .filter(r => liveIds.has(r.sessionId))
-    .map(r => ({ sessionId: r.sessionId, deviceName: r.deviceName, lastUsedAt: r.lastUsedAt, signedInAt: r.createdAt }))
+    .map(r => ({ id: phoneHandle(r.sessionId), deviceName: r.deviceName, lastUsedAt: r.lastUsedAt, signedInAt: r.createdAt }))
 }
 
-/** Ends one of this person's phone sessions at once. False when it is not theirs. */
-export async function signOutPhone(userId: string, sessionId: string): Promise<boolean> {
-  const row = await prisma.deviceSession.findUnique({ where: { sessionId } })
-  if (!row || row.userId !== userId) return false
+/** Ends one of this person's phone sessions at once, named by its `phoneHandle`. False when it is not theirs. */
+export async function signOutPhone(userId: string, phoneId: string): Promise<boolean> {
+  const rows = await prisma.deviceSession.findMany({ where: { userId, kind: 'phone' }, select: { sessionId: true } })
+  const sessionId = rows.find(r => phoneHandle(r.sessionId) === phoneId)?.sessionId
+  if (!sessionId) return false
   await prisma.$transaction([
     prisma.session.deleteMany({ where: { id: sessionId } }),
     prisma.deviceSession.deleteMany({ where: { sessionId } }),

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { NextFunction, Request, Response } from 'express'
-import { holdWhileReadOnly, readOnlyGuard, setReadOnly } from '../readOnly'
+import { holdWhileReadOnly, MAX_HELD, readOnlyGuard, setReadOnly } from '../readOnly'
 import { WASP_QUERIES } from '../readOnlyQueries'
 
 type Answer = { status: number | null; body: unknown; passed: boolean }
@@ -61,6 +61,17 @@ describe('hq read-only while it moves @SC-934', () => {
     setReadOnly(null)
     await new Promise(resolve => setTimeout(resolve, 0))
     expect(handled).toEqual([1, 2, 3])
+  })
+
+  it('does not answer an event as held when it cannot hold it: the caller handles it now', async () => {
+    const handled: number[] = []
+    setReadOnly(MOVING)
+    for (let n = 0; n < MAX_HELD; n++) expect(holdWhileReadOnly(async () => { handled.push(n) })).toBe(true)
+    expect(holdWhileReadOnly(async () => { handled.push(-1) })).toBe(false)
+    setReadOnly(null)
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(handled).toHaveLength(MAX_HELD)
+    expect(handled).not.toContain(-1)
   })
 
   it('knows every query Wasp generated, and only queries', () => {

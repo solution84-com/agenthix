@@ -45,8 +45,8 @@ export function MobileConnectPage() {
 
   const errorMessages: Record<ErrorReason, string> = {
     expired: 'This QR code has expired. Go back to Settings › Devices and connections › Phone and scan the new code.',
-    used: 'This QR code has already been used. Generate a new one from Settings → Connect Mobile.',
-    invalid: 'Invalid QR code. Make sure you scanned the code from Settings → Connect Mobile.',
+    used: 'This QR code has already been used. Generate a new one from Settings › Devices and connections › Phone.',
+    invalid: 'Invalid QR code. Make sure you scanned the code from Settings › Devices and connections › Phone.',
     unknown: 'Something went wrong. Please try again.',
   }
 

@@ -2,6 +2,7 @@ import { InworldTTS } from '@inworld/tts'
 import type { TtsAdapter, TTSConfig, Voice, WordTiming } from './ttsAdapter'
 import { accentOf } from './voiceAccent'
 import { Logger } from '../server/utils/logger'
+import { PROVIDER_CALL_TIMEOUT_MS } from './providerTimeout'
 
 const logger = new Logger('Voice')
 
@@ -57,6 +58,7 @@ export class InworldTtsAdapter implements TtsAdapter {
         model_id: config.model,
         audio_config: { audio_encoding: 'LINEAR16', sample_rate_hertz: 24000 },
       }),
+      signal: AbortSignal.timeout(PROVIDER_CALL_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -97,7 +99,7 @@ export class InworldTtsAdapter implements TtsAdapter {
     let pageToken = ''
     for (let page = 0; page < MAX_VOICE_PAGES; page++) {
       const url = `${INWORLD_VOICES_URL}?pageSize=${VOICES_PAGE_SIZE}${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`
-      const response = await fetch(url, { headers: { Authorization: `Basic ${apiKey}` } })
+      const response = await fetch(url, { headers: { Authorization: `Basic ${apiKey}` }, signal: AbortSignal.timeout(PROVIDER_CALL_TIMEOUT_MS) })
       if (!response.ok) {
         throw new Error(`Inworld listVoices failed: ${response.status} ${response.statusText}`)
       }

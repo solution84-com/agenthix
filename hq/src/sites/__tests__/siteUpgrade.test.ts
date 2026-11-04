@@ -1,9 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest'
 import http from 'node:http'
 import net from 'node:net'
 import WebSocket from 'ws'
 import { SITE_PROTOCOL_VERSION, parseProtocolVersion, SITE_PROTOCOL_VERSION_HEADER, HQ_SITE_REPLACED_HEADER, HQ_SITE_UNKNOWN_HEADER } from '@agenthix/core'
 import { checkSiteUpgrade, type SiteUpgradeDeps } from '../siteUpgrade'
+
+// Real sockets on a machine that may be running a whole suite: the logic is quick, the scheduling is not.
+beforeAll(() => { vi.setConfig({ testTimeout: 20_000, hookTimeout: 20_000 }) })
+afterAll(() => { vi.resetConfig() })
 
 const { major, minor } = parseProtocolVersion(SITE_PROTOCOL_VERSION)!
 

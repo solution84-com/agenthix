@@ -30,13 +30,13 @@ export const PLANNING_TOOLS: ControlPlaneTool[] = [
   {
     name: 'list_milestones',
     description: "A project's milestones — dated goals — each with the epics that belong to it.",
-    schema: { projectId: z.string().describe('The project') },
+    schema: { projectId: z.string().describe('The project: its key (e.g. WAL) or its ID') },
   },
   {
     name: 'create_milestone',
     description: 'Add a milestone: a dated goal in a project that epics can belong to (set an epic\'s with update_task).',
     schema: {
-      projectId: z.string().describe('The project'),
+      projectId: z.string().describe('The project: its key (e.g. WAL) or its ID'),
       name: z.string().describe('What it is, e.g. "Self-serve pricing live"'),
       date: z.string().describe('Its date, YYYY-MM-DD'),
     },

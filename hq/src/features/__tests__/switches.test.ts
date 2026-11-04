@@ -55,6 +55,18 @@ describe('reading the switches @SC-1768', () => {
     expect(await orgFeatureSwitches()).toEqual({ marketplace: true })
   })
 
+  it('does not keep a read that was under way when the copy was forgotten', async () => {
+    let finish!: (row: unknown) => void
+    db.findFirst.mockReturnValueOnce(new Promise(resolve => { finish = resolve }))
+    const old = orgFeatureSwitches()
+    forgetFeatureSwitches()
+    db.findFirst.mockResolvedValueOnce({ featureSwitches: {} })
+    expect(await orgFeatureSwitches()).toEqual({})
+    finish({ featureSwitches: { marketplace: { on: true } } })
+    expect(await old).toEqual({ marketplace: true })
+    expect(freshFeatureSwitches()).toEqual({})
+  })
+
   it('keeps no failed read: the caller sees the error, and the next asks again', async () => {
     db.findFirst.mockRejectedValueOnce(new Error('database down')).mockResolvedValueOnce(null)
     await expect(orgFeatureSwitches()).rejects.toThrow('database down')

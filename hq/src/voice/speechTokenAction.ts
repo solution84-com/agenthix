@@ -7,6 +7,7 @@ import { requireConversationSpeaker } from '../conversations/readingRule'
 import { failureKind, speechAccess, type SpeechScope } from './speechAccess'
 import { scopeOfConversation } from './speechScope'
 import type { TicketedSpeechToken } from './ticketedToken'
+import { PROVIDER_CALL_TIMEOUT_MS } from './providerTimeout'
 
 const TOKEN_TTL_SECONDS = 600
 
@@ -31,7 +32,7 @@ export const getSpeechToken: GetSpeechToken<{ agentId?: string; conversationId?:
   try {
     upstream = await fetch(
       `https://streaming.assemblyai.com/v3/token?expires_in_seconds=${TOKEN_TTL_SECONDS}`,
-      { headers: { Authorization: apiKey } },
+      { headers: { Authorization: apiKey }, signal: AbortSignal.timeout(PROVIDER_CALL_TIMEOUT_MS) },
     )
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Network error'

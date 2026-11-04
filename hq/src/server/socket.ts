@@ -16,6 +16,7 @@ import { requireConversationReader } from '../conversations/readingRule'
 import { registerConversationVoice } from '../conversations/voice/handlers'
 import { startConversationVoice } from '../conversations/voice/service'
 import { registerWorkspaceRoom } from '../branches/workspaceRoom'
+import { hqOrigin, webClientOrigin } from './hqOrigin'
 import type {
   ConversationDeltaEvent,
   ConversationMessageEvent,
@@ -134,8 +135,8 @@ export const webSocketFn: WebSocketDefinition<
   // Override engine CORS options before any client connects so that HQ
   // brokered sessions can open a WebSocket to this site cross-origin.
   const wsOrigins = [
-    process.env.WASP_WEB_CLIENT_URL ?? 'http://localhost:3000',
-    process.env.HQ_ORIGIN ?? 'http://localhost:5173',
+    webClientOrigin(),
+    hqOrigin(),
   ].filter(Boolean) as string[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(io.engine as any).opts.cors = {

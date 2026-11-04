@@ -8,9 +8,9 @@ export const getMyPhones: GetMyPhones<void, PhoneRow[]> = async (_args, context)
   return listPhones(context.user.id)
 }
 
-export const signOutPhone: SignOutPhone<{ sessionId: string }, void> = async (args, context) => {
+export const signOutPhone: SignOutPhone<{ id: string }, void> = async (args, context) => {
   if (!context.user) throw new HttpError(401)
-  if (typeof args?.sessionId !== 'string' || !(await endPhoneSession(context.user.id, args.sessionId))) {
+  if (typeof args?.id !== 'string' || !(await endPhoneSession(context.user.id, args.id))) {
     throw new HttpError(404, 'That phone is not signed in as you')
   }
 }

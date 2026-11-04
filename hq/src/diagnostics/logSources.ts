@@ -103,13 +103,18 @@ export async function readAllLines(
   const lines: LogLine[] = []
   let cursor: string | null = null
   let source = found.info
-  do {
-    const page = await readLogsPage(found, { ...(input as object), cursor, limit: 1000 })
+  // A site names the next page; one that keeps naming a page with no lines, or the same page, would hold the
+  // request for 15 s a round for ever. Honest pages are 1000 lines each, so twice what `max` needs is room enough.
+  const maxPages = Math.ceil(max / 1000) * 2
+  for (let pages = 0; pages < maxPages; pages++) {
+    const page: LogsPage = await readLogsPage(found, { ...(input as object), cursor, limit: 1000 })
     source = page.source
     lines.push(...page.lines)
+    const advanced = page.nextCursor !== null && page.nextCursor !== cursor
     cursor = page.nextCursor
-  } while (cursor && lines.length < max && !source.notice)
-  return { source, lines: lines.slice(0, max), truncated: lines.length >= max && cursor !== null }
+    if (!advanced || page.lines.length === 0 || lines.length >= max || source.notice) break
+  }
+  return { source, lines: lines.slice(0, max), truncated: cursor !== null && !source.notice }
 }
 
 /** Oldest first, one line each, as a person reads a log file. */

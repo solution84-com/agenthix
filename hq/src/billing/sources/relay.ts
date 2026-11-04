@@ -19,7 +19,7 @@ export const WAIT_FOR_RUN_MS = 2 * 60_000
 const BATCH = 200
 
 export type RelayReportRow = {
-  callId: string; runId: string; providerId: string; model: string; at: Date; receivedAt: Date; hasUsage: boolean
+  callId: string; siteId: string; runId: string; providerId: string; model: string; at: Date; receivedAt: Date; hasUsage: boolean
   inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number
 }
 
@@ -30,10 +30,25 @@ function basisOf(provider: RelayProvider | null): CostBasis {
   return provider?.vendor === 'cloud' ? 'AWAITING_ACTUAL' : 'ESTIMATED'
 }
 
+/**
+ * When a call is booked: the time the site gave, kept between when hq dispatched the run (when it is known) and when
+ * the report arrived, since the site chooses its own value and a call cannot come before its run or after its report.
+ */
+export function ledgerTime(r: Pick<RelayReportRow, 'at' | 'receivedAt'>, dispatchedAt?: Date): Date {
+  const latest = r.receivedAt.getTime()
+  const earliest = dispatchedAt ? dispatchedAt.getTime() : -Infinity
+  return new Date(Math.min(latest, Math.max(earliest, r.at.getTime())))
+}
+
+/** The costing of a report's run, if the report comes from the site the run was dispatched to; any other is no run's. */
+export function costingForReport<C extends { siteId: string }>(r: Pick<RelayReportRow, 'siteId'>, costing: C | undefined): C | null {
+  return costing && costing.siteId === r.siteId ? costing : null
+}
+
 /** The ledger row for one report. A provider removed since keeps its id, and is priced by nothing. */
 export function relayCallRow(r: RelayReportRow, costing: RunCostingRow | null, provider: RelayProvider | null): LedgerCall {
   return {
-    callId: r.callId, at: r.at, purpose: 'worker', basis: basisOf(provider),
+    callId: r.callId, at: ledgerTime(r, costing?.dispatchedAt), purpose: 'worker', basis: basisOf(provider),
     billingProfileId: costing?.billingProfileId ?? '',
     providerId: r.providerId, providerName: provider?.name ?? 'Removed provider', vendor: provider?.vendor ?? '', model: r.model,
     usage: { ...NO_USAGE, inputTokens: r.inputTokens, outputTokens: r.outputTokens, cacheReadTokens: r.cacheReadTokens, cacheWriteTokens: r.cacheWriteTokens },
@@ -72,7 +87,7 @@ async function drain(now: () => Date): Promise<number> {
     const costingOf = new Map(costings.map(c => [c.runId, c]))
     const providerOf = new Map(providers.map(p => [p.id, p]))
     for (const r of rows) {
-      const costing = costingOf.get(r.runId) ?? null
+      const costing = costingForReport(r, costingOf.get(r.runId))
       if (!readyToLedger(r, costing !== null, now())) continue
       if (!costing) logger.warn(`Usage of run ${r.runId} (call ${r.callId}) written to the default billing profile: hq kept no costing for the run`)
       if (!r.hasUsage) logger.warn(`Call ${r.callId} of run ${r.runId} carried no usage the relay could read: written unpriced`)

@@ -54,7 +54,7 @@ describe('getSpeechToken @SC-194 @SC-1205', () => {
     const token = await getSpeechToken(undefined, ctx(user))
 
     expect(token).toMatchObject({ provider: 'assemblyai', token: 't', config: { speech_model: 'universal-streaming-english' } })
-    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('streaming.assemblyai.com'), { headers: { Authorization: 'stt-key' } })
+    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('streaming.assemblyai.com'), { headers: { Authorization: 'stt-key' }, signal: expect.any(AbortSignal) })
     expect(report).toHaveBeenCalledWith(stt!.id, null)
   })
 

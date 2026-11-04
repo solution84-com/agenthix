@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { RunDispatchPayload, RunStatusEvent } from '@agenthix/core'
-import { readyToLedger, relayCallRow, WAIT_FOR_RUN_MS, type RelayReportRow } from '../sources/relay'
+import { costingForReport, ledgerTime, readyToLedger, relayCallRow, WAIT_FOR_RUN_MS, type RelayReportRow } from '../sources/relay'
 import { runCostingOf, subscriptionRunRow, type RunCostingRow } from '../sources/runs'
 import { sealSttTicket, sttSessionRow, ttsCallRow, STT_SESSION_MAX_MS, type VoiceCallAccess } from '../sources/voice'
 
 const report: RelayReportRow = {
-  callId: 'call-relay-1', runId: 'run-1', providerId: 'p-ant', model: 'claude-sonnet-4-5', at: new Date('2026-10-23T10:00:00Z'),
+  callId: 'call-relay-1', siteId: 's-1', runId: 'run-1', providerId: 'p-ant', model: 'claude-sonnet-4-5', at: new Date('2026-10-23T10:00:00Z'),
   receivedAt: new Date('2026-10-23T10:00:01Z'), hasUsage: true, inputTokens: 100, outputTokens: 20, cacheReadTokens: 5, cacheWriteTokens: 1,
 }
 const costing: RunCostingRow = {
@@ -34,6 +34,23 @@ describe("the relay's reports @SC-1214", () => {
     expect(readyToLedger(report, false, new Date(at + 1000))).toBe(false)
     expect(readyToLedger(report, false, new Date(at + WAIT_FOR_RUN_MS))).toBe(true)
     expect(relayCallRow(report, null, null).billingProfileId).toBe('')
+  })
+})
+
+describe("a relay report's run and time are checked against what hq kept @SC-1214", () => {
+  it("uses a run's costing only for a report from the site the run went to", () => {
+    expect(costingForReport(report, costing)).toBe(costing)
+    expect(costingForReport({ siteId: 's-other' }, costing)).toBeNull()
+    expect(costingForReport(report, undefined)).toBeNull()
+  })
+
+  it('books a call no later than its report arrived and no earlier than its run was dispatched', () => {
+    const dispatchedAt = new Date('2026-10-23T09:00:00Z')
+    expect(ledgerTime(report, dispatchedAt)).toEqual(report.at)
+    expect(ledgerTime({ ...report, at: new Date('2031-01-01T00:00:00Z') }, dispatchedAt)).toEqual(report.receivedAt)
+    expect(ledgerTime({ ...report, at: new Date('2020-01-01T00:00:00Z') }, dispatchedAt)).toEqual(dispatchedAt)
+    expect(ledgerTime({ ...report, at: new Date('2020-01-01T00:00:00Z') })).toEqual(new Date('2020-01-01T00:00:00Z'))
+    expect(relayCallRow({ ...report, at: new Date('2031-01-01T00:00:00Z') }, costing, null).at).toEqual(report.receivedAt)
   })
 })
 

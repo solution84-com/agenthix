@@ -124,15 +124,14 @@ describe('the default site against a real database', () => {
   it('adopting a new id clears the rows that name the old one by string, and only those', async () => {
     await ensureDefaultSite()
     const row = await prisma.executionSite.findFirstOrThrow()
-    const oldId = row.siteId
     const stale = (siteId: string, tag: string) => prisma.workspacePlacement.create({ data: { workspaceId: `ws-${tag}`, siteId } })
-    await stale(oldId, 'old')
+    await stale(row.id, 'old')
     await stale('some-other-site', 'other')
 
     await authenticateSite('new-id', SECRET)
 
     expect((await prisma.executionSite.findFirstOrThrow()).siteId).toBe('new-id')
-    expect(await prisma.workspacePlacement.count({ where: { siteId: oldId } })).toBe(0)
+    expect(await prisma.workspacePlacement.count({ where: { siteId: row.id } })).toBe(0)
     expect(await prisma.workspacePlacement.findMany()).toMatchObject([{ workspaceId: 'ws-other', siteId: 'some-other-site' }])
 
     // The same id again is a reconnect: it deletes nothing further.
@@ -194,7 +193,7 @@ describe('authenticateDefaultSite against a real database', () => {
     await ensureDefaultSite()
     const before = await prisma.executionSite.findFirstOrThrow()
     await prisma.executionSite.create({ data: { siteId: 'taken', label: 'Other', credentialHash: hashCredential('smc_other') } })
-    await prisma.workspacePlacement.create({ data: { workspaceId: 'ws-1', siteId: before.siteId } })
+    await prisma.workspacePlacement.create({ data: { workspaceId: 'ws-1', siteId: before.id } })
 
     await expect(authenticateDefaultSite('taken', SECRET)).resolves.toBeNull()
 
@@ -204,9 +203,9 @@ describe('authenticateDefaultSite against a real database', () => {
 
   it('logs one line with the total cleared when it adopts a new id, and never the secret', async () => {
     await ensureDefaultSite()
-    const oldId = (await prisma.executionSite.findFirstOrThrow()).siteId
-    await prisma.workspacePlacement.create({ data: { workspaceId: 'ws-1', siteId: oldId } })
-    await prisma.workspacePlacement.create({ data: { workspaceId: 'ws-2', siteId: oldId } })
+    const rowId = (await prisma.executionSite.findFirstOrThrow()).id
+    await prisma.workspacePlacement.create({ data: { workspaceId: 'ws-1', siteId: rowId } })
+    await prisma.workspacePlacement.create({ data: { workspaceId: 'ws-2', siteId: rowId } })
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     try {
       await authenticateDefaultSite('site-new', SECRET)

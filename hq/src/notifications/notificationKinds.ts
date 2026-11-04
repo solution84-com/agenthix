@@ -17,10 +17,6 @@ export const TASK_NOTIFICATION_TYPES = ['tool_approval', 'task_waiting'] as cons
  * admins (`sites/siteNotifications.ts`).
  */
 export const SITE_NOTIFICATION_TYPES = {
-  /** One for every machine waiting: "3 machines are asking to connect". */
-  requests: 'site_requests',
-  /** A machine's request whose code expired; the one a person may dismiss. */
-  requestExpired: 'site_request_expired',
   upgrade: 'site_upgrade',
   /** Not connected while a run or a change waits on it. */
   offlineWithWork: 'site_offline_with_work',

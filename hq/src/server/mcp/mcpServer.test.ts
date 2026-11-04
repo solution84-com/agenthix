@@ -45,3 +45,19 @@ describe('the old preview tool @SC-1716', () => {
     expect(tools['start_preview']).toBeUndefined()
   })
 })
+
+describe("the server's own words @SC-111", () => {
+  it('speak to the person\'s tool that made the connection, not to an agent finishing a run', () => {
+    const server = createMcpServer({ caller: connectionCaller() })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const instructions = (server.server as any)._instructions as string
+    expect(instructions).toContain('as the person who made this connection')
+    expect(instructions).not.toMatch(/before finishing|you just created in the same session|this agent/)
+  })
+
+  it('offers no disabledTools option and names itself plainly', () => {
+    const server = createMcpServer({ caller: connectionCaller() })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((server.server as any)._serverInfo).toMatchObject({ name: 'hq' })
+  })
+})

@@ -9,6 +9,8 @@ export const SWITCHES_CACHE_MS = 5_000
 
 let cached: { switches: FeatureSwitches; until: number } | null = null
 let reading: Promise<FeatureSwitches> | null = null
+/** Moves on each forget, so a read begun before it is not kept when it finishes after. */
+let generation = 0
 
 /** The switches if read within the last few seconds, else null. */
 export function freshFeatureSwitches(now: number = Date.now()): FeatureSwitches | null {
@@ -22,16 +24,24 @@ export function freshFeatureSwitches(now: number = Date.now()): FeatureSwitches 
 export function cachedFeatureSwitches(read: () => Promise<FeatureSwitches>): Promise<FeatureSwitches> {
   const fresh = freshFeatureSwitches()
   if (fresh) return Promise.resolve(fresh)
-  reading ??= read()
+  if (reading) return reading
+  const started = generation
+  const mine: Promise<FeatureSwitches> = read()
     .then(switches => {
-      cached = { switches, until: Date.now() + SWITCHES_CACHE_MS }
+      if (started === generation) cached = { switches, until: Date.now() + SWITCHES_CACHE_MS }
       return switches
     })
-    .finally(() => { reading = null })
-  return reading
+    .finally(() => { if (reading === mine) reading = null })
+  reading = mine
+  return mine
 }
 
-/** Forgets the copy, so the next check reads the database: after a switch changes, and between tests. */
+/**
+ * Forgets the copy, so the next check reads the database: after a switch changes, and between tests. A read under way
+ * is left to finish for its own callers but is not kept, and a caller that arrives now starts a new one.
+ */
 export function forgetFeatureSwitches(): void {
   cached = null
+  reading = null
+  generation++
 }

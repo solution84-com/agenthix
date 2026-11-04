@@ -23,7 +23,7 @@ import { NotificationPanel } from '../NotificationPanel'
 
 const at = new Date().toISOString()
 const notice = (over: Record<string, unknown>) => ({
-  id: 'n', type: 'site_requests', title: '3 machines are asking to connect', body: 'b', actionLabel: 'Open Execution Sites',
+  id: 'n', type: 'site_upgrade', title: 'A site needs upgrading', body: 'b', actionLabel: 'Open Execution Sites',
   actionUrl: '/admin/where-work-runs', status: 'read', createdAt: at, task: null, detail: 'Approve or deny them', command: null,
   dismissible: false, ...over,
 })
@@ -43,19 +43,19 @@ describe('persistent notifications in the panel @SC-629', () => {
   it('lists an open one under Needs you with no dismiss control when its kind cannot be dismissed', () => {
     show([notice({ id: 'a' })])
     const needsYou = within(screen.getByRole('region', { name: 'Needs you' }))
-    expect(needsYou.getByText('3 machines are asking to connect')).toBeTruthy()
+    expect(needsYou.getByText('A site needs upgrading')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Dismiss' })).toBeNull()
   })
 
   it('offers dismiss under Needs you on one that may be dismissed, and dismisses it', () => {
-    show([notice({ id: 'b', type: 'site_request_expired', title: "build-box-2's request expired", dismissible: true })])
+    show([notice({ id: 'b', type: 'site_health', title: 'build-box-2 is nearly out of disk', dismissible: true })])
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
     expect(dismiss).toHaveBeenCalledWith({ id: 'b' })
   })
 
   it('offers no dismiss on a fixed one that moved to Earlier when its kind cannot be dismissed', () => {
     show([notice({ id: 'c', status: 'handled' })])
-    expect(within(screen.getByRole('region', { name: 'Earlier' })).getByText('3 machines are asking to connect')).toBeTruthy()
+    expect(within(screen.getByRole('region', { name: 'Earlier' })).getByText('A site needs upgrading')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Dismiss' })).toBeNull()
   })
 })

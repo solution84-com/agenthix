@@ -28,6 +28,7 @@ import express from 'express'
 import { config } from 'wasp/server'
 import { CLIENT_PROTOCOL_VERSION_HEADER } from '@agenthix/core'
 import type { MiddlewareConfigFn } from 'wasp/server'
+import { hqOrigin, loggablePath } from './hqOrigin'
 import { Logger } from './utils/logger'
 import { signInLimit } from '../auth/signInLimit'
 import { readOnlyGuard } from './readOnly'
@@ -61,9 +62,8 @@ export const jsonBody: express.RequestHandler = (req, res, next) =>
  * refuses their responses and an agent's avatar and cover never show.
  */
 export function hqCors() {
-  const hqOrigin = process.env.HQ_ORIGIN ?? 'http://localhost:5173'
   return cors({
-    origin: [...config.allowedCORSOrigins, hqOrigin],
+    origin: [...config.allowedCORSOrigins, hqOrigin()],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type', 'X-Site-Key', CLIENT_PROTOCOL_VERSION_HEADER],
     credentials: true,
@@ -84,7 +84,7 @@ export const middlewareConfig: MiddlewareConfigFn = (middlewareConfig) => {
 
       // Format: METHOD /path STATUS DURATIONms - BYTES[ · client VERSION USER-AGENT]
       // e.g.    GET /api/v1/agents 200 12ms - 342 · client 1.0 mobile/1.2.0
-      logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms - ${contentLength}${client ? ` · ${client}` : ''}`)
+      logger.info(`${req.method} ${loggablePath(req.originalUrl)} ${res.statusCode} ${duration}ms - ${contentLength}${client ? ` · ${client}` : ''}`)
     })
     next()
   }

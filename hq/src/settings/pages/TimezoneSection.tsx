@@ -11,9 +11,9 @@ function zoneOptions(stored: string | null): string[] {
 }
 
 /**
- * The timezone agents read a person's times in (when an agent sets "tomorrow at
+ * The time zone agents read a person's times in (when an agent sets "tomorrow at
  * 9" for them). It follows the browser until the person picks one here; choosing
- * "Use my browser's timezone" hands it back.
+ * "Use my browser's time zone" hands it back.
  */
 export function TimezoneSection() {
   const { data: settings } = useQuery(getUserSettings)
@@ -38,18 +38,18 @@ export function TimezoneSection() {
 
   return (
     <div>
-      <label className="block text-small text-text-secondary mb-1" htmlFor="timezone">Your timezone</label>
+      <label className="block text-small text-text-secondary mb-1" htmlFor="timezone">Your time zone</label>
       <select
         id="timezone"
         value={chosen && stored ? stored : USE_BROWSER}
         onChange={e => void change(e.target.value)}
         className="appearance-none bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:border-accent/50"
       >
-        <option value={USE_BROWSER}>Use my browser's timezone ({browser})</option>
+        <option value={USE_BROWSER}>Use my browser's time zone ({browser})</option>
         {zoneOptions(chosen ? stored : null).map(zone => <option key={zone} value={zone}>{zone}</option>)}
       </select>
       <p className="text-small text-text-muted mt-2">
-        The timezone agents use when you ask them for a time, such as "start it tomorrow at 9". It follows this
+        The time zone agents use when you ask them for a time, such as "start it tomorrow at 9". It follows this
         browser unless you choose one.
       </p>
       {!chosen && stored && <p className="text-small text-text-muted mt-1">Currently {stored}, from this browser.</p>}

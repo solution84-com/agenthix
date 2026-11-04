@@ -70,6 +70,9 @@ export const clientProtocolGuard: RequestHandler = (req, res, next) => {
   res.status(426).set(CLIENT_PROTOCOL_VERSION_HEADER, CLIENT_PROTOCOL_VERSION).json(decision.refusal)
 }
 
+/** What a handshake value that is not text is read as: no version, so the refusal says it is unreadable. */
+const NOT_TEXT = '(not text)'
+
 /** The part of a socket.io socket the handshake guard reads and writes. */
 export type HandshakeSocket = {
   handshake: { auth?: Record<string, unknown>; headers: Record<string, string | string[] | undefined> }
@@ -82,7 +85,7 @@ export type HandshakeSocket = {
  */
 export function clientProtocolSocketGuard(socket: HandshakeSocket, next: (err?: Error) => void): void {
   const field = socket.handshake.auth?.[CLIENT_PROTOCOL_HANDSHAKE_FIELD]
-  const presented = field == null ? oneHeader(socket.handshake.headers[HEADER]) : String(field)
+  const presented = field == null ? oneHeader(socket.handshake.headers[HEADER]) : typeof field === 'string' ? field : NOT_TEXT
   const decision = decideClientProtocol(presented)
   const userAgent = userAgentOf(socket.handshake.headers['user-agent'])
   if (decision.ok) {

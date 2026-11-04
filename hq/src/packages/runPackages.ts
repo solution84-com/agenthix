@@ -1,10 +1,11 @@
 import { prisma } from 'wasp/server'
 import { PLATFORM_PACKAGE_KEY, type PackageKind, type RunPackages } from '@agenthix/core'
 import { getCurrentPackage } from './packageStore'
+import { agentCalled, agentNameFor } from './agentName'
 
 export class AgentPackageMissingError extends Error {
-  constructor(agentId: string) {
-    super(`Agent ${agentId} has no instructions yet — save its instructions before running it`)
+  constructor(readonly agentId: string, agentName: string | null) {
+    super(`${agentCalled(agentName)} has no instructions yet — save its instructions before running it`)
     this.name = 'AgentPackageMissingError'
   }
 }
@@ -32,7 +33,7 @@ export async function resolveRunPackages(agentId: string): Promise<RunPackages> 
     org ? getCurrentPackage('org', org.id) : Promise.resolve(null),
     getCurrentPackage('platform', PLATFORM_PACKAGE_KEY),
   ])
-  if (!agent) throw new AgentPackageMissingError(agentId)
+  if (!agent) throw new AgentPackageMissingError(agentId, await agentNameFor(agentId))
   if (!platform) throw new SystemPackageMissingError('platform', PLATFORM_PACKAGE_KEY)
   return { agent: agent.ref, org: orgPackage?.ref ?? null, platform: platform.ref }
 }

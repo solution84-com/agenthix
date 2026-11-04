@@ -58,6 +58,8 @@ describe('agent content', () => {
 
     await expect(changeAgentContent('nobody', c => c, 'u1')).rejects.toBeInstanceOf(AgentContentMissingError)
     expect(await getCurrentPackage('agent', 'nobody')).toBeNull()
+    const bare = await createAgent({ name: 'Scout' })
+    await expect(changeAgentContent(bare.id, c => c, 'u1')).rejects.toThrow(/^"Scout" has no instructions yet/)
   })
 
   it('refuses a skill file outside skills/ and stores nothing', async () => {

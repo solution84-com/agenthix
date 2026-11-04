@@ -19,6 +19,8 @@ export type RunCostingRow = {
   runId: string; siteId: string; sessionId: string; agentId: string; userId: string | null; projectId: string | null
   conversationId: string | null; billingProfileId: string; providerId: string | null; model: string | null; subscription: boolean
   baseInputTokens: number; baseOutputTokens: number; baseCacheReadTokens: number; baseCacheWriteTokens: number
+  /** Read from the database; a row just made by `runCostingOf` has none yet. */
+  dispatchedAt?: Date
 }
 
 /** What a dispatched run is costed to, from what it was sent and hq's copy of its session. */

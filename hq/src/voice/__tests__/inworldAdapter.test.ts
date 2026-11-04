@@ -50,6 +50,14 @@ describe('InworldTtsAdapter @SC-129', () => {
       expect(result.toString()).toBe('fake-pcm-data')
     })
 
+    it('gives the request a timeout, so a hung provider does not hold it', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ audioContent: '' }) })
+      vi.stubGlobal('fetch', fetchMock)
+      const { InworldTtsAdapter } = await import('../inworldAdapter')
+      await new InworldTtsAdapter().synthesize('Hello', { apiKey: 'k', voiceId: 'Ashley', model: 'inworld-tts-2' })
+      expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal)
+    })
+
     it('throws when TTS request fails', async () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: false, status: 401, statusText: 'Unauthorized',

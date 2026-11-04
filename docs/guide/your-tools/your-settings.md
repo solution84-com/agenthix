@@ -1,6 +1,6 @@
 ---
 title: Your settings
-description: What is yours alone to change in Agenthix, from your timezone to your password.
+description: What is yours alone to change in Agenthix, from your time zone to your password.
 sidebar:
   order: 7
 ---
@@ -14,7 +14,7 @@ area](../people/your-organisation.md) describes both.
 ## Profile
 
 At the top, you can edit your name and use **Add a picture** or **Change picture**. **Handle** shows your username,
-which you sign in with. **Your timezone** begins as **Use my browser's timezone**; pick another to
+which you sign in with. **Your time zone** begins as **Use my browser's time zone**; pick another to
 see times in it.
 
 ## Appearance

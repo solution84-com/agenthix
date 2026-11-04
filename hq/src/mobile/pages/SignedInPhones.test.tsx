@@ -14,7 +14,7 @@ import { SignedInPhones } from './SignedInPhones'
 
 beforeEach(() => {
   state.refetch.mockReset(); state.signOut.mockReset().mockResolvedValue(undefined)
-  state.phones = [{ sessionId: 's1', deviceName: "Sam's phone", lastUsedAt: new Date('2030-01-02T10:00:00Z'), signedInAt: new Date() }]
+  state.phones = [{ id: 'h1', deviceName: "Sam's phone", lastUsedAt: new Date('2030-01-02T10:00:00Z'), signedInAt: new Date() }]
 })
 
 describe('SignedInPhones @SC-1101', () => {
@@ -23,7 +23,7 @@ describe('SignedInPhones @SC-1101', () => {
     expect(screen.getByText("Sam's phone")).toBeTruthy()
     expect(screen.getByText(/Last used/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: "Sign out Sam's phone" }))
-    await waitFor(() => expect(state.signOut).toHaveBeenCalledWith({ sessionId: 's1' }))
+    await waitFor(() => expect(state.signOut).toHaveBeenCalledWith({ id: 'h1' }))
     await waitFor(() => expect(state.refetch).toHaveBeenCalled())
   })
 

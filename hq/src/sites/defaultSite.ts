@@ -91,11 +91,10 @@ export async function authenticateDefaultSite(siteId: string, credential: string
  * Null when the presented id already belongs to another site.
  */
 export async function adoptSiteId<T extends { id: string; siteId: string }>(row: T, siteId: string, what: string) {
-  const oldSiteId = row.siteId
   try {
     const { adopted, cleared } = await prisma.$transaction(async (tx) => {
       const adopted = await tx.executionSite.update({ where: { id: row.id }, data: { siteId } })
-      return { adopted, cleared: await clearRowsNamingSite(tx, oldSiteId) }
+      return { adopted, cleared: await clearRowsNamingSite(tx, row.id) }
     })
     logger.info(`${what} adopted a new site id — cleared ${cleared} stale row(s) naming the old one`)
     return adopted
@@ -107,13 +106,13 @@ export async function adoptSiteId<T extends { id: string; siteId: string }>(row:
 }
 
 /**
- * The old id is held as a plain string, with no foreign key, by WorkspacePlacement.
- * What they describe lived on the site that id named, so it goes with it.
+ * A workspace's placement holds the site row's own id as a plain string, with no foreign key. A site that comes back
+ * with a new id of its own has lost its database, so the workspaces placed on it are gone with it.
  * Rows that follow the ExecutionSite row's own id (UserStoragePlacement,
  * Project) are not touched.
  */
-async function clearRowsNamingSite(tx: Prisma.TransactionClient, siteId: string): Promise<number> {
-  const where = { siteId }
+async function clearRowsNamingSite(tx: Prisma.TransactionClient, rowId: string): Promise<number> {
+  const where = { siteId: rowId }
   const results = [
     await tx.workspacePlacement.deleteMany({ where }),
   ]

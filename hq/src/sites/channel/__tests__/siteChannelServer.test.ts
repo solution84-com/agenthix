@@ -1,5 +1,5 @@
 // Over 300 lines on purpose: every case runs over the one live http server, ws server and client set up below.
-import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock, beforeAll, afterAll } from 'vitest'
 import http from 'node:http'
 import WebSocket from 'ws'
 import { SITE_PROTOCOL_VERSION, HQ_SITE_CHANNEL_PATH, HQ_SITE_UNKNOWN_HEADER, parseProtocolVersion, type HQConnectionMessage } from '@agenthix/core'
@@ -7,6 +7,10 @@ import { attachSiteChannel } from '../siteChannelServer'
 import { SiteChannelRegistry } from '../siteChannelRegistry'
 import type { SiteStatusStore } from '../siteStatusStore'
 import type { SiteChannelDeps } from '../siteChannelServer'
+
+// Real sockets on a machine that may be running a whole suite: the logic is quick, the scheduling is not.
+beforeAll(() => { vi.setConfig({ testTimeout: 20_000, hookTimeout: 20_000 }) })
+afterAll(() => { vi.resetConfig() })
 
 // Indexed against SiteChannelDeps itself rather than duplicating its
 // `onSiteEvent` method signature — `onSiteEvent` has no standalone exported

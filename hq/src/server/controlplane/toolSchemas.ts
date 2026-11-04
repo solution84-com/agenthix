@@ -73,7 +73,7 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   {
     name: 'list_boards',
     schema: {
-      projectId: z.string().optional().describe('Filter by project ID; omit to list all boards'),
+      projectId: z.string().optional().describe('Filter by project: its key (e.g. WAL) or its ID; omit to list all boards'),
       includeArchived: z.boolean().optional().describe('Include archived boards (default false)'),
     },
   },
@@ -88,7 +88,7 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   {
     name: 'list_tasks',
     schema: {
-      projectId:       z.string().optional().describe('Filter by project ID'),
+      projectId:       z.string().optional().describe('Filter by project: its key (e.g. WAL) or its ID'),
       boardId:         z.string().optional().describe('Filter by board ID'),
       backlogOnly:     z.boolean().optional().describe("Only tasks in a board's Backlog (column null): not started, and never started by the board"),
       assignedAgentId: z.string().optional().describe('Filter by assigned agent ID'),
@@ -148,8 +148,8 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
     name: 'create_task',
     schema: {
       title: z.string().describe('Task title'),
-      projectId: z.string().describe('Project this task belongs to'),
-      orgId: z.string().describe('Organisation this task belongs to'),
+      projectId: z.string().describe('Project this task belongs to: its key (e.g. WAL) or its ID'),
+      orgId: z.string().optional().describe('Not used: there is one organisation. Kept so callers that pass it are not refused'),
       boardId: z.string().optional().describe("Board to place the task on; omit for the project's Project Tasks"),
       column: z.string().optional().describe("Column to place it in, by name or state; omit for the board's Backlog (its first column when queue is true)"),
       assignedAgentId: z.string().optional().describe('Agent ID to assign this task to'),
@@ -194,7 +194,7 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
       'the pulse or a schedule started, and unless the project allows agents to set schedules. ' +
       'Times and repeats are read in the timezone of the person you are working for unless you name a `timezone`; the result says which was used.',
     schema: {
-      projectId: z.string().describe('The project the routine lives in'),
+      projectId: z.string().describe('The project the routine lives in: its key (e.g. WAL) or its ID'),
       title: z.string().describe("Each round's title"),
       description: z.string().optional().describe("Each round's description"),
       priority: z.enum(['low', 'medium', 'high']).optional(),
@@ -286,7 +286,7 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   {
     name: 'create_board',
     schema: {
-      projectId: z.string().describe('Project ID this board belongs to'),
+      projectId: z.string().describe('The project this board belongs to: its key (e.g. WAL) or its ID'),
       name: z.string().describe('Board name'),
       description: z.string().optional().describe('Board description'),
       templateId: z.string().optional().describe('Board template to use for columns, by name (e.g. workforce-assembly). Ignored if columns are provided.'),
@@ -305,7 +305,7 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
     name: 'add_comment',
     schema: {
       taskId: z.string().describe('The task to comment on: its key (e.g. WAL-2) or its ID'),
-      agentId: z.string().optional().describe('Ignored: an agent posts as itself, and a person\'s connection as that person'),
+      agentId: z.string().optional().describe('Not used: a comment is posted as the person who made the connection'),
       runId: z.string().optional().describe('The run ID this comment belongs to (optional)'),
       content: z.string().describe('Comment text — progress update or result summary'),
     },
@@ -331,10 +331,10 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   // ── Product ─────────────────────────────────────────────────────────────
   {
     name: 'list_products',
-    description: 'List all products this agent is a member of, including name, slug, description, vision, and status.',
+    description: 'List all products of the organisation, including name, slug, description, vision, and status.',
     schema: {
       agentId: z.string().optional().describe(
-        'Ignored: every product is listed, whoever calls. Kept so older callers that pass it are not refused.'
+        'Not used: every product is listed, whoever calls. Kept so older callers that pass it are not refused.'
       ),
     },
   },

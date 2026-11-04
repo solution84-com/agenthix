@@ -68,7 +68,7 @@ describe('triggerAgentRun @SC-191', () => {
   it('an agent with no content surfaces as 409, not 500', async () => {
     const { owner, agent, session } = await ownChat()
     const { AgentPackageMissingError } = await import('../../packages/runPackages')
-    dispatchFake.dispatchChatRun.mockRejectedValueOnce(new AgentPackageMissingError(agent.id))
+    dispatchFake.dispatchChatRun.mockRejectedValueOnce(new AgentPackageMissingError(agent.id, agent.name))
     await expect(triggerAgentRun({ sessionId: session.id, inputText: 'hi' }, ctx(owner))).rejects.toMatchObject({ statusCode: 409 })
   })
 

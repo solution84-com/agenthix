@@ -14,7 +14,7 @@ vi.mock('wasp/server', async () => {
 
 import type { SiteHealth } from '@agenthix/core'
 import { SITE_NOTIFICATION_TYPES as T } from '../../notifications/notificationKinds'
-import { reconcileSiteNotifications, __setHqStartedAtForTests, SITES_PAGE_URL } from '../siteNotifications'
+import { reconcileSiteNotifications, __setHqStartedAtForTests } from '../siteNotifications'
 import { handleSiteHealthEvent } from '../siteHealth'
 import { HELD_FOR_RECONNECT_REASON } from '../../agents/taskExecutionReasons'
 
@@ -67,16 +67,6 @@ describe('who is told @SC-630', () => {
     await prisma.userSettings.update({ where: { userId: admin.id }, data: { role: 'MEMBER' } })
     await reconcileSiteNotifications()
     expect((await open(T.upgrade)).map(n => n.userId)).toEqual([later.id])
-  })
-})
-
-describe('machines asking to connect @SC-630', () => {
-  it('no longer raises one, and closes what an earlier version raised', async () => {
-    await prisma.notification.create({
-      data: { userId: admin.id, type: T.requests, title: '1 machine is asking to connect', body: '', subjectKey: 'waiting', actionUrl: SITES_PAGE_URL },
-    })
-    await reconcileSiteNotifications()
-    expect(await open(T.requests)).toEqual([])
   })
 })
 

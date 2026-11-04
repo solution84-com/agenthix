@@ -142,7 +142,7 @@ describe('the Notifications panel @SC-524 @SC-525 @SC-526 @SC-529', () => {
   })
 
   it('names a waiting notice\'s action as the notice does, and falls back to its kind\'s, then Open', () => {
-    show([{ ...handled, id: 'w1', status: 'unread' }, { ...credential, id: 'c1', actionLabel: null }, { ...credential, id: 'c2', type: 'site_requests', actionLabel: null }])
+    show([{ ...handled, id: 'w1', status: 'unread' }, { ...credential, id: 'c1', actionLabel: null }, { ...credential, id: 'c2', type: 'site_upgrade', actionLabel: null }])
     expect(screen.getByRole('button', { name: 'Open the task' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Renew' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Open' })).toBeTruthy()

@@ -1,6 +1,6 @@
 import { WebSocketServer, type WebSocket } from 'ws'
 import type { Server as HttpServer } from 'node:http'
-import { HQ_SITE_CONTENT_PATH, CONTENT_PING_INTERVAL_MS, MAX_CHUNK_BYTES } from '@agenthix/core'
+import { HQ_SITE_CONTENT_PATH, CONTENT_PING_INTERVAL_MS, CONTENT_LINK_MAX_MESSAGE_BYTES } from '@agenthix/core'
 import { checkSiteUpgrade, type SiteUpgradeDeps } from '../siteUpgrade'
 import type { ContentChannelRegistry } from './contentChannelRegistry'
 import { Logger } from '../../server/utils/logger'
@@ -22,10 +22,8 @@ export interface ContentChannelDeps extends SiteUpgradeDeps {
  * the failure the control channel's frame-counting heartbeat would have had.
  */
 export function attachContentChannel(server: HttpServer, deps: ContentChannelDeps): void {
-  // One chunk plus its 4-byte stream id is the largest binary message the
-  // protocol sends; control frames are small JSON. Anything larger is not this
-  // protocol, and ws closes the connection rather than buffer it.
-  const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_CHUNK_BYTES + 64 * 1024 })
+  // Anything larger than core's limit is not this protocol, and ws closes the connection rather than buffer it.
+  const wss = new WebSocketServer({ noServer: true, maxPayload: CONTENT_LINK_MAX_MESSAGE_BYTES })
 
   server.on('upgrade', (req, socket, head) => {
     if ((req.url ?? '').split('?')[0] !== HQ_SITE_CONTENT_PATH) return // not ours

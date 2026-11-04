@@ -18,10 +18,10 @@ function thrown(err: unknown): unknown {
 
 describe('rethrowDispatchErrorAsHttp', () => {
   it('maps AgentPackageMissingError to 409 with its message', () => {
-    const err = thrown(new AgentPackageMissingError('agent-1'))
+    const err = thrown(new AgentPackageMissingError('agent-1', 'Scout'))
     expect(err).toBeInstanceOf(HttpError)
     expect((err as HttpError).statusCode).toBe(409)
-    expect((err as HttpError).message).toMatch(/agent-1/)
+    expect((err as HttpError).message).toMatch(/"Scout" has no instructions yet/)
   })
 
   it('maps SystemPackageMissingError to 409 with its message', () => {

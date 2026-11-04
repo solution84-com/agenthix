@@ -20,6 +20,9 @@
  */
 import type { RequestHandler } from 'express'
 import { WASP_QUERIES } from './readOnlyQueries'
+import { Logger } from './utils/logger'
+
+const logger = new Logger('ReadOnly')
 
 export type ReadOnly = {
   /** The machine hq is moving to, for the sentence; null when it is not known. */
@@ -42,7 +45,7 @@ export const ANSWERS_WHILE_READ_ONLY: ReadonlySet<string> = new Set([
 ])
 
 const READS = new Set(['GET', 'HEAD', 'OPTIONS'])
-const MAX_HELD = 10_000
+export const MAX_HELD = 10_000
 
 let current: ReadOnly | null = null
 let held: (() => Promise<void>)[] = []
@@ -78,9 +81,17 @@ export const readOnlyGuard: RequestHandler = (req, res, next) => {
   res.status(503).set('Retry-After', '60').json({ message: readOnlySentence(r), readOnly: true })
 }
 
-/** A site's event while read-only is held, and true is answered; otherwise false, and the caller handles it now. */
+/**
+ * A site's event while read-only is held, and true is answered; otherwise false, and the caller handles it now: when
+ * read-only is off, and also when `MAX_HELD` events are already held, since an event is never answered as held and then
+ * dropped.
+ */
 export function holdWhileReadOnly(work: () => Promise<void>): boolean {
   if (!current) return false
-  if (held.length < MAX_HELD) held.push(work)
+  if (held.length >= MAX_HELD) {
+    logger.warn(`${MAX_HELD} site events are already held while HQ is read-only, so this one is handled now.`)
+    return false
+  }
+  held.push(work)
   return true
 }

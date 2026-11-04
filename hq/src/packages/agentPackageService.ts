@@ -8,6 +8,7 @@
  * Agent row and nowhere else: every reader reads the row.
  */
 import { prisma } from 'wasp/server'
+import { agentCalled, agentNameFor } from './agentName'
 import { Prisma } from '@prisma/client'
 import { isApproval, type ToolPermission, type BashPatternPermission } from '@agenthix/core'
 import {
@@ -39,8 +40,8 @@ export type AgentSettingsChange = {
 }
 
 export class AgentContentMissingError extends Error {
-  constructor(agentId: string) {
-    super(`Agent ${agentId} has no instructions yet`)
+  constructor(readonly agentId: string, agentName: string | null) {
+    super(`${agentCalled(agentName)} has no instructions yet`)
     this.name = 'AgentContentMissingError'
   }
 }
@@ -163,7 +164,7 @@ export async function changeAgentContent(
 ): Promise<WriteResult> {
   return prisma.$transaction(async tx => {
     const current = await readAgentContent(agentId, tx)
-    if (!current) throw new AgentContentMissingError(agentId)
+    if (!current) throw new AgentContentMissingError(agentId, await agentNameFor(agentId, tx))
     return writeAgentContent(agentId, change(current), updatedById, tx)
   })
 }

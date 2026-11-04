@@ -1,6 +1,7 @@
 import { type GetUserSettings, type GetSiteConfig, type GetOrg, type GetEnvStatus, type GetVersionInfo } from 'wasp/server/operations'
 import { HttpError, prisma } from 'wasp/server'
 import { BUILD_INFO } from '../server/buildInfo'
+import { requireRole } from '../server/identity/requireRole'
 import { getApp } from '../github/githubApp'
 import { githubAppStatusView, type GithubAppStatusResult } from '../github/appStatusView'
 import { isOrgAdmin } from '../projects/membership'
@@ -89,10 +90,12 @@ function filesFacts(): EnvStatusResult['files'] {
 }
 
 export const getEnvStatus: GetEnvStatus<void, EnvStatusResult> = async (_args, context) => {
-  if (!context.user) throw new HttpError(401)
-  const callerSettings = await context.entities.UserSettings.findFirst({ where: { userId: context.user.id } })
-  if (callerSettings?.role !== 'ADMIN') throw new HttpError(403, 'Admin access required')
+  await requireRole(context, 'ADMIN', 'Reading the environment', 'Admin access required')
+  return readEnvStatus()
+}
 
+/** The environment's facts, with no check of who asks: for callers that have made their own (the support bundle). */
+export function readEnvStatus(): EnvStatusResult {
   return {
     address: process.env.WASP_SERVER_URL || null,
     files: filesFacts(),

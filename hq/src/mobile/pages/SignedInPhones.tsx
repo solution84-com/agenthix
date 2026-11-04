@@ -8,11 +8,11 @@ export function SignedInPhones() {
   const [busy, setBusy] = useState<string | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
 
-  async function signOut(sessionId: string) {
-    setBusy(sessionId)
+  async function signOut(id: string) {
+    setBusy(id)
     setProblem(null)
     try {
-      await signOutPhone({ sessionId })
+      await signOutPhone({ id })
       await refetch()
     } catch {
       setProblem('Could not sign that phone out. Please try again.')
@@ -32,7 +32,7 @@ export function SignedInPhones() {
       ) : (
         <ul className="divide-y divide-border-subtle">
           {phones.map(phone => (
-            <li key={phone.sessionId} className="flex items-center gap-4 py-3">
+            <li key={phone.id} className="flex items-center gap-4 py-3">
               <div className="min-w-0 flex-1">
                 <div className="text-body text-text-primary truncate">{phone.deviceName}</div>
                 <div className="text-small text-text-muted">Last used {new Date(phone.lastUsedAt).toLocaleString()}</div>
@@ -40,8 +40,8 @@ export function SignedInPhones() {
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={busy === phone.sessionId}
-                onClick={() => void signOut(phone.sessionId)}
+                disabled={busy === phone.id}
+                onClick={() => void signOut(phone.id)}
                 aria-label={`Sign out ${phone.deviceName}`}
               >
                 Sign out

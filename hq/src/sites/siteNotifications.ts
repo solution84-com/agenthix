@@ -8,10 +8,8 @@
  * Every pass works out the whole state from the database and makes the open
  * notifications match it (`syncPersistentNotifications`), so a missed event
  * cannot leave one stuck. A pass runs where a state changes — a site
- * connecting, refused for its version, reporting its health or removed; a
- * request made or decided — and every `RECONCILE_INTERVAL_MS`, which is what
- * notices a site that has been away for longer than the grace, a request
- * that expired, and work newly held for a site that is down.
+ * connecting, refused for its version, reporting its health or removed — and every `RECONCILE_INTERVAL_MS`, which is what
+ * notices a site that has been away for longer than the grace, and work newly held for a site that is down.
  *
  * For one site and one problem there is only ever one notification. A site
  * away for less than the grace — hq has just restarted, or it dropped again
@@ -20,7 +18,6 @@
  * returns after it was fixed reopens the same one (`persistent.ts`).
  *
  * A machine asking to connect is no longer news here: a site is added in the Fleet Console (host-management spec §10).
- * A pass still closes the "asking to connect" notifications an earlier version raised.
  */
 import { prisma } from 'wasp/server'
 import { SITE_NOTIFICATION_TYPES as T } from '../notifications/notificationKinds'
@@ -147,7 +144,7 @@ async function pass(): Promise<void> {
   const now = new Date()
   const [admins, fleet, sites] = await Promise.all([orgAdmins(), fleetAdminRecipients(), readSiteFacts()])
   const byType = new Map<string, PersistentNotice[]>(
-    [T.upgrade, T.hqSiteDown, T.offlineWithWork, T.health, T.diskFilling, T.requests, T.requestExpired].map(t => [t, [] as PersistentNotice[]]))
+    [T.upgrade, T.hqSiteDown, T.offlineWithWork, T.health, T.diskFilling].map(t => [t, [] as PersistentNotice[]]))
   // Sites away for less than the grace: their not-connected notifications, if open, stay as they are.
   const undecided: string[] = []
   const nearlyOut: NearlyOut[] = []

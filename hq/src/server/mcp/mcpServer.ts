@@ -12,37 +12,16 @@
  *
  * ## Tools
  *
- * - `ping` — connectivity check
- * - `get_site_info` — HQ connection status
- * - `get_org` — org identity (name, vision, mission)
- * - `update_org` — update org name, vision, or mission
- * - `list_agents` — all agents
- * - `list_projects` — all projects
- * - `get_board` — board by ID
- * - `fetch_my_queued_tasks` — queued tasks for an agent
- * - `list_tasks` — flexible task query by project/board/agent/state/priority
- * - `get_task_details` — single task by ID (full detail)
- * - `list_teams` — all local teams
- * - `update_task` — patch task content fields
- * - `create_task` — create a new task
- * - `attach_file` — write a file to agent workspace
- * - `tick_subtask` — DEPRECATED
- * - `create_agent` — create a new agent with workspace
- * - `list_presets` — list available avatar or cover preset filenames
- * - `apply_agent_preset` — apply a preset image to an agent's avatar or cover
- * - `create_team` — create a new team
- * - `create_project` — create a new project
- * - `create_board` — create a board with default or custom columns, a workflow or a sprint board
- * - `finish_sprint`, `rename_sprint` — a sprint board's sprints
- * - `list_milestones`, `create_milestone`, `update_milestone`, `delete_milestone` — a project's milestones
- * - `add_comment` — post a comment on a task
- * - `run_task` — start a run of a queued task by its assigned agent; returns at once
- * - `get_github_config` — get the site GitHub integration config
+ * - `ping` and `get_site_info` — answered here; they touch no data
+ * - every tool of `CONTROL_PLANE_TOOLS` (controlplane/toolSchemas.ts), each dispatched through `callOperation`
+ * - the workforce tools (workforceTools.ts)
+ *
+ * A person's connection is the only caller (handler.ts), and `callOperation` limits it to the tools its permission
+ * groups cover.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import { registerWorkforceTools } from './workforceTools'
-import { siteChannelRegistry } from '../../sites/channel'
 import { callOperation } from '../controlplane/operations'
 import { ControlPlaneError, type CallerContext } from '../controlplane/types'
 import { CONTROL_PLANE_TOOLS } from '../controlplane/toolSchemas'
@@ -54,13 +33,6 @@ function mcpOk(data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] }
 }
 
-function mcpError(message: string) {
-  return {
-    content: [{ type: 'text' as const, text: JSON.stringify({ error: message }) }],
-    isError: true as const,
-  }
-}
-
 /** Shape of the `runOp` helper below — shared with workforceTools.ts so it
  *  dispatches through the same control-plane registry rather than duplicating
  *  the try/catch-and-render logic. */
@@ -68,7 +40,7 @@ export type RunOp = (name: string, args: unknown) => Promise<{ content: Array<{ 
 
 // ── MCP Server ────────────────────────────────────────────────────────────────
 
-export function createMcpServer(opts: { caller: CallerContext; disabledTools?: Set<string> }): McpServer {
+export function createMcpServer(opts: { caller: CallerContext }): McpServer {
   // Every data-touching tool dispatches through the control-plane operations
   // registry (src/server/controlplane), which owns authorization itself — this
   // wiring stays thin (spec §7.2, plan 5b-2 tasks 3–4).
@@ -84,10 +56,10 @@ export function createMcpServer(opts: { caller: CallerContext; disabledTools?: S
   }
 
   const server = new McpServer(
-    { name: 'agenthix-site', version: '1.0.0' },
+    { name: 'hq', version: '1.0.0' },
     {
       instructions: [
-        `${BRANDING.displayName} task management tools are available in this session.`,
+        `${BRANDING.displayName} task management tools, for working on the organisation's tasks as the person who made this connection.`,
         '',
         'Key concepts:',
         '- A task is always on one board (its project\'s Project Tasks unless put on another), and either in one of the board\'s columns (`column`, e.g. "todo", "in_progress", "done") or in the board\'s Backlog (`column` null).',
@@ -97,31 +69,15 @@ export function createMcpServer(opts: { caller: CallerContext; disabledTools?: S
         '- A task\'s plan (planStart, planFinish) is when its work is meant to happen; setting it starts nothing. Its start time (set_task_schedule) is when its agent starts. An epic groups tasks; a milestone is a dated goal an epic belongs to.',
         '- On a sprint board, a task in a column is in the current sprint. finish_sprint needs you to say where the unfinished tasks go.',
         '',
-        'Rules for using these tools:',
-        '- Call add_comment at least once before finishing — report what you did, the result, or why you could not proceed.',
-        '- Update subtasks via update_task as you complete each step, not just at the end. Humans may be watching progress in real time.',
-        '- Move the task to the appropriate board column via update_task(column="...") when done, or when it needs review. That is how you say a task is finished, blocked or needs a person — with a comment saying why.',
-        '- Only create a follow-up task via create_task for work that is clearly out of scope. If it is small enough to mention in the result summary, do that instead.',
-        '- When creating tasks via create_task: pass queue: true if the task should wait to be started by the project\'s pulse; leave it out (the default) for backlog tasks or follow-up work that a human should review first.',
-        '- Do not call run_task on a task you just created in the same session — leave it queued, or wait for a human to review it first.',
+        'Working with these tools:',
+        '- Report on a task with add_comment: what was done, the result, or why it could not proceed. The comment is posted as the person who made this connection.',
+        '- Keep a task\'s subtasks current with update_task as each step is done, not only at the end. People may be watching the board.',
+        '- Move a task to the right board column with update_task(column="...") to say it is finished, blocked or needs a person, and add a comment saying why.',
+        '- Create a task with create_task for new work. Pass queue: true if it should wait to be started by the project\'s pulse; leave it out (the default) for backlog tasks that a person should review first.',
+        '- Do not call run_task on a task that was just created unless the person asked for it to start; left queued, it waits for review.',
       ].join('\n'),
     },
   )
-
-  // When called with disabledTools, patch server.tool to skip never-state tools.
-  // This filters tools/list so Claude never sees tools named here. Usually that's
-  // an agent's own 'never' config, but H6's workspace-intersection can also push
-  // an otherwise always-injected tool into neverTools for this run — disabledTools
-  // just reflects whatever the caller (handler.ts, from verified claims) computed.
-  if (opts.disabledTools?.size) {
-    const disabledTools = opts.disabledTools
-    const orig = server.tool.bind(server)
-    ;(server as any).tool = (...args: unknown[]) => {
-      const name = args[0] as string
-      if (disabledTools.has(name)) return
-      return (orig as (...a: unknown[]) => unknown)(...args)
-    }
-  }
 
   // ping and get_site_info stay wired directly (not via runOp): they touch no
   // control-plane data at all.

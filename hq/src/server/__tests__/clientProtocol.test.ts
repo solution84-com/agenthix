@@ -102,7 +102,7 @@ describe('the client protocol in the socket handshake @SC-1139', () => {
     expect(handshake({}, { 'x-client-protocol-version': '3.0' }).error?.data).toEqual(TWO_AHEAD)
   })
 
-  it.each([['one', 'one'], [1, '1'], [{ v: 1 }, '[object Object]']])('refuses an unreadable version (%j)', (field, shown) => {
+  it.each([['one', 'one'], [1, '(not text)'], [{ v: 1 }, '(not text)']])('refuses an unreadable version (%j)', (field, shown) => {
     expect(handshake({ clientProtocolVersion: field }).error?.data).toMatchObject({ reason: 'malformed', clientVersion: shown, upgrade: 'client' })
   })
 })

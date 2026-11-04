@@ -18,7 +18,7 @@ import {
 } from '../../conversations/work/activityLines'
 
 /** `waitLine`: why the run has not started, shown before its helpers' lines while it waits. */
-type Tracked = { operationId: string; conversationId: string; boundary: string | null; live: LiveLines; waitLine?: string }
+type Tracked = { siteId: string; operationId: string; conversationId: string; boundary: string | null; live: LiveLines; waitLine?: string }
 
 /** Runs being followed, by run id; and the same by operation, for the sheet's query. */
 const byRun = new Map<string, Tracked>()
@@ -26,6 +26,9 @@ const byOperation = new Map<string, Tracked>()
 /** Runs that are no operation's, so a later helper call does not ask the database again straight away. */
 const notOurs = new Map<string, number>()
 const NOT_OURS_FOR_MS = 5_000
+/** Bounds `notOurs`, whose keys are run ids a site names; a status frame also clears its own. */
+const NOT_OURS_CAP = 1_000
+const notOursKey = (siteId: string, runId: string) => `${siteId}\u0000${runId}`
 
 let events: ConversationEvents = conversationEvents
 export function __setEventsForTests(next: ConversationEvents): void { events = next }
@@ -49,18 +52,19 @@ function linesOf(t: Tracked): string[] {
 
 async function followRun(siteId: string, runId: string): Promise<Tracked | null> {
   const held = byRun.get(runId)
-  if (held) return held
-  const skipUntil = notOurs.get(runId)
+  if (held) return held.siteId === siteId ? held : null
+  const skipUntil = notOurs.get(notOursKey(siteId, runId))
   if (skipUntil && skipUntil > Date.now()) return null
   const op = await prisma.operation.findFirst({
     where: { siteId, runId, kind: { in: ['WORKER', 'TASK'] }, state: { in: [...OUTSTANDING_OPERATION_STATES] } },
     select: { id: true, conversationId: true, boundaryType: true, boundaryId: true },
   })
   if (!op) {
-    notOurs.set(runId, Date.now() + NOT_OURS_FOR_MS)
+    rememberNotOurs(siteId, runId)
     return null
   }
   const tracked: Tracked = {
+    siteId,
     operationId: op.id,
     conversationId: op.conversationId,
     boundary: op.boundaryType && op.boundaryId ? await boundaryName(op.boundaryType, op.boundaryId) : null,
@@ -71,13 +75,28 @@ async function followRun(siteId: string, runId: string): Promise<Tracked | null>
   return tracked
 }
 
+function rememberNotOurs(siteId: string, runId: string): void {
+  const now = Date.now()
+  if (notOurs.size >= NOT_OURS_CAP) {
+    for (const [key, until] of notOurs) if (until <= now) notOurs.delete(key)
+    if (notOurs.size >= NOT_OURS_CAP) notOurs.clear()
+  }
+  notOurs.set(notOursKey(siteId, runId), now + NOT_OURS_FOR_MS)
+}
+
+/** The run's lines, only for the site the run was dispatched to. */
+function trackedFor(siteId: string, runId: string): Tracked | undefined {
+  const tracked = byRun.get(runId)
+  return tracked && tracked.siteId === siteId ? tracked : undefined
+}
+
 function emitLines(t: Tracked): void {
   events.operationLines({ conversationId: t.conversationId, operationId: t.operationId, lines: linesOf(t), endedHelpers: t.live.ended })
 }
 
 /** A run of an operation waits before it starts, or has stopped waiting (`null`): its row says why. */
 export async function setRunWaitingLine(siteId: string, runId: string, line: string | null): Promise<void> {
-  const tracked = line ? await followRun(siteId, runId) : byRun.get(runId)
+  const tracked = line ? await followRun(siteId, runId) : trackedFor(siteId, runId)
   if (!tracked || (tracked.waitLine ?? null) === line) return
   if (line) tracked.waitLine = line
   else delete tracked.waitLine
@@ -99,7 +118,7 @@ export async function forwardRunFrame(siteId: string, frame: ToolFrame): Promise
     emitLines(tracked)
     return
   }
-  const tracked = byRun.get(frame.runId)
+  const tracked = trackedFor(siteId, frame.runId)
   if (!tracked) return
   const next = helperEnded(tracked.live, data.toolUseId)
   if (next === tracked.live) return
@@ -113,12 +132,12 @@ export async function forwardRunFrame(siteId: string, frame: ToolFrame): Promise
  */
 export async function handleOperationRunStatus(e: RunStatusEvent, siteId: string): Promise<void> {
   if (e.status !== 'RUNNING') {
-    const tracked = byRun.get(e.runId)
+    const tracked = trackedFor(siteId, e.runId)
     if (tracked) {
       byRun.delete(e.runId)
       byOperation.delete(tracked.operationId)
     }
-    notOurs.delete(e.runId)
+    notOurs.delete(notOursKey(siteId, e.runId))
     return
   }
   const op = await prisma.operation.findFirst({
