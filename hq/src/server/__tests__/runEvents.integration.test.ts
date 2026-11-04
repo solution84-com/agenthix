@@ -33,8 +33,25 @@ describe('runs:changed', () => {
     const task = await createTestTask({ data: { title: 't', projectId: project.id, number: 1, onBehalfOfUserId: member.id } })
     const session = await createSession({ userId: routingAdmin.id, agentId: agent.id, sessionType: 'task', taskId: task.id })
 
-    await emitRunChanged(session.id, 'run-1', 'COMPLETED', routingAdmin.id)
+    await emitRunChanged(session.id, 'run-1', 'COMPLETED')
     expect(sentTo).toEqual([`person:${member.id}`])
+  })
+
+  it("given the session's fields, reads no session row, and still takes the project's members as they are now", async () => {
+    const [member, joiner, routingAdmin] = [await createUser(), await createUser(), await createUser()]
+    const agent = await createAgent()
+    const project = await createProject({ accessLevel: 'PRIVATE' })
+    await prisma.projectMember.create({ data: { projectId: project.id, userId: member.id } })
+    const task = await createTestTask({ data: { title: 't', projectId: project.id, number: 1, onBehalfOfUserId: member.id } })
+    const session = await createSession({ userId: routingAdmin.id, agentId: agent.id, sessionType: 'task', taskId: task.id })
+    const known = { userId: routingAdmin.id, taskId: task.id, sessionType: 'task', primaryOwnerType: null, primaryOwnerId: null }
+    await prisma.projectMember.create({ data: { projectId: project.id, userId: joiner.id } })
+    const reads = vi.spyOn(prisma.agentSession, 'findUnique')
+
+    await emitRunChanged(session.id, 'run-1', 'COMPLETED', known)
+    expect(reads).not.toHaveBeenCalled()
+    expect(sentTo.sort()).toEqual([`person:${member.id}`, `person:${joiner.id}`].sort())
+    reads.mockRestore()
   })
 
   it("reaches a chat's person", async () => {
@@ -47,7 +64,7 @@ describe('runs:changed', () => {
   it('reaches nobody for a task session whose task is gone', async () => {
     const routingAdmin = await createUser()
     const session = await createSession({ userId: routingAdmin.id, agentId: (await createAgent()).id, sessionType: 'task' })
-    await emitRunChanged(session.id, 'run-1', 'COMPLETED', routingAdmin.id)
+    await emitRunChanged(session.id, 'run-1', 'COMPLETED')
     expect(sentTo).toEqual([])
   })
 })

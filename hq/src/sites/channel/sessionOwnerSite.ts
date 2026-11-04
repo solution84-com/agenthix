@@ -32,6 +32,7 @@
 import { HttpError, prisma } from 'wasp/server'
 import { Logger } from '../../server/utils/logger'
 import type { SessionProjectFields } from '../../sessions/sessionProject'
+import type { SessionContentFields } from '../../sessions/sessionEntitlement'
 
 const logger = new Logger('SiteEvents')
 
@@ -47,11 +48,10 @@ type Entry = {
   expires: number
   resolved: string | null | undefined
   warnedSites: Set<string>
-  // The fields that say which project the session works in, taken from the same
-  // row the owner lookup already reads so the activity feed needs no second query.
-  project: SessionProjectFields | undefined
-  // The person whose session it is, from the same row, for the person's own socket events.
-  userId?: string | null
+  // The fields that say which project the session works in and who reads it, taken from the
+  // same row the owner lookup already reads, so the activity feed and `runs:changed` need no
+  // second query of the session.
+  session: SessionContentFields | undefined
 }
 const cache = new Map<string, Entry>()
 
@@ -63,7 +63,9 @@ function describeError(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
 
-async function lookUpOwner(sessionId: string): Promise<{ owner: string | null; project?: SessionProjectFields; userId?: string | null }> {
+type Lookup = { owner: string | null; session?: SessionContentFields }
+
+async function lookUpOwner(sessionId: string): Promise<Lookup> {
   const row = await prisma.agentSession.findUnique({
     where: { id: sessionId },
     select: { taskId: true, agentId: true, primaryOwnerType: true, primaryOwnerId: true, primaryWorkspaceId: true, userId: true, sessionType: true },
@@ -72,14 +74,16 @@ async function lookUpOwner(sessionId: string): Promise<{ owner: string | null; p
     logger.warn(`site event(s) for unknown session ${sessionId} — dropped`)
     return { owner: null }
   }
-  const project = { taskId: row.taskId, primaryOwnerType: row.primaryOwnerType, primaryOwnerId: row.primaryOwnerId }
+  const session: SessionContentFields = {
+    userId: row.userId, taskId: row.taskId, sessionType: row.sessionType, primaryOwnerType: row.primaryOwnerType, primaryOwnerId: row.primaryOwnerId,
+  }
   // Dynamic on purpose: dispatchSiteResolution → dispatchService → siteRuntimeStore
   // → channel/index → TaskRunner → siteEventHandler. A static import would let
   // TaskRunner's module-level onRunStatus() run before siteEventHandler has
   // finished initialising whenever siteEventHandler is loaded first.
   const { resolveSiteIdForSession } = await import('../../agents/dispatchSiteResolution')
   try {
-    return { owner: await resolveSiteIdForSession(row), project, userId: row.userId }
+    return { owner: await resolveSiteIdForSession(row), session }
   } catch (err) {
     // "I cannot tell you where this lives" is an ANSWER, not a failed lookup:
     // the location is unplaced, or names a project with no site, and asking
@@ -95,7 +99,7 @@ async function lookUpOwner(sessionId: string): Promise<{ owner: string | null; p
   }
 }
 
-async function lookUpOwnerWithRetry(sessionId: string): Promise<{ owner: string | null; project?: SessionProjectFields; userId?: string | null }> {
+async function lookUpOwnerWithRetry(sessionId: string): Promise<Lookup> {
   for (let attempt = 1; ; attempt++) {
     try {
       return await lookUpOwner(sessionId)
@@ -135,13 +139,12 @@ function ownerOf(sessionId: string, replacing?: Entry): Entry {
     resolved: undefined,
     // Carried over so a re-asked refusal does not warn again for the same site.
     warnedSites: new Set(replacing?.warnedSites),
-    project: undefined,
+    session: undefined,
   }
-  entry.owner = lookUpOwnerWithRetry(sessionId).then(({ owner, project, userId }) => {
+  entry.owner = lookUpOwnerWithRetry(sessionId).then(({ owner, session }) => {
     if (cache.get(sessionId) === entry) {
       entry.resolved = owner
-      entry.project = project
-      entry.userId = userId
+      entry.session = session
     }
     return owner
   })
@@ -152,14 +155,13 @@ function ownerOf(sessionId: string, replacing?: Entry): Entry {
 
 /** The project-naming fields of a session whose owner lookup has resolved, or undefined when not cached. */
 export function cachedSessionProjectFields(sessionId: string): SessionProjectFields | undefined {
-  const entry = cache.get(sessionId)
-  return entry && entry.expires > Date.now() ? entry.project : undefined
+  return cachedSessionContentFields(sessionId)
 }
 
-/** The person whose session it is, once its owner lookup has resolved; undefined when not cached. */
-export function cachedSessionUserId(sessionId: string): string | null | undefined {
+/** The fields that say who reads a session whose owner lookup has resolved, or undefined when not cached. */
+export function cachedSessionContentFields(sessionId: string): SessionContentFields | undefined {
   const entry = cache.get(sessionId)
-  return entry && entry.expires > Date.now() ? entry.userId : undefined
+  return entry && entry.expires > Date.now() ? entry.session : undefined
 }
 
 /** The owner an entry settles on, or undefined when the lookup failed outright (the entry is then evicted). */

@@ -5,7 +5,7 @@ import { recordActivity } from '../../server/dashboard/activity'
 import { triggerSnapshotPush } from '../../server/dashboard/debouncedPush'
 import { Logger } from '../../server/utils/logger'
 import { emitRunChanged } from '../../server/runEvents'
-import { sessionOwnedBy, cachedSessionProjectFields, cachedSessionUserId, __resetSessionOwnerCacheForTests } from './sessionOwnerSite'
+import { sessionOwnedBy, cachedSessionProjectFields, cachedSessionContentFields, __resetSessionOwnerCacheForTests } from './sessionOwnerSite'
 import { handleSubscriptionRefreshedEvent } from '../subscriptionGrants'
 import { handleSessionPatch } from './sessionPatchEvent'
 import { handleRunWaiting } from './runWaitingEvent'
@@ -327,7 +327,7 @@ async function handleStatus(siteId: string, e: RunStatusEvent): Promise<void> {
     // as a run.stream frame, or the browser sees it twice.
     const runStatus: RunStatusClientEvent = { runId: e.runId, status: e.status, error: e.error ?? undefined }
     io?.to(`session:${e.sessionId}`).emit(RUN_CLIENT_SOCKET.runStatus, runStatus)
-    void emitRunChanged(e.sessionId, e.runId, e.status, cachedSessionUserId(e.sessionId))
+    void emitRunChanged(e.sessionId, e.runId, e.status, cachedSessionContentFields(e.sessionId))
   }
   // else: unowned or already latched — every side effect above is skipped for this frame.
 
