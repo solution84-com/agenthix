@@ -12,6 +12,7 @@
  */
 import { Logger } from '../../server/utils/logger'
 import { dockerWithin } from './containerLifecycle'
+import { siteIdLabelArgs, siteNamespace } from './containerLabels'
 import { LANDLOCK_ABI_COMMAND, LANDLOCK_REQUIRED_ABI, agentImageName, landlockAbiSufficient, parseLandlockAbi } from './agentImage'
 
 const logger = new Logger('landlockCheck')
@@ -37,14 +38,22 @@ async function ask(args: string[], docker: Docker): Promise<number> {
   return abi
 }
 
-/** At startup, from a throwaway container of the image. Logs its answer and never throws. */
+/**
+ * At startup, from a throwaway container of the image. Logs its answer and never throws. The container has a name
+ * of the install's namespace and the site's label, and is removed by that name before the check and after a failed
+ * one, since a deadline abandons the command rather than stopping the container it started.
+ */
 export async function checkLandlockAtStartup(docker: Docker = dockerWithin): Promise<void> {
   const image = agentImageName()
+  const name = `${siteNamespace()}-landlock-check`
+  const remove = () => docker(['rm', '-f', name], CHECK_TIMEOUT_MS).catch(() => {})
+  await remove()
   try {
-    const abi = await ask(['run', '--rm', '--network', 'none', image, ...LANDLOCK_ABI_COMMAND], docker)
+    const abi = await ask(['run', '--rm', '--name', name, ...siteIdLabelArgs(), '--network', 'none', image, ...LANDLOCK_ABI_COMMAND], docker)
     if (landlockAbiSufficient(abi)) logger.info(`[landlock] kernel ABI ${abi}: agent commands can be contained`)
     else logger.error(`[landlock] ${refusal(abi).message}`)
   } catch (err) {
+    await remove()
     logger.warn(`[landlock] could not ask the kernel's Landlock ABI at startup (${err instanceof Error ? err.message : String(err)}); asking again before the first agent command`)
   }
 }

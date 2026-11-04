@@ -48,6 +48,15 @@ describe('control socket', () => {
     expect(fs.statSync(socketPath).mode & 0o777).toBe(0o600)
   })
 
+  it('leaves the mode of a folder that was already there, and keeps the socket itself owner-only', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ctl-'))
+    fs.chmodSync(dir, 0o755)
+    server = await startControlSocket(path.join(dir, 'control.sock'))
+    await new Promise(r => server!.once('listening', r))
+    expect(fs.statSync(dir).mode & 0o777).toBe(0o755)
+    expect(fs.statSync(path.join(dir, 'control.sock')).mode & 0o777).toBe(0o600)
+  })
+
   it('answers status', async () => {
     const socketPath = await listening(fs.mkdtempSync(path.join(os.tmpdir(), 'ctl-')))
     expect(await ask(socketPath, { command: 'status' })).toEqual([{ type: 'status', status: { siteId: 's', name: 'Build box', hq: null } }])

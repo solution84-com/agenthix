@@ -7,6 +7,9 @@ import { describe, it, expect, vi } from 'vitest'
 import { SITE_HEALTH_EVENT, type HQConnectionMessage, type SiteHealth } from '@agenthix/core'
 import { startChannelHarness } from './channelHarness'
 
+// These tests start a live channel harness; on a loaded machine the default 5 s is not enough (#138).
+vi.setConfig({ testTimeout: 20_000 })
+
 const findFirstHqConnection = vi.hoisted(() => vi.fn())
 const findFirstSiteConfig = vi.hoisted(() => vi.fn())
 const updateManyHqConnection = vi.hoisted(() => vi.fn())

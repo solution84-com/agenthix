@@ -23,6 +23,21 @@ describe("a skill's content in the package cache @security-L4 @SC-1604", () => {
     expect(await hasPackage(ref)).toBe(true)
   })
 
+  it('counts the skill\'s own folder and its folders as staging does, and allows the depth staging allows', async () => {
+    const inFolder = (n: number) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`a/f${i}.md`, 'x']))
+    const fits = makeTransfer('skill', 'fits', { 'SKILL.md': 'x', ...inFolder(SKILL_TREE_MAX_ENTRIES - 3) })
+    await storeVerifiedPackage(fits.ref, fits.body)
+    expect(await hasPackage(fits.ref)).toBe(true)
+
+    const over = makeTransfer('skill', 'over', { 'SKILL.md': 'x', ...inFolder(SKILL_TREE_MAX_ENTRIES - 2) })
+    await expect(storeVerifiedPackage(over.ref, over.body)).rejects.toBeInstanceOf(PackageVerificationError)
+
+    const nested = `${Array.from({ length: SKILL_TREE_MAX_DEPTH }, (_, i) => `d${i}`).join('/')}/x.md`
+    const deep = makeTransfer('skill', 'deep', { 'SKILL.md': 'x', [nested]: 'x' })
+    await storeVerifiedPackage(deep.ref, deep.body)
+    expect(await hasPackage(deep.ref)).toBe(true)
+  })
+
   it('is refused with too many files, folders too deep, no SKILL.md, or names one disk would store as one', async () => {
     const many = Object.fromEntries(Array.from({ length: SKILL_TREE_MAX_ENTRIES }, (_, i) => [`f${i}.md`, 'x']))
     const deep = `${Array.from({ length: SKILL_TREE_MAX_DEPTH + 1 }, (_, i) => `d${i}`).join('/')}/x.md`

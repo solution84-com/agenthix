@@ -25,6 +25,7 @@ describe('AgentEngine.cancelRun — paused', () => {
     vi.clearAllMocks()
     resetGateRunsForTests()
     mockPrisma.agentRun.update.mockResolvedValue({})
+    mockPrisma.agentRun.updateMany.mockResolvedValue({ count: 0 })
   })
   afterEach(() => vi.useRealTimers())
 
@@ -43,12 +44,12 @@ describe('AgentEngine.cancelRun — paused', () => {
     mockPrisma.agentRun.updateMany.mockResolvedValue({ count: 0 })
     await agentEngine.cancelRun('run-2', 'paused', BY)
 
-    expect(mockPrisma.agentRun.update).not.toHaveBeenCalled()
+    expect(mockPrisma.agentRun.updateMany).not.toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'run-2', status: { in: ['PENDING', 'RUNNING'] } } }))
     expect(gateRunStopped('run-2')).toBe(false)
     expect(gatePausing('run-2')).toBe(true)
 
     expect(reachGatePause('run-2')).toBe(true)
-    await vi.waitFor(() => expect(mockPrisma.agentRun.update).toHaveBeenCalledWith({ where: { id: 'run-2' }, data: PAUSED }))
+    await vi.waitFor(() => expect(mockPrisma.agentRun.updateMany).toHaveBeenCalledWith({ where: { id: 'run-2', status: { in: ['PENDING', 'RUNNING'] } }, data: PAUSED }))
     expect(gateRunStopped('run-2')).toBe(true)
   })
 
@@ -58,8 +59,8 @@ describe('AgentEngine.cancelRun — paused', () => {
     await agentEngine.cancelRun('run-3', 'paused', BY)
 
     await vi.advanceTimersByTimeAsync(SCHEDULED_CHANGE_PAUSE_LEAD_MS - 1000)
-    expect(mockPrisma.agentRun.update).not.toHaveBeenCalled()
+    expect(mockPrisma.agentRun.updateMany).not.toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'run-3', status: { in: ['PENDING', 'RUNNING'] } } }))
     await vi.advanceTimersByTimeAsync(1000)
-    expect(mockPrisma.agentRun.update).toHaveBeenCalledWith({ where: { id: 'run-3' }, data: PAUSED })
+    expect(mockPrisma.agentRun.updateMany).toHaveBeenCalledWith({ where: { id: 'run-3', status: { in: ['PENDING', 'RUNNING'] } }, data: PAUSED })
   })
 })

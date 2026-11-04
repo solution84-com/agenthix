@@ -91,7 +91,7 @@ export async function runTask(payload: RunDispatchPayload): Promise<string> {
   }
 
   // Read before the requests are replaced and before this run exists: the newest earlier run decides.
-  const scope = { sessionId: session.id, taskId: task.taskId }
+  const scope = { sessionId: session.id, taskId: task.taskId, agentId: agent.id }
   const approved = agent.approval === 'bypassed' ? null : await approvalForNextRun(scope)
   await replaceUnansweredRequests(scope)
 

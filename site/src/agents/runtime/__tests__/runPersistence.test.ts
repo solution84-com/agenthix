@@ -9,7 +9,7 @@ vi.mock('#db', () => ({
   },
 }))
 
-import { persistRunOutput, NO_REPLY_TEXT } from '../runPersistence'
+import { persistRunOutput, transcriptRowsOfRun, NO_REPLY_TEXT } from '../runPersistence'
 import { newStreamedRun, type StreamedRun } from '../runEventLoop'
 
 beforeEach(() => vi.clearAllMocks())
@@ -82,5 +82,15 @@ describe("a run's rows @SC-771 @SC-777", () => {
     createMany.mockClear()
     await persistRunOutput({ sessionId: 's1', runId: 'r2', resolvedModel: 'm', ending: { kind: 'completed' }, summarise: true, streamed: streamed() })
     expect(createMany).not.toHaveBeenCalled()
+  })
+
+  it('write the ending line after the reply, so a read in time order cannot flip them', () => {
+    const now = t(9)
+    for (const ending of [{ kind: 'failed', reason: 'The provider failed.' }, { kind: 'stopped', cause: 'person', by: null }] as const) {
+      const { rows: made } = transcriptRowsOfRun({ sessionId: 's1', runId: 'r1', resolvedModel: 'm', ending, streamed: streamed({ fullReply: 'Half an ans' }) }, now)
+      const reply = made.find(r => r.role === 'ASSISTANT')!
+      const end = made.find(r => r.kind === 'RUN_FAILED' || r.kind === 'RUN_STOPPED')!
+      expect((end.createdAt as Date).getTime()).toBeGreaterThan((reply.createdAt as Date).getTime())
+    }
   })
 })

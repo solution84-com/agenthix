@@ -80,7 +80,7 @@ export function openCodeSkillsSection(skills: OpenCodeSkill[]): string {
         ...described.flatMap(s => [
           '  <skill>',
           `    <name>${s.name}</name>`,
-          `    <description>${s.description}</description>`,
+          `    <description>${escapeHtml(s.description ?? '')}</description>`,
           `    <location>${escapeHtml(s.location)}</location>`,
           '  </skill>',
         ]),

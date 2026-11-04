@@ -18,6 +18,8 @@ import { frontMatterString } from './opencode/skillDescription'
 
 const BOM = String.fromCharCode(0xfeff)
 const STRING_KEYS = ['description', 'when_to_use', 'argument-hint'] as const
+/** What publishing and a scan allow a description (skillMetadata.ts); a skill reaching a run by its fingerprint is cut to it here. */
+const MAX_DESCRIPTION = 1024
 const FLAG_KEYS = ['disable-model-invocation', 'user-invocable'] as const
 
 /**
@@ -55,7 +57,7 @@ export function stagedSkillMd(skillMd: string, name: string): string {
   if (parts) {
     for (const key of STRING_KEYS) {
       const value = frontMatterString(text, key)
-      if (value !== undefined) header.push(`${key}: ${quoted(value)}`)
+      if (value !== undefined) header.push(`${key}: ${quoted(key === 'description' ? value.slice(0, MAX_DESCRIPTION) : value)}`)
     }
     for (const key of FLAG_KEYS) {
       const value = flagOf(parts.header, key)

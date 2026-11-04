@@ -36,7 +36,8 @@ export async function runtimeCheck(deps: RuntimeCheckDeps = {}): Promise<SiteRun
     const { stdout } = await docker(['version', '--format', '{{.Server.Version}}'])
     let imagePresent = false
     try {
-      const listed = await docker(['image', 'ls', '-q', image])
+      // `image ls` does not match a digest-pinned name (`name@sha256:…`); `inspect` does.
+      const listed = await docker(['image', 'inspect', '--format', '{{.Id}}', image])
       imagePresent = listed.stdout.trim().length > 0
     } catch {
       imagePresent = false

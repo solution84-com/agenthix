@@ -79,8 +79,9 @@ export async function startControlSocket(socketPath: string = controlSocketPath(
     )
   }
   const dir = path.dirname(socketPath)
-  fs.mkdirSync(dir, { recursive: true })
-  fs.chmodSync(dir, 0o700)
+  // Only a folder made here is made owner-only: one that was already there (a shared one, if SITE_CONTROL_SOCKET
+  // names one) keeps its mode, and the socket file itself is owner-only below.
+  if (fs.mkdirSync(dir, { recursive: true }) !== undefined) fs.chmodSync(dir, 0o700)
   if (await socketAnswers(socketPath)) {
     throw new Error(
       `Another site is already running on this SITE_ROOT: something answers on the control socket ${socketPath}. ` +

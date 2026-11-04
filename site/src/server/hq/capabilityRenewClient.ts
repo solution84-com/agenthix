@@ -2,16 +2,15 @@ import { prisma } from '#db'
 import { readConnectionToken } from './connectionToken'
 import { HQ_CAPABILITY_RENEW_PATH, type CapabilityRenewRequest, type CapabilityRenewResult } from '@agenthix/core'
 
+/** Renewal starts well before the capability ends; a request that hangs must give up in time to be retried. */
+const RENEW_TIMEOUT_MS = 15_000
+
 /**
  * §2a renewal, site's half: presents the current, still-valid capability to
  * hq's HQ_CAPABILITY_RENEW_PATH and receives a fresh one, claims re-resolved
  * from hq's live data. Same resolve-hqUrl-from-HqConnection pattern as this
  * file's sibling dataClient.ts's `callHqData`; the capability itself (not the
  * machine credential) is what proves this call is for a specific live run.
- *
- * Extracted out of AgentEngine.ts (plan 5d-2 task 7b review) so the transport
- * call sits beside its sibling (dataClient.ts) rather than inside the engine —
- * the engine's own remaining size is Task 13 scope, not further split here.
  * Passed into `capabilityRenewal.ts`'s transport-agnostic `startCapabilityRenewal`
  * as its `renew` callback by AgentEngine.ts, the sole caller.
  */
@@ -34,6 +33,7 @@ export async function renewCapabilityViaHq(currentJwt: string): Promise<Capabili
       'X-Site-Id': config.siteId,
     },
     body: JSON.stringify({ capability: currentJwt } satisfies CapabilityRenewRequest),
+    signal: AbortSignal.timeout(RENEW_TIMEOUT_MS),
   })
 
   if (!res.ok) {

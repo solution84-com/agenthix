@@ -4,14 +4,8 @@
  * (which mutates the holder in place — capabilityRenewal.ts) reaches every later
  * MCP request without touching the container, and the token is useless anywhere
  * but this process and dead the moment the run ends. In-memory by design: a run
- * does not survive a server restart, so neither should its bearer.
- *
- * Moved from hq/src/server/identity/runTokenRegistry.ts (plan 5d-2 task 7b) — this
- * file's own doc comment already called out "Moves to site with the runtime in
- * 5d." hq keeps its own copy for now (byte-untouched this task; its MCP handler
- * and git-credential API still resolve run tokens in-process) — site's copy is
- * unused until Task 8 wires site's own MCP handler to call issueRunToken/
- * resolveRunToken.
+ * does not survive a server restart, so neither should its bearer. The site's
+ * MCP handler resolves these tokens through `resolveRunToken`.
  */
 import { randomBytes } from 'node:crypto'
 import type { CapabilityHolder } from '../../agents/runtime/capabilityRenewal'
@@ -43,8 +37,8 @@ export function issueRunToken(holder: CapabilityHolder, runId: string | null = n
 /**
  * The live capability a platform token stands for: a run's own token, or a
  * conversation's token during one of its turns (conversationTokens.ts).
- * Everything that accepts a platform token — the MCP endpoint, the git
- * credential endpoint — resolves it here, so both kinds work everywhere.
+ * Everything that accepts a platform token — the MCP endpoint and the
+ * harness gate — resolves it here, so both kinds work everywhere.
  */
 export function resolveRunToken(token: string): CapabilityHolder | null {
   return resolvePlatformToken(token)?.holder ?? null

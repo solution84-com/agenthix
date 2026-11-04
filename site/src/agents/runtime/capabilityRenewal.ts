@@ -5,12 +5,10 @@ import { CAPABILITY_RENEWAL_FRACTION } from '@agenthix/core'
  * keep honouring the current capability until it actually expires, retrying
  * meanwhile — hq being down at renewal is the §6 "hq down" mode, not a new one.
  * Transport-agnostic by design: this module never calls hq itself, only the
- * `renew` callback the caller supplies. On site (post plan 5d-2 task 7b, the
- * execution-runtime extraction) that callback is
+ * `renew` callback the caller supplies. On the site that callback is
  * `server/hq/capabilityRenewClient.ts`'s `renewCapabilityViaHq`, an HTTP POST
- * to HQ_CAPABILITY_RENEW_PATH (/api/v1/capabilities/renew), imported by
- * AgentEngine.ts and passed in as `renew` — moved here unchanged from hq,
- * where the equivalent callback called hq's own identity service in-process.
+ * to HQ_CAPABILITY_RENEW_PATH (/api/v1/capabilities/renew), passed in as
+ * `renew` by AgentEngine.ts.
  */
 
 export interface CapabilityHolder {

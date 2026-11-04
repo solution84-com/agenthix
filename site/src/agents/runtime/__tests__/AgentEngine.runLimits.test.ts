@@ -16,7 +16,7 @@ const h = vi.hoisted(() => ({
   waiting: null as null | (() => void),
   resolveAgentContext: vi.fn(),
   mockPrisma: {
-    agentRun: { findUnique: vi.fn(), update: vi.fn() },
+    agentRun: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     agentSession: { update: vi.fn(), findUnique: vi.fn() },
     transcriptEntry: { count: vi.fn(), create: vi.fn(), createMany: vi.fn() },
     toolCallLog: { findMany: vi.fn() },
@@ -144,6 +144,7 @@ describe('AgentEngine — run limits', () => {
       id: 'run-1', status: 'PENDING', sessionId: 'sess-1', agentId: 'agent-1', taskId: null, inputText: 'hi', approvedManifest: null,
     })
     mockPrisma.agentRun.update.mockResolvedValue(undefined)
+    mockPrisma.agentRun.updateMany.mockResolvedValue({ count: 1 })
     mockPrisma.agentSession.update.mockResolvedValue({ totalInputTokens: 0, totalOutputTokens: 0, totalCacheReadTokens: 0, totalCacheWriteTokens: 0 })
   })
 

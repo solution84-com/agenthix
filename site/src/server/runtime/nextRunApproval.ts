@@ -11,20 +11,24 @@
 import { prisma } from '#db'
 import type { DeferredManifest } from '../../agents/runtime/types'
 
-export type RequestScope = { sessionId: string; taskId?: string | null }
+export type RequestScope = { sessionId: string; taskId?: string | null; agentId?: string }
 
 function inScope(scope: RequestScope) {
   return scope.taskId ? { OR: [{ sessionId: scope.sessionId }, { taskId: scope.taskId }] } : { sessionId: scope.sessionId }
 }
 
-/** What a run starting now is given: the request approved on the newest earlier run, if that is what it was. */
+/**
+ * What a run starting now is given: the request approved on the newest earlier run, if that is what it was. A request
+ * is an agent's, so a run of another agent (a task handed on) is given nothing of it.
+ */
 export async function approvalForNextRun(scope: RequestScope): Promise<DeferredManifest> {
   const newest = await prisma.agentRun.findFirst({
     where: inScope(scope),
     orderBy: { createdAt: 'desc' },
-    select: { manifestStatus: true, pendingManifest: true },
+    select: { manifestStatus: true, pendingManifest: true, agentId: true },
   })
   if (newest?.manifestStatus !== 'APPROVED') return { tools: [], bashPatterns: [] }
+  if (scope.agentId && newest.agentId !== scope.agentId) return { tools: [], bashPatterns: [] }
   const approved = newest.pendingManifest as Partial<DeferredManifest> | null
   return { tools: approved?.tools ?? [], bashPatterns: approved?.bashPatterns ?? [] }
 }

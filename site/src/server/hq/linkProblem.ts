@@ -1,10 +1,9 @@
-import { SITE_CAUSES, type SiteCause } from '@agenthix/core'
+import type { SiteCause } from '@agenthix/core'
 
 /**
  * Why this site is not connected to hq: the closed set of causes lives in `@agenthix/core`, so that the site, the
  * host service and hq read one list (host-management spec §10).
  */
-export const HQ_LINK_PROBLEMS = SITE_CAUSES
 export type HqLinkProblem = SiteCause
 
 type PairingProblem = Extract<HqLinkProblem, 'secretTooShort' | 'addressRefused' | 'credentialStore'>

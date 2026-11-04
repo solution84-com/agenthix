@@ -237,11 +237,11 @@ export class ContainerLifecycle {
       // teardown, so this listing no longer needs the handle for that — left
       // in the format string as the cheaper option over re-deriving it
       // elsewhere later.
-      const { stdout } = await docker([
+      const { stdout } = await dockerWithin([
         'ps',
         ...this.scopedBoundaryLabelFilters(),
         '--format', `{{.Names}}\t{{.Label "${labelKey('agent')}"}}`,
-      ])
+      ], DOCKER_SWEEP_TIMEOUT_MS)
       const now = Date.now()
 
       for (const line of stdout.trim().split('\n').filter(Boolean)) {
@@ -252,7 +252,7 @@ export class ContainerLifecycle {
         if (now - state.lastActivity < SWEEP_GRACE_FLOOR_MS) continue
         if (now - state.lastActivity <= idleMs) continue
 
-        const stopPromise = docker(['rm', '-f', name]).then(() => true).catch(() => false)
+        const stopPromise = dockerWithin(['rm', '-f', name], DOCKER_SWEEP_TIMEOUT_MS).then(() => true).catch(() => false)
         state.stopping = stopPromise.then(() => undefined)
         const ok = await stopPromise
         delete state.stopping

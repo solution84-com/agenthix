@@ -140,9 +140,8 @@ export const channelMethods: ChannelHandlers = {
   [RUNTIME_METHODS.transcriptList]: (params) => runtimeMethods.transcriptList(params),
   [RUNTIME_METHODS.toolCallList]: (params) => runtimeMethods.toolCallList(params),
 
-  // Dispatch + control methods (plan 5d-2 task 8) — the runtime itself. A
-  // `run.dispatch` frame genuinely runs an agent on this site from here on;
-  // nothing on hq sends one until task 9's cutover.
+  // Dispatch + control methods — the runtime itself. A `run.dispatch` frame
+  // runs an agent on this site.
   [RUNTIME_METHODS.runDispatch]: (params) => dispatchHandler.handleRunDispatch(params),
   [RUNTIME_METHODS.runCancel]: (params) => dispatchHandler.handleRunCancel(params),
   [RUNTIME_METHODS.runApprove]: (params) => dispatchHandler.handleRunApprove(params),

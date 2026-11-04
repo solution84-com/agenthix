@@ -34,45 +34,6 @@ export function getAgentDir(handle: string): string {
  *  built from this one constant (runtime/boundaryClaudeHome.ts). */
 export const AGENT_CONTAINER_CLAUDE_HOME = '/home/appuser/.claude'
 
-/**
- * Every agent handle with a directory on this site's disk. Site has no Agent
- * table (SC-338), so the boot sweep that needs "every agent" — the
- * superseded-memory sweep, and only that one now — resolves the set from the
- * agents/ directory itself rather than from an agent table it does not have.
- * (The orphan-container sweep used to be named here too; it keys on the
- * storage boundary a container belongs to, ADR-0057, and never on an agent.)
- *
- * Nothing creates a directory here any more — a run's harness home belongs to
- * its boundary and runner — so on a fresh install this enumerates nothing and the sweep
- * it feeds is a no-op. Its premise is unchanged, because the sweep's subject
- * is unchanged: whatever per-person memory an UPGRADED install still has under
- * `agents/<handle>/`, written before ADR-0058 moved that to hq.
- *
- * NOT the same set hq's `prisma.agent` query returned, and deliberately a
- * SUPERSET of live agents, not an exact match (spec review): a deleted
- * agent's directory can linger here after the row is gone, so the
- * superseded-memory sweep still runs harmlessly against a directory nothing
- * references anymore — conservative rather than under-swept, and never a
- * reason to skip real work.
- *
- * One asymmetry the other direction, noted rather than fixed (spec review):
- * `Dirent.isDirectory()` is false for a symlink even when it points AT a
- * directory (Node's dirent type reflects the link itself, not its target),
- * so a symlinked agent directory — nothing in this codebase creates one
- * today — would be silently skipped here. Acceptable: there is no known path
- * that produces one, and the failure mode if it ever did is "under-swept",
- * the same conservative direction as the superset case above, not a
- * security or correctness hazard.
- */
-export async function listAgentHandles(): Promise<string[]> {
-  try {
-    const entries = await fs.readdir(path.join(getSiteRoot(), 'agents'), { withFileTypes: true })
-    return entries.filter(e => e.isDirectory()).map(e => e.name)
-  } catch {
-    return []
-  }
-}
-
 export class WorkspaceService {
   static getWorkspaceRoot(): string {
     return path.join(getSiteRoot(), 'agents')

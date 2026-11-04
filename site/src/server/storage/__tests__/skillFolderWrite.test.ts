@@ -139,7 +139,13 @@ describe("writing a place's skill folder @SC-1603", () => {
     await expect(write('.agents/skills/x', { 'SKILL.md': MD, 'big.bin': Buffer.alloc(SKILL_WRITE_MAX_BYTES + 1) })).rejects.toThrow(/too_large/)
     const many = Object.fromEntries(Array.from({ length: SKILL_TREE_MAX_ENTRIES + 1 }, (_, i) => [`f${i}.md`, 'x']))
     await expect(write('.agents/skills/x', { ...many, 'SKILL.md': MD })).rejects.toThrow(/too_many/)
-    await expect(write('.agents/skills/x', { 'SKILL.md': MD, 'a/b/c/d/e/f/g/h/i.md': 'x' })).rejects.toThrow(/too_many/)
+    await expect(write('.agents/skills/x', { 'SKILL.md': MD, 'a/b/c/d/e/f/g/h/i/j.md': 'x' })).rejects.toThrow(/too_many/)
+  })
+
+  it('takes the folder depth and the entry count staging takes', async () => {
+    await expect(write('.agents/skills/x', { 'SKILL.md': MD, 'a/b/c/d/e/f/g/h/i.md': 'x' })).resolves.not.toThrow()
+    const inFolder = Object.fromEntries(Array.from({ length: SKILL_TREE_MAX_ENTRIES - 2 }, (_, i) => [`a/f${i}.md`, 'x']))
+    await expect(write('.agents/skills/y', { 'SKILL.md': MD, ...inFolder })).rejects.toThrow(/too_many/)
   })
 
   it('refuses a body that is not a transfer', async () => {

@@ -19,7 +19,7 @@ const h = vi.hoisted(() => ({
   sdk: { sessionExists: vi.fn(), run: vi.fn() },
   native: { sessionExists: vi.fn(), run: vi.fn() },
   mockPrisma: {
-    agentRun: { findUnique: vi.fn(), update: vi.fn() },
+    agentRun: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     agentSession: { update: vi.fn(), updateMany: vi.fn(), findUnique: vi.fn() },
     transcriptEntry: { count: vi.fn(), create: vi.fn(), createMany: vi.fn() },
     toolCallLog: { findMany: vi.fn() },
@@ -183,7 +183,7 @@ describe('a turn and its conversation', () => {
 describe('a cancelled turn', () => {
   it('stops only its own turn: no finder and no conversation release', async () => {
     vi.clearAllMocks()
-    mockPrisma.agentRun.update.mockResolvedValue({})
+    mockPrisma.agentRun.updateMany.mockResolvedValue({ count: 1 })
 
     await agentEngine.cancelRun('run-9')
 

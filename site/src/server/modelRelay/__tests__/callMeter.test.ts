@@ -55,6 +55,12 @@ describe('a call measured by the relay @SC-1228', () => {
     expect((await cut.report('m', false)).errorKind).toBeUndefined()
   })
 
+  it('reports a call cut off before the provider answered as no failure of the provider', async () => {
+    const report = await new CallMeter(info, at).report(null, false, true)
+    expect(report).toMatchObject({ upstreamStatus: 0, usage: null })
+    expect(report.errorKind).toBeUndefined()
+  })
+
   it('names a model it cannot report as unknown', async () => {
     expect((await new CallMeter(info, at).report('bad model name!')).model).toBe('unknown')
   })

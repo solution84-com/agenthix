@@ -15,8 +15,22 @@ type Headers = Record<string, string | string[] | undefined>
 
 const first = (raw: string | string[] | undefined): string | undefined => (Array.isArray(raw) ? raw[0] : raw)
 
-export function siteDialHeaders(token: string, siteId: string): Record<string, string> {
+function siteDialHeaders(token: string, siteId: string): Record<string, string> {
   return { Authorization: `Bearer ${token}`, 'X-Site-Id': siteId, [SITE_PROTOCOL_VERSION_HEADER]: SITE_PROTOCOL_VERSION }
+}
+
+/** How long an hq that has accepted the connection has to answer the upgrade before the dial is given up and retried. */
+export const SITE_DIAL_HANDSHAKE_TIMEOUT_MS = 15_000
+let handshakeTimeoutMs = SITE_DIAL_HANDSHAKE_TIMEOUT_MS
+
+/** Test-only: shortens the handshake deadline. Called with no argument, restores the production value. */
+export function setHandshakeTimeoutForTests(ms: number = SITE_DIAL_HANDSHAKE_TIMEOUT_MS): void {
+  handshakeTimeoutMs = ms
+}
+
+/** What both dials to hq pass to `WebSocket`: the headers, and a deadline for the upgrade so a silent hq cannot hold the dial open. */
+export function siteDialOptions(token: string, siteId: string): { headers: Record<string, string>; handshakeTimeout: number } {
+  return { headers: siteDialHeaders(token, siteId), handshakeTimeout: handshakeTimeoutMs }
 }
 
 /** The site protocol version hq stated with a 426; undefined when it stated none. */

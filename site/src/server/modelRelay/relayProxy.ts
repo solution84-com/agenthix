@@ -78,6 +78,9 @@ function tunnelError(code: string): NodeJS.ErrnoException {
   return Object.assign(new Error(`The provider could not be reached through the proxy (${code})`), { code })
 }
 
+/** How long a proxy has to answer a `CONNECT` before the tunnel is given up. */
+const TUNNEL_CONNECT_TIMEOUT_MS = 30_000
+
 /** An `https.Agent` whose connections are `CONNECT` tunnels through one proxy, keep-alive as for a direct connection. */
 export class TunnelAgent extends https.Agent {
   constructor(private readonly proxy: URL, private readonly tlsOptions: tls.ConnectionOptions = {}) {
@@ -106,13 +109,20 @@ export class TunnelAgent extends https.Agent {
       ...(secureProxy ? this.tlsOptions : {}),
     })
     let settled = false
+    // A plain timer, not the request's own timeout: that one stays on the socket handed out below.
+    const deadline = setTimeout(() => {
+      request.destroy()
+      fail('timeout')
+    }, TUNNEL_CONNECT_TIMEOUT_MS)
     const fail = (code: string) => {
+      clearTimeout(deadline)
       if (settled) return
       settled = true
       failWith(callback, tunnelError(code))
     }
     request.on('error', err => fail((err as NodeJS.ErrnoException).code ?? 'error'))
     request.on('connect', (response, socket) => {
+      clearTimeout(deadline)
       if (response.statusCode !== 200) {
         socket.destroy()
         return fail(`proxy answered ${response.statusCode}`)

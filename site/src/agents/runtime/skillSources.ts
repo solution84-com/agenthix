@@ -12,9 +12,9 @@
  */
 import path from 'node:path'
 import {
-  ASSET_MANIFEST_FILE, MAX_WORKSPACE_SKILL_INDEX, isAssetFingerprint, isPackageRef, namespacedSkillName,
-  parseAssetIdentity, workspaceSkillName,
-  type FileSkillEntry, type InstalledSkillEntry, type InstalledSkillLevel, type PackageRef, type PersonSkillEntry,
+  ASSET_MANIFEST_FILE, INSTALLED_SKILL_SOURCE, MAX_WORKSPACE_SKILL_INDEX, deliveredSkillName, isAssetFingerprint, isPackageRef,
+  namespacedSkillName, parseAssetIdentity, workspaceSkillName,
+  type FileSkillEntry, type InstalledSkillEntry, type PackageRef, type PersonSkillEntry,
   type SkillSource,
 } from '@agenthix/core'
 import { resolvePackage } from '../../packages/packageCache'
@@ -43,8 +43,6 @@ export type SkillRefusal = { source: SkillSource; name?: string; fingerprint: st
 
 export type SkillSourcesResult = { candidates: SkillCandidate[]; refused: SkillRefusal[] }
 
-const LEVEL_SOURCE: Record<InstalledSkillLevel, SkillSource> = { builtin: 'platform', org: 'org', agent: 'agent' }
-
 const fingerprintOrEmpty = (value: unknown) => (isAssetFingerprint(value) ? value : '')
 
 /** One installed or personal skill, from the package cache: its files there must still be the content hq named. */
@@ -56,7 +54,7 @@ async function deliveredSkill(
 ): Promise<void> {
   const identity = parseAssetIdentity(entry.identity)
   const slug = identity ? identity.name.slice(identity.name.lastIndexOf('/') + 1) : ''
-  const name = identity ? namespacedSkillName(source, slug) ?? undefined : undefined
+  const name = deliveredSkillName(source, entry.identity) ?? undefined
   const refuse = (reason: string) => out.refused.push({ source, name, fingerprint: fingerprintOrEmpty(entry.digest), origin, reason })
   if (!name) return void refuse('its identity does not make a skill name a run can use')
   const ref = entry.ref
@@ -140,7 +138,7 @@ export async function runSkillSources(inputs: RunSkillInputs | null): Promise<Sk
   const out: SkillSourcesResult = { candidates: [], refused: [] }
   if (!inputs) return out
   for (const entry of inputs.installed) {
-    const source = LEVEL_SOURCE[entry.level] ?? 'agent'
+    const source = INSTALLED_SKILL_SOURCE[entry.level] ?? 'agent'
     await deliveredSkill(source, entry, { identity: entry.identity, version: entry.version }, out)
   }
   await fileSkills(inputs, out)

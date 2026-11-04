@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import http from 'node:http'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { createHash, randomBytes } from 'node:crypto'
@@ -6,6 +6,9 @@ import { Readable } from 'node:stream'
 import { StreamMux, SITE_PROTOCOL_VERSION, SITE_PROTOCOL_VERSION_HEADER, type StreamEvents } from '@agenthix/core'
 import { ContentConnection } from '../content/contentConnection'
 import type { ContentHandler } from '../content/contentMethods'
+
+// These tests start a live channel harness; on a loaded machine the default 5 s is not enough (#138).
+vi.setConfig({ testTimeout: 20_000 })
 
 let server: http.Server | null = null
 let conn: ContentConnection | null = null

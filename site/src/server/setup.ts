@@ -16,9 +16,7 @@ import { addressFollower } from './hq/addressFollow'
 import { hqConnectionManager } from './hq/hqConnection'
 import { ensureSiteConfig } from './siteConfig'
 import { setContainerSiteId } from '../agents/runtime/containerLabels'
-import { listAgentHandles } from '../agents/agentDiskPaths'
 import { listStorageBoundaries } from './storage/storageBoundaries'
-import { setAsideSupersededMemory } from '../agents/memorySupersede'
 import { runCrashRecoverySweep, flushBootSweepBuffer } from './runtime/bootSweep'
 import { bringBackPending } from './branches/codeWorkRun'
 import { sweepExecutorLeftovers } from '../executor/runCleanup'
@@ -181,20 +179,6 @@ export async function setupServer(): Promise<void> {
         .then(() => sweepAgentNetworks())
         .catch(() => {})
     }, 60_000).unref()
-  }
-
-  // ADR-0058: what an agent knows about a person is held by hq now. Any
-  // per-person directory still on disk — ADR-0048's partition, or the
-  // pre-ADR-0048 one inside the workspace — is moved aside, never imported
-  // (memorySupersede.ts, which logs each move itself). Wrapped per-agent so
-  // one failure never blocks boot.
-  const agentHandles = await listAgentHandles()
-  for (const handle of agentHandles) {
-    try {
-      await setAsideSupersededMemory(handle)
-    } catch (err: any) {
-      logger.warn(`Could not set aside superseded memory for ${handle}: ${err.message}`)
-    }
   }
 
   // Run-token registry hygiene (runTokens.ts's own doc comment: lazy eviction

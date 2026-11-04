@@ -30,10 +30,12 @@
  * its key, to check the address.
  *
  * No body parser is mounted on this route (`main.ts`), so a body streams
- * through unread and uncapped. The relay sets no deadline:
- * a streamed answer can run for minutes, and OpenCode's own is 300 s between
- * chunks. A closed client request aborts the upstream one; an unreachable
- * upstream is a 502. The site's proxy environment is honoured (relayProxy.ts):
+ * through unread and uncapped. The relay sets no deadline on a whole call,
+ * since a streamed answer can run for minutes, but it does on silence: an
+ * upstream that sends nothing for `UPSTREAM_IDLE_TIMEOUT_MS` (under OpenCode's
+ * own 300 s between chunks) is cut off, a 504 naming the provider when nothing
+ * has been sent yet. A closed client request aborts the upstream one; an
+ * unreachable upstream is a 502. The site's proxy environment is honoured (relayProxy.ts):
  * an `https:` upstream goes through a `CONNECT` tunnel, an `http:` one direct.
  * One line is logged per request, never a key, a token or
  * a body.
@@ -59,6 +61,9 @@ import { isLiveRelayToken, resolveRelayToken, trackRelayRequest } from './relayT
 
 const logger = new Logger('modelRelay')
 
+/** How long an upstream may send nothing before the call is cut off. */
+export const UPSTREAM_IDLE_TIMEOUT_MS = 240_000
+
 const agents = { http: new http.Agent({ keepAlive: true }), https: new https.Agent({ keepAlive: true }) }
 
 /** One keep-alive pool per proxy, so tunnels are reused as direct connections are. */
@@ -76,6 +81,8 @@ export type ModelRelayDeps = {
   cloudToken?: () => Promise<CloudTokenAnswer>
   /** Where each call's usage report goes. */
   report?: (report: UsageReport) => void
+  /** How long an upstream may stay silent; tests shorten it. */
+  idleTimeoutMs?: number
 }
 
 const defaultDeps: ModelRelayDeps = {
@@ -156,7 +163,7 @@ export function createModelRelayHandler(deps: ModelRelayDeps = defaultDeps) {
       untrack()
       if (meter && deps.report && outcome !== 'proxy-setting-invalid') {
         const report = deps.report
-        void meter.report(sniffer.model, outcome === 'upstream-error').then(report, () => {})
+        void meter.report(sniffer.model, outcome === 'upstream-error' || outcome === 'upstream-timeout', outcome === 'turn-ended' || outcome === 'client-closed').then(report, () => {})
       }
       deps.log(
         `conversation=${turn.conversationId} run=${turn.runId} provider=${provider} model=${sniffer.model ?? '-'} ` +
@@ -184,6 +191,18 @@ export function createModelRelayHandler(deps: ModelRelayDeps = defaultDeps) {
       method: req.method,
       headers: upstreamRequestHeaders(req.headers, keyHeaders),
       agent,
+      timeout: deps.idleTimeoutMs ?? UPSTREAM_IDLE_TIMEOUT_MS,
+    })
+    upstream.on('timeout', () => {
+      upstream.destroy()
+      if (!res.headersSent) {
+        status = 504
+        refuse(res, 504, `The ${provider} provider did not answer in time`)
+        finish('upstream-timeout')
+      } else {
+        res.destroy()
+        finish('upstream-timeout')
+      }
     })
     untrack = trackRelayRequest(token, () => {
       upstream.destroy()

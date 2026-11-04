@@ -164,6 +164,15 @@ describe("a task's approval is for its next run only @SC-769", () => {
     expect(extendedTools(created())).toEqual([])
   })
 
+  it('is not carried to another agent\'s run when the task is handed on', async () => {
+    earlierRun({ id: 'asked', agentId: 'agent-2', manifestStatus: 'APPROVED', pendingManifest: WEB_FETCH })
+
+    await runTask(taskDispatch())
+
+    expect(extendedTools(created())).toEqual([])
+    expect(created().inputText).toBe('Execute your assigned task.')
+  })
+
   it("replaces the task's unanswered request, and only that", async () => {
     earlierRun({ id: 'waiting', manifestStatus: 'PENDING_APPROVAL', pendingManifest: WEB_FETCH })
     earlierRun({ id: 'elsewhere', sessionId: 'sess-other', taskId: 'task-2', manifestStatus: 'PENDING_APPROVAL' })

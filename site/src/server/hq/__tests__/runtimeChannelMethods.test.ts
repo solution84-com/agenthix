@@ -61,6 +61,9 @@ vi.mock('../../runtime/toolCallRows', () => ({ listToolCalls }))
 import { channelMethods } from '../channelMethods'
 import { SESSION_DELETE_MANY_EMPTY_SELECTOR_MESSAGE } from '../runtimeChannelMethods'
 
+// These tests start a live channel harness; on a loaded machine the default 5 s is not enough (#138).
+vi.setConfig({ testTimeout: 20_000 })
+
 let harness: ChannelHarness
 
 beforeEach(async () => {

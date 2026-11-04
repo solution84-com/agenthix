@@ -23,13 +23,14 @@ describe('AgentEngine.cancelRun @SC-523', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockPrisma.agentRun.update.mockResolvedValue({})
+    mockPrisma.agentRun.updateMany.mockResolvedValue({ count: 1 })
   })
 
   it('records "Cancelled by user" when no reason is given (the Stop button)', async () => {
     await agentEngine.cancelRun('run-1')
 
-    expect(mockPrisma.agentRun.update).toHaveBeenCalledWith({
-      where: { id: 'run-1' },
+    expect(mockPrisma.agentRun.updateMany).toHaveBeenCalledWith({
+      where: { id: 'run-1', status: { in: ['PENDING', 'RUNNING'] } },
       data: { status: 'CANCELLED', endedAt: expect.any(Date), error: 'Cancelled by user' },
     })
   })
@@ -37,29 +38,29 @@ describe('AgentEngine.cancelRun @SC-523', () => {
   it('records "Interrupted by a new message" when reason is "interrupted"', async () => {
     await agentEngine.cancelRun('run-2', 'interrupted')
 
-    expect(mockPrisma.agentRun.update).toHaveBeenCalledWith({
-      where: { id: 'run-2' },
+    expect(mockPrisma.agentRun.updateMany).toHaveBeenCalledWith({
+      where: { id: 'run-2', status: { in: ['PENDING', 'RUNNING'] } },
       data: { status: 'CANCELLED', endedAt: expect.any(Date), error: 'Interrupted by a new message' },
     })
   })
 
   it('records who stopped or interrupted the run when hq names them', async () => {
     await agentEngine.cancelRun('run-4', undefined, 'ana')
-    expect(mockPrisma.agentRun.update).toHaveBeenCalledWith({
-      where: { id: 'run-4' },
+    expect(mockPrisma.agentRun.updateMany).toHaveBeenCalledWith({
+      where: { id: 'run-4', status: { in: ['PENDING', 'RUNNING'] } },
       data: { status: 'CANCELLED', endedAt: expect.any(Date), error: 'Stopped by ana' },
     })
     await agentEngine.cancelRun('run-5', 'interrupted', 'ben')
-    expect(mockPrisma.agentRun.update).toHaveBeenLastCalledWith({
-      where: { id: 'run-5' },
+    expect(mockPrisma.agentRun.updateMany).toHaveBeenLastCalledWith({
+      where: { id: 'run-5', status: { in: ['PENDING', 'RUNNING'] } },
       data: { status: 'CANCELLED', endedAt: expect.any(Date), error: 'Interrupted by ben' },
     })
   })
 
   it('stops the gate for the run before anything else, so no pending call can be allowed after the stop', async () => {
-    mockPrisma.agentRun.update.mockImplementation(async () => {
+    mockPrisma.agentRun.updateMany.mockImplementation(async () => {
       expect(gate.stopGateRun).toHaveBeenCalledWith('run-3')
-      return {}
+      return { count: 1 }
     })
     await agentEngine.cancelRun('run-3')
     expect(gate.stopGateRun).toHaveBeenCalledTimes(1)
@@ -84,9 +85,18 @@ describe('AgentEngine.cancelRun @SC-523', () => {
     await agentEngine.cancelRun('run-7', 'withdrawn', 'ana')
 
     expect(mockPrisma.transcriptEntry.deleteMany).not.toHaveBeenCalled()
-    expect(mockPrisma.agentRun.update).toHaveBeenCalledWith({
-      where: { id: 'run-7' },
+    expect(mockPrisma.agentRun.updateMany).toHaveBeenCalledWith({
+      where: { id: 'run-7', status: { in: ['PENDING', 'RUNNING'] } },
       data: { status: 'CANCELLED', endedAt: expect.any(Date), error: 'Stopped by ana' },
     })
+  })
+
+  it('leaves a run that has already ended as it ended: a late or repeated Stop does not rewrite it', async () => {
+    mockPrisma.agentRun.updateMany.mockResolvedValue({ count: 0 })
+    await agentEngine.cancelRun('run-8')
+    expect(mockPrisma.agentRun.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'run-8', status: { in: ['PENDING', 'RUNNING'] } },
+    }))
+    expect(mockPrisma.agentRun.update).not.toHaveBeenCalled()
   })
 })

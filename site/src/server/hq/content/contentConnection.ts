@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 import { StreamMux, HQ_SITE_REPLACED_HEADER, SITE_SILENCE_TIMEOUT_MS } from '@agenthix/core'
-import { isUnknownSite, siteDialHeaders, statedHqVersion } from '../hqAnswers'
+import { isUnknownSite, siteDialOptions, statedHqVersion } from '../hqAnswers'
 import { ContentStream } from './contentStream'
 import { contentMethods, type ContentHandler } from './contentMethods'
 import { Logger } from '../../utils/logger'
@@ -65,7 +65,7 @@ export class ContentConnection {
 
   private connect(): void {
     if (this.stopped || this.ws) return
-    const ws = new WebSocket(this.options.url, { headers: siteDialHeaders(this.options.token, this.options.siteId) })
+    const ws = new WebSocket(this.options.url, siteDialOptions(this.options.token, this.options.siteId))
     this.ws = ws
 
     const mux = new StreamMux('server', {

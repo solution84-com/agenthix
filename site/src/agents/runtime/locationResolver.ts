@@ -60,15 +60,6 @@ const ARTEFACTS_DESCRIPTION =
   'directly in this folder, no subfolder, and link to it in your reply as `[title](artefacts/<file name>)` — for ' +
   'example `[Pricing options](artefacts/pricing-options.md)`. Anything meant to be kept belongs in files instead'
 
-/** Whether an owner kind's storage holds task working directories. One
- *  predicate, read by both the folder list and the cwd, so the two cannot
- *  disagree about whether a tasks root exists to work inside. Both kinds do: a
- *  project's tasks, and the tasks of a person's personal project, which run in
- *  that person's own storage (agents own schedule spec §4). */
-function ownerHasTasks(_ownerType: WorkspaceOwnerType): boolean {
-  return true
-}
-
 /** Whether an owner's storage is shared between people, so each of them has an
  *  own area in it (close-out spec §6.1). A person's own storage is shared with
  *  nobody, so there is no second person there to give a folder to — their
@@ -132,11 +123,11 @@ export function resolveAccessibleLocations(
     add(`workspaces/${id}`, `workspace ${quoteName(name)}`)
   }
 
-  if (ownerHasTasks(owner.ownerType)) {
-    add('tasks', owner.ownerType === 'project'
-      ? 'task working directories, one per task in this project'
-      : "task working directories, one per task in this person's personal project")
-  }
+  // Both owner kinds hold tasks: a project's, and the tasks of a person's personal project, which run in that
+  // person's own storage (agents own schedule spec §4).
+  add('tasks', owner.ownerType === 'project'
+    ? 'task working directories, one per task in this project'
+    : "task working directories, one per task in this person's personal project")
 
   if (ownerHasMemberAreas(owner.ownerType)) {
     add('members', "each member's own area in this project: their drafts and their agenda")
@@ -165,19 +156,12 @@ function filesDescription(owner: StorageOwner): string {
  * so a rename never moves the directory a harness filed a conversation under
  * (ADR-0074).
  *
- * A task run must belong to an owner whose set carries a tasks root. There is
- * no fallback: the cwd has to be a path that exists inside the mounted set, and
- * an unbound segment surfaces as an opaque container failure instead of as the
- * mistake it is.
+ * Every owner's set carries a tasks root. There is no fallback: the cwd has to
+ * be a path that exists inside the mounted set.
  */
 export function resolvePrimaryContainerDir(loc: LocationRef): string {
   const base = containerOwnerBase(loc.ownerType, loc.ownerId)
-  if (loc.taskId) {
-    if (!ownerHasTasks(loc.ownerType)) {
-      throw new Error(`A task working directory was asked for in storage that holds no tasks (${loc.ownerType})`)
-    }
-    return `${base}/tasks/${loc.taskId}`
-  }
+  if (loc.taskId) return `${base}/tasks/${loc.taskId}`
   if (loc.workspaceId) return `${base}/workspaces/${loc.workspaceId}`
   return `${base}/files`
 }

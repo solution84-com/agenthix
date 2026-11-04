@@ -5,7 +5,7 @@ import { containerNameFor, labelKey, resolveComposeProjectName, siteIdFilterArgs
 import { checkAgentCredentials } from './agentCredentials'
 import { harnessHomeBind, prepareHarnessHome, runnerClaudeHome, writeRunCredential } from './boundaryClaudeHome'
 import type { AgentMounts, ContainerKey, ContainerContext, ContainerState } from './containerTypes'
-import { docker, ContainerLifecycle } from './containerLifecycle'
+import { docker, dockerWithin, DOCKER_SWEEP_TIMEOUT_MS, ContainerLifecycle } from './containerLifecycle'
 import { ensureAgentNetwork, releaseAgentNetwork } from './containerNetwork'
 import { buildContainerRunCommand } from './containerRunArgs'
 import { prepareOpenCodeConfigMounts } from './openCodeConfigMounts'
@@ -230,9 +230,9 @@ export class AgentContainerManager {
 
   private async _isRunning(containerName: string): Promise<boolean> {
     try {
-      const { stdout } = await docker([
+      const { stdout } = await dockerWithin([
         'inspect', '--format', '{{.State.Running}}', containerName,
-      ])
+      ], DOCKER_SWEEP_TIMEOUT_MS)
       return stdout.trim() === 'true'
     } catch {
       return false
@@ -269,7 +269,7 @@ export class AgentContainerManager {
     // Gated on the removal LANDING, as the other three removal paths are: a
     // failed `rm` on a container that is up and holding a preview would
     // otherwise zero that hold while the dev server is still serving.
-    const removed = await docker(['rm', '-f', containerName]).then(() => true).catch(() => false)
+    const removed = await dockerWithin(['rm', '-f', containerName], DOCKER_SWEEP_TIMEOUT_MS).then(() => true).catch(() => false)
     if (removed) this.forgetWhatDiedWithIt(containerName)
     this.containerIds.delete(containerName)
 
@@ -348,13 +348,13 @@ export class AgentContainerManager {
     logger.info(`[container] stopping every container last started by ${handle}`)
     try {
       const project = resolveComposeProjectName()
-      const { stdout } = await docker([
+      const { stdout } = await dockerWithin([
         'ps', '-a',
         '--filter', `label=${labelKey('agent')}=${handle}`,
         '--filter', `label=com.docker.compose.project=${project}`,
         ...siteIdFilterArgs(),
         '--format', '{{.Names}}',
-      ])
+      ], DOCKER_SWEEP_TIMEOUT_MS)
       const names = stdout.trim().split('\n').filter(Boolean)
       let allRemoved = true
       for (const name of names) {
@@ -371,7 +371,7 @@ export class AgentContainerManager {
           allRemoved = false
           continue
         }
-        const ok = await docker(['rm', '-f', name]).then(() => true).catch(() => false)
+        const ok = await dockerWithin(['rm', '-f', name], DOCKER_SWEEP_TIMEOUT_MS).then(() => true).catch(() => false)
         if (ok) {
           this.containerStates.delete(name)
           this.forgetWhatDiedWithIt(name)

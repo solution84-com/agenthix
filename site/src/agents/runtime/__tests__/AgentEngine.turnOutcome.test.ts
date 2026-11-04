@@ -16,7 +16,7 @@ const h = vi.hoisted(() => ({
   waiting: null as null | (() => void),
   resolveAgentContext: vi.fn(),
   mockPrisma: {
-    agentRun: { findUnique: vi.fn(), update: vi.fn() },
+    agentRun: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     agentSession: { update: vi.fn(), findUnique: vi.fn() },
     transcriptEntry: { count: vi.fn(), create: vi.fn(), createMany: vi.fn() },
     toolCallLog: { findMany: vi.fn() },
@@ -143,6 +143,7 @@ describe('AgentEngine — how a turn ends', () => {
       id: 'run-1', status: 'PENDING', sessionId: 'sess-1', agentId: 'agent-1', taskId: null, inputText: 'hi', approvedManifest: null,
     })
     mockPrisma.agentRun.update.mockResolvedValue(undefined)
+    mockPrisma.agentRun.updateMany.mockResolvedValue({ count: 1 })
     mockPrisma.agentSession.update.mockResolvedValue({ totalInputTokens: 0, totalOutputTokens: 0, totalCacheReadTokens: 0, totalCacheWriteTokens: 0 })
   })
 
@@ -248,5 +249,25 @@ describe('AgentEngine — how a turn ends', () => {
       name: 'agentRunNotice', targetRoom: 'session',
       data: { runId: 'run-1', notice: 'The provider is rate-limiting this model; retrying (attempt 1)…' },
     }))
+  })
+
+  it('a Stop that arrives while the run is still launching ends the turn before the model starts, as CANCELLED', async () => {
+    let release!: () => void
+    const held = new Promise<void>(resolve => { release = resolve })
+    // The first write is the run's RUNNING mark; launch waits on it, as it waits on the container and the binds.
+    mockPrisma.agentRun.update.mockImplementationOnce(async () => { await held })
+    const started = vi.fn()
+    h.script = async function* () { started(); yield { type: 'status', status: 'completed' } }
+    const run = agentEngine.run('run-1', { dispatchContext: dispatchContext(), capabilityJwt: 'jwt', runLimits: DEFAULT_RUN_LIMITS })
+    await vi.waitFor(() => expect(mockPrisma.agentRun.update).toHaveBeenCalled())
+    await agentEngine.cancelRun('run-1')
+    release()
+    const outcome = await run
+
+    expect(started).not.toHaveBeenCalled()
+    expect(outcome).toEqual({ status: 'CANCELLED' })
+    expect(runStatuses()).not.toContain('COMPLETED')
+    expect(transcript()).toEqual(['RUN_STOPPED'])
+    expect(frame()).toMatchObject({ status: 'CANCELLED', error: 'Cancelled by user' })
   })
 })

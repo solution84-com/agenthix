@@ -79,7 +79,7 @@ export async function runChat(payload: RunDispatchPayload): Promise<string> {
 
   // Read before the requests are replaced and before this run exists: the newest earlier run decides.
   // A message into a task's session is in that task too.
-  const scope = { sessionId: session.id, taskId: session.taskId }
+  const scope = { sessionId: session.id, taskId: session.taskId, agentId: agent.id }
   const approved = agent.approval === 'bypassed' ? null : await approvalForNextRun(scope)
   await replaceUnansweredRequests(scope)
 

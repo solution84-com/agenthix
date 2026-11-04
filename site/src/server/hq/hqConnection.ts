@@ -12,7 +12,7 @@ import {
 import { resolveChannelUrl, resolveContentUrl } from './resolveChannelUrl'
 import { answerChannelRequest, type ReceivedRequest } from './channelAnswer'
 import {
-  SITE_UNKNOWN_MESSAGE, hqRefusalMessage, isUnknownSite, replacedAtOf, replacedMessage, siteDialHeaders, statedHqVersion,
+  SITE_UNKNOWN_MESSAGE, hqRefusalMessage, isUnknownSite, replacedAtOf, replacedMessage, siteDialOptions, statedHqVersion,
 } from './hqAnswers'
 import { ContentConnection } from './content/contentConnection'
 import { Logger } from '../utils/logger'
@@ -33,10 +33,7 @@ export function setSilenceTimeoutForTests(ms: number = SITE_SILENCE_TIMEOUT_MS):
   silenceTimeoutMs = ms
 }
 
-// Scoped to sendEvent only (SiteStreamEmitter's fire-and-forget frames, plan
-// 5d-2 task 7b) — matching the Logger convention every moved runtime module
-// uses, rather than the raw console.log/[HQ]-prefix this file's older code
-// predates that convention with.
+// Scoped to sendEvent (SiteStreamEmitter's fire-and-forget frames).
 const logger = new Logger('HqConnection')
 
 type ConnectionState = 'disconnected' | 'connecting' | 'connected'
@@ -57,7 +54,7 @@ class HqConnectionManager {
   // Review round: sendEvent's drop log is once-per-state-transition, not
   // once-per-frame — see sendEvent's own comment for why.
   private dropLogged = false
-  // Plan 5d-2 task 8 (SC-342): callbacks fired every time the socket actually
+  // Callbacks fired every time the socket actually
   // opens — not just the first connect, every reconnect too — so setup.ts can
   // flush its boot-sweep buffer (and anything else that needs "the channel
   // just became usable") without polling connection state itself.
@@ -122,7 +119,7 @@ class HqConnectionManager {
     if (this.state !== 'disconnected') return
     this.state = 'connecting'
 
-    const ws = new WebSocket(hqWsUrl, { headers: siteDialHeaders(token, siteId) })
+    const ws = new WebSocket(hqWsUrl, siteDialOptions(token, siteId))
     // Tracked from creation, not from 'open': stop() calling ws.close() while
     // still mid-handshake needs a live reference to abort, and every handler
     // below checks this same identity before touching shared state — a

@@ -67,4 +67,9 @@ describe('whether the model may load a skill itself @SC-1607', () => {
     expect(isModelInvocable('---\nname: a\ndisable-model-invocation: true  # a person runs it\n---\nBody')).toBe(false)
     expect(isModelInvocable('﻿---\r\nname: a\r\n"disable-model-invocation": true\r\n---\r\nBody')).toBe(false)
   })
+
+  it('cuts a description to the 1,024 characters publishing allows', () => {
+    const staged = stagedSkillMd(`---\ndescription: ${'a'.repeat(5000)}\n---\nBody`, 'x')
+    expect(staged).toBe(`---\nname: x\ndescription: "${'a'.repeat(1024)}"\n---\nBody`)
+  })
 })

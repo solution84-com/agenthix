@@ -1,8 +1,7 @@
 /**
  * Production wrapper: resolves hq's JWKS URL and verifies with a cached remote
  * key set (jose refetches on unknown kid — the §2 rotation pattern). hq's URL
- * comes from HqConnection (populated once Execution Site registration exists); HQ_URL is a
- * dev-only fallback until then.
+ * comes from HqConnection; HQ_URL is a dev-only fallback.
  */
 import { createRemoteJWKSet } from 'jose'
 import { prisma } from '#db'

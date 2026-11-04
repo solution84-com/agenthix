@@ -27,6 +27,16 @@ describe('runtimeCheck', () => {
     expect(result.agentImage).toBe('agenthix-agent')
   })
 
+  it('looks the image up with inspect, which also finds a digest-pinned name', async () => {
+    docker.mockImplementation(async (args: string[]) => {
+      if (args[0] === 'version') return { stdout: '28.1.1\n', stderr: '' }
+      if (args[0] === 'image' && args[1] === 'inspect') return { stdout: 'sha256:abc\n', stderr: '' }
+      return { stdout: '', stderr: '' }
+    })
+    const result = await runtimeCheck({ docker, image: 'agenthix-agent@sha256:451f' })
+    expect(result.imagePresent).toBe(true)
+  })
+
   it('reports unavailable with the reason rather than throwing when docker is absent', async () => {
     docker.mockRejectedValue(new Error('spawn docker ENOENT'))
     const result = await runtimeCheck({ docker, siteRoot: '/srv/site', image: 'agenthix-agent' })

@@ -71,14 +71,18 @@ export class CallMeter {
   }
 
   /**
-   * The report for this call. `broken` is set when the answer ended early on the vendor's side; a call the harness
-   * or the end of its turn cut off is not a failure of the provider.
+   * The report for this call. `broken` is set when the answer ended early on the vendor's side. A call the harness
+   * or the end of its turn cut off (`cutOff`) is not a failure of the provider, so one cut off before the provider
+   * answered carries no error kind either.
    */
-  async report(model: string | null, broken = false): Promise<UsageReport> {
+  async report(model: string | null, broken = false, cutOff = false): Promise<UsageReport> {
     if (this.decoder && this.readable) await this.drain(this.decoder)
     const reader = this.reader
     const usage = reader && this.readable ? reader.end() : null
-    const errorKind = upstreamErrorKind(this.status, reader?.text() ?? '') ?? reader?.streamFailure ?? (broken ? 'unavailable' : undefined)
+    const unanswered = this.status === 0 && cutOff
+    const errorKind = unanswered
+      ? undefined
+      : upstreamErrorKind(this.status, reader?.text() ?? '') ?? reader?.streamFailure ?? (broken ? 'unavailable' : undefined)
     return {
       callId: this.callId,
       runId: this.info.runId,

@@ -99,12 +99,14 @@ export function transcriptRowsOfRun(params: PersistRunOutputParams, now = new Da
     })
   }
 
+  // A reply and the line that ends the run are read by time alone: the ending is one millisecond after the reply.
+  const endedAt = new Date(now.getTime() + 1)
   if (ending.kind === 'failed') {
     const detail: RunFailedDetail = { reason: ending.reason, ...(ending.resource ? { resource: ending.resource } : {}) }
-    rows.push({ sessionId, runId, role: 'SYSTEM', kind: 'RUN_FAILED', content: ending.reason, detail: json(detail), createdAt: now })
+    rows.push({ sessionId, runId, role: 'SYSTEM', kind: 'RUN_FAILED', content: ending.reason, detail: json(detail), createdAt: endedAt })
   } else if (ending.kind === 'stopped') {
     const detail: RunStoppedDetail = { cause: ending.cause, by: ending.by }
-    rows.push({ sessionId, runId, role: 'SYSTEM', kind: 'RUN_STOPPED', content: '', detail: json(detail), createdAt: now })
+    rows.push({ sessionId, runId, role: 'SYSTEM', kind: 'RUN_STOPPED', content: '', detail: json(detail), createdAt: endedAt })
   } else if (!finalReply && rows.length === 0 && !summarise) {
     // Agent produced no text and did nothing — say so, so the person isn't
     // left with a silent empty response.

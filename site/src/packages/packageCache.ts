@@ -15,6 +15,7 @@ import {
   type PackageContents, type PackageRef, type PackageTransfer,
 } from '@agenthix/core'
 import { getSiteRoot } from '../agents/agentDiskPaths'
+import { skillHasTooManyEntries, skillIsTooDeep } from './skillBounds'
 
 export class PackageUnavailableError extends Error {
   readonly code = 'package_unavailable' as const
@@ -97,8 +98,8 @@ function sameRef(a: PackageRef, b: PackageRef): boolean {
  */
 function checkSkillContents(contents: PackageContents): void {
   const paths = contents.files.map(f => f.path)
-  if (paths.length + 1 > SKILL_TREE_MAX_ENTRIES) throw new PackageVerificationError(`A skill may hold at most ${SKILL_TREE_MAX_ENTRIES - 1} files`)
-  if (paths.some(p => p.split('/').length - 1 > SKILL_TREE_MAX_DEPTH)) throw new PackageVerificationError(`A skill's folders may be at most ${SKILL_TREE_MAX_DEPTH} deep`)
+  if (skillHasTooManyEntries(paths)) throw new PackageVerificationError(`A skill may hold at most ${SKILL_TREE_MAX_ENTRIES} files and folders, its own included`)
+  if (skillIsTooDeep(paths)) throw new PackageVerificationError(`A skill's folders may be at most ${SKILL_TREE_MAX_DEPTH} deep`)
   if (!paths.includes('SKILL.md')) throw new PackageVerificationError('A skill package has no SKILL.md')
   if (checkAssetFileList(paths).length > 0) throw new PackageVerificationError('A skill package names two files one disk would store as one')
 }

@@ -60,7 +60,7 @@
 import { runOnBehalfOf, type RunCancelReason, type RunWaitingEvent } from '@agenthix/core'
 import { siteStream } from './SiteStreamEmitter'
 import { Logger } from '../../server/utils/logger'
-import type { RunOptions, RunOutcome } from './types'
+import type { RunEvent, RunOptions, RunOutcome } from './types'
 import { prisma } from '#db'
 import type { AgentSession } from '@prisma/client'
 import { startCapabilityRenewal } from './capabilityRenewal'
@@ -277,12 +277,15 @@ export class AgentEngine {
     }
     const { error } = turnStop(stopReason)
     if (controller) this.stopReasons.set(runId, stopReason)
-    await prisma.agentRun.update({
-      where: { id: runId },
+    // Only a run still pending or running is rewritten: a late or repeated Stop leaves an ended run as it ended.
+    const { count } = await prisma.agentRun.updateMany({
+      where: { id: runId, status: { in: ['PENDING', 'RUNNING'] } },
       data: { status: 'CANCELLED', endedAt: new Date(), error }
-    }).catch(() => {})
+    }).catch(() => ({ count: 0 }))
+    // A Stop that comes while the run is still launching has no controller yet: the reason waits
+    // for processRun, which stops the turn before it starts.
+    if (!controller && count > 0) this.stopReasons.set(runId, stopReason)
   }
-
 
   private async processRun(
     runId: string,
@@ -339,7 +342,10 @@ export class AgentEngine {
         void this.stopRun(runId, { limit: kind, limits })
       })
       turn.resolvedModel = resolvedModel
-      const streamed = await consumeRunEvents(runtime.run(context), {
+      // A Stop that arrived during launch (before there was a controller to abort) ends the turn before it starts.
+      if (this.stopReasons.has(runId)) controller.abort()
+      const events: AsyncIterable<RunEvent> = controller.signal.aborted ? (async function* () {})() : runtime.run(context)
+      const streamed = await consumeRunEvents(events, {
         runId, sessionId: session.id, taskId: run.taskId ?? null, signal: controller.signal,
         onModelRoundTrip: () => limitWatch?.roundTrip(),
       }, turn.streamed)

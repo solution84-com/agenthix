@@ -11,9 +11,7 @@ export class HqDataError extends Error {
   }
 }
 
-/** Call an hq control-plane operation on behalf of a run (hq/site split spec §7.2).
- *  Unused until the execution runtime moves here in plan 5d — built now so the
- *  /api/v1/data contract has an implementation on both sides. */
+/** Call an hq control-plane operation on behalf of a run (hq/site split spec §7.2); the MCP endpoint forwards to it. */
 export async function callHqData(operation: string, args: unknown, capabilityJwt: string): Promise<unknown> {
   const [config, connection] = await Promise.all([
     prisma.siteConfig.findFirst(),

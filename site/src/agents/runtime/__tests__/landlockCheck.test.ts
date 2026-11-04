@@ -28,7 +28,8 @@ describe('the Landlock check', () => {
   it('asks at startup from a throwaway container with no network, and remembers the answer', async () => {
     const docker = answering('6')
     await checkLandlockAtStartup(docker)
-    expect(docker.mock.calls[0][0]).toEqual(['run', '--rm', '--network', 'none', 'agenthix-agent', '/usr/local/lib/agenthix/bin/agenthix-contain', '--abi'])
+    const run = docker.mock.calls.find(c => c[0][0] === 'run')![0]
+    expect(run).toEqual(['run', '--rm', '--name', 'agenthix-dev-landlock-check', '--network', 'none', 'agenthix-agent', '/usr/local/lib/agenthix/bin/agenthix-contain', '--abi'])
     const later = answering('0')
     await requireLandlock('agent-1', later)
     expect(later).not.toHaveBeenCalled()
@@ -39,6 +40,19 @@ describe('the Landlock check', () => {
     const later = answering('7')
     await requireLandlock('agent-1', later)
     expect(later).toHaveBeenCalledTimes(1)
+  })
+
+  it('removes its container by name before it asks and after a failed ask, so none is left behind', async () => {
+    const docker = vi.fn(async (args: string[], _timeoutMs: number) => {
+      if (args[0] === 'run') throw new Error('docker run did not finish within 30s')
+      return { stdout: '', stderr: '' }
+    })
+    await checkLandlockAtStartup(docker)
+    expect(docker.mock.calls.map(c => c[0].slice(0, 3).join(' '))).toEqual([
+      'rm -f agenthix-dev-landlock-check',
+      'run --rm --name',
+      'rm -f agenthix-dev-landlock-check',
+    ])
   })
 
   it('remembers a kernel that is too old, and refuses every later command', async () => {

@@ -5,6 +5,7 @@
  * write; what it sends is still checked here, since it decides what a run will read.
  */
 import { createHash } from 'node:crypto'
+import { skillHasTooManyEntries, skillIsTooDeep } from '../../packages/skillBounds'
 import {
   PACKAGE_FORMAT_VERSION, SKILL_TREE_MAX_DEPTH, SKILL_TREE_MAX_ENTRIES, SKILL_WRITE_MAX_BYTES, assetFingerprintInput,
   checkAssetFileList, isValidPackagePath,
@@ -21,16 +22,6 @@ export class SkillTransferError extends Error {
 }
 
 const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex')
-
-/** How many entries the files make on disk: each file, and each folder between it and the skill's own. */
-function entriesOf(paths: string[]): number {
-  const folders = new Set<string>()
-  for (const p of paths) {
-    const parts = p.split('/')
-    for (let i = 1; i < parts.length; i++) folders.add(parts.slice(0, i).join('/'))
-  }
-  return paths.length + folders.size
-}
 
 /** The files the body carries, in path order, or a `SkillTransferError` saying what is wrong with it. */
 export function readSkillTransfer(body: Buffer, digest: string): TransferredFile[] {
@@ -57,7 +48,6 @@ export function readSkillTransfer(body: Buffer, digest: string): TransferredFile
     if (typeof p !== 'string' || !isValidPackagePath(p) || typeof entry.sha256 !== 'string') {
       throw new SkillTransferError('invalid', 'a file has a path a skill may not hold')
     }
-    if (p.split('/').length > SKILL_TREE_MAX_DEPTH) throw new SkillTransferError('too_many', `the skill's folders nest deeper than ${SKILL_TREE_MAX_DEPTH}`)
     const encoded = Object.prototype.hasOwnProperty.call(bytes, p) ? bytes[p] : undefined
     if (typeof encoded !== 'string') throw new SkillTransferError('invalid', `"${p}" is in the contents list but not sent`)
     const content = Buffer.from(encoded, 'base64')
@@ -68,7 +58,8 @@ export function readSkillTransfer(body: Buffer, digest: string): TransferredFile
   }
   const paths = files.map(f => f.path)
   if (checkAssetFileList(paths).length > 0) throw new SkillTransferError('invalid', 'two files would be one on disk, or a path is not one a skill may hold')
-  if (entriesOf(paths) > SKILL_TREE_MAX_ENTRIES) throw new SkillTransferError('too_many', `the skill holds more than ${SKILL_TREE_MAX_ENTRIES} entries`)
+  if (skillIsTooDeep(paths)) throw new SkillTransferError('too_many', `the skill's folders nest deeper than ${SKILL_TREE_MAX_DEPTH}`)
+  if (skillHasTooManyEntries(paths)) throw new SkillTransferError('too_many', `the skill holds more than ${SKILL_TREE_MAX_ENTRIES} entries`)
   if (!paths.includes(SKILL_FILE)) throw new SkillTransferError('invalid', `the skill has no ${SKILL_FILE}`)
   const fingerprint = sha256(assetFingerprintInput(files.map(f => ({ path: f.path, sha256: sha256(f.content) }))))
   if (fingerprint !== digest) throw new SkillTransferError('invalid', 'the files are not the ones hq named')
