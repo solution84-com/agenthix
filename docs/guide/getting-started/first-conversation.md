@@ -148,8 +148,14 @@ have worked on together. See [Knowledge](../projects/knowledge.md#four-levels) f
 
 **Your space** is in the side bar, under **Chat**. It is your own private place, the first of your
 [personal projects](../projects/projects.md#personal-projects), and has the same sections as a project:
-**Overview**, **Conversations**, **Tasks**, **Boards**, **Runs**, **Automation**, **Files**, **Artefacts**, **Knowledge**,
-**Workspaces** and **Agents**. **Chat** shows only the list of its conversations. See
+
+- **Overview** and **Conversations**
+- **Tasks**, **Boards** and **Runs**
+- **Automation**
+- **Files**, **Artefacts** and **Knowledge**
+- **Workspaces** and **Agents**
+
+**Chat** shows only the list of its conversations. See
 [Projects](../projects/projects.md#inside-a-project) for how a place's sections work.
 
 Its **Agents** page is the list of agents that tasks and routines in your space can be given to. **Kernel** is on it from

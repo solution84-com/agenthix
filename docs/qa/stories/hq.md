@@ -1333,7 +1333,7 @@ As a user, I open a project's Files and view a file's content in-app — markdow
 code syntax-highlighted, images shown — without leaving the app or editing it.
 
 - AC-151a — Selecting a file renders its content by type: markdown rendered, code highlighted, images displayed.
-- AC-151b — Reading is read-only and path-safe; non-previewable files (binary / too large) show a clear notice instead of rendering.
+- ~~AC-151b: Reading is read-only and path-safe; non-previewable files (binary / too large) show a clear notice instead of rendering.~~ *(Retired 2026-11-04 — the frame's states, AC-390a to AC-390c, replace it)*
 
 ---
 

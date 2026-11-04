@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, describe, expect, it } from 'vitest'
 import { PNG } from 'pngjs'
-import { classify, DEFAULT_GUIDE_BASELINE_URL, diffImages, guideBaselineUrl, lastReleaseTag, renderSummary } from '../compare.mjs'
+import { classify, DEFAULT_GUIDE_BASELINE_URL, diffImages, guideBaselineUrl, lastReleaseTag, main, renderSummary } from '../compare.mjs'
 
 function solid(width, height, [r, g, b], dots = []) {
   const png = new PNG({ width, height })
@@ -96,5 +99,66 @@ describe("the released screenshots' address @SC-1152", () => {
     expect(guideBaselineUrl({})).toBe(DEFAULT_GUIDE_BASELINE_URL)
     expect(guideBaselineUrl({ GUIDE_BASELINE_URL: ' ' })).toBe(DEFAULT_GUIDE_BASELINE_URL)
     expect(guideBaselineUrl({ GUIDE_BASELINE_URL: 'https://assets.example/guide/' })).toBe('https://assets.example/guide')
+  })
+})
+
+describe('the comparison run, with its git and network calls stood in for', () => {
+  const roots = []
+  afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
+
+  function hqRootWith(captures) {
+    const root = mkdtempSync(join(tmpdir(), 'guide-compare-'))
+    roots.push(root)
+    mkdirSync(join(root, 'e2e/guide/.captures'), { recursive: true })
+    for (const [name, png] of Object.entries(captures)) writeFileSync(join(root, 'e2e/guide/.captures', `${name}.png`), png)
+    return root
+  }
+  const white = solid(100, 100, [255, 255, 255])
+  const black = solid(100, 100, [0, 0, 0])
+  const reply = (status, body = white) => ({ status, ok: status >= 200 && status < 300, arrayBuffer: async () => body })
+  const git = (tag, files = []) => (args) => {
+    if (args[0] === 'describe') {
+      if (tag === null) throw new Error('no tag')
+      return `${tag}\n`
+    }
+    return files.join('\n')
+  }
+
+  it('says every screenshot is new when there is no earlier release, and fetches nothing', async () => {
+    const hqRoot = hqRootWith({ home: white })
+    const calls = []
+    const summary = await main({ hqRoot, env: {}, runGit: git(null), fetchFn: async (url) => { calls.push(url); return reply(200) } })
+    expect(summary).toContain('No earlier release to compare with')
+    expect(summary).toContain('### New (1)')
+    expect(calls).toEqual([])
+  })
+
+  it('counts a screenshot the release never published as new', async () => {
+    const hqRoot = hqRootWith({ home: white })
+    const summary = await main({ hqRoot, env: {}, runGit: git('v0.1.0', ['hq/e2e/guide/home.recipe.ts']), fetchFn: async () => reply(404) })
+    expect(summary).toContain('### New (1)')
+    expect(summary).toContain('Compared with the last release, `v0.1.0`')
+  })
+
+  it('reports an image that differs as changed and writes the old and new side by side', async () => {
+    const hqRoot = hqRootWith({ home: black })
+    const urls = []
+    const summary = await main({
+      hqRoot,
+      env: { GUIDE_BASELINE_URL: 'https://example.test/base' },
+      runGit: git('v0.1.0', ['hq/e2e/guide/home.recipe.ts']),
+      fetchFn: async (url) => { urls.push(url); return reply(200, white) },
+    })
+    expect(summary).toContain('### Changed (1)')
+    expect(urls[0]).toMatch(/\/v0\.1\.0\/home\.png$/)
+    expect(readFileSync(join(hqRoot, 'e2e/guide/.report/old/home.png')).equals(white)).toBe(true)
+    expect(readFileSync(join(hqRoot, 'e2e/guide/.report/new/home.png')).equals(black)).toBe(true)
+  })
+
+  it('fails, naming the image, when the baseline answers with anything but an image or a 404', async () => {
+    const hqRoot = hqRootWith({ home: white })
+    await expect(
+      main({ hqRoot, env: {}, runGit: git('v0.1.0', ['hq/e2e/guide/home.recipe.ts']), fetchFn: async () => reply(503) }),
+    ).rejects.toThrow(/"home" failed: HTTP 503/)
   })
 })

@@ -1,5 +1,5 @@
 ---
-title: Finish setup
+title: Set up your HQ
 description: Create your administrator account, name your organisation, choose how agents reach AI models and voice, now or later, and check it all.
 sidebar:
   order: 3

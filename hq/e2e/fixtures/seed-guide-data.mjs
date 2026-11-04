@@ -15,7 +15,7 @@ import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
-import { assertGuideDatabase } from '../../scripts/guide/databaseUrls.mjs'
+import { assertGuideDatabase, assertGuideSecretsKey } from '../../scripts/guide/databaseUrls.mjs'
 import { seedAgentInstructions } from './guide-sample-agents.mjs'
 import { seedRuns } from './guide-sample-runs.mjs'
 import { seedAccess } from './guide-sample-access.mjs'
@@ -38,6 +38,7 @@ if (!hqUrl || !siteUrl) {
 try {
   assertGuideDatabase(hqUrl, 'hq')
   assertGuideDatabase(siteUrl, 'site')
+  assertGuideSecretsKey(process.env)
 } catch (err) {
   console.error(`[seed-guide-data] ${err.message}`)
   process.exit(1)

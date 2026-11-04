@@ -24,13 +24,7 @@ If the page says the link doesn't work, it has expired or been replaced: make an
 
 ## The only administrator forgot theirs
 
-There is no one in the app to ask. On the machine that runs HQ, in the folder where you installed Agenthix, run:
-
-```sh
-agenthix hq reset-password <username>
-```
-
-It prints the same kind of one-hour link. If nobody can sign in as an administrator at all, `agenthix hq invite-admin` prints a link that makes a new one, good for 24 hours. See [When nobody can sign in](../running-agenthix/recover-admin.md).
+There is no one in the app to ask. Someone with access to the machine that runs HQ makes the link with a command, and a second command makes a new administrator when nobody can sign in. Both are in [When nobody can sign in](../running-agenthix/recover-admin.md).
 
 ## Change your own password
 

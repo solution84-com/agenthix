@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assertGuideDatabase, databaseNameOf, guideStorageRoot, guideUrls, urlWithDatabase } from '../databaseUrls.mjs'
+import { assertGuideDatabase, assertGuideSecretsKey, databaseNameOf, guideStorageRoot, guideUrls, urlWithDatabase } from '../databaseUrls.mjs'
 
 const HQ_DEV = 'postgresql://agenthix:secret@127.0.0.1:4109/agenthix'
 const SITE_DEV = 'postgresql://agenthix:secret@localhost:4209/agenthix_site'
@@ -59,5 +59,13 @@ describe('where hq keeps its files for the guide @SC-1106', () => {
 
   it('keeps the caller\'s own when it set one', () => {
     expect(guideStorageRoot({ HQ_STORAGE_ROOT: '/data/hq' }, '/tmp')).toBe('/data/hq')
+  })
+})
+
+describe('the guide seed\'s secrets key', () => {
+  it('is the one the guide hq runs with, never a fallback to hq/.env.server', () => {
+    expect(() => assertGuideSecretsKey({})).toThrow(/SECRETS_MASTER_KEY/)
+    expect(() => assertGuideSecretsKey({ SECRETS_MASTER_KEY: '' })).toThrow(/Nothing was changed\./)
+    expect(assertGuideSecretsKey({ SECRETS_MASTER_KEY: 'abc' })).toBe('abc')
   })
 })

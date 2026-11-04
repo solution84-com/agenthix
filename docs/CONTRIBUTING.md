@@ -70,9 +70,17 @@ own `AGENTS.md`. The architecture is explained, for someone new to it, in
    | Module | Typecheck | Tests |
    |---|---|---|
    | `core` | `npm run typecheck` | `npm test` |
-   | `ui` | `npx tsc --noEmit` | — |
+   | `ui` | `npm run typecheck` | `npm test` |
    | `hq` | `npm run typecheck` | `npm test`, and `npm run test:integration` for anything that reads or writes data |
    | `site` | `npm run typecheck` | `npm test`, and `npm run test:integration` |
+   | `host` | `npm run typecheck` | `npm test`, and `npm run test:container` for anything that needs a real Docker |
+   | `console` | `npm run typecheck` | `npm test` |
+   | `console-web` | `npm run typecheck` | `npm test` |
+   | `relay` | `npm run typecheck` | `npm test` |
+
+   `core` must be built first (`cd core && npm run build`) for every module but `core` itself; `ui` is checked with hq's
+   installed React linked into `ui/node_modules`, as the *Link hq's React into ui* step of
+   [`.github/workflows/checks.yml`](../.github/workflows/checks.yml) does. Each module's `AGENTS.md` has its details.
 
    In `hq/`, a bare `npx tsc --noEmit` checks nothing; use `npm run typecheck`.
 3. **If your change alters what people see or do**, update the [user guide](guide/README.md) in the same pull

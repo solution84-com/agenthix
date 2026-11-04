@@ -59,7 +59,7 @@ organisation always has a voice, so it can be changed and not cleared. **Listeni
 models, each shown with its languages and price per hour of audio: **Universal-3 Pro** (32 languages, the most
 accurate), **Universal-Streaming** (English only) and **Universal-Streaming Multilingual** (6 languages).
 
-Setup chooses the ones its providers can fill when it finishes (see [Finish setup](../getting-started/finish-setup.md#6-check-everything)), and
+Setup chooses the ones its providers can fill when it finishes (see [Set up your HQ](../getting-started/setup-hq.md#6-check-everything)), and
 the rest when a provider is added later.
 
 ## An agent's own models and voice

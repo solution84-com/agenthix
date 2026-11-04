@@ -100,15 +100,15 @@ Self-contained — the testing contract lives under `docs/qa/`, no dependency on
 
 ## Downstream routing (accuracy-pass observations)
 
-The audit's accuracy code pass reads code broadly and surfaces things outside the contract mandate (pure defects with no requirement angle — it edits contracts but never fixes code). Where each routes in this repo:
+The audit's accuracy code pass reads code broadly and surfaces things outside the contract mandate (pure defects with no requirement angle). The measurement passes only report. The audit's action phase, at its decision session, then acts on what they found. Where each routes in this repository:
 
 | Observation kind | Route to |
 |---|---|
-| Code defect (no requirement angle — e.g. plaintext credential storage) | a **development cycle** for the module |
-| Security / access-control defect | a **development cycle** + **`/security-review`** |
+| Code defect (no requirement angle — e.g. plaintext credential storage) | fixed in the action phase, on the audit's branch, with a covering test and a recorded cause; an issue only when it is not a straightforward fix (substantial scope, needs a business decision, unclear requirement) |
+| Security / access-control defect | the same, and **`/security-review`** of the fix |
 | Scenarios/stories contract mismatch (contract disagrees with code) | applied in-session — the audit reconciles the contract, and at a unit's close also authors the net-new entries |
 
-The audit records pure defects as non-authoritative observations and recommends the route; it does not fix code.
+The measurement passes record pure defects as non-authoritative observations and recommend the route; the action phase fixes them.
 
 **A deferred finding is queued work, not a register of its own.** When a QA-surfaced gap is *deferred* — seen and accepted for now — it is filed as an issue on this repository like any other queued work, noting a QA audit as its source so its origin survives. There is no second list: one queue for everything that needs doing, because a register of known-broken things beside a backlog of planned work is the same information filed twice, and the two drift within a release.
 

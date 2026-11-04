@@ -40,10 +40,52 @@ stateDiagram-v2
 | GitHub permissions | What the run's `GITHUB_TOKEN` may do, required when a step names it |
 | Time limit | For the whole run, 10 minutes unless set, at most 6 hours |
 
+## The definition file
+
+An agent writes one file, `workflow.yaml`, in the GitHub Actions style that models already know, plus any script files its
+steps call.
+
+```yaml
+name: deploy-staging
+description: Build, upload and restart the app on staging
+hosts: ["registry.npmjs.org:443", "staging.example.com:22"]
+variables: [STAGING_HOST, NODE_ENV]     # every step has these as $STAGING_HOST, $NODE_ENV
+timeout: 10m
+parameters:
+  - name: ref
+    pattern: '^[A-Za-z0-9_][A-Za-z0-9._/-]{0,99}$'
+steps:
+  - name: Build
+    run: npm ci && npm run build        # no secrets; installs from the version's own lock file
+  - name: Upload
+    secrets: [STAGING_DEPLOY_KEY]
+    run: ./deploy/upload.sh             # the version's deploy/upload.sh, never the workspace's
+  - name: Restart the app
+    secrets: [STAGING_DEPLOY_KEY]
+    run: ./deploy/restart.sh
+  - name: Check it answers
+    run: curl -fsS "https://$STAGING_HOST/health"
+```
+
+| Field | Meaning | Default |
+|---|---|---|
+| `name`, `description` | What people and agents see | — |
+| `steps[]` | Each has a `name`, a `run` (a command, or one of the version's files), optional `secrets: [...]` and `timeout` | — |
+| `steps[].secrets` | The secrets this step gets, and no other step | None |
+| `variables` | The variables the workflow uses, listed once; every step has them as environment variables | None |
+| `parameters` | Each has a `name` and one of `pattern` (the whole value must match), `values` (a fixed list) or `text: true` | None |
+| `hosts` | `host:port` pairs the steps may reach | None: no network |
+| `github` | GitHub permissions, required when a step names `GITHUB_TOKEN` and refused otherwise; never empty, since GitHub gives a token asked for with none every permission | None |
+| `timeout` | The whole run's limit, written like `90s`, `10m` or `1h30m`, at most 6 h | 10 min |
+| `files` | Files the version carries beyond those a step's `run` names as `./…`: a script's helpers, a lock file, an `.npmrc` | None |
+
+Unknown fields are refused, not ignored, so a misspelt `secret:` never quietly gives a step nothing. A workflow's name is
+lower-case words joined by hyphens, at most 64 characters; a parameter's name is lower-case letters, digits and `_`,
+since it becomes a file name. A version holds at most 50 steps and 200 files, 4 MiB a file and 16 MiB in all.
+
 A **version** is all of that frozen and identified by a SHA-256 hash, which also covers the executor image the version
 runs on. Changing anything makes a new version, which waits for review and approval while the approved one keeps
-running. The full format is in the *GitHub Operations* skill an agent is given, and in the unit's spec
-([`library.md`](../../work/2026-10-24-workflows/spec/library.md)).
+running. The format an agent writes is the definition file above, and the *GitHub Operations* skill an agent is given teaches it.
 
 ## Who does what
 

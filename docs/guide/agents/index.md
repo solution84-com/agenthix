@@ -20,7 +20,12 @@ can talk to them, give them tasks, and set their own memory and permissions for 
 
 ## An agent's own page
 
-Select **Agents** in the side bar, then an agent, to open its page. Like a project, its sections are in the side bar: **Overview**,
-**Conversations** (yours with this agent), **Now**, **Projects**, **Runs**, **Usage**, **Your instructions**, **Skills**,
-**Memory** and **Your settings**. See
-[Inside a project](../projects/projects.md#inside-a-project).
+Select **Agents** in the side bar, then an agent, to open its page. Like a project, its sections are in the side bar:
+
+- **Overview**, **Now** and **Projects**
+- **Conversations** (yours with this agent) and **Runs**
+- **Usage**
+- **Your instructions**, **Skills** and **Memory**
+- **Your settings**
+
+See [Inside a project](../projects/projects.md#inside-a-project).

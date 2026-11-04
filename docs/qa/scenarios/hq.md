@@ -366,8 +366,8 @@ next-sc: SC-1781
 - **SC-253** — the wiki is gone — a product's docs are its `files/`; `Product.wikiRepoUrl` / `ProductSshKey` are removed · fulfils AC-149a
 - **SC-254** — the default-Workspace concept is gone — no `isDefault`, no auto-created/unremovable Workspace; the container's `files/` is its home · fulfils AC-149a
 - **SC-255** — hq's schema has no `Project.repoUrl`, `Product.wikiRepoUrl` or their SSH-key models, and no `Workspace` or `RepoAttachment` either: repositories attach to storage through those two models in site's schema · fulfils AC-149b
-- **SC-265** — User selects a file in the Files explorer and its content renders by type: markdown rendered, code syntax-highlighted, image shown. · fulfils AC-151a
-- **SC-266** — Reading a file is path-safe (rejects `..`/absolute paths) and non-previewable files (binary, or over the size cap) fall through to a "can't preview" notice. · fulfils AC-151b
+- **SC-265** — ~~User selects a file in the Files explorer and its content renders by type: markdown rendered, code syntax-highlighted, image shown.~~ **Retired 2026-11-04** — the file content service its tests lived in was removed; ui's one frame and its renderers draw every file by kind — see **SC-1578** to **SC-1590**.
+- **SC-266** — ~~Reading a file is path-safe (rejects `..`/absolute paths) and non-previewable files (binary, or over the size cap) fall through to a "can't preview" notice.~~ **Retired 2026-11-04** — hq reads no file's bytes now; the open action and the frame's states (a kind with no renderer, past the cap, not text) are **SC-1578** to **SC-1590**.
 - **SC-267** — With a file open, an Expand control opens a full-bleed reader overlay rendering the file in full view (dismissible); width is keyed to kind — prose capped to a reading measure, code scrolls wide, image fits the viewport with an actual-size toggle. · fulfils AC-151a
 
 ## Integrations — GitHub

@@ -11,6 +11,9 @@ The source-available Agenthix platform — AI agent management, task execution, 
 | `core/` | Shared TypeScript types and protocol definitions. | TypeScript |
 | `ui/` | Shared web React component library (`@agenthix/ui`). | React + Tailwind v4 |
 | `host/` | The host service and its CLI (`agenthix install`, `status`, `hq invite-admin`, `hq reset-password`…), run as a container on every machine. | Node.js |
+| `console/` | The Fleet Console's server — the fleet admins' portal. It dials out to hq and signs every command to a host service. | Node.js |
+| `console-web/` | The Fleet Console's screens, built into static files that `console/` serves. | React + Vite + Tailwind v4 |
+| `relay/` | The relay — carries the bytes of files and live apps from a site to the browser. | Node.js |
 | `front-door/` | An optional HTTPS front door for a machine that has none. | Caddy |
 | `tests/cross-app/` | The cross-app suite — hq and a site booted and tested together. | Vitest |
 
@@ -24,7 +27,7 @@ The execution layer — agent runtime, session drivers, workspace storage — li
 
 ## Local development
 
-You need Node.js 24.14.1 or later (`.nvmrc` says 24) and Docker.
+You need Node.js 24.14.1 or later (`.nvmrc` names that exact version, so CI and the Dockerfiles stay on it, and a Node bump is a change to that file and the Dockerfiles together) and Docker.
 
 ```bash
 docker compose up -d          # dev databases: hq on 4109, site on 4209
@@ -50,7 +53,9 @@ Copy the env templates before the first run:
 
 Only Docker is needed. On a machine, start the host service, the one authority over that machine, then ask it to install; [`host/AGENTS.md`](host/AGENTS.md) has the `docker run` that starts it, and `docker exec -it agenthix-host agenthix install` installs HQ and its site.
 
-The same images are defined per module, `hq/compose.yml` and `site/compose.yml`, with an optional HTTPS front door in `front-door/` for a machine that has none. A further site, on another machine, registers with hq instead: `docker compose -f site/compose.yml exec site agenthix-site register <hq-url>`, and an admin approves the code it prints.
+A further site, on another machine, joins through the Fleet Console: it shows a one-time code to give to that machine's admin, who starts the host service there and runs one command with HQ's address and the code ([Add, move or remove a site](docs/guide/running-agenthix/add-a-site.md)). An optional HTTPS front door for a machine that has none is in `front-door/`.
+
+`hq/compose.yml` and `site/compose.yml` build the images from a clone, for developing the images. They are not a way to deploy: the signed images, protections, backups and the Fleet Console come only with the host service.
 
 **Read [the deployment guide](docs/architecture/deployment.md) first** — the settings, what to put in front of hq, and adding a site.
 
@@ -58,10 +63,9 @@ The same images are defined per module, `hq/compose.yml` and `site/compose.yml`,
 
 | Module | Strategy | Reason |
 |--------|----------|--------|
-| `hq/`, `site/` | No version bumping — the git SHA is the version | Deployed directly from git; images are built on each machine from the checked-out commit |
-| `core/`, `ui/` | Semver | Shared libraries — dependents need to know what changed |
+| Every module | No version in the source — every `package.json` and lock file stays at `0.0.0` | The version is a name given when a release is published, never built in |
 
-Releases are marked with a git tag at the repo root (e.g. `v1.2.0`), capturing which commit of every module shipped together.
+A release is a git tag at the repo root (`v<version>`, for example `v0.1.0`) on a commit that has been proved. The tag publishes signed images for `hq/`, `site/`, `host/`, `console/` and `relay/`, which the host service installs; nothing is built from the checked-out commit on a machine. See [`docs/architecture/versioning.md`](docs/architecture/versioning.md).
 
 ### `core/` is referenced by file path
 

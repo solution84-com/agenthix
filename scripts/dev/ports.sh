@@ -3,7 +3,8 @@
 #
 #   eval "$(bash scripts/dev/ports.sh)"
 #
-# A variable already set in the environment keeps its value, so exporting HQ_WEB_PORT=4150 moves that one port.
+# A variable already set in the environment keeps its value, so exporting HQ_WEB_PORT=4150 moves that one port. A value
+# that is not a port number is refused, so what is printed is only ever digits.
 # Node 24 reads the .ts file as it is; no build is needed.
 set -euo pipefail
 
@@ -25,6 +26,10 @@ PORTS_FILE="$ROOT/core/src/ports/ports.ts" node --input-type=module -e '
   }
   for (const [name, value] of Object.entries(ports)) {
     const set = process.env[name]
+    if (set !== undefined && set !== "" && !(/^[0-9]+$/.test(set) && Number(set) >= 1 && Number(set) <= 65535)) {
+      console.error(`${name} is "${set}", which is not a port number (1 to 65535). Nothing was changed.`)
+      process.exit(1)
+    }
     console.log(`${name}=${set !== undefined && set !== "" ? set : value}`)
   }
 '

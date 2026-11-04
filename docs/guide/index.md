@@ -10,7 +10,7 @@ use it.
 ## Where to start
 
 - **New to Agenthix?** Read [How Agenthix works](getting-started/how-agenthix-works.md). It takes two minutes.
-- **Installing it?** Go to [Install Agenthix](getting-started/install.md), then [finish setup](getting-started/finish-setup.md).
+- **Installing it?** Go to [Install Agenthix](getting-started/install.md), then [set up your HQ](getting-started/setup-hq.md).
 - **Someone invited you?** Go to [Joining by invitation](getting-started/joining-by-invitation.md).
 
 ## What's in the guide

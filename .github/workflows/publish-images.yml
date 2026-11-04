@@ -24,8 +24,10 @@ name: Publish release
 #    commit and tree; per part its key, index digest and platform digests; core's name, version and integrity; the
 #    Postgres image the host service pins.
 #
-# If any of it fails, the tag and whatever this run published are deleted, and the same version is tagged again once
-# the fix is proved. With no build here, a retry promotes the same digests.
+# If any of it fails, nothing here deletes the tag or what this run published: the parts publish side by side, so a
+# failed run can leave some signed under :<version>. The maintainer deletes the tag (the tag rule lets only the owner)
+# and those images by hand, as the releasing skill describes, and tags the same version again once the fix is proved.
+# With no build here, a retry promotes the same digests.
 #
 # A host service checks every image's signature before it fetches it, against exactly one signer: this file, run
 # for the version's own tag (host/src/images/published.ts). This file's path, the tag's form and the registry are

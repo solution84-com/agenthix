@@ -21,7 +21,11 @@ Each row says where the task stands: **Running** with how long, **In line**, **W
 
 1. Select **+ New task**.
 2. Type what needs doing and press Enter. It goes into the backlog.
-3. To set more at once, select **More details** instead. The **New Task** dialog takes a **Title**, **Description**, **Priority**, **Board**, **Stage** and **Agent**.
+3. To set more at once, select **More details** instead. The **New Task** dialog takes:
+    - a **Title** and a **Description**
+    - a **Priority**
+    - the **Board** and the **Stage** (column) it starts in
+    - an **Agent**
 
 ### Open a task
 
@@ -36,7 +40,14 @@ Select a task to open it. Its number, board and column are at the top. Select th
 | **Epic** | The larger task this belongs to |
 | **On behalf of** | The person the work is done for. Their access bounds the run, and they answer its approvals. A project administrator can choose someone else |
 
-The one button at the top is **Run**, **Stop**, **Approve** or **Run again**, whichever fits where the task is. Comments are at the foot: the agent reads them on its next run. The **⋯** menu holds **Make this an epic** (or **Not an epic**), **Move to board:** each other board, and, when they apply, **Dismiss this run** and **Clear the session**, then **Archive** and **Delete**. What a run did is in [Follow what agents are doing](runs-and-approvals.md).
+The one button at the top is **Run**, **Stop**, **Approve** or **Run again**, whichever fits where the task is. Comments are at the foot: the agent reads them on its next run. The **⋯** menu holds:
+
+- **Make this an epic** (or **Not an epic**)
+- **Move to board:** each other board
+- **Dismiss this run** and **Clear the session**, when they apply
+- **Archive** and **Delete**
+
+What a run did is in [Follow what agents are doing](runs-and-approvals.md).
 
 ### Talk about a task
 
@@ -76,7 +87,10 @@ A sprint board shows its current sprint with its dates and the days left. The ta
 
 Open **Timeline** for the whole project, a row for each board. A board also has its own, through the **Columns** and **Timeline** switch in its header.
 
-- **Week**, **Month** and **Quarter** set the scale, **‹**, **Today** and **›** move through time, **Show** chooses **Tasks**, **Epics** or **Milestones**, and **Boards** chooses which boards appear.
+- **Week**, **Month** and **Quarter** set the scale.
+- **‹**, **Today** and **›** move through time.
+- **Show** chooses **Tasks**, **Epics** or **Milestones**.
+- **Boards** chooses which boards appear.
 - A task's bar runs from its plan **Start** to **Finish**. Drag the bar to move it, or an end to change it. That changes only the plan.
 - **▶** marks a task's own start time, or the round of a routine that made it.
 - An **Epic** groups tasks and spans theirs. A milestone (⚑) is a dated goal that epics belong to. An agent makes one when you ask in a conversation, and an epic's **Milestone** field then offers it.

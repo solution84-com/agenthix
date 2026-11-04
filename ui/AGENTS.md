@@ -15,3 +15,7 @@ and how each module hooks into the tokens.
 - **Never hardcode a hex colour** in a component: use the token utilities, or `var(--color-…)` in inline styles.
 - Clients built on these tokens outside this repository keep their own copy, so a change to `tokens.css` is not
   finished until those copies are updated too — each in its own repository and commit.
+- **`react`, `react-dom`, `@types/react` and `@types/react-dom` are pinned exactly in `ui/package.json`, and the pins move
+  with hq's.** hq builds and type-checks with its own copies of them, linked into `ui/` (hq's Dockerfile and the *Checks*
+  workflow do it), and two versions of `@types/react` type-check as unrelated types. When a change to hq's installed
+  versions of these four moves them, change the pins here in the same change.

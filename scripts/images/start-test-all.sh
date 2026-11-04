@@ -7,6 +7,8 @@
 # carries another key, so a second run builds only what changed. START_TEST_NO_BUILD=1 tests the ones already built.
 # Each is built as a machine's own build is (with no version, as the release builds them). It stops at nothing:
 # every image is tested, and it fails at the end if any one did. The parts are listed in scripts/images/parts.json.
+# A build is refused when Docker's disk has under 20 GB free (IMAGE_BUILD_MIN_FREE_GB changes the floor), unless every
+# image is already built (scripts/images/free-disk.mjs).
 set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 2
 
@@ -30,6 +32,7 @@ while read -r part file target <&3; do
     if [ "$have" = "$key" ] && [ "$have_tools" = "$TOOLS_KEY" ]; then
       echo "Already built for this content ($key)."
     else
+      node scripts/images/free-disk.mjs || exit 2
       args=(-f "$file" -t "$image" --label "content-key=$key")
       # The agent and executor images share one tools stage; its key is what hq compares across an image upgrade.
       case "$part" in agent | executor) args+=(--label "tools-stage-key=$TOOLS_KEY") ;; esac

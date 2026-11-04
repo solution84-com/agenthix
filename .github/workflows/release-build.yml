@@ -31,7 +31,9 @@ on:
         type: string
 
 concurrency:
-  group: release-build-${{ github.ref }}
+  # A hand-started run is told its commit, and two runs from main for different commits are two builds; a push to a
+  # release branch is told by the branch.
+  group: release-build-${{ github.event_name == 'workflow_dispatch' && inputs.commit || github.ref }}
   cancel-in-progress: true
 
 permissions: {}

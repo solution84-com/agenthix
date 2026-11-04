@@ -33,6 +33,18 @@ export function assertGuideDatabase(url, what) {
 }
 
 /**
+ * The key the guide hq runs with. The seed never falls back to hq/.env.server's: an hq started with another key could
+ * not read what the seed stored.
+ */
+export function assertGuideSecretsKey(env) {
+  const key = env.SECRETS_MASTER_KEY
+  if (!key) {
+    throw new Error('SECRETS_MASTER_KEY is not set. Set it to the key the guide HQ runs with; the seed does not read hq/.env.server for it. Nothing was changed.')
+  }
+  return key
+}
+
+/**
  * Where each app's guide database is. An explicit address wins (CI supplies both); otherwise it is the
  * developer's own dev address with the database name swapped.
  */

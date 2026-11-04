@@ -97,28 +97,28 @@ function git(args, cwd) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
 }
 
-async function fetchBaseline(baseUrl, tag, name) {
-  const response = await fetch(`${baseUrl}/${tag}/${name}.png`)
+export async function fetchBaseline(baseUrl, tag, name, fetchFn = fetch) {
+  const response = await fetchFn(`${baseUrl}/${tag}/${name}.png`)
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`fetching the release image "${name}" failed: HTTP ${response.status}`)
   return Buffer.from(await response.arrayBuffer())
 }
 
-async function main() {
-  const hqRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+/** The two outside calls, `runGit(args)` and `fetchFn(url)`, are injected so a test can stand in for the network and the repository. */
+export async function main({ hqRoot, env, runGit, fetchFn }) {
   const guideDir = join(hqRoot, 'e2e/guide')
   const capturesDir = join(guideDir, '.captures')
   const reportDir = join(guideDir, '.report')
-  const baseUrl = guideBaselineUrl(process.env)
+  const baseUrl = guideBaselineUrl(env)
 
   const captureNames = existsSync(capturesDir)
     ? readdirSync(capturesDir).filter((file) => file.endsWith('.png')).map((file) => file.slice(0, -4)).sort()
     : []
   if (captureNames.length === 0) throw new Error(`no captures in ${capturesDir}: run guide:screenshots first`)
 
-  const tag = lastReleaseTag((args) => git(args, hqRoot))
+  const tag = lastReleaseTag(runGit)
   const baselineNames = tag
-    ? git(['ls-tree', '--name-only', tag, 'hq/e2e/guide/'], hqRoot)
+    ? runGit(['ls-tree', '--name-only', tag, 'hq/e2e/guide/'])
         .split('\n')
         .map((path) => recipeScreenshotName(path.split('/').pop()))
         .filter((name) => name !== null)
@@ -134,7 +134,7 @@ async function main() {
   const olds = new Map()
   if (tag) {
     for (const name of [...new Set([...captureNames, ...baselineNames])]) {
-      const old = await fetchBaseline(baseUrl, tag, name)
+      const old = await fetchBaseline(baseUrl, tag, name, fetchFn)
       if (old === null) continue
       olds.set(name, old)
       if (!captureNames.includes(name)) continue
@@ -150,11 +150,12 @@ async function main() {
   writeFileSync(join(reportDir, 'index.html'), renderReport({ tag, result }))
   const summary = renderSummary({ tag, result, pixels })
   writeFileSync(join(reportDir, 'summary.md'), summary)
-  console.log(summary)
+  return summary
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().catch((error) => {
+  const hqRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+  main({ hqRoot, env: process.env, runGit: (args) => git(args, hqRoot), fetchFn: fetch }).then(console.log).catch((error) => {
     console.error(`[guide:compare] ${error.message}`)
     process.exit(1)
   })

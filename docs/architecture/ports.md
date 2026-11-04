@@ -207,5 +207,11 @@ on every machine, so a live preview reaches only the public internet and its own
 what they reach today. In development, where `AGENT_NETWORK_RANGE` is a /16, the live-preview part is the range's last
 /21.
 
+**A workflow run with hosts** takes its networks from the same slice. A run that is allowed to reach named hosts gets two
+networks, each a /29 (`AGENT_CONTAINER_BITS`), allocated beside the agents' networks: an internal one, whose only other
+member is the run's own egress proxy, and an egress one the proxy goes out by. Two /29s are taken for as long as the run
+lasts, so a run with hosts counts as two agent containers against the slice's lower half. A run with no hosts takes no
+network (`site/src/executor/egress/runNetwork.ts`).
+
 256 ordinary agent containers at once is more than one machine's CPU and memory run, and sixteen installations leaves room
 for test installations beside the real one.

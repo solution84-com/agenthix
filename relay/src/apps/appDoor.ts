@@ -124,6 +124,13 @@ export function handleAppRequest(req: IncomingMessage, res: ServerResponse, deps
       return answerWords(res, admitted.status, admitted.text, deps.hqOrigin)
     }
     const { entry, mux, release, params } = admitted
+    // The browser may have left during hq's answer; its 'close' came before the listener that gives the slot back.
+    if (res.destroyed) {
+      req.resume()
+      release()
+      deps.lines.settle(mux)
+      return
+    }
     let untrack = () => {}
     let over = false
     const kill = carryAppRequest(mux, params, req, res, {
@@ -163,10 +170,20 @@ export function handleAppUpgrade(req: IncomingMessage, socket: Duplex, head: Buf
     refuse('refuse' in verdict ? verdict.refuse : 'navigation')
     return true
   }
+  // Noted from the start: the handshake's socket is half-open, so a browser that leaves ends its side without closing this one.
+  let gone = false
+  socket.once('end', () => { gone = true })
+  socket.once('close', () => { gone = true })
   void admit(req, appId, deps, true).then(admitted => {
     if ('refuse' in admitted) return refuse(admitted.refuse)
     if ('status' in admitted) return refuseSocket(socket, admitted.status, admitted.text)
     const { entry, mux, release, params } = admitted
+    if (gone) {
+      socket.destroy()
+      release()
+      deps.lines.settle(mux)
+      return
+    }
     let untrack = () => {}
     let over = false
     const kill = carryAppSocket(mux, params, req, socket, head, {

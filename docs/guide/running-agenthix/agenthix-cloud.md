@@ -38,7 +38,7 @@ made in HQ, not in the Fleet Console, which only shows it.
 4. Back in HQ, the section reads **Agenthix Cloud is connected** and names the organisation as Cloud knows it. The
    Fleet Console's **HQ** page reads **Connected** too.
 
-During setup the same connection is offered under **Agenthix Cloud**: see [Finish setup](../getting-started/finish-setup.md).
+During setup the same connection is offered under **Agenthix Cloud**: see [Set up your HQ](../getting-started/setup-hq.md).
 A machine admin can connect from HQ's machine with `agenthix cloud connect`: see [Commands on a machine](commands.md#agenthix-cloud-and-remote-access).
 
 To end the connection, select **Disconnect…** in the same place. Nothing on your own machines changes; remote

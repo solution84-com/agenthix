@@ -16,6 +16,7 @@ import {
 import { hqDb, siteDb, truncateAll, seedBase } from './harness/db'
 import { startHq, startRelay, startSite, stopAll, waitForHq, waitForRelay, waitForSite, markAsProcessOwner } from './harness/apps'
 import { acquireRunLock, releaseRunLock } from './harness/runLock'
+import { cleanUpOnFailure } from './harness/cleanUpOnFailure'
 import { recordedSiteIds, removeSiteLeftovers } from './harness/siteLeftovers'
 
 /** Every id this run's site had: each recorded as it came up, and what either database still names. */
@@ -81,41 +82,44 @@ export default async function globalSetup() {
   // run, so a second run would no longer be stopped by a busy port: it is stopped here, before it touches anything.
   acquireRunLock()
 
-  // 1. Provision both test databases (create-if-missing + migrate deploy) by
-  // running each app's wrapper with a no-op command — the wrapper does all
-  // the provisioning work before it even gets to spawning the child command.
-  //
-  // This duplicates the provisioning the wrapper does again when
-  // startHq()/startSite() spawn the apps below — intentional, not an
-  // oversight (F13): truncateAll()/seedBase() (steps 2 & 3) need both
-  // databases to already exist and be migrated, and they run BEFORE either
-  // app boots, so this pass can't be dropped in favor of the boot-time
-  // provisioning alone. The second pass at boot is a cheap already-satisfied
-  // no-op by then (CREATE DATABASE sees "already exists", migrate deploy has
-  // nothing pending) and keeps startHq/startSite simple — they always run
-  // through the same wrapper regardless of what globalSetup already did.
-  await runWrapperNoop(HQ_ROOT, provisionEnv(HQ_TEST_DATABASE_URL))
-  await runWrapperNoop(SITE_ROOT, provisionEnv(SITE_TEST_DATABASE_URL))
+  // A step that throws before the apps boot still removes the temp folder and releases the lock.
+  await cleanUpOnFailure(async () => {
+    // 1. Provision both test databases (create-if-missing + migrate deploy) by
+    // running each app's wrapper with a no-op command — the wrapper does all
+    // the provisioning work before it even gets to spawning the child command.
+    //
+    // This duplicates the provisioning the wrapper does again when
+    // startHq()/startSite() spawn the apps below — intentional, not an
+    // oversight (F13): truncateAll()/seedBase() (steps 2 & 3) need both
+    // databases to already exist and be migrated, and they run BEFORE either
+    // app boots, so this pass can't be dropped in favor of the boot-time
+    // provisioning alone. The second pass at boot is a cheap already-satisfied
+    // no-op by then (CREATE DATABASE sees "already exists", migrate deploy has
+    // nothing pending) and keeps startHq/startSite simple — they always run
+    // through the same wrapper regardless of what globalSetup already did.
+    await runWrapperNoop(HQ_ROOT, provisionEnv(HQ_TEST_DATABASE_URL))
+    await runWrapperNoop(SITE_ROOT, provisionEnv(SITE_TEST_DATABASE_URL))
 
-  // 2 & 3. Reset to empty, then seed the fixtures every suite depends on.
-  await truncateAll()
-  await seedBase()
+    // 2 & 3. Reset to empty, then seed the fixtures every suite depends on.
+    await truncateAll()
+    await seedBase()
 
-  // 4. Historical: mirror the platform assets tree into the temp SITE_ROOT
-  // before boot. This predates hq no longer reading a site's disk at all —
-  // hq now resolves its own assets independently (getHqAssetsRoot(), which
-  // defaults from its own cwd or HQ_ASSETS_ROOT, never SITE_ROOT — this
-  // harness spawns hq's `wasp start` with cwd: HQ_ROOT, the repo's real hq/
-  // directory, so it finds hq/assets there directly), and site's runtime
-  // reads no assets tree of its own. Neither app's current code depends on
-  // this symlink; left in place as a no-op rather than removed as an
-  // unrelated change.
-  //
-  // On a real install, SITE_ROOT/assets used to be a symlink into the repo,
-  // made by hand on the machine — not anything reachable from this repo, so
-  // not portable to another machine or CI.
-  symlinkSync(join(HQ_ROOT, 'assets'), join(SITE_ROOT_DIR, 'assets'))
-  buildRelay()
+    // 4. Historical: mirror the platform assets tree into the temp SITE_ROOT
+    // before boot. This predates hq no longer reading a site's disk at all —
+    // hq now resolves its own assets independently (getHqAssetsRoot(), which
+    // defaults from its own cwd or HQ_ASSETS_ROOT, never SITE_ROOT — this
+    // harness spawns hq's `wasp start` with cwd: HQ_ROOT, the repo's real hq/
+    // directory, so it finds hq/assets there directly), and site's runtime
+    // reads no assets tree of its own. Neither app's current code depends on
+    // this symlink; left in place as a no-op rather than removed as an
+    // unrelated change.
+    //
+    // On a real install, SITE_ROOT/assets used to be a symlink into the repo,
+    // made by hand on the machine — not anything reachable from this repo, so
+    // not portable to another machine or CI.
+    symlinkSync(join(HQ_ROOT, 'assets'), join(SITE_ROOT_DIR, 'assets'))
+    buildRelay()
+  }, cleanup)
 
   // 5. Boot both apps and hq's relay, and wait for readiness. Promise.allSettled (not
   // Promise.all) throughout: Promise.all resolves/rejects as soon as the

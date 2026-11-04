@@ -27,8 +27,7 @@ flowchart LR
 5. **Executor containers** are started from the executor image, one per step, and removed before the next starts.
 6. **The egress proxy** is a step's only way out, when the version names hosts; with none, a step has no network.
 
-The words are defined in [the concept](../concepts/workflows/workflows.md); the design and its reasons are in the
-unit's spec, [`docs/work/2026-10-24-workflows/spec.md`](../work/2026-10-24-workflows/spec.md).
+The words, and the format of a workflow's definition file, are in [the concept](../concepts/workflows/workflows.md).
 
 ---
 

@@ -86,7 +86,7 @@ The panel lists **Needs you** first, then **Earlier**, each newest first.
 ## Needs attention
 
 On the admin area's Overview, an admin's **Needs attention** is one list of what needs them across the workplace and
-the infrastructure, in the order they act: the site kinds, a provider that is not working, machines asking to connect, the
+the infrastructure, in the order they act: the site kinds, a provider that is not working, a site that is down, the
 approvals waiting on them gathered as one item, then invitations, proposed teams and the Bypassed agents. Each
 item is the admin's own notification, so handling it in either place clears both. Their own waiting tasks are
 not in it; those are Home's.

@@ -74,9 +74,11 @@ describe('the publishing workflow @SC-820 @SC-1052 @SC-1270', () => {
   })
 
   it('signs with the cosign version the host service checks with', () => {
-    const signing = workflow.match(/COSIGN_VERSION: (v[\d.]+)/)?.[1]
     const checking = hostDockerfile.match(/cosign\/cosign:(v[\d.]+)@sha256:[0-9a-f]{64}/)?.[1]
-    expect(signing).toBeTruthy()
-    expect(checking).toBe(signing)
+    expect(checking).toBeTruthy()
+    // The release build signs nothing but checks with cosign too: neither workflow may drift from the host image.
+    for (const text of [workflow, releaseBuild]) {
+      expect(text.match(/COSIGN_VERSION: (v[\d.]+)/)?.[1]).toBe(checking)
+    }
   })
 })

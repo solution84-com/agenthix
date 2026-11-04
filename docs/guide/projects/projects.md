@@ -37,7 +37,13 @@ Selecting a card opens the project on its **Overview**: its facts (lead, site, d
 | **Knowledge** | See [Knowledge](knowledge.md) |
 | **Members**, **Settings** | See below. **Memory** is also there for project administrators |
 
-At the foot, under **Pinned**, your name opens a menu with your organisation's **Overview** and, for administrators, **Manage**, then **Your settings** and **Sign out**; **«** beside it narrows the side bar to icons, and **»** widens it again. On a medium window the side bar shows an icon for each section, with its name when you point at it. **Pinned** is then the last pin's picture, with its list opening to the right, and you are your picture, opening the same menu. On a phone, **☰** opens the side bar as a drawer, and the bar at the top names the section you are on; select its name to list the sections. The section is part of the address, so a link, a reload or Back returns you to it.
+At the foot, under **Pinned**, your name opens a menu with:
+
+- your organisation's **Overview**
+- **Manage**, for administrators
+- **Your settings** and **Sign out**
+
+**«** beside it narrows the side bar to icons, and **»** widens it again. On a medium window the side bar shows an icon for each section, with its name when you point at it. **Pinned** is then the last pin's picture, with its list opening to the right, and you are your picture, opening the same menu. On a phone, **☰** opens the side bar as a drawer, and the bar at the top names the section you are on; select its name to list the sections. The section is part of the address, so a link, a reload or Back returns you to it.
 
 Your own space has the same sections, without **Timeline**, **Members** and **Settings**, and with **Agents**: see [Your space](../getting-started/first-conversation.md#your-space).
 

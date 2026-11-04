@@ -49,7 +49,7 @@ Agenthix's release, for Intel and ARM machines alike. Nothing is built on your m
    and refuses one that is not; then it starts everything and prints a link that makes the first account. The link
    works once, for 24 hours.
 
-3. Open the link and [finish setup](finish-setup.md).
+3. Open the link and [set up your HQ](setup-hq.md).
 
 What it sets up, what to do right after, and what to do if something goes wrong are the same as for an install from
 source: [What it sets up](#what-it-sets-up), [Right after you install](#right-after-you-install),
@@ -138,7 +138,7 @@ address. [Address and front door](../running-agenthix/domain-and-https.md) has t
    It asks for HQ's address, starts everything, and prints a link that makes the first account. The link works
    once, for 24 hours.
 
-5. Open the link and [finish setup](finish-setup.md).
+5. Open the link and [set up your HQ](setup-hq.md).
 
 Every later `agenthix` command runs the same way, as `docker exec -it agenthix-host agenthix <command>`; the install prints
 how to save a shortcut, so you can type `agenthix <command>` instead.

@@ -271,7 +271,7 @@ authenticated with the same machine credential:
 | Renew a run capability | `site/src/server/hq/capabilityRenewClient.ts` | `POST /api/v1/capabilities/renew`, `hq/src/server/identity/identityApi.ts` |
 | Report the usage of the model calls its relay made | `sendUsageReports`, `site/src/server/modelRelay/usageReportClient.ts` | `POST /api/v1/usage/report` (`HQ_USAGE_REPORT_PATH`), `hq/src/sites/usageReports.ts` |
 | Ask for hq's Agenthix Cloud token, for a container's calls through Cloud's gateway | `requestCloudAiToken`, the same file | `POST /api/v1/cloud/ai-token` (`HQ_CLOUD_AI_TOKEN_PATH`), `hq/src/sites/cloudAiTokenApi.ts` |
-| Register, and leave | `site/src/server/control/commands.ts` | `hq/src/sites/deviceApprovalApi.ts`, `leaveApi.ts` |
+| Leave, sent by the site or by its machine's host service | the host service's disconnect command | `hq/src/sites/leaveApi.ts` |
 
 The usage report is an HTTPS call and not a channel method because a site sends no request on the channel (hq would answer `unknown_method`), and because the
 site must send a report again until hq acknowledges its call ids: it keeps each as a file, sends batches of at most 100,

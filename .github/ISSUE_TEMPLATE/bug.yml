@@ -28,7 +28,7 @@ body:
     id: version
     attributes:
       label: Agenthix version
-      description: "On the machine running HQ: agenthix status. In HQ: Organisation › Infrastructure › Version."
+      description: "On the machine running HQ: docker exec -it agenthix-host agenthix status."
     validations:
       required: true
   - type: input
@@ -44,7 +44,6 @@ body:
     attributes:
       label: Logs
       description: |
-        Organisation › Infrastructure › Logs and diagnostics makes a support bundle with secrets removed, or paste
-        the lines around the problem from `docker compose -f hq/compose.yml --env-file hq/compose.env logs hq-server`
-        and `docker compose -f site/compose.yml --env-file site/compose.env logs site`. Remove anything private first.
+        Manage › Infrastructure › Logs and diagnostics makes a support bundle with secrets removed, or paste
+        the lines around the problem from `docker exec -it agenthix-host agenthix hq logs hq-server` and `docker exec -it agenthix-host agenthix site logs site`. Remove anything private first.
       render: text

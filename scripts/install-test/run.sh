@@ -21,6 +21,7 @@
 #   INSTALL_TEST_NO_BUILD=1  build nothing: a missing image is an error (the release build installs the candidate's images)
 #   INSTALL_TEST_KEEP=1      leave everything running afterwards, and say how to remove it
 #   INSTALL_TEST_LOGS        where the logs go (a new folder under the system's temporary folder)
+#   IMAGE_BUILD_MIN_FREE_GB  the free disk a build needs, 20 GB unless set; below it nothing is built (scripts/images/free-disk.mjs)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -82,6 +83,7 @@ PARTS="$(node "$ROOT/scripts/images/parts.mjs" | cut -d ' ' -f 1)"
 for part in $PARTS; do
   if ! docker image inspect "imgtest/$part:dev" >/dev/null 2>&1; then
     [ "${INSTALL_TEST_NO_BUILD:-0}" != 1 ] || fail "the image imgtest/$part:dev is missing, and INSTALL_TEST_NO_BUILD=1 builds none. Nothing was touched."
+    node "$ROOT/scripts/images/free-disk.mjs" || fail 'there is not enough free disk to build the images.'
     say "Building imgtest/$part:dev (scripts/images/start-test-all.sh)"
     "$ROOT/scripts/images/start-test-all.sh" "$part" >"$LOGS/build-$part.log" 2>&1 \
       || { tail -40 "$LOGS/build-$part.log" >&2; fail "the image imgtest/$part:dev did not build and start."; }

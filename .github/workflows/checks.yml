@@ -40,7 +40,7 @@ jobs:
           node-version-file: .nvmrc
       - name: The selector's own tests
         # Plain Node, no install: the secure-page check needs TypeScript, and its own job installs and tests it.
-        run: node --test scripts/__tests__/affected.test.mjs scripts/__tests__/checks-verdict.test.mjs scripts/__tests__/image-keys.test.mjs scripts/__tests__/image-parts.test.mjs scripts/__tests__/tools-stage.test.mjs
+        run: node --test scripts/__tests__/affected.test.mjs scripts/__tests__/checks-verdict.test.mjs scripts/__tests__/image-keys.test.mjs scripts/__tests__/free-disk.test.mjs scripts/__tests__/image-parts.test.mjs scripts/__tests__/tools-stage.test.mjs
       - name: Has this tree already passed?
         id: proof
         if: github.event_name == 'push'
@@ -65,6 +65,7 @@ jobs:
       - name: Which jobs does this change reach?
         id: select
         env:
+          GH_TOKEN: ${{ github.token }}
           EVENT: ${{ github.event_name }}
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD: ${{ github.sha }}
@@ -81,6 +82,16 @@ jobs:
             echo "Tree already proved by $PROOF"
           else
             if [ "$EVENT" = workflow_dispatch ]; then set -- --all; else set -- "$BASE" "$HEAD"; fi
+            # A push is diffed against the push before it. If that one did not pass, what it left unchecked is not
+            # proved by this diff, so a documentation-only push after a failing push must not pass: run everything.
+            if [ "$EVENT" = push ] && ! [[ "$BASE" =~ ^0+$ ]]; then
+              passes="$(gh api "repos/$GITHUB_REPOSITORY/commits/$BASE/check-runs?check_name=All%20checks%20passed" \
+                --jq '[.check_runs[] | select(.conclusion == "success")] | length' 2>/dev/null || echo 0)"
+              if [ "${passes:-0}" -eq 0 ]; then
+                set -- --all
+                echo "The push before this one (\`$BASE\`) did not pass *All checks passed*, so every job runs." >> "$GITHUB_STEP_SUMMARY"
+              fi
+            fi
             selected="$(node scripts/affected.mjs "$@" --json | node -e 'process.stdout.write(JSON.stringify(JSON.parse(require("fs").readFileSync(0, "utf8")).selected))')"
             {
               echo '```'
@@ -127,6 +138,7 @@ jobs:
           node-version-file: .nvmrc
       - name: Install
         run: |
+          sudo apt-get update
           sudo apt-get install -y --no-install-recommends ripgrep   # the file tools' grep runs it
           cd core && npm ci --no-audit --no-fund
       - name: Typecheck and unit tests
@@ -226,6 +238,7 @@ jobs:
           cd hq && npm run typecheck:guide
       - name: Unit tests
         run: |
+          sudo apt-get update
           sudo apt-get install -y --no-install-recommends ripgrep   # the knowledge search and the platform guide run it
           cd hq && npm test
       - name: hq-web's start-time address step
@@ -376,6 +389,7 @@ jobs:
           (cd site/opencode-plugin && npm run typecheck)
       - name: Unit tests
         run: |
+          sudo apt-get update
           sudo apt-get install -y --no-install-recommends ripgrep   # the knowledge search runs it
           cd site && npm test
 

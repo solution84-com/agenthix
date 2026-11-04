@@ -15,7 +15,14 @@ At the top is the organisation's identity: its name, its @handle, its vision and
 
 ![The Organisation page: its identity and the workplace](screenshot:organisation-page)
 
-Everyone sees **The workplace**: a card each for **People** (which only administrators can open), **Agents**, **Teams**, **Knowledge**, **Products** and **Programs**. The **Library** is in the side bar. **Knowledge** is the organisation's own pages: every member reads them and admins change them (see [Organisation knowledge](../projects/knowledge.md#organisation-knowledge)). **Products** and **Programs** group projects: see [Filing projects under products and programmes](../projects/projects.md#filing-projects-under-products-and-programmes).
+Everyone sees **The workplace**, a card each for:
+
+- **People**, which only administrators can open
+- **Agents** and **Teams**
+- **Knowledge**
+- **Products** and **Programs**
+
+The **Library** is in the side bar. **Knowledge** is the organisation's own pages: every member reads them and admins change them (see [Organisation knowledge](../projects/knowledge.md#organisation-knowledge)). **Products** and **Programs** group projects: see [Filing projects under products and programmes](../projects/projects.md#filing-projects-under-products-and-programmes).
 
 ## The admin area
 
@@ -29,7 +36,7 @@ it is for admins.
 | **People** | **People and invitations**, and **Teams**: see [Invite your people](invite-people.md) and [Teams](teams.md) |
 | **Agents** | Every agent, and each one's page: see [Create an agent](../agents/create-an-agent.md) |
 | **Models and billing** | **Providers**, **Models**, **Billing profiles** and **Usage**: see [Providers](../your-tools/providers.md), [Models](../your-tools/models.md) and [Billing profiles and usage](../your-tools/billing-and-usage.md) |
-| **Settings** | **General** (the sign-in page, below, and uploaded files), **GitHub**, **Automation**, **Runs**, **Memory**, **Features** and **Tool risk rules**: see [Try a feature in beta](features.md) |
+| **Settings** | **General** (the sign-in page, below, uploaded files, and **Features**: see [Try a feature in beta](features.md)), **GitHub**, **Automation**, **Runs**, **Memory**, **Library and skills** and **Tool risk rules** |
 | **Where work runs** | **Sites**, the Execution Sites and how each is doing; **Sites for projects**, which sites new projects can be placed on; and **Infrastructure**: HQ itself, its sites and storage |
 
 An **Execution Site** is a machine that runs agents: see [Add, move or remove a site](../running-agenthix/add-a-site.md).
