@@ -1,20 +1,16 @@
 /**
  * The library's packages as operations (every screen reviewed spec §3,
  * Library): every item listed with its source, version and publisher; Export
- * and Import for each kind. Everyone in the organisation reads the library;
- * exporting and importing are its admins', as an agent's export and import are.
+ * for each kind. Everyone in the organisation reads the library; exporting is its admins', as an agent's export is.
+ * Packages come in through Add (`assets/`), which checks and confirms each one.
  */
 import { HttpError, prisma } from 'wasp/server'
 import { AGENTHIX_PUBLISHER } from '@agenthix/core'
 import { requireRole } from '../../server/identity/requireRole'
-import { listBoardTemplates, TemplateValidationError, type BoardTemplateSummary } from '../boardTemplateService'
+import { listBoardTemplates, type BoardTemplateSummary } from '../boardTemplateService'
 import { listAgentTemplates, type AgentTemplateSummary } from '../agentTemplateService'
 import { listTeamTemplates, type TeamTemplateSummary } from '../workforceTemplateService'
 import { exportLibraryPackage, LibraryItemNotFoundError } from './exportPackage'
-import { importLibraryPackage, PackageImportError, type ImportedItem } from './importPackage'
-import { PackageZipError } from './packageZip'
-import { personActor } from '../../assets/policyActors'
-import { asHttp } from '../../assets/operations'
 import { PACKAGE_KINDS, BUILT_IN_PUBLISHER, type LibrarySource, type PackageKind } from './packageManifest'
 import { listOrgSkills, listShelfSkills } from '../../agents/skillsLibraryService'
 
@@ -87,20 +83,6 @@ export const exportLibraryItem = async (
     return { base64: buffer.toString('base64'), filename }
   } catch (err) {
     if (err instanceof LibraryItemNotFoundError) throw new HttpError(404, err.message)
-    throw err
-  }
-}
-
-/** The package's size is bounded by the archive checks (`packageZip.ts`), not by trusting the upload. */
-export const importLibraryItem = async ({ base64 }: { base64: string }, context: Ctx): Promise<ImportedItem> => {
-  await requireRole(context, 'ADMIN', 'Importing into the library')
-  if (typeof base64 !== 'string' || base64 === '') throw new HttpError(400, 'Choose a package to import')
-  const actor = await personActor(context.user!.id, prisma)
-  try {
-    return await asHttp(() => importLibraryPackage(Buffer.from(base64, 'base64'), actor))
-  } catch (err) {
-    if (err instanceof PackageImportError) throw new HttpError(err.status, err.message)
-    if (err instanceof PackageZipError || err instanceof TemplateValidationError) throw new HttpError(400, err.message)
     throw err
   }
 }

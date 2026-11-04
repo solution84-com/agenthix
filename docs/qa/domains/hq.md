@@ -107,7 +107,7 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 
 ### 10. Agent & workforce templates
 - **Files:** `src/library/agentTemplateService.ts`, `workforceTemplateService.ts`, `workforceTemplateTypes.ts`, `systemTemplates.ts`; template ops in `src/library/actions.ts`/`queries.ts`; `src/library/pages/`, `src/library/components/`
-- **Ops:** getAgentTemplates, applyAgentTemplate, getWorkforceTemplates, getWorkforceTemplate, applyWorkforceTemplate, confirmWorkforceTemplate, saveWorkforceDraft, getExistingAgentHandles, getWorkforceReviewTask, getLibrary, exportLibraryItem, importLibraryItem
+- **Ops:** getAgentTemplates, applyAgentTemplate, getWorkforceTemplates, getWorkforceTemplate, applyWorkforceTemplate, confirmWorkforceTemplate, saveWorkforceDraft, getExistingAgentHandles, getWorkforceReviewTask, getLibrary, exportLibraryItem
 
 ### 11. Sessions & Chat
 - **Files:** `src/sessions/actions.ts` (session lifecycle), `src/sessions/queries.ts`, `src/sessions/sessionEntitlement.ts`, `src/sessions/runActions.ts` (stopTaskSession); `src/sessions/pages/`; `src/voice/assemblyAiTokenAction.ts`; `src/chat/` and `src/places/` (a place's conversations, and its sections in the left panel); `src/sessions/conversationActions.ts`, `conversationPopup.ts`, `conversationRead.ts`, `conversationRecord.ts`, `closedSession.ts`, `danglingSessionReconciler.ts`, `sessionProject.ts`, `sessionSender.ts`, `sessionLocationDisplay.ts`, `siteReadSilence.ts`, `siteSessionTitle.ts`, `taskSessionWire.ts`, `transcriptAuthors.ts`; `src/shared/components/ChatPanel/`, `src/shared/closedConversation.ts`; `src/assets/conversation/` (the skill a conversation used and its panel)

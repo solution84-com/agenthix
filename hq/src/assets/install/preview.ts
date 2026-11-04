@@ -7,7 +7,7 @@
 import { ASSET_MANIFEST_FORMAT, UNSIGNED_PUBLISHER, formatAssetIdentity, signedStatement } from '@agenthix/core'
 import type { Db } from '../../packages/packageStore'
 import { fingerprintOf } from '../content'
-import { assertMay, type Actor } from '../policy'
+import { assertMay, may, type Actor } from '../policy'
 import { publisherNameProblem, suggestedPublisherName } from '../publisherNames'
 import { canonicalSigner, describeSigner, trustedPublisherRecord } from '../signing/signer'
 import type { SignatureVerifier, TrustedPublisherRecord, VerifyOutcome } from '../signing/types'
@@ -74,8 +74,9 @@ async function orgSettings(db: Db): Promise<OrgSettings> {
 
 export async function previewInstall(arrival: Arrival, actor: Actor, deps: PipelineDeps): Promise<InstallPreview> {
   const org = await orgSettings(deps.db)
-  assertMay(actor, arrival.source === 'image' ? 'install' : 'installFromOutside', { level: 'organisation', outsideInstallers: org?.outsideInstallers ?? 'ADMINS' })
-  return planArrival(arrival, deps, org)
+  const target = { level: 'organisation', outsideInstallers: org?.outsideInstallers ?? 'ADMINS' } as const
+  assertMay(actor, arrival.source === 'image' ? 'install' : 'installFromOutside', target)
+  return { ...(await planArrival(arrival, deps, org)), mayTrust: may(actor, 'trust', target) }
 }
 
 /**

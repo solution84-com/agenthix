@@ -101,7 +101,6 @@ function checkSkillContents(contents: PackageContents): void {
   if (skillHasTooManyEntries(paths)) throw new PackageVerificationError(`A skill may hold at most ${SKILL_TREE_MAX_ENTRIES} files and folders, its own included`)
   if (skillIsTooDeep(paths)) throw new PackageVerificationError(`A skill's folders may be at most ${SKILL_TREE_MAX_DEPTH} deep`)
   if (!paths.includes('SKILL.md')) throw new PackageVerificationError('A skill package has no SKILL.md')
-  if (checkAssetFileList(paths).length > 0) throw new PackageVerificationError('A skill package names two files one disk would store as one')
 }
 
 export async function storeVerifiedPackage(expected: PackageRef, body: Buffer): Promise<void> {
@@ -141,6 +140,7 @@ export async function storeVerifiedPackage(expected: PackageRef, body: Buffer): 
   }
   if (Object.keys(data).length !== decoded.size) throw new PackageVerificationError('Package transfer carries data for files it does not list')
   if (sha256(packageDigestInput(contents)) !== ref.digest) throw new PackageVerificationError('Package digest does not match its contents')
+  if (checkAssetFileList(contents.files.map(f => f.path)).length > 0) throw new PackageVerificationError('A package names two files one disk would store as one')
   if (ref.kind === 'skill') checkSkillContents(contents)
 
   if (await hasPackage(ref)) return

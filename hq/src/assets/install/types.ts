@@ -39,6 +39,8 @@ export type InstallPreview = {
   /** Set when it can't be installed, whatever is confirmed. */
   refusal: string | null
   needs: { unsignedRead: boolean; publisherChoice: boolean }
+  /** Whether the person looking may trust a new signer; false means only *Install this once* is theirs to choose. */
+  mayTrust?: boolean
 }
 
 export type NewPublisherChoice = {

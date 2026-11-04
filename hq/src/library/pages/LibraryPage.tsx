@@ -27,7 +27,7 @@ export function LibraryPage() {
   const [params, setParams] = useSearchParams()
   const { data, error, refetch } = useQuery(getLibraryAssets)
   const remove = useAction(removeLibraryAsset)
-  const transfer = useLibraryTransfer(() => void refetch())
+  const transfer = useLibraryTransfer()
   const [search, setSearch] = useState('')
   const [addAgentId, setAddAgentId] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ text: string; failed: boolean } | null>(null)

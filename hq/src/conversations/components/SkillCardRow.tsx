@@ -6,6 +6,7 @@ import {
 import type { SkillCardRef } from '../../assets/proposals/types'
 import { libraryAssetPath } from '../../library/components/libraryRoutes'
 import { actionErrorText } from '../hooks/threadState'
+import { sentAsProposed } from './sentAsProposed'
 import { SkillDraftCard, SkillProposalCard } from './SkillProposalCard'
 
 /** The card `propose_skill` left in the thread, read live: a proposal and its review, or a draft change and Publish. */
@@ -42,7 +43,8 @@ function ProposalRow({ proposalId }: { proposalId: string }) {
     }
     void refetch()
   }
-  const files = (skillMd: string) => data.files.map((f) => (f.path === 'SKILL.md' ? { path: f.path, text: skillMd } : { path: f.path, text: f.text ?? '' }))
+  // Only SKILL.md was edited here; every other file goes back as the bytes it was proposed with, text or not.
+  const files = (skillMd: string) => data.files.map((f) => (f.path === 'SKILL.md' ? { path: f.path, text: skillMd } : sentAsProposed(f)))
   return (
     <SkillProposalCard
       proposal={data}

@@ -31,7 +31,13 @@ export function OnPurposeDialog({ page, onClose, onDone }: { page: AssetPageView
     setBusy(true)
     setFailed(null)
     try {
-      setShown(await preview(from))
+      const looked = await preview(from)
+      if (looked.main.existingId !== null && looked.main.existingId !== page.assetId) {
+        setFailed(`That package is ${looked.main.identity}, not ${page.identity}. Choose a package of ${page.identity}. Nothing was changed.`)
+        setBusy(false)
+        return
+      }
+      setShown(looked)
       setSource(from)
     } catch (err) {
       setFailed(messageOf(err))
@@ -43,7 +49,7 @@ export function OnPurposeDialog({ page, onClose, onDone }: { page: AssetPageView
     setBusy(true)
     setFailed(null)
     try {
-      const made = await install({ ...source, confirm: { fingerprint: shown.fingerprint, reason, unsignedRead: read, withdrawnAccepted: accepted } } as Parameters<typeof install>[0])
+      const made = await install({ ...source, confirm: { assetId: page.assetId, fingerprint: shown.fingerprint, reason, unsignedRead: read, withdrawnAccepted: accepted } } as Parameters<typeof install>[0])
       onDone(made.message)
     } catch (err) {
       setFailed(messageOf(err))

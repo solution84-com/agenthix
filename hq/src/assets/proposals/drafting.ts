@@ -14,7 +14,7 @@ import { DraftError } from '../lifecycle/drafts'
 import { authorOf } from '../lifecycle/draftStore'
 import { assertLibrary } from '../lifecycle/records'
 import { assertPlace, type PlaceContext } from '../places/place'
-import { checkedSkill } from '../places/placeDrafts'
+import { checkedPlaceSkill, checkedSkill } from '../places/placeDrafts'
 
 const NOTHING = 'Nothing was changed.'
 const TRANSACTION = { timeout: 30_000, maxWait: 10_000 }
@@ -47,7 +47,7 @@ export async function newPlaceDraft(
   db: PrismaClient, actor: Actor, ctx: PlaceContext, name: string, files: PackageFile[], conversationId: string | null,
 ): Promise<{ placeSkillId: string; path: string; revision: number }> {
   assertPlace(actor, 'editDraft', ctx)
-  checkedSkill(name, files)
+  checkedPlaceSkill(name, files)
   const path = `${PLACE_SKILLS_ROOT}/${name}`
   const taken = await db.placeSkill.findUnique({ where: { placeType_placeId_path: { ...ctx.place, path } } })
   if (taken && (!taken.goneAt || (await db.draft.count({ where: { placeSkillId: taken.id } })) > 0)) {

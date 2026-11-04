@@ -53,6 +53,14 @@ describe("a skill's content in the package cache @security-L4 @SC-1604", () => {
     }
   })
 
+  it('refuses names one disk would store as one in every kind of package', async () => {
+    for (const kind of ['agent', 'org', 'platform'] as const) {
+      const { ref, body } = makeTransfer(kind, 'v1', { 'Notes.md': 'a', 'notes.md': 'b' })
+      await expect(storeVerifiedPackage(ref, body)).rejects.toBeInstanceOf(PackageVerificationError)
+      expect(await hasPackage(ref)).toBe(false)
+    }
+  })
+
   it('leaves other kinds of package as they were', async () => {
     const { ref, body } = makeTransfer('agent', 'a1', { 'instructions.md': 'x' })
     await storeVerifiedPackage(ref, body)

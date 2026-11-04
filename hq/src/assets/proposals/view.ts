@@ -22,7 +22,8 @@ import { placeOfProposal, reviewersOf } from './target'
 
 const NOTHING_HERE = 'That isn\'t there, or isn\'t yours to see.'
 
-export type SkillFileView = { path: string; text: string | null }
+/** `text` is null for a file that is not valid text; `base64` is always the file's bytes, so an edit can send them back as they are. */
+export type SkillFileView = { path: string; text: string | null; base64?: string }
 
 export type SkillProposalView = {
   id: string
@@ -83,7 +84,7 @@ export async function viewProposal(db: PrismaClient, viewerId: string, proposalI
     proposedBy: await agentName(db, p.agentId), proposedFor: await personName(db, p.forUserId),
     reviewers: await reviewersOf(db, p), reviewedBy: await personName(db, p.reviewedById), reviewNote: p.reviewNote,
     reviewedAt: p.reviewedAt?.toISOString() ?? null, createdAt: p.createdAt.toISOString(),
-    files: files.map(f => ({ path: f.path, text: asText(f.content) })),
+    files: files.map(f => ({ path: f.path, text: asText(f.content), base64: f.content.toString('base64') })),
     changes: current ? fileChanges(current, files) : null,
     mayReview: open && mayReview,
     mayAim: open && p.forUserId === viewerId && !edits,

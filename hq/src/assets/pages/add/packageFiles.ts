@@ -1,10 +1,10 @@
 /**
  * "Read it first" (board U4, D26): the files of a package that has not been installed, as text, so a person can read
  * what they are about to give to agents. Read through the same sources as installing, and only for a person who may
- * install. Text only and bounded; the page draws it as text, never as a page.
+ * install it from where it comes. Text only and bounded; the page draws it as text, never as a page.
  */
 import { HttpError, prisma } from 'wasp/server'
-import { may } from '../../policy'
+import { may, type AssetAction } from '../../policy'
 import { organisationTarget, personActor } from '../../policyActors'
 import { NotOnShelfError, shelfArrival } from '../../sources/imageShelf'
 import { sameReadError, linkArrival } from '../../sources/link'
@@ -40,12 +40,17 @@ async function arrivalOf(args: From): Promise<Arrival> {
   throw new HttpError(400, 'Say where the package comes from: Agenthix, an upload or a link. Nothing was changed.')
 }
 
+/** Reading a package needs the permission installing it would: from Agenthix's shelf, or from outside the Library. */
+export const readAction = (args: Pick<From, 'from'> | undefined): AssetAction => (args?.from === 'shelf' ? 'install' : 'installFromOutside')
+
 export const getPackageFiles = async (args: From, context: Ctx): Promise<PackageFilesView> => {
   if (!context.user) throw new HttpError(401)
   const actor = await personActor(context.user.id, prisma)
   const target = await organisationTarget(prisma)
-  if (!may(actor, 'install', target) && !may(actor, 'installFromOutside', target)) {
-    throw new HttpError(403, 'Reading a package before installing it is for the people who may install. Nothing was changed.')
+  if (!may(actor, readAction(args), target)) {
+    throw new HttpError(403, args?.from === 'shelf'
+      ? 'Reading a package before installing it is for the people who may install. Nothing was changed.'
+      : "Reading a package from a link or an upload before installing it is for the people the organisation lets install from outside Agenthix. Nothing was changed.")
   }
   try {
     return packageFilesView(await arrivalOf(args))

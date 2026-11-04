@@ -12,7 +12,7 @@ import { prisma } from 'wasp/server'
 import { Prisma } from '@prisma/client'
 import {
   PACKAGE_FORMAT_VERSION, PACKAGE_MAX_BYTES, MAX_SKILL_SLUG_LENGTH,
-  isValidPackagePath, namespacedSkillName, packageDigestInput,
+  checkAssetFileList, isValidPackagePath, namespacedSkillName, packageDigestInput,
   type PackageContents, type PackageKind, type PackageRef, type PackageTransfer,
 } from '@agenthix/core'
 
@@ -82,7 +82,7 @@ export function assertSkillSlug(slug: string): void {
 }
 
 /** Every check a site would otherwise fail on at store or staging time, refused here at write. */
-function validateFiles(files: PackageFileInput[]): void {
+export function validateFiles(files: PackageFileInput[]): void {
   const seen = new Set<string>()
   let total = 0
   for (const f of files) {
@@ -101,6 +101,11 @@ function validateFiles(files: PackageFileInput[]): void {
         throw new PackageContentError(`Package file ${ancestor} is also a directory holding ${f.path}`)
       }
     }
+  }
+  // Paths one disk would store as one (case, normalisation, a file that is also a folder) are the same check a skill passes.
+  const problems = checkAssetFileList(files.map(f => f.path))
+  if (problems.length) {
+    throw new PackageContentError(`Package files can't be stored as listed: ${problems.slice(0, 3).map(p => `${p.problem} ${JSON.stringify(p.path)}`).join(', ')}`)
   }
   if (total > PACKAGE_MAX_BYTES) {
     throw new PackageContentError(`Package content is ${total} bytes; the limit is ${PACKAGE_MAX_BYTES}`)

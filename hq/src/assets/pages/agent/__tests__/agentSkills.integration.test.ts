@@ -14,7 +14,9 @@ vi.mock('wasp/server', async () => {
 })
 
 import { installAsset, previewAssetInstall } from '../../../operations'
-import { addAssetToAgents, setAssetEveryAgent } from '../../../lifecycle/operations'
+import {
+  addAssetToAgents, editLibraryAsset, publishAssetDraft, saveAssetDraft, setAssetEveryAgent, switchToOriginalAsset,
+} from '../../../lifecycle/operations'
 import { contextWithRole, useTempRoots, type TempRoots } from '../../../../agents/__tests__/definitionFixtures'
 import { createAgent, createProject, createUserWithRole, joinProjectAs } from '../../../../test/factories'
 import { getAgentSkillSet } from '../operations'
@@ -50,6 +52,20 @@ describe("an agent's Skills @board-A1 @SC-1654", () => {
     expect(view.thisAgent.map(s => s.identity)).toEqual(['unsigned/seo-research'])
     expect(view.addable.map(s => s.identity)).toEqual(['unsigned/qa-bug-reporting'])
     expect(view.listed.map(s => s.name)).toEqual(expect.arrayContaining(['brand-voice', 'seo-research']))
+  })
+
+  it("does not offer the organisation's copy of a skill whose original is in use #101", async () => {
+    const { ctx } = await contextWithRole('ADMIN')
+    const agent = await createAgent({ name: 'Ada' })
+    const original = await install('qa-bug-reporting', ctx)
+    const { assetId: copy } = await editLibraryAsset({ assetId: original }, ctx)
+    const edited = '---\nname: qa-bug-reporting\ndescription: Does it our way. Use when asked.\n---\n\n# Ours\n'
+    await saveAssetDraft({ assetId: copy, files: [{ path: 'SKILL.md', text: edited }], revision: null }, ctx)
+    await publishAssetDraft({ assetId: copy, revision: 1, note: 'Our way' }, ctx)
+    await switchToOriginalAsset({ assetId: copy }, ctx)
+
+    const view = await getAgentSkillSet({ agentId: agent.id }, ctx)
+    expect(view.addable.map(s => s.identity)).toEqual(['unsigned/qa-bug-reporting'])
   })
 
   it('shows a member the same list read only, with nothing to add', async () => {

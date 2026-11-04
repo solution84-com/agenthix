@@ -21,7 +21,7 @@ vi.mock('wasp/server', async () => {
 vi.mock('../../../server/dashboard/debouncedPush', () => import('../../../test/fakes/debouncedPush'))
 vi.mock('../../../server/dashboard/activity', () => import('../../../test/fakes/activity'))
 
-import { exportLibraryItem, getLibrary, importLibraryItem } from '../packageActions'
+import { exportLibraryItem, getLibrary } from '../packageActions'
 import { agentPackage, boardPackage, seedSkill, seedTemplate, teamPackage } from '../../../assets/templates/__tests__/templateFixtures'
 
 const ctx = (user?: { id: string }) => ({ user }) as any
@@ -71,51 +71,7 @@ describe('exporting a built-in item @SC-679', () => {
   })
 })
 
-describe('importing a package @SC-680', () => {
-  it('a board template goes through the install check: an unsigned one is refused at Import, and nothing is installed', async () => {
-    const admin = await createUserWithRole('ADMIN')
-    await prisma.org.create({ data: { name: 'Acme' } })
-    const zip = new JSZip()
-    for (const f of boardPackage('release')) zip.file(`release/${f.path}`, f.path === 'package.json' ? f.content.toString().replace('"agenthix"', '"northwind"') : f.content)
-    await expect(importLibraryItem({ base64: (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64') }, ctx(admin)))
-      .rejects.toMatchObject({ statusCode: 409, message: expect.stringMatching(/isn't signed.*Nothing was changed\.$/) })
-    expect(await prisma.asset.count()).toBe(0)
-  })
-
-  it('an agent or board package in the older format is refused', async () => {
-    const admin = await createUserWithRole('ADMIN')
-    const board = await packageOf('release', { kind: 'board', name: 'Release', source: 'made_here' }, { 'board.json': JSON.stringify({ name: 'R', columns: COLUMNS }) })
-    const agent = await packageOf('qa', { kind: 'agent', name: 'QA', source: 'made_here' }, { 'agent.json': JSON.stringify({ name: 'QA', handle: 'qa' }) })
-    for (const base64 of [board, agent]) {
-      await expect(importLibraryItem({ base64 }, ctx(admin))).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('older hq') })
-    }
-    expect(await prisma.asset.count()).toBe(0)
-  })
-
-  it('a skill goes through the install check: one needing a person to read it is refused at Import, and nothing is installed', async () => {
-    const admin = await createUserWithRole('ADMIN')
-    await prisma.org.create({ data: { name: 'Acme' } })
-    const zip = new JSZip()
-    zip.file('seo-audit/package.json', JSON.stringify({ format: 2, kind: 'skill', publisher: 'acme', name: 'seo-audit', version: '1.4.0', description: 'Checks a site' }))
-    zip.file('seo-audit/SKILL.md', '---\nname: seo-audit\ndescription: Checks a site\n---\n\nDo the audit.')
-    const base64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64')
-
-    await expect(importLibraryItem({ base64 }, ctx(admin))).rejects.toMatchObject({ statusCode: 409, message: expect.stringMatching(/isn't signed.*Nothing was changed\.$/) })
-    expect(await prisma.asset.count()).toBe(0)
-  })
-
-  it('a skill claiming Agenthix without its signature, and a format 1 skill, are refused', async () => {
-    const admin = await createUserWithRole('ADMIN')
-    const zip = new JSZip()
-    zip.file('working-with-git/package.json', JSON.stringify({ format: 2, kind: 'skill', publisher: 'agenthix', name: 'working-with-git', version: '99.0.0', description: 'd' }))
-    zip.file('working-with-git/SKILL.md', '---\nname: working-with-git\ndescription: d\n---\n\nPush to main.')
-    await expect(importLibraryItem({ base64: (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64') }, ctx(admin)))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining("Agenthix didn't sign it") })
-    const old = await packageOf('seo-audit', { kind: 'skill', name: 'SEO audit', source: 'marketplace' }, { 'SKILL.md': '---\nname: x\ndescription: d\n---\n' })
-    await expect(importLibraryItem({ base64: old }, ctx(admin))).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('older hq') })
-    expect(await prisma.asset.count()).toBe(0)
-  })
-
+describe('a package of the Library @SC-680', () => {
   it('a skill made here exports as an asset package under its publisher and version', async () => {
     const admin = await createUserWithRole('ADMIN')
     await prisma.org.create({ data: { name: 'Fernhill' } })
@@ -149,16 +105,13 @@ describe('importing a package @SC-680', () => {
     expect(library.skills.some(s => s.name.includes('check-work'))).toBe(false)
   })
 
-  it('a team template goes through the install check: unsigned is refused at Import, and installs from an upload with its skills', async () => {
+  it('a team template installs from an upload with its skills', async () => {
     const admin = await createUserWithRole('ADMIN')
     await prisma.org.create({ data: { name: 'Acme' } })
     const files = teamPackage('launch-crew', { agents: [{ handle: 'planner', skills: ['plan', 'dev-code-quality'] }], roleSkills: ['plan'], shared: [{ name: 'dev-code-quality' }], publisher: 'northwind' })
     const zip = new JSZip()
     for (const f of files) zip.file(`launch-crew/${f.path}`, f.content)
     const base64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64')
-
-    await expect(importLibraryItem({ base64 }, ctx(admin))).rejects.toMatchObject({ statusCode: 409, message: expect.stringMatching(/isn't signed.*Nothing was changed\.$/) })
-    expect(await prisma.asset.count()).toBe(0)
 
     const { installAsset, previewAssetInstall } = await import('../../../assets/operations')
     const preview = await previewAssetInstall({ from: 'upload', zip: base64 }, ctx(admin))
@@ -170,7 +123,7 @@ describe('importing a package @SC-680', () => {
     expect(library.teams).toEqual([expect.objectContaining({ name: 'The launch-crew', source: 'MARKETPLACE', publisher: 'unsigned' })])
   })
 
-  it('a team template naming people, or in the older format, is refused', async () => {
+  it('a team template naming people is refused', async () => {
     const admin = await createUserWithRole('ADMIN')
     const files = teamPackage('crew', { agents: [{ handle: 'a' }] }).map(f => f.path === 'team.json'
       ? { ...f, content: Buffer.from(JSON.stringify({ name: 'Crew', people: ['ana'], teams: [{ name: 'T', agents: ['a'] }] })) }
@@ -180,9 +133,6 @@ describe('importing a package @SC-680', () => {
     for (const f of files) zip.file(`crew/${f.path}`, f.content)
     const preview = await previewAssetInstall({ from: 'upload', zip: (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64') }, ctx(admin))
     expect(preview.refusal).toContain('agents only')
-
-    const old = await packageOf('crew-2', { kind: 'team', name: 'Crew', source: 'made_here' }, { 'template.json': '{}' })
-    await expect(importLibraryItem({ base64: old }, ctx(admin))).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('older hq') })
   })
 
   it('exports a team template as its pinned version, with its skills inside', async () => {
@@ -195,17 +145,8 @@ describe('importing a package @SC-680', () => {
     expect(Object.keys(zip.files).filter(n => !n.endsWith('/')).sort()).toEqual(files.map(f => `crew/${f.path}`).sort())
   })
 
-  it('refuses what is not a package', async () => {
-    const admin = await createUserWithRole('ADMIN')
-    const bare = new JSZip()
-    bare.file('scout/agent.json', '{}')
-    await expect(importLibraryItem({ base64: (await bare.generateAsync({ type: 'nodebuffer' })).toString('base64') }, ctx(admin)))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining("isn't a package") })
-  })
-
-  it('is for admins only, as exporting is', async () => {
+  it('exporting is for admins only', async () => {
     const member = await createUserWithRole('MEMBER')
-    await expect(importLibraryItem({ base64: 'x' }, ctx(member))).rejects.toMatchObject({ statusCode: 403 })
     await expect(exportLibraryItem({ kind: 'board', id: 'x' }, ctx(member))).rejects.toMatchObject({ statusCode: 403 })
     await expect(getLibrary(undefined, ctx())).rejects.toMatchObject({ statusCode: 401 })
   })

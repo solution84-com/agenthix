@@ -23,6 +23,8 @@ const REASON_MAX = 1000
 const SOURCE_ROW = { image: 'BUILT_IN', upload: 'UPLOAD', url: 'URL' } as const
 
 export type OnPurposeConfirmation = {
+  /** The skill whose page the person is on; a package of any other skill is refused. */
+  assetId?: string
   fingerprint: string
   /** Why this version, for the history (D30). */
   reason: string
@@ -30,10 +32,13 @@ export type OnPurposeConfirmation = {
   withdrawnAccepted?: boolean
 }
 
-function refusalOf(preview: InstallPreview, confirm: OnPurposeConfirmation): string | null {
+export function refusalOf(preview: InstallPreview, confirm: OnPurposeConfirmation): string | null {
   if (preview.refusal) return preview.refusal
   if (confirm.fingerprint !== preview.fingerprint) return `This package changed since it was shown. Look at it again. ${NOTHING}`
   if (preview.kind !== 'skill') return `Only skills can be installed this way yet. ${NOTHING}`
+  if (confirm.assetId !== undefined && preview.main.existingId !== null && preview.main.existingId !== confirm.assetId) {
+    return `This package is ${preview.main.identity}, not the skill whose page you are on. Open ${preview.main.identity}'s page to move its version. ${NOTHING}`
+  }
   if (preview.needs.publisherChoice) {
     return `Its publisher isn't trusted here. Trust it in the organisation's settings, or install it from Add, before choosing a version. ${NOTHING}`
   }

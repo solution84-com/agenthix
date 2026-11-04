@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bumpOf, draftFiles, publishNote, publishRefusal, saveRefusal, starterFiles, DraftError } from '../drafts'
+import { bumpOf, draftFiles, publishNote, publishRefusal, saveRefusal, starterFiles, whenNoOneElseWasFirst, DraftError } from '../drafts'
 
 describe('the files a save sends @SC-1624', () => {
   it('reads text and base64 files', () => {
@@ -9,6 +9,11 @@ describe('the files a save sends @SC-1624', () => {
 
   it("refuses package.json: the editor edits the asset, never its manifest, which is hq's", () => {
     expect(() => draftFiles([{ path: 'SKILL.md', text: 'x' }, { path: 'package.json', text: '{}' }])).toThrow(/manifest/)
+  })
+
+  it("keeps a place skill's own package.json, which is the skill's there and not hq's manifest", () => {
+    const files = draftFiles([{ path: 'SKILL.md', text: 'x' }, { path: 'package.json', text: '{"name":"mine"}' }], { manifestAllowed: true })
+    expect(files.map(f => f.path)).toEqual(['SKILL.md', 'package.json'])
   })
 
   it('refuses what is not a list of files, a file with no content, and both kinds of content at once', () => {
@@ -70,5 +75,20 @@ describe('a new skill @SC-1624', () => {
 
   it('can start with scripts/ and references/', () => {
     expect(starterFiles('x', 'd', 'scripts').map(f => f.path)).toEqual(['SKILL.md', 'references/README.md', 'scripts/README.md'])
+  })
+})
+
+describe('two writers making the same row at once @SC-1624', () => {
+  const clash = () => Object.assign(new Error('Unique constraint failed'), { code: 'P2002' })
+
+  it('answers the second with the refusal, as a 409, not the database error', async () => {
+    await expect(whenNoOneElseWasFirst(() => Promise.reject(clash()), 'Someone saved this draft at the same moment.'))
+      .rejects.toMatchObject({ status: 409, message: 'Someone saved this draft at the same moment.' })
+  })
+
+  it('lets any other error and any result through', async () => {
+    await expect(whenNoOneElseWasFirst(() => Promise.resolve(3), 'x')).resolves.toBe(3)
+    const other = new Error('connection lost')
+    await expect(whenNoOneElseWasFirst(() => Promise.reject(other), 'x')).rejects.toBe(other)
   })
 })

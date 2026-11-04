@@ -10,7 +10,7 @@ import type { PrismaClient } from '@prisma/client'
 import { agentSkillsRoot, ASSET_MANIFEST_FILE, formatAssetIdentity, PLACE_SKILLS_ROOT } from '@agenthix/core'
 import { readContent } from '../content'
 import type { Actor } from '../policy'
-import { LifecycleError } from '../lifecycle/errors'
+import { isUniqueViolation, LifecycleError } from '../lifecycle/errors'
 import { byOf } from '../lifecycle/records'
 import { assertNotWorkspace, assertPlace, folderOf, placeOfProject, placeOfSkill } from './place'
 import { assertFolderAsSeen, publishFiles } from './placeVersions'
@@ -31,6 +31,9 @@ export async function addToPlace(db: PrismaClient, actor: Actor, input: AddInput
   if (!asset || asset.removedAt || asset.kind !== 'SKILL' || !asset.currentVersion) {
     throw new LifecycleError(`That skill isn't in the Library. ${NOTHING}`, 404)
   }
+  // What Add to this place offers is held here too: a built-in skill, and a skill set aside for the organisation's own copy, are not added.
+  if (asset.builtIn) throw new LifecycleError(`${formatAssetIdentity(asset)} is built into hq and is already available to every place. ${NOTHING}`, 409)
+  if (asset.setAsideById) throw new LifecycleError(`${formatAssetIdentity(asset)} is set aside for the organisation's own copy of it. Add the copy instead. ${NOTHING}`, 409)
   const agentId = typeof input.agentId === 'string' && input.agentId !== '' ? input.agentId : null
   const root = agentId ? agentSkillsRoot(agentId) : PLACE_SKILLS_ROOT
   if (!root || (agentId && !(await db.agent.findUnique({ where: { id: agentId }, select: { id: true } })))) {
@@ -42,13 +45,19 @@ export async function addToPlace(db: PrismaClient, actor: Actor, input: AddInput
   const identity = formatAssetIdentity(asset)
   const version = asset.currentVersion.version
   const files = (await readContent(asset.currentVersion.digest, db)).filter(f => f.path !== ASSET_MANIFEST_FILE)
-  return db.$transaction(async tx => {
-    const skill = taken ?? await tx.placeSkill.create({ data: { ...ctx.place, path, group: agentId ? 'AGENT' : 'PLACE', agentId } })
-    const published = await publishFiles(
-      tx, ctx, skill, files, { publishedById: by.byId, requestedByAgentId: null }, `Added from ${identity} ${version}`, { copied: { identity, version } },
-    )
-    return { placeSkillId: skill.id, path, number: published.number }
-  }, TRANSACTION)
+  try {
+    return await db.$transaction(async tx => {
+      const skill = taken ?? await tx.placeSkill.create({ data: { ...ctx.place, path, group: agentId ? 'AGENT' : 'PLACE', agentId } })
+      const published = await publishFiles(
+        tx, ctx, skill, files, { publishedById: by.byId, requestedByAgentId: null }, `Added from ${identity} ${version}`, { copied: { identity, version } },
+      )
+      return { placeSkillId: skill.id, path, number: published.number }
+    }, TRANSACTION)
+  } catch (err) {
+    // Someone added it at the same moment.
+    if (isUniqueViolation(err)) throw new LifecycleError(`This place already has a skill named ${asset.name} there. ${NOTHING}`, 409)
+    throw err
+  }
 }
 
 /**

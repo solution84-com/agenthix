@@ -14,7 +14,7 @@ import type { Db } from '../../packages/packageStore'
 import { readContent, storeContent } from '../content'
 import { organisationPublisher } from '../organisationPublisher'
 import type { Actor } from '../policy'
-import { LifecycleError } from './errors'
+import { isUniqueViolation, LifecycleError } from './errors'
 import { copyLines, heldLines, ProvenanceError, type HeldLine } from './provenance'
 import { assertLibrary, byOf, identityOf, librarySkill, type LibrarySkill } from './records'
 import { bySemVerDescending, fileChanges, type FileChanges } from './versions'
@@ -23,7 +23,7 @@ import { pastMark } from './offers'
 const NOTHING = 'Nothing was changed.'
 const TRANSACTION = { timeout: 30_000, maxWait: 10_000 }
 
-export type Origin = { asset: { id: string; publisher: string; name: string; setAsideById: string | null }; line: HeldLine }
+export type Origin = { asset: { id: string; publisher: string; name: string; setAsideById: string | null; removedAt: Date | null }; line: HeldLine }
 
 /** The original a copy was made from, by the line hq wrote when it made the copy; null for anything else. */
 export async function originOf(db: Db, copy: { id: string; kind: LibrarySkill['kind'] }): Promise<Origin | null> {
@@ -33,7 +33,7 @@ export async function originOf(db: Db, copy: { id: string; kind: LibrarySkill['k
   if (!line || !identity) return null
   const asset = await db.asset.findUnique({
     where: { kind_publisher_name: { kind: copy.kind, ...identity } },
-    select: { id: true, publisher: true, name: true, setAsideById: true },
+    select: { id: true, publisher: true, name: true, setAsideById: true, removedAt: true },
   })
   return asset ? { asset, line } : null
 }
@@ -54,12 +54,15 @@ export async function editAsset(db: PrismaClient, actor: Actor, input: { assetId
   if (!isAssetName(name)) throw new LifecycleError(`“${String(name).slice(0, 64)}” can't name a skill: use 1 to 64 lowercase letters, digits and single hyphens. ${NOTHING}`)
   const identity = formatAssetIdentity({ publisher, name })
 
-  const existing = await db.asset.findUnique({ where: { kind_publisher_name: { kind: 'SKILL', publisher, name } } })
-  if (existing) {
+  const alreadyThere = async (): Promise<{ assetId: string; identity: string; copied: false } | null> => {
+    const existing = await db.asset.findUnique({ where: { kind_publisher_name: { kind: 'SKILL', publisher, name } } })
+    if (!existing) return null
     const origin = existing.removedAt ? null : await originOf(db, existing)
     if (origin?.asset.id === original.id) return { assetId: existing.id, identity, copied: false }
     throw new LifecycleError(`The Library already has ${identity}. Give the copy another name. ${NOTHING}`, 409)
   }
+  const there = await alreadyThere()
+  if (there) return there
   const pinned = original.currentVersion
   let basedOn: HeldLine[]
   try {
@@ -72,7 +75,7 @@ export async function editAsset(db: PrismaClient, actor: Actor, input: { assetId
     throw err
   }
   const files = (await readContent(pinned.digest, db)).filter(f => f.path !== ASSET_MANIFEST_FILE)
-  return db.$transaction(async tx => {
+  const makeCopy = () => db.$transaction(async tx => {
     const copy = await tx.asset.create({ data: { kind: 'SKILL', publisher, name, suitedTo: original.suitedTo } })
     const version = await tx.assetVersion.create({
       data: {
@@ -84,25 +87,34 @@ export async function editAsset(db: PrismaClient, actor: Actor, input: { assetId
     await tx.assetPinChange.create({ data: { assetId: copy.id, toVersionId: version.id, byId: by.byId, reason: `Copied from ${identityOf(original)}` } })
     return { assetId: copy.id, identity, copied: true }
   }, TRANSACTION)
+  try {
+    return await makeCopy()
+  } catch (err) {
+    // Someone made it at the same moment: the same copy is theirs and ours; another skill under the name is taken.
+    if (!isUniqueViolation(err)) throw err
+    const there = await alreadyThere()
+    if (there) return there
+    throw err
+  }
 }
 
-/** Moves every agent that has `from` onto `to`: every-agent and each grant. */
-export async function moveHolders(tx: Db, from: { id: string; givenToAll: boolean }, toId: string, byId: string): Promise<void> {
+/**
+ * Moves every agent that has `from` onto `to`: every-agent and each grant. Both are read here, in the caller's
+ * transaction, never taken from rows read earlier; a grant is deleted only once it has been moved.
+ */
+export async function moveHolders(tx: Db, from: { id: string }, toId: string, byId: string): Promise<void> {
   const grants = await tx.assetGrant.findMany({ where: { assetId: from.id }, select: { agentId: true } })
   if (grants.length) {
     await tx.assetGrant.createMany({ data: grants.map(g => ({ assetId: toId, agentId: g.agentId, grantedById: byId })), skipDuplicates: true })
-    await tx.assetGrant.deleteMany({ where: { assetId: from.id } })
+    await tx.assetGrant.deleteMany({ where: { assetId: from.id, agentId: { in: grants.map(g => g.agentId) } } })
   }
-  if (from.givenToAll) {
-    await tx.asset.update({ where: { id: toId }, data: { givenToAll: true } })
-    await tx.asset.update({ where: { id: from.id }, data: { givenToAll: false } })
-  }
+  const { count } = await tx.asset.updateMany({ where: { id: from.id, givenToAll: true }, data: { givenToAll: false } })
+  if (count > 0) await tx.asset.update({ where: { id: toId }, data: { givenToAll: true } })
 }
 
 /** The copy takes the original's place; the original stays installed, set aside. */
 export async function takePlace(tx: Db, originId: string, copyId: string, byId: string): Promise<void> {
-  const origin = await tx.asset.findUniqueOrThrow({ where: { id: originId }, select: { id: true, givenToAll: true } })
-  await moveHolders(tx, origin, copyId, byId)
+  await moveHolders(tx, { id: originId }, copyId, byId)
   await tx.asset.update({ where: { id: originId }, data: { setAsideById: copyId } })
 }
 
@@ -119,6 +131,7 @@ export async function switchToOriginal(db: PrismaClient, actor: Actor, copyId: u
   const by = byOf(actor)
   const { copy, origin } = await copyAndOrigin(db, copyId)
   if (origin.asset.setAsideById !== copy.id) throw new LifecycleError(`${origin.line.skill} isn't set aside for this copy. ${NOTHING}`, 409)
+  if (origin.asset.removedAt) throw new LifecycleError(`${origin.line.skill} was removed from the Library, and agents can't use a removed skill. Put it back first, then switch back to it. ${NOTHING}`, 409)
   await db.$transaction(async tx => {
     await moveHolders(tx, copy, origin.asset.id, by.byId)
     await tx.asset.update({ where: { id: origin.asset.id }, data: { setAsideById: null } })
@@ -132,6 +145,10 @@ export async function switchToCopy(db: PrismaClient, actor: Actor, copyId: unkno
   const by = byOf(actor)
   const { copy, origin } = await copyAndOrigin(db, copyId)
   if (origin.asset.setAsideById === copy.id) throw new LifecycleError(`${identityOf(copy)} is already in use instead of ${origin.line.skill}. ${NOTHING}`, 409)
+  // Until it has a published edit, the copy holds only the original's files at the version copied, possibly older than the original in use.
+  if ((await db.assetVersion.count({ where: { assetId: copy.id } })) < 2) {
+    throw new LifecycleError(`${identityOf(copy)} hasn't been published since it was copied, so it would give agents the older files of ${origin.line.skill}. Publish an edit of it first. ${NOTHING}`, 409)
+  }
   await db.$transaction(tx => takePlace(tx, origin.asset.id, copy.id, by.byId), TRANSACTION)
   return { identity: identityOf(copy) }
 }

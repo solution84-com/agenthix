@@ -38,7 +38,7 @@ export function AssetPage() {
   const navigate = useNavigate()
   const { data: page, error, refetch } = useQuery(getAssetPage, { assetId }, { retry: retryUnlessDenied })
   const back = useAction(switchToOriginalAsset)
-  const transfer = useLibraryTransfer(() => undefined)
+  const transfer = useLibraryTransfer()
   const [revision, setRevision] = useState(0)
   const [notice, setNotice] = useState<NoticeText | null>(null)
   const [copying, setCopying] = useState(false)

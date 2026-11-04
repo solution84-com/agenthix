@@ -69,6 +69,9 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
   }
 
   const state = dialogState(shown)
+  // A Library maintainer may install a new signer's package once, but only an administrator may trust the signer.
+  const mayTrust = shown.mayTrust !== false
+  const trusting = mayTrust && choice === 'trust'
   const same = library?.rows.find(r => r.kind === 'skill' && r.identity.split('/').pop() === shown.name && r.identity !== shown.main.identity)
   if (state === 'new-publisher' && same && !newPublisher) {
     return (
@@ -85,7 +88,7 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
       const confirm = {
         fingerprint: shown.fingerprint,
         ...(state === 'unsigned' ? { unsignedRead: read } : {}),
-        ...(state === 'new-publisher' ? { newPublisher: { choice, name: shown.publisher ?? '', displayName: displayName.trim() } } : {}),
+        ...(state === 'new-publisher' ? { newPublisher: { choice: trusting ? 'trust' as const : 'once' as const, name: shown.publisher ?? '', displayName: displayName.trim() } } : {}),
       }
       onInstalled(await install({ ...source, confirm }), shown)
     } catch (err) {
@@ -94,7 +97,7 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
     }
   }
   const nothingNew = !shown.refusal && (shown.main.outcome === 'same' || shown.main.outcome === 'older') && shown.embedded.length === 0
-  const ready = !nothingNew && (state !== 'unsigned' || read) && (state !== 'new-publisher' || displayName.trim().length > 0 || choice === 'once')
+  const ready = !nothingNew && (state !== 'unsigned' || read) && (state !== 'new-publisher' || displayName.trim().length > 0 || !trusting)
   const what = shown.kind === 'skill' ? `${shown.main.identity} · ${shown.version}` : `${shown.main.identity} · ${shown.version} · ${shown.kind} template`
 
   return (
@@ -106,18 +109,19 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
         {state === 'new-publisher' && (
           <>
             <p>Signed by <strong className="text-text-primary">{shown.signedBy}</strong>. You haven't installed anything from them before. {NEW_PUBLISHER_WARNING}</p>
-            {!shown.publisherFixed && (
+            {!shown.publisherFixed && mayTrust && (
               <label className="block text-small">Call this publisher
                 <Input value={displayName} onChange={e => setDisplayName(e.target.value)} className="mt-1" />
               </label>
             )}
+            {!mayTrust && <p className="text-small text-text-muted">Only an administrator can trust a publisher. You can install this once; you'll be asked again next time.</p>}
             <div role="radiogroup" aria-label="Trust" className="space-y-2">
-              <label className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${choice === 'trust' ? 'border-accent' : 'border-border-subtle'}`}>
+              {mayTrust && <label className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${choice === 'trust' ? 'border-accent' : 'border-border-subtle'}`}>
                 <input type="radio" name="trust" checked={choice === 'trust'} onChange={() => setChoice('trust')} className="mt-1" />
                 <span><span className="text-body font-medium text-text-primary">Trust {displayName.trim() || 'this publisher'} and install</span><span className="block text-small text-text-muted">Later versions signed the same way install without asking</span></span>
-              </label>
-              <label className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${choice === 'once' ? 'border-accent' : 'border-border-subtle'}`}>
-                <input type="radio" name="trust" checked={choice === 'once'} onChange={() => setChoice('once')} className="mt-1" />
+              </label>}
+              <label className={`flex items-start gap-2 rounded-lg border px-3 py-2 ${!trusting ? 'border-accent' : 'border-border-subtle'}`}>
+                <input type="radio" name="trust" checked={!trusting} onChange={() => setChoice('once')} className="mt-1" />
                 <span><span className="text-body font-medium text-text-primary">Install this once</span><span className="block text-small text-text-muted">You'll be asked again next time</span></span>
               </label>
             </div>
@@ -143,7 +147,7 @@ export function InstallDialog({ source, onClose, onInstalled }: { source: Packag
               {state !== 'trusted' && source.from !== 'shelf' && (
                 <Button variant="secondary" onClick={() => setReading(r => !r)}>{reading ? 'Hide it' : state === 'unsigned' ? 'Read it' : 'Read it first'}</Button>
               )}
-              <Button disabled={busy || !ready} onClick={() => void go()}>{state === 'new-publisher' && choice === 'trust' ? `Trust ${displayName.trim() || 'publisher'} and install` : 'Install'}</Button>
+              <Button disabled={busy || !ready} onClick={() => void go()}>{state === 'new-publisher' && trusting ? `Trust ${displayName.trim() || 'publisher'} and install` : 'Install'}</Button>
             </>
           )}
         </div>

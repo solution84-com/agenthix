@@ -7,6 +7,7 @@
  */
 import type { PrismaClient } from '@prisma/client'
 import { HttpError, prisma } from 'wasp/server'
+import { copyLinks } from '../../../library/assetList/copies'
 import { libraryRows } from '../../../library/assetList/rows'
 import type { LibraryAssetRow } from '../../../library/assetList/types'
 import { isProjectMember } from '../../../projects/membership'
@@ -37,10 +38,13 @@ export async function agentSkillsView(db: PrismaClient, viewerId: string, agentI
     listBuiltIns(db),
     db.asset.findMany({
       where: { kind: 'SKILL', builtIn: false, removedAt: null, currentVersionId: { not: null } },
-      select: { id: true, givenToAll: true, grants: { where: { agentId: agent.id }, select: { agentId: true } } },
+      select: { id: true, publisher: true, givenToAll: true, grants: { where: { agentId: agent.id }, select: { agentId: true } } },
     }),
-    db.org.findFirst({ select: { fileSkillsDefault: true } }),
+    db.org.findFirst({ select: { fileSkillsDefault: true, publisherName: true } }),
   ])
+  // The Library folds a copy under its original; a copy that isn't serving the agents isn't offered beside it.
+  const unused = held.filter(a => !a.givenToAll && a.grants.length === 0 && org?.publisherName && a.publisher === org.publisherName)
+  const notInUse = new Set((await copyLinks(db, unused.map(a => a.id))).filter(l => !l.inUse).map(l => l.copyId))
   const byId = new Map(rows.filter(r => r.assetId && r.kind === 'skill' && !r.proposalId).map(r => [r.assetId!, r]))
   const everyAgent: AgentSkillLine[] = []
   const thisAgent: AgentSkillLine[] = []
@@ -56,7 +60,7 @@ export async function agentSkillsView(db: PrismaClient, viewerId: string, agentI
     }
     if (a.givenToAll) everyAgent.push(lineOf(row))
     else if (a.grants.length > 0) thisAgent.push(lineOf(row))
-    else addable.push(lineOf(row))
+    else if (!notInUse.has(a.id)) addable.push(lineOf(row))
   }
 
   const mayManage = may(viewer, 'grant', await organisationTarget(db))

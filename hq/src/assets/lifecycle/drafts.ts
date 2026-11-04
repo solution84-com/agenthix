@@ -8,7 +8,7 @@ import { ASSET_MANIFEST_FILE } from '@agenthix/core'
 import { MAX_PACKAGE_ENTRIES as MAX_PACKAGE_FILES } from '../install/archive'
 import type { PackageFile } from '../../library/packages/packageZip'
 import { SKILL_FILE } from '../skillFile'
-import { LifecycleError } from './errors'
+import { isUniqueViolation, LifecycleError } from './errors'
 import { BUMPS, type Bump } from './versions'
 
 const NOTHING = 'Nothing was changed.'
@@ -16,16 +16,29 @@ const NOTE_MAX = 1000
 
 export class DraftError extends LifecycleError {}
 
+/** Runs a write; a unique-key refusal from a second writer at the same moment becomes `refusal` (409). */
+export async function whenNoOneElseWasFirst<T>(write: () => Promise<T>, refusal: string): Promise<T> {
+  try {
+    return await write()
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new DraftError(refusal, 409)
+    throw err
+  }
+}
+
 export type DraftFileInput = { path: string; text?: string; base64?: string }
 
-/** The files a save sends, as stored. Paths and sizes are checked by the validation every save passes. */
-export function draftFiles(input: unknown): PackageFile[] {
+/**
+ * The files a save sends, as stored. Paths and sizes are checked by the validation every save passes. A Library
+ * skill's `package.json` is hq's manifest and never the editor's; in a place it is the skill's own file.
+ */
+export function draftFiles(input: unknown, options: { manifestAllowed?: boolean } = {}): PackageFile[] {
   if (!Array.isArray(input) || input.length === 0) throw new DraftError(`Send the skill's files. ${NOTHING}`)
   if (input.length > MAX_PACKAGE_FILES) throw new DraftError(`A skill holds at most ${MAX_PACKAGE_FILES} files. ${NOTHING}`)
   return input.map((raw: unknown) => {
     const f = (raw ?? {}) as Record<string, unknown>
     if (typeof f.path !== 'string' || f.path === '') throw new DraftError(`Every file needs a path. ${NOTHING}`)
-    if (f.path === ASSET_MANIFEST_FILE) throw new DraftError(`${ASSET_MANIFEST_FILE} is the package's manifest, which hq writes; the editor changes the skill's files only. ${NOTHING}`)
+    if (f.path === ASSET_MANIFEST_FILE && !options.manifestAllowed) throw new DraftError(`${ASSET_MANIFEST_FILE} is the package's manifest, which hq writes; the editor changes the skill's files only. ${NOTHING}`)
     const hasText = typeof f.text === 'string'
     const hasBase64 = typeof f.base64 === 'string'
     if (hasText === hasBase64) throw new DraftError(`${f.path.slice(0, 200)} needs its content, as text or base64. ${NOTHING}`)

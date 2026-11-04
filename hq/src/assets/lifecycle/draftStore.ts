@@ -12,7 +12,7 @@ import { readContent, releaseContent, storeContent } from '../content'
 import { organisationPublisher } from '../organisationPublisher'
 import type { Actor } from '../policy'
 import { validateSkill } from '../validation'
-import { DraftError, draftFiles, saveRefusal, starterFiles, type StarterShape } from './drafts'
+import { DraftError, draftFiles, saveRefusal, starterFiles, whenNoOneElseWasFirst, type StarterShape } from './drafts'
 import { assertLibrary, identityOf, librarySkill, type LibrarySkill } from './records'
 import { fileChanges, type FileChanges } from './versions'
 
@@ -81,7 +81,7 @@ export async function saveDraft(db: PrismaClient, actor: Actor, input: SaveInput
   const warnings = checked(asset.name, files)
   const author = authorOf(actor, input.conversationId ?? null)
   const seen = input.revision === null || typeof input.revision === 'number' ? input.revision : undefined
-  return db.$transaction(async tx => {
+  return whenNoOneElseWasFirst(() => db.$transaction(async tx => {
     const draft = await tx.draft.findUnique({ where: { assetId: asset.id } })
     const refusal = saveRefusal(draft?.revision ?? null, seen)
     if (refusal) throw new DraftError(refusal, 409)
@@ -98,7 +98,7 @@ export async function saveDraft(db: PrismaClient, actor: Actor, input: SaveInput
     if (count === 0) throw new DraftError(`Someone saved this draft at the same moment. Open it again. ${NOTHING}`, 409)
     await tx.draftRevision.create({ data: { draftId: draft.id, number: next, digest, ...author } })
     return { revision: next, warnings }
-  }, TRANSACTION)
+  }, TRANSACTION), `Someone saved this draft at the same moment. Open it again. ${NOTHING}`)
 }
 
 /** The draft and its revisions go; their content is released. A new skill that never had a version goes with it. */
@@ -109,7 +109,9 @@ export async function discardDraft(db: PrismaClient, actor: Actor, input: { asse
     const draft = await tx.draft.findUnique({ where: { assetId: asset.id }, include: { revisions: { select: { digest: true } } } })
     if (!draft) throw new DraftError(`There is no draft to discard. ${NOTHING}`, 404)
     if (draft.revision !== input.revision) throw new DraftError(`The draft changed since you looked at it (revision ${draft.revision}). Look again before discarding it. ${NOTHING}`, 409)
-    await tx.draft.delete({ where: { id: draft.id } })
+    // The revision is checked in the delete itself, so a save that landed since the read is never discarded unseen.
+    const { count } = await tx.draft.deleteMany({ where: { id: draft.id, revision: draft.revision } })
+    if (count === 0) throw new DraftError(`The draft changed as you discarded it. Look again before discarding it. ${NOTHING}`, 409)
     const unversioned = asset.currentVersionId === null && (await tx.assetVersion.count({ where: { assetId: asset.id } })) === 0
     if (unversioned) await tx.asset.delete({ where: { id: asset.id } })
     for (const digest of new Set([draft.digest, ...draft.revisions.map(r => r.digest)])) await releaseContent(digest, tx)
@@ -136,11 +138,11 @@ export async function createNewSkill(db: PrismaClient, actor: Actor, input: NewS
       : `The Library already has ${identity}. Choose another name. ${NOTHING}`, 409)
   }
   const author = authorOf(actor, input.conversationId ?? null)
-  return db.$transaction(async tx => {
+  return whenNoOneElseWasFirst(() => db.$transaction(async tx => {
     const asset = await tx.asset.create({ data: { kind: 'SKILL', publisher, name } })
     const digest = await storeContent(files, tx)
     const draft = await tx.draft.create({ data: { assetId: asset.id, revision: 1, digest } })
     await tx.draftRevision.create({ data: { draftId: draft.id, number: 1, digest, ...author } })
     return { assetId: asset.id, identity, revision: 1 }
-  }, TRANSACTION)
+  }, TRANSACTION), `The Library already has ${identity}. Choose another name. ${NOTHING}`)
 }

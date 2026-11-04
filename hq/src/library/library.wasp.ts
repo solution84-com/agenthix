@@ -6,7 +6,7 @@ import { WorkforceReviewPage } from "./pages/WorkforceReviewPage" with { type: "
 import { MarketplacePage } from "./pages/MarketplacePage" with { type: "ref" };
 import { assetPagesSpec } from "../assets/pages/assetPages.wasp";
 import { getLibraryAssets, getMarketplace } from "./assetList/operations" with { type: "ref" };
-import { getLibrary, exportLibraryItem, importLibraryItem } from "./packages/packageActions" with { type: "ref" };
+import { getLibrary, exportLibraryItem } from "./packages/packageActions" with { type: "ref" };
 
 export const librarySpec: Spec = [
     assetPagesSpec,
@@ -31,5 +31,4 @@ export const librarySpec: Spec = [
     action(applyAgentTemplate, { entities: ["Asset", "AssetVersion", "AssetGrant", "PackageContent", "PackageFile", "Agent"] }),
     query(getLibrary, { entities: ["Asset", "AssetVersion", "PackageContent", "PackageFile"] }),
     action(exportLibraryItem, { entities: ["Asset", "AssetVersion", "PackageContent", "PackageFile"] }),
-    action(importLibraryItem, { entities: ["Asset", "AssetVersion", "AssetPinChange", "TrustedPublisher", "PackageContent", "PackageFile", "Org"] }),
 ];

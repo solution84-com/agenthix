@@ -48,5 +48,6 @@ describe('the card and the outcome line @SC-1661', () => {
       .toBe('[Your proposed skill checkout-review was accepted by Sam Rivera. Agents now use it there.]')
     expect(outcomeForLead(outcomeBody('p1', 'x', 'REJECTED', 'Sam', 'We have one'))).toMatch(/not accepted by Sam: "We have one".*Don't propose it again/)
     expect(outcomeForLead(proposalCardBody('p1', 'x', false))).toBeNull()
+    expect(outcomeForLead(outcomeBody('p1', 'x', 'ACCEPTED', 'Sam', null, false))).toMatch(/not switched on, so agents don't use it yet/)
   })
 })

@@ -74,20 +74,23 @@ export function draftCardBody(draft: { kind: 'asset' | 'place'; id: string }, na
 
 export type OutcomeState = 'ACCEPTED' | 'ACCEPTED_WITH_CHANGES' | 'REJECTED'
 
-export function outcomeBody(proposalId: string, name: string, state: OutcomeState, reviewer: string, note: string | null): ActionBody {
+/** `switchedOn` is false when the skill was published in a place but switching it on was refused, so agents don't use it yet. */
+export function outcomeBody(proposalId: string, name: string, state: OutcomeState, reviewer: string, note: string | null, switchedOn = true): ActionBody {
   const said = state === 'REJECTED'
     ? `Your proposed skill ${name} was not accepted by ${reviewer}${note ? `: "${note}"` : '.'}`
     : `Your proposed skill ${name} was accepted${state === 'ACCEPTED_WITH_CHANGES' ? ' with changes' : ''} by ${reviewer}.`
   return {
     text: said,
     toolName: PROPOSE_SKILL_TOOL,
-    target: { kind: SKILL_OUTCOME_TARGET, id: proposalId, label: name, params: { state } },
+    target: { kind: SKILL_OUTCOME_TARGET, id: proposalId, label: name, params: switchedOn ? { state } : { state, switchedOn: 'false' } },
   }
 }
 
 /** The outcome as the lead reads it on its next turn, so it doesn't propose the same skill again; null for any other line. */
 export function outcomeForLead(body: ActionBody): string | null {
   if (body.toolName !== PROPOSE_SKILL_TOOL || body.target?.kind !== SKILL_OUTCOME_TARGET) return null
-  const again = body.target.params?.state === 'REJECTED' ? ' Don\'t propose it again unless the person asks.' : ' Agents now use it there.'
+  const again = body.target.params?.state === 'REJECTED'
+    ? ' Don\'t propose it again unless the person asks.'
+    : body.target.params?.switchedOn === 'false' ? " It is published there but not switched on, so agents don't use it yet." : ' Agents now use it there.'
   return `[${body.text}${again}]`
 }

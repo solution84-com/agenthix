@@ -76,7 +76,7 @@ describe('reviewing a project proposal @D27 @SC-1663', () => {
   it('accepting publishes version 1 into the place, switched on, and tells the agent', async () => {
     const p = await proposed('checkout-review', 'project')
     const out = await acceptProposal(prisma, projectAdmin.id, { proposalId: p.id, digest: p.digest })
-    expect(out).toEqual({ state: 'ACCEPTED', version: 'version 1', assetId: null })
+    expect(out).toEqual({ state: 'ACCEPTED', version: 'version 1', assetId: null, switchedOn: true })
     const skill = await prisma.placeSkill.findFirstOrThrow({ where: { placeId: project.id } })
     expect(skill).toMatchObject({ switch: 'ON', switchFingerprint: skill.lastFingerprint })
     const version = await prisma.placeSkillVersion.findFirstOrThrow({ where: { placeSkillId: skill.id } })

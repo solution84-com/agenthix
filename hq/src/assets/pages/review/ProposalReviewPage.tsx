@@ -58,7 +58,9 @@ export function ProposalReviewPage() {
     const out = await accept({ proposalId: p.id, digest: p.digest, note: note.trim() || undefined, ...(edited ? { files: filesToSend(files, edits) } : {}) })
     const made = !p.edits && out.assetId ? out.assetId : null
     setMadeAsset(made)
-    return `${out.state === 'ACCEPTED_WITH_CHANGES' ? 'Accepted with your changes' : 'Accepted'}: ${out.version}.${made ? '' : ' Agents that have it use it from their next turn.'}`
+    const accepted = `${out.state === 'ACCEPTED_WITH_CHANGES' ? 'Accepted with your changes' : 'Accepted'}: ${out.version}.`
+    if (!out.switchedOn) return `${accepted} It is published but not switched on, so agents don't use it yet: this place doesn't run skills found in its files, or they changed since. Fix that on the place's Skills page, then switch it on.`
+    return `${accepted}${made ? '' : ' Agents that have it use it from their next turn.'}`
   })
   const onReject = () => void run(async () => {
     await reject({ proposalId: p.id, digest: p.digest, note })

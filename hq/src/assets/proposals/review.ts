@@ -47,11 +47,14 @@ async function reviewing(db: PrismaClient, reviewerId: string, proposalId: unkno
 
 export type AcceptInput = { proposalId: unknown; digest: unknown; files?: unknown; note?: unknown }
 
-/** `assetId` is the Library skill accepting published, so the reviewer can go on to choose its agents; null in a place. */
-export async function acceptProposal(db: PrismaClient, reviewerId: string, input: AcceptInput): Promise<{ state: OutcomeState; version: string; assetId: string | null }> {
+/**
+ * `assetId` is the Library skill accepting published, so the reviewer can go on to choose its agents; null in a place.
+ * `switchedOn` is false when a place refused to switch the published skill on, so agents don't use it there yet.
+ */
+export async function acceptProposal(db: PrismaClient, reviewerId: string, input: AcceptInput): Promise<{ state: OutcomeState; version: string; assetId: string | null; switchedOn: boolean }> {
   const { proposal, ctx, reviewer } = await reviewing(db, reviewerId, input.proposalId, input.digest)
   const proposed = await readContent(proposal.digest, db)
-  const files = input.files === undefined || input.files === null ? proposed : draftFiles(input.files)
+  const files = input.files === undefined || input.files === null ? proposed : draftFiles(input.files, { manifestAllowed: ctx !== null })
   const changed = JSON.stringify(b64(files)) !== JSON.stringify(b64(proposed))
   const state: OutcomeState = changed ? 'ACCEPTED_WITH_CHANGES' : 'ACCEPTED'
   const extra = typeof input.note === 'string' && input.note.trim() ? ` ${input.note.trim()}` : ''
@@ -59,8 +62,8 @@ export async function acceptProposal(db: PrismaClient, reviewerId: string, input
   const note = `${by}: ${proposal.why}`.slice(0, NOTE_MAX - extra.length) + extra
 
   const published = ctx ? await acceptInPlace(db, reviewer, proposal, ctx, files, note) : await acceptInLibrary(db, reviewer, proposal, files, note)
-  await settle(db, proposal, reviewer.userId, state, typeof input.note === 'string' ? input.note.trim() || null : null, published.versionId)
-  return { state, version: published.version, assetId: published.assetId }
+  await settle(db, proposal, reviewer.userId, state, typeof input.note === 'string' ? input.note.trim() || null : null, published.versionId, published.switchedOn)
+  return { state, version: published.version, assetId: published.assetId, switchedOn: published.switchedOn }
 }
 
 export async function rejectProposal(db: PrismaClient, reviewerId: string, input: { proposalId: unknown; digest: unknown; note: unknown }): Promise<{ state: 'REJECTED' }> {
@@ -90,7 +93,7 @@ async function acceptInLibrary(db: PrismaClient, reviewer: PersonActor, p: Propo
   try {
     const out = await publishDraft(db, reviewer, { assetId, revision: draft.revision, note })
     const version = await db.assetVersion.findFirstOrThrow({ where: { assetId, version: out.version }, select: { id: true } })
-    return { version: `${out.identity} ${out.version}`, versionId: version.id, assetId }
+    return { version: `${out.identity} ${out.version}`, versionId: version.id, assetId, switchedOn: true }
   } catch (err) {
     // The draft accepting made goes again, so the proposal can be accepted later or rejected.
     await discardDraft(db, reviewer, { assetId, revision: draft.revision }).catch(() => undefined)
@@ -116,14 +119,17 @@ async function acceptInPlace(db: PrismaClient, reviewer: PersonActor, p: Proposa
     throw err
   }
   // Accepting is the review: what was published runs there (board C3 §4, "switched on").
+  // A refusal (the place's default is Never, or its files changed since) leaves it published and off; the page and the agent are told.
+  let switchedOn = true
   await switchSkill(db, reviewer, { placeSkillId, on: true, fingerprint: published.fingerprint }).catch(err => {
     if (!(err instanceof LifecycleError)) throw err
+    switchedOn = false
   })
   const version = await db.placeSkillVersion.findFirstOrThrow({ where: { placeSkillId, number: published.number }, select: { id: true } })
-  return { version: `version ${published.number}`, versionId: version.id, assetId: null }
+  return { version: `version ${published.number}`, versionId: version.id, assetId: null, switchedOn }
 }
 
-async function settle(db: PrismaClient, p: Proposal, reviewerId: string, state: OutcomeState, note: string | null, resultVersionId: string | null): Promise<void> {
+async function settle(db: PrismaClient, p: Proposal, reviewerId: string, state: OutcomeState, note: string | null, resultVersionId: string | null, switchedOn = true): Promise<void> {
   const { count } = await db.proposal.updateMany({
     where: { id: p.id, state: 'OPEN' },
     data: { state, reviewedById: reviewerId, reviewedAt: new Date(), reviewNote: note, resultVersionId },
@@ -131,5 +137,5 @@ async function settle(db: PrismaClient, p: Proposal, reviewerId: string, state: 
   if (count === 0) throw new ProposalRefused(`Someone reviewed this proposal at the same moment. ${NOTHING}`, 409)
   if (!p.conversationId) return
   const name = await personName(db, reviewerId) ?? 'a reviewer'
-  await writeSkillLine(p.conversationId, outcomeBody(p.id, p.name, state, name, note), `skill-outcome:${p.id}`)
+  await writeSkillLine(p.conversationId, outcomeBody(p.id, p.name, state, name, note, switchedOn), `skill-outcome:${p.id}`)
 }

@@ -71,6 +71,16 @@ describe('signed by someone new @SC-1612', () => {
     expect(install.mock.calls[0]![0].confirm).toEqual({ fingerprint: 'fp1', newPublisher: { choice: 'once', name: 'acme', displayName: 'Acme' } })
   })
 
+  it('offers a person who may not trust only "Install this once", and sends that choice', async () => {
+    const done = await open({ ...newcomer(), mayTrust: false })
+    expect(screen.queryByRole('button', { name: /Trust .* and install/ })).toBeNull()
+    expect(screen.queryByLabelText(/Trust Acme and install/)).toBeNull()
+    expect((screen.getByLabelText(/Install this once/) as HTMLInputElement).checked).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Install' }))
+    await waitFor(() => expect(done).toHaveBeenCalled())
+    expect(install.mock.calls[0]![0].confirm.newPublisher.choice).toBe('once')
+  })
+
   it('asks first when a skill of that name from another signer is already here, and keeps the one you have by default', async () => {
     library.rows = [{ kind: 'skill', identity: 'acme/seo-audit', version: '2.0.0', signer: 'Signed by Acme (github.com/acme)' }]
     preview.mockResolvedValue({ ...newcomer(), main: item({ identity: 'acme-tools/seo-audit' }), version: '2.1.0', signedBy: 'github.com/acme-tools/skills' })

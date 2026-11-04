@@ -11,10 +11,11 @@ import type { PackageFile } from '../../library/packages/packageZip'
 import { readContent, releaseContent, storeContent } from '../content'
 import type { Actor } from '../policy'
 import { validateSkill } from '../validation'
-import { DraftError, draftFiles, saveRefusal, starterFiles, type StarterShape } from '../lifecycle/drafts'
+import { DraftError, draftFiles, saveRefusal, starterFiles, whenNoOneElseWasFirst, type StarterShape } from '../lifecycle/drafts'
 import { authorOf } from '../lifecycle/draftStore'
 import { fileChanges, type FileChanges } from '../lifecycle/versions'
 import { assertNotWorkspace, assertPlace, folderOf, placeOfProject, placeOfSkill, type PlaceContext } from './place'
+import { placeTreeProblem } from './treeBounds'
 import { readSkillFolder } from './siteSkills'
 
 const NOTHING = 'Nothing was changed.'
@@ -41,6 +42,13 @@ export function checkedSkill(name: string, files: PackageFile[]): string[] {
   const { errors, warnings } = validateSkill(name, files)
   if (errors.length) throw new DraftError(`${errors.join(' ')} ${NOTHING}`)
   return warnings
+}
+
+/** A skill that will be published to a place also fits the bounds the place's site holds a folder to. */
+export function checkedPlaceSkill(name: string, files: PackageFile[]): string[] {
+  const tooLarge = placeTreeProblem(files.map(f => f.path))
+  if (tooLarge) throw new DraftError(`${tooLarge} ${NOTHING}`)
+  return checkedSkill(name, files)
 }
 
 export type PlaceDraftView = {
@@ -83,11 +91,11 @@ export type PlaceSaveInput = { placeSkillId: unknown; files: unknown; revision?:
 
 export async function savePlaceDraft(db: PrismaClient, actor: Actor, input: PlaceSaveInput): Promise<{ revision: number; warnings: string[] }> {
   const { skill } = await editable(db, actor, input.placeSkillId)
-  const files = draftFiles(input.files)
-  const warnings = checkedSkill(skillNameOf(skill), files)
+  const files = draftFiles(input.files, { manifestAllowed: true })
+  const warnings = checkedPlaceSkill(skillNameOf(skill), files)
   const author = authorOf(actor, input.conversationId ?? null)
   const seen = input.revision === null || typeof input.revision === 'number' ? input.revision : undefined
-  return db.$transaction(async tx => {
+  return whenNoOneElseWasFirst(() => db.$transaction(async tx => {
     const draft = await tx.draft.findUnique({ where: { placeSkillId: skill.id } })
     const refusal = saveRefusal(draft?.revision ?? null, seen)
     if (refusal) throw new DraftError(refusal, 409)
@@ -103,7 +111,7 @@ export async function savePlaceDraft(db: PrismaClient, actor: Actor, input: Plac
     if (count === 0) throw new DraftError(`Someone saved this draft at the same moment. Open it again. ${NOTHING}`, 409)
     await tx.draftRevision.create({ data: { draftId: draft.id, number: next, digest, ...author } })
     return { revision: next, warnings }
-  }, TRANSACTION)
+  }, TRANSACTION), `Someone saved this draft at the same moment. Open it again. ${NOTHING}`)
 }
 
 /** The draft goes, its content released. A new skill that was never published goes with it. */
@@ -113,7 +121,9 @@ export async function discardPlaceDraft(db: PrismaClient, actor: Actor, input: {
     const draft = await tx.draft.findUnique({ where: { placeSkillId: skill.id }, include: { revisions: { select: { digest: true } } } })
     if (!draft) throw new DraftError(`There is no draft to discard. ${NOTHING}`, 404)
     if (draft.revision !== input.revision) throw new DraftError(`The draft changed since you looked at it (revision ${draft.revision}). Look again before discarding it. ${NOTHING}`, 409)
-    await tx.draft.delete({ where: { id: draft.id } })
+    // The revision is checked in the delete itself, so a save that landed since the read is never discarded unseen.
+    const { count } = await tx.draft.deleteMany({ where: { id: draft.id, revision: draft.revision } })
+    if (count === 0) throw new DraftError(`The draft changed as you discarded it. Look again before discarding it. ${NOTHING}`, 409)
     const unpublished = skill.lastFingerprint === null && (await tx.placeSkillVersion.count({ where: { placeSkillId: skill.id } })) === 0
     if (unpublished) await tx.placeSkill.delete({ where: { id: skill.id } })
     for (const digest of new Set([draft.digest, ...draft.revisions.map(r => r.digest)])) await releaseContent(digest, tx)
@@ -136,17 +146,17 @@ export async function createPlaceSkill(db: PrismaClient, actor: Actor, input: Ne
   }
   const path = `${root}/${name}`
   const files = starterFiles(name, typeof input.description === 'string' ? input.description : '', input.shape === 'scripts' ? 'scripts' : 'plain' as StarterShape)
-  checkedSkill(name, files)
+  checkedPlaceSkill(name, files)
   const taken = await db.placeSkill.findUnique({ where: { placeType_placeId_path: { ...ctx.place, path } } })
   if (taken && (!taken.goneAt || (await db.draft.count({ where: { placeSkillId: taken.id } })) > 0)) {
     throw new DraftError(`This place already has a skill named ${name} there. Choose another name. ${NOTHING}`, 409)
   }
   const author = authorOf(actor, input.conversationId ?? null)
-  return db.$transaction(async tx => {
+  return whenNoOneElseWasFirst(() => db.$transaction(async tx => {
     const skill = taken ?? await tx.placeSkill.create({ data: { ...ctx.place, path, group: agentId ? 'AGENT' : 'PLACE', agentId } })
     const digest = await storeContent(files, tx)
     const draft = await tx.draft.create({ data: { placeSkillId: skill.id, revision: 1, digest } })
     await tx.draftRevision.create({ data: { draftId: draft.id, number: 1, digest, ...author } })
     return { placeSkillId: skill.id, path, revision: 1 }
-  }, TRANSACTION)
+  }, TRANSACTION), `This place already has a skill named ${name} there. Choose another name. ${NOTHING}`)
 }
