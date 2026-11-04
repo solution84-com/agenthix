@@ -42,13 +42,28 @@ export function resumeRemoteAccess(ctx: Context): void {
   endTimer.unref()
 }
 
+/**
+ * Takes the port out of the compose file and brings the Fleet Console up again. The file is written without the port
+ * once the record is gone, so if bringing it up fails the container may still publish it: the record is then kept,
+ * already ended, so nothing publishes the port again but `off`, the next start and the next end find it and try again.
+ */
+async function closePort(ctx: Context): Promise<void> {
+  const kept = keptRemoteAccess(ctx)
+  forgetRemoteAccess(ctx)
+  try {
+    await republishConsole(ctx)
+  } catch (err) {
+    if (kept) keepRemoteAccess(ctx, { port: kept.port, until: ctx.now().toISOString() })
+    throw err
+  }
+}
+
 /** At `until`: the port is no longer published. The Fleet Console has stopped listening by itself at the same time. */
 export async function endRemoteAccess(ctx: Context): Promise<void> {
   const kept = keptRemoteAccess(ctx)
   if (!kept) return
   if (Date.parse(kept.until) > ctx.now().getTime()) return resumeRemoteAccess(ctx)
-  forgetRemoteAccess(ctx)
-  await republishConsole(ctx).catch(err => {
+  await closePort(ctx).catch(err => {
     console.warn(`[host] remote access ended, but the Fleet Console's port could not be closed: ${err instanceof Error ? err.message : err}`)
   })
 }
@@ -58,9 +73,8 @@ export async function turnRemoteAccessOff(ctx: Context): Promise<{ on: false }> 
   // The port closes even when the Fleet Console does not answer.
   await askConsoleRemote(ctx, 'remote-off', {}).catch(() => undefined)
   const published = keptRemoteAccess(ctx) !== null
-  forgetRemoteAccess(ctx)
+  if (published) await closePort(ctx)
   resumeRemoteAccess(ctx)
-  if (published) await republishConsole(ctx)
   return { on: false }
 }
 

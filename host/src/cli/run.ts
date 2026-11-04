@@ -87,7 +87,12 @@ async function confirmOrLeave(io: Io, question: string, yes: boolean): Promise<b
 }
 
 async function chooseAddress(io: Io, command: Extract<Command, { kind: 'install' }>): Promise<string | null> {
-  if (command.address) return command.address
+  if (command.address) {
+    const problem = addressProblem(command.address)
+    if (!problem) return command.address
+    io.err(wrap(`HQ cannot be at ${command.address}: ${problem}. Nothing was changed.`))
+    return null
+  }
   io.out(['One question. Press Enter to take the answer in brackets.', '', ...ADDRESS_QUESTION].join('\n'))
   for (;;) {
     const fallback = defaultAddress(command.hqPort)

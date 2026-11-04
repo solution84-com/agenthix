@@ -30,4 +30,22 @@ describe('the install secrets @SC-1595', () => {
     expect(again).toMatchObject(older)
     expect(again.relaySecret.length).toBeGreaterThanOrEqual(32)
   })
+
+  it('refuses to make a new key for data that is already installed, and changes nothing', () => {
+    const state = folder()
+    const first = installSecrets(state)
+    state.writeJson(['hq', 'settings.json'], { version: 'dev' })
+    const { hqMasterKey: _gone, ...without } = first
+    state.writeJson(['secrets.json'], without)
+    expect(() => installSecrets(state)).toThrow(/hqMasterKey is missing from secrets\.json.*Nothing was changed\./)
+    expect(state.readJson('secrets.json')).toEqual(without)
+  })
+
+  it('still adds a key that protects nothing stored, to an installed machine', () => {
+    const state = folder()
+    const { relaySecret: _gone, ...older } = installSecrets(state)
+    state.writeJson(['site', 'settings.json'], { version: 'dev' })
+    state.writeJson(['secrets.json'], older)
+    expect(installSecrets(state).relaySecret.length).toBeGreaterThanOrEqual(32)
+  })
 })

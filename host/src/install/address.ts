@@ -46,8 +46,8 @@ function hasSubdomains(host: string): boolean {
 }
 
 /**
- * Where uploaded files are served from, beside HQ (host-management spec §16, adr-0114): `files.localhost` on
- * HQ's own port for a local address, `files.<HQ's host>` for a domain, and none — HQ offers uploads only as
+ * Where files are served from, beside HQ (host-management spec §16, adr-0114): `files.localhost` on
+ * HQ's own port for a local address, `files.<HQ's host>` for a domain, and none — HQ offers files only as
  * downloads — where its address can have no subdomain.
  */
 export function filesOriginFor(address: string): string | null {

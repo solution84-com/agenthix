@@ -85,10 +85,10 @@ function refusalOf(ctx: Context, c: FrontDoorCheck, given: boolean): FrontDoorCh
   const machine = ctx.machine.name
   if (!c.address || !c.listen) return { code: 'not_installed', message: `No HQ here: the front door serves HQ, and ${machine} runs none.` }
   if (c.problem) return { code: 'conflict', message: `${c.problem} Nothing changed.` }
-  // With a certificate given and no files host, uploads are downloads only (ADR-0114): there is no host to check.
+  // With a certificate given and no files host, files are downloads only (ADR-0114): there is no host to check.
   const filesProblem = !c.filesHost ? (given ? null : 'it has none')
-    : c.filesHost === hostOf(c.address) ? "it is HQ's own host, and uploaded files need one of their own" : hostNameProblem(c.filesHost)
-  if (filesProblem) return { code: 'malformed', message: `Uploaded files cannot be at ${c.filesHost}: ${filesProblem}. Nothing changed.` }
+    : c.filesHost === hostOf(c.address) ? "it is HQ's own host, and files need an address of their own" : hostNameProblem(c.filesHost)
+  if (filesProblem) return { code: 'malformed', message: `Files cannot be served from ${c.filesHost}: ${filesProblem}. Nothing changed.` }
   if (c.busy.length === 0) return null
   return {
     code: 'conflict',
@@ -232,7 +232,7 @@ async function turnOn(
   try {
     if (hqChanged) {
       const what = !filesChanged ? `Giving live apps their address, ${previewDomain}`
-        : filesHost ? `Giving uploaded files their address, ${filesHost}` : 'Serving uploaded files as downloads only'
+        : filesHost ? `Giving files their address, ${filesHost}` : 'Serving files as downloads only'
       await step(progress, what, async () => {
         await ctx.docker.composeUp(found.project, found.file)
         return { value: undefined, outcome: 'done' }

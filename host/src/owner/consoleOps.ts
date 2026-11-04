@@ -94,6 +94,10 @@ export async function consoleOperation(ctx: Context, request: ConsoleRequest, pr
         if (!made.ok) throw new Refusal('failed', made.error)
         return handover(made, true)
       }
+      // Paired with the Fleet Console here, which is not running: HQ's own code would leave every machine behind.
+      if (pin?.local) {
+        throw new Refusal('conflict', `The Fleet Console on ${ctx.machine.name} is not running, and it is the one that hands every machine over. Start it first, then run ${cmd('hq console-code')} again. Nothing was made.`)
+      }
       const r = await ctx.hqControl.consoleCode()
       if (!r) throw notAnswering()
       if (!r.ok) throw new Refusal('failed', r.error)

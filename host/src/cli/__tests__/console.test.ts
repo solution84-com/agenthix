@@ -307,6 +307,21 @@ describe('HQ’s commands for the Fleet Console @SC-853', () => {
     expect(flat(out)).toContain('machines connect to the new one again')
   })
 
+  it('hq console-code refuses, rather than make HQ\'s own code, when the pin is the local Fleet Console and it is not running', async () => {
+    const fleetConsole = await FakeConsole.make()
+    writePin(m.ctx.state, {
+      console: fleetConsole.keys.identity as never, consoleFingerprint: fleetConsole.fingerprint, hqAddress: 'http://127.0.0.1:7800',
+      hostId: 'h1', machineCredential: 'hmc_0123456789abcdef', pinnedAt: '2026-10-14T09:00:00.000Z', local: true,
+    })
+    m.up.delete('agenthix-console')
+    m.hq['console-code'] = { ok: true, text: '', data: { code: '4HQWN7TEM9S3', expiresAt: '2026-10-14T10:00:00Z' } }
+    answers = ['y']
+    expect(await cli('hq', 'console-code')).toBe(1)
+    expect(flat(err)).toContain('is not running, and it is the one that hands every machine over. Start it first')
+    expect(flat(err)).toContain('Nothing was made.')
+    expect(m.calls.some(c => c[0] === 'exec' && c.includes('console-code'))).toBe(false)
+  })
+
   it('hq console-code with --no-machines says Nothing was changed when the answer is no', async () => {
     answers = ['n']
     expect(await cli('hq', 'console-code', '--no-machines')).toBe(1)

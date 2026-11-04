@@ -56,6 +56,17 @@ describe('agenthix install', () => {
     expect(flat(out)).toContain('point this machine\'s web server at 127.0.0.1:7800')
   })
 
+  it('refuses a given address that is not an address, in words, without blaming the host service', async () => {
+    expect(await cli('install', '--address', 'http://:7500', '--yes')).toBe(1)
+    expect(flat(err)).toContain('HQ cannot be at http://:7500: it is not an address a browser can open. Nothing was changed.')
+    expect(err).not.toContain('not answering')
+  })
+
+  it('refuses an empty --address as a usage error rather than taking the default', async () => {
+    expect(await cli('install', '--address', '', '--yes')).toBe(2)
+    expect(flat(err)).toContain('install --address needs an address')
+  })
+
   it('asks nothing once HQ is installed @SC-816', async () => {
     await cli('install', '--address', 'https://hq.acme.example')
     out = ''
@@ -142,6 +153,15 @@ describe('the CLI around its commands @SC-823', () => {
     expect(out).toContain('Without the shortcut, type: docker exec -it agenthix-host agenthix <command>')
     for (const c of ['install', 'status', 'hq invite-admin', 'hq reset-password <user>', 'hq logs', 'site logs']) expect(out).toContain(c)
     for (const line of out.split('\n')) expect(line.length).toBeLessThanOrEqual(80)
+  })
+
+  it('uses the screens\' words: planned maintenance, not scheduled changes; the site takes the new machine\'s name', async () => {
+    expect(await cli('help', 'site schedule')).toBe(0)
+    expect(flat(out)).not.toContain('It keeps its name')
+    out = ''
+    expect(await cli('help')).toBe(0)
+    expect(out).not.toContain('scheduled change')
+    expect(out).not.toContain('Fleet →')
   })
 
   it('refuses a command it does not have, pointing at help', async () => {

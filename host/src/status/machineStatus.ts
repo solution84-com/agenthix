@@ -66,8 +66,8 @@ export type Installed = {
 }
 
 /** hq-db, hq-server, relay and hq-web; site-db and site. */
-const HQ_SERVICES = 4
-const SITE_SERVICES = 2
+export const HQ_SERVICES = 4
+export const SITE_SERVICES = 2
 
 export async function machineStatus(
   machine: MachineStatus['machine'],

@@ -46,7 +46,7 @@ export type DisconnectResult = {
   hq: 'told' | 'alreadyRemoved' | 'notYet' | null
 }
 
-const NEW_CODE = 'Ask a fleet admin for a new one: Fleet Console → Fleet → Add a site.'
+const NEW_CODE = 'Ask a fleet admin for a new one: Fleet Console → Dashboard → Add a site.'
 
 function joinRefusal(reason: JoinFailure): Refusal {
   switch (reason) {

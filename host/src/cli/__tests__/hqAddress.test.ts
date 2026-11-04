@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseCommand } from '../commands'
 import { managementLines } from '../consoleWords'
-import { hqMoved, movingLines } from '../hqAddressWords'
+import { hqAddressWarning, hqMoved, movingLines } from '../hqAddressWords'
 
 const flat = (text: string) => text.replace(/\s+/g, ' ')
 
@@ -16,6 +16,14 @@ describe("the commands for hq's address @SC-856", () => {
     expect(parseCommand(['site', 'hq-address'])).toMatchObject({ kind: 'usage' })
     expect(parseCommand(['console', 'hq-address', 'hq.acme.example'])).toMatchObject({ kind: 'usage', message: expect.stringMatching(/http:\/\/ or https:\/\//) })
     expect(parseCommand(['hq', 'address', 'a', 'b'])).toMatchObject({ kind: 'usage' })
+  })
+})
+
+describe('the warning before hq moves @SC-856', () => {
+  it('says other machines will not follow a plain-http address on a public host, and not for one they follow', () => {
+    expect(flat(hqAddressWarning('https://hq.acme.example', 'http://hq.acme.example:7800'))).toContain('will not follow HQ to http://hq.acme.example:7800')
+    expect(hqAddressWarning('https://hq.acme.example', 'http://192.168.1.30:4100')).not.toContain('will not follow')
+    expect(hqAddressWarning('http://192.168.1.30:4100', 'https://hq.acme.example')).not.toContain('will not follow')
   })
 })
 

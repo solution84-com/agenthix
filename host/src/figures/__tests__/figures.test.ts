@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fakeMachine, type FakeMachine } from '../../__tests__/fakeMachine'
 import { install } from '../../install/install'
 import { BackupStore } from '../../backups/store'
@@ -46,5 +46,18 @@ describe('the figures’ backups @SC-832', () => {
     const { backups } = await collectFigures(m.ctx)
     expect(backups).toMatchObject({ lastNightlyAt: '2026-10-15T02:00:00.000Z', lastNightlyOk: false, lastCopyAt: null })
     expect(JSON.stringify(backups)).not.toContain('disk full')
+  })
+})
+
+describe('the figures count every part of HQ', () => {
+  it('say HQ is starting, not healthy, while one of its four services is down', async () => {
+    const real = m.ctx.docker.composePs.bind(m.ctx.docker)
+    const spy = vi.spyOn(m.ctx.docker, 'composePs').mockImplementation(async (project, file) => {
+      const all = await real(project, file)
+      return project.endsWith('-hq') ? all.slice(0, 3) : all
+    })
+    const hq = (await collectFigures(m.ctx)).installs.find(i => i.target === 'hq')
+    expect(hq).toMatchObject({ state: 'starting', healthy: false })
+    spy.mockRestore()
   })
 })

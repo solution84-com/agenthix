@@ -69,7 +69,7 @@ function stoppedSiteElsewhere(management: ManagementStatus | undefined): string 
     return nextStep('Not running. Nothing is lost. Ask a fleet admin to start it again in the Fleet Console, or, if it will not start, see why:', cmd('site logs'), IN)
   }
   return nextStep(
-    'Not running. Nothing is lost. A fleet admin gives this machine a code in the Fleet Console (Fleet → Add a site), and it comes back with:',
+    'Not running. Nothing is lost. A fleet admin gives this machine a code in the Fleet Console (Add a site, on the Dashboard), and it comes back with:',
     cmd('console connect <hq address> <code>'), IN,
   )
 }
@@ -221,7 +221,7 @@ export function statusText(s: StatusWithBackups, now = new Date()): string {
   if (!s.hq && !s.site) {
     const by = s.management?.managedBy
     lines.push(by && !by.local
-      ? wrap('No site runs here. If its install failed, or a move or a disconnect left this machine empty, a fleet admin adds a site here or tries the install again in the Fleet Console (Fleet → Add a site).')
+      ? wrap('No site runs here. If its install failed, or a move or a disconnect left this machine empty, a fleet admin adds a site here or tries the install again in the Fleet Console (Add a site, on the Dashboard).')
       : nextStep('Nothing runs here yet. To install HQ and its site on this machine:', cmd('install')))
     lines.push(...managementLines(s.management, false, false), ...consoleHereLines(s.management, false), ...blockedLines(s.blocked ?? [], 'console'))
     return lines.join('\n')

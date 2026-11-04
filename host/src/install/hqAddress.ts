@@ -78,7 +78,10 @@ async function run(
   const putBack = async (why: string): Promise<never> => {
     recordPorts(ctx.state, { hq: port.was })
     await writeProjects(ctx, before, site, paths)
-    await startTarget(ctx, 'hq').catch(() => {})
+    const restarted = await startTarget(ctx, 'hq').then(() => null, (err: unknown) => (err instanceof Error ? err.message : String(err)))
+    if (restarted !== null) {
+      throw new Refusal('failed', `${why} HQ's old address, ${before.address}, is recorded again, but HQ did not start there: ${restarted.replace(/\.?$/, '.')} See how it is doing: ${cmd('status')}`)
+    }
     // HQ at its old address again: those it told stop waiting.
     await ctx.hqControl.run('address-move', [before.address]).catch(() => null)
     throw new Refusal('failed', `${why} HQ is at ${before.address} again, and those it told were told it stays.`)
@@ -96,9 +99,14 @@ async function run(
 
   const moved: StoredHq = { ...before, address, ...listenerFor(address), filesOrigin: filesOriginKept(ctx.state, address) }
   await step(progress, `Starting HQ at ${address}`, async () => {
-    recordPorts(ctx.state, { hq: port.now })
-    await writeProjects(ctx, moved, site, paths)
-    await startTarget(ctx, 'hq')
+    try {
+      recordPorts(ctx.state, { hq: port.now })
+      await writeProjects(ctx, moved, site, paths)
+      await startTarget(ctx, 'hq')
+    } catch (err) {
+      await stopTarget(ctx, 'hq').catch(() => {})
+      return putBack(`HQ could not start at ${address}: ${(err instanceof Error ? err.message : String(err)).replace(/\.?$/, '.')}`)
+    }
   })
   const answered = await step(progress, 'HQ answers at its new address', async () => {
     const until = ctx.now().getTime() + ctx.waits.hqMs
@@ -122,7 +130,8 @@ async function run(
 async function followLocalPort(ctx: Context, hqPort: number): Promise<void> {
   const local = localHqAddress(hqPort)
   const pin = readPin(ctx.state)
-  if (pin?.local) {
+  // This runs on hq's own machine: its pin reaches hq locally whether the Fleet Console is here or, after a hand-over, elsewhere.
+  if (pin) {
     writePin(ctx.state, { ...pin, hqAddress: local })
     ctx.link?.stop()
     ctx.link?.start()

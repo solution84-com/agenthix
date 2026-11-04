@@ -59,3 +59,12 @@ export function writePin(state: StateFolder, pin: ConsolePin): void {
 export function forgetPin(state: StateFolder): void {
   fs.rmSync(state.path(...FILE), { force: true })
 }
+
+/** Whether hq is installed on this machine. Its pin reaches hq locally, though the Fleet Console may have moved elsewhere. */
+export function hqRunsHere(state: StateFolder): boolean {
+  try {
+    return state.readJson('hq', 'settings.json') !== null
+  } catch {
+    return false
+  }
+}

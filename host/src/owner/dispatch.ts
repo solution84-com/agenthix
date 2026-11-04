@@ -111,8 +111,11 @@ export async function hostOperation(ctx: Context, request: HostRequest, progress
         throw new Refusal('malformed', `There is no part called ${request.service}; there are ${services.join(', ')}.`)
       }
       const names = Object.fromEntries(services.map(s => [s === 'site' ? ctx.names.siteContainer : ctx.names.container(s), s]))
-      const out = await ctx.docker.composeLogs(p.project, p.file, Math.min(request.limit ?? 200, 5000), request.service)
-      return { lines: logLines(out, names) }
+      const out = await ctx.docker.composeLogs(p.project, p.file, Math.min(request.limit ?? 200, 5000), request.service, request.since)
+      const since = request.since ? Date.parse(request.since) : NaN
+      // Compose has already cut at `since`; a line without a readable time is kept rather than guessed at.
+      const lines = logLines(out, names).filter(l => Number.isNaN(since) || !(Date.parse(l.at) < since))
+      return { lines }
     }
     case 'install':
       if (request.target === 'site') {

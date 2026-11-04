@@ -4,6 +4,7 @@
  * to do next. The host service says them as it works, and the CLI prints them.
  */
 import type { MoveCheckOutcome } from '@agenthix/core'
+import { hqAddressProblem } from '../link/socket'
 import { cmd, nextStep, product, wrap } from './words'
 
 export type Who = { kind: 'site'; name: string } | { kind: 'machine'; name: string }
@@ -73,11 +74,13 @@ export function movingLines(from: string, to: string, since: string, who: 'site'
 
 /** `hq address <address>`, before it asks. */
 export function hqAddressWarning(from: string, to: string): string {
+  const refused = hqAddressProblem(to)
   return [
     wrap(`HQ moves from ${from} to ${to}. Changing HQ's address is a move: HQ tells every connected site and host service the new address, stops, takes a sealed backup, and starts again at ${to}. Nothing can change in between, and runs going now stop.`),
     wrap(`Each site and host service switches once ${to} passes its check. One that is offline now needs the address on its machine afterwards, the machine's first:`),
     `  ${cmd(`console hq-address ${to}`)}`,
     `  ${cmd(`site hq-address ${to}`)}`,
+    ...(refused ? ['', wrap(`Other machines and the Fleet Console will not follow HQ to ${to}, and stay waiting on ${from}: ${refused}. If any is connected, give HQ an https address instead.`)] : []),
   ].join('\n')
 }
 

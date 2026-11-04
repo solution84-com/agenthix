@@ -41,11 +41,24 @@ function fetchFrom(network: string, url: string): string {
 
 function get(host: string): Promise<number> {
   return new Promise((resolve, reject) => {
-    http.get({ host: '127.0.0.1', port: PORT, path: '/api/status', headers: { host } }, res => {
+    const request = http.get({ host: '127.0.0.1', port: PORT, path: '/api/status', headers: { host } }, res => {
       res.resume()
       resolve(res.statusCode ?? 0)
-    }).on('error', reject)
+    })
+    // A connection the published port accepts and then stalls must end, so the caller can ask again.
+    request.setTimeout(3000, () => request.destroy(new Error('no answer within 3 seconds')))
+    request.on('error', reject)
   })
+}
+
+/** The first real answer to `host`, asking again for up to 15 seconds while the published port gives none. */
+async function getWhenAnswered(host: string): Promise<number> {
+  let status = 0
+  for (let tries = 0; tries < 50 && status === 0; tries++) {
+    status = await get(host).catch(() => 0)
+    if (status === 0) await new Promise(r => setTimeout(r, 300))
+  }
+  return status
 }
 
 const ownAddress = () => {
@@ -93,13 +106,8 @@ describe('the Fleet Console on its own network, published to 127.0.0.1 @SC-861',
   it('answers a browser on the machine at 127.0.0.1, and refuses another Host header', async () => {
     // Docker's published port can still be wiring up just after the server logs that it listens: a connection it
     // accepts and drops then is not the console's answer, so it is asked again, for a few seconds at most.
-    let first = 0
-    for (let tries = 0; tries < 20 && first === 0; tries++) {
-      first = await get(`127.0.0.1:${PORT}`).catch(() => 0)
-      if (first === 0) await new Promise(r => setTimeout(r, 250))
-    }
-    expect(first).toBe(200)
-    expect(await get('evil.example')).toBe(421)
+    expect(await getWhenAnswered(`127.0.0.1:${PORT}`)).toBe(200)
+    expect(await getWhenAnswered('evil.example')).toBe(421)
   })
 
   it('is not published on any address of the machine but 127.0.0.1', () => {

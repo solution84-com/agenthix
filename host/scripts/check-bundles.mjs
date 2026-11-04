@@ -9,6 +9,14 @@ import path from 'node:path'
 
 const dist = path.resolve(import.meta.dirname, '..', 'dist')
 const LOAD_FAILURE = /Dynamic require|is not supported|ERR_MODULE_NOT_FOUND|ERR_REQUIRE|SyntaxError|ReferenceError|Cannot find (module|package)/
+// How each bundle may end on its own, before the kill, with nothing to run against: host.js refuses to start with its
+// own words (no figures volume, no Docker), launcher.js with its usage (no command), cli.js prints its help. Any other
+// early end, such as a TypeError thrown at load, is a failure the fixed list above does not name.
+const MAY_END = {
+  'host.js': { code: 1, says: /The host service could not start:/ },
+  'launcher.js': { code: 2 },
+  'cli.js': { code: 0 },
+}
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'host-bundles-'))
 
 function start(bundle) {
@@ -21,17 +29,23 @@ function start(bundle) {
     let output = ''
     child.stdout.on('data', d => { output += d })
     child.stderr.on('data', d => { output += d })
-    const timer = setTimeout(() => child.kill('SIGKILL'), 3_000)
-    child.on('exit', () => { clearTimeout(timer); resolve(output) })
+    let killed = false
+    const timer = setTimeout(() => { killed = true; child.kill('SIGKILL') }, 3_000)
+    child.on('exit', code => { clearTimeout(timer); resolve({ output, endedBy: killed ? null : { code } }) })
   })
 }
 
 let failed = false
 try {
   for (const bundle of ['host.js', 'launcher.js', 'cli.js']) {
-    const output = await start(bundle)
+    const { output, endedBy } = await start(bundle)
     const failure = output.split('\n').find(line => LOAD_FAILURE.test(line))
+    const may = MAY_END[bundle]
+    const early = endedBy && !(endedBy.code === may.code && (!may.says || may.says.test(output)))
+      ? `ended on its own with code ${endedBy.code}, which it should not: ${output.trim().split('\n').pop() ?? 'it said nothing'}`
+      : null
     if (failure) { failed = true; console.error(`${bundle} does not load in Node: ${failure.trim()}`) }
+    else if (early) { failed = true; console.error(`${bundle} ${early}`) }
     else console.log(`${bundle} loads in Node`)
   }
 } finally {

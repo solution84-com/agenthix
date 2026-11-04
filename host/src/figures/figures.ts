@@ -7,7 +7,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import { parseHostCeilings } from '@agenthix/core'
 import type { BackupFigures, HostCeilings, HostFigures, InstallFigures } from '@agenthix/core'
-import { partState, type PartState } from '../status/machineStatus'
+import { HQ_SERVICES, partState, SITE_SERVICES, type PartState } from '../status/machineStatus'
 import { installed, STATE_MOUNT, type Context } from '../service/context'
 import { protectionFigures } from '../protections/protections'
 import { frontDoorFigures } from '../frontDoor/frontDoor'
@@ -28,8 +28,6 @@ export function machineCeilings(ctx: Context): HostCeilings {
   const machine = ctx.state.readJson('machine.json') as { ceilings?: unknown } | null
   return parseHostCeilings(machine?.ceilings) ?? DEFAULT_CEILINGS
 }
-
-const SERVICES = { hq: 3, site: 2 } as const
 
 function installFigure(target: 'hq' | 'site', version: string, since: string, state: PartState): InstallFigures {
   const running = state === 'running'
@@ -74,14 +72,14 @@ export async function collectFigures(ctx: Context): Promise<HostFigures> {
   const { hq, site } = installed(ctx)
   const installs: InstallFigures[] = []
   if (hq) {
-    const state = partState(await ctx.docker.composePs(hq.project, hq.file), SERVICES.hq)
+    const state = partState(await ctx.docker.composePs(hq.project, hq.file), HQ_SERVICES)
     const figure = installFigure('hq', hq.settings.version, hq.settings.installedAt, state)
     // What the Fleet Console shows of HQ: why it is not running, when another holds its port.
     const blocked = state === 'running' ? undefined : (await blockedParts(ctx)).find(b => b.part === 'hq')
     installs.push(blocked ? { ...figure, problem: blocked.text } : figure)
   }
   if (site) {
-    const state = partState(await ctx.docker.composePs(site.project, site.file), SERVICES.site)
+    const state = partState(await ctx.docker.composePs(site.project, site.file), SITE_SERVICES)
     installs.push(installFigure('site', site.settings.version, site.settings.installedAt, state))
   }
   const total = os.totalmem()

@@ -8,6 +8,7 @@ import { childEnv, type RegistryEnv } from '../images/registryAuth'
 import { parseNetworkInspect, type DockerNetwork } from '../compose/subnets'
 import { DockerRemoval } from './removal'
 import { CONTAINER_FORMAT, parseContainerInspect, type MachineContainer } from './machineContainers'
+import { mountArg } from './mountArg'
 import { publishArgs, readPublishProbe } from './publishProbe'
 
 export type RunResult = { code: number; stdout: string; stderr: string }
@@ -127,8 +128,8 @@ export class Docker {
     return readPublishProbe(await this.run(publishArgs(image, port, bind), { timeoutMs: 60_000 }))
   }
 
-  async composeLogs(project: string, file: string, tail: number, service?: string): Promise<string> {
-    const args = this.compose(project, file, 'logs', '--no-color', '--timestamps', '--tail', String(tail))
+  async composeLogs(project: string, file: string, tail: number, service?: string, since?: string): Promise<string> {
+    const args = this.compose(project, file, 'logs', '--no-color', '--timestamps', '--tail', String(tail), ...(since ? ['--since', since] : []))
     return this.ok(service ? [...args, service] : args, { timeoutMs: 60_000 })
   }
 
@@ -235,6 +236,9 @@ export const dockerStream: StreamRunner = (args, input) => {
 
 const LOCATION = '/location'
 const FOLDER = '/folder'
+// The copy is written under a temporary name and renamed whole. A copy that fails or is stopped leaves no temporary
+// file behind (a stale one from a killed run is cleared first), and a half-written one never has the copy's name.
+export const WRITE_SCRIPT = `p="${LOCATION}/.$1.part"; rm -f "$p"; trap 'rm -f "$p"' EXIT INT TERM; cat > "$p" && mv "$p" "${LOCATION}/$1"`
 
 export class DockerStreams {
   private helper: string | null = null
@@ -298,8 +302,9 @@ export class DockerStreams {
   }
 
   private mountOf(source: { volume: string } | { machinePath: string }, readonly: boolean): string {
-    const ro = readonly ? ',readonly' : ''
-    return 'volume' in source ? `type=volume,src=${source.volume},dst=${FOLDER}${ro}` : `type=bind,src=${source.machinePath},dst=${FOLDER}${ro}`
+    return 'volume' in source
+      ? mountArg({ type: 'volume', name: source.volume, destination: FOLDER, readOnly: readonly })
+      : mountArg({ type: 'bind', source: source.machinePath, destination: FOLDER, readOnly: readonly })
   }
 
   async *readFolder(source: { volume: string } | { machinePath: string }): AsyncGenerator<Buffer> {
@@ -336,7 +341,7 @@ export class DockerStreams {
   }
 
   async write(dir: string, name: string, bytes: AsyncIterable<Buffer>): Promise<void> {
-    await this.in([...(await this.helperArgs(this.bind(dir), `cat > "${LOCATION}/.$1.part" && mv "${LOCATION}/.$1.part" "${LOCATION}/$1"`)), 'write', name], bytes)
+    await this.in([...(await this.helperArgs(this.bind(dir), WRITE_SCRIPT)), 'write', name], bytes)
   }
 
   async remove(dir: string, name: string): Promise<void> {

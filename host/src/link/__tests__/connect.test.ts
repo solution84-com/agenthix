@@ -87,7 +87,7 @@ describe('console connect @SC-845', () => {
 
   it('says so in words, keeping nothing, when the code ran out, was used, or HQ does not take it', async () => {
     relay.onJoin = (_join, conn) => conn.deliver('host.joinRefused', { reason: 'expired' })
-    await expect(connect()).rejects.toThrow('Refused: that code has expired or was already used. Ask a fleet admin for a new one: Fleet Console → Fleet → Add a site.')
+    await expect(connect()).rejects.toThrow('Refused: that code has expired or was already used. Ask a fleet admin for a new one: Fleet Console → Dashboard → Add a site.')
     relay.refuse = true
     await expect(connect()).rejects.toThrow(/has expired or was already used/)
     expect(readPin(m.ctx.state)).toBeNull()

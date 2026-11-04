@@ -14,7 +14,7 @@ import fs from 'node:fs'
 import type { MoveCheckOutcome } from '@agenthix/core'
 import { runMoveCheck, type MoveCheckOptions } from '@agenthix/core/host-crypto'
 import type { StateFolder } from '../state/folder'
-import { readPin, writePin } from './pin'
+import { hqRunsHere, readPin, writePin } from './pin'
 import { hqAddressProblem } from './socket'
 
 const FILE = ['link', 'hq-move.json']
@@ -82,7 +82,7 @@ export class HostAddressFollower {
   take(raw: unknown): void {
     const pin = readPin(this.d.state)
     const address = typeof raw === 'string' && raw.length <= 512 ? baseOf(raw) : ''
-    if (!pin || pin.local || !ADDRESS.test(address)) return
+    if (!pin || pin.local || hqRunsHere(this.d.state) || !ADDRESS.test(address)) return
     if (same(address, pin.hqAddress)) {
       forgetMove(this.d.state)
       this.stop()

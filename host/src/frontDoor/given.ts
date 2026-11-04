@@ -50,7 +50,7 @@ export function readGivenCertificate(state: StateFolder): string | null {
 }
 
 /**
- * Where uploaded files are served from at `address`: the files host Cloud gave, or none (downloads only) when it gave
+ * Where files are served from at `address`: the files host Cloud gave, or none (downloads only) when it gave
  * none, kept through a new address and an install, never reset to `files.<HQ's host>` (ADR-0114); otherwise the default.
  */
 export function filesOriginKept(state: StateFolder, address: string): string | null {

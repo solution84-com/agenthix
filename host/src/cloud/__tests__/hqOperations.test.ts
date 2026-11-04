@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { HostIdentity } from '@agenthix/core'
+import { cloudClientIdOf } from '@agenthix/core/cloud-crypto'
 import { generateHostKeys } from '@agenthix/core/host-crypto'
 import { fakeMachine, type FakeMachine } from '../../__tests__/fakeMachine'
 import { install } from '../../install/install'
@@ -12,7 +13,7 @@ import { cloudOperation } from '../dispatch'
 const ADDRESS = 'https://hq.acme.example'
 const HASH = 'ab'.repeat(32)
 const KEY = 'O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik'
-const CLIENT = 'kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k'
+let CLIENT = ''
 const LINK = 'https://hq.acme.example/invite/a-secret-token-never-logged'
 
 let m: FakeMachine
@@ -21,6 +22,7 @@ let logged: string[]
 const hqCalls = () => m.calls.filter(c => c[0] === 'exec' && c.some(a => a.startsWith('cloud-'))).map(c => c.slice(c.indexOf('-') + 1))
 
 beforeEach(async () => {
+  CLIENT = await cloudClientIdOf(KEY)
   m = fakeMachine()
   const keys = await generateHostKeys('cloud')
   await pinCloudController(m.ctx.state, { identity: keys.identity as HostIdentity & { role: 'cloud' }, machineId: 'machine-1', pinnedAt: new Date().toISOString() })
@@ -124,7 +126,8 @@ describe('on the machine that runs HQ @SC-1063', () => {
     ]) expect(await cloudOperation(m.ctx, request)).toMatchObject({ ok: false, refusal: { code: 'malformed' } })
     m.hq['cloud-organisation-connect'] = { ok: false, error: 'HQ is connected to another Agenthix Cloud organisation.', code: 'conflict' }
     expect(await cloudOperation(m.ctx, { op: 'organisation.connect', cloudOrganisationId: 'org_7', name: 'Other' })).toMatchObject({ ok: false, refusal: { code: 'conflict' } })
-    for (const data of [{ publicKey: 7 }, { publicKey: KEY, clientId: CLIENT }, { publicKey: KEY, clientId: CLIENT, hqAddress: 'https://hq.acme.example/?x' }]) {
+    for (const data of [{ publicKey: 7 }, { publicKey: KEY, clientId: CLIENT }, { publicKey: KEY, clientId: CLIENT, hqAddress: 'https://hq.acme.example/?x' },
+      { publicKey: KEY, clientId: 'kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k', hqAddress: 'https://hq.acme.example' }]) {
       m.hq['cloud-organisation-key'] = { ok: true, text: 'Done.', data }
       expect(await cloudOperation(m.ctx, { op: 'organisation.key' })).toMatchObject({ ok: false, refusal: { code: 'failed' } })
     }

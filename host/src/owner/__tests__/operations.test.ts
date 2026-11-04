@@ -43,6 +43,13 @@ describe('the operations this version does @SC-847', () => {
     expect(await ask({ op: 'logs.read', target: 'hq', service: '../../etc' })).toMatchObject({ ok: false, refusal: { code: 'malformed' } })
   })
 
+  it('reads only the logs at or after since, and asks compose for them', async () => {
+    const lines = async (since: string) => ((await ask({ op: 'logs.read', target: 'hq', service: 'hq-server', since })).result as { lines: unknown[] }).lines
+    expect(await lines('2026-10-14T09:00:00Z')).toHaveLength(1)
+    expect(await lines('2026-10-14T09:00:01Z')).toHaveLength(0)
+    expect(m.calls.some(c => c.join(' ').includes('--since 2026-10-14T09:00:01Z'))).toBe(true)
+  })
+
   it('installs hq for a controller only at the version it ships with, and never a site on its own', async () => {
     expect(await ask({ op: 'install', target: 'hq', version: '9.9.9', address: 'https://hq.acme.example' }))
       .toMatchObject({ ok: false, refusal: { code: 'conflict' } })

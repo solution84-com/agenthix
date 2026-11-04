@@ -7,6 +7,7 @@
  * A link hq answers is passed on sealed to Cloud and nowhere else: never logged, never kept.
  */
 import { parseHqCloudRequest, parseOrganisationKeyResult, type CloudOnlyResults, type HqCloudOperation, type HqCloudRequest } from '@agenthix/core'
+import { organisationKeyResultMatches } from '@agenthix/core/cloud-crypto'
 import { installed, type Context } from '../service/context'
 import { Refusal } from '../owner/results'
 import type { HqCommandResult } from '../hq/control'
@@ -90,7 +91,8 @@ const organisationKey: CloudOnlyHandler<'organisation.key'> = {
   run: async ctx => {
     // The key and the address Cloud registers together: the address is where its sign-ins go back to.
     const key = parseOrganisationKeyResult(await askHq(ctx, 'cloud-organisation-key', []))
-    if (!key) throw notAnswer()
+    // A client id that is not the key's thumbprint could never be matched by its assertions: caught before Cloud registers it.
+    if (!key || !(await organisationKeyResultMatches(key))) throw notAnswer()
     return key
   },
 }

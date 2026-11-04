@@ -21,6 +21,12 @@ export type InstallSecrets = {
 
 const KEYS: (keyof InstallSecrets)[] = ['hqDbPassword', 'jwtSecret', 'hqMasterKey', 'pairingSecret', 'siteDbPassword', 'siteMasterKey', 'consolePairingSecret', 'relaySecret']
 
+/** Keys whose loss would leave stored data unreadable, by the install that holds that data. */
+const PROTECTS: { here: 'hq' | 'site'; keys: (keyof InstallSecrets)[]; what: string }[] = [
+  { here: 'hq', keys: ['hqMasterKey', 'hqDbPassword'], what: "HQ's" },
+  { here: 'site', keys: ['siteMasterKey', 'siteDbPassword'], what: "the site's" },
+]
+
 const hex = (n: number) => crypto.randomBytes(n).toString('hex')
 const base64 = (n: number) => crypto.randomBytes(n).toString('base64')
 
@@ -39,6 +45,14 @@ function fresh(): InstallSecrets {
 
 export function installSecrets(state: StateFolder): InstallSecrets {
   const stored = (state.readJson('secrets.json') ?? {}) as Partial<Record<keyof InstallSecrets, unknown>>
+  const installedHere = { hq: state.readJson('hq', 'settings.json') !== null, site: state.readJson('site', 'settings.json') !== null }
+  for (const { here, keys, what } of PROTECTS) {
+    if (!installedHere[here]) continue
+    const missing = keys.filter(k => typeof stored[k] !== 'string' || stored[k] === '')
+    if (missing.length) {
+      throw new Error(`${what} ${missing.join(' and ')} ${missing.length > 1 ? 'are' : 'is'} missing from secrets.json, though it is installed here. Making a new one would lock its data. Restore secrets.json from a backup. Nothing was changed.`)
+    }
+  }
   const made = fresh()
   const out = {} as InstallSecrets
   let changed = false

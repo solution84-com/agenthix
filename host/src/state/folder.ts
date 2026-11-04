@@ -48,8 +48,19 @@ export class StateFolder {
     const file = this.path(...parts)
     fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 })
     const tmp = `${file}.${process.pid}.tmp`
-    fs.writeFileSync(tmp, content, { mode: 0o600 })
+    // Flushed before the rename, and the folder after it, so a power loss leaves the old file or the whole new one.
+    const fd = fs.openSync(tmp, 'w', 0o600)
+    try {
+      fs.writeSync(fd, content)
+      fs.fsyncSync(fd)
+    } finally {
+      fs.closeSync(fd)
+    }
     fs.renameSync(tmp, file)
+    try {
+      const dirFd = fs.openSync(path.dirname(file), 'r')
+      try { fs.fsyncSync(dirFd) } finally { fs.closeSync(dirFd) }
+    } catch { /* a platform that cannot sync a folder keeps the file; the rename is still whole */ }
     fs.chmodSync(file, 0o600)
     return file
   }

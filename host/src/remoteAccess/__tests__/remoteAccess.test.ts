@@ -145,6 +145,20 @@ describe('remote access, asked by Cloud on a machine it runs @SC-1066', () => {
     expect(keptRemoteAccess(m.ctx)).toBeNull()
   })
 
+  it('off: when Docker fails to bring the Fleet Console up without the port, the machine still remembers, and a second off closes it', async () => {
+    await cloudOperation(m.ctx, on())
+    const up = m.ctx.docker.composeUp.bind(m.ctx.docker)
+    const failing = vi.spyOn(m.ctx.docker, 'composeUp').mockRejectedValueOnce(new Error('docker said no'))
+    const first = await cloudOperation(m.ctx, { op: 'remoteAccess.off' })
+    expect(first).toMatchObject({ ok: false })
+    expect(keptRemoteAccess(m.ctx)).not.toBeNull()
+    expect(remoteAccessPort(m.ctx)).toBeNull()
+    failing.mockImplementation(up)
+    expect(await cloudOperation(m.ctx, { op: 'remoteAccess.off' })).toMatchObject({ ok: true })
+    expect(keptRemoteAccess(m.ctx)).toBeNull()
+    expect(composePorts()).toEqual(['127.0.0.1:7801:4301'])
+  })
+
   it('stops by itself at its end: the port is closed, and no compose file written after it publishes the port', async () => {
     const r = on({ until: inMinutes(30) })
     await cloudOperation(m.ctx, r)

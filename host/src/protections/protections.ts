@@ -96,7 +96,13 @@ export class AgentProtections {
   check(): Promise<ProtectionFigures> {
     if (!this.running || this.runningGeneration !== this.generation) {
       const generation = this.generation
-      const running: Promise<ProtectionFigures> = this.checkOnce().then(f => {
+      // A check that throws (the rules could not be built or written) is a result, not a rejection nobody handles.
+      const running: Promise<ProtectionFigures> = this.checkOnce().catch((err: unknown): ProtectionFigures => ({
+        holding: false,
+        rules: [],
+        checkedAt: this.now().toISOString(),
+        problem: `The rules that keep agents out of this machine could not be checked: ${(err instanceof Error ? err.message : String(err)).slice(0, 200)}`,
+      })).then(f => {
         if (generation === this.generation) this.last = f
         return f
       }).finally(() => { if (this.running === running) this.running = null })

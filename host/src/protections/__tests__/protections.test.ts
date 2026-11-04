@@ -33,6 +33,17 @@ function fakeNft(over: { apply?: RunResult } = {}) {
 const clock = () => new Date('2026-10-14T09:00:00Z')
 
 describe('the agent protections @SC-825', () => {
+  it('say so, and do not throw, when the rules cannot be built', async () => {
+    const p = new AgentProtections(new Firewall(async () => { throw new Error('no machine address') }), async () => set, clock)
+    const figures = await p.check()
+    expect(figures).toMatchObject({ holding: false, rules: [], problem: expect.stringContaining('could not be checked: no machine address') })
+    expect(p.figures()).toEqual(figures)
+    const log: string[] = []
+    const stop = p.start(60_000, line => log.push(line))
+    await vi.waitFor(() => expect(log[0]).toMatch(/do not hold: .*no machine address/))
+    stop()
+  })
+
   it('do not hold before their first check', () => {
     const p = new AgentProtections(fakeNft().firewall, async () => set, clock)
     expect(p.figures()).toMatchObject({ holding: false, rules: [], problem: expect.any(String) })

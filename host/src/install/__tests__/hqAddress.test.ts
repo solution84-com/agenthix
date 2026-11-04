@@ -3,14 +3,17 @@
  * the move check on its credential; HQ moving on its machine tells everyone first, stops, backs up, and starts at
  * the new address, or is put back.
  */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MOVE_CHECK_PATH } from '@agenthix/core'
 import { fakeMachine, type FakeMachine } from '../../__tests__/fakeMachine'
 import { installed } from '../../service/context'
+import { installSecrets } from '../../state/secrets'
 import { recordAgentRange } from '../../state/installation'
 import { pointSite } from '../siteAddress'
 import { moveHqAddress } from '../hqAddress'
 import { install } from '../install'
+import { generateHostKeys, fingerprintOf } from '@agenthix/core/host-crypto'
+import { readPin, writePin } from '../../link/pin'
 import { hqStandIn, nothingAt, type HqStandIn } from '../../link/__tests__/moveCheckHq'
 
 const flat = (text: string) => text.replace(/\s+/g, ' ')
@@ -36,6 +39,7 @@ async function stand(credentials: string[]) {
 }
 
 function addedSite() {
+  installSecrets(m.ctx.state)
   m.ctx.state.writeJson(['site', 'settings.json'], { name: 'office-server', version: '0.2.0', hqUrl: OLD, installedAt: 'x' })
   m.ctx.state.writeJson(['site', 'credential.json'], { credential: CREDENTIAL, madeAt: 'x' })
   // As the site's first install left it.
@@ -138,5 +142,40 @@ describe('hq address @SC-855', () => {
     expect((await moveHqAddress(m.ctx, NEW, () => {}).catch(e => e)).message).toMatch(/could tell no one its new address\. Nothing was changed\./)
     expect(m.calls.some(c => c[0] === 'compose' && c.includes('stop'))).toBe(false)
     expect((await moveHqAddress(m.ctx, 'http://localhost:4100', () => {}).catch(e => e)).code).toBe('conflict')
+  })
+
+  it('puts HQ back when starting it at the new address throws, and says so when even that does not start', async () => {
+    await installedHq()
+    m.hq['address-move'] = told
+    const real = m.ctx.docker.composeUp.bind(m.ctx.docker)
+    let failures = 1
+    vi.spyOn(m.ctx.docker, 'composeUp').mockImplementation(async (project, file) => {
+      if (failures-- > 0) throw new Error('port is already allocated')
+      return real(project, file)
+    })
+    const err = await moveHqAddress(m.ctx, NEW, () => {}).catch(e => e)
+    expect(err.message).toBe('HQ could not start at http://192.168.1.30:4100: port is already allocated. HQ is at http://localhost:4100 again, and those it told were told it stays.')
+    expect(installed(m.ctx).hq!.settings.address).toBe('http://localhost:4100')
+    expect(m.up.has('agenthix-hq')).toBe(true)
+    expect(m.calls.filter(c => c.includes('address-move')).map(c => c[c.length - 1])).toEqual([NEW, 'http://localhost:4100'])
+
+    failures = 2
+    const worse = await moveHqAddress(m.ctx, NEW, () => {}).catch(e => e)
+    expect(worse.message).toMatch(/is recorded again, but HQ did not start there: port is already allocated\./)
+    expect(worse.message).not.toMatch(/HQ is at .* again/)
+  })
+
+  it("moves the pin of hq's own machine with hq's local port after a hand-over, though the pin is no longer marked local", async () => {
+    await installedHq()
+    m.hq['address-move'] = told
+    const keys = await generateHostKeys('console')
+    writePin(m.ctx.state, {
+      console: keys.identity as never, consoleFingerprint: await fingerprintOf(keys.identity),
+      hqAddress: 'http://127.0.0.1:4100', hostId: 'h1', machineCredential: CREDENTIAL, pinnedAt: '2026-10-14T09:00:00.000Z', local: false,
+    })
+    m.ctx.link = { start: () => {}, stop: () => {}, connected: () => false, sendEnvelope: () => false }
+    m.hq.status = { ok: true, text: 'HQ', data: { users: 1, hqSite: { state: 'connected', dockerRunning: true }, address: 'http://192.168.1.30:4200', version: 'dev', commit: 'c' } }
+    await moveHqAddress(m.ctx, 'http://192.168.1.30:4200', () => {})
+    expect(readPin(m.ctx.state)?.hqAddress).toBe('http://127.0.0.1:4200')
   })
 })

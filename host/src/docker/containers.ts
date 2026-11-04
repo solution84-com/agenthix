@@ -5,9 +5,9 @@
  */
 import { DockerError, type DockerRunner, type RunResult } from './docker'
 
-export type Mount =
-  | { type: 'bind'; source: string; destination: string; readOnly: boolean }
-  | { type: 'volume'; name: string; destination: string; readOnly: boolean }
+import { mountArg, type Mount } from './mountArg'
+
+export { mountArg, type Mount }
 
 /** A container as `docker run` starts it: only the settings the host service's own container is started with. */
 export type ContainerSpec = {
@@ -60,17 +60,6 @@ export interface ContainerOps {
   /** Clears a container's restart policy, so it stays stopped once it ends. */
   noRestart(nameOrId: string): Promise<void>
   exec(nameOrId: string, command: string[], timeoutMs: number): Promise<RunResult>
-}
-
-/** One field of `--mount`, quoted as Docker's CSV reader takes it when it holds a comma or a quote. */
-const field = (key: string, value: string) => {
-  const kv = `${key}=${value}`
-  return /[",]/.test(kv) ? `"${kv.replace(/"/g, '""')}"` : kv
-}
-
-export function mountArg(m: Mount): string {
-  const src = m.type === 'bind' ? field('src', m.source) : field('src', m.name)
-  return [`type=${m.type}`, src, field('dst', m.destination), ...(m.readOnly ? ['readonly'] : [])].join(',')
 }
 
 export function runArgs(spec: ContainerSpec): string[] {

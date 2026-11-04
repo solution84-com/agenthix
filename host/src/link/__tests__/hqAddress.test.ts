@@ -111,6 +111,13 @@ describe('a machine told hq moves @SC-856', () => {
     expect(logs.join('\n')).toMatch(/will not follow: plain http/)
   })
 
+  it("takes no notice on hq's own machine after a hand-over, when the pin is no longer marked local", () => {
+    pin()
+    m.ctx.state.writeJson(['hq', 'settings.json'], { version: 'dev' })
+    follower().take('https://hq.acme.example')
+    expect(readMove(m.ctx.state)).toBeNull()
+  })
+
   it('stops waiting when told the address it already has', async () => {
     pin()
     const f = follower()
