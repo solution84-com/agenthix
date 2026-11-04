@@ -51,8 +51,9 @@ export function hqCondition(install: InstallFigures | undefined, local: LocalHqC
   return { kind: 'running' }
 }
 
-export function hqHealth(install: InstallFigures | undefined, online: boolean): { label: string; tone: PillTone; sentence: string } {
+export function hqHealth(install: InstallFigures | undefined, online: boolean, haveFigures = true): { label: string; tone: PillTone; sentence: string } {
   if (!online) return { label: 'Not answering', tone: 'neutral', sentence: "HQ's machine is not answering the Fleet Console." }
+  if (!haveFigures) return { label: 'Waiting for figures', tone: 'neutral', sentence: "Waiting for the machine's first figures." }
   if (!install) return { label: 'Not installed', tone: 'neutral', sentence: 'HQ is not installed on this machine.' }
   if (!install.healthy) return { label: 'Needs attention', tone: 'danger', sentence: install.problem ?? `HQ is ${install.state}.` }
   return { label: 'Healthy', tone: 'healthy', sentence: 'Healthy — people can sign in' }

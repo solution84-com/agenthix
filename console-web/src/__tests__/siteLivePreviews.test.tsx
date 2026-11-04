@@ -104,6 +104,22 @@ withFeature('livePreview', () => {
       expect(await screen.findByText(/older than this Fleet Console/)).toBeTruthy()
     })
 
+    it('drops what it showed once HQ answers that the feature is off', async () => {
+      let off = false
+      fakeServer({ [GET]: () => (off ? { status: 404, body: { error: 'not_found', message: 'Live previews are not on.' } } : { status: 200, body: { view: view() } }) })
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+      try {
+        show()
+        await vi.waitFor(() => expect(screen.getByRole('region', { name: 'Live previews on this site' })).toBeTruthy())
+        off = true
+        await vi.advanceTimersByTimeAsync(15_000)
+        await vi.waitFor(() => expect(screen.queryByRole('region', { name: 'Live previews on this site' })).toBeNull())
+        expect(screen.getByText('The live previews could not be read')).toBeTruthy()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
     it('reads the form and words the idle stop', () => {
       expect(readSettingForm('', '120')).toEqual({ limit: null, idleMinutes: 120 })
       expect(readSettingForm('3', '4')).toMatch(/from 5 to/)

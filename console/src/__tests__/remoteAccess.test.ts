@@ -123,10 +123,31 @@ describe('remote access ends by itself @SC-1069', () => {
     expect(await refused(port)).toBe(false)
     await again.stop()
 
-    const late = new RemoteAccess({ state, activity: new Activity(link), machineName: 'hq-box', now: () => Date.now() + 3 * 3600_000 })
+    let ended = 0
+    const late = new RemoteAccess({ state, activity: new Activity(link), machineName: 'hq-box', now: () => Date.now() + 3 * 3600_000, ended: () => { ended++ } })
     await late.start(app as never, '127.0.0.1')
+    expect(ended).toBe(1)
     expect(await refused(port)).toBe(true)
     expect(late.status()).toEqual({ on: false })
     expect(fs.existsSync(state.path('remote-access', 'state.json'))).toBe(false)
+  })
+
+  it('ends the sessions of remote access that did not come back after a restart', async () => {
+    const state = tempState()
+    const link = new FakeHqLink()
+    const first = new RemoteAccess({ state, activity: new Activity(link), machineName: 'hq-box' })
+    await first.start(app as never, '127.0.0.1')
+    const { port } = await turnOn(first, state)
+    await first.stop()
+    // Its port is taken by something else, so it cannot listen again.
+    const net = await import('node:net')
+    const taken = net.createServer().listen(port, '127.0.0.1')
+    await new Promise(resolve => taken.once('listening', resolve))
+    let ended = 0
+    const again = new RemoteAccess({ state, activity: new Activity(link), machineName: 'hq-box', ended: () => { ended++ } })
+    await again.start(app as never, '127.0.0.1')
+    taken.close()
+    expect(ended).toBe(1)
+    expect(again.status()).toEqual({ on: false })
   })
 })

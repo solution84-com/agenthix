@@ -15,7 +15,7 @@ export function HubCard({ fleet, host, now, cloud }: { fleet: FleetResponse; hos
   const titleId = useId()
   const name = fleet.hq?.organisationName
   const address = fleet.hq?.address
-  const health = hqHealth(host.figures?.installs.find(i => i.target === 'hq'), host.online)
+  const health = hqHealth(host.figures?.installs.find(i => i.target === 'hq'), host.online, !!host.figures)
   return (
     <section aria-label="HQ" className="relative">
       <CardLink to={HQ_PATH} labelledBy={titleId} className="block rounded-2xl border-2 border-accent bg-card px-5 py-3.5">

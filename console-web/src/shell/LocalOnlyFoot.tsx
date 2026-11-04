@@ -1,14 +1,27 @@
 import { StatePill } from '@agenthix/ui/primitives'
 
+const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]', '::1'])
+
+/** True when the page was opened at this machine's own loopback address, not through remote access. */
+export const openedLocally = (hostname: string) => LOOPBACK.has(hostname)
+
 /**
- * The foot of every screen: the page is served to this machine alone. Remote access (plan
- * 4.14) will replace it with the session notice and the time left while it is on; until then it is always off.
+ * The foot of every screen. The page says what is true of how it was opened: on the machine's own address it is
+ * served to that machine alone; opened at any other name, it came through remote access.
  */
 export function LocalOnlyFoot() {
+  if (!openedLocally(window.location.hostname)) {
+    return (
+      <footer className="flex items-center gap-2 border-t border-border-subtle bg-frame-sidebar px-4 py-2 text-micro text-text-muted">
+        <StatePill tone="warning">Remote access</StatePill>
+        <span>This session came through remote access. It works only here, and ends when remote access ends.</span>
+      </footer>
+    )
+  }
   return (
     <footer className="flex items-center gap-2 border-t border-border-subtle bg-frame-sidebar px-4 py-2 text-micro text-text-muted">
       <StatePill>Local only</StatePill>
-      <span>Served to this machine alone, at 127.0.0.1 — nothing on the network can open it. Remote access is off.</span>
+      <span>Opened on this machine alone, at {window.location.hostname}.</span>
     </footer>
   )
 }

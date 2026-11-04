@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { useConsoleStatus } from './auth/useConsoleStatus'
 import { ActivityPage } from './pages/activity/ActivityPage'
@@ -49,7 +50,7 @@ function Screens({ path }: { path: string }) {
   return (
     <FeaturesProvider>
       <Shell path={path} machineName={status.phase === 'ready' ? status.status.machineName : null}>
-        <Page path={path} />
+        <ErrorBoundary key={path}><Page path={path} /></ErrorBoundary>
       </Shell>
     </FeaturesProvider>
   )
@@ -59,6 +60,15 @@ const OLD_SITE = /^\/fleet\/(?!add(?:\/|$)|cloud(?:\/|$))([^/]+)(\/[^/]+)?$/
 
 const SITE_ACTIONS: Record<string, string> = {
   logs: 'Logs',
+}
+
+/** A name from the address, or null when its escapes are malformed. */
+function decodeName(part: string): string | null {
+  try {
+    return decodeURIComponent(part)
+  } catch {
+    return null
+  }
 }
 
 /** The screen for a path. Each menu item's screen is its own lane's (plan 4.4–4.14); until it lands it comes later. */
@@ -75,7 +85,10 @@ function Page({ path }: { path: string }) {
   if (path === '/remote-access') return <RemoteAccessPage />
   if (path === '/account/code') return <AuthenticatorSetupPage />
   const cloudSite = /^\/fleet\/cloud\/([^/]+)$/.exec(path)
-  if (cloudSite || path.startsWith('/fleet/cloud/')) return cloudSite ? <CloudSitePage name={decodeURIComponent(cloudSite[1])} /> : <NotFoundPage />
+  if (cloudSite || path.startsWith('/fleet/cloud/')) {
+    const name = cloudSite ? decodeName(cloudSite[1]) : null
+    return name === null ? <NotFoundPage /> : <CloudSitePage name={name} />
+  }
   const hq = /^\/hq(?:\/([^/]+))?$/.exec(path)
   if (hq) return <HqRoute part={hq[1] ?? null} />
   const site = /^\/sites\/([^/]+)(?:\/([^/]+))?$/.exec(path)

@@ -4,7 +4,8 @@
  * While hq does not answer nobody can sign in, and the answer says what is left to do on the machine.
  *
  * Failed attempts are limited per username and overall, so the console is not a way to guess hq passwords faster
- * than hq's own sign-in allows.
+ * than hq's own sign-in allows. An attempt counts from the moment it is let through, before hq answers, and is given
+ * back only when it turns out right (or hq never answered): requests that arrive together cannot all pass the limit.
  */
 import { BRANDING } from '@agenthix/core'
 import type { Activity } from '../activity'
@@ -24,8 +25,13 @@ export const HQ_NOT_ANSWERING = (machine: string) =>
   `HQ is not answering, so your HQ login cannot be checked. On ${machine}, run \`${BRANDING.cliCommand} status\` to see why, ` +
   `and \`${BRANDING.cliCommand} restore\` if HQ has to be brought back from a backup. Then try again.`
 
+type Failure = { at: number; username: string }
+
+/** An outcome, with the attempt it holds against the limit until the caller settles it: null when nothing is held. */
+type Checked = { outcome: SignInOutcome; held: Failure | null }
+
 export class SignIn {
-  private failures: { at: number; username: string }[] = []
+  private failures: Failure[] = []
 
   constructor(
     private readonly link: HqLink,
@@ -35,7 +41,8 @@ export class SignIn {
   ) {}
 
   async attempt(body: unknown): Promise<SignInOutcome> {
-    const outcome = await this.checkLogin(body)
+    const { outcome, held } = await this.checkLogin(body)
+    this.release(held)
     if (outcome.ok) await this.activity.record(outcome.user.id, 'signedIn', `On ${this.machineName}, at the machine or through an SSH tunnel`, false)
     return outcome
   }
@@ -47,27 +54,24 @@ export class SignIn {
    * against the limit, so the code is not a way to learn which passwords are right.
    */
   async attemptWithCode(body: unknown, authenticators: Authenticators): Promise<SignInOutcome> {
-    const login = await this.checkLogin(body)
+    const { outcome: login, held } = await this.checkLogin(body)
     const wrong: SignInOutcome = { ok: false, status: 401, code: 'wrong', message: 'That username, password and code do not match.' }
     const b = body as Record<string, unknown>
     if (!login.ok) {
-      if (login.code === 'not_fleet_admin') this.failed((b.username as string).trim())
+      // A password that is right for an account that is no fleet admin counts too: the attempt held stays.
+      if (login.code !== 'not_fleet_admin') this.release(held)
       return login.code === 'not_fleet_admin' || login.code === 'wrong' ? wrong : login
     }
     const input = {
       ...(typeof b.code === 'string' ? { code: b.code } : {}),
       ...(typeof b.recoveryCode === 'string' ? { recoveryCode: b.recoveryCode } : {}),
     }
-    const username = (b.username as string).trim()
     const check = authenticators.check(login.user.id, input)
-    if (check === 'wrong') {
-      this.failed(username)
-      return wrong
-    }
+    if (check === 'wrong') return wrong
     if (check === 'none') {
-      this.failed(username)
       return { ok: false, status: 401, code: 'no_code', message: 'No authenticator code is set up for you on this Fleet Console yet.' }
     }
+    this.release(held)
     const { user } = login
     if (check === 'claimed') {
       await this.activity.record(user.id, 'remoteAccess.authenticatorClaimed',
@@ -78,36 +82,40 @@ export class SignIn {
   }
 
   /** hq's word on the username and password, and that the account holds the fleet admin role. */
-  private async checkLogin(body: unknown): Promise<SignInOutcome> {
+  private async checkLogin(body: unknown): Promise<Checked> {
     const b = body && typeof body === 'object' ? (body as Record<string, unknown>) : {}
     const username = typeof b.username === 'string' ? b.username.trim() : ''
     const password = typeof b.password === 'string' ? b.password : ''
     if (!username || !password || username.length > 200 || password.length > 1024) {
-      return { ok: false, status: 400, code: 'malformed', message: 'Give your HQ username and password.' }
+      return { outcome: { ok: false, status: 400, code: 'malformed', message: 'Give your HQ username and password.' }, held: null }
     }
     if (this.limited(username)) {
-      return { ok: false, status: 429, code: 'too_many', message: 'Too many attempts to sign in. Wait a few minutes, then try again.' }
+      return { outcome: { ok: false, status: 429, code: 'too_many', message: 'Too many attempts to sign in. Wait a few minutes, then try again.' }, held: null }
     }
-    if (this.link.state !== 'connected') return this.unreachable()
+    if (this.link.state !== 'connected') return { outcome: this.unreachable(), held: null }
 
+    const held = this.hold(username)
     let answer
     try {
       answer = await this.link.call('signIn.check', { username, password })
     } catch (err) {
-      if (err instanceof HqUnavailableError) return this.unreachable()
-      return { ok: false, status: 503, code: 'failed', message: 'HQ could not check your login. Try again in a moment.' }
+      this.release(held)
+      if (err instanceof HqUnavailableError) return { outcome: this.unreachable(), held: null }
+      return { outcome: { ok: false, status: 503, code: 'failed', message: 'HQ could not check your login. Try again in a moment.' }, held: null }
     }
     if (!answer || answer.ok !== true || !answer.user || typeof answer.user.id !== 'string') {
-      this.failed(username)
-      return { ok: false, status: 401, code: 'wrong', message: 'That username and password do not match an HQ account.' }
+      return { outcome: { ok: false, status: 401, code: 'wrong', message: 'That username and password do not match an HQ account.' }, held: null }
     }
     if (answer.user.fleetAdmin !== true) {
       return {
-        ok: false, status: 403, code: 'not_fleet_admin',
-        message: "This account isn't a fleet admin. A fleet admin can give you the role in the Fleet Console.",
+        outcome: {
+          ok: false, status: 403, code: 'not_fleet_admin',
+          message: "This account isn't a fleet admin. A fleet admin can give you the role in the Fleet Console.",
+        },
+        held,
       }
     }
-    return { ok: true, user: { id: answer.user.id, name: typeof answer.user.name === 'string' ? answer.user.name : username } }
+    return { outcome: { ok: true, user: { id: answer.user.id, name: typeof answer.user.name === 'string' ? answer.user.name : username } }, held }
   }
 
   private unreachable(): SignInOutcome {
@@ -121,7 +129,15 @@ export class SignIn {
     return this.failures.length >= MAX_FAILURES_OVERALL || this.failures.filter(f => f.username === key).length >= MAX_FAILURES_PER_USERNAME
   }
 
-  private failed(username: string): void {
-    this.failures.push({ at: this.now(), username: username.toLowerCase() })
+  /** Counts an attempt now, before hq answers. */
+  private hold(username: string): Failure {
+    const attempt = { at: this.now(), username: username.toLowerCase() }
+    this.failures.push(attempt)
+    return attempt
+  }
+
+  /** Gives an attempt back: it was right, or hq never judged it. */
+  private release(attempt: Failure | null): void {
+    if (attempt) this.failures = this.failures.filter(f => f !== attempt)
   }
 }

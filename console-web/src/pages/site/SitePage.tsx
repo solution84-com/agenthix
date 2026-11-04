@@ -56,7 +56,6 @@ function SiteView({ host, now, failure, refresh }: { host: FleetHost; now: Date;
     buttons.push(
       <Button key="maintenance" variant="secondary" onClick={() => openMaintenance(host.fingerprint)}>Plan maintenance…</Button>,
       <Button key="backup" variant="secondary" onClick={go('backups')}>Back up now</Button>,
-      <Button key="logs" variant="secondary" onClick={go('logs')}>Logs</Button>,
     )
   }
   if (!host.hqMachine) {

@@ -56,6 +56,12 @@ export class Presence {
     return this.entries.get(fingerprint) ?? { online: false, since: null, leftAt: null, figures: null, figuresAt: null, scheduled: [] }
   }
 
+  /** Drops all that is held of a machine that is no longer pinned, so it does not show again if the same machine is added. */
+  forget(fingerprint: string): void {
+    this.entries.delete(fingerprint)
+    this.waiters.delete(fingerprint)
+  }
+
   /** Each word hq gives of a pinned machine, with what was known before it (hosts/silence.ts). */
   onChange(listener: (fingerprint: string, now: PresenceEntry, before: PresenceEntry) => void): void {
     this.changes.push(listener)

@@ -13,6 +13,7 @@ export const KINDS = {
   maintenance: 'Maintenance',
   backups: 'Backups',
   moves: 'Moves',
+  remoteAccess: 'Remote access',
   roles: 'The fleet admin role',
   other: 'Anything else',
 } as const
@@ -25,6 +26,7 @@ export function kindOf(action: string): ActivityKind {
   if (action.startsWith('fleetAdmin.')) return 'roles'
   if (SITES.has(action)) return 'sites'
   if (action.startsWith('console.') || /^(site|hq)\.move/.test(action) || action === 'command.move') return 'moves'
+  if (action.startsWith('remoteAccess.')) return 'remoteAccess'
   if (action.startsWith('command.backup.')) return 'backups'
   if (action.startsWith('command.')) return 'maintenance'
   return 'other'
@@ -38,11 +40,11 @@ export type ActivityFilter = { who: string; where: string; kind: '' | ActivityKi
 export const NO_FILTER: ActivityFilter = { who: '', where: '', kind: '' }
 
 export function whoOptions(entries: readonly FleetActivityEntry[]): string[] {
-  return [...new Set(entries.map(e => whoDid(e.by).name))].sort((a, b) => a.localeCompare(b))
+  return [...new Set(entries.map(e => whoDid(e.by, e.action).name))].sort((a, b) => a.localeCompare(b))
 }
 
 export function matches(e: FleetActivityEntry, f: ActivityFilter, hosts: readonly FleetHost[]): boolean {
-  if (f.who && whoDid(e.by).name !== f.who) return false
+  if (f.who && whoDid(e.by, e.action).name !== f.who) return false
   if (f.kind && kindOf(e.action) !== f.kind) return false
   if (f.where === 'hq') return e.action.startsWith('hq.') || hasWord(e.subject, 'HQ')
   if (f.where) {

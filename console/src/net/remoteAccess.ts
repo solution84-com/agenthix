@@ -57,6 +57,7 @@ export class RemoteAccess {
     if (!kept) return
     if (Date.parse(kept.until) <= this.now()) {
       this.forget()
+      this.deps.ended?.()
       await this.deps.activity.record(null, 'remoteAccess.ended', this.endedSubject(), false)
       return
     }
@@ -65,6 +66,7 @@ export class RemoteAccess {
     } catch (err) {
       console.error(`[console] remote access did not come back after a restart: ${err instanceof Error ? err.message : err}`)
       this.forget()
+      this.deps.ended?.()
     }
   }
 

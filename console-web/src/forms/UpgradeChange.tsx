@@ -1,19 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import type { HostResults } from '@agenthix/core'
+import { isPublishedVersion, type HostResults } from '@agenthix/core'
 import { FormField, Input } from '@agenthix/ui/primitives'
-import { Notice, parseWhen } from '../components'
+import { laterHint, Notice, parseWhen } from '../components'
 import type { FleetHost } from '../pages/dashboard/types'
 import { useDraft } from './drafts'
 import { MaintenanceEnding } from './MaintenanceEnding'
 import { forgetHqUpgrade, hqUpgradeArrived, noteHqUpgrade, useHqUpgrade } from './hqUpgrade'
 import { useChangeCommand, useWhenChoice } from './useChangeCommand'
 
-const VERSION = /^\d+\.\d+\.\d+$/
-
 /** The version to send, or the sentence beside the field. */
 export function parseVersion(typed: string, running: string | null): { ok: true; version: string } | { ok: false; error: string } {
   const v = typed.trim()
-  if (!VERSION.test(v)) return { ok: false, error: 'Give the version as three numbers, such as 0.3.0.' }
+  if (!isPublishedVersion(v)) return { ok: false, error: 'Give the version as three numbers, such as 0.3.0, or a pre-release such as 0.1.0-rc.1.' }
   if (v === running) return { ok: false, error: `It runs ${v} already.` }
   return { ok: true, version: v }
 }
@@ -69,7 +67,7 @@ export function UpgradeChange({ host, pollMs }: { host: FleetHost; pollMs?: numb
         <Input id="upgrade-version" value={typed} placeholder="0.3.0" autoComplete="off" onChange={e => setTyped(e.target.value)} />
       </FormField>
       <div className="mt-3" />
-      <MaintenanceEnding idPrefix="upgrade-when" machineName={host.machineName} when={when} onWhen={setWhen} whenError={whenError} run={arrived ? { phase: 'done' } : run}
+      <MaintenanceEnding idPrefix="upgrade-when" laterHint={laterHint(host.figures?.backups.nightlyAt)} machineName={host.machineName} when={when} onWhen={setWhen} whenError={whenError} run={arrived ? { phase: 'done' } : run}
         refusedTitle="Not upgraded" nowHint={`Now: a backup is taken, then ${what} starts on the new version.`}
         done={{
           title: result?.rolledBack ? 'Rolled back.' : 'Upgraded.',

@@ -1,6 +1,7 @@
 /**
- * The Fleet Console's server (host-management spec §7, plan 3.7): on 127.0.0.1:4301 only — in its container, on its
- * own network, with the port published to the machine's 127.0.0.1 — dialling out to hq and nothing else. The host
+ * The Fleet Console's server (host-management spec §7, plan 3.7): on 127.0.0.1 only (the port is in
+ * docs/architecture/ports.md) — in its container, on its own network, with the port published to the machine's
+ * 127.0.0.1 — dialling out to hq and nothing else. The host
  * service starts it — on hq's machine at install, or elsewhere with `console install`.
  */
 import { consoleCodeKind, normalizeJoinCode } from '@agenthix/core'
@@ -15,7 +16,7 @@ import { createConsole, listen, otherNetworks } from './console'
 import { readNetworkView } from './net/containerNetwork'
 import { StateFolder } from './state/folder'
 
-// Fixed into the bundle when it is built (scripts/build.mjs); `dev` for a development build.
+// Set by the host service when it starts the container (CONSOLE_VERSION); `dev` for a development build.
 const VERSION = process.env.CONSOLE_VERSION || 'dev'
 
 async function main(): Promise<void> {

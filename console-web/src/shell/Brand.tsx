@@ -12,11 +12,12 @@ export function Mark() {
   return <span aria-hidden className="inline-block size-[22px] flex-none rounded-[7px] bg-linear-135 from-mark-from to-mark-to" />
 }
 
-/** The machine it runs on and the address it listens on: the Fleet Console is only ever on 127.0.0.1. */
+/** The machine it runs on and the address this page was opened at. */
 export function WhereBadge({ machineName }: { machineName: string | null }) {
+  const at = window.location.hostname || '127.0.0.1'
   return (
     <span className="inline-flex whitespace-nowrap rounded-full bg-selected px-2 text-micro font-semibold leading-[18px] text-text-secondary">
-      {machineName ? `on ${machineName} · 127.0.0.1` : '127.0.0.1'}
+      {machineName ? `on ${machineName} · ${at}` : at}
     </span>
   )
 }

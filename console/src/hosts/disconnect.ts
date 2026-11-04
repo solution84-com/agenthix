@@ -5,18 +5,20 @@
  * this. Announced. The machine stays listed as disconnected until a fleet admin removes it from the list — unless it
  * had left by itself, when removing it is all that was left to do.
  *
- * Never the machine that carries hq, by this Fleet Console's own mark: hq and its default site move first.
+ * Never the machine that carries hq, by this Fleet Console's own mark: hq and its default site move first, and never
+ * a machine that takes part in a move under way.
  */
 import { formatFingerprint, type HostActor } from '@agenthix/core'
 import type { Activity } from '../activity'
 import type { HqLink } from '../hq/link'
 import { listedAs, type PinnedHosts } from '../state/hosts'
+import type { Moves } from '../move/moves'
 import type { Presence } from './presence'
 
 export type DisconnectResult = { done: true } | { done: false; status: 404 | 409; message: string }
 
 export async function disconnectHost(
-  deps: { link: HqLink; hosts: PinnedHosts; presence: Presence; activity: Activity },
+  deps: { link: HqLink; hosts: PinnedHosts; presence: Presence; activity: Activity; moves: Pick<Moves, 'of'> },
   fingerprint: string,
   by: HostActor & { kind: 'fleetAdmin' },
 ): Promise<DisconnectResult> {
@@ -28,6 +30,12 @@ export async function disconnectHost(
       message: `${host.machineName} carries HQ, so it cannot be disconnected. To retire this machine, move HQ first, with Move HQ… on HQ's page.`,
     }
   }
+  if (deps.moves.of(fingerprint)) {
+    return {
+      done: false, status: 409,
+      message: `${host.machineName} takes part in a move that is under way, so it cannot be disconnected. Cancel the move first, or wait for it to end. Nothing was changed.`,
+    }
+  }
   const leftByItself = deps.presence.of(fingerprint).leftAt !== null
   if (host.executionSiteId) {
     await deps.link.call('site.remove', { executionSiteId: host.executionSiteId })
@@ -35,6 +43,7 @@ export async function disconnectHost(
   }
   await deps.link.call('host.disconnect', { hostId: host.hostId })
   deps.hosts.remove(fingerprint)
+  deps.presence.forget(fingerprint)
   if (!leftByItself) {
     deps.hosts.disconnected.add({
       fingerprint, machineName: host.machineName, siteName: host.siteName, by: { userId: by.userId, name: by.name },

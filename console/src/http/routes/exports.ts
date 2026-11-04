@@ -2,7 +2,8 @@ import { Router } from 'express'
 import { isExportId } from '@agenthix/core'
 import type { ConsoleContext } from '../app'
 import type { ExportDownloads } from '../../exports/downloads'
-import { clearedSessionCookie, readCookie, SESSION_COOKIE, sessionOf } from '../guards'
+import { listedAs } from '../../state/hosts'
+import { clearedSessionCookie, readCookie, SESSION_COOKIE, sessionFitsPeer, sessionOf } from '../guards'
 import { actorOf } from './fleet'
 
 /**
@@ -53,11 +54,12 @@ export function exportFileRoutes(ctx: ConsoleContext, downloads: ExportDownloads
       return
     }
     const session = ctx.sessions.findByCookie(readCookie(req, SESSION_COOKIE), idHash)
-    if (!session) {
+    if (!session || !sessionFitsPeer(session, req)) {
       res.status(401).json({ error: 'signed_out', message: 'Sign in with your HQ account.' })
       return
     }
     if (!(await ctx.roles.stillHolds(session))) {
+      downloads.refuse(link, 'This account no longer holds the fleet admin role, so the download was refused.')
       res.setHeader('Set-Cookie', clearedSessionCookie)
       res.status(401).json({ error: 'not_fleet_admin', message: 'This account no longer holds the fleet admin role.' })
       return
@@ -67,6 +69,9 @@ export function exportFileRoutes(ctx: ConsoleContext, downloads: ExportDownloads
       res.status(404).json({ error: 'not_found', message: 'This download link was used already. Download the export again.' })
       return
     }
+    // Recorded when the link is spent: who took the file, from which machine, and when.
+    const machine = ctx.hosts.byFingerprint(pending.fingerprint)
+    await ctx.activity.command(pending.userId, 'backup.exportRead', `${machine ? listedAs(machine) : pending.status.machineName}: the sealed export file was downloaded`)
     await downloads.send(pending, res)
   })
 

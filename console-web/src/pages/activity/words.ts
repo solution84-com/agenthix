@@ -3,7 +3,7 @@
  * record (`site.added`) and its subject in words; a line says who did it and what, in words, with the subject under
  * it as HQ gave it. A name with no words here gets a plain line, never the name itself.
  */
-import type { FleetActivityEntry } from '@agenthix/core'
+import { BRANDING, type FleetActivityEntry } from '@agenthix/core'
 
 const ACTIONS: Record<string, string> = {
   signedIn: 'signed in',
@@ -28,6 +28,10 @@ const ACTIONS: Record<string, string> = {
   'hq.moved': 'moved HQ',
   'hq.moveFailed': 'moved HQ, and it did not complete',
   'hq.machineMarked': 'marked the machine HQ runs on',
+  'remoteAccess.on': 'turned remote access on',
+  'remoteAccess.off': 'turned remote access off',
+  'remoteAccess.ended': 'ended remote access, which came to its end',
+  'remoteAccess.authenticatorClaimed': 'set up an authenticator code for remote access',
   'machine.notifySet': 'changed whether the fleet admins are told when a machine stops answering',
 }
 
@@ -43,6 +47,7 @@ const COMMANDS: Record<string, string> = {
   'backup.store': 'stored a backup',
   'backup.fetch': 'fetched a backup',
   'backup.restore': 'restored from a backup',
+  'backup.exportRead': 'downloaded an export',
   'capacity.set': 'changed the capacity',
   'address.set': "changed HQ's address",
   'frontDoor.set': 'changed the front door',
@@ -64,8 +69,10 @@ export function activityLine(action: string): string {
 
 /**
  * Who did it. No account is a machine admin at the command line; HQ does not say which machine, so neither does
- * the line.
+ * the line. What happens to remote access with no account is Agenthix Cloud's doing, or its time running out.
  */
-export function whoDid(by: FleetActivityEntry['by']): { name: string; commandLine: boolean } {
-  return by ? { name: by.name, commandLine: false } : { name: 'A machine admin', commandLine: true }
+export function whoDid(by: FleetActivityEntry['by'], action = ''): { name: string; commandLine: boolean } {
+  if (by) return { name: by.name, commandLine: false }
+  if (action.startsWith('remoteAccess.')) return { name: `${BRANDING.displayName} Cloud`, commandLine: false }
+  return { name: 'A machine admin', commandLine: true }
 }

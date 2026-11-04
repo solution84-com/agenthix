@@ -51,6 +51,25 @@ describe("joining hq's own machine from the command line @SC-871", () => {
     expect(h.link.callsOf('activity.record').find(c => c.action === 'site.added')).toMatchObject({ byUserId: null })
   })
 
+  it('ends as failed at once when hq cannot accept it, instead of waiting out its ten minutes', async () => {
+    h.link.handle('join.accept', () => { throw new Error('hq dropped') })
+    h.link.handle('join.refuse', () => ({ refused: true }))
+    const raw = normalizeJoinCode((await requestLocalJoin(socketPath)).code)!
+    h.link.emit('joinRequest', await host.joinRequest('j-1', raw, 'hq-box'))
+    await until(() => h.ctx.joins.get('j-1')?.state === 'failed')
+    expect(h.ctx.joins.get('j-1')?.problem).toMatch(/Make a new code/)
+    expect(h.ctx.hosts.list()).toHaveLength(0)
+  })
+
+  it('cannot be cancelled from the screens\' route, as it cannot be refused', async () => {
+    const auth = await h.signIn()
+    const raw = normalizeJoinCode((await requestLocalJoin(socketPath)).code)!
+    const res = await h.request('/api/joins/j-1', { method: 'DELETE', ...auth })
+    expect(res.status).toBe(404)
+    expect(h.ctx.joins.get('j-1')?.state).toBe('waiting')
+    expect(raw).toBeTruthy()
+  })
+
   it('still refuses a binding that does not prove the code', async () => {
     await requestLocalJoin(socketPath)
     h.link.emit('joinRequest', await host.joinRequest('j-1', 'ZZZZZZZZZZZZ', 'hq-box'))

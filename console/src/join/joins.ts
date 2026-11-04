@@ -190,7 +190,13 @@ export class Joins {
     if (taken) return this.turnAway(join, nameTakenText(taken))
     join.replaces = already
     join.state = 'confirming'
-    if (join.local) await this.accept(join, null, join.machine.name)
+    if (join.local) {
+      // Asked once, never again: if hq's link fails now, the join ends as failed so it can be reported, not waited out.
+      await this.accept(join, null, join.machine.name).catch(async err => {
+        console.error('[console] accepting hq\'s own machine failed:', err instanceof Error ? err.message : err)
+        await this.turnAway(join, "HQ's own machine could not be accepted just now, because HQ did not answer. Make a new code and try again.")
+      })
+    }
   }
 
   private async turnAway(join: Join, why: string): Promise<void> {
@@ -232,8 +238,15 @@ export class Joins {
       }
       // A machine carries one site: the one it carried goes from hq before the machine joins again.
       if (replaced.executionSiteId) {
-        await this.deps.link.call('site.remove', { executionSiteId: replaced.executionSiteId })
-        this.deps.hosts.update(replaced.fingerprint, { executionSiteId: null })
+        // Held as accepting before the first wait, so a second confirm meets the state check and not this removal.
+        join.state = 'accepting'
+        try {
+          await this.deps.link.call('site.remove', { executionSiteId: replaced.executionSiteId })
+          this.deps.hosts.update(replaced.fingerprint, { executionSiteId: null })
+        } catch (err) {
+          join.state = 'confirming'
+          throw err
+        }
       }
     }
     await this.accept(join, by, join.machine.name)
@@ -367,6 +380,7 @@ export class Joins {
   async cancel(joinId: string): Promise<void> {
     if (!this.joins.has(joinId)) throw new JoinError(404, 'No such code, or it has expired.')
     const join = this.joins.get(joinId)!
+    if (join.local) throw new JoinError(404, 'No such code, or it has expired.')
     if (join.state !== 'waiting' && join.state !== 'confirming') throw new JoinError(409, 'This machine has already been accepted.')
     await this.deps.link.call('join.close', { joinId }).catch(() => {})
     this.forget(joinId)

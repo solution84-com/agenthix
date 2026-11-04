@@ -194,4 +194,11 @@ describe('the words of planned maintenance @SC-867', () => {
       op: 'schedule', at, change: { op: 'capacity.set', ceilings: { memoryBytesPerContainer: 1, cpusPerContainer: 1, processesPerContainer: 1, containersAtOnce: 1 } },
     })).toBe(`office-server: change capacity, at ${at}`)
   })
+
+  it('print the instant, not a long text that happens to parse as one, so the record always fits in HQ', () => {
+    const typed = `Sat, 19 Oct 2030 02:00:00 GMT (${'x'.repeat(900)})`
+    const subject = plannedSubject('office-server', { op: 'schedule', at: typed, change: { op: 'suspend', target: 'site' } })
+    expect(subject).toBe('office-server: suspend, at 2030-10-19T02:00:00.000Z')
+    expect(subject.length).toBeLessThan(500)
+  })
 })

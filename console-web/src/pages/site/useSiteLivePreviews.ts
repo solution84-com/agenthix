@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { LivePreviewLimit, SiteLivePreviewsView } from '@agenthix/core'
-import { api } from '../../api/client'
+import { api, ApiError } from '../../api/client'
 import { REFRESH_MS } from '../dashboard/useFleet'
 
 const path = (fingerprint: string) => `/sites/${fingerprint}/live-previews`
@@ -17,7 +17,12 @@ export function useSiteLivePreviews(fingerprint: string) {
   const reload = useCallback(() => {
     api<{ view: SiteLivePreviewsView }>(path(fingerprint))
       .then(r => { if (alive.current) { setView(r.view); setProblem(null) } })
-      .catch((err: unknown) => { if (alive.current) setProblem(err instanceof Error ? err.message : String(err)) })
+      .catch((err: unknown) => {
+        if (!alive.current) return
+        // Turned off in hq while the page was open: the section's routes answer 404 now, so what was shown is stale.
+        if (err instanceof ApiError && err.status === 404) setView(null)
+        setProblem(err instanceof Error ? err.message : String(err))
+      })
   }, [fingerprint])
 
   useEffect(() => {

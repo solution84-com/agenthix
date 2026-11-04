@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BackupListed } from '@agenthix/core'
 import { Button, FormField, Input } from '@agenthix/ui/primitives'
-import { DropDown, Notice, parseWhen } from '../components'
+import { DropDown, laterHint, Notice, parseWhen } from '../components'
 import { postAndFollow } from '../api/command'
 import { useSearchParam } from '../router'
 import type { FleetHost } from '../pages/dashboard/types'
@@ -71,6 +71,7 @@ export function RestoreChange({ host, pollMs = 1500 }: { host: FleetHost; pollMs
     setRun({ phase: 'working' })
     const body = { backupId: chosen.id, from: fromLocation ? 'location' : 'machine', ...(fromLocation ? { key: key.trim() } : {}), confirmName: typed.trim(), at: time.at }
     setKey('')
+    setTyped('')
     void postAndFollow(`/hosts/${host.fingerprint}/restore`, body, pollMs, alive).then(outcome => {
       if (!outcome) return
       if (!outcome.ok) return setRun({ phase: 'refused', message: outcome.message })
@@ -112,7 +113,7 @@ export function RestoreChange({ host, pollMs = 1500 }: { host: FleetHost; pollMs
           <Input id="restore-confirm" value={typed} autoComplete="off" spellCheck={false} placeholder={host.machineName} onChange={e => setTyped(e.target.value)} />
         </FormField>
       </div>
-      <MaintenanceEnding idPrefix="restore-when" machineName={host.machineName} when={when} onWhen={setWhen} whenError={errors.when}
+      <MaintenanceEnding idPrefix="restore-when" laterHint={laterHint(host.figures?.backups.nightlyAt)} machineName={host.machineName} when={when} onWhen={setWhen} whenError={errors.when}
         run={run} danger refusedTitle="Not restored" nowOnly={fromLocation ? LOCATION_NOW : undefined}
         nowHint={`Now: what is there is backed up, then ${thing} is restored to that night. Members are not told before.`}
         done={{ title: 'Restored.', text: `${thing} is back to the night of ${chosen ? nightName(chosen.night) : 'the night chosen'}, and running. The state just before it is kept as a backup taken before a restore.` }} />

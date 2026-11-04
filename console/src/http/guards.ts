@@ -140,11 +140,14 @@ export function sessionCookie(value: string, maxAgeSeconds: number, secure = fal
 
 export const clearedSessionCookie = `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`
 
+/** A session opened through remote access works only through it, and one opened on the machine only there. */
+export const sessionFitsPeer = (session: Session, req: Request): boolean => !!session.remote === (remoteNameOf(req.socket) !== null)
+
 export function requireSession(sessions: Sessions, roles: RoleCheck) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const token = req.headers[CSRF_HEADER]
     const found = sessions.find(readCookie(req, SESSION_COOKIE), typeof token === 'string' ? token : undefined)
-    const session = found && !!found.remote === (remoteNameOf(req.socket) !== null) ? found : null
+    const session = found && sessionFitsPeer(found, req) ? found : null
     if (!session) {
       res.status(401).json({ error: 'signed_out', message: 'Sign in with your HQ account.' })
       return

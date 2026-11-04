@@ -47,9 +47,18 @@ const PLANNED_WORDS: Record<string, string> = {
   'capacity.set': 'change capacity', 'backup.restore': 'restore from a backup', move: 'move', erase: 'erase', suspend: 'suspend', resume: 'resume',
 }
 
+/**
+ * A time as the record prints it: the instant, in ISO form, never the text it was typed as — `Date.parse` accepts text
+ * of any length, and hq refuses a record whose subject is too long.
+ */
+export function timeInRecord(at: string): string {
+  const ms = Date.parse(at)
+  return Number.isNaN(ms) ? at.slice(0, 40) : new Date(ms).toISOString()
+}
+
 /** The subject of planned maintenance: the machine, what is planned and when ("office-server: upgrade to 0.3.0, at …"). */
 export function plannedSubject(machine: string, request: Extract<HostRequest, { op: 'schedule' }>): string {
   const { change } = request
   const what = change.op === 'upgrade' ? `upgrade to ${change.version}` : PLANNED_WORDS[change.op] ?? change.op
-  return `${machine}: ${what}, at ${request.at}`
+  return `${machine}: ${what}, at ${timeInRecord(request.at)}`
 }

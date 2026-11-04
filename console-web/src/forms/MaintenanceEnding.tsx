@@ -16,7 +16,7 @@ const at = (iso: string) => new Date(iso).toLocaleString('en-GB', { dateStyle: '
  * see — then the machine's answer, then the one button, whose words follow *When*: *Do it now*, or *Schedule for
  * <day time>*. `nowOnly` replaces *When* with the sentence saying why it cannot be scheduled.
  */
-export function MaintenanceEnding({ idPrefix, machineName, when, onWhen, whenError, run, done, refusedTitle, nowHint, nowOnly, danger = false }: {
+export function MaintenanceEnding({ idPrefix, machineName, when, onWhen, whenError, run, done, refusedTitle, nowHint, laterHint, nowOnly, danger = false }: {
   idPrefix: string
   machineName: string
   when: WhenChoice
@@ -27,15 +27,19 @@ export function MaintenanceEnding({ idPrefix, machineName, when, onWhen, whenErr
   done: { title: string; text: ReactNode; tone?: 'healthy' | 'warning' }
   refusedTitle: string
   nowHint?: string
+  /** What *At a time…* means for members; the generic line when not given. */
+  laterHint?: string
   nowOnly?: string
   danger?: boolean
 }) {
   const working = run.phase === 'working'
+  // Once done or scheduled, a second press would repeat the work; to do it again, the person opens the panel afresh.
+  const sent = working || run.phase === 'done' || run.phase === 'scheduled'
   return (
     <>
       {nowOnly
         ? <p className="mb-3 text-small text-text-primary">{nowOnly}</p>
-        : <ScheduleWhen value={when} onChange={onWhen} error={whenError} disabled={working} idPrefix={idPrefix} nowHint={nowHint} />}
+        : <ScheduleWhen value={when} onChange={onWhen} error={whenError} disabled={working} idPrefix={idPrefix} nowHint={nowHint} laterHint={laterHint} />}
       {working && <Notice>Waiting for {machineName} to answer…</Notice>}
       {run.phase === 'done' && <Notice tone={done.tone ?? 'healthy'} title={done.title}>{done.text}</Notice>}
       {run.phase === 'scheduled' && (
@@ -45,7 +49,7 @@ export function MaintenanceEnding({ idPrefix, machineName, when, onWhen, whenErr
       )}
       {run.phase === 'refused' && <Notice tone="danger" title={refusedTitle}>{run.message}</Notice>}
       <div className="flex gap-2">
-        <Button type="submit" variant={danger ? 'danger' : 'primary'} disabled={working}>{nowOnly ? 'Do it now' : doItLabel(when)}</Button>
+        <Button type="submit" variant={danger ? 'danger' : 'primary'} disabled={sent}>{nowOnly ? 'Do it now' : doItLabel(when)}</Button>
       </div>
     </>
   )

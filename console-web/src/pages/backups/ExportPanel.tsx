@@ -22,7 +22,8 @@ function saveKeyFile(name: string, text: string): boolean {
   a.href = url
   a.download = name
   a.click()
-  URL.revokeObjectURL(url)
+  // Some browsers start the save after the click returns; revoking at once can cancel it.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
   return true
 }
 
@@ -108,11 +109,19 @@ export function KeyOnce({ host, made, keepAs, now, onDone, pollMs }: {
 }) {
   const [stored, setStored] = useState(false)
   const [said, setSaid] = useState<string | null>(null)
+  // A file that could not be saved leaves the key unseen, so it is shown after all.
+  const [showAnyway, setShowAnyway] = useState(false)
   const download = useExportDownload(host.fingerprint, made.exportId, pollMs)
   const view = download.view
   const fileName = keyFileName(host.siteName, made.night)
   const copy = async () => setSaid((await copyText(made.key)) ? 'Copied.' : COPY_FAILED_WORDS)
-  const save = () => setSaid(saveKeyFile(fileName, keyFileText(made.key, host.siteName, made.exportId)) ? `Saved as ${fileName}.` : 'This browser could not save the file. Copy the key instead.')
+  const save = () => {
+    let saved = false
+    try { saved = saveKeyFile(fileName, keyFileText(made.key, host.siteName, made.exportId)) } catch { saved = false }
+    setShowAnyway(!saved)
+    setSaid(saved ? `Saved as ${fileName}.` : 'This browser could not save the file. The key is shown below: copy it.')
+  }
+  const shown = keepAs === 'show' || showAnyway
   const progress = downloadWords(view, host.machineName)
   return (
     <Card className="max-w-2xl">
@@ -121,13 +130,12 @@ export function KeyOnce({ host, made, keepAs, now, onDone, pollMs }: {
         <p className="mb-3 text-small text-text-secondary">
           {keepAs === 'show' ? 'Shown once. Copy it now — it cannot be shown again.' : `Save it now as ${fileName} — it cannot be made again.`}
         </p>
-        {keepAs === 'show' && (
+        {shown && (
           <code aria-label="The key" className="mb-2 block break-all rounded-lg bg-surface-2 px-3 py-2 font-mono text-body text-text-primary">{made.key}</code>
         )}
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          {keepAs === 'show'
-            ? <Button variant="secondary" onClick={() => void copy()}>Copy the key</Button>
-            : <Button variant="secondary" onClick={save}>Save the key file</Button>}
+          {keepAs === 'file' && <Button variant="secondary" onClick={save}>Save the key file</Button>}
+          {shown && <Button variant="secondary" onClick={() => void copy()}>Copy the key</Button>}
           {said && <span role="status" className="text-small text-text-secondary">{said}</span>}
         </div>
         <label className="mb-3 flex gap-2 text-small text-text-primary">

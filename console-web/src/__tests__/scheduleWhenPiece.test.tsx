@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { ScheduleWhen } from '../components/ScheduleWhen'
+import { laterHint, ScheduleWhen } from '../components/ScheduleWhen'
 import { doItLabel, later, parseWhen, scheduleRequest, type WhenChoice } from '../components/scheduleChoice'
 
 const NOW = new Date(2030, 9, 15, 12, 0)
@@ -71,5 +71,17 @@ describe('When: now, or at a time @SC-909', () => {
     render(<Harness error="Choose the date and time." />)
     fireEvent.click(screen.getByLabelText('At a time…'))
     expect(screen.getByText('Choose the date and time.')).toBeTruthy()
+  })
+})
+
+describe('the hint for work at a time', () => {
+  it('names the machine\'s own backup time, not a fixed one', () => {
+    expect(laterHint('03:30')).toMatch(/At 03:30, the nightly backup’s time/)
+    expect(laterHint('03:30')).not.toMatch(/02:00/)
+    expect(laterHint(null)).not.toMatch(/\d\d:\d\d/)
+  })
+  it('says a suspend does not wait for a backup', () => {
+    expect(laterHint('03:30', false)).toMatch(/does not wait for a backup/)
+    expect(laterHint('03:30', false)).not.toMatch(/03:30/)
   })
 })

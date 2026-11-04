@@ -30,4 +30,16 @@ describe('the capacity form @SC-908', () => {
     const r = parseCapacityForm({ memoryGb: '40', cpus: '2', processes: '512', atOnce: '6' }, 32 * GB)
     expect(r).toEqual({ ok: false, errors: { memoryGb: 'The machine has 32 GB; one run cannot have more.' } })
   })
+  it('sends a memory ceiling it did not change exactly as it was, though the field shows one decimal', () => {
+    const current = { ...ceilings, memoryBytesPerContainer: Math.round(0.25 * GB) }
+    const form = { ...formOf(current), cpus: '1' }
+    expect(form.memoryGb).toBe('0.3')
+    const parsed = parseCapacityForm(form, null, current)
+    expect(parsed.ok && parsed.ceilings).toEqual({ ...current, cpusPerContainer: 1 })
+  })
+  it('sends the memory typed once it is changed', () => {
+    const current = { ...ceilings, memoryBytesPerContainer: Math.round(0.25 * GB) }
+    const parsed = parseCapacityForm({ ...formOf(current), memoryGb: '2' }, null, current)
+    expect(parsed.ok && parsed.ceilings.memoryBytesPerContainer).toBe(2 * GB)
+  })
 })

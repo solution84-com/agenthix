@@ -46,6 +46,22 @@ describe('signing in through hq @SC-864', () => {
     expect(res.status).toBe(429)
   })
 
+  it('counts attempts before hq answers, so a burst cannot all pass the limit', async () => {
+    let release!: () => void
+    const gate = new Promise<void>(resolve => { release = resolve })
+    h.link.handle('signIn.check', async () => { await gate; return { ok: false } })
+    const burst = Array.from({ length: 25 }, (_, i) => h.request('/api/session', { method: 'POST', body: { username: 'sam', password: `guess ${i}` } }))
+    await new Promise(resolve => setTimeout(resolve, 100))
+    expect(h.link.callsOf('signIn.check')).toHaveLength(10)
+    release()
+    const statuses = (await Promise.all(burst)).map(r => r.status)
+    expect(statuses.filter(status => status === 429)).toHaveLength(15)
+  })
+
+  it('gives an attempt back when the password was right', async () => {
+    for (let i = 0; i < 12; i++) expect((await h.request('/api/session', { method: 'POST', body: { username: SAM.username, password: SAM.password } })).status).toBe(201)
+  })
+
   it('says before sign-in whether hq answers and whether anyone holds the role', async () => {
     const res = await h.request('/api/status')
     expect(res.json).toMatchObject({ hq: 'connected', fleetAdmins: 'some', machineName: 'hq-box' })

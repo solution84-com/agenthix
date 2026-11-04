@@ -184,6 +184,22 @@ describe('exporting a backup @SC-906', () => {
     expect(screen.getByText(/Save it now as office-2026-10-14\.key/)).toBeTruthy()
   })
 
+  it('a key file the browser could not save shows the key and offers to copy it', async () => {
+    fakeServer({
+      [`GET /hosts/${FP}`]: { status: 200, body: { host: host() } },
+      [`POST /hosts/${FP}/commands`]: commands({ 'backup.take': done({ ok: true, op: 'backup.take', result: { backup: SUMMARY } }), 'backup.export': exported }),
+    })
+    vi.stubGlobal('URL', Object.assign(function URLStub() {}, { createObjectURL: undefined }))
+    render(<SiteBackupsPage fingerprint={FP} pollMs={1} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Export a backup…' }))
+    fireEvent.click(screen.getByRole('radio', { name: /Save the key as a small file/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Make the export' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Save the key file' }))
+    expect(await screen.findByLabelText('The key')).toBeTruthy()
+    expect(screen.getByText(KEY)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Copy the key' })).toBeTruthy()
+  })
+
   it("an export the machine refuses says so in its words, and that the backup taken for it stays", async () => {
     const requests = fakeServer({
       [`GET /hosts/${FP}`]: { status: 200, body: { host: host() } },

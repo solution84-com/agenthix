@@ -55,6 +55,11 @@ describe("HQ's condition @SC-910", () => {
     expect(hqHealth(hqInstall(), false).label).toBe('Not answering')
   })
 
+  it('does not say HQ is not installed before the first figures arrive', () => {
+    expect(hqHealth(undefined, true, false).label).toBe('Waiting for figures')
+    expect(hqHealth(undefined, true, true).label).toBe('Not installed')
+  })
+
   it('counts the days of the grace period left', () => {
     const w = graceWords({ kind: 'erased', since: '2026-10-13T15:02:00', keptUntil: '2026-11-12T15:02:00' }, new Date('2026-10-14T15:00:00'))
     expect(w.pill).toBe('HQ erased — restorable until 12 Nov')

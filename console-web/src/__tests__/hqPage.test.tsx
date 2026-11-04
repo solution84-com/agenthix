@@ -72,7 +72,7 @@ describe("HQ's page @SC-902", () => {
     expect(await screen.findByText(/^Healthy — people can sign in · up 21 days · on hq-box, with this Fleet Console$/)).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Open HQ ↗' }).getAttribute('href')).toBe(ADDRESS)
     const header = screen.getAllByRole('button').map(b => b.textContent)
-    expect(header).toEqual(['Plan maintenance…', 'Back up now', 'Logs', 'Erase…'])
+    expect(header).toEqual(['Plan maintenance…', 'Back up now', 'Erase…'])
     const hq = screen.getByRole('region', { name: 'HQ' })
     const reach = within(hq).getByRole('region', { name: 'How people reach it' })
     expect(within(reach).getByText(ADDRESS)).toBeTruthy()

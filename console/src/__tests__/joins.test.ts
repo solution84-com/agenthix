@@ -184,6 +184,23 @@ describe('a join presenting a machine already in the fleet @SC-869', () => {
     expect(h.ctx.hosts.list()).toHaveLength(1)
   })
 
+  it('two quick confirms of a join that replaces a machine: the second is turned away, and the first alone runs', async () => {
+    let release!: () => void
+    const gate = new Promise<void>(resolve => { release = resolve })
+    h.link.handle('site.remove', async () => { await gate; return { removed: true } })
+    await pinOffice()
+    const code = await openCode()
+    h.link.emit('joinRequest', await host.joinRequest('j-1', code))
+    await until(() => h.ctx.joins.get('j-1')?.state === 'confirming')
+    const first = api('/api/joins/j-1/confirm', 'POST', {})
+    await until(() => h.link.callsOf('site.remove').length === 1)
+    expect((await api('/api/joins/j-1/confirm', 'POST', {})).status).toBe(409)
+    release()
+    expect((await first).status).toBe(200)
+    expect(h.link.callsOf('site.remove')).toHaveLength(1)
+    expect(h.link.callsOf('join.accept')).toHaveLength(1)
+  })
+
   it('is refused at confirmation when that machine came online meanwhile', async () => {
     await pinOffice()
     const code = await openCode()

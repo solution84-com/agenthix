@@ -88,4 +88,24 @@ describe('a machine disconnected here @SC-878', () => {
     expect((await api(`/api/hosts/${office.fingerprint}/disconnect`, 'POST', {})).status).toBe(200)
     expect(await disconnectedList()).toEqual([])
   })
+
+  it('leaves no figures or online state behind, if the same machine is added again', async () => {
+    h.ctx.presence.setFigures(office.fingerprint, { takenAt: 'x' } as never)
+    await api(`/api/hosts/${office.fingerprint}/disconnect`, 'POST', {})
+    expect(h.ctx.presence.of(office.fingerprint)).toEqual({ online: false, since: null, leftAt: null, figures: null, figuresAt: null, scheduled: [] })
+  })
+})
+
+describe('a machine in a move under way @SC-878', () => {
+  it('is refused, and nothing changes in HQ or here', async () => {
+    h.link.handle('join.open', () => ({ joinId: 'j-move' }))
+    const asked = await api(`/api/hosts/${office.fingerprint}/move`, 'POST', {})
+    expect(asked.status).toBe(201)
+    const res = await api(`/api/hosts/${office.fingerprint}/disconnect`, 'POST', {})
+    expect(res.status).toBe(409)
+    expect(res.json.message).toMatch(/move that is under way.*Nothing was changed\.$/)
+    expect(h.link.callsOf('host.disconnect')).toEqual([])
+    expect(h.link.callsOf('site.remove')).toEqual([])
+    expect(h.ctx.hosts.byFingerprint(office.fingerprint)).not.toBeNull()
+  })
 })

@@ -31,7 +31,9 @@ Express 5 and `ws`, and `@agenthix/core` bundled (ADR-0086's reasons apply). Not
     another machine (`src/handover/outgoing.ts`).
   - `handover-status` → `{"state":"…", …}`: whether this Fleet Console took another's place, and how many machines
     follow it so far (`src/handover/incoming.ts`).
-  - `remote-csr`, `remote-on`, `remote-off`, `remote-status` and `remote-authenticator-add`: remote access on a machine
+  - `hq-address <address>` → `{"address":"…","outcome":"…"}`: hq moved; the Fleet Console dials the new address once it
+    passes the check (`src/hq/addressFollow.ts`).
+  - `remote-csr`, `remote-on`, `remote-off`, `remote-status`, `remote-authenticator-add` and `remote-authenticator-reset`: remote access on a machine
     Agenthix Cloud runs, asked by the host service for Cloud (`src/net/remoteAccess.ts`). The request is a JSON
     payload on standard input, so an authenticator's secret is never in a command line.
 - `npm run build` bundles the server to `dist/console.js` and the command line to `dist/cli.js` with esbuild.
@@ -45,6 +47,7 @@ Its environment, set by the host service:
 | `CONSOLE_HQ_ADDRESS` | hq's address. https, or plain http only to the machine itself or a private network |
 | `HQ_CONSOLE_PAIRING_SECRET` | On hq's machine: the pairing secret set at install. A lasting credential, once held, is presented instead |
 | `CONSOLE_HQ_CODE` | Elsewhere: the one-time code from `agenthix hq console-code`. Only its lookup is presented to hq, once, for a lasting credential. Its first character says its kind: `H` for one hq made (the Fleet Console starts with no machines), anything else for a handover code from the running Fleet Console |
+| `CONSOLE_VERSION` | The version it runs, set when the host service starts the container; `dev` when it is not set (a development build) |
 | `CONSOLE_MACHINE_NAME` | The machine's name, for the words people read |
 | `CONSOLE_STATE_DIR` | The state folder, `/state` by default |
 | `CONSOLE_PORT` | The Fleet Console's server port by default, inside its container and in dev ([`docs/architecture/ports.md`](../docs/architecture/ports.md)) |
@@ -123,7 +126,7 @@ Its environment, set by the host service:
   `machineName`; hq renames its record itself). A name is a label only — never used to find, match or trust a
   machine — but a machine whose name is already a pinned machine's (letter case aside) is turned away at its join,
   in words that name the other; a move's old machine and a restore's lost one don't count, since they leave.
-- **Disconnecting.** The machine that carries hq (`hqMachine`) cannot be disconnected: hq moves first. A machine
+- **Disconnecting.** The machine that carries hq (`hqMachine`) cannot be disconnected: hq moves first. Nor can a machine in a move under way, until the move ends. A machine
   disconnected here stays listed (who, when, its names; no keys) until a fleet admin removes it from the list or adds
   it again.
 - **A machine that stops answering.** Each pinned machine has `notifyIfSilent` (absent is yes), asked with the code

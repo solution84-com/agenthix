@@ -1,9 +1,22 @@
 import { FormField, Input } from '@agenthix/ui/primitives'
 import { later, type WhenChoice } from './scheduleChoice'
 
-/** What members see of work at a time, in one line, unless the form says it otherwise. */
-export const LATER_HINT = 'Members whose work it affects see a notice from now; a few minutes before, runs pause after their step. ' +
-  'At 02:00, the nightly backup’s time, an upgrade, move or erase waits for that backup to finish first.'
+const MEMBERS_SEE = 'Members whose work it affects see a notice from now; a few minutes before, runs pause after their step. '
+
+/**
+ * What members see of work at a time, in one line, and which work waits for the nightly backup. The backup time is the
+ * machine's own (`nightlyAt`), so the line names it only when the machine has said it. `waits: false` is for work that
+ * does not wait for a backup, such as a suspend.
+ */
+export function laterHint(nightlyAt?: string | null, waits = true): string {
+  if (!waits) return `${MEMBERS_SEE}It does not wait for a backup.`
+  return nightlyAt
+    ? `${MEMBERS_SEE}At ${nightlyAt}, the nightly backup’s time, an upgrade, move or erase waits for that backup to finish first.`
+    : `${MEMBERS_SEE}An upgrade, move or erase set for the nightly backup’s time waits for that backup to finish first.`
+}
+
+/** The line when the machine's backup time is not known. */
+export const LATER_HINT = laterHint()
 
 const Part = ({ name, checked, onChoose, children }: { name: string; checked: boolean; onChoose: () => void; children: string }) => (
   <label className={`flex-1 cursor-pointer px-3 py-1.5 text-center text-small has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-accent ${checked ? 'bg-selected font-semibold text-text-primary' : 'text-text-secondary hover:bg-surface-hover'}`}>

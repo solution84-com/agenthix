@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { normalizeJoinCode, type HostMessage, type HostRequest } from '@agenthix/core'
 import { joinLookup } from '@agenthix/core/host-crypto'
+import { Moves } from '../move/moves'
 import { loadOrCreateKeys } from '../state/keys'
 import { FakeHost, until } from './fakes'
 import { startHarness, type Harness } from './harness'
@@ -200,3 +201,40 @@ describe('Move site… @SC-873', () => {
     expect(refused).toMatchObject({ status: 409, json: { message: "HQ's site moves with HQ, with Move HQ…." } })
   })
 })
+
+describe('a restart while a move is being arranged @SC-873', () => {
+  it('ends the move, tells the machine armed to receive, and closes the transfer at hq', async () => {
+    const started = await api(`/api/hosts/${office.fingerprint}/move`, 'POST', {})
+    const code = normalizeJoinCode(started.json.code as string)!
+    h.link.emit('joinRequest', await fresh.joinRequest('j-move', code, 'new-server'))
+    await until(() => h.ctx.joins.get('j-move')?.state === 'confirming')
+    await api('/api/joins/j-move/confirm', 'POST', {})
+    online('h-new', fresh.fingerprint)
+    const armed = await nextCommand(fresh, 0)
+    const transferId = (armed.request as { transferId: string }).transferId
+    await answer(fresh, armed.requestId, 'move', { transferId })
+    await until(() => h.link.callsOf('transfer.open').length === 1)
+    expect(h.ctx.moves.list()[0]?.state).toBe('arranging')
+
+    const seen = h.link.envelopes.length
+    const restarted = new Moves({ link: h.link, hosts: h.ctx.hosts, commands: h.ctx.commands, joins: h.ctx.joins, presence: h.ctx.presence, activity: h.ctx.activity, state: h.state })
+    expect(restarted.list()[0]).toMatchObject({ state: 'failed', transferId })
+    await until(() => h.link.callsOf('transfer.close').length === 1)
+    expect(h.link.callsOf('transfer.close')).toEqual([{ transferId }])
+    const told = await nextCommandOrMessage(seen)
+    expect(told).toMatchObject({ kind: 'moveEnded', transferId })
+  })
+})
+
+async function nextCommandOrMessage(seen: number): Promise<Record<string, unknown>> {
+  const end = Date.now() + 2_000
+  while (Date.now() < end) {
+    for (const env of h.link.envelopes.slice(seen)) {
+      if (env.to !== fresh.fingerprint) continue
+      const opened = await fresh.open(env)
+      if (opened.ok && (opened.message as { kind?: string }).kind === 'moveEnded') return opened.message as Record<string, unknown>
+    }
+    await new Promise(r => setTimeout(r, 5))
+  }
+  throw new Error('the machine was not told')
+}

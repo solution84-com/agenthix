@@ -3,6 +3,10 @@ import http from 'node:http'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { EXPORT_CHUNK_BYTES, type HostEnvelope, type HostMessage, type HostResult } from '@agenthix/core'
+import { EventEmitter } from 'node:events'
+import type { Response } from 'express'
+import { ExportDownloads } from '../exports/downloads'
+import { sessionFitsPeer } from '../http/guards'
 import { loadOrCreateKeys } from '../state/keys'
 import { FakeHost, until } from './fakes'
 import { startHarness, type Harness } from './harness'
@@ -187,5 +191,62 @@ describe('downloading an export from the Fleet Console', () => {
     }
     expect(h.link.envelopes).toHaveLength(0)
     void SAM
+  })
+})
+
+describe('a download that does not end well', () => {
+  it('is recorded in HQ’s activity when its link is spent, by who took it @SC-887', async () => {
+    const session = await h.signIn()
+    const prepared = await prepare(session)
+    expect(h.link.callsOf('activity.record').some(c => c.action === 'command.backup.exportRead')).toBe(false)
+    await get(prepared.json.href as string, session.cookie)
+    expect(h.link.callsOf('activity.record').find(c => c.action === 'command.backup.exportRead'))
+      .toMatchObject({ byUserId: 'u-sam', subject: expect.stringContaining('downloaded'), announce: false })
+  })
+
+  it('fails in words when its link is never fetched, instead of waiting for good @SC-887', async () => {
+    let now = Date.now()
+    const downloads = new ExportDownloads(h.ctx.commands, () => now)
+    const session = { idHash: 'x', user: { id: 'u-sam', name: 'Sam Rivera' } } as never
+    const { downloadId } = downloads.begin(session, SAM, host.fingerprint, 'office-server', EXPORT_ID)
+    expect(downloads.status(downloadId, 'u-sam')).toMatchObject({ state: 'waiting' })
+    now += 61_000
+    expect(downloads.status(downloadId, 'u-sam')).toMatchObject({ state: 'failed', problem: expect.stringMatching(/did not fetch the file within a minute.*download it again\.$/) })
+  })
+
+  it('fails in words when the role was removed before the file was fetched @SC-887', async () => {
+    const session = await h.signIn()
+    const prepared = await prepare(session)
+    const holds = h.ctx.roles.stillHolds.bind(h.ctx.roles)
+    h.ctx.roles.stillHolds = async () => false
+    expect((await get(prepared.json.href as string, session.cookie)).status).toBe(401)
+    h.ctx.roles.stillHolds = holds
+    expect(await statusOf(session, prepared.json.downloadId as string)).toMatchObject({ state: 'failed', problem: expect.stringMatching(/no longer holds the fleet admin role/) })
+  })
+
+  it('ends as stopped when the browser drops while the last bytes are flushed, instead of sending for good @SC-887', async () => {
+    const data = Buffer.from('tiny').toString('base64url')
+    const commands = {
+      send: async () => ({ ok: true, op: 'backup.exportRead', result: { exportId: EXPORT_ID, offset: 0, sizeBytes: 4, last: true, data } }),
+    }
+    const downloads = new ExportDownloads(commands as never)
+    const { downloadId, link } = downloads.begin({ idHash: 'x', user: { id: 'u-sam', name: 'Sam' } } as never, SAM, host.fingerprint, 'office-server', EXPORT_ID)
+    const emitter = new EventEmitter()
+    const res = Object.assign(emitter, {
+      writableFinished: false, headersSent: false,
+      status() { this.headersSent = true; return this }, setHeader() {}, write: () => true, destroy() {},
+      // Closed with the end still unflushed: `finish` never comes.
+      end() { setTimeout(() => emitter.emit('close'), 5) },
+    })
+    await Promise.race([downloads.send(downloads.take(link)!, res as unknown as Response), new Promise((_, reject) => setTimeout(() => reject(new Error('send never ended')), 1000))])
+    expect(downloads.status(downloadId, 'u-sam')).toMatchObject({ state: 'failed', problem: expect.stringMatching(/stopped before it ended/) })
+  })
+
+  it('opens a file for a local session only locally, and a remote session only remotely @SC-887', () => {
+    const local = { remote: undefined } as never
+    const remote = { remote: true } as never
+    const onLoopback = { socket: {} } as never
+    expect(sessionFitsPeer(local, onLoopback)).toBe(true)
+    expect(sessionFitsPeer(remote, onLoopback)).toBe(false)
   })
 })

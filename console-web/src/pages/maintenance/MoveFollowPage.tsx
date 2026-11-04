@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '../../api/client'
 import { startedMoveOf } from '../../forms/MoveChange'
 import { navigate } from '../../router'
@@ -7,6 +7,7 @@ import type { FleetHost } from '../dashboard/types'
 import { useFleet } from '../dashboard/useFleet'
 import { MoveHqFollow } from '../hq/MoveHqFollow'
 import type { Move } from '../site/move/moveWords'
+import type { Code } from '../site/move/WaitingForMachine'
 import { MoveFollow } from '../site/move/MoveFollow'
 import { HQ_KEY } from './things'
 import { maintenanceAddress } from './panelAddress'
@@ -24,7 +25,11 @@ export function MoveFollowPage({ thing, moveId: named = null, pollMs }: { thing:
   const host = fleet ? (hq ? fleet.hosts.find(h => h.hqMachine) : fleet.hosts.find(h => h.fingerprint === thing)) ?? null : null
   const started = host ? startedMoveOf(host.fingerprint) : null
   const held = useHeldMove(named)
-  const moveId = named ?? started?.moveId ?? (host?.move?.role === 'sending' ? host.move.moveId : null)
+  // Once found, the move stays followed: the machine it left is gone from the fleet when a site's move finishes.
+  const kept = useRef<{ thing: string; moveId: string; code: Code | null; fromName: string | null; consoleCame: string | null } | null>(null)
+  if (kept.current && kept.current.thing !== thing) kept.current = null
+  const found = named ?? started?.moveId ?? (host?.move?.role === 'sending' ? host.move.moveId : null)
+  const moveId = found ?? kept.current?.moveId ?? null
   const nothing = named === null && fleet !== null && moveId === null
   const page = hq ? HQ_PATH : sitePath(thing)
 
@@ -34,15 +39,17 @@ export function MoveFollowPage({ thing, moveId: named = null, pollMs }: { thing:
   }, [nothing, held, page, thing])
 
   if (!fleet || !moveId || held === 'gone' || (named !== null && held === null)) return null
-  const code = started?.moveId === moveId ? started.code : null
+  const code = started?.moveId === moveId ? started.code : kept.current?.moveId === moveId ? kept.current.code : null
   const read = typeof held === 'object' ? held : null
   if (hq) {
-    const fromName = read ? nameOf(fleet.hosts, read.from) : host?.machineName ?? null
-    const consoleCame = host && fleet.console.machineName === host.machineName ? window.location.host : null
+    const fromName = read ? nameOf(fleet.hosts, read.from) : host?.machineName ?? kept.current?.fromName ?? null
+    const consoleCame = host && fleet.console.machineName === host.machineName ? window.location.host : kept.current?.consoleCame ?? null
+    kept.current = { thing, moveId, code, fromName, consoleCame }
     return <MoveHqFollow moveId={moveId} fromName={fromName} hosts={fleet.hosts} code={code} consoleCame={consoleCame} pollMs={pollMs} />
   }
   // The machine it left may have gone with the move; the site was called by its name then.
-  const fromName = read ? nameOf(fleet.hosts, read.from) ?? read.siteName : host?.machineName ?? null
+  const fromName = read ? nameOf(fleet.hosts, read.from) ?? read.siteName : host?.machineName ?? kept.current?.fromName ?? null
+  kept.current = { thing, moveId, code, fromName, consoleCame: null }
   return <MoveFollow moveId={moveId} fromName={fromName} code={code} pollMs={pollMs} />
 }
 

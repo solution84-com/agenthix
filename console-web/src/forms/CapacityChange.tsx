@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { FormField, Input } from '@agenthix/ui/primitives'
-import { Notice, parseWhen } from '../components'
+import { laterHint, Notice, parseWhen } from '../components'
 import type { FleetHost } from '../pages/dashboard/types'
 import { memoryGbOf } from '../pages/site/words'
 import { formOf, parseCapacityForm, type CapacityErrors, type CapacityForm } from './capacityForm'
@@ -27,7 +27,7 @@ function CapacityFields({ host, start, pollMs }: { host: FleetHost; start: Capac
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    const parsed = parseCapacityForm(form, total)
+    const parsed = parseCapacityForm(form, total, host.figures?.ceilings)
     setErrors(parsed.ok ? {} : parsed.errors)
     const time = parseWhen(when, new Date())
     setWhenError(time.ok ? undefined : time.error)
@@ -53,7 +53,7 @@ function CapacityFields({ host, start, pollMs }: { host: FleetHost; start: Capac
         </FormField>
       </div>
       <p className="my-3 text-small text-text-muted">Protections are not set here: they belong to the machine.</p>
-      <MaintenanceEnding idPrefix="cap-when" machineName={host.machineName} when={when} onWhen={setWhen} whenError={whenError} run={run}
+      <MaintenanceEnding idPrefix="cap-when" laterHint={laterHint(host.figures?.backups.nightlyAt)} machineName={host.machineName} when={when} onWhen={setWhen} whenError={whenError} run={run}
         refusedTitle="Not saved" nowHint="Now: new runs get these limits at once; runs already going keep theirs."
         done={{ title: 'Saved.', text: 'New runs get these limits.' }} />
     </form>

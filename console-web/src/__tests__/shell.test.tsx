@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../App'
 import { forgetCsrfToken } from '../api/csrf'
+import { LocalOnlyFoot } from '../shell/LocalOnlyFoot'
 import { findSites, JOBS, menuSites } from '../shell/menu'
 import { initialsOf } from '../shell/PersonMenu'
 import { fakeServer } from './fakeServer'
@@ -130,7 +131,7 @@ describe('the menu', () => {
   it('moves between pages without a reload; Maintenance has its page, and Help has its page @SC-894', async () => {
     fakeServer(SIGNED_IN_WITH_FLEET)
     const nav = await openAt('/')
-    expect(await within(nav).findByText('on hq-box · 127.0.0.1')).toBeTruthy()
+    expect(await within(nav).findByText('on hq-box · localhost')).toBeTruthy()
     fireEvent.click(within(nav).getByRole('link', { name: 'Maintenance' }))
     expect(window.location.pathname).toBe('/maintenance')
     expect(within(nav).getByRole('link', { name: 'Maintenance' }).getAttribute('aria-current')).toBe('page')
@@ -169,11 +170,19 @@ describe('the menu', () => {
     expect(within(again).getByRole('button', { name: 'Expand the menu' })).toBeTruthy()
   })
 
-  it('says on every page that it is served to this machine alone @SC-894', async () => {
+  it('says on every page that it is opened on this machine alone @SC-894', async () => {
     fakeServer(SIGNED_IN_WITH_FLEET)
     await openAt('/backups')
     expect(screen.getByText('Local only')).toBeTruthy()
-    expect(screen.getByText(/Served to this machine alone, at 127\.0\.0\.1/)).toBeTruthy()
+    expect(screen.getByText(/Opened on this machine alone, at localhost/)).toBeTruthy()
+  })
+
+  it('says it came through remote access when the page was opened at another name', () => {
+    vi.stubGlobal('location', { ...window.location, hostname: 'console.example.net' })
+    render(<LocalOnlyFoot />)
+    expect(screen.getByText('Remote access')).toBeTruthy()
+    expect(screen.queryByText(/nothing on the network/)).toBeNull()
+    expect(screen.queryByText('Local only')).toBeNull()
   })
 })
 

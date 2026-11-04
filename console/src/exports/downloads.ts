@@ -10,7 +10,6 @@
  * Only once the whole file has left for the browser is the machine told, and it removes its copy.
  */
 import { randomBytes, randomUUID } from 'node:crypto'
-import { once } from 'node:events'
 import type { Response } from 'express'
 import { EXPORT_CHUNK_BYTES, exportChunkProblem, type ExportChunk, type HostActor, type HostResult } from '@agenthix/core'
 import type { HostCommands } from '../hosts/commands'
@@ -49,7 +48,7 @@ const sentence = (s: string) => (/[.!?]$/.test(s) ? s : `${s}.`)
 
 export class ExportDownloads {
   private readonly links = new Map<string, Pending>()
-  private readonly statuses = new Map<string, { status: DownloadStatus; userId: string }>()
+  private readonly statuses = new Map<string, { status: DownloadStatus; userId: string; link: string }>()
 
   constructor(private readonly commands: HostCommands, private readonly now: () => number = Date.now) {}
 
@@ -61,7 +60,7 @@ export class ExportDownloads {
       downloadId: randomUUID(), exportId, machineName, state: 'waiting', sizeBytes: null, sentBytes: 0, problem: null, removedFromMachine: null,
     }
     this.links.set(link, { status, sessionIdHash: session.idHash, userId: session.user.id, by, fingerprint, expiresAt: this.now() + LINK_MS })
-    this.statuses.set(status.downloadId, { status, userId: session.user.id })
+    this.statuses.set(status.downloadId, { status, userId: session.user.id, link })
     setTimeout(() => this.statuses.delete(status.downloadId), KEEP_MS).unref?.()
     return { downloadId: status.downloadId, link }
   }
@@ -76,12 +75,32 @@ export class ExportDownloads {
   take(link: string): Pending | null {
     const p = this.links.get(link)
     this.links.delete(link)
-    return p && p.expiresAt > this.now() ? p : null
+    if (!p || p.expiresAt <= this.now()) return null
+    p.status.state = 'sending'
+    return p
+  }
+
+  /** A link refused before the file was fetched ends the download in words, instead of leaving it waiting. */
+  refuse(link: string, problem: string): void {
+    const p = this.links.get(link)
+    if (p && p.status.state === 'waiting') {
+      p.status.state = 'failed'
+      p.status.problem = problem
+    }
+    this.links.delete(link)
   }
 
   status(downloadId: string, userId: string): DownloadStatus | null {
     const s = this.statuses.get(downloadId)
-    return s && s.userId === userId ? { ...s.status } : null
+    if (!s || s.userId !== userId) return null
+    // A link nobody fetched within its minute is gone; a download still waiting on it has failed.
+    const waiting = s.status.state === 'waiting'
+    const link = this.links.get(s.link)
+    if (waiting && (!link || link.expiresAt <= this.now())) {
+      s.status.state = 'failed'
+      s.status.problem = `The browser did not fetch the file within a minute. The export is still on ${s.status.machineName}: download it again.`
+    }
+    return { ...s.status }
   }
 
   /** Streams the export to the response; never throws. */
@@ -131,7 +150,9 @@ export class ExportDownloads {
         fill()
       }
       res.end()
-      if (!res.writableFinished) await once(res, 'finish')
+      // A browser that drops while the last bytes flush closes the response without finishing it.
+      if (!res.writableFinished) await new Promise<void>(resolve => { res.once('finish', resolve); res.once('close', resolve) })
+      if (!res.writableFinished) throw new Error('the browser stopped taking it')
       status.removedFromMachine = await this.release(p)
       status.state = 'done'
     } catch (err) {

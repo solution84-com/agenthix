@@ -9,8 +9,8 @@
  * it kept, and it leaves the fleet. If the move does not complete, the old machine has the site running again by then,
  * and the move reads so.
  *
- * Kept in the state folder, since a move may be set days ahead. A move still waiting for its new machine when the
- * Fleet Console restarts has lost its code (codes live in memory) and reads so. One whose code runs out, or whose
+ * Kept in the state folder, since a move may be set days ahead. A move still being arranged when the Fleet Console
+ * restarts has lost its code (codes live in memory) and reads so (restart.ts). One whose code runs out, or whose
  * machine is refused, ends by itself the same way: nothing was asked of either machine yet, so the site runs on.
  */
 import { randomUUID } from 'node:crypto'
@@ -18,7 +18,10 @@ import { BRANDING, isTransferId, type HostRequest, type MoveReport, type MoveSta
 import type { PinnedHost } from '../state/hosts'
 import { ACTIVE, MoveError, type FleetAdmin, type Move, type MovesDeps, type Where } from './types'
 import { endedMoveTo, failedText, leaveTargetEmpty, moveToConnected } from './target'
-import { nowRunsOn } from '../join/names'
+import { timeInRecord } from '../activity'
+import { answerMoveCodeAsk } from './askedByMachine'
+import { finishMove } from './finish'
+import { failRestarted } from './restart'
 
 export { MoveError, type Move, type MoveState, type MovesDeps } from './types'
 
@@ -30,26 +33,20 @@ const TRANSFER_OPEN_MS = 24 * 60 * 60_000
 
 export class Moves {
   private moves: Move[]
+  /** Moves a restart ended after they armed the new machine: told and closed at hq once the link is up. */
+  private restarted: Move[]
 
   constructor(private readonly deps: MovesDeps, private readonly onlineWaitMs = ONLINE_WAIT_MS) {
     const stored = deps.state.readJson(FILE) as { moves?: Move[] } | null
     this.moves = Array.isArray(stored?.moves) ? stored.moves : []
-    for (const m of this.moves) {
-      if (m.state === 'waitingForMachine' || m.state === 'arranging') {
-        m.state = 'failed'
-        m.problem = m.joinId
-          ? 'The Fleet Console restarted before the new machine was set up, so its code no longer works. Start the move again.'
-          : 'The Fleet Console restarted before the new machine was set up. Start the move again.'
-      }
-    }
+    this.restarted = failRestarted(this.moves, deps.hosts)
     this.save()
     deps.joins.whenMoveConfirmed((joinId, fingerprint, by) => this.confirmed(joinId, fingerprint, by))
     deps.commands.onMove((from, message) => {
       this.heard(from, message).catch(err => console.error('[console] a move report failed:', err instanceof Error ? err.message : err))
     })
-    deps.link.on('state', state => {
-      if (state === 'connected') void this.reopen()
-    })
+    deps.link.on('state', state => { if (state === 'connected') void this.closeRestarted().then(() => this.reopen()) })
+    if (deps.link.state === 'connected') void this.closeRestarted()
   }
 
   list(): Move[] {
@@ -80,8 +77,10 @@ export class Moves {
     return endedMoveTo(this.moves, fingerprint)
   }
 
-  /** *Move site…*: the code for the new machine. `by` null: the site's machine admin asked. */
-  /** `notify`: whether the fleet admins are told when the new machine stops answering (hosts/silence.ts). */
+  /**
+   * *Move site…*: the code for the new machine. `by` null: the site's machine admin asked. `notify`: whether the fleet
+   * admins are told when the new machine stops answering (hosts/silence.ts).
+   */
   async start(by: FleetAdmin | null, from: string, at: string | null, notify = true): Promise<Move & { code: string; expiresAt: string }> {
     return this.open(by, this.movable(from), at, {}, notify)
   }
@@ -228,7 +227,7 @@ export class Moves {
     const changeId = asked.op === 'schedule' ? (asked.result as { change?: { id?: string } }).change?.id ?? null : null
     this.set(move, { state: later ? 'scheduled' : 'running', changeId })
     const what = move.kind === 'hq' ? 'HQ' : move.siteName
-    await this.deps.activity.record(by.userId, move.kind === 'hq' ? 'hq.moveScheduled' : 'site.moveScheduled', `${what} to ${to.machineName}${later ? `, at ${move.at}` : ', now'}`, true)
+    await this.deps.activity.record(by.userId, move.kind === 'hq' ? 'hq.moveScheduled' : 'site.moveScheduled', `${what} to ${to.machineName}${later ? `, at ${timeInRecord(move.at!)}` : ', now'}`, true)
   }
 
   private async openTransfer(move: Move): Promise<void> {
@@ -242,6 +241,10 @@ export class Moves {
     if (!opened) throw new Error('HQ would not open the transfer between the two machines.')
   }
 
+  private async closeRestarted(): Promise<void> {
+    for (const move of this.restarted.splice(0)) await this.endTransfer(move, 'The Fleet Console restarted before the move began.')
+  }
+
   /** hq forgets open transfers when it restarts: each move still ahead is opened again. */
   private async reopen(): Promise<void> {
     for (const move of this.moves.filter(m => m.state === 'scheduled' || m.state === 'running')) {
@@ -250,7 +253,7 @@ export class Moves {
   }
 
   private async heard(from: string, message: Record<string, unknown>): Promise<void> {
-    if (message.kind === 'moveCodeAsk') return this.askedByMachine(from, message)
+    if (message.kind === 'moveCodeAsk') return answerMoveCodeAsk(this.deps.commands, this, from, message)
     const report = message.report as Partial<MoveReport> | undefined
     if (!report || !isTransferId(report.transferId) || typeof report.state !== 'string') return
     const move = this.moves.find(m => m.transferId === report.transferId)
@@ -268,43 +271,9 @@ export class Moves {
     if (move.state === 'scheduled' && (state === 'started' || state === 'transferring')) this.set(move, { state: 'running' })
   }
 
-  /**
-   * The site answers hq from the new machine, and the old one committed: hq records where it runs — and names it after
-   * the new machine, as every site is — the old machine removes the copy it kept — the move's last step, not an
-   * erase — and leaves the fleet.
-   */
-  async finish(move: Move): Promise<void> {
-    const from = this.deps.hosts.byFingerprint(move.from)
-    const to = move.to ? this.deps.hosts.byFingerprint(move.to) : null
-    const by = move.confirmedBy ? { kind: 'fleetAdmin' as const, ...move.confirmedBy } : null
-    if (!to || !by) return this.fail(move, 'the new machine is no longer connected to this Fleet Console.')
-    this.set(move, { state: 'finishing', problem: null })
-    const hq = move.kind === 'hq'
-    try {
-      if (hq) {
-        // The new machine said, sealed, that hq answers there and the old one committed: by this Fleet Console's own
-        // record of the move, it carries hq now, and the old machine no longer does.
-        this.deps.hosts.markHqMachine(to.fingerprint)
-        this.deps.hosts.update(to.fingerprint, { siteName: to.machineName })
-      } else {
-        await this.deps.link.call('site.move', { executionSiteId: move.executionSiteId!, toHostId: to.hostId })
-        this.deps.hosts.update(to.fingerprint, { executionSiteId: move.executionSiteId, siteName: to.machineName })
-      }
-      if (from) {
-        this.deps.hosts.update(from.fingerprint, { executionSiteId: null })
-        const removed = await this.deps.commands.send(from.fingerprint, { op: 'remove', target: hq ? 'hq' : 'site' }, by)
-        if (!removed.ok) throw new Error(removed.refusal.message)
-        await this.deps.link.call('host.disconnect', { hostId: from.hostId })
-        this.deps.hosts.remove(from.fingerprint)
-      }
-    } catch (err) {
-      // It runs on the new machine; only the tidying is left, and finishing again carries it on.
-      this.set(move, { problem: `${hq ? 'HQ' : 'The site'} runs on ${to.machineName}, but the old copy is not removed yet: ${err instanceof Error ? err.message : String(err)}` })
-      return
-    }
-    this.set(move, { state: 'done' })
-    const moved = hq ? `HQ now runs on ${to.machineName}, and its site is named ${to.machineName}` : nowRunsOn(move.siteName, to.machineName)
-    await this.deps.activity.record(by.userId, hq ? 'hq.moved' : 'site.moved', `${moved}${from ? '; the machine it ran on left the fleet' : ''}`, true)
+  /** The new machine took over and the old one committed: hq is told where the site runs, and the old copy goes (finish.ts). */
+  finish(move: Move): Promise<void> {
+    return finishMove(this.deps, move, (m, patch) => this.set(m, patch), (m, reason) => this.fail(m, reason))
   }
 
   private async fail(move: Move, reason: string, where: Where = 'still'): Promise<void> {
@@ -313,21 +282,6 @@ export class Moves {
     leaveTargetEmpty(this.deps.hosts, move)
     await this.endTransfer(move, reason)
     await this.deps.activity.record(move.confirmedBy?.userId ?? move.by?.userId ?? null, move.kind === 'hq' ? 'hq.moveFailed' : 'site.moveFailed', `${what}: ${reason}`, true)
-  }
-
-  /** `site schedule move --at` on the site's machine: the code, sealed back to it, so hq never sees it. */
-  private async askedByMachine(from: string, message: Record<string, unknown>): Promise<void> {
-    if (typeof message.askId !== 'string' || message.askId.length > 64) return
-    const at = typeof message.at === 'string' ? message.at : null
-    const replyTo = message.askId
-    try {
-      const m = message.target === 'hq'
-        ? await this.startHq(null, at, typeof message.hqAddress === 'string' ? message.hqAddress : null, from)
-        : await this.start(null, from, at)
-      await this.deps.commands.tell(from, { kind: 'moveCode', replyTo, code: m.code, expiresAt: m.expiresAt, problem: null })
-    } catch (err) {
-      await this.deps.commands.tell(from, { kind: 'moveCode', replyTo, code: null, expiresAt: null, problem: err instanceof Error ? err.message : 'No code was made.' }).catch(() => {})
-    }
   }
 
   private set(move: Move, patch: Partial<Move>): void {

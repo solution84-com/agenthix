@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BRANDING } from '@agenthix/core'
-import { KeyValueRow, Notice, parseWhen } from '../components'
+import { KeyValueRow, laterHint, Notice, parseWhen } from '../components'
 import type { FleetHost } from '../pages/dashboard/types'
 import { useDraft } from './drafts'
 import { noteHqSuspended } from './hqSuspend'
@@ -38,7 +38,7 @@ export function SuspendChange({ host, pollMs }: { host: FleetHost; pollMs?: numb
           <KeyValueRow label="Scheduled backups">none while suspended</KeyValueRow>
         </div>
       </div>
-      <MaintenanceEnding idPrefix="suspend-when" machineName={host.machineName} when={when} onWhen={setWhen} whenError={whenError}
+      <MaintenanceEnding idPrefix="suspend-when" laterHint={laterHint(null, false)} machineName={host.machineName} when={when} onWhen={setWhen} whenError={whenError}
         run={wentQuiet ? { phase: 'done' } : run} danger refusedTitle="HQ was not suspended"
         nowHint="Now: runs pause after their current step, then HQ stops."
         done={{ title: 'HQ is suspended.', text: "Resume it from HQ's page." }} />

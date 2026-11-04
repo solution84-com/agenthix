@@ -23,6 +23,15 @@ describe('a line of the record @SC-917', () => {
     expect(whoDid(null)).toEqual({ name: 'A machine admin', commandLine: true })
   })
 
+  it('words what Cloud did to remote access, as Cloud and not as a machine admin', () => {
+    expect(activityLine('remoteAccess.on')).toBe('turned remote access on')
+    expect(activityLine('remoteAccess.ended')).not.toBe('did something')
+    expect(activityLine('command.backup.exportRead')).toBe('downloaded an export')
+    expect(whoDid(null, 'remoteAccess.on')).toEqual({ name: 'Agenthix Cloud', commandLine: false })
+    expect(whoDid(null, 'fleetAdmin.granted').commandLine).toBe(true)
+    expect(kindOf('remoteAccess.off')).toBe('remoteAccess')
+  })
+
   it('words a change of the notify setting', () => {
     expect(activityLine('machine.notifySet')).toBe('changed whether the fleet admins are told when a machine stops answering')
   })

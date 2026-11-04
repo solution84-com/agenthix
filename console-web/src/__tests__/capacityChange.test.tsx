@@ -67,6 +67,17 @@ describe('Change capacity @SC-908', () => {
     expect(requests.find(r => r.method === 'POST')!.body).toEqual({ request: { op: 'capacity.set', ceilings: { memoryBytesPerContainer: 4 * GIB, cpusPerContainer: 2, processesPerContainer: 512, containersAtOnce: 4 } } })
   })
 
+  it('once saved, the button cannot send it a second time', async () => {
+    const requests = fakeServer({ [route]: OK })
+    render(<CapacityChange host={host} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Do it now' }))
+    expect(await screen.findByText('Saved.')).toBeTruthy()
+    const button = screen.getByRole('button', { name: 'Do it now' }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    fireEvent.click(button)
+    expect(requests.filter(r => r.method === 'POST')).toHaveLength(1)
+  })
+
   it('at a time: refuses one too near for members to be told, then sends it scheduled @SC-909', async () => {
     const requests = fakeServer({ [route]: OK })
     render(<CapacityChange host={host} pollMs={1} />)

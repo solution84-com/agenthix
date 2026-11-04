@@ -9,6 +9,7 @@ import type { ConsoleContext } from '../app'
 import type { PinnedHost } from '../../state/hosts'
 import { listedAs } from '../../state/hosts'
 import { HostCommandError } from '../../hosts/commands'
+import { timeInRecord } from '../../activity'
 import { actorOf } from './fleet'
 import { respond } from './commands'
 
@@ -31,7 +32,7 @@ const sameName = (typed: unknown, name: string) => typeof typed === 'string' && 
 
 /** `office-server: back to the night of 2026-10-14`, or at a time, as planned maintenance reads. */
 export function restoreSubject(machine: string, night: string, at: string | null): string {
-  return at ? `${machine}: restore to the night of ${night}, at ${at}` : `${machine}: back to the night of ${night}`
+  return at ? `${machine}: restore to the night of ${night}, at ${timeInRecord(at)}` : `${machine}: back to the night of ${night}`
 }
 
 export function backupRoutes(ctx: ConsoleContext): Router {

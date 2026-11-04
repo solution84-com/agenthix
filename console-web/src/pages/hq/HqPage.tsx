@@ -119,7 +119,7 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
     )
   }
 
-  const health = hqHealth(install, host.online)
+  const health = hqHealth(install, host.online, !!host.figures)
   const f = host.figures
   return (
     <>
@@ -132,7 +132,6 @@ export function HqPage({ fleet, host, now, failure, refresh, pollMs }: {
         {address && <HqLink address={address}>Open HQ ↗</HqLink>}
         <Button variant="secondary" onClick={() => openMaintenance('hq')}>Plan maintenance…</Button>
         <Button variant="secondary" onClick={go('backups')}>Back up now</Button>
-        <Button variant="secondary" onClick={go('logs')}>Logs</Button>
         <Button variant="danger" onClick={openErase}>Erase…</Button>
       </div>
       {modals}

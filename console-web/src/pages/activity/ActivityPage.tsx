@@ -64,7 +64,7 @@ export function ActivityPage() {
             <Card>
               <ul aria-label="What was done">
                 {shown.map(e => {
-                  const who = whoDid(e.by)
+                  const who = whoDid(e.by, e.action)
                   return (
                     <li key={e.id} className="grid grid-cols-[7.5rem_minmax(0,1fr)_auto] items-baseline gap-3 border-t border-border-subtle py-2 text-small first:border-t-0">
                       <time dateTime={e.at} className="font-mono text-micro text-text-muted">{capital(whenIs(e.at, now))}</time>

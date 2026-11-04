@@ -25,7 +25,7 @@ describe('signing in @SC-892', () => {
     fakeServer({ 'GET /status': { status: 200, body: STATUS_OK } })
     render(<App />)
     expect(await screen.findByText('Sign in with your HQ account. You need the fleet admin role.')).toBeTruthy()
-    expect(screen.getByText('on hq-box · 127.0.0.1')).toBeTruthy()
+    expect(screen.getByText('on hq-box · localhost')).toBeTruthy()
   })
 
   it('while HQ does not answer, nobody can sign in, and the page says what to run on the machine', async () => {
