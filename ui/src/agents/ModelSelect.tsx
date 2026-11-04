@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import {
   OPENCODE_RUNTIME, MODEL_PROVIDER_LABELS, OPENAI_COMPATIBLE_PREFIX,
   modelsForRuntime, isTypedModel, typedModelValue, type OpenCodeModel,
@@ -36,66 +36,5 @@ export function ModelOptions({ runtime, value, filter = '' }: { runtime: string;
       ))}
       {isTypedModel(value) && <option value={value}>{value.slice(OPENAI_COMPATIBLE_PREFIX.length)}</option>}
     </>
-  )
-}
-
-const TYPED = '__typed__'
-
-/**
- * A model picker for a runtime. On OpenCode it also takes a model typed by
- * name, for an OpenAI-compatible endpoint, which has no catalogue.
- */
-export function ModelSelect({ runtime, value, onChange, className }: {
-  runtime: string
-  value: string
-  onChange: (model: string) => void
-  className?: string
-}) {
-  const canType = runtime === OPENCODE_RUNTIME
-  const [typing, setTyping] = useState(isTypedModel(value))
-  const [filter, setFilter] = useState('')
-  const [typedName, setTypedName] = useState(isTypedModel(value) ? value.slice(OPENAI_COMPATIBLE_PREFIX.length) : '')
-
-  useEffect(() => {
-    setTyping(isTypedModel(value))
-    if (isTypedModel(value)) setTypedName(value.slice(OPENAI_COMPATIBLE_PREFIX.length))
-  }, [value])
-
-  return (
-    <div className="space-y-2">
-      {canType && (
-        <input
-          type="search"
-          value={filter}
-          placeholder="Filter models, e.g. sonnet, free, openai"
-          onChange={e => setFilter(e.target.value)}
-          className={className}
-        />
-      )}
-      <select
-        value={canType && typing ? TYPED : value}
-        onChange={e => {
-          if (e.target.value === TYPED) { setTyping(true); return }
-          setTyping(false)
-          onChange(e.target.value)
-        }}
-        className={className}
-      >
-        <ModelOptions runtime={runtime} value={typing ? '' : value} filter={filter} />
-        {canType && <option value={TYPED}>{MODEL_PROVIDER_LABELS.openai_compatible} — type a model name</option>}
-      </select>
-      {canType && typing && (
-        <input
-          type="text"
-          value={typedName}
-          placeholder="Model name on your endpoint, e.g. llama3.1:8b"
-          onChange={e => {
-            setTypedName(e.target.value)
-            if (e.target.value.trim()) onChange(typedModelValue(e.target.value))
-          }}
-          className={className}
-        />
-      )}
-    </div>
   )
 }

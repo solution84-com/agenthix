@@ -1,4 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react'
+import { X } from 'lucide-react'
 import type { FileOpenAnswer, RendererMode, RendererReport } from '@agenthix/core'
 import { FILES_BUTTON } from '../projects/FilesToolParts'
 import { OverflowMenu, type OverflowItem } from '../tasks/OverflowMenu'
@@ -38,6 +39,8 @@ export interface FileFrameProps {
   onCopyLink?: () => void
   onCopyPath?: () => void
   onFullScreen?: () => void
+  /** Wide layout: a close button in the header row (narrow has its back arrow). */
+  onClose?: () => void
   /** Try again and Show the new version: open the file afresh. */
   onReopen: () => void
   /** Embedded: a click opens the file. */
@@ -98,6 +101,11 @@ function FrameForView({ view, ...props }: FileFrameProps & { view: FrameView }) 
       {props.onMention && <button type="button" className={FILES_BUTTON} onClick={props.onMention}>Mention</button>}
       <DownloadButton link={downloadLink} />
       <OverflowMenu items={menuItems(props)} />
+      {props.onClose && (props.layout ?? 'wide') === 'wide' && (
+        <button type="button" aria-label="Close" className={FILES_BUTTON} onClick={props.onClose}>
+          <X size={13} aria-hidden />
+        </button>
+      )}
     </>
   )
   const partial = view.phase === 'render' && !notice ? partialWords(report, view.facts) : null

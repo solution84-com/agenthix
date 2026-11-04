@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { SiteSelector, type SiteOption } from '../primitives'
+import { Modal } from '../primitives/Modal'
 import { sanitizeHandle } from './sanitizeHandle'
 import type { CreateAgentActions } from './types'
 
@@ -25,6 +26,10 @@ export function CreateAgentModal({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const nameId = useId()
+  const handleId = useId()
+  const roleId = useId()
+
   const showSiteSelector = !defaultSiteId && (sites?.length ?? 0) > 0
 
   const reset = () => {
@@ -42,8 +47,6 @@ export function CreateAgentModal({
     setName(v)
     if (!handleTouched) setHandle(sanitizeHandle(v.replace(/\s+/g, '_')))
   }
-
-  const selectClass = 'w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-small text-text-primary outline-none focus:border-accent/50 [color-scheme:dark]'
 
   const canSave = name.trim().length > 0 && handle.trim().length > 0 && siteId !== ''
 
@@ -67,18 +70,12 @@ export function CreateAgentModal({
     }
   }
 
-  if (!open) return null
-
   return (
-    <div className="fixed inset-0 z-50 bg-scrim backdrop-blur-sm flex items-center justify-center">
-      <div className="w-[480px] bg-surface-1 border border-border rounded-2xl flex flex-col shadow-2xl overflow-hidden">
+    <Modal open={open} onClose={handleClose} title="New Agent" maxWidth="max-w-[480px]">
+      <div>
+        <p className="text-small text-text-muted -mt-1 mb-4">Define a name and handle. Its models are set afterwards, under Models</p>
 
-        <div className="px-6 py-5 border-b border-border-subtle">
-          <div className="text-h3 font-semibold text-text-primary">New Agent</div>
-          <div className="text-small text-text-muted mt-0.5">Define a name and handle. Its models are set afterwards, under Models</div>
-        </div>
-
-        <div className="p-6 space-y-4">
+        <div className="space-y-4">
 
           {showSiteSelector && (
             <SiteSelector
@@ -92,8 +89,9 @@ export function CreateAgentModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-micro font-medium text-text-muted uppercase tracking-wide">Name</label>
+              <label htmlFor={nameId} className="text-micro font-medium text-text-muted uppercase tracking-wide">Name</label>
               <input
+                id={nameId}
                 value={name}
                 onChange={e => handleNameChange(e.target.value)}
                 autoFocus
@@ -102,13 +100,14 @@ export function CreateAgentModal({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-micro font-medium text-text-muted uppercase tracking-wide flex items-center gap-1.5">
+              <label htmlFor={handleId} className="text-micro font-medium text-text-muted uppercase tracking-wide flex items-center gap-1.5">
                 Handle
                 <span className="text-micro bg-accent/10 px-1.5 py-0.5 rounded text-accent font-medium tracking-tight normal-case">@mentions</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-medium text-small select-none">@</span>
                 <input
+                  id={handleId}
                   value={handle}
                   onChange={e => { setHandle(sanitizeHandle(e.target.value)); setHandleTouched(true) }}
                   placeholder="researcher"
@@ -119,8 +118,9 @@ export function CreateAgentModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-micro font-medium text-text-muted uppercase tracking-wide">Role <span className="normal-case font-normal">(optional)</span></label>
+            <label htmlFor={roleId} className="text-micro font-medium text-text-muted uppercase tracking-wide">Role <span className="normal-case font-normal">(optional)</span></label>
             <input
+              id={roleId}
               value={role}
               onChange={e => setRole(e.target.value)}
               placeholder="e.g. Software Engineer"
@@ -128,10 +128,10 @@ export function CreateAgentModal({
             />
           </div>
 
-          {error && <p className="text-small text-danger">{error}</p>}
+          {error && <p role="alert" className="text-small text-danger">{error}</p>}
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-border-subtle">
+        <div className="flex items-center justify-between pt-5 mt-5 border-t border-border-subtle">
           <button
             type="button"
             onClick={handleClose}
@@ -149,6 +149,6 @@ export function CreateAgentModal({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }

@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent, type PointerEvent, type RefObject } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type RefObject } from 'react'
 import { daysMoved, type TimelineView } from './layout'
 
 /** Pointer moves under this many pixels are a click, not a drag. */
@@ -19,11 +19,15 @@ export function useBarDrag<M extends string>(opts: {
 }) {
   const [drag, setDrag] = useState<DragState<M> | null>(null)
   const justDragged = useRef(false)
+  // Removes the listeners of the drag in progress, if any.
+  const release = useRef<(() => void) | null>(null)
+  useEffect(() => () => release.current?.(), [])
 
   const begin = (mode: M) => (e: PointerEvent) => {
     if (e.button) return
     if (!opts.enabled(mode)) return
     e.stopPropagation()
+    release.current?.()
     const x0 = e.clientX
     const width = opts.trackRef.current?.getBoundingClientRect().width ?? 0
     let moved = false
@@ -34,9 +38,16 @@ export function useBarDrag<M extends string>(opts: {
       days = daysMoved(opts.view, dx, width)
       if (moved) setDrag({ mode, days })
     }
-    const up = () => {
+    const detach = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancel)
+      release.current = null
+    }
+    // A drag the browser abandons is not a release: nothing is committed.
+    const cancel = () => { detach(); setDrag(null) }
+    const up = () => {
+      detach()
       setDrag(null)
       if (moved) {
         justDragged.current = true
@@ -46,6 +57,8 @@ export function useBarDrag<M extends string>(opts: {
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+    release.current = detach
   }
 
   return {

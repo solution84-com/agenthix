@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { AgentDetail } from '../types'
@@ -61,11 +61,27 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
   const [mode, setMode] = useState<PromptMode>('chat')
 
   const [preview, setPreview] = useState<{ sections: PromptSection[] } | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  // The host may build `queries` inline; a new object alone must not refetch.
+  const queriesRef = useRef(queries)
+  queriesRef.current = queries
+  // Only the newest request may set the view: a slow Chat answer arriving after a switch to Task is dropped.
+  const latestRequest = useRef(0)
   const refetchPreview = useCallback(async () => {
-    const r = await queries.getAgentPromptPreview({ agentId: agent.id, mode })
-    setPreview(r)
-  }, [queries, agent.id, mode])
-  useEffect(() => { void refetchPreview() }, [refetchPreview])
+    const ticket = ++latestRequest.current
+    setPreviewError(null)
+    try {
+      const r = await queriesRef.current.getAgentPromptPreview({ agentId: agent.id, mode })
+      if (ticket === latestRequest.current) setPreview(r)
+    } catch {
+      if (ticket === latestRequest.current) setPreviewError('Could not load the instructions. Switch modes or reopen this tab to try again.')
+    }
+  }, [agent.id, mode])
+  useEffect(() => {
+    setPreview(null)
+    void refetchPreview()
+    return () => { latestRequest.current++ }
+  }, [refetchPreview])
 
   const [editingKey, setEditingKey]   = useState<PromptSectionKey | null>(null)
   const [editContent, setEditContent] = useState('')
@@ -144,7 +160,9 @@ export function PromptTab({ agent, queries, actions, slots }: PromptTabProps) {
           <span className="text-micro text-text-muted/70">Tap editable sections to update them</span>
         </div>
 
-        {!preview ? (
+        {!preview && previewError ? (
+          <p role="alert" className="px-4 py-8 text-center text-small text-danger">{previewError}</p>
+        ) : !preview ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-5 h-5 text-text-muted/70 animate-spin" />
           </div>

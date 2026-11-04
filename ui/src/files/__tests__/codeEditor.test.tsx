@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { EditorView } from '@codemirror/view'
+import { undo, undoDepth } from '@codemirror/commands'
 import { CodeEditor, EDITOR_LIMIT, isOverEditorLimit } from '../../editor'
 import { languageFor } from '../../editor/editorLanguage'
 
@@ -38,6 +39,22 @@ describe('CodeEditor @SC-1626', () => {
     const { container, rerender } = render(<CodeEditor value="one" fileName="a.md" onChange={() => {}} />)
     rerender(<CodeEditor value="two" fileName="a.md" onChange={() => {}} />)
     expect(viewOf(container).state.doc.toString()).toBe('two')
+  })
+
+  it('does not load the whole of a file over 1 MB into the editor', () => {
+    const big = 'a'.repeat(EDITOR_LIMIT + 500)
+    const { container } = render(<CodeEditor value={big} fileName="data.yaml" onChange={() => {}} />)
+    expect(viewOf(container).state.doc.length).toBe(EDITOR_LIMIT)
+  })
+
+  it('keeps an outside change out of the undo history', () => {
+    const { container, rerender } = render(<CodeEditor value="file A" fileName="a.md" onChange={() => {}} />)
+    const view = viewOf(container)
+    rerender(<CodeEditor value="file B" fileName="b.md" onChange={() => {}} />)
+    expect(view.state.doc.toString()).toBe('file B')
+    expect(undoDepth(view.state)).toBe(0)
+    undo(view)
+    expect(view.state.doc.toString()).toBe('file B')
   })
 
   it('puts no hex colour in the editor', () => {

@@ -78,7 +78,9 @@ export function ProjectPreviewView(p: ProjectPreviewViewProps) {
         )}
       </div>
       <p className="mt-3 text-body text-text-secondary">
-        You are not in this project. Join to talk to its agents, start work and approve. You can leave again at any time.
+        {p.preview.canJoin
+          ? 'You are not in this project. Join to talk to its agents, start work and approve. You can leave again at any time.'
+          : 'You are not in this project. Ask someone in it, or an admin, to add you.'}
       </p>
       {p.error && <p role="alert" className="mt-2 text-small text-danger">{p.error}</p>}
 

@@ -21,12 +21,30 @@ export interface PersonProfileCardViewProps {
  */
 export function PersonProfileCardView(p: PersonProfileCardViewProps) {
   const first = useRef<HTMLButtonElement>(null)
+  const dialog = useRef<HTMLDivElement>(null)
+  // An inline `onClose` is a new function on every render: the effect below must not re-run (and re-focus) for it.
+  const onClose = useRef(p.onClose)
+  onClose.current = p.onClose
   useEffect(() => {
-    first.current?.focus()
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') p.onClose() }
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const root = dialog.current
+    if (first.current) first.current.focus()
+    else root?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose.current(); return }
+      if (e.key !== 'Tab' || !root) return
+      const items = Array.from(root.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'))
+      if (items.length === 0) { e.preventDefault(); root.focus(); return }
+      const active = document.activeElement
+      if (!root.contains(active) || (!e.shiftKey && active === items[items.length - 1])) { e.preventDefault(); items[0].focus() }
+      else if (e.shiftKey && (active === items[0] || active === root)) { e.preventDefault(); items[items.length - 1].focus() }
+    }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [p.onClose])
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      if (opener && opener.isConnected) opener.focus()
+    }
+  }, [])
 
   const { card } = p
   const { person } = card
@@ -39,7 +57,7 @@ export function PersonProfileCardView(p: PersonProfileCardViewProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-scrim" onClick={p.onClose} data-testid="profile-card-scrim" />
-      <div role="dialog" aria-label={`${person.name}, profile`} className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-surface-1 shadow-2xl">
+      <div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`${person.name}, profile`} className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-surface-1 shadow-2xl">
         <div className="h-16 bg-accent-subtle" />
         <div className="space-y-3 px-5 pb-5">
           <div className="-mt-7 w-fit rounded-full border-2 border-surface-1">{p.avatar}</div>

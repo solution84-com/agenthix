@@ -1,12 +1,3 @@
-export { KeyBadge } from './KeyBadge'
-export type { KeyBadgeProps } from './KeyBadge'
-
-export { StatusBadge } from './StatusBadge'
-export type { StatusBadgeProps } from './StatusBadge'
-
-export { PriorityBadge } from './PriorityBadge'
-export type { PriorityBadgeProps } from './PriorityBadge'
-
 export { AgentPicker } from './AgentPicker'
 export type { AgentPickerOption, AgentPickerProps } from './AgentPicker'
 
@@ -22,10 +13,7 @@ export {
   RUN_STATES, SHOWN_RUN_STATES, runStateLabel, runStateClasses, isRunPending, runNeedsPerson, runWaitText,
 } from './runState'
 export type { RunState, RunWaitNote } from './runState'
-export { PRIORITY_COLORS, PRIORITY_SELECTED_CLASSES } from './priorityColors'
-
-export { TaskFilterBar, EMPTY_TASK_FILTER, isFilterActive, applyTaskFilters } from './TaskFilterBar'
-export type { TaskFilterState, TaskFilterAgent, TaskFilterBarProps } from './TaskFilterBar'
+export { PRIORITY_SELECTED_CLASSES } from './priorityColors'
 
 export type {
   TaskDetailState,

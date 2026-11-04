@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { useState } from 'react'
 import { Modal } from '../Modal'
 
 describe('Modal', () => {
@@ -8,5 +9,49 @@ describe('Modal', () => {
     const dialog = screen.getByRole('dialog', { name: 'Remove laptop-mia?' })
     expect(dialog.getAttribute('aria-modal')).toBe('true')
     expect(dialog.contains(screen.getByRole('button', { name: 'Remove laptop-mia' }))).toBe(true)
+  })
+
+  it('moves focus in, holds Tab inside, and returns focus to the opener on close', () => {
+    function Host() {
+      const [open, setOpen] = useState(false)
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>Opener</button>
+          <Modal open={open} onClose={() => setOpen(false)} title="T">
+            <button type="button">First</button>
+            <button type="button">Last</button>
+          </Modal>
+        </>
+      )
+    }
+    render(<Host />)
+    const opener = screen.getByRole('button', { name: 'Opener' })
+    opener.focus()
+    fireEvent.click(opener)
+    const first = screen.getByRole('button', { name: 'First' })
+    const last = screen.getByRole('button', { name: 'Last' })
+    expect(document.activeElement).toBe(first)
+    last.focus()
+    fireEvent.keyDown(document, { key: 'Tab' })
+    expect(document.activeElement).toBe(first)
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(last)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+  })
+
+  it('closes only the innermost of stacked modals on Escape', () => {
+    const outer = vi.fn()
+    const inner = vi.fn()
+    render(
+      <>
+        <Modal open onClose={outer} title="Outer"><button type="button">a</button></Modal>
+        <Modal open onClose={inner} title="Inner"><button type="button">b</button></Modal>
+      </>,
+    )
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(inner).toHaveBeenCalledTimes(1)
+    expect(outer).not.toHaveBeenCalled()
   })
 })

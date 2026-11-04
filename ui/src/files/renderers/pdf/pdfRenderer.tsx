@@ -20,6 +20,8 @@ export function viewerSource(link: string, theme: 'light' | 'dark'): { origin: s
     return null
   }
   if ((url.protocol !== 'https:' && url.protocol !== 'http:') || url.search || !TICKET_PATH.test(url.pathname)) return null
+  // The frame is sandboxed with allow-same-origin: on hq's own origin that would give the viewer hq's page. Refuse.
+  if (url.origin === globalThis.location?.origin) return null
   const fragment = new URLSearchParams({ link: url.pathname, theme })
   return { origin: url.origin, src: `${url.origin}${VIEWER_PATH}#${fragment}` }
 }

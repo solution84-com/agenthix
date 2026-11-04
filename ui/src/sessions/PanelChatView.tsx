@@ -41,6 +41,7 @@ export function PanelChatView({
 
   const [sessionData, setSessionData] = useState<SessionDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [pendingManifestFromDb, setPendingManifestFromDb] = useState<PendingManifestData | null>(null)
   const [inputText, setInputText] = useState('')
   const [optimistic, setOptimistic] = useState<string | null>(null)
@@ -54,8 +55,12 @@ export function PanelChatView({
   // True until the person scrolls up to read history; asynchronous growth never yanks someone who has scrolled away.
   const stickToBottomRef = useRef(true)
 
+  // The conversation on screen: an answer for any other one arrives too late and is dropped.
+  const shownSessionRef = useRef(sessionId)
+  shownSessionRef.current = sessionId
+
   const refetch = useCallback(() => queries.getSession({ id: sessionId }).then(data => {
-    setSessionData(data)
+    if (shownSessionRef.current === sessionId) setSessionData(data)
     return data
   }), [queries, sessionId])
 
@@ -69,20 +74,25 @@ export function PanelChatView({
   })
 
   useEffect(() => {
+    let current = true
     setIsLoading(true)
+    setLoadFailed(false)
     setInputText('')
     setOptimistic(null)
     setNotice(null)
     stickToBottomRef.current = true
     Promise.all([
       queries.getSession({ id: sessionId }).then(data => {
+        if (!current) return
         setSessionData(data)
         // A reply already going when the view opens: follow it, and let Stop reach it.
         const going = data.entries.find(e => e.role === 'USER' && e.runStatus === 'RUNNING' && e.runId)
         if (going?.runId) live.track(going.runId)
       }),
-      queries.getSessionPendingManifest({ sessionId }).then(setPendingManifestFromDb),
-    ]).finally(() => setIsLoading(false))
+      queries.getSessionPendingManifest({ sessionId }).then(data => { if (current) setPendingManifestFromDb(data) }),
+    ]).catch(() => { if (current) setLoadFailed(true) })
+      .finally(() => { if (current) setIsLoading(false) })
+    return () => { current = false }
   }, [sessionId])
 
   useEffect(() => {
@@ -175,6 +185,12 @@ export function PanelChatView({
         <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="h-full overflow-y-auto px-3 py-3" style={{ scrollbarWidth: 'thin' }}>
           {isLoading ? (
             <div className="flex h-full items-center justify-center"><p className="text-small text-text-muted">Loading…</p></div>
+          ) : loadFailed && !sessionData ? (
+            <div className="flex h-full items-center justify-center px-6 text-center">
+              <p role="alert" className="max-w-xs text-small leading-relaxed text-danger">
+                Could not load this conversation. Close it and open it again to retry. Nothing was changed.
+              </p>
+            </div>
           ) : !hasMessages ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
               <AgentAvatar name={agentName} avatarUrl={avatarUrl} size="sm" />

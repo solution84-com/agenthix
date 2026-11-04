@@ -39,7 +39,7 @@ export function NewTaskRow({ onAdd, onMoreDetails, onClose }: {
           placeholder="Add a task to the backlog"
           onChange={e => setTitle(e.target.value)}
           onKeyDown={e => {
-            if (e.key === 'Enter') void add()
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) void add()
             if (e.key === 'Escape') onClose?.()
           }}
           className="min-w-0 flex-1 rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 text-body text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-60"

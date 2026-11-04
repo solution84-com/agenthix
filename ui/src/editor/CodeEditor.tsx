@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { EditorState, Compartment } from '@codemirror/state'
+import { useEffect, useMemo, useRef } from 'react'
+import { EditorState, Compartment, Transaction } from '@codemirror/state'
 import { EditorView, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { editorTheme } from './editorTheme'
@@ -8,7 +8,12 @@ import { languageFor } from './editorLanguage'
 /** Text over this many bytes opens read-only (spec part 6, limits): the editor would stall the page. */
 export const EDITOR_LIMIT = 1024 * 1024
 
-export const isOverEditorLimit = (text: string): boolean => new TextEncoder().encode(text).length > EDITOR_LIMIT
+export const isOverEditorLimit = (text: string): boolean => {
+  // A character is at least one and at most three bytes here, so only the middle band needs the exact count.
+  if (text.length > EDITOR_LIMIT) return true
+  if (text.length * 3 <= EDITOR_LIMIT) return false
+  return new TextEncoder().encode(text).length > EDITOR_LIMIT
+}
 
 export interface CodeEditorProps {
   /** The file's text. A change from outside replaces the document; the person's own typing does not echo back. */
@@ -28,14 +33,16 @@ export function CodeEditor({ value, fileName, onChange, readOnly = false, label 
   const view = useRef<EditorView | null>(null)
   const changeRef = useRef(onChange)
   changeRef.current = onChange
-  const locked = readOnly || !onChange || isOverEditorLimit(value)
-  const overLimit = isOverEditorLimit(value)
+  const overLimit = useMemo(() => isOverEditorLimit(value), [value])
+  // Over the limit only the first part is given to the editor, which would stall on the whole text.
+  const shown = overLimit ? value.slice(0, EDITOR_LIMIT) : value
+  const locked = readOnly || !onChange || overLimit
   const mode = useRef(new Compartment())
   const language = useRef(new Compartment())
 
   useEffect(() => {
     const state = EditorState.create({
-      doc: value,
+      doc: shown,
       extensions: [
         lineNumbers(),
         highlightActiveLine(),
@@ -60,8 +67,11 @@ export function CodeEditor({ value, fileName, onChange, readOnly = false, label 
 
   useEffect(() => {
     const v = view.current
-    if (v && v.state.doc.toString() !== value) v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: value } })
-  }, [value])
+    // Not part of the undo history: undoing must never bring back the text of a file shown before.
+    if (v && v.state.doc.toString() !== shown) {
+      v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: shown }, annotations: Transaction.addToHistory.of(false) })
+    }
+  }, [shown])
 
   useEffect(() => {
     view.current?.dispatch({
@@ -76,7 +86,7 @@ export function CodeEditor({ value, fileName, onChange, readOnly = false, label 
     <div>
       {overLimit && (
         <p className="mb-2 text-small text-text-secondary" role="status">
-          This file is over 1 MB, so it opens read-only. Replace it by upload instead.
+          This file is over 1 MB, so it opens read-only and shows only its first 1 MB. Replace it by upload instead.
         </p>
       )}
       <div ref={host} />

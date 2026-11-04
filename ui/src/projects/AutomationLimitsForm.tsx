@@ -31,6 +31,8 @@ function NumberRow({ label, hint, value, placeholder, onChange }: {
       <input
         id={id}
         type="number"
+        min={0}
+        step={1}
         value={value ?? ''}
         placeholder={placeholder}
         onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))}
@@ -57,6 +59,14 @@ export function AutomationLimitsForm({ status, runLimits, onSave, onCancel }: {
   const throttleOn = draft.choice.throttle || org.throttle
 
   const save = async () => {
+    const entered = [
+      ...(throttleOn ? [draft.choice.intervalMinutes, draft.choice.batchSize] : []),
+      draft.choice.maxDepth, draft.choice.queueLimit, ...(runLimits ? [draft.turnLimit] : []),
+    ]
+    if (entered.some(v => v !== null && (!Number.isInteger(v) || v < 0))) {
+      setError('Each limit is a whole number, 0 or more, or empty. Nothing was changed.')
+      return
+    }
     setBusy(true)
     setError('')
     try {
@@ -106,7 +116,7 @@ export function AutomationLimitsForm({ status, runLimits, onSave, onCancel }: {
         />
       )}
       <p className="text-small text-text-muted">Leave a field empty to use the organisation's value.</p>
-      {error && <p className="text-small text-danger">{error}</p>}
+      {error && <p role="alert" className="text-small text-danger">{error}</p>}
       <div className="flex gap-2">
         <button
           type="button"

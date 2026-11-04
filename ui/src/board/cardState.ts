@@ -2,14 +2,20 @@ import { taskStateText, type StateTone } from '../tasks/taskGroups'
 import { runNeedsPerson } from '../tasks/runState'
 import type { BoardCardData } from './types'
 
-const iso = (v: string | Date | null | undefined): string | null => (v ? new Date(v).toISOString() : null)
+const validDate = (v: string | Date | null | undefined): Date | null => {
+  if (!v) return null
+  const d = new Date(v)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+const iso = (v: string | Date | null | undefined): string | null => validDate(v)?.toISOString() ?? null
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 /** The words a card shows for where its task stands ("Needs you", "Running · 12 min", "Not started", "Done Tue"). */
 export function cardStateText(card: BoardCardData, now: Date): { text: string; tone: StateTone } {
   if (card.status === 'DONE' && card.runState !== 'RUN_BLOCKED') {
-    const done = card.doneAt ? new Date(card.doneAt) : null
+    const done = validDate(card.doneAt)
     return { text: done ? `Done ${WEEKDAYS[done.getDay()]}` : 'Done', tone: 'muted' }
   }
   const quiet = card.runState === 'RUN_NONE' && !card.needsYou && !card.scheduleNextDueAt

@@ -72,8 +72,8 @@ export function RoutineRuleFields({ value, onChange }: RoutineRuleFieldsProps) {
         <div className="flex items-center gap-2">
           Every
           <input
-            type="number" min={1} value={interval.every}
-            onChange={e => set({ ...interval, every: Number(e.target.value) })}
+            type="number" min={1} step={1} value={interval.every || ''}
+            onChange={e => set({ ...interval, every: Math.trunc(Number(e.target.value)) })}
             className={`${FIELD_INPUT} w-20`}
           />
           <select value={interval.unit} onChange={e => set({ ...interval, unit: e.target.value as typeof interval.unit })} className={FIELD_INPUT}>
@@ -89,6 +89,7 @@ export function RoutineRuleFields({ value, onChange }: RoutineRuleFieldsProps) {
           <label className="flex items-center gap-2">
             At <input type="time" value={weekly.time} onChange={e => set({ ...weekly, time: e.target.value })} className={FIELD_INPUT} />
           </label>
+          {weekly.weekdays.length === 0 && <div className="text-warning">Choose at least one day.</div>}
           <div className="flex gap-1">
             {DAYS.map((d, i) => (
               <button

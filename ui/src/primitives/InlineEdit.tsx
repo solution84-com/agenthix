@@ -35,31 +35,41 @@ export function InlineEdit({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => { setDraft(value) }, [value])
+  // A background update (a live query refreshing the record) must not overwrite what is being typed.
+  useEffect(() => { if (!editing) setDraft(value) }, [value, editing])
 
-  const startEdit = () => { setEditing(true); onEditingChange?.(true) }
+  const startEdit = () => { setDraft(value); setError(null); setEditing(true); onEditingChange?.(true) }
 
   const commit = async () => {
     if (draft.trim() === value) { setEditing(false); onEditingChange?.(false); return }
     setSaving(true)
+    setError(null)
     try {
       await onSave(draft.trim())
       setEditing(false)
       onEditingChange?.(false)
-    } catch {
-      // keep editing open on failure
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'Could not save. Nothing was changed.')
     } finally {
       setSaving(false)
     }
   }
 
-  const cancel = () => { setDraft(value); setEditing(false); onEditingChange?.(false) }
+  const cancel = () => { setDraft(value); setError(null); setEditing(false); onEditingChange?.(false) }
 
   if (!editing) {
     return (
       <div
+        role="button"
+        tabIndex={0}
         onClick={startEdit}
+        onKeyDown={e => {
+          // Only the display itself: a link or button inside rendered text keeps its own keys.
+          if (e.target !== e.currentTarget) return
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startEdit() }
+        }}
         className={`cursor-text rounded-lg px-3 py-2 hover:bg-surface-hover transition-colors group ${textClassName}`}
       >
         {value ? (
@@ -105,6 +115,7 @@ export function InlineEdit({
           className="w-full bg-surface-2 border border-accent/40 rounded-lg px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
         />
       )}
+      {error && <p role="alert" className="text-small text-danger">{error}</p>}
       <div className="flex items-center gap-2">
         <button
           type="button"

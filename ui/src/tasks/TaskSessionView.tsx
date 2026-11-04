@@ -140,7 +140,7 @@ export function TaskSessionView(p: TaskSessionViewProps) {
             placeholder={`Tell ${p.agentName} what to do now…`}
             title={p.sendDisabledReason}
             onChange={e => setText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send() } }}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send() } }}
             className="min-w-0 flex-1 resize-none rounded-xl border border-border bg-surface-1 px-3 py-2 text-body text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-60"
           />
           <button

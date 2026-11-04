@@ -34,7 +34,7 @@ export function PanelChatComposer({
           e.target.style.height = 'auto'
           e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px'
         }}
-        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void onSend(e as unknown as React.FormEvent) } }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void onSend(e as unknown as React.FormEvent) } }}
         placeholder={sendDisabledReason ?? placeholder ?? 'Message your agent...'}
         disabled={!!sendDisabledReason}
         rows={1}

@@ -48,24 +48,26 @@ export function BoardCardView({ card, variant, now, onOpen, menu, from, linkRout
     : 'px-4 py-2.5 ring-inset hover:ring-1 hover:ring-accent'
   return (
     <div className={`flex items-start gap-2 ${shell}`}>
-      <button
-        type="button" onClick={onOpen} aria-label={`Open ${card.taskKey}`}
-        className="min-w-0 flex-1 cursor-pointer space-y-0.5 rounded text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-      >
-        <span className="block text-body leading-snug text-text-primary">
-          <PriorityDot priority={card.priority} className="mr-2 align-middle" />
-          <span className="mr-1.5 font-mono text-micro text-text-muted">{card.taskKey}</span>
-          {card.isEpic && <span className="mr-1.5 rounded-md bg-accent-subtle px-1.5 text-micro font-medium text-accent">Epic</span>}
-          {card.title}
-        </span>
-        <span className="flex flex-wrap items-center gap-x-1.5 pl-4 text-small">
-          {card.assignedAgent && (linkAgent
-            ? linkAgent(card.assignedAgent.id, <AgentAvatar name={card.assignedAgent.name} size="sm" />)
-            : <AgentAvatar name={card.assignedAgent.name} size="sm" />)}
-          <span className={TONE[state.tone]}>{state.text}</span>
-          {typeof card.threadUnread === 'number' && <ThreadMark unread={card.threadUnread} />}
-          {wait && <span className="text-micro text-text-muted">{wait}</span>}
-        </span>
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <button
+          type="button" onClick={onOpen} aria-label={`Open ${card.taskKey}`}
+          className="block w-full cursor-pointer space-y-0.5 rounded text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          <span className="block text-body leading-snug text-text-primary">
+            <PriorityDot priority={card.priority} className="mr-2 align-middle" />
+            <span className="mr-1.5 font-mono text-micro text-text-muted">{card.taskKey}</span>
+            {card.isEpic && <span className="mr-1.5 rounded-md bg-accent-subtle px-1.5 text-micro font-medium text-accent">Epic</span>}
+            {card.title}
+          </span>
+          <span className="flex flex-wrap items-center gap-x-1.5 pl-4 text-small">
+            {card.assignedAgent && (linkAgent
+              ? linkAgent(card.assignedAgent.id, <AgentAvatar name={card.assignedAgent.name} size="sm" />)
+              : <AgentAvatar name={card.assignedAgent.name} size="sm" />)}
+            <span className={TONE[state.tone]}>{state.text}</span>
+            {typeof card.threadUnread === 'number' && <ThreadMark unread={card.threadUnread} />}
+            {wait && <span className="text-micro text-text-muted">{wait}</span>}
+          </span>
+        </button>
         {(from || arrives || card.routineId) && (
           <span className="flex items-center gap-1.5 pl-4 text-micro text-text-muted">
             {card.routineId && <span title="A round of a routine" className="text-accent">{linkRoutine ? linkRoutine(card.routineId, '↻') : '↻'}</span>}
@@ -73,7 +75,7 @@ export function BoardCardView({ card, variant, now, onOpen, menu, from, linkRout
             {arrives && <span>{arrives}</span>}
           </span>
         )}
-      </button>
+      </div>
       <div onPointerDown={e => e.stopPropagation()}><OverflowMenu items={menu} label={`Actions for ${card.taskKey}`} /></div>
     </div>
   )

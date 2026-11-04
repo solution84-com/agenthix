@@ -230,3 +230,17 @@ describe('FileFrame: embedded @SC-1581', () => {
     expect(downloadLink()).toBeNull()
   })
 })
+
+describe('FileFrame: close', () => {
+  it('draws a Close button in the wide header when the caller can close it, and none otherwise', () => {
+    const onClose = vi.fn()
+    frame(ready({ name: 'a.txt' }), { onClose })
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves narrow to its back arrow', () => {
+    frame(ready({ name: 'a.txt' }), { onClose: () => {}, layout: 'narrow' })
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
+  })
+})

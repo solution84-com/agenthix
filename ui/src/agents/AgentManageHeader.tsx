@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
-import { Loader2, Camera, X } from 'lucide-react'
+import { Loader2, Camera } from 'lucide-react'
 import { InlineEdit } from '../primitives/InlineEdit'
+import { Modal } from '../primitives/Modal'
 import { getInitials, presetSrc } from './helpers'
 
 export interface AgentManageHeaderActions {
@@ -21,6 +22,8 @@ export interface AgentManageHeaderProps {
   menu?: ReactNode
 }
 
+const IMAGE_ERROR = 'Could not use that image. Try another one. Nothing was changed.'
+
 /**
  * The top of an agent's settings page (every screen reviewed spec §3): its cover with Change cover, its avatar with
  * Change, and its name and role edited in place.
@@ -33,6 +36,7 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
   const [uploadingImage, setUploadingImage] = useState<'avatar' | 'cover' | null>(null)
   const [avatarPresets, setAvatarPresets] = useState<string[]>([])
   const [coverPresets, setCoverPresets] = useState<string[]>([])
+  const [imageError, setImageError] = useState<string | null>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
@@ -59,7 +63,9 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
     const maxW = type === 'avatar' ? 256 : 1200
     const maxH = type === 'avatar' ? 256 : 400
 
-    const dataUrl = await new Promise<string>((resolve, reject) => {
+    setImageError(null)
+    const source = URL.createObjectURL(file)
+    const dataUrl = await new Promise<string | null>((resolve) => {
       const img = new Image()
       img.onload = () => {
         const canvas = document.createElement('canvas')
@@ -69,15 +75,18 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
         canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
         resolve(canvas.toDataURL('image/jpeg', 0.88))
       }
-      img.onerror = reject
-      img.src = URL.createObjectURL(file)
-    })
+      img.onerror = () => resolve(null)
+      img.src = source
+    }).finally(() => URL.revokeObjectURL(source))
+    if (!dataUrl) { setImageError(IMAGE_ERROR); return }
 
     setUploadingImage(type)
     try {
       const { url } = await actions.uploadAgentImage({ agentId: agent.id, type, dataUrl })
       if (type === 'avatar') setAvatarUrl(url)
       else setCoverUrl(url)
+    } catch {
+      setImageError(IMAGE_ERROR)
     } finally {
       setUploadingImage(null)
     }
@@ -86,10 +95,13 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
   const handlePlatformAvatar = useCallback(async (filename: string) => {
     if (!actions.applyAgentPreset) return
     setShowAvatarPicker(false)
+    setImageError(null)
     setUploadingImage('avatar')
     try {
       const { url } = await actions.applyAgentPreset({ agentId: agent.id, imageType: 'avatar', filename })
       setAvatarUrl(url)
+    } catch {
+      setImageError(IMAGE_ERROR)
     } finally {
       setUploadingImage(null)
     }
@@ -98,10 +110,13 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
   const handlePlatformCover = useCallback(async (filename: string) => {
     if (!actions.applyAgentPreset) return
     setShowCoverPicker(false)
+    setImageError(null)
     setUploadingImage('cover')
     try {
       const { url } = await actions.applyAgentPreset({ agentId: agent.id, imageType: 'cover', filename })
       setCoverUrl(url)
+    } catch {
+      setImageError(IMAGE_ERROR)
     } finally {
       setUploadingImage(null)
     }
@@ -163,7 +178,10 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
         </div>
 
         <div className="min-w-0 flex-1 pb-1">
-          <InlineEdit value={agent.name} onSave={actions.saveName} textClassName="!px-0 !py-0 text-h1 font-semibold" placeholder="Name" />
+          <InlineEdit value={agent.name} onSave={async name => {
+            if (!name.trim()) throw new Error('An agent needs a name. Nothing was changed.')
+            await actions.saveName(name)
+          }} textClassName="!px-0 !py-0 text-h1 font-semibold" placeholder="Name" />
           <InlineEdit value={agent.role ?? ''} onSave={actions.saveRole} textClassName="!px-0 !py-0 text-body text-text-secondary" placeholder="Add a role" />
           <div className="mt-1 text-small text-text-muted">
             <span className="font-mono">@{agent.handle}</span>
@@ -173,74 +191,62 @@ export function AgentManageHeader({ agent, actions, subline, menu }: AgentManage
         {menu && <div className="flex shrink-0 items-center gap-2 pb-1">{menu}</div>}
       </div>
 
-      {/* Avatar Picker */}
-      {showAvatarPicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim backdrop-blur-sm" onClick={() => setShowAvatarPicker(false)}>
-          <div className="bg-surface-1 border border-border rounded-2xl p-6 w-80 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-h3 font-semibold text-text-primary">Choose Avatar</h3>
-              <button onClick={() => setShowAvatarPicker(false)} className="text-text-muted hover:text-text-secondary cursor-pointer"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="grid grid-cols-4 gap-3 mb-4">
-              {avatarPresets.map((filename) => (
-                <button
-                  key={filename}
-                  onClick={() => handlePlatformAvatar(filename)}
-                  className="w-full aspect-square rounded-xl overflow-hidden cursor-pointer hover:scale-110 transition-transform ring-2 ring-transparent hover:ring-accent"
-                >
-                  <img src={presetSrc('avatars', filename)} alt={filename} className="w-full h-full object-cover" />
-                </button>
-              ))}
-              {avatarPresets.length === 0 && (
-                <p className="col-span-4 text-center text-text-muted text-small py-4">No presets found in kernel/presets/avatars/</p>
-              )}
-            </div>
-            {actions.uploadAgentImage && (
-              <button
-                onClick={() => { setShowAvatarPicker(false); avatarInputRef.current?.click() }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-text-secondary hover:text-text-primary hover:border-border text-body font-medium transition-colors cursor-pointer"
-              >
-                <Camera className="w-4 h-4" /> Upload photo
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {imageError && <p role="alert" className="px-6 pb-2 text-small text-danger">{imageError}</p>}
 
-      {/* Cover Picker */}
-      {showCoverPicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim backdrop-blur-sm" onClick={() => setShowCoverPicker(false)}>
-          <div className="bg-surface-1 border border-border rounded-2xl p-6 w-[480px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-h3 font-semibold text-text-primary">Choose Cover</h3>
-              <button onClick={() => setShowCoverPicker(false)} className="text-text-muted hover:text-text-secondary cursor-pointer"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              {coverPresets.map((filename) => (
-                <button
-                  key={filename}
-                  onClick={() => handlePlatformCover(filename)}
-                  className="w-full rounded-xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform ring-2 ring-transparent hover:ring-accent"
-                >
-                  <img src={presetSrc('covers', filename)} alt={filename} className="w-full h-16 object-cover" />
-                  <div className="text-micro text-text-muted font-medium uppercase tracking-wide py-1">{filename.replace(/\.[^.]+$/, '').replace(/^cover-/, '')}</div>
-                </button>
-              ))}
-              {coverPresets.length === 0 && (
-                <p className="col-span-2 text-center text-text-muted text-small py-4">No presets found in kernel/presets/covers/</p>
-              )}
-            </div>
-            {actions.uploadAgentImage && (
-              <button
-                onClick={() => { setShowCoverPicker(false); coverInputRef.current?.click() }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-text-secondary hover:text-text-primary hover:border-border text-body font-medium transition-colors cursor-pointer"
-              >
-                <Camera className="w-4 h-4" /> Upload photo
-              </button>
-            )}
-          </div>
+      <Modal open={showAvatarPicker} onClose={() => setShowAvatarPicker(false)} title="Choose avatar" maxWidth="max-w-xs">
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          {avatarPresets.map((filename) => (
+            <button
+              key={filename}
+              type="button"
+              onClick={() => handlePlatformAvatar(filename)}
+              className="w-full aspect-square rounded-xl overflow-hidden cursor-pointer hover:scale-110 transition-transform ring-2 ring-transparent hover:ring-accent"
+            >
+              <img src={presetSrc('avatars', filename)} alt={filename} className="w-full h-full object-cover" />
+            </button>
+          ))}
+          {avatarPresets.length === 0 && (
+            <p className="col-span-4 text-center text-text-muted text-small py-4">No ready-made avatars are available.</p>
+          )}
         </div>
-      )}
+        {actions.uploadAgentImage && (
+          <button
+            type="button"
+            onClick={() => { setShowAvatarPicker(false); avatarInputRef.current?.click() }}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-text-secondary hover:text-text-primary hover:border-border text-body font-medium transition-colors cursor-pointer"
+          >
+            <Camera className="w-4 h-4" /> Upload photo
+          </button>
+        )}
+      </Modal>
+
+      <Modal open={showCoverPicker} onClose={() => setShowCoverPicker(false)} title="Choose cover" maxWidth="max-w-lg">
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          {coverPresets.map((filename) => (
+            <button
+              key={filename}
+              type="button"
+              onClick={() => handlePlatformCover(filename)}
+              className="w-full rounded-xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform ring-2 ring-transparent hover:ring-accent"
+            >
+              <img src={presetSrc('covers', filename)} alt={filename} className="w-full h-16 object-cover" />
+              <div className="text-micro text-text-muted font-medium uppercase tracking-wide py-1">{filename.replace(/\.[^.]+$/, '').replace(/^cover-/, '')}</div>
+            </button>
+          ))}
+          {coverPresets.length === 0 && (
+            <p className="col-span-2 text-center text-text-muted text-small py-4">No ready-made covers are available.</p>
+          )}
+        </div>
+        {actions.uploadAgentImage && (
+          <button
+            type="button"
+            onClick={() => { setShowCoverPicker(false); coverInputRef.current?.click() }}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-text-secondary hover:text-text-primary hover:border-border text-body font-medium transition-colors cursor-pointer"
+          >
+            <Camera className="w-4 h-4" /> Upload photo
+          </button>
+        )}
+      </Modal>
     </div>
   )
 }

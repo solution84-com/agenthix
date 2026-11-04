@@ -49,6 +49,9 @@ export type ProjectAgentRowData = {
 export type ToolPermissionData = { name: string; state: 'always' | 'ask' | 'never' }
 export type BashPatternPermissionData = { pattern: string; state: 'always' | 'ask' | 'never' }
 /** A project's or a person's narrowing: the agent's own shapes, each null when it leaves the organisation's. */
+/** What a person narrows for an agent in one project. */
+export type AgentOverrideValue = NarrowingData
+
 export type NarrowingData = {
   model: string | null
   approval: string | null

@@ -184,7 +184,7 @@ describe('epics, milestones and the toolbar @SC-566', () => {
 
   it('says when the project reaches further than a timeline can show @SC-568', () => {
     setup({ data: data({ capped: true }) })
-    expect(screen.getByText(/400 days around today/)).toBeTruthy()
+    expect(screen.getByText(/shows only the part around today/)).toBeTruthy()
   })
 
   it('folds a lane away and chooses which boards show', () => {

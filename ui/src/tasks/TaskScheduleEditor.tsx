@@ -72,11 +72,11 @@ export function TaskScheduleEditor({
         <span className="text-micro font-medium uppercase tracking-wide text-text-muted">Start time</span>
         {canEdit && editing === null && (
           <div className="flex gap-3">
-            <button type="button" onClick={() => setEditing('start')} className="text-small text-text-secondary hover:text-text-primary">
+            <button type="button" onClick={() => { setAt(toLocalInput(schedule.at)); setError(''); setEditing('start') }} className="text-small text-text-secondary hover:text-text-primary">
               {pending ? 'Change' : 'Set a start time'}
             </button>
             {onMakeRoutine && !routine && (
-              <button type="button" onClick={() => setEditing('routine')} className="text-small text-text-secondary hover:text-text-primary">
+              <button type="button" onClick={() => { setError(''); setEditing('routine') }} className="text-small text-text-secondary hover:text-text-primary">
                 Make this a routine…
               </button>
             )}

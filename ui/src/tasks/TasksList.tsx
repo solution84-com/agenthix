@@ -44,7 +44,9 @@ function TaskRow({ task, now, group, props }: { task: ToolTask; now: Date; group
         role="button"
         tabIndex={0}
         onClick={() => props.onOpen(task)}
-        onKeyDown={e => { if (e.key === 'Enter' && e.target === e.currentTarget) props.onOpen(task) }}
+        onKeyDown={e => {
+          if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); props.onOpen(task) }
+        }}
         className={`${ROW_GRID} ${props.showProject ? WIDE_PROJECT : WIDE} cursor-pointer hover:bg-surface-hover`}
       >
         <div className="flex min-w-0 items-center gap-2 [grid-area:title]">

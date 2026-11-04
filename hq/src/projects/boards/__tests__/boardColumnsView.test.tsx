@@ -288,7 +288,7 @@ describe('cards and rows', () => {
     view({ layout: 'stacked', backlog: [card({ id: 'c1', taskKey: 'WEB-4', title: 'A fairly long title that wraps' })] })
     const open = screen.getByRole('button', { name: 'Open WEB-4' })
     expect(open.className).toContain('cursor-pointer')
-    expect(open.parentElement!.className).toContain('hover:ring-accent')
+    expect(open.parentElement!.parentElement!.className).toContain('hover:ring-accent')
     const line = within(open).getByText('WEB-4').parentElement!
     expect(line.textContent).toContain('A fairly long title that wraps')
   })

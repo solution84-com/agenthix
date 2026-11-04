@@ -14,6 +14,9 @@ import type {
 /** Below this width the timeline is an agenda. */
 export const AGENDA_BELOW_PX = 640
 
+// One shared set, so a board's own timeline (no hidden boards) does not rebuild its rows on every render.
+const NO_HIDDEN_BOARDS: ReadonlySet<string> = new Set<string>()
+
 export interface TimelineProps {
   scale: TimelineScale
   show: TimelineShow
@@ -104,7 +107,7 @@ export function Timeline(props: TimelineProps) {
     () => chartView(scale, knownFrom !== null && knownTo !== null ? { from: knownFrom, to: knownTo } : null, today, width ?? 960),
     [scale, knownFrom, knownTo, today, width],
   )
-  const hidden = hiddenBoardIds ?? new Set<string>()
+  const hidden = hiddenBoardIds ?? NO_HIDDEN_BOARDS
   const rows = useMemo(
     () => (data ? buildRows(data, { show, hiddenBoardIds: hidden, foldedBoardIds: folded, laneHeaders: !!props.chooseBoards }) : []),
     [data, show, hidden, folded, props.chooseBoards],
@@ -163,7 +166,7 @@ export function Timeline(props: TimelineProps) {
       {props.notice && <p role="status" className="px-4 pb-2 text-small text-text-secondary">{props.notice}</p>}
       {data?.runs.unavailable && <p className="px-4 pb-2 text-small text-text-muted">Runs could not be read from the site, so the work done is not shown.</p>}
       {data?.runs.truncated && <p className="px-4 pb-2 text-small text-text-muted">Older work in this range is left out.</p>}
-      {data?.capped && <p className="px-4 pb-2 text-small text-text-muted">This project reaches further than a timeline can show: it covers 400 days around today.</p>}
+      {data?.capped && <p className="px-4 pb-2 text-small text-text-muted">This project reaches further than a timeline can show: it shows only the part around today.</p>}
       {!data ? (
         <p className="px-4 py-6 text-small text-text-muted">{loading === false ? 'Nothing to show.' : 'Loading…'}</p>
       ) : agenda ? (

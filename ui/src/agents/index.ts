@@ -4,7 +4,7 @@ export { sanitizeHandle } from './sanitizeHandle'
 
 export type { CreateAgentInput, CreateAgentActions } from './types'
 export { AGENT_MODELS, DEFAULT_AGENT_MODEL, DEFAULT_AGENT_RUNTIME } from './types'
-export { ModelSelect, ModelOptions } from './ModelSelect'
+export { ModelOptions } from './ModelSelect'
 export { modelOptionLabel, filterModels, groupByProvider } from './modelGroups'
 
 export * from './helpers'
@@ -41,8 +41,7 @@ export type { SkillsTabProps, SkillsTabQueries, SkillsTabActions, AgentSkill, Li
 export { AgentManageHeader } from './AgentManageHeader'
 export type { AgentManageHeaderProps, AgentManageHeaderActions } from './AgentManageHeader'
 
-export { AgentOverrideForm } from './AgentOverrideForm'
-export type { AgentOverrideFormProps, AgentOverrideValue, AgentOverrideModelOption } from './AgentOverrideForm'
+export type { AgentOverrideValue } from './projectAgentTypes'
 export { MODEL_PRICING, formatCost, calculateCost } from './aiMetrics'
 
 export { ProfileCard } from './ProfileCard'

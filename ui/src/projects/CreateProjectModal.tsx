@@ -45,6 +45,7 @@ export function CreateProjectModal({
   const [siteId, setSiteId] = useState(defaultSelectedSiteId ?? sites[0]?.siteId ?? '')
   const [name, setName] = useState('')
   const [projectKey, setProjectKey] = useState('')
+  const [keyTouched, setKeyTouched] = useState(false)
   const [description, setDescription] = useState('')
   const [productId, setProductId] = useState(defaultProductId ?? '')
   const [programId, setProgramId] = useState(defaultProgramId ?? '')
@@ -66,13 +67,15 @@ export function CreateProjectModal({
 
   const handleNameChange = (val: string) => {
     setName(val)
-    setProjectKey(deriveProjectKey(val, existingKeys))
+    // A key the person typed stays: only an untouched key follows the name.
+    if (!keyTouched) setProjectKey(deriveProjectKey(val, existingKeys))
   }
 
   const handleClose = () => {
     setSiteId(defaultSelectedSiteId ?? sites[0]?.siteId ?? '')
     setName('')
     setProjectKey('')
+    setKeyTouched(false)
     setDescription('')
     setProductId(defaultProductId ?? '')
     setProgramId(defaultProgramId ?? '')
@@ -140,7 +143,11 @@ export function CreateProjectModal({
           <input
             id="cp-key"
             value={projectKey}
-            onChange={e => setProjectKey(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6))}
+            onChange={e => {
+              const next = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6)
+              setProjectKey(next)
+              setKeyTouched(next !== '')
+            }}
             maxLength={6}
             placeholder="DASH"
             className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-body text-text-secondary font-mono focus:outline-none focus:ring-1 focus:ring-accent"

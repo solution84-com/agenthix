@@ -13,6 +13,7 @@ export interface OverflowItem {
 export function OverflowMenu({ items, label = 'More actions' }: { items: OverflowItem[]; label?: string }) {
   const [open, setOpen] = useState(false)
   const [confirming, setConfirming] = useState<string | null>(null)
+  const [failure, setFailure] = useState<string | null>(null)
   const button = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     if (!open) return
@@ -27,6 +28,16 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
   }, [open])
   if (items.length === 0) return null
   const close = () => { setOpen(false); setConfirming(null) }
+  // The reason an action was refused is said beside the button, not lost.
+  const select = (item: OverflowItem) => {
+    setFailure(null)
+    const refused = (err: unknown) => setFailure(err instanceof Error && err.message ? err.message : `${item.label} did not work. Nothing was changed.`)
+    try {
+      void Promise.resolve(item.onSelect()).catch(refused)
+    } catch (err) {
+      refused(err)
+    }
+  }
   return (
     <div className="relative">
       {open && <div className="fixed inset-0 z-10" onClick={close} />}
@@ -36,11 +47,16 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => (open ? close() : setOpen(true))}
+        onClick={() => { setFailure(null); if (open) close(); else setOpen(true) }}
         className="rounded-lg border border-border bg-surface-1 p-1.5 text-text-secondary hover:bg-surface-hover"
       >
         <MoreHorizontal size={14} aria-hidden />
       </button>
+      {failure && !open && (
+        <div role="alert" className="absolute right-0 top-full z-20 mt-1 w-52 rounded-xl border border-danger/30 bg-surface-1 px-3 py-2 text-small text-danger shadow-lg">
+          {failure}
+        </div>
+      )}
       {open && (
         <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl border border-border bg-surface-1 shadow-lg">
           {items.map(item => (
@@ -51,7 +67,7 @@ export function OverflowMenu({ items, label = 'More actions' }: { items: Overflo
               onClick={() => {
                 if (item.confirmLabel && confirming !== item.label) { setConfirming(item.label); return }
                 close()
-                void item.onSelect()
+                select(item)
               }}
               className={`block w-full px-3 py-2 text-left text-small hover:bg-surface-hover ${item.danger ? 'text-danger' : 'text-text-primary'}`}
             >

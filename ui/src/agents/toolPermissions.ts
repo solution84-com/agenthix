@@ -3,7 +3,7 @@
  * =========================
  * Helpers for the always / ask / never three-state tool permission model.
  *
- * - Coerce legacy string[] DB values to ToolPermission[] / BashPatternPermission[]
+ * - Coerce legacy string[] DB values to BashPatternPermission[]
  * - Compute DEFAULT_TOOL_PERMISSIONS (used when agent.allowedTools is null)
  * - mergeWithAlwaysInjected: pin always-injected tools to 'always' regardless of config
  * - getToolState: look up a tool's effective state from a permission list
@@ -39,29 +39,6 @@ export const DEFAULT_TOOL_PERMISSIONS: ToolPermission[] = [
 ]
 
 // ── Coercion helpers ──────────────────────────────────────────────────────────
-
-/**
- * Normalise the DB value of agent.allowedTools to ToolPermission[].
- * Handles both old string[] format and new ToolPermission[] format.
- * Legacy string[] entries → each gets state 'always' (they were pre-approved).
- * Null/undefined → returns defaults.
- */
-export function coerceToolPermissions(
-  raw: unknown,
-  defaults: ToolPermission[] = DEFAULT_TOOL_PERMISSIONS,
-): ToolPermission[] {
-  if (raw === null || raw === undefined) return defaults
-  if (!Array.isArray(raw)) return defaults
-  if (raw.length === 0) return []
-
-  // Detect new format: first element has a 'state' property
-  if (typeof raw[0] === 'object' && raw[0] !== null && 'state' in raw[0]) {
-    return raw as ToolPermission[]
-  }
-
-  // Old format: string[] — treat each as 'always' (backward compat)
-  return (raw as string[]).map(name => ({ name, state: 'always' as const }))
-}
 
 /**
  * Normalise the DB value of agent.allowedBashPatterns to BashPatternPermission[].

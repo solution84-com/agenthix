@@ -64,7 +64,6 @@ export interface PermissionPreset {
   label: string
   /** What the preset grants, in words a person reads before picking it: never more than its tools and patterns allow. */
   description: string
-  dot: string  // tailwind bg color for the indicator dot
   tools: ToolPermission[]
   bashPatterns: BashPatternPermission[]
 }
@@ -74,7 +73,6 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
     id: 'safe',
     label: 'Safe',
     description: 'Filesystem + standard MCP. No bash or web.',
-    dot: 'bg-emerald-500',
     tools: DEFAULT_TOOL_PERMISSIONS,
     bashPatterns: [],
   },
@@ -82,7 +80,6 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
     id: 'read-only',
     label: 'Read only',
     description: 'Read files and observe workspace. No mutations.',
-    dot: 'bg-blue-500',
     tools: perms([
       { names: [RUNTIME_TOOLS.FILESYSTEM.READ_FILE, RUNTIME_TOOLS.FILESYSTEM.GLOB_FILES, RUNTIME_TOOLS.FILESYSTEM.GREP_FILES], state: 'always' },
       { names: [RUNTIME_TOOLS.FILESYSTEM.EDIT_FILE, RUNTIME_TOOLS.FILESYSTEM.WRITE_FILE, 'Agent', RUNTIME_TOOLS.BASH.BASH, RUNTIME_TOOLS.WEB.WEB_FETCH, RUNTIME_TOOLS.WEB.WEB_SEARCH], state: 'never' },
@@ -95,7 +92,6 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
     id: 'developer',
     label: 'Developer',
     description: 'Reads and changes files, and uses the standard platform tools. Runs git, npm run, pnpm and ls without asking: these run the project\'s own scripts and Git hooks. Any other command is asked about.',
-    dot: 'bg-amber-500',
     tools: perms([
       { names: DEFAULT_RUNTIME_TOOLS, state: 'always' },
       { names: ['Agent', RUNTIME_TOOLS.WEB.WEB_FETCH, RUNTIME_TOOLS.BASH.BASH], state: 'ask' },
@@ -114,7 +110,6 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
     id: 'product-manager',
     label: 'Product manager',
     description: 'Writes documents, and manages tasks and products. Runs git without asking, which can run the repository\'s own Git hooks. Any other command, and the web, is asked about.',
-    dot: 'bg-purple-500',
     tools: perms([
       { names: [RUNTIME_TOOLS.FILESYSTEM.READ_FILE, RUNTIME_TOOLS.FILESYSTEM.GLOB_FILES, RUNTIME_TOOLS.FILESYSTEM.GREP_FILES, RUNTIME_TOOLS.FILESYSTEM.EDIT_FILE, RUNTIME_TOOLS.FILESYSTEM.WRITE_FILE], state: 'always' },
       { names: ['Agent'], state: 'never' },
@@ -146,7 +141,6 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
     id: 'project-manager',
     label: 'Project manager',
     description: 'Full project & board ops, task lifecycle management.',
-    dot: 'bg-indigo-500',
     tools: perms([
       { names: [RUNTIME_TOOLS.FILESYSTEM.READ_FILE, RUNTIME_TOOLS.FILESYSTEM.GLOB_FILES, RUNTIME_TOOLS.FILESYSTEM.GREP_FILES, RUNTIME_TOOLS.FILESYSTEM.EDIT_FILE, RUNTIME_TOOLS.FILESYSTEM.WRITE_FILE], state: 'always' },
       { names: ['Agent', RUNTIME_TOOLS.BASH.BASH], state: 'never' },

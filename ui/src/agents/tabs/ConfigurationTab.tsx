@@ -21,16 +21,18 @@ export function ConfigurationTab({ agent, actions }: ConfigurationTabProps) {
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
+  // Only a different agent resets the field: a refetch of the same agent must not discard what is typed.
   useEffect(() => {
     setName(agent.name)
-  }, [agent])
+  }, [agent.id])
 
   const handleSave = useCallback(async () => {
+    if (!name.trim()) { setError('An agent needs a name. Nothing was changed.'); return }
     setSaving(true)
     setError(null)
     setSaved(false)
     try {
-      await actions.updateAgent({ id: agent.id, name })
+      await actions.updateAgent({ id: agent.id, name: name.trim() })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e: unknown) {

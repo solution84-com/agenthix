@@ -45,7 +45,7 @@ export function TaskPanel({
   if (!task) return null
 
   const contextLabel = [
-    (task.board as any)?.name,
+    task.board?.name,
     boardStages.find((s) => s.name === task.stage)?.label ?? task.stage,
   ]
     .filter(Boolean)
@@ -118,7 +118,7 @@ export function TaskPanel({
               (lc) => !detail.taskComments.find((tc) => tc.id === lc.id)
             )]}
             renderContent={renderCommentContent
-              ? (c) => renderCommentContent((c as any).content ?? '')
+              ? (c) => renderCommentContent(c.content ?? '')
               : undefined
             }
             commentDraft={detail.commentDraft}

@@ -148,5 +148,6 @@ describe('the viewer’s address @SC-1590', () => {
       .toEqual({ origin: 'https://files.example.org:8443', src: 'https://files.example.org:8443/viewer/pdf#link=%2Ft%2Fa.b.c&theme=light' })
     expect(viewerSource('http://files.localhost:4100/t/a.b.c', 'dark')?.origin).toBe('http://files.localhost:4100')
     expect(viewerSource('ftp://files.example.org/t/a.b.c', 'light')).toBeNull()
+    expect(viewerSource(`${window.location.origin}/t/a.b.c`, 'light')).toBeNull()
   })
 })

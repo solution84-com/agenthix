@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent, type ReactNode } from 'react'
+import { useState, useEffect, useRef, type FormEvent, type ReactNode } from 'react'
 import { Button } from '../primitives/Button'
 import { Input } from '../primitives/Input'
 import { Textarea } from '../primitives/Textarea'
@@ -67,11 +67,12 @@ export function CreateTaskModal({
   const [agentId, setAgentId]       = useState('')
   const [modelChoice, setModelChoice] = useState('')
   const [saving, setSaving]         = useState(false)
+  const [error, setError]           = useState<string | null>(null)
 
   const selectedBoard = boards.find((b) => b.id === boardId) ?? null
-  const sortedStages: BoardStage[] = selectedBoard
-    ? [...selectedBoard.stages].sort((a, b) => ((a as any).order ?? 0) - ((b as any).order ?? 0))
-    : []
+  const sortedStages: BoardStage[] = selectedBoard ? selectedBoard.stages : []
+  const boardsRef = useRef(boards)
+  boardsRef.current = boards
 
   // Auto-select first TODO stage when board changes
   useEffect(() => {
@@ -82,15 +83,18 @@ export function CreateTaskModal({
     setStageName(defaultStage ?? firstTodo?.name ?? '')
   }, [boardId, boards, defaultStage])
 
-  // Reset form when modal opens
+  // Reset form when modal opens: every field, the model choice and any earlier error included.
   useEffect(() => {
     if (open) {
+      const board = boardsRef.current.find((b) => b.id === defaultBoardId)
       setTitle(defaultTitle ?? '')
       setDescription('')
       setPriority('MEDIUM')
       setBoardId(defaultBoardId ?? '')
-      setStageName(defaultStage ?? '')
+      setStageName(defaultStage ?? board?.stages.find((s) => s.status === 'TODO')?.name ?? '')
       setAgentId('')
+      setModelChoice('')
+      setError(null)
     }
   }, [open, defaultBoardId, defaultStage])
 
@@ -106,6 +110,7 @@ export function CreateTaskModal({
     e.preventDefault()
     if (!title.trim()) return
     setSaving(true)
+    setError(null)
     try {
       await onSubmit({
         projectId,
@@ -119,6 +124,8 @@ export function CreateTaskModal({
       })
       onCreated?.()
       onClose()
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'Could not create the task. Nothing was changed.')
     } finally {
       setSaving(false)
     }
@@ -212,6 +219,8 @@ export function CreateTaskModal({
 
         {/* Placement hint */}
         <p className="text-small text-text-muted italic">{buildHint()}</p>
+
+        {error && <p role="alert" className="text-small text-danger">{error}</p>}
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 pt-2">
