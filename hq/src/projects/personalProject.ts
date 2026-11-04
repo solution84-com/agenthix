@@ -19,6 +19,7 @@ import { HttpError, prisma } from 'wasp/server'
 import { projectTasksBoardCreate } from './boardColumns'
 import { requireRole } from '../server/identity/requireRole'
 import { Logger } from '../server/utils/logger'
+import { KERNEL_HANDLE } from '../agents/kernelGuards'
 
 const logger = new Logger('PersonalProject')
 
@@ -154,6 +155,15 @@ export function tasksRunOnSite(siteId: string): Prisma.TaskWhereInput {
   }
 }
 
+/**
+ * What a personal place's roster starts with: Kernel, on it from when the place is made (its agents are its own
+ * roster, apart from people). Nothing before the organisation's setup has made Kernel.
+ */
+export async function startingRoster(): Promise<{ defaultAgentId?: string; agents?: { create: { agentId: string; direct: true } } }> {
+  const kernel = await prisma.agent.findUnique({ where: { handle: KERNEL_HANDLE }, select: { id: true } })
+  return kernel ? { defaultAgentId: kernel.id, agents: { create: { agentId: kernel.id, direct: true } } } : {}
+}
+
 /** Two to six letters, as every project key is: `MY` and three or four more. */
 function candidateKey(attempt: number): string {
   const letters = attempt < 20 ? 3 : 4
@@ -182,6 +192,7 @@ export async function ensurePersonalProject(userId: string): Promise<PersonalPro
   const where = { personalOwnerId: userId, personalSpace: true }
   const existing = await prisma.project.findFirst({ where, select })
   if (existing) return existing
+  const roster = await startingRoster()
 
   for (let attempt = 0; attempt < 40; attempt++) {
     try {
@@ -195,6 +206,7 @@ export async function ensurePersonalProject(userId: string): Promise<PersonalPro
           members: { create: { userId, role: 'ADMIN' } },
           // Its Project Tasks, as every project has (adr-0097).
           boards: { create: projectTasksBoardCreate() },
+          ...roster,
         },
         select,
       })

@@ -25,12 +25,12 @@ describe('Chat’s Agents fact @SC-587', () => {
   it('opens the Agents section', () => {
     const fact = chatFacts(null).find((f) => f.label === 'Agents')!
     render(<MemoryRouter initialEntries={['/chat']}>{fact.value}<Where /></MemoryRouter>)
-    fireEvent.click(screen.getByRole('button', { name: /Any in the organisation/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Roster, and any agent/ }))
     expect(screen.getByTestId('where').textContent).toBe('?tool=agents')
   })
 
   it('is a tool a section can show, though it has no row of its own', () => {
-    const place = { toolGroups: [], linkedTools: chatLinkedTools } as unknown as Place
+    const place = { toolGroups: [], linkedTools: chatLinkedTools('p1') } as unknown as Place
     expect(findTool(place, 'agents')?.label).toBe('Agents')
     expect(findTool(place, 'people')).toBeNull()
   })

@@ -19,6 +19,7 @@ import { leaveRoomsNoLongerAllowed } from '../server/roomAccess'
 import { recordActivity } from '../server/dashboard/activity'
 import { entitledProjectsFilter } from './membership'
 import { projectTasksBoardCreate } from './boardColumns'
+import { startingRoster } from './personalProject'
 import { Logger } from '../server/utils/logger'
 import { displaySiteName } from '../shared/siteName'
 import { upgradeSide } from '../sites/siteStanding'
@@ -161,7 +162,7 @@ export async function createProject(params: {
   const project = await prisma.project.create({
     data: {
       name, description, productId, programId, defaultAgentId, executionSiteId, slug, key, billingProfileId,
-      ...(personalOwnerId ? { accessLevel: 'PRIVATE' as const, personalOwnerId } : {}),
+      ...(personalOwnerId ? { accessLevel: 'PRIVATE' as const, personalOwnerId, ...(await startingRoster()) } : {}),
       boards: { create: projectTasksBoardCreate() },
     },
   })

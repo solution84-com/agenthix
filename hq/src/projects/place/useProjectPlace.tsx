@@ -199,7 +199,7 @@ export function useProjectPlace(key: string | undefined) {
           { label: 'Access', value: project.accessLevel === 'PRIVATE' ? 'Private' : 'Open' },
         ],
     teamRows: personal ? undefined : teamRows(project.id, panelRows as PanelRows | undefined),
-    linkedTools: personal ? chatLinkedTools : memberAliases(project.id),
+    linkedTools: personal ? chatLinkedTools(project.id) : memberAliases(project.id),
     toolGroups: projectTools(project, {
       isProjectAdmin,
       runs: runs as unknown[] | undefined,

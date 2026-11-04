@@ -57,6 +57,10 @@ its **Settings** have no access, members or billing parts. Any agent can work in
 agent settings, your Claude subscription if you have one, and your own list of which models may run. It keeps its own
 files, apart from your space's.
 
+Its **Agents** page lists the agents its tasks and routines can be given to: select **Add** to put any agent in the
+organisation on the list, or **Remove** beside one to take it off. **Kernel** is on the list from the start. Only you change the list, and you can still
+talk to any agent in the organisation there, whether it is on the list or not.
+
 ## Roles in a project
 
 What someone may do in a project is their role there. The organisation role doesn't change it.

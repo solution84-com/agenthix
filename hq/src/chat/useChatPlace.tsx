@@ -48,12 +48,12 @@ export function useChatPlace(): Place | undefined {
       backHref: null,
       projectId: null,
       facts: chatFacts(site as { id: string; label: string } | null | undefined),
-      linkedTools: chatLinkedTools,
+      linkedTools: chatLinkedTools(projectId),
       toolGroups: chatToolGroups({
         userId: user.id, project, runs: runs as unknown[] | undefined, automationOn,
         siteLabel: (site as { label: string } | null | undefined)?.label ?? null, filesCounts, workflows, skills, secrets,
       }),
       sectionOrder: SPACE_SECTION_ORDER,
     }
-  }, [user, composer.agents, composer.defaultAgentId, site, project, runs, automationOn, filesCounts, workflows, skills, secrets])
+  }, [user, projectId, composer.agents, composer.defaultAgentId, site, project, runs, automationOn, filesCounts, workflows, skills, secrets])
 }

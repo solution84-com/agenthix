@@ -152,6 +152,10 @@ have worked on together. See [Knowledge](../projects/knowledge.md#four-levels) f
 **Workspaces** and **Agents**. **Chat** shows only the list of its conversations. See
 [Projects](../projects/projects.md#inside-a-project) for how a place's sections work.
 
+Its **Agents** page is the list of agents that tasks and routines in your space can be given to. **Kernel** is on it from
+the day your account is made. Select **Add** to put any agent in the organisation on the list, or **Remove** beside one to
+take it off; only you change it. You can talk to any agent in the organisation in your space, on the list or not.
+
 ## When the agent has more to do
 
 The agent does not make you wait for longer work. It tells you it has started, in a line, and you can carry on talking.

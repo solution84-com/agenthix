@@ -50,8 +50,10 @@ export function chatFacts(site: { id: string; label: string } | null | undefined
   ]
 }
 
-/** Agents opens from the fact, not from a row of its own: a personal space has no Agents row. */
-export const chatLinkedTools: PlaceTool[] = [{ id: 'agents', label: 'Agents', render: () => <ChatAgentsTool /> }]
+/** Agents opens from the fact, not from a row of its own: a personal space has no Agents row. It is the roster of the personal project behind the place. */
+export function chatLinkedTools(projectId: string | undefined): PlaceTool[] {
+  return [{ id: 'agents', label: 'Agents', render: () => <ChatAgentsTool projectId={projectId} /> }]
+}
 
 function loading() {
   return <p className="px-4 py-6 text-small text-text-muted">Loading…</p>
@@ -59,8 +61,8 @@ function loading() {
 
 /**
  * Chat's tools (spec §7): Work, Agents at work, and Files. A personal
- * project cannot have agents, people or settings of its own, so those tools are
- * not here. The person is their space's only admin.
+ * project has no people or settings of its own, so those tools are not here; its agents are the Agents tool.
+ * The person is their space's only admin.
  */
 export function chatToolGroups(space: ChatSpace): PlaceToolGroup[] {
   const { project } = space
