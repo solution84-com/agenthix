@@ -4,7 +4,8 @@
  * Ordinary agents keep their private addresses.
  */
 import { describe, expect, it } from 'vitest'
-import { NOT_PUBLIC, dropSetFor, nftScript, rulesFor, type RuleSet } from '../rules'
+import { NOT_PUBLIC, dropSetFor, nftScript, rulesFor, rulesInPlace, type RuleSet } from '../rules'
+import { listing as baseListing } from './nftListing'
 import { dropsIn } from '../drops'
 import { livePreviewPart } from '../machine'
 
@@ -40,6 +41,24 @@ describe('the live-preview part @SC-1758', () => {
 
   it('refuses an address that is not one', () => {
     expect(() => nftScript({ ...lp, livePreview: { ...lp.livePreview!, publicAddresses: ['1.2.3.4; flush ruleset'] } })).toThrow()
+  })
+
+  it('holds once its rules are listed as nft prints them, the drop set named with its @', () => {
+    const known: RuleSet = { ...lp, livePreview: { ...lp.livePreview!, publicAddresses: ['203.0.113.7'] } }
+    const part = { prefix: { addr: '10.213.24.0', len: 21 } }
+    const daddr = { payload: { protocol: 'ip', field: 'daddr' } }
+    const counted = (set: string) => ({ set: { op: 'update', elem: { payload: { protocol: 'ip', field: 'saddr' } }, set: `@${set}`, stmt: [{ counter: null }] } })
+    const rule = (comment: string, ...expr: unknown[]) => ({ rule: { family: 'inet', table: known.table, chain: 'forward', handle: 9, comment, expr: [
+      { match: { op: '==', left: { payload: { protocol: 'ip', field: 'saddr' } }, right: part } }, ...expr, { drop: null }] } })
+    const items = (JSON.parse(baseListing(known)) as { nftables: unknown[] }).nftables
+    items.push(
+      rule('private-addresses',
+        { match: { op: '!=', left: daddr, right: part } },
+        { match: { op: '==', left: daddr, right: { set: NOT_PUBLIC.map(c => ({ prefix: { addr: c.split('/')[0], len: Number(c.split('/')[1]) } })) } } },
+        counted('drops_private_addresses')),
+      rule('public-address', { match: { op: '==', left: daddr, right: '203.0.113.7' } }, counted('drops_public_address')),
+    )
+    expect(rulesInPlace(JSON.stringify({ nftables: items }), known)).toEqual(rulesFor(known))
   })
 
   it('reads the drops counted by address', () => {

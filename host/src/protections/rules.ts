@@ -198,8 +198,11 @@ export function rulesInPlace(listing: string, rules: RuleSet): ProtectionRule[] 
       return expr.includes(fromPart) && JSON.stringify(r.expr[r.expr.length - 1]) === '{"drop":null}' && must.every(m => expr.includes(m))
     })
     const ranges = NOT_PUBLIC.map(c => { const [addr, len] = c.split('/'); return `{"prefix":{"addr":"${addr}","len":${len}}}` })
-    if (counted('private-addresses', `"${dropSetFor('private-addresses')}"`, ...ranges)) inPlace.push('private-addresses')
-    if (lp.publicAddresses.length && counted('public-address', ...lp.publicAddresses.map(a => `"${a}"`))) inPlace.push('public-address')
+    // nft names the set a rule updates with its @, as the script writes it.
+    if (counted('private-addresses', `"@${dropSetFor('private-addresses')}"`, ...ranges)) inPlace.push('private-addresses')
+    if (lp.publicAddresses.length && counted('public-address', `"@${dropSetFor('public-address')}"`, ...lp.publicAddresses.map(a => `"${a}"`))) {
+      inPlace.push('public-address')
+    }
   }
   return inPlace
 }
