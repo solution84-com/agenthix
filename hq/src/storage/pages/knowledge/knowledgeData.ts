@@ -17,6 +17,11 @@ export interface Read<T> {
   refetch?: () => unknown
 }
 
+/** A search's answer: the levels that could not be searched are named, since their pages are missing, not none. */
+export interface SearchRead extends Read<SearchHit[]> {
+  unanswered?: string[]
+}
+
 // Wasp's inferred types are cast at this boundary, as the other Files tools do.
 export function useKnowledgePages(owner: KnowledgeOwner, enabled = true): Read<KnowledgePagesList> {
   const { data, isLoading, error, refetch } = useQuery(listKnowledgePages, { owner }, { enabled, retry: retryUnlessGone })
@@ -45,10 +50,12 @@ export const deleteKnowledge = async (args: { owner: KnowledgeOwner; page: strin
  * The search over a place's knowledge, for what the person typed (never a pattern: hq escapes it). From the
  * organisation's own place there is only itself to search.
  */
-export function useKnowledgeSearch(owner: KnowledgeOwner, text: string, scope: SearchScope): Read<SearchHit[]> {
+export function useKnowledgeSearch(owner: KnowledgeOwner, text: string, scope: SearchScope): SearchRead {
   const pattern = text.trim()
   const { data, isLoading, error } = useQuery(
     searchKnowledgePages, { owner, pattern, scope: owner.ownerType === 'org' ? 'this' : scope }, { enabled: pattern !== '' },
   )
-  return { data: (data as { hits: SearchHit[] } | undefined)?.hits, isLoading, error }
+  const answer = data as { hits: SearchHit[]; levels: { level: string; name: string }[]; unanswered: string[] } | undefined
+  const unanswered = answer?.unanswered.map(level => answer.levels.find(l => l.level === level)?.name ?? level)
+  return { data: answer?.hits, isLoading, error, unanswered }
 }

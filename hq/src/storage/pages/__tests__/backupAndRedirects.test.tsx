@@ -46,6 +46,24 @@ describe('the GitHub backup line', () => {
     expect(screen.getByText('repo panel')).toBeTruthy()
   })
 
+  it('shows the repository but no Manage or Back up button to someone who may not administer the project', () => {
+    useQuery.mockReturnValue({ data: { repoUrl: 'https://github.com/acme/agenthix-docs', mayAdminister: false }, error: null })
+    const { unmount } = render(<BackupLine owner={owner} />)
+    expect(screen.getByText('acme/agenthix-docs')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Manage' })).toBeNull()
+    unmount()
+    useQuery.mockReturnValue({ data: { repoUrl: null, mayAdminister: false }, error: null })
+    render(<BackupLine owner={owner} />)
+    expect(screen.getByText('Not backed up')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Back up to GitHub' })).toBeNull()
+  })
+
+  it('offers both to a project administrator', () => {
+    useQuery.mockReturnValue({ data: { repoUrl: null, mayAdminister: true }, error: null })
+    render(<BackupLine owner={owner} />)
+    expect(screen.getByRole('button', { name: 'Back up to GitHub' })).toBeTruthy()
+  })
+
   it('offers nothing while the state cannot be read: a repository may already be attached', () => {
     useQuery.mockReturnValue({ data: undefined, error: new Error('The Execution Site did not answer') })
     render(<BackupLine owner={owner} />)

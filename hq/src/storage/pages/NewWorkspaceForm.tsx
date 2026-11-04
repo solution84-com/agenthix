@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
-import { useAction, createWorkspace } from 'wasp/client/operations'
+import { useAction, useQuery, createWorkspace, getRepoState } from 'wasp/client/operations'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY, FilesViewHeader } from '@agenthix/ui/projects'
 import { ConnectRepoFlow } from '../../github/connect/ConnectRepoFlow'
 import { NoExecutionSiteNotice, useNoExecutionSite } from '../../shared/components/NoExecutionSiteNotice'
@@ -20,6 +20,8 @@ export function NewWorkspaceForm({ owner, siteLabel, onBack, onCreated }: {
 }) {
   const create = useAction(createWorkspace)
   const noSite = useNoExecutionSite()
+  // Starting from a repository connects one, which is a project administrator's; an answer without the flag leaves it to the server.
+  const mayConnect = useQuery(getRepoState, { target: owner }).data?.mayAdminister !== false
   const [name, setName] = useState('')
   const [from, setFrom] = useState<'repository' | 'empty'>('empty')
   const [connected, setConnected] = useState(false)
@@ -71,7 +73,7 @@ export function NewWorkspaceForm({ owner, siteLabel, onBack, onCreated }: {
         <fieldset>
           <legend className="mb-1 text-small font-medium text-text-secondary">Start from</legend>
           <div className="grid grid-cols-2 gap-2">
-            {([['repository', 'A GitHub repository', 'Connect a new or existing one next'], ['empty', 'Empty', 'Connect a repository later']] as const).map(([value, title, hint]) => (
+            {([['repository', 'A GitHub repository', 'Connect a new or existing one next'], ['empty', 'Empty', 'Connect a repository later']] as const).filter(([value]) => value !== 'repository' || mayConnect).map(([value, title, hint]) => (
               <label key={value} className={`cursor-pointer rounded-lg border p-3 ${from === value ? 'border-accent bg-surface-2' : 'border-border bg-surface-1'}`}>
                 <input type="radio" name="start-from" value={value} checked={from === value} onChange={() => setFrom(value)} className="sr-only" />
                 <span className="block text-small font-semibold text-text-primary">{title}</span>

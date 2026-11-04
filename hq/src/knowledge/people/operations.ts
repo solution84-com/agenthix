@@ -65,7 +65,7 @@ export const getKnowledgePageQuery = operation(schemas.get, (deps, a, userId): P
 export const knowledgePageVersionsQuery = operation(schemas.versions, (deps, a, userId): Promise<{ versions: KnowledgeVersionRow[]; truncated: boolean }> =>
   pageVersions(deps, ownerOf(a.owner), { page: a.page }, userId))
 
-export const recentlyDeletedKnowledgeQuery = operation(schemas.deleted, (deps, a, userId): Promise<{ pages: RecentlyDeletedPage[]; canChange: boolean }> =>
+export const recentlyDeletedKnowledgeQuery = operation(schemas.deleted, (deps, a, userId): Promise<{ pages: RecentlyDeletedPage[]; canChange: boolean; truncated: boolean }> =>
   recentlyDeleted(deps, ownerOf(a.owner), userId))
 
 export const searchKnowledgePagesQuery = operation(schemas.search, (deps, a, userId): Promise<KnowledgeSearchAnswer> =>

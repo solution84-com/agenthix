@@ -5,6 +5,7 @@ import { HttpError } from 'wasp/server'
 import { prisma } from 'wasp/server'
 import type { WorkspaceRow, RepoAttachmentSummaryRow } from '@agenthix/core'
 import { getRepoState, getAttachment, type RepoTarget } from './repoAttachmentService'
+import { mayAdministerAttachment, requireRepoTarget } from './repoTarget'
 import { resolveOwnerSiteId } from './ownerSite'
 import { askEverySite } from '../sites/combinedRead'
 import * as store from './workspaceStore'
@@ -47,8 +48,8 @@ export const getMyStorageQuery = async (_args: unknown, context: Ctx) => {
   const siteLabels = new Map(held.answers.map((a) => [a.siteId, a.value.siteLabel]))
   const workspaces: WorkspaceRow[] = held.answers.flatMap((a) => a.value.workspaces)
   const attachments: RepoAttachmentSummaryRow[] = held.answers.flatMap((a) => a.value.repos)
-  // Only the projects this person is entitled to: an open one, or a private one
-  // they are listed on (spec §6.4). Not Your space, which owns no storage — its
+  // Only the projects this person is listed on, or their own personal project (`entitledProjectsFilter`); an open
+  // project they have not joined is not here. Not Your space, which owns no storage — its
   // work is in their own, the "Personal" group. A personal project of theirs has its own.
   const projects = await prisma.project.findMany({
     where: { ...entitledProjectsFilter(context.user.id), personalSpace: false },
@@ -168,13 +169,14 @@ export const listLocationFilesQuery = async (
 export const getRepoStateQuery = async (
   { target }: { target: RepoTarget },
   context: Ctx,
-): Promise<{ repoUrl: string | null; isGitRepo: boolean; hasFiles: boolean }> => {
+): Promise<{ repoUrl: string | null; isGitRepo: boolean; hasFiles: boolean; mayAdminister: boolean }> => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
+  requireRepoTarget(target, false)
   await assertLocationAccess(target, context.user.id, 'read')
   const siteId = await resolveOwnerSiteId(target.ownerType, target.ownerId)
   if (!siteId) throw new HttpError(400, 'No Execution Site available for this owner')
   try {
-    return await getRepoState(siteId, target)
+    return { ...(await getRepoState(siteId, target)), mayAdminister: await mayAdministerAttachment(target, context.user.id) }
   } catch (err) {
     // The probe reads the site's disk now, so a refusal from the site is one
     // of the outcomes — an unreachable site is no longer the only way this

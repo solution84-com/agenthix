@@ -96,6 +96,17 @@ describe('createWorkspaceAction @SC-314 @SC-321 @SC-320', () => {
     expect(await placementOf(workspaceId)).toMatchObject({ siteId: s.id })
   })
 
+  it("places a person's workspace on the site their storage is placed on, not the default", async () => {
+    await ensureExecutionSite()
+    const second = await prisma.executionSite.create({ data: { siteId: `second-${Date.now()}`, label: 'Second', status: 'ONLINE' } })
+    const me = await createUser()
+    await prisma.userStoragePlacement.create({ data: { userId: me.id, siteId: second.id } })
+
+    const { workspaceId } = await createWorkspaceAction({ name: 'files', ownerType: 'user', ownerId: me.id }, { user: me })
+
+    expect(await placementOf(workspaceId)).toMatchObject({ siteId: second.id })
+  })
+
   it('refuses a project the caller is not on (403), a project with no site (400) and a missing name (400), writing nothing', async () => {
     const me = await createUser()
     const secret = await createProject({ accessLevel: 'PRIVATE' })

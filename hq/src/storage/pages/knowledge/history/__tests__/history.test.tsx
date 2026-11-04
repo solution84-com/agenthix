@@ -132,6 +132,16 @@ describe('recently deleted', () => {
     await waitFor(() => expect(h.del).toHaveBeenCalledWith({ owner, page: 'api/old-api-notes.md', permanently: true }))
   })
 
+  it('says when more pages were deleted than it lists, and not otherwise', () => {
+    h.deleted = { pages: deleted, truncated: true }
+    open()
+    expect(screen.getByTestId('deleted-truncated').textContent).toContain('More pages were deleted than are listed')
+    cleanup()
+    h.deleted = { pages: deleted, truncated: false }
+    open()
+    expect(screen.queryByTestId('deleted-truncated')).toBeNull()
+  })
+
   it('says so when nothing was deleted, and offers nothing to someone who may not change @SC-1423', () => {
     h.deleted = { pages: [] }
     open()

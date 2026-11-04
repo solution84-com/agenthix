@@ -100,6 +100,16 @@ describe('a workspace opened', () => {
     expect(screen.getByText('repo panel')).toBeTruthy()
   })
 
+  it('hides Connect GitHub from someone who may not administer the project', () => {
+    useQuery.mockImplementation((op: unknown) => ({ data: op === 'getRepoState' ? { repoUrl: null, isGitRepo: false, hasFiles: false, mayAdminister: false } : { ...ws, repoUrl: null }, error: null }))
+    const { unmount } = render(<WorkspaceView workspaceId="w1" siteLabel={null} connecting={false} onBack={vi.fn()} />)
+    expect(screen.getByText('No repository')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Connect GitHub' })).toBeNull()
+    unmount()
+    render(<WorkspaceView workspaceId="w1" siteLabel={null} connecting onBack={vi.fn()} />)
+    expect(screen.queryByText('repo panel')).toBeNull()
+  })
+
   it('opens on its README when the explorer is wide enough to show it beside the folders', () => {
     topFolder.entries = [{ name: 'src', isDir: true }, { name: 'README.md', isDir: false }]
     const observers: Array<(e: { contentRect: { width: number } }[]) => void> = []
@@ -132,6 +142,17 @@ describe('a workspace\'s About', () => {
     expect(screen.getByText('secrets')).toBeTruthy()
   })
 
+  it('offers Disconnect only to someone who may administer the project', () => {
+    const { unmount } = render(
+      <WorkspaceAbout ws={ws} target={{ ownerType: 'project', ownerId: 'p1', workspaceId: 'w1' }} siteLabel={null} mayAdminister={false} onDisconnect={vi.fn()} onBack={vi.fn()} />,
+    )
+    expect(screen.getByText('acme/web')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Disconnect' })).toBeNull()
+    unmount()
+    about()
+    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy()
+  })
+
   it('changes the tools agents may use in place', () => {
     about()
     fireEvent.click(screen.getByRole('button', { name: 'Change' }))
@@ -145,6 +166,17 @@ describe('a new workspace', () => {
     expect(screen.getByText('Office Mac')).toBeTruthy()
     expect(screen.queryByRole('combobox')).toBeNull()
     expect((screen.getByRole('button', { name: /Create/ }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('does not offer to start from a GitHub repository to someone who may not administer the project', () => {
+    useQuery.mockReturnValue({ data: { repoUrl: null, isGitRepo: false, hasFiles: false, mayAdminister: false }, error: null })
+    const { unmount } = render(<NewWorkspaceForm owner={{ ownerType: 'project', ownerId: 'p1' }} siteLabel={null} onBack={vi.fn()} onCreated={vi.fn()} />)
+    expect(screen.queryByText('A GitHub repository')).toBeNull()
+    expect(screen.getByText('Empty')).toBeTruthy()
+    unmount()
+    useQuery.mockReturnValue({ data: { repoUrl: null, isGitRepo: false, hasFiles: false, mayAdminister: true }, error: null })
+    render(<NewWorkspaceForm owner={{ ownerType: 'project', ownerId: 'p1' }} siteLabel={null} onBack={vi.fn()} onCreated={vi.fn()} />)
+    expect(screen.getByText('A GitHub repository')).toBeTruthy()
   })
 
   it('creates an empty workspace and opens it', async () => {

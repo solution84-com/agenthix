@@ -86,10 +86,22 @@ if (!c) {
     },
   })
 }
-const ws = site ? (await site.workspace.findFirst({ where: { name: 'smoke' } }) ?? await site.workspace.findFirst()) : null
+// A workspace the operator can read: one of a project they are a member of, or their own. Without the check the
+// pick could be a project's they are not in, and every workspace-view test would wait on Loading.
+let ws = null
+if (site) {
+  const memberships = await p.projectMember.findMany({ where: { userId }, select: { projectId: true } })
+  const readable = {
+    OR: [
+      { ownerType: 'project', ownerId: { in: memberships.map(m => m.projectId) } },
+      { ownerType: 'user', ownerId: userId },
+    ],
+  }
+  ws = (await site.workspace.findFirst({ where: { ...readable, name: 'smoke' } })) ?? (await site.workspace.findFirst({ where: readable }))
+}
 console.log('E2E_CONVERSATION_ID=' + c.id)
 console.log('E2E_AGENT_ID=' + agent.id)
 // A fresh site may have no workspace yet; the workspace spec then skips.
-console.log(ws ? 'E2E_WORKSPACE_ID=' + ws.id : '# no workspace on the site (or no site database address): E2E_WORKSPACE_ID left unset')
+console.log(ws ? 'E2E_WORKSPACE_ID=' + ws.id : '# no workspace the operator can read on the site (or no site database address): E2E_WORKSPACE_ID left unset')
 await p.$disconnect()
 await site?.$disconnect()

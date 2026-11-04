@@ -46,7 +46,7 @@ export function KnowledgeTool({ owner, personal, onOpenOrgPage }: {
   const navigate = useNavigate()
   const openOrgPage = onOpenOrgPage ?? ((target: string) => navigate(orgPageHref(target)))
   const ref = useRef<HTMLDivElement>(null)
-  const wide = useWide(ref)
+  const wide = useWide(ref) ?? false
   const list = useKnowledgePages(owner)
   const [compose, setCompose] = useState<EditTarget | null>(null)
   /** The page just deleted, until the person goes anywhere else. */

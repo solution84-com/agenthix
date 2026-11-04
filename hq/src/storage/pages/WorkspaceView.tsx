@@ -33,6 +33,8 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
   const owner = ws ? { ownerType: ws.ownerType as 'project' | 'user', ownerId: ws.ownerId } : null
   const target = owner && ws ? { ...owner, workspaceId: ws.id } : { ownerType: 'user' as const, ownerId: '', workspaceId }
   const { data: repoState } = useQuery(getRepoState, { target }, { enabled: !!ws })
+  // Connecting and disconnecting are a project administrator's; an answer without the flag leaves it to the server.
+  const mayAdminister = repoState?.mayAdminister !== false
   // The branches a delete takes with it; a Viewer, who cannot delete, is refused this and sees none.
   const { data: removal } = useQuery(getWorkspaceRemoval, { workspaceId }, { enabled: !!ws, retry: false })
   const top = useFolder(target, '', !!ws)
@@ -40,6 +42,9 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
   // Wide, the explorer opens on the README when there is one, as a repository's home page does.
   const readme = top.data?.find(e => !e.isDir && /^readme(\.md)?$/i.test(e.name))?.name ?? null
   const file = chosen ?? (wide ? readme : null)
+
+  // Not laid out yet: the open file's frame mounts once, in the layout it will stay in.
+  if (wide === null) return <div ref={root} className="flex min-h-0 flex-1 flex-col" />
 
   if (!ws || !owner) {
     return (
@@ -61,7 +66,7 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
   if (url.get('wabout')) {
     return (
       <div ref={root}>
-        <WorkspaceAbout ws={ws} target={target} siteLabel={siteLabel} onDisconnect={act(() => disconnect({ target }))} onBack={() => url.set({ wabout: null })} />
+        <WorkspaceAbout ws={ws} target={target} siteLabel={siteLabel} mayAdminister={mayAdminister} onDisconnect={act(() => disconnect({ target }))} onBack={() => url.set({ wabout: null })} />
       </div>
     )
   }
@@ -97,12 +102,12 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
         {siteLabel && <span className="whitespace-nowrap text-text-muted">{siteLabel}</span>}
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        {!ws.repoUrl && !connecting && <button type="button" className={FILES_BUTTON} onClick={() => url.set({ connect: '1' })}>Connect GitHub</button>}
+        {!ws.repoUrl && !connecting && mayAdminister && <button type="button" className={FILES_BUTTON} onClick={() => url.set({ connect: '1' })}>Connect GitHub</button>}
       </div>
       {notice && <p role="alert" className="mt-2 text-small text-danger">{notice}</p>}
     </div>
   )
-  const connect = connecting && <div className="px-4 pt-3"><RepoPanel target={target} repoName={ws.name} /></div>
+  const connect = connecting && mayAdminister && <div className="px-4 pt-3"><RepoPanel target={target} repoName={ws.name} /></div>
   const tree = <FolderTree target={target} selected={file} onOpenFile={path => url.set({ wfile: path })} />
 
   return (

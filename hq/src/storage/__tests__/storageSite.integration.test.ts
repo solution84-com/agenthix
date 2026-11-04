@@ -99,9 +99,19 @@ describe("the site that owns an owner's storage", () => {
   })
 
   it('is the default site for a person, and the shared error when no Execution Site is connected', async () => {
-    await expect(resolveOwnerSiteId('user', 'u1')).rejects.toThrow(NO_EXECUTION_SITE_MESSAGE)
+    const user = await createUser()
+    await expect(resolveOwnerSiteId('user', user.id)).rejects.toThrow(NO_EXECUTION_SITE_MESSAGE)
     const s = await ensureExecutionSite()
-    expect(await resolveOwnerSiteId('user', 'u1')).toBe(s.siteId)
+    expect(await resolveOwnerSiteId('user', user.id)).toBe(s.siteId)
+  })
+
+  it("is the site a person's storage is placed on, the answer resolveStorageSite gives", async () => {
+    await ensureExecutionSite()
+    const second = await site('Second Site')
+    const user = await createUser()
+    await prisma.userStoragePlacement.create({ data: { userId: user.id, siteId: second.id } })
+    expect(await resolveOwnerSiteId('user', user.id)).toBe(second.siteId)
+    expect(await resolveStorageSite({ ownerType: 'user', ownerId: user.id })).toBe(second.siteId)
   })
 })
 

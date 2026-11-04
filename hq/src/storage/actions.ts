@@ -8,8 +8,9 @@ import { HttpError, prisma } from 'wasp/server'
 import type { WorkspaceOwnerType } from '@prisma/client'
 import { createWorkspace, deleteWorkspace } from './workspaceService'
 import { connectRepo, disconnectRepo, type RepoTarget } from './repoAttachmentService'
+import { requireRepoTarget } from './repoTarget'
 import { parseAllowedToolsInput } from './allowedToolsService'
-import { requireDefaultSiteRef } from '../sites/localSite'
+import { ensureUserStoragePlacementRef } from './storageSite'
 import { resolveOwnerSiteId } from './ownerSite'
 import * as store from './workspaceStore'
 import { asHttp, rethrowLocationFileErrorAsHttp, rethrowSiteUnreachableAsHttp } from './httpErrors'
@@ -41,8 +42,8 @@ export const createWorkspaceAction = async (
     siteRef = project?.executionSite ?? null
     if (!siteRef) throw new HttpError(400, 'Project has no Execution Site')
   } else {
-    // Non-project owners anchor to the default site until multi-site placement UI exists (plan 5c deferred list).
-    siteRef = await requireDefaultSiteRef()
+    // A person's own storage is where their placement says, as every read of it answers.
+    siteRef = await ensureUserStoragePlacementRef(resolvedOwnerId)
   }
 
   try {
@@ -97,6 +98,7 @@ export type ConnectInput = {
 
 /** Who may connect, and where: the same for the check and the connection. */
 async function connectingContext(target: RepoTarget, userId: string, what: string): Promise<string> {
+  requireRepoTarget(target, true)
   // Outside the try: asHttp would rewrap its 403/404 as a generic 400.
   await assertLocationAccess(target, userId, 'work')
   await assertMayAdministerAttachment(target, userId, what)
@@ -143,6 +145,7 @@ export const disconnectRepoAction = async (
   context: Ctx,
 ): Promise<void> => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
+  requireRepoTarget(target, true)
   // Outside the try: asHttp would rewrap its 403/404 as a generic 400.
   await assertLocationAccess(target, context.user.id, 'work')
   await assertMayAdministerAttachment(target, context.user.id, 'Disconnecting a repository')

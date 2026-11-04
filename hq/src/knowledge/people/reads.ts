@@ -78,7 +78,7 @@ export async function pageVersions(
 /** Pages deleted and kept until pruned. A page moved away is not among them: it lives on under its new name. */
 export async function recentlyDeleted(
   deps: PeopleKnowledgeDeps, owner: KnowledgeOwner, userId: string,
-): Promise<{ pages: RecentlyDeletedPage[]; canChange: boolean }> {
+): Promise<{ pages: RecentlyDeletedPage[]; canChange: boolean; truncated: boolean }> {
   const access = await deps.open(owner, userId)
   const kept = await fromSite(deps, 'versions', false, () => deps.sites.versions(access.ref))
   const deleted = kept.versions.filter(v => v.change === 'deleted')
@@ -95,5 +95,6 @@ export async function recentlyDeleted(
       }
     }),
     canChange: access.canChange,
+    truncated: kept.truncated,
   }
 }

@@ -5,8 +5,8 @@
  * its text. A conversation's lead reaches the same service through its own tools (conversations/memory/
  * leadKnowledgeTools.ts), so a turn is refused here, as a connection is.
  *
- * The site names the run: it is the one that holds it and is authenticated as itself (dataApi.ts), so the id is
- * taken as given and used only to key the call's rate limit and record — it grants nothing.
+ * The site names the run, and hq checks it as set_result does: it must be a run of the capability's own session (and
+ * task), since the id keys the call's rate limit and the record of who changed what.
  */
 import {
   deleteKnowledge, editKnowledge, readKnowledge, searchKnowledge, writeKnowledge, type KnowledgeReach,
@@ -14,6 +14,7 @@ import {
 import { ControlPlaneError, type CallerContext } from './types'
 import { actingPerson } from './runPerson'
 import { runReach } from './knowledgeReach'
+import { runOfCapability } from './capabilityRun'
 
 type KnowledgeCall = (reach: KnowledgeReach, params: unknown) => Promise<string>
 type WithRun = Record<string, unknown> & { runId?: string }
@@ -26,6 +27,7 @@ function knowledgeOp(tool: string, call: KnowledgeCall) {
     const { claims } = ctx
     // The site leaves a never-listed tool out of the run's list; refused here too, so no other caller gets round it.
     if (claims.permissions.neverTools.includes(tool)) throw new ControlPlaneError('forbidden', `${tool} is not available for this agent`)
+    if (!(await runOfCapability(claims, runId))) throw new ControlPlaneError('forbidden', `${tool} names a run that is not this one`)
     const { userId } = await actingPerson(ctx, tool)
     return call(await runReach(claims, userId, runId), params)
   }

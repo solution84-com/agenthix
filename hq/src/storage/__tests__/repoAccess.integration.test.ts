@@ -70,7 +70,7 @@ describe('the location access rule at the repository operations', () => {
 
   it("reads, connects and disconnects the caller's own files, on the site that holds them", async () => {
     const mine = { ownerType: 'user' as const, ownerId: me.id }
-    await expect(getRepoStateQuery({ target: mine }, { user: me })).resolves.toEqual({ repoUrl: null, isGitRepo: false, hasFiles: true })
+    await expect(getRepoStateQuery({ target: mine }, { user: me })).resolves.toEqual({ repoUrl: null, isGitRepo: false, hasFiles: true, mayAdminister: true })
     await expect(connectRepoAction({ target: mine, mode: 'init', name: 'mine' }, { user: me })).resolves.toMatchObject({ repoUrl: 'https://github.com/o/r' })
     await expect(disconnectRepoAction({ target: mine }, { user: me })).resolves.toBeUndefined()
     expect(h.disconnectRepo).toHaveBeenCalledWith(siteId, mine)
@@ -95,6 +95,19 @@ describe("a project's repository attachments are its admin's @SC-304", () => {
     const target = await projectWith('MEMBER')
     await expect(connectRepoAction({ target, mode: 'init' }, { user: me })).rejects.toMatchObject({ statusCode: 403 })
     await expect(disconnectRepoAction({ target }, { user: me })).rejects.toMatchObject({ statusCode: 403 })
+    expect(reachedTheRepo()).toBe(0)
+  })
+
+  it('says whether the person may administer, so the screens offer the buttons only to those who may', async () => {
+    await expect(getRepoStateQuery({ target: await projectWith('ADMIN') }, { user: me })).resolves.toMatchObject({ mayAdminister: true })
+    await expect(getRepoStateQuery({ target: await projectWith('MEMBER') }, { user: me })).resolves.toMatchObject({ mayAdminister: false })
+  })
+
+  it("refuses a task's folder as the target of any of the three, reaching no repository", async () => {
+    const target = { ...(await projectWith('ADMIN')), taskId: 'some-task' }
+    await expect(getRepoStateQuery({ target }, { user: me })).rejects.toMatchObject({ statusCode: 400 })
+    await expect(connectRepoAction({ target, mode: 'init' }, { user: me })).rejects.toMatchObject({ statusCode: 400 })
+    await expect(disconnectRepoAction({ target }, { user: me })).rejects.toMatchObject({ statusCode: 400 })
     expect(reachedTheRepo()).toBe(0)
   })
 

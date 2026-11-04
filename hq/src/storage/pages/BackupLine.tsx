@@ -23,6 +23,8 @@ export function BackupLine({ owner }: { owner: Owner }) {
     return <p role="status" className="px-4 py-2.5 text-small text-text-muted">The GitHub backup could not be read right now.</p>
   }
   if (!state) return null
+  // Connecting and disconnecting are a project administrator's; an old answer without the flag leaves it to the server.
+  const mayAdminister = state.mayAdminister !== false
 
   return (
     <div className="border-b border-border-subtle">
@@ -34,16 +36,16 @@ export function BackupLine({ owner }: { owner: Owner }) {
               Backed up to{' '}
               <a href={state.repoUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-text-primary hover:underline">{repoName(state.repoUrl)}</a>
             </span>
-            <button type="button" className="text-accent hover:underline" aria-expanded={open} onClick={() => setOpen(o => !o)}>Manage</button>
+            {mayAdminister && <button type="button" className="text-accent hover:underline" aria-expanded={open} onClick={() => setOpen(o => !o)}>Manage</button>}
           </>
         ) : (
           <>
             <span className="flex-1">Not backed up</span>
-            <button type="button" className={FILES_BUTTON} aria-expanded={open} onClick={() => setOpen(o => !o)}>Back up to GitHub</button>
+            {mayAdminister && <button type="button" className={FILES_BUTTON} aria-expanded={open} onClick={() => setOpen(o => !o)}>Back up to GitHub</button>}
           </>
         )}
       </div>
-      {open && <div className="px-4 pb-3"><RepoPanel target={owner} /></div>}
+      {open && mayAdminister && <div className="px-4 pb-3"><RepoPanel target={owner} /></div>}
     </div>
   )
 }

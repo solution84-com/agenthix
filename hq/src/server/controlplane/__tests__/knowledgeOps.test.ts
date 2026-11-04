@@ -8,6 +8,8 @@ import type { CapabilityClaims } from '@agenthix/core'
 
 const h = vi.hoisted(() => ({
   findUnique: vi.fn(),
+  getRun: vi.fn(),
+  lastClaims: { sessionId: 's1', taskId: 't1' as string | null },
   actingPerson: vi.fn(),
   search: vi.fn(async (_reach: unknown, _params: unknown) => 'search text'),
   read: vi.fn(async (_reach: unknown, _params: unknown) => 'read text'),
@@ -17,6 +19,7 @@ const h = vi.hoisted(() => ({
 }))
 
 vi.mock('wasp/server', () => ({ prisma: { project: { findUnique: h.findUnique } } }))
+vi.mock('../../../sessions/siteRuntimeStore', () => ({ getRun: h.getRun }))
 vi.mock('../runPerson', () => ({ actingPerson: h.actingPerson }))
 vi.mock('../../../knowledge', () => ({
   searchKnowledge: h.search, readKnowledge: h.read, writeKnowledge: h.write, editKnowledge: h.edit, deleteKnowledge: h.del,
@@ -33,7 +36,7 @@ const WRITES = { bypassed: false, allowedTools: [{ name: 'write_file', state: 'a
 const READS_ONLY = { bypassed: false, allowedTools: [{ name: 'read_file', state: 'always' as const }], allowedBashPatterns: [], neverTools: [] }
 
 function run(overrides: Partial<CapabilityClaims> = {}): CallerContext {
-  return {
+  const ctx: CallerContext = {
     kind: 'run',
     claims: {
       tokenType: 'capability', userId: 'u-owner', runner: { kind: 'project', projectId: 'p1' }, startedBy: 'person',
@@ -41,6 +44,9 @@ function run(overrides: Partial<CapabilityClaims> = {}): CallerContext {
       siteId: 'site-1', permissions: WRITES, ...overrides,
     },
   }
+  // The site holds a run of this capability's own session and task under whatever id it is asked for.
+  h.lastClaims = ctx.kind === 'run' ? { sessionId: ctx.claims.sessionId, taskId: ctx.claims.taskId } : h.lastClaims
+  return ctx
 }
 
 const shop = { id: 'p1', slug: 'shop', key: 'SHP', personalOwnerId: null, personalSpace: false }
@@ -48,6 +54,7 @@ const shop = { id: 'p1', slug: 'shop', key: 'SHP', personalOwnerId: null, person
 beforeEach(() => {
   vi.clearAllMocks()
   h.findUnique.mockResolvedValue(shop)
+  h.getRun.mockImplementation(async (_site: string, id: string) => ({ id, status: 'RUNNING', ...h.lastClaims }))
   h.actingPerson.mockResolvedValue({ userId: 'u-person', role: 'MEMBER' })
 })
 
@@ -133,6 +140,17 @@ describe('refusals @SC-1408', () => {
     await refusal(searchKnowledgeOp(turnCaller(), { pattern: 'x', runId: 'r' }), 'forbidden')
     await refusal(searchKnowledgeOp(connectionCaller(), { pattern: 'x', runId: 'r' }), 'forbidden')
     expect(h.search).not.toHaveBeenCalled()
+  })
+
+  it("refuses a run id that is not of the capability's own session or task, before the service is asked", async () => {
+    h.getRun.mockResolvedValueOnce({ id: 'run-9', status: 'RUNNING', sessionId: 'other-session', taskId: 't1' })
+    await refusal(searchKnowledgeOp(run(), { pattern: 'x', runId: 'run-9' }), 'forbidden')
+    h.getRun.mockResolvedValueOnce({ id: 'run-9', status: 'RUNNING', sessionId: 's1', taskId: 'other-task' })
+    await refusal(writeKnowledgeOp(run(), { page: 'shop:a.md', content: 'x', runId: 'run-9' }), 'forbidden')
+    h.getRun.mockResolvedValueOnce(null)
+    await refusal(readKnowledgeOp(run(), { page: 'shop:a.md', runId: 'gone' }), 'forbidden')
+    expect(h.getRun).toHaveBeenCalledWith('site-1', 'run-9')
+    for (const fn of [h.search, h.write, h.read]) expect(fn).not.toHaveBeenCalled()
   })
 
   it('refuses a call the site did not name its run for', async () => {

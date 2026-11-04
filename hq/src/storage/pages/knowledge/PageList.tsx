@@ -35,7 +35,7 @@ function TextSearch({ owner, personal, query, onOpen }: { owner: KnowledgeOwner;
       ) : !found.data ? (
         <FilesQuietLine>Searching…</FilesQuietLine>
       ) : (
-        <SearchResults hits={found.data} personal={personal} onOpen={onOpen} />
+        <SearchResults hits={found.data} unanswered={found.unanswered} personal={personal} onOpen={onOpen} />
       )}
     </section>
   )

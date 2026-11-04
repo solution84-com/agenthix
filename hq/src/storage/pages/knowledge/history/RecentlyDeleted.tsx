@@ -84,6 +84,11 @@ export function RecentlyDeleted({ owner, canChange, onBack, now = new Date() }: 
           ))}
         </ul>
       )}
+      {deleted.truncated && (
+        <p role="status" data-testid="deleted-truncated" className="px-4 py-3 text-small text-text-muted">
+          More pages were deleted than are listed here. Only the newest {rows.length} are shown; the rest cannot be restored from this screen.
+        </p>
+      )}
       <p className="px-4 py-3 text-micro text-text-muted">Restore puts the page back at its path, or beside it if a page has taken the path since.</p>
       <ConfirmForGood
         open={asking !== null}

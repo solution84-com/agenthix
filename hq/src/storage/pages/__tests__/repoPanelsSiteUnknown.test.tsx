@@ -97,6 +97,20 @@ describe('RepoPanel while the state is still loading', () => {
   })
 })
 
+describe('RepoPanel for someone who may not administer the project', () => {
+  it('shows the repository without Disconnect, and no connect flow where none is connected', () => {
+    answerWith({ data: { repoUrl: 'https://github.com/acme/docs', isGitRepo: true, hasFiles: true, mayAdminister: false } })
+    const { unmount } = render(<RepoPanel target={target} />)
+    expect(screen.getByText('https://github.com/acme/docs')).toBeDefined()
+    expect(screen.queryByRole('button', { name: /Disconnect/ })).toBeNull()
+    unmount()
+    answerWith({ data: { repoUrl: null, isGitRepo: false, hasFiles: false, mayAdminister: false } })
+    render(<RepoPanel target={target} />)
+    expect(screen.getByText(/Only a project administrator can connect a repository/)).toBeDefined()
+    expect(enabledButtons()).toHaveLength(0)
+  })
+})
+
 describe('OperationsPanel when the state cannot be read @SC-1321', () => {
   it('renders the reason rather than disappearing', () => {
     answerWith({ error: new Error(SITE_DOWN) })

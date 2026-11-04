@@ -40,9 +40,10 @@ export function useVersionText(owner: KnowledgeOwner, page: string, versionId: s
   return read({ data: (q.data as { content: string } | undefined)?.content, isLoading: q.isLoading, error: q.error })
 }
 
-export function useDeletedPages(owner: KnowledgeOwner): Read<DeletedRow[]> {
+export function useDeletedPages(owner: KnowledgeOwner): Read<DeletedRow[]> & { truncated?: boolean } {
   const q = useQuery(recentlyDeletedKnowledge, { owner }, { retry: retryUnlessGone })
-  return read({ data: (q.data as { pages: DeletedRow[] } | undefined)?.pages, isLoading: q.isLoading, error: q.error })
+  const answer = q.data as { pages: DeletedRow[]; truncated?: boolean } | undefined
+  return { ...read<DeletedRow[]>({ data: answer?.pages, isLoading: q.isLoading, error: q.error }), truncated: answer?.truncated }
 }
 
 export function useHistoryActions() {

@@ -40,15 +40,17 @@ export function RepoPanel({ target, repoName }: { target: ExplorerTarget; repoNa
     )
   }
 
+  const mayAdminister = state?.mayAdminister !== false
+
   if (state?.repoUrl && !connectedHere) {
     return (
       <section className="space-y-3">
         <Heading />
         <div className="flex items-center justify-between">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-micro font-medium bg-success/15 text-success">Connected</span>
-          <button onClick={async () => { setBusy(true); setError(null); try { await disconnect({ target }) } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed') } finally { setBusy(false) } }} disabled={busy} className="flex items-center gap-1.5 px-2.5 py-1 text-micro font-medium text-text-muted hover:text-danger border border-border hover:border-danger/30 rounded-lg transition-all">
+          {mayAdminister && <button onClick={async () => { setBusy(true); setError(null); try { await disconnect({ target }) } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed') } finally { setBusy(false) } }} disabled={busy} className="flex items-center gap-1.5 px-2.5 py-1 text-micro font-medium text-text-muted hover:text-danger border border-border hover:border-danger/30 rounded-lg transition-all">
             {busy ? <Loader2 size={11} className="animate-spin" /> : <Unlink size={11} />} Disconnect
-          </button>
+          </button>}
         </div>
         <a href={state.repoUrl} target="_blank" rel="noopener noreferrer" className="block text-micro text-accent/70 font-mono break-all hover:text-accent rounded-xl bg-surface-1 border border-border-subtle p-3">{state.repoUrl}</a>
         {error && <p className="text-small text-danger">{error}</p>}
@@ -60,12 +62,13 @@ export function RepoPanel({ target, repoName }: { target: ExplorerTarget; repoNa
     <section className="space-y-3">
       <Heading />
       {stateLoading && <p className="text-small text-text-muted">Reading this location's repository state…</p>}
-      {!appRegistered && (
+      {mayAdminister && !appRegistered && (
         <div className="rounded-xl bg-warning/[0.06] border border-warning/15 p-4 text-small text-warning/80">
           No GitHub App connected. Register one under <span className="font-semibold">Manage organisation › Settings › GitHub</span> first, then connect a repository here.
         </div>
       )}
-      {appRegistered && !stateLoading && state && (
+      {!mayAdminister && <p className="text-small text-text-muted">Only a project administrator can connect a repository here.</p>}
+      {mayAdminister && appRegistered && !stateLoading && state && (
         <div className="rounded-xl bg-surface-1 border border-border-subtle p-4">
           <ConnectRepoFlow target={target} defaultName={repoName ?? ''} hasFiles={state.hasFiles} onConnected={() => setConnectedHere(true)} />
         </div>

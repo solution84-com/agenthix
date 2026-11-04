@@ -71,28 +71,24 @@ async function resolveProjectStorageSite(projectId: string): Promise<string> {
  * and lost this race on a 2-CPU machine.)
  */
 export async function ensureUserStoragePlacement(userId: string): Promise<string> {
-  const existing = await prisma.userStoragePlacement.findUnique({
-    where: { userId },
-    select: { site: { select: { siteId: true } } },
-  })
-  if (existing) return existing.site.siteId
+  return (await ensureUserStoragePlacementRef(userId)).siteId
+}
+
+/** The same placement as both id spaces: the Execution Site's row id (what a workspace anchors to) and its logical `siteId`. */
+export async function ensureUserStoragePlacementRef(userId: string): Promise<{ id: string; siteId: string }> {
+  const select = { site: { select: { id: true, siteId: true } } } as const
+  const existing = await prisma.userStoragePlacement.findUnique({ where: { userId }, select })
+  if (existing) return existing.site
 
   const local = await requireDefaultSiteRef()
 
   try {
-    const placement = await prisma.userStoragePlacement.create({
-      data: { userId, siteId: local.id },
-      select: { site: { select: { siteId: true } } },
-    })
-    return placement.site.siteId
+    const placement = await prisma.userStoragePlacement.create({ data: { userId, siteId: local.id }, select })
+    return placement.site
   } catch (err) {
     // A simultaneous first resolution wrote it first: theirs stands.
     if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) throw err
-    const placed = await prisma.userStoragePlacement.findUniqueOrThrow({
-      where: { userId },
-      select: { site: { select: { siteId: true } } },
-    })
-    return placed.site.siteId
+    return (await prisma.userStoragePlacement.findUniqueOrThrow({ where: { userId }, select })).site
   }
 }
 

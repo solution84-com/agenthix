@@ -1,11 +1,10 @@
 /**
  * Resolves the logical siteId (SiteConfig.siteId — what a channel request
  * addresses, see workspaceStore.ts's header comment) that owns a given
- * owner's storage: a project's own Execution Site, or the default site for a
- * person's own storage — the same rule `createWorkspaceAction` (actions.ts)
- * applies at creation time, so a repo/files read for an owner resolves to the
- * same site its workspaces were placed on. A person's own storage cannot be
- * placed on any site but the default.
+ * owner's storage: a project's own Execution Site, or the site a person's own
+ * storage is placed on (`ensureUserStoragePlacement`, written at the default
+ * site the first time) — the same answer `resolveStorageSite` gives and
+ * `createWorkspaceAction` (actions.ts) places a person's workspaces by.
  *
  * Null means a project that names no site. With no Execution Site connected
  * at all, a person's storage has nowhere to be and this throws the shared
@@ -13,7 +12,7 @@
  */
 import { prisma } from 'wasp/server'
 import type { WorkspaceOwnerType } from '@prisma/client'
-import { requireDefaultSiteId } from '../sites/localSite'
+import { ensureUserStoragePlacement } from './storageSite'
 
 export async function resolveOwnerSiteId(ownerType: WorkspaceOwnerType, ownerId: string): Promise<string | null> {
   if (ownerType === 'project') {
@@ -23,5 +22,5 @@ export async function resolveOwnerSiteId(ownerType: WorkspaceOwnerType, ownerId:
     })
     return project?.executionSite?.siteId ?? null
   }
-  return requireDefaultSiteId()
+  return ensureUserStoragePlacement(ownerId)
 }

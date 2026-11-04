@@ -122,6 +122,15 @@ describe('history and recently deleted', () => {
   })
 })
 
+describe('recently deleted, cut short', () => {
+  it('says when the site listed fewer deleted pages than there are', async () => {
+    const f = setup()
+    const versions = f.sites.versions
+    f.sites.versions = async (...a) => { const r = await versions(...a); return r.ok ? { ...r, value: { ...r.value, truncated: true } } : r }
+    expect((await recentlyDeleted(f.deps, web, 'vic')).truncated).toBe(true)
+  })
+})
+
 describe('search @SC-1426', () => {
   it('searches this place and the organisation by default, each hit marked with its level', async () => {
     const f = setup()
@@ -190,5 +199,28 @@ describe('search @SC-1426', () => {
     expect((await searchPages(f.deps, web, { pattern: '   ' }, 'sam')).hits).toEqual([])
     expect(f.sites.calls.length).toBe(before)
     await expect(searchPages(f.deps, web, { pattern: 'x'.repeat(201) }, 'sam')).rejects.toMatchObject({ status: 400 })
+  })
+
+  it("searches a person's own space on its own, and with This project reads no organisation page @SC-1426", async () => {
+    const f = setup()
+    const mine = { ownerType: 'user' as const, ownerId: 'sam' }
+    f.sites.put({ ownerType: 'user', ownerId: 'sam' }, 'notes/mine.md', '---\ntitle: Mine\n---\nRelease reminders for me.\n')
+    f.allow(mine, 'sam', 'changes')
+    const answer = await searchPages(f.deps, mine, { pattern: 'release', scope: 'this' }, 'sam')
+    expect(answer.levels).toEqual([{ level: 'personal', name: 'Your space' }])
+    expect(answer.hits.map(h => [h.level, h.page])).toEqual([['personal', 'notes/mine.md']])
+  })
+
+  it('allows a person 120 searches a minute, then refuses with a wait @SC-1427', async () => {
+    const f = setup()
+    const person = 'searcher-limit'
+    f.allow(web, person, 'reads')
+    f.allow(org, person, 'reads')
+    for (let i = 0; i < 120; i++) await searchPages(f.deps, web, { pattern: 'release', scope: 'this' }, person)
+    await expect(searchPages(f.deps, web, { pattern: 'release', scope: 'this' }, person))
+      .rejects.toMatchObject({ status: 429, message: expect.stringMatching(/Wait a moment/) })
+    // Another person is not held up by it, and the limit is on typing a search, not on empty ones.
+    expect((await searchPages(f.deps, web, { pattern: 'release', scope: 'this' }, 'sam')).hits.length).toBeGreaterThan(0)
+    expect((await searchPages(f.deps, web, { pattern: '', scope: 'this' }, person)).hits).toEqual([])
   })
 })

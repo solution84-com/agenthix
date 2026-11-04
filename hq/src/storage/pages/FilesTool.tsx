@@ -43,6 +43,9 @@ export function FilesTool({ owner }: { owner: Owner }) {
     </div>
   )
 
+  // Not laid out yet: the open file's frame mounts once, in the layout it will stay in.
+  if (wide === null) return <div ref={root} className="flex min-h-0 flex-1 flex-col" />
+
   if (wide) {
     return (
       <div ref={root} className="flex min-h-0 flex-1 flex-col bg-surface-1">
